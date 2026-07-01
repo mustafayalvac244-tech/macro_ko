@@ -31,6 +31,23 @@ legal deadlines, and case documents — built with Expo (React Native) and Supab
    Then press `i` for iOS simulator, `a` for Android emulator, or scan the QR
    code with Expo Go on a physical device.
 
+## Run on a Phone (installable APK)
+
+Expo Go on the store may not support this SDK yet, so the reliable way to run on
+a device is a standalone APK built with EAS — no Expo Go required. Step-by-step
+instructions (Turkish) are in [`KURULUM.md`](./KURULUM.md). In short:
+
+```bash
+npm install -g eas-cli
+eas login          # free Expo account
+eas init
+# put your Supabase URL + anon key into eas.json (preview profile env)
+eas build -p android --profile preview
+```
+
+The build runs in Expo's cloud (~15 min) and returns a download link; install
+the APK on Android. Build profiles are defined in [`eas.json`](./eas.json).
+
 ## Project Structure
 
 ```
