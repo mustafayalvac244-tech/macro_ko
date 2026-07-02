@@ -2,8 +2,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing, typography } from '@/theme/theme';
-import { formatDateTime, relativeDueLabel, isOverdue } from '@/utils/format';
-import { titleCase } from '@/utils/format';
+import { formatDateTime, isOverdue, relativeDueLabel } from '@/utils/format';
+import { useT } from '@/i18n';
 import type { Hearing, HearingWithCase } from '@/types/database';
 
 const HEARING_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -23,6 +23,7 @@ interface HearingListItemProps {
 }
 
 export function HearingListItem({ hearing, onPress, showCase = true }: HearingListItemProps) {
+  const t = useT();
   const overdue = !hearing.is_completed && isOverdue(hearing.scheduled_at);
   const caseInfo = 'case' in hearing ? hearing.case : null;
 
@@ -41,7 +42,7 @@ export function HearingListItem({ hearing, onPress, showCase = true }: HearingLi
           </Text>
         )}
         <Text style={styles.meta} numberOfLines={1}>
-          {titleCase(hearing.type)} · {formatDateTime(hearing.scheduled_at)}
+          {t(`hearingType.${hearing.type}` as const)} · {formatDateTime(hearing.scheduled_at)}
         </Text>
       </View>
       <Text style={[styles.due, overdue && styles.dueOverdue]}>{relativeDueLabel(hearing.scheduled_at)}</Text>

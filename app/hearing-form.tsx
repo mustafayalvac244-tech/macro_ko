@@ -10,29 +10,23 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCase } from '@/hooks/useCases';
 import { useCreateHearing, useHearingsForCase, useUpdateHearing } from '@/hooks/useHearings';
+import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 import { formatDateTime } from '@/utils/format';
 import type { HearingType } from '@/types/database';
 
-const TYPE_OPTIONS: { label: string; value: HearingType }[] = [
-  { label: 'Hearing', value: 'hearing' },
-  { label: 'Trial', value: 'trial' },
-  { label: 'Mediation', value: 'mediation' },
-  { label: 'Deposition', value: 'deposition' },
-  { label: 'Filing', value: 'filing' },
-  { label: 'Meeting', value: 'meeting' },
-  { label: 'Other', value: 'other' },
-];
+const TYPE_VALUES: HearingType[] = ['hearing', 'trial', 'mediation', 'deposition', 'filing', 'meeting', 'other'];
 
-const REMINDER_OPTIONS = [
-  { label: '30 min before', value: '30' },
-  { label: '1 hour before', value: '60' },
-  { label: '1 day before', value: '1440' },
-  { label: '3 days before', value: '4320' },
-  { label: '1 week before', value: '10080' },
-];
+const REMINDER_VALUES = [
+  { key: 'reminder.30m', value: '30' },
+  { key: 'reminder.1h', value: '60' },
+  { key: 'reminder.1d', value: '1440' },
+  { key: 'reminder.3d', value: '4320' },
+  { key: 'reminder.1w', value: '10080' },
+] as const;
 
 export default function HearingFormScreen() {
+  const t = useT();
   const { caseId, id } = useLocalSearchParams<{ caseId: string; id?: string }>();
   const isEdit = !!id;
   const { data: caseItem } = useCase(caseId);
@@ -63,6 +57,9 @@ export default function HearingFormScreen() {
 
   const isSubmitting = createHearing.isPending || updateHearing.isPending;
 
+  const typeOptions = TYPE_VALUES.map((value) => ({ value, label: t(`hearingType.${value}` as const) }));
+  const reminderOptions = REMINDER_VALUES.map(({ key, value }) => ({ value, label: t(key) }));
+
   const handleSubmit = async () => {
     if (!caseItem) return;
     const payload = {
@@ -86,16 +83,16 @@ export default function HearingFormScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <ScreenHeader title={isEdit ? 'Edit Hearing' : 'New Hearing'} subtitle={caseItem?.title} showBack />
+      <ScreenHeader title={isEdit ? t('hearingForm.editTitle') : t('hearingForm.newTitle')} subtitle={caseItem?.title} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Input label="Title" placeholder="Preliminary Hearing" value={title} onChangeText={setTitle} />
+          <Input label={t('hearingForm.title')} placeholder={t('hearingForm.titlePlaceholder')} value={title} onChangeText={setTitle} />
 
-          <Text style={styles.label}>Type</Text>
-          <SegmentedControl options={TYPE_OPTIONS} value={type} onChange={setType} />
+          <Text style={styles.label}>{t('hearingForm.type')}</Text>
+          <SegmentedControl options={typeOptions} value={type} onChange={setType} />
 
           <View style={styles.spacer} />
-          <Text style={styles.label}>Scheduled date &amp; time</Text>
+          <Text style={styles.label}>{t('hearingForm.datetime')}</Text>
           <Pressable style={styles.dateButton} onPress={() => setShowPicker('date')}>
             <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
             <Text style={styles.dateButtonText}>{formatDateTime(scheduledAt.toISOString())}</Text>
@@ -126,19 +123,19 @@ export default function HearingFormScreen() {
             />
           )}
           {Platform.OS === 'ios' && showPicker && (
-            <Button label="Done" size="sm" variant="secondary" onPress={() => setShowPicker(null)} style={styles.pickerDone} />
+            <Button label={t('common.done')} size="sm" variant="secondary" onPress={() => setShowPicker(null)} style={styles.pickerDone} />
           )}
 
           <View style={styles.spacer} />
-          <Input label="Location" placeholder="Courtroom 4B, 123 Justice Ave" value={location} onChangeText={setLocation} />
+          <Input label={t('hearingForm.location')} placeholder={t('hearingForm.locationPlaceholder')} value={location} onChangeText={setLocation} />
 
-          <Text style={styles.label}>Remind me</Text>
-          <SegmentedControl options={REMINDER_OPTIONS} value={reminder} onChange={setReminder} />
+          <Text style={styles.label}>{t('hearingForm.remind')}</Text>
+          <SegmentedControl options={reminderOptions} value={reminder} onChange={setReminder} />
 
           <View style={styles.spacer} />
           <Input
-            label="Notes"
-            placeholder="Bring exhibits A-C, meet client 30 min prior..."
+            label={t('hearingForm.notes')}
+            placeholder={t('hearingForm.notesPlaceholder')}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -147,7 +144,7 @@ export default function HearingFormScreen() {
           />
 
           <Button
-            label={isEdit ? 'Save Changes' : 'Schedule Hearing'}
+            label={isEdit ? t('common.save') : t('hearingForm.schedule')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!title.trim()}

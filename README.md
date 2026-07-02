@@ -1,7 +1,8 @@
-# Macro Ko — Legal Case & Document Management
+# Vekil — Legal Case & Document Management
 
 A cross-platform mobile app for lawyers to track cases, clients, court hearings,
 legal deadlines, and case documents — built with Expo (React Native) and Supabase.
+Fully bilingual (Turkish by default, English switchable in Settings).
 
 ## Tech Stack
 

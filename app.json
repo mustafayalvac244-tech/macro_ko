@@ -1,13 +1,19 @@
 {
   "expo": {
-    "name": "Macro Ko",
+    "name": "Vekil",
     "slug": "macro_ko",
     "version": "1.0.0",
-    "scheme": "macroko",
+    "scheme": "vekil",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0B1220",
+    "backgroundColor": "#0A1122",
+    "owner": "olivyeejiru",
+    "extra": {
+      "eas": {
+        "projectId": "7645a179-55d0-45a2-a1f7-1208d82140c8"
+      }
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.macroko.legal",
@@ -18,7 +24,7 @@
     "android": {
       "package": "com.macroko.legal",
       "adaptiveIcon": {
-        "backgroundColor": "#0B1220",
+        "backgroundColor": "#0A1122",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -33,14 +39,22 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0A1122"
+        }
+      ],
       "expo-font",
       "expo-secure-store",
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#1E3A5F"
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#C9A24B"
         }
       ],
       [
@@ -52,7 +66,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Macro Ko to access your photos to attach case documents."
+          "photosPermission": "Allow Vekil to access your photos to attach case documents."
         }
       ]
     ],

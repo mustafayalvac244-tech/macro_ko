@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { colors, spacing, typography } from '@/theme/theme';
+import { useT } from '@/i18n';
 import type { Client } from '@/types/database';
 
 interface ClientListItemProps {
@@ -12,6 +13,7 @@ interface ClientListItemProps {
 }
 
 export function ClientListItem({ client, onPress }: ClientListItemProps) {
+  const t = useT();
   return (
     <Card onPress={onPress} style={styles.card}>
       <View style={styles.row}>
@@ -21,7 +23,7 @@ export function ClientListItem({ client, onPress }: ClientListItemProps) {
             {client.full_name}
           </Text>
           <Text style={styles.meta} numberOfLines={1}>
-            {client.company || client.email || client.phone || 'No contact details'}
+            {client.company || client.email || client.phone || t('clients.noContact')}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />

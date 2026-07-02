@@ -11,9 +11,11 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { CaseListItem } from '@/components/cases/CaseListItem';
 import { useClient, useDeleteClient } from '@/hooks/useClients';
 import { useCasesByClient } from '@/hooks/useCases';
+import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 
 export default function ClientDetailScreen() {
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: client, isLoading } = useClient(id);
   const { data: cases } = useCasesByClient(id);
@@ -22,16 +24,16 @@ export default function ClientDetailScreen() {
   if (isLoading || !client) {
     return (
       <Screen>
-        <ScreenHeader title="Client" showBack />
+        <ScreenHeader title={t('client.title')} showBack />
       </Screen>
     );
   }
 
   const handleDelete = () => {
-    Alert.alert('Delete Client', `Delete "${client.full_name}"? Linked cases will remain but unassigned.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('client.delete'), t('client.deleteConfirm', { name: client.full_name }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await deleteClient.mutateAsync(client.id);
@@ -43,7 +45,12 @@ export default function ClientDetailScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title={client.full_name} showBack rightIcon="create-outline" onRightPress={() => router.push(`/client-form?id=${client.id}`)} />
+      <ScreenHeader
+        title={client.full_name}
+        showBack
+        rightIcon="create-outline"
+        onRightPress={() => router.push(`/client-form?id=${client.id}`)}
+      />
 
       <ScrollView contentContainerStyle={styles.content}>
         <Card style={styles.profileCard}>
@@ -62,14 +69,14 @@ export default function ClientDetailScreen() {
 
         {client.notes && (
           <Card style={styles.notesCard}>
-            <Text style={styles.sectionLabel}>Notes</Text>
+            <Text style={styles.sectionLabel}>{t('client.notes')}</Text>
             <Text style={styles.notes}>{client.notes}</Text>
           </Card>
         )}
 
         <SectionHeader
-          title="Linked Cases"
-          actionLabel="New Case"
+          title={t('client.linkedCases')}
+          actionLabel={t('dash.newCase')}
           onAction={() => router.push(`/case-form?clientId=${client.id}`)}
         />
         <Card>
@@ -77,16 +84,19 @@ export default function ClientDetailScreen() {
             <View>
               {cases.map((c) => (
                 <View key={c.id} style={styles.caseWrap}>
-                  <CaseListItem caseItem={{ ...c, client: { id: client.id, full_name: client.full_name, company: client.company } }} onPress={() => router.push(`/(app)/cases/${c.id}`)} />
+                  <CaseListItem
+                    caseItem={{ ...c, client: { id: client.id, full_name: client.full_name, company: client.company } }}
+                    onPress={() => router.push(`/(app)/cases/${c.id}`)}
+                  />
                 </View>
               ))}
             </View>
           ) : (
-            <EmptyState icon="briefcase-outline" title="No cases linked" description="Cases for this client will appear here." />
+            <EmptyState icon="briefcase-outline" title={t('client.noCases')} description={t('client.noCasesDesc')} />
           )}
         </Card>
 
-        <Button label="Delete Client" variant="danger" onPress={handleDelete} style={styles.deleteButton} />
+        <Button label={t('client.delete')} variant="danger" onPress={handleDelete} style={styles.deleteButton} />
       </ScrollView>
     </Screen>
   );

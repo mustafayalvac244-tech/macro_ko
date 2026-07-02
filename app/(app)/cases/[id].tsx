@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
@@ -16,13 +17,14 @@ import { useCase, useDeleteCase } from '@/hooks/useCases';
 import { useHearingsForCase } from '@/hooks/useHearings';
 import { useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useDocuments, useSignedDocumentUrl } from '@/hooks/useDocuments';
+import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 import { formatDate } from '@/utils/format';
-import * as Linking from 'expo-linking';
 
 type Tab = 'overview' | 'hearings' | 'deadlines' | 'documents';
 
 export default function CaseDetailScreen() {
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>('overview');
 
@@ -37,16 +39,16 @@ export default function CaseDetailScreen() {
   if (isLoading || !caseItem) {
     return (
       <Screen>
-        <ScreenHeader title="Case" showBack />
+        <ScreenHeader title={t('case.title')} showBack />
       </Screen>
     );
   }
 
   const handleDelete = () => {
-    Alert.alert('Delete Case', `Delete "${caseItem.title}" and all linked hearings, deadlines, and documents?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('case.delete'), t('case.deleteConfirm', { title: caseItem.title }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await deleteCase.mutateAsync(caseItem.id);
@@ -74,22 +76,26 @@ export default function CaseDetailScreen() {
           </View>
 
           {caseItem.client && (
-            <InfoRow label="Client" value={caseItem.client.full_name} onPress={() => router.push(`/(app)/clients/${caseItem.client!.id}`)} />
+            <InfoRow
+              label={t('case.client')}
+              value={caseItem.client.full_name}
+              onPress={() => router.push(`/(app)/clients/${caseItem.client!.id}`)}
+            />
           )}
-          {caseItem.court_name && <InfoRow label="Court" value={caseItem.court_name} />}
-          {caseItem.case_type && <InfoRow label="Case Type" value={caseItem.case_type} />}
-          {caseItem.opposing_party && <InfoRow label="Opposing Party" value={caseItem.opposing_party} />}
-          <InfoRow label="Opened" value={formatDate(caseItem.opened_date)} />
-          {caseItem.closed_date && <InfoRow label="Closed" value={formatDate(caseItem.closed_date)} />}
+          {caseItem.court_name && <InfoRow label={t('case.court')} value={caseItem.court_name} />}
+          {caseItem.case_type && <InfoRow label={t('case.caseType')} value={caseItem.case_type} />}
+          {caseItem.opposing_party && <InfoRow label={t('case.opposingParty')} value={caseItem.opposing_party} />}
+          <InfoRow label={t('case.opened')} value={formatDate(caseItem.opened_date)} />
+          {caseItem.closed_date && <InfoRow label={t('case.closed')} value={formatDate(caseItem.closed_date)} />}
         </Card>
 
         <View style={styles.tabsWrap}>
           <SegmentedControl
             options={[
-              { label: 'Overview', value: 'overview' },
-              { label: 'Hearings', value: 'hearings' },
-              { label: 'Deadlines', value: 'deadlines' },
-              { label: 'Documents', value: 'documents' },
+              { label: t('case.tabOverview'), value: 'overview' },
+              { label: t('case.tabHearings'), value: 'hearings' },
+              { label: t('case.tabDeadlines'), value: 'deadlines' },
+              { label: t('case.tabDocuments'), value: 'documents' },
             ]}
             value={tab}
             onChange={(v) => setTab(v as Tab)}
@@ -98,14 +104,14 @@ export default function CaseDetailScreen() {
 
         {tab === 'overview' && (
           <Card>
-            <Text style={styles.sectionLabel}>Description</Text>
-            <Text style={styles.description}>{caseItem.description || 'No description added yet.'}</Text>
+            <Text style={styles.sectionLabel}>{t('case.description')}</Text>
+            <Text style={styles.description}>{caseItem.description || t('case.noDescription')}</Text>
           </Card>
         )}
 
         {tab === 'hearings' && (
           <View>
-            <SectionHeader title="Hearings" actionLabel="Add" onAction={() => router.push(`/hearing-form?caseId=${caseItem.id}`)} />
+            <SectionHeader title={t('case.tabHearings')} actionLabel={t('case.add')} onAction={() => router.push(`/hearing-form?caseId=${caseItem.id}`)} />
             <Card>
               {hearings.data && hearings.data.length > 0 ? (
                 hearings.data.map((hearing, index) => (
@@ -118,7 +124,7 @@ export default function CaseDetailScreen() {
                   </View>
                 ))
               ) : (
-                <EmptyState icon="hammer-outline" title="No hearings scheduled" />
+                <EmptyState icon="hammer-outline" title={t('case.noHearings')} />
               )}
             </Card>
           </View>
@@ -126,7 +132,7 @@ export default function CaseDetailScreen() {
 
         {tab === 'deadlines' && (
           <View>
-            <SectionHeader title="Deadlines" actionLabel="Add" onAction={() => router.push(`/deadline-form?caseId=${caseItem.id}`)} />
+            <SectionHeader title={t('case.tabDeadlines')} actionLabel={t('case.add')} onAction={() => router.push(`/deadline-form?caseId=${caseItem.id}`)} />
             <Card>
               {deadlines.data && deadlines.data.length > 0 ? (
                 deadlines.data.map((deadline, index) => (
@@ -146,7 +152,7 @@ export default function CaseDetailScreen() {
                   </View>
                 ))
               ) : (
-                <EmptyState icon="alert-circle-outline" title="No deadlines tracked" />
+                <EmptyState icon="alert-circle-outline" title={t('case.noDeadlines')} />
               )}
             </Card>
           </View>
@@ -154,7 +160,7 @@ export default function CaseDetailScreen() {
 
         {tab === 'documents' && (
           <View>
-            <SectionHeader title="Documents" actionLabel="Upload" onAction={() => router.push(`/document-upload?caseId=${caseItem.id}`)} />
+            <SectionHeader title={t('case.tabDocuments')} actionLabel={t('case.upload')} onAction={() => router.push(`/document-upload?caseId=${caseItem.id}`)} />
             <Card>
               {documents.data && documents.data.length > 0 ? (
                 documents.data.map((doc, index) => (
@@ -169,13 +175,13 @@ export default function CaseDetailScreen() {
                   </View>
                 ))
               ) : (
-                <EmptyState icon="folder-open-outline" title="No documents uploaded" />
+                <EmptyState icon="folder-open-outline" title={t('case.noDocuments')} />
               )}
             </Card>
           </View>
         )}
 
-        <Button label="Delete Case" variant="danger" onPress={handleDelete} style={styles.deleteButton} />
+        <Button label={t('case.delete')} variant="danger" onPress={handleDelete} style={styles.deleteButton} />
       </ScrollView>
     </Screen>
   );

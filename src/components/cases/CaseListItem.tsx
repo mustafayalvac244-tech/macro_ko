@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { CaseStatusBadge, PriorityBadge } from '@/components/ui/StatusBadge';
 import { colors, spacing, typography } from '@/theme/theme';
 import { formatDate } from '@/utils/format';
+import { useT } from '@/i18n';
 import type { CaseWithClient } from '@/types/database';
 
 interface CaseListItemProps {
@@ -13,6 +14,7 @@ interface CaseListItemProps {
 }
 
 export function CaseListItem({ caseItem, onPress }: CaseListItemProps) {
+  const t = useT();
   return (
     <Card onPress={onPress} style={styles.card}>
       <View style={styles.headerRow}>
@@ -31,7 +33,7 @@ export function CaseListItem({ caseItem, onPress }: CaseListItemProps) {
 
       <View style={styles.metaRow}>
         {caseItem.case_number && <Text style={styles.meta}>#{caseItem.case_number}</Text>}
-        <Text style={styles.meta}>Opened {formatDate(caseItem.opened_date)}</Text>
+        <Text style={styles.meta}>{t('case.openedLabel', { date: formatDate(caseItem.opened_date) })}</Text>
       </View>
 
       <View style={styles.badgeRow}>

@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
+import { hydrateLanguage } from '@/i18n';
 import { colors } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -24,6 +25,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     const unsubscribe = initialize();
+    hydrateLanguage().catch(() => {});
     registerForNotificationsAsync().catch(() => {});
     return unsubscribe;
   }, [initialize]);

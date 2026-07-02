@@ -6,9 +6,11 @@ import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
+import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 
 export default function SignupScreen() {
+  const t = useT();
   const [fullName, setFullName] = useState('');
   const [firmName, setFirmName] = useState('');
   const [email, setEmail] = useState('');
@@ -29,28 +31,28 @@ export default function SignupScreen() {
             <View style={styles.logoMark}>
               <Ionicons name="scale-outline" size={28} color={colors.gold} />
             </View>
-            <Text style={styles.brandName}>Macro Ko</Text>
+            <Text style={styles.brandName}>{t('app.name')}</Text>
           </View>
 
-          <Text style={styles.heading}>Create your account</Text>
-          <Text style={styles.subheading}>Set up your practice workspace in seconds.</Text>
+          <Text style={styles.heading}>{t('auth.createHeading')}</Text>
+          <Text style={styles.subheading}>{t('auth.signupSubtitle')}</Text>
 
-          <Input label="Full name" icon="person-outline" placeholder="Jordan Blake, Esq." value={fullName} onChangeText={setFullName} />
-          <Input label="Firm name (optional)" icon="business-outline" placeholder="Blake & Partners LLP" value={firmName} onChangeText={setFirmName} />
+          <Input label={t('auth.fullName')} icon="person-outline" placeholder={t('auth.fullNamePlaceholder')} value={fullName} onChangeText={setFullName} />
+          <Input label={t('auth.firmName')} icon="business-outline" placeholder={t('auth.firmNamePlaceholder')} value={firmName} onChangeText={setFirmName} />
           <Input
-            label="Email"
+            label={t('auth.email')}
             icon="mail-outline"
             autoCapitalize="none"
             keyboardType="email-address"
-            placeholder="you@lawfirm.com"
+            placeholder={t('auth.emailPlaceholder')}
             value={email}
             onChangeText={setEmail}
           />
           <Input
-            label="Password"
+            label={t('auth.password')}
             icon="lock-closed-outline"
             secureTextEntry
-            placeholder="At least 6 characters"
+            placeholder={t('auth.passwordHint')}
             value={password}
             onChangeText={setPassword}
           />
@@ -58,7 +60,7 @@ export default function SignupScreen() {
           {error && <Text style={styles.error}>{error}</Text>}
 
           <Button
-            label="Create Account"
+            label={t('auth.createAccountBtn')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!email || !password || !fullName}
@@ -68,9 +70,9 @@ export default function SignupScreen() {
           />
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={styles.footerText}>{t('auth.haveAccount')}</Text>
             <Link href="/(auth)/login" replace>
-              <Text style={styles.footerLink}>Sign in</Text>
+              <Text style={styles.footerLink}>{t('auth.signInLink')}</Text>
             </Link>
           </View>
         </ScrollView>
@@ -92,9 +94,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxl,
   },
   logoMark: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
@@ -105,6 +107,8 @@ const styles = StyleSheet.create({
   brandName: {
     ...typography.h1,
     color: colors.textPrimary,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
   },
   heading: {
     ...typography.display,

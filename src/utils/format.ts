@@ -1,23 +1,36 @@
 import { format, formatDistanceToNowStrict, isPast, isToday, isTomorrow } from 'date-fns';
+import { enUS, tr as trLocale } from 'date-fns/locale';
+import { getLang, translate } from '@/i18n';
 
-export function formatDate(iso: string, pattern = 'MMM d, yyyy'): string {
-  return format(new Date(iso), pattern);
+function dateLocale() {
+  return getLang() === 'tr' ? trLocale : enUS;
+}
+
+export function formatDate(iso: string): string {
+  const pattern = getLang() === 'tr' ? 'd MMM yyyy' : 'MMM d, yyyy';
+  return format(new Date(iso), pattern, { locale: dateLocale() });
 }
 
 export function formatDateTime(iso: string): string {
-  return format(new Date(iso), "MMM d, yyyy 'at' h:mm a");
+  return getLang() === 'tr'
+    ? format(new Date(iso), 'd MMM yyyy HH:mm', { locale: dateLocale() })
+    : format(new Date(iso), "MMM d, yyyy 'at' h:mm a", { locale: dateLocale() });
 }
 
 export function formatTime(iso: string): string {
-  return format(new Date(iso), 'h:mm a');
+  const pattern = getLang() === 'tr' ? 'HH:mm' : 'h:mm a';
+  return format(new Date(iso), pattern, { locale: dateLocale() });
 }
 
 export function relativeDueLabel(iso: string): string {
+  const lang = getLang();
   const date = new Date(iso);
-  if (isToday(date)) return `Today · ${format(date, 'h:mm a')}`;
-  if (isTomorrow(date)) return `Tomorrow · ${format(date, 'h:mm a')}`;
-  if (isPast(date)) return `Overdue · ${formatDistanceToNowStrict(date, { addSuffix: true })}`;
-  return `In ${formatDistanceToNowStrict(date)}`;
+  if (isToday(date)) return `${translate(lang, 'fmt.today')} · ${formatTime(iso)}`;
+  if (isTomorrow(date)) return `${translate(lang, 'fmt.tomorrow')} · ${formatTime(iso)}`;
+  if (isPast(date)) {
+    return `${translate(lang, 'fmt.overdue')} · ${formatDistanceToNowStrict(date, { addSuffix: true, locale: dateLocale() })}`;
+  }
+  return translate(lang, 'fmt.in', { d: formatDistanceToNowStrict(date, { locale: dateLocale() }) });
 }
 
 export function isOverdue(iso: string): boolean {

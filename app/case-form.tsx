@@ -8,26 +8,15 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCase, useCreateCase, useUpdateCase } from '@/hooks/useCases';
 import { useClients } from '@/hooks/useClients';
+import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 import type { CaseStatus, PriorityLevel } from '@/types/database';
 
-const STATUS_OPTIONS: { label: string; value: CaseStatus }[] = [
-  { label: 'Active', value: 'active' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'On Hold', value: 'on_hold' },
-  { label: 'Won', value: 'won' },
-  { label: 'Lost', value: 'lost' },
-  { label: 'Closed', value: 'closed' },
-];
-
-const PRIORITY_OPTIONS: { label: string; value: PriorityLevel }[] = [
-  { label: 'Low', value: 'low' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'High', value: 'high' },
-  { label: 'Critical', value: 'critical' },
-];
+const STATUS_VALUES: CaseStatus[] = ['active', 'pending', 'on_hold', 'won', 'lost', 'closed'];
+const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
 
 export default function CaseFormScreen() {
+  const t = useT();
   const { id, clientId: prefilledClientId } = useLocalSearchParams<{ id?: string; clientId?: string }>();
   const isEdit = !!id;
   const { data: existingCase } = useCase(id);
@@ -61,6 +50,9 @@ export default function CaseFormScreen() {
 
   const isSubmitting = createCase.isPending || updateCase.isPending;
 
+  const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(`status.${value}` as const) }));
+  const priorityOptions = PRIORITY_VALUES.map((value) => ({ value, label: t(`priority.${value}` as const) }));
+
   const handleSubmit = async () => {
     const payload = {
       title: title.trim(),
@@ -84,35 +76,35 @@ export default function CaseFormScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <ScreenHeader title={isEdit ? 'Edit Case' : 'New Case'} showBack />
+      <ScreenHeader title={isEdit ? t('caseForm.editTitle') : t('caseForm.newTitle')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Input label="Case title" placeholder="Smith v. Anderson Holdings" value={title} onChangeText={setTitle} />
+          <Input label={t('caseForm.caseTitle')} placeholder={t('caseForm.caseTitlePlaceholder')} value={title} onChangeText={setTitle} />
 
-          <Text style={styles.label}>Client</Text>
+          <Text style={styles.label}>{t('caseForm.client')}</Text>
           <SegmentedControl
-            options={[{ label: 'None', value: '' }, ...(clients ?? []).map((c) => ({ label: c.full_name, value: c.id }))]}
+            options={[{ label: t('common.none'), value: '' }, ...(clients ?? []).map((c) => ({ label: c.full_name, value: c.id }))]}
             value={clientId ?? ''}
             onChange={(v) => setClientId(v || null)}
           />
 
           <View style={styles.spacer} />
-          <Input label="Case number" placeholder="CV-2026-00123" value={caseNumber} onChangeText={setCaseNumber} />
-          <Input label="Court" placeholder="Superior Court of California" value={courtName} onChangeText={setCourtName} />
-          <Input label="Case type" placeholder="Civil Litigation" value={caseType} onChangeText={setCaseType} />
-          <Input label="Opposing party" placeholder="Anderson Holdings LLC" value={opposingParty} onChangeText={setOpposingParty} />
+          <Input label={t('caseForm.caseNumber')} placeholder={t('caseForm.caseNumberPlaceholder')} value={caseNumber} onChangeText={setCaseNumber} />
+          <Input label={t('caseForm.court')} placeholder={t('caseForm.courtPlaceholder')} value={courtName} onChangeText={setCourtName} />
+          <Input label={t('caseForm.caseType')} placeholder={t('caseForm.caseTypePlaceholder')} value={caseType} onChangeText={setCaseType} />
+          <Input label={t('caseForm.opposingParty')} placeholder={t('caseForm.opposingPartyPlaceholder')} value={opposingParty} onChangeText={setOpposingParty} />
 
-          <Text style={styles.label}>Status</Text>
-          <SegmentedControl options={STATUS_OPTIONS} value={status} onChange={setStatus} />
+          <Text style={styles.label}>{t('caseForm.status')}</Text>
+          <SegmentedControl options={statusOptions} value={status} onChange={setStatus} />
 
           <View style={styles.spacer} />
-          <Text style={styles.label}>Priority</Text>
-          <SegmentedControl options={PRIORITY_OPTIONS} value={priority} onChange={setPriority} />
+          <Text style={styles.label}>{t('caseForm.priority')}</Text>
+          <SegmentedControl options={priorityOptions} value={priority} onChange={setPriority} />
 
           <View style={styles.spacer} />
           <Input
-            label="Description / notes"
-            placeholder="Key facts, strategy notes, or context..."
+            label={t('caseForm.description')}
+            placeholder={t('caseForm.descriptionPlaceholder')}
             value={description}
             onChangeText={setDescription}
             multiline
@@ -121,7 +113,7 @@ export default function CaseFormScreen() {
           />
 
           <Button
-            label={isEdit ? 'Save Changes' : 'Create Case'}
+            label={isEdit ? t('common.save') : t('caseForm.create')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!title.trim()}

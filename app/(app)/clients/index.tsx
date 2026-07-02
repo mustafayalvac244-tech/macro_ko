@@ -8,17 +8,19 @@ import { ClientListItem } from '@/components/clients/ClientListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FAB } from '@/components/ui/FAB';
 import { useClients } from '@/hooks/useClients';
+import { useT } from '@/i18n';
 import { spacing } from '@/theme/theme';
 
 export default function ClientDirectoryScreen() {
+  const t = useT();
   const [search, setSearch] = useState('');
   const { data: clients, isLoading, refetch, isRefetching } = useClients(search);
 
   return (
     <Screen>
-      <ScreenHeader title="Clients" subtitle={clients ? `${clients.length} clients` : undefined} />
+      <ScreenHeader title={t('clients.title')} subtitle={clients ? t('clients.count', { n: clients.length }) : undefined} />
       <View style={styles.filters}>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search clients" />
+        <SearchBar value={search} onChangeText={setSearch} placeholder={t('clients.search')} />
       </View>
 
       <FlatList
@@ -32,9 +34,9 @@ export default function ClientDirectoryScreen() {
           !isLoading ? (
             <EmptyState
               icon="people-outline"
-              title="No clients yet"
-              description="Add a client to start linking cases and contacts."
-              actionLabel="New Client"
+              title={t('clients.empty')}
+              description={t('clients.emptyDesc')}
+              actionLabel={t('dash.newClient')}
               onAction={() => router.push('/client-form')}
             />
           ) : null

@@ -2,7 +2,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing, typography } from '@/theme/theme';
-import { formatDate, formatFileSize, titleCase } from '@/utils/format';
+import { formatDate, formatFileSize } from '@/utils/format';
+import { useT } from '@/i18n';
 import type { CaseDocument, DocumentWithCase } from '@/types/database';
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -31,6 +32,7 @@ interface DocumentListItemProps {
 }
 
 export function DocumentListItem({ document, onPress, onDelete, showCase = false }: DocumentListItemProps) {
+  const t = useT();
   const icon = iconForMimeType(document.mime_type) ?? CATEGORY_ICONS[document.category] ?? 'document-outline';
   const caseInfo = 'case' in document ? document.case : null;
 
@@ -49,7 +51,7 @@ export function DocumentListItem({ document, onPress, onDelete, showCase = false
           </Text>
         )}
         <Text style={styles.meta} numberOfLines={1}>
-          {titleCase(document.category)} · {formatFileSize(document.file_size)} · {formatDate(document.uploaded_at)}
+          {t(`docCategory.${document.category}` as const)} · {formatFileSize(document.file_size)} · {formatDate(document.uploaded_at)}
         </Text>
       </View>
       {onDelete && (

@@ -9,31 +9,27 @@ import { CaseListItem } from '@/components/cases/CaseListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FAB } from '@/components/ui/FAB';
 import { useCases } from '@/hooks/useCases';
+import { useT } from '@/i18n';
 import { spacing } from '@/theme/theme';
 import type { CaseStatus } from '@/types/database';
 
-const STATUS_OPTIONS: { label: string; value: CaseStatus | 'all' }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Active', value: 'active' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'On Hold', value: 'on_hold' },
-  { label: 'Won', value: 'won' },
-  { label: 'Lost', value: 'lost' },
-  { label: 'Closed', value: 'closed' },
-];
+const STATUS_VALUES: (CaseStatus | 'all')[] = ['all', 'active', 'pending', 'on_hold', 'won', 'lost', 'closed'];
 
 export default function CaseDirectoryScreen() {
+  const t = useT();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<CaseStatus | 'all'>('all');
   const { data: cases, isLoading, refetch, isRefetching } = useCases({ search, status });
 
+  const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(`status.${value}` as const) }));
+
   return (
     <Screen>
-      <ScreenHeader title="Case Directory" subtitle={cases ? `${cases.length} cases` : undefined} />
+      <ScreenHeader title={t('cases.title')} subtitle={cases ? t('cases.count', { n: cases.length }) : undefined} />
       <View style={styles.filters}>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search cases" />
+        <SearchBar value={search} onChangeText={setSearch} placeholder={t('cases.search')} />
         <View style={styles.segmentSpacing}>
-          <SegmentedControl options={STATUS_OPTIONS} value={status} onChange={setStatus} />
+          <SegmentedControl options={statusOptions} value={status} onChange={setStatus} />
         </View>
       </View>
 
@@ -48,9 +44,9 @@ export default function CaseDirectoryScreen() {
           !isLoading ? (
             <EmptyState
               icon="briefcase-outline"
-              title="No cases yet"
-              description="Create your first case to start tracking hearings, deadlines, and documents."
-              actionLabel="New Case"
+              title={t('cases.empty')}
+              description={t('cases.emptyDesc')}
+              actionLabel={t('dash.newCase')}
               onAction={() => router.push('/case-form')}
             />
           ) : null

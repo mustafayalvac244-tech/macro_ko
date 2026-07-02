@@ -10,26 +10,23 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCase } from '@/hooks/useCases';
 import { useCreateDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
+import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 import { formatDateTime } from '@/utils/format';
 import type { PriorityLevel } from '@/types/database';
 
-const PRIORITY_OPTIONS: { label: string; value: PriorityLevel }[] = [
-  { label: 'Low', value: 'low' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'High', value: 'high' },
-  { label: 'Critical', value: 'critical' },
-];
+const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
 
-const REMINDER_OPTIONS = [
-  { label: '1 hour before', value: '60' },
-  { label: '1 day before', value: '1440' },
-  { label: '3 days before', value: '4320' },
-  { label: '1 week before', value: '10080' },
-  { label: '2 weeks before', value: '20160' },
-];
+const REMINDER_VALUES = [
+  { key: 'reminder.1h', value: '60' },
+  { key: 'reminder.1d', value: '1440' },
+  { key: 'reminder.3d', value: '4320' },
+  { key: 'reminder.1w', value: '10080' },
+  { key: 'reminder.2w', value: '20160' },
+] as const;
 
 export default function DeadlineFormScreen() {
+  const t = useT();
   const { caseId, id } = useLocalSearchParams<{ caseId: string; id?: string }>();
   const isEdit = !!id;
   const { data: caseItem } = useCase(caseId);
@@ -58,6 +55,9 @@ export default function DeadlineFormScreen() {
 
   const isSubmitting = createDeadline.isPending || updateDeadline.isPending;
 
+  const priorityOptions = PRIORITY_VALUES.map((value) => ({ value, label: t(`priority.${value}` as const) }));
+  const reminderOptions = REMINDER_VALUES.map(({ key, value }) => ({ value, label: t(key) }));
+
   const handleSubmit = async () => {
     if (!caseItem) return;
     const payload = {
@@ -80,12 +80,12 @@ export default function DeadlineFormScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <ScreenHeader title={isEdit ? 'Edit Deadline' : 'New Deadline'} subtitle={caseItem?.title} showBack />
+      <ScreenHeader title={isEdit ? t('deadlineForm.editTitle') : t('deadlineForm.newTitle')} subtitle={caseItem?.title} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Input label="Title" placeholder="File Motion to Dismiss" value={title} onChangeText={setTitle} />
+          <Input label={t('hearingForm.title')} placeholder={t('deadlineForm.titlePlaceholder')} value={title} onChangeText={setTitle} />
 
-          <Text style={styles.label}>Due date &amp; time</Text>
+          <Text style={styles.label}>{t('deadlineForm.due')}</Text>
           <Pressable style={styles.dateButton} onPress={() => setShowPicker('date')}>
             <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
             <Text style={styles.dateButtonText}>{formatDateTime(dueAt.toISOString())}</Text>
@@ -116,21 +116,21 @@ export default function DeadlineFormScreen() {
             />
           )}
           {Platform.OS === 'ios' && showPicker && (
-            <Button label="Done" size="sm" variant="secondary" onPress={() => setShowPicker(null)} style={styles.pickerDone} />
+            <Button label={t('common.done')} size="sm" variant="secondary" onPress={() => setShowPicker(null)} style={styles.pickerDone} />
           )}
 
           <View style={styles.spacer} />
-          <Text style={styles.label}>Priority</Text>
-          <SegmentedControl options={PRIORITY_OPTIONS} value={priority} onChange={setPriority} />
+          <Text style={styles.label}>{t('caseForm.priority')}</Text>
+          <SegmentedControl options={priorityOptions} value={priority} onChange={setPriority} />
 
           <View style={styles.spacer} />
-          <Text style={styles.label}>Remind me</Text>
-          <SegmentedControl options={REMINDER_OPTIONS} value={reminder} onChange={setReminder} />
+          <Text style={styles.label}>{t('hearingForm.remind')}</Text>
+          <SegmentedControl options={reminderOptions} value={reminder} onChange={setReminder} />
 
           <View style={styles.spacer} />
           <Input
-            label="Description"
-            placeholder="Statute of limitations, filing requirements..."
+            label={t('deadlineForm.description')}
+            placeholder={t('deadlineForm.descPlaceholder')}
             value={description}
             onChangeText={setDescription}
             multiline
@@ -139,7 +139,7 @@ export default function DeadlineFormScreen() {
           />
 
           <Button
-            label={isEdit ? 'Save Changes' : 'Create Deadline'}
+            label={isEdit ? t('common.save') : t('deadlineForm.create')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!title.trim()}

@@ -1,8 +1,8 @@
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Pressable } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { StatCard } from '@/components/ui/StatCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -15,10 +15,11 @@ import { useAuthStore } from '@/store/authStore';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useUpcomingHearings } from '@/hooks/useHearings';
 import { useUpcomingDeadlines, useUpdateDeadline } from '@/hooks/useDeadlines';
+import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
-import { Ionicons } from '@expo/vector-icons';
 
 export default function DashboardScreen() {
+  const t = useT();
   const profile = useAuthStore((s) => s.profile);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
@@ -34,7 +35,9 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }, [queryClient]);
 
-  const firstName = profile?.full_name?.split(' ')[0] || 'Counselor';
+  const hour = new Date().getHours();
+  const greetingKey = hour < 12 ? 'dash.goodMorning' : hour < 18 ? 'dash.goodAfternoon' : 'dash.goodEvening';
+  const firstName = profile?.full_name?.split(' ')[0] || t('dash.counselor');
 
   return (
     <Screen>
@@ -44,24 +47,26 @@ export default function DashboardScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good day, {firstName}</Text>
-            <Text style={styles.subGreeting}>{profile?.firm_name || 'Your practice overview'}</Text>
+            <Text style={styles.greeting}>
+              {t(greetingKey)}, {firstName}
+            </Text>
+            <Text style={styles.subGreeting}>{profile?.firm_name || t('dash.overview')}</Text>
           </View>
           <Pressable onPress={() => router.push('/settings')}>
-            <Avatar name={profile?.full_name || 'Attorney'} size={44} />
+            <Avatar name={profile?.full_name || t('dash.counselor')} size={44} />
           </Pressable>
         </View>
 
         <View style={styles.statsGrid}>
           <StatCard
-            label="Active Cases"
+            label={t('dash.activeCases')}
             value={stats.data?.activeCases ?? '—'}
             icon="briefcase-outline"
             accentColor={colors.primary}
             onPress={() => router.push('/(app)/cases')}
           />
           <StatCard
-            label="Clients"
+            label={t('dash.clients')}
             value={stats.data?.totalClients ?? '—'}
             icon="people-outline"
             accentColor={colors.gold}
@@ -70,14 +75,14 @@ export default function DashboardScreen() {
         </View>
         <View style={styles.statsGrid}>
           <StatCard
-            label="Upcoming Hearings"
+            label={t('dash.upcomingHearings')}
             value={stats.data?.upcomingHearings ?? '—'}
             icon="hammer-outline"
             accentColor={colors.info}
             onPress={() => router.push('/(app)/calendar')}
           />
           <StatCard
-            label="Open Deadlines"
+            label={t('dash.openDeadlines')}
             value={stats.data?.openDeadlines ?? '—'}
             icon="alert-circle-outline"
             accentColor={colors.warning}
@@ -86,7 +91,7 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.section}>
-          <SectionHeader title="Upcoming Hearings" actionLabel="View calendar" onAction={() => router.push('/(app)/calendar')} />
+          <SectionHeader title={t('dash.upcomingHearings')} actionLabel={t('dash.viewCalendar')} onAction={() => router.push('/(app)/calendar')} />
           <Card>
             {hearings.data && hearings.data.length > 0 ? (
               hearings.data.map((hearing, index) => (
@@ -95,13 +100,13 @@ export default function DashboardScreen() {
                 </View>
               ))
             ) : (
-              <EmptyState icon="hammer-outline" title="No upcoming hearings" description="Scheduled hearings will appear here." />
+              <EmptyState icon="hammer-outline" title={t('dash.noHearings')} description={t('dash.noHearingsDesc')} />
             )}
           </Card>
         </View>
 
         <View style={styles.section}>
-          <SectionHeader title="Critical Deadlines" actionLabel="View all" onAction={() => router.push('/(app)/calendar')} />
+          <SectionHeader title={t('dash.criticalDeadlines')} actionLabel={t('dash.viewAll')} onAction={() => router.push('/(app)/calendar')} />
           <Card>
             {deadlines.data && deadlines.data.length > 0 ? (
               deadlines.data.map((deadline, index) => (
@@ -120,17 +125,17 @@ export default function DashboardScreen() {
                 </View>
               ))
             ) : (
-              <EmptyState icon="checkmark-done-outline" title="No open deadlines" description="You're fully caught up." />
+              <EmptyState icon="checkmark-done-outline" title={t('dash.noDeadlines')} description={t('dash.noDeadlinesDesc')} />
             )}
           </Card>
         </View>
 
         <View style={styles.quickActions}>
-          <SectionHeader title="Quick Actions" />
+          <SectionHeader title={t('dash.quickActions')} />
           <View style={styles.quickActionsRow}>
-            <QuickAction icon="add-circle-outline" label="New Case" onPress={() => router.push('/case-form')} />
-            <QuickAction icon="person-add-outline" label="New Client" onPress={() => router.push('/client-form')} />
-            <QuickAction icon="cloud-upload-outline" label="Upload File" onPress={() => router.push('/document-upload')} />
+            <QuickAction icon="add-circle-outline" label={t('dash.newCase')} onPress={() => router.push('/case-form')} />
+            <QuickAction icon="person-add-outline" label={t('dash.newClient')} onPress={() => router.push('/client-form')} />
+            <QuickAction icon="cloud-upload-outline" label={t('dash.uploadFile')} onPress={() => router.push('/document-upload')} />
           </View>
         </View>
       </ScrollView>

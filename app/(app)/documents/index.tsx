@@ -9,27 +9,34 @@ import { DocumentListItem } from '@/components/documents/DocumentListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FAB } from '@/components/ui/FAB';
 import { useDeleteDocument, useDocuments, useSignedDocumentUrl } from '@/hooks/useDocuments';
+import { useT } from '@/i18n';
 import { spacing } from '@/theme/theme';
 import type { DocumentCategory } from '@/types/database';
 
-const CATEGORY_OPTIONS: { label: string; value: DocumentCategory | 'all' }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Pleadings', value: 'pleading' },
-  { label: 'Contracts', value: 'contract' },
-  { label: 'Evidence', value: 'evidence' },
-  { label: 'Correspondence', value: 'correspondence' },
-  { label: 'Court Orders', value: 'court_order' },
-  { label: 'Invoices', value: 'invoice' },
-  { label: 'ID', value: 'identification' },
-  { label: 'Other', value: 'other' },
+const CATEGORY_VALUES: (DocumentCategory | 'all')[] = [
+  'all',
+  'pleading',
+  'contract',
+  'evidence',
+  'correspondence',
+  'court_order',
+  'invoice',
+  'identification',
+  'other',
 ];
 
 export default function DocumentVaultScreen() {
+  const t = useT();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<DocumentCategory | 'all'>('all');
   const { data: documents, isLoading, refetch, isRefetching } = useDocuments();
   const signedUrl = useSignedDocumentUrl();
   const deleteDocument = useDeleteDocument();
+
+  const categoryOptions = CATEGORY_VALUES.map((value) => ({
+    value,
+    label: value === 'all' ? t('status.all') : t(`docCategory.${value}` as const),
+  }));
 
   const filtered = useMemo(() => {
     if (!documents) return [];
@@ -46,19 +53,19 @@ export default function DocumentVaultScreen() {
   };
 
   const handleDelete = (id: string, filePath: string, name: string) => {
-    Alert.alert('Delete Document', `Delete "${name}" permanently?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteDocument.mutate({ id, file_path: filePath }) },
+    Alert.alert(t('docs.deleteTitle'), t('docs.deleteConfirm', { name }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => deleteDocument.mutate({ id, file_path: filePath }) },
     ]);
   };
 
   return (
     <Screen>
-      <ScreenHeader title="Document Vault" subtitle={documents ? `${documents.length} files` : undefined} />
+      <ScreenHeader title={t('docs.title')} subtitle={documents ? t('docs.count', { n: documents.length }) : undefined} />
       <View style={styles.filters}>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search documents" />
+        <SearchBar value={search} onChangeText={setSearch} placeholder={t('docs.search')} />
         <View style={styles.segmentSpacing}>
-          <SegmentedControl options={CATEGORY_OPTIONS} value={category} onChange={setCategory} />
+          <SegmentedControl options={categoryOptions} value={category} onChange={setCategory} />
         </View>
       </View>
 
@@ -80,9 +87,9 @@ export default function DocumentVaultScreen() {
           !isLoading ? (
             <EmptyState
               icon="folder-open-outline"
-              title="No documents yet"
-              description="Upload pleadings, contracts, and evidence to keep every case file organized."
-              actionLabel="Upload Document"
+              title={t('docs.empty')}
+              description={t('docs.emptyDesc')}
+              actionLabel={t('docs.uploadDoc')}
               onAction={() => router.push('/document-upload')}
             />
           ) : null

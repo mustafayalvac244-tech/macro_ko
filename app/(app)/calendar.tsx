@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Calendar, DateData } from 'react-native-calendars';
+import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { Screen } from '@/components/ui/Screen';
@@ -12,17 +12,33 @@ import { HearingListItem } from '@/components/calendar/HearingListItem';
 import { DeadlineListItem } from '@/components/calendar/DeadlineListItem';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines, useUpdateDeadline } from '@/hooks/useDeadlines';
+import { useLangStore, useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
+import { formatDate } from '@/utils/format';
+
+LocaleConfig.locales.tr = {
+  monthNames: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
+  monthNamesShort: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
+  dayNames: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
+  dayNamesShort: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'],
+  today: 'Bugün',
+};
 
 function toDateKey(iso: string): string {
   return format(new Date(iso), 'yyyy-MM-dd');
 }
 
 export default function CalendarScreen() {
+  const t = useT();
+  const lang = useLangStore((s) => s.lang);
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
   const updateDeadline = useUpdateDeadline();
+
+  useMemo(() => {
+    LocaleConfig.defaultLocale = lang === 'tr' ? 'tr' : '';
+  }, [lang]);
 
   const markedDates = useMemo(() => {
     const marks: Record<string, { dots: { key: string; color: string }[]; selected?: boolean; selectedColor?: string }> = {};
@@ -48,11 +64,12 @@ export default function CalendarScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="Calendar" subtitle="Hearings & deadlines" />
+      <ScreenHeader title={t('cal.title')} subtitle={t('cal.subtitle')} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <Card padded={false} style={styles.calendarCard}>
           <Calendar
+            key={lang}
             markingType="multi-dot"
             markedDates={markedDates}
             onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
@@ -72,12 +89,12 @@ export default function CalendarScreen() {
         </Card>
 
         <View style={styles.legend}>
-          <LegendDot color={colors.info} label="Hearing" />
-          <LegendDot color={colors.warning} label="Deadline" />
+          <LegendDot color={colors.info} label={t('cal.hearing')} />
+          <LegendDot color={colors.warning} label={t('cal.deadline')} />
         </View>
 
         <View style={styles.section}>
-          <SectionHeader title={`Hearings · ${format(new Date(selectedDate), 'MMM d, yyyy')}`} />
+          <SectionHeader title={t('cal.hearingsOn', { date: formatDate(selectedDate) })} />
           <Card>
             {dayHearings.length > 0 ? (
               dayHearings.map((hearing, index) => (
@@ -86,13 +103,13 @@ export default function CalendarScreen() {
                 </View>
               ))
             ) : (
-              <EmptyState icon="hammer-outline" title="No hearings on this day" />
+              <EmptyState icon="hammer-outline" title={t('cal.noHearingsDay')} />
             )}
           </Card>
         </View>
 
         <View style={styles.section}>
-          <SectionHeader title="Deadlines" />
+          <SectionHeader title={t('cal.deadlines')} />
           <Card>
             {dayDeadlines.length > 0 ? (
               dayDeadlines.map((deadline, index) => (
@@ -111,7 +128,7 @@ export default function CalendarScreen() {
                 </View>
               ))
             ) : (
-              <EmptyState icon="checkmark-done-outline" title="No deadlines on this day" />
+              <EmptyState icon="checkmark-done-outline" title={t('cal.noDeadlinesDay')} />
             )}
           </Card>
         </View>

@@ -6,9 +6,11 @@ import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
+import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 
 export default function LoginScreen() {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { signIn, isSubmitting, error, clearError } = useAuthStore();
@@ -27,27 +29,28 @@ export default function LoginScreen() {
             <View style={styles.logoMark}>
               <Ionicons name="scale-outline" size={28} color={colors.gold} />
             </View>
-            <Text style={styles.brandName}>Macro Ko</Text>
-            <Text style={styles.brandTagline}>Legal Case &amp; Document Management</Text>
+            <Text style={styles.brandName}>{t('app.name')}</Text>
+            <View style={styles.brandDivider} />
+            <Text style={styles.brandTagline}>{t('app.tagline')}</Text>
           </View>
 
-          <Text style={styles.heading}>Welcome back</Text>
-          <Text style={styles.subheading}>Sign in to access your cases and calendar.</Text>
+          <Text style={styles.heading}>{t('auth.welcomeBack')}</Text>
+          <Text style={styles.subheading}>{t('auth.signInSubtitle')}</Text>
 
           <Input
-            label="Email"
+            label={t('auth.email')}
             icon="mail-outline"
             autoCapitalize="none"
             keyboardType="email-address"
-            placeholder="you@lawfirm.com"
+            placeholder={t('auth.emailPlaceholder')}
             value={email}
             onChangeText={setEmail}
           />
           <Input
-            label="Password"
+            label={t('auth.password')}
             icon="lock-closed-outline"
             secureTextEntry
-            placeholder="••••••••"
+            placeholder={t('auth.passwordPlaceholder')}
             value={password}
             onChangeText={setPassword}
           />
@@ -55,7 +58,7 @@ export default function LoginScreen() {
           {error && <Text style={styles.error}>{error}</Text>}
 
           <Button
-            label="Sign In"
+            label={t('auth.signIn')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!email || !password}
@@ -65,9 +68,9 @@ export default function LoginScreen() {
           />
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+            <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
             <Link href="/(auth)/signup" replace>
-              <Text style={styles.footerLink}>Create one</Text>
+              <Text style={styles.footerLink}>{t('auth.createOne')}</Text>
             </Link>
           </View>
         </ScrollView>
@@ -89,9 +92,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxxl,
   },
   logoMark: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
@@ -102,11 +105,20 @@ const styles = StyleSheet.create({
   brandName: {
     ...typography.h1,
     color: colors.textPrimary,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
+  brandDivider: {
+    width: 36,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: colors.gold,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
   },
   brandTagline: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginTop: 4,
   },
   heading: {
     ...typography.display,

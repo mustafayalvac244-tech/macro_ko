@@ -6,9 +6,11 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useClient, useCreateClient, useUpdateClient } from '@/hooks/useClients';
+import { useT } from '@/i18n';
 import { spacing } from '@/theme/theme';
 
 export default function ClientFormScreen() {
+  const t = useT();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEdit = !!id;
   const { data: existingClient } = useClient(id);
@@ -55,17 +57,24 @@ export default function ClientFormScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <ScreenHeader title={isEdit ? 'Edit Client' : 'New Client'} showBack />
+      <ScreenHeader title={isEdit ? t('clientForm.editTitle') : t('clientForm.newTitle')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Input label="Full name" placeholder="Jane Doe" value={fullName} onChangeText={setFullName} />
-          <Input label="Company (optional)" placeholder="Doe Enterprises Inc." value={company} onChangeText={setCompany} />
-          <Input label="Email" autoCapitalize="none" keyboardType="email-address" placeholder="jane@doeenterprises.com" value={email} onChangeText={setEmail} />
-          <Input label="Phone" keyboardType="phone-pad" placeholder="(555) 123-4567" value={phone} onChangeText={setPhone} />
-          <Input label="Address" placeholder="123 Main St, Springfield" value={address} onChangeText={setAddress} />
+          <Input label={t('clientForm.fullName')} placeholder={t('clientForm.fullNamePlaceholder')} value={fullName} onChangeText={setFullName} />
+          <Input label={t('clientForm.company')} placeholder={t('clientForm.companyPlaceholder')} value={company} onChangeText={setCompany} />
           <Input
-            label="Notes"
-            placeholder="Preferred contact method, background..."
+            label={t('clientForm.email')}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder={t('clientForm.emailPlaceholder')}
+            value={email}
+            onChangeText={setEmail}
+          />
+          <Input label={t('clientForm.phone')} keyboardType="phone-pad" placeholder={t('clientForm.phonePlaceholder')} value={phone} onChangeText={setPhone} />
+          <Input label={t('clientForm.address')} placeholder={t('clientForm.addressPlaceholder')} value={address} onChangeText={setAddress} />
+          <Input
+            label={t('clientForm.notes')}
+            placeholder={t('clientForm.notesPlaceholder')}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -74,7 +83,7 @@ export default function ClientFormScreen() {
           />
 
           <Button
-            label={isEdit ? 'Save Changes' : 'Add Client'}
+            label={isEdit ? t('common.save') : t('clientForm.add')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!fullName.trim()}

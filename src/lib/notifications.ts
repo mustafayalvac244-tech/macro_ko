@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { getLang, translate } from '@/i18n';
+import { formatDateTime } from '@/utils/format';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -82,8 +84,8 @@ export async function scheduleHearingReminder(params: {
   const triggerAt = new Date(new Date(params.scheduledAt).getTime() - params.reminderMinutesBefore * 60_000);
   await scheduleReminder({
     id: hearingReminderId(params.id),
-    title: `Upcoming: ${params.hearingTitle}`,
-    body: `${params.caseTitle} — scheduled ${new Date(params.scheduledAt).toLocaleString()}`,
+    title: translate(getLang(), 'notif.hearingTitle', { title: params.hearingTitle }),
+    body: `${params.caseTitle} — ${formatDateTime(params.scheduledAt)}`,
     triggerAt,
   });
 }
@@ -98,8 +100,8 @@ export async function scheduleDeadlineReminder(params: {
   const triggerAt = new Date(new Date(params.dueAt).getTime() - params.reminderMinutesBefore * 60_000);
   await scheduleReminder({
     id: deadlineReminderId(params.id),
-    title: `Deadline due soon: ${params.deadlineTitle}`,
-    body: `${params.caseTitle} — due ${new Date(params.dueAt).toLocaleString()}`,
+    title: translate(getLang(), 'notif.deadlineTitle', { title: params.deadlineTitle }),
+    body: `${params.caseTitle} — ${formatDateTime(params.dueAt)}`,
     triggerAt,
   });
 }

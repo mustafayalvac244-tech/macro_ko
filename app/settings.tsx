@@ -8,11 +8,16 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
+import { useLangStore, useT, type Lang } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 
 export default function SettingsScreen() {
+  const t = useT();
+  const lang = useLangStore((s) => s.lang);
+  const setLang = useLangStore((s) => s.setLang);
   const profile = useAuthStore((s) => s.profile);
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
@@ -27,21 +32,18 @@ export default function SettingsScreen() {
       const granted = await registerForNotificationsAsync();
       setNotificationsEnabled(granted);
       if (!granted) {
-        Alert.alert('Permission needed', 'Enable notifications in your device settings to receive hearing and deadline reminders.');
+        Alert.alert(t('settings.permTitle'), t('settings.permMsg'));
       }
     } else {
-      Alert.alert(
-        'Manage in system settings',
-        'To fully disable notifications, turn them off for Macro Ko in your device settings.'
-      );
+      Alert.alert(t('settings.sysTitle'), t('settings.sysMsg'));
     }
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('settings.signOut'), t('settings.signOutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: t('settings.signOut'),
         style: 'destructive',
         onPress: async () => {
           await signOut();
@@ -53,15 +55,35 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="Settings" showBack />
+      <ScreenHeader title={t('settings.title')} showBack />
       <ScrollView contentContainerStyle={styles.content}>
         <Card style={styles.profileCard}>
           <View style={styles.profileRow}>
-            <Avatar name={profile?.full_name || 'Attorney'} size={56} />
+            <Avatar name={profile?.full_name || t('dash.counselor')} size={56} />
             <View style={styles.profileBody}>
-              <Text style={styles.name}>{profile?.full_name || 'Attorney'}</Text>
+              <Text style={styles.name}>{profile?.full_name || t('dash.counselor')}</Text>
               <Text style={styles.email}>{session?.user.email}</Text>
               {profile?.firm_name && <Text style={styles.firm}>{profile.firm_name}</Text>}
+            </View>
+          </View>
+        </Card>
+
+        <Card style={styles.section}>
+          <View style={styles.rowColumn}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="language-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.rowLabel}>{t('settings.language')}</Text>
+            </View>
+            <View style={styles.langControl}>
+              <SegmentedControl
+                scrollable={false}
+                options={[
+                  { label: 'Türkçe', value: 'tr' },
+                  { label: 'English', value: 'en' },
+                ]}
+                value={lang}
+                onChange={(value) => setLang(value as Lang)}
+              />
             </View>
           </View>
         </Card>
@@ -70,7 +92,7 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <Ionicons name="notifications-outline" size={18} color={colors.textMuted} />
-              <Text style={styles.rowLabel}>Hearing &amp; deadline reminders</Text>
+              <Text style={styles.rowLabel}>{t('settings.reminders')}</Text>
             </View>
             <Switch
               value={notificationsEnabled}
@@ -82,11 +104,11 @@ export default function SettingsScreen() {
         </Card>
 
         <Card style={styles.section}>
-          <InfoRow label="App version" value="1.0.0" />
-          <InfoRow label="Backend" value="Supabase" />
+          <InfoRow label={t('settings.version')} value="1.0.0" />
+          <InfoRow label={t('settings.backend')} value="Supabase" />
         </Card>
 
-        <Button label="Sign Out" variant="danger" onPress={handleSignOut} style={styles.signOutButton} />
+        <Button label={t('settings.signOut')} variant="danger" onPress={handleSignOut} style={styles.signOutButton} />
       </ScrollView>
     </Screen>
   );
@@ -139,6 +161,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  rowColumn: {
+    gap: spacing.sm,
+  },
   rowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -149,6 +174,9 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textPrimary,
     flexShrink: 1,
+  },
+  langControl: {
+    alignSelf: 'flex-start',
   },
   infoRow: {
     flexDirection: 'row',
