@@ -51,6 +51,11 @@ export const tr = {
   'dash.newCase': 'Yeni Dava',
   'dash.newClient': 'Yeni Müvekkil',
   'dash.uploadFile': 'Belge Yükle',
+  'dash.agendaToday': 'Bugünün Programı',
+  'dash.agendaOn': '{date} Programı',
+  'dash.noEventsDay': 'Bu günde planlanmış işlem yok',
+  'dash.noEventsDayDesc': 'Takvimden başka bir güne dokunun veya yeni duruşma ekleyin.',
+  'dash.eventCount': '{n} işlem',
 
   // Case status & priority
   'status.all': 'Tümü',

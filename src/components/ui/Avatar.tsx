@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    color: colors.textPrimary,
+    color: colors.primary,
     fontWeight: '700',
   },
 });

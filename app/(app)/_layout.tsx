@@ -1,11 +1,13 @@
 import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
 import { colors } from '@/theme/theme';
 
 export default function AppLayout() {
   const t = useT();
+  const insets = useSafeAreaInsets();
   const session = useAuthStore((s) => s.session);
   if (!session) return <Redirect href="/(auth)/login" />;
 
@@ -18,9 +20,9 @@ export default function AppLayout() {
         tabBarStyle: {
           backgroundColor: colors.bgElevated,
           borderTopColor: colors.borderSubtle,
-          height: 60,
+          height: 58 + insets.bottom,
           paddingTop: 6,
-          paddingBottom: 8,
+          paddingBottom: 8 + insets.bottom,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}

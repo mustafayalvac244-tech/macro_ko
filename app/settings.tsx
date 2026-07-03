@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -104,7 +105,7 @@ export default function SettingsScreen() {
         </Card>
 
         <Card style={styles.section}>
-          <InfoRow label={t('settings.version')} value="1.0.0" />
+          <InfoRow label={t('settings.version')} value={Constants.expoConfig?.version ?? '1.1.0'} />
           <InfoRow label={t('settings.backend')} value="Supabase" />
         </Card>
 

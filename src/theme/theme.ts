@@ -1,37 +1,37 @@
 export const colors = {
-  // Base surfaces
-  bg: '#080D17',
-  bgElevated: '#0D1424',
-  surface: '#121A2E',
-  surfaceHover: '#1A2439',
-  surfaceAlt: '#0F1729',
-  border: '#243252',
-  borderSubtle: '#1B2740',
+  // Base surfaces (light, cool-grey professional)
+  bg: '#F4F6FA',
+  bgElevated: '#FFFFFF',
+  surface: '#FFFFFF',
+  surfaceHover: '#EEF1F7',
+  surfaceAlt: '#F1F4F9',
+  border: '#D7DEEA',
+  borderSubtle: '#E7EBF3',
 
-  // Text
-  textPrimary: '#EDF1F9',
-  textSecondary: '#9AA6BC',
-  textMuted: '#657089',
-  textInverse: '#0A0F1C',
+  // Text (navy ink)
+  textPrimary: '#16203A',
+  textSecondary: '#4E5A74',
+  textMuted: '#8A94AB',
+  textInverse: '#FFFFFF',
 
   // Brand
-  primary: '#3B6FE0',
-  primaryMuted: '#1E3A6B',
-  primarySoft: 'rgba(59, 111, 224, 0.14)',
-  gold: '#C9A24B',
-  goldSoft: 'rgba(201, 162, 75, 0.14)',
+  primary: '#1E4B9E',
+  primaryMuted: '#DCE6F7',
+  primarySoft: 'rgba(30, 75, 158, 0.10)',
+  gold: '#A87F2E',
+  goldSoft: 'rgba(168, 127, 46, 0.12)',
 
   // Status
-  success: '#33C481',
-  successSoft: 'rgba(51, 196, 129, 0.14)',
-  warning: '#E0A93B',
-  warningSoft: 'rgba(224, 169, 59, 0.14)',
-  danger: '#E5555C',
-  dangerSoft: 'rgba(229, 85, 92, 0.14)',
-  info: '#3B9DE0',
-  infoSoft: 'rgba(59, 157, 224, 0.14)',
+  success: '#1B9E63',
+  successSoft: 'rgba(27, 158, 99, 0.12)',
+  warning: '#B97E14',
+  warningSoft: 'rgba(185, 126, 20, 0.12)',
+  danger: '#D23B42',
+  dangerSoft: 'rgba(210, 59, 66, 0.12)',
+  info: '#1F74C0',
+  infoSoft: 'rgba(31, 116, 192, 0.12)',
 
-  overlay: 'rgba(4, 7, 14, 0.72)',
+  overlay: 'rgba(10, 17, 34, 0.45)',
   transparent: 'transparent',
 } as const;
 
@@ -39,7 +39,7 @@ export const caseStatusColors: Record<string, { fg: string; bg: string }> = {
   active: { fg: colors.info, bg: colors.infoSoft },
   pending: { fg: colors.warning, bg: colors.warningSoft },
   on_hold: { fg: colors.gold, bg: colors.goldSoft },
-  closed: { fg: colors.textMuted, bg: 'rgba(101, 112, 137, 0.14)' },
+  closed: { fg: colors.textMuted, bg: 'rgba(138, 148, 171, 0.14)' },
   won: { fg: colors.success, bg: colors.successSoft },
   lost: { fg: colors.danger, bg: colors.dangerSoft },
 };
@@ -83,18 +83,18 @@ export const typography = {
 
 export const shadow = {
   card: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.28,
-    shadowRadius: 16,
-    elevation: 6,
+    shadowColor: '#1A2C51',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   floating: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 10,
+    shadowColor: '#1A2C51',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    elevation: 8,
   },
 } as const;
 

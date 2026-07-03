@@ -53,6 +53,11 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.newCase': 'New Case',
   'dash.newClient': 'New Client',
   'dash.uploadFile': 'Upload File',
+  'dash.agendaToday': "Today's Agenda",
+  'dash.agendaOn': 'Agenda · {date}',
+  'dash.noEventsDay': 'Nothing planned for this day',
+  'dash.noEventsDayDesc': 'Tap another day on the calendar or add a hearing.',
+  'dash.eventCount': '{n} items',
 
   // Case status & priority
   'status.all': 'All',
