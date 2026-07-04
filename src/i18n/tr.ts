@@ -67,6 +67,15 @@ export const tr = {
   'dash.noEventsDay': 'Bu günde planlanmış işlem yok',
   'dash.noEventsDayDesc': 'Takvimden başka bir güne dokunun veya yeni duruşma ekleyin.',
   'dash.eventCount': '{n} işlem',
+  'dash.nHearings': '{n} duruşma',
+  'dash.nDeadlines': '{n} süre',
+  'reminders.title': 'Hatırlatıcılar',
+  'reminders.upcoming': 'Yaklaşan',
+  'reminders.past': 'Geçmiş',
+  'reminders.emptyUpcoming': 'Yaklaşan hatırlatıcı yok',
+  'reminders.emptyUpcomingDesc': 'Duruşma veya süre eklediğinizde burada listelenir.',
+  'reminders.emptyPast': 'Geçmiş kayıt yok',
+  'reminders.emptyPastDesc': 'Tamamlanan ve tarihi geçen işlemler burada saklanır.',
 
   // Case status & priority
   'status.all': 'Tümü',

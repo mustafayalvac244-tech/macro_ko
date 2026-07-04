@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
-import { format, isToday } from 'date-fns';
+import { addDays, format, isToday } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -34,6 +33,11 @@ function toDateKey(iso: string): string {
 }
 
 const BOTH_COLOR = '#7C3AED';
+
+interface DayInfo {
+  hearings: number;
+  deadlines: number;
+}
 
 type AgendaEvent =
   | { kind: 'hearing'; time: number; hearing: NonNullable<ReturnType<typeof useAllHearings>['data']>[number] }
@@ -66,51 +70,35 @@ export default function DashboardScreen() {
   const greetingKey = hour < 12 ? 'dash.goodMorning' : hour < 18 ? 'dash.goodAfternoon' : 'dash.goodEvening';
   const firstName = profile?.full_name?.split(' ')[0] || t('dash.counselor');
 
-  const markedDates = useMemo(() => {
-    // Which kinds of events fall on each day?
-    const dayKinds: Record<string, { hearing?: boolean; deadline?: boolean }> = {};
+  // How many hearings/deadlines fall on each day (past days included — history
+  // stays browsable on the calendar).
+  const dayInfo = useMemo(() => {
+    const map: Record<string, DayInfo> = {};
     hearings.data?.forEach((h) => {
-      if (!h.is_completed) {
-        const key = toDateKey(h.scheduled_at);
-        dayKinds[key] = { ...dayKinds[key], hearing: true };
-      }
+      const key = toDateKey(h.scheduled_at);
+      map[key] = { hearings: (map[key]?.hearings ?? 0) + 1, deadlines: map[key]?.deadlines ?? 0 };
     });
     deadlines.data?.forEach((d) => {
-      if (!d.is_completed) {
-        const key = toDateKey(d.due_at);
-        dayKinds[key] = { ...dayKinds[key], deadline: true };
-      }
+      const key = toDateKey(d.due_at);
+      map[key] = { hearings: map[key]?.hearings ?? 0, deadlines: (map[key]?.deadlines ?? 0) + 1 };
     });
+    return map;
+  }, [hearings.data, deadlines.data]);
 
-    // Paint the whole day cell: hearing = blue, deadline = amber, both = violet.
-    const marks: Record<string, object> = {};
-    for (const [key, kinds] of Object.entries(dayKinds)) {
-      const fill = kinds.hearing && kinds.deadline ? BOTH_COLOR : kinds.hearing ? colors.primary : colors.warning;
-      marks[key] = {
-        customStyles: {
-          container: {
-            backgroundColor: fill,
-            borderRadius: 10,
-            borderWidth: key === selectedDate ? 2 : 0,
-            borderColor: colors.textPrimary,
-          },
-          text: { color: '#FFFFFF', fontWeight: '700' },
-        },
-      };
-    }
-
-    // Selected day without events: outlined ring.
-    if (!marks[selectedDate]) {
-      marks[selectedDate] = {
-        customStyles: {
-          container: { borderRadius: 10, borderWidth: 2, borderColor: colors.primary },
-          text: { color: colors.primary, fontWeight: '700' },
-        },
-      };
-    }
-
-    return marks;
-  }, [hearings.data, deadlines.data, selectedDate]);
+  const upcomingCount = useMemo(() => {
+    const now = Date.now();
+    const weekAhead = addDays(new Date(), 7).getTime();
+    let count = 0;
+    hearings.data?.forEach((h) => {
+      const ts = new Date(h.scheduled_at).getTime();
+      if (!h.is_completed && ts >= now && ts <= weekAhead) count += 1;
+    });
+    deadlines.data?.forEach((d) => {
+      const ts = new Date(d.due_at).getTime();
+      if (!d.is_completed && ts >= now && ts <= weekAhead) count += 1;
+    });
+    return count;
+  }, [hearings.data, deadlines.data]);
 
   const dayEvents: AgendaEvent[] = useMemo(() => {
     const events: AgendaEvent[] = [];
@@ -127,9 +115,64 @@ export default function DashboardScreen() {
     return events.sort((a, b) => a.time - b.time);
   }, [hearings.data, deadlines.data, selectedDate]);
 
+  const selectedInfo = dayInfo[selectedDate];
+
   const agendaTitle = isToday(new Date(selectedDate))
     ? t('dash.agendaToday')
     : t('dash.agendaOn', { date: formatDate(selectedDate) });
+
+  const renderDay = useCallback(
+    ({ date, state }: { date?: { dateString: string; day: number }; state?: string }) => {
+      if (!date) return <View style={styles.dayCell} />;
+      const key = date.dateString;
+      const info = dayInfo[key];
+      const total = info ? info.hearings + info.deadlines : 0;
+      const fill = info
+        ? info.hearings > 0 && info.deadlines > 0
+          ? BOTH_COLOR
+          : info.hearings > 0
+            ? colors.primary
+            : colors.warning
+        : undefined;
+      const isSelected = key === selectedDate;
+      const isTodayCell = state === 'today';
+      const isDisabled = state === 'disabled';
+
+      return (
+        <Pressable onPress={() => setSelectedDate(key)} style={styles.dayWrap}>
+          <View
+            style={[
+              styles.dayCell,
+              fill ? { backgroundColor: fill } : undefined,
+              isSelected && { borderWidth: 2, borderColor: fill ? colors.textPrimary : colors.primary },
+            ]}
+          >
+            <Text
+              style={[
+                styles.dayText,
+                fill
+                  ? styles.dayTextOnFill
+                  : isDisabled
+                    ? styles.dayTextDisabled
+                    : isTodayCell
+                      ? styles.dayTextToday
+                      : undefined,
+                isSelected && !fill && { color: colors.primary, fontWeight: '700' },
+              ]}
+            >
+              {date.day}
+            </Text>
+            {total > 0 && (
+              <View style={[styles.countBadge, { borderColor: fill ?? colors.primary }]}>
+                <Text style={[styles.countBadgeText, { color: fill ?? colors.primary }]}>{total}</Text>
+              </View>
+            )}
+          </View>
+        </Pressable>
+      );
+    },
+    [dayInfo, selectedDate]
+  );
 
   return (
     <Screen>
@@ -138,35 +181,43 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl tintColor={colors.textSecondary} refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>
+          <View style={styles.headerText}>
+            <Text style={styles.greeting} numberOfLines={1}>
               {t(greetingKey)}, {firstName}
             </Text>
             <Text style={styles.subGreeting}>{profile?.firm_name || t('dash.overview')}</Text>
           </View>
-          <Pressable onPress={() => router.push('/settings')}>
-            <Avatar name={profile?.full_name || t('dash.counselor')} size={44} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
+              style={styles.bellButton}
+              hitSlop={6}
+            >
+              <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
+              {upcomingCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>{upcomingCount > 9 ? '9+' : upcomingCount}</Text>
+                </View>
+              )}
+            </Pressable>
+            <Pressable onPress={() => router.push('/settings')}>
+              <Avatar name={profile?.full_name || t('dash.counselor')} size={44} />
+            </Pressable>
+          </View>
         </View>
 
         <Card padded={false} style={styles.calendarCard}>
           <Calendar
             key={lang}
-            markingType="custom"
-            markedDates={markedDates}
-            onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
+            dayComponent={renderDay}
+            onDayPress={(day) => setSelectedDate(day.dateString)}
             enableSwipeMonths
             theme={{
               calendarBackground: colors.surface,
-              dayTextColor: colors.textPrimary,
               monthTextColor: colors.textPrimary,
               textMonthFontWeight: '700',
               textSectionTitleColor: colors.textMuted,
-              todayTextColor: colors.gold,
               arrowColor: colors.primary,
-              textDisabledColor: '#C4CBD9',
-              selectedDayBackgroundColor: colors.primary,
-              selectedDayTextColor: '#FFFFFF',
             }}
             style={styles.calendar}
           />
@@ -191,6 +242,28 @@ export default function DashboardScreen() {
 
         <View style={styles.section}>
           <SectionHeader title={agendaTitle} />
+
+          {selectedInfo && (
+            <View style={styles.summaryRow}>
+              {selectedInfo.hearings > 0 && (
+                <View style={[styles.summaryChip, { backgroundColor: colors.primarySoft }]}>
+                  <View style={[styles.summaryDot, { backgroundColor: colors.primary }]} />
+                  <Text style={[styles.summaryText, { color: colors.primary }]}>
+                    {t('dash.nHearings', { n: selectedInfo.hearings })}
+                  </Text>
+                </View>
+              )}
+              {selectedInfo.deadlines > 0 && (
+                <View style={[styles.summaryChip, { backgroundColor: colors.warningSoft }]}>
+                  <View style={[styles.summaryDot, { backgroundColor: colors.warning }]} />
+                  <Text style={[styles.summaryText, { color: colors.warning }]}>
+                    {t('dash.nDeadlines', { n: selectedInfo.deadlines })}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
           <Card>
             {dayEvents.length > 0 ? (
               dayEvents.map((event, index) => (
@@ -297,6 +370,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
+  headerText: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  bellButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  bellBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
   greeting: {
     ...typography.h1,
     color: colors.textPrimary,
@@ -311,6 +420,50 @@ const styles = StyleSheet.create({
   },
   calendar: {
     borderRadius: 16,
+  },
+  dayWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayCell: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.textPrimary,
+  },
+  dayTextOnFill: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  dayTextDisabled: {
+    color: '#C4CBD9',
+  },
+  dayTextToday: {
+    color: colors.gold,
+    fontWeight: '800',
+  },
+  countBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 9,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  countBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
   },
   legendRow: {
     flexDirection: 'row',
@@ -336,6 +489,29 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: spacing.lg,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  summaryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 999,
+  },
+  summaryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  summaryText: {
+    ...typography.caption,
+    fontWeight: '700',
   },
   divider: {
     borderTopWidth: 1,

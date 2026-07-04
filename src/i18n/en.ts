@@ -69,6 +69,15 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.noEventsDay': 'Nothing planned for this day',
   'dash.noEventsDayDesc': 'Tap another day on the calendar or add a hearing.',
   'dash.eventCount': '{n} items',
+  'dash.nHearings': '{n} hearings',
+  'dash.nDeadlines': '{n} deadlines',
+  'reminders.title': 'Reminders',
+  'reminders.upcoming': 'Upcoming',
+  'reminders.past': 'Past',
+  'reminders.emptyUpcoming': 'No upcoming reminders',
+  'reminders.emptyUpcomingDesc': 'Hearings and deadlines you add will be listed here.',
+  'reminders.emptyPast': 'No past records',
+  'reminders.emptyPastDesc': 'Completed and past items are kept here.',
 
   // Case status & priority
   'status.all': 'All',
