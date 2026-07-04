@@ -33,6 +33,8 @@ function toDateKey(iso: string): string {
   return format(new Date(iso), 'yyyy-MM-dd');
 }
 
+const BOTH_COLOR = '#7C3AED';
+
 type AgendaEvent =
   | { kind: 'hearing'; time: number; hearing: NonNullable<ReturnType<typeof useAllHearings>['data']>[number] }
   | { kind: 'deadline'; time: number; deadline: NonNullable<ReturnType<typeof useAllDeadlines>['data']>[number] };
@@ -65,27 +67,47 @@ export default function DashboardScreen() {
   const firstName = profile?.full_name?.split(' ')[0] || t('dash.counselor');
 
   const markedDates = useMemo(() => {
-    const marks: Record<string, { dots: { key: string; color: string }[]; selected?: boolean; selectedColor?: string; selectedTextColor?: string }> = {};
-
-    const addDot = (dateKey: string, key: string, color: string) => {
-      if (!marks[dateKey]) marks[dateKey] = { dots: [] };
-      if (marks[dateKey].dots.length < 4) marks[dateKey].dots.push({ key, color });
-    };
-
+    // Which kinds of events fall on each day?
+    const dayKinds: Record<string, { hearing?: boolean; deadline?: boolean }> = {};
     hearings.data?.forEach((h) => {
-      if (!h.is_completed) addDot(toDateKey(h.scheduled_at), `h-${h.id}`, colors.primary);
+      if (!h.is_completed) {
+        const key = toDateKey(h.scheduled_at);
+        dayKinds[key] = { ...dayKinds[key], hearing: true };
+      }
     });
     deadlines.data?.forEach((d) => {
-      if (!d.is_completed) addDot(toDateKey(d.due_at), `d-${d.id}`, colors.warning);
+      if (!d.is_completed) {
+        const key = toDateKey(d.due_at);
+        dayKinds[key] = { ...dayKinds[key], deadline: true };
+      }
     });
 
-    if (!marks[selectedDate]) marks[selectedDate] = { dots: [] };
-    marks[selectedDate] = {
-      ...marks[selectedDate],
-      selected: true,
-      selectedColor: colors.primary,
-      selectedTextColor: '#FFFFFF',
-    };
+    // Paint the whole day cell: hearing = blue, deadline = amber, both = violet.
+    const marks: Record<string, object> = {};
+    for (const [key, kinds] of Object.entries(dayKinds)) {
+      const fill = kinds.hearing && kinds.deadline ? BOTH_COLOR : kinds.hearing ? colors.primary : colors.warning;
+      marks[key] = {
+        customStyles: {
+          container: {
+            backgroundColor: fill,
+            borderRadius: 10,
+            borderWidth: key === selectedDate ? 2 : 0,
+            borderColor: colors.textPrimary,
+          },
+          text: { color: '#FFFFFF', fontWeight: '700' },
+        },
+      };
+    }
+
+    // Selected day without events: outlined ring.
+    if (!marks[selectedDate]) {
+      marks[selectedDate] = {
+        customStyles: {
+          container: { borderRadius: 10, borderWidth: 2, borderColor: colors.primary },
+          text: { color: colors.primary, fontWeight: '700' },
+        },
+      };
+    }
 
     return marks;
   }, [hearings.data, deadlines.data, selectedDate]);
@@ -130,7 +152,7 @@ export default function DashboardScreen() {
         <Card padded={false} style={styles.calendarCard}>
           <Calendar
             key={lang}
-            markingType="multi-dot"
+            markingType="custom"
             markedDates={markedDates}
             onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
             enableSwipeMonths
@@ -150,12 +172,19 @@ export default function DashboardScreen() {
           />
           <View style={styles.legendRow}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
+              <View style={[styles.legendSwatch, { backgroundColor: colors.primary }]} />
               <Text style={styles.legendLabel}>{t('cal.hearing')}</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.warning }]} />
+              <View style={[styles.legendSwatch, { backgroundColor: colors.warning }]} />
               <Text style={styles.legendLabel}>{t('cal.deadline')}</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendSwatch, { backgroundColor: BOTH_COLOR }]} />
+              <Text style={styles.legendLabel}>{t('cal.both')}</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <Text style={[styles.legendLabel, { color: colors.gold, fontWeight: '700' }]}>{t('cal.today')}</Text>
             </View>
           </View>
         </Card>
@@ -285,7 +314,8 @@ const styles = StyleSheet.create({
   },
   legendRow: {
     flexDirection: 'row',
-    gap: spacing.md,
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
     paddingTop: 2,
@@ -295,10 +325,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  legendSwatch: {
+    width: 14,
+    height: 14,
+    borderRadius: 5,
   },
   legendLabel: {
     ...typography.small,

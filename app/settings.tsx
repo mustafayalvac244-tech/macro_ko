@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
@@ -138,6 +138,24 @@ export default function SettingsScreen() {
         </Card>
 
         <Card style={styles.section}>
+          <Pressable style={styles.row} onPress={() => router.push('/change-password' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="key-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.rowLabel}>{t('settings.changePassword')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+          <View style={styles.rowDivider} />
+          <Pressable style={styles.row} onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="diamond-outline" size={18} color={colors.gold} />
+              <Text style={styles.rowLabel}>{t('settings.premium')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+        </Card>
+
+        <Card style={styles.section}>
           <InfoRow label={t('settings.version')} value={Constants.expoConfig?.version ?? '1.2.0'} />
           <InfoRow label={t('settings.dataStorage')} value={t('settings.dataStorageValue')} />
         </Card>
@@ -213,6 +231,11 @@ const styles = StyleSheet.create({
   },
   rowColumn: {
     gap: spacing.sm,
+  },
+  rowDivider: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+    marginVertical: spacing.sm,
   },
   rowLeft: {
     flexDirection: 'row',
