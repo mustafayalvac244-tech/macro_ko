@@ -146,6 +146,14 @@ export default function SettingsScreen() {
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </Pressable>
           <View style={styles.rowDivider} />
+          <Pressable style={styles.row} onPress={() => router.push('/feedback' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.info} />
+              <Text style={styles.rowLabel}>{t('settings.feedback')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+          <View style={styles.rowDivider} />
           <Pressable style={styles.row} onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}>
             <View style={styles.rowLeft}>
               <Ionicons name="diamond-outline" size={18} color={colors.gold} />

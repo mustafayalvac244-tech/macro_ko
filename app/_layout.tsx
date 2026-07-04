@@ -71,6 +71,7 @@ export default function RootLayout() {
             <Stack.Screen name="document-upload" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="premium" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="reminders" options={{ headerShown: false }} />
+            <Stack.Screen name="feedback" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="change-password" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
           </Stack>
