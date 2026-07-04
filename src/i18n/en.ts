@@ -24,6 +24,17 @@ export const en: Record<keyof typeof tr, string> = {
   'auth.createAccountBtn': 'Create Account',
   'auth.haveAccount': 'Already have an account? ',
   'auth.signInLink': 'Sign in',
+  'auth.forgot': 'Forgot password?',
+  'forgot.title': 'Reset Password',
+  'forgot.emailStep': "Enter your account's email and we'll send you a 6-digit verification code.",
+  'forgot.sendCode': 'Send Code',
+  'forgot.codeStep': 'Enter the 6-digit code from your email and your new password.',
+  'forgot.code': 'Verification code',
+  'forgot.codePlaceholder': '123456',
+  'forgot.newPassword': 'New password',
+  'forgot.submit': 'Update Password',
+  'forgot.resend': 'Resend code',
+  'forgot.success': 'Your password has been updated.',
 
   // Tabs
   'tab.dashboard': 'Dashboard',
@@ -148,6 +159,7 @@ export const en: Record<keyof typeof tr, string> = {
   'docCategory.court_order': 'Court Order',
   'docCategory.invoice': 'Invoice',
   'docCategory.identification': 'ID',
+  'docCategory.client_photo': 'Client Photo',
   'docCategory.other': 'Other',
 
   // Upload
@@ -157,6 +169,7 @@ export const en: Record<keyof typeof tr, string> = {
   'upload.category': 'Category',
   'upload.chooseFile': 'Choose File',
   'upload.choosePhoto': 'Choose Photo',
+  'upload.takePhoto': 'Take Photo',
   'upload.upload': 'Upload',
   'upload.failed': 'Upload failed',
   'upload.tryAgain': 'Please try again.',
@@ -180,6 +193,9 @@ export const en: Record<keyof typeof tr, string> = {
   'caseForm.description': 'Description / notes',
   'caseForm.descriptionPlaceholder': 'Key facts, strategy notes, or context...',
   'caseForm.create': 'Create Case',
+  'caseForm.openedDate': 'Opened date',
+  'caseForm.firstHearing': 'First hearing (optional)',
+  'caseForm.pickDate': 'Pick a date',
 
   // Client form
   'clientForm.editTitle': 'Edit Client',

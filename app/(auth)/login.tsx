@@ -55,6 +55,10 @@ export default function LoginScreen() {
             onChangeText={setPassword}
           />
 
+          <Link href={'/forgot-password' as Parameters<typeof router.push>[0]} style={styles.forgotLink}>
+            <Text style={styles.forgotText}>{t('auth.forgot')}</Text>
+          </Link>
+
           {error && <Text style={styles.error}>{error}</Text>}
 
           <Button
@@ -134,6 +138,14 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.danger,
     marginBottom: spacing.md,
+  },
+  forgotLink: {
+    alignSelf: 'flex-end',
+    marginBottom: spacing.md,
+  },
+  forgotText: {
+    ...typography.caption,
+    color: colors.primary,
   },
   submit: {
     marginTop: spacing.xs,

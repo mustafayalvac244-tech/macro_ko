@@ -6,11 +6,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
+import { SuggestInput } from '@/components/ui/SuggestInput';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCase } from '@/hooks/useCases';
 import { useCreateDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
-import { useT } from '@/i18n';
+import { deadlineTitleSuggestions } from '@/constants/suggestions';
+import { useLangStore, useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 import { formatDateTime } from '@/utils/format';
 import type { PriorityLevel } from '@/types/database';
@@ -27,6 +29,7 @@ const REMINDER_VALUES = [
 
 export default function DeadlineFormScreen() {
   const t = useT();
+  const lang = useLangStore((s) => s.lang);
   const { caseId, id } = useLocalSearchParams<{ caseId: string; id?: string }>();
   const isEdit = !!id;
   const { data: caseItem } = useCase(caseId);
@@ -83,7 +86,13 @@ export default function DeadlineFormScreen() {
       <ScreenHeader title={isEdit ? t('deadlineForm.editTitle') : t('deadlineForm.newTitle')} subtitle={caseItem?.title} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Input label={t('hearingForm.title')} placeholder={t('deadlineForm.titlePlaceholder')} value={title} onChangeText={setTitle} />
+          <SuggestInput
+            label={t('hearingForm.title')}
+            placeholder={t('deadlineForm.titlePlaceholder')}
+            value={title}
+            onChangeText={setTitle}
+            suggestions={deadlineTitleSuggestions[lang]}
+          />
 
           <Text style={styles.label}>{t('deadlineForm.due')}</Text>
           <Pressable style={styles.dateButton} onPress={() => setShowPicker('date')}>

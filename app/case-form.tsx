@@ -1,15 +1,22 @@
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
+import { SuggestInput } from '@/components/ui/SuggestInput';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCase, useCreateCase, useUpdateCase } from '@/hooks/useCases';
+import { useCreateHearing } from '@/hooks/useHearings';
 import { useClients } from '@/hooks/useClients';
-import { useT } from '@/i18n';
+import { useLangStore, useT } from '@/i18n';
+import { caseTypeSuggestions, courtSuggestions } from '@/constants/suggestions';
 import { colors, spacing, typography } from '@/theme/theme';
+import { formatDate, formatDateTime } from '@/utils/format';
 import type { CaseStatus, PriorityLevel } from '@/types/database';
 
 const STATUS_VALUES: CaseStatus[] = ['active', 'pending', 'on_hold', 'won', 'lost', 'closed'];
@@ -17,12 +24,14 @@ const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
 
 export default function CaseFormScreen() {
   const t = useT();
+  const lang = useLangStore((s) => s.lang);
   const { id, clientId: prefilledClientId } = useLocalSearchParams<{ id?: string; clientId?: string }>();
   const isEdit = !!id;
   const { data: existingCase } = useCase(id);
   const { data: clients } = useClients();
   const createCase = useCreateCase();
   const updateCase = useUpdateCase();
+  const createHearing = useCreateHearing();
 
   const [title, setTitle] = useState('');
   const [clientId, setClientId] = useState<string | null>(prefilledClientId ?? null);
@@ -33,6 +42,9 @@ export default function CaseFormScreen() {
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<CaseStatus>('active');
   const [priority, setPriority] = useState<PriorityLevel>('medium');
+  const [openedDate, setOpenedDate] = useState(new Date());
+  const [firstHearingAt, setFirstHearingAt] = useState<Date | null>(null);
+  const [showPicker, setShowPicker] = useState<'opened' | 'hearingDate' | 'hearingTime' | null>(null);
 
   useEffect(() => {
     if (existingCase) {
@@ -45,10 +57,11 @@ export default function CaseFormScreen() {
       setDescription(existingCase.description ?? '');
       setStatus(existingCase.status);
       setPriority(existingCase.priority);
+      setOpenedDate(new Date(existingCase.opened_date));
     }
   }, [existingCase]);
 
-  const isSubmitting = createCase.isPending || updateCase.isPending;
+  const isSubmitting = createCase.isPending || updateCase.isPending || createHearing.isPending;
 
   const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(`status.${value}` as const) }));
   const priorityOptions = PRIORITY_VALUES.map((value) => ({ value, label: t(`priority.${value}` as const) }));
@@ -64,15 +77,57 @@ export default function CaseFormScreen() {
       description: description.trim() || null,
       status,
       priority,
+      opened_date: format(openedDate, 'yyyy-MM-dd'),
     };
 
     if (isEdit && id) {
       await updateCase.mutateAsync({ id, ...payload });
     } else {
-      await createCase.mutateAsync(payload);
+      const created = await createCase.mutateAsync(payload);
+      if (firstHearingAt) {
+        await createHearing.mutateAsync({
+          case_id: created.id,
+          title: t('hearingType.hearing'),
+          type: 'hearing',
+          location: courtName.trim() || null,
+          scheduled_at: firstHearingAt.toISOString(),
+          reminder_minutes_before: 1440,
+          notes: null,
+          caseTitle: created.title,
+        });
+      }
     }
     router.back();
   };
+
+  const onPickerChange = (_event: unknown, date?: Date) => {
+    const current = showPicker;
+    if (Platform.OS === 'android') setShowPicker(null);
+    if (!date || !current) return;
+
+    if (current === 'opened') {
+      setOpenedDate(date);
+    } else if (current === 'hearingDate') {
+      if (Platform.OS === 'ios') {
+        // iOS uses a combined datetime picker
+        setFirstHearingAt(date);
+        return;
+      }
+      const base = firstHearingAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const next = new Date(base);
+      next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+      setFirstHearingAt(next);
+      setTimeout(() => setShowPicker('hearingTime'), 250);
+    } else {
+      const base = firstHearingAt ?? new Date();
+      const next = new Date(base);
+      next.setHours(date.getHours(), date.getMinutes());
+      setFirstHearingAt(next);
+    }
+  };
+
+  const pickerValue =
+    showPicker === 'opened' ? openedDate : firstHearingAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
@@ -90,10 +145,69 @@ export default function CaseFormScreen() {
 
           <View style={styles.spacer} />
           <Input label={t('caseForm.caseNumber')} placeholder={t('caseForm.caseNumberPlaceholder')} value={caseNumber} onChangeText={setCaseNumber} />
-          <Input label={t('caseForm.court')} placeholder={t('caseForm.courtPlaceholder')} value={courtName} onChangeText={setCourtName} />
-          <Input label={t('caseForm.caseType')} placeholder={t('caseForm.caseTypePlaceholder')} value={caseType} onChangeText={setCaseType} />
+
+          <SuggestInput
+            label={t('caseForm.court')}
+            placeholder={t('caseForm.courtPlaceholder')}
+            value={courtName}
+            onChangeText={setCourtName}
+            suggestions={courtSuggestions[lang]}
+          />
+
+          <SuggestInput
+            label={t('caseForm.caseType')}
+            placeholder={t('caseForm.caseTypePlaceholder')}
+            value={caseType}
+            onChangeText={setCaseType}
+            suggestions={caseTypeSuggestions[lang]}
+          />
+
           <Input label={t('caseForm.opposingParty')} placeholder={t('caseForm.opposingPartyPlaceholder')} value={opposingParty} onChangeText={setOpposingParty} />
 
+          <Text style={styles.label}>{t('caseForm.openedDate')}</Text>
+          <Pressable style={styles.dateButton} onPress={() => setShowPicker('opened')}>
+            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+            <Text style={styles.dateButtonText}>{formatDate(openedDate.toISOString())}</Text>
+          </Pressable>
+
+          {!isEdit && (
+            <>
+              <View style={styles.spacer} />
+              <Text style={styles.label}>{t('caseForm.firstHearing')}</Text>
+              <View style={styles.hearingRow}>
+                <Pressable style={[styles.dateButton, styles.hearingButton]} onPress={() => setShowPicker('hearingDate')}>
+                  <Ionicons name="hammer-outline" size={18} color={firstHearingAt ? colors.primary : colors.textMuted} />
+                  <Text style={[styles.dateButtonText, !firstHearingAt && styles.dateButtonPlaceholder]}>
+                    {firstHearingAt ? formatDateTime(firstHearingAt.toISOString()) : t('caseForm.pickDate')}
+                  </Text>
+                </Pressable>
+                {firstHearingAt && (
+                  <Pressable onPress={() => setFirstHearingAt(null)} hitSlop={8} style={styles.clearButton}>
+                    <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                  </Pressable>
+                )}
+              </View>
+            </>
+          )}
+
+          {showPicker && (
+            <DateTimePicker
+              value={pickerValue}
+              mode={
+                showPicker === 'hearingTime'
+                  ? 'time'
+                  : showPicker === 'hearingDate' && Platform.OS === 'ios'
+                    ? 'datetime'
+                    : 'date'
+              }
+              onChange={onPickerChange}
+            />
+          )}
+          {Platform.OS === 'ios' && showPicker && (
+            <Button label={t('common.done')} size="sm" variant="secondary" onPress={() => setShowPicker(null)} style={styles.pickerDone} />
+          )}
+
+          <View style={styles.spacer} />
           <Text style={styles.label}>{t('caseForm.status')}</Text>
           <SegmentedControl options={statusOptions} value={status} onChange={setStatus} />
 
@@ -140,6 +254,39 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: spacing.md,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 13,
+  },
+  dateButtonText: {
+    ...typography.body,
+    color: colors.textPrimary,
+  },
+  dateButtonPlaceholder: {
+    color: colors.textMuted,
+  },
+  hearingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  hearingButton: {
+    flex: 1,
+  },
+  clearButton: {
+    padding: 4,
+  },
+  pickerDone: {
+    marginTop: spacing.xs,
+    alignSelf: 'flex-end',
   },
   textArea: {
     height: 100,

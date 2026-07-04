@@ -9,6 +9,7 @@ export type DocumentCategory =
   | 'court_order'
   | 'invoice'
   | 'identification'
+  | 'client_photo'
   | 'other';
 
 export interface Profile {

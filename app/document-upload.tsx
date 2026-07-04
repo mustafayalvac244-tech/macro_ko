@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCases } from '@/hooks/useCases';
-import { pickDocumentFile, pickImageFile, useUploadDocument } from '@/hooks/useDocuments';
+import { pickDocumentFile, pickImageFile, takePhotoFile, useUploadDocument } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 import { formatFileSize } from '@/utils/format';
@@ -22,6 +22,7 @@ const CATEGORY_VALUES: DocumentCategory[] = [
   'court_order',
   'invoice',
   'identification',
+  'client_photo',
   'other',
 ];
 
@@ -44,6 +45,11 @@ export default function DocumentUploadScreen() {
 
   const handlePickImage = async () => {
     const picked = await pickImageFile();
+    if (picked) setFile(picked);
+  };
+
+  const handleTakePhoto = async () => {
+    const picked = await takePhotoFile();
     if (picked) setFile(picked);
   };
 
@@ -90,7 +96,8 @@ export default function DocumentUploadScreen() {
           ) : (
             <View style={styles.pickerButtons}>
               <Button label={t('upload.chooseFile')} icon="document-outline" variant="secondary" onPress={handlePickDocument} style={styles.pickerButton} />
-              <Button label={t('upload.choosePhoto')} icon="camera-outline" variant="secondary" onPress={handlePickImage} style={styles.pickerButton} />
+              <Button label={t('upload.choosePhoto')} icon="image-outline" variant="secondary" onPress={handlePickImage} style={styles.pickerButton} />
+              <Button label={t('upload.takePhoto')} icon="camera-outline" variant="secondary" onPress={handleTakePhoto} style={styles.pickerButton} />
             </View>
           )}
         </Card>
@@ -127,11 +134,10 @@ const styles = StyleSheet.create({
     height: spacing.lg,
   },
   pickerButtons: {
-    flexDirection: 'row',
     gap: spacing.sm,
   },
   pickerButton: {
-    flex: 1,
+    width: '100%',
   },
   filePreview: {
     flexDirection: 'row',

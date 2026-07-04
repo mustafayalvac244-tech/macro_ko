@@ -72,6 +72,20 @@ export async function pickImageFile(): Promise<PickedFile | null> {
   return { uri: asset.uri, name, size: asset.fileSize ?? 0, mimeType: asset.mimeType ?? 'image/jpeg' };
 }
 
+export async function takePhotoFile(): Promise<PickedFile | null> {
+  const permission = await ImagePicker.requestCameraPermissionsAsync();
+  if (!permission.granted) return null;
+
+  const result = await ImagePicker.launchCameraAsync({
+    mediaTypes: ['images'],
+    quality: 0.9,
+  });
+  if (result.canceled || result.assets.length === 0) return null;
+  const asset = result.assets[0]!;
+  const name = asset.fileName ?? asset.uri.split('/').pop() ?? `photo-${Date.now()}.jpg`;
+  return { uri: asset.uri, name, size: asset.fileSize ?? 0, mimeType: asset.mimeType ?? 'image/jpeg' };
+}
+
 interface UploadDocumentParams {
   file: PickedFile;
   caseId: string;

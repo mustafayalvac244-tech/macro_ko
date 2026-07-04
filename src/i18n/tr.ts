@@ -22,6 +22,17 @@ export const tr = {
   'auth.createAccountBtn': 'Hesap Oluştur',
   'auth.haveAccount': 'Zaten hesabınız var mı? ',
   'auth.signInLink': 'Giriş yapın',
+  'auth.forgot': 'Şifremi unuttum',
+  'forgot.title': 'Şifre Sıfırlama',
+  'forgot.emailStep': 'Hesabınızın e-posta adresini girin; size 6 haneli bir doğrulama kodu gönderelim.',
+  'forgot.sendCode': 'Kod Gönder',
+  'forgot.codeStep': 'E-postanıza gelen 6 haneli kodu ve yeni şifrenizi girin.',
+  'forgot.code': 'Doğrulama kodu',
+  'forgot.codePlaceholder': '123456',
+  'forgot.newPassword': 'Yeni şifre',
+  'forgot.submit': 'Şifreyi Güncelle',
+  'forgot.resend': 'Kodu tekrar gönder',
+  'forgot.success': 'Şifreniz güncellendi.',
 
   // Tabs
   'tab.dashboard': 'Panel',
@@ -146,6 +157,7 @@ export const tr = {
   'docCategory.court_order': 'Mahkeme Kararı',
   'docCategory.invoice': 'Fatura',
   'docCategory.identification': 'Kimlik',
+  'docCategory.client_photo': 'Müvekkil Fotoğrafı',
   'docCategory.other': 'Diğer',
 
   // Upload
@@ -155,6 +167,7 @@ export const tr = {
   'upload.category': 'Kategori',
   'upload.chooseFile': 'Dosya Seç',
   'upload.choosePhoto': 'Fotoğraf Seç',
+  'upload.takePhoto': 'Fotoğraf Çek',
   'upload.upload': 'Yükle',
   'upload.failed': 'Yükleme başarısız',
   'upload.tryAgain': 'Lütfen tekrar deneyin.',
@@ -178,6 +191,9 @@ export const tr = {
   'caseForm.description': 'Açıklama / notlar',
   'caseForm.descriptionPlaceholder': 'Önemli olgular, strateji notları veya bağlam...',
   'caseForm.create': 'Dava Oluştur',
+  'caseForm.openedDate': 'Açılış tarihi',
+  'caseForm.firstHearing': 'İlk duruşma (isteğe bağlı)',
+  'caseForm.pickDate': 'Tarih seç',
 
   // Client form
   'clientForm.editTitle': 'Müvekkili Düzenle',
