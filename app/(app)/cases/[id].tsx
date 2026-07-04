@@ -13,15 +13,19 @@ import { Button } from '@/components/ui/Button';
 import { HearingListItem } from '@/components/calendar/HearingListItem';
 import { DeadlineListItem } from '@/components/calendar/DeadlineListItem';
 import { DocumentListItem } from '@/components/documents/DocumentListItem';
+import { Input } from '@/components/ui/Input';
 import { useCase, useDeleteCase } from '@/hooks/useCases';
 import { useHearingsForCase } from '@/hooks/useHearings';
 import { useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useDocuments, useSignedDocumentUrl } from '@/hooks/useDocuments';
+import { useCreatePayment, useDeletePayment, usePaymentsForCase } from '@/hooks/usePayments';
 import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatMoney } from '@/utils/format';
+import { Ionicons } from '@expo/vector-icons';
+import type { DocumentCategory } from '@/types/database';
 
-type Tab = 'overview' | 'hearings' | 'deadlines' | 'documents';
+type Tab = 'overview' | 'hearings' | 'deadlines' | 'documents' | 'finance';
 
 export default function CaseDetailScreen() {
   const t = useT();
@@ -32,9 +36,14 @@ export default function CaseDetailScreen() {
   const hearings = useHearingsForCase(id);
   const deadlines = useDeadlinesForCase(id);
   const documents = useDocuments(id);
+  const payments = usePaymentsForCase(id);
+  const createPayment = useCreatePayment();
+  const deletePayment = useDeletePayment();
   const updateDeadline = useUpdateDeadline();
   const deleteCase = useDeleteCase();
   const signedUrl = useSignedDocumentUrl();
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNote, setPaymentNote] = useState('');
 
   if (isLoading || !caseItem) {
     return (
@@ -96,6 +105,7 @@ export default function CaseDetailScreen() {
               { label: t('case.tabHearings'), value: 'hearings' },
               { label: t('case.tabDeadlines'), value: 'deadlines' },
               { label: t('case.tabDocuments'), value: 'documents' },
+              { label: t('case.tabFinance'), value: 'finance' },
             ]}
             value={tab}
             onChange={(v) => setTab(v as Tab)}
@@ -161,21 +171,138 @@ export default function CaseDetailScreen() {
         {tab === 'documents' && (
           <View>
             <SectionHeader title={t('case.tabDocuments')} actionLabel={t('case.upload')} onAction={() => router.push(`/document-upload?caseId=${caseItem.id}`)} />
+            {documents.data && documents.data.length > 0 ? (
+              (() => {
+                const groups = new Map<DocumentCategory, typeof documents.data>();
+                documents.data!.forEach((doc) => {
+                  const list = groups.get(doc.category) ?? [];
+                  list.push(doc);
+                  groups.set(doc.category, list);
+                });
+                return Array.from(groups.entries()).map(([category, docs]) => (
+                  <View key={category} style={styles.folderGroup}>
+                    <View style={styles.folderHeader}>
+                      <Ionicons name="folder" size={16} color={colors.gold} />
+                      <Text style={styles.folderTitle}>{t(`docCategory.${category}` as const)}</Text>
+                      <Text style={styles.folderCount}>{docs.length}</Text>
+                    </View>
+                    <Card>
+                      {docs.map((doc, index) => (
+                        <View key={doc.id} style={index > 0 ? styles.divider : undefined}>
+                          <DocumentListItem
+                            document={doc}
+                            onPress={async () => {
+                              const url = await signedUrl.mutateAsync(doc.file_path);
+                              Linking.openURL(url);
+                            }}
+                          />
+                        </View>
+                      ))}
+                    </Card>
+                  </View>
+                ));
+              })()
+            ) : (
+              <Card>
+                <EmptyState icon="folder-open-outline" title={t('case.noDocuments')} />
+              </Card>
+            )}
+          </View>
+        )}
+
+        {tab === 'finance' && (
+          <View>
+            <Card style={styles.financeSummary}>
+              <View style={styles.financeRow}>
+                <FinanceStat
+                  label={t('finance.fee')}
+                  value={caseItem.fee_amount != null ? formatMoney(caseItem.fee_amount) : t('finance.noFee')}
+                  color={colors.textPrimary}
+                />
+                <FinanceStat
+                  label={t('finance.collected')}
+                  value={formatMoney((payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0))}
+                  color={colors.success}
+                />
+                <FinanceStat
+                  label={t('finance.remaining')}
+                  value={
+                    caseItem.fee_amount != null
+                      ? formatMoney(
+                          Math.max(0, Number(caseItem.fee_amount) - (payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0))
+                        )
+                      : '—'
+                  }
+                  color={colors.warning}
+                />
+              </View>
+            </Card>
+
+            <Card style={styles.paymentForm}>
+              <Input
+                label={t('finance.amount')}
+                placeholder={t('finance.amountPlaceholder')}
+                keyboardType="numeric"
+                value={paymentAmount}
+                onChangeText={setPaymentAmount}
+              />
+              <Input
+                label={t('finance.note')}
+                placeholder={t('finance.notePlaceholder')}
+                value={paymentNote}
+                onChangeText={setPaymentNote}
+              />
+              <Button
+                label={t('finance.addPayment')}
+                icon="cash-outline"
+                loading={createPayment.isPending}
+                disabled={!paymentAmount.trim() || !(Number(paymentAmount.replace(',', '.')) > 0)}
+                onPress={async () => {
+                  await createPayment.mutateAsync({
+                    case_id: caseItem.id,
+                    amount: Number(paymentAmount.replace(',', '.')),
+                    note: paymentNote.trim() || null,
+                  });
+                  setPaymentAmount('');
+                  setPaymentNote('');
+                }}
+                fullWidth
+              />
+            </Card>
+
+            <SectionHeader title={t('finance.payments')} />
             <Card>
-              {documents.data && documents.data.length > 0 ? (
-                documents.data.map((doc, index) => (
-                  <View key={doc.id} style={index > 0 ? styles.divider : undefined}>
-                    <DocumentListItem
-                      document={doc}
-                      onPress={async () => {
-                        const url = await signedUrl.mutateAsync(doc.file_path);
-                        Linking.openURL(url);
-                      }}
-                    />
+              {payments.data && payments.data.length > 0 ? (
+                payments.data.map((payment, index) => (
+                  <View key={payment.id} style={index > 0 ? styles.divider : undefined}>
+                    <View style={styles.paymentRow}>
+                      <View style={styles.paymentIcon}>
+                        <Ionicons name="cash-outline" size={16} color={colors.success} />
+                      </View>
+                      <View style={styles.paymentBody}>
+                        <Text style={styles.paymentAmount}>{formatMoney(Number(payment.amount))}</Text>
+                        <Text style={styles.paymentMeta}>
+                          {formatDate(payment.paid_at)}
+                          {payment.note ? ` · ${payment.note}` : ''}
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name="trash-outline"
+                        size={18}
+                        color={colors.textMuted}
+                        suppressHighlighting
+                        onPress={() =>
+                          Alert.alert(t('finance.deleteTitle'), t('finance.deleteConfirm'), [
+                            { text: t('common.cancel'), style: 'cancel' },
+                            { text: t('common.delete'), style: 'destructive', onPress: () => deletePayment.mutate(payment.id) },
+                          ])
+                        }
+                      />
+                    </View>
                   </View>
                 ))
               ) : (
-                <EmptyState icon="folder-open-outline" title={t('case.noDocuments')} />
+                <EmptyState icon="cash-outline" title={t('finance.noPayments')} />
               )}
             </Card>
           </View>
@@ -184,6 +311,17 @@ export default function CaseDetailScreen() {
         <Button label={t('case.delete')} variant="danger" onPress={handleDelete} style={styles.deleteButton} />
       </ScrollView>
     </Screen>
+  );
+}
+
+function FinanceStat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <View style={styles.financeStat}>
+      <Text style={styles.financeStatLabel}>{label}</Text>
+      <Text style={[styles.financeStatValue, { color }]} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
+    </View>
   );
 }
 
@@ -248,5 +386,78 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     marginTop: spacing.xl,
+  },
+  folderGroup: {
+    marginBottom: spacing.md,
+  },
+  folderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+    paddingHorizontal: 2,
+  },
+  folderTitle: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  folderCount: {
+    ...typography.small,
+    color: colors.textMuted,
+    backgroundColor: colors.surfaceHover,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  financeSummary: {
+    marginBottom: spacing.md,
+  },
+  financeRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  financeStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  financeStatLabel: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  financeStatValue: {
+    ...typography.h3,
+  },
+  paymentForm: {
+    marginBottom: spacing.md,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  paymentIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: colors.successSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  paymentBody: {
+    flex: 1,
+  },
+  paymentAmount: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+  },
+  paymentMeta: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: 1,
   },
 });

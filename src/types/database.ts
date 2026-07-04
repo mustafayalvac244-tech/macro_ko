@@ -51,8 +51,19 @@ export interface Case {
   description: string | null;
   opened_date: string;
   closed_date: string | null;
+  fee_amount: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Payment {
+  id: string;
+  owner_id: string;
+  case_id: string;
+  amount: number;
+  note: string | null;
+  paid_at: string;
+  created_at: string;
 }
 
 export interface CaseWithClient extends Case {

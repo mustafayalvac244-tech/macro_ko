@@ -52,6 +52,13 @@ export function formatFileSize(bytes: number): string {
   return `${exponent === 0 ? value : value.toFixed(1)} ${units[exponent]}`;
 }
 
+export function formatMoney(amount: number): string {
+  const rounded = Math.round(amount * 100) / 100;
+  const [whole, decimals] = rounded.toFixed(2).split('.');
+  const grouped = whole!.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return decimals === '00' ? `₺${grouped}` : `₺${grouped},${decimals}`;
+}
+
 export function titleCase(value: string): string {
   return value
     .split('_')

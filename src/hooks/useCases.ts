@@ -73,6 +73,7 @@ export type CaseInput = Pick<
   | 'opposing_party'
   | 'description'
   | 'opened_date'
+  | 'fee_amount'
 >;
 
 export function useCreateCase() {

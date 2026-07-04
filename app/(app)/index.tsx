@@ -307,6 +307,11 @@ export default function DashboardScreen() {
             <QuickAction icon="add-circle-outline" label={t('dash.newCase')} onPress={() => router.push('/case-form')} />
             <QuickAction icon="person-add-outline" label={t('dash.newClient')} onPress={() => router.push('/client-form')} />
             <QuickAction icon="cloud-upload-outline" label={t('dash.uploadFile')} onPress={() => router.push('/document-upload')} />
+            <QuickAction
+              icon="stats-chart-outline"
+              label={t('dash.reports')}
+              onPress={() => router.push('/reports' as Parameters<typeof router.push>[0])}
+            />
           </View>
         </View>
       </ScrollView>
@@ -556,10 +561,12 @@ const styles = StyleSheet.create({
   },
   quickActionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
   quickAction: {
-    flex: 1,
+    flexBasis: '47%',
+    flexGrow: 1,
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,

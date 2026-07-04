@@ -43,6 +43,7 @@ export default function CaseFormScreen() {
   const [status, setStatus] = useState<CaseStatus>('active');
   const [priority, setPriority] = useState<PriorityLevel>('medium');
   const [openedDate, setOpenedDate] = useState(new Date());
+  const [fee, setFee] = useState('');
   const [firstHearingAt, setFirstHearingAt] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState<'opened' | 'hearingDate' | 'hearingTime' | null>(null);
 
@@ -58,6 +59,7 @@ export default function CaseFormScreen() {
       setStatus(existingCase.status);
       setPriority(existingCase.priority);
       setOpenedDate(new Date(existingCase.opened_date));
+      setFee(existingCase.fee_amount != null ? String(existingCase.fee_amount) : '');
     }
   }, [existingCase]);
 
@@ -78,6 +80,7 @@ export default function CaseFormScreen() {
       status,
       priority,
       opened_date: format(openedDate, 'yyyy-MM-dd'),
+      fee_amount: fee.trim() ? Number(fee.replace(',', '.')) || null : null,
     };
 
     if (isEdit && id) {
@@ -163,6 +166,14 @@ export default function CaseFormScreen() {
           />
 
           <Input label={t('caseForm.opposingParty')} placeholder={t('caseForm.opposingPartyPlaceholder')} value={opposingParty} onChangeText={setOpposingParty} />
+
+          <Input
+            label={t('caseForm.fee')}
+            placeholder={t('caseForm.feePlaceholder')}
+            keyboardType="numeric"
+            value={fee}
+            onChangeText={setFee}
+          />
 
           <Text style={styles.label}>{t('caseForm.openedDate')}</Text>
           <Pressable style={styles.dateButton} onPress={() => setShowPicker('opened')}>

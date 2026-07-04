@@ -63,7 +63,48 @@ export async function scheduleReminder({ id, title, body, triggerAt }: ScheduleR
 }
 
 export async function cancelReminder(id: string): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+  // Cancel the main reminder plus the staged 3-day/1-day companions.
+  await Promise.all(
+    [id, `${id}-3d`, `${id}-1d`].map((identifier) =>
+      Notifications.cancelScheduledNotificationAsync(identifier).catch(() => {})
+    )
+  );
+}
+
+const DAY_MINUTES = 24 * 60;
+
+/**
+ * Staged reminders: in addition to the user-chosen offset, schedule automatic
+ * "3 days left" and "1 day left" notifications (skipping duplicates with the
+ * chosen offset and any triggers already in the past).
+ */
+async function scheduleStagedReminders(params: {
+  baseId: string;
+  eventAt: string;
+  chosenMinutesBefore: number;
+  mainTitle: string;
+  body: string;
+}): Promise<void> {
+  const eventTime = new Date(params.eventAt).getTime();
+  const lang = getLang();
+
+  const stages: { suffix: string; minutes: number; title: string }[] = [
+    { suffix: '', minutes: params.chosenMinutesBefore, title: params.mainTitle },
+    { suffix: '-3d', minutes: 3 * DAY_MINUTES, title: translate(lang, 'notif.stage3d', { title: params.mainTitle }) },
+    { suffix: '-1d', minutes: 1 * DAY_MINUTES, title: translate(lang, 'notif.stage1d', { title: params.mainTitle }) },
+  ];
+
+  const seen = new Set<number>();
+  for (const stage of stages) {
+    if (seen.has(stage.minutes)) continue;
+    seen.add(stage.minutes);
+    await scheduleReminder({
+      id: `${params.baseId}${stage.suffix}`,
+      title: stage.title,
+      body: params.body,
+      triggerAt: new Date(eventTime - stage.minutes * 60_000),
+    });
+  }
 }
 
 export function hearingReminderId(hearingId: string): string {
@@ -81,12 +122,12 @@ export async function scheduleHearingReminder(params: {
   scheduledAt: string;
   reminderMinutesBefore: number;
 }): Promise<void> {
-  const triggerAt = new Date(new Date(params.scheduledAt).getTime() - params.reminderMinutesBefore * 60_000);
-  await scheduleReminder({
-    id: hearingReminderId(params.id),
-    title: translate(getLang(), 'notif.hearingTitle', { title: params.hearingTitle }),
+  await scheduleStagedReminders({
+    baseId: hearingReminderId(params.id),
+    eventAt: params.scheduledAt,
+    chosenMinutesBefore: params.reminderMinutesBefore,
+    mainTitle: translate(getLang(), 'notif.hearingTitle', { title: params.hearingTitle }),
     body: `${params.caseTitle} — ${formatDateTime(params.scheduledAt)}`,
-    triggerAt,
   });
 }
 
@@ -97,11 +138,11 @@ export async function scheduleDeadlineReminder(params: {
   dueAt: string;
   reminderMinutesBefore: number;
 }): Promise<void> {
-  const triggerAt = new Date(new Date(params.dueAt).getTime() - params.reminderMinutesBefore * 60_000);
-  await scheduleReminder({
-    id: deadlineReminderId(params.id),
-    title: translate(getLang(), 'notif.deadlineTitle', { title: params.deadlineTitle }),
+  await scheduleStagedReminders({
+    baseId: deadlineReminderId(params.id),
+    eventAt: params.dueAt,
+    chosenMinutesBefore: params.reminderMinutesBefore,
+    mainTitle: translate(getLang(), 'notif.deadlineTitle', { title: params.deadlineTitle }),
     body: `${params.caseTitle} — ${formatDateTime(params.dueAt)}`,
-    triggerAt,
   });
 }
