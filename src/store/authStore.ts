@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import type { Profile } from '@/types/database';
 
 interface AuthState {
@@ -14,6 +14,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (params: { email: string; password: string; fullName: string; firmName?: string }) => Promise<boolean>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -80,6 +81,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     await supabase.auth.signOut();
+    set({ session: null, profile: null });
+  },
+
+  deleteAccount: async () => {
+    const userId = get().session?.user.id;
+    if (!userId) return;
+
+    // Delete uploaded files from storage first (DB cascade doesn't remove them).
+    const { data: docs } = await supabase.from('documents').select('file_path').eq('owner_id', userId);
+    const paths = (docs ?? []).map((d: { file_path: string }) => d.file_path);
+    if (paths.length > 0) {
+      await supabase.storage.from(DOCUMENTS_BUCKET).remove(paths).catch(() => {});
+    }
+
+    // Server-side function deletes the auth user; every table cascades from it.
+    const { error } = await supabase.rpc('delete_account');
+    if (error) throw error;
+
+    await supabase.auth.signOut().catch(() => {});
     set({ session: null, profile: null });
   },
 

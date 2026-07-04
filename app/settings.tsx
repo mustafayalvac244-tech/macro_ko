@@ -22,7 +22,9 @@ export default function SettingsScreen() {
   const profile = useAuthStore((s) => s.profile);
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     Notifications.getPermissionsAsync().then(({ status }) => setNotificationsEnabled(status === 'granted'));
@@ -38,6 +40,37 @@ export default function SettingsScreen() {
     } else {
       Alert.alert(t('settings.sysTitle'), t('settings.sysMsg'));
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(t('settings.deleteAccount'), t('settings.deleteAccountWarn'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('settings.deleteAccountContinue'),
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert(t('settings.deleteAccountConfirmTitle'), t('settings.deleteAccountConfirmMsg'), [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('settings.deleteAccountConfirmBtn'),
+              style: 'destructive',
+              onPress: async () => {
+                setIsDeleting(true);
+                try {
+                  await deleteAccount();
+                  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+                  router.replace('/(auth)/login');
+                } catch {
+                  Alert.alert(t('settings.deleteAccount'), t('settings.deleteAccountError'));
+                } finally {
+                  setIsDeleting(false);
+                }
+              },
+            },
+          ]);
+        },
+      },
+    ]);
   };
 
   const handleSignOut = () => {
@@ -105,11 +138,27 @@ export default function SettingsScreen() {
         </Card>
 
         <Card style={styles.section}>
-          <InfoRow label={t('settings.version')} value={Constants.expoConfig?.version ?? '1.1.0'} />
-          <InfoRow label={t('settings.backend')} value="Supabase" />
+          <InfoRow label={t('settings.version')} value={Constants.expoConfig?.version ?? '1.2.0'} />
+          <InfoRow label={t('settings.dataStorage')} value={t('settings.dataStorageValue')} />
         </Card>
 
-        <Button label={t('settings.signOut')} variant="danger" onPress={handleSignOut} style={styles.signOutButton} />
+        <Button label={t('settings.signOut')} variant="secondary" onPress={handleSignOut} style={styles.signOutButton} />
+
+        <Card style={styles.dangerCard}>
+          <View style={styles.dangerHeader}>
+            <Ionicons name="warning-outline" size={18} color={colors.danger} />
+            <Text style={styles.dangerTitle}>{t('settings.deleteAccount')}</Text>
+          </View>
+          <Text style={styles.dangerText}>{t('settings.deleteAccountWarn')}</Text>
+          <Button
+            label={t('settings.deleteAccount')}
+            variant="danger"
+            loading={isDeleting}
+            onPress={handleDeleteAccount}
+            fullWidth
+            style={styles.dangerButton}
+          />
+        </Card>
       </ScrollView>
     </Screen>
   );
@@ -194,5 +243,28 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     marginTop: spacing.lg,
+  },
+  dangerCard: {
+    marginTop: spacing.lg,
+    borderColor: 'rgba(210, 59, 66, 0.35)',
+  },
+  dangerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  dangerTitle: {
+    ...typography.h3,
+    color: colors.danger,
+  },
+  dangerText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 19,
+    marginBottom: spacing.md,
+  },
+  dangerButton: {
+    marginTop: 0,
   },
 });
