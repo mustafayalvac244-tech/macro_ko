@@ -45,9 +45,9 @@ export function DocumentListItem({ document, onPress, onDelete, showCase = false
         <Text style={styles.title} numberOfLines={1}>
           {document.name}
         </Text>
-        {showCase && caseInfo && (
-          <Text style={styles.caseTitle} numberOfLines={1}>
-            {caseInfo.title}
+        {showCase && (
+          <Text style={[styles.caseTitle, !caseInfo && styles.myDocs]} numberOfLines={1}>
+            {caseInfo ? caseInfo.title : t('docs.myDocs')}
           </Text>
         )}
         <Text style={styles.meta} numberOfLines={1}>
@@ -92,6 +92,9 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.primary,
     marginTop: 1,
+  },
+  myDocs: {
+    color: colors.gold,
   },
   meta: {
     ...typography.caption,

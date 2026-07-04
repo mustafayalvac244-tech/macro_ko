@@ -88,7 +88,7 @@ export async function takePhotoFile(): Promise<PickedFile | null> {
 
 interface UploadDocumentParams {
   file: PickedFile;
-  caseId: string;
+  caseId: string | null;
   category: DocumentCategory;
 }
 
@@ -100,7 +100,7 @@ export function useUploadDocument() {
     mutationFn: async ({ file, caseId, category }: UploadDocumentParams) => {
       const bytes = await new File(file.uri).arrayBuffer();
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const path = `${ownerId}/${caseId}/${Date.now()}-${safeName}`;
+      const path = `${ownerId}/${caseId ?? 'general'}/${Date.now()}-${safeName}`;
 
       const { error: uploadError } = await supabase.storage
         .from(DOCUMENTS_BUCKET)

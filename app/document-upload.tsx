@@ -54,9 +54,9 @@ export default function DocumentUploadScreen() {
   };
 
   const handleUpload = async () => {
-    if (!file || !caseId) return;
+    if (!file) return;
     try {
-      await uploadDocument.mutateAsync({ file, caseId, category });
+      await uploadDocument.mutateAsync({ file, caseId: caseId || null, category });
       router.back();
     } catch (err) {
       Alert.alert(t('upload.failed'), err instanceof Error ? err.message : t('upload.tryAgain'));
@@ -68,11 +68,11 @@ export default function DocumentUploadScreen() {
       <ScreenHeader title={t('upload.title')} showBack />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.label}>{t('upload.case')}</Text>
-        {cases && cases.length > 0 ? (
-          <SegmentedControl options={cases.map((c) => ({ label: c.title, value: c.id }))} value={caseId} onChange={setCaseId} />
-        ) : (
-          <Text style={styles.hint}>{t('upload.needCase')}</Text>
-        )}
+        <SegmentedControl
+          options={[{ label: t('docs.myDocs'), value: '' }, ...(cases ?? []).map((c) => ({ label: c.title, value: c.id }))]}
+          value={caseId}
+          onChange={setCaseId}
+        />
 
         <View style={styles.spacer} />
         <Text style={styles.label}>{t('upload.category')}</Text>
@@ -106,7 +106,7 @@ export default function DocumentUploadScreen() {
           label={t('upload.upload')}
           onPress={handleUpload}
           loading={uploadDocument.isPending}
-          disabled={!file || !caseId}
+          disabled={!file}
           fullWidth
           size="lg"
           style={styles.submit}

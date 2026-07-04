@@ -161,6 +161,7 @@ export const en: Record<keyof typeof tr, string> = {
   'docs.empty': 'No documents yet',
   'docs.emptyDesc': 'Upload pleadings, contracts, and evidence to keep every case file organized.',
   'docs.uploadDoc': 'Upload Document',
+  'docs.myDocs': 'My Documents',
   'docs.deleteTitle': 'Delete Document',
   'docs.deleteConfirm': 'Delete "{name}" permanently?',
   'docCategory.pleading': 'Pleading',

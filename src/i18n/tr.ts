@@ -159,6 +159,7 @@ export const tr = {
   'docs.empty': 'Henüz belge yok',
   'docs.emptyDesc': 'Her dava dosyasını düzenli tutmak için dilekçe, sözleşme ve delilleri yükleyin.',
   'docs.uploadDoc': 'Belge Yükle',
+  'docs.myDocs': 'Belgelerim',
   'docs.deleteTitle': 'Belgeyi Sil',
   'docs.deleteConfirm': '"{name}" kalıcı olarak silinsin mi?',
   'docCategory.pleading': 'Dilekçe',
