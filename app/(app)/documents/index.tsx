@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, FlatList, Linking, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -8,7 +8,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { DocumentListItem } from '@/components/documents/DocumentListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FAB } from '@/components/ui/FAB';
-import { useDeleteDocument, useDocuments, useSignedDocumentUrl } from '@/hooks/useDocuments';
+import { useDeleteDocument, useDocuments } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
 import { spacing } from '@/theme/theme';
 import type { DocumentCategory } from '@/types/database';
@@ -30,7 +30,6 @@ export default function DocumentVaultScreen() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<DocumentCategory | 'all'>('all');
   const { data: documents, isLoading, refetch, isRefetching } = useDocuments();
-  const signedUrl = useSignedDocumentUrl();
   const deleteDocument = useDeleteDocument();
 
   const categoryOptions = CATEGORY_VALUES.map((value) => ({
@@ -47,9 +46,10 @@ export default function DocumentVaultScreen() {
     });
   }, [documents, category, search]);
 
-  const handleOpen = async (path: string) => {
-    const url = await signedUrl.mutateAsync(path);
-    Linking.openURL(url);
+  const handleOpen = (item: { file_path: string; name: string; mime_type: string | null }) => {
+    router.push(
+      `/document-viewer?path=${encodeURIComponent(item.file_path)}&name=${encodeURIComponent(item.name)}&mime=${encodeURIComponent(item.mime_type ?? '')}` as Parameters<typeof router.push>[0]
+    );
   };
 
   const handleDelete = (id: string, filePath: string, name: string) => {
@@ -79,7 +79,7 @@ export default function DocumentVaultScreen() {
           <DocumentListItem
             document={item}
             showCase
-            onPress={() => handleOpen(item.file_path)}
+            onPress={() => handleOpen(item)}
             onDelete={() => handleDelete(item.id, item.file_path, item.name)}
           />
         )}

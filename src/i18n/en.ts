@@ -7,6 +7,7 @@ export const en: Record<keyof typeof tr, string> = {
 
   // Auth
   'auth.welcomeBack': 'Welcome back',
+  'auth.welcomeLine': 'Welcome. Please sign in to continue.',
   'auth.signInSubtitle': 'Sign in to access your cases and calendar.',
   'auth.email': 'Email',
   'auth.emailPlaceholder': 'you@lawfirm.com',
@@ -163,6 +164,10 @@ export const en: Record<keyof typeof tr, string> = {
   'docs.emptyDesc': 'Upload pleadings, contracts, and evidence to keep every case file organized.',
   'docs.uploadDoc': 'Upload Document',
   'docs.myDocs': 'My Documents',
+  'viewer.title': 'Document',
+  'viewer.error': 'Could not open the document.',
+  'viewer.unsupported': 'This file type cannot be previewed in the app.',
+  'viewer.openExternal': 'Open in External App',
   'docs.deleteTitle': 'Delete Document',
   'docs.deleteConfirm': 'Delete "{name}" permanently?',
   'docCategory.pleading': 'Pleading',

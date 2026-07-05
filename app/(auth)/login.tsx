@@ -4,7 +4,7 @@ import { Link, router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { BrandEmblem } from '@/components/ui/BrandEmblem';
+import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
@@ -22,18 +22,17 @@ export default function LoginScreen() {
   };
 
   return (
-    <Screen>
+    <Screen edges={['top', 'left', 'right', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
-            <BrandEmblem size={96} />
-            <Text style={styles.brandName}>{t('app.name')}</Text>
-            <View style={styles.brandDivider} />
-            <Text style={styles.brandTagline}>{t('app.slogan')}</Text>
+            <VekilLogo size={132} nodeFill={colors.bg} />
+            <Text style={styles.brandName}>VEKİL</Text>
+            <Text style={styles.brandSub}>AVUKAT YARDIMCI PROGRAMI</Text>
+            <Text style={styles.brandSubGold}>AKILLI DAVA TAKİP SİSTEMİ</Text>
           </View>
 
-          <Text style={styles.heading}>{t('auth.welcomeBack')}</Text>
-          <Text style={styles.subheading}>{t('auth.signInSubtitle')}</Text>
+          <Text style={styles.welcome}>{t('auth.welcomeLine')}</Text>
 
           <Input
             label={t('auth.email')}
@@ -75,6 +74,8 @@ export default function LoginScreen() {
               <Text style={styles.footerLink}>{t('auth.createOne')}</Text>
             </Link>
           </View>
+
+          <Text style={styles.copyright}>© 2026 VEKİL Yazılım</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
@@ -87,41 +88,37 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xxl,
+    paddingVertical: spacing.xl,
   },
   brand: {
     alignItems: 'center',
-    marginBottom: spacing.xxxl,
+    marginBottom: spacing.xl,
   },
   brandName: {
-    fontSize: 30,
+    fontSize: 40,
     fontWeight: '800',
-    color: colors.textPrimary,
-    letterSpacing: 6,
-    textTransform: 'uppercase',
-    marginTop: spacing.lg,
-  },
-  brandDivider: {
-    width: 44,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.gold,
+    color: colors.primary,
+    letterSpacing: 8,
     marginTop: spacing.sm,
-    marginBottom: spacing.sm,
   },
-  brandTagline: {
-    ...typography.bodyMedium,
-    color: colors.textSecondary,
-    letterSpacing: 0.3,
+  brandSub: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 3,
+    marginTop: spacing.xs,
   },
-  heading: {
-    ...typography.display,
-    color: colors.textPrimary,
-    marginBottom: spacing.xxs,
+  brandSubGold: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.gold,
+    letterSpacing: 2,
+    marginTop: 3,
   },
-  subheading: {
+  welcome: {
     ...typography.body,
     color: colors.textSecondary,
+    textAlign: 'center',
     marginBottom: spacing.xl,
   },
   error: {
@@ -152,5 +149,11 @@ const styles = StyleSheet.create({
   footerLink: {
     ...typography.bodyMedium,
     color: colors.primary,
+  },
+  copyright: {
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.xxl,
   },
 });

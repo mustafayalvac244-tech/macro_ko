@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
@@ -17,7 +16,7 @@ import { Input } from '@/components/ui/Input';
 import { useCase, useDeleteCase } from '@/hooks/useCases';
 import { useHearingsForCase } from '@/hooks/useHearings';
 import { useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
-import { useDocuments, useSignedDocumentUrl } from '@/hooks/useDocuments';
+import { useDocuments } from '@/hooks/useDocuments';
 import { useCreatePayment, useDeletePayment, usePaymentsForCase } from '@/hooks/usePayments';
 import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
@@ -41,7 +40,6 @@ export default function CaseDetailScreen() {
   const deletePayment = useDeletePayment();
   const updateDeadline = useUpdateDeadline();
   const deleteCase = useDeleteCase();
-  const signedUrl = useSignedDocumentUrl();
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
 
@@ -191,10 +189,11 @@ export default function CaseDetailScreen() {
                         <View key={doc.id} style={index > 0 ? styles.divider : undefined}>
                           <DocumentListItem
                             document={doc}
-                            onPress={async () => {
-                              const url = await signedUrl.mutateAsync(doc.file_path);
-                              Linking.openURL(url);
-                            }}
+                            onPress={() =>
+                              router.push(
+                                `/document-viewer?path=${encodeURIComponent(doc.file_path)}&name=${encodeURIComponent(doc.name)}&mime=${encodeURIComponent(doc.mime_type ?? '')}` as Parameters<typeof router.push>[0]
+                              )
+                            }
                           />
                         </View>
                       ))}

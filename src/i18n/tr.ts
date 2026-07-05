@@ -5,6 +5,7 @@ export const tr = {
 
   // Auth
   'auth.welcomeBack': 'Tekrar hoş geldiniz',
+  'auth.welcomeLine': 'Hoş Geldiniz. Lütfen devam etmek için giriş yapın.',
   'auth.signInSubtitle': 'Davalarınıza ve takviminize erişmek için giriş yapın.',
   'auth.email': 'E-posta',
   'auth.emailPlaceholder': 'siz@hukukburosu.com',
@@ -161,6 +162,10 @@ export const tr = {
   'docs.emptyDesc': 'Her dava dosyasını düzenli tutmak için dilekçe, sözleşme ve delilleri yükleyin.',
   'docs.uploadDoc': 'Belge Yükle',
   'docs.myDocs': 'Belgelerim',
+  'viewer.title': 'Belge',
+  'viewer.error': 'Belge açılamadı.',
+  'viewer.unsupported': 'Bu belge türü uygulama içinde önizlenemiyor.',
+  'viewer.openExternal': 'Harici Uygulamada Aç',
   'docs.deleteTitle': 'Belgeyi Sil',
   'docs.deleteConfirm': '"{name}" kalıcı olarak silinsin mi?',
   'docCategory.pleading': 'Dilekçe',

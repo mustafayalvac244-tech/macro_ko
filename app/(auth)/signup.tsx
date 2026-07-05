@@ -4,7 +4,7 @@ import { Link, router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { BrandEmblem } from '@/components/ui/BrandEmblem';
+import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
@@ -28,7 +28,7 @@ export default function SignupScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
-            <BrandEmblem size={76} />
+            <VekilLogo size={84} nodeFill={colors.bg} />
             <Text style={styles.brandName}>{t('app.name')}</Text>
           </View>
 
