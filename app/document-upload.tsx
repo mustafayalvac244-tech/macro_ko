@@ -12,6 +12,7 @@ import { pickDocumentFile, pickImageFile, takePhotoFile, useUploadDocument } fro
 import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
 import { formatFileSize } from '@/utils/format';
+import { categoryMismatch, detectFileKind } from '@/utils/fileKind';
 import type { DocumentCategory } from '@/types/database';
 
 const CATEGORY_VALUES: DocumentCategory[] = [
@@ -53,7 +54,9 @@ export default function DocumentUploadScreen() {
     if (picked) setFile(picked);
   };
 
-  const handleUpload = async () => {
+  const detectedKind = file ? detectFileKind(file.mimeType, file.name) : null;
+
+  const doUpload = async () => {
     if (!file) return;
     try {
       await uploadDocument.mutateAsync({ file, caseId: caseId || null, category });
@@ -61,6 +64,28 @@ export default function DocumentUploadScreen() {
     } catch (err) {
       Alert.alert(t('upload.failed'), err instanceof Error ? err.message : t('upload.tryAgain'));
     }
+  };
+
+  const handleUpload = () => {
+    if (!file || !detectedKind) return;
+
+    // Smart check: warn (but allow override) if the file type clearly does not
+    // match the chosen category.
+    const mismatch = categoryMismatch(category, detectedKind);
+    if (mismatch) {
+      const kindLabel = t(`fileKind.${detectedKind}` as const);
+      const catLabel = t(`docCategory.${category}` as const);
+      const msg =
+        mismatch.expected === 'photo'
+          ? t('upload.mismatchPhoto', { cat: catLabel, kind: kindLabel })
+          : t('upload.mismatchDoc', { cat: catLabel, kind: kindLabel });
+      Alert.alert(t('upload.mismatchTitle'), msg, [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('upload.addAnyway'), style: 'destructive', onPress: doUpload },
+      ]);
+      return;
+    }
+    doUpload();
   };
 
   return (
@@ -80,16 +105,30 @@ export default function DocumentUploadScreen() {
 
         <View style={styles.spacer} />
         <Card>
-          {file ? (
+          {file && detectedKind ? (
             <View style={styles.filePreview}>
               <View style={styles.fileIconWrap}>
-                <Ionicons name="document-attach-outline" size={20} color={colors.gold} />
+                <Ionicons
+                  name={
+                    detectedKind === 'image'
+                      ? 'image-outline'
+                      : detectedKind === 'pdf'
+                        ? 'document-text-outline'
+                        : detectedKind === 'word'
+                          ? 'document-outline'
+                          : 'document-attach-outline'
+                  }
+                  size={20}
+                  color={colors.gold}
+                />
               </View>
               <View style={styles.fileInfo}>
                 <Text style={styles.fileName} numberOfLines={1}>
                   {file.name}
                 </Text>
-                <Text style={styles.fileMeta}>{formatFileSize(file.size)}</Text>
+                <Text style={styles.fileMeta}>
+                  {t('upload.detected', { kind: t(`fileKind.${detectedKind}` as const) })} · {formatFileSize(file.size)}
+                </Text>
               </View>
               <Ionicons name="close-circle" size={20} color={colors.textMuted} onPress={() => setFile(null)} suppressHighlighting />
             </View>

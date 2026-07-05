@@ -86,6 +86,11 @@ export default function DeadlineFormScreen() {
       <ScreenHeader title={isEdit ? t('deadlineForm.editTitle') : t('deadlineForm.newTitle')} subtitle={caseItem?.title} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.hintBox}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.info} />
+            <Text style={styles.hintText}>{t('deadlineForm.hint')}</Text>
+          </View>
+
           <SuggestInput
             label={t('hearingForm.title')}
             placeholder={t('deadlineForm.titlePlaceholder')}
@@ -167,6 +172,20 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
+  },
+  hintBox: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    backgroundColor: colors.infoSoft,
+    borderRadius: 12,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  hintText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flex: 1,
+    lineHeight: 18,
   },
   label: {
     ...typography.caption,
