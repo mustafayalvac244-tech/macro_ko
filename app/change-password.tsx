@@ -8,9 +8,14 @@ import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 export default function ChangePasswordScreen() {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const session = useAuthStore((s) => s.session);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -93,7 +98,7 @@ export default function ChangePasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   content: {
     paddingHorizontal: spacing.xl,

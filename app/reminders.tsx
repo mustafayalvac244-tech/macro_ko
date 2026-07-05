@@ -11,7 +11,9 @@ import { DeadlineListItem } from '@/components/calendar/DeadlineListItem';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useT } from '@/i18n';
-import { colors, spacing } from '@/theme/theme';
+import { spacing } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 type Tab = 'upcoming' | 'past';
 
@@ -20,6 +22,9 @@ type Item =
   | { kind: 'deadline'; time: number; deadline: NonNullable<ReturnType<typeof useAllDeadlines>['data']>[number] };
 
 export default function RemindersScreen() {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const [tab, setTab] = useState<Tab>('upcoming');
   const hearings = useAllHearings();
@@ -96,7 +101,7 @@ export default function RemindersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   tabs: {
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.sm,

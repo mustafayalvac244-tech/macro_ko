@@ -13,7 +13,9 @@ import { useCase } from '@/hooks/useCases';
 import { useCreateHearing, useHearingsForCase, useUpdateHearing } from '@/hooks/useHearings';
 import { hearingTitleSuggestions } from '@/constants/suggestions';
 import { useLangStore, useT } from '@/i18n';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatDateTime } from '@/utils/format';
 import type { HearingType } from '@/types/database';
 
@@ -28,6 +30,10 @@ const REMINDER_VALUES = [
 ] as const;
 
 export default function HearingFormScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const lang = useLangStore((s) => s.lang);
   const { caseId, id } = useLocalSearchParams<{ caseId: string; id?: string }>();
@@ -167,7 +173,7 @@ export default function HearingFormScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   content: {
     paddingHorizontal: spacing.lg,

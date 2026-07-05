@@ -13,7 +13,9 @@ import { DeadlineListItem } from '@/components/calendar/DeadlineListItem';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useLangStore, useT } from '@/i18n';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
 
 LocaleConfig.locales.tr = {
@@ -29,6 +31,10 @@ function toDateKey(iso: string): string {
 }
 
 export default function CalendarScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const lang = useLangStore((s) => s.lang);
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
@@ -138,6 +144,9 @@ export default function CalendarScreen() {
 }
 
 function LegendDot({ color, label }: { color: string; label: string }) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <View style={styles.legendItem}>
       <View style={[styles.legendDot, { backgroundColor: color }]} />
@@ -146,7 +155,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,

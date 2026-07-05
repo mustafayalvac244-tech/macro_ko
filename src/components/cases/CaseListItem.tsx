@@ -3,7 +3,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { CaseStatusBadge, PriorityBadge } from '@/components/ui/StatusBadge';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
 import { useT } from '@/i18n';
 import type { CaseWithClient } from '@/types/database';
@@ -14,6 +16,10 @@ interface CaseListItemProps {
 }
 
 export function CaseListItem({ caseItem, onPress }: CaseListItemProps) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   return (
     <Card onPress={onPress} style={styles.card}>
@@ -44,7 +50,7 @@ export function CaseListItem({ caseItem, onPress }: CaseListItemProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     marginBottom: spacing.sm,
   },

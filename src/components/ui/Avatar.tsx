@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius } from '@/theme/theme';
+import { radius } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { initials } from '@/utils/format';
 
 interface AvatarProps {
@@ -9,6 +11,9 @@ interface AvatarProps {
 }
 
 export function Avatar({ name, size = 44 }: AvatarProps) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <View
       style={[
@@ -21,7 +26,7 @@ export function Avatar({ name, size = 44 }: AvatarProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     backgroundColor: colors.primaryMuted,
     alignItems: 'center',

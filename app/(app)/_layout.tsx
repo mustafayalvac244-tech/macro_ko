@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
-import { colors } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 const TAB_COLORS = {
   dashboard: '#1E4B9E',
@@ -25,6 +26,10 @@ function TabIcon({
   outline: keyof typeof Ionicons.glyphMap;
   filled: keyof typeof Ionicons.glyphMap;
 }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   return (
     <View style={[styles.iconWrap, focused && { backgroundColor: `${color}1A` }]}>
       <Ionicons name={focused ? filled : outline} size={22} color={focused ? color : colors.textMuted} />
@@ -33,6 +38,9 @@ function TabIcon({
 }
 
 export default function AppLayout() {
+  const __t = useTheme();
+  const colors = __t.colors;
+
   const t = useT();
   const insets = useSafeAreaInsets();
   const session = useAuthStore((s) => s.session);
@@ -107,7 +115,7 @@ export default function AppLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   iconWrap: {
     width: 46,
     height: 30,

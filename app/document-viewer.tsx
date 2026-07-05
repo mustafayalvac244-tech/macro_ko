@@ -7,9 +7,15 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { supabase, DOCUMENTS_BUCKET } from '@/lib/supabase';
 import { useT } from '@/i18n';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 export default function DocumentViewerScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const { path, name, mime } = useLocalSearchParams<{ path: string; name: string; mime?: string }>();
   const [url, setUrl] = useState<string | null>(null);
@@ -84,7 +90,7 @@ export default function DocumentViewerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   center: {
     flex: 1,

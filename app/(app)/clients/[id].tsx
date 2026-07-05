@@ -12,9 +12,14 @@ import { CaseListItem } from '@/components/cases/CaseListItem';
 import { useClient, useDeleteClient } from '@/hooks/useClients';
 import { useCasesByClient } from '@/hooks/useCases';
 import { useT } from '@/i18n';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 export default function ClientDetailScreen() {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: client, isLoading } = useClient(id);
@@ -103,6 +108,10 @@ export default function ClientDetailScreen() {
 }
 
 function ContactRow({ icon, value }: { icon: keyof typeof Ionicons.glyphMap; value: string }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   return (
     <View style={styles.contactRow}>
       <Ionicons name={icon} size={16} color={colors.textMuted} />
@@ -111,7 +120,7 @@ function ContactRow({ icon, value }: { icon: keyof typeof Ionicons.glyphMap; val
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,

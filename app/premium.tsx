@@ -9,12 +9,18 @@ import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import { radius, spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 const STRIPE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
 const isConfigured = !!STRIPE_KEY && !STRIPE_KEY.includes('your-publishable-key');
 
 export default function PremiumScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const session = useAuthStore((s) => s.session);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
@@ -109,7 +115,7 @@ export default function PremiumScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,

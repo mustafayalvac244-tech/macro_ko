@@ -2,7 +2,9 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from './Card';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 interface StatCardProps {
   label: string;
@@ -12,11 +14,16 @@ interface StatCardProps {
   onPress?: () => void;
 }
 
-export function StatCard({ label, value, icon, accentColor = colors.primary, onPress }: StatCardProps) {
+export function StatCard({ label, value, icon, accentColor, onPress }: StatCardProps) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const accent = accentColor ?? colors.primary;
+
   return (
     <Card onPress={onPress} style={styles.card}>
-      <View style={[styles.iconWrap, { backgroundColor: `${accentColor}1F` }]}>
-        <Ionicons name={icon} size={18} color={accentColor} />
+      <View style={[styles.iconWrap, { backgroundColor: `${accent}1F` }]}>
+        <Ionicons name={icon} size={18} color={accent} />
       </View>
       <Text style={styles.value}>{value}</Text>
       <Text style={styles.label} numberOfLines={1}>
@@ -26,7 +33,7 @@ export function StatCard({ label, value, icon, accentColor = colors.primary, onP
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     flex: 1,
     minWidth: 140,

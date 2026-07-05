@@ -3,7 +3,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { useT } from '@/i18n';
 import type { Client } from '@/types/database';
 
@@ -13,6 +15,10 @@ interface ClientListItemProps {
 }
 
 export function ClientListItem({ client, onPress }: ClientListItemProps) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   return (
     <Card onPress={onPress} style={styles.card}>
@@ -32,7 +38,7 @@ export function ClientListItem({ client, onPress }: ClientListItemProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     marginBottom: spacing.sm,
   },

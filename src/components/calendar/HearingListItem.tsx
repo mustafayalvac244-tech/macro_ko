@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import { radius, spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatDateTime, isOverdue, relativeDueLabel } from '@/utils/format';
 import { useT } from '@/i18n';
 import type { Hearing, HearingWithCase } from '@/types/database';
@@ -23,6 +25,10 @@ interface HearingListItemProps {
 }
 
 export function HearingListItem({ hearing, onPress, showCase = true }: HearingListItemProps) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const overdue = !hearing.is_completed && isOverdue(hearing.scheduled_at);
   const caseInfo = 'case' in hearing ? hearing.case : null;
@@ -50,7 +56,7 @@ export function HearingListItem({ hearing, onPress, showCase = true }: HearingLi
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -281,6 +281,11 @@ export const tr = {
   // Settings
   'settings.title': 'Ayarlar',
   'settings.language': 'Dil',
+  'settings.theme': 'Tema',
+  'theme.light': 'Klasik',
+  'theme.dark': 'Gece',
+  'theme.sepia': 'Parşömen',
+  'theme.emerald': 'Zümrüt',
   'settings.reminders': 'Duruşma ve görev hatırlatmaları',
   'settings.version': 'Uygulama sürümü',
   'settings.backend': 'Altyapı',

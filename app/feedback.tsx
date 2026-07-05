@@ -12,7 +12,9 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
 
 type FeedbackType = 'suggestion' | 'complaint';
@@ -25,6 +27,10 @@ interface FeedbackRow {
 }
 
 export default function FeedbackScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const ownerId = useAuthStore((s) => s.session?.user.id);
   const queryClient = useQueryClient();
@@ -131,7 +137,7 @@ export default function FeedbackScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   content: {
     paddingHorizontal: spacing.lg,

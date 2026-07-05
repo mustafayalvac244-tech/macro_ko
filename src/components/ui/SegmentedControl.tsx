@@ -1,6 +1,8 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import { radius, spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 interface Option<T extends string> {
   label: string;
@@ -20,6 +22,9 @@ export function SegmentedControl<T extends string>({
   onChange,
   scrollable = true,
 }: SegmentedControlProps<T>) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   const content = (
     <View style={styles.row}>
       {options.map((option) => {
@@ -46,7 +51,7 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   scrollContent: {
     paddingRight: spacing.lg,
   },

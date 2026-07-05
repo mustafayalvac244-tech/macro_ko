@@ -11,7 +11,8 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
 import { hydrateLanguage } from '@/i18n';
-import { colors } from '@/theme/theme';
+import { hydrateTheme } from '@/theme/themeStore';
+import { useTheme } from '@/theme/useTheme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -27,10 +28,12 @@ export default function RootLayout() {
   const initialize = useAuthStore((s) => s.initialize);
   const isInitializing = useAuthStore((s) => s.isInitializing);
   const hasHiddenSplash = useRef(false);
+  const { colors, statusBar } = useTheme();
 
   useEffect(() => {
     const unsubscribe = initialize();
     hydrateLanguage().catch(() => {});
+    hydrateTheme().catch(() => {});
     registerForNotificationsAsync().catch(() => {});
 
     // Immersive mode: hide the Android system navigation bar while using the
@@ -55,7 +58,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="dark" />
+          <StatusBar style={statusBar} />
           <Stack
             screenOptions={{
               headerShown: false,

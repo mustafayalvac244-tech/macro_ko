@@ -10,12 +10,19 @@ import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
 import { useLangStore, useT, type Lang } from '@/i18n';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 export default function SettingsScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const lang = useLangStore((s) => s.lang);
   const setLang = useLangStore((s) => s.setLang);
@@ -123,6 +130,16 @@ export default function SettingsScreen() {
         </Card>
 
         <Card style={styles.section}>
+          <View style={styles.rowLeft}>
+            <Ionicons name="color-palette-outline" size={18} color={colors.textMuted} />
+            <Text style={styles.rowLabel}>{t('settings.theme')}</Text>
+          </View>
+          <View style={styles.themeWrap}>
+            <ThemePicker />
+          </View>
+        </Card>
+
+        <Card style={styles.section}>
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <Ionicons name="notifications-outline" size={18} color={colors.textMuted} />
@@ -191,6 +208,9 @@ export default function SettingsScreen() {
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -199,7 +219,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
@@ -255,6 +275,9 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textPrimary,
     flexShrink: 1,
+  },
+  themeWrap: {
+    marginTop: 12,
   },
   langControl: {
     alignSelf: 'flex-start',

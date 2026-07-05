@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInputProps, View } from 'react-native';
 import { Input } from './Input';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import { radius, spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 interface SuggestInputProps extends TextInputProps {
   label?: string;
@@ -13,6 +15,9 @@ interface SuggestInputProps extends TextInputProps {
  * Tapping a chip fills the field; typing stays fully manual.
  */
 export function SuggestInput({ label, suggestions, value, onChangeText, ...rest }: SuggestInputProps) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <View style={styles.container}>
       <Input label={label} value={value} onChangeText={onChangeText} containerStyle={styles.input} {...rest} />
@@ -34,7 +39,7 @@ export function SuggestInput({ label, suggestions, value, onChangeText, ...rest 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     marginBottom: spacing.md,
   },

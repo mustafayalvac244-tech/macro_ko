@@ -283,6 +283,11 @@ export const en: Record<keyof typeof tr, string> = {
   // Settings
   'settings.title': 'Settings',
   'settings.language': 'Language',
+  'settings.theme': 'Theme',
+  'theme.light': 'Classic',
+  'theme.dark': 'Midnight',
+  'theme.sepia': 'Parchment',
+  'theme.emerald': 'Emerald',
   'settings.reminders': 'Hearing & deadline reminders',
   'settings.version': 'App version',
   'settings.backend': 'Backend',

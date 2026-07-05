@@ -17,7 +17,9 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useLangStore, useT } from '@/i18n';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
 
 LocaleConfig.locales.tr = {
@@ -44,6 +46,10 @@ type AgendaEvent =
   | { kind: 'deadline'; time: number; deadline: NonNullable<ReturnType<typeof useAllDeadlines>['data']>[number] };
 
 export default function DashboardScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const lang = useLangStore((s) => s.lang);
   const profile = useAuthStore((s) => s.profile);
@@ -328,6 +334,9 @@ function StatPill({
   value: string | number;
   onPress: () => void;
 }) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.statPill, pressed && styles.pressed]}>
       <Ionicons name={icon} size={15} color={color} />
@@ -347,6 +356,9 @@ function QuickAction({
   color: string;
   onPress: () => void;
 }) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}>
       <View style={[styles.quickActionIcon, { backgroundColor: `${color}18` }]}>
@@ -359,7 +371,7 @@ function QuickAction({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xxxl,

@@ -15,7 +15,9 @@ import { useCreateHearing } from '@/hooks/useHearings';
 import { useClients } from '@/hooks/useClients';
 import { useLangStore, useT } from '@/i18n';
 import { caseTypeSuggestions, courtSuggestions } from '@/constants/suggestions';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatDateTime } from '@/utils/format';
 import type { CaseStatus, PriorityLevel } from '@/types/database';
 
@@ -23,6 +25,10 @@ const STATUS_VALUES: CaseStatus[] = ['active', 'pending', 'on_hold', 'won', 'los
 const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
 
 export default function CaseFormScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const lang = useLangStore((s) => s.lang);
   const { id, clientId: prefilledClientId } = useLocalSearchParams<{ id?: string; clientId?: string }>();
@@ -280,7 +286,7 @@ export default function CaseFormScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   content: {
     paddingHorizontal: spacing.lg,

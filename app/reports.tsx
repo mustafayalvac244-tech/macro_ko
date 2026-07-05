@@ -12,13 +12,20 @@ import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useAllPayments } from '@/hooks/usePayments';
 import { useLangStore, useT } from '@/i18n';
-import { caseStatusColors, colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney } from '@/utils/format';
 import type { CaseStatus } from '@/types/database';
 
 const STATUS_ORDER: CaseStatus[] = ['active', 'pending', 'on_hold', 'won', 'lost', 'closed'];
 
 export default function ReportsScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const caseStatusColors = __t.caseStatusColors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const lang = useLangStore((s) => s.lang);
   const cases = useCases();
@@ -164,6 +171,9 @@ export default function ReportsScreen() {
 }
 
 function StatPill({ label, value, color }: { label: string; value: number; color: string }) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <View style={[styles.pill, { backgroundColor: `${color}1A` }]}>
       <Text style={[styles.pillValue, { color }]}>{value}</Text>
@@ -172,7 +182,7 @@ function StatPill({ label, value, color }: { label: string; value: number; color
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,

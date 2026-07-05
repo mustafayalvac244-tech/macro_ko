@@ -19,7 +19,9 @@ import { useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useCreatePayment, useDeletePayment, usePaymentsForCase } from '@/hooks/usePayments';
 import { useT } from '@/i18n';
-import { colors, spacing, typography } from '@/theme/theme';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import type { DocumentCategory } from '@/types/database';
@@ -27,6 +29,10 @@ import type { DocumentCategory } from '@/types/database';
 type Tab = 'overview' | 'hearings' | 'deadlines' | 'documents' | 'finance';
 
 export default function CaseDetailScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>('overview');
@@ -314,6 +320,9 @@ export default function CaseDetailScreen() {
 }
 
 function FinanceStat({ label, value, color }: { label: string; value: string; color: string }) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <View style={styles.financeStat}>
       <Text style={styles.financeStatLabel}>{label}</Text>
@@ -325,6 +334,9 @@ function FinanceStat({ label, value, color }: { label: string; value: string; co
 }
 
 function InfoRow({ label, value, onPress }: { label: string; value: string; onPress?: () => void }) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -335,7 +347,7 @@ function InfoRow({ label, value, onPress }: { label: string; value: string; onPr
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
