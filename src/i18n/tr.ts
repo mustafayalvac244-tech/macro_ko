@@ -1,6 +1,7 @@
 export const tr = {
   'app.name': 'Vekil',
   'app.tagline': 'Dava & Belge Yönetimi',
+  'app.slogan': 'Büronuz Cebinizde',
 
   // Auth
   'auth.welcomeBack': 'Tekrar hoş geldiniz',

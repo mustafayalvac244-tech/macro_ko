@@ -3,6 +3,7 @@ import type { tr } from './tr';
 export const en: Record<keyof typeof tr, string> = {
   'app.name': 'Vekil',
   'app.tagline': 'Legal Case & Document Management',
+  'app.slogan': 'Your Practice, In Your Pocket',
 
   // Auth
   'auth.welcomeBack': 'Welcome back',

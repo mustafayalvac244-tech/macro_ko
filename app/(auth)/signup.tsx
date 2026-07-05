@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { BrandEmblem } from '@/components/ui/BrandEmblem';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
 import { colors, spacing, typography } from '@/theme/theme';
@@ -28,9 +28,7 @@ export default function SignupScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
-            <View style={styles.logoMark}>
-              <Ionicons name="scale-outline" size={28} color={colors.gold} />
-            </View>
+            <BrandEmblem size={76} />
             <Text style={styles.brandName}>{t('app.name')}</Text>
           </View>
 
@@ -93,22 +91,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xxl,
   },
-  logoMark: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
   brandName: {
-    ...typography.h1,
+    fontSize: 26,
+    fontWeight: '800',
     color: colors.textPrimary,
-    letterSpacing: 3,
+    letterSpacing: 5,
     textTransform: 'uppercase',
+    marginTop: spacing.md,
   },
   heading: {
     ...typography.display,

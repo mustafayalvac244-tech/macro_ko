@@ -206,6 +206,13 @@ export default function DashboardScreen() {
           </View>
         </View>
 
+        <View style={styles.statStrip}>
+          <StatPill icon="briefcase" color={colors.primary} value={stats.data?.activeCases ?? '—'} onPress={() => router.push('/(app)/cases')} />
+          <StatPill icon="people" color={colors.gold} value={stats.data?.totalClients ?? '—'} onPress={() => router.push('/(app)/clients')} />
+          <StatPill icon="hammer" color={colors.info} value={stats.data?.upcomingHearings ?? '—'} onPress={() => router.push('/(app)/calendar')} />
+          <StatPill icon="alert-circle" color={colors.warning} value={stats.data?.openDeadlines ?? '—'} onPress={() => router.push('/(app)/calendar')} />
+        </View>
+
         <Card padded={false} style={styles.calendarCard}>
           <Calendar
             key={lang}
@@ -294,53 +301,37 @@ export default function DashboardScreen() {
           </Card>
         </View>
 
-        <View style={styles.miniStatsRow}>
-          <MiniStat icon="briefcase" color={colors.primary} value={stats.data?.activeCases ?? '—'} label={t('dash.activeCases')} onPress={() => router.push('/(app)/cases')} />
-          <MiniStat icon="people" color={colors.gold} value={stats.data?.totalClients ?? '—'} label={t('dash.clients')} onPress={() => router.push('/(app)/clients')} />
-          <MiniStat icon="hammer" color={colors.info} value={stats.data?.upcomingHearings ?? '—'} label={t('dash.upcomingHearings')} onPress={() => router.push('/(app)/calendar')} />
-          <MiniStat icon="alert-circle" color={colors.warning} value={stats.data?.openDeadlines ?? '—'} label={t('dash.openDeadlines')} onPress={() => router.push('/(app)/calendar')} />
-        </View>
-
-        <View style={styles.quickActions}>
-          <SectionHeader title={t('dash.quickActions')} />
-          <View style={styles.quickActionsRow}>
-            <QuickAction icon="add-circle-outline" label={t('dash.newCase')} onPress={() => router.push('/case-form')} />
-            <QuickAction icon="person-add-outline" label={t('dash.newClient')} onPress={() => router.push('/client-form')} />
-            <QuickAction icon="cloud-upload-outline" label={t('dash.uploadFile')} onPress={() => router.push('/document-upload')} />
-            <QuickAction
-              icon="stats-chart-outline"
-              label={t('dash.reports')}
-              onPress={() => router.push('/reports' as Parameters<typeof router.push>[0])}
-            />
-          </View>
+        <View style={styles.quickRow}>
+          <QuickAction icon="add-circle" label={t('dash.newCase')} color={colors.primary} onPress={() => router.push('/case-form')} />
+          <QuickAction icon="person-add" label={t('dash.newClient')} color={colors.success} onPress={() => router.push('/client-form')} />
+          <QuickAction icon="cloud-upload" label={t('dash.uploadFile')} color={colors.gold} onPress={() => router.push('/document-upload')} />
+          <QuickAction
+            icon="stats-chart"
+            label={t('dash.reports')}
+            color="#7C3AED"
+            onPress={() => router.push('/reports' as Parameters<typeof router.push>[0])}
+          />
         </View>
       </ScrollView>
     </Screen>
   );
 }
 
-function MiniStat({
+function StatPill({
   icon,
   color,
   value,
-  label,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
   value: string | number;
-  label: string;
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.miniStat, pressed && styles.pressed]}>
-      <View style={[styles.miniStatIcon, { backgroundColor: `${color}1A` }]}>
-        <Ionicons name={icon} size={15} color={color} />
-      </View>
-      <Text style={styles.miniStatValue}>{value}</Text>
-      <Text style={styles.miniStatLabel} numberOfLines={2}>
-        {label}
-      </Text>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.statPill, pressed && styles.pressed]}>
+      <Ionicons name={icon} size={15} color={color} />
+      <Text style={[styles.statPillValue, { color }]}>{value}</Text>
     </Pressable>
   );
 }
@@ -348,18 +339,22 @@ function MiniStat({
 function QuickAction({
   icon,
   label,
+  color,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  color: string;
   onPress: () => void;
 }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}>
-      <View style={styles.quickActionIcon}>
-        <Ionicons name={icon} size={20} color={colors.primary} />
+      <View style={[styles.quickActionIcon, { backgroundColor: `${color}18` }]}>
+        <Ionicons name={icon} size={22} color={color} />
       </View>
-      <Text style={styles.quickActionLabel}>{label}</Text>
+      <Text style={styles.quickActionLabel} numberOfLines={1}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -522,72 +517,51 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
   },
-  miniStatsRow: {
+  statStrip: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  statPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 12,
+    paddingVertical: 9,
+  },
+  statPillValue: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  quickRow: {
     flexDirection: 'row',
     gap: spacing.xs,
     marginTop: spacing.lg,
   },
-  miniStat: {
+  quickAction: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: 14,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: 4,
+    gap: 6,
   },
-  miniStatIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 9,
+  quickActionIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
   },
-  miniStatValue: {
-    ...typography.h3,
-    color: colors.textPrimary,
-  },
-  miniStatLabel: {
-    fontSize: 10,
+  quickActionLabel: {
+    fontSize: 11,
     fontWeight: '600',
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 2,
-  },
-  quickActions: {
-    marginTop: spacing.lg,
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  quickAction: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: 16,
-    paddingVertical: spacing.md,
   },
   pressed: {
-    opacity: 0.75,
-  },
-  quickActionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  quickActionLabel: {
-    ...typography.caption,
-    color: colors.textPrimary,
+    opacity: 0.7,
   },
 });
