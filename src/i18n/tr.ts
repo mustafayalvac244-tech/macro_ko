@@ -344,6 +344,8 @@ export const tr = {
   'finance.noFee': 'Ücret belirlenmedi',
   'caseForm.fee': 'Vekalet ücreti (₺, isteğe bağlı)',
   'caseForm.feePlaceholder': '25000',
+  'caseForm.titleRequired': 'Dava başlığı zorunludur.',
+  'caseForm.saveFailed': 'Dava kaydedilemedi. Lütfen tekrar deneyin.',
 
   // Reports
   'reports.title': 'Raporlar',

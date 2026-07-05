@@ -346,6 +346,8 @@ export const en: Record<keyof typeof tr, string> = {
   'finance.noFee': 'No fee set',
   'caseForm.fee': 'Agreed fee (₺, optional)',
   'caseForm.feePlaceholder': '25000',
+  'caseForm.titleRequired': 'Case title is required.',
+  'caseForm.saveFailed': 'Could not save the case. Please try again.',
 
   // Reports
   'reports.title': 'Reports',

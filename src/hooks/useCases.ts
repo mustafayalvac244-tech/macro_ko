@@ -76,17 +76,29 @@ export type CaseInput = Pick<
   | 'fee_amount'
 >;
 
+// If the optional finance migration (0005) hasn't been applied yet, the
+// `fee_amount` column is missing and PostgREST rejects the whole write. Detect
+// that specific case and transparently retry without the column so case
+// creation keeps working; any other error is surfaced to the caller.
+function isMissingFeeColumn(error: unknown): boolean {
+  const message = (error as { message?: string })?.message ?? '';
+  return message.includes('fee_amount');
+}
+
 export function useCreateCase() {
   const queryClient = useQueryClient();
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
     mutationFn: async (input: Partial<CaseInput> & { title: string }) => {
-      const { data, error } = await supabase
-        .from('cases')
-        .insert({ ...input, owner_id: ownerId! })
-        .select(CASE_SELECT)
-        .single();
+      const insert = async (payload: Record<string, unknown>) =>
+        supabase.from('cases').insert(payload).select(CASE_SELECT).single();
+
+      let { data, error } = await insert({ ...input, owner_id: ownerId! });
+      if (error && isMissingFeeColumn(error)) {
+        const { fee_amount: _drop, ...rest } = input;
+        ({ data, error } = await insert({ ...rest, owner_id: ownerId! }));
+      }
       if (error) throw error;
       return data as unknown as CaseWithClient;
     },
@@ -102,7 +114,14 @@ export function useUpdateCase() {
       id,
       ...input
     }: Partial<CaseInput> & { id: string; status?: CaseStatus; priority?: PriorityLevel }) => {
-      const { data, error } = await supabase.from('cases').update(input).eq('id', id).select(CASE_SELECT).single();
+      const update = async (payload: Record<string, unknown>) =>
+        supabase.from('cases').update(payload).eq('id', id).select(CASE_SELECT).single();
+
+      let { data, error } = await update(input);
+      if (error && isMissingFeeColumn(error)) {
+        const { fee_amount: _drop, ...rest } = input;
+        ({ data, error } = await update(rest));
+      }
       if (error) throw error;
       return data as unknown as CaseWithClient;
     },

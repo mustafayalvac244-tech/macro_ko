@@ -45,6 +45,8 @@ export default function CaseFormScreen() {
   const [openedDate, setOpenedDate] = useState(new Date());
   const [fee, setFee] = useState('');
   const [firstHearingAt, setFirstHearingAt] = useState<Date | null>(null);
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState<'opened' | 'hearingDate' | 'hearingTime' | null>(null);
 
   useEffect(() => {
@@ -68,7 +70,13 @@ export default function CaseFormScreen() {
   const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(`status.${value}` as const) }));
   const priorityOptions = PRIORITY_VALUES.map((value) => ({ value, label: t(`priority.${value}` as const) }));
 
+  const titleError = titleTouched && !title.trim() ? t('caseForm.titleRequired') : null;
+
   const handleSubmit = async () => {
+    setTitleTouched(true);
+    setSubmitError(null);
+    if (!title.trim()) return;
+
     const payload = {
       title: title.trim(),
       client_id: clientId,
@@ -83,24 +91,28 @@ export default function CaseFormScreen() {
       fee_amount: fee.trim() ? Number(fee.replace(',', '.')) || null : null,
     };
 
-    if (isEdit && id) {
-      await updateCase.mutateAsync({ id, ...payload });
-    } else {
-      const created = await createCase.mutateAsync(payload);
-      if (firstHearingAt) {
-        await createHearing.mutateAsync({
-          case_id: created.id,
-          title: t('hearingType.hearing'),
-          type: 'hearing',
-          location: courtName.trim() || null,
-          scheduled_at: firstHearingAt.toISOString(),
-          reminder_minutes_before: 1440,
-          notes: null,
-          caseTitle: created.title,
-        });
+    try {
+      if (isEdit && id) {
+        await updateCase.mutateAsync({ id, ...payload });
+      } else {
+        const created = await createCase.mutateAsync(payload);
+        if (firstHearingAt) {
+          await createHearing.mutateAsync({
+            case_id: created.id,
+            title: t('hearingType.hearing'),
+            type: 'hearing',
+            location: courtName.trim() || null,
+            scheduled_at: firstHearingAt.toISOString(),
+            reminder_minutes_before: 1440,
+            notes: null,
+            caseTitle: created.title,
+          });
+        }
       }
+      router.back();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : t('caseForm.saveFailed'));
     }
-    router.back();
   };
 
   const onPickerChange = (_event: unknown, date?: Date) => {
@@ -137,7 +149,17 @@ export default function CaseFormScreen() {
       <ScreenHeader title={isEdit ? t('caseForm.editTitle') : t('caseForm.newTitle')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Input label={t('caseForm.caseTitle')} placeholder={t('caseForm.caseTitlePlaceholder')} value={title} onChangeText={setTitle} />
+          <Input
+            label={t('caseForm.caseTitle')}
+            placeholder={t('caseForm.caseTitlePlaceholder')}
+            value={title}
+            onChangeText={(v) => {
+              setTitle(v);
+              if (submitError) setSubmitError(null);
+            }}
+            onBlur={() => setTitleTouched(true)}
+            error={titleError}
+          />
 
           <Text style={styles.label}>{t('caseForm.client')}</Text>
           <SegmentedControl
@@ -237,11 +259,17 @@ export default function CaseFormScreen() {
             style={styles.textArea}
           />
 
+          {submitError && (
+            <View style={styles.errorBox}>
+              <Ionicons name="alert-circle" size={18} color={colors.danger} />
+              <Text style={styles.errorText}>{submitError}</Text>
+            </View>
+          )}
+
           <Button
             label={isEdit ? t('common.save') : t('caseForm.create')}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={!title.trim()}
             fullWidth
             size="lg"
             style={styles.submit}
@@ -306,5 +334,21 @@ const styles = StyleSheet.create({
   },
   submit: {
     marginTop: spacing.lg,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: 12,
+    padding: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  errorText: {
+    ...typography.caption,
+    color: colors.danger,
+    flex: 1,
   },
 });
