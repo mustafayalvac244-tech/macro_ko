@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -10,13 +10,13 @@ import { SuggestInput } from '@/components/ui/SuggestInput';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCase } from '@/hooks/useCases';
-import { useCreateHearing, useHearingsForCase, useUpdateHearing } from '@/hooks/useHearings';
+import { useAllHearings, useCreateHearing, useHearingsForCase, useUpdateHearing } from '@/hooks/useHearings';
 import { hearingTitleSuggestions } from '@/constants/suggestions';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatDateTime } from '@/utils/format';
+import { formatDateTime, formatTime } from '@/utils/format';
 import type { HearingType } from '@/types/database';
 
 const TYPE_VALUES: HearingType[] = ['hearing', 'trial', 'mediation', 'deposition', 'filing', 'meeting', 'other'];
@@ -65,6 +65,19 @@ export default function HearingFormScreen() {
   }, [existing]);
 
   const isSubmitting = createHearing.isPending || updateHearing.isPending;
+  const allHearings = useAllHearings();
+
+  // Clash warning: another (not completed) hearing within ±90 minutes.
+  const clash = useMemo(() => {
+    const ts = scheduledAt.getTime();
+    const windowMs = 90 * 60 * 1000;
+    return (
+      (allHearings.data ?? []).find((h) => {
+        if (h.id === id || h.is_completed) return false;
+        return Math.abs(new Date(h.scheduled_at).getTime() - ts) < windowMs;
+      }) ?? null
+    );
+  }, [allHearings.data, scheduledAt, id]);
 
   const typeOptions = TYPE_VALUES.map((value) => ({ value, label: t(`hearingType.${value}` as const) }));
   const reminderOptions = REMINDER_VALUES.map(({ key, value }) => ({ value, label: t(key) }));
@@ -141,6 +154,19 @@ export default function HearingFormScreen() {
             <Button label={t('common.done')} size="sm" variant="secondary" onPress={() => setShowPicker(null)} style={styles.pickerDone} />
           )}
 
+          {clash && (
+            <View style={styles.warnBox}>
+              <Ionicons name="warning" size={18} color={colors.warning} />
+              <Text style={styles.warnText}>
+                {t('clash.warn', {
+                  title: clash.title,
+                  time: formatTime(clash.scheduled_at),
+                  case: clash.case?.title ?? '',
+                })}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.spacer} />
           <Input label={t('hearingForm.location')} placeholder={t('hearingForm.locationPlaceholder')} value={location} onChangeText={setLocation} />
 
@@ -205,6 +231,23 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   pickerDone: {
     marginTop: spacing.xs,
     alignSelf: 'flex-end',
+  },
+  warnBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    backgroundColor: colors.warningSoft,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: 12,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  warnText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    flex: 1,
+    lineHeight: 18,
   },
   textArea: {
     height: 80,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -19,6 +19,7 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatDateTime } from '@/utils/format';
+import { namesConflict } from '@/utils/nameMatch';
 import type { CaseStatus, PriorityLevel } from '@/types/database';
 
 const STATUS_VALUES: CaseStatus[] = ['active', 'pending', 'on_hold', 'won', 'lost', 'closed'];
@@ -77,6 +78,18 @@ export default function CaseFormScreen() {
   const priorityOptions = PRIORITY_VALUES.map((value) => ({ value, label: t(`priority.${value}` as const) }));
 
   const titleError = titleTouched && !title.trim() ? t('caseForm.titleRequired') : null;
+
+  // Conflict-of-interest check: warn (without blocking) when the opposing
+  // party matches an existing client's name or company.
+  const conflictClient = useMemo(() => {
+    const op = opposingParty.trim();
+    if (op.length < 3) return null;
+    return (
+      (clients ?? []).find(
+        (c) => namesConflict(c.full_name, op) || (c.company ? namesConflict(c.company, op) : false)
+      ) ?? null
+    );
+  }, [clients, opposingParty]);
 
   const handleSubmit = async () => {
     setTitleTouched(true);
@@ -194,6 +207,13 @@ export default function CaseFormScreen() {
           />
 
           <Input label={t('caseForm.opposingParty')} placeholder={t('caseForm.opposingPartyPlaceholder')} value={opposingParty} onChangeText={setOpposingParty} />
+
+          {conflictClient && (
+            <View style={styles.warnBox}>
+              <Ionicons name="warning" size={18} color={colors.warning} />
+              <Text style={styles.warnText}>{t('conflict.caseWarn', { name: conflictClient.full_name })}</Text>
+            </View>
+          )}
 
           <Input
             label={t('caseForm.fee')}
@@ -351,6 +371,24 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 12,
     padding: spacing.sm,
     marginTop: spacing.lg,
+  },
+  warnBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    backgroundColor: colors.warningSoft,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: 12,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    marginTop: -4,
+  },
+  warnText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    flex: 1,
+    lineHeight: 18,
   },
   errorText: {
     ...typography.caption,

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import * as LocalAuthentication from 'expo-local-authentication';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuthStore } from '@/store/authStore';
+import { useLockStore } from '@/store/lockStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
 import { useLangStore, useT, type Lang } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -32,10 +34,30 @@ export default function SettingsScreen() {
   const deleteAccount = useAuthStore((s) => s.deleteAccount);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const lockEnabled = useLockStore((s) => s.enabled);
+  const setLockEnabled = useLockStore((s) => s.setEnabled);
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
 
   useEffect(() => {
     Notifications.getPermissionsAsync().then(({ status }) => setNotificationsEnabled(status === 'granted'));
+    Promise.all([LocalAuthentication.hasHardwareAsync(), LocalAuthentication.isEnrolledAsync()])
+      .then(([hw, enrolled]) => setBiometricsAvailable(hw && enrolled))
+      .catch(() => setBiometricsAvailable(false));
   }, []);
+
+  const handleToggleLock = async (value: boolean) => {
+    if (!value) {
+      setLockEnabled(false);
+      return;
+    }
+    // Prove biometrics work before trusting the lock with app access.
+    const result = await LocalAuthentication.authenticateAsync({ promptMessage: t('lock.prompt') }).catch(() => null);
+    if (result?.success) {
+      setLockEnabled(true);
+    } else {
+      Alert.alert(t('lock.title'), t('lock.enableFailed'));
+    }
+  };
 
   const handleToggleNotifications = async (value: boolean) => {
     if (value) {
@@ -153,6 +175,24 @@ export default function SettingsScreen() {
             />
           </View>
         </Card>
+
+        {biometricsAvailable && (
+          <Card style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="finger-print-outline" size={18} color={colors.textMuted} />
+                <Text style={styles.rowLabel}>{t('lock.setting')}</Text>
+              </View>
+              <Switch
+                value={lockEnabled}
+                onValueChange={handleToggleLock}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            <Text style={styles.lockHint}>{t('lock.settingHint')}</Text>
+          </Card>
+        )}
 
         <Card style={styles.section}>
           <Pressable style={styles.row} onPress={() => router.push('/change-password' as Parameters<typeof router.push>[0])}>
@@ -278,6 +318,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   themeWrap: {
     marginTop: 12,
+  },
+  lockHint: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    lineHeight: 16,
   },
   langControl: {
     alignSelf: 'flex-start',

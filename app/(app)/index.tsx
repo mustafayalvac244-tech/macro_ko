@@ -317,11 +317,31 @@ export default function DashboardScreen() {
             color={colors.info}
             onPress={() => router.push('/finance' as Parameters<typeof router.push>[0])}
           />
+        </View>
+        <View style={styles.quickRow}>
+          <QuickAction
+            icon="hourglass"
+            label={t('dash.deadlineWizard')}
+            color={colors.danger}
+            onPress={() => router.push('/deadline-wizard' as Parameters<typeof router.push>[0])}
+          />
+          <QuickAction
+            icon="calculator"
+            label={t('dash.calculators')}
+            color={colors.warning}
+            onPress={() => router.push('/calculators' as Parameters<typeof router.push>[0])}
+          />
           <QuickAction
             icon="stats-chart"
             label={t('dash.reports')}
             color="#7C3AED"
             onPress={() => router.push('/reports' as Parameters<typeof router.push>[0])}
+          />
+          <QuickAction
+            icon="notifications"
+            label={t('dash.remindersShort')}
+            color={colors.success}
+            onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
           />
         </View>
       </ScrollView>

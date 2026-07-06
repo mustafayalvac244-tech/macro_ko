@@ -13,6 +13,8 @@ import { registerForNotificationsAsync } from '@/lib/notifications';
 import { hydrateLanguage } from '@/i18n';
 import { hydrateTheme } from '@/theme/themeStore';
 import { useTheme } from '@/theme/useTheme';
+import { hydrateLock } from '@/store/lockStore';
+import { AppLock } from '@/components/AppLock';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -34,6 +36,7 @@ export default function RootLayout() {
     const unsubscribe = initialize();
     hydrateLanguage().catch(() => {});
     hydrateTheme().catch(() => {});
+    hydrateLock().catch(() => {});
     registerForNotificationsAsync().catch(() => {});
 
     // Immersive mode: hide the Android system navigation bar while using the
@@ -78,10 +81,13 @@ export default function RootLayout() {
             <Stack.Screen name="reports" options={{ headerShown: false }} />
             <Stack.Screen name="finance" options={{ headerShown: false }} />
             <Stack.Screen name="finance-form" options={{ presentation: 'modal', headerShown: false }} />
+            <Stack.Screen name="deadline-wizard" options={{ headerShown: false }} />
+            <Stack.Screen name="calculators" options={{ headerShown: false }} />
             <Stack.Screen name="document-viewer" options={{ headerShown: false }} />
             <Stack.Screen name="change-password" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
           </Stack>
+          <AppLock />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
