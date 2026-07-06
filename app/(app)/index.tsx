@@ -312,6 +312,12 @@ export default function DashboardScreen() {
           <QuickAction icon="person-add" label={t('dash.newClient')} color={colors.success} onPress={() => router.push('/client-form')} />
           <QuickAction icon="cloud-upload" label={t('dash.uploadFile')} color={colors.gold} onPress={() => router.push('/document-upload')} />
           <QuickAction
+            icon="wallet"
+            label={t('dash.finance')}
+            color={colors.info}
+            onPress={() => router.push('/finance' as Parameters<typeof router.push>[0])}
+          />
+          <QuickAction
             icon="stats-chart"
             label={t('dash.reports')}
             color="#7C3AED"

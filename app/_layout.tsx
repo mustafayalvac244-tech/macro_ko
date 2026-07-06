@@ -76,6 +76,8 @@ export default function RootLayout() {
             <Stack.Screen name="reminders" options={{ headerShown: false }} />
             <Stack.Screen name="feedback" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="reports" options={{ headerShown: false }} />
+            <Stack.Screen name="finance" options={{ headerShown: false }} />
+            <Stack.Screen name="finance-form" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="document-viewer" options={{ headerShown: false }} />
             <Stack.Screen name="change-password" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="settings" options={{ headerShown: false }} />

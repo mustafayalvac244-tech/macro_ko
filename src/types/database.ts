@@ -56,6 +56,34 @@ export interface Case {
   updated_at: string;
 }
 
+export type FinanceKind = 'income' | 'expense';
+export type FinanceCategory =
+  | 'rent'
+  | 'salary'
+  | 'office'
+  | 'utilities'
+  | 'transport'
+  | 'courtFee'
+  | 'tax'
+  | 'fee'
+  | 'consultation'
+  | 'retainer'
+  | 'other';
+
+export interface FinanceEntry {
+  id: string;
+  owner_id: string;
+  kind: FinanceKind;
+  category: FinanceCategory;
+  title: string;
+  amount: number;
+  entry_date: string;
+  is_recurring: boolean;
+  recurring_until: string | null;
+  note: string | null;
+  created_at: string;
+}
+
 export interface Payment {
   id: string;
   owner_id: string;
