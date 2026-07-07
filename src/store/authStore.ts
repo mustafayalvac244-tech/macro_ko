@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { File } from 'expo-file-system';
 import type { Session } from '@supabase/supabase-js';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import type { Profile } from '@/types/database';
@@ -11,6 +12,9 @@ interface AuthState {
   error: string | null;
   initialize: () => () => void;
   refreshProfile: () => Promise<void>;
+  updateProfile: (patch: Partial<Pick<Profile, 'full_name' | 'firm_name' | 'bar_number' | 'phone'>>) => Promise<void>;
+  uploadAvatar: (file: { uri: string; mimeType: string | null }) => Promise<void>;
+  removeAvatar: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (params: { email: string; password: string; fullName: string; firmName?: string }) => Promise<boolean>;
   signOut: () => Promise<void>;
@@ -48,6 +52,49 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!userId) return;
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
     if (!error && data) set({ profile: data as Profile });
+  },
+
+  updateProfile: async (patch) => {
+    const userId = get().session?.user.id;
+    if (!userId) return;
+    const { error } = await supabase.from('profiles').update(patch).eq('id', userId);
+    if (error) throw error;
+    await get().refreshProfile();
+  },
+
+  uploadAvatar: async (file) => {
+    const userId = get().session?.user.id;
+    if (!userId) return;
+    const oldPath = get().profile?.avatar_url;
+
+    const bytes = await new File(file.uri).arrayBuffer();
+    const ext = file.mimeType?.includes('png') ? 'png' : 'jpg';
+    const path = `${userId}/profile/avatar-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(DOCUMENTS_BUCKET)
+      .upload(path, bytes, { contentType: file.mimeType ?? 'image/jpeg' });
+    if (uploadError) throw uploadError;
+
+    const { error } = await supabase.from('profiles').update({ avatar_url: path }).eq('id', userId);
+    if (error) throw error;
+
+    if (oldPath) {
+      await supabase.storage.from(DOCUMENTS_BUCKET).remove([oldPath]).catch(() => {});
+    }
+    await get().refreshProfile();
+  },
+
+  removeAvatar: async () => {
+    const userId = get().session?.user.id;
+    const oldPath = get().profile?.avatar_url;
+    if (!userId) return;
+    const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', userId);
+    if (error) throw error;
+    if (oldPath) {
+      await supabase.storage.from(DOCUMENTS_BUCKET).remove([oldPath]).catch(() => {});
+    }
+    await get().refreshProfile();
   },
 
   signIn: async (email, password) => {

@@ -526,4 +526,19 @@ export const en: Record<keyof typeof tr, string> = {
   'lock.prompt': 'Vekil — verify identity',
   'lock.unlock': 'Unlock',
   'lock.enableFailed': 'Verification failed, the lock was not enabled. Try again.',
+
+  // Profile editing
+  'profile.editTitle': 'Edit Profile',
+  'profile.editLink': 'Edit profile',
+  'profile.fullName': 'Full name',
+  'profile.firmName': 'Firm name',
+  'profile.firmPlaceholder': 'Yalvac Law Office',
+  'profile.barNumber': 'Bar registration no',
+  'profile.barPlaceholder': 'Istanbul Bar 12345',
+  'profile.phone': 'Phone',
+  'profile.photoTitle': 'Profile Photo',
+  'profile.photoHint': 'Tap the photo to change it',
+  'profile.removePhoto': 'Remove photo',
+  'profile.photoFailed': 'Could not update the photo. Please try again.',
+  'profile.saveFailed': 'Could not save the profile. Please try again.',
 };

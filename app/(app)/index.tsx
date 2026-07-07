@@ -13,6 +13,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { HearingListItem } from '@/components/calendar/HearingListItem';
 import { DeadlineListItem } from '@/components/calendar/DeadlineListItem';
 import { useAuthStore } from '@/store/authStore';
+import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines, useUpdateDeadline } from '@/hooks/useDeadlines';
@@ -53,6 +54,7 @@ export default function DashboardScreen() {
   const t = useT();
   const lang = useLangStore((s) => s.lang);
   const profile = useAuthStore((s) => s.profile);
+  const avatarUrl = useAvatarUrl();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
@@ -207,7 +209,7 @@ export default function DashboardScreen() {
               )}
             </Pressable>
             <Pressable onPress={() => router.push('/settings')}>
-              <Avatar name={profile?.full_name || t('dash.counselor')} size={44} />
+              <Avatar name={profile?.full_name || t('dash.counselor')} size={44} uri={avatarUrl} />
             </Pressable>
           </View>
         </View>

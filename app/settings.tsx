@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuthStore } from '@/store/authStore';
+import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useLockStore } from '@/store/lockStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
 import { useLangStore, useT, type Lang } from '@/i18n';
@@ -29,6 +30,7 @@ export default function SettingsScreen() {
   const lang = useLangStore((s) => s.lang);
   const setLang = useLangStore((s) => s.setLang);
   const profile = useAuthStore((s) => s.profile);
+  const avatarUrl = useAvatarUrl();
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
   const deleteAccount = useAuthStore((s) => s.deleteAccount);
@@ -121,14 +123,19 @@ export default function SettingsScreen() {
       <ScreenHeader title={t('settings.title')} showBack />
       <ScrollView contentContainerStyle={styles.content}>
         <Card style={styles.profileCard}>
-          <View style={styles.profileRow}>
-            <Avatar name={profile?.full_name || t('dash.counselor')} size={56} />
+          <Pressable
+            style={styles.profileRow}
+            onPress={() => router.push('/profile-form' as Parameters<typeof router.push>[0])}
+          >
+            <Avatar name={profile?.full_name || t('dash.counselor')} size={56} uri={avatarUrl} />
             <View style={styles.profileBody}>
               <Text style={styles.name}>{profile?.full_name || t('dash.counselor')}</Text>
               <Text style={styles.email}>{session?.user.email}</Text>
               {profile?.firm_name && <Text style={styles.firm}>{profile.firm_name}</Text>}
+              <Text style={styles.editLink}>{t('profile.editLink')}</Text>
             </View>
-          </View>
+            <Ionicons name="create-outline" size={20} color={colors.primary} />
+          </Pressable>
         </Card>
 
         <Card style={styles.section}>
@@ -288,6 +295,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.caption,
     color: colors.gold,
     marginTop: 2,
+  },
+  editLink: {
+    ...typography.small,
+    color: colors.primary,
+    fontWeight: '700',
+    marginTop: 4,
   },
   section: {
     marginBottom: spacing.md,

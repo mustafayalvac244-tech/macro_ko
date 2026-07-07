@@ -525,4 +525,19 @@ export const tr = {
   'lock.prompt': 'Vekil — kimlik doğrulama',
   'lock.unlock': 'Kilidi Aç',
   'lock.enableFailed': 'Doğrulama başarısız olduğu için kilit açılmadı. Tekrar deneyin.',
+
+  // Profil düzenleme
+  'profile.editTitle': 'Profili Düzenle',
+  'profile.editLink': 'Profili düzenle',
+  'profile.fullName': 'Ad Soyad',
+  'profile.firmName': 'Büro adı',
+  'profile.firmPlaceholder': 'Yalvaç Hukuk Bürosu',
+  'profile.barNumber': 'Baro sicil no',
+  'profile.barPlaceholder': 'İstanbul Barosu 12345',
+  'profile.phone': 'Telefon',
+  'profile.photoTitle': 'Profil Fotoğrafı',
+  'profile.photoHint': 'Fotoğrafa dokunarak değiştirin',
+  'profile.removePhoto': 'Fotoğrafı kaldır',
+  'profile.photoFailed': 'Fotoğraf güncellenemedi. Lütfen tekrar deneyin.',
+  'profile.saveFailed': 'Profil kaydedilemedi. Lütfen tekrar deneyin.',
 } as const;
