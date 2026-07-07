@@ -545,18 +545,18 @@ export const tr = {
   // AI Asistan
   'ai.title': 'Vekil AI',
   'ai.short': 'AI Asistan',
-  'ai.setupTitle': 'Ücretsiz AI Asistanınızı Kurun',
+  'ai.setupTitle': 'AI Asistanı Etkinleştir',
   'ai.setupDesc':
-    'Vekil AI, Google Gemini’nin ücretsiz katmanını kullanır. Bir kez ücretsiz API anahtarı alın, asistan sınırsız kurulum ücreti olmadan çalışsın.',
-  'ai.step1': '1. Aşağıdaki bağlantıya dokunun ve Google hesabınızla giriş yapın.',
+    'Bu sürüme henüz AI hizmet anahtarı gömülmemiş. Tek seferlik ücretsiz anahtarla etkinleştirin — anahtar gömülü sürümlerde bu ekran hiç görünmez.',
+  'ai.step1': '1. Aşağıdaki bağlantıya dokunun ve hesabınızla giriş yapın.',
   'ai.step2': '2. "Create API key" düğmesine basın ve oluşan anahtarı kopyalayın.',
   'ai.step3': '3. Anahtarı aşağıya yapıştırıp kaydedin. Hepsi bu!',
-  'ai.keyLabel': 'Gemini API anahtarı',
+  'ai.keyLabel': 'Hizmet anahtarı',
   'ai.keySave': 'Kaydet ve Başla',
   'ai.keyPrivacy': 'Anahtar yalnızca bu cihazda, şifreli alanda saklanır; bize gönderilmez.',
   'ai.keyChange': 'API anahtarını değiştir',
   'ai.keyReset': 'Anahtarı Sıfırla',
-  'ai.keyResetConfirm': 'Kayıtlı Gemini API anahtarı silinsin mi?',
+  'ai.keyResetConfirm': 'Kayıtlı hizmet anahtarı silinsin mi?',
   'ai.welcome': 'Merhaba, ben Vekil AI 👋',
   'ai.welcomeDesc': 'Hukuki sorularınızda, dilekçe taslaklarında ve mevzuat özetlerinde yardımcı olurum.',
   'ai.sample1': 'İstinaf dilekçesinde nelere dikkat etmeliyim?',
@@ -568,6 +568,19 @@ export const tr = {
   'ai.errRateLimit': 'Ücretsiz kota şu an dolu. Bir dakika sonra tekrar deneyin.',
   'ai.errGeneric': 'Yanıt alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
+
+  // Deneme ödemesi
+  'tpay.badge': 'DENEME MODU',
+  'tpay.cardNumber': 'Kart numarası',
+  'tpay.expiry': 'SKT (AA/YY)',
+  'tpay.cvc': 'CVC',
+  'tpay.pay': '₺199,00 Öde (Deneme)',
+  'tpay.processing': 'İşleniyor...',
+  'tpay.success': 'Deneme ödemesi başarılı! 🎉 Premium (deneme) etkinleşti. Gerçek para çekilmedi.',
+  'tpay.active': 'Premium etkin (deneme modu)',
+  'tpay.note': 'Bu bir simülasyondur; kart bilgileri hiçbir yere gönderilmez ve para çekilmez.',
+  'tpay.modeNote':
+    'Şu an deneme modundasınız: ödeme akışını uçtan uca test edebilirsiniz, gerçek para çekilmez. Gerçek tahsilat için Stripe anahtarı eklendiğinde bu ekran otomatik olarak gerçek ödemeye geçer.',
 
   // Anayasa
   'const.title': 'Anayasa',

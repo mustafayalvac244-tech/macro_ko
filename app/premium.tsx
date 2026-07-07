@@ -1,12 +1,13 @@
-import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useStripe } from '@stripe/stripe-react-native';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
@@ -25,10 +26,25 @@ export default function PremiumScreen() {
   const session = useAuthStore((s) => s.session);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [isPaying, setIsPaying] = useState(false);
+  const [showTestSheet, setShowTestSheet] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem('vekil-premium').then((v) => setIsPremium(v === '1'));
+  }, []);
+
+  const handleTestSuccess = async () => {
+    setShowTestSheet(false);
+    setIsPremium(true);
+    await AsyncStorage.setItem('vekil-premium', '1').catch(() => {});
+    Alert.alert(t('premium.title'), t('tpay.success'));
+  };
 
   const handlePay = async () => {
     if (!isConfigured) {
-      Alert.alert(t('premium.title'), t('premium.notConfigured'));
+      // No Stripe key baked into this build → run the built-in demo payment
+      // flow so the experience is testable end to end without a backend.
+      setShowTestSheet(true);
       return;
     }
 
@@ -89,6 +105,13 @@ export default function PremiumScreen() {
 
           <Text style={styles.description}>{t('premium.desc')}</Text>
 
+          {isPremium && (
+            <View style={styles.activeRow}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+              <Text style={styles.activeText}>{t('tpay.active')}</Text>
+            </View>
+          )}
+
           <Button
             label={t('premium.pay')}
             icon="lock-closed-outline"
@@ -107,11 +130,85 @@ export default function PremiumScreen() {
 
         {!isConfigured && (
           <Card style={styles.warnCard}>
-            <Text style={styles.warnText}>{t('premium.notConfigured')}</Text>
+            <Text style={styles.warnText}>{t('tpay.modeNote')}</Text>
           </Card>
         )}
       </ScrollView>
+
+      <TestPaymentSheet visible={showTestSheet} onClose={() => setShowTestSheet(false)} onSuccess={handleTestSuccess} />
     </Screen>
+  );
+}
+
+/**
+ * Built-in demo payment sheet used when no Stripe key is configured. Clearly
+ * labeled test mode; no real charge happens anywhere.
+ */
+function TestPaymentSheet({ visible, onClose, onSuccess }: { visible: boolean; onClose: () => void; onSuccess: () => void }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
+  const t = useT();
+  const [cardNumber, setCardNumber] = useState('4242 4242 4242 4242');
+  const [expiry, setExpiry] = useState('12/29');
+  const [cvc, setCvc] = useState('123');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const cardOk = cardNumber.replace(/\D/g, '').length === 16;
+  const expOk = /^\d{2}\/\d{2}$/.test(expiry.trim());
+  const cvcOk = /^\d{3,4}$/.test(cvc.trim());
+
+  const pay = () => {
+    if (!cardOk || !expOk || !cvcOk) return;
+    setIsProcessing(true);
+    setTimeout(() => {
+      setIsProcessing(false);
+      onSuccess();
+    }, 1600);
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.sheetRoot}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.testBadge}>
+              <Ionicons name="flask-outline" size={13} color={colors.warning} />
+              <Text style={styles.testBadgeText}>{t('tpay.badge')}</Text>
+            </View>
+            <Text style={styles.sheetTitle}>{t('premium.title')}</Text>
+            <Text style={styles.sheetAmount}>{t('premium.price')}</Text>
+
+            <Input
+              label={t('tpay.cardNumber')}
+              value={cardNumber}
+              onChangeText={setCardNumber}
+              keyboardType="number-pad"
+              icon="card-outline"
+              maxLength={19}
+            />
+            <View style={styles.cardRow}>
+              <Input label={t('tpay.expiry')} value={expiry} onChangeText={setExpiry} keyboardType="numbers-and-punctuation" containerStyle={styles.cardCol} maxLength={5} />
+              <Input label={t('tpay.cvc')} value={cvc} onChangeText={setCvc} keyboardType="number-pad" containerStyle={styles.cardCol} maxLength={4} secureTextEntry />
+            </View>
+
+            <Button
+              label={isProcessing ? t('tpay.processing') : t('tpay.pay')}
+              icon="lock-closed-outline"
+              onPress={pay}
+              loading={isProcessing}
+              disabled={!cardOk || !expOk || !cvcOk}
+              fullWidth
+              size="lg"
+            />
+            <Text style={styles.sheetNote}>{t('tpay.note')}</Text>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
   );
 }
 
@@ -188,5 +285,81 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.caption,
     color: colors.warning,
     lineHeight: 19,
+  },
+  activeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+    backgroundColor: colors.successSoft,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  activeText: {
+    ...typography.caption,
+    color: colors.success,
+    fontWeight: '700',
+  },
+  sheetRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(10, 15, 30, 0.5)',
+  },
+  sheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.border,
+    marginBottom: spacing.sm,
+  },
+  testBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'center',
+    backgroundColor: colors.warningSoft,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    marginBottom: spacing.xs,
+  },
+  testBadgeText: {
+    ...typography.small,
+    color: colors.warning,
+    fontWeight: '800',
+  },
+  sheetTitle: {
+    ...typography.h2,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  sheetAmount: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: colors.primary,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  cardCol: {
+    flex: 1,
+  },
+  sheetNote: {
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    lineHeight: 15,
   },
 });

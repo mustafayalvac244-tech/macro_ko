@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Ionicons } from '@expo/vector-icons';
 import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useLockStore } from '@/store/lockStore';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
 /**
@@ -48,17 +48,17 @@ export function AppLock() {
 
   if (!enabled || !locked) return null;
 
+  // Deliberately wordless: just the logo and a fingerprint mark. The system
+  // biometric prompt opens by itself; tapping the mark retries if canceled.
   return (
     <View style={[StyleSheet.absoluteFill, styles.container, { backgroundColor: colors.bg }]}>
-      <VekilLogo size={110} nodeFill={colors.primary} />
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{t('lock.title')}</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('lock.subtitle')}</Text>
+      <VekilLogo size={120} nodeFill={colors.primary} />
       <Pressable
         onPress={authenticate}
-        style={({ pressed }) => [styles.button, { backgroundColor: colors.primary }, pressed && { opacity: 0.85 }]}
+        hitSlop={16}
+        style={({ pressed }) => [styles.mark, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }, pressed && { opacity: 0.7 }]}
       >
-        <Ionicons name="finger-print" size={20} color="#FFFFFF" />
-        <Text style={styles.buttonText}>{t('lock.retry')}</Text>
+        <Ionicons name="finger-print" size={30} color={colors.primary} />
       </Pressable>
     </View>
   );
@@ -71,27 +71,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     zIndex: 999,
   },
-  title: {
-    ...typography.h1,
-    marginTop: spacing.lg,
-  },
-  subtitle: {
-    ...typography.caption,
-    marginTop: spacing.xs,
-    textAlign: 'center',
-  },
-  button: {
-    flexDirection: 'row',
+  mark: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
     alignItems: 'center',
-    gap: spacing.xs,
-    borderRadius: 14,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 14,
-    marginTop: spacing.xl,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    justifyContent: 'center',
+    marginTop: spacing.xxl,
   },
 });

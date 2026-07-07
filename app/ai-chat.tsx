@@ -18,7 +18,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { askGemini, clearGeminiKey, getGeminiKey, setGeminiKey, type ChatMessage } from '@/lib/gemini';
+import { askGemini, clearGeminiKey, getEffectiveGeminiKey, hasBuiltInKey, setGeminiKey, type ChatMessage } from '@/lib/gemini';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -39,7 +39,7 @@ export default function AiChatScreen() {
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    getGeminiKey().then((k) => {
+    getEffectiveGeminiKey().then((k) => {
       setApiKey(k);
       setKeyLoaded(true);
     });
@@ -140,10 +140,12 @@ export default function AiChatScreen() {
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('ai.title')} showBack />
-      <Pressable style={styles.keyRow} onPress={resetKey}>
-        <Ionicons name="key-outline" size={13} color={colors.textMuted} />
-        <Text style={styles.keyRowText}>{t('ai.keyChange')}</Text>
-      </Pressable>
+      {!hasBuiltInKey && (
+        <Pressable style={styles.keyRow} onPress={resetKey}>
+          <Ionicons name="key-outline" size={13} color={colors.textMuted} />
+          <Text style={styles.keyRowText}>{t('ai.keyChange')}</Text>
+        </Pressable>
+      )}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView
           ref={scrollRef}

@@ -70,7 +70,7 @@ export default function CalendarScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title={t('cal.title')} subtitle={t('cal.subtitle')} />
+      <ScreenHeader showMenu title={t('cal.title')} subtitle={t('cal.subtitle')} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <Card padded={false} style={styles.calendarCard}>

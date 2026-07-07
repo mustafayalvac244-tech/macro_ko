@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/authStore';
+import { Sidebar } from '@/components/Sidebar';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -47,6 +48,7 @@ export default function AppLayout() {
   if (!session) return <Redirect href="/(auth)/login" />;
 
   return (
+    <>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -112,6 +114,8 @@ export default function AppLayout() {
         }}
       />
     </Tabs>
+    <Sidebar />
+    </>
   );
 }
 

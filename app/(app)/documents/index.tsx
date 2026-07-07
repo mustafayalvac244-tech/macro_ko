@@ -61,7 +61,7 @@ export default function DocumentVaultScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title={t('docs.title')} subtitle={documents ? t('docs.count', { n: documents.length }) : undefined} />
+      <ScreenHeader showMenu title={t('docs.title')} subtitle={documents ? t('docs.count', { n: documents.length }) : undefined} />
       <View style={styles.filters}>
         <SearchBar value={search} onChangeText={setSearch} placeholder={t('docs.search')} />
         <View style={styles.segmentSpacing}>

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
+import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/tokens';
@@ -25,11 +26,6 @@ import type { ThemeColors } from '@/theme/palettes';
 
 const PANEL_WIDTH = Math.min(320, Dimensions.get('window').width * 0.82);
 const ANIM_MS = 220;
-
-interface SidebarProps {
-  visible: boolean;
-  onClose: () => void;
-}
 
 interface NavItem {
   icon: keyof typeof Ionicons.glyphMap;
@@ -43,7 +39,9 @@ interface NavItem {
  * tapping it expands an accordion with profile actions, tapping again
  * collapses it. Everything else is a flat shortcut list.
  */
-export function Sidebar({ visible, onClose }: SidebarProps) {
+export function Sidebar() {
+  const visible = useSidebarStore((s) => s.isOpen);
+  const onClose = useSidebarStore((s) => s.close);
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(colors);

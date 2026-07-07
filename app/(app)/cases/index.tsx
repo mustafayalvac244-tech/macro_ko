@@ -25,7 +25,7 @@ export default function CaseDirectoryScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title={t('cases.title')} subtitle={cases ? t('cases.count', { n: cases.length }) : undefined} />
+      <ScreenHeader showMenu title={t('cases.title')} subtitle={cases ? t('cases.count', { n: cases.length }) : undefined} />
       <View style={styles.filters}>
         <SearchBar value={search} onChangeText={setSearch} placeholder={t('cases.search')} />
         <View style={styles.segmentSpacing}>

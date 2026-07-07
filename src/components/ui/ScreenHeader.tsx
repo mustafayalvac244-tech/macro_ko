@@ -5,19 +5,23 @@ import { router } from 'expo-router';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { useSidebarStore } from '@/store/sidebarStore';
 
 interface ScreenHeaderProps {
   title: string;
   subtitle?: string;
   showBack?: boolean;
+  /** Show a hamburger button that opens the left navigation panel. */
+  showMenu?: boolean;
   rightIcon?: keyof typeof Ionicons.glyphMap;
   onRightPress?: () => void;
 }
 
-export function ScreenHeader({ title, subtitle, showBack, rightIcon, onRightPress }: ScreenHeaderProps) {
+export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, onRightPress }: ScreenHeaderProps) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
+  const openSidebar = useSidebarStore((s) => s.open);
 
   return (
     <View style={styles.container}>
@@ -25,6 +29,11 @@ export function ScreenHeader({ title, subtitle, showBack, rightIcon, onRightPres
         {showBack && (
           <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          </Pressable>
+        )}
+        {showMenu && !showBack && (
+          <Pressable onPress={openSidebar} hitSlop={10} style={styles.menuButton}>
+            <Ionicons name="menu" size={24} color={colors.textPrimary} />
           </Pressable>
         )}
         <View>
@@ -65,6 +74,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginRight: spacing.xs,
     width: 32,
     height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuButton: {
+    marginRight: spacing.sm,
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },

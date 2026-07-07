@@ -3,6 +3,19 @@ import * as SecureStore from 'expo-secure-store';
 const KEY_NAME = 'vekil-gemini-key';
 const MODEL = 'gemini-2.0-flash';
 
+/**
+ * Key baked into the build (eas.json / build env). When present, users never
+ * see any setup screen — the assistant just works. The SecureStore key is a
+ * developer fallback for builds without an embedded key.
+ */
+const BUILT_IN_KEY = (process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '').trim();
+export const hasBuiltInKey = BUILT_IN_KEY.length > 10 && !BUILT_IN_KEY.includes('your-');
+
+export async function getEffectiveGeminiKey(): Promise<string | null> {
+  if (hasBuiltInKey) return BUILT_IN_KEY;
+  return getGeminiKey();
+}
+
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;

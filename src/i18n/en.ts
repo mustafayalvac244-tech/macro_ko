@@ -546,18 +546,18 @@ export const en: Record<keyof typeof tr, string> = {
   // AI Assistant
   'ai.title': 'Vekil AI',
   'ai.short': 'AI Assistant',
-  'ai.setupTitle': 'Set Up Your Free AI Assistant',
+  'ai.setupTitle': 'Activate the AI Assistant',
   'ai.setupDesc':
-    'Vekil AI runs on Google Gemini’s free tier. Get a free API key once and the assistant works with no setup fee.',
-  'ai.step1': '1. Tap the link below and sign in with your Google account.',
+    'This build has no embedded AI service key yet. Activate with a one-time free key — builds with an embedded key never show this screen.',
+  'ai.step1': '1. Tap the link below and sign in with your account.',
   'ai.step2': '2. Press "Create API key" and copy the generated key.',
   'ai.step3': '3. Paste the key below and save. That’s it!',
-  'ai.keyLabel': 'Gemini API key',
+  'ai.keyLabel': 'Service key',
   'ai.keySave': 'Save & Start',
   'ai.keyPrivacy': 'The key is stored encrypted on this device only; it is never sent to us.',
   'ai.keyChange': 'Change API key',
   'ai.keyReset': 'Reset Key',
-  'ai.keyResetConfirm': 'Delete the saved Gemini API key?',
+  'ai.keyResetConfirm': 'Delete the saved service key?',
   'ai.welcome': 'Hi, I’m Vekil AI 👋',
   'ai.welcomeDesc': 'I help with legal questions, petition drafts, and legislation summaries.',
   'ai.sample1': 'What should I watch out for in an appeal petition?',
@@ -569,6 +569,19 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.errRateLimit': 'The free quota is temporarily exhausted. Try again in a minute.',
   'ai.errGeneric': 'No response. Check your internet connection and try again.',
   'ai.disclaimer': 'AI answers are not legal advice; verify against current legislation.',
+
+  // Test payment
+  'tpay.badge': 'TEST MODE',
+  'tpay.cardNumber': 'Card number',
+  'tpay.expiry': 'Expiry (MM/YY)',
+  'tpay.cvc': 'CVC',
+  'tpay.pay': 'Pay ₺199.00 (Test)',
+  'tpay.processing': 'Processing...',
+  'tpay.success': 'Test payment successful! 🎉 Premium (test) is active. No real money was charged.',
+  'tpay.active': 'Premium active (test mode)',
+  'tpay.note': 'This is a simulation; card details are not sent anywhere and no money is charged.',
+  'tpay.modeNote':
+    'You are in test mode: the payment flow is fully testable, no real money is charged. Once a Stripe key is added, this screen switches to real payments automatically.',
 
   // Constitution
   'const.title': 'Constitution',

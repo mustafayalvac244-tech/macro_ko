@@ -18,7 +18,7 @@ export default function ClientDirectoryScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title={t('clients.title')} subtitle={clients ? t('clients.count', { n: clients.length }) : undefined} />
+      <ScreenHeader showMenu title={t('clients.title')} subtitle={clients ? t('clients.count', { n: clients.length }) : undefined} />
       <View style={styles.filters}>
         <SearchBar value={search} onChangeText={setSearch} placeholder={t('clients.search')} />
       </View>
