@@ -119,6 +119,8 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
     { icon: 'wallet-outline', label: t('ofinance.title'), path: '/finance' },
     { icon: 'hourglass-outline', label: t('wizard.title'), path: '/deadline-wizard' },
     { icon: 'calculator-outline', label: t('calc.title'), path: '/calculators' },
+    { icon: 'sparkles-outline', label: t('ai.title'), path: '/ai-chat' },
+    { icon: 'book-outline', label: t('const.title'), path: '/constitution' },
     { icon: 'stats-chart-outline', label: t('reports.title'), path: '/reports' },
     { icon: 'notifications-outline', label: t('reminders.title'), path: '/reminders' },
     { icon: 'chatbubble-ellipses-outline', label: t('settings.feedback'), path: '/feedback' },

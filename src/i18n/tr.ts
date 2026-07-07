@@ -540,4 +540,43 @@ export const tr = {
   'profile.removePhoto': 'Fotoğrafı kaldır',
   'profile.photoFailed': 'Fotoğraf güncellenemedi. Lütfen tekrar deneyin.',
   'profile.saveFailed': 'Profil kaydedilemedi. Lütfen tekrar deneyin.',
+  'lock.retry': 'Tekrar Dene',
+
+  // AI Asistan
+  'ai.title': 'Vekil AI',
+  'ai.short': 'AI Asistan',
+  'ai.setupTitle': 'Ücretsiz AI Asistanınızı Kurun',
+  'ai.setupDesc':
+    'Vekil AI, Google Gemini’nin ücretsiz katmanını kullanır. Bir kez ücretsiz API anahtarı alın, asistan sınırsız kurulum ücreti olmadan çalışsın.',
+  'ai.step1': '1. Aşağıdaki bağlantıya dokunun ve Google hesabınızla giriş yapın.',
+  'ai.step2': '2. "Create API key" düğmesine basın ve oluşan anahtarı kopyalayın.',
+  'ai.step3': '3. Anahtarı aşağıya yapıştırıp kaydedin. Hepsi bu!',
+  'ai.keyLabel': 'Gemini API anahtarı',
+  'ai.keySave': 'Kaydet ve Başla',
+  'ai.keyPrivacy': 'Anahtar yalnızca bu cihazda, şifreli alanda saklanır; bize gönderilmez.',
+  'ai.keyChange': 'API anahtarını değiştir',
+  'ai.keyReset': 'Anahtarı Sıfırla',
+  'ai.keyResetConfirm': 'Kayıtlı Gemini API anahtarı silinsin mi?',
+  'ai.welcome': 'Merhaba, ben Vekil AI 👋',
+  'ai.welcomeDesc': 'Hukuki sorularınızda, dilekçe taslaklarında ve mevzuat özetlerinde yardımcı olurum.',
+  'ai.sample1': 'İstinaf dilekçesinde nelere dikkat etmeliyim?',
+  'ai.sample2': 'Kira tespit davası ile kira uyarlama davası farkı nedir?',
+  'ai.sample3': 'İşe iade davasının şartlarını özetle',
+  'ai.inputPlaceholder': 'Sorunuzu yazın...',
+  'ai.thinking': 'Düşünüyor...',
+  'ai.errInvalidKey': 'API anahtarı geçersiz görünüyor. Anahtarı kontrol edin (sağ üstten değiştirebilirsiniz).',
+  'ai.errRateLimit': 'Ücretsiz kota şu an dolu. Bir dakika sonra tekrar deneyin.',
+  'ai.errGeneric': 'Yanıt alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+  'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
+
+  // Anayasa
+  'const.title': 'Anayasa',
+  'const.short': 'Anayasa',
+  'const.searchPlaceholder': 'Madde no (ör. 36) veya kelime yazın...',
+  'const.results': '{n} madde',
+  'const.offline': 'çevrimdışı çalışır',
+  'const.empty': 'Sonuç bulunamadı',
+  'const.emptyDesc': 'Madde numarası (ör. 141) ya da farklı bir kelime deneyin.',
+  'const.sourceNote':
+    'Kaynak: TBMM yayını — 2709 sayılı T.C. Anayasası (6771 sayılı Kanun değişiklikleri işlenmiş metin). Resmî ve güncel metin için mevzuat.gov.tr esas alınmalıdır.',
 } as const;

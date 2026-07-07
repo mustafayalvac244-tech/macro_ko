@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Ionicons } from '@expo/vector-icons';
 import { VekilLogo } from '@/components/ui/VekilLogo';
@@ -9,15 +9,15 @@ import { spacing, typography } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
 /**
- * Full-screen biometric lock overlay. Rendered above the navigator; locks on
- * cold start (when enabled) and whenever the app goes to the background.
+ * Full-screen biometric lock overlay. Locks only on cold start (app entry);
+ * the biometric prompt fires automatically — no tap needed. The button below
+ * is just a retry fallback if the user cancels the system prompt.
  */
 export function AppLock() {
   const { colors } = useTheme();
   const t = useT();
   const enabled = useLockStore((s) => s.enabled);
   const locked = useLockStore((s) => s.locked);
-  const lock = useLockStore((s) => s.lock);
   const unlock = useLockStore((s) => s.unlock);
   const isPrompting = useRef(false);
 
@@ -38,14 +38,12 @@ export function AppLock() {
   }, [t, unlock]);
 
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'background') lock();
-    });
-    return () => sub.remove();
-  }, [lock]);
-
-  useEffect(() => {
-    if (locked) authenticate();
+    if (!locked) return;
+    // Fire the system prompt automatically; the short delay lets the Android
+    // activity finish coming to the foreground (an immediate call can fail
+    // silently on cold start, which would force a manual tap).
+    const timer = setTimeout(() => authenticate(), 350);
+    return () => clearTimeout(timer);
   }, [locked, authenticate]);
 
   if (!enabled || !locked) return null;
@@ -60,7 +58,7 @@ export function AppLock() {
         style={({ pressed }) => [styles.button, { backgroundColor: colors.primary }, pressed && { opacity: 0.85 }]}
       >
         <Ionicons name="finger-print" size={20} color="#FFFFFF" />
-        <Text style={styles.buttonText}>{t('lock.unlock')}</Text>
+        <Text style={styles.buttonText}>{t('lock.retry')}</Text>
       </Pressable>
     </View>
   );

@@ -541,4 +541,43 @@ export const en: Record<keyof typeof tr, string> = {
   'profile.removePhoto': 'Remove photo',
   'profile.photoFailed': 'Could not update the photo. Please try again.',
   'profile.saveFailed': 'Could not save the profile. Please try again.',
+  'lock.retry': 'Try Again',
+
+  // AI Assistant
+  'ai.title': 'Vekil AI',
+  'ai.short': 'AI Assistant',
+  'ai.setupTitle': 'Set Up Your Free AI Assistant',
+  'ai.setupDesc':
+    'Vekil AI runs on Google Gemini’s free tier. Get a free API key once and the assistant works with no setup fee.',
+  'ai.step1': '1. Tap the link below and sign in with your Google account.',
+  'ai.step2': '2. Press "Create API key" and copy the generated key.',
+  'ai.step3': '3. Paste the key below and save. That’s it!',
+  'ai.keyLabel': 'Gemini API key',
+  'ai.keySave': 'Save & Start',
+  'ai.keyPrivacy': 'The key is stored encrypted on this device only; it is never sent to us.',
+  'ai.keyChange': 'Change API key',
+  'ai.keyReset': 'Reset Key',
+  'ai.keyResetConfirm': 'Delete the saved Gemini API key?',
+  'ai.welcome': 'Hi, I’m Vekil AI 👋',
+  'ai.welcomeDesc': 'I help with legal questions, petition drafts, and legislation summaries.',
+  'ai.sample1': 'What should I watch out for in an appeal petition?',
+  'ai.sample2': 'Difference between rent determination and rent adaptation cases?',
+  'ai.sample3': 'Summarize the conditions of a reinstatement case',
+  'ai.inputPlaceholder': 'Type your question...',
+  'ai.thinking': 'Thinking...',
+  'ai.errInvalidKey': 'The API key looks invalid. Check the key (you can change it from the top right).',
+  'ai.errRateLimit': 'The free quota is temporarily exhausted. Try again in a minute.',
+  'ai.errGeneric': 'No response. Check your internet connection and try again.',
+  'ai.disclaimer': 'AI answers are not legal advice; verify against current legislation.',
+
+  // Constitution
+  'const.title': 'Constitution',
+  'const.short': 'Constitution',
+  'const.searchPlaceholder': 'Type an article no (e.g. 36) or a keyword...',
+  'const.results': '{n} articles',
+  'const.offline': 'works offline',
+  'const.empty': 'No results',
+  'const.emptyDesc': 'Try an article number (e.g. 141) or a different keyword.',
+  'const.sourceNote':
+    'Source: Grand National Assembly (TBMM) publication — Constitution of the Republic of Türkiye No. 2709, consolidated incl. Law No. 6771. For the official current text, rely on mevzuat.gov.tr.',
 };
