@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Avatar } from '@/components/ui/Avatar';
 import { HearingListItem } from '@/components/calendar/HearingListItem';
 import { DeadlineListItem } from '@/components/calendar/DeadlineListItem';
+import { Sidebar } from '@/components/Sidebar';
 import { useAuthStore } from '@/store/authStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
@@ -57,6 +58,7 @@ export default function DashboardScreen() {
   const avatarUrl = useAvatarUrl();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 
   const stats = useDashboardStats();
@@ -189,6 +191,9 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl tintColor={colors.textSecondary} refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.header}>
+          <Pressable onPress={() => setSidebarOpen(true)} style={styles.menuButton} hitSlop={6}>
+            <Ionicons name="menu" size={24} color={colors.textPrimary} />
+          </Pressable>
           <View style={styles.headerText}>
             <Text style={styles.greeting} numberOfLines={1}>
               {t(greetingKey)}, {firstName}
@@ -347,6 +352,7 @@ export default function DashboardScreen() {
           />
         </View>
       </ScrollView>
+      <Sidebar visible={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </Screen>
   );
 }
@@ -412,6 +418,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   headerText: {
     flex: 1,
+    marginRight: spacing.sm,
+  },
+  menuButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: spacing.sm,
   },
   headerActions: {
