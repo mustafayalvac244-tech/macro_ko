@@ -1,7 +1,55 @@
 import * as SecureStore from 'expo-secure-store';
+import { supabase } from '@/lib/supabase';
 
 const KEY_NAME = 'vekil-gemini-key';
 const MODEL = 'gemini-2.0-flash';
+
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+const ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+
+/**
+ * Server-side AI: the `ai-chat` edge function keeps the key as a secret, so a
+ * signed-in Vekil account is all a user needs. Availability is probed once
+ * per app session (404/503 → not deployed yet → fall back to local key).
+ */
+let serverAiAvailable: boolean | null = null;
+
+export async function checkServerAi(): Promise<boolean> {
+  if (serverAiAvailable !== null) return serverAiAvailable;
+  if (!SUPABASE_URL) return (serverAiAvailable = false);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-chat`, { method: 'OPTIONS' });
+    serverAiAvailable = res.ok;
+  } catch {
+    serverAiAvailable = false;
+  }
+  return serverAiAvailable;
+}
+
+async function askServer(history: ChatMessage[]): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: ANON_KEY,
+      Authorization: `Bearer ${token ?? ANON_KEY}`,
+    },
+    body: JSON.stringify({ messages: history }),
+  });
+  if (!res.ok) {
+    if (res.status === 404 || res.status === 503) {
+      serverAiAvailable = false;
+      throw new Error('SERVER_UNAVAILABLE');
+    }
+    if (res.status === 429) throw new Error('RATE_LIMIT');
+    throw new Error(`HTTP_${res.status}`);
+  }
+  const payload = (await res.json()) as { text?: string };
+  if (!payload.text) throw new Error('EMPTY_RESPONSE');
+  return payload.text;
+}
 
 /**
  * Key baked into the build (eas.json / build env). When present, users never
@@ -43,6 +91,24 @@ const SYSTEM_PROMPT =
   'Mevzuat maddelerine atıf yaparken madde numaralarını belirt. ' +
   'Emin olmadığın konularda bunu açıkça söyle ve her yanıtın sonuna, verdiğin bilginin ' +
   'hukuki tavsiye olmadığını ve güncel mevzuattan teyit edilmesi gerektiğini kısaca hatırlat.';
+
+/**
+ * Preferred entry point: server proxy first (membership-based, keyless),
+ * then any embedded/local key as fallback.
+ */
+export async function askVekilAI(history: ChatMessage[]): Promise<string> {
+  if (await checkServerAi()) {
+    try {
+      return await askServer(history);
+    } catch (e) {
+      if (!(e instanceof Error) || e.message !== 'SERVER_UNAVAILABLE') throw e;
+      // fall through to local key
+    }
+  }
+  const key = await getEffectiveGeminiKey();
+  if (!key) throw new Error('NO_KEY');
+  return askGemini(key, history);
+}
 
 /** Calls the Gemini generateContent API with chat history. Throws on failure. */
 export async function askGemini(apiKey: string, history: ChatMessage[]): Promise<string> {

@@ -54,6 +54,8 @@ export function Sidebar() {
   const avatarUrl = useAvatarUrl();
 
   const [profileOpen, setProfileOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [officeOpen, setOfficeOpen] = useState(false);
   const translate = useRef(new Animated.Value(-PANEL_WIDTH)).current;
   const backdrop = useRef(new Animated.Value(0)).current;
   const chevron = useRef(new Animated.Value(0)).current;
@@ -109,21 +111,30 @@ export function Sidebar() {
     ]);
   };
 
-  const mainItems: NavItem[] = [
+  // Lean top level: core screens + network, everything else tucked into two
+  // collapsible groups so the panel stays scannable.
+  const coreItems: NavItem[] = [
     { icon: 'home-outline', label: t('tab.dashboard'), path: '/(app)' },
     { icon: 'briefcase-outline', label: t('cases.title'), path: '/(app)/cases' },
     { icon: 'people-outline', label: t('clients.title'), path: '/(app)/clients' },
     { icon: 'calendar-outline', label: t('cal.title'), path: '/(app)/calendar' },
     { icon: 'folder-open-outline', label: t('docs.title'), path: '/(app)/documents' },
-    { icon: 'wallet-outline', label: t('ofinance.title'), path: '/finance' },
+  ];
+  const networkItems: NavItem[] = [
+    { icon: 'chatbubbles-outline', label: t('chat.title'), path: '/chat' },
+    { icon: 'swap-horizontal-outline', label: t('jobs.title'), path: '/jobs' },
+  ];
+  const toolItems: NavItem[] = [
+    { icon: 'sparkles-outline', label: t('ai.title'), path: '/ai-chat' },
     { icon: 'hourglass-outline', label: t('wizard.title'), path: '/deadline-wizard' },
     { icon: 'calculator-outline', label: t('calc.title'), path: '/calculators' },
-    { icon: 'sparkles-outline', label: t('ai.title'), path: '/ai-chat' },
     { icon: 'book-outline', label: t('const.title'), path: '/constitution' },
+  ];
+  const officeItems: NavItem[] = [
+    { icon: 'wallet-outline', label: t('ofinance.title'), path: '/finance' },
     { icon: 'stats-chart-outline', label: t('reports.title'), path: '/reports' },
     { icon: 'notifications-outline', label: t('reminders.title'), path: '/reminders' },
     { icon: 'chatbubble-ellipses-outline', label: t('settings.feedback'), path: '/feedback' },
-    { icon: 'settings-outline', label: t('settings.title'), path: '/settings' },
   ];
 
   const chevronRotation = chevron.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
@@ -169,15 +180,69 @@ export function Sidebar() {
           <View style={styles.divider} />
 
           <ScrollView style={styles.navScroll} showsVerticalScrollIndicator={false}>
-            {mainItems.map((item) => (
+            {coreItems.map((item) => (
               <SidebarItem key={item.path} icon={item.icon} label={item.label} onPress={() => go(item.path)} />
             ))}
+
+            <Text style={styles.sectionLabel}>{t('sidebar.network')}</Text>
+            {networkItems.map((item) => (
+              <SidebarItem key={item.path} icon={item.icon} label={item.label} onPress={() => go(item.path)} />
+            ))}
+
+            <SidebarGroup
+              icon="construct-outline"
+              label={t('sidebar.tools')}
+              open={toolsOpen}
+              onToggle={() => setToolsOpen((v) => !v)}
+            />
+            {toolsOpen &&
+              toolItems.map((item) => (
+                <SidebarItem key={item.path} icon={item.icon} label={item.label} onPress={() => go(item.path)} indented />
+              ))}
+
+            <SidebarGroup
+              icon="business-outline"
+              label={t('sidebar.office')}
+              open={officeOpen}
+              onToggle={() => setOfficeOpen((v) => !v)}
+            />
+            {officeOpen &&
+              officeItems.map((item) => (
+                <SidebarItem key={item.path} icon={item.icon} label={item.label} onPress={() => go(item.path)} indented />
+              ))}
+
+            <View style={styles.divider} />
+            <SidebarItem icon="settings-outline" label={t('settings.title')} onPress={() => go('/settings')} />
           </ScrollView>
 
           <Text style={styles.version}>Vekil v{Constants.expoConfig?.version ?? ''}</Text>
         </Animated.View>
       </View>
     </Modal>
+  );
+}
+
+function SidebarGroup({
+  icon,
+  label,
+  open,
+  onToggle,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+
+  return (
+    <Pressable onPress={onToggle} style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}>
+      <Ionicons name={icon} size={19} color={colors.textSecondary} />
+      <Text style={styles.itemLabel}>{label}</Text>
+      <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={15} color={colors.textMuted} />
+    </Pressable>
   );
 }
 
@@ -263,6 +328,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   navScroll: {
     flex: 1,
+  },
+  sectionLabel: {
+    ...typography.small,
+    color: colors.textMuted,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: 4,
   },
   item: {
     flexDirection: 'row',

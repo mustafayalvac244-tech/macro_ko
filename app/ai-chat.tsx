@@ -18,7 +18,15 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { askGemini, clearGeminiKey, getEffectiveGeminiKey, hasBuiltInKey, setGeminiKey, type ChatMessage } from '@/lib/gemini';
+import {
+  askVekilAI,
+  checkServerAi,
+  clearGeminiKey,
+  getEffectiveGeminiKey,
+  hasBuiltInKey,
+  setGeminiKey,
+  type ChatMessage,
+} from '@/lib/gemini';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -31,25 +39,30 @@ export default function AiChatScreen() {
 
   const t = useT();
   const scrollRef = useRef<ScrollView>(null);
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [keyLoaded, setKeyLoaded] = useState(false);
+  // 'server' = membership-based AI via edge function (no key anywhere on the
+  // device); 'local' = embedded/stored key fallback; 'setup' = nothing found.
+  const [mode, setMode] = useState<'loading' | 'server' | 'local' | 'setup'>('loading');
   const [keyInput, setKeyInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    getEffectiveGeminiKey().then((k) => {
-      setApiKey(k);
-      setKeyLoaded(true);
-    });
+    (async () => {
+      if (await checkServerAi()) {
+        setMode('server');
+        return;
+      }
+      const k = await getEffectiveGeminiKey();
+      setMode(k ? 'local' : 'setup');
+    })();
   }, []);
 
   const saveKey = async () => {
     const k = keyInput.trim();
     if (!k) return;
     await setGeminiKey(k);
-    setApiKey(k);
+    setMode('local');
   };
 
   const resetKey = () => {
@@ -60,7 +73,7 @@ export default function AiChatScreen() {
         style: 'destructive',
         onPress: async () => {
           await clearGeminiKey();
-          setApiKey(null);
+          setMode('setup');
           setKeyInput('');
         },
       },
@@ -69,13 +82,13 @@ export default function AiChatScreen() {
 
   const send = async () => {
     const text = input.trim();
-    if (!text || !apiKey || isSending) return;
+    if (!text || isSending) return;
     const next: ChatMessage[] = [...messages, { role: 'user' as const, text }];
     setMessages(next);
     setInput('');
     setIsSending(true);
     try {
-      const reply = await askGemini(apiKey, next);
+      const reply = await askVekilAI(next);
       setMessages([...next, { role: 'model', text: reply }]);
     } catch (e) {
       const code = e instanceof Error ? e.message : '';
@@ -88,7 +101,7 @@ export default function AiChatScreen() {
     }
   };
 
-  if (!keyLoaded) {
+  if (mode === 'loading') {
     return (
       <Screen edges={['top', 'left', 'right', 'bottom']}>
         <View />
@@ -96,7 +109,7 @@ export default function AiChatScreen() {
     );
   }
 
-  if (!apiKey) {
+  if (mode === 'setup') {
     return (
       <Screen edges={['top', 'left', 'right', 'bottom']}>
         <ScreenHeader title={t('ai.title')} showBack />
@@ -140,7 +153,7 @@ export default function AiChatScreen() {
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('ai.title')} showBack />
-      {!hasBuiltInKey && (
+      {mode === 'local' && !hasBuiltInKey && (
         <Pressable style={styles.keyRow} onPress={resetKey}>
           <Ionicons name="key-outline" size={13} color={colors.textMuted} />
           <Text style={styles.keyRowText}>{t('ai.keyChange')}</Text>

@@ -56,6 +56,39 @@ export interface Case {
   updated_at: string;
 }
 
+export type JobType = 'tevkil' | 'devir' | 'danisma';
+export type JobStatus = 'open' | 'assigned' | 'closed';
+
+export interface DmMessage {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+}
+
+export interface Job {
+  id: string;
+  owner_id: string;
+  title: string;
+  description: string | null;
+  job_type: JobType;
+  city: string;
+  courthouse: string | null;
+  hearing_date: string | null;
+  fee_offer: number | null;
+  status: JobStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobWithOwner extends Job {
+  owner: Pick<Profile, 'id' | 'full_name' | 'firm_name'> | null;
+}
+
+export type PublicProfile = Pick<Profile, 'id' | 'full_name' | 'firm_name' | 'bar_number' | 'avatar_url'>;
+
 export type FinanceKind = 'income' | 'expense';
 export type FinanceCategory =
   | 'rent'

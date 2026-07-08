@@ -85,6 +85,10 @@ export default function RootLayout() {
             <Stack.Screen name="calculators" options={{ headerShown: false }} />
             <Stack.Screen name="ai-chat" options={{ headerShown: false }} />
             <Stack.Screen name="constitution" options={{ headerShown: false }} />
+            <Stack.Screen name="chat/index" options={{ headerShown: false }} />
+            <Stack.Screen name="chat/[peerId]" options={{ headerShown: false }} />
+            <Stack.Screen name="jobs/index" options={{ headerShown: false }} />
+            <Stack.Screen name="job-form" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="document-viewer" options={{ headerShown: false }} />
             <Stack.Screen name="change-password" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="profile-form" options={{ presentation: 'modal', headerShown: false }} />
