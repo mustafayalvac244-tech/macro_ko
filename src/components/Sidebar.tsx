@@ -125,7 +125,6 @@ export function Sidebar() {
     { icon: 'swap-horizontal-outline', label: t('jobs.title'), path: '/jobs' },
   ];
   const toolItems: NavItem[] = [
-    { icon: 'sparkles-outline', label: t('ai.title'), path: '/ai-chat' },
     { icon: 'hourglass-outline', label: t('wizard.title'), path: '/deadline-wizard' },
     { icon: 'calculator-outline', label: t('calc.title'), path: '/calculators' },
     { icon: 'book-outline', label: t('const.title'), path: '/constitution' },
