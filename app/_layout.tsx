@@ -86,6 +86,7 @@ export default function RootLayout() {
             <Stack.Screen name="ai-chat" options={{ headerShown: false }} />
             <Stack.Screen name="constitution" options={{ headerShown: false }} />
             <Stack.Screen name="chat/index" options={{ headerShown: false }} />
+            <Stack.Screen name="chat/office" options={{ headerShown: false }} />
             <Stack.Screen name="chat/[peerId]" options={{ headerShown: false }} />
             <Stack.Screen name="jobs/index" options={{ headerShown: false }} />
             <Stack.Screen name="job-form" options={{ presentation: 'modal', headerShown: false }} />

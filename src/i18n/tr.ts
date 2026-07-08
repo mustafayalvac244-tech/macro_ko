@@ -1,5 +1,5 @@
 export const tr = {
-  'app.name': 'Vekil',
+  'app.name': 'Vekil Pro',
   'app.tagline': 'Dava & Belge Yönetimi',
   'app.slogan': 'Büronuz Cebinizde',
 
@@ -585,6 +585,26 @@ export const tr = {
   'chat.emptyDesc': 'Sağ üstteki kişi ekle simgesiyle meslektaş arayıp sohbet başlatın.',
   'chat.threadEmpty': 'Sohbeti başlatan ilk mesajı yazın 👋',
   'chat.inputPlaceholder': 'Mesaj yazın...',
+  'chat.tabGeneral': 'Genel',
+  'chat.tabOffice': 'Ofis',
+
+  // Ofis (Discord tarzı oda)
+  'office.createTitle': 'Ofisinizi Kurun',
+  'office.createDesc':
+    'Ofisinizi kurun, meslektaşlarınızı davet edin; ekip ofis sohbetinde canlı yazışsın. Ofisi kuran kişi yönetici olur ve üyeleri o ekler/çıkarır.',
+  'office.nameLabel': 'Ofis adı',
+  'office.namePlaceholder': 'Yalvaç Hukuk Bürosu',
+  'office.createButton': 'Ofisi Kur',
+  'office.memberCount': '{n} üye',
+  'office.roleAdmin': 'Yönetici',
+  'office.roleMember': 'Üye',
+  'office.openChat': 'Ofis Sohbetini Aç',
+  'office.invite': 'Üye Davet Et',
+  'office.members': 'ÜYELER',
+  'office.leave': 'Ofisten Ayrıl',
+  'office.remove': 'Üyeyi Çıkar',
+  'office.roomSubtitle': 'Ofis içi canlı sohbet',
+  'office.roomEmpty': 'Ofis sohbeti boş. İlk mesajı yazın! 👋',
 
   // Tevkil Panosu
   'jobs.title': 'Tevkil Panosu',

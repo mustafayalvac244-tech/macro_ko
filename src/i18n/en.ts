@@ -1,7 +1,7 @@
 import type { tr } from './tr';
 
 export const en: Record<keyof typeof tr, string> = {
-  'app.name': 'Vekil',
+  'app.name': 'Vekil Pro',
   'app.tagline': 'Legal Case & Document Management',
   'app.slogan': 'Your Practice, In Your Pocket',
 
@@ -586,6 +586,26 @@ export const en: Record<keyof typeof tr, string> = {
   'chat.emptyDesc': 'Use the add-person icon at the top right to find a colleague and start chatting.',
   'chat.threadEmpty': 'Write the first message to start the conversation 👋',
   'chat.inputPlaceholder': 'Type a message...',
+  'chat.tabGeneral': 'General',
+  'chat.tabOffice': 'Office',
+
+  // Office (Discord-style room)
+  'office.createTitle': 'Set Up Your Office',
+  'office.createDesc':
+    'Create your office and invite colleagues; the team chats live in the office room. The creator becomes the admin and manages members.',
+  'office.nameLabel': 'Office name',
+  'office.namePlaceholder': 'Yalvac Law Office',
+  'office.createButton': 'Create Office',
+  'office.memberCount': '{n} members',
+  'office.roleAdmin': 'Admin',
+  'office.roleMember': 'Member',
+  'office.openChat': 'Open Office Chat',
+  'office.invite': 'Invite Member',
+  'office.members': 'MEMBERS',
+  'office.leave': 'Leave Office',
+  'office.remove': 'Remove Member',
+  'office.roomSubtitle': 'Live office chat',
+  'office.roomEmpty': 'The office chat is empty. Write the first message! 👋',
 
   // Referral board
   'jobs.title': 'Referral Board',

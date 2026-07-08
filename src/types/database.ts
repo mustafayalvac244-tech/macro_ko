@@ -89,6 +89,28 @@ export interface JobWithOwner extends Job {
 
 export type PublicProfile = Pick<Profile, 'id' | 'full_name' | 'firm_name' | 'bar_number' | 'avatar_url'>;
 
+export interface Office {
+  id: string;
+  name: string;
+  owner_id: string;
+  created_at: string;
+}
+
+export interface OfficeMember {
+  office_id: string;
+  user_id: string;
+  role: 'admin' | 'member';
+  joined_at: string;
+}
+
+export interface OfficeMessage {
+  id: string;
+  office_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+}
+
 export type FinanceKind = 'income' | 'expense';
 export type FinanceCategory =
   | 'rent'

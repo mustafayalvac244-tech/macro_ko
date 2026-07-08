@@ -215,7 +215,7 @@ export function Sidebar() {
             <SidebarItem icon="settings-outline" label={t('settings.title')} onPress={() => go('/settings')} />
           </ScrollView>
 
-          <Text style={styles.version}>Vekil v{Constants.expoConfig?.version ?? ''}</Text>
+          <Text style={styles.version}>Vekil Pro v{Constants.expoConfig?.version ?? ''}</Text>
         </Animated.View>
       </View>
     </Modal>

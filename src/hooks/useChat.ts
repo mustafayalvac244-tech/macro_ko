@@ -1,7 +1,33 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import type { DmMessage, PublicProfile } from '@/types/database';
+
+/**
+ * Live delivery: subscribe to new DMs addressed to me and refresh the thread
+ * and conversation list instantly (WhatsApp-style). Polling remains as a
+ * fallback for projects where realtime isn't enabled on the table.
+ */
+export function useDmRealtime() {
+  const me = useAuthStore((s) => s.session?.user.id);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!me) return;
+    const channel = supabase
+      .channel(`dm-${me}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: `recipient_id=eq.${me}` },
+        () => queryClient.invalidateQueries({ queryKey: ['dm'] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel).catch(() => {});
+    };
+  }, [me, queryClient]);
+}
 
 /** True when the 0007_network.sql migration hasn't been run yet. */
 export function isMissingNetworkTables(err: unknown): boolean {
@@ -75,7 +101,7 @@ export function useThread(peerId: string | undefined) {
   return useQuery({
     queryKey: ['dm', 'thread', me, peerId],
     enabled: !!me && !!peerId,
-    refetchInterval: 4_000,
+    refetchInterval: 4_000, // fallback; realtime channel makes it instant
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dm_messages')
