@@ -32,8 +32,11 @@ export default function ProfileFormScreen() {
   const [barNumber, setBarNumber] = useState('');
   const [phone, setPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Photo changes are staged locally and only committed when "Save" is pressed,
+  // so nothing is written until the user explicitly saves.
+  const [stagedPhoto, setStagedPhoto] = useState<{ uri: string; mimeType: string | null } | null>(null);
+  const [stagedRemove, setStagedRemove] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -44,37 +47,34 @@ export default function ProfileFormScreen() {
     }
   }, [profile]);
 
-  const applyPhoto = async (picker: () => Promise<{ uri: string; mimeType: string | null } | null>) => {
+  const stagePhoto = async (picker: () => Promise<{ uri: string; mimeType: string | null } | null>) => {
     setError(null);
     const file = await picker();
     if (!file) return;
-    setIsUploadingPhoto(true);
-    try {
-      await uploadAvatar(file);
-    } catch {
-      setError(t('profile.photoFailed'));
-    } finally {
-      setIsUploadingPhoto(false);
-    }
+    setStagedRemove(false);
+    setStagedPhoto(file);
   };
 
   const handlePhotoPress = () => {
     const options: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
-      { text: t('upload.choosePhoto'), onPress: () => applyPhoto(pickImageFile) },
-      { text: t('upload.takePhoto'), onPress: () => applyPhoto(takePhotoFile) },
+      { text: t('upload.choosePhoto'), onPress: () => stagePhoto(pickImageFile) },
+      { text: t('upload.takePhoto'), onPress: () => stagePhoto(takePhotoFile) },
     ];
-    if (profile?.avatar_url) {
+    if (profile?.avatar_url || stagedPhoto) {
       options.push({
         text: t('profile.removePhoto'),
         style: 'destructive',
         onPress: () => {
-          removeAvatar().catch(() => setError(t('profile.photoFailed')));
+          setStagedPhoto(null);
+          setStagedRemove(true);
         },
       });
     }
     options.push({ text: t('common.cancel'), style: 'cancel' });
     Alert.alert(t('profile.photoTitle'), undefined, options);
   };
+
+  const displayUri = stagedRemove ? null : (stagedPhoto?.uri ?? avatarUrl);
 
   const handleSave = async () => {
     if (!fullName.trim()) return;
@@ -87,6 +87,12 @@ export default function ProfileFormScreen() {
         bar_number: barNumber.trim() || null,
         phone: phone.trim() || null,
       });
+      // Commit any staged photo change alongside the text fields.
+      if (stagedPhoto) {
+        await uploadAvatar(stagedPhoto);
+      } else if (stagedRemove && profile?.avatar_url) {
+        await removeAvatar();
+      }
       router.back();
     } catch {
       setError(t('profile.saveFailed'));
@@ -101,13 +107,15 @@ export default function ProfileFormScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.photoSection}>
-            <Pressable onPress={handlePhotoPress} disabled={isUploadingPhoto} style={styles.photoWrap}>
-              <Avatar name={fullName || profile?.full_name || '?'} size={104} uri={avatarUrl} />
+            <Pressable onPress={handlePhotoPress} style={styles.photoWrap}>
+              <Avatar name={fullName || profile?.full_name || '?'} size={104} uri={displayUri} />
               <View style={[styles.photoBadge, { backgroundColor: colors.primary }]}>
-                <Ionicons name={isUploadingPhoto ? 'hourglass' : 'camera'} size={15} color="#FFFFFF" />
+                <Ionicons name="camera" size={15} color="#FFFFFF" />
               </View>
             </Pressable>
-            <Text style={styles.photoHint}>{t('profile.photoHint')}</Text>
+            <Text style={styles.photoHint}>
+              {stagedPhoto || stagedRemove ? t('profile.photoStaged') : t('profile.photoHint')}
+            </Text>
           </View>
 
           {error && (

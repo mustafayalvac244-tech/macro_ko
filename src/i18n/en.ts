@@ -538,6 +538,7 @@ export const en: Record<keyof typeof tr, string> = {
   'profile.phone': 'Phone',
   'profile.photoTitle': 'Profile Photo',
   'profile.photoHint': 'Tap the photo to change it',
+  'profile.photoStaged': 'Change ready — applied when you press "Save"',
   'profile.removePhoto': 'Remove photo',
   'profile.photoFailed': 'Could not update the photo. Please try again.',
   'profile.saveFailed': 'Could not save the profile. Please try again.',

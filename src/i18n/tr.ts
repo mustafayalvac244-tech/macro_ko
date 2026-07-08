@@ -537,6 +537,7 @@ export const tr = {
   'profile.phone': 'Telefon',
   'profile.photoTitle': 'Profil Fotoğrafı',
   'profile.photoHint': 'Fotoğrafa dokunarak değiştirin',
+  'profile.photoStaged': 'Değişiklik hazır — "Değişiklikleri Kaydet"e basınca uygulanır',
   'profile.removePhoto': 'Fotoğrafı kaldır',
   'profile.photoFailed': 'Fotoğraf güncellenemedi. Lütfen tekrar deneyin.',
   'profile.saveFailed': 'Profil kaydedilemedi. Lütfen tekrar deneyin.',

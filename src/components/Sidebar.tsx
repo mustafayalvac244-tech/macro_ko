@@ -110,6 +110,7 @@ export function Sidebar() {
   };
 
   const mainItems: NavItem[] = [
+    { icon: 'home-outline', label: t('tab.dashboard'), path: '/(app)' },
     { icon: 'briefcase-outline', label: t('cases.title'), path: '/(app)/cases' },
     { icon: 'people-outline', label: t('clients.title'), path: '/(app)/clients' },
     { icon: 'calendar-outline', label: t('cal.title'), path: '/(app)/calendar' },

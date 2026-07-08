@@ -353,6 +353,14 @@ export default function DashboardScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Floating AI assistant button, bottom-right of the home screen. */}
+      <Pressable
+        onPress={() => router.push('/ai-chat' as Parameters<typeof router.push>[0])}
+        style={({ pressed }) => [styles.aiFab, pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] }]}
+      >
+        <Ionicons name="sparkles" size={26} color="#FFFFFF" />
+      </Pressable>
     </Screen>
   );
 }
@@ -620,5 +628,21 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  aiFab: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.xl,
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#7C3AED',
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
 });

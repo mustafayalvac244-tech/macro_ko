@@ -1,7 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/authStore';
 import { Sidebar } from '@/components/Sidebar';
 import { useT } from '@/i18n';
@@ -43,7 +42,6 @@ export default function AppLayout() {
   const colors = __t.colors;
 
   const t = useT();
-  const insets = useSafeAreaInsets();
   const session = useAuthStore((s) => s.session);
   if (!session) return <Redirect href="/(auth)/login" />;
 
@@ -53,13 +51,9 @@ export default function AppLayout() {
       screenOptions={{
         headerShown: false,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.bgElevated,
-          borderTopColor: colors.borderSubtle,
-          height: 64 + insets.bottom,
-          paddingTop: 6,
-          paddingBottom: 8 + insets.bottom,
-        },
+        // Bottom tab bar removed by request — navigation happens through the
+        // left panel (hamburger) which is available on every screen.
+        tabBarStyle: { display: 'none' },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
       }}
     >
