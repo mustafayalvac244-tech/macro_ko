@@ -89,6 +89,18 @@ export interface JobWithOwner extends Job {
 
 export type PublicProfile = Pick<Profile, 'id' | 'full_name' | 'firm_name' | 'bar_number' | 'avatar_url'>;
 
+export interface PaymentPromise {
+  id: string;
+  owner_id: string;
+  client_id: string;
+  case_id: string | null;
+  amount: number;
+  due_date: string;
+  note: string | null;
+  is_paid: boolean;
+  created_at: string;
+}
+
 export interface Office {
   id: string;
   name: string;

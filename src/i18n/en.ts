@@ -99,7 +99,7 @@ export const en: Record<keyof typeof tr, string> = {
   'hero.f2': 'Message lawyers',
   'hero.f3': 'Calendar & tasks at a glance',
   'daily.title': 'Case of the Day',
-  'daily.subtitle': 'Daily Law Question',
+  'daily.subtitle': 'Daily Case Scenario',
   'daily.todayReward': 'Today\'s Points',
   'daily.metaLeft': 'Analyze the case, write your solution',
   'daily.metaRight': 'Points for best answers',
@@ -391,6 +391,23 @@ export const en: Record<keyof typeof tr, string> = {
   'notif.deadlineTitle': 'Task due soon: {title}',
   'notif.stage3d': '⏰ 3 days left — {title}',
   'notif.stage1d': '🚨 1 day left — {title}',
+  'notif.promiseTitle': '💰 Payment due: {name}',
+  'notif.promiseBody': '{name} is due to pay {amount} today. Don’t forget to follow up.',
+
+  // Receivables (payment promises)
+  'promise.section': 'Receivables',
+  'promise.add': 'Add Payment Date',
+  'promise.remaining': 'Outstanding',
+  'promise.newTitle': 'Payment Date',
+  'promise.hint':
+    'Record the amount and the date the client promised to pay. You get reminders 3 days and 1 day before, plus on the morning of the due date.',
+  'promise.dueDate': 'Payment date',
+  'promise.notePlaceholder': '2nd installment, promissory note due...',
+  'promise.create': 'Save & Remind',
+  'promise.paid': 'Paid ✓',
+  'promise.empty': 'No payment promises yet. Start with "Add Payment Date".',
+  'promise.deleteTitle': 'Delete this payment record?',
+  'promise.setupRequired': 'The receivables table is not set up yet. Run KURULUM.sql once more in the Supabase SQL Editor.',
 
   // Finance
   'case.tabFinance': 'Finance',

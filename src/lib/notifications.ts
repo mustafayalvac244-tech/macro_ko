@@ -131,6 +131,31 @@ export async function scheduleHearingReminder(params: {
   });
 }
 
+export function promiseReminderId(promiseId: string): string {
+  return `promise-${promiseId}`;
+}
+
+/** Payment-promise reminder: fires on the morning of the due date + 3d/1d before. */
+export async function schedulePromiseReminder(params: {
+  id: string;
+  clientName: string;
+  amountLabel: string;
+  dueDate: string; // yyyy-MM-dd
+}): Promise<void> {
+  const eventAt = `${params.dueDate}T09:00:00`;
+  await scheduleStagedReminders({
+    baseId: promiseReminderId(params.id),
+    eventAt,
+    chosenMinutesBefore: 0,
+    mainTitle: translate(getLang(), 'notif.promiseTitle', { name: params.clientName }),
+    body: translate(getLang(), 'notif.promiseBody', { amount: params.amountLabel, name: params.clientName }),
+  });
+}
+
+export async function cancelPromiseReminder(promiseId: string): Promise<void> {
+  await cancelReminder(promiseReminderId(promiseId));
+}
+
 export async function scheduleDeadlineReminder(params: {
   id: string;
   caseTitle: string;

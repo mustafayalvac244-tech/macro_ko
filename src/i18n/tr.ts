@@ -99,7 +99,7 @@ export const tr = {
   'hero.f3': 'Takvim ve görevler tek bakışta',
   // Günün Davası
   'daily.title': 'Günün Davası',
-  'daily.subtitle': 'Günlük Hukuk Sorusu',
+  'daily.subtitle': 'Günün Dava Senaryosu',
   'daily.todayReward': 'Bugünün Puanı',
   'daily.metaLeft': 'Olayı değerlendir, çözümünü yaz',
   'daily.metaRight': 'En iyi cevaplara puan',
@@ -386,11 +386,29 @@ export const tr = {
   'fmt.overdue': 'Gecikti',
   'fmt.in': '{d} içinde',
 
+  // Alacak takibi (ödeme sözleri)
+  'promise.section': 'Alacak / Verecek',
+  'promise.add': 'Ödeme Günü Ekle',
+  'promise.remaining': 'Kalan Alacak',
+  'promise.newTitle': 'Ödeme Günü',
+  'promise.hint':
+    'Müvekkilin ödeme sözü verdiği tutarı ve günü kaydedin. Gün yaklaşınca (3 gün ve 1 gün kala) ve ödeme sabahı bildirimle hatırlatılırsınız.',
+  'promise.dueDate': 'Ödeme günü',
+  'promise.notePlaceholder': '2. taksit, senet vadesi...',
+  'promise.create': 'Kaydet ve Hatırlat',
+  'promise.paid': 'Ödendi ✓',
+  'promise.empty': 'Kayıtlı ödeme sözü yok. "Ödeme Günü Ekle" ile başlayın.',
+  'promise.deleteTitle': 'Ödeme kaydı silinsin mi?',
+  'promise.setupRequired':
+    'Alacak takibi tablosu henüz kurulmamış. KURULUM.sql dosyasını Supabase SQL Editor’da bir kez daha çalıştırın.',
+
   // Notifications
   'notif.hearingTitle': 'Yaklaşan duruşma: {title}',
   'notif.deadlineTitle': 'Görev zamanı yaklaşıyor: {title}',
   'notif.stage3d': '⏰ 3 gün kaldı — {title}',
   'notif.stage1d': '🚨 1 gün kaldı — {title}',
+  'notif.promiseTitle': '💰 Ödeme günü: {name}',
+  'notif.promiseBody': '{name} bugün {amount} ödeme yapacak. Takip etmeyi unutmayın.',
 
   // Finance
   'case.tabFinance': 'Finans',

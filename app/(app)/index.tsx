@@ -148,7 +148,7 @@ export default function DashboardScreen() {
             </Pressable>
             <View style={styles.brandRow}>
               <VekilLogo size={30} nodeFill={colors.gold} />
-              <Text style={styles.brandText}>Vekil</Text>
+              <Text style={styles.brandText}>Vekil Pro</Text>
             </View>
           </View>
           <View style={styles.headerRight}>
@@ -180,9 +180,9 @@ export default function DashboardScreen() {
         <View style={styles.hero}>
           <View style={styles.heroBrandRow}>
             <View style={styles.heroBrandIcon}>
-              <Ionicons name="scale-outline" size={17} color={colors.gold} />
+              <VekilLogo size={17} nodeFill={colors.gold} />
             </View>
-            <Text style={styles.heroBrand}>VEKİL</Text>
+            <Text style={styles.heroBrand}>VEKİL PRO</Text>
           </View>
           <View style={styles.heroBody}>
             <View style={styles.heroTextCol}>
@@ -221,7 +221,7 @@ export default function DashboardScreen() {
                 </View>
               </View>
               <View style={styles.heroScaleBadge}>
-                <Ionicons name="scale" size={24} color={colors.gold} />
+                <VekilLogo size={26} nodeFill={colors.gold} />
               </View>
               <View style={[styles.heroSpark, { top: 0, right: 2 }]} />
               <View style={[styles.heroSpark, { top: 26, left: -4, width: 5, height: 5, opacity: 0.5 }]} />
@@ -240,14 +240,18 @@ export default function DashboardScreen() {
           <View style={styles.programHeader}>
             <View style={styles.programHeaderLeft}>
               <Ionicons name="calendar-outline" size={19} color={colors.gold} />
-              <Text style={styles.programTitle}>{t('dash.todayProgram')}</Text>
+              <Text style={styles.programTitle} numberOfLines={1}>
+                {t('dash.todayProgram')}
+              </Text>
             </View>
             <Pressable
               onPress={() => router.push('/(app)/calendar')}
               hitSlop={6}
               style={styles.programHeaderRight}
             >
-              <Text style={styles.programDate}>{format(now, 'd MMMM yyyy, EEEE', { locale: dateLocale })}</Text>
+              <Text style={styles.programDate} numberOfLines={2}>
+                {format(now, 'd MMM yyyy, EEEE', { locale: dateLocale })}
+              </Text>
               <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
             </Pressable>
           </View>
@@ -691,22 +695,30 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 1,
+    marginRight: spacing.sm,
   },
   programHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 1,
+    maxWidth: '45%',
   },
   programTitle: {
     ...typography.h3,
     color: colors.textPrimary,
     fontSize: 17,
     fontWeight: '800',
+    flexShrink: 1,
   },
   programDate: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 12,
+    fontSize: 11,
+    lineHeight: 14,
+    textAlign: 'right',
+    flexShrink: 1,
   },
   programBody: {
     backgroundColor: colors.surfaceAlt,

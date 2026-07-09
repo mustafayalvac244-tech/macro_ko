@@ -1,4 +1,4 @@
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
@@ -11,10 +11,18 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { CaseListItem } from '@/components/cases/CaseListItem';
 import { useClient, useDeleteClient } from '@/hooks/useClients';
 import { useCasesByClient } from '@/hooks/useCases';
+import {
+  isMissingPromiseTable,
+  useClientFinance,
+  useDeletePromise,
+  usePromisesForClient,
+  useTogglePromisePaid,
+} from '@/hooks/usePaymentPromises';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { formatDate, formatMoney, relativeDueLabel, isOverdue } from '@/utils/format';
 
 export default function ClientDetailScreen() {
   const __t = useTheme();
@@ -25,6 +33,10 @@ export default function ClientDetailScreen() {
   const { data: client, isLoading } = useClient(id);
   const { data: cases } = useCasesByClient(id);
   const deleteClient = useDeleteClient();
+  const finance = useClientFinance(id);
+  const promises = usePromisesForClient(id);
+  const togglePaid = useTogglePromisePaid();
+  const deletePromise = useDeletePromise();
 
   if (isLoading || !client) {
     return (
@@ -78,6 +90,97 @@ export default function ClientDetailScreen() {
             <Text style={styles.notes}>{client.notes}</Text>
           </Card>
         )}
+
+        {/* Receivables: how much is owed and when it will be paid */}
+        <SectionHeader
+          title={t('promise.section')}
+          actionLabel={t('promise.add')}
+          onAction={() =>
+            router.push(
+              `/promise-form?clientId=${client.id}&clientName=${encodeURIComponent(client.full_name)}` as Parameters<typeof router.push>[0]
+            )
+          }
+        />
+        <Card style={styles.financeCard}>
+          <View style={styles.financeRow}>
+            <View style={styles.financeItem}>
+              <Text style={styles.financeLabel}>{t('finance.fee')}</Text>
+              <Text style={styles.financeValue} numberOfLines={1} adjustsFontSizeToFit>
+                {formatMoney(finance.data?.totalFee ?? 0)}
+              </Text>
+            </View>
+            <View style={styles.financeItem}>
+              <Text style={styles.financeLabel}>{t('finance.collected')}</Text>
+              <Text style={[styles.financeValue, { color: __t.colors.success }]} numberOfLines={1} adjustsFontSizeToFit>
+                {formatMoney(finance.data?.collected ?? 0)}
+              </Text>
+            </View>
+            <View style={[styles.financeItem, styles.financeItemHighlight]}>
+              <Text style={styles.financeLabel}>{t('promise.remaining')}</Text>
+              <Text style={[styles.financeValue, { color: __t.colors.danger }]} numberOfLines={1} adjustsFontSizeToFit>
+                {formatMoney(finance.data?.remaining ?? 0)}
+              </Text>
+            </View>
+          </View>
+
+          {promises.error && isMissingPromiseTable(promises.error) && (
+            <Text style={styles.setupNote}>{t('promise.setupRequired')}</Text>
+          )}
+
+          {(promises.data ?? []).map((p) => {
+            const overdue = !p.is_paid && isOverdue(`${p.due_date}T23:59:59`);
+            return (
+              <View key={p.id} style={styles.promiseRow}>
+                <Pressable
+                  hitSlop={8}
+                  onPress={() => togglePaid.mutate({ promise: p, clientName: client.full_name })}
+                >
+                  <Ionicons
+                    name={p.is_paid ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={24}
+                    color={p.is_paid ? __t.colors.success : __t.colors.textMuted}
+                  />
+                </Pressable>
+                <View style={styles.promiseBody}>
+                  <Text style={[styles.promiseAmount, p.is_paid && styles.promisePaid]}>
+                    {formatMoney(Number(p.amount))}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.promiseDue,
+                      overdue && { color: __t.colors.danger, fontWeight: '700' },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {formatDate(`${p.due_date}T12:00:00`)}
+                    {!p.is_paid && ` · ${relativeDueLabel(`${p.due_date}T09:00:00`)}`}
+                    {p.is_paid && ` · ${t('promise.paid')}`}
+                  </Text>
+                  {p.note && (
+                    <Text style={styles.promiseNote} numberOfLines={1}>
+                      {p.note}
+                    </Text>
+                  )}
+                </View>
+                <Pressable
+                  hitSlop={8}
+                  onPress={() =>
+                    Alert.alert(t('promise.deleteTitle'), formatMoney(Number(p.amount)), [
+                      { text: t('common.cancel'), style: 'cancel' },
+                      { text: t('common.delete'), style: 'destructive', onPress: () => deletePromise.mutate(p.id) },
+                    ])
+                  }
+                >
+                  <Ionicons name="trash-outline" size={18} color={__t.colors.textMuted} />
+                </Pressable>
+              </View>
+            );
+          })}
+
+          {!promises.error && (promises.data ?? []).length === 0 && (
+            <Text style={styles.promiseEmpty}>{t('promise.empty')}</Text>
+          )}
+        </Card>
 
         <SectionHeader
           title={t('client.linkedCases')}
@@ -170,6 +273,76 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   caseWrap: {
     marginBottom: spacing.xs,
+  },
+  financeCard: {
+    marginBottom: spacing.md,
+  },
+  financeRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  financeItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    borderRadius: 12,
+  },
+  financeItemHighlight: {
+    backgroundColor: colors.dangerSoft,
+  },
+  financeLabel: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  financeValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  setupNote: {
+    ...typography.small,
+    color: colors.warning,
+    lineHeight: 16,
+    marginBottom: spacing.xs,
+  },
+  promiseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  promiseBody: {
+    flex: 1,
+  },
+  promiseAmount: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontWeight: '800',
+  },
+  promisePaid: {
+    textDecorationLine: 'line-through',
+    color: colors.textMuted,
+  },
+  promiseDue: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  promiseNote: {
+    ...typography.small,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  promiseEmpty: {
+    ...typography.caption,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: spacing.sm,
   },
   deleteButton: {
     marginTop: spacing.xl,
