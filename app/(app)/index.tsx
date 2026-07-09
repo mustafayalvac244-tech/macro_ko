@@ -184,8 +184,50 @@ export default function DashboardScreen() {
             </View>
             <Text style={styles.heroBrand}>VEKİL</Text>
           </View>
-          <Text style={styles.heroTitle}>{t('hero.title')}</Text>
-          <Text style={styles.heroDesc}>{t('hero.desc')}</Text>
+          <View style={styles.heroBody}>
+            <View style={styles.heroTextCol}>
+              <Text style={styles.heroTitle}>{t('hero.title')}</Text>
+              <Text style={styles.heroDesc}>{t('hero.desc')}</Text>
+            </View>
+
+            {/* Vector illustration: app phone mockup + golden scales */}
+            <View style={styles.heroArt}>
+              <View style={styles.heroGlow} />
+              <View style={styles.heroPhone}>
+                <View style={styles.heroPhoneNotch} />
+                <View style={styles.heroPhoneLogoRow}>
+                  <VekilLogo size={16} nodeFill={colors.gold} />
+                  <View style={styles.heroPhoneLogoLine} />
+                </View>
+                <View style={styles.heroMiniCard}>
+                  <View style={styles.heroMiniDot} />
+                  <View style={styles.heroMiniLines}>
+                    <View style={styles.heroLine} />
+                    <View style={[styles.heroLine, styles.heroLineShort]} />
+                  </View>
+                </View>
+                <View style={styles.heroMiniCard}>
+                  <View style={[styles.heroMiniDot, { backgroundColor: 'rgba(62,199,245,0.9)' }]} />
+                  <View style={styles.heroMiniLines}>
+                    <View style={styles.heroLine} />
+                    <View style={[styles.heroLine, styles.heroLineShort]} />
+                  </View>
+                </View>
+                <View style={[styles.heroMiniCard, { opacity: 0.55 }]}>
+                  <View style={[styles.heroMiniDot, { backgroundColor: 'rgba(120,220,150,0.9)' }]} />
+                  <View style={styles.heroMiniLines}>
+                    <View style={styles.heroLine} />
+                  </View>
+                </View>
+              </View>
+              <View style={styles.heroScaleBadge}>
+                <Ionicons name="scale" size={24} color={colors.gold} />
+              </View>
+              <View style={[styles.heroSpark, { top: 0, right: 2 }]} />
+              <View style={[styles.heroSpark, { top: 26, left: -4, width: 5, height: 5, opacity: 0.5 }]} />
+              <View style={[styles.heroSpark, { bottom: 34, right: -4, width: 4, height: 4, opacity: 0.6 }]} />
+            </View>
+          </View>
           <View style={styles.heroFeatures}>
             <HeroFeature icon="document-text-outline" label={t('hero.f1')} />
             <HeroFeature icon="chatbubbles-outline" label={t('hero.f2')} />
@@ -484,17 +526,129 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 2,
   },
+  heroBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  heroTextCol: {
+    flex: 1,
+  },
   heroTitle: {
     color: colors.gold,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   heroDesc: {
     color: 'rgba(255,255,255,0.85)',
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     marginTop: spacing.sm,
+  },
+  // Hero illustration (vector phone + scales)
+  heroArt: {
+    width: 104,
+    height: 132,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroGlow: {
+    position: 'absolute',
+    width: 118,
+    height: 118,
+    borderRadius: 59,
+    backgroundColor: 'rgba(201,162,75,0.13)',
+  },
+  heroPhone: {
+    width: 66,
+    height: 118,
+    borderRadius: 14,
+    backgroundColor: NAVY_ALT,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.22)',
+    paddingHorizontal: 6,
+    paddingTop: 10,
+    gap: 5,
+    transform: [{ rotate: '6deg' }],
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  heroPhoneNotch: {
+    position: 'absolute',
+    top: 4,
+    alignSelf: 'center',
+    width: 16,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+  },
+  heroPhoneLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
+  heroPhoneLogoLine: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(201,162,75,0.55)',
+  },
+  heroMiniCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 6,
+    padding: 4,
+  },
+  heroMiniDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(201,162,75,0.9)',
+  },
+  heroMiniLines: {
+    flex: 1,
+    gap: 3,
+  },
+  heroLine: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+  },
+  heroLineShort: {
+    width: '60%',
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  heroScaleBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    backgroundColor: NAVY,
+    borderWidth: 1.5,
+    borderColor: 'rgba(201,162,75,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#C9A24B',
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 7,
+  },
+  heroSpark: {
+    position: 'absolute',
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(201,162,75,0.8)',
   },
   heroFeatures: {
     flexDirection: 'row',
