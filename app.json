@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vekil Pro",
     "slug": "macro_ko",
-    "version": "3.2.0",
+    "version": "3.2.1",
     "scheme": "vekil",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,7 +25,7 @@
     },
     "android": {
       "package": "com.macroko.legal",
-      "versionCode": 27,
+      "versionCode": 28,
       "adaptiveIcon": {
         "backgroundColor": "#EFEBE3",
         "foregroundImage": "./assets/android-icon-foreground.png",

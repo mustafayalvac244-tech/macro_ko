@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
+import { supabase } from '@/lib/supabase';
 import { useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -30,13 +31,40 @@ export default function PremiumScreen() {
   const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem('vekil-premium').then((v) => setIsPremium(v === '1'));
-  }, []);
+    // Server ledger is the source of truth (survives reinstall / new phone);
+    // AsyncStorage is only an offline cache.
+    AsyncStorage.getItem('vekil-premium').then((v) => {
+      if (v === '1') setIsPremium(true);
+    });
+    const userId = session?.user.id;
+    if (!userId) return;
+    supabase
+      .from('purchases')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1)
+      .then(({ data, error }) => {
+        if (!error && data && data.length > 0) {
+          setIsPremium(true);
+          AsyncStorage.setItem('vekil-premium', '1').catch(() => {});
+        }
+      });
+  }, [session?.user.id]);
 
   const handleTestSuccess = async () => {
     setShowTestSheet(false);
     setIsPremium(true);
     await AsyncStorage.setItem('vekil-premium', '1').catch(() => {});
+    // Record the purchase server-side so it's auditable and device-independent.
+    // Best effort: the demo flow still succeeds if the table isn't set up yet.
+    if (session?.user.id) {
+      await supabase
+        .from('purchases')
+        .insert({ user_id: session.user.id, product: 'premium', platform: 'demo', amount: 199, currency: 'TRY' })
+        .then(({ error }) => {
+          if (error) console.warn('purchase ledger insert failed:', error.message);
+        });
+    }
     Alert.alert(t('premium.title'), t('tpay.success'));
   };
 
