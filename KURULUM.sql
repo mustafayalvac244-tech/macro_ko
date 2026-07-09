@@ -191,4 +191,26 @@ do $$ begin
   alter publication supabase_realtime add table office_messages;
 exception when duplicate_object then null; end $$;
 
--- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil Panosu ve Finans çalışır.
+-- ---------- 0009: Günün Davası ----------
+create table if not exists question_answers (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles (id) on delete cascade,
+  question_key text not null,
+  body text not null check (char_length(body) between 10 and 4000),
+  points int not null default 100,
+  created_at timestamptz not null default now(),
+  unique (user_id, question_key)
+);
+create index if not exists question_answers_key_idx on question_answers (question_key, created_at desc);
+create index if not exists question_answers_user_idx on question_answers (user_id, created_at desc);
+alter table question_answers enable row level security;
+drop policy if exists "qa readable by authenticated" on question_answers;
+create policy "qa readable by authenticated" on question_answers for select using (auth.role() = 'authenticated');
+drop policy if exists "qa insert own" on question_answers;
+create policy "qa insert own" on question_answers for insert with check (user_id = auth.uid());
+drop policy if exists "qa update own" on question_answers;
+create policy "qa update own" on question_answers for update using (user_id = auth.uid());
+drop policy if exists "qa delete own" on question_answers;
+create policy "qa delete own" on question_answers for delete using (user_id = auth.uid());
+
+-- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.
