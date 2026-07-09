@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useStripe } from '@stripe/stripe-react-native';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase';
@@ -25,9 +24,9 @@ export default function PremiumScreen() {
 
   const t = useT();
   const session = useAuthStore((s) => s.session);
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [isPaying, setIsPaying] = useState(false);
-  const [showTestSheet, setShowTestSheet] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
@@ -51,28 +50,32 @@ export default function PremiumScreen() {
       });
   }, [session?.user.id]);
 
-  const handleTestSuccess = async () => {
-    setShowTestSheet(false);
+  // Launch offer: until real in-app purchases (StoreKit/Play Billing via
+  // RevenueCat) are wired up, Premium is granted free with one tap — no fake
+  // card sheet, nothing that could mislead a user or an app-store reviewer.
+  const handleActivateFree = async () => {
+    setIsPaying(true);
     setIsPremium(true);
     await AsyncStorage.setItem('vekil-premium', '1').catch(() => {});
-    // Record the purchase server-side so it's auditable and device-independent.
-    // Best effort: the demo flow still succeeds if the table isn't set up yet.
     if (session?.user.id) {
       await supabase
         .from('purchases')
-        .insert({ user_id: session.user.id, product: 'premium', platform: 'demo', amount: 199, currency: 'TRY' })
+        .insert({ user_id: session.user.id, product: 'premium', platform: 'demo', amount: 0, currency: 'TRY' })
         .then(({ error }) => {
           if (error) console.warn('purchase ledger insert failed:', error.message);
         });
+      // Flag the profile so the gold avatar ring shows everywhere.
+      await supabase.from('profiles').update({ is_premium: true }).eq('id', session.user.id).then(() => {});
+      await refreshProfile().catch(() => {});
     }
-    Alert.alert(t('premium.title'), t('tpay.success'));
+    setIsPaying(false);
+    Alert.alert(t('premium.title'), t('premium.launchActivated'));
   };
 
   const handlePay = async () => {
     if (!isConfigured) {
-      // No Stripe key baked into this build → run the built-in demo payment
-      // flow so the experience is testable end to end without a backend.
-      setShowTestSheet(true);
+      // No real payment provider configured yet → free launch activation.
+      await handleActivateFree();
       return;
     }
 
@@ -127,116 +130,45 @@ export default function PremiumScreen() {
           <Text style={styles.heroSubtitle}>{t('premium.subtitle')}</Text>
 
           <View style={styles.priceRow}>
-            <Text style={styles.price}>{t('premium.price')}</Text>
-            <Text style={styles.priceNote}>{t('premium.priceNote')}</Text>
+            {isConfigured ? (
+              <>
+                <Text style={styles.price}>{t('premium.price')}</Text>
+                <Text style={styles.priceNote}>{t('premium.priceNote')}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.priceStrike}>{t('premium.price')}</Text>
+                <Text style={styles.priceFree}>{t('premium.launchFree')}</Text>
+              </>
+            )}
           </View>
 
           <Text style={styles.description}>{t('premium.desc')}</Text>
 
-          {isPremium && (
+          {isPremium ? (
             <View style={styles.activeRow}>
               <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-              <Text style={styles.activeText}>{t('tpay.active')}</Text>
+              <Text style={styles.activeText}>{t('premium.activeBadge')}</Text>
             </View>
+          ) : (
+            <Button
+              label={isConfigured ? t('premium.pay') : t('premium.launchCta')}
+              icon={isConfigured ? 'lock-closed-outline' : 'diamond-outline'}
+              onPress={handlePay}
+              loading={isPaying}
+              fullWidth
+              size="lg"
+              style={styles.payButton}
+            />
           )}
-
-          <Button
-            label={t('premium.pay')}
-            icon="lock-closed-outline"
-            onPress={handlePay}
-            loading={isPaying}
-            fullWidth
-            size="lg"
-            style={styles.payButton}
-          />
 
           <View style={styles.secureRow}>
             <Ionicons name="shield-checkmark-outline" size={14} color={colors.success} />
-            <Text style={styles.secureNote}>{t('premium.secureNote')}</Text>
+            <Text style={styles.secureNote}>{isConfigured ? t('premium.secureNote') : t('premium.launchNote')}</Text>
           </View>
         </Card>
-
-        {!isConfigured && (
-          <Card style={styles.warnCard}>
-            <Text style={styles.warnText}>{t('tpay.modeNote')}</Text>
-          </Card>
-        )}
       </ScrollView>
-
-      <TestPaymentSheet visible={showTestSheet} onClose={() => setShowTestSheet(false)} onSuccess={handleTestSuccess} />
     </Screen>
-  );
-}
-
-/**
- * Built-in demo payment sheet used when no Stripe key is configured. Clearly
- * labeled test mode; no real charge happens anywhere.
- */
-function TestPaymentSheet({ visible, onClose, onSuccess }: { visible: boolean; onClose: () => void; onSuccess: () => void }) {
-  const __t = useTheme();
-  const colors = __t.colors;
-  const styles = makeStyles(__t.colors);
-
-  const t = useT();
-  const [cardNumber, setCardNumber] = useState('4242 4242 4242 4242');
-  const [expiry, setExpiry] = useState('12/29');
-  const [cvc, setCvc] = useState('123');
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const cardOk = cardNumber.replace(/\D/g, '').length === 16;
-  const expOk = /^\d{2}\/\d{2}$/.test(expiry.trim());
-  const cvcOk = /^\d{3,4}$/.test(cvc.trim());
-
-  const pay = () => {
-    if (!cardOk || !expOk || !cvcOk) return;
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      onSuccess();
-    }, 1600);
-  };
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.sheetRoot}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.testBadge}>
-              <Ionicons name="flask-outline" size={13} color={colors.warning} />
-              <Text style={styles.testBadgeText}>{t('tpay.badge')}</Text>
-            </View>
-            <Text style={styles.sheetTitle}>{t('premium.title')}</Text>
-            <Text style={styles.sheetAmount}>{t('premium.price')}</Text>
-
-            <Input
-              label={t('tpay.cardNumber')}
-              value={cardNumber}
-              onChangeText={setCardNumber}
-              keyboardType="number-pad"
-              icon="card-outline"
-              maxLength={19}
-            />
-            <View style={styles.cardRow}>
-              <Input label={t('tpay.expiry')} value={expiry} onChangeText={setExpiry} keyboardType="numbers-and-punctuation" containerStyle={styles.cardCol} maxLength={5} />
-              <Input label={t('tpay.cvc')} value={cvc} onChangeText={setCvc} keyboardType="number-pad" containerStyle={styles.cardCol} maxLength={4} secureTextEntry />
-            </View>
-
-            <Button
-              label={isProcessing ? t('tpay.processing') : t('tpay.pay')}
-              icon="lock-closed-outline"
-              onPress={pay}
-              loading={isProcessing}
-              disabled={!cardOk || !expOk || !cvcOk}
-              fullWidth
-              size="lg"
-            />
-            <Text style={styles.sheetNote}>{t('tpay.note')}</Text>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
   );
 }
 
@@ -281,6 +213,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   priceNote: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  priceStrike: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textDecorationLine: 'line-through',
+  },
+  priceFree: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: colors.success,
   },
   description: {
     ...typography.body,

@@ -127,7 +127,7 @@ export default function SettingsScreen() {
             style={styles.profileRow}
             onPress={() => router.push('/profile-form' as Parameters<typeof router.push>[0])}
           >
-            <Avatar name={profile?.full_name || t('dash.counselor')} size={56} uri={avatarUrl} />
+            <Avatar name={profile?.full_name || t('dash.counselor')} size={56} uri={avatarUrl} premium={profile?.is_premium} />
             <View style={styles.profileBody}>
               <Text style={styles.name}>{profile?.full_name || t('dash.counselor')}</Text>
               <Text style={styles.email}>{session?.user.email}</Text>

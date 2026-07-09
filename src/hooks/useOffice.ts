@@ -61,7 +61,7 @@ export function useOfficeMembers(officeId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('office_members')
-        .select('user_id, role, profile:profiles(id, full_name, firm_name, bar_number, avatar_url)')
+        .select('user_id, role, profile:profiles(id, full_name, firm_name, bar_number, avatar_url, is_premium)')
         .eq('office_id', officeId!)
         .order('joined_at');
       if (error) throw error;

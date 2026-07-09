@@ -20,6 +20,7 @@ export interface Profile {
   bar_number: string | null;
   phone: string | null;
   avatar_url: string | null;
+  is_premium?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -87,7 +88,7 @@ export interface JobWithOwner extends Job {
   owner: Pick<Profile, 'id' | 'full_name' | 'firm_name'> | null;
 }
 
-export type PublicProfile = Pick<Profile, 'id' | 'full_name' | 'firm_name' | 'bar_number' | 'avatar_url'>;
+export type PublicProfile = Pick<Profile, 'id' | 'full_name' | 'firm_name' | 'bar_number' | 'avatar_url' | 'is_premium'>;
 
 export interface PaymentPromise {
   id: string;

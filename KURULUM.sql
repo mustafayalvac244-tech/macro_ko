@@ -256,4 +256,11 @@ create policy "purchases own select" on purchases for select using (auth.uid() =
 drop policy if exists "purchases own insert" on purchases;
 create policy "purchases own insert" on purchases for insert with check (auth.uid() = user_id);
 
+
+-- ---------- 0012: premium rozeti (profil çerçevesi) ----------
+alter table profiles add column if not exists is_premium boolean not null default false;
+-- Satın alma yapan herkesi premium işaretle (defterle uyum)
+update profiles p set is_premium = true
+  where exists (select 1 from purchases pu where pu.user_id = p.id) and p.is_premium = false;
+
 -- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.

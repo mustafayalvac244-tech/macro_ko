@@ -153,7 +153,7 @@ export function Sidebar() {
         >
           {/* Profile block — pinned on top, accordion below it */}
           <Pressable style={styles.profileRow} onPress={toggleProfile}>
-            <Avatar name={profile?.full_name || t('dash.counselor')} size={48} uri={avatarUrl} />
+            <Avatar name={profile?.full_name || t('dash.counselor')} size={48} uri={avatarUrl} premium={profile?.is_premium} />
             <View style={styles.profileBody}>
               <Text style={styles.profileName} numberOfLines={1}>
                 {profile?.full_name || t('dash.counselor')}

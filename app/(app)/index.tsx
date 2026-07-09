@@ -165,7 +165,7 @@ export default function DashboardScreen() {
               )}
             </Pressable>
             <Pressable onPress={() => router.push('/settings')}>
-              <Avatar name={profile?.full_name || t('dash.counselor')} size={44} uri={avatarUrl} />
+              <Avatar name={profile?.full_name || t('dash.counselor')} size={44} uri={avatarUrl} premium={profile?.is_premium} />
             </Pressable>
           </View>
         </View>

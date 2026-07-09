@@ -78,7 +78,7 @@ export function useConversations() {
       if (byPeer.size === 0) return [];
       const { data: profiles, error: pErr } = await supabase
         .from('profiles')
-        .select('id, full_name, firm_name, bar_number, avatar_url')
+        .select('id, full_name, firm_name, bar_number, avatar_url, is_premium')
         .in('id', Array.from(byPeer.keys()));
       if (pErr) throw pErr;
       const profileMap = new Map((profiles as PublicProfile[]).map((p) => [p.id, p]));
@@ -164,7 +164,7 @@ export function useLawyerDirectory(search: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, firm_name, bar_number, avatar_url')
+        .select('id, full_name, firm_name, bar_number, avatar_url, is_premium')
         .neq('id', me!)
         .or(`full_name.ilike.%${q}%,firm_name.ilike.%${q}%`)
         .limit(20);
@@ -182,7 +182,7 @@ export function usePeerProfile(peerId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, firm_name, bar_number, avatar_url')
+        .select('id, full_name, firm_name, bar_number, avatar_url, is_premium')
         .eq('id', peerId!)
         .single();
       if (error) throw error;

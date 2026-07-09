@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -73,6 +74,21 @@ export default function SignupScreen() {
             style={styles.submit}
           />
 
+          <View style={styles.trustRow}>
+            <View style={styles.trustItem}>
+              <Ionicons name="lock-closed" size={15} color={colors.success} />
+              <Text style={styles.trustText}>{t('auth.trustEncrypted')}</Text>
+            </View>
+            <View style={styles.trustItem}>
+              <Ionicons name="shield-checkmark" size={15} color={colors.success} />
+              <Text style={styles.trustText}>{t('auth.trustKvkk')}</Text>
+            </View>
+            <View style={styles.trustItem}>
+              <Ionicons name="cloud-done" size={15} color={colors.success} />
+              <Text style={styles.trustText}>{t('auth.trustCloud')}</Text>
+            </View>
+          </View>
+
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t('auth.haveAccount')}</Text>
             <Link href="/(auth)/login" replace>
@@ -122,6 +138,27 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   submit: {
     marginTop: spacing.xs,
+  },
+  trustRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.xs,
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  trustItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  trustText: {
+    ...typography.small,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    fontWeight: '600',
+    lineHeight: 14,
   },
   footer: {
     flexDirection: 'row',
