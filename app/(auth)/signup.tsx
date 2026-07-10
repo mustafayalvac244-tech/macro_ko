@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
@@ -75,19 +75,22 @@ export default function SignupScreen() {
           />
 
           <View style={styles.trustRow}>
-            <View style={styles.trustItem}>
+            <Pressable style={styles.trustItem} onPress={() => router.push('/privacy' as Parameters<typeof router.push>[0])}>
               <Ionicons name="lock-closed" size={15} color={colors.success} />
               <Text style={styles.trustText}>{t('auth.trustEncrypted')}</Text>
-            </View>
-            <View style={styles.trustItem}>
+            </Pressable>
+            <Pressable style={styles.trustItem} onPress={() => router.push('/privacy' as Parameters<typeof router.push>[0])}>
               <Ionicons name="shield-checkmark" size={15} color={colors.success} />
               <Text style={styles.trustText}>{t('auth.trustKvkk')}</Text>
-            </View>
-            <View style={styles.trustItem}>
+            </Pressable>
+            <Pressable style={styles.trustItem} onPress={() => router.push('/privacy' as Parameters<typeof router.push>[0])}>
               <Ionicons name="cloud-done" size={15} color={colors.success} />
               <Text style={styles.trustText}>{t('auth.trustCloud')}</Text>
-            </View>
+            </Pressable>
           </View>
+          <Text style={styles.privacyHint} onPress={() => router.push('/privacy' as Parameters<typeof router.push>[0])}>
+            {t('auth.privacyLink')}
+          </Text>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t('auth.haveAccount')}</Text>
@@ -159,6 +162,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     lineHeight: 14,
+  },
+  privacyHint: {
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    textDecorationLine: 'underline',
   },
   footer: {
     flexDirection: 'row',

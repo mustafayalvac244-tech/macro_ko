@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 're
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as Updates from 'expo-updates';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
@@ -36,6 +37,7 @@ export default function SettingsScreen() {
   const deleteAccount = useAuthStore((s) => s.deleteAccount);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const lockEnabled = useLockStore((s) => s.enabled);
   const setLockEnabled = useLockStore((s) => s.setEnabled);
   const [biometricsAvailable, setBiometricsAvailable] = useState(false);
@@ -102,6 +104,31 @@ export default function SettingsScreen() {
         },
       },
     ]);
+  };
+
+  const handleCheckUpdates = async () => {
+    if (isCheckingUpdate) return;
+    setIsCheckingUpdate(true);
+    try {
+      if (__DEV__ || !Updates.isEnabled) {
+        Alert.alert(t('settings.updates'), t('settings.updatesUnavailable'));
+        return;
+      }
+      const result = await Updates.checkForUpdateAsync();
+      if (result.isAvailable) {
+        await Updates.fetchUpdateAsync();
+        Alert.alert(t('settings.updates'), t('settings.updateReady'), [
+          { text: t('settings.updateLater'), style: 'cancel' },
+          { text: t('settings.updateNow'), onPress: () => Updates.reloadAsync() },
+        ]);
+      } else {
+        Alert.alert(t('settings.updates'), t('settings.updateNone'));
+      }
+    } catch {
+      Alert.alert(t('settings.updates'), t('settings.updateFailed'));
+    } finally {
+      setIsCheckingUpdate(false);
+    }
   };
 
   const handleSignOut = () => {
@@ -225,9 +252,25 @@ export default function SettingsScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </Pressable>
+          <View style={styles.rowDivider} />
+          <Pressable style={styles.row} onPress={() => router.push('/privacy' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="shield-checkmark-outline" size={18} color={colors.success} />
+              <Text style={styles.rowLabel}>{t('settings.privacy')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
         </Card>
 
         <Card style={styles.section}>
+          <Pressable style={styles.row} onPress={handleCheckUpdates}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="cloud-download-outline" size={18} color={colors.info} />
+              <Text style={styles.rowLabel}>{isCheckingUpdate ? t('settings.updatesChecking') : t('settings.updates')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+          <View style={styles.rowDivider} />
           <InfoRow label={t('settings.version')} value={Constants.expoConfig?.version ?? '1.2.0'} />
           <InfoRow label={t('settings.dataStorage')} value={t('settings.dataStorageValue')} />
         </Card>
