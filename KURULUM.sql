@@ -263,4 +263,17 @@ alter table profiles add column if not exists is_premium boolean not null defaul
 update profiles p set is_premium = true
   where exists (select 1 from purchases pu where pu.user_id = p.id) and p.is_premium = false;
 
+-- ---------- 0013: Vekil Kodu (kodla arkadaş ekleme) ----------
+-- Her avukata paylaşılabilir kısa bir kod: VP-XXXXXX
+create or replace function gen_friend_code() returns text
+language sql volatile as $$
+  select 'VP-' || (
+    select string_agg(substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', (floor(random()*31)+1)::int, 1), '')
+    from generate_series(1, 6)
+  )
+$$;
+
+alter table profiles add column if not exists friend_code text unique default gen_friend_code();
+update profiles set friend_code = gen_friend_code() where friend_code is null;
+
 -- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.

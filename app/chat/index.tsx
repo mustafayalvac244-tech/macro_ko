@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { isMissingNetworkTables, useConversations, useDmRealtime, useLawyerDirectory } from '@/hooks/useChat';
+import { isMissingNetworkTables, useConversations, useDmRealtime, useLawyerDirectory, useMyFriendCode } from '@/hooks/useChat';
 import {
   useAddOfficeMember,
   useCreateOffice,
@@ -42,7 +42,13 @@ export default function ChatListScreen() {
   const [search, setSearch] = useState('');
   const conversations = useConversations();
   const directory = useLawyerDirectory(search);
+  const myCode = useMyFriendCode();
   useDmRealtime();
+
+  const shareMyCode = () => {
+    if (!myCode.data) return;
+    Share.share({ message: t('chat.codeShareMsg', { code: myCode.data }) }).catch(() => {});
+  };
 
   const needsSetup = !!conversations.error && isMissingNetworkTables(conversations.error);
 
@@ -95,6 +101,21 @@ export default function ChatListScreen() {
                 autoFocus
                 autoCorrect={false}
               />
+              {search.trim().length < 2 && myCode.data && (
+                <View style={styles.codeCard}>
+                  <View style={styles.codeLeft}>
+                    <Text style={styles.codeLabel}>{t('chat.myCode')}</Text>
+                    <Text style={styles.codeValue} selectable>
+                      {myCode.data}
+                    </Text>
+                    <Text style={styles.codeDesc}>{t('chat.myCodeDesc')}</Text>
+                  </View>
+                  <Pressable style={styles.codeShareBtn} onPress={shareMyCode} hitSlop={6}>
+                    <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.codeShareText}>{t('chat.shareCode')}</Text>
+                  </Pressable>
+                </View>
+              )}
               {search.trim().length >= 2 &&
                 (directory.data ?? []).map((p) => (
                   <Pressable
@@ -363,6 +384,54 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   searchWrap: {
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xs,
+  },
+  codeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 14,
+    padding: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  codeLeft: {
+    flex: 1,
+  },
+  codeLabel: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  codeValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 2,
+    marginTop: 2,
+  },
+  codeDesc: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: 4,
+    lineHeight: 15,
+  },
+  codeShareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 9,
+  },
+  codeShareText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   directoryRow: {
     flexDirection: 'row',

@@ -649,8 +649,13 @@ export const tr = {
 
   // Mesajlaşma
   'chat.title': 'Mesajlar',
-  'chat.searchPlaceholder': 'Avukat adı veya büro ara...',
-  'chat.noLawyer': 'Bu isimde kayıtlı avukat bulunamadı.',
+  'chat.searchPlaceholder': 'İsim, büro, telefon, sicil no veya Vekil Kodu...',
+  'chat.noLawyer': 'Sonuç bulunamadı. İsim, telefon, baro sicil no veya VP- ile başlayan Vekil Kodu ile arayabilirsiniz.',
+  'chat.myCode': 'Vekil Kodum',
+  'chat.myCodeDesc': 'Kodunu meslektaşına gönder; arama kutusuna yazınca seni anında bulur.',
+  'chat.shareCode': 'Kodu Paylaş',
+  'chat.codeShareMsg': 'Vekil Pro uygulamasında beni ekle! Mesajlar > kişi ekle simgesine bas ve arama kutusuna kodumu yaz: {code}',
+  'chat.codeSetup': 'Vekil Kodu için Supabase kurulum dosyasını (KURULUM.sql) çalıştırın.',
   'chat.empty': 'Henüz mesajınız yok',
   'chat.emptyDesc': 'Sağ üstteki kişi ekle simgesiyle meslektaş arayıp sohbet başlatın.',
   'chat.threadEmpty': 'Sohbeti başlatan ilk mesajı yazın 👋',

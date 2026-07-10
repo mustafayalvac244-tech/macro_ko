@@ -647,7 +647,12 @@ export const en: Record<keyof typeof tr, string> = {
 
   // Messaging
   'chat.title': 'Messages',
-  'chat.searchPlaceholder': 'Search lawyer name or firm...',
+  'chat.myCode': 'My Vekil Code',
+  'chat.myCodeDesc': 'Share your code with a colleague; typing it in the search box finds you instantly.',
+  'chat.shareCode': 'Share Code',
+  'chat.codeShareMsg': 'Add me on Vekil Pro! Open Messages > add person and type my code in the search box: {code}',
+  'chat.codeSetup': 'Run the Supabase setup file (KURULUM.sql) to enable Vekil Codes.',
+  'chat.searchPlaceholder': 'Name, firm, phone, bar no or Vekil Code...',
   'chat.noLawyer': 'No registered lawyer found with that name.',
   'chat.empty': 'No messages yet',
   'chat.emptyDesc': 'Use the add-person icon at the top right to find a colleague and start chatting.',

@@ -153,23 +153,68 @@ export function useMarkThreadRead() {
   });
 }
 
-/** Search the lawyer directory by name/firm. Excludes the signed-in user. */
+/**
+ * Search the lawyer directory by name, firm, phone, bar number or Vekil Code.
+ * Excludes the signed-in user. Falls back to name/firm-only search when the
+ * friend_code column hasn't been added yet (KURULUM.sql not re-run).
+ */
 export function useLawyerDirectory(search: string) {
   const me = useAuthStore((s) => s.session?.user.id);
-  const q = search.trim();
+  const q = search.trim().replace(/[,()]/g, '');
 
   return useQuery({
     queryKey: ['directory', q],
     enabled: !!me && q.length >= 2,
     queryFn: async () => {
+      const base = 'id, full_name, firm_name, bar_number, avatar_url, is_premium';
+      // Phone numbers are stored free-form ("0532 111 22 33"); match on the
+      // digits the user typed, ignoring their own spacing.
+      const digits = q.replace(/[^0-9+]/g, '');
+      const filters = [`full_name.ilike.%${q}%`, `firm_name.ilike.%${q}%`, `bar_number.ilike.%${q}%`];
+      if (digits.length >= 4) filters.push(`phone.ilike.%${digits}%`);
+      filters.push(`friend_code.ilike.%${q.toUpperCase().replace(/\s/g, '')}%`);
+
+      let { data, error } = await supabase
+        .from('profiles')
+        .select(base)
+        .neq('id', me!)
+        .or(filters.join(','))
+        .limit(20);
+      if (error && error.code === '42703') {
+        // friend_code column missing → legacy search
+        ({ data, error } = await supabase
+          .from('profiles')
+          .select(base)
+          .neq('id', me!)
+          .or(`full_name.ilike.%${q}%,firm_name.ilike.%${q}%`)
+          .limit(20));
+      }
+      if (error) throw error;
+      return data as unknown as PublicProfile[];
+    },
+  });
+}
+
+/** The signed-in user's shareable Vekil Code (null until KURULUM.sql adds it). */
+export function useMyFriendCode() {
+  const me = useAuthStore((s) => s.session?.user.id);
+
+  return useQuery({
+    queryKey: ['friend-code', me],
+    enabled: !!me,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, firm_name, bar_number, avatar_url, is_premium')
-        .neq('id', me!)
-        .or(`full_name.ilike.%${q}%,firm_name.ilike.%${q}%`)
-        .limit(20);
-      if (error) throw error;
-      return data as PublicProfile[];
+        .select('friend_code')
+        .eq('id', me!)
+        .single();
+      if (error) {
+        if (error.code === '42703') return null; // column not created yet
+        throw error;
+      }
+      return (data as { friend_code: string | null }).friend_code;
     },
   });
 }
