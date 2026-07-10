@@ -81,7 +81,6 @@
       [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "merchant.com.macroko.legal",
           "enableGooglePay": false
         }
       ]
