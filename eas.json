@@ -27,6 +27,9 @@
       "android": {
         "buildType": "app-bundle"
       },
+      "ios": {
+        "resourceClass": "m-medium"
+      },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://wjshlysfmeqlnfiibknj.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ",
@@ -35,6 +38,13 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleTeamId": "27V4XBQFG4",
+        "ascApiKeyPath": "./asc-api-key.p8",
+        "ascApiKeyIssuerId": "BURAYA_ISSUER_ID",
+        "ascApiKeyId": "BURAYA_KEY_ID"
+      }
+    }
   }
 }
