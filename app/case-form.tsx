@@ -14,6 +14,7 @@ import { useCase, useCreateCase, useUpdateCase } from '@/hooks/useCases';
 import { useCreateHearing } from '@/hooks/useHearings';
 import { useClients } from '@/hooks/useClients';
 import { useLangStore, useT } from '@/i18n';
+import { trError } from '@/lib/authErrors';
 import { caseTypeSuggestions, courtSuggestions } from '@/constants/suggestions';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -130,7 +131,7 @@ export default function CaseFormScreen() {
       }
       router.back();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : t('caseForm.saveFailed'));
+      setSubmitError(err instanceof Error ? trError(err.message) : t('caseForm.saveFailed'));
     }
   };
 

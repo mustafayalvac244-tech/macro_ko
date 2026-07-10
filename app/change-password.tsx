@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
+import { trError } from '@/lib/authErrors';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -45,7 +46,7 @@ export default function ChangePasswordScreen() {
     const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
     setIsSubmitting(false);
     if (updateError) {
-      setError(updateError.message);
+      setError(trError(updateError.message));
       return;
     }
 

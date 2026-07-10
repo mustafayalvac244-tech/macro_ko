@@ -6,6 +6,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
+import { trError } from '@/lib/authErrors';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -29,7 +30,7 @@ export default function ForgotPasswordScreen() {
     const { error: sendError } = await supabase.auth.resetPasswordForEmail(email.trim());
     setIsSubmitting(false);
     if (sendError) {
-      setError(sendError.message);
+      setError(trError(sendError.message));
       return;
     }
     setStep('code');
@@ -46,14 +47,14 @@ export default function ForgotPasswordScreen() {
     });
     if (verifyError) {
       setIsSubmitting(false);
-      setError(verifyError.message);
+      setError(trError(verifyError.message));
       return;
     }
 
     const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
     setIsSubmitting(false);
     if (updateError) {
-      setError(updateError.message);
+      setError(trError(updateError.message));
       return;
     }
 

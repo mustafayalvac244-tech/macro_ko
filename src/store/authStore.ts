@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { File } from 'expo-file-system';
 import type { Session } from '@supabase/supabase-js';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
+import { trError } from '@/lib/authErrors';
 import type { Profile } from '@/types/database';
 
 interface AuthState {
@@ -102,7 +103,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     set({ isSubmitting: false });
     if (error) {
-      set({ error: error.message });
+      set({ error: trError(error.message) });
       return false;
     }
     return true;
@@ -116,7 +117,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       options: { data: { full_name: fullName } },
     });
     if (error) {
-      set({ isSubmitting: false, error: error.message });
+      set({ isSubmitting: false, error: trError(error.message) });
       return false;
     }
     if (data.user && firmName) {

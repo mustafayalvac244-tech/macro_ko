@@ -10,6 +10,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCases } from '@/hooks/useCases';
 import { pickDocumentFile, pickImageFile, takePhotoFile, useUploadDocument } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
+import { trError } from '@/lib/authErrors';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -68,7 +69,7 @@ export default function DocumentUploadScreen() {
       await uploadDocument.mutateAsync({ file, caseId: caseId || null, category });
       router.back();
     } catch (err) {
-      Alert.alert(t('upload.failed'), err instanceof Error ? err.message : t('upload.tryAgain'));
+      Alert.alert(t('upload.failed'), err instanceof Error ? trError(err.message) : t('upload.tryAgain'));
     }
   };
 

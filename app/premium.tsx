@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase';
 import { useT } from '@/i18n';
+import { trError } from '@/lib/authErrors';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -112,7 +113,7 @@ export default function PremiumScreen() {
 
       Alert.alert(t('premium.title'), t('premium.success'));
     } catch (err) {
-      Alert.alert(t('premium.failed'), err instanceof Error ? err.message : t('upload.tryAgain'));
+      Alert.alert(t('premium.failed'), err instanceof Error ? trError(err.message) : t('upload.tryAgain'));
     } finally {
       setIsPaying(false);
     }
