@@ -329,8 +329,8 @@ export default function DashboardScreen() {
               <Ionicons name="star" size={22} color={colors.gold} />
             </View>
             <View style={styles.dailyHeaderBody}>
-              <Text style={styles.dailyTitle}>{t('daily.title')}</Text>
-              <Text style={styles.dailySub}>{t('daily.subtitle')}</Text>
+              <Text style={styles.dailyTitle} numberOfLines={1}>{t('daily.title')}</Text>
+              <Text style={styles.dailySub} numberOfLines={1}>{t('daily.subtitle')}</Text>
             </View>
             <View style={styles.pointsBox}>
               <View style={styles.pointsBoxHeader}>
@@ -347,11 +347,11 @@ export default function DashboardScreen() {
             <View style={styles.questionMeta}>
               <View style={styles.questionMetaCell}>
                 <Ionicons name="create-outline" size={13} color="rgba(255,255,255,0.75)" />
-                <Text style={styles.questionMetaText}>{t('daily.metaLeft')}</Text>
+                <Text style={styles.questionMetaText} numberOfLines={2}>{t('daily.metaLeft')}</Text>
               </View>
               <View style={styles.questionMetaCell}>
                 <Ionicons name="star" size={13} color={colors.gold} />
-                <Text style={styles.questionMetaText}>{t('daily.metaRight')}</Text>
+                <Text style={styles.questionMetaText} numberOfLines={2}>{t('daily.metaRight')}</Text>
               </View>
             </View>
           </View>
@@ -847,6 +847,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   dailyHeaderBody: {
     flex: 1,
+    marginRight: spacing.xs,
   },
   dailyTitle: {
     color: '#FFFFFF',
@@ -866,6 +867,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     alignItems: 'center',
+    flexShrink: 0,
   },
   pointsBoxHeader: {
     flexDirection: 'row',
@@ -900,19 +902,22 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   questionMeta: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
+    gap: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.08)',
   },
   questionMetaCell: {
+    flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 5,
   },
   questionMetaText: {
+    flex: 1,
     fontSize: 11,
+    lineHeight: 15,
     color: 'rgba(255,255,255,0.75)',
   },
   leaderHeader: {

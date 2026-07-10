@@ -201,7 +201,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   priceRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: spacing.xs,
     marginTop: spacing.lg,
   },
