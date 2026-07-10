@@ -14,6 +14,14 @@
         "projectId": "7645a179-55d0-45a2-a1f7-1208d82140c8"
       }
     },
+    "updates": {
+      "url": "https://u.expo.dev/7645a179-55d0-45a2-a1f7-1208d82140c8",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 3000
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.macroko.legal",
