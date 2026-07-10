@@ -20,7 +20,8 @@
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -34,8 +35,9 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "NOTIFICATIONS",
-        "SCHEDULE_EXACT_ALARM"
+        "android.permission.NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {

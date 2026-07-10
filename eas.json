@@ -28,7 +28,8 @@
         "buildType": "app-bundle"
       },
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "credentialsSource": "local"
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://wjshlysfmeqlnfiibknj.supabase.co",
@@ -42,8 +43,8 @@
       "ios": {
         "appleTeamId": "27V4XBQFG4",
         "ascApiKeyPath": "./asc-api-key.p8",
-        "ascApiKeyIssuerId": "BURAYA_ISSUER_ID",
-        "ascApiKeyId": "BURAYA_KEY_ID"
+        "ascApiKeyIssuerId": "cd5326e9-b767-401b-b317-cad90854a845",
+        "ascApiKeyId": "RV7JV3VRZB"
       }
     }
   }

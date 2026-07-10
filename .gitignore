@@ -44,3 +44,10 @@ yarn-error.*
 # Apple App Store Connect API key (never commit)
 asc-api-key.p8
 *.p8
+
+# iOS signing material (never commit)
+ios-creds/
+credentials.json
+*.p12
+*.mobileprovision
+*.cer
