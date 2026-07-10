@@ -171,3 +171,58 @@ export async function scheduleDeadlineReminder(params: {
     body: `${params.caseTitle} — ${formatDateTime(params.dueAt)}`,
   });
 }
+
+// ---------- Sabah ajanda özeti (morning digest) ----------
+
+const DIGEST_PREFIX = 'digest-';
+const DIGEST_HOUR = 7;
+const DIGEST_MINUTE = 30;
+
+export interface DigestDay {
+  /** YYYY-MM-DD local date key */
+  dateKey: string;
+  hearings: number;
+  tasks: number;
+  firstEventLabel?: string;
+}
+
+/**
+ * Schedules a 07:30 local notification for each of the next days that has
+ * hearings or tasks. Re-syncing cancels every previous digest first, so the
+ * schedule always mirrors the current agenda.
+ */
+export async function syncMorningDigests(days: DigestDay[]): Promise<void> {
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') return;
+
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync().catch(() => []);
+  await Promise.all(
+    scheduled
+      .filter((n) => n.identifier.startsWith(DIGEST_PREFIX))
+      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {}))
+  );
+
+  const lang = getLang();
+  for (const day of days) {
+    if (day.hearings === 0 && day.tasks === 0) continue;
+    const [y, m, d] = day.dateKey.split('-').map(Number);
+    const triggerAt = new Date(y, m - 1, d, DIGEST_HOUR, DIGEST_MINUTE, 0, 0);
+    if (triggerAt.getTime() <= Date.now()) continue;
+
+    const parts: string[] = [];
+    if (day.hearings > 0) parts.push(translate(lang, 'digest.hearings', { n: day.hearings }));
+    if (day.tasks > 0) parts.push(translate(lang, 'digest.tasks', { n: day.tasks }));
+    let body = parts.join(', ');
+    if (day.firstEventLabel) body += `\n${translate(lang, 'digest.first', { label: day.firstEventLabel })}`;
+
+    await Notifications.scheduleNotificationAsync({
+      identifier: `${DIGEST_PREFIX}${day.dateKey}`,
+      content: { title: translate(lang, 'digest.title'), body, sound: true },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: triggerAt,
+        channelId: CHANNEL_ID,
+      },
+    }).catch(() => {});
+  }
+}

@@ -115,6 +115,7 @@ export function Sidebar() {
   // collapsible groups so the panel stays scannable.
   const coreItems: NavItem[] = [
     { icon: 'home-outline', label: t('tab.dashboard'), path: '/(app)' },
+    { icon: 'search-outline', label: t('search.title'), path: '/search' },
     { icon: 'briefcase-outline', label: t('cases.title'), path: '/(app)/cases' },
     { icon: 'people-outline', label: t('clients.title'), path: '/(app)/clients' },
     { icon: 'calendar-outline', label: t('cal.title'), path: '/(app)/calendar' },
@@ -125,6 +126,7 @@ export function Sidebar() {
     { icon: 'swap-horizontal-outline', label: t('jobs.title'), path: '/jobs' },
   ];
   const toolItems: NavItem[] = [
+    { icon: 'document-text-outline', label: t('tpl.title'), path: '/templates' },
     { icon: 'hourglass-outline', label: t('wizard.title'), path: '/deadline-wizard' },
     { icon: 'calculator-outline', label: t('calc.title'), path: '/calculators' },
     { icon: 'book-outline', label: t('const.title'), path: '/constitution' },

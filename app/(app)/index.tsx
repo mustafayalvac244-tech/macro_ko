@@ -12,6 +12,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useAllHearings } from '@/hooks/useHearings';
+import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useLeaderboard, useMyAnswerToday } from '@/hooks/useDailyQuestion';
 import { getTodayQuestion } from '@/constants/dailyQuestions';
@@ -54,6 +55,7 @@ export default function DashboardScreen() {
   const deadlines = useAllDeadlines();
   const myAnswer = useMyAnswerToday();
   const leaderboard = useLeaderboard(4);
+  useMorningDigest();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

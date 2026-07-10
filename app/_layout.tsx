@@ -96,6 +96,8 @@ export default function RootLayout() {
             <Stack.Screen name="profile-form" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
             <Stack.Screen name="privacy" options={{ headerShown: false }} />
+            <Stack.Screen name="templates" options={{ headerShown: false }} />
+            <Stack.Screen name="search" options={{ headerShown: false }} />
           </Stack>
           <AppLock />
         </QueryClientProvider>
