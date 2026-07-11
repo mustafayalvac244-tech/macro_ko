@@ -237,6 +237,11 @@ export default function DashboardScreen() {
 
         {/* ---------- Günlük Asistan Özeti ---------- */}
         <View style={styles.hero}>
+          {/* Terazi filigranı: arka planda, satır genişliğini çalmaz */}
+          <View style={styles.heroWatermark} pointerEvents="none">
+            <VekilLogo size={150} nodeFill="rgba(201,162,75,0.10)" />
+          </View>
+
           <View style={styles.heroHeader}>
             <View style={styles.heroSparkIcon}>
               <Ionicons name="sparkles" size={18} color={colors.gold} />
@@ -247,54 +252,47 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          <View style={styles.heroBody}>
-            <View style={styles.heroRows}>
-              <AssistRow
-                icon="calendar-outline"
-                tint={BLUE}
-                label={t('dash.assist.nextHearing')}
-                value={nextHearing ? whenLabel(nextHearing.scheduled_at) : t('dash.assist.noHearing')}
-                right={nextHearing ? (nextHearing.location || nextHearing.case?.title || nextHearing.title) : ''}
-                onPress={() => router.push('/(app)/calendar')}
-              />
-              <AssistRow
-                icon="warning-outline"
-                tint={AMBER}
-                label={t('dash.assist.urgentDue')}
-                value={nextDeadline ? whenLabel(nextDeadline.due_at) : t('dash.assist.noDue')}
-                right={nextDeadline ? nextDeadline.title : ''}
-                onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
-              />
-              <AssistRow
-                icon="chatbox-ellipses-outline"
-                tint={GREEN}
-                label={t('dash.assist.unread')}
-                value={unreadTotal > 0 ? t('dash.assist.msgs', { n: unreadTotal }) : t('dash.assist.noMsgs')}
-                right={lastConv?.peer.full_name ?? ''}
-                onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}
-              />
-              <AssistRow
-                icon="bulb-outline"
-                tint={colors.gold}
-                label={t('dash.assist.suggestion')}
-                value={suggestion.value}
-                right={suggestion.right}
-                onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
-              />
-            </View>
-
-            {/* Sağ sütun: terazi + Güne Başla (mockup) */}
-            <View style={styles.heroSide}>
-              <View style={styles.heroArt}>
-                <View style={styles.heroGlow} />
-                <VekilLogo size={66} nodeFill={colors.gold} />
-              </View>
-              <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
-                <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-                <Ionicons name="arrow-forward" size={15} color={NAVY} />
-              </Pressable>
-            </View>
+          {/* Satırlar tam genişlik */}
+          <View style={styles.heroRows}>
+            <AssistRow
+              icon="calendar-outline"
+              tint={BLUE}
+              label={t('dash.assist.nextHearing')}
+              value={nextHearing ? whenLabel(nextHearing.scheduled_at) : t('dash.assist.noHearing')}
+              right={nextHearing ? (nextHearing.location || nextHearing.case?.title || nextHearing.title) : ''}
+              onPress={() => router.push('/(app)/calendar')}
+            />
+            <AssistRow
+              icon="warning-outline"
+              tint={AMBER}
+              label={t('dash.assist.urgentDue')}
+              value={nextDeadline ? whenLabel(nextDeadline.due_at) : t('dash.assist.noDue')}
+              right={nextDeadline ? nextDeadline.title : ''}
+              onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
+            />
+            <AssistRow
+              icon="chatbox-ellipses-outline"
+              tint={GREEN}
+              label={t('dash.assist.unread')}
+              value={unreadTotal > 0 ? t('dash.assist.msgs', { n: unreadTotal }) : t('dash.assist.noMsgs')}
+              right={lastConv?.peer.full_name ?? ''}
+              onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}
+            />
+            <AssistRow
+              icon="bulb-outline"
+              tint={colors.gold}
+              label={t('dash.assist.suggestion')}
+              value={suggestion.value}
+              right={suggestion.right}
+              onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
+            />
           </View>
+
+          {/* Güne Başla tam genişlik */}
+          <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
+            <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+            <Ionicons name="arrow-forward" size={17} color={NAVY} />
+          </Pressable>
         </View>
 
         {/* ---------- Odak Alanı ---------- */}
@@ -313,37 +311,37 @@ export default function DashboardScreen() {
           </View>
 
           {focus ? (
-            <View style={styles.focusRow}>
-              <View style={styles.focusIcon}>
-                <Ionicons name="folder-open" size={26} color={colors.gold} />
-              </View>
-              <View style={styles.focusBody}>
-                <View style={styles.focusTitleRow}>
-                  <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={1}>
-                    {focus.label}
-                  </Text>
-                  <View style={styles.focusBadge}>
-                    <Text allowFontScaling={false} style={styles.focusBadgeText}>{t('dash.focus.high')}</Text>
-                  </View>
+            <View>
+              <View style={styles.focusRow}>
+                <View style={styles.focusIcon}>
+                  <Ionicons name="folder-open" size={26} color={colors.gold} />
                 </View>
-                {focus.hearingWhen && (
-                  <View style={styles.focusMetaRow}>
-                    <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
-                    <Text allowFontScaling={false} style={styles.focusMeta}>
-                      {t('cal.hearing')}: {focus.hearingWhen}
+                <View style={styles.focusBody}>
+                  <View style={styles.focusTitleRow}>
+                    <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
+                      {focus.label}
                     </Text>
+                    <View style={styles.focusBadge}>
+                      <Text allowFontScaling={false} style={styles.focusBadgeText}>{t('dash.focus.high')}</Text>
+                    </View>
                   </View>
-                )}
-                <Text allowFontScaling={false} style={styles.focusReason} numberOfLines={3}>
-                  {focus.reason}
-                </Text>
+                  {focus.hearingWhen && (
+                    <View style={styles.focusMetaRow}>
+                      <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
+                      <Text allowFontScaling={false} style={styles.focusMeta} numberOfLines={1}>
+                        {t('cal.hearing')}: {focus.hearingWhen}
+                      </Text>
+                    </View>
+                  )}
+                  <Text allowFontScaling={false} style={styles.focusReason} numberOfLines={2}>
+                    {focus.reason}
+                  </Text>
+                </View>
               </View>
-              {/* Mockup: buton sağ tarafta, dikeyde ortalı */}
-              <View style={styles.focusRight}>
-                <Pressable style={styles.focusButton} onPress={() => router.push(`/(app)/cases/${focus.caseId}`)}>
-                  <Text allowFontScaling={false} style={styles.focusButtonText}>{t('dash.focus.details')}</Text>
-                </Pressable>
-              </View>
+              {/* Buton tam genişlik, altta */}
+              <Pressable style={styles.focusButton} onPress={() => router.push(`/(app)/cases/${focus.caseId}`)}>
+                <Text allowFontScaling={false} style={styles.focusButtonText}>{t('dash.focus.details')}</Text>
+              </Pressable>
             </View>
           ) : (
             <View style={styles.emptyRow}>
@@ -739,6 +737,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: NAVY,
     borderRadius: 22,
     padding: spacing.md,
+    overflow: 'hidden',
   },
   heroHeader: {
     flexDirection: 'row',
@@ -765,19 +764,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 1,
   },
   heroRows: {
-    flex: 1,
-    gap: 7,
+    gap: 8,
   },
   assistRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: NAVY_ALT,
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 13,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 11,
   },
   assistIcon: {
     width: 28,
@@ -793,66 +791,46 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 10,
   },
   assistLabel: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11.5,
+    color: 'rgba(255,255,255,0.62)',
+    fontSize: 12,
     fontWeight: '600',
-    flexShrink: 1,
+    flexShrink: 0,
   },
   assistValue: {
     color: '#FFFFFF',
-    fontSize: 14.5,
+    fontSize: 15,
     fontWeight: '800',
     marginTop: 2,
   },
   assistRight: {
-    color: 'rgba(255,255,255,0.65)',
-    fontSize: 11,
-    textAlign: 'right',
-    flexShrink: 1,
-    maxWidth: '55%',
-  },
-  heroBody: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  heroSide: {
-    width: 96,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  heroArt: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    textAlign: 'right',
   },
-  heroGlow: {
+  heroWatermark: {
     position: 'absolute',
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    backgroundColor: 'rgba(201,162,75,0.12)',
+    top: -10,
+    right: -18,
+    opacity: 0.9,
   },
   heroCta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 5,
-    alignSelf: 'stretch',
+    gap: 7,
     backgroundColor: colors.gold,
-    borderRadius: 13,
-    paddingVertical: 11,
-    paddingHorizontal: 6,
-    marginTop: spacing.xs,
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginTop: spacing.sm,
   },
   heroCtaText: {
     color: NAVY,
-    fontSize: 13,
+    fontSize: 15.5,
     fontWeight: '800',
-    textAlign: 'center',
   },
   // Generic card
   card: {
@@ -914,6 +892,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   focusRow: {
     flexDirection: 'row',
     gap: spacing.sm,
+    alignItems: 'flex-start',
   },
   focusIcon: {
     width: 62,
@@ -929,7 +908,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   focusTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   focusTitle: {
     fontSize: 15.5,
@@ -964,15 +944,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     lineHeight: 19,
     marginTop: 4,
   },
-  focusRight: {
-    justifyContent: 'center',
-  },
   focusButton: {
+    alignItems: 'center',
     borderWidth: 1.5,
     borderColor: colors.gold,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    borderRadius: 13,
+    paddingVertical: 12,
+    marginTop: spacing.sm,
   },
   focusButtonText: {
     color: colors.gold,
