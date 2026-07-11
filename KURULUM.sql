@@ -291,7 +291,7 @@ update profiles set is_admin = true, is_premium = true
   where lower(email) in (
     'mustafayalvac244@gmail.com',
     'altunalperr@gmail.com',
-    'UCUNCU-ADMIN-MAIL@ornek.com'
+    'mustafayalvac244+admin@gmail.com'
   );
 
 -- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.
