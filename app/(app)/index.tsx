@@ -247,7 +247,7 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          <View>
+          <View style={styles.heroBody}>
             <View style={styles.heroRows}>
               <AssistRow
                 icon="calendar-outline"
@@ -283,10 +283,17 @@ export default function DashboardScreen() {
               />
             </View>
 
-            <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
-              <Text style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-              <Ionicons name="arrow-forward" size={16} color={NAVY} />
-            </Pressable>
+            {/* Sağ sütun: terazi + Güne Başla (mockup) */}
+            <View style={styles.heroSide}>
+              <View style={styles.heroArt}>
+                <View style={styles.heroGlow} />
+                <VekilLogo size={66} nodeFill={colors.gold} />
+              </View>
+              <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
+                <Text style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+                <Ionicons name="arrow-forward" size={15} color={NAVY} />
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -430,7 +437,7 @@ export default function DashboardScreen() {
             <View style={styles.finDivider} />
             <FinCell label={t('dash.fin.expense')} amount={fin.expense} pct={fin.expensePct} positiveIsGood={false} series={fin.expenseSeries} barColor={colors.danger} vsLabel={t('dash.fin.vs')} />
             <View style={styles.finDivider} />
-            <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={colors.gold} vsLabel={t('dash.fin.vs')} />
+            <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
           </View>
         </View>
 
@@ -523,25 +530,30 @@ function FinCell({
   const styles = makeStyles(__t.colors);
   const max = Math.max(...series, 1);
   const hasData = series.some((v) => v > 0);
+  // Veri yokken bile mockup'taki gibi renkli bir dalga görünsün.
+  const placeholder = [7, 10, 8, 13, 10, 15, 12];
+  const heights = hasData
+    ? series.slice(0, 7).map((v) => 4 + Math.round((v / max) * 18))
+    : placeholder;
   const good = pct == null ? true : positiveIsGood ? pct >= 0 : pct <= 0;
   return (
     <View style={styles.finCell}>
       <Text style={styles.finLabel} numberOfLines={1}>
         {label}
       </Text>
-      <Text style={styles.finAmount} numberOfLines={1} adjustsFontSizeToFit>
-        {formatMoney(amount)}
-      </Text>
-      {hasData && (
-      <View style={styles.finSpark}>
-        {series.map((v, i) => (
-          <View
-            key={i}
-            style={[styles.finBar, { height: 3 + Math.round((v / max) * 20), backgroundColor: v > 0 ? barColor : colors.borderSubtle }]}
-          />
-        ))}
+      <View style={styles.finMidRow}>
+        <Text style={styles.finAmount} numberOfLines={1} adjustsFontSizeToFit>
+          {formatMoney(amount)}
+        </Text>
+        <View style={styles.finSpark}>
+          {heights.map((h, i) => (
+            <View
+              key={i}
+              style={[styles.finBar, { height: h, backgroundColor: barColor, opacity: hasData ? 0.9 : 0.35 }]}
+            />
+          ))}
+        </View>
       </View>
-      )}
       {pct != null && (
         <View style={styles.finPctRow}>
           <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? colors.success : colors.danger} />
@@ -760,20 +772,45 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexShrink: 1,
     maxWidth: '55%',
   },
+  heroBody: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  heroSide: {
+    width: 96,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroArt: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroGlow: {
+    position: 'absolute',
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    backgroundColor: 'rgba(201,162,75,0.12)',
+  },
   heroCta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    flexWrap: 'wrap',
+    gap: 5,
+    alignSelf: 'stretch',
     backgroundColor: colors.gold,
     borderRadius: 13,
-    paddingVertical: 12,
-    marginTop: spacing.sm,
+    paddingVertical: 11,
+    paddingHorizontal: 6,
+    marginTop: spacing.xs,
   },
   heroCtaText: {
     color: NAVY,
-    fontSize: 14.5,
+    fontSize: 13,
     fontWeight: '800',
+    textAlign: 'center',
   },
   // Generic card
   card: {
@@ -977,24 +1014,29 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '700',
   },
+  finMidRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 3,
+  },
   finAmount: {
-    fontSize: 19,
+    flex: 1,
+    fontSize: 18,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.5,
-    marginTop: 2,
   },
   finSpark: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 2,
-    height: 24,
-    marginTop: 7,
+    height: 22,
+    width: 34,
   },
   finBar: {
     flex: 1,
     borderRadius: 2,
-    opacity: 0.85,
   },
   finPctRow: {
     flexDirection: 'row',
