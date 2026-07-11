@@ -15,6 +15,7 @@ import { hydrateTheme } from '@/theme/themeStore';
 import { useTheme } from '@/theme/useTheme';
 import { hydrateLock } from '@/store/lockStore';
 import { AppLock } from '@/components/AppLock';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -62,6 +63,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style={statusBar} />
+          <ErrorBoundary>
           <Stack
             screenOptions={{
               headerShown: false,
@@ -100,6 +102,7 @@ export default function RootLayout() {
             <Stack.Screen name="search" options={{ headerShown: false }} />
           </Stack>
           <AppLock />
+          </ErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

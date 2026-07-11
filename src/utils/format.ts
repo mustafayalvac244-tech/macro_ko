@@ -6,25 +6,38 @@ function dateLocale() {
   return getLang() === 'tr' ? trLocale : enUS;
 }
 
+/**
+ * date-fns `format()` throws `RangeError: Invalid time value` on an unparsable
+ * date — and on Hermes (React Native) some timestamp shapes parse to Invalid
+ * Date where V8 wouldn't. An uncaught throw here blanks the whole screen, so
+ * every formatter goes through this guard and returns '' instead of crashing.
+ */
+function safeFormat(iso: string, pattern: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  try {
+    return format(d, pattern, { locale: dateLocale() });
+  } catch {
+    return '';
+  }
+}
+
 export function formatDate(iso: string): string {
-  const pattern = getLang() === 'tr' ? 'd MMM yyyy' : 'MMM d, yyyy';
-  return format(new Date(iso), pattern, { locale: dateLocale() });
+  return safeFormat(iso, getLang() === 'tr' ? 'd MMM yyyy' : 'MMM d, yyyy');
 }
 
 export function formatDateTime(iso: string): string {
-  return getLang() === 'tr'
-    ? format(new Date(iso), 'd MMM yyyy HH:mm', { locale: dateLocale() })
-    : format(new Date(iso), "MMM d, yyyy 'at' h:mm a", { locale: dateLocale() });
+  return safeFormat(iso, getLang() === 'tr' ? 'd MMM yyyy HH:mm' : "MMM d, yyyy 'at' h:mm a");
 }
 
 export function formatTime(iso: string): string {
-  const pattern = getLang() === 'tr' ? 'HH:mm' : 'h:mm a';
-  return format(new Date(iso), pattern, { locale: dateLocale() });
+  return safeFormat(iso, getLang() === 'tr' ? 'HH:mm' : 'h:mm a');
 }
 
 export function relativeDueLabel(iso: string): string {
   const lang = getLang();
   const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
   if (isToday(date)) return `${translate(lang, 'fmt.today')} · ${formatTime(iso)}`;
   if (isTomorrow(date)) return `${translate(lang, 'fmt.tomorrow')} · ${formatTime(iso)}`;
   if (isPast(date)) {

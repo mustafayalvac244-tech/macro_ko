@@ -15,16 +15,25 @@ export function useDmRealtime() {
 
   useEffect(() => {
     if (!me) return;
-    const channel = supabase
-      .channel(`dm-${me}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: `recipient_id=eq.${me}` },
-        () => queryClient.invalidateQueries({ queryKey: ['dm'] })
-      )
-      .subscribe();
+    // Unique channel name per mount: the conversation list and an open thread
+    // both call this hook, and two channels sharing one topic name make the
+    // second subscribe fail. A random suffix keeps them independent.
+    const channelName = `dm-${me}-${Math.random().toString(36).slice(2, 8)}`;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: `recipient_id=eq.${me}` },
+          () => queryClient.invalidateQueries({ queryKey: ['dm'] })
+        )
+        .subscribe();
+    } catch {
+      // Realtime not enabled on the project → polling fallback still refreshes.
+    }
     return () => {
-      supabase.removeChannel(channel).catch(() => {});
+      if (channel) supabase.removeChannel(channel).catch(() => {});
     };
   }, [me, queryClient]);
 }
