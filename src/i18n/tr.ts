@@ -65,6 +65,7 @@ export const tr = {
 
   // Dashboard
   'dash.newMsgs': '{n} Yeni Mesaj',
+  'tab.home': 'Anasayfa',
   'tab.messages': 'Mesajlar',
   'tab.files': 'Dosyalar',
   'tab.more': 'Daha Fazla',
@@ -89,7 +90,7 @@ export const tr = {
   'dash.focus.reasonDue': 'Bugün öncelikli çünkü bekleyen görev var: {title}.',
   'dash.focus.reasonHearing': 'Yaklaşan duruşma var; dosyayı gözden geçirmeniz önerilir.',
   'dash.critical.all': 'Tümünü Gör',
-  'dash.comm.title': 'İletişim Özeti',
+  'dash.comm.title': 'Müvekkil ve İletişim Özeti',
   'dash.comm.unread': 'Okunmamış',
   'dash.comm.msgs': '{n} mesaj',
   'dash.comm.see': 'Mesajları Gör',

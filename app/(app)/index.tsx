@@ -334,9 +334,12 @@ export default function DashboardScreen() {
                     </Text>
                   </View>
                 )}
-                <Text style={styles.focusReason} numberOfLines={2}>
+                <Text style={styles.focusReason} numberOfLines={3}>
                   {focus.reason}
                 </Text>
+              </View>
+              {/* Mockup: buton sağ tarafta, dikeyde ortalı */}
+              <View style={styles.focusRight}>
                 <Pressable style={styles.focusButton} onPress={() => router.push(`/(app)/cases/${focus.caseId}`)}>
                   <Text style={styles.focusButtonText}>{t('dash.focus.details')}</Text>
                 </Pressable>
@@ -366,48 +369,81 @@ export default function DashboardScreen() {
           </View>
 
           {lastConv ? (
-            <View>
-              {/* Üst satır: okunmamış sayısı + hızlı butonlar */}
-              <View style={styles.commTopRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.commLabel}>{t('dash.comm.unread')}</Text>
-                  <Text style={styles.commValue}>{t('dash.comm.msgs', { n: unreadTotal })}</Text>
+            <View style={styles.commRow3}>
+              {/* Sütun 1: okunmamış */}
+              <View style={styles.commCol}>
+                <View style={styles.commIconWrap}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.info} />
+                  {unreadTotal > 0 && (
+                    <View style={styles.commIconBadge}>
+                      <Text style={styles.commIconBadgeText}>{unreadTotal > 9 ? '9+' : unreadTotal}</Text>
+                    </View>
+                  )}
                 </View>
-                <Pressable
-                  style={styles.commQuickBtnWide}
-                  onPress={() => router.push('/(app)/clients')}
-                >
-                  <Ionicons name="call-outline" size={17} color={colors.info} />
-                  <Text style={styles.commQuickBtnText}>{t('dash.comm.call')}</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.commQuickBtnWide}
-                  onPress={() => router.push(`/chat/${lastConv.peer.id}` as Parameters<typeof router.push>[0])}
-                >
-                  <Ionicons name="chatbubble-outline" size={17} color={colors.info} />
-                  <Text style={styles.commQuickBtnText}>{t('dash.comm.msg')}</Text>
+                <Text style={styles.commLabel} numberOfLines={1}>
+                  {t('dash.comm.unread')}
+                </Text>
+                <Text style={styles.commValue} numberOfLines={1} adjustsFontSizeToFit>
+                  {t('dash.comm.msgs', { n: unreadTotal })}
+                </Text>
+                <Pressable onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}>
+                  <Text style={styles.commLink} numberOfLines={1}>
+                    {t('dash.comm.see')} →
+                  </Text>
                 </Pressable>
               </View>
 
-              {/* Son görüşülen */}
+              <View style={styles.commDivider} />
+
+              {/* Sütun 2: son görüşülen */}
               <Pressable
-                style={styles.commLastRow}
+                style={[styles.commCol, { flex: 1.35 }]}
                 onPress={() => router.push(`/chat/${lastConv.peer.id}` as Parameters<typeof router.push>[0])}
               >
-                <Avatar name={lastConv.peer.full_name} size={38} premium={lastConv.peer.is_premium} />
-                <View style={{ flex: 1 }}>
-                  <View style={styles.commLastTop}>
+                <Text style={styles.commLabel} numberOfLines={1}>
+                  {t('dash.comm.last')}
+                </Text>
+                <View style={styles.commPeerRow}>
+                  <Avatar name={lastConv.peer.full_name} size={34} premium={lastConv.peer.is_premium} />
+                  <View style={{ flex: 1 }}>
                     <Text style={styles.commPeerName} numberOfLines={1}>
                       {lastConv.peer.full_name}
                     </Text>
-                    <Text style={styles.commPeerTime}>{whenLabel(lastConv.lastMessage.created_at)}</Text>
+                    <Text style={styles.commPeerTime} numberOfLines={1}>
+                      {whenLabel(lastConv.lastMessage.created_at)}
+                    </Text>
                   </View>
-                  <Text style={styles.commPreview} numberOfLines={1}>
-                    {lastConv.lastMessage.body}
-                  </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
+                <Text style={styles.commPreview} numberOfLines={1}>
+                  {lastConv.lastMessage.body}
+                </Text>
               </Pressable>
+
+              <View style={styles.commDivider} />
+
+              {/* Sütun 3: hızlı iletişim */}
+              <View style={[styles.commCol, styles.commColCenter]}>
+                <Text style={styles.commLabel} numberOfLines={1}>
+                  {t('dash.comm.quick')}
+                </Text>
+                <View style={styles.commQuickRow}>
+                  <View style={styles.commQuickItem}>
+                    <Pressable style={styles.commQuickBtn} onPress={() => router.push('/(app)/clients')}>
+                      <Ionicons name="call-outline" size={18} color={colors.info} />
+                    </Pressable>
+                    <Text style={styles.commQuickLabel}>{t('dash.comm.call')}</Text>
+                  </View>
+                  <View style={styles.commQuickItem}>
+                    <Pressable
+                      style={styles.commQuickBtn}
+                      onPress={() => router.push(`/chat/${lastConv.peer.id}` as Parameters<typeof router.push>[0])}
+                    >
+                      <Ionicons name="chatbubble-outline" size={18} color={colors.info} />
+                    </Pressable>
+                    <Text style={styles.commQuickLabel}>{t('dash.comm.msg')}</Text>
+                  </View>
+                </View>
+              </View>
             </View>
           ) : (
             <View style={styles.emptyRow}>
@@ -456,7 +492,7 @@ export default function DashboardScreen() {
 
       {/* ---------- Bottom bar ---------- */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-        <BottomTab icon="home" label={t('tab.dashboard')} active onPress={() => {}} />
+        <BottomTab icon="home" label={t('tab.home')} active onPress={() => {}} />
         <BottomTab icon="chatbubble-outline" label={t('tab.messages')} badge={unreadTotal} onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])} />
         <BottomTab icon="calendar-outline" label={t('tab.calendar')} onPress={() => router.push('/(app)/calendar')} />
         <BottomTab icon="folder-outline" label={t('tab.files')} onPress={() => router.push('/(app)/documents')} />
@@ -554,14 +590,20 @@ function FinCell({
           ))}
         </View>
       </View>
-      {pct != null && (
-        <View style={styles.finPctRow}>
-          <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? colors.success : colors.danger} />
-          <Text style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={1}>
-            %{Math.abs(pct)} {vsLabel}
+      <View style={styles.finPctRow}>
+        {pct != null ? (
+          <>
+            <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? colors.success : colors.danger} />
+            <Text style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={1}>
+              %{Math.abs(pct)} {vsLabel}
+            </Text>
+          </>
+        ) : (
+          <Text style={[styles.finPct, { color: colors.textMuted }]} numberOfLines={1}>
+            %0 {vsLabel}
           </Text>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 }
@@ -922,14 +964,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     lineHeight: 19,
     marginTop: 4,
   },
+  focusRight: {
+    justifyContent: 'center',
+  },
   focusButton: {
-    alignSelf: 'flex-start',
     borderWidth: 1.5,
     borderColor: colors.gold,
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginTop: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
   focusButtonText: {
     color: colors.gold,
@@ -937,39 +980,80 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
   },
   // İletişim özeti
-  commTopRow: {
+  commRow3: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: spacing.sm,
   },
-  commQuickBtnWide: {
-    flexDirection: 'row',
+  commCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  commColCenter: {
     alignItems: 'center',
-    gap: 5,
+  },
+  commDivider: {
+    width: 1,
+    backgroundColor: colors.borderSubtle,
+    marginHorizontal: 8,
+  },
+  commIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
     backgroundColor: colors.infoSoft,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
-  commQuickBtnText: {
-    color: colors.info,
-    fontSize: 12.5,
+  commIconBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 9,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  commIconBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
     fontWeight: '800',
   },
-  commLastRow: {
+  commPeerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: 14,
-    padding: spacing.sm,
+    gap: 6,
+    marginTop: 2,
   },
-  commLastTop: {
+  commQuickRow: {
     flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  commQuickItem: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: 3,
+  },
+  commQuickBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.infoSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commQuickLabel: {
+    fontSize: 10.5,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  commLink: {
+    ...typography.small,
+    color: colors.info,
+    fontWeight: '800',
+    marginTop: 5,
   },
   commLabel: {
     ...typography.small,
@@ -978,7 +1062,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: 5,
   },
   commValue: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '800',
     color: colors.textPrimary,
   },
@@ -1063,12 +1147,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 20,
   },
   tevkilArt: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: 'rgba(201,162,75,0.13)',
-    borderWidth: 1,
-    borderColor: 'rgba(201,162,75,0.4)',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(201,162,75,0.22)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(201,162,75,0.65)',
     alignItems: 'center',
     justifyContent: 'center',
   },
