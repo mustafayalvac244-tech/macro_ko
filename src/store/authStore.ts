@@ -17,7 +17,15 @@ interface AuthState {
   uploadAvatar: (file: { uri: string; mimeType: string | null }) => Promise<void>;
   removeAvatar: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (params: { email: string; password: string; fullName: string; firmName?: string }) => Promise<boolean>;
+  signUp: (params: {
+    email: string;
+    password: string;
+    fullName: string;
+    firmName?: string;
+    tcNo?: string;
+    baro?: string;
+    barNumber?: string;
+  }) => Promise<boolean>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
@@ -109,7 +117,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return true;
   },
 
-  signUp: async ({ email, password, fullName, firmName }) => {
+  signUp: async ({ email, password, fullName, firmName, tcNo, baro, barNumber }) => {
     set({ isSubmitting: true, error: null });
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -120,8 +128,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isSubmitting: false, error: trError(error.message) });
       return false;
     }
-    if (data.user && firmName) {
-      await supabase.from('profiles').update({ firm_name: firmName }).eq('id', data.user.id);
+    if (data.user) {
+      // Persist lawyer credentials collected at signup. tc_no/baro columns are
+      // added by KURULUM.sql (0014); tolerate their absence on older DBs.
+      const patch: Record<string, string> = {};
+      if (firmName) patch.firm_name = firmName;
+      if (tcNo) patch.tc_no = tcNo;
+      if (baro) patch.baro = baro;
+      if (barNumber) patch.bar_number = barNumber;
+      if (Object.keys(patch).length > 0) {
+        await supabase.from('profiles').update(patch).eq('id', data.user.id);
+      }
     }
     set({ isSubmitting: false });
     return true;

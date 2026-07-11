@@ -276,4 +276,9 @@ $$;
 alter table profiles add column if not exists friend_code text unique default gen_friend_code();
 update profiles set friend_code = gen_friend_code() where friend_code is null;
 
+-- ---------- 0014: Avukat üyeliği (TC + Baro + Sicil) ----------
+alter table profiles add column if not exists tc_no text;
+alter table profiles add column if not exists baro text;
+-- bar_number (baro sicil no) ve firm_name zaten mevcut.
+
 -- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.
