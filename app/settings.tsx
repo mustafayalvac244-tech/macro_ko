@@ -156,7 +156,15 @@ export default function SettingsScreen() {
           >
             <Avatar name={profile?.full_name || t('dash.counselor')} size={56} uri={avatarUrl} premium={profile?.is_premium} />
             <View style={styles.profileBody}>
-              <Text style={styles.name}>{profile?.full_name || t('dash.counselor')}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{profile?.full_name || t('dash.counselor')}</Text>
+                {profile?.is_admin && (
+                  <View style={styles.adminBadge}>
+                    <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
+                    <Text style={styles.adminBadgeText}>{t('settings.adminBadge')}</Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.email}>{session?.user.email}</Text>
               {profile?.firm_name && <Text style={styles.firm}>{profile.firm_name}</Text>}
               <Text style={styles.editLink}>{t('profile.editLink')}</Text>
@@ -328,6 +336,26 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   name: {
     ...typography.h2,
     color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  adminBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  adminBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
   email: {
     ...typography.caption,

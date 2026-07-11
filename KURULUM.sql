@@ -281,4 +281,17 @@ alter table profiles add column if not exists tc_no text;
 alter table profiles add column if not exists baro text;
 -- bar_number (baro sicil no) ve firm_name zaten mevcut.
 
+-- ---------- 0015: Yönetici (admin) hesapları ----------
+-- Aşağıdaki e-postalarla KAYITLI hesaplar yönetici + premium yapılır.
+-- 3. satırı kendi seçtiğiniz e-posta ile değiştirin. Hesap sonradan
+-- açıldıysa bu bloğu tekrar çalıştırmanız yeterli.
+alter table profiles add column if not exists is_admin boolean not null default false;
+
+update profiles set is_admin = true, is_premium = true
+  where lower(email) in (
+    'mustafayalvac244@gmail.com',
+    'altunalperr@gmail.com',
+    'UCUNCU-ADMIN-MAIL@ornek.com'
+  );
+
 -- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.

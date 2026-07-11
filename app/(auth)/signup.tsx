@@ -42,13 +42,28 @@ export default function SignupScreen() {
   const [baroPickerOpen, setBaroPickerOpen] = useState(false);
   const { signUp, isSubmitting, error, clearError } = useAuthStore();
 
-  const canSubmit =
-    !!fullName.trim() && !!email.trim() && !!password && !!tcNo.trim() && !!baro && !!barNumber.trim();
+  // Clears any stale error the moment the user edits a field, so an old
+  // message (e.g. a transient network failure) never lingers on screen.
+  const touch = <T,>(setter: (v: T) => void) => (v: T) => {
+    if (localError) setLocalError(null);
+    if (error) clearError();
+    setter(v);
+  };
 
   const handleSubmit = async () => {
     clearError();
     setLocalError(null);
 
+    // Field-by-field validation with specific messages — the button is always
+    // tappable so the user is told exactly what is missing.
+    if (!fullName.trim()) {
+      setLocalError(t('auth.fullNameRequired'));
+      return;
+    }
+    if (!tcNo.trim()) {
+      setLocalError(t('auth.tcRequired'));
+      return;
+    }
     if (!isValidTCKN(tcNo.trim())) {
       setLocalError(t('auth.tcInvalid'));
       return;
@@ -59,6 +74,14 @@ export default function SignupScreen() {
     }
     if (barNumber.trim().length < 1) {
       setLocalError(t('auth.barNumberRequired'));
+      return;
+    }
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setLocalError(t('auth.emailRequired'));
+      return;
+    }
+    if (password.length < 6) {
+      setLocalError(t('auth.passwordShort'));
       return;
     }
 
@@ -91,7 +114,7 @@ export default function SignupScreen() {
           <Text style={styles.heading}>{t('auth.createHeading')}</Text>
           <Text style={styles.subheading}>{t('auth.signupSubtitle')}</Text>
 
-          <Input label={t('auth.fullName')} icon="person-outline" placeholder={t('auth.fullNamePlaceholder')} value={fullName} onChangeText={setFullName} />
+          <Input label={t('auth.fullName')} icon="person-outline" placeholder={t('auth.fullNamePlaceholder')} value={fullName} onChangeText={touch(setFullName)} />
 
           <Input
             label={t('auth.tcNo')}
@@ -100,7 +123,7 @@ export default function SignupScreen() {
             maxLength={11}
             placeholder={t('auth.tcPlaceholder')}
             value={tcNo}
-            onChangeText={(v) => setTcNo(v.replace(/[^0-9]/g, ''))}
+            onChangeText={touch((v: string) => setTcNo(v.replace(/[^0-9]/g, '')))}
           />
 
           {/* Baro seçici */}
@@ -121,10 +144,10 @@ export default function SignupScreen() {
             keyboardType="number-pad"
             placeholder={t('auth.barNumberPlaceholder')}
             value={barNumber}
-            onChangeText={(v) => setBarNumber(v.replace(/[^0-9]/g, ''))}
+            onChangeText={touch((v: string) => setBarNumber(v.replace(/[^0-9]/g, '')))}
           />
 
-          <Input label={t('auth.firmName')} icon="briefcase-outline" placeholder={t('auth.firmNamePlaceholder')} value={firmName} onChangeText={setFirmName} />
+          <Input label={t('auth.firmName')} icon="briefcase-outline" placeholder={t('auth.firmNamePlaceholder')} value={firmName} onChangeText={touch(setFirmName)} />
 
           <Input
             label={t('auth.email')}
@@ -133,7 +156,7 @@ export default function SignupScreen() {
             keyboardType="email-address"
             placeholder={t('auth.emailPlaceholder')}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={touch(setEmail)}
           />
           <Input
             label={t('auth.password')}
@@ -141,7 +164,7 @@ export default function SignupScreen() {
             secureTextEntry
             placeholder={t('auth.passwordHint')}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={touch(setPassword)}
           />
 
           {(localError || error) && <Text style={styles.error}>{localError ?? error}</Text>}
@@ -150,7 +173,7 @@ export default function SignupScreen() {
             label={t('auth.createAccountBtn')}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={!canSubmit}
+            disabled={false}
             fullWidth
             size="lg"
             style={styles.submit}
