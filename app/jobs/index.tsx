@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useDeleteJob, useJobs, useUpdateJobStatus } from '@/hooks/useJobs';
+import { useCreateFinanceEntry } from '@/hooks/useFinance';
 import { isMissingNetworkTables } from '@/hooks/useChat';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
@@ -30,6 +31,46 @@ export default function JobsScreen() {
   const jobs = useJobs();
   const updateStatus = useUpdateJobStatus();
   const deleteJob = useDeleteJob();
+  const createFinance = useCreateFinanceEntry();
+
+  // Log a completed Tevkil job into the finance ledger. `kind` is 'income' when
+  // I did someone else's job (I get paid) or 'expense' when I paid a colleague
+  // for a job I delegated out.
+  const logJobToFinance = (job: JobWithOwner, kind: 'income' | 'expense') => {
+    const amount = Number(job.fee_offer ?? 0);
+    if (!(amount > 0)) {
+      Alert.alert(t('jobs.finance.title'), t('jobs.finance.noFee'));
+      return;
+    }
+    createFinance
+      .mutateAsync({
+        kind,
+        category: 'fee',
+        title: `${t('jobs.finance.prefix')}: ${job.title}`,
+        amount,
+        entry_date: new Date().toISOString().slice(0, 10),
+        is_recurring: false,
+        note: job.city ? `${t('jobs.title')} · ${job.city}` : t('jobs.title'),
+      })
+      .then(() =>
+        Alert.alert(
+          t('jobs.finance.title'),
+          kind === 'income' ? t('jobs.finance.addedIncome') : t('jobs.finance.addedExpense')
+        )
+      )
+      .catch(() => Alert.alert(t('jobs.finance.title'), t('network.setupRequired')));
+  };
+
+  const askLogFinance = (job: JobWithOwner, kind: 'income' | 'expense') => {
+    Alert.alert(
+      t('jobs.finance.title'),
+      kind === 'income' ? t('jobs.finance.askIncome') : t('jobs.finance.askExpense'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('jobs.finance.add'), onPress: () => logJobToFinance(job, kind) },
+      ]
+    );
+  };
 
   const [typeFilter, setTypeFilter] = useState<JobType | 'all'>('all');
   const [cityFilter, setCityFilter] = useState('');
@@ -62,7 +103,16 @@ export default function JobsScreen() {
         ? [{ text: t('jobs.markAssigned'), onPress: () => updateStatus.mutate({ id: job.id, status: 'assigned' as const }) }]
         : []),
       ...(job.status !== 'closed'
-        ? [{ text: t('jobs.markClosed'), onPress: () => updateStatus.mutate({ id: job.id, status: 'closed' as const }) }]
+        ? [
+            {
+              text: t('jobs.markClosed'),
+              onPress: () => {
+                updateStatus.mutate({ id: job.id, status: 'closed' as const });
+                // Delegated-out job I paid a colleague for → offer expense entry.
+                if (job.fee_offer != null && Number(job.fee_offer) > 0) askLogFinance(job, 'expense');
+              },
+            },
+          ]
         : []),
       { text: t('common.delete'), style: 'destructive', onPress: () => deleteJob.mutate(job.id) },
     ]);
@@ -118,13 +168,24 @@ export default function JobsScreen() {
               </Text>
             )}
             {item.description && <Text style={styles.detailDesc}>{item.description}</Text>}
-            <Pressable
-              style={styles.messageButton}
-              onPress={() => router.push(`/chat/${item.owner_id}` as Parameters<typeof router.push>[0])}
-            >
-              <Ionicons name="chatbubble-ellipses" size={16} color="#FFFFFF" />
-              <Text style={styles.messageButtonText}>{t('jobs.message')}</Text>
-            </Pressable>
+            <View style={styles.detailActions}>
+              <Pressable
+                style={[styles.messageButton, styles.detailActionFlex]}
+                onPress={() => router.push(`/chat/${item.owner_id}` as Parameters<typeof router.push>[0])}
+              >
+                <Ionicons name="chatbubble-ellipses" size={16} color="#FFFFFF" />
+                <Text style={styles.messageButtonText}>{t('jobs.message')}</Text>
+              </Pressable>
+              {item.fee_offer != null && Number(item.fee_offer) > 0 && (
+                <Pressable
+                  style={[styles.incomeButton, styles.detailActionFlex]}
+                  onPress={() => askLogFinance(item, 'income')}
+                >
+                  <Ionicons name="wallet" size={16} color="#FFFFFF" />
+                  <Text style={styles.messageButtonText}>{t('jobs.finance.didIt')}</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
         )}
       </Card>
@@ -271,6 +332,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 19,
   },
+  detailActions: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  detailActionFlex: {
+    flex: 1,
+    marginTop: 0,
+  },
   messageButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -280,6 +350,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 10,
     marginTop: spacing.xs,
+  },
+  incomeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.success,
+    borderRadius: 12,
+    paddingVertical: 10,
   },
   messageButtonText: {
     color: '#FFFFFF',

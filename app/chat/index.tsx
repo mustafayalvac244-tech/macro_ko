@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { isMissingNetworkTables, useConversations, useDmRealtime, useLawyerDirectory, useMyFriendCode } from '@/hooks/useChat';
+import { isMissingNetworkTables, useConversations, useDeleteConversation, useDmRealtime, useLawyerDirectory, useMyFriendCode } from '@/hooks/useChat';
 import {
   useAddOfficeMember,
   useCreateOffice,
@@ -43,7 +43,19 @@ export default function ChatListScreen() {
   const conversations = useConversations();
   const directory = useLawyerDirectory(search);
   const myCode = useMyFriendCode();
+  const deleteConversation = useDeleteConversation();
   useDmRealtime();
+
+  const confirmDeleteConversation = (peerId: string, peerName: string) => {
+    Alert.alert(t('chat.deleteTitle'), `${peerName}\n${t('chat.deleteConfirm')}`, [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => deleteConversation.mutate(peerId),
+      },
+    ]);
+  };
 
   const shareMyCode = () => {
     if (!myCode.data) return;
@@ -156,6 +168,8 @@ export default function ChatListScreen() {
               <Pressable
                 style={styles.convRow}
                 onPress={() => router.push(`/chat/${item.peer.id}` as Parameters<typeof router.push>[0])}
+                onLongPress={() => confirmDeleteConversation(item.peer.id, item.peer.full_name)}
+                delayLongPress={350}
               >
                 <Avatar name={item.peer.full_name} size={48} />
                 <View style={styles.rowBody}>

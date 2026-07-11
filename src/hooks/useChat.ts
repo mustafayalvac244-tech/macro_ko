@@ -38,6 +38,25 @@ export function useDmRealtime() {
   }, [me, queryClient]);
 }
 
+/** Delete an entire conversation with one peer (messages in both directions). */
+export function useDeleteConversation() {
+  const queryClient = useQueryClient();
+  const me = useAuthStore((s) => s.session?.user.id);
+
+  return useMutation({
+    mutationFn: async (peerId: string) => {
+      const { error } = await supabase
+        .from('dm_messages')
+        .delete()
+        .or(
+          `and(sender_id.eq.${me},recipient_id.eq.${peerId}),and(sender_id.eq.${peerId},recipient_id.eq.${me})`
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dm'] }),
+  });
+}
+
 /** True when the 0007_network.sql migration hasn't been run yet. */
 export function isMissingNetworkTables(err: unknown): boolean {
   const e = err as { code?: string; message?: string } | null;
