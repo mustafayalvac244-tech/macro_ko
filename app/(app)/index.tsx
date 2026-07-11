@@ -200,7 +200,7 @@ export default function DashboardScreen() {
             </Pressable>
             <View style={styles.brandRow}>
               <VekilLogo size={28} nodeFill={colors.gold} />
-              <Text style={styles.brandText}>Vekil Pro</Text>
+              <Text allowFontScaling={false} style={styles.brandText}>Vekil Pro</Text>
             </View>
           </View>
           <View style={styles.headerRight}>
@@ -212,14 +212,14 @@ export default function DashboardScreen() {
               <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
               {criticalCount > 0 && (
                 <View style={styles.bellBadge}>
-                  <Text style={styles.bellBadgeText}>{criticalCount > 9 ? '9+' : criticalCount}</Text>
+                  <Text allowFontScaling={false} style={styles.bellBadgeText}>{criticalCount > 9 ? '9+' : criticalCount}</Text>
                 </View>
               )}
             </Pressable>
             {unreadTotal > 0 && (
               <Pressable style={styles.msgPill} onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}>
                 <Ionicons name="chatbox-ellipses-outline" size={15} color={colors.textPrimary} />
-                <Text style={styles.msgPillText}>{t('dash.newMsgs', { n: unreadTotal })}</Text>
+                <Text allowFontScaling={false} style={styles.msgPillText}>{t('dash.newMsgs', { n: unreadTotal })}</Text>
                 <View style={styles.msgPillDot} />
               </Pressable>
             )}
@@ -230,10 +230,10 @@ export default function DashboardScreen() {
         </View>
 
         {/* ---------- Greeting ---------- */}
-        <Text style={styles.greeting}>
+        <Text allowFontScaling={false} style={styles.greeting}>
           {t(greetingKey)}, {firstName}
         </Text>
-        <Text style={styles.greetingSub}>{t('dash.subline')}</Text>
+        <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
 
         {/* ---------- Günlük Asistan Özeti ---------- */}
         <View style={styles.hero}>
@@ -242,8 +242,8 @@ export default function DashboardScreen() {
               <Ionicons name="sparkles" size={18} color={colors.gold} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.heroTitle}>{t('dash.assist.title')}</Text>
-              <Text style={styles.heroUpdated}>{t('dash.assist.updated')}</Text>
+              <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.assist.title')}</Text>
+              <Text allowFontScaling={false} style={styles.heroUpdated}>{t('dash.assist.updated')}</Text>
             </View>
           </View>
 
@@ -290,7 +290,7 @@ export default function DashboardScreen() {
                 <VekilLogo size={66} nodeFill={colors.gold} />
               </View>
               <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
-                <Text style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+                <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
                 <Ionicons name="arrow-forward" size={15} color={NAVY} />
               </Pressable>
             </View>
@@ -304,10 +304,10 @@ export default function DashboardScreen() {
               <View style={[styles.cardHeaderIcon, { backgroundColor: colors.goldSoft }]}>
                 <Ionicons name="locate-outline" size={18} color={colors.gold} />
               </View>
-              <Text style={styles.cardTitle}>{t('dash.focus.title')}</Text>
+              <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.focus.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/(app)/cases')} hitSlop={6}>
-              <Text style={styles.cardHeaderLink}>{t('dash.critical.all')}</Text>
+              <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.critical.all')}</Text>
               <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
             </Pressable>
           </View>
@@ -319,36 +319,36 @@ export default function DashboardScreen() {
               </View>
               <View style={styles.focusBody}>
                 <View style={styles.focusTitleRow}>
-                  <Text style={styles.focusTitle} numberOfLines={1}>
+                  <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={1}>
                     {focus.label}
                   </Text>
                   <View style={styles.focusBadge}>
-                    <Text style={styles.focusBadgeText}>{t('dash.focus.high')}</Text>
+                    <Text allowFontScaling={false} style={styles.focusBadgeText}>{t('dash.focus.high')}</Text>
                   </View>
                 </View>
                 {focus.hearingWhen && (
                   <View style={styles.focusMetaRow}>
                     <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
-                    <Text style={styles.focusMeta}>
+                    <Text allowFontScaling={false} style={styles.focusMeta}>
                       {t('cal.hearing')}: {focus.hearingWhen}
                     </Text>
                   </View>
                 )}
-                <Text style={styles.focusReason} numberOfLines={3}>
+                <Text allowFontScaling={false} style={styles.focusReason} numberOfLines={3}>
                   {focus.reason}
                 </Text>
               </View>
               {/* Mockup: buton sağ tarafta, dikeyde ortalı */}
               <View style={styles.focusRight}>
                 <Pressable style={styles.focusButton} onPress={() => router.push(`/(app)/cases/${focus.caseId}`)}>
-                  <Text style={styles.focusButtonText}>{t('dash.focus.details')}</Text>
+                  <Text allowFontScaling={false} style={styles.focusButtonText}>{t('dash.focus.details')}</Text>
                 </Pressable>
               </View>
             </View>
           ) : (
             <View style={styles.emptyRow}>
               <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
-              <Text style={styles.emptyRowText}>{t('dash.focus.empty')}</Text>
+              <Text allowFontScaling={false} style={styles.emptyRowText}>{t('dash.focus.empty')}</Text>
             </View>
           )}
         </View>
@@ -360,10 +360,10 @@ export default function DashboardScreen() {
               <View style={[styles.cardHeaderIcon, { backgroundColor: colors.infoSoft }]}>
                 <Ionicons name="people-outline" size={18} color={colors.info} />
               </View>
-              <Text style={styles.cardTitle}>{t('dash.comm.title')}</Text>
+              <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.comm.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])} hitSlop={6}>
-              <Text style={styles.cardHeaderLink}>{t('dash.critical.all')}</Text>
+              <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.critical.all')}</Text>
               <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
             </Pressable>
           </View>
@@ -376,18 +376,18 @@ export default function DashboardScreen() {
                   <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.info} />
                   {unreadTotal > 0 && (
                     <View style={styles.commIconBadge}>
-                      <Text style={styles.commIconBadgeText}>{unreadTotal > 9 ? '9+' : unreadTotal}</Text>
+                      <Text allowFontScaling={false} style={styles.commIconBadgeText}>{unreadTotal > 9 ? '9+' : unreadTotal}</Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.commLabel} numberOfLines={1}>
+                <Text allowFontScaling={false} style={styles.commLabel} numberOfLines={1}>
                   {t('dash.comm.unread')}
                 </Text>
-                <Text style={styles.commValue} numberOfLines={1} adjustsFontSizeToFit>
+                <Text allowFontScaling={false} style={styles.commValue} numberOfLines={1} adjustsFontSizeToFit>
                   {t('dash.comm.msgs', { n: unreadTotal })}
                 </Text>
                 <Pressable onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}>
-                  <Text style={styles.commLink} numberOfLines={1}>
+                  <Text allowFontScaling={false} style={styles.commLink} numberOfLines={1}>
                     {t('dash.comm.see')} →
                   </Text>
                 </Pressable>
@@ -400,21 +400,21 @@ export default function DashboardScreen() {
                 style={[styles.commCol, { flex: 1.35 }]}
                 onPress={() => router.push(`/chat/${lastConv.peer.id}` as Parameters<typeof router.push>[0])}
               >
-                <Text style={styles.commLabel} numberOfLines={1}>
+                <Text allowFontScaling={false} style={styles.commLabel} numberOfLines={1}>
                   {t('dash.comm.last')}
                 </Text>
                 <View style={styles.commPeerRow}>
                   <Avatar name={lastConv.peer.full_name} size={34} premium={lastConv.peer.is_premium} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.commPeerName} numberOfLines={1}>
+                    <Text allowFontScaling={false} style={styles.commPeerName} numberOfLines={1}>
                       {lastConv.peer.full_name}
                     </Text>
-                    <Text style={styles.commPeerTime} numberOfLines={1}>
+                    <Text allowFontScaling={false} style={styles.commPeerTime} numberOfLines={1}>
                       {whenLabel(lastConv.lastMessage.created_at)}
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.commPreview} numberOfLines={1}>
+                <Text allowFontScaling={false} style={styles.commPreview} numberOfLines={1}>
                   {lastConv.lastMessage.body}
                 </Text>
               </Pressable>
@@ -423,7 +423,7 @@ export default function DashboardScreen() {
 
               {/* Sütun 3: hızlı iletişim */}
               <View style={[styles.commCol, styles.commColCenter]}>
-                <Text style={styles.commLabel} numberOfLines={1}>
+                <Text allowFontScaling={false} style={styles.commLabel} numberOfLines={1}>
                   {t('dash.comm.quick')}
                 </Text>
                 <View style={styles.commQuickRow}>
@@ -431,7 +431,7 @@ export default function DashboardScreen() {
                     <Pressable style={styles.commQuickBtn} onPress={() => router.push('/(app)/clients')}>
                       <Ionicons name="call-outline" size={18} color={colors.info} />
                     </Pressable>
-                    <Text style={styles.commQuickLabel}>{t('dash.comm.call')}</Text>
+                    <Text allowFontScaling={false} style={styles.commQuickLabel}>{t('dash.comm.call')}</Text>
                   </View>
                   <View style={styles.commQuickItem}>
                     <Pressable
@@ -440,7 +440,7 @@ export default function DashboardScreen() {
                     >
                       <Ionicons name="chatbubble-outline" size={18} color={colors.info} />
                     </Pressable>
-                    <Text style={styles.commQuickLabel}>{t('dash.comm.msg')}</Text>
+                    <Text allowFontScaling={false} style={styles.commQuickLabel}>{t('dash.comm.msg')}</Text>
                   </View>
                 </View>
               </View>
@@ -448,7 +448,7 @@ export default function DashboardScreen() {
           ) : (
             <View style={styles.emptyRow}>
               <Ionicons name="chatbubbles-outline" size={20} color={colors.textMuted} />
-              <Text style={styles.emptyRowText}>{t('dash.comm.empty')}</Text>
+              <Text allowFontScaling={false} style={styles.emptyRowText}>{t('dash.comm.empty')}</Text>
             </View>
           )}
         </View>
@@ -460,10 +460,10 @@ export default function DashboardScreen() {
               <View style={[styles.cardHeaderIcon, { backgroundColor: colors.goldSoft }]}>
                 <Ionicons name="stats-chart-outline" size={18} color={colors.gold} />
               </View>
-              <Text style={styles.cardTitle}>{t('dash.fin.title')}</Text>
+              <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.fin.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/finance' as Parameters<typeof router.push>[0])} hitSlop={6}>
-              <Text style={styles.cardHeaderLink}>{t('dash.fin.month')}</Text>
+              <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.fin.month')}</Text>
               <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
             </Pressable>
           </View>
@@ -483,8 +483,8 @@ export default function DashboardScreen() {
             <VekilLogo size={30} nodeFill={colors.gold} />
           </View>
           <View style={styles.tevkilBody}>
-            <Text style={styles.tevkilTitle}>{t('dash.tevkilTitle')}</Text>
-            <Text style={styles.tevkilDesc}>{t('dash.tevkilDesc')}</Text>
+            <Text allowFontScaling={false} style={styles.tevkilTitle}>{t('dash.tevkilTitle')}</Text>
+            <Text allowFontScaling={false} style={styles.tevkilDesc}>{t('dash.tevkilDesc')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
         </Pressable>
@@ -526,16 +526,16 @@ function AssistRow({
       </View>
       <View style={styles.assistBody}>
         <View style={styles.assistTopRow}>
-          <Text style={styles.assistLabel} numberOfLines={1}>
+          <Text allowFontScaling={false} style={styles.assistLabel} numberOfLines={1}>
             {label}
           </Text>
           {!!right && (
-            <Text style={styles.assistRight} numberOfLines={1}>
+            <Text allowFontScaling={false} style={styles.assistRight} numberOfLines={1}>
               {right}
             </Text>
           )}
         </View>
-        <Text style={styles.assistValue} numberOfLines={1}>
+        <Text allowFontScaling={false} style={styles.assistValue} numberOfLines={1}>
           {value}
         </Text>
       </View>
@@ -574,11 +574,11 @@ function FinCell({
   const good = pct == null ? true : positiveIsGood ? pct >= 0 : pct <= 0;
   return (
     <View style={styles.finCell}>
-      <Text style={styles.finLabel} numberOfLines={1}>
+      <Text allowFontScaling={false} style={styles.finLabel} numberOfLines={1}>
         {label}
       </Text>
       <View style={styles.finMidRow}>
-        <Text style={styles.finAmount} numberOfLines={1} adjustsFontSizeToFit>
+        <Text allowFontScaling={false} style={styles.finAmount} numberOfLines={1} adjustsFontSizeToFit>
           {formatMoney(amount)}
         </Text>
         <View style={styles.finSpark}>
@@ -594,12 +594,12 @@ function FinCell({
         {pct != null ? (
           <>
             <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? colors.success : colors.danger} />
-            <Text style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={1}>
+            <Text allowFontScaling={false} style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={1}>
               %{Math.abs(pct)} {vsLabel}
             </Text>
           </>
         ) : (
-          <Text style={[styles.finPct, { color: colors.textMuted }]} numberOfLines={1}>
+          <Text allowFontScaling={false} style={[styles.finPct, { color: colors.textMuted }]} numberOfLines={1}>
             %0 {vsLabel}
           </Text>
         )}
@@ -630,11 +630,11 @@ function BottomTab({
         <Ionicons name={icon} size={21} color={active ? colors.gold : colors.textMuted} />
         {!!badge && badge > 0 && (
           <View style={styles.bottomTabBadge}>
-            <Text style={styles.bottomTabBadgeText}>{badge > 9 ? '9+' : badge}</Text>
+            <Text allowFontScaling={false} style={styles.bottomTabBadgeText}>{badge > 9 ? '9+' : badge}</Text>
           </View>
         )}
       </View>
-      <Text style={[styles.bottomTabLabel, active && { color: colors.gold, fontWeight: '800' }]} numberOfLines={1}>
+      <Text allowFontScaling={false} style={[styles.bottomTabLabel, active && { color: colors.gold, fontWeight: '800' }]} numberOfLines={1}>
         {label}
       </Text>
     </Pressable>
