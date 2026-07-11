@@ -91,7 +91,7 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.focus.reasonDue': 'Priority today — pending task: {title}.',
   'dash.focus.reasonHearing': 'A hearing is coming up; reviewing the file is recommended.',
   'dash.critical.all': 'See All',
-  'dash.comm.title': 'Client & Communication Summary',
+  'dash.comm.title': 'Communication Summary',
   'dash.comm.unread': 'Unread',
   'dash.comm.msgs': '{n} messages',
   'dash.comm.see': 'View Messages',

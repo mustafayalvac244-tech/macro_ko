@@ -247,7 +247,7 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          <View style={styles.heroBody}>
+          <View>
             <View style={styles.heroRows}>
               <AssistRow
                 icon="calendar-outline"
@@ -283,14 +283,10 @@ export default function DashboardScreen() {
               />
             </View>
 
-            <View style={styles.heroSide}>
-              <View style={styles.heroGlow} />
-              <VekilLogo size={62} nodeFill={colors.gold} />
-              <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
-                <Text style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-                <Ionicons name="arrow-forward" size={15} color={NAVY} />
-              </Pressable>
-            </View>
+            <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
+              <Text style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+              <Ionicons name="arrow-forward" size={16} color={NAVY} />
+            </Pressable>
           </View>
         </View>
 
@@ -363,49 +359,48 @@ export default function DashboardScreen() {
           </View>
 
           {lastConv ? (
-            <View style={styles.commRow}>
-              <View style={styles.commCell}>
-                <Text style={styles.commLabel}>{t('dash.comm.unread')}</Text>
-                <Text style={styles.commValue}>{t('dash.comm.msgs', { n: unreadTotal })}</Text>
-                <Pressable onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}>
-                  <Text style={styles.commLink}>{t('dash.comm.see')} →</Text>
+            <View>
+              {/* Üst satır: okunmamış sayısı + hızlı butonlar */}
+              <View style={styles.commTopRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.commLabel}>{t('dash.comm.unread')}</Text>
+                  <Text style={styles.commValue}>{t('dash.comm.msgs', { n: unreadTotal })}</Text>
+                </View>
+                <Pressable
+                  style={styles.commQuickBtnWide}
+                  onPress={() => router.push('/(app)/clients')}
+                >
+                  <Ionicons name="call-outline" size={17} color={colors.info} />
+                  <Text style={styles.commQuickBtnText}>{t('dash.comm.call')}</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.commQuickBtnWide}
+                  onPress={() => router.push(`/chat/${lastConv.peer.id}` as Parameters<typeof router.push>[0])}
+                >
+                  <Ionicons name="chatbubble-outline" size={17} color={colors.info} />
+                  <Text style={styles.commQuickBtnText}>{t('dash.comm.msg')}</Text>
                 </Pressable>
               </View>
-              <View style={styles.finDivider} />
-              <View style={[styles.commCell, { flex: 1.4 }]}>
-                <Text style={styles.commLabel}>{t('dash.comm.last')}</Text>
-                <View style={styles.commPeerRow}>
-                  <Avatar name={lastConv.peer.full_name} size={30} premium={lastConv.peer.is_premium} />
-                  <View style={{ flex: 1 }}>
+
+              {/* Son görüşülen */}
+              <Pressable
+                style={styles.commLastRow}
+                onPress={() => router.push(`/chat/${lastConv.peer.id}` as Parameters<typeof router.push>[0])}
+              >
+                <Avatar name={lastConv.peer.full_name} size={38} premium={lastConv.peer.is_premium} />
+                <View style={{ flex: 1 }}>
+                  <View style={styles.commLastTop}>
                     <Text style={styles.commPeerName} numberOfLines={1}>
                       {lastConv.peer.full_name}
                     </Text>
                     <Text style={styles.commPeerTime}>{whenLabel(lastConv.lastMessage.created_at)}</Text>
                   </View>
+                  <Text style={styles.commPreview} numberOfLines={1}>
+                    {lastConv.lastMessage.body}
+                  </Text>
                 </View>
-                <Text style={styles.commPreview} numberOfLines={1}>
-                  {lastConv.lastMessage.body}
-                </Text>
-              </View>
-              <View style={styles.finDivider} />
-              <View style={styles.commCell}>
-                <Text style={styles.commLabel}>{t('dash.comm.quick')}</Text>
-                <View style={styles.commQuickRow}>
-                  <Pressable style={styles.commQuickBtn} onPress={() => router.push('/(app)/clients')}>
-                    <Ionicons name="call-outline" size={18} color={colors.info} />
-                  </Pressable>
-                  <Pressable
-                    style={styles.commQuickBtn}
-                    onPress={() => router.push(`/chat/${lastConv.peer.id}` as Parameters<typeof router.push>[0])}
-                  >
-                    <Ionicons name="chatbubble-outline" size={18} color={colors.info} />
-                  </Pressable>
-                </View>
-                <View style={styles.commQuickLabels}>
-                  <Text style={styles.commQuickLabel}>{t('dash.comm.call')}</Text>
-                  <Text style={styles.commQuickLabel}>{t('dash.comm.msg')}</Text>
-                </View>
-              </View>
+                <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
+              </Pressable>
             </View>
           ) : (
             <View style={styles.emptyRow}>
@@ -484,22 +479,24 @@ function AssistRow({
   return (
     <Pressable style={styles.assistRow} onPress={onPress}>
       <View style={[styles.assistIcon, { backgroundColor: `${tint}22` }]}>
-        <Ionicons name={icon} size={16} color={tint} />
+        <Ionicons name={icon} size={17} color={tint} />
       </View>
       <View style={styles.assistBody}>
-        <Text style={styles.assistLabel} numberOfLines={1}>
-          {label}
-        </Text>
+        <View style={styles.assistTopRow}>
+          <Text style={styles.assistLabel} numberOfLines={1}>
+            {label}
+          </Text>
+          {!!right && (
+            <Text style={styles.assistRight} numberOfLines={1}>
+              {right}
+            </Text>
+          )}
+        </View>
         <Text style={styles.assistValue} numberOfLines={1}>
           {value}
         </Text>
       </View>
-      {!!right && (
-        <Text style={styles.assistRight} numberOfLines={2}>
-          {right}
-        </Text>
-      )}
-      <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.45)" />
+      <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.45)" />
     </Pressable>
   );
 }
@@ -525,6 +522,7 @@ function FinCell({
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
   const max = Math.max(...series, 1);
+  const hasData = series.some((v) => v > 0);
   const good = pct == null ? true : positiveIsGood ? pct >= 0 : pct <= 0;
   return (
     <View style={styles.finCell}>
@@ -534,6 +532,7 @@ function FinCell({
       <Text style={styles.finAmount} numberOfLines={1} adjustsFontSizeToFit>
         {formatMoney(amount)}
       </Text>
+      {hasData && (
       <View style={styles.finSpark}>
         {series.map((v, i) => (
           <View
@@ -542,6 +541,7 @@ function FinCell({
           />
         ))}
       </View>
+      )}
       {pct != null && (
         <View style={styles.finPctRow}>
           <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? colors.success : colors.danger} />
@@ -710,10 +710,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 11.5,
     marginTop: 1,
   },
-  heroBody: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
   heroRows: {
     flex: 1,
     gap: 7,
@@ -737,53 +733,46 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
   },
   assistBody: {
-    flex: 1.1,
+    flex: 1,
+  },
+  assistTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   assistLabel: {
     color: 'rgba(255,255,255,0.6)',
-    fontSize: 10.5,
+    fontSize: 11.5,
     fontWeight: '600',
+    flexShrink: 1,
   },
   assistValue: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14.5,
     fontWeight: '800',
-    marginTop: 1,
+    marginTop: 2,
   },
   assistRight: {
-    flex: 1,
     color: 'rgba(255,255,255,0.65)',
     fontSize: 11,
-    lineHeight: 14,
     textAlign: 'right',
-  },
-  heroSide: {
-    width: 86,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-    paddingTop: 4,
-  },
-  heroGlow: {
-    position: 'absolute',
-    top: 6,
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    backgroundColor: 'rgba(201,162,75,0.13)',
+    flexShrink: 1,
+    maxWidth: '55%',
   },
   heroCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    justifyContent: 'center',
+    gap: 6,
     backgroundColor: colors.gold,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 13,
+    paddingVertical: 12,
+    marginTop: spacing.sm,
   },
   heroCtaText: {
     color: NAVY,
-    fontSize: 12.5,
+    fontSize: 14.5,
     fontWeight: '800',
   },
   // Generic card
@@ -911,11 +900,39 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
   },
   // İletişim özeti
-  commRow: {
+  commTopRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: spacing.sm,
   },
-  commCell: {
-    flex: 1,
+  commQuickBtnWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.infoSoft,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  commQuickBtnText: {
+    color: colors.info,
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  commLastRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 14,
+    padding: spacing.sm,
+  },
+  commLastTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   commLabel: {
     ...typography.small,
@@ -928,54 +945,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
     color: colors.textPrimary,
   },
-  commLink: {
-    ...typography.small,
-    color: colors.info,
-    fontWeight: '800',
-    marginTop: 6,
-  },
-  commPeerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
   commPeerName: {
     fontSize: 13,
     fontWeight: '800',
     color: colors.textPrimary,
   },
   commPeerTime: {
-    fontSize: 10.5,
+    fontSize: 11.5,
     color: colors.textMuted,
   },
   commPreview: {
     ...typography.small,
     color: colors.textSecondary,
     marginTop: 5,
-  },
-  commQuickRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  commQuickBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.infoSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  commQuickLabels: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 3,
-  },
-  commQuickLabel: {
-    width: 38,
-    textAlign: 'center',
-    fontSize: 10,
-    color: colors.textSecondary,
-    fontWeight: '600',
   },
   // Finance
   finRow: {
