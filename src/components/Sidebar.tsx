@@ -190,6 +190,8 @@ export function Sidebar() {
               <SidebarItem key={item.path} icon={item.icon} label={item.label} onPress={() => go(item.path)} />
             ))}
 
+            <View style={styles.divider} />
+            <Text style={styles.sectionLabel}>{t('sidebar.toolsSection')}</Text>
             <SidebarGroup
               icon="construct-outline"
               label={t('sidebar.tools')}

@@ -2,9 +2,10 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { format, isToday } from 'date-fns';
+import { format, isToday, isTomorrow } from 'date-fns';
 import { tr as trLocale, enUS } from 'date-fns/locale';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '@/components/ui/Screen';
 import { Avatar } from '@/components/ui/Avatar';
 import { VekilLogo } from '@/components/ui/VekilLogo';
@@ -14,33 +15,26 @@ import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
-import { useLeaderboard, useMyAnswerToday } from '@/hooks/useDailyQuestion';
-import { getTodayQuestion } from '@/constants/dailyQuestions';
+import { useConversations } from '@/hooks/useChat';
+import { useFinanceEntries } from '@/hooks/useFinance';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { formatMoney, formatTime } from '@/utils/format';
 
-// Dark navy card palette used on the promotional / question cards
+// Dark navy palette for the assistant hero + Tevkil banner
 const NAVY = '#0F1F3D';
 const NAVY_ALT = '#152648';
-
-function countdown(target: Date, now: Date, lang: 'tr' | 'en'): string {
-  const diff = target.getTime() - now.getTime();
-  const past = diff < 0;
-  const abs = Math.abs(diff);
-  const h = Math.floor(abs / 3_600_000);
-  const m = Math.floor((abs % 3_600_000) / 60_000);
-  const hh = String(h).padStart(1, '0');
-  const mm = String(m).padStart(2, '0');
-  if (lang === 'tr') return past ? `-${hh}sa ${mm}dk` : `+${hh}sa ${mm}dk`;
-  return past ? `-${hh}h ${mm}m` : `+${hh}h ${mm}m`;
-}
+const BLUE = '#5EA2FF';
+const AMBER = '#F5B849';
+const GREEN = '#4ED596';
 
 export default function DashboardScreen() {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
+  const insets = useSafeAreaInsets();
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
@@ -53,8 +47,8 @@ export default function DashboardScreen() {
 
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
-  const myAnswer = useMyAnswerToday();
-  const leaderboard = useLeaderboard(4);
+  const conversations = useConversations();
+  const finance = useFinanceEntries();
   useMorningDigest();
 
   const onRefresh = useCallback(async () => {
@@ -63,93 +57,149 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }, [queryClient]);
 
-  const hour = new Date().getHours();
-  const greetingKey = hour < 12 ? 'dash.goodMorning' : hour < 18 ? 'dash.goodAfternoon' : 'dash.goodEvening';
-  const firstName = profile?.full_name
-    ? `Av. ${profile.full_name.split(' ')[0]}`
-    : t('dash.counselor');
-
   const now = new Date();
-  const alertCount = useMemo(() => {
-    let n = 0;
-    hearings.data?.forEach((h) => {
-      if (!h.is_completed && isToday(new Date(h.scheduled_at))) n += 1;
-    });
-    deadlines.data?.forEach((d) => {
-      if (!d.is_completed && isToday(new Date(d.due_at))) n += 1;
-    });
-    return n;
-  }, [hearings.data, deadlines.data]);
+  const hour = now.getHours();
+  const greetingKey = hour < 12 ? 'dash.goodMorning' : hour < 18 ? 'dash.goodAfternoon' : 'dash.goodEvening';
+  const firstName = profile?.full_name ? `Av. ${profile.full_name.split(' ')[0]}` : t('dash.counselor');
 
-  // Today's schedule: hearings + deadlines scheduled for today
-  const todayItems = useMemo(() => {
-    const items: Array<{
-      id: string;
-      kind: 'hearing' | 'deadline';
-      time: Date;
-      title: string;
-      sub: string;
-      location: string | null;
-      caseId: string;
-    }> = [];
-    hearings.data?.forEach((h) => {
-      const d = new Date(h.scheduled_at);
-      if (!h.is_completed && isToday(d)) {
-        items.push({
-          id: h.id,
-          kind: 'hearing',
-          time: d,
-          title: h.location || h.case?.title || h.title,
-          sub: `${h.case?.case_number ? h.case.case_number + ' - ' : ''}${h.case?.title ?? h.title}`,
-          location: h.location,
-          caseId: h.case_id,
-        });
+  // "Bugün · 10:30" / "Yarın · 18:00" / "13 Tem · 09:00"
+  const whenLabel = useCallback(
+    (iso: string) => {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      const day = isToday(d) ? t('fmt.today') : isTomorrow(d) ? t('fmt.tomorrow') : format(d, 'd MMM', { locale: dateLocale });
+      return `${day} · ${formatTime(iso)}`;
+    },
+    [t, dateLocale]
+  );
+
+  const unreadTotal = useMemo(
+    () => (conversations.data ?? []).reduce((sum, c) => sum + c.unread, 0),
+    [conversations.data]
+  );
+  const lastConv = conversations.data?.[0];
+
+  const nextHearing = useMemo(() => {
+    return (hearings.data ?? [])
+      .filter((h) => {
+        const d = new Date(h.scheduled_at);
+        return !h.is_completed && !isNaN(d.getTime()) && d.getTime() >= now.getTime() - 60 * 60 * 1000;
+      })
+      .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hearings.data]);
+
+  const nextDeadline = useMemo(() => {
+    return (deadlines.data ?? [])
+      .filter((d) => !d.is_completed && !isNaN(new Date(d.due_at).getTime()))
+      .sort((a, b) => a.due_at.localeCompare(b.due_at))[0];
+  }, [deadlines.data]);
+
+  const criticalCount = useMemo(
+    () =>
+      (deadlines.data ?? []).filter((d) => {
+        if (d.is_completed) return false;
+        const due = new Date(d.due_at);
+        if (isNaN(due.getTime())) return false;
+        return due.getTime() < now.getTime() || isToday(due) || d.priority === 'high';
+      }).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [deadlines.data]
+  );
+
+  // Focus case: the case behind the most pressing deadline, else next hearing's case.
+  const focus = useMemo(() => {
+    if (nextDeadline?.case) {
+      return {
+        caseId: nextDeadline.case_id,
+        label: `${nextDeadline.case.case_number ? nextDeadline.case.case_number + ' – ' : ''}${nextDeadline.case.title}`,
+        hearingWhen: nextHearing && nextHearing.case_id === nextDeadline.case_id ? whenLabel(nextHearing.scheduled_at) : null,
+        reason: t('dash.focus.reasonDue', { title: nextDeadline.title }),
+      };
+    }
+    if (nextHearing?.case) {
+      return {
+        caseId: nextHearing.case_id,
+        label: `${nextHearing.case.case_number ? nextHearing.case.case_number + ' – ' : ''}${nextHearing.case.title}`,
+        hearingWhen: whenLabel(nextHearing.scheduled_at),
+        reason: t('dash.focus.reasonHearing'),
+      };
+    }
+    return null;
+  }, [nextDeadline, nextHearing, whenLabel, t]);
+
+  // Suggested step heuristic
+  const suggestion = useMemo(() => {
+    if (nextDeadline) return { value: t('dash.assist.sugDeadline'), right: nextDeadline.title };
+    if (nextHearing) return { value: t('dash.assist.sugHearing'), right: nextHearing.case?.title ?? nextHearing.title };
+    return { value: t('dash.assist.sugCalendar'), right: t('tab.calendar') };
+  }, [nextDeadline, nextHearing, t]);
+
+  // Finance summary: this month vs last month (+ net cash flow)
+  const fin = useMemo(() => {
+    const entries = finance.data ?? [];
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const inMonth = (dateStr: string, year: number, month: number) => {
+      const d = new Date(dateStr);
+      return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
+    };
+    const prevY = m === 0 ? y - 1 : y;
+    const prevM = m === 0 ? 11 : m - 1;
+    let income = 0;
+    let expense = 0;
+    let prevIncome = 0;
+    let prevExpense = 0;
+    const incomeSeries: number[] = new Array(8).fill(0);
+    const expenseSeries: number[] = new Array(8).fill(0);
+    entries.forEach((e) => {
+      const amount = Number(e.amount) || 0;
+      if (inMonth(e.entry_date, y, m)) {
+        const day = new Date(e.entry_date).getDate();
+        const bucket = Math.min(7, Math.floor((day - 1) / 4));
+        if (e.kind === 'income') {
+          income += amount;
+          incomeSeries[bucket] = (incomeSeries[bucket] ?? 0) + amount;
+        } else {
+          expense += amount;
+          expenseSeries[bucket] = (expenseSeries[bucket] ?? 0) + amount;
+        }
+      } else if (inMonth(e.entry_date, prevY, prevM)) {
+        if (e.kind === 'income') prevIncome += amount;
+        else prevExpense += amount;
       }
     });
-    deadlines.data?.forEach((dl) => {
-      const d = new Date(dl.due_at);
-      if (!dl.is_completed && isToday(d)) {
-        items.push({
-          id: dl.id,
-          kind: 'deadline',
-          time: d,
-          title: dl.title,
-          sub: dl.case?.title ?? '',
-          location: null,
-          caseId: dl.case_id,
-        });
-      }
-    });
-    return items.sort((a, b) => a.time.getTime() - b.time.getTime());
-  }, [hearings.data, deadlines.data]);
-
-  const question = getTodayQuestion(now);
-
-  const rankMedal = (idx: number): { icon: keyof typeof Ionicons.glyphMap; color: string; label: string } => {
-    const map: Array<{ icon: keyof typeof Ionicons.glyphMap; color: string; label: string }> = [
-      { icon: 'diamond', color: '#3EC7F5', label: 'Elmas' },
-      { icon: 'medal', color: colors.gold, label: 'Altın' },
-      { icon: 'ribbon', color: '#9CA3AF', label: 'Gümüş' },
-      { icon: 'trophy', color: '#8B5CF6', label: 'Taç' },
-    ];
-    return map[idx] ?? map[3]!;
-  };
+    const pct = (cur: number, prev: number) => (prev !== 0 ? Math.round(((cur - prev) / Math.abs(prev)) * 100) : null);
+    const netSeries = incomeSeries.map((v, i) => Math.max(0, v - (expenseSeries[i] ?? 0)));
+    return {
+      income,
+      expense,
+      net: income - expense,
+      incomePct: pct(income, prevIncome),
+      expensePct: pct(expense, prevExpense),
+      netPct: pct(income - expense, prevIncome - prevExpense),
+      incomeSeries,
+      expenseSeries,
+      netSeries,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finance.data]);
 
   return (
     <Screen>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: 96 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl tintColor={colors.textSecondary} refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Header */}
+        {/* ---------- Header ---------- */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Pressable onPress={openSidebar} hitSlop={8}>
               <Ionicons name="menu" size={26} color={colors.textPrimary} />
             </Pressable>
             <View style={styles.brandRow}>
-              <VekilLogo size={30} nodeFill={colors.gold} />
+              <VekilLogo size={28} nodeFill={colors.gold} />
               <Text style={styles.brandText}>Vekil Pro</Text>
             </View>
           </View>
@@ -160,279 +210,380 @@ export default function DashboardScreen() {
               style={styles.bellButton}
             >
               <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
-              {alertCount > 0 && (
+              {criticalCount > 0 && (
                 <View style={styles.bellBadge}>
-                  <Text style={styles.bellBadgeText}>{alertCount > 9 ? '9+' : alertCount}</Text>
+                  <Text style={styles.bellBadgeText}>{criticalCount > 9 ? '9+' : criticalCount}</Text>
                 </View>
               )}
             </Pressable>
+            {unreadTotal > 0 && (
+              <Pressable style={styles.msgPill} onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}>
+                <Ionicons name="chatbox-ellipses-outline" size={15} color={colors.textPrimary} />
+                <Text style={styles.msgPillText}>{t('dash.newMsgs', { n: unreadTotal })}</Text>
+                <View style={styles.msgPillDot} />
+              </Pressable>
+            )}
             <Pressable onPress={() => router.push('/settings')}>
-              <Avatar name={profile?.full_name || t('dash.counselor')} size={44} uri={avatarUrl} premium={profile?.is_premium} />
+              <Avatar name={profile?.full_name || t('dash.counselor')} size={42} uri={avatarUrl} premium={profile?.is_premium} />
             </Pressable>
           </View>
         </View>
 
-        {/* Greeting */}
+        {/* ---------- Greeting ---------- */}
         <Text style={styles.greeting}>
           {t(greetingKey)}, {firstName}
         </Text>
         <Text style={styles.greetingSub}>{t('dash.subline')}</Text>
 
-        {/* Hero — Büronuz cebinizde */}
+        {/* ---------- Günlük Asistan Özeti ---------- */}
         <View style={styles.hero}>
-          <View style={styles.heroBrandRow}>
-            <View style={styles.heroBrandIcon}>
-              <VekilLogo size={17} nodeFill={colors.gold} />
+          <View style={styles.heroHeader}>
+            <View style={styles.heroSparkIcon}>
+              <Ionicons name="sparkles" size={18} color={colors.gold} />
             </View>
-            <Text style={styles.heroBrand}>VEKİL PRO</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heroTitle}>{t('dash.assist.title')}</Text>
+              <Text style={styles.heroUpdated}>{t('dash.assist.updated')}</Text>
+            </View>
           </View>
+
           <View style={styles.heroBody}>
-            <View style={styles.heroTextCol}>
-              <Text style={styles.heroTitle}>{t('hero.title')}</Text>
-              <Text style={styles.heroDesc}>{t('hero.desc')}</Text>
+            <View style={styles.heroRows}>
+              <AssistRow
+                icon="calendar-outline"
+                tint={BLUE}
+                label={t('dash.assist.nextHearing')}
+                value={nextHearing ? whenLabel(nextHearing.scheduled_at) : t('dash.assist.noHearing')}
+                right={nextHearing ? (nextHearing.location || nextHearing.case?.title || nextHearing.title) : ''}
+                onPress={() => router.push('/(app)/calendar')}
+              />
+              <AssistRow
+                icon="warning-outline"
+                tint={AMBER}
+                label={t('dash.assist.urgentDue')}
+                value={nextDeadline ? whenLabel(nextDeadline.due_at) : t('dash.assist.noDue')}
+                right={nextDeadline ? nextDeadline.title : ''}
+                onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
+              />
+              <AssistRow
+                icon="chatbox-ellipses-outline"
+                tint={GREEN}
+                label={t('dash.assist.unread')}
+                value={unreadTotal > 0 ? t('dash.assist.msgs', { n: unreadTotal }) : t('dash.assist.noMsgs')}
+                right={lastConv?.peer.full_name ?? ''}
+                onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}
+              />
+              <AssistRow
+                icon="bulb-outline"
+                tint={colors.gold}
+                label={t('dash.assist.suggestion')}
+                value={suggestion.value}
+                right={suggestion.right}
+                onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
+              />
             </View>
 
-            {/* Vector illustration: app phone mockup + golden scales */}
-            <View style={styles.heroArt}>
+            <View style={styles.heroSide}>
               <View style={styles.heroGlow} />
-              <View style={styles.heroPhone}>
-                <View style={styles.heroPhoneNotch} />
-                <View style={styles.heroPhoneLogoRow}>
-                  <VekilLogo size={16} nodeFill={colors.gold} />
-                  <View style={styles.heroPhoneLogoLine} />
-                </View>
-                <View style={styles.heroMiniCard}>
-                  <View style={styles.heroMiniDot} />
-                  <View style={styles.heroMiniLines}>
-                    <View style={styles.heroLine} />
-                    <View style={[styles.heroLine, styles.heroLineShort]} />
-                  </View>
-                </View>
-                <View style={styles.heroMiniCard}>
-                  <View style={[styles.heroMiniDot, { backgroundColor: 'rgba(62,199,245,0.9)' }]} />
-                  <View style={styles.heroMiniLines}>
-                    <View style={styles.heroLine} />
-                    <View style={[styles.heroLine, styles.heroLineShort]} />
-                  </View>
-                </View>
-                <View style={[styles.heroMiniCard, { opacity: 0.55 }]}>
-                  <View style={[styles.heroMiniDot, { backgroundColor: 'rgba(120,220,150,0.9)' }]} />
-                  <View style={styles.heroMiniLines}>
-                    <View style={styles.heroLine} />
-                  </View>
-                </View>
-              </View>
-              <View style={styles.heroScaleBadge}>
-                <VekilLogo size={26} nodeFill={colors.gold} />
-              </View>
-              <View style={[styles.heroSpark, { top: 0, right: 2 }]} />
-              <View style={[styles.heroSpark, { top: 26, left: -4, width: 5, height: 5, opacity: 0.5 }]} />
-              <View style={[styles.heroSpark, { bottom: 34, right: -4, width: 4, height: 4, opacity: 0.6 }]} />
+              <VekilLogo size={62} nodeFill={colors.gold} />
+              <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
+                <Text style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+                <Ionicons name="arrow-forward" size={15} color={NAVY} />
+              </Pressable>
             </View>
-          </View>
-          <View style={styles.heroFeatures}>
-            <HeroFeature icon="document-text-outline" label={t('hero.f1')} />
-            <HeroFeature icon="chatbubbles-outline" label={t('hero.f2')} />
-            <HeroFeature icon="calendar-outline" label={t('hero.f3')} />
           </View>
         </View>
 
-        {/* Bugünün Programı */}
-        <View style={styles.programCard}>
-          <View style={styles.programHeader}>
-            <View style={styles.programHeaderLeft}>
-              <Ionicons name="calendar-outline" size={19} color={colors.gold} />
-              <Text style={styles.programTitle} numberOfLines={1}>
-                {t('dash.todayProgram')}
-              </Text>
+        {/* ---------- Odak Alanı ---------- */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: colors.goldSoft }]}>
+                <Ionicons name="locate-outline" size={18} color={colors.gold} />
+              </View>
+              <Text style={styles.cardTitle}>{t('dash.focus.title')}</Text>
             </View>
-            <Pressable
-              onPress={() => router.push('/(app)/calendar')}
-              hitSlop={6}
-              style={styles.programHeaderRight}
-            >
-              <Text style={styles.programDate} numberOfLines={2}>
-                {format(now, 'd MMM yyyy, EEEE', { locale: dateLocale })}
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+            <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/(app)/cases')} hitSlop={6}>
+              <Text style={styles.cardHeaderLink}>{t('dash.critical.all')}</Text>
+              <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
             </Pressable>
           </View>
 
-          <View style={styles.programBody}>
-            {todayItems.length === 0 ? (
-              <View style={styles.emptyProgram}>
-                <Ionicons name="cafe-outline" size={22} color={colors.textMuted} />
-                <Text style={styles.emptyProgramText}>{t('dash.noProgramToday')}</Text>
+          {focus ? (
+            <View style={styles.focusRow}>
+              <View style={styles.focusIcon}>
+                <Ionicons name="folder-open" size={26} color={colors.gold} />
               </View>
-            ) : (
-              todayItems.map((item, idx) => (
-                <View key={item.id}>
-                  {idx > 0 && <View style={styles.programDivider} />}
-                  <View style={styles.programSection}>
-                    <View style={styles.programSectionHeader}>
-                      <Ionicons
-                        name={item.kind === 'hearing' ? 'hammer-outline' : 'time-outline'}
-                        size={16}
-                        color={colors.gold}
-                      />
-                      <Text style={styles.programSectionTitle}>
-                        {item.kind === 'hearing' ? t('dash.upcomingHearing') : t('dash.upcomingTask')}
-                      </Text>
-                    </View>
-                    <View style={styles.programItem}>
-                      <View style={styles.programTimeCol}>
-                        <Text style={styles.programTime}>{format(item.time, 'HH:mm')}</Text>
-                        <Text style={styles.programCountdown}>{countdown(item.time, now, lang)}</Text>
-                      </View>
-                      <View style={styles.programItemBody}>
-                        <Text style={styles.programItemTitle} numberOfLines={1}>
-                          {item.title}
-                        </Text>
-                        {item.sub && (
-                          <Text style={styles.programItemSub} numberOfLines={1}>
-                            {item.sub}
-                          </Text>
-                        )}
-                        {item.location && (
-                          <View style={styles.programLocationRow}>
-                            <Ionicons name="location-outline" size={12} color={colors.textMuted} />
-                            <Text style={styles.programLocation}>{item.location}</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Pressable
-                        onPress={() => router.push(`/(app)/cases/${item.caseId}`)}
-                        style={styles.programTag}
-                      >
-                        <Text style={styles.programTagText}>
-                          {item.kind === 'hearing' ? t('cal.hearing') : t('cal.deadline')}
-                        </Text>
-                      </Pressable>
-                      <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
-                    </View>
+              <View style={styles.focusBody}>
+                <View style={styles.focusTitleRow}>
+                  <Text style={styles.focusTitle} numberOfLines={1}>
+                    {focus.label}
+                  </Text>
+                  <View style={styles.focusBadge}>
+                    <Text style={styles.focusBadgeText}>{t('dash.focus.high')}</Text>
                   </View>
                 </View>
-              ))
-            )}
+                {focus.hearingWhen && (
+                  <View style={styles.focusMetaRow}>
+                    <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
+                    <Text style={styles.focusMeta}>
+                      {t('cal.hearing')}: {focus.hearingWhen}
+                    </Text>
+                  </View>
+                )}
+                <Text style={styles.focusReason} numberOfLines={2}>
+                  {focus.reason}
+                </Text>
+                <Pressable style={styles.focusButton} onPress={() => router.push(`/(app)/cases/${focus.caseId}`)}>
+                  <Text style={styles.focusButtonText}>{t('dash.focus.details')}</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.emptyRow}>
+              <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
+              <Text style={styles.emptyRowText}>{t('dash.focus.empty')}</Text>
+            </View>
+          )}
+        </View>
 
-            <Pressable style={styles.programFooter} onPress={() => router.push('/(app)/calendar')}>
-              <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-              <Text style={styles.programFooterText}>{t('dash.allCalendar')}</Text>
-              <View style={{ flex: 1 }} />
-              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        {/* ---------- Müvekkil ve İletişim Özeti ---------- */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: colors.infoSoft }]}>
+                <Ionicons name="people-outline" size={18} color={colors.info} />
+              </View>
+              <Text style={styles.cardTitle}>{t('dash.comm.title')}</Text>
+            </View>
+            <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])} hitSlop={6}>
+              <Text style={styles.cardHeaderLink}>{t('dash.critical.all')}</Text>
+              <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
             </Pressable>
           </View>
-        </View>
 
-        {/* Günün Davası */}
-        <View style={styles.dailyCard}>
-          <View style={styles.dailyHeader}>
-            <View style={styles.dailyStar}>
-              <Ionicons name="star" size={22} color={colors.gold} />
-            </View>
-            <View style={styles.dailyHeaderBody}>
-              <Text style={styles.dailyTitle} numberOfLines={1}>{t('daily.title')}</Text>
-              <Text style={styles.dailySub} numberOfLines={1}>{t('daily.subtitle')}</Text>
-            </View>
-            <View style={styles.pointsBox}>
-              <View style={styles.pointsBoxHeader}>
-                <Ionicons name="trophy" size={11} color={colors.gold} />
-                <Text style={styles.pointsBoxLabel}>{t('daily.todayReward')}</Text>
+          {lastConv ? (
+            <View style={styles.commRow}>
+              <View style={styles.commCell}>
+                <Text style={styles.commLabel}>{t('dash.comm.unread')}</Text>
+                <Text style={styles.commValue}>{t('dash.comm.msgs', { n: unreadTotal })}</Text>
+                <Pressable onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}>
+                  <Text style={styles.commLink}>{t('dash.comm.see')} →</Text>
+                </Pressable>
               </View>
-              <Text style={styles.pointsBoxValue}>+100 P</Text>
-            </View>
-          </View>
-
-          <View style={styles.questionInner}>
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.gold} style={styles.questionMark} />
-            <Text style={styles.questionText}>{question.body}</Text>
-            <View style={styles.questionMeta}>
-              <View style={styles.questionMetaCell}>
-                <Ionicons name="create-outline" size={13} color="rgba(255,255,255,0.75)" />
-                <Text style={styles.questionMetaText} numberOfLines={2}>{t('daily.metaLeft')}</Text>
-              </View>
-              <View style={styles.questionMetaCell}>
-                <Ionicons name="star" size={13} color={colors.gold} />
-                <Text style={styles.questionMetaText} numberOfLines={2}>{t('daily.metaRight')}</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.leaderHeader}>
-            <Ionicons name="podium-outline" size={16} color={colors.gold} />
-            <Text style={styles.leaderTitle}>{t('daily.topAnswerers')}</Text>
-          </View>
-          <View style={styles.leaderGrid}>
-            {[0, 1, 2, 3].map((i) => {
-              const entry = leaderboard.data?.[i];
-              const medal = rankMedal(i);
-              return (
-                <View key={i} style={styles.leaderCell}>
-                  <View style={styles.rankBadge}>
-                    <Text style={styles.rankBadgeText}>{i + 1}</Text>
-                  </View>
-                  <View style={[styles.medalIcon, { backgroundColor: `${medal.color}22` }]}>
-                    <Ionicons name={medal.icon} size={22} color={medal.color} />
-                  </View>
-                  <Text style={styles.leaderName} numberOfLines={2}>
-                    {entry?.profile?.full_name
-                      ? `Av. ${entry.profile.full_name.split(' ').slice(0, 2).join(' ')}`
-                      : '—'}
-                  </Text>
-                  <Text style={styles.leaderPoints}>
-                    {entry ? `${entry.points.toLocaleString('tr-TR')} P` : '0 P'}
-                  </Text>
-                  <View style={[styles.medalTag, { backgroundColor: `${medal.color}22` }]}>
-                    <Text style={[styles.medalTagText, { color: medal.color }]}>{medal.label}</Text>
+              <View style={styles.finDivider} />
+              <View style={[styles.commCell, { flex: 1.4 }]}>
+                <Text style={styles.commLabel}>{t('dash.comm.last')}</Text>
+                <View style={styles.commPeerRow}>
+                  <Avatar name={lastConv.peer.full_name} size={30} premium={lastConv.peer.is_premium} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.commPeerName} numberOfLines={1}>
+                      {lastConv.peer.full_name}
+                    </Text>
+                    <Text style={styles.commPeerTime}>{whenLabel(lastConv.lastMessage.created_at)}</Text>
                   </View>
                 </View>
-              );
-            })}
-          </View>
-
-          <Pressable
-            style={styles.answerButton}
-            onPress={() => router.push('/daily-question' as Parameters<typeof router.push>[0])}
-          >
-            <Ionicons name="pencil" size={17} color="#FFFFFF" />
-            <Text style={styles.answerButtonText}>{myAnswer.data ? t('daily.seeAnswer') : t('daily.answer')}</Text>
-            <Ionicons name="chevron-forward" size={17} color="#FFFFFF" style={{ marginLeft: 'auto' }} />
-          </Pressable>
+                <Text style={styles.commPreview} numberOfLines={1}>
+                  {lastConv.lastMessage.body}
+                </Text>
+              </View>
+              <View style={styles.finDivider} />
+              <View style={styles.commCell}>
+                <Text style={styles.commLabel}>{t('dash.comm.quick')}</Text>
+                <View style={styles.commQuickRow}>
+                  <Pressable style={styles.commQuickBtn} onPress={() => router.push('/(app)/clients')}>
+                    <Ionicons name="call-outline" size={18} color={colors.info} />
+                  </Pressable>
+                  <Pressable
+                    style={styles.commQuickBtn}
+                    onPress={() => router.push(`/chat/${lastConv.peer.id}` as Parameters<typeof router.push>[0])}
+                  >
+                    <Ionicons name="chatbubble-outline" size={18} color={colors.info} />
+                  </Pressable>
+                </View>
+                <View style={styles.commQuickLabels}>
+                  <Text style={styles.commQuickLabel}>{t('dash.comm.call')}</Text>
+                  <Text style={styles.commQuickLabel}>{t('dash.comm.msg')}</Text>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.emptyRow}>
+              <Ionicons name="chatbubbles-outline" size={20} color={colors.textMuted} />
+              <Text style={styles.emptyRowText}>{t('dash.comm.empty')}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Tevkil Panosu reklam */}
-        <Pressable
-          style={styles.tevkilAd}
-          onPress={() => router.push('/jobs' as Parameters<typeof router.push>[0])}
-        >
+        {/* ---------- Finansal Özet ---------- */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: colors.goldSoft }]}>
+                <Ionicons name="stats-chart-outline" size={18} color={colors.gold} />
+              </View>
+              <Text style={styles.cardTitle}>{t('dash.fin.title')}</Text>
+            </View>
+            <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/finance' as Parameters<typeof router.push>[0])} hitSlop={6}>
+              <Text style={styles.cardHeaderLink}>{t('dash.fin.month')}</Text>
+              <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
+            </Pressable>
+          </View>
+
+          <View style={styles.finRow}>
+            <FinCell label={t('dash.fin.income')} amount={fin.income} pct={fin.incomePct} positiveIsGood series={fin.incomeSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
+            <View style={styles.finDivider} />
+            <FinCell label={t('dash.fin.expense')} amount={fin.expense} pct={fin.expensePct} positiveIsGood={false} series={fin.expenseSeries} barColor={colors.danger} vsLabel={t('dash.fin.vs')} />
+            <View style={styles.finDivider} />
+            <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={colors.gold} vsLabel={t('dash.fin.vs')} />
+          </View>
+        </View>
+
+        {/* ---------- Tevkil Panosu banner ---------- */}
+        <Pressable style={styles.tevkilAd} onPress={() => router.push('/jobs' as Parameters<typeof router.push>[0])}>
+          <View style={styles.tevkilArt}>
+            <VekilLogo size={30} nodeFill={colors.gold} />
+          </View>
           <View style={styles.tevkilBody}>
-            <View style={styles.tevkilChip}>
-              <Text style={styles.tevkilChipText}>{t('dash.bannerNew')}</Text>
-            </View>
             <Text style={styles.tevkilTitle}>{t('dash.tevkilTitle')}</Text>
             <Text style={styles.tevkilDesc}>{t('dash.tevkilDesc')}</Text>
-            <View style={styles.tevkilCta}>
-              <Text style={styles.tevkilCtaText}>{t('dash.tevkilCta')}</Text>
-              <Ionicons name="arrow-forward" size={14} color={colors.gold} />
-            </View>
           </View>
-          <View style={styles.tevkilArt}>
-            <Ionicons name="swap-horizontal" size={38} color={colors.gold} />
-          </View>
+          <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
         </Pressable>
       </ScrollView>
+
+      {/* ---------- Bottom bar ---------- */}
+      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <BottomTab icon="home" label={t('tab.dashboard')} active onPress={() => {}} />
+        <BottomTab icon="chatbubble-outline" label={t('tab.messages')} badge={unreadTotal} onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])} />
+        <BottomTab icon="calendar-outline" label={t('tab.calendar')} onPress={() => router.push('/(app)/calendar')} />
+        <BottomTab icon="folder-outline" label={t('tab.files')} onPress={() => router.push('/(app)/documents')} />
+        <BottomTab icon="ellipsis-horizontal" label={t('tab.more')} onPress={openSidebar} />
+      </View>
     </Screen>
   );
 }
 
-function HeroFeature({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
+function AssistRow({
+  icon,
+  tint,
+  label,
+  value,
+  right,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tint: string;
+  label: string;
+  value: string;
+  right: string;
+  onPress: () => void;
+}) {
   const __t = useTheme();
   const styles = makeStyles(__t.colors);
   return (
-    <View style={styles.heroFeature}>
-      <Ionicons name={icon} size={16} color={__t.colors.gold} />
-      <Text style={styles.heroFeatureText}>{label}</Text>
+    <Pressable style={styles.assistRow} onPress={onPress}>
+      <View style={[styles.assistIcon, { backgroundColor: `${tint}22` }]}>
+        <Ionicons name={icon} size={16} color={tint} />
+      </View>
+      <View style={styles.assistBody}>
+        <Text style={styles.assistLabel} numberOfLines={1}>
+          {label}
+        </Text>
+        <Text style={styles.assistValue} numberOfLines={1}>
+          {value}
+        </Text>
+      </View>
+      {!!right && (
+        <Text style={styles.assistRight} numberOfLines={2}>
+          {right}
+        </Text>
+      )}
+      <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.45)" />
+    </Pressable>
+  );
+}
+
+function FinCell({
+  label,
+  amount,
+  pct,
+  positiveIsGood,
+  series,
+  barColor,
+  vsLabel,
+}: {
+  label: string;
+  amount: number;
+  pct: number | null;
+  positiveIsGood: boolean;
+  series: number[];
+  barColor: string;
+  vsLabel: string;
+}) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+  const max = Math.max(...series, 1);
+  const good = pct == null ? true : positiveIsGood ? pct >= 0 : pct <= 0;
+  return (
+    <View style={styles.finCell}>
+      <Text style={styles.finLabel} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={styles.finAmount} numberOfLines={1} adjustsFontSizeToFit>
+        {formatMoney(amount)}
+      </Text>
+      <View style={styles.finSpark}>
+        {series.map((v, i) => (
+          <View
+            key={i}
+            style={[styles.finBar, { height: 3 + Math.round((v / max) * 20), backgroundColor: v > 0 ? barColor : colors.borderSubtle }]}
+          />
+        ))}
+      </View>
+      {pct != null && (
+        <View style={styles.finPctRow}>
+          <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? colors.success : colors.danger} />
+          <Text style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={1}>
+            %{Math.abs(pct)} {vsLabel}
+          </Text>
+        </View>
+      )}
     </View>
+  );
+}
+
+function BottomTab({
+  icon,
+  label,
+  active,
+  badge,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  active?: boolean;
+  badge?: number;
+  onPress: () => void;
+}) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+  return (
+    <Pressable style={styles.bottomTab} onPress={onPress}>
+      <View style={[styles.bottomTabIconWrap, active && styles.bottomTabActive]}>
+        <Ionicons name={icon} size={21} color={active ? colors.gold : colors.textMuted} />
+        {!!badge && badge > 0 && (
+          <View style={styles.bottomTabBadge}>
+            <Text style={styles.bottomTabBadgeText}>{badge > 9 ? '9+' : badge}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={[styles.bottomTabLabel, active && { color: colors.gold, fontWeight: '800' }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -451,7 +602,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
+    flexShrink: 1,
   },
   brandRow: {
     flexDirection: 'row',
@@ -459,7 +611,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
   },
   brandText: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.5,
@@ -467,7 +619,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   bellButton: {
     padding: 4,
@@ -476,20 +628,42 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.gold,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.danger,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     borderWidth: 2,
     borderColor: colors.bg,
   },
   bellBadgeText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
+  },
+  msgPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  msgPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  msgPillDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.gold,
   },
   greeting: {
     fontSize: 28,
@@ -505,180 +679,115 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 2,
     marginBottom: spacing.md,
   },
-  // Hero
+  // Hero — Günlük Asistan
   hero: {
     marginHorizontal: spacing.lg,
     backgroundColor: NAVY,
-    borderRadius: 20,
-    padding: spacing.lg,
+    borderRadius: 22,
+    padding: spacing.md,
   },
-  heroBrandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: spacing.md,
-  },
-  heroBrandIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: 'rgba(201,162,75,0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroBrand: {
-    color: colors.gold,
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 2,
-  },
-  heroBody: {
+  heroHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  heroTextCol: {
-    flex: 1,
-  },
-  heroTitle: {
-    color: colors.gold,
-    fontSize: 26,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  heroDesc: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: spacing.sm,
-  },
-  // Hero illustration (vector phone + scales)
-  heroArt: {
-    width: 104,
-    height: 132,
+  heroSparkIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(201,162,75,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  heroUpdated: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 11.5,
+    marginTop: 1,
+  },
+  heroBody: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  heroRows: {
+    flex: 1,
+    gap: 7,
+  },
+  assistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: NAVY_ALT,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 13,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+  },
+  assistIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assistBody: {
+    flex: 1.1,
+  },
+  assistLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10.5,
+    fontWeight: '600',
+  },
+  assistValue: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 1,
+  },
+  assistRight: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 11,
+    lineHeight: 14,
+    textAlign: 'right',
+  },
+  heroSide: {
+    width: 86,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    paddingTop: 4,
   },
   heroGlow: {
     position: 'absolute',
-    width: 118,
-    height: 118,
-    borderRadius: 59,
+    top: 6,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
     backgroundColor: 'rgba(201,162,75,0.13)',
   },
-  heroPhone: {
-    width: 66,
-    height: 118,
-    borderRadius: 14,
-    backgroundColor: NAVY_ALT,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.22)',
-    paddingHorizontal: 6,
-    paddingTop: 10,
+  heroCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 5,
-    transform: [{ rotate: '6deg' }],
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    backgroundColor: colors.gold,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  heroPhoneNotch: {
-    position: 'absolute',
-    top: 4,
-    alignSelf: 'center',
-    width: 16,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.28)',
+  heroCtaText: {
+    color: NAVY,
+    fontSize: 12.5,
+    fontWeight: '800',
   },
-  heroPhoneLogoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 2,
-  },
-  heroPhoneLogoLine: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(201,162,75,0.55)',
-  },
-  heroMiniCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 6,
-    padding: 4,
-  },
-  heroMiniDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(201,162,75,0.9)',
-  },
-  heroMiniLines: {
-    flex: 1,
-    gap: 3,
-  },
-  heroLine: {
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.45)',
-  },
-  heroLineShort: {
-    width: '60%',
-    backgroundColor: 'rgba(255,255,255,0.25)',
-  },
-  heroScaleBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 44,
-    height: 44,
-    borderRadius: 15,
-    backgroundColor: NAVY,
-    borderWidth: 1.5,
-    borderColor: 'rgba(201,162,75,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#C9A24B',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 7,
-  },
-  heroSpark: {
-    position: 'absolute',
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: 'rgba(201,162,75,0.8)',
-  },
-  heroFeatures: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: spacing.md,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-  },
-  heroFeature: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 4,
-  },
-  heroFeatureText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 15,
-    flexShrink: 1,
-  },
-  // Program
-  programCard: {
+  // Generic card
+  card: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
     backgroundColor: colors.surface,
@@ -687,385 +796,320 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 20,
     padding: spacing.md,
   },
-  programHeader: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
-  programHeaderLeft: {
+  cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     flexShrink: 1,
-    marginRight: spacing.sm,
   },
-  programHeaderRight: {
+  cardHeaderIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    fontSize: 16.5,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  cardHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    flexShrink: 1,
-    maxWidth: '45%',
+    gap: 2,
   },
-  programTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '800',
-    flexShrink: 1,
-  },
-  programDate: {
+  cardHeaderLink: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 11,
-    lineHeight: 14,
-    textAlign: 'right',
-    flexShrink: 1,
+    fontWeight: '700',
   },
-  programBody: {
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: 14,
-    padding: spacing.sm,
-  },
-  programSection: {
-    paddingVertical: 4,
-  },
-  programSectionHeader: {
+  emptyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
+    gap: 8,
+    paddingVertical: spacing.sm,
   },
-  programSectionTitle: {
+  emptyRowText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  // Odak Alanı
+  focusRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  focusIcon: {
+    width: 62,
+    height: 62,
+    borderRadius: 16,
+    backgroundColor: colors.goldSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  focusBody: {
+    flex: 1,
+  },
+  focusTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  focusTitle: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  focusBadge: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  focusBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: colors.danger,
+  },
+  focusMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 5,
+  },
+  focusMeta: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  focusReason: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 19,
+    marginTop: 4,
+  },
+  focusButton: {
+    alignSelf: 'flex-start',
+    borderWidth: 1.5,
+    borderColor: colors.gold,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginTop: spacing.sm,
+  },
+  focusButtonText: {
+    color: colors.gold,
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  // İletişim özeti
+  commRow: {
+    flexDirection: 'row',
+  },
+  commCell: {
+    flex: 1,
+  },
+  commLabel: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    marginBottom: 5,
+  },
+  commValue: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  commLink: {
+    ...typography.small,
+    color: colors.info,
+    fontWeight: '800',
+    marginTop: 6,
+  },
+  commPeerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  commPeerName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  commPeerTime: {
+    fontSize: 10.5,
+    color: colors.textMuted,
+  },
+  commPreview: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: 5,
+  },
+  commQuickRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  commQuickBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.infoSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commQuickLabels: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 3,
+  },
+  commQuickLabel: {
+    width: 38,
+    textAlign: 'center',
+    fontSize: 10,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  // Finance
+  finRow: {
+    flexDirection: 'row',
+  },
+  finCell: {
+    flex: 1,
+    paddingHorizontal: 2,
+  },
+  finDivider: {
+    width: 1,
+    backgroundColor: colors.borderSubtle,
+    marginHorizontal: spacing.xs,
+  },
+  finLabel: {
     ...typography.small,
     color: colors.textSecondary,
     fontWeight: '700',
   },
-  programItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  programTimeCol: {
-    alignItems: 'center',
-    minWidth: 62,
-  },
-  programTime: {
-    fontSize: 22,
+  finAmount: {
+    fontSize: 19,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.5,
-  },
-  programCountdown: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '700',
-  },
-  programItemBody: {
-    flex: 1,
-  },
-  programItemTitle: {
-    ...typography.bodyMedium,
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
-  programItemSub: {
-    ...typography.small,
-    color: colors.textSecondary,
-    marginTop: 1,
-  },
-  programLocationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
     marginTop: 2,
   },
-  programLocation: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
-  programTag: {
-    backgroundColor: colors.successSoft,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  programTagText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.success,
-  },
-  programDivider: {
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
-    marginVertical: 6,
-  },
-  programFooter: {
+  finSpark: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingTop: spacing.sm,
-    marginTop: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
+    alignItems: 'flex-end',
+    gap: 2,
+    height: 24,
+    marginTop: 7,
   },
-  programFooterText: {
-    ...typography.caption,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  emptyProgram: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    gap: 6,
-  },
-  emptyProgramText: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  // Günün Davası
-  dailyCard: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    backgroundColor: NAVY,
-    borderRadius: 20,
-    padding: spacing.md,
-  },
-  dailyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  dailyStar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(201,162,75,0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(201,162,75,0.35)',
-  },
-  dailyHeaderBody: {
+  finBar: {
     flex: 1,
-    marginRight: spacing.xs,
+    borderRadius: 2,
+    opacity: 0.85,
   },
-  dailyTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  dailySub: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    marginTop: 1,
-  },
-  pointsBox: {
-    backgroundColor: 'rgba(201,162,75,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(201,162,75,0.3)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  pointsBoxHeader: {
+  finPctRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 2,
+    marginTop: 5,
   },
-  pointsBoxLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: 'rgba(201,162,75,0.9)',
-  },
-  pointsBoxValue: {
-    color: colors.gold,
-    fontSize: 15,
-    fontWeight: '800',
-    marginTop: 1,
-  },
-  questionInner: {
-    backgroundColor: NAVY_ALT,
-    borderRadius: 14,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  questionMark: {
-    marginBottom: 6,
-  },
-  questionText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '600',
-  },
-  questionMeta: {
-    flexDirection: 'row',
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    gap: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-  },
-  questionMetaCell: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 5,
-  },
-  questionMetaText: {
-    flex: 1,
-    fontSize: 11,
-    lineHeight: 15,
-    color: 'rgba(255,255,255,0.75)',
-  },
-  leaderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: spacing.sm,
-  },
-  leaderTitle: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  leaderGrid: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: spacing.sm,
-  },
-  leaderCell: {
-    flex: 1,
-    backgroundColor: NAVY_ALT,
-    borderRadius: 12,
-    padding: 8,
-    alignItems: 'center',
-    minHeight: 128,
-  },
-  rankBadge: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rankBadgeText: {
-    color: '#FFFFFF',
+  finPct: {
     fontSize: 10,
     fontWeight: '800',
+    flexShrink: 1,
   },
-  medalIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  leaderName: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  leaderPoints: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  medalTag: {
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  medalTagText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  answerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.gold,
-    borderRadius: 14,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 14,
-  },
-  answerButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  // Tevkil ad
+  // Tevkil banner
   tevkilAd: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
     padding: spacing.md,
-    backgroundColor: NAVY_ALT,
+    backgroundColor: NAVY,
     borderWidth: 1,
-    borderColor: 'rgba(201,162,75,0.2)',
+    borderColor: 'rgba(201,162,75,0.25)',
     borderRadius: 20,
+  },
+  tevkilArt: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(201,162,75,0.13)',
+    borderWidth: 1,
+    borderColor: 'rgba(201,162,75,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tevkilBody: {
     flex: 1,
-    paddingRight: spacing.sm,
-  },
-  tevkilChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(201,162,75,0.2)',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginBottom: 6,
-  },
-  tevkilChipText: {
-    color: colors.gold,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
   },
   tevkilTitle: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 16.5,
     fontWeight: '800',
   },
   tevkilDesc: {
-    color: 'rgba(255,255,255,0.75)',
+    color: 'rgba(255,255,255,0.72)',
     fontSize: 12,
     lineHeight: 17,
     marginTop: 3,
   },
-  tevkilCta: {
+  // Bottom bar
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+    paddingTop: 8,
+    paddingHorizontal: 6,
+  },
+  bottomTab: {
+    flex: 1,
     alignItems: 'center',
-    gap: 5,
-    marginTop: spacing.sm,
+    gap: 3,
   },
-  tevkilCtaText: {
-    color: colors.gold,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  tevkilArt: {
-    width: 68,
-    height: 68,
-    borderRadius: 20,
-    backgroundColor: 'rgba(201,162,75,0.12)',
+  bottomTabIconWrap: {
+    width: 44,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  bottomTabActive: {
+    backgroundColor: colors.goldSoft,
+  },
+  bottomTabBadge: {
+    position: 'absolute',
+    top: -4,
+    right: 2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  bottomTabBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  bottomTabLabel: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: colors.textMuted,
   },
 });

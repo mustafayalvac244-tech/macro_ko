@@ -15,7 +15,7 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 
-type CalcTab = 'interest' | 'fee' | 'smm' | 'severance';
+type CalcTab = 'aaut' | 'interest' | 'fee' | 'smm' | 'severance';
 
 function parseAmount(v: string): number {
   const n = Number(v.replace(/\./g, '').replace(',', '.'));
@@ -27,7 +27,7 @@ export default function CalculatorsScreen() {
   const styles = makeStyles(__t.colors);
 
   const t = useT();
-  const [tab, setTab] = useState<CalcTab>('interest');
+  const [tab, setTab] = useState<CalcTab>('aaut');
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
@@ -36,6 +36,7 @@ export default function CalculatorsScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <SegmentedControl
             options={[
+              { value: 'aaut', label: t('calc.tabAaut') },
               { value: 'interest', label: t('calc.tabInterest') },
               { value: 'fee', label: t('calc.tabFee') },
               { value: 'smm', label: t('calc.tabSmm') },
@@ -45,6 +46,7 @@ export default function CalculatorsScreen() {
             onChange={setTab}
           />
           <View style={styles.spacer} />
+          {tab === 'aaut' && <AautCalc />}
           {tab === 'interest' && <InterestCalc />}
           {tab === 'fee' && <CourtFeeCalc />}
           {tab === 'smm' && <SmmCalc />}
@@ -72,6 +74,101 @@ function Disclaimer({ text }: { text: string }) {
   const __t = useTheme();
   const styles = makeStyles(__t.colors);
   return <Text style={styles.disclaimer}>{text}</Text>;
+}
+
+/* ---------------- Vekalet Ücreti (AAÜT) ---------------- */
+
+// AAÜT konusu para olan davalarda kademeli nispi tarife dilimleri.
+// Oranlar tarifenin standart yüzdeleridir; dilim tutarları her yıl
+// güncellenen tarifeye göre ayarlanabilir olsun diye burada tutulur.
+const AAUT_BRACKETS: Array<{ upTo: number; rate: number }> = [
+  { upTo: 400_000, rate: 0.16 },
+  { upTo: 800_000, rate: 0.15 },
+  { upTo: 1_600_000, rate: 0.14 },
+  { upTo: 2_800_000, rate: 0.11 },
+  { upTo: 4_400_000, rate: 0.08 },
+  { upTo: 6_400_000, rate: 0.05 },
+  { upTo: 8_800_000, rate: 0.03 },
+  { upTo: 11_600_000, rate: 0.02 },
+  { upTo: Infinity, rate: 0.01 },
+];
+
+function AautCalc() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+  const t = useT();
+
+  const [amountText, setAmountText] = useState('');
+  const [minFeeText, setMinFeeText] = useState('30000');
+
+  const amount = parseAmount(amountText);
+  const minFee = parseAmount(minFeeText);
+
+  const result = useMemo(() => {
+    if (amount <= 0) return null;
+    let remaining = amount;
+    let prevCap = 0;
+    let fee = 0;
+    const rows: Array<{ label: string; portion: number; rate: number; fee: number }> = [];
+    for (const b of AAUT_BRACKETS) {
+      const bandSize = b.upTo - prevCap;
+      const portion = Math.min(remaining, bandSize);
+      if (portion <= 0) break;
+      const bandFee = portion * b.rate;
+      fee += bandFee;
+      rows.push({
+        label: b.upTo === Infinity ? '+' : formatMoney(b.upTo),
+        portion,
+        rate: b.rate,
+        fee: bandFee,
+      });
+      remaining -= portion;
+      prevCap = b.upTo;
+    }
+    const applied = Math.max(fee, minFee);
+    return { fee, applied, usedMinimum: minFee > fee, rows };
+  }, [amount, minFee]);
+
+  return (
+    <Card>
+      <Text style={styles.calcTitle}>{t('calc.aaut.title')}</Text>
+      <Text style={styles.calcDesc}>{t('calc.aaut.desc')}</Text>
+
+      <Input
+        label={t('calc.aaut.amount')}
+        icon="cash-outline"
+        keyboardType="numeric"
+        placeholder="500.000"
+        value={amountText}
+        onChangeText={setAmountText}
+      />
+      <Input
+        label={t('calc.aaut.minFee')}
+        icon="shield-outline"
+        keyboardType="numeric"
+        value={minFeeText}
+        onChangeText={setMinFeeText}
+      />
+
+      {result && (
+        <View style={styles.resultCard}>
+          {result.rows.map((r, i) => (
+            <ResultRow
+              key={i}
+              label={`%${Math.round(r.rate * 100)} · ${formatMoney(r.portion)}`}
+              value={formatMoney(r.fee)}
+            />
+          ))}
+          <ResultRow label={t('calc.aaut.computed')} value={formatMoney(result.fee)} />
+          <ResultRow label={t('calc.aaut.result')} value={formatMoney(result.applied)} strong />
+          {result.usedMinimum && <Text style={styles.calcDesc}>{t('calc.aaut.minApplied')}</Text>}
+        </View>
+      )}
+
+      <Disclaimer text={t('calc.aaut.disclaimer')} />
+    </Card>
+  );
 }
 
 /* ---------------- Faiz ---------------- */
@@ -311,6 +408,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
+  },
+  calcTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  calcDesc: {
+    ...typography.small,
+    color: colors.textSecondary,
+    lineHeight: 16,
+    marginBottom: spacing.sm,
   },
   spacer: {
     height: spacing.md,
