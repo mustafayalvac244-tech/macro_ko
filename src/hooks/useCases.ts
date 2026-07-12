@@ -77,6 +77,7 @@ export type CaseInput = Pick<
   | 'decision_date'
   | 'decision_served_date'
   | 'advance_amount'
+  | 'stage_note'
   | 'fee_type'
   | 'fee_percent'
   | 'fee_advance'

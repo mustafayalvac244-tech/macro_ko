@@ -354,4 +354,7 @@ drop policy if exists "case_installments own" on case_installments;
 create policy "case_installments own" on case_installments
   for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
+-- ---------- 0020: Durum açıklaması ----------
+alter table cases add column if not exists stage_note text;
+
 -- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.

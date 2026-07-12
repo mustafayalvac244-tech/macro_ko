@@ -66,6 +66,7 @@ export interface Case {
   decision_number: string | null;
   decision_date: string | null;
   decision_served_date: string | null;
+  stage_note: string | null;
   description: string | null;
   opened_date: string;
   closed_date: string | null;

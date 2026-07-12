@@ -47,11 +47,16 @@ export default function CaseDetailScreen() {
   const updateCase = useUpdateCase();
   const createDeadline = useCreateDeadline();
   const [decisionNo, setDecisionNo] = useState('');
+  const [stageNote, setStageNote] = useState('');
   const [datePicker, setDatePicker] = useState<null | 'decision' | 'served'>(null);
 
   useEffect(() => {
     setDecisionNo(caseItem?.decision_number ?? '');
   }, [caseItem?.decision_number]);
+
+  useEffect(() => {
+    setStageNote(caseItem?.stage_note ?? '');
+  }, [caseItem?.stage_note]);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
   const expenses = useCaseExpenses(id);
@@ -245,6 +250,21 @@ export default function CaseDetailScreen() {
               }}
             />
           )}
+
+          {/* Aşama açıklaması (kısa yardım) */}
+          <Text style={styles.stageDesc}>{t('case.stageHelp')}</Text>
+
+          {/* Serbest durum açıklaması */}
+          <Input
+            label={t('case.stageNote')}
+            placeholder={t('case.stageNotePh')}
+            value={stageNote}
+            onChangeText={setStageNote}
+            onEndEditing={() => saveCase({ stage_note: stageNote.trim() || null })}
+            multiline
+            numberOfLines={3}
+            style={styles.stageNoteInput}
+          />
 
           <Button
             label={t('case.araKarar')}
@@ -694,6 +714,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textMuted,
     marginTop: 6,
     lineHeight: 15,
+  },
+  stageDesc: {
+    ...typography.small,
+    color: colors.textMuted,
+    lineHeight: 16,
+    marginTop: spacing.sm,
+  },
+  stageNoteInput: {
+    height: 78,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+    marginTop: spacing.sm,
   },
   stageAra: {
     marginTop: spacing.sm,
