@@ -86,6 +86,8 @@ export default function RootLayout() {
             <Stack.Screen name="deadline-wizard" options={{ headerShown: false }} />
             <Stack.Screen name="calculators" options={{ headerShown: false }} />
             <Stack.Screen name="constitution" options={{ headerShown: false }} />
+            <Stack.Screen name="laws" options={{ headerShown: false }} />
+            <Stack.Screen name="law/[slug]" options={{ headerShown: false }} />
             <Stack.Screen name="daily-question" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="chat/index" options={{ headerShown: false }} />
             <Stack.Screen name="chat/office" options={{ headerShown: false }} />

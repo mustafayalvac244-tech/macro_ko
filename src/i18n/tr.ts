@@ -931,6 +931,18 @@ export const tr = {
     'Şu an deneme modundasınız: ödeme akışını uçtan uca test edebilirsiniz, gerçek para çekilmez. Gerçek tahsilat için Stripe anahtarı eklendiğinde bu ekran otomatik olarak gerçek ödemeye geçer.',
 
   // Anayasa
+  'laws.title': 'Mevzuat',
+  'laws.subtitle': 'Kanunlar — çevrimdışı, madde arama',
+  'laws.offline': 'Tüm metinler cihazda; internetsiz aç, ara.',
+  'laws.offlineShort': 'çevrimdışı',
+  'laws.count': '{n} madde',
+  'laws.searchPlaceholder': 'Madde no (ör. 125) veya kelime ara...',
+  'laws.results': '{n} madde',
+  'laws.articleN': 'Madde {no}',
+  'laws.empty': 'Sonuç bulunamadı',
+  'laws.emptyDesc': 'Madde numarası veya farklı bir kelime deneyin.',
+  'laws.notFound': 'Kanun bulunamadı.',
+  'laws.disclaimer': 'Bilgilendirme amaçlıdır; güncel ve resmî metin için mevzuat.gov.tr esas alınmalıdır.',
   'const.title': 'Anayasa',
   'const.short': 'Anayasa',
   'const.searchPlaceholder': 'Madde no (ör. 36) veya kelime yazın...',

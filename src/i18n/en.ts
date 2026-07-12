@@ -928,6 +928,18 @@ export const en: Record<keyof typeof tr, string> = {
     'You are in test mode: the payment flow is fully testable, no real money is charged. Once a Stripe key is added, this screen switches to real payments automatically.',
 
   // Constitution
+  'laws.title': 'Legislation',
+  'laws.subtitle': 'Codes — offline, article search',
+  'laws.offline': 'All texts on-device; open and search offline.',
+  'laws.offlineShort': 'offline',
+  'laws.count': '{n} articles',
+  'laws.searchPlaceholder': 'Article no (e.g. 125) or keyword...',
+  'laws.results': '{n} articles',
+  'laws.articleN': 'Article {no}',
+  'laws.empty': 'No results',
+  'laws.emptyDesc': 'Try an article number or a different word.',
+  'laws.notFound': 'Code not found.',
+  'laws.disclaimer': 'For reference only; the official current text at mevzuat.gov.tr prevails.',
   'const.title': 'Constitution',
   'const.short': 'Constitution',
   'const.searchPlaceholder': 'Type an article no (e.g. 36) or a keyword...',
