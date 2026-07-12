@@ -37,7 +37,11 @@ export function useClient(id: string | undefined) {
   });
 }
 
-export type ClientInput = Pick<Client, 'full_name' | 'company' | 'email' | 'phone' | 'address' | 'notes'>;
+export type ClientInput = Pick<
+  Client, 'full_name' | 'company' | 'email' | 'phone' | 'address' | 'notes'
+  | 'title'
+  | 'client_type'
+>;
 
 export function useCreateClient() {
   const queryClient = useQueryClient();

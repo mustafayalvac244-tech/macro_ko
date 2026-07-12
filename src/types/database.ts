@@ -1,6 +1,7 @@
 export type InstanceStage = 'ilk_derece' | 'istinaf' | 'temyiz';
 export type FirstInstancePhase = 'dilekceler' | 'on_inceleme' | 'tahkikat' | 'bilirkisi_kesif' | 'karar';
 export type ClosedResult = 'kabul' | 'ret' | 'kismen_kabul' | 'diger';
+export type CourtCategory = 'hukuk' | 'ceza' | 'idare';
 export type CaseStatus = 'active' | 'pending' | 'on_hold' | 'closed' | 'won' | 'lost';
 export type PriorityLevel = 'low' | 'medium' | 'high' | 'critical';
 export type HearingType = 'hearing' | 'trial' | 'mediation' | 'deposition' | 'filing' | 'meeting' | 'other';
@@ -29,11 +30,14 @@ export interface Profile {
   updated_at: string;
 }
 
+export type ClientType = 'gercek' | 'tuzel';
+
 export interface Client {
   id: string;
   owner_id: string;
   full_name: string;
   title: string | null;
+  client_type: ClientType | null;
   company: string | null;
   email: string | null;
   phone: string | null;
@@ -50,6 +54,7 @@ export interface Case {
   title: string;
   case_number: string | null;
   court_name: string | null;
+  court_category: CourtCategory | null;
   case_type: string | null;
   status: CaseStatus;
   priority: PriorityLevel;

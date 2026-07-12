@@ -6,6 +6,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useClient, useCreateClient, useUpdateClient } from '@/hooks/useClients';
 import { useCases } from '@/hooks/useCases';
 import { useT } from '@/i18n';
@@ -24,8 +25,9 @@ export default function ClientFormScreen() {
   const updateClient = useUpdateClient();
 
   const [fullName, setFullName] = useState('');
-  const [company, setCompany] = useState('');
+  const [company] = useState('');
   const [title, setTitle] = useState('');
+  const [clientType, setClientType] = useState<'gercek' | 'tuzel'>('gercek');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -34,8 +36,8 @@ export default function ClientFormScreen() {
   useEffect(() => {
     if (existingClient) {
       setFullName(existingClient.full_name);
-      setCompany(existingClient.company ?? '');
       setTitle(existingClient.title ?? '');
+      setClientType((existingClient.client_type as 'gercek' | 'tuzel') ?? 'gercek');
       setEmail(existingClient.email ?? '');
       setPhone(existingClient.phone ?? '');
       setAddress(existingClient.address ?? '');
@@ -58,6 +60,7 @@ export default function ClientFormScreen() {
       full_name: fullName.trim(),
       company: company.trim() || null,
       title: title.trim() || null,
+      client_type: clientType,
       email: email.trim() || null,
       phone: phone.trim() || null,
       address: address.trim() || null,
@@ -77,7 +80,23 @@ export default function ClientFormScreen() {
       <ScreenHeader title={isEdit ? t('clientForm.editTitle') : t('clientForm.newTitle')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Input label={t('clientForm.fullName')} placeholder={t('clientForm.fullNamePlaceholder')} value={fullName} onChangeText={setFullName} />
+          <Text style={[styles.typeLabel, { color: colors.textSecondary }]}>{t('clientForm.type')}</Text>
+          <SegmentedControl
+            scrollable={false}
+            options={[
+              { value: 'gercek', label: t('clientForm.person') },
+              { value: 'tuzel', label: t('clientForm.entity') },
+            ]}
+            value={clientType}
+            onChange={(v) => setClientType(v as 'gercek' | 'tuzel')}
+          />
+          <View style={{ height: spacing.md }} />
+          <Input
+            label={clientType === 'tuzel' ? t('clientForm.entityName') : t('clientForm.fullName')}
+            placeholder={clientType === 'tuzel' ? t('clientForm.entityNamePh') : t('clientForm.fullNamePlaceholder')}
+            value={fullName}
+            onChangeText={setFullName}
+          />
           {conflictCase && (
             <View
               style={[
@@ -91,8 +110,9 @@ export default function ClientFormScreen() {
               </Text>
             </View>
           )}
-          <Input label={t('clientForm.title')} placeholder={t('clientForm.titlePlaceholder')} value={title} onChangeText={setTitle} />
-          <Input label={t('clientForm.company')} placeholder={t('clientForm.companyPlaceholder')} value={company} onChangeText={setCompany} />
+          {clientType === 'gercek' && (
+            <Input label={t('clientForm.title')} placeholder={t('clientForm.titlePlaceholder')} value={title} onChangeText={setTitle} />
+          )}
           <Input
             label={t('clientForm.email')}
             autoCapitalize="none"
@@ -133,6 +153,10 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
+  },
+  typeLabel: {
+    ...typography.caption,
+    marginBottom: spacing.xs,
   },
   textArea: {
     height: 80,

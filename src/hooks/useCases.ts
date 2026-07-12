@@ -67,6 +67,7 @@ export type CaseInput = Pick<
   | 'client_id'
   | 'case_number'
   | 'court_name'
+  | 'court_category'
   | 'case_type'
   | 'opposing_counsel'
   | 'instance_stage'

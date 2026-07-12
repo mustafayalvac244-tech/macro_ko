@@ -85,18 +85,10 @@ export default function DocumentVaultScreen() {
         )}
         ListEmptyComponent={
           !isLoading ? (
-            <EmptyState
-              icon="folder-open-outline"
-              title={t('docs.empty')}
-              description={t('docs.emptyDesc')}
-              actionLabel={t('docs.uploadDoc')}
-              onAction={() => router.push('/document-upload')}
-            />
+            <EmptyState icon="folder-open-outline" title={t('docs.empty')} description={t('docs.emptyDesc')} />
           ) : null
         }
       />
-
-      <FAB icon="cloud-upload-outline" onPress={() => router.push('/document-upload')} />
     </Screen>
   );
 }

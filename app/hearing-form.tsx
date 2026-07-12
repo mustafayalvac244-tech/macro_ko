@@ -48,6 +48,10 @@ export default function HearingFormScreen() {
   const [title, setTitle] = useState('');
   const [type, setType] = useState<HearingType>('hearing');
   const [location, setLocation] = useState('');
+  // Toplantı/arabuluculuk lokasyon seçenekleri
+  const [meetingPlace, setMeetingPlace] = useState<'ofis' | 'online' | 'muvekkil_adresi' | 'diger'>('ofis');
+  const [mediationWith, setMediationWith] = useState<'taraf' | 'arabulucu'>('taraf');
+  const [mediationPlace, setMediationPlace] = useState<'ofis' | 'online'>('ofis');
   const [notes, setNotes] = useState('');
   const [scheduledAt, setScheduledAt] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
   const [reminder, setReminder] = useState('1440');
@@ -88,7 +92,12 @@ export default function HearingFormScreen() {
       case_id: caseItem.id,
       title: title.trim(),
       type,
-      location: location.trim() || null,
+      location:
+        type === 'meeting'
+          ? t(`meetPlace.${meetingPlace}` as const) + (meetingPlace === 'muvekkil_adresi' || meetingPlace === 'diger' ? (location.trim() ? ` — ${location.trim()}` : '') : '')
+          : type === 'mediation'
+            ? `${t(`medWith.${mediationWith}` as const)} · ${t(`meetPlace.${mediationPlace}` as const)}`
+            : location.trim() || null,
       scheduled_at: scheduledAt.toISOString(),
       reminder_minutes_before: Number(reminder),
       notes: notes.trim() || null,
@@ -168,7 +177,54 @@ export default function HearingFormScreen() {
           )}
 
           <View style={styles.spacer} />
-          <Input label={t('hearingForm.location')} placeholder={t('hearingForm.locationPlaceholder')} value={location} onChangeText={setLocation} />
+          {type === 'meeting' ? (
+            <>
+              <Text style={styles.label}>{t('meet.place')}</Text>
+              <SegmentedControl
+                scrollable={false}
+                options={[
+                  { value: 'ofis', label: t('meetPlace.ofis') },
+                  { value: 'online', label: t('meetPlace.online') },
+                  { value: 'muvekkil_adresi', label: t('meetPlace.muvekkil_adresi') },
+                  { value: 'diger', label: t('meetPlace.diger') },
+                ]}
+                value={meetingPlace}
+                onChange={(v) => setMeetingPlace(v as typeof meetingPlace)}
+              />
+              {(meetingPlace === 'muvekkil_adresi' || meetingPlace === 'diger') && (
+                <>
+                  <View style={styles.spacer} />
+                  <Input label={t('meet.addr')} placeholder={t('meet.addrPh')} value={location} onChangeText={setLocation} />
+                </>
+              )}
+            </>
+          ) : type === 'mediation' ? (
+            <>
+              <Text style={styles.label}>{t('med.with')}</Text>
+              <SegmentedControl
+                scrollable={false}
+                options={[
+                  { value: 'taraf', label: t('medWith.taraf') },
+                  { value: 'arabulucu', label: t('medWith.arabulucu') },
+                ]}
+                value={mediationWith}
+                onChange={(v) => setMediationWith(v as typeof mediationWith)}
+              />
+              <View style={styles.spacer} />
+              <Text style={styles.label}>{t('meet.place')}</Text>
+              <SegmentedControl
+                scrollable={false}
+                options={[
+                  { value: 'ofis', label: t('meetPlace.ofis') },
+                  { value: 'online', label: t('meetPlace.online') },
+                ]}
+                value={mediationPlace}
+                onChange={(v) => setMediationPlace(v as typeof mediationPlace)}
+              />
+            </>
+          ) : (
+            <Input label={t('hearingForm.location')} placeholder={t('hearingForm.locationPlaceholder')} value={location} onChangeText={setLocation} />
+          )}
 
           <Text style={styles.label}>{t('hearingForm.remind')}</Text>
           <SegmentedControl options={reminderOptions} value={reminder} onChange={setReminder} />

@@ -119,7 +119,6 @@ export function Sidebar() {
     { icon: 'briefcase-outline', label: t('cases.title'), path: '/(app)/cases' },
     { icon: 'people-outline', label: t('clients.title'), path: '/(app)/clients' },
     { icon: 'calendar-outline', label: t('cal.title'), path: '/(app)/calendar' },
-    { icon: 'folder-open-outline', label: t('docs.title'), path: '/(app)/documents' },
   ];
   const networkItems: NavItem[] = [
     { icon: 'chatbubbles-outline', label: t('chat.title'), path: '/chat' },

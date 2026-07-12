@@ -11,12 +11,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { HearingListItem } from '@/components/calendar/HearingListItem';
 import { DeadlineListItem } from '@/components/calendar/DeadlineListItem';
-import { DocumentListItem } from '@/components/documents/DocumentListItem';
 import { Input } from '@/components/ui/Input';
 import { useCase, useDeleteCase, useUpdateCase } from '@/hooks/useCases';
 import { useHearingsForCase } from '@/hooks/useHearings';
 import { useCreateDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
-import { useDocuments } from '@/hooks/useDocuments';
 import { useCaseExpenses, useCreateCaseExpense, useCreatePayment, useDeleteCaseExpense, useDeletePayment, usePaymentsForCase } from '@/hooks/usePayments';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -25,9 +23,9 @@ import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import type { DocumentCategory, FirstInstancePhase, InstanceStage, ClosedResult } from '@/types/database';
+import type { FirstInstancePhase, InstanceStage, ClosedResult } from '@/types/database';
 
-type Tab = 'overview' | 'hearings' | 'deadlines' | 'documents' | 'finance';
+type Tab = 'overview' | 'hearings' | 'deadlines' | 'finance';
 
 export default function CaseDetailScreen() {
   const __t = useTheme();
@@ -41,7 +39,6 @@ export default function CaseDetailScreen() {
   const { data: caseItem, isLoading } = useCase(id);
   const hearings = useHearingsForCase(id);
   const deadlines = useDeadlinesForCase(id);
-  const documents = useDocuments(id);
   const payments = usePaymentsForCase(id);
   const createPayment = useCreatePayment();
   const deletePayment = useDeletePayment();
@@ -206,6 +203,12 @@ export default function CaseDetailScreen() {
                 onChangeText={setDecisionNo}
                 onEndEditing={() => saveCase({ decision_number: decisionNo.trim() || null })}
               />
+              {(!caseItem.decision_number || !caseItem.decision_date) && (
+                <View style={styles.advWarn}>
+                  <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                  <Text style={styles.advWarnText}>{t('case.decisionRequired')}</Text>
+                </View>
+              )}
             </>
           )}
 
@@ -258,7 +261,6 @@ export default function CaseDetailScreen() {
               { label: t('case.tabOverview'), value: 'overview' },
               { label: t('case.tabHearings'), value: 'hearings' },
               { label: t('case.tabDeadlines'), value: 'deadlines' },
-              { label: t('case.tabDocuments'), value: 'documents' },
               { label: t('case.tabFinance'), value: 'finance' },
             ]}
             value={tab}
@@ -319,49 +321,6 @@ export default function CaseDetailScreen() {
                 <EmptyState icon="alert-circle-outline" title={t('case.noDeadlines')} />
               )}
             </Card>
-          </View>
-        )}
-
-        {tab === 'documents' && (
-          <View>
-            <SectionHeader title={t('case.tabDocuments')} actionLabel={t('case.upload')} onAction={() => router.push(`/document-upload?caseId=${caseItem.id}`)} />
-            {documents.data && documents.data.length > 0 ? (
-              (() => {
-                const groups = new Map<DocumentCategory, typeof documents.data>();
-                documents.data!.forEach((doc) => {
-                  const list = groups.get(doc.category) ?? [];
-                  list.push(doc);
-                  groups.set(doc.category, list);
-                });
-                return Array.from(groups.entries()).map(([category, docs]) => (
-                  <View key={category} style={styles.folderGroup}>
-                    <View style={styles.folderHeader}>
-                      <Ionicons name="folder" size={16} color={colors.gold} />
-                      <Text style={styles.folderTitle}>{t(`docCategory.${category}` as const)}</Text>
-                      <Text style={styles.folderCount}>{docs.length}</Text>
-                    </View>
-                    <Card>
-                      {docs.map((doc, index) => (
-                        <View key={doc.id} style={index > 0 ? styles.divider : undefined}>
-                          <DocumentListItem
-                            document={doc}
-                            onPress={() =>
-                              router.push(
-                                `/document-viewer?path=${encodeURIComponent(doc.file_path)}&name=${encodeURIComponent(doc.name)}&mime=${encodeURIComponent(doc.mime_type ?? '')}` as Parameters<typeof router.push>[0]
-                              )
-                            }
-                          />
-                        </View>
-                      ))}
-                    </Card>
-                  </View>
-                ));
-              })()
-            ) : (
-              <Card>
-                <EmptyState icon="folder-open-outline" title={t('case.noDocuments')} />
-              </Card>
-            )}
           </View>
         )}
 

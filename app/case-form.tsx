@@ -45,6 +45,7 @@ export default function CaseFormScreen() {
   const [clientId, setClientId] = useState<string | null>(prefilledClientId ?? null);
   const [caseNumber, setCaseNumber] = useState('');
   const [courtName, setCourtName] = useState('');
+  const [courtCategory, setCourtCategory] = useState<'hukuk' | 'ceza' | 'idare'>('hukuk');
   const [caseType, setCaseType] = useState('');
   const [opposingParty, setOpposingParty] = useState('');
   const [opposingCounsel, setOpposingCounsel] = useState('');
@@ -64,6 +65,7 @@ export default function CaseFormScreen() {
       setClientId(existingCase.client_id);
       setCaseNumber(existingCase.case_number ?? '');
       setCourtName(existingCase.court_name ?? '');
+      setCourtCategory((existingCase.court_category as 'hukuk' | 'ceza' | 'idare') ?? 'hukuk');
       setCaseType(existingCase.case_type ?? '');
       setOpposingParty(existingCase.opposing_party ?? '');
       setOpposingCounsel(existingCase.opposing_counsel ?? '');
@@ -98,12 +100,17 @@ export default function CaseFormScreen() {
     setTitleTouched(true);
     setSubmitError(null);
     if (!title.trim()) return;
+    if (!opposingParty.trim()) {
+      setSubmitError(t('caseForm.opposingRequired'));
+      return;
+    }
 
     const payload = {
       title: title.trim(),
       client_id: clientId,
       case_number: caseNumber.trim() || null,
       court_name: courtName.trim() || null,
+      court_category: courtCategory,
       case_type: caseType.trim() || null,
       opposing_party: opposingParty.trim() || null,
       opposing_counsel: opposingCounsel.trim() || null,
@@ -194,6 +201,18 @@ export default function CaseFormScreen() {
           <View style={styles.spacer} />
           <Input label={t('caseForm.caseNumber')} placeholder={t('caseForm.caseNumberPlaceholder')} value={caseNumber} onChangeText={setCaseNumber} />
 
+          <Text style={styles.label}>{t('caseForm.courtCategory')}</Text>
+          <SegmentedControl
+            scrollable={false}
+            options={[
+              { value: 'hukuk', label: t('court.hukuk') },
+              { value: 'ceza', label: t('court.ceza') },
+              { value: 'idare', label: t('court.idare') },
+            ]}
+            value={courtCategory}
+            onChange={(v) => setCourtCategory(v as 'hukuk' | 'ceza' | 'idare')}
+          />
+          <View style={styles.spacer} />
           <SuggestInput
             label={t('caseForm.court')}
             placeholder={t('caseForm.courtPlaceholder')}
@@ -210,7 +229,7 @@ export default function CaseFormScreen() {
             suggestions={caseTypeSuggestions[lang]}
           />
 
-          <Input label={t('caseForm.opposingParty')} placeholder={t('caseForm.opposingPartyPlaceholder')} value={opposingParty} onChangeText={setOpposingParty} />
+          <Input label={t('caseForm.opposingPartyReq')} placeholder={t('caseForm.opposingPartyPlaceholder')} value={opposingParty} onChangeText={(v) => { setOpposingParty(v); if (submitError) setSubmitError(null); }} />
           <Input label={t('caseForm.opposingCounsel')} placeholder={t('caseForm.opposingCounselPlaceholder')} value={opposingCounsel} onChangeText={setOpposingCounsel} />
 
           {conflictClient && (
