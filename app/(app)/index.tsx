@@ -225,6 +225,13 @@ export default function DashboardScreen() {
 
         {/* ---------- Günlük Asistan Özeti ---------- */}
         <View style={styles.hero}>
+          {/* 3D terazi: kartın tüm sağ tarafını kaplayan arka plan görseli */}
+          <Image
+            source={require('../../assets/images/scales-hero.png')}
+            style={styles.heroBg}
+            resizeMode="cover"
+          />
+
           <View style={styles.heroHeader}>
             <View style={styles.heroSparkIcon}>
               <Ionicons name="sparkles" size={18} color={colors.gold} />
@@ -271,22 +278,13 @@ export default function DashboardScreen() {
               onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
             />
             </View>
-
-            {/* Sağ: altın terazi + Güne Başla (mockup) */}
-            <View style={styles.heroSide}>
-              <View style={styles.heroArt}>
-                <Image
-                  source={require('../../assets/images/scales-hero.png')}
-                  style={styles.heroArtImg}
-                  resizeMode="cover"
-                />
-              </View>
-              <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
-                <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-                <Ionicons name="arrow-forward" size={14} color={NAVY} />
-              </Pressable>
-            </View>
           </View>
+
+          {/* Güne Başla: sağ altta, görselin üstünde (mockup) */}
+          <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
+            <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+            <Ionicons name="arrow-forward" size={15} color={NAVY} />
+          </Pressable>
         </View>
 
         {/* ---------- Odak Alanı ---------- */}
@@ -731,7 +729,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: NAVY,
     borderRadius: 22,
     padding: spacing.md,
+    paddingBottom: spacing.md,
     overflow: 'hidden',
+  },
+  heroBg: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: '46%',
   },
   heroHeader: {
     flexDirection: 'row',
@@ -758,16 +764,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 1,
   },
   heroRows: {
-    flex: 1,
+    width: '62%',
     gap: 8,
   },
   assistRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(21,38,72,0.92)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.10)',
     borderRadius: 13,
     paddingHorizontal: 10,
     paddingVertical: 9,
@@ -808,34 +814,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   heroBody: {
     flexDirection: 'row',
-    gap: 10,
-  },
-  heroSide: {
-    width: 104,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  heroArt: {
-    flex: 1,
-    alignSelf: 'stretch',
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  heroArtImg: {
-    width: '100%',
-    height: '100%',
   },
   heroCta: {
+    position: 'absolute',
+    right: spacing.md,
+    bottom: spacing.md,
+    width: '31%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    alignSelf: 'stretch',
+    gap: 5,
     backgroundColor: colors.gold,
     borderRadius: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 6,
+    paddingVertical: 12,
   },
   heroCtaText: {
     color: NAVY,
