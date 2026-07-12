@@ -65,8 +65,19 @@ export interface Case {
   opened_date: string;
   closed_date: string | null;
   fee_amount: number | null;
+  advance_amount: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface CaseExpense {
+  id: string;
+  owner_id: string;
+  case_id: string;
+  title: string;
+  amount: number;
+  spent_at: string;
+  created_at: string;
 }
 
 export type JobType = 'tevkil' | 'devir' | 'danisma';

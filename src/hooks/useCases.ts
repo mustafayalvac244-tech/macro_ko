@@ -75,6 +75,7 @@ export type CaseInput = Pick<
   | 'decision_number'
   | 'decision_date'
   | 'decision_served_date'
+  | 'advance_amount'
   | 'status'
   | 'priority'
   | 'opposing_party'

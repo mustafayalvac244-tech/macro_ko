@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
-import type { Payment } from '@/types/database';
+import type { CaseExpense, Payment } from '@/types/database';
 
 export function usePaymentsForCase(caseId: string | undefined) {
   return useQuery({
@@ -63,5 +63,53 @@ export function useDeletePayment() {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payments'] }),
+  });
+}
+
+
+/* ---------------- Masraf avansı defteri ---------------- */
+
+
+export function useCaseExpenses(caseId: string | undefined) {
+  const ownerId = useAuthStore((s) => s.session?.user.id);
+
+  return useQuery({
+    queryKey: ['case-expenses', caseId],
+    enabled: !!ownerId && !!caseId,
+    retry: 1,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('case_expenses')
+        .select('*')
+        .eq('case_id', caseId!)
+        .order('spent_at', { ascending: false });
+      if (error) throw error;
+      return data as CaseExpense[];
+    },
+  });
+}
+
+export function useCreateCaseExpense() {
+  const queryClient = useQueryClient();
+  const ownerId = useAuthStore((s) => s.session?.user.id);
+
+  return useMutation({
+    mutationFn: async (input: { case_id: string; title: string; amount: number }) => {
+      const { error } = await supabase.from('case_expenses').insert({ ...input, owner_id: ownerId! });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['case-expenses'] }),
+  });
+}
+
+export function useDeleteCaseExpense() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('case_expenses').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['case-expenses'] }),
   });
 }

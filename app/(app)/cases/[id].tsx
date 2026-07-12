@@ -17,7 +17,7 @@ import { useCase, useDeleteCase, useUpdateCase } from '@/hooks/useCases';
 import { useHearingsForCase } from '@/hooks/useHearings';
 import { useCreateDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useDocuments } from '@/hooks/useDocuments';
-import { useCreatePayment, useDeletePayment, usePaymentsForCase } from '@/hooks/usePayments';
+import { useCaseExpenses, useCreateCaseExpense, useCreatePayment, useDeleteCaseExpense, useDeletePayment, usePaymentsForCase } from '@/hooks/usePayments';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -57,6 +57,16 @@ export default function CaseDetailScreen() {
   }, [caseItem?.decision_number]);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
+  const expenses = useCaseExpenses(id);
+  const createExpense = useCreateCaseExpense();
+  const deleteExpense = useDeleteCaseExpense();
+  const [advanceText, setAdvanceText] = useState('');
+  const [expenseTitle, setExpenseTitle] = useState('');
+  const [expenseAmount, setExpenseAmount] = useState('');
+
+  useEffect(() => {
+    setAdvanceText(caseItem?.advance_amount != null ? String(caseItem.advance_amount) : '');
+  }, [caseItem?.advance_amount]);
 
   if (isLoading || !caseItem) {
     return (
@@ -415,6 +425,109 @@ export default function CaseDetailScreen() {
               />
             </Card>
 
+            {/* ---------- Masraf Avansı (alıcı geri bildirimi) ---------- */}
+            {(() => {
+              const spent = (expenses.data ?? []).reduce((s, e) => s + Number(e.amount), 0);
+              const advance = Number(caseItem.advance_amount ?? 0);
+              const remaining = advance - spent;
+              return (
+                <>
+                  <SectionHeader title={t('adv.title')} />
+                  <Card>
+                    <View style={styles.financeRow}>
+                      <FinanceStat label={t('adv.advance')} value={formatMoney(advance)} color={colors.textPrimary} />
+                      <FinanceStat label={t('adv.spent')} value={formatMoney(spent)} color={colors.warning} />
+                      <FinanceStat
+                        label={t('adv.remaining')}
+                        value={formatMoney(remaining)}
+                        color={remaining < 0 ? colors.danger : colors.success}
+                      />
+                    </View>
+                    {remaining < 0 && (
+                      <View style={styles.advWarn}>
+                        <Ionicons name="warning" size={16} color={colors.danger} />
+                        <Text style={styles.advWarnText}>{t('adv.negative')}</Text>
+                      </View>
+                    )}
+                    <Input
+                      label={t('adv.advance')}
+                      placeholder="10000"
+                      keyboardType="numeric"
+                      value={advanceText}
+                      onChangeText={setAdvanceText}
+                      onEndEditing={() => {
+                        const n = Number(advanceText.replace(',', '.'));
+                        saveCase({ advance_amount: Number.isFinite(n) && n > 0 ? n : null });
+                      }}
+                    />
+                    <View style={styles.advFormRow}>
+                      <View style={styles.advFormCol}>
+                        <Input
+                          label={t('adv.addTitle')}
+                          placeholder={t('adv.addTitlePh')}
+                          value={expenseTitle}
+                          onChangeText={setExpenseTitle}
+                        />
+                      </View>
+                      <View style={styles.advFormColSm}>
+                        <Input
+                          label={t('finance.amount')}
+                          placeholder="500"
+                          keyboardType="numeric"
+                          value={expenseAmount}
+                          onChangeText={setExpenseAmount}
+                        />
+                      </View>
+                    </View>
+                    <Button
+                      label={t('adv.add')}
+                      icon="remove-circle-outline"
+                      variant="secondary"
+                      loading={createExpense.isPending}
+                      disabled={!expenseTitle.trim() || !(Number(expenseAmount.replace(',', '.')) > 0)}
+                      onPress={async () => {
+                        await createExpense.mutateAsync({
+                          case_id: caseItem.id,
+                          title: expenseTitle.trim(),
+                          amount: Number(expenseAmount.replace(',', '.')),
+                        });
+                        setExpenseTitle('');
+                        setExpenseAmount('');
+                      }}
+                      fullWidth
+                    />
+                    {(expenses.data ?? []).map((e) => (
+                      <View key={e.id} style={styles.divider}>
+                        <View style={styles.paymentRow}>
+                          <View style={[styles.paymentIcon, { backgroundColor: colors.warningSoft }]}>
+                            <Ionicons name="remove-outline" size={16} color={colors.warning} />
+                          </View>
+                          <View style={styles.paymentBody}>
+                            <Text style={styles.paymentAmount}>{e.title}</Text>
+                            <Text style={styles.paymentMeta}>
+                              {formatMoney(Number(e.amount))} · {formatDate(e.spent_at)}
+                            </Text>
+                          </View>
+                          <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color={colors.textMuted}
+                            suppressHighlighting
+                            onPress={() =>
+                              Alert.alert(t('finance.deleteTitle'), t('finance.deleteConfirm'), [
+                                { text: t('common.cancel'), style: 'cancel' },
+                                { text: t('common.delete'), style: 'destructive', onPress: () => deleteExpense.mutate(e.id) },
+                              ])
+                            }
+                          />
+                        </View>
+                      </View>
+                    ))}
+                  </Card>
+                </>
+              );
+            })()}
+
             <SectionHeader title={t('finance.payments')} />
             <Card>
               {payments.data && payments.data.length > 0 ? (
@@ -556,6 +669,32 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   stageAra: {
     marginTop: spacing.sm,
+  },
+  advWarn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 10,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  advWarnText: {
+    ...typography.small,
+    color: colors.danger,
+    flex: 1,
+    lineHeight: 16,
+  },
+  advFormRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  advFormCol: {
+    flex: 1.6,
+  },
+  advFormColSm: {
+    flex: 1,
   },
   tabsWrap: {
     marginBottom: spacing.md,
