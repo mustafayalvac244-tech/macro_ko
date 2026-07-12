@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isTomorrow } from 'date-fns';
@@ -237,11 +237,6 @@ export default function DashboardScreen() {
 
         {/* ---------- Günlük Asistan Özeti ---------- */}
         <View style={styles.hero}>
-          {/* Terazi filigranı: arka planda, satır genişliğini çalmaz */}
-          <View style={styles.heroWatermark} pointerEvents="none">
-            <VekilLogo size={128} nodeFill="rgba(201,162,75,0.22)" />
-          </View>
-
           <View style={styles.heroHeader}>
             <View style={styles.heroSparkIcon}>
               <Ionicons name="sparkles" size={18} color={colors.gold} />
@@ -252,8 +247,9 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          {/* Satırlar tam genişlik */}
-          <View style={styles.heroRows}>
+          <View style={styles.heroBody}>
+            {/* Sol: 4 asistan satırı */}
+            <View style={styles.heroRows}>
             <AssistRow
               icon="calendar-outline"
               tint={BLUE}
@@ -286,13 +282,23 @@ export default function DashboardScreen() {
               right={suggestion.right}
               onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
             />
-          </View>
+            </View>
 
-          {/* Güne Başla tam genişlik */}
-          <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
-            <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-            <Ionicons name="arrow-forward" size={17} color={NAVY} />
-          </Pressable>
+            {/* Sağ: altın terazi + Güne Başla (mockup) */}
+            <View style={styles.heroSide}>
+              <View style={styles.heroArt}>
+                <Image
+                  source={require('../../assets/images/scales-hero.png')}
+                  style={styles.heroArtImg}
+                  resizeMode="cover"
+                />
+              </View>
+              <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
+                <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+                <Ionicons name="arrow-forward" size={14} color={NAVY} />
+              </Pressable>
+            </View>
+          </View>
         </View>
 
         {/* ---------- Odak Alanı ---------- */}
@@ -764,6 +770,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 1,
   },
   heroRows: {
+    flex: 1,
     gap: 8,
   },
   assistRow: {
@@ -811,25 +818,40 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 10.5,
     textAlign: 'right',
   },
-  heroWatermark: {
-    position: 'absolute',
-    top: 12,
-    right: -6,
-    opacity: 1,
+  heroBody: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  heroSide: {
+    width: 104,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroArt: {
+    flex: 1,
+    alignSelf: 'stretch',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  heroArtImg: {
+    width: '100%',
+    height: '100%',
   },
   heroCta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
+    gap: 4,
+    alignSelf: 'stretch',
     backgroundColor: colors.gold,
-    borderRadius: 13,
-    paddingVertical: 12,
-    marginTop: spacing.sm,
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 6,
   },
   heroCtaText: {
     color: NAVY,
-    fontSize: 14,
+    fontSize: 12.5,
     fontWeight: '800',
   },
   // Generic card
