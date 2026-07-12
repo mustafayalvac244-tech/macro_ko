@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isTomorrow } from 'date-fns';
 import { tr as trLocale, enUS } from 'date-fns/locale';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '@/components/ui/Screen';
 import { Avatar } from '@/components/ui/Avatar';
@@ -225,13 +225,6 @@ export default function DashboardScreen() {
 
         {/* ---------- Günlük Asistan Özeti ---------- */}
         <View style={styles.hero}>
-          {/* 3D terazi: kartın tüm sağ tarafını kaplayan arka plan görseli */}
-          <Image
-            source={require('../../assets/images/scales-hero.png')}
-            style={styles.heroBg}
-            resizeMode="cover"
-          />
-
           <View style={styles.heroHeader}>
             <View style={styles.heroSparkIcon}>
               <Ionicons name="sparkles" size={18} color={colors.gold} />
@@ -244,7 +237,7 @@ export default function DashboardScreen() {
 
           <View style={styles.heroBody}>
             {/* Sol: 4 asistan satırı */}
-            <View style={styles.heroRows}>
+            <View style={styles.heroRows} pointerEvents="box-none">
             <AssistRow
               icon="calendar-outline"
               tint={BLUE}
@@ -278,13 +271,18 @@ export default function DashboardScreen() {
               onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
             />
             </View>
-          </View>
 
-          {/* Güne Başla: sağ altta, görselin üstünde (mockup) */}
-          <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
-            <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-            <Ionicons name="arrow-forward" size={15} color={NAVY} />
-          </Pressable>
+            {/* Sağ: temiz vektör terazi + Güne Başla */}
+            <View style={styles.heroSide}>
+              <View style={styles.heroScale}>
+                <MaterialCommunityIcons name="scale-balance" size={62} color={colors.gold} />
+              </View>
+              <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
+                <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+                <Ionicons name="arrow-forward" size={14} color={NAVY} />
+              </Pressable>
+            </View>
+          </View>
         </View>
 
         {/* ---------- Odak Alanı ---------- */}
@@ -732,12 +730,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingBottom: spacing.md,
     overflow: 'hidden',
   },
-  heroBg: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: '46%',
+  heroSide: {
+    width: 96,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroScale: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroHeader: {
     flexDirection: 'row',
@@ -764,16 +765,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 1,
   },
   heroRows: {
-    width: '62%',
+    flex: 1,
     gap: 8,
   },
   assistRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: 'rgba(21,38,72,0.92)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 13,
     paddingHorizontal: 10,
     paddingVertical: 9,
@@ -814,19 +815,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   heroBody: {
     flexDirection: 'row',
+    gap: 10,
   },
   heroCta: {
-    position: 'absolute',
-    right: spacing.md,
-    bottom: spacing.md,
-    width: '31%',
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
     backgroundColor: colors.gold,
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 6,
   },
   heroCtaText: {
     color: NAVY,
