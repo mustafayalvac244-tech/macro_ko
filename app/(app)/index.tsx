@@ -239,7 +239,7 @@ export default function DashboardScreen() {
         <View style={styles.hero}>
           {/* Terazi filigranı: arka planda, satır genişliğini çalmaz */}
           <View style={styles.heroWatermark} pointerEvents="none">
-            <VekilLogo size={150} nodeFill="rgba(201,162,75,0.10)" />
+            <VekilLogo size={128} nodeFill="rgba(201,162,75,0.22)" />
           </View>
 
           <View style={styles.heroHeader}>
@@ -592,12 +592,12 @@ function FinCell({
         {pct != null ? (
           <>
             <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? colors.success : colors.danger} />
-            <Text allowFontScaling={false} style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={1}>
+            <Text allowFontScaling={false} style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={2}>
               %{Math.abs(pct)} {vsLabel}
             </Text>
           </>
         ) : (
-          <Text allowFontScaling={false} style={[styles.finPct, { color: colors.textMuted }]} numberOfLines={1}>
+          <Text allowFontScaling={false} style={[styles.finPct, { color: colors.textMuted }]} numberOfLines={2}>
             %0 {vsLabel}
           </Text>
         )}
@@ -718,14 +718,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.gold,
   },
   greeting: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800',
     color: colors.textPrimary,
     paddingHorizontal: spacing.lg,
     letterSpacing: -0.5,
   },
   greetingSub: {
-    ...typography.caption,
+    fontSize: 12.5,
     color: colors.textSecondary,
     paddingHorizontal: spacing.lg,
     marginTop: 2,
@@ -755,12 +755,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   heroTitle: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
   },
   heroUpdated: {
     color: 'rgba(255,255,255,0.55)',
-    fontSize: 11.5,
+    fontSize: 10.5,
     marginTop: 1,
   },
   heroRows: {
@@ -769,18 +769,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   assistRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 9,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 14,
-    paddingHorizontal: 11,
-    paddingVertical: 11,
+    borderRadius: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   assistIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 9,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -795,27 +795,27 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   assistLabel: {
     color: 'rgba(255,255,255,0.62)',
-    fontSize: 12,
+    fontSize: 10.5,
     fontWeight: '600',
     flexShrink: 0,
   },
   assistValue: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 13.5,
     fontWeight: '800',
-    marginTop: 2,
+    marginTop: 1,
   },
   assistRight: {
     flex: 1,
     color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
+    fontSize: 10.5,
     textAlign: 'right',
   },
   heroWatermark: {
     position: 'absolute',
-    top: -10,
-    right: -18,
-    opacity: 0.9,
+    top: 12,
+    right: -6,
+    opacity: 1,
   },
   heroCta: {
     flexDirection: 'row',
@@ -823,13 +823,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     backgroundColor: colors.gold,
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderRadius: 13,
+    paddingVertical: 12,
     marginTop: spacing.sm,
   },
   heroCtaText: {
     color: NAVY,
-    fontSize: 15.5,
+    fontSize: 14,
     fontWeight: '800',
   },
   // Generic card
@@ -851,18 +851,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
     flexShrink: 1,
+    marginRight: 6,
   },
   cardHeaderIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 16.5,
+    fontSize: 15,
     fontWeight: '800',
     color: colors.textPrimary,
     flexShrink: 1,
@@ -871,9 +872,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
+    flexShrink: 0,
   },
   cardHeaderLink: {
-    ...typography.caption,
+    fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '700',
   },
@@ -912,7 +914,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
   },
   focusTitle: {
-    fontSize: 15.5,
+    fontSize: 14.5,
     fontWeight: '800',
     color: colors.textPrimary,
     flexShrink: 1,
@@ -939,9 +941,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   focusReason: {
-    ...typography.caption,
+    fontSize: 12,
     color: colors.textSecondary,
-    lineHeight: 19,
+    lineHeight: 17,
     marginTop: 4,
   },
   focusButton: {
@@ -971,7 +973,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   commDivider: {
     width: 1,
     backgroundColor: colors.borderSubtle,
-    marginHorizontal: 8,
+    marginHorizontal: 6,
   },
   commIconWrap: {
     width: 44,
@@ -1028,33 +1030,33 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '600',
   },
   commLink: {
-    ...typography.small,
+    fontSize: 10.5,
     color: colors.info,
     fontWeight: '800',
     marginTop: 5,
   },
   commLabel: {
-    ...typography.small,
+    fontSize: 10.5,
     color: colors.textSecondary,
     fontWeight: '700',
     marginBottom: 5,
   },
   commValue: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: colors.textPrimary,
   },
   commPeerName: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '800',
     color: colors.textPrimary,
   },
   commPeerTime: {
-    fontSize: 11.5,
+    fontSize: 10,
     color: colors.textMuted,
   },
   commPreview: {
-    ...typography.small,
+    fontSize: 10.5,
     color: colors.textSecondary,
     marginTop: 5,
   },
@@ -1069,10 +1071,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   finDivider: {
     width: 1,
     backgroundColor: colors.borderSubtle,
-    marginHorizontal: spacing.xs,
+    marginHorizontal: 6,
   },
   finLabel: {
-    ...typography.small,
+    fontSize: 10.5,
     color: colors.textSecondary,
     fontWeight: '700',
   },
@@ -1084,7 +1086,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   finAmount: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 16.5,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.5,
@@ -1093,8 +1095,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 2,
-    height: 22,
-    width: 34,
+    height: 20,
+    width: 28,
   },
   finBar: {
     flex: 1,
@@ -1102,14 +1104,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   finPctRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 2,
     marginTop: 5,
   },
   finPct: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 9,
+    fontWeight: '700',
     flexShrink: 1,
+    lineHeight: 12,
   },
   // Tevkil banner
   tevkilAd: {
