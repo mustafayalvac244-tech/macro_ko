@@ -210,19 +210,7 @@ export default function DashboardScreen() {
               style={styles.bellButton}
             >
               <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
-              {criticalCount > 0 && (
-                <View style={styles.bellBadge}>
-                  <Text allowFontScaling={false} style={styles.bellBadgeText}>{criticalCount > 9 ? '9+' : criticalCount}</Text>
-                </View>
-              )}
             </Pressable>
-            {unreadTotal > 0 && (
-              <Pressable style={styles.msgPill} onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}>
-                <Ionicons name="chatbox-ellipses-outline" size={15} color={colors.textPrimary} />
-                <Text allowFontScaling={false} style={styles.msgPillText}>{t('dash.newMsgs', { n: unreadTotal })}</Text>
-                <View style={styles.msgPillDot} />
-              </Pressable>
-            )}
             <Pressable onPress={() => router.push('/settings')}>
               <Avatar name={profile?.full_name || t('dash.counselor')} size={42} uri={avatarUrl} premium={profile?.is_premium} />
             </Pressable>
