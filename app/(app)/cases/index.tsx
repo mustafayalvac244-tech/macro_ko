@@ -11,17 +11,16 @@ import { FAB } from '@/components/ui/FAB';
 import { useCases } from '@/hooks/useCases';
 import { useT } from '@/i18n';
 import { spacing } from '@/theme/theme';
-import type { CaseStatus } from '@/types/database';
 
-const STATUS_VALUES: (CaseStatus | 'all')[] = ['all', 'active', 'pending', 'on_hold', 'won', 'lost', 'closed'];
+const STATUS_VALUES = ['all', 'open', 'closed'] as const;
 
 export default function CaseDirectoryScreen() {
   const t = useT();
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<CaseStatus | 'all'>('all');
+  const [status, setStatus] = useState<'all' | 'open' | 'closed'>('all');
   const { data: cases, isLoading, refetch, isRefetching } = useCases({ search, status });
 
-  const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(`status.${value}` as const) }));
+  const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(`caseFilter.${value}` as const) }));
 
   return (
     <Screen>
@@ -29,7 +28,7 @@ export default function CaseDirectoryScreen() {
       <View style={styles.filters}>
         <SearchBar value={search} onChangeText={setSearch} placeholder={t('cases.search')} />
         <View style={styles.segmentSpacing}>
-          <SegmentedControl options={statusOptions} value={status} onChange={setStatus} />
+          <SegmentedControl scrollable={false} options={statusOptions} value={status} onChange={setStatus} />
         </View>
       </View>
 

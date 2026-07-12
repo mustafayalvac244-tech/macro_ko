@@ -23,7 +23,7 @@ import { formatDate, formatDateTime } from '@/utils/format';
 import { namesConflict } from '@/utils/nameMatch';
 import type { CaseStatus, PriorityLevel } from '@/types/database';
 
-const STATUS_VALUES: CaseStatus[] = ['active', 'pending', 'on_hold', 'won', 'lost', 'closed'];
+const STATUS_VALUES = ['active', 'closed'] as const; // Açık / Kapalı
 const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
 
 export default function CaseFormScreen() {
@@ -73,7 +73,7 @@ export default function CaseFormScreen() {
       setOpposingParty(existingCase.opposing_party ?? '');
       setOpposingCounsel(existingCase.opposing_counsel ?? '');
       setDescription(existingCase.description ?? '');
-      setStatus(existingCase.status);
+      setStatus(['closed', 'won', 'lost'].includes(existingCase.status) ? 'closed' : 'active');
       setPriority(existingCase.priority);
       setOpenedDate(new Date(existingCase.opened_date));
       setFee(existingCase.fee_amount != null ? String(existingCase.fee_amount) : '');
@@ -85,7 +85,7 @@ export default function CaseFormScreen() {
 
   const isSubmitting = createCase.isPending || updateCase.isPending || createHearing.isPending;
 
-  const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(`status.${value}` as const) }));
+  const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(value === 'active' ? 'caseFilter.open' : 'caseFilter.closed') }));
   const priorityOptions = PRIORITY_VALUES.map((value) => ({ value, label: t(`priority.${value}` as const) }));
 
   const titleError = titleTouched && !title.trim() ? t('caseForm.titleRequired') : null;
@@ -318,7 +318,7 @@ export default function CaseFormScreen() {
 
           <View style={styles.spacer} />
           <Text style={styles.label}>{t('caseForm.status')}</Text>
-          <SegmentedControl options={statusOptions} value={status} onChange={setStatus} />
+          <SegmentedControl scrollable={false} options={statusOptions} value={status} onChange={(v) => setStatus(v as CaseStatus)} />
 
           <View style={styles.spacer} />
           <Text style={styles.label}>{t('caseForm.priority')}</Text>

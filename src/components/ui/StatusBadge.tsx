@@ -10,8 +10,15 @@ export function CaseStatusBadge({ status }: { status: CaseStatus }) {
   const caseStatusColors = __t.caseStatusColors;
 
   const t = useT();
+  const isClosed = status === 'closed' || status === 'won' || status === 'lost';
   const palette = caseStatusColors[status] ?? { fg: colors.textMuted, bg: colors.surfaceHover };
-  return <Badge label={t(`status.${status}` as const)} color={palette.fg} backgroundColor={palette.bg} />;
+  return (
+    <Badge
+      label={t(isClosed ? 'caseFilter.closed' : 'caseFilter.open')}
+      color={palette.fg}
+      backgroundColor={palette.bg}
+    />
+  );
 }
 
 export function PriorityBadge({ priority }: { priority: PriorityLevel }) {

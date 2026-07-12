@@ -7,7 +7,7 @@ const CASE_SELECT = '*, client:clients(id, full_name, company)';
 
 interface CaseFilters {
   search?: string;
-  status?: CaseStatus | 'all';
+  status?: 'all' | 'open' | 'closed';
 }
 
 export function useCases(filters: CaseFilters = {}) {
@@ -23,7 +23,8 @@ export function useCases(filters: CaseFilters = {}) {
         .eq('owner_id', ownerId!)
         .order('updated_at', { ascending: false });
 
-      if (filters.status && filters.status !== 'all') query = query.eq('status', filters.status);
+      if (filters.status === 'open') query = query.in('status', ['active', 'pending', 'on_hold']);
+      else if (filters.status === 'closed') query = query.in('status', ['closed', 'won', 'lost']);
       if (filters.search) query = query.ilike('title', `%${filters.search}%`);
 
       const { data, error } = await query;
