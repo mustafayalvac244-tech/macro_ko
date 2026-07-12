@@ -70,9 +70,25 @@ export interface Case {
   opened_date: string;
   closed_date: string | null;
   fee_amount: number | null;
+  fee_type: FeeType | null;
+  fee_percent: number | null;
+  fee_advance: number | null;
   advance_amount: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export type FeeType = 'percentage' | 'advance_percentage' | 'fixed';
+
+export interface CaseInstallment {
+  id: string;
+  owner_id: string;
+  case_id: string;
+  seq: number;
+  amount: number;
+  due_date: string | null;
+  is_paid: boolean;
+  created_at: string;
 }
 
 export interface CaseExpense {

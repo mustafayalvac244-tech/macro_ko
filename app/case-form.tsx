@@ -54,6 +54,9 @@ export default function CaseFormScreen() {
   const [priority, setPriority] = useState<PriorityLevel>('medium');
   const [openedDate, setOpenedDate] = useState(new Date());
   const [fee, setFee] = useState('');
+  const [feeType, setFeeType] = useState<'percentage' | 'advance_percentage' | 'fixed'>('fixed');
+  const [feePercent, setFeePercent] = useState('');
+  const [feeAdvance, setFeeAdvance] = useState('');
   const [firstHearingAt, setFirstHearingAt] = useState<Date | null>(null);
   const [titleTouched, setTitleTouched] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -74,6 +77,9 @@ export default function CaseFormScreen() {
       setPriority(existingCase.priority);
       setOpenedDate(new Date(existingCase.opened_date));
       setFee(existingCase.fee_amount != null ? String(existingCase.fee_amount) : '');
+      setFeeType((existingCase.fee_type as 'percentage' | 'advance_percentage' | 'fixed') ?? 'fixed');
+      setFeePercent(existingCase.fee_percent != null ? String(existingCase.fee_percent) : '');
+      setFeeAdvance(existingCase.fee_advance != null ? String(existingCase.fee_advance) : '');
     }
   }, [existingCase]);
 
@@ -119,6 +125,9 @@ export default function CaseFormScreen() {
       priority,
       opened_date: format(openedDate, 'yyyy-MM-dd'),
       fee_amount: fee.trim() ? Number(fee.replace(',', '.')) || null : null,
+      fee_type: feeType,
+      fee_percent: feePercent.trim() ? Number(feePercent.replace(',', '.')) || null : null,
+      fee_advance: feeAdvance.trim() ? Number(feeAdvance.replace(',', '.')) || null : null,
     };
 
     try {
@@ -239,13 +248,30 @@ export default function CaseFormScreen() {
             </View>
           )}
 
-          <Input
-            label={t('caseForm.fee')}
-            placeholder={t('caseForm.feePlaceholder')}
-            keyboardType="numeric"
-            value={fee}
-            onChangeText={setFee}
+          <Text style={styles.label}>{t('fee.type')}</Text>
+          <SegmentedControl
+            scrollable={false}
+            options={[
+              { value: 'percentage', label: t('fee.percentage') },
+              { value: 'advance_percentage', label: t('fee.advPercentage') },
+              { value: 'fixed', label: t('fee.fixed') },
+            ]}
+            value={feeType}
+            onChange={(v) => setFeeType(v as 'percentage' | 'advance_percentage' | 'fixed')}
           />
+          <View style={styles.spacer} />
+          {feeType === 'fixed' && (
+            <Input label={t('fee.amount')} placeholder="50000" keyboardType="numeric" value={fee} onChangeText={setFee} />
+          )}
+          {feeType === 'percentage' && (
+            <Input label={t('fee.percent')} placeholder="15" keyboardType="numeric" value={feePercent} onChangeText={setFeePercent} />
+          )}
+          {feeType === 'advance_percentage' && (
+            <>
+              <Input label={t('fee.advance')} placeholder="20000" keyboardType="numeric" value={feeAdvance} onChangeText={setFeeAdvance} />
+              <Input label={t('fee.percent')} placeholder="10" keyboardType="numeric" value={feePercent} onChangeText={setFeePercent} />
+            </>
+          )}
 
           <Text style={styles.label}>{t('caseForm.openedDate')}</Text>
           <Pressable style={styles.dateButton} onPress={() => setShowPicker('opened')}>

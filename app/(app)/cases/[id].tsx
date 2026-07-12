@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/Input';
 import { useCase, useDeleteCase, useUpdateCase } from '@/hooks/useCases';
 import { useHearingsForCase } from '@/hooks/useHearings';
 import { useCreateDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
-import { useCaseExpenses, useCreateCaseExpense, useCreatePayment, useDeleteCaseExpense, useDeletePayment, usePaymentsForCase } from '@/hooks/usePayments';
+import { useCaseExpenses, useCreateCaseExpense, useCreateInstallment, useCreatePayment, useDeleteCaseExpense, useDeleteInstallment, useDeletePayment, useInstallments, usePaymentsForCase, useToggleInstallment } from '@/hooks/usePayments';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -58,6 +58,11 @@ export default function CaseDetailScreen() {
   const createExpense = useCreateCaseExpense();
   const deleteExpense = useDeleteCaseExpense();
   const [advanceText, setAdvanceText] = useState('');
+  const installments = useInstallments(id);
+  const createInstallment = useCreateInstallment();
+  const toggleInstallment = useToggleInstallment();
+  const deleteInstallment = useDeleteInstallment();
+  const [instAmount, setInstAmount] = useState('');
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
 
@@ -326,31 +331,95 @@ export default function CaseDetailScreen() {
 
         {tab === 'finance' && (
           <View>
-            <Card style={styles.financeSummary}>
-              <View style={styles.financeRow}>
-                <FinanceStat
-                  label={t('finance.fee')}
-                  value={caseItem.fee_amount != null ? formatMoney(caseItem.fee_amount) : t('finance.noFee')}
-                  color={colors.textPrimary}
-                />
-                <FinanceStat
-                  label={t('finance.collected')}
-                  value={formatMoney((payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0))}
-                  color={colors.success}
-                />
-                <FinanceStat
-                  label={t('finance.remaining')}
-                  value={
-                    caseItem.fee_amount != null
-                      ? formatMoney(
-                          Math.max(0, Number(caseItem.fee_amount) - (payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0))
-                        )
-                      : '—'
-                  }
-                  color={colors.warning}
-                />
-              </View>
-            </Card>
+            {/* Vekalet ücreti — tipe göre */}
+            {(() => {
+              const collected = (payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
+              const feeType = caseItem.fee_type ?? 'fixed';
+              const feeLabel =
+                feeType === 'percentage'
+                  ? `%${caseItem.fee_percent ?? 0}`
+                  : feeType === 'advance_percentage'
+                    ? `${formatMoney(Number(caseItem.fee_advance ?? 0))} + %${caseItem.fee_percent ?? 0}`
+                    : caseItem.fee_amount != null
+                      ? formatMoney(caseItem.fee_amount)
+                      : t('finance.noFee');
+              const remaining = caseItem.fee_amount != null ? Math.max(0, Number(caseItem.fee_amount) - collected) : null;
+              return (
+                <Card style={styles.financeSummary}>
+                  <View style={styles.feeTypeRow}>
+                    <Ionicons name="briefcase-outline" size={15} color={colors.gold} />
+                    <Text style={styles.feeTypeText}>
+                      {t(`fee.${feeType === 'advance_percentage' ? 'advPercentage' : feeType}` as const)}: {feeLabel}
+                    </Text>
+                  </View>
+                  <View style={styles.financeRow}>
+                    <FinanceStat label={t('finance.collected')} value={formatMoney(collected)} color={colors.success} />
+                    <FinanceStat
+                      label={t('fee.toCollect')}
+                      value={remaining != null ? formatMoney(remaining) : '—'}
+                      color={colors.warning}
+                    />
+                  </View>
+
+                  {/* Sabit ücrette taksit (vade) planı */}
+                  {feeType === 'fixed' && (
+                    <View style={styles.instWrap}>
+                      <Text style={styles.instTitle}>{t('fee.installments')}</Text>
+                      {(installments.data ?? []).map((it) => (
+                        <Pressable
+                          key={it.id}
+                          style={styles.instRow}
+                          onPress={() => toggleInstallment.mutate({ id: it.id, is_paid: !it.is_paid })}
+                        >
+                          <Ionicons
+                            name={it.is_paid ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={20}
+                            color={it.is_paid ? colors.success : colors.textMuted}
+                          />
+                          <Text style={[styles.instText, it.is_paid && styles.instPaid]}>
+                            {t('fee.installmentN', { n: it.seq })}: {formatMoney(Number(it.amount))}
+                            {it.due_date ? ` · ${formatDate(it.due_date)}` : ''}
+                          </Text>
+                          <Ionicons
+                            name="trash-outline"
+                            size={16}
+                            color={colors.textMuted}
+                            suppressHighlighting
+                            onPress={() => deleteInstallment.mutate(it.id)}
+                          />
+                        </Pressable>
+                      ))}
+                      <View style={styles.instAddRow}>
+                        <View style={{ flex: 1 }}>
+                          <Input
+                            label={t('fee.installmentAmount')}
+                            placeholder="10000"
+                            keyboardType="numeric"
+                            value={instAmount}
+                            onChangeText={setInstAmount}
+                          />
+                        </View>
+                        <Button
+                          label={t('fee.addInstallment')}
+                          variant="secondary"
+                          disabled={!(Number(instAmount.replace(',', '.')) > 0)}
+                          onPress={async () => {
+                            await createInstallment.mutateAsync({
+                              case_id: caseItem.id,
+                              seq: (installments.data?.length ?? 0) + 1,
+                              amount: Number(instAmount.replace(',', '.')),
+                              due_date: null,
+                            });
+                            setInstAmount('');
+                          }}
+                          style={styles.instAddBtn}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </Card>
+              );
+            })()}
 
             <Card style={styles.paymentForm}>
               <Input
@@ -628,6 +697,53 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   stageAra: {
     marginTop: spacing.sm,
+  },
+  feeTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.sm,
+  },
+  feeTypeText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  instWrap: {
+    marginTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+    paddingTop: spacing.sm,
+  },
+  instTitle: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '800',
+    marginBottom: spacing.xs,
+  },
+  instRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 7,
+  },
+  instText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  instPaid: {
+    textDecorationLine: 'line-through',
+    color: colors.textMuted,
+  },
+  instAddRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  instAddBtn: {
+    marginBottom: 2,
   },
   advWarn: {
     flexDirection: 'row',
