@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCases } from '@/hooks/useCases';
+import { useClients } from '@/hooks/useClients';
 import { pickDocumentFile, pickImageFile, takePhotoFile, useUploadDocument } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
 import { trError } from '@/lib/authErrors';
@@ -38,9 +39,12 @@ export default function DocumentUploadScreen() {
   const t = useT();
   const { caseId: prefilledCaseId } = useLocalSearchParams<{ caseId?: string }>();
   const { data: cases } = useCases();
+  const { data: clients } = useClients();
   const uploadDocument = useUploadDocument();
 
+  const [ownerMode, setOwnerMode] = useState<'case' | 'client'>('case');
   const [caseId, setCaseId] = useState<string>(prefilledCaseId ?? '');
+  const [clientId, setClientId] = useState<string>('');
   const [category, setCategory] = useState<DocumentCategory>('other');
   const [file, setFile] = useState<{ uri: string; name: string; size: number; mimeType: string | null } | null>(null);
 
@@ -66,7 +70,12 @@ export default function DocumentUploadScreen() {
   const doUpload = async () => {
     if (!file) return;
     try {
-      await uploadDocument.mutateAsync({ file, caseId: caseId || null, category });
+      await uploadDocument.mutateAsync({
+        file,
+        caseId: ownerMode === 'case' ? caseId || null : null,
+        clientId: ownerMode === 'client' ? clientId || null : null,
+        category,
+      });
       router.back();
     } catch (err) {
       Alert.alert(t('upload.failed'), err instanceof Error ? trError(err.message) : t('upload.tryAgain'));
@@ -99,12 +108,37 @@ export default function DocumentUploadScreen() {
     <Screen edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('upload.title')} showBack />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.label}>{t('upload.case')}</Text>
+        <Text style={styles.label}>{t('upload.attachTo')}</Text>
         <SegmentedControl
-          options={[{ label: t('docs.myDocs'), value: '' }, ...(cases ?? []).map((c) => ({ label: c.title, value: c.id }))]}
-          value={caseId}
-          onChange={setCaseId}
+          scrollable={false}
+          options={[
+            { label: t('upload.byCase'), value: 'case' },
+            { label: t('upload.byClient'), value: 'client' },
+          ]}
+          value={ownerMode}
+          onChange={(v) => setOwnerMode(v as 'case' | 'client')}
         />
+
+        <View style={styles.spacer} />
+        {ownerMode === 'case' ? (
+          <>
+            <Text style={styles.label}>{t('upload.case')}</Text>
+            <SegmentedControl
+              options={[{ label: t('docs.myDocs'), value: '' }, ...(cases ?? []).map((c) => ({ label: c.title, value: c.id }))]}
+              value={caseId}
+              onChange={setCaseId}
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.label}>{t('upload.client')}</Text>
+            <SegmentedControl
+              options={[{ label: t('docs.myDocs'), value: '' }, ...(clients ?? []).map((c) => ({ label: c.full_name, value: c.id }))]}
+              value={clientId}
+              onChange={setClientId}
+            />
+          </>
+        )}
 
         <View style={styles.spacer} />
         <Text style={styles.label}>{t('upload.category')}</Text>

@@ -127,7 +127,6 @@ export function Sidebar() {
   ];
   const toolItems: NavItem[] = [
     { icon: 'document-text-outline', label: t('tpl.title'), path: '/templates' },
-    { icon: 'hourglass-outline', label: t('wizard.title'), path: '/deadline-wizard' },
     { icon: 'calculator-outline', label: t('calc.title'), path: '/calculators' },
     { icon: 'book-outline', label: t('const.title'), path: '/constitution' },
   ];

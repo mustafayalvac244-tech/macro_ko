@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -13,9 +13,9 @@ import { HearingListItem } from '@/components/calendar/HearingListItem';
 import { DeadlineListItem } from '@/components/calendar/DeadlineListItem';
 import { DocumentListItem } from '@/components/documents/DocumentListItem';
 import { Input } from '@/components/ui/Input';
-import { useCase, useDeleteCase } from '@/hooks/useCases';
+import { useCase, useDeleteCase, useUpdateCase } from '@/hooks/useCases';
 import { useHearingsForCase } from '@/hooks/useHearings';
-import { useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
+import { useCreateDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useCreatePayment, useDeletePayment, usePaymentsForCase } from '@/hooks/usePayments';
 import { useT } from '@/i18n';
@@ -24,7 +24,8 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
-import type { DocumentCategory } from '@/types/database';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import type { DocumentCategory, FirstInstancePhase, InstanceStage, ClosedResult } from '@/types/database';
 
 type Tab = 'overview' | 'hearings' | 'deadlines' | 'documents' | 'finance';
 
@@ -46,6 +47,14 @@ export default function CaseDetailScreen() {
   const deletePayment = useDeletePayment();
   const updateDeadline = useUpdateDeadline();
   const deleteCase = useDeleteCase();
+  const updateCase = useUpdateCase();
+  const createDeadline = useCreateDeadline();
+  const [decisionNo, setDecisionNo] = useState('');
+  const [datePicker, setDatePicker] = useState<null | 'decision' | 'served'>(null);
+
+  useEffect(() => {
+    setDecisionNo(caseItem?.decision_number ?? '');
+  }, [caseItem?.decision_number]);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
 
@@ -56,6 +65,35 @@ export default function CaseDetailScreen() {
       </Screen>
     );
   }
+
+  const saveCase = (patch: Parameters<typeof updateCase.mutate>[0] extends infer _ ? Record<string, unknown> : never) => {
+    updateCase.mutate({ id: caseItem.id, ...(patch as object) } as never);
+  };
+
+  // Gerekçeli karar tebliğ tarihi girilince istinaf son günü (2 hafta, HMK 345)
+  // takvime otomatik görev olarak eklenir.
+  const handleServedDate = async (picked: Date) => {
+    saveCase({ decision_served_date: picked.toISOString().slice(0, 10) });
+    const already = (deadlines.data ?? []).some((x) => x.title.startsWith(t('case.istinafDeadline')));
+    if (already) return;
+    const due = new Date(picked);
+    due.setDate(due.getDate() + 14);
+    due.setHours(17, 0, 0, 0);
+    try {
+      await createDeadline.mutateAsync({
+        caseTitle: caseItem.title,
+        case_id: caseItem.id,
+        title: t('case.istinafDeadline'),
+        description: t('case.istinafDesc'),
+        due_at: due.toISOString(),
+        priority: 'high',
+        reminder_minutes_before: 24 * 60,
+      });
+      Alert.alert(t('case.stageTitle'), t('case.istinafAdded'));
+    } catch {
+      // takvim görevi eklenemese de tarih kaydedildi
+    }
+  };
 
   const handleDelete = () => {
     Alert.alert(t('case.delete'), t('case.deleteConfirm', { title: caseItem.title }), [
@@ -98,8 +136,110 @@ export default function CaseDetailScreen() {
           {caseItem.court_name && <InfoRow label={t('case.court')} value={caseItem.court_name} />}
           {caseItem.case_type && <InfoRow label={t('case.caseType')} value={caseItem.case_type} />}
           {caseItem.opposing_party && <InfoRow label={t('case.opposingParty')} value={caseItem.opposing_party} />}
+          {caseItem.opposing_counsel && <InfoRow label={t('case.opposingCounsel')} value={caseItem.opposing_counsel} />}
           <InfoRow label={t('case.opened')} value={formatDate(caseItem.opened_date)} />
           {caseItem.closed_date && <InfoRow label={t('case.closed')} value={formatDate(caseItem.closed_date)} />}
+        </Card>
+
+        {/* ---------- Dava Durumu ve Aşama (alıcı geri bildirimi) ---------- */}
+        <Card style={styles.stageCard}>
+          <Text style={styles.sectionLabel}>{t('case.stageTitle')}</Text>
+
+          {caseItem.status !== 'closed' && caseItem.status !== 'won' && caseItem.status !== 'lost' ? (
+            <>
+              <Text style={styles.stageLabel}>{t('case.instance')}</Text>
+              <SegmentedControl
+                scrollable={false}
+                options={[
+                  { value: 'ilk_derece', label: t('inst.ilk_derece') },
+                  { value: 'istinaf', label: t('inst.istinaf') },
+                  { value: 'temyiz', label: t('inst.temyiz') },
+                ]}
+                value={caseItem.instance_stage ?? 'ilk_derece'}
+                onChange={(v) => saveCase({ instance_stage: v as InstanceStage })}
+              />
+              {(caseItem.instance_stage ?? 'ilk_derece') === 'ilk_derece' && (
+                <>
+                  <Text style={styles.stageLabel}>{t('case.phase')}</Text>
+                  <SegmentedControl
+                    options={[
+                      { value: 'dilekceler', label: t('phase.dilekceler') },
+                      { value: 'on_inceleme', label: t('phase.on_inceleme') },
+                      { value: 'tahkikat', label: t('phase.tahkikat') },
+                      { value: 'bilirkisi_kesif', label: t('phase.bilirkisi_kesif') },
+                      { value: 'karar', label: t('phase.karar') },
+                    ]}
+                    value={caseItem.case_stage ?? 'dilekceler'}
+                    onChange={(v) => saveCase({ case_stage: v as FirstInstancePhase })}
+                  />
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={styles.stageLabel}>{t('case.result')}</Text>
+              <SegmentedControl
+                scrollable={false}
+                options={[
+                  { value: 'kabul', label: t('result.kabul') },
+                  { value: 'ret', label: t('result.ret') },
+                  { value: 'kismen_kabul', label: t('result.kismen_kabul') },
+                  { value: 'diger', label: t('result.diger') },
+                ]}
+                value={caseItem.closed_result ?? 'kabul'}
+                onChange={(v) => saveCase({ closed_result: v as ClosedResult })}
+              />
+              <Input
+                label={t('case.decisionNo')}
+                placeholder="2026/123 K."
+                value={decisionNo}
+                onChangeText={setDecisionNo}
+                onEndEditing={() => saveCase({ decision_number: decisionNo.trim() || null })}
+              />
+            </>
+          )}
+
+          <View style={styles.stageDates}>
+            <Pressable style={styles.stageDateBtn} onPress={() => setDatePicker('decision')}>
+              <Ionicons name="calendar-outline" size={15} color={colors.textMuted} />
+              <Text style={styles.stageDateText}>
+                {t('case.decisionDate')}: {caseItem.decision_date ? formatDate(caseItem.decision_date) : '—'}
+              </Text>
+            </Pressable>
+            <Pressable style={styles.stageDateBtn} onPress={() => setDatePicker('served')}>
+              <Ionicons name="calendar-outline" size={15} color={colors.gold} />
+              <Text style={styles.stageDateText}>
+                {t('case.servedDate')}: {caseItem.decision_served_date ? formatDate(caseItem.decision_served_date) : '—'}
+              </Text>
+            </Pressable>
+          </View>
+          <Text style={styles.stageHint}>{t('case.servedHint')}</Text>
+          {datePicker && (
+            <DateTimePicker
+              value={new Date()}
+              mode="date"
+              onChange={(_e, picked) => {
+                const which = datePicker;
+                setDatePicker(null);
+                if (!picked) return;
+                if (which === 'decision') saveCase({ decision_date: picked.toISOString().slice(0, 10) });
+                else handleServedDate(picked);
+              }}
+            />
+          )}
+
+          <Button
+            label={t('case.araKarar')}
+            icon="alarm-outline"
+            variant="secondary"
+            onPress={() =>
+              router.push(
+                `/deadline-form?caseId=${caseItem.id}&title=${encodeURIComponent(t('case.araKararPrefix'))}` as Parameters<typeof router.push>[0]
+              )
+            }
+            fullWidth
+            style={styles.stageAra}
+          />
         </Card>
 
         <View style={styles.tabsWrap}>
@@ -377,6 +517,45 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   infoValueLink: {
     color: colors.primary,
+  },
+  stageCard: {
+    marginTop: spacing.md,
+  },
+  stageLabel: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    marginTop: spacing.sm,
+    marginBottom: 6,
+  },
+  stageDates: {
+    marginTop: spacing.sm,
+    gap: 8,
+  },
+  stageDateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 12,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
+  },
+  stageDateText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  stageHint: {
+    ...typography.small,
+    color: colors.textMuted,
+    marginTop: 6,
+    lineHeight: 15,
+  },
+  stageAra: {
+    marginTop: spacing.sm,
   },
   tabsWrap: {
     marginBottom: spacing.md,

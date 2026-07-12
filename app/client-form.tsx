@@ -25,6 +25,7 @@ export default function ClientFormScreen() {
 
   const [fullName, setFullName] = useState('');
   const [company, setCompany] = useState('');
+  const [title, setTitle] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -34,6 +35,7 @@ export default function ClientFormScreen() {
     if (existingClient) {
       setFullName(existingClient.full_name);
       setCompany(existingClient.company ?? '');
+      setTitle(existingClient.title ?? '');
       setEmail(existingClient.email ?? '');
       setPhone(existingClient.phone ?? '');
       setAddress(existingClient.address ?? '');
@@ -55,6 +57,7 @@ export default function ClientFormScreen() {
     const payload = {
       full_name: fullName.trim(),
       company: company.trim() || null,
+      title: title.trim() || null,
       email: email.trim() || null,
       phone: phone.trim() || null,
       address: address.trim() || null,
@@ -88,6 +91,7 @@ export default function ClientFormScreen() {
               </Text>
             </View>
           )}
+          <Input label={t('clientForm.title')} placeholder={t('clientForm.titlePlaceholder')} value={title} onChangeText={setTitle} />
           <Input label={t('clientForm.company')} placeholder={t('clientForm.companyPlaceholder')} value={company} onChangeText={setCompany} />
           <Input
             label={t('clientForm.email')}

@@ -36,7 +36,7 @@ export default function DeadlineFormScreen() {
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
-  const { caseId, id } = useLocalSearchParams<{ caseId: string; id?: string }>();
+  const { caseId, id, title: titleParam } = useLocalSearchParams<{ caseId: string; id?: string; title?: string }>();
   const isEdit = !!id;
   const { data: caseItem } = useCase(caseId);
   const { data: deadlines } = useDeadlinesForCase(caseId);
@@ -45,7 +45,7 @@ export default function DeadlineFormScreen() {
   const createDeadline = useCreateDeadline();
   const updateDeadline = useUpdateDeadline();
 
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(titleParam ?? '');
   const [description, setDescription] = useState('');
   const [dueAt, setDueAt] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   const [priority, setPriority] = useState<PriorityLevel>('medium');

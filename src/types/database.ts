@@ -1,3 +1,6 @@
+export type InstanceStage = 'ilk_derece' | 'istinaf' | 'temyiz';
+export type FirstInstancePhase = 'dilekceler' | 'on_inceleme' | 'tahkikat' | 'bilirkisi_kesif' | 'karar';
+export type ClosedResult = 'kabul' | 'ret' | 'kismen_kabul' | 'diger';
 export type CaseStatus = 'active' | 'pending' | 'on_hold' | 'closed' | 'won' | 'lost';
 export type PriorityLevel = 'low' | 'medium' | 'high' | 'critical';
 export type HearingType = 'hearing' | 'trial' | 'mediation' | 'deposition' | 'filing' | 'meeting' | 'other';
@@ -30,6 +33,7 @@ export interface Client {
   id: string;
   owner_id: string;
   full_name: string;
+  title: string | null;
   company: string | null;
   email: string | null;
   phone: string | null;
@@ -50,6 +54,13 @@ export interface Case {
   status: CaseStatus;
   priority: PriorityLevel;
   opposing_party: string | null;
+  opposing_counsel: string | null;
+  instance_stage: InstanceStage | null;
+  case_stage: FirstInstancePhase | null;
+  closed_result: ClosedResult | null;
+  decision_number: string | null;
+  decision_date: string | null;
+  decision_served_date: string | null;
   description: string | null;
   opened_date: string;
   closed_date: string | null;
@@ -200,6 +211,7 @@ export interface CaseDocument {
   id: string;
   owner_id: string;
   case_id: string | null;
+  client_id?: string | null;
   name: string;
   category: DocumentCategory;
   file_path: string;

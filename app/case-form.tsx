@@ -47,6 +47,7 @@ export default function CaseFormScreen() {
   const [courtName, setCourtName] = useState('');
   const [caseType, setCaseType] = useState('');
   const [opposingParty, setOpposingParty] = useState('');
+  const [opposingCounsel, setOpposingCounsel] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<CaseStatus>('active');
   const [priority, setPriority] = useState<PriorityLevel>('medium');
@@ -65,6 +66,7 @@ export default function CaseFormScreen() {
       setCourtName(existingCase.court_name ?? '');
       setCaseType(existingCase.case_type ?? '');
       setOpposingParty(existingCase.opposing_party ?? '');
+      setOpposingCounsel(existingCase.opposing_counsel ?? '');
       setDescription(existingCase.description ?? '');
       setStatus(existingCase.status);
       setPriority(existingCase.priority);
@@ -104,6 +106,7 @@ export default function CaseFormScreen() {
       court_name: courtName.trim() || null,
       case_type: caseType.trim() || null,
       opposing_party: opposingParty.trim() || null,
+      opposing_counsel: opposingCounsel.trim() || null,
       description: description.trim() || null,
       status,
       priority,
@@ -208,6 +211,7 @@ export default function CaseFormScreen() {
           />
 
           <Input label={t('caseForm.opposingParty')} placeholder={t('caseForm.opposingPartyPlaceholder')} value={opposingParty} onChangeText={setOpposingParty} />
+          <Input label={t('caseForm.opposingCounsel')} placeholder={t('caseForm.opposingCounselPlaceholder')} value={opposingCounsel} onChangeText={setOpposingCounsel} />
 
           {conflictClient && (
             <View style={styles.warnBox}>

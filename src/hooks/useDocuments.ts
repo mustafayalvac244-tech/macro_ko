@@ -89,6 +89,7 @@ export async function takePhotoFile(): Promise<PickedFile | null> {
 interface UploadDocumentParams {
   file: PickedFile;
   caseId: string | null;
+  clientId?: string | null;
   category: DocumentCategory;
 }
 
@@ -97,7 +98,7 @@ export function useUploadDocument() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
-    mutationFn: async ({ file, caseId, category }: UploadDocumentParams) => {
+    mutationFn: async ({ file, caseId, clientId, category }: UploadDocumentParams) => {
       const bytes = await new File(file.uri).arrayBuffer();
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const path = `${ownerId}/${caseId ?? 'general'}/${Date.now()}-${safeName}`;
@@ -112,6 +113,7 @@ export function useUploadDocument() {
         .insert({
           owner_id: ownerId!,
           case_id: caseId,
+          ...(clientId ? { client_id: clientId } : {}),
           name: file.name,
           category,
           file_path: path,
