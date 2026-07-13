@@ -284,6 +284,7 @@ export const tr = {
   'cal.noItemsDay': 'Bu günde planlanmış işlem yok',
   'cal.noUpcoming': 'Önümüzdeki günlerde planlı işlem yok',
   'cal.addTask': 'Görev',
+  'cal.addMeeting': 'Toplantı',
   'cal.addDuration': 'Süre',
   'cal.allDay': 'Gün boyu',
   'cal.legendMulti': 'Birden fazla işlem',

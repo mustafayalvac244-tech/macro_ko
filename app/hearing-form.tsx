@@ -37,7 +37,7 @@ export default function HearingFormScreen() {
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
-  const { caseId: caseIdParam, id } = useLocalSearchParams<{ caseId?: string; id?: string }>();
+  const { caseId: caseIdParam, id, type: typeParam } = useLocalSearchParams<{ caseId?: string; id?: string; type?: string }>();
   const isEdit = !!id;
   // Takvimden dosya parametresi olmadan açılırsa dosya burada seçilir.
   const [pickedCaseId, setPickedCaseId] = useState<string | null>(null);
@@ -50,7 +50,9 @@ export default function HearingFormScreen() {
   const updateHearing = useUpdateHearing();
 
   const [title, setTitle] = useState('');
-  const [type, setType] = useState<HearingType>('hearing');
+  const [type, setType] = useState<HearingType>(
+    TYPE_VALUES.includes(typeParam as HearingType) ? (typeParam as HearingType) : 'hearing'
+  );
   const [location, setLocation] = useState('');
   // Toplantı/arabuluculuk lokasyon seçenekleri
   const [meetingPlace, setMeetingPlace] = useState<'ofis' | 'online' | 'muvekkil_adresi' | 'diger'>('ofis');

@@ -338,7 +338,7 @@ export default function CalendarScreen() {
   };
 
   return (
-    <Screen>
+    <Screen edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader
         showMenu
         title={t('cal.title')}
@@ -495,8 +495,15 @@ export default function CalendarScreen() {
           style={[styles.quickBtn, { backgroundColor: colors.primarySoft }]}
           onPress={() => router.push('/hearing-form' as Parameters<typeof router.push>[0])}
         >
-          <Ionicons name="add" size={16} color={colors.primary} />
+          <Ionicons name="add" size={15} color={colors.primary} />
           <Text style={[styles.quickBtnText, { color: colors.primary }]}>{t('cal.hearing')}</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.quickBtn, { backgroundColor: colors.infoSoft }]}
+          onPress={() => router.push('/hearing-form?type=meeting' as Parameters<typeof router.push>[0])}
+        >
+          <Ionicons name="people-outline" size={15} color={colors.info} />
+          <Text style={[styles.quickBtnText, { color: colors.info }]}>{t('cal.addMeeting')}</Text>
         </Pressable>
         <Pressable
           style={[styles.quickBtn, { backgroundColor: colors.warningSoft }]}
@@ -679,10 +686,11 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 10,
   },
   timeCol: {
-    width: 52,
+    width: 56,
   },
   timeText: {
     ...typography.caption,
+    fontSize: 11,
     color: colors.textPrimary,
     fontWeight: '700',
   },
@@ -732,12 +740,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
+    gap: 4,
     borderRadius: 14,
-    paddingVertical: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 2,
   },
   quickBtnText: {
-    ...typography.bodyMedium,
+    fontSize: 12.5,
     fontWeight: '700',
   },
 });

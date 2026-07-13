@@ -284,6 +284,7 @@ export const en: Record<keyof typeof tr, string> = {
   'cal.noItemsDay': 'Nothing planned for this day',
   'cal.noUpcoming': 'Nothing planned for the coming days',
   'cal.addTask': 'Task',
+  'cal.addMeeting': 'Meeting',
   'cal.addDuration': 'Deadline',
   'cal.allDay': 'All day',
   'cal.legendMulti': 'Multiple items',
