@@ -21,6 +21,7 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
+import { computeLegalDue } from '@/utils/legalDates';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import type { FirstInstancePhase, InstanceStage, ClosedResult } from '@/types/database';
@@ -87,21 +88,29 @@ export default function CaseDetailScreen() {
     updateCase.mutate({ id: caseItem.id, ...(patch as object) } as never);
   };
 
-  // Gerekçeli karar tebliğ tarihi girilince istinaf son günü (2 hafta, HMK 345)
-  // takvime otomatik görev olarak eklenir.
+  // Gerekçeli karar tebliğ tarihi girilince istinaf son günü takvime otomatik
+  // görev olarak eklenir. Süre mahkeme türüne göre belirlenir (hukuk: 2 hafta
+  // HMK 345; ceza: 7 gün CMK 273; idare: 30 gün İYUK 45) ve adli tatil ile
+  // hafta sonu/resmî tatil uzatmaları uygulanır.
   const handleServedDate = async (picked: Date) => {
     saveCase({ decision_served_date: picked.toISOString().slice(0, 10) });
     const already = (deadlines.data ?? []).some((x) => x.title.startsWith(t('case.istinafDeadline')));
     if (already) return;
-    const due = new Date(picked);
-    due.setDate(due.getDate() + 14);
+    const cfg =
+      caseItem.court_category === 'ceza'
+        ? { amount: 7, unit: 'day' as const, basis: 'CMK 273', rule: 'criminal' as const }
+        : caseItem.court_category === 'idare'
+          ? { amount: 30, unit: 'day' as const, basis: 'İYUK 45', rule: 'civil' as const }
+          : { amount: 2, unit: 'week' as const, basis: 'HMK 345', rule: 'civil' as const };
+    const res = computeLegalDue(picked, cfg.amount, cfg.unit, cfg.rule);
+    const due = new Date(res.due);
     due.setHours(17, 0, 0, 0);
     try {
       await createDeadline.mutateAsync({
         caseTitle: caseItem.title,
         case_id: caseItem.id,
         title: t('case.istinafDeadline'),
-        description: t('case.istinafDesc'),
+        description: `${t('case.istinafDesc')} (${cfg.basis})`,
         due_at: due.toISOString(),
         priority: 'high',
         reminder_minutes_before: 24 * 60,

@@ -746,6 +746,12 @@ export const tr = {
   'wizard.notifiedAt': 'Tebliğ / başlangıç tarihi',
   'wizard.lastDay': 'SON GÜN',
   'wizard.extendedNote': 'Sürenin asıl son günü ({date}) tatile denk geldiği için ilk iş gününe uzatıldı (HMK 93).',
+  'wizard.recessExtendedNote':
+    'Asıl son gün ({date}) adli tatile (20 Temmuz – 31 Ağustos) denk geldi; süre tatil bitiminden itibaren uzatıldı ({rule}).',
+  'wizard.recessRuleCivil': 'HMK 104 — 1 hafta',
+  'wizard.recessRuleCriminal': 'CMK 331 — 3 gün',
+  'wizard.bayramNote':
+    'Son gün dini bayram tatiline denk gelebilir. Dini bayramlar otomatik hesaba katılmaz; resmî takvimden teyit edin.',
   'wizard.recessNote':
     'Son gün adli tatile (20 Temmuz – 31 Ağustos) denk geliyor. Dosyanız adli tatile tabi ise süre, tatilin bitiminden itibaren bir hafta uzar (HMK 104). Kontrol edin.',
   'wizard.disclaimer':
@@ -777,6 +783,12 @@ export const tr = {
   'calc.advanceFee': 'Peşin harç (1/4)',
   'calc.feeDisclaimer':
     'Maktu başvurma harcı ve gider avansı ayrıca ödenir. Oranlar Harçlar Kanunu (1) sayılı tarifeye göredir; güncelliğini teyit edin.',
+  'calc.fromCollect': 'Tahsilattan',
+  'calc.kdvRate': 'KDV oranı',
+  'calc.stopajLabel': 'Stopaj (%20)',
+  'calc.stopajOn': 'Var — kurumsal müvekkil',
+  'calc.stopajOff': 'Yok — bireysel müvekkil',
+  'calc.collectAmount': 'Tahsil edilen tutar (₺)',
   'calc.fromNet': 'Netten',
   'calc.fromGross': 'Brütten',
   'calc.netAmount': 'Elinize geçmesini istediğiniz net (₺)',

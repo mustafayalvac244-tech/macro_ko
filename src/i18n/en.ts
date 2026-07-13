@@ -745,6 +745,12 @@ export const en: Record<keyof typeof tr, string> = {
   'wizard.notifiedAt': 'Notification / start date',
   'wizard.lastDay': 'LAST DAY',
   'wizard.extendedNote': 'The statutory last day ({date}) fell on a holiday, so it rolls to the next business day (CCP 93).',
+  'wizard.recessExtendedNote':
+    'The original last day ({date}) fell within the judicial recess (20 Jul – 31 Aug); the period was extended from the end of the recess ({rule}).',
+  'wizard.recessRuleCivil': 'HMK 104 — 1 week',
+  'wizard.recessRuleCriminal': 'CMK 331 — 3 days',
+  'wizard.bayramNote':
+    'The last day may coincide with a religious holiday. These are not auto-calculated; verify against the official calendar.',
   'wizard.recessNote':
     'The last day falls within the judicial recess (20 Jul – 31 Aug). If your case is subject to the recess, the period extends one week past it (CCP 104). Verify.',
   'wizard.disclaimer':
@@ -776,6 +782,12 @@ export const en: Record<keyof typeof tr, string> = {
   'calc.advanceFee': 'Advance fee (1/4)',
   'calc.feeDisclaimer':
     'The fixed filing fee and expense advance are paid separately. Rates follow Tariff (1) of the Fees Act; verify they are current.',
+  'calc.fromCollect': 'From collected',
+  'calc.kdvRate': 'VAT rate',
+  'calc.stopajLabel': 'Withholding (20%)',
+  'calc.stopajOn': 'Yes — corporate client',
+  'calc.stopajOff': 'No — individual client',
+  'calc.collectAmount': 'Collected amount (₺)',
   'calc.fromNet': 'From net',
   'calc.fromGross': 'From gross',
   'calc.netAmount': 'Desired net amount (₺)',

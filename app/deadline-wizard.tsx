@@ -11,7 +11,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCases } from '@/hooks/useCases';
 import { useCreateDeadline } from '@/hooks/useDeadlines';
 import { LEGAL_DEADLINES, LEGAL_DEADLINE_GROUPS, type LegalDeadlineGroup } from '@/constants/legalDeadlines';
-import { computeLegalDue } from '@/utils/legalDates';
+import { computeLegalDue, recessRuleForGroup } from '@/utils/legalDates';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -46,7 +46,7 @@ export default function DeadlineWizardScreen() {
   const selected = LEGAL_DEADLINES.find((d) => d.id === selectedId) ?? null;
 
   const result = useMemo(
-    () => (selected ? computeLegalDue(notifiedAt, selected.amount, selected.unit) : null),
+    () => (selected ? computeLegalDue(notifiedAt, selected.amount, selected.unit, recessRuleForGroup(selected.group)) : null),
     [selected, notifiedAt]
   );
 
@@ -153,10 +153,21 @@ export default function DeadlineWizardScreen() {
                 </Text>
               </View>
             )}
-            {result.inRecess && (
+            {result.recessExtended && (
+              <View style={styles.noticeRow}>
+                <Ionicons name="information-circle" size={15} color={colors.info} />
+                <Text style={[styles.noticeText, { color: colors.info }]}>
+                  {t('wizard.recessExtendedNote', {
+                    date: formatDate(result.raw.toISOString()),
+                    rule: selected.group === 'ceza' ? t('wizard.recessRuleCriminal') : t('wizard.recessRuleCivil'),
+                  })}
+                </Text>
+              </View>
+            )}
+            {result.religiousWarn && (
               <View style={styles.noticeRow}>
                 <Ionicons name="warning" size={15} color={colors.warning} />
-                <Text style={[styles.noticeText, { color: colors.warning }]}>{t('wizard.recessNote')}</Text>
+                <Text style={[styles.noticeText, { color: colors.warning }]}>{t('wizard.bayramNote')}</Text>
               </View>
             )}
             <Text style={styles.disclaimer}>{t('wizard.disclaimer')}</Text>

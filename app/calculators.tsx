@@ -273,15 +273,23 @@ function CourtFeeCalc() {
 /* ---------------- SMM Makbuzu ---------------- */
 
 function SmmCalc() {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
   const t = useT();
-  const [mode, setMode] = useState<'gross' | 'net'>('net');
+  const [mode, setMode] = useState<'gross' | 'net' | 'collect'>('net');
   const [amount, setAmount] = useState('');
+  const [kdvRate, setKdvRate] = useState<'0.20' | '0.10'>('0.20');
+  // Stopaj yalnızca vergi mükellefi (kurumsal) müvekkilden tahsilatta kesilir;
+  // bireysel müvekkilde stopaj yoktur.
+  const [stopajOn, setStopajOn] = useState(true);
 
   const a = parseAmount(amount);
-  const gross = mode === 'gross' ? a : a / 0.8;
-  const stopaj = gross * 0.2;
+  const k = Number(kdvRate);
+  const s = stopajOn ? 0.2 : 0;
+  const gross = mode === 'gross' ? a : mode === 'net' ? a / (1 - s) : a / (1 + k - s);
+  const stopaj = gross * s;
   const net = gross - stopaj;
-  const kdv = gross * 0.2;
+  const kdv = gross * k;
   const collect = net + kdv;
 
   return (
@@ -291,25 +299,48 @@ function SmmCalc() {
         options={[
           { value: 'net', label: t('calc.fromNet') },
           { value: 'gross', label: t('calc.fromGross') },
+          { value: 'collect', label: t('calc.fromCollect') },
         ]}
         value={mode}
         onChange={setMode}
       />
       <View style={{ height: spacing.md }} />
       <Input
-        label={mode === 'net' ? t('calc.netAmount') : t('calc.grossAmount')}
+        label={mode === 'net' ? t('calc.netAmount') : mode === 'gross' ? t('calc.grossAmount') : t('calc.collectAmount')}
         placeholder="20000"
         value={amount}
         onChangeText={setAmount}
         keyboardType="decimal-pad"
         icon="receipt-outline"
       />
+      <Text style={styles.label}>{t('calc.kdvRate')}</Text>
+      <SegmentedControl
+        scrollable={false}
+        options={[
+          { value: '0.20', label: '%20' },
+          { value: '0.10', label: '%10' },
+        ]}
+        value={kdvRate}
+        onChange={setKdvRate}
+      />
+      <View style={{ height: spacing.md }} />
+      <Text style={styles.label}>{t('calc.stopajLabel')}</Text>
+      <SegmentedControl
+        scrollable={false}
+        options={[
+          { value: 'on', label: t('calc.stopajOn') },
+          { value: 'off', label: t('calc.stopajOff') },
+        ]}
+        value={stopajOn ? 'on' : 'off'}
+        onChange={(v) => setStopajOn(v === 'on')}
+      />
+      <View style={{ height: spacing.md }} />
       {a > 0 && (
         <Card>
           <ResultRow label={t('calc.gross')} value={formatMoney(gross)} />
-          <ResultRow label={t('calc.withholding')} value={`− ${formatMoney(stopaj)}`} />
+          {stopajOn && <ResultRow label={t('calc.withholding')} value={`− ${formatMoney(stopaj)}`} />}
           <ResultRow label={t('calc.net')} value={formatMoney(net)} />
-          <ResultRow label={t('calc.vat')} value={`+ ${formatMoney(kdv)}`} />
+          <ResultRow label={`${t('calc.vat')} (%${Math.round(k * 100)})`} value={`+ ${formatMoney(kdv)}`} />
           <ResultRow label={t('calc.collect')} value={formatMoney(collect)} strong />
           <Disclaimer text={t('calc.smmDisclaimer')} />
         </Card>

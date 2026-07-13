@@ -36,15 +36,53 @@ export function isInJudicialRecess(d: Date): boolean {
   return (m === 7 && day >= 20) || m === 8;
 }
 
+/**
+ * Adli tatil uzatma kuralı:
+ * - 'civil': son gün adli tatile rastlarsa süre, tatilin bittiği günden itibaren
+ *   BİR HAFTA uzamış sayılır (HMK 104; idari yargıda İYUK 8/3; iş yargısı HMK'ya tabi).
+ * - 'criminal': ÜÇ GÜN uzar (CMK 331/4).
+ * - 'none': adli tatil uygulanmaz (icra daireleri tatilde de çalışır).
+ */
+export type RecessRule = 'civil' | 'criminal' | 'none';
+
+export function recessRuleForGroup(group: 'hukuk' | 'ceza' | 'icra' | 'idare' | 'is'): RecessRule {
+  if (group === 'ceza') return 'criminal';
+  if (group === 'icra') return 'none';
+  return 'civil';
+}
+
+/**
+ * Diyanet takvimine göre dini bayram günleri (arefe hariç, tam günler).
+ * Yıllara göre kaydıkları için otomatik UZATMA yapılmaz — yanlış uzatmak süre
+ * kaçırtır; yalnızca "kontrol edin" uyarısı göstermek için kullanılır.
+ */
+const RELIGIOUS_HOLIDAY_RANGES: Array<[string, string]> = [
+  ['2026-03-20', '2026-03-22'], // Ramazan Bayramı 2026
+  ['2026-05-27', '2026-05-30'], // Kurban Bayramı 2026
+  ['2027-03-09', '2027-03-11'], // Ramazan Bayramı 2027
+  ['2027-05-16', '2027-05-19'], // Kurban Bayramı 2027
+  ['2028-02-26', '2028-02-28'], // Ramazan Bayramı 2028
+  ['2028-05-05', '2028-05-08'], // Kurban Bayramı 2028
+];
+
+export function isLikelyReligiousHoliday(d: Date): boolean {
+  const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return RELIGIOUS_HOLIDAY_RANGES.some(([start, end]) => key >= start && key <= end);
+}
+
 export interface LegalDueResult {
   /** Statutory end of the period before any holiday extension. */
   raw: Date;
-  /** Actual last day: extended past weekends/fixed holidays (HMK 93). */
+  /** Actual last day: extended past adli tatil and weekends/fixed holidays. */
   due: Date;
   /** True when the raw date fell on a non-working day and was extended. */
   extended: boolean;
   /** True when the due date falls inside adli tatil (20 Jul – 31 Aug). */
   inRecess: boolean;
+  /** True when the period was extended past adli tatil (HMK 104 / CMK 331). */
+  recessExtended: boolean;
+  /** True when the due date may coincide with a religious holiday. */
+  religiousWarn: boolean;
 }
 
 /**
@@ -55,10 +93,17 @@ export interface LegalDueResult {
  * - months: ends on the same day-of-month; if the target month is shorter,
  *   on its last day.
  * - years: same date next year(s).
- * Then HMK 93: a last day landing on a weekend/official holiday rolls to the
- * next working day.
+ * Then, if the last day falls inside adli tatil, the period is deemed extended
+ * from the end of the recess (HMK 104: one week; CMK 331/4: three days).
+ * Finally HMK 93: a last day landing on a weekend/official holiday rolls to
+ * the next working day.
  */
-export function computeLegalDue(notifiedAt: Date, amount: number, unit: LegalDurationUnit): LegalDueResult {
+export function computeLegalDue(
+  notifiedAt: Date,
+  amount: number,
+  unit: LegalDurationUnit,
+  recess: RecessRule = 'none'
+): LegalDueResult {
   const start = new Date(notifiedAt.getFullYear(), notifiedAt.getMonth(), notifiedAt.getDate());
 
   let raw: Date;
@@ -75,7 +120,18 @@ export function computeLegalDue(notifiedAt: Date, amount: number, unit: LegalDur
     raw = addYears(start, amount);
   }
 
-  let due = new Date(raw);
+  // Adli tatil uzatması: son gün 20 Tem – 31 Ağu arasına düşerse süre, 31
+  // Ağustos'tan itibaren hukukta 1 hafta (7 Eylül), cezada 3 gün (3 Eylül)
+  // uzamış sayılır.
+  let base = new Date(raw);
+  let recessExtended = false;
+  if (recess !== 'none' && isInJudicialRecess(raw)) {
+    const endOfRecess = new Date(raw.getFullYear(), 7, 31); // 31 Ağustos
+    base = addDays(endOfRecess, recess === 'civil' ? 7 : 3);
+    recessExtended = true;
+  }
+
+  let due = new Date(base);
   while (isNonWorkingDay(due)) {
     due = addDays(due, 1);
   }
@@ -83,7 +139,9 @@ export function computeLegalDue(notifiedAt: Date, amount: number, unit: LegalDur
   return {
     raw,
     due,
-    extended: due.getTime() !== raw.getTime(),
+    extended: !recessExtended && due.getTime() !== raw.getTime(),
     inRecess: isInJudicialRecess(due),
+    recessExtended,
+    religiousWarn: isLikelyReligiousHoliday(due),
   };
 }
