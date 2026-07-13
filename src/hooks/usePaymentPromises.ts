@@ -13,6 +13,28 @@ export function isMissingPromiseTable(err: unknown): boolean {
   return (e.message ?? '').toLowerCase().includes('payment_promises');
 }
 
+export type PromiseWithClient = PaymentPromise & { client: { id: string; full_name: string } | null };
+
+/** Ödenmemiş tüm ödeme sözleri — takvimde göstermek için. */
+export function useAllPromises() {
+  const ownerId = useAuthStore((s) => s.session?.user.id);
+  return useQuery({
+    queryKey: ['promises', 'all', ownerId],
+    enabled: !!ownerId,
+    retry: (n, err) => !isMissingPromiseTable(err) && n < 1,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payment_promises')
+        .select('*, client:clients(id, full_name)')
+        .eq('owner_id', ownerId!)
+        .eq('is_paid', false)
+        .order('due_date', { ascending: true });
+      if (error) throw error;
+      return data as unknown as PromiseWithClient[];
+    },
+  });
+}
+
 export function usePromisesForClient(clientId: string | undefined) {
   return useQuery({
     queryKey: ['promises', clientId],

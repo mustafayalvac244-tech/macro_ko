@@ -1,22 +1,25 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { router } from 'expo-router';
-import { format } from 'date-fns';
+import { addDays, format, isToday, isTomorrow, startOfWeek } from 'date-fns';
+import { enUS, tr as trLocale } from 'date-fns/locale';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
-import { SectionHeader } from '@/components/ui/SectionHeader';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { HearingListItem } from '@/components/calendar/HearingListItem';
-import { DeadlineListItem } from '@/components/calendar/DeadlineListItem';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines, useUpdateDeadline } from '@/hooks/useDeadlines';
+import { useAllPromises } from '@/hooks/usePaymentPromises';
+import { useAllInstallments } from '@/hooks/usePayments';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatMoney } from '@/utils/format';
+import type { DeadlineWithCase, HearingType } from '@/types/database';
 
 LocaleConfig.locales.tr = {
   monthNames: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
@@ -26,8 +29,52 @@ LocaleConfig.locales.tr = {
   today: 'Bugün',
 };
 
-function toDateKey(iso: string): string {
-  return format(new Date(iso), 'yyyy-MM-dd');
+type ViewMode = 'agenda' | 'week' | 'month';
+type ItemKind = 'hearing' | 'deadline' | 'promise' | 'installment';
+
+interface AgendaItem {
+  key: string;
+  kind: ItemKind;
+  dateKey: string; // yyyy-MM-dd
+  time: string | null; // HH:mm — null for date-only records
+  sortTs: number;
+  title: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  route: string;
+  done: boolean;
+  deadline?: DeadlineWithCase;
+}
+
+const HEARING_ICONS: Record<HearingType, keyof typeof Ionicons.glyphMap> = {
+  hearing: 'hammer-outline',
+  trial: 'hammer-outline',
+  mediation: 'people-outline',
+  deposition: 'search-outline',
+  filing: 'document-attach-outline',
+  meeting: 'videocam-outline',
+  other: 'calendar-outline',
+};
+
+/** Tarih-saatli ISO → yerel gün anahtarı; salt tarih (yyyy-MM-dd) olduğu gibi kalır. */
+function toDateKey(iso: string): string | null {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return format(d, 'yyyy-MM-dd');
+}
+
+function toTime(iso: string): string | null {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return format(d, 'HH:mm');
+}
+
+function toSortTs(iso: string): number {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return new Date(`${iso}T23:59:00`).getTime();
+  const t = new Date(iso).getTime();
+  return Number.isNaN(t) ? 0 : t;
 }
 
 export default function CalendarScreen() {
@@ -37,108 +84,432 @@ export default function CalendarScreen() {
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
-  const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const dfLocale = lang === 'tr' ? trLocale : enUS;
+
+  const todayKey = format(new Date(), 'yyyy-MM-dd');
+  const [view, setView] = useState<ViewMode>('agenda');
+  const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [visibleMonth, setVisibleMonth] = useState(todayKey.slice(0, 7));
+  const [calKey, setCalKey] = useState(0);
+
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
+  const promises = useAllPromises();
+  const installments = useAllInstallments();
   const updateDeadline = useUpdateDeadline();
 
   useMemo(() => {
     LocaleConfig.defaultLocale = lang === 'tr' ? 'tr' : '';
   }, [lang]);
 
-  const markedDates = useMemo(() => {
-    const marks: Record<string, { dots: { key: string; color: string }[]; selected?: boolean; selectedColor?: string }> = {};
+  const kindColor: Record<ItemKind, { main: string; soft: string }> = {
+    hearing: { main: colors.info, soft: colors.infoSoft },
+    deadline: { main: colors.warning, soft: colors.warningSoft },
+    promise: { main: colors.success, soft: colors.successSoft },
+    installment: { main: colors.success, soft: colors.successSoft },
+  };
 
-    const addDot = (dateKey: string, key: string, color: string) => {
-      if (!marks[dateKey]) marks[dateKey] = { dots: [] };
-      marks[dateKey].dots.push({ key, color });
-    };
+  // ── Tüm planlı işlemler tek modelde ──────────────────────────────────────
+  const items = useMemo<AgendaItem[]>(() => {
+    const out: AgendaItem[] = [];
 
-    hearings.data?.forEach((h) => addDot(toDateKey(h.scheduled_at), `hearing-${h.id}`, colors.info));
-    deadlines.data?.forEach((d) => {
-      if (!d.is_completed) addDot(toDateKey(d.due_at), `deadline-${d.id}`, colors.warning);
+    hearings.data?.forEach((h) => {
+      const dateKey = toDateKey(h.scheduled_at);
+      if (!dateKey) return;
+      out.push({
+        key: `h-${h.id}`,
+        kind: 'hearing',
+        dateKey,
+        time: toTime(h.scheduled_at),
+        sortTs: toSortTs(h.scheduled_at),
+        title: h.title,
+        subtitle: [h.case?.title, t(`hearingType.${h.type}` as const)].filter(Boolean).join(' · '),
+        icon: HEARING_ICONS[h.type] ?? 'calendar-outline',
+        route: `/(app)/cases/${h.case_id}`,
+        done: h.is_completed,
+      });
     });
 
+    deadlines.data?.forEach((d) => {
+      const dateKey = toDateKey(d.due_at);
+      if (!dateKey) return;
+      out.push({
+        key: `d-${d.id}`,
+        kind: 'deadline',
+        dateKey,
+        time: toTime(d.due_at),
+        sortTs: toSortTs(d.due_at),
+        title: d.title,
+        subtitle: [d.case?.title, t(`priority.${d.priority}` as const)].filter(Boolean).join(' · '),
+        icon: d.priority === 'critical' ? 'alert-circle-outline' : 'checkbox-outline',
+        route: `/(app)/cases/${d.case_id}`,
+        done: d.is_completed,
+        deadline: d,
+      });
+    });
+
+    promises.data?.forEach((p) => {
+      const dateKey = toDateKey(p.due_date);
+      if (!dateKey) return;
+      out.push({
+        key: `p-${p.id}`,
+        kind: 'promise',
+        dateKey,
+        time: toTime(p.due_date),
+        sortTs: toSortTs(p.due_date),
+        title: t('cal.promiseTitle', { amount: formatMoney(Number(p.amount)) }),
+        subtitle: p.client?.full_name ?? '',
+        icon: 'cash-outline',
+        route: p.client ? `/(app)/clients/${p.client.id}` : '/(app)/clients',
+        done: p.is_paid,
+      });
+    });
+
+    installments.data?.forEach((i) => {
+      if (!i.due_date) return;
+      const dateKey = toDateKey(i.due_date);
+      if (!dateKey) return;
+      out.push({
+        key: `i-${i.id}`,
+        kind: 'installment',
+        dateKey,
+        time: toTime(i.due_date),
+        sortTs: toSortTs(i.due_date),
+        title: t('cal.installmentTitle', { seq: i.seq, amount: formatMoney(Number(i.amount)) }),
+        subtitle: i.case?.title ?? '',
+        icon: 'card-outline',
+        route: `/(app)/cases/${i.case_id}`,
+        done: i.is_paid,
+      });
+    });
+
+    return out.sort((a, b) => a.sortTs - b.sortTs);
+  }, [hearings.data, deadlines.data, promises.data, installments.data, t]);
+
+  // ── Ay/hafta görünümleri için gün işaretleri ─────────────────────────────
+  const dotsByDay = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    items.forEach((it) => {
+      if (it.done) return;
+      const color = kindColor[it.kind].main;
+      if (!map[it.dateKey]) map[it.dateKey] = [];
+      if (!map[it.dateKey].includes(color)) map[it.dateKey].push(color);
+    });
+    return map;
+  }, [items, colors]);
+
+  const markedDates = useMemo(() => {
+    const marks: Record<string, { dots: { key: string; color: string }[]; selected?: boolean; selectedColor?: string }> = {};
+    Object.entries(dotsByDay).forEach(([day, dayColors]) => {
+      marks[day] = { dots: dayColors.slice(0, 3).map((c, i) => ({ key: `${day}-${i}`, color: c })) };
+    });
     if (!marks[selectedDate]) marks[selectedDate] = { dots: [] };
     marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: colors.primarySoft };
-
     return marks;
-  }, [hearings.data, deadlines.data, selectedDate]);
+  }, [dotsByDay, selectedDate, colors]);
 
-  const dayHearings = hearings.data?.filter((h) => toDateKey(h.scheduled_at) === selectedDate) ?? [];
-  const dayDeadlines = deadlines.data?.filter((d) => toDateKey(d.due_at) === selectedDate) ?? [];
+  const monthCount = useMemo(
+    () => items.filter((it) => !it.done && it.dateKey.startsWith(visibleMonth)).length,
+    [items, visibleMonth]
+  );
+
+  // ── Seçili gün / ajanda listeleri ────────────────────────────────────────
+  const dayItems = useMemo(() => items.filter((it) => it.dateKey === selectedDate), [items, selectedDate]);
+
+  const overdueItems = useMemo(
+    () => items.filter((it) => !it.done && it.dateKey < todayKey && it.kind !== 'hearing'),
+    [items, todayKey]
+  );
+
+  const upcomingGroups = useMemo(() => {
+    const horizon = format(addDays(new Date(), 90), 'yyyy-MM-dd');
+    const upcoming = items.filter((it) => !it.done && it.dateKey >= todayKey && it.dateKey <= horizon);
+    const groups: { dateKey: string; items: AgendaItem[] }[] = [];
+    upcoming.forEach((it) => {
+      const last = groups[groups.length - 1];
+      if (last && last.dateKey === it.dateKey) last.items.push(it);
+      else groups.push({ dateKey: it.dateKey, items: [it] });
+    });
+    return groups;
+  }, [items, todayKey]);
+
+  const dayLabel = (dateKey: string) => {
+    const d = new Date(`${dateKey}T12:00:00`);
+    const base = format(d, lang === 'tr' ? 'd MMMM' : 'MMMM d', { locale: dfLocale });
+    const weekday = format(d, 'EEEE', { locale: dfLocale });
+    if (isToday(d)) return `${t('cal.today')} · ${base}`;
+    if (isTomorrow(d)) return `${t('cal.tomorrow')} · ${base}`;
+    return `${base} · ${weekday}`;
+  };
+
+  const toggleDeadline = (item: AgendaItem) => {
+    if (!item.deadline) return;
+    updateDeadline.mutate({
+      id: item.deadline.id,
+      is_completed: !item.deadline.is_completed,
+      caseTitle: item.deadline.case?.title ?? '',
+    });
+  };
+
+  const renderItem = (item: AgendaItem, showDate = false) => {
+    const kc = kindColor[item.kind];
+    return (
+      <Pressable
+        key={item.key}
+        style={styles.itemRow}
+        onPress={() => router.push(item.route as Parameters<typeof router.push>[0])}
+      >
+        <View style={styles.timeCol}>
+          <Text style={styles.timeText}>{item.time ?? t('cal.allDay')}</Text>
+          {showDate && <Text style={styles.timeSub}>{formatDate(item.dateKey)}</Text>}
+        </View>
+        <View style={[styles.itemDot, { backgroundColor: kc.main }]} />
+        <View style={[styles.itemIcon, { backgroundColor: kc.soft }]}>
+          <Ionicons name={item.icon} size={18} color={kc.main} />
+        </View>
+        <View style={styles.itemBody}>
+          <Text style={[styles.itemTitle, item.done && styles.itemDoneText]} numberOfLines={1}>
+            {item.title}
+          </Text>
+          {!!item.subtitle && (
+            <Text style={styles.itemSub} numberOfLines={1}>
+              {item.subtitle}
+            </Text>
+          )}
+        </View>
+        {item.kind === 'deadline' ? (
+          <Pressable hitSlop={10} onPress={() => toggleDeadline(item)}>
+            <Ionicons
+              name={item.done ? 'checkmark-circle' : 'ellipse-outline'}
+              size={22}
+              color={item.done ? colors.success : colors.textMuted}
+            />
+          </Pressable>
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        )}
+      </Pressable>
+    );
+  };
+
+  const renderDayList = () => (
+    <View style={styles.section}>
+      <View style={styles.sectionHeadRow}>
+        <Text style={styles.sectionTitle}>
+          {selectedDate === todayKey ? t('cal.todayAgenda') : t('cal.agendaOn', { date: formatDate(selectedDate) })}
+        </Text>
+        <Text style={styles.sectionCount}>{t('cal.records', { n: dayItems.length })}</Text>
+      </View>
+      <Card padded={false}>
+        {dayItems.length > 0 ? (
+          dayItems.map((it, i) => (
+            <View key={it.key} style={i > 0 ? styles.divider : undefined}>
+              {renderItem(it)}
+            </View>
+          ))
+        ) : (
+          <EmptyState icon="calendar-clear-outline" title={t('cal.noItemsDay')} />
+        )}
+      </Card>
+    </View>
+  );
+
+  const legend = (
+    <View style={styles.legend}>
+      <LegendDot color={colors.info} label={t('cal.hearing')} />
+      <LegendDot color={colors.warning} label={t('cal.deadline')} />
+      <LegendDot color={colors.success} label={t('cal.payment')} />
+    </View>
+  );
+
+  // ── Hafta şeridi ─────────────────────────────────────────────────────────
+  const weekDays = useMemo(() => {
+    const anchor = new Date(`${selectedDate}T12:00:00`);
+    const start = startOfWeek(anchor, { weekStartsOn: 1 });
+    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  }, [selectedDate]);
+
+  const shiftWeek = (dir: 1 | -1) => {
+    const next = addDays(new Date(`${selectedDate}T12:00:00`), dir * 7);
+    setSelectedDate(format(next, 'yyyy-MM-dd'));
+  };
 
   return (
     <Screen>
-      <ScreenHeader showMenu title={t('cal.title')} subtitle={t('cal.subtitle')} />
+      <ScreenHeader
+        showMenu
+        title={t('cal.title')}
+        subtitle={`${format(new Date(), lang === 'tr' ? 'd MMMM yyyy' : 'MMMM d, yyyy', { locale: dfLocale })} · ${format(new Date(), 'EEEE', { locale: dfLocale })}`}
+      />
+
+      <View style={styles.viewSwitch}>
+        <SegmentedControl
+          scrollable={false}
+          options={[
+            { value: 'agenda', label: t('cal.viewAgenda') },
+            { value: 'week', label: t('cal.viewWeek') },
+            { value: 'month', label: t('cal.viewMonth') },
+          ]}
+          value={view}
+          onChange={(v) => setView(v as ViewMode)}
+        />
+      </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Card padded={false} style={styles.calendarCard}>
-          <Calendar
-            key={lang}
-            markingType="multi-dot"
-            markedDates={markedDates}
-            onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
-            theme={{
-              calendarBackground: colors.surface,
-              dayTextColor: colors.textPrimary,
-              monthTextColor: colors.textPrimary,
-              textSectionTitleColor: colors.textMuted,
-              todayTextColor: colors.gold,
-              arrowColor: colors.primary,
-              textDisabledColor: colors.textMuted,
-              selectedDayBackgroundColor: colors.primary,
-              selectedDayTextColor: '#FFFFFF',
-            }}
-            style={styles.calendar}
-          />
-        </Card>
+        {view === 'month' && (
+          <>
+            <Card padded={false} style={styles.calendarCard}>
+              <View style={styles.monthInfoRow}>
+                <Text style={styles.monthInfoText}>{t('cal.monthCount', { n: monthCount })}</Text>
+                <Pressable
+                  style={styles.todayBtn}
+                  onPress={() => {
+                    setSelectedDate(todayKey);
+                    setVisibleMonth(todayKey.slice(0, 7));
+                    setCalKey((k) => k + 1);
+                  }}
+                >
+                  <Text style={styles.todayBtnText}>{t('cal.today')}</Text>
+                  <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+                </Pressable>
+              </View>
+              <Calendar
+                key={`${lang}-${calKey}`}
+                current={selectedDate}
+                markingType="multi-dot"
+                markedDates={markedDates}
+                onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
+                onMonthChange={(m: DateData) => setVisibleMonth(m.dateString.slice(0, 7))}
+                theme={{
+                  calendarBackground: colors.surface,
+                  dayTextColor: colors.textPrimary,
+                  monthTextColor: colors.textPrimary,
+                  textSectionTitleColor: colors.textMuted,
+                  todayTextColor: colors.gold,
+                  arrowColor: colors.primary,
+                  textDisabledColor: colors.textMuted,
+                  selectedDayBackgroundColor: colors.primary,
+                  selectedDayTextColor: '#FFFFFF',
+                }}
+                style={styles.calendar}
+              />
+            </Card>
+            {legend}
+            {renderDayList()}
+          </>
+        )}
 
-        <View style={styles.legend}>
-          <LegendDot color={colors.info} label={t('cal.hearing')} />
-          <LegendDot color={colors.warning} label={t('cal.deadline')} />
-        </View>
+        {view === 'week' && (
+          <>
+            <Card padded={false} style={styles.weekCard}>
+              <View style={styles.weekHeadRow}>
+                <Pressable hitSlop={8} onPress={() => shiftWeek(-1)}>
+                  <Ionicons name="chevron-back" size={18} color={colors.primary} />
+                </Pressable>
+                <Text style={styles.weekTitle}>
+                  {format(weekDays[0]!, 'd MMM', { locale: dfLocale })} – {format(weekDays[6]!, 'd MMM', { locale: dfLocale })}
+                </Text>
+                <Pressable hitSlop={8} onPress={() => shiftWeek(1)}>
+                  <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+                </Pressable>
+              </View>
+              <View style={styles.weekRow}>
+                {weekDays.map((d) => {
+                  const key = format(d, 'yyyy-MM-dd');
+                  const active = key === selectedDate;
+                  const today = key === todayKey;
+                  const dayDots = dotsByDay[key] ?? [];
+                  return (
+                    <Pressable key={key} style={[styles.weekDay, active && styles.weekDayActive]} onPress={() => setSelectedDate(key)}>
+                      <Text style={[styles.weekDayName, active && styles.weekDayTextActive]}>
+                        {format(d, 'EEEEEE', { locale: dfLocale })}
+                      </Text>
+                      <Text style={[styles.weekDayNum, today && !active && { color: colors.gold }, active && styles.weekDayTextActive]}>
+                        {format(d, 'd')}
+                      </Text>
+                      <View style={styles.weekDots}>
+                        {dayDots.slice(0, 3).map((c, i) => (
+                          <View key={i} style={[styles.weekDot, { backgroundColor: c }]} />
+                        ))}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </Card>
+            {legend}
+            {renderDayList()}
+          </>
+        )}
 
-        <View style={styles.section}>
-          <SectionHeader title={t('cal.hearingsOn', { date: formatDate(selectedDate) })} />
-          <Card>
-            {dayHearings.length > 0 ? (
-              dayHearings.map((hearing, index) => (
-                <View key={hearing.id} style={index > 0 ? styles.divider : undefined}>
-                  <HearingListItem hearing={hearing} onPress={() => router.push(`/(app)/cases/${hearing.case_id}`)} />
+        {view === 'agenda' && (
+          <>
+            {overdueItems.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeadRow}>
+                  <Text style={[styles.sectionTitle, { color: colors.danger }]}>{t('cal.overdueSection')}</Text>
+                  <Text style={styles.sectionCount}>{t('cal.records', { n: overdueItems.length })}</Text>
+                </View>
+                <Card padded={false} style={styles.overdueCard}>
+                  {overdueItems.map((it, i) => (
+                    <View key={it.key} style={i > 0 ? styles.divider : undefined}>
+                      {renderItem(it, true)}
+                    </View>
+                  ))}
+                </Card>
+              </View>
+            )}
+
+            {upcomingGroups.length === 0 ? (
+              <Card>
+                <EmptyState icon="calendar-clear-outline" title={t('cal.noUpcoming')} />
+              </Card>
+            ) : (
+              upcomingGroups.map((group) => (
+                <View key={group.dateKey} style={styles.section}>
+                  <View style={styles.sectionHeadRow}>
+                    <Text style={styles.sectionTitle}>{dayLabel(group.dateKey)}</Text>
+                    <Text style={styles.sectionCount}>{t('cal.records', { n: group.items.length })}</Text>
+                  </View>
+                  <Card padded={false}>
+                    {group.items.map((it, i) => (
+                      <View key={it.key} style={i > 0 ? styles.divider : undefined}>
+                        {renderItem(it)}
+                      </View>
+                    ))}
+                  </Card>
                 </View>
               ))
-            ) : (
-              <EmptyState icon="hammer-outline" title={t('cal.noHearingsDay')} />
             )}
-          </Card>
-        </View>
-
-        <View style={styles.section}>
-          <SectionHeader title={t('cal.deadlines')} />
-          <Card>
-            {dayDeadlines.length > 0 ? (
-              dayDeadlines.map((deadline, index) => (
-                <View key={deadline.id} style={index > 0 ? styles.divider : undefined}>
-                  <DeadlineListItem
-                    deadline={deadline}
-                    onPress={() => router.push(`/(app)/cases/${deadline.case_id}`)}
-                    onToggleComplete={() =>
-                      updateDeadline.mutate({
-                        id: deadline.id,
-                        is_completed: !deadline.is_completed,
-                        caseTitle: deadline.case?.title ?? '',
-                      })
-                    }
-                  />
-                </View>
-              ))
-            ) : (
-              <EmptyState icon="checkmark-done-outline" title={t('cal.noDeadlinesDay')} />
-            )}
-          </Card>
-        </View>
+            {legend}
+          </>
+        )}
       </ScrollView>
+
+      {/* Hızlı ekleme */}
+      <View style={styles.quickRow}>
+        <Pressable
+          style={[styles.quickBtn, { backgroundColor: colors.primarySoft }]}
+          onPress={() => router.push('/hearing-form' as Parameters<typeof router.push>[0])}
+        >
+          <Ionicons name="add" size={16} color={colors.primary} />
+          <Text style={[styles.quickBtnText, { color: colors.primary }]}>{t('cal.hearing')}</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.quickBtn, { backgroundColor: colors.warningSoft }]}
+          onPress={() => router.push('/deadline-wizard' as Parameters<typeof router.push>[0])}
+        >
+          <Ionicons name="hourglass-outline" size={15} color={colors.warning} />
+          <Text style={[styles.quickBtnText, { color: colors.warning }]}>{t('cal.addDuration')}</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.quickBtn, { backgroundColor: colors.goldSoft }]}
+          onPress={() => router.push('/deadline-form' as Parameters<typeof router.push>[0])}
+        >
+          <Ionicons name="list-outline" size={15} color={colors.gold} />
+          <Text style={[styles.quickBtnText, { color: colors.gold }]}>{t('cal.addTask')}</Text>
+        </Pressable>
+      </View>
     </Screen>
   );
 }
@@ -156,9 +527,13 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  viewSwitch: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
   content: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxxl,
+    paddingBottom: spacing.xxl,
   },
   calendarCard: {
     overflow: 'hidden',
@@ -167,10 +542,88 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   calendar: {
     borderRadius: 16,
   },
+  monthInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  monthInfoText: {
+    ...typography.small,
+    color: colors.textSecondary,
+  },
+  todayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 10,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+  },
+  todayBtnText: {
+    ...typography.small,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  weekCard: {
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  weekHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  weekTitle: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+  },
+  weekRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.xs,
+  },
+  weekDay: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    borderRadius: 12,
+    marginHorizontal: 1,
+  },
+  weekDayActive: {
+    backgroundColor: colors.primary,
+  },
+  weekDayName: {
+    ...typography.small,
+    color: colors.textMuted,
+  },
+  weekDayNum: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  weekDayTextActive: {
+    color: '#FFFFFF',
+  },
+  weekDots: {
+    flexDirection: 'row',
+    gap: 3,
+    height: 6,
+    marginTop: 3,
+  },
+  weekDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
   legend: {
     flexDirection: 'row',
     gap: spacing.md,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     paddingHorizontal: spacing.xs,
   },
   legendItem: {
@@ -189,10 +642,99 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     textTransform: 'none',
   },
   section: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  sectionHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  sectionTitle: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  sectionCount: {
+    ...typography.small,
+    color: colors.textMuted,
+  },
+  overdueCard: {
+    borderColor: colors.dangerSoft,
+    borderWidth: 1,
   },
   divider: {
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
+  },
+  timeCol: {
+    width: 52,
+  },
+  timeText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  timeSub: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  itemDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  itemIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemBody: {
+    flex: 1,
+  },
+  itemTitle: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+  },
+  itemDoneText: {
+    textDecorationLine: 'line-through',
+    color: colors.textMuted,
+  },
+  itemSub: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  quickRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.bg,
+  },
+  quickBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderRadius: 14,
+    paddingVertical: 12,
+  },
+  quickBtnText: {
+    ...typography.bodyMedium,
+    fontWeight: '700',
   },
 });

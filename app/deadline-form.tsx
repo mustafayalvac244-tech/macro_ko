@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { SuggestInput } from '@/components/ui/SuggestInput';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { CasePicker } from '@/components/CasePicker';
 import { useCase } from '@/hooks/useCases';
 import { useCreateDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { deadlineTitleSuggestions } from '@/constants/suggestions';
@@ -36,8 +37,11 @@ export default function DeadlineFormScreen() {
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
-  const { caseId, id, title: titleParam } = useLocalSearchParams<{ caseId: string; id?: string; title?: string }>();
+  const { caseId: caseIdParam, id, title: titleParam } = useLocalSearchParams<{ caseId?: string; id?: string; title?: string }>();
   const isEdit = !!id;
+  // Takvimden dosya parametresi olmadan açılırsa dosya burada seçilir.
+  const [pickedCaseId, setPickedCaseId] = useState<string | null>(null);
+  const caseId = caseIdParam || pickedCaseId || undefined;
   const { data: caseItem } = useCase(caseId);
   const { data: deadlines } = useDeadlinesForCase(caseId);
   const existing = deadlines?.find((d) => d.id === id);
@@ -96,6 +100,8 @@ export default function DeadlineFormScreen() {
             <Ionicons name="information-circle-outline" size={18} color={colors.info} />
             <Text style={styles.hintText}>{t('deadlineForm.hint')}</Text>
           </View>
+
+          {!caseIdParam && <CasePicker value={pickedCaseId} onChange={setPickedCaseId} />}
 
           <SuggestInput
             label={t('hearingForm.title')}
@@ -162,7 +168,7 @@ export default function DeadlineFormScreen() {
             label={isEdit ? t('common.save') : t('deadlineForm.create')}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={!title.trim()}
+            disabled={!title.trim() || !caseItem}
             fullWidth
             size="lg"
             style={styles.submit}

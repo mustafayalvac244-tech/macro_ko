@@ -117,6 +117,29 @@ export function useDeleteCaseExpense() {
 
 /* ---------------- Vekalet ücreti taksitleri ---------------- */
 
+export type InstallmentWithCase = CaseInstallment & { case: { id: string; title: string } | null };
+
+/** Vadesi girilmiş, ödenmemiş tüm taksitler — takvimde göstermek için. */
+export function useAllInstallments() {
+  const ownerId = useAuthStore((s) => s.session?.user.id);
+  return useQuery({
+    queryKey: ['installments', 'all', ownerId],
+    enabled: !!ownerId,
+    retry: 1,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('case_installments')
+        .select('*, case:cases(id, title)')
+        .eq('owner_id', ownerId!)
+        .eq('is_paid', false)
+        .not('due_date', 'is', null)
+        .order('due_date', { ascending: true });
+      if (error) throw error;
+      return data as unknown as InstallmentWithCase[];
+    },
+  });
+}
+
 export function useInstallments(caseId: string | undefined) {
   const ownerId = useAuthStore((s) => s.session?.user.id);
   return useQuery({

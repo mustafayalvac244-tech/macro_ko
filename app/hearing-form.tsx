@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { SuggestInput } from '@/components/ui/SuggestInput';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { CasePicker } from '@/components/CasePicker';
 import { useCase } from '@/hooks/useCases';
 import { useAllHearings, useCreateHearing, useHearingsForCase, useUpdateHearing } from '@/hooks/useHearings';
 import { hearingTitleSuggestions } from '@/constants/suggestions';
@@ -36,8 +37,11 @@ export default function HearingFormScreen() {
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
-  const { caseId, id } = useLocalSearchParams<{ caseId: string; id?: string }>();
+  const { caseId: caseIdParam, id } = useLocalSearchParams<{ caseId?: string; id?: string }>();
   const isEdit = !!id;
+  // Takvimden dosya parametresi olmadan açılırsa dosya burada seçilir.
+  const [pickedCaseId, setPickedCaseId] = useState<string | null>(null);
+  const caseId = caseIdParam || pickedCaseId || undefined;
   const { data: caseItem } = useCase(caseId);
   const { data: hearings } = useHearingsForCase(caseId);
   const existing = hearings?.find((h) => h.id === id);
@@ -117,6 +121,7 @@ export default function HearingFormScreen() {
       <ScreenHeader title={isEdit ? t('hearingForm.editTitle') : t('hearingForm.newTitle')} subtitle={caseItem?.title} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {!caseIdParam && <CasePicker value={pickedCaseId} onChange={setPickedCaseId} />}
           <SuggestInput
             label={t('hearingForm.title')}
             placeholder={t('hearingForm.titlePlaceholder')}
@@ -244,7 +249,7 @@ export default function HearingFormScreen() {
             label={isEdit ? t('common.save') : t('hearingForm.schedule')}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={!title.trim()}
+            disabled={!title.trim() || !caseItem}
             fullWidth
             size="lg"
             style={styles.submit}
