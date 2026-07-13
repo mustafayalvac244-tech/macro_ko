@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
@@ -12,6 +12,11 @@ import type { Client } from '@/types/database';
 interface ClientListItemProps {
   client: Client;
   onPress: () => void;
+}
+
+/** Telefon çeviricisini numara yazılı, aramaya hazır şekilde açar. */
+export function dialPhone(phone: string) {
+  Linking.openURL(`tel:${phone.replace(/[^+\d]/g, '')}`).catch(() => {});
 }
 
 export function ClientListItem({ client, onPress }: ClientListItemProps) {
@@ -32,6 +37,11 @@ export function ClientListItem({ client, onPress }: ClientListItemProps) {
             {client.company || client.email || client.phone || t('clients.noContact')}
           </Text>
         </View>
+        {!!client.phone && (
+          <Pressable hitSlop={8} style={styles.callBtn} onPress={() => dialPhone(client.phone!)}>
+            <Ionicons name="call" size={16} color={colors.success} />
+          </Pressable>
+        )}
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </View>
     </Card>
@@ -58,5 +68,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  callBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.successSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.xs,
   },
 });

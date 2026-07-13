@@ -1,4 +1,4 @@
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
@@ -99,8 +99,22 @@ export default function ClientDetailScreen() {
             </View>
           </View>
 
-          {client.email && <ContactRow icon="mail-outline" value={client.email} />}
-          {client.phone && <ContactRow icon="call-outline" value={client.phone} />}
+          {client.email && (
+            <ContactRow
+              icon="mail-outline"
+              value={client.email}
+              actionIcon="send"
+              onPress={() => Linking.openURL(`mailto:${client.email}`).catch(() => {})}
+            />
+          )}
+          {client.phone && (
+            <ContactRow
+              icon="call-outline"
+              value={client.phone}
+              actionIcon="call"
+              onPress={() => Linking.openURL(`tel:${client.phone!.replace(/[^+\d]/g, '')}`).catch(() => {})}
+            />
+          )}
           {client.address && <ContactRow icon="location-outline" value={client.address} />}
         </Card>
 
@@ -271,17 +285,43 @@ export default function ClientDetailScreen() {
   );
 }
 
-function ContactRow({ icon, value }: { icon: keyof typeof Ionicons.glyphMap; value: string }) {
+function ContactRow({
+  icon,
+  value,
+  onPress,
+  actionIcon,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  value: string;
+  onPress?: () => void;
+  actionIcon?: keyof typeof Ionicons.glyphMap;
+}) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
 
-  return (
-    <View style={styles.contactRow}>
+  const content = (
+    <>
       <Ionicons name={icon} size={16} color={colors.textMuted} />
-      <Text style={styles.contactValue}>{value}</Text>
-    </View>
+      <Text style={styles.contactValue} numberOfLines={1}>
+        {value}
+      </Text>
+      {onPress && actionIcon && (
+        <View style={styles.contactAction}>
+          <Ionicons name={actionIcon} size={14} color={colors.success} />
+        </View>
+      )}
+    </>
   );
+
+  if (onPress) {
+    return (
+      <Pressable style={styles.contactRow} onPress={onPress}>
+        {content}
+      </Pressable>
+    );
+  }
+  return <View style={styles.contactRow}>{content}</View>;
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
@@ -318,6 +358,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   contactValue: {
     ...typography.body,
     color: colors.textPrimary,
+    flex: 1,
+  },
+  contactAction: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.successSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   notesCard: {
     marginBottom: spacing.md,
