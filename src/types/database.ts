@@ -145,6 +145,10 @@ export interface PaymentPromise {
   note: string | null;
   is_paid: boolean;
   created_at: string;
+  /** Taksitli alacak: aynı planın taksitleri ortak group_id taşır (0021). */
+  group_id: string | null;
+  seq: number | null;
+  total_count: number | null;
 }
 
 export interface Office {

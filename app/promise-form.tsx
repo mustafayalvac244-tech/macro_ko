@@ -1,19 +1,25 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { format } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { isMissingPromiseTable, useCreatePromise } from '@/hooks/usePaymentPromises';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import {
+  isMissingInstallmentColumns,
+  isMissingPromiseTable,
+  useCreatePromise,
+  useCreatePromiseInstallments,
+} from '@/hooks/usePaymentPromises';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatMoney } from '@/utils/format';
 
 export default function PromiseFormScreen() {
   const __t = useTheme();
@@ -23,31 +29,70 @@ export default function PromiseFormScreen() {
   const t = useT();
   const { clientId, clientName } = useLocalSearchParams<{ clientId: string; clientName?: string }>();
   const createPromise = useCreatePromise();
+  const createInstallments = useCreatePromiseInstallments();
 
+  const [mode, setMode] = useState<'single' | 'installments'>('single');
   const [amount, setAmount] = useState('');
+  const [count, setCount] = useState('3');
   const [dueDate, setDueDate] = useState(() => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
 
+  const parsedAmount = Number(amount.replace(/\./g, '').replace(',', '.'));
+  const parsedCount = Number(count);
+  const countValid = Number.isInteger(parsedCount) && parsedCount >= 2 && parsedCount <= 36;
+
+  // Ödeme planı önizlemesi: eşit taksitler, yuvarlama farkı son taksitte.
+  const plan = useMemo(() => {
+    if (mode !== 'installments' || !Number.isFinite(parsedAmount) || parsedAmount <= 0 || !countValid) return [];
+    const per = Math.floor((parsedAmount / parsedCount) * 100) / 100;
+    const last = Math.round((parsedAmount - per * (parsedCount - 1)) * 100) / 100;
+    return Array.from({ length: parsedCount }, (_, i) => ({
+      seq: i + 1,
+      amount: i === parsedCount - 1 ? last : per,
+      due: addMonths(dueDate, i),
+    }));
+  }, [mode, parsedAmount, parsedCount, countValid, dueDate]);
+
+  const isSubmitting = createPromise.isPending || createInstallments.isPending;
+
   const handleSubmit = async () => {
     setError(null);
-    const parsed = Number(amount.replace(/\./g, '').replace(',', '.'));
-    if (!Number.isFinite(parsed) || parsed <= 0) {
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       setError(t('financeForm.amountRequired'));
       return;
     }
+    if (mode === 'installments' && !countValid) {
+      setError(t('promise.countInvalid'));
+      return;
+    }
     try {
-      await createPromise.mutateAsync({
-        client_id: clientId!,
-        clientName: clientName ?? '',
-        amount: parsed,
-        due_date: format(dueDate, 'yyyy-MM-dd'),
-        note: note.trim() || null,
-      });
+      if (mode === 'installments') {
+        await createInstallments.mutateAsync({
+          client_id: clientId!,
+          clientName: clientName ?? '',
+          total: parsedAmount,
+          count: parsedCount,
+          firstDue: dueDate,
+          note: note.trim() || null,
+        });
+      } else {
+        await createPromise.mutateAsync({
+          client_id: clientId!,
+          clientName: clientName ?? '',
+          amount: parsedAmount,
+          due_date: format(dueDate, 'yyyy-MM-dd'),
+          note: note.trim() || null,
+        });
+      }
       router.back();
     } catch (e) {
-      setError(isMissingPromiseTable(e) ? t('promise.setupRequired') : t('financeForm.saveFailed'));
+      setError(
+        isMissingPromiseTable(e) || isMissingInstallmentColumns(e)
+          ? t('promise.setupRequired')
+          : t('financeForm.saveFailed')
+      );
     }
   };
 
@@ -68,8 +113,20 @@ export default function PromiseFormScreen() {
             </View>
           )}
 
+          <Text style={styles.label}>{t('promise.mode')}</Text>
+          <SegmentedControl
+            scrollable={false}
+            options={[
+              { value: 'single', label: t('promise.modeSingle') },
+              { value: 'installments', label: t('promise.modeInstallments') },
+            ]}
+            value={mode}
+            onChange={(v) => setMode(v as typeof mode)}
+          />
+          <View style={styles.spacer} />
+
           <Input
-            label={t('finance.amount')}
+            label={mode === 'installments' ? t('promise.totalAmount') : t('finance.amount')}
             placeholder="10000"
             value={amount}
             onChangeText={setAmount}
@@ -77,7 +134,18 @@ export default function PromiseFormScreen() {
             icon="cash-outline"
           />
 
-          <Text style={styles.label}>{t('promise.dueDate')}</Text>
+          {mode === 'installments' && (
+            <Input
+              label={t('promise.count')}
+              placeholder="3"
+              value={count}
+              onChangeText={setCount}
+              keyboardType="number-pad"
+              icon="layers-outline"
+            />
+          )}
+
+          <Text style={styles.label}>{mode === 'installments' ? t('promise.firstDue') : t('promise.dueDate')}</Text>
           <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
             <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
             <Text style={styles.dateButtonText}>{formatDate(dueDate.toISOString())}</Text>
@@ -97,6 +165,20 @@ export default function PromiseFormScreen() {
             <Button label={t('common.done')} size="sm" variant="secondary" onPress={() => setShowPicker(false)} style={styles.pickerDone} />
           )}
 
+          {mode === 'installments' && plan.length > 0 && (
+            <View style={styles.planBox}>
+              <Text style={styles.planTitle}>{t('promise.preview')}</Text>
+              {plan.map((row) => (
+                <View key={row.seq} style={styles.planRow}>
+                  <Text style={styles.planSeq}>{t('promise.seqShort', { seq: row.seq })}</Text>
+                  <Text style={styles.planDate}>{formatDate(row.due.toISOString())}</Text>
+                  <Text style={styles.planAmount}>{formatMoney(row.amount)}</Text>
+                </View>
+              ))}
+              <Text style={styles.planNote}>{t('promise.monthlyNote')}</Text>
+            </View>
+          )}
+
           <View style={styles.spacer} />
           <Input
             label={t('finance.note')}
@@ -111,7 +193,7 @@ export default function PromiseFormScreen() {
           <Button
             label={t('promise.create')}
             onPress={handleSubmit}
-            loading={createPromise.isPending}
+            loading={isSubmitting}
             disabled={!amount.trim()}
             fullWidth
             size="lg"
@@ -185,6 +267,49 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   pickerDone: {
     marginTop: spacing.xs,
     alignSelf: 'flex-end',
+  },
+  planBox: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 14,
+    padding: spacing.sm,
+    marginTop: spacing.md,
+  },
+  planTitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  planRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  planSeq: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    fontWeight: '700',
+    width: 74,
+  },
+  planDate: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  planAmount: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  planNote: {
+    ...typography.small,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+    lineHeight: 15,
   },
   textArea: {
     height: 64,

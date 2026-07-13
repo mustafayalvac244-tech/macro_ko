@@ -357,4 +357,12 @@ create policy "case_installments own" on case_installments
 -- ---------- 0020: Durum açıklaması ----------
 alter table cases add column if not exists stage_note text;
 
+-- ---------- 0021: Taksitli müvekkil alacakları ----------
+-- Bir alacak taksitlere bölündüğünde her taksit ayrı payment_promises satırıdır;
+-- aynı planın taksitleri ortak group_id + sıra (seq) + toplam adet (total_count) taşır.
+alter table payment_promises add column if not exists group_id uuid;
+alter table payment_promises add column if not exists seq int;
+alter table payment_promises add column if not exists total_count int;
+create index if not exists payment_promises_group_idx on payment_promises (group_id, seq);
+
 -- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.

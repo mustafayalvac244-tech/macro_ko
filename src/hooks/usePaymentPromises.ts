@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { addMonths, format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { cancelPromiseReminder, schedulePromiseReminder } from '@/lib/notifications';
@@ -11,6 +12,23 @@ export function isMissingPromiseTable(err: unknown): boolean {
   if (!e) return false;
   if (e.code === '42P01' || e.code === 'PGRST205') return true;
   return (e.message ?? '').toLowerCase().includes('payment_promises');
+}
+
+/** True when the 0021 (taksit kolonları) section of KURULUM.sql hasn't run. */
+export function isMissingInstallmentColumns(err: unknown): boolean {
+  const e = err as { code?: string; message?: string } | null;
+  if (!e) return false;
+  if (e.code === '42703' || e.code === 'PGRST204') return true;
+  return (e.message ?? '').toLowerCase().includes('group_id');
+}
+
+// Taksit planını gruplamak için istemci tarafında üretilen v4 UUID.
+function uuidv4(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 export type PromiseWithClient = PaymentPromise & { client: { id: string; full_name: string } | null };
@@ -80,6 +98,51 @@ export function useCreatePromise() {
         dueDate: promise.due_date,
       }).catch(() => {});
       return promise;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['promises'] }),
+  });
+}
+
+/** Bir alacağı eşit taksitlere bölerek her taksit için ayrı söz + hatırlatıcı oluşturur. */
+export function useCreatePromiseInstallments() {
+  const queryClient = useQueryClient();
+  const ownerId = useAuthStore((s) => s.session?.user.id);
+
+  return useMutation({
+    mutationFn: async (input: {
+      client_id: string;
+      clientName: string;
+      total: number;
+      count: number;
+      firstDue: Date;
+      note: string | null;
+    }) => {
+      const { clientName, total, count, firstDue, ...rest } = input;
+      const group_id = uuidv4();
+      // Kuruş kaybı olmasın: son taksit yuvarlama farkını üstlenir.
+      const per = Math.floor((total / count) * 100) / 100;
+      const last = Math.round((total - per * (count - 1)) * 100) / 100;
+      const rows = Array.from({ length: count }, (_, i) => ({
+        ...rest,
+        owner_id: ownerId!,
+        amount: i === count - 1 ? last : per,
+        due_date: format(addMonths(firstDue, i), 'yyyy-MM-dd'),
+        group_id,
+        seq: i + 1,
+        total_count: count,
+      }));
+      const { data, error } = await supabase.from('payment_promises').insert(rows).select();
+      if (error) throw error;
+      const promises = data as PaymentPromise[];
+      for (const p of promises) {
+        await schedulePromiseReminder({
+          id: p.id,
+          clientName,
+          amountLabel: `${formatMoney(Number(p.amount))} (${p.seq}/${p.total_count})`,
+          dueDate: p.due_date,
+        }).catch(() => {});
+      }
+      return promises;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['promises'] }),
   });

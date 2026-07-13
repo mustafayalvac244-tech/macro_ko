@@ -23,6 +23,26 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney, relativeDueLabel, isOverdue } from '@/utils/format';
+import type { PaymentPromise } from '@/types/database';
+
+/** Aynı taksit planına (group_id) ait sözleri tek blokta toplar; tekil sözler ayrı kalır. */
+function groupPromises(list: PaymentPromise[]): { key: string; items: PaymentPromise[] }[] {
+  const groups: { key: string; items: PaymentPromise[] }[] = [];
+  const indexByGroup: Record<string, number> = {};
+  list.forEach((p) => {
+    if (p.group_id) {
+      if (indexByGroup[p.group_id] === undefined) {
+        indexByGroup[p.group_id] = groups.length;
+        groups.push({ key: p.group_id, items: [] });
+      }
+      groups[indexByGroup[p.group_id]]!.items.push(p);
+    } else {
+      groups.push({ key: p.id, items: [p] });
+    }
+  });
+  groups.forEach((g) => g.items.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0)));
+  return groups;
+}
 
 export default function ClientDetailScreen() {
   const __t = useTheme();
@@ -127,52 +147,93 @@ export default function ClientDetailScreen() {
             <Text style={styles.setupNote}>{t('promise.setupRequired')}</Text>
           )}
 
-          {(promises.data ?? []).map((p) => {
-            const overdue = !p.is_paid && isOverdue(`${p.due_date}T23:59:59`);
-            return (
-              <View key={p.id} style={styles.promiseRow}>
-                <Pressable
-                  hitSlop={8}
-                  onPress={() => togglePaid.mutate({ promise: p, clientName: client.full_name })}
-                >
-                  <Ionicons
-                    name={p.is_paid ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={24}
-                    color={p.is_paid ? __t.colors.success : __t.colors.textMuted}
-                  />
-                </Pressable>
-                <View style={styles.promiseBody}>
-                  <Text style={[styles.promiseAmount, p.is_paid && styles.promisePaid]}>
-                    {formatMoney(Number(p.amount))}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.promiseDue,
-                      overdue && { color: __t.colors.danger, fontWeight: '700' },
-                    ]}
-                    numberOfLines={1}
+          {groupPromises(promises.data ?? []).map((group) => {
+            const renderRow = (p: PaymentPromise) => {
+              const overdue = !p.is_paid && isOverdue(`${p.due_date}T23:59:59`);
+              return (
+                <View key={p.id} style={styles.promiseRow}>
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() => togglePaid.mutate({ promise: p, clientName: client.full_name })}
                   >
-                    {formatDate(`${p.due_date}T12:00:00`)}
-                    {!p.is_paid && ` · ${relativeDueLabel(`${p.due_date}T09:00:00`)}`}
-                    {p.is_paid && ` · ${t('promise.paid')}`}
-                  </Text>
-                  {p.note && (
-                    <Text style={styles.promiseNote} numberOfLines={1}>
-                      {p.note}
+                    <Ionicons
+                      name={p.is_paid ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={24}
+                      color={p.is_paid ? __t.colors.success : __t.colors.textMuted}
+                    />
+                  </Pressable>
+                  <View style={styles.promiseBody}>
+                    <Text style={[styles.promiseAmount, p.is_paid && styles.promisePaid]}>
+                      {p.seq ? `${t('promise.seqShort', { seq: p.seq })} · ` : ''}
+                      {formatMoney(Number(p.amount))}
                     </Text>
-                  )}
+                    <Text
+                      style={[
+                        styles.promiseDue,
+                        overdue && { color: __t.colors.danger, fontWeight: '700' },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {formatDate(`${p.due_date}T12:00:00`)}
+                      {!p.is_paid && ` · ${relativeDueLabel(`${p.due_date}T09:00:00`)}`}
+                      {p.is_paid && ` · ${t('promise.paid')}`}
+                    </Text>
+                    {p.note && !p.group_id && (
+                      <Text style={styles.promiseNote} numberOfLines={1}>
+                        {p.note}
+                      </Text>
+                    )}
+                  </View>
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() =>
+                      Alert.alert(t('promise.deleteTitle'), formatMoney(Number(p.amount)), [
+                        { text: t('common.cancel'), style: 'cancel' },
+                        { text: t('common.delete'), style: 'destructive', onPress: () => deletePromise.mutate(p.id) },
+                      ])
+                    }
+                  >
+                    <Ionicons name="trash-outline" size={18} color={__t.colors.textMuted} />
+                  </Pressable>
                 </View>
-                <Pressable
-                  hitSlop={8}
-                  onPress={() =>
-                    Alert.alert(t('promise.deleteTitle'), formatMoney(Number(p.amount)), [
-                      { text: t('common.cancel'), style: 'cancel' },
-                      { text: t('common.delete'), style: 'destructive', onPress: () => deletePromise.mutate(p.id) },
-                    ])
-                  }
-                >
-                  <Ionicons name="trash-outline" size={18} color={__t.colors.textMuted} />
-                </Pressable>
+              );
+            };
+
+            if (group.items.length === 1 && !group.items[0]!.group_id) {
+              return renderRow(group.items[0]!);
+            }
+
+            // Taksitli plan: başlık + ilerleme çubuğu + taksit satırları
+            const total = group.items.reduce((s, p) => s + Number(p.amount), 0);
+            const paidAmount = group.items.filter((p) => p.is_paid).reduce((s, p) => s + Number(p.amount), 0);
+            const paidCount = group.items.filter((p) => p.is_paid).length;
+            const pct = total > 0 ? Math.round((paidAmount / total) * 100) : 0;
+            return (
+              <View key={group.key} style={styles.groupWrap}>
+                <View style={styles.groupHead}>
+                  <Ionicons name="layers-outline" size={15} color={__t.colors.primary} />
+                  <Text style={styles.groupTitle}>
+                    {t('promise.groupTitle', { n: group.items[0]!.total_count ?? group.items.length })}
+                  </Text>
+                  <Text style={styles.groupTotal}>{formatMoney(total)}</Text>
+                </View>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${pct}%` }]} />
+                </View>
+                <View style={styles.groupMetaRow}>
+                  <Text style={[styles.groupMeta, { color: __t.colors.success }]}>
+                    {t('promise.groupProgress', { paid: paidCount, n: group.items.length })}
+                  </Text>
+                  <Text style={styles.groupMeta}>
+                    {t('promise.groupRemaining', { amount: formatMoney(Math.max(0, total - paidAmount)) })}
+                  </Text>
+                </View>
+                {!!group.items[0]!.note && (
+                  <Text style={styles.promiseNote} numberOfLines={1}>
+                    {group.items[0]!.note}
+                  </Text>
+                )}
+                {group.items.map(renderRow)}
               </View>
             );
           })}
@@ -315,6 +376,53 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
+  },
+  groupWrap: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 14,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  groupHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.xs,
+  },
+  groupTitle: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    fontWeight: '700',
+    flex: 1,
+  },
+  groupTotal: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontWeight: '800',
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.borderSubtle,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.success,
+  },
+  groupMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+    marginBottom: spacing.xs,
+  },
+  groupMeta: {
+    ...typography.small,
+    color: colors.textSecondary,
   },
   promiseBody: {
     flex: 1,

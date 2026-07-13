@@ -157,7 +157,10 @@ export default function CalendarScreen() {
         dateKey,
         time: toTime(p.due_date),
         sortTs: toSortTs(p.due_date),
-        title: t('cal.promiseTitle', { amount: formatMoney(Number(p.amount)) }),
+        title:
+          p.seq && p.total_count
+            ? t('cal.promiseInstTitle', { seq: p.seq, total: p.total_count, amount: formatMoney(Number(p.amount)) })
+            : t('cal.promiseTitle', { amount: formatMoney(Number(p.amount)) }),
         subtitle: p.client?.full_name ?? '',
         icon: 'cash-outline',
         route: p.client ? `/(app)/clients/${p.client.id}` : '/(app)/clients',
