@@ -60,6 +60,25 @@ export const courtSuggestions: Record<Lang, string[]> = {
   ],
 };
 
+export const meetingTitleSuggestions: Record<Lang, string[]> = {
+  tr: [
+    'Müvekkil Görüşmesi',
+    'Dosya Değerlendirme Toplantısı',
+    'Sözleşme Görüşmesi',
+    'Arabuluculuk Görüşmesi',
+    'Uzlaşma Görüşmesi',
+    'Bilgilendirme Toplantısı',
+  ],
+  en: [
+    'Client Meeting',
+    'Case Review Meeting',
+    'Contract Discussion',
+    'Mediation Session',
+    'Settlement Meeting',
+    'Briefing Meeting',
+  ],
+};
+
 export const hearingTitleSuggestions: Record<Lang, string[]> = {
   tr: [
     'Ön İnceleme Duruşması',

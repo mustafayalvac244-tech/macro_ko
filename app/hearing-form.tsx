@@ -12,7 +12,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { CasePicker } from '@/components/CasePicker';
 import { useCase } from '@/hooks/useCases';
 import { useAllHearings, useCreateHearing, useHearingsForCase, useUpdateHearing } from '@/hooks/useHearings';
-import { hearingTitleSuggestions } from '@/constants/suggestions';
+import { hearingTitleSuggestions, meetingTitleSuggestions } from '@/constants/suggestions';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -89,7 +89,12 @@ export default function HearingFormScreen() {
     );
   }, [allHearings.data, scheduledAt, id]);
 
-  const typeOptions = TYPE_VALUES.map((value) => ({ value, label: t(`hearingType.${value}` as const) }));
+  // "Toplantı" kısayolundan açıldığında form toplantı odaklıdır: tür listesi
+  // toplantı/arabuluculukla sınırlanır, başlık/öneri/buton metinleri değişir.
+  const meetingMode = typeParam === 'meeting' || typeParam === 'mediation';
+  const isMeetingType = type === 'meeting' || type === 'mediation';
+  const typeValues: HearingType[] = meetingMode && !isEdit ? ['meeting', 'mediation'] : TYPE_VALUES.slice();
+  const typeOptions = typeValues.map((value) => ({ value, label: t(`hearingType.${value}` as const) }));
   const reminderOptions = REMINDER_VALUES.map(({ key, value }) => ({ value, label: t(key) }));
 
   const handleSubmit = async () => {
@@ -120,16 +125,20 @@ export default function HearingFormScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <ScreenHeader title={isEdit ? t('hearingForm.editTitle') : t('hearingForm.newTitle')} subtitle={caseItem?.title} showBack />
+      <ScreenHeader
+        title={isEdit ? t('hearingForm.editTitle') : isMeetingType ? t('hearingForm.newMeetingTitle') : t('hearingForm.newTitle')}
+        subtitle={caseItem?.title}
+        showBack
+      />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {!caseIdParam && <CasePicker value={pickedCaseId} onChange={setPickedCaseId} />}
           <SuggestInput
             label={t('hearingForm.title')}
-            placeholder={t('hearingForm.titlePlaceholder')}
+            placeholder={isMeetingType ? t('hearingForm.titleMeetingPh') : t('hearingForm.titlePlaceholder')}
             value={title}
             onChangeText={setTitle}
-            suggestions={hearingTitleSuggestions[lang]}
+            suggestions={isMeetingType ? meetingTitleSuggestions[lang] : hearingTitleSuggestions[lang]}
           />
 
           <Text style={styles.label}>{t('hearingForm.type')}</Text>
@@ -248,7 +257,7 @@ export default function HearingFormScreen() {
           />
 
           <Button
-            label={isEdit ? t('common.save') : t('hearingForm.schedule')}
+            label={isEdit ? t('common.save') : isMeetingType ? t('hearingForm.scheduleMeeting') : t('hearingForm.schedule')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!title.trim() || !caseItem}

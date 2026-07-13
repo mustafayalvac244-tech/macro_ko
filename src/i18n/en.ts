@@ -380,6 +380,9 @@ export const en: Record<keyof typeof tr, string> = {
   // Hearing form
   'hearingForm.editTitle': 'Edit Hearing',
   'hearingForm.newTitle': 'New Hearing',
+  'hearingForm.newMeetingTitle': 'New Meeting',
+  'hearingForm.scheduleMeeting': 'Schedule Meeting',
+  'hearingForm.titleMeetingPh': 'Client Meeting',
   'hearingForm.title': 'Title',
   'hearingForm.titlePlaceholder': 'Preliminary Hearing',
   'hearingForm.type': 'Type',

@@ -380,6 +380,9 @@ export const tr = {
   // Hearing form
   'hearingForm.editTitle': 'Duruşmayı Düzenle',
   'hearingForm.newTitle': 'Yeni Duruşma',
+  'hearingForm.newMeetingTitle': 'Yeni Toplantı',
+  'hearingForm.scheduleMeeting': 'Toplantıyı Planla',
+  'hearingForm.titleMeetingPh': 'Müvekkil Görüşmesi',
   'hearingForm.title': 'Başlık',
   'hearingForm.titlePlaceholder': 'Ön İnceleme Duruşması',
   'hearingForm.type': 'Tür',
