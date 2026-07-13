@@ -7,6 +7,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
+import * as Updates from 'expo-updates';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
@@ -45,6 +46,21 @@ export default function RootLayout() {
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync('hidden').catch(() => {});
     }
+
+    // OTA: güncelleme varsa açılışta indirip hemen uygula — kullanıcı ikinci
+    // açılışı beklemek zorunda kalmasın (TestFlight/production).
+    (async () => {
+      try {
+        if (__DEV__ || !Updates.isEnabled) return;
+        const check = await Updates.checkForUpdateAsync();
+        if (check.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch {
+        // Ağ yoksa veya kontrol başarısız olursa mevcut sürümle devam edilir.
+      }
+    })();
 
     return unsubscribe;
   }, [initialize]);
