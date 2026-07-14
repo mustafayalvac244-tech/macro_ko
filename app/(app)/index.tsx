@@ -15,7 +15,6 @@ import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
-import { useConversations } from '@/hooks/useChat';
 import { useFinanceEntries } from '@/hooks/useFinance';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -47,7 +46,6 @@ export default function DashboardScreen() {
 
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
-  const conversations = useConversations();
   const finance = useFinanceEntries();
   useMorningDigest();
 
@@ -73,11 +71,17 @@ export default function DashboardScreen() {
     [t, dateLocale]
   );
 
-  const unreadTotal = useMemo(
-    () => (conversations.data ?? []).reduce((sum, c) => sum + c.unread, 0),
-    [conversations.data]
-  );
-  const lastConv = conversations.data?.[0];
+  // Bugün planlı işlem sayısı (duruşma + görev) — asistan satırında gösterilir.
+  const todayCount = useMemo(() => {
+    const todayKey = format(new Date(), 'yyyy-MM-dd');
+    const toKey = (iso: string) => {
+      const d = new Date(iso);
+      return isNaN(d.getTime()) ? '' : format(d, 'yyyy-MM-dd');
+    };
+    const h = (hearings.data ?? []).filter((x) => !x.is_completed && toKey(x.scheduled_at) === todayKey).length;
+    const d = (deadlines.data ?? []).filter((x) => !x.is_completed && toKey(x.due_at) === todayKey).length;
+    return h + d;
+  }, [hearings.data, deadlines.data]);
 
   const nextHearing = useMemo(() => {
     return (hearings.data ?? [])
@@ -255,12 +259,12 @@ export default function DashboardScreen() {
               onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
             />
             <AssistRow
-              icon="chatbox-ellipses-outline"
+              icon="list-outline"
               tint={GREEN}
-              label={t('dash.assist.unread')}
-              value={unreadTotal > 0 ? t('dash.assist.msgs', { n: unreadTotal }) : t('dash.assist.noMsgs')}
-              right={lastConv?.peer.full_name ?? ''}
-              onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}
+              label={t('dash.todayProgram')}
+              value={todayCount > 0 ? t('dash.eventCount', { n: todayCount }) : t('dash.noProgramToday')}
+              right=""
+              onPress={() => router.push('/(app)/calendar')}
             />
             <AssistRow
               icon="bulb-outline"
@@ -341,106 +345,6 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {/* ---------- Müvekkil ve İletişim Özeti ---------- */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderLeft}>
-              <View style={[styles.cardHeaderIcon, { backgroundColor: colors.infoSoft }]}>
-                <Ionicons name="people-outline" size={18} color={colors.info} />
-              </View>
-              <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.comm.title')}</Text>
-            </View>
-            <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])} hitSlop={6}>
-              <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.critical.all')}</Text>
-              <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
-            </Pressable>
-          </View>
-
-          {lastConv ? (
-            <View style={styles.commRow3}>
-              {/* Sütun 1: okunmamış */}
-              <View style={styles.commCol}>
-                <View style={styles.commIconWrap}>
-                  <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.info} />
-                  {unreadTotal > 0 && (
-                    <View style={styles.commIconBadge}>
-                      <Text allowFontScaling={false} style={styles.commIconBadgeText}>{unreadTotal > 9 ? '9+' : unreadTotal}</Text>
-                    </View>
-                  )}
-                </View>
-                <Text allowFontScaling={false} style={styles.commLabel} numberOfLines={1}>
-                  {t('dash.comm.unread')}
-                </Text>
-                <Text allowFontScaling={false} style={styles.commValue} numberOfLines={1} adjustsFontSizeToFit>
-                  {t('dash.comm.msgs', { n: unreadTotal })}
-                </Text>
-                <Pressable onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])}>
-                  <Text allowFontScaling={false} style={styles.commLink} numberOfLines={1}>
-                    {t('dash.comm.see')} →
-                  </Text>
-                </Pressable>
-              </View>
-
-              <View style={styles.commDivider} />
-
-              {/* Sütun 2: son görüşülen */}
-              <Pressable
-                style={[styles.commCol, { flex: 1.35 }]}
-                onPress={() => router.push(`/chat/${lastConv.peer.id}` as Parameters<typeof router.push>[0])}
-              >
-                <Text allowFontScaling={false} style={styles.commLabel} numberOfLines={1}>
-                  {t('dash.comm.last')}
-                </Text>
-                <View style={styles.commPeerRow}>
-                  <Avatar name={lastConv.peer.full_name} size={34} premium={lastConv.peer.is_premium} />
-                  <View style={{ flex: 1 }}>
-                    <Text allowFontScaling={false} style={styles.commPeerName} numberOfLines={1}>
-                      {lastConv.peer.full_name}
-                    </Text>
-                    <Text allowFontScaling={false} style={styles.commPeerTime} numberOfLines={1}>
-                      {whenLabel(lastConv.lastMessage.created_at)}
-                    </Text>
-                  </View>
-                </View>
-                <Text allowFontScaling={false} style={styles.commPreview} numberOfLines={1}>
-                  {lastConv.lastMessage.body}
-                </Text>
-              </Pressable>
-
-              <View style={styles.commDivider} />
-
-              {/* Sütun 3: hızlı iletişim */}
-              <View style={[styles.commCol, styles.commColCenter]}>
-                <Text allowFontScaling={false} style={styles.commLabel} numberOfLines={1}>
-                  {t('dash.comm.quick')}
-                </Text>
-                <View style={styles.commQuickRow}>
-                  <View style={styles.commQuickItem}>
-                    <Pressable style={styles.commQuickBtn} onPress={() => router.push('/(app)/clients')}>
-                      <Ionicons name="call-outline" size={18} color={colors.info} />
-                    </Pressable>
-                    <Text allowFontScaling={false} style={styles.commQuickLabel}>{t('dash.comm.call')}</Text>
-                  </View>
-                  <View style={styles.commQuickItem}>
-                    <Pressable
-                      style={styles.commQuickBtn}
-                      onPress={() => router.push(`/chat/${lastConv.peer.id}` as Parameters<typeof router.push>[0])}
-                    >
-                      <Ionicons name="chatbubble-outline" size={18} color={colors.info} />
-                    </Pressable>
-                    <Text allowFontScaling={false} style={styles.commQuickLabel}>{t('dash.comm.msg')}</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.emptyRow}>
-              <Ionicons name="chatbubbles-outline" size={20} color={colors.textMuted} />
-              <Text allowFontScaling={false} style={styles.emptyRowText}>{t('dash.comm.empty')}</Text>
-            </View>
-          )}
-        </View>
-
         {/* ---------- Finansal Özet ---------- */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -481,7 +385,7 @@ export default function DashboardScreen() {
       {/* ---------- Bottom bar ---------- */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <BottomTab icon="home" label={t('tab.home')} active onPress={() => {}} />
-        <BottomTab icon="chatbubble-outline" label={t('tab.messages')} badge={unreadTotal} onPress={() => router.push('/chat' as Parameters<typeof router.push>[0])} />
+        <BottomTab icon="people-outline" label={t('tab.clients')} onPress={() => router.push('/(app)/clients')} />
         <BottomTab icon="calendar-outline" label={t('tab.calendar')} onPress={() => router.push('/(app)/calendar')} />
         <BottomTab icon="folder-outline" label={t('tab.files')} onPress={() => router.push('/(app)/documents')} />
         <BottomTab icon="ellipsis-horizontal" label={t('tab.more')} onPress={openSidebar} />

@@ -120,8 +120,8 @@ export function Sidebar() {
     { icon: 'people-outline', label: t('clients.title'), path: '/(app)/clients' },
     { icon: 'calendar-outline', label: t('cal.title'), path: '/(app)/calendar' },
   ];
+  // Mesajlaşma şimdilik gizli (istek üzerine); rotalar duruyor, giriş yok.
   const networkItems: NavItem[] = [
-    { icon: 'chatbubbles-outline', label: t('chat.title'), path: '/chat' },
     { icon: 'swap-horizontal-outline', label: t('jobs.title'), path: '/jobs' },
   ];
   const toolItems: NavItem[] = [
