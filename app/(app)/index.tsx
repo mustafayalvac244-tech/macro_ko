@@ -369,17 +369,6 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* ---------- Tevkil Panosu banner ---------- */}
-        <Pressable style={styles.tevkilAd} onPress={() => router.push('/jobs' as Parameters<typeof router.push>[0])}>
-          <View style={styles.tevkilArt}>
-            <VekilLogo size={30} nodeFill={colors.gold} />
-          </View>
-          <View style={styles.tevkilBody}>
-            <Text allowFontScaling={false} style={styles.tevkilTitle}>{t('dash.tevkilTitle')}</Text>
-            <Text allowFontScaling={false} style={styles.tevkilDesc}>{t('dash.tevkilDesc')}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
-        </Pressable>
       </ScrollView>
 
       {/* ---------- Bottom bar ---------- */}

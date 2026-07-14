@@ -121,9 +121,6 @@ export function Sidebar() {
     { icon: 'calendar-outline', label: t('cal.title'), path: '/(app)/calendar' },
   ];
   // Mesajlaşma şimdilik gizli (istek üzerine); rotalar duruyor, giriş yok.
-  const networkItems: NavItem[] = [
-    { icon: 'swap-horizontal-outline', label: t('jobs.title'), path: '/jobs' },
-  ];
   const toolItems: NavItem[] = [
     { icon: 'document-text-outline', label: t('tpl.title'), path: '/templates' },
     { icon: 'calculator-outline', label: t('calc.title'), path: '/calculators' },
@@ -180,11 +177,6 @@ export function Sidebar() {
 
           <ScrollView style={styles.navScroll} showsVerticalScrollIndicator={false}>
             {coreItems.map((item) => (
-              <SidebarItem key={item.path} icon={item.icon} label={item.label} onPress={() => go(item.path)} />
-            ))}
-
-            <Text style={styles.sectionLabel}>{t('sidebar.network')}</Text>
-            {networkItems.map((item) => (
               <SidebarItem key={item.path} icon={item.icon} label={item.label} onPress={() => go(item.path)} />
             ))}
 
