@@ -378,11 +378,11 @@ export default function DashboardScreen() {
 
       {/* ---------- Bottom bar ---------- */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-        <BottomTab icon="home" label={t('tab.home')} active onPress={() => {}} />
-        <BottomTab icon="people-outline" label={t('tab.clients')} onPress={() => router.push('/(app)/clients')} />
-        <BottomTab icon="calendar-outline" label={t('tab.calendar')} onPress={() => router.push('/(app)/calendar')} />
+        {/* Test geri bildirimi: "Ana sayfa" (zaten buradayız) ve "Diğer" (☰ ile
+            aynı iş) sekmeleri kaldırıldı — üç net kısayol kaldı. */}
         <BottomTab icon="folder-outline" label={t('tab.files')} onPress={() => router.push('/(app)/documents')} />
-        <BottomTab icon="ellipsis-horizontal" label={t('tab.more')} onPress={openSidebar} />
+        <BottomTab icon="calendar-outline" label={t('tab.calendar')} onPress={() => router.push('/(app)/calendar')} />
+        <BottomTab icon="people-outline" label={t('tab.clients')} onPress={() => router.push('/(app)/clients')} />
       </View>
     </Screen>
   );
