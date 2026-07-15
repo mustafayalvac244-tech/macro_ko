@@ -241,6 +241,8 @@ export const en: Record<keyof typeof tr, string> = {
   'common.save': 'Save Changes',
   'common.done': 'Done',
   'common.none': 'None',
+  'common.yes': 'Yes',
+  'common.no': 'No',
 
   // Clients
   'clients.title': 'Clients',
@@ -728,6 +730,12 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.deadlineWizard': 'Deadline Wizard',
   'dash.calculators': 'Calculators',
   'dash.remindersShort': 'Reminders',
+  'devCal.askTitle': 'Phone Calendar',
+  'devCal.askMsg': 'Add this record to your phone calendar too?',
+  'devCal.addedTitle': 'Added ✓',
+  'devCal.addedMsg': 'Added to your phone calendar (with a 1-hour reminder).',
+  'devCal.denied': 'Calendar permission was not granted. You can allow it in Settings > Vekil Pro.',
+  'devCal.unavailable': 'This feature requires the latest app version (TestFlight/store update).',
   'wizard.title': 'Deadline Wizard',
   'wizard.hint':
     'Pick the deadline type and the notification/start date; we compute the last day and add it to a case as a task with reminders.',

@@ -199,6 +199,11 @@ export default function DashboardScreen() {
         {/* ---------- Header ---------- */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
+            {router.canGoBack() && (
+              <Pressable onPress={() => router.back()} hitSlop={8}>
+                <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
+              </Pressable>
+            )}
             <Pressable onPress={openSidebar} hitSlop={8}>
               <Ionicons name="menu" size={26} color={colors.textPrimary} />
             </Pressable>

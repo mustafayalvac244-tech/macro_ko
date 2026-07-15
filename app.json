@@ -91,6 +91,12 @@
         {
           "enableGooglePay": false
         }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Vekil Pro, duruşma ve toplantılarınızı telefon takviminize ekleyebilmek için takvim erişimi ister."
+        }
       ]
     ],
     "experiments": {

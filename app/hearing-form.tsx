@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDateTime, formatTime } from '@/utils/format';
+import { addToDeviceCalendar } from '@/utils/deviceCalendar';
 import type { HearingType } from '@/types/database';
 
 const TYPE_VALUES: HearingType[] = ['hearing', 'trial', 'mediation', 'deposition', 'filing', 'meeting', 'other'];
@@ -117,10 +118,30 @@ export default function HearingFormScreen() {
 
     if (isEdit && id) {
       await updateHearing.mutateAsync({ id, ...payload });
-    } else {
-      await createHearing.mutateAsync(payload);
+      router.back();
+      return;
     }
-    router.back();
+    await createHearing.mutateAsync(payload);
+
+    // Yeni kayıt telefonun takvimine de yazılsın mı?
+    Alert.alert(t('devCal.askTitle'), t('devCal.askMsg'), [
+      { text: t('common.no'), style: 'cancel', onPress: () => router.back() },
+      {
+        text: t('common.yes'),
+        onPress: async () => {
+          const res = await addToDeviceCalendar({
+            title: `${payload.title} — ${caseItem.title}`,
+            startISO: payload.scheduled_at,
+            location: payload.location,
+            notes: payload.notes,
+          });
+          if (res === 'added') Alert.alert(t('devCal.addedTitle'), t('devCal.addedMsg'));
+          else if (res === 'denied') Alert.alert(t('devCal.askTitle'), t('devCal.denied'));
+          else Alert.alert(t('devCal.askTitle'), t('devCal.unavailable'));
+          router.back();
+        },
+      },
+    ]);
   };
 
   return (

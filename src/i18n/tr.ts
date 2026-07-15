@@ -241,6 +241,8 @@ export const tr = {
   'common.save': 'Değişiklikleri Kaydet',
   'common.done': 'Tamam',
   'common.none': 'Yok',
+  'common.yes': 'Evet',
+  'common.no': 'Hayır',
 
   // Clients
   'clients.title': 'Müvekkiller',
@@ -729,6 +731,12 @@ export const tr = {
   'dash.deadlineWizard': 'Süre Asistanı',
   'dash.calculators': 'Hesaplama',
   'dash.remindersShort': 'Hatırlatıcı',
+  'devCal.askTitle': 'Telefon Takvimi',
+  'devCal.askMsg': 'Bu kayıt telefonunuzun takvimine de eklensin mi?',
+  'devCal.addedTitle': 'Eklendi ✓',
+  'devCal.addedMsg': 'Kayıt telefon takviminize eklendi (1 saat önce hatırlatmalı).',
+  'devCal.denied': 'Takvim izni verilmedi. Ayarlar > Vekil Pro üzerinden izin verebilirsiniz.',
+  'devCal.unavailable': 'Bu özellik için uygulamanın yeni sürümü gerekiyor (TestFlight/mağaza güncellemesi).',
   'wizard.title': 'Süre Asistanı',
   'wizard.hint':
     'Süre türünü seçin, tebliğ/başlangıç tarihini girin; son günü hesaplayıp seçtiğiniz davaya hatırlatmalı görev olarak ekleyelim.',
