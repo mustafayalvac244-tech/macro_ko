@@ -707,6 +707,8 @@ export const en: Record<keyof typeof tr, string> = {
   'fee.installments': 'Installments',
   'fee.installmentN': 'Installment {n}',
   'fee.installmentAmount': 'Installment amount',
+  'fee.dueDate': 'Due date',
+  'fee.noDueDate': 'Not set (won\'t appear on calendar)',
   'fee.addInstallment': 'Add Installment',
   'adv.title': 'Expense Advance',
   'adv.advance': 'Advance Received',

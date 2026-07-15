@@ -119,6 +119,25 @@ export function useDeleteCaseExpense() {
 
 export type InstallmentWithCase = CaseInstallment & { case: { id: string; title: string } | null };
 
+/** Ödenmiş tüm taksitlerin toplamı — rapor tahsilat özeti için. */
+export function usePaidInstallmentsTotal() {
+  const ownerId = useAuthStore((s) => s.session?.user.id);
+  return useQuery({
+    queryKey: ['installments', 'paid-total', ownerId],
+    enabled: !!ownerId,
+    retry: 1,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('case_installments')
+        .select('amount')
+        .eq('owner_id', ownerId!)
+        .eq('is_paid', true);
+      if (error) throw error;
+      return (data ?? []).reduce((sum: number, i: { amount: number }) => sum + Number(i.amount), 0);
+    },
+  });
+}
+
 /** Vadesi girilmiş, ödenmemiş tüm taksitler — takvimde göstermek için. */
 export function useAllInstallments() {
   const ownerId = useAuthStore((s) => s.session?.user.id);

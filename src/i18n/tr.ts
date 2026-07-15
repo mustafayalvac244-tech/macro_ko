@@ -708,6 +708,8 @@ export const tr = {
   'fee.installments': 'Taksitler (Vadeler)',
   'fee.installmentN': '{n}. Vade',
   'fee.installmentAmount': 'Vade tutarı',
+  'fee.dueDate': 'Vade tarihi',
+  'fee.noDueDate': 'Seçilmedi (takvimde görünmez)',
   'fee.addInstallment': 'Vade Ekle',
   'adv.title': 'Masraf Avansı',
   'adv.advance': 'Alınan Avans',

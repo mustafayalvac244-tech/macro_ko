@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useCases } from '@/hooks/useCases';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
-import { useAllPayments } from '@/hooks/usePayments';
+import { useAllPayments, usePaidInstallmentsTotal } from '@/hooks/usePayments';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -32,6 +32,7 @@ export default function ReportsScreen() {
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
   const payments = useAllPayments();
+  const paidInstTotal = usePaidInstallmentsTotal();
 
   const statusCounts = useMemo(() => {
     const counts = new Map<CaseStatus, number>();
@@ -69,9 +70,11 @@ export default function ReportsScreen() {
 
   const finance = useMemo(() => {
     const totalFee = (cases.data ?? []).reduce((sum, c) => sum + (c.fee_amount != null ? Number(c.fee_amount) : 0), 0);
-    const totalCollected = (payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
+    // Tahsilat = ödemeler + ödenmiş taksitler (case detay ile tutarlı).
+    const paymentsSum = (payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
+    const totalCollected = paymentsSum + (paidInstTotal.data ?? 0);
     return { totalFee, totalCollected };
-  }, [cases.data, payments.data]);
+  }, [cases.data, payments.data, paidInstTotal.data]);
 
   const totalCases = cases.data?.length ?? 0;
   const maxStatus = Math.max(1, ...Array.from(statusCounts.values()));

@@ -49,7 +49,8 @@ export default function CaseDetailScreen() {
   const createDeadline = useCreateDeadline();
   const [decisionNo, setDecisionNo] = useState('');
   const [stageNote, setStageNote] = useState('');
-  const [datePicker, setDatePicker] = useState<null | 'decision' | 'served'>(null);
+  const [datePicker, setDatePicker] = useState<null | 'decision' | 'served' | 'installment'>(null);
+  const [instDue, setInstDue] = useState<Date | null>(null);
 
   useEffect(() => {
     setDecisionNo(caseItem?.decision_number ?? '');
@@ -255,7 +256,7 @@ export default function CaseDetailScreen() {
                 setDatePicker(null);
                 if (!picked) return;
                 if (which === 'decision') saveCase({ decision_date: picked.toISOString().slice(0, 10) });
-                else handleServedDate(picked);
+                else if (which === 'served') handleServedDate(picked);
               }}
             />
           )}
@@ -362,7 +363,14 @@ export default function CaseDetailScreen() {
           <View>
             {/* Vekalet ücreti — tipe göre */}
             {(() => {
-              const collected = (payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
+              // Tahsil edilen = tek tek eklenen ödemeler + "ödendi" işaretlenmiş
+              // taksitler. (Eskiden sadece ödemeler sayılıyor, ödenen taksitler
+              // Kalan'ı düşürmüyordu.)
+              const paymentsSum = (payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
+              const paidInstallments = (installments.data ?? [])
+                .filter((i) => i.is_paid)
+                .reduce((sum, i) => sum + Number(i.amount), 0);
+              const collected = paymentsSum + paidInstallments;
               const feeType = caseItem.fee_type ?? 'fixed';
               const feeLabel =
                 feeType === 'percentage'
@@ -418,6 +426,16 @@ export default function CaseDetailScreen() {
                           />
                         </Pressable>
                       ))}
+                      {/* Vade tarihi: girilirse taksit takvimde de görünür. */}
+                      <Pressable style={styles.instDateBtn} onPress={() => setDatePicker('installment')}>
+                        <Ionicons name="calendar-outline" size={16} color={colors.textMuted} />
+                        <Text style={styles.instDateText}>
+                          {t('fee.dueDate')}: {instDue ? formatDate(instDue.toISOString()) : t('fee.noDueDate')}
+                        </Text>
+                        {instDue && (
+                          <Ionicons name="close-circle" size={16} color={colors.textMuted} onPress={() => setInstDue(null)} suppressHighlighting />
+                        )}
+                      </Pressable>
                       <View style={styles.instAddRow}>
                         <View style={{ flex: 1 }}>
                           <Input
@@ -437,9 +455,10 @@ export default function CaseDetailScreen() {
                               case_id: caseItem.id,
                               seq: (installments.data?.length ?? 0) + 1,
                               amount: Number(instAmount.replace(',', '.')),
-                              due_date: null,
+                              due_date: instDue ? instDue.toISOString().slice(0, 10) : null,
                             });
                             setInstAmount('');
+                            setInstDue(null);
                           }}
                           style={styles.instAddBtn}
                         />
@@ -449,6 +468,17 @@ export default function CaseDetailScreen() {
                 </Card>
               );
             })()}
+
+            {datePicker === 'installment' && (
+              <DateTimePicker
+                value={instDue ?? new Date()}
+                mode="date"
+                onChange={(_e, picked) => {
+                  setDatePicker(null);
+                  if (picked) setInstDue(picked);
+                }}
+              />
+            )}
 
             <Card style={styles.paymentForm}>
               <Input
@@ -785,6 +815,21 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   instAddBtn: {
     marginBottom: 2,
+  },
+  instDateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.xs,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 10,
+  },
+  instDateText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flex: 1,
   },
   advWarn: {
     flexDirection: 'row',
