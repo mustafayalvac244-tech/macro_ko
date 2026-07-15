@@ -74,11 +74,14 @@ export default function RemindersScreen() {
                 style={index > 0 ? styles.divider : undefined}
               >
                 {item.kind === 'hearing' ? (
-                  <HearingListItem hearing={item.hearing} onPress={() => router.push(`/(app)/cases/${item.hearing.case_id}`)} />
+                  <HearingListItem
+                    hearing={item.hearing}
+                    onPress={() => item.hearing.case_id && router.push(`/(app)/cases/${item.hearing.case_id}`)}
+                  />
                 ) : (
                   <DeadlineListItem
                     deadline={item.deadline}
-                    onPress={() => router.push(`/(app)/cases/${item.deadline.case_id}`)}
+                    onPress={() => item.deadline.case_id && router.push(`/(app)/cases/${item.deadline.case_id}`)}
                     onToggleComplete={() =>
                       updateDeadline.mutate({
                         id: item.deadline.id,

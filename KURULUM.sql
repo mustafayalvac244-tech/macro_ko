@@ -365,4 +365,9 @@ alter table payment_promises add column if not exists seq int;
 alter table payment_promises add column if not exists total_count int;
 create index if not exists payment_promises_group_idx on payment_promises (group_id, seq);
 
+-- ---------- 0022: Duruşma/görev dosyasız oluşturulabilsin ----------
+-- Toplantı gibi bazı kayıtlar bir davaya bağlı olmayabilir; case_id opsiyonel.
+alter table hearings alter column case_id drop not null;
+alter table deadlines alter column case_id drop not null;
+
 -- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.

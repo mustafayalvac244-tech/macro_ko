@@ -290,7 +290,7 @@ export const tr = {
   'cal.addDuration': 'Süre',
   'cal.allDay': 'Gün boyu',
   'cal.legendMulti': 'Birden fazla işlem',
-  'casePicker.label': 'Dosya',
+  'casePicker.label': 'Dosya (opsiyonel)',
   'casePicker.placeholder': 'Dosya seçin',
   'casePicker.empty': 'Açık dosya yok — önce bir dosya ekleyin',
 

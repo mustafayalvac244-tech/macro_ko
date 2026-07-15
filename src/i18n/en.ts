@@ -290,7 +290,7 @@ export const en: Record<keyof typeof tr, string> = {
   'cal.addDuration': 'Deadline',
   'cal.allDay': 'All day',
   'cal.legendMulti': 'Multiple items',
-  'casePicker.label': 'Case file',
+  'casePicker.label': 'Case file (optional)',
   'casePicker.placeholder': 'Select a case',
   'casePicker.empty': 'No open cases — add a case first',
 

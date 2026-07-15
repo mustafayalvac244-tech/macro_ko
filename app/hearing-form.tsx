@@ -17,7 +17,7 @@ import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatDateTime, formatTime } from '@/utils/format';
+import { formatDate, formatTime } from '@/utils/format';
 import { addToDeviceCalendar } from '@/utils/deviceCalendar';
 import type { HearingType } from '@/types/database';
 
@@ -99,9 +99,8 @@ export default function HearingFormScreen() {
   const reminderOptions = REMINDER_VALUES.map(({ key, value }) => ({ value, label: t(key) }));
 
   const handleSubmit = async () => {
-    if (!caseItem) return;
     const payload = {
-      case_id: caseItem.id,
+      case_id: caseItem?.id ?? null,
       title: title.trim(),
       type,
       location:
@@ -113,7 +112,7 @@ export default function HearingFormScreen() {
       scheduled_at: scheduledAt.toISOString(),
       reminder_minutes_before: Number(reminder),
       notes: notes.trim() || null,
-      caseTitle: caseItem.title,
+      caseTitle: caseItem?.title ?? title.trim(),
     };
 
     if (isEdit && id) {
@@ -130,7 +129,7 @@ export default function HearingFormScreen() {
         text: t('common.yes'),
         onPress: async () => {
           const res = await addToDeviceCalendar({
-            title: `${payload.title} — ${caseItem.title}`,
+            title: caseItem ? `${payload.title} — ${caseItem.title}` : payload.title,
             startISO: payload.scheduled_at,
             location: payload.location,
             notes: payload.notes,
@@ -167,32 +166,33 @@ export default function HearingFormScreen() {
 
           <View style={styles.spacer} />
           <Text style={styles.label}>{t('hearingForm.datetime')}</Text>
-          <Pressable style={styles.dateButton} onPress={() => setShowPicker('date')}>
-            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-            <Text style={styles.dateButtonText}>{formatDateTime(scheduledAt.toISOString())}</Text>
-          </Pressable>
+          {/* Tarih ve saat ayrı butonlarda: zincirleme picker bazı Android
+              cihazlarda saati açmıyordu; her biri kendi seçicisini açar. */}
+          <View style={styles.dtRow}>
+            <Pressable style={[styles.dateButton, styles.dtHalf]} onPress={() => setShowPicker('date')}>
+              <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.dateButtonText}>{formatDate(scheduledAt.toISOString())}</Text>
+            </Pressable>
+            <Pressable style={[styles.dateButton, styles.dtHalf]} onPress={() => setShowPicker('time')}>
+              <Ionicons name="time-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.dateButtonText}>{formatTime(scheduledAt.toISOString())}</Text>
+            </Pressable>
+          </View>
           {showPicker && (
             <DateTimePicker
               value={scheduledAt}
               mode={showPicker}
+              is24Hour
               onChange={(_event, date) => {
-                if (Platform.OS === 'android') {
-                  setShowPicker(null);
-                  if (date) {
-                    if (showPicker === 'date') {
-                      const next = new Date(scheduledAt);
-                      next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                      setScheduledAt(next);
-                      setTimeout(() => setShowPicker('time'), 250);
-                    } else {
-                      const next = new Date(scheduledAt);
-                      next.setHours(date.getHours(), date.getMinutes());
-                      setScheduledAt(next);
-                    }
-                  }
-                } else if (date) {
-                  setScheduledAt(date);
+                if (Platform.OS === 'android') setShowPicker(null);
+                if (!date) return;
+                const next = new Date(scheduledAt);
+                if (showPicker === 'date') {
+                  next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                } else {
+                  next.setHours(date.getHours(), date.getMinutes());
                 }
+                setScheduledAt(next);
               }}
             />
           )}
@@ -281,7 +281,7 @@ export default function HearingFormScreen() {
             label={isEdit ? t('common.save') : isMeetingType ? t('hearingForm.scheduleMeeting') : t('hearingForm.schedule')}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={!title.trim() || !caseItem}
+            disabled={!title.trim()}
             fullWidth
             size="lg"
             style={styles.submit}
@@ -320,6 +320,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   dateButtonText: {
     ...typography.body,
     color: colors.textPrimary,
+  },
+  dtRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dtHalf: {
+    flex: 1,
   },
   pickerDone: {
     marginTop: spacing.xs,

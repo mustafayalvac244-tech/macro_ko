@@ -125,7 +125,7 @@ export default function CalendarScreen() {
         title: h.title,
         subtitle: [h.case?.title, t(`hearingType.${h.type}` as const)].filter(Boolean).join(' · '),
         icon: HEARING_ICONS[h.type] ?? 'calendar-outline',
-        route: `/(app)/cases/${h.case_id}`,
+        route: h.case_id ? `/(app)/cases/${h.case_id}` : '/(app)/calendar',
         done: h.is_completed,
       });
     });
@@ -142,7 +142,7 @@ export default function CalendarScreen() {
         title: d.title,
         subtitle: [d.case?.title, t(`priority.${d.priority}` as const)].filter(Boolean).join(' · '),
         icon: d.priority === 'critical' ? 'alert-circle-outline' : 'checkbox-outline',
-        route: `/(app)/cases/${d.case_id}`,
+        route: d.case_id ? `/(app)/cases/${d.case_id}` : '/(app)/calendar',
         done: d.is_completed,
         deadline: d,
       });

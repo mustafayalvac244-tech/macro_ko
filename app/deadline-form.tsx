@@ -17,7 +17,7 @@ import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatDateTime } from '@/utils/format';
+import { formatDate, formatTime } from '@/utils/format';
 import type { PriorityLevel } from '@/types/database';
 
 const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
@@ -72,15 +72,14 @@ export default function DeadlineFormScreen() {
   const reminderOptions = REMINDER_VALUES.map(({ key, value }) => ({ value, label: t(key) }));
 
   const handleSubmit = async () => {
-    if (!caseItem) return;
     const payload = {
-      case_id: caseItem.id,
+      case_id: caseItem?.id ?? null,
       title: title.trim(),
       description: description.trim() || null,
       due_at: dueAt.toISOString(),
       priority,
       reminder_minutes_before: Number(reminder),
-      caseTitle: caseItem.title,
+      caseTitle: caseItem?.title ?? title.trim(),
     };
 
     if (isEdit && id) {
@@ -112,32 +111,31 @@ export default function DeadlineFormScreen() {
           />
 
           <Text style={styles.label}>{t('deadlineForm.due')}</Text>
-          <Pressable style={styles.dateButton} onPress={() => setShowPicker('date')}>
-            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-            <Text style={styles.dateButtonText}>{formatDateTime(dueAt.toISOString())}</Text>
-          </Pressable>
+          <View style={styles.dtRow}>
+            <Pressable style={[styles.dateButton, styles.dtHalf]} onPress={() => setShowPicker('date')}>
+              <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.dateButtonText}>{formatDate(dueAt.toISOString())}</Text>
+            </Pressable>
+            <Pressable style={[styles.dateButton, styles.dtHalf]} onPress={() => setShowPicker('time')}>
+              <Ionicons name="time-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.dateButtonText}>{formatTime(dueAt.toISOString())}</Text>
+            </Pressable>
+          </View>
           {showPicker && (
             <DateTimePicker
               value={dueAt}
               mode={showPicker}
+              is24Hour
               onChange={(_event, date) => {
-                if (Platform.OS === 'android') {
-                  setShowPicker(null);
-                  if (date) {
-                    if (showPicker === 'date') {
-                      const next = new Date(dueAt);
-                      next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                      setDueAt(next);
-                      setTimeout(() => setShowPicker('time'), 250);
-                    } else {
-                      const next = new Date(dueAt);
-                      next.setHours(date.getHours(), date.getMinutes());
-                      setDueAt(next);
-                    }
-                  }
-                } else if (date) {
-                  setDueAt(date);
+                if (Platform.OS === 'android') setShowPicker(null);
+                if (!date) return;
+                const next = new Date(dueAt);
+                if (showPicker === 'date') {
+                  next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                } else {
+                  next.setHours(date.getHours(), date.getMinutes());
                 }
+                setDueAt(next);
               }}
             />
           )}
@@ -168,7 +166,7 @@ export default function DeadlineFormScreen() {
             label={isEdit ? t('common.save') : t('deadlineForm.create')}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={!title.trim() || !caseItem}
+            disabled={!title.trim()}
             fullWidth
             size="lg"
             style={styles.submit}
@@ -221,6 +219,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   dateButtonText: {
     ...typography.body,
     color: colors.textPrimary,
+  },
+  dtRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dtHalf: {
+    flex: 1,
   },
   pickerDone: {
     marginTop: spacing.xs,

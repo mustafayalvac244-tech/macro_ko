@@ -218,7 +218,7 @@ export interface CaseWithClient extends Case {
 export interface Hearing {
   id: string;
   owner_id: string;
-  case_id: string;
+  case_id: string | null;
   title: string;
   type: HearingType;
   location: string | null;
@@ -233,7 +233,7 @@ export interface Hearing {
 export interface Deadline {
   id: string;
   owner_id: string;
-  case_id: string;
+  case_id: string | null;
   title: string;
   description: string | null;
   due_at: string;
