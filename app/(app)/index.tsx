@@ -425,7 +425,7 @@ function AssistRow({
           {value}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.45)" />
+      <Ionicons name="chevron-forward" size={15} color={__t.colors.textMuted} />
     </Pressable>
   );
 }
@@ -622,7 +622,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   // Hero — Günlük Asistan
   hero: {
     marginHorizontal: spacing.lg,
-    backgroundColor: NAVY,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     borderRadius: 22,
     padding: spacing.md,
     paddingBottom: spacing.md,
@@ -653,12 +655,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
   },
   heroTitle: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '800',
   },
   heroUpdated: {
-    color: 'rgba(255,255,255,0.55)',
+    color: colors.textMuted,
     fontSize: 10.5,
     marginTop: 1,
   },
@@ -670,9 +672,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.borderSubtle,
     borderRadius: 13,
     paddingHorizontal: 10,
     paddingVertical: 9,
@@ -694,20 +696,20 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 10,
   },
   assistLabel: {
-    color: 'rgba(255,255,255,0.62)',
+    color: colors.textSecondary,
     fontSize: 10.5,
     fontWeight: '600',
     flexShrink: 0,
   },
   assistValue: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 13.5,
     fontWeight: '800',
     marginTop: 1,
   },
   assistRight: {
     flex: 1,
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.textMuted,
     fontSize: 10.5,
     textAlign: 'right',
   },
