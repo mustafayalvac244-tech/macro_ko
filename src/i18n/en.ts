@@ -595,6 +595,8 @@ export const en: Record<keyof typeof tr, string> = {
   // Receivables (payment promises)
   'promise.section': 'Receivables',
   'promise.add': 'Add Payment Date',
+  'promise.total': 'Total Receivable',
+  'promise.howto': 'Enter what the client owes you via "Add Payment Day" (one-time or installments). As payments arrive, tap the circle to mark them paid; the amount moves to Collected and Remaining drops.',
   'promise.remaining': 'Outstanding',
   'promise.newTitle': 'Payment Date',
   'promise.hint':
@@ -616,7 +618,7 @@ export const en: Record<keyof typeof tr, string> = {
   'promise.notePlaceholder': '2nd installment, promissory note due...',
   'promise.create': 'Save & Remind',
   'promise.paid': 'Paid ✓',
-  'promise.empty': 'No payment promises yet. Start with "Add Payment Date".',
+  'promise.empty': 'No receivables yet. Add what the client owes via "Add Payment Day".',
   'promise.deleteTitle': 'Delete this payment record?',
   'promise.setupRequired': 'The receivables table is not set up yet. Run KURULUM.sql once more in the Supabase SQL Editor.',
 

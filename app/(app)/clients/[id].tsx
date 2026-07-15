@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +14,6 @@ import { useClient, useDeleteClient } from '@/hooks/useClients';
 import { useCasesByClient } from '@/hooks/useCases';
 import {
   isMissingPromiseTable,
-  useClientFinance,
   useDeletePromise,
   usePromisesForClient,
   useTogglePromisePaid,
@@ -53,10 +53,23 @@ export default function ClientDetailScreen() {
   const { data: client, isLoading } = useClient(id);
   const { data: cases } = useCasesByClient(id);
   const deleteClient = useDeleteClient();
-  const finance = useClientFinance(id);
   const promises = usePromisesForClient(id);
   const togglePaid = useTogglePromisePaid();
   const deletePromise = useDeletePromise();
+
+  // Alacak özeti doğrudan alttaki listeden hesaplanır: eklenen her alacak
+  // "Toplam"a, ödendi işaretlenen "Tahsil Edilen"e, kalanı "Kalan Alacak"a yansır.
+  const summary = useMemo(() => {
+    const list = promises.data ?? [];
+    let total = 0;
+    let collected = 0;
+    for (const p of list) {
+      const amt = Number(p.amount) || 0;
+      total += amt;
+      if (p.is_paid) collected += amt;
+    }
+    return { total, collected, remaining: Math.max(0, total - collected) };
+  }, [promises.data]);
 
   if (isLoading || !client) {
     return (
@@ -138,21 +151,21 @@ export default function ClientDetailScreen() {
         <Card style={styles.financeCard}>
           <View style={styles.financeRow}>
             <View style={styles.financeItem}>
-              <Text style={styles.financeLabel}>{t('finance.fee')}</Text>
+              <Text style={styles.financeLabel}>{t('promise.total')}</Text>
               <Text style={styles.financeValue} numberOfLines={1} adjustsFontSizeToFit>
-                {formatMoney(finance.data?.totalFee ?? 0)}
+                {formatMoney(summary.total)}
               </Text>
             </View>
             <View style={styles.financeItem}>
               <Text style={styles.financeLabel}>{t('finance.collected')}</Text>
               <Text style={[styles.financeValue, { color: __t.colors.success }]} numberOfLines={1} adjustsFontSizeToFit>
-                {formatMoney(finance.data?.collected ?? 0)}
+                {formatMoney(summary.collected)}
               </Text>
             </View>
             <View style={[styles.financeItem, styles.financeItemHighlight]}>
               <Text style={styles.financeLabel}>{t('promise.remaining')}</Text>
               <Text style={[styles.financeValue, { color: __t.colors.danger }]} numberOfLines={1} adjustsFontSizeToFit>
-                {formatMoney(finance.data?.remaining ?? 0)}
+                {formatMoney(summary.remaining)}
               </Text>
             </View>
           </View>
@@ -160,6 +173,11 @@ export default function ClientDetailScreen() {
           {promises.error && isMissingPromiseTable(promises.error) && (
             <Text style={styles.setupNote}>{t('promise.setupRequired')}</Text>
           )}
+
+          <View style={styles.howToRow}>
+            <Ionicons name="information-circle-outline" size={14} color={__t.colors.info} />
+            <Text style={styles.howToText}>{t('promise.howto')}</Text>
+          </View>
 
           {groupPromises(promises.data ?? []).map((group) => {
             const renderRow = (p: PaymentPromise) => {
@@ -417,6 +435,22 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.warning,
     lineHeight: 16,
     marginBottom: spacing.xs,
+  },
+  howToRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 5,
+    backgroundColor: colors.infoSoft,
+    borderRadius: 10,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 7,
+    marginBottom: spacing.xs,
+  },
+  howToText: {
+    ...typography.small,
+    color: colors.textSecondary,
+    flex: 1,
+    lineHeight: 16,
   },
   promiseRow: {
     flexDirection: 'row',

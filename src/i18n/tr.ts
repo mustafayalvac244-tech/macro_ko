@@ -525,6 +525,8 @@ export const tr = {
   // Alacak takibi (ödeme sözleri)
   'promise.section': 'Alacak / Verecek',
   'promise.add': 'Ödeme Günü Ekle',
+  'promise.total': 'Toplam Alacak',
+  'promise.howto': 'Müvekkilin size olan borcunu "Ödeme Günü Ekle" ile girin (tek veya taksitli). Ödeme geldikçe yanındaki daireye dokunup "ödendi" işaretleyin; tutar Tahsil Edilen\'e geçer, Kalan Alacak düşer.',
   'promise.remaining': 'Kalan Alacak',
   'promise.newTitle': 'Ödeme Günü',
   'promise.hint':
@@ -546,7 +548,7 @@ export const tr = {
   'promise.notePlaceholder': '2. taksit, senet vadesi...',
   'promise.create': 'Kaydet ve Hatırlat',
   'promise.paid': 'Ödendi ✓',
-  'promise.empty': 'Kayıtlı ödeme sözü yok. "Ödeme Günü Ekle" ile başlayın.',
+  'promise.empty': 'Henüz alacak eklenmedi. Müvekkilin borcunu "Ödeme Günü Ekle" ile girin.',
   'promise.deleteTitle': 'Ödeme kaydı silinsin mi?',
   'promise.setupRequired':
     'Alacak takibi tablosu henüz kurulmamış. KURULUM.sql dosyasını Supabase SQL Editor’da bir kez daha çalıştırın.',
