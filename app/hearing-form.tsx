@@ -136,7 +136,8 @@ export default function HearingFormScreen() {
           });
           if (res === 'added') Alert.alert(t('devCal.addedTitle'), t('devCal.addedMsg'));
           else if (res === 'denied') Alert.alert(t('devCal.askTitle'), t('devCal.denied'));
-          else Alert.alert(t('devCal.askTitle'), t('devCal.unavailable'));
+          else if (res === 'unavailable') Alert.alert(t('devCal.askTitle'), t('devCal.unavailable'));
+          else Alert.alert(t('devCal.askTitle'), t('devCal.error'));
           router.back();
         },
       },

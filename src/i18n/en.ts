@@ -739,6 +739,7 @@ export const en: Record<keyof typeof tr, string> = {
   'devCal.addedTitle': 'Added ✓',
   'devCal.addedMsg': 'Added to your phone calendar (with a 1-hour reminder).',
   'devCal.denied': 'Calendar permission was not granted. You can allow it in Settings > Vekil Pro.',
+  'devCal.error': 'Could not add to calendar. Check your phone calendar settings and try again.',
   'devCal.unavailable': 'This feature requires the latest app version (TestFlight/store update).',
   'wizard.title': 'Deadline Wizard',
   'wizard.hint':

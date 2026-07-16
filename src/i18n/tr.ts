@@ -740,6 +740,7 @@ export const tr = {
   'devCal.addedTitle': 'Eklendi ✓',
   'devCal.addedMsg': 'Kayıt telefon takviminize eklendi (1 saat önce hatırlatmalı).',
   'devCal.denied': 'Takvim izni verilmedi. Ayarlar > Vekil Pro üzerinden izin verebilirsiniz.',
+  'devCal.error': 'Takvime eklenemedi. Telefon takvim ayarlarını kontrol edip tekrar deneyin.',
   'devCal.unavailable': 'Bu özellik için uygulamanın yeni sürümü gerekiyor (TestFlight/mağaza güncellemesi).',
   'wizard.title': 'Süre Asistanı',
   'wizard.hint':

@@ -22,16 +22,19 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
   const openSidebar = useSidebarStore((s) => s.open);
+  // Bir önceki ekran varsa geri okunu göster (alt sekmeden açılan Takvim,
+  // Dosyalar, Müvekkiller gibi ekranlarda da menünün yanında görünür).
+  const canGoBack = router.canGoBack();
 
   return (
     <View style={styles.container}>
       <View style={styles.left}>
-        {showBack && (
+        {(showBack || canGoBack) && (
           <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </Pressable>
         )}
-        {showMenu && !showBack && (
+        {showMenu && (
           <Pressable onPress={openSidebar} hitSlop={10} style={styles.menuButton}>
             <Ionicons name="menu" size={24} color={colors.textPrimary} />
           </Pressable>

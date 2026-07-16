@@ -1,14 +1,18 @@
 import { Platform } from 'react-native';
 
-export type DeviceCalendarResult = 'added' | 'denied' | 'unavailable';
+// 'added'       → etkinlik telefon takvimine yazıldı
+// 'denied'      → kullanıcı takvim iznini reddetti
+// 'unavailable' → expo-calendar native modülü bu binary'de yok (eski sürüm)
+// 'error'       → modül var ama etkinlik oluşturulamadı (izin/takvim sorunu)
+export type DeviceCalendarResult = 'added' | 'denied' | 'unavailable' | 'error';
 
 /**
  * Duruşma/toplantıyı telefonun takvimine yazar.
  *
- * expo-calendar native bir modüldür; eski binary'lerde (Build ≤ 10) bulunmaz.
- * Bu yüzden statik import yerine çağrı ANINDA lazy require edilir ve her hata
- * 'unavailable' olarak yutulur — eski sürümler çökmek yerine "uygulamayı
- * güncelleyin" mesajı gösterebilir.
+ * expo-calendar native bir modüldür; modül gerçekten yoksa 'unavailable' döner
+ * (yalnızca bu durumda "uygulamayı güncelleyin" denir). Modül varsa ama başka
+ * bir hata olursa 'error' döner — böylece güncel sürümdeki kullanıcıya yanlışlıkla
+ * "yeni sürüm gerekiyor" denmez.
  */
 export async function addToDeviceCalendar(opts: {
   title: string;
@@ -20,29 +24,45 @@ export async function addToDeviceCalendar(opts: {
   let Calendar: typeof import('expo-calendar');
   try {
     Calendar = require('expo-calendar');
+    if (!Calendar || typeof Calendar.requestCalendarPermissionsAsync !== 'function') {
+      return 'unavailable';
+    }
   } catch {
     return 'unavailable';
   }
+
   try {
     const { status } = await Calendar.requestCalendarPermissionsAsync();
     if (status !== 'granted') return 'denied';
 
+    // Yazılabilir bir takvim bul. getDefaultCalendarAsync() bazı iOS
+    // kurulumlarında hata fırlattığı için doğrudan takvim listesinden seçiyoruz.
     let calendarId: string | null = null;
-    if (Platform.OS === 'ios') {
-      const def = await Calendar.getDefaultCalendarAsync();
-      calendarId = def?.id ?? null;
-    }
-    if (!calendarId) {
+    try {
       const all = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      const writable = all.filter((c) => c.allowsModifications);
       calendarId =
-        all.find((c) => c.allowsModifications && c.isPrimary)?.id ??
-        all.find((c) => c.allowsModifications)?.id ??
+        writable.find((c) => (c as { isPrimary?: boolean }).isPrimary)?.id ??
+        writable.find((c) => c.source?.name === 'iCloud')?.id ??
+        writable[0]?.id ??
         null;
+    } catch {
+      calendarId = null;
     }
-    if (!calendarId) return 'unavailable';
+
+    // iOS: liste boşsa varsayılan takvimi dene (son çare).
+    if (!calendarId && Platform.OS === 'ios') {
+      try {
+        const def = await Calendar.getDefaultCalendarAsync();
+        calendarId = def?.id ?? null;
+      } catch {
+        calendarId = null;
+      }
+    }
+    if (!calendarId) return 'error';
 
     const start = new Date(opts.startISO);
-    if (Number.isNaN(start.getTime())) return 'unavailable';
+    if (Number.isNaN(start.getTime())) return 'error';
     const end = new Date(start.getTime() + (opts.durationMinutes ?? 60) * 60 * 1000);
 
     await Calendar.createEventAsync(calendarId, {
@@ -56,6 +76,6 @@ export async function addToDeviceCalendar(opts: {
     });
     return 'added';
   } catch {
-    return 'unavailable';
+    return 'error';
   }
 }
