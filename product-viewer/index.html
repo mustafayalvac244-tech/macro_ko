@@ -11,7 +11,7 @@
   #wrap {
     position:fixed; inset:0;
     background:
-      radial-gradient(120% 90% at 50% 30%, #26332c 0%, #141d19 45%, #0b110e 100%);
+      radial-gradient(115% 85% at 50% 38%, #3a4a41 0%, #26332c 38%, #16201b 72%, #0c1310 100%);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
   }
@@ -282,44 +282,74 @@ function buildStone(){
 /* ----- build fan brush (tapered ribbons rising from top edge) ----- */
 function buildBrush(){
   const pos = [], col = [], idx = [];
-  const NB = 62, SEG = 7;
-  const c0 = [0.66,0.47,0.24], c1 = [0.93,0.80,0.53]; // base -> tip
-  let rng = 1234567;
-  const rand = () => { rng = (rng*16807) % 2147483647; return rng/2147483647; };
+  const NX = 120, NY = 20;                    // dense grid: solid, silky fan
+  const spanL = -1.55, spanR = 1.55;
+  const HMAX = 1.12;                           // fan height (kept in frame)
+  const c0 = [0.42,0.28,0.13];                // dip / roots (warm brown)
+  const c1 = [0.98,0.86,0.58];                // luminous tips (soft gold)
 
-  const layer = (lz, spread) => {
-    for (let b = 0; b < NB; b++){
-      const t = b/(NB-1);
-      const bx = (t-0.5)*2 * 1.55;
-      const by = yTopEdge(bx) - 0.03;
-      const angleX = (t-0.5)*0.7;                 // fan outward
-      const wob = 0.9 + 0.25*Math.sin(t*22.0);    // scalloped length
-      const L = (1.55 + wob*0.35) + rand()*0.15;
-      const back = 0.5 + rand()*0.15;
-      const hw0 = 0.036, hw1 = 0.006;
-      const shade = 0.86 + rand()*0.18;
-      const start = pos.length/3;
-      for (let s = 0; s <= SEG; s++){
-        const f = s/SEG;
-        const px = bx + Math.sin(angleX)*L*f*1.15 + spread*(t-0.5)*f*f;
-        const py = by + Math.cos(angleX)*L*f;
-        const pz = lz - back*L*f*f;
-        const hw = hw0 + (hw1-hw0)*f;
-        pos.push(px-hw, py, pz,  px+hw, py, pz);
-        const cr = c0[0]+(c1[0]-c0[0])*f, cg = c0[1]+(c1[1]-c0[1])*f, cb = c0[2]+(c1[2]-c0[2])*f;
-        col.push(cr*shade,cg*shade,cb*shade,  cr*shade,cg*shade,cb*shade);
-      }
-      for (let s = 0; s < SEG; s++){
-        const a = start + s*2;
-        idx.push(a, a+1, a+2,  a+2, a+1, a+3);
+  const shapeH = fx => {                       // smooth fan arc, tallest centre
+    const u = fx*2 - 1;
+    let h = Math.sqrt(Math.max(0, 1 - u*u*0.82));
+    h *= 1 + 0.035*Math.sin(fx*Math.PI*8);     // gentle scallop, not spikes
+    return h;
+  };
+
+  // ---- solid fan surface (front + back for thickness/3D) ----
+  const buildSheet = (zBase, striPhase) => {
+    const start = pos.length/3;
+    for (let i = 0; i <= NX; i++){
+      const fx = i/NX, x = spanL + (spanR-spanL)*fx, u = fx*2-1;
+      const baseX = x, baseY = yTopEdge(x) - 0.02;
+      const h = HMAX * shapeH(fx);
+      const leanX = u * 0.22;                   // slight outward spread
+      // fine hair striations: many thin brightness lines + subtle drift
+      const stri = 0.84
+        + 0.11 * (0.5 + 0.5*Math.sin(i*2.7 + striPhase))
+        + 0.05 * Math.sin(i*7.3 + striPhase*1.7);
+      for (let j = 0; j <= NY; j++){
+        const f = j/NY;
+        const px = baseX + leanX*f*0.6;
+        const py = baseY + h*f;
+        const bulge = 0.14*Math.sqrt(Math.max(0,1-u*u))*Math.sin(f*Math.PI);
+        const pz = zBase - 0.34*f*f + bulge;    // lean back, round forward
+        pos.push(px, py, pz);
+        const m = f*f;                          // ease colour toward bright tips
+        col.push(
+          (c0[0]+(c1[0]-c0[0])*m)*stri,
+          (c0[1]+(c1[1]-c0[1])*m)*stri,
+          (c0[2]+(c1[2]-c0[2])*m)*stri
+        );
       }
     }
+    for (let i = 0; i < NX; i++) for (let j = 0; j < NY; j++){
+      const a = start + i*(NY+1)+j, b = a+(NY+1), c = a+1, d = b+1;
+      idx.push(a,b,c, c,b,d);
+    }
   };
-  layer(0.10, 0.15);   // front row
-  layer(-0.06, 0.05);  // back row (depth)
+  buildSheet(0.02, 0.0);      // main visible sheet
+  buildSheet(-0.14, 2.1);     // backing sheet → density & depth
+
+  // ---- soft hair fringe along the top edge (short, tidy) ----
+  let rng = 20260715;
+  const rand = () => { rng = (rng*16807) % 2147483647; return rng/2147483647; };
+  for (let i = 0; i <= NX; i += 1){
+    const fx = i/NX, x = spanL + (spanR-spanL)*fx, u = fx*2-1;
+    const baseY = yTopEdge(x) - 0.02;
+    const h = HMAX * shapeH(fx);
+    const tipX = x + u*0.22*0.6;
+    const tipY = baseY + h;
+    const tipZ = 0.02 - 0.34 + 0.14*Math.sqrt(Math.max(0,1-u*u))*Math.sin(Math.PI);
+    const hair = 0.05 + rand()*0.09;            // short: soft edge, no spikes
+    const hw = 0.012;
+    const start = pos.length/3;
+    pos.push(tipX-hw, tipY, tipZ,  tipX+hw, tipY, tipZ,  tipX, tipY+hair, tipZ-0.03);
+    for (let k = 0; k < 3; k++) col.push(c1[0]*0.98, c1[1]*0.98, c1[2]*0.98);
+    idx.push(start, start+1, start+2);
+  }
 
   return makeMesh({ pos, col, idx, mat: {
-    vcol: true, spec: 0.06, shine: 5, opacity: 1
+    vcol: true, spec: 0.16, shine: 14, opacity: 1
   }});
 }
 
@@ -447,8 +477,8 @@ function draw(mesh, model){
 }
 
 /* ---------- camera / controls ---------- */
-const cam = { yaw: -0.55, pitch: 0.32, dist: 7.0, target: [0, -0.15, 0] };
-const DEF = { yaw: -0.55, pitch: 0.32, dist: 7.0 };
+const cam = { yaw: -0.42, pitch: 0.20, dist: 8.2, target: [0, -0.05, 0] };
+const DEF = { yaw: -0.42, pitch: 0.20, dist: 8.2 };
 let autoSpin = true, dragging = false, lastX = 0, lastY = 0, velYaw = 0;
 
 function eyePos(){
@@ -524,10 +554,10 @@ gl.clearColor(0,0,0,0);
 
 // static lighting
 function setLights(){
-  gl.uniform3f(U.uAmb, 0.34, 0.36, 0.35);
-  gl.uniform3f(U.uL1dir, 0.5, 0.85, 0.7);   gl.uniform3f(U.uL1col, 1.0, 0.98, 0.90);
-  gl.uniform3f(U.uL2dir, -0.7, 0.2, 0.4);   gl.uniform3f(U.uL2col, 0.30, 0.40, 0.42);
-  gl.uniform3f(U.uRim, 0.10, 0.16, 0.13);
+  gl.uniform3f(U.uAmb, 0.40, 0.42, 0.40);
+  gl.uniform3f(U.uL1dir, 0.45, 0.80, 0.75);  gl.uniform3f(U.uL1col, 1.05, 1.00, 0.90);
+  gl.uniform3f(U.uL2dir, -0.75, 0.15, 0.35); gl.uniform3f(U.uL2col, 0.34, 0.44, 0.46);
+  gl.uniform3f(U.uRim, 0.14, 0.20, 0.16);
 }
 
 let t0 = performance.now();
