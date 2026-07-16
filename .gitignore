@@ -40,3 +40,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# 3D pipeline intermediates
+product-3d/textures/web_*.png
+product-3d/blender/__pycache__/
