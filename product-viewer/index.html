@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>mioren — 3D Ürün Görüntüleyici</title>
+<style>
+  :root { --gold:#c9a24b; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#0e1512; }
+  #wrap {
+    position:fixed; inset:0;
+    background:
+      radial-gradient(120% 90% at 50% 30%, #26332c 0%, #141d19 45%, #0b110e 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+  }
+  canvas { display:block; width:100%; height:100%; cursor:grab; touch-action:none; }
+  canvas.grabbing { cursor:grabbing; }
+
+  .brand {
+    position:absolute; top:22px; left:0; right:0; text-align:center;
+    color:#e9e4d6; letter-spacing:.42em; font-size:15px; font-weight:600;
+    text-transform:uppercase; pointer-events:none; text-shadow:0 1px 8px rgba(0,0,0,.5);
+  }
+  .brand small { display:block; letter-spacing:.18em; font-size:10px; font-weight:400;
+    color:#9fb0a5; margin-top:6px; text-transform:none; }
+
+  .hint {
+    position:absolute; bottom:86px; left:0; right:0; text-align:center;
+    color:#9fb0a5; font-size:12px; letter-spacing:.03em; pointer-events:none;
+    transition:opacity .6s ease;
+  }
+
+  .controls {
+    position:absolute; bottom:22px; left:0; right:0;
+    display:flex; gap:10px; justify-content:center; align-items:center;
+  }
+  .btn {
+    appearance:none; border:1px solid rgba(201,162,75,.35);
+    background:rgba(20,29,25,.55); color:#e4dcc7;
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    padding:10px 16px; border-radius:999px; font-size:13px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; transition:all .18s ease;
+  }
+  .btn:hover { border-color:var(--gold); color:#fff; background:rgba(28,40,34,.75); }
+  .btn:active { transform:translateY(1px); }
+  .btn.active { border-color:var(--gold); color:#1a130a; background:var(--gold); }
+  .dot { width:7px; height:7px; border-radius:50%; background:currentColor; opacity:.7; }
+
+  .loader {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#9fb0a5; font-size:13px; letter-spacing:.1em; z-index:5;
+    background:#0e1512; transition:opacity .5s ease;
+  }
+  .loader.hide { opacity:0; pointer-events:none; }
+
+  .err { position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    color:#e6b6b6; text-align:center; padding:24px; font-size:14px; z-index:6; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="gl"></canvas>
+  <div class="brand">mioren<small>Yeşim Taşı Gua Sha Fırçası · 360° Görünüm</small></div>
+  <div class="hint" id="hint">Döndürmek için sürükleyin · Yakınlaştırmak için kaydırın</div>
+  <div class="controls">
+    <button class="btn active" id="spinBtn"><span class="dot"></span>Otomatik Döndür</button>
+    <button class="btn" id="resetBtn">Görünümü Sıfırla</button>
+  </div>
+  <div class="loader" id="loader">MODEL YÜKLENİYOR…</div>
+  <div class="err" id="err">Tarayıcınız WebGL desteklemiyor. Lütfen güncel bir tarayıcı kullanın.</div>
+</div>
+
+<script>
+"use strict";
+(function () {
+
+/* ============================================================
+   mioren — self-contained WebGL 3D product viewer
+   No external dependencies. Procedurally modelled product:
+   jade crescent gua-sha scraper + angled fan brush + logo.
+   ============================================================ */
+
+const canvas = document.getElementById('gl');
+const loaderEl = document.getElementById('loader');
+const errEl = document.getElementById('err');
+const hintEl = document.getElementById('hint');
+
+const gl = canvas.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: false })
+        || canvas.getContext('experimental-webgl');
+if (!gl) { errEl.style.display = 'flex'; loaderEl.classList.add('hide'); return; }
+
+/* ---------- small math lib (column-major mat4) ---------- */
+const M = {
+  ident() { return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]); },
+  mul(a, b) {
+    const o = new Float32Array(16);
+    for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) {
+      let s = 0; for (let k = 0; k < 4; k++) s += a[k*4+r] * b[c*4+k];
+      o[c*4+r] = s;
+    }
+    return o;
+  },
+  perspective(fovy, aspect, near, far) {
+    const f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+    return new Float32Array([
+      f/aspect,0,0,0,
+      0,f,0,0,
+      0,0,(far+near)*nf,-1,
+      0,0,(2*far*near)*nf,0
+    ]);
+  },
+  lookAt(eye, ctr, up) {
+    let zx=eye[0]-ctr[0], zy=eye[1]-ctr[1], zz=eye[2]-ctr[2];
+    let zl=Math.hypot(zx,zy,zz)||1; zx/=zl; zy/=zl; zz/=zl;
+    let xx=up[1]*zz-up[2]*zy, xy=up[2]*zx-up[0]*zz, xz=up[0]*zy-up[1]*zx;
+    let xl=Math.hypot(xx,xy,xz)||1; xx/=xl; xy/=xl; xz/=xl;
+    const yx=zy*xz-zz*xy, yy=zz*xx-zx*xz, yz=zx*xy-zy*xx;
+    return new Float32Array([
+      xx,yx,zx,0,
+      xy,yy,zy,0,
+      xz,yz,zz,0,
+      -(xx*eye[0]+xy*eye[1]+xz*eye[2]),
+      -(yx*eye[0]+yy*eye[1]+yz*eye[2]),
+      -(zx*eye[0]+zy*eye[1]+zz*eye[2]), 1
+    ]);
+  },
+  translate(x,y,z){ const m=M.ident(); m[12]=x; m[13]=y; m[14]=z; return m; },
+  // mat3 (normal matrix) from upper-left of a rotation-only/uniform-scale model matrix
+  normalMat3(m){ return new Float32Array([ m[0],m[1],m[2], m[4],m[5],m[6], m[8],m[9],m[10] ]); }
+};
+
+/* ---------- shaders ---------- */
+const VS = `
+attribute vec3 aPos; attribute vec3 aNormal; attribute vec3 aColor; attribute vec2 aUV;
+uniform mat4 uProj, uView, uModel; uniform mat3 uNormal;
+varying vec3 vN; varying vec3 vW; varying vec3 vC; varying vec2 vUV;
+void main(){
+  vec4 wp = uModel * vec4(aPos,1.0);
+  vW = wp.xyz; vN = uNormal * aNormal; vC = aColor; vUV = aUV;
+  gl_Position = uProj * uView * wp;
+}`;
+
+const FS = `
+precision highp float;
+varying vec3 vN; varying vec3 vW; varying vec3 vC; varying vec2 vUV;
+uniform vec3 uViewPos;
+uniform vec3 uBase; uniform float uUseTex; uniform float uUseVCol;
+uniform sampler2D uTex; uniform float uSpec; uniform float uShine;
+uniform float uUnlit; uniform float uOpacity;
+uniform vec3 uL1dir, uL1col, uL2dir, uL2col, uAmb, uRim;
+
+void main(){
+  vec3 base = uBase;
+  if (uUseTex > 0.5) base = texture2D(uTex, vUV).rgb;
+  if (uUseVCol > 0.5) base = vC;
+
+  if (uUnlit > 0.5){
+    vec4 t = texture2D(uTex, vUV);
+    gl_FragColor = vec4(base * t.rgb, t.a * uOpacity);
+    return;
+  }
+
+  vec3 V = normalize(uViewPos - vW);
+  vec3 N = normalize(vN);
+  if (dot(N, V) < 0.0) N = -N;              // two-sided
+
+  vec3 col = uAmb * base;
+
+  // key light
+  vec3 L1 = normalize(uL1dir);
+  float d1 = max(dot(N, L1), 0.0);
+  col += uL1col * base * d1;
+  vec3 H1 = normalize(L1 + V);
+  col += uL1col * uSpec * pow(max(dot(N,H1),0.0), uShine);
+
+  // fill light
+  vec3 L2 = normalize(uL2dir);
+  float d2 = max(dot(N, L2), 0.0);
+  col += uL2col * base * d2;
+
+  // rim
+  float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+  col += uRim * rim;
+
+  gl_FragColor = vec4(col, uOpacity);
+}`;
+
+function compile(type, src){
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+
+const A = {
+  pos: gl.getAttribLocation(prog, 'aPos'),
+  normal: gl.getAttribLocation(prog, 'aNormal'),
+  color: gl.getAttribLocation(prog, 'aColor'),
+  uv: gl.getAttribLocation(prog, 'aUV'),
+};
+const U = {};
+['uProj','uView','uModel','uNormal','uViewPos','uBase','uUseTex','uUseVCol','uTex',
+ 'uSpec','uShine','uUnlit','uOpacity','uL1dir','uL1col','uL2dir','uL2col','uAmb','uRim']
+ .forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+/* ---------- geometry helpers ---------- */
+function computeNormals(pos, idx){
+  const n = new Float32Array(pos.length);
+  for (let i = 0; i < idx.length; i += 3){
+    const a = idx[i]*3, b = idx[i+1]*3, c = idx[i+2]*3;
+    const ux = pos[b]-pos[a], uy = pos[b+1]-pos[a+1], uz = pos[b+2]-pos[a+2];
+    const vx = pos[c]-pos[a], vy = pos[c+1]-pos[a+1], vz = pos[c+2]-pos[a+2];
+    const nx = uy*vz-uz*vy, ny = uz*vx-ux*vz, nz = ux*vy-uy*vx;
+    n[a]+=nx; n[a+1]+=ny; n[a+2]+=nz;
+    n[b]+=nx; n[b+1]+=ny; n[b+2]+=nz;
+    n[c]+=nx; n[c+1]+=ny; n[c+2]+=nz;
+  }
+  for (let i = 0; i < n.length; i += 3){
+    const l = Math.hypot(n[i],n[i+1],n[i+2])||1;
+    n[i]/=l; n[i+1]/=l; n[i+2]/=l;
+  }
+  return n;
+}
+
+function makeMesh(d){
+  const pos = new Float32Array(d.pos);
+  const idx = new Uint16Array(d.idx);
+  const nrm = d.nrm ? new Float32Array(d.nrm) : computeNormals(pos, idx);
+  const col = new Float32Array(d.col || new Array(pos.length).fill(1));
+  const uv  = new Float32Array(d.uv  || new Array(pos.length/3*2).fill(0));
+  const mk = (data, itemStore) => { const b = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW); return b; };
+  const ib = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  return { pos: mk(pos), nrm: mk(nrm), col: mk(col), uv: mk(uv), ib, count: idx.length, mat: d.mat || {} };
+}
+
+/* ----- product silhouette maths (jade crescent "smile") ----- */
+const W = 2.25;                 // half width
+const centerline = u => 0.95*u*u - 0.62;                 // parabola smiling upward
+const halfThick  = u => 0.62 * Math.sqrt(Math.max(0, 1-u*u));
+function scallop(frac){ return 0.055 * Math.sin(frac*Math.PI*7.0); } // wavy top edge
+function yTopEdge(x){ const u=x/W; return centerline(u) + halfThick(u); }
+
+/* ----- build jade crescent stone (puffed lens, closes at rim) ----- */
+function buildStone(){
+  const NX = 120, NY = 46, D = 0.42;   // D = z bulge
+  const pos = [], uv = [], idx = [];
+  const grid = (side) => {
+    const start = pos.length/3;
+    for (let i = 0; i <= NX; i++){
+      const fx = i/NX, x = -W + 2*W*fx, u = x/W;
+      const yb = centerline(u) - halfThick(u);
+      const yt = centerline(u) + halfThick(u) + scallop(fx);
+      for (let j = 0; j <= NY; j++){
+        const jf = j/NY;
+        const y = yb + (yt-yb)*jf;
+        const bulge = D * Math.sqrt(Math.max(0,1-u*u)) * Math.sqrt(Math.max(0, 4*jf*(1-jf)));
+        pos.push(x, y, side*bulge);
+        uv.push(fx, jf);
+      }
+    }
+    for (let i = 0; i < NX; i++) for (let j = 0; j < NY; j++){
+      const a = start + i*(NY+1)+j, b = a+(NY+1), c = a+1, dd = b+1;
+      if (side > 0){ idx.push(a,b,c, c,b,dd); } else { idx.push(a,c,b, c,dd,b); }
+    }
+  };
+  grid(1); grid(-1);
+  return makeMesh({ pos, uv, idx, mat: {
+    tex: 'front', spec: 0.42, shine: 26, opacity: 1
+  }});
+}
+
+/* ----- build fan brush (tapered ribbons rising from top edge) ----- */
+function buildBrush(){
+  const pos = [], col = [], idx = [];
+  const NB = 62, SEG = 7;
+  const c0 = [0.66,0.47,0.24], c1 = [0.93,0.80,0.53]; // base -> tip
+  let rng = 1234567;
+  const rand = () => { rng = (rng*16807) % 2147483647; return rng/2147483647; };
+
+  const layer = (lz, spread) => {
+    for (let b = 0; b < NB; b++){
+      const t = b/(NB-1);
+      const bx = (t-0.5)*2 * 1.55;
+      const by = yTopEdge(bx) - 0.03;
+      const angleX = (t-0.5)*0.7;                 // fan outward
+      const wob = 0.9 + 0.25*Math.sin(t*22.0);    // scalloped length
+      const L = (1.55 + wob*0.35) + rand()*0.15;
+      const back = 0.5 + rand()*0.15;
+      const hw0 = 0.036, hw1 = 0.006;
+      const shade = 0.86 + rand()*0.18;
+      const start = pos.length/3;
+      for (let s = 0; s <= SEG; s++){
+        const f = s/SEG;
+        const px = bx + Math.sin(angleX)*L*f*1.15 + spread*(t-0.5)*f*f;
+        const py = by + Math.cos(angleX)*L*f;
+        const pz = lz - back*L*f*f;
+        const hw = hw0 + (hw1-hw0)*f;
+        pos.push(px-hw, py, pz,  px+hw, py, pz);
+        const cr = c0[0]+(c1[0]-c0[0])*f, cg = c0[1]+(c1[1]-c0[1])*f, cb = c0[2]+(c1[2]-c0[2])*f;
+        col.push(cr*shade,cg*shade,cb*shade,  cr*shade,cg*shade,cb*shade);
+      }
+      for (let s = 0; s < SEG; s++){
+        const a = start + s*2;
+        idx.push(a, a+1, a+2,  a+2, a+1, a+3);
+      }
+    }
+  };
+  layer(0.10, 0.15);   // front row
+  layer(-0.06, 0.05);  // back row (depth)
+
+  return makeMesh({ pos, col, idx, mat: {
+    vcol: true, spec: 0.06, shine: 5, opacity: 1
+  }});
+}
+
+/* ----- soft contact shadow on the floor ----- */
+function buildShadow(){
+  const y = centerline(0) - halfThick(0) - 0.12, s = 2.6;
+  const pos = [ -s,y,-s*0.5,  s,y,-s*0.5,  s,y,s*0.5,  -s,y,s*0.5 ];
+  const uv  = [ 0,0, 1,0, 1,1, 0,1 ];
+  const idx = [0,1,2, 0,2,3];
+  return makeMesh({ pos, uv, idx, mat: { tex:'shadow', unlit:true, opacity:0.55 }});
+}
+
+/* ---------- textures ---------- */
+function texFromCanvas(cv){
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+
+function marbleCanvas(withLogo){
+  const S = 512, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const g = c.createLinearGradient(0,0,S,S);
+  g.addColorStop(0,'#20402f'); g.addColorStop(0.5,'#173026'); g.addColorStop(1,'#0f2119');
+  c.fillStyle = g; c.fillRect(0,0,S,S);
+  // veins
+  let r = 987654;
+  const rnd = () => { r = (r*16807)%2147483647; return r/2147483647; };
+  for (let i = 0; i < 90; i++){
+    c.beginPath();
+    let x = rnd()*S, y = rnd()*S;
+    c.moveTo(x,y);
+    const seg = 4 + (rnd()*5|0);
+    for (let k = 0; k < seg; k++){ x += (rnd()-0.5)*180; y += (rnd()-0.5)*180;
+      c.lineTo(x,y); }
+    const light = rnd() > 0.45;
+    c.strokeStyle = light ? `rgba(150,190,160,${0.05+rnd()*0.10})`
+                          : `rgba(8,20,14,${0.10+rnd()*0.18})`;
+    c.lineWidth = 0.6 + rnd()*2.4; c.stroke();
+  }
+  // soft blotches
+  for (let i = 0; i < 40; i++){
+    const x=rnd()*S, y=rnd()*S, rad=20+rnd()*90;
+    const rg=c.createRadialGradient(x,y,0,x,y,rad);
+    const lit = rnd()>0.5;
+    rg.addColorStop(0, lit?'rgba(120,165,135,0.10)':'rgba(6,16,11,0.14)');
+    rg.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=rg; c.beginPath(); c.arc(x,y,rad,0,7); c.fill();
+  }
+  if (withLogo){
+    // little bee/emblem + wordmark, gold — matches product
+    c.save();
+    c.translate(S*0.5, S*0.46);
+    c.fillStyle = '#d8b25a';
+    c.strokeStyle = '#e7c877';
+    // emblem: simple diamond bee body
+    c.beginPath();
+    c.ellipse(0,-34, 9, 13, 0, 0, 7); c.fill();
+    c.lineWidth = 3;
+    c.beginPath(); c.moveTo(-14,-46); c.lineTo(-2,-34); c.moveTo(14,-46); c.lineTo(2,-34); c.stroke();
+    // wordmark
+    c.font = '600 44px -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.shadowColor = 'rgba(0,0,0,0.35)'; c.shadowBlur = 6;
+    c.fillText('mioren', 0, 18);
+    c.restore();
+  }
+  return cv;
+}
+
+function shadowCanvas(){
+  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const g = c.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);
+  g.addColorStop(0,'rgba(0,0,0,0.85)');
+  g.addColorStop(0.55,'rgba(0,0,0,0.45)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle = g; c.beginPath(); c.ellipse(S/2,S/2,S/2,S*0.34,0,0,7); c.fill();
+  return cv;
+}
+
+const texFront  = texFromCanvas(marbleCanvas(true));
+const texShadow = texFromCanvas(shadowCanvas());
+
+/* ---------- build meshes ---------- */
+const stone  = buildStone();
+const brush  = buildBrush();
+const shadow = buildShadow();
+
+/* ---------- draw one mesh ---------- */
+function bindAttr(loc, buf, size){
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+}
+function draw(mesh, model){
+  bindAttr(A.pos, mesh.pos, 3);
+  bindAttr(A.normal, mesh.nrm, 3);
+  bindAttr(A.color, mesh.col, 3);
+  bindAttr(A.uv, mesh.uv, 2);
+  gl.uniformMatrix4fv(U.uModel, false, model);
+  gl.uniformMatrix3fv(U.uNormal, false, M.normalMat3(model));
+  const m = mesh.mat;
+  gl.uniform1f(U.uUseTex, m.tex ? 1 : 0);
+  gl.uniform1f(U.uUseVCol, m.vcol ? 1 : 0);
+  gl.uniform1f(U.uUnlit, m.unlit ? 1 : 0);
+  gl.uniform1f(U.uSpec, m.spec != null ? m.spec : 0.2);
+  gl.uniform1f(U.uShine, m.shine != null ? m.shine : 16);
+  gl.uniform1f(U.uOpacity, m.opacity != null ? m.opacity : 1);
+  gl.uniform3f(U.uBase, 0.9,0.9,0.9);
+  if (m.tex){
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, m.tex === 'shadow' ? texShadow : texFront);
+    gl.uniform1i(U.uTex, 0);
+  }
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.ib);
+  gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_SHORT, 0);
+}
+
+/* ---------- camera / controls ---------- */
+const cam = { yaw: -0.55, pitch: 0.32, dist: 7.0, target: [0, -0.15, 0] };
+const DEF = { yaw: -0.55, pitch: 0.32, dist: 7.0 };
+let autoSpin = true, dragging = false, lastX = 0, lastY = 0, velYaw = 0;
+
+function eyePos(){
+  const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+  const cy = Math.cos(cam.yaw),  sy = Math.sin(cam.yaw);
+  return [
+    cam.target[0] + cam.dist*cp*sy,
+    cam.target[1] + cam.dist*sp,
+    cam.target[2] + cam.dist*cp*cy
+  ];
+}
+
+canvas.addEventListener('pointerdown', e => {
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+  canvas.classList.add('grabbing'); canvas.setPointerCapture(e.pointerId);
+  hintEl.style.opacity = '0';
+});
+canvas.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  cam.yaw   -= dx * 0.008; velYaw = -dx * 0.008;
+  cam.pitch += dy * 0.008;
+  cam.pitch = Math.max(-1.2, Math.min(1.2, cam.pitch));
+});
+function endDrag(e){ dragging = false; canvas.classList.remove('grabbing');
+  if (e && e.pointerId != null && canvas.releasePointerCapture) { try{canvas.releasePointerCapture(e.pointerId);}catch(_){}} }
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  cam.dist *= (1 + Math.sign(e.deltaY) * 0.08);
+  cam.dist = Math.max(4.2, Math.min(12, cam.dist));
+}, { passive: false });
+
+// pinch zoom
+let pinch = 0;
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 2){
+    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                         e.touches[0].clientY-e.touches[1].clientY);
+    if (pinch) { cam.dist *= (1 - (d - pinch) * 0.005);
+      cam.dist = Math.max(4.2, Math.min(12, cam.dist)); }
+    pinch = d; e.preventDefault();
+  }
+}, { passive: false });
+canvas.addEventListener('touchend', () => pinch = 0);
+
+const spinBtn = document.getElementById('spinBtn');
+const resetBtn = document.getElementById('resetBtn');
+spinBtn.addEventListener('click', () => {
+  autoSpin = !autoSpin; spinBtn.classList.toggle('active', autoSpin);
+});
+resetBtn.addEventListener('click', () => {
+  cam.yaw = DEF.yaw; cam.pitch = DEF.pitch; cam.dist = DEF.dist; velYaw = 0;
+});
+
+/* ---------- resize ---------- */
+function resize(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; }
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener('resize', resize);
+
+/* ---------- render loop ---------- */
+gl.enable(gl.DEPTH_TEST);
+gl.enable(gl.BLEND);
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+gl.clearColor(0,0,0,0);
+
+// static lighting
+function setLights(){
+  gl.uniform3f(U.uAmb, 0.34, 0.36, 0.35);
+  gl.uniform3f(U.uL1dir, 0.5, 0.85, 0.7);   gl.uniform3f(U.uL1col, 1.0, 0.98, 0.90);
+  gl.uniform3f(U.uL2dir, -0.7, 0.2, 0.4);   gl.uniform3f(U.uL2col, 0.30, 0.40, 0.42);
+  gl.uniform3f(U.uRim, 0.10, 0.16, 0.13);
+}
+
+let t0 = performance.now();
+function frame(now){
+  const dt = Math.min(0.05, (now - t0) / 1000); t0 = now;
+  resize();
+
+  if (autoSpin && !dragging) cam.yaw -= 0.28 * dt;
+  if (!dragging && Math.abs(velYaw) > 0.0001){ cam.yaw += velYaw; velYaw *= 0.92; }
+
+  const aspect = canvas.width / canvas.height || 1;
+  const proj = M.perspective(0.72, aspect, 0.1, 100);
+  const eye = eyePos();
+  const view = M.lookAt(eye, cam.target, [0,1,0]);
+
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.uniformMatrix4fv(U.uProj, false, proj);
+  gl.uniformMatrix4fv(U.uView, false, view);
+  gl.uniform3fv(U.uViewPos, eye);
+  setLights();
+
+  // gentle float
+  const bob = Math.sin(now * 0.0011) * 0.05;
+  const model = M.translate(0, bob, 0);
+
+  // shadow first (unlit, blended, on floor)
+  gl.depthMask(false);
+  draw(shadow, M.translate(0, 0, 0));
+  gl.depthMask(true);
+
+  draw(stone, model);
+  gl.disable(gl.CULL_FACE);
+  draw(brush, model);
+
+  requestAnimationFrame(frame);
+}
+
+resize();
+loaderEl.classList.add('hide');
+setTimeout(() => { hintEl.style.opacity = '0.85'; }, 400);
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
