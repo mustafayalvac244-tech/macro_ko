@@ -272,51 +272,95 @@ function makeMesh(d){
   return { pos: mk(pos), nrm: mk(nrm), col: mk(col), uv: mk(uv), ib, count: idx.length, mat: d.mat || {} };
 }
 
-/* ----- product silhouette maths (jade crescent "smile") ----- */
-const W = 2.25;                 // half width
-const centerline = u => 0.95*u*u - 0.62;                 // parabola smiling upward
-const halfThick  = u => 0.62 * Math.sqrt(Math.max(0, 1-u*u));
-function scallop(frac){ return 0.055 * Math.sin(frac*Math.PI*7.0); } // wavy top edge
-function yTopEdge(x){ const u=x/W; return centerline(u) + halfThick(u); }
-
-/* ----- build jade crescent stone (puffed lens, closes at rim) -----
-   Built as two half-shells so the logo only appears on the front. */
-function buildStoneHalf(side, texName){
-  const NX = 120, NY = 46, D = 0.42;   // D = z bulge
-  const pos = [], uv = [], idx = [];
-  for (let i = 0; i <= NX; i++){
-    const fx = i/NX, x = -W + 2*W*fx, u = x/W;
-    const yb = centerline(u) - halfThick(u);
-    const yt = centerline(u) + halfThick(u) + scallop(fx);
-    for (let j = 0; j <= NY; j++){
-      const jf = j/NY;
-      const y = yb + (yt-yb)*jf;
-      const bulge = D * Math.sqrt(Math.max(0,1-u*u)) * Math.sqrt(Math.max(0, 4*jf*(1-jf)));
-      pos.push(x, y, side*bulge);
-      uv.push(fx, jf);
+/* ----- product silhouette traced from the product video -----
+   The stone is an asymmetric gua-sha "wing": rounded left cap, broad
+   right wing tip, and a comma hook/notch on the lower left (thumb rest). */
+const OUT = [
+  [-2.05, 0.10],   // left cap
+  [-1.75, 0.44],
+  [-1.00, 0.74],
+  [ 0.00, 0.90],
+  [ 1.00, 0.74],
+  [ 1.80, 0.44],
+  [ 2.35, 0.02],   // right wing tip
+  [ 1.90,-0.34],
+  [ 1.10,-0.66],
+  [ 0.20,-0.82],
+  [-0.45,-0.80],   // belly, moving left
+  [-0.72,-0.50],   // notch scoop (concave)
+  [-1.02,-0.64],
+  [-1.28,-0.92],   // hook tip (comma tail)
+  [-1.62,-0.80],
+  [-1.90,-0.42],
+];
+// closed Catmull-Rom sample of the outline, t in [0,1)
+function outlineAt(t){
+  const n = OUT.length, f = ((t%1)+1)%1 * n, i = Math.floor(f), u = f - i;
+  const p0 = OUT[(i-1+n)%n], p1 = OUT[i%n], p2 = OUT[(i+1)%n], p3 = OUT[(i+2)%n];
+  const c = (a,b,cc,d) => 0.5*((2*b) + (-a+cc)*u + (2*a-5*b+4*cc-d)*u*u + (-a+3*b-3*cc+d)*u*u*u);
+  return [c(p0[0],p1[0],p2[0],p3[0]), c(p0[1],p1[1],p2[1],p3[1])];
+}
+// open Catmull-Rom over the top edge, for seating the brush
+const TOPPTS = [[-2.05,0.10],[-1.75,0.44],[-1.00,0.74],[0.00,0.90],[1.00,0.74],[1.80,0.44],[2.35,0.02]];
+function yTopEdge(x){
+  const P = TOPPTS;
+  if (x <= P[0][0]) return P[0][1];
+  for (let i = 0; i < P.length-1; i++){
+    if (x <= P[i+1][0]){
+      const u = (x - P[i][0]) / (P[i+1][0] - P[i][0]);
+      const a = i > 0 ? P[i-1][1] : P[i][1];
+      const d = i < P.length-2 ? P[i+2][1] : P[i+1][1];
+      const b = P[i][1], cc = P[i+1][1];
+      return 0.5*((2*b) + (-a+cc)*u + (2*a-5*b+4*cc-d)*u*u + (-a+3*b-3*cc+d)*u*u*u);
     }
   }
-  for (let i = 0; i < NX; i++) for (let j = 0; j < NY; j++){
-    const a = i*(NY+1)+j, b = a+(NY+1), c = a+1, dd = b+1;
-    if (side > 0){ idx.push(a,b,c, c,b,dd); } else { idx.push(a,c,b, c,dd,b); }
+  return P[P.length-1][1];
+}
+// stone bounding box (for UV mapping)
+const BB = { x0:-2.30, x1:2.45, y0:-1.05, y1:1.00 };
+
+/* ----- build the stone as two puffed half-shells over the traced
+   outline (rings shrinking from rim to centroid). Logo only on front. */
+function buildStoneHalf(side, texName){
+  const NT = 180, NR = 20, D = 0.26;   // D = half thickness
+  // centroid of the outline
+  let cx = 0, cy = 0;
+  for (let k = 0; k < NT; k++){ const p = outlineAt(k/NT); cx += p[0]; cy += p[1]; }
+  cx /= NT; cy /= NT;
+  const pos = [], uv = [], idx = [];
+  for (let r = 0; r <= NR; r++){
+    const f = r/NR;                       // 0 = centre, 1 = rim
+    const bulge = D * Math.sqrt(Math.max(0, 1 - Math.pow(f, 6)));  // flat face, crisp rolled edge
+    for (let k = 0; k < NT; k++){
+      const b = outlineAt(k/NT);
+      const x = cx + (b[0]-cx)*f, y = cy + (b[1]-cy)*f;
+      pos.push(x, y, side*bulge);
+      uv.push((x-BB.x0)/(BB.x1-BB.x0), (y-BB.y0)/(BB.y1-BB.y0));
+    }
+  }
+  for (let r = 0; r < NR; r++) for (let k = 0; k < NT; k++){
+    const k2 = (k+1)%NT;
+    const a = r*NT+k, b = (r+1)*NT+k, c = r*NT+k2, d = (r+1)*NT+k2;
+    if (side > 0){ idx.push(a,b,c, c,b,d); } else { idx.push(a,c,b, c,d,b); }
   }
   return makeMesh({ pos, uv, idx, mat: {
-    tex: texName, spec: 1.1, shine: 90, refl: 0.38, opacity: 1
+    tex: texName, spec: 0.75, shine: 48, refl: 0.22, opacity: 1
   }});
 }
 
 /* ----- build fan brush (tapered ribbons rising from top edge) ----- */
-/* Brush modelled after the photo: a flat paddle of dense bristles rising
-   from the stone, cut on a diagonal (tall left, short right) with piped
-   scallop bumps along the tip — like a comb. Closed volume; a hair
-   texture supplies thousands of individual strands. */
+/* Brush modelled from the video: a dense flat paddle following the
+   stone's curved top edge, constant height, tipped with ~10 pronounced
+   rounded finger tufts (deep grooves between them). A hair texture
+   supplies the strands; vertex colour darkens the grooves near the tip. */
 function buildBrush(){
-  const pos = [], uv = [], idx = [];
-  const NX = 110, NY = 30;
-  const x0 = -1.42, x1 = 1.42;
-  const H0 = 1.42, H1 = 0.60;                       // diagonal cut heights
-  const scal = fx => 0.062*Math.abs(Math.sin(fx*Math.PI*7.0)); // comb bumps
-  const heightAt = fx => (H0 + (H1-H0)*fx) + scal(fx);
+  const pos = [], uv = [], col = [], idx = [];
+  const NX = 130, NY = 32;
+  const x0 = -1.72, x1 = 1.60;
+  const H = 1.00;
+  const TUFTS = 9.5;
+  const tuft = fx => Math.pow(Math.abs(Math.sin(fx*Math.PI*TUFTS)), 0.65);
+  const heightAt = fx => H*(0.90 + 0.04*Math.sin(Math.PI*fx)) + 0.11*tuft(fx);
   const halfT = 0.20;                                // paddle half-thickness
   // pinch to zero at the sides so the volume closes
   const widthPinch = fx => {
@@ -328,16 +372,19 @@ function buildBrush(){
     const start = pos.length/3;
     for (let i = 0; i <= NX; i++){
       const fx = i/NX, x = x0 + (x1-x0)*fx;
-      const bY = yTopEdge(x) - 0.06;                 // rooted inside the stone
+      const bY = yTopEdge(x) - 0.08;                 // rooted inside the stone
       const h = heightAt(fx);
+      const groove = 1 - 0.42*(1 - tuft(fx));        // dark separations at tip
       for (let j = 0; j <= NY; j++){
         const f = j/NY;
         // thickness profile: full at root, rounds off to a soft tip
-        const zProf = Math.sqrt(Math.max(0, 1 - Math.pow(f, 5))) * (1 - 0.30*f);
-        const z = side*halfT*zProf*widthPinch(fx) - 0.30*f*f;   // lean back
-        const px = x + 0.055*(fx*2-1)*f;             // slight outward splay
+        const zProf = Math.sqrt(Math.max(0, 1 - Math.pow(f, 5))) * (1 - 0.28*f);
+        const z = side*halfT*zProf*widthPinch(fx) - 0.26*f*f;   // lean back
+        const px = x + 0.05*(fx*2-1)*f;              // slight outward splay
         pos.push(px, bY + h*f, z);
         uv.push(fx, f);
+        const s = 1 - (1-groove)*f*f*f;              // grooves only near tip
+        col.push(s, s, s);
       }
     }
     for (let i = 0; i < NX; i++) for (let j = 0; j < NY; j++){
@@ -347,15 +394,15 @@ function buildBrush(){
   };
   sheet(1); sheet(-1);
 
-  return makeMesh({ pos, uv, idx, mat: {
-    tex: 'hair', spec: 0.045, shine: 34, refl: 0.02, opacity: 1
+  return makeMesh({ pos, uv, col, idx, mat: {
+    tex: 'hair', vcol: true, spec: 0.05, shine: 30, refl: 0.02, opacity: 1
   }});
 }
 
 /* ----- soft contact shadow on the floor ----- */
 function buildShadow(){
-  const y = centerline(0) - halfThick(0) - 0.12, s = 2.6;
-  const pos = [ -s,y,-s*0.5,  s,y,-s*0.5,  s,y,s*0.5,  -s,y,s*0.5 ];
+  const y = -1.18, s = 2.9, cx = 0.15;
+  const pos = [ cx-s,y,-s*0.5,  cx+s,y,-s*0.5,  cx+s,y,s*0.5,  cx-s,y,s*0.5 ];
   const uv  = [ 0,0, 1,0, 1,1, 0,1 ];
   const idx = [0,1,2, 0,2,3];
   return makeMesh({ pos, uv, idx, mat: { tex:'shadow', unlit:true, opacity:0.55 }});
@@ -378,56 +425,70 @@ function texFromCanvas(cv){
 function marbleCanvas(withLogo){
   const S = 1024, cv = document.createElement('canvas'); cv.width = cv.height = S;
   const c = cv.getContext('2d');
-  // near-black nephrite green, like the photo
+  // mottled forest-green nephrite, matching the video
   const g = c.createLinearGradient(0,0,S,S);
-  g.addColorStop(0,'#263d2f'); g.addColorStop(0.5,'#1a2c21'); g.addColorStop(1,'#111d16');
+  g.addColorStop(0,'#243a1d'); g.addColorStop(0.5,'#1a2c17'); g.addColorStop(1,'#112010');
   c.fillStyle = g; c.fillRect(0,0,S,S);
   let r = 987654;
   const rnd = () => { r = (r*16807)%2147483647; return r/2147483647; };
-  // large soft mottling first (mineral clouds)
-  for (let i = 0; i < 90; i++){
-    const x=rnd()*S, y=rnd()*S, rad=40+rnd()*200;
+  // yellow-green mineral clouds
+  for (let i = 0; i < 80; i++){
+    const x=rnd()*S, y=rnd()*S, rad=50+rnd()*180;
     const rg=c.createRadialGradient(x,y,0,x,y,rad);
-    const lit = rnd()>0.42;
-    rg.addColorStop(0, lit?`rgba(110,150,120,${0.04+rnd()*0.07})`
-                          :`rgba(4,10,7,${0.10+rnd()*0.16})`);
+    rg.addColorStop(0, `rgba(150,172,92,${0.09+rnd()*0.13})`);
     rg.addColorStop(1,'rgba(0,0,0,0)');
     c.fillStyle=rg; c.beginPath(); c.arc(x,y,rad,0,7); c.fill();
   }
-  // fine bright marble veins — drawn as wandering polylines with halo
+  // brighter mid-size mottling for contrast against the black patches
   for (let i = 0; i < 60; i++){
+    const x=rnd()*S, y=rnd()*S, rad=15+rnd()*60;
+    const rg=c.createRadialGradient(x,y,0,x,y,rad);
+    rg.addColorStop(0, `rgba(135,158,84,${0.12+rnd()*0.16})`);
+    rg.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=rg;
+    c.save(); c.translate(x,y); c.rotate(rnd()*3.2); c.scale(1, 0.5+rnd()*0.8);
+    c.beginPath(); c.arc(0,0,rad,0,7); c.fill(); c.restore();
+  }
+  // black mineral patches — the dominant feature in the real stone
+  for (let i = 0; i < 220; i++){
+    const x=rnd()*S, y=rnd()*S, rad=8+rnd()*60;
+    const rg=c.createRadialGradient(x,y,0,x,y,rad);
+    rg.addColorStop(0, `rgba(5,10,5,${0.28+rnd()*0.34})`);
+    rg.addColorStop(0.7, `rgba(5,10,5,${0.10+rnd()*0.14})`);
+    rg.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=rg;
+    c.save(); c.translate(x,y); c.rotate(rnd()*3.2); c.scale(1, 0.4+rnd()*0.9);
+    c.beginPath(); c.arc(0,0,rad,0,7); c.fill(); c.restore();
+  }
+  // fine dark speckles
+  for (let i = 0; i < 900; i++){
+    const x=rnd()*S, y=rnd()*S, rad=0.6+rnd()*2.4;
+    c.fillStyle = rnd() > 0.3
+      ? `rgba(8,14,7,${0.15+rnd()*0.3})`
+      : `rgba(170,190,120,${0.10+rnd()*0.2})`;
+    c.beginPath(); c.arc(x,y,rad,0,7); c.fill();
+  }
+  // faint pale wisps
+  for (let i = 0; i < 26; i++){
     let x = rnd()*S, y = rnd()*S;
     const pts = [[x,y]];
-    const seg = 6 + (rnd()*8|0);
+    const seg = 4 + (rnd()*6|0);
     for (let k = 0; k < seg; k++){
-      x += (rnd()-0.5)*220; y += (rnd()-0.5)*220; pts.push([x,y]);
+      x += (rnd()-0.5)*200; y += (rnd()-0.5)*200; pts.push([x,y]);
     }
-    const a = 0.05 + rnd()*0.12;
-    // halo pass (wide, faint) then core pass (thin, brighter)
-    for (const [w, aa] of [[5+rnd()*4, a*0.35], [0.7+rnd()*1.2, a]]){
-      c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
-      for (let k = 1; k < pts.length; k++){
-        const [qx,qy] = pts[k], [px,py] = pts[k-1];
-        c.quadraticCurveTo(px, py, (px+qx)/2, (py+qy)/2);
-      }
-      c.strokeStyle = `rgba(168,205,178,${aa})`;
-      c.lineWidth = w; c.stroke();
+    c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
+    for (let k = 1; k < pts.length; k++){
+      const [qx,qy] = pts[k], [px,py] = pts[k-1];
+      c.quadraticCurveTo(px, py, (px+qx)/2, (py+qy)/2);
     }
-  }
-  // dark cracks
-  for (let i = 0; i < 40; i++){
-    c.beginPath();
-    let x = rnd()*S, y = rnd()*S; c.moveTo(x,y);
-    const seg = 3 + (rnd()*5|0);
-    for (let k = 0; k < seg; k++){ x += (rnd()-0.5)*160; y += (rnd()-0.5)*160; c.lineTo(x,y); }
-    c.strokeStyle = `rgba(3,8,5,${0.12+rnd()*0.2})`;
-    c.lineWidth = 0.5 + rnd()*1.6; c.stroke();
+    c.strokeStyle = `rgba(180,200,140,${0.04+rnd()*0.07})`;
+    c.lineWidth = 2 + rnd()*5; c.stroke();
   }
   if (withLogo){
     // little bee/emblem + wordmark, gold — matches product
     c.save();
-    c.translate(S*0.5, S*0.46);
-    c.scale(S/512, S/512);
+    c.translate(S*0.30, S*0.28);    // upper-left of the stone, as in the video
+    c.scale(S/512*0.68, S/512*0.68);
     c.fillStyle = '#c8a251';
     c.strokeStyle = '#d6b769';
     // emblem: simple diamond bee body
@@ -450,11 +511,14 @@ function hairCanvas(){
   const S = 1024, cv = document.createElement('canvas'); cv.width = cv.height = S;
   const c = cv.getContext('2d');
   // base vertical gradient (v=0 roots at bottom, v=1 tips at top)
+  // copper duo-fibre: tan roots -> saturated copper body -> auburn tips
+  // (kept dark so the lighting+tonemap lifts it to the video's copper)
   const g = c.createLinearGradient(0, S, 0, 0);
-  g.addColorStop(0.00, '#38230c');
-  g.addColorStop(0.32, '#7a5222');
-  g.addColorStop(0.64, '#bd8c3d');
-  g.addColorStop(1.00, '#e9c67c');
+  g.addColorStop(0.00, '#40280e');
+  g.addColorStop(0.30, '#8a4d18');
+  g.addColorStop(0.62, '#a85e1e');
+  g.addColorStop(0.86, '#8a4415');
+  g.addColorStop(1.00, '#57280c');
   c.fillStyle = g; c.fillRect(0, 0, S, S);
 
   let r = 424242;
@@ -465,7 +529,7 @@ function hairCanvas(){
     const x = rnd()*S, w = 4 + rnd()*14;
     const dark = rnd() > 0.5;
     const bg = c.createLinearGradient(x, 0, x+w, 0);
-    const col = dark ? '42,26,9' : '255,226,150';
+    const col = dark ? '46,26,9' : '255,178,110';
     bg.addColorStop(0, `rgba(${col},0)`);
     bg.addColorStop(0.5, `rgba(${col},${0.10+rnd()*0.14})`);
     bg.addColorStop(1, `rgba(${col},0)`);
@@ -480,10 +544,10 @@ function hairCanvas(){
     const sway = (rnd()-0.5)*24;
     const lum = rnd();
     c.strokeStyle = lum < 0.46
-      ? `rgba(40,24,8,${0.14+rnd()*0.22})`
+      ? `rgba(40,22,6,${0.14+rnd()*0.22})`
       : lum < 0.82
-        ? `rgba(255,222,145,${0.12+rnd()*0.20})`
-        : `rgba(255,246,205,${0.16+rnd()*0.22})`;
+        ? `rgba(220,120,45,${0.12+rnd()*0.20})`
+        : `rgba(245,160,85,${0.16+rnd()*0.22})`;
     c.lineWidth = 1.4 + rnd()*2.6;
     c.beginPath();
     c.moveTo(x, S);
@@ -554,8 +618,8 @@ function draw(mesh, model){
 }
 
 /* ---------- camera / controls ---------- */
-const cam = { yaw: -0.42, pitch: 0.20, dist: 8.2, target: [0, -0.05, 0] };
-const DEF = { yaw: -0.42, pitch: 0.20, dist: 8.2 };
+const cam = { yaw: -0.38, pitch: 0.16, dist: 8.8, target: [0.10, 0.30, 0] };
+const DEF = { yaw: -0.38, pitch: 0.16, dist: 8.8 };
 let autoSpin = true, dragging = false, lastX = 0, lastY = 0, velYaw = 0;
 
 function eyePos(){
