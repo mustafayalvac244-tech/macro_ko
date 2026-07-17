@@ -11,11 +11,11 @@ SRC = os.path.join(HERE, "reference_upload.blend")
 
 bpy.ops.wm.open_mainfile(filepath=SRC)
 
-# apply the photo-matched tuft + central-arch fibre cut to the master curve
+# keep the full dense bundle (no tuft/arch cut) to match the current model;
+# only thicken the strands as in the web export
 import export_glb as X
 cur = bpy.data.objects.get('Dense fine fiber bundle')
 if cur and cur.type == 'CURVE':
-    X.shape_fiber_cut(cur)
     cur.data.bevel_depth = X.FIBER_RADIUS
 
 sc = bpy.context.scene
