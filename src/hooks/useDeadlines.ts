@@ -44,6 +44,19 @@ export function useAllDeadlines() {
   });
 }
 
+/** Tek bir görevi id ile getirir (dosyasız kayıtlar dahil, düzenleme için). */
+export function useDeadline(deadlineId: string | undefined) {
+  return useQuery({
+    queryKey: ['deadlines', 'byId', deadlineId],
+    enabled: !!deadlineId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('deadlines').select(DEADLINE_SELECT).eq('id', deadlineId!).single();
+      if (error) throw error;
+      return data as unknown as DeadlineWithCase;
+    },
+  });
+}
+
 export function useDeadlinesForCase(caseId: string | undefined) {
   return useQuery({
     queryKey: ['deadlines', 'byCase', caseId],

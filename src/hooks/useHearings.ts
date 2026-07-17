@@ -45,6 +45,19 @@ export function useAllHearings() {
   });
 }
 
+/** Tek bir duruşmayı id ile getirir (dosyasız kayıtlar dahil, düzenleme için). */
+export function useHearing(hearingId: string | undefined) {
+  return useQuery({
+    queryKey: ['hearings', 'byId', hearingId],
+    enabled: !!hearingId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('hearings').select(HEARING_SELECT).eq('id', hearingId!).single();
+      if (error) throw error;
+      return data as unknown as HearingWithCase;
+    },
+  });
+}
+
 export function useHearingsForCase(caseId: string | undefined) {
   return useQuery({
     queryKey: ['hearings', 'byCase', caseId],

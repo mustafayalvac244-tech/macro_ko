@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { CasePicker } from '@/components/CasePicker';
 import { useCase } from '@/hooks/useCases';
-import { useAllHearings, useCreateHearing, useHearingsForCase, useUpdateHearing } from '@/hooks/useHearings';
+import { useAllHearings, useCreateHearing, useHearing, useHearingsForCase, useUpdateHearing } from '@/hooks/useHearings';
 import { hearingTitleSuggestions, meetingTitleSuggestions } from '@/constants/suggestions';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -42,10 +42,12 @@ export default function HearingFormScreen() {
   const isEdit = !!id;
   // Takvimden dosya parametresi olmadan açılırsa dosya burada seçilir.
   const [pickedCaseId, setPickedCaseId] = useState<string | null>(null);
-  const caseId = caseIdParam || pickedCaseId || undefined;
+  // Düzenlemede kayıt doğrudan id ile yüklenir (dosyasız toplantılar dahil).
+  const { data: editing } = useHearing(id);
+  const caseId = caseIdParam || pickedCaseId || editing?.case_id || undefined;
   const { data: caseItem } = useCase(caseId);
   const { data: hearings } = useHearingsForCase(caseId);
-  const existing = hearings?.find((h) => h.id === id);
+  const existing = editing ?? hearings?.find((h) => h.id === id);
 
   const createHearing = useCreateHearing();
   const updateHearing = useUpdateHearing();

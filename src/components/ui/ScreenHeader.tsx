@@ -29,15 +29,18 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
   return (
     <View style={styles.container}>
       <View style={styles.left}>
-        {(showBack || canGoBack) && (
+        {showBack || canGoBack ? (
+          // İçeri girilen ekranda yalnızca geri tuşu (menü değil) — bir önceki
+          // ekrana dönmek yeterli, iki buton kalabalık yapıyordu.
           <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </Pressable>
-        )}
-        {showMenu && (
-          <Pressable onPress={openSidebar} hitSlop={10} style={styles.menuButton}>
-            <Ionicons name="menu" size={24} color={colors.textPrimary} />
-          </Pressable>
+        ) : (
+          showMenu && (
+            <Pressable onPress={openSidebar} hitSlop={10} style={styles.menuButton}>
+              <Ionicons name="menu" size={24} color={colors.textPrimary} />
+            </Pressable>
+          )
         )}
         <View>
           <Text style={styles.title} numberOfLines={1}>

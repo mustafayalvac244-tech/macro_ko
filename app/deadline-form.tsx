@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { CasePicker } from '@/components/CasePicker';
 import { useCase } from '@/hooks/useCases';
-import { useCreateDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
+import { useCreateDeadline, useDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { deadlineTitleSuggestions } from '@/constants/suggestions';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -41,10 +41,11 @@ export default function DeadlineFormScreen() {
   const isEdit = !!id;
   // Takvimden dosya parametresi olmadan açılırsa dosya burada seçilir.
   const [pickedCaseId, setPickedCaseId] = useState<string | null>(null);
-  const caseId = caseIdParam || pickedCaseId || undefined;
+  const { data: editing } = useDeadline(id);
+  const caseId = caseIdParam || pickedCaseId || editing?.case_id || undefined;
   const { data: caseItem } = useCase(caseId);
   const { data: deadlines } = useDeadlinesForCase(caseId);
-  const existing = deadlines?.find((d) => d.id === id);
+  const existing = editing ?? deadlines?.find((d) => d.id === id);
 
   const createDeadline = useCreateDeadline();
   const updateDeadline = useUpdateDeadline();
