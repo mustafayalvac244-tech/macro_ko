@@ -29,7 +29,9 @@ FIBER = "Dense fine fiber bundle"
 BED = "Recessed bristle mounting bed"
 LOGO = "Original mioren logo decal"
 
-KEEP_FIBER_FRACTION = 0.6          # 17280 -> ~10400 strands for the web
+KEEP_FIBER_FRACTION = 1.0          # keep every strand: maximum density
+FIBER_RADIUS = 0.0040              # thicken strands (master 2.5mm) to kill
+                                   # sub-pixel aliasing and fill the bundle
 WEB_TEX = 1024                     # downscale serpentine maps for the GLB
 
 
@@ -101,10 +103,14 @@ def reduce_and_bake_fibers():
     n = len(spl)
     # evenly keep a fraction of strands (works for any 0<f<=1)
     keep_per20 = max(1, round(KEEP_FIBER_FRACTION * 20))
-    to_remove = [s for i, s in enumerate(spl) if (i % 20) >= keep_per20]
-    for s in to_remove:
-        spl.remove(s)
-    print("fibers kept:", len(cur.data.splines), "of", n)
+    if keep_per20 < 20:
+        to_remove = [s for i, s in enumerate(spl) if (i % 20) >= keep_per20]
+        for s in to_remove:
+            spl.remove(s)
+    # thicken every strand so it always covers >1px (no aliasing sparkle)
+    cur.data.bevel_depth = FIBER_RADIUS
+    print("fibers kept:", len(cur.data.splines), "of", n,
+          "| radius", FIBER_RADIUS)
 
     only_select(cur)
     bpy.ops.object.convert(target='MESH')
@@ -133,7 +139,11 @@ def reduce_and_bake_fibers():
             t = (z - zmin) / span            # 0 root(bottom/tip) .. 1 top(root)
             # strands hang down: top = root(dark), bottom = tip(warm)
             f = 1.0 - t
-            col = tuple(root[k] + (tip[k] - root[k]) * (f ** 0.6) for k in range(3))
+            col = [root[k] + (tip[k] - root[k]) * (f ** 0.6) for k in range(3)]
+            # ambient occlusion: interior of the bundle sits in shadow, the
+            # very roots where fibres pack under the stone are darkest
+            ao = 0.5 + 0.5 * (f ** 0.7)
+            col = tuple(c * ao for c in col)
             ca.data[li].color = (col[0], col[1], col[2], 1.0)
             li += 1
 

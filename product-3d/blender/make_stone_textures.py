@@ -52,27 +52,34 @@ def normalize01(a):
 
 
 print("generating serpentine masks…")
+zones = normalize01(fbm(N, 3, 5, 7))             # very large mineral zones
 mottle = normalize01(fbm(N, 4, 6, 1))            # large tonal drift
 grain = normalize01(fbm(N, 40, 4, 2))            # medium grain
 fine = normalize01(fbm(N, 220, 3, 3))            # fine speckle
+micro = normalize01(fbm(N, 620, 2, 5))           # micro surface
 
-# vein network: ridged noise -> thin dark filaments
+# vein network: two scales of ridged noise -> thin dark filaments
 rid = fbm(N, 7, 5, 4)
 rid = np.abs(2 * normalize01(rid) - 1)           # crease at mid-level
-veins = np.clip(1.0 - rid * 6.0, 0, 1)           # sharp thin lines
+veins = np.clip(1.0 - rid * 5.0, 0, 1)           # sharp thin lines
 veins *= (0.4 + 0.6 * mottle)                     # veins fade in/out naturally
-veins2 = np.clip(1.0 - np.abs(2 * normalize01(fbm(N, 15, 4, 9)) - 1) * 9, 0, 1)
-veins = np.clip(veins + 0.5 * veins2, 0, 1)
+veins2 = np.clip(1.0 - np.abs(2 * normalize01(fbm(N, 15, 4, 9)) - 1) * 8, 0, 1)
+veins3 = np.clip(1.0 - np.abs(2 * normalize01(fbm(N, 34, 4, 12)) - 1) * 12, 0, 1)
+veins = np.clip(veins + 0.5 * veins2 + 0.35 * veins3, 0, 1)
 
-# ---- albedo (linear-ish sRGB values) ----
-deep = np.array([0.045, 0.070, 0.050])           # deep green
-mid = np.array([0.090, 0.120, 0.088])            # mid sage
-veincol = np.array([0.018, 0.030, 0.022])        # near-black vein
+# ---- albedo (linear values) ----
+deep = np.array([0.040, 0.064, 0.046])           # deep green
+mid = np.array([0.092, 0.122, 0.090])            # mid sage
+warm = np.array([0.105, 0.110, 0.070])           # warmer olive mineral zone
+veincol = np.array([0.014, 0.024, 0.018])        # near-black vein
 base = deep[None, None, :] + (mid - deep)[None, None, :] * \
-    (0.35 * mottle + 0.4 * grain)[:, :, None]
-base = base * (1.0 - 0.10 * fine)[:, :, None]     # speckle darkening
-albedo = base * (1.0 - veins[:, :, None] * 0.85) + \
-    veincol[None, None, :] * (veins[:, :, None] * 0.85)
+    (0.32 * mottle + 0.42 * grain)[:, :, None]
+# blend warmer olive into the large mineral zones for natural colour variation
+wz = np.clip((zones - 0.55) * 2.2, 0, 1)[:, :, None]
+base = base * (1 - 0.5 * wz) + warm[None, None, :] * (0.5 * wz)
+base = base * (1.0 - 0.12 * fine)[:, :, None]     # speckle darkening
+albedo = base * (1.0 - veins[:, :, None] * 0.88) + \
+    veincol[None, None, :] * (veins[:, :, None] * 0.88)
 albedo = np.clip(albedo, 0, 1)
 # to sRGB gamma
 albedo_srgb = np.clip(albedo, 0, 1) ** (1 / 2.2)
@@ -85,11 +92,11 @@ rough = np.clip(rough, 0.26, 0.46)
 Image.fromarray((rough * 255).astype(np.uint8)).save(
     os.path.join(TEX, "stone_roughness.png"))
 
-# ---- normal from a height field (veins recessed, subtle grain relief) ----
-height = 0.6 * grain + 0.4 * mottle - 0.8 * veins
+# ---- normal from a height field (veins recessed, grain + micro relief) ----
+height = 0.5 * grain + 0.3 * mottle + 0.12 * micro - 0.9 * veins
 height = normalize01(height)
 gy, gx = np.gradient(height.astype(np.float64))
-strength = 2.2
+strength = 2.6
 nx = -gx * strength
 ny = -gy * strength
 nz = np.ones_like(height)
