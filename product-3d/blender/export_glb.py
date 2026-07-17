@@ -154,6 +154,9 @@ def reduce_and_bake_fibers():
     # its natural length. Call shape_fiber_cut(cur) here to re-enable it.
     # thicken every strand so it always covers >1px (no aliasing sparkle)
     cur.data.bevel_depth = FIBER_RADIUS
+    if '--light-fibers' in sys.argv:          # smaller tubes for the
+        cur.data.bevel_resolution = 0         # uncompressed standalone GLB
+        cur.data.resolution_u = 1             # (keeps full strand density)
     print("fibers kept:", len(cur.data.splines), "of", n,
           "| radius", FIBER_RADIUS)
 
@@ -249,13 +252,15 @@ def export():
             exported.append(name)
     print("exporting:", exported)
 
-    out = os.path.join(WEB, "mioren_brusher.glb")
+    draco = '--no-draco' not in sys.argv
+    out_name = "mioren_brusher.glb" if draco else "mioren_brusher_standalone.glb"
+    out = os.path.join(WEB, out_name)
     bpy.ops.export_scene.gltf(
         filepath=out,
         export_format='GLB',
         use_selection=True,
         export_apply=True,
-        export_draco_mesh_compression_enable=True,
+        export_draco_mesh_compression_enable=draco,
         export_draco_mesh_compression_level=6,
         export_yup=True,
         export_texcoords=True,
@@ -263,7 +268,8 @@ def export():
         export_vertex_color='MATERIAL',
         export_materials='EXPORT',
     )
-    print("GLB size (KB):", round(os.path.getsize(out) / 1024, 1))
+    print("GLB size (KB):", round(os.path.getsize(out) / 1024, 1),
+          "| draco:", draco, "->", out_name)
     print("EXPORT COMPLETE ->", out)
 
 
