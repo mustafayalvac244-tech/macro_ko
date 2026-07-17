@@ -10,6 +10,14 @@ os.makedirs(OUT, exist_ok=True)
 SRC = os.path.join(HERE, "reference_upload.blend")
 
 bpy.ops.wm.open_mainfile(filepath=SRC)
+
+# apply the photo-matched tuft + central-arch fibre cut to the master curve
+import export_glb as X
+cur = bpy.data.objects.get('Dense fine fiber bundle')
+if cur and cur.type == 'CURVE':
+    X.shape_fiber_cut(cur)
+    cur.data.bevel_depth = X.FIBER_RADIUS
+
 sc = bpy.context.scene
 sc.render.engine = 'CYCLES'
 sc.cycles.samples = int(sys.argv[sys.argv.index('--samples')+1]) if '--samples' in sys.argv else 110
