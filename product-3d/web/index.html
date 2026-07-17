@@ -287,7 +287,17 @@ addEventListener('resize', ()=>{ camera.aspect=innerWidth/innerHeight; camera.up
   renderer.setSize(innerWidth,innerHeight); });
 (function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene,camera); })();
 
-window.__viewer = { get ready(){return !!model;}, setView, scene, camera, renderer };
+function orbit(azDeg, elDeg = 16){
+  if (!model) return;
+  const az = azDeg*Math.PI/180, el = elDeg*Math.PI/180, dist = fitDistance();
+  controls.autoRotate = false;
+  camera.position.set(
+    center.x + dist*Math.cos(el)*Math.sin(az),
+    center.y + dist*Math.sin(el),
+    center.z + dist*Math.cos(el)*Math.cos(az));
+  camera.lookAt(center); controls.target.copy(center); controls.update();
+}
+window.__viewer = { get ready(){return !!model;}, setView, orbit, scene, camera, renderer };
 </script>
 </body>
 </html>
