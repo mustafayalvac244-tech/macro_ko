@@ -50,3 +50,6 @@ product-3d/web/mioren_brusher_standalone.glb
 product-3d/web/mioren_brusher_standalone.glb
 product-3d/renders/ultra_*.png
 product-3d/renders/turn/
+product-3d/renders/turn_up/
+product-3d/blender/upload_web.blend
+product-3d/renders/*.mp4
