@@ -97,6 +97,48 @@ def assign_stone_material():
     print("stone: fresh UV + serpentine PBR material assigned")
 
 
+def shape_fiber_cut(cur):
+    """Reshape the fibre bundle to match the product photo: the lower edge
+    is cut into rounded 'beaded' tufts with a pronounced central arch gap
+    and a slight diagonal tilt. Each NURBS strand is shortened toward its
+    root (the point nearest the stone) by a per-strand factor that depends
+    on the strand's X position; strands that fall inside a gap are removed
+    so the openings actually show through."""
+    import math
+    splines = cur.data.splines
+
+    def spline_pts(s):
+        return s.points if s.type == 'NURBS' else s.bezier_points
+
+    # bundle X extent from each strand's root (highest point = nearest stone)
+    roots = []
+    for s in splines:
+        pts = spline_pts(s)
+        rp = max(pts, key=lambda p: p.co.z)
+        roots.append((s, rp.co.x, rp.co.z))
+    xs = [r[1] for r in roots]
+    xmin, xmax = min(xs), max(xs)
+    span = max(xmax - xmin, 1e-6)
+
+    NT = 8.0                                   # number of tufts (from photo)
+    to_remove = []
+    for s, rx, rz in roots:
+        xn = (rx - xmin) / span                # 0..1 across the width
+        local = (xn * NT) % 1.0
+        lobe = math.sqrt(max(0.0, 1.0 - (2*local - 1)**2))   # rounded tuft
+        tuft = 0.84 + 0.16 * lobe              # SHALLOW rounded scallops
+        d = (xn - 0.5) / 0.11
+        # central dome: fibres are CUT SHORT (not removed) so the bottom
+        # edge arches up and the space beneath shows through
+        arch = 1.0 - 0.60 * math.exp(-d * d)
+        tilt = 1.0 + 0.05 * (xn - 0.5)         # slight diagonal cut
+        f = max(0.28, min(1.10, tuft * arch * tilt))
+        pts = spline_pts(s)
+        for p in pts:                          # shorten toward the root
+            p.co.z = rz - (rz - p.co.z) * f
+    print("fibre cut: shallow rounded tufts + short-cut central arch")
+
+
 def reduce_and_bake_fibers():
     cur = bpy.data.objects[FIBER]
     spl = cur.data.splines
@@ -107,6 +149,7 @@ def reduce_and_bake_fibers():
         to_remove = [s for i, s in enumerate(spl) if (i % 20) >= keep_per20]
         for s in to_remove:
             spl.remove(s)
+    shape_fiber_cut(cur)                      # tufts + central arch + tilt
     # thicken every strand so it always covers >1px (no aliasing sparkle)
     cur.data.bevel_depth = FIBER_RADIUS
     print("fibers kept:", len(cur.data.splines), "of", n,
