@@ -149,7 +149,9 @@ def reduce_and_bake_fibers():
         to_remove = [s for i, s in enumerate(spl) if (i % 20) >= keep_per20]
         for s in to_remove:
             spl.remove(s)
-    shape_fiber_cut(cur)                      # tufts + central arch + tilt
+    # NOTE: the tuft/central-arch reshape (shape_fiber_cut) was reverted per
+    # user preference for the fuller, dense bundle — keep every strand at
+    # its natural length. Call shape_fiber_cut(cur) here to re-enable it.
     # thicken every strand so it always covers >1px (no aliasing sparkle)
     cur.data.bevel_depth = FIBER_RADIUS
     print("fibers kept:", len(cur.data.splines), "of", n,
