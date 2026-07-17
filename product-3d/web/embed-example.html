@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>mioren 3D — sitenize gömme örneği</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    margin:0;background:#f4f5f3;color:#20302a}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 18px 60px}
+  h1{font-size:20px;letter-spacing:.02em}
+  p{color:#4b5a50;line-height:1.6}
+  .frame{width:100%;aspect-ratio:4/5;max-height:80vh;border:0;border-radius:18px;
+    box-shadow:0 12px 40px rgba(0,0,0,.12);overflow:hidden;background:#d3d7d2}
+  pre{background:#12201a;color:#e7e2d4;padding:16px;border-radius:12px;overflow:auto;
+    font-size:13px;line-height:1.5}
+  code{color:#c9a24b}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>mioren — 3D Ürün Görüntüleyici (gömme örneği)</h1>
+  <p>Aşağıdaki görüntüleyici bir <code>&lt;iframe&gt;</code> ile gömülüdür.
+     Aynı kodu sitenizin ürün sayfasına yapıştırıp <b>web/</b> klasörünü
+     sunucunuza yüklemeniz yeterli.</p>
+
+  <iframe class="frame" src="./index.html" title="mioren 3D ürün görüntüleyici"
+          loading="lazy" allowfullscreen></iframe>
+
+  <p style="margin-top:28px"><b>Gömme kodu:</b></p>
+<pre>&lt;iframe
+  src="/product-3d/web/index.html"
+  style="width:100%; aspect-ratio:4/5; max-height:80vh; border:0; border-radius:18px;"
+  title="mioren 3D ürün görüntüleyici"
+  loading="lazy"
+  allowfullscreen&gt;
+&lt;/iframe&gt;</pre>
+
+  <p><b>Shopify / WordPress / Wix:</b> "Özel HTML" (Custom HTML / Embed) bloğuna
+     yukarıdaki kodu yapıştırın. <code>src</code> yolunu, <b>web/</b> klasörünü
+     yüklediğiniz gerçek adrese göre güncelleyin.</p>
+</div>
+</body>
+</html>
