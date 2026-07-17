@@ -44,3 +44,5 @@ yarn-error.*
 # 3D pipeline intermediates
 product-3d/textures/web_*.png
 product-3d/blender/__pycache__/
+product-3d/textures/stone_*_4k.png
+product-3d/renders/ultra_test.png
