@@ -66,6 +66,8 @@ export function formatFileSize(bytes: number): string {
 }
 
 export function formatMoney(amount: number): string {
+  // Geçersiz/eksik değerler "₺NaN" olarak görünmesin.
+  if (!Number.isFinite(amount)) return '₺0';
   const rounded = Math.round(amount * 100) / 100;
   const [whole, decimals] = rounded.toFixed(2).split('.');
   const grouped = whole!.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
