@@ -710,6 +710,7 @@ export const en: Record<keyof typeof tr, string> = {
   'fee.dueDate': 'Due date',
   'fee.noDueDate': 'Not set (won\'t appear on calendar)',
   'fee.addInstallment': 'Add Installment',
+  'fee.deleteInstallmentTitle': 'Delete installment?',
   'adv.title': 'Expense Advance',
   'adv.advance': 'Advance Received',
   'adv.spent': 'Spent',

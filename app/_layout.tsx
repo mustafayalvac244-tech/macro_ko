@@ -2,7 +2,10 @@ import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -20,10 +23,19 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// Çevrimdışı dayanıklılık: sorgu önbelleği cihaza yazılır; avukat çekmeyen bir
+// yerde (adliye vb.) uygulamayı açtığında son senkronize davalar/takvim boş ekran
+// yerine okunur halde gelir. gcTime, önbelleğin 24 saat saklanmasını sağlar.
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, staleTime: 30_000 },
+    queries: { retry: 2, staleTime: 60_000, gcTime: 1000 * 60 * 60 * 24 },
   },
+});
+
+const asyncPersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: 'VEKIL_QUERY_CACHE',
+  throttleTime: 1000,
 });
 
 const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
@@ -77,7 +89,10 @@ export default function RootLayout() {
   const app = (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{ persister: asyncPersister, maxAge: 1000 * 60 * 60 * 24 }}
+        >
           <StatusBar style={statusBar} />
           <ErrorBoundary>
           <Stack
@@ -121,7 +136,7 @@ export default function RootLayout() {
           </Stack>
           <AppLock />
           </ErrorBoundary>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

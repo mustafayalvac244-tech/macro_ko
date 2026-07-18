@@ -422,7 +422,12 @@ export default function CaseDetailScreen() {
                             size={16}
                             color={colors.textMuted}
                             suppressHighlighting
-                            onPress={() => deleteInstallment.mutate(it.id)}
+                            onPress={() =>
+                              Alert.alert(t('fee.deleteInstallmentTitle'), formatMoney(Number(it.amount)), [
+                                { text: t('common.cancel'), style: 'cancel' },
+                                { text: t('common.delete'), style: 'destructive', onPress: () => deleteInstallment.mutate(it.id) },
+                              ])
+                            }
                           />
                         </Pressable>
                       ))}

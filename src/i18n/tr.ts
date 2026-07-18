@@ -711,6 +711,7 @@ export const tr = {
   'fee.dueDate': 'Vade tarihi',
   'fee.noDueDate': 'Seçilmedi (takvimde görünmez)',
   'fee.addInstallment': 'Vade Ekle',
+  'fee.deleteInstallmentTitle': 'Taksit silinsin mi?',
   'adv.title': 'Masraf Avansı',
   'adv.advance': 'Alınan Avans',
   'adv.spent': 'Harcanan',
