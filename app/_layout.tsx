@@ -29,6 +29,7 @@ import { useTheme } from '@/theme/useTheme';
 import { hydrateLock } from '@/store/lockStore';
 import { AppLock } from '@/components/AppLock';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LaunchIntro } from '@/components/LaunchIntro';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -156,6 +157,7 @@ export default function RootLayout() {
             <Stack.Screen name="search" options={{ headerShown: false }} />
           </Stack>
           <AppLock />
+          <LaunchIntro />
           </ErrorBoundary>
         </PersistQueryClientProvider>
       </SafeAreaProvider>
