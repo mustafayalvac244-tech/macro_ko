@@ -10,6 +10,9 @@ const NAVY_TOP = '#0B1830';
 const NAVY_BOTTOM = '#16294A';
 const GOLD = '#C9A24B';
 const CREAM = '#F4EFE6';
+// Native splash'in zemin rengi — perde bu renkten başlayıp laciverte akar ki
+// splash → giriş geçişinde renk sıçraması olmasın.
+const SPLASH_BG = '#EFEBE3';
 
 // Soğuk başlangıçta yalnızca bir kez gösterilir (OTA reload dahil değil).
 let hasPlayed = false;
@@ -31,11 +34,14 @@ export function LaunchIntro() {
   const sloganOpacity = useRef(new Animated.Value(0)).current;
   const lineScale = useRef(new Animated.Value(0)).current;
   const curtain = useRef(new Animated.Value(1)).current;
+  const gradientIn = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!visible) return;
     hasPlayed = true;
     Animated.sequence([
+      // Krem (native splash rengi) → lacivert: yumuşak renk geçişi
+      Animated.timing(gradientIn, { toValue: 1, duration: 480, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }),
       Animated.parallel([
         Animated.timing(iconOpacity, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
         Animated.spring(iconScale, { toValue: 1, friction: 6, tension: 60, useNativeDriver: true }),
@@ -51,13 +57,16 @@ export function LaunchIntro() {
       Animated.delay(620),
       Animated.timing(curtain, { toValue: 0, duration: 420, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
     ]).start(() => setVisible(false));
-  }, [visible, iconOpacity, iconScale, wordOpacity, wordRise, sloganOpacity, lineScale, curtain]);
+  }, [visible, iconOpacity, iconScale, wordOpacity, wordRise, sloganOpacity, lineScale, curtain, gradientIn]);
 
   if (!visible) return null;
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.wrap, { opacity: curtain }]} pointerEvents="auto">
-      <LinearGradient colors={[NAVY_TOP, NAVY_BOTTOM]} style={StyleSheet.absoluteFill} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: SPLASH_BG }]} />
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: gradientIn }]}>
+        <LinearGradient colors={[NAVY_TOP, NAVY_BOTTOM]} style={StyleSheet.absoluteFill} />
+      </Animated.View>
       <View style={styles.center}>
         <Animated.View style={{ opacity: iconOpacity, transform: [{ scale: iconScale }] }}>
           <View style={styles.iconRing}>
