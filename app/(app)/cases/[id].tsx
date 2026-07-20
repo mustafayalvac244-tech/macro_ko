@@ -23,10 +23,11 @@ import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { computeLegalDue } from '@/utils/legalDates';
 import { Ionicons } from '@expo/vector-icons';
+import { WarPlanTab } from '@/components/case/WarPlanTab';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import type { FirstInstancePhase, InstanceStage, ClosedResult } from '@/types/database';
 
-type Tab = 'overview' | 'hearings' | 'deadlines' | 'finance';
+type Tab = 'overview' | 'hearings' | 'deadlines' | 'finance' | 'plan';
 
 export default function CaseDetailScreen() {
   const __t = useTheme();
@@ -297,6 +298,7 @@ export default function CaseDetailScreen() {
               { label: t('case.tabHearings'), value: 'hearings' },
               { label: t('case.tabDeadlines'), value: 'deadlines' },
               { label: t('case.tabFinance'), value: 'finance' },
+              { label: t('case.tabPlan'), value: 'plan' },
             ]}
             value={tab}
             onChange={(v) => setTab(v as Tab)}
@@ -358,6 +360,8 @@ export default function CaseDetailScreen() {
             </Card>
           </View>
         )}
+
+        {tab === 'plan' && <WarPlanTab caseItem={caseItem} hearings={hearings.data} />}
 
         {tab === 'finance' && (
           <View>
