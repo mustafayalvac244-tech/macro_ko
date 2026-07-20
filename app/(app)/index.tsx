@@ -291,7 +291,7 @@ export default function DashboardScreen() {
                 onPress={() => router.push('/(app)/calendar')}
               >
                 <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-                <Ionicons name="arrow-forward" size={14} color={NAVY} />
+                <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
               </Pressable>
             </View>
           </View>
@@ -726,13 +726,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 11,
     paddingHorizontal: 6,
   },
   heroCtaText: {
-    color: NAVY,
+    color: '#FFFFFF',
     fontSize: 12.5,
     fontWeight: '800',
   },
