@@ -17,7 +17,7 @@ import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
 import { useLangStore, useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { shadow, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney, formatTime } from '@/utils/format';
@@ -286,7 +286,10 @@ export default function DashboardScreen() {
               <View style={styles.heroScale}>
                 <MaterialCommunityIcons name="scale-balance" size={62} color={colors.gold} />
               </View>
-              <Pressable style={styles.heroCta} onPress={() => router.push('/(app)/calendar')}>
+              <Pressable
+                style={({ pressed }) => [styles.heroCta, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+                onPress={() => router.push('/(app)/calendar')}
+              >
                 <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
                 <Ionicons name="arrow-forward" size={14} color={NAVY} />
               </Pressable>
@@ -628,7 +631,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 22,
     padding: spacing.md,
     paddingBottom: spacing.md,
-    overflow: 'hidden',
+    ...shadow.card,
   },
   heroSide: {
     width: 96,
@@ -742,6 +745,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: colors.borderSubtle,
     borderRadius: 20,
     padding: spacing.md,
+    ...shadow.card,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -1064,6 +1068,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderTopColor: colors.borderSubtle,
     paddingTop: 8,
     paddingHorizontal: 6,
+    // Yukarı doğru hafif gölge — içeriğin barın altına aktığını hissettirir.
+    shadowColor: '#1A2C51',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 10,
   },
   bottomTab: {
     flex: 1,

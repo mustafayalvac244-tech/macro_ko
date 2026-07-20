@@ -493,28 +493,28 @@ export default function CalendarScreen() {
       {/* Hızlı ekleme */}
       <View style={styles.quickRow}>
         <Pressable
-          style={[styles.quickBtn, { backgroundColor: colors.primarySoft }]}
+          style={({ pressed }) => [styles.quickBtn, { backgroundColor: colors.primarySoft }, pressed && { opacity: 0.7 }]}
           onPress={() => router.push('/hearing-form' as Parameters<typeof router.push>[0])}
         >
           <Ionicons name="add" size={15} color={colors.primary} />
           <Text style={[styles.quickBtnText, { color: colors.primary }]}>{t('cal.hearing')}</Text>
         </Pressable>
         <Pressable
-          style={[styles.quickBtn, { backgroundColor: colors.infoSoft }]}
+          style={({ pressed }) => [styles.quickBtn, { backgroundColor: colors.infoSoft }, pressed && { opacity: 0.7 }]}
           onPress={() => router.push('/hearing-form?type=meeting' as Parameters<typeof router.push>[0])}
         >
           <Ionicons name="people-outline" size={15} color={colors.info} />
           <Text style={[styles.quickBtnText, { color: colors.info }]}>{t('cal.addMeeting')}</Text>
         </Pressable>
         <Pressable
-          style={[styles.quickBtn, { backgroundColor: colors.warningSoft }]}
+          style={({ pressed }) => [styles.quickBtn, { backgroundColor: colors.warningSoft }, pressed && { opacity: 0.7 }]}
           onPress={() => router.push('/deadline-wizard' as Parameters<typeof router.push>[0])}
         >
           <Ionicons name="hourglass-outline" size={15} color={colors.warning} />
           <Text style={[styles.quickBtnText, { color: colors.warning }]}>{t('cal.addDuration')}</Text>
         </Pressable>
         <Pressable
-          style={[styles.quickBtn, { backgroundColor: colors.goldSoft }]}
+          style={({ pressed }) => [styles.quickBtn, { backgroundColor: colors.goldSoft }, pressed && { opacity: 0.7 }]}
           onPress={() => router.push('/deadline-form' as Parameters<typeof router.push>[0])}
         >
           <Ionicons name="list-outline" size={15} color={colors.gold} />
