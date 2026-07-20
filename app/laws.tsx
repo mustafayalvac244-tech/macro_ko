@@ -11,13 +11,13 @@ import type { ThemeColors } from '@/theme/palettes';
 
 // Constitution keeps its own richer screen; the codes go through the shared browser.
 const CODE_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; tint: (c: ThemeColors) => string }> = {
-  TCK: { icon: 'shield-outline', tint: (c) => c.danger },
-  CMK: { icon: 'shield-half-outline', tint: (c) => c.danger },
+  TCK: { icon: 'shield-outline', tint: (c) => c.primary },
+  CMK: { icon: 'shield-half-outline', tint: (c) => c.primary },
   TMK: { icon: 'people-outline', tint: (c) => c.primary },
   TBK: { icon: 'document-text-outline', tint: (c) => c.primary },
-  HMK: { icon: 'hammer-outline', tint: (c) => c.info },
-  TTK: { icon: 'business-outline', tint: (c) => c.gold },
-  'İşK': { icon: 'briefcase-outline', tint: (c) => c.success },
+  HMK: { icon: 'hammer-outline', tint: (c) => c.primary },
+  TTK: { icon: 'business-outline', tint: (c) => c.primary },
+  'İşK': { icon: 'briefcase-outline', tint: (c) => c.primary },
 };
 
 export default function LawsScreen() {
@@ -37,8 +37,8 @@ export default function LawsScreen() {
 
         {/* Anayasa — own detailed screen */}
         <Pressable style={styles.row} onPress={() => router.push('/constitution' as Parameters<typeof router.push>[0])}>
-          <View style={[styles.rowIcon, { backgroundColor: colors.goldSoft }]}>
-            <Ionicons name="ribbon-outline" size={20} color={colors.gold} />
+          <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="ribbon-outline" size={20} color={colors.primary} />
           </View>
           <View style={styles.rowBody}>
             <Text style={styles.rowShort}>Anayasa</Text>

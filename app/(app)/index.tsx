@@ -249,7 +249,7 @@ export default function DashboardScreen() {
             <View style={styles.heroRows} pointerEvents="box-none">
             <AssistRow
               icon="calendar-outline"
-              tint={BLUE}
+              tint={colors.primary}
               label={t('dash.assist.nextHearing')}
               value={nextHearing ? whenLabel(nextHearing.scheduled_at) : t('dash.assist.noHearing')}
               right={nextHearing ? (nextHearing.location || nextHearing.case?.title || nextHearing.title) : ''}
@@ -257,7 +257,7 @@ export default function DashboardScreen() {
             />
             <AssistRow
               icon="warning-outline"
-              tint={AMBER}
+              tint={colors.primary}
               label={t('dash.assist.urgentDue')}
               value={nextDeadline ? whenLabel(nextDeadline.due_at) : t('dash.assist.noDue')}
               right={nextDeadline ? nextDeadline.title : ''}
@@ -265,7 +265,7 @@ export default function DashboardScreen() {
             />
             <AssistRow
               icon="list-outline"
-              tint={GREEN}
+              tint={colors.primary}
               label={t('dash.todayProgram')}
               value={todayCount > 0 ? t('dash.eventCount', { n: todayCount }) : t('dash.noProgramToday')}
               right=""
@@ -273,7 +273,7 @@ export default function DashboardScreen() {
             />
             <AssistRow
               icon="bulb-outline"
-              tint={colors.gold}
+              tint={colors.primary}
               label={t('dash.assist.suggestion')}
               value={suggestion.value}
               right={suggestion.right}
@@ -301,8 +301,8 @@ export default function DashboardScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
-              <View style={[styles.cardHeaderIcon, { backgroundColor: colors.goldSoft }]}>
-                <Ionicons name="locate-outline" size={18} color={colors.gold} />
+              <View style={[styles.cardHeaderIcon, { backgroundColor: colors.primarySoft }]}>
+                <Ionicons name="locate-outline" size={18} color={colors.primary} />
               </View>
               <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.focus.title')}</Text>
             </View>
@@ -316,7 +316,7 @@ export default function DashboardScreen() {
             <View>
               <View style={styles.focusRow}>
                 <View style={styles.focusIcon}>
-                  <Ionicons name="folder-open" size={26} color={colors.gold} />
+                  <Ionicons name="folder-open" size={26} color={colors.primary} />
                 </View>
                 <View style={styles.focusBody}>
                   <View style={styles.focusTitleRow}>
@@ -357,8 +357,8 @@ export default function DashboardScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
-              <View style={[styles.cardHeaderIcon, { backgroundColor: colors.goldSoft }]}>
-                <Ionicons name="stats-chart-outline" size={18} color={colors.gold} />
+              <View style={[styles.cardHeaderIcon, { backgroundColor: colors.primarySoft }]}>
+                <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
               </View>
               <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.fin.title')}</Text>
             </View>
