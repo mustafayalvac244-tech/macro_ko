@@ -19,15 +19,27 @@ export const radius = {
   pill: 999,
 } as const;
 
+// Uygulama fontları: gövde Manrope (kurumsal, Türkçe destekli), marka yazısı
+// Dancing Script (imza havası, okunaklı). Ağırlık başına ayrı dosya kullanılır;
+// font yüklenemezse sistem fontu + fontWeight devreye girer (güvenli düşüş).
+export const fonts = {
+  regular: 'Manrope_400Regular',
+  medium: 'Manrope_500Medium',
+  semibold: 'Manrope_600SemiBold',
+  bold: 'Manrope_700Bold',
+  extrabold: 'Manrope_800ExtraBold',
+  script: 'DancingScript_700Bold',
+} as const;
+
 export const typography = {
-  display: { fontSize: 30, fontWeight: '700' as const, letterSpacing: -0.5 },
-  h1: { fontSize: 24, fontWeight: '700' as const, letterSpacing: -0.3 },
-  h2: { fontSize: 20, fontWeight: '700' as const, letterSpacing: -0.2 },
-  h3: { fontSize: 17, fontWeight: '600' as const },
-  body: { fontSize: 15, fontWeight: '400' as const },
-  bodyMedium: { fontSize: 15, fontWeight: '600' as const },
-  caption: { fontSize: 13, fontWeight: '500' as const },
-  small: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.4 },
+  display: { fontSize: 30, fontFamily: fonts.bold, fontWeight: '700' as const, letterSpacing: -0.5 },
+  h1: { fontSize: 24, fontFamily: fonts.bold, fontWeight: '700' as const, letterSpacing: -0.3 },
+  h2: { fontSize: 20, fontFamily: fonts.bold, fontWeight: '700' as const, letterSpacing: -0.2 },
+  h3: { fontSize: 17, fontFamily: fonts.semibold, fontWeight: '600' as const },
+  body: { fontSize: 15, fontFamily: fonts.regular, fontWeight: '400' as const },
+  bodyMedium: { fontSize: 15, fontFamily: fonts.semibold, fontWeight: '600' as const },
+  caption: { fontSize: 13, fontFamily: fonts.medium, fontWeight: '500' as const },
+  small: { fontSize: 11, fontFamily: fonts.semibold, fontWeight: '600' as const, letterSpacing: 0.4 },
 } as const;
 
 export const shadow = {

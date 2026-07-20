@@ -17,7 +17,7 @@ import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
 import { useLangStore, useT } from '@/i18n';
-import { shadow, spacing, typography } from '@/theme/theme';
+import { fonts, shadow, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney, formatTime } from '@/utils/format';
@@ -554,10 +554,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
   },
   brandText: {
-    fontSize: 21,
-    fontWeight: '800',
+    fontFamily: fonts.script,
+    fontSize: 27,
     color: colors.textPrimary,
-    letterSpacing: -0.5,
   },
   headerRight: {
     flexDirection: 'row',
@@ -584,6 +583,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   bellBadgeText: {
     color: '#FFFFFF',
     fontSize: 9,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
   },
   msgPill: {
@@ -599,6 +600,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   msgPillText: {
     fontSize: 12,
+    fontFamily: fonts.bold,
+
     fontWeight: '700',
     color: colors.textPrimary,
   },
@@ -610,6 +613,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   greeting: {
     fontSize: 24,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
     color: colors.textPrimary,
     paddingHorizontal: spacing.lg,
@@ -660,6 +665,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   heroTitle: {
     color: colors.textPrimary,
     fontSize: 16,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
   },
   heroUpdated: {
@@ -701,12 +708,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   assistLabel: {
     color: colors.textSecondary,
     fontSize: 10.5,
+    fontFamily: fonts.semibold,
+
     fontWeight: '600',
     flexShrink: 0,
   },
   assistValue: {
     color: colors.textPrimary,
     fontSize: 13.5,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
     marginTop: 1,
   },
@@ -734,6 +745,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   heroCtaText: {
     color: '#FFFFFF',
     fontSize: 12.5,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
   },
   // Generic card
@@ -769,6 +782,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   cardTitle: {
     fontSize: 15,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
     color: colors.textPrimary,
     flexShrink: 1,
@@ -782,6 +797,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   cardHeaderLink: {
     fontSize: 12,
     color: colors.textSecondary,
+    fontFamily: fonts.bold,
+
     fontWeight: '700',
   },
   emptyRow: {
@@ -820,6 +837,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   focusTitle: {
     fontSize: 14.5,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
     color: colors.textPrimary,
     flexShrink: 1,
@@ -832,6 +851,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   focusBadgeText: {
     fontSize: 10.5,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
     color: colors.danger,
   },
@@ -862,6 +883,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   focusButtonText: {
     color: colors.gold,
     fontSize: 12.5,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
   },
   // İletişim özeti
@@ -904,6 +927,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   commIconBadgeText: {
     color: '#FFFFFF',
     fontSize: 9,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
   },
   commPeerRow: {
@@ -932,27 +957,37 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   commQuickLabel: {
     fontSize: 10.5,
     color: colors.textSecondary,
+    fontFamily: fonts.semibold,
+
     fontWeight: '600',
   },
   commLink: {
     fontSize: 10.5,
     color: colors.info,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
     marginTop: 5,
   },
   commLabel: {
     fontSize: 10.5,
     color: colors.textSecondary,
+    fontFamily: fonts.bold,
+
     fontWeight: '700',
     marginBottom: 5,
   },
   commValue: {
     fontSize: 14,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
     color: colors.textPrimary,
   },
   commPeerName: {
     fontSize: 12.5,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
     color: colors.textPrimary,
   },
@@ -981,6 +1016,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   finLabel: {
     fontSize: 10.5,
     color: colors.textSecondary,
+    fontFamily: fonts.bold,
+
     fontWeight: '700',
   },
   finMidRow: {
@@ -992,6 +1029,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   finAmount: {
     flex: 1,
     fontSize: 16.5,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.5,
@@ -1015,6 +1054,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   finPct: {
     fontSize: 9,
+    fontFamily: fonts.bold,
+
     fontWeight: '700',
     flexShrink: 1,
     lineHeight: 12,
@@ -1048,6 +1089,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   tevkilTitle: {
     color: '#FFFFFF',
     fontSize: 16.5,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
   },
   tevkilDesc: {
@@ -1105,10 +1148,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   bottomTabBadgeText: {
     color: '#FFFFFF',
     fontSize: 9,
+    fontFamily: fonts.extrabold,
+
     fontWeight: '800',
   },
   bottomTabLabel: {
     fontSize: 10.5,
+    fontFamily: fonts.semibold,
+
     fontWeight: '600',
     color: colors.textMuted,
   },

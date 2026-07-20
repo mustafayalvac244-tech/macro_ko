@@ -11,6 +11,15 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as Updates from 'expo-updates';
+import { useFonts } from 'expo-font';
+import {
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from '@expo-google-fonts/manrope';
+import { DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
@@ -46,6 +55,18 @@ export default function RootLayout() {
   const hasHiddenSplash = useRef(false);
   const { colors, statusBar } = useTheme();
 
+  // Uygulama fontları — yüklenene kadar splash açık kalır; yükleme hata verirse
+  // sistem fontuyla devam edilir (fontError durumunda da ekran açılır).
+  const [fontsLoaded, fontError] = useFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
+    DancingScript_700Bold,
+  });
+  const fontsReady = fontsLoaded || !!fontError;
+
   useEffect(() => {
     const unsubscribe = initialize();
     hydrateLanguage().catch(() => {});
@@ -78,13 +99,13 @@ export default function RootLayout() {
   }, [initialize]);
 
   useEffect(() => {
-    if (!isInitializing && !hasHiddenSplash.current) {
+    if (!isInitializing && fontsReady && !hasHiddenSplash.current) {
       hasHiddenSplash.current = true;
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [isInitializing]);
+  }, [isInitializing, fontsReady]);
 
-  if (isInitializing) return null;
+  if (isInitializing || !fontsReady) return null;
 
   const app = (
     <GestureHandlerRootView style={{ flex: 1 }}>

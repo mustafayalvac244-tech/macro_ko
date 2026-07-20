@@ -15,7 +15,7 @@ import { useAllDeadlines, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useAllPromises } from '@/hooks/usePaymentPromises';
 import { useAllInstallments } from '@/hooks/usePayments';
 import { useLangStore, useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { fonts, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
@@ -576,6 +576,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   todayBtnText: {
     ...typography.small,
     color: colors.primary,
+    fontFamily: fonts.bold,
+
     fontWeight: '700',
   },
   weekCard: {
@@ -614,6 +616,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   weekDayNum: {
     ...typography.bodyMedium,
     color: colors.textPrimary,
+    fontFamily: fonts.bold,
+
     fontWeight: '700',
     marginTop: 2,
   },
@@ -665,6 +669,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   sectionTitle: {
     ...typography.bodyMedium,
     color: colors.textPrimary,
+    fontFamily: fonts.bold,
+
     fontWeight: '700',
   },
   sectionCount: {
@@ -693,6 +699,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.caption,
     fontSize: 11,
     color: colors.textPrimary,
+    fontFamily: fonts.bold,
+
     fontWeight: '700',
   },
   timeSub: {
@@ -748,6 +756,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   quickBtnText: {
     fontSize: 12.5,
+    fontFamily: fonts.bold,
+
     fontWeight: '700',
   },
 });
