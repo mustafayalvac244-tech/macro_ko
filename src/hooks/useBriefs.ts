@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/store/authStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface BriefSections {
   acilis: string;
@@ -15,57 +14,33 @@ export interface WarPlanContent {
   checklist?: Record<string, boolean>;
   notes?: Array<{ at: string; text: string }>;
   debrief?: { good?: string; bad?: string };
-  /** 'ai' | 'template' — brief'in nasıl üretildiği */
   source?: string;
 }
 
-export interface DurusmaBrief {
-  id: string;
-  owner_id: string;
-  case_id: string;
-  content: WarPlanContent;
-  updated_at: string;
-  created_at: string;
-}
-
-/** True when the 0023 (durusma_briefs) section of KURULUM.sql hasn't run. */
-export function isMissingBriefTable(err: unknown): boolean {
-  const e = err as { code?: string; message?: string } | null;
-  if (!e) return false;
-  if (e.code === '42P01' || e.code === 'PGRST205') return true;
-  return (e.message ?? '').toLowerCase().includes('durusma_briefs');
-}
+// Duruşma planı cihazda saklanır — hiçbir sunucu kurulumu (SQL) gerektirmez.
+// React Query önbelleği de kalıcı olduğundan çevrimdışı da erişilir.
+const keyFor = (caseId: string) => `VEKIL_WARPLAN_${caseId}`;
 
 export function useBrief(caseId: string | undefined) {
   return useQuery({
     queryKey: ['brief', caseId],
     enabled: !!caseId,
-    retry: (n, err) => !isMissingBriefTable(err) && n < 1,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('durusma_briefs')
-        .select('*')
-        .eq('case_id', caseId!)
-        .maybeSingle();
-      if (error) throw error;
-      return (data as DurusmaBrief | null) ?? null;
+      try {
+        const raw = await AsyncStorage.getItem(keyFor(caseId!));
+        return raw ? { content: JSON.parse(raw) as WarPlanContent } : null;
+      } catch {
+        return null;
+      }
     },
   });
 }
 
 export function useSaveBrief() {
   const queryClient = useQueryClient();
-  const ownerId = useAuthStore((s) => s.session?.user.id);
-
   return useMutation({
     mutationFn: async ({ caseId, content }: { caseId: string; content: WarPlanContent }) => {
-      const { error } = await supabase
-        .from('durusma_briefs')
-        .upsert(
-          { owner_id: ownerId!, case_id: caseId, content, updated_at: new Date().toISOString() },
-          { onConflict: 'case_id' }
-        );
-      if (error) throw error;
+      await AsyncStorage.setItem(keyFor(caseId), JSON.stringify(content));
     },
     onSuccess: (_d, v) => queryClient.invalidateQueries({ queryKey: ['brief', v.caseId] }),
   });

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { isMissingBriefTable, useBrief, useSaveBrief, type BriefSections } from '@/hooks/useBriefs';
+import { useBrief, useSaveBrief, type BriefSections } from '@/hooks/useBriefs';
 import {
   CHECKLIST_ITEMS,
   generateAiBrief,
@@ -150,8 +150,7 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
       },
       {
         onSuccess: () => Alert.alert(t('plan.title'), t('plan.saved')),
-        onError: (e) =>
-          Alert.alert(t('plan.title'), isMissingBriefTable(e) ? t('plan.setupRequired') : t('financeForm.saveFailed')),
+        onError: () => Alert.alert(t('plan.title'), t('financeForm.saveFailed')),
       }
     );
   };
@@ -182,12 +181,6 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
             <Text style={styles.h24Time}>{formatTime(nextHearing.scheduled_at)}</Text>
           </View>
           <Text style={styles.elevator}>{elevator}</Text>
-        </Card>
-      )}
-
-      {brief.error && isMissingBriefTable(brief.error) && (
-        <Card style={styles.warnCard}>
-          <Text style={styles.warnText}>{t('plan.setupRequired')}</Text>
         </Card>
       )}
 
