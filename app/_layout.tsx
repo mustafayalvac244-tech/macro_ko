@@ -84,17 +84,17 @@ export default function RootLayout() {
       NavigationBar.setVisibilityAsync('hidden').catch(() => {});
     }
 
-    // OTA: güncelleme varsa açılışta indirip hemen uygula — kullanıcı ikinci
-    // açılışı beklemek zorunda kalmasın (TestFlight/production).
+    // OTA: güncelleme varsa SADECE arka planda indir; ANINDA reload ETME.
+    // Anında reloadAsync, açılış animasyonunun ortasında uygulamayı yeniden
+    // başlatıp "2-3 kez açılıyor / animasyon bozuk" hissine yol açıyordu.
+    // İndirilen güncelleme kullanıcının bir sonraki normal açılışında sorunsuz
+    // devreye girer (Expo varsayılan davranışı).
     (async () => {
       try {
         if (__DEV__ || !Updates.isEnabled) return;
         const check = await Updates.checkForUpdateAsync();
         if (check.isAvailable) {
           await Updates.fetchUpdateAsync();
-          // Yeniden başlatmada giriş animasyonu TEKRAR oynamasın (çift açılış hissi).
-          await AsyncStorage.setItem('VEKIL_SKIP_INTRO_ONCE', '1').catch(() => {});
-          await Updates.reloadAsync();
         }
       } catch {
         // Ağ yoksa veya kontrol başarısız olursa mevcut sürümle devam edilir.

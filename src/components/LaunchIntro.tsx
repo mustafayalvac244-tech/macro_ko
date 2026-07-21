@@ -31,23 +31,11 @@ let hasPlayed = false;
 export function LaunchIntro() {
   const t = useT();
   const [visible, setVisible] = useState(!hasPlayed);
-  // Bayrak okunana kadar animasyon başlamaz; bayrak varsa perde hiç oynamadan iner.
-  const [checked, setChecked] = useState(false);
 
+  // Eski cihazlarda kalmış olabilecek bayrağı temizle (artık kullanılmıyor).
   useEffect(() => {
-    if (!visible) return;
-    AsyncStorage.getItem(SKIP_ONCE_KEY)
-      .then((flag) => {
-        if (flag) {
-          AsyncStorage.removeItem(SKIP_ONCE_KEY).catch(() => {});
-          hasPlayed = true;
-          setVisible(false);
-        } else {
-          setChecked(true);
-        }
-      })
-      .catch(() => setChecked(true));
-  }, [visible]);
+    AsyncStorage.removeItem(SKIP_ONCE_KEY).catch(() => {});
+  }, []);
 
   // Gömülü splash karesi logoyu ekran ortasında 240dp gösterir; intro aynı
   // logoyu AYNI boyutta ve GÖRÜNÜR devralır, küçültüp yuvasına oturtur —
@@ -61,7 +49,7 @@ export function LaunchIntro() {
   const curtain = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (!visible || !checked) return;
+    if (!visible) return;
     hasPlayed = true;
     // Eski krem geçiş fazı kaldırıldı — perde doğrudan lacivert başlar; böylece
     // açılışta "önceki tasarım" izlenimi veren ikinci bir sahne oynamaz.
@@ -84,7 +72,7 @@ export function LaunchIntro() {
       Animated.delay(620),
       Animated.timing(curtain, { toValue: 0, duration: 420, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
     ]).start(() => setVisible(false));
-  }, [visible, checked, iconScale, iconShift, wordOpacity, wordRise, sloganOpacity, lineScale, curtain]);
+  }, [visible, iconScale, iconShift, wordOpacity, wordRise, sloganOpacity, lineScale, curtain]);
 
   if (!visible) return null;
 

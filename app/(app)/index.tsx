@@ -88,10 +88,18 @@ export default function DashboardScreen() {
   }, [hearings.data, deadlines.data]);
 
   const nextHearing = useMemo(() => {
+    // Alıcı geri bildirimi: Arabuluculuk/toplantı türü kayıtlar "Sonraki duruşma"
+    // olarak gösterilmemeli — sadece gerçek duruşmalar (duruşma/celse) sayılır.
+    const hearingTypes = ['hearing', 'trial', 'deposition'];
     return (hearings.data ?? [])
       .filter((h) => {
         const d = new Date(h.scheduled_at);
-        return !h.is_completed && !isNaN(d.getTime()) && d.getTime() >= now.getTime() - 60 * 60 * 1000;
+        return (
+          !h.is_completed &&
+          hearingTypes.includes(h.type) &&
+          !isNaN(d.getTime()) &&
+          d.getTime() >= now.getTime() - 60 * 60 * 1000
+        );
       })
       .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
     // eslint-disable-next-line react-hooks/exhaustive-deps

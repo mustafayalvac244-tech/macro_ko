@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useCases } from '@/hooks/useCases';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
-import { useAllPayments, usePaidInstallmentsTotal } from '@/hooks/usePayments';
+import { useFinanceEntries } from '@/hooks/useFinance';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -31,8 +31,7 @@ export default function ReportsScreen() {
   const cases = useCases();
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
-  const payments = useAllPayments();
-  const paidInstTotal = usePaidInstallmentsTotal();
+  const financeEntries = useFinanceEntries();
 
   const statusCounts = useMemo(() => {
     const counts = new Map<CaseStatus, number>();
@@ -68,13 +67,18 @@ export default function ReportsScreen() {
     return { completed, open, overdue };
   }, [deadlines.data]);
 
+  // Alıcı geri bildirimi: "Genel Finans" yanıltıcıydı (dosya ücretleri düşüyordu).
+  // Artık doğrudan Gelir/Gider defterinden (finance_entries) beslenir.
   const finance = useMemo(() => {
-    const totalFee = (cases.data ?? []).reduce((sum, c) => sum + (c.fee_amount != null ? Number(c.fee_amount) : 0), 0);
-    // Tahsilat = ödemeler + ödenmiş taksitler (case detay ile tutarlı).
-    const paymentsSum = (payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
-    const totalCollected = paymentsSum + (paidInstTotal.data ?? 0);
-    return { totalFee, totalCollected };
-  }, [cases.data, payments.data, paidInstTotal.data]);
+    let income = 0;
+    let expense = 0;
+    (financeEntries.data ?? []).forEach((e) => {
+      const amount = Number(e.amount) || 0;
+      if (e.kind === 'income') income += amount;
+      else expense += amount;
+    });
+    return { income, expense, net: income - expense };
+  }, [financeEntries.data]);
 
   const totalCases = cases.data?.length ?? 0;
   const maxStatus = Math.max(1, ...Array.from(statusCounts.values()));
@@ -143,28 +147,28 @@ export default function ReportsScreen() {
             <Card style={styles.chartCard}>
               <View style={styles.financeRow}>
                 <View style={styles.financeItem}>
-                  <Text style={styles.financeLabel}>{t('reports.totalFee')}</Text>
-                  <Text style={[styles.financeValue, { color: colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
-                    {formatMoney(finance.totalFee)}
+                  <Text style={styles.financeLabel}>{t('dash.fin.income')}</Text>
+                  <Text style={[styles.financeValue, { color: colors.success }]} numberOfLines={1} adjustsFontSizeToFit>
+                    {formatMoney(finance.income)}
                   </Text>
                 </View>
                 <View style={styles.financeItem}>
-                  <Text style={styles.financeLabel}>{t('reports.totalCollected')}</Text>
-                  <Text style={[styles.financeValue, { color: colors.success }]} numberOfLines={1} adjustsFontSizeToFit>
-                    {formatMoney(finance.totalCollected)}
+                  <Text style={styles.financeLabel}>{t('dash.fin.expense')}</Text>
+                  <Text style={[styles.financeValue, { color: colors.danger }]} numberOfLines={1} adjustsFontSizeToFit>
+                    {formatMoney(finance.expense)}
+                  </Text>
+                </View>
+                <View style={styles.financeItem}>
+                  <Text style={styles.financeLabel}>{t('dash.fin.net')}</Text>
+                  <Text
+                    style={[styles.financeValue, { color: finance.net >= 0 ? colors.success : colors.danger }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {formatMoney(finance.net)}
                   </Text>
                 </View>
               </View>
-              {finance.totalFee > 0 && (
-                <View style={styles.progressTrack}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      { width: `${Math.min(100, (finance.totalCollected / finance.totalFee) * 100)}%` },
-                    ]}
-                  />
-                </View>
-              )}
             </Card>
           </>
         )}
