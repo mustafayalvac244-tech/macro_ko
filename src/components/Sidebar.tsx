@@ -119,6 +119,7 @@ export function Sidebar() {
     { icon: 'briefcase-outline', label: t('cases.title'), path: '/(app)/cases' },
     { icon: 'people-outline', label: t('clients.title'), path: '/(app)/clients' },
     { icon: 'calendar-outline', label: t('cal.title'), path: '/(app)/calendar' },
+    { icon: 'folder-outline', label: t('tab.vault'), path: '/(app)/documents' },
   ];
   // Mesajlaşma şimdilik gizli (istek üzerine); rotalar duruyor, giriş yok.
   const toolItems: NavItem[] = [

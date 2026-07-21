@@ -70,6 +70,7 @@ export const en: Record<keyof typeof tr, string> = {
   'tab.home': 'Home',
   'tab.messages': 'Messages',
   'tab.files': 'Files',
+  'tab.fileIndex': 'Case Files',
   'tab.more': 'More',
   'dash.assist.title': 'Daily Assistant Summary',
   'dash.assist.updated': 'Updated: just now',

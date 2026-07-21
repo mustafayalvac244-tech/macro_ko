@@ -68,6 +68,7 @@ export const tr = {
   'tab.home': 'Anasayfa',
   'tab.messages': 'Mesajlar',
   'tab.files': 'Dosyalar',
+  'tab.fileIndex': 'Dosya Dizini',
   'tab.more': 'Daha Fazla',
   'dash.assist.title': 'Günlük Asistan Özeti',
   'dash.assist.updated': 'Güncelleme: Az önce',

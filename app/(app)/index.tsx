@@ -385,7 +385,7 @@ export default function DashboardScreen() {
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         {/* Test geri bildirimi: "Ana sayfa" (zaten buradayız) ve "Diğer" (☰ ile
             aynı iş) sekmeleri kaldırıldı — üç net kısayol kaldı. */}
-        <BottomTab icon="folder-outline" label={t('tab.files')} onPress={() => router.push('/(app)/documents')} />
+        <BottomTab icon="folder-open-outline" label={t('tab.fileIndex')} onPress={() => router.push('/(app)/cases')} />
         <BottomTab icon="calendar-outline" label={t('tab.calendar')} onPress={() => router.push('/(app)/calendar')} />
         <BottomTab icon="people-outline" label={t('tab.clients')} onPress={() => router.push('/(app)/clients')} />
       </View>

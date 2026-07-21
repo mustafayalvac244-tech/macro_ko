@@ -17,11 +17,13 @@ export function useCases(filters: CaseFilters = {}) {
     queryKey: ['cases', ownerId, filters.search ?? '', filters.status ?? 'all'],
     enabled: !!ownerId,
     queryFn: async () => {
+      // Alıcı geri bildirimi: dava dizini açılış tarihine göre dizilir (yeni → eski).
       let query = supabase
         .from('cases')
         .select(CASE_SELECT)
         .eq('owner_id', ownerId!)
-        .order('updated_at', { ascending: false });
+        .order('opened_date', { ascending: false })
+        .order('created_at', { ascending: false });
 
       if (filters.status === 'open') query = query.in('status', ['active', 'pending', 'on_hold']);
       else if (filters.status === 'closed') query = query.in('status', ['closed', 'won', 'lost']);
