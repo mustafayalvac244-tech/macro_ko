@@ -201,14 +201,14 @@ export default function DashboardScreen() {
       <StatusBar style="light" />
       <LinearGradient colors={[BG, BG_2]} style={StyleSheet.absoluteFill} />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm, paddingBottom: 108 + insets.bottom }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.xs, paddingBottom: 96 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl tintColor={MUTED} refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* ---------- Üst çubuk ---------- */}
         <View style={styles.toolbar}>
           <Pressable onPress={openSidebar} hitSlop={10}>
-            <Ionicons name="menu" size={26} color={IVORY} />
+            <Ionicons name="menu" size={24} color={IVORY} />
           </Pressable>
           <View style={styles.toolbarRight}>
             <Pressable
@@ -216,10 +216,10 @@ export default function DashboardScreen() {
               hitSlop={8}
               style={styles.bellButton}
             >
-              <Ionicons name="notifications-outline" size={22} color={IVORY} />
+              <Ionicons name="notifications-outline" size={20} color={IVORY} />
             </Pressable>
             <Pressable onPress={() => router.push('/settings')}>
-              <Avatar name={profile?.full_name || t('dash.counselor')} size={38} uri={avatarUrl} premium={profile?.is_premium} />
+              <Avatar name={profile?.full_name || t('dash.counselor')} size={34} uri={avatarUrl} premium={profile?.is_premium} />
             </Pressable>
           </View>
         </View>
@@ -233,7 +233,7 @@ export default function DashboardScreen() {
             <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
           </View>
           <View style={styles.emblem}>
-            <MaterialCommunityIcons name="scale-balance" size={26} color={GOLD} />
+            <MaterialCommunityIcons name="scale-balance" size={21} color={GOLD} />
           </View>
         </View>
 
@@ -241,7 +241,7 @@ export default function DashboardScreen() {
         <LinearGradient colors={[CARD_TOP, CARD_BOTTOM]} style={styles.hero}>
           <View style={styles.heroHeader}>
             <View style={styles.heroSparkIcon}>
-              <Ionicons name="sparkles" size={20} color={GOLD} />
+              <Ionicons name="sparkles" size={16} color={GOLD} />
             </View>
             <View style={{ flex: 1 }}>
               <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.assist.title')}</Text>
@@ -287,7 +287,7 @@ export default function DashboardScreen() {
                 {/* Arkada silik sütunlar */}
                 <View style={[styles.heroColumn, { left: 6 }]} />
                 <View style={[styles.heroColumn, { right: 6 }]} />
-                <MaterialCommunityIcons name="scale-balance" size={104} color={GOLD} style={styles.heroScale} />
+                <MaterialCommunityIcons name="scale-balance" size={68} color={GOLD} style={styles.heroScale} />
               </View>
               <Pressable
                 style={({ pressed }) => [pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
@@ -295,7 +295,7 @@ export default function DashboardScreen() {
               >
                 <LinearGradient colors={[GOLD_LIGHT, GOLD_DEEP]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.heroCta}>
                   <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-                  <Ionicons name="arrow-forward" size={15} color={NAVY_TEXT} />
+                  <Ionicons name="arrow-forward" size={13} color={NAVY_TEXT} />
                 </LinearGradient>
               </Pressable>
             </View>
@@ -307,7 +307,7 @@ export default function DashboardScreen() {
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
-                <Ionicons name="locate-outline" size={18} color={GOLD} />
+                <Ionicons name="locate-outline" size={15} color={GOLD} />
               </View>
               <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.focus.title')}</Text>
             </View>
@@ -321,7 +321,7 @@ export default function DashboardScreen() {
             <View>
               <View style={styles.focusRow}>
                 <View style={styles.focusIcon}>
-                  <MaterialCommunityIcons name="briefcase" size={34} color={GOLD} />
+                  <MaterialCommunityIcons name="briefcase" size={25} color={GOLD} />
                 </View>
                 <View style={styles.focusBody}>
                   <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
@@ -364,7 +364,7 @@ export default function DashboardScreen() {
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
-                <Ionicons name="stats-chart-outline" size={17} color={GOLD} />
+                <Ionicons name="stats-chart-outline" size={15} color={GOLD} />
               </View>
               <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.fin.title')}</Text>
             </View>
@@ -408,7 +408,7 @@ function AssistRow({
   return (
     <Pressable style={({ pressed }) => [styles.assistRow, pressed && { opacity: 0.8 }]} onPress={onPress}>
       <View style={styles.assistIcon}>
-        <Ionicons name={icon} size={17} color={GOLD} />
+        <Ionicons name={icon} size={14} color={GOLD} />
       </View>
       <View style={styles.assistBody}>
         <Text allowFontScaling={false} style={styles.assistLabel} numberOfLines={1}>
@@ -418,7 +418,7 @@ function AssistRow({
           {value}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={14} color={MUTED_DEEP} />
+      <Ionicons name="chevron-forward" size={13} color={MUTED_DEEP} />
     </Pressable>
   );
 }
@@ -498,7 +498,7 @@ function BottomTab({
   return (
     <Pressable style={styles.bottomTab} onPress={onPress}>
       <View style={[styles.bottomTabIndicator, active && styles.bottomTabIndicatorActive]} />
-      <Ionicons name={icon} size={22} color={active ? GOLD : MUTED_DEEP} />
+      <Ionicons name={icon} size={20} color={active ? GOLD : MUTED_DEEP} />
       <Text
         allowFontScaling={false}
         style={[styles.bottomTabLabel, active && styles.bottomTabLabelActive]}
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
   greetingRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   greetingCol: {
     flex: 1,
@@ -543,21 +543,21 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontFamily: SERIF,
-    fontSize: 30,
-    lineHeight: 38,
+    fontSize: 23,
+    lineHeight: 29,
     color: IVORY,
     letterSpacing: 0.2,
   },
   greetingSub: {
     fontFamily: fonts.regular,
-    fontSize: 15,
+    fontSize: 13.5,
     color: MUTED,
-    marginTop: 6,
+    marginTop: 4,
   },
   emblem: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1.2,
     borderColor: GOLD_BORDER,
     backgroundColor: GOLD_SOFT,
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   hero: {
-    borderRadius: 26,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: BORDER,
     padding: spacing.md,
@@ -579,9 +579,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   heroSparkIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     backgroundColor: GOLD_SOFT,
     borderWidth: 1,
     borderColor: 'rgba(217,180,92,0.25)',
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontFamily: SERIF,
-    fontSize: 22,
+    fontSize: 18,
     color: GOLD,
     letterSpacing: 0.3,
   },
@@ -601,14 +601,14 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   heroDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: GOLD,
   },
   heroUpdated: {
     fontFamily: fonts.regular,
-    fontSize: 13,
+    fontSize: 11.5,
     color: MUTED,
   },
   heroBody: {
@@ -616,8 +616,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   heroRows: {
-    flex: 1.25,
-    gap: spacing.xs,
+    flex: 1.5,
+    gap: 6,
   },
   assistRow: {
     flexDirection: 'row',
@@ -626,14 +626,14 @@ const styles = StyleSheet.create({
     backgroundColor: ROW_BG,
     borderWidth: 1,
     borderColor: ROW_BORDER,
-    borderRadius: 16,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
+    borderRadius: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   assistIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
+    width: 30,
+    height: 30,
+    borderRadius: 9,
     backgroundColor: GOLD_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
@@ -643,18 +643,18 @@ const styles = StyleSheet.create({
   },
   assistLabel: {
     fontFamily: fonts.regular,
-    fontSize: 12,
+    fontSize: 10.5,
     color: MUTED,
   },
   assistValue: {
     fontFamily: fonts.bold,
     fontWeight: '700',
-    fontSize: 14.5,
+    fontSize: 12.5,
     color: IVORY,
     marginTop: 1,
   },
   heroSide: {
-    flex: 0.9,
+    flex: 0.72,
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -683,20 +683,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    borderRadius: 22,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 13,
+    borderRadius: 17,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
     alignSelf: 'stretch',
     marginTop: spacing.xs,
   },
   heroCtaText: {
     fontFamily: fonts.extrabold,
     fontWeight: '800',
-    fontSize: 15.5,
+    fontSize: 13,
     color: NAVY_TEXT,
   },
   card: {
-    borderRadius: 26,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: BORDER,
     padding: spacing.md,
@@ -714,9 +714,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   cardHeaderIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: GOLD_SOFT,
     borderWidth: 1,
     borderColor: 'rgba(217,180,92,0.25)',
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: SERIF,
-    fontSize: 21,
+    fontSize: 17,
     color: IVORY,
     letterSpacing: 0.2,
   },
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
   cardHeaderLink: {
     fontFamily: fonts.semibold,
     fontWeight: '600',
-    fontSize: 13.5,
+    fontSize: 12.5,
     color: GOLD,
   },
   focusRow: {
@@ -745,9 +745,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   focusIcon: {
-    width: 84,
-    height: 84,
-    borderRadius: 20,
+    width: 58,
+    height: 58,
+    borderRadius: 15,
     backgroundColor: ROW_BG,
     borderWidth: 1,
     borderColor: ROW_BORDER,
@@ -759,8 +759,8 @@ const styles = StyleSheet.create({
   },
   focusTitle: {
     fontFamily: SERIF,
-    fontSize: 19,
-    lineHeight: 25,
+    fontSize: 15.5,
+    lineHeight: 20,
     color: IVORY,
   },
   focusBadge: {
@@ -769,14 +769,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BURGUNDY_BORDER,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginTop: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 6,
   },
   focusBadgeText: {
     fontFamily: fonts.bold,
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 10.5,
     color: BURGUNDY_TEXT,
   },
   focusMetaRow: {
@@ -787,13 +787,13 @@ const styles = StyleSheet.create({
   },
   focusMeta: {
     fontFamily: fonts.regular,
-    fontSize: 13.5,
+    fontSize: 12,
     color: MUTED,
   },
   focusReason: {
     fontFamily: fonts.regular,
-    fontSize: 13.5,
-    lineHeight: 19,
+    fontSize: 12,
+    lineHeight: 17,
     color: MUTED,
     marginTop: 5,
   },
@@ -805,12 +805,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1.2,
     borderColor: GOLD_BORDER,
-    paddingVertical: 13,
+    paddingVertical: 10,
     marginTop: spacing.md,
   },
   focusButtonText: {
     fontFamily: SERIF,
-    fontSize: 16,
+    fontSize: 14,
     color: GOLD,
   },
   emptyRow: {
@@ -840,7 +840,7 @@ const styles = StyleSheet.create({
   },
   finLabel: {
     fontFamily: fonts.regular,
-    fontSize: 12,
+    fontSize: 11,
     color: MUTED,
     marginBottom: 4,
   },
@@ -850,7 +850,7 @@ const styles = StyleSheet.create({
   finAmount: {
     fontFamily: fonts.extrabold,
     fontWeight: '800',
-    fontSize: 15,
+    fontSize: 13.5,
     color: IVORY,
   },
   finSpark: {
@@ -885,13 +885,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#0B1526',
     borderTopWidth: 1,
     borderTopColor: 'rgba(122,150,199,0.15)',
-    paddingTop: 6,
+    paddingTop: 4,
   },
   bottomTab: {
     flex: 1,
     alignItems: 'center',
-    gap: 3,
-    paddingVertical: 6,
+    gap: 2,
+    paddingVertical: 4,
   },
   bottomTabIndicator: {
     width: 30,
@@ -906,7 +906,7 @@ const styles = StyleSheet.create({
   bottomTabLabel: {
     fontFamily: fonts.semibold,
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: 11,
     color: MUTED_DEEP,
   },
   bottomTabLabelActive: {
