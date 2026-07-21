@@ -95,26 +95,37 @@ export default function FinanceScreen() {
 
   const net = incomeTotal - expenseTotal;
 
+  // Alıcı geri bildirimi: kaleme basınca doğrudan "sil" çıkıyordu; artık önce
+  // Düzenle / Sil seçtiriyor (tekrarlıysa "aydan sonra durdur" da var).
+  const openEditor = (entry: FinanceEntry) => {
+    const q = new URLSearchParams({
+      id: entry.id,
+      kind: entry.kind,
+      category: entry.category,
+      title: entry.title ?? '',
+      amount: String(entry.amount ?? ''),
+      entry_date: entry.entry_date,
+      is_recurring: entry.is_recurring ? '1' : '0',
+      note: entry.note ?? '',
+    }).toString();
+    router.push(`/finance-form?${q}` as Parameters<typeof router.push>[0]);
+  };
+
   const handleEntryPress = (entry: FinanceEntry) => {
+    const buttons: Parameters<typeof Alert.alert>[2] = [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.edit'), onPress: () => openEditor(entry) },
+    ];
     if (entry.is_recurring) {
-      Alert.alert(t('ofinance.recurringDeleteTitle'), t('ofinance.recurringDeleteMsg'), [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('ofinance.stopAfterMonth'),
-          onPress: () =>
-            updateEntry.mutate({ id: entry.id, recurring_until: format(monthEnd, 'yyyy-MM-dd') }),
-        },
-        {
-          text: t('ofinance.deleteAll'),
-          style: 'destructive',
-          onPress: () => deleteEntry.mutate(entry.id),
-        },
-      ]);
+      buttons.push({
+        text: t('ofinance.stopAfterMonth'),
+        onPress: () => updateEntry.mutate({ id: entry.id, recurring_until: format(monthEnd, 'yyyy-MM-dd') }),
+      });
+      buttons.push({ text: t('ofinance.deleteAll'), style: 'destructive', onPress: () => deleteEntry.mutate(entry.id) });
+      Alert.alert(t('ofinance.entryActionsTitle'), t('ofinance.recurringDeleteMsg'), buttons);
     } else {
-      Alert.alert(t('ofinance.deleteEntryTitle'), t('ofinance.deleteEntryConfirm'), [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('common.delete'), style: 'destructive', onPress: () => deleteEntry.mutate(entry.id) },
-      ]);
+      buttons.push({ text: t('common.delete'), style: 'destructive', onPress: () => deleteEntry.mutate(entry.id) });
+      Alert.alert(t('ofinance.entryActionsTitle'), entry.title, buttons);
     }
   };
 

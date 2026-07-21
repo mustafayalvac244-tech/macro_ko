@@ -9,7 +9,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { isMissingFinanceTable, useCreateFinanceEntry } from '@/hooks/useFinance';
+import { isMissingFinanceTable, useCreateFinanceEntry, useUpdateFinanceEntry } from '@/hooks/useFinance';
 import { EXPENSE_CATEGORIES, FINANCE_CATEGORY_ICONS, INCOME_CATEGORIES } from '@/constants/finance';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -24,16 +24,30 @@ export default function FinanceFormScreen() {
   const styles = makeStyles(__t.colors);
 
   const t = useT();
-  const params = useLocalSearchParams<{ kind?: string }>();
+  // Düzenleme: liste ekranından tüm alanlar parametreyle gelir (id dolu ise edit).
+  const params = useLocalSearchParams<{
+    kind?: string;
+    id?: string;
+    category?: string;
+    title?: string;
+    amount?: string;
+    entry_date?: string;
+    is_recurring?: string;
+    note?: string;
+  }>();
+  const isEdit = !!params.id;
   const createEntry = useCreateFinanceEntry();
+  const updateEntry = useUpdateFinanceEntry();
 
   const [kind, setKind] = useState<FinanceKind>(params.kind === 'income' ? 'income' : 'expense');
-  const [category, setCategory] = useState<FinanceCategory>(params.kind === 'income' ? 'fee' : 'rent');
-  const [title, setTitle] = useState('');
-  const [amount, setAmount] = useState('');
-  const [entryDate, setEntryDate] = useState(new Date());
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [note, setNote] = useState('');
+  const [category, setCategory] = useState<FinanceCategory>(
+    (params.category as FinanceCategory) ?? (params.kind === 'income' ? 'fee' : 'rent')
+  );
+  const [title, setTitle] = useState(params.title ?? '');
+  const [amount, setAmount] = useState(params.amount ? String(params.amount) : '');
+  const [entryDate, setEntryDate] = useState(params.entry_date ? new Date(`${params.entry_date}T12:00:00`) : new Date());
+  const [isRecurring, setIsRecurring] = useState(params.is_recurring === '1');
+  const [note, setNote] = useState(params.note ?? '');
   const [error, setError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
 
@@ -51,16 +65,21 @@ export default function FinanceFormScreen() {
       setError(t('financeForm.amountRequired'));
       return;
     }
+    const payload = {
+      kind,
+      category,
+      title: title.trim() || t(`fcat.${category}` as const),
+      amount: parsed,
+      entry_date: format(entryDate, 'yyyy-MM-dd'),
+      is_recurring: isRecurring,
+      note: note.trim() || null,
+    };
     try {
-      await createEntry.mutateAsync({
-        kind,
-        category,
-        title: title.trim() || t(`fcat.${category}` as const),
-        amount: parsed,
-        entry_date: format(entryDate, 'yyyy-MM-dd'),
-        is_recurring: isRecurring,
-        note: note.trim() || null,
-      });
+      if (isEdit && params.id) {
+        await updateEntry.mutateAsync({ id: params.id, ...payload });
+      } else {
+        await createEntry.mutateAsync(payload);
+      }
       router.back();
     } catch (e) {
       setError(isMissingFinanceTable(e) ? t('ofinance.setupRequired') : t('financeForm.saveFailed'));
@@ -69,7 +88,10 @@ export default function FinanceFormScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <ScreenHeader title={kind === 'income' ? t('financeForm.newIncome') : t('financeForm.newExpense')} showBack />
+      <ScreenHeader
+        title={isEdit ? t('financeForm.editTitle') : kind === 'income' ? t('financeForm.newIncome') : t('financeForm.newExpense')}
+        showBack
+      />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {error && (
@@ -181,7 +203,7 @@ export default function FinanceFormScreen() {
           <Button
             label={t('financeForm.save')}
             onPress={handleSubmit}
-            loading={createEntry.isPending}
+            loading={createEntry.isPending || updateEntry.isPending}
             disabled={!amount.trim()}
             fullWidth
             size="lg"

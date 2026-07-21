@@ -182,25 +182,30 @@ export default function HearingFormScreen() {
             </Pressable>
           </View>
           {showPicker && (
-            <DateTimePicker
-              value={scheduledAt}
-              mode={showPicker}
-              is24Hour
-              onChange={(_event, date) => {
-                if (Platform.OS === 'android') setShowPicker(null);
-                if (!date) return;
-                const next = new Date(scheduledAt);
-                if (showPicker === 'date') {
-                  next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                } else {
-                  next.setHours(date.getHours(), date.getMinutes());
-                }
-                setScheduledAt(next);
-              }}
-            />
-          )}
-          {Platform.OS === 'ios' && showPicker && (
-            <Button label={t('common.done')} size="sm" variant="secondary" onPress={() => setShowPicker(null)} style={styles.pickerDone} />
+            // Seçici, köşede kalmasın diye kendi ortalı paneline alındı; saatin/
+            // tarihin hemen altında düzgün görünür (alıcı geri bildirimi).
+            <View style={styles.pickerPanel}>
+              <DateTimePicker
+                value={scheduledAt}
+                mode={showPicker}
+                is24Hour
+                display="spinner"
+                onChange={(_event, date) => {
+                  if (Platform.OS === 'android') setShowPicker(null);
+                  if (!date) return;
+                  const next = new Date(scheduledAt);
+                  if (showPicker === 'date') {
+                    next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                  } else {
+                    next.setHours(date.getHours(), date.getMinutes());
+                  }
+                  setScheduledAt(next);
+                }}
+              />
+              {Platform.OS === 'ios' && (
+                <Button label={t('common.done')} size="sm" onPress={() => setShowPicker(null)} fullWidth style={styles.pickerDone} />
+              )}
+            </View>
           )}
 
           {clash && (
@@ -331,9 +336,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   dtHalf: {
     flex: 1,
   },
+  pickerPanel: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 14,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
   pickerDone: {
     marginTop: spacing.xs,
-    alignSelf: 'flex-end',
   },
   warnBox: {
     flexDirection: 'row',
