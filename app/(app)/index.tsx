@@ -28,8 +28,21 @@ import { formatMoney, formatTime } from '@/utils/format';
  * butonu ve çanta karosu altın gradyanla dolgun bir görünüm alır.
  */
 const SERIF = 'PlayfairDisplay_700Bold';
-/** Altın zemin üzerindeki yazı — her temada okunaklı koyu lacivert. */
-const ON_GOLD = '#14213D';
+
+/**
+ * Altın zemin üzerindeki yazı/ikon rengi temaya göre seçilir: koyu temalarda
+ * altın parlak → koyu lacivert yazı; açık temalarda altın koyu → beyaz yazı.
+ * Böylece "Güne Başla" her renk paketinde okunaklı kalır.
+ */
+function onGoldColor(hex: string): string {
+  const h = hex.replace('#', '');
+  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.6 ? '#14213D' : '#FFFFFF';
+}
 
 export default function DashboardScreen() {
   const __t = useTheme();
@@ -274,7 +287,7 @@ export default function DashboardScreen() {
               onPress={() => router.push('/(app)/calendar')}
             >
               <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-              <Ionicons name="arrow-forward" size={15} color={ON_GOLD} />
+              <Ionicons name="arrow-forward" size={15} color={onGoldColor(colors.gold)} />
             </Pressable>
           </View>
         </View>
@@ -646,7 +659,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: fonts.extrabold,
     fontWeight: '800',
     fontSize: 14,
-    color: ON_GOLD,
+    color: onGoldColor(colors.gold),
     letterSpacing: 0.2,
   },
   card: {
@@ -703,9 +716,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 15,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.goldSoft,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
