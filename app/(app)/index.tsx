@@ -2,13 +2,13 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isTomorrow } from 'date-fns';
 import { tr as trLocale, enUS } from 'date-fns/locale';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
+import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
@@ -18,38 +18,23 @@ import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, spacing } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney, formatTime } from '@/utils/format';
 
 /**
- * Premium gece-lacivert / altın ana ekran — referans tasarıma sadık, temadan
- * bağımsız sabit palet. Başlıklar zarif serifle (Playfair Display), etiketler
- * modern sans-serifle (Manrope) çizilir.
+ * Premium ana ekran — başlıklar zarif serifle (Playfair Display), etiketler
+ * Manrope ile çizilir. Renkler seçili tema paketinden gelir; koyu temalarda
+ * referanstaki gece-lacivert/altın atmosfer korunur.
  */
-const BG = '#0A1428';
-const BG_2 = '#0D1B36';
-const CARD_TOP = '#13244A';
-const CARD_BOTTOM = '#0E1B38';
-const BORDER = 'rgba(122,150,199,0.20)';
-const ROW_BG = 'rgba(8,16,33,0.55)';
-const ROW_BORDER = 'rgba(122,150,199,0.14)';
-const GOLD = '#D9B45C';
-const GOLD_DEEP = '#C9A24B';
-const GOLD_LIGHT = '#EBCF8B';
-const GOLD_SOFT = 'rgba(217,180,92,0.10)';
-const GOLD_BORDER = 'rgba(217,180,92,0.45)';
-const IVORY = '#F3EDE0';
-const MUTED = '#8CA0C4';
-const MUTED_DEEP = '#66799E';
-const NAVY_TEXT = '#0B1830';
-const BURGUNDY = '#5E2038';
-const BURGUNDY_BORDER = 'rgba(214,110,140,0.35)';
-const BURGUNDY_TEXT = '#F2CDD9';
-const GREEN = '#4ED596';
-const RED = '#FF7A8A';
-
 const SERIF = 'PlayfairDisplay_700Bold';
+/** Altın zemin üzerindeki yazı — her temada okunaklı koyu lacivert. */
+const ON_GOLD = '#14213D';
 
 export default function DashboardScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
   const insets = useSafeAreaInsets();
 
   const t = useT();
@@ -198,25 +183,30 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
-      <LinearGradient colors={[BG, BG_2]} style={StyleSheet.absoluteFill} />
+      <StatusBar style={__t.statusBar} />
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.xs, paddingBottom: 96 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl tintColor={MUTED} refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl tintColor={colors.textSecondary} refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* ---------- Üst çubuk ---------- */}
         <View style={styles.toolbar}>
-          <Pressable onPress={openSidebar} hitSlop={10}>
-            <Ionicons name="menu" size={24} color={IVORY} />
-          </Pressable>
+          <View style={styles.toolbarLeft}>
+            <Pressable onPress={openSidebar} hitSlop={10}>
+              <Ionicons name="menu" size={24} color={colors.textPrimary} />
+            </Pressable>
+            <View style={styles.brandRow}>
+              <VekilLogo size={26} nodeFill={colors.gold} />
+              <Text allowFontScaling={false} style={styles.brandText}>Vekil Pro</Text>
+            </View>
+          </View>
           <View style={styles.toolbarRight}>
             <Pressable
               onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
               hitSlop={8}
               style={styles.bellButton}
             >
-              <Ionicons name="notifications-outline" size={20} color={IVORY} />
+              <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
             </Pressable>
             <Pressable onPress={() => router.push('/settings')}>
               <Avatar name={profile?.full_name || t('dash.counselor')} size={34} uri={avatarUrl} premium={profile?.is_premium} />
@@ -224,24 +214,17 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* ---------- Karşılama + amblem ---------- */}
-        <View style={styles.greetingRow}>
-          <View style={styles.greetingCol}>
-            <Text allowFontScaling={false} style={styles.greeting}>
-              {t(greetingKey)}, {firstName}
-            </Text>
-            <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
-          </View>
-          <View style={styles.emblem}>
-            <MaterialCommunityIcons name="scale-balance" size={21} color={GOLD} />
-          </View>
-        </View>
+        {/* ---------- Karşılama ---------- */}
+        <Text allowFontScaling={false} style={styles.greeting}>
+          {t(greetingKey)}, {firstName}
+        </Text>
+        <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
 
         {/* ---------- Günlük Asistan Özeti ---------- */}
-        <LinearGradient colors={[CARD_TOP, CARD_BOTTOM]} style={styles.hero}>
+        <View style={styles.hero}>
           <View style={styles.heroHeader}>
             <View style={styles.heroSparkIcon}>
-              <Ionicons name="sparkles" size={16} color={GOLD} />
+              <Ionicons name="sparkles" size={16} color={colors.gold} />
             </View>
             <View style={{ flex: 1 }}>
               <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.assist.title')}</Text>
@@ -252,68 +235,54 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          <View style={styles.heroBody}>
-            {/* Sol: 4 asistan satırı */}
-            <View style={styles.heroRows} pointerEvents="box-none">
-              <AssistRow
-                icon="calendar-outline"
-                label={t('dash.assist.nextHearing')}
-                value={nextHearing ? whenLabel(nextHearing.scheduled_at) : t('dash.assist.noHearing')}
-                onPress={() => router.push('/(app)/calendar')}
-              />
-              <AssistRow
-                icon="warning-outline"
-                label={t('dash.assist.urgentDue')}
-                value={nextDeadline ? whenLabel(nextDeadline.due_at) : t('dash.assist.noDue')}
-                onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
-              />
-              <AssistRow
-                icon="list-outline"
-                label={t('dash.todayProgram')}
-                value={todayCount > 0 ? t('dash.eventCount', { n: todayCount }) : t('dash.noProgramToday')}
-                onPress={() => router.push('/(app)/calendar')}
-              />
-              <AssistRow
-                icon="bulb-outline"
-                label={t('dash.assist.suggestion')}
-                value={suggestion.value}
-                onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
-              />
-            </View>
-
-            {/* Sağ: altın terazi çizimi + Güne Başla */}
-            <View style={styles.heroSide}>
-              <View style={styles.heroArt}>
-                {/* Arkada silik sütunlar */}
-                <View style={[styles.heroColumn, { left: 6 }]} />
-                <View style={[styles.heroColumn, { right: 6 }]} />
-                <MaterialCommunityIcons name="scale-balance" size={68} color={GOLD} style={styles.heroScale} />
-              </View>
-              <Pressable
-                style={({ pressed }) => [pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
-                onPress={() => router.push('/(app)/calendar')}
-              >
-                <LinearGradient colors={[GOLD_LIGHT, GOLD_DEEP]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.heroCta}>
-                  <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-                  <Ionicons name="arrow-forward" size={13} color={NAVY_TEXT} />
-                </LinearGradient>
-              </Pressable>
-            </View>
+          {/* 4 satır + 5. satır: Güne Başla */}
+          <View style={styles.heroRows} pointerEvents="box-none">
+            <AssistRow
+              icon="calendar-outline"
+              label={t('dash.assist.nextHearing')}
+              value={nextHearing ? whenLabel(nextHearing.scheduled_at) : t('dash.assist.noHearing')}
+              onPress={() => router.push('/(app)/calendar')}
+            />
+            <AssistRow
+              icon="warning-outline"
+              label={t('dash.assist.urgentDue')}
+              value={nextDeadline ? whenLabel(nextDeadline.due_at) : t('dash.assist.noDue')}
+              onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
+            />
+            <AssistRow
+              icon="list-outline"
+              label={t('dash.todayProgram')}
+              value={todayCount > 0 ? t('dash.eventCount', { n: todayCount }) : t('dash.noProgramToday')}
+              onPress={() => router.push('/(app)/calendar')}
+            />
+            <AssistRow
+              icon="bulb-outline"
+              label={t('dash.assist.suggestion')}
+              value={suggestion.value}
+              onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
+            />
+            <Pressable
+              style={({ pressed }) => [styles.heroCta, pressed && { opacity: 0.85 }]}
+              onPress={() => router.push('/(app)/calendar')}
+            >
+              <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+              <Ionicons name="arrow-forward" size={15} color={ON_GOLD} />
+            </Pressable>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* ---------- Odak Alanı ---------- */}
-        <LinearGradient colors={[CARD_TOP, CARD_BOTTOM]} style={styles.card}>
+        <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
-                <Ionicons name="locate-outline" size={15} color={GOLD} />
+                <Ionicons name="locate-outline" size={15} color={colors.gold} />
               </View>
               <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.focus.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/(app)/cases')} hitSlop={6}>
               <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.critical.all')}</Text>
-              <Ionicons name="chevron-forward" size={14} color={GOLD} />
+              <Ionicons name="chevron-forward" size={14} color={colors.gold} />
             </Pressable>
           </View>
 
@@ -321,7 +290,7 @@ export default function DashboardScreen() {
             <View>
               <View style={styles.focusRow}>
                 <View style={styles.focusIcon}>
-                  <MaterialCommunityIcons name="briefcase" size={25} color={GOLD} />
+                  <MaterialCommunityIcons name="briefcase" size={25} color={colors.gold} />
                 </View>
                 <View style={styles.focusBody}>
                   <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
@@ -332,7 +301,7 @@ export default function DashboardScreen() {
                   </View>
                   {focus.hearingWhen && (
                     <View style={styles.focusMetaRow}>
-                      <Ionicons name="calendar-outline" size={13} color={MUTED} />
+                      <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
                       <Text allowFontScaling={false} style={styles.focusMeta} numberOfLines={1}>
                         {t('cal.hearing')}: {focus.hearingWhen}
                       </Text>
@@ -348,40 +317,40 @@ export default function DashboardScreen() {
                 onPress={() => router.push(`/(app)/cases/${focus.caseId}`)}
               >
                 <Text allowFontScaling={false} style={styles.focusButtonText}>{t('dash.focus.details')}</Text>
-                <Ionicons name="chevron-forward" size={15} color={GOLD} />
+                <Ionicons name="chevron-forward" size={15} color={colors.gold} />
               </Pressable>
             </View>
           ) : (
             <View style={styles.emptyRow}>
-              <Ionicons name="checkmark-circle-outline" size={20} color={GREEN} />
+              <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
               <Text allowFontScaling={false} style={styles.emptyRowText}>{t('dash.focus.empty')}</Text>
             </View>
           )}
-        </LinearGradient>
+        </View>
 
         {/* ---------- Finansal Özet ---------- */}
-        <LinearGradient colors={[CARD_TOP, CARD_BOTTOM]} style={styles.card}>
+        <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
-                <Ionicons name="stats-chart-outline" size={15} color={GOLD} />
+                <Ionicons name="stats-chart-outline" size={15} color={colors.gold} />
               </View>
               <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.fin.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/finance' as Parameters<typeof router.push>[0])} hitSlop={6}>
               <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.fin.month')}</Text>
-              <Ionicons name="chevron-forward" size={14} color={GOLD} />
+              <Ionicons name="chevron-forward" size={14} color={colors.gold} />
             </Pressable>
           </View>
 
           <View style={styles.finRow}>
-            <FinCell label={t('dash.fin.income')} amount={fin.income} pct={fin.incomePct} positiveIsGood series={fin.incomeSeries} barColor={GREEN} vsLabel={t('dash.fin.vs')} />
+            <FinCell label={t('dash.fin.income')} amount={fin.income} pct={fin.incomePct} positiveIsGood series={fin.incomeSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
             <View style={styles.finDivider} />
-            <FinCell label={t('dash.fin.expense')} amount={fin.expense} pct={fin.expensePct} positiveIsGood={false} series={fin.expenseSeries} barColor={RED} vsLabel={t('dash.fin.vs')} />
+            <FinCell label={t('dash.fin.expense')} amount={fin.expense} pct={fin.expensePct} positiveIsGood={false} series={fin.expenseSeries} barColor={colors.danger} vsLabel={t('dash.fin.vs')} />
             <View style={styles.finDivider} />
-            <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={GREEN} vsLabel={t('dash.fin.vs')} />
+            <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
           </View>
-        </LinearGradient>
+        </View>
       </ScrollView>
 
       {/* ---------- Alt navigasyon ---------- */}
@@ -405,10 +374,13 @@ function AssistRow({
   value: string;
   onPress: () => void;
 }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
   return (
     <Pressable style={({ pressed }) => [styles.assistRow, pressed && { opacity: 0.8 }]} onPress={onPress}>
       <View style={styles.assistIcon}>
-        <Ionicons name={icon} size={14} color={GOLD} />
+        <Ionicons name={icon} size={14} color={colors.gold} />
       </View>
       <View style={styles.assistBody}>
         <Text allowFontScaling={false} style={styles.assistLabel} numberOfLines={1}>
@@ -418,7 +390,7 @@ function AssistRow({
           {value}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={13} color={MUTED_DEEP} />
+      <Ionicons name="chevron-forward" size={13} color={colors.textMuted} />
     </Pressable>
   );
 }
@@ -440,6 +412,9 @@ function FinCell({
   barColor: string;
   vsLabel: string;
 }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
   const max = Math.max(...series, 1);
   const hasData = series.some((v) => v > 0);
   // Veri yokken bile mockup'taki gibi renkli bir dalga görünsün.
@@ -469,13 +444,13 @@ function FinCell({
       <View style={styles.finPctRow}>
         {pct != null ? (
           <>
-            <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? GREEN : RED} />
-            <Text allowFontScaling={false} style={[styles.finPct, { color: good ? GREEN : RED }]} numberOfLines={2}>
+            <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? colors.success : colors.danger} />
+            <Text allowFontScaling={false} style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={2}>
               %{Math.abs(pct)} {vsLabel}
             </Text>
           </>
         ) : (
-          <Text allowFontScaling={false} style={[styles.finPct, { color: MUTED_DEEP }]} numberOfLines={2}>
+          <Text allowFontScaling={false} style={[styles.finPct, { color: colors.textMuted }]} numberOfLines={2}>
             %0 {vsLabel}
           </Text>
         )}
@@ -495,10 +470,13 @@ function BottomTab({
   active?: boolean;
   onPress: () => void;
 }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
   return (
     <Pressable style={styles.bottomTab} onPress={onPress}>
       <View style={[styles.bottomTabIndicator, active && styles.bottomTabIndicatorActive]} />
-      <Ionicons name={icon} size={20} color={active ? GOLD : MUTED_DEEP} />
+      <Ionicons name={icon} size={20} color={active ? colors.gold : colors.textMuted} />
       <Text
         allowFontScaling={false}
         style={[styles.bottomTabLabel, active && styles.bottomTabLabelActive]}
@@ -510,10 +488,10 @@ function BottomTab({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: BG,
+    backgroundColor: colors.bg,
   },
   content: {
     paddingHorizontal: spacing.lg,
@@ -524,6 +502,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
+  toolbarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexShrink: 1,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  brandText: {
+    fontFamily: fonts.script,
+    fontSize: 25,
+    color: colors.textPrimary,
+  },
   toolbarRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -532,43 +526,25 @@ const styles = StyleSheet.create({
   bellButton: {
     padding: 4,
   },
-  greetingRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  greetingCol: {
-    flex: 1,
-    paddingRight: spacing.sm,
-  },
   greeting: {
     fontFamily: SERIF,
     fontSize: 23,
     lineHeight: 29,
-    color: IVORY,
+    color: colors.textPrimary,
     letterSpacing: 0.2,
   },
   greetingSub: {
     fontFamily: fonts.regular,
     fontSize: 13.5,
-    color: MUTED,
+    color: colors.textSecondary,
     marginTop: 4,
-  },
-  emblem: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1.2,
-    borderColor: GOLD_BORDER,
-    backgroundColor: GOLD_SOFT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
+    marginBottom: spacing.md,
   },
   hero: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
@@ -582,16 +558,16 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: GOLD_SOFT,
+    backgroundColor: colors.goldSoft,
     borderWidth: 1,
-    borderColor: 'rgba(217,180,92,0.25)',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroTitle: {
     fontFamily: SERIF,
     fontSize: 18,
-    color: GOLD,
+    color: colors.gold,
     letterSpacing: 0.3,
   },
   heroUpdatedRow: {
@@ -604,28 +580,23 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: GOLD,
+    backgroundColor: colors.gold,
   },
   heroUpdated: {
     fontFamily: fonts.regular,
     fontSize: 11.5,
-    color: MUTED,
-  },
-  heroBody: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+    color: colors.textSecondary,
   },
   heroRows: {
-    flex: 1.5,
     gap: 6,
   },
   assistRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: ROW_BG,
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: ROW_BORDER,
+    borderColor: colors.borderSubtle,
     borderRadius: 13,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -634,7 +605,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 9,
-    backgroundColor: GOLD_SOFT,
+    backgroundColor: colors.goldSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -644,61 +615,36 @@ const styles = StyleSheet.create({
   assistLabel: {
     fontFamily: fonts.regular,
     fontSize: 10.5,
-    color: MUTED,
+    color: colors.textSecondary,
   },
   assistValue: {
     fontFamily: fonts.bold,
     fontWeight: '700',
     fontSize: 12.5,
-    color: IVORY,
+    color: colors.textPrimary,
     marginTop: 1,
-  },
-  heroSide: {
-    flex: 0.72,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  heroArt: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'stretch',
-  },
-  heroColumn: {
-    position: 'absolute',
-    top: 8,
-    bottom: 8,
-    width: 5,
-    borderRadius: 3,
-    backgroundColor: 'rgba(217,180,92,0.08)',
-  },
-  heroScale: {
-    opacity: 0.92,
-    textShadowColor: 'rgba(217,180,92,0.35)',
-    textShadowRadius: 18,
-    textShadowOffset: { width: 0, height: 0 },
   },
   heroCta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    borderRadius: 17,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
-    alignSelf: 'stretch',
-    marginTop: spacing.xs,
+    borderRadius: 13,
+    backgroundColor: colors.gold,
+    paddingVertical: 12,
+    marginTop: 2,
   },
   heroCtaText: {
     fontFamily: fonts.extrabold,
     fontWeight: '800',
-    fontSize: 13,
-    color: NAVY_TEXT,
+    fontSize: 13.5,
+    color: ON_GOLD,
   },
   card: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
@@ -717,16 +663,16 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: GOLD_SOFT,
+    backgroundColor: colors.goldSoft,
     borderWidth: 1,
-    borderColor: 'rgba(217,180,92,0.25)',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
     fontFamily: SERIF,
     fontSize: 17,
-    color: IVORY,
+    color: colors.textPrimary,
     letterSpacing: 0.2,
   },
   cardHeaderRight: {
@@ -738,7 +684,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     fontWeight: '600',
     fontSize: 12.5,
-    color: GOLD,
+    color: colors.gold,
   },
   focusRow: {
     flexDirection: 'row',
@@ -748,9 +694,9 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 15,
-    backgroundColor: ROW_BG,
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: ROW_BORDER,
+    borderColor: colors.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -761,13 +707,13 @@ const styles = StyleSheet.create({
     fontFamily: SERIF,
     fontSize: 15.5,
     lineHeight: 20,
-    color: IVORY,
+    color: colors.textPrimary,
   },
   focusBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: BURGUNDY,
+    backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderColor: BURGUNDY_BORDER,
+    borderColor: colors.danger,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 3,
@@ -777,7 +723,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontWeight: '700',
     fontSize: 10.5,
-    color: BURGUNDY_TEXT,
+    color: colors.danger,
   },
   focusMetaRow: {
     flexDirection: 'row',
@@ -788,13 +734,13 @@ const styles = StyleSheet.create({
   focusMeta: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: MUTED,
+    color: colors.textSecondary,
   },
   focusReason: {
     fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 17,
-    color: MUTED,
+    color: colors.textSecondary,
     marginTop: 5,
   },
   focusButton: {
@@ -802,16 +748,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    borderRadius: 18,
+    borderRadius: 15,
     borderWidth: 1.2,
-    borderColor: GOLD_BORDER,
+    borderColor: colors.gold,
     paddingVertical: 10,
     marginTop: spacing.md,
   },
   focusButtonText: {
     fontFamily: SERIF,
     fontSize: 14,
-    color: GOLD,
+    color: colors.gold,
   },
   emptyRow: {
     flexDirection: 'row',
@@ -822,7 +768,7 @@ const styles = StyleSheet.create({
   emptyRowText: {
     fontFamily: fonts.regular,
     fontSize: 13.5,
-    color: MUTED,
+    color: colors.textSecondary,
     flex: 1,
     lineHeight: 19,
   },
@@ -835,13 +781,13 @@ const styles = StyleSheet.create({
   },
   finDivider: {
     width: 1,
-    backgroundColor: ROW_BORDER,
+    backgroundColor: colors.borderSubtle,
     marginHorizontal: spacing.xs,
   },
   finLabel: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: MUTED,
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   finMidRow: {
@@ -851,7 +797,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.extrabold,
     fontWeight: '800',
     fontSize: 13.5,
-    color: IVORY,
+    color: colors.textPrimary,
   },
   finSpark: {
     flexDirection: 'row',
@@ -882,9 +828,9 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     flexDirection: 'row',
-    backgroundColor: '#0B1526',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(122,150,199,0.15)',
+    borderTopColor: colors.borderSubtle,
     paddingTop: 4,
   },
   bottomTab: {
@@ -901,16 +847,16 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   bottomTabIndicatorActive: {
-    backgroundColor: GOLD,
+    backgroundColor: colors.gold,
   },
   bottomTabLabel: {
     fontFamily: fonts.semibold,
     fontWeight: '600',
     fontSize: 11,
-    color: MUTED_DEEP,
+    color: colors.textMuted,
   },
   bottomTabLabelActive: {
-    color: GOLD,
+    color: colors.gold,
     fontFamily: fonts.extrabold,
     fontWeight: '800',
   },
