@@ -5,10 +5,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isTomorrow } from 'date-fns';
 import { tr as trLocale, enUS } from 'date-fns/locale';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
-import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
@@ -217,7 +216,7 @@ export default function DashboardScreen() {
               <Ionicons name="menu" size={24} color={colors.textPrimary} />
             </Pressable>
             <View style={styles.brandRow}>
-              <VekilLogo size={26} nodeFill={colors.gold} />
+              <Ionicons name="scale-outline" size={24} color={colors.gold} />
               <Text allowFontScaling={false} style={styles.brandText}>Vekil Pro</Text>
             </View>
           </View>
@@ -311,7 +310,7 @@ export default function DashboardScreen() {
             <View>
               <View style={styles.focusRow}>
                 <View style={styles.focusIcon}>
-                  <MaterialCommunityIcons name="briefcase" size={26} color={colors.gold} />
+                  <Ionicons name="briefcase" size={26} color={colors.gold} />
                 </View>
                 <View style={styles.focusBody}>
                   <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
@@ -376,7 +375,7 @@ export default function DashboardScreen() {
 
       {/* ---------- Alt navigasyon ---------- */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-        <BottomTab icon="folder-open" label={t('tab.fileIndex')} active onPress={() => router.push('/(app)/cases')} />
+        <BottomTab icon="folder-open-outline" label={t('tab.fileIndex')} active onPress={() => router.push('/(app)/cases')} />
         <BottomTab icon="calendar-outline" label={t('tab.calendar')} onPress={() => router.push('/(app)/calendar')} />
         <BottomTab icon="people-outline" label={t('tab.clients')} onPress={() => router.push('/(app)/clients')} />
       </View>
