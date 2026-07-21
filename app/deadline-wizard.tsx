@@ -125,7 +125,7 @@ export default function DeadlineWizardScreen() {
           <Text style={styles.dateButtonText}>{formatDate(notifiedAt.toISOString())}</Text>
         </Pressable>
         {showPicker && (
-          <DateTimePicker
+          <DateTimePicker locale="tr-TR"
             value={notifiedAt}
             mode="date"
             onChange={(_e, date) => {

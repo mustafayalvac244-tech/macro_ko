@@ -246,7 +246,7 @@ export default function EnforcementDetailScreen() {
               <Text style={styles.modalDateText}>{formatDate(collDate.toISOString())}</Text>
             </Pressable>
             {showCollPicker && (
-              <DateTimePicker
+              <DateTimePicker locale="tr-TR"
                 value={collDate}
                 mode="date"
                 display={Platform.OS === 'android' ? 'spinner' : 'default'}

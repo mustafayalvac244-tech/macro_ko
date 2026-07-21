@@ -159,7 +159,7 @@ export default function FinanceFormScreen() {
             <Text style={styles.dateButtonText}>{formatDate(entryDate.toISOString())}</Text>
           </Pressable>
           {showPicker && (
-            <DateTimePicker
+            <DateTimePicker locale="tr-TR"
               value={entryDate}
               mode="date"
               onChange={(_event, date) => {

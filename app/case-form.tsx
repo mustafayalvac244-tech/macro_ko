@@ -306,7 +306,7 @@ export default function CaseFormScreen() {
           )}
 
           {showPicker && (
-            <DateTimePicker
+            <DateTimePicker locale="tr-TR"
               value={pickerValue}
               display={showPicker === 'opened' && Platform.OS === 'android' ? 'spinner' : 'default'}
               mode={

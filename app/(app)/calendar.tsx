@@ -601,7 +601,7 @@ export default function CalendarScreen() {
                 </Pressable>
 
                 {postponePicker && (
-                  <DateTimePicker
+                  <DateTimePicker locale="tr-TR"
                     value={new Date(`${actionItem.dateKey}T12:00:00`)}
                     mode="date"
                     onChange={(_e, date) => {

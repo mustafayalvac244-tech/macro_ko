@@ -219,7 +219,7 @@ function InterestCalc() {
         </View>
       </View>
       {picker && (
-        <DateTimePicker
+        <DateTimePicker locale="tr-TR"
           value={picker === 'start' ? start : end}
           mode="date"
           onChange={(_e, date) => {
@@ -402,7 +402,7 @@ function SeveranceCalc() {
         </View>
       </View>
       {picker && (
-        <DateTimePicker
+        <DateTimePicker locale="tr-TR"
           value={picker === 'start' ? start : end}
           mode="date"
           onChange={(_e, date) => {

@@ -166,7 +166,7 @@ export default function PromiseFormScreen() {
             <Text style={styles.dateButtonText}>{formatDate(dueDate.toISOString())}</Text>
           </Pressable>
           {showPicker && (
-            <DateTimePicker
+            <DateTimePicker locale="tr-TR"
               value={dueDate}
               mode="date"
               minimumDate={new Date()}

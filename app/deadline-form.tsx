@@ -122,7 +122,7 @@ export default function DeadlineFormScreen() {
           </Pressable>
           <Text style={styles.dueHint}>{t('deadlineForm.endOfDay')}</Text>
           {showPicker && (
-            <DateTimePicker
+            <DateTimePicker locale="tr-TR"
               value={dueAt}
               mode="date"
               is24Hour

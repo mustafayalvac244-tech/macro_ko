@@ -133,7 +133,7 @@ export default function JobFormScreen() {
                 )}
               </View>
               {showPicker && (
-                <DateTimePicker
+                <DateTimePicker locale="tr-TR"
                   value={hearingAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000)}
                   mode={Platform.OS === 'ios' ? 'datetime' : showPicker}
                   onChange={(_e, date) => {

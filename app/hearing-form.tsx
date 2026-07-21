@@ -185,7 +185,7 @@ export default function HearingFormScreen() {
             // Seçici, köşede kalmasın diye kendi ortalı paneline alındı; saatin/
             // tarihin hemen altında düzgün görünür (alıcı geri bildirimi).
             <View style={styles.pickerPanel}>
-              <DateTimePicker
+              <DateTimePicker locale="tr-TR"
                 value={scheduledAt}
                 mode={showPicker}
                 is24Hour

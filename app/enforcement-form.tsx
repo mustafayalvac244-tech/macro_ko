@@ -140,7 +140,7 @@ export default function EnforcementFormScreen() {
             <Text style={styles.dateButtonText}>{formatDate(startDate.toISOString())}</Text>
           </Pressable>
           {showPicker && (
-            <DateTimePicker
+            <DateTimePicker locale="tr-TR"
               value={startDate}
               mode="date"
               display={Platform.OS === 'android' ? 'spinner' : 'default'}

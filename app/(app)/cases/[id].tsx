@@ -272,7 +272,7 @@ export default function CaseDetailScreen() {
           </View>
           <Text style={styles.stageHint}>{t('case.servedHint')}</Text>
           {datePicker && (
-            <DateTimePicker
+            <DateTimePicker locale="tr-TR"
               // Kayıtlı tarihi göster (yoksa bugün); böylece geçmiş yıllar (ör.
               // 2024) seçilebilir ve seçici "2026'ya geri atmaz".
               value={
@@ -517,7 +517,7 @@ export default function CaseDetailScreen() {
             })()}
 
             {datePicker === 'installment' && (
-              <DateTimePicker
+              <DateTimePicker locale="tr-TR"
                 value={instDue ?? new Date()}
                 mode="date"
                 onChange={(_e, picked) => {
