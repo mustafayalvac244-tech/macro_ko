@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient } from '@tanstack/react-query';
@@ -29,6 +29,7 @@ import { useTheme } from '@/theme/useTheme';
 import { hydrateLock } from '@/store/lockStore';
 import { AppLock } from '@/components/AppLock';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LaunchIntro } from '@/components/LaunchIntro';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -107,7 +108,21 @@ export default function RootLayout() {
     }
   }, [isInitializing, fontsReady]);
 
-  if (isInitializing || !fontsReady) return null;
+  if (isInitializing || !fontsReady) {
+    // Gömülü (eski) splash ekranda oyalanmasın: ilk karede indirilir, yükleme
+    // bitene kadar intronun lacivertiyle aynı renkte düz bir perde gösterilir.
+    return (
+      <View
+        style={{ flex: 1, backgroundColor: '#0B1830' }}
+        onLayout={() => {
+          if (!hasHiddenSplash.current) {
+            hasHiddenSplash.current = true;
+            SplashScreen.hideAsync().catch(() => {});
+          }
+        }}
+      />
+    );
+  }
 
   const app = (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -160,6 +175,7 @@ export default function RootLayout() {
             <Stack.Screen name="search" options={{ headerShown: false }} />
           </Stack>
           <AppLock />
+          <LaunchIntro />
           </ErrorBoundary>
         </PersistQueryClientProvider>
       </SafeAreaProvider>
