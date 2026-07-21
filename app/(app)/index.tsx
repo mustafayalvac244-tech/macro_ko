@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isTomorrow } from 'date-fns';
 import { tr as trLocale, enUS } from 'date-fns/locale';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
@@ -216,7 +216,7 @@ export default function DashboardScreen() {
               <Ionicons name="menu" size={24} color={colors.textPrimary} />
             </Pressable>
             <View style={styles.brandRow}>
-              <Ionicons name="scale-outline" size={24} color={colors.gold} />
+              <MaterialCommunityIcons name="scale-balance" size={24} color={colors.gold} />
               <Text allowFontScaling={false} style={styles.brandText}>Vekil Pro</Text>
             </View>
           </View>
