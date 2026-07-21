@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -96,6 +96,9 @@ export default function CaseDetailScreen() {
   // hafta sonu/resmî tatil uzatmaları uygulanır.
   const handleServedDate = async (picked: Date) => {
     saveCase({ decision_served_date: picked.toISOString().slice(0, 10) });
+    // Kesin karar / kapalı dosyada istinaf yolu yok → takvime görev düşmez.
+    const closed = ['closed', 'won', 'lost'].includes(caseItem.status);
+    if (closed) return;
     const already = (deadlines.data ?? []).some((x) => x.title.startsWith(t('case.istinafDeadline')));
     if (already) return;
     const cfg =
@@ -107,6 +110,9 @@ export default function CaseDetailScreen() {
     const res = computeLegalDue(picked, cfg.amount, cfg.unit, cfg.rule);
     const due = new Date(res.due);
     due.setHours(17, 0, 0, 0);
+    // Geçmiş dosya: hesaplanan süre çoktan geçmişse takvime ekleme — "gecikti"
+    // uyarısıyla kullanıcıyı boşuna telaşlandırmasın (alıcı geri bildirimi).
+    if (due.getTime() < Date.now()) return;
     try {
       await createDeadline.mutateAsync({
         caseTitle: caseItem.title,
@@ -202,6 +208,23 @@ export default function CaseDetailScreen() {
                   />
                 </>
               )}
+              {/* Kesin karar: istinaf yolu kapalı → dosyayı kapatır, takvime istinaf düşmez. */}
+              <Pressable
+                style={styles.finalizeBtn}
+                onPress={() =>
+                  Alert.alert(t('case.finalizeTitle'), t('case.finalizeMsg'), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    {
+                      text: t('case.finalizeConfirm'),
+                      onPress: () =>
+                        saveCase({ status: 'closed', closed_date: new Date().toISOString().slice(0, 10) }),
+                    },
+                  ])
+                }
+              >
+                <Ionicons name="lock-closed-outline" size={15} color={colors.gold} />
+                <Text style={styles.finalizeText}>{t('case.finalizeBtn')}</Text>
+              </Pressable>
             </>
           ) : (
             <>
@@ -250,8 +273,19 @@ export default function CaseDetailScreen() {
           <Text style={styles.stageHint}>{t('case.servedHint')}</Text>
           {datePicker && (
             <DateTimePicker
-              value={new Date()}
+              // Kayıtlı tarihi göster (yoksa bugün); böylece geçmiş yıllar (ör.
+              // 2024) seçilebilir ve seçici "2026'ya geri atmaz".
+              value={
+                datePicker === 'decision'
+                  ? caseItem.decision_date
+                    ? new Date(`${caseItem.decision_date}T12:00:00`)
+                    : new Date()
+                  : caseItem.decision_served_date
+                    ? new Date(`${caseItem.decision_served_date}T12:00:00`)
+                    : new Date()
+              }
               mode="date"
+              display={Platform.OS === 'android' ? 'spinner' : 'default'}
               onChange={(_e, picked) => {
                 const which = datePicker;
                 setDatePicker(null);
@@ -760,6 +794,22 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.caption,
     color: colors.textPrimary,
     flexShrink: 1,
+  },
+  finalizeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    borderRadius: 12,
+    paddingVertical: 10,
+    marginTop: spacing.sm,
+  },
+  finalizeText: {
+    ...typography.caption,
+    color: colors.gold,
+    fontWeight: '700',
   },
   stageHint: {
     ...typography.small,

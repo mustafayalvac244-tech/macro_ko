@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useCases } from '@/hooks/useCases';
+import { useClients } from '@/hooks/useClients';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
@@ -32,6 +33,17 @@ export default function ReportsScreen() {
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
   const financeEntries = useFinanceEntries();
+  const clients = useClients();
+
+  const clientTypes = useMemo(() => {
+    let gercek = 0;
+    let tuzel = 0;
+    (clients.data ?? []).forEach((c) => {
+      if (c.client_type === 'tuzel') tuzel += 1;
+      else gercek += 1; // varsayılan gerçek kişi
+    });
+    return { gercek, tuzel, total: gercek + tuzel };
+  }, [clients.data]);
 
   const statusCounts = useMemo(() => {
     const counts = new Map<CaseStatus, number>();
@@ -133,6 +145,18 @@ export default function ReportsScreen() {
                 ))}
               </View>
             </Card>
+
+            {clientTypes.total > 0 && (
+              <>
+                <SectionHeader title={`${t('reports.clientTypes')} · ${clientTypes.total}`} />
+                <Card style={styles.chartCard}>
+                  <View style={styles.pillRow}>
+                    <StatPill label={t('reports.gercek')} value={clientTypes.gercek} color={colors.info} />
+                    <StatPill label={t('reports.tuzel')} value={clientTypes.tuzel} color={colors.gold} />
+                  </View>
+                </Card>
+              </>
+            )}
 
             <SectionHeader title={t('reports.deadlineStats')} />
             <Card style={styles.chartCard}>
