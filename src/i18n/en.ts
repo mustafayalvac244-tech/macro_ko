@@ -600,6 +600,21 @@ export const en: Record<keyof typeof tr, string> = {
   'notif.promiseBody': '{name} is due to pay {amount} today. Don’t forget to follow up.',
 
   // Receivables (payment promises)
+  'advance.section': 'Expense Advance',
+  'advance.title': 'Expense Advance',
+  'advance.add': 'Add Advance',
+  'advance.addSub': 'Enter the amount the client deposited for expenses.',
+  'advance.deposited': 'Deposited',
+  'advance.spent': 'Spent',
+  'advance.balance': 'Balance',
+  'advance.amountPlaceholder': 'Amount (₺)',
+  'advance.notePlaceholder': 'Note (optional)',
+  'advance.howto': 'Case expenses (Finance tab) are deducted from this advance. You are warned when the balance goes negative.',
+  'advance.negativeWarn': 'Advance depleted. Request {amount} more expense advance from the client.',
+  'advance.empty': 'No advance deposited yet.',
+  'advance.deleteTitle': 'Delete advance record?',
+  'advance.setupRequired': 'Run the KURULUM.sql update (0023) to enable expense advances.',
+
   'promise.section': 'Receivables',
   'promise.add': 'Add Payment Date',
   'promise.total': 'Total Receivable',

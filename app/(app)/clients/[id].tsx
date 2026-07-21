@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
@@ -18,6 +18,13 @@ import {
   usePromisesForClient,
   useTogglePromisePaid,
 } from '@/hooks/usePaymentPromises';
+import {
+  isMissingAdvanceTable,
+  useClientAdvances,
+  useClientExpensesTotal,
+  useCreateClientAdvance,
+  useDeleteClientAdvance,
+} from '@/hooks/useClientAdvances';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -56,6 +63,37 @@ export default function ClientDetailScreen() {
   const promises = usePromisesForClient(id);
   const togglePaid = useTogglePromisePaid();
   const deletePromise = useDeletePromise();
+
+  // Masraf avansı: yatırılan avanslar − davalardaki harcamalar = kalan bakiye
+  const advances = useClientAdvances(id);
+  const expensesTotal = useClientExpensesTotal(id);
+  const createAdvance = useCreateClientAdvance();
+  const deleteAdvance = useDeleteClientAdvance();
+  const [advanceModal, setAdvanceModal] = useState(false);
+  const [advanceAmount, setAdvanceAmount] = useState('');
+  const [advanceNote, setAdvanceNote] = useState('');
+
+  const advanceSummary = useMemo(() => {
+    const deposited = (advances.data ?? []).reduce((s, a) => s + Number(a.amount), 0);
+    const spent = expensesTotal.data ?? 0;
+    return { deposited, spent, balance: deposited - spent };
+  }, [advances.data, expensesTotal.data]);
+
+  const submitAdvance = async () => {
+    const amount = Number(advanceAmount.replace(',', '.'));
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    try {
+      await createAdvance.mutateAsync({ client_id: id, amount, note: advanceNote.trim() || null });
+      setAdvanceModal(false);
+      setAdvanceAmount('');
+      setAdvanceNote('');
+    } catch (e) {
+      Alert.alert(
+        t('advance.title'),
+        isMissingAdvanceTable(e) ? t('advance.setupRequired') : (e as Error).message ?? 'Error'
+      );
+    }
+  };
 
   // Alacak özeti doğrudan alttaki listeden hesaplanır: eklenen her alacak
   // "Toplam"a, ödendi işaretlenen "Tahsil Edilen"e, kalanı "Kalan Alacak"a yansır.
@@ -275,6 +313,95 @@ export default function ClientDetailScreen() {
           )}
         </Card>
 
+        {/* Masraf avansı: yatırılan avans, davalardaki harcama ile düşer */}
+        <SectionHeader
+          title={t('advance.section')}
+          actionLabel={t('advance.add')}
+          onAction={() => setAdvanceModal(true)}
+        />
+        <Card style={styles.financeCard}>
+          <View style={styles.financeRow}>
+            <View style={styles.financeItem}>
+              <Text style={styles.financeLabel}>{t('advance.deposited')}</Text>
+              <Text style={styles.financeValue} numberOfLines={1} adjustsFontSizeToFit>
+                {formatMoney(advanceSummary.deposited)}
+              </Text>
+            </View>
+            <View style={styles.financeItem}>
+              <Text style={styles.financeLabel}>{t('advance.spent')}</Text>
+              <Text style={[styles.financeValue, { color: __t.colors.warning }]} numberOfLines={1} adjustsFontSizeToFit>
+                {formatMoney(advanceSummary.spent)}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.financeItem,
+                advanceSummary.balance < 0 ? styles.financeItemHighlight : styles.financeItemOk,
+              ]}
+            >
+              <Text style={styles.financeLabel}>{t('advance.balance')}</Text>
+              <Text
+                style={[
+                  styles.financeValue,
+                  { color: advanceSummary.balance < 0 ? __t.colors.danger : __t.colors.success },
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {formatMoney(advanceSummary.balance)}
+              </Text>
+            </View>
+          </View>
+
+          {advances.error && isMissingAdvanceTable(advances.error) && (
+            <Text style={styles.setupNote}>{t('advance.setupRequired')}</Text>
+          )}
+
+          {advanceSummary.balance < 0 ? (
+            <View style={styles.warnRow}>
+              <Ionicons name="alert-circle" size={16} color={__t.colors.danger} />
+              <Text style={styles.warnText}>
+                {t('advance.negativeWarn', { amount: formatMoney(Math.abs(advanceSummary.balance)) })}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.howToRow}>
+              <Ionicons name="information-circle-outline" size={14} color={__t.colors.info} />
+              <Text style={styles.howToText}>{t('advance.howto')}</Text>
+            </View>
+          )}
+
+          {(advances.data ?? []).map((a) => (
+            <View key={a.id} style={styles.promiseRow}>
+              <View style={styles.advanceIcon}>
+                <Ionicons name="wallet-outline" size={16} color={__t.colors.success} />
+              </View>
+              <View style={styles.promiseBody}>
+                <Text style={styles.promiseAmount}>{formatMoney(Number(a.amount))}</Text>
+                <Text style={styles.promiseDue} numberOfLines={1}>
+                  {formatDate(a.deposited_at)}
+                  {a.note ? ` · ${a.note}` : ''}
+                </Text>
+              </View>
+              <Pressable
+                hitSlop={8}
+                onPress={() =>
+                  Alert.alert(t('advance.deleteTitle'), formatMoney(Number(a.amount)), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('common.delete'), style: 'destructive', onPress: () => deleteAdvance.mutate(a.id) },
+                  ])
+                }
+              >
+                <Ionicons name="trash-outline" size={18} color={__t.colors.textMuted} />
+              </Pressable>
+            </View>
+          ))}
+
+          {!advances.error && (advances.data ?? []).length === 0 && (
+            <Text style={styles.promiseEmpty}>{t('advance.empty')}</Text>
+          )}
+        </Card>
+
         <SectionHeader
           title={t('client.linkedCases')}
           actionLabel={t('dash.newCase')}
@@ -299,6 +426,42 @@ export default function ClientDetailScreen() {
 
         <Button label={t('client.delete')} variant="danger" onPress={handleDelete} style={styles.deleteButton} />
       </ScrollView>
+
+      {/* Masraf avansı ekleme */}
+      <Modal visible={advanceModal} transparent animationType="fade" onRequestClose={() => setAdvanceModal(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setAdvanceModal(false)}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>{t('advance.add')}</Text>
+            <Text style={styles.modalSub}>{t('advance.addSub')}</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t('advance.amountPlaceholder')}
+              placeholderTextColor={__t.colors.textMuted}
+              keyboardType="decimal-pad"
+              value={advanceAmount}
+              onChangeText={setAdvanceAmount}
+              autoFocus
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t('advance.notePlaceholder')}
+              placeholderTextColor={__t.colors.textMuted}
+              value={advanceNote}
+              onChangeText={setAdvanceNote}
+            />
+            <View style={styles.modalActions}>
+              <Button label={t('common.cancel')} variant="secondary" onPress={() => setAdvanceModal(false)} style={styles.modalBtn} />
+              <Button
+                label={t('common.save')}
+                onPress={submitAdvance}
+                loading={createAdvance.isPending}
+                disabled={!advanceAmount.trim()}
+                style={styles.modalBtn}
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Screen>
   );
 }
@@ -418,6 +581,74 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   financeItemHighlight: {
     backgroundColor: colors.dangerSoft,
+  },
+  financeItemOk: {
+    backgroundColor: colors.successSoft,
+  },
+  warnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 10,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    marginBottom: spacing.xs,
+  },
+  warnText: {
+    ...typography.small,
+    color: colors.danger,
+    flex: 1,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  advanceIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.successSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: spacing.lg,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  modalSub: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: 2,
+    marginBottom: spacing.md,
+  },
+  modalInput: {
+    ...typography.body,
+    color: colors.textPrimary,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    marginBottom: spacing.sm,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  modalBtn: {
+    flex: 1,
   },
   financeLabel: {
     ...typography.small,

@@ -530,6 +530,21 @@ export const tr = {
   'fmt.in': '{d} içinde',
 
   // Alacak takibi (ödeme sözleri)
+  'advance.section': 'Masraf Avansı',
+  'advance.title': 'Masraf Avansı',
+  'advance.add': 'Avans Ekle',
+  'advance.addSub': 'Müvekkilin masraflar için yatırdığı tutarı girin.',
+  'advance.deposited': 'Yatırılan',
+  'advance.spent': 'Harcanan',
+  'advance.balance': 'Kalan Bakiye',
+  'advance.amountPlaceholder': 'Tutar (₺)',
+  'advance.notePlaceholder': 'Not (isteğe bağlı)',
+  'advance.howto': 'Davalardaki masraflar (Finans sekmesi) bu avanstan düşülür. Bakiye eksiye inince uyarı verilir.',
+  'advance.negativeWarn': 'Avans tükendi. Müvekkilden {amount} ek masraf avansı istenmeli.',
+  'advance.empty': 'Henüz avans yatırılmadı.',
+  'advance.deleteTitle': 'Avans kaydı silinsin mi?',
+  'advance.setupRequired': 'Masraf avansı için KURULUM.sql güncellemesini (0023) çalıştırın.',
+
   'promise.section': 'Alacak / Verecek',
   'promise.add': 'Ödeme Günü Ekle',
   'promise.total': 'Toplam Alacak',

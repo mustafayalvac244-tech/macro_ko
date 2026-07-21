@@ -102,6 +102,16 @@ export interface CaseExpense {
   created_at: string;
 }
 
+export interface ClientAdvance {
+  id: string;
+  owner_id: string;
+  client_id: string;
+  amount: number;
+  note: string | null;
+  deposited_at: string;
+  created_at: string;
+}
+
 export type JobType = 'tevkil' | 'devir' | 'danisma';
 export type JobStatus = 'open' | 'assigned' | 'closed';
 
