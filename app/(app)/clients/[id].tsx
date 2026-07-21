@@ -25,6 +25,7 @@ import {
   useCreateClientAdvance,
   useDeleteClientAdvance,
 } from '@/hooks/useClientAdvances';
+import { useEnforcementsByClient } from '@/hooks/useEnforcements';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -63,6 +64,8 @@ export default function ClientDetailScreen() {
   const promises = usePromisesForClient(id);
   const togglePaid = useTogglePromisePaid();
   const deletePromise = useDeletePromise();
+
+  const clientEnfs = useEnforcementsByClient(id);
 
   // Masraf avansı: yatırılan avanslar − davalardaki harcamalar = kalan bakiye
   const advances = useClientAdvances(id);
@@ -424,6 +427,39 @@ export default function ClientDetailScreen() {
           )}
         </Card>
 
+        {/* İcra dosyaları (alacaklı = bu müvekkil) */}
+        <SectionHeader
+          title={t('enf.clientSection')}
+          actionLabel={t('enf.new')}
+          onAction={() => router.push(`/enforcement-form?clientId=${client.id}` as Parameters<typeof router.push>[0])}
+        />
+        <Card padded={false}>
+          {(clientEnfs.data ?? []).length > 0 ? (
+            (clientEnfs.data ?? []).map((e, i) => (
+              <Pressable
+                key={e.id}
+                style={[styles.enfRow, i > 0 && styles.enfDivider]}
+                onPress={() => router.push(`/enforcement/${e.id}` as Parameters<typeof router.push>[0])}
+              >
+                <View style={styles.enfIcon}>
+                  <Ionicons name="hammer-outline" size={16} color={__t.colors.warning} />
+                </View>
+                <View style={styles.promiseBody}>
+                  <Text style={styles.promiseAmount} numberOfLines={1}>
+                    {e.debtor_name}
+                  </Text>
+                  <Text style={styles.promiseDue} numberOfLines={1}>
+                    {[e.file_number, t(`enf.stage.${e.stage}` as const)].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={__t.colors.textMuted} />
+              </Pressable>
+            ))
+          ) : (
+            <Text style={styles.promiseEmpty}>{t('enf.empty')}</Text>
+          )}
+        </Card>
+
         <Button label={t('client.delete')} variant="danger" onPress={handleDelete} style={styles.deleteButton} />
       </ScrollView>
 
@@ -607,6 +643,25 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     height: 24,
     borderRadius: 12,
     backgroundColor: colors.successSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  enfRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
+  },
+  enfDivider: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  enfIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.warningSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },

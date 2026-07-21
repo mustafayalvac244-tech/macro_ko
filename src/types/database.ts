@@ -102,6 +102,49 @@ export interface CaseExpense {
   created_at: string;
 }
 
+/* ---------------- İcra takibi (0024) ---------------- */
+
+export type TakipType = 'ilamsiz' | 'ilamli' | 'kambiyo' | 'kira' | 'rehin';
+export type EnforcementStage = 'opened' | 'served' | 'objected' | 'final' | 'attachment' | 'sale' | 'closed';
+export type CollectionSource = 'payment' | 'attachment' | 'sale' | 'other';
+
+export interface EnforcementFile {
+  id: string;
+  owner_id: string;
+  client_id: string | null;
+  debtor_name: string;
+  debtor_id_no: string | null;
+  debtor_address: string | null;
+  office_name: string | null;
+  file_number: string | null;
+  takip_type: TakipType;
+  principal: number;
+  pre_interest: number;
+  interest_rate: number | null;
+  start_date: string;
+  expenses: number;
+  attorney_fee: number;
+  stage: EnforcementStage;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EnforcementWithClient extends EnforcementFile {
+  client: Pick<Client, 'id' | 'full_name' | 'company'> | null;
+}
+
+export interface EnforcementCollection {
+  id: string;
+  owner_id: string;
+  enforcement_id: string;
+  amount: number;
+  collected_at: string;
+  source: CollectionSource;
+  note: string | null;
+  created_at: string;
+}
+
 export interface ClientAdvance {
   id: string;
   owner_id: string;

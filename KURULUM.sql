@@ -388,4 +388,55 @@ drop policy if exists "client_advances own" on client_advances;
 create policy "client_advances own" on client_advances
   for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
+-- ---------- 0024: İcra takibi modülü ----------
+-- İcra dosyaları davadan ayrı tutulur: alacaklı (müvekkil) + borçlu + takip
+-- çıkışı; güncel kapak hesabı uygulama tarafında faiz işletilerek hesaplanır.
+create table if not exists enforcement_files (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references profiles (id) on delete cascade,
+  client_id uuid references clients (id) on delete set null,  -- alacaklı (müvekkil)
+  debtor_name text not null,                                  -- borçlu adı/unvanı
+  debtor_id_no text,                                          -- borçlu TC/vergi no
+  debtor_address text,
+  office_name text,                                           -- icra dairesi
+  file_number text,                                           -- dosya no (2026/1234 E.)
+  takip_type text not null default 'ilamsiz',                 -- ilamsiz|ilamli|kambiyo|kira|rehin
+  principal numeric not null default 0,                       -- asıl alacak
+  pre_interest numeric not null default 0,                    -- takip öncesi işlemiş faiz
+  interest_rate numeric,                                      -- yıllık faiz oranı (%)
+  start_date date not null default current_date,              -- takip tarihi
+  expenses numeric not null default 0,                        -- harç + masraflar
+  attorney_fee numeric not null default 0,                    -- vekalet ücreti
+  stage text not null default 'opened',                       -- opened|served|objected|final|attachment|sale|closed
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists enforcement_files_owner_idx on enforcement_files (owner_id, created_at desc);
+create index if not exists enforcement_files_client_idx on enforcement_files (client_id);
+drop trigger if exists set_enforcement_files_updated_at on enforcement_files;
+create trigger set_enforcement_files_updated_at before update on enforcement_files
+  for each row execute procedure set_updated_at();
+alter table enforcement_files enable row level security;
+drop policy if exists "enforcement_files own" on enforcement_files;
+create policy "enforcement_files own" on enforcement_files
+  for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+
+-- İcra tahsilatları: eklendikçe kapak hesabından düşer.
+create table if not exists enforcement_collections (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references profiles (id) on delete cascade,
+  enforcement_id uuid not null references enforcement_files (id) on delete cascade,
+  amount numeric not null check (amount > 0),
+  collected_at date not null default current_date,
+  source text not null default 'payment',                     -- payment|attachment|sale|other
+  note text,
+  created_at timestamptz not null default now()
+);
+create index if not exists enforcement_collections_file_idx on enforcement_collections (enforcement_id, collected_at);
+alter table enforcement_collections enable row level security;
+drop policy if exists "enforcement_collections own" on enforcement_collections;
+create policy "enforcement_collections own" on enforcement_collections
+  for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+
 -- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.
