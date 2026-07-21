@@ -20,6 +20,7 @@ import {
   Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
 import { DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
+import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
@@ -65,6 +66,8 @@ export default function RootLayout() {
     Manrope_700Bold,
     Manrope_800ExtraBold,
     DancingScript_700Bold,
+    PlayfairDisplay_600SemiBold,
+    PlayfairDisplay_700Bold,
   });
   const fontsReady = fontsLoaded || !!fontError;
 

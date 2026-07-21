@@ -1,14 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isTomorrow } from 'date-fns';
 import { tr as trLocale, enUS } from 'date-fns/locale';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Screen } from '@/components/ui/Screen';
 import { Avatar } from '@/components/ui/Avatar';
-import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
@@ -17,22 +17,39 @@ import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
 import { useLangStore, useT } from '@/i18n';
-import { fonts, shadow, spacing, typography } from '@/theme/theme';
-import { useTheme } from '@/theme/useTheme';
-import type { ThemeColors } from '@/theme/palettes';
+import { fonts, spacing } from '@/theme/theme';
 import { formatMoney, formatTime } from '@/utils/format';
 
-// Dark navy palette for the assistant hero + Tevkil banner
-const NAVY = '#0F1F3D';
-const NAVY_ALT = '#152648';
-const BLUE = '#5EA2FF';
-const AMBER = '#F5B849';
+/**
+ * Premium gece-lacivert / altın ana ekran — referans tasarıma sadık, temadan
+ * bağımsız sabit palet. Başlıklar zarif serifle (Playfair Display), etiketler
+ * modern sans-serifle (Manrope) çizilir.
+ */
+const BG = '#0A1428';
+const BG_2 = '#0D1B36';
+const CARD_TOP = '#13244A';
+const CARD_BOTTOM = '#0E1B38';
+const BORDER = 'rgba(122,150,199,0.20)';
+const ROW_BG = 'rgba(8,16,33,0.55)';
+const ROW_BORDER = 'rgba(122,150,199,0.14)';
+const GOLD = '#D9B45C';
+const GOLD_DEEP = '#C9A24B';
+const GOLD_LIGHT = '#EBCF8B';
+const GOLD_SOFT = 'rgba(217,180,92,0.10)';
+const GOLD_BORDER = 'rgba(217,180,92,0.45)';
+const IVORY = '#F3EDE0';
+const MUTED = '#8CA0C4';
+const MUTED_DEEP = '#66799E';
+const NAVY_TEXT = '#0B1830';
+const BURGUNDY = '#5E2038';
+const BURGUNDY_BORDER = 'rgba(214,110,140,0.35)';
+const BURGUNDY_TEXT = '#F2CDD9';
 const GREEN = '#4ED596';
+const RED = '#FF7A8A';
+
+const SERIF = 'PlayfairDisplay_700Bold';
 
 export default function DashboardScreen() {
-  const __t = useTheme();
-  const colors = __t.colors;
-  const styles = makeStyles(__t.colors);
   const insets = useSafeAreaInsets();
 
   const t = useT();
@@ -100,18 +117,6 @@ export default function DashboardScreen() {
       .filter((d) => !d.is_completed && !isNaN(new Date(d.due_at).getTime()))
       .sort((a, b) => a.due_at.localeCompare(b.due_at))[0];
   }, [deadlines.data]);
-
-  const criticalCount = useMemo(
-    () =>
-      (deadlines.data ?? []).filter((d) => {
-        if (d.is_completed) return false;
-        const due = new Date(d.due_at);
-        if (isNaN(due.getTime())) return false;
-        return due.getTime() < now.getTime() || isToday(due) || d.priority === 'high';
-      }).length,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [deadlines.data]
-  );
 
   // Focus case: the case behind the most pressing deadline, else next hearing's case.
   const focus = useMemo(() => {
@@ -192,125 +197,123 @@ export default function DashboardScreen() {
   }, [finance.data]);
 
   return (
-    <Screen>
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <LinearGradient colors={[BG, BG_2]} style={StyleSheet.absoluteFill} />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 96 + insets.bottom }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm, paddingBottom: 108 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl tintColor={colors.textSecondary} refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl tintColor={MUTED} refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* ---------- Header ---------- */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            {router.canGoBack() && (
-              <Pressable onPress={() => router.back()} hitSlop={8}>
-                <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
-              </Pressable>
-            )}
-            <Pressable onPress={openSidebar} hitSlop={8}>
-              <Ionicons name="menu" size={26} color={colors.textPrimary} />
-            </Pressable>
-            <View style={styles.brandRow}>
-              <VekilLogo size={28} nodeFill={colors.gold} />
-              <Text allowFontScaling={false} style={styles.brandText}>Vekil Pro</Text>
-            </View>
-          </View>
-          <View style={styles.headerRight}>
+        {/* ---------- Üst çubuk ---------- */}
+        <View style={styles.toolbar}>
+          <Pressable onPress={openSidebar} hitSlop={10}>
+            <Ionicons name="menu" size={26} color={IVORY} />
+          </Pressable>
+          <View style={styles.toolbarRight}>
             <Pressable
               onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
               hitSlop={8}
               style={styles.bellButton}
             >
-              <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
+              <Ionicons name="notifications-outline" size={22} color={IVORY} />
             </Pressable>
             <Pressable onPress={() => router.push('/settings')}>
-              <Avatar name={profile?.full_name || t('dash.counselor')} size={42} uri={avatarUrl} premium={profile?.is_premium} />
+              <Avatar name={profile?.full_name || t('dash.counselor')} size={38} uri={avatarUrl} premium={profile?.is_premium} />
             </Pressable>
           </View>
         </View>
 
-        {/* ---------- Greeting ---------- */}
-        <Text allowFontScaling={false} style={styles.greeting}>
-          {t(greetingKey)}, {firstName}
-        </Text>
-        <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
+        {/* ---------- Karşılama + amblem ---------- */}
+        <View style={styles.greetingRow}>
+          <View style={styles.greetingCol}>
+            <Text allowFontScaling={false} style={styles.greeting}>
+              {t(greetingKey)}, {firstName}
+            </Text>
+            <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
+          </View>
+          <View style={styles.emblem}>
+            <MaterialCommunityIcons name="scale-balance" size={26} color={GOLD} />
+          </View>
+        </View>
 
         {/* ---------- Günlük Asistan Özeti ---------- */}
-        <View style={styles.hero}>
+        <LinearGradient colors={[CARD_TOP, CARD_BOTTOM]} style={styles.hero}>
           <View style={styles.heroHeader}>
             <View style={styles.heroSparkIcon}>
-              <Ionicons name="sparkles" size={18} color={colors.gold} />
+              <Ionicons name="sparkles" size={20} color={GOLD} />
             </View>
             <View style={{ flex: 1 }}>
               <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.assist.title')}</Text>
-              <Text allowFontScaling={false} style={styles.heroUpdated}>{t('dash.assist.updated')}</Text>
+              <View style={styles.heroUpdatedRow}>
+                <View style={styles.heroDot} />
+                <Text allowFontScaling={false} style={styles.heroUpdated}>{t('dash.assist.updated')}</Text>
+              </View>
             </View>
           </View>
 
           <View style={styles.heroBody}>
             {/* Sol: 4 asistan satırı */}
             <View style={styles.heroRows} pointerEvents="box-none">
-            <AssistRow
-              icon="calendar-outline"
-              tint={colors.primary}
-              label={t('dash.assist.nextHearing')}
-              value={nextHearing ? whenLabel(nextHearing.scheduled_at) : t('dash.assist.noHearing')}
-              right={nextHearing ? (nextHearing.location || nextHearing.case?.title || nextHearing.title) : ''}
-              onPress={() => router.push('/(app)/calendar')}
-            />
-            <AssistRow
-              icon="warning-outline"
-              tint={colors.primary}
-              label={t('dash.assist.urgentDue')}
-              value={nextDeadline ? whenLabel(nextDeadline.due_at) : t('dash.assist.noDue')}
-              right={nextDeadline ? nextDeadline.title : ''}
-              onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
-            />
-            <AssistRow
-              icon="list-outline"
-              tint={colors.primary}
-              label={t('dash.todayProgram')}
-              value={todayCount > 0 ? t('dash.eventCount', { n: todayCount }) : t('dash.noProgramToday')}
-              right=""
-              onPress={() => router.push('/(app)/calendar')}
-            />
-            <AssistRow
-              icon="bulb-outline"
-              tint={colors.primary}
-              label={t('dash.assist.suggestion')}
-              value={suggestion.value}
-              right={suggestion.right}
-              onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
-            />
+              <AssistRow
+                icon="calendar-outline"
+                label={t('dash.assist.nextHearing')}
+                value={nextHearing ? whenLabel(nextHearing.scheduled_at) : t('dash.assist.noHearing')}
+                onPress={() => router.push('/(app)/calendar')}
+              />
+              <AssistRow
+                icon="warning-outline"
+                label={t('dash.assist.urgentDue')}
+                value={nextDeadline ? whenLabel(nextDeadline.due_at) : t('dash.assist.noDue')}
+                onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
+              />
+              <AssistRow
+                icon="list-outline"
+                label={t('dash.todayProgram')}
+                value={todayCount > 0 ? t('dash.eventCount', { n: todayCount }) : t('dash.noProgramToday')}
+                onPress={() => router.push('/(app)/calendar')}
+              />
+              <AssistRow
+                icon="bulb-outline"
+                label={t('dash.assist.suggestion')}
+                value={suggestion.value}
+                onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
+              />
             </View>
 
-            {/* Sağ: temiz vektör terazi + Güne Başla */}
+            {/* Sağ: altın terazi çizimi + Güne Başla */}
             <View style={styles.heroSide}>
-              <View style={styles.heroScale}>
-                <MaterialCommunityIcons name="scale-balance" size={62} color={colors.gold} />
+              <View style={styles.heroArt}>
+                {/* Arkada silik sütunlar */}
+                <View style={[styles.heroColumn, { left: 6 }]} />
+                <View style={[styles.heroColumn, { right: 6 }]} />
+                <MaterialCommunityIcons name="scale-balance" size={104} color={GOLD} style={styles.heroScale} />
               </View>
               <Pressable
-                style={({ pressed }) => [styles.heroCta, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+                style={({ pressed }) => [pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
                 onPress={() => router.push('/(app)/calendar')}
               >
-                <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-                <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+                <LinearGradient colors={[GOLD_LIGHT, GOLD_DEEP]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.heroCta}>
+                  <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+                  <Ionicons name="arrow-forward" size={15} color={NAVY_TEXT} />
+                </LinearGradient>
               </Pressable>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* ---------- Odak Alanı ---------- */}
-        <View style={styles.card}>
+        <LinearGradient colors={[CARD_TOP, CARD_BOTTOM]} style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
-              <View style={[styles.cardHeaderIcon, { backgroundColor: colors.primarySoft }]}>
-                <Ionicons name="locate-outline" size={18} color={colors.primary} />
+              <View style={styles.cardHeaderIcon}>
+                <Ionicons name="locate-outline" size={18} color={GOLD} />
               </View>
               <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.focus.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/(app)/cases')} hitSlop={6}>
               <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.critical.all')}</Text>
-              <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
+              <Ionicons name="chevron-forward" size={14} color={GOLD} />
             </Pressable>
           </View>
 
@@ -318,20 +321,18 @@ export default function DashboardScreen() {
             <View>
               <View style={styles.focusRow}>
                 <View style={styles.focusIcon}>
-                  <Ionicons name="folder-open" size={26} color={colors.primary} />
+                  <MaterialCommunityIcons name="briefcase" size={34} color={GOLD} />
                 </View>
                 <View style={styles.focusBody}>
-                  <View style={styles.focusTitleRow}>
-                    <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
-                      {focus.label}
-                    </Text>
-                    <View style={styles.focusBadge}>
-                      <Text allowFontScaling={false} style={styles.focusBadgeText}>{t('dash.focus.high')}</Text>
-                    </View>
+                  <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
+                    {focus.label}
+                  </Text>
+                  <View style={styles.focusBadge}>
+                    <Text allowFontScaling={false} style={styles.focusBadgeText}>{t('dash.focus.high')}</Text>
                   </View>
                   {focus.hearingWhen && (
                     <View style={styles.focusMetaRow}>
-                      <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
+                      <Ionicons name="calendar-outline" size={13} color={MUTED} />
                       <Text allowFontScaling={false} style={styles.focusMeta} numberOfLines={1}>
                         {t('cal.hearing')}: {focus.hearingWhen}
                       </Text>
@@ -342,95 +343,82 @@ export default function DashboardScreen() {
                   </Text>
                 </View>
               </View>
-              {/* Buton tam genişlik, altta */}
-              <Pressable style={styles.focusButton} onPress={() => router.push(`/(app)/cases/${focus.caseId}`)}>
+              <Pressable
+                style={({ pressed }) => [styles.focusButton, pressed && { opacity: 0.8 }]}
+                onPress={() => router.push(`/(app)/cases/${focus.caseId}`)}
+              >
                 <Text allowFontScaling={false} style={styles.focusButtonText}>{t('dash.focus.details')}</Text>
+                <Ionicons name="chevron-forward" size={15} color={GOLD} />
               </Pressable>
             </View>
           ) : (
             <View style={styles.emptyRow}>
-              <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
+              <Ionicons name="checkmark-circle-outline" size={20} color={GREEN} />
               <Text allowFontScaling={false} style={styles.emptyRowText}>{t('dash.focus.empty')}</Text>
             </View>
           )}
-        </View>
+        </LinearGradient>
 
         {/* ---------- Finansal Özet ---------- */}
-        <View style={styles.card}>
+        <LinearGradient colors={[CARD_TOP, CARD_BOTTOM]} style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
-              <View style={[styles.cardHeaderIcon, { backgroundColor: colors.primarySoft }]}>
-                <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+              <View style={styles.cardHeaderIcon}>
+                <Ionicons name="stats-chart-outline" size={17} color={GOLD} />
               </View>
               <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.fin.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/finance' as Parameters<typeof router.push>[0])} hitSlop={6}>
               <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.fin.month')}</Text>
-              <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
+              <Ionicons name="chevron-forward" size={14} color={GOLD} />
             </Pressable>
           </View>
 
           <View style={styles.finRow}>
-            <FinCell label={t('dash.fin.income')} amount={fin.income} pct={fin.incomePct} positiveIsGood series={fin.incomeSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
+            <FinCell label={t('dash.fin.income')} amount={fin.income} pct={fin.incomePct} positiveIsGood series={fin.incomeSeries} barColor={GREEN} vsLabel={t('dash.fin.vs')} />
             <View style={styles.finDivider} />
-            <FinCell label={t('dash.fin.expense')} amount={fin.expense} pct={fin.expensePct} positiveIsGood={false} series={fin.expenseSeries} barColor={colors.danger} vsLabel={t('dash.fin.vs')} />
+            <FinCell label={t('dash.fin.expense')} amount={fin.expense} pct={fin.expensePct} positiveIsGood={false} series={fin.expenseSeries} barColor={RED} vsLabel={t('dash.fin.vs')} />
             <View style={styles.finDivider} />
-            <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
+            <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={GREEN} vsLabel={t('dash.fin.vs')} />
           </View>
-        </View>
-
+        </LinearGradient>
       </ScrollView>
 
-      {/* ---------- Bottom bar ---------- */}
+      {/* ---------- Alt navigasyon ---------- */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-        {/* Test geri bildirimi: "Ana sayfa" (zaten buradayız) ve "Diğer" (☰ ile
-            aynı iş) sekmeleri kaldırıldı — üç net kısayol kaldı. */}
-        <BottomTab icon="folder-open-outline" label={t('tab.fileIndex')} onPress={() => router.push('/(app)/cases')} />
+        <BottomTab icon="folder-open" label={t('tab.fileIndex')} active onPress={() => router.push('/(app)/cases')} />
         <BottomTab icon="calendar-outline" label={t('tab.calendar')} onPress={() => router.push('/(app)/calendar')} />
         <BottomTab icon="people-outline" label={t('tab.clients')} onPress={() => router.push('/(app)/clients')} />
       </View>
-    </Screen>
+    </View>
   );
 }
 
 function AssistRow({
   icon,
-  tint,
   label,
   value,
-  right,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
-  tint: string;
   label: string;
   value: string;
-  right: string;
   onPress: () => void;
 }) {
-  const __t = useTheme();
-  const styles = makeStyles(__t.colors);
   return (
-    <Pressable style={styles.assistRow} onPress={onPress}>
-      <View style={[styles.assistIcon, { backgroundColor: `${tint}22` }]}>
-        <Ionicons name={icon} size={17} color={tint} />
+    <Pressable style={({ pressed }) => [styles.assistRow, pressed && { opacity: 0.8 }]} onPress={onPress}>
+      <View style={styles.assistIcon}>
+        <Ionicons name={icon} size={17} color={GOLD} />
       </View>
       <View style={styles.assistBody}>
-        <View style={styles.assistTopRow}>
-          <Text allowFontScaling={false} style={styles.assistLabel} numberOfLines={1}>
-            {label}
-          </Text>
-          {!!right && (
-            <Text allowFontScaling={false} style={styles.assistRight} numberOfLines={1}>
-              {right}
-            </Text>
-          )}
-        </View>
+        <Text allowFontScaling={false} style={styles.assistLabel} numberOfLines={1}>
+          {label}
+        </Text>
         <Text allowFontScaling={false} style={styles.assistValue} numberOfLines={1}>
           {value}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={15} color={__t.colors.textMuted} />
+      <Ionicons name="chevron-forward" size={14} color={MUTED_DEEP} />
     </Pressable>
   );
 }
@@ -452,9 +440,6 @@ function FinCell({
   barColor: string;
   vsLabel: string;
 }) {
-  const __t = useTheme();
-  const colors = __t.colors;
-  const styles = makeStyles(__t.colors);
   const max = Math.max(...series, 1);
   const hasData = series.some((v) => v > 0);
   // Veri yokken bile mockup'taki gibi renkli bir dalga görünsün.
@@ -484,13 +469,13 @@ function FinCell({
       <View style={styles.finPctRow}>
         {pct != null ? (
           <>
-            <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? colors.success : colors.danger} />
-            <Text allowFontScaling={false} style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={2}>
+            <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? GREEN : RED} />
+            <Text allowFontScaling={false} style={[styles.finPct, { color: good ? GREEN : RED }]} numberOfLines={2}>
               %{Math.abs(pct)} {vsLabel}
             </Text>
           </>
         ) : (
-          <Text allowFontScaling={false} style={[styles.finPct, { color: colors.textMuted }]} numberOfLines={2}>
+          <Text allowFontScaling={false} style={[styles.finPct, { color: MUTED_DEEP }]} numberOfLines={2}>
             %0 {vsLabel}
           </Text>
         )}
@@ -503,506 +488,344 @@ function BottomTab({
   icon,
   label,
   active,
-  badge,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   active?: boolean;
-  badge?: number;
   onPress: () => void;
 }) {
-  const __t = useTheme();
-  const colors = __t.colors;
-  const styles = makeStyles(__t.colors);
   return (
     <Pressable style={styles.bottomTab} onPress={onPress}>
-      <View style={[styles.bottomTabIconWrap, active && styles.bottomTabActive]}>
-        <Ionicons name={icon} size={21} color={active ? colors.gold : colors.textMuted} />
-        {!!badge && badge > 0 && (
-          <View style={styles.bottomTabBadge}>
-            <Text allowFontScaling={false} style={styles.bottomTabBadgeText}>{badge > 9 ? '9+' : badge}</Text>
-          </View>
-        )}
-      </View>
-      <Text allowFontScaling={false} style={[styles.bottomTabLabel, active && { color: colors.gold, fontWeight: '800' }]} numberOfLines={1}>
+      <View style={[styles.bottomTabIndicator, active && styles.bottomTabIndicatorActive]} />
+      <Ionicons name={icon} size={22} color={active ? GOLD : MUTED_DEEP} />
+      <Text
+        allowFontScaling={false}
+        style={[styles.bottomTabLabel, active && styles.bottomTabLabelActive]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </Pressable>
   );
 }
 
-const makeStyles = (colors: ThemeColors) => StyleSheet.create({
-  content: {
-    paddingBottom: spacing.xxxl,
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: BG,
   },
-  header: {
+  content: {
+    paddingHorizontal: spacing.lg,
+  },
+  toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
     marginBottom: spacing.md,
   },
-  headerLeft: {
+  toolbarRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    flexShrink: 1,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  brandText: {
-    fontFamily: fonts.script,
-    fontSize: 27,
-    color: colors.textPrimary,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
   },
   bellButton: {
     padding: 4,
   },
-  bellBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: colors.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: colors.bg,
-  },
-  bellBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
-  },
-  msgPill: {
+  greetingRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    alignItems: 'flex-start',
+    marginBottom: spacing.lg,
   },
-  msgPillText: {
-    fontSize: 12,
-    fontFamily: fonts.bold,
-
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  msgPillDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.gold,
+  greetingCol: {
+    flex: 1,
+    paddingRight: spacing.sm,
   },
   greeting: {
-    fontSize: 24,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
-    color: colors.textPrimary,
-    paddingHorizontal: spacing.lg,
-    letterSpacing: -0.5,
+    fontFamily: SERIF,
+    fontSize: 30,
+    lineHeight: 38,
+    color: IVORY,
+    letterSpacing: 0.2,
   },
   greetingSub: {
-    fontSize: 12.5,
-    color: colors.textSecondary,
-    paddingHorizontal: spacing.lg,
-    marginTop: 2,
-    marginBottom: spacing.md,
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    color: MUTED,
+    marginTop: 6,
   },
-  // Hero — Günlük Asistan
-  hero: {
-    marginHorizontal: spacing.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: 22,
-    padding: spacing.md,
-    paddingBottom: spacing.md,
-    ...shadow.card,
-  },
-  heroSide: {
-    width: 96,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  heroScale: {
-    flex: 1,
+  emblem: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1.2,
+    borderColor: GOLD_BORDER,
+    backgroundColor: GOLD_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 4,
+  },
+  hero: {
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: spacing.md,
+    marginBottom: spacing.md,
   },
   heroHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   heroSparkIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: 'rgba(201,162,75,0.15)',
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: GOLD_SOFT,
+    borderWidth: 1,
+    borderColor: 'rgba(217,180,92,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
+    fontFamily: SERIF,
+    fontSize: 22,
+    color: GOLD,
+    letterSpacing: 0.3,
+  },
+  heroUpdatedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 3,
+  },
+  heroDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: GOLD,
   },
   heroUpdated: {
-    color: colors.textMuted,
-    fontSize: 10.5,
-    marginTop: 1,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: MUTED,
+  },
+  heroBody: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
   heroRows: {
-    flex: 1,
-    gap: 8,
+    flex: 1.25,
+    gap: spacing.xs,
   },
   assistRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
-    backgroundColor: colors.surfaceAlt,
+    gap: spacing.xs,
+    backgroundColor: ROW_BG,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: 13,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
+    borderColor: ROW_BORDER,
+    borderRadius: 16,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
   },
   assistIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: GOLD_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
   },
   assistBody: {
     flex: 1,
   },
-  assistTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
   assistLabel: {
-    color: colors.textSecondary,
-    fontSize: 10.5,
-    fontFamily: fonts.semibold,
-
-    fontWeight: '600',
-    flexShrink: 0,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: MUTED,
   },
   assistValue: {
-    color: colors.textPrimary,
-    fontSize: 13.5,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
+    fontFamily: fonts.bold,
+    fontWeight: '700',
+    fontSize: 14.5,
+    color: IVORY,
     marginTop: 1,
   },
-  assistRight: {
-    flex: 1,
-    color: colors.textMuted,
-    fontSize: 10.5,
-    textAlign: 'right',
+  heroSide: {
+    flex: 0.9,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  heroBody: {
-    flexDirection: 'row',
-    gap: 10,
+  heroArt: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+  },
+  heroColumn: {
+    position: 'absolute',
+    top: 8,
+    bottom: 8,
+    width: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(217,180,92,0.08)',
+  },
+  heroScale: {
+    opacity: 0.92,
+    textShadowColor: 'rgba(217,180,92,0.35)',
+    textShadowRadius: 18,
+    textShadowOffset: { width: 0, height: 0 },
   },
   heroCta: {
-    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 6,
+    gap: 7,
+    borderRadius: 22,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 13,
+    alignSelf: 'stretch',
+    marginTop: spacing.xs,
   },
   heroCtaText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
     fontFamily: fonts.extrabold,
-
     fontWeight: '800',
+    fontSize: 15.5,
+    color: NAVY_TEXT,
   },
-  // Generic card
   card: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    backgroundColor: colors.surface,
+    borderRadius: 26,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: 20,
+    borderColor: BORDER,
     padding: spacing.md,
-    ...shadow.card,
+    marginBottom: spacing.md,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    flexShrink: 1,
-    marginRight: 6,
+    gap: spacing.sm,
   },
   cardHeaderIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: GOLD_SOFT,
+    borderWidth: 1,
+    borderColor: 'rgba(217,180,92,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 15,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
-    color: colors.textPrimary,
-    flexShrink: 1,
+    fontFamily: SERIF,
+    fontSize: 21,
+    color: IVORY,
+    letterSpacing: 0.2,
   },
   cardHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    flexShrink: 0,
   },
   cardHeaderLink: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontFamily: fonts.bold,
-
-    fontWeight: '700',
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 13.5,
+    color: GOLD,
   },
-  emptyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: spacing.sm,
-  },
-  emptyRowText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  // Odak Alanı
   focusRow: {
     flexDirection: 'row',
     gap: spacing.sm,
-    alignItems: 'flex-start',
   },
   focusIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 16,
-    backgroundColor: colors.goldSoft,
+    width: 84,
+    height: 84,
+    borderRadius: 20,
+    backgroundColor: ROW_BG,
+    borderWidth: 1,
+    borderColor: ROW_BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   focusBody: {
     flex: 1,
   },
-  focusTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
   focusTitle: {
-    fontSize: 14.5,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
-    color: colors.textPrimary,
-    flexShrink: 1,
+    fontFamily: SERIF,
+    fontSize: 19,
+    lineHeight: 25,
+    color: IVORY,
   },
   focusBadge: {
-    backgroundColor: colors.dangerSoft,
+    alignSelf: 'flex-start',
+    backgroundColor: BURGUNDY,
+    borderWidth: 1,
+    borderColor: BURGUNDY_BORDER,
     borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginTop: 7,
   },
   focusBadgeText: {
-    fontSize: 10.5,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
-    color: colors.danger,
+    fontFamily: fonts.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: BURGUNDY_TEXT,
   },
   focusMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    marginTop: 5,
+    marginTop: 8,
   },
   focusMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontFamily: fonts.regular,
+    fontSize: 13.5,
+    color: MUTED,
   },
   focusReason: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 17,
-    marginTop: 4,
+    fontFamily: fonts.regular,
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: MUTED,
+    marginTop: 5,
   },
   focusButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.gold,
-    borderRadius: 13,
-    paddingVertical: 12,
-    marginTop: spacing.sm,
+    justifyContent: 'center',
+    gap: 5,
+    borderRadius: 18,
+    borderWidth: 1.2,
+    borderColor: GOLD_BORDER,
+    paddingVertical: 13,
+    marginTop: spacing.md,
   },
   focusButtonText: {
-    color: colors.gold,
-    fontSize: 12.5,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
+    fontFamily: SERIF,
+    fontSize: 16,
+    color: GOLD,
   },
-  // İletişim özeti
-  commRow3: {
+  emptyRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
   },
-  commCol: {
+  emptyRowText: {
+    fontFamily: fonts.regular,
+    fontSize: 13.5,
+    color: MUTED,
     flex: 1,
-    minWidth: 0,
+    lineHeight: 19,
   },
-  commColCenter: {
-    alignItems: 'center',
-  },
-  commDivider: {
-    width: 1,
-    backgroundColor: colors.borderSubtle,
-    marginHorizontal: 6,
-  },
-  commIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 13,
-    backgroundColor: colors.infoSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  commIconBadge: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    minWidth: 17,
-    height: 17,
-    borderRadius: 9,
-    backgroundColor: colors.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  commIconBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
-  },
-  commPeerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
-  },
-  commQuickRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 4,
-  },
-  commQuickItem: {
-    alignItems: 'center',
-    gap: 3,
-  },
-  commQuickBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.infoSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  commQuickLabel: {
-    fontSize: 10.5,
-    color: colors.textSecondary,
-    fontFamily: fonts.semibold,
-
-    fontWeight: '600',
-  },
-  commLink: {
-    fontSize: 10.5,
-    color: colors.info,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
-    marginTop: 5,
-  },
-  commLabel: {
-    fontSize: 10.5,
-    color: colors.textSecondary,
-    fontFamily: fonts.bold,
-
-    fontWeight: '700',
-    marginBottom: 5,
-  },
-  commValue: {
-    fontSize: 14,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  commPeerName: {
-    fontSize: 12.5,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  commPeerTime: {
-    fontSize: 10,
-    color: colors.textMuted,
-  },
-  commPreview: {
-    fontSize: 10.5,
-    color: colors.textSecondary,
-    marginTop: 5,
-  },
-  // Finance
   finRow: {
     flexDirection: 'row',
   },
@@ -1012,153 +835,83 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   finDivider: {
     width: 1,
-    backgroundColor: colors.borderSubtle,
-    marginHorizontal: 6,
+    backgroundColor: ROW_BORDER,
+    marginHorizontal: spacing.xs,
   },
   finLabel: {
-    fontSize: 10.5,
-    color: colors.textSecondary,
-    fontFamily: fonts.bold,
-
-    fontWeight: '700',
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: MUTED,
+    marginBottom: 4,
   },
   finMidRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 3,
+    gap: 4,
   },
   finAmount: {
-    flex: 1,
-    fontSize: 16.5,
     fontFamily: fonts.extrabold,
-
     fontWeight: '800',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
+    fontSize: 15,
+    color: IVORY,
   },
   finSpark: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 2,
-    height: 20,
-    width: 28,
+    height: 22,
+    marginTop: 4,
   },
   finBar: {
-    flex: 1,
+    width: 5,
     borderRadius: 2,
   },
   finPctRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 2,
-    marginTop: 5,
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 4,
   },
   finPct: {
-    fontSize: 9,
-    fontFamily: fonts.bold,
-
-    fontWeight: '700',
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 10.5,
     flexShrink: 1,
-    lineHeight: 12,
   },
-  // Tevkil banner
-  tevkilAd: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    padding: spacing.md,
-    backgroundColor: NAVY,
-    borderWidth: 1,
-    borderColor: 'rgba(201,162,75,0.25)',
-    borderRadius: 20,
-  },
-  tevkilArt: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(201,162,75,0.22)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(201,162,75,0.65)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tevkilBody: {
-    flex: 1,
-  },
-  tevkilTitle: {
-    color: '#FFFFFF',
-    fontSize: 16.5,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
-  },
-  tevkilDesc: {
-    color: 'rgba(255,255,255,0.72)',
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 3,
-  },
-  // Bottom bar
   bottomBar: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: '#0B1526',
     borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
-    paddingTop: 8,
-    paddingHorizontal: 6,
-    // Yukarı doğru hafif gölge — içeriğin barın altına aktığını hissettirir.
-    shadowColor: '#1A2C51',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 10,
+    borderTopColor: 'rgba(122,150,199,0.15)',
+    paddingTop: 6,
   },
   bottomTab: {
     flex: 1,
     alignItems: 'center',
     gap: 3,
+    paddingVertical: 6,
   },
-  bottomTabIconWrap: {
-    width: 44,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+  bottomTabIndicator: {
+    width: 30,
+    height: 2.5,
+    borderRadius: 2,
+    backgroundColor: 'transparent',
+    marginBottom: 3,
   },
-  bottomTabActive: {
-    backgroundColor: colors.goldSoft,
-  },
-  bottomTabBadge: {
-    position: 'absolute',
-    top: -4,
-    right: 2,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: colors.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  bottomTabBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontFamily: fonts.extrabold,
-
-    fontWeight: '800',
+  bottomTabIndicatorActive: {
+    backgroundColor: GOLD,
   },
   bottomTabLabel: {
-    fontSize: 10.5,
     fontFamily: fonts.semibold,
-
     fontWeight: '600',
-    color: colors.textMuted,
+    fontSize: 12,
+    color: MUTED_DEEP,
+  },
+  bottomTabLabelActive: {
+    color: GOLD,
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
   },
 });
