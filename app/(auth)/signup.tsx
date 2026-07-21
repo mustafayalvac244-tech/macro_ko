@@ -234,9 +234,11 @@ function BaroPicker({
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
+    // Mükerrer baro gösterilmesin (defansif — liste zaten tekil).
+    const unique = Array.from(new Set(BAROLAR));
     const q = query.trim().toLocaleLowerCase('tr');
-    if (!q) return BAROLAR;
-    return BAROLAR.filter((b) => b.toLocaleLowerCase('tr').includes(q));
+    if (!q) return unique;
+    return unique.filter((b) => b.toLocaleLowerCase('tr').includes(q));
   }, [query]);
 
   return (

@@ -36,7 +36,7 @@ export const en: Record<keyof typeof tr, string> = {
   'auth.barNumberPlaceholder': 'Your bar registry number',
   'auth.barNumberRequired': 'Enter your bar registry number.',
   'auth.fullName': 'Full name',
-  'auth.fullNamePlaceholder': 'Jordan Blake, Esq.',
+  'auth.fullNamePlaceholder': 'Jordan Blake',
   'auth.firmName': 'Firm name (optional)',
   'auth.firmNamePlaceholder': 'Blake & Partners LLP',
   'auth.passwordHint': 'At least 6 characters',

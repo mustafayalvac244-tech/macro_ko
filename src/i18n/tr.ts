@@ -34,7 +34,7 @@ export const tr = {
   'auth.barNumberPlaceholder': 'Baro sicil numaranız',
   'auth.barNumberRequired': 'Baro sicil numaranızı girin.',
   'auth.fullName': 'Ad Soyad',
-  'auth.fullNamePlaceholder': 'Av. Deniz Yılmaz',
+  'auth.fullNamePlaceholder': 'Deniz Yılmaz',
   'auth.firmName': 'Büro adı (isteğe bağlı)',
   'auth.firmNamePlaceholder': 'Yılmaz Hukuk Bürosu',
   'auth.passwordHint': 'En az 6 karakter',

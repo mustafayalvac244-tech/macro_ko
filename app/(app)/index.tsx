@@ -58,7 +58,9 @@ export default function DashboardScreen() {
   const now = new Date();
   const hour = now.getHours();
   const greetingKey = hour < 12 ? 'dash.goodMorning' : hour < 18 ? 'dash.goodAfternoon' : 'dash.goodEvening';
-  const firstName = profile?.full_name ? `Av. ${profile.full_name.split(' ')[0]}` : t('dash.counselor');
+  // Kullanıcı adının başına "Av." yazmış olabilir; tekrar "Av." eklemeyelim.
+  const cleanName = (profile?.full_name ?? '').trim().replace(/^av\.?\s+/i, '');
+  const firstName = cleanName ? `Av. ${cleanName.split(' ')[0]}` : t('dash.counselor');
 
   // "Bugün · 10:30" / "Yarın · 18:00" / "13 Tem · 09:00"
   const whenLabel = useCallback(
