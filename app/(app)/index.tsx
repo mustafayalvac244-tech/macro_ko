@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isTomorrow } from 'date-fns';
 import { tr as trLocale, enUS } from 'date-fns/locale';
@@ -32,26 +31,11 @@ const SERIF = 'PlayfairDisplay_700Bold';
 /** Altın zemin üzerindeki yazı — her temada okunaklı koyu lacivert. */
 const ON_GOLD = '#14213D';
 
-/** Bir hex rengi verilen oranda açar/koyultur (gradyan uçları için). */
-function shade(hex: string, amt: number): string {
-  const h = hex.replace('#', '');
-  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
-  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-  const r = clamp(((n >> 16) & 255) + 255 * amt);
-  const g = clamp(((n >> 8) & 255) + 255 * amt);
-  const b = clamp((n & 255) + 255 * amt);
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
-
 export default function DashboardScreen() {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(colors);
   const insets = useSafeAreaInsets();
-
-  // Altın gradyan uçları — seçili temanın altınından türetilir.
-  const goldLight = shade(colors.gold, 0.16);
-  const goldDeep = shade(colors.gold, -0.1);
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
@@ -278,18 +262,11 @@ export default function DashboardScreen() {
               onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
             />
             <Pressable
-              style={({ pressed }) => [pressed && { opacity: 0.9, transform: [{ scale: 0.995 }] }]}
+              style={({ pressed }) => [styles.heroCta, pressed && { opacity: 0.85 }]}
               onPress={() => router.push('/(app)/calendar')}
             >
-              <LinearGradient
-                colors={[goldLight, colors.gold, goldDeep]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.heroCta}
-              >
-                <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-                <Ionicons name="arrow-forward" size={15} color={ON_GOLD} />
-              </LinearGradient>
+              <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
+              <Ionicons name="arrow-forward" size={15} color={ON_GOLD} />
             </Pressable>
           </View>
         </View>
@@ -312,14 +289,9 @@ export default function DashboardScreen() {
           {focus ? (
             <View>
               <View style={styles.focusRow}>
-                <LinearGradient
-                  colors={[goldLight, colors.gold, goldDeep]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.focusIcon}
-                >
-                  <MaterialCommunityIcons name="briefcase" size={28} color={ON_GOLD} />
-                </LinearGradient>
+                <View style={styles.focusIcon}>
+                  <MaterialCommunityIcons name="briefcase" size={26} color={colors.gold} />
+                </View>
                 <View style={styles.focusBody}>
                   <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
                     {focus.label}
@@ -656,17 +628,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    borderRadius: 14,
-    paddingVertical: 13,
+    gap: 7,
+    borderRadius: 13,
+    backgroundColor: colors.gold,
+    paddingVertical: 12,
     marginTop: 2,
   },
   heroCtaText: {
     fontFamily: fonts.extrabold,
     fontWeight: '800',
-    fontSize: 14.5,
+    fontSize: 14,
     color: ON_GOLD,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   card: {
     borderRadius: 20,
@@ -719,9 +692,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.sm,
   },
   focusIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 16,
+    width: 58,
+    height: 58,
+    borderRadius: 15,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
