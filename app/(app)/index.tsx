@@ -288,7 +288,7 @@ export default function DashboardScreen() {
                 style={styles.heroCta}
               >
                 <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-                <Ionicons name="arrow-forward" size={17} color={ON_GOLD} />
+                <Ionicons name="arrow-forward" size={15} color={ON_GOLD} />
               </LinearGradient>
             </Pressable>
           </View>
@@ -318,7 +318,7 @@ export default function DashboardScreen() {
                   end={{ x: 1, y: 1 }}
                   style={styles.focusIcon}
                 >
-                  <MaterialCommunityIcons name="briefcase" size={38} color={ON_GOLD} />
+                  <MaterialCommunityIcons name="briefcase" size={28} color={ON_GOLD} />
                 </LinearGradient>
                 <View style={styles.focusBody}>
                   <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
@@ -556,36 +556,36 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   greeting: {
     fontFamily: SERIF,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 21,
+    lineHeight: 26,
     color: colors.textPrimary,
     letterSpacing: 0.2,
   },
   greetingSub: {
     fontFamily: fonts.regular,
-    fontSize: 13.5,
+    fontSize: 12.5,
     color: colors.textSecondary,
     marginTop: 4,
     marginBottom: spacing.md,
   },
   hero: {
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    padding: spacing.md,
+    padding: spacing.sm,
     marginBottom: spacing.md,
   },
   heroHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   heroSparkIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 11,
     backgroundColor: colors.goldSoft,
     borderWidth: 1,
     borderColor: colors.border,
@@ -594,7 +594,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   heroTitle: {
     fontFamily: SERIF,
-    fontSize: 19,
+    fontSize: 16.5,
     color: colors.gold,
     letterSpacing: 0.3,
   },
@@ -616,7 +616,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   heroRows: {
-    gap: spacing.sm,
+    gap: 7,
   },
   assistRow: {
     flexDirection: 'row',
@@ -625,14 +625,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 14,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 12,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   assistIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 9,
     backgroundColor: colors.goldSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -642,13 +642,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   assistLabel: {
     fontFamily: fonts.regular,
-    fontSize: 11.5,
+    fontSize: 11,
     color: colors.textSecondary,
   },
   assistValue: {
     fontFamily: fonts.bold,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textPrimary,
     marginTop: 2,
   },
@@ -657,30 +657,30 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingVertical: 13,
     marginTop: 2,
   },
   heroCtaText: {
     fontFamily: fonts.extrabold,
     fontWeight: '800',
-    fontSize: 16,
+    fontSize: 14.5,
     color: ON_GOLD,
     letterSpacing: 0.3,
   },
   card: {
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    padding: spacing.md,
+    padding: spacing.sm,
     marginBottom: spacing.md,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   cardHeaderLeft: {
     flexDirection: 'row',
@@ -688,9 +688,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.sm,
   },
   cardHeaderIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 9,
     backgroundColor: colors.goldSoft,
     borderWidth: 1,
     borderColor: colors.border,
@@ -699,7 +699,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   cardTitle: {
     fontFamily: SERIF,
-    fontSize: 18,
+    fontSize: 16,
     color: colors.textPrimary,
     letterSpacing: 0.2,
   },
@@ -716,12 +716,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   focusRow: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   focusIcon: {
-    width: 84,
-    height: 84,
-    borderRadius: 20,
+    width: 62,
+    height: 62,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -730,8 +730,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   focusTitle: {
     fontFamily: SERIF,
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 15.5,
+    lineHeight: 20,
     color: colors.textPrimary,
   },
   focusBadge: {
@@ -758,13 +758,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   focusMeta: {
     fontFamily: fonts.regular,
-    fontSize: 12.5,
+    fontSize: 12,
     color: colors.textSecondary,
   },
   focusReason: {
     fontFamily: fonts.regular,
-    fontSize: 12.5,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 17,
     color: colors.textSecondary,
     marginTop: 5,
   },
@@ -773,10 +773,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1.2,
     borderColor: colors.gold,
-    paddingVertical: 13,
+    paddingVertical: 11,
     marginTop: spacing.md,
   },
   focusButtonText: {
