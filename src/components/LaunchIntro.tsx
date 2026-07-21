@@ -2,9 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useT } from '@/i18n';
 import { fonts } from '@/theme/theme';
+
+// Gömülü splash karesiyle AYNI görsel — geçişte renk/kalite farkı sırıtmasın.
+const LOGO = require('../../assets/splash-icon.png');
+// Gömülü karede logo 240dp; intro yuvasında 108dp → 108/240
+const LOGO_SETTLE_SCALE = 108 / 240;
 
 // OTA güncellemesi uygulanırken uygulama kendini yeniden başlatır; bu bayrak
 // o yeniden başlatmada intronun İKİNCİ kez oynamasını engeller (çift açılış).
@@ -13,7 +17,6 @@ const SKIP_ONCE_KEY = 'VEKIL_SKIP_INTRO_ONCE';
 // Marka renkleri — giriş perdesi temadan bağımsız, her zaman lacivert/altın.
 const NAVY_TOP = '#0B1830';
 const NAVY_BOTTOM = '#16294A';
-const GOLD = '#C9A24B';
 const CREAM = '#F4EFE6';
 
 // Soğuk başlangıçta yalnızca bir kez gösterilir (OTA reload dahil değil).
@@ -46,8 +49,11 @@ export function LaunchIntro() {
       .catch(() => setChecked(true));
   }, [visible]);
 
-  const iconScale = useRef(new Animated.Value(0.6)).current;
-  const iconOpacity = useRef(new Animated.Value(0)).current;
+  // Gömülü splash karesi logoyu ekran ortasında 240dp gösterir; intro aynı
+  // logoyu AYNI boyutta ve GÖRÜNÜR devralır, küçültüp yuvasına oturtur —
+  // kare → animasyon tek parça geçiş gibi akar.
+  const iconScale = useRef(new Animated.Value(1)).current;
+  const iconShift = useRef(new Animated.Value(64)).current;
   const wordOpacity = useRef(new Animated.Value(0)).current;
   const wordRise = useRef(new Animated.Value(14)).current;
   const sloganOpacity = useRef(new Animated.Value(0)).current;
@@ -60,9 +66,12 @@ export function LaunchIntro() {
     // Eski krem geçiş fazı kaldırıldı — perde doğrudan lacivert başlar; böylece
     // açılışta "önceki tasarım" izlenimi veren ikinci bir sahne oynamaz.
     Animated.sequence([
+      // Logo, gömülü karedeki boyut ve konumdan yuvasına süzülür (kısa bekleme
+      // statik karenin "devralındığı" hissini verir).
+      Animated.delay(120),
       Animated.parallel([
-        Animated.timing(iconOpacity, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.spring(iconScale, { toValue: 1, friction: 6, tension: 60, useNativeDriver: true }),
+        Animated.spring(iconScale, { toValue: LOGO_SETTLE_SCALE, friction: 8, tension: 46, useNativeDriver: true }),
+        Animated.timing(iconShift, { toValue: 0, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]),
       Animated.parallel([
         Animated.timing(wordOpacity, { toValue: 1, duration: 460, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
@@ -75,7 +84,7 @@ export function LaunchIntro() {
       Animated.delay(620),
       Animated.timing(curtain, { toValue: 0, duration: 420, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
     ]).start(() => setVisible(false));
-  }, [visible, checked, iconOpacity, iconScale, wordOpacity, wordRise, sloganOpacity, lineScale, curtain]);
+  }, [visible, checked, iconScale, iconShift, wordOpacity, wordRise, sloganOpacity, lineScale, curtain]);
 
   if (!visible) return null;
 
@@ -83,10 +92,8 @@ export function LaunchIntro() {
     <Animated.View style={[StyleSheet.absoluteFill, styles.wrap, { opacity: curtain }]} pointerEvents="auto">
       <LinearGradient colors={[NAVY_TOP, NAVY_BOTTOM]} style={StyleSheet.absoluteFill} />
       <View style={styles.center}>
-        <Animated.View style={{ opacity: iconOpacity, transform: [{ scale: iconScale }] }}>
-          <View style={styles.iconRing}>
-            <MaterialCommunityIcons name="scale-balance" size={64} color={GOLD} />
-          </View>
+        <Animated.View style={[styles.iconSlot, { transform: [{ translateY: iconShift }] }]}>
+          <Animated.Image source={LOGO} style={[styles.iconImg, { transform: [{ scale: iconScale }] }]} />
         </Animated.View>
 
         <Animated.Text
@@ -117,16 +124,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 14,
   },
-  iconRing: {
+  iconSlot: {
     width: 108,
     height: 108,
-    borderRadius: 54,
-    borderWidth: 1.5,
-    borderColor: 'rgba(201,162,75,0.45)',
-    backgroundColor: 'rgba(201,162,75,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 6,
+  },
+  iconImg: {
+    // Görsel gömülü karedeki gibi 240dp başlar; scale ile 108'e oturur.
+    position: 'absolute',
+    width: 240,
+    height: 240,
+    left: (108 - 240) / 2,
+    top: (108 - 240) / 2,
   },
   wordmark: {
     fontFamily: fonts.script,

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Platform, View } from 'react-native';
+import { Image, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient } from '@tanstack/react-query';
@@ -109,18 +109,21 @@ export default function RootLayout() {
   }, [isInitializing, fontsReady]);
 
   if (isInitializing || !fontsReady) {
-    // Gömülü (eski) splash ekranda oyalanmasın: ilk karede indirilir, yükleme
-    // bitene kadar intronun lacivertiyle aynı renkte düz bir perde gösterilir.
+    // Gömülü splash ekranda oyalanmasın: ilk karede indirilir; yükleme bitene
+    // kadar gömülü kareyle BİREBİR AYNI görüntü (lacivert + 240dp logo)
+    // gösterilir — göz kesinti fark etmez, intro bunun üstünden akar.
     return (
       <View
-        style={{ flex: 1, backgroundColor: '#0B1830' }}
+        style={{ flex: 1, backgroundColor: '#0B1830', alignItems: 'center', justifyContent: 'center' }}
         onLayout={() => {
           if (!hasHiddenSplash.current) {
             hasHiddenSplash.current = true;
             SplashScreen.hideAsync().catch(() => {});
           }
         }}
-      />
+      >
+        <Image source={require('../assets/splash-icon.png')} style={{ width: 240, height: 240 }} />
+      </View>
     );
   }
 
