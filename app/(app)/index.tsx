@@ -28,19 +28,27 @@ import { formatMoney, formatTime } from '@/utils/format';
  */
 const SERIF = 'PlayfairDisplay_700Bold';
 
-/**
- * Altın zemin üzerindeki yazı/ikon rengi temaya göre seçilir: koyu temalarda
- * altın parlak → koyu lacivert yazı; açık temalarda altın koyu → beyaz yazı.
- * Böylece "Güne Başla" her renk paketinde okunaklı kalır.
- */
-function onGoldColor(hex: string): string {
+/** Zengin, metalik altın — açık temaların koyu/kahverengi altını yerine kullanılır. */
+const RICH_GOLD = '#D4AF37';
+
+function luminance(hex: string): number {
   const h = hex.replace('#', '');
   const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
-  const r = (n >> 16) & 255;
-  const g = (n >> 8) & 255;
-  const b = n & 255;
-  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return lum > 0.6 ? '#14213D' : '#FFFFFF';
+  return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+}
+
+/**
+ * Vurgu altını: tema altını yeterince parlaksa (koyu temalar) onu kullan; koyu/
+ * mat (açık temalar) ise zengin metalik altına geç — "Güne Başla" ve çanta her
+ * temada gerçek altın görünsün, kahverengi durmasın.
+ */
+function accentGoldFor(themeGold: string): string {
+  return luminance(themeGold) < 0.6 ? RICH_GOLD : themeGold;
+}
+
+/** Altın zemin üzerindeki yazı/ikon rengi: parlak altında koyu lacivert, koyu altında beyaz. */
+function onGoldColor(hex: string): string {
+  return luminance(hex) > 0.6 ? '#14213D' : '#FFFFFF';
 }
 
 export default function DashboardScreen() {
@@ -48,6 +56,7 @@ export default function DashboardScreen() {
   const colors = __t.colors;
   const styles = makeStyles(colors);
   const insets = useSafeAreaInsets();
+  const accentGold = accentGoldFor(colors.gold);
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
@@ -282,11 +291,11 @@ export default function DashboardScreen() {
               onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
             />
             <Pressable
-              style={({ pressed }) => [styles.heroCta, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [styles.heroCta, { backgroundColor: accentGold }, pressed && { opacity: 0.85 }]}
               onPress={() => router.push('/(app)/calendar')}
             >
-              <Text allowFontScaling={false} style={styles.heroCtaText}>{t('dash.assist.start')}</Text>
-              <Ionicons name="arrow-forward" size={15} color={onGoldColor(colors.gold)} />
+              <Text allowFontScaling={false} style={[styles.heroCtaText, { color: onGoldColor(accentGold) }]}>{t('dash.assist.start')}</Text>
+              <Ionicons name="arrow-forward" size={15} color={onGoldColor(accentGold)} />
             </Pressable>
           </View>
         </View>
@@ -309,8 +318,8 @@ export default function DashboardScreen() {
           {focus ? (
             <View>
               <View style={styles.focusRow}>
-                <View style={styles.focusIcon}>
-                  <Ionicons name="briefcase" size={26} color={colors.gold} />
+                <View style={[styles.focusIcon, { backgroundColor: accentGold + '22', borderColor: accentGold + '55' }]}>
+                  <Ionicons name="briefcase" size={26} color={accentGold} />
                 </View>
                 <View style={styles.focusBody}>
                   <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
