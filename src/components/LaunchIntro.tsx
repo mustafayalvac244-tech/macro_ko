@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useT } from '@/i18n';
 import { fonts } from '@/theme/theme';
+
+// OTA güncellemesi uygulanırken uygulama kendini yeniden başlatır; bu bayrak
+// o yeniden başlatmada intronun İKİNCİ kez oynamasını engeller (çift açılış).
+const SKIP_ONCE_KEY = 'VEKIL_SKIP_INTRO_ONCE';
 
 // Marka renkleri — giriş perdesi temadan bağımsız, her zaman lacivert/altın.
 const NAVY_TOP = '#0B1830';
@@ -23,6 +28,23 @@ let hasPlayed = false;
 export function LaunchIntro() {
   const t = useT();
   const [visible, setVisible] = useState(!hasPlayed);
+  // Bayrak okunana kadar animasyon başlamaz; bayrak varsa perde hiç oynamadan iner.
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    AsyncStorage.getItem(SKIP_ONCE_KEY)
+      .then((flag) => {
+        if (flag) {
+          AsyncStorage.removeItem(SKIP_ONCE_KEY).catch(() => {});
+          hasPlayed = true;
+          setVisible(false);
+        } else {
+          setChecked(true);
+        }
+      })
+      .catch(() => setChecked(true));
+  }, [visible]);
 
   const iconScale = useRef(new Animated.Value(0.6)).current;
   const iconOpacity = useRef(new Animated.Value(0)).current;
@@ -33,7 +55,7 @@ export function LaunchIntro() {
   const curtain = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || !checked) return;
     hasPlayed = true;
     // Eski krem geçiş fazı kaldırıldı — perde doğrudan lacivert başlar; böylece
     // açılışta "önceki tasarım" izlenimi veren ikinci bir sahne oynamaz.
@@ -53,7 +75,7 @@ export function LaunchIntro() {
       Animated.delay(620),
       Animated.timing(curtain, { toValue: 0, duration: 420, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
     ]).start(() => setVisible(false));
-  }, [visible, iconOpacity, iconScale, wordOpacity, wordRise, sloganOpacity, lineScale, curtain]);
+  }, [visible, checked, iconOpacity, iconScale, wordOpacity, wordRise, sloganOpacity, lineScale, curtain]);
 
   if (!visible) return null;
 

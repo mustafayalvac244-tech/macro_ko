@@ -89,6 +89,8 @@ export default function RootLayout() {
         const check = await Updates.checkForUpdateAsync();
         if (check.isAvailable) {
           await Updates.fetchUpdateAsync();
+          // Yeniden başlatmada giriş animasyonu TEKRAR oynamasın (çift açılış hissi).
+          await AsyncStorage.setItem('VEKIL_SKIP_INTRO_ONCE', '1').catch(() => {});
           await Updates.reloadAsync();
         }
       } catch {
