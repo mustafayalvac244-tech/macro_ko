@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { addMonths, format } from 'date-fns';
@@ -12,8 +12,8 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import {
   isMissingInstallmentColumns,
   isMissingPromiseTable,
+  useCreateCustomInstallments,
   useCreatePromise,
-  useCreatePromiseInstallments,
 } from '@/hooks/usePaymentPromises';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -29,7 +29,7 @@ export default function PromiseFormScreen() {
   const t = useT();
   const { clientId, clientName } = useLocalSearchParams<{ clientId: string; clientName?: string }>();
   const createPromise = useCreatePromise();
-  const createInstallments = useCreatePromiseInstallments();
+  const createInstallments = useCreateCustomInstallments();
 
   const [mode, setMode] = useState<'single' | 'installments'>('single');
   const [amount, setAmount] = useState('');
@@ -38,33 +38,50 @@ export default function PromiseFormScreen() {
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  // Taksit satırları elle düzenlenebilir (her ay eşit olmak zorunda değil).
+  const [rows, setRows] = useState<{ amount: string; due: Date }[]>([]);
 
   const parsedAmount = Number(amount.replace(/\./g, '').replace(',', '.'));
   const parsedCount = Number(count);
   const countValid = Number.isInteger(parsedCount) && parsedCount >= 2 && parsedCount <= 36;
 
-  // Ödeme planı önizlemesi: eşit taksitler, yuvarlama farkı son taksitte.
-  const plan = useMemo(() => {
-    if (mode !== 'installments' || !Number.isFinite(parsedAmount) || parsedAmount <= 0 || !countValid) return [];
+  const parseMoney = (s: string) => Number(s.replace(/\./g, '').replace(',', '.'));
+
+  // Toplam/adet/ilk vade değişince eşit bölünmüş bir taslak üretilir; kullanıcı
+  // sonrasında her satırın tutarını tek tek değiştirebilir.
+  useEffect(() => {
+    if (mode !== 'installments' || !Number.isFinite(parsedAmount) || parsedAmount <= 0 || !countValid) {
+      setRows([]);
+      return;
+    }
     const per = Math.floor((parsedAmount / parsedCount) * 100) / 100;
     const last = Math.round((parsedAmount - per * (parsedCount - 1)) * 100) / 100;
-    return Array.from({ length: parsedCount }, (_, i) => ({
-      seq: i + 1,
-      amount: i === parsedCount - 1 ? last : per,
-      due: addMonths(dueDate, i),
-    }));
-  }, [mode, parsedAmount, parsedCount, countValid, dueDate]);
+    setRows(
+      Array.from({ length: parsedCount }, (_, i) => ({
+        amount: String(i === parsedCount - 1 ? last : per),
+        due: addMonths(dueDate, i),
+      }))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, amount, count, dueDate]);
+
+  const rowsSum = rows.reduce((s, r) => s + (parseMoney(r.amount) || 0), 0);
 
   const isSubmitting = createPromise.isPending || createInstallments.isPending;
 
   const handleSubmit = async () => {
     setError(null);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    if (mode === 'installments') {
+      if (!countValid) {
+        setError(t('promise.countInvalid'));
+        return;
+      }
+      if (rows.some((r) => !(parseMoney(r.amount) > 0))) {
+        setError(t('promise.rowAmountInvalid'));
+        return;
+      }
+    } else if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       setError(t('financeForm.amountRequired'));
-      return;
-    }
-    if (mode === 'installments' && !countValid) {
-      setError(t('promise.countInvalid'));
       return;
     }
     try {
@@ -72,9 +89,7 @@ export default function PromiseFormScreen() {
         await createInstallments.mutateAsync({
           client_id: clientId!,
           clientName: clientName ?? '',
-          total: parsedAmount,
-          count: parsedCount,
-          firstDue: dueDate,
+          rows: rows.map((r) => ({ amount: parseMoney(r.amount), due_date: format(r.due, 'yyyy-MM-dd') })),
           note: note.trim() || null,
         });
       } else {
@@ -165,17 +180,31 @@ export default function PromiseFormScreen() {
             <Button label={t('common.done')} size="sm" variant="secondary" onPress={() => setShowPicker(false)} style={styles.pickerDone} />
           )}
 
-          {mode === 'installments' && plan.length > 0 && (
+          {mode === 'installments' && rows.length > 0 && (
             <View style={styles.planBox}>
-              <Text style={styles.planTitle}>{t('promise.preview')}</Text>
-              {plan.map((row) => (
-                <View key={row.seq} style={styles.planRow}>
-                  <Text style={styles.planSeq}>{t('promise.seqShort', { seq: row.seq })}</Text>
+              <View style={styles.planHeadRow}>
+                <Text style={styles.planTitle}>{t('promise.preview')}</Text>
+                <Text style={styles.planSum}>{t('promise.sum')}: {formatMoney(rowsSum)}</Text>
+              </View>
+              {rows.map((row, i) => (
+                <View key={i} style={styles.planRow}>
+                  <Text style={styles.planSeq}>{t('promise.seqShort', { seq: i + 1 })}</Text>
                   <Text style={styles.planDate}>{formatDate(row.due.toISOString())}</Text>
-                  <Text style={styles.planAmount}>{formatMoney(row.amount)}</Text>
+                  <View style={styles.planAmountBox}>
+                    <Text style={styles.planCurrency}>₺</Text>
+                    <TextInput
+                      style={styles.planInput}
+                      value={row.amount}
+                      onChangeText={(v) =>
+                        setRows((prev) => prev.map((r, j) => (j === i ? { ...r, amount: v } : r)))
+                      }
+                      keyboardType="decimal-pad"
+                      selectTextOnFocus
+                    />
+                  </View>
                 </View>
               ))}
-              <Text style={styles.planNote}>{t('promise.monthlyNote')}</Text>
+              <Text style={styles.planNote}>{t('promise.customNote')}</Text>
             </View>
           )}
 
@@ -276,16 +305,26 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     padding: spacing.sm,
     marginTop: spacing.md,
   },
+  planHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
   planTitle: {
     ...typography.caption,
     color: colors.textSecondary,
     fontWeight: '700',
-    marginBottom: spacing.xs,
+  },
+  planSum: {
+    ...typography.caption,
+    color: colors.gold,
+    fontWeight: '800',
   },
   planRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
   },
@@ -293,17 +332,36 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.caption,
     color: colors.textPrimary,
     fontWeight: '700',
-    width: 74,
+    width: 62,
   },
   planDate: {
     ...typography.caption,
     color: colors.textSecondary,
     flex: 1,
   },
-  planAmount: {
+  planAmountBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 9,
+    paddingHorizontal: 8,
+    paddingVertical: Platform.OS === 'ios' ? 6 : 2,
+    minWidth: 96,
+  },
+  planCurrency: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  planInput: {
     ...typography.caption,
     color: colors.textPrimary,
     fontWeight: '700',
+    flex: 1,
+    textAlign: 'right',
+    padding: 0,
   },
   planNote: {
     ...typography.small,

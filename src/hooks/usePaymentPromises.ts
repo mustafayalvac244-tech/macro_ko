@@ -148,6 +148,48 @@ export function useCreatePromiseInstallments() {
   });
 }
 
+/** Taksit tutarları elle belirlenmiş bir plan oluşturur (her ay eşit olmak zorunda değil). */
+export function useCreateCustomInstallments() {
+  const queryClient = useQueryClient();
+  const ownerId = useAuthStore((s) => s.session?.user.id);
+
+  return useMutation({
+    mutationFn: async (input: {
+      client_id: string;
+      clientName: string;
+      rows: { amount: number; due_date: string }[];
+      note: string | null;
+    }) => {
+      const { client_id, clientName, rows, note } = input;
+      const group_id = uuidv4();
+      const total_count = rows.length;
+      const payload = rows.map((r, i) => ({
+        client_id,
+        note,
+        owner_id: ownerId!,
+        amount: r.amount,
+        due_date: r.due_date,
+        group_id,
+        seq: i + 1,
+        total_count,
+      }));
+      const { data, error } = await supabase.from('payment_promises').insert(payload).select();
+      if (error) throw error;
+      const promises = data as PaymentPromise[];
+      for (const p of promises) {
+        await schedulePromiseReminder({
+          id: p.id,
+          clientName,
+          amountLabel: `${formatMoney(Number(p.amount))} (${p.seq}/${p.total_count})`,
+          dueDate: p.due_date,
+        }).catch(() => {});
+      }
+      return promises;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['promises'] }),
+  });
+}
+
 export function useTogglePromisePaid() {
   const queryClient = useQueryClient();
 
