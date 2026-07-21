@@ -7,15 +7,13 @@ import { format } from 'date-fns';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
-import { SuggestInput } from '@/components/ui/SuggestInput';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCase, useCreateCase, useUpdateCase } from '@/hooks/useCases';
 import { useCreateHearing } from '@/hooks/useHearings';
 import { useClients } from '@/hooks/useClients';
-import { useLangStore, useT } from '@/i18n';
+import { useT } from '@/i18n';
 import { trError } from '@/lib/authErrors';
-import { caseTypeSuggestions, courtSuggestions } from '@/constants/suggestions';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -32,7 +30,6 @@ export default function CaseFormScreen() {
   const styles = makeStyles(__t.colors);
 
   const t = useT();
-  const lang = useLangStore((s) => s.lang);
   const { id, clientId: prefilledClientId } = useLocalSearchParams<{ id?: string; clientId?: string }>();
   const isEdit = !!id;
   const { data: existingCase } = useCase(id);
@@ -54,7 +51,7 @@ export default function CaseFormScreen() {
   const [priority, setPriority] = useState<PriorityLevel>('medium');
   const [openedDate, setOpenedDate] = useState(new Date());
   const [fee, setFee] = useState('');
-  const [feeType, setFeeType] = useState<'percentage' | 'advance_percentage' | 'fixed'>('fixed');
+  const [feeType, setFeeType] = useState<'percentage' | 'advance_percentage' | 'fixed' | 'retainer' | 'retainer_success'>('fixed');
   const [feePercent, setFeePercent] = useState('');
   const [feeAdvance, setFeeAdvance] = useState('');
   const [firstHearingAt, setFirstHearingAt] = useState<Date | null>(null);
@@ -77,7 +74,7 @@ export default function CaseFormScreen() {
       setPriority(existingCase.priority);
       setOpenedDate(new Date(existingCase.opened_date));
       setFee(existingCase.fee_amount != null ? String(existingCase.fee_amount) : '');
-      setFeeType((existingCase.fee_type as 'percentage' | 'advance_percentage' | 'fixed') ?? 'fixed');
+      setFeeType((existingCase.fee_type as typeof feeType) ?? 'fixed');
       setFeePercent(existingCase.fee_percent != null ? String(existingCase.fee_percent) : '');
       setFeeAdvance(existingCase.fee_advance != null ? String(existingCase.fee_advance) : '');
     }
@@ -222,20 +219,18 @@ export default function CaseFormScreen() {
             onChange={(v) => setCourtCategory(v as 'hukuk' | 'ceza' | 'idare')}
           />
           <View style={styles.spacer} />
-          <SuggestInput
+          <Input
             label={t('caseForm.court')}
             placeholder={t('caseForm.courtPlaceholder')}
             value={courtName}
             onChangeText={setCourtName}
-            suggestions={courtSuggestions[lang]}
           />
 
-          <SuggestInput
+          <Input
             label={t('caseForm.caseType')}
             placeholder={t('caseForm.caseTypePlaceholder')}
             value={caseType}
             onChangeText={setCaseType}
-            suggestions={caseTypeSuggestions[lang]}
           />
 
           <Input label={t('caseForm.opposingPartyReq')} placeholder={t('caseForm.opposingPartyPlaceholder')} value={opposingParty} onChangeText={(v) => { setOpposingParty(v); if (submitError) setSubmitError(null); }} />
@@ -250,14 +245,16 @@ export default function CaseFormScreen() {
 
           <Text style={styles.label}>{t('fee.type')}</Text>
           <SegmentedControl
-            scrollable={false}
+            scrollable
             options={[
+              { value: 'fixed', label: t('fee.fixed') },
               { value: 'percentage', label: t('fee.percentage') },
               { value: 'advance_percentage', label: t('fee.advPercentage') },
-              { value: 'fixed', label: t('fee.fixed') },
+              { value: 'retainer', label: t('fee.retainer') },
+              { value: 'retainer_success', label: t('fee.retainerSuccess') },
             ]}
             value={feeType}
-            onChange={(v) => setFeeType(v as 'percentage' | 'advance_percentage' | 'fixed')}
+            onChange={(v) => setFeeType(v as typeof feeType)}
           />
           <View style={styles.spacer} />
           {feeType === 'fixed' && (
@@ -270,6 +267,15 @@ export default function CaseFormScreen() {
             <>
               <Input label={t('fee.advance')} placeholder="20000" keyboardType="numeric" value={feeAdvance} onChangeText={setFeeAdvance} />
               <Input label={t('fee.percent')} placeholder="10" keyboardType="numeric" value={feePercent} onChangeText={setFeePercent} />
+            </>
+          )}
+          {feeType === 'retainer' && (
+            <Input label={t('fee.monthly')} placeholder="10000" keyboardType="numeric" value={fee} onChangeText={setFee} />
+          )}
+          {feeType === 'retainer_success' && (
+            <>
+              <Input label={t('fee.monthly')} placeholder="10000" keyboardType="numeric" value={fee} onChangeText={setFee} />
+              <Input label={t('fee.successPercent')} placeholder="10" keyboardType="numeric" value={feePercent} onChangeText={setFeePercent} />
             </>
           )}
 
@@ -302,6 +308,7 @@ export default function CaseFormScreen() {
           {showPicker && (
             <DateTimePicker
               value={pickerValue}
+              display={showPicker === 'opened' && Platform.OS === 'android' ? 'spinner' : 'default'}
               mode={
                 showPicker === 'hearingTime'
                   ? 'time'

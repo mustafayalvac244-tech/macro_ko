@@ -79,7 +79,7 @@ export interface Case {
   updated_at: string;
 }
 
-export type FeeType = 'percentage' | 'advance_percentage' | 'fixed';
+export type FeeType = 'percentage' | 'advance_percentage' | 'fixed' | 'retainer' | 'retainer_success';
 
 export interface CaseInstallment {
   id: string;

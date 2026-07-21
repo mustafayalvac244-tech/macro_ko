@@ -17,7 +17,7 @@ import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatDate, formatTime } from '@/utils/format';
+import { formatDate } from '@/utils/format';
 import type { PriorityLevel } from '@/types/database';
 
 const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
@@ -52,7 +52,11 @@ export default function DeadlineFormScreen() {
 
   const [title, setTitle] = useState(titleParam ?? '');
   const [description, setDescription] = useState('');
-  const [dueAt, setDueAt] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  const [dueAt, setDueAt] = useState(() => {
+    const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    d.setHours(23, 59, 0, 0);
+    return d;
+  });
   const [priority, setPriority] = useState<PriorityLevel>('medium');
   const [reminder, setReminder] = useState('1440');
   const [showPicker, setShowPicker] = useState<'date' | 'time' | null>(null);
@@ -112,30 +116,23 @@ export default function DeadlineFormScreen() {
           />
 
           <Text style={styles.label}>{t('deadlineForm.due')}</Text>
-          <View style={styles.dtRow}>
-            <Pressable style={[styles.dateButton, styles.dtHalf]} onPress={() => setShowPicker('date')}>
-              <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-              <Text style={styles.dateButtonText}>{formatDate(dueAt.toISOString())}</Text>
-            </Pressable>
-            <Pressable style={[styles.dateButton, styles.dtHalf]} onPress={() => setShowPicker('time')}>
-              <Ionicons name="time-outline" size={18} color={colors.textMuted} />
-              <Text style={styles.dateButtonText}>{formatTime(dueAt.toISOString())}</Text>
-            </Pressable>
-          </View>
+          <Pressable style={styles.dateButton} onPress={() => setShowPicker('date')}>
+            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+            <Text style={styles.dateButtonText}>{formatDate(dueAt.toISOString())}</Text>
+          </Pressable>
+          <Text style={styles.dueHint}>{t('deadlineForm.endOfDay')}</Text>
           {showPicker && (
             <DateTimePicker
               value={dueAt}
-              mode={showPicker}
+              mode="date"
               is24Hour
               onChange={(_event, date) => {
                 if (Platform.OS === 'android') setShowPicker(null);
                 if (!date) return;
                 const next = new Date(dueAt);
-                if (showPicker === 'date') {
-                  next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                } else {
-                  next.setHours(date.getHours(), date.getMinutes());
-                }
+                next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                // Yasal süreler gün sonuna kadardır: 23:59'a sabitle.
+                next.setHours(23, 59, 0, 0);
                 setDueAt(next);
               }}
             />
@@ -221,12 +218,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.body,
     color: colors.textPrimary,
   },
-  dtRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  dtHalf: {
-    flex: 1,
+  dueHint: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
   },
   pickerDone: {
     marginTop: spacing.xs,

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { router } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { addDays, format, isToday, isTomorrow, startOfWeek } from 'date-fns';
 import { enUS, tr as trLocale } from 'date-fns/locale';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +11,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { useAllHearings } from '@/hooks/useHearings';
+import { useAllHearings, useUpdateHearing } from '@/hooks/useHearings';
 import { useAllDeadlines, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useAllPromises } from '@/hooks/usePaymentPromises';
 import { useAllInstallments } from '@/hooks/usePayments';
@@ -19,7 +20,7 @@ import { fonts, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
-import type { DeadlineWithCase, HearingType } from '@/types/database';
+import type { DeadlineWithCase, HearingType, HearingWithCase } from '@/types/database';
 
 LocaleConfig.locales.tr = {
   monthNames: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
@@ -44,6 +45,7 @@ interface AgendaItem {
   route: string;
   done: boolean;
   deadline?: DeadlineWithCase;
+  hearing?: HearingWithCase;
 }
 
 const HEARING_ICONS: Record<HearingType, keyof typeof Ionicons.glyphMap> = {
@@ -97,6 +99,11 @@ export default function CalendarScreen() {
   const promises = useAllPromises();
   const installments = useAllInstallments();
   const updateDeadline = useUpdateDeadline();
+  const updateHearing = useUpdateHearing();
+
+  // İş üzerinde hızlı aksiyon (tamamla / ertele) için seçilen öğe.
+  const [actionItem, setActionItem] = useState<AgendaItem | null>(null);
+  const [postponePicker, setPostponePicker] = useState(false);
 
   useMemo(() => {
     LocaleConfig.defaultLocale = lang === 'tr' ? 'tr' : '';
@@ -128,6 +135,7 @@ export default function CalendarScreen() {
         // Satıra dokununca kaydın kendisi (düzenleme formu) açılır — dosyalı/dosyasız fark etmez.
         route: `/hearing-form?id=${h.id}${h.case_id ? `&caseId=${h.case_id}` : ''}`,
         done: h.is_completed,
+        hearing: h,
       });
     });
 
@@ -246,13 +254,53 @@ export default function CalendarScreen() {
     return `${base} · ${weekday}`;
   };
 
-  const toggleDeadline = (item: AgendaItem) => {
-    if (!item.deadline) return;
-    updateDeadline.mutate({
-      id: item.deadline.id,
-      is_completed: !item.deadline.is_completed,
-      caseTitle: item.deadline.case?.title ?? '',
-    });
+  // ── İş üzerinde hızlı aksiyonlar (takvimden tek dokunuş) ─────────────────
+  const isActionable = (item: AgendaItem) => item.kind === 'hearing' || item.kind === 'deadline';
+
+  const completeItem = (item: AgendaItem, done = true) => {
+    if (item.deadline) {
+      updateDeadline.mutate({
+        id: item.deadline.id,
+        is_completed: done,
+        caseTitle: item.deadline.case?.title ?? '',
+      });
+    } else if (item.hearing) {
+      updateHearing.mutate({
+        id: item.hearing.id,
+        is_completed: done,
+        caseTitle: item.hearing.case?.title ?? '',
+      });
+    }
+  };
+
+  /** İşi ileri bir tarihe erteler; saat bileşenini korur (görevlerde 23:59). */
+  const postponeItem = (item: AgendaItem, target: Date) => {
+    if (item.deadline) {
+      const next = new Date(target);
+      next.setHours(23, 59, 0, 0);
+      updateDeadline.mutate({
+        id: item.deadline.id,
+        due_at: next.toISOString(),
+        is_completed: false,
+        caseTitle: item.deadline.case?.title ?? '',
+      });
+    } else if (item.hearing) {
+      const prev = new Date(item.hearing.scheduled_at);
+      const next = new Date(target);
+      next.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
+      updateHearing.mutate({
+        id: item.hearing.id,
+        scheduled_at: next.toISOString(),
+        is_completed: false,
+        caseTitle: item.hearing.case?.title ?? '',
+      });
+    }
+  };
+
+  const postponeBy = (item: AgendaItem, days: number) => {
+    const base = new Date(`${item.dateKey}T12:00:00`);
+    postponeItem(item, addDays(base, days));
+    setActionItem(null);
   };
 
   const renderItem = (item: AgendaItem, showDate = false) => {
@@ -281,14 +329,23 @@ export default function CalendarScreen() {
             </Text>
           )}
         </View>
-        {item.kind === 'deadline' ? (
-          <Pressable hitSlop={10} onPress={() => toggleDeadline(item)}>
-            <Ionicons
-              name={item.done ? 'checkmark-circle' : 'ellipse-outline'}
-              size={22}
-              color={item.done ? colors.success : colors.textMuted}
-            />
-          </Pressable>
+        {isActionable(item) ? (
+          <View style={styles.trailRow}>
+            {item.done ? (
+              <Ionicons name="checkmark-circle" size={22} color={colors.success} />
+            ) : (
+              <Pressable
+                hitSlop={8}
+                style={styles.actionBtn}
+                onPress={() => {
+                  setPostponePicker(false);
+                  setActionItem(item);
+                }}
+              >
+                <Ionicons name="ellipsis-horizontal" size={18} color={colors.primary} />
+              </Pressable>
+            )}
+          </View>
         ) : (
           <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
         )}
@@ -489,6 +546,78 @@ export default function CalendarScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* İş üzerinde hızlı aksiyon: tamamla / ertele */}
+      <Modal visible={!!actionItem} transparent animationType="fade" onRequestClose={() => setActionItem(null)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setActionItem(null)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            {actionItem && (
+              <>
+                <View style={styles.sheetHandle} />
+                <Text style={styles.sheetTitle} numberOfLines={1}>
+                  {actionItem.title}
+                </Text>
+                {!!actionItem.subtitle && (
+                  <Text style={styles.sheetSub} numberOfLines={1}>
+                    {actionItem.subtitle}
+                  </Text>
+                )}
+
+                <Pressable
+                  style={[styles.sheetAction, { backgroundColor: colors.successSoft }]}
+                  onPress={() => {
+                    completeItem(actionItem, true);
+                    setActionItem(null);
+                  }}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
+                  <Text style={[styles.sheetActionText, { color: colors.success }]}>{t('cal.actionComplete')}</Text>
+                </Pressable>
+
+                <Text style={styles.sheetLabel}>{t('cal.actionPostpone')}</Text>
+                <View style={styles.postponeRow}>
+                  <Pressable style={styles.postponeBtn} onPress={() => postponeBy(actionItem, 1)}>
+                    <Text style={styles.postponeText}>{t('cal.postpone1d')}</Text>
+                  </Pressable>
+                  <Pressable style={styles.postponeBtn} onPress={() => postponeBy(actionItem, 7)}>
+                    <Text style={styles.postponeText}>{t('cal.postpone1w')}</Text>
+                  </Pressable>
+                  <Pressable style={styles.postponeBtn} onPress={() => setPostponePicker(true)}>
+                    <Ionicons name="calendar-outline" size={15} color={colors.primary} />
+                    <Text style={styles.postponeText}>{t('cal.postponePick')}</Text>
+                  </Pressable>
+                </View>
+
+                <Pressable
+                  style={styles.sheetSecondary}
+                  onPress={() => {
+                    const target = actionItem;
+                    setActionItem(null);
+                    router.push(target.route as Parameters<typeof router.push>[0]);
+                  }}
+                >
+                  <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
+                  <Text style={styles.sheetSecondaryText}>{t('cal.actionEdit')}</Text>
+                </Pressable>
+
+                {postponePicker && (
+                  <DateTimePicker
+                    value={new Date(`${actionItem.dateKey}T12:00:00`)}
+                    mode="date"
+                    onChange={(_e, date) => {
+                      setPostponePicker(false);
+                      if (!date) return;
+                      const target = actionItem;
+                      setActionItem(null);
+                      postponeItem(target, date);
+                    }}
+                  />
+                )}
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Hızlı ekleme */}
       <View style={styles.quickRow}>
@@ -735,6 +864,103 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.small,
     color: colors.textSecondary,
     marginTop: 1,
+  },
+  trailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primarySoft,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxl,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    marginBottom: spacing.md,
+  },
+  sheetTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  sheetSub: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: 2,
+    marginBottom: spacing.md,
+  },
+  sheetAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginTop: spacing.sm,
+  },
+  sheetActionText: {
+    ...typography.bodyMedium,
+    fontFamily: fonts.bold,
+    fontWeight: '700',
+  },
+  sheetLabel: {
+    ...typography.small,
+    color: colors.textMuted,
+    marginTop: spacing.lg,
+    marginBottom: spacing.xs,
+  },
+  postponeRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  postponeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  postponeText: {
+    ...typography.small,
+    color: colors.primary,
+    fontFamily: fonts.bold,
+    fontWeight: '700',
+  },
+  sheetSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: 14,
+    marginTop: spacing.md,
+  },
+  sheetSecondaryText: {
+    ...typography.bodyMedium,
+    color: colors.textSecondary,
   },
   quickRow: {
     flexDirection: 'row',

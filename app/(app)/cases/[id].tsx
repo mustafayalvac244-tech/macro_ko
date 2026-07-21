@@ -381,16 +381,20 @@ export default function CaseDetailScreen() {
                   ? `%${caseItem.fee_percent ?? 0}`
                   : feeType === 'advance_percentage'
                     ? `${formatMoney(Number(caseItem.fee_advance ?? 0))} + %${caseItem.fee_percent ?? 0}`
-                    : caseItem.fee_amount != null
-                      ? formatMoney(caseItem.fee_amount)
-                      : t('finance.noFee');
+                    : feeType === 'retainer'
+                      ? `${formatMoney(Number(caseItem.fee_amount ?? 0))} / ${t('fee.monthlyShort')}`
+                      : feeType === 'retainer_success'
+                        ? `${formatMoney(Number(caseItem.fee_amount ?? 0))}/${t('fee.monthlyShort')} + %${caseItem.fee_percent ?? 0}`
+                        : caseItem.fee_amount != null
+                          ? formatMoney(caseItem.fee_amount)
+                          : t('finance.noFee');
               const remaining = caseItem.fee_amount != null ? Math.max(0, Number(caseItem.fee_amount) - collected) : null;
               return (
                 <Card style={styles.financeSummary}>
                   <View style={styles.feeTypeRow}>
                     <Ionicons name="briefcase-outline" size={15} color={colors.gold} />
                     <Text style={styles.feeTypeText}>
-                      {t(`fee.${feeType === 'advance_percentage' ? 'advPercentage' : feeType}` as const)}: {feeLabel}
+                      {t(`fee.${feeType === 'advance_percentage' ? 'advPercentage' : feeType === 'retainer_success' ? 'retainerSuccess' : feeType}` as const)}: {feeLabel}
                     </Text>
                   </View>
                   <View style={styles.financeRow}>
