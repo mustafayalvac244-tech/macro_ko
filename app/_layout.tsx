@@ -28,6 +28,7 @@ import { hydrateLanguage } from '@/i18n';
 import { hydrateTheme } from '@/theme/themeStore';
 import { useTheme } from '@/theme/useTheme';
 import { hydrateLock } from '@/store/lockStore';
+import { hydrateAdvanceAlerts } from '@/store/advanceAlertStore';
 import { AppLock } from '@/components/AppLock';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LaunchIntro } from '@/components/LaunchIntro';
@@ -76,6 +77,7 @@ export default function RootLayout() {
     hydrateLanguage().catch(() => {});
     hydrateTheme().catch(() => {});
     hydrateLock().catch(() => {});
+    hydrateAdvanceAlerts().catch(() => {});
     registerForNotificationsAsync().catch(() => {});
 
     // Immersive mode: hide the Android system navigation bar while using the

@@ -78,6 +78,64 @@ export function useDeleteClientAdvance() {
   });
 }
 
+/** Masraf avansı eksiye düşen (harcanan > yatırılan) müvekkiller — ana ekran uyarısı. */
+export interface AdvanceDeficit {
+  id: string;
+  name: string;
+  deficit: number; // pozitif tutar: istenmesi gereken ek avans
+}
+
+export function useAdvanceDeficits() {
+  const ownerId = useAuthStore((s) => s.session?.user.id);
+  return useQuery({
+    queryKey: ['advance-deficits'],
+    enabled: !!ownerId,
+    staleTime: 60_000,
+    retry: (n, err) => !isMissingAdvanceTable(err) && n < 1,
+    queryFn: async (): Promise<AdvanceDeficit[]> => {
+      const { data: clients } = await supabase.from('clients').select('id, full_name, company');
+      const nameById = new Map(
+        (clients ?? []).map((c: { id: string; full_name: string; company: string | null }) => [
+          c.id,
+          c.company || c.full_name,
+        ])
+      );
+
+      const deposited = new Map<string, number>();
+      const spent = new Map<string, number>();
+      const add = (m: Map<string, number>, id: string | null | undefined, amt: number) => {
+        if (id) m.set(id, (m.get(id) ?? 0) + amt);
+      };
+
+      // Yatırılan avanslar
+      const adv = await supabase.from('client_advances').select('client_id, amount');
+      (adv.data ?? []).forEach((r: { client_id: string; amount: number }) => add(deposited, r.client_id, Number(r.amount)));
+
+      // Elle girilen müvekkil masrafları
+      const cexp = await supabase.from('client_expenses').select('client_id, amount');
+      (cexp.data ?? []).forEach((r: { client_id: string; amount: number }) => add(spent, r.client_id, Number(r.amount)));
+
+      // Davaya bağlı masraflar (case_expenses → cases.client_id)
+      const cs = await supabase.from('cases').select('id, client_id');
+      const clientOfCase = new Map(
+        (cs.data ?? []).map((c: { id: string; client_id: string | null }) => [c.id, c.client_id])
+      );
+      const ce = await supabase.from('case_expenses').select('case_id, amount');
+      (ce.data ?? []).forEach((r: { case_id: string; amount: number }) =>
+        add(spent, clientOfCase.get(r.case_id) ?? null, Number(r.amount))
+      );
+
+      const out: AdvanceDeficit[] = [];
+      const ids = new Set<string>([...deposited.keys(), ...spent.keys()]);
+      ids.forEach((id) => {
+        const balance = (deposited.get(id) ?? 0) - (spent.get(id) ?? 0);
+        if (balance < 0) out.push({ id, name: nameById.get(id) ?? '—', deficit: -balance });
+      });
+      return out.sort((a, b) => b.deficit - a.deficit);
+    },
+  });
+}
+
 /* ---- Müvekkil bazlı elle masraflar (davaya bağlı olmayanlar) ---- */
 
 export function useClientExpenses(clientId: string | undefined) {

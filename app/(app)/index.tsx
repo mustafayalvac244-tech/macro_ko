@@ -15,6 +15,8 @@ import { useAllHearings } from '@/hooks/useHearings';
 import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
+import { useAdvanceDeficits } from '@/hooks/useClientAdvances';
+import { useAdvanceAlertStore } from '@/store/advanceAlertStore';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, spacing } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -71,6 +73,15 @@ export default function DashboardScreen() {
   const deadlines = useAllDeadlines();
   const finance = useFinanceEntries();
   useMorningDigest();
+
+  // Masraf avansı eksiye düşen müvekkiller (kapatılanlar hariç) — ana ekran uyarısı.
+  const advanceDeficits = useAdvanceDeficits();
+  const dismissedAlerts = useAdvanceAlertStore((s) => s.dismissed);
+  const dismissAlert = useAdvanceAlertStore((s) => s.dismiss);
+  const advanceAlerts = useMemo(
+    () => (advanceDeficits.data ?? []).filter((d) => !dismissedAlerts.includes(d.id)),
+    [advanceDeficits.data, dismissedAlerts]
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -299,6 +310,34 @@ export default function DashboardScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* ---------- Masraf avansı uyarısı (kapatılabilir) ---------- */}
+        {advanceAlerts.length > 0 && (
+          <View style={styles.advanceAlert}>
+            <View style={styles.advanceAlertHead}>
+              <Ionicons name="alert-circle" size={16} color={colors.danger} />
+              <Text allowFontScaling={false} style={styles.advanceAlertTitle}>{t('dash.advance.title')}</Text>
+            </View>
+            {advanceAlerts.slice(0, 4).map((d) => (
+              <View key={d.id} style={styles.advanceAlertRow}>
+                <Pressable style={styles.advanceAlertInfo} onPress={() => router.push(`/(app)/clients/${d.id}`)}>
+                  <Text allowFontScaling={false} style={styles.advanceAlertName} numberOfLines={1}>{d.name}</Text>
+                  <Text allowFontScaling={false} style={styles.advanceAlertAmount}>
+                    {t('dash.advance.need', { amount: formatMoney(d.deficit) })}
+                  </Text>
+                </Pressable>
+                <Pressable onPress={() => dismissAlert(d.id)} hitSlop={8} style={styles.advanceAlertClose}>
+                  <Ionicons name="close" size={16} color={colors.textMuted} />
+                </Pressable>
+              </View>
+            ))}
+            {advanceAlerts.length > 4 && (
+              <Text allowFontScaling={false} style={styles.advanceAlertMore}>
+                {t('dash.advance.more', { n: advanceAlerts.length - 4 })}
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* ---------- Odak Alanı ---------- */}
         <View style={styles.card}>
@@ -576,6 +615,64 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     padding: spacing.sm,
     marginBottom: spacing.md,
+  },
+  // Masraf avansı uyarısı
+  advanceAlert: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  advanceAlertHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  advanceAlertTitle: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.danger,
+    flex: 1,
+  },
+  advanceAlertRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: colors.dangerSoft,
+  },
+  advanceAlertInfo: {
+    flex: 1,
+  },
+  advanceAlertName: {
+    fontFamily: fonts.semibold,
+    fontSize: 13.5,
+    color: colors.textPrimary,
+  },
+  advanceAlertAmount: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: colors.danger,
+    marginTop: 1,
+  },
+  advanceAlertClose: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  advanceAlertMore: {
+    fontFamily: fonts.medium,
+    fontSize: 11.5,
+    color: colors.textMuted,
+    marginTop: 4,
+    textAlign: 'center',
   },
   heroHeader: {
     flexDirection: 'row',
