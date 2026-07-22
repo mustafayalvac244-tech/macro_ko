@@ -117,9 +117,19 @@ export default function LawBrowserScreen() {
           </Card>
         }
         ListFooterComponent={<Text style={styles.sourceNote}>{t('laws.disclaimer')}</Text>}
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const isOpen = expanded === item.no;
+          // Arama yokken bölüm değiştiğinde ayraç göster (kanun sistematiği).
+          const showSection =
+            !query.trim() && !!item.section && item.section !== results[index - 1]?.section;
           return (
+            <>
+            {showSection && (
+              <View style={styles.sectionHeader}>
+                <Ionicons name="bookmark" size={12} color={colors.gold} />
+                <Text style={styles.sectionHeaderText}>{item.section}</Text>
+              </View>
+            )}
             <Card style={styles.articleCard} padded={false}>
               <Pressable style={styles.articleHeader} onPress={() => setExpanded(isOpen ? null : item.no)}>
                 <View style={[styles.noBadge, special(item.no) && { backgroundColor: colors.warningSoft }]}>
@@ -144,6 +154,7 @@ export default function LawBrowserScreen() {
                 </View>
               )}
             </Card>
+            </>
           );
         }}
       />
@@ -166,6 +177,22 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   list: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  sectionHeaderText: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    flex: 1,
   },
   articleCard: {
     marginBottom: spacing.xs,

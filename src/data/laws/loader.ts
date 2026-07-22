@@ -6,6 +6,8 @@ export interface LawArticle {
   text: string;
   /** Maddenin resmî kenar başlığı (ör. "Aşırı ifa güçlüğü"). Temel kanunlarda mevcut. */
   title?: string;
+  /** Kanun sistematiğindeki bölüm yolu (ör. "Kira Sözleşmesi › Genel Hükümler"). */
+  section?: string;
 }
 export interface LawFile {
   short: string;

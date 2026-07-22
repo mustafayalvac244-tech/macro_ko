@@ -75,34 +75,60 @@ def download(no: str, dest: str) -> bool:
         return False
 
 
-def extract_titles(pdf_path: str) -> dict:
+# Yapısal hiyerarşi satırı: "BİRİNCİ KISIM", "İKİNCİ BÖLÜM", "ÜÇÜNCÜ AYIRIM" vb.
+LEVELS = ('KİTAP', 'KISIM', 'BÖLÜM', 'AYIRIM', 'AYRIM', 'FASIL', 'BAP')
+LEVEL_RANK = {lv: i for i, lv in enumerate(LEVELS)}
+LEVEL_LINE = re.compile(r'^([A-ZÇĞİÖŞÜ ]+?)\s+(' + '|'.join(LEVELS) + r')\.?$')
+
+
+def extract(pdf_path: str):
+    """Her madde için (başlık, bölüm-yolu) döndürür."""
     doc = fitz.open(pdf_path)
     text = '\n'.join(page.get_text('text') for page in doc)
     lines = [l.strip() for l in text.split('\n')]
-    titles = {}
-    for i, l in enumerate(lines):
-        m = MADDE.match(l)
-        if not m:
+    titles, sections = {}, {}
+    hier = {}   # rank -> ad
+    i = 0
+    while i < len(lines):
+        l = lines[i]
+        # Yapısal başlık? (KISIM/BÖLÜM/AYIRIM ...) — açıklayıcı ad bir sonraki satırda
+        lv = LEVEL_LINE.match(l)
+        if lv and lv.group(2) in LEVEL_RANK:
+            rank = LEVEL_RANK[lv.group(2)]
+            j = i + 1
+            while j < len(lines) and not lines[j]:
+                j += 1
+            name = lines[j] if j < len(lines) and is_heading(lines[j]) else ''
+            name = clean_heading(name) if name else lv.group(1).title()
+            hier = {r: v for r, v in hier.items() if r < rank}  # alt seviyeleri temizle
+            hier[rank] = name
+            i = j + 1
             continue
-        no = m.group(1)
-        # Yukarı doğru yürü: boş/dipnot/değişiklik satırlarını atla, ilk
-        # başlık-benzeri satırı al. Başka MADDE'ye veya gövdeye çarpınca dur.
-        j, steps = i - 1, 0
-        while j >= 0 and steps < 6:
-            s = lines[j]
-            if not s:
-                j -= 1
-                continue
-            if MADDE.match(s):
+        m = MADDE.match(l)
+        if m:
+            no = m.group(1)
+            # başlık: yukarı yürü
+            j, steps = i - 1, 0
+            while j >= 0 and steps < 6:
+                s = lines[j]
+                if not s:
+                    j -= 1
+                    continue
+                if MADDE.match(s) or LEVEL_LINE.match(s):
+                    break
+                if is_noise(s):
+                    j -= 1
+                    steps += 1
+                    continue
+                if is_heading(s):
+                    titles.setdefault(no, clean_heading(s))
                 break
-            if is_noise(s):
-                j -= 1
-                steps += 1
-                continue
-            if is_heading(s):
-                titles.setdefault(no, clean_heading(s))
-            break
-    return titles
+            # bölüm yolu: aktif hiyerarşinin en derin 1-2 seviyesi
+            path = [hier[r] for r in sorted(hier) if hier[r]]
+            if path:
+                sections.setdefault(no, ' › '.join(path[-2:]))
+        i += 1
+    return titles, sections
 
 
 def main():
@@ -117,10 +143,10 @@ def main():
         if not os.path.exists(pdf):
             if not download(no, pdf):
                 continue
-        titles = extract_titles(pdf)
+        titles, sections = extract(pdf)
         data = json.load(open(jpath, encoding='utf-8'))
         arts = data['articles']
-        hit = 0
+        hit = sect = 0
         for a in arts:
             t = titles.get(str(a['no']))
             if t:
@@ -128,10 +154,16 @@ def main():
                 hit += 1
             else:
                 a.pop('title', None)
+            s = sections.get(str(a['no']))
+            if s:
+                a['section'] = s
+                sect += 1
+            else:
+                a.pop('section', None)
         json.dump(data, open(jpath, 'w', encoding='utf-8'), ensure_ascii=False)
         total_arts += len(arts)
         total_titled += hit
-        print(f'{slug:14s} {hit:4d}/{len(arts):4d} başlık  (PDF\'ten {len(titles)})')
+        print(f'{slug:14s} başlık {hit:4d}/{len(arts):4d} · bölüm {sect:4d}')
     print(f'\nTOPLAM: {total_titled}/{total_arts} maddeye başlık eklendi')
 
 
