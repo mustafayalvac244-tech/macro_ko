@@ -13,7 +13,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
-const MODEL = 'gemini-2.0-flash';
+const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.0-flash';
+const MODEL_PLUS = Deno.env.get('VEKIL_MODEL_PLUS') || 'gemini-2.5-pro';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -121,7 +122,7 @@ function rowToHit(r: any): Hit {
   };
 }
 
-async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string }>): Promise<string> {
+async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string }>, model: string): Promise<string> {
   const apiKey = Deno.env.get('GEMINI_API_KEY');
   if (!apiKey) throw new Error('not_configured');
 
@@ -143,7 +144,7 @@ async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string
     'edilmesi gerektiğini ekle.';
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -282,8 +283,20 @@ Deno.serve(async (req) => {
         }
       }
       if (docs.length === 0) return json({ error: 'empty' }, 502);
-      const summary = await geminiSummary(query, docs);
-      return json({ summary, count: docs.length });
+      // Üyelik katmanı: Plus (is_premium) güçlü Pro modeliyle özetler.
+      let tier: 'basic' | 'plus' = 'basic';
+      try {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('is_premium')
+          .eq('id', userData.user.id)
+          .maybeSingle();
+        if (prof?.is_premium) tier = 'plus';
+      } catch {
+        // Basic'te kal
+      }
+      const summary = await geminiSummary(query, docs, tier === 'plus' ? MODEL_PLUS : MODEL_BASIC);
+      return json({ summary, count: docs.length, tier });
     }
 
     return json({ error: 'bad_request' }, 400);

@@ -24,6 +24,8 @@ export function useAiChat() {
   const [messages, setMessages] = useState<AiMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<AiError | null>(null);
+  // Sunucunun bildirdiği aktif AI katmanı (üyeliğe göre): basic | plus.
+  const [tier, setTier] = useState<'basic' | 'plus' | null>(null);
   // Yarışı önlemek için gönderim sırasında en güncel geçmişi ref'te tutuyoruz.
   const historyRef = useRef<AiMessage[]>([]);
 
@@ -61,11 +63,13 @@ export function useAiChat() {
           return;
         }
 
-        const reply = (data as { text?: string } | null)?.text?.trim();
+        const payload = data as { text?: string; tier?: 'basic' | 'plus' } | null;
+        const reply = payload?.text?.trim();
         if (!reply) {
           setError('generic');
           return;
         }
+        if (payload?.tier) setTier(payload.tier);
 
         const modelMsg: AiMessage = { id: nextId(), role: 'model', text: reply };
         const withReply = [...historyRef.current, modelMsg];
@@ -88,5 +92,5 @@ export function useAiChat() {
 
   const errorText = error === 'rate_limit' ? t('ai.errRateLimit') : error === 'generic' ? t('ai.errGeneric') : null;
 
-  return { messages, sending, error, errorText, send, reset };
+  return { messages, sending, error, errorText, tier, send, reset };
 }

@@ -5,7 +5,11 @@
 //   supabase secrets set GEMINI_API_KEY=...
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const MODEL = 'gemini-2.0-flash';
+// Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
+// içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
+const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.0-flash';
+const MODEL_PLUS = Deno.env.get('VEKIL_MODEL_PLUS') || 'gemini-2.5-pro';
+const EMBED_MODEL = 'text-embedding-004';
 
 const SYSTEM_PROMPT =
   'Sen "Vekil AI" adında, Vekil Pro uygulamasına ait bir hukuk asistanısın. ' +
@@ -40,6 +44,61 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+/** Soruyu Gemini ile vektöre çevirir (Plus semantik içtihat beslemesi için). */
+async function embedQuery(text: string, apiKey: string): Promise<number[] | null> {
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 2000) }] } }),
+      }
+    );
+    if (!res.ok) return null;
+    const j = await res.json();
+    return j?.embedding?.values ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Plus katmanı için içtihat havuzundan (kendi büyüyen veritabanımız) soruyla
+ * ilgili gerçek kararları getirir ve sistem talimatına eklenecek bağlam üretir.
+ * "Senin eğittiğin AI" = kendi verimizle beslenmiş, kaynak gösteren yanıt.
+ */
+// deno-lint-ignore no-explicit-any
+async function buildGrounding(supabase: any, question: string, apiKey: string): Promise<string> {
+  // deno-lint-ignore no-explicit-any
+  let rows: any[] = [];
+  const qEmb = await embedQuery(question, apiKey);
+  if (qEmb) {
+    const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: 5 });
+    rows = data ?? [];
+  }
+  if (rows.length === 0) {
+    const { data } = await supabase.rpc('search_ictihat_fts', { q: question, match_count: 5 });
+    rows = data ?? [];
+  }
+  if (rows.length === 0) return '';
+
+  const refs = rows
+    .map(
+      // deno-lint-ignore no-explicit-any
+      (r: any, i: number) =>
+        `[${i + 1}] ${r.daire ?? ''} E.${r.esas_no ?? ''} K.${r.karar_no ?? ''} (${r.karar_tarihi ?? ''})\n${String(r.snippet ?? '').slice(0, 400)}`
+    )
+    .join('\n\n');
+
+  return (
+    '\n\nAŞAĞIDA, kendi içtihat havuzumuzdan soruyla ilgili GERÇEK karar özetleri var. ' +
+    'Yanıtında bunlardan yararlanabilir ve [1], [2] gibi atıflarla belirtebilirsin; ' +
+    'ancak burada olmayan bir kararı UYDURMA:\n\n' +
+    refs
+  );
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -77,14 +136,44 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
+  // Üyelik katmanı: Plus (is_premium) güçlü model + içtihat beslemesi alır.
+  let tier: 'basic' | 'plus' = 'basic';
+  try {
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('is_premium')
+      .eq('id', userData.user.id)
+      .maybeSingle();
+    if (prof?.is_premium) tier = 'plus';
+  } catch {
+    // profil okunamazsa Basic'te kal
+  }
+
+  const model = tier === 'plus' ? MODEL_PLUS : MODEL_BASIC;
+  const maxOutputTokens = tier === 'plus' ? 2048 : 1024;
+
+  // Plus: son kullanıcı sorusuyla kendi içtihat havuzumuzu tara, bağlamı sistem
+  // talimatına ekle (kaynaklı, uydurmayan, bizim veriyle beslenmiş yanıt).
+  let systemText = SYSTEM_PROMPT;
+  if (tier === 'plus') {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    if (lastUser?.text) {
+      try {
+        systemText += await buildGrounding(supabase, lastUser.text, apiKey);
+      } catch {
+        // besleme başarısızsa yalın Plus yanıtıyla devam
+      }
+    }
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      systemInstruction: { parts: [{ text: systemText }] },
       contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
-      generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+      generationConfig: { temperature: 0.4, maxOutputTokens },
     }),
   });
 
@@ -103,7 +192,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
   }
 
-  return new Response(JSON.stringify({ text: text.trim() }), {
+  return new Response(JSON.stringify({ text: text.trim(), tier, model }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
 });

@@ -1037,6 +1037,10 @@ export const tr = {
   'ai.errRateLimit': 'Yoğunluk nedeniyle şu an yanıt veremiyorum. Bir dakika sonra tekrar deneyin.',
   'ai.errGeneric': 'Yanıt alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
+  'ai.tierBasic': 'Basic',
+  'ai.tierPlus': 'Plus',
+  'ai.plusActive': 'Plus AI etkin — güçlü model + içtihat destekli yanıtlar',
+  'ai.plusUpsell': 'Plus’a geç: daha güçlü model + kendi içtihat havuzumuzla beslenen yanıtlar',
 
   // İçtihat Arama (UYAP Emsal — resmi, ücretsiz kaynak)
   'ictihat.title': 'İçtihat Arama',

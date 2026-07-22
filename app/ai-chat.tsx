@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAiChat, type AiMessage } from '@/hooks/useAiChat';
@@ -25,7 +26,7 @@ export default function AiChatScreen() {
   const styles = makeStyles(colors);
   const t = useT();
 
-  const { messages, sending, errorText, send, reset } = useAiChat();
+  const { messages, sending, errorText, tier, send, reset } = useAiChat();
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<ScrollView>(null);
 
@@ -50,6 +51,19 @@ export default function AiChatScreen() {
         rightIcon={empty ? undefined : 'create-outline'}
         onRightPress={empty ? undefined : reset}
       />
+      {tier === 'plus' && (
+        <View style={styles.tierPlus}>
+          <Ionicons name="diamond" size={13} color={colors.gold} />
+          <Text style={styles.tierPlusText}>{t('ai.plusActive')}</Text>
+        </View>
+      )}
+      {tier === 'basic' && (
+        <Pressable onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])} style={styles.tierUpsell}>
+          <Ionicons name="sparkles" size={13} color={colors.primary} />
+          <Text style={styles.tierUpsellText}>{t('ai.plusUpsell')}</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+        </Pressable>
+      )}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
@@ -156,6 +170,41 @@ function Bubble({ message }: { message: AiMessage }) {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: {
+    flex: 1,
+  },
+  tierPlus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    paddingVertical: 7,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.goldSoft,
+    borderRadius: 10,
+  },
+  tierPlusText: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  tierUpsell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    paddingVertical: 7,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 10,
+  },
+  tierUpsellText: {
+    ...typography.small,
+    color: colors.primary,
+    fontWeight: '600',
     flex: 1,
   },
   scrollContent: {

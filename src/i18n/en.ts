@@ -1035,6 +1035,10 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.errRateLimit': 'I can’t respond right now due to heavy load. Try again in a minute.',
   'ai.errGeneric': 'No response. Check your internet connection and try again.',
   'ai.disclaimer': 'AI answers are not legal advice; verify against current legislation.',
+  'ai.tierBasic': 'Basic',
+  'ai.tierPlus': 'Plus',
+  'ai.plusActive': 'Plus AI active — stronger model + case-law-backed answers',
+  'ai.plusUpsell': 'Go Plus: a stronger model + answers fed by our own case-law corpus',
 
   // Case-law search (UYAP Emsal — official, free source)
   'ictihat.title': 'Case-Law Search',
