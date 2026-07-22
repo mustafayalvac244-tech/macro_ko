@@ -78,6 +78,12 @@ export function CaseListItem({ caseItem, onPress }: CaseListItemProps) {
         <View style={styles.badgeRow}>
           <CaseStatusBadge status={caseItem.status} />
           <PriorityBadge priority={caseItem.priority} />
+          {!closed && (caseItem.instance_stage === 'istinaf' || caseItem.instance_stage === 'temyiz') && (
+            <View style={styles.stageChip}>
+              <Ionicons name="layers-outline" size={10} color={colors.gold} />
+              <Text style={styles.stageChipText}>{t(`inst.${caseItem.instance_stage}` as const)}</Text>
+            </View>
+          )}
         </View>
       </View>
     </Pressable>
@@ -155,7 +161,24 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   badgeRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: spacing.xs,
     marginTop: spacing.sm,
+  },
+  stageChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.goldSoft,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  stageChipText: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '800',
+    fontSize: 10.5,
   },
 });
