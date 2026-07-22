@@ -1,0 +1,157 @@
+# Vekil :: İçtihat hasat terimleri
+# Her satır bir arama terimi. Harvester bunları UYAP Emsal'de sırayla tarar,
+# yeni kararları havuza ekler. Yeni terim eklemek havuzu genişletir.
+# '#' ile başlayan satırlar yorumdur.
+
+# ---- Kira / gayrimenkul ----
+kira tespit davası
+kira bedelinin tespiti
+kira uyarlama davası
+tahliye taahhüdü
+ihtiyaç nedeniyle tahliye
+temerrüt nedeniyle tahliye
+kiracının tahliyesi
+ecrimisil
+men'i müdahale
+tapu iptali ve tescil
+elatmanın önlenmesi
+kat mülkiyeti
+ortaklığın giderilmesi
+şufa hakkı
+muvazaa tapu
+
+# ---- Borçlar / sözleşme ----
+sözleşmenin feshi
+haksız fiil tazminat
+sebepsiz zenginleşme
+cezai şart
+alacak davası
+menfi tespit davası
+istirdat davası
+vekalet sözleşmesi
+eser sözleşmesi ayıp
+satış sözleşmesi ayıplı mal
+kefalet sözleşmesi
+temlik alacağın devri
+zamanaşımı def'i
+munzam zarar
+
+# ---- İş hukuku ----
+işe iade davası
+kıdem tazminatı
+ihbar tazminatı
+fazla mesai ücreti
+haklı nedenle fesih işçi
+geçerli nedenle fesih
+mobbing tazminat
+iş kazası tazminat
+hizmet tespiti davası
+sendikal tazminat
+yıllık izin ücreti
+ücret alacağı
+
+# ---- Aile hukuku ----
+boşanma davası
+anlaşmalı boşanma
+çekişmeli boşanma
+şiddetli geçimsizlik
+velayet davası
+nafaka artırım
+yoksulluk nafakası
+iştirak nafakası
+mal rejimi tasfiyesi
+katkı payı alacağı
+soybağı reddi
+babalık davası
+evlilik birliğinin sarsılması
+
+# ---- Miras hukuku ----
+tenkis davası
+muris muvazaası
+mirasın reddi
+veraset ilamı
+saklı pay
+vasiyetnamenin iptali
+miras taksim
+
+# ---- Ticaret / şirketler ----
+haksız rekabet
+ticari şirket ortaklıktan çıkarma
+şirket genel kurul kararının iptali
+çek iptali
+bono kambiyo
+kambiyo senedine dayalı takip
+menfi tespit çek
+marka hükümsüzlüğü
+ticari işletme devri
+acentelik sözleşmesi
+
+# ---- İcra ve iflas ----
+icra takibine itiraz
+itirazın iptali
+itirazın kaldırılması
+istihkak davası
+ihalenin feshi
+şikayet icra
+sıra cetveline itiraz
+tasarrufun iptali davası
+iflas erteleme
+konkordato
+borca itiraz
+imzaya itiraz
+
+# ---- Tazminat / sigorta ----
+trafik kazası tazminat
+maddi manevi tazminat
+destekten yoksun kalma
+değer kaybı araç
+sigorta tazminat rücu
+zorunlu mali sorumluluk sigortası
+
+# ---- Tüketici ----
+ayıplı mal tüketici
+ayıplı hizmet
+cayma hakkı
+tüketici kredisi
+abonelik sözleşmesi tüketici
+
+# ---- Ceza hukuku ----
+kasten yaralama
+hakaret suçu
+tehdit suçu
+dolandırıcılık suçu
+güveni kötüye kullanma
+hırsızlık suçu
+uyuşturucu madde ticareti
+zimmet suçu
+resmi belgede sahtecilik
+görevi kötüye kullanma
+taksirle öldürme
+hükmün açıklanmasının geri bırakılması
+zincirleme suç
+etkin pişmanlık
+kişisel verilerin ele geçirilmesi
+
+# ---- İdare / vergi ----
+iptal davası idari işlem
+tam yargı davası
+memur disiplin cezası
+imar planı iptali
+kamulaştırma bedelinin tespiti
+kamulaştırmasız el atma
+vergi ziyaı cezası
+vergi tarhiyatı iptali
+ihale idari şartname
+atama işlemi iptali
+
+# ---- Genel usul ----
+görevsizlik yetkisizlik
+derdestlik
+kesin hüküm
+ıslah dilekçesi
+bilirkişi raporu itiraz
+delil tespiti
+ihtiyati tedbir
+ihtiyati haciz
+istinaf başvurusu
+temyiz incelemesi

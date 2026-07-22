@@ -457,4 +457,79 @@ drop policy if exists "client_expenses own" on client_expenses;
 create policy "client_expenses own" on client_expenses
   for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
--- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.
+-- ---------- 0026: İçtihat havuzu (kendi büyüyen karar veritabanımız) ----------
+-- Kaynak: UYAP Emsal (kamuya açık resmi kararlar). Harvester (scripts/harvest-ictihat.mjs)
+-- sürekli çalışıp yeni kararları buraya biriktirir; arama önce bu havuzda yapılır,
+-- eksik kalırsa canlı Emsal'den tamamlanır. Kararlar kamusal veridir: tüm girişli
+-- kullanıcılar okuyabilir, yazma yalnız service_role (harvester) iledir.
+create extension if not exists vector;
+
+create table if not exists ictihat_kararlar (
+  id            text primary key,                 -- UYAP Emsal doküman id
+  kurul         text,                             -- Yargıtay | Danıştay | BAM | BİM | AYM
+  daire         text,
+  esas_no       text,
+  karar_no      text,
+  karar_tarihi  text,                             -- gg.aa.yyyy (görüntü)
+  durum         text,
+  arama_terimi  text,                             -- hangi seed terimden yakalandı (izleme)
+  full_text     text not null,
+  embedding     vector(768),                      -- Gemini text-embedding-004 (opsiyonel)
+  fts           tsvector generated always as (to_tsvector('turkish', coalesce(full_text, ''))) stored,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+create index if not exists ictihat_fts_idx on ictihat_kararlar using gin (fts);
+create index if not exists ictihat_embedding_idx on ictihat_kararlar using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+create index if not exists ictihat_kurul_idx on ictihat_kararlar (kurul);
+
+alter table ictihat_kararlar enable row level security;
+drop policy if exists "ictihat read" on ictihat_kararlar;
+create policy "ictihat read" on ictihat_kararlar for select to authenticated using (true);
+
+-- Hasat durumu: her arama terimi için kaldığı sayfa; harvester kaldığı yerden devam eder.
+create table if not exists ictihat_harvest_state (
+  terim       text primary key,
+  next_page   int not null default 1,
+  done        boolean not null default false,     -- true: tüm sayfalar tarandı (güncelleme için başa döner)
+  total       int,
+  last_run    timestamptz,
+  updated_at  timestamptz not null default now()
+);
+alter table ictihat_harvest_state enable row level security;  -- yalnız service_role erişir
+
+-- Anahtar-kelime (FTS) araması: Türkçe köke göre sıralı.
+create or replace function search_ictihat_fts(q text, match_count int default 15)
+returns table (
+  id text, kurul text, daire text, esas_no text, karar_no text,
+  karar_tarihi text, durum text, snippet text, score real
+) language sql stable as $$
+  select k.id, k.kurul, k.daire, k.esas_no, k.karar_no, k.karar_tarihi, k.durum,
+         left(k.full_text, 320) as snippet,
+         ts_rank(k.fts, websearch_to_tsquery('turkish', q)) as score
+  from ictihat_kararlar k
+  where k.fts @@ websearch_to_tsquery('turkish', q)
+  order by score desc
+  limit match_count;
+$$;
+
+-- Semantik (embedding) araması: soru vektörüne kosinüs yakınlığa göre.
+create or replace function match_ictihat_semantic(q_embedding vector(768), match_count int default 15)
+returns table (
+  id text, kurul text, daire text, esas_no text, karar_no text,
+  karar_tarihi text, durum text, snippet text, score real
+) language sql stable as $$
+  select k.id, k.kurul, k.daire, k.esas_no, k.karar_no, k.karar_tarihi, k.durum,
+         left(k.full_text, 320) as snippet,
+         (1 - (k.embedding <=> q_embedding))::real as score
+  from ictihat_kararlar k
+  where k.embedding is not null
+  order by k.embedding <=> q_embedding
+  limit match_count;
+$$;
+
+grant execute on function search_ictihat_fts(text, int) to authenticated;
+grant execute on function match_ictihat_semantic(vector, int) to authenticated;
+
+-- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans, Günün Davası ve İçtihat çalışır.
+-- İçtihat havuzunu doldurmak için: scripts/harvest-ictihat.mjs (GitHub Actions cron ile otomatik).

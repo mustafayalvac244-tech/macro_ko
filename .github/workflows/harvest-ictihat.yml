@@ -1,0 +1,50 @@
+name: İçtihat Hasadı
+
+# Sürekli güçlenme: UYAP Emsal'den yeni kararları çekip Supabase havuzuna
+# ekler. Zamanlı (her 3 saatte bir) + elle tetiklenebilir çalışır.
+#
+# Gerekli repo secret'ları (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL               https://<proje>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY  Supabase service_role anahtarı (RLS bypass)
+#   GEMINI_API_KEY             (opsiyonel) faturalı anahtar → embedding üretir
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'   # her 3 saatte bir
+  workflow_dispatch:
+    inputs:
+      max:
+        description: 'Bu çalışmada en fazla yeni karar'
+        default: '400'
+      terms:
+        description: 'İşlenecek terim sayısı'
+        default: '12'
+
+concurrency:
+  group: ictihat-harvest
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bağımlılıklar
+        working-directory: scripts
+        run: npm install --no-audit --no-fund
+
+      - name: Hasat
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HARVEST_MAX: ${{ github.event.inputs.max || '400' }}
+          HARVEST_TERMS: ${{ github.event.inputs.terms || '12' }}
+        run: node harvest-ictihat.mjs

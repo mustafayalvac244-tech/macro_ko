@@ -85,6 +85,42 @@ async function emsalDocument(id: string): Promise<string> {
   return htmlToText(String(j?.data ?? ''));
 }
 
+const EMBED_MODEL = 'text-embedding-004';
+
+/** Soruyu Gemini ile vektöre çevirir (semantik havuz araması için). null=anahtar yok/başarısız. */
+async function embedQuery(text: string): Promise<number[] | null> {
+  const apiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 2000) }] } }),
+      }
+    );
+    if (!res.ok) return null;
+    const j = await res.json();
+    return j?.embedding?.values ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Havuz RPC satırını uygulama Hit şekline çevirir. */
+// deno-lint-ignore no-explicit-any
+function rowToHit(r: any): Hit {
+  return {
+    id: String(r.id ?? ''),
+    daire: String(r.daire ?? ''),
+    esasNo: String(r.esas_no ?? ''),
+    kararNo: String(r.karar_no ?? ''),
+    kararTarihi: String(r.karar_tarihi ?? ''),
+    durum: String(r.durum ?? ''),
+  };
+}
+
 async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string }>): Promise<string> {
   const apiKey = Deno.env.get('GEMINI_API_KEY');
   if (!apiKey) throw new Error('not_configured');
@@ -162,16 +198,59 @@ Deno.serve(async (req) => {
     if (action === 'search') {
       const query = (body.query ?? '').trim();
       if (!query) return json({ error: 'bad_request' }, 400);
-      const page = Math.max(1, Number(body.page ?? 1));
-      const pageSize = Math.min(20, Math.max(1, Number(body.pageSize ?? 10)));
-      const { hits, total } = await emsalSearch(query, page, pageSize);
-      return json({ hits, total, page, pageSize });
+      const pageSize = Math.min(20, Math.max(1, Number(body.pageSize ?? 15)));
+
+      // 1) Kendi havuzumuz — önce semantik (embedding varsa), sonra anahtar-kelime (FTS).
+      const seen = new Set<string>();
+      const hits: Hit[] = [];
+      const pushRows = (rows: unknown[]) => {
+        for (const r of rows ?? []) {
+          const h = rowToHit(r);
+          if (h.id && !seen.has(h.id)) {
+            seen.add(h.id);
+            hits.push(h);
+          }
+        }
+      };
+
+      const qEmb = await embedQuery(query);
+      if (qEmb) {
+        const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: pageSize });
+        pushRows(data ?? []);
+      }
+      if (hits.length < pageSize) {
+        const { data } = await supabase.rpc('search_ictihat_fts', { q: query, match_count: pageSize });
+        pushRows(data ?? []);
+      }
+
+      // 2) Havuz yetersizse canlı UYAP Emsal'den tamamla (dedupe).
+      let total = hits.length;
+      let source = 'corpus';
+      if (hits.length < 8) {
+        try {
+          const live = await emsalSearch(query, 1, pageSize);
+          pushRows(live.hits);
+          total = live.total;
+          source = hits.length > live.hits.length ? 'hybrid' : 'live';
+        } catch (e) {
+          // Havuzda bir şey varsa canlı hatayı yutup havuzu döneriz.
+          if (hits.length === 0) throw e;
+        }
+      }
+
+      return json({ hits: hits.slice(0, pageSize), total, source });
     }
 
     if (action === 'document') {
       const id = (body.id ?? '').trim();
       if (!id) return json({ error: 'bad_request' }, 400);
-      const text = await emsalDocument(id);
+      // Havuzda varsa oradan (hızlı, canlı bağımlılığı yok), yoksa Emsal'den.
+      const { data: row } = await supabase
+        .from('ictihat_kararlar')
+        .select('full_text')
+        .eq('id', id)
+        .maybeSingle();
+      const text = row?.full_text ? String(row.full_text) : await emsalDocument(id);
       return json({ id, text });
     }
 
@@ -179,21 +258,28 @@ Deno.serve(async (req) => {
       const query = (body.query ?? '').trim();
       const ids = (body.ids ?? []).slice(0, 4);
       if (!query || ids.length === 0) return json({ error: 'bad_request' }, 400);
-      // Seçili kararların gerçek metinlerini çek, Gemini'ye kaynaklı özetlet.
-      const { hits } = await emsalSearch(query, 1, 20);
-      const byId = new Map(hits.map((h) => [h.id, h]));
+
+      // Önce havuzdan metin+meta (varsa), eksik kalanı canlı Emsal'den çek.
+      const { data: corpusRows } = await supabase
+        .from('ictihat_kararlar')
+        .select('id,daire,esas_no,karar_no,karar_tarihi,durum,full_text')
+        .in('id', ids);
+      // deno-lint-ignore no-explicit-any
+      const corpus = new Map<string, any>((corpusRows ?? []).map((r: any) => [String(r.id), r]));
+
       const docs: Array<{ hit: Hit; text: string }> = [];
       for (const id of ids) {
-        const hit = byId.get(id) ?? {
-          id,
-          daire: '',
-          esasNo: '',
-          kararNo: '',
-          kararTarihi: '',
-          durum: '',
-        };
-        const text = await emsalDocument(id);
-        if (text) docs.push({ hit, text });
+        const c = corpus.get(id);
+        if (c?.full_text) {
+          docs.push({ hit: rowToHit(c), text: String(c.full_text) });
+          continue;
+        }
+        try {
+          const text = await emsalDocument(id);
+          if (text) docs.push({ hit: { id, daire: '', esasNo: '', kararNo: '', kararTarihi: '', durum: '' }, text });
+        } catch {
+          // ulaşılamayan kararı atla
+        }
       }
       if (docs.length === 0) return json({ error: 'empty' }, 502);
       const summary = await geminiSummary(query, docs);
