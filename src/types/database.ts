@@ -155,6 +155,16 @@ export interface ClientAdvance {
   created_at: string;
 }
 
+export interface ClientExpense {
+  id: string;
+  owner_id: string;
+  client_id: string;
+  title: string | null;
+  amount: number;
+  spent_at: string;
+  created_at: string;
+}
+
 export type JobType = 'tevkil' | 'devir' | 'danisma';
 export type JobStatus = 'open' | 'assigned' | 'closed';
 

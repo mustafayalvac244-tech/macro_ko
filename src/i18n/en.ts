@@ -690,6 +690,10 @@ export const en: Record<keyof typeof tr, string> = {
   'advance.negativeWarn': 'Advance depleted. Request {amount} more expense advance from the client.',
   'advance.empty': 'No advance deposited yet.',
   'advance.deleteTitle': 'Delete advance record?',
+  'advance.addExpense': 'Add Expense',
+  'advance.addExpenseSub': 'Enter an expense not tied to a case; it is deducted from the advance.',
+  'advance.expenseTitlePlaceholder': 'Description (e.g. expert, courier)',
+  'advance.deleteExpenseTitle': 'Delete expense record?',
   'advance.setupRequired': 'Run the KURULUM.sql update (0023) to enable expense advances.',
 
   'promise.section': 'Receivables',

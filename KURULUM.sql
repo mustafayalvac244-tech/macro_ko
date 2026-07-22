@@ -439,4 +439,22 @@ drop policy if exists "enforcement_collections own" on enforcement_collections;
 create policy "enforcement_collections own" on enforcement_collections
   for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
+-- ---------- 0025: Müvekkil bazlı elle masraf ----------
+-- Her masraf bir davaya bağlı olmayabilir; müvekkil düzeyinde elle masraf
+-- girilir ve masraf avansından düşülür (case_expenses'e ek olarak).
+create table if not exists client_expenses (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references profiles (id) on delete cascade,
+  client_id uuid not null references clients (id) on delete cascade,
+  title text,
+  amount numeric not null check (amount > 0),
+  spent_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+create index if not exists client_expenses_client_idx on client_expenses (client_id, spent_at desc);
+alter table client_expenses enable row level security;
+drop policy if exists "client_expenses own" on client_expenses;
+create policy "client_expenses own" on client_expenses
+  for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+
 -- Bitti! Uygulamayı kapatıp açın; Mesajlar, Tevkil, Finans ve Günün Davası çalışır.

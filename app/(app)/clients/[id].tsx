@@ -21,9 +21,12 @@ import {
 import {
   isMissingAdvanceTable,
   useClientAdvances,
+  useClientExpenses,
   useClientExpensesTotal,
   useCreateClientAdvance,
+  useCreateClientExpense,
   useDeleteClientAdvance,
+  useDeleteClientExpense,
 } from '@/hooks/useClientAdvances';
 import { useEnforcementsByClient } from '@/hooks/useEnforcements';
 import { useT } from '@/i18n';
@@ -67,20 +70,27 @@ export default function ClientDetailScreen() {
 
   const clientEnfs = useEnforcementsByClient(id);
 
-  // Masraf avansı: yatırılan avanslar − davalardaki harcamalar = kalan bakiye
+  // Masraf avansı: yatırılan avanslar − (davalardaki + elle) masraflar = kalan bakiye
   const advances = useClientAdvances(id);
   const expensesTotal = useClientExpensesTotal(id);
+  const manualExpenses = useClientExpenses(id);
   const createAdvance = useCreateClientAdvance();
   const deleteAdvance = useDeleteClientAdvance();
+  const createExpense = useCreateClientExpense();
+  const deleteExpense = useDeleteClientExpense();
   const [advanceModal, setAdvanceModal] = useState(false);
   const [advanceAmount, setAdvanceAmount] = useState('');
   const [advanceNote, setAdvanceNote] = useState('');
+  const [expenseModal, setExpenseModal] = useState(false);
+  const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseTitle, setExpenseTitle] = useState('');
 
   const advanceSummary = useMemo(() => {
     const deposited = (advances.data ?? []).reduce((s, a) => s + Number(a.amount), 0);
-    const spent = expensesTotal.data ?? 0;
+    const manualSpent = (manualExpenses.data ?? []).reduce((s, e) => s + Number(e.amount), 0);
+    const spent = (expensesTotal.data ?? 0) + manualSpent;
     return { deposited, spent, balance: deposited - spent };
-  }, [advances.data, expensesTotal.data]);
+  }, [advances.data, expensesTotal.data, manualExpenses.data]);
 
   const submitAdvance = async () => {
     const amount = Number(advanceAmount.replace(',', '.'));
@@ -90,6 +100,22 @@ export default function ClientDetailScreen() {
       setAdvanceModal(false);
       setAdvanceAmount('');
       setAdvanceNote('');
+    } catch (e) {
+      Alert.alert(
+        t('advance.title'),
+        isMissingAdvanceTable(e) ? t('advance.setupRequired') : (e as Error).message ?? 'Error'
+      );
+    }
+  };
+
+  const submitExpense = async () => {
+    const amount = Number(expenseAmount.replace(',', '.'));
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    try {
+      await createExpense.mutateAsync({ client_id: id, amount, title: expenseTitle.trim() || null });
+      setExpenseModal(false);
+      setExpenseAmount('');
+      setExpenseTitle('');
     } catch (e) {
       Alert.alert(
         t('advance.title'),
@@ -403,6 +429,38 @@ export default function ClientDetailScreen() {
           {!advances.error && (advances.data ?? []).length === 0 && (
             <Text style={styles.promiseEmpty}>{t('advance.empty')}</Text>
           )}
+
+          {/* Elle masraf: davaya bağlı olmayan harcamalar da avanstan düşülür */}
+          <Pressable style={styles.addExpenseBtn} onPress={() => setExpenseModal(true)}>
+            <Ionicons name="add-circle-outline" size={16} color={__t.colors.warning} />
+            <Text style={styles.addExpenseText}>{t('advance.addExpense')}</Text>
+          </Pressable>
+
+          {(manualExpenses.data ?? []).map((e) => (
+            <View key={e.id} style={styles.promiseRow}>
+              <View style={styles.expenseIcon}>
+                <Ionicons name="cash-outline" size={16} color={__t.colors.warning} />
+              </View>
+              <View style={styles.promiseBody}>
+                <Text style={styles.promiseAmount}>{formatMoney(Number(e.amount))}</Text>
+                <Text style={styles.promiseDue} numberOfLines={1}>
+                  {formatDate(e.spent_at)}
+                  {e.title ? ` · ${e.title}` : ''}
+                </Text>
+              </View>
+              <Pressable
+                hitSlop={8}
+                onPress={() =>
+                  Alert.alert(t('advance.deleteExpenseTitle'), formatMoney(Number(e.amount)), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('common.delete'), style: 'destructive', onPress: () => deleteExpense.mutate(e.id) },
+                  ])
+                }
+              >
+                <Ionicons name="trash-outline" size={18} color={__t.colors.textMuted} />
+              </Pressable>
+            </View>
+          ))}
         </Card>
 
         <SectionHeader
@@ -492,6 +550,42 @@ export default function ClientDetailScreen() {
                 onPress={submitAdvance}
                 loading={createAdvance.isPending}
                 disabled={!advanceAmount.trim()}
+                style={styles.modalBtn}
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Elle masraf ekleme */}
+      <Modal visible={expenseModal} transparent animationType="fade" onRequestClose={() => setExpenseModal(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setExpenseModal(false)}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>{t('advance.addExpense')}</Text>
+            <Text style={styles.modalSub}>{t('advance.addExpenseSub')}</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t('advance.amountPlaceholder')}
+              placeholderTextColor={__t.colors.textMuted}
+              keyboardType="decimal-pad"
+              value={expenseAmount}
+              onChangeText={setExpenseAmount}
+              autoFocus
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t('advance.expenseTitlePlaceholder')}
+              placeholderTextColor={__t.colors.textMuted}
+              value={expenseTitle}
+              onChangeText={setExpenseTitle}
+            />
+            <View style={styles.modalActions}>
+              <Button label={t('common.cancel')} variant="secondary" onPress={() => setExpenseModal(false)} style={styles.modalBtn} />
+              <Button
+                label={t('common.save')}
+                onPress={submitExpense}
+                loading={createExpense.isPending}
+                disabled={!expenseAmount.trim()}
                 style={styles.modalBtn}
               />
             </View>
@@ -645,6 +739,30 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.successSoft,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  expenseIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.warningSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addExpenseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: 10,
+    paddingVertical: 9,
+    marginTop: spacing.sm,
+  },
+  addExpenseText: {
+    ...typography.small,
+    color: colors.warning,
+    fontWeight: '700',
   },
   enfRow: {
     flexDirection: 'row',

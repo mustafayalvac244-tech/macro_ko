@@ -55,6 +55,13 @@ export function CaseListItem({ caseItem, onPress }: CaseListItemProps) {
           </Text>
         )}
 
+        {caseItem.court_name ? (
+          <View style={styles.metaChip}>
+            <Ionicons name="business-outline" size={11} color={colors.textMuted} />
+            <Text style={styles.meta} numberOfLines={1}>{caseItem.court_name}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.metaRow}>
           {caseItem.case_number ? (
             <View style={styles.metaChip}>

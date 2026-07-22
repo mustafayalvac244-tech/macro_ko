@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
-import type { ClientAdvance } from '@/types/database';
+import type { ClientAdvance, ClientExpense } from '@/types/database';
 
 /** True when the 0023 (client_advances) section of KURULUM.sql hasn't run. */
 export function isMissingAdvanceTable(err: unknown): boolean {
@@ -75,5 +75,49 @@ export function useDeleteClientAdvance() {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['client-advances'] }),
+  });
+}
+
+/* ---- Müvekkil bazlı elle masraflar (davaya bağlı olmayanlar) ---- */
+
+export function useClientExpenses(clientId: string | undefined) {
+  return useQuery({
+    queryKey: ['client-expenses', clientId],
+    enabled: !!clientId,
+    retry: (n, err) => !isMissingAdvanceTable(err) && n < 1,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_expenses')
+        .select('*')
+        .eq('client_id', clientId!)
+        .order('spent_at', { ascending: false });
+      if (error) throw error;
+      return data as ClientExpense[];
+    },
+  });
+}
+
+export function useCreateClientExpense() {
+  const queryClient = useQueryClient();
+  const ownerId = useAuthStore((s) => s.session?.user.id);
+
+  return useMutation({
+    mutationFn: async (input: { client_id: string; amount: number; title: string | null }) => {
+      const { error } = await supabase.from('client_expenses').insert({ ...input, owner_id: ownerId! });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['client-expenses'] }),
+  });
+}
+
+export function useDeleteClientExpense() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('client_expenses').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['client-expenses'] }),
   });
 }

@@ -616,6 +616,10 @@ export const tr = {
   'advance.negativeWarn': 'Avans tükendi. Müvekkilden {amount} ek masraf avansı istenmeli.',
   'advance.empty': 'Henüz avans yatırılmadı.',
   'advance.deleteTitle': 'Avans kaydı silinsin mi?',
+  'advance.addExpense': 'Masraf Ekle',
+  'advance.addExpenseSub': 'Davaya bağlı olmayan bir masrafı elle girin; avanstan düşülür.',
+  'advance.expenseTitlePlaceholder': 'Açıklama (ör. bilirkişi, kargo)',
+  'advance.deleteExpenseTitle': 'Masraf kaydı silinsin mi?',
   'advance.setupRequired': 'Masraf avansı için KURULUM.sql güncellemesini (0023) çalıştırın.',
 
   'promise.section': 'Alacak / Verecek',
