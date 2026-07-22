@@ -1047,9 +1047,9 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.welcome': 'Search Court of Cassation, Council of State & Regional Court rulings',
   'ictihat.welcomeDesc':
     'Search millions of real decisions in the official UYAP Emsal database; let AI summarize the ones you pick, with citations.',
-  'ictihat.sample1': 'rent determination case',
-  'ictihat.sample2': 'reinstatement conditions',
-  'ictihat.sample3': 'objection to negotiable-instrument enforcement',
+  'ictihat.sample1': 'Rent determination case',
+  'ictihat.sample2': 'Reinstatement conditions',
+  'ictihat.sample3': 'Objection to negotiable-instrument enforcement',
   'ictihat.resultCount': '{count} decisions found',
   'ictihat.loadMore': 'Show more',
   'ictihat.searching': 'Searching...',

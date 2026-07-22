@@ -1049,9 +1049,9 @@ export const tr = {
   'ictihat.welcome': 'Yargıtay, Danıştay ve BAM kararlarında ara',
   'ictihat.welcomeDesc':
     'Resmi UYAP Emsal bankasında milyonlarca gerçek kararı ara; seçtiklerini yapay zekâ kaynak göstererek özetlesin.',
-  'ictihat.sample1': 'kira tespit davası',
-  'ictihat.sample2': 'işe iade şartları',
-  'ictihat.sample3': 'kambiyo senedine dayalı takip itiraz',
+  'ictihat.sample1': 'Kira tespit davası',
+  'ictihat.sample2': 'İşe iade şartları',
+  'ictihat.sample3': 'Kambiyo senedine dayalı takip itirazı',
   'ictihat.resultCount': '{count} karar bulundu',
   'ictihat.loadMore': 'Daha fazla göster',
   'ictihat.searching': 'Aranıyor...',
