@@ -214,6 +214,7 @@ export const en: Record<keyof typeof tr, string> = {
   // Cases
   'cases.title': 'Case Directory',
   'cases.count': '{n} cases',
+  'cases.nextEvent': 'Next: {when}',
   'cases.search': 'Search cases',
   'cases.empty': 'No cases yet',
   'cases.emptyDesc': 'Create your first case to start tracking hearings, deadlines, and documents.',

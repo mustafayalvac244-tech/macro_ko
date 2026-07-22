@@ -5,16 +5,18 @@ import { CaseStatusBadge, PriorityBadge } from '@/components/ui/StatusBadge';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatTime } from '@/utils/format';
 import { useT } from '@/i18n';
 import type { CaseWithClient, PriorityLevel } from '@/types/database';
 
 interface CaseListItemProps {
   caseItem: CaseWithClient;
   onPress: () => void;
+  /** Bu davanın sıradaki (gelecek, tamamlanmamış) duruşma/keşif tarihi. */
+  nextHearingAt?: string | null;
 }
 
-export function CaseListItem({ caseItem, onPress }: CaseListItemProps) {
+export function CaseListItem({ caseItem, onPress, nextHearingAt }: CaseListItemProps) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
@@ -74,6 +76,15 @@ export function CaseListItem({ caseItem, onPress }: CaseListItemProps) {
             <Text style={styles.meta}>{formatDate(caseItem.opened_date)}</Text>
           </View>
         </View>
+
+        {nextHearingAt && !closed ? (
+          <View style={styles.nextHearing}>
+            <Ionicons name="calendar" size={12} color={colors.primary} />
+            <Text style={styles.nextHearingText} numberOfLines={1}>
+              {t('cases.nextEvent', { when: `${formatDate(nextHearingAt)} · ${formatTime(nextHearingAt)}` })}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.badgeRow}>
           <CaseStatusBadge status={caseItem.status} />
@@ -158,6 +169,22 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.small,
     color: colors.textMuted,
     textTransform: 'none',
+  },
+  nextHearing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primarySoft,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 6,
+  },
+  nextHearingText: {
+    ...typography.small,
+    color: colors.primary,
+    fontWeight: '700',
   },
   badgeRow: {
     flexDirection: 'row',

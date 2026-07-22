@@ -214,6 +214,7 @@ export const tr = {
   // Cases
   'cases.title': 'Dava Dizini',
   'cases.count': '{n} dava',
+  'cases.nextEvent': 'Sıradaki: {when}',
   'cases.search': 'Dava ara',
   'cases.empty': 'Henüz dava yok',
   'cases.emptyDesc': 'Duruşmaları, görevleri ve belgeleri takip etmek için ilk davanızı oluşturun.',

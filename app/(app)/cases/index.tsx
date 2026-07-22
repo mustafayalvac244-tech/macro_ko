@@ -10,6 +10,7 @@ import { CaseListItem } from '@/components/cases/CaseListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FAB } from '@/components/ui/FAB';
 import { useCases } from '@/hooks/useCases';
+import { useAllHearings } from '@/hooks/useHearings';
 import { isMissingEnforcementTable, useEnforcements } from '@/hooks/useEnforcements';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -35,6 +36,21 @@ export default function CaseDirectoryScreen() {
   const [newModal, setNewModal] = useState(false);
   const { data: cases, isLoading, refetch, isRefetching } = useCases({ search, status });
   const enforcements = useEnforcements(search);
+  const hearings = useAllHearings();
+
+  // Her dava için sıradaki (gelecek, tamamlanmamış) duruşma/keşif tarihi.
+  const nextHearingByCase = useMemo(() => {
+    const now = Date.now();
+    const m = new Map<string, string>();
+    (hearings.data ?? []).forEach((h) => {
+      if (h.is_completed || !h.case_id) return;
+      const ts = new Date(h.scheduled_at).getTime();
+      if (ts < now) return;
+      const cur = m.get(h.case_id);
+      if (!cur || ts < new Date(cur).getTime()) m.set(h.case_id, h.scheduled_at);
+    });
+    return m;
+  }, [hearings.data]);
 
   const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(`caseFilter.${value}` as const) }));
 
@@ -77,7 +93,11 @@ export default function CaseDirectoryScreen() {
         refreshing={isRefetching}
         renderItem={({ item: row }) =>
           row.kind === 'case' ? (
-            <CaseListItem caseItem={row.item} onPress={() => router.push(`/(app)/cases/${row.item.id}`)} />
+            <CaseListItem
+              caseItem={row.item}
+              nextHearingAt={nextHearingByCase.get(row.item.id)}
+              onPress={() => router.push(`/(app)/cases/${row.item.id}`)}
+            />
           ) : (
             <EnforcementRow
               file={row.item}
