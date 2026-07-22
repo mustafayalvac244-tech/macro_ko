@@ -14,7 +14,13 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
 function norm(s: string): string {
-  return s.toLocaleLowerCase('tr-TR');
+  // Türkçe küçük harf + şapkalı harfleri sadeleştir (î→i, â→a, û→u) ki
+  // "ihtiyati" yazınca "İhtiyatî" başlıklı maddeyi de bulsun.
+  return s
+    .toLocaleLowerCase('tr-TR')
+    .replace(/î/g, 'i')
+    .replace(/â/g, 'a')
+    .replace(/û/g, 'u');
 }
 
 export default function LawBrowserScreen() {
@@ -39,15 +45,20 @@ export default function LawBrowserScreen() {
       return articles.filter((a) => a.no === q || a.no.startsWith(`${q}/`));
     }
     const nq = norm(q);
-    // Başlık + gövde + madde no üzerinde ara. Başlıkta geçenler öne alınır —
-    // "aşırı ifa güçlüğü" araması, gövdede atıf yapan 344 yerine başlığı bu olan
-    // 138'i en üstte getirir.
-    const matched = articles.filter(
-      (a) => (a.title && norm(a.title).includes(nq)) || norm(a.text).includes(nq) || a.no.includes(q)
-    );
-    return matched
-      .map((a) => ({ a, titleHit: !!(a.title && norm(a.title).includes(nq)) }))
-      .sort((x, y) => (x.titleHit === y.titleHit ? 0 : x.titleHit ? -1 : 1))
+    // Başlık + bölüm + gövde + madde no üzerinde ara ve öncelik sırasına diz:
+    // (0) başlıkta geçen, (1) bölüm/sistematik başlığında geçen, (2) gövdede.
+    // Böylece hem "aşırı ifa güçlüğü" (başlık→138) hem "haksız fiil"
+    // (bölüm→ilgili maddeler) doğru sonuç verir.
+    const rank = (a: LawArticle): number => {
+      if (a.title && norm(a.title).includes(nq)) return 0;
+      if (a.section && norm(a.section).includes(nq)) return 1;
+      if (norm(a.text).includes(nq) || a.no.includes(q)) return 2;
+      return 3;
+    };
+    return articles
+      .map((a) => ({ a, r: rank(a) }))
+      .filter((x) => x.r < 3)
+      .sort((x, y) => x.r - y.r)
       .map((x) => x.a);
   }, [query, articles]);
 
