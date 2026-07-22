@@ -13,7 +13,7 @@ export interface IctihatHit {
   durum: string;
 }
 
-type IctihatError = 'rate_limit' | 'source' | 'generic';
+export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'generic';
 
 async function invoke<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('ictihat', { body });
@@ -35,6 +35,7 @@ function mapError(e: unknown): IctihatError {
   const msg = e instanceof Error ? e.message : '';
   if (msg === 'rate_limit') return 'rate_limit';
   if (msg === 'source_unreachable') return 'source';
+  if (msg === 'not_configured') return 'ai_off';
   return 'generic';
 }
 
@@ -131,6 +132,52 @@ export function useIctihatDocument() {
   }, []);
 
   return { text, loading, error, load };
+}
+
+/**
+ * OLAY ANALİZİ — avukat olayı anlatır; AI hukuki değerlendirme + çözüm yazar ve
+ * olaya uygun gerçek içtihatı bulup getirir. (Gemini gerektirir.)
+ */
+export function useIctihatAnalyze() {
+  const [analysis, setAnalysis] = useState('');
+  const [issue, setIssue] = useState('');
+  const [hits, setHits] = useState<IctihatHit[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<IctihatError | null>(null);
+  const [done, setDone] = useState(false);
+
+  const analyze = useCallback(async (olay: string) => {
+    if (olay.trim().length < 15) return;
+    setError(null);
+    setLoading(true);
+    setDone(true);
+    setAnalysis('');
+    setHits([]);
+    setIssue('');
+    try {
+      const res = await invoke<{ analysis: string; issue: string; hits: IctihatHit[] }>({
+        action: 'analyze',
+        olay: olay.trim(),
+      });
+      setAnalysis(res.analysis ?? '');
+      setIssue(res.issue ?? '');
+      setHits(res.hits ?? []);
+    } catch (e) {
+      setError(mapError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    setAnalysis('');
+    setIssue('');
+    setHits([]);
+    setError(null);
+    setDone(false);
+  }, []);
+
+  return { analysis, issue, hits, loading, error, done, analyze, reset };
 }
 
 /** Seçili kararları Gemini'ye kaynaklı özetletir. */

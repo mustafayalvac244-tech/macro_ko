@@ -14,7 +14,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { useIctihat, useIctihatDocument, useIctihatSummary, type IctihatHit } from '@/hooks/useIctihat';
+import {
+  useIctihat,
+  useIctihatAnalyze,
+  useIctihatDocument,
+  useIctihatSummary,
+  type IctihatHit,
+  type IctihatError,
+} from '@/hooks/useIctihat';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -29,10 +36,13 @@ export default function IctihatScreen() {
   const t = useT();
 
   const { query, hits, total, searching, loadingMore, hasMore, error, searched, search, loadMore } = useIctihat();
+  const analyze = useIctihatAnalyze();
   const doc = useIctihatDocument();
   const sum = useIctihatSummary();
 
+  const [mode, setMode] = useState<'analyze' | 'search'>('analyze');
   const [draft, setDraft] = useState('');
+  const [olay, setOlay] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openHit, setOpenHit] = useState<IctihatHit | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -67,7 +77,39 @@ export default function IctihatScreen() {
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('ictihat.title')} showBack />
+
+      {/* Mod seçimi: Olay Analizi (akıl yürütme) / Kelime Arama */}
+      <View style={styles.modePills}>
+        <Pressable
+          onPress={() => setMode('analyze')}
+          style={[styles.modePill, mode === 'analyze' && styles.modePillActive]}
+        >
+          <Ionicons name="sparkles" size={15} color={mode === 'analyze' ? colors.textInverse : colors.textSecondary} />
+          <Text style={[styles.modePillText, mode === 'analyze' && styles.modePillTextActive]}>
+            {t('ictihat.modeAnalyze')}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setMode('search')}
+          style={[styles.modePill, mode === 'search' && styles.modePillActive]}
+        >
+          <Ionicons name="search" size={15} color={mode === 'search' ? colors.textInverse : colors.textSecondary} />
+          <Text style={[styles.modePillText, mode === 'search' && styles.modePillTextActive]}>
+            {t('ictihat.modeSearch')}
+          </Text>
+        </Pressable>
+      </View>
+
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+        {mode === 'analyze' ? (
+          <AnalyzePanel
+            olay={olay}
+            setOlay={setOlay}
+            state={analyze}
+            onOpen={openDoc}
+          />
+        ) : (
+        <>
         {/* Arama kutusu */}
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color={colors.textMuted} />
@@ -166,6 +208,8 @@ export default function IctihatScreen() {
             </Pressable>
           </View>
         )}
+        </>
+        )}
       </KeyboardAvoidingView>
 
       {/* Karar tam metni */}
@@ -219,16 +263,119 @@ function Welcome({ onPick }: { onPick: (q: string) => void }) {
   );
 }
 
+function AnalyzePanel({
+  olay,
+  setOlay,
+  state,
+  onOpen,
+}: {
+  olay: string;
+  setOlay: (s: string) => void;
+  state: ReturnType<typeof useIctihatAnalyze>;
+  onOpen: (h: IctihatHit) => void;
+}) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const t = useT();
+  const { analysis, hits, loading, error, done, analyze } = state;
+
+  const errText: string =
+    error === 'ai_off'
+      ? t('ictihat.errAiOff')
+      : error === 'rate_limit'
+        ? t('ictihat.errRate')
+        : error === 'source'
+          ? t('ictihat.errSource')
+          : t('ictihat.errGeneric');
+  const canRun = olay.trim().length >= 15 && !loading;
+
+  return (
+    <ScrollView
+      style={styles.flex}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.analyzeIntro}>
+        <Text style={styles.analyzeTitle}>{t('ictihat.analyzeTitle')}</Text>
+        <Text style={styles.analyzeDesc}>{t('ictihat.analyzeDesc')}</Text>
+      </View>
+
+      <TextInput
+        style={styles.analyzeInput}
+        value={olay}
+        onChangeText={setOlay}
+        placeholder={t('ictihat.analyzePlaceholder')}
+        placeholderTextColor={colors.textMuted}
+        multiline
+        textAlignVertical="top"
+      />
+
+      <Pressable
+        onPress={() => analyze(olay)}
+        disabled={!canRun}
+        style={[styles.analyzeBtn, !canRun && styles.analyzeBtnDisabled]}
+      >
+        {loading ? (
+          <ActivityIndicator color={colors.textInverse} size="small" />
+        ) : (
+          <>
+            <Ionicons name="sparkles" size={18} color={colors.textInverse} />
+            <Text style={styles.analyzeBtnText}>{t('ictihat.analyzeBtn')}</Text>
+          </>
+        )}
+      </Pressable>
+
+      {loading && (
+        <View style={styles.centerBox}>
+          <ActivityIndicator color={colors.primary} />
+          <Text style={styles.centerText}>{t('ictihat.analyzing')}</Text>
+        </View>
+      )}
+
+      {!loading && error && (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
+          <Text style={styles.errorText}>{errText}</Text>
+        </View>
+      )}
+
+      {!loading && !error && done && !!analysis && (
+        <>
+          <View style={styles.analysisCard}>
+            <Text style={styles.analysisText}>{analysis}</Text>
+          </View>
+          {hits.length > 0 && (
+            <>
+              <Text style={styles.analyzeResultsHead}>{t('ictihat.analyzeRefs')}</Text>
+              {hits.map((h) => (
+                <HitCard key={h.id} hit={h} selected={false} onToggle={() => {}} onOpen={() => onOpen(h)} hideCheckbox />
+              ))}
+              <View style={styles.sourceRow}>
+                <Ionicons name="shield-checkmark-outline" size={13} color={colors.textMuted} />
+                <Text style={styles.sourceText}>{t('ictihat.source')}</Text>
+              </View>
+            </>
+          )}
+        </>
+      )}
+    </ScrollView>
+  );
+}
+
 function HitCard({
   hit,
   selected,
   onToggle,
   onOpen,
+  hideCheckbox,
 }: {
   hit: IctihatHit;
   selected: boolean;
   onToggle: () => void;
   onOpen: () => void;
+  hideCheckbox?: boolean;
 }) {
   const __t = useTheme();
   const colors = __t.colors;
@@ -236,13 +383,15 @@ function HitCard({
 
   return (
     <View style={[styles.card, selected && styles.cardSelected]}>
-      <Pressable onPress={onToggle} hitSlop={6} style={styles.checkbox}>
-        <Ionicons
-          name={selected ? 'checkbox' : 'square-outline'}
-          size={22}
-          color={selected ? colors.primary : colors.textMuted}
-        />
-      </Pressable>
+      {!hideCheckbox && (
+        <Pressable onPress={onToggle} hitSlop={6} style={styles.checkbox}>
+          <Ionicons
+            name={selected ? 'checkbox' : 'square-outline'}
+            size={22}
+            color={selected ? colors.primary : colors.textMuted}
+          />
+        </Pressable>
+      )}
       <Pressable onPress={onOpen} style={styles.cardBody}>
         <Text style={styles.cardDaire} numberOfLines={2}>
           {hit.daire}
@@ -282,7 +431,7 @@ function DocModal({
   hit: IctihatHit | null;
   loading: boolean;
   text: string;
-  error: 'rate_limit' | 'source' | 'generic' | null;
+  error: IctihatError | null;
   onClose: () => void;
 }) {
   const __t = useTheme();
@@ -343,7 +492,7 @@ function SummaryModal({
   visible: boolean;
   loading: boolean;
   summary: string;
-  error: 'rate_limit' | 'source' | 'generic' | null;
+  error: IctihatError | null;
   onClose: () => void;
 }) {
   const __t = useTheme();
@@ -387,6 +536,98 @@ function SummaryModal({
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
+  // Mod seçim pilleri
+  modePills: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  modePill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modePillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  modePillText: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '700',
+  },
+  modePillTextActive: {
+    color: colors.textInverse,
+  },
+  // Olay analizi
+  analyzeIntro: {
+    marginBottom: spacing.sm,
+  },
+  analyzeTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  analyzeDesc: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  analyzeInput: {
+    ...typography.body,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    padding: spacing.md,
+    minHeight: 140,
+    marginBottom: spacing.sm,
+  },
+  analyzeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+  },
+  analyzeBtnDisabled: {
+    opacity: 0.45,
+  },
+  analyzeBtnText: {
+    ...typography.bodyMedium,
+    color: colors.textInverse,
+    fontWeight: '800',
+  },
+  analysisCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 14,
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
+  analysisText: {
+    ...typography.body,
+    color: colors.textPrimary,
+    lineHeight: 22,
+  },
+  analyzeResultsHead: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontWeight: '800',
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',

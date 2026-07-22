@@ -167,6 +167,98 @@ async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string
   return text.trim();
 }
 
+/**
+ * OLAY ANALİZİ — 1. adım: avukatın anlattığı olaydan, UYAP Emsal'de içtihat
+ * aramak için en isabetli Türkçe arama terimlerini ve hukuki nitelendirmeyi üretir.
+ */
+async function geminiPlan(olay: string, model: string): Promise<{ issue: string; queries: string[] }> {
+  const apiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!apiKey) throw new Error('not_configured');
+
+  const system =
+    'Sen Türk hukukunda uzman bir asistansın. Avukatın anlattığı somut olayı hukuken nitelendir ve ' +
+    'UYAP Emsal içtihat bankasında ARAMA yapmak için en isabetli 3 Türkçe arama terimi üret. ' +
+    'Terimler kısa olsun (2-5 kelime), dava türü/kurum/kavram içersin (ör. "gerçek olmayan ihtiyaç tahliye"). ' +
+    'SADECE şu JSON formatında yanıt ver: {"issue":"kısa hukuki nitelendirme","queries":["terim1","terim2","terim3"]}';
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: `OLAY:\n${olay.slice(0, 4000)}` }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 400, responseMimeType: 'application/json' },
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+  const j = await res.json();
+  const raw = j.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+  try {
+    const parsed = JSON.parse(raw);
+    const queries = Array.isArray(parsed.queries) ? parsed.queries.map((q: unknown) => String(q)).filter(Boolean).slice(0, 3) : [];
+    return { issue: String(parsed.issue ?? ''), queries };
+  } catch {
+    return { issue: '', queries: [] };
+  }
+}
+
+/**
+ * OLAY ANALİZİ — son adım: olaya göre hukuki değerlendirme + çözüm önerisi yazar
+ * ve verilen GERÇEK kararlardan olaya en uygun olanları kaynak göstererek işaret eder.
+ */
+async function geminiAnalyze(
+  olay: string,
+  issue: string,
+  docs: Array<{ hit: Hit; text: string }>,
+  model: string
+): Promise<string> {
+  const apiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!apiKey) throw new Error('not_configured');
+
+  const corpus = docs
+    .map((d, i) => {
+      const label = `[${i + 1}] ${d.hit.daire} — E.${d.hit.esasNo} K.${d.hit.kararNo} (${d.hit.kararTarihi})`;
+      return `${label}\n${d.text.slice(0, 4500)}`;
+    })
+    .join('\n\n----\n\n');
+
+  const system =
+    'Sen "Vekil AI" adlı, Türk hukukunda uzman bir asistansın. Avukatın anlattığı somut olaya göre şu ' +
+    'yapıda, mesleki Türkçe bir analiz yaz:\n' +
+    '1) HUKUKİ DEĞERLENDİRME: olayın hukuki nitelendirmesi, uygulanacak temel kurallar (madde no varsa belirt).\n' +
+    '2) ÇÖZÜM / STRATEJİ: avukatın atması gereken adımlar, dikkat noktaları.\n' +
+    '3) OLAYA UYGUN İÇTİHAT: aşağıda verilen GERÇEK kararlardan olaya en uygun olanları [1],[2] şeklinde ' +
+    'atıfla ve HER BİRİ İÇİN olaya neden uyduğunu tek cümleyle açıkla.\n' +
+    'YALNIZCA verilen kararlara atıf yap; listede olmayan karar/esas no UYDURMA. Uygun karar yoksa dürüstçe söyle. ' +
+    'Sonuna, bunun hukuki tavsiye olmadığını ve kararların güncelliğinin teyit edilmesi gerektiğini ekle.';
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: `OLAY:\n${olay.slice(0, 4000)}\n\nÖN NİTELENDİRME: ${issue}\n\nADAY KARARLAR:\n\n${corpus}` }],
+          },
+        ],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 2000 },
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+  const j = await res.json();
+  const text = j.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+  if (!text) throw new Error('empty');
+  return text.trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
@@ -180,8 +272,9 @@ Deno.serve(async (req) => {
   if (userErr || !userData.user) return json({ error: 'unauthorized' }, 401);
 
   let body: {
-    action?: 'search' | 'document' | 'summarize';
+    action?: 'search' | 'document' | 'summarize' | 'analyze';
     query?: string;
+    olay?: string;
     id?: string;
     ids?: string[];
     page?: number;
@@ -304,6 +397,77 @@ Deno.serve(async (req) => {
       }
       const summary = await geminiSummary(query, docs, tier === 'plus' ? MODEL_PLUS : MODEL_BASIC);
       return json({ summary, count: docs.length, tier });
+    }
+
+    // OLAY ANALİZİ — avukat olayı anlatır; AI hukuki değerlendirme + çözüm yazar ve
+    // olaya uygun GERÇEK içtihatı bulup getirir (kelime araması değil, akıl yürütme).
+    if (action === 'analyze') {
+      const olay = (body.olay ?? '').trim();
+      if (olay.length < 15) return json({ error: 'bad_request' }, 400);
+
+      // Üyelik katmanı.
+      let tier: 'basic' | 'plus' = 'basic';
+      try {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('is_premium')
+          .eq('id', userData.user.id)
+          .maybeSingle();
+        if (prof?.is_premium) tier = 'plus';
+      } catch {
+        // Basic'te kal
+      }
+      const model = tier === 'plus' ? MODEL_PLUS : MODEL_BASIC;
+
+      // 1) Olaydan arama terimleri üret.
+      const plan = await geminiPlan(olay, model);
+      const queries = plan.queries.length > 0 ? plan.queries : [olay.slice(0, 60)];
+
+      // 2) Her terimle gerçek kararları topla (havuz + canlı), dedupe, sınırla.
+      const seen = new Set<string>();
+      const candidates: Hit[] = [];
+      for (const q of queries) {
+        if (candidates.length >= 8) break;
+        try {
+          const { data: ftsRows } = await supabase.rpc('search_ictihat_fts', { q, match_count: 4 });
+          for (const r of ftsRows ?? []) {
+            const h = rowToHit(r);
+            if (h.id && !seen.has(h.id)) { seen.add(h.id); candidates.push(h); }
+          }
+        } catch { /* havuz yoksa geç */ }
+        try {
+          const live = await emsalSearch(q, 1, 5);
+          for (const h of live.hits) {
+            if (h.id && !seen.has(h.id) && candidates.length < 10) { seen.add(h.id); candidates.push(h); }
+          }
+        } catch { /* canlı ulaşılamazsa geç */ }
+      }
+      if (candidates.length === 0) return json({ error: 'empty' }, 502);
+
+      // 3) En fazla 6 kararın gerçek metnini çek (havuz önce), AI'a ver.
+      const top = candidates.slice(0, 6);
+      const ids = top.map((h) => h.id);
+      const { data: corpusRows } = await supabase
+        .from('ictihat_kararlar')
+        .select('id,full_text')
+        .in('id', ids);
+      // deno-lint-ignore no-explicit-any
+      const corpusText = new Map<string, string>((corpusRows ?? []).map((r: any) => [String(r.id), String(r.full_text ?? '')]));
+
+      const docs: Array<{ hit: Hit; text: string }> = [];
+      for (const h of top) {
+        let text = corpusText.get(h.id) ?? '';
+        if (!text) {
+          try { text = await emsalDocument(h.id); } catch { text = ''; }
+        }
+        if (text) docs.push({ hit: h, text });
+      }
+      if (docs.length === 0) return json({ error: 'empty' }, 502);
+
+      // 4) Olaya göre analiz + olaya uygun içtihat.
+      const analysis = await geminiAnalyze(olay, plan.issue, docs, model);
+      // Uygulamaya, analizde kullanılan kararları (dokunup okunabilsin diye) döndür.
+      return json({ analysis, issue: plan.issue, queries, hits: docs.map((d) => d.hit), tier });
     }
 
     return json({ error: 'bad_request' }, 400);
