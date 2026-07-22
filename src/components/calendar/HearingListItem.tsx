@@ -12,7 +12,7 @@ const HEARING_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   hearing: 'hammer-outline',
   trial: 'hammer-outline',
   mediation: 'people-outline',
-  deposition: 'document-text-outline',
+  deposition: 'location-outline', // Keşif (mahallinde inceleme)
   filing: 'file-tray-full-outline',
   meeting: 'chatbubbles-outline',
   other: 'time-outline',

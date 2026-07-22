@@ -21,7 +21,9 @@ import { formatDate, formatTime } from '@/utils/format';
 import { addToDeviceCalendar } from '@/utils/deviceCalendar';
 import type { HearingType } from '@/types/database';
 
-const TYPE_VALUES: HearingType[] = ['hearing', 'trial', 'mediation', 'deposition', 'filing', 'meeting', 'other'];
+// Keşif (deposition) öne alındı — Burak geri bildirimi: keşif tarihini
+// girecek yeri bulamıyordu. Artık Duruşma'nın hemen yanında.
+const TYPE_VALUES: HearingType[] = ['hearing', 'deposition', 'trial', 'mediation', 'filing', 'meeting', 'other'];
 
 const REMINDER_VALUES = [
   { key: 'reminder.30m', value: '30' },
@@ -165,7 +167,22 @@ export default function HearingFormScreen() {
           />
 
           <Text style={styles.label}>{t('hearingForm.type')}</Text>
-          <SegmentedControl options={typeOptions} value={type} onChange={setType} />
+          {/* Çip ızgarası: 7 tür tek satır SegmentedControl'de sıkışıp okunmuyordu
+              (Keşif dahil). Kaydırmalı çiplerde hepsi net görünür. */}
+          <View style={styles.typeChips}>
+            {typeOptions.map((opt) => {
+              const active = type === opt.value;
+              return (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => setType(opt.value)}
+                  style={[styles.typeChip, active && styles.typeChipActive]}
+                >
+                  <Text style={[styles.typeChipText, active && styles.typeChipTextActive]}>{opt.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
           <View style={styles.spacer} />
           <Text style={styles.label}>{t('hearingForm.datetime')}</Text>
@@ -313,6 +330,31 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   spacer: {
     height: spacing.md,
+  },
+  typeChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  typeChip: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  typeChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  typeChipText: {
+    ...typography.bodyMedium,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  typeChipTextActive: {
+    color: colors.textInverse,
   },
   dateButton: {
     flexDirection: 'row',
