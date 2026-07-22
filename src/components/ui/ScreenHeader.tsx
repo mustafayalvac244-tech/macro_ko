@@ -15,9 +15,23 @@ interface ScreenHeaderProps {
   showMenu?: boolean;
   rightIcon?: keyof typeof Ionicons.glyphMap;
   onRightPress?: () => void;
+  /** Derin ekranlarda geri okunun yanındaki "ana sayfa" kısayolunu gizler. */
+  hideHome?: boolean;
 }
 
-export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, onRightPress }: ScreenHeaderProps) {
+/** Derin gezinme yığınını temizleyip doğrudan ana sayfaya döner. */
+function goHome() {
+  try {
+    // Üstteki modal/formları kapat, sonra ana sekmeye geçmişi sararak dön.
+    const r = router as unknown as { canDismiss?: () => boolean; dismissAll?: () => void };
+    if (r.canDismiss?.()) r.dismissAll?.();
+  } catch {
+    // yoksay
+  }
+  router.navigate('/(app)' as Parameters<typeof router.navigate>[0]);
+}
+
+export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, onRightPress, hideHome }: ScreenHeaderProps) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
@@ -25,16 +39,24 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
   // Bir önceki ekran varsa geri okunu göster (alt sekmeden açılan Takvim,
   // Dosyalar, Müvekkiller gibi ekranlarda da menünün yanında görünür).
   const canGoBack = router.canGoBack();
+  const deep = showBack || canGoBack;
 
   return (
     <View style={styles.container}>
       <View style={styles.left}>
-        {showBack || canGoBack ? (
-          // İçeri girilen ekranda yalnızca geri tuşu (menü değil) — bir önceki
-          // ekrana dönmek yeterli, iki buton kalabalık yapıyordu.
-          <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-          </Pressable>
+        {deep ? (
+          // İçeri girilen ekranda: geri oku + ana sayfa kısayolu (derin yığında
+          // tek tek geri gitmeden doğrudan ana sayfaya dönebilmek için).
+          <>
+            <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
+              <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+            </Pressable>
+            {!hideHome && (
+              <Pressable onPress={goHome} hitSlop={10} style={styles.homeButton}>
+                <Ionicons name="home-outline" size={20} color={colors.textPrimary} />
+              </Pressable>
+            )}
+          </>
         ) : (
           showMenu && (
             <Pressable onPress={openSidebar} hitSlop={10} style={styles.menuButton}>
@@ -77,9 +99,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexShrink: 1,
   },
   backButton: {
-    marginRight: spacing.xs,
     width: 32,
     height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  homeButton: {
+    marginRight: spacing.xs,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
