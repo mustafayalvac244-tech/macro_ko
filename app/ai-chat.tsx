@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { AI_ENABLED } from '@/config/features';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAiChat, type AiMessage } from '@/hooks/useAiChat';
@@ -48,9 +49,13 @@ export default function AiChatScreen() {
       <ScreenHeader
         title={t('ai.title')}
         showBack
-        rightIcon={empty ? undefined : 'create-outline'}
-        onRightPress={empty ? undefined : reset}
+        rightIcon={!AI_ENABLED || empty ? undefined : 'create-outline'}
+        onRightPress={!AI_ENABLED || empty ? undefined : reset}
       />
+      {!AI_ENABLED ? (
+        <ComingSoon />
+      ) : (
+      <>
       {tier === 'plus' && (
         <View style={styles.tierPlus}>
           <Ionicons name="diamond" size={13} color={colors.gold} />
@@ -123,7 +128,28 @@ export default function AiChatScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+      </>
+      )}
     </Screen>
+  );
+}
+
+function ComingSoon() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const t = useT();
+  return (
+    <View style={styles.soonWrap}>
+      <View style={styles.soonIcon}>
+        <Ionicons name="sparkles" size={34} color={colors.gold} />
+      </View>
+      <View style={styles.soonBadge}>
+        <Text style={styles.soonBadgeText}>{t('ai.comingSoonBadge')}</Text>
+      </View>
+      <Text style={styles.soonTitle}>{t('ai.comingSoon')}</Text>
+      <Text style={styles.soonDesc}>{t('ai.comingSoonDesc')}</Text>
+    </View>
   );
 }
 
@@ -171,6 +197,48 @@ function Bubble({ message }: { message: AiMessage }) {
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: {
     flex: 1,
+  },
+  // Çok Yakında
+  soonWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  soonIcon: {
+    width: 84,
+    height: 84,
+    borderRadius: 26,
+    backgroundColor: colors.goldSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  soonBadge: {
+    backgroundColor: colors.gold,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: spacing.sm,
+  },
+  soonBadgeText: {
+    ...typography.small,
+    color: colors.textInverse,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontSize: 11,
+  },
+  soonTitle: {
+    ...typography.h2,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  soonDesc: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    lineHeight: 22,
   },
   tierPlus: {
     flexDirection: 'row',

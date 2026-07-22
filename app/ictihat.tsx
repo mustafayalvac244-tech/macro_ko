@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { AI_ENABLED } from '@/config/features';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import {
@@ -40,7 +41,7 @@ export default function IctihatScreen() {
   const doc = useIctihatDocument();
   const sum = useIctihatSummary();
 
-  const [mode, setMode] = useState<'analyze' | 'search'>('analyze');
+  const [mode, setMode] = useState<'analyze' | 'search'>(AI_ENABLED ? 'analyze' : 'search');
   const [draft, setDraft] = useState('');
   const [olay, setOlay] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -164,7 +165,7 @@ export default function IctihatScreen() {
                 <Text style={styles.resultCount}>
                   {t('ictihat.resultCount', { count: total.toLocaleString('tr-TR') })}
                 </Text>
-                <Text style={styles.selectHint}>{t('ictihat.selectHint')}</Text>
+                {AI_ENABLED && <Text style={styles.selectHint}>{t('ictihat.selectHint')}</Text>}
               </View>
               {hits.map((hit) => (
                 <HitCard
@@ -173,6 +174,7 @@ export default function IctihatScreen() {
                   selected={selected.has(hit.id)}
                   onToggle={() => toggle(hit.id)}
                   onOpen={() => openDoc(hit)}
+                  hideCheckbox={!AI_ENABLED}
                 />
               ))}
               {hasMore && (
@@ -200,7 +202,7 @@ export default function IctihatScreen() {
         </ScrollView>
 
         {/* AI özet çubuğu */}
-        {selected.size > 0 && (
+        {AI_ENABLED && selected.size > 0 && (
           <View style={styles.summaryBar}>
             <Pressable onPress={runSummary} style={styles.summaryBtn}>
               <Ionicons name="sparkles" size={18} color={colors.textInverse} />
@@ -289,6 +291,27 @@ function AnalyzePanel({
           ? t('ictihat.errSource')
           : t('ictihat.errGeneric');
   const canRun = olay.trim().length >= 15 && !loading;
+
+  // AI henüz canlı değil: "Çok Yakında" göster, arka uca istek atma.
+  if (!AI_ENABLED) {
+    return (
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={[styles.content, styles.analyzeSoonWrap]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.soonIcon}>
+          <Ionicons name="sparkles" size={30} color={colors.gold} />
+        </View>
+        <View style={styles.soonBadge}>
+          <Text style={styles.soonBadgeText}>{t('ai.comingSoonBadge')}</Text>
+        </View>
+        <Text style={styles.soonTitle}>{t('ictihat.analyzeSoon')}</Text>
+        <Text style={styles.soonDesc}>{t('ictihat.analyzeSoonDesc')}</Text>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView
@@ -566,6 +589,48 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   modePillTextActive: {
     color: colors.textInverse,
+  },
+  // Olay analizi — Çok Yakında
+  analyzeSoonWrap: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  soonIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    backgroundColor: colors.goldSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  soonBadge: {
+    backgroundColor: colors.gold,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: spacing.sm,
+  },
+  soonBadgeText: {
+    ...typography.small,
+    color: colors.textInverse,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontSize: 11,
+  },
+  soonTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  soonDesc: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    lineHeight: 22,
+    paddingHorizontal: spacing.sm,
   },
   // Olay analizi
   analyzeIntro: {

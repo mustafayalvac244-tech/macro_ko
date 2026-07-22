@@ -1037,6 +1037,9 @@ export const tr = {
   'ai.errRateLimit': 'Yoğunluk nedeniyle şu an yanıt veremiyorum. Bir dakika sonra tekrar deneyin.',
   'ai.errGeneric': 'Yanıt alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
+  'ai.comingSoon': 'Vekil AI çok yakında',
+  'ai.comingSoonDesc': 'Yapay zekâ asistanı son hazırlıklarını yapıyor. Çok yakında sorularınızı yanıtlamaya başlayacak!',
+  'ai.comingSoonBadge': 'YAKINDA',
   'ai.tierBasic': 'Basic',
   'ai.tierPlus': 'Plus',
   'ai.plusActive': 'Plus AI etkin — güçlü model + içtihat destekli yanıtlar',
@@ -1054,6 +1057,8 @@ export const tr = {
   'ictihat.analyzeBtn': 'Analiz Et ve İçtihat Bul',
   'ictihat.analyzing': 'Olay inceleniyor, uygun kararlar aranıyor...',
   'ictihat.analyzeRefs': 'Olaya Uygun Kararlar',
+  'ictihat.analyzeSoon': 'Olay Analizi çok yakında',
+  'ictihat.analyzeSoonDesc': 'Olayınızı anlatınca yapay zekâ hukuki değerlendirme yapıp olaya uygun içtihatı getirecek. Bu özellik çok yakında açılıyor. Şimdilik “Kelime Arama” ile gerçek kararlara ulaşabilirsiniz.',
   'ictihat.errAiOff': 'AI şu an kapalı (yapılandırma bekleniyor). Kelime Arama sekmesi çalışır.',
   'ictihat.welcome': 'Yargıtay, Danıştay ve BAM kararlarında ara',
   'ictihat.welcomeDesc':

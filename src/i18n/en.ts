@@ -1035,6 +1035,9 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.errRateLimit': 'I can’t respond right now due to heavy load. Try again in a minute.',
   'ai.errGeneric': 'No response. Check your internet connection and try again.',
   'ai.disclaimer': 'AI answers are not legal advice; verify against current legislation.',
+  'ai.comingSoon': 'Vekil AI is coming soon',
+  'ai.comingSoonDesc': 'The AI assistant is getting its final touches. It will start answering your questions very soon!',
+  'ai.comingSoonBadge': 'SOON',
   'ai.tierBasic': 'Basic',
   'ai.tierPlus': 'Plus',
   'ai.plusActive': 'Plus AI active — stronger model + case-law-backed answers',
@@ -1052,6 +1055,8 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.analyzeBtn': 'Analyze & Find Case Law',
   'ictihat.analyzing': 'Reviewing the case, searching for fitting decisions...',
   'ictihat.analyzeRefs': 'Decisions Fitting Your Case',
+  'ictihat.analyzeSoon': 'Case Analysis is coming soon',
+  'ictihat.analyzeSoonDesc': 'Describe your case and AI will give a legal assessment and bring fitting case law. This feature is opening very soon. For now, use “Keyword Search” to reach real decisions.',
   'ictihat.errAiOff': 'AI is currently off (awaiting configuration). Keyword Search still works.',
   'ictihat.welcome': 'Search Court of Cassation, Council of State & Regional Court rulings',
   'ictihat.welcomeDesc':
