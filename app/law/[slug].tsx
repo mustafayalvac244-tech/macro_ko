@@ -39,7 +39,16 @@ export default function LawBrowserScreen() {
       return articles.filter((a) => a.no === q || a.no.startsWith(`${q}/`));
     }
     const nq = norm(q);
-    return articles.filter((a) => norm(a.text).includes(nq) || a.no.includes(q));
+    // Başlık + gövde + madde no üzerinde ara. Başlıkta geçenler öne alınır —
+    // "aşırı ifa güçlüğü" araması, gövdede atıf yapan 344 yerine başlığı bu olan
+    // 138'i en üstte getirir.
+    const matched = articles.filter(
+      (a) => (a.title && norm(a.title).includes(nq)) || norm(a.text).includes(nq) || a.no.includes(q)
+    );
+    return matched
+      .map((a) => ({ a, titleHit: !!(a.title && norm(a.title).includes(nq)) }))
+      .sort((x, y) => (x.titleHit === y.titleHit ? 0 : x.titleHit ? -1 : 1))
+      .map((x) => x.a);
   }, [query, articles]);
 
   const renderSnippet = (a: LawArticle) => {
@@ -118,9 +127,12 @@ export default function LawBrowserScreen() {
                     {item.no.replace('Geçici ', 'G').replace('Ek ', 'E')}
                   </Text>
                 </View>
-                <Text style={styles.articleTitle} numberOfLines={isOpen ? undefined : 2}>
-                  {t('laws.articleN', { no: item.no })}
-                </Text>
+                <View style={styles.titleWrap}>
+                  <Text style={styles.articleTitle} numberOfLines={isOpen ? undefined : 2}>
+                    {item.title || t('laws.articleN', { no: item.no })}
+                  </Text>
+                  {!!item.title && <Text style={styles.articleNo}>{t('laws.articleN', { no: item.no })}</Text>}
+                </View>
                 <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
               </Pressable>
               {!isOpen && renderSnippet(item)}
@@ -177,10 +189,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
     color: colors.primary,
   },
+  titleWrap: {
+    flex: 1,
+  },
   articleTitle: {
     ...typography.bodyMedium,
     color: colors.textPrimary,
-    flex: 1,
+    fontWeight: '700',
+  },
+  articleNo: {
+    ...typography.small,
+    color: colors.textMuted,
+    marginTop: 1,
   },
   snippet: {
     ...typography.caption,

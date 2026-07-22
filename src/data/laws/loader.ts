@@ -4,6 +4,8 @@
 export interface LawArticle {
   no: string;
   text: string;
+  /** Maddenin resmî kenar başlığı (ör. "Aşırı ifa güçlüğü"). Temel kanunlarda mevcut. */
+  title?: string;
 }
 export interface LawFile {
   short: string;
