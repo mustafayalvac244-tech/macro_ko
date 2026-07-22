@@ -17,14 +17,13 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney } from '@/utils/format';
-import type { CaseStatus } from '@/types/database';
+import type { InstanceStage } from '@/types/database';
 
-const STATUS_ORDER: CaseStatus[] = ['active', 'pending', 'on_hold', 'won', 'lost', 'closed'];
+const OPEN_STAGES: InstanceStage[] = ['ilk_derece', 'istinaf', 'temyiz'];
 
 export default function ReportsScreen() {
   const __t = useTheme();
   const colors = __t.colors;
-  const caseStatusColors = __t.caseStatusColors;
   const styles = makeStyles(__t.colors);
 
   const t = useT();
@@ -45,10 +44,23 @@ export default function ReportsScreen() {
     return { gercek, tuzel, total: gercek + tuzel };
   }, [clients.data]);
 
-  const statusCounts = useMemo(() => {
-    const counts = new Map<CaseStatus, number>();
-    cases.data?.forEach((c) => counts.set(c.status, (counts.get(c.status) ?? 0) + 1));
-    return counts;
+  // Alper/Burak önerisi: "Aktif" yerine Açık/Kapalı; açık davalar da
+  // İlk Derece / İstinaf / Temyiz aşamalarına ayrılsın.
+  const caseBreakdown = useMemo(() => {
+    let open = 0;
+    let closed = 0;
+    const stages: Record<InstanceStage, number> = { ilk_derece: 0, istinaf: 0, temyiz: 0 };
+    cases.data?.forEach((c) => {
+      const isClosed = c.status === 'closed' || c.status === 'won' || c.status === 'lost';
+      if (isClosed) {
+        closed += 1;
+      } else {
+        open += 1;
+        const st: InstanceStage = c.instance_stage ?? 'ilk_derece';
+        stages[st] = (stages[st] ?? 0) + 1;
+      }
+    });
+    return { open, closed, stages };
   }, [cases.data]);
 
   const monthly = useMemo(() => {
@@ -93,7 +105,7 @@ export default function ReportsScreen() {
   }, [financeEntries.data]);
 
   const totalCases = cases.data?.length ?? 0;
-  const maxStatus = Math.max(1, ...Array.from(statusCounts.values()));
+  const maxStage = Math.max(1, ...OPEN_STAGES.map((s) => caseBreakdown.stages[s]));
   const maxMonthly = Math.max(1, ...monthly.map((m) => m.count));
   const hasData = totalCases > 0 || (hearings.data?.length ?? 0) > 0;
 
@@ -109,21 +121,29 @@ export default function ReportsScreen() {
           <>
             <SectionHeader title={`${t('reports.casesByStatus')} · ${t('reports.totalCases')}: ${totalCases}`} />
             <Card style={styles.chartCard}>
-              {STATUS_ORDER.filter((s) => (statusCounts.get(s) ?? 0) > 0).map((status) => {
-                const count = statusCounts.get(status)!;
-                const palette = caseStatusColors[status]!;
-                return (
-                  <View key={status} style={styles.barRow}>
-                    <Text style={styles.barLabel} numberOfLines={1}>
-                      {t(`status.${status}` as const)}
-                    </Text>
-                    <View style={styles.barTrack}>
-                      <View style={[styles.barFill, { width: `${(count / maxStatus) * 100}%`, backgroundColor: palette.fg }]} />
-                    </View>
-                    <Text style={styles.barCount}>{count}</Text>
-                  </View>
-                );
-              })}
+              <View style={styles.pillRow}>
+                <StatPill label={t('reports.casesOpen')} value={caseBreakdown.open} color={colors.success} />
+                <StatPill label={t('reports.casesClosed')} value={caseBreakdown.closed} color={colors.textMuted} />
+              </View>
+              {caseBreakdown.open > 0 && (
+                <>
+                  <Text style={styles.subLabel}>{t('reports.openStages')}</Text>
+                  {OPEN_STAGES.map((st) => {
+                    const count = caseBreakdown.stages[st];
+                    return (
+                      <View key={st} style={styles.barRow}>
+                        <Text style={styles.barLabel} numberOfLines={1}>
+                          {t(`inst.${st}` as const)}
+                        </Text>
+                        <View style={styles.barTrack}>
+                          <View style={[styles.barFill, { width: `${(count / maxStage) * 100}%`, backgroundColor: colors.primary }]} />
+                        </View>
+                        <Text style={styles.barCount}>{count}</Text>
+                      </View>
+                    );
+                  })}
+                </>
+              )}
             </Card>
 
             <SectionHeader title={t('reports.hearingsPerMonth')} />
@@ -220,6 +240,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   chartCard: {
     marginBottom: spacing.lg,
+  },
+  subLabel: {
+    ...typography.small,
+    color: colors.textMuted,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: spacing.md,
+    marginBottom: 2,
   },
   barRow: {
     flexDirection: 'row',
