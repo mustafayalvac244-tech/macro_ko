@@ -200,6 +200,13 @@ Deno.serve(async (req) => {
       const query = (body.query ?? '').trim();
       if (!query) return json({ error: 'bad_request' }, 400);
       const pageSize = Math.min(20, Math.max(1, Number(body.pageSize ?? 15)));
+      const page = Math.max(1, Number(body.page ?? 1));
+
+      // Sayfa 2+ : sayfalama yalnız canlı UYAP Emsal üzerinden (havuz sayfa 1'de karışır).
+      if (page > 1) {
+        const live = await emsalSearch(query, page, pageSize);
+        return json({ hits: live.hits, total: live.total, page, source: 'live' });
+      }
 
       // 1) Kendi havuzumuz — önce semantik (embedding varsa), sonra anahtar-kelime (FTS).
       const seen = new Set<string>();
@@ -239,7 +246,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      return json({ hits: hits.slice(0, pageSize), total, source });
+      return json({ hits: hits.slice(0, pageSize), total, page: 1, source });
     }
 
     if (action === 'document') {

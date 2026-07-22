@@ -1051,6 +1051,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.sample2': 'reinstatement conditions',
   'ictihat.sample3': 'objection to negotiable-instrument enforcement',
   'ictihat.resultCount': '{count} decisions found',
+  'ictihat.loadMore': 'Show more',
   'ictihat.searching': 'Searching...',
   'ictihat.empty': 'No results. Try a different term.',
   'ictihat.errRate': 'I can’t respond right now due to heavy load. Try again in a minute.',

@@ -1,5 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+
+const PAGE_SIZE = 15;
 
 /** UYAP Emsal'den dönen tek bir karar kaydı. */
 export interface IctihatHit {
@@ -36,30 +38,40 @@ function mapError(e: unknown): IctihatError {
   return 'generic';
 }
 
-/** İçtihat arama + tekil karar metni + AI kaynaklı özet. */
+/** İçtihat arama + sayfalama + tekil karar metni + AI kaynaklı özet. */
 export function useIctihat() {
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<IctihatHit[]>([]);
   const [total, setTotal] = useState(0);
   const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<IctihatError | null>(null);
   const [searched, setSearched] = useState(false);
+  const pageRef = useRef(1);
+  const queryRef = useRef('');
 
   const search = useCallback(async (raw: string) => {
     const q = raw.trim();
     if (!q) return;
+    queryRef.current = q;
+    pageRef.current = 1;
     setQuery(q);
     setError(null);
     setSearching(true);
     setSearched(true);
+    setHasMore(false);
     try {
       const res = await invoke<{ hits: IctihatHit[]; total: number }>({
         action: 'search',
         query: q,
-        pageSize: 15,
+        page: 1,
+        pageSize: PAGE_SIZE,
       });
-      setHits(res.hits ?? []);
+      const list = res.hits ?? [];
+      setHits(list);
       setTotal(res.total ?? 0);
+      setHasMore(list.length > 0 && list.length < (res.total ?? 0));
     } catch (e) {
       setError(mapError(e));
       setHits([]);
@@ -69,7 +81,33 @@ export function useIctihat() {
     }
   }, []);
 
-  return { query, hits, total, searching, error, searched, search };
+  const loadMore = useCallback(async () => {
+    if (loadingMore || searching || !hasMore) return;
+    const next = pageRef.current + 1;
+    setLoadingMore(true);
+    try {
+      const res = await invoke<{ hits: IctihatHit[]; total: number }>({
+        action: 'search',
+        query: queryRef.current,
+        page: next,
+        pageSize: PAGE_SIZE,
+      });
+      const incoming = res.hits ?? [];
+      setHits((prev) => {
+        const seen = new Set(prev.map((h) => h.id));
+        const merged = [...prev, ...incoming.filter((h) => !seen.has(h.id))];
+        pageRef.current = next;
+        setHasMore(incoming.length > 0 && merged.length < (res.total ?? total));
+        return merged;
+      });
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, searching, hasMore, total]);
+
+  return { query, hits, total, searching, loadingMore, hasMore, error, searched, search, loadMore };
 }
 
 /** Tek bir kararın tam metnini getirir. */

@@ -28,7 +28,7 @@ export default function IctihatScreen() {
   const styles = makeStyles(colors);
   const t = useT();
 
-  const { query, hits, total, searching, error, searched, search } = useIctihat();
+  const { query, hits, total, searching, loadingMore, hasMore, error, searched, search, loadMore } = useIctihat();
   const doc = useIctihatDocument();
   const sum = useIctihatSummary();
 
@@ -133,6 +133,22 @@ export default function IctihatScreen() {
                   onOpen={() => openDoc(hit)}
                 />
               ))}
+              {hasMore && (
+                <Pressable
+                  onPress={loadMore}
+                  disabled={loadingMore}
+                  style={({ pressed }) => [styles.loadMore, pressed && styles.samplePressed]}
+                >
+                  {loadingMore ? (
+                    <ActivityIndicator color={colors.primary} size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="chevron-down" size={16} color={colors.primary} />
+                      <Text style={styles.loadMoreText}>{t('ictihat.loadMore')}</Text>
+                    </>
+                  )}
+                </Pressable>
+              )}
               <View style={styles.sourceRow}>
                 <Ionicons name="shield-checkmark-outline" size={13} color={colors.textMuted} />
                 <Text style={styles.sourceText}>{t('ictihat.source')}</Text>
@@ -514,6 +530,24 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.success,
     fontWeight: '700',
     fontSize: 10.5,
+  },
+  loadMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 13,
+    marginTop: 2,
+    marginBottom: spacing.xs,
+  },
+  loadMoreText: {
+    ...typography.bodyMedium,
+    color: colors.primary,
+    fontWeight: '700',
   },
   sourceRow: {
     flexDirection: 'row',

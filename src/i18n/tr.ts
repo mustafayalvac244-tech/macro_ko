@@ -1053,6 +1053,7 @@ export const tr = {
   'ictihat.sample2': 'işe iade şartları',
   'ictihat.sample3': 'kambiyo senedine dayalı takip itiraz',
   'ictihat.resultCount': '{count} karar bulundu',
+  'ictihat.loadMore': 'Daha fazla göster',
   'ictihat.searching': 'Aranıyor...',
   'ictihat.empty': 'Sonuç bulunamadı. Farklı bir kelime deneyin.',
   'ictihat.errRate': 'Yoğunluk nedeniyle şu an yanıt veremiyorum. Bir dakika sonra tekrar deneyin.',
