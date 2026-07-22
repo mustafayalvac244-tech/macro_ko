@@ -1024,21 +1024,9 @@ export const tr = {
   'profile.saveFailed': 'Profil kaydedilemedi. Lütfen tekrar deneyin.',
   'lock.retry': 'Tekrar Dene',
 
-  // AI Asistan
+  // AI Asistan (anahtarsız — müşteri hiçbir anahtar girmez, giriş yapmak yeterli)
   'ai.title': 'Vekil AI',
   'ai.short': 'AI Asistan',
-  'ai.setupTitle': 'AI Asistanı Etkinleştir',
-  'ai.setupDesc':
-    'Bu sürüme henüz AI hizmet anahtarı gömülmemiş. Tek seferlik ücretsiz anahtarla etkinleştirin — anahtar gömülü sürümlerde bu ekran hiç görünmez.',
-  'ai.step1': '1. Aşağıdaki bağlantıya dokunun ve hesabınızla giriş yapın.',
-  'ai.step2': '2. "Create API key" düğmesine basın ve oluşan anahtarı kopyalayın.',
-  'ai.step3': '3. Anahtarı aşağıya yapıştırıp kaydedin. Hepsi bu!',
-  'ai.keyLabel': 'Hizmet anahtarı',
-  'ai.keySave': 'Kaydet ve Başla',
-  'ai.keyPrivacy': 'Anahtar yalnızca bu cihazda, şifreli alanda saklanır; bize gönderilmez.',
-  'ai.keyChange': 'API anahtarını değiştir',
-  'ai.keyReset': 'Anahtarı Sıfırla',
-  'ai.keyResetConfirm': 'Kayıtlı hizmet anahtarı silinsin mi?',
   'ai.welcome': 'Merhaba, ben Vekil AI 👋',
   'ai.welcomeDesc': 'Hukuki sorularınızda, dilekçe taslaklarında ve mevzuat özetlerinde yardımcı olurum.',
   'ai.sample1': 'İstinaf dilekçesinde nelere dikkat etmeliyim?',
@@ -1046,8 +1034,7 @@ export const tr = {
   'ai.sample3': 'İşe iade davasının şartlarını özetle',
   'ai.inputPlaceholder': 'Sorunuzu yazın...',
   'ai.thinking': 'Düşünüyor...',
-  'ai.errInvalidKey': 'API anahtarı geçersiz görünüyor. Anahtarı kontrol edin (sağ üstten değiştirebilirsiniz).',
-  'ai.errRateLimit': 'Ücretsiz kota şu an dolu. Bir dakika sonra tekrar deneyin.',
+  'ai.errRateLimit': 'Yoğunluk nedeniyle şu an yanıt veremiyorum. Bir dakika sonra tekrar deneyin.',
   'ai.errGeneric': 'Yanıt alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
 

@@ -1022,21 +1022,9 @@ export const en: Record<keyof typeof tr, string> = {
   'profile.saveFailed': 'Could not save the profile. Please try again.',
   'lock.retry': 'Try Again',
 
-  // AI Assistant
+  // AI Assistant (keyless — the customer never enters a key, signing in is enough)
   'ai.title': 'Vekil AI',
   'ai.short': 'AI Assistant',
-  'ai.setupTitle': 'Activate the AI Assistant',
-  'ai.setupDesc':
-    'This build has no embedded AI service key yet. Activate with a one-time free key — builds with an embedded key never show this screen.',
-  'ai.step1': '1. Tap the link below and sign in with your account.',
-  'ai.step2': '2. Press "Create API key" and copy the generated key.',
-  'ai.step3': '3. Paste the key below and save. That’s it!',
-  'ai.keyLabel': 'Service key',
-  'ai.keySave': 'Save & Start',
-  'ai.keyPrivacy': 'The key is stored encrypted on this device only; it is never sent to us.',
-  'ai.keyChange': 'Change API key',
-  'ai.keyReset': 'Reset Key',
-  'ai.keyResetConfirm': 'Delete the saved service key?',
   'ai.welcome': 'Hi, I’m Vekil AI 👋',
   'ai.welcomeDesc': 'I help with legal questions, petition drafts, and legislation summaries.',
   'ai.sample1': 'What should I watch out for in an appeal petition?',
@@ -1044,8 +1032,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.sample3': 'Summarize the conditions of a reinstatement case',
   'ai.inputPlaceholder': 'Type your question...',
   'ai.thinking': 'Thinking...',
-  'ai.errInvalidKey': 'The API key looks invalid. Check the key (you can change it from the top right).',
-  'ai.errRateLimit': 'The free quota is temporarily exhausted. Try again in a minute.',
+  'ai.errRateLimit': 'I can’t respond right now due to heavy load. Try again in a minute.',
   'ai.errGeneric': 'No response. Check your internet connection and try again.',
   'ai.disclaimer': 'AI answers are not legal advice; verify against current legislation.',
 
