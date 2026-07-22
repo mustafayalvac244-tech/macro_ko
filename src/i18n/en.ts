@@ -1036,6 +1036,32 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.errGeneric': 'No response. Check your internet connection and try again.',
   'ai.disclaimer': 'AI answers are not legal advice; verify against current legislation.',
 
+  // Case-law search (UYAP Emsal — official, free source)
+  'ictihat.title': 'Case-Law Search',
+  'ictihat.short': 'Case Law',
+  'ictihat.searchPlaceholder': 'Topic, concept or keyword...',
+  'ictihat.welcome': 'Search Court of Cassation, Council of State & Regional Court rulings',
+  'ictihat.welcomeDesc':
+    'Search millions of real decisions in the official UYAP Emsal database; let AI summarize the ones you pick, with citations.',
+  'ictihat.sample1': 'rent determination case',
+  'ictihat.sample2': 'reinstatement conditions',
+  'ictihat.sample3': 'objection to negotiable-instrument enforcement',
+  'ictihat.resultCount': '{count} decisions found',
+  'ictihat.searching': 'Searching...',
+  'ictihat.empty': 'No results. Try a different term.',
+  'ictihat.errRate': 'I can’t respond right now due to heavy load. Try again in a minute.',
+  'ictihat.errSource': 'The decision source is unreachable right now. Try again shortly.',
+  'ictihat.errGeneric': 'Something went wrong. Check your internet connection and try again.',
+  'ictihat.summarizeBtn': 'Summarize {count} selected with AI',
+  'ictihat.selectHint': 'Mark decisions for an AI summary (up to 4).',
+  'ictihat.maxSelect': 'You can select up to 4 decisions.',
+  'ictihat.summaryTitle': 'AI Case-Law Summary',
+  'ictihat.summarizing': 'Reading the decisions and summarizing with citations...',
+  'ictihat.fullText': 'Decision Text',
+  'ictihat.loadingDoc': 'Loading decision text...',
+  'ictihat.source': 'Source: UYAP Emsal (official)',
+  'ictihat.disclaimer': 'Decisions come from the official UYAP Emsal database. Verify finality and currency separately.',
+
   // Sidebar groups
   'sidebar.network': 'Colleague Network',
   'sidebar.tools': 'Tools',

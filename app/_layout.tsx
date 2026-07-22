@@ -180,6 +180,7 @@ export default function RootLayout() {
             <Stack.Screen name="templates" options={{ headerShown: false }} />
             <Stack.Screen name="search" options={{ headerShown: false }} />
             <Stack.Screen name="ai-chat" options={{ headerShown: false }} />
+            <Stack.Screen name="ictihat" options={{ headerShown: false }} />
           </Stack>
           <AppLock />
           <LaunchIntro />

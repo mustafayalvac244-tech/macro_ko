@@ -1038,6 +1038,32 @@ export const tr = {
   'ai.errGeneric': 'Yanıt alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
 
+  // İçtihat Arama (UYAP Emsal — resmi, ücretsiz kaynak)
+  'ictihat.title': 'İçtihat Arama',
+  'ictihat.short': 'İçtihat',
+  'ictihat.searchPlaceholder': 'Konu, kavram veya anahtar kelime...',
+  'ictihat.welcome': 'Yargıtay, Danıştay ve BAM kararlarında ara',
+  'ictihat.welcomeDesc':
+    'Resmi UYAP Emsal bankasında milyonlarca gerçek kararı ara; seçtiklerini yapay zekâ kaynak göstererek özetlesin.',
+  'ictihat.sample1': 'kira tespit davası',
+  'ictihat.sample2': 'işe iade şartları',
+  'ictihat.sample3': 'kambiyo senedine dayalı takip itiraz',
+  'ictihat.resultCount': '{count} karar bulundu',
+  'ictihat.searching': 'Aranıyor...',
+  'ictihat.empty': 'Sonuç bulunamadı. Farklı bir kelime deneyin.',
+  'ictihat.errRate': 'Yoğunluk nedeniyle şu an yanıt veremiyorum. Bir dakika sonra tekrar deneyin.',
+  'ictihat.errSource': 'Karar kaynağına şu an ulaşılamıyor. Birazdan tekrar deneyin.',
+  'ictihat.errGeneric': 'Bir hata oluştu. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+  'ictihat.summarizeBtn': 'Seçili {count} kararı AI ile özetle',
+  'ictihat.selectHint': 'AI özeti için kararları işaretleyin (en fazla 4).',
+  'ictihat.maxSelect': 'En fazla 4 karar seçebilirsiniz.',
+  'ictihat.summaryTitle': 'AI İçtihat Özeti',
+  'ictihat.summarizing': 'Kararlar okunuyor ve kaynaklı özetleniyor...',
+  'ictihat.fullText': 'Karar Metni',
+  'ictihat.loadingDoc': 'Karar metni yükleniyor...',
+  'ictihat.source': 'Kaynak: UYAP Emsal Karar (resmi)',
+  'ictihat.disclaimer': 'Kararlar resmi UYAP Emsal bankasından gelir. Kesinleşme ve güncellik durumunu ayrıca teyit edin.',
+
   // Sidebar grupları
   'sidebar.network': 'Meslektaş Ağı',
   'sidebar.tools': 'Araçlar',
