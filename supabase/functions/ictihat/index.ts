@@ -49,6 +49,54 @@ interface Hit {
   kararNo: string;
   kararTarihi: string;
   durum: string;
+  /** Aranan kelimenin karar metnindeki geçtiği yerden kısa önizleme. */
+  snippet?: string;
+}
+
+/**
+ * Aranan kelimenin karar metninde geçtiği yerden kısa bir önizleme çıkarır
+ * (LEGALBANK/Lexpera tarzı) — avukat kararı açmadan konuyla ilgisini görsün.
+ * Eşleşme bulunamazsa kararın giriş kısmından bir özet döner.
+ */
+function buildSnippet(text: string, query: string): string {
+  if (!text) return '';
+  const clean = text.replace(/\s+/g, ' ').trim();
+  const lower = clean.toLocaleLowerCase('tr');
+  // Önce tam ifade, sonra 3+ harfli tek tek kelimeler (uzun → kısa).
+  const terms = [query.trim(), ...query.trim().split(/\s+/).filter((w) => w.length >= 3)]
+    .map((t) => t.toLocaleLowerCase('tr'))
+    .filter(Boolean);
+  let idx = -1;
+  for (const term of terms) {
+    idx = lower.indexOf(term);
+    if (idx >= 0) break;
+  }
+  const MAX = 240;
+  if (idx < 0) {
+    return clean.slice(0, MAX).trim() + (clean.length > MAX ? '…' : '');
+  }
+  const start = Math.max(0, idx - 90);
+  const end = Math.min(clean.length, idx + 150);
+  return (start > 0 ? '…' : '') + clean.slice(start, end).trim() + (end < clean.length ? '…' : '');
+}
+
+/**
+ * Canlı UYAP sonuçlarına önizleme ekler: ilk `limit` kararın metnini paralel
+ * çekip aranan kelimenin çevresinden kesit çıkarır. Metni çekilemeyen karar
+ * sessizce önizlemesiz kalır (arama yine de sonuç döndürür).
+ */
+async function attachSnippets(hits: Hit[], query: string, limit = 10): Promise<void> {
+  const targets = hits.slice(0, limit).filter((h) => !h.snippet && h.id);
+  await Promise.all(
+    targets.map(async (h) => {
+      try {
+        const text = await emsalDocument(h.id);
+        h.snippet = buildSnippet(text, query);
+      } catch {
+        // önizleme alınamadı → geç
+      }
+    }),
+  );
 }
 
 async function emsalSearch(query: string, page: number, pageSize: number): Promise<{ hits: Hit[]; total: number }> {
@@ -298,6 +346,7 @@ Deno.serve(async (req) => {
       // Sayfa 2+ : sayfalama yalnız canlı UYAP Emsal üzerinden (havuz sayfa 1'de karışır).
       if (page > 1) {
         const live = await emsalSearch(query, page, pageSize);
+        await attachSnippets(live.hits, query);
         return json({ hits: live.hits, total: live.total, page, source: 'live' });
       }
 
@@ -308,6 +357,9 @@ Deno.serve(async (req) => {
         for (const r of rows ?? []) {
           const h = rowToHit(r);
           if (h.id && !seen.has(h.id)) {
+            // Havuzda tam metin varsa önizlemeyi bedavaya çıkar (canlı çekmeye gerek yok).
+            const ft = (r as Record<string, unknown>)?.full_text;
+            if (ft) h.snippet = buildSnippet(String(ft), query);
             seen.add(h.id);
             hits.push(h);
           }
@@ -339,7 +391,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      return json({ hits: hits.slice(0, pageSize), total, page: 1, source });
+      const paged = hits.slice(0, pageSize);
+      // Canlı gelen (havuzda tam metni olmayan) kararlara önizleme ekle.
+      await attachSnippets(paged, query);
+      return json({ hits: paged, total, page: 1, source });
     }
 
     if (action === 'document') {

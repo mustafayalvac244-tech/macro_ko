@@ -171,6 +171,7 @@ export default function IctihatScreen() {
                 <HitCard
                   key={hit.id}
                   hit={hit}
+                  query={query}
                   selected={selected.has(hit.id)}
                   onToggle={() => toggle(hit.id)}
                   onOpen={() => openDoc(hit)}
@@ -387,18 +388,61 @@ function AnalyzePanel({
   );
 }
 
+/** Önizleme metninde aranan kelimeleri sarı ile işaretleyen inline parçalar üretir. */
+function highlightSnippet(text: string, query: string, markStyle: object): React.ReactNode {
+  const q = (query ?? '').trim();
+  if (!text) return null;
+  const terms = [q, ...q.split(/\s+/).filter((w) => w.length >= 3)]
+    .map((tm) => tm.toLocaleLowerCase('tr-TR'))
+    .filter(Boolean);
+  const lower = text.toLocaleLowerCase('tr-TR');
+  const ranges: Array<[number, number]> = [];
+  for (const term of terms) {
+    let from = 0;
+    for (;;) {
+      const i = lower.indexOf(term, from);
+      if (i < 0) break;
+      ranges.push([i, i + term.length]);
+      from = i + term.length;
+    }
+  }
+  if (ranges.length === 0) return text;
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged: Array<[number, number]> = [];
+  for (const r of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+    else merged.push([r[0], r[1]]);
+  }
+  const parts: React.ReactNode[] = [];
+  let cur = 0;
+  merged.forEach(([s, e], idx) => {
+    if (s > cur) parts.push(text.slice(cur, s));
+    parts.push(
+      <Text key={`m${idx}`} style={markStyle}>
+        {text.slice(s, e)}
+      </Text>,
+    );
+    cur = e;
+  });
+  if (cur < text.length) parts.push(text.slice(cur));
+  return parts;
+}
+
 function HitCard({
   hit,
   selected,
   onToggle,
   onOpen,
   hideCheckbox,
+  query,
 }: {
   hit: IctihatHit;
   selected: boolean;
   onToggle: () => void;
   onOpen: () => void;
   hideCheckbox?: boolean;
+  query?: string;
 }) {
   const __t = useTheme();
   const colors = __t.colors;
@@ -431,6 +475,11 @@ function HitCard({
             <Text style={styles.metaChipText}>{hit.kararTarihi}</Text>
           </View>
         </View>
+        {!!hit.snippet && (
+          <Text style={styles.snippet} numberOfLines={4}>
+            {highlightSnippet(hit.snippet, query ?? '', styles.snippetMark)}
+          </Text>
+        )}
         {!!hit.durum && (
           <View style={styles.durumBadge}>
             <Text style={styles.durumText}>{hit.durum}</Text>
@@ -822,6 +871,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   metaChipText: {
     ...typography.small,
     color: colors.textSecondary,
+  },
+  snippet: {
+    ...typography.small,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  snippetMark: {
+    backgroundColor: colors.warningSoft,
+    color: colors.textPrimary,
+    fontWeight: '800',
   },
   durumBadge: {
     alignSelf: 'flex-start',

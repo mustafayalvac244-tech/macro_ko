@@ -11,6 +11,8 @@ export interface IctihatHit {
   kararNo: string;
   kararTarihi: string;
   durum: string;
+  /** Aranan kelimenin karar metnindeki geçtiği yerden kısa önizleme (varsa). */
+  snippet?: string;
 }
 
 export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'generic';
