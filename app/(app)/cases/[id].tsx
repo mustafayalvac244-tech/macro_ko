@@ -13,6 +13,7 @@ import { HearingListItem } from '@/components/calendar/HearingListItem';
 import { DeadlineListItem } from '@/components/calendar/DeadlineListItem';
 import { Input } from '@/components/ui/Input';
 import { useCase, useDeleteCase, useUpdateCase } from '@/hooks/useCases';
+import { useClient } from '@/hooks/useClients';
 import { useHearingsForCase } from '@/hooks/useHearings';
 import { useCreateDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useCaseExpenses, useCreateCaseExpense, useCreateInstallment, useCreatePayment, useDeleteCaseExpense, useDeleteInstallment, useDeletePayment, useInstallments, usePaymentsForCase, useToggleInstallment } from '@/hooks/usePayments';
@@ -25,7 +26,9 @@ import { computeLegalDue } from '@/utils/legalDates';
 import { Ionicons } from '@expo/vector-icons';
 import { WarPlanTab } from '@/components/case/WarPlanTab';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import type { FirstInstancePhase, InstanceStage, ClosedResult } from '@/types/database';
+import { hearingReminderMessage, sendClientReminder } from '@/utils/reminder';
+import { useAuthStore } from '@/store/authStore';
+import type { FirstInstancePhase, InstanceStage, ClosedResult, Hearing } from '@/types/database';
 
 type Tab = 'overview' | 'hearings' | 'deadlines' | 'finance' | 'plan';
 
@@ -39,6 +42,8 @@ export default function CaseDetailScreen() {
   const [tab, setTab] = useState<Tab>('overview');
 
   const { data: caseItem, isLoading } = useCase(id);
+  const client = useClient(caseItem?.client_id ?? undefined);
+  const profile = useAuthStore((s) => s.profile);
   const hearings = useHearingsForCase(id);
   const deadlines = useDeadlinesForCase(id);
   const payments = usePaymentsForCase(id);
@@ -127,6 +132,25 @@ export default function CaseDetailScreen() {
     } catch {
       // takvim görevi eklenemese de tarih kaydedildi
     }
+  };
+
+  // Müvekkile duruşma/keşif hatırlatması gönder (WhatsApp → SMS).
+  const handleRemind = async (hearing: Hearing) => {
+    const phone = client.data?.phone;
+    if (!phone) {
+      Alert.alert(t('remind.title'), t('remind.noPhone'));
+      return;
+    }
+    const message = hearingReminderMessage({
+      clientName: caseItem.client?.full_name ?? '',
+      caseTitle: caseItem.title,
+      typeLabel: t(`hearingType.${hearing.type}` as const),
+      scheduledAt: hearing.scheduled_at,
+      court: hearing.location ?? caseItem.court_name,
+      lawyerName: profile?.firm_name || profile?.full_name || null,
+    });
+    const result = await sendClientReminder(phone, message);
+    if (result === 'failed') Alert.alert(t('remind.title'), t('remind.failed'));
   };
 
   const handleDelete = () => {
@@ -358,6 +382,13 @@ export default function CaseDetailScreen() {
                       showCase={false}
                       onPress={() => router.push(`/hearing-form?caseId=${caseItem.id}&id=${hearing.id}`)}
                     />
+                    {/* Yaklaşan duruşma/keşif → müvekkile tek dokunuşla hatırlat */}
+                    {!hearing.is_completed && caseItem.client && (
+                      <Pressable style={styles.remindBtn} onPress={() => handleRemind(hearing)}>
+                        <Ionicons name="logo-whatsapp" size={15} color={colors.success} />
+                        <Text style={styles.remindText}>{t('remind.action')}</Text>
+                      </Pressable>
+                    )}
                   </View>
                 ))
               ) : (
@@ -936,6 +967,25 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   divider: {
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
+  },
+  remindBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.successSoft,
+    borderRadius: 10,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 7,
+    marginTop: 2,
+    marginBottom: spacing.xs,
+    marginLeft: 44 + spacing.sm,
+  },
+  remindText: {
+    ...typography.small,
+    color: colors.success,
+    fontWeight: '700',
   },
   deleteButton: {
     marginTop: spacing.xl,
