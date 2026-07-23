@@ -19,6 +19,7 @@ import {
   useIctihat,
   useIctihatAnalyze,
   useIctihatDocument,
+  useIctihatKunye,
   useIctihatSummary,
   type IctihatHit,
   type IctihatError,
@@ -40,8 +41,9 @@ export default function IctihatScreen() {
   const analyze = useIctihatAnalyze();
   const doc = useIctihatDocument();
   const sum = useIctihatSummary();
+  const kunye = useIctihatKunye();
 
-  const [mode, setMode] = useState<'analyze' | 'search'>(AI_ENABLED ? 'analyze' : 'search');
+  const [mode, setMode] = useState<'analyze' | 'search' | 'kunye'>(AI_ENABLED ? 'analyze' : 'search');
   const [draft, setDraft] = useState('');
   const [olay, setOlay] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -64,7 +66,7 @@ export default function IctihatScreen() {
 
   const openDoc = (hit: IctihatHit) => {
     setOpenHit(hit);
-    doc.load(hit.id);
+    doc.load(hit.id, hit.src);
   };
 
   const runSummary = () => {
@@ -79,30 +81,32 @@ export default function IctihatScreen() {
     <Screen edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('ictihat.title')} showBack />
 
-      {/* Mod seçimi: Olay Analizi (akıl yürütme) / Kelime Arama */}
+      {/* Mod seçimi: Olay Analizi / Kelime Arama / Künye ile Bul */}
       <View style={styles.modePills}>
-        <Pressable
-          onPress={() => setMode('analyze')}
-          style={[styles.modePill, mode === 'analyze' && styles.modePillActive]}
-        >
-          <Ionicons name="sparkles" size={15} color={mode === 'analyze' ? colors.textInverse : colors.textSecondary} />
-          <Text style={[styles.modePillText, mode === 'analyze' && styles.modePillTextActive]}>
-            {t('ictihat.modeAnalyze')}
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setMode('search')}
-          style={[styles.modePill, mode === 'search' && styles.modePillActive]}
-        >
-          <Ionicons name="search" size={15} color={mode === 'search' ? colors.textInverse : colors.textSecondary} />
-          <Text style={[styles.modePillText, mode === 'search' && styles.modePillTextActive]}>
-            {t('ictihat.modeSearch')}
-          </Text>
-        </Pressable>
+        {(
+          [
+            { id: 'analyze', icon: 'sparkles', label: t('ictihat.modeAnalyze') },
+            { id: 'search', icon: 'search', label: t('ictihat.modeSearch') },
+            { id: 'kunye', icon: 'pricetags', label: t('ictihat.modeKunye') },
+          ] as const
+        ).map((m) => (
+          <Pressable
+            key={m.id}
+            onPress={() => setMode(m.id)}
+            style={[styles.modePill, mode === m.id && styles.modePillActive]}
+          >
+            <Ionicons name={m.icon} size={15} color={mode === m.id ? colors.textInverse : colors.textSecondary} />
+            <Text style={[styles.modePillText, mode === m.id && styles.modePillTextActive]} numberOfLines={1}>
+              {m.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
-        {mode === 'analyze' ? (
+        {mode === 'kunye' ? (
+          <KunyePanel state={kunye} onOpen={openDoc} />
+        ) : mode === 'analyze' ? (
           <AnalyzePanel
             olay={olay}
             setOlay={setOlay}
@@ -388,6 +392,177 @@ function AnalyzePanel({
   );
 }
 
+/** "E.2019/3641" gibi serbest girdiden "2019/3641" biçimini çıkarır. */
+function extractKunyeNo(raw: string): string {
+  const m = (raw ?? '').match(/(\d{4})\s*[/\-.]\s*(\d{1,6})/);
+  return m ? `${m[1]}/${m[2]}` : '';
+}
+
+/**
+ * KÜNYE İLE KARAR BULMA — karşı tarafın atıf yaptığı kararın gerçekten var olup
+ * olmadığını doğrulamak ya da sadece künyesi bilinen kararın tam metnine ulaşmak.
+ */
+function KunyePanel({
+  state,
+  onOpen,
+}: {
+  state: ReturnType<typeof useIctihatKunye>;
+  onOpen: (hit: IctihatHit) => void;
+}) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const t = useT();
+
+  const [esas, setEsas] = useState('');
+  const [karar, setKarar] = useState('');
+  const [daire, setDaire] = useState('');
+
+  const valid = !!extractKunyeNo(esas) || !!extractKunyeNo(karar);
+  // Önizlemede işaretlenecek ifade: girilen esas (yoksa karar) numarası.
+  const hq = extractKunyeNo(esas) || extractKunyeNo(karar);
+
+  const errText =
+    state.error === 'rate_limit'
+      ? t('ictihat.errRate')
+      : state.error === 'source'
+        ? t('ictihat.errSource')
+        : t('ictihat.errGeneric');
+
+  return (
+    <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <View style={styles.kunyeCard}>
+        <View style={styles.kunyeHead}>
+          <Ionicons name="pricetags" size={18} color={colors.gold} />
+          <Text style={styles.kunyeTitle}>{t('ictihat.kunyeTitle')}</Text>
+        </View>
+        <Text style={styles.kunyeDesc}>{t('ictihat.kunyeDesc')}</Text>
+
+        <View style={styles.kunyeRow}>
+          <View style={styles.kunyeField}>
+            <Text style={styles.kunyeLabel}>{t('ictihat.kunyeEsas')}</Text>
+            <TextInput
+              style={styles.kunyeInput}
+              value={esas}
+              onChangeText={setEsas}
+              placeholder="2019/3641"
+              placeholderTextColor={colors.textMuted}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          </View>
+          <View style={styles.kunyeField}>
+            <Text style={styles.kunyeLabel}>{t('ictihat.kunyeKarar')}</Text>
+            <TextInput
+              style={styles.kunyeInput}
+              value={karar}
+              onChangeText={setKarar}
+              placeholder="2022/1689"
+              placeholderTextColor={colors.textMuted}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          </View>
+        </View>
+
+        <Text style={styles.kunyeLabel}>{t('ictihat.kunyeDaire')}</Text>
+        <TextInput
+          style={styles.kunyeInput}
+          value={daire}
+          onChangeText={setDaire}
+          placeholder={t('ictihat.kunyeDairePh')}
+          placeholderTextColor={colors.textMuted}
+          autoCorrect={false}
+        />
+
+        <Pressable
+          disabled={!valid || state.loading}
+          onPress={() => state.lookup(esas, karar, daire)}
+          style={[styles.kunyeBtn, (!valid || state.loading) && styles.kunyeBtnDisabled]}
+        >
+          {state.loading ? (
+            <ActivityIndicator color={colors.textInverse} size="small" />
+          ) : (
+            <>
+              <Ionicons name="locate" size={16} color={colors.textInverse} />
+              <Text style={styles.kunyeBtnText}>{t('ictihat.kunyeBtn')}</Text>
+            </>
+          )}
+        </Pressable>
+        {!valid && <Text style={styles.kunyeHint}>{t('ictihat.kunyeHint')}</Text>}
+      </View>
+
+      {state.loading && (
+        <View style={styles.centerBox}>
+          <ActivityIndicator color={colors.primary} />
+          <Text style={styles.centerText}>{t('ictihat.kunyeSearching')}</Text>
+        </View>
+      )}
+
+      {!state.loading && state.error && (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
+          <Text style={styles.errorText}>{errText}</Text>
+        </View>
+      )}
+
+      {!state.loading && !state.error && state.searched && (
+        state.exact.length > 0 ? (
+          <>
+            <View style={styles.kunyeFound}>
+              <Ionicons name="shield-checkmark" size={16} color={colors.success} />
+              <Text style={styles.kunyeFoundText}>{t('ictihat.kunyeFound')}</Text>
+            </View>
+            {state.exact.map((h) => (
+              <HitCard
+                key={`${h.src ?? 'e'}-${h.id}`}
+                hit={h}
+                query={hq}
+                selected={false}
+                onToggle={() => {}}
+                onOpen={() => onOpen(h)}
+                hideCheckbox
+              />
+            ))}
+          </>
+        ) : (
+          <View style={styles.kunyeMissing}>
+            <Ionicons name="alert-circle" size={20} color={colors.danger} />
+            <View style={styles.flex}>
+              <Text style={styles.kunyeMissingTitle}>{t('ictihat.kunyeNotFound')}</Text>
+              <Text style={styles.kunyeMissingDesc}>{t('ictihat.kunyeNotFoundDesc')}</Text>
+            </View>
+          </View>
+        )
+      )}
+
+      {!state.loading && !state.error && state.citing.length > 0 && (
+        <>
+          <Text style={styles.kunyeCitingHead}>{t('ictihat.kunyeCiting')}</Text>
+          {state.citing.map((h) => (
+            <HitCard
+              key={`${h.src ?? 'e'}-${h.id}`}
+              hit={h}
+              query={hq}
+              selected={false}
+              onToggle={() => {}}
+              onOpen={() => onOpen(h)}
+              hideCheckbox
+            />
+          ))}
+        </>
+      )}
+
+      {!state.loading && state.searched && (
+        <View style={styles.sourceRow}>
+          <Ionicons name="shield-checkmark-outline" size={13} color={colors.textMuted} />
+          <Text style={styles.sourceText}>{t('ictihat.source')}</Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
 /** Önizleme metninde aranan kelimeleri sarı ile işaretleyen inline parçalar üretir. */
 function highlightSnippet(text: string, query: string, markStyle: object): React.ReactNode {
   const q = (query ?? '').trim();
@@ -480,11 +655,18 @@ function HitCard({
             {highlightSnippet(hit.snippet, query ?? '', styles.snippetMark)}
           </Text>
         )}
-        {!!hit.durum && (
-          <View style={styles.durumBadge}>
-            <Text style={styles.durumText}>{hit.durum}</Text>
-          </View>
-        )}
+        <View style={styles.badgeRow}>
+          {!!hit.durum && (
+            <View style={styles.durumBadge}>
+              <Text style={styles.durumText}>{hit.durum}</Text>
+            </View>
+          )}
+          {hit.src === 'yargitay' && (
+            <View style={styles.srcBadge}>
+              <Text style={styles.srcBadgeText}>Yargıtay</Text>
+            </View>
+          )}
+        </View>
       </Pressable>
       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
     </View>
@@ -896,6 +1078,142 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.success,
     fontWeight: '700',
     fontSize: 10.5,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  srcBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.goldSoft,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 6,
+  },
+  srcBadgeText: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '700',
+    fontSize: 10.5,
+  },
+  // ---- Künye ile karar bulma ----
+  kunyeCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  kunyeHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  kunyeTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  kunyeDesc: {
+    ...typography.small,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    marginBottom: spacing.sm,
+  },
+  kunyeRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  kunyeField: {
+    flex: 1,
+  },
+  kunyeLabel: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    marginBottom: 4,
+    marginTop: spacing.xs,
+  },
+  kunyeInput: {
+    ...typography.body,
+    color: colors.textPrimary,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 12,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
+  },
+  kunyeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginTop: spacing.md,
+  },
+  kunyeBtnDisabled: {
+    opacity: 0.5,
+  },
+  kunyeBtnText: {
+    ...typography.bodyMedium,
+    color: colors.textInverse,
+    fontWeight: '700',
+  },
+  kunyeHint: {
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  kunyeFound: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: colors.successSoft,
+    borderRadius: 12,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  kunyeFoundText: {
+    ...typography.caption,
+    color: colors.success,
+    fontWeight: '800',
+    flex: 1,
+  },
+  kunyeMissing: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  kunyeMissingTitle: {
+    ...typography.bodyMedium,
+    color: colors.danger,
+    fontWeight: '800',
+  },
+  kunyeMissingDesc: {
+    ...typography.small,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    marginTop: 3,
+  },
+  kunyeCitingHead: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   loadMore: {
     flexDirection: 'row',

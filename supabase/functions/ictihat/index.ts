@@ -51,6 +51,8 @@ interface Hit {
   durum: string;
   /** Aranan kelimenin karar metnindeki geçtiği yerden kısa önizleme. */
   snippet?: string;
+  /** Kararın kaynağı: UYAP Emsal (varsayılan) veya Yargıtay Karar Arama. */
+  src?: 'emsal' | 'yargitay';
 }
 
 /**
@@ -132,6 +134,57 @@ async function emsalDocument(id: string): Promise<string> {
   if (!res.ok) throw new Error(`emsal_doc_${res.status}`);
   const j = await res.json();
   return htmlToText(String(j?.data ?? ''));
+}
+
+// ---------------------------------------------------------------------------
+// Yargıtay Karar Arama (karararama.yargitay.gov.tr) — künye doğrulamada ikinci
+// kaynak. Erişilemezse (engel/kesinti) sessizce atlanır; Emsal tek başına döner.
+// ---------------------------------------------------------------------------
+const YARGITAY_BASE = 'https://karararama.yargitay.gov.tr';
+
+async function yargitaySearch(query: string, pageSize: number): Promise<Hit[]> {
+  const res = await fetch(`${YARGITAY_BASE}/aramalist`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'User-Agent': 'Mozilla/5.0',
+      'X-Requested-With': 'XMLHttpRequest',
+      Referer: `${YARGITAY_BASE}/`,
+    },
+    body: JSON.stringify({ data: { arananKelime: query, pageSize, pageNumber: 1 } }),
+    signal: AbortSignal.timeout(6000),
+  });
+  if (!res.ok) throw new Error(`yargitay_${res.status}`);
+  const j = await res.json();
+  const rows = j?.data?.data ?? [];
+  return rows
+    .map((r: Record<string, unknown>): Hit => ({
+      id: String(r.id ?? ''),
+      daire: String(r.daire ?? ''),
+      esasNo: String(r.esasNo ?? ''),
+      kararNo: String(r.kararNo ?? ''),
+      kararTarihi: String(r.kararTarihi ?? ''),
+      durum: String(r.durum ?? ''),
+      src: 'yargitay' as const,
+    }))
+    .filter((h: Hit) => h.id);
+}
+
+async function yargitayDocument(id: string): Promise<string> {
+  const res = await fetch(`${YARGITAY_BASE}/getDokuman?id=${encodeURIComponent(id)}`, {
+    headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0', Referer: `${YARGITAY_BASE}/` },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`yargitay_doc_${res.status}`);
+  const j = await res.json();
+  return htmlToText(String(j?.data ?? ''));
+}
+
+/** "E.2019/3641", "2019 / 3641", "2019-3641" → "2019/3641"; geçersizse ''. */
+function normalizeKunyeNo(raw: string): string {
+  const m = (raw ?? '').match(/(\d{4})\s*[/\-.]\s*(\d{1,6})/);
+  return m ? `${m[1]}/${m[2]}` : '';
 }
 
 const EMBED_MODEL = 'text-embedding-004';
@@ -320,13 +373,19 @@ Deno.serve(async (req) => {
   if (userErr || !userData.user) return json({ error: 'unauthorized' }, 401);
 
   let body: {
-    action?: 'search' | 'document' | 'summarize' | 'analyze';
+    action?: 'search' | 'document' | 'summarize' | 'analyze' | 'kunye';
     query?: string;
     olay?: string;
     id?: string;
     ids?: string[];
     page?: number;
     pageSize?: number;
+    /** Künye araması: esas no ("2019/3641"), karar no ("2022/1689"), daire süzgeci. */
+    esas?: string;
+    karar?: string;
+    daire?: string;
+    /** document: kaynağı belirtir (emsal varsayılan). */
+    src?: 'emsal' | 'yargitay';
   };
   try {
     body = await req.json();
@@ -397,9 +456,71 @@ Deno.serve(async (req) => {
       return json({ hits: paged, total, page: 1, source });
     }
 
+    // KÜNYE İLE KARAR BULMA — karşı tarafın atıf yaptığı kararı doğrulamak,
+    // sadece künyesi bilinen kararın tam metnine ulaşmak için. Tırnaklı arama +
+    // sunucuda tam eşleşme süzmesi; eşleşmeyenler "atıf yapan kararlar" olur.
+    if (action === 'kunye') {
+      const esas = normalizeKunyeNo(body.esas ?? '');
+      const karar = normalizeKunyeNo(body.karar ?? '');
+      const daireFilter = (body.daire ?? '').trim().toLocaleLowerCase('tr');
+      if (!esas && !karar) return json({ error: 'bad_request' }, 400);
+
+      // Dar terimle ara (esas varsa esas): tırnaklı arama tam ifadeyi bulur.
+      // Yargıtay Karar Arama Emsal taramasıyla PARALEL koşar (erişilemezse boş
+      // döner) — seri beklemek toplam süreyi timeout kadar uzatıyordu.
+      const term = esas || karar;
+      const ygPromise: Promise<Hit[]> = yargitaySearch(`"${term}"`, 20).catch(() => []);
+      const collected: Hit[] = [];
+      const seen = new Set<string>();
+      for (let p = 1; p <= 3; p++) {
+        const { hits: rows, total } = await emsalSearch(`"${term}"`, p, 20);
+        for (const h of rows) {
+          if (h.id && !seen.has(h.id)) {
+            seen.add(h.id);
+            collected.push(h);
+          }
+        }
+        if (collected.length >= total || rows.length === 0) break;
+      }
+      for (const h of await ygPromise) {
+        const key = `yg-${h.id}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          collected.push(h);
+        }
+      }
+
+      const matches = (h: Hit) =>
+        (!esas || h.esasNo === esas) &&
+        (!karar || h.kararNo === karar) &&
+        (!daireFilter || h.daire.toLocaleLowerCase('tr').includes(daireFilter));
+      const exact = collected.filter(matches);
+      const citing = collected.filter((h) => !matches(h)).slice(0, 10);
+
+      // Önizlemeler: tam eşleşmede kararın girişi, atıf yapanlarda künyenin
+      // geçtiği yer (karşı taraf "cımbızla mı çekmiş" oradan görülür).
+      await Promise.all(
+        [...exact.slice(0, 3), ...citing.slice(0, 8)].map(async (h) => {
+          try {
+            const text = h.src === 'yargitay' ? await yargitayDocument(h.id) : await emsalDocument(h.id);
+            h.snippet = buildSnippet(text, term);
+          } catch {
+            // önizleme alınamadı → geç
+          }
+        }),
+      );
+
+      return json({ esas, karar, exact, citing });
+    }
+
     if (action === 'document') {
       const id = (body.id ?? '').trim();
       if (!id) return json({ error: 'bad_request' }, 400);
+      // Yargıtay kaynaklı karar doğrudan oradan okunur (havuzda tutulmaz).
+      if (body.src === 'yargitay') {
+        const text = await yargitayDocument(id);
+        return json({ id, text });
+      }
       // Havuzda varsa oradan (hızlı, canlı bağımlılığı yok), yoksa Emsal'den.
       const { data: row } = await supabase
         .from('ictihat_kararlar')

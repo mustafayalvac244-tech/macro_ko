@@ -13,6 +13,8 @@ export interface IctihatHit {
   durum: string;
   /** Aranan kelimenin karar metnindeki geçtiği yerden kısa önizleme (varsa). */
   snippet?: string;
+  /** Kararın kaynağı: UYAP Emsal (varsayılan) veya Yargıtay Karar Arama. */
+  src?: 'emsal' | 'yargitay';
 }
 
 export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'generic';
@@ -119,12 +121,12 @@ export function useIctihatDocument() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<IctihatError | null>(null);
 
-  const load = useCallback(async (id: string) => {
+  const load = useCallback(async (id: string, src?: 'emsal' | 'yargitay') => {
     setError(null);
     setLoading(true);
     setText('');
     try {
-      const res = await invoke<{ text: string }>({ action: 'document', id });
+      const res = await invoke<{ text: string }>({ action: 'document', id, ...(src ? { src } : {}) });
       setText(res.text ?? '');
     } catch (e) {
       setError(mapError(e));
@@ -134,6 +136,51 @@ export function useIctihatDocument() {
   }, []);
 
   return { text, loading, error, load };
+}
+
+/**
+ * KÜNYE İLE KARAR BULMA — "E.2019/3641 K.2022/1689" gibi künyesi bilinen kararı
+ * doğrudan bulur (karşı tarafın atıfını doğrulamak / tam metne ulaşmak için).
+ * exact: künyeyle birebir eşleşen kararlar; citing: künyeye atıf yapan kararlar.
+ */
+export function useIctihatKunye() {
+  const [exact, setExact] = useState<IctihatHit[]>([]);
+  const [citing, setCiting] = useState<IctihatHit[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<IctihatError | null>(null);
+  const [searched, setSearched] = useState(false);
+
+  const lookup = useCallback(async (esas: string, karar: string, daire: string) => {
+    if (!esas.trim() && !karar.trim()) return;
+    setError(null);
+    setLoading(true);
+    setSearched(true);
+    setExact([]);
+    setCiting([]);
+    try {
+      const res = await invoke<{ exact: IctihatHit[]; citing: IctihatHit[] }>({
+        action: 'kunye',
+        esas: esas.trim(),
+        karar: karar.trim(),
+        daire: daire.trim(),
+      });
+      setExact(res.exact ?? []);
+      setCiting(res.citing ?? []);
+    } catch (e) {
+      setError(mapError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    setExact([]);
+    setCiting([]);
+    setError(null);
+    setSearched(false);
+  }, []);
+
+  return { exact, citing, loading, error, searched, lookup, reset };
 }
 
 /**
