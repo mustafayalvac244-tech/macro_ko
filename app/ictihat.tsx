@@ -25,6 +25,7 @@ import {
   type IctihatError,
   type IctihatCourt,
 } from '@/hooks/useIctihat';
+import { ICTIHAT_DIGESTS, digestsByCategory, type IctihatDigest } from '@/data/ictihatDigest';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -50,6 +51,7 @@ export default function IctihatScreen() {
   const [olay, setOlay] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openHit, setOpenHit] = useState<IctihatHit | null>(null);
+  const [openDigest, setOpenDigest] = useState<IctihatDigest | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
 
   const runSearch = (q: string, c: IctihatCourt = court) => {
@@ -164,7 +166,12 @@ export default function IctihatScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {!searched && <Welcome onPick={(q) => { setDraft(q); runSearch(q); }} />}
+          {!searched && (
+            <Welcome
+              onPick={(q) => { setDraft(q); runSearch(q); }}
+              onOpenDigest={(d) => setOpenDigest(d)}
+            />
+          )}
 
           {searching && (
             <View style={styles.centerBox}>
@@ -266,11 +273,29 @@ export default function IctihatScreen() {
           sum.reset();
         }}
       />
+
+      {/* Konu özeti (elle hazırlanmış yerleşik içtihat) */}
+      <DigestModal
+        digest={openDigest}
+        onClose={() => setOpenDigest(null)}
+        onOpenFull={(d) => {
+          setOpenDigest(null);
+          openDoc({
+            id: d.id,
+            daire: d.daire,
+            esasNo: d.esas,
+            kararNo: d.karar,
+            kararTarihi: d.tarih,
+            durum: '',
+            src: 'yargitay',
+          });
+        }}
+      />
     </Screen>
   );
 }
 
-function Welcome({ onPick }: { onPick: (q: string) => void }) {
+function Welcome({ onPick, onOpenDigest }: { onPick: (q: string) => void; onOpenDigest: (d: IctihatDigest) => void }) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(colors);
@@ -292,7 +317,82 @@ function Welcome({ onPick }: { onPick: (q: string) => void }) {
           </Pressable>
         ))}
       </View>
+
+      {/* Yerleşik içtihat özetleri — hazır, özetli emsal kararlar */}
+      <View style={styles.digestHead}>
+        <Ionicons name="bookmarks" size={16} color={colors.gold} />
+        <Text style={styles.digestHeadText}>{t('ictihat.digestsTitle')}</Text>
+      </View>
+      <Text style={styles.digestDesc}>{t('ictihat.digestsDesc')}</Text>
+      {ICTIHAT_DIGESTS.map((d) => (
+        <Pressable
+          key={d.slug}
+          onPress={() => onOpenDigest(d)}
+          style={({ pressed }) => [styles.digestCard, pressed && styles.samplePressed]}
+        >
+          <View style={styles.digestCatChip}>
+            <Text style={styles.digestCatText}>{d.category}</Text>
+          </View>
+          <Text style={styles.digestTitle} numberOfLines={2}>{d.title}</Text>
+          <Text style={styles.digestIlke} numberOfLines={3}>{d.ilke}</Text>
+          <Text style={styles.digestKunye} numberOfLines={1}>
+            {d.daire} · E.{d.esas} K.{d.karar}
+          </Text>
+        </Pressable>
+      ))}
     </View>
+  );
+}
+
+function DigestModal({
+  digest,
+  onClose,
+  onOpenFull,
+}: {
+  digest: IctihatDigest | null;
+  onClose: () => void;
+  onOpenFull: (d: IctihatDigest) => void;
+}) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const t = useT();
+
+  return (
+    <Modal visible={!!digest} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <Screen edges={['top', 'left', 'right', 'bottom']}>
+        <View style={styles.modalHeader}>
+          <View style={styles.flex}>
+            <Text style={styles.modalTitle} numberOfLines={2}>
+              {digest?.title}
+            </Text>
+            {digest && (
+              <Text style={styles.modalSub} numberOfLines={1}>
+                {digest.daire} · E.{digest.esas} K.{digest.karar} · {digest.tarih}
+              </Text>
+            )}
+          </View>
+          <Pressable onPress={onClose} hitSlop={8} style={styles.modalClose}>
+            <Ionicons name="close" size={22} color={colors.textPrimary} />
+          </Pressable>
+        </View>
+        {digest && (
+          <ScrollView contentContainerStyle={styles.docContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.digestIlkeBox}>
+              <Text style={styles.digestIlkeLabel}>{t('ictihat.digestIlke')}</Text>
+              <Text style={styles.digestIlkeBody}>{digest.ilke}</Text>
+            </View>
+            <Text style={styles.digestOzetLabel}>{t('ictihat.digestOzet')}</Text>
+            <Text style={styles.docText}>{digest.ozet}</Text>
+            <Pressable style={styles.digestOpenBtn} onPress={() => onOpenFull(digest)}>
+              <Ionicons name="document-text-outline" size={16} color={colors.textInverse} />
+              <Text style={styles.digestOpenText}>{t('ictihat.digestOpenFull')}</Text>
+            </Pressable>
+            <Text style={styles.disclaimer}>{t('ictihat.disclaimer')}</Text>
+          </ScrollView>
+        )}
+      </Screen>
+    </Modal>
   );
 }
 
@@ -915,6 +1015,109 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   courtChipTextActive: {
     color: colors.gold,
+  },
+  // ---- Konu özetleri (digest) ----
+  digestHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: spacing.xl,
+    alignSelf: 'stretch',
+  },
+  digestHeadText: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  digestDesc: {
+    ...typography.small,
+    color: colors.textSecondary,
+    alignSelf: 'stretch',
+    marginTop: 4,
+    marginBottom: spacing.sm,
+    lineHeight: 17,
+  },
+  digestCard: {
+    alignSelf: 'stretch',
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  digestCatChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.goldSoft,
+    borderRadius: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginBottom: 6,
+  },
+  digestCatText: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '800',
+    fontSize: 10,
+  },
+  digestTitle: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  digestIlke: {
+    ...typography.small,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  digestKunye: {
+    ...typography.small,
+    color: colors.textMuted,
+    marginTop: 6,
+    fontSize: 11,
+  },
+  digestIlkeBox: {
+    backgroundColor: colors.goldSoft,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  digestIlkeLabel: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '800',
+    fontSize: 10,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  digestIlkeBody: {
+    ...typography.body,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    lineHeight: 21,
+  },
+  digestOzetLabel: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '800',
+    fontSize: 10,
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  digestOpenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginTop: spacing.lg,
+  },
+  digestOpenText: {
+    ...typography.bodyMedium,
+    color: colors.textInverse,
+    fontWeight: '700',
   },
   // Olay analizi — Çok Yakında
   analyzeSoonWrap: {

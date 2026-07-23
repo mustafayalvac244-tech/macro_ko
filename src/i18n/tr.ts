@@ -1082,6 +1082,11 @@ export const tr = {
   'ictihat.kunyeNotFoundDesc':
     'Künye hatalı olabilir veya karar resmi havuzun kapsamında olmayabilir (her karar yayımlanmaz). Numaraları kontrol edin; sadece esas ya da sadece karar numarasıyla da deneyin.',
   'ictihat.kunyeCiting': 'Bu künyeye atıf yapan kararlar',
+  'ictihat.digestsTitle': 'Konu Özetleri',
+  'ictihat.digestsDesc': 'Sık karşılaşılan konularda, gerçek Yargıtay kararlarından hazırlanmış özetler. Dokunun, ilkeyi ve özeti okuyun; dilerseniz kararın tam metnini açın.',
+  'ictihat.digestIlke': 'YERLEŞİK İLKE',
+  'ictihat.digestOzet': 'KARAR ÖZETİ',
+  'ictihat.digestOpenFull': 'Kararın tam metnini aç',
   'ictihat.analyzeTitle': 'Uyuşmazlığı özetleyin, asistanınız içtihatı bulsun',
   'ictihat.analyzeDesc': 'Somut uyuşmazlığınızı özetleyin; yapay zekâ asistanınız hukuki değerlendirmesini yaparak uygun içtihatları sizin için bulsun.',
   'ictihat.analyzePlaceholder': 'Örn: Müvekkilim 5 yıldır kiracı. Ev sahibi kendi ihtiyacı olduğunu söyleyip tahliye davası açtı, ancak taşınmayı gerçekten düşünmüyor, daha yüksek kiraya vermek istiyor...',

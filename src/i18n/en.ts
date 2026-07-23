@@ -1080,6 +1080,11 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.kunyeNotFoundDesc':
     'The citation may be wrong, or the decision may not be in the official corpus (not every decision is published). Check the numbers; also try with only the docket or only the decision number.',
   'ictihat.kunyeCiting': 'Decisions citing this number',
+  'ictihat.digestsTitle': 'Topic Summaries',
+  'ictihat.digestsDesc': 'Summaries prepared from real Court of Cassation decisions on common topics. Tap to read the principle and summary; open the full decision if you wish.',
+  'ictihat.digestIlke': 'ESTABLISHED PRINCIPLE',
+  'ictihat.digestOzet': 'DECISION SUMMARY',
+  'ictihat.digestOpenFull': 'Open the full decision',
   'ictihat.analyzeTitle': 'Summarize the dispute, your assistant finds the precedent',
   'ictihat.analyzeDesc': 'Summarize your dispute; your AI assistant makes its legal assessment and finds the fitting case law for you.',
   'ictihat.analyzePlaceholder': 'e.g. My client has been a tenant for 5 years. The landlord filed an eviction claiming personal need, but does not really intend to move in — they want to re-let at a higher rent...',
