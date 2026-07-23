@@ -416,8 +416,29 @@ function DigestModal({
               <Text style={styles.digestIlkeLabel}>{t('ictihat.digestIlke')}</Text>
               <Text style={styles.digestIlkeBody}>{digest.ilke}</Text>
             </View>
-            <Text style={styles.digestOzetLabel}>{t('ictihat.digestOzet')}</Text>
-            <Text style={styles.docText}>{digest.ozet}</Text>
+
+            {!!digest.dayanak && (
+              <View style={styles.digestDayanakRow}>
+                <Ionicons name="reader-outline" size={13} color={colors.textMuted} />
+                <Text style={styles.digestDayanakText}>{digest.dayanak}</Text>
+              </View>
+            )}
+
+            <Text style={styles.digestSectionLabel}>{t('ictihat.digestUyusmazlik')}</Text>
+            <Text style={styles.docText}>{digest.uyusmazlik}</Text>
+
+            <Text style={styles.digestSectionLabel}>{t('ictihat.digestDegerlendirme')}</Text>
+            <Text style={styles.docText}>{digest.degerlendirme}</Text>
+
+            <View style={styles.digestSonucRow}>
+              <Text style={styles.digestSectionLabel}>{t('ictihat.digestSonuc')}</Text>
+              <View style={[styles.outcomeBadge, { backgroundColor: outcomeColor(digest.outcome, colors).soft, marginTop: 0 }]}>
+                <Ionicons name={outcomeColor(digest.outcome, colors).icon} size={11} color={outcomeColor(digest.outcome, colors).fg} />
+                <Text style={[styles.outcomeText, { color: outcomeColor(digest.outcome, colors).fg }]}>{digest.outcome}</Text>
+              </View>
+            </View>
+            <Text style={styles.docText}>{digest.sonuc}</Text>
+
             <Pressable style={styles.digestOpenBtn} onPress={() => onOpenFull(digest)}>
               <Ionicons name="document-text-outline" size={16} color={colors.textInverse} />
               <Text style={styles.digestOpenText}>{t('ictihat.digestOpenFull')}</Text>
@@ -1185,6 +1206,38 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
     fontSize: 10,
     letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  digestDayanakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 10,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    marginBottom: spacing.md,
+  },
+  digestDayanakText: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    flex: 1,
+  },
+  digestSectionLabel: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '800',
+    fontSize: 10.5,
+    letterSpacing: 0.5,
+    marginTop: spacing.md,
+    marginBottom: 6,
+  },
+  digestSonucRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
     marginBottom: 6,
   },
   digestOpenBtn: {

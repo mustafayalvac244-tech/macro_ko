@@ -1,12 +1,15 @@
 // Yerleşik İçtihat Özetleri — anahtarsız (runtime AI yok) çözüm.
 //
-// Bu özetler, aşağıda künyesi verilen GERÇEK Yargıtay kararlarının tam metni
-// okunarak elle çıkarılmış sadık özetlerdir. Uygulama içinde "Kararın tam
-// metnini aç" ile Bedesten (Adalet Bakanlığı) üzerinden orijinal metne
-// ulaşılır; böylece özet + doğrulama bir arada sunulur.
+// Bu özetler, künyesi verilen GERÇEK Yargıtay kararlarının tam metni okunarak
+// bir avukat titizliğiyle elle çıkarılmıştır. Her özet dört bölümden oluşur:
+// UYUŞMAZLIK (olay + talep), DEĞERLENDİRME (Yargıtay'ın gerekçesi/ratio),
+// SONUÇ (bozma/onama + neden) ve DAYANAK (ilgili mevzuat). "İlke" ise kararın
+// yerleşik kuralının özüdür. Uygulama içinde "Kararın tam metnini aç" ile
+// Bedesten (Adalet Bakanlığı) üzerinden orijinal metin doğrulanabilir.
 //
 // Not: Özetler bilgilendirme amaçlıdır; güncel mevzuat ve kararın bütünü
-// teyit edilmelidir. Zamanla yeni kararlarla genişletilecektir.
+// teyit edilmelidir. Bazı kararlar mülga kanun dönemine ait olup, güncel
+// karşılıkları dayanak bölümünde belirtilmiştir.
 
 export interface IctihatDigest {
   /** Bedesten documentId — tam metni açmak için. */
@@ -20,12 +23,18 @@ export interface IctihatDigest {
   esas: string;
   karar: string;
   tarih: string;
-  /** Kararın operatif sonucu. */
+  /** Kararın operatif sonucu (Bozma/Onama…). */
   outcome: string;
   /** Tek-iki cümlelik yerleşik ilke (özün özü). */
   ilke: string;
-  /** Kararın sadık özeti. */
-  ozet: string;
+  /** Uyuşmazlık: olay + talep + hukuki mesele. */
+  uyusmazlik: string;
+  /** Değerlendirme: Yargıtay'ın gerekçesi (ratio decidendi). */
+  degerlendirme: string;
+  /** Sonuç: bozma/onama ve nedeni. */
+  sonuc: string;
+  /** Dayanak: ilgili mevzuat maddeleri (isteğe bağlı). */
+  dayanak?: string;
 }
 
 export const ICTIHAT_DIGESTS: IctihatDigest[] = [
@@ -39,23 +48,33 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2012/356',
     tarih: '16.01.2012',
     outcome: 'Bozma',
-    ilke: 'Kesinleşmiş tahliye kararı varken, tahliye davası sürerken açılan kira tespiti/artırım davası yeni bir kira ilişkisi doğurmaz.',
-    ozet:
-      'Kiracı, tahliye davası devam ederken kira bedelinin artırılması/tespiti için dava açmasının kira sözleşmesini yenilediğini ve kiracılığının sürdüğünü ileri sürmüştür. Yargıtay, tahliye davası sürerken kira artırımının istenmesinin sözleşmenin yenilendiğini göstermeyeceğini belirtmiştir. Kesinleşmiş tahliye kararı karşısında kiracılığın tespiti davasının reddi gerekirken kabulü usul ve yasaya aykırı bulunarak karar bozulmuştur.',
+    ilke: 'Kesinleşmiş tahliye kararı bulunan bir kira ilişkisinde, tahliye davası sürerken açılan kira tespiti/artırım davası tek başına yeni bir kira ilişkisi doğurmaz; kiracılığın tespiti istenemez.',
+    uyusmazlik:
+      'Kiracı, hakkında temerrüt nedeniyle verilip kesinleşen tahliye kararına rağmen, tahliye süreci devam ederken kiraya verenin kira bedelinin tespiti/artırımı davası açmasının kira sözleşmesini yenilediğini ileri sürerek kiracılığının tespitini istemiştir. Uyuşmazlık, tahliye davası sürerken açılan kira tespiti davasının yeni bir kira ilişkisi kurup kurmadığı noktasındadır.',
+    degerlendirme:
+      'Yargıtay, tahliye davası sürerken kira artırımının istenmesinin sözleşmenin yenilendiğini göstermeyeceğini belirtmiştir. Kesinleşmiş bir tahliye kararı varken, kira tespiti davası açılmış olması taraflar arasında eskisinden bağımsız yeni bir kira ilişkisi kurulduğu sonucunu doğurmaz.',
+    sonuc:
+      'Kesinleşmiş tahliye kararı karşısında kiracılığın tespiti davasının reddi gerekirken kabulü usul ve yasaya aykırı bulunarak karar bozulmuştur.',
+    dayanak: 'Yerleşik içtihat',
   },
   {
     id: '159286600',
     slug: 'isyeri-ihtiyac-tahliye',
-    title: 'İşyeri ihtiyacına dayalı tahliyede aranan koşullar',
+    title: 'İşyeri ihtiyacına dayalı tahliyenin koşulları',
     category: 'Kira',
     daire: 'Yargıtay 6. Hukuk Dairesi',
     esas: '2015/2565',
     karar: '2016/25',
     tarih: '17.01.2016',
     outcome: 'Bozma',
-    ilke: 'İhtiyaç gerçek, samimi ve zorunlu olmalı; dava tarihinde var olup yargılama boyunca sürmelidir. Geçici ya da henüz doğmamış ihtiyaç tahliye sebebi olamaz.',
-    ozet:
-      'İşyeri ihtiyacına dayalı tahliyede (TBK m. 350/1 ve 351) ihtiyaçlı kirada ise, ihtiyacın kabulü için ya tahliye tehdidi altında bulunması ya da kiralananın yapılacak iş için en az eşdeğer/üstün nitelikte olması gerekir; eşdeğerlikte mülkiyet hakkına üstünlük tanınır. Tahliye tehdidi davacı ileri sürmedikçe resen dikkate alınmaz; ancak üstünlük/eşdeğerlik keşif ve uzman bilirkişi ile araştırılmalıdır. İhtiyacın gerçek, samimi ve zorunlu olduğu kanıtlanmalı, dava tarihinde var olup yargılama boyunca devam etmelidir. Deliller toplanmadan verilen kabul kararı bozulmuştur.',
+    ilke: 'İhtiyaç gerçek, samimi ve zorunlu olmalı; dava tarihinde var olup yargılama boyunca sürmelidir. İhtiyaçlı kirada ise ya tahliye tehdidi altında olmalı ya da kiralanan, yapılacak iş için en az eşdeğer/üstün nitelikte bulunmalıdır.',
+    uyusmazlik:
+      'Kiraya veren, işyeri ihtiyacı ile yeniden inşa ve imar nedeniyle kiralananın tahliyesini istemiş; mahkeme davayı kabul etmiştir. Uyuşmazlık, TBK m. 350-351 kapsamında ihtiyaç koşullarının gerçekleşip gerçekleşmediği ve gerekli araştırmanın yapılıp yapılmadığıdır.',
+    degerlendirme:
+      'İşyeri ihtiyacına dayalı tahliyede, ihtiyaçlının kirada olması hâlinde ya tahliye tehdidi altında bulunması ya da kiralananın yapılacak iş için en az eşdeğer/üstün nitelikte olması gerekir; eşdeğerlikte mülkiyet hakkına üstünlük tanınır. Tahliye tehdidi ileri sürülmedikçe resen dikkate alınmaz; ancak üstünlük/eşdeğerlik keşif ve uzman bilirkişi ile araştırılmalıdır. İhtiyaç gerçek, samimi ve zorunlu olmalı, dava tarihinde var olup yargılama boyunca devam etmelidir. Somut olayda yapılan işin basit tadilat olduğu, esaslı imar niteliği taşımadığı belirlenmiştir.',
+    sonuc:
+      'Yeniden inşa/imar koşulu gerçekleşmediği hâlde davanın kabulü ve ihtiyaca ilişkin delillerin toplanmaması bozmayı gerektirmiştir.',
+    dayanak: 'TBK m. 350/1, m. 351',
   },
   {
     id: '213487700',
@@ -67,9 +86,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2016/3033',
     tarih: '14.02.2016',
     outcome: 'Bozma',
-    ilke: 'Kıdem, işçinin fiilen işe başladığı tarih ile fesih arasındaki tüm hizmet süresi üzerinden gün gün hesaplanır; kısmi ay ve günler ihmal edilemez.',
-    ozet:
-      'Kıdem tazminatına esas süre, iş sözleşmesinin imza tarihi değil, işçinin fiilen çalışmaya başladığı tarihten iş sözleşmesinin feshine kadar geçen tüm hizmet süresidir. En az bir yıllık çalışma koşulu nispi emredici olup işçi lehine azaltılabilir; çıraklıkta geçen süre sayılmaz, deneme süresi kıdeme eklenir. Somut olayda hizmet süresi 11 yıl 2 ay 20 gün tespit edildiği hâlde hesapta yalnız 11 yılın esas alınıp 2 ay 20 günün dışlanması hatalı bulunarak karar bozulmuştur.',
+    ilke: 'Kıdem, işçinin fiilen işe başladığı tarih ile iş sözleşmesinin feshi arasındaki tüm hizmet süresi üzerinden gün gün hesaplanır; kısmi ay ve günler ihmal edilemez.',
+    uyusmazlik:
+      'İşçilik alacakları davasında, kıdem tazminatına esas alınacak hizmet süresi taraflar arasında uyuşmazlık konusudur. Somut olayda işçinin hizmet süresi 11 yıl 2 ay 20 gün tespit edilmiştir.',
+    degerlendirme:
+      'Kıdem tazminatına esas süre, iş sözleşmesinin imza tarihi değil işçinin fiilen çalışmaya başladığı tarihten feshe kadar geçen tüm hizmet süresidir. En az bir yıllık çalışma koşulu nispi emredici olup işçi lehine azaltılabilir; çıraklık süresi sayılmaz, deneme süresi kıdeme eklenir. Fesihte kıdem tazminatına hak kazanıldığında işyeri/işyerlerinde geçen tüm süreler üzerinden hesap yapılıp, avans niteliğindeki ödemeler yasal faiziyle mahsup edilir.',
+    sonuc:
+      'Hizmet süresi 11 yıl 2 ay 20 gün olduğu hâlde hesapta yalnız 11 yılın esas alınıp 2 ay 20 günün dışlanması hatalı bulunarak karar bozulmuştur.',
+    dayanak: '1475 s. İş K. m. 14; 4857 s. İş K. m. 120',
   },
   {
     id: '648402900',
@@ -81,9 +105,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2020/7401',
     tarih: '21.06.2020',
     outcome: 'Bozma',
-    ilke: 'İşe iade sonrası işçi işe başlatılmazsa, işe başlatmama tarihi fesih tarihidir; ihbar tazminatı bu tarihe göre hesaplanır.',
-    ozet:
-      'İşe iade davası sonucu feshin geçersizliği kesinleşip işçi işe başlatılmazsa, işe başlatmama tarihi fesih tarihi sayılır ve ihbar tazminatı bu tarihe göre ödenir; geçersiz feshte tanınan önceki ihbar önelinin bir değeri kalmaz. Geçersiz fesih nedeniyle peşin ödenen ihbar öneli ücreti, İş Kanunu m. 21/4 uyarınca işe başlatmama tazminatı ve boşta geçen süre ücretinden mahsup edilir. Ayrıca yargılamayı gerektiren, likit olmayan alacakta icra inkâr tazminatına hükmedilemeyeceği belirtilerek karar bozulmuştur.',
+    ilke: 'İşe iade davası sonucu işçi işe başlatılmazsa, işe başlatmama tarihi fesih tarihidir; ihbar tazminatı bu tarihe göre hesaplanır. Geçersiz sayılan fesihte peşin ödenen ihbar öneli ücreti, işe başlatmama tazminatı ve boşta geçen süre ücretinden mahsup edilir.',
+    uyusmazlik:
+      'İşe iade sürecinin ardından açılan itirazın iptali davasında, işçinin ihbar tazminatına hak kazanıp kazanmadığı ve alacağın likit olup olmadığı uyuşmazlık konusudur.',
+    degerlendirme:
+      'İşe iade davasıyla feshin geçersizliği tespit edilip işçi işe başlatılmadığında, işe başlatmama tarihi fesih tarihi sayılır ve ihbar tazminatı bu tarihe göre hesaplanır; geçersiz feshte tanınan önceki ihbar önelinin değeri kalmaz. Geçersiz fesih nedeniyle peşin ödenen ihbar öneli ücreti, İş K. m. 21/4 uyarınca işe başlatmama tazminatı ve boşta geçen süre ücretinden mahsup edilir. Ayrıca yargılamayı gerektiren, likit olmayan alacakta icra inkâr tazminatına hükmedilemez.',
+    sonuc:
+      'Boşta geçen süre ücretinin likit kabul edilerek icra inkâr tazminatına hükmedilmesi hatalı bulunarak karar bozulmuştur.',
+    dayanak: '4857 s. İş K. m. 21',
   },
   {
     id: '799570600',
@@ -95,9 +124,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2022/6752',
     tarih: '04.07.2022',
     outcome: 'Bozma',
-    ilke: 'Zinada (TMK m. 161) altı aylık hak düşürücü süre öğrenmeden işler; zina vakıası ıslahla da ileri sürülebilir ve süresindeyse esası incelenmelidir.',
-    ozet:
-      'Kadın, evlilik birliğinin sarsılması nedenine dayalı davasını ıslah ederek zina (TMK m. 161) sebebini de eklemiştir. Yargıtay, zinada altı aylık hak düşürücü sürenin öğrenmeden itibaren işlediğini; olayda suç tarihi ile dava tarihi arasında sürenin dolmadığını ve HMK m. 177/1 uyarınca ıslahın tahkikat sonuna kadar yapılabileceğini belirtmiştir. Bölge adliye mahkemesinin, süresinde açılan zina davasının esasını incelemeden karar vermesi doğru bulunmayarak hüküm bozulmuştur.',
+    ilke: 'Zinada (TMK m. 161) altı aylık hak düşürücü süre, davanın açıldığı tarihe göre değerlendirilir; zina vakıası ıslahla da ileri sürülebilir (HMK m. 177/1) ve süresindeyse esası incelenmelidir.',
+    uyusmazlik:
+      'Kadın, evlilik birliğinin sarsılması nedenine dayalı davasını ıslah ederek zina (TMK m. 161) sebebini de eklemiş; bölge adliye mahkemesi zina davasını hak düşürücü sürenin geçtiği gerekçesiyle esasını incelemeden reddetmiştir. Uyuşmazlık, altı aylık sürenin dolup dolmadığı ve ıslahla getirilen zina iddiasının incelenip incelenemeyeceğidir.',
+    degerlendirme:
+      'Zinada altı aylık hak düşürücü süre öğrenmeden itibaren işler ve davanın açıldığı tarihe göre değerlendirilir. Somut olayda suç tarihi (21.06.2016) ile dava tarihi (05.10.2019) arasında sürenin dolmadığı; ayrıca HMK m. 177/1 uyarınca ıslahın tahkikatın sonuna kadar yapılabileceği belirtilmiştir.',
+    sonuc:
+      'Bölge adliye mahkemesinin, süresinde açılan zina davasının esasını incelemeden karar vermesi doğru görülmeyerek hüküm bozulmuştur.',
+    dayanak: 'TMK m. 161; HMK m. 177/1',
   },
   {
     id: '1012393300',
@@ -109,9 +143,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2010/3974',
     tarih: '05.04.2010',
     outcome: 'Bozma',
-    ilke: 'Tazminat, yalnızca dava konusu kazaya bağlı sürekli iş göremezlik oranı üzerinden hesaplanır; önceki maluliyetin etkisi ayrıştırılmalıdır.',
-    ozet:
-      'Davacının daha önce geçirdiği iş kazası nedeniyle sürekli iş göremezliği bulunduğundan, trafik kazasına bağlı iş göremezlik oranı belirlenirken önceki maluliyetin etkisi konusunda kuşku doğmuştur. Yargıtay, davacının üniversite hastanesine sevkiyle, dava konusu trafik kazasına bağlı sürekli iş göremezlik oranının önceki olaydan ayrıştırılarak saptanması gerektiğini belirtmiştir. Eksik inceleme ve araştırmayla kurulan tazminat hükmü bozulmuştur.',
+    ilke: 'Tazminat, yalnızca dava konusu kazaya bağlı sürekli iş göremezlik oranı üzerinden hesaplanır; davacının önceki maluliyetinin etkisi ayrıştırılarak Adli Tıp/üniversite hastanesi raporuyla belirlenmelidir.',
+    uyusmazlik:
+      'Davacı, trafik kazasında yaralanması nedeniyle maddi-manevi tazminat istemiş; mahkeme %15,2 sürekli iş göremezlik ve sürücünün %75 kusuru üzerinden tazminata hükmetmiştir. Ancak davacının 1980 yılında geçirdiği iş kazasına bağlı %43 oranında önceki maluliyeti bulunmaktadır.',
+    degerlendirme:
+      'Davacının önceden geçirdiği iş kazasına bağlı sürekli iş göremezliği bulunduğundan, trafik kazasına bağlı iş göremezlik oranı belirlenirken önceki maluliyetin etkisi konusunda kuşku doğmuştur. Bu nedenle davacı üniversite hastanesine sevk edilerek, tazminata esas iş göremezlik oranının yalnızca dava konusu kazaya bağlı kısmının ayrıştırılıp saptanması gerekir.',
+    sonuc:
+      'Eksik inceleme ve araştırmayla kurulan tazminat hükmü bozulmuştur.',
+    dayanak: 'Haksız fiil sorumluluğu (genel hükümler)',
   },
   {
     id: '449442900',
@@ -123,23 +162,33 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2018/7747',
     tarih: '10.09.2018',
     outcome: 'Bozma',
-    ilke: 'Borçlu yalnız imzaya itiraz etmişse, ileri sürülmeyen teminat/borç itirazı mahkemece resen incelenemez; İİK m. 170/a resen inceleme senedin kambiyo vasfı ve takip hakkıyla sınırlıdır.',
-    ozet:
-      'İcra mahkemesi, İİK m. 170/a uyarınca yalnızca takip dayanağı belgenin kambiyo senedi vasfı taşımadığını veya alacaklının kambiyo yoluyla takip hakkı bulunmadığını resen dikkate alabilir. Borçlular yalnız imzaya itiraz etmişken, taraflarca ileri sürülmeyen "teminat senedi" iddiasına dayanılarak takibin iptali doğru değildir. İmzaya itiraz konusunda gerekirse yeniden bilirkişi raporu alınarak inceleme yapılıp karar verilmesi gerektiğinden hüküm bozulmuştur.',
+    ilke: 'Borçlu yalnız imzaya itiraz etmişse, ileri sürülmeyen teminat/borç itirazı mahkemece resen incelenemez. İİK m. 170/a resen inceleme, senedin kambiyo vasfı taşımaması veya takip hakkının bulunmaması ile sınırlıdır.',
+    uyusmazlik:
+      'Bonoya dayalı kambiyo takibinde borçlular imzaya itiraz etmiş; mahkeme, bilirkişi raporunda senette teminat ibaresi ve tahrifat bulunduğu belirtildiğinden İİK m. 170/a uyarınca takibi iptal etmiştir. Uyuşmazlık, imzaya itirazla sınırlı takipte teminat iddiasının resen incelenip incelenemeyeceğidir.',
+    degerlendirme:
+      'İmzaya itiraz dışındaki tüm itirazlar (ödeme, teminat senedi, tahrifat vb.) borca itiraz niteliğindedir. İcra mahkemesi İİK m. 170/a uyarınca yalnızca senedin kambiyo vasfı taşımadığını veya alacaklının kambiyo yoluyla takip hakkı bulunmadığını resen dikkate alabilir. Borçlular yalnız imzaya itiraz etmişken, taraflarca ileri sürülmeyen teminat iddiasına dayanılarak takibin iptali doğru değildir; imzaya itiraz konusunda gerekirse yeniden rapor alınarak inceleme yapılmalıdır.',
+    sonuc:
+      'İmzaya itiraz incelenmeden, resen teminat iddiasına dayanılarak takibin iptali isabetsiz bulunarak karar bozulmuştur.',
+    dayanak: 'İİK m. 170/a',
   },
   {
     id: '1144156300',
-    slug: 'tenkis-sakli-pay',
-    title: 'Saklı payı zedeleyen ölüme bağlı tasarrufların tenkisi',
+    slug: 'tenkis-olume-bagli-saglararasi',
+    title: 'Tenkiste ölüme bağlı ve sağlararası tasarruf ayrımı',
     category: 'Miras',
     daire: 'Yargıtay 7. Hukuk Dairesi',
     esas: '2024/2492',
     karar: '2025/1249',
     tarih: '03.03.2025',
     outcome: 'Bozma',
-    ilke: 'Tasarruf nisabını aşan ölüme bağlı tasarruflar saklı payı zedelediği ölçüde tenkise tâbidir (TMK m. 560); saklı paylı mirasçının tenkiste hukuki yararı vardır.',
-    ozet:
-      'Miras bırakanın vasiyetnamesiyle saklı payı zedelenen mirasçılar, öncelikle vasiyetnamenin iptalini, olmazsa tenkisini istemiştir. Yargıtay, tasarruf nisabını aşan tüm ölüme bağlı tasarrufların tenkise tâbi olduğunu ve saklı paylı mirasçının tenkiste hukuki yararının bulunduğunu (TMK m. 560; HGK 13.12.2023, 2022/1177 E. ile paralel) vurgulamıştır. Terekede mal bulunmadığı gerekçesiyle araştırma yapılmadan tenkis talebinin reddi doğru görülmeyerek karar bozulmuştur.',
+    ilke: 'Mirasbırakanın tasarruf nisabını aşan tüm ölüme bağlı tasarrufları tenkise tâbidir; sağlararası tasarruflar ise ancak TMK m. 565’te sayılan hâllerde tenkis edilebilir. Satış (sağlararası) yoluyla devredilen taşınmaz, dava edilen vasiyetnamenin (ölüme bağlı tasarrufun) konusu değildir.',
+    uyusmazlik:
+      'Saklı paylı mirasçılar, miras bırakanın vasiyetnamesinin iptalini, olmazsa tenkisini istemiştir. Mahkeme, tenkise konu ettiği taşınmazlar üzerinden davacılar lehine tenkis bedeline hükmetmiştir. Uyuşmazlık, bu taşınmazların dava edilen ölüme bağlı tasarrufa (vasiyetnameye) konu olup olmadığıdır.',
+    degerlendirme:
+      'Tenkis davasının konusunu mirasbırakanın saklı payları ihlal eden tasarrufları oluşturur. Tasarruf nisabını aşan tüm ölüme bağlı tasarruflar tenkise tâbi iken, sağlararası tasarruflar yalnızca TMK m. 565’te sayılan gruplardan birine girdiğinde tenkis edilebilir. Somut olayda tenkise konu edilen taşınmazlar, muris tarafından ölümünden önce satış (sağlararası tasarruf) yoluyla devredilmiş olup dava edilen vasiyetnameye konu değildir.',
+    sonuc:
+      'Sağlararası devredilen ve vasiyetnameye konu olmayan taşınmazlar yönünden davanın reddi gerekirken kabulü doğru görülmeyerek karar bozulmuştur.',
+    dayanak: 'TMK m. 560, m. 565',
   },
   {
     id: '149307600',
@@ -151,9 +200,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2015/1321',
     tarih: '10.02.2015',
     outcome: 'Bozma',
-    ilke: 'Fazla çalışma tanık beyanıyla ispatlanıp uzun süre için hesaplanır ve yüksek çıkarsa hakkaniyet (takdiri) indirimi yapılır; yazılı belge/işveren kayıtlarına dayanıyorsa indirim yapılmaz.',
-    ozet:
-      'Fazla çalışma yaptığını ispat yükü işçide, ödendiğini ispat yükü işverendedir. Fazla çalışma ve hafta tatili ücreti uzun bir süre için hesaplanıp miktar yüksek çıktığında Yargıtay’ın istikrarlı uygulamasına göre hakkaniyet indirimi yapılır; ancak fazla çalışma tanık yerine yazılı belgelere ve işveren kayıtlarına dayanıyorsa bu indirim uygulanmaz. Tanık beyanıyla saptanan fazla mesaide, aynı beyanlardaki "ödendi" ifadelerinin göz ardı edilerek çelişki yaratılması da doğru bulunmamıştır.',
+    ilke: 'Fazla çalışmanın ispat yükü işçide, ödendiğinin ispatı işverendedir. Fazla çalışma tanık beyanıyla ispatlanıp uzun süre için hesaplanır ve yüksek çıkarsa hakkaniyet (takdiri) indirimi yapılır; yazılı belge/işveren kayıtlarına dayanıyorsa indirim yapılmaz.',
+    uyusmazlik:
+      'İşçilik alacakları davasında hem hizmet süresi hem de fazla mesai alacağı tartışmalıdır. Fazla mesai tanık beyanlarına dayandırılmış, mahkeme bilirkişi hesabından %50 hakkaniyet indirimi yapmıştır.',
+    degerlendirme:
+      'Fazla çalışma yapıldığının ispat yükü işçide, ödendiğinin ispat yükü işverendedir. Fazla çalışma ve hafta tatili ücreti uzun süre için hesaplanıp yüksek çıktığında Yargıtay’ın istikrarlı uygulamasına göre hakkaniyet indirimi yapılır; ancak kayıt/yazılı belgeye dayanıyorsa indirim uygulanmaz. Tanık beyanıyla saptanan fazla mesaide, aynı beyanlardaki "ödendi" ifadelerinin göz ardı edilerek çelişki yaratılması da doğru değildir. Ayrıca kime ait olduğu belirlenemeyen dönemin hizmet süresinden dışlanması yerine SGK ve ticaret sicil kayıtlarından araştırılması gerekir.',
+    sonuc:
+      'Hizmet süresinin eksik araştırılması ve fazla mesai değerlendirmesindeki çelişki nedeniyle karar bozulmuştur.',
+    dayanak: 'İş K.; yerleşik içtihat',
   },
   {
     id: '648055700',
@@ -165,9 +219,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2019/11471',
     tarih: '17.12.2019',
     outcome: 'Onama',
-    ilke: 'Kira ilişkisi devam ederken (kiralananda otururken) verilen yazılı tahliye taahhüdü geçerlidir; taahhüt edilen tarihi izleyen bir aylık yasal süre içinde takip/dava açılmalıdır.',
-    ozet:
-      'Kiracı, kira sözleşmesinin kurulmasından sonra ve kiralananda otururken düzenlediği yazılı tahliye taahhüdüyle taşınmazı belirli tarihte boşaltmayı taahhüt etmiştir. Yargıtay, taahhüdün sözleşmeden sonra düzenlendiğini ve taahhüt edilen tarihi izleyen bir aylık yasal süre içinde icra takibi başlatıldığını saptayarak taahhüdü geçerli kabul etmiş, önceki bozma kararını kaldırıp yerel mahkemenin tahliye kararını onamıştır.',
+    ilke: 'Kira ilişkisi kurulduktan sonra (kiralananda otururken) verilen yazılı tahliye taahhüdü geçerlidir; taahhüt edilen tarihi izleyen bir aylık yasal süre içinde icra takibi/dava açılmalıdır.',
+    uyusmazlik:
+      'Kiraya veren, kiracının noterde düzenlediği yazılı tahliye taahhüdüne dayanarak icra takibi başlatmış; kiracı taahhüdün tedbir amaçlı ve baskı altında verildiğini savunmuştur. Uyuşmazlık, taahhüdün geçerliliği ve takibin süresinde başlatılıp başlatılmadığıdır.',
+    degerlendirme:
+      'Yargıtay, tahliye taahhüdünün kira sözleşmesinin kurulmasından sonra (kiralananda otururken) düzenlendiğini ve taahhüt edilen tarihi izleyen bir aylık yasal süre içinde takip başlatıldığını saptamıştır. Bu koşullar gerçekleştiğinden taahhüt geçerli kabul edilmiştir.',
+    sonuc:
+      'Önceki bozma kararı kaldırılarak yerel mahkemenin tahliye kararının onanmasına karar verilmiştir.',
+    dayanak: 'TBK m. 352/1',
   },
   {
     id: '1063752400',
@@ -179,9 +238,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2010/11793',
     tarih: '27.10.2010',
     outcome: 'Bozma',
-    ilke: 'Bir kira yılında iki haklı ihtar gerekir; dava kira yılının bitiminden itibaren bir ay içinde açılmalıdır. Muacceliyet şartı varsa muaccel kiralar tek ihtarla istenmeli, bölünüp iki ihtara konu edilemez.',
-    ozet:
-      'İki haklı ihtar nedeniyle tahliyede, kiracının bir kira yılı içinde iki haklı ihtara sebebiyet vermesi ve davanın kira yılı bitiminden itibaren bir ay içinde açılması gerekir; ihtardan sonra yapılan ödeme iki haklı ihtarı engellemez. Sözleşmede muacceliyet şartı varsa muaccel hale gelen kiralar tek ihtarla istenmeli, bölünüp ayrı ihtarlarla iki haklı ihtara konu edilemez. Ayrıca iki haklı ihtar ile temerrüt nedeniyle tahliye ayrı davalar olup, talep aşılarak dayanılmayan sebeple tahliye kararı verilemez.',
+    ilke: 'Kiracı bir kira yılında iki haklı ihtara sebebiyet vermeli ve dava kira yılının bitiminden itibaren bir ay içinde açılmalıdır. Muacceliyet şartı varsa muaccel kiralar tek ihtarla istenmeli; bölünüp iki ayrı ihtara konu edilerek iki haklı ihtar yaratılamaz.',
+    uyusmazlik:
+      'Kiraya veren iki haklı ihtar nedeniyle tahliye istemiş; sözleşmede bir ay kiranın ödenmemesi hâlinde tüm kiraların muaccel olacağı kararlaştırılmıştır. Kiraya veren, ilk ihtarla tüm muaccel kiraları isteyebilecekken kiraları bölerek ikinci ihtara konu etmiştir.',
+    degerlendirme:
+      'İki haklı ihtar nedeniyle tahliye için kiracının bir kira yılı içinde iki haklı ihtara sebebiyet vermesi ve davanın kira yılı bitiminden itibaren bir ay içinde açılması gerekir; ihtardan sonra yapılan ödeme iki haklı ihtarı engellemez. Muacceliyet şartı bulunduğunda muaccel hâle gelen kiralar tek ihtarla istenmeli, bölünüp ayrı ihtarlarla iki haklı ihtara konu edilemez. Ayrıca iki haklı ihtar ile temerrüt nedeniyle tahliye ayrı davalardır; talep aşılarak dayanılmayan sebeple tahliyeye karar verilemez.',
+    sonuc:
+      'İki haklı ihtar koşulları oluşmadığı hâlde, üstelik talep aşılarak temerrüt nedeniyle tahliyeye hükmedilmesi doğru görülmeyerek karar bozulmuştur.',
+    dayanak: '6570 s. Kanun m. 7/e (bkz. TBK m. 352/2)',
   },
   {
     id: '139514100',
@@ -193,9 +257,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2015/5032',
     tarih: '07.04.2015',
     outcome: 'Bozma',
-    ilke: 'Ecrimisil haksız fiil niteliğinde, en az kira geliri karşılığı bir zarardır; hak sahibi olmadan taşınmazı işgal eden, malike/paydaşa payı oranında ecrimisil ödemekle yükümlüdür.',
-    ozet:
-      'Ecrimisil, kötüniyetli zilyedin ödemekle yükümlü olduğu, en azından kira geliri karşılığı zararı ifade eden özel bir tazminat türüdür ve haksız fiil niteliğindedir. Kayıttan ve mülkiyetten kaynaklanan bir hakkı olmadığı hâlde başkasının taşınmazını (taşkın yapı vb.) kullanan kişinin bu kullanımı haksız işgal sayılır. Bu durumda haksız işgalciden, davacıların payı oranında ecrimisile hükmedilmesi gerekirken istemin reddi bozmayı gerektirmiştir.',
+    ilke: 'Ecrimisil haksız fiil niteliğinde, en az kira geliri karşılığı bir zarardır; kayıttan ve mülkiyetten kaynaklanan hakkı olmadan taşınmazı işgal eden, malike/paydaşa payı oranında ecrimisil ödemekle yükümlüdür.',
+    uyusmazlik:
+      'Davacılar, komşu parsellere yapılan taşkın yapılar nedeniyle elatmanın önlenmesi, yıkım ve ecrimisil istemiştir. Yargılama sırasında taşkın yapılar yıkıldığından, uyuşmazlık ecrimisil (haksız işgal tazminatı) talebinde toplanmıştır.',
+    degerlendirme:
+      'Ecrimisil, haksız işgal nedeniyle nitelendirilen özel bir zarar giderim biçimi olup en az kira geliri karşılığı zarardır ve haksız fiil niteliğindedir (YHGK 25.02.2004). Kayıttan ve mülkiyetten kaynaklanan hakkı olmadan başkasının taşınmazına taşkın yapı yaparak kullanan kişinin bu kullanımı haksız işgaldir; haksız işgalci, malike ecrimisil ödemekle yükümlüdür.',
+    sonuc:
+      'Haksız işgalcinin, davacıların payı oranında ecrimisil ödemesine hükmedilmesi gerekirken istemin reddi bozmayı gerektirmiştir.',
+    dayanak: 'Haksız fiil; TMK zilyetlik hükümleri',
   },
   {
     id: '350416900',
@@ -207,9 +276,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2017/9770',
     tarih: '11.06.2017',
     outcome: 'Bozma',
-    ilke: 'Nafaka artırımı, tarafların değişen sosyal-ekonomik durumu ve TÜİK ÜFE (TEFE) oranı esas alınarak, önceki nafaka takdirindeki dengeyi koruyacak biçimde belirlenir.',
-    ozet:
-      'İştirak ve yoksulluk nafakasının artırımı istenen davada Yargıtay, artırım miktarının tarafların gerçekleşen sosyal ve ekonomik durumları, nafakanın niteliği ve TÜİK’in yayımladığı ÜFE (TEFE) artış oranı gözetilerek, önceki takdirle oluşan dengeyi koruyucu oranda belirlenmesi gerektiğini vurgulamıştır. Bu ölçütler değerlendirilmeden yoksulluk nafakası artırım talebinin reddi doğru görülmeyerek karar bozulmuştur.',
+    ilke: 'Nafaka artırımı, tarafların değişen sosyal-ekonomik durumu ve TÜİK ÜFE (TEFE) oranı esas alınarak, önceki nafaka takdirindeki dengeyi koruyacak biçimde belirlenir; olağanüstü değişiklik şart değildir.',
+    uyusmazlik:
+      'Boşanma sonrası kendisi için yoksulluk, çocuklar için iştirak nafakasına hükmedilen davacı, aradan geçen süre ve değişen ekonomik koşullar nedeniyle nafakaların artırılmasını istemiş; mahkeme yoksulluk nafakası artırımını reddetmiştir.',
+    degerlendirme:
+      'Nafaka artırımında, tarafların gerçekleşen sosyal ve ekonomik durumları, nafakanın niteliği ve TÜİK’in yayımladığı ÜFE (TEFE) artış oranı gözetilerek, önceki takdirle oluşan dengeyi koruyucu oranda artış yapılmalıdır. Olağanüstü bir değişiklik aranmaz; tarafların gelir durumundaki değişim ve ekonomik göstergeler dikkate alınır.',
+    sonuc:
+      'Bu ölçütler değerlendirilmeden yoksulluk nafakası artırım talebinin reddi doğru görülmeyerek karar bozulmuştur.',
+    dayanak: 'TMK m. 176/4 (yoksulluk), m. 331 (iştirak)',
   },
   {
     id: '689138600',
@@ -222,8 +296,13 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     tarih: '13.09.2021',
     outcome: 'Bozma',
     ilke: 'Velayet düzenlemesinde temel ilke çocuğun üstün yararıdır; idrak çağındaki çocuğun görüşü alınır ve aksini gerektiren somut bir delil yoksa bu görüşe uyulur. Velayet kamu düzenine ilişkin olup resen araştırılır.',
-    ozet:
-      'Velayet ve kişisel ilişki düzenlenirken gözetilecek temel ilke, çocuğun üstün yararıdır; ana-babanın kusuru ve sosyal konumu bu yararı etkilemediği ölçüde dikkate alınır. İdrak çağındaki çocuğun beyanı alınır ve aksini gerektiren somut delil bulunmadıkça esas alınır. Somut olayda babasıyla yaşayan, düzeni oturmuş ve babasıyla kalmak istediğini beyan eden çocuğun velayetinin, beyanının aksine anneye verilmesi doğru görülmeyerek karar bozulmuştur.',
+    uyusmazlik:
+      'İlk derece mahkemesi, idrak çağındaki çocuğun beyanını esas alarak velayeti babaya vermiş; bölge adliye mahkemesi sosyal inceleme raporuna dayanarak velayeti anneye bırakmıştır. Uyuşmazlık, çocuğun beyanının aksine karar verilip verilemeyeceğidir.',
+    degerlendirme:
+      'Velayet düzenlenirken temel ilke çocuğun üstün yararıdır; ana-babanın kusuru ve konumu bu yararı etkilemediği ölçüde dikkate alınır. İdrak çağındaki çocuğun görüşü alınır ve aksini gerektiren somut delil bulunmadıkça esas alınır. Somut olayda her iki ebeveynin de olumsuz davranışı bulunmadığı, çocuğun babasıyla yaşadığı, düzeninin oturduğu ve babasıyla kalmak istediğini beyan ettiği saptanmıştır.',
+    sonuc:
+      'Çocuğun beyanının aksine velayetin anneye verilmesi doğru görülmeyerek karar bozulmuştur.',
+    dayanak: 'TMK m. 182, m. 336; BM Çocuk Hakları Sözleşmesi m. 12',
   },
   {
     id: '295586500',
@@ -236,8 +315,13 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     tarih: '15.01.2017',
     outcome: 'Bozma',
     ilke: 'İtirazın iptali davasında icra inkâr tazminatına hükmedilebilmesi için alacağın likit (belirli/belirlenebilir) olması gerekir; alacak tartışmalı ve yargılamayı gerektiriyorsa likit sayılmaz.',
-    ozet:
-      'İcra inkâr tazminatı, borçlunun haksızlığına karar verilmesi ve alacaklının talebi hâlinde, ancak alacağın likit olması şartıyla hükmedilebilir. Likit alacak, miktarının belli/sabit olduğu ya da borçlunun bütün unsurları bilerek kendi borcunu tespit edebildiği alacaktır; hak tartışmalı ve yargılamayı gerektiriyorsa likitlikten söz edilemez. Kıdem tazminatına hak kazanılıp kazanılmadığı taraflar arasında ihtilaflı olan olayda alacak likit sayılmadığından, icra inkâr tazminatına hükmedilmesi bozmayı gerektirmiştir.',
+    uyusmazlik:
+      'Kıdem tazminatı alacağı için başlatılan takibe itiraz üzerine açılan itirazın iptali davasında, mahkeme alacağı likit sayarak %20 icra inkâr tazminatına hükmetmiştir. Uyuşmazlık, alacağın likit olup olmadığıdır.',
+    degerlendirme:
+      'İcra inkâr tazminatına hükmedilebilmesi için, borçlunun haksızlığına karar verilmesi ve alacaklının talebi yanında alacağın likit olması gerekir. Likit alacak, miktarı belli/sabit olan ya da borçlunun bütün unsurları bilerek kendi borcunu tespit edebildiği alacaktır; hak tartışmalı ve yargılamayı gerektiriyorsa likitlikten söz edilemez. İşlemiş faiz yönünden ise icra inkâr tazminatına hükmedilemez.',
+    sonuc:
+      'Kıdem tazminatına hak kazanılıp kazanılmadığı ihtilaflı, alacak likit olmadığından icra inkâr tazminatına hükmedilmesi hatalı bulunarak karar bozulmuştur.',
+    dayanak: 'İİK m. 67',
   },
   {
     id: '978820000',
@@ -249,9 +333,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2023/2637',
     tarih: '10.10.2023',
     outcome: 'Onama',
-    ilke: 'Ayıplı malda tüketici; ücretsiz onarım, ayıpsız misli ile değişim, bedel iadesi veya indirim seçimlik haklarından birini kullanabilir. Bu haklar üretici/ithalatçıya karşı da ileri sürülebilir; satıcı, üretici ve ithalatçı müteselsilen sorumludur.',
-    ozet:
-      'Tüketici, ayıplı malda seçimlik haklarından (ücretsiz onarım, ayıpsız misli ile değişim, bedel iadesi, ayıp oranında indirim) dilediğini kullanabilir ve satıcı bunu yerine getirmekle yükümlüdür; bu haklar üretici veya ithalatçıya karşı da kullanılabilir, üçü müteselsilen sorumludur. Satın alınan yeni araçta gizli ayıbın bilirkişi raporuyla saptandığı olayda, aracın ayıpsız misli ile değişimine ilişkin hüküm usul ve yasaya uygun bulunarak onanmıştır.',
+    ilke: 'Ayıplı malda tüketici; ücretsiz onarım, ayıpsız misli ile değişim, bedel iadesi veya ayıp oranında indirim seçimlik haklarından birini kullanabilir. Bu haklar üretici/ithalatçıya karşı da ileri sürülebilir; satıcı, üretici ve ithalatçı müteselsilen sorumludur.',
+    uyusmazlik:
+      'Tüketici, satın aldığı sıfır aracın ilk gün arızalandığını ve yazılım güncellemesine rağmen giderilmediğini ileri sürerek ayıpsız misli ile değişim ve manevi tazminat istemiştir. Uyuşmazlık, gizli ayıp bulunup bulunmadığı ve değişim hakkının koşullarıdır.',
+    degerlendirme:
+      'Tüketici, ayıplı malda ücretsiz onarım, ayıpsız misli ile değişim, bedel iadesi veya indirim seçimlik haklarından dilediğini kullanabilir; satıcı bu talebi yerine getirmekle yükümlüdür. Ücretsiz onarım ve misli ile değişim hakları üretici/ithalatçıya karşı da kullanılabilir ve satıcı-üretici-ithalatçı müteselsilen sorumludur. Bilirkişi raporuyla ayıpların gizli olduğu ve raporun hükme elverişli bulunduğu saptanmıştır.',
+    sonuc:
+      'Gizli ayıp bilirkişiyle saptanan araçta, ayıpsız misli ile değişime ilişkin karar usul ve yasaya uygun bulunarak onanmıştır.',
+    dayanak: '6502 s. TKHK m. 11',
   },
   {
     id: '78324800',
@@ -263,9 +352,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2008/3208',
     tarih: '12.03.2008',
     outcome: 'Bozma',
-    ilke: 'Miras bırakanın, mirasçılardan mal kaçırmak amacıyla gerçekte bağışladığı taşınmazı satış gibi göstererek yaptığı temlik muvazaalıdır; mirasçılar payları oranında tapu iptali ve tescil isteyebilir.',
-    ozet:
-      'Miras bırakanın, saklı paylı mirasçılardan mal kaçırma amacıyla, gerçekte bağış olan taşınmaz devrini satış gibi göstererek (gerektiğinde üçüncü kişiler aracı kılınarak) yaptığı temlikler muris muvazaası nedeniyle geçersizdir. Böyle bir durumda mirasçılar, miras payları oranında tapu iptali ve tescil isteyebilir. Muvazaanın kabulü ilke olarak doğru olmakla birlikte, iptal ve tescilin miras bırakanın taşınmazdaki gerçek payı (7/8) esas alınarak yapılması gerektiğinden karar bozulmuştur.',
+    ilke: 'Mirasbırakanın, mirasçılardan mal kaçırmak amacıyla gerçekte bağışladığı taşınmazı satış gibi göstererek yaptığı temlik muvazaalıdır; mirasçılar payları oranında tapu iptali ve tescil isteyebilir.',
+    uyusmazlik:
+      'Davacılar, miras bırakanın saklı paylarını bertaraf etmek ve mal kaçırmak amacıyla taşınmazlarını (üçüncü kişiler aracı kılınarak) davalıya devrettiğini ileri sürerek tapu iptali ve tescil, olmazsa tenkis istemiştir. Uyuşmazlık, temliklerin muris muvazaası nedeniyle geçersiz olup olmadığıdır.',
+    degerlendirme:
+      'Mirasbırakanın, saklı paylı mirasçılardan mal kaçırma amacıyla gerçekte bağış olan taşınmaz devrini satış gibi göstererek (gerektiğinde üçüncü kişiler aracı kılınarak) yaptığı temlikler muris muvazaası nedeniyle geçersizdir. Bu durumda mirasçılar, miras payları oranında tapu iptali ve tescil isteyebilir. Muvazaanın kabulü ilke olarak doğrudur; ancak iptal ve tescil, miras bırakanın taşınmazdaki gerçek payı (7/8) esas alınarak yapılmalıdır.',
+    sonuc:
+      'Taşınmazın tamamı murise aitmiş gibi hüküm kurulması doğru görülmeyerek karar bozulmuştur.',
+    dayanak: 'TBK m. 19; 01.04.1974 t. 1/2 İçtihadı Birleştirme Kararı',
   },
   {
     id: '16793300',
@@ -277,9 +371,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2009/5658',
     tarih: '16.03.2009',
     outcome: 'Bozma',
-    ilke: 'Bonoda (kambiyo senedi) zamanaşımı vade tarihinden itibaren üç yıldır; zamanaşımına uğramış bonoyla genel haciz yoluyla takip yapılması dahi bu süreyi bertaraf etmez.',
-    ozet:
-      'Takip dayanağı bono kambiyo senedi niteliğinde olup, vade tarihinden itibaren üç yıllık zamanaşımına tâbidir. Süre dolduktan sonra alacaklının bonoya dayanarak genel haciz yoluyla takip yapması, bonolarda da uygulanan üç yıllık zamanaşımını ortadan kaldırmaz. Borçlu icra dairesine yaptığı itirazda zamanaşımını ileri sürdüğünden, itirazın kaldırılması isteminin reddi gerekirken kabulü bozmayı gerektirmiştir. (Karar mülga 6762 s. TTK dönemine ait olup, süre 6102 s. TTK m. 749’da da üç yıldır.)',
+    ilke: 'Bonoda (kambiyo senedi) zamanaşımı vade tarihinden itibaren üç yıldır; zamanaşımına uğramış bonoyla genel haciz yoluyla takip yapılması dahi bu üç yıllık süreyi bertaraf etmez.',
+    uyusmazlik:
+      'Vade tarihi 31.12.2004 olan bonoya dayalı takip 22.05.2008’de başlatılmış; borçlu icra dairesine zamanaşımı itirazında bulunmuştur. Uyuşmazlık, genel haciz yoluyla takipte bono için üç yıllık kambiyo zamanaşımının uygulanıp uygulanmayacağıdır.',
+    degerlendirme:
+      'Takip dayanağı bono kambiyo senedi niteliğinde olup vade tarihinden itibaren üç yıllık zamanaşımına tâbidir. Alacaklının bonoya dayanarak genel haciz yoluyla takip yapması, bonolarda da uygulanan üç yıllık zamanaşımını ortadan kaldırmaz. Borçlu itirazında zamanaşımını ileri sürdüğünden, itirazın kaldırılması reddedilmelidir.',
+    sonuc:
+      'Üç yıllık zamanaşımı dolduktan sonra başlatılan takipte itirazın kaldırılmasına karar verilmesi isabetsiz bulunarak karar bozulmuştur.',
+    dayanak: 'Mülga 6762 s. TTK m. 661, 688, 690 (bkz. 6102 s. TTK m. 749)',
   },
   {
     id: '184196200',
@@ -291,9 +390,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2015/8804',
     tarih: '18.03.2015',
     outcome: 'Bozma',
-    ilke: 'Manevi tazminat; tarafların sosyal-ekonomik durumu, kusur, elem ve ızdırabın derecesi, olayın vehameti gözetilerek TMK m. 4 hak ve nesafet ilkesiyle takdir edilir; manevi tatmine yetecek kadar olmalı, ne zenginleşme aracı ne de çok az olmalıdır.',
-    ozet:
-      '22.06.1966 tarihli 7/7 sayılı İçtihadı Birleştirme Kararı ve TMK m. 4 uyarınca hâkim, manevi tazminat miktarını belirlerken tarafların sosyal ve ekonomik durumlarını, kusuru, olayın vehametini, mağdurdaki elem ve ızdırabın derecesini gözetir. Takdir edilecek manevi tazminat, zarar görende manevi tatmin sağlamaya yetecek kadar olmalı; malvarlığı zararının giderilmesi amaçlanmadığından zenginleşme aracına dönüşmemelidir. Somut olayda hükmedilen tazminatın az olduğu belirtilerek karar bozulmuştur.',
+    ilke: 'Manevi tazminat; tarafların sosyal-ekonomik durumu, kusur, elem ve ızdırabın derecesi ile olayın vehameti gözetilerek hak ve nesafet (TMK m. 4) ilkesiyle takdir edilir; manevi tatmine yetecek kadar olmalı, ne zenginleşme aracı ne de yok denecek kadar az olmalıdır.',
+    uyusmazlik:
+      'Davacı, satın aldığı araçta kaza sırasında hava yastıklarının açılmaması nedeniyle yüzünde sabit iz kalacak şekilde yaralandığını ileri sürerek manevi tazminat istemiş; mahkeme 7.500 TL’ye hükmetmiştir. Uyuşmazlık, takdir edilen manevi tazminatın yeterli olup olmadığıdır.',
+    degerlendirme:
+      '22.06.1966 tarihli 7/7 sayılı İçtihadı Birleştirme Kararı ve TMK m. 4 uyarınca hâkim, manevi tazminatı belirlerken tarafların sosyal-ekonomik durumunu, kusuru, olayın vehametini ve mağdurdaki elem-ızdırabın derecesini gözetir. Takdir edilecek tazminat, zarar görende manevi tatmin sağlamaya yetecek kadar olmalı; malvarlığı zararının giderilmesi amaçlanmadığından zenginleşme aracına dönüşmemeli, ancak yok denecek kadar da az olmamalıdır.',
+    sonuc:
+      'Somut olayda hükmedilen manevi tazminatın az olduğu belirtilerek, davacı yararına karar bozulmuştur.',
+    dayanak: 'TMK m. 4; 22.06.1966 t. 7/7 İçtihadı Birleştirme Kararı',
   },
   {
     id: '645163700',
@@ -305,9 +409,14 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
     karar: '2021/5322',
     tarih: '01.03.2021',
     outcome: 'Bozma',
-    ilke: 'İşçinin geniş anlamda ücretinin (fazla çalışma, hafta tatili, ikramiye dâhil) ödenmemesi İş K. m. 24/II-e uyarınca haklı fesih sebebidir; işçi bu hâlde kıdem tazminatına hak kazanır.',
-    ozet:
-      'İş hukuku uygulamasında "istifa", işçinin sözleşmeyi haklı sebep olmaksızın feshi anlamına gelir; ancak gerçekte ödenmeyen ücret nedeniyle yapılan fesih haklı fesihtir. İş Kanunu m. 24/II-e uyarınca ücretin kanuna/sözleşmeye uygun hesaplanmaması veya ödenmemesi haklı fesih sebebidir ve buradaki ücret, fazla çalışma-hafta tatili-ikramiye gibi tüm alacakları kapsayan geniş anlamda ücrettir. Fazla çalışma ücretinin ödenmediği sabit olan olayda işçinin feshi haklı sayılıp kıdem tazminatına hükmedilmesi gerektiğinden karar bozulmuştur.',
+    ilke: 'İşçinin geniş anlamda ücretinin (fazla çalışma, hafta tatili, ikramiye dâhil) ödenmemesi İş K. m. 24/II-e uyarınca haklı fesih sebebidir; işçi bu hâlde kıdem tazminatına hak kazanır. Baskıyla imzalatılan "istifa" dilekçesi haklı feshi ortadan kaldırmaz.',
+    uyusmazlik:
+      'İşçi, ücretlerinin ve fazla çalışma alacağının ödenmemesi nedeniyle iş sözleşmesini feshettiğini belirterek kıdem tazminatı istemiş; işveren istifa suretiyle ayrıldığını savunmuştur. Uyuşmazlık, feshin haklı nedenle yapılıp yapılmadığıdır.',
+    degerlendirme:
+      'İş hukuku uygulamasında "istifa", işçinin sözleşmeyi haklı sebep olmaksızın feshi anlamına gelir; ancak gerçekte ödenmeyen ücret nedeniyle yapılan fesih haklı fesihtir. İş Kanunu m. 24/II-e uyarınca ücretin kanuna/sözleşmeye uygun hesaplanmaması veya ödenmemesi haklı fesih sebebidir; buradaki ücret, fazla çalışma-hafta tatili-ikramiye gibi tüm alacakları kapsayan geniş anlamda ücrettir. Somut olayda fazla çalışma ücretinin ödenmediği sabittir.',
+    sonuc:
+      'İşçinin feshi haklı sayılıp kıdem tazminatına hükmedilmesi gerekirken talebin reddi doğru görülmeyerek karar bozulmuştur.',
+    dayanak: '4857 s. İş K. m. 24/II-e',
   },
 ];
 
@@ -324,9 +433,9 @@ const STOP = new Set([
 
 /**
  * Arama sorgusuyla eşleşen konu özetlerini bulur — sonuçların EN ÜSTÜNDE
- * "özetli" olarak gösterilir. Başlık + kategori + ilke + özet metninde,
- * sorgunun 3+ harfli (stop-word olmayan) kelimelerini arar; en çok eşleşen
- * önce gelir, en fazla 3 özet döner.
+ * "özetli" olarak gösterilir. Başlık + kategori + ilke + uyuşmazlık +
+ * değerlendirme metninde, sorgunun 3+ harfli (stop-word olmayan) kelimelerini
+ * arar; en çok eşleşen önce gelir, en fazla 3 özet döner.
  */
 export function matchDigests(query: string): IctihatDigest[] {
   const q = foldTr(query).trim();
@@ -334,7 +443,7 @@ export function matchDigests(query: string): IctihatDigest[] {
   const words = q.split(/\s+/).filter((w) => w.length >= 3 && !STOP.has(w));
   if (words.length === 0) return [];
   const scored = ICTIHAT_DIGESTS.map((d) => {
-    const hay = foldTr(`${d.title} ${d.category} ${d.ilke} ${d.ozet}`);
+    const hay = foldTr(`${d.title} ${d.category} ${d.ilke} ${d.uyusmazlik} ${d.degerlendirme}`);
     let score = 0;
     if (hay.includes(q)) score += 3; // tam ifade
     for (const w of words) if (hay.includes(w)) score += 1;
