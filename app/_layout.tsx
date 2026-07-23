@@ -58,9 +58,9 @@ export default function RootLayout() {
   const hasHiddenSplash = useRef(false);
   const { colors, statusBar } = useTheme();
 
-  // Uygulama fontları — yüklenene kadar splash açık kalır; yükleme hata verirse
-  // sistem fontuyla devam edilir (fontError durumunda da ekran açılır).
-  const [fontsLoaded, fontError] = useFonts({
+  // Uygulama fontları arka planda yüklenir (açılışı bloklamaz); intro perdesi
+  // yüklenme penceresini örter, perde kalkana dek fontlar hazır olur.
+  useFonts({
     Manrope_400Regular,
     Manrope_500Medium,
     Manrope_600SemiBold,
@@ -70,7 +70,6 @@ export default function RootLayout() {
     PlayfairDisplay_600SemiBold,
     PlayfairDisplay_700Bold,
   });
-  const fontsReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
     const unsubscribe = initialize();
@@ -107,13 +106,17 @@ export default function RootLayout() {
   }, [initialize]);
 
   useEffect(() => {
-    if (!isInitializing && fontsReady && !hasHiddenSplash.current) {
+    if (!isInitializing && !hasHiddenSplash.current) {
       hasHiddenSplash.current = true;
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [isInitializing, fontsReady]);
+  }, [isInitializing]);
 
-  if (isInitializing || !fontsReady) {
+  // Statik açılış karesi YALNIZCA oturum okunana kadar durur; fontları BEKLEMEZ.
+  // Fontlar (yerelde gömülü) intro perdesinin ~2.5 sn'lik akışı boyunca arka
+  // planda yüklenir; perde kalkana dek hazır olur, böylece hem açılış hızlanır
+  // hem de metinlerde "yanlış font" sıçraması kullanıcıya görünmez.
+  if (isInitializing) {
     // Gömülü splash ekranda oyalanmasın: ilk karede indirilir; yükleme bitene
     // kadar gömülü kareyle BİREBİR AYNI görüntü (lacivert + 240dp logo)
     // gösterilir — göz kesinti fark etmez, intro bunun üstünden akar.

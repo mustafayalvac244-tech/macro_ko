@@ -44,6 +44,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (data.session) get().refreshProfile();
     });
 
+    // Güvenlik ağı: oturum okuma (token yenileme) ağ nedeniyle takılırsa açılış
+    // ekranı sonsuza kadar beklemesin — en geç 2 sn'de uygulamayı aç. getSession
+    // normalde yereldeki oturumu hemen döndüğü için bu nadiren devreye girer.
+    const bootTimeout = setTimeout(() => set({ isInitializing: false }), 2000);
+
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       set({ session, isInitializing: false });
       if (session) {
@@ -53,7 +58,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     });
 
-    return () => subscription.subscription.unsubscribe();
+    return () => {
+      clearTimeout(bootTimeout);
+      subscription.subscription.unsubscribe();
+    };
   },
 
   refreshProfile: async () => {

@@ -15,6 +15,12 @@ export interface IctihatHit {
   snippet?: string;
   /** Kararın kaynağı: UYAP Emsal (varsayılan) veya Yargıtay Karar Arama. */
   src?: 'emsal' | 'yargitay';
+  /** Künye detayı: tespit edilen karar sonucu (Bozma/Onama/…). */
+  outcome?: string;
+  /** Künye detayı: kararın hüküm/sonuç bölümünden kısa alıntı. */
+  sonuc?: string;
+  /** Künye detayı: incelenen (alt derece) mahkeme bilgisi. */
+  incelenen?: string;
 }
 
 export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'generic';

@@ -53,6 +53,49 @@ interface Hit {
   snippet?: string;
   /** Kararın kaynağı: UYAP Emsal (varsayılan) veya Yargıtay Karar Arama. */
   src?: 'emsal' | 'yargitay';
+  /** Künye detayı: tespit edilen karar sonucu (Bozma/Onama/…). */
+  outcome?: string;
+  /** Künye detayı: kararın hüküm/sonuç bölümünden kısa alıntı. */
+  sonuc?: string;
+  /** Künye detayı: incelenen (alt derece) mahkeme bilgisi. */
+  incelenen?: string;
+}
+
+/**
+ * Karar metninden kural-tabanlı (AI'sız) hızlı analiz: operatif sonuç
+ * (Bozma/Onama/…), hüküm bölümü alıntısı ve incelenen alt derece mahkeme.
+ * Sonuç tespiti kararın SON kısmından (hüküm fıkrası) yapılır — metnin
+ * ortasındaki geçişlerden etkilenmez.
+ */
+function analyzeDecision(text: string): { outcome?: string; sonuc?: string; incelenen?: string } {
+  if (!text) return {};
+  const clean = text.replace(/\s+/g, ' ').trim();
+  const low = clean.toLocaleLowerCase('tr');
+
+  // Hüküm/sonuç bölümü: son "sonuç" işaretinden itibaren, yoksa son 380 karakter.
+  const mk = low.lastIndexOf('sonuç');
+  const rawSonuc = mk >= 0 ? clean.slice(mk, mk + 420) : clean.slice(-380);
+  const sonuc = rawSonuc ? (mk > 0 ? '' : '…') + rawSonuc.trim() + '…' : undefined;
+
+  // Operatif sonucu kararın son bölümünden (hüküm fıkrası) tespit et.
+  const tail = low.slice(-1200);
+  const has = (s: string) => tail.includes(s);
+  let outcome: string | undefined;
+  if (has('düzeltilerek onan')) outcome = 'Düzeltilerek Onama';
+  else if (has('kısmen') && (has('bozulmasına') || has('bozulması'))) outcome = 'Kısmen Bozma';
+  else if (has('bozulmasına') || has('bozulması')) outcome = 'Bozma';
+  else if (has('onanmasına') || has('onanmasi') || has('onanması') || has('onandığ')) outcome = 'Onama';
+  else if (has('kaldırılmasına')) outcome = 'Kaldırma (istinaf)';
+  else if (has('esastan') && has('reddine')) outcome = 'İstinaf Başvurusu Reddi';
+  else if (has('kabulüne')) outcome = 'Kabul';
+  else if (has('reddine')) outcome = 'Ret';
+
+  // İncelenen alt derece mahkeme (varsa).
+  let incelenen: string | undefined;
+  const im = clean.match(/İNCELENEN KARARIN MAHKEMESİ\s*:?\s*([^\n]{3,80}?)(?:\s{2,}|TARİHİ|NUMARASI|SAYISI|$)/i);
+  if (im) incelenen = im[1].trim();
+
+  return { outcome, sonuc, incelenen };
 }
 
 /**
@@ -563,18 +606,30 @@ Deno.serve(async (req) => {
       const exact = collected.filter(matches);
       const citing = collected.filter((h) => !matches(h)).slice(0, 10);
 
-      // Önizlemeler: tam eşleşmede kararın girişi, atıf yapanlarda künyenin
-      // geçtiği yer (karşı taraf "cımbızla mı çekmiş" oradan görülür).
-      await Promise.all(
-        [...exact.slice(0, 3), ...citing.slice(0, 8)].map(async (h) => {
+      // Tam eşleşme: önizleme + DETAYLI ANALİZ (sonuç, hüküm alıntısı, incelenen
+      // mahkeme). Atıf yapanlar: künyenin geçtiği yer (karşı taraf "cımbızla mı
+      // çekmiş" oradan görülür).
+      await Promise.all([
+        ...exact.slice(0, 4).map(async (h) => {
           try {
             const text = await fetchDocText(h.id, h.src);
             h.snippet = buildSnippet(text, term);
+            const a = analyzeDecision(text);
+            h.outcome = a.outcome;
+            h.sonuc = a.sonuc;
+            h.incelenen = a.incelenen;
+          } catch {
+            // analiz alınamadı → geç
+          }
+        }),
+        ...citing.slice(0, 8).map(async (h) => {
+          try {
+            h.snippet = buildSnippet(await fetchDocText(h.id, h.src), term);
           } catch {
             // önizleme alınamadı → geç
           }
         }),
-      );
+      ]);
 
       return json({ esas, karar, exact, citing });
     }

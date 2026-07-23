@@ -589,6 +589,16 @@ function KunyePanel({
   );
 }
 
+/** Karar sonucuna göre renk/ikon: bozma-kaldırma=kırmızı, onama-kabul=yeşil. */
+function outcomeColor(outcome: string, colors: ThemeColors): { fg: string; soft: string; icon: keyof typeof Ionicons.glyphMap } {
+  const o = outcome.toLocaleLowerCase('tr');
+  if (o.includes('boz') || o.includes('kaldır'))
+    return { fg: colors.danger, soft: colors.dangerSoft, icon: 'close-circle' };
+  if (o.includes('onama') || o.includes('kabul'))
+    return { fg: colors.success, soft: colors.successSoft, icon: 'checkmark-circle' };
+  return { fg: colors.gold, soft: colors.goldSoft, icon: 'ellipse' };
+}
+
 /** Önizleme metninde aranan kelimeleri sarı ile işaretleyen inline parçalar üretir. */
 function highlightSnippet(text: string, query: string, markStyle: object): React.ReactNode {
   const q = (query ?? '').trim();
@@ -681,7 +691,32 @@ function HitCard({
             {highlightSnippet(hit.snippet, query ?? '', styles.snippetMark)}
           </Text>
         )}
+
+        {/* Künye detayı: incelenen mahkeme + hüküm/sonuç alıntısı */}
+        {!!hit.incelenen && (
+          <View style={styles.detailRow}>
+            <Ionicons name="git-branch-outline" size={12} color={colors.textMuted} />
+            <Text style={styles.detailText} numberOfLines={1}>
+              İncelenen: {hit.incelenen}
+            </Text>
+          </View>
+        )}
+        {!!hit.sonuc && (
+          <View style={styles.sonucBox}>
+            <Text style={styles.sonucLabel}>HÜKÜM / SONUÇ</Text>
+            <Text style={styles.sonucText} numberOfLines={5}>
+              {hit.sonuc}
+            </Text>
+          </View>
+        )}
+
         <View style={styles.badgeRow}>
+          {!!hit.outcome && (
+            <View style={[styles.outcomeBadge, { backgroundColor: outcomeColor(hit.outcome, colors).soft }]}>
+              <Ionicons name={outcomeColor(hit.outcome, colors).icon} size={11} color={outcomeColor(hit.outcome, colors).fg} />
+              <Text style={[styles.outcomeText, { color: outcomeColor(hit.outcome, colors).fg }]}>{hit.outcome}</Text>
+            </View>
+          )}
           {!!hit.durum && (
             <View style={styles.durumBadge}>
               <Text style={styles.durumText}>{hit.durum}</Text>
@@ -1134,7 +1169,55 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: spacing.xs,
+  },
+  outcomeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: 6,
+  },
+  outcomeText: {
+    ...typography.small,
+    fontWeight: '800',
+    fontSize: 10.5,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+  },
+  detailText: {
+    ...typography.small,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  sonucBox: {
+    marginTop: 8,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.gold,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+  },
+  sonucLabel: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '800',
+    fontSize: 9.5,
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  sonucText: {
+    ...typography.small,
+    color: colors.textPrimary,
+    lineHeight: 17,
   },
   srcBadge: {
     alignSelf: 'flex-start',
