@@ -1080,8 +1080,10 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.kunyeNotFoundDesc':
     'The citation may be wrong, or the decision may not be in the official corpus (not every decision is published). Check the numbers; also try with only the docket or only the decision number.',
   'ictihat.kunyeCiting': 'Decisions citing this number',
-  'ictihat.digestsTitle': 'Topic Summaries',
-  'ictihat.digestsDesc': 'Summaries prepared from real Court of Cassation decisions on common topics. Tap to read the principle and summary; open the full decision if you wish.',
+  'ictihat.digestsTitle': 'Vekil Summaries',
+  'ictihat.digestsDesc': 'Ready-made summaries prepared from real Court of Cassation decisions. Each card shows a topic’s established principle and a decision summary; tap, read, and open the full decision if you wish.',
+  'ictihat.digestMatch': 'We have a ready summary on this topic',
+  'ictihat.samplesLabel': 'Example searches',
   'ictihat.digestIlke': 'ESTABLISHED PRINCIPLE',
   'ictihat.digestOzet': 'DECISION SUMMARY',
   'ictihat.digestOpenFull': 'Open the full decision',

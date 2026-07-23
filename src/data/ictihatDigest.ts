@@ -311,6 +311,39 @@ export const ICTIHAT_DIGESTS: IctihatDigest[] = [
   },
 ];
 
+function foldTr(s: string): string {
+  return s.toLocaleLowerCase('tr').replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u');
+}
+
+// Çok geçen, ayırt edici olmayan kelimeler — eşleşmede sayılmaz.
+const STOP = new Set([
+  'dava', 'davası', 'karar', 'kararı', 'mahkeme', 'mahkemesi', 'hüküm', 'hukuk', 'hukuku',
+  'temyiz', 'madde', 'yargıtay', 'dairesi', 'kanun', 'kanunu', 'sayılı', 'taraf', 'taraflar',
+  'nedeniyle', 'ilişkin', 'için', 'olan', 'gereken', 'sözleşme', 'sözleşmesi',
+]);
+
+/**
+ * Arama sorgusuyla eşleşen konu özetlerini bulur — sonuçların EN ÜSTÜNDE
+ * "özetli" olarak gösterilir. Başlık + kategori + ilke + özet metninde,
+ * sorgunun 3+ harfli (stop-word olmayan) kelimelerini arar; en çok eşleşen
+ * önce gelir, en fazla 3 özet döner.
+ */
+export function matchDigests(query: string): IctihatDigest[] {
+  const q = foldTr(query).trim();
+  if (q.length < 3) return [];
+  const words = q.split(/\s+/).filter((w) => w.length >= 3 && !STOP.has(w));
+  if (words.length === 0) return [];
+  const scored = ICTIHAT_DIGESTS.map((d) => {
+    const hay = foldTr(`${d.title} ${d.category} ${d.ilke} ${d.ozet}`);
+    let score = 0;
+    if (hay.includes(q)) score += 3; // tam ifade
+    for (const w of words) if (hay.includes(w)) score += 1;
+    return { d, score };
+  }).filter((x) => x.score > 0);
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 3).map((x) => x.d);
+}
+
 /** Kategorilere göre grupla (görüntüleme için). */
 export function digestsByCategory(): Array<{ category: string; items: IctihatDigest[] }> {
   const map = new Map<string, IctihatDigest[]>();

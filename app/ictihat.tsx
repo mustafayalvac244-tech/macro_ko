@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -25,7 +25,7 @@ import {
   type IctihatError,
   type IctihatCourt,
 } from '@/hooks/useIctihat';
-import { ICTIHAT_DIGESTS, digestsByCategory, type IctihatDigest } from '@/data/ictihatDigest';
+import { ICTIHAT_DIGESTS, matchDigests, type IctihatDigest } from '@/data/ictihatDigest';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -77,6 +77,9 @@ export default function IctihatScreen() {
     setSummaryOpen(true);
     sum.summarize(query, Array.from(selected));
   };
+
+  // Aramayla eşleşen hazır özetlerimiz — sonuçların en üstünde "özetli" gösterilir.
+  const matchedDigests = useMemo(() => (mode === 'search' ? matchDigests(query) : []), [mode, query]);
 
   const errText =
     error === 'rate_limit' ? t('ictihat.errRate') : error === 'source' ? t('ictihat.errSource') : t('ictihat.errGeneric');
@@ -194,6 +197,19 @@ export default function IctihatScreen() {
             </View>
           )}
 
+          {/* Bu konudaki HAZIR ÖZETLERİMİZ — en üstte, "özetli" olarak */}
+          {!searching && matchedDigests.length > 0 && (
+            <View style={styles.digestMatchWrap}>
+              <View style={styles.digestMatchHead}>
+                <Ionicons name="sparkles" size={14} color={colors.gold} />
+                <Text style={styles.digestMatchHeadText}>{t('ictihat.digestMatch')}</Text>
+              </View>
+              {matchedDigests.map((d) => (
+                <DigestCard key={d.slug} digest={d} onPress={() => setOpenDigest(d)} />
+              ))}
+            </View>
+          )}
+
           {!searching && hits.length > 0 && (
             <>
               <View style={styles.resultHead}>
@@ -295,6 +311,34 @@ export default function IctihatScreen() {
   );
 }
 
+function DigestCard({ digest, onPress }: { digest: IctihatDigest; onPress: () => void }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.digestCard, pressed && styles.samplePressed]}>
+      <View style={styles.digestCardTop}>
+        <View style={styles.digestCatChip}>
+          <Text style={styles.digestCatText}>{digest.category}</Text>
+        </View>
+        <View style={styles.digestBadge}>
+          <Ionicons name="sparkles" size={10} color={colors.gold} />
+          <Text style={styles.digestBadgeText}>ÖZETLİ</Text>
+        </View>
+      </View>
+      <Text style={styles.digestTitle} numberOfLines={2}>{digest.title}</Text>
+      <Text style={styles.digestIlke} numberOfLines={3}>{digest.ilke}</Text>
+      <View style={styles.digestKunyeRow}>
+        <Text style={styles.digestKunye} numberOfLines={1}>
+          {digest.daire} · E.{digest.esas} K.{digest.karar}
+        </Text>
+        <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+      </View>
+    </Pressable>
+  );
+}
+
 function Welcome({ onPick, onOpenDigest }: { onPick: (q: string) => void; onOpenDigest: (d: IctihatDigest) => void }) {
   const __t = useTheme();
   const colors = __t.colors;
@@ -309,6 +353,19 @@ function Welcome({ onPick, onOpenDigest }: { onPick: (q: string) => void; onOpen
       </View>
       <Text style={styles.welcomeTitle}>{t('ictihat.welcome')}</Text>
       <Text style={styles.welcomeDesc}>{t('ictihat.welcomeDesc')}</Text>
+
+      {/* VİTRİN: hazır konu özetleri — kullanıcı, özet hizmetinin ne olduğunu baştan görsün */}
+      <View style={styles.digestHead}>
+        <Ionicons name="sparkles" size={16} color={colors.gold} />
+        <Text style={styles.digestHeadText}>{t('ictihat.digestsTitle')}</Text>
+      </View>
+      <Text style={styles.digestDesc}>{t('ictihat.digestsDesc')}</Text>
+      {ICTIHAT_DIGESTS.map((d) => (
+        <DigestCard key={d.slug} digest={d} onPress={() => onOpenDigest(d)} />
+      ))}
+
+      {/* Örnek aramalar en altta */}
+      <Text style={styles.samplesLabel}>{t('ictihat.samplesLabel')}</Text>
       <View style={styles.samples}>
         {samples.map((s) => (
           <Pressable key={s} onPress={() => onPick(s)} style={({ pressed }) => [styles.sample, pressed && styles.samplePressed]}>
@@ -317,29 +374,6 @@ function Welcome({ onPick, onOpenDigest }: { onPick: (q: string) => void; onOpen
           </Pressable>
         ))}
       </View>
-
-      {/* Yerleşik içtihat özetleri — hazır, özetli emsal kararlar */}
-      <View style={styles.digestHead}>
-        <Ionicons name="bookmarks" size={16} color={colors.gold} />
-        <Text style={styles.digestHeadText}>{t('ictihat.digestsTitle')}</Text>
-      </View>
-      <Text style={styles.digestDesc}>{t('ictihat.digestsDesc')}</Text>
-      {ICTIHAT_DIGESTS.map((d) => (
-        <Pressable
-          key={d.slug}
-          onPress={() => onOpenDigest(d)}
-          style={({ pressed }) => [styles.digestCard, pressed && styles.samplePressed]}
-        >
-          <View style={styles.digestCatChip}>
-            <Text style={styles.digestCatText}>{d.category}</Text>
-          </View>
-          <Text style={styles.digestTitle} numberOfLines={2}>{d.title}</Text>
-          <Text style={styles.digestIlke} numberOfLines={3}>{d.ilke}</Text>
-          <Text style={styles.digestKunye} numberOfLines={1}>
-            {d.daire} · E.{d.esas} K.{d.karar}
-          </Text>
-        </Pressable>
-      ))}
     </View>
   );
 }
@@ -1036,26 +1070,75 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.sm,
     lineHeight: 17,
   },
+  digestMatchWrap: {
+    marginBottom: spacing.md,
+  },
+  digestMatchHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.sm,
+  },
+  digestMatchHeadText: {
+    ...typography.caption,
+    color: colors.gold,
+    fontWeight: '800',
+  },
   digestCard: {
     alignSelf: 'stretch',
     backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: colors.gold,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
+  digestCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  digestBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.goldSoft,
+    borderRadius: 7,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  digestBadgeText: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '800',
+    fontSize: 9.5,
+    letterSpacing: 0.5,
+  },
+  digestKunyeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  samplesLabel: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    alignSelf: 'stretch',
+    marginTop: spacing.lg,
+    marginBottom: spacing.xs,
+  },
   digestCatChip: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.goldSoft,
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 7,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    marginBottom: 6,
   },
   digestCatText: {
     ...typography.small,
-    color: colors.gold,
+    color: colors.textSecondary,
     fontWeight: '800',
     fontSize: 10,
   },

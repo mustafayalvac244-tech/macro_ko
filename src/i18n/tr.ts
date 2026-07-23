@@ -1082,8 +1082,10 @@ export const tr = {
   'ictihat.kunyeNotFoundDesc':
     'Künye hatalı olabilir veya karar resmi havuzun kapsamında olmayabilir (her karar yayımlanmaz). Numaraları kontrol edin; sadece esas ya da sadece karar numarasıyla da deneyin.',
   'ictihat.kunyeCiting': 'Bu künyeye atıf yapan kararlar',
-  'ictihat.digestsTitle': 'Konu Özetleri',
-  'ictihat.digestsDesc': 'Sık karşılaşılan konularda, gerçek Yargıtay kararlarından hazırlanmış özetler. Dokunun, ilkeyi ve özeti okuyun; dilerseniz kararın tam metnini açın.',
+  'ictihat.digestsTitle': 'Vekil Özetleri',
+  'ictihat.digestsDesc': 'Gerçek Yargıtay kararlarından hazırlanmış hazır özetler. Her kart bir konunun yerleşik ilkesini ve karar özetini gösterir; dokunun, okuyun, dilerseniz kararın tam metnini açın.',
+  'ictihat.digestMatch': 'Bu konuda hazır özetimiz var',
+  'ictihat.samplesLabel': 'Örnek aramalar',
   'ictihat.digestIlke': 'YERLEŞİK İLKE',
   'ictihat.digestOzet': 'KARAR ÖZETİ',
   'ictihat.digestOpenFull': 'Kararın tam metnini aç',
