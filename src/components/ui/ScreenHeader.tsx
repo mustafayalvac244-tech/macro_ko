@@ -45,18 +45,23 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
     <View style={styles.container}>
       <View style={styles.left}>
         {deep ? (
-          // İçeri girilen ekranda: geri oku + ana sayfa kısayolu (derin yığında
-          // tek tek geri gitmeden doğrudan ana sayfaya dönebilmek için).
-          <>
-            <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
-              <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          // İçeri girilen ekranda geri oku + ana sayfa kısayolu tek bir bütünleşik
+          // kontrolde toplanır: [ ‹ | 🏠 ]. Böylece iki ayrı buton yan yana dağınık
+          // durmaz; hem geri gitmek hem derin yığından doğrudan ana sayfaya dönmek
+          // tek, kasıtlı görünen bir "pill" üzerinden yapılır.
+          <View style={styles.navGroup}>
+            <Pressable onPress={() => router.back()} hitSlop={8} style={styles.navBtn}>
+              <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
             </Pressable>
             {!hideHome && (
-              <Pressable onPress={goHome} hitSlop={10} style={styles.homeButton}>
-                <Ionicons name="home-outline" size={20} color={colors.textPrimary} />
-              </Pressable>
+              <>
+                <View style={styles.navDivider} />
+                <Pressable onPress={goHome} hitSlop={8} style={styles.navBtn}>
+                  <Ionicons name="home-outline" size={19} color={colors.textPrimary} />
+                </Pressable>
+              </>
             )}
-          </>
+          </View>
         ) : (
           showMenu && (
             <Pressable onPress={openSidebar} hitSlop={10} style={styles.menuButton}>
@@ -98,22 +103,27 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     flexShrink: 1,
   },
-  backButton: {
-    width: 32,
-    height: 32,
+  navGroup: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  homeButton: {
-    marginRight: spacing.xs,
-    width: 36,
-    height: 36,
+    height: 38,
+    marginRight: spacing.sm,
     borderRadius: 12,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
+    overflow: 'hidden',
+  },
+  navBtn: {
+    width: 42,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  navDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: colors.borderSubtle,
   },
   menuButton: {
     marginRight: spacing.sm,
