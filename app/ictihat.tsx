@@ -23,6 +23,7 @@ import {
   useIctihatSummary,
   type IctihatHit,
   type IctihatError,
+  type IctihatCourt,
 } from '@/hooks/useIctihat';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -45,14 +46,15 @@ export default function IctihatScreen() {
 
   const [mode, setMode] = useState<'analyze' | 'search' | 'kunye'>(AI_ENABLED ? 'analyze' : 'search');
   const [draft, setDraft] = useState('');
+  const [court, setCourt] = useState<IctihatCourt>('yargitay');
   const [olay, setOlay] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openHit, setOpenHit] = useState<IctihatHit | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
 
-  const runSearch = (q: string) => {
+  const runSearch = (q: string, c: IctihatCourt = court) => {
     setSelected(new Set());
-    search(q);
+    search(q, c);
   };
 
   const toggle = (id: string) => {
@@ -134,6 +136,28 @@ export default function IctihatScreen() {
           )}
         </View>
 
+        {/* Mahkeme süzgeci — Yargıtay en üst mahkeme, varsayılan odur. */}
+        <View style={styles.courtRow}>
+          {(
+            [
+              { id: 'yargitay', label: t('ictihat.courtYargitay') },
+              { id: 'emsal', label: t('ictihat.courtEmsal') },
+              { id: 'danistay', label: t('ictihat.courtDanistay') },
+            ] as const
+          ).map((c) => (
+            <Pressable
+              key={c.id}
+              onPress={() => {
+                setCourt(c.id);
+                if (searched && draft.trim()) runSearch(draft, c.id);
+              }}
+              style={[styles.courtChip, court === c.id && styles.courtChipActive]}
+            >
+              <Text style={[styles.courtChipText, court === c.id && styles.courtChipTextActive]}>{c.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.content}
@@ -200,7 +224,9 @@ export default function IctihatScreen() {
               )}
               <View style={styles.sourceRow}>
                 <Ionicons name="shield-checkmark-outline" size={13} color={colors.textMuted} />
-                <Text style={styles.sourceText}>{t('ictihat.source')}</Text>
+                <Text style={styles.sourceText}>
+                  {t(court === 'emsal' ? 'ictihat.source' : 'ictihat.sourceAdalet')}
+                </Text>
               </View>
             </>
           )}
@@ -820,6 +846,32 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   modePillTextActive: {
     color: colors.textInverse,
+  },
+  courtRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  courtChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  courtChipActive: {
+    backgroundColor: colors.goldSoft,
+    borderColor: colors.gold,
+  },
+  courtChipText: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '700',
+  },
+  courtChipTextActive: {
+    color: colors.gold,
   },
   // Olay analizi — Çok Yakında
   analyzeSoonWrap: {

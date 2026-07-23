@@ -92,7 +92,7 @@ async function attachSnippets(hits: Hit[], query: string, limit = 10): Promise<v
   await Promise.all(
     targets.map(async (h) => {
       try {
-        const text = await emsalDocument(h.id);
+        const text = await fetchDocText(h.id, h.src);
         h.snippet = buildSnippet(text, query);
       } catch {
         // önizleme alınamadı → geç
@@ -137,48 +137,98 @@ async function emsalDocument(id: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Yargıtay Karar Arama (karararama.yargitay.gov.tr) — künye doğrulamada ikinci
-// kaynak. Erişilemezse (engel/kesinti) sessizce atlanır; Emsal tek başına döner.
+// Bedesten API (bedesten.adalet.gov.tr) — Adalet Bakanlığı birleşik karar
+// bankası. UYAP Emsal (BAM + yerel) YARGITAY içermez; Yargıtay ve Danıştay
+// kararlarına buradan erişiyoruz. Yargıtay'ın kendi sitesi (karararama) bulut
+// IP'lerini engellediği için tek erişilebilir Yargıtay kaynağı budur.
 // ---------------------------------------------------------------------------
-const YARGITAY_BASE = 'https://karararama.yargitay.gov.tr';
+const BEDESTEN_BASE = 'https://bedesten.adalet.gov.tr';
+const BEDESTEN_HEADERS = {
+  'Content-Type': 'application/json',
+  Accept: 'application/json',
+  'User-Agent': 'Mozilla/5.0',
+  AdaletApplicationName: 'UyapMevzuat',
+};
 
-async function yargitaySearch(query: string, pageSize: number): Promise<Hit[]> {
-  const res = await fetch(`${YARGITAY_BASE}/aramalist`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      'User-Agent': 'Mozilla/5.0',
-      'X-Requested-With': 'XMLHttpRequest',
-      Referer: `${YARGITAY_BASE}/`,
-    },
-    body: JSON.stringify({ data: { arananKelime: query, pageSize, pageNumber: 1 } }),
-    signal: AbortSignal.timeout(6000),
-  });
-  if (!res.ok) throw new Error(`yargitay_${res.status}`);
-  const j = await res.json();
-  const rows = j?.data?.data ?? [];
-  return rows
-    .map((r: Record<string, unknown>): Hit => ({
-      id: String(r.id ?? ''),
-      daire: String(r.daire ?? ''),
-      esasNo: String(r.esasNo ?? ''),
-      kararNo: String(r.kararNo ?? ''),
-      kararTarihi: String(r.kararTarihi ?? ''),
-      durum: String(r.durum ?? ''),
-      src: 'yargitay' as const,
-    }))
-    .filter((h: Hit) => h.id);
+/** Bedesten base64 (UTF-8) içeriğini düz metne çevirir. */
+function b64ToUtf8(b64: string): string {
+  try {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder('utf-8').decode(bytes);
+  } catch {
+    return b64; // zaten düz metinse olduğu gibi
+  }
 }
 
-async function yargitayDocument(id: string): Promise<string> {
-  const res = await fetch(`${YARGITAY_BASE}/getDokuman?id=${encodeURIComponent(id)}`, {
-    headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0', Referer: `${YARGITAY_BASE}/` },
-    signal: AbortSignal.timeout(8000),
+function bedestenRows(j: unknown): Hit[] {
+  const list = (j as { data?: { emsalKararList?: unknown[] } })?.data?.emsalKararList ?? [];
+  return (list as Record<string, unknown>[])
+    .map((r): Hit => {
+      const birim = String(r.birimAdi ?? '');
+      const type = (r.itemType as { name?: string })?.name;
+      const prefix = type === 'DANISTAYKARAR' ? 'Danıştay' : 'Yargıtay';
+      const kt = r.kararTarihi ? String(r.kararTarihi).slice(0, 10).split('-').reverse().join('.') : '';
+      return {
+        id: String(r.documentId ?? ''),
+        daire: birim ? `${prefix} ${birim}` : prefix,
+        esasNo: r.esasNoYil != null ? `${r.esasNoYil}/${r.esasNoSira}` : '',
+        kararNo: r.kararNoYil != null ? `${r.kararNoYil}/${r.kararNoSira}` : '',
+        kararTarihi: kt,
+        durum: '',
+        src: 'yargitay' as const,
+      };
+    })
+    .filter((h) => h.id);
+}
+
+async function bedestenSearch(
+  query: string,
+  page: number,
+  pageSize: number,
+  itemType = 'YARGITAYKARARI',
+): Promise<{ hits: Hit[]; total: number }> {
+  const res = await fetch(`${BEDESTEN_BASE}/emsal-karar/searchDocuments`, {
+    method: 'POST',
+    headers: BEDESTEN_HEADERS,
+    // Sıralama alanı VERMİYORUZ: Bedesten'in varsayılanı alaka (relevance)
+    // sıralaması — "kira tespit" için ilgili Hukuk Dairelerini öne çıkarır.
+    // (KARAR_TARIHI ile sıralamak en yeni ama alakasız kararları getiriyordu.)
+    body: JSON.stringify({
+      data: {
+        pageSize,
+        pageNumber: page,
+        itemTypeList: [itemType],
+        phrase: query,
+      },
+    }),
+    signal: AbortSignal.timeout(10000),
   });
-  if (!res.ok) throw new Error(`yargitay_doc_${res.status}`);
+  if (!res.ok) throw new Error(`bedesten_${res.status}`);
   const j = await res.json();
-  return htmlToText(String(j?.data ?? ''));
+  return { hits: bedestenRows(j), total: Number((j as { data?: { total?: number } })?.data?.total ?? 0) };
+}
+
+async function bedestenDocument(id: string): Promise<string> {
+  const res = await fetch(`${BEDESTEN_BASE}/emsal-karar/getDocumentContent`, {
+    method: 'POST',
+    headers: BEDESTEN_HEADERS,
+    body: JSON.stringify({ data: { documentId: id } }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`bedesten_doc_${res.status}`);
+  const j = await res.json();
+  const data = (j as { data?: { content?: string; mimeType?: string } })?.data;
+  const mime = String(data?.mimeType ?? '');
+  // Taranmış (PDF/görüntü) kararların metni yok — düz metin sözü vermeyelim.
+  if (mime && !mime.includes('html') && !mime.includes('text')) return '';
+  return htmlToText(b64ToUtf8(String(data?.content ?? '')));
+}
+
+/** Kaynağa göre karar tam metnini getirir. */
+async function fetchDocText(id: string, src?: 'emsal' | 'yargitay'): Promise<string> {
+  return src === 'yargitay' ? await bedestenDocument(id) : await emsalDocument(id);
 }
 
 /** "E.2019/3641", "2019 / 3641", "2019-3641" → "2019/3641"; geçersizse ''. */
@@ -380,6 +430,8 @@ Deno.serve(async (req) => {
     ids?: string[];
     page?: number;
     pageSize?: number;
+    /** Arama mahkeme süzgeci: 'yargitay' | 'danistay' | 'emsal'. */
+    court?: 'yargitay' | 'danistay' | 'emsal';
     /** Künye araması: esas no ("2019/3641"), karar no ("2022/1689"), daire süzgeci. */
     esas?: string;
     karar?: string;
@@ -401,6 +453,17 @@ Deno.serve(async (req) => {
       if (!query) return json({ error: 'bad_request' }, 400);
       const pageSize = Math.min(20, Math.max(1, Number(body.pageSize ?? 15)));
       const page = Math.max(1, Number(body.page ?? 1));
+      // Mahkeme süzgeci: 'yargitay' (Bedesten) | 'danistay' (Bedesten) | 'emsal'
+      // (UYAP Emsal: BAM + yerel). Varsayılan Yargıtay — en üst mahkeme.
+      const court = body.court ?? 'yargitay';
+
+      // Yargıtay / Danıştay → Bedesten (tam sayfalama, tek kaynak).
+      if (court === 'yargitay' || court === 'danistay') {
+        const itemType = court === 'danistay' ? 'DANISTAYKARAR' : 'YARGITAYKARARI';
+        const r = await bedestenSearch(query, page, pageSize, itemType);
+        await attachSnippets(r.hits, query);
+        return json({ hits: r.hits, total: r.total, page, source: court });
+      }
 
       // Sayfa 2+ : sayfalama yalnız canlı UYAP Emsal üzerinden (havuz sayfa 1'de karışır).
       if (page > 1) {
@@ -469,7 +532,10 @@ Deno.serve(async (req) => {
       // Yargıtay Karar Arama Emsal taramasıyla PARALEL koşar (erişilemezse boş
       // döner) — seri beklemek toplam süreyi timeout kadar uzatıyordu.
       const term = esas || karar;
-      const ygPromise: Promise<Hit[]> = yargitaySearch(`"${term}"`, 20).catch(() => []);
+      // Yargıtay künyesini de tara (Bedesten). Erişilemezse boş döner.
+      const ygPromise: Promise<Hit[]> = bedestenSearch(term, 1, 20, 'YARGITAYKARARI')
+        .then((r) => r.hits)
+        .catch(() => []);
       const collected: Hit[] = [];
       const seen = new Set<string>();
       for (let p = 1; p <= 3; p++) {
@@ -502,7 +568,7 @@ Deno.serve(async (req) => {
       await Promise.all(
         [...exact.slice(0, 3), ...citing.slice(0, 8)].map(async (h) => {
           try {
-            const text = h.src === 'yargitay' ? await yargitayDocument(h.id) : await emsalDocument(h.id);
+            const text = await fetchDocText(h.id, h.src);
             h.snippet = buildSnippet(text, term);
           } catch {
             // önizleme alınamadı → geç
@@ -516,9 +582,9 @@ Deno.serve(async (req) => {
     if (action === 'document') {
       const id = (body.id ?? '').trim();
       if (!id) return json({ error: 'bad_request' }, 400);
-      // Yargıtay kaynaklı karar doğrudan oradan okunur (havuzda tutulmaz).
+      // Yargıtay/Danıştay kaynaklı karar Bedesten'den okunur (havuzda tutulmaz).
       if (body.src === 'yargitay') {
-        const text = await yargitayDocument(id);
+        const text = await bedestenDocument(id);
         return json({ id, text });
       }
       // Havuzda varsa oradan (hızlı, canlı bağımlılığı yok), yoksa Emsal'den.

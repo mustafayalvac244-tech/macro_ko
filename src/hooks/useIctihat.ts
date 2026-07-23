@@ -19,6 +19,9 @@ export interface IctihatHit {
 
 export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'generic';
 
+/** Arama mahkeme süzgeci. */
+export type IctihatCourt = 'yargitay' | 'danistay' | 'emsal';
+
 async function invoke<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('ictihat', { body });
   if (error) {
@@ -55,11 +58,13 @@ export function useIctihat() {
   const [searched, setSearched] = useState(false);
   const pageRef = useRef(1);
   const queryRef = useRef('');
+  const courtRef = useRef<IctihatCourt>('yargitay');
 
-  const search = useCallback(async (raw: string) => {
+  const search = useCallback(async (raw: string, court: IctihatCourt = 'yargitay') => {
     const q = raw.trim();
     if (!q) return;
     queryRef.current = q;
+    courtRef.current = court;
     pageRef.current = 1;
     setQuery(q);
     setError(null);
@@ -70,6 +75,7 @@ export function useIctihat() {
       const res = await invoke<{ hits: IctihatHit[]; total: number }>({
         action: 'search',
         query: q,
+        court,
         page: 1,
         pageSize: PAGE_SIZE,
       });
@@ -94,6 +100,7 @@ export function useIctihat() {
       const res = await invoke<{ hits: IctihatHit[]; total: number }>({
         action: 'search',
         query: queryRef.current,
+        court: courtRef.current,
         page: next,
         pageSize: PAGE_SIZE,
       });
