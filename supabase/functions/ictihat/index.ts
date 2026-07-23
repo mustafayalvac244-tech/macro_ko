@@ -59,6 +59,9 @@ interface Hit {
   sonuc?: string;
   /** Künye detayı: incelenen (alt derece) mahkeme bilgisi. */
   incelenen?: string;
+  /** Aranan ifade kararın metninde birebir geçiyor mu (arama motoru bazen
+   *  ilgili/köke yakın kararlar da döndürüyor). undefined=önizleme çekilmedi. */
+  matched?: boolean;
 }
 
 /**
@@ -98,6 +101,25 @@ function analyzeDecision(text: string): { outcome?: string; sonuc?: string; ince
   return { outcome, sonuc, incelenen };
 }
 
+/** Türkçe küçük harf + şapkalı harf katlaması (â→a, î→i, û→u). Uzunluk korunur,
+ *  böylece katlanmış metindeki indeks orijinal metinde aynı yeri gösterir. */
+function foldTr(s: string): string {
+  return s.toLocaleLowerCase('tr').replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u');
+}
+
+/** Aranan ifadenin (veya 3+ harfli kelimelerinden birinin) metinde geçtiği ilk
+ *  konumu döndürür; hiç geçmiyorsa -1. */
+function findTermIndex(foldedText: string, query: string): number {
+  const terms = [query.trim(), ...query.trim().split(/\s+/).filter((w) => w.length >= 3)]
+    .map(foldTr)
+    .filter(Boolean);
+  for (const term of terms) {
+    const i = foldedText.indexOf(term);
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
 /**
  * Aranan kelimenin karar metninde geçtiği yerden kısa bir önizleme çıkarır
  * (LEGALBANK/Lexpera tarzı) — avukat kararı açmadan konuyla ilgisini görsün.
@@ -106,16 +128,7 @@ function analyzeDecision(text: string): { outcome?: string; sonuc?: string; ince
 function buildSnippet(text: string, query: string): string {
   if (!text) return '';
   const clean = text.replace(/\s+/g, ' ').trim();
-  const lower = clean.toLocaleLowerCase('tr');
-  // Önce tam ifade, sonra 3+ harfli tek tek kelimeler (uzun → kısa).
-  const terms = [query.trim(), ...query.trim().split(/\s+/).filter((w) => w.length >= 3)]
-    .map((t) => t.toLocaleLowerCase('tr'))
-    .filter(Boolean);
-  let idx = -1;
-  for (const term of terms) {
-    idx = lower.indexOf(term);
-    if (idx >= 0) break;
-  }
+  const idx = findTermIndex(foldTr(clean), query);
   const MAX = 240;
   if (idx < 0) {
     return clean.slice(0, MAX).trim() + (clean.length > MAX ? '…' : '');
@@ -123,6 +136,11 @@ function buildSnippet(text: string, query: string): string {
   const start = Math.max(0, idx - 90);
   const end = Math.min(clean.length, idx + 150);
   return (start > 0 ? '…' : '') + clean.slice(start, end).trim() + (end < clean.length ? '…' : '');
+}
+
+/** Aranan ifade metinde birebir (şapka-katlamalı) geçiyor mu? */
+function textHasTerm(text: string, query: string): boolean {
+  return findTermIndex(foldTr(text.replace(/\s+/g, ' ')), query) >= 0;
 }
 
 /**
@@ -137,6 +155,7 @@ async function attachSnippets(hits: Hit[], query: string, limit = 10): Promise<v
       try {
         const text = await fetchDocText(h.id, h.src);
         h.snippet = buildSnippet(text, query);
+        h.matched = textHasTerm(text, query);
       } catch {
         // önizleme alınamadı → geç
       }
@@ -504,7 +523,11 @@ Deno.serve(async (req) => {
       if (court === 'yargitay' || court === 'danistay') {
         const itemType = court === 'danistay' ? 'DANISTAYKARAR' : 'YARGITAYKARARI';
         const r = await bedestenSearch(query, page, pageSize, itemType);
-        await attachSnippets(r.hits, query);
+        await attachSnippets(r.hits, query, r.hits.length);
+        // Bedesten arama motoru bazen aranan kelimenin birebir geçmediği
+        // (köke/ilgiliye yakın) kararlar da döndürüyor. Metninde ifade birebir
+        // GEÇEN kararları öne al — kullanıcı "kelime nerede?" demesin.
+        r.hits.sort((a, b) => (a.matched === false ? 1 : 0) - (b.matched === false ? 1 : 0));
         return json({ hits: r.hits, total: r.total, page, source: court });
       }
 

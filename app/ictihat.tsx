@@ -691,6 +691,14 @@ function HitCard({
             {highlightSnippet(hit.snippet, query ?? '', styles.snippetMark)}
           </Text>
         )}
+        {hit.matched === false && !!query && (
+          <View style={styles.notMatchedRow}>
+            <Ionicons name="information-circle-outline" size={12} color={colors.textMuted} />
+            <Text style={styles.notMatchedText}>
+              “{query}” bu kararda birebir geçmiyor — ilgili/yakın sonuç
+            </Text>
+          </View>
+        )}
 
         {/* Künye detayı: incelenen mahkeme + hüküm/sonuç alıntısı */}
         {!!hit.incelenen && (
@@ -1185,6 +1193,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.small,
     fontWeight: '800',
     fontSize: 10.5,
+  },
+  notMatchedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  notMatchedText: {
+    ...typography.small,
+    color: colors.textMuted,
+    fontStyle: 'italic',
+    flex: 1,
+    fontSize: 11,
   },
   detailRow: {
     flexDirection: 'row',

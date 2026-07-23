@@ -21,6 +21,8 @@ export interface IctihatHit {
   sonuc?: string;
   /** Künye detayı: incelenen (alt derece) mahkeme bilgisi. */
   incelenen?: string;
+  /** Aranan ifade kararın metninde birebir geçiyor mu (false ise ilgili/yakın). */
+  matched?: boolean;
 }
 
 export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'generic';
