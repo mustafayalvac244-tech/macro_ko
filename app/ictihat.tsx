@@ -177,8 +177,11 @@ export default function IctihatScreen() {
             <Pressable
               key={m.id}
               onPress={() => {
-                setSearchMode(m.id);
-                if (searched && draft.trim()) runSearch(draft, court, m.id);
+                // Aktif moda tekrar basınca varsayılana (Akıllı) dön — böylece
+                // kullanıcı bir modda takılı kalmaz.
+                const next: IctihatMode = searchMode === m.id ? 'smart' : m.id;
+                setSearchMode(next);
+                if (searched && draft.trim()) runSearch(draft, court, next);
               }}
               style={[styles.modeChip, searchMode === m.id && styles.modeChipActive]}
             >
