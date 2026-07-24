@@ -7,8 +7,11 @@ import { fonts } from '@/theme/theme';
 
 // Gömülü splash karesiyle AYNI görsel — geçişte renk/kalite farkı sırıtmasın.
 const LOGO = require('../../assets/splash-icon.png');
-// Gömülü karede logo 240dp; intro yuvasında 108dp → 108/240
-const LOGO_SETTLE_SCALE = 108 / 240;
+// Logo yuvası: 152dp (eski 108'e göre ekran alanı ~2 kat büyütüldü — daha
+// belirgin, kaliteli duruyor). Görsel 240dp'den başlayıp buna oturur.
+const LOGO_SLOT = 152;
+const LOGO_START = 240;
+const LOGO_SETTLE_SCALE = LOGO_SLOT / LOGO_START;
 
 // OTA güncellemesi uygulanırken uygulama kendini yeniden başlatır; bu bayrak
 // o yeniden başlatmada intronun İKİNCİ kez oynamasını engeller (çift açılış).
@@ -128,17 +131,17 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   iconSlot: {
-    width: 108,
-    height: 108,
+    width: LOGO_SLOT,
+    height: LOGO_SLOT,
     marginBottom: 6,
   },
   iconImg: {
-    // Görsel gömülü karedeki gibi 240dp başlar; scale ile 108'e oturur.
+    // Görsel gömülü karedeki gibi 240dp başlar; scale ile yuvasına (152) oturur.
     position: 'absolute',
-    width: 240,
-    height: 240,
-    left: (108 - 240) / 2,
-    top: (108 - 240) / 2,
+    width: LOGO_START,
+    height: LOGO_START,
+    left: (LOGO_SLOT - LOGO_START) / 2,
+    top: (LOGO_SLOT - LOGO_START) / 2,
   },
   wordmark: {
     fontFamily: fonts.script,
