@@ -45,23 +45,12 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
     <View style={styles.container}>
       <View style={styles.left}>
         {deep ? (
-          // İçeri girilen ekranda geri oku + ana sayfa kısayolu tek bir bütünleşik
-          // kontrolde toplanır: [ ‹ | 🏠 ]. Böylece iki ayrı buton yan yana dağınık
-          // durmaz; hem geri gitmek hem derin yığından doğrudan ana sayfaya dönmek
-          // tek, kasıtlı görünen bir "pill" üzerinden yapılır.
-          <View style={styles.navGroup}>
-            <Pressable onPress={() => router.back()} hitSlop={8} style={styles.navBtn}>
-              <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-            </Pressable>
-            {!hideHome && (
-              <>
-                <View style={styles.navDivider} />
-                <Pressable onPress={goHome} hitSlop={8} style={styles.navBtn}>
-                  <Ionicons name="home-outline" size={19} color={colors.textPrimary} />
-                </Pressable>
-              </>
-            )}
-          </View>
+          // Geri oku solda, tek başına — baş parmağın doğal yeri. Ana sayfa
+          // kısayolu ise KARŞI köşeye (sağ üst) alındı; ikisi yan yana durup
+          // birbirine karışmıyor, her biri kendi köşesinde amaçlı görünüyor.
+          <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          </Pressable>
         ) : (
           showMenu && (
             <Pressable onPress={openSidebar} hitSlop={10} style={styles.menuButton}>
@@ -69,7 +58,7 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
             </Pressable>
           )
         )}
-        <View>
+        <View style={styles.titleWrap}>
           <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
@@ -80,11 +69,20 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
           )}
         </View>
       </View>
-      {rightIcon && onRightPress && (
-        <Pressable onPress={onRightPress} hitSlop={10} style={styles.rightButton}>
-          <Ionicons name={rightIcon} size={22} color={colors.textPrimary} />
-        </Pressable>
-      )}
+
+      {/* Sağ köşe: ana sayfa kısayolu (derin ekranlarda) + ekrana özel eylem. */}
+      <View style={styles.right}>
+        {deep && !hideHome && (
+          <Pressable onPress={goHome} hitSlop={10} style={styles.homeButton}>
+            <Ionicons name="home-outline" size={20} color={colors.textPrimary} />
+          </Pressable>
+        )}
+        {rightIcon && onRightPress && (
+          <Pressable onPress={onRightPress} hitSlop={10} style={styles.rightButton}>
+            <Ionicons name={rightIcon} size={22} color={colors.textPrimary} />
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -102,28 +100,37 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexShrink: 1,
+    flex: 1,
   },
-  navGroup: {
+  titleWrap: {
+    flexShrink: 1,
+  },
+  right: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 38,
-    marginRight: spacing.sm,
-    borderRadius: 12,
+    gap: spacing.xs,
+    marginLeft: spacing.sm,
+  },
+  backButton: {
+    marginRight: spacing.xs,
+    width: 40,
+    height: 40,
+    borderRadius: 13,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    overflow: 'hidden',
-  },
-  navBtn: {
-    width: 42,
-    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navDivider: {
-    width: 1,
-    height: 20,
-    backgroundColor: colors.borderSubtle,
+  homeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuButton: {
     marginRight: spacing.sm,
