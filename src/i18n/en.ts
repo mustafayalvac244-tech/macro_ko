@@ -606,7 +606,7 @@ export const en: Record<keyof typeof tr, string> = {
   'fmt.in': 'In {d}',
 
   // Notifications
-  'notif.hearingTitle': 'Upcoming hearing: {title}',
+  'notif.hearingTitle': 'Upcoming {type}: {title}',
   'notif.deadlineTitle': 'Task due soon: {title}',
   'notif.stage3d': '⏰ 3 days left — {title}',
   'notif.stage1d': '🚨 1 day left — {title}',

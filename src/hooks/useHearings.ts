@@ -84,6 +84,7 @@ async function scheduleFromRow(row: Hearing, caseTitle: string) {
     id: row.id,
     caseTitle,
     hearingTitle: row.title,
+    type: row.type,
     scheduledAt: row.scheduled_at,
     reminderMinutesBefore: row.reminder_minutes_before,
   });

@@ -664,7 +664,7 @@ export const tr = {
     'Alacak takibi tablosu henüz kurulmamış. KURULUM.sql dosyasını Supabase SQL Editor’da bir kez daha çalıştırın.',
 
   // Notifications
-  'notif.hearingTitle': 'Yaklaşan duruşma: {title}',
+  'notif.hearingTitle': 'Yaklaşan {type}: {title}',
   'notif.deadlineTitle': 'Görev zamanı yaklaşıyor: {title}',
   'notif.stage3d': '⏰ 3 gün kaldı — {title}',
   'notif.stage1d': '🚨 1 gün kaldı — {title}',

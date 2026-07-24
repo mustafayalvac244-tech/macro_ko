@@ -119,14 +119,22 @@ export async function scheduleHearingReminder(params: {
   id: string;
   caseTitle: string;
   hearingTitle: string;
+  /** Kayıt türü (hearing/mediation/deposition…) — bildirim başlığı buna göre yazılır. */
+  type?: string;
   scheduledAt: string;
   reminderMinutesBefore: number;
 }): Promise<void> {
+  const lang = getLang();
+  // Bildirim başlığı kayıt türünü yansıtsın: Arabuluculuk Toplantısı, Keşif,
+  // Duruşma vb. — hepsine "duruşma" demesin (alıcı geri bildirimi).
+  const typeLabel = params.type
+    ? translate(lang, `hearingType.${params.type}` as Parameters<typeof translate>[1])
+    : translate(lang, 'hearingType.hearing');
   await scheduleStagedReminders({
     baseId: hearingReminderId(params.id),
     eventAt: params.scheduledAt,
     chosenMinutesBefore: params.reminderMinutesBefore,
-    mainTitle: translate(getLang(), 'notif.hearingTitle', { title: params.hearingTitle }),
+    mainTitle: translate(lang, 'notif.hearingTitle', { type: typeLabel, title: params.hearingTitle }),
     body: `${params.caseTitle} — ${formatDateTime(params.scheduledAt)}`,
   });
 }
