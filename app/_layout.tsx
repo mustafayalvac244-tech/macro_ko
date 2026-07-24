@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -57,9 +57,12 @@ export default function RootLayout() {
   const hasHiddenSplash = useRef(false);
   const { colors, statusBar } = useTheme();
 
-  // Uygulama fontları arka planda yüklenir (açılışı bloklamaz); intro perdesi
-  // yüklenme penceresini örter, perde kalkana dek fontlar hazır olur.
-  useFonts({
+  // Fontlar hazır OLANA KADAR native splash açık kalır (aşağıda). Açılış
+  // animasyonu (LaunchIntro) markanın el yazısı fontuyla (Dancing Script)
+  // "Vekil Pro" yazdığından, font yüklenmeden oynarsa Android'de o yazı BOŞ
+  // render oluyordu ("sadece slogan görünüyor" hatası). Bu yüzden fontları
+  // bekliyoruz — ama YALNIZCA fontları; oturum (yavaş olan) beklenmez.
+  const [fontsLoaded, fontError] = useFonts({
     Manrope_400Regular,
     Manrope_500Medium,
     Manrope_600SemiBold,
@@ -69,6 +72,13 @@ export default function RootLayout() {
     PlayfairDisplay_600SemiBold,
     PlayfairDisplay_700Bold,
   });
+  // Fontlar 3 sn'de yüklenmezse yine de aç (donmuş splash'tan iyidir).
+  const [fontsTimedOut, setFontsTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setFontsTimedOut(true), 3000);
+    return () => clearTimeout(t);
+  }, []);
+  const fontsReady = fontsLoaded || !!fontError || fontsTimedOut;
 
   useEffect(() => {
     const unsubscribe = initialize();
@@ -104,12 +114,11 @@ export default function RootLayout() {
     return unsubscribe;
   }, [initialize]);
 
-  // Native splash'ı uygulama iskeleti ekrana ilk düşer düşmez kapat. ARTIK
-  // oturum okuması (isInitializing) BEKLENMEZ: uygulama hemen render edilir,
-  // LaunchIntro açılış animasyonu native splash'la BİREBİR aynı kareden (lacivert
-  // + logo) başlayıp üstünü örttüğü için statik bekleme karesi tamamen kalkar —
-  // native splash kapanır kapanmaz doğrudan animasyon oynar. Oturum bu ~2.5 sn'lik
-  // animasyon boyunca arka planda çözülür; doğru ekran perde kalkarken hazır olur.
+  // Native splash'ı, uygulama (fontlar hazır) iskeleti ekrana düşer düşmez kapat.
+  // Native splash = LaunchIntro'nun ilk karesiyle BİREBİR aynı görüntü (lacivert +
+  // logo) olduğundan geçiş görünmez; native splash kapanır kapanmaz doğrudan
+  // animasyon oynar. Oturum (yavaş olan) beklenmez — o, ~2.5 sn'lik animasyon
+  // boyunca arka planda çözülür ve doğru ekran perde kalkarken hazır olur.
   const hideSplash = () => {
     if (!hasHiddenSplash.current) {
       hasHiddenSplash.current = true;
@@ -117,13 +126,10 @@ export default function RootLayout() {
     }
   };
 
-  // Güvenlik ağı: onLayout herhangi bir nedenle geç kalırsa native splash asılı
-  // kalmasın — en geç 800 ms'de kapatılır (LaunchIntro zaten üstünü örtüyor).
-  useEffect(() => {
-    const t = setTimeout(hideSplash, 800);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Fontlar hazır değilken hiçbir şey render etme → native splash açık kalır
+  // (statik bekleme karesi eklemez). Fontlar yerelde gömülü olduğundan bu çok
+  // kısa sürer; ardından uygulama + intro fontlar HAZIR halde açılır.
+  if (!fontsReady) return null;
 
   const app = (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={hideSplash}>
