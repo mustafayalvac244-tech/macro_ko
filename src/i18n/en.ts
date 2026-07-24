@@ -1110,7 +1110,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.searching': 'Searching...',
   'ictihat.empty': 'No results. Try a different term.',
   'ictihat.errRate': 'I can’t respond right now due to heavy load. Try again in a minute.',
-  'ictihat.errSource': 'The decision source is unreachable right now. Try again shortly.',
+  'ictihat.errSource': 'The official decision bank (UYAP) is temporarily not responding — nothing is wrong with the app. Try again shortly. Meanwhile, the ready Vekil Summaries above work offline.',
   'ictihat.errGeneric': 'Something went wrong. Check your internet connection and try again.',
   'ictihat.summarizeBtn': 'Summarize {count} selected with AI',
   'ictihat.selectHint': 'Mark decisions for an AI summary (up to 4).',

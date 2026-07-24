@@ -1112,7 +1112,7 @@ export const tr = {
   'ictihat.searching': 'Aranıyor...',
   'ictihat.empty': 'Sonuç bulunamadı. Farklı bir kelime deneyin.',
   'ictihat.errRate': 'Yoğunluk nedeniyle şu an yanıt veremiyorum. Bir dakika sonra tekrar deneyin.',
-  'ictihat.errSource': 'Karar kaynağına şu an ulaşılamıyor. Birazdan tekrar deneyin.',
+  'ictihat.errSource': 'Resmi karar bankası (UYAP) şu an geçici olarak yanıt vermiyor — uygulamada bir sorun yok. Birazdan tekrar deneyin. Bu sırada üstteki hazır Vekil Özetleri çevrimdışı çalışır.',
   'ictihat.errGeneric': 'Bir hata oluştu. İnternet bağlantınızı kontrol edip tekrar deneyin.',
   'ictihat.summarizeBtn': 'Seçili {count} kararı AI ile özetle',
   'ictihat.selectHint': 'AI özeti için kararları işaretleyin (en fazla 4).',

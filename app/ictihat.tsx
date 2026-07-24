@@ -183,6 +183,20 @@ export default function IctihatScreen() {
             </View>
           )}
 
+          {/* Bu konudaki HAZIR ÖZETLERİMİZ — en üstte, "özetli" olarak. Kaynak
+              arızalı olsa bile çevrimdışı olduğundan görünmeye devam eder. */}
+          {!searching && matchedDigests.length > 0 && (
+            <View style={styles.digestMatchWrap}>
+              <View style={styles.digestMatchHead}>
+                <Ionicons name="sparkles" size={14} color={colors.gold} />
+                <Text style={styles.digestMatchHeadText}>{t('ictihat.digestMatch')}</Text>
+              </View>
+              {matchedDigests.map((d) => (
+                <DigestCard key={d.slug} digest={d} onPress={() => setOpenDigest(d)} />
+              ))}
+            </View>
+          )}
+
           {!searching && error && (
             <View style={styles.errorBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
@@ -194,19 +208,6 @@ export default function IctihatScreen() {
             <View style={styles.centerBox}>
               <Ionicons name="document-outline" size={30} color={colors.textMuted} />
               <Text style={styles.centerText}>{t('ictihat.empty')}</Text>
-            </View>
-          )}
-
-          {/* Bu konudaki HAZIR ÖZETLERİMİZ — en üstte, "özetli" olarak */}
-          {!searching && matchedDigests.length > 0 && (
-            <View style={styles.digestMatchWrap}>
-              <View style={styles.digestMatchHead}>
-                <Ionicons name="sparkles" size={14} color={colors.gold} />
-                <Text style={styles.digestMatchHeadText}>{t('ictihat.digestMatch')}</Text>
-              </View>
-              {matchedDigests.map((d) => (
-                <DigestCard key={d.slug} digest={d} onPress={() => setOpenDigest(d)} />
-              ))}
             </View>
           )}
 

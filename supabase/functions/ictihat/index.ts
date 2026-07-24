@@ -177,6 +177,13 @@ async function emsalSearch(query: string, page: number, pageSize: number): Promi
   });
   if (!res.ok) throw new Error(`emsal_search_${res.status}`);
   const j = await res.json();
+  // UYAP Solr çökünce HTTP 200 döner ama recordsTotal gelmez ve liste boştur;
+  // bunu gerçek "0 sonuç"tan (recordsTotal=0) ayırıp kaynak arızası olarak yükselt.
+  const recTotal = j?.data?.recordsTotal;
+  const metaErr = (j?.metadata?.FMTY === 'ERROR');
+  if (metaErr || (recTotal == null && (j?.data?.data?.length ?? 0) === 0)) {
+    throw new Error('source_unreachable');
+  }
   const rows = j?.data?.data ?? [];
   const hits: Hit[] = rows.map((r: Record<string, unknown>) => ({
     id: String(r.id ?? ''),
@@ -269,6 +276,12 @@ async function bedestenSearch(
   });
   if (!res.ok) throw new Error(`bedesten_${res.status}`);
   const j = await res.json();
+  // Bedesten HTTP 200 dönüp arka plan (UYAP Solr) çökünce metadata'da hata
+  // bildiriyor; bunu "0 sonuç" sanmayıp kaynak arızası olarak yükselt.
+  const meta = (j as { metadata?: { FMTY?: string; FMC?: string } })?.metadata;
+  if (meta?.FMTY === 'ERROR' || (meta?.FMC ?? '').includes('EXCEPTION')) {
+    throw new Error('source_unreachable');
+  }
   return { hits: bedestenRows(j), total: Number((j as { data?: { total?: number } })?.data?.total ?? 0) };
 }
 
