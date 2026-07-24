@@ -31,7 +31,7 @@ export interface ThemeColors {
   transparent: string;
 }
 
-export type ThemeId = 'light' | 'dark' | 'sepia' | 'emerald';
+export type ThemeId = 'light' | 'dark' | 'sepia' | 'emerald' | 'obsidian';
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -169,13 +169,48 @@ const emerald: ThemeColors = {
   transparent: 'transparent',
 };
 
-export const palettes: Record<ThemeId, ThemeColors> = { light, dark, sepia, emerald };
+// ── 5) Obsidyen — EPİK: gece siyahı obsidyen + som altın ────────────────────
+// Amiral tema. Sıcak kömür-siyah zemin üzerinde altın BAŞ renktir (mavi değil):
+// başlıklar, ikonlar, vurgular som altınla parlar. Metin saf beyaz değil, sıcak
+// fildişi — pahalı, dingin, "üst düzey ortak avukat" hissi. Yüzeyler kademeli
+// koyulukta; altın kenar vurgularıyla kartlar mücevher kutusu gibi durur.
+const obsidian: ThemeColors = {
+  bg: '#0A0A0D',
+  bgElevated: '#131318',
+  surface: '#17171D',
+  surfaceHover: '#212129',
+  surfaceAlt: '#101015',
+  border: '#33323C',
+  borderSubtle: '#232229',
+  textPrimary: '#F6F1E6',
+  textSecondary: '#B8B2A4',
+  textMuted: '#7E7869',
+  textInverse: '#0A0A0D',
+  primary: '#E3BE58',
+  primaryMuted: '#3A3320',
+  primarySoft: 'rgba(227, 190, 88, 0.15)',
+  gold: '#E9C766',
+  goldSoft: 'rgba(233, 199, 102, 0.18)',
+  success: '#4FB98A',
+  successSoft: 'rgba(79, 185, 138, 0.16)',
+  warning: '#E0A94A',
+  warningSoft: 'rgba(224, 169, 74, 0.16)',
+  danger: '#E06A62',
+  dangerSoft: 'rgba(224, 106, 98, 0.16)',
+  info: '#6E93C9',
+  infoSoft: 'rgba(110, 147, 201, 0.16)',
+  overlay: 'rgba(0, 0, 0, 0.72)',
+  transparent: 'transparent',
+};
+
+export const palettes: Record<ThemeId, ThemeColors> = { light, dark, sepia, emerald, obsidian };
 
 export const themeMetas: ThemeMeta[] = [
   { id: 'light', name: 'Klasik', nameEn: 'Classic', statusBar: 'dark', swatch: ['#EEF2F8', '#173C7E', '#B18A2B'] },
   { id: 'dark', name: 'Gece', nameEn: 'Midnight', statusBar: 'light', swatch: ['#070E1B', '#5B8DEF', '#E9C86E'] },
   { id: 'sepia', name: 'Parşömen', nameEn: 'Parchment', statusBar: 'dark', swatch: ['#E7DECB', '#1B3A5D', '#8F6E1D'] },
   { id: 'emerald', name: 'Zümrüt', nameEn: 'Emerald', statusBar: 'dark', swatch: ['#E9F1EC', '#0A6349', '#A97F1B'] },
+  { id: 'obsidian', name: 'Obsidyen', nameEn: 'Obsidian', statusBar: 'light', swatch: ['#0A0A0D', '#E3BE58', '#E9C766'] },
 ];
 
 export function caseStatusColorsFor(c: ThemeColors): Record<string, { fg: string; bg: string }> {

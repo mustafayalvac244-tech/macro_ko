@@ -20,7 +20,7 @@ export const useThemeStore = create<ThemeState>((set) => ({
 export async function hydrateTheme(): Promise<void> {
   try {
     const saved = await AsyncStorage.getItem(STORAGE_KEY);
-    if (saved === 'light' || saved === 'dark' || saved === 'sepia' || saved === 'emerald') {
+    if (saved === 'light' || saved === 'dark' || saved === 'sepia' || saved === 'emerald' || saved === 'obsidian') {
       useThemeStore.setState({ themeId: saved });
     }
   } catch {
