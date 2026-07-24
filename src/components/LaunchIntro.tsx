@@ -31,7 +31,7 @@ let hasPlayed = false;
  * slogan süzülür, ardından perde açılıp uygulamayı gösterir. Metin canlı fontla
  * çizildiği için her ekran yoğunluğunda vektörel netliktedir.
  */
-export function LaunchIntro() {
+export function LaunchIntro({ fontsReady = true }: { fontsReady?: boolean }) {
   const t = useT();
   const [visible, setVisible] = useState(!hasPlayed);
 
@@ -104,14 +104,23 @@ export function LaunchIntro() {
 
         <Animated.Text
           allowFontScaling={false}
-          style={[styles.wordmark, { opacity: wordOpacity, transform: [{ translateY: wordRise }] }]}
+          // Font hazır değilse sistem fontuyla göster (Android'de yüklenmemiş
+          // özel font BOŞ render eder); hazır olunca el yazısına geçer.
+          style={[
+            styles.wordmark,
+            !fontsReady && { fontFamily: undefined },
+            { opacity: wordOpacity, transform: [{ translateY: wordRise }] },
+          ]}
         >
           Vekil Pro
         </Animated.Text>
 
         <Animated.View style={[styles.rule, { transform: [{ scaleX: lineScale }] }]} />
 
-        <Animated.Text allowFontScaling={false} style={[styles.slogan, { opacity: sloganOpacity }]}>
+        <Animated.Text
+          allowFontScaling={false}
+          style={[styles.slogan, !fontsReady && { fontFamily: undefined }, { opacity: sloganOpacity }]}
+        >
           {t('app.slogan')}
         </Animated.Text>
       </View>

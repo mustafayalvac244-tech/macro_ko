@@ -114,22 +114,20 @@ export default function RootLayout() {
     return unsubscribe;
   }, [initialize]);
 
-  // Native splash'ı, uygulama (fontlar hazır) iskeleti ekrana düşer düşmez kapat.
-  // Native splash = LaunchIntro'nun ilk karesiyle BİREBİR aynı görüntü (lacivert +
-  // logo) olduğundan geçiş görünmez; native splash kapanır kapanmaz doğrudan
-  // animasyon oynar. Oturum (yavaş olan) beklenmez — o, ~2.5 sn'lik animasyon
-  // boyunca arka planda çözülür ve doğru ekran perde kalkarken hazır olur.
+  // Native splash'ı, uygulama iskeleti ekrana İLK DÜŞTÜĞÜ AN kapat — fontları
+  // BEKLEME. Böylece ilk resim, sadece JavaScript yüklenene kadar durur (diğer
+  // hızlı uygulamalar gibi minimum süre), font/oturum yüklemesini beklemez.
+  // Native splash = LaunchIntro'nun ilk karesiyle aynı (lacivert + logo);
+  // animasyon o kareden devralır. Animasyonun ilk fazı yalnız LOGO'dur (font
+  // gerekmez); "Vekil Pro" yazısı ~0.6 sn sonra belirir ve o ana kadar fontlar
+  // yüklenmiş olur (yüklenmediyse yazı kısa süre sistem fontuyla çıkar, boş
+  // KALMAZ, sonra el yazısına geçer).
   const hideSplash = () => {
     if (!hasHiddenSplash.current) {
       hasHiddenSplash.current = true;
       SplashScreen.hideAsync().catch(() => {});
     }
   };
-
-  // Fontlar hazır değilken hiçbir şey render etme → native splash açık kalır
-  // (statik bekleme karesi eklemez). Fontlar yerelde gömülü olduğundan bu çok
-  // kısa sürer; ardından uygulama + intro fontlar HAZIR halde açılır.
-  if (!fontsReady) return null;
 
   const app = (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={hideSplash}>
@@ -184,7 +182,7 @@ export default function RootLayout() {
             <Stack.Screen name="ictihat" options={{ headerShown: false }} />
           </Stack>
           <AppLock />
-          <LaunchIntro />
+          <LaunchIntro fontsReady={fontsReady} />
           </ErrorBoundary>
         </PersistQueryClientProvider>
       </SafeAreaProvider>
