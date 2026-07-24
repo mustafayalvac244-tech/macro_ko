@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -60,6 +61,22 @@ export default function IctihatScreen() {
     setSelected(new Set());
     search(q, c, m);
   };
+
+  // Panelden "Davana Emsal" ile gelindiğinde (?q=konu) doğrudan Yargıtay'da
+  // Kelime Arama moduna geçip aramayı otomatik başlat.
+  const params = useLocalSearchParams<{ q?: string }>();
+  const didAutoSearch = useRef(false);
+  useEffect(() => {
+    const q = typeof params.q === 'string' ? params.q.trim() : '';
+    if (q && !didAutoSearch.current) {
+      didAutoSearch.current = true;
+      setMode('search');
+      setCourt('yargitay');
+      setDraft(q);
+      runSearch(q, 'yargitay', 'smart');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.q]);
 
   const toggle = (id: string) => {
     setSelected((prev) => {

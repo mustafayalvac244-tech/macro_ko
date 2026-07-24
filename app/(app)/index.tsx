@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,6 +11,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
+import { useCases } from '@/hooks/useCases';
+import { useCasePrecedents, caseSearchTerm } from '@/hooks/useCasePrecedents';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
@@ -73,6 +75,17 @@ export default function DashboardScreen() {
   const deadlines = useAllDeadlines();
   const finance = useFinanceEntries();
   useMorningDigest();
+
+  // Davana Emsal: aktif davalar + seçili davanın konusuna göre Yargıtay emsalleri.
+  const openCases = useCases({ status: 'open' });
+  const caseList = openCases.data ?? [];
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const selectedCase = useMemo(
+    () => caseList.find((c) => c.id === selectedCaseId) ?? caseList[0] ?? null,
+    [caseList, selectedCaseId]
+  );
+  const precTerm = caseSearchTerm(selectedCase);
+  const precedents = useCasePrecedents(precTerm);
 
   // Masraf avansı eksiye düşen müvekkiller (kapatılanlar hariç) — ana ekran uyarısı.
   const advanceDeficits = useAdvanceDeficits();
@@ -350,72 +363,133 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* ---------- Odak Alanı ---------- */}
+        {/* ---------- Davana Emsal ---------- */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
-                <Ionicons name="locate-outline" size={15} color={colors.gold} />
+                <Ionicons name="library-outline" size={15} color={colors.gold} />
               </View>
-              <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.focus.title')}</Text>
+              <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.prec.title')}</Text>
             </View>
-            <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/(app)/cases')} hitSlop={6}>
-              <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.critical.all')}</Text>
+            <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/ictihat' as Parameters<typeof router.push>[0])} hitSlop={6}>
+              <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.prec.link')}</Text>
               <Ionicons name="chevron-forward" size={14} color={colors.gold} />
             </Pressable>
           </View>
 
-          {focus ? (
-            <View>
-              <View style={styles.focusRow}>
-                <View style={[styles.focusIcon, { backgroundColor: accentGold + '22', borderColor: accentGold + '55' }]}>
-                  <Ionicons name="briefcase" size={26} color={accentGold} />
-                </View>
-                <View style={styles.focusBody}>
-                  <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
-                    {focus.label}
-                  </Text>
-                  {(() => {
-                    // Sayaç rozeti: yakınsa uyarı renginde, uzaksa sakin/nötr.
-                    const d = focus.days;
-                    const urgent = d <= 2;
-                    const soon = d > 2 && d <= 7;
-                    const badgeColor = urgent ? colors.danger : soon ? colors.gold : colors.textSecondary;
-                    const label =
-                      d <= 0 ? t('dash.focus.today') : d === 1 ? t('dash.focus.tomorrow') : t('dash.focus.inDays', { n: d });
-                    return (
-                      <View style={[styles.focusBadge, { backgroundColor: badgeColor + '22', borderColor: badgeColor + '55' }]}>
-                        <Text allowFontScaling={false} style={[styles.focusBadgeText, { color: badgeColor }]}>
-                          {label}
-                        </Text>
-                      </View>
-                    );
-                  })()}
-                  {focus.hearingWhen && (
-                    <View style={styles.focusMetaRow}>
-                      <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
-                      <Text allowFontScaling={false} style={styles.focusMeta} numberOfLines={1}>
-                        {t('cal.hearing')}: {focus.hearingWhen}
-                      </Text>
-                    </View>
-                  )}
-                  <Text allowFontScaling={false} style={styles.focusReason} numberOfLines={2}>
-                    {focus.reason}
-                  </Text>
-                </View>
-              </View>
+          {caseList.length === 0 ? (
+            <View style={styles.precEmpty}>
+              <Ionicons name="library-outline" size={22} color={colors.gold} />
+              <Text allowFontScaling={false} style={styles.precEmptyText}>{t('dash.prec.emptyCases')}</Text>
               <Pressable
-                style={({ pressed }) => [styles.focusButton, pressed && { opacity: 0.8 }]}
-                onPress={() => router.push(`/(app)/cases/${focus.caseId}`)}
+                style={({ pressed }) => [styles.focusButton, { marginTop: spacing.sm }, pressed && { opacity: 0.8 }]}
+                onPress={() => router.push('/case-form' as Parameters<typeof router.push>[0])}
               >
-                <Text allowFontScaling={false} style={styles.focusButtonText}>{t('dash.focus.details')}</Text>
-                <Ionicons name="chevron-forward" size={15} color={colors.gold} />
+                <Ionicons name="add" size={16} color={colors.gold} />
+                <Text allowFontScaling={false} style={styles.focusButtonText}>{t('dash.prec.addCase')}</Text>
               </Pressable>
             </View>
           ) : (
-            <View style={styles.emptyRow}>
-              <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
-              <Text allowFontScaling={false} style={styles.emptyRowText}>{t('dash.focus.empty')}</Text>
+            <View>
+              {/* Hangi dava? — birden çok aktif dava varsa seçilebilir çip sırası. */}
+              {caseList.length > 1 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.precChipRow}
+                >
+                  {caseList.slice(0, 12).map((c) => {
+                    const active = c.id === selectedCase?.id;
+                    const label = (c.case_type?.trim() || c.title || '').trim();
+                    return (
+                      <Pressable
+                        key={c.id}
+                        onPress={() => setSelectedCaseId(c.id)}
+                        style={[styles.precChip, active && styles.precChipActive]}
+                      >
+                        <Text
+                          allowFontScaling={false}
+                          numberOfLines={1}
+                          style={[styles.precChipText, active && styles.precChipTextActive]}
+                        >
+                          {label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              )}
+
+              <Text allowFontScaling={false} style={styles.precForLine} numberOfLines={2}>
+                {t('dash.prec.forCase', { term: precTerm || (selectedCase?.title ?? '') })}
+              </Text>
+
+              {precedents.isLoading ? (
+                <View style={styles.precLoading}>
+                  <ActivityIndicator size="small" color={colors.gold} />
+                  <Text allowFontScaling={false} style={styles.precLoadingText}>{t('dash.prec.searching')}</Text>
+                </View>
+              ) : precedents.isError ? (
+                <View style={styles.precLoading}>
+                  <Ionicons name="cloud-offline-outline" size={18} color={colors.textMuted} />
+                  <Text allowFontScaling={false} style={styles.precLoadingText}>{t('dash.prec.errSource')}</Text>
+                  <Pressable onPress={() => precedents.refetch()} hitSlop={6}>
+                    <Text allowFontScaling={false} style={styles.precRetry}>{t('dash.prec.retry')}</Text>
+                  </Pressable>
+                </View>
+              ) : (precedents.data?.hits.length ?? 0) === 0 ? (
+                <View style={styles.emptyRow}>
+                  <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+                  <Text allowFontScaling={false} style={styles.emptyRowText}>{t('dash.prec.none')}</Text>
+                </View>
+              ) : (
+                <View>
+                  {precedents.data!.hits.slice(0, 3).map((h) => (
+                    <Pressable
+                      key={h.id}
+                      style={({ pressed }) => [styles.precRow, pressed && { opacity: 0.8 }]}
+                      onPress={() => router.push(('/ictihat?q=' + encodeURIComponent(precTerm)) as Parameters<typeof router.push>[0])}
+                    >
+                      <View style={styles.precRowIcon}>
+                        <Ionicons name="document-text-outline" size={16} color={colors.gold} />
+                      </View>
+                      <View style={styles.precRowBody}>
+                        <View style={styles.precDaireRow}>
+                          <Text allowFontScaling={false} style={styles.precDaire} numberOfLines={1}>
+                            {h.daire || t('dash.prec.title')}
+                          </Text>
+                          {h.matched === false && (
+                            <View style={styles.precBadge}>
+                              <Text allowFontScaling={false} style={styles.precBadgeText}>{t('dash.prec.near')}</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text allowFontScaling={false} style={styles.precMeta} numberOfLines={1}>
+                          {[h.esasNo && `E.${h.esasNo}`, h.kararNo && `K.${h.kararNo}`, h.kararTarihi]
+                            .filter(Boolean)
+                            .join('  ·  ')}
+                        </Text>
+                        {!!h.snippet && (
+                          <Text allowFontScaling={false} style={styles.precSnippet} numberOfLines={2}>
+                            {h.snippet}
+                          </Text>
+                        )}
+                      </View>
+                    </Pressable>
+                  ))}
+                  <Pressable
+                    style={({ pressed }) => [styles.focusButton, pressed && { opacity: 0.8 }]}
+                    onPress={() => router.push(('/ictihat?q=' + encodeURIComponent(precTerm)) as Parameters<typeof router.push>[0])}
+                  >
+                    <Text allowFontScaling={false} style={styles.focusButtonText}>
+                      {t('dash.prec.seeAll')}
+                      {precedents.data!.total > 3 ? `  (${precedents.data!.total})` : ''}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={15} color={colors.gold} />
+                  </Pressable>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -909,6 +983,132 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: SERIF,
     fontSize: 15,
     color: colors.gold,
+  },
+  // Davana Emsal
+  precChipRow: {
+    gap: 6,
+    paddingBottom: spacing.sm,
+    paddingRight: 4,
+  },
+  precChip: {
+    maxWidth: 190,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  precChipActive: {
+    backgroundColor: colors.goldSoft,
+    borderColor: colors.gold,
+  },
+  precChipText: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  precChipTextActive: {
+    color: colors.gold,
+  },
+  precForLine: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  precLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+  },
+  precLoadingText: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  precRetry: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 12.5,
+    color: colors.gold,
+  },
+  precRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 7,
+  },
+  precRowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    backgroundColor: colors.goldSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  precRowBody: {
+    flex: 1,
+  },
+  precDaireRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  precDaire: {
+    fontFamily: fonts.bold,
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  precBadge: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+  },
+  precBadgeText: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 9.5,
+    color: colors.textMuted,
+  },
+  precMeta: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  precSnippet: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  precEmpty: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  precEmptyText: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
   emptyRow: {
     flexDirection: 'row',
