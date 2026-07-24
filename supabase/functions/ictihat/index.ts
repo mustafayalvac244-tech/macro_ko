@@ -156,6 +156,8 @@ async function attachSnippets(hits: Hit[], query: string, limit = 10): Promise<v
         const text = await fetchDocText(h.id, h.src);
         h.snippet = buildSnippet(text, query);
         h.matched = textHasTerm(text, query);
+        // Tam metni bizde kalıcı arşivle — UYAP çökse de bu karar bizde kalır.
+        await archiveDecision(h, text, query);
       } catch {
         // önizleme alınamadı → geç
       }
@@ -304,6 +306,49 @@ async function bedestenDocument(id: string): Promise<string> {
 /** Kaynağa göre karar tam metnini getirir. */
 async function fetchDocText(id: string, src?: 'emsal' | 'yargitay'): Promise<string> {
   return src === 'yargitay' ? await bedestenDocument(id) : await emsalDocument(id);
+}
+
+// ---------------------------------------------------------------------------
+// KALICI ARŞİV — çekilen kararları kendi veritabanımıza (ictihat_kararlar)
+// yazarız; böylece UYAP çökse bile daha önce görülen kararlar bizde kalır ve
+// arşivden sunulur. Servis anahtarı (service_role) ile yazılır.
+// ---------------------------------------------------------------------------
+let _svc: ReturnType<typeof createClient> | null = null;
+function svc(): ReturnType<typeof createClient> | null {
+  if (_svc) return _svc;
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (url && key) _svc = createClient(url, key);
+  return _svc;
+}
+
+function kurulOf(h: Hit): string {
+  if (h.src === 'yargitay') return h.daire.startsWith('Danıştay') ? 'Danıştay' : 'Yargıtay';
+  return 'BAM/Yerel';
+}
+
+/** Bir kararı tam metniyle arşive yaz (idempotent upsert). En iyi çaba; hata yutulur. */
+async function archiveDecision(h: Hit, fullText: string, query: string): Promise<void> {
+  const db = svc();
+  if (!db || !h.id || !fullText || fullText.length < 200) return; // taranmış/boş atla
+  try {
+    await db.from('ictihat_kararlar').upsert(
+      {
+        id: h.id,
+        kurul: kurulOf(h),
+        daire: h.daire || null,
+        esas_no: h.esasNo || null,
+        karar_no: h.kararNo || null,
+        karar_tarihi: h.kararTarihi || null,
+        durum: h.durum || null,
+        arama_terimi: query.slice(0, 120),
+        full_text: fullText,
+      },
+      { onConflict: 'id' },
+    );
+  } catch {
+    // arşivleme en iyi çabadır; başarısız olsa da kullanıcı akışını bozmaz
+  }
 }
 
 /** "E.2019/3641", "2019 / 3641", "2019-3641" → "2019/3641"; geçersizse ''. */
@@ -535,13 +580,29 @@ Deno.serve(async (req) => {
       // Yargıtay / Danıştay → Bedesten (tam sayfalama, tek kaynak).
       if (court === 'yargitay' || court === 'danistay') {
         const itemType = court === 'danistay' ? 'DANISTAYKARAR' : 'YARGITAYKARARI';
-        const r = await bedestenSearch(query, page, pageSize, itemType);
-        await attachSnippets(r.hits, query, r.hits.length);
-        // Bedesten arama motoru bazen aranan kelimenin birebir geçmediği
-        // (köke/ilgiliye yakın) kararlar da döndürüyor. Metninde ifade birebir
-        // GEÇEN kararları öne al — kullanıcı "kelime nerede?" demesin.
-        r.hits.sort((a, b) => (a.matched === false ? 1 : 0) - (b.matched === false ? 1 : 0));
-        return json({ hits: r.hits, total: r.total, page, source: court });
+        try {
+          const r = await bedestenSearch(query, page, pageSize, itemType);
+          await attachSnippets(r.hits, query, r.hits.length);
+          // Bedesten arama motoru bazen aranan kelimenin birebir geçmediği
+          // (köke/ilgiliye yakın) kararlar da döndürüyor. Metninde ifade birebir
+          // GEÇEN kararları öne al — kullanıcı "kelime nerede?" demesin.
+          r.hits.sort((a, b) => (a.matched === false ? 1 : 0) - (b.matched === false ? 1 : 0));
+          return json({ hits: r.hits, total: r.total, page, source: court });
+        } catch (e) {
+          // UYAP çökük → daha önce arşivlediğimiz kararlardan sun (bizde kalanlar).
+          const msg = e instanceof Error ? e.message : '';
+          if (msg === 'source_unreachable' && page === 1) {
+            const { data } = await supabase.rpc('search_ictihat_fts', { q: query, match_count: pageSize });
+            const hits = (data ?? []).map((r: Record<string, unknown>) => {
+              const h = rowToHit(r);
+              if (r.snippet) h.snippet = String(r.snippet);
+              h.matched = true;
+              return h;
+            });
+            if (hits.length > 0) return json({ hits, total: hits.length, page: 1, source: 'archive' });
+          }
+          throw e;
+        }
       }
 
       // Sayfa 2+ : sayfalama yalnız canlı UYAP Emsal üzerinden (havuz sayfa 1'de karışır).
@@ -654,13 +715,16 @@ Deno.serve(async (req) => {
             h.outcome = a.outcome;
             h.sonuc = a.sonuc;
             h.incelenen = a.incelenen;
+            await archiveDecision(h, text, term);
           } catch {
             // analiz alınamadı → geç
           }
         }),
         ...citing.slice(0, 8).map(async (h) => {
           try {
-            h.snippet = buildSnippet(await fetchDocText(h.id, h.src), term);
+            const text = await fetchDocText(h.id, h.src);
+            h.snippet = buildSnippet(text, term);
+            await archiveDecision(h, text, term);
           } catch {
             // önizleme alınamadı → geç
           }
@@ -673,18 +737,16 @@ Deno.serve(async (req) => {
     if (action === 'document') {
       const id = (body.id ?? '').trim();
       if (!id) return json({ error: 'bad_request' }, 400);
-      // Yargıtay/Danıştay kaynaklı karar Bedesten'den okunur (havuzda tutulmaz).
-      if (body.src === 'yargitay') {
-        const text = await bedestenDocument(id);
-        return json({ id, text });
-      }
-      // Havuzda varsa oradan (hızlı, canlı bağımlılığı yok), yoksa Emsal'den.
+      // ÖNCE ARŞİV (bizde kalan): hızlı ve UYAP çökse bile çalışır.
       const { data: row } = await supabase
         .from('ictihat_kararlar')
         .select('full_text')
         .eq('id', id)
         .maybeSingle();
-      const text = row?.full_text ? String(row.full_text) : await emsalDocument(id);
+      if (row?.full_text) return json({ id, text: String(row.full_text), source: 'archive' });
+      // Arşivde yoksa canlı çek ve metni arşive yaz (bir dahaki sefere bizde kalsın).
+      const text = body.src === 'yargitay' ? await bedestenDocument(id) : await emsalDocument(id);
+      await archiveDecision({ id, daire: '', esasNo: '', kararNo: '', kararTarihi: '', durum: '', src: body.src ?? 'emsal' }, text, '');
       return json({ id, text });
     }
 

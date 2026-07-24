@@ -59,6 +59,7 @@ export function useIctihat() {
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<IctihatHit[]>([]);
   const [total, setTotal] = useState(0);
+  const [source, setSource] = useState<string>('');
   const [searching, setSearching] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -80,7 +81,7 @@ export function useIctihat() {
     setSearched(true);
     setHasMore(false);
     try {
-      const res = await invoke<{ hits: IctihatHit[]; total: number }>({
+      const res = await invoke<{ hits: IctihatHit[]; total: number; source?: string }>({
         action: 'search',
         query: q,
         court,
@@ -90,6 +91,7 @@ export function useIctihat() {
       const list = res.hits ?? [];
       setHits(list);
       setTotal(res.total ?? 0);
+      setSource(res.source ?? '');
       setHasMore(list.length > 0 && list.length < (res.total ?? 0));
     } catch (e) {
       setError(mapError(e));
@@ -127,7 +129,7 @@ export function useIctihat() {
     }
   }, [loadingMore, searching, hasMore, total]);
 
-  return { query, hits, total, searching, loadingMore, hasMore, error, searched, search, loadMore };
+  return { query, hits, total, source, searching, loadingMore, hasMore, error, searched, search, loadMore };
 }
 
 /** Tek bir kararın tam metnini getirir. */

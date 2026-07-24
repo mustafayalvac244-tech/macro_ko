@@ -1083,6 +1083,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.digestsTitle': 'Vekil Summaries',
   'ictihat.digestsDesc': 'Ready-made summaries prepared from real Court of Cassation decisions. Each card shows a topic’s established principle and a decision summary; tap, read, and open the full decision if you wish.',
   'ictihat.digestMatch': 'We have a ready summary on this topic',
+  'ictihat.archiveNote': 'UYAP is temporarily down — showing from our previously saved archive.',
   'ictihat.samplesLabel': 'Example searches',
   'ictihat.digestIlke': 'ESTABLISHED PRINCIPLE',
   'ictihat.digestOzet': 'DECISION SUMMARY',

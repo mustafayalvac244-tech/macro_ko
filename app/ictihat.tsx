@@ -39,7 +39,7 @@ export default function IctihatScreen() {
   const styles = makeStyles(colors);
   const t = useT();
 
-  const { query, hits, total, searching, loadingMore, hasMore, error, searched, search, loadMore } = useIctihat();
+  const { query, hits, total, source, searching, loadingMore, hasMore, error, searched, search, loadMore } = useIctihat();
   const analyze = useIctihatAnalyze();
   const doc = useIctihatDocument();
   const sum = useIctihatSummary();
@@ -208,6 +208,13 @@ export default function IctihatScreen() {
             <View style={styles.centerBox}>
               <Ionicons name="document-outline" size={30} color={colors.textMuted} />
               <Text style={styles.centerText}>{t('ictihat.empty')}</Text>
+            </View>
+          )}
+
+          {!searching && source === 'archive' && hits.length > 0 && (
+            <View style={styles.archiveNote}>
+              <Ionicons name="archive-outline" size={14} color={colors.gold} />
+              <Text style={styles.archiveNoteText}>{t('ictihat.archiveNote')}</Text>
             </View>
           )}
 
@@ -1091,6 +1098,23 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 4,
     marginBottom: spacing.sm,
     lineHeight: 17,
+  },
+  archiveNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: colors.goldSoft,
+    borderRadius: 10,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    marginBottom: spacing.sm,
+  },
+  archiveNoteText: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '700',
+    flex: 1,
+    lineHeight: 16,
   },
   digestMatchWrap: {
     marginBottom: spacing.md,
