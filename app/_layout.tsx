@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Image, Platform, View } from 'react-native';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient } from '@tanstack/react-query';
@@ -54,7 +54,6 @@ const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ??
 
 export default function RootLayout() {
   const initialize = useAuthStore((s) => s.initialize);
-  const isInitializing = useAuthStore((s) => s.isInitializing);
   const hasHiddenSplash = useRef(false);
   const { colors, statusBar } = useTheme();
 
@@ -105,38 +104,29 @@ export default function RootLayout() {
     return unsubscribe;
   }, [initialize]);
 
-  useEffect(() => {
-    if (!isInitializing && !hasHiddenSplash.current) {
+  // Native splash'ı uygulama iskeleti ekrana ilk düşer düşmez kapat. ARTIK
+  // oturum okuması (isInitializing) BEKLENMEZ: uygulama hemen render edilir,
+  // LaunchIntro açılış animasyonu native splash'la BİREBİR aynı kareden (lacivert
+  // + logo) başlayıp üstünü örttüğü için statik bekleme karesi tamamen kalkar —
+  // native splash kapanır kapanmaz doğrudan animasyon oynar. Oturum bu ~2.5 sn'lik
+  // animasyon boyunca arka planda çözülür; doğru ekran perde kalkarken hazır olur.
+  const hideSplash = () => {
+    if (!hasHiddenSplash.current) {
       hasHiddenSplash.current = true;
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [isInitializing]);
+  };
 
-  // Statik açılış karesi YALNIZCA oturum okunana kadar durur; fontları BEKLEMEZ.
-  // Fontlar (yerelde gömülü) intro perdesinin ~2.5 sn'lik akışı boyunca arka
-  // planda yüklenir; perde kalkana dek hazır olur, böylece hem açılış hızlanır
-  // hem de metinlerde "yanlış font" sıçraması kullanıcıya görünmez.
-  if (isInitializing) {
-    // Gömülü splash ekranda oyalanmasın: ilk karede indirilir; yükleme bitene
-    // kadar gömülü kareyle BİREBİR AYNI görüntü (lacivert + 240dp logo)
-    // gösterilir — göz kesinti fark etmez, intro bunun üstünden akar.
-    return (
-      <View
-        style={{ flex: 1, backgroundColor: '#0B1830', alignItems: 'center', justifyContent: 'center' }}
-        onLayout={() => {
-          if (!hasHiddenSplash.current) {
-            hasHiddenSplash.current = true;
-            SplashScreen.hideAsync().catch(() => {});
-          }
-        }}
-      >
-        <Image source={require('../assets/splash-icon.png')} style={{ width: 240, height: 240 }} />
-      </View>
-    );
-  }
+  // Güvenlik ağı: onLayout herhangi bir nedenle geç kalırsa native splash asılı
+  // kalmasın — en geç 800 ms'de kapatılır (LaunchIntro zaten üstünü örtüyor).
+  useEffect(() => {
+    const t = setTimeout(hideSplash, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const app = (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={hideSplash}>
       <SafeAreaProvider>
         <PersistQueryClientProvider
           client={queryClient}
