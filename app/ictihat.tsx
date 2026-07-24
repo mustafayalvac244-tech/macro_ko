@@ -24,6 +24,7 @@ import {
   type IctihatHit,
   type IctihatError,
   type IctihatCourt,
+  type IctihatMode,
 } from '@/hooks/useIctihat';
 import { ICTIHAT_DIGESTS, matchDigests, type IctihatDigest } from '@/data/ictihatDigest';
 import { useT } from '@/i18n';
@@ -48,15 +49,16 @@ export default function IctihatScreen() {
   const [mode, setMode] = useState<'analyze' | 'search' | 'kunye'>(AI_ENABLED ? 'analyze' : 'search');
   const [draft, setDraft] = useState('');
   const [court, setCourt] = useState<IctihatCourt>('yargitay');
+  const [searchMode, setSearchMode] = useState<IctihatMode>('smart');
   const [olay, setOlay] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openHit, setOpenHit] = useState<IctihatHit | null>(null);
   const [openDigest, setOpenDigest] = useState<IctihatDigest | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
 
-  const runSearch = (q: string, c: IctihatCourt = court) => {
+  const runSearch = (q: string, c: IctihatCourt = court, m: IctihatMode = searchMode) => {
     setSelected(new Set());
-    search(q, c);
+    search(q, c, m);
   };
 
   const toggle = (id: string) => {
@@ -159,6 +161,33 @@ export default function IctihatScreen() {
               style={[styles.courtChip, court === c.id && styles.courtChipActive]}
             >
               <Text style={[styles.courtChipText, court === c.id && styles.courtChipTextActive]}>{c.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* Arama modu: Akıllı (tam ifade önce) / Tam ifade (ardışık) / En yeni */}
+        <View style={styles.modeRow}>
+          {(
+            [
+              { id: 'smart', icon: 'sparkles-outline', label: t('ictihat.modeSmartSearch') },
+              { id: 'exact', icon: 'text-outline', label: t('ictihat.modeExact') },
+              { id: 'recent', icon: 'time-outline', label: t('ictihat.modeRecent') },
+            ] as const
+          ).map((m) => (
+            <Pressable
+              key={m.id}
+              onPress={() => {
+                setSearchMode(m.id);
+                if (searched && draft.trim()) runSearch(draft, court, m.id);
+              }}
+              style={[styles.modeChip, searchMode === m.id && styles.modeChipActive]}
+            >
+              <Ionicons
+                name={m.icon}
+                size={12}
+                color={searchMode === m.id ? colors.primary : colors.textMuted}
+              />
+              <Text style={[styles.modeChipText, searchMode === m.id && styles.modeChipTextActive]}>{m.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -1078,6 +1107,37 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   courtChipTextActive: {
     color: colors.gold,
+  },
+  modeRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  modeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modeChipActive: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  modeChipText: {
+    ...typography.small,
+    color: colors.textMuted,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  modeChipTextActive: {
+    color: colors.primary,
   },
   // ---- Konu özetleri (digest) ----
   digestHead: {

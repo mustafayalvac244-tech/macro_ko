@@ -259,21 +259,23 @@ async function bedestenSearch(
   page: number,
   pageSize: number,
   itemType = 'YARGITAYKARARI',
+  opts?: { sortByDate?: boolean },
 ): Promise<{ hits: Hit[]; total: number }> {
+  const data: Record<string, unknown> = {
+    pageSize,
+    pageNumber: page,
+    itemTypeList: [itemType],
+    phrase: query,
+  };
+  // Varsayılan: alaka (relevance) sıralaması. İstenirse en yeni karar → eski.
+  if (opts?.sortByDate) {
+    data.sortFields = ['KARAR_TARIHI'];
+    data.sortDirection = 'desc';
+  }
   const res = await fetch(`${BEDESTEN_BASE}/emsal-karar/searchDocuments`, {
     method: 'POST',
     headers: BEDESTEN_HEADERS,
-    // Sıralama alanı VERMİYORUZ: Bedesten'in varsayılanı alaka (relevance)
-    // sıralaması — "kira tespit" için ilgili Hukuk Dairelerini öne çıkarır.
-    // (KARAR_TARIHI ile sıralamak en yeni ama alakasız kararları getiriyordu.)
-    body: JSON.stringify({
-      data: {
-        pageSize,
-        pageNumber: page,
-        itemTypeList: [itemType],
-        phrase: query,
-      },
-    }),
+    body: JSON.stringify({ data }),
     signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) throw new Error(`bedesten_${res.status}`);
@@ -558,6 +560,8 @@ Deno.serve(async (req) => {
     daire?: string;
     /** document: kaynağı belirtir (emsal varsayılan). */
     src?: 'emsal' | 'yargitay';
+    /** Arama modu: 'smart' (tam ifade önce), 'exact' (yalnız ardışık), 'recent' (en yeni). */
+    mode?: 'smart' | 'exact' | 'recent';
   };
   try {
     body = await req.json();
@@ -580,14 +584,52 @@ Deno.serve(async (req) => {
       // Yargıtay / Danıştay → Bedesten (tam sayfalama, tek kaynak).
       if (court === 'yargitay' || court === 'danistay') {
         const itemType = court === 'danistay' ? 'DANISTAYKARAR' : 'YARGITAYKARARI';
+        const mode = body.mode ?? 'smart';
+        // Çok kelimeli sorguda tırnak = ardışık (tam ifade) araması.
+        const multiWord = query.trim().split(/\s+/).length > 1;
         try {
-          const r = await bedestenSearch(query, page, pageSize, itemType);
-          await attachSnippets(r.hits, query, r.hits.length);
-          // Bedesten arama motoru bazen aranan kelimenin birebir geçmediği
-          // (köke/ilgiliye yakın) kararlar da döndürüyor. Metninde ifade birebir
-          // GEÇEN kararları öne al — kullanıcı "kelime nerede?" demesin.
-          r.hits.sort((a, b) => (a.matched === false ? 1 : 0) - (b.matched === false ? 1 : 0));
-          return json({ hits: r.hits, total: r.total, page, source: court });
+          let hits: Hit[];
+          let total: number;
+          if (mode === 'recent') {
+            // EN YENİ: tarihe göre sırala (alaka değil).
+            const r = await bedestenSearch(query, page, pageSize, itemType, { sortByDate: true });
+            hits = r.hits;
+            total = r.total;
+          } else if (mode === 'exact' && multiWord) {
+            // TAM İFADE: yalnız kelimelerin ardışık geçtiği kararlar.
+            const r = await bedestenSearch(`"${query}"`, page, pageSize, itemType);
+            hits = r.hits;
+            total = r.total;
+          } else if (page === 1 && multiWord) {
+            // AKILLI (varsayılan): önce tam ifade (ardışık), sonra kelime bazlı;
+            // "şerit değiştirme" gibi aramalarda tam ifade EN ÜSTTE çıkar.
+            const [ph, kw] = await Promise.all([
+              bedestenSearch(`"${query}"`, 1, pageSize, itemType).catch(() => ({ hits: [], total: 0 })),
+              bedestenSearch(query, 1, pageSize, itemType),
+            ]);
+            const seen = new Set<string>();
+            hits = [];
+            for (const h of [...ph.hits, ...kw.hits]) {
+              if (h.id && !seen.has(h.id)) {
+                seen.add(h.id);
+                hits.push(h);
+              }
+            }
+            hits = hits.slice(0, pageSize);
+            total = kw.total || ph.total;
+          } else {
+            // Tek kelime ya da sayfa 2+ : düz kelime araması.
+            const r = await bedestenSearch(query, page, pageSize, itemType);
+            hits = r.hits;
+            total = r.total;
+          }
+          await attachSnippets(hits, query, hits.length);
+          // Aranan ifadenin metinde birebir GEÇMEDİĞİ (köke yakın) kararları
+          // sona at — "recent" modunda tarih sırasını bozmamak için dokunma.
+          if (mode !== 'recent') {
+            hits.sort((a, b) => (a.matched === false ? 1 : 0) - (b.matched === false ? 1 : 0));
+          }
+          return json({ hits, total, page, source: court });
         } catch (e) {
           // UYAP çökük → daha önce arşivlediğimiz kararlardan sun (bizde kalanlar).
           const msg = e instanceof Error ? e.message : '';

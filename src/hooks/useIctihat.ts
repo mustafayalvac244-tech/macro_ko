@@ -30,6 +30,9 @@ export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'generic';
 /** Arama mahkeme süzgeci. */
 export type IctihatCourt = 'yargitay' | 'danistay' | 'emsal';
 
+/** Arama modu: akıllı (tam ifade önce), tam ifade (ardışık), en yeni (tarih). */
+export type IctihatMode = 'smart' | 'exact' | 'recent';
+
 async function invoke<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('ictihat', { body });
   if (error) {
@@ -68,12 +71,14 @@ export function useIctihat() {
   const pageRef = useRef(1);
   const queryRef = useRef('');
   const courtRef = useRef<IctihatCourt>('yargitay');
+  const modeRef = useRef<IctihatMode>('smart');
 
-  const search = useCallback(async (raw: string, court: IctihatCourt = 'yargitay') => {
+  const search = useCallback(async (raw: string, court: IctihatCourt = 'yargitay', mode: IctihatMode = 'smart') => {
     const q = raw.trim();
     if (!q) return;
     queryRef.current = q;
     courtRef.current = court;
+    modeRef.current = mode;
     pageRef.current = 1;
     setQuery(q);
     setError(null);
@@ -85,6 +90,7 @@ export function useIctihat() {
         action: 'search',
         query: q,
         court,
+        mode,
         page: 1,
         pageSize: PAGE_SIZE,
       });
@@ -111,6 +117,7 @@ export function useIctihat() {
         action: 'search',
         query: queryRef.current,
         court: courtRef.current,
+        mode: modeRef.current,
         page: next,
         pageSize: PAGE_SIZE,
       });

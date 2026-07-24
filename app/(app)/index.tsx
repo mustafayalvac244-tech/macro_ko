@@ -144,21 +144,32 @@ export default function DashboardScreen() {
   }, [deadlines.data]);
 
   // Focus case: the case behind the most pressing deadline, else next hearing's case.
+  // ZAMAN-DUYARLI: yakın olmayan (haftalar sonraki) bir duruşmayı "acil/yüksek
+  // öncelik" gibi göstermeyip sakin bir sayaçla ("N gün kaldı") sunar — boşuna
+  // telaşlandırmaz (Burak geri bildirimi).
   const focus = useMemo(() => {
+    const daysLeft = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
     if (nextDeadline?.case) {
+      const days = daysLeft(nextDeadline.due_at);
       return {
         caseId: nextDeadline.case_id,
         label: `${nextDeadline.case.case_number ? nextDeadline.case.case_number + ' – ' : ''}${nextDeadline.case.title}`,
         hearingWhen: nextHearing && nextHearing.case_id === nextDeadline.case_id ? whenLabel(nextHearing.scheduled_at) : null,
-        reason: t('dash.focus.reasonDue', { title: nextDeadline.title }),
+        days,
+        reason:
+          days <= 7
+            ? t('dash.focus.reasonDue', { title: nextDeadline.title })
+            : t('dash.focus.reasonDueFar', { title: nextDeadline.title, n: days }),
       };
     }
     if (nextHearing?.case) {
+      const days = daysLeft(nextHearing.scheduled_at);
       return {
         caseId: nextHearing.case_id,
         label: `${nextHearing.case.case_number ? nextHearing.case.case_number + ' – ' : ''}${nextHearing.case.title}`,
         hearingWhen: whenLabel(nextHearing.scheduled_at),
-        reason: t('dash.focus.reasonHearing'),
+        days,
+        reason: days <= 7 ? t('dash.focus.reasonHearing') : t('dash.focus.reasonHearingFar', { n: days }),
       };
     }
     return null;
@@ -364,9 +375,22 @@ export default function DashboardScreen() {
                   <Text allowFontScaling={false} style={styles.focusTitle} numberOfLines={2}>
                     {focus.label}
                   </Text>
-                  <View style={styles.focusBadge}>
-                    <Text allowFontScaling={false} style={styles.focusBadgeText}>{t('dash.focus.high')}</Text>
-                  </View>
+                  {(() => {
+                    // Sayaç rozeti: yakınsa uyarı renginde, uzaksa sakin/nötr.
+                    const d = focus.days;
+                    const urgent = d <= 2;
+                    const soon = d > 2 && d <= 7;
+                    const badgeColor = urgent ? colors.danger : soon ? colors.gold : colors.textSecondary;
+                    const label =
+                      d <= 0 ? t('dash.focus.today') : d === 1 ? t('dash.focus.tomorrow') : t('dash.focus.inDays', { n: d });
+                    return (
+                      <View style={[styles.focusBadge, { backgroundColor: badgeColor + '22', borderColor: badgeColor + '55' }]}>
+                        <Text allowFontScaling={false} style={[styles.focusBadgeText, { color: badgeColor }]}>
+                          {label}
+                        </Text>
+                      </View>
+                    );
+                  })()}
                   {focus.hearingWhen && (
                     <View style={styles.focusMetaRow}>
                       <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
