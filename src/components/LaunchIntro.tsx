@@ -51,6 +51,17 @@ export function LaunchIntro() {
   useEffect(() => {
     if (!visible) return;
     hasPlayed = true;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      setVisible(false);
+    };
+    // GÜVENLİK AĞI: animasyon callback'i herhangi bir nedenle (cihaz/native
+    // driver/yeniden render) tetiklenmezse intro sonsuza dek takılı kalıp
+    // ekranı kilitliyordu ("açılışta sadece slogan"). Bu zamanlayıcı, animasyon
+    // tamamlansa da tamamlanmasa da intro'yu en geç 3.2 sn'de KESİN kaldırır.
+    const failsafe = setTimeout(finish, 3200);
     // Eski krem geçiş fazı kaldırıldı — perde doğrudan lacivert başlar; böylece
     // açılışta "önceki tasarım" izlenimi veren ikinci bir sahne oynamaz.
     Animated.sequence([
@@ -71,7 +82,11 @@ export function LaunchIntro() {
       ]),
       Animated.delay(620),
       Animated.timing(curtain, { toValue: 0, duration: 420, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-    ]).start(() => setVisible(false));
+    ]).start(() => {
+      clearTimeout(failsafe);
+      finish();
+    });
+    return () => clearTimeout(failsafe);
   }, [visible, iconScale, iconShift, wordOpacity, wordRise, sloganOpacity, lineScale, curtain]);
 
   if (!visible) return null;
