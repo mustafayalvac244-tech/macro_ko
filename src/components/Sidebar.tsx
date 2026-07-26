@@ -135,6 +135,8 @@ export function Sidebar() {
     { icon: 'stats-chart-outline', label: t('reports.title'), path: '/reports' },
     { icon: 'notifications-outline', label: t('reminders.title'), path: '/reminders' },
     { icon: 'chatbubble-ellipses-outline', label: t('settings.feedback'), path: '/feedback' },
+    // Yalnız yöneticiye görünür — büyüme/satış takibi ve premium yönetimi.
+    ...(profile?.is_admin ? [{ icon: 'shield-checkmark-outline', label: t('admin.title'), path: '/admin' } as NavItem] : []),
   ];
 
   const chevronRotation = chevron.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
