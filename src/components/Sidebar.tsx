@@ -125,6 +125,7 @@ export function Sidebar() {
   const toolItems: NavItem[] = [
     { icon: 'sparkles-outline', label: t('ai.short'), path: '/ai-chat' },
     { icon: 'reader-outline', label: t('ictihat.short'), path: '/ictihat' },
+    { icon: 'earth-outline', label: t('aihm.short'), path: '/aihm' },
     { icon: 'document-text-outline', label: t('tpl.title'), path: '/templates' },
     { icon: 'calculator-outline', label: t('calc.title'), path: '/calculators' },
     { icon: 'library-outline', label: t('laws.title'), path: '/laws' },
