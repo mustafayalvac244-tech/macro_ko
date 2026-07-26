@@ -437,20 +437,73 @@ const STOP = new Set([
  * değerlendirme metninde, sorgunun 3+ harfli (stop-word olmayan) kelimelerini
  * arar; en çok eşleşen önce gelir, en fazla 3 özet döner.
  */
+/** Tam Türkçe sadeleştirme: ç/ş/ğ/ı/ö/ü dâhil ASCII'ye indir (token ayırmak için). */
+function foldFull(s: string): string {
+  return foldTr(s)
+    .replace(/ç/g, 'c')
+    .replace(/ş/g, 's')
+    .replace(/ğ/g, 'g')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ü/g, 'u');
+}
+
+const STOP_F = new Set([...STOP].map(foldFull));
+
+/** Metni tam-sadeleştirip harf/rakam dışına göre KELİMELERE böler. */
+function tokenizeTr(s: string): string[] {
+  return foldFull(s).split(/[^a-z0-9]+/).filter(Boolean);
+}
+
 export function matchDigests(query: string): IctihatDigest[] {
-  const q = foldTr(query).trim();
-  if (q.length < 3) return [];
-  const words = q.split(/\s+/).filter((w) => w.length >= 3 && !STOP.has(w));
-  if (words.length === 0) return [];
+  const qFull = foldFull(query).trim();
+  if (qFull.length < 3) return [];
+  const qWords = qFull.split(/\s+/).filter((w) => w.length >= 3 && !STOP_F.has(w));
+  if (qWords.length === 0) return [];
+
   const scored = ICTIHAT_DIGESTS.map((d) => {
-    const hay = foldTr(`${d.title} ${d.category} ${d.ilke} ${d.uyusmazlik} ${d.degerlendirme}`);
+    // Başlık + kategori GÜÇLÜ sinyal; ilke/uyuşmazlık/değerlendirme zayıf sinyal.
+    const strong = new Set(tokenizeTr(`${d.title} ${d.category}`));
+    const all = new Set([...strong, ...tokenizeTr(`${d.ilke} ${d.uyusmazlik} ${d.degerlendirme}`)]);
+
+    // Bir sorgu kelimesi, ancak TAM token olarak ya da EK almış hâliyle (önek,
+    // gövde ≥ 4 harf) eşleşir. Böylece "arsa" ile "çıkarsa" gibi kelime ORTASI
+    // rastlantısal eşleşmeler elenir (Burak geri bildirimi).
+    const wordHit = (w: string): number => {
+      if (all.has(w)) return strong.has(w) ? 2 : 1;
+      if (w.length >= 4) {
+        for (const tk of all) {
+          if (tk.length >= 4 && (tk.startsWith(w) || w.startsWith(tk))) {
+            return strong.has(tk) ? 2 : 1;
+          }
+        }
+      }
+      return 0;
+    };
+
     let score = 0;
-    if (hay.includes(q)) score += 3; // tam ifade
-    for (const w of words) if (hay.includes(w)) score += 1;
-    return { d, score };
-  }).filter((x) => x.score > 0);
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, 3).map((x) => x.d);
+    let hits = 0;
+    for (const w of qWords) {
+      const s = wordHit(w);
+      if (s > 0) {
+        score += s;
+        hits += 1;
+      }
+    }
+    // Tam ifade (2+ kelimelik sorgu) bire bir geçiyorsa güçlü bonus.
+    if (qWords.length >= 2 && foldFull(`${d.title} ${d.category} ${d.ilke} ${d.uyusmazlik} ${d.degerlendirme}`).includes(qFull)) {
+      score += 4;
+    }
+    return { d, score, coverage: hits / qWords.length };
+  });
+
+  // ALAKA EŞİĞİ: alakasızsa HİÇ gösterme. Anlamlı bir eşleşme (score ≥ 2) VE
+  // ya sorgu kelimelerinin en az yarısı tutmuş (coverage ≥ 0.5) ya da tam ifade
+  // yakalanmış olmalı. Tek kelimelik sorguda kelime güçlü (başlık/kategori)
+  // eşleşmeli. Böylece "yazık, uzaktan yakından ilgisi yok" özetler çıkmaz.
+  const relevant = scored.filter((x) => x.score >= 2 && (x.coverage >= 0.5 || x.score >= 4));
+  relevant.sort((a, b) => b.score - a.score || b.coverage - a.coverage);
+  return relevant.slice(0, 3).map((x) => x.d);
 }
 
 /** Kategorilere göre grupla (görüntüleme için). */
