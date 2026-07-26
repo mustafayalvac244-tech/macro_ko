@@ -67,8 +67,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshProfile: async () => {
     const userId = get().session?.user.id;
     if (!userId) return;
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (!error && data) set({ profile: data as Profile });
+    // Kendi tam profilini (email/telefon/TC dâhil) definer RPC ile getir. Bu
+    // alanlar güvenlik için tablodan doğrudan okunamaz (başka kullanıcılara
+    // sızmasın); my_profile yalnız çağıranın kendi satırını döndürür.
+    const { data, error } = await supabase.rpc('my_profile');
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!error && row) set({ profile: row as Profile });
   },
 
   updateProfile: async (patch) => {
