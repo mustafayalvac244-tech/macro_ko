@@ -97,6 +97,13 @@ export default function AdminScreen() {
               <StatCard icon="calendar-number" label={t('admin.hearings')} value={o.total_hearings} colors={colors} />
             </View>
 
+            {/* AI harcaması */}
+            <Text allowFontScaling={false} style={styles.sectionLabel}>{t('admin.aiSection')}</Text>
+            <View style={styles.statGrid}>
+              <StatCard icon="sparkles" label={t('admin.aiCostMonth')} value={Math.round(o.ai_cost_month)} unit="₺" colors={colors} gold sub={t('admin.aiCostHint')} />
+              <View style={{ flex: 2 }} />
+            </View>
+
             {/* Kullanıcı listesi */}
             <Text allowFontScaling={false} style={styles.sectionLabel}>{t('admin.recentUsers')}</Text>
             {users.isLoading ? (
@@ -122,11 +129,17 @@ export default function AdminScreen() {
   );
 }
 
+function tierLabel(tier: string): string {
+  const map: Record<string, string> = { free: 'Ücretsiz', baslangic: 'Başlangıç', pro: 'Pro', elit: 'Elit' };
+  return map[tier] ?? tier;
+}
+
 function StatCard({
   icon,
   label,
   value,
   sub,
+  unit,
   colors,
   accent,
   gold,
@@ -135,6 +148,7 @@ function StatCard({
   label: string;
   value: number;
   sub?: string;
+  unit?: string;
   colors: ThemeColors;
   accent?: boolean;
   gold?: boolean;
@@ -146,7 +160,9 @@ function StatCard({
       <View style={[styles.statIcon, { backgroundColor: tint + '1E' }]}>
         <Ionicons name={icon} size={16} color={tint} />
       </View>
-      <Text allowFontScaling={false} style={styles.statValue}>{value.toLocaleString('tr-TR')}</Text>
+      <Text allowFontScaling={false} style={styles.statValue}>
+        {unit === '₺' ? '₺' : ''}{value.toLocaleString('tr-TR')}{unit && unit !== '₺' ? ` ${unit}` : ''}
+      </Text>
       <Text allowFontScaling={false} style={styles.statLabel} numberOfLines={1}>{label}</Text>
       {!!sub && <Text allowFontScaling={false} style={[styles.statSub, { color: tint }]}>{sub}</Text>}
     </View>
@@ -197,6 +213,15 @@ function UserRow({
         <Text allowFontScaling={false} style={styles.userMeta} numberOfLines={1}>
           {user.email}{joined ? `  ·  ${joined}` : ''}
         </Text>
+        <View style={styles.userAiRow}>
+          <View style={styles.tierChip}>
+            <Text allowFontScaling={false} style={styles.tierChipText}>{tierLabel(user.ai_tier)}</Text>
+          </View>
+          <Ionicons name="sparkles-outline" size={11} color={colors.textMuted} />
+          <Text allowFontScaling={false} style={styles.userAiCost}>
+            ₺{Math.round(Number(user.ai_cost_try) || 0).toLocaleString('tr-TR')} / ay
+          </Text>
+        </View>
       </View>
       <Pressable
         onPress={onToggle}
@@ -352,6 +377,29 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  userAiRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+  },
+  tierChip: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  tierChipText: {
+    fontFamily: fonts.semibold,
+    fontWeight: '700',
+    fontSize: 9.5,
+    color: colors.primary,
+  },
+  userAiCost: {
+    fontFamily: fonts.medium,
+    fontSize: 10.5,
+    color: colors.textMuted,
   },
   toggleBtn: {
     minWidth: 66,

@@ -18,6 +18,7 @@ export interface AdminOverview {
   total_cases: number;
   total_clients: number;
   total_hearings: number;
+  ai_cost_month: number;
 }
 
 export interface AdminUser {
@@ -26,6 +27,8 @@ export interface AdminUser {
   full_name: string | null;
   firm_name: string | null;
   is_premium: boolean;
+  ai_tier: string;
+  ai_cost_try: number;
   created_at: string;
   last_sign_in_at: string | null;
 }
