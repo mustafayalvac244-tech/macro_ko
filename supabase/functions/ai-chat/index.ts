@@ -320,6 +320,60 @@ const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: s
       'sınırlar HER YIL yeniden değerleme oranıyla güncellenir; SABİT/eski bir rakam verme, güncel yılın tutarını ' +
       'teyit etmesi gerektiğini belirt.',
   },
+  {
+    id: 'zamanasimi_hakduşurucu',
+    triggers: ['zamanaşımı', 'zamanasimi', 'hak düşürücü', 'hak dusurucu', 're\'sen', 'resen', 'def\'i', 'defi', 'itiraz mı defi mi'],
+    minHits: 2,
+    text:
+      'ZAMANAŞIMI ≠ HAK DÜŞÜRÜCÜ SÜRE (temel ayrım): ZAMANAŞIMI hâkim tarafından RE’SEN (kendiliğinden) dikkate ' +
+      'ALINMAZ; borçlunun/davalının bir DEF’İ olarak ileri sürmesi gerekir (TBK m.161). Zamanaşımı hakkı ortadan ' +
+      'kaldırmaz, sadece talep/dava edilebilirliğini (eksik borç) etkiler ve durma/kesilme söz konusudur. HAK ' +
+      'DÜŞÜRÜCÜ SÜRE ise hâkim tarafından RE’SEN dikkate ALINIR, ileri sürülmesine gerek yoktur; süre dolunca ' +
+      'hakkın kendisi son bulur, durma/kesilme yoktur. Bir süreye "hak düşürücü" mü "zamanaşımı" mı olduğunu ' +
+      'kanundaki ifadeye göre belirle.',
+  },
+  {
+    id: 'islah_bir_kez',
+    triggers: ['ıslah', 'islah', 'usul işlemi', 'davayı ıslah', 'kısmen ıslah', 'tamamen ıslah'],
+    minHits: 1,
+    text:
+      'ISLAH (HMK m.176-182): Taraflardan her biri, yaptığı usul işlemlerini kısmen veya tamamen ıslah edebilir; ' +
+      'ancak aynı davada taraflar ANCAK BİR KEZ ıslah yoluna başvurabilir (HMK m.176/2). Islah, TAHKİKAT sona ' +
+      'erinceye kadar yapılabilir (HMK m.177). Islahla dava konusu/talep genişletilebilir; karşı taraf muvafakati ' +
+      've iddia-savunmanın genişletilmesi yasağı bu yönüyle aşılır. "Kaç kez" sorusunun cevabı: BİR KEZ.',
+  },
+  {
+    id: 'tahliye_taahhudu',
+    triggers: ['tahliye taahhüdü', 'tahliye taahhudu', 'tahliye taahhut', 'yazılı taahhüt', 'taahhütname tahliye', 'kiracı tahliye'],
+    minHits: 1,
+    text:
+      'YAZILI TAHLİYE TAAHHÜDÜYLE TAHLİYE (TBK m.352/1): Taahhüdün geçerli olması için (a) YAZILI olması, (b) kira ' +
+      'sözleşmesi kurulup taşınmaz TESLİM EDİLDİKTEN SONRA (sözleşmeyle aynı anda değil) verilmiş olması, (c) kiracı ' +
+      'tarafından bizzat/yetkili temsilcisince düzenlenmesi ve belirli bir tahliye tarihi içermesi gerekir. Kiracı ' +
+      'taahhüt ettiği tarihte tahliye etmezse kiraya veren, o tarihten itibaren 1 AY içinde İCRAYA (İİK örnek 14 ' +
+      'tahliye emri) başvurabilir veya tahliye davası açabilir.',
+  },
+  {
+    id: 'ecrimisil',
+    triggers: ['ecrimisil', 'haksız işgal', 'haksiz isgal', 'işgal tazminatı', 'fuzuli işgal', 'fuzuli isgal'],
+    minHits: 1,
+    text:
+      'ECRİMİSİL (haksız işgal tazminatı): Malikin, taşınmazını haksız (kötüniyetli) olarak işgal edenden ' +
+      'isteyebileceği tazminattır. Yerleşik Yargıtay içtihadına göre ecrimisil alacağı 5 YILLIK zamanaşımına tabidir ' +
+      've dava tarihinden GERİYE DOĞRU EN FAZLA 5 YILLIK dönem için istenebilir. İntifadan men koşulu kural olarak ' +
+      'aranır (paydaşlar arası ilişkide), ancak bazı hâllerde (ör. kötüniyetli işgal) aranmaz.',
+  },
+  {
+    id: 'mesafeli_cayma',
+    triggers: ['cayma hakkı', 'cayma hakki', 'mesafeli sözleşme', 'mesafeli satış', 'kapıdan satış', 'internetten alışveriş', 'iade süresi'],
+    minHits: 1,
+    text:
+      'MESAFELİ/KAPIDAN SÖZLEŞMELERDE CAYMA HAKKI (6502 s. Kanun m.48 ve m.47): Tüketici, mesafeli sözleşmelerde ' +
+      '(internet/telefon vb.) malın teslimi veya sözleşmenin kurulmasından itibaren 14 GÜN içinde HİÇBİR GEREKÇE ' +
+      'göstermeden ve cezai şart ödemeden CAYABİLİR. Cayma bildirimi süresi içinde yöneltilmiş olması yeterlidir; ' +
+      'satıcı, cayma bildiriminden itibaren 14 gün içinde bedeli iade eder. Bazı mal/hizmetlerde (ör. ısmarlama, ' +
+      'çabuk bozulan, açılmış hijyenik ürünler) cayma hakkı istisnadır.',
+  },
 ];
 
 /** Türkçe güvenli küçük harf: İ→i, birleşik nokta (U+0307) temizlenir. */
