@@ -18,11 +18,13 @@ import type { ThemeColors } from '@/theme/palettes';
  * ve Paylaş ile WhatsApp/e-posta/Word'e aktarılır. Hukukî kontrol uyarıları
  * (Av.K. m.163-164, 174) altında listelenir.
  */
+// Kendi gruplamamız — objektif hukuk dalları, ama kendi sıralama/adlandırmamızla.
 const HUKUK_ALANLARI = [
-  'Aile Hukuku', 'İş Hukuku', 'Ceza Hukuku', 'Trafik/Tazminat', 'İcra-İflas',
-  'Borçlar Hukuku', 'Tüketici Hukuku', 'Ticaret Hukuku', 'Gayrimenkul Hukuku', 'İdare Hukuku', 'Diğer',
+  'Aile ve Şahıs', 'İş ve Sosyal Güvenlik', 'Tazminat ve Trafik', 'Gayrimenkul ve Kira',
+  'İcra ve İflas', 'Borçlar ve Sözleşmeler', 'Ticaret ve Şirketler', 'Tüketici',
+  'Ceza', 'İdare ve Vergi', 'Fikri ve Sınai Haklar', 'Diğer',
 ];
-const SIFATLAR = ['Davacı', 'Davalı', 'Şikayetçi', 'Şüpheli/Sanık', 'Alacaklı', 'Borçlu', 'Başvurucu'];
+const SIFATLAR = ['Davacı', 'Davalı', 'Alacaklı', 'Borçlu', 'Katılan/Şikayetçi', 'Sanık/Şüpheli', 'Başvurucu', 'İlgili'];
 
 export default function ContractScreen() {
   const __t = useTheme();
