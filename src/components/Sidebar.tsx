@@ -127,6 +127,7 @@ export function Sidebar() {
     { icon: 'reader-outline', label: t('ictihat.short'), path: '/ictihat' },
     { icon: 'earth-outline', label: t('aihm.short'), path: '/aihm' },
     { icon: 'document-text-outline', label: t('tpl.title'), path: '/templates' },
+    { icon: 'create-outline', label: t('contract.title'), path: '/contract' },
     { icon: 'calculator-outline', label: t('calc.title'), path: '/calculators' },
     { icon: 'library-outline', label: t('laws.title'), path: '/laws' },
   ];

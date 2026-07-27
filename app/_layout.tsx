@@ -182,6 +182,7 @@ export default function RootLayout() {
             <Stack.Screen name="ictihat" options={{ headerShown: false }} />
             <Stack.Screen name="aihm" options={{ headerShown: false }} />
             <Stack.Screen name="admin" options={{ headerShown: false }} />
+            <Stack.Screen name="contract" options={{ headerShown: false }} />
           </Stack>
           <AppLock />
           <LaunchIntro fontsReady={fontsReady} />
