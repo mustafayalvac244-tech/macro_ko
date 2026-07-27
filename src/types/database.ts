@@ -248,6 +248,7 @@ export type FinanceCategory =
   | 'fee'
   | 'consultation'
   | 'retainer'
+  | 'mediation'
   | 'other';
 
 export interface FinanceEntry {

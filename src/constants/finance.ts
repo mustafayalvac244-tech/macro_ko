@@ -12,7 +12,7 @@ export const EXPENSE_CATEGORIES: FinanceCategory[] = [
   'other',
 ];
 
-export const INCOME_CATEGORIES: FinanceCategory[] = ['fee', 'consultation', 'retainer', 'other'];
+export const INCOME_CATEGORIES: FinanceCategory[] = ['fee', 'consultation', 'retainer', 'mediation', 'other'];
 
 export const FINANCE_CATEGORY_ICONS: Record<FinanceCategory, keyof typeof Ionicons.glyphMap> = {
   rent: 'home-outline',
@@ -25,5 +25,6 @@ export const FINANCE_CATEGORY_ICONS: Record<FinanceCategory, keyof typeof Ionico
   fee: 'cash-outline',
   consultation: 'chatbubbles-outline',
   retainer: 'repeat-outline',
+  mediation: 'git-compare-outline',
   other: 'ellipsis-horizontal-circle-outline',
 };

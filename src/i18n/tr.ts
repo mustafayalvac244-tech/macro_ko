@@ -879,6 +879,7 @@ export const tr = {
   'fcat.fee': 'Sözleşmesel Vekalet',
   'fcat.consultation': 'Danışmanlık',
   'fcat.retainer': 'İlam / İcra Vekaleti',
+  'fcat.mediation': 'Arabuluculuk / Uzlaştırma',
   'fcat.other': 'Diğer',
 
   // Süre Asistanı

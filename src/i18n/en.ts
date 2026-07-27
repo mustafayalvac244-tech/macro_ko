@@ -878,6 +878,7 @@ export const en: Record<keyof typeof tr, string> = {
   'fcat.fee': 'Legal Fee',
   'fcat.consultation': 'Consultation',
   'fcat.retainer': 'Monthly Retainer',
+  'fcat.mediation': 'Mediation / Reconciliation',
   'fcat.other': 'Other',
 
   // Deadline wizard
