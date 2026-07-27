@@ -1027,7 +1027,8 @@ export const en: Record<keyof typeof tr, string> = {
   'conflict.caseWarn':
     '⚠️ The opposing party "{name}" is in your client list. Possible conflict of interest — check before taking the case.',
   'conflict.clientWarn': '⚠️ This name appears as the opposing party in your case "{case}". Possible conflict of interest.',
-  'clash.warn': '⚠️ You have another hearing around this time: {title} · {time} ({case}). You may need an excuse motion.',
+  'clash.warn': '⚠️ You have another commitment around this time: {title} · {time}{caseInfo}. You may need an excuse motion or substitution.',
+  'clash.warnMeeting': '⚠️ You have another entry around this time: {title} · {time}{caseInfo}. Please review the overlap.',
 
   // App lock
   'lock.setting': 'App lock (biometric)',

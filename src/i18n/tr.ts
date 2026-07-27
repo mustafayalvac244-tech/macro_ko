@@ -1029,7 +1029,8 @@ export const tr = {
     '⚠️ Karşı taraf "{name}", müvekkil listenizde kayıtlı. Çıkar çatışması olabilir — üstlenmeden önce kontrol edin.',
   'conflict.clientWarn':
     '⚠️ Bu isim "{case}" dosyanızda karşı taraf olarak görünüyor. Çıkar çatışması olabilir.',
-  'clash.warn': '⚠️ Aynı saatlerde başka duruşmanız var: {title} · {time} ({case}). Mazeret/tevkil gerekebilir.',
+  'clash.warn': '⚠️ Aynı saate denk gelen başka bir işiniz var: {title} · {time}{caseInfo}. Mazeret/tevkil gerekebilir.',
+  'clash.warnMeeting': '⚠️ Aynı saate denk gelen başka bir kaydınız var: {title} · {time}{caseInfo}. Çakışmayı gözden geçirin.',
 
   // Uygulama kilidi
   'lock.setting': 'Uygulama kilidi (biyometrik)',

@@ -106,6 +106,10 @@ export default function HearingFormScreen() {
   // toplantı/arabuluculukla sınırlanır, başlık/öneri/buton metinleri değişir.
   const meetingMode = typeParam === 'meeting' || typeParam === 'mediation';
   const isMeetingType = type === 'meeting' || type === 'mediation';
+  // Yalnız gerçek duruşma türlerinde (duruşma/celse/keşif) "mazeret/tevkil"
+  // uyarısı anlamlıdır; toplantı/arabuluculuk/diğer için o ifade kullanılmaz
+  // (Burak geri bildirimi: toplantıda mazeret gerekmez).
+  const currentIsHearing = type === 'hearing' || type === 'trial' || type === 'deposition';
   const typeValues: HearingType[] = meetingMode && !isEdit ? ['meeting', 'mediation'] : TYPE_VALUES.slice();
   const typeOptions = typeValues.map((value) => ({ value, label: t(`hearingType.${value}` as const) }));
   const reminderOptions = REMINDER_VALUES.map(({ key, value }) => ({ value, label: t(key) }));
@@ -237,10 +241,10 @@ export default function HearingFormScreen() {
             <View style={styles.warnBox}>
               <Ionicons name="warning" size={18} color={colors.warning} />
               <Text style={styles.warnText}>
-                {t('clash.warn', {
+                {t(currentIsHearing ? 'clash.warn' : 'clash.warnMeeting', {
                   title: clash.title,
                   time: formatTime(clash.scheduled_at),
-                  case: clash.case?.title ?? '',
+                  caseInfo: clash.case?.title ? ` · ${clash.case.title}` : '',
                 })}
               </Text>
             </View>
