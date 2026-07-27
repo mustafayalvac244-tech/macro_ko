@@ -348,10 +348,11 @@ async function buildGrounding(supabase: any, question: string, apiKey: string): 
     }
   }
   if (rows.length === 0) {
-    const { data } = await supabase.rpc('search_ictihat_fts', { q: question, match_count: 5 });
+    const { data } = await supabase.rpc('search_ictihat_fts', { q: question, match_count: 4 });
     rows = data ?? [];
   }
   if (rows.length === 0) return '';
+  rows = rows.slice(0, 4);
 
   const refs = rows
     .map(
@@ -379,11 +380,17 @@ async function buildGrounding(supabase: any, question: string, apiKey: string): 
 async function buildMevzuat(supabase: any, question: string): Promise<string> {
   const { data } = await supabase.rpc('search_mevzuat_fts', { q: question, match_count: 8 });
   // deno-lint-ignore no-explicit-any
-  const rows: any[] = data ?? [];
+  let rows: any[] = data ?? [];
   if (rows.length === 0) return '';
+  // Yalnızca GERÇEKTEN ilgili maddeleri tut: en yüksek skorun ~%30'unun altındaki
+  // gürültüyü ele; en fazla 5 madde ekle. Böylece hem doğruluk korunur hem de her
+  // çağrının token yükü (ve ücretsiz katman kota tüketimi) düşük kalır.
+  const top = Number(rows[0]?.score ?? 0);
+  if (top > 0) rows = rows.filter((r: { score?: number }) => Number(r.score ?? 0) >= top * 0.3);
+  rows = rows.slice(0, 5);
   const refs = rows
     // deno-lint-ignore no-explicit-any
-    .map((r: any) => `• ${r.kanun_short} m.${r.madde_no}${r.baslik ? ' (' + r.baslik + ')' : ''}: ${String(r.snippet ?? '').trim()}`)
+    .map((r: any) => `• ${r.kanun_short} m.${r.madde_no}${r.baslik ? ' (' + r.baslik + ')' : ''}: ${String(r.snippet ?? '').slice(0, 420).trim()}`)
     .join('\n');
   return (
     '\n\n### İLGİLİ OLABİLECEK YÜRÜRLÜKTEKİ MADDE METİNLERİ (kendi kanun veritabanımızdan, GERÇEK metin):\n' +
