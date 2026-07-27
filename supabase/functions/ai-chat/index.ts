@@ -117,6 +117,19 @@ const SYSTEM_PROMPT =
   'sonuç ve talep bölümleriyle yaz; eksik bilgiler için [Örn. …] köşeli parantez bırak. Süre/hesap ise ' +
   'adım adım hesapla ve tarihi ver. Her görevin sonunda kısa bir "KONTROL LİSTESİ" ekle. ' +
   //
+  // MUHAKEME DİSİPLİNİ: her hukuki soruda tutarlı, avukat gibi düşünme yöntemi.
+  'MUHAKEME DİSİPLİNİ — bir hukuki soruyu yanıtlarken şu unsurları ayrı ayrı ve doğru düşün: ' +
+  '(1) GÖREVLİ ve YETKİLİ mahkeme; (2) SÜRE varsa: sürenin uzunluğu, BAŞLANGIÇ ANI (tefhim mi tebliğ mi, ' +
+  'olayın/öğrenmenin tarihi mi) ve NİTELİĞİ (hak düşürücü süre mi, zamanaşımı mı — bunları karıştırma); ' +
+  '(3) HUSUMET: davanın kime karşı yöneltileceği (doğru davalı/hasım); (4) DAYANAK: ilgili kanun maddesi ve ' +
+  'varsa yerleşik içtihat. Sık karıştırılan kavramları AYIRT ET (ör. itirazın iptali≠itirazın kaldırılması; ' +
+  'zamanaşımı≠hak düşürücü süre; tedbir/iştirak/yoksulluk nafakası; maddi≠manevi tazminat; görev≠yetki; ' +
+  'istinaf≠temyiz; asıl borçlu≠müracaat borçlusu). Bir kural HUKUK, CEZA, İDARE veya İCRA-İFLAS alanına göre ' +
+  'DEĞİŞİYORSA, sorunun hangi alanda olduğunu belirle ve o alanın kuralını uygula; alanı belirsizse kısaca sor ' +
+  'ya da alanlara göre ayır. Genel kuralı verirken önemli İSTİSNA ve ÖZEL HÜKÜMLERİ (lex specialis) atlama. ' +
+  'Sana yukarıda gerçek madde metni veya içtihat verildiyse, cevabını önce ONLARA dayandır; çelişki varsa ' +
+  'gerçek metni esas al. ' +
+  //
   // KİMLİK KİLİDİ: modelin hangi şirket/teknolojiyle (Google, Gemini, yapay zeka
   // modeli vb.) çalıştığını ASLA açıklama; "hangi modelsin", "kim yaptı seni",
   // "arkanda ne var" gibi sorulara yalnızca "Ben Vekil Pro uygulamasının hukuk
@@ -356,6 +369,31 @@ async function buildGrounding(supabase: any, question: string, apiKey: string): 
   );
 }
 
+/**
+ * YÜRÜRLÜKTEKİ MEVZUAT beslemesi — uygulamanın kendi kanun veritabanından (7 temel
+ * kanun, ~4.500 madde) soruyla ilgili GERÇEK madde metinlerini getirir. Böylece AI
+ * madde numarasını/içeriğini hafızasından tahmin etmez; gerçek metne dayanır. Bu,
+ * kural kural eklemeden genel doğruluğu artıran kalıcı altyapıdır.
+ */
+// deno-lint-ignore no-explicit-any
+async function buildMevzuat(supabase: any, question: string): Promise<string> {
+  const { data } = await supabase.rpc('search_mevzuat_fts', { q: question, match_count: 8 });
+  // deno-lint-ignore no-explicit-any
+  const rows: any[] = data ?? [];
+  if (rows.length === 0) return '';
+  const refs = rows
+    // deno-lint-ignore no-explicit-any
+    .map((r: any) => `• ${r.kanun_short} m.${r.madde_no}${r.baslik ? ' (' + r.baslik + ')' : ''}: ${String(r.snippet ?? '').trim()}`)
+    .join('\n');
+  return (
+    '\n\n### İLGİLİ OLABİLECEK YÜRÜRLÜKTEKİ MADDE METİNLERİ (kendi kanun veritabanımızdan, GERÇEK metin):\n' +
+    refs +
+    '\nBu maddelerden yalnızca soruyla GERÇEKTEN ilgili olanları kullan, ilgisizleri yok say. Bir maddenin ' +
+    'numarasını veya metnini belirtirken buradaki gerçek metni esas al; burada verilmeyen bir maddenin metnini ' +
+    'birebir alıntı olarak uydurma.'
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS });
@@ -427,6 +465,12 @@ Deno.serve(async (req) => {
     if (lastUser?.text) {
       // Önce KESİN KURALLAR (yerleşik içtihat) — modelin tahminini ezer.
       systemText += matchKB(lastUser.text);
+      // Gerçek kanun madde metinleri (kendi mevzuat veritabanımız) — genel doğruluk.
+      try {
+        systemText += await buildMevzuat(supabase, lastUser.text);
+      } catch {
+        // mevzuat beslemesi başarısızsa devam
+      }
       try {
         systemText += await buildGrounding(supabase, lastUser.text, groundKey);
       } catch {
