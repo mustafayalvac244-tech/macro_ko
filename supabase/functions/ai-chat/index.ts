@@ -17,16 +17,21 @@ const PRICING: Record<string, { in: number; out: number }> = {
   'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
   'gemini-2.5-pro': { in: 1.25, out: 10.0 },
 };
-interface TierCfg { model: string; ceilingTry: number; maxOut: number }
+interface TierCfg { model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number; maxOut: number }
 function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
   const t = aiTier || (isPremium ? 'pro' : 'free');
   const table: Record<string, TierCfg> = {
-    free: { model: MODEL_BASIC, ceilingTry: 15, maxOut: 1024 },
-    baslangic: { model: 'gemini-2.0-flash', ceilingTry: 150, maxOut: 1024 },
-    pro: { model: MODEL_PLUS, ceilingTry: 450, maxOut: 2048 },
-    elit: { model: MODEL_PLUS, ceilingTry: 1500, maxOut: 4096 },
+    free: { model: MODEL_BASIC, billable: false, limitKind: 'calls', limit: 20, maxOut: 1024 },
+    baslangic: { model: 'gemini-2.0-flash', billable: false, limitKind: 'calls', limit: 500, maxOut: 1024 },
+    pro: { model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450, maxOut: 2048 },
+    elit: { model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500, maxOut: 4096 },
   };
   return { tier: t, cfg: table[t] ?? table.free };
+}
+// Faturalı katman ana anahtar; ücretsiz katman ayrı ücretsiz anahtar (yoksa ana).
+function aiKey(billable: boolean): string | undefined {
+  if (billable) return Deno.env.get('GEMINI_API_KEY') ?? undefined;
+  return Deno.env.get('GEMINI_FREE_KEY') || Deno.env.get('GEMINI_API_KEY') || undefined;
 }
 function costTry(model: string, tin: number, tout: number): number {
   const p = PRICING[model] ?? PRICING['gemini-2.5-pro'];
@@ -44,16 +49,20 @@ function svc(): ReturnType<typeof createClient> | null {
   if (url && key) _svc = createClient(url, key);
   return _svc;
 }
-async function usageThisMonth(userId: string): Promise<number> {
+async function usageRow(userId: string): Promise<{ calls: number; cost: number }> {
   const s = svc();
-  if (!s) return 0;
-  const { data } = await s.from('ai_usage').select('cost_try').eq('user_id', userId).eq('period', aiPeriod()).maybeSingle();
-  return Number((data as { cost_try?: number } | null)?.cost_try ?? 0);
+  if (!s) return { calls: 0, cost: 0 };
+  const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', aiPeriod()).maybeSingle();
+  const r = data as { calls?: number; cost_try?: number } | null;
+  return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
 }
-async function recordUsage(userId: string, model: string, tin: number, tout: number): Promise<void> {
+function overLimit(cfg: TierCfg, row: { calls: number; cost: number }): boolean {
+  return cfg.limitKind === 'cost' ? row.cost >= cfg.limit : row.calls >= cfg.limit;
+}
+async function recordUsage(userId: string, model: string, tin: number, tout: number, billable: boolean): Promise<void> {
   const s = svc();
   if (!s) return;
-  const cost = costTry(model, tin, tout);
+  const cost = billable ? costTry(model, tin, tout) : 0;
   const p = aiPeriod();
   const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
   const prev = data as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
@@ -203,15 +212,17 @@ Deno.serve(async (req) => {
     (prof as { ai_tier?: string } | null)?.ai_tier,
     !!(prof as { is_premium?: boolean } | null)?.is_premium
   );
-  const used = await usageThisMonth(userData.user.id);
-  if (used >= cfg.ceilingTry) {
-    return new Response(JSON.stringify({ error: 'quota_exceeded', tier, used, ceiling: cfg.ceilingTry }), {
+  const urow = await usageRow(userData.user.id);
+  if (overLimit(cfg, urow)) {
+    return new Response(JSON.stringify({ error: 'quota_exceeded', tier, used: urow.cost, calls: urow.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }), {
       status: 402,
       headers: CORS,
     });
   }
   const model = cfg.model;
   const maxOutputTokens = cfg.maxOut;
+  // Katmana göre anahtar: ücretsiz katman ücretsiz anahtarı kullanır.
+  const key = aiKey(cfg.billable) ?? apiKey;
   // Pro/Elit katmanı kendi içtihat havuzumuzla beslenir (RAG).
   const grounded = tier === 'pro' || tier === 'elit';
 
@@ -222,14 +233,14 @@ Deno.serve(async (req) => {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (lastUser?.text) {
       try {
-        systemText += await buildGrounding(supabase, lastUser.text, apiKey);
+        systemText += await buildGrounding(supabase, lastUser.text, key);
       } catch {
         // besleme başarısızsa yalın Plus yanıtıyla devam
       }
     }
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -257,7 +268,7 @@ Deno.serve(async (req) => {
 
   // Maliyet ölçümü: bu çağrının token'larını aylık kullanıma işle.
   const um = data.usageMetadata ?? {};
-  await recordUsage(userData.user.id, model, um.promptTokenCount ?? 0, um.candidatesTokenCount ?? 0);
+  await recordUsage(userData.user.id, model, um.promptTokenCount ?? 0, um.candidatesTokenCount ?? 0, cfg.billable);
 
   return new Response(JSON.stringify({ text: text.trim(), tier, model }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
