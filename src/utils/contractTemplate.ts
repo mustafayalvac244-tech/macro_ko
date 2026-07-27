@@ -94,10 +94,23 @@ function taksitMaddesi(taksitler?: Taksit[]): string {
     return 'Ücret, işbu sözleşmenin imzası ile muaccel olup peşin ödenir.';
   }
   const satirlar = taksitler
-    .map((t) => `   ${t.seq}. Taksit: ${money(t.amount)}${t.dueDate ? ` — Vade: ${t.dueDate}` : ''}`)
+    .map(
+      (t) =>
+        `   ${t.seq}. Taksit: ${money(t.amount)} — Vade: ${t.dueDate ? t.dueDate : `imzadan itibaren ${t.seq}. ayın sonu`}`
+    )
     .join('\n');
   const toplam = taksitler.reduce((s, t) => s + (t.amount || 0), 0);
-  return `Ücret aşağıdaki taksitler hâlinde ödenecektir:\n${satirlar}\n   Toplam: ${money(toplam)}`;
+  return (
+    `Ücret aşağıdaki taksitler hâlinde ödenecektir:\n${satirlar}\n   Toplam: ${money(toplam)}\n` +
+    `Herhangi bir taksitin vadesinde ödenmemesi hâlinde, kalan taksitlerin tamamı muaccel hâle gelir ve ödeme tarihine kadar yasal temerrüt faizi işletilir.`
+  );
+}
+
+/** Konusu para ile ölçülemeyen alanlarda nispi ücret sakıncalıdır. */
+function nispiSakincaliMi(hukukAlani?: string): boolean {
+  if (!hukukAlani) return false;
+  const a = hukukAlani.toLocaleLowerCase('tr');
+  return a.includes('aile') || a.includes('ceza') || a.includes('idare');
 }
 
 /** Sözleşmeyi ve hukukî kontrol uyarılarını üretir. */
@@ -124,43 +137,80 @@ export function buildContract(input: ContractInput): ContractResult {
     .filter(Boolean)
     .join(', ');
 
-  const konu = isDanisma
-    ? `İşbu sözleşme, MÜVEKKİL'in ${input.hukukAlani || 'hukukî'} işlerinde AVUKAT'tan sürekli hukukî danışmanlık ve destek alması konusundaki hak ve yükümlülükleri düzenler.`
-    : [
-        `AVUKAT, MÜVEKKİL'i aşağıda tanımlanan iş/dava kapsamında temsil ve takip edecektir:`,
-        input.hukukAlani ? `   • Hukuk Alanı: ${input.hukukAlani}` : null,
-        input.uyusmazlik ? `   • Konu / Uyuşmazlık: ${input.uyusmazlik}` : null,
-        input.mahkeme ? `   • Yetkili Merci / Mahkeme: ${input.mahkeme}` : null,
-        input.sifat ? `   • Müvekkilin Sıfatı: ${input.sifat}` : null,
-      ]
-        .filter(Boolean)
-        .join('\n');
-
-  const maddeler: string[] = [];
-  maddeler.push(`MADDE 1 — TARAFLAR\nAVUKAT: ${avukatSatiri || '—'}\nMÜVEKKİL: ${muvekkilSatiri || '—'}`);
-  maddeler.push(`MADDE 2 — SÖZLEŞMENİN KONUSU\n${konu}`);
-  maddeler.push(`MADDE 3 — AVUKATLIK ÜCRETİ\n${ucretMaddesi(input)}`);
-  maddeler.push(`MADDE 4 — ÖDEME\n${taksitMaddesi(input.taksitler)}`);
-  maddeler.push(
-    `MADDE 5 — YARGILAMA GİDERLERİ\nHarç, tebligat, bilirkişi, keşif, posta ve benzeri tüm yargılama/işlem giderleri MÜVEKKİL'e aittir. AVUKAT tarafından yapılan zorunlu masraflar MÜVEKKİL tarafından derhâl karşılanır.`
-  );
-  maddeler.push(
-    `MADDE 6 — KARŞI YAN VEKÂLET ÜCRETİ\nMahkeme/icra yoluyla karşı tarafa yükletilecek vekâlet ücreti, Avukatlık Kanunu m. 164/son uyarınca aksi burada yazılı olarak kararlaştırılmadıkça AVUKAT'a aittir.`
-  );
-  if (!isDanisma) {
-    maddeler.push(
-      `MADDE 7 — VEKÂLETİN KAPSAMI\nAVUKAT, işin niteliğinin gerektirdiği hukukî işlemleri yürütmeye yetkilidir. Sulh, feragat, kabul, davadan vazgeçme gibi tasarruf işlemleri MÜVEKKİL'in ayrıca vereceği özel yetkiye tâbidir.`
-    );
+  // MADDE 2 — düzyazı konu (form dökümü değil).
+  let konu: string;
+  if (isDanisma) {
+    konu =
+      `İşbu sözleşme ile AVUKAT, MÜVEKKİL'e ${input.hukukAlani ? input.hukukAlani + ' başta olmak üzere ' : ''}` +
+      `karşılaşacağı hukukî konularda sürekli danışmanlık; sözleşme/ihtarname incelemesi, hukukî görüş ve yazışmaların hazırlanması ile telefon/e-posta yoluyla destek hizmeti verecektir. Dava ve icra takibi bu sözleşmenin kapsamı dışında olup ayrıca ücretlendirilir.`;
+  } else {
+    const alan = input.hukukAlani ? `${input.hukukAlani} alanındaki ` : '';
+    const is = input.uyusmazlik ? `"${input.uyusmazlik}" konulu ` : '';
+    const merci = input.mahkeme ? `${input.mahkeme} nezdinde ` : '';
+    const sft = input.sifat ? `MÜVEKKİL'in ${input.sifat} sıfatıyla ` : '';
+    konu =
+      `AVUKAT, ${alan}${is}iş/davada ${merci}${sft}MÜVEKKİL'i temsil ve takip etmeyi üstlenir. ` +
+      `AVUKAT'ın yükümlülüğü, işi özen ve sadakatle yürütmek olup davanın belirli bir sonuçla neticeleneceği taahhüt edilmez.`;
   }
-  maddeler.push(
-    `MADDE ${isDanisma ? 7 : 8} — AZİL VE İSTİFA\nHaklı bir sebep olmaksızın azil hâlinde, Avukatlık Kanunu m. 174 uyarınca ücretin tamamı AVUKAT'a ödenir. AVUKAT'ın haklı sebeple istifası hâlinde de aynı hüküm uygulanır.`
-  );
-  maddeler.push(
-    `MADDE ${isDanisma ? 8 : 9} — GİZLİLİK VE KİŞİSEL VERİLER\nAVUKAT, MÜVEKKİL'e ait bilgi ve belgeleri meslek sırrı kapsamında gizli tutar; kişisel veriler yalnızca işin görülmesi amacıyla ve KVKK'ya uygun olarak işlenir.`
-  );
-  maddeler.push(
-    `MADDE ${isDanisma ? 9 : 10} — UYUŞMAZLIK VE YÜRÜRLÜK\nİşbu sözleşmeden doğacak uyuşmazlıklarda ${input.imzaYeri || '…………'} mahkemeleri ve icra daireleri yetkilidir. Sözleşme, taraflarca imzalandığı ${tarih} tarihinde yürürlüğe girer.`
-  );
+
+  // Maddeler sırayla toplanır, numaralar otomatik verilir.
+  const items: { baslik: string; icerik: string }[] = [];
+  items.push({ baslik: 'TARAFLAR', icerik: `AVUKAT: ${avukatSatiri || '—'}\nMÜVEKKİL: ${muvekkilSatiri || '—'}` });
+  items.push({ baslik: 'SÖZLEŞMENİN KONUSU', icerik: konu });
+  items.push({ baslik: isDanisma ? 'DANIŞMANLIK ÜCRETİ' : 'AVUKATLIK ÜCRETİ', icerik: ucretMaddesi(input) });
+  items.push({ baslik: 'ÖDEME KOŞULLARI', icerik: taksitMaddesi(input.taksitler) });
+  if (isDanisma) {
+    items.push({
+      baslik: 'SÜRE VE FESİH',
+      icerik:
+        'Sözleşme, imza tarihinden itibaren 1 (bir) yıl süreyle geçerlidir ve taraflarca aksi bildirilmedikçe birer yıllık dönemler hâlinde kendiliğinden yenilenir. Taraflardan her biri, en az 30 (otuz) gün önceden yazılı bildirimde bulunmak kaydıyla sözleşmeyi feshedebilir. Fesih, işlemekte olan döneme ait ücret alacağını etkilemez.',
+    });
+  }
+  items.push({
+    baslik: 'MÜVEKKİLİN YÜKÜMLÜLÜKLERİ',
+    icerik:
+      "MÜVEKKİL; AVUKAT'a gerekli vekâletnameyi verir, işe ilişkin tüm bilgi ve belgeleri eksiksiz ve doğru olarak zamanında sunar, istenen masraf avansını yatırır. Bilgi/belgelerin eksik veya gerçeğe aykırı olmasından doğan sonuçlardan MÜVEKKİL sorumludur.",
+  });
+  items.push({
+    baslik: 'YARGILAMA GİDERLERİ VE MASRAFLAR',
+    icerik:
+      "Harç, tebligat, bilirkişi, keşif, posta, dosya ve benzeri tüm yargılama/işlem giderleri MÜVEKKİL'e aittir. AVUKAT tarafından yapılan zorunlu masraflar MÜVEKKİL tarafından derhâl karşılanır.",
+  });
+  items.push({
+    baslik: 'KARŞI YANA YÜKLETİLEN VEKÂLET ÜCRETİ',
+    icerik:
+      "Mahkeme veya icra yoluyla karşı tarafa yükletilecek vekâlet ücreti, Avukatlık Kanunu m. 164/son uyarınca aksi işbu sözleşmede yazılı olarak kararlaştırılmadıkça AVUKAT'a aittir ve yukarıdaki avukatlık ücretinden ayrıdır.",
+  });
+  if (!isDanisma) {
+    items.push({
+      baslik: 'VEKÂLETİN KAPSAMI',
+      icerik:
+        "AVUKAT, işin niteliğinin gerektirdiği hukukî işlemleri yürütmeye yetkilidir. Sulh, feragat, kabul, davadan vazgeçme, ibra ve tahkim gibi tasarrufî işlemler MÜVEKKİL'in ayrıca vereceği özel yetkiye tâbidir.",
+    });
+  }
+  items.push({
+    baslik: 'AZİL VE İSTİFA',
+    icerik:
+      "Haklı bir sebep olmaksızın azil hâlinde, Avukatlık Kanunu m. 174 uyarınca kararlaştırılan ücretin tamamı AVUKAT'a ödenir. AVUKAT'ın haklı sebeple istifası hâlinde de aynı hüküm uygulanır.",
+  });
+  items.push({
+    baslik: 'GİZLİLİK VE KİŞİSEL VERİLER',
+    icerik:
+      "AVUKAT, MÜVEKKİL'e ait bilgi ve belgeleri meslek sırrı kapsamında gizli tutar. Kişisel veriler yalnızca işin görülmesi amacıyla, 6698 sayılı KVKK'ya uygun olarak işlenir ve saklanır.",
+  });
+  items.push({
+    baslik: 'TEBLİGAT ADRESLERİ',
+    icerik:
+      'Tarafların işbu sözleşmede yazılı adresleri yasal tebligat adresleridir. Adres değişikliği yazılı olarak bildirilmedikçe bu adreslere yapılan tebligat geçerli sayılır.',
+  });
+  items.push({
+    baslik: 'UYUŞMAZLIK, NÜSHA VE YÜRÜRLÜK',
+    icerik:
+      `İşbu sözleşmeden doğacak uyuşmazlıklarda ${input.imzaYeri || '…………'} mahkemeleri ve icra daireleri yetkilidir. ` +
+      `Sözleşme ${items.length + 1} maddeden ibaret olup iki (2) nüsha düzenlenmiş, taraflarca ${tarih} tarihinde imzalanarak yürürlüğe girmiştir. Bir nüsha MÜVEKKİL'e verilmiştir.`,
+  });
+
+  const maddeler = items.map((it, i) => `MADDE ${i + 1} — ${it.baslik}\n${it.icerik}`);
 
   const imza = `\nTARAFLAR\n\nAVUKAT\n${input.avukatAd ? 'Av. ' + input.avukatAd : '…………………'}\nİmza:\n\nMÜVEKKİL\n${input.muvekkilAd || '…………………'}\nİmza:\n\nDüzenlenme Yeri/Tarihi: ${input.imzaYeri || '…………'} / ${tarih}`;
 
@@ -176,6 +226,11 @@ export function buildContract(input: ContractInput): ContractResult {
   if (!hasFee) {
     warnings.push(
       'Ücret girilmedi. Ücret kararlaştırılmazsa Avukatlık Asgari Ücret Tarifesi uygulanır (Av.K. m. 163-164).'
+    );
+  }
+  if ((input.feeModel === 'nispi' || input.feeModel === 'karma') && nispiSakincaliMi(input.hukukAlani)) {
+    warnings.push(
+      'Seçtiğiniz alanda (aile/ceza/idare) uyuşmazlık çoğunlukla para ile ölçülemez. Bu tür işlerde nispi (yüzde) ücret uygun olmayabilir; maktu ücret önerilir.'
     );
   }
   if ((input.feeModel === 'nispi' || input.feeModel === 'karma') && (input.nispiOran ?? 0) > 25) {
