@@ -1061,8 +1061,8 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.title': 'Vekil AI',
   'ai.short': 'AI Assistant',
   'ai.welcome': 'Hi, I’m Vekil AI 👋',
-  'ai.welcomeDesc': 'I help with legal questions, petition drafts, and legislation summaries.',
-  'ai.sample1': 'What should I watch out for in an appeal petition?',
+  'ai.welcomeDesc': 'Give me a task: I draft petitions, compute deadlines, produce step plans and evidence lists, backed by real court decisions.',
+  'ai.sample1': 'Draft a formal notice for unpaid rent',
   'ai.sample2': 'Difference between rent determination and rent adaptation cases?',
   'ai.sample3': 'Summarize the conditions of a reinstatement case',
   'ai.inputPlaceholder': 'Type your question...',
@@ -1077,6 +1077,12 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.tierPlus': 'Plus',
   'ai.plusActive': 'Plus AI active — stronger model + case-law-backed answers',
   'ai.plusUpsell': 'Go Plus: a stronger model + answers fed by our own case-law corpus',
+  'ai.history': 'Chat history',
+  'ai.historyEmpty': 'No saved chats yet. Your conversations are kept here — come back to them anytime.',
+  'ai.newChat': 'New chat',
+  'ai.deleteChat': 'Delete chat',
+  'ai.deleteChatConfirm': 'Delete this chat? This cannot be undone.',
+  'ai.justNow': 'just now',
 
   // Case-law search (UYAP Emsal — official, free source)
   'ictihat.title': 'Case-Law Search',

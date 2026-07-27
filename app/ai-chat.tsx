@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -15,7 +17,7 @@ import { router } from 'expo-router';
 import { AI_ENABLED } from '@/config/features';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { useAiChat, type AiMessage } from '@/hooks/useAiChat';
+import { useAiChat, type AiMessage, type AiConversation } from '@/hooks/useAiChat';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -27,8 +29,10 @@ export default function AiChatScreen() {
   const styles = makeStyles(colors);
   const t = useT();
 
-  const { messages, sending, errorText, tier, send, reset } = useAiChat();
+  const { messages, sending, errorText, tier, send, newChat, conversations, activeId, openConversation, deleteConversation } =
+    useAiChat();
   const [draft, setDraft] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -49,13 +53,28 @@ export default function AiChatScreen() {
       <ScreenHeader
         title={t('ai.title')}
         showBack
-        rightIcon={!AI_ENABLED || empty ? undefined : 'create-outline'}
-        onRightPress={!AI_ENABLED || empty ? undefined : reset}
+        rightIcon={!AI_ENABLED ? undefined : 'time-outline'}
+        onRightPress={!AI_ENABLED ? undefined : () => setHistoryOpen(true)}
       />
       {!AI_ENABLED ? (
         <ComingSoon />
       ) : (
       <>
+      <HistoryPanel
+        visible={historyOpen}
+        conversations={conversations}
+        activeId={activeId}
+        onClose={() => setHistoryOpen(false)}
+        onNew={() => {
+          newChat();
+          setHistoryOpen(false);
+        }}
+        onOpen={(id) => {
+          openConversation(id);
+          setHistoryOpen(false);
+        }}
+        onDelete={deleteConversation}
+      />
       {tier === 'plus' && (
         <View style={styles.tierPlus}>
           <Ionicons name="diamond" size={13} color={colors.gold} />
@@ -191,6 +210,105 @@ function Bubble({ message }: { message: AiMessage }) {
         <Text style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>{message.text}</Text>
       </View>
     </View>
+  );
+}
+
+/** "az önce / 5 dk / 3 sa / 2 gün" gibi kısa göreli zaman. */
+function relativeTime(ts: number, t: ReturnType<typeof useT>): string {
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return t('ai.justNow');
+  if (min < 60) return `${min} dk`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} sa`;
+  const day = Math.floor(hr / 24);
+  return `${day} gün`;
+}
+
+function HistoryPanel({
+  visible,
+  conversations,
+  activeId,
+  onClose,
+  onNew,
+  onOpen,
+  onDelete,
+}: {
+  visible: boolean;
+  conversations: AiConversation[];
+  activeId: string;
+  onClose: () => void;
+  onNew: () => void;
+  onOpen: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const t = useT();
+
+  const confirmDelete = (id: string) => {
+    Alert.alert(t('ai.deleteChat'), t('ai.deleteChatConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('ai.deleteChat'), style: 'destructive', onPress: () => onDelete(id) },
+    ]);
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.historyBackdrop}>
+        <Pressable style={styles.historyDismiss} onPress={onClose} />
+        <View style={styles.historySheet}>
+          <View style={styles.historyHandle} />
+          <View style={styles.historyHeader}>
+            <Text style={styles.historyTitle}>{t('ai.history')}</Text>
+            <Pressable onPress={onClose} hitSlop={10} style={styles.historyClose}>
+              <Ionicons name="close" size={20} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+
+          <Pressable onPress={onNew} style={({ pressed }) => [styles.newChatBtn, pressed && styles.samplePressed]}>
+            <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+            <Text style={styles.newChatText}>{t('ai.newChat')}</Text>
+          </Pressable>
+
+          {conversations.length === 0 ? (
+            <View style={styles.historyEmptyWrap}>
+              <Ionicons name="chatbubbles-outline" size={30} color={colors.textMuted} />
+              <Text style={styles.historyEmptyText}>{t('ai.historyEmpty')}</Text>
+            </View>
+          ) : (
+            <ScrollView style={styles.historyList} showsVerticalScrollIndicator={false}>
+              {conversations.map((c) => {
+                const isActive = c.id === activeId;
+                return (
+                  <Pressable
+                    key={c.id}
+                    onPress={() => onOpen(c.id)}
+                    style={({ pressed }) => [styles.historyItem, isActive && styles.historyItemActive, pressed && styles.samplePressed]}
+                  >
+                    <Ionicons
+                      name={isActive ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
+                      size={18}
+                      color={isActive ? colors.primary : colors.textSecondary}
+                    />
+                    <View style={styles.historyItemBody}>
+                      <Text style={styles.historyItemTitle} numberOfLines={1}>
+                        {c.title}
+                      </Text>
+                      <Text style={styles.historyItemTime}>{relativeTime(c.updatedAt, t)}</Text>
+                    </View>
+                    <Pressable onPress={() => confirmDelete(c.id)} hitSlop={10} style={styles.historyDelete}>
+                      <Ionicons name="trash-outline" size={17} color={colors.textMuted} />
+                    </Pressable>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -440,5 +558,111 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sendBtnDisabled: {
     opacity: 0.4,
+  },
+  // Sohbet geçmişi paneli
+  historyBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  historyDismiss: {
+    flex: 1,
+  },
+  historySheet: {
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    maxHeight: '78%',
+  },
+  historyHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+  },
+  historyTitle: {
+    ...typography.h2,
+    color: colors.textPrimary,
+  },
+  historyClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 14,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  newChatText: {
+    ...typography.bodyMedium,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  historyList: {
+    marginTop: spacing.xs,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: 14,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  historyItemActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  historyItemBody: {
+    flex: 1,
+  },
+  historyItemTitle: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+  },
+  historyItemTime: {
+    ...typography.small,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  historyDelete: {
+    padding: 4,
+  },
+  historyEmptyWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+  },
+  historyEmptyText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+    lineHeight: 21,
   },
 });

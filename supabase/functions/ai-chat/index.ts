@@ -106,6 +106,14 @@ const SYSTEM_PROMPT =
   'Bir konuda kesin değilsen bunu açıkça söyle; OLMAYAN madde, karar veya esas/karar numarası ASLA uydurma. ' +
   'Gerektiğinde adımları, dikkat edilecek süreleri ve olası riskleri sırala. ' +
   //
+  // GÖREV ODAKLI: sadece bilgi verme, İŞİ YAP.
+  'GÖREV ODAKLI ÇALIŞ: Avukat bir iş istediğinde (dava/cevap/temyiz/istinaf dilekçesi, ihtarname, ' +
+  'sözleşme maddesi, müzekkere, bilirkişiye itiraz, delil listesi, adım planı, süre hesabı) yalnızca ' +
+  'açıklama yapma — istenen ÇIKTIYI doğrudan, kullanıma hazır TASLAK olarak üret. Dilekçe/yazı ise ' +
+  'başlık (mahkeme/merci), taraflar, konu, açıklamalar, hukuki sebepler (madde atıflı), deliller, ' +
+  'sonuç ve talep bölümleriyle yaz; eksik bilgiler için [Örn. …] köşeli parantez bırak. Süre/hesap ise ' +
+  'adım adım hesapla ve tarihi ver. Her görevin sonunda kısa bir "KONTROL LİSTESİ" ekle. ' +
+  //
   // KİMLİK KİLİDİ: modelin hangi şirket/teknolojiyle (Google, Gemini, yapay zeka
   // modeli vb.) çalıştığını ASLA açıklama; "hangi modelsin", "kim yaptı seni",
   // "arkanda ne var" gibi sorulara yalnızca "Ben Vekil Pro uygulamasının hukuk
@@ -163,10 +171,14 @@ async function embedQuery(text: string, apiKey: string): Promise<number[] | null
 async function buildGrounding(supabase: any, question: string, apiKey: string): Promise<string> {
   // deno-lint-ignore no-explicit-any
   let rows: any[] = [];
-  const qEmb = await embedQuery(question, apiKey);
-  if (qEmb) {
-    const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: 5 });
-    rows = data ?? [];
+  // Anlamsal (embedding) yalnız geçerli bir Gemini anahtarı varsa denenir;
+  // yoksa (Groq/ücretsiz katman) doğrudan kelime (FTS) beslemesi yapılır.
+  if (apiKey) {
+    const qEmb = await embedQuery(question, apiKey);
+    if (qEmb) {
+      const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: 5 });
+      rows = data ?? [];
+    }
   }
   if (rows.length === 0) {
     const { data } = await supabase.rpc('search_ictihat_fts', { q: question, match_count: 5 });
@@ -251,14 +263,16 @@ Deno.serve(async (req) => {
   if (!genKey) {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
-  // Grounding yalnız Gemini (Pro/Elit): kendi içtihat havuzumuzla besle.
-  const grounded = provider === 'gemini' && (tier === 'pro' || tier === 'elit');
+  // Grounding TÜM katmanlarda: kendi içtihat havuzumuzdan gerçek kararlarla besle
+  // (Gemini/Pro anlamsal + FTS; Groq/ücretsiz doğrudan FTS). Böylece yanıt gerçek
+  // kararlara dayanır, uydurmaz — "eğitilmiş" asistan.
+  const groundKey = provider === 'gemini' ? genKey : '';
   let systemText = SYSTEM_PROMPT;
-  if (grounded) {
+  {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (lastUser?.text) {
       try {
-        systemText += await buildGrounding(supabase, lastUser.text, genKey);
+        systemText += await buildGrounding(supabase, lastUser.text, groundKey);
       } catch {
         // besleme başarısızsa yalın yanıtla devam
       }
