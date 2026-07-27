@@ -104,6 +104,9 @@ const SYSTEM_PROMPT =
   'Cevapların net, gerekçeli, uygulanabilir ve mesleki Türkçe olsun; ilgili kanun maddelerini ' +
   '(ör. TMK m. 2, HMK m. 119, TCK m. 125) ve varsa yerleşik içtihadı belirt. ' +
   'Bir konuda kesin değilsen bunu açıkça söyle; OLMAYAN madde, karar veya esas/karar numarası ASLA uydurma. ' +
+  'Kanun maddesinin metnini TIRNAK içinde birebir alıntılıyorsan, ancak metni gerçekten biliyorsan yap; ' +
+  'emin değilsen tırnaklı/“…” birebir alıntı UYDURMA, bunun yerine maddenin numarasını ve özünü kendi ' +
+  'cümlenle ver. Uydurma madde metni gerçek metinden daha kötüdür. ' +
   'Gerektiğinde adımları, dikkat edilecek süreleri ve olası riskleri sırala. ' +
   //
   // GÖREV ODAKLI: sadece bilgi verme, İŞİ YAP.
@@ -169,7 +172,7 @@ async function embedQuery(text: string, apiKey: string): Promise<number[] | null
  * eşleştiğinde bu kural sistem talimatına BAĞLAYICI olarak eklenir ve modelin
  * kendi tahminini ezer. Yeni kural eklemek için diziye bir madde eklemek yeter.
  */
-const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: string }> = [
+const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: string; exclude?: string[] }> = [
   {
     id: 'ihya_husumet',
     triggers: ['ihya', 'tasfiye', 'terkin', 'münfesih', 'munfesih', 'tasfiye memuru', 'ticaret sicil', 'husumet', 'davalı', 'yeniden tescil'],
@@ -193,15 +196,102 @@ const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: s
       'işe iade davası açılır. Süreler hak düşürücüdür.',
   },
   {
-    id: 'istinaf_temyiz_sure',
+    id: 'istinaf_temyiz_hukuk',
     triggers: ['istinaf', 'temyiz', 'kanun yolu', 'gerekçeli karar', 'gerekceli karar', 'süre', 'sure', 'başvuru süresi'],
     minHits: 2,
+    exclude: ['ceza', 'cmk', 'sanık', 'sanik', 'idari', 'idare mahkemesi', 'vergi mahkemesi'],
     text:
       'HUKUK DAVALARINDA KANUN YOLU SÜRELERİ (HMK): İstinaf süresi, gerekçeli kararın TEBLİĞİNDEN itibaren 2 ' +
       'HAFTADIR (HMK m.345). Bölge adliye mahkemesi kararına karşı temyiz süresi de gerekçeli kararın ' +
       'tebliğinden itibaren 2 HAFTADIR (HMK m.361). Süre, kararın tefhiminden değil kural olarak tebliğinden ' +
-      'işler. (İş mahkemesi kararlarında da istinaf süresi tebliğden 2 haftadır — 7036 s. Kanun m.7.) Not: ceza ' +
-      've idari yargıda süreler farklıdır; soru o alandaysa bu kuralı uygulama.',
+      'işler. (İş mahkemesi kararlarında da istinaf süresi tebliğden 2 haftadır — 7036 s. Kanun m.7.)',
+  },
+  {
+    id: 'istinaf_ceza',
+    triggers: ['ceza', 'cmk', 'sanık', 'sanik', 'istinaf', 'temyiz', 'tefhim'],
+    minHits: 2,
+    text:
+      'CEZA YARGISINDA İSTİNAF SÜRESİ (CMK m.273): İstinaf istemi, hükmün açıklanmasından itibaren 7 GÜN içinde ' +
+      'yapılır. Hüküm YÜZE KARŞI (tefhimle) açıklanmışsa süre TEFHİMDEN, ilgilinin yokluğunda verilmişse ' +
+      'TEBLİĞDEN başlar. Bu süre hukuk yargısındaki 2 haftalık istinaf süresiyle KARIŞTIRILMAMALIDIR.',
+  },
+  {
+    id: 'yoksulluk_nafakasi',
+    triggers: ['yoksulluk nafakası', 'yoksulluk nafakasi', 'yoksulluk', 'nafaka', 'boşanma', 'bosanma', 'süresiz', 'süreli'],
+    minHits: 2,
+    text:
+      'YOKSULLUK NAFAKASI SÜRESİZDİR (TMK m.175): Boşanma yüzünden yoksulluğa düşecek tarafa hükmedilen ' +
+      'yoksulluk nafakası belirli bir süreyle sınırlı DEĞİLDİR; SÜRESİZ olarak hükmedilir. Nafaka, alacaklının ' +
+      'yeniden evlenmesi, taraflardan birinin ölümü ya da alacaklının fiilen evliymiş gibi yaşaması, yoksulluğun ' +
+      'ortadan kalkması veya haysiyetsiz hayat sürmesi hâlinde mahkeme kararıyla KALDIRILIR (TMK m.176). ' +
+      'Not: iştirak nafakası çocuğun erginliğine kadar, tedbir nafakası ise dava süresince ödenir; bunları ' +
+      'yoksulluk nafakasıyla karıştırma.',
+  },
+  {
+    id: 'itirazin_iptali_kaldirilmasi',
+    triggers: ['itirazın iptali', 'itirazin iptali', 'itirazın kaldırılması', 'itirazin kaldirilmasi', 'ödeme emri', 'odeme emri', 'itiraz', 'icra takibi', 'takibe itiraz'],
+    minHits: 2,
+    text:
+      'İTİRAZIN İPTALİ vs İTİRAZIN KALDIRILMASI (karıştırılmamalı): (1) İTİRAZIN İPTALİ DAVASI (İİK m.67): ' +
+      'İlamsız takipte ödeme emrine itiraz üzerine alacaklı, itirazın kendisine TEBLİĞİNDEN itibaren 1 YIL ' +
+      'içinde GENEL MAHKEMEDE (görevli/yetkili genel hukuk mahkemesi) itirazın iptali davası açar; icra ' +
+      'mahkemesinde açılmaz. (2) İTİRAZIN KALDIRILMASI (İİK m.68): Elinde İİK m.68’deki belgelerden biri ' +
+      'bulunan alacaklının, itirazın tebliğinden itibaren 6 AY içinde İCRA MAHKEMESİNE yaptığı başvurudur. ' +
+      'Süreler ve görevli merci bu şekildedir.',
+  },
+  {
+    id: 'onalim_sufa',
+    triggers: ['önalım', 'onalim', 'şufa', 'sufa', 'ön alım', 'hak düşürücü', 'hisseli tapu', 'paylı mülkiyet'],
+    minHits: 1,
+    text:
+      'YASAL ÖNALIM (ŞUF’A) HAKKI (TMK m.733): Paylı mülkiyette bir paydaşın payını üçüncü kişiye satması ' +
+      'hâlinde önalım hakkı, satışın önalım hakkı sahibine NOTER aracılığıyla BİLDİRİLDİĞİ tarihin üzerinden ' +
+      '3 AY ve HER HÂLDE satışın üzerinden 2 YIL geçmekle DÜŞER (hak düşürücü süreler). Önalım davası ASLİYE ' +
+      'HUKUK MAHKEMESİNDE açılır. Süre sözleşme/tapu tarihinden değil, yukarıdaki bildirime göre işler.',
+  },
+  {
+    id: 'trafik_zamanasimi',
+    triggers: ['trafik', 'kaza', 'ktk', 'karayolları trafik', 'araç', 'tazminat zamanaşımı', 'destekten yoksun'],
+    minHits: 2,
+    text:
+      'TRAFİK KAZASI TAZMİNATINDA ZAMANAŞIMI (KTK m.109): Zarar görenin, zararı ve faili öğrendiği tarihten ' +
+      'itibaren 2 YIL ve her hâlde kaza gününden itibaren 10 YILDIR. ANCAK kaza aynı zamanda bir SUÇ oluşturuyorsa ' +
+      '(taksirle yaralama/öldürme gibi) ve ceza kanununda o suç için daha uzun zamanaşımı öngörülmüşse, tazminat ' +
+      'talebine bu UZAMIŞ (ceza) ZAMANAŞIMI uygulanır. Dayanağı TBK m.72 değil, özel hüküm olan KTK m.109’dur.',
+  },
+  {
+    id: 'kambiyo_zamanasimi',
+    triggers: ['kambiyo', 'bono', 'poliçe', 'police', 'senet zamanaşımı', 'çek zamanaşımı', 'cek zamanasimi', 'çek', 'müracaat'],
+    minHits: 1,
+    text:
+      'KAMBIYO SENEDİ ZAMANAŞIMI (TTK; bono için m.778 yollamasıyla m.749): (1) Hamilin ASIL BORÇLUYA (bono ' +
+      'düzenleyeni / poliçe kabul edeni) karşı istemleri VADE tarihinden itibaren 3 YIL; (2) hamilin cirantalara ' +
+      've düzenleyene karşı MÜRACAAT hakları 1 YIL; (3) cirantaların birbirine karşı istemleri 6 AY. Süreler ' +
+      'düzenlenme tarihinden değil kural olarak VADEDEN işler. ÇEKTE zamanaşımı, 6273 s. Kanun değişikliğiyle ' +
+      '(TTK m.814) İBRAZ SÜRESİNİN bitiminden itibaren 3 YILDIR (6 ay DEĞİL).',
+  },
+  {
+    id: 'iscilik_zamanasimi',
+    triggers: ['kıdem tazminatı', 'kidem tazminati', 'ihbar tazminatı', 'ihbar tazminati', 'işçilik alacağı', 'iscilik alacagi', 'zamanaşımı', 'zamanasimi'],
+    minHits: 2,
+    text:
+      'İŞÇİLİK ALACAKLARINDA ZAMANAŞIMI: 7036 s. Kanunla eklenen 4857 s. İş K. Ek m.3 uyarınca KIDEM tazminatı, ' +
+      'İHBAR tazminatı, kötüniyet tazminatı ve eşit davranma (ayrımcılık) tazminatı alacaklarında zamanaşımı ' +
+      '5 YILDIR. Bu 5 yıllık süre, iş sözleşmesinin 12.10.2017 tarihinden SONRA sona erdiği hâllerde uygulanır; ' +
+      'daha önceki fesihlerde geçiş hükümleri ve 10 yıllık genel zamanaşımı gündeme gelir. Ücret, fazla mesai, ' +
+      'yıllık izin ücreti gibi ücret niteliğindeki alacaklarda zamanaşımı zaten 5 yıldır (TBK m.147).',
+  },
+  {
+    id: 'tuketici_hakem_heyeti',
+    triggers: ['tüketici', 'tuketici', 'hakem heyeti', 'tüketici mahkemesi', 'tuketici mahkemesi', '6502'],
+    minHits: 2,
+    text:
+      'TÜKETİCİ UYUŞMAZLIKLARI (6502 s. Kanun m.68 ve m.73): Belirlenen PARASAL SINIRIN ALTINDA kalan tüketici ' +
+      'uyuşmazlıklarında TÜKETİCİ HAKEM HEYETİNE başvuru ZORUNLUDUR (dava şartı); bu sınırın altındaki uyuşmazlık ' +
+      'için doğrudan tüketici mahkemesinde dava açılamaz. Sınırın ÜSTÜNDEKİ uyuşmazlıklarda görevli mahkeme ' +
+      'TÜKETİCİ MAHKEMESİDİR (bulunmayan yerlerde asliye hukuk mahkemesi tüketici mahkemesi sıfatıyla). Parasal ' +
+      'sınırlar HER YIL yeniden değerleme oranıyla güncellenir; SABİT/eski bir rakam verme, güncel yılın tutarını ' +
+      'teyit etmesi gerektiğini belirt.',
   },
 ];
 
@@ -213,7 +303,11 @@ function normTr(s: string): string {
 /** Soruyu KESİN KURALLARLA eşleştirir; eşleşen kuralları bağlayıcı blok olarak döndürür. */
 function matchKB(question: string): string {
   const q = normTr(question);
-  const hits = LEGAL_KB.filter((k) => k.triggers.filter((t) => q.includes(normTr(t))).length >= k.minHits);
+  const hits = LEGAL_KB.filter(
+    (k) =>
+      k.triggers.filter((t) => q.includes(normTr(t))).length >= k.minHits &&
+      !(k.exclude ?? []).some((x) => q.includes(normTr(x)))
+  );
   if (hits.length === 0) return '';
   return (
     '\n\n### KESİN HUKUKİ KURALLAR — BUNLARA UYMAK ZORUNDASIN (yerleşik içtihat; kendi tahminini bunlarla düzelt):\n' +
