@@ -29,8 +29,9 @@ export default function AiChatScreen() {
   const styles = makeStyles(colors);
   const t = useT();
 
-  const { messages, sending, errorText, tier, send, newChat, conversations, activeId, openConversation, deleteConversation } =
+  const { messages, sending, error, errorText, tier, send, newChat, conversations, activeId, openConversation, deleteConversation } =
     useAiChat();
+  const showUpsell = error === 'daily_quota' || error === 'quota_exceeded';
   const [draft, setDraft] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -117,8 +118,23 @@ export default function AiChatScreen() {
 
           {errorText && (
             <View style={styles.errorBox}>
-              <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
-              <Text style={styles.errorText}>{errorText}</Text>
+              <View style={styles.errorRow}>
+                <Ionicons
+                  name={showUpsell ? 'time-outline' : 'alert-circle-outline'}
+                  size={18}
+                  color={showUpsell ? colors.gold : colors.danger}
+                />
+                <Text style={[styles.errorText, showUpsell && styles.errorTextInfo]}>{errorText}</Text>
+              </View>
+              {showUpsell && (
+                <Pressable
+                  onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}
+                  style={({ pressed }) => [styles.upsellBtn, pressed && styles.samplePressed]}
+                >
+                  <Ionicons name="diamond-outline" size={15} color={colors.textInverse} />
+                  <Text style={styles.upsellBtnText}>{t('ai.plusUpsellBtn')}</Text>
+                </Pressable>
+              )}
             </View>
           )}
         </ScrollView>
@@ -496,19 +512,41 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
     backgroundColor: colors.dangerSoft,
     borderRadius: 12,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     marginTop: spacing.xs,
+    gap: spacing.sm,
+  },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   errorText: {
     ...typography.small,
     color: colors.danger,
     flex: 1,
+  },
+  errorTextInfo: {
+    color: colors.textSecondary,
+  },
+  upsellBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.gold,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+  },
+  upsellBtnText: {
+    ...typography.small,
+    color: colors.textInverse,
+    fontWeight: '700',
   },
   // Alt bar
   disclaimerBar: {

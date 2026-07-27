@@ -42,7 +42,21 @@ async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; te
       max_tokens: maxTokens,
     }),
   });
-  if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+  if (!res.ok) {
+    if (res.status === 429) {
+      // Groq'un günlük token kotası (TPD) mı yoksa anlık yoğunluk (per-minute) mı?
+      // Günlük bitmişse kullanıcıya "yarın yenilenir" demeliyiz, "birazdan dene" değil.
+      let daily = false;
+      try {
+        const b = await res.text();
+        daily = /per\s*day|tokens per day|daily|günde|gün içinde/i.test(b);
+      } catch {
+        // gövde okunamazsa anlık yoğunluk varsay
+      }
+      throw new Error(daily ? 'daily_quota' : 'rate_limit');
+    }
+    throw new Error('upstream');
+  }
   const j = await res.json();
   const text = j.choices?.[0]?.message?.content ?? '';
   const u = j.usage ?? {};
@@ -515,8 +529,9 @@ Deno.serve(async (req) => {
     }
   } catch (e) {
     const msg = (e as Error).message;
-    return new Response(JSON.stringify({ error: msg === 'rate_limit' ? 'rate_limit' : 'upstream' }), {
-      status: msg === 'rate_limit' ? 429 : 502,
+    const known = msg === 'rate_limit' || msg === 'daily_quota';
+    return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+      status: known ? 429 : 502,
       headers: CORS,
     });
   }

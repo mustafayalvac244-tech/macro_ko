@@ -18,7 +18,7 @@ export interface AiConversation {
   updatedAt: number;
 }
 
-type AiError = 'rate_limit' | 'generic';
+type AiError = 'rate_limit' | 'daily_quota' | 'quota_exceeded' | 'generic';
 
 const STORE_KEY = 'vekil.ai.conversations.v2';
 const MAX_CONVERSATIONS = 40;
@@ -137,7 +137,9 @@ export function useAiChat() {
           } catch {
             // gövde okunamazsa genel hataya düşer
           }
-          setError(code === 'rate_limit' ? 'rate_limit' : 'generic');
+          setError(
+            code === 'rate_limit' || code === 'daily_quota' || code === 'quota_exceeded' ? code : 'generic'
+          );
           return;
         }
 
@@ -206,7 +208,16 @@ export function useAiChat() {
   // Geriye dönük uyumluluk: eski `reset` = yeni sohbet.
   const reset = newChat;
 
-  const errorText = error === 'rate_limit' ? t('ai.errRateLimit') : error === 'generic' ? t('ai.errGeneric') : null;
+  const errorText =
+    error === 'rate_limit'
+      ? t('ai.errRateLimit')
+      : error === 'daily_quota'
+        ? t('ai.errDailyQuota')
+        : error === 'quota_exceeded'
+          ? t('ai.errQuota')
+          : error === 'generic'
+            ? t('ai.errGeneric')
+            : null;
 
   return {
     messages,
