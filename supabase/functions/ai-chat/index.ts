@@ -163,6 +163,66 @@ async function embedQuery(text: string, apiKey: string): Promise<number[] | null
 }
 
 /**
+ * KESİN HUKUKİ KURALLAR — avukat gözüyle test edilip doğrulanmış, yerleşik
+ * Yargıtay içtihadına dayanan kurallar. Dil modelleri bu tür "husumet / süre /
+ * görevli mahkeme" sorularında sık hata yaptığı için, soru bir kuralla
+ * eşleştiğinde bu kural sistem talimatına BAĞLAYICI olarak eklenir ve modelin
+ * kendi tahminini ezer. Yeni kural eklemek için diziye bir madde eklemek yeter.
+ */
+const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: string }> = [
+  {
+    id: 'ihya_husumet',
+    triggers: ['ihya', 'tasfiye', 'terkin', 'münfesih', 'munfesih', 'tasfiye memuru', 'ticaret sicil', 'husumet', 'davalı', 'yeniden tescil'],
+    minHits: 2,
+    text:
+      'İHYA DAVASINDA HUSUMET (yerleşik Yargıtay 11. HD içtihadı): Tasfiyesi tamamlanıp ticaret sicilinden ' +
+      'terkin edilmiş (münfesih) bir şirketin ihyası (yeniden tescili) istemli davada husumet, ŞİRKETİN SON ' +
+      'TASFİYE MEMURU/MEMURLARINA VE ŞİRKETİN KAYITLI OLDUĞU İLGİLİ TİCARET SİCİL MÜDÜRLÜĞÜNE birlikte ' +
+      'yöneltilir. Şirketin eski ortaklarına veya bizzat (hukuken var olmayan) şirket tüzel kişiliğine husumet ' +
+      'yöneltilmesi doğru değildir; bu davalarda görevli mahkeme Asliye Ticaret Mahkemesidir (TTK m.547 vd.). ' +
+      'İhya kararı kesinleşince şirket, terkin öncesi işlemler bakımından ihya edilmiş sayılır.',
+  },
+  {
+    id: 'ise_iade',
+    triggers: ['işe iade', 'ise iade', 'feshin geçersizliği', 'arabulucu', 'arabuluculuk', 'iş güvencesi', 'is guvencesi', 'fesih'],
+    minHits: 2,
+    text:
+      'İŞE İADE (7036 s. Kanun m.3 ve 4857 s. İş K. m.20): İşe iade talebinde DAVA ŞARTI ARABULUCULUK zorunludur. ' +
+      'İşçi, fesih bildiriminin TEBLİĞİNDEN İTİBAREN 1 AY içinde arabulucuya başvurmak zorundadır. Taraflar ' +
+      'anlaşamazsa, arabuluculuk SON TUTANAĞININ düzenlendiği tarihten itibaren 2 HAFTA içinde İŞ MAHKEMESİNDE ' +
+      'işe iade davası açılır. Süreler hak düşürücüdür.',
+  },
+  {
+    id: 'istinaf_temyiz_sure',
+    triggers: ['istinaf', 'temyiz', 'kanun yolu', 'gerekçeli karar', 'gerekceli karar', 'süre', 'sure', 'başvuru süresi'],
+    minHits: 2,
+    text:
+      'HUKUK DAVALARINDA KANUN YOLU SÜRELERİ (HMK): İstinaf süresi, gerekçeli kararın TEBLİĞİNDEN itibaren 2 ' +
+      'HAFTADIR (HMK m.345). Bölge adliye mahkemesi kararına karşı temyiz süresi de gerekçeli kararın ' +
+      'tebliğinden itibaren 2 HAFTADIR (HMK m.361). Süre, kararın tefhiminden değil kural olarak tebliğinden ' +
+      'işler. (İş mahkemesi kararlarında da istinaf süresi tebliğden 2 haftadır — 7036 s. Kanun m.7.) Not: ceza ' +
+      've idari yargıda süreler farklıdır; soru o alandaysa bu kuralı uygulama.',
+  },
+];
+
+/** Türkçe güvenli küçük harf: İ→i, birleşik nokta (U+0307) temizlenir. */
+function normTr(s: string): string {
+  return s.toLowerCase().replace(/̇/g, '');
+}
+
+/** Soruyu KESİN KURALLARLA eşleştirir; eşleşen kuralları bağlayıcı blok olarak döndürür. */
+function matchKB(question: string): string {
+  const q = normTr(question);
+  const hits = LEGAL_KB.filter((k) => k.triggers.filter((t) => q.includes(normTr(t))).length >= k.minHits);
+  if (hits.length === 0) return '';
+  return (
+    '\n\n### KESİN HUKUKİ KURALLAR — BUNLARA UYMAK ZORUNDASIN (yerleşik içtihat; kendi tahminini bunlarla düzelt):\n' +
+    hits.map((h) => '• ' + h.text).join('\n') +
+    '\nBu kurallara aykırı yanıt verme; soru bu konudaysa cevabını doğrudan bu kurala dayandır.'
+  );
+}
+
+/**
  * Plus katmanı için içtihat havuzundan (kendi büyüyen veritabanımız) soruyla
  * ilgili gerçek kararları getirir ve sistem talimatına eklenecek bağlam üretir.
  * "Senin eğittiğin AI" = kendi verimizle beslenmiş, kaynak gösteren yanıt.
@@ -271,6 +331,8 @@ Deno.serve(async (req) => {
   {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (lastUser?.text) {
+      // Önce KESİN KURALLAR (yerleşik içtihat) — modelin tahminini ezer.
+      systemText += matchKB(lastUser.text);
       try {
         systemText += await buildGrounding(supabase, lastUser.text, groundKey);
       } catch {
