@@ -497,11 +497,12 @@ export function matchDigests(query: string): IctihatDigest[] {
     return { d, score, coverage: hits / qWords.length };
   });
 
-  // ALAKA EŞİĞİ: alakasızsa HİÇ gösterme. Anlamlı bir eşleşme (score ≥ 2) VE
-  // ya sorgu kelimelerinin en az yarısı tutmuş (coverage ≥ 0.5) ya da tam ifade
-  // yakalanmış olmalı. Tek kelimelik sorguda kelime güçlü (başlık/kategori)
-  // eşleşmeli. Böylece "yazık, uzaktan yakından ilgisi yok" özetler çıkmaz.
-  const relevant = scored.filter((x) => x.score >= 2 && (x.coverage >= 0.5 || x.score >= 4));
+  // ALAKA EŞİĞİ: eşleşme zaten KELİME-SINIRLI olduğundan (arsa↔çıkarsa gibi
+  // gürültü elenir), sorgu kelimelerinin en az yarısı tam kelimeyle tutmuşsa
+  // (coverage ≥ 0.5) ya da tam ifade birebir geçiyorsa (score ≥ 4) ilgili sayılır.
+  // Not: eski "score ≥ 2" eşiği, kelimenin yalnız gövdede geçtiği tek kelimelik
+  // aramaları (örn. "tenkis") yanlışlıkla eliyordu; kaldırıldı.
+  const relevant = scored.filter((x) => x.coverage >= 0.5 || x.score >= 4);
   relevant.sort((a, b) => b.score - a.score || b.coverage - a.coverage);
   return relevant.slice(0, 3).map((x) => x.d);
 }
