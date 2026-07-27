@@ -17,16 +17,36 @@ const PRICING: Record<string, { in: number; out: number }> = {
   'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
   'gemini-2.5-pro': { in: 1.25, out: 10.0 },
 };
-interface TierCfg { model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number; maxOut: number }
+const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'llama-3.3-70b-versatile';
+interface TierCfg { provider: 'gemini' | 'groq'; model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number; maxOut: number }
 function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
-  const t = aiTier || (isPremium ? 'pro' : 'free');
+  const t = aiTier || 'baslangic'; // lansman: herkes Groq (bedava); billing gelince pro/elit elle atanır
   const table: Record<string, TierCfg> = {
-    free: { model: MODEL_BASIC, billable: false, limitKind: 'calls', limit: 20, maxOut: 1024 },
-    baslangic: { model: 'gemini-2.0-flash', billable: false, limitKind: 'calls', limit: 500, maxOut: 1024 },
-    pro: { model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450, maxOut: 2048 },
-    elit: { model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500, maxOut: 4096 },
+    // Ücretsiz katmanlar Groq (bedava, Türkiye'den çalışır); Pro/Elit Gemini (faturalı, güçlü).
+    free: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 20, maxOut: 1024 },
+    baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500, maxOut: 1024 },
+    pro: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450, maxOut: 2048 },
+    elit: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500, maxOut: 4096 },
   };
   return { tier: t, cfg: table[t] ?? table.free };
+}
+/** Groq (OpenAI uyumlu) sohbet çağrısı — ücretsiz katman. */
+async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; text: string }>, maxTokens: number, apiKey: string): Promise<{ text: string; tin: number; tout: number }> {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: 'system', content: system }, ...msgs.map((m) => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))],
+      temperature: 0.4,
+      max_tokens: maxTokens,
+    }),
+  });
+  if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+  const j = await res.json();
+  const text = j.choices?.[0]?.message?.content ?? '';
+  const u = j.usage ?? {};
+  return { text, tin: u.prompt_tokens ?? 0, tout: u.completion_tokens ?? 0 };
 }
 // Faturalı katman ana anahtar; ücretsiz katman ayrı ücretsiz anahtar (yoksa ana).
 function aiKey(billable: boolean): string | undefined {
@@ -225,55 +245,65 @@ Deno.serve(async (req) => {
   }
   const model = cfg.model;
   const maxOutputTokens = cfg.maxOut;
-  // Katmana göre anahtar: ücretsiz katman ücretsiz anahtarı kullanır.
-  const key = aiKey(cfg.billable) ?? apiKey;
-  // Pro/Elit katmanı kendi içtihat havuzumuzla beslenir (RAG).
-  const grounded = tier === 'pro' || tier === 'elit';
-
-  // Grounding: son kullanıcı sorusuyla kendi içtihat havuzumuzu tara, bağlamı
-  // sistem talimatına ekle (kaynaklı, uydurmayan, bizim veriyle beslenmiş yanıt).
+  const provider = cfg.provider;
+  // Sağlayıcı anahtarı: ücretsiz katman Groq, Pro/Elit Gemini.
+  const genKey = provider === 'groq' ? (Deno.env.get('GROQ_API_KEY') ?? '') : (aiKey(cfg.billable) ?? apiKey);
+  if (!genKey) {
+    return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
+  }
+  // Grounding yalnız Gemini (Pro/Elit): kendi içtihat havuzumuzla besle.
+  const grounded = provider === 'gemini' && (tier === 'pro' || tier === 'elit');
   let systemText = SYSTEM_PROMPT;
   if (grounded) {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (lastUser?.text) {
       try {
-        systemText += await buildGrounding(supabase, lastUser.text, key);
+        systemText += await buildGrounding(supabase, lastUser.text, genKey);
       } catch {
-        // besleme başarısızsa yalın Plus yanıtıyla devam
+        // besleme başarısızsa yalın yanıtla devam
       }
     }
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemText }] },
-      contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
-      generationConfig: { temperature: 0.4, maxOutputTokens },
-    }),
-  });
-
-  if (!res.ok) {
-    const status = res.status === 429 ? 429 : 502;
-    return new Response(JSON.stringify({ error: res.status === 429 ? 'rate_limit' : 'upstream' }), {
-      status,
+  let text = '';
+  let tin = 0;
+  let tout = 0;
+  try {
+    if (provider === 'groq') {
+      const r = await groqChat(systemText, messages, maxOutputTokens, genKey);
+      text = r.text;
+      tin = r.tin;
+      tout = r.tout;
+    } else {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemText }] },
+          contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
+          generationConfig: { temperature: 0.4, maxOutputTokens },
+        }),
+      });
+      if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+      const data = await res.json();
+      text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+      const um = data.usageMetadata ?? {};
+      tin = um.promptTokenCount ?? 0;
+      tout = um.candidatesTokenCount ?? 0;
+    }
+  } catch (e) {
+    const msg = (e as Error).message;
+    return new Response(JSON.stringify({ error: msg === 'rate_limit' ? 'rate_limit' : 'upstream' }), {
+      status: msg === 'rate_limit' ? 429 : 502,
       headers: CORS,
     });
   }
 
-  const data = await res.json();
-  const text =
-    data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
   if (!text) {
     return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
   }
-
-  // Maliyet ölçümü: bu çağrının token'larını aylık kullanıma işle.
-  const um = data.usageMetadata ?? {};
-  await recordUsage(userData.user.id, model, um.promptTokenCount ?? 0, um.candidatesTokenCount ?? 0, cfg.billable);
-
+  await recordUsage(userData.user.id, model, tin, tout, cfg.billable);
   return new Response(JSON.stringify({ text: text.trim(), tier, model }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });

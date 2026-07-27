@@ -27,22 +27,21 @@ const PRICING: Record<string, { in: number; out: number }> = {
 // Katman: billable=false ise ÜCRETSİZ Gemini anahtarı kullanılır, maliyet 0
 // kaydedilir ve aylık ÇAĞRI SAYISI ile sınırlanır (paylaşımlı ücretsiz kotayı
 // tek kullanıcı tüketmesin). billable=true ise faturalı anahtar + TL tavanı.
-interface TierCfg { model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number }
+interface TierCfg { provider: Provider; model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number }
 function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
-  const t = aiTier || (isPremium ? 'pro' : 'free');
+  const t = aiTier || 'baslangic'; // lansman: herkes Groq (bedava); billing gelince pro/elit elle atanır
   const table: Record<string, TierCfg> = {
-    free: { model: MODEL_BASIC, billable: false, limitKind: 'calls', limit: 20 },
-    baslangic: { model: 'gemini-2.0-flash', billable: false, limitKind: 'calls', limit: 500 },
-    pro: { model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450 },
-    elit: { model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500 },
+    // Ücretsiz katmanlar Groq (bedava); Pro/Elit Gemini (faturalı, güçlü).
+    free: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 20 },
+    baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500 },
+    pro: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450 },
+    elit: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500 },
   };
   return { tier: t, cfg: table[t] ?? table.free };
 }
-// Faturalı katman ana anahtarı; ücretsiz katman ayrı ücretsiz anahtarı (yoksa
-// ana anahtara düşer) kullanır.
-function aiKey(billable: boolean): string | undefined {
-  if (billable) return Deno.env.get('GEMINI_API_KEY') ?? undefined;
-  return Deno.env.get('GEMINI_FREE_KEY') || Deno.env.get('GEMINI_API_KEY') || undefined;
+// Sağlayıcıya göre anahtar: Groq → GROQ_API_KEY, Gemini → GEMINI_API_KEY.
+function aiKey(provider: Provider): string | undefined {
+  return provider === 'groq' ? (Deno.env.get('GROQ_API_KEY') ?? undefined) : (Deno.env.get('GEMINI_API_KEY') ?? undefined);
 }
 function costTry(model: string, tin: number, tout: number): number {
   const p = PRICING[model] ?? PRICING['gemini-2.5-pro'];
@@ -85,6 +84,54 @@ type Meter = { tin: number; tout: number };
 function meterAdd(m: Meter, j: any): void {
   m.tin += j?.usageMetadata?.promptTokenCount ?? 0;
   m.tout += j?.usageMetadata?.candidatesTokenCount ?? 0;
+}
+
+// Sağlayıcı-genel LLM çağrısı: ücretsiz katman Groq (OpenAI uyumlu), Pro/Elit Gemini.
+const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'llama-3.3-70b-versatile';
+type Provider = 'gemini' | 'groq';
+async function llmCall(
+  provider: Provider,
+  apiKey: string,
+  model: string,
+  system: string,
+  userText: string,
+  opts: { json?: boolean; maxTokens: number; temperature: number },
+  meter?: Meter
+): Promise<string> {
+  if (!apiKey) throw new Error('not_configured');
+  if (provider === 'groq') {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [{ role: 'system', content: system }, { role: 'user', content: userText }],
+        temperature: opts.temperature,
+        max_tokens: opts.maxTokens,
+        ...(opts.json ? { response_format: { type: 'json_object' } } : {}),
+      }),
+    });
+    if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+    const j = await res.json();
+    if (meter) { meter.tin += j.usage?.prompt_tokens ?? 0; meter.tout += j.usage?.completion_tokens ?? 0; }
+    return j.choices?.[0]?.message?.content ?? '';
+  }
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: userText }] }],
+        generationConfig: { temperature: opts.temperature, maxOutputTokens: opts.maxTokens, ...(opts.json ? { responseMimeType: 'application/json' } : {}) },
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+  const j = await res.json();
+  if (meter) meterAdd(meter, j);
+  return j.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
 }
 
 const CORS = {
@@ -466,7 +513,7 @@ function rowToHit(r: any): Hit {
   };
 }
 
-async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string }>, model: string, apiKey: string, meter?: Meter): Promise<string> {
+async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string }>, provider: Provider, model: string, apiKey: string, meter?: Meter): Promise<string> {
   if (!apiKey) throw new Error('not_configured');
 
   // Her kararın metnini token için sınırlayıp kaynak etiketiyle veriyoruz;
@@ -486,27 +533,11 @@ async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string
     'Türkçe yaz. Sonuna, bunun hukuki tavsiye olmadığını ve kararların güncelliğinin teyit ' +
     'edilmesi gerektiğini ekle.';
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `SORU: ${query}\n\nİLGİLİ KARARLAR:\n\n${corpus}` }],
-          },
-        ],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 1400 },
-      }),
-    }
+  const text = await llmCall(
+    provider, apiKey, model, system,
+    `SORU: ${query}\n\nİLGİLİ KARARLAR:\n\n${corpus}`,
+    { maxTokens: 1400, temperature: 0.3 }, meter
   );
-  if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
-  const j = await res.json();
-  if (meter) meterAdd(meter, j);
-  const text = j.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
   if (!text) throw new Error('empty');
   return text.trim();
 }
@@ -515,7 +546,7 @@ async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string
  * OLAY ANALİZİ — 1. adım: avukatın anlattığı olaydan, UYAP Emsal'de içtihat
  * aramak için en isabetli Türkçe arama terimlerini ve hukuki nitelendirmeyi üretir.
  */
-async function geminiPlan(olay: string, model: string, apiKey: string, meter?: Meter): Promise<{ issue: string; queries: string[] }> {
+async function geminiPlan(olay: string, provider: Provider, model: string, apiKey: string, meter?: Meter): Promise<{ issue: string; queries: string[] }> {
   if (!apiKey) throw new Error('not_configured');
 
   const system =
@@ -524,22 +555,11 @@ async function geminiPlan(olay: string, model: string, apiKey: string, meter?: M
     'Terimler kısa olsun (2-5 kelime), dava türü/kurum/kavram içersin (ör. "gerçek olmayan ihtiyaç tahliye"). ' +
     'SADECE şu JSON formatında yanıt ver: {"issue":"kısa hukuki nitelendirme","queries":["terim1","terim2","terim3"]}';
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text: `OLAY:\n${olay.slice(0, 4000)}` }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 400, responseMimeType: 'application/json' },
-      }),
-    }
+  const raw = await llmCall(
+    provider, apiKey, model, system,
+    `OLAY:\n${olay.slice(0, 4000)}`,
+    { json: true, maxTokens: 400, temperature: 0.2 }, meter
   );
-  if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
-  const j = await res.json();
-  if (meter) meterAdd(meter, j);
-  const raw = j.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
   try {
     const parsed = JSON.parse(raw);
     const queries = Array.isArray(parsed.queries) ? parsed.queries.map((q: unknown) => String(q)).filter(Boolean).slice(0, 3) : [];
@@ -557,6 +577,7 @@ async function geminiAnalyze(
   olay: string,
   issue: string,
   docs: Array<{ hit: Hit; text: string }>,
+  provider: Provider,
   model: string,
   apiKey: string,
   meter?: Meter
@@ -580,27 +601,11 @@ async function geminiAnalyze(
     'YALNIZCA verilen kararlara atıf yap; listede olmayan karar/esas no UYDURMA. Uygun karar yoksa dürüstçe söyle. ' +
     'Sonuna, bunun hukuki tavsiye olmadığını ve kararların güncelliğinin teyit edilmesi gerektiğini ekle.';
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `OLAY:\n${olay.slice(0, 4000)}\n\nÖN NİTELENDİRME: ${issue}\n\nADAY KARARLAR:\n\n${corpus}` }],
-          },
-        ],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 2000 },
-      }),
-    }
+  const text = await llmCall(
+    provider, apiKey, model, system,
+    `OLAY:\n${olay.slice(0, 4000)}\n\nÖN NİTELENDİRME: ${issue}\n\nADAY KARARLAR:\n\n${corpus}`,
+    { maxTokens: 2000, temperature: 0.3 }, meter
   );
-  if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
-  const j = await res.json();
-  if (meter) meterAdd(meter, j);
-  const text = j.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
   if (!text) throw new Error('empty');
   return text.trim();
 }
@@ -905,10 +910,10 @@ Deno.serve(async (req) => {
       );
       const row = await usageRow(userData.user.id);
       if (overLimit(cfg, row)) return json({ error: 'quota_exceeded', tier, used: row.cost, calls: row.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }, 402);
-      const key = aiKey(cfg.billable);
+      const key = aiKey(cfg.provider);
       if (!key) return json({ error: 'not_configured' }, 503);
       const meter: Meter = { tin: 0, tout: 0 };
-      const summary = await geminiSummary(query, docs, cfg.model, key, meter);
+      const summary = await geminiSummary(query, docs, cfg.provider, cfg.model, key, meter);
       await recordUsage(userData.user.id, cfg.model, meter.tin, meter.tout, cfg.billable);
       return json({ summary, count: docs.length, tier });
     }
@@ -931,13 +936,13 @@ Deno.serve(async (req) => {
       );
       const row = await usageRow(userData.user.id);
       if (overLimit(cfg, row)) return json({ error: 'quota_exceeded', tier, used: row.cost, calls: row.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }, 402);
-      const key = aiKey(cfg.billable);
+      const key = aiKey(cfg.provider);
       if (!key) return json({ error: 'not_configured' }, 503);
       const model = cfg.model;
       const meter: Meter = { tin: 0, tout: 0 };
 
       // 1) Olaydan arama terimleri üret.
-      const plan = await geminiPlan(olay, model, key, meter);
+      const plan = await geminiPlan(olay, cfg.provider, model, key, meter);
       const queries = plan.queries.length > 0 ? plan.queries : [olay.slice(0, 60)];
 
       // 2) Her terimle gerçek kararları topla (havuz + canlı), dedupe, sınırla.
@@ -982,7 +987,7 @@ Deno.serve(async (req) => {
       if (docs.length === 0) return json({ error: 'empty' }, 502);
 
       // 4) Olaya göre analiz + olaya uygun içtihat.
-      const analysis = await geminiAnalyze(olay, plan.issue, docs, model, key, meter);
+      const analysis = await geminiAnalyze(olay, plan.issue, docs, cfg.provider, model, key, meter);
       await recordUsage(userData.user.id, model, meter.tin, meter.tout, cfg.billable);
       // Uygulamaya, analizde kullanılan kararları (dokunup okunabilsin diye) döndür.
       return json({ analysis, issue: plan.issue, queries, hits: docs.map((d) => d.hit), tier });
