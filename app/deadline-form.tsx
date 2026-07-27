@@ -37,7 +37,7 @@ export default function DeadlineFormScreen() {
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
-  const { caseId: caseIdParam, id, title: titleParam } = useLocalSearchParams<{ caseId?: string; id?: string; title?: string }>();
+  const { caseId: caseIdParam, id, title: titleParam, date: dateParam } = useLocalSearchParams<{ caseId?: string; id?: string; title?: string; date?: string }>();
   const isEdit = !!id;
   // Takvimden dosya parametresi olmadan açılırsa dosya burada seçilir.
   const [pickedCaseId, setPickedCaseId] = useState<string | null>(null);
@@ -53,6 +53,11 @@ export default function DeadlineFormScreen() {
   const [title, setTitle] = useState(titleParam ?? '');
   const [description, setDescription] = useState('');
   const [dueAt, setDueAt] = useState(() => {
+    // Takvimden gelen gün varsa o günü (gün sonu), yoksa varsayılan +7 gün.
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const d = new Date(`${dateParam}T23:59:00`);
+      if (!isNaN(d.getTime())) return d;
+    }
     const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     d.setHours(23, 59, 0, 0);
     return d;

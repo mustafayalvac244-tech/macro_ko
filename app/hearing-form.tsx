@@ -40,7 +40,7 @@ export default function HearingFormScreen() {
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
-  const { caseId: caseIdParam, id, type: typeParam } = useLocalSearchParams<{ caseId?: string; id?: string; type?: string }>();
+  const { caseId: caseIdParam, id, type: typeParam, date: dateParam } = useLocalSearchParams<{ caseId?: string; id?: string; type?: string; date?: string }>();
   const isEdit = !!id;
   // Takvimden dosya parametresi olmadan açılırsa dosya burada seçilir.
   const [pickedCaseId, setPickedCaseId] = useState<string | null>(null);
@@ -64,7 +64,15 @@ export default function HearingFormScreen() {
   const [mediationWith, setMediationWith] = useState<'taraf' | 'arabulucu'>('taraf');
   const [mediationPlace, setMediationPlace] = useState<'ofis' | 'online'>('ofis');
   const [notes, setNotes] = useState('');
-  const [scheduledAt, setScheduledAt] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  // Takvimden gelen gün (YYYY-MM-DD) varsa o güne, saat 10:00'a ön-doldur;
+  // yoksa varsayılan yarın.
+  const [scheduledAt, setScheduledAt] = useState(() => {
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const d = new Date(`${dateParam}T10:00:00`);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return new Date(Date.now() + 24 * 60 * 60 * 1000);
+  });
   const [reminder, setReminder] = useState('1440');
   const [showPicker, setShowPicker] = useState<'date' | 'time' | null>(null);
 

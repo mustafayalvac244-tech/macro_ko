@@ -197,7 +197,17 @@ export default function CaseFormScreen() {
             error={titleError}
           />
 
-          <Text style={styles.label}>{t('caseForm.client')}</Text>
+          <View style={styles.clientLabelRow}>
+            <Text style={styles.label}>{t('caseForm.client')}</Text>
+            <Pressable
+              onPress={() => router.push('/client-form' as Parameters<typeof router.push>[0])}
+              hitSlop={8}
+              style={styles.newClientBtn}
+            >
+              <Ionicons name="person-add-outline" size={14} color={colors.gold} />
+              <Text style={styles.newClientText}>{t('caseForm.newClient')}</Text>
+            </Pressable>
+          </View>
           <SegmentedControl
             options={[{ label: t('common.none'), value: '' }, ...(clients ?? []).map((c) => ({ label: c.full_name, value: c.id }))]}
             value={clientId ?? ''}
@@ -373,6 +383,23 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     marginBottom: spacing.xs,
+  },
+  clientLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  newClientBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+    marginBottom: spacing.xs,
+  },
+  newClientText: {
+    ...typography.caption,
+    color: colors.gold,
+    fontWeight: '700',
   },
   spacer: {
     height: spacing.md,

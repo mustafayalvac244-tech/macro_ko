@@ -103,6 +103,7 @@ export default function CalendarScreen() {
 
   // İş üzerinde hızlı aksiyon (tamamla / ertele) için seçilen öğe.
   const [actionItem, setActionItem] = useState<AgendaItem | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const [postponePicker, setPostponePicker] = useState(false);
 
   useMemo(() => {
@@ -401,6 +402,8 @@ export default function CalendarScreen() {
         showMenu
         title={t('cal.title')}
         subtitle={`${format(new Date(), lang === 'tr' ? 'd MMMM yyyy' : 'MMMM d, yyyy', { locale: dfLocale })} · ${format(new Date(), 'EEEE', { locale: dfLocale })}`}
+        rightIcon="add"
+        onRightPress={() => setAddOpen(true)}
       />
 
       <View style={styles.viewSwitch}>
@@ -546,6 +549,38 @@ export default function CalendarScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Seçili güne hızlı ekle: duruşma / süre — tarih ön dolu gelir */}
+      <Modal visible={addOpen} transparent animationType="fade" onRequestClose={() => setAddOpen(false)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setAddOpen(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle} numberOfLines={1}>
+              {selectedDate === todayKey ? t('cal.addToday') : t('cal.addOn', { date: formatDate(selectedDate) })}
+            </Text>
+            <Pressable
+              style={[styles.sheetAction, { backgroundColor: colors.primarySoft }]}
+              onPress={() => {
+                setAddOpen(false);
+                router.push(`/hearing-form?date=${selectedDate}` as Parameters<typeof router.push>[0]);
+              }}
+            >
+              <Ionicons name="briefcase-outline" size={20} color={colors.primary} />
+              <Text style={[styles.sheetActionText, { color: colors.primary }]}>{t('cal.addHearing')}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.sheetAction, { backgroundColor: colors.goldSoft }]}
+              onPress={() => {
+                setAddOpen(false);
+                router.push(`/deadline-form?date=${selectedDate}` as Parameters<typeof router.push>[0]);
+              }}
+            >
+              <Ionicons name="alarm-outline" size={20} color={colors.gold} />
+              <Text style={[styles.sheetActionText, { color: colors.gold }]}>{t('cal.addDeadline')}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* İş üzerinde hızlı aksiyon: tamamla / ertele */}
       <Modal visible={!!actionItem} transparent animationType="fade" onRequestClose={() => setActionItem(null)}>
