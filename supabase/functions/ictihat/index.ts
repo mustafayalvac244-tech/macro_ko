@@ -16,6 +16,63 @@ const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
 const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.0-flash';
 const MODEL_PLUS = Deno.env.get('VEKIL_MODEL_PLUS') || 'gemini-2.5-pro';
 
+// ── AI MALİYET ÖLÇÜMÜ + KATMAN TAVANI (batma koruması) ──────────────────────
+// Her AI çağrısının token maliyeti hesaplanıp ai_usage'a yazılır; çağrıdan önce
+// kullanıcının bu-ay maliyeti katman tavanını aşmışsa çağrı engellenir.
+const USD_TRY = Number(Deno.env.get('VEKIL_USD_TRY') || '42');
+const PRICING: Record<string, { in: number; out: number }> = {
+  'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
+  'gemini-2.5-pro': { in: 1.25, out: 10.0 },
+};
+interface TierCfg { model: string; ceilingTry: number }
+function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
+  const t = aiTier || (isPremium ? 'pro' : 'free');
+  const table: Record<string, TierCfg> = {
+    free: { model: MODEL_BASIC, ceilingTry: 15 },
+    baslangic: { model: 'gemini-2.0-flash', ceilingTry: 150 },
+    pro: { model: MODEL_PLUS, ceilingTry: 450 },
+    elit: { model: MODEL_PLUS, ceilingTry: 1500 },
+  };
+  return { tier: t, cfg: table[t] ?? table.free };
+}
+function costTry(model: string, tin: number, tout: number): number {
+  const p = PRICING[model] ?? PRICING['gemini-2.5-pro'];
+  return ((tin / 1e6) * p.in + (tout / 1e6) * p.out) * USD_TRY;
+}
+function aiPeriod(): string {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+async function usageThisMonth(userId: string): Promise<number> {
+  const s = svc();
+  if (!s) return 0;
+  const { data } = await s.from('ai_usage').select('cost_try').eq('user_id', userId).eq('period', aiPeriod()).maybeSingle();
+  return Number((data as { cost_try?: number } | null)?.cost_try ?? 0);
+}
+async function recordUsage(userId: string, model: string, tin: number, tout: number): Promise<void> {
+  const s = svc();
+  if (!s) return;
+  const cost = costTry(model, tin, tout);
+  const p = aiPeriod();
+  const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
+  const prev = data as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
+  await s.from('ai_usage').upsert({
+    user_id: userId,
+    period: p,
+    calls: (prev?.calls ?? 0) + 1,
+    tokens_in: (prev?.tokens_in ?? 0) + tin,
+    tokens_out: (prev?.tokens_out ?? 0) + tout,
+    cost_try: Number(prev?.cost_try ?? 0) + cost,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,period' });
+}
+type Meter = { tin: number; tout: number };
+// deno-lint-ignore no-explicit-any
+function meterAdd(m: Meter, j: any): void {
+  m.tin += j?.usageMetadata?.promptTokenCount ?? 0;
+  m.tout += j?.usageMetadata?.candidatesTokenCount ?? 0;
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
@@ -395,7 +452,7 @@ function rowToHit(r: any): Hit {
   };
 }
 
-async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string }>, model: string): Promise<string> {
+async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string }>, model: string, meter?: Meter): Promise<string> {
   const apiKey = Deno.env.get('GEMINI_API_KEY');
   if (!apiKey) throw new Error('not_configured');
 
@@ -435,6 +492,7 @@ async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string
   );
   if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
   const j = await res.json();
+  if (meter) meterAdd(meter, j);
   const text = j.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
   if (!text) throw new Error('empty');
   return text.trim();
@@ -444,7 +502,7 @@ async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string
  * OLAY ANALİZİ — 1. adım: avukatın anlattığı olaydan, UYAP Emsal'de içtihat
  * aramak için en isabetli Türkçe arama terimlerini ve hukuki nitelendirmeyi üretir.
  */
-async function geminiPlan(olay: string, model: string): Promise<{ issue: string; queries: string[] }> {
+async function geminiPlan(olay: string, model: string, meter?: Meter): Promise<{ issue: string; queries: string[] }> {
   const apiKey = Deno.env.get('GEMINI_API_KEY');
   if (!apiKey) throw new Error('not_configured');
 
@@ -468,6 +526,7 @@ async function geminiPlan(olay: string, model: string): Promise<{ issue: string;
   );
   if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
   const j = await res.json();
+  if (meter) meterAdd(meter, j);
   const raw = j.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
   try {
     const parsed = JSON.parse(raw);
@@ -486,7 +545,8 @@ async function geminiAnalyze(
   olay: string,
   issue: string,
   docs: Array<{ hit: Hit; text: string }>,
-  model: string
+  model: string,
+  meter?: Meter
 ): Promise<string> {
   const apiKey = Deno.env.get('GEMINI_API_KEY');
   if (!apiKey) throw new Error('not_configured');
@@ -527,6 +587,7 @@ async function geminiAnalyze(
   );
   if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
   const j = await res.json();
+  if (meter) meterAdd(meter, j);
   const text = j.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
   if (!text) throw new Error('empty');
   return text.trim();
@@ -820,19 +881,21 @@ Deno.serve(async (req) => {
         }
       }
       if (docs.length === 0) return json({ error: 'empty' }, 502);
-      // Üyelik katmanı: Plus (is_premium) güçlü Pro modeliyle özetler.
-      let tier: 'basic' | 'plus' = 'basic';
-      try {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('is_premium')
-          .eq('id', userData.user.id)
-          .maybeSingle();
-        if (prof?.is_premium) tier = 'plus';
-      } catch {
-        // Basic'te kal
-      }
-      const summary = await geminiSummary(query, docs, tier === 'plus' ? MODEL_PLUS : MODEL_BASIC);
+      // Üyelik katmanı + maliyet tavanı kontrolü (batma koruması).
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('is_premium, ai_tier')
+        .eq('id', userData.user.id)
+        .maybeSingle();
+      const { tier, cfg } = tierConfig(
+        (prof as { ai_tier?: string } | null)?.ai_tier,
+        !!(prof as { is_premium?: boolean } | null)?.is_premium
+      );
+      const used = await usageThisMonth(userData.user.id);
+      if (used >= cfg.ceilingTry) return json({ error: 'quota_exceeded', tier, used, ceiling: cfg.ceilingTry }, 402);
+      const meter: Meter = { tin: 0, tout: 0 };
+      const summary = await geminiSummary(query, docs, cfg.model, meter);
+      await recordUsage(userData.user.id, cfg.model, meter.tin, meter.tout);
       return json({ summary, count: docs.length, tier });
     }
 
@@ -842,22 +905,23 @@ Deno.serve(async (req) => {
       const olay = (body.olay ?? '').trim();
       if (olay.length < 15) return json({ error: 'bad_request' }, 400);
 
-      // Üyelik katmanı.
-      let tier: 'basic' | 'plus' = 'basic';
-      try {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('is_premium')
-          .eq('id', userData.user.id)
-          .maybeSingle();
-        if (prof?.is_premium) tier = 'plus';
-      } catch {
-        // Basic'te kal
-      }
-      const model = tier === 'plus' ? MODEL_PLUS : MODEL_BASIC;
+      // Üyelik katmanı + maliyet tavanı kontrolü (batma koruması).
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('is_premium, ai_tier')
+        .eq('id', userData.user.id)
+        .maybeSingle();
+      const { tier, cfg } = tierConfig(
+        (prof as { ai_tier?: string } | null)?.ai_tier,
+        !!(prof as { is_premium?: boolean } | null)?.is_premium
+      );
+      const used = await usageThisMonth(userData.user.id);
+      if (used >= cfg.ceilingTry) return json({ error: 'quota_exceeded', tier, used, ceiling: cfg.ceilingTry }, 402);
+      const model = cfg.model;
+      const meter: Meter = { tin: 0, tout: 0 };
 
       // 1) Olaydan arama terimleri üret.
-      const plan = await geminiPlan(olay, model);
+      const plan = await geminiPlan(olay, model, meter);
       const queries = plan.queries.length > 0 ? plan.queries : [olay.slice(0, 60)];
 
       // 2) Her terimle gerçek kararları topla (havuz + canlı), dedupe, sınırla.
@@ -902,7 +966,8 @@ Deno.serve(async (req) => {
       if (docs.length === 0) return json({ error: 'empty' }, 502);
 
       // 4) Olaya göre analiz + olaya uygun içtihat.
-      const analysis = await geminiAnalyze(olay, plan.issue, docs, model);
+      const analysis = await geminiAnalyze(olay, plan.issue, docs, model, meter);
+      await recordUsage(userData.user.id, model, meter.tin, meter.tout);
       // Uygulamaya, analizde kullanılan kararları (dokunup okunabilsin diye) döndür.
       return json({ analysis, issue: plan.issue, queries, hits: docs.map((d) => d.hit), tier });
     }

@@ -11,6 +11,63 @@ const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.0-flash';
 const MODEL_PLUS = Deno.env.get('VEKIL_MODEL_PLUS') || 'gemini-2.5-pro';
 const EMBED_MODEL = 'text-embedding-004';
 
+// ── AI maliyet ölçümü + katman tavanı (batma koruması) ──────────────────────
+const USD_TRY = Number(Deno.env.get('VEKIL_USD_TRY') || '42');
+const PRICING: Record<string, { in: number; out: number }> = {
+  'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
+  'gemini-2.5-pro': { in: 1.25, out: 10.0 },
+};
+interface TierCfg { model: string; ceilingTry: number; maxOut: number }
+function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
+  const t = aiTier || (isPremium ? 'pro' : 'free');
+  const table: Record<string, TierCfg> = {
+    free: { model: MODEL_BASIC, ceilingTry: 15, maxOut: 1024 },
+    baslangic: { model: 'gemini-2.0-flash', ceilingTry: 150, maxOut: 1024 },
+    pro: { model: MODEL_PLUS, ceilingTry: 450, maxOut: 2048 },
+    elit: { model: MODEL_PLUS, ceilingTry: 1500, maxOut: 4096 },
+  };
+  return { tier: t, cfg: table[t] ?? table.free };
+}
+function costTry(model: string, tin: number, tout: number): number {
+  const p = PRICING[model] ?? PRICING['gemini-2.5-pro'];
+  return ((tin / 1e6) * p.in + (tout / 1e6) * p.out) * USD_TRY;
+}
+function aiPeriod(): string {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+let _svc: ReturnType<typeof createClient> | null = null;
+function svc(): ReturnType<typeof createClient> | null {
+  if (_svc) return _svc;
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (url && key) _svc = createClient(url, key);
+  return _svc;
+}
+async function usageThisMonth(userId: string): Promise<number> {
+  const s = svc();
+  if (!s) return 0;
+  const { data } = await s.from('ai_usage').select('cost_try').eq('user_id', userId).eq('period', aiPeriod()).maybeSingle();
+  return Number((data as { cost_try?: number } | null)?.cost_try ?? 0);
+}
+async function recordUsage(userId: string, model: string, tin: number, tout: number): Promise<void> {
+  const s = svc();
+  if (!s) return;
+  const cost = costTry(model, tin, tout);
+  const p = aiPeriod();
+  const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
+  const prev = data as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
+  await s.from('ai_usage').upsert({
+    user_id: userId,
+    period: p,
+    calls: (prev?.calls ?? 0) + 1,
+    tokens_in: (prev?.tokens_in ?? 0) + tin,
+    tokens_out: (prev?.tokens_out ?? 0) + tout,
+    cost_try: Number(prev?.cost_try ?? 0) + cost,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,period' });
+}
+
 const SYSTEM_PROMPT =
   'Sen "Vekil AI" adında, Vekil Pro uygulamasına ait bir hukuk asistanısın. ' +
   'Türk hukuku konusunda uzmansın ve yalnızca avukatlara mesleki işlerinde yardımcı olursun. ' +
@@ -136,26 +193,32 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
 
-  // Üyelik katmanı: Plus (is_premium) güçlü model + içtihat beslemesi alır.
-  let tier: 'basic' | 'plus' = 'basic';
-  try {
-    const { data: prof } = await supabase
-      .from('profiles')
-      .select('is_premium')
-      .eq('id', userData.user.id)
-      .maybeSingle();
-    if (prof?.is_premium) tier = 'plus';
-  } catch {
-    // profil okunamazsa Basic'te kal
+  // Üyelik katmanı + maliyet tavanı (batma koruması).
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('is_premium, ai_tier')
+    .eq('id', userData.user.id)
+    .maybeSingle();
+  const { tier, cfg } = tierConfig(
+    (prof as { ai_tier?: string } | null)?.ai_tier,
+    !!(prof as { is_premium?: boolean } | null)?.is_premium
+  );
+  const used = await usageThisMonth(userData.user.id);
+  if (used >= cfg.ceilingTry) {
+    return new Response(JSON.stringify({ error: 'quota_exceeded', tier, used, ceiling: cfg.ceilingTry }), {
+      status: 402,
+      headers: CORS,
+    });
   }
+  const model = cfg.model;
+  const maxOutputTokens = cfg.maxOut;
+  // Pro/Elit katmanı kendi içtihat havuzumuzla beslenir (RAG).
+  const grounded = tier === 'pro' || tier === 'elit';
 
-  const model = tier === 'plus' ? MODEL_PLUS : MODEL_BASIC;
-  const maxOutputTokens = tier === 'plus' ? 2048 : 1024;
-
-  // Plus: son kullanıcı sorusuyla kendi içtihat havuzumuzu tara, bağlamı sistem
-  // talimatına ekle (kaynaklı, uydurmayan, bizim veriyle beslenmiş yanıt).
+  // Grounding: son kullanıcı sorusuyla kendi içtihat havuzumuzu tara, bağlamı
+  // sistem talimatına ekle (kaynaklı, uydurmayan, bizim veriyle beslenmiş yanıt).
   let systemText = SYSTEM_PROMPT;
-  if (tier === 'plus') {
+  if (grounded) {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (lastUser?.text) {
       try {
@@ -191,6 +254,10 @@ Deno.serve(async (req) => {
   if (!text) {
     return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
   }
+
+  // Maliyet ölçümü: bu çağrının token'larını aylık kullanıma işle.
+  const um = data.usageMetadata ?? {};
+  await recordUsage(userData.user.id, model, um.promptTokenCount ?? 0, um.candidatesTokenCount ?? 0);
 
   return new Response(JSON.stringify({ text: text.trim(), tier, model }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
