@@ -1182,6 +1182,8 @@ export const tr = {
   'ictihat.digestsTitle': 'Vekil Özetleri',
   'ictihat.digestsDesc': 'Gerçek Yargıtay kararlarından hazırlanmış hazır özetler. Her kart bir konunun yerleşik ilkesini ve karar özetini gösterir; dokunun, okuyun, dilerseniz kararın tam metnini açın.',
   'ictihat.digestMatch': 'Bu konuda hazır özetimiz var',
+  'ictihat.mevzuatMatch': 'İlgili kanun maddeleri',
+  'ictihat.mevzuatSource': 'Kaynak: Türk mevzuatı (referans). Resmî ve güncel metin: mevzuat.gov.tr',
   'ictihat.archiveNote': 'UYAP şu an geçici kapalı — daha önce kaydettiğimiz arşivimizden gösteriliyor.',
   'ictihat.samplesLabel': 'Örnek aramalar',
   'ictihat.digestIlke': 'YERLEŞİK İLKE',

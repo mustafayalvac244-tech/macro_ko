@@ -28,6 +28,7 @@ import {
   type IctihatMode,
 } from '@/hooks/useIctihat';
 import { ICTIHAT_DIGESTS, matchDigests, type IctihatDigest } from '@/data/ictihatDigest';
+import { searchMevzuat, type MevzuatHit } from '@/data/laws/searchMevzuat';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -55,6 +56,7 @@ export default function IctihatScreen() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openHit, setOpenHit] = useState<IctihatHit | null>(null);
   const [openDigest, setOpenDigest] = useState<IctihatDigest | null>(null);
+  const [openMevzuat, setOpenMevzuat] = useState<MevzuatHit | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
 
   const runSearch = (q: string, c: IctihatCourt = court, m: IctihatMode = searchMode) => {
@@ -99,6 +101,11 @@ export default function IctihatScreen() {
 
   // Aramayla eşleşen hazır özetlerimiz — sonuçların en üstünde "özetli" gösterilir.
   const matchedDigests = useMemo(() => (mode === 'search' ? matchDigests(query) : []), [mode, query]);
+  // İlgili kanun maddeleri (çevrimdışı mevzuat) — kelime aramasının yanında.
+  const mevzuatHits = useMemo(
+    () => (mode === 'search' && searched && query ? searchMevzuat(query) : []),
+    [mode, searched, query]
+  );
 
   const errText =
     error === 'rate_limit' ? t('ictihat.errRate') : error === 'source' ? t('ictihat.errSource') : t('ictihat.errGeneric');
@@ -246,6 +253,28 @@ export default function IctihatScreen() {
             </View>
           )}
 
+          {/* İLGİLİ KANUN MADDELERİ — çevrimdışı mevzuat, anlık; kaynak
+              arızalı olsa bile görünür. */}
+          {!searching && mevzuatHits.length > 0 && (
+            <View style={styles.mevWrap}>
+              <View style={styles.digestMatchHead}>
+                <Ionicons name="book" size={14} color={colors.primary} />
+                <Text style={[styles.digestMatchHeadText, { color: colors.primary }]}>{t('ictihat.mevzuatMatch')}</Text>
+              </View>
+              {mevzuatHits.map((m) => (
+                <Pressable key={`${m.slug}-${m.no}`} style={styles.mevCard} onPress={() => setOpenMevzuat(m)}>
+                  <View style={styles.mevTop}>
+                    <View style={styles.mevBadge}>
+                      <Text style={styles.mevBadgeText}>{m.kod} · m.{m.no}</Text>
+                    </View>
+                    {!!m.title && <Text style={styles.mevTitle} numberOfLines={1}>{m.title}</Text>}
+                  </View>
+                  <Text style={styles.mevSnippet} numberOfLines={2}>{m.snippet}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+
           {!searching && error && (
             <View style={styles.errorBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
@@ -364,6 +393,24 @@ export default function IctihatScreen() {
           });
         }}
       />
+
+      {/* Kanun maddesi tam metni */}
+      <Modal visible={!!openMevzuat} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpenMevzuat(null)}>
+        <Screen edges={['top', 'left', 'right', 'bottom']}>
+          <ScreenHeader
+            title={openMevzuat ? `${openMevzuat.kod} · m.${openMevzuat.no}` : ''}
+            rightIcon="close"
+            onRightPress={() => setOpenMevzuat(null)}
+            hideHome
+          />
+          <ScrollView contentContainerStyle={styles.docContent} showsVerticalScrollIndicator={false}>
+            {!!openMevzuat?.title && <Text style={styles.mevModalTitle}>{openMevzuat.title}</Text>}
+            <Text style={styles.mevModalKanun}>{openMevzuat?.kanun}</Text>
+            <Text style={styles.mevModalText}>{openMevzuat?.text}</Text>
+            <Text style={styles.mevModalNote}>{t('ictihat.mevzuatSource')}</Text>
+          </ScrollView>
+        </Screen>
+      </Modal>
     </Screen>
   );
 }
@@ -1198,6 +1245,66 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   digestMatchWrap: {
     marginBottom: spacing.md,
+  },
+  mevWrap: {
+    marginBottom: spacing.md,
+  },
+  mevCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 7,
+  },
+  mevTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  mevBadge: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  mevBadgeText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  mevTitle: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    fontWeight: '700',
+    flex: 1,
+  },
+  mevSnippet: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 17,
+  },
+  mevModalTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  mevModalKanun: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  mevModalText: {
+    ...typography.body,
+    color: colors.textPrimary,
+    lineHeight: 23,
+  },
+  mevModalNote: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontStyle: 'italic',
+    marginTop: spacing.lg,
   },
   digestMatchHead: {
     flexDirection: 'row',
