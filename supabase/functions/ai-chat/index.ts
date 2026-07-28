@@ -506,15 +506,19 @@ Deno.serve(async (req) => {
   }
 
   // Üyelik katmanı + maliyet tavanı (batma koruması).
-  const { data: prof } = await supabase
-    .from('profiles')
-    .select('is_premium, ai_tier')
-    .eq('id', userData.user.id)
-    .maybeSingle();
-  const { tier, cfg } = tierConfig(
-    (prof as { ai_tier?: string } | null)?.ai_tier,
-    !!(prof as { is_premium?: boolean } | null)?.is_premium
-  );
+  // profiles PII sertleştirmesiyle authenticated'a SELECT kapalı; kullanıcının
+  // KENDİ tier'ını SERVİS anahtarıyla (RLS bypass) oku. Aksi halde .from(profiles)
+  // 42501 döner, prof null olur ve herkes "baslangic"e düşer — ödeyen Pro/Elit
+  // üye hakkını alamazdı.
+  let prof: { is_premium?: boolean; ai_tier?: string } | null = null;
+  {
+    const s = svc();
+    if (s) {
+      const r = await s.from('profiles').select('is_premium, ai_tier').eq('id', userData.user.id).maybeSingle();
+      prof = r.data as { is_premium?: boolean; ai_tier?: string } | null;
+    }
+  }
+  const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium);
   const urow = await usageRow(userData.user.id);
   if (overLimit(cfg, urow)) {
     return new Response(JSON.stringify({ error: 'quota_exceeded', tier, used: urow.cost, calls: urow.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }), {

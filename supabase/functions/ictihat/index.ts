@@ -899,15 +899,17 @@ Deno.serve(async (req) => {
       }
       if (docs.length === 0) return json({ error: 'empty' }, 502);
       // Üyelik katmanı + maliyet tavanı kontrolü (batma koruması).
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('is_premium, ai_tier')
-        .eq('id', userData.user.id)
-        .maybeSingle();
-      const { tier, cfg } = tierConfig(
-        (prof as { ai_tier?: string } | null)?.ai_tier,
-        !!(prof as { is_premium?: boolean } | null)?.is_premium
-      );
+      // profiles PII sertleştirmesiyle authenticated'a SELECT kapalı; tier'ı
+      // SERVİS anahtarıyla (RLS bypass) oku, yoksa herkes "baslangic"e düşer.
+      let prof: { is_premium?: boolean; ai_tier?: string } | null = null;
+      {
+        const s = svc();
+        if (s) {
+          const r = await s.from('profiles').select('is_premium, ai_tier').eq('id', userData.user.id).maybeSingle();
+          prof = r.data as { is_premium?: boolean; ai_tier?: string } | null;
+        }
+      }
+      const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium);
       const row = await usageRow(userData.user.id);
       if (overLimit(cfg, row)) return json({ error: 'quota_exceeded', tier, used: row.cost, calls: row.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }, 402);
       const key = aiKey(cfg.provider);
@@ -925,15 +927,17 @@ Deno.serve(async (req) => {
       if (olay.length < 15) return json({ error: 'bad_request' }, 400);
 
       // Üyelik katmanı + maliyet tavanı kontrolü (batma koruması).
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('is_premium, ai_tier')
-        .eq('id', userData.user.id)
-        .maybeSingle();
-      const { tier, cfg } = tierConfig(
-        (prof as { ai_tier?: string } | null)?.ai_tier,
-        !!(prof as { is_premium?: boolean } | null)?.is_premium
-      );
+      // profiles PII sertleştirmesiyle authenticated'a SELECT kapalı; tier'ı
+      // SERVİS anahtarıyla (RLS bypass) oku, yoksa herkes "baslangic"e düşer.
+      let prof: { is_premium?: boolean; ai_tier?: string } | null = null;
+      {
+        const s = svc();
+        if (s) {
+          const r = await s.from('profiles').select('is_premium, ai_tier').eq('id', userData.user.id).maybeSingle();
+          prof = r.data as { is_premium?: boolean; ai_tier?: string } | null;
+        }
+      }
+      const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium);
       const row = await usageRow(userData.user.id);
       if (overLimit(cfg, row)) return json({ error: 'quota_exceeded', tier, used: row.cost, calls: row.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }, 402);
       const key = aiKey(cfg.provider);
