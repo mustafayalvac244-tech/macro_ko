@@ -332,8 +332,13 @@ export default function DashboardScreen() {
               <View style={styles.nextBody}>
                 <Text allowFontScaling={false} style={styles.nextTitle} numberOfLines={1}>{nextEvent.title}</Text>
                 <Text allowFontScaling={false} style={styles.nextSub} numberOfLines={1}>
-                  {t(`hearingType.${nextEvent.type}` as never)}
-                  {nextEvent.case?.title ? ` · ${nextEvent.case.title}` : nextEvent.location ? ` · ${nextEvent.location}` : ''}
+                  {(() => {
+                    const typeLabel = String(t(`hearingType.${nextEvent.type}` as never));
+                    const ctx = nextEvent.case?.title || nextEvent.location || '';
+                    // Başlık zaten tür ise ("Duruşma"), alt satırda tekrar etme.
+                    const parts = [typeLabel !== nextEvent.title ? typeLabel : null, ctx].filter(Boolean);
+                    return parts.length ? parts.join(' · ') : typeLabel;
+                  })()}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
@@ -995,9 +1000,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     borderRadius: 14,
-    backgroundColor: colors.gold,
-    paddingVertical: 13,
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
     marginTop: spacing.md,
+  },
+  todayEmptyWrap: {
+    marginTop: spacing.xs,
   },
   heroCtaText: {
     fontFamily: fonts.extrabold,
@@ -1131,24 +1139,22 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   precChip: {
     maxWidth: 190,
     backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
   precChipActive: {
-    backgroundColor: colors.goldSoft,
-    borderColor: colors.gold,
+    backgroundColor: colors.primary,
   },
   precChipText: {
     fontFamily: fonts.semibold,
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: 12.5,
+    letterSpacing: -0.1,
     color: colors.textSecondary,
   },
   precChipTextActive: {
-    color: colors.gold,
+    color: '#FFFFFF',
   },
   precForLine: {
     fontFamily: fonts.regular,
