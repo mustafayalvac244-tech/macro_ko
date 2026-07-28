@@ -156,6 +156,34 @@ export default function DashboardScreen() {
       .sort((a, b) => a.due_at.localeCompare(b.due_at))[0];
   }, [deadlines.data]);
 
+  // "SIRADAKI": en yakın gelecekteki ajanda kaydı (TÜR fark etmez — duruşma da
+  // toplantı da). Burak geri bildirimi gereği tür kendi adıyla gösterilir.
+  const nextEvent = useMemo(() => {
+    return (hearings.data ?? [])
+      .filter((h) => {
+        const d = new Date(h.scheduled_at);
+        return !h.is_completed && !isNaN(d.getTime()) && d.getTime() >= now.getTime() - 60 * 60 * 1000;
+      })
+      .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hearings.data]);
+
+  // "BUGÜN": bugünkü duruşma/toplantı + görevler, saate göre sıralı.
+  const todayItems = useMemo(() => {
+    const key = format(new Date(), 'yyyy-MM-dd');
+    const k = (iso: string) => {
+      const d = new Date(iso);
+      return isNaN(d.getTime()) ? '' : format(d, 'yyyy-MM-dd');
+    };
+    const hs = (hearings.data ?? [])
+      .filter((h) => !h.is_completed && k(h.scheduled_at) === key)
+      .map((h) => ({ id: 'h' + h.id, at: h.scheduled_at, title: h.title, isEvent: true }));
+    const ds = (deadlines.data ?? [])
+      .filter((d) => !d.is_completed && k(d.due_at) === key)
+      .map((d) => ({ id: 'd' + d.id, at: d.due_at, title: d.title, isEvent: false }));
+    return [...hs, ...ds].sort((a, b) => a.at.localeCompare(b.at));
+  }, [hearings.data, deadlines.data]);
+
   // Focus case: the case behind the most pressing deadline, else next hearing's case.
   // ZAMAN-DUYARLI: yakın olmayan (haftalar sonraki) bir duruşmayı "acil/yüksek
   // öncelik" gibi göstermeyip sakin bir sayaçla ("N gün kaldı") sunar — boşuna
@@ -286,55 +314,61 @@ export default function DashboardScreen() {
         </Text>
         <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
 
-        {/* ---------- Günlük Asistan Özeti ---------- */}
+        {/* ---------- Sıradaki + Bugün ---------- */}
         <View style={styles.hero}>
-          <View style={styles.heroHeader}>
-            <View style={styles.heroSparkIcon}>
-              <Ionicons name="sparkles" size={16} color={colors.gold} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.assist.title')}</Text>
-              <View style={styles.heroUpdatedRow}>
-                <View style={styles.heroDot} />
-                <Text allowFontScaling={false} style={styles.heroUpdated}>{t('dash.assist.updated')}</Text>
-              </View>
-            </View>
-          </View>
+          <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.next.label')}</Text>
 
-          {/* 4 satır + tam genişlik "Güne Başla" */}
-          <View style={styles.heroRows} pointerEvents="box-none">
-            <AssistRow
-              icon="calendar-outline"
-              label={t('dash.assist.nextHearing')}
-              value={nextHearing ? whenLabel(nextHearing.scheduled_at) : t('dash.assist.noHearing')}
-              onPress={() => router.push('/(app)/calendar')}
-            />
-            <AssistRow
-              icon="warning-outline"
-              label={t('dash.assist.urgentDue')}
-              value={nextDeadline ? whenLabel(nextDeadline.due_at) : t('dash.assist.noDue')}
-              onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
-            />
-            <AssistRow
-              icon="list-outline"
-              label={t('dash.todayProgram')}
-              value={todayCount > 0 ? t('dash.eventCount', { n: todayCount }) : t('dash.noProgramToday')}
-              onPress={() => router.push('/(app)/calendar')}
-            />
-            <AssistRow
-              icon="bulb-outline"
-              label={t('dash.assist.suggestion')}
-              value={suggestion.value}
-              onPress={() => (focus ? router.push(`/(app)/cases/${focus.caseId}`) : router.push('/(app)/calendar'))}
-            />
+          {nextEvent ? (
             <Pressable
-              style={({ pressed }) => [styles.heroCta, { backgroundColor: accentGold }, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [styles.nextMain, pressed && { opacity: 0.85 }]}
               onPress={() => router.push('/(app)/calendar')}
             >
-              <Text allowFontScaling={false} style={[styles.heroCtaText, { color: onGoldColor(accentGold) }]}>{t('dash.assist.start')}</Text>
-              <Ionicons name="arrow-forward" size={15} color={onGoldColor(accentGold)} />
+              <View style={styles.timeBlock}>
+                <Text allowFontScaling={false} style={styles.timeHH}>{formatTime(nextEvent.scheduled_at)}</Text>
+                <Text allowFontScaling={false} style={styles.timeDay}>
+                  {whenLabel(nextEvent.scheduled_at).split(' · ')[0]}
+                </Text>
+              </View>
+              <View style={styles.nextBody}>
+                <Text allowFontScaling={false} style={styles.nextTitle} numberOfLines={1}>{nextEvent.title}</Text>
+                <Text allowFontScaling={false} style={styles.nextSub} numberOfLines={1}>
+                  {t(`hearingType.${nextEvent.type}` as never)}
+                  {nextEvent.case?.title ? ` · ${nextEvent.case.title}` : nextEvent.location ? ` · ${nextEvent.location}` : ''}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </Pressable>
-          </View>
+          ) : (
+            <View style={styles.nextEmpty}>
+              <Ionicons name="calendar-clear-outline" size={18} color={colors.textMuted} />
+              <Text allowFontScaling={false} style={styles.nextEmptyText}>{t('dash.assist.noHearing')}</Text>
+            </View>
+          )}
+
+          <Text allowFontScaling={false} style={styles.bugunLabel}>{t('dash.today.label')}</Text>
+          {todayItems.length === 0 ? (
+            <Text allowFontScaling={false} style={styles.todayEmpty}>{t('dash.noProgramToday')}</Text>
+          ) : (
+            todayItems.map((it) => (
+              <Pressable
+                key={it.id}
+                style={({ pressed }) => [styles.todayRow, pressed && { opacity: 0.65 }]}
+                onPress={() => router.push(it.isEvent ? '/(app)/calendar' : ('/reminders' as Parameters<typeof router.push>[0]))}
+              >
+                <View style={[styles.todayDot, { backgroundColor: it.isEvent ? colors.gold : colors.textMuted }]} />
+                <Text allowFontScaling={false} style={styles.todayTitle} numberOfLines={1}>{it.title}</Text>
+                <Text allowFontScaling={false} style={styles.todayTime}>{formatTime(it.at)}</Text>
+              </Pressable>
+            ))
+          )}
+
+          <Pressable
+            style={({ pressed }) => [styles.heroCta, { backgroundColor: accentGold }, pressed && { opacity: 0.85 }]}
+            onPress={() => router.push('/(app)/calendar')}
+          >
+            <Text allowFontScaling={false} style={[styles.heroCtaText, { color: onGoldColor(accentGold) }]}>{t('dash.assist.start')}</Text>
+            <Ionicons name="arrow-forward" size={15} color={onGoldColor(accentGold)} />
+          </Pressable>
         </View>
 
         {/* ---------- Masraf avansı uyarısı (kapatılabilir) ---------- */}
@@ -807,6 +841,108 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 2,
+  },
+  // Sıradaki (büyük kart)
+  nextMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  timeBlock: {
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    minWidth: 62,
+  },
+  timeHH: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 17,
+    letterSpacing: -0.4,
+    color: '#FFFFFF',
+  },
+  timeDay: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 9.5,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+    letterSpacing: 0.4,
+  },
+  nextBody: {
+    flex: 1,
+  },
+  nextTitle: {
+    fontFamily: fonts.bold,
+    fontWeight: '700',
+    fontSize: 15.5,
+    letterSpacing: -0.2,
+    color: colors.textPrimary,
+  },
+  nextSub: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    color: colors.textMuted,
+    marginTop: 3,
+  },
+  nextEmpty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  nextEmptyText: {
+    fontFamily: fonts.medium,
+    fontSize: 13.5,
+    color: colors.textMuted,
+  },
+  // Bugün listesi
+  bugunLabel: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 11,
+    color: colors.textMuted,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginTop: spacing.lg,
+    marginBottom: 2,
+  },
+  todayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 11,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderSubtle,
+  },
+  todayDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  todayTitle: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 14,
+    letterSpacing: -0.1,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  todayTime: {
+    fontFamily: fonts.bold,
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  todayEmpty: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.textMuted,
+    paddingVertical: spacing.sm,
   },
   heroDot: {
     width: 6,

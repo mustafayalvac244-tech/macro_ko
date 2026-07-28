@@ -178,6 +178,8 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.viewDoc': 'View Doc',
   'dash.subline': 'Have a productive day.',
   'dash.todayProgram': 'Today\'s Schedule',
+  'dash.next.label': 'UP NEXT',
+  'dash.today.label': 'TODAY',
   'dash.upcomingHearing': 'Upcoming Hearing',
   'dash.upcomingTask': 'Upcoming Task',
   'dash.noProgramToday': 'Nothing scheduled for today.',

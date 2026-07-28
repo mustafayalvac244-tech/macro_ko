@@ -176,6 +176,8 @@ export const tr = {
   'dash.viewDoc': 'Evrak İncele',
   'dash.subline': 'Bugün verimli bir gün olsun.',
   'dash.todayProgram': 'Bugünün Programı',
+  'dash.next.label': 'SIRADAKI',
+  'dash.today.label': 'BUGÜN',
   'dash.upcomingHearing': 'Yaklaşan Duruşma',
   'dash.upcomingTask': 'Yaklaşan Görev',
   'dash.noProgramToday': 'Bugün için planlanmış bir işlem yok.',
