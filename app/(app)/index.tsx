@@ -293,7 +293,7 @@ export default function DashboardScreen() {
               <Ionicons name="menu" size={24} color={colors.textPrimary} />
             </Pressable>
             <View style={styles.brandRow}>
-              <MaterialCommunityIcons name="scale-balance" size={22} color={colors.gold} />
+              <MaterialCommunityIcons name="scale-balance" size={22} color={colors.primary} />
               <Text allowFontScaling={false} style={styles.brandText}>
                 Vekil<Text style={styles.brandTextPro}> Pro</Text>
               </Text>
@@ -365,7 +365,7 @@ export default function DashboardScreen() {
                 style={({ pressed }) => [styles.todayRow, pressed && { opacity: 0.65 }]}
                 onPress={() => router.push(it.isEvent ? '/(app)/calendar' : ('/reminders' as Parameters<typeof router.push>[0]))}
               >
-                <View style={[styles.todayDot, { backgroundColor: it.isEvent ? colors.gold : colors.textMuted }]} />
+                <View style={[styles.todayDot, { backgroundColor: it.isEvent ? colors.primary : colors.textMuted }]} />
                 <Text allowFontScaling={false} style={styles.todayTitle} numberOfLines={1}>{it.title}</Text>
                 <Text allowFontScaling={false} style={styles.todayTime}>{formatTime(it.at)}</Text>
               </Pressable>
@@ -373,11 +373,11 @@ export default function DashboardScreen() {
           )}
 
           <Pressable
-            style={({ pressed }) => [styles.heroCta, { backgroundColor: SLEEK_GOLD }, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.heroCta, { backgroundColor: colors.primary }, pressed && { opacity: 0.85 }]}
             onPress={() => router.push('/(app)/calendar')}
           >
-            <Text allowFontScaling={false} style={[styles.heroCtaText, { color: ON_SLEEK_GOLD }]}>{t('dash.assist.start')}</Text>
-            <Ionicons name="arrow-forward" size={15} color={ON_SLEEK_GOLD} />
+            <Text allowFontScaling={false} style={[styles.heroCtaText, { color: '#FFFFFF' }]}>{t('dash.assist.start')}</Text>
+            <Ionicons name="arrow-forward" size={15} color="#FFFFFF" />
           </Pressable>
         </View>
 
@@ -414,25 +414,25 @@ export default function DashboardScreen() {
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
-                <Ionicons name="library-outline" size={15} color={colors.gold} />
+                <Ionicons name="library-outline" size={15} color={colors.primary} />
               </View>
               <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.prec.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/ictihat' as Parameters<typeof router.push>[0])} hitSlop={6}>
               <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.prec.link')}</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.gold} />
+              <Ionicons name="chevron-forward" size={14} color={colors.primary} />
             </Pressable>
           </View>
 
           {caseList.length === 0 ? (
             <View style={styles.precEmpty}>
-              <Ionicons name="library-outline" size={22} color={colors.gold} />
+              <Ionicons name="library-outline" size={22} color={colors.primary} />
               <Text allowFontScaling={false} style={styles.precEmptyText}>{t('dash.prec.emptyCases')}</Text>
               <Pressable
                 style={({ pressed }) => [styles.focusButton, { marginTop: spacing.sm }, pressed && { opacity: 0.8 }]}
                 onPress={() => router.push('/case-form' as Parameters<typeof router.push>[0])}
               >
-                <Ionicons name="add" size={16} color={colors.gold} />
+                <Ionicons name="add" size={16} color={colors.primary} />
                 <Text allowFontScaling={false} style={styles.focusButtonText}>{t('dash.prec.addCase')}</Text>
               </Pressable>
             </View>
@@ -473,7 +473,7 @@ export default function DashboardScreen() {
 
               {precedents.isLoading ? (
                 <View style={styles.precLoading}>
-                  <ActivityIndicator size="small" color={colors.gold} />
+                  <ActivityIndicator size="small" color={colors.primary} />
                   <Text allowFontScaling={false} style={styles.precLoadingText}>{t('dash.prec.searching')}</Text>
                 </View>
               ) : precedents.isError ? (
@@ -498,7 +498,7 @@ export default function DashboardScreen() {
                       onPress={() => router.push(('/ictihat?q=' + encodeURIComponent(precTerm)) as Parameters<typeof router.push>[0])}
                     >
                       <View style={styles.precRowIcon}>
-                        <Ionicons name="document-text-outline" size={16} color={colors.gold} />
+                        <Ionicons name="document-text-outline" size={16} color={colors.primary} />
                       </View>
                       <View style={styles.precRowBody}>
                         <View style={styles.precDaireRow}>
@@ -532,7 +532,7 @@ export default function DashboardScreen() {
                       {t('dash.prec.seeAll')}
                       {precedents.data!.total > 3 ? `  (${precedents.data!.total})` : ''}
                     </Text>
-                    <Ionicons name="chevron-forward" size={15} color={colors.gold} />
+                    <Ionicons name="chevron-forward" size={15} color={colors.primary} />
                   </Pressable>
                 </View>
               )}
@@ -545,13 +545,13 @@ export default function DashboardScreen() {
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
-                <Ionicons name="stats-chart-outline" size={15} color={colors.gold} />
+                <Ionicons name="stats-chart-outline" size={15} color={colors.primary} />
               </View>
               <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.fin.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/finance' as Parameters<typeof router.push>[0])} hitSlop={6}>
               <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.fin.month')}</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.gold} />
+              <Ionicons name="chevron-forward" size={14} color={colors.primary} />
             </Pressable>
           </View>
 
@@ -592,7 +592,7 @@ function AssistRow({
   return (
     <Pressable style={({ pressed }) => [styles.assistRow, pressed && { opacity: 0.8 }]} onPress={onPress}>
       <View style={styles.assistIcon}>
-        <Ionicons name={icon} size={15} color={colors.gold} />
+        <Ionicons name={icon} size={15} color={colors.primary} />
       </View>
       <View style={styles.assistBody}>
         <Text allowFontScaling={false} style={styles.assistLabel} numberOfLines={1}>
@@ -688,7 +688,7 @@ function BottomTab({
   return (
     <Pressable style={styles.bottomTab} onPress={onPress}>
       <View style={[styles.bottomTabIndicator, active && styles.bottomTabIndicatorActive]} />
-      <Ionicons name={icon} size={20} color={active ? colors.gold : colors.textMuted} />
+      <Ionicons name={icon} size={20} color={active ? colors.primary : colors.textMuted} />
       <Text
         allowFontScaling={false}
         style={[styles.bottomTabLabel, active && styles.bottomTabLabelActive]}
@@ -735,7 +735,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   brandTextPro: {
     fontFamily: fonts.extrabold,
     fontWeight: '800',
-    color: colors.gold,
+    color: colors.primary,
   },
   toolbarRight: {
     flexDirection: 'row',
@@ -842,7 +842,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: fonts.extrabold,
     fontWeight: '800',
     fontSize: 11,
-    color: colors.gold,
+    color: colors.primary,
     letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
@@ -860,7 +860,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: spacing.sm,
   },
   timeBlock: {
-    backgroundColor: SLEEK_GOLD,
+    backgroundColor: colors.primary,
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -872,13 +872,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
     fontSize: 17,
     letterSpacing: -0.4,
-    color: ON_SLEEK_GOLD,
+    color: '#FFFFFF',
   },
   timeDay: {
     fontFamily: fonts.semibold,
     fontWeight: '600',
     fontSize: 9.5,
-    color: 'rgba(23,35,63,0.72)',
+    color: 'rgba(255,255,255,0.8)',
     marginTop: 2,
     letterSpacing: 0.4,
   },
@@ -958,7 +958,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.primary,
   },
   heroUpdated: {
     fontFamily: fonts.regular,
@@ -1059,7 +1059,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: fonts.semibold,
     fontWeight: '600',
     fontSize: 13,
-    color: colors.gold,
+    color: colors.primary,
   },
   focusRow: {
     flexDirection: 'row',
@@ -1069,7 +1069,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 15,
-    backgroundColor: colors.goldSoft,
+    backgroundColor: colors.primarySoft,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -1124,7 +1124,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     borderRadius: 13,
-    backgroundColor: colors.goldSoft,
+    backgroundColor: colors.primarySoft,
     paddingVertical: 12,
     marginTop: spacing.sm,
   },
@@ -1133,7 +1133,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     fontSize: 13.5,
     letterSpacing: -0.1,
-    color: colors.gold,
+    color: colors.primary,
   },
   // Davana Emsal
   precChipRow: {
@@ -1149,7 +1149,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 7,
   },
   precChipActive: {
-    backgroundColor: SLEEK_GOLD,
+    backgroundColor: colors.primary,
   },
   precChipText: {
     fontFamily: fonts.semibold,
@@ -1159,7 +1159,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   precChipTextActive: {
-    color: ON_SLEEK_GOLD,
+    color: '#FFFFFF',
   },
   precForLine: {
     fontFamily: fonts.regular,
@@ -1184,7 +1184,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: fonts.semibold,
     fontWeight: '600',
     fontSize: 12.5,
-    color: colors.gold,
+    color: colors.primary,
   },
   precRow: {
     flexDirection: 'row',
@@ -1343,7 +1343,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: 3,
   },
   bottomTabIndicatorActive: {
-    backgroundColor: colors.gold,
+    backgroundColor: colors.primary,
   },
   bottomTabLabel: {
     fontFamily: fonts.semibold,
@@ -1352,7 +1352,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textMuted,
   },
   bottomTabLabelActive: {
-    color: colors.gold,
+    color: colors.primary,
     fontFamily: fonts.extrabold,
     fontWeight: '800',
   },
