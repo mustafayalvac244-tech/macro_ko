@@ -104,10 +104,11 @@ export function useConversations() {
       });
 
       if (byPeer.size === 0) return [];
-      const { data: profiles, error: pErr } = await supabase
-        .from('profiles')
-        .select('id, full_name, firm_name, bar_number, avatar_url, is_premium')
-        .in('id', Array.from(byPeer.keys()));
+      // profiles PII sertleştirmesiyle authenticated'a kapalı; açık alanları
+      // SECURITY DEFINER RPC ile al (telefon/e-posta/TC dönmez).
+      const { data: profiles, error: pErr } = await supabase.rpc('public_profiles', {
+        p_ids: Array.from(byPeer.keys()),
+      });
       if (pErr) throw pErr;
       const profileMap = new Map((profiles as PublicProfile[]).map((p) => [p.id, p]));
 
@@ -194,29 +195,9 @@ export function useLawyerDirectory(search: string) {
     queryKey: ['directory', q],
     enabled: !!me && q.length >= 2,
     queryFn: async () => {
-      const base = 'id, full_name, firm_name, bar_number, avatar_url, is_premium';
-      // Phone numbers are stored free-form ("0532 111 22 33"); match on the
-      // digits the user typed, ignoring their own spacing.
-      const digits = q.replace(/[^0-9+]/g, '');
-      const filters = [`full_name.ilike.%${q}%`, `firm_name.ilike.%${q}%`, `bar_number.ilike.%${q}%`];
-      if (digits.length >= 4) filters.push(`phone.ilike.%${digits}%`);
-      filters.push(`friend_code.ilike.%${q.toUpperCase().replace(/\s/g, '')}%`);
-
-      let { data, error } = await supabase
-        .from('profiles')
-        .select(base)
-        .neq('id', me!)
-        .or(filters.join(','))
-        .limit(20);
-      if (error && error.code === '42703') {
-        // friend_code column missing → legacy search
-        ({ data, error } = await supabase
-          .from('profiles')
-          .select(base)
-          .neq('id', me!)
-          .or(`full_name.ilike.%${q}%,firm_name.ilike.%${q}%`)
-          .limit(20));
-      }
+      // Ad/büro/baro no/telefon/Vekil Kodu ile arama — SECURITY DEFINER RPC
+      // içinde yapılır; yalnız açık alanlar döner (telefon/e-posta/TC sızmaz).
+      const { data, error } = await supabase.rpc('search_lawyers', { p_q: q });
       if (error) throw error;
       return data as unknown as PublicProfile[];
     },
@@ -233,16 +214,11 @@ export function useMyFriendCode() {
     staleTime: 60 * 60 * 1000,
     retry: false,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('friend_code')
-        .eq('id', me!)
-        .single();
-      if (error) {
-        if (error.code === '42703') return null; // column not created yet
-        throw error;
-      }
-      return (data as { friend_code: string | null }).friend_code;
+      // Kendi profilim: my_profile() SECURITY DEFINER RPC (RLS uyumlu).
+      const { data, error } = await supabase.rpc('my_profile');
+      if (error) throw error;
+      const row = (Array.isArray(data) ? data[0] : data) as { friend_code?: string | null } | null;
+      return row?.friend_code ?? null;
     },
   });
 }
@@ -253,13 +229,11 @@ export function usePeerProfile(peerId: string | undefined) {
     queryKey: ['peer', peerId],
     enabled: !!peerId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, firm_name, bar_number, avatar_url, is_premium')
-        .eq('id', peerId!)
-        .single();
+      const { data, error } = await supabase.rpc('public_profiles', { p_ids: [peerId!] });
       if (error) throw error;
-      return data as PublicProfile;
+      const row = (data as PublicProfile[] | null)?.[0];
+      if (!row) throw new Error('peer_not_found');
+      return row;
     },
   });
 }
