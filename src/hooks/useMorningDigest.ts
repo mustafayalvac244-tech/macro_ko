@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import { format } from 'date-fns';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
-import { syncMorningDigests, type DigestDay } from '@/lib/notifications';
+import { syncMorningDigests, digestBucket, type DigestDay, type DigestBucket } from '@/lib/notifications';
+
+const emptyBuckets = (): Record<DigestBucket, number> => ({ durusma: 0, toplanti: 0, kesif: 0, evrak: 0, diger: 0 });
 
 const DIGEST_WINDOW_DAYS = 7;
 
@@ -26,7 +28,7 @@ export function useMorningDigest() {
     for (let i = 0; i < DIGEST_WINDOW_DAYS; i++) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
       const key = format(d, 'yyyy-MM-dd');
-      days.set(key, { dateKey: key, hearings: 0, tasks: 0 });
+      days.set(key, { dateKey: key, buckets: emptyBuckets(), tasks: 0 });
     }
 
     // Track the earliest timed event per day for the "first up" line.
@@ -38,7 +40,7 @@ export function useMorningDigest() {
       const key = format(at, 'yyyy-MM-dd');
       const day = days.get(key);
       if (!day) return;
-      day.hearings += 1;
+      day.buckets[digestBucket(h.type)] += 1;
       const existing = firstEvent.get(key);
       if (!existing || at.getTime() < existing.at) {
         firstEvent.set(key, { at: at.getTime(), label: `${format(at, 'HH:mm')} ${h.title}` });
