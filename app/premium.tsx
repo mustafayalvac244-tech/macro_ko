@@ -1,38 +1,37 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useStripe } from '@stripe/stripe-react-native';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase';
 import { useT } from '@/i18n';
-import { trError } from '@/lib/authErrors';
-import { radius, spacing, typography } from '@/theme/theme';
+import { fonts, radius, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
-const STRIPE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
-const isConfigured = !!STRIPE_KEY && !STRIPE_KEY.includes('your-publishable-key');
+type TierId = 'baslangic' | 'pro' | 'elit';
+
+interface Tier {
+  id: TierId;
+  name: string;
+  price: string;
+  tagline: string;
+  includesPrev?: string;
+  features: string[];
+  highlight?: boolean;
+}
 
 export default function PremiumScreen() {
   const __t = useTheme();
   const colors = __t.colors;
-  const styles = makeStyles(__t.colors);
-
+  const styles = makeStyles(colors);
   const t = useT();
   const session = useAuthStore((s) => s.session);
-  const refreshProfile = useAuthStore((s) => s.refreshProfile);
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
-  const [isPaying, setIsPaying] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
-    // Server ledger is the source of truth (survives reinstall / new phone);
-    // AsyncStorage is only an offline cache.
     AsyncStorage.getItem('vekil-premium').then((v) => {
       if (v === '1') setIsPremium(true);
     });
@@ -44,296 +43,284 @@ export default function PremiumScreen() {
       .eq('user_id', userId)
       .limit(1)
       .then(({ data, error }) => {
-        if (!error && data && data.length > 0) {
-          setIsPremium(true);
-          AsyncStorage.setItem('vekil-premium', '1').catch(() => {});
-        }
+        if (!error && data && data.length > 0) setIsPremium(true);
       });
   }, [session?.user.id]);
 
-  // Launch offer: until real in-app purchases (StoreKit/Play Billing via
-  // RevenueCat) are wired up, Premium is granted free with one tap — no fake
-  // card sheet, nothing that could mislead a user or an app-store reviewer.
-  const handleActivateFree = async () => {
-    setIsPaying(true);
-    setIsPremium(true);
-    await AsyncStorage.setItem('vekil-premium', '1').catch(() => {});
-    if (session?.user.id) {
-      await supabase
-        .from('purchases')
-        .insert({ user_id: session.user.id, product: 'premium', platform: 'demo', amount: 0, currency: 'TRY' })
-        .then(({ error }) => {
-          if (error) console.warn('purchase ledger insert failed:', error.message);
-        });
-      // Flag the profile so the gold avatar ring shows everywhere.
-      await supabase.from('profiles').update({ is_premium: true }).eq('id', session.user.id).then(() => {});
-      await refreshProfile().catch(() => {});
-    }
-    setIsPaying(false);
-    Alert.alert(t('premium.title'), t('premium.launchActivated'));
+  // IAP (App Store / Google Play) henüz bağlı değil. Bu ekran paketleri gösterir;
+  // "Seç" seçimi kaydeder ve "çok yakında" bilgisi verir — sahte ödeme YOK,
+  // ücretsiz premium da VERİLMEZ. IAP bağlanınca bu işleyiş satın almaya döner.
+  const onSelect = (tier: Tier) => {
+    AsyncStorage.setItem('vekil-plan-intent', tier.id).catch(() => {});
+    Alert.alert(t('premium.soonTitle'), t('premium.soonBody', { plan: tier.name }));
   };
 
-  const handlePay = async () => {
-    if (!isConfigured) {
-      // No real payment provider configured yet → free launch activation.
-      await handleActivateFree();
-      return;
-    }
-
-    setIsPaying(true);
-    try {
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
-      const response = await fetch(`${supabaseUrl}/functions/v1/payment-sheet`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: anonKey,
-          Authorization: `Bearer ${session?.access_token ?? anonKey}`,
-        },
-        body: JSON.stringify({}),
-      });
-      const payload = (await response.json()) as { clientSecret?: string; error?: string };
-      if (!response.ok || !payload.clientSecret) {
-        throw new Error(payload.error ?? `HTTP ${response.status}`);
-      }
-
-      const { error: initError } = await initPaymentSheet({
-        paymentIntentClientSecret: payload.clientSecret,
-        merchantDisplayName: 'Vekil',
-      });
-      if (initError) throw new Error(initError.message);
-
-      const { error: presentError } = await presentPaymentSheet();
-      if (presentError) {
-        // "Canceled" means the user closed the sheet — not an error worth alerting.
-        if (presentError.code !== 'Canceled') throw new Error(presentError.message);
-        return;
-      }
-
-      Alert.alert(t('premium.title'), t('premium.success'));
-    } catch (err) {
-      Alert.alert(t('premium.failed'), err instanceof Error ? trError(err.message) : t('upload.tryAgain'));
-    } finally {
-      setIsPaying(false);
-    }
-  };
+  const tiers: Tier[] = [
+    {
+      id: 'baslangic',
+      name: t('premium.t.baslangic'),
+      price: '₺500',
+      tagline: t('premium.tag.baslangic'),
+      features: [
+        t('premium.f.unlimited'),
+        t('premium.f.aiFree'),
+        t('premium.f.grounded'),
+        t('premium.f.reminders'),
+        t('premium.f.finance'),
+      ],
+    },
+    {
+      id: 'pro',
+      name: t('premium.t.pro'),
+      price: '₺1.500',
+      tagline: t('premium.tag.pro'),
+      includesPrev: t('premium.includes', { plan: t('premium.t.baslangic') }),
+      features: [t('premium.f.aiStrong'), t('premium.f.semantic'), t('premium.f.highLimit'), t('premium.f.priority')],
+      highlight: true,
+    },
+    {
+      id: 'elit',
+      name: t('premium.t.elit'),
+      price: '₺2.500',
+      tagline: t('premium.tag.elit'),
+      includesPrev: t('premium.includes', { plan: t('premium.t.pro') }),
+      features: [t('premium.f.aiMax'), t('premium.f.unlimitedAi'), t('premium.f.team'), t('premium.f.support')],
+    },
+  ];
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <ScreenHeader title={t('premium.title')} showBack />
-      <ScrollView contentContainerStyle={styles.content}>
-        <Card style={styles.heroCard}>
-          <View style={styles.heroIcon}>
-            <Ionicons name="diamond-outline" size={30} color={colors.gold} />
-          </View>
-          <Text style={styles.heroTitle}>{t('premium.title')}</Text>
-          <Text style={styles.heroSubtitle}>{t('premium.subtitle')}</Text>
+      <ScreenHeader title={t('premium.plansTitle')} showBack />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.lead}>{t('premium.plansSub')}</Text>
 
-          <View style={styles.priceRow}>
-            {isConfigured ? (
-              <>
-                <Text style={styles.price}>{t('premium.price')}</Text>
-                <Text style={styles.priceNote}>{t('premium.priceNote')}</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.priceStrike}>{t('premium.price')}</Text>
-                <Text style={styles.priceFree}>{t('premium.launchFree')}</Text>
-              </>
+        {isPremium && (
+          <View style={styles.activeChip}>
+            <Ionicons name="checkmark-circle" size={15} color={colors.success} />
+            <Text style={styles.activeChipText}>{t('premium.activeBadge')}</Text>
+          </View>
+        )}
+
+        {tiers.map((tier) => (
+          <View key={tier.id} style={[styles.card, tier.highlight && styles.cardHi]}>
+            {tier.highlight && (
+              <View style={styles.badge}>
+                <Ionicons name="star" size={11} color={onGold(colors.gold)} />
+                <Text style={[styles.badgeText, { color: onGold(colors.gold) }]}>{t('premium.popular')}</Text>
+              </View>
             )}
-          </View>
 
-          <Text style={styles.description}>{t('premium.desc')}</Text>
+            <Text style={styles.tierName}>{tier.name}</Text>
+            <Text style={styles.tierTag}>{tier.tagline}</Text>
 
-          {isPremium ? (
-            <View style={styles.activeRow}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-              <Text style={styles.activeText}>{t('premium.activeBadge')}</Text>
+            <View style={styles.priceRow}>
+              <Text style={styles.price}>{tier.price}</Text>
+              <Text style={styles.per}>{t('premium.perMonth')}</Text>
             </View>
-          ) : (
-            <Button
-              label={isConfigured ? t('premium.pay') : t('premium.launchCta')}
-              icon={isConfigured ? 'lock-closed-outline' : 'diamond-outline'}
-              onPress={handlePay}
-              loading={isPaying}
-              fullWidth
-              size="lg"
-              style={styles.payButton}
-            />
-          )}
 
-          <View style={styles.secureRow}>
-            <Ionicons name="shield-checkmark-outline" size={14} color={colors.success} />
-            <Text style={styles.secureNote}>{isConfigured ? t('premium.secureNote') : t('premium.launchNote')}</Text>
+            {tier.includesPrev && (
+              <View style={styles.includesRow}>
+                <Ionicons name="add-circle-outline" size={14} color={colors.gold} />
+                <Text style={styles.includesText}>{tier.includesPrev}</Text>
+              </View>
+            )}
+
+            <View style={styles.features}>
+              {tier.features.map((f) => (
+                <View key={f} style={styles.featRow}>
+                  <Ionicons name="checkmark" size={16} color={colors.success} style={styles.featCheck} />
+                  <Text style={styles.featText}>{f}</Text>
+                </View>
+              ))}
+            </View>
+
+            <Pressable
+              onPress={() => onSelect(tier)}
+              style={({ pressed }) => [
+                styles.cta,
+                tier.highlight ? styles.ctaHi : styles.ctaGhost,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text style={[styles.ctaText, { color: tier.highlight ? onGold(colors.gold) : colors.gold }]}>
+                {t('premium.choose', { plan: tier.name })}
+              </Text>
+            </Pressable>
           </View>
-        </Card>
+        ))}
+
+        <View style={styles.noteRow}>
+          <Ionicons name="shield-checkmark-outline" size={14} color={colors.textMuted} />
+          <Text style={styles.noteText}>{t('premium.storeNote')}</Text>
+        </View>
       </ScrollView>
     </Screen>
   );
+}
+
+/** Altın zemin üzerindeki yazı: parlak altında koyu, koyu altında beyaz. */
+function onGold(hex: string): string {
+  const h = hex.replace('#', '');
+  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return lum > 0.6 ? '#14213D' : '#FFFFFF';
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
+    gap: spacing.md,
   },
-  heroCard: {
+  lead: {
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  activeChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.successSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  heroIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.lg,
-    backgroundColor: colors.goldSoft,
+  activeChipText: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 12.5,
+    color: colors.success,
+  },
+  card: {
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    ...shadow.card,
+  },
+  cardHi: {
+    borderWidth: 1.5,
+    borderColor: colors.gold,
+  },
+  badge: {
+    position: 'absolute',
+    top: -11,
+    right: spacing.lg,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
+    gap: 4,
+    backgroundColor: colors.gold,
+    borderRadius: radius.pill,
+    paddingHorizontal: 11,
+    paddingVertical: 4,
   },
-  heroTitle: {
-    ...typography.h1,
+  badgeText: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 10.5,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  tierName: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 20,
+    letterSpacing: -0.3,
     color: colors.textPrimary,
   },
-  heroSubtitle: {
-    ...typography.caption,
+  tierTag: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: 3,
   },
   priceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.lg,
+    alignItems: 'baseline',
+    gap: 6,
+    marginTop: spacing.md,
   },
   price: {
-    fontSize: 36,
+    fontFamily: fonts.extrabold,
     fontWeight: '800',
-    color: colors.primary,
+    fontSize: 32,
+    letterSpacing: -1,
+    color: colors.textPrimary,
   },
-  priceNote: {
-    ...typography.caption,
+  per: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
     color: colors.textMuted,
   },
-  priceStrike: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textMuted,
-    textDecorationLine: 'line-through',
-  },
-  priceFree: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: colors.success,
-  },
-  description: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.sm,
-  },
-  payButton: {
-    marginTop: spacing.xl,
-  },
-  secureRow: {
+  includesRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginTop: spacing.md,
-    paddingHorizontal: spacing.md,
   },
-  secureNote: {
-    ...typography.small,
-    color: colors.textSecondary,
+  includesText: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 12.5,
+    color: colors.gold,
     flexShrink: 1,
   },
-  warnCard: {
+  features: {
+    gap: 10,
     marginTop: spacing.md,
-    borderColor: 'rgba(185, 126, 20, 0.4)',
   },
-  warnText: {
-    ...typography.caption,
-    color: colors.warning,
-    lineHeight: 19,
-  },
-  activeRow: {
+  featRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: spacing.md,
-    backgroundColor: colors.successSoft,
-    borderRadius: 999,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-  },
-  activeText: {
-    ...typography.caption,
-    color: colors.success,
-    fontWeight: '700',
-  },
-  sheetRoot: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(10, 15, 30, 0.5)',
-  },
-  sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
-  },
-  sheetHandle: {
-    alignSelf: 'center',
-    width: 44,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.border,
-    marginBottom: spacing.sm,
-  },
-  testBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    alignSelf: 'center',
-    backgroundColor: colors.warningSoft,
-    borderRadius: 999,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    marginBottom: spacing.xs,
-  },
-  testBadgeText: {
-    ...typography.small,
-    color: colors.warning,
-    fontWeight: '800',
-  },
-  sheetTitle: {
-    ...typography.h2,
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  sheetAmount: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: colors.primary,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-  },
-  cardRow: {
-    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: spacing.sm,
   },
-  cardCol: {
+  featCheck: {
+    marginTop: 1,
+  },
+  featText: {
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textPrimary,
     flex: 1,
   },
-  sheetNote: {
-    ...typography.small,
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginTop: spacing.lg,
+  },
+  ctaHi: {
+    backgroundColor: colors.gold,
+  },
+  ctaGhost: {
+    backgroundColor: colors.goldSoft,
+  },
+  ctaText: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 15,
+    letterSpacing: -0.2,
+  },
+  noteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  noteText: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 17,
     color: colors.textMuted,
     textAlign: 'center',
-    marginTop: spacing.sm,
-    lineHeight: 15,
+    flexShrink: 1,
   },
 });
