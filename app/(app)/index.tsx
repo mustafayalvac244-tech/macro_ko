@@ -260,8 +260,10 @@ export default function DashboardScreen() {
               <Ionicons name="menu" size={24} color={colors.textPrimary} />
             </Pressable>
             <View style={styles.brandRow}>
-              <MaterialCommunityIcons name="scale-balance" size={24} color={colors.gold} />
-              <Text allowFontScaling={false} style={styles.brandText}>Vekil Pro</Text>
+              <MaterialCommunityIcons name="scale-balance" size={22} color={colors.gold} />
+              <Text allowFontScaling={false} style={styles.brandText}>
+                Vekil<Text style={styles.brandTextPro}> Pro</Text>
+              </Text>
             </View>
           </View>
           <View style={styles.toolbarRight}>
@@ -680,9 +682,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
   },
   brandText: {
-    fontFamily: fonts.script,
-    fontSize: 25,
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 19,
+    letterSpacing: -0.4,
     color: colors.textPrimary,
+  },
+  brandTextPro: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    color: colors.gold,
   },
   toolbarRight: {
     flexDirection: 'row',
