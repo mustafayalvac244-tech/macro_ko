@@ -35,6 +35,11 @@ const SERIF = 'PlayfairDisplay_700Bold';
 /** Zengin, metalik altın — açık temaların koyu/kahverengi altını yerine kullanılır. */
 const RICH_GOLD = '#D4AF37';
 
+/** Sıcak, açık altın — dolgu (saat bloğu, "Güne Başla", seçili çip) için. Mat
+ * hardal yerine premium bir ton; üzerine koyu lacivert yazı okunur. */
+const SLEEK_GOLD = '#ECC24C';
+const ON_SLEEK_GOLD = '#17233F';
+
 function luminance(hex: string): number {
   const h = hex.replace('#', '');
   const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
@@ -368,11 +373,11 @@ export default function DashboardScreen() {
           )}
 
           <Pressable
-            style={({ pressed }) => [styles.heroCta, { backgroundColor: colors.primary }, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.heroCta, { backgroundColor: SLEEK_GOLD }, pressed && { opacity: 0.85 }]}
             onPress={() => router.push('/(app)/calendar')}
           >
-            <Text allowFontScaling={false} style={[styles.heroCtaText, { color: '#FFFFFF' }]}>{t('dash.assist.start')}</Text>
-            <Ionicons name="arrow-forward" size={15} color="#FFFFFF" />
+            <Text allowFontScaling={false} style={[styles.heroCtaText, { color: ON_SLEEK_GOLD }]}>{t('dash.assist.start')}</Text>
+            <Ionicons name="arrow-forward" size={15} color={ON_SLEEK_GOLD} />
           </Pressable>
         </View>
 
@@ -855,7 +860,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: spacing.sm,
   },
   timeBlock: {
-    backgroundColor: colors.primary,
+    backgroundColor: SLEEK_GOLD,
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -867,13 +872,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
     fontSize: 17,
     letterSpacing: -0.4,
-    color: '#FFFFFF',
+    color: ON_SLEEK_GOLD,
   },
   timeDay: {
     fontFamily: fonts.semibold,
     fontWeight: '600',
     fontSize: 9.5,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(23,35,63,0.72)',
     marginTop: 2,
     letterSpacing: 0.4,
   },
@@ -1144,7 +1149,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 7,
   },
   precChipActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: SLEEK_GOLD,
   },
   precChipText: {
     fontFamily: fonts.semibold,
@@ -1154,7 +1159,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   precChipTextActive: {
-    color: '#FFFFFF',
+    color: ON_SLEEK_GOLD,
   },
   precForLine: {
     fontFamily: fonts.regular,
