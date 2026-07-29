@@ -134,6 +134,7 @@ export function Sidebar() {
     { icon: 'library-outline', label: t('laws.title'), path: '/laws' },
   ];
   const officeItems: NavItem[] = [
+    { icon: 'ribbon-outline', label: t('poa.short'), path: '/vekalet' },
     { icon: 'wallet-outline', label: t('ofinance.title'), path: '/finance' },
     { icon: 'stats-chart-outline', label: t('reports.title'), path: '/reports' },
     { icon: 'notifications-outline', label: t('reminders.title'), path: '/reminders' },
