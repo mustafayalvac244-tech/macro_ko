@@ -75,7 +75,7 @@ export default function PremiumScreen() {
       price: '₺1.500',
       tagline: t('premium.tag.pro'),
       includesPrev: t('premium.includes', { plan: t('premium.t.baslangic') }),
-      features: [t('premium.f.aiStrong'), t('premium.f.semantic'), t('premium.f.highLimit'), t('premium.f.priority')],
+      features: [t('premium.f.mutalaa'), t('premium.f.aiStrong'), t('premium.f.semantic'), t('premium.f.highLimit')],
       highlight: true,
     },
     {

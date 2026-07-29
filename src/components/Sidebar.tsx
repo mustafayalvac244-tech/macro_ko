@@ -124,6 +124,7 @@ export function Sidebar() {
   // Mesajlaşma şimdilik gizli (istek üzerine); rotalar duruyor, giriş yok.
   const toolItems: NavItem[] = [
     { icon: 'sparkles-outline', label: t('ai.short'), path: '/ai-chat' },
+    { icon: 'library-outline', label: t('mut.short'), path: '/mutalaa' },
     { icon: 'scan-outline', label: t('docrev.short'), path: '/document-review' },
     { icon: 'reader-outline', label: t('ictihat.short'), path: '/ictihat' },
     { icon: 'earth-outline', label: t('aihm.short'), path: '/aihm' },

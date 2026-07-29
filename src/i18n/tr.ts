@@ -568,6 +568,7 @@ export const tr = {
   'premium.f.grounded': 'Gerçek mevzuat ve Yargıtay içtihadıyla beslenen yanıtlar',
   'premium.f.reminders': 'Duruşma ve süre hatırlatmaları',
   'premium.f.finance': 'Ofis gelir-gider ve alacak takibi',
+  'premium.f.mutalaa': 'Mütalaa: çok adımlı derin hukuki inceleme',
   'premium.f.aiStrong': 'Daha güçlü yapay zekâ modeli',
   'premium.f.semantic': 'İçtihatta anlam (semantik) arama',
   'premium.f.highLimit': 'Yüksek yapay zekâ kullanım limiti',
@@ -1170,6 +1171,20 @@ export const tr = {
   'admin.aiSection': 'AI Harcaması',
   'admin.aiCostMonth': 'Bu Ay AI Maliyeti',
   'admin.aiCostHint': 'tüm kullanıcılar, faturalı katmanlar',
+  // Mütalaa (Pro/Elit'e özel derin inceleme)
+  'mut.title': 'Mütalaa',
+  'mut.short': 'Mütalaa',
+  'mut.proOnly': 'Pro’ya özel',
+  'mut.lead': 'Olayı anlatın; Vekil AI konuyu hukuki sorunlara böler, her birini mevzuat ve içtihat üzerinden ayrı ayrı araştırır ve size kıdemli bir ortağın yazacağı düzeyde resmi bir mütalaa hazırlar.',
+  'mut.placeholder': 'Olayı, tarafları ve elinizdeki bilgileri olabildiğince ayrıntılı anlatın…',
+  'mut.run': 'Mütalaa Hazırla',
+  'mut.working': 'Araştırılıyor…',
+  'mut.workingHint': 'Konu parçalara ayrılıp ayrı ayrı araştırılıyor; bu biraz uzun sürebilir.',
+  'mut.researched': 'Araştırılan hukuki sorunlar',
+  'mut.resultTitle': 'Hukuki Mütalaa',
+  'mut.needPro': 'Mütalaa, Pro ve Elit üyelere özel bir özelliktir. Çok adımlı derin araştırma yapar; normal AI asistanı tüm üyelere açıktır.',
+  'mut.disclaimer': 'Bu mütalaa yapay zekâ tarafından üretilmiştir; hukuki tavsiye değildir. Dayanakları ve güncel mevzuatı kendiniz teyit edin.',
+
   // Belge İncele (AI)
   'docrev.title': 'Belge İncele',
   'docrev.short': 'Belge İncele',

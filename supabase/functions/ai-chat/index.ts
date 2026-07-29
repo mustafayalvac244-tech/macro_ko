@@ -30,7 +30,17 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
     pro: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450, maxOut: 2048 },
     elit: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500, maxOut: 4096 },
   };
-  return { tier: t, cfg: table[t] ?? table.free };
+  const cfg = table[t] ?? table.free;
+  // Google faturalandırması AÇILANA KADAR Pro/Elit de Groq'ta çalışır. Aksi
+  // hâlde ödeyen üye Gemini'nin kotasız (429) anahtarına düşüp bozuk deneyim
+  // yaşardı. Billing açılınca AI_PRO_PROVIDER=gemini secret'ı yeter, deploy gerekmez.
+  if (cfg.provider === 'gemini' && (Deno.env.get('AI_PRO_PROVIDER') ?? 'groq') !== 'gemini') {
+    return {
+      tier: t,
+      cfg: { ...cfg, provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: t === 'elit' ? 4000 : 1500 },
+    };
+  }
+  return { tier: t, cfg };
 }
 /** Groq (OpenAI uyumlu) sohbet çağrısı — ücretsiz katman. */
 async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; text: string }>, maxTokens: number, apiKey: string): Promise<{ text: string; tin: number; tout: number }> {
@@ -636,14 +646,20 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
 
-  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }> };
+  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string };
   try {
     body = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
-  const messages = (body.messages ?? []).slice(-30);
-  if (messages.length === 0) {
+  // MÜTALAA modu: çok adımlı derin inceleme (Pro/Elit'e özel). Normal sohbetten
+  // ayrılır çünkü birden fazla model çağrısı + geniş besleme kullanır.
+  const isMutalaa = body.mode === 'mutalaa';
+  const mutalaaQuestion = (body.question ?? '').trim();
+  const messages = isMutalaa
+    ? [{ role: 'user' as const, text: mutalaaQuestion }]
+    : (body.messages ?? []).slice(-30);
+  if (messages.length === 0 || (isMutalaa && mutalaaQuestion.length < 20)) {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
 
@@ -668,6 +684,13 @@ Deno.serve(async (req) => {
       headers: CORS,
     });
   }
+  // MÜTALAA yalnız Pro/Elit üyelere açıktır (çok adımlı, token yoğun).
+  if (isMutalaa && tier !== 'pro' && tier !== 'elit') {
+    return new Response(JSON.stringify({ error: 'tier_required', tier, required: 'pro' }), {
+      status: 403,
+      headers: CORS,
+    });
+  }
   const model = cfg.model;
   const maxOutputTokens = cfg.maxOut;
   const provider = cfg.provider;
@@ -675,6 +698,103 @@ Deno.serve(async (req) => {
   const genKey = provider === 'groq' ? (Deno.env.get('GROQ_API_KEY') ?? '') : (aiKey(cfg.billable) ?? apiKey);
   if (!genKey) {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
+  }
+
+  // ───────────── MÜTALAA: çok adımlı derin inceleme ─────────────
+  // 1) Olayı hukuki SORUNLARA böl  2) her sorun için mevzuat/kural/içtihat topla
+  // 3) hepsini sentezleyip resmi bir MÜTALAA yaz. Tek soruluk sohbetin aksine
+  // konuyu parçalayıp her parçayı ayrı araştırdığı için çok daha derindir.
+  if (isMutalaa) {
+    const meter = { tin: 0, tout: 0 };
+    const call = async (sys: string, userText: string, maxTok: number): Promise<string> => {
+      if (provider === 'groq') {
+        const r = await groqChat(sys, [{ role: 'user', text: userText }], maxTok, genKey);
+        meter.tin += r.tin;
+        meter.tout += r.tout;
+        return r.text;
+      }
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: sys }] },
+          contents: [{ role: 'user', parts: [{ text: userText }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: maxTok },
+        }),
+      });
+      if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+      const d = await res.json();
+      const um = d.usageMetadata ?? {};
+      meter.tin += um.promptTokenCount ?? 0;
+      meter.tout += um.candidatesTokenCount ?? 0;
+      return d.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+    };
+
+    try {
+      // 1) Hukuki sorunları çıkar
+      const issuesRaw = await call(
+        'Sen Türk hukukunda kıdemli bir avukatsın. Verilen olayı çözmek için araştırılması gereken ' +
+          'HUKUKİ SORUNLARI çıkar. En fazla 4 sorun. SADECE JSON dizi döndür, başka hiçbir şey yazma: ' +
+          '["sorun 1","sorun 2"]',
+        mutalaaQuestion,
+        400
+      );
+      let issues: string[] = [];
+      try {
+        const s = issuesRaw.indexOf('[');
+        const e = issuesRaw.lastIndexOf(']');
+        if (s >= 0 && e > s) issues = JSON.parse(issuesRaw.slice(s, e + 1)) as string[];
+      } catch {
+        issues = [];
+      }
+      issues = issues.filter((x) => typeof x === 'string' && x.trim()).slice(0, 4);
+      if (issues.length === 0) issues = [mutalaaQuestion];
+
+      // 2) Her sorun için ayrı besleme topla (kural + mevzuat + içtihat)
+      let dossier = '';
+      for (const issue of issues) {
+        let block = '';
+        try {
+          block += await buildRules(supabase, issue);
+        } catch { /* atla */ }
+        try {
+          block += await buildMevzuat(supabase, issue);
+        } catch { /* atla */ }
+        try {
+          block += await buildGrounding(supabase, issue, provider === 'gemini' ? genKey : '');
+        } catch { /* atla */ }
+        if (block) dossier += `\n\n══════ ARAŞTIRMA KONUSU: ${issue} ══════${block}`;
+      }
+
+      // 3) Sentez — resmi mütalaa
+      const synthSys =
+        SYSTEM_PROMPT +
+        '\n\nŞU AN "MÜTALAA" MODUNDASIN: avukata, bir kıdemli ortağın yazacağı düzeyde RESMİ HUKUKİ ' +
+        'MÜTALAA hazırlıyorsun. Şu başlıklarla yaz:\n' +
+        '1. OLAY VE TESPİTLER\n2. HUKUKİ SORUNLAR\n3. İNCELEME (her sorunu ayrı ayrı, dayanaklarıyla)\n' +
+        '4. RİSKLER VE KARŞI TARAFIN OLASI SAVUNMALARI\n5. SONUÇ VE KANAAT (net tavsiye)\n' +
+        '6. ATILACAK ADIMLAR (sıralı, süreleriyle)\n' +
+        'Aşağıdaki ARAŞTIRMA DOSYASINDAKİ gerçek kural/madde/kararlara dayan; dosyada olmayan madde ' +
+        'numarası veya karar UYDURMA. Kapsamlı ama gereksiz tekrarsız yaz.' +
+        dossier;
+
+      const text = await call(synthSys, `MÜTALAA TALEBİ:\n${mutalaaQuestion}`, Math.max(cfg.maxOut, 3000));
+      if (!text.trim()) {
+        return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
+      }
+      await recordUsage(userData.user.id, model, meter.tin, meter.tout, cfg.billable);
+      return new Response(JSON.stringify({ text: text.trim(), tier, model, issues }), {
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    } catch (e) {
+      const msg = (e as Error).message;
+      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+        status: known ? 429 : 502,
+        headers: CORS,
+      });
+    }
   }
   // Grounding TÜM katmanlarda: kendi içtihat havuzumuzdan gerçek kararlarla besle
   // (Gemini/Pro anlamsal + FTS; Groq/ücretsiz doğrudan FTS). Böylece yanıt gerçek
