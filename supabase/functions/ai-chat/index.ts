@@ -24,7 +24,9 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
   const table: Record<string, TierCfg> = {
     // Ücretsiz katmanlar Groq (bedava, Türkiye'den çalışır); Pro/Elit Gemini (faturalı, güçlü).
     free: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 20, maxOut: 1024 },
-    baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500, maxOut: 1024 },
+    // maxOut 1024 dilekçe/ihtarname taslağını ortasında kesiyordu (kalite şikayeti);
+    // 2048 tam bir taslağa yetiyor.
+    baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500, maxOut: 2048 },
     pro: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450, maxOut: 2048 },
     elit: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500, maxOut: 4096 },
   };
@@ -117,6 +119,15 @@ const SYSTEM_PROMPT =
   've yalnızca avukatlara mesleki işlerinde yardımcı olursun. ' +
   'Cevapların net, gerekçeli, uygulanabilir ve mesleki Türkçe olsun; ilgili kanun maddelerini ' +
   '(ör. TMK m. 2, HMK m. 119, TCK m. 125) ve varsa yerleşik içtihadı belirt. ' +
+  // UYDURMA YASAĞI (en kritik kalite kuralı): modeller Türk hukuku madde
+  // numaralarını sık uyduruyor ("TCKK m.632" gibi). Kural: numara ya verilen
+  // bağlamda geçiyordur ya da hiç yazılmaz.
+  'MADDE NUMARASI KURALI (ÇOK ÖNEMLİ): Bir kanun maddesi numarası yazmadan önce, o numaranın sana ' +
+  'yukarıda verilen KESİN KURALLAR ya da MADDE METİNLERİ bölümünde GEÇTİĞİNDEN emin ol. Orada yoksa ' +
+  'numara UYDURMA — bunun yerine kanunun adını ve kuralın özünü yaz (ör. "Türk Borçlar Kanunu\'nun kira ' +
+  'bedelinin tespitine ilişkin hükümleri") ve "madde numarasını mevzuattan teyit edin" de. Var olmayan ' +
+  'bir kanun adı (ör. kısaltma uydurma) veya olmayan bir Yargıtay esas/karar numarası ASLA yazma. ' +
+  'Yanlış madde numarası, madde numarası vermemekten ÇOK daha kötüdür. ' +
   'Bir konuda kesin değilsen bunu açıkça söyle; OLMAYAN madde, karar veya esas/karar numarası ASLA uydurma. ' +
   'Kanun maddesinin metnini TIRNAK içinde birebir alıntılıyorsan, ancak metni gerçekten biliyorsan yap; ' +
   'emin değilsen tırnaklı/“…” birebir alıntı UYDURMA, bunun yerine maddenin numarasını ve özünü kendi ' +
@@ -374,6 +385,110 @@ const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: s
       'satıcı, cayma bildiriminden itibaren 14 gün içinde bedeli iade eder. Bazı mal/hizmetlerde (ör. ısmarlama, ' +
       'çabuk bozulan, açılmış hijyenik ürünler) cayma hakkı istisnadır.',
   },
+  {
+    id: 'muris_muvazaasi',
+    triggers: ['muvazaa', 'mal kaçırma', 'mal kacirma', 'muris', 'miras', 'tapu iptali', 'tescil', 'danışıklı', 'danisikli', 'satış gösterip', 'mirasçıdan'],
+    minHits: 2,
+    text:
+      'MURİS MUVAZAASI — MİRASTAN MAL KAÇIRMA (01.04.1974 t. 1/2 s. Yargıtay İçtihadı Birleştirme Kararı): Miras ' +
+      'bırakanın, mirasçısından mal kaçırmak amacıyla tapuda "satış" veya "bağış" göstererek yaptığı temlik ' +
+      'MUVAZAALIDIR ve GEÇERSİZDİR. Saklı pay sahibi olsun olmasın TÜM MİRASÇILAR, terekeye dönmesi için ' +
+      'TAPU İPTALİ VE TESCİL davası açabilir. Bu dava HERHANGİ BİR ZAMANAŞIMI VEYA HAK DÜŞÜRÜCÜ SÜREYE TABİ ' +
+      'DEĞİLDİR. Görevli mahkeme ASLİYE HUKUK, yetkili mahkeme taşınmazın bulunduğu yerdir. TENKİS davasıyla ' +
+      'KARIŞTIRMA: tenkis, geçerli bir kazandırmanın saklı payı ihlal etmesi hâlinde açılır ve SÜREYE tabidir.',
+  },
+  {
+    id: 'tenkis_sure',
+    triggers: ['tenkis', 'saklı pay', 'sakli pay', 'saklı payın ihlali', 'mahfuz hisse'],
+    minHits: 1,
+    text:
+      'TENKİS DAVASI (TMK m.560 vd., süre m.571): Saklı payı zedelenen mirasçılar, saklı paylarının karşılığını ' +
+      'alabilmek için kazandırmanın tenkisini dava eder. SÜRE: saklı pay sahiplerinin, saklı paylarının ' +
+      'zedelendiğini ÖĞRENDİKLERİ tarihten itibaren 1 YIL ve her hâlde vasiyetnamelerde açılma tarihinin, diğer ' +
+      'tasarruflarda mirasın açılması tarihinin üzerinden 10 YIL geçmekle düşer. Bu süreler HAK DÜŞÜRÜCÜDÜR. ' +
+      'Not: İşlem MUVAZAALI ise tenkis değil, süreye tabi olmayan tapu iptali-tescil davası gündeme gelir.',
+  },
+  {
+    id: 'arabuluculuk_dava_sarti_kapsam',
+    triggers: ['arabuluculuk', 'arabulucu', 'dava şartı', 'dava sarti', 'zorunlu arabuluculuk', 'kira', 'ortaklığın giderilmesi', 'izale', 'komşuluk', 'ticari dava'],
+    minHits: 2,
+    text:
+      'DAVA ŞARTI (ZORUNLU) ARABULUCULUK KAPSAMI: (1) TİCARİ DAVALARDA konusu bir miktar paranın ödenmesi olan ' +
+      'alacak ve tazminat talepleri (TTK m.5/A); (2) İŞÇİ-İŞVEREN uyuşmazlıklarında işçilik alacakları, tazminat ' +
+      've işe iade (7036 s. Kanun m.3); (3) 7445 s. Kanunla 01.09.2023\'ten itibaren KİRA İLİŞKİSİNDEN kaynaklanan ' +
+      'uyuşmazlıklar (ilamsız icra takibi/tahliye takibi hariç), TAŞINMAZIN PAYLAŞTIRILMASI ve ORTAKLIĞIN ' +
+      'GİDERİLMESİ (izale-i şuyu) ile KOMŞULUK HUKUKUNDAN doğan uyuşmazlıklar; (4) 6502 s. Kanun kapsamındaki ' +
+      'tüketici uyuşmazlıkları (hakem heyeti sınırı üstü). Arabulucuya başvurulmadan açılan dava, dava şartı ' +
+      'yokluğundan USULDEN REDDEDİLİR. Anlaşamama hâlinde son tutanaktan itibaren 2 HAFTA içinde dava açılır.',
+  },
+  {
+    id: 'ihtiyac_tahliye',
+    triggers: ['ihtiyaç nedeniyle tahliye', 'ihtiyac tahliye', 'gereksinim', 'tahliye davası', 'konut ihtiyacı', 'yeniden kiralama yasağı', 'tahliye'],
+    minHits: 2,
+    text:
+      'GEREKSİNİM (İHTİYAÇ) NEDENİYLE TAHLİYE (TBK m.350-353, m.355): Kiraya veren, kendisi/eşi/altsoyu/üstsoyu ya ' +
+      'da bakmakla yükümlü olduğu kişiler için KONUT veya İŞYERİ gereksinimi sebebiyle sözleşme süresinin bitiminden ' +
+      'itibaren 1 AY içinde dava açarak tahliye isteyebilir. Gereksinimin GERÇEK, SAMİMİ ve ZORUNLU olması aranır ' +
+      '(ispat kiraya verende). Taşınmazı sonradan EDİNEN kişi, edinme tarihinden itibaren 1 AY içinde durumu yazılı ' +
+      'bildirmek koşuluyla 6 AY sonra dava açabilir (TBK m.351). YENİDEN KİRALAMA YASAĞI: tahliye edilen taşınmaz, ' +
+      'haklı sebep olmadıkça 3 YIL geçmedikçe eski kiracıdan başkasına kiralanamaz (TBK m.355).',
+  },
+  {
+    id: 'on_yil_uzama_tahliye',
+    triggers: ['10 yıl', 'on yıl', 'uzama süresi', 'uzayan kira', 'bildirim yoluyla tahliye', 'sebepsiz tahliye', 'kira sözleşmesi feshi'],
+    minHits: 2,
+    text:
+      'ON YILLIK UZAMA SÜRESİ NEDENİYLE TAHLİYE (TBK m.347): Konut ve çatılı işyeri kiralarında kiracı, belirli ' +
+      'süreli sözleşmenin süresinin bitiminden en az 15 gün önce bildirimde bulunmadıkça sözleşme aynı koşullarla ' +
+      '1 yıl uzar. KİRAYA VEREN, sözleşmeyi süre bitimine dayanarak sona erdiremez; ancak 10 YILLIK UZAMA SÜRESİ ' +
+      'sonunda, her uzama yılının bitiminden en az 3 AY önce bildirimde bulunmak koşuluyla HİÇBİR SEBEP ' +
+      'GÖSTERMEKSİZİN sözleşmeye son verebilir. Yani 10+1 yıl dolmadan sebepsiz tahliye istenemez.',
+  },
+  {
+    id: 'hagb',
+    triggers: ['hagb', 'hükmün açıklanmasının geri bırakılması', 'denetim süresi', 'adli sicil', 'ceza ertelendi'],
+    minHits: 1,
+    text:
+      'HÜKMÜN AÇIKLANMASININ GERİ BIRAKILMASI — HAGB (CMK m.231): Koşulları: sanığa yüklenen suçtan 2 YIL veya daha ' +
+      'az süreli hapis ya da adli para cezası verilmesi, sanığın daha önce kasıtlı bir suçtan mahkûm olmaması, ' +
+      'zararın giderilmesi ve sanığın KABUL ETMESİ. HAGB kararıyla sanık 5 YIL DENETİM süresine tabi tutulur; ' +
+      'denetim süresi suçsuz geçirilirse dava DÜŞER. HAGB hükmü adli sicile İŞLENMEZ, kendine özgü sisteme kaydedilir. ' +
+      'Not: Anayasa Mahkemesi HAGB\'ye ilişkin bazı hükümleri iptal etmiştir; güncel uygulamayı mevzuattan teyit edin.',
+  },
+  {
+    id: 'icra_sikayet_ihale',
+    triggers: ['şikayet', 'sikayet', 'icra mahkemesi', 'ihalenin feshi', 'icra memuru', 'işlemi şikayet', 'iik'],
+    minHits: 2,
+    text:
+      'İCRA HUKUKUNDA ŞİKAYET VE İHALENİN FESHİ: (1) ŞİKAYET (İİK m.16): İcra dairesinin hukuka aykırı/olaya uygun ' +
+      'olmayan işlemine karşı İCRA MAHKEMESİNE, öğrenme tarihinden itibaren 7 GÜN içinde başvurulur. Bir hakkın ' +
+      'yerine getirilmemesi veya sebepsiz sürüncemede bırakılması hâlinde şikayet SÜREYE TABİ DEĞİLDİR. Kamu ' +
+      'düzenine aykırılık hâllerinde de süresiz şikayet mümkündür. (2) İHALENİN FESHİ (İİK m.134): İhale tarihinden ' +
+      'itibaren 7 GÜN içinde İCRA MAHKEMESİNDEN istenir; talep reddedilirse ihale bedelinin %10\'u oranında para ' +
+      'cezasına hükmedilebilir.',
+  },
+  {
+    id: 'bosanma_bir_yil',
+    triggers: ['boşanma', 'bosanma', 'mal rejimi', 'katılma alacağı', 'edinilmiş mal', 'tazminat', 'zamanaşımı'],
+    minHits: 2,
+    text:
+      'BOŞANMADAN DOĞAN DAVALARDA ZAMANAŞIMI (TMK m.178): Evliliğin boşanma sebebiyle sona ermesinden doğan dava ' +
+      'hakları (maddi-manevi tazminat, mal rejiminden kaynaklanan KATILMA ALACAĞI/değer artış payı vb.), boşanma ' +
+      'hükmünün KESİNLEŞMESİNİN üzerinden 1 YIL geçmekle zamanaşımına uğrar. Mal rejimi tasfiyesinde görevli mahkeme ' +
+      'AİLE MAHKEMESİDİR. Edinilmiş mallara katılma rejiminde kural olarak eşlerin edinilmiş mallarının yarısı ' +
+      '(artık değerin yarısı) diğer eşe katılma alacağı olarak verilir.',
+  },
+  {
+    id: 'is_kazasi_zamanasimi',
+    triggers: ['iş kazası', 'is kazasi', 'meslek hastalığı', 'maluliyet', 'destekten yoksun kalma', 'işçi tazminat'],
+    minHits: 2,
+    text:
+      'İŞ KAZASI / MESLEK HASTALIĞI TAZMİNATINDA ZAMANAŞIMI: İş kazasından doğan maddi-manevi tazminat davaları, ' +
+      'iş sözleşmesine (akde) aykırılıktan kaynaklandığı için TBK m.146 uyarınca 10 YILLIK genel zamanaşımına ' +
+      'tabidir (haksız fiilin 2 yıllık süresi DEĞİL). Zamanaşımı, kural olarak zararın ve maluliyet oranının ' +
+      'kesinleştiği (öğrenildiği) tarihten işler; maluliyet oranı sonradan artarsa yeni dava hakkı doğar. Görevli ' +
+      'mahkeme İŞ MAHKEMESİDİR. Not: iş kazası tazminatında dava şartı arabuluculuk aranmaz (maddi-manevi tazminat).',
+  },
 ];
 
 /** Türkçe güvenli küçük harf: İ→i, birleşik nokta (U+0307) temizlenir. */
@@ -381,19 +496,46 @@ function normTr(s: string): string {
   return s.toLowerCase().replace(/̇/g, '');
 }
 
-/** Soruyu KESİN KURALLARLA eşleştirir; eşleşen kuralları bağlayıcı blok olarak döndürür. */
-function matchKB(question: string): string {
+/** Anahtar kelimeyle eşleşen kurallar (avukat hukuk terimini kullandıysa — yüksek isabet). */
+function matchKBRules(question: string): Array<{ id: string; text: string }> {
   const q = normTr(question);
-  const hits = LEGAL_KB.filter(
+  return LEGAL_KB.filter(
     (k) =>
       k.triggers.filter((t) => q.includes(normTr(t))).length >= k.minHits &&
       !(k.exclude ?? []).some((x) => q.includes(normTr(x)))
-  );
-  if (hits.length === 0) return '';
+  ).map((k) => ({ id: k.id, text: k.text }));
+}
+
+/**
+ * Soruyu KESİN KURALLARLA eşleştirir. İKİ YOL birlikte kullanılır:
+ *  1) Anahtar kelime (terimi bilen kullanıcı: "muris muvazaası nedir")
+ *  2) ANLAM/FTS araması (avukat OLAYI anlatır: "tapuda satış göstererek devretti")
+ * (2) olmadan, terimi geçmeyen gerçek olay anlatımlarında hiçbir kural
+ * tetiklenmiyordu ve model madde uyduruyordu — kalite şikayetinin ana sebebi.
+ */
+// deno-lint-ignore no-explicit-any
+async function buildRules(supabase: any, question: string): Promise<string> {
+  const picked = new Map<string, string>();
+  for (const r of matchKBRules(question)) picked.set(r.id, r.text);
+  try {
+    const { data } = await supabase.rpc('search_legal_rules', { q: question, match_count: 3 });
+    // deno-lint-ignore no-explicit-any
+    const rows: any[] = data ?? [];
+    const top = Number(rows[0]?.score ?? 0);
+    for (const r of rows) {
+      // Alakasız kuralı bağlayıcı diye vermeyelim: en iyi skorun %45'i altını ele.
+      if (top > 0 && Number(r.score ?? 0) < top * 0.45) continue;
+      if (!picked.has(r.id)) picked.set(r.id, String(r.body ?? ''));
+    }
+  } catch {
+    // arama başarısızsa yalnız anahtar kelime eşleşmeleriyle devam
+  }
+  if (picked.size === 0) return '';
   return (
     '\n\n### KESİN HUKUKİ KURALLAR — BUNLARA UYMAK ZORUNDASIN (yerleşik içtihat; kendi tahminini bunlarla düzelt):\n' +
-    hits.map((h) => '• ' + h.text).join('\n') +
-    '\nBu kurallara aykırı yanıt verme; soru bu konudaysa cevabını doğrudan bu kurala dayandır.'
+    [...picked.values()].map((t) => '• ' + t).join('\n') +
+    '\nBu kurallara aykırı yanıt verme; soru bu konudaysa cevabını doğrudan bu kurala dayandır. ' +
+    'Kural listesi soruyla ilgisizse yok say.'
   );
 }
 
@@ -543,7 +685,12 @@ Deno.serve(async (req) => {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (lastUser?.text) {
       // Önce KESİN KURALLAR (yerleşik içtihat) — modelin tahminini ezer.
-      systemText += matchKB(lastUser.text);
+      // Anahtar kelime + anlam araması birlikte (olay anlatımını da yakalar).
+      try {
+        systemText += await buildRules(supabase, lastUser.text);
+      } catch {
+        // kural beslemesi başarısızsa devam
+      }
       // Gerçek kanun madde metinleri (kendi mevzuat veritabanımız) — genel doğruluk.
       try {
         systemText += await buildMevzuat(supabase, lastUser.text);
