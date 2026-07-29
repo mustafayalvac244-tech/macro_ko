@@ -1,0 +1,332 @@
+import { useState } from 'react';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
+import { Ionicons } from '@expo/vector-icons';
+import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { supabase } from '@/lib/supabase';
+import { useT } from '@/i18n';
+import { fonts, spacing, shadow } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
+
+/** İnceleme odağı — AI'ya "neye bakayım" talimatını belirler. */
+type DocKind = 'sozlesme' | 'dilekce' | 'ihtarname' | 'karar' | 'diger';
+
+const KINDS: DocKind[] = ['sozlesme', 'dilekce', 'ihtarname', 'karar', 'diger'];
+
+/** Bağlam taşmasın diye üst sınır; aşarsa baştan kırpılır ve kullanıcı uyarılır. */
+const MAX_CHARS = 12000;
+
+export default function DocumentReviewScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const t = useT();
+
+  const [kind, setKind] = useState<DocKind>('sozlesme');
+  const [text, setText] = useState('');
+  const [result, setResult] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pickFile = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['text/plain', 'text/*', 'application/rtf'],
+        copyToCacheDirectory: true,
+      });
+      if (res.canceled || !res.assets?.[0]) return;
+      const asset = res.assets[0];
+      const content = await new File(asset.uri).text();
+      if (!content.trim()) {
+        Alert.alert(t('docrev.title'), t('docrev.fileEmpty'));
+        return;
+      }
+      setText(content.slice(0, MAX_CHARS));
+    } catch {
+      Alert.alert(t('docrev.title'), t('docrev.fileErr'));
+    }
+  };
+
+  const analyze = async () => {
+    const body = text.trim();
+    if (body.length < 80 || busy) return;
+    setBusy(true);
+    setError(null);
+    setResult('');
+    try {
+      const prompt =
+        `Aşağıdaki ${t(`docrev.kind.${kind}` as const)} metnini KIDEMLİ AVUKAT gözüyle incele. ` +
+        'Şu başlıklarla, madde madde ve KISA yaz:\n' +
+        '1) ÖZET — belge ne diyor (2-3 cümle)\n' +
+        '2) RİSKLER — müvekkil aleyhine olan, tehlikeli veya tek taraflı hükümler (her biri için neden riskli)\n' +
+        '3) EKSİKLER — olması gerekip de olmayan hükümler/unsurlar\n' +
+        '4) SÜRELER VE TARİHLER — metinde geçen ya da kaçırılmaması gereken süreler\n' +
+        '5) ÖNERİLEN DEĞİŞİKLİKLER — eklenmesi/düzeltilmesi gereken madde önerileri\n' +
+        'Emin olmadığın noktada "teyit edilmeli" de; metinde olmayan bilgiyi UYDURMA.\n\n' +
+        '--- BELGE METNİ ---\n' +
+        body;
+
+      const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
+        body: { messages: [{ role: 'user', text: prompt }] },
+      });
+      if (fnErr) {
+        let code = '';
+        try {
+          const ctx = (fnErr as { context?: Response }).context;
+          if (ctx && typeof ctx.json === 'function') code = (await ctx.json())?.error ?? '';
+        } catch {
+          // gövde okunamadı
+        }
+        setError(
+          code === 'daily_quota'
+            ? t('ai.errDailyQuota')
+            : code === 'quota_exceeded'
+              ? t('ai.errQuota')
+              : code === 'rate_limit'
+                ? t('ai.errRateLimit')
+                : t('ai.errGeneric')
+        );
+        return;
+      }
+      const reply = (data as { text?: string } | null)?.text?.trim();
+      if (!reply) {
+        setError(t('ai.errGeneric'));
+        return;
+      }
+      setResult(reply);
+    } catch {
+      setError(t('ai.errGeneric'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const tooShort = text.trim().length < 80;
+
+  return (
+    <Screen edges={['top', 'left', 'right', 'bottom']}>
+      <ScreenHeader title={t('docrev.title')} showBack />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <Text style={styles.lead}>{t('docrev.lead')}</Text>
+
+          <View style={styles.chips}>
+            {KINDS.map((k) => (
+              <Pressable key={k} onPress={() => setKind(k)} style={[styles.chip, kind === k && styles.chipActive]}>
+                <Text style={[styles.chipText, kind === k && styles.chipTextActive]}>{t(`docrev.kind.${k}` as const)}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Pressable onPress={pickFile} style={({ pressed }) => [styles.fileBtn, pressed && { opacity: 0.85 }]}>
+            <Ionicons name="document-attach-outline" size={18} color={colors.primary} />
+            <Text style={styles.fileBtnText}>{t('docrev.pickFile')}</Text>
+          </Pressable>
+
+          <TextInput
+            style={styles.area}
+            value={text}
+            onChangeText={(v) => setText(v.slice(0, MAX_CHARS))}
+            placeholder={t('docrev.placeholder')}
+            placeholderTextColor={colors.textMuted}
+            multiline
+            textAlignVertical="top"
+          />
+          <View style={styles.metaRow}>
+            <Text style={styles.meta}>{t('docrev.chars', { n: text.trim().length })}</Text>
+            {text.length >= MAX_CHARS && <Text style={styles.metaWarn}>{t('docrev.truncated')}</Text>}
+          </View>
+
+          <Pressable
+            onPress={analyze}
+            disabled={tooShort || busy}
+            style={({ pressed }) => [styles.cta, (tooShort || busy) && styles.ctaOff, pressed && { opacity: 0.85 }]}
+          >
+            {busy ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Ionicons name="sparkles" size={17} color="#FFFFFF" />
+            )}
+            <Text style={styles.ctaText}>{busy ? t('docrev.analyzing') : t('docrev.analyze')}</Text>
+          </Pressable>
+
+          {!!error && (
+            <View style={styles.errBox}>
+              <Ionicons name="alert-circle-outline" size={17} color={colors.danger} />
+              <Text style={styles.errText}>{error}</Text>
+            </View>
+          )}
+
+          {!!result && (
+            <View style={styles.resultCard}>
+              <View style={styles.resultHead}>
+                <Text style={styles.resultTitle}>{t('docrev.resultTitle')}</Text>
+                <Pressable onPress={() => Share.share({ message: result }).catch(() => {})} hitSlop={8}>
+                  <Ionicons name="share-outline" size={19} color={colors.primary} />
+                </Pressable>
+              </View>
+              {/* selectable: avukat bulguları kopyalayıp dilekçeye taşıyabilsin */}
+              <Text selectable style={styles.resultText}>{result}</Text>
+              <Text style={styles.disclaimer}>{t('docrev.disclaimer')}</Text>
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
+  );
+}
+
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  flex: { flex: 1 },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxxl,
+  },
+  lead: {
+    fontFamily: fonts.regular,
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  chip: {
+    borderRadius: 999,
+    backgroundColor: colors.surfaceAlt,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+  },
+  chipText: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 12.5,
+    color: colors.textSecondary,
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+  },
+  fileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginBottom: spacing.sm,
+  },
+  fileBtnText: {
+    fontFamily: fonts.bold,
+    fontWeight: '700',
+    fontSize: 13.5,
+    color: colors.primary,
+  },
+  area: {
+    minHeight: 190,
+    maxHeight: 320,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing.md,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textPrimary,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    marginBottom: spacing.md,
+  },
+  meta: {
+    fontFamily: fonts.medium,
+    fontSize: 11.5,
+    color: colors.textMuted,
+  },
+  metaWarn: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 11.5,
+    color: colors.warning,
+  },
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    paddingVertical: 15,
+  },
+  ctaOff: {
+    opacity: 0.45,
+  },
+  ctaText: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 15,
+    color: '#FFFFFF',
+  },
+  errBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 12,
+    padding: spacing.sm,
+    marginTop: spacing.md,
+  },
+  errText: {
+    fontFamily: fonts.medium,
+    fontSize: 12.5,
+    color: colors.danger,
+    flex: 1,
+    lineHeight: 18,
+  },
+  resultCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+    ...shadow.card,
+  },
+  resultHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  resultTitle: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: -0.3,
+    color: colors.textPrimary,
+  },
+  resultText: {
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 21,
+    color: colors.textPrimary,
+  },
+  disclaimer: {
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.textMuted,
+    marginTop: spacing.md,
+  },
+});
