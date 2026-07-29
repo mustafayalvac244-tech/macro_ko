@@ -1109,7 +1109,7 @@ function SummaryModal({
               </Text>
             </View>
           )}
-          {!loading && !error && !!summary && <Text style={styles.docText}>{summary}</Text>}
+          {!loading && !error && !!summary && <Text selectable style={styles.docText}>{summary}</Text>}
         </ScrollView>
       </Screen>
     </Modal>

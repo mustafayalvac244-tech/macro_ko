@@ -249,7 +249,7 @@ export default function ContractScreen() {
                   <Text allowFontScaling={false} style={styles.warnText}>{w}</Text>
                 </View>
               ))}
-              <Text allowFontScaling={false} style={styles.docText}>{preview?.body}</Text>
+              <Text allowFontScaling={false} selectable style={styles.docText}>{preview?.body}</Text>
             </ScrollView>
             <Pressable style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]} onPress={onShare}>
               <Ionicons name="share-social" size={17} color={colors.textInverse} />

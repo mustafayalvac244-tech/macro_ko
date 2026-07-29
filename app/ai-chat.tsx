@@ -223,7 +223,9 @@ function Bubble({ message }: { message: AiMessage }) {
   return (
     <View style={[styles.bubbleRow, isUser ? styles.rowEnd : styles.rowStart]}>
       <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleModel]}>
-        <Text style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>{message.text}</Text>
+        {/* selectable: metne basılı tutunca OS'in "Kopyala" menüsü açılır
+            (alıcı geri bildirimi: "AI'dan yazı kopyalanmıyor"). */}
+        <Text selectable style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>{message.text}</Text>
       </View>
     </View>
   );
