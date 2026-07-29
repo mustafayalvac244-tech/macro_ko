@@ -10,8 +10,6 @@ import {
   CHECKLIST_ITEMS,
   generateAiBrief,
   generateTemplateBrief,
-  getOpenAiKey,
-  setOpenAiKey,
   type ChecklistItem,
 } from '@/utils/briefEngine';
 import { useT } from '@/i18n';
@@ -56,13 +54,6 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
   const [generating, setGenerating] = useState(false);
   const [loadedFromDb, setLoadedFromDb] = useState(false);
 
-  // AI anahtarı (opsiyonel)
-  const [showAiKey, setShowAiKey] = useState(false);
-  const [aiKey, setAiKeyState] = useState('');
-  const [hasAiKey, setHasAiKey] = useState(false);
-  useEffect(() => {
-    getOpenAiKey().then((k) => setHasAiKey(!!k));
-  }, []);
 
   // DB'deki kayıt gelince yerel duruma bir kez yükle
   useEffect(() => {
@@ -123,15 +114,14 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
     setGenerating(true);
     let result: BriefSections | null = null;
     let usedSource = 'template';
-    if (hasAiKey) {
-      result = await generateAiBrief({ caseItem });
-      if (result) usedSource = 'ai';
-    }
+    // Her zaman önce Vekil AI denenir (anahtarsız); kota/ağ hatasında şablona düşer.
+    result = await generateAiBrief({ caseItem });
+    if (result) usedSource = 'ai';
     if (!result) result = generateTemplateBrief({ caseItem });
     setSections(result);
     setSource(usedSource);
     setGenerating(false);
-    if (hasAiKey && usedSource === 'template') {
+    if (usedSource === 'template') {
       Alert.alert(t('plan.title'), t('plan.aiFailed'));
     }
   };
@@ -198,34 +188,12 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
           onPress={handleGenerate}
           fullWidth
         />
-        <Pressable style={styles.aiKeyRow} onPress={() => setShowAiKey((v) => !v)}>
-          <Ionicons name={hasAiKey ? 'key' : 'key-outline'} size={13} color={colors.textMuted} />
-          <Text style={styles.aiKeyText}>{hasAiKey ? t('plan.aiOn') : t('plan.aiOff')}</Text>
-          <Ionicons name={showAiKey ? 'chevron-up' : 'chevron-down'} size={13} color={colors.textMuted} />
-        </Pressable>
-        {showAiKey && (
-          <View style={styles.aiKeyBox}>
-            <Input
-              placeholder="sk-..."
-              value={aiKey}
-              onChangeText={setAiKeyState}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Button
-              label={t('common.save')}
-              size="sm"
-              variant="secondary"
-              onPress={async () => {
-                await setOpenAiKey(aiKey);
-                setHasAiKey(!!aiKey.trim());
-                setShowAiKey(false);
-                setAiKeyState('');
-              }}
-            />
-            <Text style={styles.aiKeyHint}>{t('plan.aiHint')}</Text>
-          </View>
-        )}
+        {/* Anahtarsız: brief artık Vekil AI ile üretilir, kullanıcıdan API
+            anahtarı istenmez (eskiden istiyordu ve özellik fiilen ölüydü). */}
+        <View style={styles.aiKeyRow}>
+          <Ionicons name="sparkles" size={13} color={colors.primary} />
+          <Text style={styles.aiKeyText}>{t('plan.aiOn')}</Text>
+        </View>
 
         {hasBrief &&
           SECTION_KEYS.map(({ key, label }) => (

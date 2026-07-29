@@ -1,25 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
 import type { BriefSections } from '@/hooks/useBriefs';
 import type { CaseWithClient } from '@/types/database';
-
-const KEY_STORAGE = 'VEKIL_OPENAI_KEY';
-
-export async function getOpenAiKey(): Promise<string | null> {
-  try {
-    return (await AsyncStorage.getItem(KEY_STORAGE)) || null;
-  } catch {
-    return null;
-  }
-}
-
-export async function setOpenAiKey(key: string): Promise<void> {
-  try {
-    if (key.trim()) await AsyncStorage.setItem(KEY_STORAGE, key.trim());
-    else await AsyncStorage.removeItem(KEY_STORAGE);
-  } catch {
-    // saklanamazsa sessizce geç — şablon motoru çalışmaya devam eder
-  }
-}
 
 interface BriefInput {
   caseItem: CaseWithClient;
@@ -63,34 +44,52 @@ export function generateTemplateBrief({ caseItem: c }: BriefInput): BriefSection
   };
 }
 
-/** OpenAI ile brief üretir; anahtar yoksa veya hata olursa null döner (şablona düşülür). */
-export async function generateAiBrief({ caseItem: c }: BriefInput): Promise<BriefSections | null> {
-  const key = await getOpenAiKey();
-  if (!key) return null;
+/** Modelin JSON'unu bulup ayrıştırır (bazen ```json bloğu içinde döner). */
+function parseBriefJson(raw: string): Partial<BriefSections> | null {
+  const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start < 0 || end <= start) return null;
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1)) as Partial<BriefSections>;
+  } catch {
+    return null;
+  }
+}
 
-  const taraflar = `${c.client?.full_name ?? 'Müvekkil'} vs ${c.opposing_party || 'Karşı taraf'}`;
+/**
+ * Duruşma brief'ini KENDİ AI'mızla (Vekil AI / ai-chat) üretir — ANAHTARSIZ.
+ * Eskiden kullanıcıdan kendi OpenAI anahtarını istiyordu; kimse anahtar
+ * girmediği için özellik fiilen ölüydü ve hep şablona düşüyordu. Artık
+ * sunucudaki anahtarla çalışır, mevzuat + içtihat beslemesinden yararlanır.
+ * Hata/kota durumunda null döner ve şablon motoru devreye girer.
+ */
+export async function generateAiBrief({ caseItem: c }: BriefInput): Promise<BriefSections | null> {
+  const taraflar = `${c.client?.full_name ?? 'Müvekkil'} — karşı taraf: ${c.opposing_party || 'belirtilmemiş'}`;
   const talep = c.description || c.title;
   const tur = c.case_type || `${catLabel(c)} davası`;
+  const mahkeme = c.court_name ? ` Mahkeme: ${c.court_name}.` : '';
 
-  const prompt = `Sen Türkiye'de avukatsın. ${tur} davası için duruşma brief'i hazırla. Taraflar: ${taraflar}. Talep: ${talep}. Şunları içersin: açılış konuşması, hukuki dayanaklar (madde numaralarıyla), tanık soruları, rakip savunma tahminleri, duruşma sonrası yapılacaklar. Türkçe yaz. Yanıtı ŞU JSON şemasında ver: {"acilis": "...", "dayanaklar": "...", "tanik": "...", "karsi": "...", "sonrasi": "..."}`;
+  const prompt =
+    `Bir ${tur} dosyası için DURUŞMA BRIEF'i hazırla. Taraflar: ${taraflar}. Talep/konu: ${talep}.${mahkeme}\n` +
+    'Şu beş bölümü doldur:\n' +
+    '- acilis: duruşmada okunacak kısa açılış beyanı\n' +
+    '- dayanaklar: hukuki dayanaklar (yalnız EMİN OLDUĞUN madde numaralarını yaz; emin değilsen kanun adını yaz)\n' +
+    '- tanik: tanığa sorulacak sorular\n' +
+    '- karsi: karşı tarafın olası savunmaları ve bunlara hazır cevaplar\n' +
+    '- sonrasi: duruşma sonrası yapılacaklar listesi\n' +
+    'SADECE şu JSON şemasında yanıt ver, başka hiçbir açıklama yazma:\n' +
+    '{"acilis":"...","dayanaklar":"...","tanik":"...","karsi":"...","sonrasi":"..."}';
 
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.4,
-      }),
+    const { data, error } = await supabase.functions.invoke('ai-chat', {
+      body: { messages: [{ role: 'user', text: prompt }] },
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const raw = data.choices?.[0]?.message?.content;
+    if (error) return null;
+    const raw = (data as { text?: string } | null)?.text;
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<BriefSections>;
-    if (!parsed.acilis) return null;
+    const parsed = parseBriefJson(raw);
+    if (!parsed?.acilis) return null;
     return {
       acilis: parsed.acilis ?? '',
       dayanaklar: parsed.dayanaklar ?? '',
