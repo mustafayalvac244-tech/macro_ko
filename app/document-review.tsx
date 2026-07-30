@@ -29,24 +29,76 @@ export default function DocumentReviewScreen() {
   const [text, setText] = useState('');
   const [result, setResult] = useState('');
   const [busy, setBusy] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Dosyadan metin al: PDF / DOCX / UDF (UYAP) / TXT. Bu formatlardan metin
+   * çıkarımı sunucudaki doc-extract fonksiyonunda yapılır (telefonda native
+   * kütüphane gerekirdi). Alıcı isteği: "pdf, doc ve UDF ekleyemeyecek miyiz?"
+   */
   const pickFile = async () => {
+    setExtracting(true);
     try {
       const res = await DocumentPicker.getDocumentAsync({
-        type: ['text/plain', 'text/*', 'application/rtf'],
+        type: [
+          'application/pdf',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+          'application/msword', // .doc
+          'text/plain',
+          '*/*', // .udf gibi bilinmeyen MIME'ler için
+        ],
         copyToCacheDirectory: true,
       });
       if (res.canceled || !res.assets?.[0]) return;
       const asset = res.assets[0];
-      const content = await new File(asset.uri).text();
-      if (!content.trim()) {
+      const name = (asset.name || '').toLowerCase();
+
+      // Düz metin dosyasını doğrudan oku (sunucuya gitmeye gerek yok).
+      if (name.endsWith('.txt')) {
+        const content = await new File(asset.uri).text();
+        if (!content.trim()) {
+          Alert.alert(t('docrev.title'), t('docrev.fileEmpty'));
+          return;
+        }
+        setText(content.slice(0, MAX_CHARS));
+        return;
+      }
+
+      const base64 = await new File(asset.uri).base64();
+      const { data, error: fnErr } = await supabase.functions.invoke('doc-extract', {
+        body: { filename: name, base64 },
+      });
+      if (fnErr) {
+        let code = '';
+        try {
+          const ctx = (fnErr as { context?: Response }).context;
+          if (ctx && typeof ctx.json === 'function') code = (await ctx.json())?.error ?? '';
+        } catch {
+          // gövde okunamadı
+        }
+        Alert.alert(
+          t('docrev.title'),
+          code === 'pdf_no_text'
+            ? t('docrev.errScanned')
+            : code === 'doc_legacy'
+              ? t('docrev.errDocLegacy')
+              : code === 'too_large'
+                ? t('docrev.errTooLarge')
+                : t('docrev.fileErr')
+        );
+        return;
+      }
+      const extracted = (data as { text?: string } | null)?.text ?? '';
+      if (!extracted.trim()) {
         Alert.alert(t('docrev.title'), t('docrev.fileEmpty'));
         return;
       }
-      setText(content.slice(0, MAX_CHARS));
+      setText(extracted.slice(0, MAX_CHARS));
     } catch {
       Alert.alert(t('docrev.title'), t('docrev.fileErr'));
+    } finally {
+      setExtracting(false);
     }
   };
 
@@ -121,9 +173,17 @@ export default function DocumentReviewScreen() {
             ))}
           </View>
 
-          <Pressable onPress={pickFile} style={({ pressed }) => [styles.fileBtn, pressed && { opacity: 0.85 }]}>
-            <Ionicons name="document-attach-outline" size={18} color={colors.primary} />
-            <Text style={styles.fileBtnText}>{t('docrev.pickFile')}</Text>
+          <Pressable
+            onPress={pickFile}
+            disabled={extracting}
+            style={({ pressed }) => [styles.fileBtn, pressed && { opacity: 0.85 }, extracting && { opacity: 0.6 }]}
+          >
+            {extracting ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="document-attach-outline" size={18} color={colors.primary} />
+            )}
+            <Text style={styles.fileBtnText}>{extracting ? t('docrev.extracting') : t('docrev.pickFile')}</Text>
           </Pressable>
 
           <TextInput
