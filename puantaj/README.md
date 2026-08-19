@@ -60,6 +60,13 @@ sonra hücrelerin üzerinde fareyi basılı tutup sürükleyin. Bir kişinin
 sütunları anında güncellenir. **Boş** sütunu 0 olana kadar ay bitmemiştir;
 alt çubukta kaç boş hücre kaldığı yazar.
 
+**Cumartesi-pazar çalışılmıyorsa** (⚙ Ayarlar → *Cumartesi - Pazar
+çalışılmıyor*, varsayılan açık): hafta sonu günleri boş bırakıldığında
+"eksik" sayılmaz, alt çubukta "31 gün" yerine "22 iş günü" yazar. Hafta
+sonu da çalışılan bir işyeriyseniz bu ayarı kapatın; o zaman ayın tamamı
+(cumartesi-pazar dahil) doldurulması gereken gün sayılır. Excel'e
+aktardığınızda da DURUM sütunu aynı kurala göre hesaplanır.
+
 ### Personel ve kadro
 
 İki ayrı kavram, karıştırmayın:

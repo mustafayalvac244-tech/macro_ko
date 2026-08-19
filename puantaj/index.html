@@ -415,6 +415,8 @@ table.liste td.dar{width:130px} table.liste td.cokdar{width:44px;text-align:cent
  <div class="modal" style="width:min(560px,100%)">
   <header><h2>Ayarlar</h2><button class="kapat" data-kapat>×</button></header>
   <div class="govde">
+    <label class="onay"><input type="checkbox" id="ayHaftaSonuTatil"> Cumartesi - Pazar çalışılmıyor
+      <span style="color:var(--muted);font-weight:400"> — boş bırakılan hafta sonu günleri "eksik" sayılmaz</span></label>
     <label class="onay"><input type="checkbox" id="ayHaftaSonu"> Hafta sonlarını gri göster</label>
     <label class="onay"><input type="checkbox" id="ayTatil"> Resmî tatilleri kırmızı göster</label>
     <label class="onay"><input type="checkbox" id="ayPasif"> O ay kadroda olmayan aktif personeli de göster</label>
@@ -523,6 +525,8 @@ const ayAnahtar = (y, a) => `${y}-${String(a).padStart(2,"0")}`;   // a: 1-12
 const gunSayisi = (y, a) => new Date(y, a, 0).getDate();
 /** Pazartesi=1 ... Pazar=7 */
 const haftaninGunu = (y, a, g) => (new Date(y, a-1, g).getDay() + 6) % 7 + 1;
+/** Bu gün "beklenen" iş günü mü? Hafta sonu tatil ayarı açıksa Cmt/Paz hariç. */
+const isGunuMu = (y, a, g) => !D.ayarlar.haftaSonuTatil || haftaninGunu(y, a, g) < 6;
 const yeniId = () => "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 /** Türkçe'ye duyarlı büyük harfe çevirme: "i" -> "İ", "ı" -> "I" */
@@ -559,7 +563,7 @@ const VARSAYILAN = {
   personel: [],                                  // {id, ad, tc, yer, aktif}
   kayit: {},                                     // {"2025-07": {personelId: {gun: kod}}}
   kadro: {},                                     // {"2025-07": [personelId, ...]} o ayın listesi
-  ayarlar: { haftaSonu:true, tatil:true, tumAktif:false, boyut:26,
+  ayarlar: { haftaSonu:true, tatil:true, tumAktif:false, boyut:26, haftaSonuTatil:true,
     firma: "",
     /* İş Kanunu md.53 asgari süreleri — panelden değiştirilebilir */
     izinKademe: [{ yil:1, gun:14 }, { yil:6, gun:20 }, { yil:15, gun:26 }],
@@ -772,6 +776,8 @@ function tabloCiz(){
   h += `</tr></thead><tbody>`;
 
   const sutunTop = new Array(n+1).fill(0);
+  let isGunuSayisi = 0, toplamBos = 0;
+  for (let g = 1; g <= n; g++) if (isGunuMu(aktifYil, aktifAy, g)) isGunuSayisi++;
   kisiler.forEach((p, i) => {
     const satir = (ayVerisi(aktifYil, aktifAy)[p.id]) || {};
     let sc=0, si=0, sr=0, sd=0, sb=0;
@@ -785,11 +791,12 @@ function tabloCiz(){
       else if (k === "İ") si++;
       else if (k === "R") sr++;
       else if (k) sd++;
-      else sb++;
+      else if (isGunuMu(aktifYil, aktifAy, g)) sb++;
       const bg = buAy && g === bugun.getDate() ? " bugun" : "";
       h += `<td class="${gunSinif[g]}${bg}" data-pid="${p.id}" data-gun="${g}"
               ${k ? `data-k="${k}"` : ""}>${k}</td>`;
     }
+    toplamBos += sb;
     h += `<td class="top t-c ${sc?"":"sifir"}">${sc}</td>
           <td class="top t-i ${si?"":"sifir"}">${si}</td>
           <td class="top t-r ${sr?"":"sifir"}">${sr}</td>
@@ -804,12 +811,9 @@ function tabloCiz(){
   h += `<td class="top" colspan="5"></td></tr></tfoot></table>`;
   kap.innerHTML = h;
 
-  const toplamBos = kisiler.length * n - kisiler.reduce((t, p) => {
-    const s = (ayVerisi(aktifYil, aktifAy)[p.id]) || {};
-    return t + Object.keys(s).filter(g => +g <= n).length;
-  }, 0);
+  const ayEtiket = D.ayarlar.haftaSonuTatil ? `${isGunuSayisi} iş günü` : `${n} gün`;
   $("#durumMetin").textContent =
-    `${kisiler.length} personel · ${n} gün` + (toplamBos ? ` · ${toplamBos} boş hücre` : " · tamamlandı ✓");
+    `${kisiler.length} personel · ${ayEtiket}` + (toplamBos ? ` · ${toplamBos} boş hücre` : " · tamamlandı ✓");
 }
 
 /* ============================================================
@@ -837,7 +841,7 @@ function toplamlariTazele(pid){
   for (let g = 1; g <= n; g++){
     const k = s[g] || "";
     if (k === "Ç") sc++; else if (k === "İ") si++; else if (k === "R") sr++;
-    else if (k) sd++; else sb++;
+    else if (k) sd++; else if (isGunuMu(aktifYil, aktifAy, g)) sb++;
   }
   const hucreler = tr.querySelectorAll("td.top");
   [sc, si, sr, sd, sb].forEach((v, i) => {
@@ -1802,6 +1806,11 @@ function ayaSayfaXml(yil, ay){
   const ILK_VERI = 5;
   const sonVeri = Math.max(ILK_VERI, ILK_VERI + kisiler.length - 1);
   const ayakSatir = sonVeri + 1;
+  /* "Beklenen gün" B2'de hesaplanır: hafta sonu tatil ayarı açıksa iş günü (Cmt/Paz hariç),
+     kapalıysa ayın tamamı. DURUM sütunu buna göre "eksik" sayar. */
+  const gunSayisiIfade = D.ayarlar.haftaSonuTatil
+    ? `NETWORKDAYS($A$2,EOMONTH($A$2,0))` : `DAY(EOMONTH($A$2,0))`;
+  const beklenen = `$B$2`;
 
   const gunStili = g => {
     if (g > n) return S.gunGecersiz;
@@ -1824,7 +1833,7 @@ function ayaSayfaXml(yil, ay){
   for (let g = 1; g <= n; g++) if (tat[`${ay}-${g}`]) tatilAdlari.push(`${g} ${tat[`${ay}-${g}`]}`);
   s += `<row r="2" ht="18" customHeight="1">` +
     hucre("A2", excelTarih(yil, ay, 1), S.tarih) +
-    hucre("B2", null, S.sayi, `DAY(EOMONTH(A2,0))`) +
+    hucre("B2", null, S.sayi, gunSayisiIfade) +
     hucre("C2", null, S.bilgi, `COUNTA(B${ILK_VERI}:B${sonVeri})&" KİŞİ"`) +
     hucre("D2", KODLAR.map(k => `${k.kod} ${k.ad}`).join("   ·   "), S.bilgiSol);
   for (let c = 5; c <= SUT.gun31; c++) s += hucre(sutunAdi(c) + "2", "", S.bilgiSol);
@@ -1869,7 +1878,7 @@ function ayaSayfaXml(yil, ay){
       `SUM(${sutunAdi(SUT.top1)}${r}:${sutunAdi(SUT.topSon)}${r})`);
     s += hucre(sutunAdi(SUT.durum) + r, null, S.durum,
       `IF(COUNTA(${aralik})=0,"— boş —",` +
-      `IF(COUNTA(${aralik})<$B$2,"⚠ "&($B$2-COUNTA(${aralik}))&" gün eksik","✓ TAMAM"))`);
+      `IF(COUNTA(${aralik})<${beklenen},"⚠ "&(${beklenen}-COUNTA(${aralik}))&" gün eksik","✓ TAMAM"))`);
     s += `</row>`;
   });
 
@@ -2624,6 +2633,7 @@ $("#btnIceAktarOnay").addEventListener("click", aktarimiUygula);
 
 /* Ayarlar */
 $("#btnAyarlar").addEventListener("click", () => {
+  $("#ayHaftaSonuTatil").checked = D.ayarlar.haftaSonuTatil;
   $("#ayHaftaSonu").checked = D.ayarlar.haftaSonu;
   $("#ayTatil").checked     = D.ayarlar.tatil;
   $("#ayPasif").checked     = D.ayarlar.tumAktif;
@@ -2634,6 +2644,7 @@ const ayarBagla = (id, alan, deger) =>
   $(id).addEventListener("change", e => {
     D.ayarlar[alan] = deger(e.target); kaydet(); ciz();
   });
+ayarBagla("#ayHaftaSonuTatil", "haftaSonuTatil", t => t.checked);
 ayarBagla("#ayHaftaSonu", "haftaSonu",   t => t.checked);
 ayarBagla("#ayTatil",     "tatil",       t => t.checked);
 ayarBagla("#ayPasif",     "tumAktif",    t => t.checked);
