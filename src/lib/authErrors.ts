@@ -6,7 +6,7 @@ const PATTERNS: Array<[RegExp, string]> = [
   [/email rate limit exceeded|over_email_send_rate_limit/i, 'Kısa sürede çok fazla deneme yapıldı. Lütfen bir süre sonra tekrar deneyin.'],
   [/for security purposes.*only request this after (\d+) seconds?/i, 'Güvenlik nedeniyle lütfen kısa bir süre sonra tekrar deneyin.'],
   [/user already registered|already been registered/i, 'Bu e-posta ile zaten bir hesap var. Giriş yapmayı deneyin.'],
-  [/password should be at least (\d+) characters?/i, 'Şifre en az 6 karakter olmalı.'],
+  [/password should be at least (\d+) characters?/i, 'Şifre en az 8 karakter olmalı.'],
   [/password should contain/i, 'Şifre gerekli karakter çeşitlerini içermiyor (harf ve rakam kullanın).'],
   [/unable to validate email address|invalid format|invalid email/i, 'Geçerli bir e-posta adresi girin.'],
   [/email not confirmed/i, 'E-posta adresiniz henüz doğrulanmamış. Gelen kutunuzu kontrol edin.'],

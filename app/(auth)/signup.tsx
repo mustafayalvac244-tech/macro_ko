@@ -80,7 +80,7 @@ export default function SignupScreen() {
       setLocalError(t('auth.emailRequired'));
       return;
     }
-    if (password.length < 6) {
+    if (password.length < 8) {
       setLocalError(t('auth.passwordShort'));
       return;
     }

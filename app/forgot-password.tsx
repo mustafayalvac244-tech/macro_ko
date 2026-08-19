@@ -114,7 +114,7 @@ export default function ForgotPasswordScreen() {
                 label={t('forgot.submit')}
                 onPress={handleUpdatePassword}
                 loading={isSubmitting}
-                disabled={code.trim().length < 6 || newPassword.length < 6}
+                disabled={code.trim().length < 6 || newPassword.length < 8}
                 fullWidth
                 size="lg"
                 style={styles.submit}

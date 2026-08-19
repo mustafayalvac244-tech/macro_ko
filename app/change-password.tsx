@@ -88,7 +88,7 @@ export default function ChangePasswordScreen() {
             label={t('forgot.submit')}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={!currentPassword || newPassword.length < 6 || !confirmPassword}
+            disabled={!currentPassword || newPassword.length < 8 || !confirmPassword}
             fullWidth
             size="lg"
             style={styles.submit}
