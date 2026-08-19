@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puantaj Cetveli</title>
+<style>
+:root{
+  --bg:#f4f6f9; --panel:#ffffff; --line:#d8dee8; --line-strong:#b6c0d0;
+  --text:#16202e; --muted:#66748a; --accent:#1f5fa9; --accent-soft:#e7f0fb;
+  --head:#233247; --head-text:#ffffff;
+  --c-calisti:#1c7a4a;   --c-calisti-bg:#dff3e7;
+  --c-izin:#b06a00;      --c-izin-bg:#fdefd6;
+  --c-rapor:#a32020;     --c-rapor-bg:#fbe0e0;
+  --c-yarim:#5a4bb5;     --c-yarim-bg:#e8e5fa;
+  --c-devamsiz:#4a5464;  --c-devamsiz-bg:#e3e7ed;
+  --c-ucretsiz:#8a6d3b;  --c-ucretsiz-bg:#f2ead9;
+  --c-dogum:#0b6f86;     --c-dogum-bg:#dcf0f5;
+  --hafta-sonu:#eef1f6; --tatil:#fdf2f2; --tatil-line:#e8b9b9;
+  --cell:26px; --namew:190px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+  font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  background:var(--bg); color:var(--text);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+
+/* ---------- ÜST BAR ---------- */
+header{
+  background:var(--head); color:var(--head-text);
+  display:flex; align-items:center; gap:14px; padding:8px 14px; flex-wrap:wrap;
+  box-shadow:0 1px 4px rgba(0,0,0,.18); z-index:40;
+}
+header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+header h1 span{opacity:.6;font-weight:400}
+.ay-nav{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);border-radius:7px;padding:3px}
+.ay-nav button{background:transparent;border:0;color:#fff;padding:4px 9px;border-radius:5px;font-size:15px;line-height:1}
+.ay-nav button:hover{background:rgba(255,255,255,.18)}
+.ay-nav .ay-adi{min-width:150px;text-align:center;font-weight:600;font-size:14px;padding:0 4px;user-select:none}
+.spacer{flex:1}
+.ubtn{
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.22); color:#fff;
+  padding:6px 11px; border-radius:6px; font-size:13px; white-space:nowrap;
+}
+.ubtn:hover{background:rgba(255,255,255,.2)}
+.ubtn.aktif{background:#fff;color:var(--head);border-color:#fff;font-weight:600}
+
+/* ---------- ARAÇ ÇUBUĞU ---------- */
+.arac{
+  background:var(--panel); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:10px; padding:7px 14px; flex-wrap:wrap; z-index:30;
+}
+.arac-etiket{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.kalemler{display:flex;gap:5px;flex-wrap:wrap}
+.kalem{
+  display:flex;align-items:center;gap:6px;
+  border:1.5px solid var(--line); background:#fff; border-radius:7px;
+  padding:4px 10px 4px 6px; font-size:13px; transition:.12s;
+}
+.kalem .rozet{
+  width:22px;height:22px;border-radius:5px;display:grid;place-items:center;
+  font-weight:700;font-size:12px;
+}
+.kalem:hover{border-color:var(--line-strong)}
+.kalem.aktif{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 2px rgba(31,95,169,.13)}
+.kalem kbd{
+  font:11px/1 ui-monospace,Consolas,monospace;background:#eef1f5;border:1px solid #d3dae4;
+  border-bottom-width:2px;border-radius:4px;padding:2px 4px;color:var(--muted)
+}
+.ayirac{width:1px;align-self:stretch;background:var(--line);margin:0 2px}
+.abtn{background:#fff;border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:13px}
+.abtn:hover{border-color:var(--accent);color:var(--accent)}
+.ipucu{font-size:12px;color:var(--muted)}
+
+/* ---------- TABLO ---------- */
+main{flex:1;overflow:auto;position:relative;background:var(--panel)}
+table.puantaj{border-collapse:separate;border-spacing:0;font-size:13px}
+table.puantaj th,table.puantaj td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:0}
+table.puantaj thead th{
+  position:sticky;top:0;z-index:20;background:var(--head);color:#fff;font-weight:600;
+  text-align:center;height:26px;font-size:12px;
+}
+table.puantaj thead tr.gun-adi th{top:0;height:18px;font-size:9px;font-weight:500;background:#2e405a;letter-spacing:0}
+table.puantaj thead tr.gun-no th{top:18px}
+th.sabit,td.sabit{position:sticky;background:var(--panel);z-index:15}
+thead th.sabit{z-index:25;background:var(--head)}
+th.c-sira,td.c-sira{left:0;width:34px;min-width:34px;text-align:center;color:var(--muted);font-size:11px}
+th.c-ad,td.c-ad{left:34px;width:var(--namew);min-width:var(--namew);text-align:left;padding:0 8px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+th.c-yer,td.c-yer{left:calc(34px + var(--namew));width:96px;min-width:96px;text-align:center;font-size:11px;color:var(--muted)}
+td.c-yer,td.c-ad,td.c-sira{border-right:1px solid var(--line)}
+td.c-yer{border-right:2px solid var(--line-strong)}
+thead th.c-yer{border-right:2px solid var(--line-strong)}
+
+th.gun,td.gun{width:var(--cell);min-width:var(--cell);max-width:var(--cell);text-align:center}
+td.gun{height:26px;cursor:cell;user-select:none;font-weight:600;font-size:12px}
+th.gun{cursor:pointer}
+th.gun:hover{background:var(--accent)}
+td.gun.hs,th.gun.hs{background:var(--hafta-sonu)}
+td.gun.hs:not([data-k]){background:#e3e8f0}
+thead th.gun.hs{background:#4a5f7d}
+thead tr.gun-adi th.gun.hs{background:#5c74957a;background:#566d8e}
+td.gun.tatil{background:var(--tatil);box-shadow:inset 0 -2px 0 var(--tatil-line)}
+thead th.gun.tatil{background:#6d3540}
+td.gun.bugun{outline:2px solid var(--accent);outline-offset:-2px}
+td.gun.imlec{outline:2px solid #111;outline-offset:-2px;z-index:5;position:relative}
+
+td.gun[data-k="Ç"]{background:var(--c-calisti-bg);color:var(--c-calisti)}
+td.gun[data-k="İ"]{background:var(--c-izin-bg);color:var(--c-izin)}
+td.gun[data-k="R"]{background:var(--c-rapor-bg);color:var(--c-rapor)}
+td.gun[data-k="Y"]{background:var(--c-yarim-bg);color:var(--c-yarim)}
+td.gun[data-k="D"]{background:var(--c-devamsiz-bg);color:var(--c-devamsiz)}
+td.gun[data-k="Ü"]{background:var(--c-ucretsiz-bg);color:var(--c-ucretsiz)}
+td.gun[data-k="DİZ"]{background:var(--c-dogum-bg);color:var(--c-dogum);font-size:9px}
+
+th.top,td.top{width:52px;min-width:52px;text-align:center;font-variant-numeric:tabular-nums}
+td.top{font-weight:700;color:var(--muted);background:#fafbfd}
+td.top.t-c{color:var(--c-calisti)} td.top.t-i{color:var(--c-izin)}
+td.top.t-r{color:var(--c-rapor)} td.top.t-y{color:var(--c-yarim)}
+td.top.sifir{color:#c3cad4;font-weight:400}
+th.top:first-of-type,td.top:first-of-type{border-left:2px solid var(--line-strong)}
+tbody tr:hover td.c-ad{background:var(--accent-soft)}
+tbody tr.pasif td.c-ad{color:var(--muted);font-style:italic}
+tfoot td{position:sticky;bottom:0;background:#eef1f6;border-top:2px solid var(--line-strong);
+  height:24px;text-align:center;font-size:11px;font-weight:600;color:var(--muted);z-index:16}
+tfoot td.sabit{z-index:18;text-align:right;padding-right:8px}
+
+.bos-durum{padding:48px 20px;text-align:center;color:var(--muted)}
+.bos-durum b{display:block;font-size:16px;color:var(--text);margin-bottom:6px}
+
+/* ---------- ALT DURUM ---------- */
+footer.durum{
+  background:var(--panel);border-top:1px solid var(--line);padding:6px 14px;
+  display:flex;gap:16px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap;z-index:30
+}
+footer.durum .rozetler{display:flex;gap:10px;flex-wrap:wrap}
+footer.durum .rz{display:flex;align-items:center;gap:5px}
+footer.durum .rz i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+/* ---------- MODAL ---------- */
+.ortu{position:fixed;inset:0;background:rgba(16,24,36,.55);display:grid;place-items:center;z-index:100;padding:20px}
+.ortu[hidden]{display:none}
+.modal{background:var(--panel);border-radius:10px;box-shadow:0 18px 48px rgba(0,0,0,.3);
+  width:min(920px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.modal header{background:var(--panel);color:var(--text);border-bottom:1px solid var(--line);box-shadow:none;padding:12px 16px}
+.modal header h2{margin:0;font-size:16px;flex:1}
+.modal .govde{padding:16px;overflow:auto}
+.modal .altlik{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;background:#fafbfd}
+.kapat{background:transparent;border:0;font-size:22px;line-height:1;color:var(--muted);padding:0 4px}
+.kapat:hover{color:var(--text)}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:8px 16px;font-size:14px;font-weight:500}
+.btn:hover{filter:brightness(1.08)}
+.btn.ikincil{background:#fff;color:var(--text);border:1px solid var(--line)}
+.btn.ikincil:hover{border-color:var(--line-strong)}
+.btn.tehlike{background:#b03030}
+
+table.liste{width:100%;border-collapse:collapse;font-size:13px}
+table.liste th{text-align:left;padding:6px 8px;border-bottom:2px solid var(--line);font-size:11px;
+  text-transform:uppercase;color:var(--muted);letter-spacing:.4px;position:sticky;top:0;background:var(--panel)}
+table.liste td{padding:3px 6px;border-bottom:1px solid var(--line)}
+table.liste input,table.liste select{width:100%;border:1px solid transparent;background:transparent;padding:4px 6px;border-radius:4px}
+table.liste input:hover,table.liste select:hover{border-color:var(--line)}
+table.liste input:focus,table.liste select:focus{border-color:var(--accent);background:#fff;outline:0}
+table.liste td.dar{width:130px} table.liste td.cokdar{width:44px;text-align:center}
+.sil{background:transparent;border:0;color:#b03030;font-size:16px;padding:2px 6px;border-radius:4px}
+.sil:hover{background:#fbe0e0}
+.uyari{background:#fdefd6;border:1px solid #e8cd9a;color:#7a5410;padding:9px 12px;border-radius:6px;font-size:13px;margin-bottom:12px}
+.bilgi{background:var(--accent-soft);border:1px solid #bcd6f0;color:#1a4a80;padding:9px 12px;border-radius:6px;font-size:13px;margin-bottom:12px}
+.ok{background:#dff3e7;border:1px solid #a8d9be;color:#14603a;padding:9px 12px;border-radius:6px;font-size:13px;margin-bottom:12px}
+
+.bildirim{position:fixed;bottom:52px;left:50%;transform:translateX(-50%);background:#233247;color:#fff;
+  padding:10px 18px;border-radius:8px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:200;
+  opacity:0;pointer-events:none;transition:opacity .18s, transform .18s}
+.bildirim.gorunur{opacity:1;transform:translateX(-50%) translateY(-6px)}
+
+.ozet-tab{width:100%;border-collapse:collapse;font-size:12px}
+.ozet-tab th,.ozet-tab td{border:1px solid var(--line);padding:4px 7px;text-align:center}
+.ozet-tab th{background:#eef1f6;font-weight:600;position:sticky;top:0}
+.ozet-tab td:first-child,.ozet-tab th:first-child{text-align:left;white-space:nowrap;position:sticky;left:0;background:var(--panel)}
+.ozet-tab th:first-child{background:#eef1f6;z-index:2}
+.ozet-tab tr:nth-child(even) td{background:#fafbfd}
+.ozet-tab tr:nth-child(even) td:first-child{background:#fafbfd}
+.ozet-tab td.yil-top{font-weight:700;background:#eef1f6 !important}
+
+.alan{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.alan label{font-size:12px;font-weight:600;color:var(--muted)}
+.alan input,.alan select{border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+.satir{display:flex;gap:12px}.satir>*{flex:1}
+.onay{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer}
+
+@media print{
+  body{overflow:visible;height:auto}
+  header,.arac,footer.durum,.ortu,.bildirim{display:none !important}
+  main{overflow:visible}
+  table.puantaj{font-size:9px;width:100%}
+  table.puantaj thead th{background:#333 !important;color:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  td.gun,th.gun{width:auto;min-width:0}
+  td,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .yazdir-baslik{display:block !important}
+  @page{size:A4 landscape;margin:8mm}
+}
+.yazdir-baslik{display:none;text-align:center;font-size:14px;font-weight:700;padding:6px 0 10px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PUANTAJ CETVELİ</h1>
+  <div class="ay-nav">
+    <button id="onceki" title="Önceki ay (Alt + ←)">‹</button>
+    <div class="ay-adi" id="ayAdi">—</div>
+    <button id="sonraki" title="Sonraki ay (Alt + →)">›</button>
+  </div>
+  <button class="ubtn" id="buguneGit">Bu ay</button>
+  <div class="spacer"></div>
+  <button class="ubtn" id="btnPersonel">Personel</button>
+  <button class="ubtn" id="btnOzet">Yıllık Özet</button>
+  <button class="ubtn" id="btnIceAktar">Excel'den Aktar</button>
+  <button class="ubtn" id="btnDisaAktar">Excel'e Aktar</button>
+  <button class="ubtn" id="btnYazdir">Yazdır</button>
+  <button class="ubtn" id="btnAyarlar">⚙</button>
+</header>
+
+<div class="arac">
+  <span class="arac-etiket">Kalem</span>
+  <div class="kalemler" id="kalemler"></div>
+  <div class="ayirac"></div>
+  <button class="abtn" id="btnAyiDoldur" title="Boş kalan tüm günleri seçili kalemle doldur">Boşları Doldur</button>
+  <button class="abtn" id="btnHaftaSonu" title="Hafta sonlarını seçili kalemle işaretle">Hafta Sonları</button>
+  <button class="abtn" id="btnAyiTemizle">Ayı Temizle</button>
+  <div class="ayirac"></div>
+  <button class="abtn" id="btnKadro">Bu Ayın Kadrosu</button>
+  <div class="ayirac"></div>
+  <span class="ipucu">Sürükleyerek boyayın · <b>Ç İ R Y D</b> tuşları · Ok tuşları ile gezinin · Ctrl+Z geri al</span>
+</div>
+
+<main id="tabloAlan">
+  <div class="yazdir-baslik" id="yazdirBaslik"></div>
+  <div id="tabloKap"></div>
+</main>
+
+<footer class="durum">
+  <div class="rozetler" id="lejant"></div>
+  <div class="spacer"></div>
+  <span id="durumMetin"></span>
+</footer>
+
+<div class="bildirim" id="bildirim"></div>
+<input type="file" id="dosyaSec" accept=".xlsx,.json" hidden>
+
+<!-- PERSONEL -->
+<div class="ortu" id="mPersonel" hidden>
+ <div class="modal">
+  <header><h2>Personel Listesi</h2><button class="kapat" data-kapat>×</button></header>
+  <div class="govde">
+    <div class="bilgi">Personel bir kez tanımlanır, her ay otomatik listeye gelir. İşten ayrılanı silmeyin — <b>Aktif</b> kutusunun işaretini kaldırın; geçmiş ayları korunur.</div>
+    <table class="liste">
+      <thead><tr><th style="width:38px">Aktif</th><th>Adı Soyadı</th><th class="dar">TC No</th><th class="dar">Çalışma Yeri</th><th style="width:38px"></th></tr></thead>
+      <tbody id="personelSatir"></tbody>
+    </table>
+  </div>
+  <div class="altlik">
+    <button class="btn ikincil" id="btnPersonelEkle">+ Personel Ekle</button>
+    <div class="spacer"></div>
+    <button class="btn" data-kapat>Tamam</button>
+  </div>
+ </div>
+</div>
+
+<!-- AY KADROSU -->
+<div class="ortu" id="mKadro" hidden>
+ <div class="modal" style="width:min(560px,100%)">
+  <header><h2 id="kadroBaslik">Bu Ayın Kadrosu</h2><button class="kapat" data-kapat>×</button></header>
+  <div class="govde">
+    <div class="bilgi">Bu ayın cetvelinde <b>hangi personelin satırı olacağını</b> buradan seçin.
+      İşe yeni giren birini ekleyin, o ay çalışmayanın işaretini kaldırın. Diğer aylar etkilenmez.</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn ikincil" id="kadroTumAktif" style="flex:1">Tüm aktif personeli seç</button>
+      <button class="btn ikincil" id="kadroOncekiAy" style="flex:1">Önceki ayın kadrosunu al</button>
+    </div>
+    <table class="liste"><tbody id="kadroSatir"></tbody></table>
+  </div>
+  <div class="altlik"><button class="btn" data-kapat>Tamam</button></div>
+ </div>
+</div>
+
+<!-- YILLIK ÖZET -->
+<div class="ortu" id="mOzet" hidden>
+ <div class="modal" style="width:min(1180px,100%)">
+  <header>
+    <h2>Yıllık Özet</h2>
+    <select id="ozetYil" style="border:1px solid var(--line);border-radius:6px;padding:5px 8px"></select>
+    <select id="ozetKod" style="border:1px solid var(--line);border-radius:6px;padding:5px 8px"></select>
+    <button class="kapat" data-kapat>×</button>
+  </header>
+  <div class="govde" id="ozetGovde"></div>
+  <div class="altlik">
+    <button class="btn ikincil" id="btnOzetCsv">CSV İndir</button>
+    <button class="btn" data-kapat>Kapat</button>
+  </div>
+ </div>
+</div>
+
+<!-- AYARLAR -->
+<div class="ortu" id="mAyarlar" hidden>
+ <div class="modal" style="width:min(560px,100%)">
+  <header><h2>Ayarlar</h2><button class="kapat" data-kapat>×</button></header>
+  <div class="govde">
+    <label class="onay"><input type="checkbox" id="ayHaftaSonu"> Hafta sonlarını gri göster</label>
+    <label class="onay"><input type="checkbox" id="ayTatil"> Resmî tatilleri kırmızı göster</label>
+    <label class="onay"><input type="checkbox" id="ayPasif"> O ay kadroda olmayan aktif personeli de göster</label>
+    <div class="alan">
+      <label>Satır yüksekliği / hücre genişliği</label>
+      <select id="ayBoyut">
+        <option value="22">Sıkışık (çok personel)</option>
+        <option value="26">Normal</option>
+        <option value="32">Geniş (kolay tıklama)</option>
+      </select>
+    </div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+    <div class="alan">
+      <label>Yedekleme</label>
+      <div style="display:flex;gap:8px">
+        <button class="btn ikincil" id="btnYedekAl" style="flex:1">Yedek Al (.json)</button>
+        <button class="btn ikincil" id="btnYedekYukle" style="flex:1">Yedekten Yükle</button>
+      </div>
+    </div>
+    <div class="uyari">Veriler bu bilgisayarın tarayıcısında saklanır. Ayda bir yedek almanız önerilir.</div>
+    <button class="btn tehlike" id="btnHepsiniSil">Tüm Verileri Sil</button>
+  </div>
+  <div class="altlik"><button class="btn" data-kapat>Kapat</button></div>
+ </div>
+</div>
+
+<!-- İÇE AKTARMA -->
+<div class="ortu" id="mIceAktar" hidden>
+ <div class="modal" style="width:min(680px,100%)">
+  <header><h2>Excel'den İçe Aktar</h2><button class="kapat" data-kapat>×</button></header>
+  <div class="govde" id="iceAktarGovde"></div>
+  <div class="altlik">
+    <button class="btn ikincil" data-kapat>Vazgeç</button>
+    <button class="btn" id="btnIceAktarOnay" hidden>İçe Aktar</button>
+  </div>
+ </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   PUANTAJ CETVELİ — tek dosyalık, çevrimdışı çalışan uygulama
+   Veriler tarayıcının yerel deposunda (localStorage) tutulur.
+   ============================================================ */
+
+const AYLAR = ["OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN","TEMMUZ",
+               "AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK"];
+const GUN_KISA  = ["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"]; // 1=Pzt ... 7=Paz
+const GUN_HARF  = ["Pt","Sa","Ça","Pe","Cu","Ct","Pz"];        // dar sütun başlığı
+
+/* Puantaj kodları. kisayol = klavyeden basılacak harf. */
+const KODLAR = [
+  { kod:"Ç",   ad:"Çalıştı",       kisayol:"C", renk:"--c-calisti"  },
+  { kod:"İ",   ad:"İzinli",        kisayol:"I", renk:"--c-izin"     },
+  { kod:"R",   ad:"Raporlu",       kisayol:"R", renk:"--c-rapor"    },
+  { kod:"Y",   ad:"Yarım Gün",     kisayol:"Y", renk:"--c-yarim"    },
+  { kod:"D",   ad:"Devamsız",      kisayol:"D", renk:"--c-devamsiz" },
+  { kod:"Ü",   ad:"Ücretsiz İzin", kisayol:"U", renk:"--c-ucretsiz" },
+  { kod:"DİZ", ad:"Doğum İzni",    kisayol:"G", renk:"--c-dogum"    },
+];
+const KOD_HARITA = Object.fromEntries(KODLAR.map(k => [k.kod, k]));
+
+/* ---- Resmî tatiller ----------------------------------------------------
+   Sabit tarihli bayramlar formülle, dinî bayramlar tablodan hesaplanır.
+   Dinî bayram tarihleri Diyanet takvimine göre 2017-2030 arası girilmiştir. */
+const SABIT_TATIL = [
+  [1,1,"Yılbaşı"], [4,23,"Ulusal Egemenlik ve Çocuk Bayramı"],
+  [5,1,"Emek ve Dayanışma Günü"], [5,19,"Atatürk'ü Anma, Gençlik ve Spor Bayramı"],
+  [7,15,"Demokrasi ve Millî Birlik Günü"], [8,30,"Zafer Bayramı"],
+  [10,29,"Cumhuriyet Bayramı"],
+];
+/* [yıl, ay, gün] = bayramın 1. günü. Ramazan 3 gün, Kurban 4 gün sürer. */
+const RAMAZAN = {2017:[6,25],2018:[6,15],2019:[6,4],2020:[5,24],2021:[5,13],
+  2022:[5,2],2023:[4,21],2024:[4,10],2025:[3,30],2026:[3,20],2027:[3,9],
+  2028:[2,26],2029:[2,14],2030:[2,4]};
+const KURBAN  = {2017:[9,1],2018:[8,21],2019:[8,11],2020:[7,31],2021:[7,20],
+  2022:[7,9],2023:[6,28],2024:[6,16],2025:[6,6],2026:[5,27],2027:[5,16],
+  2028:[5,5],2029:[4,24],2030:[4,13]};
+
+/** Verilen yılın tüm resmî tatillerini {"AA-GG": "ad"} olarak döndürür. */
+function tatilleriHesapla(yil){
+  const t = {};
+  const ekle = (d, ad) => { t[`${d.getMonth()+1}-${d.getDate()}`] = ad; };
+  for (const [ay, gun, ad] of SABIT_TATIL) ekle(new Date(yil, ay-1, gun), ad);
+  const bayram = (tablo, sure, ad) => {
+    const b = tablo[yil];
+    if (!b) return;
+    for (let i = 0; i < sure; i++) {
+      const d = new Date(yil, b[0]-1, b[1] + i);
+      if (d.getFullYear() === yil) ekle(d, `${ad} ${i+1}. Gün`);
+    }
+  };
+  bayram(RAMAZAN, 3, "Ramazan Bayramı");
+  bayram(KURBAN,  4, "Kurban Bayramı");
+  return t;
+}
+const _tatilOnbellek = {};
+function tatiller(yil){
+  return _tatilOnbellek[yil] || (_tatilOnbellek[yil] = tatilleriHesapla(yil));
+}
+
+/* ---- Yardımcılar ---- */
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const ayAnahtar = (y, a) => `${y}-${String(a).padStart(2,"0")}`;   // a: 1-12
+const gunSayisi = (y, a) => new Date(y, a, 0).getDate();
+/** Pazartesi=1 ... Pazar=7 */
+const haftaninGunu = (y, a, g) => (new Date(y, a-1, g).getDay() + 6) % 7 + 1;
+const yeniId = () => "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+/** Türkçe'ye duyarlı büyük harfe çevirme: "i" -> "İ", "ı" -> "I" */
+function trBuyuk(s){
+  return String(s).replace(/i/g, "İ").replace(/ı/g, "I").toUpperCase();
+}
+/** Hücreye yazılmış serbest metni bilinen bir koda eşler. */
+function koduNormalize(ham){
+  if (ham == null) return "";
+  const s = trBuyuk(String(ham).trim());
+  if (!s) return "";
+  if (KOD_HARITA[s]) return s;
+  if (s === "DI" || s === "Dİ" || s === "DOĞUM") return "DİZ";
+  if (s === "U")  return "Ü";
+  if (s === "C")  return "Ç";
+  if (s === "I")  return "İ";
+  return s.slice(0, 3);   // tanınmayan kod: olduğu gibi sakla, veri kaybolmasın
+}
+/** Türkçe alfabeye göre isim sıralama. */
+const trSirala = new Intl.Collator("tr").compare;
+
+function bildir(mesaj){
+  const el = $("#bildirim");
+  el.textContent = mesaj;
+  el.classList.add("gorunur");
+  clearTimeout(bildir._z);
+  bildir._z = setTimeout(() => el.classList.remove("gorunur"), 2200);
+}
+
+/* ---- Durum (state) ---- */
+const DEPO_ANAHTAR = "puantaj_v1";
+const VARSAYILAN = {
+  surum: 1,
+  personel: [],                                  // {id, ad, tc, yer, aktif}
+  kayit: {},                                     // {"2025-07": {personelId: {gun: kod}}}
+  kadro: {},                                     // {"2025-07": [personelId, ...]} o ayın listesi
+  ayarlar: { haftaSonu:true, tatil:true, tumAktif:false, boyut:26 },
+};
+let D = yukle();
+let aktifYil, aktifAy, aktifKalem = "Ç", imlec = null;   // imlec: {pid, gun}
+const gecmis = [];                                       // Ctrl+Z için
+
+function yukle(){
+  try {
+    const ham = localStorage.getItem(DEPO_ANAHTAR);
+    if (!ham) return structuredClone(VARSAYILAN);
+    const v = JSON.parse(ham);
+    return { ...structuredClone(VARSAYILAN), ...v,
+             kadro: v.kadro || {},
+             ayarlar: { ...VARSAYILAN.ayarlar, ...(v.ayarlar || {}) } };
+  } catch (e) {
+    console.error("Kayıt okunamadı:", e);
+    return structuredClone(VARSAYILAN);
+  }
+}
+function kaydet(){
+  try { localStorage.setItem(DEPO_ANAHTAR, JSON.stringify(D)); }
+  catch (e) { bildir("Kayıt yapılamadı — tarayıcı deposu dolu olabilir."); }
+}
+/** Değişiklik öncesi anlık görüntü al (geri alma için). */
+function anlikAl(){
+  gecmis.push(JSON.stringify({ personel: D.personel, kayit: D.kayit, kadro: D.kadro }));
+  if (gecmis.length > 40) gecmis.shift();
+}
+function geriAl(){
+  const g = gecmis.pop();
+  if (!g) { bildir("Geri alınacak işlem yok."); return; }
+  const v = JSON.parse(g);
+  D.personel = v.personel; D.kayit = v.kayit; D.kadro = v.kadro || {};
+  kaydet(); ciz(); bildir("Son işlem geri alındı.");
+}
+
+/* ---- Ay verisine erişim ---- */
+function ayVerisi(y, a, olustur){
+  const k = ayAnahtar(y, a);
+  if (!D.kayit[k] && olustur) D.kayit[k] = {};
+  return D.kayit[k] || {};
+}
+function kodOku(y, a, pid, gun){
+  const v = ayVerisi(y, a)[pid];
+  return (v && v[gun]) || "";
+}
+function kodYaz(y, a, pid, gun, kod){
+  const ay = ayVerisi(y, a, true);
+  if (!ay[pid]) ay[pid] = {};
+  if (kod) ay[pid][gun] = kod;
+  else delete ay[pid][gun];
+}
+/** O ayın kadrosu: bir kez sabitlenir, sonra elle düzenlenebilir.
+    Henüz sabitlenmemişse: veri girilmiş kişiler, hiç yoksa aktif personel. */
+function ayPersoneli(y, a){
+  const k = ayAnahtar(y, a);
+  const kadro = D.kadro[k];
+  let list;
+  if (kadro){
+    list = kadro.map(id => D.personel.find(p => p.id === id)).filter(Boolean);
+  } else {
+    const ay = ayVerisi(y, a);
+    const veriliOlanlar = new Set(Object.keys(ay).filter(id => Object.keys(ay[id]).length));
+    list = veriliOlanlar.size
+      ? D.personel.filter(p => veriliOlanlar.has(p.id))
+      : D.personel.filter(p => p.aktif);
+  }
+  if (D.ayarlar.tumAktif)
+    D.personel.forEach(p => { if (p.aktif && !list.includes(p)) list.push(p); });
+  return list.sort((x, z) => trSirala(x.ad, z.ad));
+}
+/** Aya ilk kez veri girilmeden önce kadroyu dondur ki liste kaymasın. */
+function kadroSabitle(y, a){
+  const k = ayAnahtar(y, a);
+  if (!D.kadro[k]) D.kadro[k] = ayPersoneli(y, a).map(p => p.id);
+}
+
+/* ============================================================
+   ÇİZİM
+   ============================================================ */
+function ciz(){
+  document.documentElement.style.setProperty("--cell", D.ayarlar.boyut + "px");
+  $("#ayAdi").textContent = `${AYLAR[aktifAy-1]} ${aktifYil}`;
+  $("#yazdirBaslik").textContent = `PUANTAJ CETVELİ — ${AYLAR[aktifAy-1]} ${aktifYil}`;
+  kalemleriCiz();
+  lejantCiz();
+  tabloCiz();
+}
+
+function kalemleriCiz(){
+  $("#kalemler").innerHTML = KODLAR.map(k => `
+    <button class="kalem ${k.kod === aktifKalem ? "aktif" : ""}" data-kod="${k.kod}">
+      <span class="rozet" style="background:var(${k.renk}-bg);color:var(${k.renk})">${k.kod}</span>
+      ${k.ad} <kbd>${k.kisayol}</kbd>
+    </button>`).join("") + `
+    <button class="kalem ${aktifKalem === "" ? "aktif" : ""}" data-kod="">
+      <span class="rozet" style="background:#eef1f5;color:#8b95a5">⌫</span>
+      Sil <kbd>Del</kbd>
+    </button>`;
+}
+
+function lejantCiz(){
+  $("#lejant").innerHTML = KODLAR.map(k =>
+    `<span class="rz"><i style="background:var(${k.renk}-bg);border:1px solid var(${k.renk})"></i>
+     <b>${k.kod}</b> ${k.ad}</span>`).join("");
+}
+
+function tabloCiz(){
+  const kap = $("#tabloKap");
+  const kisiler = ayPersoneli(aktifYil, aktifAy);
+  if (!kisiler.length){
+    kap.innerHTML = `<div class="bos-durum"><b>Henüz personel yok</b>
+      Başlamak için üstteki <b>Personel</b> düğmesinden kişileri ekleyin,<br>
+      ya da <b>Excel'den Aktar</b> ile mevcut puantaj dosyanızı yükleyin.</div>`;
+    $("#durumMetin").textContent = "";
+    return;
+  }
+  const n = gunSayisi(aktifYil, aktifAy);
+  const tat = D.ayarlar.tatil ? tatiller(aktifYil) : {};
+  const bugun = new Date();
+  const buAy = bugun.getFullYear() === aktifYil && bugun.getMonth()+1 === aktifAy;
+
+  /* gün başlığı sınıfları önceden hesapla */
+  const gunSinif = [], gunBaslik = [];
+  for (let g = 1; g <= n; g++){
+    const hg = haftaninGunu(aktifYil, aktifAy, g);
+    const tn = tat[`${aktifAy}-${g}`];
+    let c = "gun";
+    if (D.ayarlar.haftaSonu && hg >= 6) c += " hs";
+    if (tn) c += " tatil";
+    gunSinif[g] = c;
+    gunBaslik[g] = tn ? `${g} ${AYLAR[aktifAy-1]} — ${tn}` : `${g} ${AYLAR[aktifAy-1]} ${GUN_KISA[hg-1]}`;
+  }
+
+  let h = `<table class="puantaj"><thead>
+    <tr class="gun-adi">
+      <th class="sabit c-sira" rowspan="2">#</th>
+      <th class="sabit c-ad" rowspan="2">Adı Soyadı</th>
+      <th class="sabit c-yer" rowspan="2">Çalışma Yeri</th>`;
+  for (let g = 1; g <= n; g++)
+    h += `<th class="${gunSinif[g]}">${GUN_HARF[haftaninGunu(aktifYil,aktifAy,g)-1]}</th>`;
+  h += `<th class="top" rowspan="2" title="Çalışılan gün">Ç</th>
+        <th class="top" rowspan="2" title="İzinli gün">İ</th>
+        <th class="top" rowspan="2" title="Raporlu gün">R</th>
+        <th class="top" rowspan="2" title="Diğer (Y/D/Ü/DİZ)">Diğ.</th>
+        <th class="top" rowspan="2" title="İşlenmemiş gün">Boş</th></tr><tr class="gun-no">`;
+  for (let g = 1; g <= n; g++)
+    h += `<th class="${gunSinif[g]}" data-gun="${g}" title="${gunBaslik[g]} — tıklayınca tüm sütun dolar">${g}</th>`;
+  h += `</tr></thead><tbody>`;
+
+  const sutunTop = new Array(n+1).fill(0);
+  kisiler.forEach((p, i) => {
+    const satir = (ayVerisi(aktifYil, aktifAy)[p.id]) || {};
+    let sc=0, si=0, sr=0, sd=0, sb=0;
+    h += `<tr class="${p.aktif ? "" : "pasif"}" data-pid="${p.id}">
+      <td class="sabit c-sira">${i+1}</td>
+      <td class="sabit c-ad" title="${p.ad}${p.tc ? " · " + p.tc : ""}">${p.ad}</td>
+      <td class="sabit c-yer">${p.yer || ""}</td>`;
+    for (let g = 1; g <= n; g++){
+      const k = satir[g] || "";
+      if (k === "Ç") { sc++; sutunTop[g]++; }
+      else if (k === "İ") si++;
+      else if (k === "R") sr++;
+      else if (k) sd++;
+      else sb++;
+      const bg = buAy && g === bugun.getDate() ? " bugun" : "";
+      h += `<td class="${gunSinif[g]}${bg}" data-pid="${p.id}" data-gun="${g}"
+              ${k ? `data-k="${k}"` : ""}>${k}</td>`;
+    }
+    h += `<td class="top t-c ${sc?"":"sifir"}">${sc}</td>
+          <td class="top t-i ${si?"":"sifir"}">${si}</td>
+          <td class="top t-r ${sr?"":"sifir"}">${sr}</td>
+          <td class="top ${sd?"":"sifir"}">${sd}</td>
+          <td class="top ${sb?"":"sifir"}">${sb}</td></tr>`;
+  });
+  h += `</tbody><tfoot><tr>
+      <td class="sabit c-sira"></td>
+      <td class="sabit c-ad" style="text-align:right">Günlük çalışan sayısı →</td>
+      <td class="sabit c-yer"></td>`;
+  for (let g = 1; g <= n; g++) h += `<td class="${gunSinif[g]}">${sutunTop[g] || ""}</td>`;
+  h += `<td class="top" colspan="5"></td></tr></tfoot></table>`;
+  kap.innerHTML = h;
+
+  const toplamBos = kisiler.length * n - kisiler.reduce((t, p) => {
+    const s = (ayVerisi(aktifYil, aktifAy)[p.id]) || {};
+    return t + Object.keys(s).filter(g => +g <= n).length;
+  }, 0);
+  $("#durumMetin").textContent =
+    `${kisiler.length} personel · ${n} gün` + (toplamBos ? ` · ${toplamBos} boş hücre` : " · tamamlandı ✓");
+}
+
+/* ============================================================
+   HÜCRE GİRİŞİ  (tıkla / sürükle / klavye)
+   ============================================================ */
+let boyuyor = false, boyaDegistiMi = false;
+
+function hucreyeUygula(td, kod){
+  const pid = td.dataset.pid, gun = +td.dataset.gun;
+  if (!pid) return;
+  if (kodOku(aktifYil, aktifAy, pid, gun) === kod) return;
+  kodYaz(aktifYil, aktifAy, pid, gun, kod);
+  td.textContent = kod;
+  if (kod) td.dataset.k = kod; else delete td.dataset.k;
+  boyaDegistiMi = true;
+}
+
+/** Sadece etkilenen satırın ve sütunun toplamlarını tazeler (tüm tabloyu çizmeden). */
+function toplamlariTazele(pid){
+  const tr = $(`tr[data-pid="${pid}"]`);
+  if (!tr) return;
+  const n = gunSayisi(aktifYil, aktifAy);
+  const s = (ayVerisi(aktifYil, aktifAy)[pid]) || {};
+  let sc=0, si=0, sr=0, sd=0, sb=0;
+  for (let g = 1; g <= n; g++){
+    const k = s[g] || "";
+    if (k === "Ç") sc++; else if (k === "İ") si++; else if (k === "R") sr++;
+    else if (k) sd++; else sb++;
+  }
+  const hucreler = tr.querySelectorAll("td.top");
+  [sc, si, sr, sd, sb].forEach((v, i) => {
+    hucreler[i].textContent = v;
+    hucreler[i].classList.toggle("sifir", !v);
+  });
+  /* alt satırdaki günlük çalışan sayıları */
+  const ayak = $("tfoot tr").querySelectorAll("td.gun");
+  const kisiler = ayPersoneli(aktifYil, aktifAy);
+  for (let g = 1; g <= n; g++){
+    const t = kisiler.reduce((a, p) => a + (kodOku(aktifYil, aktifAy, p.id, g) === "Ç" ? 1 : 0), 0);
+    ayak[g-1].textContent = t || "";
+  }
+}
+
+$("#tabloKap").addEventListener("pointerdown", e => {
+  const th = e.target.closest("th.gun[data-gun]");
+  if (th){ sutunuDoldur(+th.dataset.gun); return; }
+  const td = e.target.closest("td.gun");
+  if (!td) return;
+  e.preventDefault();
+  anlikAl(); kadroSabitle(aktifYil, aktifAy);
+  boyuyor = true; boyaDegistiMi = false;
+  imleciTasi(td);
+  hucreyeUygula(td, aktifKalem);
+  $("#tabloKap").setPointerCapture?.(e.pointerId);
+});
+$("#tabloKap").addEventListener("pointermove", e => {
+  if (!boyuyor) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const td = el && el.closest && el.closest("td.gun");
+  if (td) { imleciTasi(td); hucreyeUygula(td, aktifKalem); }
+});
+function boyamayiBitir(){
+  if (!boyuyor) return;
+  boyuyor = false;
+  if (boyaDegistiMi){ kaydet(); if (imlec) toplamlariTazele(imlec.pid); }
+  else gecmis.pop();          // hiçbir şey değişmediyse geçmişi kirletme
+}
+window.addEventListener("pointerup", boyamayiBitir);
+window.addEventListener("pointercancel", boyamayiBitir);
+
+function imleciTasi(td){
+  $$("td.gun.imlec").forEach(x => x.classList.remove("imlec"));
+  td.classList.add("imlec");
+  imlec = { pid: td.dataset.pid, gun: +td.dataset.gun };
+}
+function imleciKaydir(dSatir, dGun){
+  if (!imlec) return;
+  const kisiler = ayPersoneli(aktifYil, aktifAy);
+  const n = gunSayisi(aktifYil, aktifAy);
+  let i = kisiler.findIndex(p => p.id === imlec.pid);
+  let g = imlec.gun + dGun;
+  i += dSatir;
+  if (g < 1){ g = n; i--; } else if (g > n){ g = 1; i++; }
+  i = Math.max(0, Math.min(kisiler.length - 1, i));
+  const td = $(`td.gun[data-pid="${kisiler[i].id}"][data-gun="${g}"]`);
+  if (td){ imleciTasi(td); td.scrollIntoView({ block:"nearest", inline:"nearest" }); }
+}
+
+/* Toplu işlemler */
+function sutunuDoldur(gun){
+  anlikAl(); kadroSabitle(aktifYil, aktifAy);
+  ayPersoneli(aktifYil, aktifAy).forEach(p => kodYaz(aktifYil, aktifAy, p.id, gun, aktifKalem));
+  kaydet(); tabloCiz();
+  bildir(`${gun}. gün → ${aktifKalem ? KOD_HARITA[aktifKalem]?.ad || aktifKalem : "temizlendi"}`);
+}
+function boslariDoldur(){
+  if (!aktifKalem) { bildir("Önce bir kalem seçin."); return; }
+  anlikAl(); kadroSabitle(aktifYil, aktifAy);
+  const n = gunSayisi(aktifYil, aktifAy);
+  let say = 0;
+  ayPersoneli(aktifYil, aktifAy).forEach(p => {
+    for (let g = 1; g <= n; g++)
+      if (!kodOku(aktifYil, aktifAy, p.id, g)) { kodYaz(aktifYil, aktifAy, p.id, g, aktifKalem); say++; }
+  });
+  kaydet(); tabloCiz();
+  bildir(`${say} boş gün "${aktifKalem}" olarak dolduruldu.`);
+}
+function haftaSonlariniIsaretle(){
+  anlikAl(); kadroSabitle(aktifYil, aktifAy);
+  const n = gunSayisi(aktifYil, aktifAy);
+  let say = 0;
+  ayPersoneli(aktifYil, aktifAy).forEach(p => {
+    for (let g = 1; g <= n; g++)
+      if (haftaninGunu(aktifYil, aktifAy, g) >= 6) { kodYaz(aktifYil, aktifAy, p.id, g, aktifKalem); say++; }
+  });
+  kaydet(); tabloCiz();
+  bildir(`${say} hafta sonu günü işaretlendi.`);
+}
+function ayiTemizle(){
+  if (!confirm(`${AYLAR[aktifAy-1]} ${aktifYil} ayındaki tüm işaretler silinecek. Emin misiniz?`)) return;
+  anlikAl();
+  delete D.kayit[ayAnahtar(aktifYil, aktifAy)];
+  kaydet(); tabloCiz(); bildir("Ay temizlendi.");
+}
+
+/* Klavye */
+document.addEventListener("keydown", e => {
+  if (e.target.matches("input,select,textarea")) return;
+  const modalAcik = $$(".ortu:not([hidden])").length > 0;
+  if (modalAcik){
+    if (e.key === "Escape") $$(".ortu:not([hidden])").forEach(m => m.hidden = true);
+    return;
+  }
+  if (e.altKey && e.key === "ArrowLeft")  { ayDegistir(-1); e.preventDefault(); return; }
+  if (e.altKey && e.key === "ArrowRight") { ayDegistir(+1); e.preventDefault(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z"){ geriAl(); e.preventDefault(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+  const yon = { ArrowUp:[-1,0], ArrowDown:[1,0], ArrowLeft:[0,-1], ArrowRight:[0,1] }[e.key];
+  if (yon){ imleciKaydir(yon[0], yon[1]); e.preventDefault(); return; }
+  if (!imlec) return;
+
+  let kod = null;
+  if (e.key === "Delete" || e.key === "Backspace") kod = "";
+  else {
+    const h = trBuyuk(e.key);
+    const bulunan = KODLAR.find(k => k.kisayol === h || k.kod === h);
+    if (bulunan) kod = bulunan.kod;
+  }
+  if (kod === null) return;
+  e.preventDefault();
+  anlikAl(); kadroSabitle(aktifYil, aktifAy);
+  const td = $(`td.gun[data-pid="${imlec.pid}"][data-gun="${imlec.gun}"]`);
+  if (td) hucreyeUygula(td, kod);
+  kaydet(); toplamlariTazele(imlec.pid);
+  imleciKaydir(0, 1);          // yazdıktan sonra bir sağa geç
+});
+
+/* ============================================================
+   AY GEZİNTİSİ
+   ============================================================ */
+function ayDegistir(fark){
+  let a = aktifAy + fark, y = aktifYil;
+  if (a < 1) { a = 12; y--; } else if (a > 12) { a = 1; y++; }
+  aktifYil = y; aktifAy = a; imlec = null;
+  localStorage.setItem("puantaj_sonAy", ayAnahtar(y, a));
+  ciz();
+}
+function ayaGit(y, a){ aktifYil = y; aktifAy = a; imlec = null;
+  localStorage.setItem("puantaj_sonAy", ayAnahtar(y, a)); ciz(); }
+
+/* ============================================================
+   PERSONEL YÖNETİMİ
+   ============================================================ */
+function personelCiz(){
+  const g = $("#personelSatir");
+  const sirali = [...D.personel].sort((a, b) =>
+    (b.aktif - a.aktif) || trSirala(a.ad, b.ad));
+  g.innerHTML = sirali.map(p => `
+    <tr data-id="${p.id}">
+      <td class="cokdar"><input type="checkbox" data-alan="aktif" ${p.aktif ? "checked" : ""}></td>
+      <td><input data-alan="ad" value="${(p.ad || "").replace(/"/g, "&quot;")}" placeholder="Adı Soyadı"></td>
+      <td class="dar"><input data-alan="tc" value="${p.tc || ""}" placeholder="TC No" maxlength="11" inputmode="numeric"></td>
+      <td class="dar"><input data-alan="yer" value="${p.yer || ""}" placeholder="Çalışma yeri" list="yerListe"></td>
+      <td class="cokdar"><button class="sil" title="Sil">×</button></td>
+    </tr>`).join("");
+  const yerler = [...new Set(D.personel.map(p => p.yer).filter(Boolean))];
+  g.insertAdjacentHTML("afterend",
+    `<datalist id="yerListe">${yerler.map(y => `<option value="${y}">`).join("")}</datalist>`);
+}
+$("#personelSatir").addEventListener("input", e => {
+  const tr = e.target.closest("tr"); if (!tr) return;
+  const p = D.personel.find(x => x.id === tr.dataset.id); if (!p) return;
+  const alan = e.target.dataset.alan;
+  p[alan] = alan === "aktif" ? e.target.checked : e.target.value.trim();
+  kaydet(); tabloCiz();
+});
+$("#personelSatir").addEventListener("click", e => {
+  if (!e.target.classList.contains("sil")) return;
+  const tr = e.target.closest("tr");
+  const p = D.personel.find(x => x.id === tr.dataset.id); if (!p) return;
+  const kayitliAy = Object.values(D.kayit).filter(a => a[p.id] && Object.keys(a[p.id]).length).length;
+  const mesaj = kayitliAy
+    ? `"${p.ad}" için ${kayitliAy} ayda kayıt var. Silerseniz bu kayıtlar da gider.\n\nGeçmişi korumak için silmek yerine "Aktif" işaretini kaldırabilirsiniz.\n\nYine de silinsin mi?`
+    : `"${p.ad}" silinsin mi?`;
+  if (!confirm(mesaj)) return;
+  anlikAl();
+  D.personel = D.personel.filter(x => x.id !== p.id);
+  Object.values(D.kayit).forEach(a => delete a[p.id]);
+  Object.keys(D.kadro).forEach(k => D.kadro[k] = D.kadro[k].filter(id => id !== p.id));
+  kaydet(); personelCiz(); tabloCiz();
+});
+$("#btnPersonelEkle").addEventListener("click", () => {
+  anlikAl();
+  D.personel.push({ id: yeniId(), ad: "", tc: "", yer: "", aktif: true });
+  kaydet(); personelCiz();
+  const son = $("#personelSatir").querySelector('tr:last-child input[data-alan="ad"]');
+  son && son.focus();
+});
+
+/* ============================================================
+   AY KADROSU
+   ============================================================ */
+function kadroCiz(){
+  $("#kadroBaslik").textContent = `Kadro — ${AYLAR[aktifAy-1]} ${aktifYil}`;
+  const secili = new Set(ayPersoneli(aktifYil, aktifAy).map(p => p.id));
+  const sirali = [...D.personel].sort((a, b) =>
+    (secili.has(b.id) - secili.has(a.id)) || (b.aktif - a.aktif) || trSirala(a.ad, b.ad));
+  $("#kadroSatir").innerHTML = sirali.map(p => {
+    const veri = Object.keys((ayVerisi(aktifYil, aktifAy)[p.id]) || {}).length;
+    return `<tr data-id="${p.id}">
+      <td class="cokdar"><input type="checkbox" ${secili.has(p.id) ? "checked" : ""}></td>
+      <td>${p.ad || "(isimsiz)"} ${p.aktif ? "" : '<span style="color:var(--muted);font-size:11px">· pasif</span>'}</td>
+      <td class="dar" style="color:var(--muted);font-size:12px">${p.yer || ""}</td>
+      <td class="cokdar" style="color:var(--muted);font-size:11px">${veri ? veri + " gün" : ""}</td>
+    </tr>`;
+  }).join("");
+}
+function kadroKaydet(idler){
+  anlikAl();
+  D.kadro[ayAnahtar(aktifYil, aktifAy)] = idler;
+  kaydet(); kadroCiz(); tabloCiz();
+}
+$("#kadroSatir").addEventListener("change", e => {
+  if (e.target.type !== "checkbox") return;
+  const id = e.target.closest("tr").dataset.id;
+  const su = new Set(ayPersoneli(aktifYil, aktifAy).map(p => p.id));
+  e.target.checked ? su.add(id) : su.delete(id);
+  const ay = ayVerisi(aktifYil, aktifAy);
+  if (!e.target.checked && ay[id] && Object.keys(ay[id]).length){
+    if (!confirm("Bu kişinin bu aydaki işaretleri de silinecek. Devam edilsin mi?")){
+      e.target.checked = true; return;
+    }
+    delete ay[id];
+  }
+  kadroKaydet([...su]);
+});
+$("#kadroTumAktif").addEventListener("click", () => {
+  const su = new Set(ayPersoneli(aktifYil, aktifAy).map(p => p.id));
+  D.personel.forEach(p => { if (p.aktif) su.add(p.id); });
+  kadroKaydet([...su]);
+  bildir("Tüm aktif personel bu aya eklendi.");
+});
+$("#kadroOncekiAy").addEventListener("click", () => {
+  let y = aktifYil, a = aktifAy - 1;
+  if (a < 1){ a = 12; y--; }
+  const onceki = ayPersoneli(y, a).map(p => p.id);
+  if (!onceki.length){ bildir("Önceki ayda kadro bulunamadı."); return; }
+  kadroKaydet(onceki);
+  bildir(`${AYLAR[a-1]} ${y} kadrosu (${onceki.length} kişi) alındı.`);
+});
+
+/* ============================================================
+   YILLIK ÖZET
+   ============================================================ */
+function ozetCiz(){
+  const yil = +$("#ozetYil").value;
+  const kod = $("#ozetKod").value;
+  /* o yıl herhangi bir ayda kaydı olan herkes */
+  const idler = new Set();
+  for (let a = 1; a <= 12; a++)
+    Object.entries(ayVerisi(yil, a)).forEach(([pid, s]) => {
+      if (Object.keys(s).length) idler.add(pid);
+    });
+  const kisiler = D.personel.filter(p => idler.has(p.id)).sort((a, b) => trSirala(a.ad, b.ad));
+  if (!kisiler.length){ $("#ozetGovde").innerHTML = `<div class="bos-durum">${yil} yılına ait kayıt bulunamadı.</div>`; return; }
+
+  const say = (pid, a) => {
+    const s = ayVerisi(yil, a)[pid] || {};
+    const n = gunSayisi(yil, a);
+    let t = 0;
+    for (let g = 1; g <= n; g++){
+      const k = s[g] || "";
+      if (kod === "*") { if (k) t++; }
+      else if (kod === "DIGER") { if (k && !["Ç","İ","R"].includes(k)) t++; }
+      else if (k === kod) t++;
+    }
+    return t;
+  };
+  let h = `<table class="ozet-tab"><thead><tr><th>Adı Soyadı</th>` +
+    AYLAR.map(a => `<th>${a.slice(0,3)}</th>`).join("") + `<th>YIL</th></tr></thead><tbody>`;
+  const aylikToplam = new Array(13).fill(0);
+  kisiler.forEach(p => {
+    let yt = 0;
+    h += `<tr><td>${p.ad}</td>`;
+    for (let a = 1; a <= 12; a++){
+      const v = say(p.id, a); yt += v; aylikToplam[a] += v;
+      h += `<td${v ? "" : ' style="color:#c3cad4"'}>${v || "·"}</td>`;
+    }
+    h += `<td class="yil-top">${yt}</td></tr>`;
+  });
+  h += `<tr><td style="font-weight:700">TOPLAM</td>` +
+    AYLAR.map((_, i) => `<td class="yil-top">${aylikToplam[i+1] || "·"}</td>`).join("") +
+    `<td class="yil-top">${aylikToplam.reduce((a, b) => a + b, 0)}</td></tr>`;
+  h += `</tbody></table>`;
+  $("#ozetGovde").innerHTML = h;
+}
+function ozetHazirla(){
+  const yillar = [...new Set(Object.keys(D.kayit).map(k => +k.slice(0, 4)))].sort();
+  if (!yillar.length) yillar.push(aktifYil);
+  $("#ozetYil").innerHTML = yillar.map(y =>
+    `<option ${y === aktifYil ? "selected" : ""}>${y}</option>`).join("");
+  $("#ozetKod").innerHTML =
+    KODLAR.map(k => `<option value="${k.kod}">${k.ad}</option>`).join("") +
+    `<option value="DIGER">Diğer kodlar</option><option value="*">İşlenmiş tüm günler</option>`;
+  ozetCiz();
+}
+function ozetCsv(){
+  const yil = +$("#ozetYil").value;
+  const tablo = $("#ozetGovde").querySelector("table");
+  if (!tablo) return;
+  const satirlar = [...tablo.querySelectorAll("tr")].map(tr =>
+    [...tr.children].map(td => `"${td.textContent.replace(/·/g, "0")}"`).join(";"));
+  const kodAd = $("#ozetKod").selectedOptions[0].textContent;
+  indir(new Blob(["﻿" + satirlar.join("\r\n")], { type:"text/csv;charset=utf-8" }),
+        `Puantaj_Ozet_${yil}_${kodAd.replace(/\s/g, "")}.csv`);
+}
+
+/* ============================================================
+   DOSYA İNDİRME
+   ============================================================ */
+function indir(blob, adi){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = adi;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/* ============================================================
+   ZIP  —  .xlsx bir zip arşividir. Harici kütüphane kullanmamak
+   için gereken en küçük okuyucu/yazıcı burada.
+   ============================================================ */
+const CRC_TABLO = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++){
+    let c = i;
+    for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(buf){
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABLO[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+/** Dosyaları sıkıştırmadan (store) zip'ler — Excel bunu sorunsuz açar. */
+function zipYaz(dosyalar){          // dosyalar: [{ad, veri:Uint8Array}]
+  const kodla = new TextEncoder();
+  const yerel = [], merkez = [];
+  let ofset = 0;
+  for (const d of dosyalar){
+    const ad = kodla.encode(d.ad), veri = d.veri, crc = crc32(veri);
+    const bas = new DataView(new ArrayBuffer(30));
+    bas.setUint32(0, 0x04034b50, true); bas.setUint16(4, 20, true);
+    bas.setUint16(6, 0x0800, true);      // UTF-8 dosya adı
+    bas.setUint16(8, 0, true);           // sıkıştırma: store
+    bas.setUint16(10, 0, true); bas.setUint16(12, 0x2100, true); // saat/tarih (sabit)
+    bas.setUint32(14, crc, true); bas.setUint32(18, veri.length, true);
+    bas.setUint32(22, veri.length, true);
+    bas.setUint16(26, ad.length, true); bas.setUint16(28, 0, true);
+    yerel.push(new Uint8Array(bas.buffer), ad, veri);
+
+    const m = new DataView(new ArrayBuffer(46));
+    m.setUint32(0, 0x02014b50, true); m.setUint16(4, 20, true); m.setUint16(6, 20, true);
+    m.setUint16(8, 0x0800, true); m.setUint16(10, 0, true);
+    m.setUint16(12, 0, true); m.setUint16(14, 0x2100, true);
+    m.setUint32(16, crc, true); m.setUint32(20, veri.length, true);
+    m.setUint32(24, veri.length, true); m.setUint16(28, ad.length, true);
+    m.setUint32(42, ofset, true);
+    merkez.push(new Uint8Array(m.buffer), ad);
+    ofset += 30 + ad.length + veri.length;
+  }
+  const merkezBoy = merkez.reduce((t, x) => t + x.length, 0);
+  const son = new DataView(new ArrayBuffer(22));
+  son.setUint32(0, 0x06054b50, true);
+  son.setUint16(8, dosyalar.length, true); son.setUint16(10, dosyalar.length, true);
+  son.setUint32(12, merkezBoy, true); son.setUint32(16, ofset, true);
+  return new Blob([...yerel, ...merkez, new Uint8Array(son.buffer)],
+                  { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+/** Zip'i açar → {dosyaAdi: metin}. Sıkıştırılmış girdiler için tarayıcının
+    DecompressionStream("deflate-raw") desteğini kullanır. */
+async function zipOku(arrayBuffer){
+  const b = new Uint8Array(arrayBuffer), dv = new DataView(arrayBuffer);
+  /* merkezî dizini sondan bul */
+  let eocd = -1;
+  for (let i = b.length - 22; i >= Math.max(0, b.length - 66000); i--)
+    if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  if (eocd < 0) throw new Error("Geçerli bir Excel (.xlsx) dosyası değil.");
+  const adet = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+  const cikti = {}, coz = new TextDecoder("utf-8");
+  for (let i = 0; i < adet; i++){
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const yontem  = dv.getUint16(p + 10, true);
+    const boyut   = dv.getUint32(p + 20, true);
+    const adUz    = dv.getUint16(p + 28, true);
+    const ekUz    = dv.getUint16(p + 30, true);
+    const yorumUz = dv.getUint16(p + 32, true);
+    const yerelOf = dv.getUint32(p + 42, true);
+    const ad = coz.decode(b.subarray(p + 46, p + 46 + adUz));
+    p += 46 + adUz + ekUz + yorumUz;
+
+    const lAdUz = dv.getUint16(yerelOf + 26, true);
+    const lEkUz = dv.getUint16(yerelOf + 28, true);
+    const bas = yerelOf + 30 + lAdUz + lEkUz;
+    const ham = b.subarray(bas, bas + boyut);
+    if (!/\.(xml|rels)$/i.test(ad)) continue;           // sadece gereken parçalar
+    if (yontem === 0) cikti[ad] = coz.decode(ham);
+    else if (yontem === 8){
+      if (typeof DecompressionStream === "undefined")
+        throw new Error("Tarayıcınız bu dosyayı açamıyor. Lütfen Chrome veya Edge kullanın.");
+      const s = new Blob([ham]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+      cikti[ad] = coz.decode(await new Response(s).arrayBuffer());
+    }
+  }
+  return cikti;
+}
+
+/* ---- XML yardımcıları ---- */
+const XML_KACIS = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&apos;" };
+const xkac = s => String(s).replace(/[&<>"']/g, c => XML_KACIS[c]);
+const xcoz = s => String(s).replace(/&lt;/g,"<").replace(/&gt;/g,">")
+  .replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&#(\d+);/g,(_,d)=>String.fromCharCode(+d))
+  .replace(/&amp;/g,"&");
+/** "AH12" -> {sutun:34, satir:12} */
+function hucreAdres(ref){
+  const m = /^([A-Z]+)(\d+)$/.exec(ref);
+  if (!m) return null;
+  let s = 0;
+  for (const ch of m[1]) s = s * 26 + (ch.charCodeAt(0) - 64);
+  return { sutun: s, satir: +m[2] };
+}
+function sutunAdi(n){
+  let s = "";
+  while (n > 0){ const k = (n - 1) % 26; s = String.fromCharCode(65 + k) + s; n = (n - 1 - k) / 26; }
+  return s;
+}
+
+/* ============================================================
+   XLSX OKUMA
+   ============================================================ */
+async function xlsxOku(arrayBuffer){
+  const parca = await zipOku(arrayBuffer);
+  const wbXml = parca["xl/workbook.xml"];
+  if (!wbXml) throw new Error("Excel dosyası bozuk görünüyor (workbook.xml yok).");
+
+  /* paylaşılan metin havuzu */
+  const paylasilan = [];
+  const ssXml = parca["xl/sharedStrings.xml"];
+  if (ssXml)
+    for (const m of ssXml.matchAll(/<si>([\s\S]*?)<\/si>/g))
+      paylasilan.push([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x => xcoz(x[1])).join(""));
+
+  /* sayfa adı -> dosya yolu */
+  const relXml = parca["xl/_rels/workbook.xml.rels"] || "";
+  const rel = {};
+  for (const m of relXml.matchAll(/<Relationship([^>]*)\/>/g)){
+    const id = /Id="([^"]+)"/.exec(m[1]), hedef = /Target="([^"]+)"/.exec(m[1]);
+    if (id && hedef) rel[id[1]] = hedef[1].replace(/^\/?(xl\/)?/, "");
+  }
+  const sayfalar = [];
+  for (const m of wbXml.matchAll(/<sheet([^>]*)\/>/g)){
+    const ad = /name="([^"]*)"/.exec(m[1]);
+    const rid = /r:id="([^"]+)"/.exec(m[1]);
+    if (!ad) continue;
+    const yol = rid && rel[rid[1]] ? "xl/" + rel[rid[1]] : null;
+    sayfalar.push({ ad: xcoz(ad[1]), yol });
+  }
+  /* r:id eşleşmezse sırayla sheet1..N dene */
+  sayfalar.forEach((s, i) => {
+    if (!s.yol || !parca[s.yol]) s.yol = `xl/worksheets/sheet${i+1}.xml`;
+  });
+
+  return sayfalar.map(s => ({ ad: s.ad, hucreler: sayfaOku(parca[s.yol], paylasilan) }))
+                 .filter(s => s.hucreler);
+}
+/** Sayfayı {satir: {sutun: metin}} biçiminde döndürür. */
+function sayfaOku(xml, paylasilan){
+  if (!xml) return null;
+  const sonuc = {};
+  for (const m of xml.matchAll(/<c\s([^>]*?)(\/>|>([\s\S]*?)<\/c>)/g)){
+    const nitelik = m[1], govde = m[3] || "";
+    const ref = /r="([A-Z]+\d+)"/.exec(nitelik);
+    if (!ref) continue;
+    const tip = (/t="([^"]+)"/.exec(nitelik) || [, "n"])[1];
+    let deger = "";
+    if (tip === "inlineStr"){
+      deger = [...govde.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x => xcoz(x[1])).join("");
+    } else {
+      const v = /<v>([\s\S]*?)<\/v>/.exec(govde);
+      if (v){
+        deger = tip === "s" ? (paylasilan[+v[1]] ?? "") : xcoz(v[1]);
+      }
+    }
+    if (deger === "") continue;
+    const a = hucreAdres(ref[1]); if (!a) continue;
+    (sonuc[a.satir] || (sonuc[a.satir] = {}))[a.sutun] = String(deger).trim();
+  }
+  return sonuc;
+}
+
+/* ---- Sayfa adından ay çözme:  "TEMMUZ 2025" ---- */
+function sayfadanAy(ad){
+  const t = trBuyuk(ad).replace(/\s+/g, " ").trim();
+  for (let i = 0; i < 12; i++){
+    const m = new RegExp(`^${AYLAR[i]}\\s+(\\d{4})$`).exec(t);
+    if (m) return { yil:+m[1], ay:i+1 };
+  }
+  const m2 = /^(\d{4})[-_ ](\d{1,2})$/.exec(t);          // "2025-07"
+  if (m2) return { yil:+m2[1], ay:+m2[2] };
+  return null;
+}
+
+const BASLIK_KELIMELERI = ["ADI - SOYADI","ADI SOYADI","AD SOYAD","TC NO","ÇALIŞILAN GÜN",
+  "İZİNLİ GÜN","RAPORLU GÜN","YARIM GÜN","ÇALIŞMA YERİ","MESAİ SAATI","FAZLA MESAİ SAATİ",
+  "FAZLA MESAİ TUTARI","PUANTAJ CETVELİ","DEVAMSIZ","TOPLAM"];
+const baslikMi = s => BASLIK_KELIMELERI.includes(trBuyuk(String(s || "").trim()));
+
+/** Bir xlsx'ten puantaj verisini çıkarır. */
+function puantajCikar(sayfalar){
+  const kisiler = new Map();     // anahtar -> {ad, tc, yer, gorulen}
+  const aylar = {};              // "2025-07" -> { anahtar -> {gun:kod} }
+  let atlanan = [];
+
+  for (const s of sayfalar){
+    const ay = sayfadanAy(s.ad);
+    if (!ay){ atlanan.push(s.ad); continue; }
+    const n = gunSayisi(ay.yil, ay.ay);
+    const anahtarAy = ayAnahtar(ay.yil, ay.ay);
+    const hedef = aylar[anahtarAy] || (aylar[anahtarAy] = {});
+
+    for (const satirNo of Object.keys(s.hucreler)){
+      const r = s.hucreler[satirNo];
+      const ad = (r[2] || "").trim();                       // B sütunu: Adı Soyadı
+      if (!ad || baslikMi(ad)) continue;
+      const tcHam = String(r[1] || "").replace(/\D/g, "");   // A sütunu: TC No
+      const tc  = tcHam.length === 11 ? tcHam : "";
+      const yer = baslikMi(r[3]) ? "" : (r[3] || "").trim(); // C sütunu: Çalışma Yeri
+
+      const gunler = {};
+      for (let g = 1; g <= n; g++){
+        const kod = koduNormalize(r[3 + g]);                 // D = 1. gün
+        if (kod) gunler[g] = kod;
+      }
+      if (!Object.keys(gunler).length && !tc) continue;      // tamamen boş satır
+
+      const anahtar = tc || "ad:" + trBuyuk(ad);
+      const mevcut = kisiler.get(anahtar);
+      if (mevcut){
+        mevcut.gorulen++;
+        if (ad.length > mevcut.ad.length) mevcut.ad = ad;    // en tam yazımı sakla
+        if (yer) mevcut.yer = yer;
+      } else {
+        kisiler.set(anahtar, { ad, tc, yer, gorulen: 1 });
+      }
+      hedef[anahtar] = { ...(hedef[anahtar] || {}), ...gunler };
+    }
+  }
+  return { kisiler, aylar, atlanan };
+}
+
+/* ============================================================
+   XLSX YAZMA
+   ============================================================ */
+const RENK = {                       // [yazı, dolgu]
+  "Ç":["1C7A4A","DFF3E7"], "İ":["B06A00","FDEFD6"], "R":["A32020","FBE0E0"],
+  "Y":["5A4BB5","E8E5FA"], "D":["4A5464","E3E7ED"], "Ü":["8A6D3B","F2EAD9"],
+  "DİZ":["0B6F86","DCF0F5"],
+};
+function stilXml(){
+  const dxf = KODLAR.map(k => {
+    const [y, d] = RENK[k.kod];
+    return `<dxf><font><b/><color rgb="FF${y}"/></font>` +
+           `<fill><patternFill patternType="solid"><bgColor rgb="FF${d}"/></patternFill></fill></dxf>`;
+  }).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="5">
+<font><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
+<font><b/><sz val="14"/><color rgb="FF233247"/><name val="Calibri"/></font>
+<font><sz val="8"/><color rgb="FF66748A"/><name val="Calibri"/></font>
+</fonts>
+<fills count="7">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF233247"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFEEF1F6"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFAFBFD"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF33455E"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFDF2F2"/><bgColor indexed="64"/></patternFill></fill>
+</fills>
+<borders count="2">
+<border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left style="thin"><color rgb="FFD0D6E0"/></left><right style="thin"><color rgb="FFD0D6E0"/></right><top style="thin"><color rgb="FFD0D6E0"/></top><bottom style="thin"><color rgb="FFD0D6E0"/></bottom><diagonal/></border>
+</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="13">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="2" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+<dxfs count="${KODLAR.length}">${dxf}</dxfs>
+</styleSheet>`;
+}
+/* stil kısaltmaları */
+const S = { baslik:1, ustBaslik:2, gunBaslik:3, gunBaslikHS:4, ad:5, orta:6,
+            hucre:7, hucreHS:8, hucreTatil:9, toplam:10, gunAd:11, gunAdHS:12 };
+
+function hucre(ref, deger, stil, formul){
+  if (formul) return `<c r="${ref}" s="${stil}"><f>${xkac(formul)}</f></c>`;
+  if (deger === "" || deger == null) return `<c r="${ref}" s="${stil}"/>`;
+  if (typeof deger === "number") return `<c r="${ref}" s="${stil}"><v>${deger}</v></c>`;
+  return `<c r="${ref}" s="${stil}" t="inlineStr"><is><t xml:space="preserve">${xkac(deger)}</t></is></c>`;
+}
+
+/** Bir ayın puantaj sayfasını üretir. */
+function ayaSayfaXml(yil, ay){
+  const n = gunSayisi(yil, ay);
+  const tat = tatiller(yil);
+  const kisiler = ayPersoneli(yil, ay);
+  const ilkGun = 4, sonGun = 3 + n;                    // D .. (3+n)
+  const topBas = sonGun + 1;
+  const topBaslik = ["ÇALIŞILAN GÜN","İZİNLİ GÜN","RAPORLU GÜN","YARIM GÜN","DEVAMSIZ","ÜCRETSİZ İZİN","DOĞUM İZNİ"];
+  const topKod    = ["Ç","İ","R","Y","D","Ü","DİZ"];
+  const sonSutun  = topBas + topBaslik.length - 1;
+
+  const gunStili = g => {
+    const hg = haftaninGunu(yil, ay, g);
+    if (tat[`${ay}-${g}`]) return S.hucreTatil;
+    return hg >= 6 ? S.hucreHS : S.hucre;
+  };
+
+  let s = `<row r="1" ht="22" customHeight="1">` +
+    hucre("A1", `PUANTAJ CETVELİ  —  ${AYLAR[ay-1]} ${yil}`, S.baslik) + `</row>`;
+
+  /* satır 2: başlıklar + gün numaraları */
+  s += `<row r="2" ht="30" customHeight="1">` +
+    hucre("A2", "TC No", S.ustBaslik) + hucre("B2", "Adı - Soyadı", S.ustBaslik) +
+    hucre("C2", "ÇALIŞMA YERİ", S.ustBaslik);
+  for (let g = 1; g <= n; g++){
+    const hg = haftaninGunu(yil, ay, g);
+    s += hucre(sutunAdi(3+g) + "2", g, hg >= 6 ? S.gunBaslikHS : S.gunBaslik);
+  }
+  topBaslik.forEach((b, i) => s += hucre(sutunAdi(topBas+i) + "2", b, S.ustBaslik));
+  s += `</row>`;
+
+  /* satır 3: haftanın günleri */
+  s += `<row r="3" ht="14" customHeight="1">` +
+    hucre("A3", "", S.ustBaslik) + hucre("B3", "", S.ustBaslik) + hucre("C3", "", S.ustBaslik);
+  for (let g = 1; g <= n; g++){
+    const hg = haftaninGunu(yil, ay, g);
+    s += hucre(sutunAdi(3+g) + "3", GUN_KISA[hg-1], hg >= 6 ? S.gunAdHS : S.gunAd);
+  }
+  topBaslik.forEach((_, i) => s += hucre(sutunAdi(topBas+i) + "3", "", S.ustBaslik));
+  s += `</row>`;
+
+  /* veri satırları */
+  kisiler.forEach((p, i) => {
+    const r = 4 + i, kayit = ayVerisi(yil, ay)[p.id] || {};
+    s += `<row r="${r}">` +
+      hucre("A" + r, p.tc || "", S.orta) +
+      hucre("B" + r, p.ad, S.ad) +
+      hucre("C" + r, p.yer || "", S.orta);
+    for (let g = 1; g <= n; g++)
+      s += hucre(sutunAdi(3+g) + r, kayit[g] || "", gunStili(g));
+    const aralik = `D${r}:${sutunAdi(sonGun)}${r}`;
+    topKod.forEach((k, j) =>
+      s += hucre(sutunAdi(topBas+j) + r, null, S.toplam, `COUNTIF(${aralik},"${k}")`));
+    s += `</row>`;
+  });
+
+  /* günlük çalışan sayısı */
+  const sonSatir = 3 + kisiler.length;
+  const ozetSatir = sonSatir + 1;
+  s += `<row r="${ozetSatir}">` +
+    hucre("A" + ozetSatir, "", S.toplam) +
+    hucre("B" + ozetSatir, "Günlük çalışan sayısı", S.toplam) +
+    hucre("C" + ozetSatir, "", S.toplam);
+  for (let g = 1; g <= n; g++){
+    const c = sutunAdi(3+g);
+    s += kisiler.length
+      ? hucre(c + ozetSatir, null, S.toplam, `COUNTIF(${c}4:${c}${sonSatir},"Ç")`)
+      : hucre(c + ozetSatir, "", S.toplam);
+  }
+  topKod.forEach((_, j) => {
+    const c = sutunAdi(topBas+j);
+    s += kisiler.length
+      ? hucre(c + ozetSatir, null, S.toplam, `SUM(${c}4:${c}${sonSatir})`)
+      : hucre(c + ozetSatir, "", S.toplam);
+  });
+  s += `</row>`;
+
+  /* açıklama satırları */
+  let ac = ozetSatir + 2;
+  s += `<row r="${ac}">` + hucre("B" + ac, "AÇIKLAMA", S.toplam) + `</row>`;
+  KODLAR.forEach((k, i) => {
+    const r = ac + 1 + i;
+    s += `<row r="${r}">` + hucre("B" + r, `${k.kod} = ${k.ad}`, S.ad) + `</row>`;
+  });
+
+  /* koşullu biçimlendirme: kodlar Excel'de de renklensin */
+  const veriAralik = `D4:${sutunAdi(sonGun)}${Math.max(4, sonSatir)}`;
+  const kb = KODLAR.map((k, i) =>
+    `<conditionalFormatting sqref="${veriAralik}"><cfRule type="cellIs" dxfId="${i}" priority="${i+1}" operator="equal"><formula>"${k.kod}"</formula></cfRule></conditionalFormatting>`).join("");
+  const dogrulama = `<dataValidations count="1"><dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="0" promptTitle="Puantaj kodu" prompt="${KODLAR.map(k=>k.kod+'='+k.ad).join(', ')}" sqref="${veriAralik}"><formula1>"${KODLAR.map(k=>k.kod).join(",")}"</formula1></dataValidation></dataValidations>`;
+
+  const genislikler = `<cols>
+<col min="1" max="1" width="13.5" customWidth="1"/>
+<col min="2" max="2" width="24" customWidth="1"/>
+<col min="3" max="3" width="14" customWidth="1"/>
+<col min="4" max="${sonGun}" width="4.2" customWidth="1"/>
+<col min="${topBas}" max="${sonSutun}" width="12" customWidth="1"/></cols>`;
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
+<dimension ref="A1:${sutunAdi(sonSutun)}${ac + KODLAR.length}"/>
+<sheetViews><sheetView workbookViewId="0"><pane xSplit="3" ySplit="3" topLeftCell="D4" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>
+<sheetFormatPr defaultRowHeight="15"/>
+${genislikler}
+<sheetData>${s}</sheetData>
+<mergeCells count="1"><mergeCell ref="A1:${sutunAdi(Math.min(sonSutun, 3+n))}1"/></mergeCells>
+${kb}
+${dogrulama}
+<pageMargins left="0.25" right="0.25" top="0.4" bottom="0.4" header="0.3" footer="0.3"/>
+<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>
+</worksheet>`;
+}
+
+/** Personel listesi sayfası. */
+function personelSayfaXml(){
+  let s = `<row r="1" ht="22" customHeight="1">` + hucre("A1", "PERSONEL LİSTESİ", S.baslik) + `</row>`;
+  s += `<row r="2">` + ["TC No","Adı - Soyadı","Çalışma Yeri","Durum"]
+    .map((b, i) => hucre(sutunAdi(i+1) + "2", b, S.ustBaslik)).join("") + `</row>`;
+  [...D.personel].sort((a, b) => trSirala(a.ad, b.ad)).forEach((p, i) => {
+    const r = 3 + i;
+    s += `<row r="${r}">` + hucre("A"+r, p.tc || "", S.orta) + hucre("B"+r, p.ad, S.ad) +
+      hucre("C"+r, p.yer || "", S.orta) + hucre("D"+r, p.aktif ? "Aktif" : "Pasif", S.orta) + `</row>`;
+  });
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<cols><col min="1" max="1" width="14" customWidth="1"/><col min="2" max="2" width="26" customWidth="1"/>
+<col min="3" max="4" width="15" customWidth="1"/></cols>
+<sheetData>${s}</sheetData>
+<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>`;
+}
+
+/** Yıllık özet sayfası: kişi × ay, seçilen kodun gün sayısı. */
+function ozetSayfaXml(yillar, kod){
+  const kodAd = KOD_HARITA[kod] ? KOD_HARITA[kod].ad : kod;
+  let s = `<row r="1" ht="22" customHeight="1">` +
+    hucre("A1", `YILLIK ÖZET — ${kodAd} gün sayısı`, S.baslik) + `</row>`;
+  let r = 3;
+  for (const yil of yillar){
+    s += `<row r="${r}">` + hucre("A"+r, String(yil), S.ustBaslik) +
+      AYLAR.map((a, i) => hucre(sutunAdi(2+i) + r, a.slice(0,3), S.ustBaslik)).join("") +
+      hucre(sutunAdi(14) + r, "TOPLAM", S.ustBaslik) + `</row>`;
+    r++;
+    const idler = new Set();
+    for (let a = 1; a <= 12; a++)
+      Object.entries(ayVerisi(yil, a)).forEach(([pid, v]) => { if (Object.keys(v).length) idler.add(pid); });
+    const kisiler = D.personel.filter(p => idler.has(p.id)).sort((a, b) => trSirala(a.ad, b.ad));
+    for (const p of kisiler){
+      let yt = 0;
+      let satir = hucre("A"+r, p.ad, S.ad);
+      for (let a = 1; a <= 12; a++){
+        const v = ayVerisi(yil, a)[p.id] || {};
+        const n = gunSayisi(yil, a);
+        let t = 0;
+        for (let g = 1; g <= n; g++) if ((v[g] || "") === kod) t++;
+        yt += t;
+        satir += hucre(sutunAdi(1+a) + r, t, S.orta);
+      }
+      s += `<row r="${r}">` + satir + hucre(sutunAdi(14) + r, yt, S.toplam) + `</row>`;
+      r++;
+    }
+    r++;
+  }
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<cols><col min="1" max="1" width="26" customWidth="1"/><col min="2" max="14" width="7" customWidth="1"/></cols>
+<sheetData>${s}</sheetData>
+<pageMargins left="0.4" right="0.4" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>`;
+}
+
+/** Sayfaları .xlsx blob'una paketler. */
+function xlsxYap(sayfalar){          // sayfalar: [{ad, xml}]
+  const kodla = new TextEncoder();
+  const dosyalar = [];
+  const ekle = (ad, metin) => dosyalar.push({ ad, veri: kodla.encode(metin) });
+
+  ekle("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+${sayfalar.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}
+</Types>`);
+  ekle("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`);
+  ekle("xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets>${sayfalar.map((s, i) =>
+  `<sheet name="${xkac(s.ad.slice(0,31))}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets>
+<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`);
+  ekle("xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${sayfalar.map((_, i) => `<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}
+<Relationship Id="rId${sayfalar.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`);
+  ekle("xl/styles.xml", stilXml());
+  sayfalar.forEach((s, i) => ekle(`xl/worksheets/sheet${i+1}.xml`, s.xml));
+  return zipYaz(dosyalar);
+}
+
+/* ============================================================
+   DIŞA AKTARMA AKIŞI
+   ============================================================ */
+function doluAylar(){
+  return Object.keys(D.kayit)
+    .filter(k => Object.values(D.kayit[k]).some(v => Object.keys(v).length))
+    .sort()
+    .map(k => ({ yil:+k.slice(0,4), ay:+k.slice(5,7) }));
+}
+function disaAktar(kapsam){
+  const hepsi = doluAylar();
+  let secili;
+  if (kapsam === "ay")   secili = [{ yil:aktifYil, ay:aktifAy }];
+  else if (kapsam === "yil") secili = hepsi.filter(m => m.yil === aktifYil);
+  else secili = hepsi;
+  if (kapsam !== "ay" && !secili.length) secili = [{ yil:aktifYil, ay:aktifAy }];
+
+  const sayfalar = secili.map(m => ({ ad:`${AYLAR[m.ay-1]} ${m.yil}`, xml: ayaSayfaXml(m.yil, m.ay) }));
+  if (kapsam !== "ay"){
+    const yillar = [...new Set(secili.map(m => m.yil))].sort();
+    sayfalar.push({ ad:"ÖZET", xml: ozetSayfaXml(yillar, "Ç") });
+  }
+  sayfalar.push({ ad:"PERSONEL", xml: personelSayfaXml() });
+
+  const adi = kapsam === "ay" ? `Puantaj_${AYLAR[aktifAy-1]}_${aktifYil}.xlsx`
+            : kapsam === "yil" ? `Puantaj_${aktifYil}.xlsx` : `Puantaj_Tum_Aylar.xlsx`;
+  indir(xlsxYap(sayfalar), adi);
+  bildir(`${sayfalar.length} sayfa Excel'e aktarıldı.`);
+}
+
+/** Küçük seçim penceresi. */
+function secimSor(baslik, secenekler){
+  const ortu = document.createElement("div");
+  ortu.className = "ortu";
+  ortu.innerHTML = `<div class="modal" style="width:min(440px,100%)">
+    <header><h2>${baslik}</h2><button class="kapat">×</button></header>
+    <div class="govde" style="display:flex;flex-direction:column;gap:8px">
+      ${secenekler.map(s => `<button class="btn ikincil" data-d="${s.deger}"
+         style="text-align:left;padding:12px 14px"><b>${s.ad}</b><br>
+         <span style="font-size:12px;color:var(--muted)">${s.aciklama}</span></button>`).join("")}
+    </div></div>`;
+  document.body.appendChild(ortu);
+  ortu.addEventListener("click", e => {
+    const b = e.target.closest("button[data-d]");
+    if (b) { ortu.remove(); secimSor._cb && secimSor._cb(b.dataset.d); }
+    else if (e.target.closest(".kapat") || e.target === ortu) ortu.remove();
+  });
+  return new Promise(r => secimSor._cb = r);
+}
+
+/* ============================================================
+   İÇE AKTARMA AKIŞI
+   ============================================================ */
+let bekleyenAktarim = null;
+
+async function dosyaAktar(dosya){
+  const govde = $("#iceAktarGovde");
+  $("#mIceAktar").hidden = false;
+  $("#btnIceAktarOnay").hidden = true;
+  govde.innerHTML = `<div class="bilgi">“${dosya.name}” okunuyor…</div>`;
+  try {
+    if (/\.json$/i.test(dosya.name)) return yedekYukle(await dosya.text());
+    const sayfalar = await xlsxOku(await dosya.arrayBuffer());
+    const { kisiler, aylar, atlanan } = puantajCikar(sayfalar);
+    const ayAdet = Object.keys(aylar).length;
+    if (!ayAdet || !kisiler.size){
+      govde.innerHTML = `<div class="uyari"><b>Veri bulunamadı.</b><br>
+        Sayfa adları “OCAK 2025” gibi <b>AY YIL</b> biçiminde olmalı; A sütunu TC No,
+        B sütunu Adı Soyadı, C sütunu Çalışma Yeri, D sütunundan itibaren ayın günleri olmalı.
+        ${atlanan.length ? `<br><br>Okunamayan sayfalar: ${atlanan.slice(0,8).join(", ")}${atlanan.length>8?"…":""}` : ""}
+      </div>`;
+      return;
+    }
+    const anahtarlar = Object.keys(aylar).sort();
+    const gunToplam = Object.values(aylar).reduce((t, ay) =>
+      t + Object.values(ay).reduce((u, g) => u + Object.keys(g).length, 0), 0);
+    const cakisan = anahtarlar.filter(k => D.kayit[k] &&
+      Object.values(D.kayit[k]).some(v => Object.keys(v).length));
+
+    bekleyenAktarim = { kisiler, aylar };
+    govde.innerHTML = `
+      <div class="ok"><b>Dosya başarıyla okundu.</b></div>
+      <table class="liste"><tbody>
+        <tr><td><b>Personel</b></td><td>${kisiler.size} kişi</td></tr>
+        <tr><td><b>Ay</b></td><td>${ayAdet} ay (${anahtarlar[0]} → ${anahtarlar.at(-1)})</td></tr>
+        <tr><td><b>İşlenmiş gün</b></td><td>${gunToplam.toLocaleString("tr")} hücre</td></tr>
+        ${atlanan.length ? `<tr><td><b>Atlanan sayfa</b></td><td>${atlanan.length} (ay adı çözülemedi)</td></tr>` : ""}
+      </tbody></table>
+      ${cakisan.length ? `<div class="uyari" style="margin-top:12px">
+        <b>${cakisan.length} ay</b> için elinizde zaten kayıt var. İçe aktarma bu ayların
+        <b>üzerine yazar</b>. Devam etmeden önce Ayarlar → Yedek Al ile yedek almanız önerilir.</div>` : ""}
+      <div class="bilgi" style="margin-top:12px">Kişiler TC No ile eşleştirilir; TC No yoksa ad-soyad kullanılır.
+        Küçük/büyük harf farkları (ç → Ç, i → İ) otomatik düzeltilir.</div>`;
+    $("#btnIceAktarOnay").hidden = false;
+  } catch (e) {
+    console.error(e);
+    govde.innerHTML = `<div class="uyari"><b>Dosya okunamadı.</b><br>${xkac(e.message)}</div>`;
+  }
+}
+
+function aktarimiUygula(){
+  if (!bekleyenAktarim) return;
+  anlikAl();
+  const { kisiler, aylar } = bekleyenAktarim;
+  /* anahtar -> mevcut/yeni personel id */
+  const idHarita = {};
+  for (const [anahtar, bilgi] of kisiler){
+    let p = null;
+    if (bilgi.tc) p = D.personel.find(x => x.tc && x.tc === bilgi.tc);
+    if (!p) p = D.personel.find(x => trBuyuk(x.ad) === trBuyuk(bilgi.ad));
+    if (p){
+      if (!p.tc && bilgi.tc) p.tc = bilgi.tc;
+      if (!p.yer && bilgi.yer) p.yer = bilgi.yer;
+    } else {
+      p = { id: yeniId(), ad: bilgi.ad, tc: bilgi.tc, yer: bilgi.yer, aktif: true };
+      D.personel.push(p);
+    }
+    idHarita[anahtar] = p.id;
+  }
+  for (const [ayK, satirlar] of Object.entries(aylar)){
+    const hedef = D.kayit[ayK] || (D.kayit[ayK] = {});
+    const kadro = new Set(D.kadro[ayK] || []);
+    for (const [anahtar, gunler] of Object.entries(satirlar)){
+      const pid = idHarita[anahtar];
+      hedef[pid] = { ...(hedef[pid] || {}), ...gunler };
+      kadro.add(pid);
+    }
+    D.kadro[ayK] = [...kadro];
+  }
+  /* en son ayda kaydı olmayanları pasife çek */
+  const sonAy = Object.keys(aylar).sort().at(-1);
+  if (sonAy){
+    const aktifOlanlar = new Set(Object.keys(aylar[sonAy]).map(a => idHarita[a]));
+    D.personel.forEach(p => { if (!aktifOlanlar.has(p.id)) p.aktif = false; });
+    aktifOlanlar.forEach(id => {
+      const p = D.personel.find(x => x.id === id); if (p) p.aktif = true;
+    });
+    const [y, a] = sonAy.split("-").map(Number);
+    aktifYil = y; aktifAy = a;
+  }
+  kaydet();
+  bekleyenAktarim = null;
+  $("#mIceAktar").hidden = true;
+  ciz();
+  bildir("İçe aktarma tamamlandı.");
+}
+
+/* ---- JSON yedek ---- */
+function yedekAl(){
+  indir(new Blob([JSON.stringify(D, null, 1)], { type:"application/json" }),
+        `Puantaj_Yedek_${new Date().toISOString().slice(0,10)}.json`);
+  bildir("Yedek indirildi.");
+}
+function yedekYukle(metin){
+  try {
+    const v = JSON.parse(metin);
+    if (!v.personel || !v.kayit) throw new Error("Bu bir puantaj yedeği değil.");
+    if (!confirm("Yedek yüklenecek ve mevcut veriler değiştirilecek. Devam edilsin mi?")) return;
+    D = { ...structuredClone(VARSAYILAN), ...v,
+          kadro: v.kadro || {},
+          ayarlar: { ...VARSAYILAN.ayarlar, ...(v.ayarlar || {}) } };
+    kaydet(); $("#mIceAktar").hidden = true; ciz();
+    bildir("Yedek yüklendi.");
+  } catch (e) {
+    $("#iceAktarGovde").innerHTML = `<div class="uyari">Yedek okunamadı: ${xkac(e.message)}</div>`;
+  }
+}
+
+/* ============================================================
+   OLAY BAĞLAMA + BAŞLANGIÇ
+   ============================================================ */
+$("#kalemler").addEventListener("click", e => {
+  const b = e.target.closest(".kalem"); if (!b) return;
+  aktifKalem = b.dataset.kod;
+  kalemleriCiz();
+});
+$("#onceki").addEventListener("click", () => ayDegistir(-1));
+$("#sonraki").addEventListener("click", () => ayDegistir(+1));
+$("#buguneGit").addEventListener("click", () => {
+  const d = new Date(); ayaGit(d.getFullYear(), d.getMonth()+1);
+});
+$("#btnAyiDoldur").addEventListener("click", boslariDoldur);
+$("#btnHaftaSonu").addEventListener("click", haftaSonlariniIsaretle);
+$("#btnAyiTemizle").addEventListener("click", ayiTemizle);
+
+$("#btnKadro").addEventListener("click", () => { kadroCiz(); $("#mKadro").hidden = false; });
+$("#btnPersonel").addEventListener("click", () => { personelCiz(); $("#mPersonel").hidden = false; });
+$("#btnOzet").addEventListener("click", () => { ozetHazirla(); $("#mOzet").hidden = false; });
+$("#ozetYil").addEventListener("change", ozetCiz);
+$("#ozetKod").addEventListener("change", ozetCiz);
+$("#btnOzetCsv").addEventListener("click", ozetCsv);
+$("#btnYazdir").addEventListener("click", () => window.print());
+
+$("#btnDisaAktar").addEventListener("click", async () => {
+  const kapsam = await secimSor("Excel'e Aktar", [
+    { deger:"ay",  ad:`Sadece ${AYLAR[aktifAy-1]} ${aktifYil}`, aciklama:"İmzaya/arşive gidecek tek sayfalık cetvel." },
+    { deger:"yil", ad:`${aktifYil} yılının tamamı`, aciklama:"Her ay ayrı sayfa + yıllık özet." },
+    { deger:"tum", ad:"Tüm aylar", aciklama:"Bütün geçmiş — tam arşiv dosyası." },
+  ]);
+  if (kapsam) setTimeout(() => disaAktar(kapsam), 30);
+});
+$("#btnIceAktar").addEventListener("click", () => {
+  $("#dosyaSec").value = "";
+  $("#dosyaSec").click();
+});
+$("#dosyaSec").addEventListener("change", e => {
+  const f = e.target.files[0];
+  if (f) dosyaAktar(f);
+});
+$("#btnIceAktarOnay").addEventListener("click", aktarimiUygula);
+
+/* Sürükle-bırak ile dosya aktarma */
+["dragover","drop"].forEach(t => document.addEventListener(t, e => {
+  e.preventDefault();
+  if (t === "drop" && e.dataTransfer.files[0]) dosyaAktar(e.dataTransfer.files[0]);
+}));
+
+/* Ayarlar */
+$("#btnAyarlar").addEventListener("click", () => {
+  $("#ayHaftaSonu").checked = D.ayarlar.haftaSonu;
+  $("#ayTatil").checked     = D.ayarlar.tatil;
+  $("#ayPasif").checked     = D.ayarlar.tumAktif;
+  $("#ayBoyut").value       = String(D.ayarlar.boyut);
+  $("#mAyarlar").hidden = false;
+});
+const ayarBagla = (id, alan, deger) =>
+  $(id).addEventListener("change", e => {
+    D.ayarlar[alan] = deger(e.target); kaydet(); ciz();
+  });
+ayarBagla("#ayHaftaSonu", "haftaSonu",   t => t.checked);
+ayarBagla("#ayTatil",     "tatil",       t => t.checked);
+ayarBagla("#ayPasif",     "tumAktif",    t => t.checked);
+ayarBagla("#ayBoyut",     "boyut",       t => +t.value);
+$("#btnYedekAl").addEventListener("click", yedekAl);
+$("#btnYedekYukle").addEventListener("click", () => { $("#dosyaSec").value = ""; $("#dosyaSec").click(); });
+$("#btnHepsiniSil").addEventListener("click", () => {
+  if (!confirm("TÜM personel ve puantaj kayıtları silinecek. Bu işlem geri alınamaz!\n\nÖnce yedek aldığınızdan emin olun. Devam edilsin mi?")) return;
+  if (!confirm("Son kez soruyoruz: gerçekten tüm veriler silinsin mi?")) return;
+  D = structuredClone(VARSAYILAN);
+  kaydet(); $("#mAyarlar").hidden = true; ciz();
+  bildir("Tüm veriler silindi.");
+});
+
+/* Modal kapatma */
+document.addEventListener("click", e => {
+  if (e.target.matches("[data-kapat]") || e.target.closest("[data-kapat]"))
+    e.target.closest(".ortu").hidden = true;
+  else if (e.target.classList.contains("ortu")) e.target.hidden = true;
+});
+
+/* Sayfadan ayrılırken uyarı yok — her değişiklik anında kaydediliyor. */
+
+/* --- Başlangıç --- */
+(function baslat(){
+  const son = localStorage.getItem("puantaj_sonAy");
+  const d = new Date();
+  if (son && /^\d{4}-\d{2}$/.test(son)){
+    aktifYil = +son.slice(0,4); aktifAy = +son.slice(5,7);
+  } else {
+    aktifYil = d.getFullYear(); aktifAy = d.getMonth()+1;
+  }
+  ciz();
+  if (!D.personel.length)
+    setTimeout(() => bildir("Başlamak için “Personel” ya da “Excel'den Aktar” düğmesini kullanın."), 700);
+})();
+</script>
+</body>
+</html>
