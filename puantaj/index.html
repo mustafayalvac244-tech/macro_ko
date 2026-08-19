@@ -630,7 +630,16 @@ function toplamHakedis(kidem){
   for (let n = 1; n <= (kidem || 0); n++) t += kademeGunu(n);
   return t;
 }
-/** Puantaj kayıtlarında izin sayılan kodların toplamı. */
+/** Bir gün, izin bakiyesinden düşülmeye uygun mu? Hafta sonu (ayar açıksa) ve
+    resmî tatiller zaten çalışılmayan gün olduğu için "İ" işaretli de olsa
+    yıllık izinden düşülmez — aksi halde eski alışkanlıkla hafta sonuna da
+    yazılan "İ" kodları bakiyeyi haksız yere eritir. */
+function izneSayilirMi(yil, ay, gun){
+  if (D.ayarlar.haftaSonuTatil && haftaninGunu(yil, ay, gun) >= 6) return false;
+  if (D.ayarlar.tatil && tatiller(yil)[`${ay}-${gun}`]) return false;
+  return true;
+}
+/** Puantaj kayıtlarında izin sayılan kodların toplamı (hafta sonu/tatil hariç). */
 function kullanilanIzin(pid, bitisTarihi){
   const kodlar = D.ayarlar.izinKodlari;
   const sinir = bitisTarihi ? new Date(bitisTarihi) : null;
@@ -641,7 +650,9 @@ function kullanilanIzin(pid, bitisTarihi){
     const [yil, no] = ayK.split("-").map(Number);
     for (const [g, kod] of Object.entries(satir)){
       if (!kodlar.includes(kod)) continue;
-      if (sinir && new Date(yil, no-1, +g) > sinir) continue;
+      const gun = +g;
+      if (sinir && new Date(yil, no-1, gun) > sinir) continue;
+      if (!izneSayilirMi(yil, no, gun)) continue;
       t++;
     }
   }
@@ -1669,9 +1680,13 @@ function puantajCikar(sayfalar){
    ayda aynı yerdedir; özet sayfası buna güvenerek çalışır.
    ============================================================ */
 
-/* Sabit sütun düzeni */
+/* Sabit sütun düzeni. maskeTop1.. : gizli yardımcı sütunlar — her kodun
+   hafta sonu/resmî tatil HARİÇ "gerçek kullanım" sayısı. İZİN TAKİBİ
+   sayfası bakiye hesabında bunları okur, elle doldurulan gün de dahil
+   sadece hafta sonuna/tatile denk gelenler düşülmez. */
 const SUT = { tc:1, ad:2, yer:3, gun1:4, gun31:34,
-              top1:35, topSon:41, toplam:42, durum:43 };
+              top1:35, topSon:41, toplam:42, durum:43,
+              maskeTop1:44, maskeTopSon:50 };
 const TOPLAM_SUTUN = [
   { kod:"Ç",   baslik:"ÇALIŞILAN\nGÜN" }, { kod:"İ",   baslik:"İZİNLİ\nGÜN" },
   { kod:"R",   baslik:"RAPORLU\nGÜN" },   { kod:"Y",   baslik:"YARIM\nGÜN" },
@@ -1812,6 +1827,19 @@ function ayaSayfaXml(yil, ay){
     ? `NETWORKDAYS($A$2,EOMONTH($A$2,0))` : `DAY(EOMONTH($A$2,0))`;
   const beklenen = `$B$2`;
 
+  /* Hafta sonu / resmî tatil hariç tutan çarpan — "gizli maske sütunları"nda kullanılır.
+     Ayarlar kapalıysa boş döner (COUNTIF ile aynı sonucu verir). */
+  const tatilSeri = [];
+  for (let g = 1; g <= n; g++) if (tat[`${ay}-${g}`]) tatilSeri.push(excelTarih(yil, ay, g));
+  const maskeCarpani = r => {
+    const kolon = `COLUMN($D${r}:$AH${r})-3`;
+    const parcalar = [];
+    if (D.ayarlar.haftaSonuTatil) parcalar.push(`(WEEKDAY(DATE(${yil},${ay},${kolon}),2)<6)`);
+    if (D.ayarlar.tatil && tatilSeri.length)
+      parcalar.push(`(ISNA(MATCH(DATE(${yil},${ay},${kolon}),{${tatilSeri.join(",")}},0)))`);
+    return parcalar.length ? "*" + parcalar.join("*") : "";
+  };
+
   const gunStili = g => {
     if (g > n) return S.gunGecersiz;
     if (tat[`${ay}-${g}`]) return S.gunTatil;
@@ -1859,7 +1887,10 @@ function ayaSayfaXml(yil, ay){
   TOPLAM_SUTUN.forEach((t, i) =>
     s += hucre(sutunAdi(SUT.top1+i) + "4", t.baslik.replace("\n", "\n"), S.ustBaslik));
   s += hucre(sutunAdi(SUT.toplam) + "4", "TOPLAM\nİŞLENEN", S.ustBaslik) +
-       hucre(sutunAdi(SUT.durum) + "4", "DURUM", S.ustBaslik) + `</row>`;
+       hucre(sutunAdi(SUT.durum) + "4", "DURUM", S.ustBaslik);
+  TOPLAM_SUTUN.forEach((t, i) =>
+    s += hucre(sutunAdi(SUT.maskeTop1+i) + "4", t.kod + " (iş günü)", S.ustBaslik));
+  s += `</row>`;
 
   /* ---- veri satırları ---- */
   kisiler.forEach((p, i) => {
@@ -1879,6 +1910,10 @@ function ayaSayfaXml(yil, ay){
     s += hucre(sutunAdi(SUT.durum) + r, null, S.durum,
       `IF(COUNTA(${aralik})=0,"— boş —",` +
       `IF(COUNTA(${aralik})<${beklenen},"⚠ "&(${beklenen}-COUNTA(${aralik}))&" gün eksik","✓ TAMAM"))`);
+    const mc = maskeCarpani(r);
+    TOPLAM_SUTUN.forEach((t, j) =>
+      s += hucre(sutunAdi(SUT.maskeTop1+j) + r, null, S.toplam,
+                 mc ? `SUMPRODUCT((${aralik}="${t.kod}")${mc})` : `COUNTIF(${aralik},"${t.kod}")`));
     s += `</row>`;
   });
 
@@ -1947,7 +1982,7 @@ function ayaSayfaXml(yil, ay){
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
-<dimension ref="A1:${SON}${adSatir}"/>
+<dimension ref="A1:${sutunAdi(SUT.maskeTopSon)}${adSatir}"/>
 <sheetViews><sheetView showGridLines="0" workbookViewId="0"><pane xSplit="3" ySplit="4" topLeftCell="D5" activePane="bottomRight" state="frozen"/><selection pane="bottomRight" activeCell="D${ILK_VERI}" sqref="D${ILK_VERI}"/></sheetView></sheetViews>
 <sheetFormatPr defaultRowHeight="15"/>
 <cols>
@@ -1956,7 +1991,8 @@ function ayaSayfaXml(yil, ay){
 <col min="3" max="3" width="14" customWidth="1"/>
 <col min="4" max="${SUT.gun31}" width="4" customWidth="1"/>
 <col min="${SUT.top1}" max="${SUT.toplam}" width="10.5" customWidth="1"/>
-<col min="${SUT.durum}" max="${SUT.durum}" width="15" customWidth="1"/></cols>
+<col min="${SUT.durum}" max="${SUT.durum}" width="15" customWidth="1"/>
+<col min="${SUT.maskeTop1}" max="${SUT.maskeTopSon}" width="9" hidden="1" customWidth="1"/></cols>
 <sheetData>${s}</sheetData>
 <sheetProtection sheet="1" objects="1" scenarios="1" formatCells="0" formatColumns="0" formatRows="0" insertRows="0" deleteRows="0" sort="0" autoFilter="0"/>
 <autoFilter ref="A4:${SON}${sonVeri}"/>
@@ -1977,12 +2013,14 @@ function kodlarSayfaXml(){
   s += `<row r="2" ht="22" customHeight="1">` +
     hucre("A2", "KOD", S.ustBaslik) + hucre("B2", "AÇIKLAMA", S.ustBaslik) +
     hucre("C2", "sütun", S.ustBaslik) + `</row>`;
+  /* C sütunu, İZİN TAKİBİ'nin VLOOKUP'ta kullandığı sütun no'sudur; hafta sonu/tatil
+     hariç "gerçek kullanım" sayan gizli maske sütununu gösterir (ham COUNTIF değil). */
   TOPLAM_SUTUN.forEach((t, i) => {
     const r = 3 + i, k = KOD_HARITA[t.kod];
     s += `<row r="${r}" ht="18" customHeight="1">` +
       hucre("A" + r, t.kod, S.toplamAna) +
       hucre("B" + r, k ? k.ad : t.kod, S.ozetAd) +
-      hucre("C" + r, SUT.top1 + i - 1, S.ozetDeger) + `</row>`;
+      hucre("C" + r, SUT.maskeTop1 + i - 1, S.ozetDeger) + `</row>`;
   });
   const r = 3 + TOPLAM_SUTUN.length;
   s += `<row r="${r}" ht="18" customHeight="1">` + hucre("A" + r, "Σ", S.toplamAna) +
@@ -2149,8 +2187,9 @@ function izinSayfaXml(aylar){        // aylar: kitapta bulunan [{yil, ay}]
   });
   const notSatir = KAD_SON + 1;
   s += `<row r="${notSatir}">` +
-    hucre("A" + notSatir, "Sarı hücreler elle değiştirilebilir. \"Kullanılan\" sütunu, seçili kodun puantajdaki toplamıdır — " +
-      "izin dışı günler de bu kodla işaretlendiyse sayı yüksek çıkar.", S.aciklama) + `</row>`;
+    hucre("A" + notSatir, "Sarı hücreler elle değiştirilebilir. \"Kullanılan\" sütunu, seçili kodun puantajdaki toplamıdır; " +
+      "hafta sonu/resmî tatile denk gelen işaretler otomatik hariç tutulur (Ayarlar'daki hafta sonu ve tatil " +
+      "anahtarlarına göre) — o günler zaten çalışılmadığı için izin bakiyesinden düşülmez.", S.aciklama) + `</row>`;
 
   /* --- tablo başlığı --- */
   const BAS = KAD_SON + 3, ILK = izinIlkVeriSatiri();
@@ -2165,13 +2204,15 @@ function izinSayfaXml(aylar){        // aylar: kitapta bulunan [{yil, ay}]
   /* --- kişiler --- */
   kisiler.forEach((p, i) => {
     const r = ILK + i;
-    /* bu kitapta bulunmayan aylardaki izin kullanımı (sabit sayı) */
+    /* bu kitapta bulunmayan aylardaki izin kullanımı (sabit sayı) —
+       hafta sonu/tatile denk gelen "İ" işaretleri burada da düşülmez. */
     let onceki = 0;
     for (const [ayK, ay] of Object.entries(D.kayit)){
       if (varOlan.has(ayK)) continue;
       const satir = ay[p.id]; if (!satir) continue;
-      for (const kod of Object.values(satir))
-        if (D.ayarlar.izinKodlari.includes(kod)) onceki++;
+      const [oYil, oAy] = ayK.split("-").map(Number);
+      for (const [g, kod] of Object.entries(satir))
+        if (D.ayarlar.izinKodlari.includes(kod) && izneSayilirMi(oYil, oAy, +g)) onceki++;
     }
     const yilAralik = yillar.length
       ? `${sutunAdi(IZIN_SUT.ilkYil)}${r}:${SON}${r}` : null;
@@ -2198,7 +2239,7 @@ function izinSayfaXml(aylar){        // aylar: kitapta bulunan [{yil, ay}]
       const terimler = [];
       for (let a = 1; a <= 12; a++)
         if (varOlan.has(ayAnahtar(y, a)))
-          terimler.push(`IFERROR(VLOOKUP($A${r},'${AYLAR[a-1]} ${y}'!$B$5:$${sutunAdi(SUT.toplam)}$200,$F$3,FALSE),0)`);
+          terimler.push(`IFERROR(VLOOKUP($A${r},'${AYLAR[a-1]} ${y}'!$B$5:$${sutunAdi(SUT.maskeTopSon)}$200,$F$3,FALSE),0)`);
       s += hucre(sutunAdi(IZIN_SUT.ilkYil + j) + r, null, S.ozetDeger, terimler.join("+") || "0");
     });
     s += `</row>`;
