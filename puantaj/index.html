@@ -1009,29 +1009,40 @@ function crc32(buf){
   for (let i = 0; i < buf.length; i++) c = CRC_TABLO[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
   return (c ^ 0xFFFFFFFF) >>> 0;
 }
-/** Dosyaları sıkıştırmadan (store) zip'ler — Excel bunu sorunsuz açar. */
-function zipYaz(dosyalar){          // dosyalar: [{ad, veri:Uint8Array}]
+/** Veriyi deflate ile sıkıştırır; tarayıcı desteklemiyorsa olduğu gibi döner. */
+async function deflateEt(veri){
+  if (typeof CompressionStream === "undefined") return null;
+  try {
+    const akis = new Blob([veri]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+    const paket = new Uint8Array(await new Response(akis).arrayBuffer());
+    return paket.length < veri.length ? paket : null;
+  } catch { return null; }
+}
+/** Dosyaları zip'ler. Excel hem sıkıştırılmış hem sıkıştırılmamış girdileri açar. */
+async function zipYaz(dosyalar){    // dosyalar: [{ad, veri:Uint8Array}]
   const kodla = new TextEncoder();
   const yerel = [], merkez = [];
   let ofset = 0;
   for (const d of dosyalar){
-    const ad = kodla.encode(d.ad), veri = d.veri, crc = crc32(veri);
+    const ad = kodla.encode(d.ad), hamVeri = d.veri, crc = crc32(hamVeri);
+    const paket = await deflateEt(hamVeri);
+    const veri = paket || hamVeri, yontem = paket ? 8 : 0;
     const bas = new DataView(new ArrayBuffer(30));
     bas.setUint32(0, 0x04034b50, true); bas.setUint16(4, 20, true);
     bas.setUint16(6, 0x0800, true);      // UTF-8 dosya adı
-    bas.setUint16(8, 0, true);           // sıkıştırma: store
+    bas.setUint16(8, yontem, true);      // 0 = store, 8 = deflate
     bas.setUint16(10, 0, true); bas.setUint16(12, 0x2100, true); // saat/tarih (sabit)
     bas.setUint32(14, crc, true); bas.setUint32(18, veri.length, true);
-    bas.setUint32(22, veri.length, true);
+    bas.setUint32(22, hamVeri.length, true);
     bas.setUint16(26, ad.length, true); bas.setUint16(28, 0, true);
     yerel.push(new Uint8Array(bas.buffer), ad, veri);
 
     const m = new DataView(new ArrayBuffer(46));
     m.setUint32(0, 0x02014b50, true); m.setUint16(4, 20, true); m.setUint16(6, 20, true);
-    m.setUint16(8, 0x0800, true); m.setUint16(10, 0, true);
+    m.setUint16(8, 0x0800, true); m.setUint16(10, yontem, true);
     m.setUint16(12, 0, true); m.setUint16(14, 0x2100, true);
     m.setUint32(16, crc, true); m.setUint32(20, veri.length, true);
-    m.setUint32(24, veri.length, true); m.setUint16(28, ad.length, true);
+    m.setUint32(24, hamVeri.length, true); m.setUint16(28, ad.length, true);
     m.setUint32(42, ofset, true);
     merkez.push(new Uint8Array(m.buffer), ad);
     ofset += 30 + ad.length + veri.length;
@@ -1228,64 +1239,125 @@ function puantajCikar(sayfalar){
 }
 
 /* ============================================================
-   XLSX YAZMA
+   XLSX YAZMA — profesyonel puantaj çalışma kitabı
+   ------------------------------------------------------------
+   Tasarım kararı: her ay sayfası SABİT 31 gün sütunu kullanır
+   (D..AH). Kısa aylarda var olmayan günler gri ve kilitlidir.
+   Böylece toplam formülleri her ayda aynıdır (D:AH) — eski
+   dosyadaki "aralık ayın gün sayısıyla uyuşmuyor" hatası
+   yapısal olarak imkânsız hale gelir. Toplam sütunları da her
+   ayda aynı yerdedir; özet sayfası buna güvenerek çalışır.
    ============================================================ */
+
+/* Sabit sütun düzeni */
+const SUT = { tc:1, ad:2, yer:3, gun1:4, gun31:34,
+              top1:35, topSon:41, toplam:42, durum:43 };
+const TOPLAM_SUTUN = [
+  { kod:"Ç",   baslik:"ÇALIŞILAN\nGÜN" }, { kod:"İ",   baslik:"İZİNLİ\nGÜN" },
+  { kod:"R",   baslik:"RAPORLU\nGÜN" },   { kod:"Y",   baslik:"YARIM\nGÜN" },
+  { kod:"D",   baslik:"DEVAMSIZ\nGÜN" },  { kod:"Ü",   baslik:"ÜCRETSİZ\nİZİN" },
+  { kod:"DİZ", baslik:"DOĞUM\nİZNİ" },
+];
 const RENK = {                       // [yazı, dolgu]
   "Ç":["1C7A4A","DFF3E7"], "İ":["B06A00","FDEFD6"], "R":["A32020","FBE0E0"],
   "Y":["5A4BB5","E8E5FA"], "D":["4A5464","E3E7ED"], "Ü":["8A6D3B","F2EAD9"],
   "DİZ":["0B6F86","DCF0F5"],
 };
+
+/* stil numaraları (cellXfs sırası ile birebir) */
+const S = {
+  yok:0, baslik:1, bilgi:2, bilgiSol:3,
+  ustBaslik:4, ustBaslikHS:5, gunAdi:6, gunAdiHS:7,
+  ad:8, orta:9,
+  gun:10, gunHS:11, gunTatil:12, gunGecersiz:13,
+  toplam:14, toplamAna:15, durum:16,
+  ayak:17, ayakAd:18,
+  aciklama:19, imzaEtiket:20, imzaCizgi:21,
+  bolumBasligi:22, tarih:23, sayi:24, ozetAd:25, ozetDeger:26, ozetToplam:27,
+};
+
 function stilXml(){
   const dxf = KODLAR.map(k => {
     const [y, d] = RENK[k.kod];
     return `<dxf><font><b/><color rgb="FF${y}"/></font>` +
            `<fill><patternFill patternType="solid"><bgColor rgb="FF${d}"/></patternFill></fill></dxf>`;
-  }).join("");
+  }).join("")
+  /* dxf[7] = "tamamlandı" yeşil, dxf[8] = "eksik" turuncu, dxf[9] = geçersiz giriş kırmızı */
+  + `<dxf><font><b/><color rgb="FF1C7A4A"/></font></dxf>`
+  + `<dxf><font><b/><color rgb="FFB06A00"/></font><fill><patternFill patternType="solid"><bgColor rgb="FFFDEFD6"/></patternFill></fill></dxf>`
+  + `<dxf><font><b/><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><bgColor rgb="FFC0392B"/></patternFill></fill></dxf>`;
+
+  const F = (b, sz, renk, it) =>
+    `<font>${b?"<b/>":""}${it?"<i/>":""}<sz val="${sz}"/>${renk?`<color rgb="FF${renk}"/>`:""}<name val="Calibri"/></font>`;
+  const D = renk => `<fill><patternFill patternType="solid"><fgColor rgb="FF${renk}"/><bgColor indexed="64"/></patternFill></fill>`;
+
+  const fontlar = [
+    F(0,11), F(1,11), F(1,16,"FFFFFF"), F(1,11,"FFFFFF"),
+    F(0,8,"66748A"), F(1,9,"FFFFFF"), F(0,9,"66748A",1), F(1,12,"233247"),
+    F(1,10,"1F5FA9"), F(1,10,"233247"),
+  ];
+  const dolgular = ["<fill><patternFill patternType=\"none\"/></fill>",
+    "<fill><patternFill patternType=\"gray125\"/></fill>",
+    D("233247"), D("3D5273"), D("E8ECF3"), D("FCE8E8"), D("DDE3EC"),
+    D("FAFBFD"), D("E7F0FB"), D("F4F6F9"), D("EEF1F6")];
+  const KENAR = c => `<left style="thin"><color rgb="FF${c}"/></left><right style="thin"><color rgb="FF${c}"/></right><top style="thin"><color rgb="FF${c}"/></top><bottom style="thin"><color rgb="FF${c}"/></bottom><diagonal/>`;
+  const kenarlar = [
+    "<border><left/><right/><top/><bottom/><diagonal/></border>",
+    `<border>${KENAR("C9D2DE")}</border>`,
+    `<border><left style="medium"><color rgb="FF8494A8"/></left><right style="thin"><color rgb="FFC9D2DE"/></right><top style="thin"><color rgb="FFC9D2DE"/></top><bottom style="thin"><color rgb="FFC9D2DE"/></bottom><diagonal/></border>`,
+    `<border><left/><right/><top/><bottom style="thin"><color rgb="FF233247"/></bottom><diagonal/></border>`,
+  ];
+  /* xf(font, dolgu, kenar, hiza, kilitsiz, numFmt) */
+  const xf = (f, d, b, hiza, acik, nf) =>
+    `<xf numFmtId="${nf||0}" fontId="${f}" fillId="${d}" borderId="${b}" xfId="0"` +
+    ` applyFont="1" applyFill="1" applyBorder="1"${hiza?' applyAlignment="1"':""}` +
+    `${acik?' applyProtection="1"':""}${nf?' applyNumberFormat="1"':""}` +
+    (hiza || acik ? `>${hiza ? `<alignment ${hiza}/>` : ""}${acik ? `<protection locked="0"/>` : ""}</xf>` : "/>");
+
+  const ORTA = 'horizontal="center" vertical="center"';
+  const SOL  = 'horizontal="left" vertical="center"';
+  const hucreler = [
+    xf(0,0,0),                                                  // 0 yok
+    xf(2,2,0,ORTA),                                             // 1 başlık
+    xf(6,9,1,ORTA),                                             // 2 bilgi
+    xf(6,9,1,SOL),                                              // 3 bilgi (sol)
+    xf(3,2,1,ORTA+' wrapText="1"'),                             // 4 üst başlık
+    xf(3,3,1,ORTA+' wrapText="1"'),                             // 5 üst başlık hafta sonu
+    xf(4,0,1,ORTA),                                             // 6 gün adı
+    xf(4,4,1,ORTA),                                             // 7 gün adı hafta sonu
+    xf(0,0,1,SOL,1),                                            // 8 ad (kilitsiz)
+    xf(0,0,1,ORTA,1),                                           // 9 orta (kilitsiz)
+    xf(1,0,1,ORTA,1),                                           // 10 gün (kilitsiz)
+    xf(1,4,1,ORTA,1),                                           // 11 gün hafta sonu
+    xf(1,5,1,ORTA,1),                                           // 12 gün tatil
+    xf(4,6,1,ORTA),                                             // 13 gün geçersiz (kilitli)
+    xf(1,7,2,ORTA),                                             // 14 toplam
+    xf(8,8,2,ORTA),                                             // 15 ana toplam
+    xf(1,7,1,ORTA),                                             // 16 durum
+    xf(9,10,1,ORTA),                                            // 17 ayak
+    xf(9,10,1,'horizontal="right" vertical="center"'),          // 18 ayak (sağa yaslı)
+    xf(0,0,0,SOL),                                              // 19 açıklama
+    xf(1,0,0,SOL),                                              // 20 imza etiketi
+    xf(0,0,3,ORTA),                                             // 21 imza çizgisi
+    xf(7,0,0,SOL),                                              // 22 bölüm başlığı
+    xf(1,9,1,ORTA,0,164),                                       // 23 tarih
+    xf(1,9,1,ORTA,0,165),                                       // 24 sayı+etiket
+    xf(0,0,1,SOL),                                              // 25 özet ad
+    xf(0,0,1,ORTA),                                             // 26 özet değer
+    xf(1,8,2,ORTA),                                             // 27 özet toplam
+  ];
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<fonts count="5">
-<font><sz val="11"/><name val="Calibri"/></font>
-<font><b/><sz val="11"/><name val="Calibri"/></font>
-<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
-<font><b/><sz val="14"/><color rgb="FF233247"/><name val="Calibri"/></font>
-<font><sz val="8"/><color rgb="FF66748A"/><name val="Calibri"/></font>
-</fonts>
-<fills count="7">
-<fill><patternFill patternType="none"/></fill>
-<fill><patternFill patternType="gray125"/></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FF233247"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFEEF1F6"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFFAFBFD"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FF33455E"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFFDF2F2"/><bgColor indexed="64"/></patternFill></fill>
-</fills>
-<borders count="2">
-<border><left/><right/><top/><bottom/><diagonal/></border>
-<border><left style="thin"><color rgb="FFD0D6E0"/></left><right style="thin"><color rgb="FFD0D6E0"/></right><top style="thin"><color rgb="FFD0D6E0"/></top><bottom style="thin"><color rgb="FFD0D6E0"/></bottom><diagonal/></border>
-</borders>
+<numFmts count="2"><numFmt numFmtId="164" formatCode="[$-41F]MMMM YYYY"/><numFmt numFmtId="165" formatCode="0&quot; GÜN&quot;"/></numFmts>
+<fonts count="${fontlar.length}">${fontlar.join("")}</fonts>
+<fills count="${dolgular.length}">${dolgular.join("")}</fills>
+<borders count="${kenarlar.length}">${kenarlar.join("")}</borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="13">
-<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
-<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="2" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
-<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="1" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-</cellXfs>
+<cellXfs count="${hucreler.length}">${hucreler.join("")}</cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
-<dxfs count="${KODLAR.length}">${dxf}</dxfs>
+<dxfs count="${KODLAR.length + 3}">${dxf}</dxfs>
 </styleSheet>`;
 }
-/* stil kısaltmaları */
-const S = { baslik:1, ustBaslik:2, gunBaslik:3, gunBaslikHS:4, ad:5, orta:6,
-            hucre:7, hucreHS:8, hucreTatil:9, toplam:10, gunAd:11, gunAdHS:12 };
 
 function hucre(ref, deger, stil, formul){
   if (formul) return `<c r="${ref}" s="${stil}"><f>${xkac(formul)}</f></c>`;
@@ -1293,179 +1365,310 @@ function hucre(ref, deger, stil, formul){
   if (typeof deger === "number") return `<c r="${ref}" s="${stil}"><v>${deger}</v></c>`;
   return `<c r="${ref}" s="${stil}" t="inlineStr"><is><t xml:space="preserve">${xkac(deger)}</t></is></c>`;
 }
+/** Excel'in 1900 tarih sistemine göre seri numara. */
+function excelTarih(y, a, g){
+  return Math.round((Date.UTC(y, a-1, g) - Date.UTC(1899, 11, 30)) / 86400000);
+}
 
-/** Bir ayın puantaj sayfasını üretir. */
+/** Bir ayın puantaj sayfası. */
 function ayaSayfaXml(yil, ay){
   const n = gunSayisi(yil, ay);
   const tat = tatiller(yil);
   const kisiler = ayPersoneli(yil, ay);
-  const ilkGun = 4, sonGun = 3 + n;                    // D .. (3+n)
-  const topBas = sonGun + 1;
-  const topBaslik = ["ÇALIŞILAN GÜN","İZİNLİ GÜN","RAPORLU GÜN","YARIM GÜN","DEVAMSIZ","ÜCRETSİZ İZİN","DOĞUM İZNİ"];
-  const topKod    = ["Ç","İ","R","Y","D","Ü","DİZ"];
-  const sonSutun  = topBas + topBaslik.length - 1;
+  const SON = sutunAdi(SUT.durum);                 // AQ
+  const ILK_VERI = 5;
+  const sonVeri = Math.max(ILK_VERI, ILK_VERI + kisiler.length - 1);
+  const ayakSatir = sonVeri + 1;
 
   const gunStili = g => {
-    const hg = haftaninGunu(yil, ay, g);
-    if (tat[`${ay}-${g}`]) return S.hucreTatil;
-    return hg >= 6 ? S.hucreHS : S.hucre;
+    if (g > n) return S.gunGecersiz;
+    if (tat[`${ay}-${g}`]) return S.gunTatil;
+    return haftaninGunu(yil, ay, g) >= 6 ? S.gunHS : S.gun;
   };
+  const gunAdiStili = g => g > n ? S.gunGecersiz
+    : (haftaninGunu(yil, ay, g) >= 6 ? S.gunAdiHS : S.gunAdi);
+  const basStili = g => g > n ? S.gunGecersiz
+    : (haftaninGunu(yil, ay, g) >= 6 ? S.ustBaslikHS : S.ustBaslik);
 
-  let s = `<row r="1" ht="22" customHeight="1">` +
-    hucre("A1", `PUANTAJ CETVELİ  —  ${AYLAR[ay-1]} ${yil}`, S.baslik) + `</row>`;
-
-  /* satır 2: başlıklar + gün numaraları */
-  s += `<row r="2" ht="30" customHeight="1">` +
-    hucre("A2", "TC No", S.ustBaslik) + hucre("B2", "Adı - Soyadı", S.ustBaslik) +
-    hucre("C2", "ÇALIŞMA YERİ", S.ustBaslik);
-  for (let g = 1; g <= n; g++){
-    const hg = haftaninGunu(yil, ay, g);
-    s += hucre(sutunAdi(3+g) + "2", g, hg >= 6 ? S.gunBaslikHS : S.gunBaslik);
-  }
-  topBaslik.forEach((b, i) => s += hucre(sutunAdi(topBas+i) + "2", b, S.ustBaslik));
+  /* ---- satır 1: başlık ---- */
+  let s = `<row r="1" ht="30" customHeight="1">` +
+    hucre("A1", `PUANTAJ CETVELİ   ·   ${AYLAR[ay-1]} ${yil}`, S.baslik);
+  for (let c = 2; c <= SUT.durum; c++) s += hucre(sutunAdi(c) + "1", "", S.baslik);
   s += `</row>`;
 
-  /* satır 3: haftanın günleri */
+  /* ---- satır 2: bilgi şeridi (A2 = ay, B2 = gün sayısı, C2 = kişi) ---- */
+  const tatilAdlari = [];
+  for (let g = 1; g <= n; g++) if (tat[`${ay}-${g}`]) tatilAdlari.push(`${g} ${tat[`${ay}-${g}`]}`);
+  s += `<row r="2" ht="18" customHeight="1">` +
+    hucre("A2", excelTarih(yil, ay, 1), S.tarih) +
+    hucre("B2", null, S.sayi, `DAY(EOMONTH(A2,0))`) +
+    hucre("C2", null, S.bilgi, `COUNTA(B${ILK_VERI}:B${sonVeri})&" KİŞİ"`) +
+    hucre("D2", KODLAR.map(k => `${k.kod} ${k.ad}`).join("   ·   "), S.bilgiSol);
+  for (let c = 5; c <= SUT.gun31; c++) s += hucre(sutunAdi(c) + "2", "", S.bilgiSol);
+  s += hucre(sutunAdi(SUT.top1) + "2",
+    tatilAdlari.length ? "Resmî tatil: " + tatilAdlari.join(", ") : "Toplamlar otomatik hesaplanır", S.bilgi);
+  for (let c = SUT.top1 + 1; c <= SUT.durum; c++) s += hucre(sutunAdi(c) + "2", "", S.bilgi);
+  s += `</row>`;
+
+  /* ---- satır 3: haftanın günleri ---- */
   s += `<row r="3" ht="14" customHeight="1">` +
-    hucre("A3", "", S.ustBaslik) + hucre("B3", "", S.ustBaslik) + hucre("C3", "", S.ustBaslik);
-  for (let g = 1; g <= n; g++){
-    const hg = haftaninGunu(yil, ay, g);
-    s += hucre(sutunAdi(3+g) + "3", GUN_KISA[hg-1], hg >= 6 ? S.gunAdHS : S.gunAd);
-  }
-  topBaslik.forEach((_, i) => s += hucre(sutunAdi(topBas+i) + "3", "", S.ustBaslik));
+    hucre("A3", "", S.gunAdi) + hucre("B3", "", S.gunAdi) + hucre("C3", "", S.gunAdi);
+  for (let g = 1; g <= 31; g++)
+    s += hucre(sutunAdi(3+g) + "3", g > n ? "" : GUN_HARF[haftaninGunu(yil, ay, g)-1], gunAdiStili(g));
+  for (let c = SUT.top1; c <= SUT.durum; c++) s += hucre(sutunAdi(c) + "3", "", S.gunAdi);
   s += `</row>`;
 
-  /* veri satırları */
+  /* ---- satır 4: başlık satırı (süzgeç bu satırda) ---- */
+  s += `<row r="4" ht="34" customHeight="1">` +
+    hucre("A4", "TC No", S.ustBaslik) + hucre("B4", "Adı - Soyadı", S.ustBaslik) +
+    hucre("C4", "ÇALIŞMA YERİ", S.ustBaslik);
+  for (let g = 1; g <= 31; g++)
+    s += hucre(sutunAdi(3+g) + "4", g > n ? "—" : g, basStili(g));
+  TOPLAM_SUTUN.forEach((t, i) =>
+    s += hucre(sutunAdi(SUT.top1+i) + "4", t.baslik.replace("\n", "\n"), S.ustBaslik));
+  s += hucre(sutunAdi(SUT.toplam) + "4", "TOPLAM\nİŞLENEN", S.ustBaslik) +
+       hucre(sutunAdi(SUT.durum) + "4", "DURUM", S.ustBaslik) + `</row>`;
+
+  /* ---- veri satırları ---- */
   kisiler.forEach((p, i) => {
-    const r = 4 + i, kayit = ayVerisi(yil, ay)[p.id] || {};
-    s += `<row r="${r}">` +
+    const r = ILK_VERI + i, kayit = ayVerisi(yil, ay)[p.id] || {};
+    s += `<row r="${r}" ht="18" customHeight="1">` +
       hucre("A" + r, p.tc || "", S.orta) +
       hucre("B" + r, p.ad, S.ad) +
       hucre("C" + r, p.yer || "", S.orta);
-    for (let g = 1; g <= n; g++)
-      s += hucre(sutunAdi(3+g) + r, kayit[g] || "", gunStili(g));
-    const aralik = `D${r}:${sutunAdi(sonGun)}${r}`;
-    topKod.forEach((k, j) =>
-      s += hucre(sutunAdi(topBas+j) + r, null, S.toplam, `COUNTIF(${aralik},"${k}")`));
+    for (let g = 1; g <= 31; g++)
+      s += hucre(sutunAdi(3+g) + r, g > n ? "" : (kayit[g] || ""), gunStili(g));
+    const aralik = `D${r}:${sutunAdi(SUT.gun31)}${r}`;
+    TOPLAM_SUTUN.forEach((t, j) =>
+      s += hucre(sutunAdi(SUT.top1+j) + r, null,
+                 j === 0 ? S.toplamAna : S.toplam, `COUNTIF(${aralik},"${t.kod}")`));
+    s += hucre(sutunAdi(SUT.toplam) + r, null, S.toplam,
+      `SUM(${sutunAdi(SUT.top1)}${r}:${sutunAdi(SUT.topSon)}${r})`);
+    s += hucre(sutunAdi(SUT.durum) + r, null, S.durum,
+      `IF(COUNTA(${aralik})=0,"— boş —",` +
+      `IF(COUNTA(${aralik})<$B$2,"⚠ "&($B$2-COUNTA(${aralik}))&" gün eksik","✓ TAMAM"))`);
     s += `</row>`;
   });
 
-  /* günlük çalışan sayısı */
-  const sonSatir = 3 + kisiler.length;
-  const ozetSatir = sonSatir + 1;
-  s += `<row r="${ozetSatir}">` +
-    hucre("A" + ozetSatir, "", S.toplam) +
-    hucre("B" + ozetSatir, "Günlük çalışan sayısı", S.toplam) +
-    hucre("C" + ozetSatir, "", S.toplam);
-  for (let g = 1; g <= n; g++){
+  /* ---- ayak: günlük çalışan sayısı ---- */
+  s += `<row r="${ayakSatir}" ht="20" customHeight="1">` +
+    hucre("A" + ayakSatir, "", S.ayak) +
+    hucre("B" + ayakSatir, "GÜNLÜK ÇALIŞAN SAYISI", S.ayakAd) +
+    hucre("C" + ayakSatir, "", S.ayak);
+  for (let g = 1; g <= 31; g++){
     const c = sutunAdi(3+g);
-    s += kisiler.length
-      ? hucre(c + ozetSatir, null, S.toplam, `COUNTIF(${c}4:${c}${sonSatir},"Ç")`)
-      : hucre(c + ozetSatir, "", S.toplam);
+    s += (g > n || !kisiler.length)
+      ? hucre(c + ayakSatir, "", g > n ? S.gunGecersiz : S.ayak)
+      : hucre(c + ayakSatir, null, S.ayak, `COUNTIF(${c}${ILK_VERI}:${c}${sonVeri},"Ç")`);
   }
-  topKod.forEach((_, j) => {
-    const c = sutunAdi(topBas+j);
+  for (let c = SUT.top1; c <= SUT.toplam; c++){
+    const h = sutunAdi(c);
     s += kisiler.length
-      ? hucre(c + ozetSatir, null, S.toplam, `SUM(${c}4:${c}${sonSatir})`)
-      : hucre(c + ozetSatir, "", S.toplam);
-  });
-  s += `</row>`;
+      ? hucre(h + ayakSatir, null, S.ayak, `SUM(${h}${ILK_VERI}:${h}${sonVeri})`)
+      : hucre(h + ayakSatir, "", S.ayak);
+  }
+  s += hucre(SON + ayakSatir, "", S.ayak) + `</row>`;
 
-  /* açıklama satırları */
-  let ac = ozetSatir + 2;
-  s += `<row r="${ac}">` + hucre("B" + ac, "AÇIKLAMA", S.toplam) + `</row>`;
+  /* ---- açıklama + imza bloğu ---- */
+  const acikSatir = ayakSatir + 2;
+  s += `<row r="${acikSatir}">` + hucre("B" + acikSatir, "AÇIKLAMALAR", S.bolumBasligi) + `</row>`;
   KODLAR.forEach((k, i) => {
-    const r = ac + 1 + i;
-    s += `<row r="${r}">` + hucre("B" + r, `${k.kod} = ${k.ad}`, S.ad) + `</row>`;
+    const r = acikSatir + 1 + i;
+    s += `<row r="${r}">` + hucre("B" + r, `${k.kod}  =  ${k.ad}`, S.aciklama) + `</row>`;
   });
+  const imzaSatir = acikSatir + KODLAR.length + 3;
+  s += `<row r="${imzaSatir}">` +
+    hucre("B" + imzaSatir, "Hazırlayan", S.imzaEtiket) +
+    hucre("J" + imzaSatir, "Kontrol Eden", S.imzaEtiket) +
+    hucre("R" + imzaSatir, "Onaylayan", S.imzaEtiket) + `</row>`;
+  const cizgiSatir = imzaSatir + 3;
+  let cz = `<row r="${cizgiSatir}">`;
+  for (const [bas, son] of [[2,7],[10,15],[18,23]])
+    for (let c = bas; c <= son; c++) cz += hucre(sutunAdi(c) + cizgiSatir, "", S.imzaCizgi);
+  s += cz + `</row>`;
+  const adSatir = cizgiSatir + 1;
+  s += `<row r="${adSatir}">` +
+    hucre("B" + adSatir, "Ad Soyad / İmza", S.aciklama) +
+    hucre("J" + adSatir, "Ad Soyad / İmza", S.aciklama) +
+    hucre("R" + adSatir, "Ad Soyad / İmza", S.aciklama) + `</row>`;
 
-  /* koşullu biçimlendirme: kodlar Excel'de de renklensin */
-  const veriAralik = `D4:${sutunAdi(sonGun)}${Math.max(4, sonSatir)}`;
-  const kb = KODLAR.map((k, i) =>
-    `<conditionalFormatting sqref="${veriAralik}"><cfRule type="cellIs" dxfId="${i}" priority="${i+1}" operator="equal"><formula>"${k.kod}"</formula></cfRule></conditionalFormatting>`).join("");
-  const dogrulama = `<dataValidations count="1"><dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="0" promptTitle="Puantaj kodu" prompt="${KODLAR.map(k=>k.kod+'='+k.ad).join(', ')}" sqref="${veriAralik}"><formula1>"${KODLAR.map(k=>k.kod).join(",")}"</formula1></dataValidation></dataValidations>`;
+  /* ---- koşullu biçimlendirme ---- */
+  const veriAralik = `D${ILK_VERI}:${sutunAdi(SUT.gun31)}${sonVeri}`;
+  const durumAralik = `${SON}${ILK_VERI}:${SON}${sonVeri}`;
+  let kb = KODLAR.map((k, i) =>
+    `<conditionalFormatting sqref="${veriAralik}"><cfRule type="cellIs" dxfId="${i}" priority="${i+2}" operator="equal"><formula>"${k.kod}"</formula></cfRule></conditionalFormatting>`).join("");
+  /* tanınmayan bir kod yazılırsa kırmızı uyarı (en yüksek öncelik) */
+  const kodDizisi = "{" + KODLAR.map(k => `"${k.kod}"`).join(";") + "}";
+  kb += `<conditionalFormatting sqref="${veriAralik}"><cfRule type="expression" dxfId="${KODLAR.length+2}" priority="1"><formula>AND(LEN(D${ILK_VERI})&gt;0,ISNA(MATCH(D${ILK_VERI},${kodDizisi},0)))</formula></cfRule></conditionalFormatting>`;
+  kb += `<conditionalFormatting sqref="${durumAralik}">` +
+    `<cfRule type="containsText" dxfId="${KODLAR.length}" priority="10" operator="containsText" text="TAMAM"><formula>NOT(ISERROR(SEARCH("TAMAM",${SON}${ILK_VERI})))</formula></cfRule>` +
+    `<cfRule type="containsText" dxfId="${KODLAR.length+1}" priority="11" operator="containsText" text="eksik"><formula>NOT(ISERROR(SEARCH("eksik",${SON}${ILK_VERI})))</formula></cfRule></conditionalFormatting>`;
 
-  const genislikler = `<cols>
-<col min="1" max="1" width="13.5" customWidth="1"/>
-<col min="2" max="2" width="24" customWidth="1"/>
-<col min="3" max="3" width="14" customWidth="1"/>
-<col min="4" max="${sonGun}" width="4.2" customWidth="1"/>
-<col min="${topBas}" max="${sonSutun}" width="12" customWidth="1"/></cols>`;
+  const dogrulama = `<dataValidations count="1"><dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="0" promptTitle="Puantaj kodu" prompt="${KODLAR.map(k=>k.kod+"="+k.ad).join("  ")}" sqref="${veriAralik}"><formula1>"${KODLAR.map(k=>k.kod).join(",")}"</formula1></dataValidation></dataValidations>`;
+
+  const birlestir = [`A1:${SON}1`, `D2:${sutunAdi(SUT.gun31)}2`,
+    `${sutunAdi(SUT.top1)}2:${SON}2`,
+    `B${imzaSatir}:G${imzaSatir}`, `J${imzaSatir}:O${imzaSatir}`, `R${imzaSatir}:W${imzaSatir}`,
+    `B${adSatir}:G${adSatir}`, `J${adSatir}:O${adSatir}`, `R${adSatir}:W${adSatir}`];
+  KODLAR.forEach((_, i) => birlestir.push(`B${acikSatir+1+i}:G${acikSatir+1+i}`));
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
-<dimension ref="A1:${sutunAdi(sonSutun)}${ac + KODLAR.length}"/>
-<sheetViews><sheetView workbookViewId="0"><pane xSplit="3" ySplit="3" topLeftCell="D4" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>
+<dimension ref="A1:${SON}${adSatir}"/>
+<sheetViews><sheetView showGridLines="0" workbookViewId="0"><pane xSplit="3" ySplit="4" topLeftCell="D5" activePane="bottomRight" state="frozen"/><selection pane="bottomRight" activeCell="D${ILK_VERI}" sqref="D${ILK_VERI}"/></sheetView></sheetViews>
 <sheetFormatPr defaultRowHeight="15"/>
-${genislikler}
+<cols>
+<col min="1" max="1" width="13.5" customWidth="1"/>
+<col min="2" max="2" width="25" customWidth="1"/>
+<col min="3" max="3" width="14" customWidth="1"/>
+<col min="4" max="${SUT.gun31}" width="4" customWidth="1"/>
+<col min="${SUT.top1}" max="${SUT.toplam}" width="10.5" customWidth="1"/>
+<col min="${SUT.durum}" max="${SUT.durum}" width="15" customWidth="1"/></cols>
 <sheetData>${s}</sheetData>
-<mergeCells count="1"><mergeCell ref="A1:${sutunAdi(Math.min(sonSutun, 3+n))}1"/></mergeCells>
+<sheetProtection sheet="1" objects="1" scenarios="1" formatCells="0" formatColumns="0" formatRows="0" insertRows="0" deleteRows="0" sort="0" autoFilter="0"/>
+<autoFilter ref="A4:${SON}${sonVeri}"/>
+<mergeCells count="${birlestir.length}">${birlestir.map(m => `<mergeCell ref="${m}"/>`).join("")}</mergeCells>
 ${kb}
 ${dogrulama}
-<pageMargins left="0.25" right="0.25" top="0.4" bottom="0.4" header="0.3" footer="0.3"/>
+<printOptions horizontalCentered="1"/>
+<pageMargins left="0.2" right="0.2" top="0.4" bottom="0.4" header="0.2" footer="0.2"/>
 <pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>
+<headerFooter><oddFooter>${xkac(`&L${AYLAR[ay-1]} ${yil} Puantaj Cetveli&CSayfa &P / &N&R&D`)}</oddFooter></headerFooter>
 </worksheet>`;
 }
 
-/** Personel listesi sayfası. */
-function personelSayfaXml(){
-  let s = `<row r="1" ht="22" customHeight="1">` + hucre("A1", "PERSONEL LİSTESİ", S.baslik) + `</row>`;
-  s += `<row r="2">` + ["TC No","Adı - Soyadı","Çalışma Yeri","Durum"]
-    .map((b, i) => hucre(sutunAdi(i+1) + "2", b, S.ustBaslik)).join("") + `</row>`;
-  [...D.personel].sort((a, b) => trSirala(a.ad, b.ad)).forEach((p, i) => {
-    const r = 3 + i;
-    s += `<row r="${r}">` + hucre("A"+r, p.tc || "", S.orta) + hucre("B"+r, p.ad, S.ad) +
-      hucre("C"+r, p.yer || "", S.orta) + hucre("D"+r, p.aktif ? "Aktif" : "Pasif", S.orta) + `</row>`;
+/** Kod tanımları + özet sayfasının kullandığı sütun eşlemesi. */
+function kodlarSayfaXml(){
+  let s = `<row r="1" ht="26" customHeight="1">` + hucre("A1", "PUANTAJ KODLARI", S.baslik) +
+    hucre("B1", "", S.baslik) + hucre("C1", "", S.baslik) + `</row>`;
+  s += `<row r="2" ht="22" customHeight="1">` +
+    hucre("A2", "KOD", S.ustBaslik) + hucre("B2", "AÇIKLAMA", S.ustBaslik) +
+    hucre("C2", "sütun", S.ustBaslik) + `</row>`;
+  TOPLAM_SUTUN.forEach((t, i) => {
+    const r = 3 + i, k = KOD_HARITA[t.kod];
+    s += `<row r="${r}" ht="18" customHeight="1">` +
+      hucre("A" + r, t.kod, S.toplamAna) +
+      hucre("B" + r, k ? k.ad : t.kod, S.ozetAd) +
+      hucre("C" + r, SUT.top1 + i - 1, S.ozetDeger) + `</row>`;
   });
+  const r = 3 + TOPLAM_SUTUN.length;
+  s += `<row r="${r}" ht="18" customHeight="1">` + hucre("A" + r, "Σ", S.toplamAna) +
+    hucre("B" + r, "Toplam İşlenen Gün", S.ozetAd) +
+    hucre("C" + r, SUT.toplam - 1, S.ozetDeger) + `</row>`;
+  const a = r + 2;
+  s += `<row r="${a}">` + hucre("A" + a, "Bu sayfayı silmeyin — ÖZET sayfası buradaki listeyi kullanır.", S.aciklama) + `</row>`;
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<cols><col min="1" max="1" width="14" customWidth="1"/><col min="2" max="2" width="26" customWidth="1"/>
-<col min="3" max="4" width="15" customWidth="1"/></cols>
+<sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews>
+<cols><col min="1" max="1" width="8" customWidth="1"/><col min="2" max="2" width="26" customWidth="1"/>
+<col min="3" max="3" width="8" customWidth="1"/></cols>
 <sheetData>${s}</sheetData>
+<mergeCells count="1"><mergeCell ref="A1:C1"/></mergeCells>
 <pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>`;
 }
 
-/** Yıllık özet sayfası: kişi × ay, seçilen kodun gün sayısı. */
-function ozetSayfaXml(yillar, kod){
-  const kodAd = KOD_HARITA[kod] ? KOD_HARITA[kod].ad : kod;
-  let s = `<row r="1" ht="22" customHeight="1">` +
-    hucre("A1", `YILLIK ÖZET — ${kodAd} gün sayısı`, S.baslik) + `</row>`;
-  let r = 3;
+/** Personel listesi. */
+function personelSayfaXml(){
+  const sirali = [...D.personel].sort((a, b) => (b.aktif - a.aktif) || trSirala(a.ad, b.ad));
+  let s = `<row r="1" ht="26" customHeight="1">` +
+    ["A","B","C","D","E"].map((c, i) => hucre(c + "1", i ? "" : "PERSONEL LİSTESİ", S.baslik)).join("") + `</row>`;
+  s += `<row r="2" ht="22" customHeight="1">` +
+    ["TC No","Adı - Soyadı","Çalışma Yeri","Durum","Kayıtlı Ay"]
+      .map((b, i) => hucre(sutunAdi(i+1) + "2", b, S.ustBaslik)).join("") + `</row>`;
+  sirali.forEach((p, i) => {
+    const r = 3 + i;
+    const ayAdet = Object.values(D.kayit)
+      .filter(a => a[p.id] && Object.keys(a[p.id]).length).length;
+    s += `<row r="${r}" ht="18" customHeight="1">` +
+      hucre("A"+r, p.tc || "", S.orta) + hucre("B"+r, p.ad, S.ad) +
+      hucre("C"+r, p.yer || "", S.orta) +
+      hucre("D"+r, p.aktif ? "Aktif" : "Ayrıldı", S.orta) +
+      hucre("E"+r, ayAdet, S.ozetDeger) + `</row>`;
+  });
+  const son = Math.max(3, 2 + sirali.length);
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
+<sheetViews><sheetView showGridLines="0" workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+<cols><col min="1" max="1" width="14" customWidth="1"/><col min="2" max="2" width="28" customWidth="1"/>
+<col min="3" max="3" width="16" customWidth="1"/><col min="4" max="5" width="12" customWidth="1"/></cols>
+<sheetData>${s}</sheetData>
+<autoFilter ref="A2:E${son}"/>
+<mergeCells count="1"><mergeCell ref="A1:E1"/></mergeCells>
+<printOptions horizontalCentered="1"/>
+<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>
+<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+}
+
+/** Kontrol paneli: kişi × ay, üstteki listeden seçilen koda göre — canlı formüller. */
+function ozetSayfaXml(aylar){          // aylar: [{yil, ay}] — kitapta bulunan sayfalar
+  const varOlan = new Set(aylar.map(m => ayAnahtar(m.yil, m.ay)));
+  const yillar = [...new Set(aylar.map(m => m.yil))].sort();
+  const SON = "N";
+
+  let s = `<row r="1" ht="30" customHeight="1">` +
+    hucre("A1", "KONTROL PANELİ", S.baslik);
+  for (let c = 2; c <= 14; c++) s += hucre(sutunAdi(c) + "1", "", S.baslik);
+  s += `</row>`;
+  s += `<row r="2" ht="22" customHeight="1">` +
+    hucre("A2", "Gösterilen:", S.ayakAd) +
+    hucre("B2", KOD_HARITA["Ç"].ad, S.toplamAna) +
+    hucre("C2", "◀ buradan değiştirin", S.bilgiSol);
+  for (let c = 4; c <= 14; c++) s += hucre(sutunAdi(c) + "2", "", S.bilgi);
+  s += hucre("P2", null, S.ozetDeger, `VLOOKUP($B$2,KODLAR!$B:$C,2,FALSE)`) + `</row>`;
+
+  let r = 4;
   for (const yil of yillar){
-    s += `<row r="${r}">` + hucre("A"+r, String(yil), S.ustBaslik) +
-      AYLAR.map((a, i) => hucre(sutunAdi(2+i) + r, a.slice(0,3), S.ustBaslik)).join("") +
-      hucre(sutunAdi(14) + r, "TOPLAM", S.ustBaslik) + `</row>`;
-    r++;
+    /* o yıl kaydı olan kişiler */
     const idler = new Set();
     for (let a = 1; a <= 12; a++)
       Object.entries(ayVerisi(yil, a)).forEach(([pid, v]) => { if (Object.keys(v).length) idler.add(pid); });
     const kisiler = D.personel.filter(p => idler.has(p.id)).sort((a, b) => trSirala(a.ad, b.ad));
-    for (const p of kisiler){
-      let yt = 0;
-      let satir = hucre("A"+r, p.ad, S.ad);
-      for (let a = 1; a <= 12; a++){
-        const v = ayVerisi(yil, a)[p.id] || {};
-        const n = gunSayisi(yil, a);
-        let t = 0;
-        for (let g = 1; g <= n; g++) if ((v[g] || "") === kod) t++;
-        yt += t;
-        satir += hucre(sutunAdi(1+a) + r, t, S.orta);
-      }
-      s += `<row r="${r}">` + satir + hucre(sutunAdi(14) + r, yt, S.toplam) + `</row>`;
-      r++;
-    }
+    if (!kisiler.length) continue;
+
+    s += `<row r="${r}" ht="24" customHeight="1">` +
+      hucre("A" + r, String(yil), S.ustBaslik) +
+      AYLAR.map((a, i) => hucre(sutunAdi(2+i) + r, a.slice(0,3), S.ustBaslik)).join("") +
+      hucre(SON + r, "TOPLAM", S.ustBaslik) + `</row>`;
+    const ilk = r + 1;
     r++;
+    for (const p of kisiler){
+      let satir = `<row r="${r}" ht="17" customHeight="1">` + hucre("A" + r, p.ad, S.ozetAd);
+      for (let a = 1; a <= 12; a++){
+        const c = sutunAdi(1 + a);
+        satir += varOlan.has(ayAnahtar(yil, a))
+          ? hucre(c + r, null, S.ozetDeger,
+              `IFERROR(VLOOKUP($A${r},'${AYLAR[a-1]} ${yil}'!$B:$${sutunAdi(SUT.toplam)},$P$2,FALSE),"")`)
+          : hucre(c + r, "", S.gunGecersiz);
+      }
+      satir += hucre(SON + r, null, S.ozetToplam, `SUM(B${r}:M${r})`) + `</row>`;
+      s += satir; r++;
+    }
+    s += `<row r="${r}" ht="20" customHeight="1">` + hucre("A" + r, "TOPLAM", S.ayakAd) +
+      AYLAR.map((_, i) => {
+        const c = sutunAdi(2+i);
+        return hucre(c + r, null, S.ayak, `SUM(${c}${ilk}:${c}${r-1})`);
+      }).join("") +
+      hucre(SON + r, null, S.ayak, `SUM(${SON}${ilk}:${SON}${r-1})`) + `</row>`;
+    r += 3;
   }
+
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<cols><col min="1" max="1" width="26" customWidth="1"/><col min="2" max="14" width="7" customWidth="1"/></cols>
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
+<sheetViews><sheetView showGridLines="0" workbookViewId="0"><pane xSplit="1" ySplit="2" topLeftCell="B3" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>
+<cols><col min="1" max="1" width="28" customWidth="1"/><col min="2" max="13" width="7.5" customWidth="1"/>
+<col min="14" max="14" width="11" customWidth="1"/><col min="16" max="16" width="5" hidden="1" customWidth="1"/></cols>
 <sheetData>${s}</sheetData>
-<pageMargins left="0.4" right="0.4" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>`;
+<mergeCells count="2"><mergeCell ref="A1:N1"/><mergeCell ref="C2:N2"/></mergeCells>
+<dataValidations count="1"><dataValidation type="list" allowBlank="0" showInputMessage="1" showErrorMessage="1" promptTitle="Ne görmek istiyorsunuz?" prompt="Listeden bir puantaj kodu seçin." sqref="B2"><formula1>KODLAR!$B$3:$B$${2 + TOPLAM_SUTUN.length + 1}</formula1></dataValidation></dataValidations>
+<pageMargins left="0.4" right="0.4" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>
+<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
 }
 
 /** Sayfaları .xlsx blob'una paketler. */
-function xlsxYap(sayfalar){          // sayfalar: [{ad, xml}]
+async function xlsxYap(sayfalar){    // [{ad, xml, yazdirBasligi?}]
   const kodla = new TextEncoder();
   const dosyalar = [];
   const ekle = (ad, metin) => dosyalar.push({ ad, veri: kodla.encode(metin) });
@@ -1476,16 +1679,33 @@ function xlsxYap(sayfalar){          // sayfalar: [{ad, xml}]
 <Default Extension="xml" ContentType="application/xml"/>
 <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
 <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 ${sayfalar.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}
 </Types>`);
   ekle("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>`);
+  const simdi = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+  ekle("docProps/core.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<dc:title>Puantaj Cetveli</dc:title><dcterms:created xsi:type="dcterms:W3CDTF">${simdi}</dcterms:created>
+<dcterms:modified xsi:type="dcterms:W3CDTF">${simdi}</dcterms:modified></cp:coreProperties>`);
+  ekle("docProps/app.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Puantaj Cetveli</Application></Properties>`);
+
+  const adlar = sayfalar.map((s, i) => {
+    if (!s.yazdirBasligi) return "";
+    return `<definedName name="_xlnm.Print_Titles" localSheetId="${i}">'${s.ad.replace(/'/g, "''")}'!$1:$4</definedName>`;
+  }).join("");
   ekle("xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <sheets>${sayfalar.map((s, i) =>
   `<sheet name="${xkac(s.ad.slice(0,31))}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets>
+${adlar ? `<definedNames>${adlar}</definedNames>` : ""}
 <calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`);
   ekle("xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -1494,7 +1714,7 @@ ${sayfalar.map((_, i) => `<Relationship Id="rId${i+1}" Type="http://schemas.open
 </Relationships>`);
   ekle("xl/styles.xml", stilXml());
   sayfalar.forEach((s, i) => ekle(`xl/worksheets/sheet${i+1}.xml`, s.xml));
-  return zipYaz(dosyalar);
+  return await zipYaz(dosyalar);
 }
 
 /* ============================================================
@@ -1506,7 +1726,7 @@ function doluAylar(){
     .sort()
     .map(k => ({ yil:+k.slice(0,4), ay:+k.slice(5,7) }));
 }
-function disaAktar(kapsam){
+async function disaAktar(kapsam){
   const hepsi = doluAylar();
   let secili;
   if (kapsam === "ay")   secili = [{ yil:aktifYil, ay:aktifAy }];
@@ -1514,16 +1734,17 @@ function disaAktar(kapsam){
   else secili = hepsi;
   if (kapsam !== "ay" && !secili.length) secili = [{ yil:aktifYil, ay:aktifAy }];
 
-  const sayfalar = secili.map(m => ({ ad:`${AYLAR[m.ay-1]} ${m.yil}`, xml: ayaSayfaXml(m.yil, m.ay) }));
-  if (kapsam !== "ay"){
-    const yillar = [...new Set(secili.map(m => m.yil))].sort();
-    sayfalar.push({ ad:"ÖZET", xml: ozetSayfaXml(yillar, "Ç") });
-  }
+  const sayfalar = secili.map(m => ({
+    ad: `${AYLAR[m.ay-1]} ${m.yil}`, xml: ayaSayfaXml(m.yil, m.ay), yazdirBasligi: true }));
+  if (kapsam !== "ay")
+    sayfalar.unshift({ ad:"KONTROL PANELİ", xml: ozetSayfaXml(secili) });
   sayfalar.push({ ad:"PERSONEL", xml: personelSayfaXml() });
+  sayfalar.push({ ad:"KODLAR",   xml: kodlarSayfaXml() });
 
   const adi = kapsam === "ay" ? `Puantaj_${AYLAR[aktifAy-1]}_${aktifYil}.xlsx`
             : kapsam === "yil" ? `Puantaj_${aktifYil}.xlsx` : `Puantaj_Tum_Aylar.xlsx`;
-  indir(xlsxYap(sayfalar), adi);
+  bildir("Excel dosyası hazırlanıyor…");
+  indir(await xlsxYap(sayfalar), adi);
   bildir(`${sayfalar.length} sayfa Excel'e aktarıldı.`);
 }
 

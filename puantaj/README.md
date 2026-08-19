@@ -79,12 +79,48 @@ sonradan işe alınan biri geçmiş ayların cetvelinde görünmez.
 **Excel'e Aktar** üç seçenek sunar:
 
 - **Sadece bu ay** — imzaya/arşive gidecek tek sayfalık cetvel.
-- **Bu yılın tamamı** — her ay ayrı sayfa + yıllık özet sayfası.
+- **Bu yılın tamamı** — 12 ay sayfası + kontrol paneli.
 - **Tüm aylar** — bütün geçmiş, tam arşiv.
 
-Çıkan dosyadaki toplamlar **canlı COUNTIF formülleridir** — Excel'de
-elle düzenleme yaparsanız toplamlar da güncellenir. Kodlar Excel'de de
-renklenir ve gün hücrelerinde açılır liste vardır.
+Çıkan dosya sıradan bir tablo değil, hazır kurulmuş bir çalışma kitabıdır:
+
+**Ay sayfaları**
+
+- **Sabit 31 gün sütunu (D–AH).** Kısa aylarda olmayan günler gri ve
+  kilitlidir. Bu sayede toplam formülü her ayda aynıdır (`D:AH`) — eski
+  dosyadaki "aralık ayın gün sayısıyla uyuşmuyor" hatası yapısal olarak
+  imkânsız hale gelir. Toplam sütunları da her ayda tam aynı yerdedir.
+- **DURUM sütunu** — satır tamamsa yeşil `✓ TAMAM`, eksikse turuncu
+  `⚠ 3 gün eksik`. Ayın bittiğini gözle taramadan görürsünüz.
+- **7 toplam sütunu** — Çalışılan / İzinli / Raporlu / Yarım Gün /
+  Devamsız / Ücretsiz İzin / Doğum İzni + Toplam İşlenen.
+- **Süzgeç (filtre)** başlık satırında — sadece SAHA'yı, sadece eksik
+  satırları ya da 5'inde izinli olanları listeleyebilirsiniz.
+- **Bilgi şeridi** — ayın adı, gün sayısı, kişi sayısı ve o ayın resmî
+  tatilleri en üstte yazılı.
+- **Donmuş bölme** — isim sütunu ve başlık satırı hep ekranda.
+- **Kod renkleri** koşullu biçimlendirmeyle gelir, elle yazdığınız da renklenir.
+  Tanınmayan bir kod yazarsanız hücre **kırmızıya** döner.
+- **Açılır liste** ve kod ipucu balonu her gün hücresinde.
+- **Hafta sonu ve resmî tatil** sütunları renkli.
+- **Günlük çalışan sayısı** satırı en altta.
+- **İmza bloğu** — Hazırlayan / Kontrol Eden / Onaylayan.
+- **Baskıya hazır** — A4 yatay, tek sayfa enine sığar, başlık satırı her
+  sayfada tekrarlar, altbilgide ay adı ve sayfa numarası.
+- **Sayfa koruması** — formül sütunlarına yanlışlıkla yazılamaz. İsim, TC,
+  çalışma yeri ve gün hücreleri serbesttir. Kaldırmak için:
+  *Gözden Geçir → Sayfa Korumasını Kaldır* (parola yok).
+
+**KONTROL PANELİ sayfası** (yıl/tüm arşiv aktarımlarında)
+
+Kişi × ay tablosu. Üstteki açılır listeden *Çalıştı / İzinli / Raporlu…*
+seçersiniz, tablo **anında** o koda göre dolar — canlı `VLOOKUP`
+formülleri ay sayfalarından okur. Yıl toplamı ve aylık toplam satırı hazır.
+
+**PERSONEL sayfası** — tüm kadro, durumu ve kaç ayda kaydı olduğu, süzgeçli.
+
+**KODLAR sayfası** — kod tanımları. Kontrol paneli bu listeyi kullanır,
+silmeyin.
 
 ### Yıllık özet
 
