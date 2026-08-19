@@ -117,10 +117,88 @@ Kişi × ay tablosu. Üstteki açılır listeden *Çalıştı / İzinli / Raporl
 seçersiniz, tablo **anında** o koda göre dolar — canlı `VLOOKUP`
 formülleri ay sayfalarından okur. Yıl toplamı ve aylık toplam satırı hazır.
 
+**İZİN TAKİBİ sayfası**
+
+Uygulamadaki panelin Excel'de yaşayan hâli — **canlı formüllerle**. İşe giriş
+tarihini yazarsınız, kıdem `DATEDIF` ile, hakediş kademe tablosundan
+hesaplanır. Kullanılan gün, ay sayfalarından `VLOOKUP` ile okunur; yıl yıl
+dökümü sağdaki sütunlarda. Kalan bakiye eksiyse kırmızı, azaldıysa turuncu
+boyanır.
+
+Sarı hücreler elle değiştirilebilir: hesap tarihi, kademe tablosu, devir,
+önceki dönem kullanımı ve izinden düşülecek kod. Kod kutusundan *İzinli*
+yerine başka bir kod seçerseniz tüm tablo ona göre yeniden hesaplanır.
+
+**İZİN FORMU sayfası**
+
+Sarı hücreleri doldurup yazdırın. Personeli açılır listeden seçtiğinizde
+TC, görev, işe giriş tarihi, kıdem ve tüm izin bakiyesi kendiliğinden gelir —
+*bu izinden sonra kalacak gün* dahil. A4 dikey, tek sayfa.
+
 **PERSONEL sayfası** — tüm kadro, durumu ve kaç ayda kaydı olduğu, süzgeçli.
 
 **KODLAR sayfası** — kod tanımları. Kontrol paneli bu listeyi kullanır,
 silmeyin.
+
+### Yıllık izin takibi
+
+**İzin Takibi** düğmesi, kimin ne kadar izni kaldığını anlık gösterir.
+Elle hesap yok.
+
+Kurmak için iki şey girmeniz yeter:
+
+1. **İşe giriş tarihi** — her personel için bir kez. Panelin içinden ya da
+   **Personel** ekranından girilir.
+2. **Hakediş kademeleri** — kaç yıl kıdemden sonra kaç gün izin verildiği.
+   İş Kanunu md. 53 asgari süreleri hazır gelir:
+
+   | Kıdem | İzin |
+   |---|---|
+   | 1 – 5 yıl | 14 gün |
+   | 6 – 14 yıl | 20 gün |
+   | 15 yıl ve üzeri | 26 gün |
+
+   Şirketiniz daha fazla veriyorsa rakamları değiştirin, kademe ekleyip
+   çıkarın. Hesap anında yenilenir.
+
+Gerisini kendisi yapar:
+
+- **Kıdem** işe giriş tarihinden bugüne otomatik.
+- **Hakediş** her yıl dönümünde kendiliğinden eklenir — o yılki kıdeme
+  karşılık gelen gün sayısı kadar. Geçmiş yıllar da geriye dönük toplanır.
+- **Kullanılan** puantaj kayıtlarından okunur.
+- **Kalan** = hakediş + devir − kullanılan. Eksiye düşen kırmızı,
+  2 günün altı turuncu görünür.
+
+Ayarlanabilir iki nokta:
+
+- **Devir** — sisteme geçmeden önceki bakiyeyi buraya yazın. Geçmişi
+  eksikse hesap yine doğru çıkar.
+- **İzinden düşülecek kodlar** — varsayılan sadece `İ`. Puantajda `İ`
+  kodunu hafta tatili gibi başka amaçlarla da kullanıyorsanız kullanılan
+  gün sayısı yüksek çıkar; o durumda yıllık izin için ayrı bir kod kullanmaya
+  başlayın ve buradan onu seçin.
+
+**Hesap tarihi** kutusundan geçmiş ya da ileri bir tarihe göre de bakabilirsiniz.
+CSV olarak indirilebilir.
+
+### İzin formu
+
+**İzin Formu** düğmesi → personeli seçin, tarihleri girin, **Formu Yazdır**.
+İmzaya hazır A4 form çıkar:
+
+- Personel bilgileri (ad, TC, görev, işe giriş, kıdem) otomatik dolar.
+- Gün sayısı ve işbaşı tarihi tarihlerden hesaplanır.
+- **Yıllık izin durumu tablosu** forma basılır: hak edilen, devreden,
+  kullanılan, kalan ve **bu izinden sonra kalacak** gün. Hakkı aşan bir
+  talep varsa form üzerinde uyarı çıkar.
+- Talep Eden / Kontrol Eden / Onaylayan imza blokları hazır.
+- İzin türü seçilebilir (yıllık, mazeret, ücretsiz, rapor, doğum, evlilik,
+  ölüm, diğer). Firma adı bir kez yazılır, sonraki formlarda hatırlanır.
+
+**Bu izni puantaja işle** düğmesi, formdaki tarih aralığını ilgili aylarda
+otomatik işaretler — türüne göre `İ`, `Ü`, `R` ya da `Dİ` kodu ile. Ay
+sınırını aşan izinlerde her ayı ayrı ayrı işaretlemekle uğraşmazsınız.
 
 ### Yıllık özet
 
@@ -158,6 +236,8 @@ Başka bilgisayara taşımak için de yedek dosyasını kullanın.
 | `D` | Devamsız |
 | `Ü` | Ücretsiz izin |
 | `Dİ` | Doğum izni |
+
+`İ` kodu yıllık izin bakiyesinden düşülür (İzin Takibi panelinden değiştirilebilir).
 
 Hafta sonları gri, resmî tatiller kırmızı gösterilir. Bu sadece
 **görsel uyarıdır** — hücreleri kendiliğinden doldurmaz, 7 gün çalışılan

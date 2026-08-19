@@ -191,6 +191,38 @@ table.liste td.dar{width:130px} table.liste td.cokdar{width:44px;text-align:cent
 .satir{display:flex;gap:12px}.satir>*{flex:1}
 .onay{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer}
 
+/* ---------- İZİN FORMU ---------- */
+.izin-formu{background:#fff;color:#111;padding:22px 26px;border:1px solid var(--line);
+  border-radius:6px;font-size:12.5px;line-height:1.5;width:100%;max-width:720px}
+.izin-formu h1{font-size:16px;text-align:center;margin:0 0 2px;letter-spacing:.5px}
+.izin-formu .firma{text-align:center;font-size:13px;font-weight:700;margin-bottom:2px}
+.izin-formu .altbaslik{text-align:center;font-size:11px;color:#555;margin-bottom:14px}
+.izin-formu table{width:100%;border-collapse:collapse;margin-bottom:12px}
+.izin-formu th,.izin-formu td{border:1px solid #999;padding:5px 8px;vertical-align:top}
+.izin-formu th{background:#eee;text-align:left;font-weight:600;width:34%;font-size:12px}
+.izin-formu .bolum{background:#233247;color:#fff;font-weight:700;font-size:11.5px;
+  padding:4px 8px;letter-spacing:.6px;border:1px solid #233247}
+.izin-formu .bakiye td{text-align:center}
+.izin-formu .bakiye th{text-align:center;width:auto}
+.izin-formu .vurgu{font-weight:700;font-size:14px}
+.izin-formu .beyan{font-size:11.5px;margin:10px 0 18px;line-height:1.6}
+.izin-formu .imzalar{display:flex;gap:14px;margin-top:26px}
+.izin-formu .imza{flex:1;text-align:center;font-size:11px}
+.izin-formu .imza .cizgi{border-top:1px solid #333;margin:38px 0 4px}
+.izin-formu .imza b{display:block;font-size:11.5px;margin-bottom:2px}
+.izin-formu .dipnot{margin-top:16px;font-size:10px;color:#666;border-top:1px dashed #bbb;padding-top:6px}
+
+@media print{
+  body.yazdir-form > *{display:none !important}
+  body.yazdir-form #mIzinFormu{display:block !important;position:static;background:none;padding:0}
+  body.yazdir-form #mIzinFormu .modal{box-shadow:none;border:0;max-height:none;width:100%;display:block}
+  body.yazdir-form #mIzinFormu header,
+  body.yazdir-form #mIzinFormu .altlik,
+  body.yazdir-form #mIzinFormu .govde > div:first-child{display:none !important}
+  body.yazdir-form #mIzinFormu .govde{padding:0;display:block;overflow:visible}
+  body.yazdir-form .izin-formu{border:0;padding:0;max-width:none;font-size:12px}
+  body.yazdir-form{overflow:visible;height:auto}
+}
 @media print{
   body{overflow:visible;height:auto}
   header,.arac,footer.durum,.ortu,.bildirim{display:none !important}
@@ -217,6 +249,8 @@ table.liste td.dar{width:130px} table.liste td.cokdar{width:44px;text-align:cent
   <button class="ubtn" id="buguneGit">Bu ay</button>
   <div class="spacer"></div>
   <button class="ubtn" id="btnPersonel">Personel</button>
+  <button class="ubtn" id="btnIzin">İzin Takibi</button>
+  <button class="ubtn" id="btnIzinFormu">İzin Formu</button>
   <button class="ubtn" id="btnOzet">Yıllık Özet</button>
   <button class="ubtn" id="btnIceAktar">Excel'den Aktar</button>
   <button class="ubtn" id="btnDisaAktar">Excel'e Aktar</button>
@@ -258,7 +292,10 @@ table.liste td.dar{width:130px} table.liste td.cokdar{width:44px;text-align:cent
   <div class="govde">
     <div class="bilgi">Personel bir kez tanımlanır, her ay otomatik listeye gelir. İşten ayrılanı silmeyin — <b>Aktif</b> kutusunun işaretini kaldırın; geçmiş ayları korunur.</div>
     <table class="liste">
-      <thead><tr><th style="width:38px">Aktif</th><th>Adı Soyadı</th><th class="dar">TC No</th><th class="dar">Çalışma Yeri</th><th style="width:38px"></th></tr></thead>
+      <thead><tr><th style="width:38px">Aktif</th><th>Adı Soyadı</th><th class="dar">TC No</th>
+        <th class="dar">Çalışma Yeri</th><th style="width:126px">İşe Giriş</th>
+        <th style="width:74px" title="Sisteme geçmeden önceki devreden izin günü">Devir</th>
+        <th style="width:38px"></th></tr></thead>
       <tbody id="personelSatir"></tbody>
     </table>
   </div>
@@ -284,6 +321,75 @@ table.liste td.dar{width:130px} table.liste td.cokdar{width:44px;text-align:cent
     <table class="liste"><tbody id="kadroSatir"></tbody></table>
   </div>
   <div class="altlik"><button class="btn" data-kapat>Tamam</button></div>
+ </div>
+</div>
+
+<!-- İZİN TAKİBİ -->
+<div class="ortu" id="mIzin" hidden>
+ <div class="modal" style="width:min(1080px,100%)">
+  <header><h2>Yıllık İzin Takibi</h2>
+    <label style="font-size:12px;color:var(--muted)">Hesap tarihi
+      <input type="date" id="izinTarih" style="border:1px solid var(--line);border-radius:6px;padding:4px 6px;margin-left:6px"></label>
+    <button class="kapat" data-kapat>×</button></header>
+  <div class="govde">
+    <div class="bilgi" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <b>Hakediş kademeleri</b> — kaç yıl kıdemden sonra kaç gün
+        <table class="liste" style="width:auto;margin-top:6px"><tbody id="kademeSatir"></tbody></table>
+        <button class="btn ikincil" id="btnKademeEkle" style="margin-top:6px;padding:4px 10px;font-size:12px">+ Kademe</button>
+      </div>
+      <div style="flex:1;min-width:220px">
+        <b>İzinden düşülecek kodlar</b>
+        <div id="izinKodSecim" style="margin-top:6px;display:flex;flex-direction:column;gap:3px"></div>
+      </div>
+    </div>
+    <div id="izinUyari"></div>
+    <table class="liste" id="izinTablo">
+      <thead><tr>
+        <th>Adı Soyadı</th><th style="width:118px">İşe Giriş</th><th style="width:56px">Kıdem</th>
+        <th style="width:74px" title="Bu kıdem yılı için hak edilen gün">Yıllık</th>
+        <th style="width:80px" title="İşe girişten bugüne toplam hakediş">Hakediş</th>
+        <th style="width:70px">Devir</th><th style="width:80px">Toplam</th>
+        <th style="width:88px">Kullanılan</th><th style="width:78px">KALAN</th>
+      </tr></thead>
+      <tbody id="izinSatir"></tbody>
+    </table>
+  </div>
+  <div class="altlik">
+    <span style="flex:1;font-size:12px;color:var(--muted)">Kıdem ve hakediş otomatik hesaplanır. Kullanılan gün puantajdan okunur.</span>
+    <button class="btn ikincil" id="btnIzinCsv">CSV İndir</button>
+    <button class="btn" data-kapat>Kapat</button>
+  </div>
+ </div>
+</div>
+
+<!-- İZİN FORMU -->
+<div class="ortu" id="mIzinFormu" hidden>
+ <div class="modal" style="width:min(1000px,100%)">
+  <header><h2>İzin Formu</h2><button class="kapat" data-kapat>×</button></header>
+  <div class="govde" style="display:flex;gap:18px;align-items:flex-start">
+    <div style="width:270px;flex-shrink:0">
+      <div class="alan"><label>Personel</label><select id="fPersonel"></select></div>
+      <div class="alan"><label>İzin türü</label><select id="fTur">
+        <option>Yıllık Ücretli İzin</option><option>Mazeret İzni</option>
+        <option>Ücretsiz İzin</option><option>Hastalık / Rapor</option>
+        <option>Doğum / Babalık İzni</option><option>Evlilik İzni</option>
+        <option>Ölüm İzni</option><option>Diğer</option></select></div>
+      <div class="alan"><label>Başlangıç tarihi</label><input type="date" id="fBas"></div>
+      <div class="alan"><label>Bitiş tarihi</label><input type="date" id="fBit"></div>
+      <div class="alan"><label>İzinde bulunacağı adres</label><input id="fAdres" placeholder="İsteğe bağlı"></div>
+      <div class="alan"><label>Telefon</label><input id="fTel" placeholder="İsteğe bağlı"></div>
+      <div class="alan"><label>Firma / kurum adı</label><input id="fFirma" placeholder="Form başlığında görünür"></div>
+      <button class="btn" id="btnFormYazdir" style="width:100%">Formu Yazdır</button>
+      <button class="btn ikincil" id="btnFormIsle" style="width:100%;margin-top:8px">Bu izni puantaja işle</button>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">
+        “Puantaja işle” seçilen günleri ilgili aylarda izin kodu ile doldurur.</div>
+    </div>
+    <div style="flex:1;overflow:auto">
+      <div id="formOnizleme" class="izin-formu"></div>
+    </div>
+  </div>
+  <div class="altlik"><button class="btn ikincil" data-kapat>Kapat</button></div>
  </div>
 </div>
 
@@ -453,7 +559,11 @@ const VARSAYILAN = {
   personel: [],                                  // {id, ad, tc, yer, aktif}
   kayit: {},                                     // {"2025-07": {personelId: {gun: kod}}}
   kadro: {},                                     // {"2025-07": [personelId, ...]} o ayın listesi
-  ayarlar: { haftaSonu:true, tatil:true, tumAktif:false, boyut:26 },
+  ayarlar: { haftaSonu:true, tatil:true, tumAktif:false, boyut:26,
+    firma: "",
+    /* İş Kanunu md.53 asgari süreleri — panelden değiştirilebilir */
+    izinKademe: [{ yil:1, gun:14 }, { yil:6, gun:20 }, { yil:15, gun:26 }],
+    izinKodlari: ["İ"] },
 };
 let D = yukle();
 let aktifYil, aktifAy, aktifKalem = "Ç", imlec = null;   // imlec: {pid, gun}
@@ -487,6 +597,64 @@ function geriAl(){
   const v = JSON.parse(g);
   D.personel = v.personel; D.kayit = v.kayit; D.kadro = v.kadro || {};
   kaydet(); ciz(); bildir("Son işlem geri alındı.");
+}
+
+/* ============================================================
+   YILLIK İZİN HAKEDİŞİ
+   ============================================================ */
+/** İki tarih arasındaki tamamlanmış yıl sayısı (kıdem). */
+function kidemYili(girisTarihi, referans){
+  if (!girisTarihi) return null;
+  const g = new Date(girisTarihi);
+  if (isNaN(g)) return null;
+  const r = referans ? new Date(referans) : new Date();
+  let y = r.getFullYear() - g.getFullYear();
+  const ayFark = r.getMonth() - g.getMonth();
+  if (ayFark < 0 || (ayFark === 0 && r.getDate() < g.getDate())) y--;
+  return Math.max(0, y);
+}
+/** Verilen kıdemde bir yıl için hak edilen izin günü. */
+function kademeGunu(kidem){
+  let gun = 0;
+  for (const k of [...D.ayarlar.izinKademe].sort((a, b) => a.yil - b.yil))
+    if (kidem >= k.yil) gun = k.gun;
+  return gun;
+}
+/** İşe girişten bugüne kadar birikmiş toplam izin hakkı. */
+function toplamHakedis(kidem){
+  let t = 0;
+  for (let n = 1; n <= (kidem || 0); n++) t += kademeGunu(n);
+  return t;
+}
+/** Puantaj kayıtlarında izin sayılan kodların toplamı. */
+function kullanilanIzin(pid, bitisTarihi){
+  const kodlar = D.ayarlar.izinKodlari;
+  const sinir = bitisTarihi ? new Date(bitisTarihi) : null;
+  let t = 0;
+  for (const [ayK, ay] of Object.entries(D.kayit)){
+    const satir = ay[pid];
+    if (!satir) continue;
+    const [yil, no] = ayK.split("-").map(Number);
+    for (const [g, kod] of Object.entries(satir)){
+      if (!kodlar.includes(kod)) continue;
+      if (sinir && new Date(yil, no-1, +g) > sinir) continue;
+      t++;
+    }
+  }
+  return t;
+}
+/** Bir kişinin izin karnesi. */
+function izinKarnesi(p, referans){
+  const kidem = kidemYili(p.girisTarihi, referans);
+  const hakedis = kidem == null ? 0 : toplamHakedis(kidem);
+  const devir = Number(p.devir) || 0;
+  const kullanilan = kullanilanIzin(p.id, referans);
+  return {
+    kidem, hakedis, devir, kullanilan,
+    buYil: kidem == null ? 0 : (kidem < 1 ? 0 : kademeGunu(kidem)),
+    toplamHak: hakedis + devir,
+    kalan: hakedis + devir - kullanilan,
+  };
 }
 
 /* ---- Ay verisine erişim ---- */
@@ -826,6 +994,8 @@ function personelCiz(){
       <td><input data-alan="ad" value="${(p.ad || "").replace(/"/g, "&quot;")}" placeholder="Adı Soyadı"></td>
       <td class="dar"><input data-alan="tc" value="${p.tc || ""}" placeholder="TC No" maxlength="11" inputmode="numeric"></td>
       <td class="dar"><input data-alan="yer" value="${p.yer || ""}" placeholder="Çalışma yeri" list="yerListe"></td>
+      <td><input type="date" data-alan="girisTarihi" value="${p.girisTarihi || ""}"></td>
+      <td><input type="number" data-alan="devir" value="${p.devir || 0}" min="0" step="0.5" style="text-align:center"></td>
       <td class="cokdar"><button class="sil" title="Sil">×</button></td>
     </tr>`).join("");
   const yerler = [...new Set(D.personel.map(p => p.yer).filter(Boolean))];
@@ -836,7 +1006,9 @@ $("#personelSatir").addEventListener("input", e => {
   const tr = e.target.closest("tr"); if (!tr) return;
   const p = D.personel.find(x => x.id === tr.dataset.id); if (!p) return;
   const alan = e.target.dataset.alan;
-  p[alan] = alan === "aktif" ? e.target.checked : e.target.value.trim();
+  p[alan] = alan === "aktif" ? e.target.checked
+          : alan === "devir" ? (Number(e.target.value) || 0)
+          : e.target.value.trim();
   kaydet(); tabloCiz();
 });
 $("#personelSatir").addEventListener("click", e => {
@@ -856,7 +1028,8 @@ $("#personelSatir").addEventListener("click", e => {
 });
 $("#btnPersonelEkle").addEventListener("click", () => {
   anlikAl();
-  D.personel.push({ id: yeniId(), ad: "", tc: "", yer: "", aktif: true });
+  D.personel.push({ id: yeniId(), ad: "", tc: "", yer: "", aktif: true,
+                    girisTarihi: "", devir: 0 });
   kaydet(); personelCiz();
   const son = $("#personelSatir").querySelector('tr:last-child input[data-alan="ad"]');
   son && son.focus();
@@ -912,6 +1085,249 @@ $("#kadroOncekiAy").addEventListener("click", () => {
   if (!onceki.length){ bildir("Önceki ayda kadro bulunamadı."); return; }
   kadroKaydet(onceki);
   bildir(`${AYLAR[a-1]} ${y} kadrosu (${onceki.length} kişi) alındı.`);
+});
+
+/* ============================================================
+   İZİN TAKİBİ PANELİ
+   ============================================================ */
+let izinReferans = null;             // hesap tarihi (boş = bugün)
+
+function kademeCiz(){
+  const k = [...D.ayarlar.izinKademe].sort((a, b) => a.yil - b.yil);
+  $("#kademeSatir").innerHTML = k.map((x, i) => `
+    <tr data-i="${i}">
+      <td style="white-space:nowrap"><input type="number" data-alan="yil" value="${x.yil}" min="1" style="width:52px;text-align:center"> yıl ve üzeri</td>
+      <td style="white-space:nowrap"><input type="number" data-alan="gun" value="${x.gun}" min="0" style="width:52px;text-align:center"> gün</td>
+      <td class="cokdar">${k.length > 1 ? '<button class="sil">×</button>' : ""}</td>
+    </tr>`).join("");
+}
+function izinKodCiz(){
+  $("#izinKodSecim").innerHTML = KODLAR.map(k => `
+    <label class="onay" style="margin:0;font-size:12px">
+      <input type="checkbox" value="${k.kod}" ${D.ayarlar.izinKodlari.includes(k.kod) ? "checked" : ""}>
+      <span class="rozet" style="width:20px;height:20px;border-radius:4px;display:inline-grid;place-items:center;
+        font-weight:700;font-size:11px;background:var(${k.renk}-bg);color:var(${k.renk})">${k.kod}</span>
+      ${k.ad}</label>`).join("");
+}
+function izinCiz(){
+  kademeCiz(); izinKodCiz();
+  const ref = izinReferans || null;
+  const kisiler = D.personel.filter(p => p.aktif || p.girisTarihi)
+    .sort((a, b) => trSirala(a.ad, b.ad));
+  const eksik = kisiler.filter(p => !p.girisTarihi).length;
+  $("#izinUyari").innerHTML = eksik
+    ? `<div class="uyari"><b>${eksik} kişinin işe giriş tarihi yok.</b>
+       Tarihi girmeden kıdem ve hakediş hesaplanamaz — aşağıdaki sütuna doğrudan yazabilirsiniz.</div>`
+    : "";
+
+  $("#izinSatir").innerHTML = kisiler.map(p => {
+    const k = izinKarnesi(p, ref);
+    const yok = k.kidem == null;
+    const renk = k.kalan < 0 ? "var(--c-rapor)" : k.kalan <= 2 ? "var(--c-izin)" : "var(--c-calisti)";
+    return `<tr data-id="${p.id}">
+      <td>${p.ad}${p.aktif ? "" : ' <span style="color:var(--muted);font-size:11px">· ayrıldı</span>'}</td>
+      <td><input type="date" data-alan="girisTarihi" value="${p.girisTarihi || ""}"></td>
+      <td style="text-align:center">${yok ? "—" : k.kidem + " yıl"}</td>
+      <td style="text-align:center;color:var(--muted)">${yok ? "—" : k.buYil}</td>
+      <td style="text-align:center">${yok ? "—" : k.hakedis}</td>
+      <td><input type="number" data-alan="devir" value="${p.devir || 0}" min="0" step="0.5" style="text-align:center"></td>
+      <td style="text-align:center;font-weight:600">${yok ? "—" : k.toplamHak}</td>
+      <td style="text-align:center">${k.kullanilan}</td>
+      <td style="text-align:center;font-weight:700;font-size:15px;color:${yok ? "var(--muted)" : renk}">
+        ${yok ? "—" : k.kalan}</td>
+    </tr>`;
+  }).join("");
+}
+$("#izinSatir").addEventListener("input", e => {
+  const tr = e.target.closest("tr"); if (!tr) return;
+  const p = D.personel.find(x => x.id === tr.dataset.id); if (!p) return;
+  const alan = e.target.dataset.alan;
+  p[alan] = alan === "devir" ? (Number(e.target.value) || 0) : e.target.value.trim();
+  kaydet();
+  clearTimeout(izinCiz._z); izinCiz._z = setTimeout(izinCiz, 400);
+});
+$("#kademeSatir").addEventListener("input", e => {
+  const tr = e.target.closest("tr"); if (!tr) return;
+  const dizi = [...D.ayarlar.izinKademe].sort((a, b) => a.yil - b.yil);
+  dizi[+tr.dataset.i][e.target.dataset.alan] = Math.max(0, Number(e.target.value) || 0);
+  D.ayarlar.izinKademe = dizi; kaydet();
+  clearTimeout(izinCiz._z); izinCiz._z = setTimeout(izinCiz, 500);
+});
+$("#kademeSatir").addEventListener("click", e => {
+  if (!e.target.classList.contains("sil")) return;
+  const i = +e.target.closest("tr").dataset.i;
+  D.ayarlar.izinKademe = [...D.ayarlar.izinKademe].sort((a, b) => a.yil - b.yil)
+    .filter((_, j) => j !== i);
+  kaydet(); izinCiz();
+});
+$("#btnKademeEkle").addEventListener("click", () => {
+  const enBuyuk = Math.max(0, ...D.ayarlar.izinKademe.map(k => k.yil));
+  D.ayarlar.izinKademe.push({ yil: enBuyuk + 1, gun: kademeGunu(enBuyuk) });
+  kaydet(); izinCiz();
+});
+$("#izinKodSecim").addEventListener("change", () => {
+  D.ayarlar.izinKodlari = [...$("#izinKodSecim").querySelectorAll("input:checked")].map(i => i.value);
+  if (!D.ayarlar.izinKodlari.length) D.ayarlar.izinKodlari = ["İ"];
+  kaydet(); izinCiz();
+});
+$("#izinTarih").addEventListener("change", e => { izinReferans = e.target.value || null; izinCiz(); });
+$("#btnIzinCsv").addEventListener("click", () => {
+  const bas = ["Adı Soyadı","TC No","Çalışma Yeri","İşe Giriş","Kıdem (yıl)","Yıllık Hak",
+               "Toplam Hakediş","Devir","Toplam Hak","Kullanılan","Kalan"];
+  const satirlar = [bas.join(";")];
+  D.personel.filter(p => p.aktif || p.girisTarihi).sort((a, b) => trSirala(a.ad, b.ad))
+    .forEach(p => {
+      const k = izinKarnesi(p, izinReferans);
+      satirlar.push([p.ad, p.tc || "", p.yer || "", p.girisTarihi || "",
+        k.kidem ?? "", k.buYil, k.hakedis, k.devir, k.toplamHak, k.kullanilan, k.kalan]
+        .map(v => `"${v}"`).join(";"));
+    });
+  indir(new Blob(["﻿" + satirlar.join("\r\n")], { type:"text/csv;charset=utf-8" }),
+        `Izin_Bakiyeleri_${(izinReferans || new Date().toISOString().slice(0,10))}.csv`);
+});
+
+/* ============================================================
+   İZİN FORMU
+   ============================================================ */
+const trTarih = t => {
+  if (!t) return "……… / ……… / …………";
+  const d = new Date(t);
+  return isNaN(d) ? "—" : `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`;
+};
+/** Başlangıç–bitiş arası gün listesi (dahil). */
+function tarihAraligi(bas, bit){
+  const a = new Date(bas), b = new Date(bit);
+  if (isNaN(a) || isNaN(b) || b < a) return [];
+  const liste = [];
+  for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1))
+    liste.push(new Date(d));
+  return liste;
+}
+
+function formPersonelDoldur(){
+  const kisiler = D.personel.filter(p => p.aktif).sort((a, b) => trSirala(a.ad, b.ad));
+  const pasif   = D.personel.filter(p => !p.aktif).sort((a, b) => trSirala(a.ad, b.ad));
+  $("#fPersonel").innerHTML =
+    kisiler.map(p => `<option value="${p.id}">${p.ad}</option>`).join("") +
+    (pasif.length ? `<optgroup label="Ayrılanlar">${pasif.map(p =>
+      `<option value="${p.id}">${p.ad}</option>`).join("")}</optgroup>` : "");
+}
+
+function formCiz(){
+  const p = D.personel.find(x => x.id === $("#fPersonel").value);
+  const kap = $("#formOnizleme");
+  if (!p){ kap.innerHTML = `<div class="bos-durum">Önce personel ekleyin.</div>`; return; }
+
+  const bas = $("#fBas").value, bit = $("#fBit").value, tur = $("#fTur").value;
+  const gunler = tarihAraligi(bas, bit);
+  const gunSay = gunler.length;
+  const isbasi = gunler.length
+    ? new Date(gunler.at(-1).getTime() + 86400000).toISOString().slice(0,10) : "";
+  const k = izinKarnesi(p, bas || null);
+  const yillikMi = tur === "Yıllık Ücretli İzin";
+  const sonrasi = k.kalan - (yillikMi ? gunSay : 0);
+  const firma = ($("#fFirma").value || D.ayarlar.firma || "").trim();
+
+  kap.innerHTML = `
+    ${firma ? `<div class="firma">${xkac(firma)}</div>` : ""}
+    <h1>İZİN TALEP VE ONAY FORMU</h1>
+    <div class="altbaslik">Düzenleme tarihi: ${trTarih(new Date().toISOString().slice(0,10))}</div>
+
+    <div class="bolum">PERSONEL BİLGİLERİ</div>
+    <table>
+      <tr><th>Adı Soyadı</th><td>${xkac(p.ad)}</td></tr>
+      <tr><th>T.C. Kimlik No</th><td>${xkac(p.tc || "—")}</td></tr>
+      <tr><th>Görevi / Çalışma Yeri</th><td>${xkac(p.yer || "—")}</td></tr>
+      <tr><th>İşe Giriş Tarihi</th><td>${trTarih(p.girisTarihi)}${
+        k.kidem != null ? `  <span style="color:#555">(${k.kidem} yıl kıdem)</span>` : ""}</td></tr>
+    </table>
+
+    <div class="bolum">İZİN BİLGİLERİ</div>
+    <table>
+      <tr><th>İzin Türü</th><td><b>${xkac(tur)}</b></td></tr>
+      <tr><th>Başlangıç Tarihi</th><td>${trTarih(bas)}</td></tr>
+      <tr><th>Bitiş Tarihi</th><td>${trTarih(bit)}</td></tr>
+      <tr><th>Toplam Gün</th><td class="vurgu">${gunSay ? gunSay + " gün" : "—"}</td></tr>
+      <tr><th>İşbaşı Tarihi</th><td>${trTarih(isbasi)}</td></tr>
+      <tr><th>İzinde Bulunacağı Adres</th><td>${xkac($("#fAdres").value) || "&nbsp;"}</td></tr>
+      <tr><th>Telefon</th><td>${xkac($("#fTel").value) || "&nbsp;"}</td></tr>
+    </table>
+
+    <div class="bolum">YILLIK İZİN DURUMU${p.girisTarihi ? "" : " (işe giriş tarihi girilmemiş)"}</div>
+    <table class="bakiye">
+      <tr><th>Hak Edilen</th><th>Devreden</th><th>Toplam Hak</th><th>Kullanılan</th>
+          <th>Kalan</th><th>Bu İzinden Sonra</th></tr>
+      <tr><td>${k.hakedis}</td><td>${k.devir}</td><td><b>${k.toplamHak}</b></td>
+          <td>${k.kullanilan}</td><td><b>${k.kalan}</b></td>
+          <td class="vurgu" style="color:${sonrasi < 0 ? "#a32020" : "#1c7a4a"}">${
+            yillikMi ? sonrasi : k.kalan}</td></tr>
+    </table>
+    ${yillikMi && sonrasi < 0 ? `<div style="color:#a32020;font-size:11.5px;font-weight:600;margin-bottom:10px">
+      ⚠ Bu izin, kalan hakkı ${Math.abs(sonrasi)} gün aşmaktadır.</div>` : ""}
+
+    <div class="beyan">
+      Yukarıda belirtilen tarihler arasında ${gunSay ? `<b>${gunSay} gün</b>` : "…… gün"}
+      <b>${xkac(tur)}</b> kullanmak istiyorum. İzin dönüşü
+      ${trTarih(isbasi)} tarihinde işbaşı yapacağımı, izin süresince yukarıda
+      bildirdiğim adres ve telefondan ulaşılabileceğimi beyan ederim.
+      Gereğini bilgilerinize arz ederim.
+    </div>
+
+    <div class="imzalar">
+      <div class="imza"><b>TALEP EDEN</b>Personel<div class="cizgi"></div>${xkac(p.ad)}</div>
+      <div class="imza"><b>KONTROL EDEN</b>Birim Amiri<div class="cizgi"></div>Ad Soyad / İmza</div>
+      <div class="imza"><b>ONAYLAYAN</b>İnsan Kaynakları<div class="cizgi"></div>Ad Soyad / İmza</div>
+    </div>
+
+    <div class="dipnot">
+      Bu form iki nüsha düzenlenir; bir nüshası personele verilir, diğeri özlük dosyasında saklanır.
+      Yıllık izin bakiyesi ${trTarih(bas || new Date().toISOString().slice(0,10))} tarihi
+      itibarıyla puantaj kayıtlarından hesaplanmıştır.
+    </div>`;
+}
+
+["#fPersonel","#fTur","#fBas","#fBit","#fAdres","#fTel","#fFirma"].forEach(sel => {
+  $(sel).addEventListener("input", () => {
+    if (sel === "#fFirma") { D.ayarlar.firma = $("#fFirma").value.trim(); kaydet(); }
+    formCiz();
+  });
+  $(sel).addEventListener("change", formCiz);
+});
+/* bitiş tarihi başlangıçtan önce olamasın */
+$("#fBas").addEventListener("change", () => {
+  if (!$("#fBit").value || $("#fBit").value < $("#fBas").value) $("#fBit").value = $("#fBas").value;
+  formCiz();
+});
+
+$("#btnFormYazdir").addEventListener("click", () => {
+  document.body.classList.add("yazdir-form");
+  const geri = () => document.body.classList.remove("yazdir-form");
+  window.addEventListener("afterprint", geri, { once: true });
+  setTimeout(() => { window.print(); setTimeout(geri, 800); }, 60);
+});
+
+$("#btnFormIsle").addEventListener("click", () => {
+  const p = D.personel.find(x => x.id === $("#fPersonel").value);
+  const gunler = tarihAraligi($("#fBas").value, $("#fBit").value);
+  if (!p || !gunler.length){ bildir("Önce personel ve tarih aralığı seçin."); return; }
+  const tur = $("#fTur").value;
+  const kod = tur === "Ücretsiz İzin" ? "Ü"
+            : tur === "Hastalık / Rapor" ? "R"
+            : tur.startsWith("Doğum") ? "DİZ" : "İ";
+  const kodAd = KOD_HARITA[kod] ? KOD_HARITA[kod].ad : kod;
+  if (!confirm(`${p.ad} — ${gunler.length} gün "${kodAd}" (${kod}) olarak puantaja işlenecek.\n\n` +
+               `${trTarih($("#fBas").value)} – ${trTarih($("#fBit").value)}\n\nDevam edilsin mi?`)) return;
+  anlikAl();
+  const dokunulan = new Set();
+  for (const d of gunler){
+    const y = d.getFullYear(), a = d.getMonth() + 1;
+    kadroSabitle(y, a);
+    if (!D.kadro[ayAnahtar(y, a)].includes(p.id)) D.kadro[ayAnahtar(y, a)].push(p.id);
+    kodYaz(y, a, p.id, d.getDate(), kod);
+    dokunulan.add(`${AYLAR[a-1]} ${y}`);
+  }
+  kaydet(); ciz(); formCiz();
+  bildir(`${gunler.length} gün işlendi (${[...dokunulan].join(", ")}).`);
 });
 
 /* ============================================================
@@ -1274,6 +1690,7 @@ const S = {
   ayak:17, ayakAd:18,
   aciklama:19, imzaEtiket:20, imzaCizgi:21,
   bolumBasligi:22, tarih:23, sayi:24, ozetAd:25, ozetDeger:26, ozetToplam:27,
+  bolumSol:28, girdi:29, girdiOrta:30, sarmal:31, etiket:32, formTarih:33,
 };
 
 function stilXml(){
@@ -1299,7 +1716,7 @@ function stilXml(){
   const dolgular = ["<fill><patternFill patternType=\"none\"/></fill>",
     "<fill><patternFill patternType=\"gray125\"/></fill>",
     D("233247"), D("3D5273"), D("E8ECF3"), D("FCE8E8"), D("DDE3EC"),
-    D("FAFBFD"), D("E7F0FB"), D("F4F6F9"), D("EEF1F6")];
+    D("FAFBFD"), D("E7F0FB"), D("F4F6F9"), D("EEF1F6"), D("FFF7DF")];
   const KENAR = c => `<left style="thin"><color rgb="FF${c}"/></left><right style="thin"><color rgb="FF${c}"/></right><top style="thin"><color rgb="FF${c}"/></top><bottom style="thin"><color rgb="FF${c}"/></bottom><diagonal/>`;
   const kenarlar = [
     "<border><left/><right/><top/><bottom/><diagonal/></border>",
@@ -1345,10 +1762,16 @@ function stilXml(){
     xf(0,0,1,SOL),                                              // 25 özet ad
     xf(0,0,1,ORTA),                                             // 26 özet değer
     xf(1,8,2,ORTA),                                             // 27 özet toplam
+    xf(3,2,1,SOL),                                              // 28 bölüm başlığı (sola yaslı)
+    xf(0,11,1,SOL,1),                                           // 29 girdi (sarı, kilitsiz)
+    xf(1,11,1,ORTA,1),                                          // 30 girdi (ortalı, kilitsiz)
+    xf(0,0,0,'horizontal="left" vertical="top" wrapText="1"'),   // 31 sarmalı metin
+    xf(1,7,1,SOL),                                              // 32 etiket
+    xf(1,11,1,ORTA,1,166),                                      // 33 girdi (tarih, kilitsiz)
   ];
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<numFmts count="2"><numFmt numFmtId="164" formatCode="[$-41F]MMMM YYYY"/><numFmt numFmtId="165" formatCode="0&quot; GÜN&quot;"/></numFmts>
+<numFmts count="3"><numFmt numFmtId="164" formatCode="[$-41F]MMMM YYYY"/><numFmt numFmtId="165" formatCode="0&quot; GÜN&quot;"/><numFmt numFmtId="166" formatCode="DD.MM.YYYY"/></numFmts>
 <fonts count="${fontlar.length}">${fontlar.join("")}</fonts>
 <fills count="${dolgular.length}">${dolgular.join("")}</fills>
 <borders count="${kenarlar.length}">${kenarlar.join("")}</borders>
@@ -1667,6 +2090,254 @@ function ozetSayfaXml(aylar){          // aylar: [{yil, ay}] — kitapta bulunan
 <pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
 }
 
+/* ============================================================
+   İZİN TAKİBİ SAYFASI  (canlı formüllerle)
+   ------------------------------------------------------------
+   Sütunlar:  A Ad · B TC · C Yer · D Giriş · E Kıdem · F Yıllık
+              G Hakediş · H Devir · I Toplam Hak · J Önceki Kullanım
+              K Kullanılan · L KALAN   |   N.. yıl yıl kullanım
+   ============================================================ */
+const IZIN_SUT = { ad:1, tc:2, yer:3, giris:4, kidem:5, yillik:6, hakedis:7,
+                   devir:8, toplamHak:9, oncekiKullanim:10, kullanilan:11, kalan:12, ilkYil:14 };
+
+/** İZİN TAKİBİ sayfasında kişilerin başladığı satır. Tek kaynak. */
+function izinIlkVeriSatiri(){ return 10 + D.ayarlar.izinKademe.length; }
+
+function izinSayfaXml(aylar){        // aylar: kitapta bulunan [{yil, ay}]
+  const varOlan = new Set(aylar.map(m => ayAnahtar(m.yil, m.ay)));
+  const yillar = [...new Set(aylar.map(m => m.yil))].sort();
+  const kademe = [...D.ayarlar.izinKademe].sort((a, b) => a.yil - b.yil);
+  const KAD_ILK = 7, KAD_SON = KAD_ILK + kademe.length - 1;
+  const kadYil = `$A$${KAD_ILK}:$A$${KAD_SON}`, kadGun = `$B$${KAD_ILK}:$B$${KAD_SON}`;
+  const sonSutun = IZIN_SUT.ilkYil + Math.max(yillar.length, 1) - 1;
+  const SON = sutunAdi(sonSutun);
+
+  const kisiler = D.personel
+    .filter(p => p.aktif || p.girisTarihi || kullanilanIzin(p.id) > 0)
+    .sort((a, b) => trSirala(a.ad, b.ad));
+
+  /* --- başlık --- */
+  let s = `<row r="1" ht="30" customHeight="1">` + hucre("A1", "YILLIK İZİN TAKİBİ", S.baslik);
+  for (let c = 2; c <= sonSutun; c++) s += hucre(sutunAdi(c) + "1", "", S.baslik);
+  s += `</row>`;
+
+  /* --- ayar bloğu --- */
+  s += `<row r="3" ht="20" customHeight="1">` +
+    hucre("A3", "Hesap tarihi", S.etiket) +
+    hucre("B3", null, S.formTarih, "TODAY()") +
+    hucre("D3", "İzinden düşülecek kod", S.etiket) +
+    hucre("E3", KOD_HARITA[D.ayarlar.izinKodlari[0]]?.ad || "İzinli", S.girdiOrta) +
+    hucre("F3", null, S.ozetDeger, `VLOOKUP($E$3,KODLAR!$B:$C,2,FALSE)`) +
+    hucre("G3", "◀ sütun no (otomatik)", S.bilgiSol) + `</row>`;
+  s += `<row r="5">` + hucre("A5", "HAKEDİŞ KADEMELERİ", S.bolumSol) +
+       hucre("B5", "", S.bolumSol) + `</row>`;
+  s += `<row r="6" ht="18" customHeight="1">` +
+    hucre("A6", "Kıdem (yıl ve üzeri)", S.ustBaslik) + hucre("B6", "İzin günü", S.ustBaslik) + `</row>`;
+  kademe.forEach((k, i) => {
+    const r = KAD_ILK + i;
+    s += `<row r="${r}" ht="17" customHeight="1">` +
+      hucre("A" + r, k.yil, S.girdiOrta) + hucre("B" + r, k.gun, S.girdiOrta) + `</row>`;
+  });
+  const notSatir = KAD_SON + 1;
+  s += `<row r="${notSatir}">` +
+    hucre("A" + notSatir, "Sarı hücreler elle değiştirilebilir. \"Kullanılan\" sütunu, seçili kodun puantajdaki toplamıdır — " +
+      "izin dışı günler de bu kodla işaretlendiyse sayı yüksek çıkar.", S.aciklama) + `</row>`;
+
+  /* --- tablo başlığı --- */
+  const BAS = KAD_SON + 3, ILK = izinIlkVeriSatiri();
+  const baslik = ["Adı Soyadı","TC No","Çalışma Yeri","İşe Giriş","Kıdem\n(yıl)","Yıllık\nHak",
+                  "Toplam\nHakediş","Devir","TOPLAM\nHAK","Önceki\nKullanım","Kullanılan","KALAN"];
+  s += `<row r="${BAS}" ht="34" customHeight="1">` +
+    baslik.map((b, i) => hucre(sutunAdi(i+1) + BAS, b, S.ustBaslik)).join("") +
+    hucre("M" + BAS, "", S.ustBaslik) +
+    yillar.map((y, i) => hucre(sutunAdi(IZIN_SUT.ilkYil + i) + BAS, String(y), S.ustBaslik)).join("") +
+    `</row>`;
+
+  /* --- kişiler --- */
+  kisiler.forEach((p, i) => {
+    const r = ILK + i;
+    /* bu kitapta bulunmayan aylardaki izin kullanımı (sabit sayı) */
+    let onceki = 0;
+    for (const [ayK, ay] of Object.entries(D.kayit)){
+      if (varOlan.has(ayK)) continue;
+      const satir = ay[p.id]; if (!satir) continue;
+      for (const kod of Object.values(satir))
+        if (D.ayarlar.izinKodlari.includes(kod)) onceki++;
+    }
+    const yilAralik = yillar.length
+      ? `${sutunAdi(IZIN_SUT.ilkYil)}${r}:${SON}${r}` : null;
+
+    s += `<row r="${r}" ht="18" customHeight="1">` +
+      hucre("A" + r, p.ad, S.ad) +
+      hucre("B" + r, p.tc || "", S.orta) +
+      hucre("C" + r, p.yer || "", S.orta) +
+      (p.girisTarihi
+        ? hucre("D" + r, excelTarih(+p.girisTarihi.slice(0,4), +p.girisTarihi.slice(5,7), +p.girisTarihi.slice(8,10)), S.formTarih)
+        : hucre("D" + r, "", S.formTarih)) +
+      hucre("E" + r, null, S.toplam, `IF($D${r}="","",DATEDIF($D${r},$B$3,"Y"))`) +
+      hucre("F" + r, null, S.toplam,
+        `IF($D${r}="","",IF($E${r}<1,0,LOOKUP($E${r},${kadYil},${kadGun})))`) +
+      hucre("G" + r, null, S.toplam,
+        `IF($D${r}="","",IF($E${r}<1,0,SUMPRODUCT(LOOKUP(ROW(INDIRECT("1:"&$E${r})),${kadYil},${kadGun}))))`) +
+      hucre("H" + r, Number(p.devir) || 0, S.girdiOrta) +
+      hucre("I" + r, null, S.toplamAna, `IF($D${r}="","",$G${r}+$H${r})`) +
+      hucre("J" + r, onceki, S.girdiOrta) +
+      hucre("K" + r, null, S.toplam, yilAralik ? `$J${r}+SUM(${yilAralik})` : `$J${r}`) +
+      hucre("L" + r, null, S.toplamAna, `IF($D${r}="","",$I${r}-$K${r})`) +
+      hucre("M" + r, "", S.yok);
+    yillar.forEach((y, j) => {
+      const terimler = [];
+      for (let a = 1; a <= 12; a++)
+        if (varOlan.has(ayAnahtar(y, a)))
+          terimler.push(`IFERROR(VLOOKUP($A${r},'${AYLAR[a-1]} ${y}'!$B$5:$${sutunAdi(SUT.toplam)}$200,$F$3,FALSE),0)`);
+      s += hucre(sutunAdi(IZIN_SUT.ilkYil + j) + r, null, S.ozetDeger, terimler.join("+") || "0");
+    });
+    s += `</row>`;
+  });
+
+  const sonVeri = Math.max(ILK, ILK + kisiler.length - 1);
+  const kalanAralik = `L${ILK}:L${sonVeri}`;
+  /* KALAN sütunu: eksi kırmızı, 0-2 turuncu, gerisi yeşil */
+  const kb =
+    `<conditionalFormatting sqref="${kalanAralik}">` +
+    `<cfRule type="expression" dxfId="${KODLAR.length+2}" priority="1"><formula>AND($D${ILK}&lt;&gt;"",L${ILK}&lt;0)</formula></cfRule>` +
+    `<cfRule type="expression" dxfId="${KODLAR.length+1}" priority="2"><formula>AND($D${ILK}&lt;&gt;"",L${ILK}&lt;=2)</formula></cfRule>` +
+    `<cfRule type="expression" dxfId="${KODLAR.length}"   priority="3"><formula>AND($D${ILK}&lt;&gt;"",L${ILK}&gt;2)</formula></cfRule>` +
+    `</conditionalFormatting>`;
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
+<dimension ref="A1:${SON}${sonVeri}"/>
+<sheetViews><sheetView showGridLines="0" workbookViewId="0"><pane xSplit="1" ySplit="${BAS}" topLeftCell="B${ILK}" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>
+<sheetFormatPr defaultRowHeight="15"/>
+<cols><col min="1" max="1" width="26" customWidth="1"/><col min="2" max="2" width="13.5" customWidth="1"/>
+<col min="3" max="3" width="14" customWidth="1"/><col min="4" max="4" width="12" customWidth="1"/>
+<col min="5" max="12" width="10.5" customWidth="1"/><col min="13" max="13" width="2" customWidth="1"/>
+<col min="${IZIN_SUT.ilkYil}" max="${Math.max(sonSutun, IZIN_SUT.ilkYil)}" width="8" customWidth="1"/></cols>
+<sheetData>${s}</sheetData>
+<sheetProtection sheet="1" objects="1" scenarios="1" formatCells="0" formatColumns="0" formatRows="0" insertRows="0" deleteRows="0" sort="0" autoFilter="0"/>
+<autoFilter ref="A${BAS}:L${sonVeri}"/>
+<mergeCells count="2"><mergeCell ref="A1:${SON}1"/><mergeCell ref="A5:B5"/></mergeCells>
+${kb}
+<dataValidations count="1"><dataValidation type="list" allowBlank="0" showInputMessage="1" showErrorMessage="1" promptTitle="İzin kodu" prompt="Yıllık izinden düşülecek puantaj kodunu seçin." sqref="E3"><formula1>KODLAR!$B$3:$B$${2 + TOPLAM_SUTUN.length + 1}</formula1></dataValidation></dataValidations>
+<printOptions horizontalCentered="1"/>
+<pageMargins left="0.3" right="0.3" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>
+<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>
+</worksheet>`;
+}
+
+/* ============================================================
+   İZİN FORMU SAYFASI
+   Sarı hücreleri doldurun, gerisi kendiliğinden gelir. Yazdır.
+   ============================================================ */
+function izinFormuSayfaXml(){
+  const IT = "'İZİN TAKİBİ'";
+  const bak = (o) => `IFERROR(VLOOKUP($B$5,${IT}!$A:$L,${o},FALSE),"")`;
+  const TURLER = ["Yıllık Ücretli İzin","Mazeret İzni","Ücretsiz İzin","Hastalık / Rapor",
+                  "Doğum / Babalık İzni","Evlilik İzni","Ölüm İzni","Diğer"];
+  const ilkAd = (D.personel.filter(p => p.aktif).sort((a, b) => trSirala(a.ad, b.ad))[0]
+                 || D.personel[0] || {}).ad || "";
+
+  const bilgi = (r, etiket, deger, stil, formul) =>
+    `<row r="${r}" ht="20" customHeight="1">` + hucre("A" + r, etiket, S.etiket) +
+    hucre("B" + r, deger, stil, formul) +
+    ["C","D","E","F"].map(c => hucre(c + r, "", stil === S.girdi ? S.girdi : S.orta)).join("") + `</row>`;
+  const bolum = (r, ad) => `<row r="${r}" ht="20" customHeight="1">` +
+    ["A","B","C","D","E","F"].map((c, i) => hucre(c + r, i ? "" : ad, S.bolumSol)).join("") + `</row>`;
+
+  let s = `<row r="1" ht="24" customHeight="1">` +
+    ["A","B","C","D","E","F"].map((c, i) =>
+      hucre(c + "1", i ? "" : (D.ayarlar.firma || "FİRMA ADI"), S.girdiOrta)).join("") + `</row>`;
+  s += `<row r="2" ht="30" customHeight="1">` +
+    ["A","B","C","D","E","F"].map((c, i) =>
+      hucre(c + "2", i ? "" : "İZİN TALEP VE ONAY FORMU", S.baslik)).join("") + `</row>`;
+
+  s += bolum(4, "PERSONEL BİLGİLERİ");
+  s += bilgi(5, "Adı Soyadı", ilkAd, S.girdi);
+  s += bilgi(6, "T.C. Kimlik No", null, S.orta, bak(2));
+  s += bilgi(7, "Görevi / Çalışma Yeri", null, S.orta, bak(3));
+  s += `<row r="8" ht="20" customHeight="1">` + hucre("A8", "İşe Giriş Tarihi", S.etiket) +
+    hucre("B8", null, S.formTarih, bak(4)) +
+    hucre("C8", "Kıdem (yıl)", S.etiket) + hucre("D8", null, S.orta, bak(5)) +
+    hucre("E8", "", S.orta) + hucre("F8", "", S.orta) + `</row>`;
+
+  s += bolum(10, "İZİN BİLGİLERİ");
+  s += bilgi(11, "İzin Türü", TURLER[0], S.girdi);
+  s += `<row r="12" ht="20" customHeight="1">` + hucre("A12", "Başlangıç Tarihi", S.etiket) +
+    hucre("B12", null, S.formTarih, "TODAY()") + ["C","D","E","F"].map(c => hucre(c+"12","",S.orta)).join("") + `</row>`;
+  s += `<row r="13" ht="20" customHeight="1">` + hucre("A13", "Bitiş Tarihi", S.etiket) +
+    hucre("B13", null, S.formTarih, "TODAY()") + ["C","D","E","F"].map(c => hucre(c+"13","",S.orta)).join("") + `</row>`;
+  s += `<row r="14" ht="22" customHeight="1">` + hucre("A14", "Toplam Gün", S.etiket) +
+    hucre("B14", null, S.toplamAna, `IF(OR($B$12="",$B$13="",$B$13<$B$12),"",$B$13-$B$12+1)`) +
+    ["C","D","E","F"].map(c => hucre(c+"14","",S.orta)).join("") + `</row>`;
+  s += `<row r="15" ht="20" customHeight="1">` + hucre("A15", "İşbaşı Tarihi", S.etiket) +
+    hucre("B15", null, S.formTarih, `IF($B$13="","",$B$13+1)`) +
+    ["C","D","E","F"].map(c => hucre(c+"15","",S.orta)).join("") + `</row>`;
+  s += bilgi(16, "İzinde Bulunacağı Adres", "", S.girdi);
+  s += bilgi(17, "Telefon", "", S.girdi);
+
+  s += bolum(19, "YILLIK İZİN DURUMU");
+  s += `<row r="20" ht="30" customHeight="1">` +
+    ["Hak Edilen","Devreden","Toplam Hak","Kullanılan","Kalan","Bu İzinden Sonra"]
+      .map((b, i) => hucre(sutunAdi(i+1) + "20", b, S.ustBaslik)).join("") + `</row>`;
+  s += `<row r="21" ht="24" customHeight="1">` +
+    hucre("A21", null, S.toplam, bak(7)) +
+    hucre("B21", null, S.toplam, bak(8)) +
+    hucre("C21", null, S.toplamAna, bak(9)) +
+    hucre("D21", null, S.toplam, bak(11)) +
+    hucre("E21", null, S.toplamAna, bak(12)) +
+    hucre("F21", null, S.toplamAna,
+      `IF($B$11="Yıllık Ücretli İzin",IFERROR(${bak(12)}-$B$14,""),${bak(12)})`) + `</row>`;
+
+  const beyan = "Yukarıda belirtilen tarihler arasında talep ettiğim izni kullanmak istiyorum. " +
+    "İzin dönüşü yukarıda belirtilen işbaşı tarihinde göreve başlayacağımı, izin süresince " +
+    "bildirdiğim adres ve telefondan ulaşılabileceğimi beyan ederim. Gereğini bilgilerinize arz ederim.";
+  s += `<row r="23" ht="46" customHeight="1">` +
+    ["A","B","C","D","E","F"].map((c, i) => hucre(c + "23", i ? "" : beyan, S.sarmal)).join("") + `</row>`;
+
+  s += `<row r="26" ht="20" customHeight="1">` +
+    hucre("A26", "TALEP EDEN", S.etiket) + hucre("B26", "", S.etiket) +
+    hucre("C26", "KONTROL EDEN", S.etiket) + hucre("D26", "", S.etiket) +
+    hucre("E26", "ONAYLAYAN", S.etiket) + hucre("F26", "", S.etiket) + `</row>`;
+  s += `<row r="27" ht="16" customHeight="1">` +
+    hucre("A27", "Personel", S.aciklama) + hucre("B27", "", S.yok) +
+    hucre("C27", "Birim Amiri", S.aciklama) + hucre("D27", "", S.yok) +
+    hucre("E27", "İnsan Kaynakları", S.aciklama) + hucre("F27", "", S.yok) + `</row>`;
+  s += `<row r="31">` + ["A","B","C","D","E","F"].map(c => hucre(c + "31", "", S.imzaCizgi)).join("") + `</row>`;
+  s += `<row r="32" ht="16" customHeight="1">` +
+    ["Ad Soyad / İmza","","Ad Soyad / İmza","","Ad Soyad / İmza",""]
+      .map((t, i) => hucre(sutunAdi(i+1) + "32", t, S.aciklama)).join("") + `</row>`;
+  s += `<row r="34" ht="28" customHeight="1">` +
+    ["A","B","C","D","E","F"].map((c, i) => hucre(c + "34", i ? "" :
+      "Bu form iki nüsha düzenlenir; bir nüshası personele verilir, diğeri özlük dosyasında saklanır. " +
+      "İzin bakiyeleri İZİN TAKİBİ sayfasından, puantaj kayıtlarına göre otomatik hesaplanır.", S.sarmal)).join("") + `</row>`;
+
+  const birlestir = ["A1:F1","A2:F2","A4:F4","A10:F10","A19:F19","A23:F23","A34:F34",
+    "B5:F5","B6:F6","B7:F7","B11:F11","B16:F16","B17:F17",
+    "A26:B26","C26:D26","E26:F26","A27:B27","C27:D27","E27:F27",
+    "A31:B31","C31:D31","E31:F31","A32:B32","C32:D32","E32:F32"];
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
+<dimension ref="A1:F34"/>
+<sheetViews><sheetView showGridLines="0" workbookViewId="0"><selection activeCell="B5" sqref="B5"/></sheetView></sheetViews>
+<sheetFormatPr defaultRowHeight="15"/>
+<cols><col min="1" max="1" width="26" customWidth="1"/><col min="2" max="6" width="15" customWidth="1"/></cols>
+<sheetData>${s}</sheetData>
+<sheetProtection sheet="1" objects="1" scenarios="1" formatCells="0" formatColumns="0" formatRows="0"/>
+<mergeCells count="${birlestir.length}">${birlestir.map(m => `<mergeCell ref="${m}"/>`).join("")}</mergeCells>
+<dataValidations count="2">
+<dataValidation type="list" allowBlank="0" showInputMessage="1" showErrorMessage="1" promptTitle="Personel" prompt="Formu dolduracağınız personeli seçin." sqref="B5"><formula1>${IT}!$A$${izinIlkVeriSatiri()}:$A$400</formula1></dataValidation>
+<dataValidation type="list" allowBlank="0" showInputMessage="1" showErrorMessage="0" promptTitle="İzin türü" sqref="B11"><formula1>"${TURLER.join(",")}"</formula1></dataValidation>
+</dataValidations>
+<printOptions horizontalCentered="1"/>
+<pageMargins left="0.6" right="0.6" top="0.6" bottom="0.5" header="0.3" footer="0.3"/>
+<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>
+</worksheet>`;
+}
+
 /** Sayfaları .xlsx blob'una paketler. */
 async function xlsxYap(sayfalar){    // [{ad, xml, yazdirBasligi?}]
   const kodla = new TextEncoder();
@@ -1738,8 +2409,10 @@ async function disaAktar(kapsam){
     ad: `${AYLAR[m.ay-1]} ${m.yil}`, xml: ayaSayfaXml(m.yil, m.ay), yazdirBasligi: true }));
   if (kapsam !== "ay")
     sayfalar.unshift({ ad:"KONTROL PANELİ", xml: ozetSayfaXml(secili) });
-  sayfalar.push({ ad:"PERSONEL", xml: personelSayfaXml() });
-  sayfalar.push({ ad:"KODLAR",   xml: kodlarSayfaXml() });
+  sayfalar.push({ ad:"İZİN TAKİBİ", xml: izinSayfaXml(secili) });
+  sayfalar.push({ ad:"İZİN FORMU",  xml: izinFormuSayfaXml() });
+  sayfalar.push({ ad:"PERSONEL",    xml: personelSayfaXml() });
+  sayfalar.push({ ad:"KODLAR",      xml: kodlarSayfaXml() });
 
   const adi = kapsam === "ay" ? `Puantaj_${AYLAR[aktifAy-1]}_${aktifYil}.xlsx`
             : kapsam === "yil" ? `Puantaj_${aktifYil}.xlsx` : `Puantaj_Tum_Aylar.xlsx`;
@@ -1832,7 +2505,8 @@ function aktarimiUygula(){
       if (!p.tc && bilgi.tc) p.tc = bilgi.tc;
       if (!p.yer && bilgi.yer) p.yer = bilgi.yer;
     } else {
-      p = { id: yeniId(), ad: bilgi.ad, tc: bilgi.tc, yer: bilgi.yer, aktif: true };
+      p = { id: yeniId(), ad: bilgi.ad, tc: bilgi.tc, yer: bilgi.yer, aktif: true,
+            girisTarihi: "", devir: 0 };
       D.personel.push(p);
     }
     idHarita[anahtar] = p.id;
@@ -1905,6 +2579,19 @@ $("#btnAyiTemizle").addEventListener("click", ayiTemizle);
 
 $("#btnKadro").addEventListener("click", () => { kadroCiz(); $("#mKadro").hidden = false; });
 $("#btnPersonel").addEventListener("click", () => { personelCiz(); $("#mPersonel").hidden = false; });
+$("#btnIzin").addEventListener("click", () => {
+  $("#izinTarih").value = izinReferans || "";
+  izinCiz(); $("#mIzin").hidden = false;
+});
+$("#btnIzinFormu").addEventListener("click", () => {
+  formPersonelDoldur();
+  $("#fFirma").value = D.ayarlar.firma || "";
+  if (!$("#fBas").value){
+    const b = new Date().toISOString().slice(0,10);
+    $("#fBas").value = b; $("#fBit").value = b;
+  }
+  formCiz(); $("#mIzinFormu").hidden = false;
+});
 $("#btnOzet").addEventListener("click", () => { ozetHazirla(); $("#mOzet").hidden = false; });
 $("#ozetYil").addEventListener("change", ozetCiz);
 $("#ozetKod").addEventListener("change", ozetCiz);
