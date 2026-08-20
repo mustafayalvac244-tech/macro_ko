@@ -223,7 +223,8 @@ Yazdırma penceresinde "Hedef → PDF olarak kaydet" seçilirse PDF üretir.
 Veriler **bu bilgisayarın tarayıcısında** saklanır — sunucuya, buluta
 hiçbir şey gitmez. Bunun iki sonucu var:
 
-- Başka bilgisayardan aynı verilere ulaşamazsınız.
+- Başka bilgisayardan aynı verilere ulaşamazsınız — *Ortak Çalışma*yı
+  kurmadıysanız (aşağıda anlatılıyor).
 - Tarayıcı verilerini temizlerseniz puantaj da silinir.
 
 Bu yüzden **ayda bir yedek alın**: ⚙ → *Yedek Al (.json)*. Yedeği
@@ -231,6 +232,81 @@ Bu yüzden **ayda bir yedek alın**: ⚙ → *Yedek Al (.json)*. Yedeği
 *Yedekten Yükle*.
 
 Başka bilgisayara taşımak için de yedek dosyasını kullanın.
+
+### Ortak Çalışma (Google Sheets)
+
+Siz ve bir mesai arkadaşınız **farklı bilgisayarlardan** aynı puantaja
+erişmek istiyorsanız, ücretsiz bir Google hesabıyla 5 dakikada kurulan
+bir bağlantı bunu sağlar. Google'ın **Apps Script** özelliği, bir Google
+E-Tablosu'nu basit bir ortak depo gibi kullanır — puantaj uygulaması
+oraya bağlanıp okur/yazar. Sunucu kirası, kredi kartı, aylık ücret yok.
+
+**Nasıl çalışır:** Bir kişi hücre değiştirdiğinde birkaç saniye içinde
+otomatik olarak Google'a gönderilir; diğer bilgisayar da düzenli aralıklarla
+kontrol edip yeni değişiklikleri otomatik indirir. **Gerçek zamanlı,
+saniye saniye ortak düzenleme değildir** — biri bir ayı işlerken diğeri
+başka bir ayı/kişiyi işlerse sorunsuz çalışır; **aynı hücreye aynı anda**
+iki taraf da dokunursa uygulama bunu fark eder, kimseninkini sessizce
+silmez, sizden **hangisinin geçerli olacağını** sorar (bkz. "Çakışma"
+aşağıda).
+
+#### Kurulum (bir kişi, bir kere yapar)
+
+1. [sheets.new](https://sheets.new) adresinden boş bir Google E-Tablosu açın.
+2. Üst menü: **Uzantılar → Apps Script**.
+3. Açılan editördeki örnek kodu silin, bu depodaki
+   [`puantaj/google-sheets/Code.gs`](./google-sheets/Code.gs) dosyasının
+   tamamını yapıştırın.
+4. Kodun başındaki `PAROLA` satırını kendi belirlediğiniz bir parolayla
+   değiştirin — bu parolayı ikinizin de gireceği unutmayın. Boş bırakmayın.
+5. Kaydedin (disket simgesi veya Ctrl+S).
+6. Sağ üstte **Dağıt → Yeni dağıtım**.
+7. Dişli simgesine tıklayıp tür olarak **Web uygulaması** seçin.
+8. **Yürütme yetkisi: Ben** (kendi hesabınız) — **Erişebilenler: Herkes**.
+9. **Dağıt**'a basın. Google izin isteyecek; kendi hesabınızla onaylayın.
+   *"Google bu uygulamayı doğrulamadı"* uyarısı çıkarsa **Gelişmiş →
+   ...'e git (güvenli değil)** deyip devam edin — bu, Google'ın yeni/kişisel
+   scriptler için verdiği standart bir uyarıdır, kodun sahibi sizsiniz.
+10. Size verilen **Web uygulaması URL'si** `.../exec` ile biter. Bu adresi
+    kopyalayın.
+11. Puantaj uygulamasında **⚙ Ayarlar → Ortak Çalışma**'ya gidin, adresi ve
+    belirlediğiniz parolayı yapıştırıp **Bağlan**'a basın.
+12. Aynı adresi ve parolayı **arkadaşınızın bilgisayarındaki** uygulamaya da
+    girip **Bağlan**'a bastırın — artık aynı veriyi paylaşıyorsunuz.
+
+Kodu **sonradan değiştirirseniz** (örn. parolayı değiştirmek için): Apps
+Script editöründe **Dağıt → Dağıtımları yönet** → kalem simgesi →
+**Sürüm: Yeni sürüm** seçip yeniden dağıtın. Adres değişmez, ikinci kez
+paylaşmanıza gerek kalmaz.
+
+#### Çakışma
+
+İki taraf da **aynı bilgiyi** siz senkronize olmadan önce değiştirirse,
+uygulama bunu fark eder ve size sorar:
+
+- **Sunucudaki Sürümü Al** — arkadaşınızın değişikliği kalır, sizinki gider.
+- **Benimkini Zorla Yaz** — sizinki kalır, arkadaşınızınki gider.
+- **Önce Yedek Al** — karar vermeden önce kendi değişikliklerinizi bir
+  dosyaya kaydeder, veri kaybetme riskiniz kalmaz.
+
+Bu ekran nadiren çıkar (ikiniz de tam aynı anda değiştirirseniz); günlük
+kullanımda farklı ay/kişi üzerinde çalıştığınız sürece hiç görmezsiniz.
+
+#### Sık karşılaşılan sorunlar
+
+- **"Bağlanılamadı" / "Failed to fetch"** — adresin sonunun `.../exec`
+  olduğundan emin olun. Dağıtımda "Erişebilenler: Herkes" seçili
+  olmalı — "Yalnızca ben" ya da "Google hesabı olanlar" seçiliyse
+  başka bilgisayardan bağlanılamaz.
+- **"Parola yanlış"** — Code.gs'teki `PAROLA` ile uygulamaya girdiğiniz
+  parola birebir aynı olmalı (büyük/küçük harf dahil).
+- **Kod değişikliği yansımıyor** — Apps Script'te kaydetmek yetmez,
+  "Dağıt → Dağıtımları yönet → Yeni sürüm" ile yeniden dağıtmanız gerekir.
+
+#### Bağlantıyı kesmek
+
+⚙ Ayarlar → **Bağlantıyı Kes**. Veriler bu bilgisayarda kalır, sadece
+paylaşım durur; istediğiniz zaman aynı adresle tekrar bağlanabilirsiniz.
 
 ### Puantaj kodları
 
@@ -284,9 +360,12 @@ görünüme dokunmaması için `--sade` seçeneğini kullanın.
 ## Sık sorulanlar
 
 **Aynı anda iki kişi kullanabilir mi?**
-Hayır. Veriler tek bilgisayarda durur. İki kişi girecekse ayları
-bölüşün ve yedek dosyalarını birleştirmek yerine Excel'e aktarıp
-tek dosyada toplayın.
+*Ortak Çalışma*yı kurduysanız evet — bkz. yukarıdaki bölüm. Kurmadıysanız
+hayır, veriler tek bilgisayarda durur; o zaman ayları bölüşün ve yedek
+dosyalarını birleştirmek yerine Excel'e aktarıp tek dosyada toplayın.
+Ortak Çalışma kurulsa bile ikiniz de **tam aynı hücreyi** aynı anda
+değiştirirseniz uygulama bunu fark edip size sorar (bkz. "Çakışma") —
+sessizce birinizin verisi silinmez.
 
 **Yanlışlıkla ayı temizledim.**
 `Ctrl + Z` son işlemi geri alır (son 40 işlem saklanır). Uygulamayı

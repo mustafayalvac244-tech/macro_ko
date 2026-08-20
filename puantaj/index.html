@@ -437,9 +437,55 @@ table.liste td.dar{width:130px} table.liste td.cokdar{width:44px;text-align:cent
       </div>
     </div>
     <div class="uyari">Veriler bu bilgisayarın tarayıcısında saklanır. Ayda bir yedek almanız önerilir.</div>
+
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+    <div class="alan">
+      <label>Ortak Çalışma (Google Sheets)
+        <span style="font-weight:400;color:var(--muted)"> — başka bilgisayarla aynı veriyi paylaşın</span></label>
+    </div>
+    <div id="senkronKapali">
+      <div class="bilgi">Kurulum bir kere yapılır (5 dk). <b>puantaj/README.md</b> içindeki
+        "Ortak Çalışma" bölümünde adım adım anlatılıyor. Kurduktan sonra Google'ın verdiği
+        bağlantı adresini aşağıya yapıştırın.</div>
+      <div class="alan"><label>Web App adresi</label>
+        <input id="senkronUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
+      <div class="alan"><label>Parola <span style="font-weight:400;color:var(--muted)">(kurulumda belirlediğiniz)</span></label>
+        <input id="senkronParola" type="password" placeholder="İsteğe bağlı ama önerilir"></div>
+      <button class="btn" id="btnSenkronBaglan" style="width:100%">Bağlan</button>
+    </div>
+    <div id="senkronAcik" hidden>
+      <table class="liste" style="width:100%">
+        <tr><td style="width:40%"><b>Durum</b></td><td id="senkronDurumMetni">—</td></tr>
+        <tr><td><b>Son senkronizasyon</b></td><td id="senkronSonZaman">—</td></tr>
+      </table>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn ikincil" id="btnSenkronSimdi" style="flex:1">Şimdi Senkronize Et</button>
+        <button class="btn ikincil" id="btnSenkronKes" style="flex:1">Bağlantıyı Kes</button>
+      </div>
+    </div>
+
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
     <button class="btn tehlike" id="btnHepsiniSil">Tüm Verileri Sil</button>
   </div>
   <div class="altlik"><button class="btn" data-kapat>Kapat</button></div>
+ </div>
+</div>
+
+<!-- SENKRON ÇAKIŞMA -->
+<div class="ortu" id="mCakisma" hidden>
+ <div class="modal" style="width:min(520px,100%)">
+  <header><h2>⚠ Çakışma</h2></header>
+  <div class="govde">
+    <div class="uyari"><b>Arkadaşınız, siz çalışırken sunucuya farklı bir değişiklik kaydetti.</b><br>
+      İki tarafı otomatik birleştiremiyoruz — hangisinin geçerli olacağını seçmeniz gerekiyor.</div>
+    <p style="font-size:13px;color:var(--muted)">Emin değilseniz önce <b>Yedek Al</b> ile kendi
+      değişikliklerinizi bir dosyaya kaydedin, sonra karar verin.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+      <button class="btn ikincil" id="btnCakismaYedek">Önce Yedek Al</button>
+      <button class="btn" id="btnCakismaSunucu">Sunucudaki Sürümü Al <span style="font-weight:400">— benim son değişikliklerim silinir</span></button>
+      <button class="btn tehlike" id="btnCakismaBenim">Benimkini Zorla Yaz <span style="font-weight:400">— arkadaşımın son değişiklikleri silinir</span></button>
+    </div>
+  </div>
  </div>
 </div>
 
@@ -568,6 +614,7 @@ const VARSAYILAN = {
     /* İş Kanunu md.53 asgari süreleri — panelden değiştirilebilir */
     izinKademe: [{ yil:1, gun:14 }, { yil:6, gun:20 }, { yil:15, gun:26 }],
     izinKodlari: ["İ"] },
+  eszaman: { url:"", parola:"", aktif:false, surum:0, sonZaman:0 },
 };
 let D = yukle();
 let aktifYil, aktifAy, aktifKalem = "Ç", imlec = null;   // imlec: {pid, gun}
@@ -580,7 +627,8 @@ function yukle(){
     const v = JSON.parse(ham);
     return { ...structuredClone(VARSAYILAN), ...v,
              kadro: v.kadro || {},
-             ayarlar: { ...VARSAYILAN.ayarlar, ...(v.ayarlar || {}) } };
+             ayarlar: { ...VARSAYILAN.ayarlar, ...(v.ayarlar || {}) },
+             eszaman: { ...VARSAYILAN.eszaman, ...(v.eszaman || {}) } };
   } catch (e) {
     console.error("Kayıt okunamadı:", e);
     return structuredClone(VARSAYILAN);
@@ -589,6 +637,127 @@ function yukle(){
 function kaydet(){
   try { localStorage.setItem(DEPO_ANAHTAR, JSON.stringify(D)); }
   catch (e) { bildir("Kayıt yapılamadı — tarayıcı deposu dolu olabilir."); }
+  if (!senkronUyguluyor) senkronDegistiPlanla();
+}
+
+/* ============================================================
+   ORTAK ÇALIŞMA — Google Sheets senkronizasyonu
+   ------------------------------------------------------------
+   Google Apps Script Web App'i basit bir JSON deposu gibi kullanır
+   (bkz. README → "Ortak Çalışma"). Optimistik kilitleme: her
+   gönderimde "beklenen sürüm" yollanır; sunucudaki sürüm farklıysa
+   (arkadaşınız araya girdiyse) sessizce üzerine yazılmaz, çakışma
+   ekranı açılır — hangi tarafın geçerli olacağına siz karar verirsiniz.
+   ============================================================ */
+let senkronZamanlayici = null;
+let senkronUyguluyor = false;   // pull sonucu D'ye yazılırken true — kaydet()'in tekrar push planlamasını önler
+let senkronMesgul = false;      // bir ağ isteği (al/gönder) sürüyor — ikisi asla iç içe/üst üste çalışmaz
+let senkronCakismaVerisi = null;
+
+function senkronDurumYaz(metin){
+  const el = $("#senkronDurumMetni");
+  if (el) el.textContent = metin;
+}
+function senkronPayload(){
+  return { personel: D.personel, kayit: D.kayit, kadro: D.kadro, ayarlar: D.ayarlar };
+}
+function senkronUygula(veri){
+  senkronUyguluyor = true;
+  D.personel = veri.personel || [];
+  D.kayit = veri.kayit || {};
+  D.kadro = veri.kadro || {};
+  D.ayarlar = { ...D.ayarlar, ...(veri.ayarlar || {}) };   // yerel eşzamanlama ayarı ayrı alanda, korunur
+  kaydet();
+  ciz();
+  senkronUyguluyor = false;
+}
+async function senkronIstek(govde){
+  const url = D.eszaman.url;
+  if (!url) throw new Error("Bağlantı adresi girilmemiş.");
+  let yanit;
+  if (govde){
+    /* text/plain: tarayıcının CORS ön-kontrolü (preflight) göndermesini engeller —
+       Apps Script Web App'i preflight isteğine (OPTIONS) yanıt vermez. */
+    yanit = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(govde),
+    });
+  } else {
+    yanit = await fetch(`${url}?parola=${encodeURIComponent(D.eszaman.parola || "")}`, { cache:"no-store" });
+  }
+  if (!yanit.ok) throw new Error("Sunucu yanıt vermedi (HTTP " + yanit.status + ")");
+  const sonuc = await yanit.json();
+  if (sonuc.hata === "parola") throw new Error("Parola yanlış.");
+  return sonuc;
+}
+async function senkronAl(sessiz){
+  if (!D.eszaman.aktif || senkronMesgul || senkronCakismaVerisi) return;
+  clearTimeout(senkronZamanlayici);     // bekleyen otomatik gönderim varsa: taze bir alışverişe başlıyoruz
+  senkronMesgul = true;
+  try {
+    senkronDurumYaz("Kontrol ediliyor…");
+    const sonuc = await senkronIstek();
+    if (!sonuc.tamam) throw new Error(sonuc.hata || "Bilinmeyen hata");
+    if (sonuc.surum > D.eszaman.surum && sonuc.veri){
+      senkronUygula(JSON.parse(sonuc.veri));
+      if (!sessiz) bildir("Arkadaşınızın değişiklikleri alındı.");
+    }
+    D.eszaman.surum = Math.max(D.eszaman.surum, sonuc.surum);
+    D.eszaman.sonZaman = Date.now();
+    kaydet();
+    senkronEkraniGuncelle();
+  } catch (e) {
+    console.error(e);
+    senkronDurumYaz("⚠ Bağlanılamadı: " + e.message);
+  } finally {
+    senkronMesgul = false;
+  }
+}
+async function senkronGonder(zorla){
+  if (!D.eszaman.aktif || senkronUyguluyor || senkronMesgul) return;
+  clearTimeout(senkronZamanlayici);     // şimdi gönderiyoruz, bekleyen plana artık gerek yok
+  senkronMesgul = true;
+  try {
+    senkronDurumYaz("Gönderiliyor…");
+    const sonuc = await senkronIstek({
+      parola: D.eszaman.parola || "",
+      beklenenSurum: zorla ? -1 : D.eszaman.surum,
+      veri: senkronPayload(),
+    });
+    if (sonuc.tamam){
+      D.eszaman.surum = sonuc.surum;
+      D.eszaman.sonZaman = Date.now();
+      kaydet();
+      senkronEkraniGuncelle();
+    } else if (sonuc.hata === "cakisma"){
+      senkronCakismaVerisi = sonuc;
+      $("#mCakisma").hidden = false;
+      senkronDurumYaz("⚠ Çakışma — karar bekleniyor");
+    } else {
+      throw new Error(sonuc.hata || "Bilinmeyen hata");
+    }
+  } catch (e) {
+    console.error(e);
+    senkronDurumYaz("⚠ Gönderilemedi: " + e.message);
+  } finally {
+    senkronMesgul = false;
+  }
+}
+function senkronDegistiPlanla(){
+  if (!D.eszaman.aktif) return;
+  clearTimeout(senkronZamanlayici);
+  senkronZamanlayici = setTimeout(() => senkronGonder(false), 3000);
+}
+function senkronEkraniGuncelle(){
+  const acik = D.eszaman.aktif;
+  const kapaliEl = $("#senkronKapali"), acikEl = $("#senkronAcik");
+  if (kapaliEl) kapaliEl.hidden = acik;
+  if (acikEl) acikEl.hidden = !acik;
+  if (!acik) return;
+  senkronDurumYaz("✓ Bağlı");
+  const z = $("#senkronSonZaman");
+  if (z) z.textContent = D.eszaman.sonZaman ? new Date(D.eszaman.sonZaman).toLocaleString("tr-TR") : "henüz yok";
 }
 /** Değişiklik öncesi anlık görüntü al (geri alma için). */
 function anlikAl(){
@@ -955,7 +1124,7 @@ document.addEventListener("keydown", e => {
   if (e.target.matches("input,select,textarea")) return;
   const modalAcik = $$(".ortu:not([hidden])").length > 0;
   if (modalAcik){
-    if (e.key === "Escape") $$(".ortu:not([hidden])").forEach(m => m.hidden = true);
+    if (e.key === "Escape") $$(".ortu:not([hidden])").forEach(m => { if (m.id !== "mCakisma") m.hidden = true; });
     return;
   }
   if (e.altKey && e.key === "ArrowLeft")  { ayDegistir(-1); e.preventDefault(); return; }
@@ -1043,11 +1212,13 @@ $("#personelSatir").addEventListener("click", e => {
 });
 $("#btnPersonelEkle").addEventListener("click", () => {
   anlikAl();
-  D.personel.push({ id: yeniId(), ad: "", tc: "", yer: "", aktif: true,
-                    girisTarihi: "", devir: 0 });
+  const yeni = { id: yeniId(), ad: "", tc: "", yer: "", aktif: true, girisTarihi: "", devir: 0 };
+  D.personel.push(yeni);
   kaydet(); personelCiz();
-  const son = $("#personelSatir").querySelector('tr:last-child input[data-alan="ad"]');
-  son && son.focus();
+  /* Boş isim alfabetik sıralamada en başa düşer — DOM'da "son satır" olmayabilir.
+     Odağı her zaman gerçekten yeni eklenen kişinin id'sine göre buluyoruz. */
+  const alan = $(`#personelSatir tr[data-id="${yeni.id}"] input[data-alan="ad"]`);
+  alan && alan.focus();
 });
 
 /* ============================================================
@@ -2602,9 +2773,11 @@ function yedekYukle(metin){
     if (!confirm("Yedek yüklenecek ve mevcut veriler değiştirilecek. Devam edilsin mi?")) return;
     D = { ...structuredClone(VARSAYILAN), ...v,
           kadro: v.kadro || {},
-          ayarlar: { ...VARSAYILAN.ayarlar, ...(v.ayarlar || {}) } };
+          ayarlar: { ...VARSAYILAN.ayarlar, ...(v.ayarlar || {}) },
+          eszaman: D.eszaman };           // bu bilgisayarın senkron bağlantısı korunur
     kaydet(); $("#mIceAktar").hidden = true; ciz();
     bildir("Yedek yüklendi.");
+    if (D.eszaman.aktif) senkronGonder(true);
   } catch (e) {
     $("#iceAktarGovde").innerHTML = `<div class="uyari">Yedek okunamadı: ${xkac(e.message)}</div>`;
   }
@@ -2679,6 +2852,9 @@ $("#btnAyarlar").addEventListener("click", () => {
   $("#ayTatil").checked     = D.ayarlar.tatil;
   $("#ayPasif").checked     = D.ayarlar.tumAktif;
   $("#ayBoyut").value       = String(D.ayarlar.boyut);
+  $("#senkronUrl").value    = D.eszaman.url;
+  $("#senkronParola").value = D.eszaman.parola;
+  senkronEkraniGuncelle();
   $("#mAyarlar").hidden = false;
 });
 const ayarBagla = (id, alan, deger) =>
@@ -2692,6 +2868,52 @@ ayarBagla("#ayPasif",     "tumAktif",    t => t.checked);
 ayarBagla("#ayBoyut",     "boyut",       t => +t.value);
 $("#btnYedekAl").addEventListener("click", yedekAl);
 $("#btnYedekYukle").addEventListener("click", () => { $("#dosyaSec").value = ""; $("#dosyaSec").click(); });
+
+$("#btnSenkronBaglan").addEventListener("click", async () => {
+  const url = $("#senkronUrl").value.trim();
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url)){
+    alert('Bu bir Google Apps Script Web App adresine benzemiyor.\n\nAdres ".../exec" ile bitmelidir. README → "Ortak Çalışma" bölümünden adres nasıl alınır anlatılıyor.');
+    return;
+  }
+  D.eszaman.url = url;
+  D.eszaman.parola = $("#senkronParola").value;
+  D.eszaman.aktif = true;
+  D.eszaman.surum = 0;
+  kaydet();
+  senkronEkraniGuncelle();
+  await senkronAl(true);      // sunucuda veri varsa al
+  await senkronGonder(true);  // sunucu boşsa (ilk kurulum) kendi verini yolla
+  bildir("Google Sheets'e bağlandı.");
+});
+$("#btnSenkronSimdi").addEventListener("click", async () => {
+  await senkronAl(false);
+  await senkronGonder(false);
+});
+$("#btnSenkronKes").addEventListener("click", () => {
+  if (!confirm("Bağlantı kesilsin mi? Veriler bu bilgisayarda kalır, sadece paylaşım durur.")) return;
+  D.eszaman.aktif = false;
+  kaydet();
+  senkronEkraniGuncelle();
+  bildir("Bağlantı kesildi.");
+});
+$("#btnCakismaYedek").addEventListener("click", yedekAl);
+$("#btnCakismaSunucu").addEventListener("click", () => {
+  if (!senkronCakismaVerisi) return;
+  senkronUygula(JSON.parse(senkronCakismaVerisi.veri));
+  D.eszaman.surum = senkronCakismaVerisi.surum;
+  kaydet();
+  senkronCakismaVerisi = null;
+  $("#mCakisma").hidden = true;
+  senkronEkraniGuncelle();
+  bildir("Sunucudaki sürüm alındı.");
+});
+$("#btnCakismaBenim").addEventListener("click", () => {
+  if (!confirm("Arkadaşınızın son değişiklikleri kalıcı olarak silinecek. Emin misiniz?")) return;
+  senkronCakismaVerisi = null;
+  $("#mCakisma").hidden = true;
+  senkronGonder(true).then(() => bildir("Sizin sürümünüz sunucuya yazıldı."));
+});
+setInterval(() => { if (D.eszaman.aktif && !senkronCakismaVerisi) senkronAl(true); }, 20000);
 $("#btnHepsiniSil").addEventListener("click", () => {
   if (!confirm("TÜM personel ve puantaj kayıtları silinecek. Bu işlem geri alınamaz!\n\nÖnce yedek aldığınızdan emin olun. Devam edilsin mi?")) return;
   if (!confirm("Son kez soruyoruz: gerçekten tüm veriler silinsin mi?")) return;
@@ -2704,7 +2926,7 @@ $("#btnHepsiniSil").addEventListener("click", () => {
 document.addEventListener("click", e => {
   if (e.target.matches("[data-kapat]") || e.target.closest("[data-kapat]"))
     e.target.closest(".ortu").hidden = true;
-  else if (e.target.classList.contains("ortu")) e.target.hidden = true;
+  else if (e.target.classList.contains("ortu") && e.target.id !== "mCakisma") e.target.hidden = true;
 });
 
 /* Sayfadan ayrılırken uyarı yok — her değişiklik anında kaydediliyor. */
@@ -2721,6 +2943,7 @@ document.addEventListener("click", e => {
   ciz();
   if (!D.personel.length)
     setTimeout(() => bildir("Başlamak için “Personel” ya da “Excel'den Aktar” düğmesini kullanın."), 700);
+  if (D.eszaman.aktif) senkronAl(true);
 })();
 </script>
 </body>
