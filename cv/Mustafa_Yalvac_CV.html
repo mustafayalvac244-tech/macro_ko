@@ -9,8 +9,8 @@
   html, body { margin:0; padding:0; }
   body {
     font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
-    font-size: 9.6pt;
-    line-height: 1.38;
+    font-size: 10pt;
+    line-height: 1.40;
     color: #1c1f23;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -38,7 +38,7 @@
     color: #16324f; font-weight: 700; margin: 0 0 5pt 0;
     padding-bottom: 2.5pt; border-bottom: .8pt solid #c3cad2;
   }
-  p.summary { margin: 0; text-align: justify; }
+  p.summary { margin: 0; }
 
   /* ---------- Label rows (skills / competencies) ---------- */
   .row { display: flex; margin-bottom: 2.6pt; }
@@ -54,7 +54,7 @@
   .meta { font-size: 8.7pt; color: #5a616a; white-space: nowrap; font-weight: 700; }
   .company-line { font-size: 9.6pt; margin-bottom: 3pt; }
   ul { margin: 3pt 0 0 0; padding-left: 12pt; }
-  li { margin-bottom: 2.2pt; text-align: justify; }
+  li { margin-bottom: 2.2pt; }
   li::marker { color: #7d8894; }
   .subrole { margin-top: 6pt; }
   .subrole .role { font-size: 9.7pt; }
@@ -71,6 +71,10 @@
   .edu-sub { color: #4a515a; font-size: 9.2pt; margin-top: 1pt; }
   .mb6 { margin-bottom: 5pt; }
   .avoid { break-inside: avoid; page-break-inside: avoid; }
+  .newpage { break-before: page; page-break-before: always; }
+  .cont { font-weight: 700; color: #3c6187; font-size: 10.2pt; margin-bottom: 1pt; }
+  .cont em { font-style: normal; font-weight: 400; color: #6b737c; font-size: 9pt; }
+  .gap { margin-top: 10pt; }
 </style>
 </head>
 <body>
@@ -81,8 +85,7 @@
   <div class="contact">
     <span>Kocaeli, Türkiye</span><span class="sep">|</span>
     <span>+90 538 407 88 25</span><span class="sep">|</span>
-    <span>mustafayalvac243@gmail.com</span><span class="sep">|</span>
-    <span>linkedin.com/in/[kullanıcı-adınız]</span>
+    <span>mustafayalvac243@gmail.com</span>
   </div>
 </header>
 
@@ -91,8 +94,8 @@
   <p class="summary">
     Electrical &amp; Electronics Engineer with 5+ years in electric powertrain development and automotive quality,
     progressing from motor design engineer to R&amp;D Lead of a multidisciplinary team. Delivered electromagnetic design,
-    validation and industrialisation of traction machines for EV and industrial programmes including TOGG, ISUZU,
-    KARSAN–ASELSAN and Nordex. Currently responsible for EV charging-efficiency validation, ECU/CAN diagnostics and
+    validation and industrialisation of electric machines for e-mobility and industrial programmes including TOGG, ISUZU,
+    ASELSAN–KARSAN and Nordex. Currently responsible for EV charging-efficiency validation, ECU/CAN diagnostics and
     new-model quality assurance on the IONIQ series at Hyundai Motor Manufacturing Turkey. Combines hands-on simulation
     and test capability with cross-functional leadership across R&amp;D, production, suppliers and certification bodies.
   </p>
@@ -119,9 +122,9 @@
     <div class="company-line"><span class="co">Hyundai Motor Manufacturing Turkey</span> · Kocaeli, Türkiye</div>
     <ul>
       <li>Lead charging-efficiency testing and performance validation for the IONIQ EV series, verifying compliance with global EV standards and internal quality gates.</li>
-      <li>Own vehicle-level electrical diagnostics: complex CAN communication analysis and ECU fault diagnosis with Vector CANoe and CANalyzer, closing issues raised in production and validation.</li>
+      <li>Diagnose vehicle-level electrical faults through complex CAN communication analysis and ECU diagnostics with Vector CANoe and CANalyzer, closing issues raised in production and validation.</li>
       <li>Execute high-precision electrical measurements with Hioki power analysers to characterise charging performance, efficiency losses and power quality.</li>
-      <li>Act as quality project leader for the BJ new-model programme, coordinating R&amp;D and production teams through technical validation and launch readiness.</li>
+      <li>Serve as quality project leader for the BJ new-model programme, coordinating R&amp;D and production teams through technical validation and launch readiness.</li>
       <li>Manage the GQMS (Global Quality Management System) improvement and suggestion pipeline, converting shop-floor findings into countermeasures that raise production efficiency and product quality.</li>
     </ul>
   </div>
@@ -144,7 +147,8 @@
       </ul>
     </div>
 
-    <div class="subrole avoid">
+    <div class="subrole avoid newpage">
+      <div class="cont">AEMOT Electric Motors &amp; Generators <em>(continued)</em></div>
       <div class="jobhead">
         <div class="role">Senior R&amp;D Engineer</div>
         <div class="meta">2023 – 2025</div>
@@ -170,7 +174,7 @@
     </div>
   </div>
 
-  <div class="job avoid">
+  <div class="job avoid gap">
     <div class="jobhead">
       <div class="role">Electrical &amp; Electronics Engineering Intern</div>
       <div class="meta">Jun – Aug 2017</div>
@@ -186,7 +190,7 @@
   <h2>Key Projects</h2>
   <table class="proj">
     <tr><td class="pname">TOGG EV Traction Motor</td><td class="prole">R&amp;D electrical part responsible</td></tr>
-    <tr><td class="pname">ASELSAN – KARSAN Motor Programme</td><td class="prole">R&amp;D electrical part responsible</td></tr>
+    <tr><td class="pname">ASELSAN–KARSAN Motor Project</td><td class="prole">R&amp;D electrical part responsible</td></tr>
     <tr><td class="pname">ISUZU L7-Class Traction Motor</td><td class="prole">Project leader</td></tr>
     <tr><td class="pname">Pilotcar Motor Project</td><td class="prole">Project leader</td></tr>
     <tr><td class="pname">Nordex Wind Turbine Pitch &amp; Yaw Motor</td><td class="prole">R&amp;D electrical part responsible</td></tr>
