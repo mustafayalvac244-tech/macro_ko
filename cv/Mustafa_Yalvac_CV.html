@@ -4,89 +4,111 @@
 <meta charset="utf-8">
 <title>Mustafa Yalvaç — Curriculum Vitae</title>
 <style>
-  @page { size: A4; margin: 13mm 14mm 12mm 14mm; }
+  @page { size: A4; margin: 14mm 15mm 13mm 15mm; }
   * { box-sizing: border-box; }
-  html, body { margin:0; padding:0; }
+  html, body { margin: 0; padding: 0; }
+
   body {
-    font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
-    font-size: 10pt;
-    line-height: 1.40;
-    color: #1c1f23;
+    font-family: "Source Sans 3", "Liberation Sans", Arial, sans-serif;
+    font-size: 9.9pt;
+    line-height: 1.44;
+    color: #1f242b;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  a { color: #16324f; text-decoration: none; }
 
-  /* ---------- Header ---------- */
-  header { border-bottom: 2.2pt solid #16324f; padding-bottom: 7pt; margin-bottom: 10pt; }
-  h1 {
-    font-size: 21pt; line-height: 1.05; margin: 0 0 2pt 0;
-    letter-spacing: 1.6pt; font-weight: 700; color: #10233a; text-transform: uppercase;
+  /* ---------- Masthead ---------- */
+  .masthead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16pt; }
+  .masthead h1 {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 25pt; font-weight: 600; letter-spacing: -.2pt;
+    line-height: 1.02; margin: 0 0 4pt 0; color: #10202f;
   }
   .tagline {
-    font-size: 10pt; color: #3c6187; font-weight: 700;
-    letter-spacing: .35pt; margin: 0 0 6pt 0;
+    margin: 5pt 0 0 0; font-size: 8.4pt; font-weight: 600; color: #2f5d8a;
+    text-transform: uppercase; letter-spacing: 1.7pt;
   }
-  .contact { font-size: 8.9pt; color: #3a4048; }
-  .contact span { white-space: nowrap; }
-  .sep { color: #a8b0b8; padding: 0 5pt; }
+  .contact { text-align: right; font-size: 8.9pt; color: #5f6771; line-height: 1.55; white-space: nowrap; }
+  .rule { height: 1.6pt; background: #12263a; margin: 7pt 0 0 0; }
+  .rule-thin { height: .5pt; background: #c2ccd6; margin-top: 1.6pt; }
 
   /* ---------- Sections ---------- */
-  section { margin-bottom: 9pt; }
+  section { margin-top: 11pt; }
   h2 {
-    font-size: 9.4pt; text-transform: uppercase; letter-spacing: 1.5pt;
-    color: #16324f; font-weight: 700; margin: 0 0 5pt 0;
-    padding-bottom: 2.5pt; border-bottom: .8pt solid #c3cad2;
+    font-size: 8.4pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.7pt;
+    color: #12263a; margin: 0 0 5pt 0; padding-bottom: 3pt; border-bottom: .6pt solid #cfd6de;
   }
   p.summary { margin: 0; }
 
-  /* ---------- Label rows (skills / competencies) ---------- */
-  .row { display: flex; margin-bottom: 2.6pt; }
-  .row .k { flex: 0 0 33%; font-weight: 700; color: #10233a; padding-right: 6pt; }
-  .row .v { flex: 1; color: #22272d; }
+  /* ---------- Label / value rows ---------- */
+  .row { display: flex; margin-bottom: 3pt; }
+  .row:last-child { margin-bottom: 0; }
+  .row .k { flex: 0 0 29%; font-weight: 600; color: #10202f; padding-right: 8pt; }
+  .row .v { flex: 1; }
 
   /* ---------- Experience ---------- */
-  .job { margin-bottom: 8pt; }
+  .job { margin-bottom: 9pt; }
   .job:last-child { margin-bottom: 0; }
-  .jobhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8pt; }
-  .role { font-weight: 700; font-size: 10.2pt; color: #10233a; }
-  .co { font-weight: 700; color: #3c6187; }
-  .meta { font-size: 8.7pt; color: #5a616a; white-space: nowrap; font-weight: 700; }
-  .company-line { font-size: 9.6pt; margin-bottom: 3pt; }
-  ul { margin: 3pt 0 0 0; padding-left: 12pt; }
-  li { margin-bottom: 2.2pt; }
-  li::marker { color: #7d8894; }
-  .subrole { margin-top: 6pt; }
-  .subrole .role { font-size: 9.7pt; }
+  .jobhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10pt; }
+  .role { font-size: 10.4pt; font-weight: 600; color: #10202f; }
+  .meta {
+    font-size: 8.6pt; font-weight: 600; color: #6a727c;
+    white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: .2pt;
+  }
+  .company { font-size: 9.9pt; font-weight: 600; color: #2f5d8a; margin-top: .5pt; }
+  .company .loc { font-weight: 400; color: #6a727c; }
+  .employer { font-size: 10.4pt; font-weight: 600; color: #2f5d8a; }
+
+  ul { list-style: none; margin: 4pt 0 0 0; padding: 0; }
+  li { position: relative; padding-left: 10pt; margin-bottom: 2.8pt; }
+  li:last-child { margin-bottom: 0; }
+  li::before {
+    content: ""; position: absolute; left: 0; top: .56em;
+    width: 3pt; height: 3pt; background: #8fa4b8;
+  }
+  .subrole { margin-top: 7pt; }
+  .subrole .role { font-size: 10pt; }
 
   /* ---------- Projects ---------- */
   table.proj { width: 100%; border-collapse: collapse; }
-  table.proj td { padding: 2.2pt 0; vertical-align: top; border-bottom: .5pt solid #e4e8ec; }
+  table.proj td { padding: 3pt 0; vertical-align: top; border-bottom: .5pt solid #e6eaee; }
   table.proj tr:last-child td { border-bottom: none; }
-  td.pname { font-weight: 700; color: #10233a; width: 56%; padding-right: 8pt; }
-  td.prole { color: #3f4650; }
+  td.pname { font-weight: 600; color: #10202f; width: 55%; padding-right: 10pt; }
+  td.prole { color: #4a525c; }
 
-  .edu { display: flex; justify-content: space-between; align-items: baseline; }
-  .edu .d { font-size: 8.7pt; color: #5a616a; font-weight: 700; white-space: nowrap; }
-  .edu-sub { color: #4a515a; font-size: 9.2pt; margin-top: 1pt; }
-  .mb6 { margin-bottom: 5pt; }
+  /* ---------- Education ---------- */
+  .edu { display: flex; justify-content: space-between; align-items: baseline; gap: 10pt; margin-bottom: 3pt; }
+  .edu:last-child { margin-bottom: 0; }
+  .edu strong { font-weight: 600; color: #10202f; }
+
+  /* ---------- Page 2 running head ---------- */
+  .pagehead {
+    break-before: page; page-break-before: always;
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 7.8pt; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5pt;
+    color: #8a929b; padding-bottom: 3pt; border-bottom: .5pt solid #d8dee4; margin-bottom: 9pt;
+  }
+  .cont { font-size: 10.4pt; font-weight: 600; color: #2f5d8a; margin-bottom: 2pt; }
+  .cont em { font-style: normal; font-weight: 400; font-size: 8.8pt; color: #6a727c; }
+
   .avoid { break-inside: avoid; page-break-inside: avoid; }
-  .newpage { break-before: page; page-break-before: always; }
-  .cont { font-weight: 700; color: #3c6187; font-size: 10.2pt; margin-bottom: 1pt; }
-  .cont em { font-style: normal; font-weight: 400; color: #6b737c; font-size: 9pt; }
-  .gap { margin-top: 10pt; }
+  .gap { margin-top: 11pt; }
 </style>
 </head>
 <body>
 
 <header class="avoid">
-  <h1>Mustafa Yalvaç</h1>
-  <p class="tagline">Electrical &amp; Electronics Engineer — E-Drive Development &amp; EV Quality</p>
-  <div class="contact">
-    <span>Kocaeli, Türkiye</span><span class="sep">|</span>
-    <span>+90 538 407 88 25</span><span class="sep">|</span>
-    <span>mustafayalvac243@gmail.com</span>
+  <div class="masthead">
+    <h1>Mustafa Yalvaç</h1>
+    <div class="contact">
+      Kocaeli, Türkiye<br>
+      +90 538 407 88 25<br>
+      mustafayalvac243@gmail.com
+    </div>
   </div>
+  <p class="tagline">Electrical &amp; Electronics Engineer · E-Drive Development &amp; EV Quality</p>
+  <div class="rule"></div>
+  <div class="rule-thin"></div>
 </header>
 
 <section class="avoid">
@@ -103,7 +125,7 @@
 
 <section class="avoid">
   <h2>Core Competencies</h2>
-  <div class="row"><div class="k">Electric Machine Design</div><div class="v">IPM, synchronous reluctance &amp; induction machines · electromagnetic topology · FEA-based optimisation</div></div>
+  <div class="row"><div class="k">Electric Machine Design</div><div class="v">IPM, synchronous reluctance &amp; induction machines · electromagnetic topology · <span style="white-space:nowrap">FEA-based optimisation</span></div></div>
   <div class="row"><div class="k">E-Mobility Systems</div><div class="v">Electric Drive Unit (EDU) integration · traction motor sizing · inverter &amp; battery supplier coordination</div></div>
   <div class="row"><div class="k">Test &amp; Validation</div><div class="v">Prototype validation · dyno &amp; performance testing · charging efficiency · power measurement</div></div>
   <div class="row"><div class="k">Vehicle Diagnostics</div><div class="v">CAN bus communication analysis · ECU fault diagnosis · Vector CANoe / CANalyzer</div></div>
@@ -119,7 +141,7 @@
       <div class="role">Quality Engineer — EV Performance &amp; Diagnostics</div>
       <div class="meta">2025 – Present</div>
     </div>
-    <div class="company-line"><span class="co">Hyundai Motor Manufacturing Turkey</span> · Kocaeli, Türkiye</div>
+    <div class="company">Hyundai Motor Manufacturing Turkey <span class="loc">· Kocaeli, Türkiye</span></div>
     <ul>
       <li>Lead charging-efficiency and performance validation for the IONIQ series against global EV standards and internal quality gates.</li>
       <li>Trace vehicle-level electrical faults to root cause with Vector CANoe and CANalyzer, analysing CAN traffic and ECU behaviour to close issues raised in production and validation.</li>
@@ -131,7 +153,7 @@
 
   <div class="job">
     <div class="jobhead">
-      <div class="role"><span class="co">AEMOT Electric Motors &amp; Generators</span></div>
+      <div class="employer">AEMOT Electric Motors &amp; Generators</div>
       <div class="meta">2021 – 2025</div>
     </div>
 
@@ -147,7 +169,12 @@
       </ul>
     </div>
 
-    <div class="subrole avoid newpage">
+    <div class="pagehead">
+      <span>Mustafa Yalvaç · Curriculum Vitae</span>
+      <span>Page 2 of 2</span>
+    </div>
+
+    <div class="subrole avoid" style="margin-top:0">
       <div class="cont">AEMOT Electric Motors &amp; Generators <em>(continued)</em></div>
       <div class="jobhead">
         <div class="role">Senior R&amp;D Engineer</div>
@@ -179,7 +206,7 @@
       <div class="role">Electrical &amp; Electronics Engineering Intern</div>
       <div class="meta">Jun – Aug 2017</div>
     </div>
-    <div class="company-line"><span class="co">Koçak Engineering</span> · Aksaray, Türkiye</div>
+    <div class="company">Koçak Engineering <span class="loc">· Aksaray, Türkiye</span></div>
     <ul>
       <li>Assisted with electrical project drafting and on-site implementation, including control panel setup and internal wiring.</li>
     </ul>
@@ -209,15 +236,13 @@
 
 <section class="avoid">
   <h2>Education</h2>
-  <div class="mb6">
-    <div class="edu">
-      <div><strong>B.Sc. Electrical and Electronics Engineering</strong> — Aksaray University</div>
-      <div class="d">2015 – 2019</div>
-    </div>
+  <div class="edu">
+    <div><strong>B.Sc. Electrical and Electronics Engineering</strong> — Aksaray University</div>
+    <div class="meta">2015 – 2019</div>
   </div>
   <div class="edu">
     <div>English Preparatory Year — Niğde University</div>
-    <div class="d">2014 – 2015</div>
+    <div class="meta">2014 – 2015</div>
   </div>
 </section>
 
