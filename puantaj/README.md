@@ -177,7 +177,7 @@ Gerisini kendisi yapar:
 - **Kalan** = hakediş + devir − kullanılan. Eksiye düşen kırmızı,
   2 günün altı turuncu görünür.
 
-Ayarlanabilir iki nokta:
+Ayarlanabilir noktalar:
 
 - **Devir** — sisteme geçmeden önceki bakiyeyi buraya yazın. Geçmişi
   eksikse hesap yine doğru çıkar.
@@ -185,6 +185,18 @@ Ayarlanabilir iki nokta:
   kodunu hafta tatili gibi başka amaçlarla da kullanıyorsanız kullanılan
   gün sayısı yüksek çıkar; o durumda yıllık izin için ayrı bir kod kullanmaya
   başlayın ve buradan onu seçin.
+- **İzin sayımı başlangıcı** — bu tarihten önceki puantaj kayıtları
+  "Kullanılan" hesabına hiç girmez. Eski/uzun yıllara yayılan verinizde
+  daha önce farklı mutabakatlar yapıldıysa (yeni başlayan bir kurulumda
+  sıkça karşılaşılan durum), buraya bir tarih yazıp temiz bir sayfa
+  açabilirsiniz — **kıdem ve hakediş yine gerçek işe giriş tarihine göre
+  hesaplanmaya devam eder** (yasal hak kaybı olmaz), sadece hangi
+  günlerin "kullanılmış" sayılacağı bu tarihten başlar. Eski dönemin
+  mutabık kalınan bakiyesini **Devir** sütununa ya da doğrudan yeni
+  dönemin ilk ayına manuel işaretleyerek yansıtabilirsiniz. Varsayılan
+  değer **01.01.2026**'dır; boş bırakırsanız tüm geçmiş sayılır.
+  Excel'e aktardığınızda İZİN TAKİBİ sayfası da bu tarihten önceki
+  yılları hiç göstermez — sade bir tablo çıkar.
 
 **Hesap tarihi** kutusundan geçmiş ya da ileri bir tarihe göre de bakabilirsiniz.
 CSV olarak indirilebilir.

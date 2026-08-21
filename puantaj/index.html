@@ -342,6 +342,15 @@ table.liste td.dar{width:130px} table.liste td.cokdar{width:44px;text-align:cent
         <b>İzinden düşülecek kodlar</b>
         <div id="izinKodSecim" style="margin-top:6px;display:flex;flex-direction:column;gap:3px"></div>
       </div>
+      <div style="min-width:200px">
+        <b>İzin sayımı başlangıcı</b>
+        <div style="margin-top:6px">
+          <input type="date" id="izinBaslangic" style="border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%">
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">Bu tarihten önceki puantaj
+          kayıtları bakiyeye hiç dahil edilmez. Eski dönemi <b>Devir</b> sütununa elle yazın.
+          Boş bırakırsanız tüm geçmiş sayılır.</div>
+      </div>
     </div>
     <div id="izinUyari"></div>
     <table class="liste" id="izinTablo">
@@ -613,7 +622,10 @@ const VARSAYILAN = {
     firma: "",
     /* İş Kanunu md.53 asgari süreleri — panelden değiştirilebilir */
     izinKademe: [{ yil:1, gun:14 }, { yil:6, gun:20 }, { yil:15, gun:26 }],
-    izinKodlari: ["İ"] },
+    izinKodlari: ["İ"],
+    /* Bu tarihten öncesi izin bakiyesine hiç dahil edilmez — eski/karışık
+       dönem "Devir" alanına elle girilen mutabakat sayısıyla temsil edilir. */
+    izinBaslangic: "2026-01-01" },
   eszaman: { url:"", parola:"", aktif:false, surum:0, sonZaman:0 },
 };
 let D = yukle();
@@ -808,10 +820,13 @@ function izneSayilirMi(yil, ay, gun){
   if (D.ayarlar.tatil && tatiller(yil)[`${ay}-${gun}`]) return false;
   return true;
 }
-/** Puantaj kayıtlarında izin sayılan kodların toplamı (hafta sonu/tatil hariç). */
+/** Puantaj kayıtlarında izin sayılan kodların toplamı (hafta sonu/tatil hariç).
+    D.ayarlar.izinBaslangic doluysa, o tarihten ÖNCEKİ günler hiç sayılmaz —
+    eski/karışık dönemi "Devir" alanına elle mutabık kalınan sayıyla yansıtın. */
 function kullanilanIzin(pid, bitisTarihi){
   const kodlar = D.ayarlar.izinKodlari;
   const sinir = bitisTarihi ? new Date(bitisTarihi) : null;
+  const baslangic = D.ayarlar.izinBaslangic ? new Date(D.ayarlar.izinBaslangic) : null;
   let t = 0;
   for (const [ayK, ay] of Object.entries(D.kayit)){
     const satir = ay[pid];
@@ -820,7 +835,9 @@ function kullanilanIzin(pid, bitisTarihi){
     for (const [g, kod] of Object.entries(satir)){
       if (!kodlar.includes(kod)) continue;
       const gun = +g;
-      if (sinir && new Date(yil, no-1, gun) > sinir) continue;
+      const tarih = new Date(yil, no-1, gun);
+      if (sinir && tarih > sinir) continue;
+      if (baslangic && tarih < baslangic) continue;
       if (!izneSayilirMi(yil, no, gun)) continue;
       t++;
     }
@@ -1297,6 +1314,7 @@ function izinKodCiz(){
 }
 function izinCiz(){
   kademeCiz(); izinKodCiz();
+  $("#izinBaslangic").value = D.ayarlar.izinBaslangic || "";
   const ref = izinReferans || null;
   const kisiler = D.personel.filter(p => p.aktif || p.girisTarihi)
     .sort((a, b) => trSirala(a.ad, b.ad));
@@ -1357,6 +1375,10 @@ $("#izinKodSecim").addEventListener("change", () => {
   kaydet(); izinCiz();
 });
 $("#izinTarih").addEventListener("change", e => { izinReferans = e.target.value || null; izinCiz(); });
+$("#izinBaslangic").addEventListener("change", e => {
+  D.ayarlar.izinBaslangic = e.target.value || "";
+  kaydet(); izinCiz();
+});
 $("#btnIzinCsv").addEventListener("click", () => {
   const bas = ["Adı Soyadı","TC No","Çalışma Yeri","İşe Giriş","Kıdem (yıl)","Yıllık Hak",
                "Toplam Hakediş","Devir","Toplam Hak","Kullanılan","Kalan"];
@@ -2323,7 +2345,11 @@ function izinIlkVeriSatiri(){ return 10 + D.ayarlar.izinKademe.length; }
 
 function izinSayfaXml(aylar){        // aylar: kitapta bulunan [{yil, ay}]
   const varOlan = new Set(aylar.map(m => ayAnahtar(m.yil, m.ay)));
-  const yillar = [...new Set(aylar.map(m => m.yil))].sort();
+  const izinBaslangicTarihi = D.ayarlar.izinBaslangic ? new Date(D.ayarlar.izinBaslangic) : null;
+  const izinBaslangicYili = izinBaslangicTarihi ? izinBaslangicTarihi.getFullYear() : -Infinity;
+  /* Başlangıç tarihinden önceki yıllar sütun olarak hiç oluşturulmaz — "temiz sayfa".
+     Yıl bazlı basit bir sınır: başlangıç yılının tamamı dahil edilir (ay hassasiyeti aranmaz). */
+  const yillar = [...new Set(aylar.map(m => m.yil))].filter(y => y >= izinBaslangicYili).sort();
   const kademe = [...D.ayarlar.izinKademe].sort((a, b) => a.yil - b.yil);
   const KAD_ILK = 7, KAD_SON = KAD_ILK + kademe.length - 1;
   const kadYil = `$A$${KAD_ILK}:$A$${KAD_SON}`, kadGun = `$B$${KAD_ILK}:$B$${KAD_SON}`;
@@ -2361,6 +2387,12 @@ function izinSayfaXml(aylar){        // aylar: kitapta bulunan [{yil, ay}]
     hucre("A" + notSatir, "Sarı hücreler elle değiştirilebilir. \"Kullanılan\" sütunu, seçili kodun puantajdaki toplamıdır; " +
       "hafta sonu/resmî tatile denk gelen işaretler otomatik hariç tutulur (Ayarlar'daki hafta sonu ve tatil " +
       "anahtarlarına göre) — o günler zaten çalışılmadığı için izin bakiyesinden düşülmez.", S.aciklama) + `</row>`;
+  if (izinBaslangicTarihi){
+    const notSatir2 = notSatir + 1;
+    s += `<row r="${notSatir2}">` +
+      hucre("A" + notSatir2, `İzin sayımı ${trTarih(D.ayarlar.izinBaslangic)} tarihinden itibaren yapılıyor. ` +
+        "Öncesi bu tabloya hiç dahil değildir; önceki dönem mutabakatını Devir sütununa elle yazın.", S.aciklama) + `</row>`;
+  }
 
   /* --- tablo başlığı --- */
   const BAS = KAD_SON + 3, ILK = izinIlkVeriSatiri();
@@ -2382,8 +2414,11 @@ function izinSayfaXml(aylar){        // aylar: kitapta bulunan [{yil, ay}]
       if (varOlan.has(ayK)) continue;
       const satir = ay[p.id]; if (!satir) continue;
       const [oYil, oAy] = ayK.split("-").map(Number);
-      for (const [g, kod] of Object.entries(satir))
-        if (D.ayarlar.izinKodlari.includes(kod) && izneSayilirMi(oYil, oAy, +g)) onceki++;
+      for (const [g, kod] of Object.entries(satir)){
+        if (!D.ayarlar.izinKodlari.includes(kod) || !izneSayilirMi(oYil, oAy, +g)) continue;
+        if (izinBaslangicTarihi && new Date(oYil, oAy-1, +g) < izinBaslangicTarihi) continue;
+        onceki++;
+      }
     }
     const yilAralik = yillar.length
       ? `${sutunAdi(IZIN_SUT.ilkYil)}${r}:${SON}${r}` : null;
