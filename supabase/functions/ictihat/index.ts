@@ -87,7 +87,8 @@ function meterAdd(m: Meter, j: any): void {
 }
 
 // Sağlayıcı-genel LLM çağrısı: ücretsiz katman Groq (OpenAI uyumlu), Pro/Elit Gemini.
-const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'llama-3.3-70b-versatile';
+// Groq llama-3.3-70b-versatile'ı 17.06.2026'da kaldırdı; halef gpt-oss-120b.
+const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b';
 type Provider = 'gemini' | 'groq';
 async function llmCall(
   provider: Provider,

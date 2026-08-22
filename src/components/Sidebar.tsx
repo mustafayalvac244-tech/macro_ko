@@ -127,6 +127,7 @@ export function Sidebar() {
     { icon: 'cloud-upload-outline', label: t('imp.short'), path: '/dosya-aktar' },
     { icon: 'library-outline', label: t('mut.short'), path: '/mutalaa' },
     { icon: 'scan-outline', label: t('docrev.short'), path: '/document-review' },
+    { icon: 'document-text-outline', label: t('dlk.short'), path: '/dilekce-uret' },
     { icon: 'reader-outline', label: t('ictihat.short'), path: '/ictihat' },
     { icon: 'earth-outline', label: t('aihm.short'), path: '/aihm' },
     { icon: 'document-text-outline', label: t('tpl.title'), path: '/templates' },

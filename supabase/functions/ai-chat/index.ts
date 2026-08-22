@@ -17,7 +17,10 @@ const PRICING: Record<string, { in: number; out: number }> = {
   'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
   'gemini-2.5-pro': { in: 1.25, out: 10.0 },
 };
-const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'llama-3.3-70b-versatile';
+// Groq, llama-3.3-70b-versatile'ı 17.06.2026'da kullanımdan kaldırdı (404
+// model_not_found → tüm AI katmanları çöktü). Resmî önerilen halef: gpt-oss-120b.
+// Model env (VEKIL_GROQ_MODEL) ile deploy'suz değiştirilebilir.
+const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b';
 interface TierCfg { provider: 'gemini' | 'groq'; model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number; maxOut: number }
 function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
   const t = aiTier || 'baslangic'; // lansman: herkes Groq (bedava); billing gelince pro/elit elle atanır
@@ -646,7 +649,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
 
-  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string };
+  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string };
   try {
     body = await req.json();
   } catch {
@@ -655,13 +658,18 @@ Deno.serve(async (req) => {
   // MÜTALAA modu: çok adımlı derin inceleme (Pro/Elit'e özel). Normal sohbetten
   // ayrılır çünkü birden fazla model çağrısı + geniş besleme kullanır.
   const isMutalaa = body.mode === 'mutalaa';
-  const mutalaaQuestion = (body.question ?? '').trim();
-  const messages = isMutalaa
-    ? [{ role: 'user' as const, text: mutalaaQuestion }]
+  // DİLEKÇE modu: olay anlatımından mahkemeye hazır resmî dilekçe taslağı üretir
+  // (gerçek mevzuat/içtihata dayalı). Tüm katmanlara açık, tek çağrı.
+  const isDilekce = body.mode === 'dilekce';
+  const promptQuestion = (body.question ?? '').trim();
+  const messages = (isMutalaa || isDilekce)
+    ? [{ role: 'user' as const, text: promptQuestion }]
     : (body.messages ?? []).slice(-30);
-  if (messages.length === 0 || (isMutalaa && mutalaaQuestion.length < 20)) {
+  if (messages.length === 0 || ((isMutalaa || isDilekce) && promptQuestion.length < 20)) {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
+  // Referanslar mütalaa bloğunda mutalaaQuestion adıyla kullanılıyordu; alias.
+  const mutalaaQuestion = promptQuestion;
 
   // Üyelik katmanı + maliyet tavanı (batma koruması).
   // profiles PII sertleştirmesiyle authenticated'a SELECT kapalı; kullanıcının
@@ -796,6 +804,91 @@ Deno.serve(async (req) => {
       });
     }
   }
+  // ───────────── DİLEKÇE: olaydan mahkemeye hazır taslak ─────────────
+  // Avukat olayı serbest dille anlatır; biz gerçek mevzuat/içtihatla besleyip
+  // seçilen dilekçe türüne göre (dava, cevap, istinaf, temyiz, itiraz, ihtarname…)
+  // resmî yapıda tam bir taslak üretiriz. Tek çağrı — mütalaadan hafiftir ama
+  // besleme aynıdır (uydurma yasağı korunur).
+  if (isDilekce) {
+    const typeMap: Record<string, string> = {
+      dava: 'DAVA DİLEKÇESİ (HMK m.119). Unsurlar eksiksiz: mahkeme, taraflar (ad-soyad/TC/adres — bilinmiyorsa [ ]), dava değeri/konusu, açık ve sıralı VAKIALAR, her vakıanın hangi DELİLLE ispatlanacağı, hukuki sebepler, ve NETİCE-İ TALEP (talep sonucu net kalemler + faiz + yargılama gideri/vekalet ücreti).',
+      cevap: 'CEVAP DİLEKÇESİ (HMK m.129). Sıra: usule ilişkin itirazlar (yetki/görev/derdestlik varsa), husumet/sıfat itirazı, zamanaşımı/hak düşürücü süre def’i (varsa), davacının her vakıasına tek tek CEVAP (kabul/inkâr), karşı vakıalar ve delilleri, netice-i talep (davanın reddi).',
+      replik: 'CEVABA CEVAP (REPLİK) DİLEKÇESİ. Davalının cevabındaki itirazları çürüt, kendi iddialarını delillerle pekiştir, yeni delil bildir.',
+      duplik: 'İKİNCİ CEVAP (DÜPLİK) DİLEKÇESİ. Replikteki yeni iddialara karşılık; savunmayı ve delilleri son kez topla.',
+      istinaf: 'İSTİNAF BAŞVURU DİLEKÇESİ (HMK m.342 vd.). İlk derece kararının özeti, İSTİNAF SEBEPLERİ (maddi/hukuki hatalar madde madde, dayanağıyla), ve talep (kararın kaldırılması/düzeltilmesi). Süre uyarısını (tebliğden itibaren 2 hafta) not düş.',
+      temyiz: 'TEMYİZ DİLEKÇESİ (HMK m.361 vd.). BAM kararının özeti, TEMYİZ SEBEPLERİ (hukuka aykırılıklar, ilgili Yargıtay içtihadıyla), talep (bozma). Süre uyarısını not düş.',
+      itiraz: 'İTİRAZ DİLEKÇESİ (icra/ödeme emrine — İİK m.62 vd. ya da ilgili usul). Dosya/takip no, itiraz edilen işlem, itiraz sebepleri (borca/imzaya/yetkiye), ve talep. Süreye dikkat çek.',
+      ihtarname: 'İHTARNAME (noter/keşideci formatı). Keşideci ve muhatap, açık talep, yerine getirilmesi için verilen süre, aksi halde hukuki/cezai yollar, ihtar tarihinden itibaren temerrüt/faiz uyarısı.',
+      bilirkisi: 'BİLİRKİŞİ RAPORUNA İTİRAZ DİLEKÇESİ. Raporun hangi tespitine neden itiraz edildiği (bilimsel/hukuki gerekçe), çelişkiler, ek/yeni bilirkişi talebi.',
+      islah: 'ISLAH DİLEKÇESİ (HMK m.176 vd.). Neyin ıslah edildiği (talep sonucu/vakıa), gerekçe, harç tamamlama beyanı, yeni netice-i talep.',
+    };
+    const structure = typeMap[body.dilekceType ?? ''] ?? typeMap['dava'];
+    const groundKey = provider === 'gemini' ? genKey : '';
+    let dossier = '';
+    try { dossier += await buildRules(supabase, promptQuestion); } catch { /* atla */ }
+    try { dossier += await buildMevzuat(supabase, promptQuestion); } catch { /* atla */ }
+    try { dossier += await buildGrounding(supabase, promptQuestion, groundKey); } catch { /* atla */ }
+
+    const dilekceSys =
+      SYSTEM_PROMPT +
+      '\n\nŞU AN "DİLEKÇE" MODUNDASIN: avukatın anlattığı olaydan, MAHKEMEYE VERİLEBİLECEK ' +
+      'düzeyde resmî bir dilekçe TASLAĞI yazıyorsun. Tür ve zorunlu yapı:\n' + structure +
+      '\n\nBİÇİM KURALLARI:\n' +
+      '• En üstte mahkeme başlığı (örn. "… NÖBETÇİ ASLİYE HUKUK MAHKEMESİ SAYIN HÂKİMLİĞİNE"). ' +
+      'Doğru mahkeme/görev belli değilse en olası olanı yaz ve yanına [kontrol edin] notu koy.\n' +
+      '• Bilinmeyen bilgileri UYDURMA; köşeli parantezle boş bırak: [Davacı Ad-Soyad], [TC], [Esas No], [Tarih].\n' +
+      '• VAKIALARI numaralandır; her hukuki dayanağı gerçek madde numarasıyla ver (aşağıdaki DOSYADAKİ ' +
+      'maddelere dayan; dosyada yoksa "ilgili mevzuat" de, madde UYDURMA).\n' +
+      '• Sonda "HUKUKİ SEBEPLER", "DELİLLER" (her vakıaya bağlı), "NETİCE-İ TALEP" ve imza bloğu ' +
+      '(Saygılarımla / [Davacı] Vekili / Av. [Ad Soyad]) bulunsun.\n' +
+      '• Taslağın en sonuna kısa bir "⚠️ KONTROL LİSTESİ" ekle: avukatın doldurması/denetlemesi gereken ' +
+      'boşluklar, süreler ve riskler (madde madde).\n' +
+      'Gerçekçi, tok ve profesyonel bir dille yaz. Gereksiz doldurma cümlesi kurma.' +
+      dossier;
+
+    try {
+      let out = '';
+      let uin = 0;
+      let uout = 0;
+      const maxTok = Math.max(cfg.maxOut, tier === 'elit' ? 4096 : 3000);
+      if (provider === 'groq') {
+        const r = await groqChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey);
+        out = r.text; uin = r.tin; uout = r.tout;
+      } else {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: dilekceSys }] },
+            contents: [{ role: 'user', parts: [{ text: promptQuestion }] }],
+            generationConfig: { temperature: 0.35, maxOutputTokens: maxTok },
+          }),
+        });
+        if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+        const d = await res.json();
+        out = d.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+        const um = d.usageMetadata ?? {};
+        uin = um.promptTokenCount ?? 0;
+        uout = um.candidatesTokenCount ?? 0;
+      }
+      if (!out.trim()) {
+        return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
+      }
+      await recordUsage(userData.user.id, model, uin, uout, cfg.billable);
+      return new Response(JSON.stringify({ text: out.trim(), tier, model }), {
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    } catch (e) {
+      const msg = (e as Error).message;
+      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+        status: known ? 429 : 502,
+        headers: CORS,
+      });
+    }
+  }
+
   // Grounding TÜM katmanlarda: kendi içtihat havuzumuzdan gerçek kararlarla besle
   // (Gemini/Pro anlamsal + FTS; Groq/ücretsiz doğrudan FTS). Böylece yanıt gerçek
   // kararlara dayanır, uydurmaz — "eğitilmiş" asistan.

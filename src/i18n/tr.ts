@@ -1253,6 +1253,19 @@ export const tr = {
   'mut.needPro': 'Mütalaa, Pro ve Elit üyelere özel bir özelliktir. Çok adımlı derin araştırma yapar; normal AI asistanı tüm üyelere açıktır.',
   'mut.disclaimer': 'Bu mütalaa yapay zekâ tarafından üretilmiştir; hukuki tavsiye değildir. Dayanakları ve güncel mevzuatı kendiniz teyit edin.',
 
+  // Dilekçe Üret (AI)
+  'dlk.title': 'Dilekçe Üret',
+  'dlk.short': 'Dilekçe Üret',
+  'dlk.lead': 'Türü seçin, olayı anlatın; Vekil AI gerçek mevzuat ve içtihata dayanarak mahkemeye hazır bir dilekçe taslağı yazar. Hazır şablon değil, olayınıza özel metindir.',
+  'dlk.typeLabel': 'Dilekçe türü',
+  'dlk.factsLabel': 'Olay ve talebiniz',
+  'dlk.placeholder': 'Tarafları, olayları tarih sırasıyla, talebinizi ve elinizdeki delilleri anlatın. Bilmediğiniz bilgileri boş bırakabilirsiniz…',
+  'dlk.run': 'Dilekçe Taslağı Üret',
+  'dlk.working': 'Yazılıyor…',
+  'dlk.workingHint': 'Mevzuat ve içtihat taranıp taslak hazırlanıyor.',
+  'dlk.resultTitle': 'Dilekçe Taslağı',
+  'dlk.disclaimer': 'Bu taslak yapay zekâ tarafından üretilmiştir; olduğu gibi kullanmayın. Mahkeme/görev, taraf bilgileri, süreler ve dayanakları mutlaka kendiniz denetleyin.',
+
   // Belge İncele (AI)
   'docrev.title': 'Belge İncele',
   'docrev.short': 'Belge İncele',
