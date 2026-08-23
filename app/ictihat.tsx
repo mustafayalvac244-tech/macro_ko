@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AI_ENABLED } from '@/config/features';
+import { ComingSoon } from '@/components/ComingSoon';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import {
@@ -109,6 +110,11 @@ export default function IctihatScreen() {
 
   const errText =
     error === 'rate_limit' ? t('ictihat.errRate') : error === 'source' ? t('ictihat.errSource') : t('ictihat.errGeneric');
+
+  // AI/İçtihat şu an kapalı (yakında): tüm ekranı "Çok Yakında" ile kapat.
+  if (!AI_ENABLED) {
+    return <ComingSoon headerTitle={t('ictihat.title')} title={t('soon.ictihat')} desc={t('soon.desc')} icon="reader" />;
+  }
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>

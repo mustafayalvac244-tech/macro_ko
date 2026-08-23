@@ -12,6 +12,7 @@ import {
   generateTemplateBrief,
   type ChecklistItem,
 } from '@/utils/briefEngine';
+import { AI_ENABLED } from '@/config/features';
 import { useT } from '@/i18n';
 import { fonts, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -114,14 +115,17 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
     setGenerating(true);
     let result: BriefSections | null = null;
     let usedSource = 'template';
-    // Her zaman önce Vekil AI denenir (anahtarsız); kota/ağ hatasında şablona düşer.
-    result = await generateAiBrief({ caseItem });
-    if (result) usedSource = 'ai';
+    // AI açıksa önce Vekil AI denenir (anahtarsız); kota/ağ hatasında şablona düşer.
+    // AI kapalıyken (yakında) doğrudan şablon kullanılır, "AI başarısız" uyarısı verilmez.
+    if (AI_ENABLED) {
+      result = await generateAiBrief({ caseItem });
+      if (result) usedSource = 'ai';
+    }
     if (!result) result = generateTemplateBrief({ caseItem });
     setSections(result);
     setSource(usedSource);
     setGenerating(false);
-    if (usedSource === 'template') {
+    if (AI_ENABLED && usedSource === 'template') {
       Alert.alert(t('plan.title'), t('plan.aiFailed'));
     }
   };

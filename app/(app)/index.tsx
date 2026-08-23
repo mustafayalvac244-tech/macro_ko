@@ -19,6 +19,8 @@ import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
 import { useAdvanceDeficits } from '@/hooks/useClientAdvances';
 import { useAdvanceAlertStore } from '@/store/advanceAlertStore';
+import { AI_ENABLED } from '@/config/features';
+import { useTrialStatus, MONTHLY_PRICE_TRY } from '@/hooks/useTrialStatus';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -71,6 +73,7 @@ export default function DashboardScreen() {
   const lang = useLangStore((s) => s.lang);
   const dateLocale = lang === 'tr' ? trLocale : enUS;
   const profile = useAuthStore((s) => s.profile);
+  const trial = useTrialStatus();
   const avatarUrl = useAvatarUrl();
   const openSidebar = useSidebarStore((s) => s.open);
   const queryClient = useQueryClient();
@@ -319,6 +322,37 @@ export default function DashboardScreen() {
         </Text>
         <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
 
+        {/* ---------- Deneme / Abonelik durumu ---------- */}
+        {!trial.subscribed && trial.inTrial && (
+          <Pressable
+            style={({ pressed }) => [styles.trialPill, pressed && { opacity: 0.85 }]}
+            onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}
+          >
+            <Ionicons name="gift-outline" size={15} color={colors.primary} />
+            <Text allowFontScaling={false} style={styles.trialPillText}>
+              {trial.daysLeft <= 1 ? t('trial.lastDay') : t('trial.daysLeft', { n: trial.daysLeft })}
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+          </Pressable>
+        )}
+        {!trial.subscribed && trial.ended && (
+          <Pressable
+            style={({ pressed }) => [styles.trialEnded, pressed && { opacity: 0.9 }]}
+            onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}
+          >
+            <Ionicons name="lock-open-outline" size={18} color="#FFFFFF" />
+            <View style={{ flex: 1 }}>
+              <Text allowFontScaling={false} style={styles.trialEndedTitle}>{t('trial.ended')}</Text>
+              <Text allowFontScaling={false} style={styles.trialEndedDesc}>
+                {t('trial.endedDesc', { price: String(MONTHLY_PRICE_TRY) })}
+              </Text>
+            </View>
+            <View style={styles.trialEndedBtn}>
+              <Text allowFontScaling={false} style={styles.trialEndedBtnText}>{t('trial.cta')}</Text>
+            </View>
+          </Pressable>
+        )}
+
         {/* ---------- Sıradaki + Bugün ---------- */}
         <View style={styles.hero}>
           <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.next.label')}</Text>
@@ -409,7 +443,8 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* ---------- Davana Emsal ---------- */}
+        {/* ---------- Davana Emsal (AI/İçtihat kapalıyken gizli) ---------- */}
+        {AI_ENABLED && (
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
@@ -539,6 +574,7 @@ export default function DashboardScreen() {
             </View>
           )}
         </View>
+        )}
 
         {/* ---------- Finansal Özet ---------- */}
         <View style={styles.card}>
@@ -760,6 +796,58 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 5,
     marginBottom: spacing.lg,
+  },
+  trialPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primarySoft,
+    borderRadius: 999,
+    paddingLeft: 12,
+    paddingRight: 10,
+    paddingVertical: 7,
+    marginBottom: spacing.lg,
+  },
+  trialPillText: {
+    fontFamily: fonts.bold,
+    fontWeight: '700',
+    fontSize: 12.5,
+    color: colors.primary,
+  },
+  trialEnded: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  trialEndedTitle: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  trialEndedDesc: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+  },
+  trialEndedBtn: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  trialEndedBtnText: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 12.5,
+    color: colors.primary,
   },
   hero: {
     borderRadius: 24,

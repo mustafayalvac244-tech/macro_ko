@@ -6,6 +6,8 @@ import { File } from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { ComingSoon } from '@/components/ComingSoon';
+import { AI_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
 import { useCreateCase } from '@/hooks/useCases';
 import { useCreateHearing } from '@/hooks/useHearings';
@@ -53,6 +55,10 @@ export default function DosyaAktarScreen() {
   const [stage, setStage] = useState('');
   const [form, setForm] = useState<Extracted>(EMPTY);
   const [rawLen, setRawLen] = useState(0);
+
+  if (!AI_ENABLED) {
+    return <ComingSoon headerTitle={t('imp.title')} title={t('soon.import')} desc={t('soon.desc')} icon="cloud-upload" />;
+  }
 
   const parseJson = (raw: string): Partial<Extracted> | null => {
     const c = raw.replace(/```json/gi, '').replace(/```/g, '').trim();

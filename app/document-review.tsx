@@ -5,6 +5,8 @@ import { File } from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { ComingSoon } from '@/components/ComingSoon';
+import { AI_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
@@ -31,6 +33,10 @@ export default function DocumentReviewScreen() {
   const [busy, setBusy] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!AI_ENABLED) {
+    return <ComingSoon headerTitle={t('docrev.title')} title={t('soon.docrev')} desc={t('soon.desc')} icon="scan" />;
+  }
 
   /**
    * Dosyadan metin al: PDF / DOCX / UDF (UYAP) / TXT. Bu formatlardan metin

@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { ComingSoon } from '@/components/ComingSoon';
+import { AI_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
@@ -28,6 +30,10 @@ export default function MutalaaScreen() {
   const [issues, setIssues] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [needsPro, setNeedsPro] = useState(false);
+
+  if (!AI_ENABLED) {
+    return <ComingSoon headerTitle={t('mut.title')} title={t('soon.mutalaa')} desc={t('soon.desc')} icon="library" />;
+  }
 
   const run = async () => {
     const question = q.trim();

@@ -19,6 +19,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
+import { AI_ENABLED } from '@/config/features';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
@@ -32,6 +33,7 @@ interface NavItem {
   label: string;
   path: string;
   color?: string;
+  badge?: string;
 }
 
 /**
@@ -121,14 +123,16 @@ export function Sidebar() {
     { icon: 'calendar-outline', label: t('cal.title'), path: '/(app)/calendar' },
     { icon: 'folder-outline', label: t('tab.vault'), path: '/(app)/documents' },
   ];
+  // AI özellikleri kapalıyken (yakında) menüde "YAKINDA" rozeti göster.
+  const aiBadge = AI_ENABLED ? undefined : t('ai.comingSoonBadge');
   // Mesajlaşma şimdilik gizli (istek üzerine); rotalar duruyor, giriş yok.
   const toolItems: NavItem[] = [
-    { icon: 'sparkles-outline', label: t('ai.short'), path: '/ai-chat' },
-    { icon: 'cloud-upload-outline', label: t('imp.short'), path: '/dosya-aktar' },
-    { icon: 'library-outline', label: t('mut.short'), path: '/mutalaa' },
-    { icon: 'scan-outline', label: t('docrev.short'), path: '/document-review' },
-    { icon: 'document-text-outline', label: t('dlk.short'), path: '/dilekce-uret' },
-    { icon: 'reader-outline', label: t('ictihat.short'), path: '/ictihat' },
+    { icon: 'sparkles-outline', label: t('ai.short'), path: '/ai-chat', badge: aiBadge },
+    { icon: 'cloud-upload-outline', label: t('imp.short'), path: '/dosya-aktar', badge: aiBadge },
+    { icon: 'library-outline', label: t('mut.short'), path: '/mutalaa', badge: aiBadge },
+    { icon: 'scan-outline', label: t('docrev.short'), path: '/document-review', badge: aiBadge },
+    { icon: 'document-text-outline', label: t('dlk.short'), path: '/dilekce-uret', badge: aiBadge },
+    { icon: 'reader-outline', label: t('ictihat.short'), path: '/ictihat', badge: aiBadge },
     { icon: 'earth-outline', label: t('aihm.short'), path: '/aihm' },
     { icon: 'document-text-outline', label: t('tpl.title'), path: '/templates' },
     { icon: 'create-outline', label: t('contract.title'), path: '/contract' },
@@ -202,7 +206,7 @@ export function Sidebar() {
             />
             {toolsOpen &&
               toolItems.map((item) => (
-                <SidebarItem key={item.path} icon={item.icon} label={item.label} onPress={() => go(item.path)} indented />
+                <SidebarItem key={item.path} icon={item.icon} label={item.label} onPress={() => go(item.path)} indented badge={item.badge} />
               ))}
 
             <SidebarGroup
@@ -257,12 +261,14 @@ function SidebarItem({
   onPress,
   indented,
   color,
+  badge,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   indented?: boolean;
   color?: string;
+  badge?: string;
 }) {
   const __t = useTheme();
   const colors = __t.colors;
@@ -275,6 +281,11 @@ function SidebarItem({
     >
       <Ionicons name={icon} size={19} color={color ?? colors.textSecondary} />
       <Text style={[styles.itemLabel, color ? { color } : undefined]}>{label}</Text>
+      {!!badge && (
+        <View style={styles.soonBadge}>
+          <Text style={styles.soonBadgeText}>{badge}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -363,6 +374,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.bodyMedium,
     color: colors.textPrimary,
     flex: 1,
+  },
+  soonBadge: {
+    backgroundColor: colors.goldSoft,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  soonBadgeText: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '800',
+    fontSize: 9,
+    letterSpacing: 0.6,
   },
   version: {
     ...typography.small,

@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { ComingSoon } from '@/components/ComingSoon';
+import { AI_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
@@ -43,6 +45,10 @@ export default function DilekceUretScreen() {
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  if (!AI_ENABLED) {
+    return <ComingSoon headerTitle={t('dlk.title')} title={t('soon.dilekce')} desc={t('soon.desc')} icon="document-text" />;
+  }
 
   const run = async () => {
     const question = q.trim();
