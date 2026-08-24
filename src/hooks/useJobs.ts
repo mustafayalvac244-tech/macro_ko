@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { Job, JobStatus, JobType, JobWithOwner } from '@/types/database';
 
@@ -40,6 +41,7 @@ export function useCreateJob() {
   const me = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: JobInput) => {
       const { data, error } = await supabase
         .from('jobs')
@@ -57,6 +59,7 @@ export function useUpdateJobStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({ id, status }: { id: string; status: JobStatus }) => {
       const { error } = await supabase.from('jobs').update({ status }).eq('id', id);
       if (error) throw error;
@@ -69,6 +72,7 @@ export function useDeleteJob() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('jobs').delete().eq('id', id);
       if (error) throw error;

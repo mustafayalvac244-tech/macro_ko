@@ -3,6 +3,7 @@ import { File } from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { CaseDocument, DocumentCategory, DocumentWithCase } from '@/types/database';
 
@@ -32,6 +33,7 @@ export function useDocuments(caseId?: string) {
 
 export function useSignedDocumentUrl() {
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (path: string) => {
       const { data, error } = await supabase.storage.from(DOCUMENTS_BUCKET).createSignedUrl(path, 60 * 5);
       if (error) throw error;
@@ -98,6 +100,7 @@ export function useUploadDocument() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({ file, caseId, clientId, category }: UploadDocumentParams) => {
       const bytes = await new File(file.uri).arrayBuffer();
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -133,6 +136,7 @@ export function useDeleteDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (doc: Pick<CaseDocument, 'id' | 'file_path'>) => {
       await supabase.storage.from(DOCUMENTS_BUCKET).remove([doc.file_path]);
       const { error } = await supabase.from('documents').delete().eq('id', doc.id);

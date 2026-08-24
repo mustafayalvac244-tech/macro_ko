@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { CaseExpense, CaseInstallment, Payment } from '@/types/database';
 
@@ -41,6 +42,7 @@ export function useCreatePayment() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: { case_id: string; amount: number; note: string | null }) => {
       const { data, error } = await supabase
         .from('payments')
@@ -58,6 +60,7 @@ export function useDeletePayment() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('payments').delete().eq('id', id);
       if (error) throw error;
@@ -94,6 +97,7 @@ export function useCreateCaseExpense() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: { case_id: string; title: string; amount: number }) => {
       const { error } = await supabase.from('case_expenses').insert({ ...input, owner_id: ownerId! });
       if (error) throw error;
@@ -106,6 +110,7 @@ export function useDeleteCaseExpense() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('case_expenses').delete().eq('id', id);
       if (error) throw error;
@@ -181,6 +186,7 @@ export function useCreateInstallment() {
   const queryClient = useQueryClient();
   const ownerId = useAuthStore((s) => s.session?.user.id);
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: { case_id: string; seq: number; amount: number; due_date: string | null }) => {
       const { error } = await supabase.from('case_installments').insert({ ...input, owner_id: ownerId! });
       if (error) throw error;
@@ -192,6 +198,7 @@ export function useCreateInstallment() {
 export function useToggleInstallment() {
   const queryClient = useQueryClient();
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({ id, is_paid }: { id: string; is_paid: boolean }) => {
       const { error } = await supabase.from('case_installments').update({ is_paid }).eq('id', id);
       if (error) throw error;
@@ -203,6 +210,7 @@ export function useToggleInstallment() {
 export function useDeleteInstallment() {
   const queryClient = useQueryClient();
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('case_installments').delete().eq('id', id);
       if (error) throw error;

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { Case, CaseStatus, CaseWithClient, PriorityLevel } from '@/types/database';
 
@@ -106,6 +107,7 @@ export function useCreateCase() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: Partial<CaseInput> & { title: string }) => {
       const insert = async (payload: Record<string, unknown>) =>
         supabase.from('cases').insert(payload).select(CASE_SELECT).single();
@@ -126,6 +128,7 @@ export function useUpdateCase() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({
       id,
       ...input
@@ -151,6 +154,7 @@ export function useDeleteCase() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('cases').delete().eq('id', id);
       if (error) throw error;

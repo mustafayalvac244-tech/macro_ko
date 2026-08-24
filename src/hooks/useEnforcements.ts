@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type {
   EnforcementCollection,
@@ -92,6 +93,7 @@ export function useCreateEnforcement() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: EnforcementInput) => {
       const { data, error } = await supabase
         .from('enforcement_files')
@@ -109,6 +111,7 @@ export function useUpdateEnforcement() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({ id, ...rest }: Partial<EnforcementFile> & { id: string }) => {
       const { data, error } = await supabase.from('enforcement_files').update(rest).eq('id', id).select().single();
       if (error) throw error;
@@ -122,6 +125,7 @@ export function useDeleteEnforcement() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('enforcement_files').delete().eq('id', id);
       if (error) throw error;
@@ -154,6 +158,7 @@ export function useCreateCollection() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: {
       enforcement_id: string;
       amount: number;
@@ -172,6 +177,7 @@ export function useDeleteCollection() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('enforcement_collections').delete().eq('id', id);
       if (error) throw error;

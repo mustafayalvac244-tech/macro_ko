@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import { cancelReminder, hearingReminderId, scheduleHearingReminder } from '@/lib/notifications';
 import type { Hearing, HearingWithCase } from '@/types/database';
@@ -95,6 +96,7 @@ export function useCreateHearing() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: HearingInput & { caseTitle: string }) => {
       const { caseTitle, ...rest } = input;
       const { data, error } = await supabase
@@ -114,6 +116,7 @@ export function useUpdateHearing() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({
       id,
       caseTitle,
@@ -137,6 +140,7 @@ export function useDeleteHearing() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('hearings').delete().eq('id', id);
       if (error) throw error;

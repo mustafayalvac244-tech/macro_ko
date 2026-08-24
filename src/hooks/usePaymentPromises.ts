@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addMonths, format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import { cancelPromiseReminder, schedulePromiseReminder } from '@/lib/notifications';
 import { formatMoney } from '@/utils/format';
@@ -76,6 +77,7 @@ export function useCreatePromise() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: {
       client_id: string;
       clientName: string;
@@ -109,6 +111,7 @@ export function useCreatePromiseInstallments() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: {
       client_id: string;
       clientName: string;
@@ -154,6 +157,7 @@ export function useCreateCustomInstallments() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: {
       client_id: string;
       clientName: string;
@@ -194,6 +198,7 @@ export function useTogglePromisePaid() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({ promise, clientName }: { promise: PaymentPromise; clientName: string }) => {
       const next = !promise.is_paid;
       const { error } = await supabase.from('payment_promises').update({ is_paid: next }).eq('id', promise.id);
@@ -217,6 +222,7 @@ export function useDeletePromise() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('payment_promises').delete().eq('id', id);
       if (error) throw error;

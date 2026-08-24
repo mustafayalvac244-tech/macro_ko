@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { ClientAdvance, ClientExpense } from '@/types/database';
 
@@ -58,6 +59,7 @@ export function useCreateClientAdvance() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: { client_id: string; amount: number; note: string | null }) => {
       const { error } = await supabase.from('client_advances').insert({ ...input, owner_id: ownerId! });
       if (error) throw error;
@@ -70,6 +72,7 @@ export function useDeleteClientAdvance() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('client_advances').delete().eq('id', id);
       if (error) throw error;
@@ -160,6 +163,7 @@ export function useCreateClientExpense() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: { client_id: string; amount: number; title: string | null }) => {
       const { error } = await supabase.from('client_expenses').insert({ ...input, owner_id: ownerId! });
       if (error) throw error;
@@ -172,6 +176,7 @@ export function useDeleteClientExpense() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('client_expenses').delete().eq('id', id);
       if (error) throw error;

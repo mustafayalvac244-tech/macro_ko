@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { Office, OfficeMessage, PublicProfile } from '@/types/database';
 
@@ -37,6 +38,7 @@ export function useCreateOffice() {
   const me = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (name: string) => {
       const { data: office, error } = await supabase
         .from('offices')
@@ -74,6 +76,7 @@ export function useAddOfficeMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({ officeId, userId }: { officeId: string; userId: string }) => {
       const { error } = await supabase
         .from('office_members')
@@ -88,6 +91,7 @@ export function useRemoveOfficeMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({ officeId, userId }: { officeId: string; userId: string }) => {
       const { error } = await supabase
         .from('office_members')
@@ -141,6 +145,7 @@ export function useSendOfficeMessage() {
   const me = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({ officeId, body }: { officeId: string; body: string }) => {
       const { error } = await supabase
         .from('office_messages')

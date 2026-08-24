@@ -92,12 +92,17 @@ export default function DeadlineFormScreen() {
       caseTitle: caseItem?.title ?? title.trim(),
     };
 
-    if (isEdit && id) {
-      await updateDeadline.mutateAsync({ id, ...payload });
-    } else {
-      await createDeadline.mutateAsync(payload);
+    // Hata durumunda kanca uyarı gösterir; formda kalıp bilgileri koruyoruz.
+    try {
+      if (isEdit && id) {
+        await updateDeadline.mutateAsync({ id, ...payload });
+      } else {
+        await createDeadline.mutateAsync(payload);
+      }
+      router.back();
+    } catch {
+      // uyarı notifySaveError ile gösterildi
     }
-    router.back();
   };
 
   return (

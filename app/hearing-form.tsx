@@ -131,12 +131,18 @@ export default function HearingFormScreen() {
       caseTitle: caseItem?.title ?? title.trim(),
     };
 
-    if (isEdit && id) {
-      await updateHearing.mutateAsync({ id, ...payload });
-      router.back();
-      return;
+    // Kaydetme başarısızsa (çevrimdışı/yetki) kanca uyarı gösterir; formdan
+    // ÇIKMIYORUZ — avukat duruşmayı kaydettiğini sanıp kaybetmesin.
+    try {
+      if (isEdit && id) {
+        await updateHearing.mutateAsync({ id, ...payload });
+        router.back();
+        return;
+      }
+      await createHearing.mutateAsync(payload);
+    } catch {
+      return; // uyarı notifySaveError ile gösterildi
     }
-    await createHearing.mutateAsync(payload);
 
     // Yeni kayıt telefonun takvimine de yazılsın mı?
     Alert.alert(t('devCal.askTitle'), t('devCal.askMsg'), [

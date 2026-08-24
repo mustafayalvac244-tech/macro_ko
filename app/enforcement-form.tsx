@@ -95,12 +95,17 @@ export default function EnforcementFormScreen() {
       notes: notes.trim() || null,
     };
 
-    if (isEdit && id) {
-      await updateEnforcement.mutateAsync({ id, ...payload });
-      router.back();
-    } else {
-      const created = await createEnforcement.mutateAsync(payload);
-      router.replace(`/enforcement/${created.id}` as Parameters<typeof router.replace>[0]);
+    // Hata durumunda kanca uyarı gösterir; formda kalıp bilgileri koruyoruz.
+    try {
+      if (isEdit && id) {
+        await updateEnforcement.mutateAsync({ id, ...payload });
+        router.back();
+      } else {
+        const created = await createEnforcement.mutateAsync(payload);
+        router.replace(`/enforcement/${created.id}` as Parameters<typeof router.replace>[0]);
+      }
+    } catch {
+      // uyarı notifySaveError ile gösterildi
     }
   };
 

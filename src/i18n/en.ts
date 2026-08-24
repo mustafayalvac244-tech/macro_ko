@@ -272,6 +272,11 @@ export const en: Record<keyof typeof tr, string> = {
   'common.none': 'None',
   'common.yes': 'Yes',
   'common.no': 'No',
+  // Save errors (never fail silently)
+  'err.saveTitle': 'Action could not be completed',
+  'err.saveOffline': 'No internet connection — the request did not reach the server. Check your connection and try again; what you entered is still in the form.',
+  'err.savePermission': 'Your session may have expired. Please sign out, sign in again, and retry.',
+  'err.saveGeneric': 'The action could not be completed. Please try again; if it keeps happening, let us know.',
 
   // Clients
   'clients.title': 'Clients',

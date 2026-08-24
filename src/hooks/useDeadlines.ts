@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import { cancelReminder, deadlineReminderId, scheduleDeadlineReminder } from '@/lib/notifications';
 import type { Deadline, DeadlineWithCase } from '@/types/database';
@@ -93,6 +94,7 @@ export function useCreateDeadline() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: DeadlineInput & { caseTitle: string }) => {
       const { caseTitle, ...rest } = input;
       const { data, error } = await supabase
@@ -112,6 +114,7 @@ export function useUpdateDeadline() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({
       id,
       caseTitle,
@@ -135,6 +138,7 @@ export function useDeleteDeadline() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('deadlines').delete().eq('id', id);
       if (error) throw error;

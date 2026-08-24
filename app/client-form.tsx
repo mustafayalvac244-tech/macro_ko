@@ -67,12 +67,18 @@ export default function ClientFormScreen() {
       notes: notes.trim() || null,
     };
 
-    if (isEdit && id) {
-      await updateClient.mutateAsync({ id, ...payload });
-    } else {
-      await createClient.mutateAsync(payload);
+    // Hata durumunda kanca zaten uyarı gösteriyor; burada sadece formda kalıp
+    // girilen bilgileri koruyoruz (kapatma/yönlendirme yapmıyoruz).
+    try {
+      if (isEdit && id) {
+        await updateClient.mutateAsync({ id, ...payload });
+      } else {
+        await createClient.mutateAsync(payload);
+      }
+      router.back();
+    } catch {
+      // uyarı notifySaveError ile gösterildi
     }
-    router.back();
   };
 
   return (

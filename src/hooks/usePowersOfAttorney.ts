@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 
 /** Vekaletname türü. */
@@ -80,6 +81,7 @@ export function useCreatePoa() {
   const qc = useQueryClient();
   const userId = useAuthStore((s) => s.session?.user.id);
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: Partial<PoaInput>) => {
       const { error } = await supabase.from('powers_of_attorney').insert({ ...input, owner_id: userId });
       if (error) throw error;
@@ -91,6 +93,7 @@ export function useCreatePoa() {
 export function useUpdatePoa() {
   const qc = useQueryClient();
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({ id, ...patch }: Partial<PoaInput> & { id: string }) => {
       const { error } = await supabase
         .from('powers_of_attorney')
@@ -105,6 +108,7 @@ export function useUpdatePoa() {
 export function useDeletePoa() {
   const qc = useQueryClient();
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('powers_of_attorney').delete().eq('id', id);
       if (error) throw error;

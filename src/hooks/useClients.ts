@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { Client } from '@/types/database';
 
@@ -48,6 +49,7 @@ export function useCreateClient() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: ClientInput) => {
       const { data, error } = await supabase
         .from('clients')
@@ -65,6 +67,7 @@ export function useUpdateClient() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({ id, ...input }: Partial<ClientInput> & { id: string }) => {
       const { data, error } = await supabase.from('clients').update(input).eq('id', id).select().single();
       if (error) throw error;
@@ -80,6 +83,7 @@ export function useDeleteClient() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('clients').delete().eq('id', id);
       if (error) throw error;

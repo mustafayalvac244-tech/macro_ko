@@ -272,6 +272,11 @@ export const tr = {
   'common.none': 'Yok',
   'common.yes': 'Evet',
   'common.no': 'Hayır',
+  // Kaydetme hataları (sessiz kayıp olmasın)
+  'err.saveTitle': 'İşlem tamamlanamadı',
+  'err.saveOffline': 'İnternet bağlantısı kurulamadı, işlem sunucuya ulaşmadı. Bağlantınızı kontrol edip tekrar deneyin — girdiğiniz bilgiler formda duruyor.',
+  'err.savePermission': 'Oturumunuzun süresi dolmuş olabilir. Çıkıp yeniden giriş yaptıktan sonra tekrar deneyin.',
+  'err.saveGeneric': 'İşlem tamamlanamadı. Lütfen tekrar deneyin; sorun sürerse bize bildirin.',
 
   // Clients
   'clients.title': 'Müvekkiller',
