@@ -665,11 +665,12 @@ function FinCell({
   const styles = makeStyles(colors);
   const max = Math.max(...series, 1);
   const hasData = series.some((v) => v > 0);
-  // Veri yokken bile mockup'taki gibi renkli bir dalga görünsün.
-  const placeholder = [7, 10, 8, 13, 10, 15, 12];
+  // Veri yokken DÜZ ve sönük bir taban çizgisi göster. Eskiden yükselen sahte
+  // bir dalga çiziliyordu; finans ekranında olmayan bir artış trendi ima ettiği
+  // için yanıltıcıydı (tutar ₺0 iken grafik yükseliyor gibi görünüyordu).
   const heights = hasData
     ? series.slice(0, 7).map((v) => 4 + Math.round((v / max) * 18))
-    : placeholder;
+    : [4, 4, 4, 4, 4, 4, 4];
   const good = pct == null ? true : positiveIsGood ? pct >= 0 : pct <= 0;
   return (
     <View style={styles.finCell}>

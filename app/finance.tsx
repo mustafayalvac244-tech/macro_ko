@@ -17,6 +17,7 @@ import {
 } from '@/hooks/useFinance';
 import { useAllPayments } from '@/hooks/usePayments';
 import { FINANCE_CATEGORY_ICONS } from '@/constants/finance';
+import { toCsv, shareCsv } from '@/utils/exportCsv';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -95,6 +96,70 @@ export default function FinanceScreen() {
 
   const net = incomeTotal - expenseTotal;
 
+  /**
+   * Ayın gelir-gider dökümünü CSV olarak dışa aktar (muhasebeci/vergi için).
+   * Dava tahsilatları da dahil edilir — ekrandaki toplamlarla birebir uyuşsun.
+   */
+  const handleExport = async () => {
+    const monthLabel = format(month, 'yyyy-MM');
+    const rows: Array<Array<string | number>> = [];
+
+    [...recurring, ...oneOff].forEach((e) => {
+      rows.push([
+        e.entry_date,
+        t(e.kind === 'income' ? 'ofinance.income' : 'ofinance.expense'),
+        t(`fcat.${e.category}` as const),
+        e.title ?? '',
+        e.is_recurring ? t('common.yes') : t('common.no'),
+        Number(e.amount).toFixed(2),
+        e.note ?? '',
+      ]);
+    });
+
+    payments.data?.forEach((p) => {
+      const d = new Date(p.paid_at);
+      if (d >= monthStart && d <= monthEnd) {
+        rows.push([
+          format(d, 'yyyy-MM-dd'),
+          t('ofinance.income'),
+          t('ofinance.casePayments'),
+          t('ofinance.casePayments'),
+          t('common.no'),
+          Number(p.amount).toFixed(2),
+          '',
+        ]);
+      }
+    });
+
+    rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+
+    // Özet satırları — muhasebecinin doğrudan görebilmesi için en alta.
+    rows.push([]);
+    rows.push(['', '', '', t('ofinance.income'), '', incomeTotal.toFixed(2), '']);
+    rows.push(['', '', '', t('ofinance.expense'), '', expenseTotal.toFixed(2), '']);
+    rows.push(['', '', '', t('ofinance.net'), '', net.toFixed(2), '']);
+
+    const csv = toCsv(
+      [
+        t('ofinance.exp.date'),
+        t('ofinance.exp.kind'),
+        t('ofinance.exp.category'),
+        t('ofinance.exp.title'),
+        t('ofinance.exp.recurring'),
+        t('ofinance.exp.amount'),
+        t('ofinance.exp.note'),
+      ],
+      rows
+    );
+
+    if (rows.length <= 4) {
+      Alert.alert(t('ofinance.title'), t('ofinance.exp.empty'));
+      return;
+    }
+    const ok = await shareCsv(`gelir-gider-${monthLabel}`, csv, t('ofinance.exp.shareTitle'));
+    if (!ok) Alert.alert(t('ofinance.title'), t('ofinance.exp.failed'));
+  };
+
   // Alıcı geri bildirimi: kaleme basınca doğrudan "sil" çıkıyordu; artık önce
   // Düzenle / Sil seçtiriyor (tekrarlıysa "aydan sonra durdur" da var).
   const openEditor = (entry: FinanceEntry) => {
@@ -166,7 +231,7 @@ export default function FinanceScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title={t('ofinance.title')} showBack />
+      <ScreenHeader title={t('ofinance.title')} showBack rightIcon="download-outline" onRightPress={handleExport} />
       <ScrollView contentContainerStyle={styles.content}>
         {needsSetup && (
           <View style={styles.errorBox}>
