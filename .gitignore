@@ -48,3 +48,5 @@ __pycache__/
 .pytest_cache/
 ko-macro/python/config.yaml
 ko-macro/python/spawns.json
+ko-macro/python/build/
+ko-macro/python/dist/

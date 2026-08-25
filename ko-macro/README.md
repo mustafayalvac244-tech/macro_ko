@@ -106,6 +106,24 @@ kendi saati belirler — 1 ms çözünürlükle.
 
 ## Kurulum
 
+> Hiç programlama bilmiyorsan **[KURULUM.md](./KURULUM.md)** dosyasını oku —
+> sıfırdan adım adım anlatıyor. Aşağısı özet.
+
+### Hazır exe
+
+Python kurmadan kullanmak için:
+
+- **GitHub derlesin:** depoda **Actions → "ko-macro exe" → Run workflow**.
+  Bitince çalışmanın altındaki **Artifacts → ko-macro-windows** paketini indir.
+- **Kendin derle:** `ko-macro/python/derle.bat` dosyasına çift tıkla
+  (Python 3.10+ gerekir). Sonuç `dist/ko-macro.exe`.
+
+Exe ilk çalıştığında yanına bir `config.yaml` oluşturur; ayarları oradan
+yaparsın. Kayıtlar (`spawns.json`) da exe'nin yanında durur.
+
+> PyInstaller çapraz derleme yapmaz — Windows exe'si Windows'ta derlenmek
+> zorunda. GitHub Actions bunu bir Windows makinesinde yapıyor.
+
 ### 1. Leonardo'ya firmware yükle
 
 1. Arduino IDE'yi aç, `arduino/ko_hid_bridge/ko_hid_bridge.ino` dosyasını yükle.
@@ -457,7 +475,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 156 test
+cd python && python -m pytest tests -q      # 164 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 
@@ -476,7 +494,12 @@ arduino/
   test/                             PC'de çalışan firmware testleri
 
 python/
+  main.py           exe giriş noktası
+  ko-macro.spec     PyInstaller yapılandırması
+  derle.bat         tek tıkla exe derleme (Windows)
+  baslat.bat        exe'yi başlatan kısayol
   ko_macro/
+    paths.py        kaynak/exe yol çözümlemesi
     transport.py    Leonardo / yazılımsal / kuru mod taşıma katmanları
     sequence.py     combo motoru (jitter, burst, cooldown)
     farm.py         hedef seç → vur → öldüğünü gör → yağmala döngüsü

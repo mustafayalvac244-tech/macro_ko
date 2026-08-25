@@ -1,0 +1,84 @@
+name: ko-macro exe
+
+# ko-macro.exe'yi GitHub'ın Windows makinesinde derler.
+# Elle çalıştırmak için: Actions sekmesi -> "ko-macro exe" -> "Run workflow".
+# Bittiğinde exe, çalışmanın altındaki "Artifacts" bölümünden indirilir.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ko-macro/python/**"
+      - ".github/workflows/build-exe.yml"
+  pull_request:
+    paths:
+      - "ko-macro/python/**"
+
+jobs:
+  test:
+    name: Testler
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Bağımlılıklar
+        working-directory: ko-macro/python
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml pyserial rich pytest
+
+      - name: Python testleri
+        working-directory: ko-macro/python
+        run: python -m pytest tests -q
+
+      - name: Firmware testleri
+        run: ko-macro/arduino/test/run_tests.sh
+
+  build:
+    name: Windows exe
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Bağımlılıklar
+        working-directory: ko-macro/python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Derle
+        working-directory: ko-macro/python
+        run: python -m PyInstaller ko-macro.spec --noconfirm --clean
+
+      - name: Paketi hazırla
+        working-directory: ko-macro/python
+        shell: pwsh
+        run: |
+          Copy-Item config.example.yaml dist/config.yaml
+          Copy-Item baslat.bat dist/
+          Copy-Item ../README.md dist/OKUBENI.md
+          Copy-Item ../KURULUM.md dist/KURULUM.md
+
+      - name: Exe çalışıyor mu
+        working-directory: ko-macro/python/dist
+        run: |
+          ./ko-macro.exe --version
+          ./ko-macro.exe profiles
+          ./ko-macro.exe combos -c config.yaml
+
+      - name: Yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ko-macro-windows
+          path: ko-macro/python/dist/
+          retention-days: 30

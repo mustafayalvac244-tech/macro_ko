@@ -14,9 +14,7 @@ from typing import Any
 
 from .autocast import AutoCastRule
 from .keys import normalize_button, normalize_key
-
-PACKAGE_ROOT = Path(__file__).resolve().parent
-PROFILE_DIR = PACKAGE_ROOT.parent / "profiles"
+from .paths import profile_dir
 
 
 class ConfigError(ValueError):
@@ -567,9 +565,10 @@ def read_yaml(path: str | Path) -> dict[str, Any]:
 
 def available_profiles() -> list[str]:
     """``profiles/`` altındaki sınıf profillerinin adları."""
-    if not PROFILE_DIR.is_dir():
+    directory = profile_dir()
+    if not directory.is_dir():
         return []
-    return sorted(p.stem for p in PROFILE_DIR.glob("*.yaml"))
+    return sorted(path.stem for path in directory.glob("*.yaml"))
 
 
 def load_config(path: str | Path) -> AppConfig:
@@ -581,7 +580,7 @@ def load_config(path: str | Path) -> AppConfig:
     raw = read_yaml(path)
     profile_name = raw.get("profile")
     if profile_name:
-        profile_path = PROFILE_DIR / f"{profile_name}.yaml"
+        profile_path = profile_dir() / f"{profile_name}.yaml"
         if not profile_path.is_file():
             raise ConfigError(
                 f"profil bulunamadı: {profile_name!r} "

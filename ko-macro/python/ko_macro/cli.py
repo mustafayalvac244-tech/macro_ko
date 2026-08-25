@@ -15,6 +15,7 @@ from pathlib import Path
 from . import __version__
 from .config import AppConfig, ConfigError, available_profiles, load_config
 from .dashboard import render_plain, watch
+from .paths import find_user_file, resource_dir
 from .sequence import describe_combo
 from .spawn import SpawnBook, SpawnError, SpawnPoint, format_eta
 from .transport import SerialHidTransport, TransportError, create_transport
@@ -30,8 +31,29 @@ def _setup_logging(verbose: bool) -> None:
     )
 
 
+def _ensure_config(name: str) -> Path:
+    """Config dosyasını bulur; hiç yoksa örnekten bir tane oluşturur.
+
+    Exe olarak dağıtıldığında kullanıcının elle dosya kopyalamasını
+    beklememek için ilk çalıştırmada örnek config yanına açılır.
+    """
+    path = find_user_file(name)
+    if path.is_file():
+        return path
+
+    example = resource_dir() / "config.example.yaml"
+    if not example.is_file():
+        raise ConfigError(f"config dosyası yok: {path}")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
+    print(f"İlk çalıştırma: örnek ayarlar {path} olarak oluşturuldu.")
+    print("Tuş dizilimini ve bar koordinatlarını buradan düzenle.\n")
+    return path
+
+
 def _load(args: argparse.Namespace) -> AppConfig:
-    config = load_config(args.config)
+    config = load_config(_ensure_config(args.config))
     if getattr(args, "dry_run", False):
         config.transport.kind = "dry-run"
     if getattr(args, "port", None):
@@ -43,7 +65,8 @@ def _book(args: argparse.Namespace, config: AppConfig | None = None) -> SpawnBoo
     path = getattr(args, "spawn_file", None)
     if not path:
         path = config.spawn_file if config else "spawns.json"
-    return SpawnBook(path).load()
+    # Kayıtlar exe'nin yanında dursun, geçici klasörde değil.
+    return SpawnBook(find_user_file(str(path))).load()
 
 
 # ------------------------------------------------------------------- komutlar
