@@ -246,6 +246,15 @@ class FarmConfig:
     stall_seconds: float = 4.0
     #: Hedef barı okuma sıklığı.
     poll_ms: int = 100
+    #: Hedefin canı bu yüzdenin altındaysa taze sayılmaz ve atlanır.
+    #: Tab en yakındakini seçtiği için ceset (bar boş) ve başkasının dövdüğü
+    #: mob (bar yarım) buradan eleniyor. 0 = eleme yapma.
+    min_target_hp_pct: float = 90.0
+    #: Kaç başarısız Tab denemesinden sonra karakter çevrilsin.
+    turn_after_attempts: int = 2
+    #: Mob öldükten sonra Tab'a basmadan önce beklenecek süre — ceset bir an
+    #: daha seçilebilir kaldığı için hemen basmak yine cesedi seçtirir.
+    post_kill_delay_ms: int = 250
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "FarmConfig":
@@ -272,11 +281,18 @@ class FarmConfig:
             search_attempts=int(raw.get("search_attempts", 6)),
             stall_seconds=float(raw.get("stall_seconds", 4.0)),
             poll_ms=int(raw.get("poll_ms", 100)),
+            min_target_hp_pct=float(raw.get("min_target_hp_pct", 90.0)),
+            turn_after_attempts=int(raw.get("turn_after_attempts", 2)),
+            post_kill_delay_ms=int(raw.get("post_kill_delay_ms", 250)),
         )
         if farm.engage_seconds <= 0:
             raise ConfigError("engage_seconds pozitif olmalı")
         if farm.search_attempts < 1:
             raise ConfigError("search_attempts en az 1 olmalı")
+        if not 0 <= farm.min_target_hp_pct <= 100:
+            raise ConfigError("min_target_hp_pct 0-100 arasında olmalı")
+        if farm.turn_after_attempts < 1:
+            raise ConfigError("turn_after_attempts en az 1 olmalı")
         return farm
 
 

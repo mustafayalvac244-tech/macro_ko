@@ -35,8 +35,11 @@ def status_lines(status: dict[str, Any]) -> list[str]:
         f"can/mana  : {_pct(status.get('hp_pct'))} / {_pct(status.get('mp_pct'))}"
         f"   hedef: {_pct(status.get('target_hp_pct'))}",
         f"farm      : {status.get('farm_kills', 0)} kill / {status['farm_cycles']} tur"
-        f"   {status['kills_per_hour']:.0f} kill/saat"
-        f"   boş: {status.get('farm_misses', 0)}  bırakılan: {status.get('farm_abandoned', 0)}",
+        f"   {status['kills_per_hour']:.0f} kill/saat",
+        f"eleme     : boş {status.get('farm_misses', 0)}"
+        f"   yarım canlı {status.get('farm_skipped', 0)}"
+        f"   menzil dışı {status.get('farm_abandoned', 0)}"
+        f"   kesilen combo {status.get('farm_cut_short', 0)}",
         f"süre      : {uptime // 60}d {uptime % 60:02d}s",
     ] + _autocast_lines(status) + (
         [f"hata      : {status['error']}"] if status.get("error") else []

@@ -262,6 +262,59 @@ Tanımlamazsan `engage_seconds` kadar körlemesine vurur ve öldüğünü varsay
 
 ---
 
+## Tek bölgede farm (harpy, kekoit vb.)
+
+Karakteri mob alanının ortasına götür, orada dur, F9'a bas. Makro yürümez —
+etrafındakini keser, sen nereye park ettiysen orada kalır.
+
+```yaml
+farm:
+  enabled: true
+  combo: "farm"
+  target_bar: { x0: 700, x1: 900, y: 60, color: [190, 40, 40], tolerance: 60 }
+  min_target_hp_pct: 90
+  post_kill_delay_ms: 250
+  stall_seconds: 4.0
+```
+
+### Tab'ın yanlış hedef seçmesi
+
+Tab **en yakındakini** seçer. Bu üç sorunu doğurur ve üçü de çözülü:
+
+| Sorun | Çözüm |
+| --- | --- |
+| Öldürdüğün mobun **cesedi** hâlâ en yakında, Tab onu seçiyor | Ölümden sonra `post_kill_delay_ms` kadar beklenir; sonra bar boş çıkarsa hedef reddedilip Tab'a tekrar basılır |
+| Başkasının dövdüğü **yarım canlı** mobu seçiyor | Canı `min_target_hp_pct` altındaki hedef atlanır — taze mobun canı doludur |
+| Menzil dışındaki mobu seçip boşa vuruyor | `stall_seconds` boyunca bar düşmezse hedef bırakılır |
+
+Yine de birkaç Tab boşa giderse (`turn_after_attempts`) karakter biraz
+çevrilip tekrar denenir.
+
+### Mob ölünce cesedine skill atma sorunu
+
+Klasik makro derdi: mob ölür, makro combonun kalanını cesedine boşaltır.
+
+Burada iki katmanlı bir kesme var:
+
+- **Adımlar arasında** — her skill'den önce hedef barına bakılır.
+- **Combo Leonardo'da çalışırken** — burst kipinde adımlar mikrodenetleyicinin
+  kuyruğunda olduğu için PC araya giremez. Ayrı bir izleyici barı okur ve ölümü
+  görünce firmware'e **iptal baytı** yollar (`A`); kuyruk o anda durur.
+
+Yani harpy birinci skill'de ölürse ikinci skill çıkmaz. Panoda `kesilen combo`
+sayacı bunu kaç kez yaptığını gösterir.
+
+### Neyi yapamaz
+
+**Harpy'yi diğer moblardan ayırt edemez.** Tab ne seçerse ona vurur. Tek tip
+mobun olduğu bir noktada durursan sorun olmaz; karışık bir alandaysan yanlış
+mobu da döver. Mob adını okumak hafıza erişimi gerektirir, bu proje yapmaz.
+
+Aynı sebeple **oyuncuyu da mobdan ayıramaz** — canı dolu bir oyuncu Tab'la
+seçilirse ona vurur.
+
+---
+
 ## Kullanım
 
 ```bash
@@ -477,7 +530,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 185 test
+cd python && python -m pytest tests -q      # 195 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 

@@ -384,6 +384,8 @@ class MacroEngine:
             "farm_kills": stats.kills,
             "farm_misses": stats.misses,
             "farm_abandoned": stats.abandoned,
+            "farm_skipped": stats.skipped,
+            "farm_cut_short": stats.cut_short,
             "target_hp_pct": (
                 self.farm.target.state.hp_pct if self.farm.target is not None else None
             ),

@@ -67,6 +67,8 @@ vitals:
     tolerance: 60
   pause_combo_below_hp: 25  # bu yüzdenin altında combo bekletilir
 
+# Tek bir bölgede tek tip mob kesme (harpy, kekoit vb.) için örnek.
+# Karakteri harpy alanının ortasına götür, orada dur ve F9'a bas.
 farm:
   enabled: false
   combo: "farm"
@@ -79,8 +81,15 @@ farm:
   search_turn_key: right    # hedef bulunamazsa bu tuşla dönüp tekrar dene
   search_turn_ms: 220
   search_attempts: 6
-  stall_seconds: 4.0        # bu süre hasar girmezse hedefi bırak
+  turn_after_attempts: 2    # 2 boş Tab'dan sonra çevir
+  stall_seconds: 4.0        # bu süre hasar girmezse hedefi bırak (menzil dışı)
   spawn_point: null         # doğuş defterine yazılacak nokta (örn. "kekoit")
+
+  # --- Tab'ın yanlış hedef seçmesine karşı ---
+  # Tab en yakındakini seçer: bu, az önce öldürdüğün CESET ya da başkasının
+  # dövdüğü YARIM CANLI mob olabilir. Taze mobun canı doludur, eleme buradan.
+  min_target_hp_pct: 90     # canı %90'ın altındaysa atla, Tab'a tekrar bas
+  post_kill_delay_ms: 250   # ceset seçilebilir kalıyor, Tab'dan önce bekle
   # Hedef can barı: tanımlanırsa döngü kör çalışmaz - mob öldüğü anda anlar.
   # target_bar:
   #   x0: 700

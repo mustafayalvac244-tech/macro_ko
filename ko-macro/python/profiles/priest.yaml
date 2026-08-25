@@ -123,6 +123,8 @@ farm:
   loot_key: "z"
   engage_seconds: 14
   stall_seconds: 5.0
+  min_target_hp_pct: 90
+  post_kill_delay_ms: 250
   # target_bar: { x0: 700, x1: 900, y: 60, color: [190, 40, 40], tolerance: 60 }
 
 vitals:

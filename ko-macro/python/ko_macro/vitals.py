@@ -25,19 +25,26 @@ class ScreenSampler(Protocol):
 
 
 class MSSSampler:
-    """``mss`` ile gerçek ekran görüntüsünden örnek alır."""
+    """``mss`` ile gerçek ekran görüntüsünden örnek alır.
+
+    ``mss`` nesneleri iş parçacıkları arasında paylaşılamaz, o yüzden her
+    thread kendi örneğini tutar. Combo çalışırken hedefi ayrı bir thread
+    izlediği için bu gerekli.
+    """
 
     def __init__(self) -> None:
-        self._mss = None
+        self._local = threading.local()
 
     def _backend(self):
-        if self._mss is None:
+        backend = getattr(self._local, "mss", None)
+        if backend is None:
             try:
                 import mss
             except ImportError as exc:  # pragma: no cover - ortama bağlı
                 raise RuntimeError("mss kurulu değil: pip install mss") from exc
-            self._mss = mss.mss()
-        return self._mss
+            backend = mss.mss()
+            self._local.mss = backend
+        return backend
 
     def sample_row(self, x0: int, x1: int, y: int, count: int) -> list[tuple[int, int, int]]:
         width = max(1, x1 - x0 + 1)

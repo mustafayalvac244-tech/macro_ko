@@ -172,7 +172,11 @@ farm:
   retarget_delay_ms: 350
   search_turn_key: "right"
   search_turn_ms: 220
+  turn_after_attempts: 2
   stall_seconds: 4.0
+  # Tab en yakındakini seçer; ceset ve başkasının yarım canlı mobu elenir.
+  min_target_hp_pct: 90
+  post_kill_delay_ms: 250
   # Hedef can barının ekrandaki yeri — `vitals` bölümündeki gibi ayarlanır.
   # Tanımlanmazsa döngü kör çalışır (süreye göre öldü varsayar).
   # target_bar: { x0: 700, x1: 900, y: 60, color: [190, 40, 40], tolerance: 60 }

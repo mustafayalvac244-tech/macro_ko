@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -30,14 +31,74 @@ ALWAYS: Callable[[], bool] = lambda: True
 
 
 @dataclass
+class KillWatcher:
+    """Combo çalışırken hedefi izler, ölünce comboyu **anında** keser.
+
+    Neden ayrı bir izleyici gerekiyor: combo adımları tek seferde Leonardo'nun
+    kuyruğuna yüklenip mikrodenetleyicide çalışıyor. Kuyruk çalışırken PC
+    adımların arasına giremez — mob ilk skill'de ölse bile kalan skill'ler
+    cesedine giderdi. Bu izleyici barı ayrı bir thread'den okur ve ölümü
+    görünce firmware'e iptal baytı yollar (``transport.abort``); kuyruk o anda
+    durur, basılı tuşlar bırakılır.
+    """
+
+    target: TargetMonitor
+    transport: Transport
+    clock: Clock
+    poll_s: float = 0.1
+
+    triggered: bool = field(default=False, init=False)
+    _stop: threading.Event = field(default_factory=threading.Event, init=False)
+    _thread: threading.Thread | None = field(default=None, init=False)
+
+    def poll_once(self) -> bool:
+        """Bir kez bakar. Hedef öldüyse comboyu keser ve ``True`` döner."""
+        if self.triggered:
+            return True
+        state = self.target.read(self.clock.monotonic())
+        if state.alive:
+            return False
+        self.triggered = True
+        self.transport.abort()
+        log.debug("hedef düştü, combo kesildi")
+        return True
+
+    def _loop(self) -> None:
+        while not self._stop.wait(self.poll_s):
+            try:
+                if self.poll_once():
+                    return
+            except Exception as exc:  # ekran okuma hatası combo'yu düşürmesin
+                log.warning("hedef izlenemedi: %s", exc)
+                return
+
+    def __enter__(self) -> "KillWatcher":
+        self.triggered = False
+        self._stop.clear()
+        self._thread = threading.Thread(
+            target=self._loop, name="ko-kill-watcher", daemon=True
+        )
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+        self._thread = None
+
+
+@dataclass
 class FarmStats:
     """Döngü sayaçları."""
 
     cycles: int = 0
     kills: int = 0
     combos: int = 0
-    misses: int = 0        # hedef bulunamayan turlar
+    misses: int = 0        # taze hedef bulunamayan turlar
     abandoned: int = 0     # hasar girmediği için bırakılan hedefler
+    skipped: int = 0       # yarım canlı olduğu için atlanan hedefler
+    cut_short: int = 0     # hedef ölünce yarıda kesilen combolar
     started_at: float = 0.0
     stopped_at: float | None = None
 
@@ -102,17 +163,26 @@ class FarmLoop:
     # ---------------------------------------------------------------- hedefleme
 
     def acquire_target(self, should_continue: Callable[[], bool] = ALWAYS) -> bool:
-        """Hedef seçer.
+        """Taze bir hedef seçer.
 
-        Bar okuyucusu varsa hedefin gerçekten seçildiği doğrulanır; seçilmezse
-        karakter çevrilip yeniden denenir. Okuyucu yoksa Tab'a basıp geçer.
+        Tab en yakındakini seçer; bu da az önce öldürdüğün **ceset** ya da
+        başkasının dövdüğü **yarım canlı** mob olabilir. İkisini de canından
+        ayırt ediyoruz: taze mobun canı doludur.
+
+        * bar hiç yok / boş  → ceset ya da hedef yok, Tab'a tekrar bas
+        * bar ``min_target_hp_pct``'in altında → başkasının mobu, atla
+        * bar dolu → kabul
+
+        Birkaç denemede taze hedef çıkmazsa karakter çevrilip tekrar denenir.
         """
         attempts = self.config.search_attempts if self.target is not None else 1
+        threshold = self.config.min_target_hp_pct / 100.0
 
         for attempt in range(attempts):
             if not should_continue():
                 return False
-            if attempt > 0:
+            # İlk birkaç denemede sadece Tab'la sıradakine geç; olmuyorsa çevir.
+            if attempt > 0 and attempt % self.config.turn_after_attempts == 0:
                 self._turn()
 
             self.transport.tap(self.config.target_key, 45)
@@ -123,17 +193,29 @@ class FarmLoop:
 
             # Hedef barının belirmesini bekle.
             deadline = self.clock.monotonic() + self.config.acquire_timeout_ms / 1000.0
+            state = None
             while self.clock.monotonic() < deadline:
                 if not should_continue():
                     return False
                 state = self._read_target()
                 if state is not None and state.alive:
-                    self.damage.reset(self.clock.monotonic())
-                    return True
+                    break
                 self._sleep_ms(self.config.poll_ms)
 
+            if state is None or not state.alive:
+                continue  # ceset ya da hedef yok
+
+            if state.hp_pct < threshold:
+                # Yarım canlı: başkası dövüyor ya da az önce vurduğumuz mob.
+                self.stats.skipped += 1
+                log.debug("yarım canlı hedef atlandı (%%%.0f)", state.hp_pct * 100)
+                continue
+
+            self.damage.reset(self.clock.monotonic())
+            return True
+
         self.stats.misses += 1
-        log.debug("hedef bulunamadı (%d deneme)", attempts)
+        log.debug("taze hedef bulunamadı (%d deneme)", attempts)
         return False
 
     # ------------------------------------------------------------------ saldırı
@@ -147,17 +229,12 @@ class FarmLoop:
         deadline = self.clock.monotonic() + self.config.engage_seconds
         killed = False
 
-        # Combo turları arasında hedefin hâlâ ayakta olduğunu da kontrol et:
-        # mob düştüyse kalan adımları boşa harcamanın anlamı yok.
-        def keep_going() -> bool:
-            if not should_continue():
-                return False
-            return self.target_is_alive()
-
         while self.clock.monotonic() < deadline and should_continue():
             if self.combo is not None and self.runner.is_ready(self.combo):
-                self.runner.run(self.combo, should_continue=keep_going)
+                killed = self._run_combo_watching_target(should_continue) or killed
                 self.stats.combos += 1
+                if killed:
+                    break
             else:
                 self._attack_once()
                 self.clock.sleep(self.config.poll_ms / 1000.0)
@@ -181,6 +258,40 @@ class FarmLoop:
             # Kör kipte ölümü göremeyiz; süre dolduysa öldü varsayılır.
             return self.clock.monotonic() >= deadline
         return killed
+
+    def _run_combo_watching_target(self, should_continue: Callable[[], bool]) -> bool:
+        """Comboyu çalıştırır; hedef ölürse yarıda keser. Öldüyse ``True``.
+
+        İki katmanlı kontrol var:
+
+        * **Senkron** — adımlar/parçalar arasında ``poll_once`` çağrılır. Tek
+          tek gönderilen combolarda her skill'den önce bakılır.
+        * **Arka plan** — burst kipinde combo Leonardo'da çalışırken PC
+          adımların arasına giremez; izleyici thread barı okuyup firmware'e
+          iptal baytı yollar.
+        """
+        assert self.combo is not None
+        if self.target is None:
+            self.runner.run(self.combo, should_continue=should_continue)
+            return False
+
+        watcher = KillWatcher(
+            target=self.target,
+            transport=self.transport,
+            clock=self.clock,
+            poll_s=max(0.02, self.config.poll_ms / 1000.0),
+        )
+
+        def keep_going() -> bool:
+            if not should_continue():
+                return False
+            return not watcher.poll_once()
+
+        with watcher:
+            self.runner.run(self.combo, should_continue=keep_going)
+        if watcher.triggered:
+            self.stats.cut_short += 1
+        return watcher.triggered
 
     def loot(self) -> None:
         """Yağmalama tuşuna birkaç kez basar."""
@@ -212,6 +323,9 @@ class FarmLoop:
             self.stats.kills += 1
             if self.on_kill is not None:
                 self.on_kill()
+            # Ceset bir süre daha seçilebilir kalıyor; hemen Tab'a basmak onu
+            # yeniden seçtirir. Kısa bir bekleme bunu engelliyor.
+            self._sleep_ms(self.config.post_kill_delay_ms)
         return True
 
     def run(
