@@ -77,14 +77,19 @@ def cmd_profiles(args: argparse.Namespace) -> int:
 
 
 def cmd_combos(args: argparse.Namespace) -> int:
-    """Config'deki comboları ve kısayollarını gösterir."""
+    """Comboları, yardımcı makroları, kısayolları ve otomatik kuralları gösterir."""
+    from .utility import build_utility_combos
+
     config = _load(args)
-    if not config.combos:
+    utilities = build_utility_combos(config.utility)
+    if not config.combos and not utilities:
         print("tanımlı combo yok")
         return 1
-    width = max(len(combo.name) for combo in config.combos)
-    for combo in config.combos:
-        hotkey = combo.hotkey or "-"
+
+    names = [combo.name for combo in config.combos] + list(utilities)
+    width = max(len(name) for name in names)
+
+    def show(combo, hotkey: str) -> None:
         print(f"{combo.name.ljust(width)}  [{hotkey:>5}]  {describe_combo(combo, config.skillbar)}")
         if combo.description:
             print(f"{' ' * width}          {combo.description}")
@@ -92,15 +97,52 @@ def cmd_combos(args: argparse.Namespace) -> int:
             f"{' ' * width}          süre ~{combo.duration_ms()} ms"
             f", cooldown {combo.cooldown_ms} ms"
         )
+
+    for combo in config.combos:
+        show(combo, combo.hotkey or "-")
+
+    if utilities:
+        print("\n-- yardımcı makrolar --")
+        for name, combo in utilities.items():
+            show(combo, config.utility.hotkeys.get(name, "-"))
+
+    if config.autocast:
+        print("\n-- otomatik (autocast) --")
+        for rule in config.autocast:
+            trigger = []
+            if rule.every_s > 0:
+                trigger.append(f"her {rule.every_s:.0f}s")
+            if rule.when_hp_below is not None:
+                trigger.append(f"can <%{rule.when_hp_below:.0f}")
+            if rule.when_mp_below is not None:
+                trigger.append(f"mana <%{rule.when_mp_below:.0f}")
+            if rule.only_when_farming:
+                trigger.append("sadece farmda")
+            state = "" if rule.enabled else "  (kapalı)"
+            action = rule.combo or f"tuş:{rule.key}"
+            print(f"{rule.name.ljust(width)}  → {action}  ({', '.join(trigger)}){state}")
     return 0
 
 
+def _find_any_combo(config: AppConfig, name: str):
+    """Adı önce combolarda, sonra yardımcı makrolarda arar."""
+    from .utility import build_utility_combos
+
+    return config.find_combo(name) or build_utility_combos(config.utility).get(name)
+
+
 def cmd_test(args: argparse.Namespace) -> int:
-    """Tek bir comboyu çalıştırır (varsayılan: kuru mod)."""
+    """Tek bir comboyu ya da yardımcı makroyu çalıştırır."""
     config = _load(args)
-    combo = config.find_combo(args.combo)
+    combo = _find_any_combo(config, args.combo)
     if combo is None:
+        from .utility import build_utility_combos
+
+        known = sorted(
+            [c.name for c in config.combos] + list(build_utility_combos(config.utility))
+        )
         print(f"combo bulunamadı: {args.combo}", file=sys.stderr)
+        print(f"tanımlı olanlar: {', '.join(known) or 'yok'}", file=sys.stderr)
         return 1
 
     from .clock import RealClock

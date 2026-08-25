@@ -136,12 +136,30 @@ def test_kill_callback_fires_once_per_kill():
 def test_combo_is_used_when_ready():
     combo = Combo(name="farm", steps=[ComboStep(skill="nuke", hold_ms=10, gap_ms=10)],
                   cooldown_ms=0, burst=False)
-    sampler = ScriptedSampler([1.0, 0.3, 0.0])
+    sampler = ScriptedSampler([1.0, 0.8, 0.7, 0.6, 0.4, 0.0])
     loop, transport, _ = build(farm_config(), sampler=sampler, combo=combo)
 
     loop.cycle()
     assert any(action.target == "1" for action in transport.actions)
     assert loop.stats.combos >= 1
+
+
+def test_combo_aborts_when_target_dies_mid_sequence():
+    # Uzun bir combo: hedef ikinci adımdan önce düşerse kalan adımlar
+    # boşa harcanmamalı.
+    combo = Combo(
+        name="farm",
+        steps=[ComboStep(skill="nuke", hold_ms=10, gap_ms=10, repeat=6)],
+        cooldown_ms=0,
+        burst=False,
+    )
+    sampler = ScriptedSampler([1.0, 0.9, 0.0])
+    loop, transport, _ = build(farm_config(), sampler=sampler, combo=combo)
+
+    loop.cycle()
+    presses = [a for a in transport.actions if a.kind == "tap" and a.target == "1"]
+    assert len(presses) < 6
+    assert loop.stats.kills == 1
 
 
 def test_run_honours_max_cycles():

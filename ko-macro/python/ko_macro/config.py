@@ -305,6 +305,24 @@ class UtilityConfig:
     #: Ekipman setleri: ad -> tuş dizisi.
     equipment_sets: dict[str, list[str]] = field(default_factory=dict)
     equipment_speed_ms: int = 180
+    #: Yardımcı makro adı -> kısayol tuşu (örn. {"repair": "f7"}).
+    hotkeys: dict[str, str] = field(default_factory=dict)
+
+    def available_names(self) -> set[str]:
+        """Config'de gerçekten tanımlı olan yardımcı makroların adları.
+
+        ``autocast`` ve kısayol doğrulaması buna bakar; böylece olmayan bir
+        makroya kural yazıldığında hata çalışma anında değil yüklemede çıkar.
+        """
+        names: set[str] = set()
+        if self.upgrade_keys:
+            names.add("upgrade")
+        if self.repair_keys:
+            names.add("repair")
+        if self.descent_key:
+            names.add("descent")
+        names.update(f"equip:{name}" for name in self.equipment_sets)
+        return names
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "UtilityConfig":
@@ -329,6 +347,10 @@ class UtilityConfig:
             descent_key=normalize_key(raw["descent_key"]) if raw.get("descent_key") else None,
             equipment_sets=sets,
             equipment_speed_ms=int(raw.get("equipment_speed_ms", 180)),
+            hotkeys={
+                str(name): normalize_key(key)
+                for name, key in (raw.get("hotkeys") or {}).items()
+            },
         )
 
 
@@ -466,13 +488,40 @@ class AppConfig:
         if clashing:
             raise ConfigError(f"aynı hotkey birden fazla comboda: {', '.join(sorted(clashing))}")
 
+        utility_names = self.utility.available_names()
         for rule in self.autocast:
             if rule.combo and self.find_combo(rule.combo) is None:
-                raise ConfigError(
-                    f"autocast kuralı {rule.name!r} tanımsız bir comboyu gösteriyor: {rule.combo!r}"
-                )
+                if rule.combo not in utility_names:
+                    known = sorted({combo.name for combo in self.combos} | utility_names)
+                    raise ConfigError(
+                        f"autocast kuralı {rule.name!r} tanımsız bir comboyu gösteriyor: "
+                        f"{rule.combo!r} (tanımlı: {', '.join(known) or 'yok'})"
+                    )
             if rule.key:
                 rule.key = normalize_key(rule.key)
+
+        # Kontrol kısayolları da doluysa çakışma sayılır; yoksa yardımcı makro
+        # sessizce bağlanamadan kalırdı.
+        control_keys = {
+            key
+            for key in (
+                self.hotkeys.start_stop,
+                self.hotkeys.panic,
+                self.hotkeys.mark_kill,
+                self.hotkeys.toggle_farm,
+            )
+            if key
+        }
+        for name, key in self.utility.hotkeys.items():
+            if name not in utility_names:
+                raise ConfigError(
+                    f"utility.hotkeys tanımsız bir makroyu gösteriyor: {name!r} "
+                    f"(tanımlı: {', '.join(sorted(utility_names)) or 'yok'})"
+                )
+            if key in hotkeys:
+                raise ConfigError(f"utility kısayolu bir comboyla çakışıyor: {key}")
+            if key in control_keys:
+                raise ConfigError(f"utility kısayolu bir kontrol tuşuyla çakışıyor: {key}")
 
         if any(combo.restore_stance for combo in self.combos) and not self.stance_key:
             raise ConfigError(

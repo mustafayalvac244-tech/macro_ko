@@ -154,6 +154,12 @@ autocast:
     combo: "m20"
     when_hp_below: 55     # ekrandan okunan gerçek can
     enabled: false        # vitals ayarlanınca aç
+  # Otomatik tamir/descent için önce utility.repair_keys / descent_key doldur,
+  # sonra config.yaml'a şunu ekle:
+  #   autocast:
+  #     - { name: oto-tamir, combo: "repair", every_s: 900 }
+  #     - { name: oto-descent, combo: "descent", every_s: 300 }
+  # (autocast listesi tamamen değiştirilir, yukarıdakileri de yaz.)
 
 farm:
   enabled: false

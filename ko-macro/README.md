@@ -45,6 +45,7 @@ Piyasadaki pedal/makro programlarının özellik listesine göre nerede duruyoru
 | Mana çekme (yürüme/koşma) | ✅ | `mana-pull`, `mana-pull-run` |
 | Z duruşundan çıkma düzeltmesi | ✅ | `restore_stance` + `stance_key` |
 | Adımlar arası minimum gecikme | ✅ | firmware kuyruğu, 1 ms çözünürlük |
+| Gelişmiş hedef takibi | ✅ | hedef barı okuma; mob düşünce combo kesilir |
 
 ### Priest
 
@@ -68,9 +69,9 @@ Piyasadaki pedal/makro programlarının özellik listesine göre nerede duruyoru
 | Tek tuşla başlat/durdur | ✅ | F9 / F12 |
 | Upgrade makrosu (hız ayarlı) | ✅ | `utility.upgrade_*` |
 | Anti-AFK mob tıklama | ✅ | `utility.anti_afk_*` |
-| Otomatik Descent | ✅ | `autocast` |
+| Otomatik Descent | ✅ | `utility.descent_key` + `autocast` |
 | Magic Hammer tamir | ✅ | `utility.repair_*` + `autocast` |
-| Ekipman değiştirme | ✅ | `utility.equipment_sets` |
+| Ekipman değiştirme | ✅ | `utility.equipment_sets` + kısayol |
 
 **⚠️ işaretliler neden tam değil:** oyunun durumunu okumadığımız için
 "parazit yedin mi", "stun yedin mi" gibi sorulara cevap veremeyiz. Bu kurallar
@@ -381,7 +382,25 @@ utility:
   equipment_sets:
     pvp:  ["f1", "f2"]
     farm: ["f3", "f4"]
+  hotkeys:                           # kısayola bağla
+    repair: "home"
+    upgrade: "insert"
 ```
+
+Üç şekilde tetiklenir:
+
+- **Kısayolla** — `utility.hotkeys` (combo ve kontrol tuşlarıyla çakışamaz,
+  çakışırsa config yüklenirken hata verir)
+- **Otomatik** — `autocast` kuralı adı doğrudan kullanabilir:
+  ```yaml
+  autocast:
+    - { name: oto-tamir,   combo: "repair",  every_s: 900 }
+    - { name: oto-descent, combo: "descent", every_s: 300, only_when_farming: true }
+  ```
+- **Elle** — `python -m ko_macro test repair`
+
+`python -m ko_macro combos` combolarla birlikte yardımcı makroları ve
+autocast kurallarını da listeler.
 
 ---
 
@@ -438,7 +457,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 124 test
+cd python && python -m pytest tests -q      # 156 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 

@@ -87,6 +87,12 @@ class FarmLoop:
             return None
         return self.target.read(self.clock.monotonic())
 
+    def target_is_alive(self) -> bool:
+        """Hedef hâlâ ayakta mı? Bar okuyucusu yoksa ``True`` varsayılır."""
+        if self.target is None:
+            return True
+        return self.target.read(self.clock.monotonic()).alive
+
     def _attack_once(self) -> None:
         if self.config.attack_key:
             self.transport.tap(self.config.attack_key, 45)
@@ -141,9 +147,16 @@ class FarmLoop:
         deadline = self.clock.monotonic() + self.config.engage_seconds
         killed = False
 
+        # Combo turları arasında hedefin hâlâ ayakta olduğunu da kontrol et:
+        # mob düştüyse kalan adımları boşa harcamanın anlamı yok.
+        def keep_going() -> bool:
+            if not should_continue():
+                return False
+            return self.target_is_alive()
+
         while self.clock.monotonic() < deadline and should_continue():
             if self.combo is not None and self.runner.is_ready(self.combo):
-                self.runner.run(self.combo, should_continue=should_continue)
+                self.runner.run(self.combo, should_continue=keep_going)
                 self.stats.combos += 1
             else:
                 self._attack_once()

@@ -167,6 +167,10 @@ class MacroEngine:
         self._queue.put(Request("combo", name))
 
     def request_utility(self, name: str) -> None:
+        """Yardımcı makro isteği bırakır (kısayol thread'inden güvenli)."""
+        if self._busy.is_set():
+            log.debug("combo çalışıyor, yardımcı makro atlandı: %s", name)
+            return
         self._queue.put(Request("utility", name))
 
     def toggle_farm(self) -> None:
@@ -279,13 +283,15 @@ class MacroEngine:
         for rule in due:
             if self._stop.is_set():
                 return
+            # Kuralı çalıştırmadan ÖNCE işaretle ve değerlendirme anını kullan:
+            # aksi halde her tur combo süresi kadar kayar, ayrıca hata durumunda
+            # kural sürekli yeniden tetiklenir.
+            self.autocaster.mark(rule, now)
             try:
                 self._fire_autocast(rule)
             except Exception as exc:
                 self.error = f"autocast {rule.name}: {exc}"
                 log.warning("autocast çalıştırılamadı (%s): %s", rule.name, exc)
-            finally:
-                self.autocaster.mark(rule, self.clock.monotonic())
 
     def _fire_autocast(self, rule: AutoCastRule) -> None:
         if rule.key:
@@ -293,11 +299,15 @@ class MacroEngine:
             log.debug("autocast tuş: %s (%s)", rule.key, rule.name)
             return
         assert rule.combo is not None
-        combo = self.config.find_combo(rule.combo)
+        combo = self._resolve_combo(rule.combo)
         if combo is None:
             self.error = f"autocast kuralı bilinmeyen comboyu gösteriyor: {rule.combo}"
             return
         self._execute(combo)
+
+    def _resolve_combo(self, name: str) -> Combo | None:
+        """Adı önce normal combolarda, sonra yardımcı makrolarda arar."""
+        return self.config.find_combo(name) or self.utility_combos.get(name)
 
     # ------------------------------------------------------------------- doğuş
 
@@ -332,9 +342,22 @@ class MacroEngine:
                 continue
             self.hotkeys.register(combo.hotkey, self._combo_trigger(combo.name))
 
+        # Yardımcı makrolar (upgrade, tamir, descent, ekipman) da kısayola bağlanır.
+        for name, key in self.config.utility.hotkeys.items():
+            if key in self.hotkeys.bindings:
+                log.warning("kısayol çakışması, atlandı: %s (%s)", key, name)
+                continue
+            self.hotkeys.register(key, self._utility_trigger(name))
+
     def _combo_trigger(self, name: str) -> Callable[[], None]:
         def trigger() -> None:
             self.request_combo(name)
+
+        return trigger
+
+    def _utility_trigger(self, name: str) -> Callable[[], None]:
+        def trigger() -> None:
+            self.request_utility(name)
 
         return trigger
 

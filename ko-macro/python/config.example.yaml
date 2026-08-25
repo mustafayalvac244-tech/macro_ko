@@ -93,7 +93,7 @@ utility:
   upgrade_keys: []          # anvil dizisi, örn. ["enter", "enter"]
   upgrade_speed_ms: 220
   upgrade_rounds: 1
-  repair_keys: []           # magic hammer dizisi
+  repair_keys: []           # magic hammer dizisi, örn. ["r", "enter"]
   repair_speed_ms: 350
   anti_afk_interval_s: 120  # 0 = kapalı
   anti_afk_key: null
@@ -101,5 +101,16 @@ utility:
   descent_key: null
   equipment_sets: {}        # örn. { pvp: ["f1", "f2"], farm: ["f3", "f4"] }
   equipment_speed_ms: 180
+  # Yardımcı makroları kısayola bağla. Sadece yukarıda tanımlı olanlar
+  # kullanılabilir; combo kısayollarıyla çakışamaz.
+  # hotkeys:
+  #   repair: "f4"
+  #   upgrade: "f5"
+  #   equip:pvp: "f6"
+
+# Otomatik tamir / descent örneği (önce utility'de tanımla):
+# autocast:
+#   - { name: oto-tamir,   combo: "repair",  every_s: 900 }
+#   - { name: oto-descent, combo: "descent", every_s: 300, only_when_farming: true }
 
 spawn_file: spawns.json
