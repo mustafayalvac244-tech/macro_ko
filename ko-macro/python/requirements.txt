@@ -1,0 +1,11 @@
+# Çekirdek
+pyserial>=3.5          # Leonardo ile seri iletişim
+pyyaml>=6.0            # config
+
+# İsteğe bağlı ama önerilen
+rich>=13.0             # canlı pano
+mss>=9.0               # can/mana ve hedef barı okuma
+
+# Yalnız Windows
+keyboard>=0.13.5 ; sys_platform == "win32"        # global kısayollar
+pydirectinput>=1.0.4 ; sys_platform == "win32"    # Leonardo yoksa yazılımsal tuş

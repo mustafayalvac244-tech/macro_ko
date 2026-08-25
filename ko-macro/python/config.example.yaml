@@ -1,0 +1,105 @@
+# ko-macro örnek konfigürasyonu
+#
+# Kullanım:  cp config.example.yaml config.yaml  &&  düzenle
+#
+# `profile` bir taban katmandır; profiles/<ad>.yaml okunur ve bu dosyadaki
+# değerler onun üstüne yazılır. Yani sadece değiştirmek istediğin alanları
+# buraya yazman yeterli.
+
+profile: archer          # archer | priest  (python -m ko_macro profiles)
+
+transport:
+  kind: leonardo         # leonardo | software | dry-run
+  port: null             # null = otomatik bul, ya da "COM5" / "/dev/ttyACM0"
+
+hotkeys:
+  start_stop: f9         # farm döngüsünü aç/kapa
+  panic: f12             # acil durdurma - her şeyi bırak
+  mark_kill: f11         # öldürmeyi doğuş defterine yaz
+  toggle_farm: f10
+
+timing:
+  jitter_pct: 8          # gecikmelere ±%8 rastgelelik
+  hold_jitter_pct: 15    # tuş basılı kalma süresine ±%15
+  combo_gap_ms: 90       # combo tekrarları arası taban bekleme
+
+# Profildeki tuş dizilimini kendi barına göre ez:
+# skillbar:
+#   spike: "1"
+#   arrow_shower: "2"
+
+# Duruş tuşu (okçuda Z). restore_stance: true olan combolar bittiğinde buna
+# basıp duruşa geri döner.
+# stance_key: "z"
+# stance_delay_ms: 120
+
+# Arka planda kendi kendine çalışan yetenekler. Profilde tanımlı olanları
+# burada yeniden yazarsan tamamı değişir (liste birleştirilmez, değiştirilir).
+# autocast:
+#   - name: buff-yenile
+#     combo: "buff"
+#     every_s: 900          # 15 dakikada bir
+#   - name: self-heal
+#     combo: "heal"
+#     when_hp_below: 55     # vitals açık olmalı
+#   - name: descent
+#     key: "f8"
+#     every_s: 300
+#     only_when_farming: true
+
+# Can/mana barı okuma. Koordinatları kendin ölçmelisin (ekran görüntüsü alıp
+# bir resim programında barın sol ucu, sağ ucu ve dikey ortasına bak).
+# Ölçtükten sonra doğrula:  python -m ko_macro vitals --samples 5
+vitals:
+  enabled: false
+  poll_ms: 120
+  hp:
+    x0: 40
+    x1: 190
+    y: 44
+    color: [168, 32, 32]   # dolu can barının rengi
+    tolerance: 60
+  mp:
+    x0: 40
+    x1: 190
+    y: 58
+    color: [32, 64, 190]
+    tolerance: 60
+  pause_combo_below_hp: 25  # bu yüzdenin altında combo bekletilir
+
+farm:
+  enabled: false
+  combo: "farm"
+  target_key: tab
+  attack_button: left
+  loot_key: z
+  loot_repeat: 3
+  engage_seconds: 12        # hedef barı yoksa bir moba en fazla bu kadar vur
+  retarget_delay_ms: 350
+  search_turn_key: right    # hedef bulunamazsa bu tuşla dönüp tekrar dene
+  search_turn_ms: 220
+  search_attempts: 6
+  stall_seconds: 4.0        # bu süre hasar girmezse hedefi bırak
+  spawn_point: null         # doğuş defterine yazılacak nokta (örn. "kekoit")
+  # Hedef can barı: tanımlanırsa döngü kör çalışmaz - mob öldüğü anda anlar.
+  # target_bar:
+  #   x0: 700
+  #   x1: 900
+  #   y: 60
+  #   color: [190, 40, 40]
+  #   tolerance: 60
+
+utility:
+  upgrade_keys: []          # anvil dizisi, örn. ["enter", "enter"]
+  upgrade_speed_ms: 220
+  upgrade_rounds: 1
+  repair_keys: []           # magic hammer dizisi
+  repair_speed_ms: 350
+  anti_afk_interval_s: 120  # 0 = kapalı
+  anti_afk_key: null
+  anti_afk_click: left
+  descent_key: null
+  equipment_sets: {}        # örn. { pvp: ["f1", "f2"], farm: ["f3", "f4"] }
+  equipment_speed_ms: 180
+
+spawn_file: spawns.json

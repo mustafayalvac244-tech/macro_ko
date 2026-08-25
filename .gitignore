@@ -40,3 +40,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# ko-macro (Python)
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+ko-macro/python/config.yaml
+ko-macro/python/spawns.json

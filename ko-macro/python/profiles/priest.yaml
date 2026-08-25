@@ -1,0 +1,140 @@
+# Priest (BP / heal) profili
+#
+# Tuşlar ve süreler başlangıç değeridir; kendi bar dizilimine göre ayarla.
+# Heal ve buff cast süreleri sunucuya göre değişir, gap_ms'leri oyunda ölç.
+
+skillbar:
+  heal: "1"             # Büyük heal
+  minor_heal: "2"       # Minor / grup heal
+  malice: "3"           # Malice
+  book: "4"             # Book (nuke)
+  wildness: "5"         # Wildness
+  helis: "6"            # Helis
+  cure_curse: "7"       # Parazit / curse temizleme
+  buff_ac: "f1"         # AC buff
+  buff_hp: "f2"         # HP buff
+  buff_speed: "f3"      # Swift / speed buff
+  potion_hp: "8"
+  potion_mp: "9"
+
+timing:
+  jitter_pct: 8
+  hold_jitter_pct: 15
+  combo_gap_ms: 120
+
+combos:
+  - name: "helis"
+    description: "Helis combosu"
+    hotkey: "f5"
+    cooldown_ms: 2000
+    steps:
+      - { skill: helis, hold_ms: 40, gap_ms: 180 }
+      - { skill: book, hold_ms: 40, gap_ms: 220 }
+
+  - name: "book"
+    description: "Book nuke"
+    hotkey: "f6"
+    cooldown_ms: 1400
+    steps:
+      - { skill: book, hold_ms: 40, gap_ms: 220 }
+
+  - name: "wildness"
+    description: "Wildness"
+    hotkey: "f7"
+    cooldown_ms: 2500
+    steps:
+      - { skill: wildness, hold_ms: 40, gap_ms: 250 }
+
+  - name: "malice"
+    description: "Malice"
+    hotkey: "f8"
+    cooldown_ms: 1800
+    steps:
+      - { skill: malice, hold_ms: 40, gap_ms: 250 }
+
+  - name: "heal"
+    description: "Büyük heal"
+    hotkey: "f4"
+    cooldown_ms: 900
+    steps:
+      - { skill: heal, hold_ms: 40, gap_ms: 260 }
+
+  - name: "minor"
+    description: "Minor heal"
+    hotkey: "f3"
+    cooldown_ms: 700
+    steps:
+      - { skill: minor_heal, hold_ms: 40, gap_ms: 200 }
+
+  - name: "cure"
+    description: "Parazit / curse temizle"
+    hotkey: "f2"
+    cooldown_ms: 1200
+    steps:
+      - { skill: cure_curse, hold_ms: 40, gap_ms: 220 }
+
+  - name: "buff"
+    description: "Tam buff seti"
+    hotkey: "f1"
+    cooldown_ms: 30000
+    steps:
+      - { skill: buff_ac, hold_ms: 40, gap_ms: 900 }
+      - { skill: buff_hp, hold_ms: 40, gap_ms: 900 }
+      - { skill: buff_speed, hold_ms: 40, gap_ms: 900 }
+
+  - name: "farm"
+    description: "Solo farm için nuke döngüsü"
+    cooldown_ms: 1600
+    steps:
+      - { skill: book, hold_ms: 40, gap_ms: 200 }
+      - { skill: helis, hold_ms: 40, gap_ms: 220 }
+
+# "Priest Genie": arka planda kendi kendine çalışan yetenekler.
+#
+# Dürüst uyarı: parazit/CC yediğini oyunun hafızasına bakmadan anlayamayız,
+# bu yüzden temizleme kuralları süreye dayanır. Heal kuralları ise ekrandan
+# okunan gerçek cana bakar (vitals açık olmalı).
+autocast:
+  - name: buff-yenile
+    combo: "buff"
+    every_s: 900
+  - name: parazit-temizle
+    combo: "cure"
+    every_s: 40
+    only_when_farming: true
+  - name: malice
+    combo: "malice"
+    every_s: 25
+    only_when_farming: true
+  - name: self-heal
+    combo: "heal"
+    when_hp_below: 55
+    enabled: false        # vitals koordinatlarını ayarlayınca aç
+  - name: mana-pot
+    key: "9"
+    when_mp_below: 30
+    enabled: false
+
+farm:
+  enabled: false
+  combo: "farm"
+  target_key: "tab"
+  attack_button: "left"
+  loot_key: "z"
+  engage_seconds: 14
+  stall_seconds: 5.0
+  # target_bar: { x0: 700, x1: 900, y: 60, color: [190, 40, 40], tolerance: 60 }
+
+vitals:
+  enabled: false
+  poll_ms: 100
+  # hp: { x0: 40, x1: 190, y: 44, color: [168, 32, 32], tolerance: 60 }
+  # mp: { x0: 40, x1: 190, y: 58, color: [32, 64, 190], tolerance: 60 }
+  pause_combo_below_hp: 30
+  # Priest için pot yerine kendi heal'ini kullanmak daha mantıklı:
+  # eşik altına inince heal skill'ine basar.
+  hp_potions:
+    - { below_pct: 45, key: "1", cooldown_ms: 1200, label: "self heal" }
+    - { below_pct: 75, key: "2", cooldown_ms: 1500, label: "minor heal" }
+  mp_potions:
+    - { below_pct: 35, key: "9", cooldown_ms: 2000, label: "mp pot" }

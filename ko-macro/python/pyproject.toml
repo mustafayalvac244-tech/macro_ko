@@ -1,0 +1,22 @@
+[project]
+name = "ko-macro"
+version = "0.1.0"
+description = "Knight Online combo/farm makrosu ve doğuş takipçisi (Arduino Leonardo HID köprüsü)"
+requires-python = ">=3.10"
+dependencies = [
+    "pyserial>=3.5",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+screen = ["mss>=9.0"]
+ui = ["rich>=13.0"]
+windows = ["keyboard>=0.13.5", "pydirectinput>=1.0.4"]
+
+[project.scripts]
+ko-macro = "ko_macro.cli:main"
+
+[tool.pytest.ini_options]
+# Testler paketi kurmadan da çalışsın; depo kökünden çağrılabilsin.
+pythonpath = ["."]
+testpaths = ["tests"]

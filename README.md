@@ -3,6 +3,10 @@
 A cross-platform mobile app for lawyers to track cases, clients, court hearings,
 legal deadlines, and case documents — built with Expo (React Native) and Supabase.
 
+> **Note:** this repository also contains an unrelated project in
+> [`ko-macro/`](./ko-macro) — a Knight Online combo/farm macro and respawn
+> tracker driven by an Arduino Leonardo. It shares no code with the app below.
+
 ## Tech Stack
 
 - **App**: Expo SDK 57 (React Native 0.86, TypeScript), Expo Router (file-based navigation)

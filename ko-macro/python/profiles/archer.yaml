@@ -1,0 +1,186 @@
+# Okçu (Archer) profili
+#
+# Buradaki tuşlar ve süreler BAŞLANGIÇ DEĞERİDİR. Kendi skill bar dizilimine
+# ve saldırı hızına göre ayarlaman gerekir; sunucuya, attack speed'ine ve
+# ping'ine göre doğru gap değeri değişir.
+#
+# Ayarlama yöntemi: `python -m ko_macro test <combo> --dry-run` ile diziyi
+# gör, sonra oyunda tek tek dene ve gap_ms değerlerini 20-30 ms adımlarla
+# oynat. Skill "yenmiyorsa" gap küçük, combo yavaşsa gap büyük demektir.
+
+skillbar:
+  # Sol taraf: combo içinde kullandığımız ad. Sağ taraf: senin bar tuşun.
+  spike: "1"            # 60 - Spike
+  arrow_shower: "2"     # 70 - Arrow Shower
+  multiple_shot: "3"    # 72 - Multiple Shot
+  styx: "4"             # Styx
+  cure: "5"             # Cure / Zehir temizleme
+  m20: "6"              # M20 (minor heal)
+  swift: "7"            # Swift
+  potion_hp: "8"
+  potion_mp: "9"
+
+# Okçu duruşu (Z). Bazı skill dizileri karakteri duruştan çıkarıyor;
+# restore_stance: true olan combolar bittiğinde bu tuşa basıp geri döner.
+stance_key: "z"
+stance_delay_ms: 120
+
+timing:
+  jitter_pct: 8         # gecikmelere ±%8 rastgelelik
+  hold_jitter_pct: 15
+  combo_gap_ms: 90
+
+combos:
+  - name: "3-5"
+    description: "Klasik 3-5 combosu"
+    hotkey: "f1"
+    cooldown_ms: 900
+    steps:
+      - { key: "3", hold_ms: 40, gap_ms: 110 }
+      - { key: "5", hold_ms: 40, gap_ms: 160 }
+
+  - name: "70-72"
+    description: "Arrow Shower → Multiple Shot"
+    hotkey: "f2"
+    cooldown_ms: 1200
+    steps:
+      - { skill: arrow_shower, hold_ms: 40, gap_ms: 130 }
+      - { skill: multiple_shot, hold_ms: 40, gap_ms: 200 }
+
+  - name: "60-70-72"
+    description: "Spike → Arrow Shower → Multiple Shot"
+    hotkey: "f3"
+    cooldown_ms: 1800
+    restore_stance: true      # bu dizi Z duruşundan çıkarıyor, sonunda geri dön
+    steps:
+      - { skill: spike, hold_ms: 40, gap_ms: 120 }
+      - { skill: arrow_shower, hold_ms: 40, gap_ms: 130 }
+      - { skill: multiple_shot, hold_ms: 40, gap_ms: 220 }
+
+  - name: "60-70-72+styx"
+    description: "Tam dizi, sonunda Styx"
+    hotkey: "f8"
+    cooldown_ms: 2600
+    restore_stance: true
+    steps:
+      - { skill: spike, hold_ms: 40, gap_ms: 120 }
+      - { skill: arrow_shower, hold_ms: 40, gap_ms: 130 }
+      - { skill: multiple_shot, hold_ms: 40, gap_ms: 180 }
+      - { skill: styx, hold_ms: 40, gap_ms: 240 }
+
+  - name: "70-72+cure"
+    description: "Combo içine Cure örülmüş hâli"
+    cooldown_ms: 1600
+    restore_stance: true
+    steps:
+      - { skill: arrow_shower, hold_ms: 40, gap_ms: 130 }
+      - { skill: multiple_shot, hold_ms: 40, gap_ms: 180 }
+      - { skill: cure, hold_ms: 40, gap_ms: 200 }
+
+  - name: "70-72+m20"
+    description: "Combo içine M20 örülmüş hâli"
+    cooldown_ms: 1600
+    restore_stance: true
+    steps:
+      - { skill: arrow_shower, hold_ms: 40, gap_ms: 130 }
+      - { skill: multiple_shot, hold_ms: 40, gap_ms: 180 }
+      - { skill: m20, hold_ms: 40, gap_ms: 200 }
+
+  - name: "styx"
+    description: "Styx"
+    hotkey: "f4"
+    cooldown_ms: 2500
+    steps:
+      - { skill: styx, hold_ms: 40, gap_ms: 250 }
+
+  - name: "cure"
+    description: "Cure — zehir/curse temizle"
+    hotkey: "f5"
+    cooldown_ms: 1500
+    steps:
+      - { skill: cure, hold_ms: 40, gap_ms: 200 }
+
+  - name: "m20"
+    description: "M20 minor heal"
+    hotkey: "f6"
+    cooldown_ms: 1200
+    steps:
+      - { skill: m20, hold_ms: 40, gap_ms: 200 }
+
+  - name: "mana-pull"
+    description: "Yürürken mana çekme - kısa adımlar"
+    hotkey: "f7"
+    cooldown_ms: 700
+    steps:
+      # Hareket hâlindeyken skill basmak mana çekmenin temeli; yön tuşunu
+      # kısa süre basılı tutup skill'i araya sıkıştırıyoruz.
+      - { key: "up", hold_ms: 90, gap_ms: 20 }
+      - { skill: arrow_shower, hold_ms: 40, gap_ms: 90 }
+      - { key: "up", hold_ms: 90, gap_ms: 20 }
+      - { skill: multiple_shot, hold_ms: 40, gap_ms: 120 }
+
+  - name: "mana-pull-run"
+    description: "Koşarken mana çekme - uzun adımlar, seyrek skill"
+    cooldown_ms: 700
+    steps:
+      # Koşuda karakter daha hızlı yol aldığı için hareket penceresi uzun,
+      # skill arası bekleme daha geniş.
+      - { key: "up", hold_ms: 220, gap_ms: 30 }
+      - { skill: arrow_shower, hold_ms: 40, gap_ms: 60 }
+      - { key: "up", hold_ms: 220, gap_ms: 30 }
+      - { skill: multiple_shot, hold_ms: 40, gap_ms: 90 }
+
+  - name: "farm"
+    description: "Farm döngüsünde kullanılan combo"
+    cooldown_ms: 1500
+    restore_stance: true
+    steps:
+      - { skill: spike, hold_ms: 40, gap_ms: 120 }
+      - { skill: arrow_shower, hold_ms: 40, gap_ms: 130 }
+      - { skill: multiple_shot, hold_ms: 40, gap_ms: 200 }
+
+# Arka planda kendi kendine çalışan yetenekler.
+# Not: oyunun durumunu okumadığımız için "zehirlendin mi" bilinemez;
+# temizleme kuralları süreye dayanır, olaya değil.
+autocast:
+  - name: cure
+    combo: "cure"
+    every_s: 45
+    only_when_farming: true
+  - name: swift
+    key: "7"
+    every_s: 240          # Swift süresi dolmadan yenile
+  - name: acil-heal
+    combo: "m20"
+    when_hp_below: 55     # ekrandan okunan gerçek can
+    enabled: false        # vitals ayarlanınca aç
+
+farm:
+  enabled: false
+  combo: "farm"
+  target_key: "tab"
+  attack_button: "left"
+  loot_key: "z"
+  loot_repeat: 3
+  engage_seconds: 12
+  retarget_delay_ms: 350
+  search_turn_key: "right"
+  search_turn_ms: 220
+  stall_seconds: 4.0
+  # Hedef can barının ekrandaki yeri — `vitals` bölümündeki gibi ayarlanır.
+  # Tanımlanmazsa döngü kör çalışır (süreye göre öldü varsayar).
+  # target_bar: { x0: 700, x1: 900, y: 60, color: [190, 40, 40], tolerance: 60 }
+
+vitals:
+  enabled: false
+  poll_ms: 120
+  # Barların ekran koordinatlarını kendin ölçmelisin: oyunun can barının
+  # sol ucu (x0), sağ ucu (x1) ve dikey ortası (y).
+  # hp: { x0: 40, x1: 190, y: 44, color: [168, 32, 32], tolerance: 60 }
+  # mp: { x0: 40, x1: 190, y: 58, color: [32, 64, 190], tolerance: 60 }
+  pause_combo_below_hp: 25
+  hp_potions:
+    - { below_pct: 35, key: "8", cooldown_ms: 1500, label: "büyük hp" }
+    - { below_pct: 70, key: "8", cooldown_ms: 2500, label: "minor hp" }
+  mp_potions:
+    - { below_pct: 40, key: "9", cooldown_ms: 2000, label: "mp" }

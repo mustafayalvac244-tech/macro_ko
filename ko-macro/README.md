@@ -1,0 +1,488 @@
+# ko-macro
+
+Knight Online için combo / farm makrosu ve mob doğuş (respawn) takipçisi.
+Tuşlara bir **Arduino Leonardo** basar; PC tarafındaki Python programı ne
+zaman neye basılacağına karar verir.
+
+---
+
+## Önce okunması gerekenler
+
+**Makro kullanmak Knight Online'ın kullanım şartlarına aykırıdır ve hesabın
+banlanabilir.** Bu araç o riski ortadan kaldırmaz. Kullanıp kullanmamak senin
+kararın, sonuçları da sana ait.
+
+**Bu proje oyunun koruma sistemine dokunmaz.** Bilerek ve isteyerek dışarıda
+duruyor:
+
+| Yapılan | Yapılmayan |
+| --- | --- |
+| Leonardo üzerinden gerçek USB klavye/fare olayı | Oyun sürecine kod enjekte etmek |
+| Ekran görüntüsünden piksel okumak (can barı, hedef barı) | Oyunun hafızasını okumak/yazmak |
+| Oyunun kendi arayüzünü kullanmak (Tab, skill tuşları) | Ağ paketlerini değiştirmek |
+| — | GameGuard/HackShield'e hook atmak veya kapatmak |
+
+Bunun bir bedeli var ve saklamıyorum: **mob listesini koordinatıyla okuyamaz,
+otomatik yürüyemez, ışınlanamaz.** Hedef seçimi oyunun Tab'ı + ekrandan hedef
+barı okuması ile yapılır. Bunları isteyen bir bot arıyorsan bu proje o değil.
+
+---
+
+## Özellik karşılığı
+
+Piyasadaki pedal/makro programlarının özellik listesine göre nerede duruyoruz:
+
+### Okçu
+
+| Özellik | Durum | Nerede |
+| --- | --- | --- |
+| 3-5 combosu | ✅ | `profiles/archer.yaml` |
+| 60-70-72 combosu | ✅ | aynı |
+| 70-72 combosu | ✅ | aynı |
+| Styx combo içinde | ✅ | `60-70-72+styx` |
+| Cure combo içinde | ✅ | `70-72+cure` |
+| M20 combo içinde | ✅ | `70-72+m20` |
+| Mana çekme (yürüme/koşma) | ✅ | `mana-pull`, `mana-pull-run` |
+| Z duruşundan çıkma düzeltmesi | ✅ | `restore_stance` + `stance_key` |
+| Adımlar arası minimum gecikme | ✅ | firmware kuyruğu, 1 ms çözünürlük |
+
+### Priest
+
+| Özellik | Durum | Nerede |
+| --- | --- | --- |
+| Helis combosu | ✅ | `profiles/priest.yaml` |
+| Book / Wildness / Malice | ✅ | aynı |
+| Buff seti | ✅ | `buff` combosu |
+| Heal / minor heal | ✅ | `heal`, `minor` |
+| Otomatik heal (eşiğe göre) | ✅ | `autocast` + `vitals` |
+| Otomatik malice | ✅ | `autocast` |
+| Parazit temizleme | ⚠️ | `autocast` — **süreye** dayalı, olaya değil |
+| Otomatik CC | ⚠️ | aynı sınır |
+
+### Genel
+
+| Özellik | Durum | Nerede |
+| --- | --- | --- |
+| Ayarlanabilir skillbar | ✅ | `skillbar` |
+| Akıllı HP/MP/minor pot seçimi | ✅ | `vitals` — eşiğe göre en uygun pot |
+| Tek tuşla başlat/durdur | ✅ | F9 / F12 |
+| Upgrade makrosu (hız ayarlı) | ✅ | `utility.upgrade_*` |
+| Anti-AFK mob tıklama | ✅ | `utility.anti_afk_*` |
+| Otomatik Descent | ✅ | `autocast` |
+| Magic Hammer tamir | ✅ | `utility.repair_*` + `autocast` |
+| Ekipman değiştirme | ✅ | `utility.equipment_sets` |
+
+**⚠️ işaretliler neden tam değil:** oyunun durumunu okumadığımız için
+"parazit yedin mi", "stun yedin mi" gibi sorulara cevap veremeyiz. Bu kurallar
+belirli aralıklarla tetiklenir — işe yarar ama olay bazlı değildir.
+
+**Listede olmayanlar:** mob koordinatlarını okuma, otomatik yürüme/rota,
+ışınlanma. Bunlar hafıza okuma gerektirir, bu proje yapmaz.
+
+---
+
+## Nasıl çalışır
+
+```
+┌──────────────┐   USB seri   ┌──────────────┐   USB HID   ┌──────────┐
+│  PC (Python) │ ───────────▶ │   Leonardo   │ ──────────▶ │  Windows │
+│              │  "QK 1 40 120"│ ko_hid_bridge│  gerçek tuş │  + oyun  │
+│  combo/farm  │              │  (firmware)  │             │          │
+│  karar verir │ ◀─────────── │              │             │          │
+└──────┬───────┘   "DONE 3"   └──────────────┘             └──────────┘
+       │
+       │ mss ile ekran okuma (can barı, hedef barı)
+       ▼
+   piksel örnekleri
+```
+
+Combo adımları tek tek gönderilmez; **önce Leonardo'nun kuyruğuna yüklenir**
+(`QK`), sonra tek komutla çalıştırılır (`G`). Böylece adımlar arası zamanlamayı
+PC'nin seri gecikmesi ve Windows zamanlayıcısı değil, mikrodenetleyicinin
+kendi saati belirler — 1 ms çözünürlükle.
+
+---
+
+## Kurulum
+
+### 1. Leonardo'ya firmware yükle
+
+1. Arduino IDE'yi aç, `arduino/ko_hid_bridge/ko_hid_bridge.ino` dosyasını yükle.
+2. Kart: **Arduino Leonardo** (Micro veya Pro Micro de çalışır).
+3. Yükle.
+
+Firmware açılışta **kapalı** gelir: `E` komutu gelene kadar tek bir tuşa bile
+basmaz. Kart üstündeki LED, çıkış açıkken yanar.
+
+> Yükledikten sonra kart bir klavye olarak görünür. Firmware kendi başına
+> hiçbir şey yazmaz, ama yine de yükleme sırasında kartı kilitlersen
+> bootloader'a düşürmek için reset'e iki kez basman gerekebilir.
+
+### 2. Python tarafı
+
+```bash
+cd ko-macro/python
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+pip install -r requirements.txt
+
+cp config.example.yaml config.yaml
+```
+
+Kartın görünüyor mu diye bak:
+
+```bash
+python -m ko_macro devices
+```
+
+---
+
+## Ayar
+
+`config.yaml` bir **profilin üstüne** biner. Profiller `profiles/` altında:
+
+```bash
+python -m ko_macro profiles     # archer, priest
+```
+
+`profile: archer` yazdığında `profiles/archer.yaml` taban olarak okunur,
+`config.yaml`'daki alanlar onun üstüne yazılır. Yani hazır combo setini
+bozmadan sadece kendi tuş dizilimini geçebilirsin:
+
+```yaml
+profile: archer
+
+skillbar:
+  spike: "2"          # profildeki "1" yerine kendi tuşun
+  arrow_shower: "3"
+```
+
+### Skill bar
+
+`skillbar` mantıksal adı gerçek tuşa bağlar. Combolar adı kullanır, tuşu değil —
+bar dizilimini değiştirdiğinde tek yerden düzeltirsin.
+
+### Combolar
+
+```yaml
+combos:
+  - name: "60-70-72"
+    hotkey: "f3"
+    cooldown_ms: 1800
+    steps:
+      - { skill: spike,         hold_ms: 40, gap_ms: 120 }
+      - { skill: arrow_shower,  hold_ms: 40, gap_ms: 130 }
+      - { skill: multiple_shot, hold_ms: 40, gap_ms: 220 }
+```
+
+- `hold_ms` — tuşun basılı kalma süresi
+- `gap_ms` — o adımdan sonraki bekleme (**ayarlanması gereken asıl değer**)
+- `cooldown_ms` — combo tekrar tetiklenmeden önceki bekleme
+
+**Profillerdeki süreler başlangıç değeridir.** Doğru `gap_ms` senin attack
+speed'ine, sunucuya ve ping'ine göre değişir. Ayarlama yöntemi:
+
+```bash
+python -m ko_macro combos                      # diziyi ve süreyi gör
+python -m ko_macro test "60-70-72" --dry-run   # tuşa basmadan dene
+python -m ko_macro test "60-70-72"             # oyunda dene
+```
+
+Skill "yenmiyorsa" `gap_ms` küçük, combo gereksiz yavaşsa büyük demektir.
+20-30 ms adımlarla oynat.
+
+### Can/mana barı
+
+Koordinatları kendin ölçmen gerekiyor: oyunun ekran görüntüsünü al, bir resim
+programında can barının sol ucunu (`x0`), sağ ucunu (`x1`), dikey ortasını
+(`y`) ve dolu kısmın rengini oku.
+
+```yaml
+vitals:
+  enabled: true
+  hp: { x0: 40, x1: 190, y: 44, color: [168, 32, 32], tolerance: 60 }
+  mp: { x0: 40, x1: 190, y: 58, color: [32, 64, 190], tolerance: 60 }
+  pause_combo_below_hp: 25
+  hp_potions:
+    - { below_pct: 35, key: "8", cooldown_ms: 1500, label: "büyük hp" }
+    - { below_pct: 70, key: "7", cooldown_ms: 2500, label: "minor hp" }
+```
+
+Doğrula:
+
+```bash
+python -m ko_macro vitals --samples 5
+```
+
+Pot seçimi eşiğe göre yapılır: canın ne kadar azsa o kadar güçlü pot seçilir
+(yukarıdaki örnekte %35 altında büyük, %70 altında minor).
+
+### Hedef barı — farm döngüsünün gözü
+
+`farm.target_bar` tanımlarsan döngü kör çalışmaz:
+
+```yaml
+farm:
+  enabled: true
+  combo: "farm"
+  target_bar: { x0: 700, x1: 900, y: 60, color: [190, 40, 40], tolerance: 60 }
+  stall_seconds: 4.0
+```
+
+Bununla döngü şunları bilir:
+
+- **Tab bir şey seçti mi?** Bar belirmezse çevirip yeniden dener.
+- **Mob öldü mü?** Bar boşalınca hemen loot'lar ve yeni hedefe geçer — sabit
+  süre beklemez.
+- **Vuruş isabet ediyor mu?** `stall_seconds` boyunca can azalmazsa (menzil
+  dışı, yanlış hedef) hedefi bırakır.
+
+Tanımlamazsan `engage_seconds` kadar körlemesine vurur ve öldüğünü varsayar.
+
+---
+
+## Kullanım
+
+```bash
+python -m ko_macro run --watch
+```
+
+Varsayılan kısayollar:
+
+| Tuş | İş |
+| --- | --- |
+| F9 | farm döngüsünü aç/kapa |
+| F12 | **acil durdur** — çalışan comboyu keser, tüm tuşları bırakır |
+| F11 | öldürmeyi doğuş defterine yaz |
+| F1-F8 | profildeki combolar |
+
+> **Kısayolları combo içinde kullandığın tuşlara bağlama.** Leonardo gerçek bir
+> klavye olduğu için bastığı tuşları kısayol dinleyicisi de görür ve makro
+> kendini tetikler. Motor combo çalışırken gelen tetiklemeleri yok sayar ama
+> yine de ayrı tuşlar kullan.
+
+---
+
+## Doğuş takibi
+
+Asıl iş burada. Öldürme zamanlarını kaydeder, gerçek doğuş süresini
+kayıtlardan öğrenir ve sıradaki pencereyi tahmin eder.
+
+```bash
+python -m ko_macro spawn add felankor --name Felankor --zone Ronark \
+       --min 20 --max 30 --priority 5
+python -m ko_macro spawn kill felankor              # şimdi öldü
+python -m ko_macro spawn kill felankor --ago 12     # 12 dakika önce ölmüş
+python -m ko_macro spawn list
+python -m ko_macro spawn watch                      # canlı sayaç
+```
+
+```
+mob       bölge   durum     pencere  doğmuş?  güven  örnek  kaçan
+--------  ------  --------  -------  -------  -----  -----  -----
+Felankor  Ronark  pencere   ŞİMDİ    %62      %71    7      -
+Kekoit    Ronark  bekliyor  4d 12s   %0       %45    3      1
+```
+
+Nasıl hesaplıyor:
+
+- **Kaçırılan tur katlama.** İki öldürme arası süre doğuş süresinin tam katıysa
+  (3 turu kaçırmışsın) bölünerek tek tura indirgenir. Yoksa tek bir kaçırılmış
+  tur bütün istatistiği bozardı.
+- **Dayanıklı istatistik.** Ortalama yerine medyan ve MAD — tek hatalı kayıt
+  tahmini kaydırmaz.
+- **Pencere daralması.** 3+ örnek birikince pencere gözlemden hesaplanır,
+  azken config'teki `--min`/`--max` kullanılır.
+- **İleri sarma.** Pencere kapandığı hâlde kayıt girilmediyse tahmin tur tur
+  ileri sarılır ve güven düşürülür (`kaçan` sütunu).
+- **"doğmuş?"** — şu an doğmuş olma olasılığı. Yeterli örnek varsa normal
+  dağılım, yoksa pencere içinde düzgün dağılım varsayılır.
+
+### Rota planı
+
+Birden fazla boss takip ediyorsan hangisine sırayla gideceğini önerir:
+
+```bash
+python -m ko_macro spawn travel felankor kekoit 150   # aradaki yol: 150 sn
+python -m ko_macro spawn route --start felankor
+```
+
+```
+sıra  mob                 yol      bekleme   varış     puan
+  1.  Felankor                0s       0s   20:12   1.899
+  2.  Kekoit             2d 30s       0s   20:15   0.214
+```
+
+Her adımda "yakalama şansı × öncelik / (yol + bekleme)" en yüksek olan nokta
+seçilir, saat ilerletilir, kalanlar için tekrar hesaplanır. Pencere açılmadan
+varmak tam puan; pencere ilerledikçe (başkası almış olabilir) puan düşer.
+
+---
+
+## Otomatik yetenekler (autocast)
+
+Buff yenileme, malice, parazit temizleme, descent, acil heal — arka planda
+kendi kendine çalışır. Combo çalışırken araya girmez, aralarda tetiklenir.
+
+```yaml
+autocast:
+  - name: buff-yenile
+    combo: "buff"
+    every_s: 900              # 15 dakikada bir
+  - name: malice
+    combo: "malice"
+    every_s: 25
+    only_when_farming: true   # sadece farm açıkken
+  - name: self-heal
+    combo: "heal"
+    when_hp_below: 55         # ekrandan okunan gerçek can (vitals açık olmalı)
+  - name: mana-pot
+    key: "9"
+    when_mp_below: 30
+```
+
+- `every_s` — aralık (kurallar aynı anda patlamasın diye ilk tetikleme
+  rastgele dağıtılır, aralığa da jitter uygulanır)
+- `when_hp_below` / `when_mp_below` — ekrandan okunan cana/manaya bakar; can
+  okunamıyorsa kural **tetiklenmez** (kör basmaktansa hiç basmamak yeğdir)
+- İkisi birlikte verilirse ikisi de sağlanmalı
+
+**Dürüst sınır:** parazit/CC yediğini oyunun hafızasına bakmadan anlayamayız.
+Temizleme kuralları bu yüzden süreye dayanır, olaya değil. Can/mana koşulları
+ise gerçekten ekrandan okunur.
+
+## Duruş (Z) geri alma
+
+Bazı skill dizileri okçuyu Z duruşundan çıkarıyor. `restore_stance: true` olan
+combolar bittiğinde duruş tuşuna basıp geri döner:
+
+```yaml
+stance_key: "z"
+stance_delay_ms: 120
+
+combos:
+  - name: "60-70-72"
+    restore_stance: true
+    steps: [...]
+```
+
+## Yardımcı makrolar
+
+`utility` bölümünde tanımlanır, hepsi combo motorunu kullanır:
+
+```yaml
+utility:
+  upgrade_keys: ["enter", "enter"]   # anvil dizisi
+  upgrade_speed_ms: 220
+  repair_keys: ["r", "enter"]        # magic hammer
+  anti_afk_interval_s: 120
+  anti_afk_click: left
+  descent_key: "f8"
+  equipment_sets:
+    pvp:  ["f1", "f2"]
+    farm: ["f3", "f4"]
+```
+
+---
+
+## Komutlar
+
+| Komut | İş |
+| --- | --- |
+| `run` | motoru çalıştır (`--watch` canlı pano, `--dry-run` tuşa basmadan) |
+| `test <combo>` | tek combo çalıştır |
+| `combos` | comboları, kısayolları ve sürelerini listele |
+| `vitals` | can/mana barını oku (koordinat ayarı için) |
+| `devices` | bağlı Leonardo'ları listele |
+| `profiles` | hazır sınıf profilleri |
+| `spawn add/kill/list/watch/route/travel/rm` | doğuş takibi |
+
+Her komutta `--dry-run` var: hiçbir tuşa basmadan ne yapacağını yazdırır.
+
+---
+
+## Leonardo yoksa
+
+`transport.kind` üç değer alır:
+
+- `leonardo` — donanım (önerilen)
+- `software` — `pydirectinput` ile yazılımsal tuş (yalnız Windows)
+- `dry-run` — hiçbir tuşa basmaz, sadece yazdırır
+
+---
+
+## Seri protokol
+
+Leonardo'ya doğrudan konuşmak istersen (115200 baud, satır sonu `\n`):
+
+| Komut | Cevap | İş |
+| --- | --- | --- |
+| `V` | `VER ko-hid 1.0` | sürüm |
+| `P` | `PONG` | heartbeat (watchdog besler) |
+| `E` / `X` | `ARMED` / `DISARMED` | çıkışı aç / kapat |
+| `R` | `RELEASED` | basılı tuşları bırak |
+| `T <tuş> [ms]` | `OK` | tuşa bas-bırak |
+| `D` / `U <tuş>` | `OK` | basılı tut / bırak |
+| `C <buton> [ms]` | `OK` | fare tıkla |
+| `MV <dx> <dy>` | `OK` | fareyi hareket ettir |
+| `QC` / `QK` / `QM` | `OK` | combo kuyruğunu temizle / adım ekle |
+| `G [tekrar]` | `DONE <adım>` | kuyruğu çalıştır |
+| `A` | `ABORT` | çalışan comboyu kes |
+
+Güvenlik: açılışta kapalı, `E` gelmeden HID çıkışı yok. ARMED iken 2 saniye
+komut gelmezse (PC çöktü, kablo çıktı) her şeyi bırakıp kapanır. Seri port
+kapanınca da aynısı olur.
+
+---
+
+## Testler
+
+```bash
+cd python && python -m pytest tests -q      # 124 test
+arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
+```
+
+Firmware testleri Arduino çekirdeğini `arduino/test/stubs/` altındaki
+taklitlerle değiştirip `.ino`'yu doğrudan PC'de derler — protokol
+ayrıştırıcısı, combo kuyruğu, iptal ve watchdog davranışı gerçek kart
+olmadan doğrulanır.
+
+---
+
+## Dosya düzeni
+
+```
+arduino/
+  ko_hid_bridge/ko_hid_bridge.ino   Leonardo firmware'i
+  test/                             PC'de çalışan firmware testleri
+
+python/
+  ko_macro/
+    transport.py    Leonardo / yazılımsal / kuru mod taşıma katmanları
+    sequence.py     combo motoru (jitter, burst, cooldown)
+    farm.py         hedef seç → vur → öldüğünü gör → yağmala döngüsü
+    vitals.py       can/mana ve hedef barı okuma, pot seçimi
+    autocast.py     arka planda çalışan tekrarlı/koşullu yetenekler
+    spawn.py        doğuş kaydı, tahmin, rota planı
+    utility.py      upgrade / tamir / anti-AFK / ekipman
+    runtime.py      hepsini çalıştıran motor
+    hotkeys.py      global kısayollar
+    dashboard.py    canlı pano
+    cli.py          komut satırı
+  profiles/         archer.yaml, priest.yaml
+  tests/
+```
+
+---
+
+## Bilinen sınırlar
+
+- **Mob seçimi oyunun Tab'ına bağlı.** Ekrandaki mobları koordinatıyla
+  bulamaz; hafıza okumadan bu mümkün değil ve bu proje onu yapmıyor.
+- **Otomatik yürüme yok.** Bir noktada durup etraftakini farmlar.
+- **Bar koordinatları çözünürlüğe bağlı.** Çözünürlük ya da arayüz ölçeği
+  değişirse yeniden ölçmen gerekir.
+- **Burst combo sırasında pot basılamaz.** Can kontrolü combo turları arasında
+  yapılır; en fazla bir tur (genelde 1 sn'nin altı) gecikme olur.
+- **Zamanlamalar tahmini değil, deneysel.** Profillerdeki değerler başlangıç
+  noktasıdır, kendi karakterinde ölçüp ayarlaman gerekir.
