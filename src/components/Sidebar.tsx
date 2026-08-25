@@ -140,6 +140,7 @@ export function Sidebar() {
     { icon: 'library-outline', label: t('laws.title'), path: '/laws' },
   ];
   const officeItems: NavItem[] = [
+    { icon: 'checkmark-done-outline', label: t('hout.short'), path: '/durusma-cikisi' },
     { icon: 'ribbon-outline', label: t('poa.short'), path: '/vekalet' },
     { icon: 'wallet-outline', label: t('ofinance.title'), path: '/finance' },
     { icon: 'stats-chart-outline', label: t('reports.title'), path: '/reports' },

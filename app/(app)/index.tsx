@@ -21,6 +21,7 @@ import { useAdvanceDeficits } from '@/hooks/useClientAdvances';
 import { useAdvanceAlertStore } from '@/store/advanceAlertStore';
 import { AI_ENABLED } from '@/config/features';
 import { useTrialStatus, MONTHLY_PRICE_TRY } from '@/hooks/useTrialStatus';
+import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -83,6 +84,14 @@ export default function DashboardScreen() {
   const deadlines = useAllDeadlines();
   const finance = useFinanceEntries();
   useMorningDigest();
+
+  // Duruşma Çıkışı: sonucu girilmemiş (geçmiş, tamamlanmamış) duruşmalar.
+  // Bunlar kaydedilmezse duruşmada verilen süreler kayboluyor — süre kaçırmanın
+  // ana sebebi buydu, o yüzden ana ekranda proaktif hatırlatıyoruz.
+  const pendingOutcomes = useMemo(
+    () => pendingOutcomeHearings(hearings.data ?? []),
+    [hearings.data]
+  );
 
   // Davana Emsal: aktif davalar + seçili davanın konusuna göre Yargıtay emsalleri.
   const openCases = useCases({ status: 'open' });
@@ -350,6 +359,25 @@ export default function DashboardScreen() {
             <View style={styles.trialEndedBtn}>
               <Text allowFontScaling={false} style={styles.trialEndedBtnText}>{t('trial.cta')}</Text>
             </View>
+          </Pressable>
+        )}
+
+        {/* ---------- Duruşma Çıkışı bekleyenler ---------- */}
+        {pendingOutcomes.length > 0 && (
+          <Pressable
+            style={({ pressed }) => [styles.outcomeCard, pressed && { opacity: 0.9 }]}
+            onPress={() => router.push('/durusma-cikisi' as Parameters<typeof router.push>[0])}
+          >
+            <View style={styles.outcomeIcon}>
+              <Ionicons name="checkmark-done" size={18} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text allowFontScaling={false} style={styles.outcomeTitle}>
+                {t('dash.outcome.title', { n: pendingOutcomes.length })}
+              </Text>
+              <Text allowFontScaling={false} style={styles.outcomeDesc}>{t('dash.outcome.desc')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.primary} />
           </Pressable>
         )}
 
@@ -797,6 +825,36 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 5,
     marginBottom: spacing.lg,
+  },
+  outcomeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 16,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  outcomeIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outcomeTitle: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  outcomeDesc: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   trialPill: {
     flexDirection: 'row',
