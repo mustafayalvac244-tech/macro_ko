@@ -22,6 +22,7 @@ from .clock import Clock
 from .config import Combo, FarmConfig
 from .sequence import ComboRunner
 from .transport import Transport
+from .nameplate import NameMatcher
 from .vitals import DamageWatch, TargetMonitor
 
 log = logging.getLogger(__name__)
@@ -98,6 +99,7 @@ class FarmStats:
     misses: int = 0        # taze hedef bulunamayan turlar
     abandoned: int = 0     # hasar girmediği için bırakılan hedefler
     skipped: int = 0       # yarım canlı olduğu için atlanan hedefler
+    wrong_mob: int = 0     # adı tutmadığı için atlanan hedefler
     cut_short: int = 0     # hedef ölünce yarıda kesilen combolar
     started_at: float = 0.0
     stopped_at: float | None = None
@@ -121,6 +123,10 @@ class FarmLoop:
     combo: Combo | None = None
     #: Hedef can barı okuyucusu; ``None`` ise kör kipte çalışır.
     target: TargetMonitor | None = None
+    #: Mob adı filtresi; ``None`` ise her hedef kabul edilir.
+    name_matcher: NameMatcher | None = None
+    #: Ad filtresi için taze ekran görüntüsü üreten çağrı.
+    screen_factory: Callable[[], object] | None = None
     #: Bir mob öldüğünde çağrılır (doğuş takibine kayıt için).
     on_kill: Callable[[], None] | None = None
     stats: FarmStats = field(default_factory=FarmStats)
@@ -147,6 +153,21 @@ class FarmLoop:
         if self.target is None:
             return None
         return self.target.read(self.clock.monotonic())
+
+    def _name_accepted(self) -> bool:
+        """Hedefin adı kabul listesinde mi? Filtre yoksa her hedef geçer."""
+        if self.name_matcher is None or self.screen_factory is None:
+            return True
+        try:
+            accepted = self.name_matcher.accepts(self.screen_factory())
+        except Exception as exc:  # ekran okuma hatası döngüyü durdurmasın
+            log.warning("hedef adı okunamadı: %s", exc)
+            return True
+        if not accepted:
+            log.debug(
+                "yanlış mob atlandı (benzerlik %%%.0f)", self.name_matcher.last_score * 100
+            )
+        return accepted
 
     def target_is_alive(self) -> bool:
         """Hedef hâlâ ayakta mı? Bar okuyucusu yoksa ``True`` varsayılır."""
@@ -209,6 +230,10 @@ class FarmLoop:
                 # Yarım canlı: başkası dövüyor ya da az önce vurduğumuz mob.
                 self.stats.skipped += 1
                 log.debug("yarım canlı hedef atlandı (%%%.0f)", state.hp_pct * 100)
+                continue
+
+            if not self._name_accepted():
+                self.stats.wrong_mob += 1
                 continue
 
             self.damage.reset(self.clock.monotonic())

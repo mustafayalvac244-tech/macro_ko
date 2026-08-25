@@ -90,6 +90,12 @@ farm:
   # dövdüğü YARIM CANLI mob olabilir. Taze mobun canı doludur, eleme buradan.
   min_target_hp_pct: 90     # canı %90'ın altındaysa atla, Tab'a tekrar bas
   post_kill_delay_ms: 250   # ceset seçilebilir kalıyor, Tab'dan önce bekle
+
+  # --- Sadece belirli mobu dövme (karışık bölgeler için) ---
+  # Mobun adını OKUMAZ, adının ekrandaki GÖRÜNTÜSÜNÜ tanır.
+  # Kurmak için: mobu seç, sonra  ko-macro.exe mob-ogren harpy
+  # Komut name_region ve mob_names alanlarını kendisi doldurur.
+  # name_threshold: 0.85    # düşür = daha toleranslı, yükselt = daha katı
   # Hedef can barı: tanımlanırsa döngü kör çalışmaz - mob öldüğü anda anlar.
   # target_bar:
   #   x0: 700

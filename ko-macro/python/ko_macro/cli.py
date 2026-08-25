@@ -324,6 +324,77 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_learn_mob(args: argparse.Namespace) -> int:
+    """Seçili hedefin adını parmak izi olarak kaydeder."""
+    from .calibrate import MSSScreen, find_bars, suggest
+    from .nameplate import NameRegion, fingerprint, is_blank
+
+    config = _load(args)
+    print(f"'{args.name}' öğreniliyor.")
+    print("Oyunda bu mobu SEÇİLİ bırak, pencere görünür olsun.\n")
+
+    if args.countdown > 0:
+        for remaining in range(args.countdown, 0, -1):
+            print(f"  {remaining}...", end="\r", flush=True)
+            time.sleep(1)
+        print(" " * 20, end="\r")
+
+    try:
+        screen = MSSScreen()
+    except RuntimeError as exc:
+        print(f"hata: {exc}", file=sys.stderr)
+        return 1
+
+    # Ad bölgesi: hedef can barının hemen üstündeki şerit.
+    region_raw = config.farm.name_region
+    if region_raw:
+        region = NameRegion.from_dict(region_raw)
+    else:
+        bar = config.farm.target_bar
+        if bar is None:
+            guess = suggest(find_bars(screen), screen.width)
+            if guess.target is None:
+                print(
+                    "Hedef barı bulunamadı. Önce 'kalibre --yaz' çalıştır "
+                    "(mob seçiliyken).",
+                    file=sys.stderr,
+                )
+                return 1
+            x0, x1, y = guess.target.x0, guess.target.x1, guess.target.y
+        else:
+            x0, x1, y = bar.x0, bar.x1, bar.y
+        # Ad, barın üstünde yazılır.
+        region = NameRegion(
+            x0=x0, y0=max(0, y - args.height - args.gap), x1=x1, y1=max(1, y - args.gap)
+        )
+        print(f"Ad bölgesi barın üstünden türetildi: {region.to_dict()}")
+
+    signature = fingerprint(screen, region)
+    ink = signature.count("1") / len(signature) * 100
+    print(f"Parmak izi alındı (%{ink:.0f} dolu).")
+
+    if is_blank(signature):
+        print(
+            "\nBölge boş görünüyor — mob seçili mi? Ad bölgesi yanlış yerde olabilir.",
+            file=sys.stderr,
+        )
+        print("--height / --gap ile bölgeyi kaydırıp tekrar dene.", file=sys.stderr)
+        return 1
+
+    names = dict(config.farm.mob_names)
+    names[args.name] = signature
+    path = _ensure_config(args.config)
+    backup = _write_config_patch(
+        path,
+        {"farm": {"name_region": region.to_dict(), "mob_names": names}},
+    )
+    print(f"\nKaydedildi: {args.name}")
+    print(f"Tanınan moblar: {', '.join(sorted(names))}")
+    print(f"Config: {path}   (eski hâli: {backup})")
+    print("\nArtık farm döngüsü sadece bu adlara benzeyen hedefleri döver.")
+    return 0
+
+
 def cmd_setup(args: argparse.Namespace) -> int:
     """Kurulumu baştan sona yürütür: cihaz → kalibrasyon → doğrulama."""
     print("=" * 60)
@@ -537,6 +608,18 @@ def build_parser() -> argparse.ArgumentParser:
                            help="bar sayılacak en az genişlik (piksel)")
     calibrate.add_argument("--limit", type=int, default=12, help="kaç aday gösterilsin")
     calibrate.set_defaults(func=cmd_calibrate)
+
+    learn = with_config(
+        subparsers.add_parser("mob-ogren", help="seçili mobun adını öğren (filtre için)")
+    )
+    learn.add_argument("name", help="mobun adı, örn. harpy")
+    learn.add_argument("--countdown", type=int, default=5,
+                       help="oyuna geçmen için geri sayım (sn)")
+    learn.add_argument("--height", type=int, default=18,
+                       help="ad şeridinin yüksekliği (piksel)")
+    learn.add_argument("--gap", type=int, default=6,
+                       help="bar ile ad arasındaki boşluk (piksel)")
+    learn.set_defaults(func=cmd_learn_mob)
 
     setup = with_config(subparsers.add_parser("kur", help="kurulumu baştan sona yürüt"))
     setup.add_argument("--min-width", type=int, default=50)

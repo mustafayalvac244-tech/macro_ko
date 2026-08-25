@@ -147,3 +147,17 @@ def test_damage_watch_resets_on_new_damage():
     watch.update(TargetState(present=True, hp_pct=0.9), 0.0)
     watch.update(TargetState(present=True, hp_pct=0.5), 1.5)
     assert watch.stalled(2.0) is False
+
+
+def test_screen_samplers_can_be_constructed():
+    """Ekran okuyucuları kurulabilmeli.
+
+    mss import'u tembel olduğu için burada ekran olmadan da kurulur; bu test
+    eksik import gibi hataları yakalar (testler bunları hiç kurmadığı sürece
+    böyle bir hata üretime kadar gider).
+    """
+    from ko_macro.calibrate import MSSScreen
+    from ko_macro.vitals import MSSSampler
+
+    assert MSSSampler() is not None
+    assert MSSScreen is not None

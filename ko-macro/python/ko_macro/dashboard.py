@@ -38,6 +38,7 @@ def status_lines(status: dict[str, Any]) -> list[str]:
         f"   {status['kills_per_hour']:.0f} kill/saat",
         f"eleme     : boş {status.get('farm_misses', 0)}"
         f"   yarım canlı {status.get('farm_skipped', 0)}"
+        f"   yanlış mob {status.get('farm_wrong_mob', 0)}"
         f"   menzil dışı {status.get('farm_abandoned', 0)}"
         f"   kesilen combo {status.get('farm_cut_short', 0)}",
         f"süre      : {uptime // 60}d {uptime % 60:02d}s",

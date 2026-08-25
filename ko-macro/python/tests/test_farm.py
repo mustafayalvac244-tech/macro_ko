@@ -377,3 +377,57 @@ def test_burst_combo_is_aborted_when_target_dies():
     assert loop.stats.cut_short == 1
     # İkinci parça hiç kuyruğa yüklenip çalıştırılmamalı.
     assert transport.queue_runs < 2
+
+
+# ------------------------------------------------------------- mob adı filtresi
+
+
+def test_wrong_mob_is_skipped_and_tab_pressed_again():
+    """Adı tutmayan hedef dövülmez, Tab'a tekrar basılır."""
+    from ko_macro.nameplate import NameMatcher, NameRegion, fingerprint
+    from tests.test_nameplate import HARPY, KEKOIT, REGION as NAME_REGION, make_screen
+
+    harpy_screen = make_screen(HARPY)
+    kekoit_screen = make_screen(KEKOIT)
+    screens = [kekoit_screen, kekoit_screen, harpy_screen]
+
+    matcher = NameMatcher(
+        region=NAME_REGION,
+        signatures={"harpy": fingerprint(harpy_screen, NAME_REGION)},
+    )
+
+    sampler = QueuedSampler([1.0])          # bar hep dolu
+    loop, transport, _ = build(
+        farm_config(search_attempts=4, acquire_timeout_ms=150), sampler=sampler
+    )
+    loop.name_matcher = matcher
+    loop.screen_factory = lambda: screens.pop(0) if screens else harpy_screen
+
+    assert loop.acquire_target() is True
+    assert loop.stats.wrong_mob == 2
+    tabs = [a for a in transport.actions if a.kind == "tap" and a.target == "tab"]
+    assert len(tabs) == 3
+
+
+def test_no_matcher_means_every_mob_is_accepted():
+    sampler = QueuedSampler([1.0])
+    loop, _, _ = build(farm_config(), sampler=sampler)
+    assert loop.acquire_target() is True
+    assert loop.stats.wrong_mob == 0
+
+
+def test_name_read_failure_does_not_block_the_loop():
+    """Ekran okunamazsa hedef reddedilmemeli - filtre yüzünden farm durmasın."""
+    from ko_macro.nameplate import NameMatcher, NameRegion
+
+    def broken_screen():
+        raise RuntimeError("ekran okunamadı")
+
+    sampler = QueuedSampler([1.0])
+    loop, _, _ = build(farm_config(), sampler=sampler)
+    loop.name_matcher = NameMatcher(
+        region=NameRegion(x0=0, y0=0, x1=10, y1=10), signatures={"harpy": "1" * 256}
+    )
+    loop.screen_factory = broken_screen
+
+    assert loop.acquire_target() is True

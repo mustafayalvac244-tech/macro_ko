@@ -15,9 +15,11 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from .autocast import AutoCaster, AutoCastRule
+from .calibrate import MSSScreen
 from .clock import Clock, RealClock
 from .config import AppConfig, Combo
 from .farm import FarmLoop, FarmStats
+from .nameplate import NameMatcher, NameRegion
 from .hotkeys import HotkeyManager
 from .sequence import ComboRunner
 from .spawn import SpawnBook
@@ -78,6 +80,18 @@ class MacroEngine:
         if config.farm.target_bar is not None and self.sampler is not None:
             target = TargetMonitor(region=config.farm.target_bar, sampler=self.sampler)
 
+        # Mob adı filtresi: tam ekran görüntüsü gerektiği için her seferinde
+        # taze bir kare alınır (bar okumaları tek satırla yetiniyor).
+        name_matcher: NameMatcher | None = None
+        screen_factory: Callable[[], object] | None = None
+        if config.farm.name_region and config.farm.mob_names:
+            name_matcher = NameMatcher(
+                region=NameRegion.from_dict(config.farm.name_region),
+                signatures=dict(config.farm.mob_names),
+                threshold=config.farm.name_threshold,
+            )
+            screen_factory = MSSScreen
+
         farm_combo = config.find_combo(config.farm.combo) if config.farm.combo else None
         self.farm = FarmLoop(
             config=config.farm,
@@ -86,6 +100,8 @@ class MacroEngine:
             clock=self.clock,
             combo=farm_combo,
             target=target,
+            name_matcher=name_matcher,
+            screen_factory=screen_factory,
             on_kill=self._record_farm_kill,
         )
 
@@ -385,6 +401,7 @@ class MacroEngine:
             "farm_misses": stats.misses,
             "farm_abandoned": stats.abandoned,
             "farm_skipped": stats.skipped,
+            "farm_wrong_mob": stats.wrong_mob,
             "farm_cut_short": stats.cut_short,
             "target_hp_pct": (
                 self.farm.target.state.hp_pct if self.farm.target is not None else None

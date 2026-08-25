@@ -22,9 +22,14 @@ duruyor:
 | Oyunun kendi arayüzünü kullanmak (Tab, skill tuşları) | Ağ paketlerini değiştirmek |
 | — | GameGuard/HackShield'e hook atmak veya kapatmak |
 
+**Mob seçer ve öldürür.** Döngü şöyle: Tab → hedef barı belirdi mi → canı dolu
+mu (ceset ve başkasının mobu elenir) → adı tuttu mu (istersen) → combo → bar
+boşalınca öldüğünü anlar → loot → yeni Tab.
+
 Bunun bir bedeli var ve saklamıyorum: **mob listesini koordinatıyla okuyamaz,
-otomatik yürüyemez, ışınlanamaz.** Hedef seçimi oyunun Tab'ı + ekrandan hedef
-barı okuması ile yapılır. Bunları isteyen bir bot arıyorsan bu proje o değil.
+otomatik yürüyemez, ışınlanamaz.** Hedefleme oyunun kendi Tab'ı üzerinden gider;
+mobu ayırt etmek gerekiyorsa adının ekrandaki görüntüsü tanınır, oyunun verisi
+değil. Yürüyen, ışınlanan bir bot arıyorsan bu proje o değil.
 
 ---
 
@@ -46,6 +51,7 @@ Piyasadaki pedal/makro programlarının özellik listesine göre nerede duruyoru
 | Z duruşundan çıkma düzeltmesi | ✅ | `restore_stance` + `stance_key` |
 | Adımlar arası minimum gecikme | ✅ | firmware kuyruğu, 1 ms çözünürlük |
 | Gelişmiş hedef takibi | ✅ | hedef barı okuma; mob düşünce combo kesilir |
+| Sadece belirli mobu dövme | ✅ | ad görüntüsü parmak izi (`mob-ogren`) |
 
 ### Priest
 
@@ -304,14 +310,48 @@ Burada iki katmanlı bir kesme var:
 Yani harpy birinci skill'de ölürse ikinci skill çıkmaz. Panoda `kesilen combo`
 sayacı bunu kaç kez yaptığını gösterir.
 
+### Sadece belirli mobu dövme
+
+Karışık bir bölgedeysen (harpy + başka moblar) mobu adından ayırt edebilir.
+Adı **okumaz** — adın ekrandaki **görüntüsünü** parmak izi olarak tanır.
+
+```
+ko-macro.exe mob-ogren harpy     # harpy seçiliyken çalıştır
+```
+
+Komut hedef adının yazıldığı bölgeyi hedef barının üstünden bulur, oradaki
+yazı desenini küçük bir imzaya indirger ve `config.yaml`'a yazar. Sonrasında
+farm döngüsü her yeni hedefte aynı bölgeyi okur; imza tutmuyorsa hedefi
+dövmeden Tab'a tekrar basar.
+
+Birden fazla mob öğretebilirsin — komutu her biri için bir kez çalıştır:
+
+```
+ko-macro.exe mob-ogren harpy
+ko-macro.exe mob-ogren kekoit
+```
+
+Panoda `yanlış mob` sayacı kaç hedefi elediğini gösterir.
+
+**Sınırları:**
+
+- Çözünürlük ya da arayüz ölçeği değişirse imza geçersiz olur, yeniden öğret
+- Adı birbirine çok benzeyen moblar karışabilir — `name_threshold` değerini
+  yükselt (0.85 → 0.92)
+- Her hedeflemede bir ekran karesi alınır; çok yavaş bir makinede döngüyü
+  bir miktar yavaşlatır
+
+Filtreyi kurmazsan (varsayılan) her hedef kabul edilir — tek tip mobun olduğu
+bir noktada zaten gerek yok.
+
 ### Neyi yapamaz
 
-**Harpy'yi diğer moblardan ayırt edemez.** Tab ne seçerse ona vurur. Tek tip
-mobun olduğu bir noktada durursan sorun olmaz; karışık bir alandaysan yanlış
-mobu da döver. Mob adını okumak hafıza erişimi gerektirir, bu proje yapmaz.
+**Oyuncuyu mobdan ayıramaz** — canı dolu bir oyuncu Tab'la seçilirse ona
+vurur. Mob adı filtresi bunu kısmen engeller (oyuncu adı mob adına
+benzemez), ama garanti değil.
 
-Aynı sebeple **oyuncuyu da mobdan ayıramaz** — canı dolu bir oyuncu Tab'la
-seçilirse ona vurur.
+Mobun konumunu, tipini ya da mesafesini oyunun verisinden okumaz — bunlar
+hafıza erişimi gerektirir.
 
 ---
 
@@ -530,7 +570,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 195 test
+cd python && python -m pytest tests -q      # 220 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 

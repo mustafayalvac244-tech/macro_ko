@@ -255,6 +255,14 @@ class FarmConfig:
     #: Mob öldükten sonra Tab'a basmadan önce beklenecek süre — ceset bir an
     #: daha seçilebilir kaldığı için hemen basmak yine cesedi seçtirir.
     post_kill_delay_ms: int = 250
+    #: Hedef adının ekranda yazıldığı bölge. Tanımlıysa ve ``mob_names``
+    #: doluysa, sadece o adlara benzeyen hedefler dövülür.
+    name_region: dict[str, Any] | None = None
+    #: Kabul edilen mob adları: görünen ad -> parmak izi. ``mob-ogren``
+    #: komutu doldurur.
+    mob_names: dict[str, str] = field(default_factory=dict)
+    #: Ad eşleşmesi için gereken en az benzerlik (0-1).
+    name_threshold: float = 0.85
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "FarmConfig":
@@ -284,6 +292,9 @@ class FarmConfig:
             min_target_hp_pct=float(raw.get("min_target_hp_pct", 90.0)),
             turn_after_attempts=int(raw.get("turn_after_attempts", 2)),
             post_kill_delay_ms=int(raw.get("post_kill_delay_ms", 250)),
+            name_region=raw.get("name_region"),
+            mob_names={str(k): str(v) for k, v in (raw.get("mob_names") or {}).items()},
+            name_threshold=float(raw.get("name_threshold", 0.85)),
         )
         if farm.engage_seconds <= 0:
             raise ConfigError("engage_seconds pozitif olmalı")
@@ -293,6 +304,20 @@ class FarmConfig:
             raise ConfigError("min_target_hp_pct 0-100 arasında olmalı")
         if farm.turn_after_attempts < 1:
             raise ConfigError("turn_after_attempts en az 1 olmalı")
+        if not 0 < farm.name_threshold <= 1:
+            raise ConfigError("name_threshold 0 ile 1 arasında olmalı")
+        if farm.mob_names and not farm.name_region:
+            raise ConfigError(
+                "mob_names tanımlı ama name_region yok — 'mob-ogren' komutuyla ikisini "
+                "birlikte oluştur"
+            )
+        if farm.name_region:
+            from .nameplate import NameRegion  # döngüsel import olmasın diye burada
+
+            try:
+                NameRegion.from_dict(farm.name_region)
+            except (KeyError, ValueError) as exc:
+                raise ConfigError(f"name_region hatalı: {exc}") from exc
         return farm
 
 
