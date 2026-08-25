@@ -126,9 +126,11 @@ yaparsın. Kayıtlar (`spawns.json`) da exe'nin yanında durur.
 
 ### 1. Leonardo'ya firmware yükle
 
-1. Arduino IDE'yi aç, `arduino/ko_hid_bridge/ko_hid_bridge.ino` dosyasını yükle.
-2. Kart: **Arduino Leonardo** (Micro veya Pro Micro de çalışır).
-3. Yükle.
+`arduino/yukle.bat` dosyasına çift tıkla — arduino-cli'yi kendi indirir, kartı
+bulur, derler ve yükler. Arduino IDE gerekmez.
+
+Elle yapmak istersen: Arduino IDE ile `arduino/ko_hid_bridge/ko_hid_bridge.ino`
+dosyasını aç, kart olarak **Arduino Leonardo** seç, yükle.
 
 Firmware açılışta **kapalı** gelir: `E` komutu gelene kadar tek bir tuşa bile
 basmaz. Kart üstündeki LED, çıkış açıkken yanar.
@@ -475,7 +477,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 164 test
+cd python && python -m pytest tests -q      # 185 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 
@@ -500,6 +502,7 @@ python/
   baslat.bat        exe'yi başlatan kısayol
   ko_macro/
     paths.py        kaynak/exe yol çözümlemesi
+    calibrate.py    barları ekranda otomatik bulma
     transport.py    Leonardo / yazılımsal / kuru mod taşıma katmanları
     sequence.py     combo motoru (jitter, burst, cooldown)
     farm.py         hedef seç → vur → öldüğünü gör → yağmala döngüsü

@@ -38,34 +38,46 @@ bir USB kablosu, Windows bir bilgisayar.
 
 ## Adım 2 — Leonardo'ya firmware yükle
 
-Bu adım tek seferlik. Kart bir kez programlandıktan sonra bir daha
-uğraşmayacaksın.
+Tek seferlik. **Arduino IDE kurmana gerek yok.**
 
-1. `arduino.cc/en/software` adresinden **Arduino IDE**'yi indir ve kur.
-2. Leonardo'yu USB ile bilgisayara tak.
-3. Arduino IDE'yi aç.
-4. **File → Open** ile şu dosyayı aç:
-   `ko-macro\arduino\ko_hid_bridge\ko_hid_bridge.ino`
-5. **Tools → Board → Arduino AVR Boards → Arduino Leonardo** seç.
-   (Micro kullanıyorsan Arduino Micro seç.)
-6. **Tools → Port** menüsünden kartın portunu seç (genelde `COM3`, `COM4`
-   gibi bir şey ve yanında "Arduino Leonardo" yazar).
-7. Sol üstteki **→** (Upload) düğmesine bas.
-8. Altta **"Done uploading"** yazısını görene kadar bekle.
+1. Leonardo'yu USB ile bilgisayara tak.
+2. İndirdiğin paketin içindeki `firmware` klasörüne gir.
+3. **`yukle.bat`** dosyasına çift tıkla.
 
-Yükleme başarısız olursa: kartın reset düğmesine hızlıca **iki kez** bas ve
-hemen Upload'a tekrar tıkla. Leonardo'da bu normaldir.
+Betik gerekli her şeyi (arduino-cli, AVR çekirdeği) kendi klasörüne indirir,
+kartı bulur, derler ve yükler. Sonunda **"BITTI - firmware yuklendi"** yazacak.
+
+Kart bulunamazsa betik bağlı portları listeler. Sık nedenler:
+
+- Kablo veri taşımıyor (sadece şarj kablosu) — kabloyu değiştir
+- Arduino IDE'nin Serial Monitor'ü açık — kapat
+- Yükleme yarıda kaldı — kartın reset düğmesine **hızlıca iki kez** bas ve
+  `yukle.bat`'ı tekrar çalıştır
 
 > Firmware yüklendikten sonra kart bilgisayarda bir klavye olarak görünür ama
 > kendi başına hiçbir tuşa basmaz — program ona "aç" komutu göndermeden tek
 > bir tuş bile üretmez.
 
+<details>
+<summary>Elle yüklemek istersen (Arduino IDE ile)</summary>
+
+1. `arduino.cc/en/software` adresinden Arduino IDE'yi kur.
+2. **File → Open** ile `firmware\ko_hid_bridge\ko_hid_bridge.ino` dosyasını aç.
+3. **Tools → Board → Arduino AVR Boards → Arduino Leonardo**.
+4. **Tools → Port** menüsünden kartın portunu seç.
+5. Sol üstteki **→** (Upload) düğmesine bas.
+
+</details>
+
 ---
 
 ## Adım 3 — İlk çalıştırma
 
-1. Leonardo takılı olsun.
+1. Leonardo takılı olsun, **oyun açık ve canın tam dolu olsun**.
 2. `baslat.bat` dosyasına **sağ tıkla → "Yönetici olarak çalıştır"**.
+
+   İlk çalıştırmada kurulum sihirbazı devreye girer: kartı arar, bar
+   koordinatlarını ekrandan bulur ve `config.yaml`'a yazar.
 
    Yönetici olması şart değil ama F9/F12 gibi kısayolların oyun penceresi
    öndeyken çalışması için genelde gerekiyor.
@@ -144,43 +156,44 @@ değeri bulman 10-15 deneme sürebilir, normal.
 
 ---
 
-## Adım 6 — Can barını tanıt (isteğe bağlı ama çok işe yarar)
+## Adım 6 — Can barını tanıt (otomatik)
 
-Program can barını ekrandan okuyup otomatik pot basabilir. Bunun için barın
-ekranda tam olarak nerede olduğunu söylemen gerekiyor.
+Program can barını ekrandan okuyup otomatik pot basabilir, hedef barından da
+mobun ne zaman öldüğünü anlar. Koordinatları **kendisi buluyor**:
 
-1. Oyunu aç, canın **tam doluyken** ekran görüntüsü al (PrintScreen).
-2. Görüntüyü Paint'e yapıştır.
-3. Fareyi can barının **sol ucuna** getir — sol altta koordinat yazar,
-   not al. Bu `x0`.
-4. Fareyi barın **sağ ucuna** getir → `x1`.
-5. Barın **dikey ortasındaki** y değeri → `y`.
-6. Paint'te damlalık aracıyla barın dolu kısmına tıkla, sonra
-   "Renkleri düzenle" ile Kırmızı/Yeşil/Mavi değerlerini oku → `color`.
+1. Oyunu aç, canın **tam dolu** olsun, pencere görünür kalsın.
+2. Şunu çalıştır:
 
-`config.yaml`:
+   ```
+   ko-macro.exe kalibre --yaz
+   ```
 
-```yaml
-vitals:
-  enabled: true
-  hp: { x0: 40, x1: 190, y: 44, color: [168, 32, 32], tolerance: 60 }
-  mp: { x0: 40, x1: 190, y: 58, color: [32, 64, 190], tolerance: 60 }
-  hp_potions:
-    - { below_pct: 35, key: "8", cooldown_ms: 1500 }   # can %35 altı: büyük pot
-    - { below_pct: 70, key: "7", cooldown_ms: 2500 }   # can %70 altı: minor
-```
+Ekranı tarar, bar gibi duran yatay renk şeritlerini bulur, hangisinin can /
+mana / hedef barı olduğunu tahmin eder ve `config.yaml`'a yazar. Eski hâli
+`config.yaml.yedek` olarak saklanır.
 
-Doğru okuyor mu diye kontrol et:
+> `baslat.bat`'ı ilk kez çalıştırdığında bunu zaten kendisi yapar.
+
+Doğru bulmuş mu diye kontrol et:
 
 ```
 ko-macro.exe vitals --samples 5
 ```
 
-Canın gerçekten neyse ona yakın bir yüzde yazmalı. Tutmuyorsa koordinatları
-ya da rengi düzelt.
+Canın gerçekten neyse ona yakın bir yüzde yazmalı. Yanlışsa:
 
-**Aynı yöntemle hedef barını da tanıtırsan** (`farm.target_bar`) farm döngüsü
-mobun ne zaman öldüğünü görür — sabit süre beklemez, çok daha hızlı olur.
+- `ko-macro.exe kalibre` (yazmadan) ile tüm adayları listele
+- Doğru olanın koordinatlarını `config.yaml`'a elle yaz
+- Ekranda başka kırmızı/mavi öğeler varsa `--min-width` değerini büyüt
+
+Pot eşiklerini kendine göre ayarla:
+
+```yaml
+vitals:
+  hp_potions:
+    - { below_pct: 35, key: "8", cooldown_ms: 1500 }   # can %35 altı: büyük pot
+    - { below_pct: 70, key: "7", cooldown_ms: 2500 }   # can %70 altı: minor
+```
 
 ---
 

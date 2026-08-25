@@ -68,6 +68,12 @@ jobs:
           Copy-Item baslat.bat dist/
           Copy-Item ../README.md dist/OKUBENI.md
           Copy-Item ../KURULUM.md dist/KURULUM.md
+          # Firmware yükleyici de pakete girsin: kullanıcı depoyu ayrıca
+          # indirmeden Leonardo'yu programlayabilsin.
+          New-Item -ItemType Directory -Force -Path dist/firmware | Out-Null
+          Copy-Item ../arduino/yukle.bat dist/firmware/
+          Copy-Item ../arduino/yukle.ps1 dist/firmware/
+          Copy-Item ../arduino/ko_hid_bridge dist/firmware/ko_hid_bridge -Recurse
 
       - name: Exe çalışıyor mu
         working-directory: ko-macro/python/dist
@@ -75,6 +81,12 @@ jobs:
           ./ko-macro.exe --version
           ./ko-macro.exe profiles
           ./ko-macro.exe combos -c config.yaml
+          ./ko-macro.exe test "60-70-72" -c config.yaml --dry-run --countdown 0
+          ./ko-macro.exe spawn add test --min 20 --max 30
+          ./ko-macro.exe spawn kill test --ago 19
+          ./ko-macro.exe spawn list
+          ./ko-macro.exe kalibre --help
+          Remove-Item spawns.json
 
       - name: Yükle
         uses: actions/upload-artifact@v4

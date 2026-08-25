@@ -23,6 +23,30 @@ from .transport import SerialHidTransport, TransportError, create_transport
 log = logging.getLogger("ko_macro")
 
 
+def setup_console() -> None:
+    """Windows konsolunda Türkçe karakterler ve ``→`` oku bozulmasın.
+
+    Windows'un eski varsayılan kod sayfası (cp1252) 'ı', 'ş', 'ğ' ve ok
+    işaretini kodlayamaz; bu da programı ``UnicodeEncodeError`` ile
+    düşürür. Konsolu UTF-8'e alıyoruz, alamazsak da kodlanamayan karakter
+    programı çökertmek yerine '?' olarak yazılıyor.
+    """
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            ctypes.windll.kernel32.SetConsoleOutputCP(65001)  # type: ignore[attr-defined]
+            ctypes.windll.kernel32.SetConsoleCP(65001)  # type: ignore[attr-defined]
+        except Exception:
+            pass  # Kod sayfası değişmezse aşağıdaki errors="replace" kurtarır.
+
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
 def _setup_logging(verbose: bool) -> None:
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
@@ -219,6 +243,121 @@ def cmd_vitals(args: argparse.Namespace) -> int:
     return 0
 
 
+def _write_config_patch(path: Path, patches: dict[str, dict]) -> Path:
+    """Config'e bulunan değerleri yazar, öncesinde yedek alır.
+
+    Dosya yeniden yazıldığı için içindeki açıklama satırları kaybolur; bu
+    yüzden orijinali ``.yedek`` uzantısıyla saklanır.
+    """
+    import yaml
+
+    from .config import _deep_merge, read_yaml
+
+    current = read_yaml(path)
+    merged = _deep_merge(current, patches)
+
+    backup = path.with_suffix(path.suffix + ".yedek")
+    backup.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+
+    header = (
+        "# Bu dosya 'kalibre' komutuyla güncellendi.\n"
+        "# Açıklama satırları bu sırada kayboldu; eski hâli .yedek dosyasında.\n\n"
+    )
+    path.write_text(
+        header + yaml.safe_dump(merged, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    return backup
+
+
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    """Can/mana/hedef barlarını ekranda kendiliğinden bulur."""
+    from .calibrate import MSSScreen, build_farm_patch, build_vitals_patch, find_bars, suggest
+
+    print("Ekran taranıyor...")
+    print("(Oyun açık ve görünür olmalı; canın TAM DOLU olsun ki bar tam ölçülsün.)\n")
+
+    try:
+        screen = MSSScreen()
+    except RuntimeError as exc:
+        print(f"hata: {exc}", file=sys.stderr)
+        return 1
+
+    candidates = find_bars(screen, min_width=args.min_width)
+    if not candidates:
+        print("Hiç bar bulunamadı.", file=sys.stderr)
+        print(
+            "Oyun görünür mü? Canın dolu mu? --min-width değerini düşürüp dene "
+            "(örn. --min-width 30).",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(f"{len(candidates)} aday bulundu ({screen.width}x{screen.height}):\n")
+    for index, bar in enumerate(candidates[: args.limit], start=1):
+        print(f"  {index:>2}. {bar.describe(screen.width)}")
+
+    guess = suggest(candidates, screen.width)
+    print("\nTahmin:")
+    print(f"  can    : {guess.hp.describe(screen.width) if guess.hp else 'bulunamadı'}")
+    print(f"  mana   : {guess.mp.describe(screen.width) if guess.mp else 'bulunamadı'}")
+    print(f"  hedef  : {guess.target.describe(screen.width) if guess.target else 'bulunamadı'}")
+
+    if not guess.complete:
+        print("\nCan barı bulunamadığı için yazma yapılmadı.", file=sys.stderr)
+        return 1
+
+    if not args.write:
+        print("\nBunları config'e yazmak için: kalibre --yaz")
+        return 0
+
+    patches: dict[str, dict] = {"vitals": build_vitals_patch(guess)}
+    farm_patch = build_farm_patch(guess)
+    if farm_patch:
+        patches["farm"] = farm_patch
+
+    path = _ensure_config(args.config)
+    backup = _write_config_patch(path, patches)
+    print(f"\nYazıldı: {path}")
+    print(f"Eski hâli: {backup}")
+    print("\nDoğrulamak için: vitals --samples 5")
+    return 0
+
+
+def cmd_setup(args: argparse.Namespace) -> int:
+    """Kurulumu baştan sona yürütür: cihaz → kalibrasyon → doğrulama."""
+    print("=" * 60)
+    print("  ko-macro kurulum")
+    print("=" * 60)
+
+    print("\n[1/3] Leonardo aranıyor...")
+    device_ok = cmd_devices(args) == 0
+    if not device_ok:
+        print("\nKart bulunamadı. Firmware yüklü mü? yukle.bat ile yükleyebilirsin.")
+        print("Kalibrasyona yine de devam ediliyor.\n")
+
+    print("\n[2/3] Barlar aranıyor...")
+    args.write = True
+    if cmd_calibrate(args) != 0:
+        print("\nKalibrasyon yapılamadı. Oyunu açıp tekrar dene.", file=sys.stderr)
+        return 1
+
+    print("\n[3/3] Okuma doğrulanıyor...")
+    args.samples = 3
+    cmd_vitals(args)
+
+    print("\n" + "=" * 60)
+    print("  Sırada ne var")
+    print("=" * 60)
+    print("1. config.yaml'daki 'skillbar' kısmını kendi tuşlarına göre düzelt")
+    print("2. combos           — hangi combo neye basıyor, gör")
+    print("3. test \"60-70-72\"  — combo hızını ayarla (gap_ms)")
+    print("4. run --watch      — çalıştır")
+    if not device_ok:
+        print("\nUyarı: Leonardo bulunamadı, tuşlar gönderilemez.")
+    return 0
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     """Motoru çalıştırır."""
     config = _load(args)
@@ -389,6 +528,21 @@ def build_parser() -> argparse.ArgumentParser:
     devices = subparsers.add_parser("devices", help="bağlı cihazları listele")
     devices.set_defaults(func=cmd_devices)
 
+    calibrate = with_config(
+        subparsers.add_parser("kalibre", help="barları ekranda otomatik bul")
+    )
+    calibrate.add_argument("--yaz", "--write", dest="write", action="store_true",
+                           help="bulunanları config.yaml'a yaz")
+    calibrate.add_argument("--min-width", type=int, default=50,
+                           help="bar sayılacak en az genişlik (piksel)")
+    calibrate.add_argument("--limit", type=int, default=12, help="kaç aday gösterilsin")
+    calibrate.set_defaults(func=cmd_calibrate)
+
+    setup = with_config(subparsers.add_parser("kur", help="kurulumu baştan sona yürüt"))
+    setup.add_argument("--min-width", type=int, default=50)
+    setup.add_argument("--limit", type=int, default=12)
+    setup.set_defaults(func=cmd_setup, write=True, samples=3)
+
     profiles = subparsers.add_parser("profiles", help="hazır sınıf profilleri")
     profiles.set_defaults(func=cmd_profiles)
 
@@ -438,6 +592,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    setup_console()
     parser = build_parser()
     args = parser.parse_args(argv)
     _setup_logging(args.verbose)
