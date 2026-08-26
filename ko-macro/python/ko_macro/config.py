@@ -15,6 +15,15 @@ from typing import Any
 from .autocast import AutoCastRule
 from .keys import normalize_button, normalize_key
 from .paths import profile_dir
+from .session import SessionLimits
+
+
+def _session_limits(raw: dict[str, Any]) -> SessionLimits:
+    """Oturum sınırlarını okur, hatayı config hatasına çevirir."""
+    try:
+        return SessionLimits.from_dict(raw)
+    except (KeyError, ValueError) as exc:
+        raise ConfigError(f"session ayarı hatalı: {exc}") from exc
 
 
 class ConfigError(ValueError):
@@ -544,6 +553,7 @@ class AppConfig:
     farm: FarmConfig = field(default_factory=FarmConfig)
     utility: UtilityConfig = field(default_factory=UtilityConfig)
     coords: CoordsConfig = field(default_factory=CoordsConfig)
+    session: "SessionLimits" = field(default_factory=lambda: SessionLimits())
     autocast: list["AutoCastRule"] = field(default_factory=list)
     #: Duruş tuşu (okçuda Z). ``restore_stance`` olan combolar sonunda buna basar.
     stance_key: str | None = None
@@ -581,6 +591,7 @@ class AppConfig:
             farm=FarmConfig.from_dict(raw.get("farm", {})),
             utility=UtilityConfig.from_dict(raw.get("utility", {})),
             coords=CoordsConfig.from_dict(raw.get("coords", {})),
+            session=_session_limits(raw.get("session", {})),
             autocast=autocast,
             stance_key=normalize_key(stance_key) if stance_key else None,
             stance_delay_ms=int(raw.get("stance_delay_ms", 120)),

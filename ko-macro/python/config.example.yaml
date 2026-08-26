@@ -149,4 +149,13 @@ utility:
 #   region_y: { x0: 1760, y0: 20, x1: 1810, y1: 36 }
 #   threshold: 0.88
 
+# Oturum sınırları — başında durmadan farm ederken makronun ne zaman
+# duracağı. Öldüğünde boşluğa tuş basmaya devam etmesin diye.
+session:
+  idle_minutes: 10       # bu kadar kill gelmezse dur (0 = kapalı)
+  stop_on_death: true    # can sıfır kalırsa dur (vitals açık olmalı)
+  death_reads: 5         # ölü saymak için üst üste kaç okuma
+  max_kills: 0           # 0 = sınırsız
+  max_minutes: 0         # 0 = sınırsız
+
 spawn_file: spawns.json

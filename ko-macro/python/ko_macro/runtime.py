@@ -22,6 +22,7 @@ from .farm import FarmLoop, FarmStats
 from .nameplate import NameMatcher, NameRegion
 from .hotkeys import HotkeyManager
 from .sequence import ComboRunner
+from .session import SessionGuard
 from .spawn import SpawnBook
 from .transport import Transport, TransportError, create_transport
 from .utility import AntiAfk, build_utility_combos
@@ -120,12 +121,14 @@ class MacroEngine:
             on_kill=self._record_farm_kill,
         )
 
+        self.guard = SessionGuard(limits=config.session)
         self.hotkeys = HotkeyManager()
         self._queue: queue.Queue[Request] = queue.Queue()
         self._worker: threading.Thread | None = None
         self._busy = threading.Event()
         self.farm_enabled = config.farm.enabled
         self.last_combo: str = "-"
+        self.stop_reason: str | None = None
         self.combo_count = 0
         self.started_at = 0.0
         self.error: str | None = None
@@ -140,6 +143,7 @@ class MacroEngine:
         self.started_at = self.clock.monotonic()
         # Kuralların ilk tetiklemesini dağıt: hepsi aynı anda patlamasın.
         self.autocaster.prime(self.started_at)
+        self.guard.start(self.started_at)
 
         if with_hotkeys:
             self._bind_hotkeys()
@@ -245,6 +249,10 @@ class MacroEngine:
             self._execute(combo)
         elif request.kind == "toggle_farm":
             self.farm_enabled = not self.farm_enabled
+            if self.farm_enabled:
+                # Elle açmak yeni bir oturum demek: sayaçlar sıfırlanır.
+                self.guard.start(self.clock.monotonic())
+                self.stop_reason = None
             log.info("farm döngüsü %s", "açık" if self.farm_enabled else "kapalı")
         elif request.kind == "mark_kill":
             self._record_farm_kill()
@@ -296,9 +304,42 @@ class MacroEngine:
             except Exception as exc:  # ekran okuma hatası döngüyü durdurmasın
                 self.error = f"can okuma hatası: {exc}"
                 log.warning("can okunamadı: %s", exc)
+        self._check_session(now)
         if not self._busy.is_set():
             self._pump_autocast(now)
             self.anti_afk.tick(self.transport, now)
+
+    def _check_session(self, now: float) -> None:
+        """Oturum sınırlarını yoklar; dolduysa farmı durdurur.
+
+        Motoru tamamen kapatmıyoruz: combolar ve kısayollar çalışmaya devam
+        etsin, sadece kendi kendine dönen döngü dursun.
+        """
+        if not self.farm_enabled or self.guard.stopped:
+            return
+        snapshot = self.vitals.snapshot if self.vitals else None
+        reason = self.guard.check(now, snapshot.hp_pct if snapshot else None)
+        if reason is None:
+            return
+
+        self.farm_enabled = False
+        self.stop_reason = reason
+        log.warning("farm durduruldu: %s", reason)
+        try:
+            self.transport.abort()
+        except TransportError as exc:  # pragma: no cover - donanıma bağlı
+            log.warning("iptal gönderilemedi: %s", exc)
+        self._alert()
+
+    def _alert(self) -> None:
+        """Kullanıcının dikkatini çeker (Windows'ta bip)."""
+        try:
+            import winsound
+
+            winsound.Beep(880, 400)
+        except Exception:
+            # Windows dışında ya da ses yoksa terminal zili yeter.
+            print("\a", end="", flush=True)
 
     def _pump_autocast(self, now: float) -> None:
         """Zamanı/koşulu gelen otomatik yetenekleri çalıştırır."""
@@ -343,7 +384,8 @@ class MacroEngine:
     # ------------------------------------------------------------------- doğuş
 
     def _record_farm_kill(self) -> None:
-        """Farm turunu doğuş defterine yazar."""
+        """Farm turunu bekçiye ve doğuş defterine yazar."""
+        self.guard.note_kill(self.clock.monotonic())
         point_id = self.config.farm.spawn_point
         if not point_id or self.spawn_book is None:
             return
@@ -419,6 +461,9 @@ class MacroEngine:
             "farm_wrong_mob": stats.wrong_mob,
             "farm_no_plates": stats.no_plates,
             "farm_plate_clicks": stats.plate_clicks,
+            "session_kills": self.guard.kills,
+            "session_idle_s": self.guard.idle_seconds(now) if self.guard.started_at else 0.0,
+            "stop_reason": self.stop_reason,
             "farm_cut_short": stats.cut_short,
             "target_hp_pct": (
                 self.farm.target.state.hp_pct if self.farm.target is not None else None

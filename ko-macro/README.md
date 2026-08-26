@@ -109,6 +109,15 @@ Farkın sanıldığı kadar olmadığı yerler:
   1 ms çözünürlükte.
 - **Ölüm tespiti, pot basma, comboyu kesme.** Bar okumayla güvenilir çalışıyor.
 
+**Problemi daraltınca fark küçülüyor.** Tek noktada, tek tip mob farmı için
+yukarıdaki satırların çoğu geçersiz kalıyor: yürümeye gerek yok, "hangi mobu
+seçeyim" sorusu yok, mob 3-8 saniyede ölüyorsa 50 ms tepki farkı hiçbir şey
+değiştirmiyor. O senaryoda kalan iki gerçek fark:
+
+1. **Ekranın görünür olması gerekiyor** — bilgisayarı başka işte kullanamazsın.
+2. **Görmediğine kör** — ama ölüm ve takılma tespiti bunu büyük ölçüde
+   kapatıyor (aşağıda).
+
 Karşılığında alınan tek şey, ama önemlisi: **oyun sürecinde bulunacak hiçbir
 şey yok.** Enjekte edilmiş modül, yamalanmış fonksiyon, yabancı thread,
 dışarıdan hafıza okuması — hiçbiri. Yan fayda olarak istemci güncellemeleri
@@ -349,6 +358,32 @@ göre ölçekler ve imleç hesaplanan yere düşmez.
   adı filtresi bunu azaltır, sıfırlamaz
 
 Tarama kurulmamışsa ya da ekran okunamazsa sessizce Tab'a düşer.
+
+### Başında durmadan farm: ne zaman durur
+
+Saatlerce çalışacaksa makronun ne zaman duracağını bilmesi gerek. Öldüysen
+boşluğa tuş basmaya devam etmesi hem işe yaramaz hem göze batar.
+
+```yaml
+session:
+  idle_minutes: 10       # 10 dakika kill gelmezse dur
+  stop_on_death: true    # can sıfır kalırsa dur
+  death_reads: 5         # üst üste 5 okuma sıfırsa ölü say
+  max_kills: 0           # 0 = sınırsız
+  max_minutes: 0         # 0 = sınırsız
+```
+
+Durunca farm döngüsü kapanır, çalışan combo kesilir ve bir bip sesi gelir.
+Combolar ve kısayollar çalışmaya devam eder — motor tamamen kapanmaz. Panoda
+**DURDU** satırında sebebi yazar. F9 ile tekrar açtığında sayaçlar sıfırlanır,
+yeni oturum başlar.
+
+Ölüm tespiti tek okumaya güvenmiyor: bar bir kare boyunca yanlış okunabilir,
+o yüzden üst üste birkaç sıfır okuma isteniyor. Arada dolu bir okuma gelirse
+sayaç sıfırlanır.
+
+> `stop_on_death` için `vitals` açık olmalı — can okunamıyorsa ölüm tespiti
+> çalışmaz ve bu bir hata sayılmaz, sessizce atlanır.
 
 ### Tab'ın yanlış hedef seçmesi
 
@@ -676,7 +711,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 267 test
+cd python && python -m pytest tests -q      # 290 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 
@@ -704,6 +739,7 @@ python/
     calibrate.py    barları ekranda otomatik bulma
     nameplate.py    hedef adını görüntüsünden tanıma
     mobscan.py      ekranda mob isim etiketlerini bulma
+    session.py      oturum bekçisi (ne zaman durulacağı)
     ocr.py          ekrandaki rakamları okuma (konum)
     transport.py    Leonardo / yazılımsal / kuru mod taşıma katmanları
     sequence.py     combo motoru (jitter, burst, cooldown)

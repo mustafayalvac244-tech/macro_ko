@@ -43,8 +43,11 @@ def status_lines(status: dict[str, Any]) -> list[str]:
         f"   kesilen combo {status.get('farm_cut_short', 0)}",
         f"hedefleme : etiket tıklama {status.get('farm_plate_clicks', 0)}"
         f"   etiket yok {status.get('farm_no_plates', 0)}",
-        f"süre      : {uptime // 60}d {uptime % 60:02d}s",
+        f"süre      : {uptime // 60}d {uptime % 60:02d}s"
+        f"   son kill: {int(status.get('session_idle_s', 0))}s önce",
     ] + _autocast_lines(status) + (
+        [f"DURDU     : {status['stop_reason']}"] if status.get("stop_reason") else []
+    ) + (
         [f"hata      : {status['error']}"] if status.get("error") else []
     )
 

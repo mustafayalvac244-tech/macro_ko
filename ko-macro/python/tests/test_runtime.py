@@ -157,3 +157,75 @@ def test_unknown_combo_request_records_error():
     engine, _ = build()
     engine._handle(Request("combo", "yok"))
     assert engine.error is not None and "yok" in engine.error
+
+
+# ------------------------------------------------------------ oturum bekçisi
+
+
+def test_farm_stops_when_the_kill_limit_is_reached():
+    engine, _ = build(farm={"enabled": True}, session={"max_kills": 2, "idle_minutes": 0})
+    engine.guard.start(0.0)
+    assert engine.farm_enabled is True
+
+    engine._record_farm_kill()
+    engine._record_farm_kill()
+    engine._check_session(now=1.0)
+
+    assert engine.farm_enabled is False
+    assert "kill sınırı" in (engine.stop_reason or "")
+
+
+def test_farm_stops_when_idle_too_long():
+    engine, _ = build(farm={"enabled": True}, session={"idle_minutes": 5})
+    engine.guard.start(0.0)
+
+    engine._check_session(now=4 * 60.0)
+    assert engine.farm_enabled is True
+
+    engine._check_session(now=5 * 60.0)
+    assert engine.farm_enabled is False
+    assert "kill yok" in (engine.stop_reason or "")
+
+
+def test_stopping_aborts_whatever_is_running():
+    engine, transport = build(
+        farm={"enabled": True}, session={"max_kills": 1, "idle_minutes": 0}
+    )
+    engine.guard.start(0.0)
+    engine._record_farm_kill()
+    engine._check_session(now=1.0)
+
+    assert any(a.kind == "release_all" for a in transport.actions)
+
+
+def test_no_check_while_farm_is_off():
+    engine, _ = build(farm={"enabled": False}, session={"max_kills": 1, "idle_minutes": 0})
+    engine.guard.start(0.0)
+    engine._record_farm_kill()
+    engine._check_session(now=1.0)
+    # Farm zaten kapalıyken sebep üretmemeli.
+    assert engine.stop_reason is None
+
+
+def test_toggling_farm_back_on_starts_a_new_session():
+    engine, _ = build(farm={"enabled": True}, session={"max_kills": 1, "idle_minutes": 0})
+    engine.guard.start(0.0)
+    engine._record_farm_kill()
+    engine._check_session(now=1.0)
+    assert engine.farm_enabled is False
+
+    engine._handle(Request("toggle_farm"))
+    assert engine.farm_enabled is True
+    assert engine.stop_reason is None
+    assert engine.guard.kills == 0
+
+
+def test_status_carries_the_stop_reason():
+    engine, _ = build(farm={"enabled": True}, session={"max_kills": 1, "idle_minutes": 0})
+    engine.guard.start(0.0)
+    engine._record_farm_kill()
+    engine._check_session(now=1.0)
+
+    status = engine.status()
+    assert status["stop_reason"] is not None
+    assert status["session_kills"] == 1
