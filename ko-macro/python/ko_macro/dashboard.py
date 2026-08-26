@@ -41,6 +41,8 @@ def status_lines(status: dict[str, Any]) -> list[str]:
         f"   yanlış mob {status.get('farm_wrong_mob', 0)}"
         f"   menzil dışı {status.get('farm_abandoned', 0)}"
         f"   kesilen combo {status.get('farm_cut_short', 0)}",
+        f"hedefleme : etiket tıklama {status.get('farm_plate_clicks', 0)}"
+        f"   etiket yok {status.get('farm_no_plates', 0)}",
         f"süre      : {uptime // 60}d {uptime % 60:02d}s",
     ] + _autocast_lines(status) + (
         [f"hata      : {status['error']}"] if status.get("error") else []

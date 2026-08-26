@@ -100,6 +100,8 @@ class FarmStats:
     abandoned: int = 0     # hasar girmediği için bırakılan hedefler
     skipped: int = 0       # yarım canlı olduğu için atlanan hedefler
     wrong_mob: int = 0     # adı tutmadığı için atlanan hedefler
+    no_plates: int = 0     # ekranda isim etiketi bulunamayan denemeler
+    plate_clicks: int = 0  # etikete tıklayarak yapılan hedefleme
     cut_short: int = 0     # hedef ölünce yarıda kesilen combolar
     started_at: float = 0.0
     stopped_at: float | None = None
@@ -127,6 +129,10 @@ class FarmLoop:
     name_matcher: NameMatcher | None = None
     #: Ad filtresi için taze ekran görüntüsü üreten çağrı.
     screen_factory: Callable[[], object] | None = None
+    #: Etiket taraması için tam ekran üreten çağrı (``targeting: click``).
+    scan_screen_factory: Callable[[], object] | None = None
+    #: Etiket tarama ayarları.
+    scan_settings: object | None = None
     #: Bir mob öldüğünde çağrılır (doğuş takibine kayıt için).
     on_kill: Callable[[], None] | None = None
     stats: FarmStats = field(default_factory=FarmStats)
@@ -140,6 +146,56 @@ class FarmLoop:
     def _sleep_ms(self, milliseconds: int) -> None:
         if milliseconds > 0:
             self.clock.sleep(milliseconds / 1000.0)
+
+    def _select_next(self, attempt: int) -> bool:
+        """Sıradaki hedefi seçer. ``False`` = seçilecek bir şey bulunamadı."""
+        if self.config.targeting == "click":
+            return self._click_next_nameplate(attempt)
+        self.transport.tap(self.config.target_key, 45)
+        self._sleep_ms(self.config.retarget_delay_ms)
+        return True
+
+    def _click_next_nameplate(self, attempt: int) -> bool:
+        """Ekrandaki isim etiketlerinden birine tıklayarak hedef seçer.
+
+        Tab tek hedef verir; tarama görüş alanındaki bütün etiketleri bulur ve
+        aralarından seçebiliriz. Denemeler ilerledikçe sıradaki etikete
+        geçiyoruz, böylece aynı moba takılıp kalmıyoruz.
+        """
+        if self.scan_screen_factory is None:
+            # Tarama kurulmamış: Tab'a düş.
+            self.transport.tap(self.config.target_key, 45)
+            self._sleep_ms(self.config.retarget_delay_ms)
+            return True
+
+        from .mobscan import find_nameplates, nearest_to_center
+
+        try:
+            screen = self.scan_screen_factory()
+            plates = find_nameplates(screen, self.scan_settings)
+        except Exception as exc:  # ekran okuma hatası döngüyü durdurmasın
+            log.warning("etiket taraması yapılamadı: %s", exc)
+            self.transport.tap(self.config.target_key, 45)
+            self._sleep_ms(self.config.retarget_delay_ms)
+            return True
+
+        if not plates:
+            self.stats.no_plates += 1
+            log.debug("ekranda isim etiketi yok")
+            return False
+
+        # İlk denemede ortadaki (baktığın) mob, sonrakilerde sıradakiler.
+        if attempt == 0:
+            chosen = nearest_to_center(plates, screen) or plates[0]
+        else:
+            chosen = plates[min(attempt, len(plates) - 1)]
+
+        x, y = chosen.click_point
+        self.transport.mouse_to(x, y)
+        self.transport.click("left", 60)
+        self._sleep_ms(self.config.click_settle_ms)
+        self.stats.plate_clicks += 1
+        return True
 
     def _turn(self) -> None:
         """Karakteri biraz çevirir (yeni mob aramak için)."""
@@ -206,8 +262,8 @@ class FarmLoop:
             if attempt > 0 and attempt % self.config.turn_after_attempts == 0:
                 self._turn()
 
-            self.transport.tap(self.config.target_key, 45)
-            self._sleep_ms(self.config.retarget_delay_ms)
+            if not self._select_next(attempt):
+                continue
 
             if self.target is None:
                 return True

@@ -263,6 +263,14 @@ class FarmConfig:
     mob_names: dict[str, str] = field(default_factory=dict)
     #: Ad eşleşmesi için gereken en az benzerlik (0-1).
     name_threshold: float = 0.85
+    #: Hedefleme kipi: ``tab`` oyunun Tab'ını kullanır, ``click`` ekranda mob
+    #: isim etiketlerini arayıp üstüne tıklar. ``click`` görüş alanındaki
+    #: moblar arasından seçebilir; Tab tek hedef verir.
+    targeting: str = "tab"
+    #: Etiket taraması ayarları (``mobscan.ScanSettings`` biçiminde).
+    scan: dict[str, Any] | None = None
+    #: Tıkladıktan sonra hedefin oturması için beklenecek süre.
+    click_settle_ms: int = 220
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "FarmConfig":
@@ -295,6 +303,9 @@ class FarmConfig:
             name_region=raw.get("name_region"),
             mob_names={str(k): str(v) for k, v in (raw.get("mob_names") or {}).items()},
             name_threshold=float(raw.get("name_threshold", 0.85)),
+            targeting=str(raw.get("targeting", "tab")).lower(),
+            scan=raw.get("scan"),
+            click_settle_ms=int(raw.get("click_settle_ms", 220)),
         )
         if farm.engage_seconds <= 0:
             raise ConfigError("engage_seconds pozitif olmalı")
@@ -311,6 +322,22 @@ class FarmConfig:
                 "mob_names tanımlı ama name_region yok — 'mob-ogren' komutuyla ikisini "
                 "birlikte oluştur"
             )
+        if farm.targeting not in {"tab", "click"}:
+            raise ConfigError(
+                f"farm.targeting 'tab' ya da 'click' olmalı, gelen: {farm.targeting!r}"
+            )
+        if farm.targeting == "click" and farm.target_bar is None:
+            raise ConfigError(
+                "farm.targeting: click için target_bar gerekli — tıklamanın hedef "
+                "seçip seçmediğini bar okumadan doğrulayamayız"
+            )
+        if farm.scan is not None:
+            from .mobscan import ScanSettings  # döngüsel import olmasın diye burada
+
+            try:
+                ScanSettings.from_dict(farm.scan)
+            except (KeyError, ValueError) as exc:
+                raise ConfigError(f"farm.scan hatalı: {exc}") from exc
         if farm.name_region:
             from .nameplate import NameRegion  # döngüsel import olmasın diye burada
 

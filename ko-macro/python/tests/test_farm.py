@@ -431,3 +431,99 @@ def test_name_read_failure_does_not_block_the_loop():
     loop.screen_factory = broken_screen
 
     assert loop.acquire_target() is True
+
+
+# ------------------------------------------------- tıklayarak hedefleme (click)
+
+
+def click_config(**kwargs) -> FarmConfig:
+    defaults = dict(targeting="click", click_settle_ms=50, search_attempts=3,
+                    acquire_timeout_ms=150)
+    defaults.update(kwargs)
+    return farm_config(**defaults)
+
+
+def test_click_targeting_moves_the_mouse_and_clicks():
+    from tests.test_mobscan import make_screen as mob_screen
+
+    screen = mob_screen(1000, 600, [{"x0": 470, "y0": 290}])
+    sampler = QueuedSampler([1.0])          # tıklamadan sonra hedef barı dolu
+    loop, transport, _ = build(click_config(), sampler=sampler)
+    loop.scan_screen_factory = lambda: screen
+
+    assert loop.acquire_target() is True
+    assert loop.stats.plate_clicks == 1
+    kinds = [a.kind for a in transport.actions]
+    assert "mouse_move" in kinds          # imleç götürüldü
+    assert "click" in kinds               # tıklandı
+    # Tab'a hiç basılmadı: hedefi tarama seçti.
+    assert not any(a.kind == "tap" and a.target == "tab" for a in transport.actions)
+
+
+def test_click_targeting_reports_when_no_plate_is_visible():
+    from ko_macro.calibrate import FakeScreen
+    from tests.test_mobscan import BACKGROUND
+
+    empty = FakeScreen([[BACKGROUND] * 400 for _ in range(300)])
+    sampler = QueuedSampler([1.0])
+    loop, _, _ = build(click_config(), sampler=sampler)
+    loop.scan_screen_factory = lambda: empty
+
+    assert loop.acquire_target() is False
+    assert loop.stats.no_plates == 3       # her denemede tarandı
+    assert loop.stats.plate_clicks == 0
+
+
+def test_click_targeting_tries_a_different_plate_each_attempt():
+    """İlk tıklama tutmazsa sıradaki etikete geçilmeli."""
+    from tests.test_mobscan import make_screen as mob_screen
+
+    screen = mob_screen(1000, 600, [
+        {"x0": 100, "y0": 120},
+        {"x0": 470, "y0": 290},
+        {"x0": 800, "y0": 400},
+    ])
+    sampler = QueuedSampler([0.0])         # hiçbir tıklama hedef seçmiyor
+    loop, transport, _ = build(click_config(search_attempts=3), sampler=sampler)
+    loop.scan_screen_factory = lambda: screen
+
+    assert loop.acquire_target() is False
+    assert loop.stats.plate_clicks == 3
+    # Üç farklı noktaya tıklandı.
+    moves = [a.target for a in transport.actions if a.kind == "mouse_move"]
+    targets = [m for m in moves if not m.startswith("-4000")]
+    assert len(set(targets)) > 1
+
+
+def test_click_targeting_falls_back_to_tab_without_a_scanner():
+    sampler = QueuedSampler([1.0])
+    loop, transport, _ = build(click_config(), sampler=sampler)
+    loop.scan_screen_factory = None        # tarama kurulmamış
+
+    assert loop.acquire_target() is True
+    assert any(a.kind == "tap" and a.target == "tab" for a in transport.actions)
+
+
+def test_scan_failure_falls_back_to_tab():
+    def broken():
+        raise RuntimeError("ekran alınamadı")
+
+    sampler = QueuedSampler([1.0])
+    loop, transport, _ = build(click_config(), sampler=sampler)
+    loop.scan_screen_factory = broken
+
+    assert loop.acquire_target() is True
+    assert any(a.kind == "tap" and a.target == "tab" for a in transport.actions)
+
+
+def test_clicked_target_still_goes_through_health_filtering():
+    """Tıklayarak seçilen ceset de elenmeli."""
+    from tests.test_mobscan import make_screen as mob_screen
+
+    screen = mob_screen(1000, 600, [{"x0": 470, "y0": 290}])
+    sampler = QueuedSampler([0.0])         # bar boş: ceset
+    loop, _, _ = build(click_config(), sampler=sampler)
+    loop.scan_screen_factory = lambda: screen
+
+    assert loop.acquire_target() is False
+    assert loop.stats.kills == 0

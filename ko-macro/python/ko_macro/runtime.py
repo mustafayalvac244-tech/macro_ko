@@ -96,6 +96,15 @@ class MacroEngine:
             name_box = (region.x0, region.y0, region.x1, region.y1)
             screen_factory = lambda: MSSScreen(box=name_box)  # noqa: E731
 
+        # Tıklayarak hedefleme: tüm ekran taranır, etiketler bulunur.
+        scan_screen_factory: Callable[[], object] | None = None
+        scan_settings = None
+        if config.farm.targeting == "click":
+            from .mobscan import ScanSettings
+
+            scan_settings = ScanSettings.from_dict(config.farm.scan or {})
+            scan_screen_factory = MSSScreen
+
         farm_combo = config.find_combo(config.farm.combo) if config.farm.combo else None
         self.farm = FarmLoop(
             config=config.farm,
@@ -106,6 +115,8 @@ class MacroEngine:
             target=target,
             name_matcher=name_matcher,
             screen_factory=screen_factory,
+            scan_screen_factory=scan_screen_factory,
+            scan_settings=scan_settings,
             on_kill=self._record_farm_kill,
         )
 
@@ -406,6 +417,8 @@ class MacroEngine:
             "farm_abandoned": stats.abandoned,
             "farm_skipped": stats.skipped,
             "farm_wrong_mob": stats.wrong_mob,
+            "farm_no_plates": stats.no_plates,
+            "farm_plate_clicks": stats.plate_clicks,
             "farm_cut_short": stats.cut_short,
             "target_hp_pct": (
                 self.farm.target.state.hp_pct if self.farm.target is not None else None

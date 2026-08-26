@@ -95,7 +95,7 @@ davranmıyorum.
 
 | | Hooking / hafıza okuma | Bu proje |
 | --- | --- | --- |
-| Etraftaki mobların listesi, tipi, mesafesi | Hepsini bilir | Bilmez — Tab ne verirse |
+| Etraftaki mobların listesi | Hepsini bilir (duvar arkası dahil) | Sadece **ekranda görünenler** (`targeting: click`) |
 | Otomatik yürüme, rota takibi | Yapar | Yapmaz, park ettiğin yerde durur |
 | Can / mana | Kesin sayı | Piksel oranı, yaklaşık |
 | Zehir / stun / buff durumu | Olay bazlı bilir | Bilmez, süreye dayalı tahmin |
@@ -312,6 +312,43 @@ farm:
   post_kill_delay_ms: 250
   stall_seconds: 4.0
 ```
+
+### Hedefleme kipi: Tab yerine tıklama
+
+Tab tek hedef verir, üstelik en yakındakini. `targeting: click` ile ekranı
+tarayıp **görüş alanındaki bütün mob isim etiketlerini** bulur ve aralarından
+seçer:
+
+```yaml
+farm:
+  targeting: click
+  target_bar: { x0: 700, x1: 900, y: 60, color: [190, 40, 40], tolerance: 60 }
+  scan:
+    color: [235, 235, 130]     # mob adı yazısının rengi
+    tolerance: 70
+    excluded:                  # sohbet kutusunu tarama
+      - { x0: 0, y0: 780, x1: 700, y1: 1079 }
+```
+
+İlk denemede baktığın yöndeki (ekran ortasına en yakın) mobu seçer; tutmazsa
+sıradakine geçer. Seçilen hedef yine aynı elemelerden geçer — bar var mı, canı
+dolu mu, adı tuttu mu.
+
+İmleci konuma götürmek için Leonardo'nun göreli hareketi kullanılıyor: önce
+sol üst köşeye dayanıp oradan sayarak gidiyor. **Windows'ta "İşaretçi
+hassasiyetini artır" kapalı olmalı** — açıkken işletim sistemi hareketi hıza
+göre ölçekler ve imleç hesaplanan yere düşmez.
+
+**Sınırları (hafıza listesiyle farkı burada):**
+
+- Ekranda görünmeyen mob yoktur: arkanda kalan, tepenin ardındaki, kadraj
+  dışındaki görünmez
+- Bir şeyin arkasında kalan etiket bölünebilir ya da hiç çıkmaz
+- Mesafe bilinmez, sadece etiket büyüklüğünden kabaca tahmin edilir
+- Oyuncu ve NPC adları da aynı renkte olabilir — `excluded` bölgeleri ve mob
+  adı filtresi bunu azaltır, sıfırlamaz
+
+Tarama kurulmamışsa ya da ekran okunamazsa sessizce Tab'a düşer.
 
 ### Tab'ın yanlış hedef seçmesi
 
@@ -639,7 +676,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 244 test
+cd python && python -m pytest tests -q      # 267 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 
@@ -666,6 +703,7 @@ python/
     paths.py        kaynak/exe yol çözümlemesi
     calibrate.py    barları ekranda otomatik bulma
     nameplate.py    hedef adını görüntüsünden tanıma
+    mobscan.py      ekranda mob isim etiketlerini bulma
     ocr.py          ekrandaki rakamları okuma (konum)
     transport.py    Leonardo / yazılımsal / kuru mod taşıma katmanları
     sequence.py     combo motoru (jitter, burst, cooldown)

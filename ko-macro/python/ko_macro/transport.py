@@ -32,6 +32,11 @@ LEONARDO_IDS: tuple[tuple[int, int | None], ...] = (
 )
 
 
+#: İmleci köşeye dayamak için gönderilen toplam göreli hareket. Ekranın
+#: köşegeninden büyük olmalı ki imleç kesin köşeye otursun.
+MOUSE_HOME_TRAVEL = 4000
+
+
 class TransportError(RuntimeError):
     """Cihaz bulunamadı, cevap vermedi ya da hata döndürdü."""
 
@@ -129,6 +134,28 @@ class Transport(ABC):
                 if step.gap_ms > 0:
                     self._wait(step.gap_ms / 1000.0)
         return executed
+
+    # -- mutlak konumlandırma ---------------------------------------------
+
+    def mouse_home(self) -> None:
+        """İmleci sol üst köşeye dayar.
+
+        Leonardo'nun fare arayüzü **göreli**: "şu kadar sağa git" der, "şuraya
+        git" diyemez. Mutlak konuma gitmenin yolu önce bilinen bir noktaya
+        dayanmak; ekranın sol üstü de imlecin daha ileri gidemediği yer.
+        """
+        self.mouse_move(-MOUSE_HOME_TRAVEL, -MOUSE_HOME_TRAVEL)
+
+    def mouse_to(self, x: int, y: int) -> None:
+        """İmleci ekran koordinatına götürür (önce köşeye dayanarak).
+
+        Windows'ta **"İşaretçi hassasiyetini artır"** kapalı olmalı: açıkken
+        işletim sistemi göreli hareketi hıza göre ölçekler ve imleç
+        hesapladığımız yere düşmez.
+        """
+        self.mouse_home()
+        if x or y:
+            self.mouse_move(int(x), int(y))
 
     def _wait(self, seconds: float) -> None:
         time.sleep(seconds)
