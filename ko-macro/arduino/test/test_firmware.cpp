@@ -250,6 +250,76 @@ static void test_incoming_byte_aborts_combo() {
   checkEqual(Keyboard.heldCount, 0, "iptalde tuşlar bırakılır");
 }
 
+static void test_queue_hold_keeps_the_key_down() {
+  // Koşarken atış: yön tuşu basılı KALIRKEN skill'e basılmalı.
+  resetAll();
+  arm();
+  send("QC\n");
+  send("QD up 0\n");        // yön tuşu basılı kalsın
+  send("QK 3 40 60\n");     // araya skill
+  send("QK 5 40 0\n");
+  send("QU up 0\n");        // sonunda bırak
+  Serial.reset();
+  Keyboard.reset();
+  send("G 1\n");
+
+  checkEqual(lastLine(), std::string("DONE 4"), "dört adım çalıştı");
+
+  // Beklenen sıra: up basıldı, 3 bas-bırak, 5 bas-bırak, up bırakıldı.
+  checkEqual((int)Keyboard.events.size(), 6, "hold tek olay üretir");
+  checkEqual(Keyboard.events[0].action, std::string("press"), "önce yön tuşu");
+  checkEqual((int)Keyboard.events[0].code, (int)KEY_UP_ARROW, "yön tuşu kodu");
+  checkEqual((int)Keyboard.events[1].code, (int)'3', "skill 3 basıldı");
+  checkEqual(Keyboard.events[1].action, std::string("press"), "3 press");
+  checkEqual(Keyboard.events[2].action, std::string("release"), "3 release");
+  checkEqual((int)Keyboard.events[3].code, (int)'5', "skill 5 basıldı");
+  checkEqual(Keyboard.events[5].action, std::string("release"), "son olay bırakma");
+  checkEqual((int)Keyboard.events[5].code, (int)KEY_UP_ARROW, "yön tuşu bırakıldı");
+  checkEqual(Keyboard.heldCount, 0, "sonunda basılı tuş kalmadı");
+}
+
+static void test_held_key_is_released_on_abort() {
+  // Combo yarıda kesilirse basılı yön tuşu kalmamalı - yoksa karakter
+  // durmadan koşmaya devam eder.
+  resetAll();
+  arm();
+  send("QC\n");
+  send("QD up 0\n");
+  send("QK 3 40 500\n");
+  Serial.reset();
+  Keyboard.reset();
+  send("G 1\nA\n");
+
+  check(lastLine().rfind("ABORT", 0) == 0, "iptal bildirildi");
+  checkEqual(Keyboard.heldCount, 0, "iptalde yön tuşu bırakıldı");
+  checkEqual((int)heldKeyCount, 0, "takip listesi temiz");
+}
+
+static void test_held_key_is_released_by_watchdog() {
+  resetAll();
+  arm();
+  send("QC\n");
+  send("QD up 0\n");
+  send("G 1\n");
+  checkEqual(Keyboard.heldCount, 1, "yön tuşu basılı kaldı");
+
+  fakeMillis += WATCHDOG_MS + 1;
+  loop();
+  checkEqual(Keyboard.heldCount, 0, "watchdog basılı tuşu bıraktı");
+}
+
+static void test_hold_step_does_not_wait_for_hold_time() {
+  // QD'de hold yok: ikinci sayı gap. 200 ms gap verirsek toplam 200 ms.
+  resetAll();
+  arm();
+  send("QC\n");
+  send("QD up 200\n");
+  unsigned long start = fakeMillis;
+  send("G 1\n");
+  checkEqual(fakeMillis - start, 200UL, "QD sadece gap kadar bekler");
+  send("R\n");
+}
+
 static void test_watchdog_disarms_after_silence() {
   resetAll();
   arm();
@@ -328,6 +398,10 @@ int main() {
       {"fare tıklama", test_mouse_click},
       {"fare hareketi parçalanır", test_mouse_move_is_chunked},
       {"kuyruk sırayla çalışır", test_queue_runs_in_order},
+      {"basılı tutan adım", test_queue_hold_keeps_the_key_down},
+      {"iptalde basılı tuş bırakılır", test_held_key_is_released_on_abort},
+      {"watchdog basılı tuşu bırakır", test_held_key_is_released_by_watchdog},
+      {"QD hold beklemez", test_hold_step_does_not_wait_for_hold_time},
       {"kuyruk zamanlaması", test_queue_timing_uses_gaps},
       {"kuyruk dolu", test_queue_full_is_reported},
       {"kuyruk boş", test_empty_queue_is_reported},

@@ -215,3 +215,81 @@ def test_stance_flag_without_key_is_a_no_op():
     runner.run(make_combo(burst=False, restore_stance=True))
     taps = [action.target for action in transport.actions if action.kind == "tap"]
     assert taps == ["1", "3"]
+
+
+# --------------------------------------------- basılı tutan adımlar (koşarken)
+
+
+def running_combo(**kwargs) -> Combo:
+    """Yön tuşu basılıyken skill basan combo."""
+    defaults = dict(
+        name="kos",
+        steps=[
+            ComboStep(key="up", action="down", gap_ms=60),
+            ComboStep(skill="spike", hold_ms=35, gap_ms=110),
+            ComboStep(skill="shot", hold_ms=35, gap_ms=90),
+            ComboStep(key="up", action="up", gap_ms=0),
+        ],
+        burst=False,
+    )
+    defaults.update(kwargs)
+    return Combo(**defaults)
+
+
+def test_hold_step_presses_without_releasing():
+    transport = DryRunTransport()
+    runner = make_runner(transport)
+    runner.run(running_combo())
+
+    kinds = [(a.kind, a.target) for a in transport.actions if a.kind != "wait"]
+    assert kinds[0] == ("key_down", "up")      # yön tuşu basıldı, bırakılmadı
+    assert ("tap", "1") in kinds               # araya skill girdi
+    assert ("tap", "3") in kinds
+    assert kinds[-1] == ("key_up", "up")       # sonunda bırakıldı
+
+
+def test_skills_land_between_the_hold_and_release():
+    transport = DryRunTransport()
+    runner = make_runner(transport)
+    runner.run(running_combo())
+
+    order = [a.kind for a in transport.actions if a.kind in
+             {"key_down", "key_up", "tap"}]
+    assert order.index("key_down") < order.index("tap")
+    assert order.index("tap") < order.index("key_up")
+
+
+def test_held_key_is_released_when_the_combo_is_cut():
+    """Combo yarıda kesilirse yön tuşu basılı kalmamalı."""
+    transport = DryRunTransport()
+    runner = make_runner(transport)
+    calls = {"n": 0}
+
+    def should_continue() -> bool:
+        calls["n"] += 1
+        return calls["n"] <= 2          # ilk adımdan sonra kes
+
+    result = runner.run(running_combo(), should_continue=should_continue)
+
+    assert result.aborted
+    assert any(a.kind == "release_all" for a in transport.actions)
+
+
+def test_burst_queues_hold_and_release_steps():
+    class BurstTransport(DryRunTransport):
+        supports_burst = True
+
+    transport = BurstTransport()
+    runner = make_runner(transport)
+    runner.run(running_combo(burst=True))
+
+    actions = [(step.action, step.target) for step in transport._steps]
+    assert actions[0] == ("hold", "up")
+    assert actions[-1] == ("release", "up")
+    assert ("tap", "1") in actions
+
+
+def test_describe_shows_hold_and_release():
+    text = describe_combo(running_combo(), SKILLBAR)
+    assert "up↓" in text
+    assert "up↑" in text

@@ -107,6 +107,32 @@ combos:
     steps:
       - { skill: m20, hold_ms: 40, gap_ms: 200 }
 
+  # --- Koşarken atış ---
+  # Yön tuşu BASILI KALIRKEN skill'e basılır (action: down / up). Bunun
+  # tamamı zamanlama işi; oyunun verisiyle alakası yok.
+  #
+  # gap_ms değerleri BAŞLANGIÇ noktasıdır ve burada ayar daha kritik:
+  # skill çok erken gelirse hareket iptal olur, çok geç gelirse duraklarsın.
+  # 10-20 ms adımlarla oynat, `test "kos-3-5" --dry-run` ile diziyi gör.
+  - name: "kos-3-5"
+    description: "Koşarken 3-5 - yön tuşu basılı, araya skill"
+    hotkey: "insert"
+    cooldown_ms: 700
+    steps:
+      - { key: "up", action: down, gap_ms: 60 }    # koşmaya başla, bırakma
+      - { key: "3", hold_ms: 35, gap_ms: 110 }     # koşarken bas
+      - { key: "5", hold_ms: 35, gap_ms: 90 }
+      - { key: "up", action: up, gap_ms: 0 }       # yön tuşunu bırak
+
+  - name: "kos-70-72"
+    description: "Koşarken 70-72"
+    cooldown_ms: 900
+    steps:
+      - { key: "up", action: down, gap_ms: 60 }
+      - { skill: arrow_shower, hold_ms: 35, gap_ms: 120 }
+      - { skill: multiple_shot, hold_ms: 35, gap_ms: 100 }
+      - { key: "up", action: up, gap_ms: 0 }
+
   - name: "mana-pull"
     description: "Yürürken mana çekme - kısa adımlar"
     hotkey: "f7"

@@ -48,6 +48,10 @@ class ComboStep:
     gap_ms: int = 120
     repeat: int = 1
     label: str = ""
+    #: ``tap`` bas-bırak, ``down`` basılı bırakır, ``up`` bırakır.
+    #: Koşarken atış gibi örtüşen girdiler için: yön tuşunu ``down`` ile
+    #: basılı tutup araya skill sıkıştırır, sonunda ``up`` ile bırakırsın.
+    action: str = "tap"
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "ComboStep":
@@ -61,7 +65,14 @@ class ComboStep:
             gap_ms=int(raw.get("gap_ms", 120)),
             repeat=int(raw.get("repeat", 1)),
             label=str(raw.get("label", "")),
+            action=str(raw.get("action", "tap")).lower(),
         )
+        if step.action not in {"tap", "down", "up"}:
+            raise ConfigError(
+                f"adım action'ı tap/down/up olmalı, gelen: {step.action!r}"
+            )
+        if step.action != "tap" and step.button is not None:
+            raise ConfigError("down/up sadece tuşlar için; fare adımında kullanılamaz")
         if sum(x is not None for x in (step.key, step.skill, step.button)) != 1:
             raise ConfigError(
                 f"combo adımında tam olarak biri olmalı - key / skill / button: {raw!r}"
@@ -614,6 +625,25 @@ class AppConfig:
         if clashing:
             raise ConfigError(f"aynı hotkey birden fazla comboda: {', '.join(sorted(clashing))}")
 
+        # Kontrol tuşları (başlat/durdur, panik...) combolara da kapalı olmalı;
+        # aksi halde combo bağlanamadan sessizce düşer.
+        control_keys = {
+            key
+            for key in (
+                self.hotkeys.start_stop,
+                self.hotkeys.panic,
+                self.hotkeys.mark_kill,
+                self.hotkeys.toggle_farm,
+            )
+            if key
+        }
+        for combo in self.combos:
+            if combo.hotkey and combo.hotkey in control_keys:
+                raise ConfigError(
+                    f"{combo.name!r} combosunun kısayolu bir kontrol tuşuyla "
+                    f"çakışıyor: {combo.hotkey}"
+                )
+
         utility_names = self.utility.available_names()
         for rule in self.autocast:
             if rule.combo and self.find_combo(rule.combo) is None:
@@ -626,18 +656,6 @@ class AppConfig:
             if rule.key:
                 rule.key = normalize_key(rule.key)
 
-        # Kontrol kısayolları da doluysa çakışma sayılır; yoksa yardımcı makro
-        # sessizce bağlanamadan kalırdı.
-        control_keys = {
-            key
-            for key in (
-                self.hotkeys.start_stop,
-                self.hotkeys.panic,
-                self.hotkeys.mark_kill,
-                self.hotkeys.toggle_farm,
-            )
-            if key
-        }
         for name, key in self.utility.hotkeys.items():
             if name not in utility_names:
                 raise ConfigError(

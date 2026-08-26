@@ -49,6 +49,8 @@ class QueuedStep:
     target: str
     hold_ms: int
     gap_ms: int
+    #: tap = bas-bırak, hold = basılı bırak, release = bırak
+    action: str = "tap"
 
 
 class Transport(ABC):
@@ -118,6 +120,18 @@ class Transport(ABC):
     def queue_key(self, key: str, hold_ms: int = 45, gap_ms: int = 0) -> None:
         self._steps.append(QueuedStep(False, normalize_key(key), int(hold_ms), int(gap_ms)))
 
+    def queue_key_down(self, key: str, gap_ms: int = 0) -> None:
+        """Tuşu basılı bırakan adım — sonraki adımlar o tuş basılıyken çalışır."""
+        self._steps.append(
+            QueuedStep(False, normalize_key(key), 0, int(gap_ms), action="hold")
+        )
+
+    def queue_key_up(self, key: str, gap_ms: int = 0) -> None:
+        """Basılı tutulan tuşu bırakan adım."""
+        self._steps.append(
+            QueuedStep(False, normalize_key(key), 0, int(gap_ms), action="release")
+        )
+
     def queue_click(self, button: str = "left", hold_ms: int = 45, gap_ms: int = 0) -> None:
         self._steps.append(QueuedStep(True, normalize_button(button), int(hold_ms), int(gap_ms)))
 
@@ -126,7 +140,11 @@ class Transport(ABC):
         executed = 0
         for _ in range(max(1, int(repeat))):
             for step in list(self._steps):
-                if step.is_mouse:
+                if step.action == "hold":
+                    self.key_down(step.target)
+                elif step.action == "release":
+                    self.key_up(step.target)
+                elif step.is_mouse:
                     self.click(step.target, step.hold_ms)
                 else:
                     self.tap(step.target, step.hold_ms)
@@ -426,6 +444,16 @@ class SerialHidTransport(Transport):
         key = normalize_key(key)
         self._command(f"QK {key} {int(hold_ms)} {int(gap_ms)}")
         self._steps.append(QueuedStep(False, key, int(hold_ms), int(gap_ms)))
+
+    def queue_key_down(self, key: str, gap_ms: int = 0) -> None:
+        key = normalize_key(key)
+        self._command(f"QD {key} {int(gap_ms)}")
+        self._steps.append(QueuedStep(False, key, 0, int(gap_ms), action="hold"))
+
+    def queue_key_up(self, key: str, gap_ms: int = 0) -> None:
+        key = normalize_key(key)
+        self._command(f"QU {key} {int(gap_ms)}")
+        self._steps.append(QueuedStep(False, key, 0, int(gap_ms), action="release"))
 
     def queue_click(self, button: str = "left", hold_ms: int = 45, gap_ms: int = 0) -> None:
         button = normalize_button(button)

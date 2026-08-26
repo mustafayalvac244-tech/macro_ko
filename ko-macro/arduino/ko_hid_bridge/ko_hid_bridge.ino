@@ -22,7 +22,9 @@
  * Combo kuyruğu (zamanlaması PC'ye değil, Leonardo'nun kendi saatine bağlı):
  *
  *   QC             -> "OK"                  kuyruğu temizle
- *   QK <key> <hold> <gap>  -> "OK"          kuyruğa tuş adımı ekle
+ *   QK <key> <hold> <gap>  -> "OK"          kuyruğa bas-bırak adımı ekle
+ *   QD <key> <gap>         -> "OK"          kuyruğa "basılı tut" adımı ekle
+ *   QU <key> <gap>         -> "OK"          kuyruğa "bırak" adımı ekle
  *   QM <btn> <hold> <gap>  -> "OK"          kuyruğa fare adımı ekle
  *   G [tekrar]     -> "DONE <adım>"         kuyruğu çalıştır (varsayılan 1 kez)
  *   A              -> "ABORT"               çalışan comboyu kes
@@ -101,12 +103,20 @@ static bool heldMouse[3] = {false, false, false};
 static char lineBuf[48];
 static byte lineLen = 0;
 
+// Adım türleri. TAP bas-bırak; HOLD basılı bırakır, RELEASE bırakır.
+// HOLD/RELEASE olmadan "yön tuşu basılıyken skill bas" gibi örtüşen
+// girdiler ifade edilemiyor - koşarak atışın tamamı o örtüşmede.
+#define STEP_TAP 0
+#define STEP_HOLD 1
+#define STEP_RELEASE 2
+
 // Combo kuyruğu: adımlar önceden yüklenir, "G" ile tek seferde çalıştırılır.
 struct Step {
   uint8_t isMouse;
-  uint8_t code;   // tuş kodu ya da MOUSE_* sabiti
-  uint16_t hold;  // basılı tutma süresi (ms)
-  uint16_t gap;   // adımdan sonra beklenecek süre (ms)
+  uint8_t action;  // STEP_TAP | STEP_HOLD | STEP_RELEASE
+  uint8_t code;    // tuş kodu ya da MOUSE_* sabiti
+  uint16_t hold;   // basılı tutma süresi (ms) - sadece TAP için
+  uint16_t gap;    // adımdan sonra beklenecek süre (ms)
 };
 
 static Step stepQueue[MAX_STEPS];
@@ -202,9 +212,10 @@ static unsigned int clampGap(long ms) {
   return (unsigned int)ms;
 }
 
-static bool queueStep(bool isMouse, uint8_t code, long hold, long gap) {
+static bool queueStep(bool isMouse, uint8_t action, uint8_t code, long hold, long gap) {
   if (stepCount >= MAX_STEPS) return false;
   stepQueue[stepCount].isMouse = isMouse ? 1 : 0;
+  stepQueue[stepCount].action = action;
   stepQueue[stepCount].code = code;
   stepQueue[stepCount].hold = clampHold(hold);
   stepQueue[stepCount].gap = clampGap(gap);
@@ -230,12 +241,34 @@ static int runQueue(unsigned int repeat) {
   for (unsigned int round = 0; round < repeat; round++) {
     for (byte i = 0; i < stepCount; i++) {
       const Step &step = stepQueue[i];
+
+      if (step.action == STEP_RELEASE) {
+        // Basılı tutulan tuşu bırak; bekleme sadece gap kadar.
+        if (step.isMouse) {
+          Mouse.release((char)step.code);
+          heldMouse[buttonIndex((char)step.code)] = false;
+        } else {
+          Keyboard.release(step.code);
+          untrackKey(step.code);
+        }
+        executed++;
+        if (step.gap > 0 && !waitOrAbort(step.gap)) return -executed;
+        continue;
+      }
+
       if (step.isMouse) {
         Mouse.press((char)step.code);
         heldMouse[buttonIndex((char)step.code)] = true;
       } else {
         Keyboard.press(step.code);
         trackKey(step.code);
+      }
+
+      if (step.action == STEP_HOLD) {
+        // Basılı bırakıyoruz: sıradaki adımlar bu tuş basılıyken çalışacak.
+        executed++;
+        if (step.gap > 0 && !waitOrAbort(step.gap)) return -executed;
+        continue;
       }
 
       bool ok = waitOrAbort(step.hold);
@@ -346,21 +379,35 @@ static void handleLine(char *line) {
     return;
   }
 
-  if (strcmp(cmd, "qk") == 0 || strcmp(cmd, "qm") == 0) {
+  if (strcmp(cmd, "qk") == 0 || strcmp(cmd, "qm") == 0
+      || strcmp(cmd, "qd") == 0 || strcmp(cmd, "qu") == 0) {
     if (argc < 2) { Serial.println(F("ERR missing target")); return; }
     toLowerInPlace(argv[1]);
-    long hold = argc >= 3 ? atol(argv[2]) : 0;
-    long gap = argc >= 4 ? atol(argv[3]) : 0;
 
-    uint8_t code;
-    if (cmd[1] == 'k') {
-      if (!lookupKey(argv[1], &code)) { Serial.println(F("ERR unknown key")); return; }
+    // QD/QU'da hold yok: ikinci sayı doğrudan gap.
+    bool tapStep = (cmd[1] == 'k' || cmd[1] == 'm');
+    long hold = tapStep && argc >= 3 ? atol(argv[2]) : 0;
+    long gap;
+    if (tapStep) {
+      gap = argc >= 4 ? atol(argv[3]) : 0;
     } else {
+      gap = argc >= 3 ? atol(argv[2]) : 0;
+    }
+
+    uint8_t action = STEP_TAP;
+    if (cmd[1] == 'd') action = STEP_HOLD;
+    else if (cmd[1] == 'u') action = STEP_RELEASE;
+
+    bool isMouse = (cmd[1] == 'm');
+    uint8_t code;
+    if (isMouse) {
       char btn;
       if (!lookupButton(argv[1], &btn)) { Serial.println(F("ERR unknown button")); return; }
       code = (uint8_t)btn;
+    } else {
+      if (!lookupKey(argv[1], &code)) { Serial.println(F("ERR unknown key")); return; }
     }
-    if (!queueStep(cmd[1] == 'm', code, hold, gap)) {
+    if (!queueStep(isMouse, action, code, hold, gap)) {
       Serial.println(F("ERR queue full"));
       return;
     }

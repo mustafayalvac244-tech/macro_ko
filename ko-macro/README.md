@@ -244,6 +244,32 @@ combos:
 - `hold_ms` — tuşun basılı kalma süresi
 - `gap_ms` — o adımdan sonraki bekleme (**ayarlanması gereken asıl değer**)
 - `cooldown_ms` — combo tekrar tetiklenmeden önceki bekleme
+- `action` — `tap` (varsayılan), `down` (basılı bırak), `up` (bırak)
+
+### Koşarken atış
+
+Yön tuşu **basılı kalırken** skill basmak için `action: down` / `up`:
+
+```yaml
+- name: "kos-3-5"
+  hotkey: "insert"
+  steps:
+    - { key: "up", action: down, gap_ms: 60 }   # koşmaya başla, bırakma
+    - { key: "3", hold_ms: 35, gap_ms: 110 }    # koşarken bas
+    - { key: "5", hold_ms: 35, gap_ms: 90 }
+    - { key: "up", action: up, gap_ms: 0 }      # bırak
+```
+
+`down`/`up` olmadan bu ifade edilemiyordu: adımlar sadece bas-bırak yapabiliyordu,
+yani örtüşen girdi yazılamıyordu. Koşarak atışın tamamı o örtüşmede.
+
+Bunun **hooking'le ilgisi yok** — tamamen giriş zamanlaması, yani firmware
+kuyruğunun en iyi olduğu iş. Ama ayar burada daha kritik: skill çok erken
+gelirse hareket iptal olur, çok geç gelirse duraklarsın. 10-20 ms adımlarla
+oynat.
+
+Güvenlik: combo yarıda kesilirse basılı yön tuşu bırakılır — hem firmware
+tarafında (iptal/watchdog) hem PC tarafında. Yoksa karakter durmadan koşardı.
 
 **Profillerdeki süreler başlangıç değeridir.** Doğru `gap_ms` senin attack
 speed'ine, sunucuya ve ping'ine göre değişir. Ayarlama yöntemi:
@@ -711,7 +737,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 290 test
+cd python && python -m pytest tests -q      # 297 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 

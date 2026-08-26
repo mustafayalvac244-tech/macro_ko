@@ -219,3 +219,23 @@ def test_priest_profile_has_genie_rules(tmp_path):
     config = load_config(write(tmp_path, "profile: priest\n"))
     names = {rule.name for rule in config.autocast}
     assert {"buff-yenile", "parazit-temizle", "malice"} <= names
+
+
+def test_combo_hotkey_cannot_clash_with_a_control_key():
+    """Kontrol tuşuna bağlanan combo sessizce düşerdi; yüklemede yakalanmalı."""
+    raw = {
+        "skillbar": {"spike": "1"},
+        "combos": [{"name": "t", "hotkey": "f9", "steps": [{"skill": "spike"}]}],
+    }
+    with pytest.raises(ConfigError, match="kontrol tuşuyla çakışıyor"):
+        AppConfig.from_dict(raw)
+
+    # Kontrol tuşu değiştirilirse aynı kısayol serbest kalır.
+    ok = AppConfig.from_dict(dict(raw, hotkeys={"start_stop": "f8"}))
+    assert ok.find_combo("t").hotkey == "f9"
+
+
+def test_shipped_profiles_have_no_hotkey_clashes(tmp_path):
+    # Profiller de bu kuraldan geçmeli - biri f9'a combo koymuştu.
+    for profile in ("archer", "priest"):
+        load_config(write(tmp_path, f"profile: {profile}\n"))

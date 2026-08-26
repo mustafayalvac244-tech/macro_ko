@@ -33,6 +33,7 @@ class PlannedStep:
     hold_ms: int
     gap_ms: int
     label: str
+    action: str = "tap"
 
 
 @dataclass
@@ -92,6 +93,7 @@ class ComboRunner:
                         hold_ms=max(1, apply_jitter(step.hold_ms, self.timing.hold_jitter_pct, self.rng)),
                         gap_ms=apply_jitter(step.gap_ms, self.timing.jitter_pct, self.rng),
                         label=step.display,
+                        action=step.action,
                     )
                 )
 
@@ -149,6 +151,11 @@ class ComboRunner:
                 result.aborted = True
                 break
 
+        if result.aborted:
+            # Sıralı yolda firmware'in temizliği devreye girmez: yarıda kalan
+            # combo yön tuşunu basılı bırakabilir, karakter koşmaya devam eder.
+            self.transport.release_all()
+
         result.duration_ms = int((self.clock.monotonic() - started) * 1000)
         # Cooldown combo bittiğinde başlasın; uzun combolarda doğru davranış bu.
         self._last_run[combo.name] = self.clock.monotonic()
@@ -163,7 +170,13 @@ class ComboRunner:
         for step in planned:
             if should_continue is not None and not should_continue():
                 return -executed
-            if step.button is not None:
+            if step.action == "down":
+                assert step.key is not None
+                self.transport.key_down(step.key)
+            elif step.action == "up":
+                assert step.key is not None
+                self.transport.key_up(step.key)
+            elif step.button is not None:
                 self.transport.click(step.button, step.hold_ms)
             else:
                 assert step.key is not None
@@ -188,7 +201,13 @@ class ComboRunner:
             chunk = planned[start : start + MAX_BURST_STEPS]
             self.transport.queue_clear()
             for step in chunk:
-                if step.button is not None:
+                if step.action == "down":
+                    assert step.key is not None
+                    self.transport.queue_key_down(step.key, step.gap_ms)
+                elif step.action == "up":
+                    assert step.key is not None
+                    self.transport.queue_key_up(step.key, step.gap_ms)
+                elif step.button is not None:
                     self.transport.queue_click(step.button, step.hold_ms, step.gap_ms)
                 else:
                     assert step.key is not None
@@ -206,6 +225,10 @@ def describe_combo(combo: Combo, skillbar: dict[str, str]) -> str:
     for step in combo.steps:
         key = step.resolve_key(skillbar)
         token = f"fare:{step.button}" if key is None else key
+        if step.action == "down":
+            token = f"{token}↓"
+        elif step.action == "up":
+            token = f"{token}↑"
         annotation = step.label or step.skill
         if annotation:
             token = f"{token}({annotation})"
