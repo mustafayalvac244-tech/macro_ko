@@ -168,11 +168,14 @@ Python kurmadan kullanmak için:
 - **Kendin derle:** `ko-macro/python/derle.bat` dosyasına çift tıkla
   (Python 3.10+ gerekir). Sonuç `dist/ko-macro.exe`.
 
-Yeni sürüm yayımlamak (exe'yi Releases'e koyar):
+Yeni sürüm yayımlamak (exe'yi Releases'e koyar): ya etiket it —
 
 ```
 git tag v1.0.1 && git push origin v1.0.1
 ```
+
+— ya da **Actions → "ko-macro exe" → Run workflow** deyip **surum**
+kutusuna `v1.0.1` yaz; etiketi iş akışı kendi oluşturur.
 
 Exe ilk çalıştığında yanına bir `config.yaml` oluşturur; ayarları oradan
 yaparsın. Kayıtlar (`spawns.json`) da exe'nin yanında durur.

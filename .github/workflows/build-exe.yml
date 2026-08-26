@@ -4,13 +4,21 @@ name: ko-macro exe
 #
 # İki çıktı üretir:
 #   - Artifacts  : her çalışmada, ama indirmek için GitHub'a giriş gerekir.
-#   - Release    : sadece "v" ile başlayan bir etiket atıldığında; giriş
-#                  yapmadan, düz linkle inebilir. Kullanıcıya verilecek yol bu.
+#   - Release    : giriş yapmadan, düz linkle inebilir. Kullanıcıya
+#                  verilecek yol bu.
 #
-# Yeni sürüm yayımlamak için:  git tag v1.0.1 && git push origin v1.0.1
+# Sürüm yayımlamanın iki yolu:
+#   - Etiket it:  git tag v1.0.1 && git push origin v1.0.1
+#   - Ya da Actions -> "Run workflow" -> "surum" kutusuna v1.0.1 yaz.
+#     Etiketi iş akışı kendi oluşturur; etiket itme yetkin yoksa bunu kullan.
 
 on:
   workflow_dispatch:
+    inputs:
+      surum:
+        description: 'Release etiketi (orn. v1.0.1). Bos birakirsan release yapilmaz.'
+        required: false
+        default: ''
   # push'ta "paths" kullanmıyoruz: etiket itildiğinde değişen-dosya listesi
   # boş olduğu için paths filtresi işi hiç tetiklemez.
   push:
@@ -115,8 +123,11 @@ jobs:
       # indirebilsin diye. Artifact'ler oturum istiyor, release dosyaları
       # istemiyor.
       - name: Release yayımla
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.surum != ''
         uses: softprops/action-gh-release@v2
         with:
+          # Elle çalıştırıldığında etiket henüz yoktur; action onu bu
+          # commit üzerinde kendisi oluşturur.
+          tag_name: ${{ inputs.surum }}
           files: ko-macro/python/ko-macro-windows.zip
           generate_release_notes: true
