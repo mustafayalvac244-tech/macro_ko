@@ -171,7 +171,8 @@ yaparsın. Kayıtlar (`spawns.json`) da exe'nin yanında durur.
 
 ### 1. Leonardo'ya firmware yükle
 
-`arduino/yukle.bat` dosyasına çift tıkla — arduino-cli'yi kendi indirir, kartı
+`ko-macro/arduino/yukle.bat` dosyasına çift tıkla (Actions'tan indirdiğin
+pakette bu klasör `firmware/` adıyla gelir) — arduino-cli'yi kendi indirir, kartı
 bulur, derler ve yükler. Arduino IDE gerekmez.
 
 Elle yapmak istersen: Arduino IDE ile `arduino/ko_hid_bridge/ko_hid_bridge.ino`

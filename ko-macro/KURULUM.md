@@ -40,9 +40,19 @@ bir USB kablosu, Windows bir bilgisayar.
 
 Tek seferlik. **Arduino IDE kurmana gerek yok.**
 
+Yükleyicinin yeri, programı nereden aldığına göre değişiyor:
+
+| Nereden aldın | Klasör |
+| --- | --- |
+| Actions'tan indirdiğin zip | `firmware\` |
+| Depoyu ZIP olarak indirdin | `ko-macro\arduino\` |
+
 1. Leonardo'yu USB ile bilgisayara tak.
-2. İndirdiğin paketin içindeki `firmware` klasörüne gir.
+2. Yukarıdaki klasöre gir.
 3. **`yukle.bat`** dosyasına çift tıkla.
+
+> Dosyayı GitHub'ın web görünümünden kopyalayıp yapıştırma — satır sonları
+> bozulabiliyor. Ya zip'i indir ya da depoyu **Code → Download ZIP** ile al.
 
 Betik gerekli her şeyi (arduino-cli, AVR çekirdeği) kendi klasörüne indirir,
 kartı bulur, derler ve yükler. Sonunda **"BITTI - firmware yuklendi"** yazacak.
@@ -62,7 +72,8 @@ Kart bulunamazsa betik bağlı portları listeler. Sık nedenler:
 <summary>Elle yüklemek istersen (Arduino IDE ile)</summary>
 
 1. `arduino.cc/en/software` adresinden Arduino IDE'yi kur.
-2. **File → Open** ile `firmware\ko_hid_bridge\ko_hid_bridge.ino` dosyasını aç.
+2. **File → Open** ile `ko_hid_bridge\ko_hid_bridge.ino` dosyasını aç
+   (zip'te `firmware\` altında, depoda `ko-macro\arduino\` altında).
 3. **Tools → Board → Arduino AVR Boards → Arduino Leonardo**.
 4. **Tools → Port** menüsünden kartın portunu seç.
 5. Sol üstteki **→** (Upload) düğmesine bas.
