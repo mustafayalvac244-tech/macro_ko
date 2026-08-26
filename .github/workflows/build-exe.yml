@@ -105,6 +105,10 @@ jobs:
           ./ko-macro.exe spawn kill test --ago 19
           ./ko-macro.exe spawn list
           ./ko-macro.exe kalibre --help
+          ./ko-macro.exe tani --help
+          # --kontrol tek halkayı dener ve dosya yazmaz; ayar halkası burada
+          # geçmeli çünkü config.yaml paketin içinde.
+          ./ko-macro.exe tani --kontrol ayar
           Remove-Item spawns.json
 
       - name: Zip'le

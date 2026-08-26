@@ -23,6 +23,13 @@ from .transport import SerialHidTransport, TransportError, create_transport
 log = logging.getLogger("ko_macro")
 
 
+def diagnose_checks() -> tuple[str, ...]:
+    """``tani --kontrol`` seçenekleri. Ağır importu parser kurulumuna taşımamak için."""
+    from .diagnose import CHECKS
+
+    return CHECKS
+
+
 def setup_console() -> None:
     """Windows konsolunda Türkçe karakterler ve ``→`` oku bozulmasın.
 
@@ -561,6 +568,39 @@ def cmd_learn_log(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_diagnose(args: argparse.Namespace) -> int:
+    """Zincirin hangi halkasının koptuğunu bulur ve dosyaya yazar."""
+    from . import diagnose
+
+    config_path = getattr(args, "config", "config.yaml")
+
+    # Tek halka sorulduğunda çıktı kısa, çıkış kodu anlamlı: betikler buna
+    # göre dallanıyor (ör. firmware yoksa yükleyiciyi çağır).
+    single = getattr(args, "kontrol", None)
+    if single:
+        section = diagnose.check_one(single, config_path)
+        for line in section.lines:
+            print(line)
+        if section.hint:
+            print(f"-> {section.hint}")
+        return 0 if section.ok else 1
+
+    report = diagnose.collect(config_path)
+    print(report.render())
+
+    path = diagnose.write(report)
+    blocking = report.blocking
+    print("=" * 60)
+    if blocking:
+        print(f"{len(blocking)} sorun var: " + ", ".join(s.name for s in blocking))
+        print("Yukarıdaki '->' satırları ne yapılacağını söylüyor.")
+    else:
+        print("Her şey yolunda görünüyor.")
+    print(f"\nRapor yazıldı: {path}")
+    print("Takılırsan bu dosyanın içeriğini olduğu gibi paylaş.")
+    return 1 if blocking else 0
+
+
 def cmd_setup(args: argparse.Namespace) -> int:
     """Kurulumu baştan sona yürütür: cihaz → kalibrasyon → doğrulama."""
     print("=" * 60)
@@ -835,6 +875,16 @@ def build_parser() -> argparse.ArgumentParser:
                            type=int, default=14, help="bir satırın yüksekliği")
     learn_log.add_argument("--countdown", type=int, default=5)
     learn_log.set_defaults(func=cmd_learn_log)
+
+    diagnose_parser = with_config(
+        subparsers.add_parser("tani", help="neyin çalışmadığını bul ve dosyaya yaz")
+    )
+    diagnose_parser.add_argument(
+        "--kontrol",
+        choices=diagnose_checks(),
+        help="sadece tek bir halkayı dene; çıkış kodu 0=iyi 1=kötü",
+    )
+    diagnose_parser.set_defaults(func=cmd_diagnose)
 
     setup = with_config(subparsers.add_parser("kur", help="kurulumu baştan sona yürüt"))
     setup.add_argument("--min-width", type=int, default=50)

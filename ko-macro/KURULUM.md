@@ -47,75 +47,75 @@ tıklanmaz ve dosya inmez.
 
 ---
 
-## Adım 2 — Leonardo'ya firmware yükle
+## Adım 2 — `baslat.bat`
 
-Tek seferlik. **Arduino IDE kurmana gerek yok.**
+Leonardo'yu USB'ye tak, **oyunu aç**, canın tam dolu olsun. Sonra
+`baslat.bat` dosyasına **sağ tıkla → "Yönetici olarak çalıştır"**.
 
-Yükleyicinin yeri, programı nereden aldığına göre değişiyor:
+Gerisini kendisi yapıyor:
+
+| | Ne yapar |
+| --- | --- |
+| 1 | Kartı arar. Cevap vermezse **firmware'i kendisi yükler** (1-2 dk). |
+| 2 | Ekranın okunabildiğini doğrular. |
+| 3 | `config.yaml` yoksa kurulumu çalıştırır, bar koordinatlarını ekrandan bulur. |
+| 4 | Programı açar. |
+
+Yönetici olması şart değil ama F9/F12 gibi kısayolların oyun penceresi
+öndeyken çalışması için genelde gerekiyor.
+
+Kapatmak için pencerede **Ctrl+C**.
+
+> Firmware yüklendikten sonra kart bilgisayarda bir klavye olarak görünür ama
+> kendi başına hiçbir tuşa basmaz — program ona "aç" komutu göndermeden tek
+> bir tuş bile üretmez.
+
+---
+
+## Adım 3 — Takılırsan: `tani`
+
+Bir yerde durursa `baslat.bat` zaten tanılamayı kendisi çalıştırır. Elle de
+çalıştırabilirsin:
+
+```
+ko-macro.exe tani
+```
+
+Zinciri baştan sona dener — USB portu, firmware, ekran okuma, fare ivmesi,
+oyun penceresi, ayar dosyası — ve **hangi halkanın koptuğunu** söyler. Her
+hatanın altında `->` ile ne yapılacağı yazar.
+
+Sonucu `tanilama.txt` dosyasına da yazar. Çözemezsen o dosyanın içeriğini
+olduğu gibi paylaş — içinde sorunu bulmak için gereken her şey var.
+
+<details>
+<summary>Firmware'i elle yüklemek istersen</summary>
+
+`baslat.bat` bunu kendisi yapıyor, ama ayrı çalıştırmak istersen:
 
 | Nereden aldın | Klasör |
 | --- | --- |
 | İndirdiğin zip (Releases ya da Actions) | `firmware\` |
 | Depoyu ZIP olarak indirdin | `ko-macro\arduino\` |
 
-1. Leonardo'yu USB ile bilgisayara tak.
-2. Yukarıdaki klasöre gir.
-3. **`yukle.bat`** dosyasına çift tıkla.
+O klasördeki **`yukle.bat`** dosyasına çift tıkla. arduino-cli'yi ve AVR
+çekirdeğini kendi klasörüne indirir, kartı bulur, derler ve yükler. Arduino
+IDE gerekmez.
 
-> Dosyayı GitHub'ın web görünümünden kopyalayıp yapıştırma — satır sonları
-> bozulabiliyor. Ya zip'i indir ya da depoyu **Code → Download ZIP** ile al.
-
-Betik gerekli her şeyi (arduino-cli, AVR çekirdeği) kendi klasörüne indirir,
-kartı bulur, derler ve yükler. Sonunda **"BITTI - firmware yuklendi"** yazacak.
-
-Kart bulunamazsa betik bağlı portları listeler. Sık nedenler:
+Kart bulunamazsa sık nedenler:
 
 - Kablo veri taşımıyor (sadece şarj kablosu) — kabloyu değiştir
 - Arduino IDE'nin Serial Monitor'ü açık — kapat
 - Yükleme yarıda kaldı — kartın reset düğmesine **hızlıca iki kez** bas ve
-  `yukle.bat`'ı tekrar çalıştır
+  tekrar çalıştır
 
-> Firmware yüklendikten sonra kart bilgisayarda bir klavye olarak görünür ama
-> kendi başına hiçbir tuşa basmaz — program ona "aç" komutu göndermeden tek
-> bir tuş bile üretmez.
+Arduino IDE ile yapmak istersen: `ko_hid_bridge\ko_hid_bridge.ino` dosyasını
+aç, **Tools → Board → Arduino Leonardo**, portu seç, **Upload**.
 
-<details>
-<summary>Elle yüklemek istersen (Arduino IDE ile)</summary>
-
-1. `arduino.cc/en/software` adresinden Arduino IDE'yi kur.
-2. **File → Open** ile `ko_hid_bridge\ko_hid_bridge.ino` dosyasını aç
-   (zip'te `firmware\` altında, depoda `ko-macro\arduino\` altında).
-3. **Tools → Board → Arduino AVR Boards → Arduino Leonardo**.
-4. **Tools → Port** menüsünden kartın portunu seç.
-5. Sol üstteki **→** (Upload) düğmesine bas.
+> Dosyayı GitHub'ın web görünümünden kopyalayıp yapıştırma — satır sonları
+> bozulabiliyor. Zip'i indir.
 
 </details>
-
----
-
-## Adım 3 — İlk çalıştırma
-
-1. Leonardo takılı olsun, **oyun açık ve canın tam dolu olsun**.
-2. `baslat.bat` dosyasına **sağ tıkla → "Yönetici olarak çalıştır"**.
-
-   İlk çalıştırmada kurulum sihirbazı devreye girer: kartı arar, bar
-   koordinatlarını ekrandan bulur ve `config.yaml`'a yazar.
-
-   Yönetici olması şart değil ama F9/F12 gibi kısayolların oyun penceresi
-   öndeyken çalışması için genelde gerekiyor.
-
-3. Ekranda önce kartın bulunup bulunmadığı yazacak:
-
-   ```
-   COM5    Arduino Leonardo
-   ```
-
-   Böyle bir satır görüyorsan her şey yolunda. **"Leonardo bulunamadı"**
-   yazıyorsa Adım 2'ye dön ya da kabloyu değiştir.
-
-4. Sonra program açılır ve kısayolları listeler.
-
-Kapatmak için pencerede **Ctrl+C**.
 
 ---
 
@@ -237,10 +237,24 @@ Program açıkken:
 
 ## Bir şeyler ters giderse
 
+**Önce her zaman şunu çalıştır:**
+
+```
+ko-macro.exe tani
+```
+
+Aşağıdakilerin çoğunu zaten kendisi tespit edip ne yapılacağını yazar.
+
 **"Leonardo bulunamadı"**
-Kablo veri taşımıyor olabilir, ya da firmware yüklenmemiştir. Arduino IDE'yi
-açıp Tools → Port'ta kart görünüyor mu bak. Arduino IDE'nin Serial Monitor'ü
-açıksa kapat — portu kilitler.
+Kablo veri taşımıyor olabilir, ya da firmware yüklenmemiştir. `tani` çıktısındaki
+"USB / seri port" bölümü bilgisayardaki bütün portları listeler; kart hiç
+görünmüyorsa sorun kablodadır. Arduino IDE'nin Serial Monitor'ü açıksa kapat —
+portu kilitler.
+
+**Fare ile mob etiketine tıklama ıskalıyor**
+Windows'un "İşaretçi hassaslığını artır" ayarı açık. Leonardo göreli hareket
+gönderiyor; ivme açıkken gittiği yer tutmuyor. Denetim Masası → Fare →
+İşaretçi Seçenekleri'nden kapat. `tani` bunu da kontrol ediyor.
 
 **Program açılıyor ama oyunda hiçbir tuşa basılmıyor**
 Oyun penceresi önde mi? Bir de `ko-macro.exe test "3-5"` ile dene — geri

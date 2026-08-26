@@ -48,5 +48,7 @@ __pycache__/
 .pytest_cache/
 ko-macro/python/config.yaml
 ko-macro/python/spawns.json
+# `tani` komutunun bıraktığı rapor - makineye özgü, depoya girmez.
+tanilama.txt
 ko-macro/python/build/
 ko-macro/python/dist/
