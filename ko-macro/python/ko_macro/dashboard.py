@@ -42,7 +42,8 @@ def status_lines(status: dict[str, Any]) -> list[str]:
         f"   menzil dışı {status.get('farm_abandoned', 0)}"
         f"   kesilen combo {status.get('farm_cut_short', 0)}",
         f"hedefleme : etiket tıklama {status.get('farm_plate_clicks', 0)}"
-        f"   etiket yok {status.get('farm_no_plates', 0)}",
+        f"   etiket yok {status.get('farm_no_plates', 0)}"
+        f"   kayıttan ölüm {status.get('farm_log_kills', 0)}",
         f"süre      : {uptime // 60}d {uptime % 60:02d}s"
         f"   son kill: {int(status.get('session_idle_s', 0))}s önce",
     ] + _autocast_lines(status) + (

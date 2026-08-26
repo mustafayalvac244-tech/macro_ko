@@ -501,6 +501,66 @@ def cmd_coords(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_learn_log(args: argparse.Namespace) -> int:
+    """Savaş kaydındaki bir satırı kalıp olarak öğrenir."""
+    from .calibrate import MSSScreen
+    from .combatlog import CombatLogWatcher, LogRegion, Phrase
+
+    config = _load(args)
+    raw_region = config.farm.combat_log
+    if args.bolge:
+        try:
+            box = _parse_region(args.bolge)
+        except ConfigError as exc:
+            print(exc, file=sys.stderr)
+            return 1
+        raw_region = dict(raw_region or {})
+        raw_region.update(box)
+        raw_region.setdefault("line_height", args.satir_yuksekligi)
+
+    if not raw_region:
+        print(
+            "Savaş kaydının ekranda kapladığı alanı bir kez vermen gerekiyor:\n"
+            "  kayit-ogren kill --satir 0 --bolge x0,y0,x1,y1\n\n"
+            "--satir, o alandaki kaçıncı satırın öğrenileceği (0 = en üst).",
+            file=sys.stderr,
+        )
+        return 1
+
+    region = LogRegion.from_dict(raw_region)
+    watcher = CombatLogWatcher(
+        region=region,
+        phrases=[Phrase.from_dict(item) for item in raw_region.get("phrases", [])],
+    )
+
+    print(f"'{args.name}' öğreniliyor: {args.satir}. satır")
+    print("O satırda öğretmek istediğin mesaj DURUYOR olmalı.\n")
+    if args.countdown > 0:
+        for remaining in range(args.countdown, 0, -1):
+            print(f"  {remaining}...", end="\r", flush=True)
+            time.sleep(1)
+        print(" " * 20, end="\r")
+
+    try:
+        screen = MSSScreen(box=(region.x0, region.y0, region.x1, region.y1))
+        phrase = watcher.learn(screen, args.name, args.satir)
+    except (RuntimeError, ValueError) as exc:
+        print(f"hata: {exc}", file=sys.stderr)
+        return 1
+
+    stored = dict(region.to_dict())
+    stored["phrases"] = [p.to_dict() for p in watcher.phrases]
+    path = _ensure_config(args.config)
+    backup = _write_config_patch(path, {"farm": {"combat_log": stored}})
+
+    print(f"Kaydedildi: {phrase.name}  ({len(phrase.profile)} piksel genişlik)")
+    print(f"Bilinen kalıplar: {', '.join(sorted(p.name for p in watcher.phrases))}")
+    print(f"Config: {path}   (eski hâli: {backup})")
+    if args.name == config.farm.kill_phrase:
+        print("\nBu kalıp ölüm sinyali olarak kullanılacak.")
+    return 0
+
+
 def cmd_setup(args: argparse.Namespace) -> int:
     """Kurulumu baştan sona yürütür: cihaz → kalibrasyon → doğrulama."""
     print("=" * 60)
@@ -763,6 +823,18 @@ def build_parser() -> argparse.ArgumentParser:
     coords.add_argument("--bolge-x", dest="bolge_x")
     coords.add_argument("--bolge-y", dest="bolge_y")
     coords.set_defaults(func=cmd_coords)
+
+    learn_log = with_config(
+        subparsers.add_parser("kayit-ogren", help="savaş kaydından bir kalıp öğren")
+    )
+    learn_log.add_argument("name", help="kalıbın adı, örn. kill")
+    learn_log.add_argument("--satir", type=int, default=0,
+                           help="kaçıncı satır (0 = en üst)")
+    learn_log.add_argument("--bolge", help="kayıt alanı: x0,y0,x1,y1")
+    learn_log.add_argument("--satir-yuksekligi", dest="satir_yuksekligi",
+                           type=int, default=14, help="bir satırın yüksekliği")
+    learn_log.add_argument("--countdown", type=int, default=5)
+    learn_log.set_defaults(func=cmd_learn_log)
 
     setup = with_config(subparsers.add_parser("kur", help="kurulumu baştan sona yürüt"))
     setup.add_argument("--min-width", type=int, default=50)

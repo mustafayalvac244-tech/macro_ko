@@ -527,3 +527,88 @@ def test_clicked_target_still_goes_through_health_filtering():
 
     assert loop.acquire_target() is False
     assert loop.stats.kills == 0
+
+
+# ------------------------------------------------- savaş kaydından ölüm sinyali
+
+
+class FakeLog:
+    """Belirlenen turda ölüm olayı bildiren sahte savaş kaydı."""
+
+    def __init__(self, kill_on_tick: int | None = 1):
+        self.kill_on_tick = kill_on_tick
+        self.ticks = 0
+
+    def tick(self, screen_factory, now):
+        from ko_macro.combatlog import LogEvent
+
+        self.ticks += 1
+        if self.kill_on_tick is not None and self.ticks == self.kill_on_tick:
+            return [LogEvent(phrase="kill", line=0)]
+        return []
+
+
+def test_kill_is_confirmed_by_the_combat_log():
+    """Bar hâlâ dolu görünse bile kayıt ölüm diyorsa mob ölmüştür."""
+    sampler = QueuedSampler([1.0])          # bar hep dolu: bar bize ölüm demez
+    loop, _, _ = build(farm_config(engage_seconds=30.0), sampler=sampler)
+    loop.log_watcher = FakeLog(kill_on_tick=1)
+    loop.log_screen_factory = lambda box: None
+
+    assert loop.acquire_target() is True
+    assert loop.engage() is True
+    assert loop.stats.log_kills == 1
+
+
+def test_combat_log_kill_ends_the_cycle_quickly():
+    sampler = QueuedSampler([1.0])
+    loop, _, clock = build(farm_config(engage_seconds=60.0), sampler=sampler)
+    loop.log_watcher = FakeLog(kill_on_tick=1)
+    loop.log_screen_factory = lambda box: None
+
+    loop.cycle()
+    assert loop.stats.kills == 1
+    # 60 saniyelik süreyi beklemedi.
+    assert clock.monotonic() < 30
+
+
+def test_bar_still_works_without_a_combat_log():
+    sampler = QueuedSampler([1.0, 0.5, 0.0])
+    loop, _, _ = build(farm_config(), sampler=sampler)
+    loop.log_watcher = None
+
+    loop.cycle()
+    assert loop.stats.kills == 1
+    assert loop.stats.log_kills == 0
+
+
+def test_a_broken_log_does_not_stop_the_loop():
+    class BrokenLog:
+        def tick(self, screen_factory, now):
+            raise RuntimeError("kayıt okunamadı")
+
+    sampler = QueuedSampler([1.0, 0.5, 0.0])
+    loop, _, _ = build(farm_config(), sampler=sampler)
+    loop.log_watcher = BrokenLog()
+    loop.log_screen_factory = lambda box: None
+
+    # Kayıt patlasa da bar üzerinden ölüm yakalanmalı.
+    loop.cycle()
+    assert loop.stats.kills == 1
+
+
+def test_other_log_events_are_not_kills():
+    class DamageOnlyLog:
+        def tick(self, screen_factory, now):
+            from ko_macro.combatlog import LogEvent
+
+            return [LogEvent(phrase="hasar", line=0)]
+
+    sampler = QueuedSampler([1.0])
+    loop, _, _ = build(farm_config(engage_seconds=2.0), sampler=sampler)
+    loop.log_watcher = DamageOnlyLog()
+    loop.log_screen_factory = lambda box: None
+
+    loop.acquire_target()
+    assert loop.engage() is False       # hasar olayı ölüm değil
+    assert loop.stats.log_kills == 0

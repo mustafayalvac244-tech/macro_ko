@@ -103,6 +103,14 @@ farm:
   #   excluded:                # sohbet kutusu, arayüz panelleri
   #     - { x0: 0, y0: 780, x1: 700, y1: 1079 }
 
+  # --- Savaş kaydından ölüm sinyali ---
+  # Oyun sağ altta "Earned ... Experience Points" yazıyor: mob kesin öldü.
+  # Bar boşalmasını beklemekten daha güvenilir, bar yanlış okunsa bile çalışır.
+  # Kurmak için o mesaj ekranda dururken:
+  #   ko-macro.exe kayit-ogren kill --satir 0 --bolge x0,y0,x1,y1
+  # Aynı yöntemle "received ... damage" satırını da öğretebilirsin.
+  # kill_phrase: kill
+
   # --- Sadece belirli mobu dövme (karışık bölgeler için) ---
   # Mobun adını OKUMAZ, adının ekrandaki GÖRÜNTÜSÜNÜ tanır.
   # Kurmak için: mobu seç, sonra  ko-macro.exe mob-ogren harpy

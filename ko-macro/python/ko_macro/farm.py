@@ -97,6 +97,7 @@ class FarmStats:
     kills: int = 0
     combos: int = 0
     misses: int = 0        # taze hedef bulunamayan turlar
+    log_kills: int = 0     # savaş kaydından doğrulanan ölümler
     abandoned: int = 0     # hasar girmediği için bırakılan hedefler
     skipped: int = 0       # yarım canlı olduğu için atlanan hedefler
     wrong_mob: int = 0     # adı tutmadığı için atlanan hedefler
@@ -133,6 +134,11 @@ class FarmLoop:
     scan_screen_factory: Callable[[], object] | None = None
     #: Etiket tarama ayarları.
     scan_settings: object | None = None
+    #: Savaş kaydı izleyicisi. Varsa ölüm sinyali buradan gelir: oyun
+    #: "Earned ... Experience Points" yazdığında mob kesin ölmüştür.
+    log_watcher: object | None = None
+    #: Savaş kaydı için ekran üreten çağrı: ``factory(box) -> Screen``.
+    log_screen_factory: Callable[..., object] | None = None
     #: Bir mob öldüğünde çağrılır (doğuş takibine kayıt için).
     on_kill: Callable[[], None] | None = None
     stats: FarmStats = field(default_factory=FarmStats)
@@ -203,6 +209,28 @@ class FarmLoop:
             self.transport.key_down(self.config.search_turn_key)
             self._sleep_ms(self.config.search_turn_ms)
             self.transport.key_up(self.config.search_turn_key)
+
+    def _log_reports_kill(self) -> bool:
+        """Savaş kaydında ölüm satırı belirdi mi?
+
+        Bu, bar okumasından bağımsız ve daha kesin bir sinyal: oyunun kendi
+        yazdığı olay. Kayıt kurulmamışsa sessizce ``False`` döner.
+        """
+        if self.log_watcher is None or self.log_screen_factory is None:
+            return False
+        try:
+            events = self.log_watcher.tick(
+                self.log_screen_factory, self.clock.monotonic()
+            )
+        except Exception as exc:  # kayıt okunamazsa döngü durmasın
+            log.warning("savaş kaydı okunamadı: %s", exc)
+            return False
+        for event in events:
+            if event.phrase == self.config.kill_phrase:
+                self.stats.log_kills += 1
+                log.debug("savaş kaydı ölüm bildirdi")
+                return True
+        return False
 
     def _read_target(self):
         """Hedef barını okur; okuyucu yoksa ``None``."""
@@ -319,6 +347,11 @@ class FarmLoop:
             else:
                 self._attack_once()
                 self.clock.sleep(self.config.poll_ms / 1000.0)
+
+            # Savaş kaydı ölüm bildirdiyse bara bakmaya gerek yok.
+            if self._log_reports_kill():
+                killed = True
+                break
 
             state = self._read_target()
             if state is None:

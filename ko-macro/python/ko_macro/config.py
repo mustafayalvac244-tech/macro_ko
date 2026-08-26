@@ -291,6 +291,11 @@ class FarmConfig:
     scan: dict[str, Any] | None = None
     #: Tıkladıktan sonra hedefin oturması için beklenecek süre.
     click_settle_ms: int = 220
+    #: Savaş kaydı okuma. Oyun "Earned ... Experience Points" yazdığında mob
+    #: kesin ölmüştür — bar boşalmasını beklemekten daha güvenilir.
+    combat_log: dict[str, Any] | None = None
+    #: Ölüm anlamına gelen kalıbın adı.
+    kill_phrase: str = "kill"
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "FarmConfig":
@@ -326,6 +331,8 @@ class FarmConfig:
             targeting=str(raw.get("targeting", "tab")).lower(),
             scan=raw.get("scan"),
             click_settle_ms=int(raw.get("click_settle_ms", 220)),
+            combat_log=raw.get("combat_log"),
+            kill_phrase=str(raw.get("kill_phrase", "kill")),
         )
         if farm.engage_seconds <= 0:
             raise ConfigError("engage_seconds pozitif olmalı")
@@ -351,6 +358,15 @@ class FarmConfig:
                 "farm.targeting: click için target_bar gerekli — tıklamanın hedef "
                 "seçip seçmediğini bar okumadan doğrulayamayız"
             )
+        if farm.combat_log is not None:
+            from .combatlog import LogRegion, Phrase  # döngüsel import olmasın
+
+            try:
+                LogRegion.from_dict(farm.combat_log)
+                for phrase in farm.combat_log.get("phrases", []):
+                    Phrase.from_dict(phrase)
+            except (KeyError, ValueError) as exc:
+                raise ConfigError(f"farm.combat_log hatalı: {exc}") from exc
         if farm.scan is not None:
             from .mobscan import ScanSettings  # döngüsel import olmasın diye burada
 

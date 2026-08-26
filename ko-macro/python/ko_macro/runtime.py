@@ -106,6 +106,23 @@ class MacroEngine:
             scan_settings = ScanSettings.from_dict(config.farm.scan or {})
             scan_screen_factory = MSSScreen
 
+        # Savaş kaydı: oyunun kendi yazdığı olaylar. Ölüm sinyalinin en
+        # güvenilir kaynağı burası.
+        log_watcher = None
+        log_screen_factory = None
+        if config.farm.combat_log:
+            from .combatlog import CombatLogWatcher, LogRegion, Phrase
+
+            log_watcher = CombatLogWatcher(
+                region=LogRegion.from_dict(config.farm.combat_log),
+                phrases=[
+                    Phrase.from_dict(item)
+                    for item in config.farm.combat_log.get("phrases", [])
+                ],
+                poll_ms=int(config.farm.combat_log.get("poll_ms", 250)),
+            )
+            log_screen_factory = lambda box: MSSScreen(box=box)  # noqa: E731
+
         farm_combo = config.find_combo(config.farm.combo) if config.farm.combo else None
         self.farm = FarmLoop(
             config=config.farm,
@@ -118,6 +135,8 @@ class MacroEngine:
             screen_factory=screen_factory,
             scan_screen_factory=scan_screen_factory,
             scan_settings=scan_settings,
+            log_watcher=log_watcher,
+            log_screen_factory=log_screen_factory,
             on_kill=self._record_farm_kill,
         )
 
@@ -461,6 +480,7 @@ class MacroEngine:
             "farm_wrong_mob": stats.wrong_mob,
             "farm_no_plates": stats.no_plates,
             "farm_plate_clicks": stats.plate_clicks,
+            "farm_log_kills": stats.log_kills,
             "session_kills": self.guard.kills,
             "session_idle_s": self.guard.idle_seconds(now) if self.guard.started_at else 0.0,
             "stop_reason": self.stop_reason,

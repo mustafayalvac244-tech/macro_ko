@@ -348,6 +348,36 @@ farm:
   stall_seconds: 4.0
 ```
 
+### Savaş kaydından ölüm sinyali
+
+Oyun savaş kaydına kendi iç durumunu yazıyor:
+
+```
+[Captain] Uruk'khthrone received 569 damage
+Using arrow shower
+Earned 10925 Experience Points
+```
+
+`Earned ... Experience Points` = mob kesin öldü. Bu, hedef barının boşalmasını
+beklemekten daha güvenilir — bar yanlış okunsa bile çalışır.
+
+Kurmak için o mesaj ekranda dururken:
+
+```
+ko-macro.exe kayit-ogren kill --satir 0 --bolge 980,700,1270,790
+```
+
+Satırın tamamı kalıp olarak kaydedilir; sonra farm döngüsü her turda kaydı
+okuyup **daha önce görmediği** bir satırda bu kalıbı arar. Kalıbın satır
+içindeki yeri sabit değil (mob adı önde), o yüzden kaydırmalı aranıyor.
+
+**Neden tam OCR değil:** satırları okumak için bütün alfabeyi öğretmek
+gerekirdi. Bize satırın anlamı değil, içinde kalıbın geçip geçmediği lazım —
+o yüzden kelimenin görüntüsü öğrenilip aranıyor. Karşılaştırma sütun başına
+yazı piksel sayısı üzerinden, yani ucuz.
+
+Kayıt kurulmamışsa ya da okunamazsa döngü eskisi gibi bara bakmaya devam eder.
+
 ### Hedefleme kipi: Tab yerine tıklama
 
 Tab tek hedef verir, üstelik en yakındakini. `targeting: click` ile ekranı
@@ -737,7 +767,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 297 test
+cd python && python -m pytest tests -q      # 324 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 
@@ -765,6 +795,8 @@ python/
     calibrate.py    barları ekranda otomatik bulma
     nameplate.py    hedef adını görüntüsünden tanıma
     mobscan.py      ekranda mob isim etiketlerini bulma
+    combatlog.py    savaş kaydından olay okuma
+    signals.py      ekran işareti izleme (ikon var mı/yok mu)
     session.py      oturum bekçisi (ne zaman durulacağı)
     ocr.py          ekrandaki rakamları okuma (konum)
     transport.py    Leonardo / yazılımsal / kuru mod taşıma katmanları
