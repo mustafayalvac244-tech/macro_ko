@@ -395,6 +395,108 @@ def cmd_learn_mob(args: argparse.Namespace) -> int:
     return 0
 
 
+def _parse_region(text: str) -> dict[str, int]:
+    """``x0,y0,x1,y1`` metnini bölgeye çevirir."""
+    try:
+        x0, y0, x1, y1 = (int(part) for part in text.split(","))
+    except ValueError:
+        raise ConfigError(f"bölge biçimi x0,y0,x1,y1 olmalı, gelen: {text!r}") from None
+    return {"x0": x0, "y0": y0, "x1": x1, "y1": y1}
+
+
+def _coord_regions(config: AppConfig, args: argparse.Namespace):
+    """Config ve komut satırından X/Y bölgelerini çözer."""
+    from .ocr import TextRegion
+
+    raw_x = _parse_region(args.bolge_x) if getattr(args, "bolge_x", None) else config.coords.region_x
+    raw_y = _parse_region(args.bolge_y) if getattr(args, "bolge_y", None) else config.coords.region_y
+    if not raw_x or not raw_y:
+        raise ConfigError(
+            "Koordinatın ekranda yazdığı iki kutuyu bir kez vermen gerekiyor:\n"
+            "  koordinat-ogren 512 378 --bolge-x x0,y0,x1,y1 --bolge-y x0,y0,x1,y1\n\n"
+            "Her kutu SADECE kendi sayısını kapsasın (etiket, ayırıcı ve çerçeve "
+            "dışarıda kalsın)."
+        )
+    return TextRegion.from_dict(raw_x), TextRegion.from_dict(raw_y)
+
+
+def _digit_reader(config: AppConfig):
+    """Config'den rakam okuyucuyu kurar."""
+    from .ocr import DigitReader
+
+    return DigitReader(
+        glyphs=dict(config.coords.glyphs), threshold=config.coords.threshold
+    )
+
+
+def cmd_learn_coords(args: argparse.Namespace) -> int:
+    """Ekrandaki koordinat rakamlarını öğretir."""
+    from .calibrate import MSSScreen
+    from .ocr import OcrError
+
+    config = _load(args)
+    try:
+        region_x, region_y = _coord_regions(config, args)
+    except ConfigError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
+    reader = _digit_reader(config)
+    print(f"Ekranda yazan: X={args.x_degeri}  Y={args.y_degeri}")
+    print("Oyun penceresi görünür olsun.\n")
+    if args.countdown > 0:
+        for remaining in range(args.countdown, 0, -1):
+            print(f"  {remaining}...", end="\r", flush=True)
+            time.sleep(1)
+        print(" " * 20, end="\r")
+
+    try:
+        screen = MSSScreen()
+        learned = reader.learn(screen, region_x, args.x_degeri)
+        learned += reader.learn(screen, region_y, args.y_degeri)
+    except (RuntimeError, OcrError) as exc:
+        print(f"hata: {exc}", file=sys.stderr)
+        return 1
+
+    path = _ensure_config(args.config)
+    backup = _write_config_patch(
+        path,
+        {"coords": {
+            "region_x": region_x.to_dict(),
+            "region_y": region_y.to_dict(),
+            "glyphs": reader.glyphs,
+        }},
+    )
+    print(f"Yeni öğrenilen: {', '.join(sorted(set(learned))) or 'yok (hepsi zaten vardı)'}")
+    print(f"Bilinen rakamlar: {', '.join(sorted(reader.glyphs)) or 'yok'}")
+    if reader.missing_digits:
+        print(f"\nEksik rakamlar: {', '.join(reader.missing_digits)}")
+        print("Bu rakamların göründüğü bir yere gidip komutu tekrar çalıştır.")
+    else:
+        print("\nTüm rakamlar öğrenildi. Kontrol için: koordinat")
+    print(f"Config: {path}   (eski hâli: {backup})")
+    return 0
+
+
+def cmd_coords(args: argparse.Namespace) -> int:
+    """Şu anki koordinatı ekrandan okur."""
+    from .calibrate import MSSScreen
+    from .ocr import OcrError
+
+    config = _load(args)
+    try:
+        region_x, region_y = _coord_regions(config, args)
+        reader = _digit_reader(config)
+        screen = MSSScreen()
+        x, y = reader.read_coordinates(screen, region_x, region_y)
+    except (ConfigError, RuntimeError, OcrError) as exc:
+        print(f"hata: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"konum: {x}, {y}")
+    return 0
+
+
 def cmd_setup(args: argparse.Namespace) -> int:
     """Kurulumu baştan sona yürütür: cihaz → kalibrasyon → doğrulama."""
     print("=" * 60)
@@ -470,6 +572,22 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def cmd_spawn_add(args: argparse.Namespace) -> int:
     book = _book(args)
+    x, y = args.x, args.y
+
+    if args.oku:
+        from .calibrate import MSSScreen
+        from .ocr import OcrError
+
+        try:
+            config = load_config(_ensure_config(args.config))
+            region_x, region_y = _coord_regions(config, args)
+            reader = _digit_reader(config)
+            x, y = reader.read_coordinates(MSSScreen(), region_x, region_y)
+            print(f"ekrandan okunan konum: {x}, {y}")
+        except (ConfigError, RuntimeError, OcrError) as exc:
+            print(f"konum okunamadı: {exc}", file=sys.stderr)
+            return 1
+
     point = SpawnPoint(
         id=args.id,
         name=args.name or args.id,
@@ -478,12 +596,15 @@ def cmd_spawn_add(args: argparse.Namespace) -> int:
         respawn_max_s=(args.max if args.max is not None else args.min) * 60.0,
         priority=args.priority,
         notes=args.notes,
+        x=x,
+        y=y,
     )
     book.add(point)
     book.save()
+    where = f"  konum {point.x},{point.y}" if point.position else ""
     print(
         f"eklendi: {point.name} ({point.id}) — doğuş "
-        f"{point.respawn_min_s / 60:.0f}-{point.respawn_max_s / 60:.0f} dk"
+        f"{point.respawn_min_s / 60:.0f}-{point.respawn_max_s / 60:.0f} dk{where}"
     )
     return 0
 
@@ -621,6 +742,23 @@ def build_parser() -> argparse.ArgumentParser:
                        help="bar ile ad arasındaki boşluk (piksel)")
     learn.set_defaults(func=cmd_learn_mob)
 
+    learn_coords = with_config(
+        subparsers.add_parser("koordinat-ogren", help="ekrandaki koordinat rakamlarını öğret")
+    )
+    learn_coords.add_argument("x_degeri", help="ekranda yazan X, örn. 512")
+    learn_coords.add_argument("y_degeri", help="ekranda yazan Y, örn. 378")
+    learn_coords.add_argument("--bolge-x", dest="bolge_x", help="X kutusu: x0,y0,x1,y1")
+    learn_coords.add_argument("--bolge-y", dest="bolge_y", help="Y kutusu: x0,y0,x1,y1")
+    learn_coords.add_argument("--countdown", type=int, default=5)
+    learn_coords.set_defaults(func=cmd_learn_coords)
+
+    coords = with_config(
+        subparsers.add_parser("koordinat", help="şu anki koordinatı ekrandan oku")
+    )
+    coords.add_argument("--bolge-x", dest="bolge_x")
+    coords.add_argument("--bolge-y", dest="bolge_y")
+    coords.set_defaults(func=cmd_coords)
+
     setup = with_config(subparsers.add_parser("kur", help="kurulumu baştan sona yürüt"))
     setup.add_argument("--min-width", type=int, default=50)
     setup.add_argument("--limit", type=int, default=12)
@@ -641,6 +779,13 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("--max", type=float, help="en uzun doğuş (dakika, boşsa min ile aynı)")
     add.add_argument("--priority", type=int, default=1, help="öncelik (rota planında ağırlık)")
     add.add_argument("--notes", default="", help="not")
+    add.add_argument("--x", type=int, help="oyun içi X konumu")
+    add.add_argument("--y", type=int, help="oyun içi Y konumu")
+    add.add_argument("--oku", action="store_true",
+                     help="konumu ekrandan oku (koordinat-ogren kurulu olmalı)")
+    add.add_argument("--bolge-x", dest="bolge_x")
+    add.add_argument("--bolge-y", dest="bolge_y")
+    add.add_argument("-c", "--config", default="config.yaml")
     add.set_defaults(func=cmd_spawn_add)
 
     remove = spawn_subparsers.add_parser("rm", help="doğuş noktası sil")

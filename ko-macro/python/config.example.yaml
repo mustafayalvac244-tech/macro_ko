@@ -128,4 +128,13 @@ utility:
 #   - { name: oto-tamir,   combo: "repair",  every_s: 900 }
 #   - { name: oto-descent, combo: "descent", every_s: 300, only_when_farming: true }
 
+# Oyunun arayüzünde yazan konumu ekrandan okuma.
+# Kurmak için: bir yerde dur, ekranda yazan X ve Y'yi gör, sonra
+#   ko-macro.exe koordinat-ogren 512 378 --bolge-x x0,y0,x1,y1 --bolge-y x0,y0,x1,y1
+# Her kutu SADECE kendi sayısını kapsamalı. Komut kalıpları buraya yazar.
+# coords:
+#   region_x: { x0: 1700, y0: 20, x1: 1750, y1: 36 }
+#   region_y: { x0: 1760, y0: 20, x1: 1810, y1: 36 }
+#   threshold: 0.88
+
 spawn_file: spawns.json

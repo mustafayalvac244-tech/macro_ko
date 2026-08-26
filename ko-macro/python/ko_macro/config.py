@@ -397,6 +397,53 @@ class UtilityConfig:
 
 
 @dataclass
+class CoordsConfig:
+    """Oyunun arayüzünde yazan konum bilgisini ekrandan okuma.
+
+    Oyun sürecine dokunulmaz; sadece rakamların piksel görüntüsü tanınır.
+    ``koordinat-ogren`` komutu bu bölümü kendisi doldurur.
+    """
+
+    #: X ve Y sayılarının yazıldığı bölgeler (``ocr.TextRegion`` biçiminde).
+    #: Ayrı kutular: tek kutudan iki sayıyı boşluğa bakarak ayırmak dar
+    #: rakamlarda sessizce yanlış sonuç veriyor.
+    region_x: dict[str, Any] | None = None
+    region_y: dict[str, Any] | None = None
+    #: Öğretilmiş rakam kalıpları: '0'-'9' -> imza.
+    glyphs: dict[str, str] = field(default_factory=dict)
+    #: Eşleşme için gereken en az benzerlik.
+    threshold: float = 0.88
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.region_x and self.region_y and self.glyphs)
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> "CoordsConfig":
+        raw = raw or {}
+        config = cls(
+            region_x=raw.get("region_x"),
+            region_y=raw.get("region_y"),
+            glyphs={str(k): str(v) for k, v in (raw.get("glyphs") or {}).items()},
+            threshold=float(raw.get("threshold", 0.88)),
+        )
+        if not 0 < config.threshold <= 1:
+            raise ConfigError("coords.threshold 0 ile 1 arasında olmalı")
+
+        from .ocr import TextRegion  # döngüsel import olmasın diye burada
+
+        for name in ("region_x", "region_y"):
+            raw_region = getattr(config, name)
+            if raw_region is None:
+                continue
+            try:
+                TextRegion.from_dict(raw_region)
+            except (KeyError, ValueError) as exc:
+                raise ConfigError(f"coords.{name} hatalı: {exc}") from exc
+        return config
+
+
+@dataclass
 class TransportConfig:
     kind: str = "leonardo"
     port: str | None = None
@@ -469,6 +516,7 @@ class AppConfig:
     vitals: VitalsConfig = field(default_factory=VitalsConfig)
     farm: FarmConfig = field(default_factory=FarmConfig)
     utility: UtilityConfig = field(default_factory=UtilityConfig)
+    coords: CoordsConfig = field(default_factory=CoordsConfig)
     autocast: list["AutoCastRule"] = field(default_factory=list)
     #: Duruş tuşu (okçuda Z). ``restore_stance`` olan combolar sonunda buna basar.
     stance_key: str | None = None
@@ -505,6 +553,7 @@ class AppConfig:
             vitals=VitalsConfig.from_dict(raw.get("vitals", {})),
             farm=FarmConfig.from_dict(raw.get("farm", {})),
             utility=UtilityConfig.from_dict(raw.get("utility", {})),
+            coords=CoordsConfig.from_dict(raw.get("coords", {})),
             autocast=autocast,
             stance_key=normalize_key(stance_key) if stance_key else None,
             stance_delay_ms=int(raw.get("stance_delay_ms", 120)),

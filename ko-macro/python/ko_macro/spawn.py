@@ -100,6 +100,10 @@ class SpawnPoint:
     respawn_max_s: float = 900.0
     priority: int = 1
     notes: str = ""
+    #: Oyun içi konum. ``koordinat-ogren`` kurulduysa ekrandan okunur, yoksa
+    #: elle girilir. Yol sürelerini mesafeden tahmin etmek için kullanılır.
+    x: int | None = None
+    y: int | None = None
     #: Öldürme zamanları (unix epoch, artan sırada).
     kills: list[float] = field(default_factory=list)
 
@@ -166,6 +170,20 @@ class SpawnPoint:
 
     # -- serileştirme ------------------------------------------------------
 
+    @property
+    def position(self) -> tuple[int, int] | None:
+        """Konum, ikisi de biliniyorsa."""
+        if self.x is None or self.y is None:
+            return None
+        return self.x, self.y
+
+    def distance_to(self, other: "SpawnPoint") -> float | None:
+        """İki nokta arası düz mesafe; biri konumsuzsa ``None``."""
+        here, there = self.position, other.position
+        if here is None or there is None:
+            return None
+        return math.hypot(here[0] - there[0], here[1] - there[1])
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
@@ -175,6 +193,8 @@ class SpawnPoint:
             "respawn_max_s": self.respawn_max_s,
             "priority": self.priority,
             "notes": self.notes,
+            "x": self.x,
+            "y": self.y,
             "kills": self.kills,
         }
 
@@ -189,6 +209,8 @@ class SpawnPoint:
                 respawn_max_s=float(raw.get("respawn_max_s", 900.0)),
                 priority=int(raw.get("priority", 1)),
                 notes=str(raw.get("notes", "")),
+                x=int(raw["x"]) if raw.get("x") is not None else None,
+                y=int(raw["y"]) if raw.get("y") is not None else None,
                 kills=[float(k) for k in raw.get("kills", [])],
             )
         except KeyError as exc:
@@ -381,6 +403,9 @@ class SpawnBook:
         self.points: dict[str, SpawnPoint] = {}
         self.travel_seconds: dict[tuple[str, str], float] = {}
         self.default_travel_s = 90.0
+        #: Koordinat biriminin saniyeye çevrimi (karakter hızı). Konumu bilinen
+        #: iki nokta arasında yol süresi elle girilmemişse buradan tahmin edilir.
+        self.units_per_second = 12.0
 
     # -- dosya -------------------------------------------------------------
 
@@ -398,6 +423,7 @@ class SpawnBook:
             self.points[point.id] = point
 
         self.default_travel_s = float(raw.get("default_travel_s", 90.0))
+        self.units_per_second = float(raw.get("units_per_second", 12.0)) or 12.0
         self.travel_seconds = {}
         for item in raw.get("travel", []):
             self.travel_seconds[(str(item["from"]), str(item["to"]))] = float(item["seconds"])
@@ -407,6 +433,7 @@ class SpawnBook:
         payload = {
             "version": 1,
             "default_travel_s": self.default_travel_s,
+            "units_per_second": self.units_per_second,
             "points": [point.to_dict() for point in self.points.values()],
             "travel": [
                 {"from": a, "to": b, "seconds": seconds}
@@ -462,10 +489,32 @@ class SpawnBook:
 
         return sorted(results, key=sort_key)
 
+    def estimated_travel(self) -> dict[tuple[str, str], float]:
+        """Elle girilen yol süreleri + koordinatlardan tahmin edilenler.
+
+        Elle girilen değer her zaman kazanır; sadece eksik olan çiftler
+        mesafeden doldurulur.
+        """
+        estimated: dict[tuple[str, str], float] = {}
+        points = list(self.points.values())
+        for source in points:
+            for target in points:
+                if source.id == target.id:
+                    continue
+                key = (source.id, target.id)
+                if key in self.travel_seconds:
+                    continue
+                distance = source.distance_to(target)
+                if distance is None:
+                    continue
+                estimated[key] = distance / self.units_per_second
+        estimated.update(self.travel_seconds)
+        return estimated
+
     def route(self, now: float | None = None, **kwargs: Any) -> list[RouteStop]:
         """Aktif tahminler üzerinden gezinme sırası çıkarır."""
         moment = float(now if now is not None else time.time())
-        kwargs.setdefault("travel_seconds", self.travel_seconds)
+        kwargs.setdefault("travel_seconds", self.estimated_travel())
         kwargs.setdefault("default_travel_s", self.default_travel_s)
         return plan_route(self.predictions(moment), moment, **kwargs)
 

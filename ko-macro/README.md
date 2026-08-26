@@ -412,6 +412,45 @@ Nasıl hesaplıyor:
 - **"doğmuş?"** — şu an doğmuş olma olasılığı. Yeterli örnek varsa normal
   dağılım, yoksa pencere içinde düzgün dağılım varsayılır.
 
+### Konumu oyundan okuma
+
+Oyun, oyuncunun konumunu arayüzde yazıyor. Program o rakamları tanıyabilir —
+oyunun hafızasına ya da sürecine dokunmadan, sadece pikselden.
+
+Bir kez kurulur: bir yerde dur, ekranda yazan X ve Y'yi gör, iki kutunun
+koordinatlarını ver.
+
+```
+ko-macro.exe koordinat-ogren 512 378 --bolge-x 1700,20,1750,36 --bolge-y 1760,20,1810,36
+```
+
+Program o kutulardaki karakterleri senin yazdığın rakamlarla eşleştirip
+kalıpları çıkarır. Bir seferde göremediği rakamlar için başka bir yere gidip
+komutu tekrar çalıştır — eksikleri söyler.
+
+```
+ko-macro.exe koordinat          # şu anki konumu oku
+```
+
+Doğuş noktası eklerken konum da yazılır:
+
+```
+ko-macro.exe spawn add harpy --min 5 --max 8 --oku
+```
+
+Konumu bilinen noktalar arasında **yol süresi mesafeden hesaplanır** —
+`spawn travel` ile elle girmene gerek kalmaz. Karakter hızını
+`spawns.json` içindeki `units_per_second` ile ayarlarsın (varsayılan 12).
+
+**Neden iki ayrı kutu:** tek kutudan iki sayıyı boşluğa bakarak ayırmayı
+denedim, çalışmıyor — `1` gibi dar rakamlar normal harf aralığını boşluk gibi
+gösteriyor ve sessizce yanlış koordinat üretiyor. İki kutu belirsizlik
+bırakmıyor.
+
+**Sınırları:** çözünürlük ya da arayüz ölçeği değişirse kalıplar geçersiz
+olur, yeniden öğretmen gerekir. Tanınmayan bir karakter çıkarsa program
+tahmin etmez, hata verir — yarım okunmuş koordinat yanlış veriden beterdir.
+
 ### Rota planı
 
 Birden fazla boss takip ediyorsan hangisine sırayla gideceğini önerir:
@@ -570,7 +609,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 220 test
+cd python && python -m pytest tests -q      # 238 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 
@@ -596,6 +635,8 @@ python/
   ko_macro/
     paths.py        kaynak/exe yol çözümlemesi
     calibrate.py    barları ekranda otomatik bulma
+    nameplate.py    hedef adını görüntüsünden tanıma
+    ocr.py          ekrandaki rakamları okuma (konum)
     transport.py    Leonardo / yazılımsal / kuru mod taşıma katmanları
     sequence.py     combo motoru (jitter, burst, cooldown)
     farm.py         hedef seç → vur → öldüğünü gör → yağmala döngüsü
