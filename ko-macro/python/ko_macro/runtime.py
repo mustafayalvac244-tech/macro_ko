@@ -80,17 +80,21 @@ class MacroEngine:
         if config.farm.target_bar is not None and self.sampler is not None:
             target = TargetMonitor(region=config.farm.target_bar, sampler=self.sampler)
 
-        # Mob adı filtresi: tam ekran görüntüsü gerektiği için her seferinde
-        # taze bir kare alınır (bar okumaları tek satırla yetiniyor).
+        # Mob adı filtresi: her hedeflemede taze bir kare gerekir, ama sadece
+        # ad şeridi kadarı.
         name_matcher: NameMatcher | None = None
         screen_factory: Callable[[], object] | None = None
         if config.farm.name_region and config.farm.mob_names:
+            region = NameRegion.from_dict(config.farm.name_region)
             name_matcher = NameMatcher(
-                region=NameRegion.from_dict(config.farm.name_region),
+                region=region,
                 signatures=dict(config.farm.mob_names),
                 threshold=config.farm.name_threshold,
             )
-            screen_factory = MSSScreen
+            # Sadece ad şeridini yakala: her hedeflemede tüm ekranı almak
+            # gereksiz gecikme.
+            name_box = (region.x0, region.y0, region.x1, region.y1)
+            screen_factory = lambda: MSSScreen(box=name_box)  # noqa: E731
 
         farm_combo = config.find_combo(config.farm.combo) if config.farm.combo else None
         self.farm = FarmLoop(

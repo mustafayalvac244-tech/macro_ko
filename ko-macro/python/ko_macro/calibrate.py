@@ -47,28 +47,107 @@ class FakeScreen:
         return self.rows[y]
 
 
-class MSSScreen:
-    """Gerçek ekranı bir kez yakalayıp satır satır sunar."""
+class OffsetRow:
+    """Sadece bir aralığı tutan, ama mutlak koordinatla indislenen satır.
 
-    def __init__(self, monitor: int = 1) -> None:
+    Küçük bir bölgeyi yakalayıp okurken bile çağıranlar ekran koordinatı
+    kullanıyor. Bu sarmalayıcı, tam genişlikte liste ayırmadan o koordinatları
+    karşılar; aralık dışı istekler siyah döner.
+    """
+
+    __slots__ = ("_pixels", "_x0")
+
+    def __init__(self, pixels: list[tuple[int, int, int]], x0: int) -> None:
+        self._pixels = pixels
+        self._x0 = x0
+
+    def __getitem__(self, x: int) -> tuple[int, int, int]:
+        index = x - self._x0
+        if 0 <= index < len(self._pixels):
+            return self._pixels[index]
+        return (0, 0, 0)
+
+    def __len__(self) -> int:
+        # Çağıranlar `min(region.x1 + 1, len(row))` yapıyor; sağ sınır doğru
+        # kalsın diye uzunluk mutlak koordinat cinsinden veriliyor.
+        return self._x0 + len(self._pixels)
+
+
+class CroppedScreen:
+    """Bir ekranın yalnız verilen kutusunu sunan görünüm.
+
+    Boyutlar kaynak ekranınkiyle aynı kalır, böylece mutlak koordinatlarla
+    yazılmış bölge tanımları değişmeden çalışır.
+    """
+
+    def __init__(self, source: Screen, box: tuple[int, int, int, int]) -> None:
+        x0, y0, x1, y1 = box
+        self.width = source.width
+        self.height = source.height
+        self._x0 = max(0, x0)
+        self._y0 = max(0, y0)
+        self._rows = [
+            source.row(y)[self._x0 : x1 + 1]
+            for y in range(self._y0, min(y1 + 1, source.height))
+        ]
+
+    def row(self, y: int) -> OffsetRow:
+        index = y - self._y0
+        if 0 <= index < len(self._rows):
+            return OffsetRow(self._rows[index], self._x0)
+        return OffsetRow([], self._x0)
+
+
+class MSSScreen:
+    """Gerçek ekranı yakalayıp satır satır sunar.
+
+    ``box`` verilirse sadece o dikdörtgen yakalanır. Yakalama işin pahalı
+    kısmı olduğu için, küçük bir alana bakacaksak (hedef adı, koordinat)
+    tüm ekranı almak boşuna gecikme demek.
+    """
+
+    def __init__(
+        self, monitor: int = 1, box: tuple[int, int, int, int] | None = None
+    ) -> None:
         try:
             import mss
         except ImportError as exc:  # pragma: no cover - ortama bağlı
             raise RuntimeError("mss kurulu değil: pip install mss") from exc
 
         with mss.mss() as grabber:
-            shot = grabber.grab(grabber.monitors[monitor])
-        self.width = shot.width
-        self.height = shot.height
+            area = grabber.monitors[monitor]
+            if box is None:
+                shot = grabber.grab(area)
+                self._x0, self._y0 = 0, 0
+                self.width, self.height = shot.width, shot.height
+            else:
+                x0, y0, x1, y1 = box
+                x0, y0 = max(0, x0), max(0, y0)
+                shot = grabber.grab(
+                    {"left": x0, "top": y0,
+                     "width": max(1, x1 - x0 + 1), "height": max(1, y1 - y0 + 1)}
+                )
+                self._x0, self._y0 = x0, y0
+                # Bölge kırpılmış olsa da boyutlar tam ekranı bildirir:
+                # bölge tanımları mutlak koordinatla yazılıyor.
+                self.width = area["width"]
+                self.height = area["height"]
+
+        self._shot_width = shot.width
+        self._shot_height = shot.height
         self._raw = bytes(shot.raw)  # BGRA
 
-    def row(self, y: int) -> list[tuple[int, int, int]]:
-        start = y * self.width * 4
+    def row(self, y: int) -> OffsetRow:
+        index = y - self._y0
+        if not 0 <= index < self._shot_height:
+            return OffsetRow([], self._x0)
+        start = index * self._shot_width * 4
         raw = self._raw
-        return [
+        pixels = [
             (raw[i + 2], raw[i + 1], raw[i])
-            for i in range(start, start + self.width * 4, 4)
+            for i in range(start, start + self._shot_width * 4, 4)
         ]
+        return OffsetRow(pixels, self._x0)
 
 
 # ------------------------------------------------------------------ renk testi

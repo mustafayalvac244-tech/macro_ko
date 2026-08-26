@@ -395,6 +395,11 @@ def cmd_learn_mob(args: argparse.Namespace) -> int:
     return 0
 
 
+def _box(region) -> tuple[int, int, int, int]:
+    """Bölgeyi ekran yakalama kutusuna çevirir."""
+    return (region.x0, region.y0, region.x1, region.y1)
+
+
 def _parse_region(text: str) -> dict[str, int]:
     """``x0,y0,x1,y1`` metnini bölgeye çevirir."""
     try:
@@ -451,9 +456,8 @@ def cmd_learn_coords(args: argparse.Namespace) -> int:
         print(" " * 20, end="\r")
 
     try:
-        screen = MSSScreen()
-        learned = reader.learn(screen, region_x, args.x_degeri)
-        learned += reader.learn(screen, region_y, args.y_degeri)
+        learned = reader.learn(MSSScreen(box=_box(region_x)), region_x, args.x_degeri)
+        learned += reader.learn(MSSScreen(box=_box(region_y)), region_y, args.y_degeri)
     except (RuntimeError, OcrError) as exc:
         print(f"hata: {exc}", file=sys.stderr)
         return 1
@@ -487,8 +491,8 @@ def cmd_coords(args: argparse.Namespace) -> int:
     try:
         region_x, region_y = _coord_regions(config, args)
         reader = _digit_reader(config)
-        screen = MSSScreen()
-        x, y = reader.read_coordinates(screen, region_x, region_y)
+        x = reader.read_number(MSSScreen(box=_box(region_x)), region_x)
+        y = reader.read_number(MSSScreen(box=_box(region_y)), region_y)
     except (ConfigError, RuntimeError, OcrError) as exc:
         print(f"hata: {exc}", file=sys.stderr)
         return 1
@@ -582,7 +586,8 @@ def cmd_spawn_add(args: argparse.Namespace) -> int:
             config = load_config(_ensure_config(args.config))
             region_x, region_y = _coord_regions(config, args)
             reader = _digit_reader(config)
-            x, y = reader.read_coordinates(MSSScreen(), region_x, region_y)
+            x = reader.read_number(MSSScreen(box=_box(region_x)), region_x)
+            y = reader.read_number(MSSScreen(box=_box(region_y)), region_y)
             print(f"ekrandan okunan konum: {x}, {y}")
         except (ConfigError, RuntimeError, OcrError) as exc:
             print(f"konum okunamadı: {exc}", file=sys.stderr)

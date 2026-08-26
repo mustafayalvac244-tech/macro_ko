@@ -88,6 +88,36 @@ belirli aralıklarla tetiklenir — işe yarar ama olay bazlı değildir.
 
 ---
 
+## Hooking'e göre nerede duruyor
+
+Dürüst cevap: **hooking daha yetenekli.** Eşit değil, öyleymiş gibi de
+davranmıyorum.
+
+| | Hooking / hafıza okuma | Bu proje |
+| --- | --- | --- |
+| Etraftaki mobların listesi, tipi, mesafesi | Hepsini bilir | Bilmez — Tab ne verirse |
+| Otomatik yürüme, rota takibi | Yapar | Yapmaz, park ettiğin yerde durur |
+| Can / mana | Kesin sayı | Piksel oranı, yaklaşık |
+| Zehir / stun / buff durumu | Olay bazlı bilir | Bilmez, süreye dayalı tahmin |
+| Tepki gecikmesi | ~1 ms | ~20-100 ms (ekran yoklama aralığı) |
+| Pencere arkadayken / küçükken | Çalışır | Çalışmaz, ekranı görmesi gerekir |
+
+Farkın sanıldığı kadar olmadığı yerler:
+
+- **Combo hızı.** Hooking burada bir şey kazandırmaz; tavanı oyunun
+  cast/cooldown ritmi belirler, girdi yöntemi değil. Firmware kuyruğu zaten
+  1 ms çözünürlükte.
+- **Ölüm tespiti, pot basma, comboyu kesme.** Bar okumayla güvenilir çalışıyor.
+
+Karşılığında alınan tek şey, ama önemlisi: **oyun sürecinde bulunacak hiçbir
+şey yok.** Enjekte edilmiş modül, yamalanmış fonksiyon, yabancı thread,
+dışarıdan hafıza okuması — hiçbiri. Yan fayda olarak istemci güncellemeleri
+memory offset'lerini bozar, pikselleri bozmaz.
+
+Takas bu. Proje bilerek bu tarafta duruyor.
+
+---
+
 ## Nasıl çalışır
 
 ```
@@ -609,7 +639,7 @@ kapanınca da aynısı olur.
 ## Testler
 
 ```bash
-cd python && python -m pytest tests -q      # 238 test
+cd python && python -m pytest tests -q      # 244 test
 arduino/test/run_tests.sh                    # firmware testleri (donanım gerekmez)
 ```
 

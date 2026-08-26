@@ -229,3 +229,74 @@ def test_write_keeps_a_backup_of_the_original(tmp_path):
 
     backup = _write_config_patch(path, {"vitals": {"enabled": True}})
     assert backup.read_text(encoding="utf-8") == original
+
+
+# ------------------------------------------------------- kırpılmış görünüm
+
+
+def test_offset_row_uses_absolute_coordinates():
+    from ko_macro.calibrate import OffsetRow
+
+    row = OffsetRow([(1, 2, 3), (4, 5, 6)], x0=100)
+    assert row[100] == (1, 2, 3)
+    assert row[101] == (4, 5, 6)
+    # Aralık dışı istekler siyah döner, patlamaz.
+    assert row[99] == (0, 0, 0)
+    assert row[500] == (0, 0, 0)
+
+
+def test_offset_row_length_is_absolute():
+    from ko_macro.calibrate import OffsetRow
+
+    # Çağıranlar min(x1 + 1, len(row)) yapıyor; sağ sınır doğru kalmalı.
+    assert len(OffsetRow([(0, 0, 0)] * 5, x0=100)) == 105
+
+
+def test_cropped_screen_matches_the_full_screen():
+    """Kırpılmış görünüm, aynı bölgede tam ekranla aynı sonucu vermeli."""
+    from ko_macro.calibrate import CroppedScreen
+
+    screen = make_screen(800, 200, [{"x0": 100, "x1": 260, "y": 40, "color": RED}])
+    box = (90, 30, 270, 60)
+    cropped = CroppedScreen(screen, box)
+
+    assert cropped.width == screen.width
+    assert cropped.height == screen.height
+    for y in (40, 42, 44):
+        for x in (100, 180, 260):
+            assert cropped.row(y)[x] == screen.row(y)[x]
+
+
+def test_cropped_screen_outside_the_box_is_black():
+    from ko_macro.calibrate import CroppedScreen
+
+    screen = make_screen(800, 200, [{"x0": 100, "x1": 260, "y": 40, "color": RED}])
+    cropped = CroppedScreen(screen, (90, 30, 270, 60))
+    assert cropped.row(150)[100] == (0, 0, 0)   # kutu dışı satır
+    assert cropped.row(40)[700] == (0, 0, 0)    # kutu dışı sütun
+
+
+def test_nameplate_fingerprint_is_the_same_through_a_crop():
+    """Ad parmak izi, kırpılmış görünümden okununca değişmemeli."""
+    from ko_macro.calibrate import CroppedScreen
+    from ko_macro.nameplate import fingerprint
+    from tests.test_nameplate import HARPY, REGION as NAME_REGION, make_screen as name_screen
+
+    full = name_screen(HARPY)
+    cropped = CroppedScreen(
+        full, (NAME_REGION.x0, NAME_REGION.y0, NAME_REGION.x1, NAME_REGION.y1)
+    )
+    assert fingerprint(cropped, NAME_REGION) == fingerprint(full, NAME_REGION)
+
+
+def test_digit_reading_is_the_same_through_a_crop():
+    from ko_macro.calibrate import CroppedScreen
+    from ko_macro.ocr import DigitReader
+    from tests.test_ocr import draw
+
+    screen, region = draw("512")
+    reader = DigitReader()
+    reader.learn(screen, region, "512")
+
+    cropped = CroppedScreen(screen, (region.x0, region.y0, region.x1, region.y1))
+    assert reader.read_number(cropped, region) == 512
