@@ -1,18 +1,29 @@
 name: ko-macro exe
 
 # ko-macro.exe'yi GitHub'ın Windows makinesinde derler.
-# Elle çalıştırmak için: Actions sekmesi -> "ko-macro exe" -> "Run workflow".
-# Bittiğinde exe, çalışmanın altındaki "Artifacts" bölümünden indirilir.
+#
+# İki çıktı üretir:
+#   - Artifacts  : her çalışmada, ama indirmek için GitHub'a giriş gerekir.
+#   - Release    : sadece "v" ile başlayan bir etiket atıldığında; giriş
+#                  yapmadan, düz linkle inebilir. Kullanıcıya verilecek yol bu.
+#
+# Yeni sürüm yayımlamak için:  git tag v1.0.1 && git push origin v1.0.1
 
 on:
   workflow_dispatch:
+  # push'ta "paths" kullanmıyoruz: etiket itildiğinde değişen-dosya listesi
+  # boş olduğu için paths filtresi işi hiç tetiklemez.
   push:
-    paths:
-      - "ko-macro/python/**"
-      - ".github/workflows/build-exe.yml"
+    branches:
+      - "**"
+    tags:
+      - "v*"
   pull_request:
     paths:
       - "ko-macro/python/**"
+
+permissions:
+  contents: write
 
 jobs:
   test:
@@ -88,9 +99,24 @@ jobs:
           ./ko-macro.exe kalibre --help
           Remove-Item spawns.json
 
+      - name: Zip'le
+        working-directory: ko-macro/python
+        shell: pwsh
+        run: Compress-Archive -Path dist/* -DestinationPath ko-macro-windows.zip
+
       - name: Yükle
         uses: actions/upload-artifact@v4
         with:
           name: ko-macro-windows
           path: ko-macro/python/dist/
           retention-days: 30
+
+      # Etiketli sürümlerde zip'i Release'e koy: giriş yapmayan biri de
+      # indirebilsin diye. Artifact'ler oturum istiyor, release dosyaları
+      # istemiyor.
+      - name: Release yayımla
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ko-macro/python/ko-macro-windows.zip
+          generate_release_notes: true

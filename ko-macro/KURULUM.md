@@ -12,20 +12,31 @@ bir USB kablosu, Windows bir bilgisayar.
 
 ## Adım 1 — Programı edin
 
-İki yol var. **A yolu daha kolay**, bilgisayarına hiçbir şey kurmuyorsun.
+Üç yol var. **A yolu en kolayı** — tek link, giriş bile gerekmiyor.
 
-### A yolu: GitHub derlesin (önerilen)
+### A yolu: hazır sürümü indir (önerilen)
 
-1. Tarayıcıdan depoyu aç: `github.com/mustafayalvac244-tech/macro_ko`
-2. Üstteki **Actions** sekmesine tıkla.
-3. Soldaki listeden **"ko-macro exe"** seç.
-4. Sağdaki **"Run workflow"** düğmesine bas, dalı seç, tekrar **"Run workflow"**.
-5. 3-5 dakika bekle. Yeşil tik gelince o satıra tıkla.
-6. Sayfanın altında **Artifacts** kısmındaki **ko-macro-windows** dosyasını indir.
-7. Zip'i bir klasöre çıkar. İçinde `ko-macro.exe`, `config.yaml` ve
-   `baslat.bat` olacak.
+1. Şu adresi aç:
+   `github.com/mustafayalvac244-tech/macro_ko/releases/latest`
+2. Sayfanın altındaki **Assets** başlığı altından **`ko-macro-windows.zip`**
+   dosyasına tıkla. İnmeye başlar.
+3. Zip'i bir klasöre çıkar. İçinde `ko-macro.exe`, `config.yaml`,
+   `baslat.bat` ve `firmware\` klasörü olacak.
 
-### B yolu: kendi bilgisayarında derle
+> Bu yol için GitHub hesabına **giriş yapmana gerek yok.**
+
+### B yolu: Actions'tan indir
+
+Sadece henüz sürüm çıkmamış yeni bir değişikliği denemek istiyorsan.
+**GitHub'a giriş yapmış olman şart** — giriş yapmadan çalışma satırlarına
+tıklanmaz ve dosya inmez.
+
+1. Depoyu aç, üstteki **Actions** sekmesine tıkla.
+2. Soldaki listeden **"ko-macro exe"** seç.
+3. En üstteki yeşil tikli satıra tıkla.
+4. Sayfanın altında **Artifacts** kısmındaki **ko-macro-windows** dosyasını indir.
+
+### C yolu: kendi bilgisayarında derle
 
 1. `python.org/downloads` adresinden Python 3.10 veya üstünü kur.
    Kurulum ekranındaki **"Add Python to PATH"** kutusunu işaretle — bunu
@@ -44,7 +55,7 @@ Yükleyicinin yeri, programı nereden aldığına göre değişiyor:
 
 | Nereden aldın | Klasör |
 | --- | --- |
-| Actions'tan indirdiğin zip | `firmware\` |
+| İndirdiğin zip (Releases ya da Actions) | `firmware\` |
 | Depoyu ZIP olarak indirdin | `ko-macro\arduino\` |
 
 1. Leonardo'yu USB ile bilgisayara tak.

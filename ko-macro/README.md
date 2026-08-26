@@ -158,10 +158,21 @@ kendi saati belirler — 1 ms çözünürlükle.
 
 Python kurmadan kullanmak için:
 
-- **GitHub derlesin:** depoda **Actions → "ko-macro exe" → Run workflow**.
-  Bitince çalışmanın altındaki **Artifacts → ko-macro-windows** paketini indir.
+- **Hazır sürümü indir (en kolayı):** [Releases](../../releases/latest)
+  sayfasındaki **Assets → `ko-macro-windows.zip`**. GitHub'a giriş
+  gerektirmez.
+- **Actions'tan indir:** **Actions → "ko-macro exe"** → en üstteki
+  çalışma → **Artifacts → ko-macro-windows**. Artifact indirmek için
+  GitHub'a **giriş yapmış olmak gerekir**; giriş yapmadan çalışma
+  satırlarına tıklanmaz.
 - **Kendin derle:** `ko-macro/python/derle.bat` dosyasına çift tıkla
   (Python 3.10+ gerekir). Sonuç `dist/ko-macro.exe`.
+
+Yeni sürüm yayımlamak (exe'yi Releases'e koyar):
+
+```
+git tag v1.0.1 && git push origin v1.0.1
+```
 
 Exe ilk çalıştığında yanına bir `config.yaml` oluşturur; ayarları oradan
 yaparsın. Kayıtlar (`spawns.json`) da exe'nin yanında durur.
@@ -171,8 +182,8 @@ yaparsın. Kayıtlar (`spawns.json`) da exe'nin yanında durur.
 
 ### 1. Leonardo'ya firmware yükle
 
-`ko-macro/arduino/yukle.bat` dosyasına çift tıkla (Actions'tan indirdiğin
-pakette bu klasör `firmware/` adıyla gelir) — arduino-cli'yi kendi indirir, kartı
+`ko-macro/arduino/yukle.bat` dosyasına çift tıkla (indirdiğin zip'te bu
+klasör `firmware/` adıyla gelir) — arduino-cli'yi kendi indirir, kartı
 bulur, derler ve yükler. Arduino IDE gerekmez.
 
 Elle yapmak istersen: Arduino IDE ile `arduino/ko_hid_bridge/ko_hid_bridge.ino`
