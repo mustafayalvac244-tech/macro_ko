@@ -4,6 +4,7 @@
 //   supabase functions deploy ai-chat
 //   supabase secrets set GEMINI_API_KEY=...
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import Anthropic from 'npm:@anthropic-ai/sdk';
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
@@ -16,12 +17,15 @@ const USD_TRY = Number(Deno.env.get('VEKIL_USD_TRY') || '42');
 const PRICING: Record<string, { in: number; out: number }> = {
   'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
   'gemini-2.5-pro': { in: 1.25, out: 10.0 },
+  'claude-sonnet-5': { in: 2.0, out: 10.0 },
 };
+// AI katmanı: Claude Sonnet 5. Model env ile deploy'suz değiştirilebilir.
+const CLAUDE_MODEL = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
 // Groq, llama-3.3-70b-versatile'ı 17.06.2026'da kullanımdan kaldırdı (404
 // model_not_found → tüm AI katmanları çöktü). Resmî önerilen halef: gpt-oss-120b.
 // Model env (VEKIL_GROQ_MODEL) ile deploy'suz değiştirilebilir.
 const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b';
-interface TierCfg { provider: 'gemini' | 'groq'; model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number; maxOut: number }
+interface TierCfg { provider: 'gemini' | 'groq' | 'claude'; model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number; maxOut: number }
 function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
   const t = aiTier || 'baslangic'; // lansman: herkes Groq (bedava); billing gelince pro/elit elle atanır
   const table: Record<string, TierCfg> = {
@@ -32,8 +36,20 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
     baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500, maxOut: 2048 },
     pro: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450, maxOut: 2048 },
     elit: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500, maxOut: 4096 },
+    // AI KATMANI (1.999 TL/ay) — Claude Sonnet 5.
+    // Tavan 1.250 TL: ~%71 marj bırakır ve tek bir aşırı kullanıcının aylık
+    // faturayı patlatmasını engeller. Aşınca 402 quota_exceeded döner.
+    ai: { provider: 'claude', model: CLAUDE_MODEL, billable: true, limitKind: 'cost', limit: 1250, maxOut: 4096 },
   };
   const cfg = table[t] ?? table.free;
+  // Claude anahtarı yoksa AI katmanı ücretsiz Groq'a düşer (ödeyen üye boş
+  // ekran görmesin). Anahtar eklenince otomatik Claude'a geçer, deploy gerekmez.
+  if (cfg.provider === 'claude' && !Deno.env.get('ANTHROPIC_API_KEY')) {
+    return {
+      tier: t,
+      cfg: { ...cfg, provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 4000 },
+    };
+  }
   // Google faturalandırması AÇILANA KADAR Pro/Elit de Groq'ta çalışır. Aksi
   // hâlde ödeyen üye Gemini'nin kotasız (429) anahtarına düşüp bozuk deneyim
   // yaşardı. Billing açılınca AI_PRO_PROVIDER=gemini secret'ı yeter, deploy gerekmez.
@@ -45,6 +61,57 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
   }
   return { tier: t, cfg };
 }
+/**
+ * Claude (Anthropic) sohbet çağrısı — ücretli AI katmanı.
+ *
+ * Prompt caching: sistem talimatı İKİ parçaya bölünür. Sabit kısım (kimlik,
+ * uydurma yasağı, biçim kuralları) her istekte aynı olduğu için önbelleğe
+ * alınır ve tekrar okunduğunda ~%10 fiyatla gelir. Soruya göre değişen besleme
+ * (mevzuat/içtihat) önbelleğin ARKASINA konur — yoksa her istekte önbelleği
+ * geçersiz kılardı (caching bir ön-ek eşleşmesidir).
+ */
+async function claudeChat(
+  stableSystem: string,
+  groundingSystem: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number,
+  apiKey: string
+): Promise<{ text: string; tin: number; tout: number }> {
+  const client = new Anthropic({ apiKey });
+  const system: Array<Record<string, unknown>> = [
+    { type: 'text', text: stableSystem, cache_control: { type: 'ephemeral' } },
+  ];
+  if (groundingSystem.trim()) system.push({ type: 'text', text: groundingSystem });
+
+  try {
+    const res = await client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens,
+      thinking: { type: 'adaptive' },
+      system: system as never,
+      messages: msgs.map((m) => ({
+        role: m.role === 'model' ? ('assistant' as const) : ('user' as const),
+        content: m.text,
+      })),
+    });
+    // Güvenlik reddi: içerik okunmadan önce stop_reason kontrol edilmeli.
+    if (res.stop_reason === 'refusal') throw new Error('refusal');
+    const text = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    const u = res.usage;
+    // Önbellek okuması da girdi sayılır (ucuz olsa da ölçüme dahil edilir).
+    const tin = (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+    return { text, tin, tout: u.output_tokens ?? 0 };
+  } catch (e) {
+    if (e instanceof Anthropic.RateLimitError) throw new Error('rate_limit');
+    if (e instanceof Anthropic.AuthenticationError) throw new Error('not_configured');
+    if ((e as Error).message === 'refusal') throw e;
+    throw new Error('upstream');
+  }
+}
+
 /** Groq (OpenAI uyumlu) sohbet çağrısı — ücretsiz katman. */
 async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; text: string }>, maxTokens: number, apiKey: string): Promise<{ text: string; tin: number; tout: number }> {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -693,7 +760,7 @@ Deno.serve(async (req) => {
     });
   }
   // MÜTALAA yalnız Pro/Elit üyelere açıktır (çok adımlı, token yoğun).
-  if (isMutalaa && tier !== 'pro' && tier !== 'elit') {
+  if (isMutalaa && tier !== 'pro' && tier !== 'elit' && tier !== 'ai') {
     return new Response(JSON.stringify({ error: 'tier_required', tier, required: 'pro' }), {
       status: 403,
       headers: CORS,
@@ -703,7 +770,12 @@ Deno.serve(async (req) => {
   const maxOutputTokens = cfg.maxOut;
   const provider = cfg.provider;
   // Sağlayıcı anahtarı: ücretsiz katman Groq, Pro/Elit Gemini.
-  const genKey = provider === 'groq' ? (Deno.env.get('GROQ_API_KEY') ?? '') : (aiKey(cfg.billable) ?? apiKey);
+  const genKey =
+    provider === 'groq'
+      ? (Deno.env.get('GROQ_API_KEY') ?? '')
+      : provider === 'claude'
+        ? (Deno.env.get('ANTHROPIC_API_KEY') ?? '')
+        : (aiKey(cfg.billable) ?? apiKey);
   if (!genKey) {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
@@ -715,6 +787,16 @@ Deno.serve(async (req) => {
   if (isMutalaa) {
     const meter = { tin: 0, tout: 0 };
     const call = async (sys: string, userText: string, maxTok: number): Promise<string> => {
+      if (provider === 'claude') {
+        // Sabit talimat (SYSTEM_PROMPT) önbelleğe alınır; sys'in geri kalanı
+        // (araştırma dosyası) her adımda değiştiği için arkaya konur.
+        const stable = sys.startsWith(SYSTEM_PROMPT) ? SYSTEM_PROMPT : sys;
+        const rest = sys.startsWith(SYSTEM_PROMPT) ? sys.slice(SYSTEM_PROMPT.length) : '';
+        const r = await claudeChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey);
+        meter.tin += r.tin;
+        meter.tout += r.tout;
+        return r.text;
+      }
       if (provider === 'groq') {
         const r = await groqChat(sys, [{ role: 'user', text: userText }], maxTok, genKey);
         meter.tin += r.tin;
@@ -850,8 +932,14 @@ Deno.serve(async (req) => {
       let out = '';
       let uin = 0;
       let uout = 0;
-      const maxTok = Math.max(cfg.maxOut, tier === 'elit' ? 4096 : 3000);
-      if (provider === 'groq') {
+      const maxTok = Math.max(cfg.maxOut, tier === 'elit' || tier === 'ai' ? 4096 : 3000);
+      if (provider === 'claude') {
+        // Sabit talimat önbelleğe; tür yapısı + araştırma dosyası arkaya.
+        const rest = dilekceSys.startsWith(SYSTEM_PROMPT) ? dilekceSys.slice(SYSTEM_PROMPT.length) : '';
+        const stable = rest ? SYSTEM_PROMPT : dilekceSys;
+        const r = await claudeChat(stable, rest, [{ role: 'user', text: promptQuestion }], maxTok, genKey);
+        out = r.text; uin = r.tin; uout = r.tout;
+      } else if (provider === 'groq') {
         const r = await groqChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey);
         out = r.text; uin = r.tin; uout = r.tout;
       } else {
@@ -893,36 +981,44 @@ Deno.serve(async (req) => {
   // (Gemini/Pro anlamsal + FTS; Groq/ücretsiz doğrudan FTS). Böylece yanıt gerçek
   // kararlara dayanır, uydurmaz — "eğitilmiş" asistan.
   const groundKey = provider === 'gemini' ? genKey : '';
-  let systemText = SYSTEM_PROMPT;
+  // Besleme AYRI tutulur: Claude'da sabit talimat önbelleğe alınır, soruya göre
+  // değişen besleme onun arkasına konur (bkz. claudeChat).
+  let grounding = '';
   {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (lastUser?.text) {
       // Önce KESİN KURALLAR (yerleşik içtihat) — modelin tahminini ezer.
       // Anahtar kelime + anlam araması birlikte (olay anlatımını da yakalar).
       try {
-        systemText += await buildRules(supabase, lastUser.text);
+        grounding += await buildRules(supabase, lastUser.text);
       } catch {
         // kural beslemesi başarısızsa devam
       }
       // Gerçek kanun madde metinleri (kendi mevzuat veritabanımız) — genel doğruluk.
       try {
-        systemText += await buildMevzuat(supabase, lastUser.text);
+        grounding += await buildMevzuat(supabase, lastUser.text);
       } catch {
         // mevzuat beslemesi başarısızsa devam
       }
       try {
-        systemText += await buildGrounding(supabase, lastUser.text, groundKey);
+        grounding += await buildGrounding(supabase, lastUser.text, groundKey);
       } catch {
         // besleme başarısızsa yalın yanıtla devam
       }
     }
   }
+  const systemText = SYSTEM_PROMPT + grounding;
 
   let text = '';
   let tin = 0;
   let tout = 0;
   try {
-    if (provider === 'groq') {
+    if (provider === 'claude') {
+      const r = await claudeChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey);
+      text = r.text;
+      tin = r.tin;
+      tout = r.tout;
+    } else if (provider === 'groq') {
       const r = await groqChat(systemText, messages, maxOutputTokens, genKey);
       text = r.text;
       tin = r.tin;

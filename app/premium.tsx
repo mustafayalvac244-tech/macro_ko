@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
-import { useTrialStatus, MONTHLY_PRICE_TRY } from '@/hooks/useTrialStatus';
+import { useTrialStatus, MONTHLY_PRICE_TRY, AI_PRICE_TRY } from '@/hooks/useTrialStatus';
 import { supabase } from '@/lib/supabase';
 import { useT } from '@/i18n';
 import { fonts, radius, spacing, shadow } from '@/theme/theme';
@@ -50,9 +50,12 @@ export default function PremiumScreen() {
 
   const subscribed = isPremium || trial.subscribed;
 
-  const onSubscribe = () => {
-    AsyncStorage.setItem('vekil-plan-intent', 'vekilpro').catch(() => {});
-    Alert.alert(t('premium.soonTitle'), t('premium.soonBody', { plan: t('premium.oneName') }));
+  const onSubscribe = (plan: 'temel' | 'ai') => {
+    AsyncStorage.setItem('vekil-plan-intent', plan).catch(() => {});
+    Alert.alert(
+      t('premium.soonTitle'),
+      t('premium.soonBody', { plan: plan === 'ai' ? t('premium.aiName') : t('premium.oneName') })
+    );
   };
 
   const features = [
@@ -122,7 +125,7 @@ export default function PremiumScreen() {
 
           {!subscribed && (
             <Pressable
-              onPress={onSubscribe}
+              onPress={() => onSubscribe('temel')}
               style={({ pressed }) => [styles.cta, styles.ctaHi, pressed && { opacity: 0.85 }]}
             >
               <Text style={[styles.ctaText, { color: onGold(colors.gold) }]}>{t('premium.subscribeCta')}</Text>
@@ -132,6 +135,51 @@ export default function PremiumScreen() {
           {!subscribed && (
             <Text style={styles.finePrint}>{t('premium.trialFinePrint', { price: String(MONTHLY_PRICE_TRY) })}</Text>
           )}
+        </View>
+
+        {/* ───────── AI katmanı ───────── */}
+        <View style={styles.aiCard}>
+          <View style={styles.aiBadge}>
+            <Ionicons name="sparkles" size={11} color={colors.primary} />
+            <Text style={styles.aiBadgeText}>{t('premium.aiBadge')}</Text>
+          </View>
+
+          <Text style={styles.tierName}>{t('premium.aiName')}</Text>
+          <Text style={styles.tierTag}>{t('premium.aiTag')}</Text>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>₺{AI_PRICE_TRY.toLocaleString('tr-TR')}</Text>
+            <Text style={styles.per}>{t('premium.perMonth')}</Text>
+          </View>
+
+          <View style={styles.includesRow}>
+            <Ionicons name="add-circle-outline" size={14} color={colors.primary} />
+            <Text style={styles.includesText}>{t('premium.includes', { plan: t('premium.oneName') })}</Text>
+          </View>
+
+          <View style={styles.features}>
+            {[
+              t('premium.f.aiAssistant'),
+              t('premium.f.aiMutalaa'),
+              t('premium.f.aiDilekce'),
+              t('premium.f.aiDocReview'),
+              t('premium.f.aiIctihat'),
+              t('premium.f.aiGrounded'),
+            ].map((f) => (
+              <View key={f} style={styles.featRow}>
+                <Ionicons name="checkmark" size={16} color={colors.success} style={styles.featCheck} />
+                <Text style={styles.featText}>{f}</Text>
+              </View>
+            ))}
+          </View>
+
+          <Pressable
+            onPress={() => onSubscribe('ai')}
+            style={({ pressed }) => [styles.cta, styles.ctaAi, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={[styles.ctaText, { color: '#FFFFFF' }]}>{t('premium.aiCta')}</Text>
+          </Pressable>
+          <Text style={styles.finePrint}>{t('premium.aiSoonNote')}</Text>
         </View>
 
         <View style={styles.noteRow}>
@@ -286,6 +334,50 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   ctaHi: {
     backgroundColor: colors.gold,
+  },
+  ctaAi: {
+    backgroundColor: colors.primary,
+  },
+  aiCard: {
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    ...shadow.card,
+  },
+  aiBadge: {
+    position: 'absolute',
+    top: -11,
+    right: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 11,
+    paddingVertical: 4,
+  },
+  aiBadgeText: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 10.5,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: colors.primary,
+  },
+  includesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+  },
+  includesText: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 12.5,
+    color: colors.primary,
+    flexShrink: 1,
   },
   ctaText: {
     fontFamily: fonts.extrabold,

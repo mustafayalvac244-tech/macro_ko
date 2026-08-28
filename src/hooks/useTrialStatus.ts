@@ -4,6 +4,8 @@ import { useAuthStore } from '@/store/authStore';
 export const TRIAL_DAYS = 7;
 /** Aylık abonelik ücreti (TL). */
 export const MONTHLY_PRICE_TRY = 399;
+/** AI katmanı aylık ücreti (TL). */
+export const AI_PRICE_TRY = 1999;
 
 export interface TrialStatus {
   /** Abone mi (ödeme yaptı / premium verildi)? */

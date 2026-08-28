@@ -36,6 +36,8 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
     baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500 },
     pro: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450 },
     elit: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500 },
+    // AI katmanı (1.999 TL/ay). Claude anahtarı yoksa aşağıda Groq'a düşer.
+    ai: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 4000 },
   };
   return { tier: t, cfg: table[t] ?? table.free };
 }
