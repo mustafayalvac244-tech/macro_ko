@@ -11,33 +11,42 @@ Arkadaşının hesabı hazır olur olmaz bu dosyayla 1 saatte yayına girilir.
 |---|---|---|
 | 1 | iOS izin açıklama metinleri (Face ID, galeri, kamera, takvim) | ✅ **eklendi** (`app.json`) |
 | 2 | Kullanılmayan mikrofon izni (`RECORD_AUDIO`) | ✅ **kaldırıldı** |
-| 3 | **Gizlilik Politikası URL'si** (herkese açık web adresi) | ❌ **senin yapman lazım** — aşağıda |
-| 4 | **Demo hesabı** (Apple incelemecisi için) | ❌ **senin yapman lazım** — aşağıda |
-| 5 | Kullanılmayan Stripe eklentisi | ⚠️ öneri — aşağıda |
+| 3 | **Gizlilik Politikası sayfası** | ✅ **hazırlandı** (`docs/privacy.html`) — yayınlanması gerekiyor, aşağıda |
+| 4 | **Demo hesabı** (Apple incelemecisi için) | ✅ **oluşturuldu ve dolduruldu** — aşağıda |
+| 5 | Kullanılmayan Stripe eklentisi | ✅ **kaldırıldı** |
 
-### 3) Gizlilik Politikası URL'si (zorunlu)
-Apple, uygulama içi ekran kabul etmiyor; **herkese açık bir web adresi** istiyor.
-En hızlı ve ücretsiz yol — GitHub Pages:
-1. Repoda `docs/privacy.html` oluştur (uygulamadaki `app/privacy.tsx` metnini koy)
-2. GitHub → Settings → Pages → Source: `main` / `docs`
-3. Çıkan adres (`https://<kullanıcı>.github.io/macro_ko/privacy.html`) App Store'a girilir
+### 3) Gizlilik Politikası sayfası — TEK ADIM KALDI
+Sayfa hazır: **`docs/privacy.html`** (uygulama içi metinle birebir aynı, cihaz
+izinleri bölümü de eklendi). Yayınlamak için:
 
-> İstersen bu sayfayı ben hazırlayayım — söylemen yeterli.
+1. GitHub → repo → **Settings** → **Pages**
+2. Source: **Deploy from a branch** → Branch: **main** → klasör: **/docs** → Save
+3. Birkaç dakika sonra adres hazır olur:
+   `https://mustafayalvac244-tech.github.io/macro_ko/privacy.html`
+4. Bu adresi App Store Connect → App Privacy → **Privacy Policy URL** alanına yaz
 
-### 4) Demo hesabı (zorunlu)
-Girişli uygulamalarda Apple **çalışan bir test hesabı** ister; yoksa "Guideline 2.1"
-ile reddeder. İçi **dolu** olmalı (boş hesap "eksik uygulama" görünür).
-- E-posta: `demo@vekilpro.app` (veya kendi alan adın)
-- Şifre: güçlü bir şifre belirle
-- İçine 3-5 dava, birkaç müvekkil, duruşma ve finans kaydı gir
-- App Store Connect → App Review Information → Sign-In Required ✓ → bilgileri yaz
+> Not: `docs/` klasörü şu an geliştirme dalında. Pages'in görmesi için dalın
+> **main**'e birleştirilmesi gerekiyor.
 
-### 5) Stripe eklentisi (öneri)
-`app.json` içindeki `@stripe/stripe-react-native` eklentisi **kullanılmıyor** ama
-native ödeme kodunu binary'e ekliyor. Apple, ödeme SDK'sı gören uygulamalarda
-"uygulama içi satın alma kullanıyor musun?" diye sorabiliyor. İlk iOS derlemesi
-zaten sıfırdan yapılacağı için **şimdi çıkarmak en doğru an.** Onay verirsen
-`plugins` listesinden ve `package.json`'dan kaldırırım.
+### 4) Demo hesabı — HAZIR ✅
+Oluşturuldu, içi dolduruldu ve **giriş testi yapıldı**.
+
+| | |
+|---|---|
+| **E-posta** | `demo@vekilpro.app` |
+| **Şifre** | `VekilDemo2026!` |
+
+İçeriği: **4 müvekkil, 4 dava, 5 duruşma, 3 süre, 7 finans kaydı** (gerçekçi
+İstanbul mahkemeleri ve dosya numaralarıyla). Duruşmalardan biri geçmiş tarihli
+— böylece incelemeci "Duruşma Çıkışı" özelliğini de görebilir.
+
+App Store Connect → App Review Information → **Sign-In Required** ✓ işaretle,
+yukarıdaki bilgileri gir.
+
+### 5) Stripe eklentisi — KALDIRILDI ✅
+`app.json` eklentisi, `package.json` bağımlılığı, `_layout.tsx` importu ve
+`eas.json` env değişkeni temizlendi. Binary küçüldü, Apple'ın ödeme SDK'sı
+sorusu ortadan kalktı.
 
 ---
 
@@ -208,12 +217,13 @@ güncellenecek (Team ID, ascAppId, API key) — detaylar `TESLIM.md`'de.
 
 ## 9. Yayın öncesi son kontrol
 
-- [ ] Gizlilik politikası web adresi hazır ve açılıyor
-- [ ] Demo hesabı oluşturuldu, içi dolduruldu, giriş test edildi
+- [x] Gizlilik politikası sayfası hazırlandı (`docs/privacy.html`)
+- [ ] Sayfa GitHub Pages'te yayınlandı ve adres açılıyor
+- [x] Demo hesabı oluşturuldu, içi dolduruldu, giriş test edildi
 - [ ] Ekran görüntüleri alındı (6.7" ve 6.5")
 - [ ] `eas.json` arkadaşının Apple bilgileriyle güncellendi
 - [ ] Bundle ID kararı verildi (yeni ID mi, transfer mi — `TESLIM.md`)
-- [ ] Stripe eklentisi kaldırılsın mı, karar verildi
+- [x] Stripe eklentisi kaldırıldı
 - [ ] Açıklama ve anahtar kelimeler App Store Connect'e girildi
 - [ ] App Privacy anketi dolduruldu
 - [ ] Build yüklendi ve "Ready to Submit" görünüyor
