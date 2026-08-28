@@ -29,7 +29,12 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Dosya ve müvekkil bilgilerinizin başkalarının eline geçmemesi için uygulamayı Face ID ile kilitler.",
+        "NSPhotoLibraryUsageDescription": "Dava dosyalarınıza belge ve fotoğraf eklemek için galerinize erişir.",
+        "NSCameraUsageDescription": "Evrak ve belgeleri doğrudan çekip dava dosyasına eklemeniz için kamerayı kullanır.",
+        "NSCalendarsUsageDescription": "Duruşma ve toplantılarınızı telefonunuzun takvimine eklemek için kullanılır.",
+        "NSCalendarsWriteOnlyAccessUsageDescription": "Duruşma ve toplantılarınızı telefonunuzun takvimine eklemek için kullanılır."
       }
     },
     "android": {
@@ -44,8 +49,7 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.NOTIFICATIONS",
-        "android.permission.SCHEDULE_EXACT_ALARM",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.SCHEDULE_EXACT_ALARM"
       ]
     },
     "web": {
