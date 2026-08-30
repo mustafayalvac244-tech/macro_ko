@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { buildClientUpdate } from '@/utils/clientUpdate';
 import { Card } from '@/components/ui/Card';
 import { CaseStatusBadge, PriorityBadge } from '@/components/ui/StatusBadge';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -49,6 +50,27 @@ export default function CaseDetailScreen() {
   const payments = usePaymentsForCase(id);
   const createPayment = useCreatePayment();
   const deletePayment = useDeletePayment();
+
+  /**
+   * Dosya durumunu müvekkile gönderilecek nazik bir metne çevirip iletir.
+   * Numara varsa WhatsApp (yoksa SMS) açılır — mevcut hatırlatma altyapısı
+   * kullanılır; numara yoksa paylaş menüsüne düşer. Gönderimi kullanıcı yapar.
+   */
+  const shareClientUpdate = async () => {
+    if (!caseItem) return;
+    const text = buildClientUpdate({
+      clientName: client.data?.full_name,
+      caseItem,
+      hearings: hearings.data,
+      lawyerName: profile?.full_name,
+      firmName: profile?.firm_name,
+      typeLabel: (type) => String(t(`hearingType.${type}` as never)),
+    });
+    const res = await sendClientReminder(client.data?.phone, text);
+    if (res === 'no_phone' || res === 'failed') {
+      Share.share({ message: text }).catch(() => {});
+    }
+  };
   const updateDeadline = useUpdateDeadline();
   const deleteCase = useDeleteCase();
   const updateCase = useUpdateCase();
@@ -344,6 +366,17 @@ export default function CaseDetailScreen() {
                 `/deadline-form?caseId=${caseItem.id}&title=${encodeURIComponent(t('case.araKararPrefix'))}` as Parameters<typeof router.push>[0]
               )
             }
+            fullWidth
+            style={styles.stageAra}
+          />
+
+          {/* Müvekkile bilgi ver: "davam ne oldu?" telefonlarını kesen tek dokunuş.
+              Metin kayıtlı bilgiden üretilir; tahmin/vaat içermez. */}
+          <Button
+            label={t('cupd.cta')}
+            icon="chatbubble-ellipses-outline"
+            variant="secondary"
+            onPress={shareClientUpdate}
             fullWidth
             style={styles.stageAra}
           />

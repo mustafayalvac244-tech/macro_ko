@@ -276,6 +276,7 @@ export const tr = {
   // Duruşma Çıkışı — duruşma sonucundan süre/duruşma türetme
   'dash.outcome.title': '{n} duruşmanın sonucu bekliyor',
   'dash.outcome.desc': 'Verilen süreleri kaydedin — 60 saniye sürer, süre kaçırmayı önler.',
+  'cupd.cta': 'Müvekkile Bilgi Ver',
   'hout.title': 'Duruşma Çıkışı',
   'hout.short': 'Duruşma Çıkışı',
   'hout.counter': '{n} / {total} duruşma',

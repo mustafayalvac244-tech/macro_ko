@@ -276,6 +276,7 @@ export const en: Record<keyof typeof tr, string> = {
   // Post-Hearing capture — derive deadlines/hearings from the outcome
   'dash.outcome.title': '{n} hearings awaiting outcome',
   'dash.outcome.desc': 'Record the periods granted — takes 60 seconds, prevents missed deadlines.',
+  'cupd.cta': 'Update the Client',
   'hout.title': 'Post-Hearing',
   'hout.short': 'Post-Hearing',
   'hout.counter': 'Hearing {n} of {total}',
