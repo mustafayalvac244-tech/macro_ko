@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
+  InteractionManager,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -29,7 +30,7 @@ import {
   type IctihatMode,
 } from '@/hooks/useIctihat';
 import { ICTIHAT_DIGESTS, matchDigests, type IctihatDigest } from '@/data/ictihatDigest';
-import { searchMevzuat, type MevzuatHit } from '@/data/laws/searchMevzuat';
+import { searchMevzuat, warmMevzuatIndex, type MevzuatHit } from '@/data/laws/searchMevzuat';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -67,6 +68,15 @@ export default function IctihatScreen() {
 
   // Panelden "Davana Emsal" ile gelindiğinde (?q=konu) doğrudan Yargıtay'da
   // Kelime Arama moduna geçip aramayı otomatik başlat.
+  // Mevzuat indeksini ekran açılır açılmaz ARKA PLANDA kur. Kullanıcı yazmaya
+  // başladığında hazır olur; tek seferde kurulsa arayüz 1-2 sn donuyordu.
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      warmMevzuatIndex().catch(() => {});
+    });
+    return () => task.cancel();
+  }, []);
+
   const params = useLocalSearchParams<{ q?: string }>();
   const didAutoSearch = useRef(false);
   useEffect(() => {

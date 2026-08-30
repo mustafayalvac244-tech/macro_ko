@@ -35,16 +35,56 @@ interface FlatArticle {
 }
 
 let FLAT: FlatArticle[] | null = null;
+let warming: Promise<void> | null = null;
+
+/** Tek bir kanunu düzleştirip indekse ekler. */
+function addLaw(out: FlatArticle[], slug: string): void {
+  const law = loadLaw(slug);
+  if (!law) return;
+  for (const art of law.articles) {
+    out.push({ kod: law.short, kanun: law.name, slug, art, hay: fold(art.text) });
+  }
+}
+
+/**
+ * ARKA PLANDA indeks kurulumu — arayüzü dondurmadan.
+ *
+ * Neden: indeks 7 kanunun ~4.500 maddesini (2,2 MB metin) JSON'dan çözüp
+ * her birine Türkçe sadeleştirme uyguluyor. Bu iş tek seferde yapılınca
+ * ölçümde masaüstünde ~350 ms sürdü; telefonda (Hermes) 1,5-2 saniyelik
+ * DONMA demek. Kullanıcı arama kutusuna yazarken uygulama kilitleniyordu.
+ *
+ * Çözüm: her kanundan önce olay döngüsüne dönülür (setTimeout 0). Böylece iş
+ * ~7 parçaya bölünür, hiçbir kare bloklanmaz. Arama ekranı açılır açılmaz
+ * çağrılırsa kullanıcı yazmaya başladığında indeks çoktan hazır olur.
+ */
+export async function warmMevzuatIndex(): Promise<void> {
+  if (FLAT) return;
+  if (warming) return warming;
+  warming = (async () => {
+    const out: FlatArticle[] = [];
+    for (const idx of LAW_INDEX) {
+      // Kareyi serbest bırak: sonraki kanun bir sonraki tik'te işlenir.
+      await new Promise<void>((r) => setTimeout(r, 0));
+      addLaw(out, idx.slug);
+    }
+    FLAT = out;
+  })();
+  try {
+    await warming;
+  } finally {
+    warming = null;
+  }
+}
+
+/**
+ * İndeksi döndürür. Arka plan kurulumu bitmediyse (kullanıcı çok hızlı
+ * davrandıysa) senkron kurar — sonuç doğruluğu her hâlükârda korunur.
+ */
 function flat(): FlatArticle[] {
   if (FLAT) return FLAT;
   const out: FlatArticle[] = [];
-  for (const idx of LAW_INDEX) {
-    const law = loadLaw(idx.slug);
-    if (!law) continue;
-    for (const art of law.articles) {
-      out.push({ kod: law.short, kanun: law.name, slug: idx.slug, art, hay: fold(art.text) });
-    }
-  }
+  for (const idx of LAW_INDEX) addLaw(out, idx.slug);
   FLAT = out;
   return out;
 }
