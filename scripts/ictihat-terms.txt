@@ -12,7 +12,7 @@ ihtiyaç nedeniyle tahliye
 temerrüt nedeniyle tahliye
 kiracının tahliyesi
 ecrimisil
-men'i müdahale
+elatmanın önlenmesi
 tapu iptali ve tescil
 elatmanın önlenmesi
 kat mülkiyeti
@@ -33,7 +33,7 @@ eser sözleşmesi ayıp
 satış sözleşmesi ayıplı mal
 kefalet sözleşmesi
 temlik alacağın devri
-zamanaşımı def'i
+zamanaşımı defi
 munzam zarar
 
 # ---- İş hukuku ----
@@ -155,3 +155,14 @@ ihtiyati tedbir
 ihtiyati haciz
 istinaf başvurusu
 temyiz incelemesi
+
+# ---- Gerçek kullanım verisinden eklendi (kullanıcıların açtığı dava türleri) ----
+# Not: her terim UYAP Emsal'de sonuç sayısıyla doğrulanmıştır.
+işçilik alacakları davası
+kıdem ve ihbar tazminatı
+yıllık izin ücreti
+iş kazası tazminat
+tüketici hakem heyeti kararının iptali
+ayıplı mal iadesi
+haksız rekabetin tespiti
+ihya davası

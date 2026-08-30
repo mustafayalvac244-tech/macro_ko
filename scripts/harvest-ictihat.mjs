@@ -92,7 +92,36 @@ async function withRetry(fn, label, tries = 4) {
   throw new Error(`${label}: tükendi`);
 }
 
+/**
+ * UYAP Emsal'de arama terimini normalleştirir.
+ *
+ * ÖLÇÜLDÜ: kesme işareti aramayı tamamen öldürüyor —
+ *   "zamanaşımı def'i" → 0 kayıt   |   "zamanaşımı defi" → 86.985 kayıt
+ * Apostrof içeren terimler sessizce hiç sonuç getirmediği için o konudaki
+ * içtihat havuza hiç girmiyordu. Kesme işaretleri temizlenir.
+ */
+function normalizeTerm(terim) {
+  return terim.replace(/['\u2019\u02bc]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * UYAP hız sınırına takılınca 429 DÖNDÜRMÜYOR — HTTP 200 ile boş sonuç
+ * döndürüyor. Ölçüldü: art arda sorguda "ihya davası" 0 kayıt verdi, 12 sn
+ * beklendikten sonra aynı terim 16.932 kayıt verdi ("tapu iptali ve tescil"
+ * 0 → 514.802). Bu sahte sıfır, hasatçıda terimi "bitti" (done) işaretleyip
+ * o konudaki içtihadın havuza HİÇ girmemesine yol açıyordu.
+ *
+ * Bu yüzden 1. sayfada 0 sonuç, "sonuç yok" değil "muhtemel throttle" sayılır
+ * ve yeniden denenir. Gerçekten boş terimler denemeler bitince 0 kalır.
+ */
+class ThrottledZero extends Error {
+  constructor(terim) {
+    super(`arama "${terim}": 429`); // withRetry'ın hız-sınırı dalına düşsün
+  }
+}
+
 async function emsalSearch(terim, page) {
+  terim = normalizeTerm(terim);
   const res = await fetch(`${EMSAL}/aramalist`, {
     method: 'POST',
     headers: {
@@ -106,7 +135,11 @@ async function emsalSearch(terim, page) {
   });
   if (!res.ok) throw new Error(`search ${res.status}`);
   const j = await res.json();
-  return { rows: j?.data?.data ?? [], total: Number(j?.data?.recordsTotal ?? 0) };
+  const rows = j?.data?.data ?? [];
+  const total = Number(j?.data?.recordsTotal ?? 0);
+  // 1. sayfada hiç sonuç yoksa bu büyük ihtimalle sahte sıfır (throttle).
+  if (page === 1 && total === 0 && rows.length === 0) throw new ThrottledZero(terim);
+  return { rows, total };
 }
 
 async function emsalDoc(id) {
