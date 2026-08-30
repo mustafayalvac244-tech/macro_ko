@@ -17,6 +17,10 @@
 //   HARVEST_TERMS        bu çalışmada işlenecek terim sayısı (vars. 10)
 //   HARVEST_PAGE_SIZE    Emsal sayfa boyutu (vars. 20)
 //   HARVEST_DRY=1        DB'ye yazma; sadece tara ve raporla (test için)
+//   HARVEST_SOURCE       'emsal' (BAM/yerel, vars.) | 'yargitay' | 'danistay'
+//                        UYAP Emsal Yargıtay İÇERMEZ; Yargıtay/Danıştay için
+//                        Bedesten (bedesten.adalet.gov.tr) kullanılır.
+//   HARVEST_DOC_DELAY / HARVEST_TERM_DELAY / HARVEST_RETRY_BASE  (ms)
 // ---------------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -35,6 +39,9 @@ const DOC_DELAY = Number(process.env.HARVEST_DOC_DELAY ?? 1200);
 const TERM_DELAY = Number(process.env.HARVEST_TERM_DELAY ?? 2500);
 const RETRY_BASE = Number(process.env.HARVEST_RETRY_BASE ?? 4000);
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
+// Kaynak: 'emsal' (BAM/yerel) | 'yargitay' | 'danistay'. UYAP Emsal Yargıtay
+// içermediği için Yargıtay/Danıştay Bedesten'den toplanır.
+const SOURCE = process.env.HARVEST_SOURCE || 'emsal';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -142,6 +149,71 @@ async function emsalSearch(terim, page) {
   return { rows, total };
 }
 
+
+// ---------------------------------------------------------------------------
+// Bedesten (bedesten.adalet.gov.tr) — Adalet Bakanlığı birleşik karar bankası.
+//
+// NEDEN GEREKLİ: UYAP Emsal YARGITAY KARARI İÇERMEZ; yalnızca BAM/BİM ve yerel
+// mahkeme kararları döner. Bu yüzden hasat aylarca sadece BAM biriktirdi,
+// Yargıtay havuzu sabit kaldı. Avukat için Yargıtay kararı BAM'dan daha
+// değerlidir (yerleşik içtihat). Yargıtay/Danıştay buradan toplanır.
+// ---------------------------------------------------------------------------
+const BEDESTEN = 'https://bedesten.adalet.gov.tr';
+const BEDESTEN_HEADERS = {
+  'Content-Type': 'application/json',
+  Accept: 'application/json',
+  'User-Agent': 'Mozilla/5.0',
+  AdaletApplicationName: 'UyapMevzuat',
+};
+
+function b64ToUtf8(b64) {
+  try {
+    return Buffer.from(b64, 'base64').toString('utf8');
+  } catch {
+    return b64;
+  }
+}
+
+async function bedestenSearch(terim, page, itemType = 'YARGITAYKARARI') {
+  const res = await fetch(`${BEDESTEN}/emsal-karar/searchDocuments`, {
+    method: 'POST',
+    headers: BEDESTEN_HEADERS,
+    body: JSON.stringify({ data: { pageSize: PAGE_SIZE, pageNumber: page, itemTypeList: [itemType], phrase: normalizeTerm(terim) } }),
+  });
+  if (!res.ok) throw new Error(`bedesten ${res.status}`);
+  const j = await res.json();
+  // Bedesten HTTP 200 dönüp arka planda çökebiliyor; bunu "sonuç yok" sanma.
+  const meta = j?.metadata ?? {};
+  if (meta.FMTY === 'ERROR' || String(meta.FMC ?? '').includes('EXCEPTION')) throw new Error('bedesten 429');
+  const list = j?.data?.emsalKararList ?? [];
+  const rows = list.map((r) => {
+    const prefix = r?.itemType?.name === 'DANISTAYKARAR' ? 'Danıştay' : 'Yargıtay';
+    let birim = String(r.birimAdi ?? '').trim();
+    // Savunma amaçlı: birimAdi normalde ön ek içermez, içerirse çiftlemesin.
+    if (birim.startsWith(prefix)) birim = birim.slice(prefix.length).trim();
+    return {
+      id: String(r.documentId ?? ''),
+      daire: birim ? `${prefix} ${birim}` : prefix,
+      esasNo: r.esasNoYil != null ? `${r.esasNoYil}/${r.esasNoSira}` : '',
+      kararNo: r.kararNoYil != null ? `${r.kararNoYil}/${r.kararNoSira}` : '',
+      kararTarihi: r.kararTarihi ? String(r.kararTarihi).slice(0, 10).split('-').reverse().join('.') : '',
+    };
+  }).filter((x) => x.id);
+  return { rows, total: Number(j?.data?.total ?? 0) };
+}
+
+async function bedestenDoc(id) {
+  const res = await fetch(`${BEDESTEN}/emsal-karar/getDocumentContent`, {
+    method: 'POST',
+    headers: BEDESTEN_HEADERS,
+    body: JSON.stringify({ data: { documentId: id } }),
+  });
+  if (!res.ok) throw new Error(`bedesten doc ${res.status}`);
+  const j = await res.json();
+  const raw = j?.data?.content ?? '';
+  return htmlToText(b64ToUtf8(String(raw)));
+}
+
 async function emsalDoc(id) {
   const res = await fetch(`${EMSAL}/getDokuman?id=${encodeURIComponent(id)}`, {
     headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0', Referer: `${EMSAL}/` },
@@ -174,6 +246,16 @@ async function embed(text) {
   }
 }
 
+/**
+ * İlerleme kaydı anahtarı. Aynı terim farklı kaynaklarda (Emsal / Bedesten)
+ * ayrı sayfalarda ilerlediği için kaynak adı anahtara katılır; yoksa Emsal'de
+ * 5. sayfaya gelmiş bir terim Bedesten'de de 5. sayfadan başlar ve baştaki
+ * kararlar hiç toplanmaz.
+ */
+function stateKey(terim) {
+  return SOURCE === 'emsal' ? terim : `${SOURCE}:${terim}`;
+}
+
 function loadTerms() {
   const raw = readFileSync(join(__dirname, 'ictihat-terms.txt'), 'utf8');
   return raw
@@ -184,7 +266,7 @@ function loadTerms() {
 
 async function main() {
   const terms = loadTerms();
-  log(`Seed terim: ${terms.length} · MAX_NEW=${MAX_NEW} · TERMS_PER_RUN=${TERMS_PER_RUN} · embedding=${GEMINI_KEY ? 'açık' : 'kapalı'} · DRY=${DRY}`);
+  log(`Kaynak: ${SOURCE} · Seed terim: ${terms.length} · MAX_NEW=${MAX_NEW} · TERMS_PER_RUN=${TERMS_PER_RUN} · embedding=${GEMINI_KEY ? 'açık' : 'kapalı'} · DRY=${DRY}`);
 
   let supabase = null;
   if (!DRY) {
@@ -203,14 +285,22 @@ async function main() {
   if (supabase) {
     // Eksik terimler için state satırı oluştur.
     await supabase.from('ictihat_harvest_state').upsert(
-      terms.map((t) => ({ terim: t })),
+      terms.map((t) => ({ terim: stateKey(t) })),
       { onConflict: 'terim', ignoreDuplicates: true }
     );
     const { data: states } = await supabase
       .from('ictihat_harvest_state')
       .select('terim,next_page,done,last_run')
       .order('last_run', { ascending: true, nullsFirst: true });
-    if (states?.length) order = states.map((s) => s.terim).filter((t) => terms.includes(t));
+    if (states?.length) {
+      const pref = SOURCE === 'emsal' ? '' : `${SOURCE}:`;
+      order = states
+        .map((s) => s.terim)
+        .filter((k) => (pref ? k.startsWith(pref) : !k.includes(':')))
+        .map((k) => (pref ? k.slice(pref.length) : k))
+        .filter((t) => terms.includes(t));
+      if (!order.length) order = terms;
+    }
   }
 
   const batch = order.slice(0, TERMS_PER_RUN);
@@ -223,13 +313,19 @@ async function main() {
     // Bu terimin kaldığı sayfa.
     let page = 1;
     if (supabase) {
-      const { data } = await supabase.from('ictihat_harvest_state').select('next_page').eq('terim', terim).single();
+      const { data } = await supabase.from('ictihat_harvest_state').select('next_page').eq('terim', stateKey(terim)).single();
       page = data?.next_page ?? 1;
     }
 
     let total = 0;
     try {
-      const r = await withRetry(() => emsalSearch(terim, page), `arama "${terim}"`);
+      const r = await withRetry(
+        () =>
+          SOURCE === 'emsal'
+            ? emsalSearch(terim, page)
+            : bedestenSearch(terim, page, SOURCE === 'danistay' ? 'DANISTAYKARAR' : 'YARGITAYKARARI'),
+        `arama "${terim}"`
+      );
       total = r.total;
       const rows = r.rows;
       scanned += rows.length;
@@ -251,7 +347,7 @@ async function main() {
         await sleep(DOC_DELAY); // nazik hız (429 önleme)
         let text = '';
         try {
-          text = await withRetry(() => emsalDoc(id), `doc ${id}`);
+          text = await withRetry(() => (SOURCE === 'emsal' ? emsalDoc(id) : bedestenDoc(id)), `doc ${id}`);
         } catch (e) {
           log(`  doc ${id} hata: ${e.message}`);
           continue;
@@ -274,7 +370,7 @@ async function main() {
         if (vec) record.embedding = vec;
 
         if (DRY) {
-          log(`  + ${record.kurul} ${record.daire} E.${record.esas_no} (${text.length} krktr${vec ? ', embed' : ''})`);
+          log(`  + ${record.daire} E.${record.esas_no} (${text.length} krktr${vec ? ', embed' : ''})`);
         } else {
           const { error } = await supabase.from('ictihat_kararlar').upsert(record, { onConflict: 'id' });
           if (error) log(`  upsert hata ${id}: ${error.message}`);
@@ -294,7 +390,7 @@ async function main() {
             last_run: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq('terim', terim);
+          .eq('terim', stateKey(terim));
       }
     } catch (e) {
       log(`! "${terim}" hata: ${e.message}`);
@@ -302,7 +398,7 @@ async function main() {
         await supabase
           .from('ictihat_harvest_state')
           .update({ last_run: new Date().toISOString() })
-          .eq('terim', terim);
+          .eq('terim', stateKey(terim));
       }
     }
 
