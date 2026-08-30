@@ -17,6 +17,7 @@
 //   HARVEST_TERMS        bu çalışmada işlenecek terim sayısı (vars. 10)
 //   HARVEST_PAGE_SIZE    Emsal sayfa boyutu (vars. 20)
 //   HARVEST_DRY=1        DB'ye yazma; sadece tara ve raporla (test için)
+//   HARVEST_ONLY         virgüllü filtre; yalnız eşleşen terimleri hasat et
 //   HARVEST_SOURCE       'emsal' (BAM/yerel, vars.) | 'yargitay' | 'danistay'
 //                        UYAP Emsal Yargıtay İÇERMEZ; Yargıtay/Danıştay için
 //                        Bedesten (bedesten.adalet.gov.tr) kullanılır.
@@ -42,6 +43,10 @@ const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
 // Kaynak: 'emsal' (BAM/yerel) | 'yargitay' | 'danistay'. UYAP Emsal Yargıtay
 // içermediği için Yargıtay/Danıştay Bedesten'den toplanır.
 const SOURCE = process.env.HARVEST_SOURCE || 'emsal';
+// Belirli konuları hedefle: virgülle ayrılmış parçalar, terimde geçen (küçük
+// harfe indirgenmiş) alt dize olarak eşleşir. Havuzda boş kalan bir konuyu
+// hemen doldurmak için kullanılır. Boşsa tüm terimler sıradan işlenir.
+const ONLY = (process.env.HARVEST_ONLY || '').toLocaleLowerCase('tr').split(',').map((x) => x.trim()).filter(Boolean);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -303,6 +308,10 @@ async function main() {
     }
   }
 
+  if (ONLY.length) {
+    order = order.filter((t) => ONLY.some((f) => t.toLocaleLowerCase('tr').includes(f)));
+    log(`Hedefli hasat: ${ONLY.join(', ')} → eşleşen terim: ${order.length}`);
+  }
   const batch = order.slice(0, TERMS_PER_RUN);
   let added = 0;
   let scanned = 0;
