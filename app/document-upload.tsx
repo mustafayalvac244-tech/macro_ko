@@ -8,30 +8,47 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCases } from '@/hooks/useCases';
-import { pickDocumentFile, pickImageFile, useUploadDocument } from '@/hooks/useDocuments';
-import { colors, spacing, typography } from '@/theme/theme';
+import { useClients } from '@/hooks/useClients';
+import { pickDocumentFile, pickImageFile, takePhotoFile, useUploadDocument } from '@/hooks/useDocuments';
+import { useT } from '@/i18n';
+import { trError } from '@/lib/authErrors';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import { formatFileSize } from '@/utils/format';
+import { categoryMismatch, detectFileKind } from '@/utils/fileKind';
 import type { DocumentCategory } from '@/types/database';
 
-const CATEGORY_OPTIONS: { label: string; value: DocumentCategory }[] = [
-  { label: 'Pleading', value: 'pleading' },
-  { label: 'Contract', value: 'contract' },
-  { label: 'Evidence', value: 'evidence' },
-  { label: 'Correspondence', value: 'correspondence' },
-  { label: 'Court Order', value: 'court_order' },
-  { label: 'Invoice', value: 'invoice' },
-  { label: 'ID', value: 'identification' },
-  { label: 'Other', value: 'other' },
+const CATEGORY_VALUES: DocumentCategory[] = [
+  'pleading',
+  'contract',
+  'evidence',
+  'correspondence',
+  'court_order',
+  'invoice',
+  'identification',
+  'client_photo',
+  'other',
 ];
 
 export default function DocumentUploadScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
+  const t = useT();
   const { caseId: prefilledCaseId } = useLocalSearchParams<{ caseId?: string }>();
   const { data: cases } = useCases();
+  const { data: clients } = useClients();
   const uploadDocument = useUploadDocument();
 
+  const [ownerMode, setOwnerMode] = useState<'case' | 'client'>('case');
   const [caseId, setCaseId] = useState<string>(prefilledCaseId ?? '');
+  const [clientId, setClientId] = useState<string>('');
   const [category, setCategory] = useState<DocumentCategory>('other');
   const [file, setFile] = useState<{ uri: string; name: string; size: number; mimeType: string | null } | null>(null);
+
+  const categoryOptions = CATEGORY_VALUES.map((value) => ({ value, label: t(`docCategory.${value}` as const) }));
 
   const handlePickDocument = async () => {
     const picked = await pickDocumentFile();
@@ -43,59 +60,133 @@ export default function DocumentUploadScreen() {
     if (picked) setFile(picked);
   };
 
-  const handleUpload = async () => {
-    if (!file || !caseId) return;
+  const handleTakePhoto = async () => {
+    const picked = await takePhotoFile();
+    if (picked) setFile(picked);
+  };
+
+  const detectedKind = file ? detectFileKind(file.mimeType, file.name) : null;
+
+  const doUpload = async () => {
+    if (!file) return;
     try {
-      await uploadDocument.mutateAsync({ file, caseId, category });
+      await uploadDocument.mutateAsync({
+        file,
+        caseId: ownerMode === 'case' ? caseId || null : null,
+        clientId: ownerMode === 'client' ? clientId || null : null,
+        category,
+      });
       router.back();
     } catch (err) {
-      Alert.alert('Upload failed', err instanceof Error ? err.message : 'Please try again.');
+      Alert.alert(t('upload.failed'), err instanceof Error ? trError(err.message) : t('upload.tryAgain'));
     }
+  };
+
+  const handleUpload = () => {
+    if (!file || !detectedKind) return;
+
+    // Smart check: warn (but allow override) if the file type clearly does not
+    // match the chosen category.
+    const mismatch = categoryMismatch(category, detectedKind);
+    if (mismatch) {
+      const kindLabel = t(`fileKind.${detectedKind}` as const);
+      const catLabel = t(`docCategory.${category}` as const);
+      const msg =
+        mismatch.expected === 'photo'
+          ? t('upload.mismatchPhoto', { cat: catLabel, kind: kindLabel })
+          : t('upload.mismatchDoc', { cat: catLabel, kind: kindLabel });
+      Alert.alert(t('upload.mismatchTitle'), msg, [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('upload.addAnyway'), style: 'destructive', onPress: doUpload },
+      ]);
+      return;
+    }
+    doUpload();
   };
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <ScreenHeader title="Upload Document" showBack />
+      <ScreenHeader title={t('upload.title')} showBack />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.label}>Case</Text>
-        {cases && cases.length > 0 ? (
-          <SegmentedControl options={cases.map((c) => ({ label: c.title, value: c.id }))} value={caseId} onChange={setCaseId} />
+        <Text style={styles.label}>{t('upload.attachTo')}</Text>
+        <SegmentedControl
+          scrollable={false}
+          options={[
+            { label: t('upload.byCase'), value: 'case' },
+            { label: t('upload.byClient'), value: 'client' },
+          ]}
+          value={ownerMode}
+          onChange={(v) => setOwnerMode(v as 'case' | 'client')}
+        />
+
+        <View style={styles.spacer} />
+        {ownerMode === 'case' ? (
+          <>
+            <Text style={styles.label}>{t('upload.case')}</Text>
+            <SegmentedControl
+              options={[{ label: t('docs.myDocs'), value: '' }, ...(cases ?? []).map((c) => ({ label: c.title, value: c.id }))]}
+              value={caseId}
+              onChange={setCaseId}
+            />
+          </>
         ) : (
-          <Text style={styles.hint}>Create a case first to attach documents to it.</Text>
+          <>
+            <Text style={styles.label}>{t('upload.client')}</Text>
+            <SegmentedControl
+              options={[{ label: t('docs.myDocs'), value: '' }, ...(clients ?? []).map((c) => ({ label: c.full_name, value: c.id }))]}
+              value={clientId}
+              onChange={setClientId}
+            />
+          </>
         )}
 
         <View style={styles.spacer} />
-        <Text style={styles.label}>Category</Text>
-        <SegmentedControl options={CATEGORY_OPTIONS} value={category} onChange={setCategory} />
+        <Text style={styles.label}>{t('upload.category')}</Text>
+        <SegmentedControl options={categoryOptions} value={category} onChange={setCategory} />
 
         <View style={styles.spacer} />
         <Card>
-          {file ? (
+          {file && detectedKind ? (
             <View style={styles.filePreview}>
               <View style={styles.fileIconWrap}>
-                <Ionicons name="document-attach-outline" size={20} color={colors.gold} />
+                <Ionicons
+                  name={
+                    detectedKind === 'image'
+                      ? 'image-outline'
+                      : detectedKind === 'pdf'
+                        ? 'document-text-outline'
+                        : detectedKind === 'word'
+                          ? 'document-outline'
+                          : 'document-attach-outline'
+                  }
+                  size={20}
+                  color={colors.gold}
+                />
               </View>
               <View style={styles.fileInfo}>
                 <Text style={styles.fileName} numberOfLines={1}>
                   {file.name}
                 </Text>
-                <Text style={styles.fileMeta}>{formatFileSize(file.size)}</Text>
+                <Text style={styles.fileMeta}>
+                  {t('upload.detected', { kind: t(`fileKind.${detectedKind}` as const) })} · {formatFileSize(file.size)}
+                </Text>
               </View>
               <Ionicons name="close-circle" size={20} color={colors.textMuted} onPress={() => setFile(null)} suppressHighlighting />
             </View>
           ) : (
             <View style={styles.pickerButtons}>
-              <Button label="Choose File" icon="document-outline" variant="secondary" onPress={handlePickDocument} style={styles.pickerButton} />
-              <Button label="Choose Photo" icon="camera-outline" variant="secondary" onPress={handlePickImage} style={styles.pickerButton} />
+              <Button label={t('upload.chooseFile')} icon="document-outline" variant="secondary" onPress={handlePickDocument} style={styles.pickerButton} />
+              <Button label={t('upload.choosePhoto')} icon="image-outline" variant="secondary" onPress={handlePickImage} style={styles.pickerButton} />
+              <Button label={t('upload.takePhoto')} icon="camera-outline" variant="secondary" onPress={handleTakePhoto} style={styles.pickerButton} />
             </View>
           )}
         </Card>
 
         <Button
-          label="Upload"
+          label={t('upload.upload')}
           onPress={handleUpload}
           loading={uploadDocument.isPending}
-          disabled={!file || !caseId}
+          disabled={!file}
           fullWidth
           size="lg"
           style={styles.submit}
@@ -105,7 +196,7 @@ export default function DocumentUploadScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
@@ -123,11 +214,10 @@ const styles = StyleSheet.create({
     height: spacing.lg,
   },
   pickerButtons: {
-    flexDirection: 'row',
     gap: spacing.sm,
   },
   pickerButton: {
-    flex: 1,
+    width: '100%',
   },
   filePreview: {
     flexDirection: 'row',

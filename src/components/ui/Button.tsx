@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import { radius, spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'md' | 'lg' | 'sm';
@@ -37,8 +39,12 @@ export function Button({
   fullWidth = false,
   style,
 }: ButtonProps) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+
   const isDisabled = disabled || loading;
-  const variantStyle = variantStyles[variant];
+  const variantStyle = makeVariantStyles(colors)[variant];
   const sizeStyle = sizeStyles[size];
 
   return (
@@ -72,7 +78,7 @@ export function Button({
   );
 }
 
-const variantStyles = {
+const makeVariantStyles = (colors: ThemeColors) => ({
   primary: StyleSheet.create({
     container: { backgroundColor: colors.primary },
     text: { color: '#FFFFFF' },
@@ -89,7 +95,7 @@ const variantStyles = {
     container: { backgroundColor: colors.dangerSoft, borderWidth: 1, borderColor: colors.danger },
     text: { color: colors.danger },
   }),
-};
+});
 
 const sizeStyles = {
   sm: { container: { paddingVertical: 8, paddingHorizontal: spacing.md }, text: { fontSize: 13, fontWeight: '600' as const }, iconSize: 16 },
@@ -97,7 +103,7 @@ const sizeStyles = {
   lg: { container: { paddingVertical: 16, paddingHorizontal: spacing.xl }, text: { fontSize: 16, fontWeight: '700' as const }, iconSize: 20 },
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   base: {
     borderRadius: radius.md,
     alignItems: 'center',

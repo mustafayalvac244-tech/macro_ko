@@ -1,47 +1,141 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuthStore } from '@/store/authStore';
+import { useAvatarUrl } from '@/hooks/useAvatarUrl';
+import { useLockStore } from '@/store/lockStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
-import { colors, spacing, typography } from '@/theme/theme';
+import { useLangStore, useT, type Lang } from '@/i18n';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 export default function SettingsScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
+  const t = useT();
+  const lang = useLangStore((s) => s.lang);
+  const setLang = useLangStore((s) => s.setLang);
   const profile = useAuthStore((s) => s.profile);
+  const avatarUrl = useAvatarUrl();
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const lockEnabled = useLockStore((s) => s.enabled);
+  const setLockEnabled = useLockStore((s) => s.setEnabled);
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
 
   useEffect(() => {
     Notifications.getPermissionsAsync().then(({ status }) => setNotificationsEnabled(status === 'granted'));
+    Promise.all([LocalAuthentication.hasHardwareAsync(), LocalAuthentication.isEnrolledAsync()])
+      .then(([hw, enrolled]) => setBiometricsAvailable(hw && enrolled))
+      .catch(() => setBiometricsAvailable(false));
   }, []);
+
+  const handleToggleLock = async (value: boolean) => {
+    if (!value) {
+      setLockEnabled(false);
+      return;
+    }
+    // Prove biometrics work before trusting the lock with app access.
+    const result = await LocalAuthentication.authenticateAsync({ promptMessage: t('lock.prompt') }).catch(() => null);
+    if (result?.success) {
+      setLockEnabled(true);
+    } else {
+      Alert.alert(t('lock.title'), t('lock.enableFailed'));
+    }
+  };
 
   const handleToggleNotifications = async (value: boolean) => {
     if (value) {
       const granted = await registerForNotificationsAsync();
       setNotificationsEnabled(granted);
       if (!granted) {
-        Alert.alert('Permission needed', 'Enable notifications in your device settings to receive hearing and deadline reminders.');
+        Alert.alert(t('settings.permTitle'), t('settings.permMsg'));
       }
     } else {
-      Alert.alert(
-        'Manage in system settings',
-        'To fully disable notifications, turn them off for Macro Ko in your device settings.'
-      );
+      Alert.alert(t('settings.sysTitle'), t('settings.sysMsg'));
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(t('settings.deleteAccount'), t('settings.deleteAccountWarn'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('settings.deleteAccountContinue'),
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert(t('settings.deleteAccountConfirmTitle'), t('settings.deleteAccountConfirmMsg'), [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('settings.deleteAccountConfirmBtn'),
+              style: 'destructive',
+              onPress: async () => {
+                setIsDeleting(true);
+                try {
+                  await deleteAccount();
+                  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+                  router.replace('/(auth)/login');
+                } catch {
+                  Alert.alert(t('settings.deleteAccount'), t('settings.deleteAccountError'));
+                } finally {
+                  setIsDeleting(false);
+                }
+              },
+            },
+          ]);
+        },
+      },
+    ]);
+  };
+
+  const handleCheckUpdates = async () => {
+    if (isCheckingUpdate) return;
+    setIsCheckingUpdate(true);
+    try {
+      if (__DEV__ || !Updates.isEnabled) {
+        Alert.alert(t('settings.updates'), t('settings.updatesUnavailable'));
+        return;
+      }
+      const result = await Updates.checkForUpdateAsync();
+      if (result.isAvailable) {
+        await Updates.fetchUpdateAsync();
+        Alert.alert(t('settings.updates'), t('settings.updateReady'), [
+          { text: t('settings.updateLater'), style: 'cancel' },
+          { text: t('settings.updateNow'), onPress: () => Updates.reloadAsync() },
+        ]);
+      } else {
+        Alert.alert(t('settings.updates'), t('settings.updateNone'));
+      }
+    } catch {
+      Alert.alert(t('settings.updates'), t('settings.updateFailed'));
+    } finally {
+      setIsCheckingUpdate(false);
     }
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('settings.signOut'), t('settings.signOutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: t('settings.signOut'),
         style: 'destructive',
         onPress: async () => {
           await signOut();
@@ -53,16 +147,59 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="Settings" showBack />
+      <ScreenHeader title={t('settings.title')} showBack />
       <ScrollView contentContainerStyle={styles.content}>
         <Card style={styles.profileCard}>
-          <View style={styles.profileRow}>
-            <Avatar name={profile?.full_name || 'Attorney'} size={56} />
+          <Pressable
+            style={styles.profileRow}
+            onPress={() => router.push('/profile-form' as Parameters<typeof router.push>[0])}
+          >
+            <Avatar name={profile?.full_name || t('dash.counselor')} size={56} uri={avatarUrl} premium={profile?.is_premium} />
             <View style={styles.profileBody}>
-              <Text style={styles.name}>{profile?.full_name || 'Attorney'}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{profile?.full_name || t('dash.counselor')}</Text>
+                {profile?.is_admin && (
+                  <View style={styles.adminBadge}>
+                    <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
+                    <Text style={styles.adminBadgeText}>{t('settings.adminBadge')}</Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.email}>{session?.user.email}</Text>
               {profile?.firm_name && <Text style={styles.firm}>{profile.firm_name}</Text>}
+              <Text style={styles.editLink}>{t('profile.editLink')}</Text>
             </View>
+            <Ionicons name="create-outline" size={20} color={colors.primary} />
+          </Pressable>
+        </Card>
+
+        <Card style={styles.section}>
+          <View style={styles.rowColumn}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="language-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.rowLabel}>{t('settings.language')}</Text>
+            </View>
+            <View style={styles.langControl}>
+              <SegmentedControl
+                scrollable={false}
+                options={[
+                  { label: 'Türkçe', value: 'tr' },
+                  { label: 'English', value: 'en' },
+                ]}
+                value={lang}
+                onChange={(value) => setLang(value as Lang)}
+              />
+            </View>
+          </View>
+        </Card>
+
+        <Card style={styles.section}>
+          <View style={styles.rowLeft}>
+            <Ionicons name="color-palette-outline" size={18} color={colors.textMuted} />
+            <Text style={styles.rowLabel}>{t('settings.theme')}</Text>
+          </View>
+          <View style={styles.themeWrap}>
+            <ThemePicker />
           </View>
         </Card>
 
@@ -70,7 +207,7 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <Ionicons name="notifications-outline" size={18} color={colors.textMuted} />
-              <Text style={styles.rowLabel}>Hearing &amp; deadline reminders</Text>
+              <Text style={styles.rowLabel}>{t('settings.reminders')}</Text>
             </View>
             <Switch
               value={notificationsEnabled}
@@ -81,18 +218,97 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
+        {biometricsAvailable && (
+          <Card style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="finger-print-outline" size={18} color={colors.textMuted} />
+                <Text style={styles.rowLabel}>{t('lock.setting')}</Text>
+              </View>
+              <Switch
+                value={lockEnabled}
+                onValueChange={handleToggleLock}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            <Text style={styles.lockHint}>{t('lock.settingHint')}</Text>
+          </Card>
+        )}
+
         <Card style={styles.section}>
-          <InfoRow label="App version" value="1.0.0" />
-          <InfoRow label="Backend" value="Supabase" />
+          <Pressable style={styles.row} onPress={() => router.push('/change-password' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="key-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.rowLabel}>{t('settings.changePassword')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+          <View style={styles.rowDivider} />
+          <Pressable style={styles.row} onPress={() => router.push('/feedback' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.info} />
+              <Text style={styles.rowLabel}>{t('settings.feedback')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+          <View style={styles.rowDivider} />
+          <Pressable style={styles.row} onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="diamond-outline" size={18} color={colors.gold} />
+              <Text style={styles.rowLabel}>{t('settings.premium')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+          <View style={styles.rowDivider} />
+          <Pressable style={styles.row} onPress={() => router.push('/privacy' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="shield-checkmark-outline" size={18} color={colors.success} />
+              <Text style={styles.rowLabel}>{t('settings.privacy')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
         </Card>
 
-        <Button label="Sign Out" variant="danger" onPress={handleSignOut} style={styles.signOutButton} />
+        <Card style={styles.section}>
+          <Pressable style={styles.row} onPress={handleCheckUpdates}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="cloud-download-outline" size={18} color={colors.info} />
+              <Text style={styles.rowLabel}>{isCheckingUpdate ? t('settings.updatesChecking') : t('settings.updates')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+          <View style={styles.rowDivider} />
+          <InfoRow label={t('settings.version')} value={Constants.expoConfig?.version ?? '1.2.0'} />
+          <InfoRow label={t('settings.dataStorage')} value={t('settings.dataStorageValue')} />
+        </Card>
+
+        <Button label={t('settings.signOut')} variant="secondary" onPress={handleSignOut} style={styles.signOutButton} />
+
+        <Card style={styles.dangerCard}>
+          <View style={styles.dangerHeader}>
+            <Ionicons name="warning-outline" size={18} color={colors.danger} />
+            <Text style={styles.dangerTitle}>{t('settings.deleteAccount')}</Text>
+          </View>
+          <Text style={styles.dangerText}>{t('settings.deleteAccountWarn')}</Text>
+          <Button
+            label={t('settings.deleteAccount')}
+            variant="danger"
+            loading={isDeleting}
+            onPress={handleDeleteAccount}
+            fullWidth
+            style={styles.dangerButton}
+          />
+        </Card>
       </ScrollView>
     </Screen>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -101,7 +317,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
@@ -120,6 +336,26 @@ const styles = StyleSheet.create({
   name: {
     ...typography.h2,
     color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  adminBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  adminBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
   email: {
     ...typography.caption,
@@ -131,6 +367,12 @@ const styles = StyleSheet.create({
     color: colors.gold,
     marginTop: 2,
   },
+  editLink: {
+    ...typography.small,
+    color: colors.primary,
+    fontWeight: '700',
+    marginTop: 4,
+  },
   section: {
     marginBottom: spacing.md,
   },
@@ -138,6 +380,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  rowColumn: {
+    gap: spacing.sm,
+  },
+  rowDivider: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+    marginVertical: spacing.sm,
   },
   rowLeft: {
     flexDirection: 'row',
@@ -149,6 +399,18 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textPrimary,
     flexShrink: 1,
+  },
+  themeWrap: {
+    marginTop: 12,
+  },
+  lockHint: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    lineHeight: 16,
+  },
+  langControl: {
+    alignSelf: 'flex-start',
   },
   infoRow: {
     flexDirection: 'row',
@@ -165,5 +427,28 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     marginTop: spacing.lg,
+  },
+  dangerCard: {
+    marginTop: spacing.lg,
+    borderColor: 'rgba(210, 59, 66, 0.35)',
+  },
+  dangerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  dangerTitle: {
+    ...typography.h3,
+    color: colors.danger,
+  },
+  dangerText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 19,
+    marginBottom: spacing.md,
+  },
+  dangerButton: {
+    marginTop: 0,
   },
 });

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
+import { File } from 'expo-file-system';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
+import { trError } from '@/lib/authErrors';
 import type { Profile } from '@/types/database';
 
 interface AuthState {
@@ -11,9 +13,21 @@ interface AuthState {
   error: string | null;
   initialize: () => () => void;
   refreshProfile: () => Promise<void>;
+  updateProfile: (patch: Partial<Pick<Profile, 'full_name' | 'firm_name' | 'bar_number' | 'phone'>>) => Promise<void>;
+  uploadAvatar: (file: { uri: string; mimeType: string | null }) => Promise<void>;
+  removeAvatar: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (params: { email: string; password: string; fullName: string; firmName?: string }) => Promise<boolean>;
+  signUp: (params: {
+    email: string;
+    password: string;
+    fullName: string;
+    firmName?: string;
+    tcNo?: string;
+    baro?: string;
+    barNumber?: string;
+  }) => Promise<boolean>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -30,6 +44,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (data.session) get().refreshProfile();
     });
 
+    // Güvenlik ağı: oturum okuma (token yenileme) ağ nedeniyle takılırsa açılış
+    // ekranı sonsuza kadar beklemesin — en geç 2 sn'de uygulamayı aç. getSession
+    // normalde yereldeki oturumu hemen döndüğü için bu nadiren devreye girer.
+    const bootTimeout = setTimeout(() => set({ isInitializing: false }), 2000);
+
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       set({ session, isInitializing: false });
       if (session) {
@@ -39,14 +58,64 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     });
 
-    return () => subscription.subscription.unsubscribe();
+    return () => {
+      clearTimeout(bootTimeout);
+      subscription.subscription.unsubscribe();
+    };
   },
 
   refreshProfile: async () => {
     const userId = get().session?.user.id;
     if (!userId) return;
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (!error && data) set({ profile: data as Profile });
+    // Kendi tam profilini (email/telefon/TC dâhil) definer RPC ile getir. Bu
+    // alanlar güvenlik için tablodan doğrudan okunamaz (başka kullanıcılara
+    // sızmasın); my_profile yalnız çağıranın kendi satırını döndürür.
+    const { data, error } = await supabase.rpc('my_profile');
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!error && row) set({ profile: row as Profile });
+  },
+
+  updateProfile: async (patch) => {
+    const userId = get().session?.user.id;
+    if (!userId) return;
+    const { error } = await supabase.from('profiles').update(patch).eq('id', userId);
+    if (error) throw error;
+    await get().refreshProfile();
+  },
+
+  uploadAvatar: async (file) => {
+    const userId = get().session?.user.id;
+    if (!userId) return;
+    const oldPath = get().profile?.avatar_url;
+
+    const bytes = await new File(file.uri).arrayBuffer();
+    const ext = file.mimeType?.includes('png') ? 'png' : 'jpg';
+    const path = `${userId}/profile/avatar-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(DOCUMENTS_BUCKET)
+      .upload(path, bytes, { contentType: file.mimeType ?? 'image/jpeg' });
+    if (uploadError) throw uploadError;
+
+    const { error } = await supabase.from('profiles').update({ avatar_url: path }).eq('id', userId);
+    if (error) throw error;
+
+    if (oldPath) {
+      await supabase.storage.from(DOCUMENTS_BUCKET).remove([oldPath]).catch(() => {});
+    }
+    await get().refreshProfile();
+  },
+
+  removeAvatar: async () => {
+    const userId = get().session?.user.id;
+    const oldPath = get().profile?.avatar_url;
+    if (!userId) return;
+    const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', userId);
+    if (error) throw error;
+    if (oldPath) {
+      await supabase.storage.from(DOCUMENTS_BUCKET).remove([oldPath]).catch(() => {});
+    }
+    await get().refreshProfile();
   },
 
   signIn: async (email, password) => {
@@ -54,13 +123,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     set({ isSubmitting: false });
     if (error) {
-      set({ error: error.message });
+      set({ error: trError(error.message) });
       return false;
     }
     return true;
   },
 
-  signUp: async ({ email, password, fullName, firmName }) => {
+  signUp: async ({ email, password, fullName, firmName, tcNo, baro, barNumber }) => {
     set({ isSubmitting: true, error: null });
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -68,11 +137,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       options: { data: { full_name: fullName } },
     });
     if (error) {
-      set({ isSubmitting: false, error: error.message });
+      set({ isSubmitting: false, error: trError(error.message) });
       return false;
     }
-    if (data.user && firmName) {
-      await supabase.from('profiles').update({ firm_name: firmName }).eq('id', data.user.id);
+    if (data.user) {
+      // Persist lawyer credentials collected at signup. tc_no/baro columns are
+      // added by KURULUM.sql (0014); tolerate their absence on older DBs.
+      const patch: Record<string, string> = {};
+      if (firmName) patch.firm_name = firmName;
+      if (tcNo) patch.tc_no = tcNo;
+      if (baro) patch.baro = baro;
+      if (barNumber) patch.bar_number = barNumber;
+      if (Object.keys(patch).length > 0) {
+        await supabase.from('profiles').update(patch).eq('id', data.user.id);
+      }
     }
     set({ isSubmitting: false });
     return true;
@@ -80,6 +158,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     await supabase.auth.signOut();
+    set({ session: null, profile: null });
+  },
+
+  deleteAccount: async () => {
+    const userId = get().session?.user.id;
+    if (!userId) return;
+
+    // Delete uploaded files from storage first (DB cascade doesn't remove them).
+    const { data: docs } = await supabase.from('documents').select('file_path').eq('owner_id', userId);
+    const paths = (docs ?? []).map((d: { file_path: string }) => d.file_path);
+    if (paths.length > 0) {
+      await supabase.storage.from(DOCUMENTS_BUCKET).remove(paths).catch(() => {});
+    }
+
+    // Server-side function deletes the auth user; every table cascades from it.
+    const { error } = await supabase.rpc('delete_account');
+    if (error) throw error;
+
+    await supabase.auth.signOut().catch(() => {});
     set({ session: null, profile: null });
   },
 

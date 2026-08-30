@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import { cancelReminder, deadlineReminderId, scheduleDeadlineReminder } from '@/lib/notifications';
 import type { Deadline, DeadlineWithCase } from '@/types/database';
@@ -44,6 +45,19 @@ export function useAllDeadlines() {
   });
 }
 
+/** Tek bir görevi id ile getirir (dosyasız kayıtlar dahil, düzenleme için). */
+export function useDeadline(deadlineId: string | undefined) {
+  return useQuery({
+    queryKey: ['deadlines', 'byId', deadlineId],
+    enabled: !!deadlineId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('deadlines').select(DEADLINE_SELECT).eq('id', deadlineId!).single();
+      if (error) throw error;
+      return data as unknown as DeadlineWithCase;
+    },
+  });
+}
+
 export function useDeadlinesForCase(caseId: string | undefined) {
   return useQuery({
     queryKey: ['deadlines', 'byCase', caseId],
@@ -80,6 +94,7 @@ export function useCreateDeadline() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: DeadlineInput & { caseTitle: string }) => {
       const { caseTitle, ...rest } = input;
       const { data, error } = await supabase
@@ -99,6 +114,7 @@ export function useUpdateDeadline() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({
       id,
       caseTitle,
@@ -122,6 +138,7 @@ export function useDeleteDeadline() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('deadlines').delete().eq('id', id);
       if (error) throw error;

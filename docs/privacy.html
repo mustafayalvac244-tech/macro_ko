@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vekil Pro — Gizlilik Politikası</title>
+<meta name="description" content="Vekil Pro gizlilik politikası ve KVKK aydınlatma metni." />
+<style>
+  :root {
+    --bg: #F4F6FA; --card: #FFFFFF; --ink: #14213D; --muted: #5A6785;
+    --line: #E3E8F0; --accent: #173C7E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0B1220; --card:#131C2E; --ink:#EAF0FB; --muted:#9AA8C2; --line:#243149; --accent:#5B8DEF; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 32px 20px 64px;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  header { margin-bottom: 28px; }
+  h1 { font-size: 26px; letter-spacing: -0.4px; margin: 0 0 6px; }
+  .updated { color: var(--muted); font-size: 14px; margin: 0; }
+  .intro {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 20px; margin: 22px 0 26px; color: var(--muted);
+  }
+  section {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 20px; margin-bottom: 14px;
+  }
+  h2 { font-size: 17px; margin: 0 0 8px; color: var(--accent); }
+  p { margin: 0; white-space: pre-line; }
+  footer { margin-top: 28px; color: var(--muted); font-size: 14px; text-align: center; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Vekil Pro — Gizlilik Politikası</h1>
+    <p class="updated">Son güncelleme: Ağustos 2026</p>
+  </header>
+
+  <p class="intro">Vekil Pro, meslek sırrına ve kişisel verilerin korunmasına saygı temelinde tasarlandı. İşte verilerinizin nasıl işlendiğinin özeti:</p>
+
+  <section>
+    <h2>Verileriniz Kime Ait?</h2>
+    <p>Vekil Pro'ya girdiğiniz tüm veriler (dava, müvekkil, belge, ajanda kayıtları) yalnızca size aittir. Veriler hesabınıza özeldir; diğer kullanıcılar, yalnızca sizin açıkça paylaştığınız bilgileri görebilir.</p>
+  </section>
+
+  <section>
+    <h2>Veriler Nerede Saklanır?</h2>
+    <p>Verileriniz, sektör standardı şifreleme (aktarımda TLS, depolamada AES-256) kullanan Supabase bulut altyapısında saklanır. Veritabanı satır düzeyi güvenlik (RLS) ile korunur: her kullanıcı yalnızca kendi kayıtlarına erişebilir.</p>
+  </section>
+
+  <section>
+    <h2>Hangi Veriler İşlenir?</h2>
+    <p>• Hesap bilgileri: ad soyad, e-posta, telefon (isteğe bağlı), büro adı, baro sicil no (isteğe bağlı)
+• Uygulama verileri: dava, müvekkil, duruşma, görev, belge ve finans kayıtlarınız
+• Teknik veriler: uygulama sürümü ve hata kayıtları (kişisel içerik olmadan)</p>
+  </section>
+
+  <section>
+    <h2>Cihaz İzinleri</h2>
+    <p>• Bildirimler: duruşma ve süre hatırlatmaları için
+• Takvim: duruşmalarınızı telefon takviminize eklemek için (isteğe bağlı)
+• Fotoğraf/Kamera: dosyaya belge veya fotoğraf eklemek için (isteğe bağlı)
+• Face ID / parmak izi: uygulama kilidi için (isteğe bağlı)
+
+Tüm izinler isteğe bağlıdır ve yalnızca siz kullandığınızda çalışır. Uygulama konumunuza, rehberinize veya mikrofonunuza erişmez.</p>
+  </section>
+
+  <section>
+    <h2>Verileriniz Satılmaz ve Paylaşılmaz</h2>
+    <p>Verileriniz hiçbir üçüncü tarafa satılmaz, kiralanmaz veya reklam amacıyla paylaşılmaz. Uygulamada reklam ve izleme (tracking) teknolojisi bulunmaz. Yasal zorunluluk (mahkeme kararı vb.) dışında hiçbir veri kimseyle paylaşılmaz.</p>
+  </section>
+
+  <section>
+    <h2>Uygulama Güvenliği</h2>
+    <p>Dilerseniz Ayarlar'dan biyometrik kilit (parmak izi / Face ID) açabilirsiniz. Oturum bilgileriniz cihazınızda şifreli alanda (SecureStore) tutulur.</p>
+  </section>
+
+  <section>
+    <h2>Silme Hakkınız (KVKK m.7 ve m.11)</h2>
+    <p>KVKK kapsamında verilerinize erişme, düzeltme ve silme hakkına sahipsiniz. Ayarlar &gt; Hesabı Sil adımıyla hesabınızı ve TÜM verilerinizi kalıcı olarak silebilirsiniz. Silme işlemi geri alınamaz ve sunucudaki tüm kayıtlarınızı (belgeler dahil) kapsar.</p>
+  </section>
+
+  <section>
+    <h2>İletişim</h2>
+    <p>Gizlilikle ilgili soru ve talepleriniz için uygulama içindeki Ayarlar &gt; Öneri &amp; Şikayet kanalını kullanabilir veya bize e-posta gönderebilirsiniz.</p>
+  </section>
+
+  <footer>Vekil Pro bağımsız bir yazılımdır; Adalet Bakanlığı veya UYAP ile resmî bir bağlantısı yoktur.</footer>
+</main>
+</body>
+</html>

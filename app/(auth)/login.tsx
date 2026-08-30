@@ -1,14 +1,22 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
-import { colors, spacing, typography } from '@/theme/theme';
+import { useT } from '@/i18n';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 export default function LoginScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { signIn, isSubmitting, error, clearError } = useAuthStore();
@@ -20,42 +28,44 @@ export default function LoginScreen() {
   };
 
   return (
-    <Screen>
+    <Screen edges={['top', 'left', 'right', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
-            <View style={styles.logoMark}>
-              <Ionicons name="scale-outline" size={28} color={colors.gold} />
-            </View>
-            <Text style={styles.brandName}>Macro Ko</Text>
-            <Text style={styles.brandTagline}>Legal Case &amp; Document Management</Text>
+            <VekilLogo size={132} nodeFill={colors.bg} />
+            <Text style={styles.brandName}>VEKİL</Text>
+            <Text style={styles.brandSub}>AVUKAT YARDIMCI PROGRAMI</Text>
+            <Text style={styles.brandSubGold}>AKILLI DAVA TAKİP SİSTEMİ</Text>
           </View>
 
-          <Text style={styles.heading}>Welcome back</Text>
-          <Text style={styles.subheading}>Sign in to access your cases and calendar.</Text>
+          <Text style={styles.welcome}>{t('auth.welcomeLine')}</Text>
 
           <Input
-            label="Email"
+            label={t('auth.email')}
             icon="mail-outline"
             autoCapitalize="none"
             keyboardType="email-address"
-            placeholder="you@lawfirm.com"
+            placeholder={t('auth.emailPlaceholder')}
             value={email}
             onChangeText={setEmail}
           />
           <Input
-            label="Password"
+            label={t('auth.password')}
             icon="lock-closed-outline"
             secureTextEntry
-            placeholder="••••••••"
+            placeholder={t('auth.passwordPlaceholder')}
             value={password}
             onChangeText={setPassword}
           />
 
+          <Link href={'/forgot-password' as Parameters<typeof router.push>[0]} style={styles.forgotLink}>
+            <Text style={styles.forgotText}>{t('auth.forgot')}</Text>
+          </Link>
+
           {error && <Text style={styles.error}>{error}</Text>}
 
           <Button
-            label="Sign In"
+            label={t('auth.signIn')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!email || !password}
@@ -65,63 +75,70 @@ export default function LoginScreen() {
           />
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+            <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
             <Link href="/(auth)/signup" replace>
-              <Text style={styles.footerLink}>Create one</Text>
+              <Text style={styles.footerLink}>{t('auth.createOne')}</Text>
             </Link>
           </View>
+
+          <Text style={styles.copyright}>© 2026 VEKİL Yazılım</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   content: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xxl,
+    paddingVertical: spacing.xl,
   },
   brand: {
     alignItems: 'center',
-    marginBottom: spacing.xxxl,
-  },
-  logoMark: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.xl,
   },
   brandName: {
-    ...typography.h1,
-    color: colors.textPrimary,
+    fontSize: 40,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 8,
+    marginTop: spacing.sm,
   },
-  brandTagline: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 4,
+  brandSub: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 3,
+    marginTop: spacing.xs,
   },
-  heading: {
-    ...typography.display,
-    color: colors.textPrimary,
-    marginBottom: spacing.xxs,
+  brandSubGold: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.gold,
+    letterSpacing: 2,
+    marginTop: 3,
   },
-  subheading: {
+  welcome: {
     ...typography.body,
     color: colors.textSecondary,
+    textAlign: 'center',
     marginBottom: spacing.xl,
   },
   error: {
     ...typography.caption,
     color: colors.danger,
     marginBottom: spacing.md,
+  },
+  forgotLink: {
+    alignSelf: 'flex-end',
+    marginBottom: spacing.md,
+  },
+  forgotText: {
+    ...typography.caption,
+    color: colors.primary,
   },
   submit: {
     marginTop: spacing.xs,
@@ -138,5 +155,11 @@ const styles = StyleSheet.create({
   footerLink: {
     ...typography.bodyMedium,
     color: colors.primary,
+  },
+  copyright: {
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.xxl,
   },
 });

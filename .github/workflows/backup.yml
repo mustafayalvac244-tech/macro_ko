@@ -1,0 +1,54 @@
+name: Günlük Yedek (ücretsiz)
+
+# Supabase Free planda otomatik yedek yoktur. Bu iş akışı her gün tüm kullanıcı
+# verisini dışarı alır, AES-256 ile ŞİFRELER ve GitHub artefaktı olarak saklar.
+# Böylece proje tamamen kaybolsa bile veri geri yüklenebilir. Maliyeti yoktur.
+#
+# Gerekli GitHub Secrets (Settings > Secrets and variables > Actions):
+#   SUPABASE_URL          https://wjshlysfmeqlnfiibknj.supabase.co
+#   SUPABASE_SERVICE_KEY  Supabase > Settings > API > service_role anahtarı
+#   BACKUP_PASSPHRASE     yedeği açmak için uzun bir parola (KAYBETME!)
+
+on:
+  schedule:
+    - cron: '40 2 * * *' # her gün 02:40 UTC (TR 05:40)
+  workflow_dispatch: {}  # elle de çalıştırılabilir
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Veriyi dışarı al
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          OUT_DIR: backup-out
+        run: node scripts/backup-export.mjs
+
+      - name: Şifrele (AES-256)
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$BACKUP_PASSPHRASE" || { echo "BACKUP_PASSPHRASE boş"; exit 1; }
+          tar -czf backup.tar.gz -C backup-out .
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+            -in backup.tar.gz -out "vekil-backup-$(date -u +%Y%m%d).tar.gz.enc" \
+            -pass env:BACKUP_PASSPHRASE
+          rm -rf backup.tar.gz backup-out   # şifresiz veriyi bırakma
+          ls -lh vekil-backup-*.tar.gz.enc
+
+      - name: Artefakt olarak sakla
+        uses: actions/upload-artifact@v4
+        with:
+          name: vekil-backup-${{ github.run_id }}
+          path: vekil-backup-*.tar.gz.enc
+          retention-days: 90
+          if-no-files-found: error

@@ -1,8 +1,11 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, typography } from '@/theme/theme';
-import { formatDate, formatFileSize, titleCase } from '@/utils/format';
+import { radius, spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
+import { formatDate, formatFileSize } from '@/utils/format';
+import { useT } from '@/i18n';
 import type { CaseDocument, DocumentWithCase } from '@/types/database';
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -31,6 +34,11 @@ interface DocumentListItemProps {
 }
 
 export function DocumentListItem({ document, onPress, onDelete, showCase = false }: DocumentListItemProps) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
+  const t = useT();
   const icon = iconForMimeType(document.mime_type) ?? CATEGORY_ICONS[document.category] ?? 'document-outline';
   const caseInfo = 'case' in document ? document.case : null;
 
@@ -43,13 +51,13 @@ export function DocumentListItem({ document, onPress, onDelete, showCase = false
         <Text style={styles.title} numberOfLines={1}>
           {document.name}
         </Text>
-        {showCase && caseInfo && (
-          <Text style={styles.caseTitle} numberOfLines={1}>
-            {caseInfo.title}
+        {showCase && (
+          <Text style={[styles.caseTitle, !caseInfo && styles.myDocs]} numberOfLines={1}>
+            {caseInfo ? caseInfo.title : t('docs.myDocs')}
           </Text>
         )}
         <Text style={styles.meta} numberOfLines={1}>
-          {titleCase(document.category)} · {formatFileSize(document.file_size)} · {formatDate(document.uploaded_at)}
+          {t(`docCategory.${document.category}` as const)} · {formatFileSize(document.file_size)} · {formatDate(document.uploaded_at)}
         </Text>
       </View>
       {onDelete && (
@@ -61,7 +69,7 @@ export function DocumentListItem({ document, onPress, onDelete, showCase = false
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -90,6 +98,9 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.primary,
     marginTop: 1,
+  },
+  myDocs: {
+    color: colors.gold,
   },
   meta: {
     ...typography.caption,

@@ -3,6 +3,7 @@ import { File } from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { CaseDocument, DocumentCategory, DocumentWithCase } from '@/types/database';
 
@@ -32,6 +33,7 @@ export function useDocuments(caseId?: string) {
 
 export function useSignedDocumentUrl() {
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (path: string) => {
       const { data, error } = await supabase.storage.from(DOCUMENTS_BUCKET).createSignedUrl(path, 60 * 5);
       if (error) throw error;
@@ -72,9 +74,24 @@ export async function pickImageFile(): Promise<PickedFile | null> {
   return { uri: asset.uri, name, size: asset.fileSize ?? 0, mimeType: asset.mimeType ?? 'image/jpeg' };
 }
 
+export async function takePhotoFile(): Promise<PickedFile | null> {
+  const permission = await ImagePicker.requestCameraPermissionsAsync();
+  if (!permission.granted) return null;
+
+  const result = await ImagePicker.launchCameraAsync({
+    mediaTypes: ['images'],
+    quality: 0.9,
+  });
+  if (result.canceled || result.assets.length === 0) return null;
+  const asset = result.assets[0]!;
+  const name = asset.fileName ?? asset.uri.split('/').pop() ?? `photo-${Date.now()}.jpg`;
+  return { uri: asset.uri, name, size: asset.fileSize ?? 0, mimeType: asset.mimeType ?? 'image/jpeg' };
+}
+
 interface UploadDocumentParams {
   file: PickedFile;
-  caseId: string;
+  caseId: string | null;
+  clientId?: string | null;
   category: DocumentCategory;
 }
 
@@ -83,10 +100,11 @@ export function useUploadDocument() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
-    mutationFn: async ({ file, caseId, category }: UploadDocumentParams) => {
+    onError: notifySaveError,
+    mutationFn: async ({ file, caseId, clientId, category }: UploadDocumentParams) => {
       const bytes = await new File(file.uri).arrayBuffer();
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const path = `${ownerId}/${caseId}/${Date.now()}-${safeName}`;
+      const path = `${ownerId}/${caseId ?? 'general'}/${Date.now()}-${safeName}`;
 
       const { error: uploadError } = await supabase.storage
         .from(DOCUMENTS_BUCKET)
@@ -98,6 +116,7 @@ export function useUploadDocument() {
         .insert({
           owner_id: ownerId!,
           case_id: caseId,
+          ...(clientId ? { client_id: clientId } : {}),
           name: file.name,
           category,
           file_path: path,
@@ -117,6 +136,7 @@ export function useDeleteDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (doc: Pick<CaseDocument, 'id' | 'file_path'>) => {
       await supabase.storage.from(DOCUMENTS_BUCKET).remove([doc.file_path]);
       const { error } = await supabase.from('documents').delete().eq('id', doc.id);

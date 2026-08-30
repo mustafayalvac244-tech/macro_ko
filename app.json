@@ -1,30 +1,56 @@
 {
   "expo": {
-    "name": "Macro Ko",
+    "name": "Vekil Pro",
     "slug": "macro_ko",
-    "version": "1.0.0",
-    "scheme": "macroko",
+    "version": "3.3.2",
+    "scheme": "vekil",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#0B1220",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F4F6FA",
+    "owner": "olivyeejiru",
+    "extra": {
+      "eas": {
+        "projectId": "7645a179-55d0-45a2-a1f7-1208d82140c8"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7645a179-55d0-45a2-a1f7-1208d82140c8",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 3000
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.macroko.legal",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Dosya ve müvekkil bilgilerinizin başkalarının eline geçmemesi için uygulamayı Face ID ile kilitler.",
+        "NSPhotoLibraryUsageDescription": "Dava dosyalarınıza belge ve fotoğraf eklemek için galerinize erişir.",
+        "NSCameraUsageDescription": "Evrak ve belgeleri doğrudan çekip dava dosyasına eklemeniz için kamerayı kullanır.",
+        "NSCalendarsUsageDescription": "Duruşma ve toplantılarınızı telefonunuzun takvimine eklemek için kullanılır.",
+        "NSCalendarsWriteOnlyAccessUsageDescription": "Duruşma ve toplantılarınızı telefonunuzun takvimine eklemek için kullanılır."
       }
     },
     "android": {
       "package": "com.macroko.legal",
+      "versionCode": 31,
       "adaptiveIcon": {
-        "backgroundColor": "#0B1220",
+        "backgroundColor": "#EFEBE3",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["NOTIFICATIONS", "SCHEDULE_EXACT_ALARM"]
+      "permissions": [
+        "android.permission.NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -33,14 +59,22 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#0B1830"
+        }
+      ],
       "expo-font",
       "expo-secure-store",
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#1E3A5F"
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#C9A24B"
         }
       ],
       [
@@ -52,7 +86,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Macro Ko to access your photos to attach case documents."
+          "photosPermission": "Allow Vekil to access your photos to attach case documents.",
+          "cameraPermission": "Allow Vekil to use the camera to capture case documents and client photos."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Vekil Pro, duruşma ve toplantılarınızı telefon takviminize ekleyebilmek için takvim erişimi ister."
         }
       ]
     ],

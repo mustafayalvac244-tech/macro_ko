@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { Case, CaseStatus, CaseWithClient, PriorityLevel } from '@/types/database';
 
@@ -7,7 +8,7 @@ const CASE_SELECT = '*, client:clients(id, full_name, company)';
 
 interface CaseFilters {
   search?: string;
-  status?: CaseStatus | 'all';
+  status?: 'all' | 'open' | 'closed';
 }
 
 export function useCases(filters: CaseFilters = {}) {
@@ -17,13 +18,16 @@ export function useCases(filters: CaseFilters = {}) {
     queryKey: ['cases', ownerId, filters.search ?? '', filters.status ?? 'all'],
     enabled: !!ownerId,
     queryFn: async () => {
+      // Alıcı geri bildirimi: dava dizini açılış tarihine göre dizilir (yeni → eski).
       let query = supabase
         .from('cases')
         .select(CASE_SELECT)
         .eq('owner_id', ownerId!)
-        .order('updated_at', { ascending: false });
+        .order('opened_date', { ascending: false })
+        .order('created_at', { ascending: false });
 
-      if (filters.status && filters.status !== 'all') query = query.eq('status', filters.status);
+      if (filters.status === 'open') query = query.in('status', ['active', 'pending', 'on_hold']);
+      else if (filters.status === 'closed') query = query.in('status', ['closed', 'won', 'lost']);
       if (filters.search) query = query.ilike('title', `%${filters.search}%`);
 
       const { data, error } = await query;
@@ -67,25 +71,52 @@ export type CaseInput = Pick<
   | 'client_id'
   | 'case_number'
   | 'court_name'
+  | 'court_category'
   | 'case_type'
+  | 'opposing_counsel'
+  | 'instance_stage'
+  | 'case_stage'
+  | 'closed_result'
+  | 'decision_number'
+  | 'decision_date'
+  | 'decision_served_date'
+  | 'advance_amount'
+  | 'stage_note'
+  | 'fee_type'
+  | 'fee_percent'
+  | 'fee_advance'
   | 'status'
   | 'priority'
   | 'opposing_party'
   | 'description'
   | 'opened_date'
+  | 'fee_amount'
 >;
+
+// If the optional finance migration (0005) hasn't been applied yet, the
+// `fee_amount` column is missing and PostgREST rejects the whole write. Detect
+// that specific case and transparently retry without the column so case
+// creation keeps working; any other error is surfaced to the caller.
+function isMissingFeeColumn(error: unknown): boolean {
+  const message = (error as { message?: string })?.message ?? '';
+  return message.includes('fee_amount');
+}
 
 export function useCreateCase() {
   const queryClient = useQueryClient();
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: Partial<CaseInput> & { title: string }) => {
-      const { data, error } = await supabase
-        .from('cases')
-        .insert({ ...input, owner_id: ownerId! })
-        .select(CASE_SELECT)
-        .single();
+      const insert = async (payload: Record<string, unknown>) =>
+        supabase.from('cases').insert(payload).select(CASE_SELECT).single();
+
+      let { data, error } = await insert({ ...input, owner_id: ownerId! });
+      if (error && isMissingFeeColumn(error)) {
+        const { fee_amount: _drop, ...rest } = input;
+        ({ data, error } = await insert({ ...rest, owner_id: ownerId! }));
+      }
       if (error) throw error;
       return data as unknown as CaseWithClient;
     },
@@ -97,11 +128,19 @@ export function useUpdateCase() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({
       id,
       ...input
     }: Partial<CaseInput> & { id: string; status?: CaseStatus; priority?: PriorityLevel }) => {
-      const { data, error } = await supabase.from('cases').update(input).eq('id', id).select(CASE_SELECT).single();
+      const update = async (payload: Record<string, unknown>) =>
+        supabase.from('cases').update(payload).eq('id', id).select(CASE_SELECT).single();
+
+      let { data, error } = await update(input);
+      if (error && isMissingFeeColumn(error)) {
+        const { fee_amount: _drop, ...rest } = input;
+        ({ data, error } = await update(rest));
+      }
       if (error) throw error;
       return data as unknown as CaseWithClient;
     },
@@ -115,6 +154,7 @@ export function useDeleteCase() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('cases').delete().eq('id', id);
       if (error) throw error;

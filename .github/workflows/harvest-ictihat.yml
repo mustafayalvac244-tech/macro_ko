@@ -1,0 +1,76 @@
+name: İçtihat Hasadı
+
+# Sürekli güçlenme: Adalet Bakanlığı kaynaklarından yeni kararları çekip
+# Supabase havuzuna ekler. Bu havuz, AI yanıtlarını gerçek kararlara dayandıran
+# beslemenin (RAG) kaynağıdır — büyüdükçe cevap kalitesi artar.
+#
+# ÜÇ KAYNAK, çünkü tek kaynak yetmiyor:
+#   emsal     → UYAP Emsal: BAM/BİM ve yerel mahkeme kararları
+#   yargitay  → Bedesten: Yargıtay (UYAP Emsal Yargıtay İÇERMEZ)
+#   danistay  → Bedesten: Danıştay
+#
+# ⚠️ ZAMANLI ÇALIŞMA YALNIZCA VARSAYILAN DALDA (main) GEÇERLİDİR.
+# Bu dosya geliştirme dalındayken cron TETİKLENMEZ; main'e birleştirilmeli.
+#
+# Gerekli repo secret'ları (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL               https://<proje>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY  Supabase service_role anahtarı (RLS bypass)
+#   GEMINI_API_KEY             (opsiyonel) faturalı anahtar → embedding üretir
+
+on:
+  schedule:
+    - cron: '0 */3 * * *' # her 3 saatte bir
+  workflow_dispatch:
+    inputs:
+      max:
+        description: 'Bu çalışmada kaynak başına en fazla yeni karar'
+        default: '300'
+      terms:
+        description: 'Kaynak başına işlenecek terim sayısı'
+        default: '12'
+      source:
+        description: 'Tek kaynak çalıştır (boş = üçü de)'
+        default: ''
+
+concurrency:
+  group: ictihat-harvest
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      # Kaynaklar SIRAYLA işlenir: aynı anda koşarsa UYAP/Bedesten hız sınırına
+      # takılır ve kararlar sessizce kaybolur (throttle'da 200 + boş sonuç döner).
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        source: [emsal, yargitay, danistay]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bağımlılıklar
+        working-directory: scripts
+        run: npm install --no-audit --no-fund
+
+      - name: Hasat (${{ matrix.source }})
+        # Elle tek kaynak seçildiyse diğerlerini atla.
+        if: ${{ github.event.inputs.source == '' || github.event.inputs.source == matrix.source }}
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HARVEST_SOURCE: ${{ matrix.source }}
+          HARVEST_MAX: ${{ github.event.inputs.max || '300' }}
+          HARVEST_TERMS: ${{ github.event.inputs.terms || '12' }}
+          # UYAP/Bedesten agresif throttle uyguluyor; nazik hız şart.
+          HARVEST_DOC_DELAY: '1500'
+          HARVEST_TERM_DELAY: '3000'
+        run: node harvest-ictihat.mjs

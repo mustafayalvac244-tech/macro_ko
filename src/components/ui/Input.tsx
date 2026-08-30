@@ -7,7 +7,9 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import { radius, spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -17,6 +19,10 @@ interface InputProps extends TextInputProps {
 }
 
 export function Input({ label, error, icon, containerStyle, style, ...rest }: InputProps) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+
   const [focused, setFocused] = useState(false);
 
   return (
@@ -49,7 +55,7 @@ export function Input({ label, error, icon, containerStyle, style, ...rest }: In
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     marginBottom: spacing.md,
   },

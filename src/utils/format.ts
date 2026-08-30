@@ -1,23 +1,49 @@
 import { format, formatDistanceToNowStrict, isPast, isToday, isTomorrow } from 'date-fns';
+import { enUS, tr as trLocale } from 'date-fns/locale';
+import { getLang, translate } from '@/i18n';
 
-export function formatDate(iso: string, pattern = 'MMM d, yyyy'): string {
-  return format(new Date(iso), pattern);
+function dateLocale() {
+  return getLang() === 'tr' ? trLocale : enUS;
+}
+
+/**
+ * date-fns `format()` throws `RangeError: Invalid time value` on an unparsable
+ * date — and on Hermes (React Native) some timestamp shapes parse to Invalid
+ * Date where V8 wouldn't. An uncaught throw here blanks the whole screen, so
+ * every formatter goes through this guard and returns '' instead of crashing.
+ */
+function safeFormat(iso: string, pattern: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  try {
+    return format(d, pattern, { locale: dateLocale() });
+  } catch {
+    return '';
+  }
+}
+
+export function formatDate(iso: string): string {
+  return safeFormat(iso, getLang() === 'tr' ? 'd MMM yyyy' : 'MMM d, yyyy');
 }
 
 export function formatDateTime(iso: string): string {
-  return format(new Date(iso), "MMM d, yyyy 'at' h:mm a");
+  return safeFormat(iso, getLang() === 'tr' ? 'd MMM yyyy HH:mm' : "MMM d, yyyy 'at' h:mm a");
 }
 
 export function formatTime(iso: string): string {
-  return format(new Date(iso), 'h:mm a');
+  return safeFormat(iso, getLang() === 'tr' ? 'HH:mm' : 'h:mm a');
 }
 
 export function relativeDueLabel(iso: string): string {
+  const lang = getLang();
   const date = new Date(iso);
-  if (isToday(date)) return `Today · ${format(date, 'h:mm a')}`;
-  if (isTomorrow(date)) return `Tomorrow · ${format(date, 'h:mm a')}`;
-  if (isPast(date)) return `Overdue · ${formatDistanceToNowStrict(date, { addSuffix: true })}`;
-  return `In ${formatDistanceToNowStrict(date)}`;
+  if (Number.isNaN(date.getTime())) return '';
+  if (isToday(date)) return `${translate(lang, 'fmt.today')} · ${formatTime(iso)}`;
+  if (isTomorrow(date)) return `${translate(lang, 'fmt.tomorrow')} · ${formatTime(iso)}`;
+  if (isPast(date)) {
+    return `${translate(lang, 'fmt.overdue')} · ${formatDistanceToNowStrict(date, { addSuffix: true, locale: dateLocale() })}`;
+  }
+  return translate(lang, 'fmt.in', { d: formatDistanceToNowStrict(date, { locale: dateLocale() }) });
 }
 
 export function isOverdue(iso: string): boolean {
@@ -37,6 +63,15 @@ export function formatFileSize(bytes: number): string {
   const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   const value = bytes / Math.pow(1024, exponent);
   return `${exponent === 0 ? value : value.toFixed(1)} ${units[exponent]}`;
+}
+
+export function formatMoney(amount: number): string {
+  // Geçersiz/eksik değerler "₺NaN" olarak görünmesin.
+  if (!Number.isFinite(amount)) return '₺0';
+  const rounded = Math.round(amount * 100) / 100;
+  const [whole, decimals] = rounded.toFixed(2).split('.');
+  const grouped = whole!.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return decimals === '00' ? `₺${grouped}` : `₺${grouped},${decimals}`;
 }
 
 export function titleCase(value: string): string {

@@ -1,0 +1,272 @@
+import { useMemo, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { loadLaw, type LawArticle } from '@/data/laws/loader';
+import { useT } from '@/i18n';
+import { spacing, typography } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
+
+function norm(s: string): string {
+  // Türkçe küçük harf + şapkalı harfleri sadeleştir (î→i, â→a, û→u) ki
+  // "ihtiyati" yazınca "İhtiyatî" başlıklı maddeyi de bulsun.
+  return s
+    .toLocaleLowerCase('tr-TR')
+    .replace(/î/g, 'i')
+    .replace(/â/g, 'a')
+    .replace(/û/g, 'u');
+}
+
+export default function LawBrowserScreen() {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(__t.colors);
+  const t = useT();
+
+  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const law = useMemo(() => loadLaw(slug ?? ''), [slug]);
+
+  const [query, setQuery] = useState('');
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const articles = law?.articles ?? [];
+
+  const results = useMemo(() => {
+    const q = query.trim();
+    if (!q) return articles;
+    if (/^\d+$/.test(q)) {
+      // exact article number, plus its "12/A" style variants
+      return articles.filter((a) => a.no === q || a.no.startsWith(`${q}/`));
+    }
+    const nq = norm(q);
+    // Başlık + bölüm + gövde + madde no üzerinde ara ve öncelik sırasına diz:
+    // (0) başlıkta geçen, (1) bölüm/sistematik başlığında geçen, (2) gövdede.
+    // Böylece hem "aşırı ifa güçlüğü" (başlık→138) hem "haksız fiil"
+    // (bölüm→ilgili maddeler) doğru sonuç verir.
+    const rank = (a: LawArticle): number => {
+      if (a.title && norm(a.title).includes(nq)) return 0;
+      if (a.section && norm(a.section).includes(nq)) return 1;
+      if (norm(a.text).includes(nq) || a.no.includes(q)) return 2;
+      return 3;
+    };
+    return articles
+      .map((a) => ({ a, r: rank(a) }))
+      .filter((x) => x.r < 3)
+      .sort((x, y) => x.r - y.r)
+      .map((x) => x.a);
+  }, [query, articles]);
+
+  const renderSnippet = (a: LawArticle) => {
+    const q = query.trim();
+    if (!q || /^\d+$/.test(q)) return null;
+    const nq = norm(q);
+    const idx = norm(a.text).indexOf(nq);
+    if (idx < 0) return null;
+    const start = Math.max(0, idx - 55);
+    const before = (start > 0 ? '…' : '') + a.text.slice(start, idx);
+    const match = a.text.slice(idx, idx + q.length);
+    const after = a.text.slice(idx + q.length, idx + q.length + 85) + '…';
+    return (
+      <Text style={styles.snippet} numberOfLines={3}>
+        {before}
+        <Text style={styles.snippetMatch}>{match}</Text>
+        {after}
+      </Text>
+    );
+  };
+
+  if (!law) {
+    return (
+      <Screen edges={['top', 'left', 'right', 'bottom']}>
+        <ScreenHeader title={t('laws.title')} showBack />
+        <Card>
+          <EmptyState icon="book-outline" title={t('laws.notFound')} />
+        </Card>
+      </Screen>
+    );
+  }
+
+  const special = (no: string) => no.startsWith('Geçici') || no.startsWith('Ek');
+
+  return (
+    <Screen edges={['top', 'left', 'right', 'bottom']}>
+      <ScreenHeader title={law.short} subtitle={law.name} showBack />
+      <View style={styles.searchWrap}>
+        <Input
+          placeholder={t('laws.searchPlaceholder')}
+          value={query}
+          onChangeText={(v) => {
+            setQuery(v);
+            setExpanded(null);
+          }}
+          icon="search-outline"
+          keyboardType={/^\d*$/.test(query) ? 'default' : 'default'}
+          autoCorrect={false}
+          containerStyle={styles.searchInput}
+        />
+        <Text style={styles.resultCount}>
+          {t('laws.results', { n: results.length })} · {t('laws.offlineShort')}
+        </Text>
+      </View>
+
+      <FlatList
+        data={results}
+        keyExtractor={(a) => a.no}
+        contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        initialNumToRender={14}
+        windowSize={7}
+        ListEmptyComponent={
+          <Card>
+            <EmptyState icon="search-outline" title={t('laws.empty')} description={t('laws.emptyDesc')} />
+          </Card>
+        }
+        ListFooterComponent={<Text style={styles.sourceNote}>{t('laws.disclaimer')}</Text>}
+        renderItem={({ item, index }) => {
+          const isOpen = expanded === item.no;
+          // Arama yokken bölüm değiştiğinde ayraç göster (kanun sistematiği).
+          const showSection =
+            !query.trim() && !!item.section && item.section !== results[index - 1]?.section;
+          return (
+            <>
+            {showSection && (
+              <View style={styles.sectionHeader}>
+                <Ionicons name="bookmark" size={12} color={colors.gold} />
+                <Text style={styles.sectionHeaderText}>{item.section}</Text>
+              </View>
+            )}
+            <Card style={styles.articleCard} padded={false}>
+              <Pressable style={styles.articleHeader} onPress={() => setExpanded(isOpen ? null : item.no)}>
+                <View style={[styles.noBadge, special(item.no) && { backgroundColor: colors.warningSoft }]}>
+                  <Text style={[styles.noBadgeText, special(item.no) && { color: colors.warning }]}>
+                    {item.no.replace('Geçici ', 'G').replace('Ek ', 'E')}
+                  </Text>
+                </View>
+                <View style={styles.titleWrap}>
+                  <Text style={styles.articleTitle} numberOfLines={isOpen ? undefined : 2}>
+                    {item.title || t('laws.articleN', { no: item.no })}
+                  </Text>
+                  {!!item.title && <Text style={styles.articleNo}>{t('laws.articleN', { no: item.no })}</Text>}
+                </View>
+                <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
+              </Pressable>
+              {!isOpen && renderSnippet(item)}
+              {isOpen && (
+                <View style={styles.articleBody}>
+                  <Text style={styles.articleText} selectable>
+                    {item.text}
+                  </Text>
+                </View>
+              )}
+            </Card>
+            </>
+          );
+        }}
+      />
+    </Screen>
+  );
+}
+
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  searchWrap: {
+    paddingHorizontal: spacing.lg,
+  },
+  searchInput: {
+    marginBottom: spacing.xs,
+  },
+  resultCount: {
+    ...typography.small,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+  },
+  list: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxxl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  sectionHeaderText: {
+    ...typography.small,
+    color: colors.gold,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    flex: 1,
+  },
+  articleCard: {
+    marginBottom: spacing.xs,
+  },
+  articleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.sm,
+  },
+  noBadge: {
+    minWidth: 44,
+    borderRadius: 10,
+    backgroundColor: colors.primarySoft,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+  },
+  noBadgeText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  titleWrap: {
+    flex: 1,
+  },
+  articleTitle: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  articleNo: {
+    ...typography.small,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  snippet: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.sm,
+    lineHeight: 18,
+  },
+  snippetMatch: {
+    backgroundColor: colors.warningSoft,
+    color: colors.textPrimary,
+    fontWeight: '800',
+  },
+  articleBody: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+    padding: spacing.sm,
+  },
+  articleText: {
+    ...typography.body,
+    color: colors.textPrimary,
+    lineHeight: 22,
+  },
+  sourceNote: {
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.md,
+    lineHeight: 15,
+  },
+});

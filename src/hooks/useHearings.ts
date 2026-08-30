@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import { cancelReminder, hearingReminderId, scheduleHearingReminder } from '@/lib/notifications';
 import type { Hearing, HearingWithCase } from '@/types/database';
@@ -45,6 +46,19 @@ export function useAllHearings() {
   });
 }
 
+/** Tek bir duruşmayı id ile getirir (dosyasız kayıtlar dahil, düzenleme için). */
+export function useHearing(hearingId: string | undefined) {
+  return useQuery({
+    queryKey: ['hearings', 'byId', hearingId],
+    enabled: !!hearingId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('hearings').select(HEARING_SELECT).eq('id', hearingId!).single();
+      if (error) throw error;
+      return data as unknown as HearingWithCase;
+    },
+  });
+}
+
 export function useHearingsForCase(caseId: string | undefined) {
   return useQuery({
     queryKey: ['hearings', 'byCase', caseId],
@@ -71,6 +85,7 @@ async function scheduleFromRow(row: Hearing, caseTitle: string) {
     id: row.id,
     caseTitle,
     hearingTitle: row.title,
+    type: row.type,
     scheduledAt: row.scheduled_at,
     reminderMinutesBefore: row.reminder_minutes_before,
   });
@@ -81,6 +96,7 @@ export function useCreateHearing() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (input: HearingInput & { caseTitle: string }) => {
       const { caseTitle, ...rest } = input;
       const { data, error } = await supabase
@@ -100,6 +116,7 @@ export function useUpdateHearing() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async ({
       id,
       caseTitle,
@@ -123,6 +140,7 @@ export function useDeleteHearing() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onError: notifySaveError,
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('hearings').delete().eq('id', id);
       if (error) throw error;

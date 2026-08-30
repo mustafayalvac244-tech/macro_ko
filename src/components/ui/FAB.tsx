@@ -2,7 +2,9 @@ import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, shadow } from '@/theme/theme';
+import { radius, shadow } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 
 interface FABProps {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -10,6 +12,9 @@ interface FABProps {
 }
 
 export function FAB({ icon = 'add', onPress }: FABProps) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -24,7 +29,7 @@ export function FAB({ icon = 'add', onPress }: FABProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
