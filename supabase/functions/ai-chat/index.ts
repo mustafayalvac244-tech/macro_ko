@@ -638,19 +638,38 @@ async function buildGrounding(supabase: any, question: string): Promise<string> 
   // anahtarsız olduğu için ücretsiz katmandaki avukat da eşanlam eşleşmesinden
   // yararlanır ("işten atıldım" ↔ "hizmet akdinin feshi"). Vektör üretilemezse
   // aşağıdaki kelime (FTS) beslemesine düşülür.
-  {
-    const qEmb = await embedQuery(question);
-    if (qEmb) {
-      const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: 5 });
-      rows = data ?? [];
+  // HİBRİT ERİŞİM: iki yöntem birlikte kullanılır, biri diğerinin yedeği değil.
+  //
+  // Ölçüm bunu gerektirdi: "ev sahibi kendisi oturacağını söyleyip beni
+  // çıkarmak istiyor" sorusunda anlamsal arama doğru hukuk dairelerini
+  // bulurken kelime araması CEZA dairelerini getirdi; başka bir soruda ise
+  // tersi oldu. Yerleşik model (gte-small) İngilizce ağırlıklı olduğundan
+  // Türkçe hukuk metninde skorları birbirine yakın çıkıyor, tek başına
+  // güvenilir değil. Kelime araması ise kanun terimini tam yakalar ama
+  // eşanlamı kaçırır. İkisinin birleşimi her iki zaafı da örter.
+  const seen = new Set<string>();
+  const push = (list: unknown[] | null | undefined) => {
+    for (const r of (list ?? []) as Array<{ id?: string }>) {
+      const key = String(r?.id ?? '');
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      rows.push(r);
     }
-  }
-  if (rows.length === 0) {
-    const { data } = await supabase.rpc('search_ictihat_fts', { q: question, match_count: 4 });
-    rows = data ?? [];
-  }
+  };
+
+  const qEmb = await embedQuery(question);
+  const [semRes, ftsRes] = await Promise.all([
+    qEmb
+      ? supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: 4 })
+      : Promise.resolve({ data: null }),
+    supabase.rpc('search_ictihat_fts', { q: question, match_count: 4 }),
+  ]);
+  // Kelime sonuçları önce: kanun terimi birebir geçtiğinde isabet daha yüksek.
+  push(ftsRes?.data);
+  push(semRes?.data);
+
   if (rows.length === 0) return '';
-  rows = rows.slice(0, 4);
+  rows = rows.slice(0, 5);
 
   const refs = rows
     .map(
