@@ -30,6 +30,10 @@ const DRY = process.env.HARVEST_DRY === '1';
 const MAX_NEW = Number(process.env.HARVEST_MAX ?? 400);
 const TERMS_PER_RUN = Number(process.env.HARVEST_TERMS ?? 10);
 const PAGE_SIZE = Number(process.env.HARVEST_PAGE_SIZE ?? 20);
+// UYAP Emsal 300ms'lik hızda 429 veriyordu; varsayılan yavaşlatıldı.
+const DOC_DELAY = Number(process.env.HARVEST_DOC_DELAY ?? 1200);
+const TERM_DELAY = Number(process.env.HARVEST_TERM_DELAY ?? 2500);
+const RETRY_BASE = Number(process.env.HARVEST_RETRY_BASE ?? 4000);
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -63,6 +67,29 @@ function htmlToText(html = '') {
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+/**
+ * 429 (hız sınırı) için üstel bekleme ile yeniden dener.
+ *
+ * UYAP Emsal sabit hızda istek atınca hızla 429 veriyordu ve eski kod hatayı
+ * yutup KARARI ATLIYORDU — yani hasat neredeyse hiç veri toplayamıyordu.
+ * Artık 429 alınca bekleyip tekrar denenir; kalıcı kayıp olmaz.
+ */
+async function withRetry(fn, label, tries = 4) {
+  let wait = RETRY_BASE;
+  for (let i = 1; i <= tries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const rate = /\b429\b/.test(String(e.message));
+      if (!rate || i === tries) throw e;
+      log(`   ${label}: hız sınırı, ${wait}ms bekleniyor (deneme ${i}/${tries})`);
+      await sleep(wait);
+      wait *= 2; // üstel geri çekilme
+    }
+  }
+  throw new Error(`${label}: tükendi`);
 }
 
 async function emsalSearch(terim, page) {
@@ -169,7 +196,7 @@ async function main() {
 
     let total = 0;
     try {
-      const r = await emsalSearch(terim, page);
+      const r = await withRetry(() => emsalSearch(terim, page), `arama "${terim}"`);
       total = r.total;
       const rows = r.rows;
       scanned += rows.length;
@@ -188,10 +215,10 @@ async function main() {
         const id = String(row.id);
         if (existing.has(id)) continue;
 
-        await sleep(300); // nazik hız
+        await sleep(DOC_DELAY); // nazik hız (429 önleme)
         let text = '';
         try {
-          text = await emsalDoc(id);
+          text = await withRetry(() => emsalDoc(id), `doc ${id}`);
         } catch (e) {
           log(`  doc ${id} hata: ${e.message}`);
           continue;
@@ -246,7 +273,7 @@ async function main() {
       }
     }
 
-    await sleep(600);
+    await sleep(TERM_DELAY);
   }
 
   log(`Bitti. Bu çalışmada eklenen: ${added} · taranan: ${scanned}`);
