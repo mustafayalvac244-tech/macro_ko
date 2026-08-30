@@ -265,23 +265,29 @@ const CORS = {
 };
 
 /** Soruyu Gemini ile vektöre çevirir (Plus semantik içtihat beslemesi için). */
-async function embedQuery(text: string, apiKey: string): Promise<number[] | null> {
+/**
+ * Sorguyu anlamsal arama vektörüne çevirir.
+ *
+ * Supabase Edge'in YERLEŞİK modeli (gte-small, 384 boyut) kullanılır: ücretsiz,
+ * anahtarsız. Kritik nokta — kararlar da aynı modelle vektörlendiği için sorgu
+ * ve belge aynı uzayda olur; farklı modeller karıştırılırsa benzerlik skoru
+ * anlamsızlaşır ve alakasız kararlar döner.
+ */
+let _embedSession: { run: (t: string, o: unknown) => Promise<unknown> } | null = null;
+async function embedQuery(text: string): Promise<number[] | null> {
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 2000) }] } }),
-      }
-    );
-    if (!res.ok) return null;
-    const j = await res.json();
-    return j?.embedding?.values ?? null;
+    if (!_embedSession) {
+      // @ts-ignore — Supabase edge runtime globali
+      _embedSession = new Supabase.ai.Session('gte-small');
+    }
+    const clean = text.replace(/\s+/g, ' ').trim().slice(0, 800);
+    const v = await _embedSession!.run(clean, { mean_pool: true, normalize: true });
+    return v as number[];
   } catch {
-    return null;
+    return null; // model yoksa çağıran FTS'e düşer
   }
 }
+
 
 /**
  * KESİN HUKUKİ KURALLAR — avukat gözüyle test edilip doğrulanmış, yerleşik
@@ -625,13 +631,15 @@ async function buildRules(supabase: any, question: string): Promise<string> {
  * "Senin eğittiğin AI" = kendi verimizle beslenmiş, kaynak gösteren yanıt.
  */
 // deno-lint-ignore no-explicit-any
-async function buildGrounding(supabase: any, question: string, apiKey: string): Promise<string> {
+async function buildGrounding(supabase: any, question: string): Promise<string> {
   // deno-lint-ignore no-explicit-any
   let rows: any[] = [];
-  // Anlamsal (embedding) yalnız geçerli bir Gemini anahtarı varsa denenir;
-  // yoksa (Groq/ücretsiz katman) doğrudan kelime (FTS) beslemesi yapılır.
-  if (apiKey) {
-    const qEmb = await embedQuery(question, apiKey);
+  // Anlamsal arama artık TÜM katmanlarda çalışır: yerleşik model ücretsiz ve
+  // anahtarsız olduğu için ücretsiz katmandaki avukat da eşanlam eşleşmesinden
+  // yararlanır ("işten atıldım" ↔ "hizmet akdinin feshi"). Vektör üretilemezse
+  // aşağıdaki kelime (FTS) beslemesine düşülür.
+  {
+    const qEmb = await embedQuery(question);
     if (qEmb) {
       const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: 5 });
       rows = data ?? [];
@@ -852,7 +860,7 @@ Deno.serve(async (req) => {
           block += await buildMevzuat(supabase, issue);
         } catch { /* atla */ }
         try {
-          block += await buildGrounding(supabase, issue, provider === 'gemini' ? genKey : '');
+          block += await buildGrounding(supabase, issue);
         } catch { /* atla */ }
         if (block) dossier += `\n\n══════ ARAŞTIRMA KONUSU: ${issue} ══════${block}`;
       }
@@ -905,11 +913,10 @@ Deno.serve(async (req) => {
       islah: 'ISLAH DİLEKÇESİ (HMK m.176 vd.). Neyin ıslah edildiği (talep sonucu/vakıa), gerekçe, harç tamamlama beyanı, yeni netice-i talep.',
     };
     const structure = typeMap[body.dilekceType ?? ''] ?? typeMap['dava'];
-    const groundKey = provider === 'gemini' ? genKey : '';
-    let dossier = '';
+      let dossier = '';
     try { dossier += await buildRules(supabase, promptQuestion); } catch { /* atla */ }
     try { dossier += await buildMevzuat(supabase, promptQuestion); } catch { /* atla */ }
-    try { dossier += await buildGrounding(supabase, promptQuestion, groundKey); } catch { /* atla */ }
+    try { dossier += await buildGrounding(supabase, promptQuestion); } catch { /* atla */ }
 
     const dilekceSys =
       SYSTEM_PROMPT +
@@ -980,7 +987,6 @@ Deno.serve(async (req) => {
   // Grounding TÜM katmanlarda: kendi içtihat havuzumuzdan gerçek kararlarla besle
   // (Gemini/Pro anlamsal + FTS; Groq/ücretsiz doğrudan FTS). Böylece yanıt gerçek
   // kararlara dayanır, uydurmaz — "eğitilmiş" asistan.
-  const groundKey = provider === 'gemini' ? genKey : '';
   // Besleme AYRI tutulur: Claude'da sabit talimat önbelleğe alınır, soruya göre
   // değişen besleme onun arkasına konur (bkz. claudeChat).
   let grounding = '';
@@ -1001,7 +1007,7 @@ Deno.serve(async (req) => {
         // mevzuat beslemesi başarısızsa devam
       }
       try {
-        grounding += await buildGrounding(supabase, lastUser.text, groundKey);
+        grounding += await buildGrounding(supabase, lastUser.text);
       } catch {
         // besleme başarısızsa yalın yanıtla devam
       }
