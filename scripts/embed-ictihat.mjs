@@ -20,13 +20,17 @@
 // Env:
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   (zorunlu)
 //   EMBED_BATCH        çağrı başına karar (vars. 4, en fazla 6)
-//   EMBED_MAX_CALLS    bu çalışmadaki en fazla çağrı (vars. 400)
-//   EMBED_DELAY        çağrılar arası bekleme, ms (vars. 250)
+//   EMBED_MAX_CALLS    bu çalışmadaki en fazla çağrı (vars. 500)
+//   EMBED_DELAY        çağrılar arası bekleme, ms (vars. 750)
+//   EMBED_MAX_STRIKES  art arda kaç geçici hataya katlanılacağı (vars. 15)
 // ---------------------------------------------------------------------------
 
 const BATCH = Math.min(6, Math.max(1, Number(process.env.EMBED_BATCH ?? 4)));
-const MAX_CALLS = Number(process.env.EMBED_MAX_CALLS ?? 400);
-const DELAY = Number(process.env.EMBED_DELAY ?? 250);
+const MAX_CALLS = Number(process.env.EMBED_MAX_CALLS ?? 500);
+// Ölçüldü: 250ms'lik hızda ~85 çağrı sonra worker kaynak sınırına takılıyor.
+// Daha nazik hız, sınıra hiç çarpmadan tamamlama şansını artırıyor.
+const DELAY = Number(process.env.EMBED_DELAY ?? 750);
+const MAX_STRIKES = Number(process.env.EMBED_MAX_STRIKES ?? 15);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -48,13 +52,18 @@ async function main() {
   let processed = 0;
   let failed = 0;
   let calls = 0;
-  // Art arda hiç ilerleme olmazsa dur: kalan kayıtların metni bozuk olabilir ve
-  // fonksiyon onları hep atlar — sonsuz döngüye girmemek için.
-  let stuck = 0;
+  // İki ayrı sayaç, çünkü iki ayrı arıza:
+  //   httpStrikes  → fonksiyon hiç yanıt veremedi (503 / WORKER_RESOURCE_LIMIT).
+  //                  Ölçüldü: geçicidir, aralarında başarılı çağrılar oluyor.
+  //   idleStrikes  → fonksiyon 200 döndü ama hiçbir kaydı işleyemedi. Kalan
+  //                  kayıtların metni bozuk demektir; beklemek düzeltmez.
+  let httpStrikes = 0;
+  let idleStrikes = 0;
 
   while (calls < MAX_CALLS) {
     calls++;
     let res;
+    let body = '';
     try {
       res = await fetch(endpoint, {
         method: 'POST',
@@ -65,62 +74,69 @@ async function main() {
         },
         body: JSON.stringify({ limit: BATCH }),
       });
+      body = await res.text();
     } catch (e) {
-      log(`ağ hatası: ${e.message} — 5sn sonra tekrar`);
-      await sleep(5000);
-      continue;
+      body = `ağ hatası: ${e.message}`;
+      res = null;
     }
 
-    const body = await res.text();
-    if (!res.ok) {
-      // Kaynak sınırı geçici olabilir; birkaç kez toparlanmaya şans ver.
-      log(`çağrı ${calls} başarısız (${res.status}): ${body.slice(0, 200)}`);
-      stuck++;
-      if (stuck >= 5) {
-        console.error('HATA: fonksiyon üst üste 5 kez başarısız oldu, duruluyor.');
-        process.exit(1);
+    let j = null;
+    if (res && res.ok) {
+      try {
+        j = JSON.parse(body);
+      } catch {
+        j = null;
       }
-      await sleep(5000);
-      continue;
     }
 
-    let j;
-    try {
-      j = JSON.parse(body);
-    } catch {
-      log(`çağrı ${calls}: yanıt okunamadı — ${body.slice(0, 200)}`);
-      stuck++;
-      if (stuck >= 5) process.exit(1);
-      continue;
-    }
-
-    processed += Number(j.processed ?? 0);
-    failed += Number(j.failed ?? 0);
-    const remaining = j.remaining;
-
-    if (Number(j.processed ?? 0) === 0) {
-      stuck++;
-      // Kalan varken ilerleme yoksa bu kayıtlar işlenemiyor demektir.
-      if (stuck >= 3) {
-        log(`ilerleme durdu · işlenen=${processed} · hatalı=${failed} · kalan=${remaining}`);
+    if (!j) {
+      httpStrikes++;
+      const detail = res ? `${res.status} ${body.slice(0, 120)}` : body;
+      // Üst üste hata geldikçe geri çekil: worker'a toparlanma payı bırakır.
+      // Hemen tekrar denemek sınırı besliyor.
+      const wait = Math.min(60000, 4000 * 2 ** Math.min(httpStrikes - 1, 4));
+      log(`çağrı ${calls} başarısız (${detail}) — ${Math.round(wait / 1000)}sn bekle [${httpStrikes}/${MAX_STRIKES}]`);
+      if (httpStrikes >= MAX_STRIKES) {
+        log(`üst üste ${MAX_STRIKES} hata · işlenen=${processed} · duruluyor`);
         break;
       }
-    } else {
-      stuck = 0;
+      await sleep(wait);
+      continue;
     }
+
+    httpStrikes = 0;
+    const now = Number(j.processed ?? 0);
+    processed += now;
+    failed += Number(j.failed ?? 0);
+    const remaining = j.remaining;
 
     if (remaining === 0) {
       log(`tamamlandı · işlenen=${processed} · hatalı=${failed} · çağrı=${calls}`);
       return;
     }
 
-    if (calls % 10 === 0) log(`  ${calls} çağrı · işlenen=${processed} · kalan=${remaining}`);
+    if (now === 0) {
+      idleStrikes++;
+      if (idleStrikes >= 3) {
+        log(`ilerleme durdu (işlenemeyen kayıt) · işlenen=${processed} · hatalı=${failed} · kalan=${remaining}`);
+        break;
+      }
+    } else {
+      idleStrikes = 0;
+    }
+
+    if (calls % 20 === 0) log(`  ${calls} çağrı · işlenen=${processed} · kalan=${remaining}`);
     await sleep(DELAY);
   }
 
-  // Bütçe bitti ama kalan olabilir: hata değil, sonraki çalışma devam eder
-  // (fonksiyon idempotent olduğu için kaldığı yerden sürer).
-  log(`bütçe doldu · işlenen=${processed} · hatalı=${failed} · çağrı=${calls}`);
+  // Buraya düşmek hata DEĞİL: fonksiyon idempotent, kalanları bir sonraki
+  // çalışma kaldığı yerden alır. Tek gerçek arıza, hiçbir şeyin işlenememesi —
+  // o zaman yapılandırma bozuktur ve iş akışı bunu görmelidir.
+  log(`durdu · işlenen=${processed} · hatalı=${failed} · çağrı=${calls}`);
+  if (processed === 0) {
+    console.error('HATA: hiçbir kayıt vektörlenemedi.');
+    process.exit(1);
+  }
 }
 
 main().catch((e) => {
