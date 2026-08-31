@@ -208,6 +208,20 @@ const SYSTEM_PROMPT =
   'bedelinin tespitine ilişkin hükümleri") ve "madde numarasını mevzuattan teyit edin" de. Var olmayan ' +
   'bir kanun adı (ör. kısaltma uydurma) veya olmayan bir Yargıtay esas/karar numarası ASLA yazma. ' +
   'Yanlış madde numarası, madde numarası vermemekten ÇOK daha kötüdür. ' +
+  // GÖREVLİ MAHKEME / SÜRE KURALI. Ölçülmüş arıza: madde numarası kuralı yalnız
+  // NUMARA uydurmayı engelliyordu; model numara vermeden "asliye hukuk
+  // mahkemesinde açılır" ve "en az 15 gün süre verilir" diye yazdı. İkisi de
+  // yanlıştı (HMK m.4 tahliyede SULH HUKUK'u görevli sayar) ve avukatı doğrudan
+  // görevsizlik/süre kaybı riskine sokar. Numarasız yazıldığı için eski kural
+  // yakalamıyordu; bu yüzden ayrıca yasaklanır.
+  'GÖREVLİ MAHKEME VE SÜRE KURALI (ÇOK ÖNEMLİ): Hangi mahkemenin görevli olduğunu ' +
+  '(sulh hukuk / asliye hukuk / iş / tüketici / icra hukuk...) veya bir sürenin kaç ' +
+  'gün-ay-yıl olduğunu, ancak bu bilgi sana yukarıda verilen madde metinlerinde ya da ' +
+  'kararlarda GEÇİYORSA yaz. Geçmiyorsa TAHMİN ETME ve hafızandan sayı verme: görevli ' +
+  'mahkemenin/sürenin hangi kanundan teyit edilmesi gerektiğini söyle (ör. "görevli ' +
+  'mahkemeyi HMK\'nın görev hükümlerinden teyit edin"). "Uygulamada genelde böyledir", ' +
+  '"yargı pratiğinde yaygındır" gibi ifadelerle sayı ya da mahkeme UYDURMA. Yanlış ' +
+  'mahkeme görevsizlik kararına, yanlış süre HAK KAYBINA yol açar; söylememek çok daha iyidir. ' +
   'Bir konuda kesin değilsen bunu açıkça söyle; OLMAYAN madde, karar veya esas/karar numarası ASLA uydurma. ' +
   'Kanun maddesinin metnini TIRNAK içinde birebir alıntılıyorsan, ancak metni gerçekten biliyorsan yap; ' +
   'emin değilsen tırnaklı/“…” birebir alıntı UYDURMA, bunun yerine maddenin numarasını ve özünü kendi ' +
@@ -695,16 +709,19 @@ async function buildGrounding(supabase: any, question: string): Promise<string> 
  */
 // deno-lint-ignore no-explicit-any
 async function buildMevzuat(supabase: any, question: string): Promise<string> {
-  const { data } = await supabase.rpc('search_mevzuat_fts', { q: question, match_count: 8 });
+  const { data } = await supabase.rpc('search_mevzuat_fts', { q: question, match_count: 7 });
   // deno-lint-ignore no-explicit-any
   let rows: any[] = data ?? [];
   if (rows.length === 0) return '';
   // Yalnızca GERÇEKTEN ilgili maddeleri tut: en yüksek skorun ~%30'unun altındaki
-  // gürültüyü ele; en fazla 5 madde ekle. Böylece hem doğruluk korunur hem de her
-  // çağrının token yükü (ve ücretsiz katman kota tüketimi) düşük kalır.
+  // gürültüyü ele. Böylece hem doğruluk korunur hem de her çağrının token yükü
+  // (ve ücretsiz katman kota tüketimi) düşük kalır.
   const top = Number(rows[0]?.score ?? 0);
   if (top > 0) rows = rows.filter((r: { score?: number }) => Number(r.score ?? 0) >= top * 0.3);
-  rows = rows.slice(0, 5);
+  // 5 DEĞİL 7: aramanın son sıralara eklediği maddeler (0034) tam da köke
+  // indirgemenin kaçırdıkları — tahliyede görevli mahkemeyi söyleyen HMK m.4
+  // gibi. 5'te kesilirse veritabanı düzeltmesi modele hiç ulaşmıyordu.
+  rows = rows.slice(0, 7);
   const refs = rows
     // deno-lint-ignore no-explicit-any
     .map((r: any) => `• ${r.kanun_short} m.${r.madde_no}${r.baslik ? ' (' + r.baslik + ')' : ''}: ${String(r.snippet ?? '').slice(0, 420).trim()}`)
