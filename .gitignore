@@ -54,3 +54,6 @@ credentials.json
 
 # Built APKs (too large for git; distribute via EAS/direct link)
 apk/
+
+# Supabase CLI yerel çalışma dosyaları (bağlı proje bilgisi, sürüm önbelleği)
+supabase/.temp/
