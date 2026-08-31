@@ -7,12 +7,14 @@
 // kaldığı sayfadan devam ettirir; böylece havuz zamanla büyür ve güçlenir.
 //
 // Çalıştırma (yerel veya GitHub Actions cron):
-//   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
-//   [GEMINI_API_KEY=...] node scripts/harvest-ictihat.mjs
+//   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/harvest-ictihat.mjs
+//
+// Anlamsal arama vektörü (embedding) BURADA üretilmez: hasattan sonra
+// scripts/embed-ictihat.mjs çalıştırılır, o da Supabase'in yerleşik ücretsiz
+// modelini kullanır. Bkz. .github/workflows/harvest-ictihat.yml.
 //
 // Env:
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   (zorunlu; DRY modda gerekmez)
-//   GEMINI_API_KEY                            (opsiyonel; varsa embedding üretir)
 //   HARVEST_MAX          bu çalışmada eklenecek en fazla yeni karar (vars. 400)
 //   HARVEST_TERMS        bu çalışmada işlenecek terim sayısı (vars. 10)
 //   HARVEST_PAGE_SIZE    Emsal sayfa boyutu (vars. 20)
@@ -28,7 +30,6 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const EMSAL = 'https://emsal.uyap.gov.tr';
-const EMBED_MODEL = 'text-embedding-004';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const DRY = process.env.HARVEST_DRY === '1';
@@ -39,7 +40,6 @@ const PAGE_SIZE = Number(process.env.HARVEST_PAGE_SIZE ?? 20);
 const DOC_DELAY = Number(process.env.HARVEST_DOC_DELAY ?? 1200);
 const TERM_DELAY = Number(process.env.HARVEST_TERM_DELAY ?? 2500);
 const RETRY_BASE = Number(process.env.HARVEST_RETRY_BASE ?? 4000);
-const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
 // Kaynak: 'emsal' (BAM/yerel) | 'yargitay' | 'danistay'. UYAP Emsal Yargıtay
 // içermediği için Yargıtay/Danıştay Bedesten'den toplanır.
 const SOURCE = process.env.HARVEST_SOURCE || 'emsal';
@@ -228,29 +228,6 @@ async function emsalDoc(id) {
   return htmlToText(String(j?.data ?? ''));
 }
 
-async function embed(text) {
-  if (!GEMINI_KEY) return null;
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent?key=${GEMINI_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 2000) }] } }),
-      }
-    );
-    if (!res.ok) {
-      log(`  embed atlandı (${res.status})`);
-      return null;
-    }
-    const j = await res.json();
-    return j?.embedding?.values ?? null;
-  } catch (e) {
-    log('  embed hata:', e.message);
-    return null;
-  }
-}
-
 /**
  * İlerleme kaydı anahtarı. Aynı terim farklı kaynaklarda (Emsal / Bedesten)
  * ayrı sayfalarda ilerlediği için kaynak adı anahtara katılır; yoksa Emsal'de
@@ -271,7 +248,7 @@ function loadTerms() {
 
 async function main() {
   const terms = loadTerms();
-  log(`Kaynak: ${SOURCE} · Seed terim: ${terms.length} · MAX_NEW=${MAX_NEW} · TERMS_PER_RUN=${TERMS_PER_RUN} · embedding=${GEMINI_KEY ? 'açık' : 'kapalı'} · DRY=${DRY}`);
+  log(`Kaynak: ${SOURCE} · Seed terim: ${terms.length} · MAX_NEW=${MAX_NEW} · TERMS_PER_RUN=${TERMS_PER_RUN} · DRY=${DRY}`);
 
   let supabase = null;
   if (!DRY) {
@@ -375,11 +352,9 @@ async function main() {
           full_text: text,
         };
 
-        const vec = await embed(text);
-        if (vec) record.embedding = vec;
-
+        // embedding burada üretilmez; hasattan sonra embed-ictihat.mjs doldurur.
         if (DRY) {
-          log(`  + ${record.daire} E.${record.esas_no} (${text.length} krktr${vec ? ', embed' : ''})`);
+          log(`  + ${record.daire} E.${record.esas_no} (${text.length} krktr)`);
         } else {
           const { error } = await supabase.from('ictihat_kararlar').upsert(record, { onConflict: 'id' });
           if (error) log(`  upsert hata ${id}: ${error.message}`);

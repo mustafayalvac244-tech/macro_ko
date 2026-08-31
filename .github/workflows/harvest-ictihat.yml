@@ -12,10 +12,13 @@ name: İçtihat Hasadı
 # ⚠️ ZAMANLI ÇALIŞMA YALNIZCA VARSAYILAN DALDA (main) GEÇERLİDİR.
 # Bu dosya geliştirme dalındayken cron TETİKLENMEZ; main'e birleştirilmeli.
 #
+# Hasattan sonra "vektörle" işi çalışır: yeni kararların anlamsal arama
+# vektörünü doldurur. Bu adım olmazsa yeni kararlar yalnız kelime aramasıyla
+# bulunur, anlamsal aramada görünmez.
+#
 # Gerekli repo secret'ları (Settings → Secrets and variables → Actions):
 #   SUPABASE_URL               https://<proje>.supabase.co
 #   SUPABASE_SERVICE_ROLE_KEY  Supabase service_role anahtarı (RLS bypass)
-#   GEMINI_API_KEY             (opsiyonel) faturalı anahtar → embedding üretir
 
 on:
   schedule:
@@ -66,7 +69,6 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           HARVEST_SOURCE: ${{ matrix.source }}
           HARVEST_MAX: ${{ github.event.inputs.max || '300' }}
           HARVEST_TERMS: ${{ github.event.inputs.terms || '12' }}
@@ -74,3 +76,26 @@ jobs:
           HARVEST_DOC_DELAY: '1500'
           HARVEST_TERM_DELAY: '3000'
         run: node harvest-ictihat.mjs
+
+  vektorle:
+    # Üç kaynak da bittikten sonra TEK sefer çalışır (her kaynaktan sonra ayrı
+    # ayrı çalıştırmak gereksiz; fonksiyon zaten kalan tüm kayıtları tarar).
+    needs: harvest
+    # Bir kaynak hata verse bile diğerlerinin getirdiği kararlar vektörlenmeli.
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Yeni kararları vektörle
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node embed-ictihat.mjs
