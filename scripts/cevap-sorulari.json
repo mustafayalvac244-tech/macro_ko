@@ -94,6 +94,51 @@
       "icermemeli": [
         "asliye hukuk mahkemesine şikayet"
       ]
+    },
+    {
+      "soru": "Dava açmadan önce aldığım ihtiyati tedbir kararını ne kadar sürede uygulatmam gerekir, uygulatmazsam ne olur?",
+      "dayanak": "HMK m.393/1: tefhim/tebliğden bir hafta içinde uygulama talep edilmezse tedbir kendiliğinden kalkar",
+      "icermeli": [
+        "bir hafta|1 hafta",
+        "kendiliğinden kalk"
+      ],
+      "icermemeli": []
+    },
+    {
+      "soru": "Şiddetli geçimsizlik nedeniyle boşanmak istiyorum, kanundaki dayanak nedir?",
+      "dayanak": "TMK m.166: evlilik birliğinin temelinden sarsılması",
+      "icermeli": [
+        "166",
+        "temelinden sars"
+      ],
+      "icermemeli": []
+    },
+    {
+      "soru": "Dava dilekçesinde vakıaları ve delilleri nasıl göstermem gerekir?",
+      "dayanak": "HMK m.119/1-e,f: vakıalar sıra numarası altında açık özet; her vakıanın hangi delille ispat edileceği",
+      "icermeli": [
+        "sıra numarası|numaraland",
+        "delil"
+      ],
+      "icermemeli": []
+    },
+    {
+      "soru": "Mahkeme dava şartlarını ne zaman inceler, eksikse dava nasıl reddedilir?",
+      "dayanak": "HMK m.114 + resen gözetim; eksiklik hâlinde usulden ret",
+      "icermeli": [
+        "kendiliğinden|resen",
+        "usulden"
+      ],
+      "icermemeli": []
+    },
+    {
+      "soru": "Haksız fiilden doğan tazminat isteminde zamanaşımı süreleri nelerdir?",
+      "dayanak": "TBK m.72: öğrenmeden iki yıl, her hâlde fiilden on yıl; ceza zamanaşımı daha uzunsa o uygulanır",
+      "icermeli": [
+        "iki yıl|2 yıl",
+        "on yıl|10 yıl"
+      ],
+      "icermemeli": []
     }
   ]
 }
