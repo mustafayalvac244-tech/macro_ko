@@ -99,3 +99,13 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node embed-ictihat.mjs
+
+      # Mevzuat kararlar gibi sürekli büyümez, ama madde eklenir/düzeltilirse
+      # vektörsüz kalmasın. Eksik yoksa tek çağrıda biter, maliyeti yok.
+      - name: Vektörsüz kanun maddesi kaldıysa tamamla
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EMBED_KAYNAK: mevzuat
+        run: node embed-ictihat.mjs
