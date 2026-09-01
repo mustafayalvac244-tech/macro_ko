@@ -16,9 +16,14 @@ name: İçtihat Hasadı
 # vektörünü doldurur. Bu adım olmazsa yeni kararlar yalnız kelime aramasıyla
 # bulunur, anlamsal aramada görünmez.
 #
-# Gerekli repo secret'ları (Settings → Secrets and variables → Actions):
-#   SUPABASE_URL               https://<proje>.supabase.co
+# GEREKLİ TEK SECRET (Settings → Secrets and variables → Actions):
 #   SUPABASE_SERVICE_ROLE_KEY  Supabase service_role anahtarı (RLS bypass)
+#
+# Proje adresi secret DEĞİL: zaten mobil uygulamanın içinde ve herkese açık.
+# Gizli olmayan bir değeri secret yapmak, kurulumda ikinci bir yazım hatası
+# ihtimali doğuruyordu (adı veya değeri yanlış girilince iş akışı sessizce boş
+# görüyor). Aşağıda varsayılan olarak yazılı; yine de secret tanımlanırsa o
+# kullanılır, böylece başka bir projeye taşınabilir.
 
 on:
   schedule:
@@ -67,7 +72,7 @@ jobs:
         if: ${{ github.event.inputs.source == '' || github.event.inputs.source == matrix.source }}
         working-directory: scripts
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://wjshlysfmeqlnfiibknj.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           HARVEST_SOURCE: ${{ matrix.source }}
           HARVEST_MAX: ${{ github.event.inputs.max || '300' }}
@@ -96,7 +101,7 @@ jobs:
       - name: Yeni kararları vektörle
         working-directory: scripts
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://wjshlysfmeqlnfiibknj.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node embed-ictihat.mjs
 
@@ -105,7 +110,7 @@ jobs:
       - name: Vektörsüz kanun maddesi kaldıysa tamamla
         working-directory: scripts
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://wjshlysfmeqlnfiibknj.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           EMBED_KAYNAK: mevzuat
         run: node embed-ictihat.mjs
