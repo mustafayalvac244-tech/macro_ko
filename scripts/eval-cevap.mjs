@@ -29,7 +29,7 @@
 // kotasından yer. Arka arkaya birkaç koşu, kotayı bitirip uygulamadaki AI'yi
 // o gün için kullanılamaz hâle getirebilir. Ölçümü seyrek ve tek koşu yapın.
 // ---------------------------------------------------------------------------
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -110,7 +110,13 @@ async function sor(jwt, soru, deneme = 0) {
 function sadelestir(v) {
   return v
     .toLocaleLowerCase('tr')
-    .replace(/[ğüşıöçâîû]/g, (c) => ({ ğ: 'g', ü: 'u', ş: 's', ı: 'i', ö: 'o', ç: 'c', â: 'a', î: 'i', û: 'u' })[c]);
+    .replace(/[ğüşıöçâîû]/g, (c) => ({ ğ: 'g', ü: 'u', ş: 's', ı: 'i', ö: 'o', ç: 'c', â: 'a', î: 'i', û: 'u' })[c])
+    // Model bazen normal boşluk yerine bölünmez/dar boşluk (U+00A0, U+202F)
+    // veya farklı tire (U+2011) üretiyor. "30 gün" arayan bir ölçüt, aradaki
+    // boşluk bölünmez olduğu için eşleşmeyebilir ve DOĞRU cevabı yanlış sayar.
+    .replace(/[\u00a0\u2007\u202f\u2009\u200a]/g, ' ')
+    .replace(/[\u2010\u2011\u2012\u2013\u2014]/g, '-')
+    .replace(/\s+/g, ' ');
 }
 
 /** 'a|b' → biri geçse yeterli. */
@@ -163,11 +169,20 @@ try {
       console.log(`    dayanak : ${s.dayanak}`);
       if (eksik.length) console.log(`    EKSİK   : ${eksik.join(' · ')}`);
       if (yasak.length) console.log(`    YANLIŞ  : ${yasak.join(' · ')}`);
-      basarisiz.push({ soru: s.soru, eksik, yasak });
+      basarisiz.push({ soru: s.soru, eksik, yasak, cevap });
     }
   }
 } finally {
   await kullaniciSil(uid);
+}
+
+// Hatalı cevapların TAM METNİ dosyaya yazılır. Yoksa teşhis için soruyu
+// yeniden sormak gerekir; bu hem kotadan yer hem de model değişken olduğu için
+// başka bir cevabı incelemeye yol açar (bir kez tam olarak böyle oldu).
+if (basarisiz.length) {
+  const dosya = join(__dirname, 'eval-cevap-hatalar.json');
+  writeFileSync(dosya, JSON.stringify({ tarih: new Date().toISOString(), basarisiz }, null, 2));
+  console.log(`\nHatalı cevapların tam metni: ${dosya}`);
 }
 
 const oran = sorular.length ? ((dogru / sorular.length) * 100).toFixed(1) : '0.0';

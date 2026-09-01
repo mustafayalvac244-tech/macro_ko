@@ -57,3 +57,6 @@ apk/
 
 # Supabase CLI yerel çalışma dosyaları (bağlı proje bilgisi, sürüm önbelleği)
 supabase/.temp/
+
+# Ölçüm çıktısı (hatalı cevapların tam metni; koşuya özgü, sürümlenmez)
+scripts/eval-cevap-hatalar.json

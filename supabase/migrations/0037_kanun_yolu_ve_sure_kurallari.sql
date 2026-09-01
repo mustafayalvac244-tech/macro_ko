@@ -22,6 +22,15 @@
 --
 -- HER KURAL, veritabanımızdaki GERÇEK madde metni okunarak yazılmıştır;
 -- hafızadan yazılmamıştır.
+--
+-- SONUÇ (kota yenilendikten sonra tek koşu ölçüm):
+--   önce  6/8  (%75,0)
+--   sonra 7/8  (%87,5)
+-- Düzelen iki soru, tam da kural yazılan alanlar: istinaf süresi (önce süreyi
+-- hiç yazmıyordu) ve ihbar öneli (önce yanlış hafta veriyordu).
+-- OKUMA UYARISI: 8 soruluk kümede tek sorunun düşmesi oranı %12,5 oynatır.
+-- Bu yüzden sonucu "kurallar %12,5 kazandırdı" diye değil, "hedeflenen iki
+-- soru düzeldi" diye okumak doğrudur.
 
 insert into public.legal_rules (id, triggers, body) values
 
