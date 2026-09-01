@@ -120,7 +120,11 @@ async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; te
     body: JSON.stringify({
       model: GROQ_MODEL,
       messages: [{ role: 'system', content: system }, ...msgs.map((m) => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))],
-      temperature: 0.4,
+      // ÖLÇÜLDÜ: 0.4'te aynı soru koşudan koşuya farklı kalitede cevaplanıyordu
+      // — bir koşuda süreyi doğru veren cevap, diğerinde süreyi hiç yazmadı.
+      // Burada modelden istenen yaratıcılık değil, verilen madde metnini doğru
+      // aktarmak; yüksek sıcaklık hem tutarsızlık hem uydurma sayı üretiyor.
+      temperature: 0.1,
       max_tokens: maxTokens,
     }),
   });
@@ -635,7 +639,16 @@ async function buildRules(supabase: any, question: string): Promise<string> {
     '\n\n### KESİN HUKUKİ KURALLAR — BUNLARA UYMAK ZORUNDASIN (yerleşik içtihat; kendi tahminini bunlarla düzelt):\n' +
     [...picked.values()].map((t) => '• ' + t).join('\n') +
     '\nBu kurallara aykırı yanıt verme; soru bu konudaysa cevabını doğrudan bu kurala dayandır. ' +
-    'Kural listesi soruyla ilgisizse yok say.'
+    'Kural listesi soruyla ilgisizse yok say.\n' +
+    // Ölçülen arıza: model, yukarıdaki kural metnini TIRNAK İÇİNDE maddenin
+    // kendi sözüymüş gibi aktardı ("HMK m.345 — '...gerekçeli kararın
+    // tebliğinden itibaren 2 haftadır'"). Bilgi doğruydu ama maddenin lafzı
+    // değildi. Avukat bunu dilekçesine alıntı diye koyarsa mahkemeye, kanunda
+    // bulunmayan bir cümleyi kanun metni diye sunmuş olur.
+    'ÖNEMLİ: Bu kurallar bizim ÖZETİMİZDİR, kanun maddesinin lafzı DEĞİLDİR. ' +
+    'Buradaki cümleleri tırnak içinde madde metni gibi aktarma; içeriğini kendi ' +
+    'cümlenle anlat ve madde numarasını dayanak göster. Birebir alıntı yalnızca ' +
+    'MADDE METİNLERİ bölümünden yapılabilir.'
   );
 }
 

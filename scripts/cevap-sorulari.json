@@ -1,0 +1,99 @@
+{
+  "_aciklama": [
+    "AI CEVABININ doğruluğunu ölçen soru kümesi. Arama ölçümünden (arama-sorulari.json)",
+    "farkı: orada doğru maddenin BULUNUP bulunmadığına bakılır, burada asistanın",
+    "verdiği CEVABIN doğru olup olmadığına.",
+    "",
+    "Her beklenti, veritabanındaki GERÇEK madde metninden doğrulanmıştır.",
+    "  icermeli   : hepsi geçmeli (her biri seçenekli: 'a|b' → biri yeterli)",
+    "  icermemeli : hiçbiri geçmemeli — bunlar ÖLÇÜLMÜŞ yanlış cevaplardır",
+    "",
+    "Kullanım: node scripts/eval-cevap.mjs"
+  ],
+  "sorular": [
+    {
+      "soru": "Kiracı kirayı ödemiyor. Tahliye davasını hangi mahkemede açmalıyım ve kiracıya kaç gün süre vermem gerekir?",
+      "dayanak": "HMK m.4 (sulh hukuk görevli) + TBK m.315 (konut ve çatılı işyerinde en az 30 gün, diğerlerinde en az 10 gün)",
+      "icermeli": [
+        "sulh hukuk",
+        "otuz gün|30 gün"
+      ],
+      "icermemeli": [
+        "asliye hukuk mahkemesinde açıl",
+        "iş mahkemesinde açıl",
+        "en az 15 gün|en az on beş gün"
+      ]
+    },
+    {
+      "soru": "İstinaf yoluna başvuru süresi ne kadardır ve süre ne zaman işlemeye başlar?",
+      "dayanak": "HMK m.345: iki hafta, ilamın tebliğinden",
+      "icermeli": [
+        "iki hafta|2 hafta|14 gün",
+        "tebliğ"
+      ],
+      "icermemeli": [
+        "bir ay içinde istinaf",
+        "30 gün içinde istinaf"
+      ]
+    },
+    {
+      "soru": "Cevap dilekçesi vermek için kaç haftam var ve süre neyden itibaren işler?",
+      "dayanak": "HMK m.127: tebliğden iki hafta; ayrıca bir ayı geçmemek üzere ek süre verilebilir (bu yüzden 'bir ay' geçmesi HATA DEĞİL)",
+      "icermeli": [
+        "iki hafta|2 hafta|14 gün",
+        "tebliğ"
+      ],
+      "icermemeli": []
+    },
+    {
+      "soru": "Bilirkişi raporuna itiraz için ne kadar sürem var?",
+      "dayanak": "HMK m.281: raporun tebliğinden itibaren iki hafta",
+      "icermeli": [
+        "iki hafta|2 hafta|14 gün",
+        "tebliğ"
+      ],
+      "icermemeli": [
+        "bir hafta içinde itiraz|7 gün içinde itiraz"
+      ]
+    },
+    {
+      "soru": "Kira bedeli alacağında zamanaşımı süresi kaç yıldır?",
+      "dayanak": "TBK m.147: kira bedelleri beş yıllık zamanaşımına tabidir",
+      "icermeli": [
+        "beş yıl|5 yıl"
+      ],
+      "icermemeli": [
+        "on yıllık zamanaşımına tabidir"
+      ]
+    },
+    {
+      "soru": "Kanunda özel bir hüküm yoksa alacaklar için genel zamanaşımı süresi kaç yıldır?",
+      "dayanak": "TBK m.146: her alacak on yıllık zamanaşımına tabidir",
+      "icermeli": [
+        "on yıl|10 yıl"
+      ],
+      "icermemeli": [
+        "beş yıllık genel zamanaşımı"
+      ]
+    },
+    {
+      "soru": "İşyerinde iki yıldır çalışan belirsiz süreli sözleşmeli işçinin ihbar öneli kaç haftadır?",
+      "dayanak": "İşK m.17/c: 1,5–3 yıl arası kıdemde altı hafta (cevabın ölçeğin tamamını sayması meşrudur)",
+      "icermeli": [
+        "altı hafta|6 hafta"
+      ],
+      "icermemeli": []
+    },
+    {
+      "soru": "İcra dairesinin hukuka aykırı işlemine karşı nereye ve kaç gün içinde başvurulur?",
+      "dayanak": "İİK m.16: icra mahkemesine, öğrenmeden itibaren 7 gün",
+      "icermeli": [
+        "icra mahkemesi",
+        "yedi gün|7 gün"
+      ],
+      "icermemeli": [
+        "asliye hukuk mahkemesine şikayet"
+      ]
+    }
+  ]
+}
