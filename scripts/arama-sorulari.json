@@ -220,6 +220,90 @@
         "CMK 173"
       ],
       "not": "Kovuşturmaya yer olmadığına dair karara itiraz."
+    },
+    {
+      "soru": "tutuklama kararı verilebilmesi için hangi şartlar aranır",
+      "beklenen": [
+        "CMK 100"
+      ],
+      "not": "Tutuklama nedenleri."
+    },
+    {
+      "soru": "uzlaştırma hangi suçlarda uygulanabilir",
+      "beklenen": [
+        "CMK 253"
+      ],
+      "not": "Uzlaştırma kapsamı (madde başlığı veride BOŞ)."
+    },
+    {
+      "soru": "kamu davasında dava zamanaşımı süreleri nedir",
+      "beklenen": [
+        "TCK 66"
+      ],
+      "not": "Dava zamanaşımı (madde başlığı veride BOŞ)."
+    },
+    {
+      "soru": "tacir hangi ticari defterleri tutmak zorundadır",
+      "beklenen": [
+        "TTK 64"
+      ],
+      "not": "Defter tutma yükümlülüğü."
+    },
+    {
+      "soru": "boşanmada çocuğun velayeti kimde kalır",
+      "beklenen": [
+        "TMK 335"
+      ],
+      "not": "Velayetin koşulları."
+    },
+    {
+      "soru": "edinilmiş mallara katılma rejimi neleri kapsar",
+      "beklenen": [
+        "TMK 218"
+      ],
+      "not": "Rejimin kapsamı."
+    },
+    {
+      "soru": "sözleşmede faiz kararlaştırılmamışsa temerrüt faizi ne olur",
+      "beklenen": [
+        "TBK 120"
+      ],
+      "not": "Temerrüt faizi oranı."
+    },
+    {
+      "soru": "borçlu verilen sürede borcunu ifa etmezse alacaklının hakları nelerdir",
+      "beklenen": [
+        "TBK 125"
+      ],
+      "not": "Seçimlik haklar."
+    },
+    {
+      "soru": "sebepsiz zenginleşen kişiden iade istenebilir mi",
+      "beklenen": [
+        "TBK 77"
+      ],
+      "not": "Sebepsiz zenginleşme."
+    },
+    {
+      "soru": "fazla çalışma ücreti nasıl ödenir",
+      "beklenen": [
+        "İşK 41"
+      ],
+      "not": "Fazla çalışma ücreti."
+    },
+    {
+      "soru": "yıllık ücretli izin hakkı ne zaman doğar ve kaç gündür",
+      "beklenen": [
+        "İşK 53"
+      ],
+      "not": "Yıllık ücretli izin."
+    },
+    {
+      "soru": "dava masraflarını karşılayamıyorum adli yardım alabilir miyim",
+      "beklenen": [
+        "HMK 334"
+      ],
+      "not": "Adli yardım."
     }
   ]
 }
