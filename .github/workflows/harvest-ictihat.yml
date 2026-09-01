@@ -25,9 +25,15 @@ name: İçtihat Hasadı
 # görüyor). Aşağıda varsayılan olarak yazılı; yine de secret tanımlanırsa o
 # kullanılır, böylece başka bir projeye taşınabilir.
 
+# ZAMANLAMA ARTIK BURADA DEĞİL: hasat, Supabase içindeki pg_cron ile çalışıyor
+# (bkz. 0040_hasat_zamanlama.sql). Sebebi, buradaki zamanlı çalışmanın repoya
+# secret eklenmesine bağlı olması ve o adım tamamlanamadığı için dokuz çalışmanın
+# üst üste düşmesiydi. Veritabanı tarafı dış yapılandırma istemiyor.
+#
+# Bu iş akışı ELLE çalıştırmak için duruyor: toplu hasat gerektiğinde (yeni terim
+# listesi, geniş tarama) tek turluk edge fonksiyonundan çok daha hızlıdır.
+# Çalıştırmak için SUPABASE_SERVICE_ROLE_KEY secret'ı gerekir.
 on:
-  schedule:
-    - cron: '0 */3 * * *' # her 3 saatte bir
   workflow_dispatch:
     inputs:
       max:
