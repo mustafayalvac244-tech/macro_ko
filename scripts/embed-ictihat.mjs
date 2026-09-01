@@ -23,6 +23,9 @@
 //   EMBED_MAX_CALLS    bu çalışmadaki en fazla çağrı (vars. 500)
 //   EMBED_DELAY        çağrılar arası bekleme, ms (vars. 750)
 //   EMBED_MAX_STRIKES  art arda kaç geçici hataya katlanılacağı (vars. 15)
+//   EMBED_KAYNAK       'ictihat' (vars.) | 'mevzuat' — hangi havuz doldurulacak
+//   EMBED_SIRA         'asc' (vars.) | 'desc' — iki işçiyi iki uçtan çalıştırıp
+//                      toplu doldurmayı hızlandırmak için
 // ---------------------------------------------------------------------------
 
 const BATCH = Math.min(6, Math.max(1, Number(process.env.EMBED_BATCH ?? 4)));
@@ -31,6 +34,8 @@ const MAX_CALLS = Number(process.env.EMBED_MAX_CALLS ?? 500);
 // Daha nazik hız, sınıra hiç çarpmadan tamamlama şansını artırıyor.
 const DELAY = Number(process.env.EMBED_DELAY ?? 750);
 const MAX_STRIKES = Number(process.env.EMBED_MAX_STRIKES ?? 15);
+const KAYNAK = process.env.EMBED_KAYNAK === 'mevzuat' ? 'mevzuat' : 'ictihat';
+const SIRA = process.env.EMBED_SIRA === 'desc' ? 'desc' : 'asc';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -47,7 +52,7 @@ async function main() {
   }
 
   const endpoint = `${url.replace(/\/+$/, '')}/functions/v1/embed-ictihat`;
-  log(`Vektörleme başlıyor · batch=${BATCH} · max_calls=${MAX_CALLS}`);
+  log(`Vektörleme başlıyor · kaynak=${KAYNAK} · sıra=${SIRA} · batch=${BATCH} · max_calls=${MAX_CALLS}`);
 
   let processed = 0;
   let failed = 0;
@@ -72,7 +77,7 @@ async function main() {
           apikey: key,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ limit: BATCH }),
+        body: JSON.stringify({ limit: BATCH, kaynak: KAYNAK, sira: SIRA }),
       });
       body = await res.text();
     } catch (e) {

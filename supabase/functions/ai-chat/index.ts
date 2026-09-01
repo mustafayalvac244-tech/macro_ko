@@ -709,10 +709,21 @@ async function buildGrounding(supabase: any, question: string): Promise<string> 
  */
 // deno-lint-ignore no-explicit-any
 async function buildMevzuat(supabase: any, question: string): Promise<string> {
-  const { data } = await supabase.rpc('search_mevzuat_fts', { q: question, match_count: 7 });
+  // HİBRİT: kelime araması + anlamsal arama BİRLİKTE (içtihatta kurulan düzenin
+  // aynısı). Gerekçesi ölçüldü: kelime araması, avukatın günlük diliyle kanunun
+  // terimini eşleştiremiyor — "şiddetli geçimsizlik" yazan avukat, "evlilik
+  // birliğinin temelinden sarsılması" diyen TMK m.166'yı bulamıyor; ortak
+  // kelime yok. Anlamsal arama tam bu boşluğu kapatır.
+  const qEmb = await embedQuery(question);
+  const [ftsRes, semRes] = await Promise.all([
+    supabase.rpc('search_mevzuat_fts', { q: question, match_count: 7 }),
+    qEmb
+      ? supabase.rpc('match_mevzuat_semantic', { q_embedding: qEmb, match_count: 4 })
+      : Promise.resolve({ data: null }),
+  ]);
+
   // deno-lint-ignore no-explicit-any
-  let rows: any[] = data ?? [];
-  if (rows.length === 0) return '';
+  let rows: any[] = ftsRes?.data ?? [];
   // Yalnızca GERÇEKTEN ilgili maddeleri tut: en yüksek skorun ~%30'unun altındaki
   // gürültüyü ele. Böylece hem doğruluk korunur hem de her çağrının token yükü
   // (ve ücretsiz katman kota tüketimi) düşük kalır.
@@ -722,16 +733,37 @@ async function buildMevzuat(supabase: any, question: string): Promise<string> {
   // indirgemenin kaçırdıkları — tahliyede görevli mahkemeyi söyleyen HMK m.4
   // gibi. 5'te kesilirse veritabanı düzeltmesi modele hiç ulaşmıyordu.
   rows = rows.slice(0, 7);
+
+  // Anlamsal sonuçlar SONA eklenir, kelime sıralamasını bozmadan: kelime yolu
+  // ölçülerek iyileştirildi, anlamsal yol onun kaçırdıklarını tamamlar.
+  const varOlan = new Set(rows.map((r: { kanun_short?: string; madde_no?: string }) => `${r.kanun_short} ${r.madde_no}`));
+  for (const r of (semRes?.data ?? []) as Array<{ kanun_short?: string; madde_no?: string }>) {
+    const anahtar = `${r.kanun_short} ${r.madde_no}`;
+    if (varOlan.has(anahtar)) continue;
+    varOlan.add(anahtar);
+    rows.push(r);
+    if (rows.length >= 10) break; // besleme şişmesin
+  }
+  if (rows.length === 0) return '';
   const refs = rows
     // deno-lint-ignore no-explicit-any
-    .map((r: any) => `• ${r.kanun_short} m.${r.madde_no}${r.baslik ? ' (' + r.baslik + ')' : ''}: ${String(r.snippet ?? '').slice(0, 420).trim()}`)
+    // 420 değil 600: metin ortasından kesilince model kalanını kendi
+    // cümlesiyle tamamlayıp bunu tırnak içinde ALINTI gibi sunuyordu.
+    .map((r: any) => `• ${r.kanun_short} m.${r.madde_no}${r.baslik ? ' (' + r.baslik + ')' : ''}: ${String(r.snippet ?? '').slice(0, 600).trim()}`)
     .join('\n');
   return (
     '\n\n### İLGİLİ OLABİLECEK YÜRÜRLÜKTEKİ MADDE METİNLERİ (kendi kanun veritabanımızdan, GERÇEK metin):\n' +
     refs +
     '\nBu maddelerden yalnızca soruyla GERÇEKTEN ilgili olanları kullan, ilgisizleri yok say. Bir maddenin ' +
     'numarasını veya metnini belirtirken buradaki gerçek metni esas al; burada verilmeyen bir maddenin metnini ' +
-    'birebir alıntı olarak uydurma.'
+    'birebir alıntı olarak uydurma.\n' +
+    // Ölçülen arıza: model, HMK m.4\'ü tırnak içinde "…tüm uyuşmazlıkları konu
+    // alır" diye aktardı; maddede böyle bir ifade YOK. Avukat tırnak içindeki
+    // metni dilekçesine olduğu gibi taşırsa mahkemeye yanlış metin sunar.
+    'ALINTI KURALI: Tırnak içinde ("…") yazdığın her madde metni, yukarıdaki ' +
+    'metinden BİREBİR kopyalanmış olmalı. Kelime ekleme, çıkarma veya değiştirme; ' +
+    'kısaltman gerekiyorsa yalnızca üç nokta (…) kullan. Metni kendi cümlenle ' +
+    'özetliyorsan TIRNAK KULLANMA — özet olduğunu belli et.'
   );
 }
 

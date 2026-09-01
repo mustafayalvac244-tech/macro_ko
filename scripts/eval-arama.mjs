@@ -19,6 +19,9 @@
 //   EVAL_K    kaç sonuca bakılacağı (vars. 7 — ai-chat ile aynı)
 //   EVAL_RPC  ölçülecek arama fonksiyonu (vars. search_mevzuat_fts). Aday bir
 //             sıralamayı yayına almadan yan yana ölçmek için kullanılır.
+//   EVAL_HIBRIT=1  ai-chat'in yaptığı gibi anlamsal sonuçları da SONA ekler.
+//             Sorgu vektörü yalnız edge çalışma zamanında üretilebildiği için
+//             embed-ictihat işlevinden alınır.
 // Çıkış kodu: bir soru bile kaçarsa 1 (CI'da gerilemeyi yakalamak için).
 // ---------------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
@@ -28,6 +31,7 @@ import { dirname, join } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const K = Number(process.env.EVAL_K ?? 7);
 const RPC = process.env.EVAL_RPC || 'search_mevzuat_fts';
+const HIBRIT = process.env.EVAL_HIBRIT === '1';
 
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -55,7 +59,41 @@ async function ara(soru, deneme = 0) {
     throw new Error(`arama başarısız (${res.status}): ${(await res.text()).slice(0, 200)}`);
   }
   const rows = await res.json();
-  return rows.map((r) => anahtar(r.kanun_short, r.madde_no));
+  const liste = rows.map((r) => anahtar(r.kanun_short, r.madde_no));
+  if (!HIBRIT) return liste;
+
+  // ai-chat ile AYNI birleştirme: anlamsal sonuçlar sona eklenir, kelime
+  // sıralaması bozulmaz. Farklı birleştirseydik ölçtüğümüz şey, kullanıcının
+  // gördüğü şey olmazdı.
+  const vec = await sorguVektoru(soru);
+  if (!vec) return liste;
+  const sem = await rpc('match_mevzuat_semantic', { q_embedding: vec, match_count: 4 });
+  for (const r of sem) {
+    const a = anahtar(r.kanun_short, r.madde_no);
+    if (!liste.includes(a)) liste.push(a);
+    if (liste.length >= 10) break;
+  }
+  return liste;
+}
+
+async function rpc(ad, govde) {
+  const res = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/rpc/${ad}`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(govde),
+  });
+  return res.ok ? res.json() : [];
+}
+
+async function sorguVektoru(soru) {
+  const res = await fetch(`${url.replace(/\/+$/, '')}/functions/v1/embed-ictihat`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ embed: soru }),
+  });
+  if (!res.ok) return null;
+  const j = await res.json();
+  return Array.isArray(j?.embedding) ? j.embedding : null;
 }
 
 const { sorular } = JSON.parse(readFileSync(join(__dirname, 'arama-sorulari.json'), 'utf8'));
@@ -65,7 +103,7 @@ let bulunan = 0;
 const kacanlar = [];
 let hatali = 0;
 
-console.log(`Mevzuat arama ölçümü · ${RPC} · ${sorular.length} soru · ilk ${K} sonuç\n`);
+console.log(`Mevzuat arama ölçümü · ${RPC}${HIBRIT ? ' + anlamsal' : ''} · ${sorular.length} soru · ilk ${K} sonuç\n`);
 
 for (const s of sorular) {
   let sonuclar;
