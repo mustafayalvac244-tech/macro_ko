@@ -11,87 +11,215 @@
   "sorular": [
     {
       "soru": "kiracı kirayı ödemiyor tahliye etmek istiyorum ne yapmalıyım",
-      "beklenen": ["TBK 315", "HMK 4"],
+      "beklenen": [
+        "TBK 315",
+        "HMK 4"
+      ],
       "not": "TBK 315 temerrüt ve süre verme; HMK 4 tahliyede görevli mahkeme."
     },
     {
       "soru": "kira nedeniyle tahliye davası hangi mahkemede açılır",
-      "beklenen": ["HMK 4"],
+      "beklenen": [
+        "HMK 4"
+      ],
       "not": "Sulh hukuk mahkemelerinin görevi."
     },
     {
       "soru": "istinafa başvurmak için kaç günüm var",
-      "beklenen": ["HMK 345"],
+      "beklenen": [
+        "HMK 345"
+      ],
       "not": "İki hafta, ilamın tebliğinden."
     },
     {
       "soru": "bölge adliye mahkemesi kararını temyiz edebilir miyim",
-      "beklenen": ["HMK 361"]
+      "beklenen": [
+        "HMK 361"
+      ]
     },
     {
       "soru": "boşanıyorum eşim bana nafaka ödemek zorunda mı",
-      "beklenen": ["TMK 175"],
+      "beklenen": [
+        "TMK 175"
+      ],
       "not": "Yoksulluk nafakası."
     },
     {
       "soru": "eşimle şiddetli geçimsizlik var boşanma davası açacağım",
-      "beklenen": ["TMK 166"],
+      "beklenen": [
+        "TMK 166"
+      ],
       "not": "Evlilik birliğinin temelinden sarsılması."
     },
     {
       "soru": "işçinin ücreti ödenmiyor sözleşmeyi feshedebilir mi",
-      "beklenen": ["İşK 24"],
+      "beklenen": [
+        "İşK 24"
+      ],
       "not": "İşçinin haklı nedenle derhal fesih hakkı."
     },
     {
       "soru": "işçi işyerinde hırsızlık yaptı tazminatsız çıkarabilir miyim",
-      "beklenen": ["İşK 25"],
+      "beklenen": [
+        "İşK 25"
+      ],
       "not": "İşverenin haklı nedenle derhal fesih hakkı."
     },
     {
       "soru": "belirsiz süreli sözleşmede ihbar öneli ne kadar",
-      "beklenen": ["İşK 17"],
+      "beklenen": [
+        "İşK 17"
+      ],
       "not": "Süreli fesih."
     },
     {
       "soru": "alacağım için en geç kaç yıl içinde dava açmalıyım",
-      "beklenen": ["TBK 146"],
+      "beklenen": [
+        "TBK 146"
+      ],
       "not": "On yıllık genel zamanaşımı."
     },
     {
       "soru": "kira bedeli alacağında zamanaşımı kaç yıldır",
-      "beklenen": ["TBK 147"],
+      "beklenen": [
+        "TBK 147"
+      ],
       "not": "Beş yıllık zamanaşımı."
     },
     {
       "soru": "bilirkişi raporuna itiraz için ne kadar sürem var",
-      "beklenen": ["HMK 281"],
+      "beklenen": [
+        "HMK 281"
+      ],
       "not": "Raporun tebliğinden iki hafta."
     },
     {
       "soru": "hakimin verdiği kesin süreyi kaçırırsam ne olur",
-      "beklenen": ["HMK 94"]
+      "beklenen": [
+        "HMK 94"
+      ]
     },
     {
       "soru": "dava dilekçesinde hangi bilgiler bulunmak zorunda",
-      "beklenen": ["HMK 119"]
+      "beklenen": [
+        "HMK 119"
+      ]
     },
     {
       "soru": "cevap dilekçesi vermek için kaç haftam var",
-      "beklenen": ["HMK 127"],
+      "beklenen": [
+        "HMK 127"
+      ],
       "not": "Tebliğden iki hafta."
     },
     {
       "soru": "açtığım davayı ıslah edebilir miyim",
-      "beklenen": ["HMK 176"]
+      "beklenen": [
+        "HMK 176"
+      ]
     },
     {
       "soru": "karşı tarafın malı üzerine ihtiyati tedbir koydurmak istiyorum",
-      "beklenen": ["HMK 389"]
+      "beklenen": [
+        "HMK 389"
+      ]
     },
     {
       "soru": "mahkeme görevsizlik kararı verdi şimdi ne yapmalıyım",
-      "beklenen": ["HMK 20"]
+      "beklenen": [
+        "HMK 20"
+      ]
+    },
+    {
+      "soru": "davacı alacağın miktarını baştan tam olarak belirleyemiyorsa davasını nasıl açar",
+      "beklenen": [
+        "HMK 107"
+      ],
+      "not": "Belirsiz alacak davası."
+    },
+    {
+      "soru": "mahkemenin esasa girmeden kendiliğinden araştırdığı hususlar nelerdir",
+      "beklenen": [
+        "HMK 114"
+      ],
+      "not": "Dava şartları."
+    },
+    {
+      "soru": "tanık dinletmek istiyorum mahkemeye nasıl bildiririm",
+      "beklenen": [
+        "HMK 240"
+      ],
+      "not": "Tanık gösterme şekli."
+    },
+    {
+      "soru": "mirası reddetmek istiyorum nasıl yapabilirim",
+      "beklenen": [
+        "TMK 605"
+      ],
+      "not": "Ret hakkı."
+    },
+    {
+      "soru": "mirasçı olduğumu belgelemek için nereye başvurmalıyım",
+      "beklenen": [
+        "TMK 598"
+      ],
+      "not": "Mirasçılık belgesi; sulh mahkemesi veya noter."
+    },
+    {
+      "soru": "tapusuz taşınmazı yirmi yıldır kullanıyorum adıma tescil ettirebilir miyim",
+      "beklenen": [
+        "TMK 713"
+      ],
+      "not": "Olağanüstü zamanaşımıyla kazanma."
+    },
+    {
+      "soru": "haksız fiilden doğan tazminat isteminde zamanaşımı ne kadardır",
+      "beklenen": [
+        "TBK 72"
+      ],
+      "not": "Öğrenmeden iki, her hâlde on yıl."
+    },
+    {
+      "soru": "komşum bahçemdeki ağaçlara zarar verdi tazminat isteyebilir miyim",
+      "beklenen": [
+        "TBK 49"
+      ],
+      "not": "Haksız fiil sorumluluğu."
+    },
+    {
+      "soru": "borçlu edimini hiç yerine getirmedi uğradığım zararı isteyebilir miyim",
+      "beklenen": [
+        "TBK 112"
+      ],
+      "not": "Borca aykırılıkta tazminat."
+    },
+    {
+      "soru": "sosyal medyada hakkımda hakaret içerikli paylaşım yapıldı ne yapabilirim",
+      "beklenen": [
+        "TCK 125"
+      ],
+      "not": "Hakaret suçu."
+    },
+    {
+      "soru": "otuz işçi çalışan işyerinde işten çıkarma için geçerli sebep aranır mı",
+      "beklenen": [
+        "İşK 18"
+      ],
+      "not": "İş güvencesi kapsamı."
+    },
+    {
+      "soru": "işveren geçersiz sebeple işten çıkardı işe iade edilirsem ne alırım",
+      "beklenen": [
+        "İşK 21"
+      ],
+      "not": "Geçersiz feshin sonuçları."
+    },
+    {
+      "soru": "savcılık takipsizlik kararı verdi buna itiraz edebilir miyim",
+      "beklenen": [
+        "CMK 173"
+      ],
+      "not": "Kovuşturmaya yer olmadığına dair karara itiraz."
     }
   ]
 }
