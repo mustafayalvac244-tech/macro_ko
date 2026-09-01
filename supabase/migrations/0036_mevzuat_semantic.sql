@@ -17,6 +17,18 @@
 -- SINIRI BİLEREK: gte-small İngilizce ağırlıklıdır, Türkçe hukuk metninde
 -- skorları birbirine yakın çıkar. Bu yüzden kelime aramasının YERİNE değil,
 -- YANINA konur — içtihatta kurulan hibrit düzenin aynısı.
+--
+-- SONRADAN ÖLÇÜLDÜ — yukarıdaki üç örneğin YALNIZ BİRİ düzeldi:
+--   ✓ "ihbar öneli"          → İşK m.17 bulundu (anlamsal sırada 4.)
+--   ✗ "şiddetli geçimsizlik" → TMK m.166 yine bulunamadı. Bu sorguda anlamsal
+--     arama tamamen ilgisiz sonuç verdi (TBK m.153 zamanaşımı, CMK m.171 kamu
+--     davası) ve skorlar 0,894–0,897 aralığında sıkıştı; yani model bu metinler
+--     arasında ayrım YAPAMIYOR.
+--   ✗ "kaç yıl içinde dava"  → TBK m.146 yine bulunamadı.
+-- Toplam etki: %57,9 → %63,2 (12/19), iki koşuda aynı. Kazanç gerçek ama
+-- mütevazı; maliyeti sıfır olduğu için tutuluyor. Türkçe hukuk metnine uygun
+-- bir gömme modeli, bu tabloyu asıl değiştirecek adımdır — mevcut model
+-- "anlamsal arama var" demeyi hak ediyor ama sorunu çözmüş sayılmaz.
 
 alter table public.mevzuat_maddeleri
   add column if not exists embedding vector(384);
