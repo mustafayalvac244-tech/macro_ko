@@ -24,6 +24,10 @@
 // değil hız sınırını ölçer.
 //
 // Env: EVAL_BEKLEME  sorular arası ms (vars. 20000)
+//
+// DİKKAT: bu ölçüm gerçek AI çağrısı yapar ve ücretsiz katmanın GÜNLÜK
+// kotasından yer. Arka arkaya birkaç koşu, kotayı bitirip uygulamadaki AI'yi
+// o gün için kullanılamaz hâle getirebilir. Ölçümü seyrek ve tek koşu yapın.
 // ---------------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -79,11 +83,19 @@ async function sor(jwt, soru, deneme = 0) {
     headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages: [{ role: 'user', text: soru }] }),
   });
-  if (res.status === 429 && deneme < 4) {
-    const bekle = 30000 * (deneme + 1);
-    console.log(`    (hız sınırı — ${bekle / 1000}sn bekleniyor)`);
-    await uyu(bekle);
-    return sor(jwt, soru, deneme + 1);
+  if (res.status === 429) {
+    const govde = await res.text();
+    // GÜNLÜK KOTA ile ANLIK HIZ SINIRI farklıdır ve karıştırmak ölçümü bozar:
+    // kota bittiyse beklemek işe yaramaz, her soru "yanlış" sayılır ve ortaya
+    // modelin kalitesini değil kotanın bittiğini gösteren sahte bir oran çıkar.
+    // Bu ölçüm bir kez tam da böyle yanıldı (%75 → %25 "gerileme" sanılmıştı).
+    if (govde.includes('daily_quota')) throw new Error('DAILY_QUOTA');
+    if (deneme < 4) {
+      const bekle = 30000 * (deneme + 1);
+      console.log(`    (hız sınırı — ${bekle / 1000}sn bekleniyor)`);
+      await uyu(bekle);
+      return sor(jwt, soru, deneme + 1);
+    }
   }
   if (!res.ok) throw new Error(`ai-chat ${res.status}: ${(await res.text()).slice(0, 150)}`);
   return String((await res.json())?.text ?? '');
@@ -126,6 +138,15 @@ try {
     try {
       cevap = await sor(jwt, s.soru);
     } catch (e) {
+      if (e.message === 'DAILY_QUOTA') {
+        console.error(
+          '\nDURDURULDU: sağlayıcının GÜNLÜK kotası tükendi. Kalan sorular ölçülmedi.\n' +
+            'Bu koşudan oran ÇIKARMAYIN — eksik ölçüm, gerçek bir gerilemeymiş gibi görünür.\n' +
+            'Kota yenilenince tekrar çalıştırın.'
+        );
+        process.exitCode = 2;
+        break;
+      }
       console.log(`✗ ${s.soru}\n    HATA: ${e.message}`);
       basarisiz.push({ soru: s.soru, sebep: e.message });
       continue;
