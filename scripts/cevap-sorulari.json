@@ -65,7 +65,7 @@
       "soru": "Kira bedeli alacağında zamanaşımı süresi kaç yıldır?",
       "dayanak": "TBK m.147: kira bedelleri beş yıllık zamanaşımına tabidir",
       "icermeli": [
-        "beş yıl|5 yıl"
+        "re:be[şs]\\W*(\\(?5\\)?)?\\W*y[ıi]l|5\\W*y[ıi]l"
       ],
       "icermemeli": [
         "on yıllık zamanaşımına tabidir"
@@ -76,7 +76,7 @@
       "soru": "Kanunda özel bir hüküm yoksa alacaklar için genel zamanaşımı süresi kaç yıldır?",
       "dayanak": "TBK m.146: her alacak on yıllık zamanaşımına tabidir",
       "icermeli": [
-        "on yıl|10 yıl"
+        "re:on\\W*(\\(?10\\)?)?\\W*y[ıi]l|10\\W*y[ıi]l"
       ],
       "icermemeli": [
         "beş yıllık genel zamanaşımı"
@@ -148,8 +148,8 @@
       "soru": "Haksız fiilden doğan tazminat isteminde zamanaşımı süreleri nelerdir?",
       "dayanak": "TBK m.72: öğrenmeden iki yıl, her hâlde fiilden on yıl; ceza zamanaşımı daha uzunsa o uygulanır",
       "icermeli": [
-        "iki yıl|2 yıl",
-        "on yıl|10 yıl"
+        "re:iki\\W*(\\(?2\\)?)?\\W*y[ıi]l|2\\W*y[ıi]l",
+        "re:on\\W*(\\(?10\\)?)?\\W*y[ıi]l|10\\W*y[ıi]l"
       ],
       "icermemeli": [],
       "enFazlaKarakter": 1200

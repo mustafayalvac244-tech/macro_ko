@@ -30,6 +30,7 @@
 // o gün için kullanılamaz hâle getirebilir. Ölçümü seyrek ve tek koşu yapın.
 // ---------------------------------------------------------------------------
 import { readFileSync, writeFileSync } from 'node:fs';
+import { gecer } from './eslestir.mjs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -101,29 +102,6 @@ async function sor(jwt, soru, deneme = 0) {
   return String((await res.json())?.text ?? '');
 }
 
-/**
- * Türkçe aksanları sadeleştirir. Model "tebliğinden" yerine "tebliginden"
- * yazabiliyor; bu bir yazım farkı, hukuk hatası değil. Sadeleştirmeden
- * ölçtüğümde doğru bir cevabı YANLIŞ saymıştım — ölçüm aracının kendisi
- * hataya sebep olmuştu.
- */
-function sadelestir(v) {
-  return v
-    .toLocaleLowerCase('tr')
-    .replace(/[ğüşıöçâîû]/g, (c) => ({ ğ: 'g', ü: 'u', ş: 's', ı: 'i', ö: 'o', ç: 'c', â: 'a', î: 'i', û: 'u' })[c])
-    // Model bazen normal boşluk yerine bölünmez/dar boşluk (U+00A0, U+202F)
-    // veya farklı tire (U+2011) üretiyor. "30 gün" arayan bir ölçüt, aradaki
-    // boşluk bölünmez olduğu için eşleşmeyebilir ve DOĞRU cevabı yanlış sayar.
-    .replace(/[\u00a0\u2007\u202f\u2009\u200a]/g, ' ')
-    .replace(/[\u2010\u2011\u2012\u2013\u2014]/g, '-')
-    .replace(/\s+/g, ' ');
-}
-
-/** 'a|b' → biri geçse yeterli. */
-function gecer(metin, kalip) {
-  const d = sadelestir(metin);
-  return kalip.split('|').some((p) => d.includes(sadelestir(p)));
-}
 
 const { sorular } = JSON.parse(readFileSync(join(__dirname, 'cevap-sorulari.json'), 'utf8'));
 
