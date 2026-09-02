@@ -8,6 +8,7 @@
     "  icermeli   : hepsi geçmeli (her biri seçenekli: 'a|b' → biri yeterli)",
     "  icermemeli : hiçbiri geçmemeli — bunlar ÖLÇÜLMÜŞ yanlış cevaplardır",
     "",
+    "  enFazlaKarakter : tek bilgi sorulan sorularda cevap bundan uzunsa BAŞARISIZ",
     "Kullanım: node scripts/eval-cevap.mjs"
   ],
   "sorular": [
@@ -22,7 +23,8 @@
         "asliye hukuk mahkemesinde açıl",
         "iş mahkemesinde açıl",
         "en az 15 gün|en az on beş gün"
-      ]
+      ],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "İstinaf yoluna başvuru süresi ne kadardır ve süre ne zaman işlemeye başlar?",
@@ -34,7 +36,8 @@
       "icermemeli": [
         "bir ay içinde istinaf",
         "30 gün içinde istinaf"
-      ]
+      ],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "Cevap dilekçesi vermek için kaç haftam var ve süre neyden itibaren işler?",
@@ -43,7 +46,8 @@
         "iki hafta|2 hafta|14 gün",
         "tebliğ"
       ],
-      "icermemeli": []
+      "icermemeli": [],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "Bilirkişi raporuna itiraz için ne kadar sürem var?",
@@ -54,7 +58,8 @@
       ],
       "icermemeli": [
         "bir hafta içinde itiraz|7 gün içinde itiraz"
-      ]
+      ],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "Kira bedeli alacağında zamanaşımı süresi kaç yıldır?",
@@ -64,7 +69,8 @@
       ],
       "icermemeli": [
         "on yıllık zamanaşımına tabidir"
-      ]
+      ],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "Kanunda özel bir hüküm yoksa alacaklar için genel zamanaşımı süresi kaç yıldır?",
@@ -74,7 +80,8 @@
       ],
       "icermemeli": [
         "beş yıllık genel zamanaşımı"
-      ]
+      ],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "İşyerinde iki yıldır çalışan belirsiz süreli sözleşmeli işçinin ihbar öneli kaç haftadır?",
@@ -82,7 +89,8 @@
       "icermeli": [
         "altı hafta|6 hafta"
       ],
-      "icermemeli": []
+      "icermemeli": [],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "İcra dairesinin hukuka aykırı işlemine karşı nereye ve kaç gün içinde başvurulur?",
@@ -93,7 +101,8 @@
       ],
       "icermemeli": [
         "asliye hukuk mahkemesine şikayet"
-      ]
+      ],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "Dava açmadan önce aldığım ihtiyati tedbir kararını ne kadar sürede uygulatmam gerekir, uygulatmazsam ne olur?",
@@ -102,7 +111,8 @@
         "bir hafta|1 hafta",
         "kendiliğinden kalk"
       ],
-      "icermemeli": []
+      "icermemeli": [],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "Şiddetli geçimsizlik nedeniyle boşanmak istiyorum, kanundaki dayanak nedir?",
@@ -111,7 +121,8 @@
         "166",
         "temelinden sars"
       ],
-      "icermemeli": []
+      "icermemeli": [],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "Dava dilekçesinde vakıaları ve delilleri nasıl göstermem gerekir?",
@@ -120,7 +131,8 @@
         "sıra numarası|numaraland",
         "delil"
       ],
-      "icermemeli": []
+      "icermemeli": [],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "Mahkeme dava şartlarını ne zaman inceler, eksikse dava nasıl reddedilir?",
@@ -129,7 +141,8 @@
         "kendiliğinden|resen",
         "usulden"
       ],
-      "icermemeli": []
+      "icermemeli": [],
+      "enFazlaKarakter": 1200
     },
     {
       "soru": "Haksız fiilden doğan tazminat isteminde zamanaşımı süreleri nelerdir?",
@@ -138,7 +151,8 @@
         "iki yıl|2 yıl",
         "on yıl|10 yıl"
       ],
-      "icermemeli": []
+      "icermemeli": [],
+      "enFazlaKarakter": 1200
     }
   ]
 }

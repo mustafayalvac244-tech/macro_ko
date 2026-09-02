@@ -238,7 +238,23 @@ const SYSTEM_PROMPT =
   'açıklama yapma — istenen ÇIKTIYI doğrudan, kullanıma hazır TASLAK olarak üret. Dilekçe/yazı ise ' +
   'başlık (mahkeme/merci), taraflar, konu, açıklamalar, hukuki sebepler (madde atıflı), deliller, ' +
   'sonuç ve talep bölümleriyle yaz; eksik bilgiler için [Örn. …] köşeli parantez bırak. Süre/hesap ise ' +
-  'adım adım hesapla ve tarihi ver. Her görevin sonunda kısa bir "KONTROL LİSTESİ" ekle. ' +
+  'adım adım hesapla ve tarihi ver. ' +
+  //
+  // CEVAP UZUNLUĞU. Ölçülen arıza: "istinaf süresi ne kadar" gibi tek cevaplı
+  // bir soruya tablo + "uygulama adımları" + numaralı liste + kontrol listesi
+  // üretiliyordu. Avukat aradığı bir satırı bulmak için sayfayı taramak zorunda
+  // kalıyor; dolgu, cevabı iyileştirmiyor, gizliyor. Talimatın kendisi bunu
+  // teşvik ediyordu ("her görevin sonunda kontrol listesi ekle") — kaldırıldı.
+  'CEVAP UZUNLUĞU — SORUYA ORANTILI YAZ: Uzunluk kalite değildir. Tek bilgi ' +
+  'sorulmuşsa (bir süre, görevli mahkeme, bir madde numarası, evet/hayır) ' +
+  'CEVABI İLK CÜMLEDE VER, dayanağını ekle ve BİTİR — 2-4 cümle yeterlidir. ' +
+  'Sorulmadıkça tablo, "uygulama adımları", numaralı yol haritası, dilekçe ' +
+  'taslağı, kontrol listesi veya özet bölümü EKLEME. Soru dar ise cevabı ' +
+  'genişletme; ilgisiz yan konuları (başka dava türleri, genel bilgiler, ' +
+  'tekrar eden uyarılar) yazma. Kapsamlı çıktıyı yalnızca avukat gerçekten ' +
+  'bir İŞ istediğinde üret (dilekçe, ihtarname, adım planı, süre hesabı); o ' +
+  'zaman da yalnız istenen çıktıyı ver ve sonuna kısa bir "KONTROL LİSTESİ" ekle. ' +
+  'Aynı şeyi iki kez söyleme. Tek cümlelik cevap doğruysa tek cümle yaz. ' +
   //
   // MUHAKEME DİSİPLİNİ: her hukuki soruda tutarlı, avukat gibi düşünme yöntemi.
   'MUHAKEME DİSİPLİNİ — bir hukuki soruyu yanıtlarken şu unsurları ayrı ayrı ve doğru düşün: ' +

@@ -160,16 +160,23 @@ try {
 
     const eksik = (s.icermeli ?? []).filter((k) => !gecer(cevap, k));
     const yasak = (s.icermemeli ?? []).filter((k) => gecer(cevap, k));
+    // UZUNLUK da bir kalite ölçütüdür: tek bilgi sorulan soruya tablo + adım
+    // planı + kontrol listesi üretmek cevabı iyileştirmiyor, aradığı satırı
+    // avukattan gizliyor. Doğru ama gereksiz uzun cevap BAŞARISIZ sayılır.
+    const uzun = s.enFazlaKarakter && cevap.length > s.enFazlaKarakter
+      ? `${cevap.length} karakter (üst sınır ${s.enFazlaKarakter})`
+      : null;
 
-    if (eksik.length === 0 && yasak.length === 0) {
+    if (eksik.length === 0 && yasak.length === 0 && !uzun) {
       dogru++;
-      console.log(`✓ ${s.soru}`);
+      console.log(`✓ ${s.soru}  (${cevap.length} krktr)`);
     } else {
       console.log(`✗ ${s.soru}`);
       console.log(`    dayanak : ${s.dayanak}`);
       if (eksik.length) console.log(`    EKSİK   : ${eksik.join(' · ')}`);
       if (yasak.length) console.log(`    YANLIŞ  : ${yasak.join(' · ')}`);
-      basarisiz.push({ soru: s.soru, eksik, yasak, cevap });
+      if (uzun) console.log(`    ÇOK UZUN: ${uzun}`);
+      basarisiz.push({ soru: s.soru, eksik, yasak, uzun, uzunluk: cevap.length, cevap });
     }
   }
 } finally {
