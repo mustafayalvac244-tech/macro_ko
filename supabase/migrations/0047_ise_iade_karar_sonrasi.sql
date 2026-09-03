@@ -45,5 +45,15 @@ update public.legal_rules set
        || 'işçiyi 1 AY içinde işe başlatmak zorundadır; başlatmazsa işçiye EN AZ 4, EN ÇOK 8 AYLIK '
        || 'ücreti tutarında işe başlatmama tazminatı öder. Ayrıca kararın kesinleşmesine kadar '
        || 'çalıştırılmadığı süre için işçiye EN ÇOK 4 AYA KADAR doğmuş ücret ve diğer hakları '
-       || 'ödenir (boşta geçen süre ücreti). Bu süreler hak düşürücüdür.'
+       || 'ödenir (boşta geçen süre ücreti). '
+       || 'HAK DÜŞÜRÜCÜ OLANLAR yalnız şunlardır: arabuluculuğa başvuru (1 ay), dava açma '
+       || '(2 hafta) ve karar sonrası işe başlama başvurusu (on işgünü). Tazminat miktarları '
+       || '(4-8 aylık ücret, en çok 4 aylık boşta geçen süre) SÜRE DEĞİL, ÖDEME ÖLÇÜSÜDÜR.'
 where id = 'ise_iade';
+
+-- EK DÜZELTME (aynı gün, ikinci uçtan uca denemede görüldü). "işe başlatmama
+-- tazminatı ve boşta geçen süre ücreti ne kadar?" sorusuna model doğru
+-- rakamları verdi ama sonuna "bu süreler hak düşürücüdür" ekledi. Rakamlar
+-- doğru olsa da bu niteleme YANLIŞTI: 4-8 aylık ücret bir süre değil, tazminat
+-- ölçüsüdür. Kuralın son cümlesi bütün rakamlara birden yapışıyordu; hangi
+-- sürelerin hak düşürücü olduğu artık tek tek sayılıyor.
