@@ -751,14 +751,30 @@ Deno.serve(async (req) => {
         }
       };
 
-      const qEmb = await embedQuery(query);
-      if (qEmb) {
-        const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: pageSize });
-        pushRows(data ?? []);
-      }
+      // ÖNCE KELİME ARAMASI, SONRA ANLAMSAL — bu sıra ölçümle belirlendi.
+      //
+      // Eskiden tersiydi ve kelime araması PRATİKTE HİÇ ÇALIŞMIYORDU:
+      // match_ictihat_semantic'in alaka eşiği yok, en yakın komşuları
+      // döndürür; yani her zaman istenen sayıda satır gelir ve "sonuç
+      // yetersizse kelime aramasını da çalıştır" koşulu asla sağlanmazdı.
+      // Ölçüldü: tamamen alakasız bir sorgu ("kedi maması fiyatları") bile
+      // 10 sonuç ve 0,84 skorlar döndürüyor — gerçek eşleşmelerin skoru 0,89.
+      // Sonuç: avukat, kelime araması hiç devreye girmeden yalnız anlamsal
+      // sonuç görüyordu. Oysa gte-small İngilizce ağırlıklı ve Türkçe hukuk
+      // metninde skorları birbirine yakın çıkıyor; kelime araması kanun
+      // terimini birebir yakaladığı için isabeti daha yüksek.
+      const { data: ftsRows } = await supabase.rpc('search_ictihat_fts', { q: query, match_count: pageSize });
+      pushRows(ftsRows ?? []);
+
+      // Anlamsal arama, kelime aramasının eşanlam yüzünden kaçırdıklarını
+      // tamamlar (avukat "işten atıldım" yazar, karar "hizmet akdinin feshi"
+      // der). Sırayı bozmadan, kalan yeri doldurur.
       if (hits.length < pageSize) {
-        const { data } = await supabase.rpc('search_ictihat_fts', { q: query, match_count: pageSize });
-        pushRows(data ?? []);
+        const qEmb = await embedQuery(query);
+        if (qEmb) {
+          const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: pageSize });
+          pushRows(data ?? []);
+        }
       }
 
       // 2) Havuz yetersizse canlı UYAP Emsal'den tamamla (dedupe).
