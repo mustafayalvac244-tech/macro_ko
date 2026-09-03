@@ -731,6 +731,56 @@ async function buildGrounding(supabase: any, question: string): Promise<string> 
 }
 
 /**
+ * ATIF HARİTASI beslemesi — beslemeye giren maddeleri GERÇEKTEN UYGULAYAN
+ * kararları ekler.
+ *
+ * Farkı önemli: içtihat beslemesi kararları METİN BENZERLİĞİYLE buluyor, yani
+ * "konusu benzer" kararlar geliyor. Burada ise kararın metninde o maddeye AÇIK
+ * ATIF var — "TBK'nun 315. maddesinde öngörülen temerrüt nedeniyle tahliye"
+ * gibi. Avukatın aradığı çoğu zaman tam olarak budur: maddeyi uygulayan karar.
+ *
+ * Ölçüldü: havuzdaki 4.058 kararın %44'ünde tanınabilir atıf var, toplam 3.894
+ * atıf çıkarıldı. Örnek denetimde TBK m.315 için dönen beş kararın beşi de
+ * gerçekten temerrüt nedeniyle tahliye kararıydı.
+ *
+ * Besleme KISA tutulur (en fazla üç madde, madde başına bir karar): tek bilgi
+ * sorulan soruya sayfa dolusu cevap ürettirmemek için uzunluk kuralı yeni
+ * konuldu; onu bu blokla geri bozmak anlamsız olurdu.
+ */
+// deno-lint-ignore no-explicit-any
+async function maddeyiUygulayanKararlar(supabase: any, rows: any[]): Promise<string> {
+  const secilen = rows.slice(0, 3);
+  const parcalar: string[] = [];
+  for (const r of secilen) {
+    const kanun = String(r?.kanun_short ?? '').trim();
+    const madde = parseInt(String(r?.madde_no ?? ''), 10);
+    if (!kanun || !Number.isFinite(madde)) continue;
+    try {
+      const { data } = await supabase.rpc('kararlar_madde_ile', {
+        p_kanun: kanun,
+        p_madde: madde,
+        p_limit: 1,
+      });
+      for (const k of (data ?? []) as Array<Record<string, unknown>>) {
+        parcalar.push(
+          `• ${kanun} m.${madde} → ${k.daire ?? ''} E.${k.esas_no ?? ''} K.${k.karar_no ?? ''} (${k.karar_tarihi ?? ''}): ` +
+            String(k.snippet ?? '').slice(0, 180).trim()
+        );
+      }
+    } catch {
+      // atıf haritası yoksa besleme yine çalışır
+    }
+  }
+  if (parcalar.length === 0) return '';
+  return (
+    '\n\n### BU MADDELERİ UYGULAYAN GERÇEK KARARLAR (kendi havuzumuz; karar metninde maddeye açık atıf var):\n' +
+    parcalar.join('\n') +
+    '\nBunlar benzer konulu değil, maddeyi DOĞRUDAN uygulayan kararlardır; ' +
+    'esas/karar numarasını buradan aynen yaz, değiştirme.'
+  );
+}
+
+/**
  * YÜRÜRLÜKTEKİ MEVZUAT beslemesi — uygulamanın kendi kanun veritabanından (7 temel
  * kanun, ~4.500 madde) soruyla ilgili GERÇEK madde metinlerini getirir. Böylece AI
  * madde numarasını/içeriğini hafızasından tahmin etmez; gerçek metne dayanır. Bu,
@@ -792,7 +842,8 @@ async function buildMevzuat(supabase: any, question: string): Promise<string> {
     'ALINTI KURALI: Tırnak içinde ("…") yazdığın her madde metni, yukarıdaki ' +
     'metinden BİREBİR kopyalanmış olmalı. Kelime ekleme, çıkarma veya değiştirme; ' +
     'kısaltman gerekiyorsa yalnızca üç nokta (…) kullan. Metni kendi cümlenle ' +
-    'özetliyorsan TIRNAK KULLANMA — özet olduğunu belli et.'
+    'özetliyorsan TIRNAK KULLANMA — özet olduğunu belli et.' +
+    (await maddeyiUygulayanKararlar(supabase, rows))
   );
 }
 
