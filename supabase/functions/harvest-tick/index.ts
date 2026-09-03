@@ -47,7 +47,7 @@ function kurulOf(daire = ''): string {
   if (d.includes('danıştay')) return 'Danıştay';
   if (d.includes('yargıtay')) return 'Yargıtay';
   if (d.includes('anayasa')) return 'AYM';
-  return 'Diğer';
+  return 'Yerel';
 }
 
 function htmlToText(html = ''): string {

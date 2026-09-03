@@ -445,9 +445,25 @@ function svc(): ReturnType<typeof createClient> | null {
   return _svc;
 }
 
+/**
+ * Kurulu KARARIN GELDİĞİ KAYNAĞA göre değil, DAİRE ADINA göre belirler.
+ *
+ * Eski hâli kaynağa bakıyordu: canlı UYAP Emsal yolundan gelen her karara
+ * "BAM/Yerel" diyordu. Ölçüldü: bu yüzden 14 YARGITAY kararı (ör. "Yargıtay
+ * 1. Ceza Dairesi") havuza "BAM/Yerel" olarak yazılmış. Kaynak, kararın hangi
+ * mercie ait olduğunu söylemez — daire adı söyler.
+ *
+ * Ayrıca hasatçılarla AYNI kuralı kullanır; iki kod yolu farklı etiket
+ * üretince aynı havuzda "Diğer" ve "BAM/Yerel" gibi iki ayrı çöp kova oluşuyordu.
+ */
 function kurulOf(h: Hit): string {
-  if (h.src === 'yargitay') return h.daire.startsWith('Danıştay') ? 'Danıştay' : 'Yargıtay';
-  return 'BAM/Yerel';
+  const d = (h.daire ?? '').toLocaleLowerCase('tr');
+  if (d.includes('bölge adliye')) return 'BAM';
+  if (d.includes('bölge idare')) return 'BİM';
+  if (d.includes('danıştay')) return 'Danıştay';
+  if (d.includes('yargıtay')) return 'Yargıtay';
+  if (d.includes('anayasa')) return 'AYM';
+  return 'Yerel';
 }
 
 /** Bir kararı tam metniyle arşive yaz (idempotent upsert). En iyi çaba; hata yutulur. */
