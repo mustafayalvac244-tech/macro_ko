@@ -33,6 +33,8 @@ const FILES: Record<string, () => LawFile> = {
   'cmk': () => require('./cmk.json') as LawFile,
   'ttk': () => require('./ttk.json') as LawFile,
   'is-kanunu': () => require('./is-kanunu.json') as LawFile,
+  'iik': () => require('./iik.json') as LawFile,
+  'iyuk': () => require('./iyuk.json') as LawFile,
 };
 
 export const LAW_INDEX = indexJson as LawIndexEntry[];
