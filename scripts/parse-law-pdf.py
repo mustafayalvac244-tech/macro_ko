@@ -88,26 +88,96 @@ def birlestir_askida(satirlar: list) -> list:
     return out
 
 
+# Kenar başlığının önündeki sistematik numarası: "IV. ", "G) ", "2 – ", "§ 3. "
+ONEK = re.compile(r'^(?:[A-ZÇĞİÖŞÜ]|[a-zçğıöşü]|[IVXLCMDivxlcmd]+|\d+|§\s*\d+)\s*[\.\)\-–]\s+(.+)$')
+
+
+def temizle_baslik(s: str) -> str:
+    """"IV. Değiştirme yasağı" → "Değiştirme yasağı".
+
+    Havuzdaki diğer kanunlar bu numarayı taşımıyor; taşırsa aynı başlık iki
+    farklı biçimde aranır hâle gelir ve başlık ('A' ağırlıklı) eşleşmesi zayıflar.
+    """
+    m = ONEK.match(s or '')
+    return (m.group(1) if m else (s or '')).strip()
+
+
 def basliktir(s: str) -> bool:
     """Kenar başlığı: iki nokta ile biten kısa satır ("Kapsam ve nitelik:")."""
     return s.endswith(':') and len(s) <= 90 and not MADDE.match(s)
+
+
+def basliksiz_baslik(onceki: str, iki_onceki: str) -> bool:
+    """İki nokta OLMADAN yazılmış kenar başlığı ("Yürütmenin durdurulması").
+
+    Kanunların çoğu kenar başlığını ":" ile bitirir ama hepsi değil; İYUK m.27
+    (yürütmenin durdurulması — en çok sorulan idari yargı konularından) tam
+    bu yüzden başlıksız kalmıştı ve başlık aramada EN YÜKSEK ağırlığı taşıyor.
+
+    Önceki maddenin gövde son cümlesini yanlışlıkla başlık sanmamak için üç
+    koşul birden aranır: satır kısa olacak, cümle gibi bitmeyecek, ve ondan
+    önceki satır bitmiş bir cümle/başlık olacak (yani gövde gerçekten kapanmış).
+    """
+    if not onceki or len(onceki) > 80 or MADDE.match(onceki) or BOLUM.match(onceki):
+        return False
+    if onceki[-1] in '.,;)':
+        return False
+    if re.match(r'^\d+[\.\)]', onceki) or onceki[0].islower():
+        return False
+    return (not iki_onceki) or iki_onceki[-1] in '.:' or BOLUM.match(iki_onceki) is not None
 
 
 def ayikla(pdf: str) -> list:
     satirlar = birlestir_askida(govde_satirlari(pdf))
     maddeler, bolum, baslik, simdiki = [], '', '', None
 
+    # Bölüm başlığı İKİ satırdır ("BİRİNCİ BÖLÜM" + "Uzlaşma"). İkincisi ayrıca
+    # işlenirse maddenin gövdesine sızar ve ondan sonraki gerçek kenar başlığı
+    # ("Uzlaştırma") tanınamaz hâle gelir — CMK m.253 tam bu yüzden başlıksız
+    # kalmıştı. Bölüm adı satırı burada baştan "yutulmuş" işaretlenir.
+    yutulan = set()
+    for i, s in enumerate(satirlar):
+        if BOLUM.match(s) and i + 1 < len(satirlar):
+            ad = satirlar[i + 1]
+            if ad and not MADDE.match(ad) and not basliktir(ad):
+                yutulan.add(i + 1)
+
+    # Geriye doğru, yutulmuş satırları atlayarak bak.
+    def onceki_islenen(idx: int, kac: int) -> str:
+        bulunan = []
+        j = idx - 1
+        while j >= 0 and len(bulunan) < kac:
+            if j not in yutulan and not BOLUM.match(satirlar[j]):
+                bulunan.append(satirlar[j])
+            else:
+                bulunan.append('')          # bölüm başlığı: gövde kapanmış demektir
+            j -= 1
+        while len(bulunan) < kac:
+            bulunan.append('')
+        return bulunan[kac - 1]
+
     for idx, s in enumerate(satirlar):
         if BOLUM.match(s):
-            # Bölüm adı bir sonraki satırdadır ("BİRİNCİ BÖLÜM" / "Genel Esaslar").
             sonraki = satirlar[idx + 1] if idx + 1 < len(satirlar) else ''
-            bolum = sonraki if sonraki and not MADDE.match(sonraki) and not basliktir(sonraki) else s
+            bolum = sonraki if (idx + 1) in yutulan else s
+            continue
+        if idx in yutulan:
             continue
 
         m = MADDE.match(s)
         if m:
             onek = (m.group(1) or '').strip().title()      # "Ek" / "Geçici"
             no = f'{onek} {m.group(2)}'.strip() if onek else m.group(2)
+            if not baslik and idx >= 1 and basliksiz_baslik(
+                    onceki_islenen(idx, 1), onceki_islenen(idx, 2)):
+                ham = onceki_islenen(idx, 1).rstrip(':').strip()
+                baslik = temizle_baslik(ham)
+                # O satır bir önceki maddenin gövdesine eklenmişti; başlık
+                # olduğu ancak şimdi anlaşıldı, gövdeden geri alınır. Kıyas
+                # HAM satırla yapılır — temizlenmiş başlık ("Zorunlu kayıtlar")
+                # gövdenin sonundaki hâliyle ("II - Zorunlu kayıtlar") eşleşmez.
+                if simdiki is not None and simdiki['text'].endswith(ham):
+                    simdiki['text'] = simdiki['text'][: -len(ham)].strip()
             simdiki = {'no': no, 'text': m.group(3).strip(),
                        'title': baslik, 'section': bolum}
             maddeler.append(simdiki)
@@ -115,7 +185,7 @@ def ayikla(pdf: str) -> list:
             continue
 
         if basliktir(s):
-            baslik = s[:-1].strip()
+            baslik = temizle_baslik(s[:-1])
             continue
 
         if simdiki is not None:
@@ -126,7 +196,44 @@ def ayikla(pdf: str) -> list:
     return maddeler
 
 
+def sadece_baslik(no: str, slug: str):
+    """Var olan JSON'un METNİNE DOKUNMADAN yalnız EKSİK başlıkları doldurur.
+
+    Diğer kanunlar bu betikten önce, başka bir hatla ayıklanmıştı. Onları
+    baştan ayıklamak metni de değiştirir ve çalışan bir külliyatı riske atar;
+    oysa eksik olan yalnız başlık. Başlık aramada EN YÜKSEK ağırlığı ('A')
+    taşıdığı için boş kalması pahalı: 124 maddede boştu ve aralarında TCK m.66
+    (dava zamanaşımı), CMK m.253 (uzlaştırma) gibi çok sorulanlar vardı.
+    """
+    hedef = os.path.join(LAWS, f'{slug}.json')
+    kanun = json.load(open(hedef))
+    pdf = os.path.join('/tmp', f'law-{no}.pdf')
+    if not os.path.exists(pdf):
+        print('  ', indir(no, pdf))
+
+    pdf_basliklar = {a['no']: a['title'] for a in ayikla(pdf) if a.get('title')}
+    dolan = []
+    for a in kanun['articles']:
+        if not a.get('title') and pdf_basliklar.get(a['no']):
+            a['title'] = pdf_basliklar[a['no']]
+            dolan.append((a['no'], a['title']))
+
+    # Önek temizliği var olan başlıklara da uygulanır: aynı başlığın iki
+    # biçimde durması aramayı böler.
+    for a in kanun['articles']:
+        if a.get('title'):
+            a['title'] = temizle_baslik(a['title'])
+
+    json.dump(kanun, open(hedef, 'w'), ensure_ascii=False, indent=1)
+    bos = sum(1 for a in kanun['articles'] if not a.get('title'))
+    print(f"{kanun['short']}: {len(dolan)} başlık dolduruldu, {bos} hâlâ boş")
+    for n, t in dolan[:6]:
+        print(f'    m.{n:<10} {t}')
+
+
 def main():
+    if len(sys.argv) == 4 and sys.argv[1] == '--sadece-baslik':
+        return sadece_baslik(sys.argv[2], sys.argv[3])
     if len(sys.argv) != 5:
         raise SystemExit(__doc__)
     no, slug, kisa, ad = sys.argv[1:5]

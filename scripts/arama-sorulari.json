@@ -235,14 +235,14 @@
    "beklenen": [
     "CMK 253"
    ],
-   "not": "Uzlaştırma kapsamı (madde başlığı veride BOŞ)."
+   "not": "Uzlaştırma kapsamı."
   },
   {
    "soru": "kamu davasında dava zamanaşımı süreleri nedir",
    "beklenen": [
     "TCK 66"
    ],
-   "not": "Dava zamanaşımı (madde başlığı veride BOŞ)."
+   "not": "Dava zamanaşımı."
   },
   {
    "soru": "tacir hangi ticari defterleri tutmak zorundadır",
