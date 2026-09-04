@@ -29,10 +29,28 @@ CA = os.environ.get('LAW_CA_BUNDLE', '/root/.ccr/ca-bundle.crt')
 
 GOVDE_PUNTO = 11.5
 
-# "Madde 5 –", "MADDE 5-", "Ek Madde 1 –", "Geçici Madde 12 –"
-MADDE = re.compile(r'^((?:Ek|EK|Geçici|GEÇİCİ)\s+)?(?:Madde|MADDE)\s+(\d+)\s*[-–—]\s*(.*)$')
+# "Madde 5 –", "MADDE 5-", "Ek Madde 1 –", "Geçici Madde 12 –" ve HARFLİ ALT
+# MADDELER: "Madde 8/a –", "MADDE 183/A-", "Madde 20/B –".
+#
+# Harfli alt madde AYRI BİR MADDEDİR ve sık atıf alır (İİK m.169/a itirazın
+# kaldırılması, m.150/ı, İYUK m.20/A ivedi yargılama). Desene alınmadıkları
+# için 93'ü İİK'da olmak üzere 98 madde, bir ÖNCEKİ maddenin gövdesine
+# karışıyordu: yani hem kendileri kayıp, hem de karıştıkları maddenin metni
+# yanlış görünüyordu.
+MADDE = re.compile(
+    r'^((?:Ek|EK|Geçici|GEÇİCİ)\s+)?(?:Madde|MADDE)\s+'
+    r'(\d+(?:\s*/\s*[A-Za-zÇĞİÖŞÜçğıöşü])?)\s*[-–—]\s*(.*)$')
 # Satır sonunda "Madde" kalıp numarası alt satıra düşmüş olabilir.
 MADDE_ASKIDA = re.compile(r'^((?:Ek|EK|Geçici|GEÇİCİ)\s+)?(?:Madde|MADDE)$')
+# Madde numarası öneki tek biçime indirilir.
+#
+# NE upper() NE title() TÜRKÇE'DE GÜVENİLİR — ikisi de bu betikte hataya yol
+# açtı: title() 'GEÇİCİ' → 'Geçi̇ci̇' (birleşen nokta), upper() 'Geçici' →
+# 'GEÇICI' (noktasız I). İkincisi 11 geçici maddeyi numarasız bırakıp sayısal
+# maddeyle çakıştırarak SESSİZCE SİLDİRDİ. Bu yüzden karşılaştırmadan önce
+# ASCII'ye indiriyoruz. (Aynı tuzağın SQL'deki hâli: 0045.)
+TR_ASCII = str.maketrans('İIıŞşĞğÜüÖöÇçÂâÎîÛû', 'IIiSsGgUuOoCcAaIiUu')
+ONEK_ADI = {'EK': 'Ek', 'GECICI': 'Geçici', '': ''}
 # "BİRİNCİ BÖLÜM" / "İKİNCİ BAP" / "ÜÇÜNCÜ KISIM"
 BOLUM = re.compile(r'^[A-ZÇĞİÖŞÜ\s]{3,40}(BÖLÜM|BAP|KISIM|FASIL)$')
 
@@ -135,12 +153,30 @@ def ayikla(pdf: str) -> list:
     # işlenirse maddenin gövdesine sızar ve ondan sonraki gerçek kenar başlığı
     # ("Uzlaştırma") tanınamaz hâle gelir — CMK m.253 tam bu yüzden başlıksız
     # kalmıştı. Bölüm adı satırı burada baştan "yutulmuş" işaretlenir.
+    # Bölüm adı BİRDEN ÇOK SATIR olabilir (5510 s. Kanun'da iki satır). Bu yüzden
+    # sabit "bir satır" varsayımı yerine, bölüm satırı ile bir SONRAKİ MADDE
+    # satırı arasındaki her şey yutulur — yalnız maddeden hemen önceki satır
+    # dışarıda bırakılır, çünkü orası maddenin kendi kenar başlığıdır.
+    bolum_adi = {}
     yutulan = set()
     for i, s in enumerate(satirlar):
-        if BOLUM.match(s) and i + 1 < len(satirlar):
-            ad = satirlar[i + 1]
-            if ad and not MADDE.match(ad) and not basliktir(ad):
-                yutulan.add(i + 1)
+        if not BOLUM.match(s):
+            continue
+        j = i + 1
+        while j < len(satirlar) and j - i <= 6 and not MADDE.match(satirlar[j]):
+            j += 1
+        if j >= len(satirlar) or j - i > 6:
+            continue
+        # Maddeden hemen önceki satır HER ZAMAN dışarıda bırakılır: orası
+        # maddenin kendi kenar başlığıdır. (Bir kez tersi yazıldı ve 41 başlığı
+        # bölüm adı sanıp yuttu.)
+        son = j - 2
+        parcalar = []
+        for k in range(i + 1, son + 1):
+            yutulan.add(k)
+            parcalar.append(satirlar[k])
+        if parcalar:
+            bolum_adi[i] = ' '.join(parcalar)
 
     # Geriye doğru, yutulmuş satırları atlayarak bak.
     def onceki_islenen(idx: int, kac: int) -> str:
@@ -158,16 +194,22 @@ def ayikla(pdf: str) -> list:
 
     for idx, s in enumerate(satirlar):
         if BOLUM.match(s):
-            sonraki = satirlar[idx + 1] if idx + 1 < len(satirlar) else ''
-            bolum = sonraki if (idx + 1) in yutulan else s
+            bolum = bolum_adi.get(idx, s)
             continue
         if idx in yutulan:
             continue
 
         m = MADDE.match(s)
         if m:
-            onek = (m.group(1) or '').strip().title()      # "Ek" / "Geçici"
-            no = f'{onek} {m.group(2)}'.strip() if onek else m.group(2)
+            # .title() BURADA KULLANILAMAZ: Python 'GEÇİCİ'.title() sonucu
+            # 'Geçi̇ci̇' verir — 'İ' küçültülürken araya BİRLEŞEN NOKTA (U+0307)
+            # giriyor. Bozuk madde numarası ("Geçi̇ci̇ 1") aramada hiçbir zaman
+            # eşleşmez ve 4 kanunda 116 maddeyi sessizce erişilemez yapmıştı.
+            # (Aynı Türkçe tuzağı SQL tarafında da yaşandı; bkz. 0045.)
+            onek_ham = (m.group(1) or '').strip().translate(TR_ASCII).upper()
+            onek = ONEK_ADI.get(onek_ham, '')
+            ham_no = re.sub(r'\s*/\s*', '/', m.group(2))
+            no = f'{onek} {ham_no}'.strip() if onek else ham_no
             if not baslik and idx >= 1 and basliksiz_baslik(
                     onceki_islenen(idx, 1), onceki_islenen(idx, 2)):
                 ham = onceki_islenen(idx, 1).rstrip(':').strip()
@@ -184,7 +226,12 @@ def ayikla(pdf: str) -> list:
             baslik = ''
             continue
 
-        if basliktir(s):
+        # Kenar başlığı ANCAK hemen ardından madde satırı geliyorsa başlıktır.
+        # Yoksa iki nokta ile biten her cümle başlık sanılıyordu: 7036 s.
+        # Kanun m.8 "...temyiz yoluna başvurulamaz:" diye bitip liste sayıyor;
+        # bu satır m.9'a başlık yazıldı VE m.8'in gövdesinden SİLİNDİ. Yanlış
+        # başlıktan kötüsü, hükmün metninden bir cümlenin kaybolmasıdır.
+        if basliktir(s) and idx + 1 < len(satirlar) and MADDE.match(satirlar[idx + 1]):
             baslik = temizle_baslik(s[:-1])
             continue
 

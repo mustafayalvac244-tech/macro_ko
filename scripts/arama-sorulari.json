@@ -8,7 +8,9 @@
   "Yeni soru eklemek serbesttir; beklenen maddeyi eklemeden önce metnini",
   "okuyun — yanlış 'doğru cevap', ölçümü ölçüm olmaktan çıkarır.",
   "İİK ve İYUK soruları, iki kanunun metni havuza eklendikten sonra (0048) eklendi:",
-  "önceden bu iki alanda TEK SORU YOKTU, yani ölçüm onların yokluğunu hiç görmüyordu."
+  "önceden bu iki alanda TEK SORU YOKTU, yani ölçüm onların yokluğunu hiç görmüyordu.",
+  "Tüketici, avukatlık, sosyal güvenlik, kamulaştırma, amme alacağı ve iş",
+  "mahkemeleri soruları, o kanunların metni havuza eklendikten sonra yazıldı."
  ],
  "sorular": [
   {
@@ -390,6 +392,90 @@
     "İYUK 27"
    ],
    "not": "Yürütmenin durdurulması (madde başlığı veride BOŞ)."
+  },
+  {
+   "soru": "aldığım ürün ayıplı çıktı hangi haklara sahibim",
+   "beklenen": [
+    "TKHK 11"
+   ],
+   "not": "Tüketicinin seçimlik hakları."
+  },
+  {
+   "soru": "ayıplı mal ne demektir",
+   "beklenen": [
+    "TKHK 8"
+   ],
+   "not": "Ayıplı mal tanımı."
+  },
+  {
+   "soru": "internetten alışverişte mesafeli sözleşme nedir",
+   "beklenen": [
+    "TKHK 48"
+   ],
+   "not": "Mesafeli sözleşmeler."
+  },
+  {
+   "soru": "tüketici hakem heyetine başvuru nasıl yapılır",
+   "beklenen": [
+    "TKHK 68"
+   ],
+   "not": "Hakem heyetine başvuru."
+  },
+  {
+   "soru": "avukatlık ücreti nasıl belirlenir",
+   "beklenen": [
+    "AvK 164"
+   ],
+   "not": "Avukatlık ücreti."
+  },
+  {
+   "soru": "dava takibini avukat olmayan biri yapabilir mi",
+   "beklenen": [
+    "AvK 35"
+   ],
+   "not": "Yalnız avukatların yapabileceği işler."
+  },
+  {
+   "soru": "hangi haller iş kazası sayılır",
+   "beklenen": [
+    "SSGSS 13"
+   ],
+   "not": "İş kazasının tanımı."
+  },
+  {
+   "soru": "meslek hastalığı nasıl tanımlanır",
+   "beklenen": [
+    "SSGSS 14"
+   ],
+   "not": "Meslek hastalığının tanımı."
+  },
+  {
+   "soru": "kamulaştırma bedeli mahkemece nasıl tespit edilir",
+   "beklenen": [
+    "KamK 10"
+   ],
+   "not": "Bedelin mahkemece tespiti ve tescil."
+  },
+  {
+   "soru": "vergi borcu için gelen ödeme emrine itiraz edebilir miyim",
+   "beklenen": [
+    "AATUHK 58"
+   ],
+   "not": "Ödeme emrine itiraz."
+  },
+  {
+   "soru": "işçilik alacağı için önce arabulucuya gitmek zorunlu mu",
+   "beklenen": [
+    "İşMK 3"
+   ],
+   "not": "Dava şartı olarak arabuluculuk."
+  },
+  {
+   "soru": "iş davası hangi mahkemede açılır",
+   "beklenen": [
+    "İşMK 5"
+   ],
+   "not": "İş mahkemelerinin görevi."
   }
  ]
 }
