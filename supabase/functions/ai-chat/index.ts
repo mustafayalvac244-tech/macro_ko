@@ -830,9 +830,28 @@ async function buildMevzuat(supabase: any, question: string): Promise<string> {
     // cümlesiyle tamamlayıp bunu tırnak içinde ALINTI gibi sunuyordu.
     .map((r: any) => `• ${r.kanun_short} m.${r.madde_no}${r.baslik ? ' (' + r.baslik + ')' : ''}: ${String(r.snippet ?? '').slice(0, 600).trim()}`)
     .join('\n');
+
+  // KISALTMANIN AÇILIMI VERİLİR. Ölçülen arıza: besleme yalnız "TKHK m.11"
+  // diyordu; model kısaltmayı tanımayıp "Türk Ticaret Kanunu'nun 11. maddesi"
+  // diye açtı. Oysa TKHK, Tüketicinin Korunması Hakkında Kanun'dur. Madde
+  // numarası doğru, KANUN YANLIŞTI — avukat bambaşka bir kanuna bakar.
+  // Açılım her satıra değil, sonda tek bir listeye yazılır: bilgi tam,
+  // token yükü asgari.
+  const adlar = new Map<string, string>();
+  for (const r of rows as Array<{ kanun_short?: string; kanun_name?: string }>) {
+    const k = String(r?.kanun_short ?? '').trim();
+    const ad = String(r?.kanun_name ?? '').trim();
+    if (k && ad && !adlar.has(k)) adlar.set(k, ad);
+  }
+  const sozluk = adlar.size
+    ? '\nKISALTMALAR (kanun adını böyle yaz, TAHMİN ETME): ' +
+      [...adlar].map(([k, ad]) => `${k} = ${ad}`).join('; ')
+    : '';
+
   return (
     '\n\n### İLGİLİ OLABİLECEK YÜRÜRLÜKTEKİ MADDE METİNLERİ (kendi kanun veritabanımızdan, GERÇEK metin):\n' +
     refs +
+    sozluk +
     '\nBu maddelerden yalnızca soruyla GERÇEKTEN ilgili olanları kullan, ilgisizleri yok say. Bir maddenin ' +
     'numarasını veya metnini belirtirken buradaki gerçek metni esas al; burada verilmeyen bir maddenin metnini ' +
     'birebir alıntı olarak uydurma.\n' +
