@@ -6,6 +6,13 @@
 //   2) "30 gün" beklenirken araya bölünmez boşluk girdi
 //   3) HMK m.127'de yanlış beklenti yazılmıştı (ek süre gerçek hükümdür)
 //   4) "on yıl" beklenirken model "on (10) yıldır" yazdı — parantez kalıbı bozdu
+//   5) "kendiliğinden kalk" beklenirken model "kendiliğinden **kalkar**" yazdı
+//      — araya giren markdown vurgusu kalıbı böldü
+//   6) "altı hafta" beklenirken model "altı (6) haftadır" yazdı — sayı parantezi
+// 5 ve 6 aynı ölçümde ÇIKTI ve cevap doğruluğunu 13/13'ten 11/13'e düşürmüş
+// gösterdi. İki cevap da HUKUKEN DOĞRUYDU; model kötüleşmemiş, biçimlendirmesi
+// zenginleşmişti. Bu sahte gerilemeye bakıp modeli "düzeltmeye" kalkmak, doğru
+// çalışan bir şeyi bozmak olurdu.
 // Ölçüm aracının kendisi hata kaynağı olunca, ölçüme dayanan her karar da
 // şüpheli hâle geliyor. Bu yüzden burası tests/ altında sınanır.
 import { readFileSync } from 'node:fs';
@@ -23,7 +30,13 @@ export function sadelestir(v) {
     .replace(/[ğüşıöçâîû]/g, (c) => ({ ğ: 'g', ü: 'u', ş: 's', ı: 'i', ö: 'o', ç: 'c', â: 'a', î: 'i', û: 'u' })[c])
     .replace(/[     ]/g, ' ')
     .replace(/[‐‑‒–—]/g, '-')
-    .replace(/\s+/g, ' ');
+    // Markdown vurgusu İÇERİK DEĞİL BİÇİMDİR: "kendiliğinden **kalkar**" ile
+    // "kendiliğinden kalkar" aynı cevaptır.
+    .replace(/[*_`]/g, '')
+    // Sayının parantez içinde tekrarı da biçimdir: "altı (6) hafta".
+    .replace(/\(\s*\d+\s*\)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 const TR_ASCII = {

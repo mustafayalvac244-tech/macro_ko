@@ -68,3 +68,31 @@ describe('gecer — düzenli ifade (re:)', () => {
     expect(gecer('herhangi bir metin', 're:[unclosed')).toBe(false);
   });
 });
+
+describe('gecer — biçimlendirme içeriği bozmamalı', () => {
+  // Bu iki kaza AYNI ölçümde çıktı ve cevap doğruluğunu 13/13'ten 11/13'e
+  // düşürmüş gösterdi. İki cevap da hukuken DOĞRUYDU: model kötüleşmemiş,
+  // biçimlendirmesi zenginleşmişti. Sahte gerilemeye bakıp modeli
+  // "düzeltmek", doğru çalışan bir şeyi bozmak olurdu.
+  it('KAZA 5: markdown vurgusu araya girse de eşleşir', () => {
+    expect(gecer('karar kendiliğinden **kalkar**', 'kendiliğinden kalk')).toBe(true);
+    expect(gecer('karar *kendiliğinden* kalkar', 'kendiliğinden kalk')).toBe(true);
+    expect(gecer('karar `kendiliğinden` kalkar', 'kendiliğinden kalk')).toBe(true);
+  });
+
+  it('KAZA 6: sayının parantez içi tekrarı kalıbı bozmaz', () => {
+    expect(gecer('ihbar öneli altı (6) haftadır', 'altı hafta|6 hafta')).toBe(true);
+    expect(gecer('ihbar öneli altı haftadır', 'altı hafta|6 hafta')).toBe(true);
+    expect(gecer('ihbar öneli 6 haftadır', 'altı hafta|6 hafta')).toBe(true);
+  });
+
+  it('biçim temizliği YANLIŞ cevabı geçirmez', () => {
+    expect(gecer('ihbar öneli iki (2) haftadır', 'altı hafta|6 hafta')).toBe(false);
+    expect(gecer('karar **ayakta kalır**', 'kendiliğinden kalk')).toBe(false);
+  });
+
+  it('vurgu temizliği kelimeleri birbirine yapıştırmaz', () => {
+    // "**altı** **hafta**" → "altı hafta" olmalı, "altıhafta" değil.
+    expect(gecer('süre **altı** **hafta**', 'altı hafta')).toBe(true);
+  });
+});
