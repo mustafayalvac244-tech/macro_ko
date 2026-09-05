@@ -1221,6 +1221,189 @@ Deno.serve(async (req) => {
       });
     }
   }
+/** Modele hangi blokları yazacağını, iskeletten türeterek söyler. */
+function bloklarTarifi(tip: string): string {
+  const i = iskeletSec(tip);
+  const satir = ['###MAHKEME###  (yalnız merci adı)'];
+  for (const b of i.bolumler) satir.push(`###${b.anahtar}###  (${b.baslik})`);
+  satir.push('###KONTROL###  (avukatın denetlemesi gereken boşluklar, süreler, riskler)');
+  return satir.join('\n');
+}
+
+/**
+ * DİLEKÇE İSKELETİ KODDA KURULUR; MODEL YALNIZ İÇERİK YAZAR.
+ *
+ * ÖLÇÜLEN SORUN: aynı istek iki koşuda iki farklı YAPI üretti. Birinde
+ * "NETİCE-İ TALEP" vardı, diğerinde hiç yoktu; harca esas dava değeri (HMK
+ * m.119/1-d, zorunlu unsur) ikisinde de yoktu. Talimatla tutarlılık istenemez:
+ * model kuralı çoğu zaman tutar, tutmadığı sefer avukat mahkemeden dilekçe
+ * ihtarı alır ve zaman kazanmak yerine kaybeder.
+ *
+ * Bu yüzden zorunlu unsurlar modele BIRAKILMIYOR. Model her bölümü işaretli
+ * blok hâlinde yazar (###KONU### gibi), dilekçeyi kod dizer. Bir bölüm hiç
+ * gelmediyse yerine doldurulacak bir boşluk konur — sessizce düşmez.
+ *
+ * Taraf blokları da kodda üretilir: "DAVALI" satırına "[Davacı Ad-Soyad]"
+ * yazılması gibi bir hata artık yapısal olarak mümkün değildir.
+ */
+interface DilekceBolum {
+  anahtar: string;
+  baslik: string;
+  zorunlu: boolean;
+  /** Bölüm gelmezse yerine yazılacak boşluk. */
+  bosluk?: string;
+}
+
+interface DilekceIskelet {
+  /** Taraf satırlarının etiketleri; türden türe değişir. */
+  taraflar: Array<[string, string]>;
+  bolumler: DilekceBolum[];
+}
+
+const ORTAK_SON: DilekceBolum[] = [
+  { anahtar: 'SEBEPLER', baslik: 'HUKUKİ SEBEPLER', zorunlu: true, bosluk: '[Hukuki sebepler — doldurun]' },
+  { anahtar: 'DELILLER', baslik: 'DELİLLER', zorunlu: true, bosluk: '[Deliller — doldurun]' },
+  { anahtar: 'TALEP', baslik: 'NETİCE-İ TALEP', zorunlu: true, bosluk: '[Netice-i talep — doldurun]' },
+];
+
+const DAVA_TARAF: Array<[string, string]> = [
+  ['DAVACI', '[Davacı ad-soyad] — T.C. [Davacı TCKN] — [Davacı adres]'],
+  ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+  ['DAVALI', '[Davalı ad-soyad] — T.C. [Davalı TCKN] — [Davalı adres]'],
+];
+
+const DILEKCE_ISKELET: Record<string, DilekceIskelet> = {
+  dava: {
+    taraflar: DAVA_TARAF,
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[Dava konusu — doldurun]' },
+      // HMK m.119/1-d: dava değeri zorunlu unsurdur; eksikliği dilekçe ihtarına
+      // yol açar. İlk ölçümde iki taslakta da yoktu.
+      { anahtar: 'DEGER', baslik: 'HARCA ESAS DAVA DEĞERİ', zorunlu: true, bosluk: '[Dava değeri — doldurun] TL' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'AÇIKLAMALAR', zorunlu: true, bosluk: '[Vakıalar — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  cevap: {
+    taraflar: [
+      ['DAVACI', '[Davacı ad-soyad]'],
+      ['DAVALI', '[Davalı ad-soyad] — T.C. [Davalı TCKN] — [Davalı adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['ESAS NO', '[Esas No]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[Cevap konusu — doldurun]' },
+      { anahtar: 'USUL', baslik: 'USULE İLİŞKİN İTİRAZLAR', zorunlu: false },
+      { anahtar: 'ACIKLAMALAR', baslik: 'AÇIKLAMALAR VE ESASA CEVAPLARIMIZ', zorunlu: true, bosluk: '[Cevaplar — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  istinaf: {
+    taraflar: [
+      ['İSTİNAF EDEN', '[Ad-soyad] — T.C. [TCKN] — [Adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['KARŞI TARAF', '[Ad-soyad] — [Adres]'],
+      ['KARAR', '[Mahkeme] · [Esas No] · [Karar No] · [Karar tarihi]'],
+      ['TEBLİĞ TARİHİ', '[Tebliğ tarihi]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İstinaf konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'İSTİNAF SEBEPLERİ', zorunlu: true, bosluk: '[İstinaf sebepleri — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  itiraz: {
+    taraflar: [
+      ['İTİRAZ EDEN (BORÇLU)', '[Ad-soyad] — T.C. [TCKN] — [Adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['ALACAKLI', '[Ad-soyad]'],
+      ['DOSYA NO', '[İcra dosya no]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İtiraz konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'İTİRAZ SEBEPLERİMİZ', zorunlu: true, bosluk: '[İtiraz sebepleri — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  ihtarname: {
+    taraflar: [
+      ['KEŞİDECİ', '[Ad-soyad] — T.C. [TCKN] — [Adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['MUHATAP', '[Ad-soyad] — [Adres]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İhtar konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'AÇIKLAMALAR', zorunlu: true, bosluk: '[Açıklamalar — doldurun]' },
+      { anahtar: 'TALEP', baslik: 'İHTAR VE TALEP', zorunlu: true, bosluk: '[İhtar ve talep — doldurun]' },
+    ],
+  },
+};
+
+/** Türü tanımlı olmayan dilekçeler dava iskeletiyle dizilir. */
+function iskeletSec(tip: string): DilekceIskelet {
+  return DILEKCE_ISKELET[tip] ?? DILEKCE_ISKELET.dava;
+}
+
+/**
+ * Modelin ###ANAHTAR### bloklarını ayrıştırır. JSON yerine işaretli blok
+ * kullanılıyor: model bozuk JSON üretebilir ama işaretli blokta en kötü
+ * ihtimalle TEK bölüm kaybolur, belge tamamen çöpe gitmez.
+ */
+function bloklariAyristir(ham: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const re = /###\s*([A-ZÇĞİÖŞÜ_]+)\s*###/g;
+  const isaretler: Array<{ ad: string; bas: number; son: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(ham)) !== null) isaretler.push({ ad: m[1], bas: m.index, son: re.lastIndex });
+  for (let i = 0; i < isaretler.length; i++) {
+    const bit = i + 1 < isaretler.length ? isaretler[i + 1].bas : ham.length;
+    const govde = ham.slice(isaretler[i].son, bit).trim();
+    if (govde) out[isaretler[i].ad] = govde;
+  }
+  return out;
+}
+
+/** Bölümlerden resmî düzende dilekçe metnini dizer. */
+function dilekceyiDiz(tip: string, bloklar: Record<string, string>): { metin: string; eksik: string[] } {
+  const iskelet = iskeletSec(tip);
+  const eksik: string[] = [];
+  const satirlar: string[] = [];
+
+  const mahkeme = (bloklar.MAHKEME ?? '').trim();
+  satirlar.push(mahkeme ? mahkeme.toLocaleUpperCase('tr') : '[MAHKEME/MERCİ — doldurun]');
+  satirlar.push('');
+
+  const etiketGenislik = Math.max(...iskelet.taraflar.map(([e]) => e.length));
+  for (const [etiket, varsayilan] of iskelet.taraflar) {
+    const deger = (bloklar[`TARAF_${etiket.replace(/[^A-ZÇĞİÖŞÜ]/g, '')}`] ?? '').trim() || varsayilan;
+    satirlar.push(`${etiket.padEnd(etiketGenislik)} : ${deger}`);
+  }
+  satirlar.push('');
+
+  for (const b of iskelet.bolumler) {
+    const govde = (bloklar[b.anahtar] ?? '').trim();
+    if (!govde) {
+      if (!b.zorunlu) continue;
+      eksik.push(b.baslik);
+    }
+    satirlar.push(`${b.baslik}`);
+    satirlar.push(govde || b.bosluk || '[doldurun]');
+    satirlar.push('');
+  }
+
+  satirlar.push('Saygılarımla,');
+  satirlar.push('[Taraf] Vekili');
+  satirlar.push('Av. [Vekil ad-soyad]');
+  satirlar.push('');
+
+  const kontrol = (bloklar.KONTROL ?? '').trim();
+  if (kontrol) {
+    satirlar.push('⚠️ KONTROL LİSTESİ');
+    satirlar.push(kontrol);
+  }
+  return { metin: satirlar.join('\n').replace(/\n{3,}/g, '\n\n').trim(), eksik };
+}
+
 /**
  * UYDURULMUŞ TARİHLERİ AYIKLA — modele güvenmeden, mekanik olarak.
  *
@@ -1284,8 +1467,15 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
       SYSTEM_PROMPT +
       '\n\nŞU AN "DİLEKÇE" MODUNDASIN: avukatın anlattığı olaydan, MAHKEMEYE VERİLEBİLECEK ' +
       'düzeyde resmî bir dilekçe TASLAĞI yazıyorsun. Tür ve zorunlu yapı:\n' + structure +
-      '\n\nBİÇİM KURALLARI:\n' +
-      '• En üstte mahkeme başlığı (örn. "… NÖBETÇİ ASLİYE HUKUK MAHKEMESİ SAYIN HÂKİMLİĞİNE"). ' +
+      // ÇIKTI BİÇİMİ ARTIK SERBEST DEĞİL. Model bölümleri işaretli blok hâlinde
+      // yazar, belgeyi kod dizer; böylece zorunlu unsurun düşmesi (netice-i
+      // talep, harca esas değer) yapısal olarak imkânsız hâle gelir.
+      '\n\nÇIKTI BİÇİMİ — SADECE ŞU BLOKLARI YAZ, başka hiçbir şey yazma:\n' +
+      bloklarTarifi(body.dilekceType ?? 'dava') +
+      '\nHer bloğun içine YALNIZ o bölümün metnini yaz. Başlıkları, taraf satırlarını, ' +
+      'imza bloğunu ve kontrol listesi başlığını SEN yazma — onları biz diziyoruz.\n' +
+      '\nBİÇİM KURALLARI:\n' +
+      '• ###MAHKEME### bloğuna yalnız merci adını yaz (örn. "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ"). ' +
       'Doğru mahkeme/görev belli değilse en olası olanı yaz ve yanına [kontrol edin] notu koy.\n' +
       // ÖLÇÜLEN ARIZA: avukat yalnız "Mart-Mayıs kiraları ödenmedi, noterden ihtar
       // çektik" dedi; taslakta "01.02.2026 tarihli sözleşme" ve "30.09.2026 tarihli
@@ -1344,14 +1534,33 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
       if (!out.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
+      // Bölümleri modelden işaretli blok olarak alıp belgeyi KOD diziyoruz;
+      // zorunlu unsurun sessizce düşmesi böylece imkânsız hâle gelir.
+      //
+      // GERİ DÜŞÜŞ BİLİNÇLİ: model blokları hiç kullanmadıysa (ya da yarıdan
+      // azını yazdıysa) ham metin olduğu gibi verilir. Yarım ayrıştırılmış bir
+      // belge dizmek, elde olan çalışan metni bozmak olurdu.
+      const bloklar = bloklariAyristir(out);
+      const iskelet = iskeletSec(body.dilekceType ?? 'dava');
+      const beklenen = iskelet.bolumler.filter((b) => b.zorunlu).length;
+      const bulunan = iskelet.bolumler.filter((b) => b.zorunlu && (bloklar[b.anahtar] ?? '').trim()).length;
+      let govde = out.trim();
+      let eksikBolum: string[] = [];
+      if (bulunan >= Math.ceil(beklenen / 2)) {
+        const dizili = dilekceyiDiz(body.dilekceType ?? 'dava', bloklar);
+        govde = dizili.metin;
+        eksikBolum = dizili.eksik;
+      }
+
       // Talimat sertleştirildi ama YETMEZ: model kuralı çoğu zaman tutar,
-      // tuttmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
+      // tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
       // mekanik denetimde.
-      const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
+      const temiz = uydurmaTarihleriAyikla(govde, promptQuestion);
       await recordUsage(userData.user.id, model, uin, uout, cfg.billable);
-      return new Response(JSON.stringify({ text: temiz.metin, tier, model, ayiklananTarih: temiz.ayiklanan }), {
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ text: temiz.metin, tier, model, ayiklananTarih: temiz.ayiklanan, eksikBolum }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+      );
     } catch (e) {
       const msg = (e as Error).message;
       const known = msg === 'rate_limit' || msg === 'daily_quota';
