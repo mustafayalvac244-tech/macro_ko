@@ -31,6 +31,11 @@ export default function DocumentReviewScreen() {
   const [kind, setKind] = useState<DocKind>('sozlesme');
   const [text, setText] = useState('');
   const [result, setResult] = useState('');
+  // İncelemede geçip BELGEDE OLMAYAN tarihler sunucuda ayıklanıyor. Avukat
+  // bunu bilmeli: belgeyi zaten okuduğunu varsayar ve incelemedeki bir tarihi
+  // ajandasına yazabilir. Kaç tanesinin ayıklandığı, kalanları da denetlemesi
+  // gerektiğinin işaretidir.
+  const [ayiklanan, setAyiklanan] = useState(0);
   const [busy, setBusy] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,12 +134,14 @@ export default function DocumentReviewScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const reply = (data as { text?: string } | null)?.text?.trim();
+      const yanit = data as { text?: string; ayiklananTarih?: number } | null;
+      const reply = yanit?.text?.trim();
       if (!reply) {
         setError(t('ai.errGeneric'));
         return;
       }
       setResult(reply);
+      setAyiklanan(Number(yanit?.ayiklananTarih ?? 0));
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -227,6 +234,13 @@ export default function DocumentReviewScreen() {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
+  warn: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.warning,
+    marginTop: spacing.sm,
+  },
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,

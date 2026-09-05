@@ -52,6 +52,14 @@ export default function DilekceUretScreen() {
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState('');
+  // SUNUCU İKİ ŞEYİ BİLİYOR, EKRAN SÖYLEMİYORDU:
+  //  • hangi ZORUNLU bölümün model tarafından hiç yazılmadığı (yerine boşluk
+  //    konuyor ama metnin ortasında, gözden kaçabilir),
+  //  • kaç UYDURMA tarihin ayıklandığı (model olayda geçmeyen tarih yazmış
+  //    demektir; avukat bunu bilmeli, çünkü kalanları da denetlemeli).
+  // İkisi de yanıtta geliyordu ve kullanılmıyordu.
+  const [eksikBolum, setEksikBolum] = useState<string[]>([]);
+  const [ayiklanan, setAyiklanan] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   if (!AI_ENABLED) {
@@ -76,12 +84,14 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string } | null;
+      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
       }
       setText(payload.text);
+      setEksikBolum(payload.eksikBolum ?? []);
+      setAyiklanan(Number(payload.ayiklananTarih ?? 0));
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -189,6 +199,12 @@ export default function DilekceUretScreen() {
                 </Pressable>
               </View>
               <Text selectable style={styles.body}>{text}</Text>
+              {eksikBolum.length > 0 && (
+                <Text style={styles.warn}>{t('dlk.missingSections', { bolumler: eksikBolum.join(', ') })}</Text>
+              )}
+              {ayiklanan > 0 && (
+                <Text style={styles.warn}>{t('dlk.scrubbedDates', { n: String(ayiklanan) })}</Text>
+              )}
               <Text style={styles.disclaimer}>{t('dlk.disclaimer')}</Text>
             </View>
           )}
@@ -200,6 +216,13 @@ export default function DilekceUretScreen() {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
+  warn: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.warning,
+    marginTop: spacing.sm,
+  },
   caseHint: {
     fontFamily: fonts.regular,
     fontSize: 12.5,

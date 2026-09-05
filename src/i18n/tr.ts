@@ -1375,6 +1375,8 @@ export const tr = {
   'dlk.working': 'Yazılıyor…',
   'dlk.workingHint': 'Mevzuat ve içtihat taranıp taslak hazırlanıyor.',
   'dlk.resultTitle': 'Dilekçe Taslağı',
+  'dlk.missingSections': 'Şu zorunlu bölümleri model yazmadı, taslakta boşluk bırakıldı — doldurmadan vermeyin: {bolumler}',
+  'dlk.scrubbedDates': 'Taslaktan {n} adet uydurma tarih ayıklandı (anlattığınız olayda geçmiyorlardı). Kalan tarihleri de denetleyin.',
   'dlk.disclaimer': 'Bu taslak yapay zekâ tarafından üretilmiştir; olduğu gibi kullanmayın. Mahkeme/görev, taraf bilgileri, süreler ve dayanakları mutlaka kendiniz denetleyin.',
 
   // Belge İncele (AI)
@@ -1392,6 +1394,7 @@ export const tr = {
   'docrev.analyze': 'İncele',
   'docrev.analyzing': 'İnceleniyor…',
   'docrev.resultTitle': 'İnceleme Sonucu',
+  'docrev.scrubbedDates': 'İncelemeden {n} adet tarih ayıklandı: belgede geçmiyorlardı. Süre hesaplarını belgeden teyit edin.',
   'docrev.disclaimer': 'Bu inceleme yapay zekâ tarafından üretilmiştir; hukuki tavsiye değildir. Sonucu kendi değerlendirmenizle teyit edin.',
   'docrev.fileEmpty': 'Dosya boş görünüyor.',
   'docrev.fileErr': 'Dosya okunamadı. Düz metin (.txt) dosyası seçin ya da metni yapıştırın.',
