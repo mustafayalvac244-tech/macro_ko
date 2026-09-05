@@ -1270,6 +1270,9 @@ export const en: Record<keyof typeof tr, string> = {
   'admin.aiSection': 'AI Spend',
   'admin.aiCostMonth': 'AI Cost This Month',
   'admin.aiCostHint': 'all users, billable tiers',
+  'admin.aiRedundant': 'AI has a backup provider (both up)',
+  'admin.aiNoBackup': 'NO BACKUP — if one provider fails the assistant drops to statute digest',
+  'admin.aiDown': 'not responding',
   // Import case from document (UYAP bridge)
   'imp.title': 'Open Case from Document',
   'imp.short': 'Open Case from Document',

@@ -1274,6 +1274,9 @@ export const tr = {
   'admin.aiSection': 'AI Harcaması',
   'admin.aiCostMonth': 'Bu Ay AI Maliyeti',
   'admin.aiCostHint': 'tüm kullanıcılar, faturalı katmanlar',
+  'admin.aiRedundant': 'Yapay zekâ yedekli çalışıyor (iki sağlayıcı ayakta)',
+  'admin.aiNoBackup': 'YEDEK YOK — bir sağlayıcı düşerse asistan mevzuat özetine iner',
+  'admin.aiDown': 'yanıt vermiyor',
   // Belgeden dosya aktarma (UYAP köprüsü)
   'imp.title': 'Belgeden Dosya Aç',
   'imp.short': 'Belgeden Dosya Aç',
