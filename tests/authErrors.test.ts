@@ -12,11 +12,23 @@ describe('trError', () => {
     );
   });
 
-  it('ağ hatalarını tek mesajda toplar', () => {
+  it('ağ hatalarını tek mesajda toplar (uygulama YAPILANDIRILMIŞKEN)', () => {
     const beklenen = 'İnternet bağlantısı kurulamadı. Bağlantınızı kontrol edip tekrar deneyin.';
-    expect(trError('Network request failed')).toBe(beklenen);
-    expect(trError('TypeError: Failed to fetch')).toBe(beklenen);
-    expect(trError('fetch failed')).toBe(beklenen);
+    expect(trError('Network request failed', true)).toBe(beklenen);
+    expect(trError('TypeError: Failed to fetch', true)).toBe(beklenen);
+    expect(trError('fetch failed', true)).toBe(beklenen);
+  });
+
+  it('yapılandırma eksikse ağ hatasını bağlantı sorunu sanmaz', () => {
+    // Web derlemesi .env olmadan üretildiğinde her istek ağ hatası verir ve
+    // kullanıcı bağlantısını kontrol edip durur; sebep yapılandırmadır.
+    const cfg = trError('Network request failed', false);
+    expect(cfg).toContain('.env');
+    expect(cfg).not.toContain('Bağlantınızı kontrol');
+  });
+
+  it('yapılandırma eksik olsa da ağ DIŞI hatalar aynı çevrilir', () => {
+    expect(trError('Invalid login credentials', false)).toBe('E-posta veya şifre hatalı.');
   });
 
   it('yetki hatasını kullanıcı diline çevirir (RLS sızdırmaz)', () => {
