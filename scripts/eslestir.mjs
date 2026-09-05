@@ -73,9 +73,16 @@ export function gecer(metin, kalip) {
   // orada '|' düzenli ifadenin kendi "veya"sıdır. Bölmek, ifadeyi iki yarıya
   // ayırıp ikinci yarıyı düz metin sanmaya yol açıyordu.
   if (k.startsWith('re:')) {
+    const ham = kalibiSadelestir(k.slice(3));
     try {
-      return new RegExp(kalibiSadelestir(k.slice(3)), 'i').test(d);
-    } catch {
+      return new RegExp(ham, 'i').test(d);
+    } catch (hata) {
+      // SESSİZ false ÖLÇÜMÜ BOZAR. Derlenmeyen bir kalıp, DOĞRU cevabı yanlış
+      // saydırır ve bu, koda değil modele fatura edilir. Yaşanan örnek:
+      // '[-‑ ]' kalıbı normalleştirmeden sonra '[-- ]' oluyor — ters aralık,
+      // geçersiz regex. Çökertmiyoruz (tek bir bozuk kalıp ölçümü durdurmasın)
+      // ama artık gürültülü: kalıbın kendisi bildiriliyor.
+      console.warn(`[eslestir] KALIP DERLENMEDİ, false sayıldı: ${JSON.stringify(k)} → ${hata.message}`);
       return false;
     }
   }

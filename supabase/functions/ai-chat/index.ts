@@ -1221,6 +1221,41 @@ Deno.serve(async (req) => {
       });
     }
   }
+/**
+ * UYDURULMUŞ TARİHLERİ AYIKLA — modele güvenmeden, mekanik olarak.
+ *
+ * Talimatı sertleştirmek gerekli ama YETERLİ DEĞİL: model bir kuralı çoğu zaman
+ * tutar, bazen tutmaz ve tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider.
+ * Burada model devrede değil: taslakta geçip de avukatın anlatısında GEÇMEYEN
+ * her gg.aa.yyyy tarihi, doldurulacak bir boşlukla değiştirilir.
+ *
+ * Yön bilinçli: yanlış tarih göstermektense boşluk göstermek her zaman daha
+ * iyidir. Avukat boşluğu görür ve doldurur; yanlış tarihi göremeyebilir.
+ *
+ * Kanun/karar atıflarındaki tarihler de ayıklanır — dilekçede "18/2/1965-538/37"
+ * gibi değişiklik tarihleri işe yaramaz, avukatın verdiği olgular esastır.
+ */
+function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; ayiklanan: number } {
+  const anahtar = (g: string, a: string, y: string) =>
+    `${y}-${a.padStart(2, '0')}-${g.padStart(2, '0')}`;
+
+  const izinli = new Set<string>();
+  for (const m of olay.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) {
+    izinli.add(anahtar(m[1], m[2], m[3]));
+  }
+  for (const m of olay.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) {
+    izinli.add(`${m[1]}-${m[2]}-${m[3]}`);
+  }
+
+  let ayiklanan = 0;
+  const metin = taslak.replace(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g, (tam, g, a, y) => {
+    if (izinli.has(anahtar(g, a, y))) return tam;
+    ayiklanan++;
+    return '[tarih — doldurun]';
+  });
+  return { metin, ayiklanan };
+}
+
   // ───────────── DİLEKÇE: olaydan mahkemeye hazır taslak ─────────────
   // Avukat olayı serbest dille anlatır; biz gerçek mevzuat/içtihatla besleyip
   // seçilen dilekçe türüne göre (dava, cevap, istinaf, temyiz, itiraz, ihtarname…)
@@ -1228,7 +1263,7 @@ Deno.serve(async (req) => {
   // besleme aynıdır (uydurma yasağı korunur).
   if (isDilekce) {
     const typeMap: Record<string, string> = {
-      dava: 'DAVA DİLEKÇESİ (HMK m.119). Unsurlar eksiksiz: mahkeme, taraflar (ad-soyad/TC/adres — bilinmiyorsa [ ]), dava değeri/konusu, açık ve sıralı VAKIALAR, her vakıanın hangi DELİLLE ispatlanacağı, hukuki sebepler, ve NETİCE-İ TALEP (talep sonucu net kalemler + faiz + yargılama gideri/vekalet ücreti).',
+      dava: 'DAVA DİLEKÇESİ (HMK m.119). Unsurlar eksiksiz: mahkeme, taraflar (ad-soyad/TC/adres — bilinmiyorsa [ ]), AYRI BİR SATIR HÂLİNDE "HARCA ESAS DAVA DEĞERİ" (HMK m.119/1-d ZORUNLU unsurdur; hesaplanamıyorsa [Dava değeri] bırak, satırı ATLAMA — eksikliği dilekçe ihtarına yol açar), açık ve sıralı VAKIALAR, her vakıanın hangi DELİLLE ispatlanacağı, hukuki sebepler, ve NETİCE-İ TALEP (talep sonucu net kalemler + faiz TÜRÜ ve BAŞLANGIÇ TARİHİ + yargılama gideri/vekalet ücreti).',
       cevap: 'CEVAP DİLEKÇESİ (HMK m.129). Sıra: usule ilişkin itirazlar (yetki/görev/derdestlik varsa), husumet/sıfat itirazı, zamanaşımı/hak düşürücü süre def’i (varsa), davacının her vakıasına tek tek CEVAP (kabul/inkâr), karşı vakıalar ve delilleri, netice-i talep (davanın reddi).',
       replik: 'CEVABA CEVAP (REPLİK) DİLEKÇESİ. Davalının cevabındaki itirazları çürüt, kendi iddialarını delillerle pekiştir, yeni delil bildir.',
       duplik: 'İKİNCİ CEVAP (DÜPLİK) DİLEKÇESİ. Replikteki yeni iddialara karşılık; savunmayı ve delilleri son kez topla.',
@@ -1252,7 +1287,19 @@ Deno.serve(async (req) => {
       '\n\nBİÇİM KURALLARI:\n' +
       '• En üstte mahkeme başlığı (örn. "… NÖBETÇİ ASLİYE HUKUK MAHKEMESİ SAYIN HÂKİMLİĞİNE"). ' +
       'Doğru mahkeme/görev belli değilse en olası olanı yaz ve yanına [kontrol edin] notu koy.\n' +
-      '• Bilinmeyen bilgileri UYDURMA; köşeli parantezle boş bırak: [Davacı Ad-Soyad], [TC], [Esas No], [Tarih].\n' +
+      // ÖLÇÜLEN ARIZA: avukat yalnız "Mart-Mayıs kiraları ödenmedi, noterden ihtar
+      // çektik" dedi; taslakta "01.02.2026 tarihli sözleşme" ve "30.09.2026 tarihli
+      // ihtarname" belirdi. İkincisi kira aylarından SONRAYA düşüyordu ve
+      // netice-i talebe taşınmıştı. Avukat fark etmezse mahkemeye yanlış tarihli
+      // dilekçe sunar — bu, eksik dilekçeden ağır bir hatadır. Genel talimattaki
+      // "uydurma" yasağı numaraları koruyordu, TARİH ve TUTARI korumuyordu.
+      '• VERİ UYDURMA MUTLAK YASAK: avukatın anlatısında GEÇMEYEN hiçbir tarih, tutar, ad, ' +
+      'adres, TC, esas/karar numarası ya da sözleşme numarası yazma. Gerekiyorsa köşeli ' +
+      'parantezle boşluk bırak ve NEYİN doldurulacağını yaz: [sözleşme tarihi], ' +
+      '[ihtarname tarihi], [dava değeri]. Yanlış tarih, boş bırakmaktan çok daha kötüdür.\n' +
+      // Ölçülen ikinci arıza: DAVALI satırına "[Davacı Ad-Soyad]" yazıldı.
+      '• KÖŞELİ PARANTEZ ETİKETİ, AİT OLDUĞU ALANI SÖYLESİN: davalı satırına [Davacı Ad-Soyad] ' +
+      'yazma, [Davalı Ad-Soyad] yaz. Her boşluk hangi bilgiyi istediğini kendi kendine anlatsın.\n' +
       '• VAKIALARI numaralandır; her hukuki dayanağı gerçek madde numarasıyla ver (aşağıdaki DOSYADAKİ ' +
       'maddelere dayan; dosyada yoksa "ilgili mevzuat" de, madde UYDURMA).\n' +
       '• Sonda "HUKUKİ SEBEPLER", "DELİLLER" (her vakıaya bağlı), "NETİCE-İ TALEP" ve imza bloğu ' +
@@ -1297,8 +1344,12 @@ Deno.serve(async (req) => {
       if (!out.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
+      // Talimat sertleştirildi ama YETMEZ: model kuralı çoğu zaman tutar,
+      // tuttmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
+      // mekanik denetimde.
+      const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
       await recordUsage(userData.user.id, model, uin, uout, cfg.billable);
-      return new Response(JSON.stringify({ text: out.trim(), tier, model }), {
+      return new Response(JSON.stringify({ text: temiz.metin, tier, model, ayiklananTarih: temiz.ayiklanan }), {
         headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     } catch (e) {

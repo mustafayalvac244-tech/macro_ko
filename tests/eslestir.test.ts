@@ -96,3 +96,33 @@ describe('gecer — biçimlendirme içeriği bozmamalı', () => {
     expect(gecer('süre **altı** **hafta**', 'altı hafta')).toBe(true);
   });
 });
+
+describe('gecer — bozuk kalıp sessizce ölçüm bozmasın', () => {
+  it('derlenmeyen kalıp uyarı basar ve false döner', () => {
+    // '[-‑ ]' normalleştirmeden sonra '[-- ]' oluyor: ters aralık, geçersiz
+    // regex. Eskiden sessizce false dönüyordu ve DOĞRU bir dilekçe, netice-i
+    // talep bölümü olmasına rağmen "eksik" sayılmıştı.
+    const uyarilar: string[] = [];
+    const eski = console.warn;
+    console.warn = (m: string) => uyarilar.push(String(m));
+    try {
+      expect(gecer('sonuç ve talep var', 're:[-‑ ]x')).toBe(false);
+    } finally {
+      console.warn = eski;
+    }
+    expect(uyarilar.length).toBe(1);
+    expect(uyarilar[0]).toContain('KALIP DERLENMEDİ');
+  });
+
+  it('geçerli kalıpta uyarı basmaz', () => {
+    const uyarilar: string[] = [];
+    const eski = console.warn;
+    console.warn = (m: string) => uyarilar.push(String(m));
+    try {
+      expect(gecer('SONUÇ VE TALEP: ...', 're:netice[- ]?i talep|sonuç ve talep')).toBe(true);
+    } finally {
+      console.warn = eski;
+    }
+    expect(uyarilar.length).toBe(0);
+  });
+});
