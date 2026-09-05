@@ -191,7 +191,9 @@ async function uret(olay, deneme = 0) {
     }
     throw new Error('YEDEK_OZET');
   }
-  return String(j?.text ?? '');
+  // Hangi model cevapladı: ücretsiz hat Groq'tan Gemini'ye düşebiliyor ve
+  // "kalite düştü" ile "yedeğe inildi" ancak böyle ayırt edilir.
+  return { metin: String(j?.text ?? ''), model: String(j?.model ?? '?') };
 }
 
 const { senaryolar } = JSON.parse(readFileSync(join(__dirname, 'mutalaa-senaryolari.json'), 'utf8'));
@@ -215,8 +217,9 @@ try {
     ilk = false;
 
     let metin;
+    let kullanilanModel = '?';
     try {
-      metin = await uret(s.olay);
+      ({ metin, model: kullanilanModel } = await uret(s.olay));
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(
@@ -259,7 +262,7 @@ try {
 
     sonuclar.push({ id: s.id, gecti, kacan, yasak, eksikBolum, uydurmaTarih, uydurmaTutar, uydurmaMadde, adimdaSure, uzunluk: metin.length });
 
-    console.log(`${gecti ? '✓' : '✗'} ${s.id}  ${metin.length} krktr`);
+    console.log(`${gecti ? '✓' : '✗'} ${s.id}  ${metin.length} krktr · ${kullanilanModel}`);
     if (kacan.length) console.log(`    KAÇIRILAN   : ${kacan.join(' | ')}`);
     if (yasak.length) console.log(`    OLMAMALIYDI : ${yasak.join(' | ')}`);
     if (eksikBolum.length) console.log(`    EKSİK BÖLÜM : ${eksikBolum.join(', ')}`);

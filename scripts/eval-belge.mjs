@@ -124,7 +124,7 @@ async function incele(kind, metin, deneme = 0) {
     }
     throw new Error('YEDEK_OZET');
   }
-  return { metin: String(j?.text ?? ''), ayiklananTarih: j?.ayiklananTarih ?? [] };
+  return { metin: String(j?.text ?? ''), ayiklananTarih: j?.ayiklananTarih ?? [], model: String(j?.model ?? '?') };
 }
 
 // Başlık denetimi SADELEŞTİRİLMİŞ metinde yapılır: JavaScript'in /i bayrağı
@@ -183,7 +183,7 @@ try {
     const gecti = kacan.length === 0 && yasak.length === 0 && eksikBaslik.length === 0 && uydurmaTarih.length === 0;
     sonuclar.push({ id: s.id, gecti, kacan, yasak, eksikBaslik, uydurmaTarih, ayiklanan: cikti.ayiklananTarih, uzunluk: inc.length });
 
-    console.log(`${gecti ? '✓' : '✗'} ${s.id} (${s.kind})  ${inc.length} krktr`);
+    console.log(`${gecti ? '✓' : '✗'} ${s.id} (${s.kind})  ${inc.length} krktr · ${cikti.model}`);
     if (kacan.length) console.log(`    KAÇIRILAN KUSUR: ${kacan.join(' | ')}`);
     if (yasak.length) console.log(`    OLMAMALIYDI    : ${yasak.join(' | ')}`);
     if (eksikBaslik.length) console.log(`    EKSİK BAŞLIK   : ${eksikBaslik.join(', ')}`);

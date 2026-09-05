@@ -129,7 +129,10 @@ async function uret(tip, olay, deneme = 0) {
     }
     throw new Error('YEDEK_OZET');
   }
-  return String(j?.text ?? '');
+  // HANGİ MODELİN CEVAPLADIĞI KAYDA GEÇER. Ücretsiz hat Groq'tan Gemini'ye
+  // düşebiliyor ve iki modelin çıktısı aynı kalitede değil; hangisinin
+  // ölçüldüğü bilinmezse "kalite düştü" ile "yedeğe inildi" ayırt edilemez.
+  return { metin: String(j?.text ?? ''), model: String(j?.model ?? '?') };
 }
 
 const { senaryolar } = JSON.parse(readFileSync(join(__dirname, 'dilekce-senaryolari.json'), 'utf8'));
@@ -150,8 +153,9 @@ try {
     ilk = false;
 
     let taslak;
+    let kullanilanModel = '?';
     try {
-      taslak = await uret(s.tip, s.olay);
+      ({ metin: taslak, model: kullanilanModel } = await uret(s.tip, s.olay));
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(
@@ -181,14 +185,14 @@ try {
     const bosluk = (taslak.match(/\[[^\]]{2,40}\]/g) ?? []).length;
 
     const gecti = eksik.length === 0 && yasak.length === 0 && uydurmaTarih.length === 0;
-    sonuclar.push({ id: s.id, gecti, eksik, yasak, uydurmaTarih, uydurmaTutar, bosluk, uzunluk: taslak.length });
+    sonuclar.push({ id: s.id, gecti, eksik, yasak, uydurmaTarih, uydurmaTutar, bosluk, model: kullanilanModel, uzunluk: taslak.length });
 
-    console.log(`${gecti ? '✓' : '✗'} ${s.id} (${s.tip})  ${taslak.length} krktr · ${bosluk} boşluk`);
+    console.log(`${gecti ? '✓' : '✗'} ${s.id} (${s.tip})  ${taslak.length} krktr · ${bosluk} boşluk · ${kullanilanModel}`);
     if (eksik.length) console.log(`    EKSİK UNSUR : ${eksik.join(' | ')}`);
     if (yasak.length) console.log(`    OLMAMALIYDI : ${yasak.join(' | ')}`);
     if (uydurmaTarih.length) console.log(`    UYDURMA TARİH: ${uydurmaTarih.join(', ')}`);
     if (uydurmaTutar.length) console.log(`    UYDURMA TUTAR: ${uydurmaTutar.join(', ')}`);
-    if (!gecti) kusurlu.push({ id: s.id, tip: s.tip, eksik, yasak, uydurmaTarih, uydurmaTutar, taslak });
+    if (!gecti) kusurlu.push({ id: s.id, tip: s.tip, model: kullanilanModel, eksik, yasak, uydurmaTarih, uydurmaTutar, taslak });
   }
 } finally {
   await kullaniciSil(uid);
