@@ -8,7 +8,18 @@ import Anthropic from 'npm:@anthropic-ai/sdk';
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
-const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.0-flash';
+const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.5-flash';
+// Groq kotası bittiğinde kullanılan yedek.
+//
+// YEDEK YOLU SESSİZCE ÖLÜYDÜ: kod 'gemini-2.0-flash' istiyordu, o model
+// emekliye ayrılmış ve geçerli anahtarla bile 404 dönüyordu. Yani kota bitince
+// asistan susmakla kalmıyor, "yedeği var" sanılan bir yol da hiç çalışmıyordu.
+//
+// Sabit sürüm tercih edilirdi ama bu anahtar için mümkün değil: gemini-2.5-flash
+// gibi sabit adlar "yeni kullanıcılara kapalı" diye 404 veriyor. Adaylar tek tek
+// denendi, çalışan tek ad 'gemini-flash-latest' çıktı. Takma ad olduğu için
+// Google sürümü haber vermeden değiştirebilir; ai-saglik ucu tam bu yüzden var.
+const GEMINI_FALLBACK_MODEL = Deno.env.get('VEKIL_GEMINI_YEDEK') || 'gemini-flash-latest';
 const MODEL_PLUS = Deno.env.get('VEKIL_MODEL_PLUS') || 'gemini-2.5-pro';
 const EMBED_MODEL = 'text-embedding-004';
 
@@ -110,6 +121,90 @@ async function claudeChat(
     if ((e as Error).message === 'refusal') throw e;
     throw new Error('upstream');
   }
+}
+
+/**
+ * Gemini sohbet çağrısı — Groq'un günlük kotası bittiğinde devreye giren YEDEK.
+ *
+ * NEDEN YEDEK GEREKLİ. Groq'un ücretsiz katmanında günlük token tavanı var ve
+ * dolduğunda asistan TAMAMEN susuyordu: kullanıcı 429 görüyor, ertesi güne
+ * kadar hiçbir soru yanıtlanmıyordu. Para ödeyen bir avukat için bu, ürünün o
+ * gün yok olması demektir. Gemini anahtarı zaten tanımlıydı ve hiç
+ * kullanılmıyordu — tek eksik, eskimiş model adı yüzünden 404 dönmesiydi.
+ */
+async function geminiChat(
+  system: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number,
+  apiKey: string,
+  model: string
+): Promise<{ text: string; tin: number; tout: number }> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: msgs.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
+        // Groq yolundaki ölçümle aynı gerekçe: burada istenen yaratıcılık değil,
+        // verilen madde metnini doğru aktarmak.
+        generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens },
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+  const data = await res.json();
+  const text = (data.candidates?.[0]?.content?.parts ?? [])
+    .map((p: { text?: string }) => p.text ?? '')
+    .join('');
+  const um = data.usageMetadata ?? {};
+  return { text, tin: um.promptTokenCount ?? 0, tout: um.candidatesTokenCount ?? 0 };
+}
+
+/**
+ * Ücretsiz katman çağrısı: önce Groq, kota biterse Gemini.
+ *
+ * YEDEĞE YALNIZ KOTA/SAĞLAYICI ARIZASINDA geçilir. Modelin verdiği kötü bir
+ * cevap için ikinci sağlayıcı denenmez — o, aynı soruyu iki kez faturalandırır
+ * ve iki farklı cevabın hangisinin doğru olduğunu bilemeyiz.
+ */
+async function ucretsizChat(
+  system: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number
+): Promise<{ text: string; tin: number; tout: number; model: string }> {
+  const groqKey = Deno.env.get('GROQ_API_KEY') ?? '';
+  const gemKey = Deno.env.get('GEMINI_API_KEY') ?? '';
+  let ilkHata: Error | null = null;
+
+  // Yedek yolunun GERÇEKTEN çalıştığı ancak kota bittiğinde anlaşılır — yani
+  // tam da denenemeyecek anda. Bu anahtar, yedeği kota beklemeden sınamayı
+  // sağlar. Üretimde tanımlı değildir; tanımlıysa Groq hiç denenmez.
+  const yedegiZorla = Deno.env.get('VEKIL_YEDEK_ZORLA') === '1';
+
+  if (groqKey && !yedegiZorla) {
+    try {
+      const r = await groqChat(system, msgs, maxTokens, groqKey);
+      if (r.text.trim()) return { ...r, model: GROQ_MODEL };
+      ilkHata = new Error('empty');
+    } catch (e) {
+      ilkHata = e as Error;
+      // Anlık yoğunluk (dakikalık sınır) geçicidir; yedeğe geçmeye değer,
+      // çünkü kullanıcı beklemek zorunda kalmasın.
+    }
+  }
+  if (gemKey) {
+    try {
+      const r = await geminiChat(system, msgs, maxTokens, gemKey, GEMINI_FALLBACK_MODEL);
+      if (r.text.trim()) return { ...r, model: GEMINI_FALLBACK_MODEL };
+    } catch (e) {
+      // Yedek de düştüyse İLK hatayı bildiriyoruz: kullanıcıya "günlük kota
+      // bitti" demek, "ağ hatası" demekten daha doğru ve daha yararlıdır.
+      if (!ilkHata) ilkHata = e as Error;
+    }
+  }
+  throw ilkHata ?? new Error('upstream');
 }
 
 /** Groq (OpenAI uyumlu) sohbet çağrısı — ücretsiz katman. */
@@ -973,7 +1068,7 @@ Deno.serve(async (req) => {
         return r.text;
       }
       if (provider === 'groq') {
-        const r = await groqChat(sys, [{ role: 'user', text: userText }], maxTok, genKey);
+        const r = await ucretsizChat(sys, [{ role: 'user', text: userText }], maxTok);
         meter.tin += r.tin;
         meter.tout += r.tout;
         return r.text;
@@ -1114,7 +1209,7 @@ Deno.serve(async (req) => {
         const r = await claudeChat(stable, rest, [{ role: 'user', text: promptQuestion }], maxTok, genKey);
         out = r.text; uin = r.tin; uout = r.tout;
       } else if (provider === 'groq') {
-        const r = await groqChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey);
+        const r = await ucretsizChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok);
         out = r.text; uin = r.tin; uout = r.tout;
       } else {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
@@ -1185,6 +1280,7 @@ Deno.serve(async (req) => {
   let text = '';
   let tin = 0;
   let tout = 0;
+  let kullanilanModel = model;
   try {
     if (provider === 'claude') {
       const r = await claudeChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey);
@@ -1192,10 +1288,13 @@ Deno.serve(async (req) => {
       tin = r.tin;
       tout = r.tout;
     } else if (provider === 'groq') {
-      const r = await groqChat(systemText, messages, maxOutputTokens, genKey);
+      const r = await ucretsizChat(systemText, messages, maxOutputTokens);
       text = r.text;
       tin = r.tin;
       tout = r.tout;
+      // Hangi sağlayıcının cevapladığı kullanım kaydına yazılır: yedeğe ne
+      // sıklıkta düşüldüğü, kotanın gerçekten yetip yetmediğinin tek ölçüsü.
+      kullanilanModel = r.model;
     } else {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
       const res = await fetch(url, {
@@ -1226,8 +1325,8 @@ Deno.serve(async (req) => {
   if (!text) {
     return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
   }
-  await recordUsage(userData.user.id, model, tin, tout, cfg.billable);
-  return new Response(JSON.stringify({ text: text.trim(), tier, model }), {
+  await recordUsage(userData.user.id, kullanilanModel, tin, tout, cfg.billable);
+  return new Response(JSON.stringify({ text: text.trim(), tier, model: kullanilanModel }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
 });
