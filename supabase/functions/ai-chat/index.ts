@@ -1223,7 +1223,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
 
-  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string };
+  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string };
   try {
     body = await req.json();
   } catch {
@@ -1740,15 +1740,140 @@ function kunyeAyristir(blok: string): Record<string, string> {
   return out;
 }
 
-/** Bölümlerden resmî düzende dilekçe metnini dizer. */
-function dilekceyiDiz(tip: string, bloklar: Record<string, string>): { metin: string; eksik: string[] } {
+/**
+ * DOSYADAN KÜNYE — avukatın kendi kayıtlarından gelen kesin bilgiler.
+ *
+ * NEDEN. Ölçümde üretilen taslaklarda 13-21 arası köşeli parantez boşluğu
+ * vardı: [Davacı Ad-Soyad], [Vekil ad-soyad], [Esas No], [Mahkeme]… Avukat,
+ * PROGRAMDA ZATEN KAYITLI olan bilgileri taslağa elle geçiriyordu. "İşimi
+ * hızlandırsın" beklentisinin en somut karşılığı burada: elimizdeki veriyi
+ * kullanmak.
+ *
+ * Model bu bilgileri BİLEMEZ (olay anlatısında geçmiyorsa uydurması yasak);
+ * biz biliyoruz. Bu yüzden dosyadan gelen değer, künyede modelin yazdığından
+ * da önce gelir.
+ *
+ * MÜVEKKİLİN SIFATI (davacı mı davalı mı) kayıtta tutulmuyor; dilekçe TÜRÜNDEN
+ * çıkarılır: dava açan davacıdır, cevap veren davalıdır, ihtarname çeken
+ * keşidecidir.
+ *
+ * Sorgu, çağıranın kendi oturumuyla (RLS altında) yapılır: başkasının dosyası
+ * hiçbir koşulda okunamaz.
+ */
+async function dosyaKunyesi(
+  db: ReturnType<typeof createClient>,
+  caseId: string,
+  tip: string
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  const tarihYaz = (v: unknown): string => {
+    const d = v ? new Date(String(v)) : null;
+    if (!d || Number.isNaN(d.getTime())) return '';
+    return `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}.${d.getUTCFullYear()}`;
+  };
+
+  const { data: dava } = await db
+    .from('cases')
+    .select('id, client_id, case_number, court_name, opposing_party, decision_number, decision_date, decision_served_date')
+    .eq('id', caseId)
+    .maybeSingle();
+  if (!dava) return out;
+  const d = dava as Record<string, unknown>;
+
+  let musteri: Record<string, unknown> | null = null;
+  if (d.client_id) {
+    const { data } = await db
+      .from('clients')
+      .select('full_name, company, address, title')
+      .eq('id', d.client_id as string)
+      .maybeSingle();
+    musteri = (data as Record<string, unknown>) ?? null;
+  }
+  const { data: prof } = await db
+    .from('profiles')
+    .select('full_name, baro, bar_number, firm_name')
+    .maybeSingle();
+  const p = (prof as Record<string, unknown>) ?? {};
+
+  const musteriAdi = String(musteri?.full_name ?? musteri?.company ?? '').trim();
+  const musteriSatiri = [musteriAdi, String(musteri?.address ?? '').trim()].filter(Boolean).join(' — ');
+  const karsi = String(d.opposing_party ?? '').trim();
+  const vekilAdi = String(p.full_name ?? '').trim();
+  const vekilSatiri = vekilAdi
+    ? [`Av. ${vekilAdi.replace(/^Av\.?\s*/i, '')}`, String(p.baro ?? '').trim(), String(p.firm_name ?? '').trim()]
+        .filter(Boolean)
+        .join(' — ')
+    : '';
+
+  if (vekilSatiri) out.VEKILI = vekilSatiri;
+  const mahkeme = String(d.court_name ?? '').trim();
+  if (mahkeme) out.MAHKEME = mahkeme;
+  const esas = String(d.case_number ?? '').trim();
+  if (esas) {
+    out.ESASNO = esas;
+    out.DOSYANO = esas;
+  }
+
+  // Müvekkilin ve karşı tarafın satırdaki YERİ dilekçe türüne göre değişir.
+  const musteriEtiketi: Record<string, string> = {
+    dava: 'DAVACI', replik: 'DAVACI', cevap: 'DAVALI', duplik: 'DAVALI',
+    istinaf: 'ISTINAFEDEN', temyiz: 'TEMYIZEDEN', itiraz: 'ITIRAZEDENBORCLU',
+    ihtarname: 'KESIDECI', bilirkisi: 'ITIRAZEDEN', islah: 'ISLAHEDEN',
+  };
+  const karsiEtiketi: Record<string, string> = {
+    dava: 'DAVALI', replik: 'DAVALI', cevap: 'DAVACI', duplik: 'DAVACI',
+    istinaf: 'KARSITARAF', temyiz: 'KARSITARAF', itiraz: 'ALACAKLI',
+    ihtarname: 'MUHATAP', bilirkisi: 'KARSITARAF', islah: 'KARSITARAF',
+  };
+  if (musteriSatiri && musteriEtiketi[tip]) out[musteriEtiketi[tip]] = musteriSatiri;
+  if (karsi && karsiEtiketi[tip]) out[karsiEtiketi[tip]] = karsi;
+
+  // İmza bloğundaki "… Vekili" sıfatı da türden gelir.
+  const imzaSifat: Record<string, string> = {
+    dava: 'Davacı', replik: 'Davacı', cevap: 'Davalı', duplik: 'Davalı',
+    istinaf: 'İstinaf Eden', temyiz: 'Temyiz Eden', itiraz: 'İtiraz Eden (Borçlu)',
+    ihtarname: 'Keşideci', bilirkisi: 'İtiraz Eden', islah: 'Islah Eden',
+  };
+  if (imzaSifat[tip]) out.IMZASIFAT = imzaSifat[tip];
+
+  // Kanun yolu dilekçelerinde kararın künyesi ve tebliğ tarihi.
+  const kararSatiri = [mahkeme, esas, String(d.decision_number ?? '').trim(), tarihYaz(d.decision_date)]
+    .filter(Boolean)
+    .join(' · ');
+  if (kararSatiri && (tip === 'istinaf' || tip === 'temyiz')) {
+    out.KARAR = kararSatiri;
+    out.TEMYIZEDILENKARAR = kararSatiri;
+  }
+  const teblig = tarihYaz(d.decision_served_date);
+  // Not: bilirkişi RAPORUNUN tebliğ tarihi ayrı bir tarihtir ve kayıtta
+  // tutulmuyor; karar tebliğ tarihini oraya yazmak yanlış süre hesaplatırdı.
+  if (teblig) out.TEBLIGTARIHI = teblig;
+  return out;
+}
+
+/**
+ * Bölümlerden resmî düzende dilekçe metnini dizer.
+ *
+ * `dosya`, kullanıcının KENDİ kayıtlarından gelen kesin bilgilerdir (dava,
+ * müvekkil, avukat profili) ve künyede modelin yazdığından da ÖNCE gelir:
+ * müvekkilin adını en iyi model değil, avukatın kendi kaydı bilir.
+ */
+function dilekceyiDiz(
+  tip: string,
+  bloklar: Record<string, string>,
+  dosya: Record<string, string> = {}
+): { metin: string; eksik: string[] } {
   const iskelet = iskeletSec(tip);
   const eksik: string[] = [];
   const satirlar: string[] = [];
 
   // İstinaf/temyizde merci İKİ SATIRDIR ("… BAM … DAİRESİNE" + "Sunulmak üzere
   // … MAHKEMESİNE"); tek satıra indirgemek dilekçeyi yanlış yere gönderir.
-  const mahkeme = (bloklar.MAHKEME ?? '').trim();
+  // İSTİNAF/TEMYİZDE DOSYADAKİ MAHKEME ADI KULLANILMAZ: orada merci BAM ya da
+  // Yargıtay'dır, kayıttaki mahkeme ise kararı VEREN ilk derece mahkemesidir.
+  // Doğrudan yazmak, dilekçeyi yanlış yere gönderirdi.
+  const dosyaMerci = tip === 'istinaf' || tip === 'temyiz' ? '' : (dosya.MAHKEME ?? '').trim();
+  const mahkeme = dosyaMerci || (bloklar.MAHKEME ?? '').trim();
   satirlar.push(
     mahkeme
       ? mahkeme.split('\n').map((x) => x.trim()).filter(Boolean).join('\n')
@@ -1764,7 +1889,9 @@ function dilekceyiDiz(tip: string, bloklar: Record<string, string>): { metin: st
   const kunye = kunyeAyristir(bloklar.TARAF ?? '');
   const etiketGenislik = Math.max(...iskelet.taraflar.map(([e]) => e.length));
   for (const [etiket, varsayilan] of iskelet.taraflar) {
-    const deger = (kunye[etiketAnahtari(etiket)] ?? '').trim() || varsayilan;
+    const anahtar = etiketAnahtari(etiket);
+    // ÖNCELİK: avukatın kendi kaydı → modelin yazdığı → kodun boşluğu.
+    const deger = (dosya[anahtar] ?? '').trim() || (kunye[anahtar] ?? '').trim() || varsayilan;
     satirlar.push(`${etiket.padEnd(etiketGenislik)} : ${deger}`);
   }
   satirlar.push('');
@@ -1781,8 +1908,9 @@ function dilekceyiDiz(tip: string, bloklar: Record<string, string>): { metin: st
   }
 
   satirlar.push('Saygılarımla,');
-  satirlar.push('[Taraf] Vekili');
-  satirlar.push('Av. [Vekil ad-soyad]');
+  satirlar.push(dosya.IMZASIFAT ? `${dosya.IMZASIFAT} Vekili` : '[Taraf] Vekili');
+  // İmza bloğunda avukatın kendi adı: her taslakta elle yazılan ilk şey buydu.
+  satirlar.push(dosya.VEKILI ? dosya.VEKILI.split('—')[0].trim() : 'Av. [Vekil ad-soyad]');
   satirlar.push('');
 
   const kontrol = (bloklar.KONTROL ?? '').trim();
@@ -1948,12 +2076,20 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
       // belge dizmek, elde olan çalışan metni bozmak olurdu.
       const bloklar = bloklariAyristir(out);
       const iskelet = iskeletSec(body.dilekceType ?? 'dava');
+      // DOSYA SEÇİLDİYSE künye avukatın kendi kaydından dolar. Hata yutulur:
+      // kayıt okunamadı diye taslak üretilmemesi, boşluklu taslaktan kötüdür.
+      let dosya: Record<string, string> = {};
+      if (body.caseId) {
+        try {
+          dosya = await dosyaKunyesi(supabase, body.caseId, body.dilekceType ?? 'dava');
+        } catch { /* künye dolmazsa kodun boşlukları kalır */ }
+      }
       const beklenen = iskelet.bolumler.filter((b) => b.zorunlu).length;
       const bulunan = iskelet.bolumler.filter((b) => b.zorunlu && (bloklar[b.anahtar] ?? '').trim()).length;
       let govde = out.trim();
       let eksikBolum: string[] = [];
       if (bulunan >= Math.ceil(beklenen / 2)) {
-        const dizili = dilekceyiDiz(body.dilekceType ?? 'dava', bloklar);
+        const dizili = dilekceyiDiz(body.dilekceType ?? 'dava', bloklar, dosya);
         govde = dizili.metin;
         eksikBolum = dizili.eksik;
       }

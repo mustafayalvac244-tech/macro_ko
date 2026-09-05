@@ -7,6 +7,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
+import { useCases } from '@/hooks/useCases';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
@@ -42,6 +43,12 @@ export default function DilekceUretScreen() {
   const t = useT();
 
   const [type, setType] = useState<string>('dava');
+  // DOSYA SEÇİMİ. Taslaklarda 13-21 arası köşeli parantez boşluğu çıkıyordu:
+  // [Davacı Ad-Soyad], [Vekil ad-soyad], [Esas No], [Mahkeme]… Avukat, programda
+  // ZATEN KAYITLI bilgileri taslağa elle geçiriyordu. Dosya seçilirse künyeyi
+  // sunucu bu kayıtlardan doldurur.
+  const [caseId, setCaseId] = useState<string | null>(null);
+  const { data: davalar } = useCases({ status: 'open' });
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState('');
@@ -59,7 +66,7 @@ export default function DilekceUretScreen() {
     setText('');
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
-        body: { mode: 'dilekce', dilekceType: type, question },
+        body: { mode: 'dilekce', dilekceType: type, question, caseId: caseId ?? undefined },
       });
       if (fnErr) {
         // Hata çevirisi ORTAK: aynı mantık üç ekranda ayrı yazılınca biri
@@ -107,6 +114,37 @@ export default function DilekceUretScreen() {
               );
             })}
           </View>
+
+          {!!davalar?.length && (
+            <>
+              <Text style={styles.label}>{t('dlk.caseLabel')}</Text>
+              <Text style={styles.caseHint}>{t('dlk.caseHint')}</Text>
+              <View style={styles.chips}>
+                <Pressable
+                  onPress={() => setCaseId(null)}
+                  style={[styles.chip, !caseId && styles.chipOn]}
+                  disabled={busy}
+                >
+                  <Text style={[styles.chipText, !caseId && styles.chipTextOn]}>{t('dlk.caseNone')}</Text>
+                </Pressable>
+                {davalar.slice(0, 12).map((d) => {
+                  const on = caseId === d.id;
+                  return (
+                    <Pressable
+                      key={d.id}
+                      onPress={() => setCaseId(on ? null : d.id)}
+                      style={[styles.chip, on && styles.chipOn]}
+                      disabled={busy}
+                    >
+                      <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={1}>
+                        {d.title}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
 
           <Text style={styles.label}>{t('dlk.factsLabel')}</Text>
           <TextInput
@@ -162,6 +200,13 @@ export default function DilekceUretScreen() {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
+  caseHint: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: colors.textMuted,
+    marginBottom: spacing.sm,
+  },
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
   lead: {
     fontFamily: fonts.regular,
