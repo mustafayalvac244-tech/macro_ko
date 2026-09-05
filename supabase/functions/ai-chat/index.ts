@@ -55,6 +55,27 @@ const CLAUDE_MODEL = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
 // model_not_found → tüm AI katmanları çöktü). Resmî önerilen halef: gpt-oss-120b.
 // Model env (VEKIL_GROQ_MODEL) ile deploy'suz değiştirilebilir.
 const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b';
+// GÜNLÜK TAVAN MODEL BAŞINA AYRI. gpt-oss-120b'nin 200.000 token'ı bittiğinde
+// asistan tamamen susuyordu; oysa aynı anahtarla çalışan DİĞER modellerin
+// kotası hâlâ açık. Ölçüm günü boyunca yaşanan şey buydu: saatlerce "kota
+// doldu" beklendi, yanı başında kullanılabilir kapasite duruyordu.
+//
+// Adaylar sağlayıcıdan SORULARAK belirlendi (ai-saglik, groq_modelleri), tahmin
+// edilmedi: Gemini'de model adını tahmin etmenin bedeli, yedeğin aylarca ölü
+// kalması olmuştu. Ses/sınıflandırma modelleri (whisper, prompt-guard) ve araç
+// çağıran bileşik sistemler (compound) listeye ALINMADI — farklı iş yaparlar.
+//
+// SIRA KALİTEYE GÖRE. Yedek model, birincisi kadar iyi olmayabilir; bu yüzden
+// hangi modelin cevapladığı yanıtta bildirilir ve kullanım kaydına yazılır.
+// "Zayıf modelle cevap" ile "hiç cevap yok" arasında seçim yapıyoruz: avukat
+// için ikincisi her zaman daha kötüdür.
+const GROQ_ADAYLAR: string[] = (Deno.env.get('VEKIL_GROQ_ADAYLAR') || '')
+  .split(',')
+  .map((x) => x.trim())
+  .filter(Boolean);
+const GROQ_ZINCIR = GROQ_ADAYLAR.length
+  ? GROQ_ADAYLAR
+  : [GROQ_MODEL, 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'];
 interface TierCfg { provider: 'gemini' | 'groq' | 'claude'; model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number; maxOut: number }
 function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
   const t = aiTier || 'baslangic'; // lansman: herkes Groq (bedava); billing gelince pro/elit elle atanır
@@ -166,14 +187,14 @@ async function claudeChat(
     // Ücretli hat da durum tablosuna yazar: sağlık raporu, ücretsiz sağlayıcılar
     // için yoklamanın yalan söylediğini gerçek çağrılardan öğrenmişti; para
     // ödeyen katmanı bu görünürlükten mahrum bırakmak tutarsız olurdu.
-    void durumYaz('claude', 'ok');
+    void durumYaz('claude', 'ok', undefined, model);
     return { text, tin, tout: u.output_tokens ?? 0 };
   } catch (e) {
     let sonuc = 'upstream';
     if (e instanceof Anthropic.RateLimitError) sonuc = 'rate_limit';
     else if (e instanceof Anthropic.AuthenticationError) sonuc = 'not_configured';
     else if ((e as Error).message === 'refusal') sonuc = 'refusal';
-    void durumYaz('claude', sonuc, (e as Error).message);
+    void durumYaz('claude', sonuc, (e as Error).message, model);
     // Güvenlik reddi bir ARIZA DEĞİLDİR; olduğu gibi yukarı taşınır ki
     // başka bir sağlayıcıyla dolanılmasın.
     if (sonuc === 'refusal') throw e;
@@ -324,11 +345,18 @@ function beklemeSaniye(ayrinti?: string): number {
   return Number.isFinite(s) && s > 0 ? s : 0;
 }
 
-async function durumYaz(saglayici: string, sonuc: string, hata?: string): Promise<void> {
+async function durumYaz(saglayici: string, sonuc: string, hata?: string, model?: string): Promise<void> {
   try {
     const s = svc();
     if (!s) return;
-    await s.rpc('ai_durum_yaz', { p_saglayici: saglayici, p_sonuc: sonuc, p_hata: hata ?? null });
+    await s.rpc('ai_durum_yaz', {
+      p_saglayici: saglayici,
+      p_sonuc: sonuc,
+      p_hata: hata ?? null,
+      // Hangi model cevapladı: Groq'ta günlük tavan model başına ayrı olduğu
+      // için yedeğe inilebiliyor ve rapor "ok" derken kalite değişmiş olabilir.
+      p_model: model ?? null,
+    });
   } catch { /* durum kaydı ikincil bilgidir */ }
 }
 
@@ -347,31 +375,40 @@ async function ucretsizChat(
   const yedegiZorla = Deno.env.get('VEKIL_YEDEK_ZORLA') === '1';
 
   if (groqKey && !yedegiZorla) {
-    try {
-      const r = await groqChat(system, msgs, maxTokens, groqKey);
-      if (r.text.trim()) {
-        void durumYaz('groq', 'ok');
-        return { ...r, model: GROQ_MODEL };
+    // MODELLER TEK TEK DENENİR. Günlük tavan model başına ayrı olduğu için
+    // birincinin kotası bitmişken ikincininki açık olabilir. Yalnız KOTA/
+    // YOĞUNLUK hatasında sıradakine geçilir: 'empty' ya da beklenmedik bir
+    // arıza, aynı isteği üç kez faturalandırıp aynı sonucu almak demek olurdu.
+    for (const model of GROQ_ZINCIR) {
+      try {
+        const r = await groqChat(system, msgs, maxTokens, groqKey, model);
+        if (r.text.trim()) {
+          void durumYaz('groq', 'ok', undefined, model);
+          return { ...r, model };
+        }
+        if (!ilkHata) ilkHata = new Error('empty');
+        void durumYaz('groq', 'empty', undefined, model);
+        break;
+      } catch (e) {
+        const msg = (e as Error).message;
+        if (!ilkHata) ilkHata = e as Error;
+        void durumYaz('groq', msg, (e as Error & { ayrinti?: string }).ayrinti, model);
+        // Kota/yoğunluk dışındaki hata sağlayıcının genel arızasıdır; sıradaki
+        // modeli denemek zaman kaybı olur, doğrudan Gemini'ye geçilir.
+        if (msg !== 'daily_quota' && msg !== 'rate_limit') break;
       }
-      ilkHata = new Error('empty');
-      void durumYaz('groq', 'empty');
-    } catch (e) {
-      ilkHata = e as Error;
-      void durumYaz('groq', (e as Error).message, (e as Error & { ayrinti?: string }).ayrinti);
-      // Anlık yoğunluk (dakikalık sınır) geçicidir; yedeğe geçmeye değer,
-      // çünkü kullanıcı beklemek zorunda kalmasın.
     }
   }
   if (gemKey) {
     try {
       const r = await geminiChat(system, msgs, maxTokens, gemKey, GEMINI_FALLBACK_MODEL);
       if (r.text.trim()) {
-        void durumYaz('gemini', 'ok');
+        void durumYaz('gemini', 'ok', undefined, GEMINI_FALLBACK_MODEL);
         return { ...r, model: GEMINI_FALLBACK_MODEL };
       }
-      void durumYaz('gemini', 'empty');
+      void durumYaz('gemini', 'empty', undefined, GEMINI_FALLBACK_MODEL);
     } catch (e) {
-      void durumYaz('gemini', (e as Error).message, (e as Error & { ayrinti?: string }).ayrinti);
+      void durumYaz('gemini', (e as Error).message, (e as Error & { ayrinti?: string }).ayrinti, GEMINI_FALLBACK_MODEL);
       // Yedek de düştüyse İLK hatayı bildiriyoruz: kullanıcıya "günlük kota
       // bitti" demek, "ağ hatası" demekten daha doğru ve daha yararlıdır.
       if (!ilkHata) ilkHata = e as Error;
@@ -381,12 +418,12 @@ async function ucretsizChat(
 }
 
 /** Groq (OpenAI uyumlu) sohbet çağrısı — ücretsiz katman. */
-async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; text: string }>, maxTokens: number, apiKey: string): Promise<{ text: string; tin: number; tout: number }> {
+async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; text: string }>, maxTokens: number, apiKey: string, model: string = GROQ_MODEL): Promise<{ text: string; tin: number; tout: number }> {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: GROQ_MODEL,
+      model,
       messages: [{ role: 'system', content: system }, ...msgs.map((m) => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))],
       // ÖLÇÜLDÜ: 0.4'te aynı soru koşudan koşuya farklı kalitede cevaplanıyordu
       // — bir koşuda süreyi doğru veren cevap, diğerinde süreyi hiç yazmadı.

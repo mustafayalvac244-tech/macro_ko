@@ -212,6 +212,27 @@ Deno.serve(async (req) => {
       }
     } catch { /* tanılama başarısız olursa sağlık raporu yine dönsün */ }
   }
+  // GROQ MODEL LİSTESİ. Günlük token tavanı MODEL BAŞINA ayrı: birinin kotası
+  // bitmişken başkasınınki açık olabilir. Hangi modellerin bu anahtara açık
+  // olduğunu tahmin etmek yerine sağlayıcıya soruyoruz — Gemini'de model adını
+  // tahmin etmenin bedeli, yedeğin aylarca ölü kalması olmuştu.
+  let groq_modelleri: string[] = [];
+  try {
+    const gk = Deno.env.get('GROQ_API_KEY') ?? '';
+    if (gk) {
+      const r = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { Authorization: `Bearer ${gk}` },
+      });
+      if (r.ok) {
+        const d = await r.json();
+        groq_modelleri = (d.data ?? [])
+          .map((m: { id?: string }) => String(m.id ?? ''))
+          .filter(Boolean)
+          .slice(0, 40);
+      }
+    }
+  } catch { /* tanılama başarısız olursa rapor yine dönsün */ }
+
   // YOKLAMA TEK BAŞINA YETMEZ. 1 token'lık istek, GÜNLÜK TOKEN tavanı (TPD)
   // dolmuşken bile geçebiliyor; ölçümde tam bu yaşandı: rapor "ayakta,
   // yedekli" derken gerçek dilekçe isteği 429 daily_quota alıyordu. Yalan
@@ -261,8 +282,12 @@ Deno.serve(async (req) => {
         // Sağlayıcının kendi hata gövdesi: "dakikalık sınır" ile "günlük kota"
         // ayrımı ve ne zaman açılacağı yalnız burada yazıyor.
         gercekSonHata: sonGercek(d.saglayici)?.son_hata ?? null,
+        // Groq'ta günlük tavan model başına ayrı: "ok" derken hangi modelin
+        // cevapladığı, o an hangi kalitede çalıştığımızı söyler.
+        gercekSonModel: sonGercek(d.saglayici)?.son_model ?? null,
       })),
       gemini_modelleri: modeller,
+      groq_modelleri,
     }),
     { headers: { ...CORS, 'Content-Type': 'application/json' } }
   );

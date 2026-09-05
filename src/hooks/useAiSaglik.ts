@@ -25,6 +25,10 @@ export interface SaglayiciDurumu {
   gercekSonSonuc?: string | null;
   gercekSonZaman?: string | null;
   gercekSonBasari?: string | null;
+  /** Son gerçek çağrıya hangi modelin cevap verdiği. Groq'ta günlük tavan model
+   *  başına ayrı olduğu için yedeğe inilmiş olabilir; "ok" tek başına kalitenin
+   *  değişmediği anlamına gelmez. */
+  gercekSonModel?: string | null;
 }
 
 export interface AiSaglik {
