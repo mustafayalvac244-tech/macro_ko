@@ -65,6 +65,16 @@ const PRICING: Record<string, { in: number; out: number }> = {
   'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
   'gemini-2.5-pro': { in: 1.25, out: 10.0 },
   'claude-sonnet-5': { in: 2.0, out: 10.0 },
+  // FABLE 5.1 — GİRDİ FİYATI BELGEDEN ÇIKARILDI, TAHMİN DEĞİL: önbellek okuma
+  // ücreti 0,025 × temel girdi ve bu 0,25 USD/MTok olarak veriliyor; buradan
+  // temel girdi 10 USD/MTok çıkar (Sonnet 5'in BEŞ KATI).
+  //
+  // ÇIKTI FİYATI DOĞRULANMADI. Buradaki 50, Anthropic modellerinde görülen
+  // "çıktı = girdinin 5 katı" oranından TÜRETİLMİŞ bir varsayımdır. Yanlış
+  // olursa yön güvenli taraftadır: fazla hesaplarız, eksik değil — ve maliyet
+  // hesabı sessizce düşük çıkıp zarar ettirmez. Bu model açılmadan ÖNCE gerçek
+  // fiyat teyit edilmeli.
+  'claude-fable-5-1': { in: 10.0, out: 50.0 },
 };
 // AI katmanı: Claude Sonnet 5. Model env ile deploy'suz değiştirilebilir.
 const CLAUDE_MODEL = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
