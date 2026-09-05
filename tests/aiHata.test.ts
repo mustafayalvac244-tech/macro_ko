@@ -39,6 +39,12 @@ describe('aiHataMetni', () => {
     expect(aiHataMetni({ error: 'kontor_bitti', yeniden: 600 }, t)).toBe('ai.errKontor');
   });
 
+  it('bizim günlük hakkımızı sağlayıcı kotasıyla karıştırmaz', () => {
+    // Sağlayıcı kotası dakikalar içinde açılabilir; günlük adil kullanım hakkı
+    // gece yarısı yenilenir. Aynı mesaj, kullanıcıyı yanlış beklentiye sokardı.
+    expect(aiHataMetni({ error: 'gunluk_hak_bitti' }, t)).toBe('ai.errDailyCap');
+  });
+
   it('bilinmeyen kodda genel hata verir', () => {
     expect(aiHataMetni({ error: 'upstream' }, t)).toBe('ai.errGeneric');
     expect(aiHataMetni({}, t)).toBe('ai.errGeneric');

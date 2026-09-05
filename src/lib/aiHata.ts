@@ -32,7 +32,7 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errGeneric';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -54,6 +54,9 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   // Kontör bitmesi kota değildir: beklemekle geçmez, yükleme gerektirir.
   // İkisini aynı mesaja bağlamak kullanıcıyı boşuna bekletirdi.
   if (kod === 'kontor_bitti') return t('ai.errKontor');
+  // Günlük adil kullanım hakkı: sağlayıcı kotasından farklı. Bizim koyduğumuz
+  // sınır olduğu için ne zaman yenileneceği kesin: gece yarısı (UTC).
+  if (kod === 'gunluk_hak_bitti') return t('ai.errDailyCap');
   if (kod === 'not_configured') return t('ai.errGeneric');
   return t('ai.errGeneric');
 }

@@ -81,15 +81,27 @@ const GROQ_ADAYLAR: string[] = (Deno.env.get('VEKIL_GROQ_ADAYLAR') || '')
 const GROQ_ZINCIR = GROQ_ADAYLAR.length
   ? GROQ_ADAYLAR
   : [GROQ_MODEL, 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'];
-interface TierCfg { provider: 'gemini' | 'groq' | 'claude'; model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number; maxOut: number }
+interface TierCfg {
+  provider: 'gemini' | 'groq' | 'claude';
+  model: string;
+  billable: boolean;
+  limitKind: 'calls' | 'cost';
+  limit: number;
+  maxOut: number;
+  /** GÜNLÜK istek hakkı. Ücretsiz sağlayıcının günlük tavanı tüm kullanıcılar
+   *  için ORTAK olduğundan, tek bir üyenin havuzu bitirmesi diğer herkesi o gün
+   *  hizmetsiz bırakır. 0 = günlük sınır yok (ücretli katmanlarda bakiye zaten
+   *  sınırdır). */
+  gunluk?: number;
+}
 function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
   const t = aiTier || 'baslangic'; // lansman: herkes Groq (bedava); billing gelince pro/elit elle atanır
   const table: Record<string, TierCfg> = {
     // Ücretsiz katmanlar Groq (bedava, Türkiye'den çalışır); Pro/Elit Gemini (faturalı, güçlü).
-    free: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 20, maxOut: 1024 },
+    free: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 20, maxOut: 1024, gunluk: 5 },
     // maxOut 1024 dilekçe/ihtarname taslağını ortasında kesiyordu (kalite şikayeti);
     // 2048 tam bir taslağa yetiyor.
-    baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500, maxOut: 2048 },
+    baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500, maxOut: 2048, gunluk: 15 },
     // Ücretli katmanlar Claude Sonnet 5'te. maxOut yükseltildi: dilekçe çıktısı
     // ölçülen ~3.000 token ve adaptif düşünme de bu tavana dahil; 2048/4096
     // taslağı ortasından kesebilirdi. Kesilen dilekçe, avukat için hiç
@@ -127,7 +139,7 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
   if (cfg.provider === 'claude' && !Deno.env.get('ANTHROPIC_API_KEY')) {
     return {
       tier: t,
-      cfg: { ...cfg, provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 4000 },
+      cfg: { ...cfg, provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 4000, gunluk: 25 },
     };
   }
   // Google faturalandırması AÇILANA KADAR Pro/Elit de Groq'ta çalışır. Aksi
@@ -136,7 +148,7 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
   if (cfg.provider === 'gemini' && (Deno.env.get('AI_PRO_PROVIDER') ?? 'groq') !== 'gemini') {
     return {
       tier: t,
-      cfg: { ...cfg, provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: t === 'elit' ? 4000 : 1500 },
+      cfg: { ...cfg, provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: t === 'elit' ? 4000 : 1500, gunluk: t === 'elit' ? 25 : 20 },
     };
   }
   return { tier: t, cfg };
@@ -522,6 +534,21 @@ function aiPeriod(): string {
   const d = new Date();
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
+/**
+ * GÜNLÜK dönem anahtarı — adil kullanım sayacı için.
+ *
+ * NEDEN GÜNLÜK SINIR GEREKLİ. Ücretsiz sağlayıcının günlük token tavanı TÜM
+ * kullanıcılar için ORTAK (200.000 token; bir dilekçe ~7.000-8.000). Aylık
+ * çağrı sınırı bunu korumuyor: tek bir üye sabah otuz dilekçe üretip ortak
+ * havuzu bitirebilir ve o gün diğer herkes "kota doldu" görür. Aylık hakkını
+ * aşmamış olması da bir şey değiştirmez — zarar zaten oluşmuştur.
+ *
+ * Günlük sınır, ücretsiz katmanı satılabilir hâle getiren şeydir: "günde şu
+ * kadar" diye söz verebiliyoruz ve bu sözü tutabiliyoruz.
+ */
+function aiGun(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 let _svc: ReturnType<typeof createClient> | null = null;
 function svc(): ReturnType<typeof createClient> | null {
   if (_svc) return _svc;
@@ -530,10 +557,10 @@ function svc(): ReturnType<typeof createClient> | null {
   if (url && key) _svc = createClient(url, key);
   return _svc;
 }
-async function usageRow(userId: string): Promise<{ calls: number; cost: number }> {
+async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ calls: number; cost: number }> {
   const s = svc();
   if (!s) return { calls: 0, cost: 0 };
-  const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', aiPeriod()).maybeSingle();
+  const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', period).maybeSingle();
   const r = data as { calls?: number; cost_try?: number } | null;
   return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
 }
@@ -1384,6 +1411,18 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'kontor_bitti', tier, bakiye: Math.round(kontor * 100) / 100, gereken: KONTOR_ESIGI }),
         { status: 402, headers: CORS }
+      );
+    }
+  }
+
+  // GÜNLÜK ADİL KULLANIM. Ortak havuzu tek bir üyenin bitirmesini engeller;
+  // aşan kullanıcıya "yarın" değil, ne zaman yenileneceği söylenir.
+  if (cfg.gunluk && cfg.gunluk > 0) {
+    const gun = await usageRow(userData.user.id, aiGun());
+    if (gun.calls >= cfg.gunluk) {
+      return new Response(
+        JSON.stringify({ error: 'gunluk_hak_bitti', tier, gunlukHak: cfg.gunluk, kullanilan: gun.calls }),
+        { status: 429, headers: CORS }
       );
     }
   }

@@ -1198,6 +1198,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.usageCost': 'This request: {token} tokens · {tl} TL deducted from your credit',
   'ai.usageFree': 'This request: {token} tokens (free tier — no credit used)',
   'ai.errKontor': 'Your AI credit is used up. Top up to continue.',
+  'ai.errDailyCap': 'Your AI allowance for today is used up. It renews each night; top up credit for more.',
   'ai.errDailyQuota': 'Today’s free AI allowance is used up. It resets daily — try again tomorrow, or upgrade to Pro for uninterrupted use.',
   'ai.errQuotaWait': 'The free AI allowance is full right now. Try again in about {dk} minutes, or upgrade to Pro for uninterrupted use.',
   'ai.errQuota': 'You’ve reached this month’s AI usage limit. Upgrade to a higher plan to continue.',
