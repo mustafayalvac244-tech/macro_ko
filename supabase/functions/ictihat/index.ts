@@ -11,10 +11,12 @@
 //   supabase functions deploy ictihat
 //   (GEMINI_API_KEY zaten ai-chat için tanımlı; summarize onu kullanır)
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { overLimit, tierConfig as ortakKatman } from '../_shared/katman.ts';
 
 const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
-const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.0-flash';
-const MODEL_PLUS = Deno.env.get('VEKIL_MODEL_PLUS') || 'gemini-2.5-pro';
+// MODEL_BASIC / MODEL_PLUS KALDIRILDI: katman tablosu ortak dosyaya taşınınca
+// ikisi de okunmaz oldu. Okunmayan yapılandırma anahtarı zararsız değildir —
+// sonraki okuyucu onların hâlâ etkili olduğunu sanar ve yanlış yerde ayar arar.
 
 // ── AI MALİYET ÖLÇÜMÜ + KATMAN TAVANI (batma koruması) ──────────────────────
 // Her AI çağrısının token maliyeti hesaplanıp ai_usage'a yazılır; çağrıdan önce
@@ -24,23 +26,19 @@ const PRICING: Record<string, { in: number; out: number }> = {
   'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
   'gemini-2.5-pro': { in: 1.25, out: 10.0 },
 };
-// Katman: billable=false ise ÜCRETSİZ Gemini anahtarı kullanılır, maliyet 0
-// kaydedilir ve aylık ÇAĞRI SAYISI ile sınırlanır (paylaşımlı ücretsiz kotayı
-// tek kullanıcı tüketmesin). billable=true ise faturalı anahtar + TL tavanı.
-interface TierCfg { provider: Provider; model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number }
-function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
-  const t = aiTier || 'baslangic'; // lansman: herkes Groq (bedava); billing gelince pro/elit elle atanır
-  const table: Record<string, TierCfg> = {
-    // Ücretsiz katmanlar Groq (bedava); Pro/Elit Gemini (faturalı, güçlü).
-    free: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 20 },
-    baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500 },
-    pro: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450 },
-    elit: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500 },
-    // AI katmanı (1.999 TL/ay). Claude anahtarı yoksa aşağıda Groq'a düşer.
-    ai: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 4000 },
-  };
-  return { tier: t, cfg: table[t] ?? table.free };
-}
+// KATMAN TABLOSU BURADA DEĞİL: _shared/katman.ts.
+//
+// Burada kendi kopyası vardı ve ai-chat'teki asıl tablodan AYRILMIŞTI: orada
+// Pro/Elit Claude'a taşınmışken burası hâlâ Gemini'ye, AI katmanını da Groq'a
+// yolluyordu. Aynı üye, hangi ekranı açtığına göre başka bir modelle
+// konuşuyordu ve bunu kimse fark etmiyordu — iki dosyaya birden bakan yoktu.
+//
+// İÇTİHAT ÖZETİ ŞİMDİLİK GROQ'TA. Ortak tablo ücretli katmanı Claude'a
+// yolluyor ama buradaki llmCall yalnız Groq ve Gemini konuşuyor; Claude'un
+// JSON modu farklı (response_format yok) ve taşımayı ölçmeden yapmak, çalışan
+// bir yolu bozma riski. Bu yüzden Claude/OpenAI seçilen katman burada AÇIKÇA
+// Groq'a düşürülüyor — sessizce Gemini'ye gitmesindense görünür bir indirgeme.
+
 // Sağlayıcıya göre anahtar: Groq → GROQ_API_KEY, Gemini → GEMINI_API_KEY.
 function aiKey(provider: Provider): string | undefined {
   return provider === 'groq' ? (Deno.env.get('GROQ_API_KEY') ?? undefined) : (Deno.env.get('GEMINI_API_KEY') ?? undefined);
@@ -61,9 +59,6 @@ async function usageRow(userId: string): Promise<{ calls: number; cost: number }
   return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
 }
 /** Tavan aşıldı mı? (billable→TL, ücretsiz→çağrı sayısı) */
-function overLimit(cfg: TierCfg, row: { calls: number; cost: number }): boolean {
-  return cfg.limitKind === 'cost' ? row.cost >= cfg.limit : row.calls >= cfg.limit;
-}
 async function recordUsage(userId: string, model: string, tin: number, tout: number, billable: boolean): Promise<void> {
   const s = svc();
   if (!s) return;
@@ -92,6 +87,25 @@ function meterAdd(m: Meter, j: any): void {
 // Groq llama-3.3-70b-versatile'ı 17.06.2026'da kaldırdı; halef gpt-oss-120b.
 const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b';
 type Provider = 'gemini' | 'groq';
+
+/**
+ * Ortak katman tablosunu bu ucun konuşabildiği sağlayıcılara indirger.
+ * Claude/OpenAI seçilen katman Groq'ta çalışır (yukarıdaki nota bakınız).
+ */
+function tierConfig(aiTier: string | null | undefined, isPremium: boolean) {
+  const { tier, cfg } = ortakKatman(aiTier, isPremium, {
+    groqModel: GROQ_MODEL,
+    claudeModel: Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5',
+    claudeAnahtariVar: !!Deno.env.get('ANTHROPIC_API_KEY'),
+  });
+  if (cfg.provider === 'claude' || cfg.provider === 'openai') {
+    return {
+      tier,
+      cfg: { ...cfg, provider: 'groq' as Provider, model: GROQ_MODEL, billable: false, limitKind: 'calls' as const, limit: 4000 },
+    };
+  }
+  return { tier, cfg: { ...cfg, provider: cfg.provider as Provider } };
+}
 async function llmCall(
   provider: Provider,
   apiKey: string,

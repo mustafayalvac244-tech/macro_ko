@@ -20,10 +20,16 @@ import {
   iskeletSec,
   uydurmaTarihleriAyikla,
 } from '../_shared/dilekce.ts';
+// Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
+// ayrılmıştı (bkz. _shared/katman.ts).
+import { overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
-const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.5-flash';
+// MODEL_BASIC (gemini-2.5-flash) KALDIRILDI: hiçbir katmanın birincil
+// sağlayıcısı Gemini değil. Gemini yalnız ÜCRETSİZ HATTIN YEDEĞİ ve o yol
+// GEMINI_FALLBACK_MODEL'i kullanıyor. Okunmayan bir yapılandırma anahtarı
+// zararsız değildir: sonraki okuyucu onun hâlâ etkili olduğunu sanır.
 // Groq kotası bittiğinde kullanılan yedek.
 //
 // YEDEK YOLU SESSİZCE ÖLÜYDÜ: kod 'gemini-2.0-flash' istiyordu, o model
@@ -122,78 +128,6 @@ const GROQ_ADAYLAR: string[] = (Deno.env.get('VEKIL_GROQ_ADAYLAR') || '')
 const GROQ_ZINCIR = GROQ_ADAYLAR.length
   ? GROQ_ADAYLAR
   : [GROQ_MODEL, 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'];
-interface TierCfg {
-  provider: 'gemini' | 'groq' | 'claude' | 'openai';
-  model: string;
-  billable: boolean;
-  limitKind: 'calls' | 'cost';
-  limit: number;
-  maxOut: number;
-  /** GÜNLÜK istek hakkı. Ücretsiz sağlayıcının günlük tavanı tüm kullanıcılar
-   *  için ORTAK olduğundan, tek bir üyenin havuzu bitirmesi diğer herkesi o gün
-   *  hizmetsiz bırakır. 0 = günlük sınır yok (ücretli katmanlarda bakiye zaten
-   *  sınırdır). */
-  gunluk?: number;
-}
-function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
-  const t = aiTier || 'baslangic'; // lansman: herkes Groq (bedava); billing gelince pro/elit elle atanır
-  const table: Record<string, TierCfg> = {
-    // Ücretsiz katmanlar Groq (bedava, Türkiye'den çalışır); Pro/Elit Gemini (faturalı, güçlü).
-    free: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 20, maxOut: 1024, gunluk: 5 },
-    // maxOut 1024 dilekçe/ihtarname taslağını ortasında kesiyordu (kalite şikayeti);
-    // 2048 tam bir taslağa yetiyor.
-    baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500, maxOut: 2048, gunluk: 15 },
-    // Ücretli katmanlar Claude Sonnet 5'te. maxOut yükseltildi: dilekçe çıktısı
-    // ölçülen ~3.000 token ve adaptif düşünme de bu tavana dahil; 2048/4096
-    // taslağı ortasından kesebilirdi. Kesilen dilekçe, avukat için hiç
-    // üretilmemiş dilekçeden kötüdür — yarım metni fark etmeyip kullanabilir.
-    pro: { provider: 'claude', model: CLAUDE_MODEL, billable: true, limitKind: 'cost', limit: 450, maxOut: 8192 },
-    elit: { provider: 'claude', model: CLAUDE_MODEL, billable: true, limitKind: 'cost', limit: 1500, maxOut: 16000 },
-    // AI KATMANI (1.999 TL/ay) — Claude Sonnet 5.
-    // Tavan 1.250 TL: ~%71 marj bırakır ve tek bir aşırı kullanıcının aylık
-    // faturayı patlatmasını engeller. Aşınca 402 quota_exceeded döner.
-    ai: { provider: 'claude', model: CLAUDE_MODEL, billable: true, limitKind: 'cost', limit: 1250, maxOut: 4096 },
-  };
-  let cfg = table[t] ?? table.free;
-
-  // ÖLÇÜM İÇİN MODEL ZORLAMA. Hangi modelin daha iyi dilekçe yazdığı itibara
-  // göre değil ÖLÇÜLEREK seçilmeli; bunun için aynı senaryoları farklı
-  // modellerle koşturabilmek gerekiyor. Bu anahtarlar üretimde tanımlı
-  // değildir; tanımlıysa katman ayarını geçersiz kılar.
-  //
-  // Biçim: VEKIL_ZORLA_SAGLAYICI=claude|gemini|groq  ve  VEKIL_ZORLA_MODEL=<ad>
-  const zorlaSaglayici = Deno.env.get('VEKIL_ZORLA_SAGLAYICI');
-  const zorlaModel = Deno.env.get('VEKIL_ZORLA_MODEL');
-  if (zorlaSaglayici === 'claude' || zorlaSaglayici === 'gemini' || zorlaSaglayici === 'groq' || zorlaSaglayici === 'openai') {
-    cfg = {
-      ...cfg,
-      provider: zorlaSaglayici,
-      model: zorlaModel || cfg.model,
-      // Zorlanan model ücretliyse maliyet yine sayılsın; tavan çalışmaya devam
-      // etsin. Ölçüm yaparken faturayı gözden kaçırmak kolaydır.
-      billable: zorlaSaglayici !== 'groq',
-    };
-    return { tier: t, cfg };
-  }
-  // Claude anahtarı yoksa AI katmanı ücretsiz Groq'a düşer (ödeyen üye boş
-  // ekran görmesin). Anahtar eklenince otomatik Claude'a geçer, deploy gerekmez.
-  if (cfg.provider === 'claude' && !Deno.env.get('ANTHROPIC_API_KEY')) {
-    return {
-      tier: t,
-      cfg: { ...cfg, provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 4000, gunluk: 25 },
-    };
-  }
-  // Google faturalandırması AÇILANA KADAR Pro/Elit de Groq'ta çalışır. Aksi
-  // hâlde ödeyen üye Gemini'nin kotasız (429) anahtarına düşüp bozuk deneyim
-  // yaşardı. Billing açılınca AI_PRO_PROVIDER=gemini secret'ı yeter, deploy gerekmez.
-  if (cfg.provider === 'gemini' && (Deno.env.get('AI_PRO_PROVIDER') ?? 'groq') !== 'gemini') {
-    return {
-      tier: t,
-      cfg: { ...cfg, provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: t === 'elit' ? 4000 : 1500, gunluk: t === 'elit' ? 25 : 20 },
-    };
-  }
-  return { tier: t, cfg };
-}
 /**
  * Claude (Anthropic) sohbet çağrısı — ücretli AI katmanı.
  *
@@ -561,8 +495,12 @@ async function groqChat(
   return { text, tin: u.prompt_tokens ?? 0, tout: u.completion_tokens ?? 0 };
 }
 // Faturalı katman ana anahtar; ücretsiz katman ayrı ücretsiz anahtar (yoksa ana).
-function aiKey(billable: boolean): string | undefined {
-  if (billable) return Deno.env.get('GEMINI_API_KEY') ?? undefined;
+/**
+ * Gemini anahtarı. Gemini artık FATURALI bir katmanın sağlayıcısı değil; yalnız
+ * ücretsiz hattın yedeği. Bu yüzden "faturalıysa başka anahtar" ayrımı kalktı:
+ * ayrım, olmayan bir kullanım için tutuluyordu ve okuyanı yanıltıyordu.
+ */
+function aiKey(): string | undefined {
   return Deno.env.get('GEMINI_FREE_KEY') || Deno.env.get('GEMINI_API_KEY') || undefined;
 }
 /**
@@ -659,9 +597,6 @@ async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ 
   const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', period).maybeSingle();
   const r = data as { calls?: number; cost_try?: number } | null;
   return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
-}
-function overLimit(cfg: TierCfg, row: { calls: number; cost: number }): boolean {
-  return cfg.limitKind === 'cost' ? row.cost >= cfg.limit : row.calls >= cfg.limit;
 }
 /**
  * Kullanımı kaydeder ve BU İSTEĞİN maliyetini döndürür.
@@ -1542,7 +1477,13 @@ Deno.serve(async (req) => {
       prof = r.data as { is_premium?: boolean; ai_tier?: string } | null;
     }
   }
-  const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium);
+  const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium, {
+    groqModel: GROQ_MODEL,
+    claudeModel: CLAUDE_MODEL,
+    claudeAnahtariVar: !!Deno.env.get('ANTHROPIC_API_KEY'),
+    zorlaSaglayici: Deno.env.get('VEKIL_ZORLA_SAGLAYICI') ?? undefined,
+    zorlaModel: Deno.env.get('VEKIL_ZORLA_MODEL') ?? undefined,
+  });
 
   // KONTÖR KONTROLÜ — yalnız faturalı katmanda.
   //
@@ -1605,7 +1546,7 @@ Deno.serve(async (req) => {
         ? (Deno.env.get('OPENAI_API_KEY') ?? '')
         : provider === 'claude'
           ? (Deno.env.get('ANTHROPIC_API_KEY') ?? '')
-          : (aiKey(cfg.billable) ?? apiKey);
+          : (aiKey() ?? apiKey);
   if (!genKey) {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
