@@ -1392,7 +1392,11 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
       await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali);
-      return new Response(JSON.stringify({ text: text.trim(), tier, model: kullanim.model, issues }), {
+      return new Response(JSON.stringify({
+        text: text.trim(), tier, model: kullanim.model, issues,
+        // Olayda geçmeyen tarihler: silinmez, işaretlenir (bkz. hesaplananTarihler).
+        hesaplananTarih: hesaplananTarihler(text, mutalaaQuestion),
+      }), {
         headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     } catch (e) {
@@ -1954,6 +1958,34 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
     return '[tarih — doldurun]';
   });
   return { metin, ayiklanan };
+}
+
+
+/**
+ * MÜTALAADA TARİHLER SİLİNMEZ, İŞARETLENİR.
+ *
+ * Dilekçede olayda geçmeyen her tarih boşlukla değiştiriliyor: dilekçe tarih
+ * HESAPLAMA yeri değildir, yanlış tarih mahkemeye gider.
+ *
+ * Mütalaada durum TERSİNE döner. Avukat oraya "hangi süre ne zaman doluyor"
+ * sorusuyla gelir; "fesih 14.04.2026, bir aylık süre 14.05.2026'da doluyor"
+ * cümlesi mütalaanın ta kendisidir. Bu tarihleri silmek, özelliğin değerini
+ * silmek olurdu.
+ *
+ * O yüzden burada silme değil İŞARETLEME var: olayda geçmeyen tarihler
+ * listelenir ve arayüz "bu tarihler hesaplanmıştır, teyit edin" der. Sessizce
+ * doğru kabul ettirmiyoruz, ama işe yarayan bilgiyi de atmıyoruz.
+ */
+function hesaplananTarihler(metin: string, olay: string): string[] {
+  const anahtar = (g: string, a: string, y: string) => `${y}-${a.padStart(2, '0')}-${g.padStart(2, '0')}`;
+  const izinli = new Set<string>();
+  for (const m of olay.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) izinli.add(anahtar(m[1], m[2], m[3]));
+  for (const m of olay.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) izinli.add(`${m[1]}-${m[2]}-${m[3]}`);
+  const cikan = new Set<string>();
+  for (const m of metin.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) {
+    if (!izinli.has(anahtar(m[1], m[2], m[3]))) cikan.add(m[0]);
+  }
+  return [...cikan];
 }
 
   // ───────────── DİLEKÇE: olaydan mahkemeye hazır taslak ─────────────

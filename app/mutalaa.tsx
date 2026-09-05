@@ -29,6 +29,11 @@ export default function MutalaaScreen() {
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState('');
   const [issues, setIssues] = useState<string[]>([]);
+  // OLAYDA GEÇMEYEN TARİHLER. Mütalaada bu tarihler SİLİNMEZ: "fesih
+  // 14.04.2026, bir aylık süre 14.05.2026'da doluyor" cümlesi mütalaanın ta
+  // kendisidir ve silmek özelliğin değerini silmek olurdu. Ama sessizce doğru
+  // kabul ettirmek de olmaz — hesaplandığı açıkça yazılır.
+  const [hesaplanan, setHesaplanan] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [needsPro, setNeedsPro] = useState(false);
 
@@ -60,13 +65,14 @@ export default function MutalaaScreen() {
         }
         return;
       }
-      const payload = data as { text?: string; issues?: string[] } | null;
+      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[] } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
       }
       setText(payload.text);
       setIssues(payload.issues ?? []);
+      setHesaplanan(payload.hesaplananTarih ?? []);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -149,6 +155,11 @@ export default function MutalaaScreen() {
                 </Pressable>
               </View>
               <Text selectable style={styles.body}>{text}</Text>
+              {hesaplanan.length > 0 && (
+                <Text style={styles.dateWarn}>
+                  {t('mut.calcDates', { tarihler: hesaplanan.join(', ') })}
+                </Text>
+              )}
               <Text style={styles.disclaimer}>{t('mut.disclaimer')}</Text>
             </View>
           )}
@@ -266,6 +277,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.danger,
     flex: 1,
     lineHeight: 18,
+  },
+  dateWarn: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.warning,
+    marginTop: spacing.sm,
   },
   issuesCard: {
     backgroundColor: colors.surfaceAlt,

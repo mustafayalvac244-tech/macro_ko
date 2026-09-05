@@ -1358,6 +1358,7 @@ export const tr = {
   'mut.researched': 'Araştırılan hukuki sorunlar',
   'mut.resultTitle': 'Hukuki Mütalaa',
   'mut.needPro': 'Mütalaa, Pro ve Elit üyelere özel bir özelliktir. Çok adımlı derin araştırma yapar; normal AI asistanı tüm üyelere açıktır.',
+  'mut.calcDates': 'Şu tarihler anlattığınız olayda geçmiyor, mütalaada HESAPLANMIŞTIR — mutlaka teyit edin: {tarihler}',
   'mut.disclaimer': 'Bu mütalaa yapay zekâ tarafından üretilmiştir; hukuki tavsiye değildir. Dayanakları ve güncel mevzuatı kendiniz teyit edin.',
 
   // Dilekçe Üret (AI)
