@@ -1368,6 +1368,7 @@ export const en: Record<keyof typeof tr, string> = {
   'dlk.caseLabel': 'Case (optional)',
   'dlk.caseHint': 'Pick a case and the court, file number, client and counsel details are filled in from your records.',
   'dlk.caseNone': 'No case',
+  'dlk.addCaseDesc': 'Add the case description to the facts',
   'dlk.factsLabel': 'Facts and your request',
   'dlk.placeholder': 'Describe the parties, the events in date order, your request and the evidence you have. You can leave unknown details blank…',
   'dlk.run': 'Generate Draft',

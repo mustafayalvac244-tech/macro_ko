@@ -49,6 +49,7 @@ export default function DilekceUretScreen() {
   // sunucu bu kayıtlardan doldurur.
   const [caseId, setCaseId] = useState<string | null>(null);
   const { data: davalar } = useCases({ status: 'open' });
+  const secilenDava = (davalar ?? []).find((d) => d.id === caseId) ?? null;
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState('');
@@ -157,6 +158,21 @@ export default function DilekceUretScreen() {
           )}
 
           <Text style={styles.label}>{t('dlk.factsLabel')}</Text>
+          {/* DOSYA AÇIKLAMASI, AVUKATIN KENDİ METNİDİR. Olayı sıfırdan yeniden
+              yazmak, hızlandırmayı en çok yiyen adım. Metin kutuya EKLENİYOR
+              (doğrudan sunucuya gönderilmiyor): avukat ne gönderdiğini görür ve
+              düzeltebilir. Uydurma denetimi de olay metnini esas aldığı için,
+              buradaki tarihler kendi kaydından gelmiş sayılır — doğrusu budur. */}
+          {!!secilenDava?.description?.trim() && !q.includes(secilenDava.description.trim()) && (
+            <Pressable
+              onPress={() => setQ((v) => (v.trim() ? `${v.trim()}\n\n${secilenDava.description!.trim()}` : secilenDava.description!.trim()))}
+              disabled={busy}
+              style={({ pressed }) => [styles.addDesc, pressed && { opacity: 0.85 }]}
+            >
+              <Ionicons name="add-circle-outline" size={15} color={colors.primary} />
+              <Text style={styles.addDescText}>{t('dlk.addCaseDesc')}</Text>
+            </Pressable>
+          )}
           <TextInput
             style={styles.area}
             value={q}
@@ -222,6 +238,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     lineHeight: 18,
     color: colors.warning,
     marginTop: spacing.sm,
+  },
+  addDesc: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+  },
+  addDescText: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    color: colors.primary,
   },
   caseHint: {
     fontFamily: fonts.regular,

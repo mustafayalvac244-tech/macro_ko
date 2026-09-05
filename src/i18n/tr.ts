@@ -1372,6 +1372,7 @@ export const tr = {
   'dlk.caseLabel': 'Dosya (isteğe bağlı)',
   'dlk.caseHint': 'Bir dosya seçerseniz mahkeme, esas no, müvekkil ve vekil bilgileri taslağa kayıtlarınızdan yazılır.',
   'dlk.caseNone': 'Dosyasız',
+  'dlk.addCaseDesc': 'Dosya açıklamasını olaya ekle',
   'dlk.factsLabel': 'Olay ve talebiniz',
   'dlk.placeholder': 'Tarafları, olayları tarih sırasıyla, talebinizi ve elinizdeki delilleri anlatın. Bilmediğiniz bilgileri boş bırakabilirsiniz…',
   'dlk.run': 'Dilekçe Taslağı Üret',
