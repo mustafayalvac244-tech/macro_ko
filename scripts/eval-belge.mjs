@@ -63,6 +63,16 @@ async function kullaniciSil(id) {
     headers: { apikey: svc, Authorization: `Bearer ${svc}` },
   }).catch(() => {});
 }
+/**
+ * Oturum açar ve erişim jetonu döner.
+ *
+ * HER DENEMEDEN ÖNCE YENİDEN ÇAĞRILIR. Jetonun ömrü bir saat; ücretsiz
+ * kotanın kayan penceresi yüzünden tek bir ölçüm koşusu SAATLER sürüyor ve
+ * koşunun ortasında jeton ölüyordu: ölçüm "ai-chat 401 Invalid JWT" diye
+ * kesiliyor, kalan senaryolar hiç ölçülmüyordu. Modelin kalitesiyle ilgisi
+ * olmayan bir sebeple saatlerce süren bir ölçümü kaybetmek en pahalı ölçüm
+ * hatasıdır. Jeton almak model tüketmez, kotadan bir şey götürmez.
+ */
 async function jwtAl() {
   const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -74,7 +84,11 @@ async function jwtAl() {
   return j.access_token;
 }
 
-async function incele(jwt, kind, metin, deneme = 0) {
+async function incele(kind, metin, deneme = 0) {
+  // JETON HER DENEMEDE TAZELENİR. Kota beklemesi tek bir senaryoda 30 dakikayı
+  // bulabiliyor; jetonun ömrü bir saat. Denemeler arasında tazelenmezse ölçüm,
+  // modelle ilgisi olmayan bir 401 yüzünden yarıda kalır.
+  const jwt = await jwtAl();
   const res = await fetch(`${url}/functions/v1/ai-chat`, {
     method: 'POST',
     headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
@@ -89,24 +103,24 @@ async function incele(jwt, kind, metin, deneme = 0) {
     if (bekle && deneme < 6) {
       console.log(`    (kota doldu; ${Math.round(bekle / 60000)} dk bekleniyor)`);
       await uyu(bekle);
-      return incele(jwt, kind, metin, deneme + 1);
+      return incele(kind, metin, deneme + 1);
     }
     if (g.includes('daily_quota')) throw new Error('DAILY_QUOTA');
     if (deneme < 4) {
       await uyu(30000 * (deneme + 1));
-      return incele(jwt, kind, metin, deneme + 1);
+      return incele(kind, metin, deneme + 1);
     }
   }
   if (res.status >= 500 && deneme < 4) {
     await uyu(20000 * (deneme + 1));
-    return incele(jwt, kind, metin, deneme + 1);
+    return incele(kind, metin, deneme + 1);
   }
   if (!res.ok) throw new Error(`ai-chat ${res.status}: ${(await res.text()).slice(0, 140)}`);
   const j = await res.json();
   if (j?.yapayZekasiz || j?.model === 'mevzuat-yedek') {
     if (deneme < 4) {
       await uyu(30000 * (deneme + 1));
-      return incele(jwt, kind, metin, deneme + 1);
+      return incele(kind, metin, deneme + 1);
     }
     throw new Error('YEDEK_OZET');
   }
@@ -131,7 +145,8 @@ const kusurlu = [];
 
 try {
   uid = await kullaniciAc();
-  const jwt = await jwtAl();
+  // Ön kontrol: oturum açılamıyorsa saatler sürecek koşuyu hiç başlatma.
+  await jwtAl();
   console.log(`Belge inceleme ölçümü · ${senaryolar.length} senaryo\n`);
 
   let ilk = true;
@@ -141,7 +156,7 @@ try {
 
     let cikti;
     try {
-      cikti = await incele(jwt, s.kind, s.metin);
+      cikti = await incele(s.kind, s.metin);
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(

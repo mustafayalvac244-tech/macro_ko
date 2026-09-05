@@ -107,6 +107,16 @@ async function kullaniciSil(id) {
   }).catch(() => {});
 }
 
+/**
+ * Oturum açar ve erişim jetonu döner.
+ *
+ * HER DENEMEDEN ÖNCE YENİDEN ÇAĞRILIR. Jetonun ömrü bir saat; ücretsiz
+ * kotanın kayan penceresi yüzünden tek bir ölçüm koşusu SAATLER sürüyor ve
+ * koşunun ortasında jeton ölüyordu: ölçüm "ai-chat 401 Invalid JWT" diye
+ * kesiliyor, kalan senaryolar hiç ölçülmüyordu. Modelin kalitesiyle ilgisi
+ * olmayan bir sebeple saatlerce süren bir ölçümü kaybetmek en pahalı ölçüm
+ * hatasıdır. Jeton almak model tüketmez, kotadan bir şey götürmez.
+ */
 async function jwtAl() {
   const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -138,7 +148,11 @@ async function maddeKumesi() {
   return { kume, kanunlar };
 }
 
-async function uret(jwt, olay, deneme = 0) {
+async function uret(olay, deneme = 0) {
+  // JETON HER DENEMEDE TAZELENİR. Kota beklemesi tek bir senaryoda 30 dakikayı
+  // bulabiliyor; jetonun ömrü bir saat. Denemeler arasında tazelenmezse ölçüm,
+  // modelle ilgisi olmayan bir 401 yüzünden yarıda kalır.
+  const jwt = await jwtAl();
   const res = await fetch(`${url}/functions/v1/ai-chat`, {
     method: 'POST',
     headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
@@ -154,17 +168,17 @@ async function uret(jwt, olay, deneme = 0) {
     if (bekle && deneme < 6) {
       console.log(`    (kota doldu; ${Math.round(bekle / 60000)} dk bekleniyor)`);
       await uyu(bekle);
-      return uret(jwt, olay, deneme + 1);
+      return uret(olay, deneme + 1);
     }
     if (g.includes('daily_quota')) throw new Error('DAILY_QUOTA');
     if (deneme < 4) {
       await uyu(30000 * (deneme + 1));
-      return uret(jwt, olay, deneme + 1);
+      return uret(olay, deneme + 1);
     }
   }
   if (res.status >= 500 && deneme < 4) {
     await uyu(20000 * (deneme + 1));
-    return uret(jwt, olay, deneme + 1);
+    return uret(olay, deneme + 1);
   }
   if (!res.ok) throw new Error(`ai-chat ${res.status}: ${(await res.text()).slice(0, 140)}`);
   const j = await res.json();
@@ -173,7 +187,7 @@ async function uret(jwt, olay, deneme = 0) {
   if (j?.yapayZekasiz || j?.model === 'mevzuat-yedek') {
     if (deneme < 4) {
       await uyu(30000 * (deneme + 1));
-      return uret(jwt, olay, deneme + 1);
+      return uret(olay, deneme + 1);
     }
     throw new Error('YEDEK_OZET');
   }
@@ -202,7 +216,7 @@ try {
 
     let metin;
     try {
-      metin = await uret(jwt, s.olay);
+      metin = await uret(s.olay);
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(
