@@ -1443,7 +1443,7 @@ Deno.serve(async (req) => {
  */
 async function dosyaKunyesi(
   db: ReturnType<typeof createClient>,
-  caseId: string,
+  caseId: string | null,
   tip: string
 ): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
@@ -1453,13 +1453,17 @@ async function dosyaKunyesi(
     return `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}.${d.getUTCFullYear()}`;
   };
 
-  const { data: dava } = await db
-    .from('cases')
-    .select('id, client_id, case_number, court_name, opposing_party, decision_number, decision_date, decision_served_date')
-    .eq('id', caseId)
-    .maybeSingle();
-  if (!dava) return out;
-  const d = dava as Record<string, unknown>;
+  // DOSYA SEÇİLMESE DE DOLAN İKİ ŞEY VAR: avukatın kendi adı ve imza sıfatı.
+  // İkisi de her taslakta elle yazılıyordu; birincisini profil, ikincisini
+  // dilekçe türü söylüyor. Dosya seçmek bunlar için şart değil.
+  const { data: dava } = caseId
+    ? await db
+        .from('cases')
+        .select('id, client_id, case_number, court_name, opposing_party, decision_number, decision_date, decision_served_date')
+        .eq('id', caseId)
+        .maybeSingle()
+    : { data: null };
+  const d = (dava as Record<string, unknown>) ?? {};
 
   let musteri: Record<string, unknown> | null = null;
   if (d.client_id) {
@@ -1664,11 +1668,9 @@ async function dosyaKunyesi(
       // DOSYA SEÇİLDİYSE künye avukatın kendi kaydından dolar. Hata yutulur:
       // kayıt okunamadı diye taslak üretilmemesi, boşluklu taslaktan kötüdür.
       let dosya: Record<string, string> = {};
-      if (body.caseId) {
-        try {
-          dosya = await dosyaKunyesi(supabase, body.caseId, body.dilekceType ?? 'dava');
-        } catch { /* künye dolmazsa kodun boşlukları kalır */ }
-      }
+      try {
+        dosya = await dosyaKunyesi(supabase, body.caseId ?? null, body.dilekceType ?? 'dava');
+      } catch { /* künye dolmazsa kodun boşlukları kalır */ }
       const beklenen = iskelet.bolumler.filter((b) => b.zorunlu).length;
       const bulunan = iskelet.bolumler.filter((b) => b.zorunlu && (bloklar[b.anahtar] ?? '').trim()).length;
       let govde = out.trim();
