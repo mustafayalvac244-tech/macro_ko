@@ -4,7 +4,11 @@
 //   supabase functions deploy ai-chat
 //   supabase secrets set GEMINI_API_KEY=...
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import Anthropic from 'npm:@anthropic-ai/sdk';
+// SÜRÜM SABİT. Sabitlenmemiş bir bağımlılık, sessizce bozulan bir yoldur:
+// Gemini yedeği tam bu sınıftan bir sebeple (emekliye ayrılmış model adı)
+// aylarca ölü kaldı ve kimse fark etmedi. Ücretli hattı aynı riske
+// bırakmıyoruz — sürüm yükseltmesi bilinçli bir karar olsun.
+import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
@@ -20,7 +24,11 @@ const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.5-flash';
 // denendi, çalışan tek ad 'gemini-flash-latest' çıktı. Takma ad olduğu için
 // Google sürümü haber vermeden değiştirebilir; ai-saglik ucu tam bu yüzden var.
 const GEMINI_FALLBACK_MODEL = Deno.env.get('VEKIL_GEMINI_YEDEK') || 'gemini-flash-latest';
-const MODEL_PLUS = Deno.env.get('VEKIL_MODEL_PLUS') || 'gemini-2.5-pro';
+// MODEL_PLUS (gemini-2.5-pro) KALDIRILDI: Pro/Elit katmanları artık Claude'a
+// gidiyor, o sabit hiçbir yerden okunmuyordu. Okunmayan bir yapılandırma
+// anahtarı zararsız değildir — sonraki okuyucu onun hâlâ etkili olduğunu sanır.
+// Fiyat tablosundaki gemini-2.5-pro satırı DURUYOR: VEKIL_ZORLA_MODEL ile
+// karşılaştırma koşusu yapıldığında maliyet doğru hesaplansın.
 const EMBED_MODEL = 'text-embedding-004';
 
 // ── AI maliyet ölçümü + katman tavanı (batma koruması) ──────────────────────
@@ -45,8 +53,12 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
     // maxOut 1024 dilekçe/ihtarname taslağını ortasında kesiyordu (kalite şikayeti);
     // 2048 tam bir taslağa yetiyor.
     baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500, maxOut: 2048 },
-    pro: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450, maxOut: 2048 },
-    elit: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500, maxOut: 4096 },
+    // Ücretli katmanlar Claude Sonnet 5'te. maxOut yükseltildi: dilekçe çıktısı
+    // ölçülen ~3.000 token ve adaptif düşünme de bu tavana dahil; 2048/4096
+    // taslağı ortasından kesebilirdi. Kesilen dilekçe, avukat için hiç
+    // üretilmemiş dilekçeden kötüdür — yarım metni fark etmeyip kullanabilir.
+    pro: { provider: 'claude', model: CLAUDE_MODEL, billable: true, limitKind: 'cost', limit: 450, maxOut: 8192 },
+    elit: { provider: 'claude', model: CLAUDE_MODEL, billable: true, limitKind: 'cost', limit: 1500, maxOut: 16000 },
     // AI KATMANI (1.999 TL/ay) — Claude Sonnet 5.
     // Tavan 1.250 TL: ~%71 marj bırakır ve tek bir aşırı kullanıcının aylık
     // faturayı patlatmasını engeller. Aşınca 402 quota_exceeded döner.
@@ -106,7 +118,13 @@ async function claudeChat(
   groundingSystem: string,
   msgs: Array<{ role: 'user' | 'model'; text: string }>,
   maxTokens: number,
-  apiKey: string
+  apiKey: string,
+  // MODEL DIŞARIDAN GELİR. Önce CLAUDE_MODEL sabiti doğrudan kullanılıyordu ve
+  // bu, VEKIL_ZORLA_MODEL ölçüm anahtarını SESSİZCE etkisiz bırakıyordu:
+  // "opus ile ölç" denildiğinde istek yine Sonnet'e gidiyor, maliyet ise
+  // opus fiyatından işleniyordu. Yani karşılaştırma koşusu, ölçtüğünü sandığı
+  // modeli hiç ölçmüyordu — Gemini yedeğindeki sessiz ölüm hatasının aynısı.
+  model: string
 ): Promise<{ text: string; tin: number; tout: number }> {
   const client = new Anthropic({ apiKey });
   const system: Array<Record<string, unknown>> = [
@@ -116,7 +134,7 @@ async function claudeChat(
 
   try {
     const res = await client.messages.create({
-      model: CLAUDE_MODEL,
+      model,
       max_tokens: maxTokens,
       thinking: { type: 'adaptive' },
       system: system as never,
@@ -134,12 +152,65 @@ async function claudeChat(
     const u = res.usage;
     // Önbellek okuması da girdi sayılır (ucuz olsa da ölçüme dahil edilir).
     const tin = (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+    // Ücretli hat da durum tablosuna yazar: sağlık raporu, ücretsiz sağlayıcılar
+    // için yoklamanın yalan söylediğini gerçek çağrılardan öğrenmişti; para
+    // ödeyen katmanı bu görünürlükten mahrum bırakmak tutarsız olurdu.
+    void durumYaz('claude', 'ok');
     return { text, tin, tout: u.output_tokens ?? 0 };
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) throw new Error('rate_limit');
-    if (e instanceof Anthropic.AuthenticationError) throw new Error('not_configured');
+    let sonuc = 'upstream';
+    if (e instanceof Anthropic.RateLimitError) sonuc = 'rate_limit';
+    else if (e instanceof Anthropic.AuthenticationError) sonuc = 'not_configured';
+    else if ((e as Error).message === 'refusal') sonuc = 'refusal';
+    void durumYaz('claude', sonuc, (e as Error).message);
+    // Güvenlik reddi bir ARIZA DEĞİLDİR; olduğu gibi yukarı taşınır ki
+    // başka bir sağlayıcıyla dolanılmasın.
+    if (sonuc === 'refusal') throw e;
+    throw new Error(sonuc);
+  }
+}
+
+/**
+ * Ücretli katman çağrısı — Claude düşerse ÜCRETSİZ hatta iner.
+ *
+ * NEDEN. Para ödeyen avukat, hiçbir koşulda ücretsiz kullanıcıdan kötü durumda
+ * olmamalı. Claude'a bir arıza ya da anlık sınır çarptığında eski davranış
+ * doğrudan mevzuat özetine düşmekti; oysa yanında çalışan Groq/Gemini duruyordu.
+ * Bir Groq cevabı, madde listesinden iyidir.
+ *
+ * Yedeğe DÜŞÜLDÜĞÜNDE FATURA KESİLMEZ: dönen `faturali=false` ile maliyet
+ * sayacı işlemez. Aksi hâlde ücretsiz modelin cevabı Claude fiyatından
+ * (bilinmeyen model → en pahalı tarife) işlenir ve kullanıcının aylık tavanını
+ * hak etmediği hâlde tüketirdi.
+ *
+ * Güvenlik reddi yedeğe geçirmez: reddi başka sağlayıcıyla dolanmak, kararı
+ * yok saymak olur.
+ */
+async function ucretliChat(
+  stableSystem: string,
+  groundingSystem: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number,
+  apiKey: string,
+  model: string
+): Promise<{ text: string; tin: number; tout: number; model: string; faturali: boolean }> {
+  let ilkHata: Error | null = null;
+  try {
+    const r = await claudeChat(stableSystem, groundingSystem, msgs, maxTokens, apiKey, model);
+    if (r.text.trim()) return { ...r, model, faturali: true };
+    ilkHata = new Error('empty');
+  } catch (e) {
     if ((e as Error).message === 'refusal') throw e;
-    throw new Error('upstream');
+    ilkHata = e as Error;
+  }
+  try {
+    const y = await ucretsizChat(stableSystem + groundingSystem, msgs, maxTokens);
+    return { ...y, faturali: false };
+  } catch {
+    // Her iki hat da düştüyse ÜCRETLİ hattın hatası bildirilir: kullanıcının
+    // ödediği katman odur ve "rate_limit" ile "daily_quota" farklı şeyler
+    // yapılmasını gerektirir.
+    throw ilkHata;
   }
 }
 
@@ -1185,21 +1256,29 @@ Deno.serve(async (req) => {
   // konuyu parçalayıp her parçayı ayrı araştırdığı için çok daha derindir.
   if (isMutalaa) {
     const meter = { tin: 0, tout: 0 };
+    // Ücretli hat yedeğe indiyse kullanım kaydına GERÇEKTEN cevap veren model
+    // yazılır ve o istek faturalandırılmaz. Mütalaa çok adımlıdır; tek adım
+    // bile yedeğe indiyse tamamı ücretsiz sayılır — eksik ölçmek, kullanıcıdan
+    // fazla ölçmekten iyidir.
+    const kullanim = { model, faturali: cfg.billable };
     const call = async (sys: string, userText: string, maxTok: number): Promise<string> => {
       if (provider === 'claude') {
         // Sabit talimat (SYSTEM_PROMPT) önbelleğe alınır; sys'in geri kalanı
         // (araştırma dosyası) her adımda değiştiği için arkaya konur.
         const stable = sys.startsWith(SYSTEM_PROMPT) ? SYSTEM_PROMPT : sys;
         const rest = sys.startsWith(SYSTEM_PROMPT) ? sys.slice(SYSTEM_PROMPT.length) : '';
-        const r = await claudeChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey);
+        const r = await ucretliChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey, model);
         meter.tin += r.tin;
         meter.tout += r.tout;
+        kullanim.model = r.model;
+        if (!r.faturali) kullanim.faturali = false;
         return r.text;
       }
       if (provider === 'groq') {
         const r = await ucretsizChat(sys, [{ role: 'user', text: userText }], maxTok);
         meter.tin += r.tin;
         meter.tout += r.tout;
+        kullanim.model = r.model;
         return r.text;
       }
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
@@ -1272,8 +1351,8 @@ Deno.serve(async (req) => {
       if (!text.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
-      await recordUsage(userData.user.id, model, meter.tin, meter.tout, cfg.billable);
-      return new Response(JSON.stringify({ text: text.trim(), tier, model, issues }), {
+      await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali);
+      return new Response(JSON.stringify({ text: text.trim(), tier, model: kullanim.model, issues }), {
         headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     } catch (e) {
@@ -1626,16 +1705,21 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
       let out = '';
       let uin = 0;
       let uout = 0;
+      // Kullanım kaydı, GERÇEKTEN cevap veren modele yazılır (yedeğe iniş olabilir).
+      let kullanilanModel = model;
+      let faturali = cfg.billable;
       const maxTok = Math.max(cfg.maxOut, tier === 'elit' || tier === 'ai' ? 4096 : 3000);
       if (provider === 'claude') {
         // Sabit talimat önbelleğe; tür yapısı + araştırma dosyası arkaya.
         const rest = dilekceSys.startsWith(SYSTEM_PROMPT) ? dilekceSys.slice(SYSTEM_PROMPT.length) : '';
         const stable = rest ? SYSTEM_PROMPT : dilekceSys;
-        const r = await claudeChat(stable, rest, [{ role: 'user', text: promptQuestion }], maxTok, genKey);
+        const r = await ucretliChat(stable, rest, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
         out = r.text; uin = r.tin; uout = r.tout;
+        kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'groq') {
         const r = await ucretsizChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok);
         out = r.text; uin = r.tin; uout = r.tout;
+        kullanilanModel = r.model;
       } else {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
         const res = await fetch(url, {
@@ -1679,9 +1763,9 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
       // tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
       // mekanik denetimde.
       const temiz = uydurmaTarihleriAyikla(govde, promptQuestion);
-      await recordUsage(userData.user.id, model, uin, uout, cfg.billable);
+      await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali);
       return new Response(
-        JSON.stringify({ text: temiz.metin, tier, model, ayiklananTarih: temiz.ayiklanan, eksikBolum }),
+        JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     } catch (e) {
@@ -1729,12 +1813,15 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
   let tin = 0;
   let tout = 0;
   let kullanilanModel = model;
+  let faturali = cfg.billable;
   try {
     if (provider === 'claude') {
-      const r = await claudeChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey);
+      const r = await ucretliChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey, model);
       text = r.text;
       tin = r.tin;
       tout = r.tout;
+      kullanilanModel = r.model;
+      faturali = r.faturali;
     } else if (provider === 'groq') {
       const r = await ucretsizChat(systemText, messages, maxOutputTokens);
       text = r.text;
@@ -1798,7 +1885,7 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
   if (!text) {
     return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
   }
-  await recordUsage(userData.user.id, kullanilanModel, tin, tout, cfg.billable);
+  await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali);
   return new Response(JSON.stringify({ text: text.trim(), tier, model: kullanilanModel }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });

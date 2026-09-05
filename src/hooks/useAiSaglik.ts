@@ -28,9 +28,16 @@ export interface SaglayiciDurumu {
 }
 
 export interface AiSaglik {
+  /** Ayakta olan TÜM sağlayıcılar (ücretli hat dahil). */
   ayakta: string[];
-  /** İki sağlayıcı da ayaktaysa kota bittiğinde asistan susmaz. */
+  /** Yalnız ücretsiz hat (groq/gemini). 'yedekli' bunun üzerinden hesaplanır:
+   *  ücretli hattın ayakta olması, ücretsiz katmandaki kullanıcıya bir şey
+   *  kazandırmaz ve ikisini toplamak raporu yeniden yanıltıcı yapardı. */
+  ucretsizAyakta?: string[];
+  /** İki ÜCRETSİZ sağlayıcı da ayaktaysa kota bittiğinde asistan susmaz. */
   yedekli: boolean;
+  /** Ücretli katman (Claude) gerçekten hizmet verebiliyor mu? */
+  ucretliAyakta?: boolean;
   saglayicilar: SaglayiciDurumu[];
 }
 

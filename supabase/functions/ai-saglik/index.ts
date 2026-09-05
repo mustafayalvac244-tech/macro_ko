@@ -109,6 +109,60 @@ async function geminiTekModel(key: string, model: string): Promise<Durum> {
   }
 }
 
+// ÜCRETLİ HAT DA YOKLANIR. Claude yolu bugüne kadar üretimde hiç
+// çalıştırılmadı; anahtar geldiği gün ilk deneyen kişi ÖDEYEN AVUKAT olmasın.
+// Gemini yedeği aynı sınıftan bir sebeple (emekliye ayrılmış model adı) aylarca
+// ölüydü ve kimse fark etmedi — çünkü kimse yoklamıyordu.
+//
+// Yoklama, ai-chat'in kullandığı model adının TA KENDİSİNİ dener: adı yanlış
+// yazılmış ya da o anahtara kapalı bir model, geçerli anahtarla bile 404 verir.
+async function claudeYokla(): Promise<Durum> {
+  const key = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
+  const model = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
+  if (!key) return { saglayici: 'claude', anahtar: false, calisiyor: false, neden: 'anahtar yok', model };
+  const t0 = Date.now();
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+      },
+      // En küçük geçerli istek: sağlık kontrolünün kendisi fatura yazmasın.
+      // Sonnet 5'te 'temperature' ve 'budget_tokens' 400 döndürür; gönderilmez.
+      body: JSON.stringify({
+        model,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'ping' }],
+      }),
+    });
+    const ms = Date.now() - t0;
+    if (res.ok) return { saglayici: 'claude', anahtar: true, calisiyor: true, http: 200, ms, model };
+    const govde = await res.text();
+    return {
+      saglayici: 'claude',
+      anahtar: true,
+      calisiyor: false,
+      http: res.status,
+      // 401 = anahtar geçersiz, 404 = model adı yanlış, 429 = sınır,
+      // 400 credit_balance = bakiye bitti. Üçü de bambaşka müdahale gerektirir.
+      neden:
+        res.status === 401
+          ? 'anahtar geçersiz'
+          : res.status === 404
+            ? `model bulunamadı: ${model}`
+            : res.status === 429
+              ? 'oran sınırı'
+              : govde.slice(0, 90),
+      ms,
+      model,
+    };
+  } catch {
+    return { saglayici: 'claude', anahtar: true, calisiyor: false, neden: 'ağ hatası', model };
+  }
+}
+
 async function geminiYokla(): Promise<Durum & { denenen?: Durum[] }> {
   const key = Deno.env.get('GEMINI_API_KEY') ?? '';
   if (!key) return { saglayici: 'gemini', anahtar: false, calisiyor: false, neden: 'anahtar yok' };
@@ -137,7 +191,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: CORS });
   }
 
-  const [groq, gemini] = await Promise.all([groqYokla(), geminiYokla()]);
+  const [groq, gemini, claude] = await Promise.all([groqYokla(), geminiYokla(), claudeYokla()]);
 
   // Tanılama: Google zaman zaman model adlarını emekliye ayırıyor ve bu, geçerli
   // bir anahtarla bile 404 verir. Kullanılabilir model adlarını da bildirelim ki
@@ -180,15 +234,24 @@ Deno.serve(async (req) => {
     return taze ? false : d.calisiyor;
   };
 
-  const ayakta = [groq, gemini].filter(gercektenCalisiyor).map((d) => d.saglayici);
+  const hepsi = [groq, gemini, claude];
+  const ayakta = hepsi.filter(gercektenCalisiyor).map((d) => d.saglayici);
+  // ÜCRETSİZ HAT AYRI SAYILIR. Claude'un ayakta olması, ücretsiz katmandaki
+  // avukata hiçbir şey kazandırmaz; ikisini tek sayıda toplamak "yedekli"
+  // raporunu yeniden yalancı yapardı — bu ucun var oluş sebebi tam da buydu.
+  const ucretsizAyakta = [groq, gemini].filter(gercektenCalisiyor).map((d) => d.saglayici);
 
   return new Response(
     JSON.stringify({
       ayakta,
+      ucretsizAyakta,
       // Tek sağlayıcı ayaktaysa yedeksiz çalışıyoruz demektir; bu, kota
       // bittiğinde asistanın tamamen susacağı anlamına gelir.
-      yedekli: ayakta.length >= 2,
-      saglayicilar: [groq, gemini].map((d) => ({
+      yedekli: ucretsizAyakta.length >= 2,
+      // Ücretli katman gerçekten hizmet verebiliyor mu? Ödeyen üye için tek
+      // anlamlı soru budur.
+      ucretliAyakta: ayakta.includes('claude'),
+      saglayicilar: hepsi.map((d) => ({
         ...d,
         // Yoklama ile gerçek istek AYRI raporlanır; ikisini tek bayrakta
         // birleştirmek, hangisinin doğru olduğunu gizler.
