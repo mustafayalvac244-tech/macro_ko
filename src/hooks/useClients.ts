@@ -42,6 +42,8 @@ export type ClientInput = Pick<
   Client, 'full_name' | 'company' | 'email' | 'phone' | 'address' | 'notes'
   | 'title'
   | 'client_type'
+  // Dava dilekçesinin zorunlu unsuru (HMK m.119/1-c); künyeye buradan yazılır.
+  | 'tc_no'
 >;
 
 export function useCreateClient() {

@@ -1483,7 +1483,7 @@ async function dosyaKunyesi(
   if (d.client_id) {
     const { data } = await db
       .from('clients')
-      .select('full_name, company, address, title')
+      .select('full_name, company, address, title, tc_no')
       .eq('id', d.client_id as string)
       .maybeSingle();
     musteri = (data as Record<string, unknown>) ?? null;
@@ -1495,7 +1495,16 @@ async function dosyaKunyesi(
   const p = (prof as Record<string, unknown>) ?? {};
 
   const musteriAdi = String(musteri?.full_name ?? musteri?.company ?? '').trim();
-  const musteriSatiri = [musteriAdi, String(musteri?.address ?? '').trim()].filter(Boolean).join(' — ');
+  // TCKN KÜNYEYE YAZILIR. Dava dilekçesinde davacının kimlik numarası ZORUNLU
+  // unsurdur (HMK m.119/1-c) ve eksikliği bir haftalık kesin süreye, süre
+  // içinde tamamlanmazsa davanın AÇILMAMIŞ SAYILMASINA yol açar (m.119/2).
+  // Kayıtta varsa taslakta boşluk bırakmanın anlamı yok.
+  const musteriTc = String(musteri?.tc_no ?? '').trim();
+  const musteriSatiri = [
+    musteriAdi,
+    musteriTc ? `T.C. ${musteriTc}` : '',
+    String(musteri?.address ?? '').trim(),
+  ].filter(Boolean).join(' — ');
   const karsi = String(d.opposing_party ?? '').trim();
   const vekilAdi = String(p.full_name ?? '').trim();
   const vekilSatiri = vekilAdi

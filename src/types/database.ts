@@ -39,6 +39,11 @@ export interface Client {
   title: string | null;
   client_type: ClientType | null;
   company: string | null;
+  /** T.C. kimlik numarası. Dava dilekçesinde ZORUNLU unsurdur (HMK m.119/1-c);
+   *  eksikliği bir haftalık kesin süreye, tamamlanmazsa davanın açılmamış
+   *  sayılmasına yol açar (m.119/2). Bu yüzden kayıtta tutulur ve dilekçe
+   *  künyesine oradan yazılır. */
+  tc_no: string | null;
   email: string | null;
   phone: string | null;
   address: string | null;

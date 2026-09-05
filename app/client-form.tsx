@@ -12,6 +12,7 @@ import { useCases } from '@/hooks/useCases';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
+import { isValidTCKN } from '@/utils/tckn';
 import { namesConflict } from '@/utils/nameMatch';
 
 export default function ClientFormScreen() {
@@ -31,6 +32,9 @@ export default function ClientFormScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  // Dava dilekçesinin ZORUNLU unsuru (HMK m.119/1-c). Kayıtta olmadığı için
+  // her dilekçede "[Davacı TCKN]" boşluğu kalıyor ve avukat elle dolduruyordu.
+  const [tcNo, setTcNo] = useState('');
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -41,6 +45,7 @@ export default function ClientFormScreen() {
       setEmail(existingClient.email ?? '');
       setPhone(existingClient.phone ?? '');
       setAddress(existingClient.address ?? '');
+      setTcNo(existingClient.tc_no ?? '');
       setNotes(existingClient.notes ?? '');
     }
   }, [existingClient]);
@@ -64,6 +69,7 @@ export default function ClientFormScreen() {
       email: email.trim() || null,
       phone: phone.trim() || null,
       address: address.trim() || null,
+      tc_no: tcNo.trim() || null,
       notes: notes.trim() || null,
     };
 
@@ -129,6 +135,17 @@ export default function ClientFormScreen() {
           />
           <Input label={t('clientForm.phone')} keyboardType="phone-pad" placeholder={t('clientForm.phonePlaceholder')} value={phone} onChangeText={setPhone} />
           <Input label={t('clientForm.address')} placeholder={t('clientForm.addressPlaceholder')} value={address} onChangeText={setAddress} />
+          {clientType === 'gercek' && (
+            <Input
+              label={t('clientForm.tcNo')}
+              placeholder={t('clientForm.tcNoPlaceholder')}
+              keyboardType="number-pad"
+              maxLength={11}
+              value={tcNo}
+              onChangeText={(v) => setTcNo(v.replace(/[^0-9]/g, ''))}
+              error={tcNo.length === 11 && !isValidTCKN(tcNo) ? t('clientForm.tcNoInvalid') : undefined}
+            />
+          )}
           <Input
             label={t('clientForm.notes')}
             placeholder={t('clientForm.notesPlaceholder')}
