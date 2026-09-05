@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { beslemeyiKirp, tokenTahmin } from '../supabase/functions/_shared/besleme';
+import { beslemeyiKirp, kuralBasliklari, tokenTahmin } from '../supabase/functions/_shared/besleme';
 
 /**
  * Groq'un ücretsiz anahtarında dakikalık tavan 8.000 token ve sağlayıcı bunu
@@ -63,5 +63,31 @@ describe('beslemeyiKirp', () => {
     const s = beslemeyiKirp('z'.repeat(3000), 'x'.repeat(30000), 3000);
     expect(s.besleme).toBe('');
     expect(s.kirpildi).toBe(true);
+  });
+});
+
+describe('kuralBasliklari', () => {
+  const besleme =
+    '\n\n### KESİN HUKUKİ KURALLAR — BUNLARA UYMAK ZORUNDASIN:\n' +
+    '• İKİ HAKLI İHTAR NEDENİYLE TAHLİYE (TBK m.352/2) — kira bedelini zamanında ödemeyen kiracıya karşı.\nDevam eden satır.\n' +
+    '• İŞE İADE — arabuluculuk dava şartıdır.\nBaşka satır.\n';
+
+  it('kural başlıklarını çıkarır', () => {
+    // Ölçümde üç kez görüldü: kural beslemeye birinci sırada girdi, mütalaada
+    // hiç geçmedi. Başlıkları istemin SONUNA koymak, beslemeyi büyütmeden
+    // aynı bilgiyi görünür kılar.
+    expect(kuralBasliklari(besleme)).toEqual([
+      'İKİ HAKLI İHTAR NEDENİYLE TAHLİYE (TBK m.352/2)',
+      'İŞE İADE',
+    ]);
+  });
+
+  it('gövdeyi tekrarlamaz (liste beslemenin kendisi kadar uzamasın)', () => {
+    for (const b of kuralBasliklari(besleme)) expect(b.length).toBeLessThanOrEqual(120);
+  });
+
+  it('kural yoksa boş döner', () => {
+    expect(kuralBasliklari('')).toEqual([]);
+    expect(kuralBasliklari('### MEVZUAT\nHMK m.119 ...')).toEqual([]);
   });
 });

@@ -88,3 +88,32 @@ export function beslemeyiKirp(
     tahminiBoy: sabit + tokenTahmin(kesik) + maxCikti,
   };
 }
+
+/**
+ * Beslenen kuralların BAŞLIKLARINI çıkarır.
+ *
+ * NEDEN. Ölçümde üç kez aynı şey oldu: kural beslemeye BİRİNCİ sırada girdi,
+ * mütalaada tek kelime geçmedi (arabuluculuk dava şartı, iki haklı ihtar,
+ * uzamış ceza zamanaşımı). Avukat için sonuç bilginin hiç olmamasıyla aynı.
+ *
+ * Kural bloğu istemin ORTASINDA kalıyor; modeller istemin sonuna daha çok
+ * dikkat eder. Başlıkları çıkarıp sona kısa bir kontrol listesi olarak koymak,
+ * beslemeyi büyütmeden aynı bilgiyi görünür kılar — birkaç yüz karakter
+ * karşılığında.
+ *
+ * Kural metinleri "• " ile başlar ve ilk satırları başlıktır
+ * ("İKİ HAKLI İHTAR NEDENİYLE TAHLİYE (TBK m.352/2) — ...").
+ */
+export function kuralBasliklari(besleme: string, enCok = 6): string[] {
+  const out: string[] = [];
+  for (const parca of String(besleme ?? '').split('\n• ').slice(1)) {
+    const ilk = parca.split('\n')[0].trim();
+    if (!ilk) continue;
+    // Başlık, ilk tire/iki nokta öncesi: gövdenin tamamını tekrarlamak
+    // listeyi beslemenin kendisi kadar uzatır ve kazancı yok eder.
+    const baslik = ilk.split(/\s[—:]\s/)[0].trim();
+    if (baslik.length > 4) out.push(baslik.slice(0, 120));
+    if (out.length >= enCok) break;
+  }
+  return out;
+}

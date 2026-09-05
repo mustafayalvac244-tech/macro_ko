@@ -25,7 +25,7 @@ import {
 import { overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 // Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
-import { beslemeyiKirp } from '../_shared/besleme.ts';
+import { beslemeyiKirp, kuralBasliklari } from '../_shared/besleme.ts';
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
@@ -1776,7 +1776,21 @@ Deno.serve(async (req) => {
         '(ör. "fesih bildirimi 14.04.2026 → bir aylık süre 14.05.2026 günü dolar"). Ay olarak ' +
         'belirlenen süre, son ayın AYNI SAYILI gününde biter. Hesabı yapamıyorsan tarih UYDURMA, ' +
         '"başlangıç tarihi teyit edilmeli" de.' +
-        dossier;
+        dossier +
+        // KURAL BAŞLIKLARI EN SONA. Kural bloğu istemin ortasında kalıyor ve
+        // ölçümde üç kez aynı şey oldu: kural beslemeye birinci sırada girdi,
+        // mütalaada tek kelime geçmedi. Modeller istemin sonuna daha çok dikkat
+        // eder; başlıkları burada kısa bir kontrol listesine çevirmek, beslemeyi
+        // büyütmeden aynı bilgiyi görünür kılıyor.
+        (() => {
+          const basliklar = kuralBasliklari(dossier);
+          return basliklar.length
+            ? '\n\n### MÜTALAAYI TESLİM ETMEDEN ÖNCE: yukarıdaki dosyada şu kurallar var. ' +
+              'HER BİRİNİN olaya etkisini mütalaada AÇIKÇA yaz; uygulanmıyorsa neden ' +
+              'uygulanmadığını yaz. Sessizce atlama:\n' +
+              basliklar.map((b, i) => `${i + 1}. ${b}`).join('\n')
+            : '';
+        })();
 
       const text = await call(synthSys, `MÜTALAA TALEBİ:\n${mutalaaQuestion}`, sentezMaxTok);
       if (!text.trim()) {
