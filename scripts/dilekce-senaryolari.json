@@ -1,93 +1,174 @@
 {
-  "_aciklama": [
-    "Dilekçe üretimi ölçüm kümesi. Her senaryoda avukatın ANLATTIĞI olay ve",
-    "taslakta BULUNMASI GEREKEN unsurlar var. Unsurlar ezberden değil, usul",
-    "kanunlarının zorunlu tuttuğu içerikten çıkarıldı (HMK m.119, m.129, m.342,",
-    "m.361, m.176; İİK m.62; TBK m.315).",
-    "",
-    "UYDURMA DENETİMİ ayrıca yapılır: taslakta geçen her tarih ve her para tutarı,",
-    "avukatın anlattığı olayda GEÇMİŞ olmalıdır. Avukatın vermediği bir sözleşme",
-    "tarihini taslağa yazmak, dilekçeyi mahkemeye yanlış tarihle sunma riskidir.",
-    "Bilinmeyen bilgi köşeli parantezle boş bırakılmalıdır."
-  ],
-  "senaryolar": [
-    {
-      "id": "dava-kira-tahliye",
-      "tip": "dava",
-      "olay": "Müvekkilim Ankara'da bir daireyi aylık 12.000 TL'ye kiraya verdi. Kiracı Mart, Nisan ve Mayıs 2026 kiralarını ödemedi. Noterden ihtarname çektik, 30 gün süre verdik, yine ödemedi. Tahliye ve birikmiş kira alacağının tahsilini istiyoruz.",
-      "icermeli": [
-        "re:sulh hukuk",
-        "re:DAVACI|Davacı",
-        "re:DAVALI|Davalı",
-        "re:dava (konusunun )?değeri|harca esas|müddeabih",
-        "re:hukuki sebep",
-        "re:delil",
-        "re:netice[- ]?i talep|sonuç ve talep",
-        "re:TBK|Türk Borçlar Kanunu",
-        "re:315",
-        "re:tahliye",
-        "re:faiz"
-      ],
-      "icermemeli": ["re:İİK m\\.?\\s*269"],
-      "notlar": "Kira ilişkisinden doğan dava sulh hukukta (HMK m.4). Temerrüt nedeniyle tahliye TBK m.315. Dava değeri HMK m.119/1-d gereği zorunlu."
-    },
-    {
-      "id": "cevap-alacak",
-      "tip": "cevap",
-      "olay": "Müvekkile karşı 2019 yılında verilen bir hizmet nedeniyle 250.000 TL alacak davası açılmış. Bize 2026 Şubat'ta tebliğ edildi. Müvekkil böyle bir hizmet almadığını söylüyor, ayrıca aradan uzun süre geçmiş. Cevap dilekçesi hazırlayalım.",
-      "icermeli": [
-        "re:zamanaşımı",
-        "re:def'?i|defi",
-        "re:inkâr|inkar|kabul etmiyoruz|reddi",
-        "re:delil",
-        "re:netice[- ]?i talep|sonuç ve talep",
-        "re:davanın reddi"
-      ],
-      "icermemeli": [],
-      "notlar": "Zamanaşımı def'i cevap dilekçesinde ileri sürülmezse sonradan sürülemez (HMK m.129/1-ç ile birlikte HMK m.141)."
-    },
-    {
-      "id": "istinaf-is",
-      "tip": "istinaf",
-      "olay": "İş mahkemesi müvekkilimin kıdem ve ihbar tazminatı talebini reddetti. Gerekçeli karar 10.06.2026'da tebliğ edildi. Mahkeme, istifa dilekçesini geçerli saydı ama dilekçe baskı altında imzalatılmıştı ve tanıklarımız var; mahkeme tanıkları dinlemedi.",
-      "icermeli": [
-        "re:istinaf",
-        "re:bölge adliye|BAM",
-        "re:istinaf sebep|istinaf nedenleri|başvuru sebepleri",
-        "re:iki hafta|2 hafta|14 gün",
-        "re:kaldırılması|bozulması|yeniden yargılama",
-        "re:tanık"
-      ],
-      "icermemeli": ["re:temyiz yoluna başvur"],
-      "notlar": "İstinaf süresi HMK m.345: iki hafta. Talep, kararın kaldırılması (temyiz değil)."
-    },
-    {
-      "id": "itiraz-odeme-emri",
-      "tip": "itiraz",
-      "olay": "Müvekkile genel haciz yoluyla takip yapılmış, ödeme emri 03.03.2026'da tebliğ edilmiş. Böyle bir borç yok, imza da müvekkile ait değil. İtiraz dilekçesi hazırlayalım.",
-      "icermeli": [
-        "re:icra (müdürlüğ|dairesi)",
-        "re:ödeme emri",
-        "re:yedi gün|7 gün",
-        "re:imza",
-        "re:borca itiraz|borcu(muz|n)? (yoktur|kabul)"
-      ],
-      "icermemeli": [],
-      "notlar": "Genel haciz yolunda ödeme emrine itiraz süresi İİK m.62: yedi gün. İmzaya itiraz ayrıca ve açıkça yapılmalıdır."
-    },
-    {
-      "id": "ihtarname-kira",
-      "tip": "ihtarname",
-      "olay": "Kiracı iki aydır kira ödemiyor. Noterden ihtarname çekip otuz gün süre vermek istiyoruz, ödemezse tahliye davası açacağız.",
-      "icermeli": [
-        "re:keşideci|İHTAR EDEN|ihtar eden",
-        "re:muhatap",
-        "re:otuz gün|30 gün",
-        "re:tahliye",
-        "re:temerrüt|gecikme faizi|faiz"
-      ],
-      "icermemeli": [],
-      "notlar": "TBK m.315: konut ve çatılı işyeri kirasında en az otuz günlük süre."
-    }
-  ]
+ "_aciklama": [
+  "Dilekçe üretimi ölçüm kümesi. Her senaryoda avukatın ANLATTIĞI olay ve",
+  "taslakta BULUNMASI GEREKEN unsurlar var. Unsurlar ezberden değil, usul",
+  "kanunlarının zorunlu tuttuğu içerikten çıkarıldı (HMK m.119, m.129, m.342,",
+  "m.361, m.176; İİK m.62; TBK m.315).",
+  "",
+  "UYDURMA DENETİMİ ayrıca yapılır: taslakta geçen her tarih ve her para tutarı,",
+  "avukatın anlattığı olayda GEÇMİŞ olmalıdır. Avukatın vermediği bir sözleşme",
+  "tarihini taslağa yazmak, dilekçeyi mahkemeye yanlış tarihle sunma riskidir.",
+  "Bilinmeyen bilgi köşeli parantezle boş bırakılmalıdır."
+ ],
+ "senaryolar": [
+  {
+   "id": "dava-kira-tahliye",
+   "tip": "dava",
+   "olay": "Müvekkilim Ankara'da bir daireyi aylık 12.000 TL'ye kiraya verdi. Kiracı Mart, Nisan ve Mayıs 2026 kiralarını ödemedi. Noterden ihtarname çektik, 30 gün süre verdik, yine ödemedi. Tahliye ve birikmiş kira alacağının tahsilini istiyoruz.",
+   "icermeli": [
+    "re:sulh hukuk",
+    "re:DAVACI|Davacı",
+    "re:DAVALI|Davalı",
+    "re:dava (konusunun )?değeri|harca esas|müddeabih",
+    "re:hukuki sebep",
+    "re:delil",
+    "re:netice[- ]?i talep|sonuç ve talep",
+    "re:TBK|Türk Borçlar Kanunu",
+    "re:315",
+    "re:tahliye",
+    "re:faiz"
+   ],
+   "icermemeli": [
+    "re:İİK m\\.?\\s*269"
+   ],
+   "notlar": "Kira ilişkisinden doğan dava sulh hukukta (HMK m.4). Temerrüt nedeniyle tahliye TBK m.315. Dava değeri HMK m.119/1-d gereği zorunlu."
+  },
+  {
+   "id": "cevap-alacak",
+   "tip": "cevap",
+   "olay": "Müvekkile karşı 2019 yılında verilen bir hizmet nedeniyle 250.000 TL alacak davası açılmış. Bize 2026 Şubat'ta tebliğ edildi. Müvekkil böyle bir hizmet almadığını söylüyor, ayrıca aradan uzun süre geçmiş. Cevap dilekçesi hazırlayalım.",
+   "icermeli": [
+    "re:zamanaşımı",
+    "re:def'?i|defi",
+    "re:inkâr|inkar|kabul etmiyoruz|reddi",
+    "re:delil",
+    "re:netice[- ]?i talep|sonuç ve talep",
+    "re:davanın reddi"
+   ],
+   "icermemeli": [],
+   "notlar": "Zamanaşımı def'i cevap dilekçesinde ileri sürülmezse sonradan sürülemez (HMK m.129/1-ç ile birlikte HMK m.141)."
+  },
+  {
+   "id": "istinaf-is",
+   "tip": "istinaf",
+   "olay": "İş mahkemesi müvekkilimin kıdem ve ihbar tazminatı talebini reddetti. Gerekçeli karar 10.06.2026'da tebliğ edildi. Mahkeme, istifa dilekçesini geçerli saydı ama dilekçe baskı altında imzalatılmıştı ve tanıklarımız var; mahkeme tanıkları dinlemedi.",
+   "icermeli": [
+    "re:istinaf",
+    "re:bölge adliye|BAM",
+    "re:istinaf sebep|istinaf nedenleri|başvuru sebepleri",
+    "re:iki hafta|2 hafta|14 gün",
+    "re:kaldırılması|bozulması|yeniden yargılama",
+    "re:tanık"
+   ],
+   "icermemeli": [
+    "re:temyiz yoluna başvur"
+   ],
+   "notlar": "İstinaf süresi HMK m.345: iki hafta. Talep, kararın kaldırılması (temyiz değil)."
+  },
+  {
+   "id": "itiraz-odeme-emri",
+   "tip": "itiraz",
+   "olay": "Müvekkile genel haciz yoluyla takip yapılmış, ödeme emri 03.03.2026'da tebliğ edilmiş. Böyle bir borç yok, imza da müvekkile ait değil. İtiraz dilekçesi hazırlayalım.",
+   "icermeli": [
+    "re:icra (müdürlüğ|dairesi)",
+    "re:ödeme emri",
+    "re:yedi gün|7 gün",
+    "re:imza",
+    "re:borca itiraz|borcu(muz|n)? (yoktur|kabul)"
+   ],
+   "icermemeli": [],
+   "notlar": "Genel haciz yolunda ödeme emrine itiraz süresi İİK m.62: yedi gün. İmzaya itiraz ayrıca ve açıkça yapılmalıdır."
+  },
+  {
+   "id": "ihtarname-kira",
+   "tip": "ihtarname",
+   "olay": "Kiracı iki aydır kira ödemiyor. Noterden ihtarname çekip otuz gün süre vermek istiyoruz, ödemezse tahliye davası açacağız.",
+   "icermeli": [
+    "re:keşideci|İHTAR EDEN|ihtar eden",
+    "re:muhatap",
+    "re:otuz gün|30 gün",
+    "re:tahliye",
+    "re:temerrüt|gecikme faizi|faiz"
+   ],
+   "icermemeli": [],
+   "notlar": "TBK m.315: konut ve çatılı işyeri kirasında en az otuz günlük süre."
+  },
+  {
+   "id": "temyiz-alacak",
+   "tip": "temyiz",
+   "olay": "Bölge adliye mahkemesi istinaf başvurumuzu esastan reddetti; karar 10.04.2026'da tebliğ edildi. Alacak davasında BAM, sözleşmedeki cezai şart hükmünü hiç tartışmadan karar verdi ve tanık beyanlarını değerlendirmedi. Temyiz dilekçesi hazırlayalım.",
+   "icermeli": [
+    "re:temyiz",
+    "re:iki hafta|2 hafta",
+    "re:yargıtay",
+    "re:boz(ul)?ma|bozulmasını",
+    "re:temyiz sebep"
+   ],
+   "icermemeli": [
+    "re:harca esas dava değeri",
+    "re:kararın kaldırılması"
+   ],
+   "notlar": "HMK m.361: tebliğden itibaren iki hafta. Yargıtay BOZAR; kaldırma istinafa aittir. Temyiz hukukilik denetimidir, delil sunulmaz. Kesinlik sınırına rakam verilmemeli (yeniden değerleme)."
+  },
+  {
+   "id": "islah-iscilik",
+   "tip": "islah",
+   "olay": "Kıdem ve ihbar tazminatı davasında bilirkişi raporu geldi, alacak bizim talebimizden yüksek çıktı. Talep sonucunu artırmak için ıslah dilekçesi hazırlayalım. Dosya derdest, tahkikat bitmedi.",
+   "icermeli": [
+    "re:ıslah|islah",
+    "re:esas no|esas numaras",
+    "re:harc|harç",
+    "re:bir kez|bir defa|yalnız(ca)? bir"
+   ],
+   "icermemeli": [
+    "re:harca esas dava değeri"
+   ],
+   "notlar": "HMK m.176: taraflar aynı davada ancak BİR KEZ ıslah yoluna başvurabilir. m.177: tahkikat sona erene kadar. Artırılan kısmın harcı yatırılmalı."
+  },
+  {
+   "id": "bilirkisi-itiraz",
+   "tip": "bilirkisi",
+   "olay": "Trafik kazası tazminat davasında bilirkişi raporu 05.05.2026'da tebliğ edildi. Rapor müvekkili yüzde yetmiş kusurlu saymış ama kaza tespit tutanağını ve kamera kaydını hiç incelememiş. Rapora itiraz dilekçesi hazırlayalım.",
+   "icermeli": [
+    "re:bilirkişi",
+    "re:iki hafta|2 hafta",
+    "re:ek rapor|yeni bilirkişi|yeniden inceleme",
+    "re:itiraz"
+   ],
+   "icermemeli": [
+    "re:harca esas dava değeri"
+   ],
+   "notlar": "HMK m.281: raporun tebliğinden itibaren iki hafta; eksikliğin tamamlattırılması, açıklama veya yeni bilirkişi talebi."
+  },
+  {
+   "id": "replik-kira",
+   "tip": "replik",
+   "olay": "Kira alacağı davamızda davalı cevap dilekçesinde ödeme yaptığını savunup dekont sundu; dekont başka bir aya ait. Cevap dilekçesi 12.03.2026'da tebliğ edildi. Cevaba cevap (replik) dilekçesi hazırlayalım.",
+   "icermeli": [
+    "re:cevaba cevap|replik",
+    "re:iki hafta|2 hafta",
+    "re:esas no|esas numaras",
+    "re:delil"
+   ],
+   "icermemeli": [
+    "re:harca esas dava değeri"
+   ],
+   "notlar": "HMK m.136: cevap dilekçesinin tebliğinden itibaren iki hafta içinde cevaba cevap."
+  },
+  {
+   "id": "duplik-alacak",
+   "tip": "duplik",
+   "olay": "Alacak davasında davacının cevaba cevap dilekçesi 20.03.2026'da tebliğ edildi; orada ilk kez yeni bir fatura ileri sürdü. İkinci cevap (düplik) dilekçesi hazırlayalım.",
+   "icermeli": [
+    "re:ikinci cevap|düplik|duplik",
+    "re:iki hafta|2 hafta",
+    "re:esas no|esas numaras",
+    "re:reddi"
+   ],
+   "icermemeli": [
+    "re:harca esas dava değeri"
+   ],
+   "notlar": "HMK m.136: davacının cevabının tebliğinden itibaren iki hafta. m.141: dilekçelerin karşılıklı verilmesinden sonra savunma genişletilemez."
+  }
+ ]
 }

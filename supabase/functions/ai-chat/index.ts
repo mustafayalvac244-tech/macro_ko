@@ -1378,6 +1378,10 @@ function mahkemeTarifi(tip: string): string {
       '"Sunulmak üzere … BÖLGE ADLİYE MAHKEMESİ … HUKUK DAİRESİ BAŞKANLIĞINA"';
   if (tip === 'itiraz') return 'yalnız icra dairesinin adı (itiraz mahkemeye değil, İCRA DAİRESİNE yapılır)';
   if (tip === 'ihtarname') return 'noter adı ya da "… NOTERLİĞİNE"';
+  // Ara dilekçeler DERDEST dosyaya sunulur: yeni bir merci aranmaz, davanın
+  // görüldüğü mahkemeye hitap edilir ve esas numarası künyede yer alır.
+  if (tip === 'replik' || tip === 'duplik' || tip === 'islah' || tip === 'bilirkisi')
+    return 'davanın görüldüğü mahkeme (örn. "ANKARA 3. ASLİYE HUKUK MAHKEMESİ SAYIN HÂKİMLİĞİNE")';
   return 'yalnız merci adı (örn. "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ")';
 }
 
@@ -1500,6 +1504,94 @@ const DILEKCE_ISKELET: Record<string, DilekceIskelet> = {
       { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İhtar konusu — doldurun]' },
       { anahtar: 'ACIKLAMALAR', baslik: 'AÇIKLAMALAR', zorunlu: true, bosluk: '[Açıklamalar — doldurun]' },
       { anahtar: 'TALEP', baslik: 'İHTAR VE TALEP', zorunlu: true, bosluk: '[İhtar ve talep — doldurun]' },
+    ],
+  },
+  // ── AŞAĞIDAKİ BEŞ TÜR İSKELETSİZDİ ve sessizce DAVA iskeletiyle diziliyordu.
+  //
+  // Ekrandaki seçim listesi on tür sunuyor; iskelet beşini tanıyordu. Tanınmayan
+  // tür 'dava'ya düşüyordu (iskeletSec) ve sonuç, yapısı yanlış bir belgeydi:
+  // temyiz dilekçesinin başına "DAVACI/DAVALI" ve ZORUNLU "HARCA ESAS DAVA
+  // DEĞERİ" satırı konuyordu. Islah dilekçesinde esas numarası hiç yoktu.
+  //
+  // Bu, modelin hatası değil bizim eksiğimizdi: model doğru içeriği yazsa bile
+  // kod onu yanlış kalıba diziyordu. Avukatın "hızlandırdı" diyebilmesi için
+  // belgenin baştan doğru kalıpta çıkması gerekir; başlığı elle düzeltmek
+  // zorunda kaldığı her tür, kazandırdığımız zamanı geri alır.
+  //
+  // ORTAK İLKE: ikinci dilekçelerde ve ara dilekçelerde ESAS NO vardır ve
+  // "harca esas dava değeri" YOKTUR — o, dava dilekçesine özgü unsurdur
+  // (HMK m.119/1-d).
+  replik: {
+    taraflar: [
+      ['DAVACI', '[Davacı ad-soyad] — T.C. [Davacı TCKN] — [Davacı adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['DAVALI', '[Davalı ad-soyad]'],
+      ['ESAS NO', '[Esas No]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[Cevaba cevap konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'CEVABA CEVAPLARIMIZ', zorunlu: true, bosluk: '[Cevaba cevaplar — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  duplik: {
+    taraflar: [
+      ['DAVACI', '[Davacı ad-soyad]'],
+      ['DAVALI', '[Davalı ad-soyad] — T.C. [Davalı TCKN] — [Davalı adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['ESAS NO', '[Esas No]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İkinci cevap konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'İKİNCİ CEVAPLARIMIZ', zorunlu: true, bosluk: '[İkinci cevaplar — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  // TEMYİZDE "DELİLLER" BÖLÜMÜ YOKTUR. Temyiz bir hukukilik denetimidir; delil
+  // sunulacak yer değildir. ORTAK_SON'u olduğu gibi kullanmak, avukata silmesi
+  // gereken bir bölüm bırakırdı.
+  temyiz: {
+    taraflar: [
+      ['TEMYİZ EDEN', '[Ad-soyad] — T.C. [TCKN] — [Adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['KARŞI TARAF', '[Ad-soyad] — [Adres]'],
+      ['TEMYİZ EDİLEN KARAR', '[BAM ... Hukuk Dairesi] · [Esas No] · [Karar No] · [Karar tarihi]'],
+      ['TEBLİĞ TARİHİ', '[Tebliğ tarihi]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[Temyiz konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'TEMYİZ SEBEPLERİ', zorunlu: true, bosluk: '[Temyiz sebepleri — doldurun]' },
+      { anahtar: 'SEBEPLER', baslik: 'HUKUKİ SEBEPLER', zorunlu: true, bosluk: '[Hukuki sebepler — doldurun]' },
+      { anahtar: 'TALEP', baslik: 'NETİCE-İ TALEP', zorunlu: true, bosluk: '[Netice-i talep — doldurun]' },
+    ],
+  },
+  bilirkisi: {
+    taraflar: [
+      ['ESAS NO', '[Esas No]'],
+      ['İTİRAZ EDEN', '[Taraf sıfatı: davacı/davalı] [Ad-soyad]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['KARŞI TARAF', '[Ad-soyad]'],
+      ['RAPOR TEBLİĞ TARİHİ', '[Raporun tebliğ tarihi]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İtiraz konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'RAPORA İTİRAZ SEBEPLERİMİZ', zorunlu: true, bosluk: '[İtiraz sebepleri — doldurun]' },
+      { anahtar: 'SEBEPLER', baslik: 'HUKUKİ SEBEPLER', zorunlu: true, bosluk: '[Hukuki sebepler — doldurun]' },
+      { anahtar: 'TALEP', baslik: 'SONUÇ VE TALEP', zorunlu: true, bosluk: '[Sonuç ve talep — doldurun]' },
+    ],
+  },
+  islah: {
+    taraflar: [
+      ['ESAS NO', '[Esas No]'],
+      ['ISLAH EDEN', '[Taraf sıfatı: davacı/davalı] [Ad-soyad] — T.C. [TCKN]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['KARŞI TARAF', '[Ad-soyad]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[Islah konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'ISLAH EDİLEN HUSUSLAR', zorunlu: true, bosluk: '[Islah edilen hususlar — doldurun]' },
+      { anahtar: 'SEBEPLER', baslik: 'HUKUKİ SEBEPLER', zorunlu: true, bosluk: '[Hukuki sebepler — doldurun]' },
+      { anahtar: 'TALEP', baslik: 'SONUÇ VE TALEP', zorunlu: true, bosluk: '[Sonuç ve talep — doldurun]' },
     ],
   },
 };
@@ -1649,12 +1741,24 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
   if (isDilekce) {
     const typeMap: Record<string, string> = {
       dava: 'DAVA DİLEKÇESİ (HMK m.119). Unsurlar eksiksiz: mahkeme, taraflar (ad-soyad/TC/adres — bilinmiyorsa [ ]), AYRI BİR SATIR HÂLİNDE "HARCA ESAS DAVA DEĞERİ" (HMK m.119/1-d ZORUNLU unsurdur; hesaplanamıyorsa [Dava değeri] bırak, satırı ATLAMA — eksikliği dilekçe ihtarına yol açar), açık ve sıralı VAKIALAR, her vakıanın hangi DELİLLE ispatlanacağı, hukuki sebepler, ve NETİCE-İ TALEP (talep sonucu net kalemler + faiz TÜRÜ ve BAŞLANGIÇ TARİHİ + yargılama gideri/vekalet ücreti).',
-      cevap: 'CEVAP DİLEKÇESİ (HMK m.129). Sıra: usule ilişkin itirazlar (yetki/görev/derdestlik varsa), husumet/sıfat itirazı, zamanaşımı/hak düşürücü süre def’i (varsa), davacının her vakıasına tek tek CEVAP (kabul/inkâr), karşı vakıalar ve delilleri, netice-i talep (davanın reddi).',
+      // DEF'İ, KELİMESİ KELİMESİNE YAZILMALI. Ölçümde model zamanaşımını
+      // "savunması" diye yazdı ve usule ilişkin itirazlar başlığına koydu.
+      // Zamanaşımı bir def'idir: ileri sürülmedikçe hâkim kendiliğinden göz
+      // önüne alamaz (TBK m.161). Muğlak ifade, def'inin usulünce ileri
+      // sürülüp sürülmediği tartışmasına yol açar.
+      cevap: 'CEVAP DİLEKÇESİ (HMK m.129). Sıra: İLK İTİRAZLAR (kesin yetki yoksa yetki, tahkim — HMK m.116/117: hepsi bu dilekçede ileri sürülmezse DİNLENMEZ), husumet/sıfat itirazı, sonra ESASA İLİŞKİN DEF’İLER. Zamanaşımı bir DEF’İDİR, itiraz değildir: dilekçede "zamanaşımı DEF’İNDE BULUNUYORUZ" diye AÇIKÇA yaz, "zamanaşımı savunması" gibi muğlak ifade kullanma ve usule ilişkin itirazlar başlığına KOYMA. Beş yıl diyorsan TBK m.147’nin HANGİ BENDİNE girdiğini yaz; girmiyorsa süre on yıldır (TBK m.146). Ardından davacının her vakıasına tek tek CEVAP (kabul/inkâr — def’i ileri sürmek kabul anlamına gelmez), karşı vakıalar ve delilleri, netice-i talep (davanın reddi).',
       replik: 'CEVABA CEVAP (REPLİK) DİLEKÇESİ. Davalının cevabındaki itirazları çürüt, kendi iddialarını delillerle pekiştir, yeni delil bildir.',
       duplik: 'İKİNCİ CEVAP (DÜPLİK) DİLEKÇESİ. Replikteki yeni iddialara karşılık; savunmayı ve delilleri son kez topla.',
       istinaf: 'İSTİNAF BAŞVURU DİLEKÇESİ (HMK m.342 vd.). İlk derece kararının özeti, İSTİNAF SEBEPLERİ (maddi/hukuki hatalar madde madde, dayanağıyla), ve talep (kararın kaldırılması/düzeltilmesi). Süre uyarısını (tebliğden itibaren 2 hafta) not düş.',
-      temyiz: 'TEMYİZ DİLEKÇESİ (HMK m.361 vd.). BAM kararının özeti, TEMYİZ SEBEPLERİ (hukuka aykırılıklar, ilgili Yargıtay içtihadıyla), talep (bozma). Süre uyarısını not düş.',
-      itiraz: 'İTİRAZ DİLEKÇESİ (icra/ödeme emrine — İİK m.62 vd. ya da ilgili usul). Dosya/takip no, itiraz edilen işlem, itiraz sebepleri (borca/imzaya/yetkiye), ve talep. Süreye dikkat çek.',
+      // PARASAL SINIR YILLIK YENİDEN DEĞERLEMEYLE ARTAR. Kanun metnindeki rakam
+      // (HMK m.362/1-a) havuzdaki hâliyle eskimiş olabilir; taslakta rakam
+      // vermek, avukatı temyizi kapalı sanıp başvurmamaya götürebilir.
+      temyiz: 'TEMYİZ DİLEKÇESİ (HMK m.361 vd.). Süre, kararın tebliğinden itibaren İKİ HAFTADIR. BAM kararının özeti, TEMYİZ SEBEPLERİ (hukuka aykırılıklar, ilgili Yargıtay içtihadıyla), talep (kararın BOZULMASI — "kaldırılması" istinafa aittir). Temyiz bir hukukilik denetimidir: yeni delil sunulmaz, "DELİLLER" bölümü yazma. Kesinlik (parasal) sınırına RAKAM VERME: sınır her yıl yeniden değerleme oranında artar; "karar tarihindeki kesinlik sınırını teyit edin" notu düş.',
+      // İtiraz LAFZEN yapılır. Ölçümde model "müvekkilin alacakla ilişkisi
+      // yoktur" yazıp "borca itiraz ediyoruz" demedi; icra dairesi itirazı
+      // SEBEBİNE göre kaydeder ve dolaylı anlatım hangi sebeple itiraz
+      // edildiğini göstermez.
+      itiraz: 'İTİRAZ DİLEKÇESİ (icra/ödeme emrine — İİK m.62 vd.). Dosya/takip no, itiraz edilen işlem, itiraz sebepleri ve talep. Sebepleri AÇIK KELİMELERLE yaz: "BORCA İTİRAZ EDİYORUZ", "İMZAYA AYRICA VE AÇIKÇA İTİRAZ EDİYORUZ", "YETKİYE İTİRAZ EDİYORUZ" (İİK m.62/son: imza ayrıca ve açıkça reddedilmezse KABUL EDİLMİŞ SAYILIR). "Sahtecilik" deme; beyan edilen, imzanın borçluya ait olmadığıdır. Talep, itirazın kayda geçirilmesi ve takibin durmasıdır; "ödeme emrinin iptali" isteme. Süreye dikkat çek.',
       ihtarname: 'İHTARNAME (noter/keşideci formatı). Keşideci ve muhatap, açık talep, yerine getirilmesi için verilen süre, aksi halde hukuki/cezai yollar, ihtar tarihinden itibaren temerrüt/faiz uyarısı.',
       bilirkisi: 'BİLİRKİŞİ RAPORUNA İTİRAZ DİLEKÇESİ. Raporun hangi tespitine neden itiraz edildiği (bilimsel/hukuki gerekçe), çelişkiler, ek/yeni bilirkişi talebi.',
       islah: 'ISLAH DİLEKÇESİ (HMK m.176 vd.). Neyin ıslah edildiği (talep sonucu/vakıa), gerekçe, harç tamamlama beyanı, yeni netice-i talep.',
