@@ -1,0 +1,63 @@
+{
+ "_aciklama": "BELGE İNCELEME ölçüm senaryoları. Belgeler ELİMİZDE YAZILDI ve kusurlar BİLEREK yerleştirildi; böylece 'doğru cevap' tartışmaya açık değildir. Ölçülen şey, avukatın belgeyi baştan sona okumadan görmesi gereken riski incelemenin yakalayıp yakalamadığıdır. 'yakalamali' her biri yerleştirilmiş bir kusurdur; kaçırılırsa inceleme işe yaramamıştır.",
+ "senaryolar": [
+  {
+   "id": "sozlesme-tek-tarafli",
+   "kind": "sozlesme",
+   "yerlestirilen": [
+    "yalnız bir tarafa tanınan tazminatsız fesih hakkı",
+    "aleyhe ve fahiş cezai şart (bedelin üç katı)",
+    "süre-yer-konu sınırı olmayan rekabet yasağı",
+    "gecikme faizi oranı boş bırakılmış",
+    "yetki şartı karşı tarafın bulunduğu yer"
+   ],
+   "metin": "DANIŞMANLIK HİZMET SÖZLEŞMESİ\n\nMadde 1 - TARAFLAR\nHizmet Alan: ABC Lojistik A.Ş. (Merkez: İstanbul)\nHizmet Veren: Ayşe Yılmaz\n\nMadde 2 - KONU\nHizmet Veren, Hizmet Alan'a lojistik süreç danışmanlığı verecektir.\n\nMadde 3 - SÜRE\nSözleşme 01.02.2026 tarihinde başlar ve 24 ay sürer.\n\nMadde 4 - BEDEL VE ÖDEME\nAylık danışmanlık bedeli 40.000 TL'dir. Ödeme, faturanın tebliğinden sonra Hizmet Alan'ın uygun gördüğü tarihte yapılır. Gecikme hâlinde ___ oranında gecikme faizi işletilir.\n\nMadde 5 - FESİH\nHizmet Alan, sözleşmeyi dilediği zaman, sebep göstermeksizin ve herhangi bir tazminat ödemeksizin tek taraflı olarak feshedebilir. Hizmet Veren sözleşmeyi süresinden önce feshedemez.\n\nMadde 6 - CEZAİ ŞART\nHizmet Veren'in sözleşmeye aykırı davranması hâlinde, toplam sözleşme bedelinin ÜÇ KATI tutarında cezai şart ödemeyi kabul eder. Hizmet Alan'ın aykırılığı hâlinde herhangi bir cezai şart öngörülmemiştir.\n\nMadde 7 - REKABET YASAĞI\nHizmet Veren, sözleşme sona erdikten sonra lojistik alanında hiçbir yerde, hiçbir surette ve süresiz olarak faaliyette bulunamaz.\n\nMadde 8 - GİZLİLİK\nTaraflar öğrendikleri bilgileri gizli tutar.\n\nMadde 9 - YETKİ\nUyuşmazlıklarda İstanbul mahkemeleri ve icra daireleri yetkilidir.\n\nİşbu sözleşme 01.02.2026 tarihinde iki nüsha düzenlenmiştir.",
+   "yakalamali": [
+    "re:cezai şart",
+    "re:tek taraflı|sebep göstermeksizin|yalnız hizmet alan",
+    "re:rekabet yasağ",
+    "re:faiz",
+    "re:indiril|fahiş|aşırı|orantısız"
+   ],
+   "olmamali": [],
+   "notlar": "TBK m.182/son: hâkim, aşırı gördüğü ceza koşulunu KENDİLİĞİNDEN indirir. Süre-yer-konu bakımından sınırsız rekabet yasağı, ilişki hizmet sözleşmesi niteliğindeyse TBK m.445 (süre kural olarak iki yılı aşamaz), değilse genel hükümler ve kişilik hakkı (TMK m.23) uyarınca sakattır. Ödemenin 'Hizmet Alan'ın uygun gördüğü tarihte' yapılması vadeyi belirsiz bırakır; gecikme faizi oranı da boştur."
+  },
+  {
+   "id": "karar-kanun-yolu",
+   "kind": "karar",
+   "yerlestirilen": [
+    "istinaf süresi ve başlangıcı (tebliğ)",
+    "hüküm fıkrasında faize hiç değinilmemesi",
+    "vekâlet ücreti kalemi"
+   ],
+   "metin": "T.C.\nANKARA 7. ASLİYE HUKUK MAHKEMESİ\nESAS NO: 2025/412\nKARAR NO: 2026/88\n\nDAVACI: Mehmet Demir\nDAVALI: XYZ İnşaat Ltd. Şti.\nDAVA: Alacak\nKARAR TARİHİ: 18.02.2026\n\nGEREKÇE\nDavacı, davalı ile imzaladığı 10.01.2024 tarihli sözleşme uyarınca 180.000 TL alacağının ödenmediğini ileri sürmüştür. Toplanan deliller ve bilirkişi raporuna göre davacının 180.000 TL alacağının bulunduğu, davalının ödeme yaptığını ispat edemediği anlaşılmıştır. Davacı dava dilekçesinde alacağa işleyecek faizi de talep etmiştir.\n\nHÜKÜM\n1- Davanın KABULÜ ile 180.000 TL'nin davalıdan alınarak davacıya verilmesine,\n2- Alınması gereken harçtan peşin alınan harcın mahsubuna,\n3- Davacı kendisini vekille temsil ettirdiğinden karar tarihinde yürürlükte bulunan tarife uyarınca hesaplanan vekâlet ücretinin davalıdan alınarak davacıya verilmesine,\n4- Kararın taraflara tebliğine,\nDair, tarafların yokluğunda, kararın tebliğinden itibaren iki hafta içinde istinaf yolu açık olmak üzere karar verildi. 18.02.2026",
+   "yakalamali": [
+    "re:istinaf",
+    "re:iki hafta|2 hafta",
+    "re:tebliğ",
+    "re:faiz"
+   ],
+   "olmamali": [
+    "re:temyiz süresi|doğrudan temyiz"
+   ],
+   "notlar": "Hüküm fıkrasında talep edilen FAİZ hakkında karar verilmemiş; bu, tavzih/istinaf sebebi olabilecek bir eksikliktir ve inceleme bunu görmelidir. Kanun yolu istinaftır, süre tebliğden itibaren iki haftadır."
+  },
+  {
+   "id": "ihtarname-eksik",
+   "kind": "ihtarname",
+   "yerlestirilen": [
+    "muhataba süre verilmemiş",
+    "talep tutarı belirsiz",
+    "temerrüt ve faiz uyarısı yok"
+   ],
+   "metin": "İHTARNAME\n\nKEŞİDECİ: Selim Kaya\nMUHATAP: Deniz Ticaret Ltd. Şti.\n\nMuhatap şirket ile aramızda mevcut ticari ilişki kapsamında tarafınıza teslim edilen mallara ilişkin bakiye borcunuz bulunmaktadır. Söz konusu borç bugüne kadar ödenmemiştir.\n\nBorcunuzun bir an önce ödenmesini, aksi hâlde hukuki yollara başvurulacağını ihtar ederiz.\n\nKeşideci",
+   "yakalamali": [
+    "re:süre",
+    "re:tutar|miktar|belirsiz|belirli değil",
+    "re:temerrüt|faiz"
+   ],
+   "olmamali": [],
+   "notlar": "İhtarname, muhataba açık bir süre vermeli ve talebi belirli kılmalıdır; aksi hâlde temerrüde düşürme işlevini görmez. TBK m.117: belirli vadeli borçta ihtar gerekmez, aksi hâlde ihtarla temerrüt başlar."
+  }
+ ]
+}

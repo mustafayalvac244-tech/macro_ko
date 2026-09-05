@@ -115,20 +115,14 @@ export default function DocumentReviewScreen() {
     setError(null);
     setResult('');
     try {
-      const prompt =
-        `Aşağıdaki ${t(`docrev.kind.${kind}` as const)} metnini KIDEMLİ AVUKAT gözüyle incele. ` +
-        'Şu başlıklarla, madde madde ve KISA yaz:\n' +
-        '1) ÖZET — belge ne diyor (2-3 cümle)\n' +
-        '2) RİSKLER — müvekkil aleyhine olan, tehlikeli veya tek taraflı hükümler (her biri için neden riskli)\n' +
-        '3) EKSİKLER — olması gerekip de olmayan hükümler/unsurlar\n' +
-        '4) SÜRELER VE TARİHLER — metinde geçen ya da kaçırılmaması gereken süreler\n' +
-        '5) ÖNERİLEN DEĞİŞİKLİKLER — eklenmesi/düzeltilmesi gereken madde önerileri\n' +
-        'Emin olmadığın noktada "teyit edilmeli" de; metinde olmayan bilgiyi UYDURMA.\n\n' +
-        '--- BELGE METNİ ---\n' +
-        body;
-
+      // İNCELEME İSTEMİ SUNUCUDA. Burada kurulduğu sürece iki şey mümkün
+      // değildi: incelemeyi ölçmek (ölçüm aracı istemi taklit etmek zorunda
+      // kalırdı, yani kullanıcının gördüğü çıktı ölçülmezdi) ve istemi
+      // uygulama güncellemesi olmadan iyileştirmek. Sunucu ayrıca belge
+      // türüne göre mevzuat besliyor ve incelemede geçen ama BELGEDE OLMAYAN
+      // tarihleri ayıklıyor.
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
-        body: { messages: [{ role: 'user', text: prompt }] },
+        body: { mode: 'belge', docKind: kind, question: body },
       });
       if (fnErr) {
         let code = '';

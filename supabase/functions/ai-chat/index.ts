@@ -1186,7 +1186,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
 
-  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string };
+  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string };
   try {
     body = await req.json();
   } catch {
@@ -1198,11 +1198,14 @@ Deno.serve(async (req) => {
   // DİLEKÇE modu: olay anlatımından mahkemeye hazır resmî dilekçe taslağı üretir
   // (gerçek mevzuat/içtihata dayalı). Tüm katmanlara açık, tek çağrı.
   const isDilekce = body.mode === 'dilekce';
+  // BELGE modu: yüklenen/yapıştırılan metni avukat gözüyle inceler. Tüm
+  // katmanlara açık, tek çağrı.
+  const isBelge = body.mode === 'belge';
   const promptQuestion = (body.question ?? '').trim();
-  const messages = (isMutalaa || isDilekce)
+  const messages = (isMutalaa || isDilekce || isBelge)
     ? [{ role: 'user' as const, text: promptQuestion }]
     : (body.messages ?? []).slice(-30);
-  if (messages.length === 0 || ((isMutalaa || isDilekce) && promptQuestion.length < 20)) {
+  if (messages.length === 0 || ((isMutalaa || isDilekce || isBelge) && promptQuestion.length < 20)) {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
   // Referanslar mütalaa bloğunda mutalaaQuestion adıyla kullanılıyordu; alias.
@@ -1596,6 +1599,59 @@ const DILEKCE_ISKELET: Record<string, DilekceIskelet> = {
   },
 };
 
+/**
+ * BELGE İNCELEME — tür başına ne aranacağı.
+ *
+ * Tür ayrımı biçimsel değil: bir sözleşmede aranan şey (aleyhe cezai şart,
+ * yetki/tahkim şartı) ile bir kararda aranan şey (süre, hangi kanun yolu)
+ * bambaşkadır. Tek bir genel istem, her belgeye aynı soruları sorar ve o
+ * belgenin asıl riskini kaçırır.
+ *
+ * `arama`, besleme sorgusuna eklenen sözcüklerdir: belgenin kendi metni
+ * arama sorgusu olduğunda en sık geçen sözcükler kazanır ve ilgisiz mevzuat
+ * gelir; bu sözcükler sorguyu doğru kanunlara çeker.
+ */
+const BELGE_TURU: Record<string, { ad: string; arama: string; ek: string }> = {
+  sozlesme: {
+    ad: 'SÖZLEŞME',
+    arama: 'sözleşme cezai şart tazminat fesih yetki tahkim',
+    ek:
+      '\nSÖZLEŞMEDE AYRICA ŞUNLARA BAK: tek taraflı fesih hakkı; aleyhe cezai şart ' +
+      '(aşırı ceza hâkim tarafından indirilir); sorumsuzluk kaydı; yetki ve tahkim şartı; ' +
+      'ödeme/temerrüt koşulu ve faiz; süre ve yenileme; gizlilik ve rekabet yasağı ' +
+      '(süre-yer-konu sınırı var mı); devir yasağı; ekler ve tebligat adresi.',
+  },
+  dilekce: {
+    ad: 'DİLEKÇE',
+    arama: 'dilekçe zorunlu unsur netice-i talep deliller harç',
+    ek:
+      '\nDİLEKÇEDE AYRICA ŞUNLARA BAK: zorunlu unsurlar tam mı (mahkeme, taraflar, ' +
+      'harca esas değer, vakıalar, her vakıanın delili, hukuki sebepler, açık talep sonucu, imza); ' +
+      'talep sonucu net mi; süre geçmiş mi; yanlış merci ya da yanlış dayanak madde var mı.',
+  },
+  ihtarname: {
+    ad: 'İHTARNAME',
+    arama: 'ihtarname temerrüt süre tebligat noter',
+    ek:
+      '\nİHTARNAMEDE AYRICA ŞUNLARA BAK: muhataba verilen süre açık mı ve yeterli mi; ' +
+      'talep miktarı ve dayanağı belirli mi; temerrüt ve faiz uyarısı var mı; ' +
+      'aksi hâlde başvurulacak yol yazılı mı; keşideci-muhatap ve adresler tam mı.',
+  },
+  karar: {
+    ad: 'MAHKEME KARARI',
+    arama: 'karar gerekçe kanun yolu istinaf temyiz süre tebliğ',
+    ek:
+      '\nKARARDA AYRICA ŞUNLARA BAK: hangi kanun yolu açık (istinaf/temyiz), süresi ve ' +
+      'başlangıcı (tebliğ mi tefhim mi); kesinlik şerhi; hüküm fıkrasında talep karşılanmayan ' +
+      'kalem var mı; vekâlet ücreti ve yargılama gideri doğru mu; gerekçe ile hüküm çelişiyor mu.',
+  },
+  diger: {
+    ad: 'BELGE',
+    arama: 'belge hukuki risk süre',
+    ek: '',
+  },
+};
+
 /** Türü tanımlı olmayan dilekçeler dava iskeletiyle dizilir. */
 function iskeletSec(tip: string): DilekceIskelet {
   return DILEKCE_ISKELET[tip] ?? DILEKCE_ISKELET.dava;
@@ -1870,6 +1926,103 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
       await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali);
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+      );
+    } catch (e) {
+      const msg = (e as Error).message;
+      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+        status: known ? 429 : 502,
+        headers: CORS,
+      });
+    }
+  }
+
+  // ───────────── BELGE İNCELEME ─────────────
+  // İSTEM SUNUCUYA TAŞINDI. Önce inceleme istemi ekran dosyasında (istemcide)
+  // kuruluyordu. İki sonucu vardı ve ikisi de ölçülebilirliği kırıyordu:
+  //   • Ölçüm aracı istemi taklit etmek zorunda kalırdı; ölçtüğümüz şey
+  //     kullanıcının gördüğü çıktı olmazdı.
+  //   • Her iyileştirme uygulama güncellemesi gerektirirdi; oysa istem
+  //     burada olunca deploy yeter.
+  // Ayrıca bu yol, üretilen incelemeyi MEKANİK TARİH DENETİMİNDEN geçirmeyi
+  // mümkün kılıyor: incelemede geçen ama BELGEDE OLMAYAN bir tarih, avukatın
+  // ajandasına yanlış süre yazdırabilir — dilekçedeki uydurma tarihten daha
+  // sinsidir, çünkü avukat belgeyi zaten okuduğunu varsayar.
+  if (isBelge) {
+    const tur = BELGE_TURU[body.docKind ?? 'diger'] ?? BELGE_TURU.diger;
+    // Besleme sorgusu belgenin TAMAMI değil BAŞI: bir sözleşmenin bütünü
+    // arama sorgusu yapıldığında en sık geçen sözcükler kazanır ve ilgisiz
+    // mevzuat gelir. Baş kısım, belgenin ne olduğunu en çok anlatan yerdir.
+    const aramaMetni = `${tur.arama} ${promptQuestion.slice(0, 1200)}`;
+    let dossier = '';
+    try { dossier += await buildRules(supabase, aramaMetni); } catch { /* atla */ }
+    try { dossier += await buildMevzuat(supabase, aramaMetni); } catch { /* atla */ }
+
+    const belgeSys =
+      SYSTEM_PROMPT +
+      '\n\nŞU AN "BELGE İNCELEME" MODUNDASIN. Aşağıdaki ' + tur.ad + ' metnini KIDEMLİ AVUKAT ' +
+      'gözüyle inceliyorsun. Amaç, avukatın belgeyi baştan sona okumadan RİSKİ ve SÜREYİ ' +
+      'görmesidir.\n\nŞU BAŞLIKLARLA, madde madde ve KISA yaz:\n' +
+      '1) ÖZET — belge ne diyor (2-3 cümle)\n' +
+      '2) RİSKLER — müvekkil aleyhine, tek taraflı ya da tehlikeli hükümler; her biri için NEDEN riskli\n' +
+      '3) EKSİKLER — olması gerekip de olmayan hüküm/unsurlar\n' +
+      '4) SÜRELER VE TARİHLER — metinde geçen ve kaçırılmaması gereken süreler\n' +
+      '5) ÖNERİLEN DEĞİŞİKLİKLER — eklenecek/düzeltilecek madde önerileri\n' +
+      tur.ek +
+      '\nKURALLAR:\n' +
+      '• Metinde OLMAYAN bilgiyi uydurma. Emin olmadığın noktada "teyit edilmeli" de.\n' +
+      '• TARİH UYDURMA: yalnız belgede geçen tarihleri yaz. Bir süre belgede tarihe ' +
+      'bağlanmamışsa "başlangıç tarihi teyit edilmeli" de, kendin tarih hesaplama.\n' +
+      '• Madde numarası verirken yalnız aşağıdaki dosyada gerçekten geçen maddeleri kullan; ' +
+      'dosyada yoksa "ilgili mevzuat" de.\n' +
+      '• Risk yoksa "belirgin risk görülmedi" de; risk üretmek için abartma.' +
+      dossier;
+
+    try {
+      const maxTok = Math.max(cfg.maxOut, 3000);
+      let out = '';
+      let uin = 0;
+      let uout = 0;
+      let kullanilanModel = model;
+      let faturali = cfg.billable;
+      if (provider === 'claude') {
+        const rest = belgeSys.startsWith(SYSTEM_PROMPT) ? belgeSys.slice(SYSTEM_PROMPT.length) : '';
+        const stable = rest ? SYSTEM_PROMPT : belgeSys;
+        const r = await ucretliChat(stable, rest, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        out = r.text; uin = r.tin; uout = r.tout;
+        kullanilanModel = r.model; faturali = r.faturali;
+      } else if (provider === 'groq') {
+        const r = await ucretsizChat(belgeSys, [{ role: 'user', text: promptQuestion }], maxTok);
+        out = r.text; uin = r.tin; uout = r.tout;
+        kullanilanModel = r.model;
+      } else {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: belgeSys }] },
+            contents: [{ role: 'user', parts: [{ text: promptQuestion }] }],
+            generationConfig: { temperature: 0.25, maxOutputTokens: maxTok },
+          }),
+        });
+        if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+        const d = await res.json();
+        out = d.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+        const um = d.usageMetadata ?? {};
+        uin = um.promptTokenCount ?? 0;
+        uout = um.candidatesTokenCount ?? 0;
+      }
+      if (!out.trim()) {
+        return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
+      }
+      // Belgede geçmeyen tarihler ayıklanır: incelemedeki bir tarih, avukat
+      // için "bu gün son gün" demektir.
+      const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
+      await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali);
+      return new Response(
+        JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     } catch (e) {
