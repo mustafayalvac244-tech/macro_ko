@@ -90,6 +90,8 @@ async function sor(jwt, soru, deneme = 0) {
     // kota bittiyse beklemek işe yaramaz, her soru "yanlış" sayılır ve ortaya
     // modelin kalitesini değil kotanın bittiğini gösteren sahte bir oran çıkar.
     // Bu ölçüm bir kez tam da böyle yanıldı (%75 → %25 "gerileme" sanılmıştı).
+    // İkinci kez de benzer şekilde yanıldı: yedek mevzuat özeti model cevabı
+    // sayılınca 13/13 sonuç 9/13 göründü (bkz. aşağıdaki YEDEK_OZET kontrolü).
     if (govde.includes('daily_quota')) throw new Error('DAILY_QUOTA');
     if (deneme < 4) {
       const bekle = 30000 * (deneme + 1);
@@ -99,7 +101,23 @@ async function sor(jwt, soru, deneme = 0) {
     }
   }
   if (!res.ok) throw new Error(`ai-chat ${res.status}: ${(await res.text()).slice(0, 150)}`);
-  return String((await res.json())?.text ?? '');
+  const govde = await res.json();
+
+  // YEDEK ÖZET, MODEL CEVABI DEĞİLDİR. İki sağlayıcı da anlık sınıra takılınca
+  // ai-chat 200 ile "mevzuat özeti" döner (hata kutusu göstermemek için). Bunu
+  // model cevabı sayarsak, ölçüm modelin kalitesini değil o andaki sağlayıcı
+  // yoğunluğunu ölçer — nitekim bir koşuda 13/13 olan sonuç, üçü özet olduğu
+  // için 9/13 göründü. Özet geldiğinde beklenip yeniden sorulur.
+  if (govde?.yapayZekasiz || govde?.model === 'mevzuat-yedek') {
+    if (deneme < 4) {
+      const bekle = 30000 * (deneme + 1);
+      console.log(`    (sağlayıcı yoğun, mevzuat özeti döndü — ${bekle / 1000}sn bekleniyor)`);
+      await uyu(bekle);
+      return sor(jwt, soru, deneme + 1);
+    }
+    throw new Error('YEDEK_OZET');
+  }
+  return String(govde?.text ?? '');
 }
 
 
@@ -127,6 +145,15 @@ try {
           '\nDURDURULDU: sağlayıcının GÜNLÜK kotası tükendi. Kalan sorular ölçülmedi.\n' +
             'Bu koşudan oran ÇIKARMAYIN — eksik ölçüm, gerçek bir gerilemeymiş gibi görünür.\n' +
             'Kota yenilenince tekrar çalıştırın.'
+        );
+        process.exitCode = 2;
+        break;
+      }
+      if (e.message === 'YEDEK_OZET') {
+        console.error(
+          '\nDURDURULDU: iki sağlayıcı da yoğun; ai-chat model yerine mevzuat özeti\n' +
+            'döndürüyor. Bu koşudan oran ÇIKARMAYIN — ölçülen modelin kalitesi değil,\n' +
+            'o andaki sağlayıcı yoğunluğudur. Daha seyrek aralıkla (EVAL_BEKLEME) tekrar deneyin.'
         );
         process.exitCode = 2;
         break;

@@ -1,158 +1,159 @@
 {
-  "_aciklama": [
-    "AI CEVABININ doğruluğunu ölçen soru kümesi. Arama ölçümünden (arama-sorulari.json)",
-    "farkı: orada doğru maddenin BULUNUP bulunmadığına bakılır, burada asistanın",
-    "verdiği CEVABIN doğru olup olmadığına.",
-    "",
-    "Her beklenti, veritabanındaki GERÇEK madde metninden doğrulanmıştır.",
-    "  icermeli   : hepsi geçmeli (her biri seçenekli: 'a|b' → biri yeterli)",
-    "  icermemeli : hiçbiri geçmemeli — bunlar ÖLÇÜLMÜŞ yanlış cevaplardır",
-    "",
-    "  enFazlaKarakter : tek bilgi sorulan sorularda cevap bundan uzunsa BAŞARISIZ",
-    "Kullanım: node scripts/eval-cevap.mjs"
-  ],
-  "sorular": [
-    {
-      "soru": "Kiracı kirayı ödemiyor. Tahliye davasını hangi mahkemede açmalıyım ve kiracıya kaç gün süre vermem gerekir?",
-      "dayanak": "HMK m.4 (sulh hukuk görevli) + TBK m.315 (konut ve çatılı işyerinde en az 30 gün, diğerlerinde en az 10 gün)",
-      "icermeli": [
-        "sulh hukuk",
-        "otuz gün|30 gün"
-      ],
-      "icermemeli": [
-        "asliye hukuk mahkemesinde açıl",
-        "iş mahkemesinde açıl",
-        "en az 15 gün|en az on beş gün"
-      ],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "İstinaf yoluna başvuru süresi ne kadardır ve süre ne zaman işlemeye başlar?",
-      "dayanak": "HMK m.345: iki hafta, ilamın tebliğinden",
-      "icermeli": [
-        "iki hafta|2 hafta|14 gün",
-        "tebliğ"
-      ],
-      "icermemeli": [
-        "bir ay içinde istinaf",
-        "30 gün içinde istinaf"
-      ],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "Cevap dilekçesi vermek için kaç haftam var ve süre neyden itibaren işler?",
-      "dayanak": "HMK m.127: tebliğden iki hafta; ayrıca bir ayı geçmemek üzere ek süre verilebilir (bu yüzden 'bir ay' geçmesi HATA DEĞİL)",
-      "icermeli": [
-        "iki hafta|2 hafta|14 gün",
-        "tebliğ"
-      ],
-      "icermemeli": [],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "Bilirkişi raporuna itiraz için ne kadar sürem var?",
-      "dayanak": "HMK m.281: raporun tebliğinden itibaren iki hafta",
-      "icermeli": [
-        "iki hafta|2 hafta|14 gün",
-        "tebliğ"
-      ],
-      "icermemeli": [
-        "bir hafta içinde itiraz|7 gün içinde itiraz"
-      ],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "Kira bedeli alacağında zamanaşımı süresi kaç yıldır?",
-      "dayanak": "TBK m.147: kira bedelleri beş yıllık zamanaşımına tabidir",
-      "icermeli": [
-        "re:be[şs]\\W*(\\(?5\\)?)?\\W*y[ıi]l|5\\W*y[ıi]l"
-      ],
-      "icermemeli": [
-        "on yıllık zamanaşımına tabidir"
-      ],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "Kanunda özel bir hüküm yoksa alacaklar için genel zamanaşımı süresi kaç yıldır?",
-      "dayanak": "TBK m.146: her alacak on yıllık zamanaşımına tabidir",
-      "icermeli": [
-        "re:on\\W*(\\(?10\\)?)?\\W*y[ıi]l|10\\W*y[ıi]l"
-      ],
-      "icermemeli": [
-        "beş yıllık genel zamanaşımı"
-      ],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "İşyerinde iki yıldır çalışan belirsiz süreli sözleşmeli işçinin ihbar öneli kaç haftadır?",
-      "dayanak": "İşK m.17/c: 1,5–3 yıl arası kıdemde altı hafta (cevabın ölçeğin tamamını sayması meşrudur)",
-      "icermeli": [
-        "altı hafta|6 hafta"
-      ],
-      "icermemeli": [],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "İcra dairesinin hukuka aykırı işlemine karşı nereye ve kaç gün içinde başvurulur?",
-      "dayanak": "İİK m.16: icra mahkemesine, öğrenmeden itibaren 7 gün",
-      "icermeli": [
-        "icra mahkemesi",
-        "yedi gün|7 gün"
-      ],
-      "icermemeli": [
-        "asliye hukuk mahkemesine şikayet"
-      ],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "Dava açmadan önce aldığım ihtiyati tedbir kararını ne kadar sürede uygulatmam gerekir, uygulatmazsam ne olur?",
-      "dayanak": "HMK m.393/1: tefhim/tebliğden bir hafta içinde uygulama talep edilmezse tedbir kendiliğinden kalkar",
-      "icermeli": [
-        "bir hafta|1 hafta",
-        "kendiliğinden kalk"
-      ],
-      "icermemeli": [],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "Şiddetli geçimsizlik nedeniyle boşanmak istiyorum, kanundaki dayanak nedir?",
-      "dayanak": "TMK m.166: evlilik birliğinin temelinden sarsılması",
-      "icermeli": [
-        "166",
-        "temelinden sars"
-      ],
-      "icermemeli": [],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "Dava dilekçesinde vakıaları ve delilleri nasıl göstermem gerekir?",
-      "dayanak": "HMK m.119/1-e,f: vakıalar sıra numarası altında açık özet; her vakıanın hangi delille ispat edileceği",
-      "icermeli": [
-        "sıra numarası|numaraland",
-        "delil"
-      ],
-      "icermemeli": [],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "Mahkeme dava şartlarını ne zaman inceler, eksikse dava nasıl reddedilir?",
-      "dayanak": "HMK m.114 + resen gözetim; eksiklik hâlinde usulden ret",
-      "icermeli": [
-        "kendiliğinden|resen",
-        "usulden"
-      ],
-      "icermemeli": [],
-      "enFazlaKarakter": 1200
-    },
-    {
-      "soru": "Haksız fiilden doğan tazminat isteminde zamanaşımı süreleri nelerdir?",
-      "dayanak": "TBK m.72: öğrenmeden iki yıl, her hâlde fiilden on yıl; ceza zamanaşımı daha uzunsa o uygulanır",
-      "icermeli": [
-        "re:iki\\W*(\\(?2\\)?)?\\W*y[ıi]l|2\\W*y[ıi]l",
-        "re:on\\W*(\\(?10\\)?)?\\W*y[ıi]l|10\\W*y[ıi]l"
-      ],
-      "icermemeli": [],
-      "enFazlaKarakter": 1200
-    }
-  ]
+ "_aciklama": [
+  "AI CEVABININ doğruluğunu ölçen soru kümesi. Arama ölçümünden (arama-sorulari.json)",
+  "farkı: orada doğru maddenin BULUNUP bulunmadığına bakılır, burada asistanın",
+  "verdiği CEVABIN doğru olup olmadığına.",
+  "",
+  "Her beklenti, veritabanındaki GERÇEK madde metninden doğrulanmıştır.",
+  "  icermeli   : hepsi geçmeli (her biri seçenekli: 'a|b' → biri yeterli)",
+  "  icermemeli : hiçbiri geçmemeli — bunlar ÖLÇÜLMÜŞ yanlış cevaplardır",
+  "",
+  "  enFazlaKarakter : tek bilgi sorulan sorularda cevap bundan uzunsa BAŞARISIZ",
+  "Kullanım: node scripts/eval-cevap.mjs"
+ ],
+ "sorular": [
+  {
+   "soru": "Kiracı kirayı ödemiyor. Tahliye davasını hangi mahkemede açmalıyım ve kiracıya kaç gün süre vermem gerekir?",
+   "dayanak": "HMK m.4 (sulh hukuk görevli) + TBK m.315 (konut ve çatılı işyerinde en az 30 gün, diğerlerinde en az 10 gün)",
+   "icermeli": [
+    "sulh hukuk",
+    "otuz gün|30 gün"
+   ],
+   "icermemeli": [
+    "asliye hukuk mahkemesinde açıl",
+    "iş mahkemesinde açıl",
+    "en az 15 gün|en az on beş gün"
+   ],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "İstinaf yoluna başvuru süresi ne kadardır ve süre ne zaman işlemeye başlar?",
+   "dayanak": "HMK m.345: iki hafta, ilamın tebliğinden",
+   "icermeli": [
+    "iki hafta|2 hafta|14 gün",
+    "tebliğ"
+   ],
+   "icermemeli": [
+    "bir ay içinde istinaf",
+    "30 gün içinde istinaf"
+   ],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "Cevap dilekçesi vermek için kaç haftam var ve süre neyden itibaren işler?",
+   "dayanak": "HMK m.127: tebliğden iki hafta; ayrıca bir ayı geçmemek üzere ek süre verilebilir (bu yüzden 'bir ay' geçmesi HATA DEĞİL)",
+   "icermeli": [
+    "iki hafta|2 hafta|14 gün",
+    "tebliğ"
+   ],
+   "icermemeli": [],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "Bilirkişi raporuna itiraz için ne kadar sürem var?",
+   "dayanak": "HMK m.281: raporun tebliğinden itibaren iki hafta",
+   "icermeli": [
+    "iki hafta|2 hafta|14 gün",
+    "tebliğ"
+   ],
+   "icermemeli": [
+    "bir hafta içinde itiraz|7 gün içinde itiraz"
+   ],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "Kira bedeli alacağında zamanaşımı süresi kaç yıldır?",
+   "dayanak": "TBK m.147: kira bedelleri beş yıllık zamanaşımına tabidir",
+   "icermeli": [
+    "re:be[şs]\\W*(\\(?5\\)?)?\\W*y[ıi]l|5\\W*y[ıi]l"
+   ],
+   "icermemeli": [
+    "on yıllık zamanaşımına tabidir"
+   ],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "Kanunda özel bir hüküm yoksa alacaklar için genel zamanaşımı süresi kaç yıldır?",
+   "dayanak": "TBK m.146: her alacak on yıllık zamanaşımına tabidir",
+   "icermeli": [
+    "re:on\\W*(\\(?10\\)?)?\\W*y[ıi]l|10\\W*y[ıi]l"
+   ],
+   "icermemeli": [
+    "beş yıllık genel zamanaşımı"
+   ],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "İşyerinde iki yıldır çalışan belirsiz süreli sözleşmeli işçinin ihbar öneli kaç haftadır?",
+   "dayanak": "İşK m.17/c: 1,5–3 yıl arası kıdemde altı hafta (cevabın ölçeğin tamamını sayması meşrudur)",
+   "icermeli": [
+    "altı hafta|6 hafta"
+   ],
+   "icermemeli": [],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "İcra dairesinin hukuka aykırı işlemine karşı nereye ve kaç gün içinde başvurulur?",
+   "dayanak": "İİK m.16: icra mahkemesine, öğrenmeden itibaren 7 gün",
+   "icermeli": [
+    "icra mahkemesi",
+    "yedi gün|7 gün"
+   ],
+   "icermemeli": [
+    "asliye hukuk mahkemesine şikayet"
+   ],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "Dava açmadan önce aldığım ihtiyati tedbir kararını ne kadar sürede uygulatmam gerekir, uygulatmazsam ne olur?",
+   "dayanak": "HMK m.393/1: tefhim/tebliğden bir hafta içinde uygulama talep edilmezse tedbir kendiliğinden kalkar",
+   "icermeli": [
+    "bir hafta|1 hafta",
+    "kendiliğinden kalk"
+   ],
+   "icermemeli": [],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "Şiddetli geçimsizlik nedeniyle boşanmak istiyorum, kanundaki dayanak nedir?",
+   "dayanak": "TMK m.166: evlilik birliğinin temelinden sarsılması",
+   "icermeli": [
+    "166",
+    "temelinden sars"
+   ],
+   "icermemeli": [],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "Dava dilekçesinde vakıaları ve delilleri nasıl göstermem gerekir?",
+   "dayanak": "HMK m.119/1-e,f: vakıalar sıra numarası altında açık özet; her vakıanın hangi delille ispat edileceği",
+   "icermeli": [
+    "re:(sıra\\W*numaras|numaraland|numara\\W*alt)",
+    "delil"
+   ],
+   "icermemeli": [],
+   "enFazlaKarakter": 1200,
+   "not": "Kalıp genişletildi: model \"ayrı numara altında\" yazdığında da geçmeli (aynı hüküm)."
+  },
+  {
+   "soru": "Mahkeme dava şartlarını ne zaman inceler, eksikse dava nasıl reddedilir?",
+   "dayanak": "HMK m.114 + resen gözetim; eksiklik hâlinde usulden ret",
+   "icermeli": [
+    "kendiliğinden|resen",
+    "usulden"
+   ],
+   "icermemeli": [],
+   "enFazlaKarakter": 1200
+  },
+  {
+   "soru": "Haksız fiilden doğan tazminat isteminde zamanaşımı süreleri nelerdir?",
+   "dayanak": "TBK m.72: öğrenmeden iki yıl, her hâlde fiilden on yıl; ceza zamanaşımı daha uzunsa o uygulanır",
+   "icermeli": [
+    "re:iki\\W*(\\(?2\\)?)?\\W*y[ıi]l|2\\W*y[ıi]l",
+    "re:on\\W*(\\(?10\\)?)?\\W*y[ıi]l|10\\W*y[ıi]l"
+   ],
+   "icermemeli": [],
+   "enFazlaKarakter": 1200
+  }
+ ]
 }
