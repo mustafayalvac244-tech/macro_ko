@@ -75,6 +75,18 @@ const PRICING: Record<string, { in: number; out: number }> = {
   // hesabı sessizce düşük çıkıp zarar ettirmez. Bu model açılmadan ÖNCE gerçek
   // fiyat teyit edilmeli.
   'claude-fable-5-1': { in: 10.0, out: 50.0 },
+  // OpenAI — fiyat listesi resmî sayfadan alındı (USD / 1M token).
+  // Buradaki modeller ÖLÇÜM İÇİN var: mimarimizde dilekçenin yapısını kod,
+  // hukuki içeriği kural havuzu veriyor; modelden istenen iş hazır iskeleti
+  // hazır malzemeyle doldurmak. Ucuz bir modelin bu işe yetip yetmediği
+  // ölçülebilir bir sorudur ve cevabı aylık faturayı katlar ya da böler.
+  'gpt-5.6-terra': { in: 2.0, out: 12.0 },
+  'gpt-5.1': { in: 1.25, out: 10.0 },
+  'gpt-5': { in: 1.25, out: 10.0 },
+  'gpt-5.4-mini': { in: 0.75, out: 4.5 },
+  'gpt-5-mini': { in: 0.25, out: 2.0 },
+  'gpt-5.6-luna': { in: 0.2, out: 1.2 },
+  'gpt-5-nano': { in: 0.05, out: 0.4 },
 };
 // AI katmanı: Claude Sonnet 5. Model env ile deploy'suz değiştirilebilir.
 const CLAUDE_MODEL = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
@@ -96,6 +108,13 @@ const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b';
 // hangi modelin cevapladığı yanıtta bildirilir ve kullanım kaydına yazılır.
 // "Zayıf modelle cevap" ile "hiç cevap yok" arasında seçim yapıyoruz: avukat
 // için ikincisi her zaman daha kötüdür.
+// OpenAI, Groq ile AYNI protokolü konuşuyor (chat/completions). Bu yüzden ayrı
+// bir istemciye gerek yok: aynı işlev, farklı taban adres ve anahtarla çalışır.
+// Buradaki amaç bugün OpenAI'ye geçmek değil, ÖLÇEBİLMEK: anahtar geldiği gün
+// aynı on senaryoyu Sonnet ve gpt-5-mini ile koşup "ucuz model yetiyor mu"
+// sorusunu tahminle değil ölçümle cevaplayabilelim.
+const OPENAI_MODEL = Deno.env.get('VEKIL_OPENAI_MODEL') || 'gpt-5-mini';
+
 const GROQ_ADAYLAR: string[] = (Deno.env.get('VEKIL_GROQ_ADAYLAR') || '')
   .split(',')
   .map((x) => x.trim())
@@ -104,7 +123,7 @@ const GROQ_ZINCIR = GROQ_ADAYLAR.length
   ? GROQ_ADAYLAR
   : [GROQ_MODEL, 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'];
 interface TierCfg {
-  provider: 'gemini' | 'groq' | 'claude';
+  provider: 'gemini' | 'groq' | 'claude' | 'openai';
   model: string;
   billable: boolean;
   limitKind: 'calls' | 'cost';
@@ -145,7 +164,7 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
   // Biçim: VEKIL_ZORLA_SAGLAYICI=claude|gemini|groq  ve  VEKIL_ZORLA_MODEL=<ad>
   const zorlaSaglayici = Deno.env.get('VEKIL_ZORLA_SAGLAYICI');
   const zorlaModel = Deno.env.get('VEKIL_ZORLA_MODEL');
-  if (zorlaSaglayici === 'claude' || zorlaSaglayici === 'gemini' || zorlaSaglayici === 'groq') {
+  if (zorlaSaglayici === 'claude' || zorlaSaglayici === 'gemini' || zorlaSaglayici === 'groq' || zorlaSaglayici === 'openai') {
     cfg = {
       ...cfg,
       provider: zorlaSaglayici,
@@ -352,6 +371,20 @@ async function geminiChat(
 }
 
 /**
+ * OpenAI çağrısı — Groq ile aynı protokol, farklı taban adres ve anahtar.
+ * Ayrı bir istemci yazmak, aynı hatayı iki yerde düzeltmek olurdu.
+ */
+async function openaiChat(
+  system: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number,
+  apiKey: string,
+  model: string
+): Promise<{ text: string; tin: number; tout: number }> {
+  return groqChat(system, msgs, maxTokens, apiKey, model, 'https://api.openai.com/v1');
+}
+
+/**
  * Ücretsiz katman çağrısı: önce Groq, kota biterse Gemini.
  *
  * YEDEĞE YALNIZ KOTA/SAĞLAYICI ARIZASINDA geçilir. Modelin verdiği kötü bir
@@ -457,21 +490,42 @@ async function ucretsizChat(
 }
 
 /** Groq (OpenAI uyumlu) sohbet çağrısı — ücretsiz katman. */
-async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; text: string }>, maxTokens: number, apiKey: string, model: string = GROQ_MODEL): Promise<{ text: string; tin: number; tout: number }> {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+/**
+ * OpenAI uyumlu sohbet çağrısı — Groq ve OpenAI aynı protokolü konuşuyor.
+ *
+ * Tek işlev iki sağlayıcıya yetiyor: fark yalnız taban adres ve anahtar. Ayrı
+ * bir istemci yazmak, aynı hatayı iki yerde düzeltmek demek olurdu.
+ */
+async function groqChat(
+  system: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number,
+  apiKey: string,
+  model: string = GROQ_MODEL,
+  taban = 'https://api.groq.com/openai/v1'
+): Promise<{ text: string; tin: number; tout: number }> {
+  const govde = (sicaklikli: boolean) => JSON.stringify({
+    model,
+    messages: [{ role: 'system', content: system }, ...msgs.map((m) => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))],
+    // ÖLÇÜLDÜ: 0.4'te aynı soru koşudan koşuya farklı kalitede cevaplanıyordu
+    // — bir koşuda süreyi doğru veren cevap, diğerinde süreyi hiç yazmadı.
+    // Burada modelden istenen yaratıcılık değil, verilen madde metnini doğru
+    // aktarmak; yüksek sıcaklık hem tutarsızlık hem uydurma sayı üretiyor.
+    ...(sicaklikli ? { temperature: 0.1 } : {}),
+    max_tokens: maxTokens,
+  });
+  const yolla = (sicaklikli: boolean) => fetch(`${taban}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'system', content: system }, ...msgs.map((m) => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))],
-      // ÖLÇÜLDÜ: 0.4'te aynı soru koşudan koşuya farklı kalitede cevaplanıyordu
-      // — bir koşuda süreyi doğru veren cevap, diğerinde süreyi hiç yazmadı.
-      // Burada modelden istenen yaratıcılık değil, verilen madde metnini doğru
-      // aktarmak; yüksek sıcaklık hem tutarsızlık hem uydurma sayı üretiyor.
-      temperature: 0.1,
-      max_tokens: maxTokens,
-    }),
+    body: govde(sicaklikli),
   });
+
+  let res = await yolla(true);
+  // BAZI MODELLER SICAKLIK KABUL ETMEZ ve 400 döner (akıl yürüten modellerde
+  // sık). Sıcaklık bir iyileştirmedir, olmazsa olmaz değil: onun yüzünden
+  // sağlayıcıyı büsbütün kaybetmek çok daha pahalıya gelir. Aynı savunma
+  // Gemini'nin düşünme ayarında da var.
+  if (res.status === 400) res = await yolla(false);
   if (!res.ok) {
     if (res.status === 429) {
       // Groq'un günlük token kotası (TPD) mı yoksa anlık yoğunluk (per-minute) mı?
@@ -1547,9 +1601,11 @@ Deno.serve(async (req) => {
   const genKey =
     provider === 'groq'
       ? (Deno.env.get('GROQ_API_KEY') ?? '')
-      : provider === 'claude'
-        ? (Deno.env.get('ANTHROPIC_API_KEY') ?? '')
-        : (aiKey(cfg.billable) ?? apiKey);
+      : provider === 'openai'
+        ? (Deno.env.get('OPENAI_API_KEY') ?? '')
+        : provider === 'claude'
+          ? (Deno.env.get('ANTHROPIC_API_KEY') ?? '')
+          : (aiKey(cfg.billable) ?? apiKey);
   if (!genKey) {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
@@ -1576,6 +1632,13 @@ Deno.serve(async (req) => {
         meter.tout += r.tout;
         kullanim.model = r.model;
         if (!r.faturali) kullanim.faturali = false;
+        return r.text;
+      }
+      if (provider === 'openai') {
+        const r = await openaiChat(sys, [{ role: 'user', text: userText }], maxTok, genKey, model);
+        meter.tin += r.tin;
+        meter.tout += r.tout;
+        kullanim.model = model;
         return r.text;
       }
       if (provider === 'groq') {
@@ -1817,8 +1880,14 @@ async function dosyaKunyesi(
       // önüne alamaz (TBK m.161). Muğlak ifade, def'inin usulünce ileri
       // sürülüp sürülmediği tartışmasına yol açar.
       cevap: 'CEVAP DİLEKÇESİ (HMK m.129). Sıra: İLK İTİRAZLAR (kesin yetki yoksa yetki, tahkim — HMK m.116/117: hepsi bu dilekçede ileri sürülmezse DİNLENMEZ), husumet/sıfat itirazı, sonra ESASA İLİŞKİN DEF’İLER. Zamanaşımı bir DEF’İDİR, itiraz değildir: dilekçede "zamanaşımı DEF’İNDE BULUNUYORUZ" diye AÇIKÇA yaz, "zamanaşımı savunması" gibi muğlak ifade kullanma ve usule ilişkin itirazlar başlığına KOYMA. Beş yıl diyorsan TBK m.147’nin HANGİ BENDİNE girdiğini yaz; girmiyorsa süre on yıldır (TBK m.146). Ardından davacının her vakıasına tek tek CEVAP (kabul/inkâr — def’i ileri sürmek kabul anlamına gelmez), karşı vakıalar ve delilleri, netice-i talep (davanın reddi).',
-      replik: 'CEVABA CEVAP (REPLİK) DİLEKÇESİ. Davalının cevabındaki itirazları çürüt, kendi iddialarını delillerle pekiştir, yeni delil bildir.',
-      duplik: 'İKİNCİ CEVAP (DÜPLİK) DİLEKÇESİ. Replikteki yeni iddialara karşılık; savunmayı ve delilleri son kez topla.',
+      // SÜRE YAZILMIYORDU — ölçümde çıktı. İstinaf, temyiz ve cevapta süre
+      // uyarısı vardı; replik ve düplikte yoktu ve taslak süreden hiç söz
+      // etmedi. Oysa bu iki dilekçe, savunma ve iddianın SON kez genişletilip
+      // değiştirilebildiği yerdir (HMK m.141): dilekçeler karşılıklı verildikten
+      // sonra ıslah ve karşı tarafın açık muvafakati dışında yol kalmaz.
+      // Süreyi kaçıran avukat bir daha diyemeyeceği şeyi kaybeder.
+      replik: 'CEVABA CEVAP (REPLİK) DİLEKÇESİ (HMK m.136). Süre, cevap dilekçesinin TEBLİĞİNDEN itibaren İKİ HAFTADIR — bunu taslakta belirt. Davalının cevabındaki itirazları çürüt, kendi iddialarını delillerle pekiştir, yeni delil bildir. Bu dilekçe, iddiayı serbestçe genişletip değiştirebileceğin SON aşamadır (HMK m.141): dilekçelerin karşılıklı verilmesinden sonra ıslah ve karşı tarafın açık muvafakati dışında bu mümkün olmaz.',
+      duplik: 'İKİNCİ CEVAP (DÜPLİK) DİLEKÇESİ (HMK m.136). Süre, davacının cevaba cevabının TEBLİĞİNDEN itibaren İKİ HAFTADIR — bunu taslakta belirt. Replikteki yeni iddialara karşılık ver; savunmayı ve delilleri SON kez topla (HMK m.141: bundan sonra savunma genişletilemez, ıslah ve açık muvafakat saklıdır).',
       istinaf: 'İSTİNAF BAŞVURU DİLEKÇESİ (HMK m.342 vd.). İlk derece kararının özeti, İSTİNAF SEBEPLERİ (maddi/hukuki hatalar madde madde, dayanağıyla), ve talep (kararın kaldırılması/düzeltilmesi). Süre uyarısını (tebliğden itibaren 2 hafta) not düş.',
       // PARASAL SINIR YILLIK YENİDEN DEĞERLEMEYLE ARTAR. Kanun metnindeki rakam
       // (HMK m.362/1-a) havuzdaki hâliyle eskimiş olabilir; taslakta rakam
@@ -1898,6 +1967,9 @@ async function dosyaKunyesi(
         const r = await ucretliChat(stable, rest, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model; faturali = r.faturali;
+      } else if (provider === 'openai') {
+        const r = await openaiChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        out = r.text; uin = r.tin; uout = r.tout;
       } else if (provider === 'groq') {
         const r = await ucretsizChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok);
         out = r.text; uin = r.tin; uout = r.tout;
@@ -2028,6 +2100,9 @@ async function dosyaKunyesi(
         const r = await ucretliChat(stable, rest, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model; faturali = r.faturali;
+      } else if (provider === 'openai') {
+        const r = await openaiChat(belgeSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        out = r.text; uin = r.tin; uout = r.tout;
       } else if (provider === 'groq') {
         const r = await ucretsizChat(belgeSys, [{ role: 'user', text: promptQuestion }], maxTok);
         out = r.text; uin = r.tin; uout = r.tout;
@@ -2120,6 +2195,11 @@ async function dosyaKunyesi(
       tout = r.tout;
       kullanilanModel = r.model;
       faturali = r.faturali;
+    } else if (provider === 'openai') {
+      const r = await openaiChat(systemText, messages, maxOutputTokens, genKey, model);
+      text = r.text;
+      tin = r.tin;
+      tout = r.tout;
     } else if (provider === 'groq') {
       const r = await ucretsizChat(systemText, messages, maxOutputTokens);
       text = r.text;
