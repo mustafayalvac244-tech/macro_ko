@@ -200,7 +200,15 @@ async function uret(olay, deneme = 0) {
   return { metin: String(j?.text ?? ''), model: String(j?.model ?? '?') };
 }
 
-const { senaryolar } = JSON.parse(readFileSync(join(__dirname, 'mutalaa-senaryolari.json'), 'utf8'));
+// EVAL_SINIR: kaç senaryo koşulacak (vars. hepsi).
+//
+// NEDEN VAR. Ücretsiz kota günde 200.000 token ve tek koşu saatler sürüyor;
+// kota bitmişken tam koşu başlatmak, hiçbir şey ölçmeden saat harcamak demek.
+// Az sayıda senaryoyu ÖLÇMEK, çok sayıda senaryoyu ölçememekten iyidir —
+// yeter ki oranın kaç senaryodan çıktığı raporda görünsün.
+const SINIR = Number(process.env.EVAL_SINIR ?? 0);
+const { senaryolar: tumSenaryolar } = JSON.parse(readFileSync(join(__dirname, 'mutalaa-senaryolari.json'), 'utf8'));
+const senaryolar = SINIR > 0 ? tumSenaryolar.slice(0, SINIR) : tumSenaryolar;
 
 let uid = null;
 const sonuclar = [];
@@ -292,6 +300,7 @@ const kacirilan = sonuclar.reduce((t, s) => t + s.kacan.length, 0);
 const maddeUydurma = sonuclar.filter((s) => s.uydurmaMadde.length).length;
 
 console.log('\n' + '─'.repeat(60));
-console.log(`MÜTALAA: ${gecen}/${olculen} senaryo tam geçti (%${olculen ? ((gecen / olculen) * 100).toFixed(1) : 0})`);
+console.log(`MÜTALAA: ${gecen}/${olculen} senaryo tam geçti (%${olculen ? ((gecen / olculen) * 100).toFixed(1) : 0})` +
+  (olculen < tumSenaryolar.length ? ` — havuzdaki ${tumSenaryolar.length} senaryonun ${olculen} tanesi ölçüldü` : ''));
 console.log(`Kaçırılan kritik unsur: ${kacirilan}`);
 console.log(`Havuzda olmayan maddeye atıf yapan mütalaa: ${maddeUydurma}/${olculen}`);
