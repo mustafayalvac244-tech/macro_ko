@@ -1753,7 +1753,29 @@ Deno.serve(async (req) => {
         '4. RİSKLER VE KARŞI TARAFIN OLASI SAVUNMALARI\n5. SONUÇ VE KANAAT (net tavsiye)\n' +
         '6. ATILACAK ADIMLAR (sıralı, süreleriyle)\n' +
         'Aşağıdaki ARAŞTIRMA DOSYASINDAKİ gerçek kural/madde/kararlara dayan; dosyada olmayan madde ' +
-        'numarası veya karar UYDURMA. Kapsamlı ama gereksiz tekrarsız yaz.' +
+        'numarası veya karar UYDURMA. Kapsamlı ama gereksiz tekrarsız yaz.\n' +
+        // KURAL DOSYAYA GİRDİ AMA MÜTALAAYA GİRMEDİ — ölçümde iki kez görüldü.
+        // İşe iade olayında ise_iade kuralı beslemenin BİRİNCİ sırasındaydı ve
+        // arabuluculuğun dava şartı olduğunu söylüyordu; mütalaada tek kelime
+        // geçmedi. Avukat için sonuç, bilginin hiç olmamasıyla aynı: doğrudan
+        // dava açar ve davası usulden reddedilir.
+        //
+        // Bu yüzden kuralların yüzeye çıkması TALİMATLA zorunlu kılınıyor.
+        // Havuzdaki kurallar rastgele metin değil, ölçümle doğrulanmış ve her
+        // biri bir hak kaybını önlemek için yazılmış cümlelerdir.
+        'KESİN HUKUKİ KURALLAR bölümünde geçen her SÜRE, her DAVA ŞARTI ve her ZORUNLU ADIM ' +
+        'mütalaada AÇIKÇA yer almalıdır — özellikle arabuluculuk gibi dava şartları ve hak ' +
+        'düşürücü süreler. Dosyadaki bir kuralı olaya uygulanabilir bulmuyorsan bunu GEREKÇESİYLE ' +
+        'yaz; sessizce atlama.\n' +
+        // SÜRE HESABI MÜTALAANIN İŞİDİR. Dilekçede olayda geçmeyen tarih
+        // ayıklanır (orada tarih hesaplanmaz); burada tersi geçerli: avukat
+        // "ne zaman doluyor" sorusuyla gelir. Ölçümde model bir aylık süreyi
+        // 14.05 yerine 12.05 yazdı — hesap yapıyor ama yanlış yapıyor, bu
+        // yüzden hesabın ADIMLARI isteniyor.
+        'SÜRE HESABINI AÇIK YAP: başlangıç tarihini, süreyi ve SON GÜNÜ ayrı ayrı yaz ' +
+        '(ör. "fesih bildirimi 14.04.2026 → bir aylık süre 14.05.2026 günü dolar"). Ay olarak ' +
+        'belirlenen süre, son ayın AYNI SAYILI gününde biter. Hesabı yapamıyorsan tarih UYDURMA, ' +
+        '"başlangıç tarihi teyit edilmeli" de.' +
         dossier;
 
       const text = await call(synthSys, `MÜTALAA TALEBİ:\n${mutalaaQuestion}`, sentezMaxTok);
