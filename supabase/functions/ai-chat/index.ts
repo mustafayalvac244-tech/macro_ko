@@ -23,6 +23,9 @@ import {
 // Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
+// Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
+// çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
+import { beslemeyiKirp } from '../_shared/besleme.ts';
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
@@ -399,9 +402,11 @@ async function ucretsizChat(
         const msg = (e as Error).message;
         if (!ilkHata) ilkHata = e as Error;
         void durumYaz('groq', msg, (e as Error & { ayrinti?: string }).ayrinti, model);
-        // Kota/yoğunluk dışındaki hata sağlayıcının genel arızasıdır; sıradaki
-        // modeli denemek zaman kaybı olur, doğrudan Gemini'ye geçilir.
-        if (msg !== 'daily_quota' && msg !== 'rate_limit') break;
+        // Kota, yoğunluk ve "isteğe sığmıyor" hâllerinde sıradaki model
+        // denenir; bunlar MODELE ÖZGÜ sınırlardır. Başka bir hata sağlayıcının
+        // genel arızasıdır ve sırayı denemek zaman kaybı olur — doğrudan
+        // Gemini'ye geçilir.
+        if (msg !== 'daily_quota' && msg !== 'rate_limit' && msg !== 'too_large') break;
       }
     }
   }
@@ -477,6 +482,18 @@ async function groqChat(
       const hata = new Error(daily ? 'daily_quota' : 'rate_limit');
       (hata as Error & { ayrinti?: string }).ayrinti = govde.slice(0, 500);
       throw hata;
+    }
+    // İSTEK MODELE SIĞMIYOR (413). Groq'ta DAKİKALIK token tavanı da model
+    // başına ayrı: gpt-oss-20b'nin tavanı 8.000 ve bizim dilekçe isteğimiz
+    // 8.003 token — üç token yüzünden o model bizim işimizi HİÇBİR ZAMAN
+    // yapamaz. Bu bir "yoğunluk" değil, kalıcı uyumsuzluk: beklemek çözmez,
+    // sıradaki modele geçmek çözer. Ayrı bir sınıf olarak işaretleniyor ki
+    // zincir bu modelde durmasın ve durum kaydında sebebi görünsün.
+    if (res.status === 413) {
+      const govde413 = await res.text().catch(() => '');
+      const h = new Error('too_large');
+      (h as Error & { ayrinti?: string }).ayrinti = govde413.slice(0, 500);
+      throw h;
     }
     // 429 DIŞINDAKİ HATANIN SEBEBİ DE KAYBOLMASIN. Önce burada çıplak bir
     // 'upstream' fırlatılıyordu: durum tablosuna yalnız "upstream" yazılıyor,
@@ -644,6 +661,65 @@ async function recordUsage(
     cost_try: Number(prev?.cost_try ?? 0) + cost,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,period' });
+
+  // GÜNLÜK SATIR. Adil kullanım sayacı buradan okunuyor; aylık satırla aynı
+  // tabloda, yalnız dönem anahtarı farklı (YYYY-AA-GG). Kusurlu çıktıda
+  // token'lar yine yazılır (gideri biz karşıladık) ama ÇAĞRI SAYILMAZ: günlük
+  // hak, işe yarayan cevaplar için harcanır.
+  const g = aiGun();
+  const { data: gunVeri } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', g).maybeSingle();
+  const gprev = gunVeri as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
+  await s.from('ai_usage').upsert({
+    user_id: userId,
+    period: g,
+    calls: (gprev?.calls ?? 0) + (musteriyeYaz ? 1 : 0),
+    tokens_in: (gprev?.tokens_in ?? 0) + tin,
+    tokens_out: (gprev?.tokens_out ?? 0) + tout,
+    cost_try: Number(gprev?.cost_try ?? 0) + cost,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,period' });
+
+  // KONTÖRDEN DÜŞ — ücretten, maliyetten değil. Ücretsiz katmanda ücret sıfır
+  // ve bakiyeye dokunulmaz. Düşüm tek deyimde yapılır (ai_kontor_dus): iki
+  // eşzamanlı istek aynı bakiyeyi iki kez harcayamasın.
+  if (ucret > 0 && musteriyeYaz) {
+    try {
+      await s.rpc('ai_kontor_dus', { p_user: userId, p_tutar: ucret });
+    } catch {
+      // Bakiye düşülemediyse kullanıcının cevabı engellenmez; kayıp bizde
+      // kalır. Üretilmiş bir cevabı muhasebe hatası yüzünden geri almak,
+      // kullanıcı açısından hizmetin çalışmaması demektir.
+    }
+  }
+
+  // İSTEK SATIRI — iade edilebilmesi için. Soru metni SAKLANMAZ; yalnız ölçü
+  // bilgileri tutulur. İade edilecek şeyin ne olduğu bilinmeden "hakkımı geri
+  // ver" denemez, aynı istek de defalarca iade edilemez.
+  let istekId: string | null = null;
+  try {
+    const { data: yeni } = await s
+      .from('ai_istek')
+      .insert({
+        user_id: userId,
+        gun: g,
+        mod,
+        model,
+        tokens_in: tin,
+        tokens_out: tout,
+        maliyet_try: cost,
+        ucret_try: ucret,
+        musteriye_yazildi: musteriyeYaz,
+      })
+      .select('id')
+      .single();
+    istekId = ((yeni as { id?: string } | null)?.id) ?? null;
+  } catch {
+    // İstek kaydı tutulamadıysa cevap yine verilir; yalnız iade edilemez.
+  }
+
+  // Dışarıya ÜCRET bildirilir: kullanıcıya gösterilecek olan, kontöründen
+  // düşen tutardır. Maliyet bizim iç bilgimiz.
+  return { maliyet: ucret, istekId };
 }
 
 const SYSTEM_PROMPT =
@@ -1644,6 +1720,18 @@ Deno.serve(async (req) => {
       }
 
       // 3) Sentez — resmi mütalaa
+      //
+      // MÜTALAADA KIRPMA EN ÇOK BURADA GEREKLİ: dosya, DÖRT ayrı hukuki sorun
+      // için toplanan kural + madde + içtihat bloklarından oluşuyor ve tek
+      // başına ücretsiz sağlayıcının dakikalık tavanını (8.000 token, girdi ve
+      // çıktı birlikte) rahatça aşıyor. Kırpılmazsa istek 413 ile reddedilir ve
+      // mütalaa hiç üretilmez.
+      const sentezMaxTok = Math.max(cfg.maxOut, 3000);
+      if (provider === 'groq') {
+        const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + mutalaaQuestion, sentezMaxTok);
+        dossier = k.besleme;
+      }
+
       const synthSys =
         SYSTEM_PROMPT +
         '\n\nŞU AN "MÜTALAA" MODUNDASIN: avukata, bir kıdemli ortağın yazacağı düzeyde RESMİ HUKUKİ ' +
@@ -1655,7 +1743,7 @@ Deno.serve(async (req) => {
         'numarası veya karar UYDURMA. Kapsamlı ama gereksiz tekrarsız yaz.' +
         dossier;
 
-      const text = await call(synthSys, `MÜTALAA TALEBİ:\n${mutalaaQuestion}`, Math.max(cfg.maxOut, 3000));
+      const text = await call(synthSys, `MÜTALAA TALEBİ:\n${mutalaaQuestion}`, sentezMaxTok);
       if (!text.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
@@ -1849,6 +1937,19 @@ async function dosyaKunyesi(
     try { dossier += await buildMevzuat(supabase, promptQuestion); } catch { /* atla */ }
     try { dossier += await buildGrounding(supabase, promptQuestion); } catch { /* atla */ }
 
+    // GROQ'A GİDERKEN BESLEME TAVANA SIĞDIRILIR. Ücretsiz anahtarda dakikalık
+    // tavan 8.000 token ve sağlayıcı girdi + çıktı tavanını topluyor; sığmayan
+    // istek 413 ile REDDEDİLİYOR, yani cevap hiç üretilmiyor. Zayıf bir cevap,
+    // hiç cevap olmamasından iyidir. Claude'da böyle bir tavan yok, dosya tam
+    // gider.
+    const dilekceMaxTok = Math.max(cfg.maxOut, tier === 'elit' || tier === 'ai' ? 4096 : 3000);
+    let dilekceKirpildi = false;
+    if (provider === 'groq') {
+      const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + structure + promptQuestion, dilekceMaxTok);
+      dossier = k.besleme;
+      dilekceKirpildi = k.kirpildi;
+    }
+
     const dilekceSys =
       SYSTEM_PROMPT +
       '\n\nŞU AN "DİLEKÇE" MODUNDASIN: avukatın anlattığı olaydan, MAHKEMEYE VERİLEBİLECEK ' +
@@ -1900,7 +2001,7 @@ async function dosyaKunyesi(
       // Kullanım kaydı, GERÇEKTEN cevap veren modele yazılır (yedeğe iniş olabilir).
       let kullanilanModel = model;
       let faturali = cfg.billable;
-      const maxTok = Math.max(cfg.maxOut, tier === 'elit' || tier === 'ai' ? 4096 : 3000);
+      const maxTok = dilekceMaxTok;
       if (provider === 'claude') {
         // Sabit talimat önbelleğe; tür yapısı + araştırma dosyası arkaya.
         const rest = dilekceSys.startsWith(SYSTEM_PROMPT) ? dilekceSys.slice(SYSTEM_PROMPT.length) : '';
@@ -1972,6 +2073,7 @@ async function dosyaKunyesi(
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
           hakDusulmedi: kusurlu || undefined, istekId,
+          beslemeKirpildi: dilekceKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
@@ -2008,6 +2110,19 @@ async function dosyaKunyesi(
     try { dossier += await buildRules(supabase, aramaMetni); } catch { /* atla */ }
     try { dossier += await buildMevzuat(supabase, aramaMetni); } catch { /* atla */ }
 
+    // BELGEDE KIRPMA DAHA DA KRİTİK: burada kullanıcının kendi metni de girdiye
+    // giriyor (12.000 karaktere kadar) ve besleme onun üstüne biniyor. Ücretsiz
+    // sağlayıcının dakikalık tavanı 8.000 token ve girdi + çıktı tavanı birlikte
+    // sayılıyor; sığmayan istek 413 ile reddediliyor, yani inceleme hiç
+    // üretilmiyor.
+    const belgeMaxTok = Math.max(cfg.maxOut, 3000);
+    let beslemeKirpildi = false;
+    if (provider === 'groq') {
+      const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + tur.ek + promptQuestion, belgeMaxTok);
+      dossier = k.besleme;
+      beslemeKirpildi = k.kirpildi;
+    }
+
     const belgeSys =
       SYSTEM_PROMPT +
       '\n\nŞU AN "BELGE İNCELEME" MODUNDASIN. Aşağıdaki ' + tur.ad + ' metnini KIDEMLİ AVUKAT ' +
@@ -2029,7 +2144,7 @@ async function dosyaKunyesi(
       dossier;
 
     try {
-      const maxTok = Math.max(cfg.maxOut, 3000);
+      const maxTok = belgeMaxTok;
       let out = '';
       let uin = 0;
       let uout = 0;
@@ -2077,6 +2192,7 @@ async function dosyaKunyesi(
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
           hakDusulmedi: kusurlu || undefined, istekId,
+          beslemeKirpildi: beslemeKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );

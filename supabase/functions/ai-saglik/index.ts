@@ -233,6 +233,44 @@ Deno.serve(async (req) => {
     }
   } catch { /* tanılama başarısız olursa rapor yine dönsün */ }
 
+  // MODEL BAŞINA SINIRLAR. Groq'ta hem günlük (TPD) hem DAKİKALIK (TPM) tavan
+  // model başına ayrı ve bu, hangi modelin bizim işimizi yapabileceğini
+  // belirliyor: gpt-oss-20b'nin dakikalık tavanı 8.000 token, bizim dilekçe
+  // isteğimiz 8.003 — üç token yüzünden o model bizim için HİÇBİR ZAMAN
+  // kullanılamaz. Bunu tahmin etmek yerine sağlayıcıya soruyoruz; yanıt
+  // başlıklarında yazıyor.
+  const groq_sinirlar: Array<Record<string, unknown>> = [];
+  try {
+    const gk = Deno.env.get('GROQ_API_KEY') ?? '';
+    const adaylar = (Deno.env.get('VEKIL_GROQ_ADAYLAR') || '')
+      .split(',').map((x) => x.trim()).filter(Boolean);
+    const liste = adaylar.length ? adaylar : [
+      Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b',
+      'qwen/qwen3.8-27b',
+      'qwen/qwen3.6-27b',
+      'openai/gpt-oss-20b',
+      'openai/gpt-oss-safeguard-20b',
+    ];
+    if (gk) {
+      for (const m of liste) {
+        const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${gk}` },
+          body: JSON.stringify({ model: m, messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+        });
+        groq_sinirlar.push({
+          model: m,
+          http: r.status,
+          // Dakikalık token tavanı: bizim isteğimiz ~8.000 token, bunun altı işe yaramaz.
+          tpm: r.headers.get('x-ratelimit-limit-tokens'),
+          tpm_kalan: r.headers.get('x-ratelimit-remaining-tokens'),
+          rpm: r.headers.get('x-ratelimit-limit-requests'),
+          rpm_kalan: r.headers.get('x-ratelimit-remaining-requests'),
+        });
+      }
+    }
+  } catch { /* tanılama başarısız olursa rapor yine dönsün */ }
+
   // YOKLAMA TEK BAŞINA YETMEZ. 1 token'lık istek, GÜNLÜK TOKEN tavanı (TPD)
   // dolmuşken bile geçebiliyor; ölçümde tam bu yaşandı: rapor "ayakta,
   // yedekli" derken gerçek dilekçe isteği 429 daily_quota alıyordu. Yalan
@@ -288,6 +326,7 @@ Deno.serve(async (req) => {
       })),
       gemini_modelleri: modeller,
       groq_modelleri,
+      groq_sinirlar,
     }),
     { headers: { ...CORS, 'Content-Type': 'application/json' } }
   );
