@@ -196,6 +196,9 @@ export default function ClientDetailScreen() {
             />
           )}
           {client.address && <ContactRow icon="location-outline" value={client.address} />}
+          {/* Kimlik numarası dilekçe künyesine buradan yazılıyor; kartta
+              görünmesi, doğruluğunun gözle denetlenebilmesi için. */}
+          {client.tc_no && <ContactRow icon="card-outline" value={`T.C. ${client.tc_no}`} />}
         </Card>
 
         {client.notes && (
