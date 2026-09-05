@@ -52,7 +52,27 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
     // faturayı patlatmasını engeller. Aşınca 402 quota_exceeded döner.
     ai: { provider: 'claude', model: CLAUDE_MODEL, billable: true, limitKind: 'cost', limit: 1250, maxOut: 4096 },
   };
-  const cfg = table[t] ?? table.free;
+  let cfg = table[t] ?? table.free;
+
+  // ÖLÇÜM İÇİN MODEL ZORLAMA. Hangi modelin daha iyi dilekçe yazdığı itibara
+  // göre değil ÖLÇÜLEREK seçilmeli; bunun için aynı senaryoları farklı
+  // modellerle koşturabilmek gerekiyor. Bu anahtarlar üretimde tanımlı
+  // değildir; tanımlıysa katman ayarını geçersiz kılar.
+  //
+  // Biçim: VEKIL_ZORLA_SAGLAYICI=claude|gemini|groq  ve  VEKIL_ZORLA_MODEL=<ad>
+  const zorlaSaglayici = Deno.env.get('VEKIL_ZORLA_SAGLAYICI');
+  const zorlaModel = Deno.env.get('VEKIL_ZORLA_MODEL');
+  if (zorlaSaglayici === 'claude' || zorlaSaglayici === 'gemini' || zorlaSaglayici === 'groq') {
+    cfg = {
+      ...cfg,
+      provider: zorlaSaglayici,
+      model: zorlaModel || cfg.model,
+      // Zorlanan model ücretliyse maliyet yine sayılsın; tavan çalışmaya devam
+      // etsin. Ölçüm yaparken faturayı gözden kaçırmak kolaydır.
+      billable: zorlaSaglayici !== 'groq',
+    };
+    return { tier: t, cfg };
+  }
   // Claude anahtarı yoksa AI katmanı ücretsiz Groq'a düşer (ödeyen üye boş
   // ekran görmesin). Anahtar eklenince otomatik Claude'a geçer, deploy gerekmez.
   if (cfg.provider === 'claude' && !Deno.env.get('ANTHROPIC_API_KEY')) {
@@ -273,9 +293,28 @@ function aiKey(billable: boolean): string | undefined {
   if (billable) return Deno.env.get('GEMINI_API_KEY') ?? undefined;
   return Deno.env.get('GEMINI_FREE_KEY') || Deno.env.get('GEMINI_API_KEY') || undefined;
 }
+/**
+ * BİLİNMEYEN MODEL, EN PAHALI FİYATLA sayılır.
+ *
+ * Eskiden orta seviye bir fiyata (gemini-2.5-pro) düşüyordu. Bu, maliyet
+ * tavanının ("batma koruması") sessizce delinmesi demekti: tabloda olmayan
+ * daha pahalı bir model konduğunda harcama OLDUĞUNDAN AZ görünür, tavan geç
+ * devreye girer ve fatura tavanı aşar.
+ *
+ * Yön bilinçli: bilinmeyen modelde FAZLA saymak, az saymaktan iyidir. Fazla
+ * sayarsak tavan erken devreye girer (kullanıcı biraz erken sınırlanır);
+ * az sayarsak para kaybedilir ve bunu ancak fatura gelince görürüz.
+ */
 function costTry(model: string, tin: number, tout: number): number {
-  const p = PRICING[model] ?? PRICING['gemini-2.5-pro'];
+  const p = PRICING[model] ?? enPahaliFiyat();
   return ((tin / 1e6) * p.in + (tout / 1e6) * p.out) * USD_TRY;
+}
+function enPahaliFiyat(): { in: number; out: number } {
+  const hepsi = Object.values(PRICING);
+  return {
+    in: Math.max(...hepsi.map((x) => x.in)),
+    out: Math.max(...hepsi.map((x) => x.out)),
+  };
 }
 function aiPeriod(): string {
   const d = new Date();
