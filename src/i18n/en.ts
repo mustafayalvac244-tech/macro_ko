@@ -1202,6 +1202,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.usageFree': 'This request: {token} tokens (free tier — no credit used)',
   'ai.errKontor': 'Your AI credit is used up. Top up to continue.',
   'ai.errDailyCap': 'Your AI allowance for today is used up. It renews each night; top up credit for more.',
+  'ai.errMutalaaKapali': 'Legal opinions are unavailable right now. This feature needs the stronger model; the free tier model is not adequate for it and can produce incorrect results. Drafting and document review still work.',
   'ai.errDailyQuota': 'Today’s free AI allowance is used up. It resets daily — try again tomorrow, or upgrade to Pro for uninterrupted use.',
   'ai.errQuotaWait': 'The free AI allowance is full right now. Try again in about {dk} minutes, or upgrade to Pro for uninterrupted use.',
   'ai.errQuota': 'You’ve reached this month’s AI usage limit. Upgrade to a higher plan to continue.',

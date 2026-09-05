@@ -45,6 +45,13 @@ describe('aiHataMetni', () => {
     expect(aiHataMetni({ error: 'gunluk_hak_bitti' }, t)).toBe('ai.errDailyCap');
   });
 
+  it('mütalaanın kapalı olmasını kotayla karıştırmaz', () => {
+    // Beklemek ya da kontör yüklemek bunu açmaz: ücretli model gelene kadar
+    // kapalı. Ölçümde ücretsiz katmanın küçük modeli olmayan kanunlara atıf
+    // yapan bir mütalaa üretti; uydurulmuş mütalaa eksiğinden tehlikelidir.
+    expect(aiHataMetni({ error: 'mutalaa_model_yok' }, t)).toBe('ai.errMutalaaKapali');
+  });
+
   it('bilinmeyen kodda genel hata verir', () => {
     expect(aiHataMetni({ error: 'upstream' }, t)).toBe('ai.errGeneric');
     expect(aiHataMetni({}, t)).toBe('ai.errGeneric');

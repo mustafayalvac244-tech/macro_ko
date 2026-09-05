@@ -32,7 +32,7 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errGeneric';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -57,6 +57,10 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   // Günlük adil kullanım hakkı: sağlayıcı kotasından farklı. Bizim koyduğumuz
   // sınır olduğu için ne zaman yenileneceği kesin: gece yarısı (UTC).
   if (kod === 'gunluk_hak_bitti') return t('ai.errDailyCap');
+  // Mütalaa, ücretli model yokken hiç üretilmiyor: ölçümde ücretsiz katmanın
+  // küçük modeli olmayan kanunlara atıf yapan bir mütalaa üretti. Uydurulmuş
+  // mütalaa, eksik mütalaadan çok daha tehlikelidir.
+  if (kod === 'mutalaa_model_yok') return t('ai.errMutalaaKapali');
   if (kod === 'not_configured') return t('ai.errGeneric');
   return t('ai.errGeneric');
 }

@@ -1604,6 +1604,32 @@ Deno.serve(async (req) => {
       headers: CORS,
     });
   }
+  // MÜTALAA, ÜCRETLİ MODEL YOKKEN HİÇ ÜRETİLMEZ.
+  //
+  // ÖLÇÜLEN GEREKÇE. Ücretli katman, Claude anahtarı olmadığında ücretsiz
+  // sağlayıcıya düşüyor. Mütalaa ölçümünde o yolda üretilen bir metin şunları
+  // yazdı:
+  //
+  //   "Yönetim Kanunu ve Yönetim Mahkemeleri Kanunu'na göre ... 30 gün içinde
+  //    iptal davası açılmalıdır."   → İki kanun da YOK; süre 60 gündür.
+  //   "Ağustos 2026'da 15.08 tarihli bağımsızlık günü tatili bulunmaktadır."
+  //                                 → Böyle bir resmî tatil yok.
+  //
+  // Üstelik doğru kural (idari_dava_suresi) beslemenin birinci sırasındaydı.
+  // Yani sorun eksik bilgi değil, modelin kapasitesi: mütalaa çok adımlı ve
+  // uzun bir sentez ve ücretsiz katmanın küçük modelleri bunu kaldırmıyor.
+  //
+  // Eksik mütalaa avukatı yavaşlatır; UYDURULMUŞ mütalaa yanıltır. "Şu an
+  // kullanılamıyor" demek, olmayan bir kanunu kaynak gösteren bir metin
+  // vermekten kıyaslanamayacak kadar iyidir. Dilekçe ve belge inceleme tek
+  // çağrılık ve ölçülmüş işler; onlar ücretsiz hatta çalışmaya devam eder.
+  if (isMutalaa && cfg.provider !== 'claude' && !Deno.env.get('VEKIL_ZORLA_SAGLAYICI')) {
+    return new Response(
+      JSON.stringify({ error: 'mutalaa_model_yok', tier }),
+      { status: 503, headers: CORS }
+    );
+  }
+
   // MÜTALAA yalnız Pro/Elit üyelere açıktır (çok adımlı, token yoğun).
   if (isMutalaa && tier !== 'pro' && tier !== 'elit' && tier !== 'ai') {
     return new Response(JSON.stringify({ error: 'tier_required', tier, required: 'pro' }), {

@@ -1206,6 +1206,7 @@ export const tr = {
   'ai.usageFree': 'Bu istek: {token} token (ücretsiz katman — kontör düşmedi)',
   'ai.errKontor': 'AI kontörünüz bitti. Devam etmek için kontör yükleyin.',
   'ai.errDailyCap': 'Bugünkü AI hakkınız doldu. Hak her gece yenilenir; daha fazlası için kontör yükleyebilirsiniz.',
+  'ai.errMutalaaKapali': 'Mütalaa şu anda kullanılamıyor. Bu özellik güçlü modelle çalışır; ücretsiz katmanın modeli mütalaa için yeterli değil ve hatalı sonuç üretebiliyor. Dilekçe ve belge inceleme çalışmaya devam ediyor.',
   'ai.errDailyQuota': 'Bugünkü ücretsiz AI hakkı doldu. Hak her gün yenilenir; yarın tekrar deneyebilir ya da kesintisiz kullanım için Pro’ya geçebilirsiniz.',
   'ai.errQuotaWait': 'Ücretsiz AI hakkı şu an dolu. Yaklaşık {dk} dakika sonra tekrar deneyebilir ya da kesintisiz kullanım için Pro’ya geçebilirsiniz.',
   'ai.errQuota': 'Bu ayki AI kullanım limitinize ulaştınız. Daha yüksek bir pakete geçerek devam edebilirsiniz.',
