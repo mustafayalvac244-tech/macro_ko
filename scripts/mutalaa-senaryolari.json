@@ -1,5 +1,5 @@
 {
- "_aciklama": "MÜTALAA ölçüm senaryoları. Mütalaa, dilekçeden farklı bir işi yapar: avukat henüz ne yapacağına KARAR VERMEMİŞTİR ve karar için hukuki durumun, risklerin ve sürelerin dökümünü ister. Bu yüzden ölçüt de farklıdır: biçim değil, KARAR VERDİREN İÇERİK aranır — hangi süre işliyor, karşı taraf ne der, hangi adım önce atılır. 'kacirilmamali' alanı, o olayda gözden kaçarsa hak kaybı doğuran unsurdur.",
+ "_aciklama": "MÜTALAA ölçüm senaryoları. Mütalaa, dilekçeden farklı bir işi yapar: avukat henüz ne yapacağına KARAR VERMEMİŞTİR ve karar için hukuki durumun, risklerin ve sürelerin dökümünü ister. Bu yüzden ölçüt de farklıdır: biçim değil, KARAR VERDİREN İÇERİK aranır — hangi süre işliyor, karşı taraf ne der, hangi adım önce atılır. 'kacirilmamali' alanı, o olayda gözden kaçarsa hak kaybı doğuran unsurdur. 'beklenenTarih': olayın verilerinden HESAPLANMASI gereken son gün; mütalaada tarih hesaplamak işin kendisidir, bu yüzden 'olayda geçmeyen tarih' başarısızlık değil, BEKLENEN tarihin hiç geçmemesi başarısızlıktır.",
  "senaryolar": [
   {
    "id": "ise-iade-suresi",
@@ -11,7 +11,10 @@
     "re:savunma"
    ],
    "olmamali": [],
-   "notlar": "İşK m.20 ve İşMK m.3: fesih bildiriminden itibaren BİR AY içinde arabulucuya başvuru; işe iade davası öncesi arabuluculuk dava şartıdır. İşK m.19: savunma alınmadan performans/davranış gerekçesiyle fesih geçersizdir. Otuz işçi ve altı ay kıdem şartı sağlanıyor."
+   "notlar": "İşK m.20 ve İşMK m.3: fesih bildiriminden itibaren BİR AY içinde arabulucuya başvuru; işe iade davası öncesi arabuluculuk dava şartıdır. İşK m.19: savunma alınmadan performans/davranış gerekçesiyle fesih geçersizdir. Otuz işçi ve altı ay kıdem şartı sağlanıyor.",
+   "beklenenTarih": [
+    "14.05.2026"
+   ]
   },
   {
    "id": "trafik-kazasi-zamanasimi",
@@ -46,8 +49,13 @@
     "re:imza",
     "re:durdurmaz|satıştan başka"
    ],
-   "olmamali": ["re:yedi gün|7 gün"],
-   "notlar": "Kambiyo takibinde süre BEŞ GÜN ve merci İCRA MAHKEMESİDİR (İİK m.168); imzaya itiraz m.170. İtiraz, satış dışındaki takip işlemlerini DURDURMAZ (m.169). Genel haciz yolunun yedi günü ile karıştırılırsa hak kaybı doğar."
+   "olmamali": [
+    "re:yedi gün|7 gün"
+   ],
+   "notlar": "Kambiyo takibinde süre BEŞ GÜN ve merci İCRA MAHKEMESİDİR (İİK m.168); imzaya itiraz m.170. İtiraz, satış dışındaki takip işlemlerini DURDURMAZ (m.169). Genel haciz yolunun yedi günü ile karıştırılırsa hak kaybı doğar.",
+   "beklenenTarih": [
+    "07.03.2026"
+   ]
   },
   {
    "id": "idari-islem-iptal",
@@ -59,7 +67,10 @@
     "re:yürütmenin durdurulması|yürütmeyi durdurma"
    ],
    "olmamali": [],
-   "notlar": "İYUK m.7: altmış gün. İYUK m.61-8: adli tatilde biten süre, tatilin bittiği günü izleyen tarihten itibaren YEDİ GÜN uzar (hukuk yargılamasındaki sayımdan farklıdır)."
+   "notlar": "İYUK m.7: altmış gün, tebliği İZLEYEN günden başlar (01.08.2026 tebliğ → 02.08 birinci gün → 30.09.2026 son gün). BU SENARYO BİR TUZAKTIR: olay 'Ağustos'ta adli tatil var' diyor ve İYUK m.8/3'teki yedi günlük uzamayı uygulamaya davet ediyor. Ama uzama, sürenin ara verme DÖNEMİNDE (20 Temmuz - 31 Ağustos, m.61/1) bitmesi hâlinde işler; burada süre 30 Eylül'de bitiyor, yani uzama UYGULANMAZ. Yanlış uygulanırsa avukat kendini yedi gün fazla süresi varmış sanır. Ölçüm yazılırken bu hata bir kez yapıldı ve hesaplanarak düzeltildi — ölçüm aracına yanlış beklenti gömmek, ölçtüğü her şeyi yanlış yapar.",
+   "beklenenTarih": [
+    "30.09.2026"
+   ]
   }
  ]
 }

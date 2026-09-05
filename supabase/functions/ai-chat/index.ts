@@ -1704,7 +1704,20 @@ Deno.serve(async (req) => {
       if (issues.length === 0) issues = [mutalaaQuestion];
 
       // 2) Her sorun için ayrı besleme topla (kural + mevzuat + içtihat)
+      //
+      // ÖNCE OLAYIN KENDİSİYLE ARA. Besleme yalnız MODELİN ÇIKARDIĞI sorunlara
+      // göre toplanıyordu ve bu, mütalaanın yapısal zaafıydı: model bir sorunu
+      // göremezse ona ait kural hiç gelmiyor, kural gelmeyince mütalaa o
+      // konudan hiç söz etmiyordu. Ölçümde görüldü — trafik kazası olayında
+      // zamanaşımı hiç geçmedi.
+      //
+      // Olay metni avukatın kendi anlatısıdır ve modelin yorumundan bağımsızdır;
+      // onunla yapılan arama, sorun çıkarma adımı şaşsa bile en alakalı
+      // kuralların dosyaya girmesini garanti eder. Maliyeti bir blok, kazancı
+      // "hiç bahsedilmeyen konu" riskinin kalkması.
       let dossier = '';
+      try { dossier += await buildRules(supabase, mutalaaQuestion); } catch { /* atla */ }
+      try { dossier += await buildMevzuat(supabase, mutalaaQuestion); } catch { /* atla */ }
       for (const issue of issues) {
         let block = '';
         try {

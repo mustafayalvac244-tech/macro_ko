@@ -251,8 +251,18 @@ try {
     const yasak = (s.olmamali ?? []).filter((k) => gecer(metin, k));
     const eksikBolum = eksikBolumler(sade);
 
+    // MÜTALAADA TARİH HESAPLAMAK İŞİN KENDİSİDİR. Dilekçede olayda geçmeyen
+    // her tarih uydurma sayılır ve ayıklanır; burada tersi geçerli: "fesih
+    // 14.04.2026, bir aylık süre 14.05.2026'da doluyor" cümlesi mütalaanın ta
+    // kendisi. Bunları başarısızlık saymak, doğru çalışan bir özelliği kusurlu
+    // göstermek olurdu — nitekim ilk koşuda tam bu oldu.
+    //
+    // Onun yerine iki şey yapılıyor: hesaplanan tarihler RAPORLANIR (avukat
+    // teyit etsin diye arayüz de bunu gösteriyor) ve senaryo BEKLENEN bir tarih
+    // bildirdiyse onun metinde geçmesi ARANIR — asıl ölçülmesi gereken bu.
     const olayTarih = tarihler(s.olay);
-    const uydurmaTarih = [...tarihler(metin)].filter((t) => !olayTarih.has(t));
+    const hesaplananTarih = [...tarihler(metin)].filter((t) => !olayTarih.has(t));
+    const eksikTarih = (s.beklenenTarih ?? []).filter((t) => !metin.includes(t));
     const mesru = mesruTutarlar(tutarlar(s.olay));
     const uydurmaTutar = [...tutarlar(metin)].filter((t) => !mesru.has(t));
 
@@ -268,21 +278,22 @@ try {
       kacan.length === 0 &&
       yasak.length === 0 &&
       eksikBolum.length === 0 &&
-      uydurmaTarih.length === 0 &&
+      eksikTarih.length === 0 &&
       uydurmaMadde.length === 0 &&
       adimdaSure;
 
-    sonuclar.push({ id: s.id, gecti, kacan, yasak, eksikBolum, uydurmaTarih, uydurmaTutar, uydurmaMadde, adimdaSure, uzunluk: metin.length });
+    sonuclar.push({ id: s.id, gecti, kacan, yasak, eksikBolum, hesaplananTarih, eksikTarih, uydurmaTutar, uydurmaMadde, adimdaSure, uzunluk: metin.length });
 
     console.log(`${gecti ? '✓' : '✗'} ${s.id}  ${metin.length} krktr · ${kullanilanModel}`);
     if (kacan.length) console.log(`    KAÇIRILAN   : ${kacan.join(' | ')}`);
     if (yasak.length) console.log(`    OLMAMALIYDI : ${yasak.join(' | ')}`);
     if (eksikBolum.length) console.log(`    EKSİK BÖLÜM : ${eksikBolum.join(', ')}`);
-    if (uydurmaTarih.length) console.log(`    UYDURMA TARİH: ${uydurmaTarih.join(', ')}`);
+    if (eksikTarih.length) console.log(`    HESAPLANMAMIŞ SÜRE: ${eksikTarih.join(', ')} (beklenen tarih metinde yok)`);
+    if (hesaplananTarih.length) console.log(`    (hesaplanan tarih: ${hesaplananTarih.join(', ')} — avukat teyit etmeli)`);
     if (uydurmaTutar.length) console.log(`    UYDURMA TUTAR: ${uydurmaTutar.join(', ')}`);
     if (uydurmaMadde.length) console.log(`    UYDURMA MADDE: ${uydurmaMadde.join(', ')}`);
     if (!adimdaSure) console.log('    ADIMLARDA SÜRE YOK (tavsiye değil, deneme yazısı)');
-    if (!gecti) kusurlu.push({ id: s.id, kacan, yasak, eksikBolum, uydurmaTarih, uydurmaTutar, uydurmaMadde, metin });
+    if (!gecti) kusurlu.push({ id: s.id, kacan, yasak, eksikBolum, hesaplananTarih, eksikTarih, uydurmaTutar, uydurmaMadde, metin });
   }
 } finally {
   await kullaniciSil(uid);
