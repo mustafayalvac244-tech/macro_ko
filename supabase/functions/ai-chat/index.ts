@@ -509,6 +509,26 @@ function aiKey(billable: boolean): string | undefined {
  * anlamlı: günlük ortak tavan token üzerinden dolduğu için "uzun soru daha çok
  * yer kaplar" bilgisi doğrudan işe yarar.
  */
+/**
+ * Çıktı, kullanıcıya verilebilecek durumda mı?
+ *
+ * ÖLÇÜLEN ARIZALAR: bir cevap dilekçesi 806 karakterde bitti (DELİLLER ve
+ * NETİCE-İ TALEP hiç yazılmadı) ve bir başkası zorunlu bölümü eksik döndü.
+ * İkisi de "cevap geldi" sayılıyor, kullanıcının hakkından düşülüyordu.
+ *
+ * Eşikler ölçülen uzunluklara göre: çalışan taslaklar 2.500-5.700 karakter
+ * arasında; 800'ün altı, bir dilekçenin yarısı bile değil. Belge incelemesi
+ * daha kısa olabilir, eşiği ona göre düşük.
+ */
+function kusurluCikti(mod: 'dilekce' | 'mutalaa' | 'belge' | 'sohbet', metin: string, eksikBolum: string[] = []): boolean {
+  const n = metin.trim().length;
+  if (eksikBolum.length > 0) return true;
+  if (mod === 'dilekce') return n < 800;
+  if (mod === 'mutalaa') return n < 800;
+  if (mod === 'belge') return n < 400;
+  return false; // sohbette kısa cevap doğru olabilir; boş cevap zaten 502 döner
+}
+
 function kullanimOzeti(model: string, tin: number, tout: number, maliyet: number) {
   return {
     model,
@@ -574,9 +594,28 @@ function overLimit(cfg: TierCfg, row: { calls: number; cost: number }): boolean 
  * kontörle çalışan bir üründe harcamanın gizli kalması, faturanın sonunda
  * sürpriz olması demektir. Ücretsiz katmanda maliyet sıfırdır ve öyle görünür.
  */
-async function recordUsage(userId: string, model: string, tin: number, tout: number, billable: boolean): Promise<number> {
+/**
+ * @param musteriyeYaz  Bu istek kullanıcının HAKKINDAN düşülsün mü?
+ *
+ * KUSURLU ÇIKTIDA HAK GİTMEZ. Yarım bir dilekçe (zorunlu bölümü eksik ya da
+ * ortasından kesilmiş) kullanıcı için işe yaramaz; onu günlük hakkından ya da
+ * kontöründen düşmek, bizim hatamızın bedelini ona ödetmek olur. Böyle bir
+ * deneyimden sonra kimse ürüne güvenmez.
+ *
+ * Token maliyeti YİNE KAYDEDİLİR: parayı biz gerçekten harcadık ve bunu
+ * görmemiz gerekiyor. Fark şu: gider defterine yazılır, müşteriye yazılmaz.
+ */
+async function recordUsage(
+  userId: string,
+  model: string,
+  tin: number,
+  tout: number,
+  billable: boolean,
+  musteriyeYaz = true,
+  mod = 'sohbet'
+): Promise<{ maliyet: number; istekId: string | null }> {
   const s = svc();
-  if (!s) return 0;
+  if (!s) return { maliyet: 0, istekId: null };
   const cost = billable ? costTry(model, tin, tout) : 0;
   const p = aiPeriod();
   const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
@@ -1351,12 +1390,46 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
 
-  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string };
+  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string; istekId?: string; sebep?: string };
   try {
     body = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
+  // ───────────── HAK İADESİ ─────────────
+  // "Bu cevap işe yaramadı" — avukatın hakkını geri alma yolu.
+  //
+  // NEDEN VAR. Kusurlu çıktının bir kısmını mekanik yakalayıp zaten hakka
+  // yazmıyoruz (yarım kalmış ya da zorunlu bölümü eksik taslak). Ama bir metin
+  // yapısal olarak kusursuz görünüp hukuken işe yaramaz olabilir; bunu ancak
+  // avukat bilir. Hakkı yenen bir kullanıcı ürüne bir daha güvenmez.
+  //
+  // İade kaydı aynı zamanda kalitenin en dürüst göstergesi: ölçüm senaryolarını
+  // biz yazıyoruz, iadeyi gerçek dosyada kullanan avukat söylüyor.
+  if (body.mode === 'iade') {
+    const istekId = String(body.istekId ?? '').trim();
+    if (!istekId) {
+      return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
+    }
+    const sk = svc();
+    if (!sk) {
+      return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
+    }
+    // Sahiplik kontrolü RPC'nin İÇİNDE: kullanıcı kimliği burada gönderiliyor
+    // ama satır yalnız o kullanıcıya aitse iade ediliyor.
+    const { data, error } = await sk.rpc('ai_istek_iade', {
+      p_istek: istekId,
+      p_user: userData.user.id,
+      p_sebep: typeof body.sebep === 'string' ? body.sebep.slice(0, 300) : null,
+    });
+    if (error) {
+      return new Response(JSON.stringify({ error: 'upstream' }), { status: 502, headers: CORS });
+    }
+    return new Response(JSON.stringify(data ?? { ok: false }), {
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    });
+  }
+
   // MÜTALAA modu: çok adımlı derin inceleme (Pro/Elit'e özel). Normal sohbetten
   // ayrılır çünkü birden fazla model çağrısı + geniş besleme kullanır.
   const isMutalaa = body.mode === 'mutalaa';
@@ -1556,10 +1629,13 @@ Deno.serve(async (req) => {
       if (!text.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
-      const maliyet = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali);
+      const kusurlu = kusurluCikti('mutalaa', text);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !kusurlu, 'mutalaa');
       return new Response(JSON.stringify({
         text: text.trim(), tier, model: kullanim.model, issues,
-        kullanim: kullanimOzeti(kullanim.model, meter.tin, meter.tout, maliyet),
+        hakDusulmedi: kusurlu || undefined,
+        istekId,
+        kullanim: kullanimOzeti(kullanim.model, meter.tin, meter.tout, kusurlu ? 0 : maliyet),
         // Olayda geçmeyen tarihler: silinmez, işaretlenir (bkz. hesaplananTarihler).
         hesaplananTarih: hesaplananTarihler(text, mutalaaQuestion),
       }), {
@@ -1849,10 +1925,15 @@ async function dosyaKunyesi(
       // tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
       // mekanik denetimde.
       const temiz = uydurmaTarihleriAyikla(govde, promptQuestion);
-      const maliyet = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali);
+      // Zorunlu bölümü eksik ya da yarım kalmış taslak, kullanıcının hakkından
+      // DÜŞÜLMEZ; gideri biz karşılarız. Bunu yanıtta da söylüyoruz ki avukat
+      // hakkının neden eksilmediğini bilsin.
+      const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'dilekce');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
-          kullanim: kullanimOzeti(kullanilanModel, uin, uout, maliyet) }),
+          hakDusulmedi: kusurlu || undefined, istekId,
+          kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     } catch (e) {
@@ -1949,10 +2030,12 @@ async function dosyaKunyesi(
       // Belgede geçmeyen tarihler ayıklanır: incelemedeki bir tarih, avukat
       // için "bu gün son gün" demektir.
       const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
-      const maliyet = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali);
+      const kusurlu = kusurluCikti('belge', temiz.metin);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'belge');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
-          kullanim: kullanimOzeti(kullanilanModel, uin, uout, maliyet) }),
+          hakDusulmedi: kusurlu || undefined, istekId,
+          kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     } catch (e) {
@@ -2074,9 +2157,9 @@ async function dosyaKunyesi(
   if (!text) {
     return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
   }
-  const maliyet = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali);
+  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, true, 'sohbet');
   return new Response(JSON.stringify({
-    text: text.trim(), tier, model: kullanilanModel,
+    text: text.trim(), tier, model: kullanilanModel, istekId,
     kullanim: kullanimOzeti(kullanilanModel, tin, tout, maliyet),
   }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
