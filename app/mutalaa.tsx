@@ -7,6 +7,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
+import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -48,25 +49,14 @@ export default function MutalaaScreen() {
         body: { mode: 'mutalaa', question },
       });
       if (fnErr) {
-        let code = '';
-        try {
-          const ctx = (fnErr as { context?: Response }).context;
-          if (ctx && typeof ctx.json === 'function') code = (await ctx.json())?.error ?? '';
-        } catch {
-          // gövde okunamadı
-        }
+        // Hata çevirisi ORTAK: aynı mantık üç ekranda ayrı yazılınca biri
+        // güncellenip diğerleri geride kalıyordu (bkz. src/lib/aiHata.ts).
+        const govde = await aiHataGovdesi(fnErr);
+        const code = govde.error ?? '';
         if (code === 'tier_required') {
           setNeedsPro(true);
         } else {
-          setError(
-            code === 'daily_quota'
-              ? t('ai.errDailyQuota')
-              : code === 'quota_exceeded'
-                ? t('ai.errQuota')
-                : code === 'rate_limit'
-                  ? t('ai.errRateLimit')
-                  : t('ai.errGeneric')
-          );
+          setError(aiHataMetni(govde, t));
         }
         return;
       }

@@ -8,6 +8,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
+import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -76,13 +77,9 @@ export default function DocumentReviewScreen() {
         body: { filename: name, base64 },
       });
       if (fnErr) {
-        let code = '';
-        try {
-          const ctx = (fnErr as { context?: Response }).context;
-          if (ctx && typeof ctx.json === 'function') code = (await ctx.json())?.error ?? '';
-        } catch {
-          // gövde okunamadı
-        }
+        // Gövde okuma ortak yardımcıdan; kod eşlemesi doc-extract'e özgü.
+        const govde = await aiHataGovdesi(fnErr);
+        const code = govde.error ?? '';
         Alert.alert(
           t('docrev.title'),
           code === 'pdf_no_text'
@@ -125,22 +122,11 @@ export default function DocumentReviewScreen() {
         body: { mode: 'belge', docKind: kind, question: body },
       });
       if (fnErr) {
-        let code = '';
-        try {
-          const ctx = (fnErr as { context?: Response }).context;
-          if (ctx && typeof ctx.json === 'function') code = (await ctx.json())?.error ?? '';
-        } catch {
-          // gövde okunamadı
-        }
-        setError(
-          code === 'daily_quota'
-            ? t('ai.errDailyQuota')
-            : code === 'quota_exceeded'
-              ? t('ai.errQuota')
-              : code === 'rate_limit'
-                ? t('ai.errRateLimit')
-                : t('ai.errGeneric')
-        );
+        // Hata çevirisi ORTAK: aynı mantık üç ekranda ayrı yazılınca biri
+        // güncellenip diğerleri geride kalıyordu (bkz. src/lib/aiHata.ts).
+        const govde = await aiHataGovdesi(fnErr);
+        const code = govde.error ?? '';
+        setError(aiHataMetni(govde, t));
         return;
       }
       const reply = (data as { text?: string } | null)?.text?.trim();

@@ -1197,6 +1197,7 @@ export const tr = {
   'ai.thinking': 'Düşünüyor...',
   'ai.errRateLimit': 'Yoğunluk nedeniyle şu an yanıt veremiyorum. Bir dakika sonra tekrar deneyin.',
   'ai.errDailyQuota': 'Bugünkü ücretsiz AI hakkı doldu. Hak her gün yenilenir; yarın tekrar deneyebilir ya da kesintisiz kullanım için Pro’ya geçebilirsiniz.',
+  'ai.errQuotaWait': 'Ücretsiz AI hakkı şu an dolu. Yaklaşık {dk} dakika sonra tekrar deneyebilir ya da kesintisiz kullanım için Pro’ya geçebilirsiniz.',
   'ai.errQuota': 'Bu ayki AI kullanım limitinize ulaştınız. Daha yüksek bir pakete geçerek devam edebilirsiniz.',
   'ai.errGeneric': 'Yanıt alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',

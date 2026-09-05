@@ -258,6 +258,9 @@ Deno.serve(async (req) => {
         gercekSonSonuc: sonGercek(d.saglayici)?.son_sonuc ?? null,
         gercekSonZaman: sonGercek(d.saglayici)?.son_zaman ?? null,
         gercekSonBasari: sonGercek(d.saglayici)?.son_basari ?? null,
+        // Sağlayıcının kendi hata gövdesi: "dakikalık sınır" ile "günlük kota"
+        // ayrımı ve ne zaman açılacağı yalnız burada yazıyor.
+        gercekSonHata: sonGercek(d.saglayici)?.son_hata ?? null,
       })),
       gemini_modelleri: modeller,
     }),

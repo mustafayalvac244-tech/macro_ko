@@ -1193,6 +1193,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.thinking': 'Thinking...',
   'ai.errRateLimit': 'I can’t respond right now due to heavy load. Try again in a minute.',
   'ai.errDailyQuota': 'Today’s free AI allowance is used up. It resets daily — try again tomorrow, or upgrade to Pro for uninterrupted use.',
+  'ai.errQuotaWait': 'The free AI allowance is full right now. Try again in about {dk} minutes, or upgrade to Pro for uninterrupted use.',
   'ai.errQuota': 'You’ve reached this month’s AI usage limit. Upgrade to a higher plan to continue.',
   'ai.errGeneric': 'No response. Check your internet connection and try again.',
   'ai.disclaimer': 'AI answers are not legal advice; verify against current legislation.',

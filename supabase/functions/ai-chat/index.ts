@@ -244,7 +244,20 @@ async function geminiChat(
       }),
     }
   );
-  if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+  if (!res.ok) {
+    // SEBEP KAYBOLMASIN. Google'ın 429'u iki bambaşka şey olabilir: dakikalık
+    // istek/token sınırı (bir dakika sonra tekrar denenebilir) ya da GÜNLÜK
+    // istek kotası (yarına kadar bu yol kapalı). İkisini de "rate_limit" diye
+    // kaydetmek, operatörü "birazdan düzelir" diye bekletiyordu; ölçüm
+    // koşuları tam bu belirsizlik yüzünden saatlerce boşa planlandı.
+    // Gövde durum kaydına yazılır (kullanıcıya değil): quotaId/quota_metric
+    // alanı hangisi olduğunu söyler.
+    const govde = await res.text().catch(() => '');
+    const gunluk = /PerDay|per day|GenerateRequestsPerDay/i.test(govde);
+    const hata = new Error(res.status === 429 ? (gunluk ? 'daily_quota' : 'rate_limit') : 'upstream');
+    (hata as Error & { ayrinti?: string }).ayrinti = govde.slice(0, 500);
+    throw hata;
+  }
   const data = await res.json();
   const text = (data.candidates?.[0]?.content?.parts ?? [])
     .map((p: { text?: string }) => p.text ?? '')
@@ -267,6 +280,25 @@ async function geminiChat(
  * gösterge, gerçek isteğin sonucudur. Hata yutulur: durum kaydı tutulamadı
  * diye kullanıcının cevabı engellenmez.
  */
+/**
+ * Sağlayıcının hata gövdesinden "ne kadar sonra tekrar dene" bilgisini çıkarır.
+ *
+ * NEDEN ÖNEMLİ. Groq'un kotası GÜNLÜK değil KAYAN pencereyle yenileniyor ve
+ * gövdede bunu yazıyor: "Please try again in 22m36.912s". Biz kullanıcıya
+ * "günlük kota bitti, yarın yenilenir" diyorduk — yani avukatı 23 dakika
+ * beklemesi gerekirken ertesi güne yolluyorduk. Ücretli bir üründe bu, o gün
+ * için ürünün yok olması demekti; oysa kısa bir bekleme yetiyordu.
+ *
+ * Saniye döner; okunamazsa 0.
+ */
+function beklemeSaniye(ayrinti?: string): number {
+  if (!ayrinti) return 0;
+  const m = ayrinti.match(/try again in\s+(?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?/i);
+  if (!m) return 0;
+  const s = Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Math.ceil(Number(m[3] ?? 0));
+  return Number.isFinite(s) && s > 0 ? s : 0;
+}
+
 async function durumYaz(saglayici: string, sonuc: string, hata?: string): Promise<void> {
   try {
     const s = svc();
@@ -300,7 +332,7 @@ async function ucretsizChat(
       void durumYaz('groq', 'empty');
     } catch (e) {
       ilkHata = e as Error;
-      void durumYaz('groq', (e as Error).message);
+      void durumYaz('groq', (e as Error).message, (e as Error & { ayrinti?: string }).ayrinti);
       // Anlık yoğunluk (dakikalık sınır) geçicidir; yedeğe geçmeye değer,
       // çünkü kullanıcı beklemek zorunda kalmasın.
     }
@@ -314,7 +346,7 @@ async function ucretsizChat(
       }
       void durumYaz('gemini', 'empty');
     } catch (e) {
-      void durumYaz('gemini', (e as Error).message);
+      void durumYaz('gemini', (e as Error).message, (e as Error & { ayrinti?: string }).ayrinti);
       // Yedek de düştüyse İLK hatayı bildiriyoruz: kullanıcıya "günlük kota
       // bitti" demek, "ağ hatası" demekten daha doğru ve daha yararlıdır.
       if (!ilkHata) ilkHata = e as Error;
@@ -344,13 +376,18 @@ async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; te
       // Groq'un günlük token kotası (TPD) mı yoksa anlık yoğunluk (per-minute) mı?
       // Günlük bitmişse kullanıcıya "yarın yenilenir" demeliyiz, "birazdan dene" değil.
       let daily = false;
+      let govde = '';
       try {
-        const b = await res.text();
-        daily = /per\s*day|tokens per day|daily|günde|gün içinde/i.test(b);
+        govde = await res.text();
+        daily = /per\s*day|tokens per day|daily|günde|gün içinde/i.test(govde);
       } catch {
         // gövde okunamazsa anlık yoğunluk varsay
       }
-      throw new Error(daily ? 'daily_quota' : 'rate_limit');
+      // Gövde durum kaydına taşınır: "ne zaman açılır" sorusunun cevabı
+      // (kalan süre, hangi kota) yalnız orada yazıyor.
+      const hata = new Error(daily ? 'daily_quota' : 'rate_limit');
+      (hata as Error & { ayrinti?: string }).ayrinti = govde.slice(0, 500);
+      throw hata;
     }
     throw new Error('upstream');
   }
@@ -1361,7 +1398,9 @@ Deno.serve(async (req) => {
     } catch (e) {
       const msg = (e as Error).message;
       const known = msg === 'rate_limit' || msg === 'daily_quota';
-      return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+      // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
+      // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
       });
@@ -1931,7 +1970,9 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
     } catch (e) {
       const msg = (e as Error).message;
       const known = msg === 'rate_limit' || msg === 'daily_quota';
-      return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+      // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
+      // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
       });
@@ -2028,7 +2069,9 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
     } catch (e) {
       const msg = (e as Error).message;
       const known = msg === 'rate_limit' || msg === 'daily_quota';
-      return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+      // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
+      // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
       });
@@ -2127,13 +2170,13 @@ function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; 
         // 'model' alanı 'mevzuat-yedek' olduğu için ölçümde AI cevabıyla
         // karışmaz ve yedeğe ne sıklıkta düşüldüğü sayılabilir.
         return new Response(
-          JSON.stringify({ text: ozet, tier, model: 'mevzuat-yedek', yapayZekasiz: true, neden: msg }),
+          JSON.stringify({ text: ozet, tier, model: 'mevzuat-yedek', yapayZekasiz: true, neden: msg, yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }),
           { headers: { ...CORS, 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+    return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
       status: known ? 429 : 502,
       headers: CORS,
     });

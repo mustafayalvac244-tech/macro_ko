@@ -48,6 +48,8 @@ export function useAiChat() {
   const [messages, setMessages] = useState<AiMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<AiError | null>(null);
+  /** Sağlayıcının bildirdiği yeniden deneme süresi (saniye). */
+  const [yeniden, setYeniden] = useState<number | null>(null);
   // Sunucunun bildirdiği aktif AI katmanı (üyeliğe göre): basic | plus.
   const [tier, setTier] = useState<'basic' | 'plus' | null>(null);
 
@@ -133,6 +135,11 @@ export function useAiChat() {
             if (ctx && typeof ctx.json === 'function') {
               const j = await ctx.json();
               code = j?.error ?? '';
+              // Sağlayıcı "kaç saniye sonra" diyorsa onu gösteririz: kota
+              // KAYAN pencereyle yenileniyor, oysa mesajımız "yarın tekrar
+              // deneyin" diyordu. Avukatı 23 dakika beklemesi gerekirken
+              // ertesi güne yollamak, o gün için ürünü yok etmekti.
+              if (typeof j?.yeniden === 'number' && j.yeniden > 0) setYeniden(j.yeniden);
             }
           } catch {
             // gövde okunamazsa genel hataya düşer
@@ -212,7 +219,9 @@ export function useAiChat() {
     error === 'rate_limit'
       ? t('ai.errRateLimit')
       : error === 'daily_quota'
-        ? t('ai.errDailyQuota')
+        ? yeniden && yeniden < 6 * 3600
+          ? t('ai.errQuotaWait', { dk: String(Math.max(1, Math.ceil(yeniden / 60))) })
+          : t('ai.errDailyQuota')
         : error === 'quota_exceeded'
           ? t('ai.errQuota')
           : error === 'generic'

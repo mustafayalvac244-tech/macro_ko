@@ -23,6 +23,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { beklemeSuresi } from './bekleme.mjs';
 import { gecer, sadelestir } from './eslestir.mjs';
 // Tarih/tutar ayıklayıcıları AYRI MODÜLDE ve TESTLİ: bu denetim, ölçümün en
 // ağır kararını veriyor ("bu taslakta uydurma veri var"). Buradan taşınırken
@@ -81,6 +82,15 @@ async function uret(jwt, tip, olay, deneme = 0) {
   });
   if (res.status === 429) {
     const g = await res.text();
+    // KOTA KAYAN PENCEREYLE YENİLENİYOR. Uç, gövdede "kaç saniye sonra"
+    // diyorsa beklemek ölçümü kurtarır: eskiden burada koşu tamamen
+    // kesiliyor ve 10 senaryonun 4'ünden sonrası hiç ölçülmüyordu.
+    const bekle = beklemeSuresi(g);
+    if (bekle && deneme < 6) {
+      console.log(`    (kota doldu; ${Math.round(bekle / 60000)} dk bekleniyor)`);
+      await uyu(bekle);
+      return uret(jwt, tip, olay, deneme + 1);
+    }
     if (g.includes('daily_quota')) throw new Error('DAILY_QUOTA');
     if (deneme < 4) {
       await uyu(30000 * (deneme + 1));
