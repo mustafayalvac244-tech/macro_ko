@@ -114,8 +114,12 @@ async function uret(tip, olay, deneme = 0) {
   // 502 'upstream' DA GEÇİCİDİR ve yeniden denenmelidir. İlk koşuda 5
   // senaryonun 3'ü buna takıldı; ölçüm modelin değil, o anki sağlayıcı
   // durumunun fotoğrafını çekti ve "0/2" gibi anlamsız bir oran çıktı.
-  if (res.status >= 500 && deneme < 4) {
-    await uyu(20000 * (deneme + 1));
+  // SAĞLAYICI ARIZASI DAKİKALAR SÜREBİLİR. Bekleme 20-80 saniyeydi ve ölçümde
+  // yetmedi: Groq ile Gemini aynı anda düştü (biri 5xx, diğeri "high demand"),
+  // dört deneme üç dakikaya sığdı ve senaryo ölçülemedi. Koşu zaten saatler
+  // sürüyor; birkaç dakika beklemek bir senaryoyu kurtarmaya değer.
+  if (res.status >= 500 && deneme < 5) {
+    await uyu(120000 * (deneme + 1));
     return uret(tip, olay, deneme + 1);
   }
   if (!res.ok) throw new Error(`ai-chat ${res.status}: ${(await res.text()).slice(0, 140)}`);

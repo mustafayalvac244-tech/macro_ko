@@ -414,7 +414,16 @@ async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; te
       (hata as Error & { ayrinti?: string }).ayrinti = govde.slice(0, 500);
       throw hata;
     }
-    throw new Error('upstream');
+    // 429 DIŞINDAKİ HATANIN SEBEBİ DE KAYBOLMASIN. Önce burada çıplak bir
+    // 'upstream' fırlatılıyordu: durum tablosuna yalnız "upstream" yazılıyor,
+    // HTTP kodu ve gövde uçuyordu. Ölçüm sırasında iki sağlayıcı birden
+    // düştüğünde elimizde tek kelime kaldı ve arızanın Groq'ta mı bizde mi
+    // olduğu söylenemedi. Gemini yedeğinin aylarca ölü kalması da tam bu
+    // körlükten olmuştu.
+    const govde = await res.text().catch(() => '');
+    const hata = new Error('upstream');
+    (hata as Error & { ayrinti?: string }).ayrinti = `HTTP ${res.status} ${govde.slice(0, 400)}`;
+    throw hata;
   }
   const j = await res.json();
   const text = j.choices?.[0]?.message?.content ?? '';

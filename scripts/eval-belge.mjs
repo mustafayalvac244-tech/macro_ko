@@ -111,8 +111,12 @@ async function incele(kind, metin, deneme = 0) {
       return incele(kind, metin, deneme + 1);
     }
   }
-  if (res.status >= 500 && deneme < 4) {
-    await uyu(20000 * (deneme + 1));
+  // SAĞLAYICI ARIZASI DAKİKALAR SÜREBİLİR. Bekleme 20-80 saniyeydi ve ölçümde
+  // yetmedi: Groq ile Gemini aynı anda düştü (biri 5xx, diğeri "high demand"),
+  // dört deneme üç dakikaya sığdı ve senaryo ölçülemedi. Koşu zaten saatler
+  // sürüyor; birkaç dakika beklemek bir senaryoyu kurtarmaya değer.
+  if (res.status >= 500 && deneme < 5) {
+    await uyu(120000 * (deneme + 1));
     return incele(kind, metin, deneme + 1);
   }
   if (!res.ok) throw new Error(`ai-chat ${res.status}: ${(await res.text()).slice(0, 140)}`);
