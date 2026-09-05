@@ -122,9 +122,15 @@ export default function AdminScreen() {
                 </View>
                 {saglik.data.saglayicilar.map((p) => (
                   <Text allowFontScaling={false} key={p.saglayici} style={styles.healthRow}>
-                    {p.calisiyor ? '● ' : '○ '}
+                    {p.calisiyor && !p.gercekSonSonuc?.match(/quota|limit|upstream/) ? '● ' : '○ '}
                     {p.saglayici}
                     {p.calisiyor ? ` — ${p.ms ?? 0} ms` : ` — ${p.neden ?? t('admin.aiDown')}`}
+                    {/* Yoklama geçse bile son gerçek çağrı kotaya takıldıysa
+                        sağlayıcı hizmet veremiyor demektir; iki bilgi ayrı
+                        gösterilir, biri diğerini gizlemez. */}
+                    {p.gercekSonSonuc && p.gercekSonSonuc !== 'ok'
+                      ? `  ·  son gerçek istek: ${p.gercekSonSonuc}`
+                      : ''}
                   </Text>
                 ))}
               </View>

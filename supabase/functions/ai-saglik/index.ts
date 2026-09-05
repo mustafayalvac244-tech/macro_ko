@@ -158,7 +158,29 @@ Deno.serve(async (req) => {
       }
     } catch { /* tanılama başarısız olursa sağlık raporu yine dönsün */ }
   }
-  const ayakta = [groq, gemini].filter((d) => d.calisiyor).map((d) => d.saglayici);
+  // YOKLAMA TEK BAŞINA YETMEZ. 1 token'lık istek, GÜNLÜK TOKEN tavanı (TPD)
+  // dolmuşken bile geçebiliyor; ölçümde tam bu yaşandı: rapor "ayakta,
+  // yedekli" derken gerçek dilekçe isteği 429 daily_quota alıyordu. Yalan
+  // söyleyen bir sağlık kontrolü, hiç olmamasından kötüdür. Bu yüzden gerçek
+  // çağrıların sonucu da okunur ve rapora eklenir.
+  let gercek: Array<Record<string, unknown>> = [];
+  try {
+    const { data } = await supabase.from('ai_saglayici_durum').select('*');
+    gercek = (data ?? []) as Array<Record<string, unknown>>;
+  } catch { /* durum tablosu okunamazsa yoklama sonucu yine verilir */ }
+
+  const sonGercek = (ad: string) => gercek.find((g) => g.saglayici === ad);
+  const gercektenCalisiyor = (d: Durum) => {
+    const g = sonGercek(d.saglayici);
+    if (!g) return d.calisiyor;                       // gerçek veri yoksa yoklamaya güven
+    if (g.son_sonuc === 'ok') return d.calisiyor;
+    // Son gerçek çağrı kota/yoğunluk hatası aldıysa, yoklama geçse bile bu
+    // sağlayıcı hizmet veremiyor demektir.
+    const taze = Date.now() - new Date(String(g.son_zaman)).getTime() < 60 * 60 * 1000;
+    return taze ? false : d.calisiyor;
+  };
+
+  const ayakta = [groq, gemini].filter(gercektenCalisiyor).map((d) => d.saglayici);
 
   return new Response(
     JSON.stringify({
@@ -166,7 +188,14 @@ Deno.serve(async (req) => {
       // Tek sağlayıcı ayaktaysa yedeksiz çalışıyoruz demektir; bu, kota
       // bittiğinde asistanın tamamen susacağı anlamına gelir.
       yedekli: ayakta.length >= 2,
-      saglayicilar: [groq, gemini],
+      saglayicilar: [groq, gemini].map((d) => ({
+        ...d,
+        // Yoklama ile gerçek istek AYRI raporlanır; ikisini tek bayrakta
+        // birleştirmek, hangisinin doğru olduğunu gizler.
+        gercekSonSonuc: sonGercek(d.saglayici)?.son_sonuc ?? null,
+        gercekSonZaman: sonGercek(d.saglayici)?.son_zaman ?? null,
+        gercekSonBasari: sonGercek(d.saglayici)?.son_basari ?? null,
+      })),
       gemini_modelleri: modeller,
     }),
     { headers: { ...CORS, 'Content-Type': 'application/json' } }

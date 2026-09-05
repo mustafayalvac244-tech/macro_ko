@@ -169,6 +169,21 @@ async function geminiChat(
  * cevap için ikinci sağlayıcı denenmez — o, aynı soruyu iki kez faturalandırır
  * ve iki farklı cevabın hangisinin doğru olduğunu bilemeyiz.
  */
+/**
+ * Gerçek çağrının sonucunu kaydeder. Sağlık yoklaması 1 token'lık istek
+ * gönderir ve GÜNLÜK TOKEN tavanı dolmuşken bile geçebilir; yani yoklama,
+ * hizmet veremeyen bir sağlayıcıyı "ayakta" gösterebiliyordu. Tek doğru
+ * gösterge, gerçek isteğin sonucudur. Hata yutulur: durum kaydı tutulamadı
+ * diye kullanıcının cevabı engellenmez.
+ */
+async function durumYaz(saglayici: string, sonuc: string, hata?: string): Promise<void> {
+  try {
+    const s = svc();
+    if (!s) return;
+    await s.rpc('ai_durum_yaz', { p_saglayici: saglayici, p_sonuc: sonuc, p_hata: hata ?? null });
+  } catch { /* durum kaydı ikincil bilgidir */ }
+}
+
 async function ucretsizChat(
   system: string,
   msgs: Array<{ role: 'user' | 'model'; text: string }>,
@@ -186,10 +201,15 @@ async function ucretsizChat(
   if (groqKey && !yedegiZorla) {
     try {
       const r = await groqChat(system, msgs, maxTokens, groqKey);
-      if (r.text.trim()) return { ...r, model: GROQ_MODEL };
+      if (r.text.trim()) {
+        void durumYaz('groq', 'ok');
+        return { ...r, model: GROQ_MODEL };
+      }
       ilkHata = new Error('empty');
+      void durumYaz('groq', 'empty');
     } catch (e) {
       ilkHata = e as Error;
+      void durumYaz('groq', (e as Error).message);
       // Anlık yoğunluk (dakikalık sınır) geçicidir; yedeğe geçmeye değer,
       // çünkü kullanıcı beklemek zorunda kalmasın.
     }
@@ -197,8 +217,13 @@ async function ucretsizChat(
   if (gemKey) {
     try {
       const r = await geminiChat(system, msgs, maxTokens, gemKey, GEMINI_FALLBACK_MODEL);
-      if (r.text.trim()) return { ...r, model: GEMINI_FALLBACK_MODEL };
+      if (r.text.trim()) {
+        void durumYaz('gemini', 'ok');
+        return { ...r, model: GEMINI_FALLBACK_MODEL };
+      }
+      void durumYaz('gemini', 'empty');
     } catch (e) {
+      void durumYaz('gemini', (e as Error).message);
       // Yedek de düştüyse İLK hatayı bildiriyoruz: kullanıcıya "günlük kota
       // bitti" demek, "ağ hatası" demekten daha doğru ve daha yararlıdır.
       if (!ilkHata) ilkHata = e as Error;

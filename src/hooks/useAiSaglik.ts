@@ -19,6 +19,12 @@ export interface SaglayiciDurumu {
   neden?: string;
   ms?: number;
   model?: string;
+  /** Son GERÇEK çağrının sonucu ('ok' | 'daily_quota' | 'rate_limit' | ...).
+   *  Yoklama 1 token'lık istek gönderir ve günlük token tavanı dolmuşken bile
+   *  geçebilir; hizmet verip veremediğini yalnız bu alan söyler. */
+  gercekSonSonuc?: string | null;
+  gercekSonZaman?: string | null;
+  gercekSonBasari?: string | null;
 }
 
 export interface AiSaglik {
