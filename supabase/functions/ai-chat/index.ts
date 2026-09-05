@@ -1602,6 +1602,14 @@ async function dosyaKunyesi(
       '(Saygılarımla / [Davacı] Vekili / Av. [Ad Soyad]) bulunsun.\n' +
       '• Taslağın en sonuna kısa bir "⚠️ KONTROL LİSTESİ" ekle: avukatın doldurması/denetlemesi gereken ' +
       'boşluklar, süreler ve riskler (madde madde).\n' +
+      // TALEP DÜŞÜRME — ölçümde görüldü. Avukat "tahliye ve kira alacağı"
+      // dedi, taslak yalnız alacağı istedi ve tahliye hiç geçmedi. Netice-i
+      // talepte olmayan şeye mahkeme hükmedemez (HMK m.26: taleple bağlılık);
+      // yani düşen talep, dilekçedeki en pahalı hatadır — avukat fark etmezse
+      // müvekkil o hakkı o davada kaybeder.
+      '• AVUKATIN SAYDIĞI HER TALEBİ NETİCE-İ TALEBE KOY. Olayda "tahliye ve alacak" gibi ' +
+      'birden çok istem varsa hepsini ayrı kalem olarak yaz; birini düşürme, birleştirme. ' +
+      'Talep edilmeyen şeye hükmedilemez.\n' +
       'Gerçekçi, tok ve profesyonel bir dille yaz. Gereksiz doldurma cümlesi kurma.' +
       dossier;
 
