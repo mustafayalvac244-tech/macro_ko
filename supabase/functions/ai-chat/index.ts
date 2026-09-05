@@ -769,6 +769,71 @@ async function buildRules(supabase: any, question: string): Promise<string> {
  * "Senin eğittiğin AI" = kendi verimizle beslenmiş, kaynak gösteren yanıt.
  */
 // deno-lint-ignore no-explicit-any
+/**
+ * SAĞLAYICISIZ CEVAP — iki sağlayıcı da düştüğünde boş dönmemek için.
+ *
+ * NEDEN. Avukat için kırmızı bir hata kutusu hiçbir işe yaramaz; oysa sorunun
+ * cevabı çoğu zaman ZATEN ELİMİZDEDİR — arama ilgili maddeyi bulmuştur, yalnız
+ * onu cümleye dökecek model yanıt vermemektedir. "İşK m.21: ...on işgünü..."
+ * göstermek, "bir hata oluştu" demekten kıyaslanamayacak kadar iyidir.
+ *
+ * Burada MODEL YOK: yorum, çıkarım ve özet üretilmez; yalnız kendi
+ * veritabanımızdaki kural ve madde metinleri olduğu gibi gösterilir. Bu yüzden
+ * uydurma riski sıfırdır ve hiç kota harcamaz.
+ */
+// deno-lint-ignore no-explicit-any
+async function mevzuatOzeti(supabase: any, question: string): Promise<string> {
+  // ALAKA EŞİĞİ BURADA DA GEÇERLİ. İlk denemede eşik uygulanmadığı için özet,
+  // "işe iade" sorusuna iş kazası zamanaşımı kuralını ve 2014 tarihli bir prim
+  // yapılandırma geçici maddesini de bastı. Model yokken gürültüyü ayıklayacak
+  // bir kat da yok demektir; o yüzden ayıklama burada daha sıkı olmalı.
+  const ustte = <T extends { score?: number }>(list: T[], oran: number, en: number): T[] => {
+    const tepe = Number(list[0]?.score ?? 0);
+    const suzulmus = tepe > 0 ? list.filter((r) => Number(r.score ?? 0) >= tepe * oran) : list;
+    return suzulmus.slice(0, en);
+  };
+
+  const parcalar: string[] = [];
+  try {
+    const { data } = await supabase.rpc('search_legal_rules', { q: question, match_count: 2 });
+    // Tek kural: en yakın olan. İkincisi çoğu zaman komşu konudur ve model
+    // olmadığı için "bu ilgisiz" diyecek kimse yoktur.
+    for (const r of ustte((data ?? []) as Array<{ body?: string; score?: number }>, 0.6, 1)) {
+      const b = String(r?.body ?? '').trim();
+      if (b) parcalar.push(`**Kural.** ${b}`);
+    }
+  } catch { /* kural bulunamazsa maddelerle devam */ }
+
+  const maddeler: string[] = [];
+  try {
+    const { data } = await supabase.rpc('search_mevzuat_fts', { q: question, match_count: 5 });
+    for (const r of ustte((data ?? []) as Array<Record<string, unknown> & { score?: number }>, 0.4, 3)) {
+      const ad = String(r.kanun_name ?? r.kanun_short ?? '').trim();
+      const baslik = String(r.baslik ?? '').trim();
+      const metin = String(r.snippet ?? '').replace(/\s+/g, ' ').trim().slice(0, 300);
+      if (!metin) continue;
+      maddeler.push(
+        `**${r.kanun_short} m.${r.madde_no}**${baslik ? ` — ${baslik}` : ''}` +
+          `${ad ? ` _(${ad})_` : ''}\n${metin}${metin.length >= 300 ? '…' : ''}`
+      );
+    }
+  } catch { /* madde de bulunamazsa aşağıda boş dönülür */ }
+
+  if (parcalar.length === 0 && maddeler.length === 0) return '';
+
+  return (
+    // Sebep söylenmez: kota mı, yoğunluk mu, arıza mı — kullanıcı için hepsi
+    // aynı ve yanlış sebep söylemek ("kota doldu" derken aslında arızayken)
+    // güveni zedeler.
+    'Yapay zekâ şu anda yanıt veremiyor. Sorunuzla ilgili mevzuatı doğrudan aşağıya çıkardım:\n\n' +
+    [...parcalar, ...maddeler].join('\n\n') +
+    '\n\n---\n_Bu metinler kendi kanun veritabanımızdan olduğu gibi alınmıştır; ' +
+    'yorum içermez. Yapay zekâ yorumu için kota yenilendiğinde tekrar sorabilirsiniz. ' +
+    'Bu bilgi hukuki tavsiye niteliğinde değildir._'
+  );
+}
+
+// deno-lint-ignore no-explicit-any
 async function buildGrounding(supabase: any, question: string): Promise<string> {
   // deno-lint-ignore no-explicit-any
   let rows: any[] = [];
@@ -1316,6 +1381,31 @@ Deno.serve(async (req) => {
   } catch (e) {
     const msg = (e as Error).message;
     const known = msg === 'rate_limit' || msg === 'daily_quota';
+
+    // İKİ SAĞLAYICI DA DÜŞTÜ. Hata kutusu göstermek yerine, aramanın zaten
+    // bulduğu mevzuatı doğrudan veriyoruz: avukat için "bir hata oluştu"
+    // yerine "İşK m.21: ...on işgünü..." görmek kıyaslanamayacak kadar iyidir.
+    //
+    // AYRIM YAPILMIYOR — kota, yoğunluk ya da beklenmedik arıza: kullanıcı
+    // açısından üçü de "asistan yanıt vermiyor" demektir ve üçünde de
+    // elimizdeki mevzuatı göstermek kırmızı kutudan iyidir. İlk tasarımda
+    // yalnız kota hâlinde yapılıyordu; denemede görüldü ki en olası ikinci
+    // arıza (yedek modelin adının eskimesi) 'upstream' sayılıyor ve tam da
+    // yedeğe en çok ihtiyaç duyulan anda özet devreye girmiyordu.
+    // Gerçek sebep yanıtta 'neden' alanında taşınır, gizlenmez.
+    {
+      const ozet = await mevzuatOzeti(supabase, messages[messages.length - 1]?.text ?? '').catch(() => '');
+      if (ozet) {
+        // Bilinçli olarak 200: istemci bunu normal bir yanıt gibi gösterir.
+        // 'model' alanı 'mevzuat-yedek' olduğu için ölçümde AI cevabıyla
+        // karışmaz ve yedeğe ne sıklıkta düşüldüğü sayılabilir.
+        return new Response(
+          JSON.stringify({ text: ozet, tier, model: 'mevzuat-yedek', yapayZekasiz: true, neden: msg }),
+          { headers: { ...CORS, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
       status: known ? 429 : 502,
       headers: CORS,
