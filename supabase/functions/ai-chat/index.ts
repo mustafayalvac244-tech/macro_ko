@@ -241,20 +241,34 @@ async function geminiChat(
   apiKey: string,
   model: string
 ): Promise<{ text: string; tin: number; tout: number }> {
-  const res = await fetch(
+  // DÜŞÜNME TOKEN'LARI ÇIKTI BÜTÇESİNİ YİYOR. Gemini 2.5 ailesinde model,
+  // cevaptan önce "düşünme" üretir ve bu token'lar maxOutputTokens'tan düşer:
+  // 3.000'lik bütçenin çoğu düşünmeye gidince geriye yarım bir taslak kalır.
+  // Ölçümde tam bu görüldü — bir cevap dilekçesi 806 karakterde bitti,
+  // DELİLLER ve NETİCE-İ TALEP hiç yazılmadı. Yarım dilekçe, avukat için hiç
+  // üretilmemiş dilekçeden kötüdür: eksikliği fark etmeyip kullanabilir.
+  //
+  // Burada istenen düşünme değil, verilen madde metnini doğru aktarmak; bütçe
+  // tamamen cevaba ayrılıyor.
+  const govdeYap = (dusunmeKapali: boolean) => JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: msgs.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
+    // Groq yolundaki ölçümle aynı gerekçe: burada istenen yaratıcılık değil,
+    // verilen madde metnini doğru aktarmak.
+    generationConfig: dusunmeKapali
+      ? { temperature: 0.1, maxOutputTokens: maxTokens, thinkingConfig: { thinkingBudget: 0 } }
+      : { temperature: 0.1, maxOutputTokens: maxTokens },
+  });
+  const yolla = (dusunmeKapali: boolean) => fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: msgs.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
-        // Groq yolundaki ölçümle aynı gerekçe: burada istenen yaratıcılık değil,
-        // verilen madde metnini doğru aktarmak.
-        generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens },
-      }),
-    }
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: govdeYap(dusunmeKapali) }
   );
+
+  let res = await yolla(true);
+  // HER MODEL thinkingConfig KABUL ETMEZ ve etmeyen 400 döner. Yedek yolu bir
+  // iyileştirme yüzünden tamamen kaybetmek, iyileştirmeden çok daha pahalıdır:
+  // 400 alınca düşünme ayarı olmadan bir kez daha denenir.
+  if (res.status === 400) res = await yolla(false);
   if (!res.ok) {
     // SEBEP KAYBOLMASIN. Google'ın 429'u iki bambaşka şey olabilir: dakikalık
     // istek/token sınırı (bir dakika sonra tekrar denenebilir) ya da GÜNLÜK
