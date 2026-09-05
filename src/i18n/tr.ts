@@ -1081,6 +1081,13 @@ export const tr = {
     'Asıl son gün ({date}) adli tatile (20 Temmuz – 31 Ağustos) denk geldi; süre tatil bitiminden itibaren uzatıldı ({rule}).',
   'wizard.recessRuleCivil': 'HMK 104 — 1 hafta',
   'wizard.recessRuleCriminal': 'CMK 331 — 3 gün',
+  // İYUK m.8/3 sayımı ara vermenin bittiği günü İZLEYEN tarihten başlatır;
+  // HMK ise bittiği günden. Aynı olayda idari yargı bir gün daha uzun sürer.
+  'wizard.recessRuleIdari': 'İYUK 8/3 — 1 Eylül’den itibaren 7 gün',
+  'wizard.idariRecessException':
+    'İYUK m.61/1: bölge idare mahkemesinin bulunduğu il merkezi dışında olup yalnızca bir idare ' +
+    'veya bir vergi mahkemesi bulunan yerlerde çalışmaya ara verme uygulanmaz; bu mahkemelerde ' +
+    'süre UZAMAZ. Mahkemenizin bu kapsamda olup olmadığını teyit edin.',
   'wizard.bayramNote':
     'Son gün dini bayram tatiline denk gelebilir. Dini bayramlar otomatik hesaba katılmaz; resmî takvimden teyit edin.',
   'wizard.recessNote':

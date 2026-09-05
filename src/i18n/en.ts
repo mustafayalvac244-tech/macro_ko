@@ -1080,6 +1080,11 @@ export const en: Record<keyof typeof tr, string> = {
     'The original last day ({date}) fell within the judicial recess (20 Jul – 31 Aug); the period was extended from the end of the recess ({rule}).',
   'wizard.recessRuleCivil': 'HMK 104 — 1 week',
   'wizard.recessRuleCriminal': 'CMK 331 — 3 days',
+  'wizard.recessRuleIdari': 'İYUK 8/3 — 7 days from 1 September',
+  'wizard.idariRecessException':
+    'İYUK art. 61/1: the judicial recess does not apply where a single administrative or tax court ' +
+    'sits outside the province hosting the regional administrative court — the period is NOT extended ' +
+    'there. Confirm whether your court falls under this exception.',
   'wizard.bayramNote':
     'The last day may coincide with a religious holiday. These are not auto-calculated; verify against the official calendar.',
   'wizard.recessNote':

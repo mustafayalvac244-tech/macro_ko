@@ -122,11 +122,14 @@ describe('isNonWorkingDay', () => {
 });
 
 describe('recessRuleForGroup', () => {
-  it('ceza 3 gün, icra muaf, diğerleri 1 hafta kuralına tabidir', () => {
+  // 'idare' önce 'civil' bekleniyordu; bu beklenti HATAYI KODLUYORDU. İYUK
+  // m.8/3 sayımı ara vermenin bittiği günü İZLEYEN tarihten başlatır, HMK ise
+  // bittiği günden — arada bir gün fark var (bkz. aşağıdaki tatil testleri).
+  it('her yargı kolu kendi kanununun kuralına bağlanır', () => {
     expect(recessRuleForGroup('ceza')).toBe('criminal');
     expect(recessRuleForGroup('icra')).toBe('none');
     expect(recessRuleForGroup('hukuk')).toBe('civil');
-    expect(recessRuleForGroup('idare')).toBe('civil');
+    expect(recessRuleForGroup('idare')).toBe('idari');
     expect(recessRuleForGroup('is')).toBe('civil');
   });
 });
@@ -138,5 +141,47 @@ describe('dinî bayram uyarısı', () => {
     const r = computeLegalDue(d('2026-03-10'), 10, 'day');
     expect(ymd(r.due)).toBe('2026-03-20');
     expect(r.religiousWarn).toBe(true);
+  });
+});
+
+describe('adli tatil — üç kanun, iki farklı sayım başlangıcı', () => {
+  // Kanun metinleri havuza eklendikten sonra üçü de birebir okundu:
+  //   HMK m.104   : "adli tatilin BİTTİĞİ GÜNDEN itibaren bir hafta"
+  //   CMK m.331/4 : "tatilin BİTTİĞİ GÜNDEN itibaren üç gün"
+  //   İYUK m.8/3  : "ara vermenin sona erdiği GÜNÜ İZLEYEN TARİHTEN itibaren yedi gün"
+  // Son ifade bir gün farkı yaratır ve idari yargı önce yanlış (bir gün erken)
+  // hesaplanıyordu.
+  const tatildeBiten = d('2026-08-10'); // son gün ara verme içinde kalsın
+
+  it('hukukta 7 Eylül (HMK 104)', () => {
+    const r = computeLegalDue(tatildeBiten, 2, 'week', 'civil');
+    expect(r.recessExtended).toBe(true);
+    expect(ymd(r.due)).toBe('2026-09-07');
+  });
+
+  it('cezada 3 Eylül (CMK 331/4)', () => {
+    const r = computeLegalDue(tatildeBiten, 2, 'week', 'criminal');
+    expect(r.recessExtended).toBe(true);
+    expect(ymd(r.due)).toBe('2026-09-03');
+  });
+
+  it('idari yargıda 8 Eylül — hukuktan BİR GÜN sonra (İYUK 8/3)', () => {
+    const r = computeLegalDue(tatildeBiten, 2, 'week', 'idari');
+    expect(r.recessExtended).toBe(true);
+    expect(ymd(r.due)).toBe('2026-09-08');
+  });
+
+  it('idare grubu artık idari kurala bağlanır', () => {
+    expect(recessRuleForGroup('idare')).toBe('idari');
+    expect(recessRuleForGroup('hukuk')).toBe('civil');
+    expect(recessRuleForGroup('is')).toBe('civil');
+    expect(recessRuleForGroup('ceza')).toBe('criminal');
+    expect(recessRuleForGroup('icra')).toBe('none');
+  });
+
+  it('icrada uzatma yok: son gün tatildeyken bile kendi tarihinde kalır', () => {
+    const r = computeLegalDue(tatildeBiten, 2, 'week', 'none');
+    expect(r.recessExtended).toBe(false);
+    expect(ymd(r.due)).toBe('2026-08-24');
   });
 });

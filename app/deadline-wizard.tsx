@@ -159,8 +159,25 @@ export default function DeadlineWizardScreen() {
                 <Text style={[styles.noticeText, { color: colors.info }]}>
                   {t('wizard.recessExtendedNote', {
                     date: formatDate(result.raw.toISOString()),
-                    rule: selected.group === 'ceza' ? t('wizard.recessRuleCriminal') : t('wizard.recessRuleCivil'),
+                    rule:
+                      selected.group === 'ceza'
+                        ? t('wizard.recessRuleCriminal')
+                        : selected.group === 'idare'
+                          ? t('wizard.recessRuleIdari')
+                          : t('wizard.recessRuleCivil'),
                   })}
+                </Text>
+              </View>
+            )}
+            {/* İYUK m.61/1: tek idare/vergi mahkemesi bulunan bazı yerler ara
+                vermeden yararlanamaz, yani süre uzamaz. Hangi mahkeme olduğunu
+                uygulama bilemez; sessizce uzatmak oralarda doğrudan süre
+                kaçırtır, bu yüzden açıkça uyarılır. */}
+            {result.recessExtended && selected.group === 'idare' && (
+              <View style={styles.noticeRow}>
+                <Ionicons name="warning" size={15} color={colors.warning} />
+                <Text style={[styles.noticeText, { color: colors.warning }]}>
+                  {t('wizard.idariRecessException')}
                 </Text>
               </View>
             )}

@@ -37,19 +37,46 @@ export function isInJudicialRecess(d: Date): boolean {
 }
 
 /**
- * Adli tatil uzatma kuralı:
- * - 'civil': son gün adli tatile rastlarsa süre, tatilin bittiği günden itibaren
- *   BİR HAFTA uzamış sayılır (HMK 104; idari yargıda İYUK 8/3; iş yargısı HMK'ya tabi).
- * - 'criminal': ÜÇ GÜN uzar (CMK 331/4).
- * - 'none': adli tatil uygulanmaz (icra daireleri tatilde de çalışır).
+ * Adli tatil uzatma kuralı. Üç kanunun LAFZI birebir okundu; ikisi bir GÜN
+ * farkla ayrılıyor ve bu fark idari yargıda gerçek bir sonuç doğuruyor:
+ *
+ * - 'civil'    HMK m.104: "...adli tatilin BİTTİĞİ GÜNDEN itibaren bir hafta
+ *              uzatılmış sayılır." → 31 Ağustos + 7 = 7 Eylül.
+ * - 'criminal' CMK m.331/4: "...tatilin BİTTİĞİ GÜNDEN itibaren üç gün
+ *              uzatılmış sayılır." → 31 Ağustos + 3 = 3 Eylül.
+ * - 'idari'    İYUK m.8/3: "...ara vermenin sona erdiği GÜNÜ İZLEYEN TARİHTEN
+ *              itibaren yedi gün uzamış sayılır." → 1 Eylül + 7 = 8 EYLÜL.
+ * - 'none'     İcra daireleri tatilde de çalışır.
+ *
+ * ÖNCE İDARİ YARGI DA 'civil' SAYILIYORDU ve bir gün ERKEN tarih veriyordu
+ * (7 Eylül). Yön güvenliydi ama doğru değildi: avukata "süreniz doldu" denen
+ * bir gün, aslında hâlâ süresi olan bir gündür. Kanun metinleri havuza
+ * eklendikten sonra üç madde de okunup ayrıldı.
+ *
+ * Ara verme tarihleri üçünde de aynı: 20 Temmuz – 31 Ağustos
+ * (HMK m.102, CMK m.331/1, İYUK m.61/1).
  */
-export type RecessRule = 'civil' | 'criminal' | 'none';
+export type RecessRule = 'civil' | 'criminal' | 'idari' | 'none';
 
 export function recessRuleForGroup(group: 'hukuk' | 'ceza' | 'icra' | 'idare' | 'is'): RecessRule {
   if (group === 'ceza') return 'criminal';
   if (group === 'icra') return 'none';
+  if (group === 'idare') return 'idari';
   return 'civil';
 }
+
+/**
+ * İYUK m.61/1 istisnası: bölge idare mahkemesinin bulunduğu il merkezi DIŞINDA
+ * kalan ve yalnızca bir idare veya bir vergi mahkemesi bulunan yerlerdeki idari
+ * yargı mercileri çalışmaya ara vermeden YARARLANAMAZ — yani o mahkemelerde
+ * süre uzamaz. Hangi mahkeme olduğunu uygulama bilemez; bu yüzden uzatma
+ * yapılır ama kullanıcıya kontrol etmesi söylenir. Sessizce uzatmak, o
+ * mahkemelerde doğrudan süre kaçırtır.
+ */
+export const IDARI_TATIL_ISTISNA_UYARISI =
+  'İYUK m.61/1: bölge idare mahkemesinin bulunduğu il merkezi dışında olup yalnızca ' +
+  'bir idare veya bir vergi mahkemesi bulunan yerlerde çalışmaya ara verme UYGULANMAZ; ' +
+  'süre uzamaz. Mahkemenizin bu kapsamda olup olmadığını teyit edin.';
 
 /**
  * Diyanet takvimine göre dini bayram günleri (arefe hariç, tam günler).
@@ -120,14 +147,18 @@ export function computeLegalDue(
     raw = addYears(start, amount);
   }
 
-  // Adli tatil uzatması: son gün 20 Tem – 31 Ağu arasına düşerse süre, 31
-  // Ağustos'tan itibaren hukukta 1 hafta (7 Eylül), cezada 3 gün (3 Eylül)
-  // uzamış sayılır.
+  // Adli tatil uzatması. Son gün 20 Tem – 31 Ağu arasına düşerse:
+  //   hukuk (HMK 104)  : 31 Ağustos + 7 gün = 7 Eylül
+  //   ceza  (CMK 331/4): 31 Ağustos + 3 gün = 3 Eylül
+  //   idare (İYUK 8/3) : 1 Eylül'den itibaren 7 gün = 8 Eylül
+  // İdari yargının bir gün farkı, kanunun "sona erdiği GÜNÜ İZLEYEN tarihten
+  // itibaren" demesinden gelir; diğer ikisi "bittiği GÜNDEN itibaren" der.
   let base = new Date(raw);
   let recessExtended = false;
   if (recess !== 'none' && isInJudicialRecess(raw)) {
     const endOfRecess = new Date(raw.getFullYear(), 7, 31); // 31 Ağustos
-    base = addDays(endOfRecess, recess === 'civil' ? 7 : 3);
+    const sayimBasi = recess === 'idari' ? addDays(endOfRecess, 1) : endOfRecess;
+    base = addDays(sayimBasi, recess === 'criminal' ? 3 : 7);
     recessExtended = true;
   }
 
