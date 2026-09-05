@@ -32,6 +32,13 @@ describe('aiHataMetni', () => {
     expect(aiHataMetni({ error: 'quota_exceeded' }, t)).toBe('ai.errQuota');
   });
 
+  it('kontör bitmesini kotayla karıştırmaz', () => {
+    // Kontör beklemekle gelmez, yükleme gerektirir; "biraz sonra tekrar
+    // deneyin" demek kullanıcıyı boşuna bekletirdi.
+    expect(aiHataMetni({ error: 'kontor_bitti' }, t)).toBe('ai.errKontor');
+    expect(aiHataMetni({ error: 'kontor_bitti', yeniden: 600 }, t)).toBe('ai.errKontor');
+  });
+
   it('bilinmeyen kodda genel hata verir', () => {
     expect(aiHataMetni({ error: 'upstream' }, t)).toBe('ai.errGeneric');
     expect(aiHataMetni({}, t)).toBe('ai.errGeneric');

@@ -44,6 +44,11 @@ const EMBED_MODEL = 'text-embedding-004';
 
 // ── AI maliyet ölçümü + katman tavanı (batma koruması) ──────────────────────
 const USD_TRY = Number(Deno.env.get('VEKIL_USD_TRY') || '42');
+// Bir isteğe başlamak için gereken en az bakiye (TL). Ölçülen maliyetler:
+// sohbet sorusu ~1 TL, dilekçe ~2 TL, mütalaa ~4-5 TL. Eşik en pahalı isteğe
+// göre seçildi: 3 TL bakiyeyle başlatılan bir mütalaa kullanıcıyı eksiye
+// düşürürdü ve bunu ona ancak iş bittikten sonra söyleyebilirdik.
+const KONTOR_ESIGI = Number(Deno.env.get('VEKIL_KONTOR_ESIGI') || '5');
 const PRICING: Record<string, { in: number; out: number }> = {
   'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
   'gemini-2.5-pro': { in: 1.25, out: 10.0 },
@@ -484,6 +489,24 @@ function aiKey(billable: boolean): string | undefined {
  * sayarsak tavan erken devreye girer (kullanıcı biraz erken sınırlanır);
  * az sayarsak para kaybedilir ve bunu ancak fatura gelince görürüz.
  */
+/**
+ * Yanıta eklenen kullanım özeti: bu istek kaç token yedi, kaça mal oldu.
+ *
+ * NEDEN GÖSTERİLİYOR. Kontörle çalışan bir üründe harcamanın gizli kalması,
+ * kullanıcıyı bakiyesi bittiğinde şaşırtır. Token sayısı ücretsiz katmanda da
+ * anlamlı: günlük ortak tavan token üzerinden dolduğu için "uzun soru daha çok
+ * yer kaplar" bilgisi doğrudan işe yarar.
+ */
+function kullanimOzeti(model: string, tin: number, tout: number, maliyet: number) {
+  return {
+    model,
+    girdiToken: tin,
+    ciktiToken: tout,
+    // Kuruş hassasiyeti yeter; daha fazlası ekranda gürültü.
+    maliyetTL: Math.round(maliyet * 100) / 100,
+  };
+}
+
 function costTry(model: string, tin: number, tout: number): number {
   const p = PRICING[model] ?? enPahaliFiyat();
   return ((tin / 1e6) * p.in + (tout / 1e6) * p.out) * USD_TRY;
@@ -517,9 +540,16 @@ async function usageRow(userId: string): Promise<{ calls: number; cost: number }
 function overLimit(cfg: TierCfg, row: { calls: number; cost: number }): boolean {
   return cfg.limitKind === 'cost' ? row.cost >= cfg.limit : row.calls >= cfg.limit;
 }
-async function recordUsage(userId: string, model: string, tin: number, tout: number, billable: boolean): Promise<void> {
+/**
+ * Kullanımı kaydeder ve BU İSTEĞİN maliyetini döndürür.
+ *
+ * Maliyetin döndürülmesi, kullanıcıya "bu soru ne kadar tuttu" diyebilmek için:
+ * kontörle çalışan bir üründe harcamanın gizli kalması, faturanın sonunda
+ * sürpriz olması demektir. Ücretsiz katmanda maliyet sıfırdır ve öyle görünür.
+ */
+async function recordUsage(userId: string, model: string, tin: number, tout: number, billable: boolean): Promise<number> {
   const s = svc();
-  if (!s) return;
+  if (!s) return 0;
   const cost = billable ? costTry(model, tin, tout) : 0;
   const p = aiPeriod();
   const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
@@ -1333,6 +1363,31 @@ Deno.serve(async (req) => {
     }
   }
   const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium);
+
+  // KONTÖR KONTROLÜ — yalnız faturalı katmanda.
+  //
+  // Ücretsiz katman kontöre bakmaz: orada maliyet sıfır, sınır sağlayıcının
+  // günlük tavanı. Faturalı katmanda ise bakiye bitmişse isteği BAŞLAMADAN
+  // reddediyoruz; yarısı üretilmiş bir dilekçeyi bakiye yetmedi diye kesmek
+  // hem parayı hem işi çöpe atardı.
+  //
+  // Eşik sıfır değil: en pahalı istek (mütalaa) birkaç lira tutabiliyor ve
+  // 0,10 TL bakiyeyle başlatılan bir istek kullanıcıyı eksiye düşürürdü.
+  let kontor = 0;
+  if (cfg.billable) {
+    const sk = svc();
+    if (sk) {
+      const r = await sk.from('ai_kontor').select('bakiye_try').eq('user_id', userData.user.id).maybeSingle();
+      kontor = Number((r.data as { bakiye_try?: number } | null)?.bakiye_try ?? 0);
+    }
+    if (kontor < KONTOR_ESIGI) {
+      return new Response(
+        JSON.stringify({ error: 'kontor_bitti', tier, bakiye: Math.round(kontor * 100) / 100, gereken: KONTOR_ESIGI }),
+        { status: 402, headers: CORS }
+      );
+    }
+  }
+
   const urow = await usageRow(userData.user.id);
   if (overLimit(cfg, urow)) {
     return new Response(JSON.stringify({ error: 'quota_exceeded', tier, used: urow.cost, calls: urow.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }), {
@@ -1462,9 +1517,10 @@ Deno.serve(async (req) => {
       if (!text.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
-      await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali);
+      const maliyet = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali);
       return new Response(JSON.stringify({
         text: text.trim(), tier, model: kullanim.model, issues,
+        kullanim: kullanimOzeti(kullanim.model, meter.tin, meter.tout, maliyet),
         // Olayda geçmeyen tarihler: silinmez, işaretlenir (bkz. hesaplananTarihler).
         hesaplananTarih: hesaplananTarihler(text, mutalaaQuestion),
       }), {
@@ -1754,9 +1810,10 @@ async function dosyaKunyesi(
       // tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
       // mekanik denetimde.
       const temiz = uydurmaTarihleriAyikla(govde, promptQuestion);
-      await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali);
+      const maliyet = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali);
       return new Response(
-        JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum }),
+        JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
+          kullanim: kullanimOzeti(kullanilanModel, uin, uout, maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     } catch (e) {
@@ -1853,9 +1910,10 @@ async function dosyaKunyesi(
       // Belgede geçmeyen tarihler ayıklanır: incelemedeki bir tarih, avukat
       // için "bu gün son gün" demektir.
       const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
-      await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali);
+      const maliyet = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali);
       return new Response(
-        JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan }),
+        JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
+          kullanim: kullanimOzeti(kullanilanModel, uin, uout, maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     } catch (e) {
@@ -1977,8 +2035,11 @@ async function dosyaKunyesi(
   if (!text) {
     return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
   }
-  await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali);
-  return new Response(JSON.stringify({ text: text.trim(), tier, model: kullanilanModel }), {
+  const maliyet = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali);
+  return new Response(JSON.stringify({
+    text: text.trim(), tier, model: kullanilanModel,
+    kullanim: kullanimOzeti(kullanilanModel, tin, tout, maliyet),
+  }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
 });

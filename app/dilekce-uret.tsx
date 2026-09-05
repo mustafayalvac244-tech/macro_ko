@@ -8,6 +8,7 @@ import { ComingSoon } from '@/components/ComingSoon';
 import { AI_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
 import { useCases } from '@/hooks/useCases';
+import type { AiKullanim } from '@/hooks/useAiKontor';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
@@ -61,6 +62,10 @@ export default function DilekceUretScreen() {
   // İkisi de yanıtta geliyordu ve kullanılmıyordu.
   const [eksikBolum, setEksikBolum] = useState<string[]>([]);
   const [ayiklanan, setAyiklanan] = useState(0);
+  // Bu isteğin maliyeti. Kontörle çalışan bir üründe harcamanın gizli kalması,
+  // kullanıcıyı bakiyesi bittiğinde şaşırtır; token sayısı ücretsiz katmanda da
+  // anlamlı, çünkü ortak günlük tavan token üzerinden doluyor.
+  const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (!AI_ENABLED) {
@@ -85,7 +90,7 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number } | null;
+      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -93,6 +98,7 @@ export default function DilekceUretScreen() {
       setText(payload.text);
       setEksikBolum(payload.eksikBolum ?? []);
       setAyiklanan(Number(payload.ayiklananTarih ?? 0));
+      setKullanim(payload.kullanim ?? null);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -221,6 +227,13 @@ export default function DilekceUretScreen() {
               {ayiklanan > 0 && (
                 <Text style={styles.warn}>{t('dlk.scrubbedDates', { n: String(ayiklanan) })}</Text>
               )}
+              {!!kullanim && (
+                <Text style={styles.usage}>
+                  {kullanim.maliyetTL > 0
+                    ? t('ai.usageCost', { token: String(kullanim.girdiToken + kullanim.ciktiToken), tl: kullanim.maliyetTL.toFixed(2) })
+                    : t('ai.usageFree', { token: String(kullanim.girdiToken + kullanim.ciktiToken) })}
+                </Text>
+              )}
               <Text style={styles.disclaimer}>{t('dlk.disclaimer')}</Text>
             </View>
           )}
@@ -232,6 +245,12 @@ export default function DilekceUretScreen() {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
+  usage: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
   warn: {
     fontFamily: fonts.semibold,
     fontSize: 12.5,
