@@ -1221,10 +1221,32 @@ Deno.serve(async (req) => {
       });
     }
   }
+/**
+ * Merci satırı türe göre değişir ve yanlış yazmak dilekçeyi yanlış yere
+ * gönderir. Ölçülen arıza: istinaf dilekçesi yalnız ilk derece mahkemesini
+ * yazdı; oysa istinaf, BAM'a hitaben yazılıp kararı veren mahkemeye sunulur.
+ */
+function mahkemeTarifi(tip: string): string {
+  if (tip === 'istinaf')
+    return 'İKİ SATIR: önce "… BÖLGE ADLİYE MAHKEMESİ İLGİLİ HUKUK DAİRESİNE", ' +
+      'altına "Sunulmak üzere … MAHKEMESİ SAYIN HÂKİMLİĞİNE"';
+  if (tip === 'temyiz')
+    return 'İKİ SATIR: önce "YARGITAY İLGİLİ HUKUK DAİRESİNE", altına ' +
+      '"Sunulmak üzere … BÖLGE ADLİYE MAHKEMESİ … HUKUK DAİRESİ BAŞKANLIĞINA"';
+  if (tip === 'itiraz') return 'yalnız icra dairesinin adı (itiraz mahkemeye değil, İCRA DAİRESİNE yapılır)';
+  if (tip === 'ihtarname') return 'noter adı ya da "… NOTERLİĞİNE"';
+  return 'yalnız merci adı (örn. "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ")';
+}
+
 /** Modele hangi blokları yazacağını, iskeletten türeterek söyler. */
 function bloklarTarifi(tip: string): string {
   const i = iskeletSec(tip);
-  const satir = ['###MAHKEME###  (yalnız merci adı)'];
+  const satir = [`###MAHKEME###  (${mahkemeTarifi(tip)})`];
+  satir.push(
+    '###TARAF###  (aşağıdaki etiketlerden OLAYDA GEÇENLERİ "ETİKET: değer" biçiminde yaz; ' +
+      'olayda geçmeyeni HİÇ YAZMA — boşluğu biz koyarız)\n' +
+      i.taraflar.map(([e]) => `        ${e}:`).join('\n')
+  );
   for (const b of i.bolumler) satir.push(`###${b.anahtar}###  (${b.baslik})`);
   satir.push('###KONTROL###  (avukatın denetlemesi gereken boşluklar, süreler, riskler)');
   return satir.join('\n');
@@ -1363,19 +1385,56 @@ function bloklariAyristir(ham: string): Record<string, string> {
   return out;
 }
 
+/**
+ * Etiketi karşılaştırılabilir anahtara indirger. upper()/lower() Türkçe'de
+ * güvenilmez (bkz. 0045); önce ASCII'ye çeviriyoruz.
+ */
+function etiketAnahtari(e: string): string {
+  return e
+    .replace(/[İIıŞşĞğÜüÖöÇç]/g, (c) => ({ 'İ': 'I', 'I': 'I', 'ı': 'I', 'Ş': 'S', 'ş': 'S', 'Ğ': 'G', 'ğ': 'G', 'Ü': 'U', 'ü': 'U', 'Ö': 'O', 'ö': 'O', 'Ç': 'C', 'ç': 'C' })[c] ?? c)
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+/** "###TARAF###" bloğundaki "ETİKET: değer" satırlarını okur. */
+function kunyeAyristir(blok: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const satir of String(blok ?? '').split('\n')) {
+    const i = satir.indexOf(':');
+    if (i <= 0) continue;
+    const deger = satir.slice(i + 1).trim();
+    // Modelin "bilinmiyor" demesi bir değer değildir; kodun boşluğu kalsın.
+    if (!deger || /^(-|yok|bilinmiyor|belirtilmemi)/i.test(deger)) continue;
+    out[etiketAnahtari(satir.slice(0, i))] = deger;
+  }
+  return out;
+}
+
 /** Bölümlerden resmî düzende dilekçe metnini dizer. */
 function dilekceyiDiz(tip: string, bloklar: Record<string, string>): { metin: string; eksik: string[] } {
   const iskelet = iskeletSec(tip);
   const eksik: string[] = [];
   const satirlar: string[] = [];
 
+  // İstinaf/temyizde merci İKİ SATIRDIR ("… BAM … DAİRESİNE" + "Sunulmak üzere
+  // … MAHKEMESİNE"); tek satıra indirgemek dilekçeyi yanlış yere gönderir.
   const mahkeme = (bloklar.MAHKEME ?? '').trim();
-  satirlar.push(mahkeme ? mahkeme.toLocaleUpperCase('tr') : '[MAHKEME/MERCİ — doldurun]');
+  satirlar.push(
+    mahkeme
+      ? mahkeme.split('\n').map((x) => x.trim()).filter(Boolean).join('\n')
+      : '[MAHKEME/MERCİ — doldurun]'
+  );
   satirlar.push('');
 
+  // KÜNYE SATIRLARINI MODEL DE DOLDURABİLİR. İlk sürümde satırlar hep kodun
+  // varsayılan boşluğuyla basılıyordu; olayda "10.06.2026'da tebliğ edildi"
+  // yazmasına rağmen TEBLİĞ TARİHİ satırı "[Tebliğ tarihi]" kalıyordu. Sonuç,
+  // avukatın elinde bildiği bilgileri yeniden yazması gereken bir boşluk
+  // duvarıydı — zaman kazandırmak yerine kaybettiriyordu.
+  const kunye = kunyeAyristir(bloklar.TARAF ?? '');
   const etiketGenislik = Math.max(...iskelet.taraflar.map(([e]) => e.length));
   for (const [etiket, varsayilan] of iskelet.taraflar) {
-    const deger = (bloklar[`TARAF_${etiket.replace(/[^A-ZÇĞİÖŞÜ]/g, '')}`] ?? '').trim() || varsayilan;
+    const deger = (kunye[etiketAnahtari(etiket)] ?? '').trim() || varsayilan;
     satirlar.push(`${etiket.padEnd(etiketGenislik)} : ${deger}`);
   }
   satirlar.push('');
