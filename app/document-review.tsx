@@ -9,6 +9,7 @@ import { ComingSoon } from '@/components/ComingSoon';
 import { AI_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
+import type { AiKullanim } from '@/hooks/useAiKontor';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -36,6 +37,11 @@ export default function DocumentReviewScreen() {
   // ajandasına yazabilir. Kaç tanesinin ayıklandığı, kalanları da denetlemesi
   // gerektiğinin işaretidir.
   const [ayiklanan, setAyiklanan] = useState(0);
+  // Kullanım ve iade — sunucu üç modda da destekliyor.
+  const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
+  const [istekId, setIstekId] = useState<string | null>(null);
+  const [iadeEdildi, setIadeEdildi] = useState(false);
+  const [hakDusulmedi, setHakDusulmedi] = useState(false);
   const [busy, setBusy] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +122,9 @@ export default function DocumentReviewScreen() {
     setBusy(true);
     setError(null);
     setResult('');
+    setIstekId(null);
+    setIadeEdildi(false);
+    setHakDusulmedi(false);
     try {
       // İNCELEME İSTEMİ SUNUCUDA. Burada kurulduğu sürece iki şey mümkün
       // değildi: incelemeyi ölçmek (ölçüm aracı istemi taklit etmek zorunda
@@ -134,7 +143,7 @@ export default function DocumentReviewScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const yanit = data as { text?: string; ayiklananTarih?: number } | null;
+      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean } | null;
       const reply = yanit?.text?.trim();
       if (!reply) {
         setError(t('ai.errGeneric'));
@@ -142,10 +151,24 @@ export default function DocumentReviewScreen() {
       }
       setResult(reply);
       setAyiklanan(Number(yanit?.ayiklananTarih ?? 0));
+      setKullanim(yanit?.kullanim ?? null);
+      setIstekId(yanit?.istekId ?? null);
+      setIadeEdildi(false);
+      setHakDusulmedi(!!yanit?.hakDusulmedi);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const iadeIste = async () => {
+    if (!istekId || iadeEdildi) return;
+    try {
+      await supabase.functions.invoke('ai-chat', { body: { mode: 'iade', istekId, sebep: 'belge' } });
+      setIadeEdildi(true);
+    } catch {
+      // Sessiz: iade edilemediyse kullanıcı tekrar deneyebilir.
     }
   };
 
@@ -234,6 +257,25 @@ export default function DocumentReviewScreen() {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
+  usage: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  refundBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    paddingVertical: 4,
+  },
+  refundText: {
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
   warn: {
     fontFamily: fonts.semibold,
     fontSize: 12.5,

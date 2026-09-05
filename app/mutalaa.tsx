@@ -7,6 +7,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
+import type { AiKullanim } from '@/hooks/useAiKontor';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
@@ -34,6 +35,13 @@ export default function MutalaaScreen() {
   // kendisidir ve silmek özelliğin değerini silmek olurdu. Ama sessizce doğru
   // kabul ettirmek de olmaz — hesaplandığı açıkça yazılır.
   const [hesaplanan, setHesaplanan] = useState<string[]>([]);
+  // Kullanım ve iade: sunucu üç modda da destekliyor, ekranda yalnız dilekçede
+  // vardı. Hakkı yenen kullanıcı ürüne bir daha güvenmez — mütalaa en pahalı
+  // işlem olduğu için burada daha da önemli.
+  const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
+  const [istekId, setIstekId] = useState<string | null>(null);
+  const [iadeEdildi, setIadeEdildi] = useState(false);
+  const [hakDusulmedi, setHakDusulmedi] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsPro, setNeedsPro] = useState(false);
 
@@ -49,6 +57,9 @@ export default function MutalaaScreen() {
     setNeedsPro(false);
     setText('');
     setIssues([]);
+    setIstekId(null);
+    setIadeEdildi(false);
+    setHakDusulmedi(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
         body: { mode: 'mutalaa', question },
@@ -65,7 +76,7 @@ export default function MutalaaScreen() {
         }
         return;
       }
-      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[] } | null;
+      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -73,10 +84,26 @@ export default function MutalaaScreen() {
       setText(payload.text);
       setIssues(payload.issues ?? []);
       setHesaplanan(payload.hesaplananTarih ?? []);
+      setKullanim(payload.kullanim ?? null);
+      setIstekId(payload.istekId ?? null);
+      setIadeEdildi(false);
+      setHakDusulmedi(!!payload.hakDusulmedi);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const iadeIste = async () => {
+    if (!istekId || iadeEdildi) return;
+    try {
+      await supabase.functions.invoke('ai-chat', { body: { mode: 'iade', istekId, sebep: 'mutalaa' } });
+      // "Zaten iade edilmiş" cevabı da kullanıcı için aynı sonuç: hakkı geri
+      // alınmış durumda. Ayrı mesaj gereksiz kafa karışıklığı olurdu.
+      setIadeEdildi(true);
+    } catch {
+      // Sessiz: iade edilemediyse kullanıcı tekrar deneyebilir.
     }
   };
 
@@ -159,6 +186,26 @@ export default function MutalaaScreen() {
                 <Text style={styles.dateWarn}>
                   {t('mut.calcDates', { tarihler: hesaplanan.join(', ') })}
                 </Text>
+              )}
+              {!!kullanim && (
+                <Text style={styles.usage}>
+                  {kullanim.maliyetTL > 0
+                    ? t('ai.usageCost', { token: String(kullanim.girdiToken + kullanim.ciktiToken), tl: kullanim.maliyetTL.toFixed(2) })
+                    : t('ai.usageFree', { token: String(kullanim.girdiToken + kullanim.ciktiToken) })}
+                </Text>
+              )}
+              {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
+              {!!istekId && !hakDusulmedi && (
+                <Pressable onPress={iadeIste} disabled={iadeEdildi} hitSlop={6} style={styles.refundBtn}>
+                  <Ionicons
+                    name={iadeEdildi ? 'checkmark-circle-outline' : 'thumbs-down-outline'}
+                    size={15}
+                    color={iadeEdildi ? colors.success : colors.textMuted}
+                  />
+                  <Text style={[styles.refundText, iadeEdildi && { color: colors.success }]}>
+                    {iadeEdildi ? t('ai.refunded') : t('ai.notUseful')}
+                  </Text>
+                </Pressable>
               )}
               <Text style={styles.disclaimer}>{t('mut.disclaimer')}</Text>
             </View>
@@ -277,6 +324,25 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.danger,
     flex: 1,
     lineHeight: 18,
+  },
+  usage: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  refundBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    paddingVertical: 4,
+  },
+  refundText: {
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+    color: colors.textMuted,
   },
   dateWarn: {
     fontFamily: fonts.semibold,
