@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
+import { aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 
 /** Bir sohbet balonu. `model` = AI yanıtı, `user` = avukatın sorusu. */
@@ -215,18 +216,11 @@ export function useAiChat() {
   // Geriye dönük uyumluluk: eski `reset` = yeni sohbet.
   const reset = newChat;
 
-  const errorText =
-    error === 'rate_limit'
-      ? t('ai.errRateLimit')
-      : error === 'daily_quota'
-        ? yeniden && yeniden < 6 * 3600
-          ? t('ai.errQuotaWait', { dk: String(Math.max(1, Math.ceil(yeniden / 60))) })
-          : t('ai.errDailyQuota')
-        : error === 'quota_exceeded'
-          ? t('ai.errQuota')
-          : error === 'generic'
-            ? t('ai.errGeneric')
-            : null;
+  // Metin ORTAK yardımcıdan geliyor (src/lib/aiHata.ts). Burada ayrı yazıldığı
+  // sürece bir yerde düzeltilen şey ötekinde eksik kalıyordu: "kaç dakika
+  // sonra" bilgisi eklendiğinde bu dosyada daily_quota'ya konmuş, rate_limit
+  // dalında unutulmuştu.
+  const errorText = error ? aiHataMetni({ error, yeniden: yeniden ?? undefined }, t) : null;
 
   return {
     messages,
