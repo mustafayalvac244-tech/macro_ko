@@ -24,6 +24,11 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gecer, sadelestir } from './eslestir.mjs';
+// Tarih/tutar ayıklayıcıları AYRI MODÜLDE ve TESTLİ: bu denetim, ölçümün en
+// ağır kararını veriyor ("bu taslakta uydurma veri var"). Buradan taşınırken
+// gerçek bir kör nokta çıktı: kuruşlu yazılan tutar ("36.000,00 TL") hiç
+// eşleşmiyordu, yani resmî dilekçe dilindeki tutarların çoğu denetlenmiyordu.
+import { mesruTutarlar, tarihler, tutarlar } from './uydurma.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -103,30 +108,6 @@ async function uret(jwt, tip, olay, deneme = 0) {
   return String(j?.text ?? '');
 }
 
-/** Metindeki tarihleri tek biçime indirger: 01.02.2026 / 1/2/2026 / 2026-02-01 */
-function tarihler(metin) {
-  const bulunan = new Set();
-  const d = String(metin ?? '');
-  for (const m of d.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) {
-    bulunan.add(`${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`);
-  }
-  for (const m of d.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) bulunan.add(`${m[1]}-${m[2]}-${m[3]}`);
-  return bulunan;
-}
-
-/**
- * Metindeki para tutarları (sayı olarak). "12.000 TL", "12 000 TL", "36.000,00 TL".
- * Yalnız TL/₺ ile birlikte geçenler alınır; madde numarası ya da yıl sayılmasın.
- */
-function tutarlar(metin) {
-  const bulunan = new Set();
-  for (const m of String(metin ?? '').matchAll(/([\d][\d.\s ]*\d|\d)\s*(?:TL|₺|Türk Lirası)/gi)) {
-    const sayi = Number(String(m[1]).replace(/[.\s ]/g, ''));
-    if (Number.isFinite(sayi) && sayi > 0) bulunan.add(sayi);
-  }
-  return bulunan;
-}
-
 const { senaryolar } = JSON.parse(readFileSync(join(__dirname, 'dilekce-senaryolari.json'), 'utf8'));
 
 let uid = null;
@@ -169,8 +150,7 @@ try {
     const olayTutar = tutarlar(s.olay);
     // Toplamlar meşrudur (3 × 12.000 = 36.000); olaydaki tutarların katları
     // ve toplamları uydurma sayılmaz.
-    const mesruTutar = new Set(olayTutar);
-    for (const a of olayTutar) for (let k = 2; k <= 24; k++) mesruTutar.add(a * k);
+    const mesruTutar = mesruTutarlar(olayTutar);
     const uydurmaTutar = [...tutarlar(taslak)].filter((t) => !mesruTutar.has(t));
 
     const bosluk = (taslak.match(/\[[^\]]{2,40}\]/g) ?? []).length;

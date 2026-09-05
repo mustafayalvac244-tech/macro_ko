@@ -1,0 +1,65 @@
+{
+ "_aciklama": "MÜTALAA ölçüm senaryoları. Mütalaa, dilekçeden farklı bir işi yapar: avukat henüz ne yapacağına KARAR VERMEMİŞTİR ve karar için hukuki durumun, risklerin ve sürelerin dökümünü ister. Bu yüzden ölçüt de farklıdır: biçim değil, KARAR VERDİREN İÇERİK aranır — hangi süre işliyor, karşı taraf ne der, hangi adım önce atılır. 'kacirilmamali' alanı, o olayda gözden kaçarsa hak kaybı doğuran unsurdur.",
+ "senaryolar": [
+  {
+   "id": "ise-iade-suresi",
+   "olay": "Müvekkil 6 yıldır çalıştığı fabrikadan 14.04.2026 tarihinde 'performans düşüklüğü' gerekçesiyle yazılı bildirimle çıkarıldı. İşyerinde 60 işçi var, müvekkil sendika üyesi değil. Savunması alınmamış. Bugün 20.04.2026. Ne yapabiliriz?",
+   "kacirilmamali": [
+    "re:bir ay|1 ay|otuz gün|30 gün",
+    "re:arabulucu",
+    "re:işe iade|ise iade",
+    "re:savunma"
+   ],
+   "olmamali": [],
+   "notlar": "İşK m.20 ve İşMK m.3: fesih bildiriminden itibaren BİR AY içinde arabulucuya başvuru; işe iade davası öncesi arabuluculuk dava şartıdır. İşK m.19: savunma alınmadan performans/davranış gerekçesiyle fesih geçersizdir. Otuz işçi ve altı ay kıdem şartı sağlanıyor."
+  },
+  {
+   "id": "trafik-kazasi-zamanasimi",
+   "olay": "Müvekkil 12.06.2024'te bir trafik kazasında yaralandı, karşı sürücü alkollüydü ve hakkında ceza davası açıldı, dava sürüyor. Şimdiye kadar tazminat talebinde bulunmadık. Sigortadan da bir şey almadık. Zamanaşımı doldu mu, ne yapmalıyız?",
+   "kacirilmamali": [
+    "re:zamanaşım",
+    "re:ceza zamanaşım|uzamış zamanaşım|daha uzun",
+    "re:sigorta|zorunlu mali",
+    "re:iki yıl|2 yıl"
+   ],
+   "olmamali": [],
+   "notlar": "TBK m.72: haksız fiilde iki/on yıl; fiil aynı zamanda suç ise CEZA zamanaşımı uygulanır (daha uzun olduğu için). Ceza davasının sürüyor olması bu yüzden kritik. KTK m.109 aynı yönde."
+  },
+  {
+   "id": "kira-tahliye-secenekler",
+   "olay": "Müvekkil kiraya veren. Kiracı son bir yılda iki kez kira ödemesini geciktirdi, ikisi için de noterden ihtar çektik. Kira sözleşmesi 5 yıldır sürüyor. Müvekkil kiracıyı çıkarmak istiyor. Hangi yol daha sağlam?",
+   "kacirilmamali": [
+    "re:iki haklı ihtar|2 haklı ihtar",
+    "re:tahliye",
+    "re:bir ay|1 ay",
+    "re:kira dönemi|kira yılı|izleyen kira"
+   ],
+   "olmamali": [],
+   "notlar": "TBK m.352/2: bir kira yılı içinde iki haklı ihtar → kira yılının bitiminden itibaren BİR AY içinde tahliye davası. Süre kaçarsa hak düşer."
+  },
+  {
+   "id": "odeme-emri-yol-secimi",
+   "olay": "Müvekkile bonoya dayalı kambiyo takibi yapılmış, ödeme emri 02.03.2026'da tebliğ edilmiş. Müvekkil bonodaki imzanın kendisine ait olmadığını söylüyor. Bugün 05.03.2026. Ne yapmalıyız, süremiz var mı?",
+   "kacirilmamali": [
+    "re:beş gün|5 gün",
+    "re:icra mahkemesi",
+    "re:imza",
+    "re:durdurmaz|satıştan başka"
+   ],
+   "olmamali": ["re:yedi gün|7 gün"],
+   "notlar": "Kambiyo takibinde süre BEŞ GÜN ve merci İCRA MAHKEMESİDİR (İİK m.168); imzaya itiraz m.170. İtiraz, satış dışındaki takip işlemlerini DURDURMAZ (m.169). Genel haciz yolunun yedi günü ile karıştırılırsa hak kaybı doğar."
+  },
+  {
+   "id": "idari-islem-iptal",
+   "olay": "Müvekkile idari para cezası verildi, karar 01.08.2026'da tebliğ edildi. Ağustos ayında adli tatil var. İptal davası açmayı düşünüyoruz. Süremiz ne zaman doluyor, nasıl ilerleyelim?",
+   "kacirilmamali": [
+    "re:altmış gün|60 gün",
+    "re:adli tatil|çalışmaya ara",
+    "re:idare mahkemesi|idari yargı",
+    "re:yürütmenin durdurulması|yürütmeyi durdurma"
+   ],
+   "olmamali": [],
+   "notlar": "İYUK m.7: altmış gün. İYUK m.61-8: adli tatilde biten süre, tatilin bittiği günü izleyen tarihten itibaren YEDİ GÜN uzar (hukuk yargılamasındaki sayımdan farklıdır)."
+  }
+ ]
+}
