@@ -61,6 +61,16 @@ describe('iskeletSec', () => {
     }
   });
 
+  it('dava dilekçesinde davalıya TCKN boşluğu konmaz, cevapta konur', () => {
+    // HMK m.119/1-b taraflar için yalnız ad-soyad ve adres arar; kimlik
+    // numarasını (c bendi) SADECE DAVACI için ister. Cevap dilekçesinde ise
+    // m.129/1-c DAVALININ kimlik numarasını ister — orada yerinde.
+    const davaDavali = iskeletSec('dava').taraflar.find(([e]) => e === 'DAVALI')?.[1] ?? '';
+    expect(davaDavali).not.toContain('TCKN');
+    const cevapDavali = iskeletSec('cevap').taraflar.find(([e]) => e === 'DAVALI')?.[1] ?? '';
+    expect(cevapDavali).toContain('TCKN');
+  });
+
   it('tanınmayan tür dava iskeletine düşer', () => {
     expect(iskeletSec('bilinmeyen')).toBe(iskeletSec('dava'));
   });

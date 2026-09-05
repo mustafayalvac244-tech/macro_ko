@@ -82,10 +82,15 @@ export const ORTAK_SON: DilekceBolum[] = [
   { anahtar: 'TALEP', baslik: 'NETİCE-İ TALEP', zorunlu: true, bosluk: '[Netice-i talep — doldurun]' },
 ];
 
+// DAVALININ KİMLİK NUMARASI ZORUNLU DEĞİLDİR. HMK m.119/1-b taraflar için
+// yalnız "adı, soyadı ve adresleri"ni arar; kimlik numarasını (c bendi)
+// SADECE DAVACI için ister. Davalı satırına da TCKN boşluğu koymak, kanunun
+// istemediği bir bilgiyi eksikmiş gibi gösteriyordu: taslak olduğundan daha
+// yarım görünüyor ve avukat bulamayacağı bir numarayı arıyordu.
 export const DAVA_TARAF: Array<[string, string]> = [
   ['DAVACI', '[Davacı ad-soyad] — T.C. [Davacı TCKN] — [Davacı adres]'],
   ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
-  ['DAVALI', '[Davalı ad-soyad] — T.C. [Davalı TCKN] — [Davalı adres]'],
+  ['DAVALI', '[Davalı ad-soyad] — [Davalı adres]'],
 ];
 
 export const DILEKCE_ISKELET: Record<string, DilekceIskelet> = {
