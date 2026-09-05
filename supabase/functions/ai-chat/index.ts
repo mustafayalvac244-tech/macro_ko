@@ -48,7 +48,19 @@ const USD_TRY = Number(Deno.env.get('VEKIL_USD_TRY') || '42');
 // sohbet sorusu ~1 TL, dilekçe ~2 TL, mütalaa ~4-5 TL. Eşik en pahalı isteğe
 // göre seçildi: 3 TL bakiyeyle başlatılan bir mütalaa kullanıcıyı eksiye
 // düşürürdü ve bunu ona ancak iş bittikten sonra söyleyebilirdik.
-const KONTOR_ESIGI = Number(Deno.env.get('VEKIL_KONTOR_ESIGI') || '5');
+// KÂR KATSAYISI. İş kuralı: her istekte bir birim sağlayıcıya gider, iki birim
+// kâr kalır — yani kullanıcıdan alınan ücret, bize mal olanın ÜÇ KATI (marj
+// %66,7). Katsayı env ile değiştirilebilir; fiyat kararı koda gömülü kalmasın.
+//
+// Ölçülen maliyetler ve karşılık gelen ücretler (Sonnet 5, 1 USD = 42 TL):
+//   sohbet sorusu ~1,00 TL → 3,00 TL     dilekçe ~1,90 TL → 5,70 TL
+//   belge inceleme ~1,30 TL → 3,90 TL    mütalaa ~4,50 TL → 13,50 TL
+const KAR_KATSAYISI = Number(Deno.env.get('VEKIL_KAR_KATSAYISI') || '3');
+// Bir isteğe başlamak için gereken en az bakiye (TL). En pahalı istek mütalaa:
+// ücreti ~13,50 TL. Eşik onun üstünde tutuluyor ki yarım kalan bir mütalaa
+// yüzünden kullanıcı eksiye düşmesin ve bunu ona iş bittikten sonra söylemek
+// zorunda kalmayalım.
+const KONTOR_ESIGI = Number(Deno.env.get('VEKIL_KONTOR_ESIGI') || '15');
 const PRICING: Record<string, { in: number; out: number }> = {
   'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
   'gemini-2.5-pro': { in: 1.25, out: 10.0 },
@@ -617,6 +629,10 @@ async function recordUsage(
   const s = svc();
   if (!s) return { maliyet: 0, istekId: null };
   const cost = billable ? costTry(model, tin, tout) : 0;
+  // ÜCRET, MALİYET DEĞİLDİR. Kontörden düşen tutar satıştır; maliyet gider
+  // defterine yazılır. İkisini tek sayıya indirgemek, "ne kazandık" sorusunu
+  // cevaplanamaz hâle getirir ve iadede yanlış tutar geri verilir.
+  const ucret = cost > 0 ? Math.round(cost * KAR_KATSAYISI * 100) / 100 : 0;
   const p = aiPeriod();
   const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
   const prev = data as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
