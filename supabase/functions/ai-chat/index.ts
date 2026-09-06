@@ -552,7 +552,13 @@ async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ 
 function kusurluCikti(mod: 'dilekce' | 'mutalaa' | 'belge' | 'sohbet', metin: string, eksikBolum: string[] = []): boolean {
   const n = metin.trim().length;
   if (eksikBolum.length > 0) return true;
-  if (mod === 'dilekce') return n < 800;
+  // DİLEKÇE EŞİĞİ 800'DEN 1.200'E ÇIKARILDI. Ölçümde bilirkişi raporuna itiraz
+  // dilekçesi 825 KARAKTERDE bitti: eşiğin hemen üstünde kaldığı için "çalışan
+  // cevap" sayıldı ve kullanıcının hakkından düşülecekti. Aynı koşuda çalışan
+  // taslaklar 1.396-3.765 karakter arasındaydı; 825, en kısa çalışan dilekçenin
+  // bile yarısı değil. 800 eşiği, ölçülen tek bir örneğe (806 karakterlik bir
+  // cevap dilekçesi) göre konmuştu ve fazla iyimserdi.
+  if (mod === 'dilekce') return n < 1200;
   if (mod === 'mutalaa') return n < 800;
   if (mod === 'belge') return n < 400;
   return false; // sohbette kısa cevap doğru olabilir; boş cevap zaten 502 döner

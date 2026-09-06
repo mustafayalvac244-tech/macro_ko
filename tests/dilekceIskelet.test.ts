@@ -5,6 +5,7 @@ import {
   dilekceyiDiz,
   hesaplananTarihler,
   iskeletSec,
+  merciDiz,
   talepTarifi,
   talepUyarilari,
   uydurmaTarihleriAyikla,
@@ -225,6 +226,9 @@ describe('talepTarifi', () => {
     istinaf: 'İstinaf başvurumuzun kabulü ile kararın KALDIRILMASINA ve davanın kabulüne karar verilmesini talep ederiz.',
     temyiz: 'Temyiz itirazlarımızın kabulü ile kararın BOZULMASINA karar verilmesini talep ederiz.',
     itiraz: 'Takibe konu borca ve faize İTİRAZ EDİYORUZ; takibin durdurulmasını talep ederiz.',
+    cevap: 'Haksız davanın REDDİNE, yargılama gideri ve vekâlet ücretinin davacıya yükletilmesine karar verilmesini talep ederiz.',
+    duplik: 'Davanın REDDİNE, yargılama gideri ve vekâlet ücretinin davacıya yükletilmesine karar verilmesini talep ederiz.',
+    bilirkisi: 'Rapora itirazlarımız doğrultusunda EK RAPOR alınmasına karar verilmesini talep ederiz.',
   };
 
   it('talimata uyan talep, denetimden uyarısız geçer', () => {
@@ -249,6 +253,52 @@ describe('talepTarifi', () => {
     expect(istinaf).toContain('KALDIRILMASINA');
     expect(bloklarTarifi('temyiz')).toContain('BOZULMASINA');
     // Kuralı olmayan türün tarifi kirlenmemeli.
+    expect(bloklarTarifi('duplik')).toContain('REDDİNE');
+    expect(bloklarTarifi('bilirkisi')).toContain('EK RAPOR');
+    // Kuralı olmayan türün tarifi kirlenmemeli.
     expect(bloklarTarifi('dava')).toContain('###TALEP###  (NETİCE-İ TALEP)');
+  });
+});
+
+/**
+ * MERCİ SATIRI — kanun yolunda dilekçenin nereye gideceğini belirler.
+ *
+ * Ölçülen arıza: istinaf dilekçesi merci satırına yalnız ilk derece mahkemesini
+ * yazdı, "BÖLGE ADLİYE MAHKEMESİ" hiç geçmedi. Tek satıra indirgenmiş merci,
+ * dilekçeyi yanlış yere gönderir. Talimat bunu söylüyordu; model tutmadı.
+ */
+describe('merciDiz', () => {
+  it('istinafta BAM satırı yoksa ekler ve modelin yazdığını alta taşır', () => {
+    // Model oraya kararı VEREN mahkemeyi yazıyor: bilgi doğru, yeri yanlış.
+    const c = merciDiz('istinaf', 'ANKARA 5. İŞ MAHKEMESİ SAYIN HÂKİMLİĞİNE');
+    expect(c.split('\n')).toHaveLength(2);
+    expect(c).toContain('BÖLGE ADLİYE');
+    expect(c).toContain('Sunulmak üzere ANKARA 5. İŞ MAHKEMESİ SAYIN HÂKİMLİĞİNE');
+  });
+
+  it('istinafta iki satır doğruysa dokunmaz', () => {
+    const dogru = 'ANKARA BÖLGE ADLİYE MAHKEMESİ 7. HUKUK DAİRESİNE\nSunulmak üzere ANKARA 5. İŞ MAHKEMESİNE';
+    expect(merciDiz('istinaf', dogru)).toBe(dogru);
+  });
+
+  it('istinafta tek satır BAM ise ikinci satır boşluğu konur', () => {
+    const c = merciDiz('istinaf', 'ANKARA BÖLGE ADLİYE MAHKEMESİ 7. HUKUK DAİRESİNE');
+    expect(c.split('\n')).toHaveLength(2);
+    expect(c.split('\n')[1]).toContain('Sunulmak üzere');
+  });
+
+  it('temyizde Yargıtay aranır', () => {
+    const c = merciDiz('temyiz', 'İZMİR BÖLGE ADLİYE MAHKEMESİ 3. HUKUK DAİRESİNE');
+    expect(c).toContain('YARGITAY');
+    expect(c).toContain('Sunulmak üzere İZMİR BÖLGE ADLİYE MAHKEMESİ 3. HUKUK DAİRESİNE');
+  });
+
+  it('boş merci boşluk üretir, kanun yolunda iki satırlı', () => {
+    expect(merciDiz('dava', '')).toBe('[MAHKEME/MERCİ — doldurun]');
+    expect(merciDiz('istinaf', '').split('\n')).toHaveLength(2);
+  });
+
+  it('kanun yolu dışındaki türlerde satırı olduğu gibi bırakır', () => {
+    expect(merciDiz('dava', '  ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİNE  ')).toBe('ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİNE');
   });
 });

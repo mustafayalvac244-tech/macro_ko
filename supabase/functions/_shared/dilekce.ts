@@ -60,7 +60,62 @@ export function talepTarifi(tip: string): string | null {
   if (tip === 'itiraz')
     return 'AÇIK İTİRAZ BEYANI ŞART: "…borca/imzaya/faize İTİRAZ EDİYORUZ" cümlesi ' +
       'birebir geçmeli; icra dairesi itirazı sebebine göre kaydeder, dolaylı anlatım yetmez';
+  // DAVALI DİLEKÇESİNDE TALEP "REDDİ"DİR. Ölçülen arıza: düplik dilekçesi
+  // savunmayı yazdı ama netice-i talepte davanın reddini hiç istemedi. Hâkim
+  // taleple bağlıdır (HMK m.26); istenmeyen şeye hükmedilmez.
+  if (tip === 'cevap' || tip === 'duplik')
+    return 'ZORUNLU KALIP: "…davanın REDDİNE" (haksız da olsa istenmeyen şeye hükmedilmez, HMK m.26). ' +
+      'Yargılama gideri ve vekâlet ücreti talebi de eklenmeli';
+  // RAPORA İTİRAZDA NE İSTENDİĞİ YAZILMALI. Ölçülen arıza: itiraz sebepleri
+  // sayıldı ama hiçbir şey talep edilmedi — mahkemenin ne yapacağı belirsiz
+  // kaldı. HMK m.281 raporun tamamlattırılmasını ya da yeni bilirkişi
+  // incelemesini istemeye izin verir; talepsiz itiraz sonuç doğurmaz.
+  if (tip === 'bilirkisi')
+    return 'NE İSTENDİĞİ AÇIKÇA YAZILMALI: EK RAPOR alınması, YENİ BİLİRKİŞİ ' +
+      'incelemesi ya da raporun YENİDEN İNCELENMESİ (HMK m.281). Yalnız itiraz ' +
+      'sebeplerini saymak yetmez';
   return null;
+}
+
+/**
+ * KANUN YOLU DİLEKÇESİNDE MERCİ SATIRINI KOD GARANTİ EDER.
+ *
+ * ÖLÇÜLEN ARIZA: istinaf dilekçesi merci satırına yalnız ilk derece mahkemesini
+ * yazdı; "BÖLGE ADLİYE MAHKEMESİ" hiç geçmedi. Oysa istinaf BAM'a hitaben
+ * yazılır ve kararı veren mahkemeye sunulur — tek satıra indirgenmiş bir merci,
+ * dilekçeyi YANLIŞ YERE gönderir. Talimat bunu söylüyordu (mahkemeTarifi) ama
+ * model tutmadı; iskeletin geri kalanında olduğu gibi burada da son söz kodun.
+ *
+ * Modelin yazdığı atılmaz: doğru merci zaten varsa olduğu gibi kalır, yoksa
+ * modelin satırı "Sunulmak üzere" satırına taşınır — çünkü model oraya
+ * genellikle kararı VEREN mahkemeyi yazıyor ve o bilgi doğrudur, yeri yanlıştır.
+ */
+export function merciDiz(tip: string, mahkeme: string): string {
+  const satir = String(mahkeme ?? '').split('\n').map((x) => x.trim()).filter(Boolean);
+  const hepsi = satir.join('\n');
+  const sade = hepsi.toLocaleLowerCase('tr');
+
+  if (tip === 'istinaf' || tip === 'temyiz') {
+    const ustMerci = tip === 'istinaf'
+      ? { ara: ['bölge adliye', 'bam'], bosluk: '[… BÖLGE ADLİYE MAHKEMESİ İLGİLİ HUKUK DAİRESİNE — doldurun]' }
+      : { ara: ['yargıtay'], bosluk: '[YARGITAY İLGİLİ HUKUK DAİRESİNE — doldurun]' };
+    const altBosluk = tip === 'istinaf'
+      ? 'Sunulmak üzere [… MAHKEMESİ SAYIN HÂKİMLİĞİNE — doldurun]'
+      : 'Sunulmak üzere [… BÖLGE ADLİYE MAHKEMESİ … HUKUK DAİRESİ BAŞKANLIĞINA — doldurun]';
+
+    if (ustMerci.ara.some((a) => sade.includes(a))) {
+      // Üst merci yazılmış; ikinci satır da varsa dokunma.
+      if (satir.length > 1 || sade.includes('sunulmak üzere')) return hepsi;
+      return `${satir[0]}\n${altBosluk}`;
+    }
+    // Üst merci yok: modelin yazdığı (varsa) alt satıra taşınır.
+    const alt = satir.length
+      ? `Sunulmak üzere ${satir.join(' ')}`
+      : altBosluk;
+    return `${ustMerci.bosluk}\n${alt}`;
+  }
+
+  return hepsi || '[MAHKEME/MERCİ — doldurun]';
 }
 
 /** Modele hangi blokları yazacağını, iskeletten türeterek söyler. */
@@ -408,11 +463,7 @@ export function dilekceyiDiz(
   // Doğrudan yazmak, dilekçeyi yanlış yere gönderirdi.
   const dosyaMerci = tip === 'istinaf' || tip === 'temyiz' ? '' : (dosya.MAHKEME ?? '').trim();
   const mahkeme = dosyaMerci || (bloklar.MAHKEME ?? '').trim();
-  satirlar.push(
-    mahkeme
-      ? mahkeme.split('\n').map((x) => x.trim()).filter(Boolean).join('\n')
-      : '[MAHKEME/MERCİ — doldurun]'
-  );
+  satirlar.push(merciDiz(tip, mahkeme));
   satirlar.push('');
 
   // KÜNYE SATIRLARINI MODEL DE DOLDURABİLİR. İlk sürümde satırlar hep kodun
@@ -562,6 +613,14 @@ export function talepUyarilari(tip: string, metin: string): string[] {
   if (tip === 'itiraz' && !gecer('itiraz ediyoruz', 'itiraz etmekteyiz', 'itiraz olunur', 'itirazımızın')) {
     // İcra dairesi itirazı SEBEBİNE göre kaydeder; dolaylı anlatım yetmez.
     uyari.push('İtiraz dilekçesinde açık itiraz beyanı ("itiraz ediyoruz") yok');
+  }
+  if ((tip === 'cevap' || tip === 'duplik') && !gecer('reddi', 'reddine', 'reddedilmesi')) {
+    // Ölçülen arıza: düplik savunmayı yazdı, davanın reddini hiç istemedi.
+    uyari.push('Davalı dilekçesinde "davanın reddi" talebi yok');
+  }
+  if (tip === 'bilirkisi' && !gecer('ek rapor', 'yeni bilirkişi', 'yeniden inceleme', 'yeniden incelenmesi')) {
+    // Talepsiz itiraz sonuç doğurmaz: mahkemenin ne yapacağı belirsiz kalır.
+    uyari.push('Rapora itirazda ne istendiği yazılmamış (ek rapor / yeni bilirkişi / yeniden inceleme)');
   }
   return uyari;
 }

@@ -57,7 +57,12 @@ from (values
   -- geçirtir.
   ('odeme_emrine_itiraz',            array['icra daire']),
   -- Tek kullanımlık hak: ikinci kez ıslah yoktur.
-  ('islah_bir_kez',                  array['bir kez|bir defa|yalnız bir'])
+  ('islah_bir_kez',                  array['bir kez|bir defa|yalnız bir']),
+  -- DEF'İ, cevap dilekçesinde İLERİ SÜRÜLMEZSE kaybedilir: zamanaşımı gibi
+  -- def'iler hâkim tarafından resen dikkate alınmaz ve sonradan ileri sürmek
+  -- savunmanın genişletilmesi yasağına takılır. Ölçümde cevap dilekçesi bu
+  -- ayrımı hiç kurmadan yazıldı.
+  ('cevap_dilekcesi',                array['def''i|defi'])
 ) as t(id, terimler)
 where legal_rules.id = t.id;
 
