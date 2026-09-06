@@ -1,20 +1,22 @@
 {
- "tarih": "2026-09-06T17:33:41.719Z",
+ "tarih": "2026-09-06T18:41:32.278Z",
  "olculenSenaryolar": [
-  "dava-kira-tahliye"
+  "cevap-kismi-odeme"
  ],
  "kusurlu": [
   {
-   "id": "dava-kira-tahliye",
-   "tip": "dava",
+   "id": "cevap-kismi-odeme",
+   "tip": "cevap",
    "model": "openai/gpt-oss-120b",
-   "eksik": [],
-   "yasak": [
-    "re:352|iki haklı ihtar|iki hakli ihtar"
+   "eksik": [
+    "re:davanın reddi"
    ],
+   "yasak": [],
    "uydurmaTarih": [],
-   "uydurmaTutar": [],
-   "taslak": "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ\n\nDAVACI : [Müvekkilin Adı Soyadı]\nVEKİLİ : Av. [Avukat Adı Soyadı]\nDAVALI : [Kiracı Adı Soyadı]\n\nKONU\nKira sözleşmesinin ihlali nedeniyle tahliye ve birikmiş kira alacağının tahsili\n\nHARCA ESAS DAVA DEĞERİ\n36.000 TL\n\nAÇIKLAMALAR\n1. Davacı, Ankara’da bulunan dairesini aylık 12.000 TL kira bedeli karşılığında kiracıya kiralamıştır (kira sözleşmesi ek‑1).  \n2. Kiracı, 2026 yılı Mart, Nisan ve Mayıs aylarına ait kira bedellerini ödememiştir (ödeme yokluğu belge ek‑2).  \n3. Davacı, kiracıya 30 gün süreli, yazılı iki haklı ihtarname (TBK m.352/2) göndermiş, ihtarname tebligat makbuzu ek‑3’te sunulmuştur.  \n4. İhtar süresi sonunda da kiracı ödeme yapmadığı için, TBK m.315 uyarınca temerrüt gerçekleşmiş ve tahliye davası açma hakkı doğmuştur.\n\nHUKUKİ SEBEPLER\n- Türk Borçlar Kanunu’nun kira sözleşmesi hükümleri (madde numarasını teyit edin).  \n- Türk Borçlar Kanunu m.315 (temerrüt ve sözleşmenin feshi).  \n- Türk Borçlar Kanunu m.352/2 (iki haklı ihtar şartı).  \n- Hukuk Muhakemeleri Kanunu m.4/1‑a (kira uyuşmazlıklarının Sulh Hukuk Mahkemesinde görülmesi).  \n- Hukuk Muhakemeleri Kanunu m.119 (dava dilekçesi unsurları).\n\nDELİLLER\n1. Kira sözleşmesi (ek‑1).  \n2. Ödeme yokluğu banka dekontları (ek‑2).  \n3. İki haklı ihtarname örnekleri (ek‑3).  \n4. İhtarname tebligat makbuzu (ek‑4).  \n5. Tanık beyanları (varsa, ek‑5).\n\nNETİCE-İ TALEP\n1. Kiracının daireyi tahliye etmesi.  \n2. Birikmiş kira alacağı 36.000 TL’nin ödenmesi.  \n3. Gecikme faizi, yasal faiz oranı üzerinden, kira alacağının vadesinden tahsil tarihine kadar hesaplanarak ödenmesi.  \n4. Yargılama giderlerinin davalı tarafından karşılanması.  \n5. Vekalet ücretinin davalıdan tahsil edilmesi.\n\nSaygılarımla,\nDavacı Vekili\nAv. [Vekil ad-soyad]\n\n⚠️ KONTROL LİSTESİ\n- Dava değerinin (36.000 TL) doğru hesaplandığının teyidi.  \n- Kiracının tam adı, TC kimlik numarası ve adresinin eksiksiz girilmesi.  \n- Kira sözleşmesinin imza tarihi ve süresinin doğruluğu.  \n- İhtarname tarihleri, tebligat tarihleri ve 30 günlük sürenin doğru şekilde hesaplanması.  \n- Yasal faiz oranının güncel mevzuata uygun olarak belirlenmesi.  \n- Yargılama gideri ve vekalet ücreti tutarlarının uygunluğu.  \n- Sulh Hukuk Mahkemesinin görevliliğinin HMK m.4/1‑a’dan teyit edilmesi."
+   "uydurmaTutar": [
+    30000
+   ],
+   "taslak": "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ [kontrol edin]\n\nDAVACI  : [Davacı Adı Soyadı]\nDAVALI  : [Müvekkil Adı Soyadı]\nVEKİLİ  : Av. [Vekil Adı Soyadı]\nESAS NO : [Esas No]\n\nKONU\nDavacının 50.000 TL alacak talebine ilişkin cevap dilekçesi\n\nUSULE İLİŞKİN İTİRAZLAR\nİlk itiraz yoktur; yetki ve usul itirazı bulunmamaktadır.\n\nAÇIKLAMALAR VE ESASA CEVAPLARIMIZ\n1‑ Davacının 20.000 TL tutarındaki ödeme talebi kabul edilmekte, müvekkilimiz tarafından 2020/01/15 tarihinde ödenmiş olup, ödeme dekontu ekte sunulmaktadır.  \n2‑ Davacının kalan 30.000 TL tutarındaki alacak talebi reddedilmektedir; söz konusu tutarın borç ilişkisinde hiç ödenmediği ve mevcut olmadığı iddiası ileri sürülmekte, bu husus için delil sunulmaktadır.\n\nHUKUKİ SEBEPLER\n- Türk Borçlar Kanunu’nun borcun ifası ve temerrüt hükümleri (madde 115 ve devamı) – borcun tam olarak ifa edilmediği sürece alacağın doğmadığı.  \n- Türk Borçlar Kanunu’nun kısmi ödeme kabulü ve borcun kalan kısmının yeniden talep edilebilmesi hükümleri.  \n- Türk Medeni Kanunu’nun (TMK) 115‑118 maddeleri çerçevesinde borçlu tarafından ifa edilmemiş kısmın reddi.\n\nDELİLLER\n1‑ 20.000 TL ödeme dekontu (ek 1)  \n2‑ Borç sözleşmesi (ek 2)  \n3‑ İhtarname (ek 3)\n\nNETİCE-İ TALEP\nDavacının 50.000 TL alacak talebinin 20.000 TL’sinin kabul, kalan 30.000 TL’sinin reddi; yargılama giderleri ve vekâlet ücretinin davacıya yükletilmesi.\n\nSaygılarımla,\nDavalı Vekili\nAv. [Vekil ad-soyad]\n\n⚠️ KONTROL LİSTESİ\n- Mahkemenin doğru olduğundan (SULH HUKUK MAHKEMESİ) emin olun.  \n- Cevap dilekçesinin dava dilekçesinin tebliginden itibaren iki hafta içinde verildiği kontrol edilsin; ek süre gerekiyorsa, bir defaya mahsus ve bir ayı geçmemek üzere talep edilip edilmediği gözden geçirilsin.  \n- Ödeme dekontu ve sözleşmenin eksiksiz eklenip eklenmediği teyit edilsin.  \n- Zamanaşımı savunması gerektiği durumun (TBK m.146/147) mevcut olmadığı doğrulansın.  \n- İlk itirazların (yetki, tahkim vb.) dilekçede yer alıp almadığı kontrol edilsin."
   }
  ]
 }

@@ -82,3 +82,30 @@ describe('maddeAtiflari', () => {
     expect(maddeAtiflari('TBK m.146 ... yine TBK m.146')).toHaveLength(1);
   });
 });
+
+/**
+ * ÖLÇÜLEN ARIZA: "50.000 TL alacaktan 20.000 TL'si ödendi" senaryosunda model
+ * doğru şekilde "kalan 30.000 TL" yazdı (50.000 - 20.000) ve bu UYDURMA TUTAR
+ * diye işaretlendi. mesruTutarlar yalnız KATLARI biliyordu, İKİ OLAY TUTARI
+ * ARASINDAKİ FARKI hiç tanımıyordu — avukatların kısmi ödeme/kısmi kabul
+ * davalarında en sık yaptığı hesap tam bu.
+ */
+describe('mesruTutarlar — fark ve toplam', () => {
+  it('iki olay tutarı arasındaki farkı meşru sayar', () => {
+    // Kalan borç = toplam - ödenen.
+    expect(mesruTutarlar(new Set([50000, 20000])).has(30000)).toBe(true);
+  });
+
+  it('iki olay tutarının toplamını meşru sayar', () => {
+    expect(mesruTutarlar(new Set([50000, 20000])).has(70000)).toBe(true);
+  });
+
+  it('negatif farkı eklemez (sıfırın altı anlamsız tutar)', () => {
+    const k = mesruTutarlar(new Set([20000, 50000]));
+    expect(k.has(-30000)).toBe(false);
+  });
+
+  it('ilgisiz bir tutarı hâlâ meşru saymaz', () => {
+    expect(mesruTutarlar(new Set([50000, 20000])).has(12345)).toBe(false);
+  });
+});

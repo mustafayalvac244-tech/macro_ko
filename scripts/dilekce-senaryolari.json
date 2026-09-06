@@ -178,13 +178,13 @@
    "icermeli": [
     "re:20\\.000",
     "re:netice[- ]?i talep|sonuç ve talep",
-    "re:davanın reddi"
+    "re:reddi|reddin|reddedil"
    ],
    "icermemeli": [
     "re:davalı\\S*[ıi]?[ıi]?y?[ae]\\s+(tahsil|yükletil|ödetil)",
     "re:müvekkil\\S*\\s+(aleyhine|zararına)\\s+(tahsil|yükletil|ödetil)"
    ],
-   "notlar": "GERÇEK KULLANIM DENEMESİNDE bulunan bir hata sınıfı: model iki bağımsız üretimde davalı vekilinin AĞZINDAN, kendi müvekkilinin ALEYHİNE bir talep yazdı — \"kalan 30.000 TL nin davalıya tahsil edilmesini\" ve ayrı bir üretimde \"yargılama giderinin davalıya yükletilmesini\". Sebep: dava dilekçesi kalıbında \"giderin davalıya yükletilmesi\" DAVACI için doğru bir cümledir; model bu kalıbı taraf değiştirmeden cevap dilekçesine taşıdı. talepTarifi(cevap/duplik) ve talepUyarilari() buna karşı güçlendirildi (bkz. dilekce.ts); icermemeli deseni aynı mekanik denetimin ölçümdeki karşılığıdır — düzeltme sessizce geri gelirse burada yakalanır."
+   "notlar": "GERÇEK KULLANIM DENEMESİNDE bulunan bir hata sınıfı: model iki bağımsız üretimde davalı vekilinin AĞZINDAN, kendi müvekkilinin ALEYHİNE bir talep yazdı — \"kalan 30.000 TL nin davalıya tahsil edilmesini\" ve ayrı bir üretimde \"yargılama giderinin davalıya yükletilmesini\". Sebep: dava dilekçesi kalıbında \"giderin davalıya yükletilmesi\" DAVACI için doğru bir cümledir; model bu kalıbı taraf değiştirmeden cevap dilekçesine taşıdı. talepTarifi(cevap/duplik) ve talepUyarilari() buna karşı güçlendirildi (bkz. dilekce.ts); icermemeli deseni aynı mekanik denetimin ölçümdeki karşılığıdır — düzeltme sessizce geri gelirse burada yakalanır. EK NOT: icermeli deseni ilk sürümde \"davanın reddi\" TAM İFADESİNİ zorunlu tutuyordu; senaryo KISMİ KABUL içerdiği için model mantıklı biçimde \"kalan tutarın reddi\" yazdı ve tam ifade hiç geçmedi — bu ölçütün kendi hatasıydı, model kusuru değil. \"reddi\" kökü yeterli."
   }
  ]
 }

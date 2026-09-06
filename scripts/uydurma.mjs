@@ -54,6 +54,29 @@ export function tutarlar(metin) {
 export function mesruTutarlar(olayTutarlari, enCokKat = 24) {
   const k = new Set(olayTutarlari);
   for (const a of olayTutarlari) for (let i = 2; i <= enCokKat; i++) k.add(a * i);
+  // İKİ TUTAR ARASINDAKİ TOPLAM VE FARK DA MEŞRUDUR.
+  //
+  // ÖLÇÜLEN ARIZA: "50.000 TL alacaktan 20.000 TL'si ödendi, kalanı reddediyoruz"
+  // senaryosunda model doğru şekilde "kalan 30.000 TL" yazdı (50.000 - 20.000).
+  // Bu MATEMATİKSEL OLARAK DOĞRU bir hesaptır ve avukatların kısmi ödeme/kısmi
+  // kabul davalarında en sık yaptığı hesaptır — ama denetim yalnız KATLARI
+  // (a×n) biliyordu, İKİ OLAY TUTARI ARASINDAKİ FARKI hiç tanımıyordu. Sonuç:
+  // doğru bir hesap "uydurma tutar" diye işaretlendi.
+  //
+  // Bu, "iyi niyetli avukat hesabı" ile "modelin icat ettiği rakam" arasındaki
+  // farkı ayırt edemeyen bir denetimdi; yön yine bilinçli — toplam/fark da
+  // eklenince olası bazı gerçek uydurma tutarlar kaçabilir, ama tam tersi
+  // (doğru hesabı uydurma sanmak) avukatın GÜVENDİĞİ bir denetimi yalancı
+  // alarma çevirir ve zamanla denetimin tamamına güveni kaybettirir.
+  const liste = [...olayTutarlari];
+  for (let i = 0; i < liste.length; i++) {
+    for (let j = 0; j < liste.length; j++) {
+      if (i === j) continue;
+      const fark = liste[i] - liste[j];
+      if (fark > 0) k.add(fark);
+      k.add(liste[i] + liste[j]);
+    }
+  }
   return k;
 }
 
