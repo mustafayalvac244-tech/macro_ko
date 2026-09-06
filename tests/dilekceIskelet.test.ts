@@ -8,7 +8,9 @@ import {
   merciDiz,
   talepTarifi,
   talepUyarilari,
+  tutarlariCikar,
   uydurmaTarihleriAyikla,
+  uydurmaTutarlariBul,
 } from '../supabase/functions/_shared/dilekce';
 
 /**
@@ -335,5 +337,48 @@ describe('bloklarTarifi KONTROL tarifi', () => {
     const tarif = bloklarTarifi('dava');
     expect(tarif).toContain('###KONTROL###');
     expect(tarif).toMatch(/KONTROL LİSTESİ.*başlığını YAZMA/);
+  });
+});
+
+/**
+ * UYDURMA TUTAR TESPİTİ — sunucuda bugüne kadar hiç yoktu, yalnız
+ * scripts/uydurma.mjs'te (ölçüm betiği) vardı. Burada scripts/uydurma.mjs'in
+ * tests/uydurma.test.ts'te sınanan davranışıyla BİREBİR AYNI sonucu vermesi
+ * gerekir — ikisi ayrı dosyada yaşıyor (dağıtım mimarisi gereği), aralarında
+ * sessiz bir sapma olursa sunucudaki koruma ölçümden farklı davranır.
+ */
+describe('uydurmaTutarlariBul', () => {
+  it('olayda hiç geçmeyen ve hiçbir meşru katla/toplamla açıklanamayan tutarı işaretler', () => {
+    expect(uydurmaTutarlariBul('borç 47.500 TL idi', 'borç 30.000 TL idi')).toEqual([47500]);
+  });
+
+  it('olaydaki tutarın kendisini işaretlemez', () => {
+    expect(uydurmaTutarlariBul('borç 30.000 TL idi', 'borç 30.000 TL idi')).toEqual([]);
+  });
+
+  it('kısmi ödeme sonrası kalan (fark) meşrudur', () => {
+    const olay = '50.000 TL alacaktan 20.000 TL ödendi';
+    const taslak = 'kalan 30.000 TL\'nin tahsilini talep ederiz';
+    expect(uydurmaTutarlariBul(taslak, olay)).toEqual([]);
+  });
+
+  it('iki olay tutarının toplamı meşrudur', () => {
+    const olay = 'aylık 12.000 TL kira, ayrıca 3.000 TL aidat';
+    const taslak = 'toplam 15.000 TL borç bulunmaktadır';
+    expect(uydurmaTutarlariBul(taslak, olay)).toEqual([]);
+  });
+
+  it('katları meşru sayar (3 ay ödenmeyen kira)', () => {
+    const olay = 'aylık 12.000 TL kira ödenmedi';
+    const taslak = 'üç aylık toplam 36.000 TL kira alacağı';
+    expect(uydurmaTutarlariBul(taslak, olay)).toEqual([]);
+  });
+
+  it('kuruşlu tutarları da yakalar', () => {
+    expect(uydurmaTutarlariBul('borç 36.000,00 TL', '')).toEqual([36000]);
+  });
+
+  it('tutarlariCikar madde numarasını tutar saymaz', () => {
+    expect([...tutarlariCikar('HMK m.119/1-d')]).toEqual([]);
   });
 });

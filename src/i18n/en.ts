@@ -1218,6 +1218,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.notCharged': 'This draft came out incomplete, so it was not counted against your allowance.',
   'ai.skippedRules': 'A rule that was fed to the model does not appear in the text: {terimler}. If it was skipped, it can cost a right; please check.',
   'ai.fakeArticles': 'WARNING: the text cites articles that do not exist in our corpus — {maddeler}. Verify before use.',
+  'ai.fakeAmounts': 'WARNING: the text has an amount not found in the facts/document — {tutarlar}. Verify before use.',
   'ai.usageCost': 'This request: {token} tokens · {tl} TL deducted from your credit',
   'ai.usageFree': 'This request: {token} tokens (free tier — no credit used)',
   'ai.errKontor': 'Your AI credit is used up. Top up to continue.',

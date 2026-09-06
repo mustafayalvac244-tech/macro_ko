@@ -560,6 +560,55 @@ export function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: s
   return { metin, ayiklanan };
 }
 
+/**
+ * UYDURMA TUTAR TESPİTİ — sunucuda bugüne kadar hiç yoktu.
+ *
+ * Bu mantık aylardır scripts/uydurma.mjs'te vardı ama YALNIZ ÖLÇÜM
+ * betiğinde: kalite raporunda "uydurma tutar" oranı görünüyordu, ama taslağı
+ * üreten uçta hiçbir koruma çalışmıyordu — yani avukatın gerçekte gördüğü
+ * çıktıda bu denetim hiç işlemiyordu. Madde atfı için zaten var olan
+ * uydurmaMaddeDenetimi ile birebir aynı kusurdu, o düzeltilirken bu unutuldu.
+ *
+ * SİLİNMEZ, yalnız İŞARETLENİR — tıpkı madde atfında olduğu gibi. Bir tutar
+ * meşru bir TOPLAM ya da FARK olabilir ("50.000 TL'den 20.000 TL ödendi,
+ * kalan 30.000 TL" doğru bir hesaptır); bunu sessizce silmek, iyi niyetli bir
+ * avukat hesabını kaybettirir. Denetim yalnız olayda hiç geçmeyen VE hiçbir
+ * meşru toplam/fark/kat ile açıklanamayan tutarları işaretler.
+ */
+export function tutarlariCikar(metin: string): Set<number> {
+  const bulunan = new Set<number>();
+  for (const m of String(metin ?? '').matchAll(
+    /([\d][\d.\s ]*\d|\d)(?:,(\d{1,2}))?\s*(?:TL|₺|Türk Lirası)/gi
+  )) {
+    const tam = Number(String(m[1]).replace(/[.\s ]/g, ''));
+    const kurus = m[2] ? Number(String(m[2]).padEnd(2, '0')) / 100 : 0;
+    const sayi = tam + kurus;
+    if (Number.isFinite(sayi) && sayi > 0) bulunan.add(sayi);
+  }
+  return bulunan;
+}
+
+/** Olayda geçen tutarlardan meşru sayılacakların kümesi: kendileri, katları, toplamları, farkları. */
+function mesruTutarlar(olayTutarlari: number[], enCokKat = 24): Set<number> {
+  const k = new Set(olayTutarlari);
+  for (const a of olayTutarlari) for (let i = 2; i <= enCokKat; i++) k.add(a * i);
+  const liste = [...olayTutarlari];
+  for (let i = 0; i < liste.length; i++) {
+    for (let j = 0; j < liste.length; j++) {
+      if (i === j) continue;
+      const fark = liste[i] - liste[j];
+      if (fark > 0) k.add(fark);
+      k.add(liste[i] + liste[j]);
+    }
+  }
+  return k;
+}
+
+/** Taslakta geçip olayda/belgede hiç dayanağı olmayan tutarları döner. */
+export function uydurmaTutarlariBul(taslak: string, olay: string): number[] {
+  const meşru = mesruTutarlar([...tutarlariCikar(olay)]);
+  return [...tutarlariCikar(taslak)].filter((t) => !meşru.has(t));
+}
 
 /**
  * MÜTALAADA TARİHLER SİLİNMEZ, İŞARETLENİR.

@@ -20,6 +20,7 @@ import {
   iskeletSec,
   talepUyarilari,
   uydurmaTarihleriAyikla,
+  uydurmaTutarlariBul,
 } from '../_shared/dilekce.ts';
 // Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
 // ayrılmıştı (bkz. _shared/katman.ts).
@@ -2283,7 +2284,10 @@ async function dosyaKunyesi(
       // gideremediğimiz için mekanik denetim: liste bilerek dar, yalnız
       // kuralın kendi metninde "alternatif" dediği bilinen çiftler.
       const cakisan = cakisanDayanaklar(new Set(dilekceKurallar.keys()), temiz.metin);
-      const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0;
+      // UYDURMA TUTAR DENETİMİ — madde atfıyla aynı prensip: silinmez, uyarılır.
+      // Bkz. _shared/dilekce.ts > uydurmaTutarlariBul.
+      const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
+      const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'dilekce');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
@@ -2291,6 +2295,7 @@ async function dosyaKunyesi(
           talepEksik: talepEksik.length ? talepEksik : undefined,
           cakisanDayanak: cakisan.length ? cakisan : undefined,
           uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+          uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: dilekceKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
@@ -2492,12 +2497,17 @@ async function dosyaKunyesi(
       // için "bu gün son gün" demektir.
       const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
       const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, temiz.metin);
-      const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0;
+      // UYDURMA TUTAR DENETİMİ — incelemedeki bir tutar, belgede hiç yoksa
+      // avukat için "bu belgede yazan miktar" sanılır. Bkz. dilekçedeki aynı
+      // denetim; burada "olay" yerine incelenen belgenin metni (promptQuestion).
+      const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
+      const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'belge');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
           hakDusulmedi: kusurlu || undefined, istekId,
           uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+          uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: beslemeKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }

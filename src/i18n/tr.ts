@@ -1231,6 +1231,7 @@ export const tr = {
   // anlaşılır — bu yüzden hem gösteriliyor hem hak düşülmüyor.
   'ai.skippedRules': 'Dosyaya giren kurallardan biri taslakta geçmiyor: {terimler}. Atlanmışsa hak kaybına yol açabilir; kontrol edin.',
   'ai.fakeArticles': 'DİKKAT: metinde havuzda bulunmayan madde atfı var — {maddeler}. Teyit etmeden kullanmayın.',
+  'ai.fakeAmounts': 'DİKKAT: metinde olayda/belgede geçmeyen bir tutar var — {tutarlar}. Teyit etmeden kullanmayın.',
   'ai.usageCost': 'Bu istek: {token} token · {tl} TL kontörden düştü',
   'ai.usageFree': 'Bu istek: {token} token (ücretsiz katman — kontör düşmedi)',
   'ai.errKontor': 'AI kontörünüz bitti. Devam etmek için kontör yükleyin.',

@@ -14,6 +14,7 @@ import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { formatMoney } from '@/utils/format';
 
 /**
  * DİLEKÇE ÜRET — olay anlatımından mahkemeye hazır resmî dilekçe taslağı.
@@ -73,6 +74,9 @@ export default function DilekceUretScreen() {
   // GERÇEK GÖRÜNÜR — biçimi doğru, numarası var — ve yanlışlığı ancak hâkim
   // baktığında anlaşılır. Böyle bir taslak için hak da düşülmez.
   const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  // UYDURMA TUTAR. Aynı kusur madde atfıyla: ölçüm betiğinde vardı, taslağı
+  // üreten uçta yoktu — avukatın gördüğü çıktıda hiç çalışmıyordu.
+  const [uydurmaTutar, setUydurmaTutar] = useState<number[]>([]);
   const [ayiklanan, setAyiklanan] = useState(0);
   // Bu isteğin maliyeti. Kontörle çalışan bir üründe harcamanın gizli kalması,
   // kullanıcıyı bakiyesi bittiğinde şaşırtır; token sayısı ücretsiz katmanda da
@@ -107,7 +111,7 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[] } | null;
+      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[] } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -117,6 +121,7 @@ export default function DilekceUretScreen() {
       setTalepEksik(payload.talepEksik ?? []);
       setCakisanDayanak(payload.cakisanDayanak ?? []);
       setUydurmaMadde(payload.uydurmaMadde ?? []);
+      setUydurmaTutar(payload.uydurmaTutar ?? []);
       setAyiklanan(Number(payload.ayiklananTarih ?? 0));
       setKullanim(payload.kullanim ?? null);
       setHakDusulmedi(!!payload.hakDusulmedi);
@@ -244,6 +249,11 @@ export default function DilekceUretScreen() {
               <Text selectable style={styles.body}>{text}</Text>
               {uydurmaMadde.length > 0 && (
                 <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
+              )}
+              {uydurmaTutar.length > 0 && (
+                <Text style={styles.warn}>
+                  {t('ai.fakeAmounts', { tutarlar: uydurmaTutar.map((tt) => formatMoney(tt)).join(', ') })}
+                </Text>
               )}
               {cakisanDayanak.map((u, i) => (
                 <Text key={i} style={styles.warn}>{u}</Text>

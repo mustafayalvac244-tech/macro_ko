@@ -14,6 +14,7 @@ import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { formatMoney } from '@/utils/format';
 
 /** İnceleme odağı — AI'ya "neye bakayım" talimatını belirler. */
 type DocKind = 'sozlesme' | 'dilekce' | 'ihtarname' | 'karar' | 'diger';
@@ -39,6 +40,7 @@ export default function DocumentReviewScreen() {
   const [ayiklanan, setAyiklanan] = useState(0);
   // Uydurma kanun maddesi atfı: sunucu artık havuzla karşılaştırıp söylüyor.
   const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  const [uydurmaTutar, setUydurmaTutar] = useState<number[]>([]);
   // PDF'İN OKUNAMAYAN SAYFALARI (taranmış görüntü).
   //
   // En tehlikeli veri kaybı türü: avukat eksik olduğunu GÖREMİYOR. Resmî ücret
@@ -152,7 +154,7 @@ export default function DocumentReviewScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[] } | null;
+      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[] } | null;
       const reply = yanit?.text?.trim();
       if (!reply) {
         setError(t('ai.errGeneric'));
@@ -161,6 +163,7 @@ export default function DocumentReviewScreen() {
       setResult(reply);
       setAyiklanan(Number(yanit?.ayiklananTarih ?? 0));
       setUydurmaMadde(yanit?.uydurmaMadde ?? []);
+      setUydurmaTutar(yanit?.uydurmaTutar ?? []);
       setKullanim(yanit?.kullanim ?? null);
       setHakDusulmedi(!!yanit?.hakDusulmedi);
     } catch {
@@ -263,6 +266,11 @@ export default function DocumentReviewScreen() {
                   ayıklandığını ve hakkını geri alabileceğini göremiyordu. */}
               {uydurmaMadde.length > 0 && (
                 <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
+              )}
+              {uydurmaTutar.length > 0 && (
+                <Text style={styles.warn}>
+                  {t('ai.fakeAmounts', { tutarlar: uydurmaTutar.map((tt) => formatMoney(tt)).join(', ') })}
+                </Text>
               )}
               {ayiklanan > 0 && (
                 <Text style={styles.warn}>{t('dlk.scrubbedDates', { n: String(ayiklanan) })}</Text>
