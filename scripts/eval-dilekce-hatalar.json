@@ -1,65 +1,23 @@
 {
- "tarih": "2026-09-06T06:02:17.712Z",
+ "tarih": "2026-09-06T06:38:58.139Z",
  "olculenSenaryolar": [
-  "dava-kira-tahliye",
   "cevap-alacak",
   "istinaf-is",
-  "itiraz-odeme-emri",
-  "ihtarname-kira",
-  "temyiz-alacak",
-  "islah-iscilik",
   "bilirkisi-itiraz",
-  "replik-kira",
   "duplik-alacak"
  ],
  "kusurlu": [
   {
-   "id": "cevap-alacak",
-   "tip": "cevap",
-   "model": "openai/gpt-oss-120b",
-   "eksik": [
-    "re:def'?i|defi"
-   ],
-   "yasak": [],
-   "uydurmaTarih": [],
-   "uydurmaTutar": [],
-   "taslak": "[Mahkeme Adı] [kontrol edin]\n\nDAVACI  : [Davacı Adı Soyadı]\nDAVALI  : [Davalı Adı Soyadı]\nVEKİLİ  : [Avukat Adı Soyadı]\nESAS NO : [Esas No]\n\nKONU\nDavacının 2019 yılında iddia ettiği hizmet alımı ve 250.000 TL alacak talebine ilişkin cevap dilekçesi\n\nUSULE İLİŞKİN İTİRAZLAR\n1. Yetki itirazı (talep tutarı 250.000 TL olduğu için asliye hukuk mahkemesi görevli olabilir; mahkemenin görev ve yetkisini HMK m.119’dan teyit edin)  \n2. Zamanaşımı def’i ileri sürülmemektedir (TBK m.146’nın on yıllık genel zamanaşımı süresi hâlen dolmamıştır)\n\nAÇIKLAMALAR VE ESASA CEVAPLARIMIZ\n1. Davacının iddia ettiği hizmetin müvekkilimiz tarafından hiçbir zaman sunulmadığı, bu nedenle söz konusu alacak doğmamıştır.  \n2. Taraflar arasında hizmet sözleşmesi kurulmamıştır; TMK m.24’e göre bir sözleşmenin oluşabilmesi için teklif ve kabul gereklidir, ancak bu unsurlar mevcut değildir.  \n3. Davacı, iddia ettiği hizmete ilişkin hiçbir belge, fatura, sözleşme veya hizmetin gerçekleştiğine dair delil sunmamıştır; TMK m.112 uyarınca ispat yükümlülüğü davacıya aittir.  \n4. Dolayısıyla, davacının talebi hukuka ve gerçeğe aykırıdır; davalı, iddia edilen alacak için hiçbir sorumluluk kabul etmemektedir.\n\nHUKUKİ SEBEPLER\n- TMK m.24 (sözleşmenin oluşumu)  \n- TMK m.61 (sözleşmeden doğan borçların varlığı)  \n- TMK m.112 (ispat yükümlülüğü)  \n- TBK m.146 (genel zamanaşımı süresi on yıl; 2019‑2026 arası hâlâ içinde)  \n- HMK m.127 (cevap süresi iki hafta)  \n- HMK m.129 (cevap dilekçesinin zorunlu içeriği)  \n- HMK m.116 (ilk itirazların dilekçede yer alması)\n\nDELİLLER\n1. Davalının hizmeti sunmadığını gösteren beyan ve ilgili belgeler (varsa)  \n2. Davacının iddia ettiği hizmete ilişkin hiçbir belge, fatura, sözleşme, irsaliye vb. sunulmadığına dair mahkemece incelenecek dosya içeriği\n\nNETİCE-İ TALEP\n1. Davacının iddia ettiği hizmetin hiç gerçekleşmediği ve alacak talebinin hukuka aykırı olduğu gerekçesiyle davanın reddine,  \n2. Yargılama giderleri ve vekâlet ücretinin davacıya yüklenmesine karar verilmesini,  \n3. İlk itirazların (yetki itirazı) kabul edilerek dava dosyasının ilgili mahkemeye sevk edilmesini talep ederiz.\n\nSaygılarımla,\nDavalı Vekili\nAv. [Vekil ad-soyad]\n\n⚠️ KONTROL LİSTESİ\n- Mahkemenin asliye hukuk mu yoksa sulh hukuk olduğunun teyidi (HMK m.119).  \n- Davacının sunduğu belgelerin eksikliği ve ispat yükümlülüğünün kontrolü.  \n- Dava dosyasındaki tarihlerin (dava açılış tarihi, teblig tarihleri) doğru girildiği.  \n- Talep edilen 250.000 TL tutarının doğru ve eksiksiz olarak belirtilmesi.  \n- Cevap dilekçesinin HMK m.127 kapsamında iki haftalık sürede hazırlanıp tebliğ edildiği.  \n\n⚠️ KONTROL LİSTESİ  \n- [Mahkeme Adı] ve görevli mahkeme türünün doğruluğu.  \n- [Davacı Adı Soyadı] ve [Davalı Adı Soyadı] bilgileri.  \n- [Esas No] ve dava tarihleri.  \n- İlk itirazların (yetki) gerekçesi ve dayanağı.  \n- Delil listesi ve ek belgelerin eksiksiz hazırlanması.  \n- Talep edilen sonuçların net ve ayrı ayrı kal"
-  },
-  {
-   "id": "istinaf-is",
-   "tip": "istinaf",
-   "model": "openai/gpt-oss-120b",
-   "eksik": [
-    "re:bölge adliye|BAM"
-   ],
-   "yasak": [],
-   "uydurmaTarih": [],
-   "uydurmaTutar": [],
-   "taslak": "[İlgili Bölge] ADLİYE MAHKEMESİ İLGİLİ HUKUK DAİRESİNE\nSunulmak üzere [İlgili] MAHKEMESİ SAYIN HÂKİMLİĞİNE\n\nİSTİNAF EDEN  : [Müvekkil Adı Soyadı]\nVEKİLİ        : Av. [Vekil Adı Soyadı]\nKARŞI TARAF   : [İşveren Adı Soyadı / Şirket Ünvanı]\nKARAR         : [Karar No]\nTEBLİĞ TARİHİ : 10.06.2026\n\nKONU\nİş Mahkemesi kararının istinaf yolu ile kaldırılması ve kıdem ile ihbar tazminatı talebinin kabulü\n\nİSTİNAF SEBEPLERİ\n1. İstifa dilekçesi, işverenin baskısı altında imzalatılmış olup, gerçek bir iradeyi yansıtmamaktadır.  \n2. Mahkeme, müvekkilin beyan ettiği tanıkların dinlenmesini reddederek, delil dinlenmesi usulüne aykırı bir karar vermiştir.  \n3. Kararın gerekçesi, İş Kanunu’nun 8. ve 17. maddelerinde düzenlenen kıdem ve ihbar tazminatı haklarını göz ardı etmektedir.\n\nHUKUKİ SEBEPLER\n1. İş Kanunu’nun 17. maddesi uyarınca, istifa zorla yapılmışsa geçerli sayılmaz; bu durumda işveren ihbar tazminatı ödemekle yükümlüdür.  \n2. İş Kanunu’nun 8. maddesi gereği, iş sözleşmesinin feshi halinde kıdem tazminatı hakkı doğar; fesih usulü hukuka aykırı olduğundan bu hak kullanılmalıdır.  \n3. HMK’nın 342. maddesi istinaf başvurusunun şartlarını, 353. maddesi ise kararın kaldırılmasını düzenler; bu maddelere dayanarak kararın kaldırılması talep edilmektedir.  \n4. HMK’nın 125. maddesi delillerin dinlenmesi usulünü öngörür; tanıkların dinlenmemesi usul hatasıdır.\n\nDELİLLER\n1. İstifa dilekçesi örneği (baskı altında imzalanmış olduğuna dair belge)  \n2. Tanık beyanları (tanıkların isim ve adresleri)  \n3. İş sözleşmesi ve iş akdi süresi belgeleri  \n4. Ücret bordroları ve ödeme dökümleri  \n5. İhbar tazminatı ve kıdem tazminatı hesaplamalarına ilişkin rapor\n\nNETİCE-İ TALEP\nİlgili kararın KALDIRILMASINA ve müvekkilin kıdem tazminatı ile ihbar tazminatının ödenmesine karar verilmesine.\n\nSaygılarımla,\nİstinaf Eden Vekili\nAv. [Vekil ad-soyad]\n\n⚠️ KONTROL LİSTESİ\n- [ ] Mahkeme ve daire adı, karar numarası, teblig tarihinin doğruluğu  \n- [ ] İstinaf süresinin (teblig tarihinden itibaren 2 hafta) içinde başvurunun yapıldığından emin olun  \n- [ ] İstifa dilekçesinin baskı altında imzalandığını gösteren belgeyi ekleyin  \n- [ ] Tanık listesi ve tanık beyanlarını eksiksiz ekleyin  \n- [ ] İş sözleşmesi, ücret bordroları ve tazminat hesaplamalarını kontrol edin  \n- [ ] HMK ve İş Kanunu maddelerinin doğru numaralandırıldığını teyit edin  \n- [ ] Başvuru dilekçesinin imza ve tarih bölümlerinin eksiksiz olduğundan emin olun  \n\n⚠️ KONTROL LİSTESİ  \n- Boşlukları doldurun (mahkeme adı, taraf bilgileri, karar numarası vb.)  \n- İstinaf süresinin kaç gün içinde dolduğunu kontrol edin (teblig tarihinden 2 hafta)  \n- Ekli delillerin tam ve okunaklı olduğundan emin olun  \n- Hukuki dayanakların ilgili mevzuattan teyit edildiğini kontrol edin  \n- Başvurunun usulüne uygun şekilde sunulduğunu doğrulayın.  \n\n*Bu taslak hukuki tavsiye niteliğinde değildir; güncel mevzuattan teyit edilmesi gerekir.*"
-  },
-  {
-   "id": "bilirkisi-itiraz",
-   "tip": "bilirkisi",
-   "model": "openai/gpt-oss-20b",
-   "eksik": [
-    "re:ek rapor|yeni bilirkişi|yeniden inceleme"
-   ],
-   "yasak": [],
-   "uydurmaTarih": [],
-   "uydurmaTutar": [],
-   "taslak": "ANKARA 3. ASLİYE HUKUK MAHKEMESİ [kontrol edin]\n\nESAS NO             : [Esas No]\nİTİRAZ EDEN         : [İtiraz Eden]\nVEKİLİ              : [Vekili]\nKARŞI TARAF         : [Karaşı Taraf]\nRAPOR TEBLİĞ TARİHİ : 05.05.2026\n\nKONU\nBİLİRKİŞİ RAPORUNA İTİRAZ\n\nRAPORA İTİRAZ SEBEPLERİMİZ\nRapor, kaza tespit tutanağını ve kamera kaydını incelemeden 70% kusurlu bulundurması nedeniyle eksik ve hatalıdır. Eksik delil incelemesi ve hatalı kusur oranı raporu geçersiz kılmaktadır.\n\nHUKUKİ SEBEPLER\nHMK m.281: Taraflar, bilirkişi raporunun kendilerine tebliğ tarihinden itibaren iki hafta içinde, raporda eksik gördükleri hususların tamamlanmasını veya belirsizliklerin giderilmesini isteyebilir; rapora itiraz edebilirler.  \nBilirkişi rapor\n\nSONUÇ VE TALEP\n[Sonuç ve talep — doldurun]\n\nSaygılarımla,\nİtiraz Eden Vekili\nAv. [Vekil ad-soyad]"
-  },
-  {
    "id": "duplik-alacak",
    "tip": "duplik",
-   "model": "openai/gpt-oss-120b",
+   "model": "openai/gpt-oss-20b",
    "eksik": [
     "re:reddi"
    ],
    "yasak": [],
    "uydurmaTarih": [],
    "uydurmaTutar": [],
-   "taslak": "[Mahkeme Adı] [kontrol edin]\n\nDAVACI  : [Davacı Ad-Soyad]\nDAVALI  : [Davalı Ad-Soyad]\nVEKİLİ  : Av. [Vekil Ad-Soyad]\nESAS NO : [Esas Numarası]\n\nKONU\nAlacak davasına ilişkin ikinci cevap (düplik) dilekçesi\n\nİKİNCİ CEVAPLARIMIZ\n1. Davalı, 20.03.2026 tarihinde tebliğ edilen davacının cevaba cevap dilekçesinde ilk kez ileri sürdüğü [fatura numarası] tarihli ve tutarlı [fatura tutarı] tutarındaki faturayı reddetmektedir.  \n2. Söz konusu fatura, davalı tarafından kabul edilen sözleşme şartları ve ödeme planına aykırıdır; fatura tarihindeki hizmetin tarafımızca kabul edilmediği ve ödeme yükümlülüğünün doğmadığı kanaatine varılmıştır.  \n3. Davalı, bu fatura ile ilgili tüm savunmalarını ve delillerini bu ikinci cevap dilekçesinde sunmaktadır; bundan sonra savunma genişletilemez (HMK m.141).  \n4. Davalı, davacının iddialarına karşı aşağıdaki hukuki sebeplerle itiraz etmektedir:  \n   a) Sözleşmeye aykırı hizmetin sunulmadığı;  \n   b) Faturada belirtilen tutarın sözleşmede öngörülen birim fiyat ve miktarlarla uyuşmadığı;  \n   c) Faturanın usulsüz düzenlenmiş olması ve yasal zorunlulukları taşımadığı.\n\nHUKUKİ SEBEPLER\n1. HMK m.136 uyarınca ikinci cevap dilekçesi hazırlanmıştır.  \n2. HMK m.127 gereği, ikinci cevap dilekçesi 20.03.2026 tarihli tebligattan itibaren iki hafta içinde (en geç [tarih — doldurun]) sunulmalıdır.  \n3. HMK m.129 kapsamında, dilekçede mahkeme adı, tarafların kimlik ve adres bilgileri, savunmanın dayanakları, her bir vakıa ve ilgili deliller açıkça belirtilmiştir.  \n4. HMK m.141’e göre, bu dilekçeden sonra savunma genişletilemez; ıslah ve açık muvafakat dışındaki değişiklikler kabul edilmeyecektir.\n\nDELİLLER\n1. [Sözleşme metni] – hizmetin kapsamı ve ödeme şartlarını gösterir.  \n2. [Fatura örneği] – itiraz edilen faturanın bir nüshası.  \n3. [E-posta ve yazışma kayıtları] – hizmetin reddedildiğine dair iletişim.  \n4. [Tanık beyanları] – hizmetin sunulmadığını teyit eden tanıkların ifadeleri.\n\nNETİCE-İ TALEP\n1. Davacının ileri sürdüğü [fatura numarası] tarihli ve tutarlı [fatura tutarı] tutarındaki faturanın geçersiz olduğunun tespit edilerek, bu talebin reddedilmesini;  \n2. Davacının alacak talebinin tamamen reddedilmesini;  \n3. Yargılama giderlerinin davalı tarafından karşılanmasını.\n\nSaygılarımla,\nDavalı Vekili\nAv. [Vekil ad-soyad]\n\n⚠️ KONTROL LİSTESİ\n⚠️ KONTROL LİSTESİ  \n- [ ] Mahkeme adı ve görevli mahkemenin doğruluğu (görevli mahkeme HMK’nın görev hükümlerinden teyit edin).  \n- [ ] 20.03.2026 tarihli tebligatın kesin tarihi ve ikinci cevap dilekçesinin sunulacağı son tarih (en geç [tarih — doldurun]) kontrol edilmelidir.  \n- [ ] Tarafların tam unvan, adres ve T.C. kimlik numaraları eksiksiz girilmelidir.  \n- [ ] Savunma ve itirazların tümü bu dilekçede yer almalı; ek savunma eklenmemelidir.  \n- [ ] Sunulan delillerin eksiksiz ve usulüne uygun şekilde eklenip eklenmediği denetlenmelidir.  \n- [ ] İmza ve vekaletname gibi zorunlu belgelerin eklenip eklenmediği kontrol edilmelidir.  \n\n*Bu yanıt hukuki tavsiye niteliğinde değildir; güncel mevzuattan teyit edilmesi gerekir.*"
+   "taslak": "###MAHKEME###  [Mahkeme Adı]  \n###TARAF###  \n        DAVACI:  [Davacı Adı Soyadı]  \n        DAVALI:  [Davalı Adı Soyadı]  \n        VEKİLİ:  [Vekili]  \n        ESAS NO:  [Esas No]  \n###KONU###  Alacak davasında ikinci cevap (düplik)  \n###ACIKLAMALAR###  \n1. Davacının 20.03.2026 tarihinde tebliğ edilen cevabına karşılık, bu ikinci cevap (düplik) 20.03.2026 tarihli cevabın tebliğinden itibaren iki haftalık süre içinde hazırlanmıştır (HMK m.127).  \n2. Davacının ilk cevabında yeni bir fatura (Fatura No: [Fatura No], Tarihi: [Fatura Tarihi], Tutarı: [Fatura Tutarı])"
   }
  ]
 }

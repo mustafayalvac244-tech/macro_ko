@@ -368,7 +368,13 @@ async function durumYaz(saglayici: string, sonuc: string, hata?: string, model?:
 async function ucretsizChat(
   system: string,
   msgs: Array<{ role: 'user' | 'model'; text: string }>,
-  maxTokens: number
+  maxTokens: number,
+  /**
+   * Denenmeyecek modeller. Güdük bir taslak üreten modeli ikinci denemede
+   * atlamak için kullanılır (bkz. dilekçe modundaki yeniden deneme): aynı
+   * modele aynı isteği tekrar sormak, aynı güdük cevabı almanın pahalı yolu.
+   */
+  atla: string[] = []
 ): Promise<{ text: string; tin: number; tout: number; model: string }> {
   const groqKey = Deno.env.get('GROQ_API_KEY') ?? '';
   const gemKey = Deno.env.get('GEMINI_API_KEY') ?? '';
@@ -385,6 +391,7 @@ async function ucretsizChat(
     // YOĞUNLUK hatasında sıradakine geçilir: 'empty' ya da beklenmedik bir
     // arıza, aynı isteği üç kez faturalandırıp aynı sonucu almak demek olurdu.
     for (const model of GROQ_ZINCIR) {
+      if (atla.includes(model)) continue;
       try {
         const r = await groqChat(system, msgs, maxTokens, groqKey, model);
         if (r.text.trim()) {
@@ -539,15 +546,21 @@ async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ 
  * sürpriz olması demektir. Ücretsiz katmanda maliyet sıfırdır ve öyle görünür.
  */
 /**
+ * Bir dilekçenin en az uzunluğu (karakter). Hem "kusurlu mu" kararında hem de
+ * güdük taslağı yeniden denemede kullanılır; iki yerde ayrı sayı tutmak,
+ * yeniden denemenin kusurlu saymadığı bir taslağı kovalaması demek olurdu.
+ */
+const DILEKCE_ASGARI = 1200;
+
+/**
  * Çıktı, kullanıcıya verilebilecek durumda mı?
  *
  * ÖLÇÜLEN ARIZALAR: bir cevap dilekçesi 806 karakterde bitti (DELİLLER ve
  * NETİCE-İ TALEP hiç yazılmadı) ve bir başkası zorunlu bölümü eksik döndü.
  * İkisi de "cevap geldi" sayılıyor, kullanıcının hakkından düşülüyordu.
  *
- * Eşikler ölçülen uzunluklara göre: çalışan taslaklar 2.500-5.700 karakter
- * arasında; 800'ün altı, bir dilekçenin yarısı bile değil. Belge incelemesi
- * daha kısa olabilir, eşiği ona göre düşük.
+ * Eşikler ölçülen uzunluklara göre: çalışan taslaklar 1.396-4.818 karakter
+ * arasında. Belge incelemesi daha kısa olabilir, eşiği ona göre düşük.
  */
 function kusurluCikti(mod: 'dilekce' | 'mutalaa' | 'belge' | 'sohbet', metin: string, eksikBolum: string[] = []): boolean {
   const n = metin.trim().length;
@@ -558,7 +571,7 @@ function kusurluCikti(mod: 'dilekce' | 'mutalaa' | 'belge' | 'sohbet', metin: st
   // taslaklar 1.396-3.765 karakter arasındaydı; 825, en kısa çalışan dilekçenin
   // bile yarısı değil. 800 eşiği, ölçülen tek bir örneğe (806 karakterlik bir
   // cevap dilekçesi) göre konmuştu ve fazla iyimserdi.
-  if (mod === 'dilekce') return n < 1200;
+  if (mod === 'dilekce') return n < DILEKCE_ASGARI;
   if (mod === 'mutalaa') return n < 800;
   if (mod === 'belge') return n < 400;
   return false; // sohbette kısa cevap doğru olabilir; boş cevap zaten 502 döner
@@ -2037,9 +2050,7 @@ async function dosyaKunyesi(
     };
     const structure = typeMap[body.dilekceType ?? ''] ?? typeMap['dava'];
       let dossier = '';
-    // Dilekçede de dosyaya giren kural atlanabiliyor; uyarı avukata gider.
-    const dayanakKurallar = new Map<string, BeslenenKural>();
-    try { dossier += await buildRules(supabase, promptQuestion, dayanakKurallar); } catch { /* atla */ }
+    try { dossier += await buildRules(supabase, promptQuestion); } catch { /* atla */ }
     try { dossier += await buildMevzuat(supabase, promptQuestion); } catch { /* atla */ }
     try { dossier += await buildGrounding(supabase, promptQuestion); } catch { /* atla */ }
 
@@ -2143,6 +2154,38 @@ async function dosyaKunyesi(
       if (!out.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
+
+      // GÜDÜK TASLAK BİR KEZ YENİDEN DENENİR — BAŞKA MODELLE.
+      //
+      // ÖLÇÜLEN ARIZA: düplik dilekçesi 566 KARAKTERDE bitti. Zincirin en küçük
+      // modeli (20b) cevap vermişti ve çıkan şey bir dilekçe değil, bir
+      // paragraftı. Denetim bunu yakalıyor ve hak düşülmüyordu — ama avukatın
+      // elinde yine hiçbir şey yoktu. "Hakkınız düşmedi" dürüst bir cümledir,
+      // işini yapmaz.
+      //
+      // Yeniden deneme yalnız ücretsiz hatta ve YALNIZ BİR KEZ yapılır; aynı
+      // modele aynı soruyu sormak aynı güdük cevabı almanın pahalı yolu
+      // olduğundan, kusurlu cevabı veren model atlanır. Kota bunu kaldırır
+      // çünkü güdük çıktı seyrek: on senaryoluk koşuda bir kez görüldü.
+      if (provider === 'groq' && out.trim().length < DILEKCE_ASGARI) {
+        try {
+          const r2 = await ucretsizChat(
+            dilekceSys,
+            [{ role: 'user', text: promptQuestion }],
+            maxTok,
+            [kullanilanModel]
+          );
+          // Yalnız DAHA İYİSİ alınır: ikinci deneme de güdükse elde olanı
+          // bozmanın anlamı yok.
+          if (r2.text.trim().length > out.trim().length) {
+            out = r2.text; uin += r2.tin; uout += r2.tout; kullanilanModel = r2.model;
+          }
+        } catch {
+          // Kota ya da arıza: elde olan güdük taslakla devam edilir; denetim
+          // onu kusurlu sayar ve hak düşmez.
+        }
+      }
+
       // Bölümleri modelden işaretli blok olarak alıp belgeyi KOD diziyoruz;
       // zorunlu unsurun sessizce düşmesi böylece imkânsız hâle gelir.
       //
@@ -2181,10 +2224,17 @@ async function dosyaKunyesi(
       // DÜŞÜLMEZ; gideri biz karşılarız. Bunu yanıtta da söylüyoruz ki avukat
       // hakkının neden eksilmediğini bilsin.
       const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, temiz.metin);
-      const atlanan = atlananKurallar(
-        [...dayanakKurallar].map(([id, k]) => ({ id, zorunlu_terimler: k.terimler })),
-        temiz.metin
-      );
+      // ATLANAN KURAL DENETİMİ DİLEKÇEDE ÇALIŞMIYOR — ölçüm gösterdi ki burada
+      // ürettiği şey gürültü. Dört senaryoluk koşuda üç uyarı çıktı ve üçü de
+      // konu dışıydı: istinaf dilekçesinde "arabulucu" (o aşama çoktan geçmiş),
+      // bilirkişi raporuna itirazda ve düplikte "def'i" (arama cevap_dilekcesi
+      // kuralını 0,16 gibi düşük skorla ilk sıraya koymuştu).
+      //
+      // Sebep yapısal: dilekçe HEDEFLİ bir belgedir ve komşu bir kuralın orada
+      // geçmemesi normaldir; mütalaa ise uygulanacak kuralları KAPSAMAK
+      // zorunda olan bir çözümlemedir. Denetimin kanıtı da tamamen mütalaadan
+      // geliyordu. Yanlış uyarı, uyarının tamamını gürültüye çevirir ve avukat
+      // bir daha hiçbirine bakmaz; bu yüzden çalıştığı yerde bırakıldı.
       const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0;
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'dilekce');
       return new Response(
@@ -2192,7 +2242,6 @@ async function dosyaKunyesi(
           hakDusulmedi: kusurlu || undefined, istekId,
           talepEksik: talepEksik.length ? talepEksik : undefined,
           uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
-          atlananKural: atlanan.length ? atlanan : undefined,
           beslemeKirpildi: dilekceKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }

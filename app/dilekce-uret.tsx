@@ -69,8 +69,6 @@ export default function DilekceUretScreen() {
   // GERÇEK GÖRÜNÜR — biçimi doğru, numarası var — ve yanlışlığı ancak hâkim
   // baktığında anlaşılır. Böyle bir taslak için hak da düşülmez.
   const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
-  // Dosyaya giren ama taslakta izi bulunmayan kurallar; hak düşürmez, uyarır.
-  const [atlananKural, setAtlananKural] = useState<string[]>([]);
   const [ayiklanan, setAyiklanan] = useState(0);
   // Bu isteğin maliyeti. Kontörle çalışan bir üründe harcamanın gizli kalması,
   // kullanıcıyı bakiyesi bittiğinde şaşırtır; token sayısı ücretsiz katmanda da
@@ -109,7 +107,7 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; talepEksik?: string[]; uydurmaMadde?: string[]; atlananKural?: string[] } | null;
+      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; talepEksik?: string[]; uydurmaMadde?: string[] } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -118,7 +116,6 @@ export default function DilekceUretScreen() {
       setEksikBolum(payload.eksikBolum ?? []);
       setTalepEksik(payload.talepEksik ?? []);
       setUydurmaMadde(payload.uydurmaMadde ?? []);
-      setAtlananKural(payload.atlananKural ?? []);
       setAyiklanan(Number(payload.ayiklananTarih ?? 0));
       setKullanim(payload.kullanim ?? null);
       setIstekId(payload.istekId ?? null);
@@ -263,9 +260,6 @@ export default function DilekceUretScreen() {
               <Text selectable style={styles.body}>{text}</Text>
               {uydurmaMadde.length > 0 && (
                 <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
-              )}
-              {atlananKural.length > 0 && (
-                <Text style={styles.warn}>{t('ai.skippedRules', { terimler: atlananKural.join(', ') })}</Text>
               )}
               {talepEksik.length > 0 && (
                 <Text style={styles.warn}>{t('dlk.missingRelief', { uyari: talepEksik.join(' · ') })}</Text>
