@@ -241,10 +241,26 @@ try {
   await kullaniciSil(uid);
 }
 
-if (kusurlu.length) {
+// HATA DOSYASI HER KOŞUDA YAZILIR — kusur yoksa BOŞ olarak.
+//
+// Eskiden yalnız kusur varken yazılıyordu ve bu, dosyayı yalancı yapıyordu:
+// istinaf ile temyiz kusurları düzeltilip yeniden ölçüldükten sonra dosya hâlâ
+// o iki kusuru anlatıyordu. Bir sonraki okuyan (yarınki ben dahil) düzeltilmiş
+// bir arızayı açık sanır ve ya boşuna uğraşır ya da düzelmediğini sanıp
+// raporlar. Hangi senaryoların ölçüldüğü de yazılıyor: "kusur yok" ile
+// "o senaryo hiç koşulmadı" ayırt edilebilsin.
+{
   const yol = join(__dirname, 'eval-dilekce-hatalar.json');
-  writeFileSync(yol, JSON.stringify({ tarih: new Date().toISOString(), kusurlu }, null, 1), 'utf8');
-  console.log(`\nKusurlu taslakların tam metni: ${yol}`);
+  writeFileSync(
+    yol,
+    JSON.stringify(
+      { tarih: new Date().toISOString(), olculenSenaryolar: sonuclar.map((s) => s.id), kusurlu },
+      null,
+      1
+    ),
+    'utf8'
+  );
+  if (kusurlu.length) console.log(`\nKusurlu taslakların tam metni: ${yol}`);
 }
 
 const olculen = sonuclar.length;

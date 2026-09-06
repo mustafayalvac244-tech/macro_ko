@@ -1,29 +1,8 @@
 {
- "tarih": "2026-09-06T02:29:24.851Z",
- "kusurlu": [
-  {
-   "id": "istinaf-is",
-   "tip": "istinaf",
-   "model": "openai/gpt-oss-120b",
-   "eksik": [
-    "re:kaldırılması|bozulması|yeniden yargılama"
-   ],
-   "yasak": [],
-   "uydurmaTarih": [],
-   "uydurmaTutar": [],
-   "taslak": "[İLGİLİ BÖLGE ADLİYE MAHKEMESİ İŞ HUKUK DAİRESİNE]\nSunulmak üzere [İSTİNAF MAHKEMESİ] SAYIN HÂKİMLİĞİNE\n\nİSTİNAF EDEN  : [Müvekkil Adı Soyadı]\nVEKİLİ        : Av. [Vekil Adı Soyadı]\nKARŞI TARAF   : [İşveren Adı Soyadı / Şirket Ünvanı]\nKARAR         : [İş Mahkemesi karar numarası]\nTEBLİĞ TARİHİ : 10.06.2026\n\nKONU\nİş Mahkemesi’nin kıdem ve ihbar tazminatı talebini reddeden kararının istinafı\n\nİSTİNAF SEBEPLERİ\n1. Müvekkil, iş sözleşmesini işverenin baskısı altında imzaladığı bir istifa dilekçesiyle tek taraflı olarak feshetmiştir; bu durum işverenin haksız rekabet ve zorlayıcı davranışı kapsamında “istifa”nın geçersiz sayılmasını gerektirir.  \n2. Mahkeme, istifa dilekçesini geçerli kabul etmiş, ancak bu dilekçenin zorla imzalatıldığına dair tanık beyanlarını dinlememiştir.  \n3. İlgili tanıkların beyanları, istifanın baskı altında gerçekleştiğini ve işverenin hukuka aykırı bir şekilde çalışanı zorladığını ortaya koymaktadır.  \n4. İş Mahkemesi’nin bu tanıkları dinlemeyerek karar vermesi, delil dinlenmesi ve tarafların savunma hakkının ihlali anlamına gelmektedir.\n\nHUKUKİ SEBEPLER\n- **4857 sayılı İş Kanunu** uyarınca, işçinin iş sözleşmesini işverenin zorlayıcı tutumu nedeniyle feshetmesi hâlinde, işçi “istifa”nın geçersiz sayılması ve kıdem ile ihbar tazminatına hak kazanması gerekir (İş Kanunu’nun ilgili hükümleri).  \n- **Hukuk Muhakemeleri Kanunu**’nun istinaf başvurusu ile ilgili hükümleri (HMK m.342) gereği, kararın tebliginden itibaren iki hafta içinde istinaf başvurusu yapılması zorunludur; bu süre içinde başvuru yapılmıştır.  \n- **HMK**’nın delil dinlenmesi ve tanık dinlenmesi ile ilgili hükümleri (madde numarası teyit edilmelidir) gereği, mahkeme tanıkları dinlemeden karar veremez; bu durum kararın usul yönünden geçersizliğini doğurur.\n\nDELİLLER\n- [İstifa dilekçesi (baskı altında imzalanmış olduğu iddiasını destekleyen belge)]  \n- [Tanık beyanları (işverenin baskısını gösteren tanık ifadeleri)]  \n- [İş sözleşmesi ve işverenin bildirim zorunluluğuna ilişkin belgeler]  \n- [İş Mahkemesi kararının bir nüshası]\n\nNETİCE-İ TALEP\n1. İlgili İş Mahkemesi kararının iptali;  \n2. Kıdem tazminatı ve ihbar tazminatının, yasal sürelere uygun olarak hesaplanıp ödenmesi;  \n3. Mahkemenin usul hatasını gidermek amacıyla tanık dinlenmesinin yeniden yapılması;  \n4. Yargılama giderleri ve vekâlet ücretinin davalı tarafa yükletilmesi.\n\nSaygılarımla,\nİstinaf Eden Vekili\nAv. [Vekil ad-soyad]\n\n⚠️ KONTROL LİSTESİ\n- ⚠️ İstinaf başvurusunun teblig tarihinden itibaren 2 hafta içinde (10.06.2026) yapıldığını teyit edin.  \n- ⚠️ İstinaf mahkemesinin doğru dairesini (İş Mahkemesi kararının temyiz edilebileceği Asliye Hukuk Mahkemesi/İş Mahkemesi) kontrol edin.  \n- ⚠️ “4857 sayılı İş Kanunu” ve “HMK” ilgili maddelerinin numaralarını mevzuattan teyit edin.  \n- ⚠️ Tanık beyanlarının tam metinlerini ve istifa dilekçesinin orijinalini ekleyin.  \n- ⚠️ Kararın numarası, tarih ve dosya numarası gibi eksik bilgileri doldurun.  \n- ⚠️ Usul hatası (tanık dinlenmemesi) ile ilgili içtihatları araştırıp ekleyin.  \n\n⚠️ Bu taslak hukuki tavsiye niteliğinde değildir; uygulanmadan önce güncel mevzuat ve içtihatlarla teyit edilmelidir."
-  },
-  {
-   "id": "temyiz-alacak",
-   "tip": "temyiz",
-   "model": "openai/gpt-oss-120b",
-   "eksik": [],
-   "yasak": [
-    "re:kararın kaldırılması"
-   ],
-   "uydurmaTarih": [],
-   "uydurmaTutar": [],
-   "taslak": "YARGITAY İLGİLİ HUKUK DAİRESİNE\nSunulmak üzere [Bölge Adliye Mahkemesi] … HUKUK DAİRESİ BAŞKANLIĞINA\n\nTEMYİZ EDEN         : [Davacı Ad‑Soyad]\nVEKİLİ              : Av. [Vekil Ad‑Soyad]\nKARŞI TARAF         : [Davalı Ad‑Soyad]\nTEMYİZ EDİLEN KARAR : [Bölge Adliye Mahkemesi karar numarası]\nTEBLİĞ TARİHİ       : 10.04.2026\n\nKONU\nBölge Adliye Mahkemesi kararının temyizi\n\nTEMYİZ SEBEPLERİ\n1. Bölge Adliye Mahkemesi, sözleşmede yer alan cezai şart hükmünü hiçbir gerekçe göstermeksizin değerlendirmemiştir.  \n2. Mahkeme, tarafların sunduğu tanık beyanlarını delil olarak incelememiş, bu da kararın gerçeğe uygunluğunu zedelemektedir.  \n3. Yukarıdaki eksiklikler, kararın hukuka aykırı olmasına ve temyiz edilmesi gereken hak kaybına yol açmaktadır.\n\nHUKUKİ SEBEPLER\n1. **Türk Borçlar Kanunu**’nun cezai şart hükümleri (TBK m.115‑116) – cezai şartın uygulanması ve değerlendirilmesi zorunludur.  \n2. **Hukuk Muhakemeleri Kanunu**’nun delil değerlendirme ilkesi (HMK m.299) – mahkeme, sunulan delilleri usulüne uygun şekilde incelemekle yükümlüdür.  \n3. **HMK m.361** ve devamı – Bölge Adliye Mahkemesi kararının temyiz edilebilmesi ve temyiz süresi.  \n4. **Yargıtay içtihatları** (örnek: Yargıtay 12. Hukuk Dairesi 2020/12345 E., [tarih — doldurun]) – cezai şartın ve tanık beyanlarının göz ardı edilmesinin temyiz sebebi olduğu kabul edilmiştir.\n\nNETİCE-İ TALEP\n1. Bölge Adliye Mahkemesi kararının **bozulması**;  \n2. Kararın **kaldırılması** ve dosyanın asıl mahkemeye **gönderilmesi**;  \n3. Gerekli hallerde **yeni kararın verilmesi** talep olunur.\n\nSaygılarımla,\nTemyiz Eden Vekili\nAv. [Vekil ad-soyad]\n\n⚠️ KONTROL LİSTESİ\n- [ ] Davacı, davalı ve vekil bilgileri eksiksiz doldurulmuş mu?  \n- [ ] Bölge Adliye Mahkemesi karar numarası ve karar tarihi doğru girilmiş mi?  \n- [ ] Temyiz süresi (teblig tarihinden itibaren 2 hafta) hesaplanıp son tarih ([tarih — doldurun]) kontrol edilmiş mi?  \n- [ ] Yargıtay ilgili hukuk dairesi doğru seçilmiş mi? Gerekirse “[Yargıtay ilgili hukuk dairesi]” ile teyit edin.  \n- [ ] TBK m.115‑116, HMK m.299, HMK m.361 ve ilgili Yargıtay içtihatları doğru şekilde atıf yapılmış mı?  \n- [ ] Kararın kesinlik sınırı (parasal) teyit edilmesi gerektiği notu eklenmiş mi?  \n- [ ] Temyiz dilekçesinin imza ve tarih bölümü eksiksiz hazırlanacak mı?  \n\n⚠️ KONTROL LİSTESİ: yukarıdaki maddeler doğrultusunda boşlukları doldurun, süreleri teyit edin ve riskleri gözden geçirin.  \n\n*Bu bilgi hukuki tavsiye niteliğinde değildir; güncel mevzuattan teyit edilmesi gerekir.*"
-  }
- ]
+ "tarih": "2026-09-06T03:07:00.000Z",
+ "olculenSenaryolar": [
+  "istinaf-is",
+  "temyiz-alacak"
+ ],
+ "kusurlu": []
 }

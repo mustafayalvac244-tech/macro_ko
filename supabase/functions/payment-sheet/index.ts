@@ -8,14 +8,14 @@
 // Stripe'ın imzalı webhook'udur. İstemcinin "ödedim" demesine güvenip bakiye
 // yazmak, bakiyeyi bedava dağıtmak olur.
 //
-// EKSİK HALKA (bilinçli olarak yazılmadı): webhook ucu. Yazılması için
-// STRIPE_WEBHOOK_SECRET gerekiyor ve imza doğrulaması denenmeden yazılan ödeme
-// kodu, denenmemiş her koddan daha tehlikelidir — para hatası sessiz olmaz ama
-// geri de alınmaz. Webhook eklendiğinde yapacağı tek iş şudur:
-//   payment_intent.succeeded → ai_kontor_yukle(metadata.user_id, tutar)
-// Yükleme işlevi ve tablosu hazır (0055), imza doğrulaması yapılınca bağlanır.
+// KONTÖRÜ YÜKLEYEN UÇ: stripe-webhook. Ödeme onaylandığında Stripe'ın imzalı
+// isteğiyle çağrılır ve ai_odeme_isle() ile bakiyeyi yükler (0064). Buradaki
+// metadata onun TEK bilgi kaynağıdır: yazılmazsa başarılı bir ödeme bile
+// karşılıksız kalır.
 //
-// Kurulum: Edge Functions → payment-sheet → Secrets → STRIPE_SECRET_KEY.
+// Kurulum: Edge Functions → Secrets → STRIPE_SECRET_KEY ve
+// STRIPE_WEBHOOK_SECRET. stripe-webhook ucu JWT doğrulaması KAPALI
+// dağıtılmalıdır (Stripe bizim JWT'mizi taşıyamaz); korumasını imzadan alır.
 
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
