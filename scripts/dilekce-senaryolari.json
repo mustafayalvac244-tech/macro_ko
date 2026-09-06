@@ -170,6 +170,21 @@
     "re:harca esas dava değeri"
    ],
    "notlar": "HMK m.136: davacının cevabının tebliğinden itibaren iki hafta. m.141: dilekçelerin karşılıklı verilmesinden sonra savunma genişletilemez."
+  },
+  {
+   "id": "cevap-kismi-odeme",
+   "tip": "cevap",
+   "olay": "Müvekkilim aleyhine 50.000 TL alacak davası açıldı. Davacı, 2019 yılında verdiği bir borç parayı istiyor. Müvekkilim borcun tamamını değil yalnızca 20.000 TL sini aldığını, kalanının hiç verilmediğini söylüyor. Cevap dilekçesi hazırlayalım, süresi içinde vermemiz gerekiyor.",
+   "icermeli": [
+    "re:20\\.000",
+    "re:netice[- ]?i talep|sonuç ve talep",
+    "re:davanın reddi"
+   ],
+   "icermemeli": [
+    "re:davalı\\S*[ıi]?[ıi]?y?[ae]\\s+(tahsil|yükletil|ödetil)",
+    "re:müvekkil\\S*\\s+(aleyhine|zararına)\\s+(tahsil|yükletil|ödetil)"
+   ],
+   "notlar": "GERÇEK KULLANIM DENEMESİNDE bulunan bir hata sınıfı: model iki bağımsız üretimde davalı vekilinin AĞZINDAN, kendi müvekkilinin ALEYHİNE bir talep yazdı — \"kalan 30.000 TL nin davalıya tahsil edilmesini\" ve ayrı bir üretimde \"yargılama giderinin davalıya yükletilmesini\". Sebep: dava dilekçesi kalıbında \"giderin davalıya yükletilmesi\" DAVACI için doğru bir cümledir; model bu kalıbı taraf değiştirmeden cevap dilekçesine taşıdı. talepTarifi(cevap/duplik) ve talepUyarilari() buna karşı güçlendirildi (bkz. dilekce.ts); icermemeli deseni aynı mekanik denetimin ölçümdeki karşılığıdır — düzeltme sessizce geri gelirse burada yakalanır."
   }
  ]
 }

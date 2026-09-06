@@ -12,7 +12,7 @@ birincisi.
 
 | # | Özellik | Bugün | Kanıt | 8 için gereken |
 |---|---------|-------|-------|----------------|
-| 1 | Dilekçe üretimi | 7 | 10 senaryo; hepsi bir noktada geçti ama TEK KOŞUDA hiç %100 olmadı | Tek koşuda 9/10 |
+| 1 | Dilekçe üretimi | 7 | 11 senaryo. Gerçek kullanımda YENİ bir hata sınıfı bulundu ve düzeltildi (aşağıya bkz); set büyüdü ama tek koşuda hâlâ %100 yok | Tek koşuda 10/11 |
 | 2 | Hukuki mütalaa | 0 | 5 senaryo, ücretsiz katmanda 0/5 | Claude anahtarı — **kod hazır, karar sizde** |
 | 3 | Belge inceleme | 7 | yalnız 3 senaryo — üçten %100 çıkarmak istatistik değil | Senaryo 3 → 15 |
 | 4 | İçtihat arama | 7 | isabet@5 %89,3 — ama 30 soruyu da ölçütü de BEN yazdım. İki gerçek kusur düzeldi (eksik sonuç, uzunluk yanlılığı) | Avukat gözüyle doğrulama |
@@ -38,6 +38,34 @@ birincisi.
 > **Puanlama kuralı 3 — ÖLÇÜLMEMİŞ TAHMİNDEN ÖLÇÜME "ilerleme" YOKTUR.**
 > "4'ten 8'e çıktı" gibi cümleler kurmayacağım: 4 bir ölçüm değildi. Doğrusu
 > "hiç ölçülmemişti, ilk ölçüm %54,7, şimdi %89,3".
+
+---
+
+## Bulundu ve düzeltildi: cevap/duplikte müvekkil aleyhine talep
+
+"Kullanabilen özellikleri kullanıp emin ol" talimatı üzerine dilekçe
+özelliğini gerçek avukat gibi kullanmaya devam ettim. İki bağımsız cevap
+dilekçesi üretiminde, iki farklı biçimde aynı kök hatayı buldum: model
+NETİCE-İ TALEP'te davalı vekilinin ağzından, kendi müvekkilinin ALEYHİNE
+bir sonuç istiyordu — "kalan 30.000 TL'nin davalıya tahsil edilmesini" ve
+ayrı bir üretimde "yargılama giderinin davalıya yükletilmesini". Sebep:
+dava dilekçesi kalıbında "giderin davalıya yükletilmesi" davacı için doğru
+bir cümledir; model bu kalıbı taraf değiştirmeden cevap dilekçesine
+taşıyordu. Düşen bir talepten (HMK m.26) daha ağır: dikkatsiz avukat,
+müvekkilinin aleyhine bir sonucu mahkemeye sunmuş olur.
+
+İki katmanlı düzeltme dağıtıldı: `talepTarifi` model talimatını
+güçlendirdi, `talepUyarilari` mekanik denetim ekledi (regex ile aleyhe
+yön yakalanıyor). **İki bağımsız canlı üretimle doğrulandı** (iki farklı
+model: `openai/gpt-oss-120b` ve yedek `gemini-flash-latest`) — ikisinde de
+gider artık doğru tarafa (davacıya) yükletiliyor. Senaryo, regresyon
+olarak `cevap-kismi-odeme` adıyla ölçüm setine eklendi; yoksa bu bulgu
+"bir kerelik gözlem" olarak kalır, gelecekte biri bir şey değiştirirse
+sessizce geri gelebilirdi.
+
+Bu, kendi sınavımı kendim hazırlama sorununun İYİ tarafı: ölçüm setinin
+kör noktasını ancak gerçek kullanım gösterdi — mevcut 11 senaryonun hiçbiri
+"kısmi ödeme + kısmi ret" durumunu içermiyordu.
 
 ---
 
