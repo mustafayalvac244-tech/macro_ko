@@ -1,23 +1,7 @@
 {
- "tarih": "2026-09-06T06:38:58.139Z",
+ "tarih": "2026-09-06T07:14:45.852Z",
  "olculenSenaryolar": [
-  "cevap-alacak",
-  "istinaf-is",
-  "bilirkisi-itiraz",
   "duplik-alacak"
  ],
- "kusurlu": [
-  {
-   "id": "duplik-alacak",
-   "tip": "duplik",
-   "model": "openai/gpt-oss-20b",
-   "eksik": [
-    "re:reddi"
-   ],
-   "yasak": [],
-   "uydurmaTarih": [],
-   "uydurmaTutar": [],
-   "taslak": "###MAHKEME###  [Mahkeme Adı]  \n###TARAF###  \n        DAVACI:  [Davacı Adı Soyadı]  \n        DAVALI:  [Davalı Adı Soyadı]  \n        VEKİLİ:  [Vekili]  \n        ESAS NO:  [Esas No]  \n###KONU###  Alacak davasında ikinci cevap (düplik)  \n###ACIKLAMALAR###  \n1. Davacının 20.03.2026 tarihinde tebliğ edilen cevabına karşılık, bu ikinci cevap (düplik) 20.03.2026 tarihli cevabın tebliğinden itibaren iki haftalık süre içinde hazırlanmıştır (HMK m.127).  \n2. Davacının ilk cevabında yeni bir fatura (Fatura No: [Fatura No], Tarihi: [Fatura Tarihi], Tutarı: [Fatura Tutarı])"
-  }
- ]
+ "kusurlu": []
 }
