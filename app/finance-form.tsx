@@ -15,7 +15,8 @@ import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatMoney } from '@/utils/format';
+import { hesaplaSmm, VARSAYILAN_KDV_ORANI, VARSAYILAN_STOPAJ_ORANI } from '@/utils/serbestMeslekMakbuzu';
 import type { FinanceCategory, FinanceKind } from '@/types/database';
 
 export default function FinanceFormScreen() {
@@ -34,6 +35,9 @@ export default function FinanceFormScreen() {
     entry_date?: string;
     is_recurring?: string;
     note?: string;
+    vat_rate?: string;
+    withholding_rate?: string;
+    receipt_no?: string;
   }>();
   const isEdit = !!params.id;
   const createEntry = useCreateFinanceEntry();
@@ -48,10 +52,21 @@ export default function FinanceFormScreen() {
   const [entryDate, setEntryDate] = useState(params.entry_date ? new Date(`${params.entry_date}T12:00:00`) : new Date());
   const [isRecurring, setIsRecurring] = useState(params.is_recurring === '1');
   const [note, setNote] = useState(params.note ?? '');
+  const [applyVat, setApplyVat] = useState(!!params.vat_rate);
+  const [vatRate, setVatRate] = useState(params.vat_rate ?? String(VARSAYILAN_KDV_ORANI));
+  const [applyWithholding, setApplyWithholding] = useState(!!params.withholding_rate);
+  const [withholdingRate, setWithholdingRate] = useState(params.withholding_rate ?? String(VARSAYILAN_STOPAJ_ORANI));
+  const [receiptNo, setReceiptNo] = useState(params.receipt_no ?? '');
   const [error, setError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
 
   const categories = kind === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const parsedAmount = Number(amount.replace(/\./g, '').replace(',', '.'));
+  const smm = hesaplaSmm(
+    Number.isFinite(parsedAmount) ? parsedAmount : 0,
+    applyVat ? Number(vatRate.replace(',', '.')) || 0 : null,
+    applyWithholding ? Number(withholdingRate.replace(',', '.')) || 0 : null
+  );
 
   const handleKindChange = (next: FinanceKind) => {
     setKind(next);
@@ -73,6 +88,10 @@ export default function FinanceFormScreen() {
       entry_date: format(entryDate, 'yyyy-MM-dd'),
       is_recurring: isRecurring,
       note: note.trim() || null,
+      vat_rate: kind === 'income' && applyVat ? Number(vatRate.replace(',', '.')) || 0 : null,
+      withholding_rate: kind === 'income' && applyWithholding ? Number(withholdingRate.replace(',', '.')) || 0 : null,
+      receipt_no: kind === 'income' ? receiptNo.trim() || null : null,
+      receipt_issued: kind === 'income' && !!receiptNo.trim(),
     };
     try {
       if (isEdit && params.id) {
@@ -152,6 +171,84 @@ export default function FinanceFormScreen() {
             keyboardType="decimal-pad"
             icon="cash-outline"
           />
+
+          {kind === 'income' && (
+            <>
+              <View style={styles.spacer} />
+              <View style={styles.recurringCard}>
+                <View style={styles.recurringRow}>
+                  <View style={styles.recurringLeft}>
+                    <Ionicons name="receipt-outline" size={18} color={colors.info} />
+                    <Text style={styles.recurringLabel}>{t('financeForm.applyVat')}</Text>
+                  </View>
+                  <Switch
+                    value={applyVat}
+                    onValueChange={setApplyVat}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+                {applyVat && (
+                  <Input
+                    label={t('financeForm.vatRate')}
+                    value={vatRate}
+                    onChangeText={setVatRate}
+                    keyboardType="decimal-pad"
+                    containerStyle={styles.rateInput}
+                  />
+                )}
+
+                <View style={[styles.recurringRow, styles.spacerTop]}>
+                  <View style={styles.recurringLeft}>
+                    <Ionicons name="arrow-down-circle-outline" size={18} color={colors.info} />
+                    <Text style={styles.recurringLabel}>{t('financeForm.applyWithholding')}</Text>
+                  </View>
+                  <Switch
+                    value={applyWithholding}
+                    onValueChange={setApplyWithholding}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+                {applyWithholding && (
+                  <Input
+                    label={t('financeForm.withholdingRate')}
+                    value={withholdingRate}
+                    onChangeText={setWithholdingRate}
+                    keyboardType="decimal-pad"
+                    containerStyle={styles.rateInput}
+                  />
+                )}
+
+                {(applyVat || applyWithholding) && parsedAmount > 0 && (
+                  <View style={styles.smmPreview}>
+                    {applyVat && (
+                      <Text style={styles.smmLine}>
+                        {t('financeForm.vatAmount')}: +{formatMoney(smm.kdvTutari)}
+                      </Text>
+                    )}
+                    {applyWithholding && (
+                      <Text style={styles.smmLine}>
+                        {t('financeForm.withholdingAmount')}: −{formatMoney(smm.stopajTutari)}
+                      </Text>
+                    )}
+                    <Text style={styles.smmTotal}>
+                      {t('financeForm.netTotal')}: {formatMoney(smm.tahsilEdilecek)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.spacer} />
+              <Input
+                label={t('financeForm.receiptNo')}
+                placeholder={t('financeForm.receiptNoPlaceholder')}
+                value={receiptNo}
+                onChangeText={setReceiptNo}
+                icon="document-text-outline"
+              />
+            </>
+          )}
 
           <Text style={styles.label}>{t('financeForm.date')}</Text>
           <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
@@ -244,6 +341,29 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   spacer: {
     height: spacing.md,
+  },
+  spacerTop: {
+    marginTop: spacing.sm,
+  },
+  rateInput: {
+    marginTop: spacing.xs,
+    marginBottom: 0,
+  },
+  smmPreview: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  smmLine: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  smmTotal: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontWeight: '700',
+    marginTop: 2,
   },
   categoryGrid: {
     flexDirection: 'row',

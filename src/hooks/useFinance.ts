@@ -39,6 +39,10 @@ export interface FinanceEntryInput {
   entry_date: string;
   is_recurring: boolean;
   note: string | null;
+  vat_rate?: number | null;
+  withholding_rate?: number | null;
+  receipt_no?: string | null;
+  receipt_issued?: boolean;
 }
 
 export function useCreateFinanceEntry() {

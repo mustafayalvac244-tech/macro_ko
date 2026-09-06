@@ -77,10 +77,13 @@ export default function FinanceScreen() {
       }
     });
 
+    // Gelirde net_total kullanılır: KDV eklenmiş, stopaj düşülmüş — banka
+    // hesabına gerçekte giren nakit budur. KDV/stopaj uygulanmayan kayıtlarda
+    // (mevcut kayıtların tamamı) net_total zaten amount'a eşittir.
     let income = paymentsTotal;
     let expense = 0;
     inMonth.forEach((e) => {
-      if (e.kind === 'income') income += Number(e.amount);
+      if (e.kind === 'income') income += Number(e.net_total ?? e.amount);
       else expense += Number(e.amount);
     });
 
@@ -104,7 +107,12 @@ export default function FinanceScreen() {
     const monthLabel = format(month, 'yyyy-MM');
     const rows: Array<Array<string | number>> = [];
 
+    let vatTotal = 0;
+    let withholdingTotal = 0;
+
     [...recurring, ...oneOff].forEach((e) => {
+      if (e.vat_amount != null) vatTotal += Number(e.vat_amount);
+      if (e.withholding_amount != null) withholdingTotal += Number(e.withholding_amount);
       rows.push([
         e.entry_date,
         t(e.kind === 'income' ? 'ofinance.income' : 'ofinance.expense'),
@@ -112,6 +120,11 @@ export default function FinanceScreen() {
         e.title ?? '',
         e.is_recurring ? t('common.yes') : t('common.no'),
         Number(e.amount).toFixed(2),
+        e.vat_rate != null ? `%${e.vat_rate}` : '',
+        e.vat_amount != null ? Number(e.vat_amount).toFixed(2) : '',
+        e.withholding_rate != null ? `%${e.withholding_rate}` : '',
+        e.withholding_amount != null ? Number(e.withholding_amount).toFixed(2) : '',
+        e.receipt_no ?? '',
         e.note ?? '',
       ]);
     });
@@ -127,6 +140,11 @@ export default function FinanceScreen() {
           t('common.no'),
           Number(p.amount).toFixed(2),
           '',
+          '',
+          '',
+          '',
+          '',
+          '',
         ]);
       }
     });
@@ -134,10 +152,13 @@ export default function FinanceScreen() {
     rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
 
     // Özet satırları — muhasebecinin doğrudan görebilmesi için en alta.
+    // KDV/stopaj toplamları beyanname hazırlarken doğrudan kullanılabilsin.
     rows.push([]);
-    rows.push(['', '', '', t('ofinance.income'), '', incomeTotal.toFixed(2), '']);
-    rows.push(['', '', '', t('ofinance.expense'), '', expenseTotal.toFixed(2), '']);
-    rows.push(['', '', '', t('ofinance.net'), '', net.toFixed(2), '']);
+    rows.push(['', '', '', t('ofinance.income'), '', incomeTotal.toFixed(2), '', '', '', '', '', '']);
+    rows.push(['', '', '', t('ofinance.expense'), '', expenseTotal.toFixed(2), '', '', '', '', '', '']);
+    rows.push(['', '', '', t('ofinance.net'), '', net.toFixed(2), '', '', '', '', '', '']);
+    rows.push(['', '', '', t('financeForm.vatAmount'), '', '', '', vatTotal.toFixed(2), '', '', '', '']);
+    rows.push(['', '', '', t('financeForm.withholdingAmount'), '', '', '', '', '', withholdingTotal.toFixed(2), '', '']);
 
     const csv = toCsv(
       [
@@ -147,12 +168,17 @@ export default function FinanceScreen() {
         t('ofinance.exp.title'),
         t('ofinance.exp.recurring'),
         t('ofinance.exp.amount'),
+        t('financeForm.vatRate'),
+        t('financeForm.vatAmount'),
+        t('financeForm.withholdingRate'),
+        t('financeForm.withholdingAmount'),
+        t('financeForm.receiptNo'),
         t('ofinance.exp.note'),
       ],
       rows
     );
 
-    if (rows.length <= 4) {
+    if (rows.length <= 6) {
       Alert.alert(t('ofinance.title'), t('ofinance.exp.empty'));
       return;
     }
@@ -172,6 +198,9 @@ export default function FinanceScreen() {
       entry_date: entry.entry_date,
       is_recurring: entry.is_recurring ? '1' : '0',
       note: entry.note ?? '',
+      ...(entry.vat_rate != null ? { vat_rate: String(entry.vat_rate) } : {}),
+      ...(entry.withholding_rate != null ? { withholding_rate: String(entry.withholding_rate) } : {}),
+      ...(entry.receipt_no ? { receipt_no: entry.receipt_no } : {}),
     }).toString();
     router.push(`/finance-form?${q}` as Parameters<typeof router.push>[0]);
   };
@@ -209,6 +238,13 @@ export default function FinanceScreen() {
           </Text>
           <View style={styles.entryMetaRow}>
             <Text style={styles.entryMeta}>{t(`fcat.${entry.category}` as const)}</Text>
+            {(entry.vat_rate != null || entry.withholding_rate != null) && (
+              <Text style={styles.entryMeta}>
+                {entry.vat_rate != null ? `KDV %${entry.vat_rate}` : ''}
+                {entry.vat_rate != null && entry.withholding_rate != null ? ' · ' : ''}
+                {entry.withholding_rate != null ? `Stopaj %${entry.withholding_rate}` : ''}
+              </Text>
+            )}
             {entry.is_recurring && (
               <View style={[styles.recurringTag, stopped && { backgroundColor: colors.surfaceHover }]}>
                 <Ionicons name="repeat" size={10} color={stopped ? colors.textMuted : colors.info} />
@@ -223,7 +259,7 @@ export default function FinanceScreen() {
         </View>
         <Text style={[styles.entryAmount, { color: amountColor }]} numberOfLines={1}>
           {isIncome ? '+' : '−'}
-          {formatMoney(Number(entry.amount))}
+          {formatMoney(Number(isIncome ? entry.net_total ?? entry.amount : entry.amount))}
         </Text>
       </Pressable>
     );

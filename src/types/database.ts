@@ -268,6 +268,15 @@ export interface FinanceEntry {
   recurring_until: string | null;
   note: string | null;
   created_at: string;
+  /** Serbest meslek makbuzu — yalnız gelir kalemlerinde anlamlı. */
+  vat_rate: number | null;
+  withholding_rate: number | null;
+  vat_amount: number | null;
+  withholding_amount: number | null;
+  /** Veritabanında hesaplanır: amount + vat_amount − withholding_amount. */
+  net_total: number;
+  receipt_no: string | null;
+  receipt_issued: boolean;
 }
 
 export interface Payment {
