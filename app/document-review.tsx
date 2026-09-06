@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
-import { AI_ENABLED } from '@/config/features';
+import { AI_BELGE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import type { AiKullanim } from '@/hooks/useAiKontor';
@@ -48,7 +48,7 @@ export default function DocumentReviewScreen() {
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!AI_ENABLED) {
+  if (!AI_BELGE_ENABLED) {
     return <ComingSoon headerTitle={t('docrev.title')} title={t('soon.docrev')} desc={t('soon.desc')} icon="scan" />;
   }
 

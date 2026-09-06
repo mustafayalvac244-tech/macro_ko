@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
-import { AI_ENABLED } from '@/config/features';
+import { AI_DILEKCE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
 import { useCases } from '@/hooks/useCases';
 import type { AiKullanim } from '@/hooks/useAiKontor';
@@ -82,7 +82,7 @@ export default function DilekceUretScreen() {
   const [hakDusulmedi, setHakDusulmedi] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!AI_ENABLED) {
+  if (!AI_DILEKCE_ENABLED) {
     return <ComingSoon headerTitle={t('dlk.title')} title={t('soon.dilekce')} desc={t('soon.desc')} icon="document-text" />;
   }
 

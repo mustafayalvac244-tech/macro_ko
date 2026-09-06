@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
-import { AI_ENABLED } from '@/config/features';
+import { AI_MUTALAA_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
 import type { AiKullanim } from '@/hooks/useAiKontor';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
@@ -62,7 +62,7 @@ export default function MutalaaScreen() {
   const [error, setError] = useState<string | null>(null);
   const [needsPro, setNeedsPro] = useState(false);
 
-  if (!AI_ENABLED) {
+  if (!AI_MUTALAA_ENABLED) {
     return <ComingSoon headerTitle={t('mut.title')} title={t('soon.mutalaa')} desc={t('soon.desc')} icon="library" />;
   }
 

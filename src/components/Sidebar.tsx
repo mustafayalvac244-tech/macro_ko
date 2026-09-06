@@ -19,7 +19,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
-import { AI_ENABLED } from '@/config/features';
+import { AI_BELGE_ENABLED, AI_DILEKCE_ENABLED, AI_ENABLED, AI_MUTALAA_ENABLED } from '@/config/features';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
@@ -124,14 +124,19 @@ export function Sidebar() {
     { icon: 'folder-outline', label: t('tab.vault'), path: '/(app)/documents' },
   ];
   // AI özellikleri kapalıyken (yakında) menüde "YAKINDA" rozeti göster.
-  const aiBadge = AI_ENABLED ? undefined : t('ai.comingSoonBadge');
+  //
+  // ROZET ARTIK ÖZELLİK BAŞINA. Tek bayrak kalktığı için tek rozet de kalktı:
+  // açık bir özelliğin yanında "YAKINDA" yazmak, çalışan ekranı kapalı
+  // göstermek olurdu — kullanıcı hiç dokunmaz.
+  const yakinda = t('ai.comingSoonBadge');
+  const aiBadge = AI_ENABLED ? undefined : yakinda;
   // Mesajlaşma şimdilik gizli (istek üzerine); rotalar duruyor, giriş yok.
   const toolItems: NavItem[] = [
     { icon: 'sparkles-outline', label: t('ai.short'), path: '/ai-chat', badge: aiBadge },
     { icon: 'cloud-upload-outline', label: t('imp.short'), path: '/dosya-aktar', badge: aiBadge },
-    { icon: 'library-outline', label: t('mut.short'), path: '/mutalaa', badge: aiBadge },
-    { icon: 'scan-outline', label: t('docrev.short'), path: '/document-review', badge: aiBadge },
-    { icon: 'document-text-outline', label: t('dlk.short'), path: '/dilekce-uret', badge: aiBadge },
+    { icon: 'library-outline', label: t('mut.short'), path: '/mutalaa', badge: AI_MUTALAA_ENABLED ? undefined : yakinda },
+    { icon: 'scan-outline', label: t('docrev.short'), path: '/document-review', badge: AI_BELGE_ENABLED ? undefined : yakinda },
+    { icon: 'document-text-outline', label: t('dlk.short'), path: '/dilekce-uret', badge: AI_DILEKCE_ENABLED ? undefined : yakinda },
     { icon: 'reader-outline', label: t('ictihat.short'), path: '/ictihat', badge: aiBadge },
     { icon: 'earth-outline', label: t('aihm.short'), path: '/aihm' },
     { icon: 'document-text-outline', label: t('tpl.title'), path: '/templates' },
