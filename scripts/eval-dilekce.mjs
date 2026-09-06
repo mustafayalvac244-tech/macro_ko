@@ -136,7 +136,16 @@ async function uret(tip, olay, deneme = 0) {
   // HANGİ MODELİN CEVAPLADIĞI KAYDA GEÇER. Ücretsiz hat Groq'tan Gemini'ye
   // düşebiliyor ve iki modelin çıktısı aynı kalitede değil; hangisinin
   // ölçüldüğü bilinmezse "kalite düştü" ile "yedeğe inildi" ayırt edilemez.
-  return { metin: String(j?.text ?? ''), model: String(j?.model ?? '?') };
+  //
+  // SUNUCUNUN KENDİ UYARILARI da alınır: kanun yolu dilekçelerinde talep
+  // cümlesi denetimi (istinafta "kaldırılması", temyizde "bozulması") uçta
+  // yapılıyor. Ölçüm bunu kaydetmezse "senaryo kaldı" ile "koruma çalıştı"
+  // ayırt edilemez — yani korumanın işe yarayıp yaramadığı bilinmez.
+  return {
+    metin: String(j?.text ?? ''),
+    model: String(j?.model ?? '?'),
+    talepEksik: Array.isArray(j?.talepEksik) ? j.talepEksik : [],
+  };
 }
 
 // EVAL_SINIR: kaç senaryo koşulacak (vars. hepsi).
@@ -166,8 +175,9 @@ try {
 
     let taslak;
     let kullanilanModel = '?';
+    let talepUyari = [];
     try {
-      ({ metin: taslak, model: kullanilanModel } = await uret(s.tip, s.olay));
+      ({ metin: taslak, model: kullanilanModel, talepEksik: talepUyari } = await uret(s.tip, s.olay));
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(
@@ -202,6 +212,9 @@ try {
     console.log(`${gecti ? '✓' : '✗'} ${s.id} (${s.tip})  ${taslak.length} krktr · ${bosluk} boşluk · ${kullanilanModel}`);
     if (eksik.length) console.log(`    EKSİK UNSUR : ${eksik.join(' | ')}`);
     if (yasak.length) console.log(`    OLMAMALIYDI : ${yasak.join(' | ')}`);
+    // Sunucu korumasının çalışıp çalışmadığı: senaryo kalsa bile avukat uyarıyı
+    // görüyorsa dilekçe kör teslim edilmiyor demektir.
+    if (talepUyari.length) console.log(`    SUNUCU UYARDI: ${talepUyari.join(' | ')}`);
     if (uydurmaTarih.length) console.log(`    UYDURMA TARİH: ${uydurmaTarih.join(', ')}`);
     if (uydurmaTutar.length) console.log(`    UYDURMA TUTAR: ${uydurmaTutar.join(', ')}`);
     if (!gecti) kusurlu.push({ id: s.id, tip: s.tip, model: kullanilanModel, eksik, yasak, uydurmaTarih, uydurmaTutar, taslak });
