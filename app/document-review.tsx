@@ -39,6 +39,14 @@ export default function DocumentReviewScreen() {
   const [ayiklanan, setAyiklanan] = useState(0);
   // Uydurma kanun maddesi atfı: sunucu artık havuzla karşılaştırıp söylüyor.
   const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  // PDF'İN OKUNAMAYAN SAYFALARI (taranmış görüntü).
+  //
+  // En tehlikeli veri kaybı türü: avukat eksik olduğunu GÖREMİYOR. Resmî ücret
+  // tarifesini kendi çıkarıcımızla okurken çıktı — 19.000 karakter metin geldi,
+  // sekiz sayfanın dördü (ücret tabloları) hiç gelmedi. Sözleşmedeki ödeme
+  // planı ya da karardaki hesap tablosu da aynı şekilde sessizce düşer ve
+  // inceleme, belgenin tamamını görmüş gibi konuşur.
+  const [okunamayanSayfa, setOkunamayanSayfa] = useState<number[]>([]);
   // Kullanım ve iade — sunucu üç modda da destekliyor.
   const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
   const [hakDusulmedi, setHakDusulmedi] = useState(false);
@@ -73,6 +81,7 @@ export default function DocumentReviewScreen() {
       const name = (asset.name || '').toLowerCase();
 
       // Düz metin dosyasını doğrudan oku (sunucuya gitmeye gerek yok).
+      setOkunamayanSayfa([]);
       if (name.endsWith('.txt')) {
         const content = await new File(asset.uri).text();
         if (!content.trim()) {
@@ -103,7 +112,9 @@ export default function DocumentReviewScreen() {
         );
         return;
       }
-      const extracted = (data as { text?: string } | null)?.text ?? '';
+      const cikan = data as { text?: string; sayfa?: number; okunamayanSayfa?: number[] } | null;
+      const extracted = cikan?.text ?? '';
+      setOkunamayanSayfa(cikan?.okunamayanSayfa ?? []);
       if (!extracted.trim()) {
         Alert.alert(t('docrev.title'), t('docrev.fileEmpty'));
         return;
@@ -202,6 +213,17 @@ export default function DocumentReviewScreen() {
             <Text style={styles.meta}>{t('docrev.chars', { n: text.trim().length })}</Text>
             {text.length >= MAX_CHARS && <Text style={styles.metaWarn}>{t('docrev.truncated')}</Text>}
           </View>
+          {/* Uyarı, inceleme İSTENMEDEN ÖNCE burada duruyor: eksik okunmuş bir
+              belgeyi incelemeye göndermek, eksik olduğunu sonradan öğrenmekten
+              kötüdür — avukat o ana kadar sonuca göre karar vermiş olur. */}
+          {okunamayanSayfa.length > 0 && (
+            <Text style={styles.warn}>
+              {t('docrev.scannedPages', {
+                n: String(okunamayanSayfa.length),
+                sayfalar: okunamayanSayfa.join(', '),
+              })}
+            </Text>
+          )}
 
           <Pressable
             onPress={analyze}

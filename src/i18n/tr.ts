@@ -1425,6 +1425,8 @@ export const tr = {
   'docrev.errTooLarge': 'Dosya çok büyük (en fazla ~8 MB). Daha küçük bir dosya seçin.',
   'docrev.placeholder': 'Belge metnini buraya yapıştırın…',
   'docrev.chars': '{n} karakter',
+  // Taranmış sayfalar metne dönüşmez; avukat eksik okunduğunu GÖRMELİ.
+  'docrev.scannedPages': 'DİKKAT: {n} sayfa metne dönüşmedi (taranmış görüntü): {sayfalar}. İnceleme bu sayfaları GÖRMEZ — tablo veya ek varsa gözden kaçar.',
   'docrev.truncated': 'Sınıra ulaşıldı — fazlası kırpıldı',
   'docrev.analyze': 'İncele',
   'docrev.analyzing': 'İnceleniyor…',

@@ -1414,6 +1414,7 @@ export const en: Record<keyof typeof tr, string> = {
   'docrev.errTooLarge': 'File is too large (max ~8 MB). Pick a smaller file.',
   'docrev.placeholder': 'Paste the document text here…',
   'docrev.chars': '{n} characters',
+  'docrev.scannedPages': 'WARNING: {n} page(s) could not be converted to text (scanned images): {sayfalar}. The review does NOT see them — any tables or annexes there will be missed.',
   'docrev.truncated': 'Limit reached — extra text trimmed',
   'docrev.analyze': 'Review',
   'docrev.analyzing': 'Reviewing…',

@@ -80,10 +80,39 @@ Deno.serve(async (req) => {
 
   try {
     let text = '';
+    // PDF'te metne dönüşmeyen sayfalar (taranmış/görüntü). Kullanıcıya
+    // söylenir: eksik okunduğunu bilmeden inceleme isteyen avukat, belgenin
+    // tamamı incelenmiş sanır.
+    let okunamayan: number[] = [];
+    let sayfaSayisi = 0;
     if (filename.endsWith('.pdf')) {
       const pdf = await getDocumentProxy(bytes);
-      const res = await extractText(pdf, { mergePages: true });
-      text = String(res.text ?? '').trim();
+      // SAYFA SAYFA ÇIKARILIYOR — birleştirilmiş metin bir şeyi GİZLİYORDU:
+      // bir PDF'in bazı sayfaları metin, bazıları TARANMIŞ GÖRÜNTÜ olabilir ve
+      // birleşik metin dolu geldiği için "okundu" sayılıyordu.
+      //
+      // ÖLÇÜLEN ARIZA: resmî Avukatlık Asgari Ücret Tarifesi'ni kendi
+      // çıkarıcımızla okuduk; 19.000 karakter metin geldi ama ÜCRET TABLOLARI
+      // hiç gelmedi — o sayfalar 1937x3118 boyutunda taranmış JPEG. Yani
+      // belgenin en kritik kısmı sessizce düştü ve biz "başarıyla okundu"
+      // dedik.
+      //
+      // Avukat için bu, en tehlikeli veri kaybı türü: eksik olduğunu
+      // GÖREMİYOR. Sözleşmedeki ödeme planı tablosu ya da karardaki hesap
+      // tablosu düştüğünde, inceleme belgenin tamamını görmüş gibi konuşur.
+      const res = await extractText(pdf, { mergePages: false });
+      const sayfalar: string[] = Array.isArray(res.text)
+        ? (res.text as string[]).map((x) => String(x ?? ''))
+        : [String((res as { text?: unknown }).text ?? '')];
+      // Eşik neden 40: sayfa numarası, üstbilgi ve altbilgi tek başına birkaç
+      // on karakter tutuyor. Bunun altı, "o sayfada okunacak bir şey yoktu"
+      // demektir; sıfır aramak, üstbilgisi olan taranmış sayfayı kaçırırdı.
+      okunamayan = sayfalar
+        .map((x, i) => ({ i: i + 1, n: x.replace(/\s+/g, '').length }))
+        .filter((x) => x.n < 40)
+        .map((x) => x.i);
+      sayfaSayisi = sayfalar.length;
+      text = sayfalar.join('\n').trim();
       if (!text) {
         // Taranmış (görüntü) PDF — metin katmanı yok.
         return new Response(JSON.stringify({ error: 'pdf_no_text' }), { status: 422, headers: CORS });
@@ -105,7 +134,12 @@ Deno.serve(async (req) => {
     if (!text) {
       return new Response(JSON.stringify({ error: 'empty' }), { status: 422, headers: CORS });
     }
-    return new Response(JSON.stringify({ text, chars: text.length }), {
+    return new Response(JSON.stringify({
+      text,
+      chars: text.length,
+      sayfa: sayfaSayisi || undefined,
+      okunamayanSayfa: okunamayan.length ? okunamayan : undefined,
+    }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   } catch (e) {
