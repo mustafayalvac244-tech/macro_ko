@@ -1255,7 +1255,11 @@ async function mevzuatOzeti(supabase: any, question: string): Promise<string> {
 
   const maddeler: string[] = [];
   try {
-    const { data } = await supabase.rpc('search_mevzuat_fts', { q: question, match_count: 5 });
+    // KURAL DESTEKLİ ARAMA. Ölçüldü: 67 soruluk arama ölçümünde isabet %61,8'den
+    // %69,1'e çıktı. Fark, sıralamayı ayarlamaktan değil, elimizdeki bir sinyali
+    // KULLANMAKTAN geliyor — kural havuzu "istinaf süresi HMK m.345'tir" diyor
+    // ve mevzuat araması bunu hiç okumuyordu (bkz. 0066).
+    const { data } = await supabase.rpc('search_mevzuat_kural', { q: question, match_count: 5 });
     for (const r of ustte((data ?? []) as Array<Record<string, unknown> & { score?: number }>, 0.4, 3)) {
       const ad = String(r.kanun_name ?? r.kanun_short ?? '').trim();
       const baslik = String(r.baslik ?? '').trim();
@@ -1404,7 +1408,7 @@ async function buildMevzuat(supabase: any, question: string): Promise<string> {
   // kelime yok. Anlamsal arama tam bu boşluğu kapatır.
   const qEmb = await embedQuery(question);
   const [ftsRes, semRes] = await Promise.all([
-    supabase.rpc('search_mevzuat_fts', { q: question, match_count: 7 }),
+    supabase.rpc('search_mevzuat_kural', { q: question, match_count: 7 }),
     qEmb
       ? supabase.rpc('match_mevzuat_semantic', { q_embedding: qEmb, match_count: 4 })
       : Promise.resolve({ data: null }),
