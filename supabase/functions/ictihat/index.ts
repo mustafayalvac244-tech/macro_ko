@@ -12,6 +12,9 @@
 //   (GEMINI_API_KEY zaten ai-chat için tanımlı; summarize onu kullanır)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { overLimit, tierConfig as ortakKatman } from '../_shared/katman.ts';
+// Dönem anahtarları ortak: bu uç günlük sayacı hiç bilmiyordu ve içtihat
+// ekranından yapılan AI çağrıları günlük haktan düşmüyordu (bkz. _shared/kullanim.ts).
+import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
 
 const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
 // MODEL_BASIC / MODEL_PLUS KALDIRILDI: katman tablosu ortak dosyaya taşınınca
@@ -47,14 +50,10 @@ function costTry(model: string, tin: number, tout: number): number {
   const p = PRICING[model] ?? PRICING['gemini-2.5-pro'];
   return ((tin / 1e6) * p.in + (tout / 1e6) * p.out) * USD_TRY;
 }
-function aiPeriod(): string {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-async function usageRow(userId: string): Promise<{ calls: number; cost: number }> {
+async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ calls: number; cost: number }> {
   const s = svc();
   if (!s) return { calls: 0, cost: 0 };
-  const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', aiPeriod()).maybeSingle();
+  const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', period).maybeSingle();
   const r = data as { calls?: number; cost_try?: number } | null;
   return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
 }
@@ -73,6 +72,22 @@ async function recordUsage(userId: string, model: string, tin: number, tout: num
     tokens_in: (prev?.tokens_in ?? 0) + tin,
     tokens_out: (prev?.tokens_out ?? 0) + tout,
     cost_try: Number(prev?.cost_try ?? 0) + cost,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,period' });
+
+  // GÜNLÜK SATIR. Bu uç günlük sayacı hiç yazmıyordu: kullanıcı içtihat
+  // ekranından ortak Groq kotasını yakabiliyor, günlük hakkı hiç azalmıyordu.
+  // Sınır, sınırlaması gereken şeyi sınırlamıyordu.
+  const g = aiGun();
+  const { data: gv } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', g).maybeSingle();
+  const gp = gv as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
+  await s.from('ai_usage').upsert({
+    user_id: userId,
+    period: g,
+    calls: (gp?.calls ?? 0) + 1,
+    tokens_in: (gp?.tokens_in ?? 0) + tin,
+    tokens_out: (gp?.tokens_out ?? 0) + tout,
+    cost_try: Number(gp?.cost_try ?? 0) + cost,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,period' });
 }
@@ -961,6 +976,15 @@ Deno.serve(async (req) => {
       const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium);
       const row = await usageRow(userData.user.id);
       if (overLimit(cfg, row)) return json({ error: 'quota_exceeded', tier, used: row.cost, calls: row.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }, 402);
+      // GÜNLÜK ADİL KULLANIM. Ortak Groq kotası tüm kullanıcılar için tek havuz;
+      // bu uç sayacı hiç okumuyordu, yani içtihat ekranından havuz sınırsızca
+      // tüketilebiliyordu.
+      if (cfg.gunluk && cfg.gunluk > 0) {
+        const gun = await usageRow(userData.user.id, aiGun());
+        if (gun.calls >= cfg.gunluk) {
+          return json({ error: 'gunluk_hak_bitti', tier, gunlukHak: cfg.gunluk, kullanilan: gun.calls }, 429);
+        }
+      }
       const key = aiKey(cfg.provider);
       if (!key) return json({ error: 'not_configured' }, 503);
       const meter: Meter = { tin: 0, tout: 0 };
@@ -989,6 +1013,15 @@ Deno.serve(async (req) => {
       const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium);
       const row = await usageRow(userData.user.id);
       if (overLimit(cfg, row)) return json({ error: 'quota_exceeded', tier, used: row.cost, calls: row.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }, 402);
+      // GÜNLÜK ADİL KULLANIM. Ortak Groq kotası tüm kullanıcılar için tek havuz;
+      // bu uç sayacı hiç okumuyordu, yani içtihat ekranından havuz sınırsızca
+      // tüketilebiliyordu.
+      if (cfg.gunluk && cfg.gunluk > 0) {
+        const gun = await usageRow(userData.user.id, aiGun());
+        if (gun.calls >= cfg.gunluk) {
+          return json({ error: 'gunluk_hak_bitti', tier, gunlukHak: cfg.gunluk, kullanilan: gun.calls }, 429);
+        }
+      }
       const key = aiKey(cfg.provider);
       if (!key) return json({ error: 'not_configured' }, 503);
       const model = cfg.model;
