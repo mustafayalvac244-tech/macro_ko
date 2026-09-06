@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   bloklariAyristir,
+  bloklarTarifi,
   dilekceyiDiz,
   hesaplananTarihler,
   iskeletSec,
+  talepTarifi,
   talepUyarilari,
   uydurmaTarihleriAyikla,
 } from '../supabase/functions/_shared/dilekce';
@@ -201,5 +203,52 @@ describe('talepUyarilari', () => {
 
   it('ilgisiz türde uyarı üretmez', () => {
     expect(talepUyarilari('dava', 'Davanın kabulünü talep ederiz.')).toEqual([]);
+  });
+});
+
+/**
+ * TALİMAT İLE DENETİM AYNI ŞEYİ SÖYLEMELİ.
+ *
+ * talepUyarilari, yanlış kanun yolu terimini yakalıyordu ama modele doğrusunu
+ * KİMSE söylemiyordu: on senaryoluk koşuda kalan iki kusurun ikisi de buydu.
+ * Yakalamak düzeltmek değildir — uyarıyı gören avukat cümleyi kendi yazmak
+ * zorunda kalır ve kazandırdığımız zaman geri gider.
+ *
+ * Şimdi bilgi iki yerde duruyor: istemdeki talimat (talepTarifi) ve çıktıdaki
+ * denetim (talepUyarilari). İki yerde duran bilgi, sessizce ayrışan bilgidir —
+ * bu yüzden ayrışmanın kendisi sınanıyor.
+ */
+describe('talepTarifi', () => {
+  // Her tür için, TALİMATA UYARAK yazılmış bir talep. Denetimden temiz geçmeli;
+  // geçmiyorsa ya talimat yanlış şeyi söylüyor ya denetim yanlış şeyi arıyor.
+  const ornek: Record<string, string> = {
+    istinaf: 'İstinaf başvurumuzun kabulü ile kararın KALDIRILMASINA ve davanın kabulüne karar verilmesini talep ederiz.',
+    temyiz: 'Temyiz itirazlarımızın kabulü ile kararın BOZULMASINA karar verilmesini talep ederiz.',
+    itiraz: 'Takibe konu borca ve faize İTİRAZ EDİYORUZ; takibin durdurulmasını talep ederiz.',
+  };
+
+  it('talimata uyan talep, denetimden uyarısız geçer', () => {
+    for (const [tip, metin] of Object.entries(ornek)) {
+      expect(talepUyarilari(tip, metin), tip).toEqual([]);
+    }
+  });
+
+  it('talimat verilen türler ile denetlenen türler aynıdır', () => {
+    // Boş bir talep, kuralı olan her türde en az bir uyarı üretir. Kuralı olup
+    // talimatı olmayan bir tür eklenirse (ya da tersi) burası kırılır.
+    const tumTurler = ['dava', 'cevap', 'istinaf', 'temyiz', 'itiraz', 'ihtarname', 'replik', 'duplik', 'bilirkisi', 'islah'];
+    const talimatli = tumTurler.filter((t) => talepTarifi(t) !== null);
+    const denetimli = tumTurler.filter((t) => talepUyarilari(t, 'Gereğini talep ederiz.').length > 0);
+    expect(talimatli).toEqual(denetimli);
+  });
+
+  it('talimat, TALEP bloğunun tarifine giriyor', () => {
+    // Talimat yalnız dosyada durursa modele ulaşmaz; istemin içinde olmalı.
+    const istinaf = bloklarTarifi('istinaf');
+    expect(istinaf).toContain('###TALEP###');
+    expect(istinaf).toContain('KALDIRILMASINA');
+    expect(bloklarTarifi('temyiz')).toContain('BOZULMASINA');
+    // Kuralı olmayan türün tarifi kirlenmemeli.
+    expect(bloklarTarifi('dava')).toContain('###TALEP###  (NETİCE-İ TALEP)');
   });
 });

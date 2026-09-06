@@ -28,6 +28,12 @@ import { overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
 import { beslemeyiKirp, kuralBasliklari } from '../_shared/besleme.ts';
 import { costTry, PRICING, USD_TRY } from '../_shared/fiyat.ts';
+// Aylık ve günlük sayaç anahtarları ORTAK dosyada (_shared/kullanim.ts). Bu uçta
+// da kendi kopyası vardı: ortak dosya tam bu kopyayı gidermek için yazılmıştı ama
+// ictihat'e bağlanıp burası unutulmuştu — yani "tek kaynak" yarım kalmıştı.
+// İki ucun dönem anahtarı ayrışırsa aynı kullanıcı iki ayrı satıra yazılır ve
+// hem günlük hak hem aylık tavan olduğundan geniş davranır.
+import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
@@ -493,36 +499,6 @@ async function groqChat(
  */
 function aiKey(): string | undefined {
   return Deno.env.get('GEMINI_FREE_KEY') || Deno.env.get('GEMINI_API_KEY') || undefined;
-}
-/**
- * BİLİNMEYEN MODEL, EN PAHALI FİYATLA sayılır.
- *
- * Eskiden orta seviye bir fiyata (gemini-2.5-pro) düşüyordu. Bu, maliyet
- * tavanının ("batma koruması") sessizce delinmesi demekti: tabloda olmayan
- * daha pahalı bir model konduğunda harcama OLDUĞUNDAN AZ görünür, tavan geç
- * devreye girer ve fatura tavanı aşar.
- *
- * Yön bilinçli: bilinmeyen modelde FAZLA saymak, az saymaktan iyidir. Fazla
- * sayarsak tavan erken devreye girer (kullanıcı biraz erken sınırlanır);
- * az sayarsak para kaybedilir ve bunu ancak fatura gelince görürüz.
- */function aiPeriod(): string {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-/**
- * GÜNLÜK dönem anahtarı — adil kullanım sayacı için.
- *
- * NEDEN GÜNLÜK SINIR GEREKLİ. Ücretsiz sağlayıcının günlük token tavanı TÜM
- * kullanıcılar için ORTAK (200.000 token; bir dilekçe ~7.000-8.000). Aylık
- * çağrı sınırı bunu korumuyor: tek bir üye sabah otuz dilekçe üretip ortak
- * havuzu bitirebilir ve o gün diğer herkes "kota doldu" görür. Aylık hakkını
- * aşmamış olması da bir şey değiştirmez — zarar zaten oluşmuştur.
- *
- * Günlük sınır, ücretsiz katmanı satılabilir hâle getiren şeydir: "günde şu
- * kadar" diye söz verebiliyoruz ve bu sözü tutabiliyoruz.
- */
-function aiGun(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 let _svc: ReturnType<typeof createClient> | null = null;
 function svc(): ReturnType<typeof createClient> | null {

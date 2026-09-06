@@ -32,6 +32,37 @@ export function mahkemeTarifi(tip: string): string {
   return 'yalnız merci adı (örn. "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ")';
 }
 
+/**
+ * TALEP BLOĞUNUN TÜRE ÖZGÜ TARİFİ — kanun yolunda terim seçimi.
+ *
+ * ÖLÇÜLEN ARIZA (on senaryoluk koşu, kalan iki kusurun ikisi de buydu): istinaf
+ * dilekçesinin talebinde "kaldırılması" hiç geçmedi, temyiz dilekçesi ise
+ * "kararın kaldırılması" istedi. İkisi de aynı kökten: modele hangi kanun
+ * yolunda hangi terimin kullanıldığı SÖYLENMEMİŞTİ. talepUyarilari bunu
+ * yakalıyor ama yakalamak düzeltmek değildir — avukat uyarıyı görüp cümleyi
+ * kendi yazmak zorunda kalıyor ve kazandırdığımız zaman geri gidiyor.
+ *
+ * Terimler kanunun kendi terimleridir, üslup tercihi değil: HMK m.353'te BAM
+ * kararı KALDIRIR, m.371'de Yargıtay BOZAR. Yanlış terimle yazılmış bir talep,
+ * dilekçeyi okuyan hâkime hangi kanun yolunda olduğumuzu bilmediğimizi söyler.
+ *
+ * Talebin İÇERİĞİNİ yine model yazar (neyin, neden kaldırılmasını istiyoruz);
+ * burada yalnız kullanılması ZORUNLU olan kalıp veriliyor.
+ */
+export function talepTarifi(tip: string): string | null {
+  if (tip === 'istinaf')
+    return 'ZORUNLU KALIP: "…kararın KALDIRILMASINA" (HMK m.353 — BAM kararı KALDIRIR). ' +
+      '"Bozulması" YAZMA; bozma temyize aittir. Talep, kaldırma isteğinin yanında ' +
+      'esas hakkında ne istendiğini de içermelidir';
+  if (tip === 'temyiz')
+    return 'ZORUNLU KALIP: "…kararın BOZULMASINA" (HMK m.371 — Yargıtay BOZAR). ' +
+      '"Kaldırılması" YAZMA; kaldırma istinafa aittir';
+  if (tip === 'itiraz')
+    return 'AÇIK İTİRAZ BEYANI ŞART: "…borca/imzaya/faize İTİRAZ EDİYORUZ" cümlesi ' +
+      'birebir geçmeli; icra dairesi itirazı sebebine göre kaydeder, dolaylı anlatım yetmez';
+  return null;
+}
+
 /** Modele hangi blokları yazacağını, iskeletten türeterek söyler. */
 export function bloklarTarifi(tip: string): string {
   const i = iskeletSec(tip);
@@ -41,7 +72,11 @@ export function bloklarTarifi(tip: string): string {
       'olayda geçmeyeni HİÇ YAZMA — boşluğu biz koyarız)\n' +
       i.taraflar.map(([e]) => `        ${e}:`).join('\n')
   );
-  for (const b of i.bolumler) satir.push(`###${b.anahtar}###  (${b.baslik})`);
+  const talep = talepTarifi(tip);
+  for (const b of i.bolumler) {
+    const ek = b.anahtar === 'TALEP' && talep ? ` — ${talep}` : '';
+    satir.push(`###${b.anahtar}###  (${b.baslik}${ek})`);
+  }
   satir.push('###KONTROL###  (avukatın denetlemesi gereken boşluklar, süreler, riskler)');
   return satir.join('\n');
 }
