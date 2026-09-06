@@ -63,9 +63,20 @@ export function talepTarifi(tip: string): string | null {
   // DAVALI DİLEKÇESİNDE TALEP "REDDİ"DİR. Ölçülen arıza: düplik dilekçesi
   // savunmayı yazdı ama netice-i talepte davanın reddini hiç istemedi. Hâkim
   // taleple bağlıdır (HMK m.26); istenmeyen şeye hükmedilmez.
+  // ÖLÇÜLEN ARIZA (gerçek kullanım denemesi): model iki ayrı üretimde, iki
+  // farklı biçimde KENDİ MÜVEKKİLİNİN ALEYHİNE bir sonuç talep etti — biri
+  // "kalan borcun DAVALIYA tahsil edilmesini", diğeri "yargılama giderinin
+  // DAVALIYA yükletilmesini" istedi. İkisi de aynı kökten: dava dilekçesi
+  // kalıbı ("giderin DAVALIYA yükletilmesi" — davacı için DOĞRU olan cümle),
+  // taraf değiştirilmeden cevap dilekçesine taşınmış. Davalı vekili gideri
+  // KARŞI TARAFA (davacıya) yükletilmesini ister; kendine değil.
   if (tip === 'cevap' || tip === 'duplik')
     return 'ZORUNLU KALIP: "…davanın REDDİNE" (haksız da olsa istenmeyen şeye hükmedilmez, HMK m.26). ' +
-      'Yargılama gideri ve vekâlet ücreti talebi de eklenmeli';
+      'Yargılama gideri ve vekâlet ücretinin DAVACIYA yükletilmesini iste — KENDİ MÜVEKKİLİNE ' +
+      '(davalıya) değil. Kısmi ödeme/kısmi kabul varsa bile netice-i talepte müvekkilin ALEYHİNE ' +
+      'hiçbir ifade ("davalıdan/davalıya tahsil", "davalıya yükletilme" gibi) YAZMA; kısmi ödeme ' +
+      'yapılan kısım için "o kısım yönünden konusuz kalma nedeniyle karar verilmesine yer olmadığına" ' +
+      'ya da "kısmen REDDİNE" de.';
   // RAPORA İTİRAZDA NE İSTENDİĞİ YAZILMALI. Ölçülen arıza: itiraz sebepleri
   // sayıldı ama hiçbir şey talep edilmedi — mahkemenin ne yapacağı belirsiz
   // kaldı. HMK m.281 raporun tamamlattırılmasını ya da yeni bilirkişi
@@ -625,6 +636,27 @@ export function talepUyarilari(tip: string, metin: string): string[] {
   if ((tip === 'cevap' || tip === 'duplik') && !gecer('reddi', 'reddine', 'reddedilmesi')) {
     // Ölçülen arıza: düplik savunmayı yazdı, davanın reddini hiç istemedi.
     uyari.push('Davalı dilekçesinde "davanın reddi" talebi yok');
+  }
+  if (tip === 'cevap' || tip === 'duplik') {
+    // ÖLÇÜLEN ARIZA (gerçek kullanım denemesi, iki bağımsız üretim, iki farklı
+    // biçim): model dava dilekçesi kalıbını taraf değiştirmeden kopyaladı ve
+    // davalı vekili KENDİ MÜVEKKİLİNİN ALEYHİNE bir sonuç talep etti —
+    // "kalan borcun DAVALIYA tahsil edilmesini" ve ayrı bir üretimde
+    // "yargılama giderinin DAVALIYA yükletilmesini". Davalı vekili gideri
+    // KARŞI TARAFA (davacıya) yükletilmesini ister; kendine değil. Bu,
+    // avukat dikkatlice okumazsa müvekkilin aleyhine bir talebin mahkemeye
+    // sunulması demektir — düşen talepten (HMK m.26) daha ağır bir hata.
+    const aleyheYon = [
+      /davalı\S*[ıi]?[ıi]?y?[ae]\s+(tahsil|yükletil|ödetil)/,
+      /müvekkil\S*\s+(aleyhine|zararına)\s+(tahsil|yükletil|ödetil)/,
+    ];
+    if (aleyheYon.some((r) => r.test(sade))) {
+      uyari.push(
+        'Netice-i talepte müvekkilin (davalının) ALEYHİNE bir ifade var gibi görünüyor ' +
+          '("davalıya tahsil/yükletilme" gibi) — dava dilekçesi kalıbı taraf değiştirilmeden ' +
+          'kopyalanmış olabilir; giderin KARŞI TARAFA yükletilmesi istenmeli, müvekkile değil'
+      );
+    }
   }
   if (tip === 'bilirkisi' && !gecer('ek rapor', 'yeni bilirkişi', 'yeniden inceleme', 'yeniden incelenmesi')) {
     // Talepsiz itiraz sonuç doğurmaz: mahkemenin ne yapacağı belirsiz kalır.

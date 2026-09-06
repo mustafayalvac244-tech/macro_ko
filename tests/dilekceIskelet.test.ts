@@ -202,6 +202,24 @@ describe('talepUyarilari', () => {
     expect(talepUyarilari('itiraz', 'Borca ve imzaya İTİRAZ EDİYORUZ.')).toEqual([]);
   });
 
+  it('cevap/duplikte müvekkil aleyhine talep yakalanır', () => {
+    // Gerçek kullanım denemesinde iki bağımsız üretimde görüldü: dava
+    // dilekçesi kalıbı taraf değiştirilmeden kopyalanmış, davalı vekili kendi
+    // müvekkilinin aleyhine bir sonuç istemiş.
+    expect(
+      talepUyarilari('cevap', 'Davanın reddine; kalan 30.000 TL nin davalıya tahsiline karar verilmesini talep ederiz.')
+    ).toHaveLength(1);
+    expect(
+      talepUyarilari('duplik', 'Davanın reddine, yargılama gideri ve vekalet ücretinin davalıya yükletilmesine karar verilmesini talep ederiz.')
+    ).toHaveLength(1);
+  });
+
+  it('cevap/duplikte doğru taraf yönü uyarı üretmez', () => {
+    expect(
+      talepUyarilari('cevap', 'Davanın reddine, yargılama gideri ve vekalet ücretinin davacıya yükletilmesine karar verilmesini talep ederiz.')
+    ).toEqual([]);
+  });
+
   it('ilgisiz türde uyarı üretmez', () => {
     expect(talepUyarilari('dava', 'Davanın kabulünü talep ederiz.')).toEqual([]);
   });
