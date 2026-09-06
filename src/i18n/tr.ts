@@ -281,6 +281,8 @@ export const tr = {
   'common.no': 'Hayır',
   // Kaydetme hataları (sessiz kayıp olmasın)
   // Duruşma Çıkışı — duruşma sonucundan süre/duruşma türetme
+  'dash.outcome.one': '{baslik} — {ne_zaman} duruşması ne oldu?',
+  'dash.outcome.descMore': 'Süre verildiyse kaydedin. Bekleyen {n} duruşma daha var.',
   'dash.outcome.title': '{n} duruşmanın sonucu bekliyor',
   'dash.outcome.desc': 'Verilen süreleri kaydedin — 60 saniye sürer, süre kaçırmayı önler.',
   'cupd.cta': 'Müvekkile Bilgi Ver',
@@ -804,6 +806,10 @@ export const tr = {
     'Alacak takibi tablosu henüz kurulmamış. KURULUM.sql dosyasını Supabase SQL Editor’da bir kez daha çalıştırın.',
 
   // Notifications
+  // Duruşmadan SONRA sorulan bildirim: verilen sürenin kaydedilmesini sağlar.
+  // Canlı veride 49 duruşmaya karşılık 9 süre kaydı vardı.
+  'notif.outcomeTitle': '{type} nasıl geçti?',
+  'notif.outcomeBody': '{title} — süre verildiyse şimdi kaydedin, sonra unutulur.',
   'notif.hearingTitle': 'Yaklaşan {type}: {title}',
   'notif.deadlineTitle': 'Görev zamanı yaklaşıyor: {title}',
   'notif.stage3d': '⏰ 3 gün kaldı — {title}',

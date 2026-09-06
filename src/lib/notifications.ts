@@ -139,6 +139,54 @@ export async function scheduleHearingReminder(params: {
   });
 }
 
+/**
+ * DURUŞMADAN SONRA SORAN BİLDİRİM — süre kaydının eksik halkası.
+ *
+ * ÖLÇÜLEN ARIZA (canlı veri): 49 duruşma kaydına karşılık 9 süre kaydı; geçmiş
+ * 23 duruşmanın 22'si "tamamlandı" bile işaretlenmemiş. Dört ayrı avukatta,
+ * temmuz-eylül aralığında. Yani duruşmada verilen süreler uygulamaya HİÇ
+ * girmiyor — ve süre kaçırmak, avukatın mesleki sorumluluğunun ana kaynağı.
+ *
+ * Mekanizma zaten vardı: duruşma çıkışı ekranı da, ana ekrandaki hatırlatma
+ * kartı da yazılmıştı. Eksik olan, doğru ANDA sormaktı. Duruşmadan çıkan avukat
+ * uygulamayı açıp kart aramaz; kart ancak uygulamayı zaten açtıysa görünür.
+ *
+ * SORULACAK AN: duruşmadan iki saat sonra. Duruşma sırasında sormak rahatsız
+ * eder, ertesi güne bırakmak unutturur. İki saat, adliyeden çıkıp yolda olmaya
+ * denk gelen makul bir aralık.
+ *
+ * Bildirime dokunmak duruşma çıkışı ekranını açar; oradan tek dokunuşla süre
+ * kaydedilir.
+ */
+export function hearingOutcomeId(hearingId: string): string {
+  return `hearing-outcome-${hearingId}`;
+}
+
+/** Duruşmadan kaç dakika sonra sorulacağı. */
+const OUTCOME_DELAY_MINUTES = 120;
+
+export async function scheduleHearingOutcomePrompt(params: {
+  id: string;
+  caseTitle: string;
+  hearingTitle: string;
+  type?: string;
+  scheduledAt: string;
+}): Promise<void> {
+  const triggerAt = new Date(new Date(params.scheduledAt).getTime() + OUTCOME_DELAY_MINUTES * 60_000);
+  // Geçmiş duruşma için bildirim kurulamaz; kurulsa da anında düşerdi.
+  if (triggerAt.getTime() <= Date.now()) return;
+  const lang = getLang();
+  const typeLabel = params.type
+    ? translate(lang, `hearingType.${params.type}` as Parameters<typeof translate>[1])
+    : translate(lang, 'hearingType.hearing');
+  await scheduleReminder({
+    id: hearingOutcomeId(params.id),
+    title: translate(lang, 'notif.outcomeTitle', { type: typeLabel }),
+    body: translate(lang, 'notif.outcomeBody', { title: params.caseTitle || params.hearingTitle }),
+    triggerAt,
+  });
+}
+
 export function promiseReminderId(promiseId: string): string {
   return `promise-${promiseId}`;
 }

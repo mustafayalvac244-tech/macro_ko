@@ -372,10 +372,23 @@ export default function DashboardScreen() {
               <Ionicons name="checkmark-done" size={18} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text allowFontScaling={false} style={styles.outcomeTitle}>
-                {t('dash.outcome.title', { n: pendingOutcomes.length })}
+              {/* TEK BİR DURUŞMA ADIYLA SORULUYOR. Eskiden yalnız sayı yazıyordu
+                  ("22 duruşmanın sonucu bekliyor") ve canlı veride 23 geçmiş
+                  duruşmanın 22'si işaretsiz kalmıştı. Yirmi iki iş bir hatırlatma
+                  değil, bir yığındır; yığın ertelenir. Somut tek bir iş
+                  ("3. Asliye — dün") yapılabilir görünür. Kalanların sayısı
+                  ikinci satırda duruyor, bilgi kaybolmuyor. */}
+              <Text allowFontScaling={false} style={styles.outcomeTitle} numberOfLines={1}>
+                {t('dash.outcome.one', {
+                  baslik: pendingOutcomes[0].case?.title || pendingOutcomes[0].title,
+                  ne_zaman: whenLabel(pendingOutcomes[0].scheduled_at).split(' · ')[0],
+                })}
               </Text>
-              <Text allowFontScaling={false} style={styles.outcomeDesc}>{t('dash.outcome.desc')}</Text>
+              <Text allowFontScaling={false} style={styles.outcomeDesc}>
+                {pendingOutcomes.length > 1
+                  ? t('dash.outcome.descMore', { n: pendingOutcomes.length - 1 })
+                  : t('dash.outcome.desc')}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.primary} />
           </Pressable>

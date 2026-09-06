@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
-import { cancelReminder, hearingReminderId, scheduleHearingReminder } from '@/lib/notifications';
+import { cancelReminder, hearingOutcomeId, hearingReminderId, scheduleHearingOutcomePrompt, scheduleHearingReminder } from '@/lib/notifications';
 import type { Hearing, HearingWithCase } from '@/types/database';
 
 const HEARING_SELECT = '*, case:cases(id, title, case_number)';
@@ -89,6 +89,16 @@ async function scheduleFromRow(row: Hearing, caseTitle: string) {
     scheduledAt: row.scheduled_at,
     reminderMinutesBefore: row.reminder_minutes_before,
   });
+  // DURUŞMADAN SONRA DA SORULUR. Hatırlatma duruşmaya GİTMEYİ sağlıyordu;
+  // duruşmada verilen SÜRENİN kaydedilmesini sağlayan hiçbir şey yoktu.
+  // Canlı veri: 49 duruşma, 9 süre (bkz. scheduleHearingOutcomePrompt).
+  await scheduleHearingOutcomePrompt({
+    id: row.id,
+    caseTitle,
+    hearingTitle: row.title,
+    type: row.type,
+    scheduledAt: row.scheduled_at,
+  });
 }
 
 export function useCreateHearing() {
@@ -127,6 +137,9 @@ export function useUpdateHearing() {
       const row = data as Hearing;
       if (row.is_completed) {
         await cancelReminder(hearingReminderId(row.id));
+        // Sonucu girilmiş duruşma için "ne oldu?" diye sormak, cevaplanmış
+        // soruyu tekrar sormaktır.
+        await cancelReminder(hearingOutcomeId(row.id));
       } else {
         await scheduleFromRow(row, caseTitle);
       }
@@ -145,6 +158,7 @@ export function useDeleteHearing() {
       const { error } = await supabase.from('hearings').delete().eq('id', id);
       if (error) throw error;
       await cancelReminder(hearingReminderId(id));
+      await cancelReminder(hearingOutcomeId(id));
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['hearings'] }),
   });

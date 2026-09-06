@@ -279,6 +279,8 @@ export const en: Record<keyof typeof tr, string> = {
   'common.no': 'No',
   // Save errors (never fail silently)
   // Post-Hearing capture — derive deadlines/hearings from the outcome
+  'dash.outcome.one': '{baslik} — what happened at the {ne_zaman} hearing?',
+  'dash.outcome.descMore': 'Record any deadline granted. {n} more hearings are waiting.',
   'dash.outcome.title': '{n} hearings awaiting outcome',
   'dash.outcome.desc': 'Record the periods granted — takes 60 seconds, prevents missed deadlines.',
   'cupd.cta': 'Update the Client',
@@ -744,6 +746,8 @@ export const en: Record<keyof typeof tr, string> = {
   'fmt.in': 'In {d}',
 
   // Notifications
+  'notif.outcomeTitle': 'How did the {type} go?',
+  'notif.outcomeBody': '{title} — if a deadline was set, record it now; later it gets forgotten.',
   'notif.hearingTitle': 'Upcoming {type}: {title}',
   'notif.deadlineTitle': 'Task due soon: {title}',
   'notif.stage3d': '⏰ 3 days left — {title}',
