@@ -37,6 +37,8 @@ export default function DocumentReviewScreen() {
   // ajandasına yazabilir. Kaç tanesinin ayıklandığı, kalanları da denetlemesi
   // gerektiğinin işaretidir.
   const [ayiklanan, setAyiklanan] = useState(0);
+  // Uydurma kanun maddesi atfı: sunucu artık havuzla karşılaştırıp söylüyor.
+  const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
   // Kullanım ve iade — sunucu üç modda da destekliyor.
   const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
   const [istekId, setIstekId] = useState<string | null>(null);
@@ -143,7 +145,7 @@ export default function DocumentReviewScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean } | null;
+      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; uydurmaMadde?: string[] } | null;
       const reply = yanit?.text?.trim();
       if (!reply) {
         setError(t('ai.errGeneric'));
@@ -151,6 +153,7 @@ export default function DocumentReviewScreen() {
       }
       setResult(reply);
       setAyiklanan(Number(yanit?.ayiklananTarih ?? 0));
+      setUydurmaMadde(yanit?.uydurmaMadde ?? []);
       setKullanim(yanit?.kullanim ?? null);
       setIstekId(yanit?.istekId ?? null);
       setIadeEdildi(false);
@@ -246,6 +249,38 @@ export default function DocumentReviewScreen() {
               </View>
               {/* selectable: avukat bulguları kopyalayıp dilekçeye taşıyabilsin */}
               <Text selectable style={styles.resultText}>{result}</Text>
+              {/* SUNUCU BUNLARI GÖNDERİYORDU, EKRAN HİÇBİRİNİ GÖSTERMİYORDU.
+                  Beş durum (uydurma madde, ayıklanan tarih, kullanım, hak
+                  düşülmedi, iade) alınıp saklanıyor ama tek biri bile
+                  çizilmiyordu; iade işlevi de yazılmış ama düğmesi yoktu.
+                  Yani belge incelemesinde avukat ne harcadığını, neyin
+                  ayıklandığını ve hakkını geri alabileceğini göremiyordu. */}
+              {uydurmaMadde.length > 0 && (
+                <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
+              )}
+              {ayiklanan > 0 && (
+                <Text style={styles.warn}>{t('dlk.scrubbedDates', { n: String(ayiklanan) })}</Text>
+              )}
+              {!!kullanim && (
+                <Text style={styles.usage}>
+                  {kullanim.maliyetTL > 0
+                    ? t('ai.usageCost', { token: String(kullanim.girdiToken + kullanim.ciktiToken), tl: kullanim.maliyetTL.toFixed(2) })
+                    : t('ai.usageFree', { token: String(kullanim.girdiToken + kullanim.ciktiToken) })}
+                </Text>
+              )}
+              {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
+              {!!istekId && !hakDusulmedi && (
+                <Pressable onPress={iadeIste} disabled={iadeEdildi} hitSlop={6} style={styles.refundBtn}>
+                  <Ionicons
+                    name={iadeEdildi ? 'checkmark-circle-outline' : 'thumbs-down-outline'}
+                    size={15}
+                    color={iadeEdildi ? colors.success : colors.textMuted}
+                  />
+                  <Text style={[styles.refundText, iadeEdildi && { color: colors.success }]}>
+                    {iadeEdildi ? t('ai.refunded') : t('ai.notUseful')}
+                  </Text>
+                </Pressable>
+              )}
               <Text style={styles.disclaimer}>{t('docrev.disclaimer')}</Text>
             </View>
           )}

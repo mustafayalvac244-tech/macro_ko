@@ -35,6 +35,19 @@ export default function MutalaaScreen() {
   // kendisidir ve silmek özelliğin değerini silmek olurdu. Ama sessizce doğru
   // kabul ettirmek de olmaz — hesaplandığı açıkça yazılır.
   const [hesaplanan, setHesaplanan] = useState<string[]>([]);
+  // Uydurma madde atfı: havuzdaki kanunun olmayan maddesine yapılan atıf.
+  // Mütalaada bu, en pahalı hata türü — metin hukuki dayanağını uyduruyor.
+  const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  // DAYANAK KURALLAR — mütalaanın beslendiği kural özetleri.
+  //
+  // Ölçülen arıza: işe iade mütalaasında doğru kural (fesihten itibaren BİR AY
+  // içinde ARABULUCUYA başvuru; dava şartı) dosyaya girdiği hâlde model kendi
+  // ezberini yazdı — "4 hafta içinde dava açın" dedi, arabuluculuktan hiç söz
+  // etmedi. Arabulucuya gidilmeden açılan dava usulden reddedilir; yani bu,
+  // doğrudan hak kaybı. Modelin kuralı yazacağına güvenemiyoruz, ama kuralın
+  // KENDİSİNİ mütalaanın altında gösterebiliriz: avukat çelişkiyi görür.
+  const [dayanak, setDayanak] = useState<Array<{ id: string; metin: string }>>([]);
+  const [dayanakAcik, setDayanakAcik] = useState(false);
   // Kullanım ve iade: sunucu üç modda da destekliyor, ekranda yalnız dilekçede
   // vardı. Hakkı yenen kullanıcı ürüne bir daha güvenmez — mütalaa en pahalı
   // işlem olduğu için burada daha da önemli.
@@ -76,7 +89,7 @@ export default function MutalaaScreen() {
         }
         return;
       }
-      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean } | null;
+      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; uydurmaMadde?: string[]; dayanak?: Array<{ id: string; metin: string }> } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -84,6 +97,9 @@ export default function MutalaaScreen() {
       setText(payload.text);
       setIssues(payload.issues ?? []);
       setHesaplanan(payload.hesaplananTarih ?? []);
+      setUydurmaMadde(payload.uydurmaMadde ?? []);
+      setDayanak(payload.dayanak ?? []);
+      setDayanakAcik(false);
       setKullanim(payload.kullanim ?? null);
       setIstekId(payload.istekId ?? null);
       setIadeEdildi(false);
@@ -182,10 +198,33 @@ export default function MutalaaScreen() {
                 </Pressable>
               </View>
               <Text selectable style={styles.body}>{text}</Text>
+              {uydurmaMadde.length > 0 && (
+                <Text style={styles.dateWarn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
+              )}
               {hesaplanan.length > 0 && (
                 <Text style={styles.dateWarn}>
                   {t('mut.calcDates', { tarihler: hesaplanan.join(', ') })}
                 </Text>
+              )}
+              {dayanak.length > 0 && (
+                <View style={styles.dayanak}>
+                  <Pressable onPress={() => setDayanakAcik((v) => !v)} hitSlop={6} style={styles.dayanakHead}>
+                    <Ionicons
+                      name={dayanakAcik ? 'chevron-down' : 'chevron-forward'}
+                      size={15}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.dayanakTitle}>{t('mut.groundsTitle', { n: String(dayanak.length) })}</Text>
+                  </Pressable>
+                  {dayanakAcik && (
+                    <>
+                      <Text style={styles.dayanakNote}>{t('mut.groundsNote')}</Text>
+                      {dayanak.map((k) => (
+                        <Text key={k.id} selectable style={styles.dayanakText}>{'\u2022 ' + k.metin}</Text>
+                      ))}
+                    </>
+                  )}
+                </View>
               )}
               {!!kullanim && (
                 <Text style={styles.usage}>
@@ -349,6 +388,37 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12.5,
     lineHeight: 18,
     color: colors.warning,
+    marginTop: spacing.sm,
+  },
+  dayanak: {
+    marginTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm,
+  },
+  dayanakHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 2,
+  },
+  dayanakTitle: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    color: colors.primary,
+  },
+  dayanakNote: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  dayanakText: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    lineHeight: 19,
+    color: colors.textPrimary,
     marginTop: spacing.sm,
   },
   issuesCard: {

@@ -1201,7 +1201,15 @@ export const tr = {
   'ai.errRateLimit': 'Yoğunluk nedeniyle şu an yanıt veremiyorum. Bir dakika sonra tekrar deneyin.',
   'ai.notUseful': 'Bu cevap işe yaramadı — hakkımı geri ver',
   'ai.refunded': 'Hakkınız geri verildi. Bildirdiğiniz için teşekkürler.',
+  'mut.groundsTitle': 'Mütalaanın dayandığı kurallar ({n})',
+  // Kural özetleri BİZİM metnimizdir; tırnak içinde kanun lafzı gibi
+  // kullanılırsa avukat mahkemeye kanunda bulunmayan bir cümle sunmuş olur.
+  'mut.groundsNote': 'Bunlar Vekil kural özetidir, kanun maddesinin lafzı değildir. Mütalaa bu kurallardan birini atlamışsa aşağıda görürsünüz.',
   'ai.notCharged': 'Bu taslak eksik üretildiği için hakkınızdan düşülmedi.',
+  // Uydurma madde atfı: havuzdaki kanunun OLMAYAN maddesine yapılan atıf.
+  // Gerçek görünür (biçim doğru, numara var), yanlışlığı ancak hâkim baktığında
+  // anlaşılır — bu yüzden hem gösteriliyor hem hak düşülmüyor.
+  'ai.fakeArticles': 'DİKKAT: metinde havuzda bulunmayan madde atfı var — {maddeler}. Teyit etmeden kullanmayın.',
   'ai.usageCost': 'Bu istek: {token} token · {tl} TL kontörden düştü',
   'ai.usageFree': 'Bu istek: {token} token (ücretsiz katman — kontör düşmedi)',
   'ai.errKontor': 'AI kontörünüz bitti. Devam etmek için kontör yükleyin.',

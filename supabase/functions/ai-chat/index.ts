@@ -34,6 +34,9 @@ import { costTry, PRICING, USD_TRY } from '../_shared/fiyat.ts';
 // İki ucun dönem anahtarı ayrışırsa aynı kullanıcı iki ayrı satıra yazılır ve
 // hem günlük hak hem aylık tavan olduğundan geniş davranır.
 import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
+// Uydurma madde atfı denetimi ORTAK dosyada (_shared/atif.ts). Ayıklayıcı bugüne
+// kadar yalnız ölçüm betiğinde vardı: ölçüyor ama korumuyorduk.
+import { maddeAtiflari } from '../_shared/atif.ts';
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
@@ -540,6 +543,41 @@ function kusurluCikti(mod: 'dilekce' | 'mutalaa' | 'belge' | 'sohbet', metin: st
   if (mod === 'mutalaa') return n < 800;
   if (mod === 'belge') return n < 400;
   return false; // sohbette kısa cevap doğru olabilir; boş cevap zaten 502 döner
+}
+
+/**
+ * ÇIKTIDAKİ UYDURMA KANUN MADDESİ ATIFLARI.
+ *
+ * Bu denetim bugüne kadar YALNIZ ölçüm betiğinde vardı. Yani uydurma madde
+ * atfını ÖLÇÜYORDUK ama kullanıcıyı ondan KORUMUYORDUK: ölçüm çıktısında
+ * "UYDURMA MADDE" satırını biz görüyorduk, aynı metni ekranda gören avukat
+ * hiçbir şey görmüyordu. Ölçüm ile ürün arasındaki bu asimetri ölçümün kendisini
+ * de yanıltıyor — "kusurlu" saydığımız çıktı kullanıcıya kusursuz gidiyordu.
+ *
+ * Uydurma madde, avukat için en pahalı hata türüdür çünkü GERÇEK GÖRÜNÜR:
+ * biçim doğru, numara var, cümle hukukçu gibi kurulmuş. Yanlışlığı ancak karşı
+ * taraf ya da hâkim baktığında anlaşılır.
+ *
+ * Denetim HAVUZDAKİ kanunlarla sınırlı: havuzda olmayan bir kanuna yapılan atıf
+ * (örn. KTK) uydurma sayılmaz — orada eksik olan bizim korpusumuzdur.
+ *
+ * HATA YUTULUR. Denetim başarısız olursa cevap yine verilir: atıf denetimi bir
+ * ek güvence, çalışmanın önkoşulu değil. Denetim yüzünden hazır bir mütalaayı
+ * çöpe atmak, korumaya çalıştığımız şeyden daha çok zarar verir.
+ */
+async function uydurmaMaddeDenetimi(
+  db: ReturnType<typeof createClient>,
+  metin: string
+): Promise<string[]> {
+  try {
+    const atiflar = maddeAtiflari(metin);
+    if (!atiflar.length) return [];
+    const { data, error } = await db.rpc('uydurma_maddeler', { atiflar });
+    if (error) return [];
+    return ((data ?? []) as Array<{ kanun: string; madde: string }>).map((a) => `${a.kanun} m.${a.madde}`);
+  } catch {
+    return [];
+  }
 }
 
 
@@ -1090,7 +1128,7 @@ function matchKBRules(question: string): Array<{ id: string; text: string }> {
  * tetiklenmiyordu ve model madde uyduruyordu — kalite şikayetinin ana sebebi.
  */
 // deno-lint-ignore no-explicit-any
-async function buildRules(supabase: any, question: string): Promise<string> {
+async function buildRules(supabase: any, question: string, toplanan?: Map<string, string>): Promise<string> {
   const picked = new Map<string, string>();
   for (const r of matchKBRules(question)) picked.set(r.id, r.text);
   try {
@@ -1106,6 +1144,16 @@ async function buildRules(supabase: any, question: string): Promise<string> {
   } catch {
     // arama başarısızsa yalnız anahtar kelime eşleşmeleriyle devam
   }
+  // BESLENEN KURALLAR DIŞARI DA VERİLİR (bkz. `dayanak`). Ölçülen arıza: işe
+  // iade mütalaasında doğru kural (1 AY içinde ARABULUCUYA başvuru, dava şartı)
+  // dosyaya girdiği hâlde model kendi ezberini yazdı — "4 hafta içinde dava
+  // açın" dedi ve arabuluculuktan hiç söz etmedi. Bu, avukat için doğrudan hak
+  // kaybıdır: arabulucuya gitmeden açılan dava usulden reddedilir.
+  //
+  // Talimatla tam olarak giderilemiyor; küçük modelde koşudan koşuya değişiyor.
+  // Ama kuralın KENDİSİNİ mütalaanın yanında gösterebiliriz: model ne yazarsa
+  // yazsın, avukat dayanağı ham hâliyle görür ve çelişkiyi kendisi yakalar.
+  if (toplanan) for (const [id, metin] of picked) toplanan.set(id, metin);
   if (picked.size === 0) return '';
   return (
     '\n\n### KESİN HUKUKİ KURALLAR — BUNLARA UYMAK ZORUNDASIN (yerleşik içtihat; kendi tahminini bunlarla düzelt):\n' +
@@ -1673,12 +1721,15 @@ Deno.serve(async (req) => {
       // kuralların dosyaya girmesini garanti eder. Maliyeti bir blok, kazancı
       // "hiç bahsedilmeyen konu" riskinin kalkması.
       let dossier = '';
-      try { dossier += await buildRules(supabase, mutalaaQuestion); } catch { /* atla */ }
+      // Dosyaya giren kurallar ayrıca TOPLANIR ve yanıtla birlikte gönderilir:
+      // model kuralı yazmasa bile avukat dayanağı ham hâliyle görsün.
+      const dayanakKurallar = new Map<string, string>();
+      try { dossier += await buildRules(supabase, mutalaaQuestion, dayanakKurallar); } catch { /* atla */ }
       try { dossier += await buildMevzuat(supabase, mutalaaQuestion); } catch { /* atla */ }
       for (const issue of issues) {
         let block = '';
         try {
-          block += await buildRules(supabase, issue);
+          block += await buildRules(supabase, issue, dayanakKurallar);
         } catch { /* atla */ }
         try {
           block += await buildMevzuat(supabase, issue);
@@ -1753,10 +1804,21 @@ Deno.serve(async (req) => {
       if (!text.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
-      const kusurlu = kusurluCikti('mutalaa', text);
+      // Uydurma madde atfı olan bir mütalaa KUSURLUDUR: hukuki dayanağı
+      // olmayan bir metin, doğru göründüğü için yanlış olmayan bir metinden
+      // daha tehlikelidir. Hak düşülmez ve avukat hangi atfın havuzda
+      // bulunmadığını görür.
+      const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, text);
+      const kusurlu = kusurluCikti('mutalaa', text) || uydurmaMadde.length > 0;
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !kusurlu, 'mutalaa');
       return new Response(JSON.stringify({
         text: text.trim(), tier, model: kullanim.model, issues,
+        // Dosyaya giren kural özetleri. Bunlar BİZİM ÖZETİMİZDİR, kanun lafzı
+        // değildir; ekranda da öyle etiketleniyor.
+        dayanak: dayanakKurallar.size
+          ? [...dayanakKurallar].map(([id, metin]) => ({ id, metin }))
+          : undefined,
+        uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
         hakDusulmedi: kusurlu || undefined,
         istekId,
         kullanim: kullanimOzeti(kullanim.model, meter.tin, meter.tout, kusurlu ? 0 : maliyet),
@@ -2080,12 +2142,14 @@ async function dosyaKunyesi(
       // Zorunlu bölümü eksik ya da yarım kalmış taslak, kullanıcının hakkından
       // DÜŞÜLMEZ; gideri biz karşılarız. Bunu yanıtta da söylüyoruz ki avukat
       // hakkının neden eksilmediğini bilsin.
-      const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum);
+      const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, temiz.metin);
+      const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0;
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'dilekce');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
           hakDusulmedi: kusurlu || undefined, istekId,
           talepEksik: talepEksik.length ? talepEksik : undefined,
+          uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
           beslemeKirpildi: dilekceKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
@@ -2200,11 +2264,13 @@ async function dosyaKunyesi(
       // Belgede geçmeyen tarihler ayıklanır: incelemedeki bir tarih, avukat
       // için "bu gün son gün" demektir.
       const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
-      const kusurlu = kusurluCikti('belge', temiz.metin);
+      const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, temiz.metin);
+      const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0;
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'belge');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
           hakDusulmedi: kusurlu || undefined, istekId,
+          uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
           beslemeKirpildi: beslemeKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }

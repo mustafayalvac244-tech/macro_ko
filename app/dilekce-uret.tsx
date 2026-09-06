@@ -64,6 +64,11 @@ export default function DilekceUretScreen() {
   // Türe özgü talep denetimi: istinafta "kararın kaldırılması", temyizde
   // "bozulması", itirazda açık itiraz beyanı. Hâkim taleple bağlıdır.
   const [talepEksik, setTalepEksik] = useState<string[]>([]);
+  // UYDURMA MADDE ATFI. Bu denetim aylardır yalnız ölçüm betiğinde vardı:
+  // uydurma atfı ölçüyor ama kullanıcıyı ondan korumuyorduk. Uydurma madde
+  // GERÇEK GÖRÜNÜR — biçimi doğru, numarası var — ve yanlışlığı ancak hâkim
+  // baktığında anlaşılır. Böyle bir taslak için hak da düşülmez.
+  const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
   const [ayiklanan, setAyiklanan] = useState(0);
   // Bu isteğin maliyeti. Kontörle çalışan bir üründe harcamanın gizli kalması,
   // kullanıcıyı bakiyesi bittiğinde şaşırtır; token sayısı ücretsiz katmanda da
@@ -102,7 +107,7 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; talepEksik?: string[] } | null;
+      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; talepEksik?: string[]; uydurmaMadde?: string[] } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -110,6 +115,7 @@ export default function DilekceUretScreen() {
       setText(payload.text);
       setEksikBolum(payload.eksikBolum ?? []);
       setTalepEksik(payload.talepEksik ?? []);
+      setUydurmaMadde(payload.uydurmaMadde ?? []);
       setAyiklanan(Number(payload.ayiklananTarih ?? 0));
       setKullanim(payload.kullanim ?? null);
       setIstekId(payload.istekId ?? null);
@@ -252,6 +258,9 @@ export default function DilekceUretScreen() {
                 </Pressable>
               </View>
               <Text selectable style={styles.body}>{text}</Text>
+              {uydurmaMadde.length > 0 && (
+                <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
+              )}
               {talepEksik.length > 0 && (
                 <Text style={styles.warn}>{t('dlk.missingRelief', { uyari: talepEksik.join(' · ') })}</Text>
               )}
