@@ -170,8 +170,26 @@ describe('talepUyarilari', () => {
   });
 
   it('temyizde "bozulması" yoksa uyarır; kaldırılma temyize ait değildir', () => {
-    expect(talepUyarilari('temyiz', 'Kararın kaldırılmasını talep ederiz.')).toHaveLength(1);
+    // "Kaldırılmasını talep ederiz" hem doğru terimi EKSİK bırakıyor hem
+    // YANLIŞ terimi kullanıyor: iki ayrı uyarı, iki ayrı hata.
+    expect(talepUyarilari('temyiz', 'Kararın kaldırılmasını talep ederiz.')).toHaveLength(2);
     expect(talepUyarilari('temyiz', 'Kararın BOZULMASINA karar verilmesini talep ederiz.')).toEqual([]);
+  });
+
+  it('temyizde YANLIŞ terimin varlığı da uyarı üretir', () => {
+    // Ölçümde görüldü: temyiz dilekçesi "kararın kaldırılması" istedi.
+    // Eksikliği aramak yetmiyor — model iki terimi birlikte de yazabiliyor ve
+    // yanlış olanı bırakmak, hangi kanun yolunda olduğumuzu bilmediğimizi
+    // gösterir. Yargıtay BOZAR, BAM KALDIRIR.
+    const u = talepUyarilari('temyiz', 'Kararın bozulmasını ve kaldırılmasını talep ederiz.');
+    expect(u).toHaveLength(1);
+    expect(u[0]).toContain('İSTİNAFA aittir');
+  });
+
+  it('istinafta "bozulması" istenmesi uyarı üretir', () => {
+    const u = talepUyarilari('istinaf', 'Kararın kaldırılmasına ve bozulmasına karar verilmesini talep ederiz.');
+    expect(u).toHaveLength(1);
+    expect(u[0]).toContain('TEMYİZE aittir');
   });
 
   it('itirazda açık itiraz beyanı aranır', () => {

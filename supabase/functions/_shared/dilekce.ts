@@ -502,13 +502,27 @@ export function talepUyarilari(tip: string, metin: string): string[] {
   const sade = String(metin ?? '').toLocaleLowerCase('tr');
   const gecer = (...kaliplar: string[]) => kaliplar.some((k) => sade.includes(k));
 
-  if (tip === 'istinaf' && !gecer('kaldırılmas', 'kaldirilmas', 'yeniden yargılama')) {
+  if (tip === 'istinaf') {
     // İstinafta BAM kararı KALDIRIR; "bozulması" temyize aittir.
-    uyari.push('İstinaf talebinde "kararın kaldırılması" ifadesi yok');
+    if (!gecer('kaldırılmas', 'kaldirilmas', 'yeniden yargılama')) {
+      uyari.push('İstinaf talebinde "kararın kaldırılması" ifadesi yok');
+    }
+    if (gecer('bozulmas', 'bozulmasına')) {
+      uyari.push('İstinaf dilekçesinde "bozulması" isteniyor — bozma TEMYİZE aittir, BAM kararı KALDIRIR');
+    }
   }
-  if (tip === 'temyiz' && !gecer('bozulmas', 'bozma')) {
+  if (tip === 'temyiz') {
     // Temyizde Yargıtay BOZAR; "kaldırılması" istinafa aittir.
-    uyari.push('Temyiz talebinde "kararın bozulması" ifadesi yok');
+    if (!gecer('bozulmas', 'bozma')) {
+      uyari.push('Temyiz talebinde "kararın bozulması" ifadesi yok');
+    }
+    // YANLIŞ TERİMİN VARLIĞI DA DENETLENİR — ölçümde tam bu görüldü: temyiz
+    // dilekçesi "kararın kaldırılması" istedi. Eksikliği aramak yetmiyor,
+    // çünkü model iki terimi birlikte de yazabiliyor ve yanlış olanı dilekçede
+    // bırakmak, hangi kanun yolunda olduğumuzu bilmediğimizi gösterir.
+    if (gecer('kaldırılmas', 'kaldirilmas')) {
+      uyari.push('Temyiz dilekçesinde "kaldırılması" isteniyor — kaldırma İSTİNAFA aittir, Yargıtay BOZAR');
+    }
   }
   if (tip === 'itiraz' && !gecer('itiraz ediyoruz', 'itiraz etmekteyiz', 'itiraz olunur', 'itirazımızın')) {
     // İcra dairesi itirazı SEBEBİNE göre kaydeder; dolaylı anlatım yetmez.

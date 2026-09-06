@@ -1951,7 +1951,7 @@ async function dosyaKunyesi(
       // PARASAL SINIR YILLIK YENİDEN DEĞERLEMEYLE ARTAR. Kanun metnindeki rakam
       // (HMK m.362/1-a) havuzdaki hâliyle eskimiş olabilir; taslakta rakam
       // vermek, avukatı temyizi kapalı sanıp başvurmamaya götürebilir.
-      temyiz: 'TEMYİZ DİLEKÇESİ (HMK m.361 vd.). Süre, kararın tebliğinden itibaren İKİ HAFTADIR. BAM kararının özeti, TEMYİZ SEBEPLERİ (hukuka aykırılıklar, ilgili Yargıtay içtihadıyla), talep (kararın BOZULMASI — "kaldırılması" istinafa aittir). Temyiz bir hukukilik denetimidir: yeni delil sunulmaz, "DELİLLER" bölümü yazma. Kesinlik (parasal) sınırına RAKAM VERME: sınır her yıl yeniden değerleme oranında artar; "karar tarihindeki kesinlik sınırını teyit edin" notu düş.',
+      temyiz: 'TEMYİZ DİLEKÇESİ (HMK m.361 vd.). Süre, kararın tebliğinden itibaren İKİ HAFTADIR. BAM kararının özeti, TEMYİZ SEBEPLERİ (hukuka aykırılıklar, ilgili Yargıtay içtihadıyla), talep (kararın BOZULMASI). "Kaldırılması" ifadesini HİÇ KULLANMA: kaldırma istinafa (BAM’a) aittir, Yargıtay BOZAR; ikisini birlikte yazmak hangi kanun yolunda olduğunu bilmediğini gösterir. Temyiz bir hukukilik denetimidir: yeni delil sunulmaz, "DELİLLER" bölümü yazma. Kesinlik (parasal) sınırına RAKAM VERME: sınır her yıl yeniden değerleme oranında artar; "karar tarihindeki kesinlik sınırını teyit edin" notu düş.',
       // İtiraz LAFZEN yapılır. Ölçümde model "müvekkilin alacakla ilişkisi
       // yoktur" yazıp "borca itiraz ediyoruz" demedi; icra dairesi itirazı
       // SEBEBİNE göre kaydeder ve dolaylı anlatım hangi sebeple itiraz
