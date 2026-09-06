@@ -32,9 +32,22 @@ export const AI_BELGE_ENABLED = true;
 export const AI_MUTALAA_ENABLED = false;
 
 /**
- * Ölçülmemiş AI özellikleri: sohbet, içtihat analizi, dosya aktarma, savaş
- * planı. Eski AI_ENABLED bayrağının yerini tutar; adı KORUNDU çünkü sekiz
- * ekranda kullanılıyor ve hepsini birden değiştirmek, açılmaması gereken
- * ekranları sessizce açma riski taşırdı.
+ * UYAP belgesinden dosya aktarma — ÖLÇÜLDÜ ama henüz açılmadı.
+ *
+ * Yedi senaryoluk ölçüm kuruldu (scripts/kunye-senaryolari.json): 7/7 temiz,
+ * 20 alanın 20'si doğru, SIFIR uydurma, sıfır tuzak. İstem sunucuya taşındı ve
+ * belgede karşılığı olmayan alan artık atılıyor.
+ *
+ * Açma kararı ürün kararıdır ve size ait: özellik gerçek kullanıcıya hiç
+ * gitmedi (sıfır kayıt) ve ölçüm seti yedi senaryo — ince. true yapıp OTA
+ * göndermek yeterli.
+ */
+export const AI_AKTARMA_ENABLED = false;
+
+/**
+ * Ölçülmemiş AI özellikleri: sohbet, içtihat analizi, savaş planı. Eski
+ * AI_ENABLED bayrağının yerini tutar; adı KORUNDU çünkü birçok ekranda
+ * kullanılıyor ve hepsini birden değiştirmek, açılmaması gereken ekranları
+ * sessizce açma riski taşırdı.
  */
 export const AI_ENABLED = false;

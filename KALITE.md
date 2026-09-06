@@ -20,7 +20,7 @@ birincisi.
 | 6 | Süre & duruşma takibi | 6 | **49 duruşmaya karşılık 9 süre** | Bildirim eklendi ama ORAN HENÜZ DEĞİŞMEDİ |
 | 7 | Dosya & müvekkil yönetimi | 8 | 35 tabloda RLS tam, 42 dosya/48 müvekkil gerçek kullanım | ✅ tamam |
 | 8 | AI sohbet | 6 | 13 soruda 9 geçti; 4 kusurun 3'ü "çok uzun", 1'i içerik | Kısalık + set büyütme |
-| 9 | Dosya aktarma (UYAP) | 3 | hiç ölçülmedi, hiç kullanılmadı (0 kayıt), AI yoluna bağlı | Önce ölçüm |
+| 9 | Dosya aktarma (UYAP) | **7** | 7 senaryoluk ölçüm kuruldu: 7/7 temiz, 20/20 alan, 0 uydurma. Bayrağı hâlâ kapalı | Gerçek kullanımda sınanmalı |
 | 10 | Finans | 6 | 51 kayıt, gerçek kullanım; ama şemada KDV/stopaj/makbuz YOK | KDV + stopaj + makbuz |
 
 > **Puanlama kuralı.** Bir puan ancak ÖLÇÜM değiştiğinde değişir. Kod yazmak

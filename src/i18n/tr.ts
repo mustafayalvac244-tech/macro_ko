@@ -1330,6 +1330,12 @@ export const tr = {
   'imp.stageRead': 'Bilgiler okunuyor…',
   'imp.readOk': 'Belge okundu ({n} karakter). Bilgileri kontrol edin.',
   'imp.reviewLead': 'Yapay zekâ aşağıdaki bilgileri çıkardı. Yanlış olanları düzeltip kaydedin.',
+  'imp.pickOpposing': 'Karşı taraf hangisi?',
+  'imp.plaintiff': 'Davacı',
+  'imp.defendant': 'Davalı',
+  // Belgede karşılığı bulunamayan alan boşaltılır; avukat neyin neden boş
+  // olduğunu bilmeli, yoksa "okuyamadı" ile "belgede yoktu" ayırt edilemez.
+  'imp.dropped': 'Şu alanlar belgede doğrulanamadığı için boş bırakıldı: {alanlar}',
   'imp.fTitle': 'Dosya başlığı',
   'imp.fTitlePh': 'Örn. Yılmaz — Kıdem tazminatı',
   'imp.fCourt': 'Mahkeme',

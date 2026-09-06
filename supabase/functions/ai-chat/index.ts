@@ -40,6 +40,9 @@ import { maddeAtiflari } from '../_shared/atif.ts';
 // Dosyaya giren kuralın cevapta işlenip işlenmediği (_shared/kural.ts). Ölçülen
 // iki mütalaa kusurunun ikisi de "kural dosyadaydı, model yok saydı"ydı.
 import { atlananKurallar } from '../_shared/kural.ts';
+// Belgeden okunan künye, belgede karşılığı yoksa atılır (_shared/kunye.ts):
+// uydurma esas numarası dosyayı yanlış açar ve dolu göründüğü için denetlenmez.
+import { kunyeDogrula, type Kunye } from '../_shared/kunye.ts';
 
 /** Dosyaya giren bir kural: metni ve atlandığını gösteren ayırt edici terimler. */
 interface BeslenenKural {
@@ -1553,11 +1556,20 @@ Deno.serve(async (req) => {
   // BELGE modu: yüklenen/yapıştırılan metni avukat gözüyle inceler. Tüm
   // katmanlara açık, tek çağrı.
   const isBelge = body.mode === 'belge';
+  // KÜNYE modu: UYAP'tan indirilen belgeden dosya künyesini çıkarır.
+  //
+  // İSTEM SUNUCUYA TAŞINDI. Önce istemcide kuruluyordu ve bu üç şeyi imkânsız
+  // kılıyordu: çıkarımı ÖLÇMEK (ölçüm aracı istemi taklit etmek zorunda
+  // kalırdı, yani kullanıcının gördüğü davranış ölçülmezdi), istemi uygulama
+  // güncellemesi olmadan iyileştirmek ve çıkanı DENETLEMEK. Üstelik istek genel
+  // sohbet moduna gidiyordu; yani dosya künyesi çıkarımı için hiçbir özel
+  // talimat ya da koruma yoktu.
+  const isKunye = body.mode === 'kunye';
   const promptQuestion = (body.question ?? '').trim();
-  const messages = (isMutalaa || isDilekce || isBelge)
+  const messages = (isMutalaa || isDilekce || isBelge || isKunye)
     ? [{ role: 'user' as const, text: promptQuestion }]
     : (body.messages ?? []).slice(-30);
-  if (messages.length === 0 || ((isMutalaa || isDilekce || isBelge) && promptQuestion.length < 20)) {
+  if (messages.length === 0 || ((isMutalaa || isDilekce || isBelge || isKunye) && promptQuestion.length < 20)) {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
   // Referanslar mütalaa bloğunda mutalaaQuestion adıyla kullanılıyordu; alias.
@@ -2273,6 +2285,92 @@ async function dosyaKunyesi(
   // mümkün kılıyor: incelemede geçen ama BELGEDE OLMAYAN bir tarih, avukatın
   // ajandasına yanlış süre yazdırabilir — dilekçedeki uydurma tarihten daha
   // sinsidir, çünkü avukat belgeyi zaten okuduğunu varsayar.
+  // KÜNYE ÇIKARIMI — UYAP belgesinden dosya kaydı.
+  //
+  // Çıkan değerler DOĞRUDAN dosya kaydına yazılıyor; bu yüzden burada uydurma,
+  // dilekçedekinden daha sinsidir. Yanlış esas numarasıyla açılmış bir dosya
+  // DOLU görünür ve kimse bir daha bakmaz. Bu yüzden model ne derse desin,
+  // belgede karşılığı olmayan alan atılır (bkz. _shared/kunye.ts).
+  if (isKunye) {
+    const kunyeSys =
+      'Sen bir hukuk bürosu asistanısın. Sana verilen UYAP belgesinden DOSYA KÜNYESİNİ çıkar.\n' +
+      'SADECE şu JSON şemasıyla yanıt ver, başka hiçbir şey yazma:\n' +
+      '{"title":"kısa dosya başlığı","court_name":"mahkeme adı","case_number":"esas no",' +
+      '"case_type":"dava türü","davaci":"davacı/şikayet eden taraf","davali":"davalı taraf",' +
+      '"opposing_party":"karşı taraf","hearing_date":"YYYY-MM-DD"}\n\n' +
+      'KURALLAR:\n' +
+      '• BELGEDE OLMAYAN HİÇBİR ŞEYİ YAZMA. Bir alanı bulamıyorsan BOŞ STRING bırak. ' +
+      'Uydurulmuş bir esas numarası, boş bırakılmış bir alandan çok daha kötüdür: ' +
+      'dosya yanlış numarayla açılır ve dolu göründüğü için kimse denetlemez.\n' +
+      '• court_name, case_number ve opposing_party belgede GEÇTİĞİ GİBİ yazılır; özetleme.\n' +
+      '• case_number yalnız ESAS numarasıdır (örn. "2026/1487"); karar numarası değil.\n' +
+      '• davaci ve davali HER ZAMAN doldurulur (belgede varsa). Bunlar belgeden okunur, ' +
+      'yorum gerektirmez.\n' +
+      '• opposing_party YALNIZ belge açıkça "KARŞI TARAF" diyorsa doldurulur. Belgede kimin ' +
+      'vekili olduğumuz yazmıyorsa bu alanı BOŞ bırak — hangi tarafın karşı taraf olduğu ' +
+      'belgeden çıkarılamaz ve yanlış tarafı yazmak dosyayı ters kurar. Avukat, davacı ve ' +
+      'davalı arasından kendisi seçer.\n' +
+      '• hearing_date yalnız GELECEK bir duruşma günüdür; karar tarihi ya da tebliğ tarihi değil.\n' +
+      '• title kısa olsun: taraf adı + dava türü yeter.';
+    try {
+      let out = '';
+      let uin = 0;
+      let uout = 0;
+      let kullanilanModel = model;
+      let faturali = cfg.billable;
+      // Künye çıkarımı KISA bir iştir: JSON birkaç yüz token. Geniş bir tavan
+      // vermek, ücretsiz sağlayıcının dakikalık sınırını (girdi + tavan) boşuna
+      // yakar ve isteği 413'e sokar.
+      const maxTok = 700;
+      if (provider === 'claude') {
+        const r = await ucretliChat(SYSTEM_PROMPT, kunyeSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        out = r.text; uin = r.tin; uout = r.tout; kullanilanModel = r.model; faturali = r.faturali;
+      } else if (provider === 'openai') {
+        const r = await openaiChat(kunyeSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        out = r.text; uin = r.tin; uout = r.tout;
+      } else {
+        const r = await ucretsizChat(kunyeSys, [{ role: 'user', text: promptQuestion }], maxTok);
+        out = r.text; uin = r.tin; uout = r.tout; kullanilanModel = r.model;
+      }
+      if (!out.trim()) {
+        return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
+      }
+
+      // JSON AYRIŞTIRMA SUNUCUDA. İstemcide yapılıyordu ve model açıklama
+      // eklediğinde sessizce boş künye dönüyordu.
+      let ham: Record<string, string> = {};
+      try {
+        const bas = out.indexOf('{');
+        const son = out.lastIndexOf('}');
+        if (bas >= 0 && son > bas) ham = JSON.parse(out.slice(bas, son + 1));
+      } catch { /* ayrıştırılamadı: boş künye ile devam */ }
+
+      const { kunye, atilan } = kunyeDogrula(ham as Kunye, promptQuestion);
+      // Doldurulabilen alan sayısı: hepsi boşsa çıkarım işe yaramamıştır ve
+      // kullanıcının hakkından düşülmez.
+      const doluAlan = ['court_name', 'case_number', 'opposing_party', 'davaci', 'davali', 'hearing_date']
+        .filter((k) => (kunye as Record<string, string | undefined>)[k]).length;
+      const kusurlu = doluAlan === 0;
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'kunye');
+      return new Response(
+        JSON.stringify({
+          kunye, atilan: atilan.length ? atilan : undefined,
+          tier, model: kullanilanModel,
+          hakDusulmedi: kusurlu || undefined,
+          kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet),
+        }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+      );
+    } catch (e) {
+      const msg = (e as Error).message;
+      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
+        status: known ? 429 : 502,
+        headers: CORS,
+      });
+    }
+  }
+
   if (isBelge) {
     const tur = BELGE_TURU[body.docKind ?? 'diger'] ?? BELGE_TURU.diger;
     // Besleme sorgusu belgenin TAMAMI değil BAŞI: bir sözleşmenin bütünü
