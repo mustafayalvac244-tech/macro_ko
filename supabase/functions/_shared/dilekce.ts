@@ -132,7 +132,15 @@ export function bloklarTarifi(tip: string): string {
     const ek = b.anahtar === 'TALEP' && talep ? ` — ${talep}` : '';
     satir.push(`###${b.anahtar}###  (${b.baslik}${ek})`);
   }
-  satir.push('###KONTROL###  (avukatın denetlemesi gereken boşluklar, süreler, riskler)');
+  // ÖLÇÜLEN ARIZA: "KONTROL LİSTESİ" başlığı taslakta İKİ KEZ çıktı. Sebep,
+  // modele hem burada hem genel talimatta (SYSTEM_PROMPT) "sonuna KONTROL
+  // LİSTESİ ekle" denmesiydi — model bu başlığı KENDİSİ yazıp ###KONTROL###
+  // bloğunun İÇİNE koyuyordu, sonra dilekceyiDiz() aynı başlığı bir daha
+  // ekliyordu. Başlığı kod ekliyor; modelden yalnız gövde isteniyor olmalı.
+  satir.push(
+    '###KONTROL###  (avukatın denetlemesi gereken boşluklar, süreler, riskler — YALNIZ ' +
+      'MADDELERİ yaz, "KONTROL LİSTESİ" başlığını YAZMA, başlığı biz ekliyoruz)'
+  );
   return satir.join('\n');
 }
 

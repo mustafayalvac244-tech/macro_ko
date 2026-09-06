@@ -39,7 +39,7 @@ import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
 import { maddeAtiflari } from '../_shared/atif.ts';
 // Dosyaya giren kuralın cevapta işlenip işlenmediği (_shared/kural.ts). Ölçülen
 // iki mütalaa kusurunun ikisi de "kural dosyadaydı, model yok saydı"ydı.
-import { atlananKurallar } from '../_shared/kural.ts';
+import { atlananKurallar, cakisanDayanaklar } from '../_shared/kural.ts';
 // Belgeden okunan künye, belgede karşılığı yoksa atılır (_shared/kunye.ts):
 // uydurma esas numarası dosyayı yanlış açar ve dolu göründüğü için denetlenmez.
 import { kunyeDogrula, type Kunye } from '../_shared/kunye.ts';
@@ -1211,7 +1211,21 @@ async function buildRules(supabase: any, question: string, toplanan?: Map<string
     'ÖNEMLİ: Bu kurallar bizim ÖZETİMİZDİR, kanun maddesinin lafzı DEĞİLDİR. ' +
     'Buradaki cümleleri tırnak içinde madde metni gibi aktarma; içeriğini kendi ' +
     'cümlenle anlat ve madde numarasını dayanak göster. Birebir alıntı yalnızca ' +
-    'MADDE METİNLERİ bölümünden yapılabilir.'
+    'MADDE METİNLERİ bölümünden yapılabilir.\n' +
+    // ÖLÇÜLEN ARIZA: kira tahliye senaryosunda model TBK m.315 (temerrüt)
+    // ile birlikte TBK m.352/2'yi (iki haklı ihtar) de dayanak gösterdi.
+    // Olayda TEK ihtar vardı; iki haklı ihtar bir kira yılında AYRI İKİ
+    // ihtar ister ve kuralın kendisi bunun temerrütten "AYRI" ve
+    // "ALTERNATİF" bir yol olduğunu zaten söylüyordu — model bu ayrımı
+    // görmezden gelip ikisini birlikte yazdı. Yanlış dayanak, uydurma
+    // maddeden farklı bir hatadır: madde gerçek, numarası doğru, ama
+    // OLAYA UYMUYOR — ve tam bu yüzden fark edilmesi daha zordur.
+    'BİRDEN FAZLA KURAL AYNI KONUYA DEĞİNİYORSA VE BİRBİRİNİN ALTERNATİFİYSE ' +
+    '(kural metninde "AYRI bir sebep", "alternatiftir", "birbirinin alternatifi" gibi ' +
+    'ifadeler görürsen): OLAYIN GERÇEK ŞARTLARINI kuralın ŞART fıkrasıyla TEK TEK ' +
+    'karşılaştır ve yalnız şartları TAM olarak sağlanan kuralı dayanak göster. Şartı ' +
+    'sağlanmayan alternatif kuralı ANMA BİLE — "ayrıca şu da uygulanabilir" diye ' +
+    'ikisini birden yazmak, hangi hukuki yolun izlendiğini bilmediğini gösterir.'
   );
 }
 
@@ -2066,7 +2080,12 @@ async function dosyaKunyesi(
     };
     const structure = typeMap[body.dilekceType ?? ''] ?? typeMap['dava'];
       let dossier = '';
-    try { dossier += await buildRules(supabase, promptQuestion); } catch { /* atla */ }
+    // Dosyaya giren kural kimlikleri toplanır — atlanan kural denetimi için
+    // DEĞİL (o dilekçede gürültü ürettiği için kaldırılmıştı), ÇAKIŞAN DAYANAK
+    // denetimi için: birbirinin alternatifi iki kuralın ikisi de dayanak
+    // gösterilirse avukat uyarılır (bkz. _shared/kural.ts, cakisanDayanaklar).
+    const dilekceKurallar = new Map<string, BeslenenKural>();
+    try { dossier += await buildRules(supabase, promptQuestion, dilekceKurallar); } catch { /* atla */ }
     try { dossier += await buildMevzuat(supabase, promptQuestion); } catch { /* atla */ }
     try { dossier += await buildGrounding(supabase, promptQuestion); } catch { /* atla */ }
 
@@ -2114,8 +2133,13 @@ async function dosyaKunyesi(
       'maddelere dayan; dosyada yoksa "ilgili mevzuat" de, madde UYDURMA).\n' +
       '• Sonda "HUKUKİ SEBEPLER", "DELİLLER" (her vakıaya bağlı), "NETİCE-İ TALEP" ve imza bloğu ' +
       '(Saygılarımla / [Davacı] Vekili / Av. [Ad Soyad]) bulunsun.\n' +
-      '• Taslağın en sonuna kısa bir "⚠️ KONTROL LİSTESİ" ekle: avukatın doldurması/denetlemesi gereken ' +
-      'boşluklar, süreler ve riskler (madde madde).\n' +
+      // BAŞLIK TEKRARI — ÖLÇÜLEN ARIZA. Bu talimat, ###KONTROL### bloğunun
+      // yanında ayrıca "KONTROL LİSTESİ başlığı ekle" diyordu; model ikisine
+      // de uyup başlığı KENDİSİ yazıyor, kod da aynı başlığı bir daha
+      // ekliyordu. Kontrol listesinin ne olduğu ve nereye yazılacağı zaten
+      // ###KONTROL### bloğunun tarifinde var (bkz. bloklarTarifi); burada
+      // tekrar istemek çelişkiye yol açıyordu.
+
       // TALEP DÜŞÜRME — ölçümde görüldü. Avukat "tahliye ve kira alacağı"
       // dedi, taslak yalnız alacağı istedi ve tahliye hiç geçmedi. Netice-i
       // talepte olmayan şeye mahkeme hükmedemez (HMK m.26: taleple bağlılık);
@@ -2251,12 +2275,21 @@ async function dosyaKunyesi(
       // zorunda olan bir çözümlemedir. Denetimin kanıtı da tamamen mütalaadan
       // geliyordu. Yanlış uyarı, uyarının tamamını gürültüye çevirir ve avukat
       // bir daha hiçbirine bakmaz; bu yüzden çalıştığı yerde bırakıldı.
+      // ÇAKIŞAN DAYANAK DENETİMİ — atlananKurallar'ın tersi. Gerçek kullanım
+      // denemesinde model, birbirinin alternatifi iki kuralı (temerrüt / iki
+      // haklı ihtar) birlikte dayanak gösterdi. "Alternatif kuralları ayırt
+      // et" talimatı eklendi ama İKİ BAĞIMSIZ ÜRETİMDE TUTARSIZ çalıştı: biri
+      // doğru ayrımı yaptı, diğeri yine ikisini birlikte yazdı. Talimatla tam
+      // gideremediğimiz için mekanik denetim: liste bilerek dar, yalnız
+      // kuralın kendi metninde "alternatif" dediği bilinen çiftler.
+      const cakisan = cakisanDayanaklar(new Set(dilekceKurallar.keys()), temiz.metin);
       const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0;
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'dilekce');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
           hakDusulmedi: kusurlu || undefined, istekId,
           talepEksik: talepEksik.length ? talepEksik : undefined,
+          cakisanDayanak: cakisan.length ? cakisan : undefined,
           uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
           beslemeKirpildi: dilekceKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),

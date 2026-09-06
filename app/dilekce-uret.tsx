@@ -64,6 +64,10 @@ export default function DilekceUretScreen() {
   // Türe özgü talep denetimi: istinafta "kararın kaldırılması", temyizde
   // "bozulması", itirazda açık itiraz beyanı. Hâkim taleple bağlıdır.
   const [talepEksik, setTalepEksik] = useState<string[]>([]);
+  // ÇAKIŞAN DAYANAK. Gerçek kullanım denemesinde model, birbirinin alternatifi
+  // iki hukuki dayanağı (temerrüt / iki haklı ihtar) birlikte yazdı; talimatla
+  // tutarlı gideremedik. Mekanik denetim yalnız uyarır, hak düşürmez.
+  const [cakisanDayanak, setCakisanDayanak] = useState<string[]>([]);
   // UYDURMA MADDE ATFI. Bu denetim aylardır yalnız ölçüm betiğinde vardı:
   // uydurma atfı ölçüyor ama kullanıcıyı ondan korumuyorduk. Uydurma madde
   // GERÇEK GÖRÜNÜR — biçimi doğru, numarası var — ve yanlışlığı ancak hâkim
@@ -103,7 +107,7 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; uydurmaMadde?: string[] } | null;
+      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[] } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -111,6 +115,7 @@ export default function DilekceUretScreen() {
       setText(payload.text);
       setEksikBolum(payload.eksikBolum ?? []);
       setTalepEksik(payload.talepEksik ?? []);
+      setCakisanDayanak(payload.cakisanDayanak ?? []);
       setUydurmaMadde(payload.uydurmaMadde ?? []);
       setAyiklanan(Number(payload.ayiklananTarih ?? 0));
       setKullanim(payload.kullanim ?? null);
@@ -240,6 +245,9 @@ export default function DilekceUretScreen() {
               {uydurmaMadde.length > 0 && (
                 <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
               )}
+              {cakisanDayanak.map((u, i) => (
+                <Text key={i} style={styles.warn}>{u}</Text>
+              ))}
               {talepEksik.length > 0 && (
                 <Text style={styles.warn}>{t('dlk.missingRelief', { uyari: talepEksik.join(' · ') })}</Text>
               )}

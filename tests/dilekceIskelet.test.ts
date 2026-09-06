@@ -302,3 +302,20 @@ describe('merciDiz', () => {
     expect(merciDiz('dava', '  ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİNE  ')).toBe('ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİNE');
   });
 });
+
+/**
+ * KONTROL LİSTESİ BAŞLIĞI KODDA TEK YERDE.
+ *
+ * Ölçülen arıza: gerçek bir istekte "⚠️ KONTROL LİSTESİ" başlığı taslakta İKİ
+ * KEZ çıktı. Sebep, modele hem ###KONTROL### bloğunun tarifinde hem de ayrı
+ * bir istem satırında "başlık ekle" denmesiydi — model başlığı kendisi yazıp
+ * bloğun içine koyuyordu, kod da aynı başlığı bir daha ekliyordu. Model artık
+ * açıkça başlık YAZMAMASI gerektiğini görüyor.
+ */
+describe('bloklarTarifi KONTROL tarifi', () => {
+  it('modelden başlık değil yalnız gövde istiyor', () => {
+    const tarif = bloklarTarifi('dava');
+    expect(tarif).toContain('###KONTROL###');
+    expect(tarif).toMatch(/KONTROL LİSTESİ.*başlığını YAZMA/);
+  });
+});

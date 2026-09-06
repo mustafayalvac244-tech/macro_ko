@@ -153,6 +153,11 @@ async function uret(tip, olay, deneme = 0) {
     // itirazında ve düplikte "def'i"). Dilekçe hedefli bir belgedir; komşu bir
     // kuralın orada geçmemesi normaldir. Denetim mütalaada kalıyor.
     uydurmaMadde: Array.isArray(j?.uydurmaMadde) ? j.uydurmaMadde : [],
+    // Çakışan dayanak denetimi (alternatif iki kuralın birlikte dayanak
+    // gösterilmesi). Talimatla tutarlı gideremediğimiz bir arıza için mekanik
+    // denetim; ölçümde bunun ateşleyip ateşlemediği görünmezse "koruma
+    // çalıştı" ile "kimse fark etmedi" ayırt edilemez.
+    cakisanDayanak: Array.isArray(j?.cakisanDayanak) ? j.cakisanDayanak : [],
   };
 }
 
@@ -203,12 +208,14 @@ try {
     let kullanilanModel = '?';
     let talepUyari = [];
     let uydurmaMaddeUyari = [];
+    let cakisanUyari = [];
     try {
       ({
         metin: taslak,
         model: kullanilanModel,
         talepEksik: talepUyari,
         uydurmaMadde: uydurmaMaddeUyari,
+        cakisanDayanak: cakisanUyari,
       } = await uret(s.tip, s.olay));
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
@@ -225,7 +232,20 @@ try {
     }
 
     const eksik = (s.icermeli ?? []).filter((k) => !gecer(taslak, k));
-    const yasak = (s.icermemeli ?? []).filter((k) => gecer(taslak, k));
+    // "OLMAMALI" DENETİMİ YALNIZ ANA GÖVDEDE YAPILIR, KONTROL LİSTESİNDE DEĞİL.
+    //
+    // ÖLÇÜLEN YANLIŞ POZİTİF: kira tahliye senaryosunda model artık HUKUKİ
+    // SEBEPLER'de yalnız doğru dayanağı (temerrüt, TBK m.315) kullanıyordu;
+    // yasak ifade ("iki haklı ihtar") yalnız KONTROL LİSTESİ'nde, "bu şart
+    // KARŞILANMIYOR" uyarısı olarak geçiyordu. Bu, hata değil DOĞRU davranış
+    // — model ayrımı yapıp avukatı uyarıyor. Ölçüt bunu ayırt edemediği için
+    // "düzelmedi" sanılabilirdi; ölçütün kendisi yanlıştı, çözüm değil.
+    //
+    // Kontrol listesi avukata yönelik bir uyarı bölümüdür ve doğası gereği
+    // "bu doğru değil / bu şart yok" gibi olumsuzlamalar içerir; ana gövdedeki
+    // (dayanak olarak sunulan) bir ifadeyle karıştırılmamalı.
+    const govde = taslak.split(/⚠️?\s*KONTROL LİSTESİ/)[0];
+    const yasak = (s.icermemeli ?? []).filter((k) => gecer(govde, k));
 
     // UYDURMA: taslaktaki tarih/tutar, olayda geçmiyorsa uydurulmuştur.
     const olayTarih = tarihler(s.olay);
@@ -248,6 +268,7 @@ try {
     // görüyorsa dilekçe kör teslim edilmiyor demektir.
     if (talepUyari.length) console.log(`    SUNUCU UYARDI: ${talepUyari.join(' | ')}`);
     if (uydurmaMaddeUyari.length) console.log(`    SUNUCU UYARDI (uydurma madde): ${uydurmaMaddeUyari.join(', ')}`);
+    if (cakisanUyari.length) console.log(`    SUNUCU UYARDI (çakışan dayanak): ${cakisanUyari.join(' | ')}`);
     if (uydurmaTarih.length) console.log(`    UYDURMA TARİH: ${uydurmaTarih.join(', ')}`);
     if (uydurmaTutar.length) console.log(`    UYDURMA TUTAR: ${uydurmaTutar.join(', ')}`);
     if (!gecti) kusurlu.push({ id: s.id, tip: s.tip, model: kullanilanModel, eksik, yasak, uydurmaTarih, uydurmaTutar, taslak });

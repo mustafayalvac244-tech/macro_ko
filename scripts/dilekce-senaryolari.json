@@ -29,9 +29,10 @@
     "re:faiz"
    ],
    "icermemeli": [
-    "re:İİK m\\.?\\s*269"
+    "re:İİK m\\.?\\s*269",
+    "re:352|iki haklı ihtar|iki hakli ihtar"
    ],
-   "notlar": "Kira ilişkisinden doğan dava sulh hukukta (HMK m.4). Temerrüt nedeniyle tahliye TBK m.315. Dava değeri HMK m.119/1-d gereği zorunlu."
+   "notlar": "Kira ilişkisinden doğan dava sulh hukukta (HMK m.4). Temerrüt nedeniyle tahliye TBK m.315. Dava değeri HMK m.119/1-d gereği zorunlu. ÖLÇÜLEN ARIZA: model TBK m.315 (temerrüt) ile birlikte TBK m.352/2'yi (iki haklı ihtar) de dayanak gösterdi; olayda TEK ihtar var, iki haklı ihtar şartı (bir kira yılında iki ayrı ihtar) sağlanmıyor. Kural metni ikisinin ALTERNATİF olduğunu söylüyor ama model ayrım yapmadı."
   },
   {
    "id": "cevap-alacak",

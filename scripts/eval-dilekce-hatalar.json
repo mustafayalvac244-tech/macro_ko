@@ -1,7 +1,20 @@
 {
- "tarih": "2026-09-06T07:14:45.852Z",
+ "tarih": "2026-09-06T17:33:41.719Z",
  "olculenSenaryolar": [
-  "duplik-alacak"
+  "dava-kira-tahliye"
  ],
- "kusurlu": []
+ "kusurlu": [
+  {
+   "id": "dava-kira-tahliye",
+   "tip": "dava",
+   "model": "openai/gpt-oss-120b",
+   "eksik": [],
+   "yasak": [
+    "re:352|iki haklı ihtar|iki hakli ihtar"
+   ],
+   "uydurmaTarih": [],
+   "uydurmaTutar": [],
+   "taslak": "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ\n\nDAVACI : [Müvekkilin Adı Soyadı]\nVEKİLİ : Av. [Avukat Adı Soyadı]\nDAVALI : [Kiracı Adı Soyadı]\n\nKONU\nKira sözleşmesinin ihlali nedeniyle tahliye ve birikmiş kira alacağının tahsili\n\nHARCA ESAS DAVA DEĞERİ\n36.000 TL\n\nAÇIKLAMALAR\n1. Davacı, Ankara’da bulunan dairesini aylık 12.000 TL kira bedeli karşılığında kiracıya kiralamıştır (kira sözleşmesi ek‑1).  \n2. Kiracı, 2026 yılı Mart, Nisan ve Mayıs aylarına ait kira bedellerini ödememiştir (ödeme yokluğu belge ek‑2).  \n3. Davacı, kiracıya 30 gün süreli, yazılı iki haklı ihtarname (TBK m.352/2) göndermiş, ihtarname tebligat makbuzu ek‑3’te sunulmuştur.  \n4. İhtar süresi sonunda da kiracı ödeme yapmadığı için, TBK m.315 uyarınca temerrüt gerçekleşmiş ve tahliye davası açma hakkı doğmuştur.\n\nHUKUKİ SEBEPLER\n- Türk Borçlar Kanunu’nun kira sözleşmesi hükümleri (madde numarasını teyit edin).  \n- Türk Borçlar Kanunu m.315 (temerrüt ve sözleşmenin feshi).  \n- Türk Borçlar Kanunu m.352/2 (iki haklı ihtar şartı).  \n- Hukuk Muhakemeleri Kanunu m.4/1‑a (kira uyuşmazlıklarının Sulh Hukuk Mahkemesinde görülmesi).  \n- Hukuk Muhakemeleri Kanunu m.119 (dava dilekçesi unsurları).\n\nDELİLLER\n1. Kira sözleşmesi (ek‑1).  \n2. Ödeme yokluğu banka dekontları (ek‑2).  \n3. İki haklı ihtarname örnekleri (ek‑3).  \n4. İhtarname tebligat makbuzu (ek‑4).  \n5. Tanık beyanları (varsa, ek‑5).\n\nNETİCE-İ TALEP\n1. Kiracının daireyi tahliye etmesi.  \n2. Birikmiş kira alacağı 36.000 TL’nin ödenmesi.  \n3. Gecikme faizi, yasal faiz oranı üzerinden, kira alacağının vadesinden tahsil tarihine kadar hesaplanarak ödenmesi.  \n4. Yargılama giderlerinin davalı tarafından karşılanması.  \n5. Vekalet ücretinin davalıdan tahsil edilmesi.\n\nSaygılarımla,\nDavacı Vekili\nAv. [Vekil ad-soyad]\n\n⚠️ KONTROL LİSTESİ\n- Dava değerinin (36.000 TL) doğru hesaplandığının teyidi.  \n- Kiracının tam adı, TC kimlik numarası ve adresinin eksiksiz girilmesi.  \n- Kira sözleşmesinin imza tarihi ve süresinin doğruluğu.  \n- İhtarname tarihleri, tebligat tarihleri ve 30 günlük sürenin doğru şekilde hesaplanması.  \n- Yasal faiz oranının güncel mevzuata uygun olarak belirlenmesi.  \n- Yargılama gideri ve vekalet ücreti tutarlarının uygunluğu.  \n- Sulh Hukuk Mahkemesinin görevliliğinin HMK m.4/1‑a’dan teyit edilmesi."
+  }
+ ]
 }

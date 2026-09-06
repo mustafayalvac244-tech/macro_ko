@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { atlananKurallar } from '../supabase/functions/_shared/kural';
+import { atlananKurallar, cakisanDayanaklar } from '../supabase/functions/_shared/kural';
 
 /**
  * ÖLÇÜLEN İKİ MÜTALAA KUSURU DA "KURAL DOSYADAYDI, MODEL YOK SAYDI"YDI.
@@ -55,5 +55,36 @@ describe('atlananKurallar', () => {
 
   it('boş metinde tüm terimler atlanmış sayılır', () => {
     expect(atlananKurallar(iseIade, '')).toEqual(['arabulucu']);
+  });
+});
+
+/**
+ * ÇELİŞEN DAYANAK ÇİFTLERİ — atlananKurallar'ın tersi bir denetim.
+ *
+ * Gerçek kullanım denemesinde model, birbirinin ALTERNATİFİ olan iki kuralı
+ * (temerrüt / iki haklı ihtar) birlikte dayanak gösterdi. Talimatla ayrımı
+ * tutarlı yaptıramadık (koşudan koşuya değişti); mekanik denetim ekliyoruz.
+ */
+describe('cakisanDayanaklar', () => {
+  it('her iki kural da dosyadaysa VE ikisinin işareti de metinde geçiyorsa uyarır', () => {
+    const kurallar = new Set(['kira_temerrut_tahliye', 'iki_hakli_ihtar_tahliye']);
+    const metin = 'TBK m.315 uyarınca temerrüt... ayrıca TBK m.352/2 iki haklı ihtar şartları...';
+    expect(cakisanDayanaklar(kurallar, metin)).toHaveLength(1);
+  });
+
+  it('yalnız bir kural dosyadaysa uyarmaz', () => {
+    const kurallar = new Set(['kira_temerrut_tahliye']);
+    expect(cakisanDayanaklar(kurallar, 'TBK m.315 ve TBK m.352/2 ikisi de geçse bile')).toEqual([]);
+  });
+
+  it('ikisi de dosyada ama metinde yalnız biri dayanak gösterilmişse uyarmaz', () => {
+    // Ölçümde görülen İYİ durum: model kuralı dosyada gördü ama HUKUKİ
+    // SEBEPLER'de yalnız doğru olanı (315) kullandı; 352 hiç geçmedi.
+    const kurallar = new Set(['kira_temerrut_tahliye', 'iki_hakli_ihtar_tahliye']);
+    expect(cakisanDayanaklar(kurallar, 'Yalnız TBK m.315 uyarınca temerrüt oluşmuştur.')).toEqual([]);
+  });
+
+  it('bilinmeyen kural çiftinde uyarmaz', () => {
+    expect(cakisanDayanaklar(new Set(['ise_iade', 'trafik_zamanasimi']), '315 352')).toEqual([]);
   });
 });
