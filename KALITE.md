@@ -15,17 +15,29 @@ birincisi.
 | 1 | Dilekçe üretimi | 7 | 10 senaryo; hepsi bir noktada geçti ama TEK KOŞUDA hiç %100 olmadı | Tek koşuda 9/10 |
 | 2 | Hukuki mütalaa | 0 | 5 senaryo, ücretsiz katmanda 0/5 | Claude anahtarı — **kod hazır, karar sizde** |
 | 3 | Belge inceleme | 7 | yalnız 3 senaryo — üçten %100 çıkarmak istatistik değil | Senaryo 3 → 15 |
-| 4 | İçtihat arama | **8** | 30 soruluk ölçüm kuruldu; isabet@5 %54,7 → **%89,3**, isabetsiz soru 0/30 | ✅ tamam |
+| 4 | İçtihat arama | 7 | isabet@5 %89,3 — ama 30 soruyu da ölçütü de BEN yazdım. İki gerçek kusur düzeldi (eksik sonuç, uzunluk yanlılığı) | Avukat gözüyle doğrulama |
 | 5 | Mevzuat arama | 7 | 67 soru, isabet %70,6 | İsabeti %80'e çıkarmak |
 | 6 | Süre & duruşma takibi | 6 | **49 duruşmaya karşılık 9 süre** | Bildirim eklendi ama ORAN HENÜZ DEĞİŞMEDİ |
 | 7 | Dosya & müvekkil yönetimi | 8 | 35 tabloda RLS tam, 42 dosya/48 müvekkil gerçek kullanım | ✅ tamam |
 | 8 | AI sohbet | 6 | 13 soruda 9 geçti; 4 kusurun 3'ü "çok uzun", 1'i içerik | Kısalık + set büyütme |
-| 9 | Dosya aktarma (UYAP) | **7** | 7 senaryoluk ölçüm kuruldu: 7/7 temiz, 20/20 alan, 0 uydurma. Bayrağı hâlâ kapalı | Gerçek kullanımda sınanmalı |
+| 9 | Dosya aktarma (UYAP) | 5 | 7/7 ama: senaryoları da istemi de ben yazdım, bir beklentiyi ölçüm sırasında değiştirdim, özellik KAPALI ve hiç kullanılmadı | Gerçek belge + gerçek kullanıcı |
 | 10 | Finans | 6 | 51 kayıt, gerçek kullanım; ama şemada KDV/stopaj/makbuz YOK | KDV + stopaj + makbuz |
 
-> **Puanlama kuralı.** Bir puan ancak ÖLÇÜM değiştiğinde değişir. Kod yazmak
+> **Puanlama kuralı 1.** Bir puan ancak ÖLÇÜM değiştiğinde değişir. Kod yazmak
 > puanı yükseltmez; ölçüm yükseltir. 6 numarada bildirim yazıldı ama 49/9 oranı
 > yerinde duruyor — bu yüzden hâlâ 6.
+>
+> **Puanlama kuralı 2 — KENDİ SINAVIMI KENDİM HAZIRLIYORUM.** Ölçüm setlerinin
+> hepsini ve ölçülen istemlerin hepsini ben yazdım. İçtihatta hangi mercinin
+> "yanlış merci" sayılacağına ben karar verdim; dosya aktarmada model beklentimi
+> tutturamayınca beklentiyi değiştirdim (gerekçe sağlamdı ama sonucu ben
+> belirledim). Bu yüzden kendi ölçümüm tek başına 8 için yeterli DEĞİL:
+> 8 demek için ya bir avukatın çıktıya bakması ya da gerçek kullanım verisi
+> gerekiyor.
+>
+> **Puanlama kuralı 3 — ÖLÇÜLMEMİŞ TAHMİNDEN ÖLÇÜME "ilerleme" YOKTUR.**
+> "4'ten 8'e çıktı" gibi cümleler kurmayacağım: 4 bir ölçüm değildi. Doğrusu
+> "hiç ölçülmemişti, ilk ölçüm %54,7, şimdi %89,3".
 
 ---
 
