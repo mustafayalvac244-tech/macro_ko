@@ -1200,6 +1200,7 @@ export const en: Record<keyof typeof tr, string> = {
   'mut.groundsTitle': 'Rules this opinion was grounded on ({n})',
   'mut.groundsNote': 'These are Vekil rule summaries, not the wording of the statute. If the opinion skipped one of them, you will see it below.',
   'ai.notCharged': 'This draft came out incomplete, so it was not counted against your allowance.',
+  'ai.skippedRules': 'A rule that was fed to the model does not appear in the text: {terimler}. If it was skipped, it can cost a right; please check.',
   'ai.fakeArticles': 'WARNING: the text cites articles that do not exist in our corpus — {maddeler}. Verify before use.',
   'ai.usageCost': 'This request: {token} tokens · {tl} TL deducted from your credit',
   'ai.usageFree': 'This request: {token} tokens (free tier — no credit used)',

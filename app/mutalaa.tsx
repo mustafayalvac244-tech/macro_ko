@@ -38,6 +38,10 @@ export default function MutalaaScreen() {
   // Uydurma madde atfı: havuzdaki kanunun olmayan maddesine yapılan atıf.
   // Mütalaada bu, en pahalı hata türü — metin hukuki dayanağını uyduruyor.
   const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  // Dosyaya giren ama mütalaada izi bulunmayan kurallar. Ölçümde beş
+  // senaryonun ikisi buydu: kural havuzda vardı, dosyaya girdi, model yok
+  // saydı ("4 hafta içinde dava açın" — arabuluculuktan hiç söz etmedi).
+  const [atlananKural, setAtlananKural] = useState<string[]>([]);
   // DAYANAK KURALLAR — mütalaanın beslendiği kural özetleri.
   //
   // Ölçülen arıza: işe iade mütalaasında doğru kural (fesihten itibaren BİR AY
@@ -89,7 +93,7 @@ export default function MutalaaScreen() {
         }
         return;
       }
-      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; uydurmaMadde?: string[]; dayanak?: Array<{ id: string; metin: string }> } | null;
+      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; uydurmaMadde?: string[]; atlananKural?: string[]; dayanak?: Array<{ id: string; metin: string }> } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -98,6 +102,7 @@ export default function MutalaaScreen() {
       setIssues(payload.issues ?? []);
       setHesaplanan(payload.hesaplananTarih ?? []);
       setUydurmaMadde(payload.uydurmaMadde ?? []);
+      setAtlananKural(payload.atlananKural ?? []);
       setDayanak(payload.dayanak ?? []);
       setDayanakAcik(false);
       setKullanim(payload.kullanim ?? null);
@@ -200,6 +205,9 @@ export default function MutalaaScreen() {
               <Text selectable style={styles.body}>{text}</Text>
               {uydurmaMadde.length > 0 && (
                 <Text style={styles.dateWarn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
+              )}
+              {atlananKural.length > 0 && (
+                <Text style={styles.dateWarn}>{t('ai.skippedRules', { terimler: atlananKural.join(', ') })}</Text>
               )}
               {hesaplanan.length > 0 && (
                 <Text style={styles.dateWarn}>

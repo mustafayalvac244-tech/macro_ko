@@ -1209,6 +1209,7 @@ export const tr = {
   // Uydurma madde atfı: havuzdaki kanunun OLMAYAN maddesine yapılan atıf.
   // Gerçek görünür (biçim doğru, numara var), yanlışlığı ancak hâkim baktığında
   // anlaşılır — bu yüzden hem gösteriliyor hem hak düşülmüyor.
+  'ai.skippedRules': 'Dosyaya giren kurallardan biri taslakta geçmiyor: {terimler}. Atlanmışsa hak kaybına yol açabilir; kontrol edin.',
   'ai.fakeArticles': 'DİKKAT: metinde havuzda bulunmayan madde atfı var — {maddeler}. Teyit etmeden kullanmayın.',
   'ai.usageCost': 'Bu istek: {token} token · {tl} TL kontörden düştü',
   'ai.usageFree': 'Bu istek: {token} token (ücretsiz katman — kontör düşmedi)',

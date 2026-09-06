@@ -37,6 +37,15 @@ import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
 // Uydurma madde atfı denetimi ORTAK dosyada (_shared/atif.ts). Ayıklayıcı bugüne
 // kadar yalnız ölçüm betiğinde vardı: ölçüyor ama korumuyorduk.
 import { maddeAtiflari } from '../_shared/atif.ts';
+// Dosyaya giren kuralın cevapta işlenip işlenmediği (_shared/kural.ts). Ölçülen
+// iki mütalaa kusurunun ikisi de "kural dosyadaydı, model yok saydı"ydı.
+import { atlananKurallar } from '../_shared/kural.ts';
+
+/** Dosyaya giren bir kural: metni ve atlandığını gösteren ayırt edici terimler. */
+interface BeslenenKural {
+  metin: string;
+  terimler: string[];
+}
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
@@ -1128,9 +1137,9 @@ function matchKBRules(question: string): Array<{ id: string; text: string }> {
  * tetiklenmiyordu ve model madde uyduruyordu — kalite şikayetinin ana sebebi.
  */
 // deno-lint-ignore no-explicit-any
-async function buildRules(supabase: any, question: string, toplanan?: Map<string, string>): Promise<string> {
-  const picked = new Map<string, string>();
-  for (const r of matchKBRules(question)) picked.set(r.id, r.text);
+async function buildRules(supabase: any, question: string, toplanan?: Map<string, BeslenenKural>): Promise<string> {
+  const picked = new Map<string, BeslenenKural>();
+  for (const r of matchKBRules(question)) picked.set(r.id, { metin: r.text, terimler: [] });
   try {
     const { data } = await supabase.rpc('search_legal_rules', { q: question, match_count: 3 });
     // deno-lint-ignore no-explicit-any
@@ -1139,7 +1148,15 @@ async function buildRules(supabase: any, question: string, toplanan?: Map<string
     for (const r of rows) {
       // Alakasız kuralı bağlayıcı diye vermeyelim: en iyi skorun %45'i altını ele.
       if (top > 0 && Number(r.score ?? 0) < top * 0.45) continue;
-      if (!picked.has(r.id)) picked.set(r.id, String(r.body ?? ''));
+      if (!picked.has(r.id)) {
+        picked.set(r.id, {
+          metin: String(r.body ?? ''),
+          // Kuralın atlandığını gösteren ayırt edici terimler (0063). Kod içi
+          // anahtar kelime tablosundan gelen kurallarda yok; yalnız havuzdaki
+          // kurallar için tutuluyor.
+          terimler: Array.isArray(r.zorunlu_terimler) ? (r.zorunlu_terimler as string[]) : [],
+        });
+      }
     }
   } catch {
     // arama başarısızsa yalnız anahtar kelime eşleşmeleriyle devam
@@ -1153,11 +1170,11 @@ async function buildRules(supabase: any, question: string, toplanan?: Map<string
   // Talimatla tam olarak giderilemiyor; küçük modelde koşudan koşuya değişiyor.
   // Ama kuralın KENDİSİNİ mütalaanın yanında gösterebiliriz: model ne yazarsa
   // yazsın, avukat dayanağı ham hâliyle görür ve çelişkiyi kendisi yakalar.
-  if (toplanan) for (const [id, metin] of picked) toplanan.set(id, metin);
+  if (toplanan) for (const [id, k] of picked) toplanan.set(id, k);
   if (picked.size === 0) return '';
   return (
     '\n\n### KESİN HUKUKİ KURALLAR — BUNLARA UYMAK ZORUNDASIN (yerleşik içtihat; kendi tahminini bunlarla düzelt):\n' +
-    [...picked.values()].map((t) => '• ' + t).join('\n') +
+    [...picked.values()].map((k) => '• ' + k.metin).join('\n') +
     '\nBu kurallara aykırı yanıt verme; soru bu konudaysa cevabını doğrudan bu kurala dayandır. ' +
     'Kural listesi soruyla ilgisizse yok say.\n' +
     // Ölçülen arıza: model, yukarıdaki kural metnini TIRNAK İÇİNDE maddenin
@@ -1723,7 +1740,7 @@ Deno.serve(async (req) => {
       let dossier = '';
       // Dosyaya giren kurallar ayrıca TOPLANIR ve yanıtla birlikte gönderilir:
       // model kuralı yazmasa bile avukat dayanağı ham hâliyle görsün.
-      const dayanakKurallar = new Map<string, string>();
+      const dayanakKurallar = new Map<string, BeslenenKural>();
       try { dossier += await buildRules(supabase, mutalaaQuestion, dayanakKurallar); } catch { /* atla */ }
       try { dossier += await buildMevzuat(supabase, mutalaaQuestion); } catch { /* atla */ }
       for (const issue of issues) {
@@ -1809,6 +1826,10 @@ Deno.serve(async (req) => {
       // daha tehlikelidir. Hak düşülmez ve avukat hangi atfın havuzda
       // bulunmadığını görür.
       const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, text);
+      const atlanan = atlananKurallar(
+        [...dayanakKurallar].map(([id, k]) => ({ id, zorunlu_terimler: k.terimler })),
+        text
+      );
       const kusurlu = kusurluCikti('mutalaa', text) || uydurmaMadde.length > 0;
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !kusurlu, 'mutalaa');
       return new Response(JSON.stringify({
@@ -1816,8 +1837,13 @@ Deno.serve(async (req) => {
         // Dosyaya giren kural özetleri. Bunlar BİZİM ÖZETİMİZDİR, kanun lafzı
         // değildir; ekranda da öyle etiketleniyor.
         dayanak: dayanakKurallar.size
-          ? [...dayanakKurallar].map(([id, metin]) => ({ id, metin }))
+          ? [...dayanakKurallar].map(([id, k]) => ({ id, metin: k.metin }))
           : undefined,
+        // Dosyaya giren ama mütalaada izi bulunmayan kurallar. Ölçümde iki
+        // senaryonun ikisi de buydu ve ikisi de korpus eksiği DEĞİLDİ: kural
+        // havuzda vardı, dosyaya girmişti, model yok saydı. Yalnız uyarı —
+        // hak düşürmez (bkz. _shared/kural.ts).
+        atlananKural: atlanan.length ? atlanan : undefined,
         uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
         hakDusulmedi: kusurlu || undefined,
         istekId,
@@ -2001,7 +2027,9 @@ async function dosyaKunyesi(
     };
     const structure = typeMap[body.dilekceType ?? ''] ?? typeMap['dava'];
       let dossier = '';
-    try { dossier += await buildRules(supabase, promptQuestion); } catch { /* atla */ }
+    // Dilekçede de dosyaya giren kural atlanabiliyor; uyarı avukata gider.
+    const dayanakKurallar = new Map<string, BeslenenKural>();
+    try { dossier += await buildRules(supabase, promptQuestion, dayanakKurallar); } catch { /* atla */ }
     try { dossier += await buildMevzuat(supabase, promptQuestion); } catch { /* atla */ }
     try { dossier += await buildGrounding(supabase, promptQuestion); } catch { /* atla */ }
 
@@ -2143,6 +2171,10 @@ async function dosyaKunyesi(
       // DÜŞÜLMEZ; gideri biz karşılarız. Bunu yanıtta da söylüyoruz ki avukat
       // hakkının neden eksilmediğini bilsin.
       const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, temiz.metin);
+      const atlanan = atlananKurallar(
+        [...dayanakKurallar].map(([id, k]) => ({ id, zorunlu_terimler: k.terimler })),
+        temiz.metin
+      );
       const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0;
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'dilekce');
       return new Response(
@@ -2150,6 +2182,7 @@ async function dosyaKunyesi(
           hakDusulmedi: kusurlu || undefined, istekId,
           talepEksik: talepEksik.length ? talepEksik : undefined,
           uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+          atlananKural: atlanan.length ? atlanan : undefined,
           beslemeKirpildi: dilekceKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
