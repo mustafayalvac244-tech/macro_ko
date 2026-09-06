@@ -58,6 +58,62 @@
    ],
    "olmamali": [],
    "notlar": "İhtarname, muhataba açık bir süre vermeli ve talebi belirli kılmalıdır; aksi hâlde temerrüde düşürme işlevini görmez. TBK m.117: belirli vadeli borçta ihtar gerekmez, aksi hâlde ihtarla temerrüt başlar."
+  },
+  {
+   "id": "kira-sozlesmesi-depozito",
+   "kind": "sozlesme",
+   "yerlestirilen": [
+    "TÜFE sınırını aşan sabit %40 kira artış oranı",
+    "boş tarihli tahliye taahhüdü",
+    "kiraya verenin sebep göstermeksizin tek taraflı tahliye hakkı",
+    "kefilin süresiz/sınırsız sorumluluğu",
+    "depozitonun iade şartının hiç yazılmaması"
+   ],
+   "metin": "KONUT KİRA SÖZLEŞMESİ\n\nMadde 1 - TARAFLAR\nKiraya Veren: Fatma Öz\nKiracı: Kemal Aydın\n\nMadde 2 - KONU\nİstanbul, Kadıköy'deki konut kiraya verilmiştir.\n\nMadde 3 - SÜRE\nSözleşme 01.03.2026 tarihinde başlar, bir (1) yıl süreyle geçerlidir.\n\nMadde 4 - KİRA BEDELİ\nAylık kira bedeli 25.000 TL olup her ayın 5'ine kadar ödenir. Her yıl kira bedeli %40 oranında artırılır.\n\nMadde 5 - DEPOZİTO\nKiracıdan 50.000 TL depozito alınmıştır.\n\nMadde 6 - TAHLİYE TAAHHÜDÜ\nKiracı, işbu sözleşmeyle birlikte imzaladığı tahliye taahhüdünü kiraya verene teslim etmiştir. (Tahliye taahhüdünde tarih bölümü boş bırakılmıştır.)\n\nMadde 7 - FESİH\nKiraya veren, dilediği zaman, sebep göstermeksizin kiracıyı tahliyeye davet edebilir.\n\nMadde 8 - KEFALET\nAhmet Yıldız, kiracının bu sözleşmeden doğan tüm borçlarına süresiz olarak müteselsil kefil olmuştur.\n\nMadde 9 - YETKİ\nUyuşmazlıklarda Kadıköy mahkemeleri yetkilidir.\n\nİşbu sözleşme 01.03.2026 tarihinde iki nüsha düzenlenmiştir.",
+   "yakalamali": [
+    "re:%40|TÜFE|ÜFE|tüketici fiyat",
+    "re:tahliye taahhüdü.*boş|boş.*tarih|tarihsiz|tarih.*bırakıl",
+    "re:sebep göstermeksizin|dilediği zaman",
+    "re:kefil.*süre|süresiz.*kefil|kefalet.*süre",
+    "re:depozito.*iade|iade şart"
+   ],
+   "olmamali": [],
+   "notlar": "TBK m.344: konut/çatılı işyeri kiralarında kira artışı bir önceki kira yılındaki TÜFE oranını geçemez; %40 sabit artış hükmü bu sınırı aşar. Boş tarihli tahliye taahhüdü yerleşik Yargıtay içtihadına göre geçersizdir (imza anında gerçek/serbest irade yokluğu kabul edilir). Kiraya verenin sebepsiz tek taraflı tahliye hakkı TBK'nın kiracıyı koruyucu hükümleriyle (m.347 vd.) bağdaşmaz. TBK m.583: kefalet sözleşmesinde azami miktar ve süre belirtilmesi zorunludur; süresiz/sınırsız kefalet ibaresi bu şekli şartla çelişir."
+  },
+  {
+   "id": "vekaletname-ozel-yetki",
+   "kind": "diger",
+   "yerlestirilen": [
+    "sulh olma yetkisi yok",
+    "feragat yetkisi yok",
+    "davayı kabul yetkisi yok",
+    "yemin teklif/kabul yetkisi yok"
+   ],
+   "metin": "VEKÂLETNAME\n\nBen, Aylin Kurt, aşağıda bilgileri yazılı avukatı, hakkımda açılmış/açacağım her türlü dava ve icra takibinde beni temsile, dilekçe ve evrak imzalamaya, duruşmalara katılmaya, tebligat almaya yetkili kılıyorum.\n\nVEKİL: Av. Serkan Demir\nVEKİL EDEN: Aylin Kurt\n\nİşbu vekâletname 04.01.2026 tarihinde düzenlenmiştir.",
+   "yakalamali": [
+    "re:sulh",
+    "re:feragat",
+    "re:kabul",
+    "re:yemin",
+    "re:özel yetki"
+   ],
+   "olmamali": [],
+   "notlar": "HMK m.74: sulh olma, davadan/haktan feragat, davayı kabul, yemin teklif etme/karşı tarafa bırakma/yemini kabul, başkasına vekâlet verme, haczedilmezlikten feragat gibi işlemler için vekâletnamede AÇIK ve ÖZEL yetki bulunması şarttır — genel dava takip yetkisi bunları kapsamaz. Bu vekâletnameyle avukat, örneğin sulh görüşmesinde anlaşma imzalayamaz."
+  },
+  {
+   "id": "odeme-emri-yanlis-sure",
+   "kind": "diger",
+   "yerlestirilen": [
+    "itiraz/ödeme süresi yanlış: '1 ay' yazılmış, doğrusu 7 gündür",
+    "mal beyanında bulunma yükümlülüğü hiç belirtilmemiş"
+   ],
+   "metin": "T.C.\nİSTANBUL 14. İCRA DAİRESİ\nDOSYA NO: 2026/1120 Esas\nÖRNEK NO: 7\n\nALACAKLI: Deniz Finans A.Ş.\nBORÇLU: Okan Şahin\n\nBORÇ: 85.000 TL asıl alacak, işlemiş faiziyle birlikte 92.400 TL\n\nYukarıda yazılı borcunuzu işbu ödeme emrinin tebliğinden itibaren 1 (bir) AY içinde icra dairemize ödemeniz, borca ve borca ilişkin herhangi bir itirazınız varsa yine bu süre içinde icra dairemize bildirmeniz, aksi hâlde cebri icraya devam olunacağı ihtar olunur.\n\nİcra Müdürü",
+   "yakalamali": [
+    "re:7 gün|yedi gün",
+    "re:mal beyan"
+   ],
+   "olmamali": [],
+   "notlar": "İİK m.60/62: ilamsız icra takibinde ödeme VE itiraz süresi tebliğden itibaren YEDİ (7) GÜNDÜR; belgede '1 ay' yazması ciddi bir usul hatasıdır ve borçlunun süre hesabını yanlış yapmasına yol açar. İİK m.74 uyarınca ödeme emrinde borçluya mal beyanında bulunma yükümlülüğünün de hatırlatılması gerekir; bu ihtar metinde hiç yoktur. NOT: 'olmamali' için '1 ay doğrudur' türü bir kalıp KASITLI OLARAK eklenmedi — model belgeyi doğru şekilde alıntılayıp ('1 ay yazıyor ama...') düzeltirse bu, alıntı metnine takılıp yanlış pozitif üretirdi (bkz. eslestir.mjs'in kendi geçmiş kör noktaları)."
   }
  ]
 }
