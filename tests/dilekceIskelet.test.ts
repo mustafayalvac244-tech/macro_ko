@@ -4,6 +4,7 @@ import {
   dilekceyiDiz,
   hesaplananTarihler,
   iskeletSec,
+  talepUyarilari,
   uydurmaTarihleriAyikla,
 } from '../supabase/functions/_shared/dilekce';
 
@@ -157,5 +158,30 @@ describe('hesaplananTarihler', () => {
 
   it('olaydaki tarihi hesaplanmış saymaz', () => {
     expect(hesaplananTarihler('14.04.2026', '14.04.2026 tarihinde')).toEqual([]);
+  });
+});
+
+describe('talepUyarilari', () => {
+  it('istinafta "kaldırılması" yoksa uyarır', () => {
+    // Ölçümde üç koşunun birinde istinaf talebi düştü. Hâkim taleple bağlıdır
+    // (HMK m.26): netice-i talepte olmayan şeye hükmedilmez.
+    expect(talepUyarilari('istinaf', 'Davanın kabulüne karar verilmesini talep ederiz.')).toHaveLength(1);
+    expect(talepUyarilari('istinaf', 'Kararın KALDIRILMASINA karar verilmesini talep ederiz.')).toEqual([]);
+  });
+
+  it('temyizde "bozulması" yoksa uyarır; kaldırılma temyize ait değildir', () => {
+    expect(talepUyarilari('temyiz', 'Kararın kaldırılmasını talep ederiz.')).toHaveLength(1);
+    expect(talepUyarilari('temyiz', 'Kararın BOZULMASINA karar verilmesini talep ederiz.')).toEqual([]);
+  });
+
+  it('itirazda açık itiraz beyanı aranır', () => {
+    // İcra dairesi itirazı SEBEBİNE göre kaydeder; "borcum yoktur" demek
+    // itirazın kendisi değildir.
+    expect(talepUyarilari('itiraz', 'Müvekkilin borcu bulunmamaktadır.')).toHaveLength(1);
+    expect(talepUyarilari('itiraz', 'Borca ve imzaya İTİRAZ EDİYORUZ.')).toEqual([]);
+  });
+
+  it('ilgisiz türde uyarı üretmez', () => {
+    expect(talepUyarilari('dava', 'Davanın kabulünü talep ederiz.')).toEqual([]);
   });
 });

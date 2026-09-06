@@ -18,6 +18,7 @@ import {
   dilekceyiDiz,
   hesaplananTarihler,
   iskeletSec,
+  talepUyarilari,
   uydurmaTarihleriAyikla,
 } from '../_shared/dilekce.ts';
 // Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
@@ -2140,6 +2141,12 @@ async function dosyaKunyesi(
       // tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
       // mekanik denetimde.
       const temiz = uydurmaTarihleriAyikla(govde, promptQuestion);
+      // TÜRE ÖZGÜ TALEP DENETİMİ. Talebi biz yazamayız — ne istendiğini avukat
+      // bilir ve uydurulmuş talep, eksik talepten kötüdür. Ama eksikliği
+      // görebiliriz: hâkim taleple bağlıdır (HMK m.26) ve netice-i talepte
+      // olmayan şeye hükmedilmez. Ölçümde istinaf talebi üç koşunun birinde
+      // düştü; talimat bunu tamamen gidermiyor, denetim gideriyor.
+      const talepEksik = talepUyarilari(body.dilekceType ?? 'dava', temiz.metin);
       // Zorunlu bölümü eksik ya da yarım kalmış taslak, kullanıcının hakkından
       // DÜŞÜLMEZ; gideri biz karşılarız. Bunu yanıtta da söylüyoruz ki avukat
       // hakkının neden eksilmediğini bilsin.
@@ -2148,6 +2155,7 @@ async function dosyaKunyesi(
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
           hakDusulmedi: kusurlu || undefined, istekId,
+          talepEksik: talepEksik.length ? talepEksik : undefined,
           beslemeKirpildi: dilekceKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }

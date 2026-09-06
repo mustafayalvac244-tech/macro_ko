@@ -482,3 +482,37 @@ export function hesaplananTarihler(metin: string, olay: string): string[] {
   }
   return [...cikan];
 }
+
+/**
+ * TÜRE ÖZGÜ TALEP DENETİMİ — kanun yolu dilekçelerinde talep cümlesi eksikse söyle.
+ *
+ * ÖLÇÜLEN ARIZA. İstinaf senaryosu üç koşunun ikisinde geçti, birinde netice-i
+ * talepte "kararın kaldırılması" hiç geçmedi. Küçük modelde koşudan koşuya
+ * değişkenlik var ve bu, talimatla tamamen giderilemiyor.
+ *
+ * Talebi biz YAZAMAYIZ — ne istendiğini avukat bilir ve uydurulmuş bir talep,
+ * eksik talepten kötüdür. Ama eksikliği GÖREBİLİRİZ: hâkim taleple bağlıdır
+ * (HMK m.26) ve netice-i talepte olmayan şeye hükmedilmez, yani düşen talep
+ * doğrudan hak kaybıdır. Dilekçe teslim edilmeden fark edilmesi gerekir.
+ *
+ * Dönen uyarılar arayüzde eksik bölüm uyarılarıyla aynı yerde gösterilir.
+ */
+export function talepUyarilari(tip: string, metin: string): string[] {
+  const uyari: string[] = [];
+  const sade = String(metin ?? '').toLocaleLowerCase('tr');
+  const gecer = (...kaliplar: string[]) => kaliplar.some((k) => sade.includes(k));
+
+  if (tip === 'istinaf' && !gecer('kaldırılmas', 'kaldirilmas', 'yeniden yargılama')) {
+    // İstinafta BAM kararı KALDIRIR; "bozulması" temyize aittir.
+    uyari.push('İstinaf talebinde "kararın kaldırılması" ifadesi yok');
+  }
+  if (tip === 'temyiz' && !gecer('bozulmas', 'bozma')) {
+    // Temyizde Yargıtay BOZAR; "kaldırılması" istinafa aittir.
+    uyari.push('Temyiz talebinde "kararın bozulması" ifadesi yok');
+  }
+  if (tip === 'itiraz' && !gecer('itiraz ediyoruz', 'itiraz etmekteyiz', 'itiraz olunur', 'itirazımızın')) {
+    // İcra dairesi itirazı SEBEBİNE göre kaydeder; dolaylı anlatım yetmez.
+    uyari.push('İtiraz dilekçesinde açık itiraz beyanı ("itiraz ediyoruz") yok');
+  }
+  return uyari;
+}

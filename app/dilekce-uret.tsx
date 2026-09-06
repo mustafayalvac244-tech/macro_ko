@@ -61,6 +61,9 @@ export default function DilekceUretScreen() {
   //    demektir; avukat bunu bilmeli, çünkü kalanları da denetlemeli).
   // İkisi de yanıtta geliyordu ve kullanılmıyordu.
   const [eksikBolum, setEksikBolum] = useState<string[]>([]);
+  // Türe özgü talep denetimi: istinafta "kararın kaldırılması", temyizde
+  // "bozulması", itirazda açık itiraz beyanı. Hâkim taleple bağlıdır.
+  const [talepEksik, setTalepEksik] = useState<string[]>([]);
   const [ayiklanan, setAyiklanan] = useState(0);
   // Bu isteğin maliyeti. Kontörle çalışan bir üründe harcamanın gizli kalması,
   // kullanıcıyı bakiyesi bittiğinde şaşırtır; token sayısı ücretsiz katmanda da
@@ -99,13 +102,14 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean } | null;
+      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; talepEksik?: string[] } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
       }
       setText(payload.text);
       setEksikBolum(payload.eksikBolum ?? []);
+      setTalepEksik(payload.talepEksik ?? []);
       setAyiklanan(Number(payload.ayiklananTarih ?? 0));
       setKullanim(payload.kullanim ?? null);
       setIstekId(payload.istekId ?? null);
@@ -248,6 +252,9 @@ export default function DilekceUretScreen() {
                 </Pressable>
               </View>
               <Text selectable style={styles.body}>{text}</Text>
+              {talepEksik.length > 0 && (
+                <Text style={styles.warn}>{t('dlk.missingRelief', { uyari: talepEksik.join(' · ') })}</Text>
+              )}
               {eksikBolum.length > 0 && (
                 <Text style={styles.warn}>{t('dlk.missingSections', { bolumler: eksikBolum.join(', ') })}</Text>
               )}
