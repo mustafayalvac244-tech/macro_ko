@@ -145,6 +145,11 @@ async function uret(tip, olay, deneme = 0) {
     metin: String(j?.text ?? ''),
     model: String(j?.model ?? '?'),
     talepEksik: Array.isArray(j?.talepEksik) ? j.talepEksik : [],
+    // Sunucunun diğer iki koruması da kayda geçer: uydurma madde atfı (havuzdaki
+    // kanunun olmayan maddesi) ve dosyaya girip taslakta izi bulunmayan kural.
+    // Korumanın işe yarayıp yaramadığı ancak ölçümde görünürse bilinir.
+    uydurmaMadde: Array.isArray(j?.uydurmaMadde) ? j.uydurmaMadde : [],
+    atlananKural: Array.isArray(j?.atlananKural) ? j.atlananKural : [],
   };
 }
 
@@ -194,8 +199,16 @@ try {
     let taslak;
     let kullanilanModel = '?';
     let talepUyari = [];
+    let uydurmaMaddeUyari = [];
+    let atlananKuralUyari = [];
     try {
-      ({ metin: taslak, model: kullanilanModel, talepEksik: talepUyari } = await uret(s.tip, s.olay));
+      ({
+        metin: taslak,
+        model: kullanilanModel,
+        talepEksik: talepUyari,
+        uydurmaMadde: uydurmaMaddeUyari,
+        atlananKural: atlananKuralUyari,
+      } = await uret(s.tip, s.olay));
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(
@@ -225,7 +238,7 @@ try {
     const bosluk = (taslak.match(/\[[^\]]{2,40}\]/g) ?? []).length;
 
     const gecti = eksik.length === 0 && yasak.length === 0 && uydurmaTarih.length === 0;
-    sonuclar.push({ id: s.id, gecti, eksik, yasak, uydurmaTarih, uydurmaTutar, bosluk, model: kullanilanModel, uzunluk: taslak.length });
+    sonuclar.push({ id: s.id, gecti, eksik, yasak, uydurmaTarih, uydurmaTutar, bosluk, model: kullanilanModel, uzunluk: taslak.length, talepUyari, uydurmaMaddeUyari, atlananKuralUyari });
 
     console.log(`${gecti ? '✓' : '✗'} ${s.id} (${s.tip})  ${taslak.length} krktr · ${bosluk} boşluk · ${kullanilanModel}`);
     if (eksik.length) console.log(`    EKSİK UNSUR : ${eksik.join(' | ')}`);
@@ -233,6 +246,8 @@ try {
     // Sunucu korumasının çalışıp çalışmadığı: senaryo kalsa bile avukat uyarıyı
     // görüyorsa dilekçe kör teslim edilmiyor demektir.
     if (talepUyari.length) console.log(`    SUNUCU UYARDI: ${talepUyari.join(' | ')}`);
+    if (uydurmaMaddeUyari.length) console.log(`    SUNUCU UYARDI (uydurma madde): ${uydurmaMaddeUyari.join(', ')}`);
+    if (atlananKuralUyari.length) console.log(`    SUNUCU UYARDI (atlanan kural): ${atlananKuralUyari.join(', ')}`);
     if (uydurmaTarih.length) console.log(`    UYDURMA TARİH: ${uydurmaTarih.join(', ')}`);
     if (uydurmaTutar.length) console.log(`    UYDURMA TUTAR: ${uydurmaTutar.join(', ')}`);
     if (!gecti) kusurlu.push({ id: s.id, tip: s.tip, model: kullanilanModel, eksik, yasak, uydurmaTarih, uydurmaTutar, taslak });

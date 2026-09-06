@@ -197,7 +197,22 @@ async function uret(olay, deneme = 0) {
   }
   // Hangi model cevapladı: ücretsiz hat Groq'tan Gemini'ye düşebiliyor ve
   // "kalite düştü" ile "yedeğe inildi" ancak böyle ayırt edilir.
-  return { metin: String(j?.text ?? ''), model: String(j?.model ?? '?') };
+  // SUNUCUNUN KENDİ KORUMALARI DA KAYDA GEÇER. Uydurma madde atfı ve dosyaya
+  // girip mütalaada izi bulunmayan kural, uçta denetleniyor ve avukata
+  // gösteriliyor. Ölçüm bunları kaydetmezse "senaryo kaldı" ile "koruma
+  // çalıştı, avukat uyarıldı" ayırt edilemez — yani ölçüm, kullanıcının
+  // gerçekte ne gördüğünü ölçmüyor olur.
+  //
+  // dayanak: dosyaya giren kural özetleri. Bir senaryo kaldığında asıl soru
+  // "kural havuzda var mıydı" değil, "dosyaya girdi mi ve model yok mu saydı"
+  // sorusudur; ikisinin ayrımı düzeltmenin nereye yapılacağını belirler.
+  return {
+    metin: String(j?.text ?? ''),
+    model: String(j?.model ?? '?'),
+    uydurmaMadde: Array.isArray(j?.uydurmaMadde) ? j.uydurmaMadde : [],
+    atlananKural: Array.isArray(j?.atlananKural) ? j.atlananKural : [],
+    dayanak: Array.isArray(j?.dayanak) ? j.dayanak.map((k) => k?.id).filter(Boolean) : [],
+  };
 }
 
 // EVAL_SINIR: kaç senaryo koşulacak (vars. hepsi).
@@ -207,8 +222,23 @@ async function uret(olay, deneme = 0) {
 // Az sayıda senaryoyu ÖLÇMEK, çok sayıda senaryoyu ölçememekten iyidir —
 // yeter ki oranın kaç senaryodan çıktığı raporda görünsün.
 const SINIR = Number(process.env.EVAL_SINIR ?? 0);
+// EVAL_SENARYO: virgülle ayrılmış senaryo kimlikleri (vars. hepsi).
+//
+// NEDEN VAR. Bir kusuru düzeltip DOĞRULAMAK için tüm havuzu koşmak gerekmiyor;
+// gereken, kusurlu senaryoları koşmak. Tam koşu saatler sürüyor ve günlük
+// kotanın büyük kısmını yakıyor — yani "düzelttim mi?" sorusunun cevabı ertesi
+// güne kalıyordu. Düzeltmeyle ölçüm arasındaki süre uzadıkça, düzeltmenin işe
+// yarayıp yaramadığı bilinmeden yenisi yazılıyor.
+const SECIM = (process.env.EVAL_SENARYO ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 const { senaryolar: tumSenaryolar } = JSON.parse(readFileSync(join(__dirname, 'mutalaa-senaryolari.json'), 'utf8'));
-const senaryolar = SINIR > 0 ? tumSenaryolar.slice(0, SINIR) : tumSenaryolar;
+if (SECIM.length) {
+  // Yazım hatası sessizce "sıfır senaryo" olmamalı: saatlerce koşup hiçbir şey
+  // ölçmemenin en sinsi yolu, olmayan bir kimlik yazmaktır.
+  const bilinmeyen = SECIM.filter((k) => !tumSenaryolar.some((x) => x.id === k));
+  if (bilinmeyen.length) throw new Error(`bilinmeyen senaryo: ${bilinmeyen.join(', ')}`);
+}
+const secilen = SECIM.length ? tumSenaryolar.filter((x) => SECIM.includes(x.id)) : tumSenaryolar;
+const senaryolar = SINIR > 0 ? secilen.slice(0, SINIR) : secilen;
 
 let uid = null;
 const sonuclar = [];
@@ -230,8 +260,17 @@ try {
 
     let metin;
     let kullanilanModel = '?';
+    let uydurmaMaddeUyari = [];
+    let atlananKuralUyari = [];
+    let dayanakKurallar = [];
     try {
-      ({ metin, model: kullanilanModel } = await uret(s.olay));
+      ({
+        metin,
+        model: kullanilanModel,
+        uydurmaMadde: uydurmaMaddeUyari,
+        atlananKural: atlananKuralUyari,
+        dayanak: dayanakKurallar,
+      } = await uret(s.olay));
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(
@@ -285,6 +324,9 @@ try {
     sonuclar.push({ id: s.id, gecti, kacan, yasak, eksikBolum, hesaplananTarih, eksikTarih, uydurmaTutar, uydurmaMadde, adimdaSure, uzunluk: metin.length });
 
     console.log(`${gecti ? '✓' : '✗'} ${s.id}  ${metin.length} krktr · ${kullanilanModel}`);
+    if (dayanakKurallar.length) console.log(`    DOSYAYA GİREN KURAL: ${dayanakKurallar.join(', ')}`);
+    if (atlananKuralUyari.length) console.log(`    SUNUCU UYARDI (atlanan kural): ${atlananKuralUyari.join(', ')}`);
+    if (uydurmaMaddeUyari.length) console.log(`    SUNUCU UYARDI (uydurma madde): ${uydurmaMaddeUyari.join(', ')}`);
     if (kacan.length) console.log(`    KAÇIRILAN   : ${kacan.join(' | ')}`);
     if (yasak.length) console.log(`    OLMAMALIYDI : ${yasak.join(' | ')}`);
     if (eksikBolum.length) console.log(`    EKSİK BÖLÜM : ${eksikBolum.join(', ')}`);

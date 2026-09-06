@@ -128,7 +128,14 @@ async function incele(kind, metin, deneme = 0) {
     }
     throw new Error('YEDEK_OZET');
   }
-  return { metin: String(j?.text ?? ''), ayiklananTarih: j?.ayiklananTarih ?? [], model: String(j?.model ?? '?') };
+  // Sunucunun uydurma madde denetimi de kayda geçer: koruma çalıştıysa
+  // "senaryo kaldı" ile "avukat uyarıldı" ayırt edilebilsin.
+  return {
+    metin: String(j?.text ?? ''),
+    ayiklananTarih: j?.ayiklananTarih ?? [],
+    model: String(j?.model ?? '?'),
+    uydurmaMadde: Array.isArray(j?.uydurmaMadde) ? j.uydurmaMadde : [],
+  };
 }
 
 // Başlık denetimi SADELEŞTİRİLMİŞ metinde yapılır: JavaScript'in /i bayrağı
@@ -148,8 +155,23 @@ const BASLIKLAR = [
 // Az sayıda senaryoyu ÖLÇMEK, çok sayıda senaryoyu ölçememekten iyidir —
 // yeter ki oranın kaç senaryodan çıktığı raporda görünsün.
 const SINIR = Number(process.env.EVAL_SINIR ?? 0);
+// EVAL_SENARYO: virgülle ayrılmış senaryo kimlikleri (vars. hepsi).
+//
+// NEDEN VAR. Bir kusuru düzeltip DOĞRULAMAK için tüm havuzu koşmak gerekmiyor;
+// gereken, kusurlu senaryoları koşmak. Tam koşu saatler sürüyor ve günlük
+// kotanın büyük kısmını yakıyor — yani "düzelttim mi?" sorusunun cevabı ertesi
+// güne kalıyordu. Düzeltmeyle ölçüm arasındaki süre uzadıkça, düzeltmenin işe
+// yarayıp yaramadığı bilinmeden yenisi yazılıyor.
+const SECIM = (process.env.EVAL_SENARYO ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 const { senaryolar: tumSenaryolar } = JSON.parse(readFileSync(join(__dirname, 'belge-senaryolari.json'), 'utf8'));
-const senaryolar = SINIR > 0 ? tumSenaryolar.slice(0, SINIR) : tumSenaryolar;
+if (SECIM.length) {
+  // Yazım hatası sessizce "sıfır senaryo" olmamalı: saatlerce koşup hiçbir şey
+  // ölçmemenin en sinsi yolu, olmayan bir kimlik yazmaktır.
+  const bilinmeyen = SECIM.filter((k) => !tumSenaryolar.some((x) => x.id === k));
+  if (bilinmeyen.length) throw new Error(`bilinmeyen senaryo: ${bilinmeyen.join(', ')}`);
+}
+const secilen = SECIM.length ? tumSenaryolar.filter((x) => SECIM.includes(x.id)) : tumSenaryolar;
+const senaryolar = SINIR > 0 ? secilen.slice(0, SINIR) : secilen;
 
 let uid = null;
 const sonuclar = [];
@@ -196,6 +218,7 @@ try {
     sonuclar.push({ id: s.id, gecti, kacan, yasak, eksikBaslik, uydurmaTarih, ayiklanan: cikti.ayiklananTarih, uzunluk: inc.length });
 
     console.log(`${gecti ? '✓' : '✗'} ${s.id} (${s.kind})  ${inc.length} krktr · ${cikti.model}`);
+    if (cikti.uydurmaMadde?.length) console.log(`    SUNUCU UYARDI (uydurma madde): ${cikti.uydurmaMadde.join(', ')}`);
     if (kacan.length) console.log(`    KAÇIRILAN KUSUR: ${kacan.join(' | ')}`);
     if (yasak.length) console.log(`    OLMAMALIYDI    : ${yasak.join(' | ')}`);
     if (eksikBaslik.length) console.log(`    EKSİK BAŞLIK   : ${eksikBaslik.join(', ')}`);
