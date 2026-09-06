@@ -15,13 +15,13 @@ birincisi.
 | 1 | Dilekçe üretimi | 7 | 10 senaryo; hepsi bir noktada geçti ama TEK KOŞUDA hiç %100 olmadı | Tek koşuda 9/10 |
 | 2 | Hukuki mütalaa | 0 | 5 senaryo, ücretsiz katmanda 0/5 | Claude anahtarı — **kod hazır, karar sizde** |
 | 3 | Belge inceleme | 7 | yalnız 3 senaryo — üçten %100 çıkarmak istatistik değil | Senaryo 3 → 15 |
-| 4 | İçtihat arama | ? | **ÖLÇÜM YOK** | Önce ölçüm seti, sonra iyileştirme |
+| 4 | İçtihat arama | 4 | 7.118 karar; örneklediğim 3 temel soruda 0'ı isabetli daireden geldi | Ölçüm seti + havuz dengesi |
 | 5 | Mevzuat arama | 7 | 67 soru, isabet %70,6 | İsabeti %80'e çıkarmak |
 | 6 | Süre & duruşma takibi | 6 | **49 duruşmaya karşılık 9 süre** | Bildirim eklendi ama ORAN HENÜZ DEĞİŞMEDİ |
 | 7 | Dosya & müvekkil yönetimi | 8 | 35 tabloda RLS tam, 42 dosya/48 müvekkil gerçek kullanım | ✅ tamam |
-| 8 | AI sohbet | kapalı | 13 soruluk set, sonuç eski | Ölçüm + karar |
-| 9 | Dosya aktarma (UYAP) | kapalı | **hiç kullanılmamış (0 kayıt)** | Ölçüm + karar |
-| 10 | Finans | ? | 51 kayıt — gerçekten kullanılıyor | Denetim yapılacak |
+| 8 | AI sohbet | 6 | 13 soruda 9 geçti; 4 kusurun 3'ü "çok uzun", 1'i içerik | Kısalık + set büyütme |
+| 9 | Dosya aktarma (UYAP) | 3 | hiç ölçülmedi, hiç kullanılmadı (0 kayıt), AI yoluna bağlı | Önce ölçüm |
+| 10 | Finans | 6 | 51 kayıt, gerçek kullanım; ama şemada KDV/stopaj/makbuz YOK | KDV + stopaj + makbuz |
 
 > **Puanlama kuralı.** Bir puan ancak ÖLÇÜM değiştiğinde değişir. Kod yazmak
 > puanı yükseltmez; ölçüm yükseltir. 6 numarada bildirim yazıldı ama 49/9 oranı
