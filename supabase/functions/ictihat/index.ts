@@ -15,6 +15,9 @@ import { overLimit, tierConfig as ortakKatman } from '../_shared/katman.ts';
 // Dönem anahtarları ortak: bu uç günlük sayacı hiç bilmiyordu ve içtihat
 // ekranından yapılan AI çağrıları günlük haktan düşmüyordu (bkz. _shared/kullanim.ts).
 import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
+// Fiyat tablosu ortak: burada yalnız iki eski Gemini satırı kalmıştı ve
+// bilinmeyen her modeli gemini-2.5-pro fiyatından sayıyordu.
+import { costTry } from '../_shared/fiyat.ts';
 
 const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
 // MODEL_BASIC / MODEL_PLUS KALDIRILDI: katman tablosu ortak dosyaya taşınınca
@@ -24,11 +27,6 @@ const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
 // ── AI MALİYET ÖLÇÜMÜ + KATMAN TAVANI (batma koruması) ──────────────────────
 // Her AI çağrısının token maliyeti hesaplanıp ai_usage'a yazılır; çağrıdan önce
 // kullanıcının bu-ay maliyeti katman tavanını aşmışsa çağrı engellenir.
-const USD_TRY = Number(Deno.env.get('VEKIL_USD_TRY') || '42');
-const PRICING: Record<string, { in: number; out: number }> = {
-  'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
-  'gemini-2.5-pro': { in: 1.25, out: 10.0 },
-};
 // KATMAN TABLOSU BURADA DEĞİL: _shared/katman.ts.
 //
 // Burada kendi kopyası vardı ve ai-chat'teki asıl tablodan AYRILMIŞTI: orada
@@ -45,10 +43,6 @@ const PRICING: Record<string, { in: number; out: number }> = {
 // Sağlayıcıya göre anahtar: Groq → GROQ_API_KEY, Gemini → GEMINI_API_KEY.
 function aiKey(provider: Provider): string | undefined {
   return provider === 'groq' ? (Deno.env.get('GROQ_API_KEY') ?? undefined) : (Deno.env.get('GEMINI_API_KEY') ?? undefined);
-}
-function costTry(model: string, tin: number, tout: number): number {
-  const p = PRICING[model] ?? PRICING['gemini-2.5-pro'];
-  return ((tin / 1e6) * p.in + (tout / 1e6) * p.out) * USD_TRY;
 }
 async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ calls: number; cost: number }> {
   const s = svc();

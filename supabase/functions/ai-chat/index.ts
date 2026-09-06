@@ -27,6 +27,7 @@ import { overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 // Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
 import { beslemeyiKirp, kuralBasliklari } from '../_shared/besleme.ts';
+import { costTry, PRICING, USD_TRY } from '../_shared/fiyat.ts';
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
@@ -51,13 +52,11 @@ const GEMINI_FALLBACK_MODEL = Deno.env.get('VEKIL_GEMINI_YEDEK') || 'gemini-flas
 // Fiyat tablosundaki gemini-2.5-pro satırı DURUYOR: VEKIL_ZORLA_MODEL ile
 // karşılaştırma koşusu yapıldığında maliyet doğru hesaplansın.
 const EMBED_MODEL = 'text-embedding-004';
-
 // ── AI maliyet ölçümü + katman tavanı (batma koruması) ──────────────────────
-const USD_TRY = Number(Deno.env.get('VEKIL_USD_TRY') || '42');
-// Bir isteğe başlamak için gereken en az bakiye (TL). Ölçülen maliyetler:
-// sohbet sorusu ~1 TL, dilekçe ~2 TL, mütalaa ~4-5 TL. Eşik en pahalı isteğe
-// göre seçildi: 3 TL bakiyeyle başlatılan bir mütalaa kullanıcıyı eksiye
-// düşürürdü ve bunu ona ancak iş bittikten sonra söyleyebilirdik.
+// Fiyat tablosu ve maliyet hesabı ORTAK dosyada (_shared/fiyat.ts): iki uçta
+// ayrı yazıldığı için ayrışmıştı ve para hesabında ayrışma sessizce ya
+// kullanıcıdan fazla alır ya bizi zarara sokar.
+
 // KÂR KATSAYISI. İş kuralı: her istekte bir birim sağlayıcıya gider, iki birim
 // kâr kalır — yani kullanıcıdan alınan ücret, bize mal olanın ÜÇ KATI (marj
 // %66,7). Katsayı env ile değiştirilebilir; fiyat kararı koda gömülü kalmasın.
@@ -66,38 +65,12 @@ const USD_TRY = Number(Deno.env.get('VEKIL_USD_TRY') || '42');
 //   sohbet sorusu ~1,00 TL → 3,00 TL     dilekçe ~1,90 TL → 5,70 TL
 //   belge inceleme ~1,30 TL → 3,90 TL    mütalaa ~4,50 TL → 13,50 TL
 const KAR_KATSAYISI = Number(Deno.env.get('VEKIL_KAR_KATSAYISI') || '3');
+
 // Bir isteğe başlamak için gereken en az bakiye (TL). En pahalı istek mütalaa:
 // ücreti ~13,50 TL. Eşik onun üstünde tutuluyor ki yarım kalan bir mütalaa
 // yüzünden kullanıcı eksiye düşmesin ve bunu ona iş bittikten sonra söylemek
 // zorunda kalmayalım.
 const KONTOR_ESIGI = Number(Deno.env.get('VEKIL_KONTOR_ESIGI') || '15');
-const PRICING: Record<string, { in: number; out: number }> = {
-  'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
-  'gemini-2.5-pro': { in: 1.25, out: 10.0 },
-  'claude-sonnet-5': { in: 2.0, out: 10.0 },
-  // FABLE 5.1 — GİRDİ FİYATI BELGEDEN ÇIKARILDI, TAHMİN DEĞİL: önbellek okuma
-  // ücreti 0,025 × temel girdi ve bu 0,25 USD/MTok olarak veriliyor; buradan
-  // temel girdi 10 USD/MTok çıkar (Sonnet 5'in BEŞ KATI).
-  //
-  // ÇIKTI FİYATI DOĞRULANMADI. Buradaki 50, Anthropic modellerinde görülen
-  // "çıktı = girdinin 5 katı" oranından TÜRETİLMİŞ bir varsayımdır. Yanlış
-  // olursa yön güvenli taraftadır: fazla hesaplarız, eksik değil — ve maliyet
-  // hesabı sessizce düşük çıkıp zarar ettirmez. Bu model açılmadan ÖNCE gerçek
-  // fiyat teyit edilmeli.
-  'claude-fable-5-1': { in: 10.0, out: 50.0 },
-  // OpenAI — fiyat listesi resmî sayfadan alındı (USD / 1M token).
-  // Buradaki modeller ÖLÇÜM İÇİN var: mimarimizde dilekçenin yapısını kod,
-  // hukuki içeriği kural havuzu veriyor; modelden istenen iş hazır iskeleti
-  // hazır malzemeyle doldurmak. Ucuz bir modelin bu işe yetip yetmediği
-  // ölçülebilir bir sorudur ve cevabı aylık faturayı katlar ya da böler.
-  'gpt-5.6-terra': { in: 2.0, out: 12.0 },
-  'gpt-5.1': { in: 1.25, out: 10.0 },
-  'gpt-5': { in: 1.25, out: 10.0 },
-  'gpt-5.4-mini': { in: 0.75, out: 4.5 },
-  'gpt-5-mini': { in: 0.25, out: 2.0 },
-  'gpt-5.6-luna': { in: 0.2, out: 1.2 },
-  'gpt-5-nano': { in: 0.05, out: 0.4 },
-};
 // AI katmanı: Claude Sonnet 5. Model env ile deploy'suz değiştirilebilir.
 const CLAUDE_MODEL = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
 // Groq, llama-3.3-70b-versatile'ı 17.06.2026'da kullanımdan kaldırdı (404
@@ -532,57 +505,7 @@ function aiKey(): string | undefined {
  * Yön bilinçli: bilinmeyen modelde FAZLA saymak, az saymaktan iyidir. Fazla
  * sayarsak tavan erken devreye girer (kullanıcı biraz erken sınırlanır);
  * az sayarsak para kaybedilir ve bunu ancak fatura gelince görürüz.
- */
-/**
- * Yanıta eklenen kullanım özeti: bu istek kaç token yedi, kaça mal oldu.
- *
- * NEDEN GÖSTERİLİYOR. Kontörle çalışan bir üründe harcamanın gizli kalması,
- * kullanıcıyı bakiyesi bittiğinde şaşırtır. Token sayısı ücretsiz katmanda da
- * anlamlı: günlük ortak tavan token üzerinden dolduğu için "uzun soru daha çok
- * yer kaplar" bilgisi doğrudan işe yarar.
- */
-/**
- * Çıktı, kullanıcıya verilebilecek durumda mı?
- *
- * ÖLÇÜLEN ARIZALAR: bir cevap dilekçesi 806 karakterde bitti (DELİLLER ve
- * NETİCE-İ TALEP hiç yazılmadı) ve bir başkası zorunlu bölümü eksik döndü.
- * İkisi de "cevap geldi" sayılıyor, kullanıcının hakkından düşülüyordu.
- *
- * Eşikler ölçülen uzunluklara göre: çalışan taslaklar 2.500-5.700 karakter
- * arasında; 800'ün altı, bir dilekçenin yarısı bile değil. Belge incelemesi
- * daha kısa olabilir, eşiği ona göre düşük.
- */
-function kusurluCikti(mod: 'dilekce' | 'mutalaa' | 'belge' | 'sohbet', metin: string, eksikBolum: string[] = []): boolean {
-  const n = metin.trim().length;
-  if (eksikBolum.length > 0) return true;
-  if (mod === 'dilekce') return n < 800;
-  if (mod === 'mutalaa') return n < 800;
-  if (mod === 'belge') return n < 400;
-  return false; // sohbette kısa cevap doğru olabilir; boş cevap zaten 502 döner
-}
-
-function kullanimOzeti(model: string, tin: number, tout: number, maliyet: number) {
-  return {
-    model,
-    girdiToken: tin,
-    ciktiToken: tout,
-    // Kuruş hassasiyeti yeter; daha fazlası ekranda gürültü.
-    maliyetTL: Math.round(maliyet * 100) / 100,
-  };
-}
-
-function costTry(model: string, tin: number, tout: number): number {
-  const p = PRICING[model] ?? enPahaliFiyat();
-  return ((tin / 1e6) * p.in + (tout / 1e6) * p.out) * USD_TRY;
-}
-function enPahaliFiyat(): { in: number; out: number } {
-  const hepsi = Object.values(PRICING);
-  return {
-    in: Math.max(...hepsi.map((x) => x.in)),
-    out: Math.max(...hepsi.map((x) => x.out)),
-  };
-}
-function aiPeriod(): string {
+ */function aiPeriod(): string {
   const d = new Date();
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
@@ -623,6 +546,37 @@ async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ 
  * kontörle çalışan bir üründe harcamanın gizli kalması, faturanın sonunda
  * sürpriz olması demektir. Ücretsiz katmanda maliyet sıfırdır ve öyle görünür.
  */
+/**
+ * Çıktı, kullanıcıya verilebilecek durumda mı?
+ *
+ * ÖLÇÜLEN ARIZALAR: bir cevap dilekçesi 806 karakterde bitti (DELİLLER ve
+ * NETİCE-İ TALEP hiç yazılmadı) ve bir başkası zorunlu bölümü eksik döndü.
+ * İkisi de "cevap geldi" sayılıyor, kullanıcının hakkından düşülüyordu.
+ *
+ * Eşikler ölçülen uzunluklara göre: çalışan taslaklar 2.500-5.700 karakter
+ * arasında; 800'ün altı, bir dilekçenin yarısı bile değil. Belge incelemesi
+ * daha kısa olabilir, eşiği ona göre düşük.
+ */
+function kusurluCikti(mod: 'dilekce' | 'mutalaa' | 'belge' | 'sohbet', metin: string, eksikBolum: string[] = []): boolean {
+  const n = metin.trim().length;
+  if (eksikBolum.length > 0) return true;
+  if (mod === 'dilekce') return n < 800;
+  if (mod === 'mutalaa') return n < 800;
+  if (mod === 'belge') return n < 400;
+  return false; // sohbette kısa cevap doğru olabilir; boş cevap zaten 502 döner
+}
+
+
+function kullanimOzeti(model: string, tin: number, tout: number, maliyet: number) {
+  return {
+    model,
+    girdiToken: tin,
+    ciktiToken: tout,
+    // Kuruş hassasiyeti yeter; daha fazlası ekranda gürültü.
+    maliyetTL: Math.round(maliyet * 100) / 100,
+  };
+}
+
 /**
  * @param musteriyeYaz  Bu istek kullanıcının HAKKINDAN düşülsün mü?
  *
