@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
-import { useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
+import { useAdminAiOzeti, useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
 import { useAiSaglik } from '@/hooks/useAiSaglik';
 import { useT } from '@/i18n';
 import { fonts, spacing } from '@/theme/theme';
@@ -25,6 +25,7 @@ export default function AdminScreen() {
   const isAdmin = useAuthStore((s) => s.profile?.is_admin);
 
   const overview = useAdminOverview();
+  const aiOzet = useAdminAiOzeti();
   const users = useAdminUsers();
   const setPremium = useSetPremium();
   const saglik = useAiSaglik(!!isAdmin);
@@ -105,6 +106,36 @@ export default function AdminScreen() {
               <StatCard icon="sparkles" label={t('admin.aiCostMonth')} value={Math.round(o.ai_cost_month)} unit="₺" colors={colors} gold sub={t('admin.aiCostHint')} />
               <View style={{ flex: 2 }} />
             </View>
+
+            {/* İŞ ÖZETİ. Kontör, kâr ve iade oranı bu oturumda eklendi ama
+                hiçbir yerde görünmüyordu; görünmeyen bir iş modeli yönetilemez.
+                İade oranı özellikle önemli: ölçüm senaryolarını biz yazıyoruz,
+                iade ise gerçek dosyada işe yaramadığını gören avukatın sözü. */}
+            {aiOzet.data && (
+              <>
+                <View style={styles.statGrid}>
+                  <StatCard icon="today" label={t('admin.aiToday')} value={aiOzet.data.bugun_istek} colors={colors} sub={t('admin.aiTodayHint', { token: String(aiOzet.data.bugun_token) })} />
+                  <StatCard icon="cash" label={t('admin.aiProfit')} value={Math.round(aiOzet.data.ay_kar_try)} unit="₺" colors={colors} gold sub={t('admin.aiProfitHint', { gider: String(Math.round(aiOzet.data.ay_gider_try)), satis: String(Math.round(aiOzet.data.ay_satis_try)) })} />
+                  <StatCard icon="wallet" label={t('admin.aiCredit')} value={Math.round(aiOzet.data.kontor_bakiye)} unit="₺" colors={colors} sub={t('admin.aiCreditHint')} />
+                </View>
+                <View style={styles.statGrid}>
+                  <StatCard
+                    icon="thumbs-down"
+                    label={t('admin.aiRefund')}
+                    value={aiOzet.data.iade_orani}
+                    unit="%"
+                    colors={colors}
+                    sub={t('admin.aiRefundHint', { iade: String(aiOzet.data.ay_iade), toplam: String(aiOzet.data.ay_toplam_istek) })}
+                  />
+                  <View style={{ flex: 2 }} />
+                </View>
+                {aiOzet.data.iade_dagilim.length > 0 && (
+                  <Text allowFontScaling={false} style={styles.healthRow}>
+                    {aiOzet.data.iade_dagilim.map((d) => `${d.mod}: ${d.iade}/${d.toplam}`).join(' · ')}
+                  </Text>
+                )}
+              </>
+            )}
 
             {/* Sağlayıcı sağlığı. "Yapay zekâ çalışmıyor" bilgisini müşteriden
                 öğrenmemek için: yedeksiz kaldığımızda burada görünür. */}
