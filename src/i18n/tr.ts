@@ -135,6 +135,13 @@ export const tr = {
   'calc.aaut.computed': 'Nispi hesap toplamı',
   'calc.aaut.result': 'Uygulanacak vekalet ücreti',
   'calc.aaut.minApplied': 'Nispi tutar asgari ücretin altında kaldığı için maktu ücret uygulandı.',
+  'calc.tariff.id': 'Tarife: {ad} (RG {rg})',
+  'calc.tariff.amended': 'Son değişiklik: RG {rg}',
+  // Doğrulanmamış sayıyı doğrulanmış gibi göstermek, hiç göstermemekten kötüdür:
+  // avukat ona güvenip müvekkiline söyler.
+  'calc.tariff.unverified': 'Dilim tutarları resmî metinden DOĞRULANMADI (tarifedeki tablolar metne dönüşmüyor). Sonucu yürürlükteki tarifeyle karşılaştırın.',
+  'calc.tariff.stale': 'Bu tarife bir yıldan eski. Yenisi yayımlanmış olabilir; kontrol edin.',
+  'calc.tariff.source': 'Resmî tarifeyi aç (Barolar Birliği) →',
   'calc.aaut.disclaimer': 'Bilgilendirme amaçlıdır. Dilim tutarları ve maktu ücretler her yıl AAÜT ile güncellenir; güncel tarifeyle teyit edin.',
   'dash.goodMorning': 'Günaydın',
   'dash.goodAfternoon': 'İyi günler',
@@ -1199,8 +1206,6 @@ export const tr = {
   'ai.inputPlaceholder': 'Sorunuzu yazın...',
   'ai.thinking': 'Düşünüyor...',
   'ai.errRateLimit': 'Yoğunluk nedeniyle şu an yanıt veremiyorum. Bir dakika sonra tekrar deneyin.',
-  'ai.notUseful': 'Bu cevap işe yaramadı — hakkımı geri ver',
-  'ai.refunded': 'Hakkınız geri verildi. Bildirdiğiniz için teşekkürler.',
   'mut.groundsTitle': 'Mütalaanın dayandığı kurallar ({n})',
   // Kural özetleri BİZİM metnimizdir; tırnak içinde kanun lafzı gibi
   // kullanılırsa avukat mahkemeye kanunda bulunmayan bir cümle sunmuş olur.

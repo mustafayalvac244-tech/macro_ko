@@ -41,8 +41,6 @@ export default function DocumentReviewScreen() {
   const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
   // Kullanım ve iade — sunucu üç modda da destekliyor.
   const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
-  const [istekId, setIstekId] = useState<string | null>(null);
-  const [iadeEdildi, setIadeEdildi] = useState(false);
   const [hakDusulmedi, setHakDusulmedi] = useState(false);
   const [busy, setBusy] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -124,8 +122,6 @@ export default function DocumentReviewScreen() {
     setBusy(true);
     setError(null);
     setResult('');
-    setIstekId(null);
-    setIadeEdildi(false);
     setHakDusulmedi(false);
     try {
       // İNCELEME İSTEMİ SUNUCUDA. Burada kurulduğu sürece iki şey mümkün
@@ -145,7 +141,7 @@ export default function DocumentReviewScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; uydurmaMadde?: string[] } | null;
+      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[] } | null;
       const reply = yanit?.text?.trim();
       if (!reply) {
         setError(t('ai.errGeneric'));
@@ -155,23 +151,11 @@ export default function DocumentReviewScreen() {
       setAyiklanan(Number(yanit?.ayiklananTarih ?? 0));
       setUydurmaMadde(yanit?.uydurmaMadde ?? []);
       setKullanim(yanit?.kullanim ?? null);
-      setIstekId(yanit?.istekId ?? null);
-      setIadeEdildi(false);
       setHakDusulmedi(!!yanit?.hakDusulmedi);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
       setBusy(false);
-    }
-  };
-
-  const iadeIste = async () => {
-    if (!istekId || iadeEdildi) return;
-    try {
-      await supabase.functions.invoke('ai-chat', { body: { mode: 'iade', istekId, sebep: 'belge' } });
-      setIadeEdildi(true);
-    } catch {
-      // Sessiz: iade edilemediyse kullanıcı tekrar deneyebilir.
     }
   };
 
@@ -269,18 +253,6 @@ export default function DocumentReviewScreen() {
                 </Text>
               )}
               {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
-              {!!istekId && !hakDusulmedi && (
-                <Pressable onPress={iadeIste} disabled={iadeEdildi} hitSlop={6} style={styles.refundBtn}>
-                  <Ionicons
-                    name={iadeEdildi ? 'checkmark-circle-outline' : 'thumbs-down-outline'}
-                    size={15}
-                    color={iadeEdildi ? colors.success : colors.textMuted}
-                  />
-                  <Text style={[styles.refundText, iadeEdildi && { color: colors.success }]}>
-                    {iadeEdildi ? t('ai.refunded') : t('ai.notUseful')}
-                  </Text>
-                </Pressable>
-              )}
               <Text style={styles.disclaimer}>{t('docrev.disclaimer')}</Text>
             </View>
           )}
@@ -297,19 +269,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 11.5,
     color: colors.textMuted,
     marginTop: spacing.sm,
-  },
-  refundBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    marginTop: spacing.sm,
-    paddingVertical: 4,
-  },
-  refundText: {
-    fontFamily: fonts.semibold,
-    fontSize: 12,
-    color: colors.textMuted,
   },
   warn: {
     fontFamily: fonts.semibold,

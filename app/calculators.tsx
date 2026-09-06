@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { differenceInCalendarDays, differenceInDays, differenceInMonths } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
+// Tarife verisi TEK KAYNAKTA ve tarih damgalı (bkz. src/config/tarife.ts).
+import { aautHesapla, DILIMLER_DOGRULANDI, TARIFE, tarifeEskiMi } from '@/config/tarife';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -78,20 +80,13 @@ function Disclaimer({ text }: { text: string }) {
 
 /* ---------------- Vekalet Ücreti (AAÜT) ---------------- */
 
-// AAÜT konusu para olan davalarda kademeli nispi tarife dilimleri.
-// Oranlar tarifenin standart yüzdeleridir; dilim tutarları her yıl
-// güncellenen tarifeye göre ayarlanabilir olsun diye burada tutulur.
-const AAUT_BRACKETS: Array<{ upTo: number; rate: number }> = [
-  { upTo: 400_000, rate: 0.16 },
-  { upTo: 800_000, rate: 0.15 },
-  { upTo: 1_600_000, rate: 0.14 },
-  { upTo: 2_800_000, rate: 0.11 },
-  { upTo: 4_400_000, rate: 0.08 },
-  { upTo: 6_400_000, rate: 0.05 },
-  { upTo: 8_800_000, rate: 0.03 },
-  { upTo: 11_600_000, rate: 0.02 },
-  { upTo: Infinity, rate: 0.01 },
-];
+// TARİFE VERİSİ ARTIK BURADA DEĞİL: src/config/tarife.ts.
+//
+// Dilimler bu dosyanın içine TARİHSİZ ve KAYNAKSIZ gömülüydü. Hukuk aracında
+// bunun adı sessiz eskimedir — sayı güncelken de eskimişken de ekranda aynı
+// görünür ve avukat hangi yılın tarifesine baktığını bilemez. Tek kaynağa
+// taşındı; her sayı artık nereden geldiğini söylüyor ve doğrulanmamış olanlar
+// ekranda da öyle işaretleniyor.
 
 function AautCalc() {
   const __t = useTheme();
@@ -107,27 +102,14 @@ function AautCalc() {
 
   const result = useMemo(() => {
     if (amount <= 0) return null;
-    let remaining = amount;
-    let prevCap = 0;
-    let fee = 0;
-    const rows: Array<{ label: string; portion: number; rate: number; fee: number }> = [];
-    for (const b of AAUT_BRACKETS) {
-      const bandSize = b.upTo - prevCap;
-      const portion = Math.min(remaining, bandSize);
-      if (portion <= 0) break;
-      const bandFee = portion * b.rate;
-      fee += bandFee;
-      rows.push({
-        label: b.upTo === Infinity ? '+' : formatMoney(b.upTo),
-        portion,
-        rate: b.rate,
-        fee: bandFee,
-      });
-      remaining -= portion;
-      prevCap = b.upTo;
-    }
-    const applied = Math.max(fee, minFee);
-    return { fee, applied, usedMinimum: minFee > fee, rows };
+    const { ucret, satirlar } = aautHesapla(amount);
+    const applied = Math.max(ucret, minFee);
+    return {
+      fee: ucret,
+      applied,
+      usedMinimum: minFee > ucret,
+      rows: satirlar.map((r) => ({ portion: r.dilim, rate: r.oran, fee: r.ucret })),
+    };
   }, [amount, minFee]);
 
   return (
@@ -166,8 +148,40 @@ function AautCalc() {
         </View>
       )}
 
+      {/* TARİFENİN KİMLİĞİ EKRANDA. Avukat hangi tarifeye baktığını görmeden
+          rakama güvenemez; tarife her yıl değişiyor ve eskimesi sessiz. */}
+      <TarifeKunyesi />
       <Disclaimer text={t('calc.aaut.disclaimer')} />
     </Card>
+  );
+}
+
+/**
+ * Tarifenin kimliği, kaynağı ve doğrulanma durumu.
+ *
+ * Üç şeyi birden söyler: hangi tarife, nereden teyit edilir, hangi kısmı
+ * doğrulanmadı. Doğrulanmamış bir sayıyı doğrulanmış gibi göstermek, hiç sayı
+ * göstermemekten kötüdür — avukat ona güvenip müvekkiline söyler.
+ */
+function TarifeKunyesi() {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+  const t = useT();
+  const eski = tarifeEskiMi();
+  return (
+    <View style={styles.tarifeKunye}>
+      <Text style={styles.tarifeSatir}>
+        {t('calc.tariff.id', { ad: TARIFE.ad, rg: TARIFE.resmiGazete })}
+      </Text>
+      <Text style={styles.tarifeSatir}>{t('calc.tariff.amended', { rg: TARIFE.sonDegisiklik })}</Text>
+      {!DILIMLER_DOGRULANDI && (
+        <Text style={styles.tarifeUyari}>{t('calc.tariff.unverified')}</Text>
+      )}
+      {eski && <Text style={styles.tarifeUyari}>{t('calc.tariff.stale')}</Text>}
+      <Pressable onPress={() => Linking.openURL(TARIFE.kaynak).catch(() => {})} hitSlop={6}>
+        <Text style={styles.tarifeBaglanti}>{t('calc.tariff.source')}</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -450,6 +464,28 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 16,
     marginBottom: spacing.sm,
+  },
+  tarifeKunye: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    gap: 2,
+  },
+  tarifeSatir: {
+    ...typography.small,
+    color: colors.textMuted,
+    lineHeight: 15,
+  },
+  tarifeUyari: {
+    ...typography.small,
+    color: colors.warning,
+    lineHeight: 15,
+  },
+  tarifeBaglanti: {
+    ...typography.small,
+    color: colors.primary,
+    marginTop: 2,
   },
   spacer: {
     height: spacing.md,

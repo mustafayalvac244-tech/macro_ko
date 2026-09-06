@@ -77,8 +77,6 @@ export default function DilekceUretScreen() {
   // "İşe yaramadı" için istek kimliği. Kusurlu çıktının bir kısmını mekanik
   // yakalıyoruz, ama yapısal olarak düzgün görünüp hukuken işe yaramayan bir
   // metni ancak avukat bilir; hakkını geri alabilmeli.
-  const [istekId, setIstekId] = useState<string | null>(null);
-  const [iadeEdildi, setIadeEdildi] = useState(false);
   const [hakDusulmedi, setHakDusulmedi] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,8 +90,6 @@ export default function DilekceUretScreen() {
     setBusy(true);
     setError(null);
     setText('');
-    setIstekId(null);
-    setIadeEdildi(false);
     setHakDusulmedi(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
@@ -107,7 +103,7 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; istekId?: string | null; hakDusulmedi?: boolean; talepEksik?: string[]; uydurmaMadde?: string[] } | null;
+      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; uydurmaMadde?: string[] } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -118,28 +114,11 @@ export default function DilekceUretScreen() {
       setUydurmaMadde(payload.uydurmaMadde ?? []);
       setAyiklanan(Number(payload.ayiklananTarih ?? 0));
       setKullanim(payload.kullanim ?? null);
-      setIstekId(payload.istekId ?? null);
-      setIadeEdildi(false);
       setHakDusulmedi(!!payload.hakDusulmedi);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
       setBusy(false);
-    }
-  };
-
-  const iadeIste = async () => {
-    if (!istekId || iadeEdildi) return;
-    try {
-      const { data } = await supabase.functions.invoke('ai-chat', {
-        body: { mode: 'iade', istekId, sebep: 'dilekce' },
-      });
-      // Sunucu "zaten iade edilmiş" dese de kullanıcı için sonuç aynı: hakkı
-      // geri alınmış durumda. Ayrı mesaj göstermek gereksiz kafa karışıklığı.
-      void data;
-      setIadeEdildi(true);
-    } catch {
-      // Sessiz: iade edilemediyse kullanıcı tekrar deneyebilir.
     }
   };
 
@@ -278,18 +257,6 @@ export default function DilekceUretScreen() {
                 </Text>
               )}
               {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
-              {!!istekId && !hakDusulmedi && (
-                <Pressable onPress={iadeIste} disabled={iadeEdildi} hitSlop={6} style={styles.refundBtn}>
-                  <Ionicons
-                    name={iadeEdildi ? 'checkmark-circle-outline' : 'thumbs-down-outline'}
-                    size={15}
-                    color={iadeEdildi ? colors.success : colors.textMuted}
-                  />
-                  <Text style={[styles.refundText, iadeEdildi && { color: colors.success }]}>
-                    {iadeEdildi ? t('ai.refunded') : t('ai.notUseful')}
-                  </Text>
-                </Pressable>
-              )}
               <Text style={styles.disclaimer}>{t('dlk.disclaimer')}</Text>
             </View>
           )}
@@ -301,19 +268,6 @@ export default function DilekceUretScreen() {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
-  refundBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    marginTop: spacing.sm,
-    paddingVertical: 4,
-  },
-  refundText: {
-    fontFamily: fonts.semibold,
-    fontSize: 12,
-    color: colors.textMuted,
-  },
   usage: {
     fontFamily: fonts.regular,
     fontSize: 11.5,
