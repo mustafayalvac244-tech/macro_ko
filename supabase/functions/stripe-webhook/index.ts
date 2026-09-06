@@ -57,7 +57,15 @@ Deno.serve(async (req) => {
   const govde = await req.text();
   const stripe = new Stripe(secretKey);
 
-  let olay: Stripe.Event;
+  // OLAY TİPİ YAPISAL. tsc, Deno'nun 'npm:' içe aktarmalarını çözemiyor; bu
+  // yüzden Stripe.Event gibi ad uzayı tipleri burada yok. Yalnızca okuduğumuz
+  // alanları yazmak, denetimi çalışır tutuyor — çözülemeyen tek bir tip, tip
+  // denetiminin tamamını gürültüye çevirir.
+  let olay: {
+    id: string;
+    type: string;
+    data: { object: { id?: string; metadata?: Record<string, string> } };
+  };
   try {
     // Deno'da SENKRON constructEvent ÇALIŞMAZ: Web Crypto asenkrondur ve
     // senkron sürüm "SubtleCryptoProvider cannot be used in a synchronous
@@ -81,7 +89,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const pi = olay.data.object as Stripe.PaymentIntent;
+  const pi = olay.data.object;
   const userId = pi.metadata?.user_id ?? '';
   const kontor = Number(pi.metadata?.kontor_try ?? 0);
 
@@ -105,7 +113,7 @@ Deno.serve(async (req) => {
     p_event_id: olay.id,
     p_user: userId,
     p_tutar: kontor,
-    p_payment_intent: pi.id,
+    p_payment_intent: pi.id ?? null,
   });
 
   if (error) {

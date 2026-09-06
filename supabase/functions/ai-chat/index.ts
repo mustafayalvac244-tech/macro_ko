@@ -164,9 +164,13 @@ async function claudeChat(
     });
     // Güvenlik reddi: içerik okunmadan önce stop_reason kontrol edilmeli.
     if (res.stop_reason === 'refusal') throw new Error('refusal');
-    const text = res.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
+    // Blok tipi YAPISAL yazılıyor, Anthropic.TextBlock ile değil: tsc, Deno'nun
+    // 'npm:' içe aktarmalarını çözemediği için o ad uzayı burada yok ve tek bir
+    // çözülemeyen tip, tip denetiminin tamamını gürültüye çevirir (bu dosyada
+    // aylarca hiç denetim yoktu, bkz. deno-shim.d.ts).
+    const text = (res.content as Array<{ type: string; text?: string }>)
+      .filter((b) => b.type === 'text')
+      .map((b) => b.text ?? '')
       .join('');
     const u = res.usage;
     // Önbellek okuması da girdi sayılır (ucuz olsa da ölçüme dahil edilir).
