@@ -45,9 +45,19 @@ export function configurePurchases(): void {
     if (__DEV__) console.warn('RevenueCat: API anahtarı ayarlanmamış, satın alma kapalı.');
     return;
   }
-  if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.WARN);
-  Purchases.configure({ apiKey });
-  configured = true;
+  // Native modül OTA ile gelen bir eski binary'de DERLENMEMİŞ olabilir (bkz.
+  // IAP_KURULUM.md) — bu durumda Purchases.configure() senkron throw eder
+  // (react-native-purchases/dist/purchases.js: throwIfNativeModuleNotAvailable).
+  // try/catch olmadan bu, RootLayout'un mount effect'inde YAKALANMAYAN bir
+  // hataya dönüşüp UYGULAMAYI ÇÖKERTİR — ErrorBoundary burayı KAPSAMAZ
+  // (effect, ErrorBoundary'nin SARDIĞI alt ağacın DIŞINDA çalışır).
+  try {
+    if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.WARN);
+    Purchases.configure({ apiKey });
+    configured = true;
+  } catch (e) {
+    if (__DEV__) console.warn('RevenueCat configure hatası (native modül eksik olabilir):', e);
+  }
 }
 
 /**
