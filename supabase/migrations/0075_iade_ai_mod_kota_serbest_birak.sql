@@ -1,7 +1,16 @@
 -- HAK İADESİ, "AI" KATMANININ SORU/MÜTALAA KOTASINI DA GERİ VERSİN.
 --
--- BULUNAN AÇIK. ai_istek_iade (0056) yalnız GÜNLÜK çağrı sayacını (ai_usage)
--- ve KONTÖR bakiyesini (ai_kontor) geri veriyordu. "ai" katmanı (1.499₺/ay,
+-- NOT: bu migration'ın önceki taslağı ai_istek_iade'yi YANLIŞLIKLA 0056'daki
+-- eski maliyet_try tabanlı gövdeyle yeniden yazıyordu — oysa 0057
+-- (ucret_ve_kar_katsayisi) bu fonksiyonu ÇOKTAN ucret_try kullanacak şekilde
+-- düzeltmişti (maliyet = sağlayıcıya ödenen, ucret = kullanıcıdan kontörden
+-- düşülen — ikisi FARKLI tutarlar). Canlıya uygulanmadan ÖNCE, gerçek çalışan
+-- veritabanındaki güncel fonksiyon gövdesi (pg_proc'tan) okunarak yakalandı;
+-- aşağıdaki gövde artık 0057'nin ucret_try tabanlı sürümünü temel alıyor —
+-- maliyet_try'a dönüş YOK, yalnız ai_mod_serbest_birak çağrısı eklendi.
+--
+-- BULUNAN AÇIK. ai_istek_iade (0056/0057) yalnız GÜNLÜK çağrı sayacını
+-- (ai_usage) ve KONTÖR bakiyesini (ai_kontor) geri veriyordu. "ai" katmanı (1.499₺/ay,
 -- 250 soru + 12 mütalaa — bkz. 0074) KONTÖRE HİÇ BAKMAZ; o katmandaki hak
 -- yalnız ai_mod_kota'da tutulur. Sonuç: "ai" katmanındaki bir avukat "bu
 -- cevap işe yaramadı" deyip elle iade istediğinde ai_kontor/ai_usage'da
@@ -52,15 +61,16 @@ begin
     return jsonb_build_object('ok', true, 'iade_try', 0, 'hak', 0);
   end if;
 
-  -- Günlük çağrı sayacı bir azalır (negatife düşmesin).
   update public.ai_usage
      set calls = greatest(0, calls - 1), updated_at = now()
    where user_id = p_user and period = r.gun;
 
-  if r.maliyet_try > 0 then
+  -- İade: kullanıcıya ÖDEDİĞİ tutar (ucret_try) geri verilir, bize mal olan
+  -- (maliyet_try) değil — bkz. 0057.
+  if r.ucret_try > 0 then
     update public.ai_kontor
-       set bakiye_try = bakiye_try + r.maliyet_try,
-           toplam_harcanan_try = greatest(0, toplam_harcanan_try - r.maliyet_try),
+       set bakiye_try = bakiye_try + r.ucret_try,
+           toplam_harcanan_try = greatest(0, toplam_harcanan_try - r.ucret_try),
            guncellendi = now()
      where user_id = p_user;
   end if;
@@ -69,6 +79,6 @@ begin
   -- değilse ya da o ay için hiç ai_mod_kota satırı yoksa.
   perform public.ai_mod_serbest_birak(p_user, left(r.gun, 7), r.mod = 'mutalaa');
 
-  return jsonb_build_object('ok', true, 'iade_try', r.maliyet_try, 'hak', 1);
+  return jsonb_build_object('ok', true, 'iade_try', r.ucret_try, 'hak', 1);
 end;
 $$;
