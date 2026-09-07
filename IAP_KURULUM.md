@@ -37,6 +37,10 @@ tıklamalar ve bana vereceğiniz üç anahtar/sır.
 
 ---
 
+**Uygulama kimlikleri** (RevenueCat/App Store Connect/Play Console'da
+istenecek — `app.json`'dan): iOS Bundle ID ve Android Package Name ikisi de
+`com.macroko.legal`.
+
 ## 1. RevenueCat hesabı açın (ücretsiz)
 
 1. https://app.revenuecat.com/signup adresinden hesap açın.
