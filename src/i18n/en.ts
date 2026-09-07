@@ -666,7 +666,7 @@ export const en: Record<keyof typeof tr, string> = {
   'premium.launchCta': 'Activate Premium Free',
   'premium.launchNote': 'Premium is free for all members during launch. It will be paid later; early members who join now start with an edge.',
   'premium.launchActivated': 'Premium activated! 🎉 Your gold profile ring and all perks are unlocked.',
-  'premium.activeBadge': 'Your Premium membership is active ✓',
+  'premium.activeBadge': 'Your Premium membership is active',
   // 3-tier membership screen
   'premium.plansTitle': 'Vekil Pro Membership',
   'premium.plansSub': 'Your whole practice in one membership. Pick the plan that fits — upgrade anytime.',

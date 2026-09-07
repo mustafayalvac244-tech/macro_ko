@@ -602,7 +602,7 @@ export const tr = {
   'premium.launchCta': 'Premium’u Ücretsiz Etkinleştir',
   'premium.launchNote': 'Lansman döneminde Premium tüm üyelere ücretsiz. İleride ücretli olacak; şimdi katılan erken üyeler avantajlı başlar.',
   'premium.launchActivated': 'Premium etkinleştirildi! 🎉 Profilinizde altın çerçeve ve tüm ayrıcalıklar açıldı.',
-  'premium.activeBadge': 'Premium üyeliğiniz aktif ✓',
+  'premium.activeBadge': 'Premium üyeliğiniz aktif',
   // 3 paketli üyelik ekranı
   'premium.plansTitle': 'Vekil Pro Üyelik',
   'premium.plansSub': 'Büronuzun tüm gücü tek üyelikte. İhtiyacınıza göre bir paket seçin — istediğiniz zaman yükseltin.',
