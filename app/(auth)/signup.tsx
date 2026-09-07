@@ -20,6 +20,7 @@ import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
 import { isValidTCKN } from '@/utils/tckn';
 import { BAROLAR } from '@/constants/barolar';
+import { DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
 import { useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -113,6 +114,18 @@ export default function SignupScreen() {
 
           <Text style={styles.heading}>{t('auth.createHeading')}</Text>
           <Text style={styles.subheading}>{t('auth.signupSubtitle')}</Text>
+
+          {/* Kaydolmadan ÖNCE fiyatlama beklentisi netleşsin — sonradan
+              "AI paralı mıymış" sürprizi kullanıcıyı üründen soğutur. */}
+          <View style={styles.pricingCard}>
+            <View style={styles.pricingIconWrap}>
+              <Ionicons name="sparkles" size={16} color={colors.primary} />
+            </View>
+            <View style={styles.pricingTextWrap}>
+              <Text style={styles.pricingTitle}>{t('auth.pricingInfoTitle')}</Text>
+              <Text style={styles.pricingBody}>{t('auth.pricingInfoBody', { n: DENEME_SORU_HAKKI })}</Text>
+            </View>
+          </View>
 
           <Input label={t('auth.fullName')} icon="person-outline" placeholder={t('auth.fullNamePlaceholder')} value={fullName} onChangeText={touch(setFullName)} />
 
@@ -323,6 +336,38 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.lg,
+  },
+  pricingCard: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  pricingIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pricingTextWrap: {
+    flex: 1,
+  },
+  pricingTitle: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  pricingBody: {
+    ...typography.small,
+    color: colors.textSecondary,
+    lineHeight: 17,
   },
   field: {
     marginBottom: spacing.md,

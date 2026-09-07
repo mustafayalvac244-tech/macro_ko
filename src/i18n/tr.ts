@@ -16,6 +16,9 @@ export const tr = {
   'auth.createOne': 'Hesap oluşturun',
   'auth.createHeading': 'Hesabınızı oluşturun',
   'auth.signupSubtitle': 'Büro çalışma alanınızı saniyeler içinde kurun.',
+  'auth.pricingInfoTitle': 'Uygulama tamamen ücretsiz',
+  'auth.pricingInfoBody':
+    'Dosya, müvekkil, takvim ve finans takibi hep ücretsizdir. Yapay zekâ asistanını {n} soruluk ücretsiz denemeyle test edebilir, beğenirseniz aylık pakete geçebilirsiniz.',
     'auth.lawyersOnly': 'Avukatlara özel platform',
   'auth.tcNo': 'T.C. Kimlik No',
   'auth.tcPlaceholder': '11 haneli kimlik numaranız',

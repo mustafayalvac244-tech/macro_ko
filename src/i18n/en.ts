@@ -18,6 +18,9 @@ export const en: Record<keyof typeof tr, string> = {
   'auth.createOne': 'Create one',
   'auth.createHeading': 'Create your account',
   'auth.signupSubtitle': 'Set up your practice workspace in seconds.',
+  'auth.pricingInfoTitle': 'The app itself is free',
+  'auth.pricingInfoBody':
+    'Case, client, calendar, and finance tracking are always free. Try the AI assistant with {n} free questions, then subscribe monthly if you like it.',
     'auth.lawyersOnly': 'A platform exclusive to lawyers',
   'auth.tcNo': 'National ID (T.C.)',
   'auth.tcPlaceholder': 'Your 11-digit national ID',
