@@ -246,7 +246,7 @@ export default function PremiumScreen() {
         {/* ───────── AI katmanı ───────── */}
         <View style={styles.aiCard}>
           <View style={styles.aiBadge}>
-            <Ionicons name="sparkles" size={11} color={colors.primary} />
+            <Ionicons name="sparkles" size={11} color="#FFFFFF" />
             <Text style={styles.aiBadgeText}>{t('premium.aiBadge')}</Text>
           </View>
 
@@ -487,7 +487,11 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.primarySoft,
+    // Soluk primarySoft, açık gri sayfa zemininde yeterince kontrast
+    // vermiyordu — kartın sınırına "oturmuş" değil havada asılı/kaymış
+    // görünüyordu (konumu altın rozetle birebir aynı, sorun kontrasttı).
+    // Dolgun renk, alttaki "AI Katmanına Geç" butonuyla (ctaAi) aynı ilke.
+    backgroundColor: colors.primary,
     borderRadius: radius.pill,
     paddingHorizontal: 11,
     paddingVertical: 4,
@@ -498,7 +502,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 10.5,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    color: colors.primary,
+    color: '#FFFFFF',
   },
   includesRow: {
     flexDirection: 'row',
