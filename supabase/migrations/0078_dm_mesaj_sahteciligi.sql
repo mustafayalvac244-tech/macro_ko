@@ -1,0 +1,33 @@
+-- KRİTİK: MESAJ SAHTECİLİĞİ — bir mesajın ALICISI, mesajın METNİNİ ve
+-- GÖNDERENİNİ değiştirebiliyordu.
+--
+-- BULUNAN AÇIK (canlıda GERÇEK saldırıyla doğrulandı). dm_messages üzerindeki
+-- "dm recipient mark read" politikası şuydu:
+--     for update using (auth.uid() = recipient_id)
+-- Amaç masum: alıcı mesajı "okundu" işaretleyebilsin (read_at). Ama RLS
+-- politikaları SATIR bazlıdır, KOLON kısıtlamaz; authenticated rolünün de bu
+-- tabloda TABLO GENELİNDE update izni vardı (body, sender_id, created_at
+-- dahil). WITH CHECK yazılmadığı için USING ifadesi kontrol olarak da kullanılır
+-- ve o ifade YALNIZCA recipient_id'yi bağlar — sender_id ve body serbest kalır.
+--
+-- Yani bir kullanıcı, kendisine gelen bir mesajda:
+--   • metni tamamen yeniden yazabiliyordu (karşı taraf "şunu demiş" gibi),
+--   • sender_id'yi BAŞKA bir kullanıcıyla değiştirip, o kişinin hiç
+--     göndermediği bir mesajı ona ait gibi gösterebiliyordu.
+-- Avukatlar arası mesajlaşmada bu, uydurma "delil" üretmek demektir.
+--
+-- CANLI DOĞRULAMA (düzeltmeden önce): demo hesabına servis anahtarıyla bir test
+-- mesajı yazıldı, sonra demo hesabının KENDİ oturumuyla (yalnız anon key + kendi
+-- JWT'si) body ve sender_id değiştirildi — istek 204 döndü ve veritabanında
+-- ikisi de DEĞİŞTİ. Test satırı sonra silindi.
+--
+-- ÇÖZÜM: yalnız read_at güncellenebilsin. İstemci kodu zaten SADECE bunu
+-- güncelliyor (src/hooks/useChat.ts: update({ read_at }) — başka hiçbir
+-- dm_messages update'i yok), yani meşru hiçbir akış bozulmuyor.
+--
+-- NEDEN "revoke ... ; grant (read_at) ..." SIRASI ŞART. Bu oturumda 0077'de
+-- ÖLÇÜLDÜ: Postgres'te KOLON-ÖZEL bir REVOKE, TABLO-GENELİ bir GRANT'ı
+-- geçersiz kılmaz. Bu yüzden önce tablo-geneli update izni tamamen kaldırılır,
+-- sonra yalnız read_at kolonu yeniden verilir.
+revoke update on public.dm_messages from authenticated, anon;
+grant update (read_at) on public.dm_messages to authenticated;
