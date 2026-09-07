@@ -544,17 +544,23 @@ async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ 
 }
 
 /**
- * "AI" KATMANININ AYLIK SORU/MÜTALAA SAYACI — bkz. migration 0073 >
- * ai_mod_sayaci ve _shared/katman.ts > TierCfg.modLimits. Yalnız bu katman
- * kontör yerine sayıyla sınırlı olduğu için ayrı bir sorgu.
+ * "AI" katmanında rezerve edilmiş bir soru/mütalaa hakkını GERİ VERİR —
+ * yalnız çıktı kusurlu çıktığında çağrılır (bkz. 0056'daki "kusurlu çıktıda
+ * hak gitmez" ilkesi; rezervasyon istek BAŞLAMADAN yapıldığı için, kusurlu
+ * çıkarsa geri almazsak avukat bizim hatamızın bedelini kotasından öder).
+ * Hata yutulur: geri verme başarısız olsa da kullanıcının aldığı cevabı
+ * geciktirmez/engellemez — kaybı biz üstleniriz.
  */
-async function modUsage(userId: string, ay: string = aiPeriod()): Promise<{ soru: number; mutalaa: number }> {
+async function aiModSerbestBirak(userId: string, ay: string, mutalaa: boolean): Promise<void> {
   const s = svc();
-  if (!s) return { soru: 0, mutalaa: 0 };
-  const { data } = await s.rpc('ai_mod_sayaci', { p_user: userId, p_ay: ay });
-  const r = (Array.isArray(data) ? data[0] : data) as { soru?: number; mutalaa?: number } | null;
-  return { soru: Number(r?.soru ?? 0), mutalaa: Number(r?.mutalaa ?? 0) };
+  if (!s) return;
+  try {
+    await s.rpc('ai_mod_serbest_birak', { p_user: userId, p_ay: ay, p_mutalaa: mutalaa });
+  } catch {
+    // yutulur — bkz. yukarıdaki gerekçe
+  }
 }
+
 /**
  * Kullanımı kaydeder ve BU İSTEĞİN maliyetini döndürür.
  *
@@ -1665,22 +1671,39 @@ Deno.serve(async (req) => {
     }
   }
 
-  // "AI" KATMANI SORU/MÜTALAA KOTASI (bkz. migration 0073). Mütalaa ayrı
-  // sayılır: çok adımlı olduğu için bir sohbet sorusunun 4-8 katı token
-  // tüketir, tek kotaya karıştırmak birinin ayda 250 mütalaa çekip maliyeti
-  // öngörülemez yapmasına izin verirdi.
+  // "AI" KATMANI SORU/MÜTALAA KOTASI — ATOMİK REZERVASYON (bkz. migration
+  // 0074). ÖNCE SAY-SONRA-KARAR-VER deseni (0073) YARIŞ DURUMUNA açıktı:
+  // istek Claude'dan dönene kadar sayaç güncellenmediği için AYNI ANDA gelen
+  // çok sayıda istek hepsi "kotam dolmamış" görüp hepsi geçebiliyordu. Şimdi
+  // istek BAŞLAMADAN, TEK atomik veritabanı işleminde hem kontrol edilip hem
+  // artırılıyor (SELECT ... FOR UPDATE ile satır kilidi) — 20 eşzamanlı
+  // istekle canlıda doğrulandı: limit 3 iken tam 3'ü geçti, 17'si reddedildi.
+  //
+  // Mütalaa ayrı sayılır: çok adımlı olduğu için bir sohbet sorusunun 4-8
+  // katı token tüketir, tek kotaya karıştırmak birinin ayda 250 mütalaa
+  // çekip maliyeti öngörülemez yapmasına izin verirdi.
+  const aiAy = aiPeriod();
   if (cfg.modLimits) {
-    const sayac = await modUsage(userData.user.id);
-    if (isMutalaa) {
-      if (sayac.mutalaa >= cfg.modLimits.mutalaa) {
-        return new Response(
-          JSON.stringify({ error: 'ai_mutalaa_kota_bitti', tier, kullanilan: sayac.mutalaa, hak: cfg.modLimits.mutalaa }),
-          { status: 402, headers: CORS }
-        );
-      }
-    } else if (sayac.soru >= cfg.modLimits.soru) {
+    const sk = svc();
+    // Servis istemcisi kurulamadıysa (env eksik) AÇIK KAPI BIRAKMAYIZ:
+    // rezervasyon denenemiyorsa kotayı doğrulayamadığımız anlamına gelir,
+    // isteği reddetmek "belki fazladan izin ver"den güvenlidir.
+    const rezerveEdildi = sk
+      ? (await sk.rpc('ai_mod_rezerve_et', {
+          p_user: userData.user.id,
+          p_ay: aiAy,
+          p_mutalaa: isMutalaa,
+          p_soru_limit: cfg.modLimits.soru,
+          p_mutalaa_limit: cfg.modLimits.mutalaa,
+        })).data
+      : false;
+    if (!rezerveEdildi) {
       return new Response(
-        JSON.stringify({ error: 'ai_soru_kota_bitti', tier, kullanilan: sayac.soru, hak: cfg.modLimits.soru }),
+        JSON.stringify(
+          isMutalaa
+            ? { error: 'ai_mutalaa_kota_bitti', tier, hak: cfg.modLimits.mutalaa }
+            : { error: 'ai_soru_kota_bitti', tier, hak: cfg.modLimits.soru }
+        ),
         { status: 402, headers: CORS }
       );
     }
@@ -1927,6 +1950,7 @@ Deno.serve(async (req) => {
         text
       );
       const kusurlu = kusurluCikti('mutalaa', text) || uydurmaMadde.length > 0;
+      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, true);
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !kusurlu, 'mutalaa');
       return new Response(JSON.stringify({
         text: text.trim(), tier, model: kullanim.model, issues,
@@ -2330,6 +2354,7 @@ async function dosyaKunyesi(
       // Bkz. _shared/dilekce.ts > uydurmaTutarlariBul.
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
       const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
+      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'dilekce');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
@@ -2431,6 +2456,7 @@ async function dosyaKunyesi(
       const doluAlan = ['court_name', 'case_number', 'opposing_party', 'davaci', 'davali', 'hearing_date']
         .filter((k) => (kunye as Record<string, string | undefined>)[k]).length;
       const kusurlu = doluAlan === 0;
+      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'kunye');
       return new Response(
         JSON.stringify({
@@ -2544,6 +2570,7 @@ async function dosyaKunyesi(
       // denetim; burada "olay" yerine incelenen belgenin metni (promptQuestion).
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
       const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
+      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'belge');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
