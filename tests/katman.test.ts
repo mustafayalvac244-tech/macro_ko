@@ -55,6 +55,12 @@ describe('tierConfig', () => {
     expect(tierConfig('yok-boyle-bir-sey', false, secenek).cfg).toEqual(tierConfig('free', false, secenek).cfg);
   });
 
+  it('yalnız "ai" katmanının soru/mütalaa kotası vardır — pro/elit kontörle sınırlı kalır', () => {
+    expect(tierConfig('ai', false, secenek).cfg.modLimits).toEqual({ soru: 250, mutalaa: 12 });
+    expect(tierConfig('pro', false, secenek).cfg.modLimits).toBeUndefined();
+    expect(tierConfig('elit', false, secenek).cfg.modLimits).toBeUndefined();
+  });
+
   it('ölçüm zorlaması sağlayıcıyı ve modeli geçersiz kılar', () => {
     const { cfg } = tierConfig('baslangic', false, { ...secenek, zorlaSaglayici: 'openai', zorlaModel: 'gpt-5-mini' });
     expect(cfg.provider).toBe('openai');

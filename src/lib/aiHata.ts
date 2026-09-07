@@ -32,7 +32,7 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errGeneric';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -61,6 +61,10 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   // küçük modeli olmayan kanunlara atıf yapan bir mütalaa üretti. Uydurulmuş
   // mütalaa, eksik mütalaadan çok daha tehlikelidir.
   if (kod === 'mutalaa_model_yok') return t('ai.errMutalaaKapali');
+  // "AI" katmanının aylık soru/mütalaa kotası: kontörden farklı — yükleme
+  // yapılamaz, yalnız ay dönünce (aiPeriod, UTC) yenilenir.
+  if (kod === 'ai_soru_kota_bitti') return t('ai.errSoruKota');
+  if (kod === 'ai_mutalaa_kota_bitti') return t('ai.errMutalaaKota');
   if (kod === 'not_configured') return t('ai.errGeneric');
   return t('ai.errGeneric');
 }

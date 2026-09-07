@@ -6,9 +6,17 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
-import { useTrialStatus, MONTHLY_PRICE_TRY, AI_PRICE_TRY } from '@/hooks/useTrialStatus';
+import { useTrialStatus, MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_MUTALAA_HAKKI } from '@/hooks/useTrialStatus';
 import { supabase } from '@/lib/supabase';
-import { buyPackage, getCurrentOffering, isPremiumActive, restorePurchases } from '@/lib/purchases';
+import {
+  AI_ENTITLEMENT_ID,
+  buyPackage,
+  getCurrentOffering,
+  getOffering,
+  isAiTierActive,
+  isPremiumActive,
+  restorePurchases,
+} from '@/lib/purchases';
 import { useT } from '@/i18n';
 import { fonts, radius, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -39,7 +47,9 @@ export default function PremiumScreen() {
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
   const trial = useTrialStatus();
   const [isPremium, setIsPremium] = useState(false);
+  const [isAiActive, setIsAiActive] = useState(false);
   const [offeringPkg, setOfferingPkg] = useState<PurchasesPackage | null>(null);
+  const [aiOfferingPkg, setAiOfferingPkg] = useState<PurchasesPackage | null>(null);
   const [busyPlan, setBusyPlan] = useState<'temel' | 'ai' | 'restore' | null>(null);
 
   useEffect(() => {
@@ -56,13 +66,26 @@ export default function PremiumScreen() {
       .then(({ data, error }) => {
         if (!error && data && data.length > 0) setIsPremium(true);
       });
+    // "ai" yetkisi (250 soru + 12 mütalaa) ayrı bir üründür — yalnız o
+    // entitlement'ı taşıyan bir satın alma kaydı varsa aktif sayılır.
+    supabase
+      .from('purchases')
+      .select('id')
+      .eq('user_id', userId)
+      .contains('entitlement_ids', [AI_ENTITLEMENT_ID])
+      .limit(1)
+      .then(({ data, error }) => {
+        if (!error && data && data.length > 0) setIsAiActive(true);
+      });
   }, [session?.user.id]);
 
   // RevenueCat henüz kurulmadıysa (API anahtarı yok) ya da web'deyse null
   // döner — bu durumda alttaki onSubscribe eski "çok yakında" davranışına
-  // düşer, hiçbir şey kırılmaz.
+  // düşer, hiçbir şey kırılmaz. "ai" katmanı AYRI bir Offering'den okunur
+  // (bkz. IAP_KURULUM.md — RevenueCat panelinde "ai" adıyla kurulmalı).
   useEffect(() => {
     getCurrentOffering().then((offering) => setOfferingPkg(offering?.monthly ?? offering?.availablePackages[0] ?? null));
+    getOffering(AI_ENTITLEMENT_ID).then((offering) => setAiOfferingPkg(offering?.monthly ?? offering?.availablePackages[0] ?? null));
   }, []);
 
   const subscribed = isPremium || trial.subscribed;
@@ -84,9 +107,11 @@ export default function PremiumScreen() {
 
   const onSubscribe = async (plan: 'temel' | 'ai') => {
     AsyncStorage.setItem('vekil-plan-intent', plan).catch(() => {});
-    // AI katmanı ayrı bir ürün/yetki gerektirir, henüz RevenueCat'te
-    // tanımlanmadı — o hâlâ "çok yakında" akışında.
-    if (plan === 'ai' || Platform.OS === 'web' || !offeringPkg) {
+    const pkg = plan === 'ai' ? aiOfferingPkg : offeringPkg;
+    // Bu katmanın Offering'i RevenueCat panelinde henüz kurulmadıysa (ya da
+    // web'deyse) pkg null gelir — eski "çok yakında" davranışına düşülür,
+    // hiçbir şey kırılmaz.
+    if (Platform.OS === 'web' || !pkg) {
       Alert.alert(
         t('premium.soonTitle'),
         t('premium.soonBody', { plan: plan === 'ai' ? t('premium.aiName') : t('premium.oneName') })
@@ -95,9 +120,10 @@ export default function PremiumScreen() {
     }
     setBusyPlan(plan);
     try {
-      const sonuc = await buyPackage(offeringPkg);
+      const sonuc = await buyPackage(pkg);
       if (sonuc.kind === 'success') {
         if (isPremiumActive(sonuc.customerInfo)) setIsPremium(true);
+        if (isAiTierActive(sonuc.customerInfo)) setIsAiActive(true);
         profilYenidenOku();
         Alert.alert(t('premium.purchaseSuccessTitle'), t('premium.purchaseSuccessBody'));
       } else if (sonuc.kind === 'error') {
@@ -116,6 +142,7 @@ export default function PremiumScreen() {
       const sonuc = await restorePurchases();
       if (sonuc.kind === 'success') {
         if (isPremiumActive(sonuc.customerInfo)) setIsPremium(true);
+        if (isAiTierActive(sonuc.customerInfo)) setIsAiActive(true);
         profilYenidenOku();
         Alert.alert(t('premium.restoreDoneTitle'), t('premium.restoreDoneBody'));
       } else if (sonuc.kind === 'error') {
@@ -236,8 +263,16 @@ export default function PremiumScreen() {
             <Text style={styles.includesText}>{t('premium.includes', { plan: t('premium.oneName') })}</Text>
           </View>
 
+          {isAiActive && (
+            <View style={styles.activeChip}>
+              <Ionicons name="checkmark-circle" size={15} color={colors.success} />
+              <Text style={styles.activeChipText}>{t('premium.activeBadge')}</Text>
+            </View>
+          )}
+
           <View style={styles.features}>
             {[
+              t('premium.f.aiQuota', { soru: String(AI_SORU_HAKKI), mutalaa: String(AI_MUTALAA_HAKKI) }),
               t('premium.f.aiAssistant'),
               t('premium.f.aiMutalaa'),
               t('premium.f.aiDilekce'),
@@ -252,13 +287,23 @@ export default function PremiumScreen() {
             ))}
           </View>
 
-          <Pressable
-            onPress={() => onSubscribe('ai')}
-            style={({ pressed }) => [styles.cta, styles.ctaAi, pressed && { opacity: 0.85 }]}
-          >
-            <Text style={[styles.ctaText, { color: '#FFFFFF' }]}>{t('premium.aiCta')}</Text>
-          </Pressable>
-          <Text style={styles.finePrint}>{t('premium.aiSoonNote')}</Text>
+          {!isAiActive && (
+            <Pressable
+              onPress={() => onSubscribe('ai')}
+              disabled={busyPlan !== null}
+              style={({ pressed }) => [
+                styles.cta,
+                styles.ctaAi,
+                (pressed || busyPlan !== null) && { opacity: 0.85 },
+              ]}
+            >
+              {busyPlan === 'ai' ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={[styles.ctaText, { color: '#FFFFFF' }]}>{t('premium.aiCta')}</Text>
+              )}
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.noteRow}>

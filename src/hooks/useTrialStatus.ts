@@ -4,8 +4,16 @@ import { useAuthStore } from '@/store/authStore';
 export const TRIAL_DAYS = 7;
 /** Aylık abonelik ücreti (TL). */
 export const MONTHLY_PRICE_TRY = 399;
-/** AI katmanı aylık ücreti (TL). */
-export const AI_PRICE_TRY = 1999;
+/**
+ * AI katmanı aylık ücreti (TL) — 250 soru + 12 mütalaa dahil (bkz.
+ * supabase/functions/_shared/katman.ts > AI_SORU_LIMIT/AI_MUTALAA_LIMIT;
+ * iki sayı burada da AYNI olmalı, kota koddan, fiyat buradan okunuyor).
+ */
+export const AI_PRICE_TRY = 1499;
+/** AI katmanının aylık soru/mütalaa hakkı — yalnız EKRANDA göstermek için;
+ *  gerçek sınır sunucuda (_shared/katman.ts). */
+export const AI_SORU_HAKKI = 250;
+export const AI_MUTALAA_HAKKI = 12;
 
 export interface TrialStatus {
   /** Abone mi (ödeme yaptı / premium verildi)? */

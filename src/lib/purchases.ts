@@ -21,6 +21,8 @@ import Purchases, {
 
 /** RevenueCat panelinde AYNI kimlikle tanımlanması gereken yetki (entitlement). */
 export const PREMIUM_ENTITLEMENT_ID = 'premium';
+/** AI katmanı yetkisi (1.499₺/ay, 250 soru + 12 mütalaa) — bkz. IAP_KURULUM.md. */
+export const AI_ENTITLEMENT_ID = 'ai';
 
 const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '';
 const ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '';
@@ -73,12 +75,29 @@ export async function resetPurchaser(): Promise<void> {
   }
 }
 
-/** RevenueCat panelinde tanımlı güncel teklifi döner; yoksa/hataysa null. */
+/** RevenueCat panelinde tanımlı güncel (varsayılan) teklifi döner; yoksa/hataysa null. */
 export async function getCurrentOffering(): Promise<PurchasesOffering | null> {
   if (!configured) return null;
   try {
     const offerings = await Purchases.getOfferings();
     return offerings.current;
+  } catch (e) {
+    if (__DEV__) console.warn('RevenueCat getOfferings hatası:', e);
+    return null;
+  }
+}
+
+/**
+ * Kimlikle ADLANDIRILMIŞ bir teklifi döner — "AI" katmanı gibi varsayılan
+ * dışındaki ikinci ürün için. RevenueCat panelinde AYNI kimlikle bir Offering
+ * oluşturulmalı (bkz. IAP_KURULUM.md); yoksa/hataysa null döner ve çağıran
+ * taraf zaten "çok yakında" davranışına düşer.
+ */
+export async function getOffering(identifier: string): Promise<PurchasesOffering | null> {
+  if (!configured) return null;
+  try {
+    const offerings = await Purchases.getOfferings();
+    return offerings.all[identifier] ?? null;
   } catch (e) {
     if (__DEV__) console.warn('RevenueCat getOfferings hatası:', e);
     return null;
@@ -117,6 +136,10 @@ export async function restorePurchases(): Promise<PurchaseOutcome> {
 
 export function isPremiumActive(info: CustomerInfo): boolean {
   return typeof info.entitlements.active[PREMIUM_ENTITLEMENT_ID] !== 'undefined';
+}
+
+export function isAiTierActive(info: CustomerInfo): boolean {
+  return typeof info.entitlements.active[AI_ENTITLEMENT_ID] !== 'undefined';
 }
 
 /** Güncel müşteri bilgisini sunucuya sormadan (RevenueCat önbelleğinden) döner. */

@@ -1,4 +1,4 @@
-// Vekil :: RevenueCat webhook — PREMIUM'UN GERÇEKTEN AÇILDIĞI TEK YER.
+// Vekil :: RevenueCat webhook — PREMIUM/AI'NİN GERÇEKTEN AÇILDIĞI TEK YER.
 //
 // NEDEN BU DOSYA VAR. premium.tsx'teki "Aboneliğe Geç" butonu şimdiye kadar
 // sahteydi ("çok yakında" diyordu); is_premium yalnız admin panelinden elle
@@ -6,6 +6,13 @@
 // satın almayı sunucuya bildiren tek yer — kontör akışındaki stripe-webhook
 // ile birebir aynı ilke: istemcinin "ödedim" demesine güvenmiyoruz, yalnız
 // mağazayla konuşan RevenueCat'in imzaladığı bildirime güveniyoruz.
+//
+// İKİ AYRI ÜRÜN, İKİ AYRI ENTİTLEMENT. "premium" (temel, 399₺) is_premium'u,
+// "ai" (1.499₺, 250 soru + 12 mütalaa — bkz. _shared/katman.ts) ai_tier'ı
+// açar; bir olay entitlement_ids'inde İKİSİ BİRDEN de olabilir. Hangisinin
+// hangi ürüne bağlı olduğu RevenueCat panelinde kurulur (bkz. IAP_KURULUM.md);
+// biz burada yalnız RevenueCat'in söylediği entitlement_ids'e göre davranırız,
+// "satın alma oldu = her şey açıldı" diye VARSAYMAYIZ (bkz. 0073).
 //
 // KİMLİK DOĞRULAMASI. Bu uç JWT'siz çalışmak zorunda (verify_jwt: false) —
 // RevenueCat bizim oturum jetonumuzu taşıyamaz. Tek koruma, RevenueCat
@@ -74,6 +81,11 @@ Deno.serve(async (req) => {
       price_in_purchased_currency?: number | null;
       currency?: string | null;
       environment?: string;
+      // Bu olayın hangi yetkiyi (entitlement) verdiği — "premium" (temel,
+      // 399₺) ve/veya "ai" (1.499₺, RevenueCat panelinde bu isimle
+      // kurulmalı, bkz. IAP_KURULUM.md). Kör biçimde "her satın alma = tam
+      // premium" saymak yerine olduğu gibi işlenir (bkz. 0073).
+      entitlement_ids?: string[];
     };
   };
   try {
@@ -117,6 +129,7 @@ Deno.serve(async (req) => {
     p_event_type: olay.type,
     p_platform: platformFromStore(olay.store),
     p_expires_at: expiresAt,
+    p_entitlement_ids: Array.isArray(olay.entitlement_ids) ? olay.entitlement_ids : [],
     p_amount: typeof olay.price_in_purchased_currency === 'number' ? olay.price_in_purchased_currency : null,
     p_currency: olay.currency ?? 'TRY',
   });

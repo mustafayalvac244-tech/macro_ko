@@ -1,7 +1,16 @@
 # Gerçek Satın Alma Kurulumu (RevenueCat) — Sıfırdan Rehber
 
-Premium abonelik (399₺/ay) artık **RevenueCat** üzerinden App Store / Google
-Play'in kendi satın alma sistemleriyle (StoreKit / Google Play Billing) alınır.
+**İKİ AYRI ÜRÜN** artık **RevenueCat** üzerinden App Store / Google Play'in
+kendi satın alma sistemleriyle (StoreKit / Google Play Billing) alınır:
+
+| | Fiyat | Verdiği hak | Entitlement | Offering |
+|---|---|---|---|---|
+| Temel | 399₺/ay | Tüm dosya/müvekkil/finans özellikleri | `premium` | `default` (Current) |
+| AI | 1.499₺/ay | Temel + **250 soru + 12 mütalaa/ay** (Claude Sonnet 5) | `premium` VE `ai` | `ai` |
+
+AI paketi HER İKİ entitlement'ı da vermeli — "AI planı Temel'i de içerir" sözü
+buradan gelir (kod bunu bekliyor, bkz. adım 4).
+
 Kod tarafı **hazır** — aşağıdaki adımlar sizin (geliştirici hesabı sahibi
 olarak) mağaza panellerinde ve RevenueCat panelinde yapmanız gereken, kodla
 YAPILAMAYAN manuel kurulum adımlarıdır.
@@ -26,11 +35,16 @@ sunucumuzu yazmak zorunda kalmayız.
 - `app/_layout.tsx` — SDK açılışta kuruluyor, oturum değişince RevenueCat
   kimliği Supabase kullanıcı kimliğiyle eşleniyor.
 - `supabase/functions/revenuecat-webhook/` — RevenueCat'in gönderdiği gerçek
-  satın alma bildirimini işleyip `profiles.is_premium`'u açan/kapatan uç.
-  **Zaten canlıya dağıtıldı** ama sır (secret) girilmediği için şu an güvenli
-  biçimde 503 dönüyor (`{"error":"not_configured"}`) — adım 4'te açılacak.
-- `purchases` tablosu — RevenueCat olaylarının denetim kaydı (migration 0072,
-  **zaten uygulandı**).
+  satın alma bildirimini işleyip `profiles.is_premium` VE `profiles.ai_tier`'ı
+  (RevenueCat'in event.entitlement_ids'ine göre, ikisi bağımsız) açan/kapatan
+  uç. **Zaten canlıya dağıtıldı** ama sır (secret) girilmediği için şu an
+  güvenli biçimde 503 dönüyor (`{"error":"not_configured"}`) — adım 5'te açılacak.
+- `purchases` tablosu — RevenueCat olaylarının denetim kaydı (migration 0072/
+  0073, **zaten uygulandı**).
+- `supabase/functions/_shared/katman.ts` — "ai" katmanının 250 soru + 12
+  mütalaa/ay kotası (migration 0073 > `ai_mod_sayaci`), **zaten canlıda**.
+  Kontöre değil sayıya bakar; kota dolunca `ai_soru_kota_bitti` /
+  `ai_mutalaa_kota_bitti` hatası döner, istemci bunu anlıyor (`aiHata.ts`).
 
 Yani geriye kalan HER ADIM, sizin mağaza/RevenueCat hesaplarınızda yapacağınız
 tıklamalar ve bana vereceğiniz üç anahtar/sır.
@@ -46,29 +60,30 @@ istenecek — `app.json`'dan): iOS Bundle ID ve Android Package Name ikisi de
 1. https://app.revenuecat.com/signup adresinden hesap açın.
 2. Yeni bir **Proje** oluşturun (ör. "Vekil Pro").
 
-## 2. App Store Connect'te abonelik ürünü tanımlayın
+## 2. App Store Connect'te İKİ abonelik ürünü tanımlayın
 
 1. App Store Connect → uygulamanız → **Abonelikler** (Subscriptions).
-2. Yeni bir **Abonelik Grubu** oluşturun (ör. "Vekil Premium").
-3. Grubun içine bir ürün ekleyin:
-   - Ürün kimliği (Product ID): `vekil_premium_monthly` (bu ismi RevenueCat'e
-     de gireceksiniz, birebir aynı olmalı).
-   - Süre: **1 Ay**.
-   - Fiyat: 399₺'ye en yakın Apple fiyat kademesini seçin.
-   - Yerelleştirme (en azından Türkçe): başlık + açıklama girin.
+2. Yeni bir **Abonelik Grubu** oluşturun (ör. "Vekil Premium") — **aynı grup
+   içine ikisini de** koyun (bir kullanıcının Temel'den AI'a geçmesi
+   "upgrade" sayılsın, ayrı gruplarda bu çalışmaz).
+3. Grubun içine İKİ ürün ekleyin:
+   - Ürün kimliği: `vekil_premium_monthly` — Süre **1 Ay** — Fiyat 399₺'ye en
+     yakın Apple kademesi.
+   - Ürün kimliği: `vekil_ai_monthly` — Süre **1 Ay** — Fiyat 1.499₺'ye en
+     yakın Apple kademesi.
+   - İkisi için de yerelleştirme (en azından Türkçe): başlık + açıklama.
 4. Uygulamanızın "Uygulama İçi Satın Almalar Anlaşması"nın (Paid Apps
    Agreement) App Store Connect'te İMZALANMIŞ ve banka/vergi bilgilerinin
-   girilmiş olması gerekir — yoksa ürün "onaya hazır" duruma geçmez.
+   girilmiş olması gerekir — yoksa ürünler "onaya hazır" duruma geçmez.
 
-## 3. Play Console'da abonelik ürünü tanımlayın
+## 3. Play Console'da İKİ abonelik ürünü tanımlayın
 
 > Uygulama henüz Play Console'da yayınlanmadıysa önce oraya bir uygulama
 > girişi (en azından "Dahili test" aşamasında) oluşturulmalı.
 
 1. Play Console → uygulamanız → **Gelir kazanma → Abonelikler**.
-2. Yeni abonelik: Ürün kimliği `vekil_premium_monthly` (Apple ile AYNI isim —
-   RevenueCat'te tek bir Offering altında ikisini birleştireceğiz).
-3. Baz plan: aylık, 399₺'ye en yakın fiyat.
+2. İki abonelik: `vekil_premium_monthly` (Apple ile AYNI isim, aylık, 399₺'ye
+   en yakın fiyat) ve `vekil_ai_monthly` (1.499₺'ye en yakın fiyat).
 
 ## 4. RevenueCat'i mağazalara bağlayın
 
@@ -79,13 +94,19 @@ istenecek — `app.json`'dan): iOS Bundle ID ve Android Package Name ikisi de
    RevenueCat'e bağlayın — RevenueCat'in kendi rehberi adım adım gösteriyor.
 3. Android için: Play Console'da bir **Google Servis Hesabı** (Service
    Account) oluşturup RevenueCat'e JSON anahtarını yükleyin.
-4. **Entitlement** oluşturun: kimlik `premium` (kod bu isimle eşleşiyor —
-   `src/lib/purchases.ts` → `PREMIUM_ENTITLEMENT_ID`). Hem iOS hem Android
-   `vekil_premium_monthly` ürününü bu entitlement'a bağlayın.
-5. **Offering** oluşturun (ör. "default"), içine bir **Package** ekleyin,
-   paket tipi **Monthly**, ürünü yukarıdaki `vekil_premium_monthly` seçin.
-   Bu Offering'i **Current** (varsayılan) olarak işaretleyin — kod
-   `getCurrentOffering()` ile bunu okuyor.
+4. **İki Entitlement** oluşturun (kimlikler kodla BİREBİR eşleşmeli —
+   `src/lib/purchases.ts` → `PREMIUM_ENTITLEMENT_ID` / `AI_ENTITLEMENT_ID`):
+   - `premium`: hem iOS hem Android `vekil_premium_monthly` ürününü bağlayın
+     — VE `vekil_ai_monthly`'yi de (AI planı Temel'i içerir, bu yüzden AI
+     ürünü BU entitlement'a da bağlı olmalı).
+   - `ai`: yalnız `vekil_ai_monthly` ürününü bağlayın.
+5. **İki Offering** oluşturun:
+   - `default` — içine `vekil_premium_monthly`'yi **Monthly** paket tipiyle
+     ekleyin, bu Offering'i **Current** işaretleyin (kod `getCurrentOffering()`
+     ile bunu okuyor).
+   - `ai` — içine `vekil_ai_monthly`'yi **Monthly** paket tipiyle ekleyin.
+     Current OLMASIN (yalnız kimlikle çağrılıyor — kod `getOffering('ai')`
+     ile bunu okuyor).
 
 ## 5. Webhook'u bağlayın
 
@@ -140,8 +161,13 @@ eas build --profile production --platform all       # mağazaya gönderim için
   adresinizi ekleyin; o hesapla Play Store'a giriş yapıp Dahili Test
   sürümünde satın alma deneyin.
 - Her iki durumda da satın alma sonrası: RevenueCat panelinde **Customers**
-  sekmesinde olayı, Supabase'de `purchases` tablosunda yeni satırı ve
-  `profiles.is_premium`'un `true` olduğunu doğrulayın.
+  sekmesinde olayı, Supabase'de `purchases` tablosunda yeni satırı doğrulayın.
+  Temel satın alındıysa `profiles.is_premium = true`; AI satın alındıysa
+  HEM `is_premium = true` HEM `profiles.ai_tier = 'ai'` olmalı (adım 4'teki
+  entitlement eşlemesi yanlışsa yalnız biri açılır — o zaman RevenueCat
+  panelinde `ai` ürününün `premium` entitlement'ına da bağlı olduğunu kontrol
+  edin). AI hesabıyla uygulamada birkaç soru sorup 250/12'lik sayacın
+  gerçekten iş gördüğünü de deneyin.
 
 ## 9. Ayrı ve henüz ele alınmamış bir konu: AI kontör satın alma
 

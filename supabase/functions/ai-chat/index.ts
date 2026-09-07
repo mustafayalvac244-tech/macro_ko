@@ -542,6 +542,19 @@ async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ 
   const r = data as { calls?: number; cost_try?: number } | null;
   return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
 }
+
+/**
+ * "AI" KATMANININ AYLIK SORU/MÜTALAA SAYACI — bkz. migration 0073 >
+ * ai_mod_sayaci ve _shared/katman.ts > TierCfg.modLimits. Yalnız bu katman
+ * kontör yerine sayıyla sınırlı olduğu için ayrı bir sorgu.
+ */
+async function modUsage(userId: string, ay: string = aiPeriod()): Promise<{ soru: number; mutalaa: number }> {
+  const s = svc();
+  if (!s) return { soru: 0, mutalaa: 0 };
+  const { data } = await s.rpc('ai_mod_sayaci', { p_user: userId, p_ay: ay });
+  const r = (Array.isArray(data) ? data[0] : data) as { soru?: number; mutalaa?: number } | null;
+  return { soru: Number(r?.soru ?? 0), mutalaa: Number(r?.mutalaa ?? 0) };
+}
 /**
  * Kullanımı kaydeder ve BU İSTEĞİN maliyetini döndürür.
  *
@@ -1611,7 +1624,12 @@ Deno.serve(async (req) => {
     zorlaModel: Deno.env.get('VEKIL_ZORLA_MODEL') ?? undefined,
   });
 
-  // KONTÖR KONTROLÜ — yalnız faturalı katmanda.
+  // KONTÖR KONTROLÜ — yalnız faturalı VE kontörle ölçülen katmanda.
+  //
+  // "ai" katmanı bunu ATLAR: 1.499₺/ay sabit ücrete SAYIYLA dahil bir hak
+  // veriyoruz (bkz. cfg.modLimits ve aşağıdaki denetim), kontör bakiyesine
+  // hiç bakmaz — "bakiyeniz kadar" değil "ayda 250 soru + 12 mütalaa" sözü
+  // verildi. Diğer ücretli katmanlarda (pro/elit) değişen bir şey yok.
   //
   // Ücretsiz katman kontöre bakmaz: orada maliyet sıfır, sınır sağlayıcının
   // günlük tavanı. Faturalı katmanda ise bakiye bitmişse isteği BAŞLAMADAN
@@ -1621,7 +1639,7 @@ Deno.serve(async (req) => {
   // Eşik sıfır değil: en pahalı istek (mütalaa) birkaç lira tutabiliyor ve
   // 0,10 TL bakiyeyle başlatılan bir istek kullanıcıyı eksiye düşürürdü.
   let kontor = 0;
-  if (cfg.billable) {
+  if (cfg.billable && !cfg.modLimits) {
     const sk = svc();
     if (sk) {
       const r = await sk.from('ai_kontor').select('bakiye_try').eq('user_id', userData.user.id).maybeSingle();
@@ -1647,6 +1665,30 @@ Deno.serve(async (req) => {
     }
   }
 
+  // "AI" KATMANI SORU/MÜTALAA KOTASI (bkz. migration 0073). Mütalaa ayrı
+  // sayılır: çok adımlı olduğu için bir sohbet sorusunun 4-8 katı token
+  // tüketir, tek kotaya karıştırmak birinin ayda 250 mütalaa çekip maliyeti
+  // öngörülemez yapmasına izin verirdi.
+  if (cfg.modLimits) {
+    const sayac = await modUsage(userData.user.id);
+    if (isMutalaa) {
+      if (sayac.mutalaa >= cfg.modLimits.mutalaa) {
+        return new Response(
+          JSON.stringify({ error: 'ai_mutalaa_kota_bitti', tier, kullanilan: sayac.mutalaa, hak: cfg.modLimits.mutalaa }),
+          { status: 402, headers: CORS }
+        );
+      }
+    } else if (sayac.soru >= cfg.modLimits.soru) {
+      return new Response(
+        JSON.stringify({ error: 'ai_soru_kota_bitti', tier, kullanilan: sayac.soru, hak: cfg.modLimits.soru }),
+        { status: 402, headers: CORS }
+      );
+    }
+  }
+
+  // GÜVENLİK AĞI — "ai" katmanında da geçerli (bkz. UCRETLI_TAVAN_TRY notu):
+  // yukarıdaki soru/mütalaa kotası normal kullanımda çok altında kalır
+  // (en kötü senaryo ~340₺), bu yalnız bir hata/döngü durumunda devreye girer.
   const urow = await usageRow(userData.user.id);
   if (overLimit(cfg, urow)) {
     return new Response(JSON.stringify({ error: 'quota_exceeded', tier, used: urow.cost, calls: urow.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }), {

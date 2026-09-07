@@ -35,6 +35,15 @@ export interface TierCfg {
    *  hizmetsiz bırakır. 0/undefined = günlük sınır yok (ücretli katmanda
    *  kontör zaten sınırdır). */
   gunluk?: number;
+  /**
+   * AYLIK SORU/MÜTALAA KOTASI — yalnız "ai" katmanında dolu. Diğer ücretli
+   * katmanlar (pro/elit) kontör (bakiye) ile ölçülür; "ai" katmanı 1499₺/ay
+   * sabit ücrete SAYIYLA dahildir ("250 soru + 12 mütalaa"), kontöre HİÇ
+   * bakmaz — avukata "bakiyeniz kadar" değil "ayda şu kadar" sözü verildi.
+   * Mütalaa ayrı sayılır çünkü tek istek değil çok adımlı: tek bir mütalaa,
+   * bir sohbet sorusunun 4-8 katı token tüketir (bkz. katman tablosundaki not).
+   */
+  modLimits?: { soru: number; mutalaa: number };
 }
 
 export interface KatmanSecenek {
@@ -57,6 +66,19 @@ export interface KatmanSecenek {
  * faturamız.
  */
 const UCRETLI_TAVAN_TRY = 3000;
+
+/**
+ * "AI" KATMANI FİYATLAMASI — 1.499₺/ay, 250 soru + 12 mütalaa.
+ *
+ * Sonnet 5 ile ölçülen/tahmin edilen maliyete göre kuruldu (bkz. konuşma
+ * geçmişi): dilekçe ÖLÇÜLDÜ (n=7, ~1,07₺/istek); sohbet/belge/mütalaa TAHMİN
+ * (mütalaa çok adımlı olduğu için 4-6₺/istek — tek istekten 4-8 kat pahalı).
+ * En kötü senaryo maliyeti (250×1,07 + 12×6 ≈ 340₺) fiyatın çok altında kalır.
+ * Bu iki sayı SABİT DEĞİL — gerçek Claude kullanımı ölçülünce (Anthropic
+ * anahtarı eklenip birkaç hafta veri toplanınca) gözden geçirilmeli.
+ */
+const AI_SORU_LIMIT = 250;
+const AI_MUTALAA_LIMIT = 12;
 
 export function tierConfig(
   aiTier: string | null | undefined,
@@ -90,7 +112,11 @@ export function tierConfig(
     // dilekçe ~3.000 token ve adaptif düşünme de bu tavana dahil.
     pro: claude(8192),
     elit: claude(8192),
-    ai: claude(8192),
+    // "ai" katmanı diğer ikisinden farklı: kontöre değil sayıya bakar (bkz.
+    // modLimits üstündeki not) — bu yüzden claude(8192)'nin limitKind/limit
+    // alanları burada üzerine yazılıyor, ai-chat tarafında modLimits doluysa
+    // kontör/kotanın hiç kontrol edilmediğini unutmayın (bkz. index.ts).
+    ai: { ...claude(8192), modLimits: { soru: AI_SORU_LIMIT, mutalaa: AI_MUTALAA_LIMIT } },
   };
 
   let cfg = table[t] ?? table.free;
