@@ -11,6 +11,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
   isMissingFinanceTable,
+  useCreateFinanceEntry,
   useDeleteFinanceEntry,
   useFinanceEntries,
   useUpdateFinanceEntry,
@@ -43,6 +44,7 @@ export default function FinanceScreen() {
   const payments = useAllPayments();
   const deleteEntry = useDeleteFinanceEntry();
   const updateEntry = useUpdateFinanceEntry();
+  const createEntry = useCreateFinanceEntry();
 
   const monthStart = month;
   const monthEnd = useMemo(() => endOfMonth(month), [month]);
@@ -67,6 +69,18 @@ export default function FinanceScreen() {
       .filter((e) => !e.is_recurring)
       .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
 
+    // Durdurulmuş sabit kalemler, kendi durma ayından SONRAKİ aylarda
+    // activeInMonth tarafından elenir — yeniden başlatılabilmeleri için
+    // yine de bir yerde görünür kalmaları gerekir. Yalnız GERÇEK bugünkü ay
+    // görüntülenirken listeye eklenir (geçmiş bir aya bakarken göstermek,
+    // "bu ay aktifmiş gibi" yanlış izlenim verirdi). Toplamlara KATILMAZ —
+    // yalnız yönetim (yeniden başlat/sil) amaçlı gösterilir.
+    const now = new Date();
+    const gercekBuAy = startOfMonth(now).getTime() === monthStart.getTime();
+    const stoppedItems = gercekBuAy
+      ? (entries.data ?? []).filter((e) => e.is_recurring && e.recurring_until && !recurringItems.includes(e))
+      : [];
+
     let paymentsTotal = 0;
     let paymentsCount = 0;
     payments.data?.forEach((p) => {
@@ -88,7 +102,7 @@ export default function FinanceScreen() {
     });
 
     return {
-      recurring: recurringItems,
+      recurring: [...recurringItems, ...stoppedItems],
       oneOff: oneOffItems,
       casePaymentsTotal: paymentsTotal,
       casePaymentsCount: paymentsCount,
@@ -205,18 +219,56 @@ export default function FinanceScreen() {
     router.push(`/finance-form?${q}` as Parameters<typeof router.push>[0]);
   };
 
+  /**
+   * Durdurulmuş bir sabit kalemi yeniden başlatır. Durma ayı hâlâ bugünün
+   * ayına denk geliyorsa (kullanıcı az önce durdurdu, henüz geçmişe
+   * geçmedi) AYNI kaydı canlandırmak yeterli — geçmiş ayları bozmaz. Durma
+   * çoktan geride kaldıysa (bir ya da daha fazla ay atlanmış), aynı kaydın
+   * entry_date'ini bugüne çekmek, arada GERÇEKTEN duraklamış olan ayları da
+   * "aktif" gösterip o aylara ait geçmiş gelir toplamlarını bozardı — bu
+   * yüzden yeni bir kayıt açılır, eskisi geçmişte "durduruldu" olarak kalır.
+   */
+  const resumeRecurring = (entry: FinanceEntry) => {
+    const now = new Date();
+    const durmaGecmiste = !!entry.recurring_until && endOfMonth(localDate(entry.recurring_until)) < startOfMonth(now);
+    if (!durmaGecmiste) {
+      updateEntry.mutate({ id: entry.id, recurring_until: null });
+    } else {
+      createEntry.mutate({
+        kind: entry.kind,
+        category: entry.category,
+        title: entry.title,
+        amount: Number(entry.amount),
+        entry_date: format(now, 'yyyy-MM-dd'),
+        is_recurring: true,
+        note: entry.note,
+        vat_rate: entry.vat_rate,
+        withholding_rate: entry.withholding_rate,
+      });
+    }
+  };
+
   const handleEntryPress = (entry: FinanceEntry) => {
     const buttons: Parameters<typeof Alert.alert>[2] = [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.edit'), onPress: () => openEditor(entry) },
     ];
     if (entry.is_recurring) {
-      buttons.push({
-        text: t('ofinance.stopAfterMonth'),
-        onPress: () => updateEntry.mutate({ id: entry.id, recurring_until: format(monthEnd, 'yyyy-MM-dd') }),
-      });
+      const stopped = !!entry.recurring_until;
+      if (stopped) {
+        buttons.push({ text: t('ofinance.resume'), onPress: () => resumeRecurring(entry) });
+      } else {
+        buttons.push({
+          text: t('ofinance.stopAfterMonth'),
+          onPress: () => updateEntry.mutate({ id: entry.id, recurring_until: format(monthEnd, 'yyyy-MM-dd') }),
+        });
+      }
       buttons.push({ text: t('ofinance.deleteAll'), style: 'destructive', onPress: () => deleteEntry.mutate(entry.id) });
-      Alert.alert(t('ofinance.entryActionsTitle'), t('ofinance.recurringDeleteMsg'), buttons);
+      Alert.alert(
+        t('ofinance.entryActionsTitle'),
+        stopped ? t('ofinance.resumeMsg') : t('ofinance.recurringDeleteMsg'),
+        buttons
+      );
     } else {
       buttons.push({ text: t('common.delete'), style: 'destructive', onPress: () => deleteEntry.mutate(entry.id) });
       Alert.alert(t('ofinance.entryActionsTitle'), entry.title, buttons);

@@ -961,6 +961,8 @@ export const en: Record<keyof typeof tr, string> = {
   'ofinance.stopAfterMonth': 'Stop after this month',
   'ofinance.deleteAll': 'Delete entirely',
   'ofinance.stopped': 'Ended',
+  'ofinance.resume': 'Restart',
+  'ofinance.resumeMsg': 'This fixed item is stopped. Reflect it monthly again starting today?',
   'ofinance.setupRequired':
     'The finance table is not set up yet. Run supabase/migrations/0006_office_finance.sql in the Supabase SQL Editor.',
   'financeForm.newIncome': 'New Income',

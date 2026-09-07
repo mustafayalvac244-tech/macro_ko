@@ -900,6 +900,8 @@ export const tr = {
   'ofinance.stopAfterMonth': 'Bu aydan sonra durdur',
   'ofinance.deleteAll': 'Tümünü sil',
   'ofinance.stopped': 'Sona erdi',
+  'ofinance.resume': 'Yeniden başlat',
+  'ofinance.resumeMsg': 'Bu sabit kalem durdurulmuş. Bugünden itibaren yeniden aylık olarak yansıtılsın mı?',
   'ofinance.setupRequired':
     'Finans tablosu henüz kurulmamış. Supabase SQL Editor’da supabase/migrations/0006_office_finance.sql dosyasının içeriğini çalıştırın.',
   'financeForm.newIncome': 'Yeni Gelir',
