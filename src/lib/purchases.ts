@@ -21,7 +21,7 @@ import Purchases, {
 
 /** RevenueCat panelinde AYNI kimlikle tanımlanması gereken yetki (entitlement). */
 export const PREMIUM_ENTITLEMENT_ID = 'premium';
-/** AI katmanı yetkisi (1.499₺/ay, 250 soru + 12 mütalaa) — bkz. IAP_KURULUM.md. */
+/** AI katmanı yetkisi (1.999₺/ay, Claude Opus 5, 250 soru + 12 mütalaa) — bkz. IAP_KURULUM.md. */
 export const AI_ENTITLEMENT_ID = 'ai';
 
 const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '';

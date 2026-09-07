@@ -35,6 +35,7 @@ export const PRICING: Record<string, { in: number; out: number }> = {
   'gemini-2.0-flash': { in: 0.15, out: 0.6 },
   'gemini-2.5-pro': { in: 1.25, out: 10.0 },
   'claude-sonnet-5': { in: 2.0, out: 10.0 },
+  'claude-opus-5': { in: 5.0, out: 25.0 },
   'claude-fable-5-1': { in: 10.0, out: 50.0 },
   'gpt-5.6-terra': { in: 2.0, out: 12.0 },
   'gpt-5.1': { in: 1.25, out: 10.0 },

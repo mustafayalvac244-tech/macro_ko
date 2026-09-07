@@ -52,6 +52,11 @@ describe('aiHataMetni', () => {
     expect(aiHataMetni({ error: 'mutalaa_model_yok' }, t)).toBe('ai.errMutalaaKapali');
   });
 
+  it('yaşam boyu deneme hakkını aylık kotayla karıştırmaz', () => {
+    // Deneme hakkı hiç yenilenmez (kontör/kota gibi değil); abonelik gerekir.
+    expect(aiHataMetni({ error: 'deneme_hakki_bitti' }, t)).toBe('ai.errDenemeBitti');
+  });
+
   it('bilinmeyen kodda genel hata verir', () => {
     expect(aiHataMetni({ error: 'upstream' }, t)).toBe('ai.errGeneric');
     expect(aiHataMetni({}, t)).toBe('ai.errGeneric');

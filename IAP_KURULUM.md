@@ -6,10 +6,18 @@ kendi satın alma sistemleriyle (StoreKit / Google Play Billing) alınır:
 | | Fiyat | Verdiği hak | Entitlement | Offering |
 |---|---|---|---|---|
 | Temel | 399₺/ay | Tüm dosya/müvekkil/finans özellikleri | `premium` | `default` (Current) |
-| AI | 1.499₺/ay | Temel + **250 soru + 12 mütalaa/ay** (Claude Sonnet 5) | `premium` VE `ai` | `ai` |
+| AI | 1.999₺/ay | Temel + **250 soru + 12 mütalaa/ay** (Claude Opus 5) | `premium` VE `ai` | `ai` |
 
 AI paketi HER İKİ entitlement'ı da vermeli — "AI planı Temel'i de içerir" sözü
 buradan gelir (kod bunu bekliyor, bkz. adım 4).
+
+**AI hiç almayan (free/baslangic) bir kullanıcı da AI'yı tamamen kapalı
+görmez** — YAŞAM BOYU (aylık değil, bir kez) 3 deneme sorusu hakkı var, o da
+Claude Opus 5 ile (Groq artık kullanıcıya hiç yönlendirilmiyor, yalnız
+sunucudaki hata-kurtarma zincirinde altyapı yedeği olarak kalıyor — bkz.
+`_shared/katman.ts`). Bu, satın alma ürünleriyle İLGİLİ DEĞİL, sunucu tarafı
+bir sayaçtır (`profiles.deneme_soru_kullanildi`), mağaza panelinde bir şey
+yapmanız gerekmez.
 
 Kod tarafı **hazır** — aşağıdaki adımlar sizin (geliştirici hesabı sahibi
 olarak) mağaza panellerinde ve RevenueCat panelinde yapmanız gereken, kodla
@@ -69,7 +77,7 @@ istenecek — `app.json`'dan): iOS Bundle ID ve Android Package Name ikisi de
 3. Grubun içine İKİ ürün ekleyin:
    - Ürün kimliği: `vekil_premium_monthly` — Süre **1 Ay** — Fiyat 399₺'ye en
      yakın Apple kademesi.
-   - Ürün kimliği: `vekil_ai_monthly` — Süre **1 Ay** — Fiyat 1.499₺'ye en
+   - Ürün kimliği: `vekil_ai_monthly` — Süre **1 Ay** — Fiyat 1.999₺'ye en
      yakın Apple kademesi.
    - İkisi için de yerelleştirme (en azından Türkçe): başlık + açıklama.
 4. Uygulamanızın "Uygulama İçi Satın Almalar Anlaşması"nın (Paid Apps
@@ -83,7 +91,7 @@ istenecek — `app.json`'dan): iOS Bundle ID ve Android Package Name ikisi de
 
 1. Play Console → uygulamanız → **Gelir kazanma → Abonelikler**.
 2. İki abonelik: `vekil_premium_monthly` (Apple ile AYNI isim, aylık, 399₺'ye
-   en yakın fiyat) ve `vekil_ai_monthly` (1.499₺'ye en yakın fiyat).
+   en yakın fiyat) ve `vekil_ai_monthly` (1.999₺'ye en yakın fiyat).
 
 ## 4. RevenueCat'i mağazalara bağlayın
 

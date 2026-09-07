@@ -1236,6 +1236,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.errMutalaaKapali': 'Legal opinions are unavailable right now. This feature needs the stronger model; the free tier model is not adequate for it and can produce incorrect results. Drafting and document review still work.',
   'ai.errSoruKota': 'Your AI questions for this month are used up. It renews at the start of next month.',
   'ai.errMutalaaKota': 'Your legal opinions for this month are used up. It renews at the start of next month.',
+  'ai.errDenemeBitti': 'You’ve used your 3 free trial questions. Subscribe to the AI plan for unlimited use.',
   'ai.errDailyQuota': 'Today’s free AI allowance is used up. It resets daily — try again tomorrow, or upgrade to Pro for uninterrupted use.',
   'ai.errQuotaWait': 'The free AI allowance is full right now. Try again in about {dk} minutes, or upgrade to Pro for uninterrupted use.',
   'ai.errQuota': 'You’ve reached this month’s AI usage limit. Upgrade to a higher plan to continue.',

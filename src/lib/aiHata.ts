@@ -32,7 +32,7 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errGeneric';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -65,6 +65,9 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   // yapılamaz, yalnız ay dönünce (aiPeriod, UTC) yenilenir.
   if (kod === 'ai_soru_kota_bitti') return t('ai.errSoruKota');
   if (kod === 'ai_mutalaa_kota_bitti') return t('ai.errMutalaaKota');
+  // Yaşam boyu deneme hakkı (3 soru) tükendi — kontör/kota gibi yenilenmez,
+  // yalnız abonelikle devam edilir.
+  if (kod === 'deneme_hakki_bitti') return t('ai.errDenemeBitti');
   if (kod === 'not_configured') return t('ai.errGeneric');
   return t('ai.errGeneric');
 }

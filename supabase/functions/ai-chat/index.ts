@@ -93,8 +93,11 @@ const KAR_KATSAYISI = Number(Deno.env.get('VEKIL_KAR_KATSAYISI') || '3');
 // yüzünden kullanıcı eksiye düşmesin ve bunu ona iş bittikten sonra söylemek
 // zorunda kalmayalım.
 const KONTOR_ESIGI = Number(Deno.env.get('VEKIL_KONTOR_ESIGI') || '15');
-// AI katmanı: Claude Sonnet 5. Model env ile deploy'suz değiştirilebilir.
+// Claude anahtarı yokken düşülen Groq yedek yolunda kullanılır. Model env ile
+// deploy'suz değiştirilebilir.
 const CLAUDE_MODEL = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
+// "ai" katmanının ve deneme hakkının kullandığı GERÇEK ücretli model.
+const CLAUDE_OPUS_MODEL = Deno.env.get('VEKIL_CLAUDE_OPUS_MODEL') || 'claude-opus-5';
 // Groq, llama-3.3-70b-versatile'ı 17.06.2026'da kullanımdan kaldırdı (404
 // model_not_found → tüm AI katmanları çöktü). Resmî önerilen halef: gpt-oss-120b.
 // Model env (VEKIL_GROQ_MODEL) ile deploy'suz değiştirilebilir.
@@ -556,6 +559,21 @@ async function aiModSerbestBirak(userId: string, ay: string, mutalaa: boolean): 
   if (!s) return;
   try {
     await s.rpc('ai_mod_serbest_birak', { p_user: userId, p_ay: ay, p_mutalaa: mutalaa });
+  } catch {
+    // yutulur — bkz. yukarıdaki gerekçe
+  }
+}
+
+/**
+ * Deneme hakkından rezerve edilmiş BİR soruyu geri verir — aynı "kusurlu
+ * çıktıda hak gitmez" ilkesi, deneme hakkı için. Bir adayın YAŞAM BOYU 3
+ * hakkından biri bizim kusurumuz yüzünden gitmesin.
+ */
+async function denemeHakkiSerbestBirak(userId: string): Promise<void> {
+  const s = svc();
+  if (!s) return;
+  try {
+    await s.rpc('deneme_hakki_serbest_birak', { p_user: userId });
   } catch {
     // yutulur — bkz. yukarıdaki gerekçe
   }
@@ -1625,27 +1643,62 @@ Deno.serve(async (req) => {
   const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium, {
     groqModel: GROQ_MODEL,
     claudeModel: CLAUDE_MODEL,
+    claudeOpusModel: CLAUDE_OPUS_MODEL,
     claudeAnahtariVar: !!Deno.env.get('ANTHROPIC_API_KEY'),
     zorlaSaglayici: Deno.env.get('VEKIL_ZORLA_SAGLAYICI') ?? undefined,
     zorlaModel: Deno.env.get('VEKIL_ZORLA_MODEL') ?? undefined,
   });
 
+  // MÜTALAA yalnız "ai" katmanına açıktır (çok adımlı, token yoğun; deneme
+  // hakkı bunu kapsamaz). BU KONTROL, aşağıdaki deneme hakkı rezervasyonundan
+  // ÖNCE gelmeli — aksi hâlde bir deneme kullanıcısının mütalaa isteği hem
+  // reddedilir HEM DE değerli 3 hakkından biri boşuna harcanmış olurdu.
+  if (isMutalaa && tier !== 'ai') {
+    return new Response(JSON.stringify({ error: 'tier_required', tier, required: 'ai' }), {
+      status: 403,
+      headers: CORS,
+    });
+  }
+
+  // DENEME HAKKI — ödeme yapmamış (free/baslangic) kullanıcıya YAŞAM BOYU
+  // (aylık değil, hiç yenilenmeyen) DENEME_SORU_LIMIT kadar bir tat. Kontör/
+  // modLimits kontrolünden ÖNCE çalışır ve tükenmişse isteği BAŞLAMADAN
+  // reddeder — aksi hâlde aşağıdaki kontör kontrolü devreye girip (cfg.billable
+  // true olduğundan) sıfır bakiyeyle karşılaşıp deneme hakkı olan bir adayı da
+  // "kontör bitti" diye yanlış sebeple reddederdi.
+  if (cfg.denemeLimit) {
+    const sk = svc();
+    const rezerveEdildi = sk
+      ? (await sk.rpc('deneme_hakki_rezerve_et', {
+          p_user: userData.user.id,
+          p_limit: cfg.denemeLimit,
+        })).data
+      : false;
+    if (!rezerveEdildi) {
+      return new Response(
+        JSON.stringify({ error: 'deneme_hakki_bitti', tier, hak: cfg.denemeLimit }),
+        { status: 402, headers: CORS }
+      );
+    }
+  }
+
   // KONTÖR KONTROLÜ — yalnız faturalı VE kontörle ölçülen katmanda.
   //
-  // "ai" katmanı bunu ATLAR: 1.499₺/ay sabit ücrete SAYIYLA dahil bir hak
+  // "ai" katmanı bunu ATLAR: 1.999₺/ay sabit ücrete SAYIYLA dahil bir hak
   // veriyoruz (bkz. cfg.modLimits ve aşağıdaki denetim), kontör bakiyesine
   // hiç bakmaz — "bakiyeniz kadar" değil "ayda 250 soru + 12 mütalaa" sözü
-  // verildi. Diğer ücretli katmanlarda (pro/elit) değişen bir şey yok.
+  // verildi. Deneme hakkı (cfg.denemeLimit) da aynı sebeple atlar — yukarıda
+  // zaten ayrı bir kapıdan geçti, kontöre hiç bakmamalı (free/baslangic
+  // kullanıcının kontör bakiyesi zaten yok).
   //
-  // Ücretsiz katman kontöre bakmaz: orada maliyet sıfır, sınır sağlayıcının
-  // günlük tavanı. Faturalı katmanda ise bakiye bitmişse isteği BAŞLAMADAN
-  // reddediyoruz; yarısı üretilmiş bir dilekçeyi bakiye yetmedi diye kesmek
-  // hem parayı hem işi çöpe atardı.
+  // Faturalı katmanda bakiye bitmişse isteği BAŞLAMADAN reddediyoruz; yarısı
+  // üretilmiş bir dilekçeyi bakiye yetmedi diye kesmek hem parayı hem işi
+  // çöpe atardı.
   //
   // Eşik sıfır değil: en pahalı istek (mütalaa) birkaç lira tutabiliyor ve
   // 0,10 TL bakiyeyle başlatılan bir istek kullanıcıyı eksiye düşürürdü.
   let kontor = 0;
-  if (cfg.billable && !cfg.modLimits) {
+  if (cfg.billable && !cfg.modLimits && !cfg.denemeLimit) {
     const sk = svc();
     if (sk) {
       const r = await sk.from('ai_kontor').select('bakiye_try').eq('user_id', userData.user.id).maybeSingle();
@@ -1745,13 +1798,6 @@ Deno.serve(async (req) => {
     );
   }
 
-  // MÜTALAA yalnız Pro/Elit üyelere açıktır (çok adımlı, token yoğun).
-  if (isMutalaa && tier !== 'pro' && tier !== 'elit' && tier !== 'ai') {
-    return new Response(JSON.stringify({ error: 'tier_required', tier, required: 'pro' }), {
-      status: 403,
-      headers: CORS,
-    });
-  }
   const model = cfg.model;
   const maxOutputTokens = cfg.maxOut;
   const provider = cfg.provider;
@@ -2161,7 +2207,7 @@ async function dosyaKunyesi(
     // istek 413 ile REDDEDİLİYOR, yani cevap hiç üretilmiyor. Zayıf bir cevap,
     // hiç cevap olmamasından iyidir. Claude'da böyle bir tavan yok, dosya tam
     // gider.
-    const dilekceMaxTok = Math.max(cfg.maxOut, tier === 'elit' || tier === 'ai' ? 4096 : 3000);
+    const dilekceMaxTok = Math.max(cfg.maxOut, tier === 'ai' ? 4096 : 3000);
     let dilekceKirpildi = false;
     if (provider === 'groq') {
       const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + structure + promptQuestion, dilekceMaxTok);
@@ -2355,6 +2401,7 @@ async function dosyaKunyesi(
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
       const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
       if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
+      if (cfg.denemeLimit && kusurlu) await denemeHakkiSerbestBirak(userData.user.id);
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'dilekce');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
@@ -2457,6 +2504,7 @@ async function dosyaKunyesi(
         .filter((k) => (kunye as Record<string, string | undefined>)[k]).length;
       const kusurlu = doluAlan === 0;
       if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
+      if (cfg.denemeLimit && kusurlu) await denemeHakkiSerbestBirak(userData.user.id);
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'kunye');
       return new Response(
         JSON.stringify({
@@ -2571,6 +2619,7 @@ async function dosyaKunyesi(
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
       const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
       if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
+      if (cfg.denemeLimit && kusurlu) await denemeHakkiSerbestBirak(userData.user.id);
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'belge');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,

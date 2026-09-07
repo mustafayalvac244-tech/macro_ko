@@ -1249,6 +1249,7 @@ export const tr = {
   'ai.errMutalaaKapali': 'Mütalaa şu anda kullanılamıyor. Bu özellik güçlü modelle çalışır; ücretsiz katmanın modeli mütalaa için yeterli değil ve hatalı sonuç üretebiliyor. Dilekçe ve belge inceleme çalışmaya devam ediyor.',
   'ai.errSoruKota': 'Bu ayki AI sorunuz doldu. Hak ayın başında yenilenir.',
   'ai.errMutalaaKota': 'Bu ayki mütalaa hakkınız doldu. Hak ayın başında yenilenir.',
+  'ai.errDenemeBitti': '3 ücretsiz deneme sorunuzu kullandınız. AI’ı sınırsız kullanmak için AI paketine geçebilirsiniz.',
   'ai.errDailyQuota': 'Bugünkü ücretsiz AI hakkı doldu. Hak her gün yenilenir; yarın tekrar deneyebilir ya da kesintisiz kullanım için Pro’ya geçebilirsiniz.',
   'ai.errQuotaWait': 'Ücretsiz AI hakkı şu an dolu. Yaklaşık {dk} dakika sonra tekrar deneyebilir ya da kesintisiz kullanım için Pro’ya geçebilirsiniz.',
   'ai.errQuota': 'Bu ayki AI kullanım limitinize ulaştınız. Daha yüksek bir pakete geçerek devam edebilirsiniz.',
