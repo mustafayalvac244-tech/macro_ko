@@ -16,7 +16,7 @@ birincisi.
 | 2 | Hukuki mütalaa | 0 | 5 senaryo, ücretsiz katmanda 0/5 | Claude anahtarı — **kod hazır, karar sizde. Bu oturumda dokunulmadı.** |
 | 3 | Belge inceleme | 7 | BU OTURUMDA: senaryo havuzu 3'ten 6'ya çıkarıldı (kira sözleşmesi, vekâletname, icra ödeme emri) ve "uydurma tutar" denetimi bağlandı — ama yeni 3 senaryo GERÇEK MODELLE HENÜZ KOŞULMADI (kota/ortam kısıtı), yalnız kendi regex kalıpları örnek metinle sınandı | Senaryo 6 → 15, gerçek modelle ölçüm |
 | 4 | İçtihat arama | 7 | isabet@5 %89,3 — ama 30 soruyu da ölçütü de BEN yazdım | Avukat gözüyle doğrulama — bu oturumda yapılamaz (avukat gerekiyor) |
-| 5 | Mevzuat arama | 7 | 67 soru, isabet %70,6 (bu oturumda BAŞTAN ÖLÇÜLDÜ, aynı sayı doğrulandı — deterministik, tekrar üretilebilir). KÖK SEBEP BULUNDU: "iş davası hangi mahkemede açılır" gibi sorgularda "iş" (2 harf) uzunluk filtresine takılıp atılıyor, geri kalan her kelime (dava/mahkemede/açılır) stopword — sorgu TAMAMEN BOŞ kalıyor. Aday düzeltme ("iş" için uzunluk istisnası) yazıldı, `search_mevzuat_fts_v2` olarak ayrı deploy edilip YAN YANA ölçüldü: %69,1 (47/68) — BAZ ÇIKTIDAN KÖTÜ. Geri alındı (canlı fonksiyon DEĞİŞMEDİ) | İsabeti %80'e çıkarmak. Bu, DÖRDÜNCÜ başarısız deneme — kök sebep artık NET ama doğru düzeltme hâlâ bulunamadı |
+| 5 | Mevzuat arama | 7 | 67 soru. BU OTURUMDA BAŞTAN ÖLÇÜLDÜ — ama sayı KARARSIZ çıktı: HIBRIT modda art arda koşularda %70,6 (48/68) sonra tutarlı biçimde %69,1 (47/68). Sebep araştırıldı: embed-ictihat çağrı hatası DEĞİL (ölçüldü, 0); muhtemelen anlamsal (ANN) aramanın kendi determinizm eksikliği. KÖK SEBEP BULUNDU (deterministik SQL analiziyle): "iş davası hangi mahkemede açılır" gibi sorgularda "iş" (2 harf) uzunluk filtresine takılıp atılıyor, geri kalan kelimeler (dava/mahkemede/açılır) stopword — sorgu TAMAMEN BOŞ kalıyor. Aday düzeltme (`search_mevzuat_fts_v2`, "iş" için uzunluk istisnası) KONTROLLÜ A/B ile ölçüldü: soru soru BİREBİR AYNI sonuç (no-op, ne iyileşme ne kötüleşme) | İsabeti %80'e çıkarmak. Bu, DÖRDÜNCÜ deneme — kök sebep NET ama düzeltme yetersiz; ayrıca ölçümün kendisinin gürültülü olduğu bu oturumda ortaya çıktı |
 | 6 | Süre & duruşma takibi | 6 | **49 duruşmaya karşılık 9 süre** | Bildirim eklendi ama ORAN HENÜZ DEĞİŞMEDİ — bu, günler içindeki gerçek kullanıcı davranışıyla ölçülür, bu oturumda ölçülemez |
 | 7 | Dosya & müvekkil yönetimi | 8 | 35 tabloda RLS tam, 42 dosya/48 müvekkil gerçek kullanım | ✅ tamam |
 | 8 | AI sohbet | 6 | 13 soruda 9 geçti diye bir sayı vardı ama TEKRAR ÜRETİLEMİYORDU (ölçüm betiği yoktu). BU OTURUMDA: kalıcı ölçüm betiği (eval-sohbet.mjs) ve 10 senaryo yazıldı, saf değerlendirme mantığı 13 testle sınandı — ama GERÇEK MODELLE HENÜZ KOŞULMADI (kota/ortam kısıtı) | Kısalık + set büyütme + GERÇEK ölçüm — betik hazır, sonuç yok |
@@ -32,9 +32,14 @@ birincisi.
 > 6'ya çıkarıldı ve AI sohbet için hiç var olmayan kalıcı ölçüm betiği
 > yazıldı — ikisi de GERÇEK MODELLE HENÜZ KOŞULMADI, bu yüzden puanları
 > DEĞİŞMEDİ (kod yazmak puan yükseltmez, ölçüm yükseltir); (d) mevzuat
-> aramada kök sebep bulundu ve dördüncü bir düzeltme denendi — ÖLÇÜMDE
-> BAZDAN KÖTÜ çıktı (%70,6 → %69,1) ve geri alındı, canlı davranış
-> değişmedi; (e) dilekçenin tam 11 senaryolu resmi ölçümü ortam yeniden
+> aramada kök sebep bulundu ve dördüncü bir düzeltme denendi — kontrollü
+> A/B ölçümde SORU SORU BİREBİR AYNI çıktı (no-op, ne iyileşme ne
+> kötüleşme), geri alındı, canlı davranış değişmedi. İlk ölçümde "%70,6'dan
+> %69,1'e düştü" diye YANLIŞ bir sonuç çıkarmıştım — aynı anda değişmemiş
+> orijinal fonksiyon da %69,1 verince bunun bir ölçüm dalgalanması olduğu
+> anlaşıldı; ayrıca `eval-arama.mjs`'in HIBRIT modunun kendisinin (muhtemelen
+> anlamsal aramanın ANN indeksi yüzünden) tam deterministik olmadığı ortaya
+> çıktı; (e) dilekçenin tam 11 senaryolu resmi ölçümü ortam yeniden
 > başlatılınca yarıda kesildi, 5/11'lik kısmi sonuç var ama "10/11" iddia
 > edilemez. Dört madde (mütalaa, süre takibi, dosya aktarma, içtihat arama)
 > YAPISAL sebeplerle bu oturumda 8'e çıkarılamaz. **Hiçbir özellik bu
@@ -133,7 +138,7 @@ KDV, stopaj ve serbest meslek makbuzu desteği eklendi (canlıya dağıtıldı,
 mevcut 51 kayıt korundu). Karşı yan vekalet ücreti ve tahsilat takibi
 (gecikmiş taksit/ödeme hatırlatması gibi) bu oturumda ele alınmadı.
 
-### D. Mevzuat aramasını %69'dan %80'e — 4. deneme de başarısız, ama kök sebep artık BİLİNİYOR
+### D. Mevzuat aramasını %69'dan %80'e — 4. deneme NO-OP çıktı, ama ÖLÇÜMÜN KENDİSİNDE ayrı bir kusur bulundu
 "İş davası hangi mahkemede açılır" gibi sorgularda `search_mevzuat_fts`'in
 `q_clean` hesaplaması TAMAMEN BOŞ çıkıyor: "dava", "mahkemede", "açılır" hepsi
 stopword, "iş" ise yalnızca 2 harf olduğu için `length(x) >= 3` filtresine
@@ -143,17 +148,36 @@ doğrulandı — tahmin değil.
 
 Düzeltme denendi: yalnız "iş" kelimesi için uzunluk istisnası, ayrı bir
 `search_mevzuat_fts_v2` fonksiyonu olarak deploy edilip `EVAL_RPC` ile canlıdan
-YAN YANA ölçüldü. Sonuç: %69,1 (47/68) — bazdan (%70,6) KÖTÜ. Hedef sorgu
-("iş davası...") YİNE geçemedi (artık İşK maddeleri gürültü olarak araya
-giriyor) ve ayrıca önceden geçen bir soru bozuldu. Aday fonksiyon canlı
-veritabanından SİLİNDİ, migration dosyası commit edilmedi — kural gereği
-("ölçüm düşerse değişiklik geri alınır").
+ölçüldü. İLK ölçüm %69,1 (47/68) çıktı ve bunu "bazdan (%70,6) kötü" diye
+YANLIŞ RAPORLADIM — çünkü aynı ANDA, HİÇBİR ŞEY DEĞİŞTİRİLMEMİŞ orijinal
+fonksiyonu TEKRAR ölçünce de %69,1 (47/68) çıktı. Yani ilk günkü %70,6 (48/68)
+sayısı muhtemelen kendisi bir ölçüm dalgalanmasıydı, "v2 kötüleştirdi" değil.
 
-Bu, DÖRDÜNCÜ ardışık başarısız deneme. Kök sebep artık kesin biliniyor ama
-doğru düzeltme (yalnız "iş" için istisna yetmiyor; muhtemelen "iş" başka bir
-kelimeyle birlikteyken farklı ağırlıklandırılmalı, ya da stopA'daki
-"mahkemede"/"açılır" gibi kelimeler madde başlığı eşleşmesinde tam stopword
-olmamalı) bu oturumda bulunamadı.
+Bunun üzerine KONTROLLÜ bir A/B yapıldı: v2 ve orijinal fonksiyon AYNI koşuda,
+art arda, aynı 67 soruyla ölçüldü. Sonuç: SORU SORU BİREBİR AYNI (`diff` boş
+çıktı) — 47/68, %69,1, hiçbir soru farklı geçmedi/kaldı. Yani "iş" istisnası
+NE İYİLEŞTİRDİ NE KÖTÜLEŞTİRDİ; tamamen etkisiz bir değişiklik (no-op).
+Hedeflenen sorgu ("iş davası...") bu haliyle de geçemedi — istisna kelimeyi
+sorguya sokuyor ama İşK (İş Kanunu) maddeleri gürültü olarak araya girip
+faydayı sıfırlıyor.
+
+AYRI VE ÖNEMLİ BULGU: `eval-arama.mjs`'in HIBRIT (anlamsal) modu, AYNI
+sorgu kümesinde, AYNI değişmemiş fonksiyonla, art arda koşularda FARKLI
+sayı üretebiliyor (48/68 → 47/68 → 47/68). embed-ictihat çağrısının sessizce
+başarısız olup saf FTS'e düşmesi ihtimaline karşı bir sayaç eklendi
+(`degradeSoru`) — bu sayaç 0 çıktı, yani sebep bu DEĞİL. Muhtemel sebep,
+`match_mevzuat_semantic`'in kullandığı yaklaşık en-yakın-komşu (ANN) vektör
+indeksinin çağrılar arası TAM DETERMİNİSTİK olmaması. Bu, "%70,6" gibi tek
+bir sayının kendisinin ±1-2 puan gürültü payı taşıdığı anlamına gelir ve
+gelecekte biri bu sayıyı tek koşuyla karşılaştırıp yanlış sonuca varabilir —
+bu yüzden burada kayda geçti.
+
+Bu, DÖRDÜNCÜ ardışık başarısız deneme (bu kez "başarısız" = ölçülebilir etki
+yok, "regresyon" değil). Kök sebep hâlâ doğru: "iş" gibi kısa kelimelerin
+atılması gerçek bir sorun. Ama düzeltme YETMİYOR — "iş" tek başına sorguya
+girince İşK/İşMK ayrımını yapamıyor; muhtemelen kanun kısaltmasına özgü bir
+ağırlıklandırma ya da "iş davası"/"iş mahkemesi" gibi İKİ KELİMELİK öbekleri
+tek birim sayan bir yaklaşım gerekiyor. Bu oturumda bulunamadı.
 
 ### E. Belge inceleme senaryolarını 3'ten 15'e — 6'ya çıkarıldı, GERÇEK MODELLE HENÜZ KOŞULMADI
 Üç yeni senaryo eklendi (kira sözleşmesi, vekâletname, icra ödeme emri).

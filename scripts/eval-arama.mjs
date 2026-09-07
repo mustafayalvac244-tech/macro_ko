@@ -43,6 +43,11 @@ if (!url || !key) {
 /** "TBK 315" biçimini aramanın döndürdüğü satırla karşılaştırılabilir hale getirir. */
 const anahtar = (kanun, madde) => `${kanun} ${madde}`.trim();
 
+// HIBRIT modda embed-ictihat başarısız olup saf FTS'e düşen soru sayısı.
+// Bu sayı > 0 ise raporlanan yüzde o koşuda gerçek anlamsal katkıyı TAM
+// yansıtmıyor demektir — bkz. ara()'daki gerekçe.
+let degradeSoru = 0;
+
 async function ara(soru, deneme = 0) {
   const res = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/rpc/${RPC}`, {
     method: 'POST',
@@ -65,8 +70,16 @@ async function ara(soru, deneme = 0) {
   // ai-chat ile AYNI birleştirme: anlamsal sonuçlar sona eklenir, kelime
   // sıralaması bozulmaz. Farklı birleştirseydik ölçtüğümüz şey, kullanıcının
   // gördüğü şey olmazdı.
-  const vec = await sorguVektoru(soru);
-  if (!vec) return liste;
+  //
+  // ÖLÇÜLEN ARIZA: embed-ictihat çağrısı ara sıra geçici olarak başarısız
+  // oluyor (ağ/soğuk başlangıç) ve eskiden SESSİZCE pes edip o soruyu
+  // saf FTS'e düşürüyordu. Bu, AYNI KOD üzerinde art arda koşularda FARKLI
+  // yüzdeler üretiyordu (%70,6 sonra %69,1 — hiçbir şey değişmemişken):
+  // ölçümün kendisi gürültülüydü. Artık bir kez daha denenir ve düşen soru
+  // sayılır (degradeSoru).
+  let vec = await sorguVektoru(soru);
+  if (!vec) vec = await sorguVektoru(soru);
+  if (!vec) { degradeSoru++; return liste; }
   const sem = await rpc('match_mevzuat_semantic', { q_embedding: vec, match_count: 4 });
   for (const r of sem) {
     const a = anahtar(r.kanun_short, r.madde_no);
@@ -136,6 +149,12 @@ const oran = toplamBeklenen ? ((bulunan / toplamBeklenen) * 100).toFixed(1) : '0
 console.log(`\n${'─'.repeat(60)}`);
 console.log(`İSABET: ${bulunan}/${toplamBeklenen} beklenen madde ilk ${K} sonuçta (%${oran})`);
 console.log(`Ölçülen soru: ${sorular.length}${hatali ? ` (${hatali} tanesi hata verdi)` : ''}`);
+if (HIBRIT && degradeSoru > 0) {
+  console.log(
+    `UYARI: ${degradeSoru} soruda embed-ictihat başarısız oldu, saf FTS'e düşüldü — ` +
+      'bu koşudaki yüzde tam anlamsal katkıyı yansıtmıyor, tekrar koşmayı düşünün.'
+  );
+}
 
 if (kacanlar.length) {
   console.log(`Kaçan madde bulunan soru sayısı: ${kacanlar.length}/${sorular.length}`);
