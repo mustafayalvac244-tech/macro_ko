@@ -12,14 +12,14 @@ birincisi.
 
 | # | Özellik | Bugün | Kanıt | 8 için gereken |
 |---|---------|-------|-------|----------------|
-| 1 | Dilekçe üretimi | 7 | 11 senaryo, tek koşuda hâlâ %100 yok. BU OTURUMDA: sunucuya "uydurma tutar" denetimi eklendi (üretime dağıtıldı) — daha önce bu koruma yalnız ölçüm betiğinde vardı, avukatın gördüğü çıktıda hiç çalışmıyordu. cevap-kismi-odeme regresyon senaryosu resmi ölçümde tekrar koşuldu: 1/1 geçti (tek koşu, tutarlılık kanıtı değil) | Tam 11 senaryonun tek koşuda 10/11'i |
+| 1 | Dilekçe üretimi | 7 | 11 senaryo, tek koşuda hâlâ %100 yok. BU OTURUMDA: sunucuya "uydurma tutar" denetimi eklendi (üretime dağıtıldı). Tam 11 senaryonun resmi ölçümü başlatıldı ama ortam yeniden başlatılınca YARIDA KESİLDİ — yalnız 5/11 ölçüldü (4 geçti, 1'i BİLİNEN bir kusurdan [çakışan dayanak — TBK m.315/m.352 birlikte] düştü, bu YENİ bir bulgu değil). Tam koşu sonucu YOK | Tam 11 senaryonun tek koşuda 10/11'i — hâlâ ölçülemedi |
 | 2 | Hukuki mütalaa | 0 | 5 senaryo, ücretsiz katmanda 0/5 | Claude anahtarı — **kod hazır, karar sizde. Bu oturumda dokunulmadı.** |
-| 3 | Belge inceleme | 7 | yalnız 3 senaryo — üçten %100 çıkarmak istatistik değil. BU OTURUMDA: aynı "uydurma tutar" denetimi belge incelemeye de bağlandı (üretime dağıtıldı) | Senaryo 3 → 15 (bu oturumda yapılmadı) |
+| 3 | Belge inceleme | 7 | BU OTURUMDA: senaryo havuzu 3'ten 6'ya çıkarıldı (kira sözleşmesi, vekâletname, icra ödeme emri) ve "uydurma tutar" denetimi bağlandı — ama yeni 3 senaryo GERÇEK MODELLE HENÜZ KOŞULMADI (kota/ortam kısıtı), yalnız kendi regex kalıpları örnek metinle sınandı | Senaryo 6 → 15, gerçek modelle ölçüm |
 | 4 | İçtihat arama | 7 | isabet@5 %89,3 — ama 30 soruyu da ölçütü de BEN yazdım | Avukat gözüyle doğrulama — bu oturumda yapılamaz (avukat gerekiyor) |
-| 5 | Mevzuat arama | 7 | 67 soru, isabet %70,6 | İsabeti %80'e çıkarmak — bu oturumda denenmedi (üç önceki deneme ölçümde geriledi, bkz. geçmiş) |
+| 5 | Mevzuat arama | 7 | 67 soru, isabet %70,6 (bu oturumda BAŞTAN ÖLÇÜLDÜ, aynı sayı doğrulandı — deterministik, tekrar üretilebilir). KÖK SEBEP BULUNDU: "iş davası hangi mahkemede açılır" gibi sorgularda "iş" (2 harf) uzunluk filtresine takılıp atılıyor, geri kalan her kelime (dava/mahkemede/açılır) stopword — sorgu TAMAMEN BOŞ kalıyor. Aday düzeltme ("iş" için uzunluk istisnası) yazıldı, `search_mevzuat_fts_v2` olarak ayrı deploy edilip YAN YANA ölçüldü: %69,1 (47/68) — BAZ ÇIKTIDAN KÖTÜ. Geri alındı (canlı fonksiyon DEĞİŞMEDİ) | İsabeti %80'e çıkarmak. Bu, DÖRDÜNCÜ başarısız deneme — kök sebep artık NET ama doğru düzeltme hâlâ bulunamadı |
 | 6 | Süre & duruşma takibi | 6 | **49 duruşmaya karşılık 9 süre** | Bildirim eklendi ama ORAN HENÜZ DEĞİŞMEDİ — bu, günler içindeki gerçek kullanıcı davranışıyla ölçülür, bu oturumda ölçülemez |
 | 7 | Dosya & müvekkil yönetimi | 8 | 35 tabloda RLS tam, 42 dosya/48 müvekkil gerçek kullanım | ✅ tamam |
-| 8 | AI sohbet | 6 | 13 soruda 9 geçti (ÖLÇÜM BETİĞİ YOK — tekrarlanabilir değil, bu da bir eksiklik). Uzunluk kuralı sistem talimatında zaten var (önceki oturumda eklenmiş) | Kısalık + set büyütme — bu oturumda yeniden ölçülmedi |
+| 8 | AI sohbet | 6 | 13 soruda 9 geçti diye bir sayı vardı ama TEKRAR ÜRETİLEMİYORDU (ölçüm betiği yoktu). BU OTURUMDA: kalıcı ölçüm betiği (eval-sohbet.mjs) ve 10 senaryo yazıldı, saf değerlendirme mantığı 13 testle sınandı — ama GERÇEK MODELLE HENÜZ KOŞULMADI (kota/ortam kısıtı) | Kısalık + set büyütme + GERÇEK ölçüm — betik hazır, sonuç yok |
 | 9 | Dosya aktarma (UYAP) | 5 | 7/7 ama: senaryoları da istemi de ben yazdım, özellik KAPALI ve hiç kullanılmadı | Gerçek belge + gerçek kullanıcı — bu oturumda yapılamaz (kapalı özellik) |
 | 10 | Finans | 7 | 51 kayıt, gerçek kullanım. BU OTURUMDA: KDV/stopaj/serbest meslek makbuzu desteği eklendi — canlı veritabanına dağıtıldı (mevcut 51 kayıt doğrulanarak korundu), 7 birim testiyle hesap mantığı sınandı | Gerçek kullanıcının bu alanları KULLANMASI ve doğru hesapladığının teyidi — henüz hiç kullanılmadı, bu yüzden 8 değil 7 |
 
@@ -28,13 +28,19 @@ birincisi.
 > — 6'dan 7'ye, çünkü henüz KULLANILMADI; (b) sunucuda aylardır var olan bir
 > güvenlik açığı (uydurma tutarın yalnız ölçümde yakalanıp üretimde hiç
 > yakalanmaması) kapatıldı — dilekçe ve belge incelemeyi ikisini de etkiler
-> ama tek başına puanı 8'e taşımaz, çünkü o özelliklerin 8 için eksik olduğu
-> şey (istatistiksel örneklem, avukat doğrulaması) başka bir şey. Dört madde
-> (mütalaa, süre takibi, dosya aktarma, içtihat arama) YAPISAL sebeplerle bu
-> oturumda 8'e çıkarılamaz — bunu işin başında söyledim, sonunda da aynı kaldı.
-> Üç madde (mevzuat arama, belge inceleme senaryo genişletmesi, AI sohbet
-> ölçümü) zaman/kota kısıtı yüzünden bu oturumda hiç denenmedi; "denendi ama
-> başarısız oldu" değil, "denenmedi" — ikisini karıştırmamak lazım.
+> ama tek başına puanı 8'e taşımaz; (c) belge inceleme senaryo havuzu 3'ten
+> 6'ya çıkarıldı ve AI sohbet için hiç var olmayan kalıcı ölçüm betiği
+> yazıldı — ikisi de GERÇEK MODELLE HENÜZ KOŞULMADI, bu yüzden puanları
+> DEĞİŞMEDİ (kod yazmak puan yükseltmez, ölçüm yükseltir); (d) mevzuat
+> aramada kök sebep bulundu ve dördüncü bir düzeltme denendi — ÖLÇÜMDE
+> BAZDAN KÖTÜ çıktı (%70,6 → %69,1) ve geri alındı, canlı davranış
+> değişmedi; (e) dilekçenin tam 11 senaryolu resmi ölçümü ortam yeniden
+> başlatılınca yarıda kesildi, 5/11'lik kısmi sonuç var ama "10/11" iddia
+> edilemez. Dört madde (mütalaa, süre takibi, dosya aktarma, içtihat arama)
+> YAPISAL sebeplerle bu oturumda 8'e çıkarılamaz. **Hiçbir özellik bu
+> oturumda 8'e ulaşmadı.** İki gerçek üretim düzeltmesi (finans, uydurma
+> tutar) canlıya dağıtıldı; geri kalanı ya ölçüm altyapısı (henüz koşulmadı)
+> ya da "denendi, işe yaramadı, geri alındı" (mevzuat arama).
 
 > **Puanlama kuralı 1.** Bir puan ancak ÖLÇÜM değiştiğinde değişir. Kod yazmak
 > puanı yükseltmez; ölçüm yükseltir. 6 numarada bildirim yazıldı ama 49/9 oranı
@@ -127,12 +133,33 @@ KDV, stopaj ve serbest meslek makbuzu desteği eklendi (canlıya dağıtıldı,
 mevcut 51 kayıt korundu). Karşı yan vekalet ücreti ve tahsilat takibi
 (gecikmiş taksit/ödeme hatırlatması gibi) bu oturumda ele alınmadı.
 
-### D. Mevzuat aramasını %69'dan %80'e
-Kalan 21 kaçağın kök sebepleri ayrıştırılacak. İlk bakışta iki sınıf var:
-kısa ama belirleyici kelimeler ("iş kazası", "iş mahkemesi") ve havuz eksiği.
+### D. Mevzuat aramasını %69'dan %80'e — 4. deneme de başarısız, ama kök sebep artık BİLİNİYOR
+"İş davası hangi mahkemede açılır" gibi sorgularda `search_mevzuat_fts`'in
+`q_clean` hesaplaması TAMAMEN BOŞ çıkıyor: "dava", "mahkemede", "açılır" hepsi
+stopword, "iş" ise yalnızca 2 harf olduğu için `length(x) >= 3` filtresine
+takılıp hiç değerlendirilmiyor — ağırlıklı arama kolu (tsq) devre dışı kalıyor.
+Bu, deterministik SQL analiziyle (canlı veriye sorgu atarak, model çağırmadan)
+doğrulandı — tahmin değil.
 
-### E. Belge inceleme senaryolarını 3'ten 15'e
-Üç senaryodan %100 çıkarmak istatistik değil.
+Düzeltme denendi: yalnız "iş" kelimesi için uzunluk istisnası, ayrı bir
+`search_mevzuat_fts_v2` fonksiyonu olarak deploy edilip `EVAL_RPC` ile canlıdan
+YAN YANA ölçüldü. Sonuç: %69,1 (47/68) — bazdan (%70,6) KÖTÜ. Hedef sorgu
+("iş davası...") YİNE geçemedi (artık İşK maddeleri gürültü olarak araya
+giriyor) ve ayrıca önceden geçen bir soru bozuldu. Aday fonksiyon canlı
+veritabanından SİLİNDİ, migration dosyası commit edilmedi — kural gereği
+("ölçüm düşerse değişiklik geri alınır").
+
+Bu, DÖRDÜNCÜ ardışık başarısız deneme. Kök sebep artık kesin biliniyor ama
+doğru düzeltme (yalnız "iş" için istisna yetmiyor; muhtemelen "iş" başka bir
+kelimeyle birlikteyken farklı ağırlıklandırılmalı, ya da stopA'daki
+"mahkemede"/"açılır" gibi kelimeler madde başlığı eşleşmesinde tam stopword
+olmamalı) bu oturumda bulunamadı.
+
+### E. Belge inceleme senaryolarını 3'ten 15'e — 6'ya çıkarıldı, GERÇEK MODELLE HENÜZ KOŞULMADI
+Üç yeni senaryo eklendi (kira sözleşmesi, vekâletname, icra ödeme emri).
+Regex kalıpları örnek "doğru/eksik inceleme" metinleriyle sınandı (canlı
+modele gitmeden bir kör nokta bulunup düzeltildi — bkz. commit mesajı) ama
+gerçek modelle hiç koşulmadı. 15'e ulaşmadı, kota/ortam kısıtı yüzünden.
 
 ### F. Karar bekleyenler
 - Mütalaa: Claude anahtarı
