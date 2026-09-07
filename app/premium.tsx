@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import type { PurchasesPackage } from 'react-native-purchases';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
 import { useTrialStatus, MONTHLY_PRICE_TRY, AI_PRICE_TRY } from '@/hooks/useTrialStatus';
 import { supabase } from '@/lib/supabase';
+import { buyPackage, getCurrentOffering, isPremiumActive, restorePurchases } from '@/lib/purchases';
 import { useT } from '@/i18n';
 import { fonts, radius, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -15,9 +17,14 @@ import type { ThemeColors } from '@/theme/palettes';
 /**
  * Üyelik ekranı — TEK plan: 7 gün ücretsiz deneme → aylık abonelik (399 ₺).
  *
- * IAP (App Store / Google Play) henüz bağlı değil. "Aboneliğe Geç" seçimi
- * kaydeder ve "çok yakında" bilgisi verir — sahte ödeme YOK, ücretsiz premium
- * da VERİLMEZ. IAP bağlanınca bu buton gerçek satın almaya döner.
+ * "Aboneliğe Geç" artık RevenueCat üzerinden GERÇEK satın alma başlatır
+ * (bkz. src/lib/purchases.ts). RevenueCat henüz kurulmadıysa (API anahtarı
+ * yok) ya da web'deyse teklif hiç yüklenmez ve buton eskisi gibi "çok
+ * yakında" der — sahte ödeme YOK, ücretsiz premium da VERİLMEZ. Satın alma
+ * başarılı olsa bile son söz sunucudadır: gerçek premium durumu, RevenueCat'in
+ * gönderdiği webhook profiles.is_premium'u güncelleyince açılır (bkz.
+ * supabase/functions/revenuecat-webhook) — bu yüzden başarılı satın almadan
+ * sonra profil kısa süre sonra yeniden okunur.
  *
  * Deneme durumu useTrialStatus'tan gelir (hesap açılış tarihine göre). Şu an
  * "yumuşak" mod: deneme bitince uygulama kilitlenmez, sadece bu ekrana yönlendiren
@@ -29,8 +36,11 @@ export default function PremiumScreen() {
   const styles = makeStyles(colors);
   const t = useT();
   const session = useAuthStore((s) => s.session);
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
   const trial = useTrialStatus();
   const [isPremium, setIsPremium] = useState(false);
+  const [offeringPkg, setOfferingPkg] = useState<PurchasesPackage | null>(null);
+  const [busyPlan, setBusyPlan] = useState<'temel' | 'ai' | 'restore' | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem('vekil-premium').then((v) => {
@@ -48,14 +58,74 @@ export default function PremiumScreen() {
       });
   }, [session?.user.id]);
 
+  // RevenueCat henüz kurulmadıysa (API anahtarı yok) ya da web'deyse null
+  // döner — bu durumda alttaki onSubscribe eski "çok yakında" davranışına
+  // düşer, hiçbir şey kırılmaz.
+  useEffect(() => {
+    getCurrentOffering().then((offering) => setOfferingPkg(offering?.monthly ?? offering?.availablePackages[0] ?? null));
+  }, []);
+
   const subscribed = isPremium || trial.subscribed;
 
-  const onSubscribe = (plan: 'temel' | 'ai') => {
+  /**
+   * Sunucu (webhook) profiles.is_premium'u işleyene kadar birkaç saniye
+   * sürebilir — satın alma başarılı olduktan hemen sonra tek seferlik profil
+   * okumak genelde eskiyi görür. Birkaç kez, artan aralıklarla tekrar dener.
+   */
+  const profilYenidenOku = () => {
+    let deneme = 0;
+    const dene = () => {
+      refreshProfile().catch(() => {});
+      deneme++;
+      if (deneme < 4) setTimeout(dene, deneme * 2000);
+    };
+    dene();
+  };
+
+  const onSubscribe = async (plan: 'temel' | 'ai') => {
     AsyncStorage.setItem('vekil-plan-intent', plan).catch(() => {});
-    Alert.alert(
-      t('premium.soonTitle'),
-      t('premium.soonBody', { plan: plan === 'ai' ? t('premium.aiName') : t('premium.oneName') })
-    );
+    // AI katmanı ayrı bir ürün/yetki gerektirir, henüz RevenueCat'te
+    // tanımlanmadı — o hâlâ "çok yakında" akışında.
+    if (plan === 'ai' || Platform.OS === 'web' || !offeringPkg) {
+      Alert.alert(
+        t('premium.soonTitle'),
+        t('premium.soonBody', { plan: plan === 'ai' ? t('premium.aiName') : t('premium.oneName') })
+      );
+      return;
+    }
+    setBusyPlan(plan);
+    try {
+      const sonuc = await buyPackage(offeringPkg);
+      if (sonuc.kind === 'success') {
+        if (isPremiumActive(sonuc.customerInfo)) setIsPremium(true);
+        profilYenidenOku();
+        Alert.alert(t('premium.purchaseSuccessTitle'), t('premium.purchaseSuccessBody'));
+      } else if (sonuc.kind === 'error') {
+        Alert.alert(t('premium.purchaseFailedTitle'), sonuc.message);
+      }
+      // 'cancelled' ve 'unavailable' sessizce geçilir — kullanıcı zaten
+      // vazgeçmiş ya da hiç teklif sunulmamıştır.
+    } finally {
+      setBusyPlan(null);
+    }
+  };
+
+  const onRestore = async () => {
+    setBusyPlan('restore');
+    try {
+      const sonuc = await restorePurchases();
+      if (sonuc.kind === 'success') {
+        if (isPremiumActive(sonuc.customerInfo)) setIsPremium(true);
+        profilYenidenOku();
+        Alert.alert(t('premium.restoreDoneTitle'), t('premium.restoreDoneBody'));
+      } else if (sonuc.kind === 'error') {
+        Alert.alert(t('premium.purchaseFailedTitle'), sonuc.message);
+      } else {
+        Alert.alert(t('premium.restoreDoneTitle'), t('premium.restoreNoneBody'));
+      }
+    } finally {
+      setBusyPlan(null);
+    }
   };
 
   const features = [
@@ -126,9 +196,18 @@ export default function PremiumScreen() {
           {!subscribed && (
             <Pressable
               onPress={() => onSubscribe('temel')}
-              style={({ pressed }) => [styles.cta, styles.ctaHi, pressed && { opacity: 0.85 }]}
+              disabled={busyPlan !== null}
+              style={({ pressed }) => [
+                styles.cta,
+                styles.ctaHi,
+                (pressed || busyPlan !== null) && { opacity: 0.85 },
+              ]}
             >
-              <Text style={[styles.ctaText, { color: onGold(colors.gold) }]}>{t('premium.subscribeCta')}</Text>
+              {busyPlan === 'temel' ? (
+                <ActivityIndicator color={onGold(colors.gold)} />
+              ) : (
+                <Text style={[styles.ctaText, { color: onGold(colors.gold) }]}>{t('premium.subscribeCta')}</Text>
+              )}
             </Pressable>
           )}
 
@@ -186,6 +265,16 @@ export default function PremiumScreen() {
           <Ionicons name="shield-checkmark-outline" size={14} color={colors.textMuted} />
           <Text style={styles.noteText}>{t('premium.storeNote')}</Text>
         </View>
+
+        {/* Apple/Google incelemesi bunu ZORUNLU tutar: daha önce satın alınmış
+            bir aboneliği (ör. cihaz değişimi sonrası) yeniden bağlama yolu. */}
+        <Pressable onPress={onRestore} disabled={busyPlan !== null} style={styles.restoreRow} hitSlop={8}>
+          {busyPlan === 'restore' ? (
+            <ActivityIndicator size="small" color={colors.textSecondary} />
+          ) : (
+            <Text style={styles.restoreText}>{t('premium.restoreCta')}</Text>
+          )}
+        </Pressable>
       </ScrollView>
     </Screen>
   );
@@ -408,5 +497,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     flexShrink: 1,
+  },
+  restoreRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    minHeight: 32,
+  },
+  restoreText: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 13,
+    color: colors.primary,
   },
 });

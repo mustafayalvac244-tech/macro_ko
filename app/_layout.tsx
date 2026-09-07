@@ -23,6 +23,7 @@ import { DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
 import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
+import { configurePurchases, identifyPurchaser, resetPurchaser } from '@/lib/purchases';
 import { hydrateLanguage } from '@/i18n';
 import { hydrateTheme } from '@/theme/themeStore';
 import { useTheme } from '@/theme/useTheme';
@@ -85,6 +86,9 @@ export default function RootLayout() {
     hydrateLock().catch(() => {});
     hydrateAdvanceAlerts().catch(() => {});
     registerForNotificationsAsync().catch(() => {});
+    // Anahtar yoksa (RevenueCat henüz kurulmadıysa) veya web'deyse sessizce
+    // atlar — bkz. src/lib/purchases.ts.
+    configurePurchases();
 
     // Immersive mode: hide the Android system navigation bar while using the
     // app; a swipe from the bottom edge reveals it temporarily.
@@ -111,6 +115,23 @@ export default function RootLayout() {
 
     return unsubscribe;
   }, [initialize]);
+
+  // RevenueCat kimliğini oturumla senkron tutar: giriş yapınca satın alma
+  // geçmişi gerçek kullanıcıya bağlanır (bkz. src/lib/purchases.ts), çıkış
+  // yapınca sıfırlanır — aksi hâlde bir sonraki kullanıcı öncekinin RevenueCat
+  // kimliğini (ve dolayısıyla premium durumunu) devralabilirdi.
+  //
+  // logOut yalnız GERÇEK bir "önce girişliydi, şimdi çıktı" geçişinde çağrılır
+  // — RevenueCat, hiç giriş yapılmamış (baştan anonim) bir kimlikte logOut()
+  // çağrılırsa hata fırlatıyor; uygulama her açılışta (henüz oturum yokken)
+  // gereksiz bir hata/uyarı üretmesin diye önceki değer izlenir.
+  const userId = useAuthStore((s) => s.session?.user.id);
+  const oncekiUserId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (userId) identifyPurchaser(userId);
+    else if (oncekiUserId.current) resetPurchaser();
+    oncekiUserId.current = userId;
+  }, [userId]);
 
   // Native splash'ı, uygulama iskeleti ekrana İLK DÜŞTÜĞÜ AN kapat — fontları
   // BEKLEME. Böylece ilk resim, sadece JavaScript yüklenene kadar durur (diğer

@@ -613,6 +613,13 @@ export const tr = {
   'premium.storeNote': 'Ödeme App Store ve Google Play üzerinden güvenle alınır. İstediğiniz zaman iptal edebilirsiniz.',
   'premium.soonTitle': 'Çok yakında',
   'premium.soonBody': '{plan} paketi çok yakında satın alınabilir olacak. Seçiminizi aldık; açılır açılmaz size haber vereceğiz.',
+  'premium.purchaseSuccessTitle': 'Aboneliğiniz başladı 🎉',
+  'premium.purchaseSuccessBody': 'Ödemeniz alındı. Premium özellikler birkaç saniye içinde açılacak.',
+  'premium.purchaseFailedTitle': 'Satın alma tamamlanamadı',
+  'premium.restoreCta': 'Satın almaları geri yükle',
+  'premium.restoreDoneTitle': 'Kontrol edildi',
+  'premium.restoreDoneBody': 'Önceki aboneliğiniz bulundu ve hesabınıza bağlandı.',
+  'premium.restoreNoneBody': 'Bu hesaba bağlı önceden yapılmış bir satın alma bulunamadı.',
   // Tek plan: 7 gün deneme → aylık abonelik
   'premium.oneName': 'Vekil Pro',
   'premium.oneSub': 'Büronuzun tüm gücü tek üyelikte. İlk 7 gün ücretsiz deneyin, sonra aylık devam edin.',

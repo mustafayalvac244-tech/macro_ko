@@ -677,6 +677,13 @@ export const en: Record<keyof typeof tr, string> = {
   'premium.storeNote': 'Payment is handled securely via the App Store and Google Play. Cancel anytime.',
   'premium.soonTitle': 'Coming very soon',
   'premium.soonBody': 'The {plan} plan will be available to purchase very soon. We saved your choice and will let you know the moment it opens.',
+  'premium.purchaseSuccessTitle': 'Your subscription is active 🎉',
+  'premium.purchaseSuccessBody': 'Payment received. Premium features will unlock within a few seconds.',
+  'premium.purchaseFailedTitle': 'Purchase could not be completed',
+  'premium.restoreCta': 'Restore purchases',
+  'premium.restoreDoneTitle': 'Checked',
+  'premium.restoreDoneBody': 'We found your previous subscription and linked it to this account.',
+  'premium.restoreNoneBody': 'No previous purchase was found for this account.',
   // Single plan: 7-day trial → monthly subscription
   'premium.oneName': 'Vekil Pro',
   'premium.oneSub': 'Your whole practice in one membership. Free for the first 7 days, then continue monthly.',

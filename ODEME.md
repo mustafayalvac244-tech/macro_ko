@@ -1,4 +1,12 @@
-# Ödeme Kurulumu ve Deneme Ödemesi Rehberi (Stripe)
+# Ödeme Kurulumu ve Deneme Ödemesi Rehberi (Stripe) — GÜNCEL DEĞİL
+
+> ⚠️ **Bu dosya artık geçerli akışı anlatmıyor.** Stripe React Native SDK'sı
+> App Store başvurusu için uygulamadan tamamen kaldırıldı (bkz. `APPSTORE.md`
+> madde 5) — `payment-sheet` ekranı hiçbir yerden çağrılmıyor, ölü kod.
+> Premium abonelik artık **RevenueCat** (App Store/Google Play IAP) ile
+> alınıyor — kurulum için **`IAP_KURULUM.md`** dosyasına bakın. Bu dosya
+> yalnız tarihsel referans için duruyor; AI kontör (kredi) satın alma akışı
+> henüz hiçbir arayüze bağlanmadı, ayrı bir iş kalemi.
 
 Vekil'de ödemeler **Stripe** ile alınır. Kart bilgileri hiçbir zaman uygulamada
 veya veritabanınızda saklanmaz — Stripe'ın güvenli ödeme ekranında (PCI-DSS
