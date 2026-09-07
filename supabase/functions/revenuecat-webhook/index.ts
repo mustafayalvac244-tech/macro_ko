@@ -66,7 +66,12 @@ Deno.serve(async (req) => {
       app_user_id?: string;
       store?: string;
       expiration_at_ms?: number | null;
-      price?: number | null;
+      // "price" HER ZAMAN USD'dir (RevenueCat dokümantasyonu: "USD price of
+      // the transaction"). Yerel para birimindeki gerçek tutar ayrı bir
+      // alanda gelir ve "currency" ile EŞLEŞEN odur — ikisini karıştırıp
+      // price'ı currency ile birlikte kaydetmek yanlış denetim kaydı üretir
+      // (ör. 4,99 USD tutarı "4,99 TRY" diye yazılır).
+      price_in_purchased_currency?: number | null;
       currency?: string | null;
       environment?: string;
     };
@@ -112,7 +117,7 @@ Deno.serve(async (req) => {
     p_event_type: olay.type,
     p_platform: platformFromStore(olay.store),
     p_expires_at: expiresAt,
-    p_amount: typeof olay.price === 'number' ? olay.price : null,
+    p_amount: typeof olay.price_in_purchased_currency === 'number' ? olay.price_in_purchased_currency : null,
     p_currency: olay.currency ?? 'TRY',
   });
 
