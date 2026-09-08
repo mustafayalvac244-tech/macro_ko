@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeLegalDue,
+  DINI_BAYRAM_KAPSAM_SON_YIL,
   isInJudicialRecess,
+  isLikelyReligiousHoliday,
   isNonWorkingDay,
   recessRuleForGroup,
 } from '@/utils/legalDates';
@@ -183,5 +185,33 @@ describe('adli tatil — üç kanun, iki farklı sayım başlangıcı', () => {
     const r = computeLegalDue(tatildeBiten, 2, 'week', 'none');
     expect(r.recessExtended).toBe(false);
     expect(ymd(r.due)).toBe('2026-08-24');
+  });
+});
+
+/**
+ * TEL KAPAN — dini bayram tablosunun sessizce tükenmesini engeller.
+ *
+ * isLikelyReligiousHoliday, tablo bittiğinde her tarih için false döner ve
+ * "bu tarih bayrama denk gelebilir" uyarısı sessizce kaybolur. Ekrandaki genel
+ * uyarı bu kaybı kısmen karşılar, ama özel uyarının farkına varılmadan yok
+ * olması istenmez. Bu test, kapsam dolmadan ÖNCE kırmızıya döner ki tablo
+ * güncellensin.
+ */
+describe('dini bayram tablosu kapsamı', () => {
+  it('içinde bulunulan yılı ve gelecek yılı kapsar', () => {
+    const buYil = new Date().getFullYear();
+    expect(
+      DINI_BAYRAM_KAPSAM_SON_YIL,
+      `Dini bayram tablosu ${DINI_BAYRAM_KAPSAM_SON_YIL} yılında bitiyor. ` +
+        `src/utils/legalDates.ts içindeki RELIGIOUS_HOLIDAY_RANGES listesine ` +
+        `${DINI_BAYRAM_KAPSAM_SON_YIL + 1} ve sonrası için Diyanet takviminden ` +
+        `tarihleri ekleyin ve DINI_BAYRAM_KAPSAM_SON_YIL sabitini güncelleyin.`
+    ).toBeGreaterThanOrEqual(buYil + 1);
+  });
+
+  it('kapsam içindeki bilinen bir bayram gününü tanır', () => {
+    // Kurban Bayramı 2027: 16–19 Mayıs.
+    expect(isLikelyReligiousHoliday(new Date(2027, 4, 17))).toBe(true);
+    expect(isLikelyReligiousHoliday(new Date(2027, 4, 25))).toBe(false);
   });
 });

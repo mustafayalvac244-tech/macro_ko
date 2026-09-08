@@ -92,6 +92,21 @@ const RELIGIOUS_HOLIDAY_RANGES: Array<[string, string]> = [
   ['2028-05-05', '2028-05-08'], // Kurban Bayramı 2028
 ];
 
+/**
+ * Bayram tablosunun kapsadığı SON yıl.
+ *
+ * NEDEN DIŞA VERİLİYOR. `isLikelyReligiousHoliday`, tablo tükendiğinde her
+ * tarih için sessizce false döner: 2029'da bir süre Kurban Bayramı'na denk
+ * gelse bile "bayrama denk gelebilir" uyarısı ÇIKMAZ. Ekranda her zaman
+ * gösterilen genel uyarı ("dini bayram tatilleri hesaba katılmaz") bu kaybı
+ * kısmen karşılıyor, ama özel uyarının sessizce yok olması yine de istenmez.
+ *
+ * Bu sabit, tabloyu güncellemeyi hatırlatan bir TESTİN tutunma noktasıdır
+ * (bkz. tests/legalDates.test.ts — kapsam bitmeden kırmızıya döner). Çalışma
+ * anında bir davranışı değiştirmez; amacı sessiz çürümeyi görünür kılmaktır.
+ */
+export const DINI_BAYRAM_KAPSAM_SON_YIL = 2028;
+
 export function isLikelyReligiousHoliday(d: Date): boolean {
   const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   return RELIGIOUS_HOLIDAY_RANGES.some(([start, end]) => key >= start && key <= end);
