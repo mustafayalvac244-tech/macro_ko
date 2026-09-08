@@ -767,9 +767,21 @@ Deno.serve(async (req) => {
         }
       }
 
+      // TAM İFADE KİPİ EMSAL DALINDA DA ÇALIŞIR. Önceden bu dal `mode`
+      // parametresine hiç bakmıyordu; kullanıcı "Tam ifade"yi seçse de düz
+      // kelime araması yapılıyordu, yani düğme sessizce etkisizdi. Tırnaklı
+      // sorgu UYAP Emsal'de de ardışık ifade araması yapar (künye akışı zaten
+      // buna dayanıyor). "En yeni" burada UYGULANMAZ: emsalSearch bir sıralama
+      // parametresi almıyor ve elimizdeki tek sayfayı tarihe göre dizmek
+      // "en yeni kararlar" olmaz, kullanıcıyı yanıltırdı — o kip istemcide
+      // gizleniyor.
+      const emsalMode = body.mode ?? 'smart';
+      const tekKelime = query.trim().split(/\s+/).length < 2;
+      const emsalQuery = emsalMode === 'exact' && !tekKelime ? `"${query}"` : query;
+
       // Sayfa 2+ : sayfalama yalnız canlı UYAP Emsal üzerinden (havuz sayfa 1'de karışır).
       if (page > 1) {
-        const live = await emsalSearch(query, page, pageSize);
+        const live = await emsalSearch(emsalQuery, page, pageSize);
         await attachSnippets(live.hits, query);
         return json({ hits: live.hits, total: live.total, page, source: 'live' });
       }
@@ -821,7 +833,7 @@ Deno.serve(async (req) => {
       let source = 'corpus';
       if (hits.length < 8) {
         try {
-          const live = await emsalSearch(query, 1, pageSize);
+          const live = await emsalSearch(emsalQuery, 1, pageSize);
           pushRows(live.hits);
           total = live.total;
           source = hits.length > live.hits.length ? 'hybrid' : 'live';
@@ -831,9 +843,33 @@ Deno.serve(async (req) => {
         }
       }
 
-      const paged = hits.slice(0, pageSize);
+      // TAM İFADE KİPİNDE ARŞİV SATIRLARINI SÜZ.
+      //
+      // Canlı emsal sonuçları zaten tırnaklı sorguyla geldiği için ardışık
+      // eşleşmedir. Ama KENDİ arşivimizden gelenler FTS ve anlamsal aramayla
+      // seçildi; ikisi de ifadeyi ARDIŞIK aramaz. Süzmezsek "tam ifade" denen
+      // listede ifadeyi hiç içermeyen kararlar kalırdı.
+      //
+      // Süzme yalnız SNIPPET'İ OLAN satırlara uygulanır: snippet'i olanlar tam
+      // metni elimizde olan arşiv satırlarıdır. Snippet'i olmayanlar canlıdan
+      // gelmiştir ve bu noktada metinleri henüz çekilmemiştir (attachSnippets
+      // aşağıda çalışır) — onları metne bakarak elemek, hepsini yanlışlıkla
+      // silmek olurdu.
+      const ifade = query.trim().toLocaleLowerCase('tr');
+      const suzulmus =
+        emsalMode === 'exact' && !tekKelime
+          ? hits.filter((h) => !h.snippet || h.snippet.toLocaleLowerCase('tr').includes(ifade))
+          : hits;
+
+      // Sonuç boş çıkarsa BOŞ dönülür; süzmeyi iptal edip alakasız kararları
+      // göstermek "tam ifade" sözünü bozardı.
+      const paged = suzulmus.slice(0, pageSize);
       // Canlı gelen (havuzda tam metni olmayan) kararlara önizleme ekle.
       await attachSnippets(paged, query);
+      // total UPSTREAM değerdir, dönen satır sayısı DEĞİL. Bir ara burada
+      // exact kipinde total'ı paged.length'e eşitlemiştim: ekranda "5 sonuç"
+      // yazar, "daha fazla yükle" de kırılırdı. Tırnaklı sorgunun kendi toplamı
+      // zaten doğru sayıdır.
       return json({ hits: paged, total, page: 1, source });
     }
 

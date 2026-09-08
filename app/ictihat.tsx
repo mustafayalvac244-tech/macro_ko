@@ -62,6 +62,44 @@ export default function IctihatScreen() {
   const [openMevzuat, setOpenMevzuat] = useState<MevzuatHit | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
 
+  /**
+   * ARAMA KİPLERİNİN GERÇEKTEN ETKİLİ OLDUĞU DURUMLAR.
+   *
+   * İki ölçülmüş uyumsuzluk vardı ve ikisi de kullanıcıya etkisiz düğme
+   * gösteriyordu:
+   *
+   * 1) TEK KELİMELİK SORGUDA "Tam ifade" hiçbir şey değiştirmez. Uçtaki ayrım
+   *    `multiWord` kontrolüne bağlı: sorgu tek kelimeyse hem "Akıllı" hem
+   *    "Tam ifade" aynı düz aramaya düşer. "İstismar" yazıp iki düğme arasında
+   *    gidip gelmek sonucu değiştirmiyordu.
+   *
+   * 2) İSTİNAF/YEREL dalında "En yeni" YAPILAMAZ. O dal UYAP Emsal'e gidiyor
+   *    ve `emsalSearch` bir sıralama parametresi almıyor; yalnız arananKelime,
+   *    pageSize ve pageNumber gönderiliyor. Elimizdeki tek sayfayı tarihe göre
+   *    dizmek "en yeni kararlar" demek olmazdı — sadece o sayfanın içini
+   *    sıralardı ve kullanıcıyı yanıltırdı. Bu yüzden kip GİZLENİYOR, sahte
+   *    bir uygulama yazılmıyor. ("Tam ifade" o dalda gerçekten çalışıyor:
+   *    tırnaklı sorgu UYAP Emsal'de de tam ifade araması yapıyor.)
+   */
+  const tekKelime = draft.trim().split(/\s+/).filter(Boolean).length < 2;
+  const modeChips = (
+    [
+      { id: 'smart', icon: 'sparkles-outline', label: t('ictihat.modeSmartSearch'), pasif: false },
+      { id: 'exact', icon: 'text-outline', label: t('ictihat.modeExact'), pasif: tekKelime },
+      ...(court === 'emsal'
+        ? []
+        : [{ id: 'recent', icon: 'time-outline', label: t('ictihat.modeRecent'), pasif: false } as const]),
+    ] as const
+  ).map((m) => ({ ...m }));
+
+  const modeHint = tekKelime && searchMode === 'exact'
+    ? t('ictihat.hintExactSingle')
+    : searchMode === 'exact'
+      ? t('ictihat.hintExact')
+      : searchMode === 'recent'
+        ? t('ictihat.hintRecent')
+        : t('ictihat.hintSmart');
+
   const runSearch = (q: string, c: IctihatCourt = court, m: IctihatMode = searchMode) => {
     setSelected(new Set());
     search(q, c, m);
@@ -205,7 +243,12 @@ export default function IctihatScreen() {
               key={c.id}
               onPress={() => {
                 setCourt(c.id);
-                if (searched && draft.trim()) runSearch(draft, c.id);
+                // İstinaf/Yerel'de "En yeni" desteklenmiyor; o kipteyken bu
+                // dala geçilirse sessizce Akıllı'ya dönülür, aksi hâlde
+                // kullanıcı görünmeyen bir kiple arama yapardı.
+                const m: IctihatMode = c.id === 'emsal' && searchMode === 'recent' ? 'smart' : searchMode;
+                if (m !== searchMode) setSearchMode(m);
+                if (searched && draft.trim()) runSearch(draft, c.id, m);
               }}
               style={[styles.courtChip, court === c.id && styles.courtChipActive]}
             >
@@ -214,17 +257,14 @@ export default function IctihatScreen() {
           ))}
         </View>
 
-        {/* Arama modu: Akıllı (tam ifade önce) / Tam ifade (ardışık) / En yeni */}
+        {/* Arama modu: Akıllı (tam ifade önce) / Tam ifade (ardışık) / En yeni
+            Üç kip de ETKİSİZ olabileceği durumlarda kullanıcıya sunulmaz ya da
+            soluklaştırılır — bkz. aşağıdaki iki kural. */}
         <View style={styles.modeRow}>
-          {(
-            [
-              { id: 'smart', icon: 'sparkles-outline', label: t('ictihat.modeSmartSearch') },
-              { id: 'exact', icon: 'text-outline', label: t('ictihat.modeExact') },
-              { id: 'recent', icon: 'time-outline', label: t('ictihat.modeRecent') },
-            ] as const
-          ).map((m) => (
+          {modeChips.map((m) => (
             <Pressable
               key={m.id}
+              disabled={m.pasif}
               onPress={() => {
                 // Aktif moda tekrar basınca varsayılana (Akıllı) dön — böylece
                 // kullanıcı bir modda takılı kalmaz.
@@ -232,17 +272,34 @@ export default function IctihatScreen() {
                 setSearchMode(next);
                 if (searched && draft.trim()) runSearch(draft, court, next);
               }}
-              style={[styles.modeChip, searchMode === m.id && styles.modeChipActive]}
+              style={[
+                styles.modeChip,
+                searchMode === m.id && styles.modeChipActive,
+                m.pasif && styles.modeChipDisabled,
+              ]}
             >
               <Ionicons
                 name={m.icon}
                 size={12}
-                color={searchMode === m.id ? colors.primary : colors.textMuted}
+                color={m.pasif ? colors.textMuted : searchMode === m.id ? colors.primary : colors.textMuted}
               />
-              <Text style={[styles.modeChipText, searchMode === m.id && styles.modeChipTextActive]}>{m.label}</Text>
+              <Text
+                style={[
+                  styles.modeChipText,
+                  searchMode === m.id && styles.modeChipTextActive,
+                  m.pasif && styles.modeChipTextDisabled,
+                ]}
+              >
+                {m.label}
+              </Text>
             </Pressable>
           ))}
         </View>
+
+        {/* Seçili kipin NE YAPTIĞINI tek satırda anlatır. Önceden uygulamada
+            bu kiplerin anlamını söyleyen hiçbir metin yoktu; kullanıcı üç
+            düğme görüp ne işe yaradıklarını tahmin etmek zorundaydı. */}
+        <Text style={styles.modeHint}>{modeHint}</Text>
 
         <ScrollView
           style={styles.flex}
@@ -1222,6 +1279,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   modeChipActive: {
     backgroundColor: colors.primarySoft,
     borderColor: colors.primary,
+  },
+  modeChipDisabled: {
+    opacity: 0.4,
+  },
+  modeChipTextDisabled: {
+    color: colors.textMuted,
+  },
+  modeHint: {
+    ...typography.small,
+    color: colors.textMuted,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xs,
+    lineHeight: 16,
   },
   modeChipText: {
     ...typography.small,
