@@ -29,9 +29,11 @@
     font-size: 25pt; font-weight: 600; letter-spacing: -.2pt;
     line-height: 1.02; margin: 0 0 4pt 0; color: #10202f;
   }
+  /* tracking kept low throughout: wide letter-spacing makes PDF text extract as
+     "T E X T", which resume parsers fail to read */
   .tagline {
-    margin: 5pt 0 0 0; font-size: 8.4pt; font-weight: 600; color: #2f5d8a;
-    text-transform: uppercase; letter-spacing: 1.7pt;
+    margin: 5pt 0 0 0; font-size: 8.6pt; font-weight: 600; color: #2f5d8a;
+    text-transform: uppercase; letter-spacing: .75pt;
   }
   .contact { text-align: right; font-size: 8.9pt; color: #5f6771; line-height: 1.55; white-space: nowrap; }
   .rule { height: 1.6pt; background: #12263a; margin: 7pt 0 0 0; }
@@ -41,7 +43,7 @@
   section { margin-top: 9pt; }
   h2 {
     position: relative;
-    font-size: 8.4pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.7pt;
+    font-size: 8.6pt; font-weight: 700; text-transform: uppercase; letter-spacing: .75pt;
     color: #12263a; margin: 0 0 5pt 0; padding-bottom: 3pt; border-bottom: .6pt solid #cfd6de;
   }
   h2::after {
@@ -49,11 +51,9 @@
     width: 20pt; height: 1.5pt; background: #2f5d8a;
   }
 
-  /* lead paragraph: a touch larger and airier than the body */
   p.summary { margin: 0; font-size: 10.1pt; line-height: 1.45; color: #262c34; }
 
-  /* fine detail */
-  .ac { font-size: .93em; letter-spacing: .35pt; }
+  .ac { font-size: .93em; letter-spacing: .3pt; }
   .dot { color: #b3bcc6; }
   p, li { text-wrap: pretty; orphans: 2; widows: 2; }
 
@@ -103,7 +103,7 @@
   .pagehead {
     break-before: page; page-break-before: always;
     display: flex; justify-content: space-between; align-items: baseline;
-    font-size: 7.8pt; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5pt;
+    font-size: 7.8pt; font-weight: 600; text-transform: uppercase; letter-spacing: .6pt;
     color: #8a929b; padding-bottom: 3pt; border-bottom: .5pt solid #d8dee4; margin-bottom: 9pt;
   }
   .cont { font-size: 10.4pt; font-weight: 600; color: #2f5d8a; margin-bottom: 2pt; }
@@ -124,7 +124,7 @@
       mustafayalvac243@gmail.com
     </div>
   </div>
-  <p class="tagline">Electrical &amp; Electronics Engineer · E-Drive Development &amp; EV Quality</p>
+  <p class="tagline">Electrical Engineer · Electric Drive Unit Testing &amp; Validation</p>
   <div class="rule"></div>
   <div class="rule-thin"></div>
 </header>
@@ -132,23 +132,26 @@
 <section class="avoid">
   <h2>Professional Profile</h2>
   <p class="summary">
-    Electrical and electronics engineer with over five years in electric powertrain, covering both sides of the supply
-    chain. Four years developing traction machines at a motor manufacturer, rising from design engineer to <span class="ac">R&amp;D</span> Lead,
-    then a deliberate move to the <span class="ac">OEM</span> side for vehicle-level experience. Designed, validated and industrialised electric
-    machines for e-mobility and industrial programmes including <span class="ac">TOGG</span>, <span class="ac">ISUZU</span>, <span class="ac">ASELSAN</span>–<span class="ac">KARSAN</span> and Nordex. Now responsible
-    at Hyundai Motor Manufacturing Turkey for charging-efficiency validation, <span class="ac">ECU</span> and <span class="ac">CAN</span> diagnostics, and quality
-    assurance on new <span class="ac">IONIQ</span> models.
+    Electrical and electronics engineer with over five years in electric drive development, testing and validation.
+    Four years designing, testing and commissioning traction machines at a motor manufacturer, rising from design
+    engineer to <span class="ac">R&amp;D</span> Lead, followed by a move to the <span class="ac">OEM</span> side for
+    vehicle-level validation. Knows motors and inverters from the inside — electromagnetic design of
+    <span class="ac">IPM</span>, synchronous reluctance and induction machines — and has taken them through prototype
+    build, bench testing, commissioning and industrialisation. Now runs charging-efficiency and performance validation
+    on <span class="ac">IONIQ</span> models at Hyundai Motor Manufacturing Turkey, with
+    <span class="ac">CAN</span> data logging, <span class="ac">ECU</span> diagnostics and high-precision electrical
+    measurement.
   </p>
 </section>
 
 <section class="avoid">
   <h2>Core Competencies</h2>
-  <div class="row"><div class="k">Electric Machine Design</div><div class="v"><span class="ac">IPM</span>, synchronous reluctance &amp; induction machines <span class="dot">·</span> electromagnetic topology <span class="dot">·</span> <span style="white-space:nowrap">FEA-based optimisation</span></div></div>
-  <div class="row"><div class="k">E-Mobility Systems</div><div class="v">Electric Drive Unit (<span class="ac">EDU</span>) integration <span class="dot">·</span> traction motor sizing <span class="dot">·</span> inverter &amp; battery supplier coordination</div></div>
-  <div class="row"><div class="k">Test &amp; Validation</div><div class="v">Prototype validation <span class="dot">·</span> dyno &amp; performance testing <span class="dot">·</span> charging efficiency</div></div>
-  <div class="row"><div class="k">Vehicle Diagnostics</div><div class="v"><span class="ac">CAN</span> bus analysis <span class="dot">·</span> <span class="ac">ECU</span> fault diagnosis <span class="dot">·</span> in-vehicle data logging <span class="dot">·</span> <span class="ac">ECU</span> measurement &amp; calibration</div></div>
-  <div class="row"><div class="k">Quality &amp; Compliance</div><div class="v">Quality management systems <span class="dot">·</span> customer &amp; certification audits <span class="dot">·</span> countermeasure processes</div></div>
-  <div class="row"><div class="k">Leadership</div><div class="v"><span class="ac">R&amp;D</span> team building <span class="dot">·</span> project leadership <span class="dot">·</span> training &amp; technical documentation</div></div>
+  <div class="row"><div class="k">Drive Unit Testing</div><div class="v">Dyno &amp; performance testing <span class="dot">·</span> prototype validation <span class="dot">·</span> commissioning <span class="dot">·</span> test set-up &amp; execution</div></div>
+  <div class="row"><div class="k">Validation Planning</div><div class="v">Validation test plans <span class="dot">·</span> test methods <span class="dot">·</span> design reviews <span class="dot">·</span> test reports &amp; datasheets</div></div>
+  <div class="row"><div class="k">Motors &amp; Inverters</div><div class="v"><span class="ac">IPM</span>, synchronous reluctance &amp; induction machines <span class="dot">·</span> electromagnetic design <span class="dot">·</span> inverter &amp; battery integration</div></div>
+  <div class="row"><div class="k">Data Logging &amp; Analysis</div><div class="v"><span class="ac">CAN</span> bus data acquisition <span class="dot">·</span> <span class="ac">ECU</span> fault diagnosis <span class="dot">·</span> measurement data analysis</div></div>
+  <div class="row"><div class="k">Electrical Measurement</div><div class="v">Charging efficiency <span class="dot">·</span> efficiency losses <span class="dot">·</span> power quality <span class="dot">·</span> high-precision instrumentation</div></div>
+  <div class="row"><div class="k">Standards &amp; Quality</div><div class="v">Global <span class="ac">EV</span> standards <span class="dot">·</span> certification &amp; customer audits <span class="dot">·</span> quality management systems</div></div>
 </section>
 
 <section>
@@ -162,8 +165,8 @@
     <div class="company">Hyundai Motor Manufacturing Turkey <span class="loc">· Kocaeli, Türkiye</span></div>
     <ul>
       <li>Lead charging-efficiency and performance validation for the <span class="ac">IONIQ</span> series against global <span class="ac">EV</span> standards and internal quality gates.</li>
+      <li>Set up and execute electrical measurements on vehicle and component level, quantifying charging performance, efficiency losses and power quality with Hioki power analysers.</li>
       <li>Trace vehicle-level electrical faults to root cause with Vector CANoe/CANalyzer, Intrepid Vehicle Spy and <span class="ac">ETAS</span> <span class="ac">INCA</span>, analysing recorded <span class="ac">CAN</span> traffic and <span class="ac">ECU</span> behaviour to close issues raised in production and validation.</li>
-      <li>Quantify charging performance, efficiency losses and power quality through high-precision measurement with Hioki power analysers.</li>
       <li>Run quality assurance for the <span class="ac">BJ</span> new-model programme as project leader, aligning <span class="ac">R&amp;D</span> and production teams from technical validation to launch readiness.</li>
       <li>Manage the Global Quality Management System (<span class="ac">GQMS</span>) improvement pipeline, turning shop-floor findings into countermeasures that lift production efficiency and product quality.</li>
     </ul>
@@ -171,7 +174,7 @@
 
   <div class="job">
     <div class="jobhead">
-      <div class="employer">AEMOT Electric Motors &amp; Generators</div>
+      <div class="employer"><span class="ac">AEMOT</span> Electric Motors &amp; Generators</div>
       <div class="meta">2021 – 2025</div>
     </div>
 
@@ -181,27 +184,27 @@
         <div class="meta">2025</div>
       </div>
       <ul>
-        <li>Built and led a multidisciplinary <span class="ac">R&amp;D</span> team spanning design, simulation, test and technical documentation, and set development priorities across the electric machine portfolio.</li>
         <li>Owned the full development cycle for motors and generators, from electromagnetic design and simulation through prototyping, validation testing and industrialisation.</li>
+        <li>Built and led a multidisciplinary <span class="ac">R&amp;D</span> team spanning design, simulation, test and technical documentation, and set development priorities across the electric machine portfolio.</li>
         <li>Converted a diesel forklift to electric drive: specified and developed the dedicated traction motor, then coordinated the inverter and battery suppliers through to a validated prototype.</li>
       </ul>
     </div>
 
     <div class="pagehead">
-      <span>Mustafa Yalvaç <span class="dot">·</span> Curriculum Vitae</span>
+      <span>Mustafa Yalvaç · Curriculum Vitae</span>
       <span>Page 2 of 2</span>
     </div>
 
     <div class="subrole avoid" style="margin-top:0">
-      <div class="cont">AEMOT Electric Motors &amp; Generators <em>(continued)</em></div>
+      <div class="cont"><span class="ac">AEMOT</span> Electric Motors &amp; Generators <em>(continued)</em></div>
       <div class="jobhead">
         <div class="role">Senior <span class="ac">R&amp;D</span> Engineer</div>
         <div class="meta">2023 – 2025</div>
       </div>
       <ul>
+        <li>Delivered motor design, testing and commissioning within electric drive unit (<span class="ac">EDU</span>) programmes for electric vehicles.</li>
         <li>Led the electromagnetic design and optimisation of industrial and e-mobility machines, from concept to design freeze.</li>
         <li>Prepared the technical documentation for international certification and customer audits, and led the on-site reviews.</li>
-        <li>Delivered motor design, testing and commissioning within electric drive unit (<span class="ac">EDU</span>) programmes for electric vehicles.</li>
         <li>Delivered training on electric machine design and test methodology to universities, industry partners and internal engineering teams.</li>
       </ul>
     </div>
@@ -213,12 +216,11 @@
       </div>
       <ul>
         <li>Designed the electromagnetic topology of synchronous reluctance, induction and <span class="ac">IPM</span> machines in Motor-CAD, Altair Flux and Ansys Maxwell.</li>
+        <li>Supported prototype build and testing on the shop floor, including coil winding, rotor–stator assembly and prototype validation.</li>
         <li>Wrote the product datasheets and test reports for the electric machine range.</li>
-        <li>Supported production and testing on the shop floor, including coil winding, rotor–stator assembly and prototype validation.</li>
       </ul>
     </div>
   </div>
-
 </section>
 
 <section class="avoid">
@@ -234,9 +236,9 @@
 
 <section class="avoid">
   <h2>Technical Skills</h2>
-  <div class="row"><div class="k">Electric Machine Design</div><div class="v">Ansys Maxwell, Altair Flux, Motor-CAD, Simcenter <span class="ac">SPEED</span></div></div>
-  <div class="row"><div class="k"><span class="ac">CAN</span> Analysis &amp; Diagnostics</div><div class="v">Vector CANoe, Vector CANalyzer, <span class="ac">ETAS</span> <span class="ac">INCA</span>, Intrepid Vehicle Spy (neoVI FIRE)</div></div>
-  <div class="row"><div class="k"><span class="ac">CAD</span></div><div class="v">SolidWorks, AutoCAD</div></div>
+  <div class="row"><div class="k">Electric Machine Design</div><div class="v">Ansys Maxwell, Altair Flux, Motor-CAD, Simcenter SPEED</div></div>
+  <div class="row"><div class="k">Test, Logging &amp; Diagnostics</div><div class="v">Vector CANoe, Vector CANalyzer, <span class="ac">ETAS</span> <span class="ac">INCA</span>, Intrepid Vehicle Spy (neoVI FIRE), Hioki Power Analyzer</div></div>
+  <div class="row"><div class="k">3D <span class="ac">CAD</span></div><div class="v">SolidWorks, AutoCAD</div></div>
   <div class="row"><div class="k">Systems &amp; Reporting</div><div class="v"><span class="ac">IFS</span> <span class="ac">ERP</span>, Microsoft Office</div></div>
 </section>
 
@@ -253,9 +255,10 @@
 </section>
 
 <section class="avoid">
-  <h2>Languages</h2>
+  <h2>Languages &amp; Availability</h2>
   <div class="row"><div class="k">Turkish</div><div class="v">Native</div></div>
   <div class="row"><div class="k">English</div><div class="v">Professional working proficiency</div></div>
+  <div class="row"><div class="k">Relocation</div><div class="v">Open to relocating to Germany</div></div>
 </section>
 
 </body>
