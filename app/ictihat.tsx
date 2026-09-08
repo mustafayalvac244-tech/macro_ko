@@ -14,8 +14,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AI_ENABLED } from '@/config/features';
-import { ComingSoon } from '@/components/ComingSoon';
+import { AI_ICTIHAT_ANALIZ_ENABLED } from '@/config/features';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import {
@@ -50,7 +49,9 @@ export default function IctihatScreen() {
   const sum = useIctihatSummary();
   const kunye = useIctihatKunye();
 
-  const [mode, setMode] = useState<'analyze' | 'search' | 'kunye'>(AI_ENABLED ? 'analyze' : 'search');
+  const [mode, setMode] = useState<'analyze' | 'search' | 'kunye'>(
+    AI_ICTIHAT_ANALIZ_ENABLED ? 'analyze' : 'search'
+  );
   const [draft, setDraft] = useState('');
   const [court, setCourt] = useState<IctihatCourt>('yargitay');
   const [searchMode, setSearchMode] = useState<IctihatMode>('smart');
@@ -121,10 +122,12 @@ export default function IctihatScreen() {
   const errText =
     error === 'rate_limit' ? t('ictihat.errRate') : error === 'source' ? t('ictihat.errSource') : t('ictihat.errGeneric');
 
-  // AI/İçtihat şu an kapalı (yakında): tüm ekranı "Çok Yakında" ile kapat.
-  if (!AI_ENABLED) {
-    return <ComingSoon headerTitle={t('ictihat.title')} title={t('soon.ictihat')} desc={t('soon.desc')} icon="reader" />;
-  }
+  // KALDIRILDI: burada tüm ekran AI_ENABLED'a bakıp "Çok Yakında" ile
+  // kapatılıyordu. Ekranın üç kipinden yalnız BİRİ (olay analizi) yapay zekâ
+  // kullanıyor; kelime araması ve künye doğrudan canlı UYAP/Bedesten'e gidiyor
+  // ve uçta hiçbir kısıt yok. Yani ürünün en güçlü, tamamen ücretsiz özelliği
+  // ilgisiz bir bayrak yüzünden kullanıcıya hiç açılmıyordu. Artık yalnız AI
+  // kipi gizleniyor (aşağıdaki mod seçici), ekran her zaman açık.
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
@@ -134,7 +137,13 @@ export default function IctihatScreen() {
       <View style={styles.modePills}>
         {(
           [
-            { id: 'analyze', icon: 'sparkles', label: t('ictihat.modeAnalyze') },
+            // Olay analizi yalnız AÇIKKEN listelenir. Kapalıyken sekmeyi
+            // gösterip arkasında "Çok Yakında" paneli açmak, kullanıcıya
+            // çalışmayan bir kapı sunmak olurdu — ekranın tamamının aynı
+            // sebeple kapalı kaldığı hatanın küçük hâli.
+            ...(AI_ICTIHAT_ANALIZ_ENABLED
+              ? [{ id: 'analyze', icon: 'sparkles', label: t('ictihat.modeAnalyze') } as const]
+              : []),
             { id: 'search', icon: 'search', label: t('ictihat.modeSearch') },
             { id: 'kunye', icon: 'pricetags', label: t('ictihat.modeKunye') },
           ] as const
@@ -318,7 +327,7 @@ export default function IctihatScreen() {
                 <Text style={styles.resultCount}>
                   {t('ictihat.resultCount', { count: total.toLocaleString('tr-TR') })}
                 </Text>
-                {AI_ENABLED && <Text style={styles.selectHint}>{t('ictihat.selectHint')}</Text>}
+                {AI_ICTIHAT_ANALIZ_ENABLED && <Text style={styles.selectHint}>{t('ictihat.selectHint')}</Text>}
               </View>
               {hits.map((hit) => (
                 <HitCard
@@ -328,7 +337,7 @@ export default function IctihatScreen() {
                   selected={selected.has(hit.id)}
                   onToggle={() => toggle(hit.id)}
                   onOpen={() => openDoc(hit)}
-                  hideCheckbox={!AI_ENABLED}
+                  hideCheckbox={!AI_ICTIHAT_ANALIZ_ENABLED}
                 />
               ))}
               {hasMore && (
@@ -358,7 +367,7 @@ export default function IctihatScreen() {
         </ScrollView>
 
         {/* AI özet çubuğu */}
-        {AI_ENABLED && selected.size > 0 && (
+        {AI_ICTIHAT_ANALIZ_ENABLED && selected.size > 0 && (
           <View style={styles.summaryBar}>
             <Pressable onPress={runSummary} style={styles.summaryBtn}>
               <Ionicons name="sparkles" size={18} color={colors.textInverse} />
@@ -598,8 +607,9 @@ function AnalyzePanel({
           : t('ictihat.errGeneric');
   const canRun = olay.trim().length >= 15 && !loading;
 
-  // AI henüz canlı değil: "Çok Yakında" göster, arka uca istek atma.
-  if (!AI_ENABLED) {
+  // Olay analizi ölçülmedi: "Çok Yakında" göster, arka uca istek atma.
+  // (Bu yalnız ANALİZ kipidir; arama ve künye her zaman açıktır.)
+  if (!AI_ICTIHAT_ANALIZ_ENABLED) {
     return (
       <ScrollView
         style={styles.flex}

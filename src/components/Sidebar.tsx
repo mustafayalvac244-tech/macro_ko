@@ -137,7 +137,10 @@ export function Sidebar() {
     { icon: 'library-outline', label: t('mut.short'), path: '/mutalaa', badge: AI_MUTALAA_ENABLED ? undefined : yakinda },
     { icon: 'scan-outline', label: t('docrev.short'), path: '/document-review', badge: AI_BELGE_ENABLED ? undefined : yakinda },
     { icon: 'document-text-outline', label: t('dlk.short'), path: '/dilekce-uret', badge: AI_DILEKCE_ENABLED ? undefined : yakinda },
-    { icon: 'reader-outline', label: t('ictihat.short'), path: '/ictihat', badge: aiBadge },
+    // İÇTİHAT ROZETSİZ. Buraya aiBadge bağlıydı ve menüde "YAKINDA" yazıyordu;
+    // oysa içtihat araması çalışıyor, ücretsiz ve sınırsız. Çalışan bir ekranı
+    // kapalı göstermek, ürünün en güçlü özelliğini kullanıcıdan saklıyordu.
+    { icon: 'reader-outline', label: t('ictihat.short'), path: '/ictihat' },
     { icon: 'earth-outline', label: t('aihm.short'), path: '/aihm' },
     { icon: 'document-text-outline', label: t('tpl.title'), path: '/templates' },
     { icon: 'create-outline', label: t('contract.title'), path: '/contract' },

@@ -45,9 +45,33 @@ export const AI_MUTALAA_ENABLED = false;
 export const AI_AKTARMA_ENABLED = false;
 
 /**
- * Ölçülmemiş AI özellikleri: sohbet, içtihat analizi, savaş planı. Eski
- * AI_ENABLED bayrağının yerini tutar; adı KORUNDU çünkü birçok ekranda
- * kullanılıyor ve hepsini birden değiştirmek, açılmaması gereken ekranları
- * sessizce açma riski taşırdı.
+ * İçtihat ARAMASI — her zaman açık, ücretsiz.
+ *
+ * DÜZELTİLEN HATA. İçtihat ekranının tamamı `AI_ENABLED` bayrağına bağlıydı ve
+ * o bayrak kapalı olduğu için ekran "Çok Yakında" ile kapatılıyordu
+ * (app/ictihat.tsx). Oysa ekranın üç kipinden yalnız BİRİ yapay zekâ kullanıyor:
+ *
+ *   • Kelime araması → canlı UYAP/Bedesten'e gider, AI YOK
+ *   • Künye ile bul  → canlı UYAP/Bedesten'e gider, AI YOK
+ *   • Olay analizi   → yapay zekâ kullanır
+ *
+ * Yani ürünün en güçlü ve tamamen ücretsiz özelliği, ilgisiz bir AI bayrağı
+ * yüzünden kullanıcıya hiç açılmıyordu. Uç fonksiyonunda hiçbir kısıt yoktu;
+ * kapı yalnızca istemcide kapalıydı. İçtihat araması artık hiçbir bayrağa
+ * bağlı değil — ürün kararı gereği ücretsiz ve sınırsız.
+ */
+
+/**
+ * İçtihatta OLAY ANALİZİ (yapay zekâ ile). Ölçülmedi, bu yüzden kapalı.
+ * Kapalıyken yalnız bu KİP gizlenir; arama ve künye çalışmaya devam eder.
+ */
+export const AI_ICTIHAT_ANALIZ_ENABLED = false;
+
+/**
+ * Ölçülmemiş AI özellikleri: sohbet ve savaş planı. Eski AI_ENABLED bayrağının
+ * yerini tutar; adı KORUNDU çünkü birçok ekranda kullanılıyor ve hepsini birden
+ * değiştirmek, açılmaması gereken ekranları sessizce açma riski taşırdı.
+ *
+ * DİKKAT: içtihat ARTIK bu bayrağa bağlı değildir (yukarıya bakınız).
  */
 export const AI_ENABLED = false;
