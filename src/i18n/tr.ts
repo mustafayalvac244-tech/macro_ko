@@ -623,9 +623,6 @@ export const tr = {
   'premium.pay': 'Güvenli Ödeme Yap',
   'premium.success': 'Ödeme başarılı! 🎉 Teşekkürler.',
   'premium.failed': 'Ödeme tamamlanamadı',
-  'premium.notConfigured':
-    'Ödeme altyapısı henüz kurulmadı. Stripe anahtarlarını ekleyip payment-sheet fonksiyonunu dağıtın (ODEME.md rehberi).',
-  'premium.secureNote': 'Kart bilgileriniz Stripe’ın güvenli altyapısında işlenir; uygulamada saklanmaz.',
   'premium.launchFree': 'Lansmana özel ÜCRETSİZ',
   'premium.launchCta': 'Premium’u Ücretsiz Etkinleştir',
   'premium.launchNote': 'Lansman döneminde Premium tüm üyelere ücretsiz. İleride ücretli olacak; şimdi katılan erken üyeler avantajlı başlar.',
@@ -1721,19 +1718,6 @@ export const tr = {
   'jobForm.failed': 'İlan yayınlanamadı. Lütfen tekrar deneyin.',
 
   // Deneme ödemesi
-  'tpay.badge': 'DENEME MODU',
-  'tpay.cardNumber': 'Kart numarası',
-  'tpay.expiry': 'SKT (AA/YY)',
-  'tpay.cvc': 'CVC',
-  'tpay.pay': '₺199,00 Öde (Deneme)',
-  'tpay.processing': 'İşleniyor...',
-  'tpay.success': 'Deneme ödemesi başarılı! 🎉 Premium (deneme) etkinleşti. Gerçek para çekilmedi.',
-  'tpay.active': 'Premium etkin (deneme modu)',
-  'tpay.note': 'Bu bir simülasyondur; kart bilgileri hiçbir yere gönderilmez ve para çekilmez.',
-  'tpay.modeNote':
-    'Şu an deneme modundasınız: ödeme akışını uçtan uca test edebilirsiniz, gerçek para çekilmez. Gerçek tahsilat için Stripe anahtarı eklendiğinde bu ekran otomatik olarak gerçek ödemeye geçer.',
-
-  // Anayasa
   'laws.title': 'Mevzuat',
   'laws.subtitle': 'Kanunlar — çevrimdışı, madde arama',
   'laws.offline': 'Tüm metinler cihazda; internetsiz aç, ara.',

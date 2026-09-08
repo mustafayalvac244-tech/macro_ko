@@ -681,9 +681,6 @@ export const en: Record<keyof typeof tr, string> = {
   'premium.pay': 'Pay Securely',
   'premium.success': 'Payment successful! 🎉 Thank you.',
   'premium.failed': 'Payment could not be completed',
-  'premium.notConfigured':
-    'Payments are not configured yet. Add your Stripe keys and deploy the payment-sheet function (see ODEME.md).',
-  'premium.secureNote': 'Your card details are processed by Stripe’s secure infrastructure and never stored in the app.',
   'premium.launchFree': 'FREE for launch',
   'premium.launchCta': 'Activate Premium Free',
   'premium.launchNote': 'Premium is free for all members during launch. It will be paid later; early members who join now start with an edge.',
@@ -1698,19 +1695,6 @@ export const en: Record<keyof typeof tr, string> = {
   'jobForm.failed': 'Could not publish. Please try again.',
 
   // Test payment
-  'tpay.badge': 'TEST MODE',
-  'tpay.cardNumber': 'Card number',
-  'tpay.expiry': 'Expiry (MM/YY)',
-  'tpay.cvc': 'CVC',
-  'tpay.pay': 'Pay ₺199.00 (Test)',
-  'tpay.processing': 'Processing...',
-  'tpay.success': 'Test payment successful! 🎉 Premium (test) is active. No real money was charged.',
-  'tpay.active': 'Premium active (test mode)',
-  'tpay.note': 'This is a simulation; card details are not sent anywhere and no money is charged.',
-  'tpay.modeNote':
-    'You are in test mode: the payment flow is fully testable, no real money is charged. Once a Stripe key is added, this screen switches to real payments automatically.',
-
-  // Constitution
   'laws.title': 'Legislation',
   'laws.subtitle': 'Codes — offline, article search',
   'laws.offline': 'All texts on-device; open and search offline.',
