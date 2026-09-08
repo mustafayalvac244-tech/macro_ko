@@ -42,8 +42,13 @@ const sectionsTr = (): Section[] => [
     body: 'Vekil Pro yalnızca avukatlar ve hukuk büroları için tasarlanmıştır. Kayıt sırasında verdiğiniz baro ve sicil bilgilerinin doğru olduğunu beyan edersiniz. Hesabınızı başkasıyla paylaşamaz, devredemezsiniz.',
   },
   {
+    icon: 'mail-open-outline',
+    title: '2. E-posta Doğrulaması ve Hesap Güvenliği',
+    body: 'Hesabınızı kullanabilmeniz için kayıt sırasında verdiğiniz e-posta adresini doğrulamanız gerekir; kutunuza gönderilen bağlantıya tıklamadan giriş yapılamaz. Bu adım hem başkasının e-postanızla hesap açmasını engeller hem de şifrenizi unuttuğunuzda hesabınızı kurtarabilmenizi güvence altına alır. Bu nedenle gerçek ve erişebildiğiniz bir adres vermeniz zorunludur. Kayıt, giriş ve şifre sıfırlama adımlarında otomatik/toplu isteklere karşı bir güvenlik doğrulaması (captcha) çalışabilir; bu doğrulama normal kullanımda sizden herhangi bir işlem istemez.',
+  },
+  {
     icon: 'card-outline',
-    title: '2. Abonelikler ve Ücretlendirme',
+    title: '3. Abonelikler ve Ücretlendirme',
     body:
       `• Vekil Pro (temel): aylık ${MONTHLY_PRICE_TRY} ₺. İlk 7 gün ücretsizdir.\n` +
       `• Vekil Pro + Yapay Zekâ: aylık ${AI_PRICE_TRY.toLocaleString('tr-TR')} ₺. Temel paketteki her şeyi içerir.\n\n` +
@@ -51,44 +56,44 @@ const sectionsTr = (): Section[] => [
   },
   {
     icon: 'wallet-outline',
-    title: '3. Ödeme ve İptal',
+    title: '4. Ödeme ve İptal',
     body: 'Ödemeler Apple App Store veya Google Play üzerinden alınır; kart bilgileriniz bize hiçbir zaman ulaşmaz. Abonelik iptali ve iade talepleri, satın almayı yaptığınız mağazanın kuralları ve süreleri kapsamında ilgili mağaza üzerinden yürütülür. Ücretsiz deneme süresi içinde iptal ederseniz ücret alınmaz.',
   },
   {
     icon: 'sparkles-outline',
-    title: '4. Yapay Zekâ Kullanım Hakları',
+    title: '5. Yapay Zekâ Kullanım Hakları',
     body: AI_MUTALAA_ENABLED
       ? `Yapay Zekâ paketi aylık ${AI_SORU_HAKKI} soru ve ${AI_MUTALAA_HAKKI} hukuki mütalaa hakkı içerir. Haklar her fatura döneminde yenilenir, kullanılmayan haklar sonraki aya devretmez. Ücretsiz hesaplara ${DENEME_SORU_HAKKI} adet deneme sorusu tanımlanır.`
       : `Yapay Zekâ paketi aylık ${AI_SORU_HAKKI} soru hakkı içerir. Haklar her fatura döneminde yenilenir, kullanılmayan haklar sonraki aya devretmez. Ücretsiz hesaplara ${DENEME_SORU_HAKKI} adet deneme sorusu tanımlanır. Bazı yapay zekâ özellikleri kademeli olarak açılmaktadır; satın alma ekranında yalnızca o an kullanılabilir olan özellikler listelenir.`,
   },
   {
     icon: 'warning-outline',
-    title: '5. Yapay Zekâ Çıktısı Hukuki Tavsiye Değildir',
+    title: '6. Yapay Zekâ Çıktısı Hukuki Tavsiye Değildir',
     body: 'Uygulamanın ürettiği dilekçe, mütalaa, özet ve analizler TASLAKTIR. Yapay zekâ hata yapabilir; madde numarası, süre, görevli mahkeme ve içtihat bilgisi yanlış olabilir. Her çıktıyı yayımlamadan, mahkemeye sunmadan veya müvekkile iletmeden önce kendiniz denetlemek zorundasınız. Mesleki sorumluluk münhasıran size aittir; Vekil Pro bir hukuki danışmanlık hizmeti değildir ve avukat-müvekkil ilişkisi kurmaz.',
   },
   {
     icon: 'lock-closed-outline',
-    title: '6. Müvekkil Verisi ve Sır Saklama',
+    title: '7. Müvekkil Verisi ve Sır Saklama',
     body: 'Uygulamaya girdiğiniz müvekkil verilerinin hukuka uygun şekilde işlendiğinden ve gerekli aydınlatma/rıza yükümlülüklerinin yerine getirildiğinden siz sorumlusunuz. Verileriniz yurt dışındaki (İrlanda / AB) sunucularda barındırılır; KVKK kapsamında yurt dışına aktarım değerlendirmesini kendi büronuz için yapmanız gerekir. Ayrıntı için Gizlilik ve KVKK metnine bakınız.',
   },
   {
     icon: 'ban-outline',
-    title: '7. Yasak Kullanımlar',
+    title: '8. Yasak Kullanımlar',
     body: 'Uygulamayı tersine mühendislik yapmak, otomatik araçlarla toplu veri çekmek, başka kullanıcıların bilgilerini toplamak, hizmeti aşırı yükleyecek istek göndermek ve hukuka aykırı içerik üretmek için kullanamazsınız. Bu kuralların ihlali hesabın askıya alınması veya kapatılması sonucunu doğurabilir.',
   },
   {
     icon: 'construct-outline',
-    title: '8. Hizmetin Sürekliliği',
+    title: '9. Hizmetin Sürekliliği',
     body: 'Hizmet "olduğu gibi" sunulur. Bakım, sağlayıcı arızası veya güncelleme nedeniyle geçici kesintiler olabilir. Özellikler zaman içinde eklenebilir, değiştirilebilir veya kaldırılabilir; ücretli bir özelliği kaldırmamız hâlinde bu durum abonelik ekranında açıkça belirtilir.',
   },
   {
     icon: 'person-remove-outline',
-    title: '9. Hesabın Kapatılması',
+    title: '10. Hesabın Kapatılması',
     body: 'Hesabınızı istediğiniz zaman Ayarlar > Hesabı Sil adımıyla kalıcı olarak silebilirsiniz. Silme işlemi geri alınamaz ve belgeler dahil tüm kayıtlarınızı kapsar. Hesabın silinmesi, mağaza üzerinden alınmış aboneliği otomatik olarak iptal ETMEZ; aboneliği ayrıca App Store / Google Play üzerinden kapatmanız gerekir.',
   },
   {
     icon: 'document-text-outline',
-    title: '10. Değişiklikler ve İletişim',
+    title: '11. Değişiklikler ve İletişim',
     body: 'Bu koşullar güncellenebilir; önemli değişikliklerde uygulama içinde bilgilendirme yapılır. Soru ve talepleriniz için Ayarlar > Öneri & Şikayet kanalını kullanabilirsiniz.',
   },
 ];
@@ -100,8 +105,13 @@ const sectionsEn = (): Section[] => [
     body: 'Vekil Pro is built for lawyers and law firms. By registering you confirm that the bar and registration details you provide are accurate. You may not share or transfer your account.',
   },
   {
+    icon: 'mail-open-outline',
+    title: '2. Email Verification and Account Security',
+    body: 'You must verify the email address you register with before you can use your account; sign-in is not possible until you click the link sent to your inbox. This prevents someone else from registering with your address and makes sure you can recover your account if you forget your password. A security check (captcha) may run during sign-up, sign-in and password reset to block automated abuse; in normal use it requires nothing from you.',
+  },
+  {
     icon: 'card-outline',
-    title: '2. Subscriptions and Pricing',
+    title: '3. Subscriptions and Pricing',
     body:
       `• Vekil Pro (base): ${MONTHLY_PRICE_TRY} TRY per month, with a 7-day free trial.\n` +
       `• Vekil Pro + AI: ${AI_PRICE_TRY.toLocaleString('en-US')} TRY per month, including everything in the base plan.\n\n` +
@@ -109,44 +119,44 @@ const sectionsEn = (): Section[] => [
   },
   {
     icon: 'wallet-outline',
-    title: '3. Payment and Cancellation',
+    title: '4. Payment and Cancellation',
     body: 'Payments are processed by Apple App Store or Google Play; your card details never reach us. Cancellations and refunds follow the rules and time limits of the store where you purchased.',
   },
   {
     icon: 'sparkles-outline',
-    title: '4. AI Usage Allowances',
+    title: '5. AI Usage Allowances',
     body: AI_MUTALAA_ENABLED
       ? `The AI plan includes ${AI_SORU_HAKKI} questions and ${AI_MUTALAA_HAKKI} legal opinions per month. Allowances reset each billing period and do not roll over. Free accounts get ${DENEME_SORU_HAKKI} trial questions.`
       : `The AI plan includes ${AI_SORU_HAKKI} questions per month. Allowances reset each billing period and do not roll over. Free accounts get ${DENEME_SORU_HAKKI} trial questions. Some AI features are being rolled out gradually; the purchase screen lists only what is currently available.`,
   },
   {
     icon: 'warning-outline',
-    title: '5. AI Output Is Not Legal Advice',
+    title: '6. AI Output Is Not Legal Advice',
     body: 'Petitions, opinions, summaries and analyses produced by the app are DRAFTS. AI can be wrong about article numbers, deadlines, competent courts and case law. You must review every output before filing or sending it. Professional responsibility remains solely yours; Vekil Pro does not provide legal advice and creates no attorney-client relationship.',
   },
   {
     icon: 'lock-closed-outline',
-    title: '6. Client Data and Confidentiality',
+    title: '7. Client Data and Confidentiality',
     body: 'You are responsible for processing client data lawfully and for meeting your own disclosure and consent obligations. Data is hosted on servers in Ireland (EU). See the Privacy and KVKK notice for details.',
   },
   {
     icon: 'ban-outline',
-    title: '7. Prohibited Use',
+    title: '8. Prohibited Use',
     body: 'You may not reverse engineer the app, scrape data in bulk, harvest other users\' information, overload the service, or generate unlawful content. Violations may lead to suspension or termination.',
   },
   {
     icon: 'construct-outline',
-    title: '8. Availability',
+    title: '9. Availability',
     body: 'The service is provided "as is". Temporary interruptions may occur due to maintenance, provider outages or updates. Features may be added, changed or removed over time.',
   },
   {
     icon: 'person-remove-outline',
-    title: '9. Closing Your Account',
+    title: '10. Closing Your Account',
     body: 'You can permanently delete your account from Settings > Delete Account. Deletion cannot be undone and covers all records including documents. Deleting the account does NOT automatically cancel a store subscription — cancel it separately in App Store / Google Play.',
   },
   {
     icon: 'document-text-outline',
-    title: '10. Changes and Contact',
+    title: '11. Changes and Contact',
     body: 'These terms may be updated; significant changes will be announced in the app. For questions, use Settings > Feedback.',
   },
 ];

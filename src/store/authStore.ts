@@ -16,7 +16,16 @@ interface AuthState {
   updateProfile: (patch: Partial<Pick<Profile, 'full_name' | 'firm_name' | 'bar_number' | 'phone'>>) => Promise<void>;
   uploadAvatar: (file: { uri: string; mimeType: string | null }) => Promise<void>;
   removeAvatar: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<boolean>;
+  signIn: (email: string, password: string, captchaToken?: string) => Promise<boolean>;
+  /**
+   * Kayıt sonucu artık boolean DEĞİL.
+   *
+   * E-posta doğrulaması açıldığında signUp bir oturum DÖNDÜRMEZ: kullanıcı
+   * kutusundaki bağlantıya tıklayana kadar giriş yapamaz. Eski boolean dönüş
+   * bu iki durumu ayırt edemiyordu ve ekran her iki hâlde de uygulamaya
+   * yönlendiriyordu — doğrulama açılsaydı kullanıcı oturumsuz bir ekrana
+   * düşerdi. Artık çağıran taraf hangi durumda olduğunu biliyor.
+   */
   signUp: (params: {
     email: string;
     password: string;
@@ -25,7 +34,8 @@ interface AuthState {
     tcNo?: string;
     baro?: string;
     barNumber?: string;
-  }) => Promise<boolean>;
+    captchaToken?: string;
+  }) => Promise<'girildi' | 'dogrulama-gerekli' | 'hata'>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
@@ -118,9 +128,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await get().refreshProfile();
   },
 
-  signIn: async (email, password) => {
+  signIn: async (email, password, captchaToken) => {
     set({ isSubmitting: true, error: null });
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: captchaToken ? { captchaToken } : undefined,
+    });
     set({ isSubmitting: false });
     if (error) {
       set({ error: trError(error.message) });
@@ -129,46 +143,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return true;
   },
 
-  signUp: async ({ email, password, fullName, firmName, tcNo, baro, barNumber }) => {
+  signUp: async ({ email, password, fullName, firmName, tcNo, baro, barNumber, captchaToken }) => {
     set({ isSubmitting: true, error: null });
+    // AVUKAT BİLGİLERİ ARTIK ÜSTVERİYLE GİDİYOR. Eskiden kayıttan sonra ayrı
+    // bir UPDATE ile yazılıyorlardı; o istek oturum gerektirdiği için e-posta
+    // doğrulaması açıldığında sessizce başarısız olur ve veri kaybolurdu.
+    // Şimdi handle_new_user tetikleyicisi (migration 0086) profili oluştururken
+    // bu alanları da yazıyor — oturum olsun olmasın veri yerine ulaşıyor.
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: {
+          full_name: fullName,
+          firm_name: firmName ?? '',
+          tc_no: tcNo ?? '',
+          baro: baro ?? '',
+          bar_number: barNumber ?? '',
+        },
+        ...(captchaToken ? { captchaToken } : {}),
+      },
     });
     if (error) {
       set({ isSubmitting: false, error: trError(error.message) });
-      return false;
+      return 'hata';
     }
-    if (data.user) {
-      // Persist lawyer credentials collected at signup. tc_no/baro columns are
-      // added by KURULUM.sql (0014); tolerate their absence on older DBs.
-      const patch: Record<string, string> = {};
-      if (firmName) patch.firm_name = firmName;
-      if (tcNo) patch.tc_no = tcNo;
-      if (baro) patch.baro = baro;
-      if (barNumber) patch.bar_number = barNumber;
-      if (Object.keys(patch).length > 0) {
-        // SESSİZ VERİ KAYBI RİSKİ. Bu güncellemenin hatası eskiden hiç
-        // okunmuyordu. Bugün çalışıyor çünkü e-posta doğrulaması kapalı
-        // (mailer_autoconfirm) ve signUp anında bir oturum dönüyor. Doğrulama
-        // AÇILDIĞI an data.session null olur, istek kimliksiz gider, RLS onu
-        // sessizce süzer ve avukatın TC / baro / sicil bilgisi HİÇBİR UYARI
-        // OLMADAN kaybolur. Kayıt yine "başarılı" görünür.
-        //
-        // Bu yüzden sonuç artık okunuyor: kaybolursa en azından kaydı bırakan
-        // taraf haberdar olur ve kullanıcı profilinden tamamlayabilir.
-        const { error: profilHatasi } = await supabase
-          .from('profiles')
-          .update(patch)
-          .eq('id', data.user.id);
-        if (profilHatasi) {
-          console.warn('[signUp] avukat bilgileri kaydedilemedi:', profilHatasi.message);
-        }
-      }
+    // Oturum yoksa e-posta doğrulaması açık demektir: kullanıcı kutusundaki
+    // bağlantıya tıklayana kadar giriş yapamaz ve uygulamaya yönlendirilmemeli.
+    if (!data.session) {
+      set({ isSubmitting: false });
+      return 'dogrulama-gerekli';
     }
     set({ isSubmitting: false });
-    return true;
+    return 'girildi';
   },
 
   signOut: async () => {

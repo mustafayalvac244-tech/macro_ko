@@ -20,6 +20,8 @@ import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
 import { isValidTCKN } from '@/utils/tckn';
 import { BAROLAR } from '@/constants/barolar';
+import { Captcha } from '@/components/Captcha';
+import { CAPTCHA_ENABLED } from '@/config/captcha';
 import { DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
 import { useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
@@ -41,6 +43,9 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [baroPickerOpen, setBaroPickerOpen] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaHatasi, setCaptchaHatasi] = useState(false);
+  const [dogrulamaBekliyor, setDogrulamaBekliyor] = useState(false);
   const { signUp, isSubmitting, error, clearError } = useAuthStore();
 
   // Clears any stale error the moment the user edits a field, so an old
@@ -86,7 +91,17 @@ export default function SignupScreen() {
       return;
     }
 
-    const success = await signUp({
+    // Captcha açıksa jeton hazır olana kadar beklenir. Turnstile görünmez
+    // çalıştığı için jeton, kullanıcı formu doldururken çoktan gelmiş olur;
+    // bu bekleme pratikte görünmez. Jeton hiç gelmediyse (ağ/servis arızası)
+    // kullanıcıyı kapıda bırakmamak için istek yine de gönderilir — Supabase
+    // captcha'yı zorunlu kılıyorsa reddi zaten anlaşılır bir hata olarak döner.
+    if (CAPTCHA_ENABLED && !captchaToken && !captchaHatasi) {
+      setLocalError(t('auth.captchaWait'));
+      return;
+    }
+
+    const sonuc = await signUp({
       email: email.trim(),
       password,
       fullName: fullName.trim(),
@@ -94,9 +109,47 @@ export default function SignupScreen() {
       tcNo: tcNo.trim(),
       baro,
       barNumber: barNumber.trim(),
+      captchaToken: captchaToken ?? undefined,
     });
-    if (success) router.replace('/(app)');
+
+    if (sonuc === 'girildi') {
+      router.replace('/(app)');
+    } else if (sonuc === 'dogrulama-gerekli') {
+      // E-posta doğrulaması AÇIK: oturum yok, uygulamaya yönlendirilemez.
+      // Eskiden burada koşulsuz router.replace vardı ve doğrulama açıldığı an
+      // kullanıcı oturumsuz bir ekrana düşerdi.
+      setDogrulamaBekliyor(true);
+    }
+    // 'hata' durumunda mesaj zaten store'dan gelir ve ekranda gösterilir.
   };
+
+  // E-POSTA DOĞRULAMA EKRANI. Hesap açıldı ama oturum yok; kullanıcıya ne
+  // yapması gerektiğini söylemeden uygulamaya sokamayız.
+  if (dogrulamaBekliyor) {
+    return (
+      <Screen>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.brand}>
+            <VekilLogo size={72} nodeFill={colors.bg} />
+            <Text style={styles.brandName}>{t('app.name')}</Text>
+          </View>
+          <View style={styles.verifyIconWrap}>
+            <Ionicons name="mail-unread-outline" size={34} color={colors.primary} />
+          </View>
+          <Text style={styles.heading}>{t('auth.verifyTitle')}</Text>
+          <Text style={styles.verifyBody}>{t('auth.verifyBody', { email: email.trim() })}</Text>
+          <Text style={styles.verifyHint}>{t('auth.verifyHint')}</Text>
+          <Button
+            label={t('auth.verifyGoLogin')}
+            onPress={() => router.replace('/(auth)/login')}
+            fullWidth
+            size="lg"
+            style={styles.submit}
+          />
+        </ScrollView>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -179,6 +232,11 @@ export default function SignupScreen() {
             value={password}
             onChangeText={touch(setPassword)}
           />
+
+          {/* Görünmez captcha. Anahtar tanımlı değilse hiç çizilmez; tanımlıysa
+              da kullanıcı normalde hiçbir şey görmez — yalnız Turnstile insan
+              onayı isterse burada bir kutu belirir. */}
+          <Captcha onToken={setCaptchaToken} onError={() => setCaptchaHatasi(true)} />
 
           {(localError || error) && <Text style={styles.error}>{localError ?? error}</Text>}
 
@@ -442,6 +500,29 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.sm,
     textDecorationLine: 'underline',
+  },
+  verifyIconWrap: {
+    alignSelf: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  verifyBody: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.sm,
+  },
+  verifyHint: {
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
   },
   termsHint: {
     ...typography.small,

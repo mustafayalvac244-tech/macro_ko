@@ -6,6 +6,15 @@ tutar. Tahmin ve iyimser çerçeveleme yok; her satırın kanıtı yanında.
 **Kısa cevap: hayır, henüz değil.** Üç zorunlu engel var ve üçü de sizin
 hesap açmanızı gerektiriyor (kod tarafında yapılabilecekler yapıldı).
 
+> **GÜNCELLEME — e-posta doğrulaması AÇILDI.** `mailer_autoconfirm = false`.
+> Doğrulanmamış hesapla giriş denendi ve `email_not_confirmed` ile reddedildi
+> (kanıtlandı). Bunun bir SONUCU var ve bilmeniz şart: doğrulama e-postası
+> Supabase'in yerleşik göndericisinden çıkıyor, yani **saatte 2 e-posta** ve
+> metin **İngilizce**. Yani şu anda saatte en fazla 2 kişi kayıt olabilir.
+> Bugün gerçek kullanıcı akışı olmadığı için zararsız, ama **A2 (SMTP)
+> yapılmadan mağazaya çıkılamaz** — çıkılırsa üçüncü kayıt olan kişi hesabına
+> hiç giremez. Geri almak isterseniz tek komut, söylemeniz yeterli.
+
 ---
 
 ## A. ZORUNLU ENGELLER (bunlar çözülmeden yayına çıkılamaz)
@@ -111,30 +120,69 @@ farkı önemli olduğu için yazıyorum.
 
 ---
 
+## B2. E-POSTA DOĞRULAMASI VE CAPTCHA (bu turda eklendi)
+
+### Ne yapıldı
+
+| Konu | Durum | Kanıt |
+|---|---|---|
+| E-posta doğrulaması | ✅ **Canlıda açık** | `mailer_autoconfirm = false`; doğrulanmamış hesapla giriş denendi → `email_not_confirmed` (400) |
+| Doğrulanmamışken uygulamaya girme | ✅ Engellendi | `signUp` oturum döndürmezse ekran artık uygulamaya yönlendirmiyor, "E-postanızı doğrulayın" ekranını gösteriyor |
+| Kayıt bilgilerinin kaybolması | ✅ **Kökten çözüldü** | Alanlar artık `handle_new_user` tetikleyicisinden yazılıyor (migration 0086). Oturumsuz açılan bir hesapta TC/baro/sicil profile **yazıldı** — canlı testle doğrulandı |
+| Üstveriyle yetki yükseltme | ✅ Mümkün değil | Kayıt üstverisine `is_admin: true` ve `is_premium: true` enjekte edildi; profilde ikisi de **false** kaldı |
+| Geçersiz TC | ✅ Reddediliyor | `tc_no: "abc123"` gönderildi, profile `null` yazıldı; diğer alanlar korundu |
+| Türkçe hata mesajı | ✅ Var | "E-posta adresiniz henüz doğrulanmamış. Gelen kutunuzu kontrol edin." |
+
+### Captcha — kod hazır, ANAHTAR BEKLİYOR
+
+Seçim **Cloudflare Turnstile**, hCaptcha değil. Gerekçe doğrudan sizin
+isteğiniz: hCaptcha çoğu kullanıcıya görsel bulmaca (trafik ışığı seçme)
+gösterir; Turnstile'ın `interaction-only` kipi ise kullanıcıların büyük
+kısmını **hiçbir etkileşim istemeden** geçirir.
+
+Uygulanan tasarım: bileşen normalde **yüksekliği sıfır** olarak çizilir —
+kullanıcı hiçbir şey görmez, hiçbir şeye tıklamaz. Yalnızca Turnstile gerçekten
+insan onayı isterse kutu açılır. Kayıt, giriş ve şifre sıfırlama uçlarına
+bağlandı. Yeni native bağımlılık **eklenmedi** (`react-native-webview` zaten
+projedeydi), yani OTA ile gidebilir.
+
+**Anahtar tanımlı değilken hiçbir şey çizilmez ve isteklere hiçbir alan
+eklenmez** — yani bugünkü davranışın birebir aynısı; bu kod hiçbir şeyi bozamaz.
+
+**Sizin yapmanız gereken:** [dash.cloudflare.com](https://dash.cloudflare.com)
+→ Turnstile → Add site → widget mode **Managed**. İki anahtar çıkar. Bana
+verin, gerisini ben yaparım.
+
+**⚠️ SIRA ÖNEMLİ — tersi yapılırsa herkes kapıda kalır:**
+
+1. Site anahtarı uygulamaya girer (`EXPO_PUBLIC_TURNSTILE_SITE_KEY`) → sürüm
+   yayınlanır.
+2. Kullanıcıların çoğu yeni sürüme geçer.
+3. **Ancak o zaman** Supabase'de captcha zorunlu kılınır (secret key ile).
+
+3'ü 1'den önce yapmak, eski sürümdeki **herkesin** kaydını ve girişini kırar.
+Bu yüzden Supabase tarafında captcha'yı **bilerek açmadım**
+(`security_captcha_enabled = false` olarak duruyor).
+
+---
+
 ## D. KARAR SİZE AİT OLAN BAŞLIKLAR
 
 1. **Test hesapları canlıda duruyor.** `@vekil.local` / `@vekilpro.app`
    uzantılı 6+ hesap ve verileri üretim veritabanında. Silinmesi geri
    alınamaz olduğu için kendi başıma silmedim — "temizle" derseniz silerim.
 
-2. **E-posta doğrulaması kapalı** (`mailer_autoconfirm = true`). Bugünkü
-   faydası: kayıt anında uygulamaya girilebiliyor. Riski: biri başkasının
-   e-postasıyla hesap açabilir ve yanlış yazılan e-posta şifre kurtarmayı
-   imkânsız kılar. Açmak isterseniz **önce A2 (SMTP) şart** — aksi hâlde
-   kayıt tamamen kırılır.
+2. **E-posta doğrulaması artık AÇIK** (bkz. B2). Tek açık uç: SMTP olmadan
+   saatte 2 kayıt sınırı ve İngilizce e-posta. Mağazaya çıkmadan önce A2
+   kapatılmalı.
 
-3. **Captcha kapalı** (`security_captcha_enabled = false`). Otomatik toplu
-   kayıt mümkün; veritabanı zaten 500 MB sınırının %83'ünde. hCaptcha/Turnstile
-   ücretsiz, açmamı isterseniz açarım (uygulama tarafında da değişiklik
-   gerekir).
-
-4. **AI paketi bugün ne satıyor?** Anahtar geldiğinde bile açık olan AI
+3. **AI paketi bugün ne satıyor?** Anahtar geldiğinde bile açık olan AI
    özellikleri: **dilekçe üretimi** ve **belge inceleme** (ikisi de ölçüldü).
    Mütalaa, sohbet, içtihat analizi kapalı. 1.999 ₺'yi bu ikisiyle mi
    başlatmak istersiniz, yoksa mütalaayı da açıp öyle mi — bu ürün kararı ve
    sizin.
 
-5. **Kullanım Koşulları metnini bir hukukçu okumadı.** Mağaza incelemesini
+4. **Kullanım Koşulları metnini bir hukukçu okumadı.** Mağaza incelemesini
    geçecek ve kullanıcıyı yanıltmayan bir taslak yazdım; ticari yayından önce
    bir meslektaşınıza okutmanız gerekir. Siz avukatsınız — bu sizin alanınız,
    benim değil.
@@ -147,6 +195,6 @@ farkı önemli olduğu için yazıyorum.
    ederim** (A1 kapanır).
 2. Anthropic anahtarını verin → AI paketi gerçekten çalışır hâle gelir.
 3. RevenueCat + mağaza hesapları (A3) → satış açılır.
-4. Test hesaplarını temizleyelim, captcha kararını verin.
+4. Turnstile anahtarlarını verin → captcha'yı sıraya uygun açalım.
 5. Native derleme (`react-native-purchases` eklendiği için OTA yetmez) ve
    mağaza gönderimi.

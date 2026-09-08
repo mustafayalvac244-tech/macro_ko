@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { trError } from '@/lib/authErrors';
+import { Captcha } from '@/components/Captcha';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -23,11 +24,15 @@ export default function ForgotPasswordScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const handleSendCode = async () => {
     setIsSubmitting(true);
     setError(null);
-    const { error: sendError } = await supabase.auth.resetPasswordForEmail(email.trim());
+    const { error: sendError } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      captchaToken ? { captchaToken } : undefined
+    );
     setIsSubmitting(false);
     if (sendError) {
       setError(trError(sendError.message));
@@ -78,6 +83,9 @@ export default function ForgotPasswordScreen() {
                 value={email}
                 onChangeText={setEmail}
               />
+              {/* Şifre sıfırlama, captcha'nın en çok işe yaradığı uçtur:
+                  otomatik istekler e-posta kotasını tüketir. */}
+              <Captcha onToken={setCaptchaToken} />
               {error && <Text style={styles.error}>{error}</Text>}
               <Button
                 label={t('forgot.sendCode')}
