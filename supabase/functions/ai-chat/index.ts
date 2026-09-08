@@ -140,7 +140,11 @@ const GROQ_ZINCIR = GROQ_ADAYLAR.length
  * geçersiz kılardı (caching bir ön-ek eşleşmesidir).
  */
 async function claudeChat(
-  stableSystem: string,
+  // KATMANLI ÖNBELLEK. Dizi verilirse her katman AYRI bir önbellek kesme
+  // noktası alır: [SYSTEM_PROMPT, mod talimatı] gibi. Böylece SYSTEM_PROMPT
+  // TÜM modlarda ortak bir girdi olarak paylaşılırken, mod talimatı da aynı
+  // moddaki isteklerde yeniden faturalanmaz. Tek string eskisi gibi çalışır.
+  stableSystem: string | string[],
   groundingSystem: string,
   msgs: Array<{ role: 'user' | 'model'; text: string }>,
   maxTokens: number,
@@ -153,9 +157,15 @@ async function claudeChat(
   model: string
 ): Promise<{ text: string; tin: number; tout: number }> {
   const client = new Anthropic({ apiKey });
-  const system: Array<Record<string, unknown>> = [
-    { type: 'text', text: stableSystem, cache_control: { type: 'ephemeral' } },
-  ];
+  // Anthropic en fazla 4 kesme noktası kabul eder; boş katmanlar atlanır.
+  const katmanlar = (Array.isArray(stableSystem) ? stableSystem : [stableSystem])
+    .filter((k) => k.trim())
+    .slice(0, 4);
+  const system: Array<Record<string, unknown>> = katmanlar.map((k) => ({
+    type: 'text',
+    text: k,
+    cache_control: { type: 'ephemeral' },
+  }));
   if (groundingSystem.trim()) system.push({ type: 'text', text: groundingSystem });
 
   try {
@@ -217,7 +227,7 @@ async function claudeChat(
  * yok saymak olur.
  */
 async function ucretliChat(
-  stableSystem: string,
+  stableSystem: string | string[],
   groundingSystem: string,
   msgs: Array<{ role: 'user' | 'model'; text: string }>,
   maxTokens: number,
@@ -234,7 +244,8 @@ async function ucretliChat(
     ilkHata = e as Error;
   }
   try {
-    const y = await ucretsizChat(stableSystem + groundingSystem, msgs, maxTokens);
+    const duz = Array.isArray(stableSystem) ? stableSystem.join('') : stableSystem;
+    const y = await ucretsizChat(duz + groundingSystem, msgs, maxTokens);
     return { ...y, faturali: false };
   } catch {
     // Her iki hat da düştüyse ÜCRETLİ hattın hatası bildirilir: kullanıcının
@@ -2273,10 +2284,18 @@ async function dosyaKunyesi(
       let faturali = cfg.billable;
       const maxTok = dilekceMaxTok;
       if (provider === 'claude') {
-        // Sabit talimat önbelleğe; tür yapısı + araştırma dosyası arkaya.
-        const rest = dilekceSys.startsWith(SYSTEM_PROMPT) ? dilekceSys.slice(SYSTEM_PROMPT.length) : '';
-        const stable = rest ? SYSTEM_PROMPT : dilekceSys;
-        const r = await ucretliChat(stable, rest, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        // İKİ KATMANLI ÖNBELLEK — ölçülen kayıp buradaydı: dilekçe modunun
+        // TALİMATLARI ve TÜR YAPISI (mod bloğu) her istekte AYNI olduğu hâlde
+        // önbelleğin ARKASINA düşüyor ve tam fiyattan yeniden faturalanıyordu
+        // (~1.000 token/istek). Yalnız araştırma dosyası (dossier) gerçekten
+        // isteğe göre değişir; kesme noktası oraya taşındı.
+        //   katman 1: SYSTEM_PROMPT  → TÜM modlarda ortak
+        //   katman 2: mod bloğu      → aynı moddaki isteklerde ortak
+        //   arkada:   dossier        → her istekte değişir, önbelleğe alınamaz
+        const sabitKisim = dossier ? dilekceSys.slice(0, dilekceSys.length - dossier.length) : dilekceSys;
+        const modBlogu = sabitKisim.startsWith(SYSTEM_PROMPT) ? sabitKisim.slice(SYSTEM_PROMPT.length) : '';
+        const katmanlar = modBlogu ? [SYSTEM_PROMPT, modBlogu] : [sabitKisim];
+        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
@@ -2475,7 +2494,10 @@ async function dosyaKunyesi(
       // yakar ve isteği 413'e sokar.
       const maxTok = 700;
       if (provider === 'claude') {
-        const r = await ucretliChat(SYSTEM_PROMPT, kunyeSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        // kunyeSys TAMAMEN STATİK (sabit JSON şema talimatı, araştırma dosyası
+        // yok) — önbelleğin arkasında durmasının hiçbir sebebi yoktu, her
+        // istekte tam fiyattan yeniden faturalanıyordu. İkinci katman yapıldı.
+        const r = await ucretliChat([SYSTEM_PROMPT, kunyeSys], '', [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
         out = r.text; uin = r.tin; uout = r.tout; kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
         const r = await openaiChat(kunyeSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
@@ -2576,9 +2598,12 @@ async function dosyaKunyesi(
       let kullanilanModel = model;
       let faturali = cfg.billable;
       if (provider === 'claude') {
-        const rest = belgeSys.startsWith(SYSTEM_PROMPT) ? belgeSys.slice(SYSTEM_PROMPT.length) : '';
-        const stable = rest ? SYSTEM_PROMPT : belgeSys;
-        const r = await ucretliChat(stable, rest, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        // Dilekçedeki ile aynı düzeltme: belge modunun statik talimatı da
+        // önbelleğe alınır, yalnız araştırma dosyası arkada kalır.
+        const sabitKisim = dossier ? belgeSys.slice(0, belgeSys.length - dossier.length) : belgeSys;
+        const modBlogu = sabitKisim.startsWith(SYSTEM_PROMPT) ? sabitKisim.slice(SYSTEM_PROMPT.length) : '';
+        const katmanlar = modBlogu ? [SYSTEM_PROMPT, modBlogu] : [sabitKisim];
+        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
