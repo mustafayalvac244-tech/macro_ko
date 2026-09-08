@@ -96,6 +96,7 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.focus.high': 'High Priority',
   'dash.focus.details': 'View Details',
   'dash.focus.empty': 'No case needs your focus right now — all under control. 🎉',
+  'dash.focus.reasonOverdue': 'OVERDUE: {title} — the deadline passed {n} days ago.',
   'dash.focus.reasonDue': 'Priority today — pending task: {title}.',
   'dash.focus.reasonDueFar': 'Next task: {title} — {n} days away, planned.',
   'dash.focus.reasonHearing': 'A hearing is coming up; reviewing the file is recommended.',

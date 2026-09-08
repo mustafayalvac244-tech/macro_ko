@@ -214,10 +214,20 @@ export default function DashboardScreen() {
         label: `${nextDeadline.case.case_number ? nextDeadline.case.case_number + ' – ' : ''}${nextDeadline.case.title}`,
         hearingWhen: nextHearing && nextHearing.case_id === nextDeadline.case_id ? whenLabel(nextHearing.scheduled_at) : null,
         days,
+        // GECİKMİŞ SÜRE AYRI SÖYLENİR.
+        //
+        // nextDeadline, nextHearing/nextEvent'ten farklı olarak GEÇMİŞ kayıtları
+        // ELEMİYOR (bilinçli: tamamlanmamış, süresi geçmiş bir iş bir hukuk
+        // uygulamasında en acil şeydir; gizlemek yanlış olurdu). Ama pano onu
+        // yaklaşan bir süreyle AYNI cümleyle gösteriyordu — avukat, aylar önce
+        // geçmiş bir süreyi "bekleyen görev" diye okuyordu. Gecikme artık
+        // açıkça yazılıyor; kayıt hâlâ görünür kalıyor.
         reason:
-          days <= 7
-            ? t('dash.focus.reasonDue', { title: nextDeadline.title })
-            : t('dash.focus.reasonDueFar', { title: nextDeadline.title, n: days }),
+          days < 0
+            ? t('dash.focus.reasonOverdue', { title: nextDeadline.title, n: Math.abs(days) })
+            : days <= 7
+              ? t('dash.focus.reasonDue', { title: nextDeadline.title })
+              : t('dash.focus.reasonDueFar', { title: nextDeadline.title, n: days }),
       };
     }
     if (nextHearing?.case) {

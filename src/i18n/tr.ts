@@ -94,6 +94,7 @@ export const tr = {
   'dash.focus.high': 'Yüksek Öncelik',
   'dash.focus.details': 'Detayları İncele',
   'dash.focus.empty': 'Şu an odak gerektiren dosya yok — her şey kontrol altında. 🎉',
+  'dash.focus.reasonOverdue': 'GECİKTİ: {title} — süresi {n} gün önce doldu.',
   'dash.focus.reasonDue': 'Bugün öncelikli çünkü bekleyen görev var: {title}.',
   'dash.focus.reasonDueFar': 'Sıradaki görev: {title} — {n} gün var, planlı.',
   'dash.focus.reasonHearing': 'Yaklaşan duruşma var; dosyayı gözden geçirmeniz önerilir.',
