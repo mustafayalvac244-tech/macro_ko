@@ -57,6 +57,39 @@ korur: yanlışlıkla silme, hatalı toplu güncelleme, uygulama hatası.
 Ayrıca Free planda **PITR (zaman noktasına dönüş) ve yönetilen otomatik yedek
 YOK** — bu yüzden yukarıdaki kendi yedek sistemimiz kuruldu.
 
+## Disk: uygulamayı durdurabilecek asıl risk (ölçüldü)
+
+Free planda veritabanı **500 MB**'ı aşarsa proje **salt-okunur** moda geçer:
+okuma çalışır ama yeni dava, müvekkil, duruşma, belge yükleme, kayıt olma ve
+AI kullanımı dahil **hiçbir yazma işlemi olmaz**. Silmek boyutu anında
+küçültmez (vacuum gerekir), yani çarptıktan sonra toparlanma da anlık değildir.
+
+**Ölçüm anındaki durum:** 418 MB / 500 MB (%83,5). Büyümenin sebebi kullanıcı
+verisi değil, arka plandaki içtihat hasadı: `ictihat_kararlar` tek başına
+307 MB ve günde ~1.150 karar × ~34 kB ≈ **39 MB/gün** ekliyordu. Kalan 82 MB
+ile **yaklaşık iki gün** kalmıştı.
+
+**Alınan iki önlem:**
+
+1. **Hasat yavaşlatıldı.** Üç hasat işi saatte 3 turdan **günde 1 tura**
+   indirildi (72 kat azalma). Vektörleme saatlik bırakıldı — embedding'ler
+   çok küçük ve hasadın gerisinde kalırsa anlamsal arama bozulur.
+   Beklenen yeni büyüme ~0,5 MB/gün, yani **aylarca** alan. (Bu bir
+   projeksiyon; gerçek hız birkaç gün sonra `pg_database_size` ile
+   ölçülmeli.)
+2. **Otomatik emniyet freni** (migration 0084). Veritabanı **460 MB**'ı
+   aşarsa `hasat_tetikle` ve `vektorle_tetikle` isteği hiç göndermez —
+   arka plan büyümesi kendiliğinden durur, kullanıcıların yazma işlemleri
+   için alan kalır. Test edildi: eşik altında çalışıyor, eşik aşılmış gibi
+   simüle edilince duruyor.
+
+Kontrol etmek için:
+
+```sql
+select pg_size_pretty(pg_database_size(current_database())) as boyut,
+       public.disk_musait_mi() as hasat_calisabilir;
+```
+
 ## Öncelik sırasına göre yapılması gerekenler
 
 **1. Proje DIŞINA kopya (en önemli).** Haftada bir `pg_dump` alıp projeden
