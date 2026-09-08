@@ -489,10 +489,47 @@ function kurulOf(h: Hit): string {
   return 'Yerel';
 }
 
+/**
+ * DİSK EMNİYET FRENİ — ARŞİVLEME İÇİN.
+ *
+ * BULUNAN DELİK. 0084'te disk freni kondu ama yalnız CRON yollarını koruyordu
+ * (hasat_tetikle, vektorle_tetikle). Oysa arşive yazan ikinci bir yol daha var
+ * ve o KULLANICI ARAMASIYLA tetikleniyor: her arama, canlı UYAP'tan çekilen
+ * kararları buraya upsert ediyor. Yani fren, büyümenin kullanıcı tarafından
+ * tetiklenen kısmını hiç kapsamıyordu.
+ *
+ * ÖLÇÜM (bu delik bulunurken): birkaç test aramam iki dakika içinde 52 karar
+ * ekledi (~1,7 MB). Veritabanı 500 MB sınırının 423 MB'ında; sınır aşılırsa
+ * proje SALT-OKUNUR olur ve hiçbir avukat dava/duruşma kaydedemez.
+ *
+ * ÇÖZÜM: eşik aşıldıysa arşivleme atlanır. ARAMA ÇALIŞMAYA DEVAM EDER —
+ * sonuçlar zaten canlı UYAP'tan geliyor; kaybedilen tek şey önbelleğe alma.
+ * Sonuç 5 dakika bellekte tutulur ki her arama için ek bir sorgu atılmasın.
+ */
+let _diskOk: { deger: boolean; zaman: number } | null = null;
+async function diskMusaitMi(): Promise<boolean> {
+  const now = Date.now();
+  if (_diskOk && now - _diskOk.zaman < 5 * 60_000) return _diskOk.deger;
+  const db = svc();
+  if (!db) return false;
+  try {
+    const { data, error } = await db.rpc('disk_musait_mi');
+    const deger = !error && data === true;
+    _diskOk = { deger, zaman: now };
+    return deger;
+  } catch {
+    // Ölçemiyorsak arşivlemeyi ATLARIZ: emin olmadan yazmak, dolu diske
+    // yazmaya devam etmek demektir ve sonucu salt-okunur moddur.
+    _diskOk = { deger: false, zaman: now };
+    return false;
+  }
+}
+
 /** Bir kararı tam metniyle arşive yaz (idempotent upsert). En iyi çaba; hata yutulur. */
 async function archiveDecision(h: Hit, fullText: string, query: string): Promise<void> {
   const db = svc();
   if (!db || !h.id || !fullText || fullText.length < 200) return; // taranmış/boş atla
+  if (!(await diskMusaitMi())) return; // disk sınıra yakın: arşivleme, arama sürsün
   try {
     await db.from('ictihat_kararlar').upsert(
       {
