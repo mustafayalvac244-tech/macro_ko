@@ -563,10 +563,16 @@ export const tr = {
   'settings.updateLater': 'Sonra',
   'settings.updateFailed': 'Güncelleme denetimi başarısız. İnternet bağlantınızı kontrol edin.',
   'settings.updatesUnavailable': 'Güncelleme denetimi bu kurulumda kullanılamıyor.',
+  'auth.termsAccept': 'Kayıt olarak kabul ettiğiniz metin:',
   'auth.privacyLink': 'Verileriniz nasıl korunuyor? Gizlilik ve KVKK metnini okuyun',
   'privacy.title': 'Gizlilik ve KVKK',
   'privacy.intro': 'Vekil Pro, meslek sırrına ve kişisel verilerin korunmasına saygı temelinde tasarlandı. İşte verilerinizin nasıl işlendiğinin özeti:',
   'privacy.updated': 'Son güncelleme: Temmuz 2026',
+
+  // Kullanım Koşulları (EULA) — abonelik satan uygulamada mağaza ZORUNLU tutar.
+  'legal.termsTitle': 'Kullanım Koşulları',
+  'legal.termsIntro': 'Vekil Pro’yu kullanarak aşağıdaki koşulları kabul etmiş olursunuz. Abonelik, yapay zekâ kullanımı ve sorumluluk başlıkları özellikle önemlidir.',
+  'legal.termsUpdated': 'Son güncelleme: Eylül 2026',
   'settings.version': 'Uygulama sürümü',
   'settings.backend': 'Altyapı',
   'settings.signOut': 'Çıkış Yap',
@@ -593,8 +599,11 @@ export const tr = {
   'premium.subtitle': 'Büronuzun tüm gücü, tek üyelikte',
   'premium.desc':
     'Sınırsız dava ve belge, meslektaş ağı, tevkil panosu, öncelikli destek ve yeni özelliklere erken erişim.',
-  'premium.price': '₺199,00',
-  'premium.priceNote': 'tek seferlik',
+  // KALDIRILDI: 'premium.price' ('₺199,00') ve 'premium.priceNote'
+  // ('tek seferlik'). Hiçbir ekranda kullanılmıyorlardı (ekran
+  // MONTHLY_PRICE_TRY/AI_PRICE_TRY okur) ama abonelik satan bir uygulamada
+  // 'tek seferlik' diyen ölü bir fiyat metnini durdurmak risklidir: birinin
+  // onu tekrar bağlaması, yanlış fiyat ve yanlış ödeme tipi göstermek olurdu.
   'premium.pay': 'Güvenli Ödeme Yap',
   'premium.success': 'Ödeme başarılı! 🎉 Teşekkürler.',
   'premium.failed': 'Ödeme tamamlanamadı',
@@ -638,13 +647,17 @@ export const tr = {
   'premium.f.financeFull': 'Gelir-gider, tahsilat ve finansal özet',
   'premium.f.docsFull': 'Dilekçe şablonları, sözleşme üretimi ve hukuki hesaplayıcılar',
   'premium.f.backupFull': 'Otomatik güvenli yedekleme',
-  'premium.f.aiSoon': 'Yapay zekâ özellikleri — çok yakında üyeliğe dahil',
+  'premium.f.aiSeparate': 'Yapay zekâ özellikleri ayrı pakettedir (aşağıda)',
   'premium.aiName': 'Vekil Pro + Yapay Zekâ',
   'premium.aiTag': 'Araştırmayı ve yazmayı size bırakmayan katman',
   'premium.aiBadge': 'YAPAY ZEKÂ',
   'premium.aiCta': 'AI Katmanına Geç',
+  'premium.aiUnavailableTitle': 'Yapay zekâ katmanı şu an açık değil',
+  'premium.aiUnavailableBody': 'Yapay zekâ servisi şu anda hizmet veremiyor. Çalışmayan bir özelliğin ücretini almayız — servis açıldığında bu paketi satın alabilirsiniz.',
+  'premium.autoRenewNote': 'Aylık {price} ₺. Abonelik otomatik yenilenir. Dönem bitiminden 24 saat önce App Store / Google Play ayarlarından kapatmazsanız yenilenir.',
   'premium.aiSoonNote': 'Yapay zekâ katmanı çok yakında açılıyor. Seçiminizi alalım, açıldığında ilk siz haberdar olun.',
   'premium.f.aiQuota': 'Ayda {soru} soru + {mutalaa} hukuki mütalaa dahil',
+  'premium.f.aiQuotaSoruOnly': 'Ayda {soru} yapay zekâ sorusu dahil',
   'premium.f.aiAssistant': 'Vekil AI asistanı — hukuki soru, süre ve usul danışmanı',
   'premium.f.aiMutalaa': 'Mütalaa: olayı sorunlara bölüp her birini ayrı araştıran derin inceleme',
   'premium.f.aiDilekce': 'Dilekçe Üret: dava, cevap, istinaf, temyiz, itiraz ve ihtarname taslakları',

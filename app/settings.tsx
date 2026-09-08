@@ -268,6 +268,16 @@ export default function SettingsScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </Pressable>
+          <View style={styles.rowDivider} />
+          {/* Kullanım Koşulları (EULA) — abonelik satan uygulamada mağaza
+              incelemesi uygulama içinden erişilebilir olmasını zorunlu tutar. */}
+          <Pressable style={styles.row} onPress={() => router.push('/terms' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
+              <Text style={styles.rowLabel}>{t('legal.termsTitle')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
         </Card>
 
         <Card style={styles.section}>

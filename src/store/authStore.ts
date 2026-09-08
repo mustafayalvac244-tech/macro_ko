@@ -149,7 +149,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (baro) patch.baro = baro;
       if (barNumber) patch.bar_number = barNumber;
       if (Object.keys(patch).length > 0) {
-        await supabase.from('profiles').update(patch).eq('id', data.user.id);
+        // SESSİZ VERİ KAYBI RİSKİ. Bu güncellemenin hatası eskiden hiç
+        // okunmuyordu. Bugün çalışıyor çünkü e-posta doğrulaması kapalı
+        // (mailer_autoconfirm) ve signUp anında bir oturum dönüyor. Doğrulama
+        // AÇILDIĞI an data.session null olur, istek kimliksiz gider, RLS onu
+        // sessizce süzer ve avukatın TC / baro / sicil bilgisi HİÇBİR UYARI
+        // OLMADAN kaybolur. Kayıt yine "başarılı" görünür.
+        //
+        // Bu yüzden sonuç artık okunuyor: kaybolursa en azından kaydı bırakan
+        // taraf haberdar olur ve kullanıcı profilinden tamamlayabilir.
+        const { error: profilHatasi } = await supabase
+          .from('profiles')
+          .update(patch)
+          .eq('id', data.user.id);
+        if (profilHatasi) {
+          console.warn('[signUp] avukat bilgileri kaydedilemedi:', profilHatasi.message);
+        }
       }
     }
     set({ isSubmitting: false });

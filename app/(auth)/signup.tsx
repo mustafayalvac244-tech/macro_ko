@@ -209,6 +209,15 @@ export default function SignupScreen() {
           <Text style={styles.privacyHint} onPress={() => router.push('/privacy' as Parameters<typeof router.push>[0])}>
             {t('auth.privacyLink')}
           </Text>
+          {/* Kayıt olan kullanıcı, koşulları kabul ettiğini görmeli ve metne
+              buradan ulaşabilmeli — hem mağaza incelemesi hem tüketici
+              mevzuatı açısından. Önceden yalnız gizlilik bağlantısı vardı. */}
+          <Text style={styles.termsHint}>
+            {t('auth.termsAccept')}{' '}
+            <Text style={styles.termsLink} onPress={() => router.push('/terms' as Parameters<typeof router.push>[0])}>
+              {t('legal.termsTitle')}
+            </Text>
+          </Text>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t('auth.haveAccount')}</Text>
@@ -432,6 +441,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     marginTop: spacing.sm,
+    textDecorationLine: 'underline',
+  },
+  termsHint: {
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+  },
+  termsLink: {
+    color: colors.primary,
     textDecorationLine: 'underline',
   },
   footer: {

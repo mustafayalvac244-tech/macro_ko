@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { PurchasesPackage } from 'react-native-purchases';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
 import { useTrialStatus, MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_MUTALAA_HAKKI } from '@/hooks/useTrialStatus';
+import { useAiSaglik } from '@/hooks/useAiSaglik';
 import { supabase } from '@/lib/supabase';
 import {
   AI_ENTITLEMENT_ID,
@@ -17,6 +19,12 @@ import {
   isPremiumActive,
   restorePurchases,
 } from '@/lib/purchases';
+import {
+  AI_BELGE_ENABLED,
+  AI_DILEKCE_ENABLED,
+  AI_ENABLED,
+  AI_MUTALAA_ENABLED,
+} from '@/config/features';
 import { useT } from '@/i18n';
 import { fonts, radius, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -53,9 +61,12 @@ export default function PremiumScreen() {
   const [busyPlan, setBusyPlan] = useState<'temel' | 'ai' | 'restore' | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem('vekil-premium').then((v) => {
-      if (v === '1') setIsPremium(true);
-    });
+    // KALDIRILDI: premium durumu eskiden AsyncStorage'daki 'vekil-premium'
+    // anahtarından da okunuyordu. Uygulamanın HİÇBİR yeri bu anahtarı yazmıyor
+    // (ölü kod), ama cihaza erişebilen biri onu '1' yapıp ekranı "abone" gibi
+    // gösterebilirdi. Gerçek yetki zaten sunucuda (profiles.is_premium, webhook
+    // ile yazılır ve trigger korur); istemcide ikinci bir "abone miyim" kaynağı
+    // tutmak yalnızca yanıltıcı bir yüzey ekliyordu.
     const userId = session?.user.id;
     if (!userId) return;
     supabase
@@ -91,6 +102,23 @@ export default function PremiumScreen() {
   const subscribed = isPremium || trial.subscribed;
 
   /**
+   * AI PAKETİ, ARKA UÇ HİZMET VEREMEZKEN SATILMAMALI.
+   *
+   * Ölçülen durum: ücretli hat Claude'a KİLİTLİ ve ANTHROPIC_API_KEY yoksa uç
+   * 503 'not_configured' döner (index.ts'teki genKey kontrolü) — sessizce ucuz
+   * modele düşmez, ki bu doğrusudur. Ama sonucu şu: anahtar tanımlı değilken
+   * 1.999 ₺'lik paketi satın alan kullanıcının HER AI isteği hata alır.
+   *
+   * Bugün canlı bir risk yok çünkü RevenueCat hiç kurulmadı ve teklif null
+   * geliyor. Kurulduğu gün bu kapı kendiliğinden açılırdı; kilidi şimdi
+   * koyuyoruz. Yalnız "kesin biliyoruz ki çalışmıyor" (false) durumunda
+   * engellenir — sağlık yoklaması ağ hatasıyla dönerse (undefined) satın alma
+   * engellenmez, aksi hâlde geçici bir kesinti satışı durdururdu.
+   */
+  const saglik = useAiSaglik(!isAiActive);
+  const aiHizmetKapali = saglik.data?.ucretliAyakta === false;
+
+  /**
    * Sunucu (webhook) profiles.is_premium'u işleyene kadar birkaç saniye
    * sürebilir — satın alma başarılı olduktan hemen sonra tek seferlik profil
    * okumak genelde eskiyi görür. Birkaç kez, artan aralıklarla tekrar dener.
@@ -107,6 +135,11 @@ export default function PremiumScreen() {
 
   const onSubscribe = async (plan: 'temel' | 'ai') => {
     AsyncStorage.setItem('vekil-plan-intent', plan).catch(() => {});
+    // AI paketi: arka uç hizmet veremiyorsa satın almayı hiç başlatma.
+    if (plan === 'ai' && aiHizmetKapali) {
+      Alert.alert(t('premium.aiUnavailableTitle'), t('premium.aiUnavailableBody'));
+      return;
+    }
     const pkg = plan === 'ai' ? aiOfferingPkg : offeringPkg;
     // Bu katmanın Offering'i RevenueCat panelinde henüz kurulmadıysa (ya da
     // web'deyse) pkg null gelir — eski "çok yakında" davranışına düşülür,
@@ -155,13 +188,45 @@ export default function PremiumScreen() {
     }
   };
 
+  /**
+   * AI paketinin özellik listesi BAYRAKLARDAN türetilir.
+   *
+   * BULUNAN KUSUR (mağaza incelemesi ve tüketici hukuku açısından ciddi): liste
+   * sabit yazılmıştı ve kapalı özellikleri satıyordu. Kart "12 hukuki mütalaa
+   * dahil" ve "Mütalaa: derin inceleme" diyordu ama AI_MUTALAA_ENABLED=false;
+   * "Vekil AI asistanı" ve "İçtihat araması ve karar özetleme" diyordu ama
+   * AI_ENABLED=false. Yani abonelik satın alan kullanıcı, parasını ödediği
+   * ekranlarda "Çok Yakında" görecekti. Apple/Google incelemesi bunu doğrudan
+   * reddeder; Türkiye'de de ayıplı hizmet sayılır.
+   *
+   * Artık bir özellik ancak AÇIKSA reklam edilir. Bayrak açıldığında satır
+   * kendiliğinden geri gelir — listeyi elle güncellemeyi unutmak imkânsız.
+   */
+  const aiFeatures = [
+    // Kota satırı yalnız gerçekten kullanılabilen hakları sayar.
+    AI_MUTALAA_ENABLED
+      ? t('premium.f.aiQuota', { soru: String(AI_SORU_HAKKI), mutalaa: String(AI_MUTALAA_HAKKI) })
+      : t('premium.f.aiQuotaSoruOnly', { soru: String(AI_SORU_HAKKI) }),
+    AI_ENABLED ? t('premium.f.aiAssistant') : null,
+    AI_MUTALAA_ENABLED ? t('premium.f.aiMutalaa') : null,
+    AI_DILEKCE_ENABLED ? t('premium.f.aiDilekce') : null,
+    AI_BELGE_ENABLED ? t('premium.f.aiDocReview') : null,
+    AI_ENABLED ? t('premium.f.aiIctihat') : null,
+    t('premium.f.aiGrounded'),
+  ].filter((f): f is string => f !== null);
+
   const features = [
     t('premium.f.allCases'),
     t('premium.f.remindersFull'),
     t('premium.f.financeFull'),
     t('premium.f.docsFull'),
     t('premium.f.backupFull'),
-    t('premium.f.aiSoon'),
+    // TEMEL PAKETTE AI YOKTUR. Buradaki eski satır "Yapay zekâ özellikleri —
+    // çok yakında üyeliğe dahil" diyordu; bu, 399 ₺'lik temel aboneliği alan
+    // kullanıcıya AI'ın da geleceğini VAAT ediyordu. Oysa AI ayrı ve 1.999 ₺'lik
+    // bir pakettir. Yanlış beklenti yaratan bir satırı satış ekranında tutmak,
+    // sonradan "ben AI için ödedim" itirazını doğurur.
+    t('premium.f.aiSeparate'),
   ];
 
   // Deneme durum satırı (abone değilse).
@@ -271,15 +336,7 @@ export default function PremiumScreen() {
           )}
 
           <View style={styles.features}>
-            {[
-              t('premium.f.aiQuota', { soru: String(AI_SORU_HAKKI), mutalaa: String(AI_MUTALAA_HAKKI) }),
-              t('premium.f.aiAssistant'),
-              t('premium.f.aiMutalaa'),
-              t('premium.f.aiDilekce'),
-              t('premium.f.aiDocReview'),
-              t('premium.f.aiIctihat'),
-              t('premium.f.aiGrounded'),
-            ].map((f) => (
+            {aiFeatures.map((f) => (
               <View key={f} style={styles.featRow}>
                 <Ionicons name="checkmark" size={16} color={colors.success} style={styles.featCheck} />
                 <Text style={styles.featText}>{f}</Text>
@@ -304,11 +361,30 @@ export default function PremiumScreen() {
               )}
             </Pressable>
           )}
+
+          {/* Apple, otomatik yenilenen abonelikte satın alma ANINDA görünen bir
+              yenileme/iptal açıklaması ister (App Store Review 3.1.2). Temel
+              paketin karşılığı trialFinePrint; AI katmanında denemesi olmadığı
+              için ayrı bir ibare gerekiyordu ve YOKTU. */}
+          <Text style={styles.finePrint}>{t('premium.autoRenewNote', { price: AI_PRICE_TRY.toLocaleString('tr-TR') })}</Text>
         </View>
 
         <View style={styles.noteRow}>
           <Ionicons name="shield-checkmark-outline" size={14} color={colors.textMuted} />
           <Text style={styles.noteText}>{t('premium.storeNote')}</Text>
+        </View>
+
+        {/* Apple, abonelik satan uygulamada Kullanım Koşulları (EULA) ve
+            Gizlilik Politikası bağlantılarının UYGULAMA İÇİNDE bulunmasını
+            zorunlu tutar. Gizlilik vardı, Kullanım Koşulları hiç yoktu. */}
+        <View style={styles.legalRow}>
+          <Text style={styles.legalLink} onPress={() => router.push('/terms' as Parameters<typeof router.push>[0])}>
+            {t('legal.termsTitle')}
+          </Text>
+          <Text style={styles.legalSep}>·</Text>
+          <Text style={styles.legalLink} onPress={() => router.push('/privacy' as Parameters<typeof router.push>[0])}>
+            {t('settings.privacy')}
+          </Text>
         </View>
 
         {/* Apple/Google incelemesi bunu ZORUNLU tutar: daha önce satın alınmış
@@ -538,6 +614,24 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
     marginTop: spacing.xs,
     paddingHorizontal: spacing.md,
+  },
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: spacing.sm,
+  },
+  legalLink: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.textSecondary,
+    textDecorationLine: 'underline',
+  },
+  legalSep: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.textMuted,
   },
   noteText: {
     fontFamily: fonts.regular,
