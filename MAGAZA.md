@@ -112,7 +112,7 @@ farkı önemli olduğu için yazıyorum.
 | Kullanıcı kendini premium/admin yapabilir mi | ✅ Hayır | `trg_protect_profile_privileges` tetikleyicisi canlıda aktif |
 | RLS açığı | ✅ Yok | Politikasız tek iki tablo `ictihat_harvest_state` ve `legal_rules`; ikisinde de RLS **açık** ve politika **sıfır** = istemciye tamamen kapalı (doğru durum) |
 | Belge kovası herkese açık mı | ✅ Hayır | `case-documents.public = false` |
-| Hesap silme (Apple zorunlu) | ✅ Var | Ayarlar > Hesabı Sil; storage temizliği + `delete_account()` RPC |
+| Hesap silme (Apple zorunlu) | ✅ **Kırıktı, düzeltildi ve kanıtlandı** | Uçtan uca test: veri girildi → `delete_account` → müvekkil/dava/duruşma/auth/profil **hepsi 0**. Öncesinde 403 dönüp HİÇBİR ŞEY silmiyordu (bkz. B5) |
 | Satın almaları geri yükleme (Apple zorunlu) | ✅ Var | `premium.tsx` → `restorePurchases()` |
 | Eksik çeviri anahtarı | ✅ Sıfır | Kullanılan tüm `t('...')` anahtarları hem `tr.ts` hem `en.ts` içinde var; iki dosya arasında fark yok |
 | Derleme ve testler | ✅ Temiz | `tsc --noEmit` hatasız, 271/271 test geçiyor |
@@ -255,6 +255,40 @@ sakin bir günde yapılmalı.
 **Ayrıca doğrulandı:** EAS'in production ortamında `EXPO_PUBLIC_SUPABASE_URL`
 ve `EXPO_PUBLIC_SUPABASE_ANON_KEY` **tanımlı** — yani bugüne kadar yayınlanan
 OTA'lar doğru arka uçla paketlenmiş. (Bunu varsaymamıştım, ölçtüm.)
+
+---
+
+## B5. HESAP SİLME ÇALIŞMIYORDU (yayın öncesi son taramada bulundu)
+
+**Apple'ın zorunlu tuttuğu özellik tamamen kırıktı.** Kullanıcı "Hesabı Sil"
+dediğinde hata alıyor, hiçbir verisi silinmiyordu.
+
+**Nasıl bulundu:** politikaya bakmakla yetinmeyip uçtan uca denedim. Test
+kullanıcısı açtım, 1 müvekkil + 1 dava + 1 duruşma girdim, `delete_account`
+çağırdım:
+
+```
+HTTP 403 / 42501
+"Direct deletion from storage tables is not allowed. Use the Storage API instead."
+```
+
+Silmeden sonraki sayım: müvekkil 1, dava 1, duruşma 1, auth 1, profil 1 —
+**hiçbir şey silinmemişti.**
+
+**Sebebi:** Supabase, `storage.objects` üzerine doğrudan SQL DELETE'i engelleyen
+bir koruma koymuş. Fonksiyonun İLK ifadesi buydu; hata fırlatınca işlem geri
+alınıyor ve asıl silme (`delete from auth.users`) hiç çalışmıyordu. Bu bir
+platform davranışı değişikliği — kod bir gün çalışıp ertesi gün sessizce
+çalışmaz hâle gelmiş.
+
+**Çözüm:** storage silme fonksiyondan çıkarıldı, çünkü zaten istemcide Storage
+API ile yapılıyor (`authStore.deleteAccount`, RPC'den ÖNCE) — Supabase'in
+istediği yol tam olarak bu. Fonksiyona kalan tek iş `auth.users` satırını
+silmek; gerisi cascade ile gidiyor (auth.users → profiles → 23 tablo, hepsinin
+CASCADE olduğu ayrıca doğrulandı).
+
+**Kanıt (düzeltmeden sonra, aynı test):** önce 1/1/1/1/1 → RPC HTTP 204 →
+sonra **0/0/0/0/0**.
 
 ---
 
