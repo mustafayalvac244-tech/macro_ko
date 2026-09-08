@@ -1,5 +1,10 @@
 import { Platform, Share } from 'react-native';
 import { File, Paths } from 'expo-file-system';
+import { toCsv } from '@/utils/csvMetni';
+
+// CSV metni üretimi saf modüle taşındı (test edilebilsin diye); çağrı
+// yerleri değişmesin diye buradan da dışa veriliyor.
+export { toCsv };
 
 /**
  * CSV dışa aktarma — muhasebeciye/vergi için veriyi uygulamadan çıkarır.
@@ -9,23 +14,6 @@ import { File, Paths } from 'expo-file-system';
  * (Android'de Share yalnız metin alır) CSV metni olarak paylaşır — böylece
  * kullanıcı her koşulda verisine ulaşır.
  */
-
-/** Bir hücreyi CSV için güvenli hale getirir (tırnak/virgül/satır sonu). */
-function cell(v: string | number | null | undefined): string {
-  const s = v == null ? '' : String(v);
-  return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-/**
- * Satırlardan CSV metni üretir.
- * Ayırıcı olarak NOKTALI VİRGÜL kullanılır: Türkçe Excel'de ondalık ayırıcı
- * virgül olduğu için virgüllü CSV sütunlara doğru bölünmez.
- */
-export function toCsv(header: string[], rows: Array<Array<string | number | null | undefined>>): string {
-  const lines = [header.map(cell).join(';'), ...rows.map((r) => r.map(cell).join(';'))];
-  // BOM: Excel'in UTF-8'i (Türkçe karakterler) doğru okuması için gerekli.
-  return '﻿' + lines.join('\r\n');
-}
 
 /** Dosya adında kullanılamayacak karakterleri temizler. */
 function safeName(name: string): string {

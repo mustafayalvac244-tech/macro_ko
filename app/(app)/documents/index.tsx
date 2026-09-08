@@ -12,6 +12,7 @@ import { useDeleteDocument, useDocuments } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
 import { spacing } from '@/theme/theme';
 import type { DocumentCategory } from '@/types/database';
+import { aramaEslesir } from '@/utils/arama';
 
 const CATEGORY_VALUES: (DocumentCategory | 'all')[] = [
   'all',
@@ -41,7 +42,12 @@ export default function DocumentVaultScreen() {
     if (!documents) return [];
     return documents.filter((doc) => {
       const matchesCategory = category === 'all' || doc.category === category;
-      const matchesSearch = !search || doc.name.toLowerCase().includes(search.toLowerCase());
+      // TÜRKÇE ARAMA. Burada düz toLowerCase() kullanılıyordu ve Türkçe'de
+      // sessizce yanlış sonuç veriyordu: "İcra Takip Talebi" belgesini
+      // "icra" yazarak ARAMAK MÜMKÜN DEĞİLDİ ("İ".toLowerCase() birleşik
+      // noktalı bir harf üretir). Uygulamanın diğer arama yerleri zaten
+      // Türkçe'ye duyarlıydı; burası gözden kaçmıştı.
+      const matchesSearch = aramaEslesir(doc.name, search);
       return matchesCategory && matchesSearch;
     });
   }, [documents, category, search]);

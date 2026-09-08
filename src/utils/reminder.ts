@@ -1,27 +1,15 @@
 import { Linking } from 'react-native';
 import { formatDate, formatTime } from '@/utils/format';
+import { normalizePhoneForWa } from '@/utils/telefon';
+
+// Numara normalleştirme saf modüle taşındı (test edilebilsin diye).
+export { normalizePhoneForWa };
 
 /**
  * Müvekkile Hatırlat — duruşma/görev hatırlatmasını WhatsApp (yoksa SMS) ile
  * müvekkile gönderir. Native bağımlılık yok (Linking çekirdek modül) →
  * OTA güncellemesiyle çalışır.
  */
-
-/**
- * Türk telefon numarasını WhatsApp'ın beklediği uluslararası biçime çevirir
- * (ülke kodu dahil, + ve boşluklar olmadan). Örn:
- *   "0532 123 45 67"  → "905321234567"
- *   "+90 532 123 4567" → "905321234567"
- *   "532 123 4567"     → "905321234567"
- */
-export function normalizePhoneForWa(raw: string): string {
-  let d = (raw || '').replace(/[^\d]/g, '');
-  if (!d) return '';
-  if (d.startsWith('90')) return d; // zaten ülke kodlu
-  if (d.startsWith('0')) d = d.slice(1); // baştaki 0'ı at
-  if (d.length === 10) return `90${d}`; // 5xxxxxxxxx → 90 5xxxxxxxxx
-  return d; // yabancı/bilinmeyen numara: olduğu gibi bırak
-}
 
 export interface HearingReminderParams {
   clientName: string;
@@ -68,13 +56,26 @@ export async function sendClientReminder(rawPhone: string | null | undefined, me
   const waNumber = normalizePhoneForWa(phone);
   const waUrl = `whatsapp://send?phone=${waNumber}&text=${encodeURIComponent(message)}`;
   try {
-    const canWa = await Linking.canOpenURL(waUrl);
-    if (canWa) {
-      await Linking.openURL(waUrl);
-      return 'whatsapp';
-    }
+    // WHATSAPP HİÇ AÇILMIYORDU — canOpenURL kaldırıldı.
+    //
+    // Burada önce Linking.canOpenURL(waUrl) çağrılıyor, yalnız true dönerse
+    // WhatsApp açılıyordu. Ama canOpenURL özel bir şema için platformdan İZİN
+    // ister: iOS'ta Info.plist'teki LSApplicationQueriesSchemes, Android
+    // 11+'ta manifest'teki <queries>. app.json'da İKİSİ DE tanımlı değildi
+    // (kontrol edildi), yani canOpenURL her iki platformda da HER ZAMAN false
+    // dönüyordu. Sonuç: WhatsApp kurulu olsa bile özellik sessizce SMS'e
+    // düşüyordu — "WhatsApp ile gönder" diyen bir düğme hiçbir zaman WhatsApp
+    // açmıyordu.
+    //
+    // Çözüm doğrudan openURL denemek: WhatsApp yoksa zaten hata fırlatır ve
+    // aşağıdaki SMS yoluna düşeriz. Bu, izin listesine hiç ihtiyaç duymaz ve
+    // MEVCUT derlemelerde de çalışır (OTA ile gider). app.json'a izin
+    // tanımları ayrıca eklendi ki ileride canOpenURL kullanan biri aynı
+    // tuzağa düşmesin.
+    await Linking.openURL(waUrl);
+    return 'whatsapp';
   } catch {
-    // WhatsApp açılamadı → SMS'e düş
+    // WhatsApp kurulu değil / açılamadı → SMS'e düş
   }
 
   const smsNumber = phone.replace(/[^\d+]/g, '');

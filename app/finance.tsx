@@ -133,11 +133,11 @@ export default function FinanceScreen() {
         t(`fcat.${e.category}` as const),
         e.title ?? '',
         e.is_recurring ? t('common.yes') : t('common.no'),
-        Number(e.amount).toFixed(2),
+        Number(e.amount),
         e.vat_rate != null ? `%${e.vat_rate}` : '',
-        e.vat_amount != null ? Number(e.vat_amount).toFixed(2) : '',
+        e.vat_amount != null ? Number(e.vat_amount) : '',
         e.withholding_rate != null ? `%${e.withholding_rate}` : '',
-        e.withholding_amount != null ? Number(e.withholding_amount).toFixed(2) : '',
+        e.withholding_amount != null ? Number(e.withholding_amount) : '',
         e.receipt_no ?? '',
         e.note ?? '',
       ]);
@@ -152,7 +152,7 @@ export default function FinanceScreen() {
           t('ofinance.casePayments'),
           t('ofinance.casePayments'),
           t('common.no'),
-          Number(p.amount).toFixed(2),
+          Number(p.amount),
           '',
           '',
           '',
@@ -168,11 +168,11 @@ export default function FinanceScreen() {
     // Özet satırları — muhasebecinin doğrudan görebilmesi için en alta.
     // KDV/stopaj toplamları beyanname hazırlarken doğrudan kullanılabilsin.
     rows.push([]);
-    rows.push(['', '', '', t('ofinance.income'), '', incomeTotal.toFixed(2), '', '', '', '', '', '']);
-    rows.push(['', '', '', t('ofinance.expense'), '', expenseTotal.toFixed(2), '', '', '', '', '', '']);
-    rows.push(['', '', '', t('ofinance.net'), '', net.toFixed(2), '', '', '', '', '', '']);
-    rows.push(['', '', '', t('financeForm.vatAmount'), '', '', '', vatTotal.toFixed(2), '', '', '', '']);
-    rows.push(['', '', '', t('financeForm.withholdingAmount'), '', '', '', '', '', withholdingTotal.toFixed(2), '', '']);
+    rows.push(['', '', '', t('ofinance.income'), '', incomeTotal, '', '', '', '', '', '']);
+    rows.push(['', '', '', t('ofinance.expense'), '', expenseTotal, '', '', '', '', '', '']);
+    rows.push(['', '', '', t('ofinance.net'), '', net, '', '', '', '', '', '']);
+    rows.push(['', '', '', t('financeForm.vatAmount'), '', '', '', vatTotal, '', '', '', '']);
+    rows.push(['', '', '', t('financeForm.withholdingAmount'), '', '', '', '', '', withholdingTotal, '', '']);
 
     const csv = toCsv(
       [

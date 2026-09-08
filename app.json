@@ -34,7 +34,10 @@
         "NSPhotoLibraryUsageDescription": "Dava dosyalarınıza belge ve fotoğraf eklemek için galerinize erişir.",
         "NSCameraUsageDescription": "Evrak ve belgeleri doğrudan çekip dava dosyasına eklemeniz için kamerayı kullanır.",
         "NSCalendarsUsageDescription": "Duruşma ve toplantılarınızı telefonunuzun takvimine eklemek için kullanılır.",
-        "NSCalendarsWriteOnlyAccessUsageDescription": "Duruşma ve toplantılarınızı telefonunuzun takvimine eklemek için kullanılır."
+        "NSCalendarsWriteOnlyAccessUsageDescription": "Duruşma ve toplantılarınızı telefonunuzun takvimine eklemek için kullanılır.",
+        "LSApplicationQueriesSchemes": [
+          "whatsapp"
+        ]
       }
     },
     "android": {
@@ -50,6 +53,17 @@
       "permissions": [
         "android.permission.NOTIFICATIONS",
         "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
+      "queries": [
+        {
+          "scheme": "whatsapp"
+        },
+        {
+          "scheme": "sms"
+        },
+        {
+          "scheme": "tel"
+        }
       ]
     },
     "web": {
