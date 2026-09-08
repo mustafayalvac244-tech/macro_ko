@@ -29,8 +29,7 @@
         "buildType": "app-bundle"
       },
       "ios": {
-        "resourceClass": "m-medium",
-        "credentialsSource": "local"
+        "resourceClass": "m-medium"
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://wjshlysfmeqlnfiibknj.supabase.co",

@@ -229,6 +229,35 @@ ardından üç kart. Kullanım Koşulları'nın 3. bölümü de üç katmanı ve
 
 ---
 
+## B4. YAYIN GECESİ TUZAK TEMİZLİĞİ
+
+| # | Tuzak | Neden tehlikeliydi | Durum |
+|---|---|---|---|
+| T1 | `eas.json` → iOS `credentialsSource: "local"` | Yanında bir `credentials.json` bekler; o dosya depoda yok (doğru olarak .gitignore'da). Derleme tam yayın gecesi kimlik hatasıyla durabilirdi. | ✅ Kaldırıldı — EAS kendi yönettiği (remote) kimlik bilgilerini kullanacak |
+| T2 | Apple incelemesi demo hesabı ücretsiz katmandaydı | Yeni plan limitlerinden sonra `demo@vekilpro.app` finans modülünü açamıyordu (`plan_limiti:finans:0`). İncelemeci uygulamanın yarısını göremez, "özellik çalışmıyor" diye reddedebilirdi. | ✅ `is_premium = true` yapıldı. `ai_tier` BİLEREK null bırakıldı: incelemeci AI satın alma akışını hâlâ test edebilsin diye |
+| T3 | Ölü Stripe değişkeni | `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your-publishable-key` hem production hem preview ortamında duruyordu; uygulamada Stripe'a tek satır referans yok. | ✅ İki ortamdan da silindi |
+
+**Doğrulandı:** demo hesabıyla gerçek giriş denendi, `access_token` döndü.
+
+### Bilerek DOKUNMADIĞIM bir şey
+
+`eas.json`'daki build profillerinin `env` blokları, EAS'in sunucu tarafındaki
+ortam değişkenleriyle **aynı değerleri tekrarlıyor** (Supabase URL + anon key).
+İkisi ayrışırsa derleme ile OTA farklı arka uca bakar.
+
+Bunu bu gece **düzeltmedim**. Sebebi: ikisinin değerlerini karşılaştırdım ve
+şu an **birebir aynılar**, yani bugün bir arıza üretmiyor. Düzeltmek için
+profillere `environment` alanı ekleyip `env` bloklarını silmek gerekir — bu,
+şema hatası ihtimali taşıyan bir değişiklik ve yanlış giderse tam yayın
+gecesinde derlemeyi durdurur. Riski getirisinden büyük buldum. Yayından sonra
+sakin bir günde yapılmalı.
+
+**Ayrıca doğrulandı:** EAS'in production ortamında `EXPO_PUBLIC_SUPABASE_URL`
+ve `EXPO_PUBLIC_SUPABASE_ANON_KEY` **tanımlı** — yani bugüne kadar yayınlanan
+OTA'lar doğru arka uçla paketlenmiş. (Bunu varsaymamıştım, ölçtüm.)
+
+---
+
 ## D. KARAR SİZE AİT OLAN BAŞLIKLAR
 
 1. **Test hesapları canlıda duruyor.** `@vekil.local` / `@vekilpro.app`
