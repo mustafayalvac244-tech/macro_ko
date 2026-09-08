@@ -7,7 +7,8 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
-import { useTrialStatus, MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_MUTALAA_HAKKI } from '@/hooks/useTrialStatus';
+import { useTrialStatus, MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
+import { UCRETSIZ_LIMIT } from '@/config/planlar';
 import { useAiSaglik } from '@/hooks/useAiSaglik';
 import { supabase } from '@/lib/supabase';
 import {
@@ -31,7 +32,13 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
 /**
- * Üyelik ekranı — TEK plan: 7 gün ücretsiz deneme → aylık abonelik (399 ₺).
+ * Üyelik ekranı — ÜÇ katman: Ücretsiz → Vekil Pro (399 ₺) → + Yapay Zekâ (1.999 ₺).
+ *
+ * ÜRÜN KARARI: içtihat araması ÜCRETSİZDİR ve öyle kalacaktır; ücret, büro
+ * yönetimini büyütmek (sınırsız dava/müvekkil/belge, finans, yedekleme) ya da
+ * yapay zekâyı kullanmak isteyenden alınır. Ücretsiz katman ekranda AÇIKÇA
+ * gösterilir: önceden yalnız iki ücretli kart vardı ve kullanıcı neyi bedava
+ * aldığını da, 399 ₺'nin neyi açtığını da göremiyordu.
  *
  * "Aboneliğe Geç" artık RevenueCat üzerinden GERÇEK satın alma başlatır
  * (bkz. src/lib/purchases.ts). RevenueCat henüz kurulmadıysa (API anahtarı
@@ -215,6 +222,27 @@ export default function PremiumScreen() {
     t('premium.f.aiGrounded'),
   ].filter((f): f is string => f !== null);
 
+  /**
+   * ÜCRETSİZ KATMAN ARTIK EKRANDA GÖRÜNÜYOR.
+   *
+   * Eskiden ekran yalnız iki ücretli kart gösteriyordu ve ücretsiz katmandan
+   * hiç söz etmiyordu — oysa uygulamanın büyük kısmı ücretsiz. Bunu saklamak
+   * iki yönden yanlıştı: kullanıcı neyi bedava aldığını bilmiyordu, ve 399 ₺'lik
+   * planın karşılığı da anlaşılmıyordu ("zaten her şey açık, ne için ödüyorum?").
+   * Farkı göstermenin yolu, ücretsiz sütunu dürüstçe yazmaktır.
+   */
+  const freeFeatures = [
+    t('premium.f.freeIctihat'),
+    t('premium.f.freeMevzuat'),
+    t('premium.f.freeAjanda'),
+    t('premium.f.freeLimits', {
+      dava: String(UCRETSIZ_LIMIT.dava),
+      muvekkil: String(UCRETSIZ_LIMIT.muvekkil),
+      belge: String(UCRETSIZ_LIMIT.belge),
+    }),
+    t('premium.f.freeDeneme', { n: String(DENEME_SORU_HAKKI) }),
+  ];
+
   const features = [
     t('premium.f.allCases'),
     t('premium.f.remindersFull'),
@@ -242,7 +270,14 @@ export default function PremiumScreen() {
     <Screen edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('premium.plansTitle')} showBack />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lead}>{t('premium.oneSub')}</Text>
+        <Text style={styles.lead}>{t('premium.leadFreeFirst')}</Text>
+
+        {/* İÇTİHAT ÜCRETSİZ — en üstte ve vurgulu. Ürünün en güçlü tarafı bu ve
+            para istemiyoruz; satış ekranının ilk söylediği şey bu olmalı. */}
+        <View style={styles.freeBanner}>
+          <Ionicons name="library-outline" size={18} color={colors.success} />
+          <Text style={styles.freeBannerText}>{t('premium.ictihatFreeNote')}</Text>
+        </View>
 
         {subscribed ? (
           <View style={styles.activeChip}>
@@ -261,6 +296,23 @@ export default function PremiumScreen() {
             </View>
           )
         )}
+
+        {/* ───────── ÜCRETSİZ ───────── */}
+        <View style={styles.freeCard}>
+          <Text style={styles.tierName}>{t('premium.freeName')}</Text>
+          <Text style={styles.tierTag}>{t('premium.freeTag')}</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.freePrice}>{t('premium.freePrice')}</Text>
+          </View>
+          <View style={styles.features}>
+            {freeFeatures.map((f) => (
+              <View key={f} style={styles.featRow}>
+                <Ionicons name="checkmark" size={16} color={colors.success} style={styles.featCheck} />
+                <Text style={styles.featText}>{f}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
 
         <View style={styles.card}>
           <View style={styles.badge}>
@@ -614,6 +666,37 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
     marginTop: spacing.xs,
     paddingHorizontal: spacing.md,
+  },
+  freeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.successSoft,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  freeBannerText: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.textPrimary,
+  },
+  freeCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  freePrice: {
+    fontFamily: fonts.bold,
+    fontSize: 26,
+    color: colors.textSecondary,
   },
   legalRow: {
     flexDirection: 'row',

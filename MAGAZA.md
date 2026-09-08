@@ -166,6 +166,69 @@ Bu yüzden Supabase tarafında captcha'yı **bilerek açmadım**
 
 ---
 
+## B3. PLAN MODELİ YENİDEN KURULDU (bu turda)
+
+**Bulunan durum (ölçüldü):** `is_premium` uygulamada **hiçbir şeyi açmıyordu** —
+arandığında yalnız avatara rozet koyduğu ve admin panelinde göründüğü çıktı.
+Deneme bitince de uygulama kilitlenmiyor, panoda bir hatırlatma çıkıyordu.
+Yani 399 ₺'lik abonelik satılıyor, karşılığında hiçbir şey verilmiyordu. Bu tek
+başına App Store Review 3.1.2 ret sebebidir.
+
+**Ürün kararı (kullanıcının):** içtihat ücretsiz, yapay zekâ ücretli, 399 ₺'nin
+de gerçek bir karşılığı olacak.
+
+### Yeni katmanlar
+
+| | Ücretsiz | Vekil Pro — 399 ₺ | + Yapay Zekâ — 1.999 ₺ |
+|---|---|---|---|
+| **İçtihat araması** | ✅ **Sınırsız** | ✅ Sınırsız | ✅ Sınırsız |
+| Mevzuat, hesaplayıcı, şablon | ✅ Sınırsız | ✅ | ✅ |
+| Duruşma, görev, ajanda, hatırlatma | ✅ Sınırsız | ✅ | ✅ |
+| Dava | 5 | Sınırsız | Sınırsız |
+| Müvekkil | 10 | Sınırsız | Sınırsız |
+| Belge | 5 | Sınırsız | Sınırsız |
+| Finans ve raporlar | ✖ | ✅ | ✅ |
+| Yapay zekâ | 3 deneme sorusu | ✖ | 250 soru |
+
+**İçtihat neden ücretsiz kalabiliyor:** bize API ücreti getirmiyor. Arama
+doğrudan canlı UYAP/Bedesten'e gidiyor; ödediğimiz tek şey kendi arşivimizin
+disk alanı.
+
+**Ajanda/duruşma neden sınırsız:** uygulamanın çekirdek faydası bu. Bir
+avukatın duruşma takvimini sınırlamak ürünü kullanılamaz kılar ve ücretsiz
+katmanı tuzağa çevirir. Ücretsiz katman gerçekten işe yaramazsa kimse
+ücretliye de geçmez.
+
+### Sunucuda uygulandı — kanıtlandı
+
+Limit **veritabanı tetikleyicisinde** (migration 0087), istemcide değil. Bu
+oturumda istemci tarafı kilidin sahte olduğu iki kez kanıtlanmıştı.
+
+| Senaryo | Sonuç |
+|---|---|
+| Ücretsiz kullanıcı, 30 davası var, limit 5 | `plan_limiti:dava:5` ile **reddedildi** |
+| Aynı kullanıcı premium yapılınca | **Eklendi** (muafiyet çalışıyor) |
+| Ücretsiz kullanıcı, finans kaydı | `plan_limiti:finans:0` ile **reddedildi** |
+
+Test satırları silindi, hesap premium durumu geri alındı, dava sayısı 42'ye döndü.
+
+**Mevcut veriye dokunulmuyor.** Tetikleyici yalnız YENİ kayıt eklemeyi
+engelliyor; hiçbir satır silinmiyor, gizlenmiyor, salt-okunur olmuyor. Bugün
+30 davası olan kullanıcı 30'unu da görmeye ve düzenlemeye devam eder.
+
+**Kullanıcıya ne görünüyor:** "Kaydedilemedi" gibi yanıltıcı bir hata değil —
+"Ücretsiz planda 5 dava açabilirsiniz ve bu hakkınız doldu. Mevcut davalarınız
+duruyor; yenisini eklemek için Vekil Pro'ya geçin." + **Planları gör** düğmesi.
+
+### Ekranda ne değişti
+
+Üyelik ekranı artık **ücretsiz katmanı da gösteriyor** (önceden yalnız iki
+ücretli kart vardı). En üstte içtihatın ücretsiz olduğunu söyleyen bir şerit,
+ardından üç kart. Kullanım Koşulları'nın 3. bölümü de üç katmanı ve "içtihat
+ücretsizliği kampanya değil, kalıcı kuraldır" taahhüdünü içeriyor.
+
+---
+
 ## D. KARAR SİZE AİT OLAN BAŞLIKLAR
 
 1. **Test hesapları canlıda duruyor.** `@vekil.local` / `@vekilpro.app`
