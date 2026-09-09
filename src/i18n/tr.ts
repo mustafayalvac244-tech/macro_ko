@@ -329,6 +329,7 @@ export const tr = {
   'err.saveOffline': 'İnternet bağlantısı kurulamadı, işlem sunucuya ulaşmadı. Bağlantınızı kontrol edip tekrar deneyin — girdiğiniz bilgiler formda duruyor.',
   'err.savePermission': 'Oturumunuzun süresi dolmuş olabilir. Çıkıp yeniden giriş yaptıktan sonra tekrar deneyin.',
   'err.saveGeneric': 'İşlem tamamlanamadı. Lütfen tekrar deneyin; sorun sürerse bize bildirin.',
+  'err.fileTooLarge': 'Bu dosya {mb} MB sınırını aşıyor. Belgeyi sıkıştırıp ya da sayfalara bölüp yeniden deneyin.',
 
   // Clients
   'clients.title': 'Müvekkiller',

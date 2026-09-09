@@ -327,6 +327,7 @@ export const en: Record<keyof typeof tr, string> = {
   'err.saveOffline': 'No internet connection — the request did not reach the server. Check your connection and try again; what you entered is still in the form.',
   'err.savePermission': 'Your session may have expired. Please sign out, sign in again, and retry.',
   'err.saveGeneric': 'The action could not be completed. Please try again; if it keeps happening, let us know.',
+  'err.fileTooLarge': 'This file exceeds the {mb} MB limit. Compress it or split it into parts and try again.',
 
   // Clients
   'clients.title': 'Clients',
