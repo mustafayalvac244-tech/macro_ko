@@ -1180,6 +1180,7 @@ export const en: Record<keyof typeof tr, string> = {
   'calc.claimValue': 'Claim value (₺)',
   'calc.decisionFee': 'Proportional judgment fee (‰68.31)',
   'calc.advanceFee': 'Advance fee (1/4)',
+  'calc.fee.unverified': '⚠️ The fee rate has NOT been verified against the official text. Confirm it before use.',
   'calc.feeDisclaimer':
     'The fixed filing fee and expense advance are paid separately. Rates follow Tariff (1) of the Fees Act; verify they are current.',
   'calc.fromCollect': 'From collected',

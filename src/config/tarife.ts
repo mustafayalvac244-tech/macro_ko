@@ -92,7 +92,14 @@ export const SERI_DAVA_ORANI = {
  *
  * EKSİK KALEMLER de var: başvurma harcı, vekalet suret harcı, gider avansı ve
  * nispi harcın MAKTU TABANI burada yok. Yani ekrandaki peşin harç, davayı
- * açmanın gerçek maliyeti DEĞİL — hesaplayıcı bunu artık açıkça söylüyor.
+ * açmanın gerçek maliyeti DEĞİL.
+ *
+ * NOT (düzeltildi): bu yorum bir süre "hesaplayıcı bunu artık açıkça söylüyor"
+ * diyordu ama SÖYLEMİYORDU — aşağıdaki üç sabit hiçbir yerde kullanılmıyor,
+ * hesaplayıcı 0.06831'i satır içine kopyalamış durumdaydı ve HARC_DOGRULANDI
+ * bayrağı ekrana hiç ulaşmıyordu. Kaynak dosyanın var olmayan bir güvenceyi
+ * beyan etmesi, güvencenin hiç olmamasından daha kötüdür. Bağlantı kuruldu:
+ * CourtFeeCalc artık bu sabitleri kullanıyor ve bayrak ekranda görünüyor.
  */
 export const KARAR_HARCI_ORANI = 0.06831;
 export const PESIN_HARC_PAYI = 1 / 4;

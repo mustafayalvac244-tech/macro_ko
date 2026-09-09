@@ -7,7 +7,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 // Tarife verisi TEK KAYNAKTA ve tarih damgalı (bkz. src/config/tarife.ts).
-import { aautHesapla, DILIMLER_DOGRULANDI, TARIFE, tarifeEskiMi } from '@/config/tarife';
+import { aautHesapla, DILIMLER_DOGRULANDI, TARIFE, tarifeEskiMi, KARAR_HARCI_ORANI, PESIN_HARC_PAYI, HARC_DOGRULANDI } from '@/config/tarife';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -265,11 +265,24 @@ function InterestCalc() {
 /* ---------------- Harç ---------------- */
 
 function CourtFeeCalc() {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
   const t = useT();
   const [value, setValue] = useState('');
   const v = parseAmount(value);
-  const kararHarci = v * 0.06831; // binde 68,31 nispi karar ve ilam harcı
-  const pesin = kararHarci / 4;
+  // ORAN ARTIK TEK KAYNAKTAN GELİYOR.
+  //
+  // Burada 0.06831 ve /4 SATIR İÇİNE yazılmıştı; oysa aynı sayılar
+  // src/config/tarife.ts'te KARAR_HARCI_ORANI ve PESIN_HARC_PAYI olarak da
+  // duruyordu. İki kopya, birbirinden habersiz eskiyebilirdi — tarife.ts zaten
+  // tam bu sebeple ("tek kaynak ve tarih damgası") yazılmıştı.
+  //
+  // Daha önemlisi: tarife.ts HARC_DOGRULANDI = false diyerek bu oranın
+  // DOĞRULANMADIĞINI işaretliyor ve yorumunda "hesaplayıcı bunu artık açıkça
+  // söylüyor" yazıyordu — ama söylemiyordu, çünkü bayrak hiçbir yerde
+  // kullanılmıyordu. Artık ekranda görünüyor; yorum da doğru hale geldi.
+  const kararHarci = v * KARAR_HARCI_ORANI;
+  const pesin = kararHarci * PESIN_HARC_PAYI;
 
   return (
     <View>
@@ -278,6 +291,7 @@ function CourtFeeCalc() {
         <Card>
           <ResultRow label={t('calc.decisionFee')} value={formatMoney(kararHarci)} />
           <ResultRow label={t('calc.advanceFee')} value={formatMoney(pesin)} strong />
+          {!HARC_DOGRULANDI && <Text style={styles.tarifeUyari}>{t('calc.fee.unverified')}</Text>}
           <Disclaimer text={t('calc.feeDisclaimer')} />
         </Card>
       )}

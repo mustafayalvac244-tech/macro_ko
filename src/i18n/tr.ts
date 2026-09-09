@@ -1193,6 +1193,7 @@ export const tr = {
   'calc.claimValue': 'Dava değeri (₺)',
   'calc.decisionFee': 'Nispi karar ve ilam harcı (‰68,31)',
   'calc.advanceFee': 'Peşin harç (1/4)',
+  'calc.fee.unverified': '⚠️ Harç oranı resmî metinden DOĞRULANMADI. Harçlar Kanunu (1) sayılı tarife her yıl güncellenir; kullanmadan önce teyit edin.',
   'calc.feeDisclaimer':
     'Maktu başvurma harcı ve gider avansı ayrıca ödenir. Oranlar Harçlar Kanunu (1) sayılı tarifeye göredir; güncelliğini teyit edin.',
   'calc.fromCollect': 'Tahsilattan',
