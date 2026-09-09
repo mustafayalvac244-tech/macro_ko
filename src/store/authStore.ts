@@ -187,11 +187,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const userId = get().session?.user.id;
     if (!userId) return;
 
-    // Delete uploaded files from storage first (DB cascade doesn't remove them).
+    /**
+     * DOSYALAR ÖNCE SİLİNİR — veritabanı cascade'i depoyu temizlemez.
+     *
+     * DÜZELTİLEN EKSİK: burada yalnız `documents` tablosundaki yollar
+     * siliniyordu. PROFİL FOTOĞRAFI da aynı kovada duruyor (uploadAvatar,
+     * `${userId}/profile/...`) ama documents tablosunda satırı yok — yani hesap
+     * silindikten sonra kullanıcının fotoğrafı depoda KALIYORDU. Kullanım
+     * koşulları silmenin "belgeler dahil tüm kayıtları" kapsadığını söylüyor;
+     * söylenenle olanın ayrışmaması için avatar da listeye eklendi.
+     *
+     * PARÇALAMA: tek çağrıya çok sayıda yol koymak, belgesi çok olan bir
+     * avukatta isteğin tamamen reddedilmesine yol açabilir — o durumda HİÇBİR
+     * dosya silinmezdi. 100'erlik parçalar hâlinde gönderiliyor.
+     *
+     * HATA OLURSA YİNE DE HESAP SİLİNİR. Silme kullanıcının hakkıdır; depo
+     * hatası yüzünden hesabı silinemez hâlde bırakmak daha ağır bir sonuçtur.
+     * Bu yüzden hata yutulur ama parçalama sayesinde "hepsi ya da hiçbiri"
+     * riski ortadan kalkar.
+     */
     const { data: docs } = await supabase.from('documents').select('file_path').eq('owner_id', userId);
-    const paths = (docs ?? []).map((d: { file_path: string }) => d.file_path);
-    if (paths.length > 0) {
-      await supabase.storage.from(DOCUMENTS_BUCKET).remove(paths).catch(() => {});
+    const paths = (docs ?? []).map((d: { file_path: string }) => d.file_path).filter(Boolean);
+    const avatarPath = get().profile?.avatar_url;
+    if (avatarPath) paths.push(avatarPath);
+
+    const PARCA = 100;
+    for (let i = 0; i < paths.length; i += PARCA) {
+      await supabase.storage
+        .from(DOCUMENTS_BUCKET)
+        .remove(paths.slice(i, i + PARCA))
+        .catch(() => {});
     }
 
     // Server-side function deletes the auth user; every table cascades from it.

@@ -1181,8 +1181,9 @@ export const tr = {
   'calc.days': 'Gün sayısı',
   'calc.interestAmount': 'Faiz tutarı',
   'calc.total': 'Toplam alacak',
+  'calc.presetHint': 'Hızlı giriş — bu oranlar yalnızca yazım kısayoludur, hukuken uygulanacak oran değildir.',
   'calc.interestDisclaimer':
-    'Basit (adi) faiz: anapara × oran × gün / 365. Yasal ve avans faiz oranları dönemsel değişir; güncel oranı teyit edin.',
+    'Basit (adi) faiz: anapara × oran × gün / 365. Hesap, girilen TEK oranı tüm döneme uygular: yasal/avans faiz oranı dönem içinde değiştiyse alacağı dönemlere bölüp ayrı ayrı hesaplamanız gerekir. Yürürlükteki oranı resmî kaynaktan teyit edin.',
   'calc.claimValue': 'Dava değeri (₺)',
   'calc.decisionFee': 'Nispi karar ve ilam harcı (‰68,31)',
   'calc.advanceFee': 'Peşin harç (1/4)',

@@ -209,6 +209,12 @@ function InterestCalc() {
     <View>
       <Input label={t('calc.principal')} placeholder="100000" value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" icon="cash-outline" />
       <Input label={t('calc.rate')} placeholder="24" value={rate} onChangeText={setRate} keyboardType="decimal-pad" icon="trending-up-outline" />
+      {/* KISAYOL ROZETLERİ ETİKETLENDİ. Üç oran (%9/%24/%48) çıplak duruyordu ve
+          bir hukuk uygulamasında çıplak bir oran, "uygulanacak oran budur" gibi
+          okunur. Uygulama yürürlükteki kanuni/avans faiz oranını TAKİP ETMİYOR
+          (ne bir kaynağı var ne güncelleme yolu), o yüzden bunları hukuki bir
+          kategori diye etiketlemek daha da yanlış olurdu — ne olduklarını
+          olduğu gibi söylüyoruz: yazım kısayolu. */}
       <View style={styles.presetRow}>
         {['9', '24', '48'].map((v) => (
           <Pressable key={v} style={[styles.presetChip, rate === v && styles.presetChipActive]} onPress={() => setRate(v)}>
@@ -216,6 +222,7 @@ function InterestCalc() {
           </Pressable>
         ))}
       </View>
+      <Text style={styles.tarifeUyari}>{t('calc.presetHint')}</Text>
 
       <View style={styles.dateRow}>
         <View style={styles.dateCol}>

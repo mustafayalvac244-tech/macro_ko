@@ -1168,8 +1168,9 @@ export const en: Record<keyof typeof tr, string> = {
   'calc.days': 'Days',
   'calc.interestAmount': 'Interest',
   'calc.total': 'Total receivable',
+  'calc.presetHint': 'Quick entry — these are typing shortcuts only, not the rate that applies by law.',
   'calc.interestDisclaimer':
-    'Simple interest: principal × rate × days / 365. Statutory and commercial rates change periodically; verify the current rate.',
+    'Simple interest: principal × rate × days / 365. The calculation applies the ONE rate you enter to the whole period: if the statutory/commercial rate changed within the period, you must split the claim into sub-periods and calculate each separately. Verify the rate in force against an official source.',
   'calc.claimValue': 'Claim value (₺)',
   'calc.decisionFee': 'Proportional judgment fee (‰68.31)',
   'calc.advanceFee': 'Advance fee (1/4)',

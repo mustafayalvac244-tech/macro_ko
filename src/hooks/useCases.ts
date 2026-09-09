@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { Case, CaseStatus, CaseWithClient, PriorityLevel } from '@/types/database';
@@ -150,15 +150,62 @@ export function useUpdateCase() {
   });
 }
 
+/**
+ * DAVA SİLİNİNCE MÜVEKKİL BELGELERİ DEPODA KALIYORDU.
+ *
+ * BULUNAN KUSUR. `documents.case_id` şeması `on delete cascade` (0001_init.sql
+ * satır 144). Yani dava silindiğinde belge SATIRLARI veritabanından gidiyordu
+ * ama DOSYALAR Supabase Storage'da kalıyordu — üstelik satırlar silindiği için
+ * uygulama üzerinden bir daha ULAŞILAMAZ hâlde. Kalıcı, görünmez, temizlenemez
+ * artık.
+ *
+ * NEDEN CİDDİ. Bir hukuk uygulamasında bu yalnız depolama maliyeti değil:
+ * avukat davayı silerken müvekkilin belgelerinin de gittiğini varsayar. Sır
+ * saklama yükümlülüğü ve KVKK açısından "sildim" denen verinin durmaya devam
+ * etmesi, kullanıcıya söylenenle olanın ayrışmasıdır. Tek belge silmede bu
+ * doğru yapılıyordu (useDeleteDocument dosyayı da siliyor); eksik olan, davayla
+ * birlikte toplu silmeydi.
+ *
+ * SIRA ÖNEMLİ: önce dosyalar, sonra satır. Ters sırada dava silinseydi
+ * cascade belge satırlarını da silerdi ve elimizde silinecek dosyaların
+ * YOLLARI kalmazdı — artık kalıcı olurdu.
+ *
+ * DOSYA SİLME BAŞARISIZ OLURSA DAVA DA SİLİNMEZ. Sessizce devam etmek, "sildim"
+ * deyip müvekkil belgesini bırakmak demektir; kullanıcı hatayı görüp tekrar
+ * deneyebilsin. Silinecek belgesi olmayan davada bu yol hiç çalışmaz.
+ */
+async function davaBelgeleriniDepodanSil(caseId: string): Promise<void> {
+  const { data, error } = await supabase.from('documents').select('file_path').eq('case_id', caseId);
+  if (error) throw error;
+
+  const yollar = (data ?? []).map((d) => (d as { file_path: string }).file_path).filter(Boolean);
+  if (yollar.length === 0) return;
+
+  // Storage.remove tek çağrıda çok sayıda yol kabul etmeyebilir; parçalayarak
+  // gönderiyoruz ki çok belgeli bir dava sessizce yarım silinmesin.
+  const PARCA = 100;
+  for (let i = 0; i < yollar.length; i += PARCA) {
+    const { error: depoHatasi } = await supabase.storage
+      .from(DOCUMENTS_BUCKET)
+      .remove(yollar.slice(i, i + PARCA));
+    if (depoHatasi) throw depoHatasi;
+  }
+}
+
 export function useDeleteCase() {
   const queryClient = useQueryClient();
 
   return useMutation({
     onError: notifySaveError,
     mutationFn: async (id: string) => {
+      await davaBelgeleriniDepodanSil(id);
       const { error } = await supabase.from('cases').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cases'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cases'] });
+      // Belge satırları cascade ile gitti; belge listeleri de tazelenmeli.
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+    },
   });
 }
