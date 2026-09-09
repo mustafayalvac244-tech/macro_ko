@@ -109,8 +109,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       .upload(path, bytes, { contentType: file.mimeType ?? 'image/jpeg' });
     if (uploadError) throw uploadError;
 
+    // PROFİL YAZILAMAZSA YÜKLENEN FOTOĞRAF GERİ ALINIR. Belge yüklemesindeki
+    // ile aynı iki adımlı öksüz kalıbı: dosya depoya gitmiş ama ona işaret eden
+    // satır yazılamamışsa (RLS, ağ, sunucu hatası) dosya depoda kalır ve hiçbir
+    // yerden ulaşılamaz. Eski fotoğraf da silinmediği için kullanıcı hiçbir
+    // değişiklik görmez — arıza tamamen sessizdir.
     const { error } = await supabase.from('profiles').update({ avatar_url: path }).eq('id', userId);
-    if (error) throw error;
+    if (error) {
+      await supabase.storage.from(DOCUMENTS_BUCKET).remove([path]).catch(() => {});
+      throw error;
+    }
 
     if (oldPath) {
       await supabase.storage.from(DOCUMENTS_BUCKET).remove([oldPath]).catch(() => {});

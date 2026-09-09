@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -68,6 +68,24 @@ export default function DurusmaCikisiScreen() {
   const [picker, setPicker] = useState<'next' | 'service' | null>(null);
   const [busy, setBusy] = useState(false);
 
+  /**
+   * YARIM KALAN KAYDIN TEKRARINDA ÇİFT KAYIT OLUŞMASIN.
+   *
+   * Bu ekran tek "Kaydet" ile üç-dört ayrı yazma yapıyor. Ortada biri
+   * başarısız olursa (adliyede çekmeyen hat — bu ekranın kullanıldığı yer tam
+   * da orası) kullanıcı hatayı görüp tekrar basıyordu ve ÖNCEKİ ADIMLAR
+   * BAŞTAN çalışıyordu: ikinci bir "sonraki duruşma", ikinci bir süre kaydı ve
+   * duruşma notuna ikinci kez eklenmiş aynı satır.
+   *
+   * Başarılı adımlar duruşma kimliğine göre işaretleniyor; tekrar denemede
+   * kaldığı yerden devam ediyor.
+   */
+  const tamamlananAdimlar = useRef<Record<string, Set<string>>>({});
+  const adimBitti = (id: string, adim: string) => tamamlananAdimlar.current[id]?.has(adim) ?? false;
+  const adimIsaretle = (id: string, adim: string) => {
+    (tamamlananAdimlar.current[id] ??= new Set<string>()).add(adim);
+  };
+
   const def = outcome ? OUTCOMES[outcome] : null;
   const hearingDate = current ? new Date(current.scheduled_at) : new Date();
   const plan = outcome
@@ -87,33 +105,24 @@ export default function DurusmaCikisiScreen() {
     if (!current || !outcome || busy) return;
     setBusy(true);
     const caseTitle = current.case?.title ?? current.title;
+    const hId = current.id;
     try {
-      // 1) Duruşmayı tamamlandı işaretle, sonucu nota yaz.
-      const outcomeLabel = t(`hout.o.${outcome}` as const);
-      const noteLine = [outcomeLabel, note.trim()].filter(Boolean).join(' — ');
-      await updateHearing.mutateAsync({
-        id: current.id,
-        caseTitle,
-        is_completed: true,
-        notes: [current.notes, noteLine].filter(Boolean).join('\n'),
-      });
+      /**
+       * SIRA DEĞİŞTİ: ÖNCE SÜRE, EN SON "TAMAMLANDI".
+       *
+       * BULUNAN KUSUR. Önce duruşma "tamamlandı" işaretleniyor, süre kaydı
+       * sonra oluşturuluyordu. Aradaki herhangi bir hata (ağ kopması) şu sonucu
+       * veriyordu: duruşma tamamlanmış sayılır, SÜRE HİÇ OLUŞMAZ ve duruşma
+       * artık "sonucu girilmemiş" listesinden düştüğü için uygulama BİR DAHA
+       * HİÇ SORMAZ. Yani bu ekranın var olma sebebi olan kaybın (49 duruşma, 9
+       * süre) tam olarak kendisini üretebiliyordu — üstelik sessizce.
+       *
+       * Artık en değerli kayıt önce yazılıyor. Bir şey ters giderse duruşma
+       * tamamlanmamış kalır, bekleyenler listesinde durur ve ekran tekrar sorar.
+       */
 
-      // 2) Sonraki duruşma (gerekiyorsa)
-      if (def?.needsNextHearing) {
-        await createHearing.mutateAsync({
-          case_id: current.case_id,
-          title: current.title,
-          type: current.type,
-          location: current.location,
-          scheduled_at: nextDate.toISOString(),
-          reminder_minutes_before: current.reminder_minutes_before ?? 60,
-          notes: null,
-          caseTitle,
-        });
-      }
-
-      // 3) Süre (hesaplanabiliyorsa)
-      if (plan) {
+      // 1) Süre (hesaplanabiliyorsa) — en değerli kayıt, en önce.
+      if (plan && !adimBitti(hId, 'sure')) {
         await createDeadline.mutateAsync({
           case_id: current.case_id,
           title: `${t(`hout.d.${plan.key}` as const)}${plan.basis ? ` (${plan.basis})` : ''}`,
@@ -123,10 +132,11 @@ export default function DurusmaCikisiScreen() {
           reminder_minutes_before: 1440,
           caseTitle,
         });
+        adimIsaretle(hId, 'sure');
       }
 
-      // 4) Tebligat bekleniyorsa takip işi kur (süre uydurma!).
-      if (watchService) {
+      // 2) Tebligat bekleniyorsa takip işi kur (süre uydurma!).
+      if (watchService && !adimBitti(hId, 'takip')) {
         const watch = new Date(hearingDate);
         watch.setDate(watch.getDate() + 14);
         await createDeadline.mutateAsync({
@@ -138,6 +148,36 @@ export default function DurusmaCikisiScreen() {
           reminder_minutes_before: 1440,
           caseTitle,
         });
+        adimIsaretle(hId, 'takip');
+      }
+
+      // 3) Sonraki duruşma (gerekiyorsa)
+      if (def?.needsNextHearing && !adimBitti(hId, 'sonraki')) {
+        await createHearing.mutateAsync({
+          case_id: current.case_id,
+          title: current.title,
+          type: current.type,
+          location: current.location,
+          scheduled_at: nextDate.toISOString(),
+          reminder_minutes_before: current.reminder_minutes_before ?? 60,
+          notes: null,
+          caseTitle,
+        });
+        adimIsaretle(hId, 'sonraki');
+      }
+
+      // 4) EN SON: duruşmayı tamamlandı işaretle, sonucu nota yaz. Bu adım
+      //    duruşmayı bekleyenler listesinden düşürdüğü için en sona alındı.
+      if (!adimBitti(hId, 'durusma')) {
+        const outcomeLabel = t(`hout.o.${outcome}` as const);
+        const noteLine = [outcomeLabel, note.trim()].filter(Boolean).join(' — ');
+        await updateHearing.mutateAsync({
+          id: hId,
+          caseTitle,
+          is_completed: true,
+          notes: [current.notes, noteLine].filter(Boolean).join('\n'),
+        });
+        adimIsaretle(hId, 'durusma');
       }
 
       // Sıradaki duruşmaya geç
