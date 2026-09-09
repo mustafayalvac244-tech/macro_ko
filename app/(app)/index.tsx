@@ -15,6 +15,7 @@ import { useCases } from '@/hooks/useCases';
 import { useCasePrecedents, caseSearchTerm } from '@/hooks/useCasePrecedents';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useMorningDigest } from '@/hooks/useMorningDigest';
+import { useReminderSync } from '@/hooks/useReminderSync';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
 import { useAdvanceDeficits } from '@/hooks/useClientAdvances';
@@ -84,6 +85,10 @@ export default function DashboardScreen() {
   const deadlines = useAllDeadlines();
   const finance = useFinanceEntries();
   useMorningDigest();
+  // Hatırlatmaları sunucudaki kayıtlardan yeniden kurar: yeniden kurulum,
+  // cihaz değişikliği ve sonradan verilen bildirim izni sonrası sessiz kayıp
+  // buradan onarılır (bkz. useReminderSync).
+  useReminderSync();
 
   // Duruşma Çıkışı: sonucu girilmemiş (geçmiş, tamamlanmamış) duruşmalar.
   // Bunlar kaydedilmezse duruşmada verilen süreler kayboluyor — süre kaçırmanın

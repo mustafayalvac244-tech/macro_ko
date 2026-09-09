@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { getLang, translate } from '@/i18n';
 import { formatDateTime } from '@/utils/format';
+import { EK_1_GUN, EK_3_GUN, planBildirimId, type PlanliBildirim } from '@/utils/bildirimPlani';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -65,7 +66,7 @@ export async function scheduleReminder({ id, title, body, triggerAt }: ScheduleR
 export async function cancelReminder(id: string): Promise<void> {
   // Cancel the main reminder plus the staged 3-day/1-day companions.
   await Promise.all(
-    [id, `${id}-3d`, `${id}-1d`].map((identifier) =>
+    [id, `${id}${EK_3_GUN}`, `${id}${EK_1_GUN}`].map((identifier) =>
       Notifications.cancelScheduledNotificationAsync(identifier).catch(() => {})
     )
   );
@@ -90,8 +91,8 @@ async function scheduleStagedReminders(params: {
 
   const stages: { suffix: string; minutes: number; title: string }[] = [
     { suffix: '', minutes: params.chosenMinutesBefore, title: params.mainTitle },
-    { suffix: '-3d', minutes: 3 * DAY_MINUTES, title: translate(lang, 'notif.stage3d', { title: params.mainTitle }) },
-    { suffix: '-1d', minutes: 1 * DAY_MINUTES, title: translate(lang, 'notif.stage1d', { title: params.mainTitle }) },
+    { suffix: EK_3_GUN, minutes: 3 * DAY_MINUTES, title: translate(lang, 'notif.stage3d', { title: params.mainTitle }) },
+    { suffix: EK_1_GUN, minutes: 1 * DAY_MINUTES, title: translate(lang, 'notif.stage1d', { title: params.mainTitle }) },
   ];
 
   const seen = new Set<number>();
@@ -107,12 +108,21 @@ async function scheduleStagedReminders(params: {
   }
 }
 
+/**
+ * BİLDİRİM KİMLİKLERİ TEK YERDEN ÜRETİLİR.
+ *
+ * Bu şema burada ve plan üreticisinde (utils/bildirimPlani.ts) AYRI AYRI
+ * yazılsaydı, birinde yapılan bir değişiklik diğerini sessizce bozardı: plan
+ * "hearing-x-1d" derken burası "hearing-x-1gun" kursa, eşitleme her açılışta
+ * doğru bildirimi iptal edip yenisini kurar ve hiçbir hata görünmezdi. Bu
+ * yüzden şemanın tek sahibi bildirimPlani.ts'tir; burası ona sorar.
+ */
 export function hearingReminderId(hearingId: string): string {
-  return `hearing-${hearingId}`;
+  return planBildirimId('durusma', hearingId, 'secilen');
 }
 
 export function deadlineReminderId(deadlineId: string): string {
-  return `deadline-${deadlineId}`;
+  return planBildirimId('gorev', deadlineId, 'secilen');
 }
 
 export async function scheduleHearingReminder(params: {
@@ -159,7 +169,7 @@ export async function scheduleHearingReminder(params: {
  * kaydedilir.
  */
 export function hearingOutcomeId(hearingId: string): string {
-  return `hearing-outcome-${hearingId}`;
+  return planBildirimId('durusma', hearingId, 'sonuc');
 }
 
 /** Duruşmadan kaç dakika sonra sorulacağı. */
@@ -188,7 +198,7 @@ export async function scheduleHearingOutcomePrompt(params: {
 }
 
 export function promiseReminderId(promiseId: string): string {
-  return `promise-${promiseId}`;
+  return planBildirimId('soz', promiseId, 'secilen');
 }
 
 /** Payment-promise reminder: fires on the morning of the due date + 3d/1d before. */
@@ -226,6 +236,126 @@ export async function scheduleDeadlineReminder(params: {
     mainTitle: translate(getLang(), 'notif.deadlineTitle', { title: params.deadlineTitle }),
     body: `${params.caseTitle} — ${formatDateTime(params.dueAt)}`,
   });
+}
+
+// ---------- Plan uygulama: sunucudaki kayıtlardan kendini onaran eşitleme ----------
+
+/**
+ * KENDİNİ ONARAN HATIRLATMA EŞİTLEMESİ.
+ *
+ * Kusur: hatırlatmalar yalnız kayıt oluşturulurken/düzenlenirken, o cihazda
+ * kuruluyordu. Yerel bildirim cihaza aittir — uygulama silinip kurulunca,
+ * telefon değişince ya da bildirim izni sonradan verilince hepsi yok olur, ama
+ * duruşmalar sunucuda durur. Avukat ajandasında duruşmayı görür ve hatırlatma
+ * kurulu sanır. Sessiz ve tam kayıp.
+ *
+ * Bu fonksiyon planı (bkz. utils/bildirimPlani.ts) mevcut durumla KARŞILAŞTIRIR:
+ * planda olmayan bizim bildirimlerimizi iptal eder, eksik olanları kurar. Her
+ * seferinde hepsini silip yeniden kurmaz — gereksiz yüz kadar yerel çağrıdan
+ * kaçınır ve halihazırda doğru kurulmuş bildirime dokunmaz.
+ *
+ * İçerik güncelliği: bir duruşmanın başlığı değişirse o kaydın bildirimi zaten
+ * düzenleme sırasında yeniden kurulur (useUpdateHearing); buradaki eşitleme
+ * EKSİĞİ tamamlamak içindir.
+ */
+const BIZIM_ONEKLER = ['hearing-', 'deadline-', 'promise-'];
+
+export interface PlanKaynak {
+  /** Ana başlık: duruşma/görev adı ya da müvekkil adı. */
+  baslik: string;
+  /** Alt satır: dava adı ya da tutar etiketi. */
+  altBaslik: string;
+  anISO: string;
+  /** Duruşma türü (hearing/mediation/deposition…) — yalnız duruşmalarda. */
+  hearingType?: string;
+}
+
+function planIcerigi(
+  bildirim: PlanliBildirim,
+  kaynak: PlanKaynak
+): { title: string; body: string } {
+  const lang = getLang();
+  if (bildirim.etkinlikTuru === 'soz') {
+    return {
+      title: translate(lang, 'notif.promiseTitle', { name: kaynak.baslik }),
+      body: translate(lang, 'notif.promiseBody', { amount: kaynak.altBaslik, name: kaynak.baslik }),
+    };
+  }
+
+  if (bildirim.tur === 'sonuc') {
+    const typeLabel = translate(
+      lang,
+      `hearingType.${kaynak.hearingType ?? 'hearing'}` as Parameters<typeof translate>[1]
+    );
+    return {
+      title: translate(lang, 'notif.outcomeTitle', { type: typeLabel }),
+      body: translate(lang, 'notif.outcomeBody', { title: kaynak.altBaslik || kaynak.baslik }),
+    };
+  }
+
+  const anaBaslik =
+    bildirim.etkinlikTuru === 'durusma'
+      ? translate(lang, 'notif.hearingTitle', {
+          type: translate(lang, `hearingType.${kaynak.hearingType ?? 'hearing'}` as Parameters<typeof translate>[1]),
+          title: kaynak.baslik,
+        })
+      : translate(lang, 'notif.deadlineTitle', { title: kaynak.baslik });
+
+  const title =
+    bildirim.tur === '3g'
+      ? translate(lang, 'notif.stage3d', { title: anaBaslik })
+      : bildirim.tur === '1g'
+        ? translate(lang, 'notif.stage1d', { title: anaBaslik })
+        : anaBaslik;
+
+  return { title, body: `${kaynak.altBaslik} — ${formatDateTime(kaynak.anISO)}` };
+}
+
+/**
+ * Planı uygular. Bildirim izni yoksa HİÇBİR ŞEY YAPMAZ — özellikle iptal de
+ * etmez: izin geri verildiğinde eşitleme yeniden çalışıp eksiği tamamlar.
+ */
+export async function syncEtkinlikBildirimleri(
+  plan: PlanliBildirim[],
+  kaynaklar: Map<string, PlanKaynak>
+): Promise<{ kuruldu: number; iptal: number }> {
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') return { kuruldu: 0, iptal: 0 };
+
+  const mevcut = await Notifications.getAllScheduledNotificationsAsync().catch(() => []);
+  const bizim = mevcut.filter((n) => BIZIM_ONEKLER.some((p) => n.identifier.startsWith(p)));
+  const planIds = new Set(plan.map((p) => p.bildirimId));
+
+  let iptal = 0;
+  for (const n of bizim) {
+    if (planIds.has(n.identifier)) continue;
+    await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+    iptal++;
+  }
+
+  const mevcutIds = new Set(bizim.map((n) => n.identifier));
+  let kuruldu = 0;
+  for (const p of plan) {
+    if (mevcutIds.has(p.bildirimId)) continue;
+    const kaynak = kaynaklar.get(p.kaynakId);
+    if (!kaynak) continue;
+    const { title, body } = planIcerigi(p, kaynak);
+    await Notifications.scheduleNotificationAsync({
+      identifier: p.bildirimId,
+      content: { title, body, sound: true },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: new Date(p.tetikMs),
+        channelId: CHANNEL_ID,
+      },
+    })
+      .then(() => {
+        kuruldu++;
+      })
+      .catch(() => {});
+  }
+
+  return { kuruldu, iptal };
 }
 
 // ---------- Sabah ajanda özeti (morning digest) ----------
