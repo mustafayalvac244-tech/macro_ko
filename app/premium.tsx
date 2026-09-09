@@ -10,14 +10,11 @@ import { useAuthStore } from '@/store/authStore';
 import { useTrialStatus, MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
 import { UCRETSIZ_LIMIT } from '@/config/planlar';
 import { useAiSaglik } from '@/hooks/useAiSaglik';
-import { supabase } from '@/lib/supabase';
 import {
   AI_ENTITLEMENT_ID,
   buyPackage,
   getCurrentOffering,
   getOffering,
-  isAiTierActive,
-  isPremiumActive,
   restorePurchases,
 } from '@/lib/purchases';
 import {
@@ -58,44 +55,33 @@ export default function PremiumScreen() {
   const colors = __t.colors;
   const styles = makeStyles(colors);
   const t = useT();
-  const session = useAuthStore((s) => s.session);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
   const trial = useTrialStatus();
-  const [isPremium, setIsPremium] = useState(false);
-  const [isAiActive, setIsAiActive] = useState(false);
+  /**
+   * ABONELİK DURUMU ARTIK PROFİLDEN OKUNUYOR — purchases tablosundan DEĞİL.
+   *
+   * BULUNAN HATA. Burada `purchases` tablosunda BİR SATIR VARSA kullanıcı
+   * "abone" sayılıyordu. Ama purchases bir GEÇMİŞ kaydıdır: revenuecat_olay_isle
+   * her olayda oraya YENİ SATIR EKLER ve hiçbir zaman silmez. Yetkiyi taşıyan
+   * alan profiles.is_premium / profiles.ai_tier'dır ve süre dolunca webhook
+   * onları geri alır (`is_premium = (p_expires_at > now())`).
+   *
+   * Sonuç: aboneliği biten kullanıcı ekranda SONSUZA KADAR "Aboneliğiniz
+   * aktif" görüyordu. Üstelik satın alma düğmesi gizlendiği için YENİDEN ABONE
+   * OLAMIYORDU — doğrudan gelir kaybı. Sunucu ise onu ücretsiz katman sayıp
+   * "5 dava hakkınız doldu" diyordu; kullanıcı "ben abonelim" diye destek
+   * yazardı.
+   *
+   * Artık tek kaynak sunucudur. Satın almadan sonraki gecikmeyi profilYenidenOku
+   * zaten kapatıyor (webhook birkaç saniye sürebilir).
+   */
+  const profile = useAuthStore((s) => s.profile);
+  const isPremium = !!profile?.is_premium;
+  const isAiActive = profile?.ai_tier === 'ai';
   const [offeringPkg, setOfferingPkg] = useState<PurchasesPackage | null>(null);
   const [aiOfferingPkg, setAiOfferingPkg] = useState<PurchasesPackage | null>(null);
   const [busyPlan, setBusyPlan] = useState<'temel' | 'ai' | 'restore' | null>(null);
 
-  useEffect(() => {
-    // KALDIRILDI: premium durumu eskiden AsyncStorage'daki 'vekil-premium'
-    // anahtarından da okunuyordu. Uygulamanın HİÇBİR yeri bu anahtarı yazmıyor
-    // (ölü kod), ama cihaza erişebilen biri onu '1' yapıp ekranı "abone" gibi
-    // gösterebilirdi. Gerçek yetki zaten sunucuda (profiles.is_premium, webhook
-    // ile yazılır ve trigger korur); istemcide ikinci bir "abone miyim" kaynağı
-    // tutmak yalnızca yanıltıcı bir yüzey ekliyordu.
-    const userId = session?.user.id;
-    if (!userId) return;
-    supabase
-      .from('purchases')
-      .select('id')
-      .eq('user_id', userId)
-      .limit(1)
-      .then(({ data, error }) => {
-        if (!error && data && data.length > 0) setIsPremium(true);
-      });
-    // "ai" yetkisi (250 soru + 12 mütalaa) ayrı bir üründür — yalnız o
-    // entitlement'ı taşıyan bir satın alma kaydı varsa aktif sayılır.
-    supabase
-      .from('purchases')
-      .select('id')
-      .eq('user_id', userId)
-      .contains('entitlement_ids', [AI_ENTITLEMENT_ID])
-      .limit(1)
-      .then(({ data, error }) => {
-        if (!error && data && data.length > 0) setIsAiActive(true);
-      });
-  }, [session?.user.id]);
 
   // RevenueCat henüz kurulmadıysa (API anahtarı yok) ya da web'deyse null
   // döner — bu durumda alttaki onSubscribe eski "çok yakında" davranışına
@@ -162,8 +148,9 @@ export default function PremiumScreen() {
     try {
       const sonuc = await buyPackage(pkg);
       if (sonuc.kind === 'success') {
-        if (isPremiumActive(sonuc.customerInfo)) setIsPremium(true);
-        if (isAiTierActive(sonuc.customerInfo)) setIsAiActive(true);
+        // Yetkiyi RevenueCat'in yanıtından DEĞİL, profilden okuruz: son söz
+        // sunucudadır. Webhook birkaç saniye sürebildiği için profil birkaç kez
+        // yeniden okunur.
         profilYenidenOku();
         Alert.alert(t('premium.purchaseSuccessTitle'), t('premium.purchaseSuccessBody'));
       } else if (sonuc.kind === 'error') {
@@ -181,8 +168,9 @@ export default function PremiumScreen() {
     try {
       const sonuc = await restorePurchases();
       if (sonuc.kind === 'success') {
-        if (isPremiumActive(sonuc.customerInfo)) setIsPremium(true);
-        if (isAiTierActive(sonuc.customerInfo)) setIsAiActive(true);
+        // Yetkiyi RevenueCat'in yanıtından DEĞİL, profilden okuruz: son söz
+        // sunucudadır. Webhook birkaç saniye sürebildiği için profil birkaç kez
+        // yeniden okunur.
         profilYenidenOku();
         Alert.alert(t('premium.restoreDoneTitle'), t('premium.restoreDoneBody'));
       } else if (sonuc.kind === 'error') {

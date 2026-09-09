@@ -25,6 +25,9 @@ export interface Profile {
   phone: string | null;
   avatar_url: string | null;
   is_premium?: boolean;
+  /** Ücretli AI katmanı: 'ai' aktif abone, 'baslangic'/null ücretsiz.
+   *  RevenueCat webhook'u tarafından yazılır ve süre bitince geri alınır. */
+  ai_tier?: string | null;
   is_admin?: boolean;
   created_at: string;
   updated_at: string;
