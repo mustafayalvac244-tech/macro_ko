@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, View } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Ionicons } from '@expo/vector-icons';
 import { VekilLogo } from '@/components/ui/VekilLogo';
-import { useLockStore } from '@/store/lockStore';
+import { kilitGerekliMi, useLockStore } from '@/store/lockStore';
 import { useT } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
@@ -19,7 +19,9 @@ export function AppLock() {
   const enabled = useLockStore((s) => s.enabled);
   const locked = useLockStore((s) => s.locked);
   const unlock = useLockStore((s) => s.unlock);
+  const lock = useLockStore((s) => s.lock);
   const isPrompting = useRef(false);
+  const arkaPlanaGecisMs = useRef<number | null>(null);
 
   const authenticate = useCallback(async () => {
     if (isPrompting.current) return;
@@ -36,6 +38,34 @@ export function AppLock() {
       isPrompting.current = false;
     }
   }, [t, unlock]);
+
+  /**
+   * ARKA PLANDAN DÖNÜŞTE YENİDEN KİLİTLE.
+   *
+   * `lock()` daha önce hiçbir yerden çağrılmıyordu: kilit yalnız soğuk açılışta
+   * devreye giriyordu, yani uygulama bir kez açıldıktan sonra işletim sistemi
+   * onu bellekten atana dek bir daha kilitlenmiyordu. Masada bırakılan bir
+   * telefonda müvekkil dosyaları açıktı.
+   *
+   * Yalnız 'background' sayılır, 'inactive' DEĞİL: iOS'ta bildirim çekmecesini
+   * indirmek ya da uygulama değiştiriciye bakmak 'inactive' üretir; onu kilit
+   * sebebi saymak, hiçbir şey yapmayan kullanıcıyı sürekli parmak izine
+   * düşürürdü. Mühlet ise dosya seçici içindir (bkz. lockStore).
+   */
+  useEffect(() => {
+    const abone = AppState.addEventListener('change', (durum) => {
+      if (durum === 'background') {
+        arkaPlanaGecisMs.current = Date.now();
+        return;
+      }
+      if (durum === 'active') {
+        const gidis = arkaPlanaGecisMs.current;
+        arkaPlanaGecisMs.current = null;
+        if (kilitGerekliMi(gidis, Date.now())) lock();
+      }
+    });
+    return () => abone.remove();
+  }, [lock]);
 
   useEffect(() => {
     if (!locked) return;

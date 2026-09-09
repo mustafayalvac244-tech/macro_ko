@@ -1225,6 +1225,7 @@ export const en: Record<keyof typeof tr, string> = {
   'lock.prompt': 'Vekil — verify identity',
   'lock.unlock': 'Unlock',
   'lock.enableFailed': 'Verification failed, the lock was not enabled. Try again.',
+  'lock.saveFailed': 'The lock is on now, but your preference could not be saved to this device: it will be off again after a restart. Free up some space and try again.',
 
   // Profile editing
   'profile.editTitle': 'Edit Profile',

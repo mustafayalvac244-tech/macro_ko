@@ -51,16 +51,20 @@ export default function SettingsScreen() {
 
   const handleToggleLock = async (value: boolean) => {
     if (!value) {
-      setLockEnabled(false);
+      await setLockEnabled(false);
       return;
     }
     // Prove biometrics work before trusting the lock with app access.
     const result = await LocalAuthentication.authenticateAsync({ promptMessage: t('lock.prompt') }).catch(() => null);
-    if (result?.success) {
-      setLockEnabled(true);
-    } else {
+    if (!result?.success) {
       Alert.alert(t('lock.title'), t('lock.enableFailed'));
+      return;
     }
+    // TERCİH KAYDEDİLEMEZSE KULLANICI BUNU BİLMELİ. Yazma hatası eskiden
+    // yutuluyordu: anahtar açık görünüyor ama uygulama yeniden başlatılınca
+    // kilit yok. Kullanıcı kilidin kurulu olduğunu sanarak telefonunu bırakır.
+    const kaydedildi = await setLockEnabled(true);
+    if (!kaydedildi) Alert.alert(t('lock.title'), t('lock.saveFailed'));
   };
 
   const handleToggleNotifications = async (value: boolean) => {

@@ -1239,6 +1239,7 @@ export const tr = {
   'lock.prompt': 'Vekil — kimlik doğrulama',
   'lock.unlock': 'Kilidi Aç',
   'lock.enableFailed': 'Doğrulama başarısız olduğu için kilit açılmadı. Tekrar deneyin.',
+  'lock.saveFailed': 'Kilit şu an açık ama tercihiniz cihaza kaydedilemedi: uygulamayı yeniden başlatırsanız kilit kapalı gelir. Cihazınızda yer açıp tekrar deneyin.',
 
   // Profil düzenleme
   'profile.editTitle': 'Profili Düzenle',
