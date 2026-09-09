@@ -5,6 +5,9 @@ import {
   bildirimPlaniYap,
   etkinlikAdaylari,
   planBildirimId,
+  tetikAniCoz,
+  tetikGuncelMi,
+  TETIK_TOLERANS_MS,
   type PlanEtkinligi,
 } from '@/utils/bildirimPlani';
 
@@ -163,5 +166,58 @@ describe('bildirimPlaniYap — bütçe', () => {
   it('aynı kimlik iki kez planlanmaz', () => {
     const { plan } = bildirimPlaniYap([durusma('h1', 5), durusma('h2', 6)], simdi);
     expect(new Set(plan.map((p) => p.bildirimId)).size).toBe(plan.length);
+  });
+});
+
+describe('tetikAniCoz / tetikGuncelMi — kurulu bildirimin saati eskimiş mi?', () => {
+  const an = new Date('2026-10-01T09:00:00Z').getTime();
+
+  it('{ type: "date", date: Date } biçimini çözer', () => {
+    expect(tetikAniCoz({ type: 'date', date: new Date(an) })).toBe(an);
+  });
+
+  it('{ type: "date", date: <ms> } biçimini çözer', () => {
+    expect(tetikAniCoz({ type: 'date', date: an })).toBe(an);
+  });
+
+  it('{ value: <ms> } biçimini de çözer (platform farkı)', () => {
+    expect(tetikAniCoz({ type: 'date', value: an })).toBe(an);
+  });
+
+  it('iOS takvim tetikleyicisini bileşenlerinden kurar', () => {
+    const beklenen = new Date(2026, 9, 1, 12, 30, 0).getTime(); // 1 Ekim 2026 12:30 yerel
+    expect(
+      tetikAniCoz({
+        type: 'calendar',
+        dateComponents: { year: 2026, month: 10, day: 1, hour: 12, minute: 30, second: 0 },
+      })
+    ).toBe(beklenen);
+  });
+
+  it('çözemediği biçimde null döner', () => {
+    expect(tetikAniCoz(null)).toBeNull();
+    expect(tetikAniCoz(undefined)).toBeNull();
+    expect(tetikAniCoz({ type: 'timeInterval', seconds: 60 })).toBeNull();
+    expect(tetikAniCoz({ type: 'unknown' })).toBeNull();
+    expect(tetikAniCoz({ type: 'date', date: 'yarın' })).toBeNull();
+    expect(tetikAniCoz({ type: 'calendar', dateComponents: { hour: 9 } })).toBeNull();
+  });
+
+  it('ÇÖZEMEDİĞİNDE bildirime DOKUNULMAZ (güncel sayılır)', () => {
+    // Aksi hâlde anlaşılmayan her tetikleyici her eşitlemede silinip yeniden
+    // kurulurdu — sessiz bir israf döngüsü.
+    expect(tetikGuncelMi({ type: 'unknown' }, an)).toBe(true);
+    expect(tetikGuncelMi(null, an)).toBe(true);
+  });
+
+  it('aynı saatte güncel sayar, kaymışsa saymaz', () => {
+    expect(tetikGuncelMi({ type: 'date', date: an }, an)).toBe(true);
+    // Duruşma 10:00 -> 14:00 alındı: kurulu bildirim eskimiştir.
+    expect(tetikGuncelMi({ type: 'date', date: an }, an + 4 * 3600_000)).toBe(false);
+  });
+
+  it('yuvarlama toleransını aşmayan farkı güncel sayar', () => {
+    expect(tetikGuncelMi({ type: 'date', date: an + TETIK_TOLERANS_MS }, an)).toBe(true);
+    expect(tetikGuncelMi({ type: 'date', date: an + TETIK_TOLERANS_MS + 1 }, an)).toBe(false);
   });
 });

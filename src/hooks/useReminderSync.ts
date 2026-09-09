@@ -4,7 +4,7 @@ import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useAllPromises } from '@/hooks/usePaymentPromises';
 import { useCases } from '@/hooks/useCases';
 import { bildirimPlaniYap, type PlanEtkinligi } from '@/utils/bildirimPlani';
-import { syncEtkinlikBildirimleri, type PlanKaynak } from '@/lib/notifications';
+import { syncEtkinlikBildirimleri, type BildirimOneki, type PlanKaynak } from '@/lib/notifications';
 import { formatMoney } from '@/utils/format';
 
 /**
@@ -32,7 +32,15 @@ export function useReminderSync() {
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
   const promises = useAllPromises();
-  const cases = useCases();
+  /**
+   * Ana ekran zaten `useCases({ status: 'open' })` çağırıyor; AYNI anahtarı
+   * kullanmak fazladan bir tam tablo isteğini önlüyor. Önceki hâl filtresiz
+   * `useCases()` çağırıyordu ve bu, yalnız bildirim gövdesine dava adı yazmak
+   * için kapanmış davalar dâhil her kaydı ikinci kez indiriyordu.
+   * Kapanmış bir davanın duruşmasında alt satır dava adı yerine duruşma adını
+   * gösterir — hatırlatmanın kendisi etkilenmez.
+   */
+  const cases = useCases({ status: 'open' });
 
   const h = hearings.dataUpdatedAt;
   const d = deadlines.dataUpdatedAt;
@@ -93,8 +101,17 @@ export function useReminderSync() {
       });
     }
 
+    /**
+     * Ödeme sözleri sorgusu yüklenmemiş ya da başarısızsa 'promise-' türü
+     * eşitlemenin DIŞINDA bırakılır. Aksi hâlde plan hiç ödeme hatırlatması
+     * içermeyeceği için eşitleme kurulu olanların hepsini silerdi — tablo hiç
+     * kurulmamışsa (isMissingPromiseTable) bu kalıcı bir kayıp olurdu.
+     */
+    const yonetilen: BildirimOneki[] = ['hearing-', 'deadline-'];
+    if (promises.data) yonetilen.push('promise-');
+
     const { plan } = bildirimPlaniYap(etkinlikler, Date.now());
-    syncEtkinlikBildirimleri(plan, kaynaklar).catch(() => {});
+    syncEtkinlikBildirimleri(plan, kaynaklar, yonetilen).catch(() => {});
     // dataUpdatedAt gerçek yeniden çekimleri yakalar; data referansı her
     // render'da değişir ve sonsuz eşitleme doğururdu.
     // eslint-disable-next-line react-hooks/exhaustive-deps

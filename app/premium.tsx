@@ -399,9 +399,10 @@ export default function PremiumScreen() {
           )}
 
           {/* Apple, otomatik yenilenen abonelikte satın alma ANINDA görünen bir
-              yenileme/iptal açıklaması ister (App Store Review 3.1.2). Temel
-              paketin karşılığı trialFinePrint; AI katmanında denemesi olmadığı
-              için ayrı bir ibare gerekiyordu ve YOKTU. */}
+              yenileme/iptal açıklaması ister (App Store Review 3.1.2). Artık
+              her iki katman da aynı ibareyi (autoRenewNote) kendi fiyatıyla
+              gösteriyor; temel paketteki eski "ilk 7 gün ücretsiz" ince yazısı
+              var olmayan bir denemeyi anlattığı için kaldırıldı. */}
           <Text style={styles.finePrint}>{t('premium.autoRenewNote', { price: AI_PRICE_TRY.toLocaleString('tr-TR') })}</Text>
         </View>
 

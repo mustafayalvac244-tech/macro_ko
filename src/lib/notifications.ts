@@ -3,7 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { getLang, translate } from '@/i18n';
 import { formatDateTime } from '@/utils/format';
-import { EK_1_GUN, EK_3_GUN, planBildirimId, type PlanliBildirim } from '@/utils/bildirimPlani';
+import { EK_1_GUN, EK_3_GUN, planBildirimId, tetikGuncelMi, type PlanliBildirim } from '@/utils/bildirimPlani';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -258,7 +258,8 @@ export async function scheduleDeadlineReminder(params: {
  * düzenleme sırasında yeniden kurulur (useUpdateHearing); buradaki eşitleme
  * EKSİĞİ tamamlamak içindir.
  */
-const BIZIM_ONEKLER = ['hearing-', 'deadline-', 'promise-'];
+const BIZIM_ONEKLER = ['hearing-', 'deadline-', 'promise-'] as const;
+export type BildirimOneki = (typeof BIZIM_ONEKLER)[number];
 
 export interface PlanKaynak {
   /** Ana başlık: duruşma/görev adı ya da müvekkil adı. */
@@ -317,13 +318,28 @@ function planIcerigi(
  */
 export async function syncEtkinlikBildirimleri(
   plan: PlanliBildirim[],
-  kaynaklar: Map<string, PlanKaynak>
+  kaynaklar: Map<string, PlanKaynak>,
+  /**
+   * YALNIZ VERİSİNE SAHİP OLDUĞUMUZ TÜRLERE DOKUNULUR.
+   *
+   * DÜZELTİLEN KUSUR (kendi değişikliğimde bulundu). Eşitleme, planda olmayan
+   * her bildirimi iptal ediyordu. Ama plan yalnız ELDE VERİSİ OLAN kayıtlardan
+   * üretiliyor: ödeme sözleri sorgusu henüz yüklenmemişse ya da kalıcı olarak
+   * başarısızsa (payment_promises tablosu hiç kurulmamış olabilir — koddaki
+   * isMissingPromiseTable yolu) plan hiç 'promise-' bildirimi içermez ve
+   * eşitleme kurulu TÜM ödeme hatırlatmalarını siler. Yükleme sırasında bu
+   * gelip geçici bir çırpınma, tablo yoksa KALICI kayıptır.
+   *
+   * Çağıran taraf artık hangi türlerin verisine sahip olduğunu bildiriyor;
+   * bilmediğimiz türe ait bildirimlere dokunulmuyor.
+   */
+  yonetilenOnekler: readonly BildirimOneki[] = BIZIM_ONEKLER
 ): Promise<{ kuruldu: number; iptal: number }> {
   const { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') return { kuruldu: 0, iptal: 0 };
 
   const mevcut = await Notifications.getAllScheduledNotificationsAsync().catch(() => []);
-  const bizim = mevcut.filter((n) => BIZIM_ONEKLER.some((p) => n.identifier.startsWith(p)));
+  const bizim = mevcut.filter((n) => yonetilenOnekler.some((p) => n.identifier.startsWith(p)));
   const planIds = new Set(plan.map((p) => p.bildirimId));
 
   let iptal = 0;
@@ -333,7 +349,31 @@ export async function syncEtkinlikBildirimleri(
     iptal++;
   }
 
-  const mevcutIds = new Set(bizim.map((n) => n.identifier));
+  /**
+   * SAATİ ESKİMİŞ BİLDİRİM DE YENİLENİR.
+   *
+   * Burası önce yalnız "kimlik kurulu mu?" diye bakıyordu ve kurulu olanın
+   * SAATİ yanlış olsa bile ona dokunmuyordu. Somut arıza: duruşma A telefonunda
+   * 10:00'dan 14:00'e alınıyor, B telefonunda kimlik zaten kurulu olduğu için
+   * atlanıyor ve B telefonu hatırlatmayı ESKİ saatte çalıyordu. Bir ay
+   * ertelenen duruşmada B telefonu bir ay erken çalıp bir daha hiç çalmazdı.
+   * Aynı cihazdaki düzenleme bu yoldan geçmez (orada iptal-et-yeniden-kur
+   * zaten var); bu boşluk çok cihaz ve yedekten dönme durumlarına aitti.
+   */
+  const mevcutIds = new Set<string>();
+  const planlananAn = new Map(plan.map((p) => [p.bildirimId, p.tetikMs]));
+  for (const n of bizim) {
+    const hedef = planlananAn.get(n.identifier);
+    if (hedef === undefined) continue; // yukarıda iptal edildi
+    if (tetikGuncelMi(n.trigger, hedef)) {
+      mevcutIds.add(n.identifier);
+      continue;
+    }
+    // Saati kaymış: iptal et, aşağıdaki döngü doğru saatle yeniden kursun.
+    await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+    iptal++;
+  }
+
   let kuruldu = 0;
   for (const p of plan) {
     if (mevcutIds.has(p.bildirimId)) continue;

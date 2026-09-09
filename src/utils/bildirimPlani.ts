@@ -155,6 +155,68 @@ export function etkinlikAdaylari(etkinlik: PlanEtkinligi, simdiMs: number): Plan
 }
 
 /**
+ * KURULU BİR BİLDİRİMİN TETİKLENME ANINI ÇÖZER.
+ *
+ * DÜZELTİLEN EKSİK. Eşitleme yalnız "kimlik kurulu mu?" diye bakıyordu; kurulu
+ * olan bir bildirimin SAATİ yanlış olsa bile ona dokunmuyordu. Somut arıza:
+ * avukat duruşmayı A telefonunda 10:00'dan 14:00'e alıyor, B telefonunda
+ * `hearing-<id>` zaten kurulu olduğu için eşitleme onu atlıyor ve B telefonu
+ * hatırlatmayı ESKİ saatte çalıyor. Duruşma bir ay ertelendiyse B telefonu bir
+ * ay erken çalıp bir daha hiç çalmıyor.
+ *
+ * (Aynı cihazda yapılan düzenleme bu yoldan geçmez — orada iptal-et-yeniden-kur
+ * zaten çalışıyor. Bu boşluk çok cihaz ve yedekten dönme durumlarına aitti;
+ * yani "telefon değişince onarır" iddiasının eksik kalan yarısı.)
+ *
+ * ÇÖZÜLEMEZSE null DÖNER ve çağıran taraf bildirime DOKUNMAZ: platformun
+ * anlamadığımız bir tetikleyici biçimi yüzünden her eşitlemede her bildirimi
+ * silip yeniden kurmak, sessiz bir israf döngüsü olurdu.
+ */
+export function tetikAniCoz(tetikleyici: unknown): number | null {
+  if (!tetikleyici || typeof tetikleyici !== 'object') return null;
+  const t = tetikleyici as Record<string, unknown>;
+
+  // Yaygın biçim: { type: 'date', date: Date | number }
+  const d = t.date ?? t.value;
+  if (d instanceof Date) {
+    const ms = d.getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof d === 'number' && Number.isFinite(d)) return d;
+
+  // iOS takvim tetikleyicisi: { type: 'calendar', dateComponents: {...} }
+  const bilesen = t.dateComponents;
+  if (bilesen && typeof bilesen === 'object') {
+    const c = bilesen as Record<string, unknown>;
+    const say = (k: string) => (typeof c[k] === 'number' ? (c[k] as number) : null);
+    const yil = say('year');
+    const ay = say('month');
+    const gun = say('day');
+    if (yil !== null && ay !== null && gun !== null) {
+      const ms = new Date(yil, ay - 1, gun, say('hour') ?? 0, say('minute') ?? 0, say('second') ?? 0).getTime();
+      return Number.isFinite(ms) ? ms : null;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Kurulu bildirim, planlanan anla aynı sayılır mı?
+ *
+ * Tolerans var çünkü bazı platformlar tetikleme anını saniyeye/dakikaya
+ * yuvarlar; toleranssız bir karşılaştırma her eşitlemede "farklı" deyip
+ * bildirimleri boş yere yeniden kurardı.
+ */
+export const TETIK_TOLERANS_MS = 60_000;
+
+export function tetikGuncelMi(mevcutTetikleyici: unknown, planlananMs: number): boolean {
+  const mevcutMs = tetikAniCoz(mevcutTetikleyici);
+  if (mevcutMs === null) return true; // çözemedik: dokunma
+  return Math.abs(mevcutMs - planlananMs) <= TETIK_TOLERANS_MS;
+}
+
+/**
  * Tüm etkinliklerin bildirimlerini üretir, EN YAKIN TARİHLİ ÖNCE olacak şekilde
  * sıralar ve bütçeye sığanı döndürür.
  *
