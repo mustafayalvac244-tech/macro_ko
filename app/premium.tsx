@@ -234,11 +234,18 @@ export default function PremiumScreen() {
   ];
 
   const features = [
+    // NE SATILDIĞI ÖLÇÜLDÜ, LİSTE ONA GÖRE KISALDI. Burada beş madde vardı;
+    // ikisi (akıllı hatırlatmalar, şablon/hesaplayıcılar) ÜCRETSİZ katmanda da
+    // sınırsız açık — Pro'nun getirdiği şeymiş gibi listelenmeleri 399 ₺'nin
+    // karşılığını şişiriyordu. Biri ("Otomatik güvenli yedekleme") ise HİÇ
+    // YOKTU: uygulamada tek satır kodu bulunmuyor ve Supabase projesi Free
+    // planda olduğu için yönetilen günlük yedek/PITR de yok (bkz. YEDEKLEME.md).
+    // Var olmayan bir özelliği ücretli pakete yazmak, parası alınan bir vaat.
+    // Geriye is_premium'un GERÇEKTEN açtığı iki şey kaldı (migration 0087):
+    // satır sınırlarının kalkması ve finans modülü.
+    t('premium.f.freeAll'),
     t('premium.f.allCases'),
-    t('premium.f.remindersFull'),
     t('premium.f.financeFull'),
-    t('premium.f.docsFull'),
-    t('premium.f.backupFull'),
     // TEMEL PAKETTE AI YOKTUR. Buradaki eski satır "Yapay zekâ özellikleri —
     // çok yakında üyeliğe dahil" diyordu; bu, 399 ₺'lik temel aboneliği alan
     // kullanıcıya AI'ın da geleceğini VAAT ediyordu. Oysa AI ayrı ve 1.999 ₺'lik

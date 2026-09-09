@@ -52,7 +52,7 @@ const sectionsTr = (): Section[] => [
     title: '3. Abonelikler ve Ücretlendirme',
     body:
       `• Ücretsiz: 0 ₺. İçtihat araması (Yargıtay, Danıştay, istinaf, yerel) SINIRSIZ ve süresizdir; mevzuat, hesaplayıcılar, dilekçe şablonları, duruşma/görev/ajanda ve hatırlatmalar da sınırsızdır. ${UCRETSIZ_LIMIT.dava} dava, ${UCRETSIZ_LIMIT.muvekkil} müvekkil ve ${UCRETSIZ_LIMIT.belge} belge kaydedilebilir.\n` +
-      `• Vekil Pro (temel): aylık ${MONTHLY_PRICE_TRY} ₺. Sınırsız dava, müvekkil ve belge; finans modülü ve raporlar; otomatik yedekleme.\n` +
+      `• Vekil Pro (temel): aylık ${MONTHLY_PRICE_TRY} ₺. Sınırsız dava, müvekkil ve belge; finans modülü ve raporlar. Deneme süresi yoktur; ücretsiz plan süresizdir.\n` +
       `• Vekil Pro + Yapay Zekâ: aylık ${AI_PRICE_TRY.toLocaleString('tr-TR')} ₺. Temel paketteki her şeyi içerir.\n\n` +
       'İçtihat aramasının ücretsiz olması bir kampanya değil, ürünün kalıcı kuralıdır; ileride ücretli hâle getirilmeyecektir. Ücretli plana geçmezseniz mevcut kayıtlarınız silinmez ve erişilebilir kalır; yalnız yeni kayıt ekleme sınıra tabidir.\n\n' +
       'Abonelikler otomatik olarak yenilenir. Yenilemeyi durdurmak için dönem bitiminden en az 24 saat önce cihazınızın App Store / Google Play hesap ayarlarından aboneliği kapatmanız gerekir. Ücret, dönem bitiminden önceki 24 saat içinde tahsil edilir.',
@@ -60,7 +60,7 @@ const sectionsTr = (): Section[] => [
   {
     icon: 'wallet-outline',
     title: '4. Ödeme ve İptal',
-    body: 'Ödemeler Apple App Store veya Google Play üzerinden alınır; kart bilgileriniz bize hiçbir zaman ulaşmaz. Abonelik iptali ve iade talepleri, satın almayı yaptığınız mağazanın kuralları ve süreleri kapsamında ilgili mağaza üzerinden yürütülür. Ücretsiz deneme süresi içinde iptal ederseniz ücret alınmaz.',
+    body: 'Ödemeler Apple App Store veya Google Play üzerinden alınır; kart bilgileriniz bize hiçbir zaman ulaşmaz. Abonelik iptali ve iade talepleri, satın almayı yaptığınız mağazanın kuralları ve süreleri kapsamında ilgili mağaza üzerinden yürütülür. Aboneliği iptal ettiğinizde ücretli dönem sonuna kadar erişiminiz sürer; dönem bitince hesabınız ücretsiz plana döner ve kayıtlarınız silinmez.',
   },
   {
     icon: 'sparkles-outline',
@@ -117,7 +117,7 @@ const sectionsEn = (): Section[] => [
     title: '3. Subscriptions and Pricing',
     body:
       `• Free: 0 TRY. Case law search (Cassation, Council of State, appellate, local) is UNLIMITED and permanent; legislation, calculators, petition templates, hearings, tasks, calendar and reminders are unlimited too. You may store ${UCRETSIZ_LIMIT.dava} cases, ${UCRETSIZ_LIMIT.muvekkil} clients and ${UCRETSIZ_LIMIT.belge} documents.\n` +
-      `• Vekil Pro (base): ${MONTHLY_PRICE_TRY} TRY per month. Unlimited cases, clients and documents; finance module and reports; automatic backup.\n` +
+      `• Vekil Pro (base): ${MONTHLY_PRICE_TRY} TRY per month. Unlimited cases, clients and documents; finance module and reports. There is no trial period; the free plan does not expire.\n` +
       `• Vekil Pro + AI: ${AI_PRICE_TRY.toLocaleString('en-US')} TRY per month, including everything in the base plan.\n\n` +
       'Free case law search is a permanent rule of the product, not a promotion; it will not become paid later. If you do not subscribe, your existing records are never deleted and stay accessible; only adding new records is subject to the limit.\n\n' +
       'Subscriptions renew automatically. To stop renewal, turn the subscription off in your App Store / Google Play account settings at least 24 hours before the period ends. Payment is charged within the 24 hours before renewal.',
@@ -125,7 +125,7 @@ const sectionsEn = (): Section[] => [
   {
     icon: 'wallet-outline',
     title: '4. Payment and Cancellation',
-    body: 'Payments are processed by Apple App Store or Google Play; your card details never reach us. Cancellations and refunds follow the rules and time limits of the store where you purchased.',
+    body: 'Payments are processed by Apple App Store or Google Play; your card details never reach us. Cancellations and refunds follow the rules and time limits of the store where you purchased. When you cancel, your access continues until the end of the paid period; after that your account returns to the free plan and your records are not deleted.',
   },
   {
     icon: 'sparkles-outline',
