@@ -16,6 +16,7 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
+import { kidemBrutHesapla } from '@/config/kidemTavani';
 
 type CalcTab = 'aaut' | 'interest' | 'fee' | 'smm' | 'severance';
 
@@ -381,7 +382,17 @@ function SeveranceCalc() {
   const years = totalDays / 365;
   const months = Math.max(0, differenceInMonths(end, start));
 
-  const kidemGross = s * years;
+  // KIDEM TAVANI ARTIK UYGULANIYOR.
+  //
+  // Burada `s * years` yazıyordu; tavan HİÇ uygulanmıyordu. Ekranın altındaki
+  // uyarı "tavanı aşan ücretlerde tavan esas alınır" diyordu — yani kural
+  // biliniyor ama hesaba girmiyordu. Tavanın üstünde kazanan bir işçide
+  // sonuç kanunen YANLIŞ ve fazla çıkıyordu (200.000 ₺ ücret, 10 yıl için
+  // 2.000.000 ₺ yerine doğrusu 737.298,70 ₺).
+  //
+  // Tavan ÇIKIŞ TARİHİNDEKİ dönemin tavanıdır, bugünkü değil.
+  const kidem = kidemBrutHesapla(s, years, end);
+  const kidemGross = kidem.brut;
   const damga = kidemGross * 0.00759;
   const kidemNet = kidemGross - damga;
 
@@ -435,6 +446,17 @@ function SeveranceCalc() {
         <Card style={styles.resultCard}>
           <ResultRow label={t('calc.service')} value={serviceLabel} />
           <View style={styles.resultDivider} />
+          {/* Tavanın hesaba GİRDİĞİ görünür olmalı: avukat hangi tutarın esas
+              alındığını bilmeden rakamı müvekkiline söylememeli. */}
+          {kidem.tavan && kidem.tavanUygulandi && (
+            <ResultRow
+              label={t('calc.severanceCapApplied', { period: kidem.tavan.etiket })}
+              value={formatMoney(kidem.tavan.tutar)}
+            />
+          )}
+          {!kidem.tavan && s > 0 && (
+            <ResultRow label={t('calc.severanceCapUnknown')} value="—" />
+          )}
           <ResultRow label={t('calc.severanceGross')} value={formatMoney(kidemGross)} />
           <ResultRow label={t('calc.stampTax')} value={`− ${formatMoney(damga)}`} />
           <ResultRow label={t('calc.severanceNet')} value={formatMoney(kidemNet)} strong />

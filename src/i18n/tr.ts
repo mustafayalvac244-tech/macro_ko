@@ -1216,6 +1216,8 @@ export const tr = {
   'calc.terminationDate': 'İşten çıkış',
   'calc.service': 'Hizmet süresi',
   'calc.serviceValue': '{y} yıl {m} ay {d} gün',
+  'calc.severanceCapApplied': 'Tavan uygulandı ({period})',
+  'calc.severanceCapUnknown': '⚠️ Bu çıkış tarihi için tavan tanımlı değil — tutar TAVANSIZ hesaplandı, resmî tavanı teyit edin',
   'calc.severanceGross': 'Kıdem tazminatı (brüt)',
   'calc.stampTax': 'Damga vergisi (‰7,59)',
   'calc.severanceNet': 'Kıdem (net)',

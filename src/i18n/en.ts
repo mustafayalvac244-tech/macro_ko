@@ -1203,6 +1203,8 @@ export const en: Record<keyof typeof tr, string> = {
   'calc.terminationDate': 'Termination date',
   'calc.service': 'Service period',
   'calc.serviceValue': '{y}y {m}m {d}d',
+  'calc.severanceCapApplied': 'Ceiling applied ({period})',
+  'calc.severanceCapUnknown': '⚠️ No ceiling defined for this termination date — the amount was computed WITHOUT a cap; verify the official ceiling',
   'calc.severanceGross': 'Severance pay (gross)',
   'calc.stampTax': 'Stamp tax (‰7.59)',
   'calc.severanceNet': 'Severance (net)',
