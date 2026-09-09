@@ -2,10 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -23,6 +20,7 @@ import { DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
 import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
+import { asyncPersister, queryClient, QUERY_CACHE_MAX_AGE } from '@/lib/queryClient';
 import { configurePurchases, identifyPurchaser, resetPurchaser } from '@/lib/purchases';
 import { hydrateLanguage } from '@/i18n';
 import { hydrateTheme } from '@/theme/themeStore';
@@ -37,18 +35,9 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Çevrimdışı dayanıklılık: sorgu önbelleği cihaza yazılır; avukat çekmeyen bir
 // yerde (adliye vb.) uygulamayı açtığında son senkronize davalar/takvim boş ekran
-// yerine okunur halde gelir. gcTime, önbelleğin 24 saat saklanmasını sağlar.
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 2, staleTime: 60_000, gcTime: 1000 * 60 * 60 * 24 },
-  },
-});
-
-const asyncPersister = createAsyncStoragePersister({
-  storage: AsyncStorage,
-  key: 'VEKIL_QUERY_CACHE',
-  throttleTime: 1000,
-});
+// yerine okunur halde gelir. İstemci ve kalıcı yazıcı artık src/lib/queryClient
+// içinde: çıkışta önbelleğin TEMİZLENEBİLMESİ için authStore'un da erişmesi
+// gerekiyordu (bkz. oradaki açıklama).
 
 
 export default function RootLayout() {
@@ -153,7 +142,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <PersistQueryClientProvider
           client={queryClient}
-          persistOptions={{ persister: asyncPersister, maxAge: 1000 * 60 * 60 * 24 }}
+          persistOptions={{ persister: asyncPersister, maxAge: QUERY_CACHE_MAX_AGE }}
         >
           <StatusBar style={statusBar} />
           <ErrorBoundary>

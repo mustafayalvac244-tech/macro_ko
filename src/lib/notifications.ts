@@ -358,6 +358,24 @@ export async function syncEtkinlikBildirimleri(
   return { kuruldu, iptal };
 }
 
+/**
+ * ÇIKIŞTA TÜM KURULU BİLDİRİMLERİ İPTAL EDER.
+ *
+ * BULUNAN SIZINTI. Bildirim METİNLERİ müvekkil ve dava adı taşıyor ("Yaklaşan
+ * Duruşma: ...", "Ödeme günü: <müvekkil adı>"). Bunlar cihazda kurulu yerel
+ * bildirimlerdir ve oturumla hiçbir bağları yoktur: avukat çıkış yaptıktan
+ * sonra da tetiklenmeye devam ederler. Ortak kullanılan ya da devredilen bir
+ * telefonda, bir sonraki kullanıcının kilit ekranında önceki avukatın müvekkil
+ * adı belirir. Sır saklama açısından bu, önbellek artığından daha ağırdır —
+ * çünkü kimsenin bakmasına gerek yok, kendiliğinden görünür.
+ *
+ * Yeniden giriş yapıldığında hatırlatmalar zaten sunucudaki kayıtlardan
+ * yeniden kuruluyor (useReminderSync), yani iptal etmenin bir bedeli yok.
+ */
+export async function cancelAllReminders(): Promise<void> {
+  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+}
+
 // ---------- Sabah ajanda özeti (morning digest) ----------
 
 const DIGEST_PREFIX = 'digest-';

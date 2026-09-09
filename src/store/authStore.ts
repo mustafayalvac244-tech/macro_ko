@@ -3,6 +3,8 @@ import { File } from 'expo-file-system';
 import type { Session } from '@supabase/supabase-js';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import { trError } from '@/lib/authErrors';
+import { resetQueryCache } from '@/lib/queryClient';
+import { cancelAllReminders } from '@/lib/notifications';
 import type { Profile } from '@/types/database';
 
 interface AuthState {
@@ -181,6 +183,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     await supabase.auth.signOut();
     set({ session: null, profile: null });
+    // ÇIKIŞTA MÜVEKKİL VERİSİ CİHAZDA KALMAZ. İki ayrı artık vardı:
+    //  • Sorgu önbelleği çevrimdışı kullanım için AsyncStorage'a yazılıyor ve
+    //    çıkışta temizlenmiyordu (bkz. src/lib/queryClient.ts).
+    //  • Kurulu yerel bildirimler oturumdan bağımsızdır ve metinlerinde
+    //    müvekkil/dava adı taşır; çıkıştan sonra da tetikleniyorlardı
+    //    (bkz. cancelAllReminders).
+    // Yeniden girişte ikisi de kendiliğinden geri gelir.
+    await resetQueryCache().catch(() => {});
+    await cancelAllReminders();
   },
 
   deleteAccount: async () => {
@@ -225,6 +236,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     await supabase.auth.signOut().catch(() => {});
     set({ session: null, profile: null });
+    await resetQueryCache().catch(() => {});
+    await cancelAllReminders();
   },
 
   clearError: () => set({ error: null }),
