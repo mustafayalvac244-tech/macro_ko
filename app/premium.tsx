@@ -7,7 +7,7 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
-import { useTrialStatus, MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
+import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
 import { UCRETSIZ_LIMIT } from '@/config/planlar';
 import { useAiSaglik } from '@/hooks/useAiSaglik';
 import {
@@ -46,9 +46,12 @@ import type { ThemeColors } from '@/theme/palettes';
  * supabase/functions/revenuecat-webhook) — bu yüzden başarılı satın almadan
  * sonra profil kısa süre sonra yeniden okunur.
  *
- * Deneme durumu useTrialStatus'tan gelir (hesap açılış tarihine göre). Şu an
- * "yumuşak" mod: deneme bitince uygulama kilitlenmez, sadece bu ekrana yönlendiren
- * hatırlatma gösterilir.
+ * DENEME SÜRESİ YOKTUR. Bu ekranda "7 GÜN ÜCRETSİZ" rozeti, geri sayım ve
+ * "deneme bitmeden iptal ederseniz ücret alınmaz" ince yazısı vardı; hiçbiri
+ * gerçek değildi (bkz. useTrialStatus'taki açıklama: sunucudaki limit
+ * tetikleyicisinde deneme diye bir kavram yok, App Store'da da tanımlı bir
+ * tanıtım teklifi yok). Yerine gerçek şart yazıyor: ücretsiz katman kalıcı,
+ * abonelik aylık ve otomatik yenileniyor.
  */
 export default function PremiumScreen() {
   const __t = useTheme();
@@ -56,7 +59,6 @@ export default function PremiumScreen() {
   const styles = makeStyles(colors);
   const t = useT();
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
-  const trial = useTrialStatus();
   /**
    * ABONELİK DURUMU ARTIK PROFİLDEN OKUNUYOR — purchases tablosundan DEĞİL.
    *
@@ -92,7 +94,7 @@ export default function PremiumScreen() {
     getOffering(AI_ENTITLEMENT_ID).then((offering) => setAiOfferingPkg(offering?.monthly ?? offering?.availablePackages[0] ?? null));
   }, []);
 
-  const subscribed = isPremium || trial.subscribed;
+  const subscribed = isPremium;
 
   /**
    * AI PAKETİ, ARKA UÇ HİZMET VEREMEZKEN SATILMAMALI.
@@ -245,15 +247,6 @@ export default function PremiumScreen() {
     t('premium.f.aiSeparate'),
   ];
 
-  // Deneme durum satırı (abone değilse).
-  const trialLine = subscribed
-    ? null
-    : trial.ended
-      ? t('premium.trialEnded')
-      : trial.daysLeft <= 1
-        ? t('premium.trialLastDay')
-        : t('premium.trialActive', { n: trial.daysLeft });
-
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('premium.plansTitle')} showBack />
@@ -267,22 +260,11 @@ export default function PremiumScreen() {
           <Text style={styles.freeBannerText}>{t('premium.ictihatFreeNote')}</Text>
         </View>
 
-        {subscribed ? (
+        {subscribed && (
           <View style={styles.activeChip}>
             <Ionicons name="checkmark-circle" size={15} color={colors.success} />
             <Text style={styles.activeChipText}>{t('premium.activeBadge')}</Text>
           </View>
-        ) : (
-          !!trialLine && (
-            <View style={[styles.statusChip, trial.ended && styles.statusChipEnded]}>
-              <Ionicons
-                name={trial.ended ? 'time-outline' : 'gift-outline'}
-                size={15}
-                color={trial.ended ? colors.danger : colors.primary}
-              />
-              <Text style={[styles.statusChipText, trial.ended && { color: colors.danger }]}>{trialLine}</Text>
-            </View>
-          )
         )}
 
         {/* ───────── ÜCRETSİZ ───────── */}
@@ -305,7 +287,7 @@ export default function PremiumScreen() {
         <View style={styles.card}>
           <View style={styles.badge}>
             <Ionicons name="star" size={11} color={onGold(colors.gold)} />
-            <Text style={[styles.badgeText, { color: onGold(colors.gold) }]}>{t('premium.trialBadge')}</Text>
+            <Text style={[styles.badgeText, { color: onGold(colors.gold) }]}>{t('premium.proBadge')}</Text>
           </View>
 
           <Text style={styles.tierName}>{t('premium.oneName')}</Text>
@@ -344,7 +326,7 @@ export default function PremiumScreen() {
           )}
 
           {!subscribed && (
-            <Text style={styles.finePrint}>{t('premium.trialFinePrint', { price: String(MONTHLY_PRICE_TRY) })}</Text>
+            <Text style={styles.finePrint}>{t('premium.autoRenewNote', { price: String(MONTHLY_PRICE_TRY) })}</Text>
           )}
         </View>
 
@@ -477,25 +459,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '600',
     fontSize: 12.5,
     color: colors.success,
-  },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  statusChipEnded: {
-    backgroundColor: colors.dangerSoft,
-  },
-  statusChipText: {
-    fontFamily: fonts.semibold,
-    fontWeight: '600',
-    fontSize: 12.5,
-    color: colors.primary,
   },
   card: {
     borderRadius: 24,
