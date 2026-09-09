@@ -23,6 +23,7 @@ import { BAROLAR } from '@/constants/barolar';
 import { Captcha } from '@/components/Captcha';
 import { CAPTCHA_ENABLED } from '@/config/captcha';
 import { DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
+import { UCRETSIZ_LIMIT } from '@/config/planlar';
 import { useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -176,7 +177,12 @@ export default function SignupScreen() {
             </View>
             <View style={styles.pricingTextWrap}>
               <Text style={styles.pricingTitle}>{t('auth.pricingInfoTitle')}</Text>
-              <Text style={styles.pricingBody}>{t('auth.pricingInfoBody', { n: DENEME_SORU_HAKKI })}</Text>
+              <Text style={styles.pricingBody}>{t('auth.pricingInfoBody', {
+                n: DENEME_SORU_HAKKI,
+                dava: UCRETSIZ_LIMIT.dava,
+                muvekkil: UCRETSIZ_LIMIT.muvekkil,
+                belge: UCRETSIZ_LIMIT.belge,
+              })}</Text>
             </View>
           </View>
 

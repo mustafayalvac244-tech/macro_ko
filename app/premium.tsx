@@ -230,7 +230,14 @@ export default function PremiumScreen() {
       muvekkil: String(UCRETSIZ_LIMIT.muvekkil),
       belge: String(UCRETSIZ_LIMIT.belge),
     }),
-    t('premium.f.freeDeneme', { n: String(DENEME_SORU_HAKKI) }),
+    // DENEME HAKKI YALNIZ AÇIK OLAN AI EKRANLARINDA HARCANABİLİR. Satır
+    // "{n} deneme yapay zekâ SORUSU" diyordu; "soru" sohbet ekranını çağrıştırır
+    // ve sohbet kapalıdır (AI_ENABLED = false). Bugün bu hak yalnız Dilekçe Üret
+    // ve Belge İncele üzerinden kullanılabiliyor. İkisi de kapatılırsa satır hiç
+    // gösterilmez — kullanılamayan bir hakkı listelemek boş vaattir.
+    ...(AI_DILEKCE_ENABLED || AI_BELGE_ENABLED
+      ? [t('premium.f.freeDeneme', { n: String(DENEME_SORU_HAKKI) })]
+      : []),
   ];
 
   const features = [
