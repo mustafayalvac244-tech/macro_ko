@@ -1,4 +1,5 @@
 import { cikisYap, davaOlustur, girisYap, kunyeCikar, oturumOku } from './lib/api.js';
+import { doluSayisi, kunyeCikarYerel } from './lib/cikar.js';
 
 const $ = (id) => document.getElementById(id);
 const durum = $('durum');
@@ -60,7 +61,7 @@ function kayitlanabilirMi(k) {
  * Artık hiç alan çıkmadıysa tablo yerine ne yapılacağı yazılıyor; kayıt düğmesi
  * de asgari bilgi yoksa kapalı.
  */
-function onizlemeCiz(k, okunanKarakter) {
+function onizlemeCiz(k, okunanKarakter, kaynak) {
   const kap = $('alanlar');
   kap.innerHTML = '';
 
@@ -91,7 +92,8 @@ function onizlemeCiz(k, okunanKarakter) {
   }
   $('kaydetBtn').disabled = !kayitlanabilirMi(k);
   $('onizleme').hidden = false;
-  bilgi(kayitlanabilirMi(k) ? '' : 'Dosya adı ya da esas no bulunamadı; kayıt açılamıyor.', true);
+  if (!kayitlanabilirMi(k)) bilgi('Dosya adı ya da esas no bulunamadı; kayıt açılamıyor.', true);
+  else bilgi(kaynak === 'yerel' ? `${doluSayisi(k)} alan sayfadan okundu.` : 'Yapay zekâ ile çıkarıldı.');
 }
 
 $('girisBtn').addEventListener('click', async () => {
@@ -118,9 +120,31 @@ $('okuBtn').addEventListener('click', async () => {
   bilgi('Sayfa okunuyor…');
   try {
     const metin = await sayfaMetni();
-    bilgi(`Bilgiler çıkarılıyor… (${metin.length} karakter)`);
-    bulunan = await kunyeCikar(metin);
-    onizlemeCiz(bulunan, metin.length);
+
+    /**
+     * ÖNCE YEREL ÇIKARICI, SONRA (GEREKİRSE) SUNUCU.
+     *
+     * İlk sürüm her seferinde sunucudaki AI ucuna gidiyordu. Bu fazla
+     * mühendislikti: "Esas No: 2023/145", "ANKARA 3. ASLİYE HUKUK MAHKEMESİ",
+     * "DAVALI:" sayfada düz yazıyla duruyor ve düzenli ifadeyle çıkıyor —
+     * anında, bedava, kota harcamadan, API anahtarı olmadan, çevrimdışı.
+     *
+     * AI yalnız yerel çıkarıcı HİÇBİR ŞEY bulamazsa denenir (alışılmadık bir
+     * biçim, taranmış bir belge metni vb.). Anahtar tanımlı değilse orada da
+     * hata döner ama o noktada zaten kaybedecek bir şey yoktur.
+     */
+    bilgi(`Sayfa okundu (${metin.length} karakter), bilgiler çıkarılıyor…`);
+    let k = kunyeCikarYerel(metin);
+    let kaynak = 'yerel';
+
+    if (doluSayisi(k) === 0) {
+      bilgi('Bilinen kalıp bulunamadı, yapay zekâ deneniyor…');
+      k = await kunyeCikar(metin);
+      kaynak = 'ai';
+    }
+
+    bulunan = k;
+    onizlemeCiz(k, metin.length, kaynak);
   } catch (e) {
     const kod = String(e.message);
     // TANIDIĞIMIZ KODLAR AÇIKÇA ANLATILIR; TANIMADIĞIMIZ KOD OLDUĞU GİBİ
