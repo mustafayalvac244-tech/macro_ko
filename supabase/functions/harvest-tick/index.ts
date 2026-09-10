@@ -185,9 +185,23 @@ Deno.serve(async (req) => {
   // Terim seçimi: en uzun süredir işlenmemiş olan. Böylece 134 terim sırayla
   // dolaşılır ve hep aynı konu taranmaz.
   const onek = kaynak === 'emsal' ? '' : `${kaynak}:`;
+  /**
+   * ÖNCELİK ÖNCE, SONRA TAZELİK.
+   *
+   * Eskiden yalnız `last_run` sırasıyla dönülüyordu: 134 terim eşit ağırlıkta
+   * taranıyordu. Günde ~1.300 karar çekebiliyorsak o kotayı neyin harcadığı
+   * önemlidir — Yargıtay Hukuk Genel Kurulu kararıyla hiçbir müvekkilimizi
+   * ilgilendirmeyen bir konu aynı hızda toplanıyordu.
+   *
+   * `oncelik` sütunu (migration 0093) üç sinyalden hesaplanıyor: kullanıcı-
+   * larımızın GERÇEK dava karışımı, yüksek yargı ağırlığı ve tazelik. İkincil
+   * sıralama hâlâ `last_run` — böylece aynı öncelikteki terimler sırayla
+   * dolaşılır ve hiçbiri aç kalmaz.
+   */
   let q = supabase
     .from('ictihat_harvest_state')
     .select('terim, next_page')
+    .order('oncelik', { ascending: false })
     .order('last_run', { ascending: true, nullsFirst: true })
     .limit(1);
   q = onek ? q.like('terim', `${onek}%`) : q.not('terim', 'like', '%:%');
