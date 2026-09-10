@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
+import { WebKart } from '@/components/ui/WebKart';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { VekilLogo } from '@/components/ui/VekilLogo';
@@ -30,9 +31,12 @@ export default function LoginScreen() {
   };
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen genislik="form" edges={['top', 'left', 'right', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* Masaüstünde form bir kart üstünde durur; telefonda WebKart hiçbir
+              şey yapmaz ve düzen aynen kalır (bkz. components/ui/WebKart). */}
+          <WebKart>
           <View style={styles.brand}>
             <VekilLogo size={132} nodeFill={colors.bg} />
             <Text style={styles.brandName}>VEKİL</Text>
@@ -87,6 +91,7 @@ export default function LoginScreen() {
           </View>
 
           <Text style={styles.copyright}>© 2026 VEKİL Yazılım</Text>
+          </WebKart>
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

@@ -176,7 +176,7 @@ export default function TermsScreen() {
   const sections = lang === 'tr' ? sectionsTr() : sectionsEn();
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen genislik="dar" edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('legal.termsTitle')} showBack />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>

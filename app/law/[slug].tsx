@@ -85,7 +85,7 @@ export default function LawBrowserScreen() {
 
   if (!law) {
     return (
-      <Screen edges={['top', 'left', 'right', 'bottom']}>
+      <Screen genislik="dar" edges={['top', 'left', 'right', 'bottom']}>
         <ScreenHeader title={t('laws.title')} showBack />
         <Card>
           {yukleniyor ? (
@@ -104,7 +104,7 @@ export default function LawBrowserScreen() {
   const special = (no: string) => no.startsWith('Geçici') || no.startsWith('Ek');
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen genislik="dar" edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={law.short} subtitle={law.name} showBack />
       <View style={styles.searchWrap}>
         <Input
