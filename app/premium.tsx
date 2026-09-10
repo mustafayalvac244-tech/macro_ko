@@ -18,6 +18,7 @@ import {
   restorePurchases,
 } from '@/lib/purchases';
 import {
+  AI_AKTARMA_ENABLED,
   AI_BELGE_ENABLED,
   AI_DILEKCE_ENABLED,
   AI_ENABLED,
@@ -208,6 +209,7 @@ export default function PremiumScreen() {
     AI_MUTALAA_ENABLED ? t('premium.f.aiMutalaa') : null,
     AI_DILEKCE_ENABLED ? t('premium.f.aiDilekce') : null,
     AI_BELGE_ENABLED ? t('premium.f.aiDocReview') : null,
+    AI_AKTARMA_ENABLED ? t('premium.f.aiAktarma') : null,
     AI_ENABLED ? t('premium.f.aiIctihat') : null,
     t('premium.f.aiGrounded'),
   ].filter((f): f is string => f !== null);
@@ -235,7 +237,7 @@ export default function PremiumScreen() {
     // ve sohbet kapalıdır (AI_ENABLED = false). Bugün bu hak yalnız Dilekçe Üret
     // ve Belge İncele üzerinden kullanılabiliyor. İkisi de kapatılırsa satır hiç
     // gösterilmez — kullanılamayan bir hakkı listelemek boş vaattir.
-    ...(AI_DILEKCE_ENABLED || AI_BELGE_ENABLED
+    ...(AI_DILEKCE_ENABLED || AI_BELGE_ENABLED || AI_AKTARMA_ENABLED
       ? [t('premium.f.freeDeneme', { n: String(DENEME_SORU_HAKKI) })]
       : []),
   ];

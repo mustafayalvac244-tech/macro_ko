@@ -38,11 +38,17 @@ export const AI_MUTALAA_ENABLED = false;
  * 20 alanın 20'si doğru, SIFIR uydurma, sıfır tuzak. İstem sunucuya taşındı ve
  * belgede karşılığı olmayan alan artık atılıyor.
  *
- * Açma kararı ürün kararıdır ve size ait: özellik gerçek kullanıcıya hiç
- * gitmedi (sıfır kayıt) ve ölçüm seti yedi senaryo — ince. true yapıp OTA
- * göndermek yeterli.
+ * AÇILDI (kullanıcı kararı). Dürüstlük notu değişmedi: ölçüm YEDİ senaryodur,
+ * ince bir settir ve özellik GERÇEK KULLANICIYA HİÇ GİTMEDİ (sıfır kayıt).
+ * "7/7 geçti" ifadesi bu setin tamamı için doğrudur, genel doğruluk iddiası
+ * değildir. Ekran zaten çıkarılamayan alanı boş bırakıyor ve modele tahmin
+ * ettirmiyor — yanlış alanla dosya kurmaktansa boş bırakmak yeğdir.
+ *
+ * NOT: bu özellik ai-chat'ten geçer (mode: 'kunye'), yani ÜCRETSİZ kullanıcının
+ * yaşam boyu 3 deneme hakkından birini harcar. Üyelik ekranındaki deneme satırı
+ * bu ekranı da sayar (bkz. premium.f.freeDeneme).
  */
-export const AI_AKTARMA_ENABLED = false;
+export const AI_AKTARMA_ENABLED = true;
 
 /**
  * İçtihat ARAMASI — her zaman açık, ücretsiz.
