@@ -1,54 +1,54 @@
 # Vekil Pro — Chrome Eklentisi
 
-Açık olan sayfadaki dava bilgilerini okuyup Vekil Pro'da dosya açar.
+Simgeye tıklayınca **yan panel** açılır ve Vekil Pro'nun tamamı orada çalışır:
+dosyalar, müvekkiller, ajanda, içtihat araması, hesaplayıcılar. Panel UYAP'ın
+yanında açık kalır — dosyayı okurken ajandanız yanınızdadır.
 
-## Neden UYAP'a bağlı değil
+Ayrıca üstteki **"Sayfadan dosya aç"** düğmesi, açık sayfadaki dava bilgilerini
+okuyup Vekil Pro'da dosya açar.
 
-Eklenti UYAP'ın HTML yapısına **bakmıyor**. Sayfanın görünen metnini alıp,
-mobil uygulamanın da kullandığı `ai-chat` ucuna (`mode: 'kunye'`) gönderiyor;
-alanları sunucu çıkarıyor.
+## Mimari — neden böyle
 
-İki sebep:
+**Uygulama eklentinin içine gömülmedi, barındırılan web sürümü açılıyor.**
+Gömme denendi ve iki sebeple bırakıldı:
 
-1. **Seçiciler kırılır.** UYAP arayüzünü değiştirdiği gün CSS/XPath seçicileri
-   sessizce boş dönerdi — kullanıcı bunu ancak dosyası eksik açıldığında fark
-   ederdi.
-2. **İki çıkarıcı ayrışır.** Mobilde bir, eklentide başka bir çıkarma mantığı
-   olsaydı zamanla farklı sonuç verirlerdi. Bu oturumda tam bu sınıftan üç kusur
-   çıktı (bildirim metni, kimlik şeması, aşama ekleri).
+1. Web paketi **21 MB**; her güncelleme eklentiyi elden yeniden yüklemeyi
+   gerektirirdi.
+2. Pakette `eval` var. MV3 eklenti sayfalarının CSP'si (`script-src 'self'`)
+   bunu engelliyor ve uygulama hiç açılmıyordu.
 
-Yan fayda: sayfa UYAP mı, e-Devlet mi, bir PDF görüntüleyici mi — fark etmiyor.
+Barındırılan sayfa kendi CSP'siyle çalışır, eklenti **~50 KB** kalır ve uygulama
+siz hiçbir şey yapmadan güncellenir.
 
-## Gizlilik ve izinler
+**Sayfa okuma AI kullanmıyor.** "Esas No: 2023/145", "ANKARA 3. ASLİYE HUKUK
+MAHKEMESİ", "DAVALI:" sayfada düz yazıyla duruyor; bunlar düzenli ifadeyle
+çıkarılıyor (`lib/cikar.js`) — anında, bedava, kota harcamadan, çevrimdışı.
+Yapay zekâ yalnız hiçbir kalıp tutmazsa devreye girer.
 
-- `activeTab` + `scripting`: sayfa metni **yalnız siz düğmeye bastığınızda**
-  okunur. Arka planda sürekli dinleyen bir content script **yok**.
-- `storage`: yalnız oturum jetonu tutulur. **Şifre saklanmaz.**
-- Geniş `host_permissions` **istenmiyor** — "hangi sitelerimi okuyor?" sorusunun
-  cevabı: yalnız bastığınız andaki sekme.
+CSS/XPath seçicisi de kullanılmıyor: UYAP arayüzünü değiştirdiğinde seçiciler
+sessizce boşalır, metin kalıpları ise ekranda görünen yazıya bakar.
 
-## Kurulum (geliştirici modu)
+## Gizlilik
 
-1. Chrome → `chrome://extensions`
-2. Sağ üstten **Geliştirici modu**'nu açın
-3. **Paketlenmemiş öğe yükle** → bu `extension/` klasörünü seçin
-4. Araç çubuğundaki simgeye tıklayıp Vekil Pro hesabınızla giriş yapın
+- `activeTab` + `scripting`: sayfa metni **yalnız düğmeye bastığınızda** okunur.
+  Arka planda dinleyen content script **yok**.
+- `storage`: yalnız oturum jetonu. **Şifre saklanmaz.**
+- Geniş `host_permissions` **istenmiyor**.
 
-## Kullanım
+## Kurulum
 
-1. UYAP'ta (ya da herhangi bir sayfada) dosyayı açın
-2. Eklenti simgesine tıklayın → **Bu sayfadan dosya aç**
-3. Bulunan alanları **kontrol edin** — çıkarılamayan alan "bulunamadı" der,
-   tahmin edilmez
-4. **Dosyayı oluştur**
+1. `chrome://extensions` → **Geliştirici modu** açık
+2. **Paketlenmemiş öğe yükle** → bu `extension/` klasörünü seçin
+3. Araç çubuğunda simgeye tıklayın → panel açılır
 
-## Bilinen sınırlar (dürüstlük notu)
+## Gereklilik
 
-- Alan çıkarma ölçümü **yedi senaryodur** ve o setin tamamı geçmiştir
-  (20 alanın 20'si doğru, sıfır uydurma). Bu ince bir settir ve özellik gerçek
-  kullanıcıda henüz ölçülmedi.
-- Her istek, ücretsiz kullanıcının **yaşam boyu 3 deneme hakkından birini**
-  harcar (mobil uygulamadaki ile aynı havuz).
-- Plan limiti sunucuda uygulanır: ücretsiz planda dava hakkı dolmuşsa eklenti de
-  kayıt açamaz.
-- Mağazaya **yayınlanmadı**; şu an yalnız geliştirici modunda yüklenebilir.
+Panel `https://mustafayalvac244-tech.github.io/macro_ko/app/` adresini açar.
+Bu adresin yayında olması için **dalın `main`'e birleştirilmiş** olması gerekir
+(GitHub Pages `main` dalının `docs/` klasöründen yayın yapıyor).
+
+## Bilinen sınırlar
+
+- Web sürümünde **bildirimler ve biyometrik kilit** çalışmaz (bunlar mobil
+  özellikleri). Dosya, ajanda, içtihat ve hesaplayıcılar çalışır.
+- Mağazaya yayınlanmadı; geliştirici modunda yüklenir.

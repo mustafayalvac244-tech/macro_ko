@@ -60,3 +60,6 @@ supabase/.temp/
 
 # Ölçüm çıktısı (hatalı cevapların tam metni; koşuya özgü, sürümlenmez)
 scripts/eval-cevap-hatalar.json
+
+# Web sürümü derleme çıktısı DEĞİL: docs/app yayınlanıyor (GitHub Pages),
+# bilerek depoda tutuluyor. Buraya eklenmemeli.

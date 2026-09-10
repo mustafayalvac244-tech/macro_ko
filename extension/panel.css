@@ -1,0 +1,16 @@
+:root { --ink:#14213D; --muted:#5A6785; --line:#E3E8F0; --accent:#173C7E; --bg:#F4F6FA; --danger:#B3261E; --ok:#158A54; }
+@media (prefers-color-scheme: dark) { :root { --ink:#EAF0FB; --muted:#9AA8C2; --line:#243149; --accent:#5B8DEF; --bg:#0B1220; } }
+* { box-sizing:border-box; }
+html, body { height:100%; margin:0; }
+body { display:flex; flex-direction:column; background:var(--bg); color:var(--ink);
+  font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+#arac { display:flex; align-items:center; gap:8px; padding:7px 10px; border-bottom:1px solid var(--line); }
+.marka { font-weight:600; letter-spacing:-.2px; }
+.marka b { color:var(--accent); }
+#arac button { margin-left:auto; padding:6px 10px; border:1px solid var(--line); border-radius:8px;
+  background:var(--accent); color:#fff; font-size:12px; cursor:pointer; }
+#arac button:disabled { opacity:.55; cursor:default; }
+#bildirim { padding:8px 10px; font-size:12px; border-bottom:1px solid var(--line); color:var(--muted); }
+#bildirim.hata { color:var(--danger); }
+#bildirim.iyi { color:var(--ok); }
+#uygulama { flex:1; width:100%; border:0; }
