@@ -94,9 +94,13 @@ export function useReminderSync() {
       // Vade sabahı 09:00 — schedulePromiseReminder ile aynı.
       const anISO = `${row.due_date}T09:00:00`;
       etkinlikler.push({ id: row.id, tur: 'soz', anISO, secilenDakika: 0, bitti: row.is_paid });
+      // Taksit işareti (2/12) korunur: kaydetme yolundaki etiket de bunu
+      // taşıyor ve taksitli bir ödemede "hangi taksit" bilgisi olmadan bildirim
+      // eksik kalıyordu.
+      const taksitIsareti = row.seq && row.total_count ? ` (${row.seq}/${row.total_count})` : '';
       kaynaklar.set(row.id, {
         baslik: row.client?.full_name ?? '',
-        altBaslik: formatMoney(row.amount),
+        altBaslik: `${formatMoney(row.amount)}${taksitIsareti}`,
         anISO,
       });
     }

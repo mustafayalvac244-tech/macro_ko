@@ -3,7 +3,15 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { getLang, translate } from '@/i18n';
 import { formatDateTime } from '@/utils/format';
-import { EK_1_GUN, EK_3_GUN, planBildirimId, tetikGuncelMi, type PlanliBildirim } from '@/utils/bildirimPlani';
+import { bildirimMetni, type BildirimKaynagi } from '@/utils/bildirimMetni';
+import {
+  EK_1_GUN,
+  EK_3_GUN,
+  planBildirimId,
+  SONUC_GECIKME_DAKIKA,
+  tetikGuncelMi,
+  type PlanliBildirim,
+} from '@/utils/bildirimPlani';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -172,8 +180,12 @@ export function hearingOutcomeId(hearingId: string): string {
   return planBildirimId('durusma', hearingId, 'sonuc');
 }
 
-/** Duruşmadan kaç dakika sonra sorulacağı. */
-const OUTCOME_DELAY_MINUTES = 120;
+/**
+ * Duruşmadan kaç dakika sonra sorulacağı — plan üreticisiyle AYNI sabit.
+ * Ayrı yazılsalardı plan "2 saat sonra" derken kurulum "3 saat sonra" diyebilir
+ * ve eşitleme her açılışta aynı bildirimi silip yeniden kurardı (sessiz döngü).
+ */
+const OUTCOME_DELAY_MINUTES = SONUC_GECIKME_DAKIKA;
 
 export async function scheduleHearingOutcomePrompt(params: {
   id: string;
@@ -261,55 +273,27 @@ export async function scheduleDeadlineReminder(params: {
 const BIZIM_ONEKLER = ['hearing-', 'deadline-', 'promise-'] as const;
 export type BildirimOneki = (typeof BIZIM_ONEKLER)[number];
 
-export interface PlanKaynak {
-  /** Ana başlık: duruşma/görev adı ya da müvekkil adı. */
-  baslik: string;
-  /** Alt satır: dava adı ya da tutar etiketi. */
-  altBaslik: string;
-  anISO: string;
-  /** Duruşma türü (hearing/mediation/deposition…) — yalnız duruşmalarda. */
-  hearingType?: string;
-}
+/**
+ * Bildirim metnini üretmek için gereken alanlar. Tip, metni üreten saf modülle
+ * AYNI olmak zorunda olduğu için oradan alınır — iki yerde ayrı tanımlanıp
+ * ayrışmasınlar.
+ */
+export type PlanKaynak = BildirimKaynagi;
 
-function planIcerigi(
-  bildirim: PlanliBildirim,
-  kaynak: PlanKaynak
-): { title: string; body: string } {
+/**
+ * Metin üretimi saf modüle taşındı (bkz. utils/bildirimMetni.ts): aynı metin
+ * hem kayıt oluşturulurken hem eşitleme sırasında üretiliyor ve iki yol
+ * sessizce ayrışmıştı. Burası artık yalnız çeviri/tarih bağlayıcısıdır.
+ */
+function planIcerigi(bildirim: PlanliBildirim, kaynak: PlanKaynak): { title: string; body: string } {
   const lang = getLang();
-  if (bildirim.etkinlikTuru === 'soz') {
-    return {
-      title: translate(lang, 'notif.promiseTitle', { name: kaynak.baslik }),
-      body: translate(lang, 'notif.promiseBody', { amount: kaynak.altBaslik, name: kaynak.baslik }),
-    };
-  }
-
-  if (bildirim.tur === 'sonuc') {
-    const typeLabel = translate(
-      lang,
-      `hearingType.${kaynak.hearingType ?? 'hearing'}` as Parameters<typeof translate>[1]
-    );
-    return {
-      title: translate(lang, 'notif.outcomeTitle', { type: typeLabel }),
-      body: translate(lang, 'notif.outcomeBody', { title: kaynak.altBaslik || kaynak.baslik }),
-    };
-  }
-
-  const anaBaslik =
-    bildirim.etkinlikTuru === 'durusma'
-      ? translate(lang, 'notif.hearingTitle', {
-          type: translate(lang, `hearingType.${kaynak.hearingType ?? 'hearing'}` as Parameters<typeof translate>[1]),
-          title: kaynak.baslik,
-        })
-      : translate(lang, 'notif.deadlineTitle', { title: kaynak.baslik });
-
-  const title =
-    bildirim.tur === '3g'
-      ? translate(lang, 'notif.stage3d', { title: anaBaslik })
-      : bildirim.tur === '1g'
-        ? translate(lang, 'notif.stage1d', { title: anaBaslik })
-        : anaBaslik;
-
-  return { title, body: `${kaynak.altBaslik} — ${formatDateTime(kaynak.anISO)}` };
+  return bildirimMetni(
+    bildirim.etkinlikTuru,
+    bildirim.tur,
+    kaynak,
+    (anahtar, p) => translate(lang, anahtar as Parameters<typeof translate>[1], p as never),
+    formatDateTime
+  );
 }
 
 /**
