@@ -63,3 +63,10 @@ scripts/eval-cevap-hatalar.json
 
 # Web sürümü derleme çıktısı DEĞİL: docs/app yayınlanıyor (GitHub Pages),
 # bilerek depoda tutuluyor. Buraya eklenmemeli.
+
+# İSTİSNA — web sürümünün varlıkları. Expo web dışa aktarımı ikon fontlarını
+# docs/app/assets/node_modules/... altına koyuyor ve yukarıdaki "node_modules/"
+# kuralı bunları depoya HİÇ ALMIYORDU: dosyalar diskte vardı, yayında yoktu ve
+# uygulama web'de İKONSUZ açılıyordu (42 font, hepsi 404). Sessiz bir arızaydı —
+# sayfa açılıyor, sadece her ikonun yerinde boş kare çıkıyordu.
+!docs/app/**
