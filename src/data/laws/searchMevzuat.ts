@@ -2,7 +2,7 @@
 // sonuçları getirir (rakibin "Mevzuat" kolonunun karşılığı, ama tamamen
 // cihazda/anlık, ağ gerektirmez). Kaynak: uygulamaya gömülü 8 temel kanun.
 
-import { LAW_INDEX, loadLaw, type LawArticle } from './loader';
+import { LAW_INDEX, ensureLaw, lawReady, loadLaw, type LawArticle } from './loader';
 
 export interface MevzuatHit {
   kod: string;
@@ -66,6 +66,15 @@ export async function warmMevzuatIndex(): Promise<void> {
     for (const idx of LAW_INDEX) {
       // Kareyi serbest bırak: sonraki kanun bir sonraki tik'te işlenir.
       await new Promise<void>((r) => setTimeout(r, 0));
+      // Web'de kanun metni ağdan gelir (bkz. loader.web.ts); natifte bu
+      // çağrı hiçbir şey yapmaz. Tek bir kanun inemezse indeksi TAMAMEN
+      // iptal etmek yerine o kanunu atlıyoruz — kalan 15 kanunda arama
+      // çalışsın. Eksik olduğu FLAT'in kurulmamasından anlaşılır.
+      try {
+        await ensureLaw(idx.slug);
+      } catch {
+        // ağ hatası: bu kanun bu oturumda aranamaz
+      }
       addLaw(out, idx.slug);
     }
     FLAT = out;
@@ -78,15 +87,26 @@ export async function warmMevzuatIndex(): Promise<void> {
 }
 
 /**
- * İndeksi döndürür. Arka plan kurulumu bitmediyse (kullanıcı çok hızlı
- * davrandıysa) senkron kurar — sonuç doğruluğu her hâlükârda korunur.
+ * İndeksi döndürür.
+ *
+ * Arka plan kurulumu bitmediyse SENKRON kurmayı dener — ama yalnız metni
+ * ZATEN hazır olan kanunlarla. Natifte hepsi pakette olduğu için bu, eski
+ * davranışın aynısıdır (tam indeks). Web'de indirilmemiş kanunlar dışarıda
+ * kalır; bu durumda sonuç EKSİK olduğu için FLAT'e YAZILMAZ, yoksa eksik
+ * indeks kalıcılaşır ve kullanıcı bir daha o kanunları hiç bulamazdı.
  */
 function flat(): FlatArticle[] {
   if (FLAT) return FLAT;
+  const hazirlar = LAW_INDEX.filter((idx) => lawReady(idx.slug));
   const out: FlatArticle[] = [];
-  for (const idx of LAW_INDEX) addLaw(out, idx.slug);
-  FLAT = out;
+  for (const idx of hazirlar) addLaw(out, idx.slug);
+  if (hazirlar.length === LAW_INDEX.length) FLAT = out;
   return out;
+}
+
+/** İndeks tam mı? Arayüz "mevzuat hazırlanıyor" diyebilsin diye. */
+export function mevzuatIndeksiHazir(): boolean {
+  return FLAT !== null;
 }
 
 function snippetAround(text: string, foldedText: string, foldedWord: string): string {

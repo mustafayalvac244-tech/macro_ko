@@ -1,4 +1,8 @@
-import { addDays, addMonths, addYears, getDay, lastDayOfMonth } from 'date-fns';
+import { addDays } from 'date-fns/addDays';
+import { addMonths } from 'date-fns/addMonths';
+import { addYears } from 'date-fns/addYears';
+import { getDay } from 'date-fns/getDay';
+import { lastDayOfMonth } from 'date-fns/lastDayOfMonth';
 import type { LegalDurationUnit } from '@/constants/legalDeadlines';
 
 /**

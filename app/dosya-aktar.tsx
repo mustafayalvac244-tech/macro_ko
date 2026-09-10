@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, Sc
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';

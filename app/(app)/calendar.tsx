@@ -3,9 +3,14 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { addDays, format, isToday, isTomorrow, startOfWeek } from 'date-fns';
-import { enUS, tr as trLocale } from 'date-fns/locale';
-import { Ionicons } from '@expo/vector-icons';
+import { addDays } from 'date-fns/addDays';
+import { format } from 'date-fns/format';
+import { isToday } from 'date-fns/isToday';
+import { isTomorrow } from 'date-fns/isTomorrow';
+import { startOfWeek } from 'date-fns/startOfWeek';
+import { enUS } from 'date-fns/locale/en-US';
+import { tr as trLocale } from 'date-fns/locale/tr';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';

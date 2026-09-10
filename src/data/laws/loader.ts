@@ -50,3 +50,19 @@ export function loadLaw(slug: string): LawFile | null {
   const f = FILES[slug];
   return f ? f() : null;
 }
+
+/**
+ * Kanun metnini KULLANIMA HAZIR hâle getirir.
+ *
+ * NATİF: kanunlar zaten pakette gömülü, require senkron — yapacak iş yok.
+ * WEB: bkz. loader.web.ts, dosya ağdan indirilir. Çağıran kod tek bir
+ * arayüz görsün diye burada da var ve hemen çözülür.
+ */
+export async function ensureLaw(_slug: string): Promise<void> {
+  // Natifte kanunlar paketin içinde; yüklenecek bir şey yok.
+}
+
+/** Kanun metni şu an bellekte/pakette hazır mı? Natifte her zaman evet. */
+export function lawReady(slug: string): boolean {
+  return typeof FILES[slug] !== 'undefined';
+}

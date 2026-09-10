@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { addMonths, format } from 'date-fns';
+import { addMonths } from 'date-fns/addMonths';
+import { format } from 'date-fns/format';
 import { supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';

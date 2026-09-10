@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';

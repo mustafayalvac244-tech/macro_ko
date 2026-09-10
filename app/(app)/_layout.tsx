@@ -1,6 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuthStore } from '@/store/authStore';
 import { Sidebar } from '@/components/Sidebar';
 import { useT } from '@/i18n';

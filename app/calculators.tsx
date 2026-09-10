@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { differenceInCalendarDays, differenceInDays, differenceInMonths } from 'date-fns';
-import { Ionicons } from '@expo/vector-icons';
+import { differenceInCalendarDays } from 'date-fns/differenceInCalendarDays';
+import { differenceInDays } from 'date-fns/differenceInDays';
+import { differenceInMonths } from 'date-fns/differenceInMonths';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';

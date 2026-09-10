@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { format, isToday, isYesterday } from 'date-fns';
-import { tr as trLocale, enUS } from 'date-fns/locale';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { format } from 'date-fns/format';
+import { isToday } from 'date-fns/isToday';
+import { isYesterday } from 'date-fns/isYesterday';
+import { tr as trLocale } from 'date-fns/locale/tr';
+import { enUS } from 'date-fns/locale/en-US';
 import { Screen } from '@/components/ui/Screen';
 import { Avatar } from '@/components/ui/Avatar';
 import {

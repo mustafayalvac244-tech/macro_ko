@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';

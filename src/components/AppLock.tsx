@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState, Pressable, StyleSheet, View } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { VekilLogo } from '@/components/ui/VekilLogo';
 import { kilitGerekliMi, useLockStore } from '@/store/lockStore';
 import { useT } from '@/i18n';

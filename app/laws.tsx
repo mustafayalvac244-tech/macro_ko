@@ -1,6 +1,6 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LAW_INDEX } from '@/data/laws/loader';
@@ -32,7 +32,10 @@ export default function LawsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hintRow}>
           <Ionicons name="cloud-offline-outline" size={15} color={colors.success} />
-          <Text style={styles.hintText}>{t('laws.offline')}</Text>
+          <Text style={styles.hintText}>
+            {/* Web'de metinler pakette değil, açtıkça indirilir — "çevrimdışı" demek YANLIŞ olurdu. */}
+            {Platform.OS === 'web' ? t('laws.onlineWeb') : t('laws.offline')}
+          </Text>
         </View>
 
         {/* Anayasa — own detailed screen */}

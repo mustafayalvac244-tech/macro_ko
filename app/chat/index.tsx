@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
@@ -24,7 +24,8 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatTime } from '@/utils/format';
-import { format, isToday } from 'date-fns';
+import { format } from 'date-fns/format';
+import { isToday } from 'date-fns/isToday';
 
 function lastSeenLabel(iso: string): string {
   const d = new Date(iso);
