@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { useClient, useCreateClient, useUpdateClient } from '@/hooks/useClients';
+import { useClient, useClients, useCreateClient, useUpdateClient } from '@/hooks/useClients';
 import { useCases } from '@/hooks/useCases';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import { isValidTCKN } from '@/utils/tckn';
-import { namesConflict } from '@/utils/nameMatch';
+import { menfaatTara } from '@/utils/menfaatCatismasi';
+import { MenfaatUyarisi } from '@/components/MenfaatUyarisi';
 
 export default function ClientFormScreen() {
   const { colors } = useTheme();
@@ -22,6 +22,8 @@ export default function ClientFormScreen() {
   const isEdit = !!id;
   const { data: existingClient } = useClient(id);
   const { data: cases } = useCases();
+  // Mükerrer T.C. ve aynı adlı müvekkil taraması için tüm müvekkiller.
+  const { data: tumMuvekkiller } = useClients();
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
 
@@ -52,13 +54,21 @@ export default function ClientFormScreen() {
 
   const isSubmitting = createClient.isPending || updateClient.isPending;
 
-  // Conflict-of-interest check: warn when this name appears as the opposing
-  // party in an existing case.
-  const conflictCase = useMemo(() => {
-    const name = fullName.trim();
-    if (name.length < 3) return null;
-    return (cases ?? []).find((c) => c.opposing_party && namesConflict(c.opposing_party, name)) ?? null;
-  }, [cases, fullName]);
+  /**
+   * ÇIKAR ÇATIŞMASI TARAMASI — kapsamlı.
+   *
+   * Eskiden yalnız ilk eşleşen dosya bulunuyor, şirket adı ve T.C. numarası
+   * hiç taranmıyordu. Artık ad + şirket + T.C. birlikte taranıyor ve bütün
+   * bulgular gösteriliyor (bkz. utils/menfaatCatismasi.ts).
+   */
+  const bulgular = useMemo(
+    () =>
+      menfaatTara(
+        { ad: fullName, sirket: company, tcNo, hariçTutulanId: id ?? null },
+        { muvekkiller: tumMuvekkiller ?? [], davalar: cases ?? [] }
+      ),
+    [cases, tumMuvekkiller, fullName, company, tcNo, id]
+  );
 
   const handleSubmit = async () => {
     const payload = {
@@ -109,19 +119,7 @@ export default function ClientFormScreen() {
             value={fullName}
             onChangeText={setFullName}
           />
-          {conflictCase && (
-            <View
-              style={[
-                styles.warnBox,
-                { backgroundColor: colors.warningSoft, borderColor: colors.warning },
-              ]}
-            >
-              <Ionicons name="warning" size={18} color={colors.warning} />
-              <Text style={[styles.warnText, { color: colors.textPrimary }]}>
-                {t('conflict.clientWarn', { case: conflictCase.title })}
-              </Text>
-            </View>
-          )}
+          <MenfaatUyarisi bulgular={bulgular} />
           {clientType === 'gercek' && (
             <Input label={t('clientForm.title')} placeholder={t('clientForm.titlePlaceholder')} value={title} onChangeText={setTitle} />
           )}

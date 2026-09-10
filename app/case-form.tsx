@@ -9,7 +9,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { useCase, useCreateCase, useUpdateCase } from '@/hooks/useCases';
+import { useCase, useCases, useCreateCase, useUpdateCase } from '@/hooks/useCases';
 import { useCreateHearing } from '@/hooks/useHearings';
 import { useClients } from '@/hooks/useClients';
 import { useT } from '@/i18n';
@@ -18,7 +18,8 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatDateTime } from '@/utils/format';
-import { namesConflict } from '@/utils/nameMatch';
+import { menfaatTara } from '@/utils/menfaatCatismasi';
+import { MenfaatUyarisi } from '@/components/MenfaatUyarisi';
 import type { CaseStatus, PriorityLevel } from '@/types/database';
 
 const STATUS_VALUES = ['active', 'closed'] as const; // Açık / Kapalı
@@ -34,6 +35,8 @@ export default function CaseFormScreen() {
   const isEdit = !!id;
   const { data: existingCase } = useCase(id);
   const { data: clients } = useClients();
+  // Çatışma taraması için tüm dosyalar (karşı taraf tekrarını görmek üzere).
+  const { data: tumDavalar } = useCases();
   const createCase = useCreateCase();
   const updateCase = useUpdateCase();
   const createHearing = useCreateHearing();
@@ -87,17 +90,29 @@ export default function CaseFormScreen() {
 
   const titleError = titleTouched && !title.trim() ? t('caseForm.titleRequired') : null;
 
-  // Conflict-of-interest check: warn (without blocking) when the opposing
-  // party matches an existing client's name or company.
-  const conflictClient = useMemo(() => {
-    const op = opposingParty.trim();
-    if (op.length < 3) return null;
-    return (
-      (clients ?? []).find(
-        (c) => namesConflict(c.full_name, op) || (c.company ? namesConflict(c.company, op) : false)
-      ) ?? null
-    );
-  }, [clients, opposingParty]);
+  /**
+   * ÇIKAR ÇATIŞMASI TARAMASI — kapsamlı.
+   *
+   * Eskiden yalnız `.find(...)` ile İLK eşleşen müvekkil bulunuyordu ve
+   * eşleştirme "biri diğerini içeriyor mu" düzeyindeydi; ölçümde gerçekçi
+   * sekiz yazım varyasyonunun beşi kaçırılıyordu (soyad-önce yazımı, "A.Ş." ile
+   * "Anonim Şirketi", tireli soyadı, virgüllü yazım, Türkçesiz harfler).
+   * Artık tarama tek yerden ve bütün bulguları döndürüyor
+   * (bkz. utils/menfaatCatismasi.ts).
+   */
+  const bulgular = useMemo(
+    () =>
+      menfaatTara(
+        { ad: opposingParty, hariçTutulanId: id ?? null },
+        {
+          muvekkiller: clients ?? [],
+          // Kendi dosyalarımız da taranır: aynı karşı taraf başka dosyalarda da
+          // varsa avukat bunu görmelidir (çatışmanın kapsamı = kaç dosya).
+          davalar: tumDavalar ?? [],
+        }
+      ),
+    [clients, tumDavalar, opposingParty, id]
+  );
 
   const handleSubmit = async () => {
     setTitleTouched(true);
@@ -246,12 +261,7 @@ export default function CaseFormScreen() {
           <Input label={t('caseForm.opposingPartyReq')} placeholder={t('caseForm.opposingPartyPlaceholder')} value={opposingParty} onChangeText={(v) => { setOpposingParty(v); if (submitError) setSubmitError(null); }} />
           <Input label={t('caseForm.opposingCounsel')} placeholder={t('caseForm.opposingCounselPlaceholder')} value={opposingCounsel} onChangeText={setOpposingCounsel} />
 
-          {conflictClient && (
-            <View style={styles.warnBox}>
-              <Ionicons name="warning" size={18} color={colors.warning} />
-              <Text style={styles.warnText}>{t('conflict.caseWarn', { name: conflictClient.full_name })}</Text>
-            </View>
-          )}
+          <MenfaatUyarisi bulgular={bulgular} />
 
           <Text style={styles.label}>{t('fee.type')}</Text>
           <SegmentedControl

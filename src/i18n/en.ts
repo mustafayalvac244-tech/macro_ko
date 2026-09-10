@@ -1214,6 +1214,18 @@ export const en: Record<keyof typeof tr, string> = {
   'conflict.caseWarn':
     '⚠️ The opposing party "{name}" is in your client list. Possible conflict of interest — check before taking the case.',
   'conflict.clientWarn': '⚠️ This name appears as the opposing party in your case "{case}". Possible conflict of interest.',
+  'conflict.title': 'Conflict of interest check',
+  'conflict.titleWeak': 'Similar records',
+  'conflict.lead': 'A lawyer may not act for opposing interests. Review the records below before taking this on.',
+  'conflict.leadWeak': 'Only partially similar records. These may not be the same party; the judgement is yours.',
+  'conflict.row.karsi-taraf': '"{ad}" — OPPOSING PARTY in your case "{kayit}"',
+  'conflict.row.muvekkil': '"{ad}" — your client ({kayit})',
+  'conflict.row.mukerrer-tc': 'The same national ID also appears on "{kayit}" — possible duplicate record',
+  'conflict.row.ofis-karsi-vekil': 'Opposing counsel "{ad}" appears as a member of your firm on "{kayit}"',
+  'conflict.guc.kesin': 'exact',
+  'conflict.guc.guclu': 'strong',
+  'conflict.guc.zayif': 'weak',
+  'conflict.more': 'and {n} more',
   'clash.warn': '⚠️ You have another commitment around this time: {title} · {time}{caseInfo}. You may need an excuse motion or substitution.',
   'clash.warnMeeting': '⚠️ You have another entry around this time: {title} · {time}{caseInfo}. Please review the overlap.',
 

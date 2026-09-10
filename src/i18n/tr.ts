@@ -1228,6 +1228,18 @@ export const tr = {
     '⚠️ Karşı taraf "{name}", müvekkil listenizde kayıtlı. Çıkar çatışması olabilir — üstlenmeden önce kontrol edin.',
   'conflict.clientWarn':
     '⚠️ Bu isim "{case}" dosyanızda karşı taraf olarak görünüyor. Çıkar çatışması olabilir.',
+  'conflict.title': 'Çıkar çatışması kontrolü',
+  'conflict.titleWeak': 'Benzer kayıtlar',
+  'conflict.lead': 'Avukatlık Kanunu m.38/b: menfaati zıt tarafa hizmet edilemez. Üstlenmeden önce aşağıdaki kayıtları kontrol edin.',
+  'conflict.leadWeak': 'Yalnız kısmen benzeşen kayıtlar. Aynı kişi olmayabilir; emin olmak size kalmış.',
+  'conflict.row.karsi-taraf': '"{ad}" — "{kayit}" dosyanızda KARŞI TARAF',
+  'conflict.row.muvekkil': '"{ad}" — müvekkiliniz ({kayit})',
+  'conflict.row.mukerrer-tc': 'Aynı T.C. numarası "{kayit}" kaydında da var — mükerrer kayıt olabilir',
+  'conflict.row.ofis-karsi-vekil': 'Karşı vekil "{ad}", "{kayit}" dosyanızda büronuzun üyesi olarak görünüyor',
+  'conflict.guc.kesin': 'birebir',
+  'conflict.guc.guclu': 'güçlü',
+  'conflict.guc.zayif': 'zayıf',
+  'conflict.more':'ve {n} kayıt daha',
   'clash.warn': '⚠️ Aynı saate denk gelen başka bir işiniz var: {title} · {time}{caseInfo}. Mazeret/tevkil gerekebilir.',
   'clash.warnMeeting': '⚠️ Aynı saate denk gelen başka bir kaydınız var: {title} · {time}{caseInfo}. Çakışmayı gözden geçirin.',
 
