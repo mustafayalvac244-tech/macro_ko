@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Vekil Pro — Belgeden Dosya Aç",
+  "version": "0.1.0",
+  "description": "Açık olan sayfadaki dava bilgilerini okuyup Vekil Pro'da dosya açar. UYAP, e-Devlet ya da bir PDF görüntüleyici — fark etmez.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "action": {
+    "default_title": "Vekil Pro",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "128": "icons/icon128.png"
+  }
+}

@@ -1,0 +1,25 @@
+:root { --ink:#14213D; --muted:#5A6785; --line:#E3E8F0; --accent:#173C7E; --bg:#F4F6FA; --danger:#B3261E; }
+@media (prefers-color-scheme: dark) {
+  :root { --ink:#EAF0FB; --muted:#9AA8C2; --line:#243149; --accent:#5B8DEF; --bg:#0B1220; }
+}
+* { box-sizing:border-box; }
+body { width:320px; margin:0; padding:14px; background:var(--bg); color:var(--ink);
+  font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+header { margin-bottom:10px; }
+.marka { font-weight:700; letter-spacing:-.2px; }
+.aciklama { color:var(--muted); margin:0 0 10px; }
+input { width:100%; padding:9px 10px; margin-bottom:8px; border:1px solid var(--line);
+  border-radius:9px; background:transparent; color:var(--ink); font-size:13px; }
+button { width:100%; padding:10px; border-radius:9px; font-size:13px; cursor:pointer; border:1px solid transparent; }
+.birincil { background:var(--accent); color:#fff; font-weight:600; }
+.birincil:disabled { opacity:.55; cursor:default; }
+.ikincil { background:transparent; border-color:var(--line); color:var(--ink); margin-top:6px; }
+.baglanti { background:none; border:none; color:var(--muted); text-decoration:underline; padding:8px 0 0; }
+.ipucu { color:var(--muted); font-size:11px; margin:6px 0 0; }
+.baslik { font-weight:600; margin:12px 0 6px; }
+.satir { display:flex; gap:6px; padding:5px 0; border-bottom:1px solid var(--line); }
+.satir b { flex:0 0 96px; font-weight:500; color:var(--muted); }
+.satir span { flex:1; word-break:break-word; }
+.bos { color:var(--muted); font-style:italic; }
+#durum { margin:10px 0 0; color:var(--muted); min-height:16px; }
+#durum.hata { color:var(--danger); }
