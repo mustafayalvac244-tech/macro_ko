@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Vekil Pro",
+  "version": "0.1.0",
+  "description": "Vekil Pro'yu tarayıcının yan panelinde açar: dosyalar, ajanda, içtihat. Açık sayfadan dosya da açar.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "sidePanel"
+  ],
+  "action": {
+    "default_title": "Vekil Pro"
+  },
+  "icons": {
+    "128": "icons/icon128.png"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "background": {
+    "service_worker": "arkaplan.js"
+  }
+}

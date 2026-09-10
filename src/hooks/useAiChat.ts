@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
+import { aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 
 /** Bir sohbet balonu. `model` = AI yanıtı, `user` = avukatın sorusu. */
@@ -48,6 +49,8 @@ export function useAiChat() {
   const [messages, setMessages] = useState<AiMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<AiError | null>(null);
+  /** Sağlayıcının bildirdiği yeniden deneme süresi (saniye). */
+  const [yeniden, setYeniden] = useState<number | null>(null);
   // Sunucunun bildirdiği aktif AI katmanı (üyeliğe göre): basic | plus.
   const [tier, setTier] = useState<'basic' | 'plus' | null>(null);
 
@@ -133,6 +136,11 @@ export function useAiChat() {
             if (ctx && typeof ctx.json === 'function') {
               const j = await ctx.json();
               code = j?.error ?? '';
+              // Sağlayıcı "kaç saniye sonra" diyorsa onu gösteririz: kota
+              // KAYAN pencereyle yenileniyor, oysa mesajımız "yarın tekrar
+              // deneyin" diyordu. Avukatı 23 dakika beklemesi gerekirken
+              // ertesi güne yollamak, o gün için ürünü yok etmekti.
+              if (typeof j?.yeniden === 'number' && j.yeniden > 0) setYeniden(j.yeniden);
             }
           } catch {
             // gövde okunamazsa genel hataya düşer
@@ -208,16 +216,11 @@ export function useAiChat() {
   // Geriye dönük uyumluluk: eski `reset` = yeni sohbet.
   const reset = newChat;
 
-  const errorText =
-    error === 'rate_limit'
-      ? t('ai.errRateLimit')
-      : error === 'daily_quota'
-        ? t('ai.errDailyQuota')
-        : error === 'quota_exceeded'
-          ? t('ai.errQuota')
-          : error === 'generic'
-            ? t('ai.errGeneric')
-            : null;
+  // Metin ORTAK yardımcıdan geliyor (src/lib/aiHata.ts). Burada ayrı yazıldığı
+  // sürece bir yerde düzeltilen şey ötekinde eksik kalıyordu: "kaç dakika
+  // sonra" bilgisi eklendiğinde bu dosyada daily_quota'ya konmuş, rate_limit
+  // dalında unutulmuştu.
+  const errorText = error ? aiHataMetni({ error, yeniden: yeniden ?? undefined }, t) : null;
 
   return {
     messages,

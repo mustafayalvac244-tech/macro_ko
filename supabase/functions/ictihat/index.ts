@@ -11,59 +11,47 @@
 //   supabase functions deploy ictihat
 //   (GEMINI_API_KEY zaten ai-chat için tanımlı; summarize onu kullanır)
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { overLimit, tierConfig as ortakKatman } from '../_shared/katman.ts';
+// Dönem anahtarları ortak: bu uç günlük sayacı hiç bilmiyordu ve içtihat
+// ekranından yapılan AI çağrıları günlük haktan düşmüyordu (bkz. _shared/kullanim.ts).
+import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
+// Fiyat tablosu ortak: burada yalnız iki eski Gemini satırı kalmıştı ve
+// bilinmeyen her modeli gemini-2.5-pro fiyatından sayıyordu.
+import { costTry } from '../_shared/fiyat.ts';
 
 const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
-const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.0-flash';
-const MODEL_PLUS = Deno.env.get('VEKIL_MODEL_PLUS') || 'gemini-2.5-pro';
+// MODEL_BASIC / MODEL_PLUS KALDIRILDI: katman tablosu ortak dosyaya taşınınca
+// ikisi de okunmaz oldu. Okunmayan yapılandırma anahtarı zararsız değildir —
+// sonraki okuyucu onların hâlâ etkili olduğunu sanar ve yanlış yerde ayar arar.
 
 // ── AI MALİYET ÖLÇÜMÜ + KATMAN TAVANI (batma koruması) ──────────────────────
 // Her AI çağrısının token maliyeti hesaplanıp ai_usage'a yazılır; çağrıdan önce
 // kullanıcının bu-ay maliyeti katman tavanını aşmışsa çağrı engellenir.
-const USD_TRY = Number(Deno.env.get('VEKIL_USD_TRY') || '42');
-const PRICING: Record<string, { in: number; out: number }> = {
-  'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
-  'gemini-2.5-pro': { in: 1.25, out: 10.0 },
-};
-// Katman: billable=false ise ÜCRETSİZ Gemini anahtarı kullanılır, maliyet 0
-// kaydedilir ve aylık ÇAĞRI SAYISI ile sınırlanır (paylaşımlı ücretsiz kotayı
-// tek kullanıcı tüketmesin). billable=true ise faturalı anahtar + TL tavanı.
-interface TierCfg { provider: Provider; model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number }
-function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
-  const t = aiTier || 'baslangic'; // lansman: herkes Groq (bedava); billing gelince pro/elit elle atanır
-  const table: Record<string, TierCfg> = {
-    // Ücretsiz katmanlar Groq (bedava); Pro/Elit Gemini (faturalı, güçlü).
-    free: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 20 },
-    baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500 },
-    pro: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450 },
-    elit: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500 },
-    // AI katmanı (1.999 TL/ay). Claude anahtarı yoksa aşağıda Groq'a düşer.
-    ai: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 4000 },
-  };
-  return { tier: t, cfg: table[t] ?? table.free };
-}
+// KATMAN TABLOSU BURADA DEĞİL: _shared/katman.ts.
+//
+// Burada kendi kopyası vardı ve ai-chat'teki asıl tablodan AYRILMIŞTI: orada
+// Pro/Elit Claude'a taşınmışken burası hâlâ Gemini'ye, AI katmanını da Groq'a
+// yolluyordu. Aynı üye, hangi ekranı açtığına göre başka bir modelle
+// konuşuyordu ve bunu kimse fark etmiyordu — iki dosyaya birden bakan yoktu.
+//
+// İÇTİHAT ÖZETİ ŞİMDİLİK GROQ'TA. Ortak tablo ücretli katmanı Claude'a
+// yolluyor ama buradaki llmCall yalnız Groq ve Gemini konuşuyor; Claude'un
+// JSON modu farklı (response_format yok) ve taşımayı ölçmeden yapmak, çalışan
+// bir yolu bozma riski. Bu yüzden Claude/OpenAI seçilen katman burada AÇIKÇA
+// Groq'a düşürülüyor — sessizce Gemini'ye gitmesindense görünür bir indirgeme.
+
 // Sağlayıcıya göre anahtar: Groq → GROQ_API_KEY, Gemini → GEMINI_API_KEY.
 function aiKey(provider: Provider): string | undefined {
   return provider === 'groq' ? (Deno.env.get('GROQ_API_KEY') ?? undefined) : (Deno.env.get('GEMINI_API_KEY') ?? undefined);
 }
-function costTry(model: string, tin: number, tout: number): number {
-  const p = PRICING[model] ?? PRICING['gemini-2.5-pro'];
-  return ((tin / 1e6) * p.in + (tout / 1e6) * p.out) * USD_TRY;
-}
-function aiPeriod(): string {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-async function usageRow(userId: string): Promise<{ calls: number; cost: number }> {
+async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ calls: number; cost: number }> {
   const s = svc();
   if (!s) return { calls: 0, cost: 0 };
-  const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', aiPeriod()).maybeSingle();
+  const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', period).maybeSingle();
   const r = data as { calls?: number; cost_try?: number } | null;
   return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
 }
 /** Tavan aşıldı mı? (billable→TL, ücretsiz→çağrı sayısı) */
-function overLimit(cfg: TierCfg, row: { calls: number; cost: number }): boolean {
-  return cfg.limitKind === 'cost' ? row.cost >= cfg.limit : row.calls >= cfg.limit;
-}
 async function recordUsage(userId: string, model: string, tin: number, tout: number, billable: boolean): Promise<void> {
   const s = svc();
   if (!s) return;
@@ -80,6 +68,22 @@ async function recordUsage(userId: string, model: string, tin: number, tout: num
     cost_try: Number(prev?.cost_try ?? 0) + cost,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,period' });
+
+  // GÜNLÜK SATIR. Bu uç günlük sayacı hiç yazmıyordu: kullanıcı içtihat
+  // ekranından ortak Groq kotasını yakabiliyor, günlük hakkı hiç azalmıyordu.
+  // Sınır, sınırlaması gereken şeyi sınırlamıyordu.
+  const g = aiGun();
+  const { data: gv } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', g).maybeSingle();
+  const gp = gv as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
+  await s.from('ai_usage').upsert({
+    user_id: userId,
+    period: g,
+    calls: (gp?.calls ?? 0) + 1,
+    tokens_in: (gp?.tokens_in ?? 0) + tin,
+    tokens_out: (gp?.tokens_out ?? 0) + tout,
+    cost_try: Number(gp?.cost_try ?? 0) + cost,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,period' });
 }
 type Meter = { tin: number; tout: number };
 // deno-lint-ignore no-explicit-any
@@ -92,6 +96,25 @@ function meterAdd(m: Meter, j: any): void {
 // Groq llama-3.3-70b-versatile'ı 17.06.2026'da kaldırdı; halef gpt-oss-120b.
 const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b';
 type Provider = 'gemini' | 'groq';
+
+/**
+ * Ortak katman tablosunu bu ucun konuşabildiği sağlayıcılara indirger.
+ * Claude/OpenAI seçilen katman Groq'ta çalışır (yukarıdaki nota bakınız).
+ */
+function tierConfig(aiTier: string | null | undefined, isPremium: boolean) {
+  const { tier, cfg } = ortakKatman(aiTier, isPremium, {
+    groqModel: GROQ_MODEL,
+    claudeModel: Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5',
+    claudeAnahtariVar: !!Deno.env.get('ANTHROPIC_API_KEY'),
+  });
+  if (cfg.provider === 'claude' || cfg.provider === 'openai') {
+    return {
+      tier,
+      cfg: { ...cfg, provider: 'groq' as Provider, model: GROQ_MODEL, billable: false, limitKind: 'calls' as const, limit: 4000 },
+    };
+  }
+  return { tier, cfg: { ...cfg, provider: cfg.provider as Provider } };
+}
 async function llmCall(
   provider: Provider,
   apiKey: string,
@@ -445,15 +468,68 @@ function svc(): ReturnType<typeof createClient> | null {
   return _svc;
 }
 
+/**
+ * Kurulu KARARIN GELDİĞİ KAYNAĞA göre değil, DAİRE ADINA göre belirler.
+ *
+ * Eski hâli kaynağa bakıyordu: canlı UYAP Emsal yolundan gelen her karara
+ * "BAM/Yerel" diyordu. Ölçüldü: bu yüzden 14 YARGITAY kararı (ör. "Yargıtay
+ * 1. Ceza Dairesi") havuza "BAM/Yerel" olarak yazılmış. Kaynak, kararın hangi
+ * mercie ait olduğunu söylemez — daire adı söyler.
+ *
+ * Ayrıca hasatçılarla AYNI kuralı kullanır; iki kod yolu farklı etiket
+ * üretince aynı havuzda "Diğer" ve "BAM/Yerel" gibi iki ayrı çöp kova oluşuyordu.
+ */
 function kurulOf(h: Hit): string {
-  if (h.src === 'yargitay') return h.daire.startsWith('Danıştay') ? 'Danıştay' : 'Yargıtay';
-  return 'BAM/Yerel';
+  const d = (h.daire ?? '').toLocaleLowerCase('tr');
+  if (d.includes('bölge adliye')) return 'BAM';
+  if (d.includes('bölge idare')) return 'BİM';
+  if (d.includes('danıştay')) return 'Danıştay';
+  if (d.includes('yargıtay')) return 'Yargıtay';
+  if (d.includes('anayasa')) return 'AYM';
+  return 'Yerel';
+}
+
+/**
+ * DİSK EMNİYET FRENİ — ARŞİVLEME İÇİN.
+ *
+ * BULUNAN DELİK. 0084'te disk freni kondu ama yalnız CRON yollarını koruyordu
+ * (hasat_tetikle, vektorle_tetikle). Oysa arşive yazan ikinci bir yol daha var
+ * ve o KULLANICI ARAMASIYLA tetikleniyor: her arama, canlı UYAP'tan çekilen
+ * kararları buraya upsert ediyor. Yani fren, büyümenin kullanıcı tarafından
+ * tetiklenen kısmını hiç kapsamıyordu.
+ *
+ * ÖLÇÜM (bu delik bulunurken): birkaç test aramam iki dakika içinde 52 karar
+ * ekledi (~1,7 MB). Veritabanı 500 MB sınırının 423 MB'ında; sınır aşılırsa
+ * proje SALT-OKUNUR olur ve hiçbir avukat dava/duruşma kaydedemez.
+ *
+ * ÇÖZÜM: eşik aşıldıysa arşivleme atlanır. ARAMA ÇALIŞMAYA DEVAM EDER —
+ * sonuçlar zaten canlı UYAP'tan geliyor; kaybedilen tek şey önbelleğe alma.
+ * Sonuç 5 dakika bellekte tutulur ki her arama için ek bir sorgu atılmasın.
+ */
+let _diskOk: { deger: boolean; zaman: number } | null = null;
+async function diskMusaitMi(): Promise<boolean> {
+  const now = Date.now();
+  if (_diskOk && now - _diskOk.zaman < 5 * 60_000) return _diskOk.deger;
+  const db = svc();
+  if (!db) return false;
+  try {
+    const { data, error } = await db.rpc('disk_musait_mi');
+    const deger = !error && data === true;
+    _diskOk = { deger, zaman: now };
+    return deger;
+  } catch {
+    // Ölçemiyorsak arşivlemeyi ATLARIZ: emin olmadan yazmak, dolu diske
+    // yazmaya devam etmek demektir ve sonucu salt-okunur moddur.
+    _diskOk = { deger: false, zaman: now };
+    return false;
+  }
 }
 
 /** Bir kararı tam metniyle arşive yaz (idempotent upsert). En iyi çaba; hata yutulur. */
 async function archiveDecision(h: Hit, fullText: string, query: string): Promise<void> {
   const db = svc();
   if (!db || !h.id || !fullText || fullText.length < 200) return; // taranmış/boş atla
+  if (!(await diskMusaitMi())) return; // disk sınıra yakın: arşivleme, arama sürsün
   try {
     await db.from('ictihat_kararlar').upsert(
       {
@@ -728,9 +804,21 @@ Deno.serve(async (req) => {
         }
       }
 
+      // TAM İFADE KİPİ EMSAL DALINDA DA ÇALIŞIR. Önceden bu dal `mode`
+      // parametresine hiç bakmıyordu; kullanıcı "Tam ifade"yi seçse de düz
+      // kelime araması yapılıyordu, yani düğme sessizce etkisizdi. Tırnaklı
+      // sorgu UYAP Emsal'de de ardışık ifade araması yapar (künye akışı zaten
+      // buna dayanıyor). "En yeni" burada UYGULANMAZ: emsalSearch bir sıralama
+      // parametresi almıyor ve elimizdeki tek sayfayı tarihe göre dizmek
+      // "en yeni kararlar" olmaz, kullanıcıyı yanıltırdı — o kip istemcide
+      // gizleniyor.
+      const emsalMode = body.mode ?? 'smart';
+      const tekKelime = query.trim().split(/\s+/).length < 2;
+      const emsalQuery = emsalMode === 'exact' && !tekKelime ? `"${query}"` : query;
+
       // Sayfa 2+ : sayfalama yalnız canlı UYAP Emsal üzerinden (havuz sayfa 1'de karışır).
       if (page > 1) {
-        const live = await emsalSearch(query, page, pageSize);
+        const live = await emsalSearch(emsalQuery, page, pageSize);
         await attachSnippets(live.hits, query);
         return json({ hits: live.hits, total: live.total, page, source: 'live' });
       }
@@ -751,14 +839,30 @@ Deno.serve(async (req) => {
         }
       };
 
-      const qEmb = await embedQuery(query);
-      if (qEmb) {
-        const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: pageSize });
-        pushRows(data ?? []);
-      }
+      // ÖNCE KELİME ARAMASI, SONRA ANLAMSAL — bu sıra ölçümle belirlendi.
+      //
+      // Eskiden tersiydi ve kelime araması PRATİKTE HİÇ ÇALIŞMIYORDU:
+      // match_ictihat_semantic'in alaka eşiği yok, en yakın komşuları
+      // döndürür; yani her zaman istenen sayıda satır gelir ve "sonuç
+      // yetersizse kelime aramasını da çalıştır" koşulu asla sağlanmazdı.
+      // Ölçüldü: tamamen alakasız bir sorgu ("kedi maması fiyatları") bile
+      // 10 sonuç ve 0,84 skorlar döndürüyor — gerçek eşleşmelerin skoru 0,89.
+      // Sonuç: avukat, kelime araması hiç devreye girmeden yalnız anlamsal
+      // sonuç görüyordu. Oysa gte-small İngilizce ağırlıklı ve Türkçe hukuk
+      // metninde skorları birbirine yakın çıkıyor; kelime araması kanun
+      // terimini birebir yakaladığı için isabeti daha yüksek.
+      const { data: ftsRows } = await supabase.rpc('search_ictihat_fts', { q: query, match_count: pageSize });
+      pushRows(ftsRows ?? []);
+
+      // Anlamsal arama, kelime aramasının eşanlam yüzünden kaçırdıklarını
+      // tamamlar (avukat "işten atıldım" yazar, karar "hizmet akdinin feshi"
+      // der). Sırayı bozmadan, kalan yeri doldurur.
       if (hits.length < pageSize) {
-        const { data } = await supabase.rpc('search_ictihat_fts', { q: query, match_count: pageSize });
-        pushRows(data ?? []);
+        const qEmb = await embedQuery(query);
+        if (qEmb) {
+          const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: pageSize });
+          pushRows(data ?? []);
+        }
       }
 
       // 2) Havuz yetersizse canlı UYAP Emsal'den tamamla (dedupe).
@@ -766,7 +870,7 @@ Deno.serve(async (req) => {
       let source = 'corpus';
       if (hits.length < 8) {
         try {
-          const live = await emsalSearch(query, 1, pageSize);
+          const live = await emsalSearch(emsalQuery, 1, pageSize);
           pushRows(live.hits);
           total = live.total;
           source = hits.length > live.hits.length ? 'hybrid' : 'live';
@@ -776,9 +880,33 @@ Deno.serve(async (req) => {
         }
       }
 
-      const paged = hits.slice(0, pageSize);
+      // TAM İFADE KİPİNDE ARŞİV SATIRLARINI SÜZ.
+      //
+      // Canlı emsal sonuçları zaten tırnaklı sorguyla geldiği için ardışık
+      // eşleşmedir. Ama KENDİ arşivimizden gelenler FTS ve anlamsal aramayla
+      // seçildi; ikisi de ifadeyi ARDIŞIK aramaz. Süzmezsek "tam ifade" denen
+      // listede ifadeyi hiç içermeyen kararlar kalırdı.
+      //
+      // Süzme yalnız SNIPPET'İ OLAN satırlara uygulanır: snippet'i olanlar tam
+      // metni elimizde olan arşiv satırlarıdır. Snippet'i olmayanlar canlıdan
+      // gelmiştir ve bu noktada metinleri henüz çekilmemiştir (attachSnippets
+      // aşağıda çalışır) — onları metne bakarak elemek, hepsini yanlışlıkla
+      // silmek olurdu.
+      const ifade = query.trim().toLocaleLowerCase('tr');
+      const suzulmus =
+        emsalMode === 'exact' && !tekKelime
+          ? hits.filter((h) => !h.snippet || h.snippet.toLocaleLowerCase('tr').includes(ifade))
+          : hits;
+
+      // Sonuç boş çıkarsa BOŞ dönülür; süzmeyi iptal edip alakasız kararları
+      // göstermek "tam ifade" sözünü bozardı.
+      const paged = suzulmus.slice(0, pageSize);
       // Canlı gelen (havuzda tam metni olmayan) kararlara önizleme ekle.
       await attachSnippets(paged, query);
+      // total UPSTREAM değerdir, dönen satır sayısı DEĞİL. Bir ara burada
+      // exact kipinde total'ı paged.length'e eşitlemiştim: ekranda "5 sonuç"
+      // yazar, "daha fazla yükle" de kırılırdı. Tırnaklı sorgunun kendi toplamı
+      // zaten doğru sayıdır.
       return json({ hits: paged, total, page: 1, source });
     }
 
@@ -915,6 +1043,15 @@ Deno.serve(async (req) => {
       const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium);
       const row = await usageRow(userData.user.id);
       if (overLimit(cfg, row)) return json({ error: 'quota_exceeded', tier, used: row.cost, calls: row.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }, 402);
+      // GÜNLÜK ADİL KULLANIM. Ortak Groq kotası tüm kullanıcılar için tek havuz;
+      // bu uç sayacı hiç okumuyordu, yani içtihat ekranından havuz sınırsızca
+      // tüketilebiliyordu.
+      if (cfg.gunluk && cfg.gunluk > 0) {
+        const gun = await usageRow(userData.user.id, aiGun());
+        if (gun.calls >= cfg.gunluk) {
+          return json({ error: 'gunluk_hak_bitti', tier, gunlukHak: cfg.gunluk, kullanilan: gun.calls }, 429);
+        }
+      }
       const key = aiKey(cfg.provider);
       if (!key) return json({ error: 'not_configured' }, 503);
       const meter: Meter = { tin: 0, tout: 0 };
@@ -943,6 +1080,15 @@ Deno.serve(async (req) => {
       const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium);
       const row = await usageRow(userData.user.id);
       if (overLimit(cfg, row)) return json({ error: 'quota_exceeded', tier, used: row.cost, calls: row.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }, 402);
+      // GÜNLÜK ADİL KULLANIM. Ortak Groq kotası tüm kullanıcılar için tek havuz;
+      // bu uç sayacı hiç okumuyordu, yani içtihat ekranından havuz sınırsızca
+      // tüketilebiliyordu.
+      if (cfg.gunluk && cfg.gunluk > 0) {
+        const gun = await usageRow(userData.user.id, aiGun());
+        if (gun.calls >= cfg.gunluk) {
+          return json({ error: 'gunluk_hak_bitti', tier, gunlukHak: cfg.gunluk, kullanilan: gun.calls }, 429);
+        }
+      }
       const key = aiKey(cfg.provider);
       if (!key) return json({ error: 'not_configured' }, 503);
       const model = cfg.model;

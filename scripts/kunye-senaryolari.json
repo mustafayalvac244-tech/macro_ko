@@ -1,0 +1,106 @@
+{
+  "not": [
+    "DOSYA AKTARMA ÖLÇÜM SETİ — UYAP belgelerinden künye çıkarımı.",
+    "",
+    "Belgeler gerçek UYAP çıktılarının biçimini taklit ediyor: başlık bloğu,",
+    "ESAS NO satırı, taraf satırları, konu ve duruşma cümlesi. Gerçek dosya",
+    "kullanamıyoruz (müvekkil verisi), ama biçim gerçeğe uygun.",
+    "",
+    "TUZAKLAR BİLİNÇLİ. Bir belgede duruşma yok (model uydurmamalı), birinde",
+    "karar numarası da var (esas numarasıyla karıştırmamalı), birinde iki tarih",
+    "geçiyor (tebliğ ve duruşma), birinde taraf sıfatları ters sırada.",
+    "",
+    "Ölçüt: beklenen alanlar DOĞRU çıkarılmış mı ve olmaması gereken alan BOŞ",
+    "bırakılmış mı. Uydurulan bir alan, eksik bırakılandan ağır sayılır.",
+    "DÜZELTME: 'karşı taraf' beklentisi iki senaryodan kaldırıldı. Belge kimin",
+    "vekili olduğumuzu söylemiyorsa hangi tarafın karşı taraf olduğu BELGEDEN",
+    "ÇIKARILAMAZ; model boş bırakmakla doğru davranmıştı, hatalı olan beklentiydi.",
+    "Artık davacı ve davalı ayrı ayrı bekleniyor; seçimi avukat yapar."
+  ],
+  "senaryolar": [
+    {
+      "id": "asliye-hukuk-durusmali",
+      "belge": "T.C.\nANKARA 5. ASLİYE HUKUK MAHKEMESİ\nESAS NO : 2026/1487\nDAVACI : Ayşe Yıldırım - Çankaya/ANKARA\nVEKİLİ : Av. Zeynep Aksoy\nDAVALI : Mehmet Kaya - Keçiören/ANKARA\nKONU : Kira alacağı ve tahliye istemi\n\nTENSİP TUTANAĞI\nDosyanın incelenmesinde; dava dilekçesinin davalıya tebliğine, duruşmanın 15/09/2026 günü saat 09:30'a bırakılmasına karar verildi.",
+      "beklenen": {
+        "court_name": "ANKARA 5. ASLİYE HUKUK MAHKEMESİ",
+        "case_number": "2026/1487",
+        "hearing_date": "2026-09-15"
+      },
+      "bosOlmali": []
+    },
+    {
+      "id": "is-mahkemesi-karar-nosu-tuzagi",
+      "belge": "T.C.\nİSTANBUL ANADOLU 9. İŞ MAHKEMESİ\nESAS NO : 2025/842\nKARAR NO : 2026/311\nDAVACI : Hasan Demir\nDAVALI : Yıldız Tekstil Sanayi A.Ş.\nDAVA : İşe iade\n\nGEREKÇELİ KARAR\nDavanın kabulü ile feshin geçersizliğine karar verilmiştir. Karar 12/03/2026 tarihinde tefhim edilmiştir.",
+      "beklenen": {
+        "court_name": "İSTANBUL ANADOLU 9. İŞ MAHKEMESİ",
+        "case_number": "2025/842"
+      },
+      "bosOlmali": [
+        "hearing_date"
+      ],
+      "olmamali": {
+        "case_number": "2026/311"
+      }
+    },
+    {
+      "id": "icra-hukuk-durusmasiz",
+      "belge": "T.C.\nİZMİR 3. İCRA HUKUK MAHKEMESİ\nESAS NO : 2026/205\nŞİKAYET EDEN : Ali Vural\nKARŞI TARAF : Ege Yapı Ltd. Şti.\nKONU : İhalenin feshi\n\nDosya üzerinden yapılan inceleme sonucunda talebin reddine karar verildi.",
+      "beklenen": {
+        "court_name": "İZMİR 3. İCRA HUKUK MAHKEMESİ",
+        "case_number": "2026/205",
+        "opposing_party": "Ege Yapı Ltd. Şti."
+      },
+      "bosOlmali": [
+        "hearing_date"
+      ]
+    },
+    {
+      "id": "aile-mahkemesi-iki-tarih",
+      "belge": "T.C.\nBURSA 2. AİLE MAHKEMESİ\nESAS NO : 2026/633\nDAVACI : Elif Şahin\nDAVALI : Burak Şahin\nKONU : Boşanma\n\nDava dilekçesi davalıya 04/06/2026 tarihinde tebliğ edilmiştir.\nDuruşma 22/10/2026 günü saat 10:00'da yapılacaktır.",
+      "beklenen": {
+        "court_name": "BURSA 2. AİLE MAHKEMESİ",
+        "case_number": "2026/633",
+        "hearing_date": "2026-10-22"
+      },
+      "bosOlmali": [],
+      "olmamali": {
+        "hearing_date": "2026-06-04"
+      }
+    },
+    {
+      "id": "sulh-hukuk-tahliye",
+      "belge": "T.C.\nANTALYA 1. SULH HUKUK MAHKEMESİ\nESAS NO : 2026/77\nDAVACI : Kemal Arslan\nDAVALI : Serkan Öz\nKONU : Kiralananın tahliyesi\n\nDuruşma 03/11/2026 günü saat 11:20'ye bırakılmıştır.",
+      "beklenen": {
+        "court_name": "ANTALYA 1. SULH HUKUK MAHKEMESİ",
+        "case_number": "2026/77",
+        "hearing_date": "2026-11-03",
+        "davaci": "Kemal Arslan",
+        "davali": "Serkan Öz"
+      },
+      "bosOlmali": []
+    },
+    {
+      "id": "idare-mahkemesi",
+      "belge": "T.C.\nANKARA 12. İDARE MAHKEMESİ\nESAS NO : 2026/998\nDAVACI : Selin Korkmaz\nDAVALI : Millî Eğitim Bakanlığı\nKONU : Atama işleminin iptali\n\nDosyanın tekemmülü beklenmektedir.",
+      "beklenen": {
+        "court_name": "ANKARA 12. İDARE MAHKEMESİ",
+        "case_number": "2026/998",
+        "davaci": "Selin Korkmaz",
+        "davali": "Millî Eğitim Bakanlığı"
+      },
+      "bosOlmali": [
+        "hearing_date"
+      ]
+    },
+    {
+      "id": "eksik-belge",
+      "belge": "SAYIN İLGİLİ,\n\nEkte sunulan belgelerin dosyanıza konulmasını arz ederiz. Herhangi bir esas numarası ya da mahkeme adı içermemektedir. Konu hakkında bilgi verilmesi rica olunur.\n\nSaygılarımızla.",
+      "beklenen": {},
+      "bosOlmali": [
+        "court_name",
+        "case_number",
+        "hearing_date"
+      ]
+    }
+  ]
+}

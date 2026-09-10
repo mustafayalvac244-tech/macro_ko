@@ -1,64 +1,50 @@
 import { useAuthStore } from '@/store/authStore';
 
-/** Ücretsiz deneme süresi (gün). Tek yerden değiştirilir. */
-export const TRIAL_DAYS = 7;
 /** Aylık abonelik ücreti (TL). */
 export const MONTHLY_PRICE_TRY = 399;
-/** AI katmanı aylık ücreti (TL). */
+/**
+ * AI katmanı aylık ücreti (TL) — Claude Opus 5, 250 soru + 12 mütalaa dahil
+ * (bkz. supabase/functions/_shared/katman.ts > AI_SORU_LIMIT/AI_MUTALAA_LIMIT;
+ * iki sayı burada da AYNI olmalı, kota koddan, fiyat buradan okunuyor).
+ */
 export const AI_PRICE_TRY = 1999;
+/** AI katmanının aylık soru/mütalaa hakkı — yalnız EKRANDA göstermek için;
+ *  gerçek sınır sunucuda (_shared/katman.ts). */
+export const AI_SORU_HAKKI = 250;
+export const AI_MUTALAA_HAKKI = 12;
+/** Ödeme yapmamış kullanıcıya verilen YAŞAM BOYU (aylık değil) deneme sorusu
+ *  sayısı — bkz. _shared/katman.ts > DENEME_SORU_LIMIT, gerçek sınır orada. */
+export const DENEME_SORU_HAKKI = 3;
 
 export interface TrialStatus {
   /** Abone mi (ödeme yaptı / premium verildi)? */
   subscribed: boolean;
-  /** Deneme süresi içinde mi? */
-  inTrial: boolean;
-  /** Deneme bitti mi (ve abone değil)? */
-  ended: boolean;
-  /** Denemede kalan tam gün sayısı (0 olabilir). */
-  daysLeft: number;
-  /** Hesabın açıldığı an (deneme başlangıcı). */
-  startedAt: Date | null;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 /**
- * 7 günlük ücretsiz deneme → sonrasında aylık abonelik modeli.
+ * KALDIRILAN "7 GÜNLÜK ÜCRETSİZ DENEME" — neden.
  *
- * Deneme başlangıcı = hesabın açılış tarihi (Supabase auth `created_at`).
- * Sunucudan gelen güvenilir bir tarihtir; cihaz saatiyle oynanamaz.
+ * Burada hesabın açılış tarihinden 7 gün sayan bir deneme sayacı vardı ve
+ * ekranlar "7 GÜN ÜCRETSİZ", "denemenizin son günü", "deneme süresi bitmeden
+ * iptal ederseniz ücret alınmaz" diyordu. ÖLÇÜLEN GERÇEK: bu denemenin hiçbir
+ * karşılığı yoktu. Sınırı uygulayan tek yer `plan_limiti_kontrol`
+ * tetikleyicisidir (migration 0087) ve o tetikleyicide deneme diye bir kavram
+ * yok — 1. gündeki kullanıcı da 100. gündeki kullanıcı da aynı 5 dava sınırına
+ * çarpıyordu. Yani ekranda satılan deneme, sunucuda hiç var olmadı.
  *
- * NOT: Şu an "yumuşak" moddayız — deneme bitince uygulama KİLİTLENMEZ, sadece
- * hatırlatma/abonelik ekranı gösterilir. Ödeme (Apple IAP) canlıya alınınca
- * sert kilide burada tek noktadan geçilebilir.
+ * Üstelik App Store'da yapılandırılmış bir tanıtım teklifi (introductory
+ * offer) da yok; "ilk 7 gün ücretsiz, iptal ederseniz ücret alınmaz" cümlesi
+ * hem yanlış hem de App Review 3.1.2 açısından risk.
+ *
+ * Doğru çerçeve zaten üründe var: ücretsiz katman KALICI (sınırsız içtihat,
+ * sınırsız ajanda; 5 dava / 10 müvekkil / 5 belge). Hiçbir şey "bitmiyor",
+ * bu yüzden geri sayım da, "deneme bitti" uyarısı da kaldırıldı.
+ *
+ * GERÇEK bir deneme istenirse: App Store Connect / Play Console'da tanıtım
+ * teklifi tanımlanır ve metinler oradaki şartlara göre yeniden yazılır —
+ * uygulama içinde gün saymak o teklifin yerine geçmez.
  */
 export function useTrialStatus(): TrialStatus {
-  const session = useAuthStore((s) => s.session);
   const profile = useAuthStore((s) => s.profile);
-  const subscribed = !!profile?.is_premium;
-
-  const createdRaw = session?.user?.created_at;
-  const startedAt = createdRaw ? new Date(createdRaw) : null;
-
-  if (subscribed || !startedAt || Number.isNaN(startedAt.getTime())) {
-    return {
-      subscribed,
-      inTrial: !subscribed,
-      ended: false,
-      daysLeft: subscribed ? 0 : TRIAL_DAYS,
-      startedAt,
-    };
-  }
-
-  const elapsedMs = Date.now() - startedAt.getTime();
-  const daysLeft = Math.max(0, Math.ceil((TRIAL_DAYS * DAY_MS - elapsedMs) / DAY_MS));
-  const inTrial = daysLeft > 0;
-
-  return {
-    subscribed: false,
-    inTrial,
-    ended: !inTrial,
-    daysLeft,
-    startedAt,
-  };
+  return { subscribed: !!profile?.is_premium };
 }

@@ -1,5 +1,9 @@
 import { Alert } from 'react-native';
+import { router } from 'expo-router';
 import { getLang, translate } from '@/i18n';
+import { planLimitiCoz } from '@/config/planlar';
+import { dosyaBuyukCoz, sunucuDosyaBuyukMu } from '@/utils/hataKodu';
+import { MAX_DOSYA_BAYT } from '@/lib/supabase';
 
 /**
  * Kaydetme hatalarını KULLANICIYA duyurur.
@@ -20,6 +24,19 @@ function messageFor(err: unknown): string {
   const raw = (e?.message ?? '').toLowerCase();
   const code = e?.code ?? '';
 
+  // DOSYA BOYUTU — bu bir arıza değil, kovanın sınırı (25 MB, migration 0085).
+  // "Kaydedilemedi, tekrar deneyin" demek yanıltıcı olurdu: aynı dosyayla
+  // tekrar denemek hiçbir zaman işe yaramaz. Sınır rakamı mesajın içinden
+  // okunur, böylece kovadaki sınır değişince metin de değişir.
+  const buyuk = dosyaBuyukCoz(e?.message);
+  if (buyuk) return translate(lang, 'err.fileTooLarge', { mb: String(buyuk.mb) });
+
+  // Sunucu da aynı sınırı uygular; istemci kontrolü atlansa bile (seçici
+  // boyutu bildirmediyse) kullanıcı doğru cümleyi görsün.
+  if (sunucuDosyaBuyukMu(e?.message)) {
+    return translate(lang, 'err.fileTooLarge', { mb: String(Math.floor(MAX_DOSYA_BAYT / (1024 * 1024))) });
+  }
+
   // Ağ yok / istek ulaşmadı
   if (raw.includes('network') || raw.includes('fetch') || raw.includes('timeout')) {
     return translate(lang, 'err.saveOffline');
@@ -33,5 +50,26 @@ function messageFor(err: unknown): string {
 
 /** react-query `onError` için hazır işleyici. */
 export function notifySaveError(err: unknown): void {
-  Alert.alert(translate(getLang(), 'err.saveTitle'), messageFor(err));
+  const lang = getLang();
+
+  // PLAN LİMİTİ ayrı ele alınır: bu bir ARIZA değil, ürünün kuralıdır.
+  // "Kaydedilemedi, tekrar deneyin" demek yanıltıcı olurdu — tekrar denemek
+  // işe yaramaz. Kullanıcıya neyin dolduğu ve çıkış yolu söylenir.
+  const limit = planLimitiCoz((err as { message?: string } | null)?.message);
+  if (limit) {
+    const govde =
+      limit.limit === 0
+        ? translate(lang, `plan.kapali.${limit.tur}` as 'plan.kapali.finans')
+        : translate(lang, `plan.doldu.${limit.tur}` as 'plan.doldu.dava', { n: String(limit.limit) });
+    Alert.alert(translate(lang, 'plan.limitBaslik'), govde, [
+      { text: translate(lang, 'common.cancel'), style: 'cancel' },
+      {
+        text: translate(lang, 'plan.planlariGor'),
+        onPress: () => router.push('/premium' as Parameters<typeof router.push>[0]),
+      },
+    ]);
+    return;
+  }
+
+  Alert.alert(translate(lang, 'err.saveTitle'), messageFor(err));
 }

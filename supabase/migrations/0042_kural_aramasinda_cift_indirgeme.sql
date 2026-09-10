@@ -1,0 +1,64 @@
+-- Kural aramasında ÇİFT KÖKE İNDİRGEME hatası.
+--
+-- SORUN: search_legal_rules sorguyu iki kez köke indiriyordu. Önce
+--   to_tsvector('turkish', soru) ile kelimeler lexeme'e çevriliyor,
+-- sonra o LEXEME'LER yeniden
+--   to_tsquery('turkish', lexeme'ler)
+-- içine veriliyor ve İKİNCİ KEZ indirgeniyordu. Belgeler ise yalnız bir kez
+-- indirgenmiş olduğu için, ikinci indirgemede değişen her kelime aramadan
+-- SESSİZCE düşüyordu.
+--
+-- ÖLÇÜLDÜ:
+--   "tutuklama" → 1. kök "tutukla" → 2. kök "tutuk"
+-- Kuralın tetikleyicilerinde depolanan lexeme "tutukla" olduğu için eşleşme
+-- hiç olmuyordu. Sonuç: "tutuklama kararı verilebilmesi için hangi şartlar
+-- aranır" sorusunda ALAKASIZ `dava_sartlari` kuralı (yalnız "şartlar"
+-- kelimesiyle) birinci sırada geliyor, tutuklama kuralı geride kalıyordu.
+-- Tek başına ölçüldüğünde tutuklama kuralı 0,84, dava_sartlari 0,63 alıyor —
+-- yani kaybın sebebi alaka değil, kaybolan kelime.
+--
+-- Kural sıralaması özellikle önemli: bu metinler modele "KESİN KURALLAR —
+-- bunlara uymak zorundasın" diye veriliyor ve modelin kendi tahminini eziyor.
+-- Yanlış kuralın üste çıkması, yanlış bilgiyi bağlayıcı diye sunmaktır.
+--
+-- ÇÖZÜM: lexeme'ler zaten indirgenmiş; sorguya çevirirken 'simple' kullanılır,
+-- yani yalnız belirteçlere ayrılır, tekrar indirgenmez.
+--
+-- YALNIZCA KURAL ARAMASINA UYGULANDI: aynı düzeltme mevzuat aramasında
+-- ÖLÇÜLDÜ ve DAHA KÖTÜ çıktı (%54,5 → %52,3). Sebebi, 'simple' sorgunun
+-- Türkçe durak kelimelerini de içeri alması; mevzuat gövdeleri uzun olduğu
+-- için bu gürültü sıralamayı bozuyor. Kural metinleri kısa ve tetikleyici
+-- ağırlıklı olduğundan orada aynı yan etki görülmedi: yedi soruluk kontrolde
+-- tutuklama düzeldi, diğer altısı birebir aynı kaldı.
+
+create or replace function public.search_legal_rules(q text, match_count integer default 3)
+returns table(id text, body text, score real)
+language plpgsql stable security definer set search_path = public as $$
+declare
+  stop text[] := array['dava','davasi','davasinda','davada','davaya','davanin','acilir','acilan','acmak','acilmasi',
+    'sure','suresi','suresinde','surede','surenin','kac','yil','yili','gun','gunu','ay','ayi','hafta',
+    'madde','maddesi','kanun','kanunu','hukuk','hukuki','hukuku','mahkeme','mahkemesi','mahkemede',
+    'hakim','karar','karari','taraf','tarafi','kisi','kisinin','nedir','midir','mudur','var','yok',
+    'ile','icin','olan','olarak','veya','gibi','bir','bu','ne','kadar','hangi','bagli','basvuru',
+    'nasil','ise','yani','hem','daha','cok','vardir','olur','gerekir','ben','bana','benim','yapabilirim'];
+  q_clean text; q_or text; tsq tsquery;
+begin
+  select string_agg(w,' ') into q_clean from (
+    select w from unnest(regexp_split_to_array(lower(coalesce(q,'')), '[^0-9a-zğüşıöçâîû]+')) w
+    where length(w) >= 3 and translate(w,'ğüşıöçâîû','gusiocaiu') <> all(stop)
+  ) t;
+  if q_clean is null or q_clean='' then return; end if;
+  select string_agg(lexeme,' | ') into q_or from unnest(to_tsvector('turkish', q_clean));
+  if q_or is null or q_or='' then return; end if;
+  -- 'simple': lexeme'ler zaten indirgenmiş, ikinci kez indirgenmesin.
+  tsq := to_tsquery('simple', q_or);
+  return query
+    select r.id, r.body, ts_rank(r.fts, tsq) as score
+    from public.legal_rules r
+    where r.fts @@ tsq
+    order by score desc, r.id
+    limit match_count;
+end;
+$$;
+
+grant execute on function public.search_legal_rules(text,integer) to authenticated, anon;

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
+import { Captcha } from '@/components/Captcha';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -19,11 +20,12 @@ export default function LoginScreen() {
   const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const { signIn, isSubmitting, error, clearError } = useAuthStore();
 
   const handleSubmit = async () => {
     clearError();
-    const success = await signIn(email.trim(), password);
+    const success = await signIn(email.trim(), password, captchaToken ?? undefined);
     if (success) router.replace('/(app)');
   };
 
@@ -61,6 +63,9 @@ export default function LoginScreen() {
           <Link href={'/forgot-password' as Parameters<typeof router.push>[0]} style={styles.forgotLink}>
             <Text style={styles.forgotText}>{t('auth.forgot')}</Text>
           </Link>
+
+          {/* Görünmez captcha — anahtar yoksa hiç çizilmez. */}
+          <Captcha onToken={setCaptchaToken} />
 
           {error && <Text style={styles.error}>{error}</Text>}
 

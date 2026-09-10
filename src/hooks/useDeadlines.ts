@@ -79,14 +79,32 @@ export type DeadlineInput = Pick<
   'case_id' | 'title' | 'description' | 'due_at' | 'priority' | 'reminder_minutes_before'
 >;
 
+/**
+ * BİLDİRİM KURULAMAZSA KAYIT BAŞARISIZ SAYILMAZ.
+ *
+ * Kusur: bildirim kurma çağrısı mutationFn içinde yakalanmadan bekleniyordu.
+ * Kayıt sunucuya YAZILDIKTAN sonra bildirim kurulumu hata verirse (izin yok,
+ * iOS'un 64 bekleyen bildirim tavanı dolu, yerel modül arızası) mutation hata
+ * atıyor ve kullanıcı "kaydedilemedi" görüyordu — oysa kayıt kaydedilmişti.
+ * Avukatın bunu görünce yapacağı şey aynı duruşmayı ikinci kez girmektir;
+ * ajanda çift kayıtla kirlenir.
+ *
+ * Bildirim, kaydın kendisi değil yan etkisidir. Kurulamazsa sessizce geçilir;
+ * eksik kalan bildirim ana ekrandaki eşitlemede (useReminderSync) zaten
+ * yeniden kurulur.
+ */
 async function scheduleFromRow(row: Deadline, caseTitle: string) {
-  await scheduleDeadlineReminder({
-    id: row.id,
-    caseTitle,
-    deadlineTitle: row.title,
-    dueAt: row.due_at,
-    reminderMinutesBefore: row.reminder_minutes_before,
-  });
+  try {
+    await scheduleDeadlineReminder({
+      id: row.id,
+      caseTitle,
+      deadlineTitle: row.title,
+      dueAt: row.due_at,
+      reminderMinutesBefore: row.reminder_minutes_before,
+    });
+  } catch {
+    // yutulur — bkz. yukarıdaki açıklama
+  }
 }
 
 export function useCreateDeadline() {

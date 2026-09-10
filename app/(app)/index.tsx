@@ -12,15 +12,16 @@ import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useCases } from '@/hooks/useCases';
-import { useCasePrecedents, caseSearchTerm } from '@/hooks/useCasePrecedents';
+import { useCasePrecedents, caseCourt, caseSearchTerm } from '@/hooks/useCasePrecedents';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useMorningDigest } from '@/hooks/useMorningDigest';
+import { useReminderSync } from '@/hooks/useReminderSync';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
 import { useAdvanceDeficits } from '@/hooks/useClientAdvances';
 import { useAdvanceAlertStore } from '@/store/advanceAlertStore';
 import { AI_ENABLED } from '@/config/features';
-import { useTrialStatus, MONTHLY_PRICE_TRY } from '@/hooks/useTrialStatus';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
@@ -84,6 +85,10 @@ export default function DashboardScreen() {
   const deadlines = useAllDeadlines();
   const finance = useFinanceEntries();
   useMorningDigest();
+  // Hatırlatmaları sunucudaki kayıtlardan yeniden kurar: yeniden kurulum,
+  // cihaz değişikliği ve sonradan verilen bildirim izni sonrası sessiz kayıp
+  // buradan onarılır (bkz. useReminderSync).
+  useReminderSync();
 
   // Duruşma Çıkışı: sonucu girilmemiş (geçmiş, tamamlanmamış) duruşmalar.
   // Bunlar kaydedilmezse duruşmada verilen süreler kayboluyor — süre kaçırmanın
@@ -102,7 +107,8 @@ export default function DashboardScreen() {
     [caseList, selectedCaseId]
   );
   const precTerm = caseSearchTerm(selectedCase);
-  const precedents = useCasePrecedents(precTerm);
+  // İdari dosyada Danıştay, diğerlerinde Yargıtay sorulur.
+  const precedents = useCasePrecedents(precTerm, caseCourt(selectedCase));
 
   // Masraf avansı eksiye düşen müvekkiller (kapatılanlar hariç) — ana ekran uyarısı.
   const advanceDeficits = useAdvanceDeficits();
@@ -214,10 +220,20 @@ export default function DashboardScreen() {
         label: `${nextDeadline.case.case_number ? nextDeadline.case.case_number + ' – ' : ''}${nextDeadline.case.title}`,
         hearingWhen: nextHearing && nextHearing.case_id === nextDeadline.case_id ? whenLabel(nextHearing.scheduled_at) : null,
         days,
+        // GECİKMİŞ SÜRE AYRI SÖYLENİR.
+        //
+        // nextDeadline, nextHearing/nextEvent'ten farklı olarak GEÇMİŞ kayıtları
+        // ELEMİYOR (bilinçli: tamamlanmamış, süresi geçmiş bir iş bir hukuk
+        // uygulamasında en acil şeydir; gizlemek yanlış olurdu). Ama pano onu
+        // yaklaşan bir süreyle AYNI cümleyle gösteriyordu — avukat, aylar önce
+        // geçmiş bir süreyi "bekleyen görev" diye okuyordu. Gecikme artık
+        // açıkça yazılıyor; kayıt hâlâ görünür kalıyor.
         reason:
-          days <= 7
-            ? t('dash.focus.reasonDue', { title: nextDeadline.title })
-            : t('dash.focus.reasonDueFar', { title: nextDeadline.title, n: days }),
+          days < 0
+            ? t('dash.focus.reasonOverdue', { title: nextDeadline.title, n: Math.abs(days) })
+            : days <= 7
+              ? t('dash.focus.reasonDue', { title: nextDeadline.title })
+              : t('dash.focus.reasonDueFar', { title: nextDeadline.title, n: days }),
       };
     }
     if (nextHearing?.case) {
@@ -331,34 +347,19 @@ export default function DashboardScreen() {
         </Text>
         <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
 
-        {/* ---------- Deneme / Abonelik durumu ---------- */}
-        {!trial.subscribed && trial.inTrial && (
+        {/* ---------- Plan durumu ----------
+            Eskiden burada 7 günlük deneme sayacı ve "deneme süren doldu"
+            kartı vardı; ikisi de gerçeğe uymuyordu (bkz. useTrialStatus).
+            Ücretsiz katman kalıcı olduğu için geri sayım yerine sabit ve
+            baskısız tek satır: kullanıcı hangi plandaysa onu söyler. */}
+        {!trial.subscribed && (
           <Pressable
             style={({ pressed }) => [styles.trialPill, pressed && { opacity: 0.85 }]}
             onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}
           >
-            <Ionicons name="gift-outline" size={15} color={colors.primary} />
-            <Text allowFontScaling={false} style={styles.trialPillText}>
-              {trial.daysLeft <= 1 ? t('trial.lastDay') : t('trial.daysLeft', { n: trial.daysLeft })}
-            </Text>
+            <Ionicons name="sparkles-outline" size={15} color={colors.primary} />
+            <Text allowFontScaling={false} style={styles.trialPillText}>{t('plan.freePill')}</Text>
             <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-          </Pressable>
-        )}
-        {!trial.subscribed && trial.ended && (
-          <Pressable
-            style={({ pressed }) => [styles.trialEnded, pressed && { opacity: 0.9 }]}
-            onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}
-          >
-            <Ionicons name="lock-open-outline" size={18} color="#FFFFFF" />
-            <View style={{ flex: 1 }}>
-              <Text allowFontScaling={false} style={styles.trialEndedTitle}>{t('trial.ended')}</Text>
-              <Text allowFontScaling={false} style={styles.trialEndedDesc}>
-                {t('trial.endedDesc', { price: String(MONTHLY_PRICE_TRY) })}
-              </Text>
-            </View>
-            <View style={styles.trialEndedBtn}>
-              <Text allowFontScaling={false} style={styles.trialEndedBtnText}>{t('trial.cta')}</Text>
-            </View>
           </Pressable>
         )}
 
@@ -372,10 +373,23 @@ export default function DashboardScreen() {
               <Ionicons name="checkmark-done" size={18} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text allowFontScaling={false} style={styles.outcomeTitle}>
-                {t('dash.outcome.title', { n: pendingOutcomes.length })}
+              {/* TEK BİR DURUŞMA ADIYLA SORULUYOR. Eskiden yalnız sayı yazıyordu
+                  ("22 duruşmanın sonucu bekliyor") ve canlı veride 23 geçmiş
+                  duruşmanın 22'si işaretsiz kalmıştı. Yirmi iki iş bir hatırlatma
+                  değil, bir yığındır; yığın ertelenir. Somut tek bir iş
+                  ("3. Asliye — dün") yapılabilir görünür. Kalanların sayısı
+                  ikinci satırda duruyor, bilgi kaybolmuyor. */}
+              <Text allowFontScaling={false} style={styles.outcomeTitle} numberOfLines={1}>
+                {t('dash.outcome.one', {
+                  baslik: pendingOutcomes[0].case?.title || pendingOutcomes[0].title,
+                  ne_zaman: whenLabel(pendingOutcomes[0].scheduled_at).split(' · ')[0],
+                })}
               </Text>
-              <Text allowFontScaling={false} style={styles.outcomeDesc}>{t('dash.outcome.desc')}</Text>
+              <Text allowFontScaling={false} style={styles.outcomeDesc}>
+                {pendingOutcomes.length > 1
+                  ? t('dash.outcome.descMore', { n: pendingOutcomes.length - 1 })
+                  : t('dash.outcome.desc')}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.primary} />
           </Pressable>
@@ -871,40 +885,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   trialPillText: {
     fontFamily: fonts.bold,
     fontWeight: '700',
-    fontSize: 12.5,
-    color: colors.primary,
-  },
-  trialEnded: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  trialEndedTitle: {
-    fontFamily: fonts.extrabold,
-    fontWeight: '800',
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  trialEndedDesc: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    lineHeight: 16,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 2,
-  },
-  trialEndedBtn: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  trialEndedBtnText: {
-    fontFamily: fonts.extrabold,
-    fontWeight: '800',
     fontSize: 12.5,
     color: colors.primary,
   },

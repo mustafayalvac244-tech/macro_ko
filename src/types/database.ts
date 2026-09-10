@@ -25,6 +25,9 @@ export interface Profile {
   phone: string | null;
   avatar_url: string | null;
   is_premium?: boolean;
+  /** Ücretli AI katmanı: 'ai' aktif abone, 'baslangic'/null ücretsiz.
+   *  RevenueCat webhook'u tarafından yazılır ve süre bitince geri alınır. */
+  ai_tier?: string | null;
   is_admin?: boolean;
   created_at: string;
   updated_at: string;
@@ -39,6 +42,11 @@ export interface Client {
   title: string | null;
   client_type: ClientType | null;
   company: string | null;
+  /** T.C. kimlik numarası. Dava dilekçesinde ZORUNLU unsurdur (HMK m.119/1-c);
+   *  eksikliği bir haftalık kesin süreye, tamamlanmazsa davanın açılmamış
+   *  sayılmasına yol açar (m.119/2). Bu yüzden kayıtta tutulur ve dilekçe
+   *  künyesine oradan yazılır. */
+  tc_no: string | null;
   email: string | null;
   phone: string | null;
   address: string | null;
@@ -263,6 +271,15 @@ export interface FinanceEntry {
   recurring_until: string | null;
   note: string | null;
   created_at: string;
+  /** Serbest meslek makbuzu — yalnız gelir kalemlerinde anlamlı. */
+  vat_rate: number | null;
+  withholding_rate: number | null;
+  vat_amount: number | null;
+  withholding_amount: number | null;
+  /** Veritabanında hesaplanır: amount + vat_amount − withholding_amount. */
+  net_total: number;
+  receipt_no: string | null;
+  receipt_issued: boolean;
 }
 
 export interface Payment {

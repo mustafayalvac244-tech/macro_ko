@@ -1,0 +1,715 @@
+// DİLEKÇE İSKELETİ VE BELGE TÜRLERİ — saf mantık, testli.
+// ---------------------------------------------------------------------------
+// NEDEN AYRI DOSYA. Buradaki kod, dilekçenin YAPISINI garanti eden yer:
+// zorunlu bölümlerin düşmemesi, künyenin doğru etiketlerle dizilmesi, uydurma
+// tarihlerin ayıklanması. Uç işlevinin içindeyken hiçbiri sınanamıyordu —
+// çünkü orada Deno'ya özgü şeyler var ve test koşucusu dosyayı içeri alamıyor.
+//
+// Sınanmayan yer, sessizce bozulan yerdir: on dilekçe türünün beşi aylarca
+// yanlış iskeletle diziliyordu (temyiz dilekçesinin başında "HARCA ESAS DAVA
+// DEĞERİ" satırı) ve bunu ancak elle okuyunca fark ettik.
+//
+// Bu dosya Deno API'si KULLANMAZ; hem uç işlevi hem vitest içeri alabilsin.
+
+/**
+ * Merci satırı türe göre değişir ve yanlış yazmak dilekçeyi yanlış yere
+ * gönderir. Ölçülen arıza: istinaf dilekçesi yalnız ilk derece mahkemesini
+ * yazdı; oysa istinaf, BAM'a hitaben yazılıp kararı veren mahkemeye sunulur.
+ */
+export function mahkemeTarifi(tip: string): string {
+  if (tip === 'istinaf')
+    return 'İKİ SATIR: önce "… BÖLGE ADLİYE MAHKEMESİ İLGİLİ HUKUK DAİRESİNE", ' +
+      'altına "Sunulmak üzere … MAHKEMESİ SAYIN HÂKİMLİĞİNE"';
+  if (tip === 'temyiz')
+    return 'İKİ SATIR: önce "YARGITAY İLGİLİ HUKUK DAİRESİNE", altına ' +
+      '"Sunulmak üzere … BÖLGE ADLİYE MAHKEMESİ … HUKUK DAİRESİ BAŞKANLIĞINA"';
+  if (tip === 'itiraz') return 'yalnız icra dairesinin adı (itiraz mahkemeye değil, İCRA DAİRESİNE yapılır)';
+  if (tip === 'ihtarname') return 'noter adı ya da "… NOTERLİĞİNE"';
+  // Ara dilekçeler DERDEST dosyaya sunulur: yeni bir merci aranmaz, davanın
+  // görüldüğü mahkemeye hitap edilir ve esas numarası künyede yer alır.
+  if (tip === 'replik' || tip === 'duplik' || tip === 'islah' || tip === 'bilirkisi')
+    return 'davanın görüldüğü mahkeme (örn. "ANKARA 3. ASLİYE HUKUK MAHKEMESİ SAYIN HÂKİMLİĞİNE")';
+  return 'yalnız merci adı (örn. "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ")';
+}
+
+/**
+ * TALEP BLOĞUNUN TÜRE ÖZGÜ TARİFİ — kanun yolunda terim seçimi.
+ *
+ * ÖLÇÜLEN ARIZA (on senaryoluk koşu, kalan iki kusurun ikisi de buydu): istinaf
+ * dilekçesinin talebinde "kaldırılması" hiç geçmedi, temyiz dilekçesi ise
+ * "kararın kaldırılması" istedi. İkisi de aynı kökten: modele hangi kanun
+ * yolunda hangi terimin kullanıldığı SÖYLENMEMİŞTİ. talepUyarilari bunu
+ * yakalıyor ama yakalamak düzeltmek değildir — avukat uyarıyı görüp cümleyi
+ * kendi yazmak zorunda kalıyor ve kazandırdığımız zaman geri gidiyor.
+ *
+ * Terimler kanunun kendi terimleridir, üslup tercihi değil: HMK m.353'te BAM
+ * kararı KALDIRIR, m.371'de Yargıtay BOZAR. Yanlış terimle yazılmış bir talep,
+ * dilekçeyi okuyan hâkime hangi kanun yolunda olduğumuzu bilmediğimizi söyler.
+ *
+ * Talebin İÇERİĞİNİ yine model yazar (neyin, neden kaldırılmasını istiyoruz);
+ * burada yalnız kullanılması ZORUNLU olan kalıp veriliyor.
+ */
+export function talepTarifi(tip: string): string | null {
+  if (tip === 'istinaf')
+    return 'ZORUNLU KALIP: "…kararın KALDIRILMASINA" (HMK m.353 — BAM kararı KALDIRIR). ' +
+      '"Bozulması" YAZMA; bozma temyize aittir. Talep, kaldırma isteğinin yanında ' +
+      'esas hakkında ne istendiğini de içermelidir';
+  if (tip === 'temyiz')
+    return 'ZORUNLU KALIP: "…kararın BOZULMASINA" (HMK m.371 — Yargıtay BOZAR). ' +
+      '"Kaldırılması" YAZMA; kaldırma istinafa aittir';
+  if (tip === 'itiraz')
+    return 'AÇIK İTİRAZ BEYANI ŞART: "…borca/imzaya/faize İTİRAZ EDİYORUZ" cümlesi ' +
+      'birebir geçmeli; icra dairesi itirazı sebebine göre kaydeder, dolaylı anlatım yetmez';
+  // DAVALI DİLEKÇESİNDE TALEP "REDDİ"DİR. Ölçülen arıza: düplik dilekçesi
+  // savunmayı yazdı ama netice-i talepte davanın reddini hiç istemedi. Hâkim
+  // taleple bağlıdır (HMK m.26); istenmeyen şeye hükmedilmez.
+  // ÖLÇÜLEN ARIZA (gerçek kullanım denemesi): model iki ayrı üretimde, iki
+  // farklı biçimde KENDİ MÜVEKKİLİNİN ALEYHİNE bir sonuç talep etti — biri
+  // "kalan borcun DAVALIYA tahsil edilmesini", diğeri "yargılama giderinin
+  // DAVALIYA yükletilmesini" istedi. İkisi de aynı kökten: dava dilekçesi
+  // kalıbı ("giderin DAVALIYA yükletilmesi" — davacı için DOĞRU olan cümle),
+  // taraf değiştirilmeden cevap dilekçesine taşınmış. Davalı vekili gideri
+  // KARŞI TARAFA (davacıya) yükletilmesini ister; kendine değil.
+  if (tip === 'cevap' || tip === 'duplik')
+    return 'ZORUNLU KALIP: "…davanın REDDİNE" (haksız da olsa istenmeyen şeye hükmedilmez, HMK m.26). ' +
+      'Yargılama gideri ve vekâlet ücretinin DAVACIYA yükletilmesini iste — KENDİ MÜVEKKİLİNE ' +
+      '(davalıya) değil. Kısmi ödeme/kısmi kabul varsa bile netice-i talepte müvekkilin ALEYHİNE ' +
+      'hiçbir ifade ("davalıdan/davalıya tahsil", "davalıya yükletilme" gibi) YAZMA; kısmi ödeme ' +
+      'yapılan kısım için "o kısım yönünden konusuz kalma nedeniyle karar verilmesine yer olmadığına" ' +
+      'ya da "kısmen REDDİNE" de.';
+  // RAPORA İTİRAZDA NE İSTENDİĞİ YAZILMALI. Ölçülen arıza: itiraz sebepleri
+  // sayıldı ama hiçbir şey talep edilmedi — mahkemenin ne yapacağı belirsiz
+  // kaldı. HMK m.281 raporun tamamlattırılmasını ya da yeni bilirkişi
+  // incelemesini istemeye izin verir; talepsiz itiraz sonuç doğurmaz.
+  if (tip === 'bilirkisi')
+    return 'NE İSTENDİĞİ AÇIKÇA YAZILMALI: EK RAPOR alınması, YENİ BİLİRKİŞİ ' +
+      'incelemesi ya da raporun YENİDEN İNCELENMESİ (HMK m.281). Yalnız itiraz ' +
+      'sebeplerini saymak yetmez';
+  return null;
+}
+
+/**
+ * KANUN YOLU DİLEKÇESİNDE MERCİ SATIRINI KOD GARANTİ EDER.
+ *
+ * ÖLÇÜLEN ARIZA: istinaf dilekçesi merci satırına yalnız ilk derece mahkemesini
+ * yazdı; "BÖLGE ADLİYE MAHKEMESİ" hiç geçmedi. Oysa istinaf BAM'a hitaben
+ * yazılır ve kararı veren mahkemeye sunulur — tek satıra indirgenmiş bir merci,
+ * dilekçeyi YANLIŞ YERE gönderir. Talimat bunu söylüyordu (mahkemeTarifi) ama
+ * model tutmadı; iskeletin geri kalanında olduğu gibi burada da son söz kodun.
+ *
+ * Modelin yazdığı atılmaz: doğru merci zaten varsa olduğu gibi kalır, yoksa
+ * modelin satırı "Sunulmak üzere" satırına taşınır — çünkü model oraya
+ * genellikle kararı VEREN mahkemeyi yazıyor ve o bilgi doğrudur, yeri yanlıştır.
+ */
+export function merciDiz(tip: string, mahkeme: string): string {
+  const satir = String(mahkeme ?? '').split('\n').map((x) => x.trim()).filter(Boolean);
+  const hepsi = satir.join('\n');
+  const sade = hepsi.toLocaleLowerCase('tr');
+
+  if (tip === 'istinaf' || tip === 'temyiz') {
+    const ustMerci = tip === 'istinaf'
+      ? { ara: ['bölge adliye', 'bam'], bosluk: '[… BÖLGE ADLİYE MAHKEMESİ İLGİLİ HUKUK DAİRESİNE — doldurun]' }
+      : { ara: ['yargıtay'], bosluk: '[YARGITAY İLGİLİ HUKUK DAİRESİNE — doldurun]' };
+    const altBosluk = tip === 'istinaf'
+      ? 'Sunulmak üzere [… MAHKEMESİ SAYIN HÂKİMLİĞİNE — doldurun]'
+      : 'Sunulmak üzere [… BÖLGE ADLİYE MAHKEMESİ … HUKUK DAİRESİ BAŞKANLIĞINA — doldurun]';
+
+    if (ustMerci.ara.some((a) => sade.includes(a))) {
+      // Üst merci yazılmış; ikinci satır da varsa dokunma.
+      if (satir.length > 1 || sade.includes('sunulmak üzere')) return hepsi;
+      return `${satir[0]}\n${altBosluk}`;
+    }
+    // Üst merci yok: modelin yazdığı (varsa) alt satıra taşınır.
+    const alt = satir.length
+      ? `Sunulmak üzere ${satir.join(' ')}`
+      : altBosluk;
+    return `${ustMerci.bosluk}\n${alt}`;
+  }
+
+  return hepsi || '[MAHKEME/MERCİ — doldurun]';
+}
+
+/** Modele hangi blokları yazacağını, iskeletten türeterek söyler. */
+export function bloklarTarifi(tip: string): string {
+  const i = iskeletSec(tip);
+  const satir = [`###MAHKEME###  (${mahkemeTarifi(tip)})`];
+  satir.push(
+    '###TARAF###  (aşağıdaki etiketlerden OLAYDA GEÇENLERİ "ETİKET: değer" biçiminde yaz; ' +
+      'olayda geçmeyeni HİÇ YAZMA — boşluğu biz koyarız)\n' +
+      i.taraflar.map(([e]) => `        ${e}:`).join('\n')
+  );
+  const talep = talepTarifi(tip);
+  for (const b of i.bolumler) {
+    const ek = b.anahtar === 'TALEP' && talep ? ` — ${talep}` : '';
+    satir.push(`###${b.anahtar}###  (${b.baslik}${ek})`);
+  }
+  // ÖLÇÜLEN ARIZA: "KONTROL LİSTESİ" başlığı taslakta İKİ KEZ çıktı. Sebep,
+  // modele hem burada hem genel talimatta (SYSTEM_PROMPT) "sonuna KONTROL
+  // LİSTESİ ekle" denmesiydi — model bu başlığı KENDİSİ yazıp ###KONTROL###
+  // bloğunun İÇİNE koyuyordu, sonra dilekceyiDiz() aynı başlığı bir daha
+  // ekliyordu. Başlığı kod ekliyor; modelden yalnız gövde isteniyor olmalı.
+  satir.push(
+    '###KONTROL###  (avukatın denetlemesi gereken boşluklar, süreler, riskler — YALNIZ ' +
+      'MADDELERİ yaz, "KONTROL LİSTESİ" başlığını YAZMA, başlığı biz ekliyoruz)'
+  );
+  return satir.join('\n');
+}
+
+/**
+ * DİLEKÇE İSKELETİ KODDA KURULUR; MODEL YALNIZ İÇERİK YAZAR.
+ *
+ * ÖLÇÜLEN SORUN: aynı istek iki koşuda iki farklı YAPI üretti. Birinde
+ * "NETİCE-İ TALEP" vardı, diğerinde hiç yoktu; harca esas dava değeri (HMK
+ * m.119/1-d, zorunlu unsur) ikisinde de yoktu. Talimatla tutarlılık istenemez:
+ * model kuralı çoğu zaman tutar, tutmadığı sefer avukat mahkemeden dilekçe
+ * ihtarı alır ve zaman kazanmak yerine kaybeder.
+ *
+ * Bu yüzden zorunlu unsurlar modele BIRAKILMIYOR. Model her bölümü işaretli
+ * blok hâlinde yazar (###KONU### gibi), dilekçeyi kod dizer. Bir bölüm hiç
+ * gelmediyse yerine doldurulacak bir boşluk konur — sessizce düşmez.
+ *
+ * Taraf blokları da kodda üretilir: "DAVALI" satırına "[Davacı Ad-Soyad]"
+ * yazılması gibi bir hata artık yapısal olarak mümkün değildir.
+ */
+export interface DilekceBolum {
+  anahtar: string;
+  baslik: string;
+  zorunlu: boolean;
+  /** Bölüm gelmezse yerine yazılacak boşluk. */
+  bosluk?: string;
+}
+
+export interface DilekceIskelet {
+  /** Taraf satırlarının etiketleri; türden türe değişir. */
+  taraflar: Array<[string, string]>;
+  bolumler: DilekceBolum[];
+}
+
+export const ORTAK_SON: DilekceBolum[] = [
+  { anahtar: 'SEBEPLER', baslik: 'HUKUKİ SEBEPLER', zorunlu: true, bosluk: '[Hukuki sebepler — doldurun]' },
+  { anahtar: 'DELILLER', baslik: 'DELİLLER', zorunlu: true, bosluk: '[Deliller — doldurun]' },
+  { anahtar: 'TALEP', baslik: 'NETİCE-İ TALEP', zorunlu: true, bosluk: '[Netice-i talep — doldurun]' },
+];
+
+// DAVALININ KİMLİK NUMARASI ZORUNLU DEĞİLDİR. HMK m.119/1-b taraflar için
+// yalnız "adı, soyadı ve adresleri"ni arar; kimlik numarasını (c bendi)
+// SADECE DAVACI için ister. Davalı satırına da TCKN boşluğu koymak, kanunun
+// istemediği bir bilgiyi eksikmiş gibi gösteriyordu: taslak olduğundan daha
+// yarım görünüyor ve avukat bulamayacağı bir numarayı arıyordu.
+export const DAVA_TARAF: Array<[string, string]> = [
+  ['DAVACI', '[Davacı ad-soyad] — T.C. [Davacı TCKN] — [Davacı adres]'],
+  ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+  ['DAVALI', '[Davalı ad-soyad] — [Davalı adres]'],
+];
+
+export const DILEKCE_ISKELET: Record<string, DilekceIskelet> = {
+  dava: {
+    taraflar: DAVA_TARAF,
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[Dava konusu — doldurun]' },
+      // HMK m.119/1-d: dava değeri zorunlu unsurdur; eksikliği dilekçe ihtarına
+      // yol açar. İlk ölçümde iki taslakta da yoktu.
+      { anahtar: 'DEGER', baslik: 'HARCA ESAS DAVA DEĞERİ', zorunlu: true, bosluk: '[Dava değeri — doldurun] TL' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'AÇIKLAMALAR', zorunlu: true, bosluk: '[Vakıalar — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  cevap: {
+    taraflar: [
+      ['DAVACI', '[Davacı ad-soyad]'],
+      ['DAVALI', '[Davalı ad-soyad] — T.C. [Davalı TCKN] — [Davalı adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['ESAS NO', '[Esas No]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[Cevap konusu — doldurun]' },
+      { anahtar: 'USUL', baslik: 'USULE İLİŞKİN İTİRAZLAR', zorunlu: false },
+      { anahtar: 'ACIKLAMALAR', baslik: 'AÇIKLAMALAR VE ESASA CEVAPLARIMIZ', zorunlu: true, bosluk: '[Cevaplar — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  istinaf: {
+    taraflar: [
+      ['İSTİNAF EDEN', '[Ad-soyad] — T.C. [TCKN] — [Adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['KARŞI TARAF', '[Ad-soyad] — [Adres]'],
+      ['KARAR', '[Mahkeme] · [Esas No] · [Karar No] · [Karar tarihi]'],
+      ['TEBLİĞ TARİHİ', '[Tebliğ tarihi]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İstinaf konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'İSTİNAF SEBEPLERİ', zorunlu: true, bosluk: '[İstinaf sebepleri — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  itiraz: {
+    taraflar: [
+      ['İTİRAZ EDEN (BORÇLU)', '[Ad-soyad] — T.C. [TCKN] — [Adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['ALACAKLI', '[Ad-soyad]'],
+      ['DOSYA NO', '[İcra dosya no]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İtiraz konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'İTİRAZ SEBEPLERİMİZ', zorunlu: true, bosluk: '[İtiraz sebepleri — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  ihtarname: {
+    taraflar: [
+      ['KEŞİDECİ', '[Ad-soyad] — T.C. [TCKN] — [Adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['MUHATAP', '[Ad-soyad] — [Adres]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İhtar konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'AÇIKLAMALAR', zorunlu: true, bosluk: '[Açıklamalar — doldurun]' },
+      { anahtar: 'TALEP', baslik: 'İHTAR VE TALEP', zorunlu: true, bosluk: '[İhtar ve talep — doldurun]' },
+    ],
+  },
+  // ── AŞAĞIDAKİ BEŞ TÜR İSKELETSİZDİ ve sessizce DAVA iskeletiyle diziliyordu.
+  //
+  // Ekrandaki seçim listesi on tür sunuyor; iskelet beşini tanıyordu. Tanınmayan
+  // tür 'dava'ya düşüyordu (iskeletSec) ve sonuç, yapısı yanlış bir belgeydi:
+  // temyiz dilekçesinin başına "DAVACI/DAVALI" ve ZORUNLU "HARCA ESAS DAVA
+  // DEĞERİ" satırı konuyordu. Islah dilekçesinde esas numarası hiç yoktu.
+  //
+  // Bu, modelin hatası değil bizim eksiğimizdi: model doğru içeriği yazsa bile
+  // kod onu yanlış kalıba diziyordu. Avukatın "hızlandırdı" diyebilmesi için
+  // belgenin baştan doğru kalıpta çıkması gerekir; başlığı elle düzeltmek
+  // zorunda kaldığı her tür, kazandırdığımız zamanı geri alır.
+  //
+  // ORTAK İLKE: ikinci dilekçelerde ve ara dilekçelerde ESAS NO vardır ve
+  // "harca esas dava değeri" YOKTUR — o, dava dilekçesine özgü unsurdur
+  // (HMK m.119/1-d).
+  replik: {
+    taraflar: [
+      ['DAVACI', '[Davacı ad-soyad] — T.C. [Davacı TCKN] — [Davacı adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['DAVALI', '[Davalı ad-soyad]'],
+      ['ESAS NO', '[Esas No]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[Cevaba cevap konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'CEVABA CEVAPLARIMIZ', zorunlu: true, bosluk: '[Cevaba cevaplar — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  duplik: {
+    taraflar: [
+      ['DAVACI', '[Davacı ad-soyad]'],
+      ['DAVALI', '[Davalı ad-soyad] — T.C. [Davalı TCKN] — [Davalı adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['ESAS NO', '[Esas No]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İkinci cevap konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'İKİNCİ CEVAPLARIMIZ', zorunlu: true, bosluk: '[İkinci cevaplar — doldurun]' },
+      ...ORTAK_SON,
+    ],
+  },
+  // TEMYİZDE "DELİLLER" BÖLÜMÜ YOKTUR. Temyiz bir hukukilik denetimidir; delil
+  // sunulacak yer değildir. ORTAK_SON'u olduğu gibi kullanmak, avukata silmesi
+  // gereken bir bölüm bırakırdı.
+  temyiz: {
+    taraflar: [
+      ['TEMYİZ EDEN', '[Ad-soyad] — T.C. [TCKN] — [Adres]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['KARŞI TARAF', '[Ad-soyad] — [Adres]'],
+      ['TEMYİZ EDİLEN KARAR', '[BAM ... Hukuk Dairesi] · [Esas No] · [Karar No] · [Karar tarihi]'],
+      ['TEBLİĞ TARİHİ', '[Tebliğ tarihi]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[Temyiz konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'TEMYİZ SEBEPLERİ', zorunlu: true, bosluk: '[Temyiz sebepleri — doldurun]' },
+      { anahtar: 'SEBEPLER', baslik: 'HUKUKİ SEBEPLER', zorunlu: true, bosluk: '[Hukuki sebepler — doldurun]' },
+      { anahtar: 'TALEP', baslik: 'NETİCE-İ TALEP', zorunlu: true, bosluk: '[Netice-i talep — doldurun]' },
+    ],
+  },
+  bilirkisi: {
+    taraflar: [
+      ['ESAS NO', '[Esas No]'],
+      ['İTİRAZ EDEN', '[Taraf sıfatı: davacı/davalı] [Ad-soyad]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['KARŞI TARAF', '[Ad-soyad]'],
+      ['RAPOR TEBLİĞ TARİHİ', '[Raporun tebliğ tarihi]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[İtiraz konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'RAPORA İTİRAZ SEBEPLERİMİZ', zorunlu: true, bosluk: '[İtiraz sebepleri — doldurun]' },
+      { anahtar: 'SEBEPLER', baslik: 'HUKUKİ SEBEPLER', zorunlu: true, bosluk: '[Hukuki sebepler — doldurun]' },
+      { anahtar: 'TALEP', baslik: 'SONUÇ VE TALEP', zorunlu: true, bosluk: '[Sonuç ve talep — doldurun]' },
+    ],
+  },
+  islah: {
+    taraflar: [
+      ['ESAS NO', '[Esas No]'],
+      ['ISLAH EDEN', '[Taraf sıfatı: davacı/davalı] [Ad-soyad] — T.C. [TCKN]'],
+      ['VEKİLİ', 'Av. [Vekil ad-soyad] — [Vekil adres]'],
+      ['KARŞI TARAF', '[Ad-soyad]'],
+    ],
+    bolumler: [
+      { anahtar: 'KONU', baslik: 'KONU', zorunlu: true, bosluk: '[Islah konusu — doldurun]' },
+      { anahtar: 'ACIKLAMALAR', baslik: 'ISLAH EDİLEN HUSUSLAR', zorunlu: true, bosluk: '[Islah edilen hususlar — doldurun]' },
+      { anahtar: 'SEBEPLER', baslik: 'HUKUKİ SEBEPLER', zorunlu: true, bosluk: '[Hukuki sebepler — doldurun]' },
+      { anahtar: 'TALEP', baslik: 'SONUÇ VE TALEP', zorunlu: true, bosluk: '[Sonuç ve talep — doldurun]' },
+    ],
+  },
+};
+
+/**
+ * BELGE İNCELEME — tür başına ne aranacağı.
+ *
+ * Tür ayrımı biçimsel değil: bir sözleşmede aranan şey (aleyhe cezai şart,
+ * yetki/tahkim şartı) ile bir kararda aranan şey (süre, hangi kanun yolu)
+ * bambaşkadır. Tek bir genel istem, her belgeye aynı soruları sorar ve o
+ * belgenin asıl riskini kaçırır.
+ *
+ * `arama`, besleme sorgusuna eklenen sözcüklerdir: belgenin kendi metni
+ * arama sorgusu olduğunda en sık geçen sözcükler kazanır ve ilgisiz mevzuat
+ * gelir; bu sözcükler sorguyu doğru kanunlara çeker.
+ */
+export const BELGE_TURU: Record<string, { ad: string; arama: string; ek: string }> = {
+  sozlesme: {
+    ad: 'SÖZLEŞME',
+    arama: 'sözleşme cezai şart tazminat fesih yetki tahkim',
+    ek:
+      '\nSÖZLEŞMEDE AYRICA ŞUNLARA BAK: tek taraflı fesih hakkı; aleyhe cezai şart ' +
+      '(aşırı ceza hâkim tarafından indirilir); sorumsuzluk kaydı; yetki ve tahkim şartı; ' +
+      'ödeme/temerrüt koşulu ve faiz; süre ve yenileme; gizlilik ve rekabet yasağı ' +
+      '(süre-yer-konu sınırı var mı); devir yasağı; ekler ve tebligat adresi.',
+  },
+  dilekce: {
+    ad: 'DİLEKÇE',
+    arama: 'dilekçe zorunlu unsur netice-i talep deliller harç',
+    ek:
+      '\nDİLEKÇEDE AYRICA ŞUNLARA BAK: zorunlu unsurlar tam mı (mahkeme, taraflar, ' +
+      'harca esas değer, vakıalar, her vakıanın delili, hukuki sebepler, açık talep sonucu, imza); ' +
+      'talep sonucu net mi; süre geçmiş mi; yanlış merci ya da yanlış dayanak madde var mı.',
+  },
+  ihtarname: {
+    ad: 'İHTARNAME',
+    arama: 'ihtarname temerrüt süre tebligat noter',
+    ek:
+      '\nİHTARNAMEDE AYRICA ŞUNLARA BAK: muhataba verilen süre açık mı ve yeterli mi; ' +
+      'talep miktarı ve dayanağı belirli mi; temerrüt ve faiz uyarısı var mı; ' +
+      'aksi hâlde başvurulacak yol yazılı mı; keşideci-muhatap ve adresler tam mı.',
+  },
+  karar: {
+    ad: 'MAHKEME KARARI',
+    arama: 'karar gerekçe kanun yolu istinaf temyiz süre tebliğ',
+    ek:
+      '\nKARARDA AYRICA ŞUNLARA BAK: hangi kanun yolu açık (istinaf/temyiz), süresi ve ' +
+      'başlangıcı (tebliğ mi tefhim mi); kesinlik şerhi; hüküm fıkrasında talep karşılanmayan ' +
+      'kalem var mı; vekâlet ücreti ve yargılama gideri doğru mu; gerekçe ile hüküm çelişiyor mu.',
+  },
+  diger: {
+    ad: 'BELGE',
+    arama: 'belge hukuki risk süre',
+    ek: '',
+  },
+};
+
+/** Türü tanımlı olmayan dilekçeler dava iskeletiyle dizilir. */
+export function iskeletSec(tip: string): DilekceIskelet {
+  return DILEKCE_ISKELET[tip] ?? DILEKCE_ISKELET.dava;
+}
+
+/**
+ * Modelin ###ANAHTAR### bloklarını ayrıştırır. JSON yerine işaretli blok
+ * kullanılıyor: model bozuk JSON üretebilir ama işaretli blokta en kötü
+ * ihtimalle TEK bölüm kaybolur, belge tamamen çöpe gitmez.
+ */
+export function bloklariAyristir(ham: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const re = /###\s*([A-ZÇĞİÖŞÜ_]+)\s*###/g;
+  const isaretler: Array<{ ad: string; bas: number; son: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(ham)) !== null) isaretler.push({ ad: m[1], bas: m.index, son: re.lastIndex });
+  for (let i = 0; i < isaretler.length; i++) {
+    const bit = i + 1 < isaretler.length ? isaretler[i + 1].bas : ham.length;
+    const govde = ham.slice(isaretler[i].son, bit).trim();
+    if (govde) out[isaretler[i].ad] = govde;
+  }
+  return out;
+}
+
+/**
+ * Etiketi karşılaştırılabilir anahtara indirger. upper()/lower() Türkçe'de
+ * güvenilmez (bkz. 0045); önce ASCII'ye çeviriyoruz.
+ */
+export function etiketAnahtari(e: string): string {
+  return e
+    .replace(/[İIıŞşĞğÜüÖöÇç]/g, (c) => ({ 'İ': 'I', 'I': 'I', 'ı': 'I', 'Ş': 'S', 'ş': 'S', 'Ğ': 'G', 'ğ': 'G', 'Ü': 'U', 'ü': 'U', 'Ö': 'O', 'ö': 'O', 'Ç': 'C', 'ç': 'C' })[c] ?? c)
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+/** "###TARAF###" bloğundaki "ETİKET: değer" satırlarını okur. */
+export function kunyeAyristir(blok: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const satir of String(blok ?? '').split('\n')) {
+    const i = satir.indexOf(':');
+    if (i <= 0) continue;
+    const deger = satir.slice(i + 1).trim();
+    // Modelin "bilinmiyor" demesi bir değer değildir; kodun boşluğu kalsın.
+    if (!deger || /^(-|yok|bilinmiyor|belirtilmemi)/i.test(deger)) continue;
+    out[etiketAnahtari(satir.slice(0, i))] = deger;
+  }
+  return out;
+}
+
+/**
+ * Bölümlerden resmî düzende dilekçe metnini dizer.
+ *
+ * `dosya`, kullanıcının KENDİ kayıtlarından gelen kesin bilgilerdir (dava,
+ * müvekkil, avukat profili) ve künyede modelin yazdığından da ÖNCE gelir:
+ * müvekkilin adını en iyi model değil, avukatın kendi kaydı bilir.
+ */
+export function dilekceyiDiz(
+  tip: string,
+  bloklar: Record<string, string>,
+  dosya: Record<string, string> = {}
+): { metin: string; eksik: string[] } {
+  const iskelet = iskeletSec(tip);
+  const eksik: string[] = [];
+  const satirlar: string[] = [];
+
+  // İstinaf/temyizde merci İKİ SATIRDIR ("… BAM … DAİRESİNE" + "Sunulmak üzere
+  // … MAHKEMESİNE"); tek satıra indirgemek dilekçeyi yanlış yere gönderir.
+  // İSTİNAF/TEMYİZDE DOSYADAKİ MAHKEME ADI KULLANILMAZ: orada merci BAM ya da
+  // Yargıtay'dır, kayıttaki mahkeme ise kararı VEREN ilk derece mahkemesidir.
+  // Doğrudan yazmak, dilekçeyi yanlış yere gönderirdi.
+  const dosyaMerci = tip === 'istinaf' || tip === 'temyiz' ? '' : (dosya.MAHKEME ?? '').trim();
+  const mahkeme = dosyaMerci || (bloklar.MAHKEME ?? '').trim();
+  satirlar.push(merciDiz(tip, mahkeme));
+  satirlar.push('');
+
+  // KÜNYE SATIRLARINI MODEL DE DOLDURABİLİR. İlk sürümde satırlar hep kodun
+  // varsayılan boşluğuyla basılıyordu; olayda "10.06.2026'da tebliğ edildi"
+  // yazmasına rağmen TEBLİĞ TARİHİ satırı "[Tebliğ tarihi]" kalıyordu. Sonuç,
+  // avukatın elinde bildiği bilgileri yeniden yazması gereken bir boşluk
+  // duvarıydı — zaman kazandırmak yerine kaybettiriyordu.
+  const kunye = kunyeAyristir(bloklar.TARAF ?? '');
+  const etiketGenislik = Math.max(...iskelet.taraflar.map(([e]) => e.length));
+  for (const [etiket, varsayilan] of iskelet.taraflar) {
+    const anahtar = etiketAnahtari(etiket);
+    // ÖNCELİK: avukatın kendi kaydı → modelin yazdığı → kodun boşluğu.
+    const deger = (dosya[anahtar] ?? '').trim() || (kunye[anahtar] ?? '').trim() || varsayilan;
+    satirlar.push(`${etiket.padEnd(etiketGenislik)} : ${deger}`);
+  }
+  satirlar.push('');
+
+  for (const b of iskelet.bolumler) {
+    const govde = (bloklar[b.anahtar] ?? '').trim();
+    if (!govde) {
+      if (!b.zorunlu) continue;
+      eksik.push(b.baslik);
+    }
+    satirlar.push(`${b.baslik}`);
+    satirlar.push(govde || b.bosluk || '[doldurun]');
+    satirlar.push('');
+  }
+
+  satirlar.push('Saygılarımla,');
+  satirlar.push(dosya.IMZASIFAT ? `${dosya.IMZASIFAT} Vekili` : '[Taraf] Vekili');
+  // İmza bloğunda avukatın kendi adı: her taslakta elle yazılan ilk şey buydu.
+  satirlar.push(dosya.VEKILI ? dosya.VEKILI.split('—')[0].trim() : 'Av. [Vekil ad-soyad]');
+  satirlar.push('');
+
+  const kontrol = (bloklar.KONTROL ?? '').trim();
+  if (kontrol) {
+    satirlar.push('⚠️ KONTROL LİSTESİ');
+    satirlar.push(kontrol);
+  }
+  return { metin: satirlar.join('\n').replace(/\n{3,}/g, '\n\n').trim(), eksik };
+}
+
+/**
+ * UYDURULMUŞ TARİHLERİ AYIKLA — modele güvenmeden, mekanik olarak.
+ *
+ * Talimatı sertleştirmek gerekli ama YETERLİ DEĞİL: model bir kuralı çoğu zaman
+ * tutar, bazen tutmaz ve tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider.
+ * Burada model devrede değil: taslakta geçip de avukatın anlatısında GEÇMEYEN
+ * her gg.aa.yyyy tarihi, doldurulacak bir boşlukla değiştirilir.
+ *
+ * Yön bilinçli: yanlış tarih göstermektense boşluk göstermek her zaman daha
+ * iyidir. Avukat boşluğu görür ve doldurur; yanlış tarihi göremeyebilir.
+ *
+ * Kanun/karar atıflarındaki tarihler de ayıklanır — dilekçede "18/2/1965-538/37"
+ * gibi değişiklik tarihleri işe yaramaz, avukatın verdiği olgular esastır.
+ */
+export function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; ayiklanan: number } {
+  const anahtar = (g: string, a: string, y: string) =>
+    `${y}-${a.padStart(2, '0')}-${g.padStart(2, '0')}`;
+
+  const izinli = new Set<string>();
+  for (const m of olay.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) {
+    izinli.add(anahtar(m[1], m[2], m[3]));
+  }
+  for (const m of olay.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) {
+    izinli.add(`${m[1]}-${m[2]}-${m[3]}`);
+  }
+
+  let ayiklanan = 0;
+  const metin = taslak.replace(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g, (tam, g, a, y) => {
+    if (izinli.has(anahtar(g, a, y))) return tam;
+    ayiklanan++;
+    return '[tarih — doldurun]';
+  });
+  return { metin, ayiklanan };
+}
+
+/**
+ * UYDURMA TUTAR TESPİTİ — sunucuda bugüne kadar hiç yoktu.
+ *
+ * Bu mantık aylardır scripts/uydurma.mjs'te vardı ama YALNIZ ÖLÇÜM
+ * betiğinde: kalite raporunda "uydurma tutar" oranı görünüyordu, ama taslağı
+ * üreten uçta hiçbir koruma çalışmıyordu — yani avukatın gerçekte gördüğü
+ * çıktıda bu denetim hiç işlemiyordu. Madde atfı için zaten var olan
+ * uydurmaMaddeDenetimi ile birebir aynı kusurdu, o düzeltilirken bu unutuldu.
+ *
+ * SİLİNMEZ, yalnız İŞARETLENİR — tıpkı madde atfında olduğu gibi. Bir tutar
+ * meşru bir TOPLAM ya da FARK olabilir ("50.000 TL'den 20.000 TL ödendi,
+ * kalan 30.000 TL" doğru bir hesaptır); bunu sessizce silmek, iyi niyetli bir
+ * avukat hesabını kaybettirir. Denetim yalnız olayda hiç geçmeyen VE hiçbir
+ * meşru toplam/fark/kat ile açıklanamayan tutarları işaretler.
+ */
+export function tutarlariCikar(metin: string): Set<number> {
+  const bulunan = new Set<number>();
+  for (const m of String(metin ?? '').matchAll(
+    /([\d][\d.\s ]*\d|\d)(?:,(\d{1,2}))?\s*(?:TL|₺|Türk Lirası)/gi
+  )) {
+    const tam = Number(String(m[1]).replace(/[.\s ]/g, ''));
+    const kurus = m[2] ? Number(String(m[2]).padEnd(2, '0')) / 100 : 0;
+    const sayi = tam + kurus;
+    if (Number.isFinite(sayi) && sayi > 0) bulunan.add(sayi);
+  }
+  return bulunan;
+}
+
+/** Olayda geçen tutarlardan meşru sayılacakların kümesi: kendileri, katları, toplamları, farkları. */
+function mesruTutarlar(olayTutarlari: number[], enCokKat = 24): Set<number> {
+  const k = new Set(olayTutarlari);
+  for (const a of olayTutarlari) for (let i = 2; i <= enCokKat; i++) k.add(a * i);
+  const liste = [...olayTutarlari];
+  for (let i = 0; i < liste.length; i++) {
+    for (let j = 0; j < liste.length; j++) {
+      if (i === j) continue;
+      const fark = liste[i] - liste[j];
+      if (fark > 0) k.add(fark);
+      k.add(liste[i] + liste[j]);
+    }
+  }
+  return k;
+}
+
+/** Taslakta geçip olayda/belgede hiç dayanağı olmayan tutarları döner. */
+export function uydurmaTutarlariBul(taslak: string, olay: string): number[] {
+  const meşru = mesruTutarlar([...tutarlariCikar(olay)]);
+  return [...tutarlariCikar(taslak)].filter((t) => !meşru.has(t));
+}
+
+/**
+ * MÜTALAADA TARİHLER SİLİNMEZ, İŞARETLENİR.
+ *
+ * Dilekçede olayda geçmeyen her tarih boşlukla değiştiriliyor: dilekçe tarih
+ * HESAPLAMA yeri değildir, yanlış tarih mahkemeye gider.
+ *
+ * Mütalaada durum TERSİNE döner. Avukat oraya "hangi süre ne zaman doluyor"
+ * sorusuyla gelir; "fesih 14.04.2026, bir aylık süre 14.05.2026'da doluyor"
+ * cümlesi mütalaanın ta kendisidir. Bu tarihleri silmek, özelliğin değerini
+ * silmek olurdu.
+ *
+ * O yüzden burada silme değil İŞARETLEME var: olayda geçmeyen tarihler
+ * listelenir ve arayüz "bu tarihler hesaplanmıştır, teyit edin" der. Sessizce
+ * doğru kabul ettirmiyoruz, ama işe yarayan bilgiyi de atmıyoruz.
+ */
+export function hesaplananTarihler(metin: string, olay: string): string[] {
+  const anahtar = (g: string, a: string, y: string) => `${y}-${a.padStart(2, '0')}-${g.padStart(2, '0')}`;
+  const izinli = new Set<string>();
+  for (const m of olay.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) izinli.add(anahtar(m[1], m[2], m[3]));
+  for (const m of olay.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) izinli.add(`${m[1]}-${m[2]}-${m[3]}`);
+  const cikan = new Set<string>();
+  for (const m of metin.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) {
+    if (!izinli.has(anahtar(m[1], m[2], m[3]))) cikan.add(m[0]);
+  }
+  return [...cikan];
+}
+
+/**
+ * TÜRE ÖZGÜ TALEP DENETİMİ — kanun yolu dilekçelerinde talep cümlesi eksikse söyle.
+ *
+ * ÖLÇÜLEN ARIZA. İstinaf senaryosu üç koşunun ikisinde geçti, birinde netice-i
+ * talepte "kararın kaldırılması" hiç geçmedi. Küçük modelde koşudan koşuya
+ * değişkenlik var ve bu, talimatla tamamen giderilemiyor.
+ *
+ * Talebi biz YAZAMAYIZ — ne istendiğini avukat bilir ve uydurulmuş bir talep,
+ * eksik talepten kötüdür. Ama eksikliği GÖREBİLİRİZ: hâkim taleple bağlıdır
+ * (HMK m.26) ve netice-i talepte olmayan şeye hükmedilmez, yani düşen talep
+ * doğrudan hak kaybıdır. Dilekçe teslim edilmeden fark edilmesi gerekir.
+ *
+ * Dönen uyarılar arayüzde eksik bölüm uyarılarıyla aynı yerde gösterilir.
+ */
+export function talepUyarilari(tip: string, metin: string): string[] {
+  const uyari: string[] = [];
+  const sade = String(metin ?? '').toLocaleLowerCase('tr');
+  const gecer = (...kaliplar: string[]) => kaliplar.some((k) => sade.includes(k));
+
+  if (tip === 'istinaf') {
+    // İstinafta BAM kararı KALDIRIR; "bozulması" temyize aittir.
+    if (!gecer('kaldırılmas', 'kaldirilmas', 'yeniden yargılama')) {
+      uyari.push('İstinaf talebinde "kararın kaldırılması" ifadesi yok');
+    }
+    if (gecer('bozulmas', 'bozulmasına')) {
+      uyari.push('İstinaf dilekçesinde "bozulması" isteniyor — bozma TEMYİZE aittir, BAM kararı KALDIRIR');
+    }
+  }
+  if (tip === 'temyiz') {
+    // Temyizde Yargıtay BOZAR; "kaldırılması" istinafa aittir.
+    if (!gecer('bozulmas', 'bozma')) {
+      uyari.push('Temyiz talebinde "kararın bozulması" ifadesi yok');
+    }
+    // YANLIŞ TERİMİN VARLIĞI DA DENETLENİR — ölçümde tam bu görüldü: temyiz
+    // dilekçesi "kararın kaldırılması" istedi. Eksikliği aramak yetmiyor,
+    // çünkü model iki terimi birlikte de yazabiliyor ve yanlış olanı dilekçede
+    // bırakmak, hangi kanun yolunda olduğumuzu bilmediğimizi gösterir.
+    if (gecer('kaldırılmas', 'kaldirilmas')) {
+      uyari.push('Temyiz dilekçesinde "kaldırılması" isteniyor — kaldırma İSTİNAFA aittir, Yargıtay BOZAR');
+    }
+  }
+  if (tip === 'itiraz' && !gecer('itiraz ediyoruz', 'itiraz etmekteyiz', 'itiraz olunur', 'itirazımızın')) {
+    // İcra dairesi itirazı SEBEBİNE göre kaydeder; dolaylı anlatım yetmez.
+    uyari.push('İtiraz dilekçesinde açık itiraz beyanı ("itiraz ediyoruz") yok');
+  }
+  if ((tip === 'cevap' || tip === 'duplik') && !gecer('reddi', 'reddine', 'reddedilmesi')) {
+    // Ölçülen arıza: düplik savunmayı yazdı, davanın reddini hiç istemedi.
+    uyari.push('Davalı dilekçesinde "davanın reddi" talebi yok');
+  }
+  if (tip === 'cevap' || tip === 'duplik') {
+    // ÖLÇÜLEN ARIZA (gerçek kullanım denemesi, iki bağımsız üretim, iki farklı
+    // biçim): model dava dilekçesi kalıbını taraf değiştirmeden kopyaladı ve
+    // davalı vekili KENDİ MÜVEKKİLİNİN ALEYHİNE bir sonuç talep etti —
+    // "kalan borcun DAVALIYA tahsil edilmesini" ve ayrı bir üretimde
+    // "yargılama giderinin DAVALIYA yükletilmesini". Davalı vekili gideri
+    // KARŞI TARAFA (davacıya) yükletilmesini ister; kendine değil. Bu,
+    // avukat dikkatlice okumazsa müvekkilin aleyhine bir talebin mahkemeye
+    // sunulması demektir — düşen talepten (HMK m.26) daha ağır bir hata.
+    const aleyheYon = [
+      /davalı\S*[ıi]?[ıi]?y?[ae]\s+(tahsil|yükletil|ödetil)/,
+      /müvekkil\S*\s+(aleyhine|zararına)\s+(tahsil|yükletil|ödetil)/,
+    ];
+    if (aleyheYon.some((r) => r.test(sade))) {
+      uyari.push(
+        'Netice-i talepte müvekkilin (davalının) ALEYHİNE bir ifade var gibi görünüyor ' +
+          '("davalıya tahsil/yükletilme" gibi) — dava dilekçesi kalıbı taraf değiştirilmeden ' +
+          'kopyalanmış olabilir; giderin KARŞI TARAFA yükletilmesi istenmeli, müvekkile değil'
+      );
+    }
+  }
+  if (tip === 'bilirkisi' && !gecer('ek rapor', 'yeni bilirkişi', 'yeniden inceleme', 'yeniden incelenmesi')) {
+    // Talepsiz itiraz sonuç doğurmaz: mahkemenin ne yapacağı belirsiz kalır.
+    uyari.push('Rapora itirazda ne istendiği yazılmamış (ek rapor / yeni bilirkişi / yeniden inceleme)');
+  }
+  return uyari;
+}

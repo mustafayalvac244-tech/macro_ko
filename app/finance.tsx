@@ -11,6 +11,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
   isMissingFinanceTable,
+  useCreateFinanceEntry,
   useDeleteFinanceEntry,
   useFinanceEntries,
   useUpdateFinanceEntry,
@@ -43,6 +44,7 @@ export default function FinanceScreen() {
   const payments = useAllPayments();
   const deleteEntry = useDeleteFinanceEntry();
   const updateEntry = useUpdateFinanceEntry();
+  const createEntry = useCreateFinanceEntry();
 
   const monthStart = month;
   const monthEnd = useMemo(() => endOfMonth(month), [month]);
@@ -67,6 +69,18 @@ export default function FinanceScreen() {
       .filter((e) => !e.is_recurring)
       .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
 
+    // Durdurulmuş sabit kalemler, kendi durma ayından SONRAKİ aylarda
+    // activeInMonth tarafından elenir — yeniden başlatılabilmeleri için
+    // yine de bir yerde görünür kalmaları gerekir. Yalnız GERÇEK bugünkü ay
+    // görüntülenirken listeye eklenir (geçmiş bir aya bakarken göstermek,
+    // "bu ay aktifmiş gibi" yanlış izlenim verirdi). Toplamlara KATILMAZ —
+    // yalnız yönetim (yeniden başlat/sil) amaçlı gösterilir.
+    const now = new Date();
+    const gercekBuAy = startOfMonth(now).getTime() === monthStart.getTime();
+    const stoppedItems = gercekBuAy
+      ? (entries.data ?? []).filter((e) => e.is_recurring && e.recurring_until && !recurringItems.includes(e))
+      : [];
+
     let paymentsTotal = 0;
     let paymentsCount = 0;
     payments.data?.forEach((p) => {
@@ -77,15 +91,18 @@ export default function FinanceScreen() {
       }
     });
 
+    // Gelirde net_total kullanılır: KDV eklenmiş, stopaj düşülmüş — banka
+    // hesabına gerçekte giren nakit budur. KDV/stopaj uygulanmayan kayıtlarda
+    // (mevcut kayıtların tamamı) net_total zaten amount'a eşittir.
     let income = paymentsTotal;
     let expense = 0;
     inMonth.forEach((e) => {
-      if (e.kind === 'income') income += Number(e.amount);
+      if (e.kind === 'income') income += Number(e.net_total ?? e.amount);
       else expense += Number(e.amount);
     });
 
     return {
-      recurring: recurringItems,
+      recurring: [...recurringItems, ...stoppedItems],
       oneOff: oneOffItems,
       casePaymentsTotal: paymentsTotal,
       casePaymentsCount: paymentsCount,
@@ -104,14 +121,24 @@ export default function FinanceScreen() {
     const monthLabel = format(month, 'yyyy-MM');
     const rows: Array<Array<string | number>> = [];
 
+    let vatTotal = 0;
+    let withholdingTotal = 0;
+
     [...recurring, ...oneOff].forEach((e) => {
+      if (e.vat_amount != null) vatTotal += Number(e.vat_amount);
+      if (e.withholding_amount != null) withholdingTotal += Number(e.withholding_amount);
       rows.push([
         e.entry_date,
         t(e.kind === 'income' ? 'ofinance.income' : 'ofinance.expense'),
         t(`fcat.${e.category}` as const),
         e.title ?? '',
         e.is_recurring ? t('common.yes') : t('common.no'),
-        Number(e.amount).toFixed(2),
+        Number(e.amount),
+        e.vat_rate != null ? `%${e.vat_rate}` : '',
+        e.vat_amount != null ? Number(e.vat_amount) : '',
+        e.withholding_rate != null ? `%${e.withholding_rate}` : '',
+        e.withholding_amount != null ? Number(e.withholding_amount) : '',
+        e.receipt_no ?? '',
         e.note ?? '',
       ]);
     });
@@ -125,7 +152,12 @@ export default function FinanceScreen() {
           t('ofinance.casePayments'),
           t('ofinance.casePayments'),
           t('common.no'),
-          Number(p.amount).toFixed(2),
+          Number(p.amount),
+          '',
+          '',
+          '',
+          '',
+          '',
           '',
         ]);
       }
@@ -134,10 +166,13 @@ export default function FinanceScreen() {
     rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
 
     // Özet satırları — muhasebecinin doğrudan görebilmesi için en alta.
+    // KDV/stopaj toplamları beyanname hazırlarken doğrudan kullanılabilsin.
     rows.push([]);
-    rows.push(['', '', '', t('ofinance.income'), '', incomeTotal.toFixed(2), '']);
-    rows.push(['', '', '', t('ofinance.expense'), '', expenseTotal.toFixed(2), '']);
-    rows.push(['', '', '', t('ofinance.net'), '', net.toFixed(2), '']);
+    rows.push(['', '', '', t('ofinance.income'), '', incomeTotal, '', '', '', '', '', '']);
+    rows.push(['', '', '', t('ofinance.expense'), '', expenseTotal, '', '', '', '', '', '']);
+    rows.push(['', '', '', t('ofinance.net'), '', net, '', '', '', '', '', '']);
+    rows.push(['', '', '', t('financeForm.vatAmount'), '', '', '', vatTotal, '', '', '', '']);
+    rows.push(['', '', '', t('financeForm.withholdingAmount'), '', '', '', '', '', withholdingTotal, '', '']);
 
     const csv = toCsv(
       [
@@ -147,12 +182,17 @@ export default function FinanceScreen() {
         t('ofinance.exp.title'),
         t('ofinance.exp.recurring'),
         t('ofinance.exp.amount'),
+        t('financeForm.vatRate'),
+        t('financeForm.vatAmount'),
+        t('financeForm.withholdingRate'),
+        t('financeForm.withholdingAmount'),
+        t('financeForm.receiptNo'),
         t('ofinance.exp.note'),
       ],
       rows
     );
 
-    if (rows.length <= 4) {
+    if (rows.length <= 6) {
       Alert.alert(t('ofinance.title'), t('ofinance.exp.empty'));
       return;
     }
@@ -172,8 +212,40 @@ export default function FinanceScreen() {
       entry_date: entry.entry_date,
       is_recurring: entry.is_recurring ? '1' : '0',
       note: entry.note ?? '',
+      ...(entry.vat_rate != null ? { vat_rate: String(entry.vat_rate) } : {}),
+      ...(entry.withholding_rate != null ? { withholding_rate: String(entry.withholding_rate) } : {}),
+      ...(entry.receipt_no ? { receipt_no: entry.receipt_no } : {}),
     }).toString();
     router.push(`/finance-form?${q}` as Parameters<typeof router.push>[0]);
+  };
+
+  /**
+   * Durdurulmuş bir sabit kalemi yeniden başlatır. Durma ayı hâlâ bugünün
+   * ayına denk geliyorsa (kullanıcı az önce durdurdu, henüz geçmişe
+   * geçmedi) AYNI kaydı canlandırmak yeterli — geçmiş ayları bozmaz. Durma
+   * çoktan geride kaldıysa (bir ya da daha fazla ay atlanmış), aynı kaydın
+   * entry_date'ini bugüne çekmek, arada GERÇEKTEN duraklamış olan ayları da
+   * "aktif" gösterip o aylara ait geçmiş gelir toplamlarını bozardı — bu
+   * yüzden yeni bir kayıt açılır, eskisi geçmişte "durduruldu" olarak kalır.
+   */
+  const resumeRecurring = (entry: FinanceEntry) => {
+    const now = new Date();
+    const durmaGecmiste = !!entry.recurring_until && endOfMonth(localDate(entry.recurring_until)) < startOfMonth(now);
+    if (!durmaGecmiste) {
+      updateEntry.mutate({ id: entry.id, recurring_until: null });
+    } else {
+      createEntry.mutate({
+        kind: entry.kind,
+        category: entry.category,
+        title: entry.title,
+        amount: Number(entry.amount),
+        entry_date: format(now, 'yyyy-MM-dd'),
+        is_recurring: true,
+        note: entry.note,
+        vat_rate: entry.vat_rate,
+        withholding_rate: entry.withholding_rate,
+      });
+    }
   };
 
   const handleEntryPress = (entry: FinanceEntry) => {
@@ -182,12 +254,21 @@ export default function FinanceScreen() {
       { text: t('common.edit'), onPress: () => openEditor(entry) },
     ];
     if (entry.is_recurring) {
-      buttons.push({
-        text: t('ofinance.stopAfterMonth'),
-        onPress: () => updateEntry.mutate({ id: entry.id, recurring_until: format(monthEnd, 'yyyy-MM-dd') }),
-      });
+      const stopped = !!entry.recurring_until;
+      if (stopped) {
+        buttons.push({ text: t('ofinance.resume'), onPress: () => resumeRecurring(entry) });
+      } else {
+        buttons.push({
+          text: t('ofinance.stopAfterMonth'),
+          onPress: () => updateEntry.mutate({ id: entry.id, recurring_until: format(monthEnd, 'yyyy-MM-dd') }),
+        });
+      }
       buttons.push({ text: t('ofinance.deleteAll'), style: 'destructive', onPress: () => deleteEntry.mutate(entry.id) });
-      Alert.alert(t('ofinance.entryActionsTitle'), t('ofinance.recurringDeleteMsg'), buttons);
+      Alert.alert(
+        t('ofinance.entryActionsTitle'),
+        stopped ? t('ofinance.resumeMsg') : t('ofinance.recurringDeleteMsg'),
+        buttons
+      );
     } else {
       buttons.push({ text: t('common.delete'), style: 'destructive', onPress: () => deleteEntry.mutate(entry.id) });
       Alert.alert(t('ofinance.entryActionsTitle'), entry.title, buttons);
@@ -209,6 +290,13 @@ export default function FinanceScreen() {
           </Text>
           <View style={styles.entryMetaRow}>
             <Text style={styles.entryMeta}>{t(`fcat.${entry.category}` as const)}</Text>
+            {(entry.vat_rate != null || entry.withholding_rate != null) && (
+              <Text style={styles.entryMeta}>
+                {entry.vat_rate != null ? `KDV %${entry.vat_rate}` : ''}
+                {entry.vat_rate != null && entry.withholding_rate != null ? ' · ' : ''}
+                {entry.withholding_rate != null ? `Stopaj %${entry.withholding_rate}` : ''}
+              </Text>
+            )}
             {entry.is_recurring && (
               <View style={[styles.recurringTag, stopped && { backgroundColor: colors.surfaceHover }]}>
                 <Ionicons name="repeat" size={10} color={stopped ? colors.textMuted : colors.info} />
@@ -223,7 +311,7 @@ export default function FinanceScreen() {
         </View>
         <Text style={[styles.entryAmount, { color: amountColor }]} numberOfLines={1}>
           {isIncome ? '+' : '−'}
-          {formatMoney(Number(entry.amount))}
+          {formatMoney(Number(isIncome ? entry.net_total ?? entry.amount : entry.amount))}
         </Text>
       </Pressable>
     );

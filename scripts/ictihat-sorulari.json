@@ -1,0 +1,205 @@
+{
+  "not": [
+    "İÇTİHAT ARAMA ÖLÇÜM SETİ.",
+    "",
+    "ÖLÇÜT NEDEN 'arama_terimi' DEĞİL: her karar, hangi hasat teriminden geldiğini",
+    "kendi satırında taşıyor (arama_terimi). Bunu doğruluk ölçütü yapmak kolaydı",
+    "ama YANLIŞ olurdu: aramayı da aynı alanla iyileştirmeyi deneyeceğiz ve o",
+    "zaman ölçüm, çözümün kendisini doğrulamış olurdu. Kendi kendini doğrulayan",
+    "ölçüm, ölçüm değildir.",
+    "",
+    "ÖLÇÜT: bir sonuç ancak (a) zorunlu kelimelerin HEPSİ karar metninde geçiyorsa",
+    "ve (b) kararı veren merci konuya bakabilecek bir merci ise İSABETLİ sayılır.",
+    "İkisi de karar içeriğinden okunur, hasat etiketinden değil.",
+    "",
+    "YASAK MERCİ neden var: ölçülen gerçek arıza buydu — 'kiracının temerrüdü",
+    "nedeniyle tahliye' sorusuna ASLİYE TİCARET MAHKEMESİ kararları döndü. Ticaret",
+    "mahkemesi konut tahliyesine bakmaz; böyle bir sonuç avukat için yalnızca",
+    "yararsız değil, YANILTICIDIR — resmî görünür ve konuya ait değildir.",
+    "",
+    "Zorunlu kelimeler Türkçe küçük harfe indirgenerek aranır ('İ' harfi tuzağı",
+    "için toLocaleLowerCase('tr')). Kök hâlleri yazılır ki çekim ekleri tutsun."
+  ],
+  "sorular": [
+    {
+      "id": "kira-temerrut",
+      "soru": "kiracı kirayı ödemedi temerrüt nedeniyle tahliye",
+      "zorunluKelime": ["temerrüt", "tahliye", "kira"],
+      "yasakMerci": ["Ticaret", "Ceza", "Danıştay", "Vergi", "İdare"]
+    },
+    {
+      "id": "kira-ihtiyac",
+      "soru": "konut ihtiyacı nedeniyle tahliye davası",
+      "zorunluKelime": ["ihtiyaç", "tahliye"],
+      "yasakMerci": ["Ticaret", "Ceza", "Danıştay", "Vergi", "İdare"]
+    },
+    {
+      "id": "kira-tespit",
+      "soru": "kira bedelinin tespiti davası",
+      "zorunluKelime": ["kira", "tespit"],
+      "yasakMerci": ["Ceza", "Danıştay", "Vergi", "İdare"]
+    },
+    {
+      "id": "tahliye-taahhut",
+      "soru": "yazılı tahliye taahhüdüne dayalı tahliye",
+      "zorunluKelime": ["taahh", "tahliye"],
+      "yasakMerci": ["Ticaret", "Ceza", "Danıştay", "Vergi", "İdare"]
+    },
+    {
+      "id": "ise-iade",
+      "soru": "işe iade davası geçerli fesih sebebi",
+      "zorunluKelime": ["işe iade", "fesih"],
+      "yasakMerci": ["Ticaret", "Ceza", "Danıştay", "Vergi", "İdare", "Aile"]
+    },
+    {
+      "id": "kidem-ihbar",
+      "soru": "kıdem ve ihbar tazminatı hesabı",
+      "zorunluKelime": ["kıdem", "ihbar"],
+      "yasakMerci": ["Ceza", "Danıştay", "Vergi", "İdare", "Aile"]
+    },
+    {
+      "id": "fazla-mesai",
+      "soru": "fazla mesai ücreti ispatı tanık",
+      "zorunluKelime": ["fazla", "mesai"],
+      "yasakMerci": ["Ceza", "Danıştay", "Vergi", "İdare", "Aile"]
+    },
+    {
+      "id": "is-kazasi",
+      "soru": "iş kazası nedeniyle maddi manevi tazminat",
+      "zorunluKelime": ["iş kazası", "tazminat"],
+      "yasakMerci": ["Danıştay", "Vergi", "İdare", "Aile"]
+    },
+    {
+      "id": "mobbing",
+      "soru": "işyerinde mobbing nedeniyle tazminat",
+      "zorunluKelime": ["mobbing"],
+      "yasakMerci": ["Danıştay", "Vergi", "Aile"]
+    },
+    {
+      "id": "odeme-emrine-itiraz",
+      "soru": "ödeme emrine itiraz ve itirazın iptali",
+      "zorunluKelime": ["itiraz", "takip"],
+      "yasakMerci": ["Ceza", "Danıştay", "Vergi", "İdare", "Aile"]
+    },
+    {
+      "id": "ihalenin-feshi",
+      "soru": "icra ihalesinin feshi talebi",
+      "zorunluKelime": ["ihale", "fesh"],
+      "yasakMerci": ["Ceza", "Aile"]
+    },
+    {
+      "id": "kambiyo-imza-itiraz",
+      "soru": "kambiyo takibinde imzaya itiraz",
+      "zorunluKelime": ["imza", "itiraz"],
+      "yasakMerci": ["Danıştay", "Vergi", "İdare", "Aile"]
+    },
+    {
+      "id": "tasarrufun-iptali",
+      "soru": "borçlunun mal kaçırması tasarrufun iptali davası",
+      "zorunluKelime": ["tasarruf", "iptal"],
+      "yasakMerci": ["Ceza", "Aile"]
+    },
+    {
+      "id": "bosanma-siddetli-gecimsizlik",
+      "soru": "evlilik birliğinin temelinden sarsılması boşanma",
+      "zorunluKelime": ["boşanma"],
+      "yasakMerci": ["Ticaret", "Danıştay", "Vergi", "İdare", "İcra"]
+    },
+    {
+      "id": "velayet",
+      "soru": "boşanmada çocuğun velayeti kime verilir",
+      "zorunluKelime": ["velayet"],
+      "yasakMerci": ["Ticaret", "Danıştay", "Vergi", "İdare", "İcra"]
+    },
+    {
+      "id": "yoksulluk-nafakasi",
+      "soru": "yoksulluk nafakası şartları ve süresi",
+      "zorunluKelime": ["nafaka"],
+      "yasakMerci": ["Ticaret", "Danıştay", "Vergi", "İdare", "İcra"]
+    },
+    {
+      "id": "mal-rejimi",
+      "soru": "edinilmiş mallara katılma rejiminin tasfiyesi",
+      "zorunluKelime": ["mal rejimi", "katılma"],
+      "yasakMerci": ["Ceza", "Danıştay", "Vergi", "İdare"]
+    },
+    {
+      "id": "muris-muvazaasi",
+      "soru": "muris muvazaası nedeniyle tapu iptali ve tescil",
+      "zorunluKelime": ["muvazaa", "tapu"],
+      "yasakMerci": ["Ceza", "Danıştay", "Vergi", "İdare", "Ticaret"]
+    },
+    {
+      "id": "mirasin-reddi",
+      "soru": "mirasın hükmen reddi talebi",
+      "zorunluKelime": ["miras", "ret"],
+      "yasakMerci": ["Ceza", "Danıştay", "Vergi", "İdare", "Ticaret"]
+    },
+    {
+      "id": "tenkis",
+      "soru": "saklı payın ihlali tenkis davası",
+      "zorunluKelime": ["tenkis"],
+      "yasakMerci": ["Ceza", "Danıştay", "Vergi", "İdare", "Ticaret"]
+    },
+    {
+      "id": "ecrimisil",
+      "soru": "haksız işgal nedeniyle ecrimisil",
+      "zorunluKelime": ["ecrimisil"],
+      "yasakMerci": ["Ceza", "Aile"]
+    },
+    {
+      "id": "ayipli-mal",
+      "soru": "ayıplı mal nedeniyle tüketicinin seçimlik hakları",
+      "zorunluKelime": ["ayıp"],
+      "yasakMerci": ["Ceza", "Danıştay", "Vergi", "İdare", "Aile"]
+    },
+    {
+      "id": "trafik-tazminat",
+      "soru": "trafik kazası nedeniyle destekten yoksun kalma tazminatı",
+      "zorunluKelime": ["tazminat"],
+      "yasakMerci": ["Danıştay", "Vergi", "İdare", "Aile"]
+    },
+    {
+      "id": "hakaret",
+      "soru": "sosyal medyada hakaret suçu",
+      "zorunluKelime": ["hakaret"],
+      "yasakMerci": ["Ticaret", "İcra", "Aile", "Vergi"]
+    },
+    {
+      "id": "hagb",
+      "soru": "hükmün açıklanmasının geri bırakılması şartları",
+      "zorunluKelime": ["hükmün açıklan"],
+      "yasakMerci": ["Ticaret", "İcra", "Aile", "Vergi"]
+    },
+    {
+      "id": "imar-plani-iptali",
+      "soru": "imar planına karşı iptal davası",
+      "zorunluKelime": ["imar"],
+      "yasakMerci": ["Ceza", "Aile", "İcra", "Ticaret"]
+    },
+    {
+      "id": "memur-disiplin",
+      "soru": "memura verilen disiplin cezasının iptali",
+      "zorunluKelime": ["disiplin"],
+      "yasakMerci": ["Aile", "İcra", "Ticaret"]
+    },
+    {
+      "id": "kamulastirmasiz-el-atma",
+      "soru": "kamulaştırmasız el atma nedeniyle tazminat",
+      "zorunluKelime": ["kamulaştır", "el atma"],
+      "yasakMerci": ["Ceza", "Aile", "İcra"]
+    },
+    {
+      "id": "haksiz-rekabet",
+      "soru": "haksız rekabetin tespiti ve men'i",
+      "zorunluKelime": ["haksız rekabet"],
+      "yasakMerci": ["Ceza", "Aile", "Danıştay", "Vergi", "İdare"]
+    },
+    {
+      "id": "kat-mulkiyeti",
+      "soru": "kat malikleri kurulu kararının iptali",
+      "zorunluKelime": ["kat mülkiyeti"],
+      "yasakMerci": ["Ceza", "Danıştay", "Vergi", "İdare"]
+    }
+  ]
+}

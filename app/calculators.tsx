@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { differenceInCalendarDays, differenceInDays, differenceInMonths } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
+// Tarife verisi TEK KAYNAKTA ve tarih damgalı (bkz. src/config/tarife.ts).
+import { aautHesapla, DILIMLER_DOGRULANDI, TARIFE, tarifeEskiMi, KARAR_HARCI_ORANI, PESIN_HARC_PAYI, HARC_DOGRULANDI } from '@/config/tarife';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -14,6 +16,7 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
+import { kidemBrutHesapla } from '@/config/kidemTavani';
 
 type CalcTab = 'aaut' | 'interest' | 'fee' | 'smm' | 'severance';
 
@@ -78,20 +81,13 @@ function Disclaimer({ text }: { text: string }) {
 
 /* ---------------- Vekalet Ücreti (AAÜT) ---------------- */
 
-// AAÜT konusu para olan davalarda kademeli nispi tarife dilimleri.
-// Oranlar tarifenin standart yüzdeleridir; dilim tutarları her yıl
-// güncellenen tarifeye göre ayarlanabilir olsun diye burada tutulur.
-const AAUT_BRACKETS: Array<{ upTo: number; rate: number }> = [
-  { upTo: 400_000, rate: 0.16 },
-  { upTo: 800_000, rate: 0.15 },
-  { upTo: 1_600_000, rate: 0.14 },
-  { upTo: 2_800_000, rate: 0.11 },
-  { upTo: 4_400_000, rate: 0.08 },
-  { upTo: 6_400_000, rate: 0.05 },
-  { upTo: 8_800_000, rate: 0.03 },
-  { upTo: 11_600_000, rate: 0.02 },
-  { upTo: Infinity, rate: 0.01 },
-];
+// TARİFE VERİSİ ARTIK BURADA DEĞİL: src/config/tarife.ts.
+//
+// Dilimler bu dosyanın içine TARİHSİZ ve KAYNAKSIZ gömülüydü. Hukuk aracında
+// bunun adı sessiz eskimedir — sayı güncelken de eskimişken de ekranda aynı
+// görünür ve avukat hangi yılın tarifesine baktığını bilemez. Tek kaynağa
+// taşındı; her sayı artık nereden geldiğini söylüyor ve doğrulanmamış olanlar
+// ekranda da öyle işaretleniyor.
 
 function AautCalc() {
   const __t = useTheme();
@@ -107,27 +103,14 @@ function AautCalc() {
 
   const result = useMemo(() => {
     if (amount <= 0) return null;
-    let remaining = amount;
-    let prevCap = 0;
-    let fee = 0;
-    const rows: Array<{ label: string; portion: number; rate: number; fee: number }> = [];
-    for (const b of AAUT_BRACKETS) {
-      const bandSize = b.upTo - prevCap;
-      const portion = Math.min(remaining, bandSize);
-      if (portion <= 0) break;
-      const bandFee = portion * b.rate;
-      fee += bandFee;
-      rows.push({
-        label: b.upTo === Infinity ? '+' : formatMoney(b.upTo),
-        portion,
-        rate: b.rate,
-        fee: bandFee,
-      });
-      remaining -= portion;
-      prevCap = b.upTo;
-    }
-    const applied = Math.max(fee, minFee);
-    return { fee, applied, usedMinimum: minFee > fee, rows };
+    const { ucret, satirlar } = aautHesapla(amount);
+    const applied = Math.max(ucret, minFee);
+    return {
+      fee: ucret,
+      applied,
+      usedMinimum: minFee > ucret,
+      rows: satirlar.map((r) => ({ portion: r.dilim, rate: r.oran, fee: r.ucret })),
+    };
   }, [amount, minFee]);
 
   return (
@@ -166,8 +149,40 @@ function AautCalc() {
         </View>
       )}
 
+      {/* TARİFENİN KİMLİĞİ EKRANDA. Avukat hangi tarifeye baktığını görmeden
+          rakama güvenemez; tarife her yıl değişiyor ve eskimesi sessiz. */}
+      <TarifeKunyesi />
       <Disclaimer text={t('calc.aaut.disclaimer')} />
     </Card>
+  );
+}
+
+/**
+ * Tarifenin kimliği, kaynağı ve doğrulanma durumu.
+ *
+ * Üç şeyi birden söyler: hangi tarife, nereden teyit edilir, hangi kısmı
+ * doğrulanmadı. Doğrulanmamış bir sayıyı doğrulanmış gibi göstermek, hiç sayı
+ * göstermemekten kötüdür — avukat ona güvenip müvekkiline söyler.
+ */
+function TarifeKunyesi() {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+  const t = useT();
+  const eski = tarifeEskiMi();
+  return (
+    <View style={styles.tarifeKunye}>
+      <Text style={styles.tarifeSatir}>
+        {t('calc.tariff.id', { ad: TARIFE.ad, rg: TARIFE.resmiGazete })}
+      </Text>
+      <Text style={styles.tarifeSatir}>{t('calc.tariff.amended', { rg: TARIFE.sonDegisiklik })}</Text>
+      {!DILIMLER_DOGRULANDI && (
+        <Text style={styles.tarifeUyari}>{t('calc.tariff.unverified')}</Text>
+      )}
+      {eski && <Text style={styles.tarifeUyari}>{t('calc.tariff.stale')}</Text>}
+      <Pressable onPress={() => Linking.openURL(TARIFE.kaynak).catch(() => {})} hitSlop={6}>
+        <Text style={styles.tarifeBaglanti}>{t('calc.tariff.source')}</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -194,6 +209,12 @@ function InterestCalc() {
     <View>
       <Input label={t('calc.principal')} placeholder="100000" value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" icon="cash-outline" />
       <Input label={t('calc.rate')} placeholder="24" value={rate} onChangeText={setRate} keyboardType="decimal-pad" icon="trending-up-outline" />
+      {/* KISAYOL ROZETLERİ ETİKETLENDİ. Üç oran (%9/%24/%48) çıplak duruyordu ve
+          bir hukuk uygulamasında çıplak bir oran, "uygulanacak oran budur" gibi
+          okunur. Uygulama yürürlükteki kanuni/avans faiz oranını TAKİP ETMİYOR
+          (ne bir kaynağı var ne güncelleme yolu), o yüzden bunları hukuki bir
+          kategori diye etiketlemek daha da yanlış olurdu — ne olduklarını
+          olduğu gibi söylüyoruz: yazım kısayolu. */}
       <View style={styles.presetRow}>
         {['9', '24', '48'].map((v) => (
           <Pressable key={v} style={[styles.presetChip, rate === v && styles.presetChipActive]} onPress={() => setRate(v)}>
@@ -201,6 +222,7 @@ function InterestCalc() {
           </Pressable>
         ))}
       </View>
+      <Text style={styles.tarifeUyari}>{t('calc.presetHint')}</Text>
 
       <View style={styles.dateRow}>
         <View style={styles.dateCol}>
@@ -250,11 +272,24 @@ function InterestCalc() {
 /* ---------------- Harç ---------------- */
 
 function CourtFeeCalc() {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
   const t = useT();
   const [value, setValue] = useState('');
   const v = parseAmount(value);
-  const kararHarci = v * 0.06831; // binde 68,31 nispi karar ve ilam harcı
-  const pesin = kararHarci / 4;
+  // ORAN ARTIK TEK KAYNAKTAN GELİYOR.
+  //
+  // Burada 0.06831 ve /4 SATIR İÇİNE yazılmıştı; oysa aynı sayılar
+  // src/config/tarife.ts'te KARAR_HARCI_ORANI ve PESIN_HARC_PAYI olarak da
+  // duruyordu. İki kopya, birbirinden habersiz eskiyebilirdi — tarife.ts zaten
+  // tam bu sebeple ("tek kaynak ve tarih damgası") yazılmıştı.
+  //
+  // Daha önemlisi: tarife.ts HARC_DOGRULANDI = false diyerek bu oranın
+  // DOĞRULANMADIĞINI işaretliyor ve yorumunda "hesaplayıcı bunu artık açıkça
+  // söylüyor" yazıyordu — ama söylemiyordu, çünkü bayrak hiçbir yerde
+  // kullanılmıyordu. Artık ekranda görünüyor; yorum da doğru hale geldi.
+  const kararHarci = v * KARAR_HARCI_ORANI;
+  const pesin = kararHarci * PESIN_HARC_PAYI;
 
   return (
     <View>
@@ -263,6 +298,7 @@ function CourtFeeCalc() {
         <Card>
           <ResultRow label={t('calc.decisionFee')} value={formatMoney(kararHarci)} />
           <ResultRow label={t('calc.advanceFee')} value={formatMoney(pesin)} strong />
+          {!HARC_DOGRULANDI && <Text style={styles.tarifeUyari}>{t('calc.fee.unverified')}</Text>}
           <Disclaimer text={t('calc.feeDisclaimer')} />
         </Card>
       )}
@@ -367,7 +403,17 @@ function SeveranceCalc() {
   const years = totalDays / 365;
   const months = Math.max(0, differenceInMonths(end, start));
 
-  const kidemGross = s * years;
+  // KIDEM TAVANI ARTIK UYGULANIYOR.
+  //
+  // Burada `s * years` yazıyordu; tavan HİÇ uygulanmıyordu. Ekranın altındaki
+  // uyarı "tavanı aşan ücretlerde tavan esas alınır" diyordu — yani kural
+  // biliniyor ama hesaba girmiyordu. Tavanın üstünde kazanan bir işçide
+  // sonuç kanunen YANLIŞ ve fazla çıkıyordu (200.000 ₺ ücret, 10 yıl için
+  // 2.000.000 ₺ yerine doğrusu 737.298,70 ₺).
+  //
+  // Tavan ÇIKIŞ TARİHİNDEKİ dönemin tavanıdır, bugünkü değil.
+  const kidem = kidemBrutHesapla(s, years, end);
+  const kidemGross = kidem.brut;
   const damga = kidemGross * 0.00759;
   const kidemNet = kidemGross - damga;
 
@@ -421,6 +467,17 @@ function SeveranceCalc() {
         <Card style={styles.resultCard}>
           <ResultRow label={t('calc.service')} value={serviceLabel} />
           <View style={styles.resultDivider} />
+          {/* Tavanın hesaba GİRDİĞİ görünür olmalı: avukat hangi tutarın esas
+              alındığını bilmeden rakamı müvekkiline söylememeli. */}
+          {kidem.tavan && kidem.tavanUygulandi && (
+            <ResultRow
+              label={t('calc.severanceCapApplied', { period: kidem.tavan.etiket })}
+              value={formatMoney(kidem.tavan.tutar)}
+            />
+          )}
+          {!kidem.tavan && s > 0 && (
+            <ResultRow label={t('calc.severanceCapUnknown')} value="—" />
+          )}
           <ResultRow label={t('calc.severanceGross')} value={formatMoney(kidemGross)} />
           <ResultRow label={t('calc.stampTax')} value={`− ${formatMoney(damga)}`} />
           <ResultRow label={t('calc.severanceNet')} value={formatMoney(kidemNet)} strong />
@@ -450,6 +507,28 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 16,
     marginBottom: spacing.sm,
+  },
+  tarifeKunye: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    gap: 2,
+  },
+  tarifeSatir: {
+    ...typography.small,
+    color: colors.textMuted,
+    lineHeight: 15,
+  },
+  tarifeUyari: {
+    ...typography.small,
+    color: colors.warning,
+    lineHeight: 15,
+  },
+  tarifeBaglanti: {
+    ...typography.small,
+    color: colors.primary,
+    marginTop: 2,
   },
   spacer: {
     height: spacing.md,

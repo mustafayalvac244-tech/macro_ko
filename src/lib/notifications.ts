@@ -3,6 +3,15 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { getLang, translate } from '@/i18n';
 import { formatDateTime } from '@/utils/format';
+import { bildirimMetni, type BildirimKaynagi } from '@/utils/bildirimMetni';
+import {
+  EK_1_GUN,
+  EK_3_GUN,
+  planBildirimId,
+  SONUC_GECIKME_DAKIKA,
+  tetikGuncelMi,
+  type PlanliBildirim,
+} from '@/utils/bildirimPlani';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -65,7 +74,7 @@ export async function scheduleReminder({ id, title, body, triggerAt }: ScheduleR
 export async function cancelReminder(id: string): Promise<void> {
   // Cancel the main reminder plus the staged 3-day/1-day companions.
   await Promise.all(
-    [id, `${id}-3d`, `${id}-1d`].map((identifier) =>
+    [id, `${id}${EK_3_GUN}`, `${id}${EK_1_GUN}`].map((identifier) =>
       Notifications.cancelScheduledNotificationAsync(identifier).catch(() => {})
     )
   );
@@ -90,8 +99,8 @@ async function scheduleStagedReminders(params: {
 
   const stages: { suffix: string; minutes: number; title: string }[] = [
     { suffix: '', minutes: params.chosenMinutesBefore, title: params.mainTitle },
-    { suffix: '-3d', minutes: 3 * DAY_MINUTES, title: translate(lang, 'notif.stage3d', { title: params.mainTitle }) },
-    { suffix: '-1d', minutes: 1 * DAY_MINUTES, title: translate(lang, 'notif.stage1d', { title: params.mainTitle }) },
+    { suffix: EK_3_GUN, minutes: 3 * DAY_MINUTES, title: translate(lang, 'notif.stage3d', { title: params.mainTitle }) },
+    { suffix: EK_1_GUN, minutes: 1 * DAY_MINUTES, title: translate(lang, 'notif.stage1d', { title: params.mainTitle }) },
   ];
 
   const seen = new Set<number>();
@@ -107,12 +116,21 @@ async function scheduleStagedReminders(params: {
   }
 }
 
+/**
+ * BİLDİRİM KİMLİKLERİ TEK YERDEN ÜRETİLİR.
+ *
+ * Bu şema burada ve plan üreticisinde (utils/bildirimPlani.ts) AYRI AYRI
+ * yazılsaydı, birinde yapılan bir değişiklik diğerini sessizce bozardı: plan
+ * "hearing-x-1d" derken burası "hearing-x-1gun" kursa, eşitleme her açılışta
+ * doğru bildirimi iptal edip yenisini kurar ve hiçbir hata görünmezdi. Bu
+ * yüzden şemanın tek sahibi bildirimPlani.ts'tir; burası ona sorar.
+ */
 export function hearingReminderId(hearingId: string): string {
-  return `hearing-${hearingId}`;
+  return planBildirimId('durusma', hearingId, 'secilen');
 }
 
 export function deadlineReminderId(deadlineId: string): string {
-  return `deadline-${deadlineId}`;
+  return planBildirimId('gorev', deadlineId, 'secilen');
 }
 
 export async function scheduleHearingReminder(params: {
@@ -139,8 +157,60 @@ export async function scheduleHearingReminder(params: {
   });
 }
 
+/**
+ * DURUŞMADAN SONRA SORAN BİLDİRİM — süre kaydının eksik halkası.
+ *
+ * ÖLÇÜLEN ARIZA (canlı veri): 49 duruşma kaydına karşılık 9 süre kaydı; geçmiş
+ * 23 duruşmanın 22'si "tamamlandı" bile işaretlenmemiş. Dört ayrı avukatta,
+ * temmuz-eylül aralığında. Yani duruşmada verilen süreler uygulamaya HİÇ
+ * girmiyor — ve süre kaçırmak, avukatın mesleki sorumluluğunun ana kaynağı.
+ *
+ * Mekanizma zaten vardı: duruşma çıkışı ekranı da, ana ekrandaki hatırlatma
+ * kartı da yazılmıştı. Eksik olan, doğru ANDA sormaktı. Duruşmadan çıkan avukat
+ * uygulamayı açıp kart aramaz; kart ancak uygulamayı zaten açtıysa görünür.
+ *
+ * SORULACAK AN: duruşmadan iki saat sonra. Duruşma sırasında sormak rahatsız
+ * eder, ertesi güne bırakmak unutturur. İki saat, adliyeden çıkıp yolda olmaya
+ * denk gelen makul bir aralık.
+ *
+ * Bildirime dokunmak duruşma çıkışı ekranını açar; oradan tek dokunuşla süre
+ * kaydedilir.
+ */
+export function hearingOutcomeId(hearingId: string): string {
+  return planBildirimId('durusma', hearingId, 'sonuc');
+}
+
+/**
+ * Duruşmadan kaç dakika sonra sorulacağı — plan üreticisiyle AYNI sabit.
+ * Ayrı yazılsalardı plan "2 saat sonra" derken kurulum "3 saat sonra" diyebilir
+ * ve eşitleme her açılışta aynı bildirimi silip yeniden kurardı (sessiz döngü).
+ */
+const OUTCOME_DELAY_MINUTES = SONUC_GECIKME_DAKIKA;
+
+export async function scheduleHearingOutcomePrompt(params: {
+  id: string;
+  caseTitle: string;
+  hearingTitle: string;
+  type?: string;
+  scheduledAt: string;
+}): Promise<void> {
+  const triggerAt = new Date(new Date(params.scheduledAt).getTime() + OUTCOME_DELAY_MINUTES * 60_000);
+  // Geçmiş duruşma için bildirim kurulamaz; kurulsa da anında düşerdi.
+  if (triggerAt.getTime() <= Date.now()) return;
+  const lang = getLang();
+  const typeLabel = params.type
+    ? translate(lang, `hearingType.${params.type}` as Parameters<typeof translate>[1])
+    : translate(lang, 'hearingType.hearing');
+  await scheduleReminder({
+    id: hearingOutcomeId(params.id),
+    title: translate(lang, 'notif.outcomeTitle', { type: typeLabel }),
+    body: translate(lang, 'notif.outcomeBody', { title: params.caseTitle || params.hearingTitle }),
+    triggerAt,
+  });
+}
+
 export function promiseReminderId(promiseId: string): string {
-  return `promise-${promiseId}`;
+  return planBildirimId('soz', promiseId, 'secilen');
 }
 
 /** Payment-promise reminder: fires on the morning of the due date + 3d/1d before. */
@@ -178,6 +248,156 @@ export async function scheduleDeadlineReminder(params: {
     mainTitle: translate(getLang(), 'notif.deadlineTitle', { title: params.deadlineTitle }),
     body: `${params.caseTitle} — ${formatDateTime(params.dueAt)}`,
   });
+}
+
+// ---------- Plan uygulama: sunucudaki kayıtlardan kendini onaran eşitleme ----------
+
+/**
+ * KENDİNİ ONARAN HATIRLATMA EŞİTLEMESİ.
+ *
+ * Kusur: hatırlatmalar yalnız kayıt oluşturulurken/düzenlenirken, o cihazda
+ * kuruluyordu. Yerel bildirim cihaza aittir — uygulama silinip kurulunca,
+ * telefon değişince ya da bildirim izni sonradan verilince hepsi yok olur, ama
+ * duruşmalar sunucuda durur. Avukat ajandasında duruşmayı görür ve hatırlatma
+ * kurulu sanır. Sessiz ve tam kayıp.
+ *
+ * Bu fonksiyon planı (bkz. utils/bildirimPlani.ts) mevcut durumla KARŞILAŞTIRIR:
+ * planda olmayan bizim bildirimlerimizi iptal eder, eksik olanları kurar. Her
+ * seferinde hepsini silip yeniden kurmaz — gereksiz yüz kadar yerel çağrıdan
+ * kaçınır ve halihazırda doğru kurulmuş bildirime dokunmaz.
+ *
+ * İçerik güncelliği: bir duruşmanın başlığı değişirse o kaydın bildirimi zaten
+ * düzenleme sırasında yeniden kurulur (useUpdateHearing); buradaki eşitleme
+ * EKSİĞİ tamamlamak içindir.
+ */
+const BIZIM_ONEKLER = ['hearing-', 'deadline-', 'promise-'] as const;
+export type BildirimOneki = (typeof BIZIM_ONEKLER)[number];
+
+/**
+ * Bildirim metnini üretmek için gereken alanlar. Tip, metni üreten saf modülle
+ * AYNI olmak zorunda olduğu için oradan alınır — iki yerde ayrı tanımlanıp
+ * ayrışmasınlar.
+ */
+export type PlanKaynak = BildirimKaynagi;
+
+/**
+ * Metin üretimi saf modüle taşındı (bkz. utils/bildirimMetni.ts): aynı metin
+ * hem kayıt oluşturulurken hem eşitleme sırasında üretiliyor ve iki yol
+ * sessizce ayrışmıştı. Burası artık yalnız çeviri/tarih bağlayıcısıdır.
+ */
+function planIcerigi(bildirim: PlanliBildirim, kaynak: PlanKaynak): { title: string; body: string } {
+  const lang = getLang();
+  return bildirimMetni(
+    bildirim.etkinlikTuru,
+    bildirim.tur,
+    kaynak,
+    (anahtar, p) => translate(lang, anahtar as Parameters<typeof translate>[1], p as never),
+    formatDateTime
+  );
+}
+
+/**
+ * Planı uygular. Bildirim izni yoksa HİÇBİR ŞEY YAPMAZ — özellikle iptal de
+ * etmez: izin geri verildiğinde eşitleme yeniden çalışıp eksiği tamamlar.
+ */
+export async function syncEtkinlikBildirimleri(
+  plan: PlanliBildirim[],
+  kaynaklar: Map<string, PlanKaynak>,
+  /**
+   * YALNIZ VERİSİNE SAHİP OLDUĞUMUZ TÜRLERE DOKUNULUR.
+   *
+   * DÜZELTİLEN KUSUR (kendi değişikliğimde bulundu). Eşitleme, planda olmayan
+   * her bildirimi iptal ediyordu. Ama plan yalnız ELDE VERİSİ OLAN kayıtlardan
+   * üretiliyor: ödeme sözleri sorgusu henüz yüklenmemişse ya da kalıcı olarak
+   * başarısızsa (payment_promises tablosu hiç kurulmamış olabilir — koddaki
+   * isMissingPromiseTable yolu) plan hiç 'promise-' bildirimi içermez ve
+   * eşitleme kurulu TÜM ödeme hatırlatmalarını siler. Yükleme sırasında bu
+   * gelip geçici bir çırpınma, tablo yoksa KALICI kayıptır.
+   *
+   * Çağıran taraf artık hangi türlerin verisine sahip olduğunu bildiriyor;
+   * bilmediğimiz türe ait bildirimlere dokunulmuyor.
+   */
+  yonetilenOnekler: readonly BildirimOneki[] = BIZIM_ONEKLER
+): Promise<{ kuruldu: number; iptal: number }> {
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') return { kuruldu: 0, iptal: 0 };
+
+  const mevcut = await Notifications.getAllScheduledNotificationsAsync().catch(() => []);
+  const bizim = mevcut.filter((n) => yonetilenOnekler.some((p) => n.identifier.startsWith(p)));
+  const planIds = new Set(plan.map((p) => p.bildirimId));
+
+  let iptal = 0;
+  for (const n of bizim) {
+    if (planIds.has(n.identifier)) continue;
+    await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+    iptal++;
+  }
+
+  /**
+   * SAATİ ESKİMİŞ BİLDİRİM DE YENİLENİR.
+   *
+   * Burası önce yalnız "kimlik kurulu mu?" diye bakıyordu ve kurulu olanın
+   * SAATİ yanlış olsa bile ona dokunmuyordu. Somut arıza: duruşma A telefonunda
+   * 10:00'dan 14:00'e alınıyor, B telefonunda kimlik zaten kurulu olduğu için
+   * atlanıyor ve B telefonu hatırlatmayı ESKİ saatte çalıyordu. Bir ay
+   * ertelenen duruşmada B telefonu bir ay erken çalıp bir daha hiç çalmazdı.
+   * Aynı cihazdaki düzenleme bu yoldan geçmez (orada iptal-et-yeniden-kur
+   * zaten var); bu boşluk çok cihaz ve yedekten dönme durumlarına aitti.
+   */
+  const mevcutIds = new Set<string>();
+  const planlananAn = new Map(plan.map((p) => [p.bildirimId, p.tetikMs]));
+  for (const n of bizim) {
+    const hedef = planlananAn.get(n.identifier);
+    if (hedef === undefined) continue; // yukarıda iptal edildi
+    if (tetikGuncelMi(n.trigger, hedef)) {
+      mevcutIds.add(n.identifier);
+      continue;
+    }
+    // Saati kaymış: iptal et, aşağıdaki döngü doğru saatle yeniden kursun.
+    await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+    iptal++;
+  }
+
+  let kuruldu = 0;
+  for (const p of plan) {
+    if (mevcutIds.has(p.bildirimId)) continue;
+    const kaynak = kaynaklar.get(p.kaynakId);
+    if (!kaynak) continue;
+    const { title, body } = planIcerigi(p, kaynak);
+    await Notifications.scheduleNotificationAsync({
+      identifier: p.bildirimId,
+      content: { title, body, sound: true },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: new Date(p.tetikMs),
+        channelId: CHANNEL_ID,
+      },
+    })
+      .then(() => {
+        kuruldu++;
+      })
+      .catch(() => {});
+  }
+
+  return { kuruldu, iptal };
+}
+
+/**
+ * ÇIKIŞTA TÜM KURULU BİLDİRİMLERİ İPTAL EDER.
+ *
+ * BULUNAN SIZINTI. Bildirim METİNLERİ müvekkil ve dava adı taşıyor ("Yaklaşan
+ * Duruşma: ...", "Ödeme günü: <müvekkil adı>"). Bunlar cihazda kurulu yerel
+ * bildirimlerdir ve oturumla hiçbir bağları yoktur: avukat çıkış yaptıktan
+ * sonra da tetiklenmeye devam ederler. Ortak kullanılan ya da devredilen bir
+ * telefonda, bir sonraki kullanıcının kilit ekranında önceki avukatın müvekkil
+ * adı belirir. Sır saklama açısından bu, önbellek artığından daha ağırdır —
+ * çünkü kimsenin bakmasına gerek yok, kendiliğinden görünür.
+ *
+ * Yeniden giriş yapıldığında hatırlatmalar zaten sunucudaki kayıtlardan
+ * yeniden kuruluyor (useReminderSync), yani iptal etmenin bir bedeli yok.
+ */
+export async function cancelAllReminders(): Promise<void> {
+  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
 }
 
 // ---------- Sabah ajanda özeti (morning digest) ----------

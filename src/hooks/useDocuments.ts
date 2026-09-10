@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { File } from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
+import { DOCUMENTS_BUCKET, MAX_DOSYA_BAYT, supabase } from '@/lib/supabase';
+import { dosyaBuyukKodu } from '@/utils/hataKodu';
 import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { CaseDocument, DocumentCategory, DocumentWithCase } from '@/types/database';
@@ -102,6 +103,24 @@ export function useUploadDocument() {
   return useMutation({
     onError: notifySaveError,
     mutationFn: async ({ file, caseId, clientId, category }: UploadDocumentParams) => {
+      /**
+       * BOYUT ÖNCE KONTROL EDİLİR — dosyayı belleğe okumadan.
+       *
+       * Kovanın sınırı 25 MB (migration 0085) ama istemcide hiç kontrol yoktu:
+       * 40 MB'lık taranmış bir dosya önce TAMAMEN belleğe okunuyor (büyük
+       * dosyada uygulamayı düşürebilir), sonra dakikalarca yükleniyor, en
+       * sonunda sunucu reddedince kullanıcı "kaydedilemedi" gibi hiçbir şey
+       * anlatmayan bir hata görüyordu. Mesaj biçimi 'dosya_buyuk:<mb>' —
+       * plan limitindeki ile aynı makine-okunur desen (bkz. saveError.ts).
+       *
+       * file.size 0 gelebiliyor (seçicinin bildirmediği durumlar). O zaman
+       * kontrol atlanır ve son sözü sunucu söyler; uydurma bir sayıyla
+       * kullanıcıyı engellemek yanlış olurdu.
+       */
+      if (file.size > 0 && file.size > MAX_DOSYA_BAYT) {
+        throw new Error(dosyaBuyukKodu(Math.floor(MAX_DOSYA_BAYT / (1024 * 1024))));
+      }
+
       const bytes = await new File(file.uri).arrayBuffer();
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const path = `${ownerId}/${caseId ?? 'general'}/${Date.now()}-${safeName}`;
@@ -125,7 +144,27 @@ export function useUploadDocument() {
         })
         .select()
         .single();
-      if (error) throw error;
+
+      /**
+       * SATIR YAZILAMAZSA YÜKLENEN DOSYA GERİ ALINIR.
+       *
+       * BULUNAN KUSUR — ve bu kusuru plan limitleri göçü (0087) yarattı.
+       * Dosya önce depoya yükleniyor, sonra satır ekleniyor. Ücretsiz plandaki
+       * bir avukat 5 belge sınırına dayandığında 6. yüklemede depo çağrısı
+       * BAŞARIYLA tamamlanıyor, ardından tetikleyici satırı reddediyor. Sonuç:
+       * kullanıcı doğru uyarıyı görüyor ("belge hakkınız doldu") ama dosya
+       * depoda kalıyor — satırı olmadığı için uygulamadan ulaşılamaz, silinemez
+       * ve kullanıcının depolama kotasını yiyor. Her limit denemesinde bir öksüz
+       * daha birikiyordu.
+       *
+       * Aynı şey RLS hatası, ağ kopması ya da eksik sütun hatasında da geçerli.
+       * Telafi silmesi başarısız olursa hata yine de kullanıcıya iletilir —
+       * asıl hatayı öksüz dosya yüzünden yutmak daha kötü olurdu.
+       */
+      if (error) {
+        await supabase.storage.from(DOCUMENTS_BUCKET).remove([path]).catch(() => {});
+        throw error;
+      }
       return data as CaseDocument;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),

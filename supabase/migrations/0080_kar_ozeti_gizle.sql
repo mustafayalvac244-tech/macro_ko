@@ -1,0 +1,18 @@
+-- İŞ VERİSİ SIZINTISI: ciro/kâr özeti her kullanıcıya açıktı.
+--
+-- BULUNAN AÇIK (canlıda doğrulandı). public.ai_kar_ozeti görünümü, giriş yapmış
+-- HERHANGİ bir kullanıcı tarafından PostgREST üzerinden okunabiliyordu:
+--     GET /rest/v1/ai_kar_ozeti  → HTTP 200
+--     [{"ay":"2026-09","istek":8,"gider_try":...,"satis_try":...,"kar_try":...}]
+-- Yani aylık istek sayısı, GİDERİMİZ, CİROMUZ ve KÂRIMIZ herkese görünüyordu.
+-- Şu an rakamlar sıfır (henüz ücretli Claude kullanımı yok) ama anahtar girilip
+-- abonelikler başlayınca bu, şirketin gelir tablosunu rakibe/kullanıcıya açmak
+-- demekti. Üstelik yetki yalnız SELECT değil, TÜM haklardı (arwdDxtm) ve anon
+-- rolü de dahildi.
+--
+-- Bu görünüm bir YÖNETİCİ metriğidir; uygulamanın yönetici paneli bunu zaten
+-- ai_kar_ozeti'nden DEĞİL, admin_ai_ozeti() RPC'sinden okuyor — o da SECURITY
+-- DEFINER ve içinde "is_admin değilse exception" kontrolü var (gövdesi
+-- okundu, doğrulandı) ve alttaki tabloları doğrudan sorguluyor. Bu yüzden
+-- görünümü kapatmak yönetici panelini BOZMAZ.
+revoke all on public.ai_kar_ozeti from anon, authenticated;

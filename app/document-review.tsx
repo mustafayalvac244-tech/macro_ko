@@ -6,12 +6,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
-import { AI_ENABLED } from '@/config/features';
+import { AI_BELGE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
+import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
+import type { AiKullanim } from '@/hooks/useAiKontor';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { formatMoney } from '@/utils/format';
 
 /** İnceleme odağı — AI'ya "neye bakayım" talimatını belirler. */
 type DocKind = 'sozlesme' | 'dilekce' | 'ihtarname' | 'karar' | 'diger';
@@ -30,11 +33,30 @@ export default function DocumentReviewScreen() {
   const [kind, setKind] = useState<DocKind>('sozlesme');
   const [text, setText] = useState('');
   const [result, setResult] = useState('');
+  // İncelemede geçip BELGEDE OLMAYAN tarihler sunucuda ayıklanıyor. Avukat
+  // bunu bilmeli: belgeyi zaten okuduğunu varsayar ve incelemedeki bir tarihi
+  // ajandasına yazabilir. Kaç tanesinin ayıklandığı, kalanları da denetlemesi
+  // gerektiğinin işaretidir.
+  const [ayiklanan, setAyiklanan] = useState(0);
+  // Uydurma kanun maddesi atfı: sunucu artık havuzla karşılaştırıp söylüyor.
+  const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  const [uydurmaTutar, setUydurmaTutar] = useState<number[]>([]);
+  // PDF'İN OKUNAMAYAN SAYFALARI (taranmış görüntü).
+  //
+  // En tehlikeli veri kaybı türü: avukat eksik olduğunu GÖREMİYOR. Resmî ücret
+  // tarifesini kendi çıkarıcımızla okurken çıktı — 19.000 karakter metin geldi,
+  // sekiz sayfanın dördü (ücret tabloları) hiç gelmedi. Sözleşmedeki ödeme
+  // planı ya da karardaki hesap tablosu da aynı şekilde sessizce düşer ve
+  // inceleme, belgenin tamamını görmüş gibi konuşur.
+  const [okunamayanSayfa, setOkunamayanSayfa] = useState<number[]>([]);
+  // Kullanım ve iade — sunucu üç modda da destekliyor.
+  const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
+  const [hakDusulmedi, setHakDusulmedi] = useState(false);
   const [busy, setBusy] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!AI_ENABLED) {
+  if (!AI_BELGE_ENABLED) {
     return <ComingSoon headerTitle={t('docrev.title')} title={t('soon.docrev')} desc={t('soon.desc')} icon="scan" />;
   }
 
@@ -61,6 +83,7 @@ export default function DocumentReviewScreen() {
       const name = (asset.name || '').toLowerCase();
 
       // Düz metin dosyasını doğrudan oku (sunucuya gitmeye gerek yok).
+      setOkunamayanSayfa([]);
       if (name.endsWith('.txt')) {
         const content = await new File(asset.uri).text();
         if (!content.trim()) {
@@ -76,13 +99,9 @@ export default function DocumentReviewScreen() {
         body: { filename: name, base64 },
       });
       if (fnErr) {
-        let code = '';
-        try {
-          const ctx = (fnErr as { context?: Response }).context;
-          if (ctx && typeof ctx.json === 'function') code = (await ctx.json())?.error ?? '';
-        } catch {
-          // gövde okunamadı
-        }
+        // Gövde okuma ortak yardımcıdan; kod eşlemesi doc-extract'e özgü.
+        const govde = await aiHataGovdesi(fnErr);
+        const code = govde.error ?? '';
         Alert.alert(
           t('docrev.title'),
           code === 'pdf_no_text'
@@ -95,7 +114,9 @@ export default function DocumentReviewScreen() {
         );
         return;
       }
-      const extracted = (data as { text?: string } | null)?.text ?? '';
+      const cikan = data as { text?: string; sayfa?: number; okunamayanSayfa?: number[] } | null;
+      const extracted = cikan?.text ?? '';
+      setOkunamayanSayfa(cikan?.okunamayanSayfa ?? []);
       if (!extracted.trim()) {
         Alert.alert(t('docrev.title'), t('docrev.fileEmpty'));
         return;
@@ -114,47 +135,37 @@ export default function DocumentReviewScreen() {
     setBusy(true);
     setError(null);
     setResult('');
+    setHakDusulmedi(false);
     try {
-      const prompt =
-        `Aşağıdaki ${t(`docrev.kind.${kind}` as const)} metnini KIDEMLİ AVUKAT gözüyle incele. ` +
-        'Şu başlıklarla, madde madde ve KISA yaz:\n' +
-        '1) ÖZET — belge ne diyor (2-3 cümle)\n' +
-        '2) RİSKLER — müvekkil aleyhine olan, tehlikeli veya tek taraflı hükümler (her biri için neden riskli)\n' +
-        '3) EKSİKLER — olması gerekip de olmayan hükümler/unsurlar\n' +
-        '4) SÜRELER VE TARİHLER — metinde geçen ya da kaçırılmaması gereken süreler\n' +
-        '5) ÖNERİLEN DEĞİŞİKLİKLER — eklenmesi/düzeltilmesi gereken madde önerileri\n' +
-        'Emin olmadığın noktada "teyit edilmeli" de; metinde olmayan bilgiyi UYDURMA.\n\n' +
-        '--- BELGE METNİ ---\n' +
-        body;
-
+      // İNCELEME İSTEMİ SUNUCUDA. Burada kurulduğu sürece iki şey mümkün
+      // değildi: incelemeyi ölçmek (ölçüm aracı istemi taklit etmek zorunda
+      // kalırdı, yani kullanıcının gördüğü çıktı ölçülmezdi) ve istemi
+      // uygulama güncellemesi olmadan iyileştirmek. Sunucu ayrıca belge
+      // türüne göre mevzuat besliyor ve incelemede geçen ama BELGEDE OLMAYAN
+      // tarihleri ayıklıyor.
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
-        body: { messages: [{ role: 'user', text: prompt }] },
+        body: { mode: 'belge', docKind: kind, question: body },
       });
       if (fnErr) {
-        let code = '';
-        try {
-          const ctx = (fnErr as { context?: Response }).context;
-          if (ctx && typeof ctx.json === 'function') code = (await ctx.json())?.error ?? '';
-        } catch {
-          // gövde okunamadı
-        }
-        setError(
-          code === 'daily_quota'
-            ? t('ai.errDailyQuota')
-            : code === 'quota_exceeded'
-              ? t('ai.errQuota')
-              : code === 'rate_limit'
-                ? t('ai.errRateLimit')
-                : t('ai.errGeneric')
-        );
+        // Hata çevirisi ORTAK: aynı mantık üç ekranda ayrı yazılınca biri
+        // güncellenip diğerleri geride kalıyordu (bkz. src/lib/aiHata.ts).
+        const govde = await aiHataGovdesi(fnErr);
+        const code = govde.error ?? '';
+        setError(aiHataMetni(govde, t));
         return;
       }
-      const reply = (data as { text?: string } | null)?.text?.trim();
+      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[] } | null;
+      const reply = yanit?.text?.trim();
       if (!reply) {
         setError(t('ai.errGeneric'));
         return;
       }
       setResult(reply);
+      setAyiklanan(Number(yanit?.ayiklananTarih ?? 0));
+      setUydurmaMadde(yanit?.uydurmaMadde ?? []);
+      setUydurmaTutar(yanit?.uydurmaTutar ?? []);
+      setKullanim(yanit?.kullanim ?? null);
+      setHakDusulmedi(!!yanit?.hakDusulmedi);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -205,6 +216,17 @@ export default function DocumentReviewScreen() {
             <Text style={styles.meta}>{t('docrev.chars', { n: text.trim().length })}</Text>
             {text.length >= MAX_CHARS && <Text style={styles.metaWarn}>{t('docrev.truncated')}</Text>}
           </View>
+          {/* Uyarı, inceleme İSTENMEDEN ÖNCE burada duruyor: eksik okunmuş bir
+              belgeyi incelemeye göndermek, eksik olduğunu sonradan öğrenmekten
+              kötüdür — avukat o ana kadar sonuca göre karar vermiş olur. */}
+          {okunamayanSayfa.length > 0 && (
+            <Text style={styles.warn}>
+              {t('docrev.scannedPages', {
+                n: String(okunamayanSayfa.length),
+                sayfalar: okunamayanSayfa.join(', '),
+              })}
+            </Text>
+          )}
 
           <Pressable
             onPress={analyze}
@@ -236,6 +258,31 @@ export default function DocumentReviewScreen() {
               </View>
               {/* selectable: avukat bulguları kopyalayıp dilekçeye taşıyabilsin */}
               <Text selectable style={styles.resultText}>{result}</Text>
+              {/* SUNUCU BUNLARI GÖNDERİYORDU, EKRAN HİÇBİRİNİ GÖSTERMİYORDU.
+                  Beş durum (uydurma madde, ayıklanan tarih, kullanım, hak
+                  düşülmedi, iade) alınıp saklanıyor ama tek biri bile
+                  çizilmiyordu; iade işlevi de yazılmış ama düğmesi yoktu.
+                  Yani belge incelemesinde avukat ne harcadığını, neyin
+                  ayıklandığını ve hakkını geri alabileceğini göremiyordu. */}
+              {uydurmaMadde.length > 0 && (
+                <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
+              )}
+              {uydurmaTutar.length > 0 && (
+                <Text style={styles.warn}>
+                  {t('ai.fakeAmounts', { tutarlar: uydurmaTutar.map((tt) => formatMoney(tt)).join(', ') })}
+                </Text>
+              )}
+              {ayiklanan > 0 && (
+                <Text style={styles.warn}>{t('dlk.scrubbedDates', { n: String(ayiklanan) })}</Text>
+              )}
+              {!!kullanim && (
+                <Text style={styles.usage}>
+                  {kullanim.maliyetTL > 0
+                    ? t('ai.usageCost', { token: String(kullanim.girdiToken + kullanim.ciktiToken), tl: kullanim.maliyetTL.toFixed(2) })
+                    : t('ai.usageFree', { token: String(kullanim.girdiToken + kullanim.ciktiToken) })}
+                </Text>
+              )}
+              {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
               <Text style={styles.disclaimer}>{t('docrev.disclaimer')}</Text>
             </View>
           )}
@@ -247,6 +294,19 @@ export default function DocumentReviewScreen() {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
+  usage: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  warn: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.warning,
+    marginTop: spacing.sm,
+  },
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,

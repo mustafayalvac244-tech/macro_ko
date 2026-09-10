@@ -4,63 +4,132 @@
 //   supabase functions deploy ai-chat
 //   supabase secrets set GEMINI_API_KEY=...
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import Anthropic from 'npm:@anthropic-ai/sdk';
+// SÜRÜM SABİT. Sabitlenmemiş bir bağımlılık, sessizce bozulan bir yoldur:
+// Gemini yedeği tam bu sınıftan bir sebeple (emekliye ayrılmış model adı)
+// aylarca ölü kaldı ve kimse fark etmedi. Ücretli hattı aynı riske
+// bırakmıyoruz — sürüm yükseltmesi bilinçli bir karar olsun.
+import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
+// Dilekçe iskeleti ve belge türleri ayrı dosyada: orası saf mantık ve TESTLİ
+// (tests/dilekceIskelet.test.ts). Uç işlevinin içindeyken sınanamıyordu.
+import {
+  BELGE_TURU,
+  bloklarTarifi,
+  bloklariAyristir,
+  dilekceyiDiz,
+  hesaplananTarihler,
+  iskeletSec,
+  talepUyarilari,
+  uydurmaTarihleriAyikla,
+  uydurmaTutarlariBul,
+} from '../_shared/dilekce.ts';
+// Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
+// ayrılmıştı (bkz. _shared/katman.ts).
+import { overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
+// Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
+// çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
+import { beslemeyiKirp, kuralBasliklari } from '../_shared/besleme.ts';
+import { costTry, PRICING, USD_TRY } from '../_shared/fiyat.ts';
+// Aylık ve günlük sayaç anahtarları ORTAK dosyada (_shared/kullanim.ts). Bu uçta
+// da kendi kopyası vardı: ortak dosya tam bu kopyayı gidermek için yazılmıştı ama
+// ictihat'e bağlanıp burası unutulmuştu — yani "tek kaynak" yarım kalmıştı.
+// İki ucun dönem anahtarı ayrışırsa aynı kullanıcı iki ayrı satıra yazılır ve
+// hem günlük hak hem aylık tavan olduğundan geniş davranır.
+import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
+// Uydurma madde atfı denetimi ORTAK dosyada (_shared/atif.ts). Ayıklayıcı bugüne
+// kadar yalnız ölçüm betiğinde vardı: ölçüyor ama korumuyorduk.
+import { maddeAtiflari } from '../_shared/atif.ts';
+// Dosyaya giren kuralın cevapta işlenip işlenmediği (_shared/kural.ts). Ölçülen
+// iki mütalaa kusurunun ikisi de "kural dosyadaydı, model yok saydı"ydı.
+import { atlananKurallar, cakisanDayanaklar } from '../_shared/kural.ts';
+// Belgeden okunan künye, belgede karşılığı yoksa atılır (_shared/kunye.ts):
+// uydurma esas numarası dosyayı yanlış açar ve dolu göründüğü için denetlenmez.
+import { kunyeDogrula, type Kunye } from '../_shared/kunye.ts';
+
+/** Dosyaya giren bir kural: metni ve atlandığını gösteren ayırt edici terimler. */
+interface BeslenenKural {
+  metin: string;
+  terimler: string[];
+}
 
 // Kademeli AI: Basic üyelik hızlı/ucuz Flash; Plus üyelik güçlü Pro + kendi
 // içtihat havuzumuzla besleme (RAG). Modeller env ile geçersiz kılınabilir.
-const MODEL_BASIC = Deno.env.get('VEKIL_MODEL_BASIC') || 'gemini-2.0-flash';
-const MODEL_PLUS = Deno.env.get('VEKIL_MODEL_PLUS') || 'gemini-2.5-pro';
+// MODEL_BASIC (gemini-2.5-flash) KALDIRILDI: hiçbir katmanın birincil
+// sağlayıcısı Gemini değil. Gemini yalnız ÜCRETSİZ HATTIN YEDEĞİ ve o yol
+// GEMINI_FALLBACK_MODEL'i kullanıyor. Okunmayan bir yapılandırma anahtarı
+// zararsız değildir: sonraki okuyucu onun hâlâ etkili olduğunu sanır.
+// Groq kotası bittiğinde kullanılan yedek.
+//
+// YEDEK YOLU SESSİZCE ÖLÜYDÜ: kod 'gemini-2.0-flash' istiyordu, o model
+// emekliye ayrılmış ve geçerli anahtarla bile 404 dönüyordu. Yani kota bitince
+// asistan susmakla kalmıyor, "yedeği var" sanılan bir yol da hiç çalışmıyordu.
+//
+// Sabit sürüm tercih edilirdi ama bu anahtar için mümkün değil: gemini-2.5-flash
+// gibi sabit adlar "yeni kullanıcılara kapalı" diye 404 veriyor. Adaylar tek tek
+// denendi, çalışan tek ad 'gemini-flash-latest' çıktı. Takma ad olduğu için
+// Google sürümü haber vermeden değiştirebilir; ai-saglik ucu tam bu yüzden var.
+const GEMINI_FALLBACK_MODEL = Deno.env.get('VEKIL_GEMINI_YEDEK') || 'gemini-flash-latest';
+// MODEL_PLUS (gemini-2.5-pro) KALDIRILDI: Pro/Elit katmanları artık Claude'a
+// gidiyor, o sabit hiçbir yerden okunmuyordu. Okunmayan bir yapılandırma
+// anahtarı zararsız değildir — sonraki okuyucu onun hâlâ etkili olduğunu sanır.
+// Fiyat tablosundaki gemini-2.5-pro satırı DURUYOR: VEKIL_ZORLA_MODEL ile
+// karşılaştırma koşusu yapıldığında maliyet doğru hesaplansın.
 const EMBED_MODEL = 'text-embedding-004';
-
 // ── AI maliyet ölçümü + katman tavanı (batma koruması) ──────────────────────
-const USD_TRY = Number(Deno.env.get('VEKIL_USD_TRY') || '42');
-const PRICING: Record<string, { in: number; out: number }> = {
-  'gemini-2.0-flash': { in: 0.15, out: 0.60 }, // USD / 1M token (temkinli)
-  'gemini-2.5-pro': { in: 1.25, out: 10.0 },
-  'claude-sonnet-5': { in: 2.0, out: 10.0 },
-};
-// AI katmanı: Claude Sonnet 5. Model env ile deploy'suz değiştirilebilir.
+// Fiyat tablosu ve maliyet hesabı ORTAK dosyada (_shared/fiyat.ts): iki uçta
+// ayrı yazıldığı için ayrışmıştı ve para hesabında ayrışma sessizce ya
+// kullanıcıdan fazla alır ya bizi zarara sokar.
+
+// KÂR KATSAYISI. İş kuralı: her istekte bir birim sağlayıcıya gider, iki birim
+// kâr kalır — yani kullanıcıdan alınan ücret, bize mal olanın ÜÇ KATI (marj
+// %66,7). Katsayı env ile değiştirilebilir; fiyat kararı koda gömülü kalmasın.
+//
+// Ölçülen maliyetler ve karşılık gelen ücretler (Sonnet 5, 1 USD = 42 TL):
+//   sohbet sorusu ~1,00 TL → 3,00 TL     dilekçe ~1,90 TL → 5,70 TL
+//   belge inceleme ~1,30 TL → 3,90 TL    mütalaa ~4,50 TL → 13,50 TL
+const KAR_KATSAYISI = Number(Deno.env.get('VEKIL_KAR_KATSAYISI') || '3');
+
+// Bir isteğe başlamak için gereken en az bakiye (TL). En pahalı istek mütalaa:
+// ücreti ~13,50 TL. Eşik onun üstünde tutuluyor ki yarım kalan bir mütalaa
+// yüzünden kullanıcı eksiye düşmesin ve bunu ona iş bittikten sonra söylemek
+// zorunda kalmayalım.
+const KONTOR_ESIGI = Number(Deno.env.get('VEKIL_KONTOR_ESIGI') || '15');
+// Claude anahtarı yokken düşülen Groq yedek yolunda kullanılır. Model env ile
+// deploy'suz değiştirilebilir.
 const CLAUDE_MODEL = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
+// "ai" katmanının ve deneme hakkının kullandığı GERÇEK ücretli model.
+const CLAUDE_OPUS_MODEL = Deno.env.get('VEKIL_CLAUDE_OPUS_MODEL') || 'claude-opus-5';
 // Groq, llama-3.3-70b-versatile'ı 17.06.2026'da kullanımdan kaldırdı (404
 // model_not_found → tüm AI katmanları çöktü). Resmî önerilen halef: gpt-oss-120b.
 // Model env (VEKIL_GROQ_MODEL) ile deploy'suz değiştirilebilir.
 const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b';
-interface TierCfg { provider: 'gemini' | 'groq' | 'claude'; model: string; billable: boolean; limitKind: 'calls' | 'cost'; limit: number; maxOut: number }
-function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { tier: string; cfg: TierCfg } {
-  const t = aiTier || 'baslangic'; // lansman: herkes Groq (bedava); billing gelince pro/elit elle atanır
-  const table: Record<string, TierCfg> = {
-    // Ücretsiz katmanlar Groq (bedava, Türkiye'den çalışır); Pro/Elit Gemini (faturalı, güçlü).
-    free: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 20, maxOut: 1024 },
-    // maxOut 1024 dilekçe/ihtarname taslağını ortasında kesiyordu (kalite şikayeti);
-    // 2048 tam bir taslağa yetiyor.
-    baslangic: { provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 500, maxOut: 2048 },
-    pro: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 450, maxOut: 2048 },
-    elit: { provider: 'gemini', model: MODEL_PLUS, billable: true, limitKind: 'cost', limit: 1500, maxOut: 4096 },
-    // AI KATMANI (1.999 TL/ay) — Claude Sonnet 5.
-    // Tavan 1.250 TL: ~%71 marj bırakır ve tek bir aşırı kullanıcının aylık
-    // faturayı patlatmasını engeller. Aşınca 402 quota_exceeded döner.
-    ai: { provider: 'claude', model: CLAUDE_MODEL, billable: true, limitKind: 'cost', limit: 1250, maxOut: 4096 },
-  };
-  const cfg = table[t] ?? table.free;
-  // Claude anahtarı yoksa AI katmanı ücretsiz Groq'a düşer (ödeyen üye boş
-  // ekran görmesin). Anahtar eklenince otomatik Claude'a geçer, deploy gerekmez.
-  if (cfg.provider === 'claude' && !Deno.env.get('ANTHROPIC_API_KEY')) {
-    return {
-      tier: t,
-      cfg: { ...cfg, provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: 4000 },
-    };
-  }
-  // Google faturalandırması AÇILANA KADAR Pro/Elit de Groq'ta çalışır. Aksi
-  // hâlde ödeyen üye Gemini'nin kotasız (429) anahtarına düşüp bozuk deneyim
-  // yaşardı. Billing açılınca AI_PRO_PROVIDER=gemini secret'ı yeter, deploy gerekmez.
-  if (cfg.provider === 'gemini' && (Deno.env.get('AI_PRO_PROVIDER') ?? 'groq') !== 'gemini') {
-    return {
-      tier: t,
-      cfg: { ...cfg, provider: 'groq', model: GROQ_MODEL, billable: false, limitKind: 'calls', limit: t === 'elit' ? 4000 : 1500 },
-    };
-  }
-  return { tier: t, cfg };
-}
+// GÜNLÜK TAVAN MODEL BAŞINA AYRI. gpt-oss-120b'nin 200.000 token'ı bittiğinde
+// asistan tamamen susuyordu; oysa aynı anahtarla çalışan DİĞER modellerin
+// kotası hâlâ açık. Ölçüm günü boyunca yaşanan şey buydu: saatlerce "kota
+// doldu" beklendi, yanı başında kullanılabilir kapasite duruyordu.
+//
+// Adaylar sağlayıcıdan SORULARAK belirlendi (ai-saglik, groq_modelleri), tahmin
+// edilmedi: Gemini'de model adını tahmin etmenin bedeli, yedeğin aylarca ölü
+// kalması olmuştu. Ses/sınıflandırma modelleri (whisper, prompt-guard) ve araç
+// çağıran bileşik sistemler (compound) listeye ALINMADI — farklı iş yaparlar.
+//
+// SIRA KALİTEYE GÖRE. Yedek model, birincisi kadar iyi olmayabilir; bu yüzden
+// hangi modelin cevapladığı yanıtta bildirilir ve kullanım kaydına yazılır.
+// "Zayıf modelle cevap" ile "hiç cevap yok" arasında seçim yapıyoruz: avukat
+// için ikincisi her zaman daha kötüdür.
+// OpenAI, Groq ile AYNI protokolü konuşuyor (chat/completions). Bu yüzden ayrı
+// bir istemciye gerek yok: aynı işlev, farklı taban adres ve anahtarla çalışır.
+// Buradaki amaç bugün OpenAI'ye geçmek değil, ÖLÇEBİLMEK: anahtar geldiği gün
+// aynı on senaryoyu Sonnet ve gpt-5-mini ile koşup "ucuz model yetiyor mu"
+// sorusunu tahminle değil ölçümle cevaplayabilelim.
+const OPENAI_MODEL = Deno.env.get('VEKIL_OPENAI_MODEL') || 'gpt-5-mini';
+
+const GROQ_ADAYLAR: string[] = (Deno.env.get('VEKIL_GROQ_ADAYLAR') || '')
+  .split(',')
+  .map((x) => x.trim())
+  .filter(Boolean);
+const GROQ_ZINCIR = GROQ_ADAYLAR.length
+  ? GROQ_ADAYLAR
+  : [GROQ_MODEL, 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'];
 /**
  * Claude (Anthropic) sohbet çağrısı — ücretli AI katmanı.
  *
@@ -71,21 +140,37 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean): { ti
  * geçersiz kılardı (caching bir ön-ek eşleşmesidir).
  */
 async function claudeChat(
-  stableSystem: string,
+  // KATMANLI ÖNBELLEK. Dizi verilirse her katman AYRI bir önbellek kesme
+  // noktası alır: [SYSTEM_PROMPT, mod talimatı] gibi. Böylece SYSTEM_PROMPT
+  // TÜM modlarda ortak bir girdi olarak paylaşılırken, mod talimatı da aynı
+  // moddaki isteklerde yeniden faturalanmaz. Tek string eskisi gibi çalışır.
+  stableSystem: string | string[],
   groundingSystem: string,
   msgs: Array<{ role: 'user' | 'model'; text: string }>,
   maxTokens: number,
-  apiKey: string
+  apiKey: string,
+  // MODEL DIŞARIDAN GELİR. Önce CLAUDE_MODEL sabiti doğrudan kullanılıyordu ve
+  // bu, VEKIL_ZORLA_MODEL ölçüm anahtarını SESSİZCE etkisiz bırakıyordu:
+  // "opus ile ölç" denildiğinde istek yine Sonnet'e gidiyor, maliyet ise
+  // opus fiyatından işleniyordu. Yani karşılaştırma koşusu, ölçtüğünü sandığı
+  // modeli hiç ölçmüyordu — Gemini yedeğindeki sessiz ölüm hatasının aynısı.
+  model: string
 ): Promise<{ text: string; tin: number; tout: number }> {
   const client = new Anthropic({ apiKey });
-  const system: Array<Record<string, unknown>> = [
-    { type: 'text', text: stableSystem, cache_control: { type: 'ephemeral' } },
-  ];
+  // Anthropic en fazla 4 kesme noktası kabul eder; boş katmanlar atlanır.
+  const katmanlar = (Array.isArray(stableSystem) ? stableSystem : [stableSystem])
+    .filter((k) => k.trim())
+    .slice(0, 4);
+  const system: Array<Record<string, unknown>> = katmanlar.map((k) => ({
+    type: 'text',
+    text: k,
+    cache_control: { type: 'ephemeral' },
+  }));
   if (groundingSystem.trim()) system.push({ type: 'text', text: groundingSystem });
 
   try {
     const res = await client.messages.create({
-      model: CLAUDE_MODEL,
+      model,
       max_tokens: maxTokens,
       thinking: { type: 'adaptive' },
       system: system as never,
@@ -96,48 +181,351 @@ async function claudeChat(
     });
     // Güvenlik reddi: içerik okunmadan önce stop_reason kontrol edilmeli.
     if (res.stop_reason === 'refusal') throw new Error('refusal');
-    const text = res.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
+    // Blok tipi YAPISAL yazılıyor, Anthropic.TextBlock ile değil: tsc, Deno'nun
+    // 'npm:' içe aktarmalarını çözemediği için o ad uzayı burada yok ve tek bir
+    // çözülemeyen tip, tip denetiminin tamamını gürültüye çevirir (bu dosyada
+    // aylarca hiç denetim yoktu, bkz. deno-shim.d.ts).
+    const text = (res.content as Array<{ type: string; text?: string }>)
+      .filter((b) => b.type === 'text')
+      .map((b) => b.text ?? '')
       .join('');
     const u = res.usage;
     // Önbellek okuması da girdi sayılır (ucuz olsa da ölçüme dahil edilir).
     const tin = (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+    // Ücretli hat da durum tablosuna yazar: sağlık raporu, ücretsiz sağlayıcılar
+    // için yoklamanın yalan söylediğini gerçek çağrılardan öğrenmişti; para
+    // ödeyen katmanı bu görünürlükten mahrum bırakmak tutarsız olurdu.
+    void durumYaz('claude', 'ok', undefined, model);
     return { text, tin, tout: u.output_tokens ?? 0 };
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) throw new Error('rate_limit');
-    if (e instanceof Anthropic.AuthenticationError) throw new Error('not_configured');
-    if ((e as Error).message === 'refusal') throw e;
-    throw new Error('upstream');
+    let sonuc = 'upstream';
+    if (e instanceof Anthropic.RateLimitError) sonuc = 'rate_limit';
+    else if (e instanceof Anthropic.AuthenticationError) sonuc = 'not_configured';
+    else if ((e as Error).message === 'refusal') sonuc = 'refusal';
+    void durumYaz('claude', sonuc, (e as Error).message, model);
+    // Güvenlik reddi bir ARIZA DEĞİLDİR; olduğu gibi yukarı taşınır ki
+    // başka bir sağlayıcıyla dolanılmasın.
+    if (sonuc === 'refusal') throw e;
+    throw new Error(sonuc);
   }
 }
 
+/**
+ * Ücretli katman çağrısı — Claude düşerse ÜCRETSİZ hatta iner.
+ *
+ * NEDEN. Para ödeyen avukat, hiçbir koşulda ücretsiz kullanıcıdan kötü durumda
+ * olmamalı. Claude'a bir arıza ya da anlık sınır çarptığında eski davranış
+ * doğrudan mevzuat özetine düşmekti; oysa yanında çalışan Groq/Gemini duruyordu.
+ * Bir Groq cevabı, madde listesinden iyidir.
+ *
+ * Yedeğe DÜŞÜLDÜĞÜNDE FATURA KESİLMEZ: dönen `faturali=false` ile maliyet
+ * sayacı işlemez. Aksi hâlde ücretsiz modelin cevabı Claude fiyatından
+ * (bilinmeyen model → en pahalı tarife) işlenir ve kullanıcının aylık tavanını
+ * hak etmediği hâlde tüketirdi.
+ *
+ * Güvenlik reddi yedeğe geçirmez: reddi başka sağlayıcıyla dolanmak, kararı
+ * yok saymak olur.
+ */
+async function ucretliChat(
+  stableSystem: string | string[],
+  groundingSystem: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number,
+  apiKey: string,
+  model: string
+): Promise<{ text: string; tin: number; tout: number; model: string; faturali: boolean }> {
+  let ilkHata: Error | null = null;
+  try {
+    const r = await claudeChat(stableSystem, groundingSystem, msgs, maxTokens, apiKey, model);
+    if (r.text.trim()) return { ...r, model, faturali: true };
+    ilkHata = new Error('empty');
+  } catch (e) {
+    if ((e as Error).message === 'refusal') throw e;
+    ilkHata = e as Error;
+  }
+  try {
+    const duz = Array.isArray(stableSystem) ? stableSystem.join('') : stableSystem;
+    const y = await ucretsizChat(duz + groundingSystem, msgs, maxTokens);
+    return { ...y, faturali: false };
+  } catch {
+    // Her iki hat da düştüyse ÜCRETLİ hattın hatası bildirilir: kullanıcının
+    // ödediği katman odur ve "rate_limit" ile "daily_quota" farklı şeyler
+    // yapılmasını gerektirir.
+    throw ilkHata;
+  }
+}
+
+/**
+ * Gemini sohbet çağrısı — Groq'un günlük kotası bittiğinde devreye giren YEDEK.
+ *
+ * NEDEN YEDEK GEREKLİ. Groq'un ücretsiz katmanında günlük token tavanı var ve
+ * dolduğunda asistan TAMAMEN susuyordu: kullanıcı 429 görüyor, ertesi güne
+ * kadar hiçbir soru yanıtlanmıyordu. Para ödeyen bir avukat için bu, ürünün o
+ * gün yok olması demektir. Gemini anahtarı zaten tanımlıydı ve hiç
+ * kullanılmıyordu — tek eksik, eskimiş model adı yüzünden 404 dönmesiydi.
+ */
+async function geminiChat(
+  system: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number,
+  apiKey: string,
+  model: string
+): Promise<{ text: string; tin: number; tout: number }> {
+  // DÜŞÜNME TOKEN'LARI ÇIKTI BÜTÇESİNİ YİYOR. Gemini 2.5 ailesinde model,
+  // cevaptan önce "düşünme" üretir ve bu token'lar maxOutputTokens'tan düşer:
+  // 3.000'lik bütçenin çoğu düşünmeye gidince geriye yarım bir taslak kalır.
+  // Ölçümde tam bu görüldü — bir cevap dilekçesi 806 karakterde bitti,
+  // DELİLLER ve NETİCE-İ TALEP hiç yazılmadı. Yarım dilekçe, avukat için hiç
+  // üretilmemiş dilekçeden kötüdür: eksikliği fark etmeyip kullanabilir.
+  //
+  // Burada istenen düşünme değil, verilen madde metnini doğru aktarmak; bütçe
+  // tamamen cevaba ayrılıyor.
+  const govdeYap = (dusunmeKapali: boolean) => JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: msgs.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
+    // Groq yolundaki ölçümle aynı gerekçe: burada istenen yaratıcılık değil,
+    // verilen madde metnini doğru aktarmak.
+    generationConfig: dusunmeKapali
+      ? { temperature: 0.1, maxOutputTokens: maxTokens, thinkingConfig: { thinkingBudget: 0 } }
+      : { temperature: 0.1, maxOutputTokens: maxTokens },
+  });
+  const yolla = (dusunmeKapali: boolean) => fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: govdeYap(dusunmeKapali) }
+  );
+
+  let res = await yolla(true);
+  // HER MODEL thinkingConfig KABUL ETMEZ ve etmeyen 400 döner. Yedek yolu bir
+  // iyileştirme yüzünden tamamen kaybetmek, iyileştirmeden çok daha pahalıdır:
+  // 400 alınca düşünme ayarı olmadan bir kez daha denenir.
+  if (res.status === 400) res = await yolla(false);
+  if (!res.ok) {
+    // SEBEP KAYBOLMASIN. Google'ın 429'u iki bambaşka şey olabilir: dakikalık
+    // istek/token sınırı (bir dakika sonra tekrar denenebilir) ya da GÜNLÜK
+    // istek kotası (yarına kadar bu yol kapalı). İkisini de "rate_limit" diye
+    // kaydetmek, operatörü "birazdan düzelir" diye bekletiyordu; ölçüm
+    // koşuları tam bu belirsizlik yüzünden saatlerce boşa planlandı.
+    // Gövde durum kaydına yazılır (kullanıcıya değil): quotaId/quota_metric
+    // alanı hangisi olduğunu söyler.
+    const govde = await res.text().catch(() => '');
+    const gunluk = /PerDay|per day|GenerateRequestsPerDay/i.test(govde);
+    const hata = new Error(res.status === 429 ? (gunluk ? 'daily_quota' : 'rate_limit') : 'upstream');
+    (hata as Error & { ayrinti?: string }).ayrinti = govde.slice(0, 500);
+    throw hata;
+  }
+  const data = await res.json();
+  const text = (data.candidates?.[0]?.content?.parts ?? [])
+    .map((p: { text?: string }) => p.text ?? '')
+    .join('');
+  const um = data.usageMetadata ?? {};
+  return { text, tin: um.promptTokenCount ?? 0, tout: um.candidatesTokenCount ?? 0 };
+}
+
+/**
+ * OpenAI çağrısı — Groq ile aynı protokol, farklı taban adres ve anahtar.
+ * Ayrı bir istemci yazmak, aynı hatayı iki yerde düzeltmek olurdu.
+ */
+async function openaiChat(
+  system: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number,
+  apiKey: string,
+  model: string
+): Promise<{ text: string; tin: number; tout: number }> {
+  return groqChat(system, msgs, maxTokens, apiKey, model, 'https://api.openai.com/v1');
+}
+
+/**
+ * Ücretsiz katman çağrısı: önce Groq, kota biterse Gemini.
+ *
+ * YEDEĞE YALNIZ KOTA/SAĞLAYICI ARIZASINDA geçilir. Modelin verdiği kötü bir
+ * cevap için ikinci sağlayıcı denenmez — o, aynı soruyu iki kez faturalandırır
+ * ve iki farklı cevabın hangisinin doğru olduğunu bilemeyiz.
+ */
+/**
+ * Gerçek çağrının sonucunu kaydeder. Sağlık yoklaması 1 token'lık istek
+ * gönderir ve GÜNLÜK TOKEN tavanı dolmuşken bile geçebilir; yani yoklama,
+ * hizmet veremeyen bir sağlayıcıyı "ayakta" gösterebiliyordu. Tek doğru
+ * gösterge, gerçek isteğin sonucudur. Hata yutulur: durum kaydı tutulamadı
+ * diye kullanıcının cevabı engellenmez.
+ */
+/**
+ * Sağlayıcının hata gövdesinden "ne kadar sonra tekrar dene" bilgisini çıkarır.
+ *
+ * NEDEN ÖNEMLİ. Groq'un kotası GÜNLÜK değil KAYAN pencereyle yenileniyor ve
+ * gövdede bunu yazıyor: "Please try again in 22m36.912s". Biz kullanıcıya
+ * "günlük kota bitti, yarın yenilenir" diyorduk — yani avukatı 23 dakika
+ * beklemesi gerekirken ertesi güne yolluyorduk. Ücretli bir üründe bu, o gün
+ * için ürünün yok olması demekti; oysa kısa bir bekleme yetiyordu.
+ *
+ * Saniye döner; okunamazsa 0.
+ */
+function beklemeSaniye(ayrinti?: string): number {
+  if (!ayrinti) return 0;
+  const m = ayrinti.match(/try again in\s+(?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?/i);
+  if (!m) return 0;
+  const s = Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Math.ceil(Number(m[3] ?? 0));
+  return Number.isFinite(s) && s > 0 ? s : 0;
+}
+
+async function durumYaz(saglayici: string, sonuc: string, hata?: string, model?: string): Promise<void> {
+  try {
+    const s = svc();
+    if (!s) return;
+    await s.rpc('ai_durum_yaz', {
+      p_saglayici: saglayici,
+      p_sonuc: sonuc,
+      p_hata: hata ?? null,
+      // Hangi model cevapladı: Groq'ta günlük tavan model başına ayrı olduğu
+      // için yedeğe inilebiliyor ve rapor "ok" derken kalite değişmiş olabilir.
+      p_model: model ?? null,
+    });
+  } catch { /* durum kaydı ikincil bilgidir */ }
+}
+
+async function ucretsizChat(
+  system: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number,
+  /**
+   * Denenmeyecek modeller. Güdük bir taslak üreten modeli ikinci denemede
+   * atlamak için kullanılır (bkz. dilekçe modundaki yeniden deneme): aynı
+   * modele aynı isteği tekrar sormak, aynı güdük cevabı almanın pahalı yolu.
+   */
+  atla: string[] = []
+): Promise<{ text: string; tin: number; tout: number; model: string }> {
+  const groqKey = Deno.env.get('GROQ_API_KEY') ?? '';
+  const gemKey = Deno.env.get('GEMINI_API_KEY') ?? '';
+  let ilkHata: Error | null = null;
+
+  // Yedek yolunun GERÇEKTEN çalıştığı ancak kota bittiğinde anlaşılır — yani
+  // tam da denenemeyecek anda. Bu anahtar, yedeği kota beklemeden sınamayı
+  // sağlar. Üretimde tanımlı değildir; tanımlıysa Groq hiç denenmez.
+  const yedegiZorla = Deno.env.get('VEKIL_YEDEK_ZORLA') === '1';
+
+  if (groqKey && !yedegiZorla) {
+    // MODELLER TEK TEK DENENİR. Günlük tavan model başına ayrı olduğu için
+    // birincinin kotası bitmişken ikincininki açık olabilir. Yalnız KOTA/
+    // YOĞUNLUK hatasında sıradakine geçilir: 'empty' ya da beklenmedik bir
+    // arıza, aynı isteği üç kez faturalandırıp aynı sonucu almak demek olurdu.
+    for (const model of GROQ_ZINCIR) {
+      if (atla.includes(model)) continue;
+      try {
+        const r = await groqChat(system, msgs, maxTokens, groqKey, model);
+        if (r.text.trim()) {
+          void durumYaz('groq', 'ok', undefined, model);
+          return { ...r, model };
+        }
+        if (!ilkHata) ilkHata = new Error('empty');
+        void durumYaz('groq', 'empty', undefined, model);
+        break;
+      } catch (e) {
+        const msg = (e as Error).message;
+        if (!ilkHata) ilkHata = e as Error;
+        void durumYaz('groq', msg, (e as Error & { ayrinti?: string }).ayrinti, model);
+        // Kota, yoğunluk ve "isteğe sığmıyor" hâllerinde sıradaki model
+        // denenir; bunlar MODELE ÖZGÜ sınırlardır. Başka bir hata sağlayıcının
+        // genel arızasıdır ve sırayı denemek zaman kaybı olur — doğrudan
+        // Gemini'ye geçilir.
+        if (msg !== 'daily_quota' && msg !== 'rate_limit' && msg !== 'too_large') break;
+      }
+    }
+  }
+  if (gemKey) {
+    try {
+      const r = await geminiChat(system, msgs, maxTokens, gemKey, GEMINI_FALLBACK_MODEL);
+      if (r.text.trim()) {
+        void durumYaz('gemini', 'ok', undefined, GEMINI_FALLBACK_MODEL);
+        return { ...r, model: GEMINI_FALLBACK_MODEL };
+      }
+      void durumYaz('gemini', 'empty', undefined, GEMINI_FALLBACK_MODEL);
+    } catch (e) {
+      void durumYaz('gemini', (e as Error).message, (e as Error & { ayrinti?: string }).ayrinti, GEMINI_FALLBACK_MODEL);
+      // Yedek de düştüyse İLK hatayı bildiriyoruz: kullanıcıya "günlük kota
+      // bitti" demek, "ağ hatası" demekten daha doğru ve daha yararlıdır.
+      if (!ilkHata) ilkHata = e as Error;
+    }
+  }
+  throw ilkHata ?? new Error('upstream');
+}
+
 /** Groq (OpenAI uyumlu) sohbet çağrısı — ücretsiz katman. */
-async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; text: string }>, maxTokens: number, apiKey: string): Promise<{ text: string; tin: number; tout: number }> {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+/**
+ * OpenAI uyumlu sohbet çağrısı — Groq ve OpenAI aynı protokolü konuşuyor.
+ *
+ * Tek işlev iki sağlayıcıya yetiyor: fark yalnız taban adres ve anahtar. Ayrı
+ * bir istemci yazmak, aynı hatayı iki yerde düzeltmek demek olurdu.
+ */
+async function groqChat(
+  system: string,
+  msgs: Array<{ role: 'user' | 'model'; text: string }>,
+  maxTokens: number,
+  apiKey: string,
+  model: string = GROQ_MODEL,
+  taban = 'https://api.groq.com/openai/v1'
+): Promise<{ text: string; tin: number; tout: number }> {
+  const govde = (sicaklikli: boolean) => JSON.stringify({
+    model,
+    messages: [{ role: 'system', content: system }, ...msgs.map((m) => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))],
+    // ÖLÇÜLDÜ: 0.4'te aynı soru koşudan koşuya farklı kalitede cevaplanıyordu
+    // — bir koşuda süreyi doğru veren cevap, diğerinde süreyi hiç yazmadı.
+    // Burada modelden istenen yaratıcılık değil, verilen madde metnini doğru
+    // aktarmak; yüksek sıcaklık hem tutarsızlık hem uydurma sayı üretiyor.
+    ...(sicaklikli ? { temperature: 0.1 } : {}),
+    max_tokens: maxTokens,
+  });
+  const yolla = (sicaklikli: boolean) => fetch(`${taban}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      messages: [{ role: 'system', content: system }, ...msgs.map((m) => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))],
-      temperature: 0.4,
-      max_tokens: maxTokens,
-    }),
+    body: govde(sicaklikli),
   });
+
+  let res = await yolla(true);
+  // BAZI MODELLER SICAKLIK KABUL ETMEZ ve 400 döner (akıl yürüten modellerde
+  // sık). Sıcaklık bir iyileştirmedir, olmazsa olmaz değil: onun yüzünden
+  // sağlayıcıyı büsbütün kaybetmek çok daha pahalıya gelir. Aynı savunma
+  // Gemini'nin düşünme ayarında da var.
+  if (res.status === 400) res = await yolla(false);
   if (!res.ok) {
     if (res.status === 429) {
       // Groq'un günlük token kotası (TPD) mı yoksa anlık yoğunluk (per-minute) mı?
       // Günlük bitmişse kullanıcıya "yarın yenilenir" demeliyiz, "birazdan dene" değil.
       let daily = false;
+      let govde = '';
       try {
-        const b = await res.text();
-        daily = /per\s*day|tokens per day|daily|günde|gün içinde/i.test(b);
+        govde = await res.text();
+        daily = /per\s*day|tokens per day|daily|günde|gün içinde/i.test(govde);
       } catch {
         // gövde okunamazsa anlık yoğunluk varsay
       }
-      throw new Error(daily ? 'daily_quota' : 'rate_limit');
+      // Gövde durum kaydına taşınır: "ne zaman açılır" sorusunun cevabı
+      // (kalan süre, hangi kota) yalnız orada yazıyor.
+      const hata = new Error(daily ? 'daily_quota' : 'rate_limit');
+      (hata as Error & { ayrinti?: string }).ayrinti = govde.slice(0, 500);
+      throw hata;
     }
-    throw new Error('upstream');
+    // İSTEK MODELE SIĞMIYOR (413). Groq'ta DAKİKALIK token tavanı da model
+    // başına ayrı: gpt-oss-20b'nin tavanı 8.000 ve bizim dilekçe isteğimiz
+    // 8.003 token — üç token yüzünden o model bizim işimizi HİÇBİR ZAMAN
+    // yapamaz. Bu bir "yoğunluk" değil, kalıcı uyumsuzluk: beklemek çözmez,
+    // sıradaki modele geçmek çözer. Ayrı bir sınıf olarak işaretleniyor ki
+    // zincir bu modelde durmasın ve durum kaydında sebebi görünsün.
+    if (res.status === 413) {
+      const govde413 = await res.text().catch(() => '');
+      const h = new Error('too_large');
+      (h as Error & { ayrinti?: string }).ayrinti = govde413.slice(0, 500);
+      throw h;
+    }
+    // 429 DIŞINDAKİ HATANIN SEBEBİ DE KAYBOLMASIN. Önce burada çıplak bir
+    // 'upstream' fırlatılıyordu: durum tablosuna yalnız "upstream" yazılıyor,
+    // HTTP kodu ve gövde uçuyordu. Ölçüm sırasında iki sağlayıcı birden
+    // düştüğünde elimizde tek kelime kaldı ve arızanın Groq'ta mı bizde mi
+    // olduğu söylenemedi. Gemini yedeğinin aylarca ölü kalması da tam bu
+    // körlükten olmuştu.
+    const govde = await res.text().catch(() => '');
+    const hata = new Error('upstream');
+    (hata as Error & { ayrinti?: string }).ayrinti = `HTTP ${res.status} ${govde.slice(0, 400)}`;
+    throw hata;
   }
   const j = await res.json();
   const text = j.choices?.[0]?.message?.content ?? '';
@@ -145,17 +533,13 @@ async function groqChat(system: string, msgs: Array<{ role: 'user' | 'model'; te
   return { text, tin: u.prompt_tokens ?? 0, tout: u.completion_tokens ?? 0 };
 }
 // Faturalı katman ana anahtar; ücretsiz katman ayrı ücretsiz anahtar (yoksa ana).
-function aiKey(billable: boolean): string | undefined {
-  if (billable) return Deno.env.get('GEMINI_API_KEY') ?? undefined;
+/**
+ * Gemini anahtarı. Gemini artık FATURALI bir katmanın sağlayıcısı değil; yalnız
+ * ücretsiz hattın yedeği. Bu yüzden "faturalıysa başka anahtar" ayrımı kalktı:
+ * ayrım, olmayan bir kullanım için tutuluyordu ve okuyanı yanıltıyordu.
+ */
+function aiKey(): string | undefined {
   return Deno.env.get('GEMINI_FREE_KEY') || Deno.env.get('GEMINI_API_KEY') || undefined;
-}
-function costTry(model: string, tin: number, tout: number): number {
-  const p = PRICING[model] ?? PRICING['gemini-2.5-pro'];
-  return ((tin / 1e6) * p.in + (tout / 1e6) * p.out) * USD_TRY;
-}
-function aiPeriod(): string {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 let _svc: ReturnType<typeof createClient> | null = null;
 function svc(): ReturnType<typeof createClient> | null {
@@ -165,20 +549,159 @@ function svc(): ReturnType<typeof createClient> | null {
   if (url && key) _svc = createClient(url, key);
   return _svc;
 }
-async function usageRow(userId: string): Promise<{ calls: number; cost: number }> {
+async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ calls: number; cost: number }> {
   const s = svc();
   if (!s) return { calls: 0, cost: 0 };
-  const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', aiPeriod()).maybeSingle();
+  const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', period).maybeSingle();
   const r = data as { calls?: number; cost_try?: number } | null;
   return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
 }
-function overLimit(cfg: TierCfg, row: { calls: number; cost: number }): boolean {
-  return cfg.limitKind === 'cost' ? row.cost >= cfg.limit : row.calls >= cfg.limit;
-}
-async function recordUsage(userId: string, model: string, tin: number, tout: number, billable: boolean): Promise<void> {
+
+/**
+ * "AI" katmanında rezerve edilmiş bir soru/mütalaa hakkını GERİ VERİR —
+ * yalnız çıktı kusurlu çıktığında çağrılır (bkz. 0056'daki "kusurlu çıktıda
+ * hak gitmez" ilkesi; rezervasyon istek BAŞLAMADAN yapıldığı için, kusurlu
+ * çıkarsa geri almazsak avukat bizim hatamızın bedelini kotasından öder).
+ * Hata yutulur: geri verme başarısız olsa da kullanıcının aldığı cevabı
+ * geciktirmez/engellemez — kaybı biz üstleniriz.
+ */
+async function aiModSerbestBirak(userId: string, ay: string, mutalaa: boolean): Promise<void> {
   const s = svc();
   if (!s) return;
+  try {
+    await s.rpc('ai_mod_serbest_birak', { p_user: userId, p_ay: ay, p_mutalaa: mutalaa });
+  } catch {
+    // yutulur — bkz. yukarıdaki gerekçe
+  }
+}
+
+/**
+ * Deneme hakkından rezerve edilmiş BİR soruyu geri verir — aynı "kusurlu
+ * çıktıda hak gitmez" ilkesi, deneme hakkı için. Bir adayın YAŞAM BOYU 3
+ * hakkından biri bizim kusurumuz yüzünden gitmesin.
+ */
+async function denemeHakkiSerbestBirak(userId: string): Promise<void> {
+  const s = svc();
+  if (!s) return;
+  try {
+    await s.rpc('deneme_hakki_serbest_birak', { p_user: userId });
+  } catch {
+    // yutulur — bkz. yukarıdaki gerekçe
+  }
+}
+
+/**
+ * Kullanımı kaydeder ve BU İSTEĞİN maliyetini döndürür.
+ *
+ * Maliyetin döndürülmesi, kullanıcıya "bu soru ne kadar tuttu" diyebilmek için:
+ * kontörle çalışan bir üründe harcamanın gizli kalması, faturanın sonunda
+ * sürpriz olması demektir. Ücretsiz katmanda maliyet sıfırdır ve öyle görünür.
+ */
+/**
+ * Bir dilekçenin en az uzunluğu (karakter). Hem "kusurlu mu" kararında hem de
+ * güdük taslağı yeniden denemede kullanılır; iki yerde ayrı sayı tutmak,
+ * yeniden denemenin kusurlu saymadığı bir taslağı kovalaması demek olurdu.
+ */
+const DILEKCE_ASGARI = 1200;
+
+/**
+ * Çıktı, kullanıcıya verilebilecek durumda mı?
+ *
+ * ÖLÇÜLEN ARIZALAR: bir cevap dilekçesi 806 karakterde bitti (DELİLLER ve
+ * NETİCE-İ TALEP hiç yazılmadı) ve bir başkası zorunlu bölümü eksik döndü.
+ * İkisi de "cevap geldi" sayılıyor, kullanıcının hakkından düşülüyordu.
+ *
+ * Eşikler ölçülen uzunluklara göre: çalışan taslaklar 1.396-4.818 karakter
+ * arasında. Belge incelemesi daha kısa olabilir, eşiği ona göre düşük.
+ */
+function kusurluCikti(mod: 'dilekce' | 'mutalaa' | 'belge' | 'sohbet', metin: string, eksikBolum: string[] = []): boolean {
+  const n = metin.trim().length;
+  if (eksikBolum.length > 0) return true;
+  // DİLEKÇE EŞİĞİ 800'DEN 1.200'E ÇIKARILDI. Ölçümde bilirkişi raporuna itiraz
+  // dilekçesi 825 KARAKTERDE bitti: eşiğin hemen üstünde kaldığı için "çalışan
+  // cevap" sayıldı ve kullanıcının hakkından düşülecekti. Aynı koşuda çalışan
+  // taslaklar 1.396-3.765 karakter arasındaydı; 825, en kısa çalışan dilekçenin
+  // bile yarısı değil. 800 eşiği, ölçülen tek bir örneğe (806 karakterlik bir
+  // cevap dilekçesi) göre konmuştu ve fazla iyimserdi.
+  if (mod === 'dilekce') return n < DILEKCE_ASGARI;
+  if (mod === 'mutalaa') return n < 800;
+  if (mod === 'belge') return n < 400;
+  return false; // sohbette kısa cevap doğru olabilir; boş cevap zaten 502 döner
+}
+
+/**
+ * ÇIKTIDAKİ UYDURMA KANUN MADDESİ ATIFLARI.
+ *
+ * Bu denetim bugüne kadar YALNIZ ölçüm betiğinde vardı. Yani uydurma madde
+ * atfını ÖLÇÜYORDUK ama kullanıcıyı ondan KORUMUYORDUK: ölçüm çıktısında
+ * "UYDURMA MADDE" satırını biz görüyorduk, aynı metni ekranda gören avukat
+ * hiçbir şey görmüyordu. Ölçüm ile ürün arasındaki bu asimetri ölçümün kendisini
+ * de yanıltıyor — "kusurlu" saydığımız çıktı kullanıcıya kusursuz gidiyordu.
+ *
+ * Uydurma madde, avukat için en pahalı hata türüdür çünkü GERÇEK GÖRÜNÜR:
+ * biçim doğru, numara var, cümle hukukçu gibi kurulmuş. Yanlışlığı ancak karşı
+ * taraf ya da hâkim baktığında anlaşılır.
+ *
+ * Denetim HAVUZDAKİ kanunlarla sınırlı: havuzda olmayan bir kanuna yapılan atıf
+ * (örn. KTK) uydurma sayılmaz — orada eksik olan bizim korpusumuzdur.
+ *
+ * HATA YUTULUR. Denetim başarısız olursa cevap yine verilir: atıf denetimi bir
+ * ek güvence, çalışmanın önkoşulu değil. Denetim yüzünden hazır bir mütalaayı
+ * çöpe atmak, korumaya çalıştığımız şeyden daha çok zarar verir.
+ */
+async function uydurmaMaddeDenetimi(
+  db: ReturnType<typeof createClient>,
+  metin: string
+): Promise<string[]> {
+  try {
+    const atiflar = maddeAtiflari(metin);
+    if (!atiflar.length) return [];
+    const { data, error } = await db.rpc('uydurma_maddeler', { atiflar });
+    if (error) return [];
+    return ((data ?? []) as Array<{ kanun: string; madde: string }>).map((a) => `${a.kanun} m.${a.madde}`);
+  } catch {
+    return [];
+  }
+}
+
+
+function kullanimOzeti(model: string, tin: number, tout: number, maliyet: number) {
+  return {
+    model,
+    girdiToken: tin,
+    ciktiToken: tout,
+    // Kuruş hassasiyeti yeter; daha fazlası ekranda gürültü.
+    maliyetTL: Math.round(maliyet * 100) / 100,
+  };
+}
+
+/**
+ * @param musteriyeYaz  Bu istek kullanıcının HAKKINDAN düşülsün mü?
+ *
+ * KUSURLU ÇIKTIDA HAK GİTMEZ. Yarım bir dilekçe (zorunlu bölümü eksik ya da
+ * ortasından kesilmiş) kullanıcı için işe yaramaz; onu günlük hakkından ya da
+ * kontöründen düşmek, bizim hatamızın bedelini ona ödetmek olur. Böyle bir
+ * deneyimden sonra kimse ürüne güvenmez.
+ *
+ * Token maliyeti YİNE KAYDEDİLİR: parayı biz gerçekten harcadık ve bunu
+ * görmemiz gerekiyor. Fark şu: gider defterine yazılır, müşteriye yazılmaz.
+ */
+async function recordUsage(
+  userId: string,
+  model: string,
+  tin: number,
+  tout: number,
+  billable: boolean,
+  musteriyeYaz = true,
+  mod = 'sohbet'
+): Promise<{ maliyet: number; istekId: string | null }> {
+  const s = svc();
+  if (!s) return { maliyet: 0, istekId: null };
   const cost = billable ? costTry(model, tin, tout) : 0;
+  // ÜCRET, MALİYET DEĞİLDİR. Kontörden düşen tutar satıştır; maliyet gider
+  // defterine yazılır. İkisini tek sayıya indirgemek, "ne kazandık" sorusunu
+  // cevaplanamaz hâle getirir ve iadede yanlış tutar geri verilir.
+  const ucret = cost > 0 ? Math.round(cost * KAR_KATSAYISI * 100) / 100 : 0;
   const p = aiPeriod();
   const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
   const prev = data as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
@@ -191,6 +714,65 @@ async function recordUsage(userId: string, model: string, tin: number, tout: num
     cost_try: Number(prev?.cost_try ?? 0) + cost,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,period' });
+
+  // GÜNLÜK SATIR. Adil kullanım sayacı buradan okunuyor; aylık satırla aynı
+  // tabloda, yalnız dönem anahtarı farklı (YYYY-AA-GG). Kusurlu çıktıda
+  // token'lar yine yazılır (gideri biz karşıladık) ama ÇAĞRI SAYILMAZ: günlük
+  // hak, işe yarayan cevaplar için harcanır.
+  const g = aiGun();
+  const { data: gunVeri } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', g).maybeSingle();
+  const gprev = gunVeri as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
+  await s.from('ai_usage').upsert({
+    user_id: userId,
+    period: g,
+    calls: (gprev?.calls ?? 0) + (musteriyeYaz ? 1 : 0),
+    tokens_in: (gprev?.tokens_in ?? 0) + tin,
+    tokens_out: (gprev?.tokens_out ?? 0) + tout,
+    cost_try: Number(gprev?.cost_try ?? 0) + cost,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,period' });
+
+  // KONTÖRDEN DÜŞ — ücretten, maliyetten değil. Ücretsiz katmanda ücret sıfır
+  // ve bakiyeye dokunulmaz. Düşüm tek deyimde yapılır (ai_kontor_dus): iki
+  // eşzamanlı istek aynı bakiyeyi iki kez harcayamasın.
+  if (ucret > 0 && musteriyeYaz) {
+    try {
+      await s.rpc('ai_kontor_dus', { p_user: userId, p_tutar: ucret });
+    } catch {
+      // Bakiye düşülemediyse kullanıcının cevabı engellenmez; kayıp bizde
+      // kalır. Üretilmiş bir cevabı muhasebe hatası yüzünden geri almak,
+      // kullanıcı açısından hizmetin çalışmaması demektir.
+    }
+  }
+
+  // İSTEK SATIRI — iade edilebilmesi için. Soru metni SAKLANMAZ; yalnız ölçü
+  // bilgileri tutulur. İade edilecek şeyin ne olduğu bilinmeden "hakkımı geri
+  // ver" denemez, aynı istek de defalarca iade edilemez.
+  let istekId: string | null = null;
+  try {
+    const { data: yeni } = await s
+      .from('ai_istek')
+      .insert({
+        user_id: userId,
+        gun: g,
+        mod,
+        model,
+        tokens_in: tin,
+        tokens_out: tout,
+        maliyet_try: cost,
+        ucret_try: ucret,
+        musteriye_yazildi: musteriyeYaz,
+      })
+      .select('id')
+      .single();
+    istekId = ((yeni as { id?: string } | null)?.id) ?? null;
+  } catch {
+    // İstek kaydı tutulamadıysa cevap yine verilir; yalnız iade edilemez.
+  }
+
+  // Dışarıya ÜCRET bildirilir: kullanıcıya gösterilecek olan, kontöründen
+  // düşen tutardır. Maliyet bizim iç bilgimiz.
+  return { maliyet: ucret, istekId };
 }
 
 const SYSTEM_PROMPT =
@@ -234,7 +816,23 @@ const SYSTEM_PROMPT =
   'açıklama yapma — istenen ÇIKTIYI doğrudan, kullanıma hazır TASLAK olarak üret. Dilekçe/yazı ise ' +
   'başlık (mahkeme/merci), taraflar, konu, açıklamalar, hukuki sebepler (madde atıflı), deliller, ' +
   'sonuç ve talep bölümleriyle yaz; eksik bilgiler için [Örn. …] köşeli parantez bırak. Süre/hesap ise ' +
-  'adım adım hesapla ve tarihi ver. Her görevin sonunda kısa bir "KONTROL LİSTESİ" ekle. ' +
+  'adım adım hesapla ve tarihi ver. ' +
+  //
+  // CEVAP UZUNLUĞU. Ölçülen arıza: "istinaf süresi ne kadar" gibi tek cevaplı
+  // bir soruya tablo + "uygulama adımları" + numaralı liste + kontrol listesi
+  // üretiliyordu. Avukat aradığı bir satırı bulmak için sayfayı taramak zorunda
+  // kalıyor; dolgu, cevabı iyileştirmiyor, gizliyor. Talimatın kendisi bunu
+  // teşvik ediyordu ("her görevin sonunda kontrol listesi ekle") — kaldırıldı.
+  'CEVAP UZUNLUĞU — SORUYA ORANTILI YAZ: Uzunluk kalite değildir. Tek bilgi ' +
+  'sorulmuşsa (bir süre, görevli mahkeme, bir madde numarası, evet/hayır) ' +
+  'CEVABI İLK CÜMLEDE VER, dayanağını ekle ve BİTİR — 2-4 cümle yeterlidir. ' +
+  'Sorulmadıkça tablo, "uygulama adımları", numaralı yol haritası, dilekçe ' +
+  'taslağı, kontrol listesi veya özet bölümü EKLEME. Soru dar ise cevabı ' +
+  'genişletme; ilgisiz yan konuları (başka dava türleri, genel bilgiler, ' +
+  'tekrar eden uyarılar) yazma. Kapsamlı çıktıyı yalnızca avukat gerçekten ' +
+  'bir İŞ istediğinde üret (dilekçe, ihtarname, adım planı, süre hesabı); o ' +
+  'zaman da yalnız istenen çıktıyı ver ve sonuna kısa bir "KONTROL LİSTESİ" ekle. ' +
+  'Aynı şeyi iki kez söyleme. Tek cümlelik cevap doğruysa tek cümle yaz. ' +
   //
   // MUHAKEME DİSİPLİNİ: her hukuki soruda tutarlı, avukat gibi düşünme yöntemi.
   'MUHAKEME DİSİPLİNİ — bir hukuki soruyu yanıtlarken şu unsurları ayrı ayrı ve doğru düşün: ' +
@@ -614,9 +1212,9 @@ function matchKBRules(question: string): Array<{ id: string; text: string }> {
  * tetiklenmiyordu ve model madde uyduruyordu — kalite şikayetinin ana sebebi.
  */
 // deno-lint-ignore no-explicit-any
-async function buildRules(supabase: any, question: string): Promise<string> {
-  const picked = new Map<string, string>();
-  for (const r of matchKBRules(question)) picked.set(r.id, r.text);
+async function buildRules(supabase: any, question: string, toplanan?: Map<string, BeslenenKural>): Promise<string> {
+  const picked = new Map<string, BeslenenKural>();
+  for (const r of matchKBRules(question)) picked.set(r.id, { metin: r.text, terimler: [] });
   try {
     const { data } = await supabase.rpc('search_legal_rules', { q: question, match_count: 3 });
     // deno-lint-ignore no-explicit-any
@@ -625,17 +1223,58 @@ async function buildRules(supabase: any, question: string): Promise<string> {
     for (const r of rows) {
       // Alakasız kuralı bağlayıcı diye vermeyelim: en iyi skorun %45'i altını ele.
       if (top > 0 && Number(r.score ?? 0) < top * 0.45) continue;
-      if (!picked.has(r.id)) picked.set(r.id, String(r.body ?? ''));
+      if (!picked.has(r.id)) {
+        picked.set(r.id, {
+          metin: String(r.body ?? ''),
+          // Kuralın atlandığını gösteren ayırt edici terimler (0063). Kod içi
+          // anahtar kelime tablosundan gelen kurallarda yok; yalnız havuzdaki
+          // kurallar için tutuluyor.
+          terimler: Array.isArray(r.zorunlu_terimler) ? (r.zorunlu_terimler as string[]) : [],
+        });
+      }
     }
   } catch {
     // arama başarısızsa yalnız anahtar kelime eşleşmeleriyle devam
   }
+  // BESLENEN KURALLAR DIŞARI DA VERİLİR (bkz. `dayanak`). Ölçülen arıza: işe
+  // iade mütalaasında doğru kural (1 AY içinde ARABULUCUYA başvuru, dava şartı)
+  // dosyaya girdiği hâlde model kendi ezberini yazdı — "4 hafta içinde dava
+  // açın" dedi ve arabuluculuktan hiç söz etmedi. Bu, avukat için doğrudan hak
+  // kaybıdır: arabulucuya gitmeden açılan dava usulden reddedilir.
+  //
+  // Talimatla tam olarak giderilemiyor; küçük modelde koşudan koşuya değişiyor.
+  // Ama kuralın KENDİSİNİ mütalaanın yanında gösterebiliriz: model ne yazarsa
+  // yazsın, avukat dayanağı ham hâliyle görür ve çelişkiyi kendisi yakalar.
+  if (toplanan) for (const [id, k] of picked) toplanan.set(id, k);
   if (picked.size === 0) return '';
   return (
     '\n\n### KESİN HUKUKİ KURALLAR — BUNLARA UYMAK ZORUNDASIN (yerleşik içtihat; kendi tahminini bunlarla düzelt):\n' +
-    [...picked.values()].map((t) => '• ' + t).join('\n') +
+    [...picked.values()].map((k) => '• ' + k.metin).join('\n') +
     '\nBu kurallara aykırı yanıt verme; soru bu konudaysa cevabını doğrudan bu kurala dayandır. ' +
-    'Kural listesi soruyla ilgisizse yok say.'
+    'Kural listesi soruyla ilgisizse yok say.\n' +
+    // Ölçülen arıza: model, yukarıdaki kural metnini TIRNAK İÇİNDE maddenin
+    // kendi sözüymüş gibi aktardı ("HMK m.345 — '...gerekçeli kararın
+    // tebliğinden itibaren 2 haftadır'"). Bilgi doğruydu ama maddenin lafzı
+    // değildi. Avukat bunu dilekçesine alıntı diye koyarsa mahkemeye, kanunda
+    // bulunmayan bir cümleyi kanun metni diye sunmuş olur.
+    'ÖNEMLİ: Bu kurallar bizim ÖZETİMİZDİR, kanun maddesinin lafzı DEĞİLDİR. ' +
+    'Buradaki cümleleri tırnak içinde madde metni gibi aktarma; içeriğini kendi ' +
+    'cümlenle anlat ve madde numarasını dayanak göster. Birebir alıntı yalnızca ' +
+    'MADDE METİNLERİ bölümünden yapılabilir.\n' +
+    // ÖLÇÜLEN ARIZA: kira tahliye senaryosunda model TBK m.315 (temerrüt)
+    // ile birlikte TBK m.352/2'yi (iki haklı ihtar) de dayanak gösterdi.
+    // Olayda TEK ihtar vardı; iki haklı ihtar bir kira yılında AYRI İKİ
+    // ihtar ister ve kuralın kendisi bunun temerrütten "AYRI" ve
+    // "ALTERNATİF" bir yol olduğunu zaten söylüyordu — model bu ayrımı
+    // görmezden gelip ikisini birlikte yazdı. Yanlış dayanak, uydurma
+    // maddeden farklı bir hatadır: madde gerçek, numarası doğru, ama
+    // OLAYA UYMUYOR — ve tam bu yüzden fark edilmesi daha zordur.
+    'BİRDEN FAZLA KURAL AYNI KONUYA DEĞİNİYORSA VE BİRBİRİNİN ALTERNATİFİYSE ' +
+    '(kural metninde "AYRI bir sebep", "alternatiftir", "birbirinin alternatifi" gibi ' +
+    'ifadeler görürsen): OLAYIN GERÇEK ŞARTLARINI kuralın ŞART fıkrasıyla TEK TEK ' +
+    'karşılaştır ve yalnız şartları TAM olarak sağlanan kuralı dayanak göster. Şartı ' +
+    'sağlanmayan alternatif kuralı ANMA BİLE — "ayrıca şu da uygulanabilir" diye ' +
+    'ikisini birden yazmak, hangi hukuki yolun izlendiğini bilmediğini gösterir.'
   );
 }
 
@@ -644,6 +1283,75 @@ async function buildRules(supabase: any, question: string): Promise<string> {
  * ilgili gerçek kararları getirir ve sistem talimatına eklenecek bağlam üretir.
  * "Senin eğittiğin AI" = kendi verimizle beslenmiş, kaynak gösteren yanıt.
  */
+// deno-lint-ignore no-explicit-any
+/**
+ * SAĞLAYICISIZ CEVAP — iki sağlayıcı da düştüğünde boş dönmemek için.
+ *
+ * NEDEN. Avukat için kırmızı bir hata kutusu hiçbir işe yaramaz; oysa sorunun
+ * cevabı çoğu zaman ZATEN ELİMİZDEDİR — arama ilgili maddeyi bulmuştur, yalnız
+ * onu cümleye dökecek model yanıt vermemektedir. "İşK m.21: ...on işgünü..."
+ * göstermek, "bir hata oluştu" demekten kıyaslanamayacak kadar iyidir.
+ *
+ * Burada MODEL YOK: yorum, çıkarım ve özet üretilmez; yalnız kendi
+ * veritabanımızdaki kural ve madde metinleri olduğu gibi gösterilir. Bu yüzden
+ * uydurma riski sıfırdır ve hiç kota harcamaz.
+ */
+// deno-lint-ignore no-explicit-any
+async function mevzuatOzeti(supabase: any, question: string): Promise<string> {
+  // ALAKA EŞİĞİ BURADA DA GEÇERLİ. İlk denemede eşik uygulanmadığı için özet,
+  // "işe iade" sorusuna iş kazası zamanaşımı kuralını ve 2014 tarihli bir prim
+  // yapılandırma geçici maddesini de bastı. Model yokken gürültüyü ayıklayacak
+  // bir kat da yok demektir; o yüzden ayıklama burada daha sıkı olmalı.
+  const ustte = <T extends { score?: number }>(list: T[], oran: number, en: number): T[] => {
+    const tepe = Number(list[0]?.score ?? 0);
+    const suzulmus = tepe > 0 ? list.filter((r) => Number(r.score ?? 0) >= tepe * oran) : list;
+    return suzulmus.slice(0, en);
+  };
+
+  const parcalar: string[] = [];
+  try {
+    const { data } = await supabase.rpc('search_legal_rules', { q: question, match_count: 2 });
+    // Tek kural: en yakın olan. İkincisi çoğu zaman komşu konudur ve model
+    // olmadığı için "bu ilgisiz" diyecek kimse yoktur.
+    for (const r of ustte((data ?? []) as Array<{ body?: string; score?: number }>, 0.6, 1)) {
+      const b = String(r?.body ?? '').trim();
+      if (b) parcalar.push(`**Kural.** ${b}`);
+    }
+  } catch { /* kural bulunamazsa maddelerle devam */ }
+
+  const maddeler: string[] = [];
+  try {
+    // KURAL DESTEKLİ ARAMA. Ölçüldü: 67 soruluk arama ölçümünde isabet %61,8'den
+    // %69,1'e çıktı. Fark, sıralamayı ayarlamaktan değil, elimizdeki bir sinyali
+    // KULLANMAKTAN geliyor — kural havuzu "istinaf süresi HMK m.345'tir" diyor
+    // ve mevzuat araması bunu hiç okumuyordu (bkz. 0066).
+    const { data } = await supabase.rpc('search_mevzuat_kural', { q: question, match_count: 5 });
+    for (const r of ustte((data ?? []) as Array<Record<string, unknown> & { score?: number }>, 0.4, 3)) {
+      const ad = String(r.kanun_name ?? r.kanun_short ?? '').trim();
+      const baslik = String(r.baslik ?? '').trim();
+      const metin = String(r.snippet ?? '').replace(/\s+/g, ' ').trim().slice(0, 300);
+      if (!metin) continue;
+      maddeler.push(
+        `**${r.kanun_short} m.${r.madde_no}**${baslik ? ` — ${baslik}` : ''}` +
+          `${ad ? ` _(${ad})_` : ''}\n${metin}${metin.length >= 300 ? '…' : ''}`
+      );
+    }
+  } catch { /* madde de bulunamazsa aşağıda boş dönülür */ }
+
+  if (parcalar.length === 0 && maddeler.length === 0) return '';
+
+  return (
+    // Sebep söylenmez: kota mı, yoğunluk mu, arıza mı — kullanıcı için hepsi
+    // aynı ve yanlış sebep söylemek ("kota doldu" derken aslında arızayken)
+    // güveni zedeler.
+    'Yapay zekâ şu anda yanıt veremiyor. Sorunuzla ilgili mevzuatı doğrudan aşağıya çıkardım:\n\n' +
+    [...parcalar, ...maddeler].join('\n\n') +
+    '\n\n---\n_Bu metinler kendi kanun veritabanımızdan olduğu gibi alınmıştır; ' +
+    'yorum içermez. Yapay zekâ yorumu için kota yenilendiğinde tekrar sorabilirsiniz. ' +
+    'Bu bilgi hukuki tavsiye niteliğinde değildir._'
+  );
+}
+
 // deno-lint-ignore no-explicit-any
 async function buildGrounding(supabase: any, question: string): Promise<string> {
   // deno-lint-ignore no-explicit-any
@@ -702,6 +1410,56 @@ async function buildGrounding(supabase: any, question: string): Promise<string> 
 }
 
 /**
+ * ATIF HARİTASI beslemesi — beslemeye giren maddeleri GERÇEKTEN UYGULAYAN
+ * kararları ekler.
+ *
+ * Farkı önemli: içtihat beslemesi kararları METİN BENZERLİĞİYLE buluyor, yani
+ * "konusu benzer" kararlar geliyor. Burada ise kararın metninde o maddeye AÇIK
+ * ATIF var — "TBK'nun 315. maddesinde öngörülen temerrüt nedeniyle tahliye"
+ * gibi. Avukatın aradığı çoğu zaman tam olarak budur: maddeyi uygulayan karar.
+ *
+ * Ölçüldü: havuzdaki 4.058 kararın %44'ünde tanınabilir atıf var, toplam 3.894
+ * atıf çıkarıldı. Örnek denetimde TBK m.315 için dönen beş kararın beşi de
+ * gerçekten temerrüt nedeniyle tahliye kararıydı.
+ *
+ * Besleme KISA tutulur (en fazla üç madde, madde başına bir karar): tek bilgi
+ * sorulan soruya sayfa dolusu cevap ürettirmemek için uzunluk kuralı yeni
+ * konuldu; onu bu blokla geri bozmak anlamsız olurdu.
+ */
+// deno-lint-ignore no-explicit-any
+async function maddeyiUygulayanKararlar(supabase: any, rows: any[]): Promise<string> {
+  const secilen = rows.slice(0, 3);
+  const parcalar: string[] = [];
+  for (const r of secilen) {
+    const kanun = String(r?.kanun_short ?? '').trim();
+    const madde = parseInt(String(r?.madde_no ?? ''), 10);
+    if (!kanun || !Number.isFinite(madde)) continue;
+    try {
+      const { data } = await supabase.rpc('kararlar_madde_ile', {
+        p_kanun: kanun,
+        p_madde: madde,
+        p_limit: 1,
+      });
+      for (const k of (data ?? []) as Array<Record<string, unknown>>) {
+        parcalar.push(
+          `• ${kanun} m.${madde} → ${k.daire ?? ''} E.${k.esas_no ?? ''} K.${k.karar_no ?? ''} (${k.karar_tarihi ?? ''}): ` +
+            String(k.snippet ?? '').slice(0, 180).trim()
+        );
+      }
+    } catch {
+      // atıf haritası yoksa besleme yine çalışır
+    }
+  }
+  if (parcalar.length === 0) return '';
+  return (
+    '\n\n### BU MADDELERİ UYGULAYAN GERÇEK KARARLAR (kendi havuzumuz; karar metninde maddeye açık atıf var):\n' +
+    parcalar.join('\n') +
+    '\nBunlar benzer konulu değil, maddeyi DOĞRUDAN uygulayan kararlardır; ' +
+    'esas/karar numarasını buradan aynen yaz, değiştirme.'
+  );
+}
+
+/**
  * YÜRÜRLÜKTEKİ MEVZUAT beslemesi — uygulamanın kendi kanun veritabanından (7 temel
  * kanun, ~4.500 madde) soruyla ilgili GERÇEK madde metinlerini getirir. Böylece AI
  * madde numarasını/içeriğini hafızasından tahmin etmez; gerçek metne dayanır. Bu,
@@ -716,7 +1474,7 @@ async function buildMevzuat(supabase: any, question: string): Promise<string> {
   // kelime yok. Anlamsal arama tam bu boşluğu kapatır.
   const qEmb = await embedQuery(question);
   const [ftsRes, semRes] = await Promise.all([
-    supabase.rpc('search_mevzuat_fts', { q: question, match_count: 7 }),
+    supabase.rpc('search_mevzuat_kural', { q: question, match_count: 7 }),
     qEmb
       ? supabase.rpc('match_mevzuat_semantic', { q_embedding: qEmb, match_count: 4 })
       : Promise.resolve({ data: null }),
@@ -751,9 +1509,28 @@ async function buildMevzuat(supabase: any, question: string): Promise<string> {
     // cümlesiyle tamamlayıp bunu tırnak içinde ALINTI gibi sunuyordu.
     .map((r: any) => `• ${r.kanun_short} m.${r.madde_no}${r.baslik ? ' (' + r.baslik + ')' : ''}: ${String(r.snippet ?? '').slice(0, 600).trim()}`)
     .join('\n');
+
+  // KISALTMANIN AÇILIMI VERİLİR. Ölçülen arıza: besleme yalnız "TKHK m.11"
+  // diyordu; model kısaltmayı tanımayıp "Türk Ticaret Kanunu'nun 11. maddesi"
+  // diye açtı. Oysa TKHK, Tüketicinin Korunması Hakkında Kanun'dur. Madde
+  // numarası doğru, KANUN YANLIŞTI — avukat bambaşka bir kanuna bakar.
+  // Açılım her satıra değil, sonda tek bir listeye yazılır: bilgi tam,
+  // token yükü asgari.
+  const adlar = new Map<string, string>();
+  for (const r of rows as Array<{ kanun_short?: string; kanun_name?: string }>) {
+    const k = String(r?.kanun_short ?? '').trim();
+    const ad = String(r?.kanun_name ?? '').trim();
+    if (k && ad && !adlar.has(k)) adlar.set(k, ad);
+  }
+  const sozluk = adlar.size
+    ? '\nKISALTMALAR (kanun adını böyle yaz, TAHMİN ETME): ' +
+      [...adlar].map(([k, ad]) => `${k} = ${ad}`).join('; ')
+    : '';
+
   return (
     '\n\n### İLGİLİ OLABİLECEK YÜRÜRLÜKTEKİ MADDE METİNLERİ (kendi kanun veritabanımızdan, GERÇEK metin):\n' +
     refs +
+    sozluk +
     '\nBu maddelerden yalnızca soruyla GERÇEKTEN ilgili olanları kullan, ilgisizleri yok say. Bir maddenin ' +
     'numarasını veya metnini belirtirken buradaki gerçek metni esas al; burada verilmeyen bir maddenin metnini ' +
     'birebir alıntı olarak uydurma.\n' +
@@ -763,7 +1540,8 @@ async function buildMevzuat(supabase: any, question: string): Promise<string> {
     'ALINTI KURALI: Tırnak içinde ("…") yazdığın her madde metni, yukarıdaki ' +
     'metinden BİREBİR kopyalanmış olmalı. Kelime ekleme, çıkarma veya değiştirme; ' +
     'kısaltman gerekiyorsa yalnızca üç nokta (…) kullan. Metni kendi cümlenle ' +
-    'özetliyorsan TIRNAK KULLANMA — özet olduğunu belli et.'
+    'özetliyorsan TIRNAK KULLANMA — özet olduğunu belli et.' +
+    (await maddeyiUygulayanKararlar(supabase, rows))
   );
 }
 
@@ -792,23 +1570,69 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
 
-  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string };
+  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string; istekId?: string; sebep?: string };
   try {
     body = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
+  // ───────────── HAK İADESİ ─────────────
+  // "Bu cevap işe yaramadı" — avukatın hakkını geri alma yolu.
+  //
+  // NEDEN VAR. Kusurlu çıktının bir kısmını mekanik yakalayıp zaten hakka
+  // yazmıyoruz (yarım kalmış ya da zorunlu bölümü eksik taslak). Ama bir metin
+  // yapısal olarak kusursuz görünüp hukuken işe yaramaz olabilir; bunu ancak
+  // avukat bilir. Hakkı yenen bir kullanıcı ürüne bir daha güvenmez.
+  //
+  // İade kaydı aynı zamanda kalitenin en dürüst göstergesi: ölçüm senaryolarını
+  // biz yazıyoruz, iadeyi gerçek dosyada kullanan avukat söylüyor.
+  if (body.mode === 'iade') {
+    const istekId = String(body.istekId ?? '').trim();
+    if (!istekId) {
+      return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
+    }
+    const sk = svc();
+    if (!sk) {
+      return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
+    }
+    // Sahiplik kontrolü RPC'nin İÇİNDE: kullanıcı kimliği burada gönderiliyor
+    // ama satır yalnız o kullanıcıya aitse iade ediliyor.
+    const { data, error } = await sk.rpc('ai_istek_iade', {
+      p_istek: istekId,
+      p_user: userData.user.id,
+      p_sebep: typeof body.sebep === 'string' ? body.sebep.slice(0, 300) : null,
+    });
+    if (error) {
+      return new Response(JSON.stringify({ error: 'upstream' }), { status: 502, headers: CORS });
+    }
+    return new Response(JSON.stringify(data ?? { ok: false }), {
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    });
+  }
+
   // MÜTALAA modu: çok adımlı derin inceleme (Pro/Elit'e özel). Normal sohbetten
   // ayrılır çünkü birden fazla model çağrısı + geniş besleme kullanır.
   const isMutalaa = body.mode === 'mutalaa';
   // DİLEKÇE modu: olay anlatımından mahkemeye hazır resmî dilekçe taslağı üretir
   // (gerçek mevzuat/içtihata dayalı). Tüm katmanlara açık, tek çağrı.
   const isDilekce = body.mode === 'dilekce';
+  // BELGE modu: yüklenen/yapıştırılan metni avukat gözüyle inceler. Tüm
+  // katmanlara açık, tek çağrı.
+  const isBelge = body.mode === 'belge';
+  // KÜNYE modu: UYAP'tan indirilen belgeden dosya künyesini çıkarır.
+  //
+  // İSTEM SUNUCUYA TAŞINDI. Önce istemcide kuruluyordu ve bu üç şeyi imkânsız
+  // kılıyordu: çıkarımı ÖLÇMEK (ölçüm aracı istemi taklit etmek zorunda
+  // kalırdı, yani kullanıcının gördüğü davranış ölçülmezdi), istemi uygulama
+  // güncellemesi olmadan iyileştirmek ve çıkanı DENETLEMEK. Üstelik istek genel
+  // sohbet moduna gidiyordu; yani dosya künyesi çıkarımı için hiçbir özel
+  // talimat ya da koruma yoktu.
+  const isKunye = body.mode === 'kunye';
   const promptQuestion = (body.question ?? '').trim();
-  const messages = (isMutalaa || isDilekce)
+  const messages = (isMutalaa || isDilekce || isBelge || isKunye)
     ? [{ role: 'user' as const, text: promptQuestion }]
     : (body.messages ?? []).slice(-30);
-  if (messages.length === 0 || ((isMutalaa || isDilekce) && promptQuestion.length < 20)) {
+  if (messages.length === 0 || ((isMutalaa || isDilekce || isBelge || isKunye) && promptQuestion.length < 20)) {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
   // Referanslar mütalaa bloğunda mutalaaQuestion adıyla kullanılıyordu; alias.
@@ -827,7 +1651,131 @@ Deno.serve(async (req) => {
       prof = r.data as { is_premium?: boolean; ai_tier?: string } | null;
     }
   }
-  const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium);
+  const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium, {
+    groqModel: GROQ_MODEL,
+    claudeModel: CLAUDE_MODEL,
+    claudeOpusModel: CLAUDE_OPUS_MODEL,
+    claudeAnahtariVar: !!Deno.env.get('ANTHROPIC_API_KEY'),
+    zorlaSaglayici: Deno.env.get('VEKIL_ZORLA_SAGLAYICI') ?? undefined,
+    zorlaModel: Deno.env.get('VEKIL_ZORLA_MODEL') ?? undefined,
+  });
+
+  // MÜTALAA yalnız "ai" katmanına açıktır (çok adımlı, token yoğun; deneme
+  // hakkı bunu kapsamaz). BU KONTROL, aşağıdaki deneme hakkı rezervasyonundan
+  // ÖNCE gelmeli — aksi hâlde bir deneme kullanıcısının mütalaa isteği hem
+  // reddedilir HEM DE değerli 3 hakkından biri boşuna harcanmış olurdu.
+  if (isMutalaa && tier !== 'ai') {
+    return new Response(JSON.stringify({ error: 'tier_required', tier, required: 'ai' }), {
+      status: 403,
+      headers: CORS,
+    });
+  }
+
+  // DENEME HAKKI — ödeme yapmamış (free/baslangic) kullanıcıya YAŞAM BOYU
+  // (aylık değil, hiç yenilenmeyen) DENEME_SORU_LIMIT kadar bir tat. Kontör/
+  // modLimits kontrolünden ÖNCE çalışır ve tükenmişse isteği BAŞLAMADAN
+  // reddeder — aksi hâlde aşağıdaki kontör kontrolü devreye girip (cfg.billable
+  // true olduğundan) sıfır bakiyeyle karşılaşıp deneme hakkı olan bir adayı da
+  // "kontör bitti" diye yanlış sebeple reddederdi.
+  if (cfg.denemeLimit) {
+    const sk = svc();
+    const rezerveEdildi = sk
+      ? (await sk.rpc('deneme_hakki_rezerve_et', {
+          p_user: userData.user.id,
+          p_limit: cfg.denemeLimit,
+        })).data
+      : false;
+    if (!rezerveEdildi) {
+      return new Response(
+        JSON.stringify({ error: 'deneme_hakki_bitti', tier, hak: cfg.denemeLimit }),
+        { status: 402, headers: CORS }
+      );
+    }
+  }
+
+  // KONTÖR KONTROLÜ — yalnız faturalı VE kontörle ölçülen katmanda.
+  //
+  // "ai" katmanı bunu ATLAR: 1.999₺/ay sabit ücrete SAYIYLA dahil bir hak
+  // veriyoruz (bkz. cfg.modLimits ve aşağıdaki denetim), kontör bakiyesine
+  // hiç bakmaz — "bakiyeniz kadar" değil "ayda 250 soru + 12 mütalaa" sözü
+  // verildi. Deneme hakkı (cfg.denemeLimit) da aynı sebeple atlar — yukarıda
+  // zaten ayrı bir kapıdan geçti, kontöre hiç bakmamalı (free/baslangic
+  // kullanıcının kontör bakiyesi zaten yok).
+  //
+  // Faturalı katmanda bakiye bitmişse isteği BAŞLAMADAN reddediyoruz; yarısı
+  // üretilmiş bir dilekçeyi bakiye yetmedi diye kesmek hem parayı hem işi
+  // çöpe atardı.
+  //
+  // Eşik sıfır değil: en pahalı istek (mütalaa) birkaç lira tutabiliyor ve
+  // 0,10 TL bakiyeyle başlatılan bir istek kullanıcıyı eksiye düşürürdü.
+  let kontor = 0;
+  if (cfg.billable && !cfg.modLimits && !cfg.denemeLimit) {
+    const sk = svc();
+    if (sk) {
+      const r = await sk.from('ai_kontor').select('bakiye_try').eq('user_id', userData.user.id).maybeSingle();
+      kontor = Number((r.data as { bakiye_try?: number } | null)?.bakiye_try ?? 0);
+    }
+    if (kontor < KONTOR_ESIGI) {
+      return new Response(
+        JSON.stringify({ error: 'kontor_bitti', tier, bakiye: Math.round(kontor * 100) / 100, gereken: KONTOR_ESIGI }),
+        { status: 402, headers: CORS }
+      );
+    }
+  }
+
+  // GÜNLÜK ADİL KULLANIM. Ortak havuzu tek bir üyenin bitirmesini engeller;
+  // aşan kullanıcıya "yarın" değil, ne zaman yenileneceği söylenir.
+  if (cfg.gunluk && cfg.gunluk > 0) {
+    const gun = await usageRow(userData.user.id, aiGun());
+    if (gun.calls >= cfg.gunluk) {
+      return new Response(
+        JSON.stringify({ error: 'gunluk_hak_bitti', tier, gunlukHak: cfg.gunluk, kullanilan: gun.calls }),
+        { status: 429, headers: CORS }
+      );
+    }
+  }
+
+  // "AI" KATMANI SORU/MÜTALAA KOTASI — ATOMİK REZERVASYON (bkz. migration
+  // 0074). ÖNCE SAY-SONRA-KARAR-VER deseni (0073) YARIŞ DURUMUNA açıktı:
+  // istek Claude'dan dönene kadar sayaç güncellenmediği için AYNI ANDA gelen
+  // çok sayıda istek hepsi "kotam dolmamış" görüp hepsi geçebiliyordu. Şimdi
+  // istek BAŞLAMADAN, TEK atomik veritabanı işleminde hem kontrol edilip hem
+  // artırılıyor (SELECT ... FOR UPDATE ile satır kilidi) — 20 eşzamanlı
+  // istekle canlıda doğrulandı: limit 3 iken tam 3'ü geçti, 17'si reddedildi.
+  //
+  // Mütalaa ayrı sayılır: çok adımlı olduğu için bir sohbet sorusunun 4-8
+  // katı token tüketir, tek kotaya karıştırmak birinin ayda 250 mütalaa
+  // çekip maliyeti öngörülemez yapmasına izin verirdi.
+  const aiAy = aiPeriod();
+  if (cfg.modLimits) {
+    const sk = svc();
+    // Servis istemcisi kurulamadıysa (env eksik) AÇIK KAPI BIRAKMAYIZ:
+    // rezervasyon denenemiyorsa kotayı doğrulayamadığımız anlamına gelir,
+    // isteği reddetmek "belki fazladan izin ver"den güvenlidir.
+    const rezerveEdildi = sk
+      ? (await sk.rpc('ai_mod_rezerve_et', {
+          p_user: userData.user.id,
+          p_ay: aiAy,
+          p_mutalaa: isMutalaa,
+          p_soru_limit: cfg.modLimits.soru,
+          p_mutalaa_limit: cfg.modLimits.mutalaa,
+        })).data
+      : false;
+    if (!rezerveEdildi) {
+      return new Response(
+        JSON.stringify(
+          isMutalaa
+            ? { error: 'ai_mutalaa_kota_bitti', tier, hak: cfg.modLimits.mutalaa }
+            : { error: 'ai_soru_kota_bitti', tier, hak: cfg.modLimits.soru }
+        ),
+        { status: 402, headers: CORS }
+      );
+    }
+  }
+
+  // GÜVENLİK AĞI — "ai" katmanında da geçerli (bkz. UCRETLI_TAVAN_TRY notu):
+  // yukarıdaki soru/mütalaa kotası normal kullanımda çok altında kalır
+  // (en kötü senaryo ~340₺), bu yalnız bir hata/döngü durumunda devreye girer.
   const urow = await usageRow(userData.user.id);
   if (overLimit(cfg, urow)) {
     return new Response(JSON.stringify({ error: 'quota_exceeded', tier, used: urow.cost, calls: urow.calls, ceiling: cfg.limit, limitKind: cfg.limitKind }), {
@@ -835,13 +1783,32 @@ Deno.serve(async (req) => {
       headers: CORS,
     });
   }
-  // MÜTALAA yalnız Pro/Elit üyelere açıktır (çok adımlı, token yoğun).
-  if (isMutalaa && tier !== 'pro' && tier !== 'elit' && tier !== 'ai') {
-    return new Response(JSON.stringify({ error: 'tier_required', tier, required: 'pro' }), {
-      status: 403,
-      headers: CORS,
-    });
+  // MÜTALAA, ÜCRETLİ MODEL YOKKEN HİÇ ÜRETİLMEZ.
+  //
+  // ÖLÇÜLEN GEREKÇE. Ücretli katman, Claude anahtarı olmadığında ücretsiz
+  // sağlayıcıya düşüyor. Mütalaa ölçümünde o yolda üretilen bir metin şunları
+  // yazdı:
+  //
+  //   "Yönetim Kanunu ve Yönetim Mahkemeleri Kanunu'na göre ... 30 gün içinde
+  //    iptal davası açılmalıdır."   → İki kanun da YOK; süre 60 gündür.
+  //   "Ağustos 2026'da 15.08 tarihli bağımsızlık günü tatili bulunmaktadır."
+  //                                 → Böyle bir resmî tatil yok.
+  //
+  // Üstelik doğru kural (idari_dava_suresi) beslemenin birinci sırasındaydı.
+  // Yani sorun eksik bilgi değil, modelin kapasitesi: mütalaa çok adımlı ve
+  // uzun bir sentez ve ücretsiz katmanın küçük modelleri bunu kaldırmıyor.
+  //
+  // Eksik mütalaa avukatı yavaşlatır; UYDURULMUŞ mütalaa yanıltır. "Şu an
+  // kullanılamıyor" demek, olmayan bir kanunu kaynak gösteren bir metin
+  // vermekten kıyaslanamayacak kadar iyidir. Dilekçe ve belge inceleme tek
+  // çağrılık ve ölçülmüş işler; onlar ücretsiz hatta çalışmaya devam eder.
+  if (isMutalaa && cfg.provider !== 'claude' && !Deno.env.get('VEKIL_ZORLA_SAGLAYICI')) {
+    return new Response(
+      JSON.stringify({ error: 'mutalaa_model_yok', tier }),
+      { status: 503, headers: CORS }
+    );
   }
+
   const model = cfg.model;
   const maxOutputTokens = cfg.maxOut;
   const provider = cfg.provider;
@@ -849,9 +1816,11 @@ Deno.serve(async (req) => {
   const genKey =
     provider === 'groq'
       ? (Deno.env.get('GROQ_API_KEY') ?? '')
-      : provider === 'claude'
-        ? (Deno.env.get('ANTHROPIC_API_KEY') ?? '')
-        : (aiKey(cfg.billable) ?? apiKey);
+      : provider === 'openai'
+        ? (Deno.env.get('OPENAI_API_KEY') ?? '')
+        : provider === 'claude'
+          ? (Deno.env.get('ANTHROPIC_API_KEY') ?? '')
+          : (aiKey() ?? apiKey);
   if (!genKey) {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
@@ -862,21 +1831,36 @@ Deno.serve(async (req) => {
   // konuyu parçalayıp her parçayı ayrı araştırdığı için çok daha derindir.
   if (isMutalaa) {
     const meter = { tin: 0, tout: 0 };
+    // Ücretli hat yedeğe indiyse kullanım kaydına GERÇEKTEN cevap veren model
+    // yazılır ve o istek faturalandırılmaz. Mütalaa çok adımlıdır; tek adım
+    // bile yedeğe indiyse tamamı ücretsiz sayılır — eksik ölçmek, kullanıcıdan
+    // fazla ölçmekten iyidir.
+    const kullanim = { model, faturali: cfg.billable };
     const call = async (sys: string, userText: string, maxTok: number): Promise<string> => {
       if (provider === 'claude') {
         // Sabit talimat (SYSTEM_PROMPT) önbelleğe alınır; sys'in geri kalanı
         // (araştırma dosyası) her adımda değiştiği için arkaya konur.
         const stable = sys.startsWith(SYSTEM_PROMPT) ? SYSTEM_PROMPT : sys;
         const rest = sys.startsWith(SYSTEM_PROMPT) ? sys.slice(SYSTEM_PROMPT.length) : '';
-        const r = await claudeChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey);
+        const r = await ucretliChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey, model);
         meter.tin += r.tin;
         meter.tout += r.tout;
+        kullanim.model = r.model;
+        if (!r.faturali) kullanim.faturali = false;
+        return r.text;
+      }
+      if (provider === 'openai') {
+        const r = await openaiChat(sys, [{ role: 'user', text: userText }], maxTok, genKey, model);
+        meter.tin += r.tin;
+        meter.tout += r.tout;
+        kullanim.model = model;
         return r.text;
       }
       if (provider === 'groq') {
-        const r = await groqChat(sys, [{ role: 'user', text: userText }], maxTok, genKey);
+        const r = await ucretsizChat(sys, [{ role: 'user', text: userText }], maxTok);
         meter.tin += r.tin;
         meter.tout += r.tout;
+        kullanim.model = r.model;
         return r.text;
       }
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
@@ -918,11 +1902,27 @@ Deno.serve(async (req) => {
       if (issues.length === 0) issues = [mutalaaQuestion];
 
       // 2) Her sorun için ayrı besleme topla (kural + mevzuat + içtihat)
+      //
+      // ÖNCE OLAYIN KENDİSİYLE ARA. Besleme yalnız MODELİN ÇIKARDIĞI sorunlara
+      // göre toplanıyordu ve bu, mütalaanın yapısal zaafıydı: model bir sorunu
+      // göremezse ona ait kural hiç gelmiyor, kural gelmeyince mütalaa o
+      // konudan hiç söz etmiyordu. Ölçümde görüldü — trafik kazası olayında
+      // zamanaşımı hiç geçmedi.
+      //
+      // Olay metni avukatın kendi anlatısıdır ve modelin yorumundan bağımsızdır;
+      // onunla yapılan arama, sorun çıkarma adımı şaşsa bile en alakalı
+      // kuralların dosyaya girmesini garanti eder. Maliyeti bir blok, kazancı
+      // "hiç bahsedilmeyen konu" riskinin kalkması.
       let dossier = '';
+      // Dosyaya giren kurallar ayrıca TOPLANIR ve yanıtla birlikte gönderilir:
+      // model kuralı yazmasa bile avukat dayanağı ham hâliyle görsün.
+      const dayanakKurallar = new Map<string, BeslenenKural>();
+      try { dossier += await buildRules(supabase, mutalaaQuestion, dayanakKurallar); } catch { /* atla */ }
+      try { dossier += await buildMevzuat(supabase, mutalaaQuestion); } catch { /* atla */ }
       for (const issue of issues) {
         let block = '';
         try {
-          block += await buildRules(supabase, issue);
+          block += await buildRules(supabase, issue, dayanakKurallar);
         } catch { /* atla */ }
         try {
           block += await buildMevzuat(supabase, issue);
@@ -934,6 +1934,18 @@ Deno.serve(async (req) => {
       }
 
       // 3) Sentez — resmi mütalaa
+      //
+      // MÜTALAADA KIRPMA EN ÇOK BURADA GEREKLİ: dosya, DÖRT ayrı hukuki sorun
+      // için toplanan kural + madde + içtihat bloklarından oluşuyor ve tek
+      // başına ücretsiz sağlayıcının dakikalık tavanını (8.000 token, girdi ve
+      // çıktı birlikte) rahatça aşıyor. Kırpılmazsa istek 413 ile reddedilir ve
+      // mütalaa hiç üretilmez.
+      const sentezMaxTok = Math.max(cfg.maxOut, 3000);
+      if (provider === 'groq') {
+        const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + mutalaaQuestion, sentezMaxTok);
+        dossier = k.besleme;
+      }
+
       const synthSys =
         SYSTEM_PROMPT +
         '\n\nŞU AN "MÜTALAA" MODUNDASIN: avukata, bir kıdemli ortağın yazacağı düzeyde RESMİ HUKUKİ ' +
@@ -942,26 +1954,218 @@ Deno.serve(async (req) => {
         '4. RİSKLER VE KARŞI TARAFIN OLASI SAVUNMALARI\n5. SONUÇ VE KANAAT (net tavsiye)\n' +
         '6. ATILACAK ADIMLAR (sıralı, süreleriyle)\n' +
         'Aşağıdaki ARAŞTIRMA DOSYASINDAKİ gerçek kural/madde/kararlara dayan; dosyada olmayan madde ' +
-        'numarası veya karar UYDURMA. Kapsamlı ama gereksiz tekrarsız yaz.' +
-        dossier;
+        'numarası veya karar UYDURMA. Kapsamlı ama gereksiz tekrarsız yaz.\n' +
+        // KURAL DOSYAYA GİRDİ AMA MÜTALAAYA GİRMEDİ — ölçümde iki kez görüldü.
+        // İşe iade olayında ise_iade kuralı beslemenin BİRİNCİ sırasındaydı ve
+        // arabuluculuğun dava şartı olduğunu söylüyordu; mütalaada tek kelime
+        // geçmedi. Avukat için sonuç, bilginin hiç olmamasıyla aynı: doğrudan
+        // dava açar ve davası usulden reddedilir.
+        //
+        // Bu yüzden kuralların yüzeye çıkması TALİMATLA zorunlu kılınıyor.
+        // Havuzdaki kurallar rastgele metin değil, ölçümle doğrulanmış ve her
+        // biri bir hak kaybını önlemek için yazılmış cümlelerdir.
+        'KESİN HUKUKİ KURALLAR bölümünde geçen her SÜRE, her DAVA ŞARTI ve her ZORUNLU ADIM ' +
+        'mütalaada AÇIKÇA yer almalıdır — özellikle arabuluculuk gibi dava şartları ve hak ' +
+        'düşürücü süreler. Dosyadaki bir kuralı olaya uygulanabilir bulmuyorsan bunu GEREKÇESİYLE ' +
+        'yaz; sessizce atlama.\n' +
+        // SÜRE HESABI MÜTALAANIN İŞİDİR. Dilekçede olayda geçmeyen tarih
+        // ayıklanır (orada tarih hesaplanmaz); burada tersi geçerli: avukat
+        // "ne zaman doluyor" sorusuyla gelir. Ölçümde model bir aylık süreyi
+        // 14.05 yerine 12.05 yazdı — hesap yapıyor ama yanlış yapıyor, bu
+        // yüzden hesabın ADIMLARI isteniyor.
+        'SÜRE HESABINI AÇIK YAP: başlangıç tarihini, süreyi ve SON GÜNÜ ayrı ayrı yaz ' +
+        '(ör. "fesih bildirimi 14.04.2026 → bir aylık süre 14.05.2026 günü dolar"). Ay olarak ' +
+        'belirlenen süre, son ayın AYNI SAYILI gününde biter. Hesabı yapamıyorsan tarih UYDURMA, ' +
+        '"başlangıç tarihi teyit edilmeli" de.' +
+        dossier +
+        // KURAL BAŞLIKLARI EN SONA. Kural bloğu istemin ortasında kalıyor ve
+        // ölçümde üç kez aynı şey oldu: kural beslemeye birinci sırada girdi,
+        // mütalaada tek kelime geçmedi. Modeller istemin sonuna daha çok dikkat
+        // eder; başlıkları burada kısa bir kontrol listesine çevirmek, beslemeyi
+        // büyütmeden aynı bilgiyi görünür kılıyor.
+        (() => {
+          const basliklar = kuralBasliklari(dossier);
+          return basliklar.length
+            ? '\n\n### MÜTALAAYI TESLİM ETMEDEN ÖNCE: yukarıdaki dosyada şu kurallar var. ' +
+              'HER BİRİNİN olaya etkisini mütalaada AÇIKÇA yaz; uygulanmıyorsa neden ' +
+              'uygulanmadığını yaz. Sessizce atlama:\n' +
+              basliklar.map((b, i) => `${i + 1}. ${b}`).join('\n')
+            : '';
+        })();
 
-      const text = await call(synthSys, `MÜTALAA TALEBİ:\n${mutalaaQuestion}`, Math.max(cfg.maxOut, 3000));
+      const text = await call(synthSys, `MÜTALAA TALEBİ:\n${mutalaaQuestion}`, sentezMaxTok);
       if (!text.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
-      await recordUsage(userData.user.id, model, meter.tin, meter.tout, cfg.billable);
-      return new Response(JSON.stringify({ text: text.trim(), tier, model, issues }), {
+      // Uydurma madde atfı olan bir mütalaa KUSURLUDUR: hukuki dayanağı
+      // olmayan bir metin, doğru göründüğü için yanlış olmayan bir metinden
+      // daha tehlikelidir. Hak düşülmez ve avukat hangi atfın havuzda
+      // bulunmadığını görür.
+      const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, text);
+      const atlanan = atlananKurallar(
+        [...dayanakKurallar].map(([id, k]) => ({ id, zorunlu_terimler: k.terimler })),
+        text
+      );
+      const kusurlu = kusurluCikti('mutalaa', text) || uydurmaMadde.length > 0;
+      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, true);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !kusurlu, 'mutalaa');
+      return new Response(JSON.stringify({
+        text: text.trim(), tier, model: kullanim.model, issues,
+        // Dosyaya giren kural özetleri. Bunlar BİZİM ÖZETİMİZDİR, kanun lafzı
+        // değildir; ekranda da öyle etiketleniyor.
+        dayanak: dayanakKurallar.size
+          ? [...dayanakKurallar].map(([id, k]) => ({ id, metin: k.metin }))
+          : undefined,
+        // Dosyaya giren ama mütalaada izi bulunmayan kurallar. Ölçümde iki
+        // senaryonun ikisi de buydu ve ikisi de korpus eksiği DEĞİLDİ: kural
+        // havuzda vardı, dosyaya girmişti, model yok saydı. Yalnız uyarı —
+        // hak düşürmez (bkz. _shared/kural.ts).
+        atlananKural: atlanan.length ? atlanan : undefined,
+        uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+        hakDusulmedi: kusurlu || undefined,
+        istekId,
+        kullanim: kullanimOzeti(kullanim.model, meter.tin, meter.tout, kusurlu ? 0 : maliyet),
+        // Olayda geçmeyen tarihler: silinmez, işaretlenir (bkz. hesaplananTarihler).
+        hesaplananTarih: hesaplananTarihler(text, mutalaaQuestion),
+      }), {
         headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     } catch (e) {
       const msg = (e as Error).message;
       const known = msg === 'rate_limit' || msg === 'daily_quota';
-      return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+      // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
+      // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
       });
     }
   }
+/**
+ * DOSYADAN KÜNYE — avukatın kendi kayıtlarından gelen kesin bilgiler.
+ *
+ * NEDEN. Ölçümde üretilen taslaklarda 13-21 arası köşeli parantez boşluğu
+ * vardı: [Davacı Ad-Soyad], [Vekil ad-soyad], [Esas No], [Mahkeme]… Avukat,
+ * PROGRAMDA ZATEN KAYITLI olan bilgileri taslağa elle geçiriyordu. "İşimi
+ * hızlandırsın" beklentisinin en somut karşılığı burada: elimizdeki veriyi
+ * kullanmak.
+ *
+ * Model bu bilgileri BİLEMEZ (olay anlatısında geçmiyorsa uydurması yasak);
+ * biz biliyoruz. Bu yüzden dosyadan gelen değer, künyede modelin yazdığından
+ * da önce gelir.
+ *
+ * MÜVEKKİLİN SIFATI (davacı mı davalı mı) kayıtta tutulmuyor; dilekçe TÜRÜNDEN
+ * çıkarılır: dava açan davacıdır, cevap veren davalıdır, ihtarname çeken
+ * keşidecidir.
+ *
+ * Sorgu, çağıranın kendi oturumuyla (RLS altında) yapılır: başkasının dosyası
+ * hiçbir koşulda okunamaz.
+ */
+async function dosyaKunyesi(
+  db: ReturnType<typeof createClient>,
+  caseId: string | null,
+  tip: string
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  const tarihYaz = (v: unknown): string => {
+    const d = v ? new Date(String(v)) : null;
+    if (!d || Number.isNaN(d.getTime())) return '';
+    return `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}.${d.getUTCFullYear()}`;
+  };
+
+  // DOSYA SEÇİLMESE DE DOLAN İKİ ŞEY VAR: avukatın kendi adı ve imza sıfatı.
+  // İkisi de her taslakta elle yazılıyordu; birincisini profil, ikincisini
+  // dilekçe türü söylüyor. Dosya seçmek bunlar için şart değil.
+  const { data: dava } = caseId
+    ? await db
+        .from('cases')
+        .select('id, client_id, case_number, court_name, opposing_party, decision_number, decision_date, decision_served_date')
+        .eq('id', caseId)
+        .maybeSingle()
+    : { data: null };
+  const d = (dava as Record<string, unknown>) ?? {};
+
+  let musteri: Record<string, unknown> | null = null;
+  if (d.client_id) {
+    const { data } = await db
+      .from('clients')
+      .select('full_name, company, address, title, tc_no')
+      .eq('id', d.client_id as string)
+      .maybeSingle();
+    musteri = (data as Record<string, unknown>) ?? null;
+  }
+  const { data: prof } = await db
+    .from('profiles')
+    .select('full_name, baro, bar_number, firm_name')
+    .maybeSingle();
+  const p = (prof as Record<string, unknown>) ?? {};
+
+  const musteriAdi = String(musteri?.full_name ?? musteri?.company ?? '').trim();
+  // TCKN KÜNYEYE YAZILIR. Dava dilekçesinde davacının kimlik numarası ZORUNLU
+  // unsurdur (HMK m.119/1-c) ve eksikliği bir haftalık kesin süreye, süre
+  // içinde tamamlanmazsa davanın AÇILMAMIŞ SAYILMASINA yol açar (m.119/2).
+  // Kayıtta varsa taslakta boşluk bırakmanın anlamı yok.
+  const musteriTc = String(musteri?.tc_no ?? '').trim();
+  const musteriSatiri = [
+    musteriAdi,
+    musteriTc ? `T.C. ${musteriTc}` : '',
+    String(musteri?.address ?? '').trim(),
+  ].filter(Boolean).join(' — ');
+  const karsi = String(d.opposing_party ?? '').trim();
+  const vekilAdi = String(p.full_name ?? '').trim();
+  const vekilSatiri = vekilAdi
+    ? [`Av. ${vekilAdi.replace(/^Av\.?\s*/i, '')}`, String(p.baro ?? '').trim(), String(p.firm_name ?? '').trim()]
+        .filter(Boolean)
+        .join(' — ')
+    : '';
+
+  if (vekilSatiri) out.VEKILI = vekilSatiri;
+  const mahkeme = String(d.court_name ?? '').trim();
+  if (mahkeme) out.MAHKEME = mahkeme;
+  const esas = String(d.case_number ?? '').trim();
+  if (esas) {
+    out.ESASNO = esas;
+    out.DOSYANO = esas;
+  }
+
+  // Müvekkilin ve karşı tarafın satırdaki YERİ dilekçe türüne göre değişir.
+  const musteriEtiketi: Record<string, string> = {
+    dava: 'DAVACI', replik: 'DAVACI', cevap: 'DAVALI', duplik: 'DAVALI',
+    istinaf: 'ISTINAFEDEN', temyiz: 'TEMYIZEDEN', itiraz: 'ITIRAZEDENBORCLU',
+    ihtarname: 'KESIDECI', bilirkisi: 'ITIRAZEDEN', islah: 'ISLAHEDEN',
+  };
+  const karsiEtiketi: Record<string, string> = {
+    dava: 'DAVALI', replik: 'DAVALI', cevap: 'DAVACI', duplik: 'DAVACI',
+    istinaf: 'KARSITARAF', temyiz: 'KARSITARAF', itiraz: 'ALACAKLI',
+    ihtarname: 'MUHATAP', bilirkisi: 'KARSITARAF', islah: 'KARSITARAF',
+  };
+  if (musteriSatiri && musteriEtiketi[tip]) out[musteriEtiketi[tip]] = musteriSatiri;
+  if (karsi && karsiEtiketi[tip]) out[karsiEtiketi[tip]] = karsi;
+
+  // İmza bloğundaki "… Vekili" sıfatı da türden gelir.
+  const imzaSifat: Record<string, string> = {
+    dava: 'Davacı', replik: 'Davacı', cevap: 'Davalı', duplik: 'Davalı',
+    istinaf: 'İstinaf Eden', temyiz: 'Temyiz Eden', itiraz: 'İtiraz Eden (Borçlu)',
+    ihtarname: 'Keşideci', bilirkisi: 'İtiraz Eden', islah: 'Islah Eden',
+  };
+  if (imzaSifat[tip]) out.IMZASIFAT = imzaSifat[tip];
+
+  // Kanun yolu dilekçelerinde kararın künyesi ve tebliğ tarihi.
+  const kararSatiri = [mahkeme, esas, String(d.decision_number ?? '').trim(), tarihYaz(d.decision_date)]
+    .filter(Boolean)
+    .join(' · ');
+  if (kararSatiri && (tip === 'istinaf' || tip === 'temyiz')) {
+    out.KARAR = kararSatiri;
+    out.TEMYIZEDILENKARAR = kararSatiri;
+  }
+  const teblig = tarihYaz(d.decision_served_date);
+  // Not: bilirkişi RAPORUNUN tebliğ tarihi ayrı bir tarihtir ve kayıtta
+  // tutulmuyor; karar tebliğ tarihini oraya yazmak yanlış süre hesaplatırdı.
+  if (teblig) out.TEBLIGTARIHI = teblig;
+  return out;
+}
+
+
   // ───────────── DİLEKÇE: olaydan mahkemeye hazır taslak ─────────────
   // Avukat olayı serbest dille anlatır; biz gerçek mevzuat/içtihatla besleyip
   // seçilen dilekçe türüne göre (dava, cevap, istinaf, temyiz, itiraz, ihtarname…)
@@ -969,37 +2173,105 @@ Deno.serve(async (req) => {
   // besleme aynıdır (uydurma yasağı korunur).
   if (isDilekce) {
     const typeMap: Record<string, string> = {
-      dava: 'DAVA DİLEKÇESİ (HMK m.119). Unsurlar eksiksiz: mahkeme, taraflar (ad-soyad/TC/adres — bilinmiyorsa [ ]), dava değeri/konusu, açık ve sıralı VAKIALAR, her vakıanın hangi DELİLLE ispatlanacağı, hukuki sebepler, ve NETİCE-İ TALEP (talep sonucu net kalemler + faiz + yargılama gideri/vekalet ücreti).',
-      cevap: 'CEVAP DİLEKÇESİ (HMK m.129). Sıra: usule ilişkin itirazlar (yetki/görev/derdestlik varsa), husumet/sıfat itirazı, zamanaşımı/hak düşürücü süre def’i (varsa), davacının her vakıasına tek tek CEVAP (kabul/inkâr), karşı vakıalar ve delilleri, netice-i talep (davanın reddi).',
-      replik: 'CEVABA CEVAP (REPLİK) DİLEKÇESİ. Davalının cevabındaki itirazları çürüt, kendi iddialarını delillerle pekiştir, yeni delil bildir.',
-      duplik: 'İKİNCİ CEVAP (DÜPLİK) DİLEKÇESİ. Replikteki yeni iddialara karşılık; savunmayı ve delilleri son kez topla.',
+      dava: 'DAVA DİLEKÇESİ (HMK m.119). Unsurlar eksiksiz: mahkeme, taraflar (ad-soyad/TC/adres — bilinmiyorsa [ ]), AYRI BİR SATIR HÂLİNDE "HARCA ESAS DAVA DEĞERİ" (HMK m.119/1-d ZORUNLU unsurdur; hesaplanamıyorsa [Dava değeri] bırak, satırı ATLAMA — eksikliği dilekçe ihtarına yol açar), açık ve sıralı VAKIALAR, her vakıanın hangi DELİLLE ispatlanacağı, hukuki sebepler, ve NETİCE-İ TALEP (talep sonucu net kalemler + faiz TÜRÜ ve BAŞLANGIÇ TARİHİ + yargılama gideri/vekalet ücreti).',
+      // DEF'İ, KELİMESİ KELİMESİNE YAZILMALI. Ölçümde model zamanaşımını
+      // "savunması" diye yazdı ve usule ilişkin itirazlar başlığına koydu.
+      // Zamanaşımı bir def'idir: ileri sürülmedikçe hâkim kendiliğinden göz
+      // önüne alamaz (TBK m.161). Muğlak ifade, def'inin usulünce ileri
+      // sürülüp sürülmediği tartışmasına yol açar.
+      cevap: 'CEVAP DİLEKÇESİ (HMK m.129). Sıra: İLK İTİRAZLAR (kesin yetki yoksa yetki, tahkim — HMK m.116/117: hepsi bu dilekçede ileri sürülmezse DİNLENMEZ), husumet/sıfat itirazı, sonra ESASA İLİŞKİN DEF’İLER. Zamanaşımı bir DEF’İDİR, itiraz değildir: dilekçede "zamanaşımı DEF’İNDE BULUNUYORUZ" diye AÇIKÇA yaz, "zamanaşımı savunması" gibi muğlak ifade kullanma ve usule ilişkin itirazlar başlığına KOYMA. Beş yıl diyorsan TBK m.147’nin HANGİ BENDİNE girdiğini yaz; girmiyorsa süre on yıldır (TBK m.146). Ardından davacının her vakıasına tek tek CEVAP (kabul/inkâr — def’i ileri sürmek kabul anlamına gelmez), karşı vakıalar ve delilleri, netice-i talep (davanın reddi).',
+      // SÜRE YAZILMIYORDU — ölçümde çıktı. İstinaf, temyiz ve cevapta süre
+      // uyarısı vardı; replik ve düplikte yoktu ve taslak süreden hiç söz
+      // etmedi. Oysa bu iki dilekçe, savunma ve iddianın SON kez genişletilip
+      // değiştirilebildiği yerdir (HMK m.141): dilekçeler karşılıklı verildikten
+      // sonra ıslah ve karşı tarafın açık muvafakati dışında yol kalmaz.
+      // Süreyi kaçıran avukat bir daha diyemeyeceği şeyi kaybeder.
+      replik: 'CEVABA CEVAP (REPLİK) DİLEKÇESİ (HMK m.136). Süre, cevap dilekçesinin TEBLİĞİNDEN itibaren İKİ HAFTADIR — bunu taslakta belirt. Davalının cevabındaki itirazları çürüt, kendi iddialarını delillerle pekiştir, yeni delil bildir. Bu dilekçe, iddiayı serbestçe genişletip değiştirebileceğin SON aşamadır (HMK m.141): dilekçelerin karşılıklı verilmesinden sonra ıslah ve karşı tarafın açık muvafakati dışında bu mümkün olmaz.',
+      duplik: 'İKİNCİ CEVAP (DÜPLİK) DİLEKÇESİ (HMK m.136). Süre, davacının cevaba cevabının TEBLİĞİNDEN itibaren İKİ HAFTADIR — bunu taslakta belirt. Replikteki yeni iddialara karşılık ver; savunmayı ve delilleri SON kez topla (HMK m.141: bundan sonra savunma genişletilemez, ıslah ve açık muvafakat saklıdır).',
       istinaf: 'İSTİNAF BAŞVURU DİLEKÇESİ (HMK m.342 vd.). İlk derece kararının özeti, İSTİNAF SEBEPLERİ (maddi/hukuki hatalar madde madde, dayanağıyla), ve talep (kararın kaldırılması/düzeltilmesi). Süre uyarısını (tebliğden itibaren 2 hafta) not düş.',
-      temyiz: 'TEMYİZ DİLEKÇESİ (HMK m.361 vd.). BAM kararının özeti, TEMYİZ SEBEPLERİ (hukuka aykırılıklar, ilgili Yargıtay içtihadıyla), talep (bozma). Süre uyarısını not düş.',
-      itiraz: 'İTİRAZ DİLEKÇESİ (icra/ödeme emrine — İİK m.62 vd. ya da ilgili usul). Dosya/takip no, itiraz edilen işlem, itiraz sebepleri (borca/imzaya/yetkiye), ve talep. Süreye dikkat çek.',
+      // PARASAL SINIR YILLIK YENİDEN DEĞERLEMEYLE ARTAR. Kanun metnindeki rakam
+      // (HMK m.362/1-a) havuzdaki hâliyle eskimiş olabilir; taslakta rakam
+      // vermek, avukatı temyizi kapalı sanıp başvurmamaya götürebilir.
+      temyiz: 'TEMYİZ DİLEKÇESİ (HMK m.361 vd.). Süre, kararın tebliğinden itibaren İKİ HAFTADIR. BAM kararının özeti, TEMYİZ SEBEPLERİ (hukuka aykırılıklar, ilgili Yargıtay içtihadıyla), talep (kararın BOZULMASI). "Kaldırılması" ifadesini HİÇ KULLANMA: kaldırma istinafa (BAM’a) aittir, Yargıtay BOZAR; ikisini birlikte yazmak hangi kanun yolunda olduğunu bilmediğini gösterir. Temyiz bir hukukilik denetimidir: yeni delil sunulmaz, "DELİLLER" bölümü yazma. Kesinlik (parasal) sınırına RAKAM VERME: sınır her yıl yeniden değerleme oranında artar; "karar tarihindeki kesinlik sınırını teyit edin" notu düş.',
+      // İtiraz LAFZEN yapılır. Ölçümde model "müvekkilin alacakla ilişkisi
+      // yoktur" yazıp "borca itiraz ediyoruz" demedi; icra dairesi itirazı
+      // SEBEBİNE göre kaydeder ve dolaylı anlatım hangi sebeple itiraz
+      // edildiğini göstermez.
+      itiraz: 'İTİRAZ DİLEKÇESİ (icra/ödeme emrine — İİK m.62 vd.). Dosya/takip no, itiraz edilen işlem, itiraz sebepleri ve talep. Sebepleri AÇIK KELİMELERLE yaz: "BORCA İTİRAZ EDİYORUZ", "İMZAYA AYRICA VE AÇIKÇA İTİRAZ EDİYORUZ", "YETKİYE İTİRAZ EDİYORUZ" (İİK m.62/son: imza ayrıca ve açıkça reddedilmezse KABUL EDİLMİŞ SAYILIR). "Sahtecilik" deme; beyan edilen, imzanın borçluya ait olmadığıdır. Talep, itirazın kayda geçirilmesi ve takibin durmasıdır; "ödeme emrinin iptali" isteme. Süreye dikkat çek.',
       ihtarname: 'İHTARNAME (noter/keşideci formatı). Keşideci ve muhatap, açık talep, yerine getirilmesi için verilen süre, aksi halde hukuki/cezai yollar, ihtar tarihinden itibaren temerrüt/faiz uyarısı.',
       bilirkisi: 'BİLİRKİŞİ RAPORUNA İTİRAZ DİLEKÇESİ. Raporun hangi tespitine neden itiraz edildiği (bilimsel/hukuki gerekçe), çelişkiler, ek/yeni bilirkişi talebi.',
       islah: 'ISLAH DİLEKÇESİ (HMK m.176 vd.). Neyin ıslah edildiği (talep sonucu/vakıa), gerekçe, harç tamamlama beyanı, yeni netice-i talep.',
     };
     const structure = typeMap[body.dilekceType ?? ''] ?? typeMap['dava'];
       let dossier = '';
-    try { dossier += await buildRules(supabase, promptQuestion); } catch { /* atla */ }
+    // Dosyaya giren kural kimlikleri toplanır — atlanan kural denetimi için
+    // DEĞİL (o dilekçede gürültü ürettiği için kaldırılmıştı), ÇAKIŞAN DAYANAK
+    // denetimi için: birbirinin alternatifi iki kuralın ikisi de dayanak
+    // gösterilirse avukat uyarılır (bkz. _shared/kural.ts, cakisanDayanaklar).
+    const dilekceKurallar = new Map<string, BeslenenKural>();
+    try { dossier += await buildRules(supabase, promptQuestion, dilekceKurallar); } catch { /* atla */ }
     try { dossier += await buildMevzuat(supabase, promptQuestion); } catch { /* atla */ }
     try { dossier += await buildGrounding(supabase, promptQuestion); } catch { /* atla */ }
+
+    // GROQ'A GİDERKEN BESLEME TAVANA SIĞDIRILIR. Ücretsiz anahtarda dakikalık
+    // tavan 8.000 token ve sağlayıcı girdi + çıktı tavanını topluyor; sığmayan
+    // istek 413 ile REDDEDİLİYOR, yani cevap hiç üretilmiyor. Zayıf bir cevap,
+    // hiç cevap olmamasından iyidir. Claude'da böyle bir tavan yok, dosya tam
+    // gider.
+    const dilekceMaxTok = Math.max(cfg.maxOut, tier === 'ai' ? 4096 : 3000);
+    let dilekceKirpildi = false;
+    if (provider === 'groq') {
+      const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + structure + promptQuestion, dilekceMaxTok);
+      dossier = k.besleme;
+      dilekceKirpildi = k.kirpildi;
+    }
 
     const dilekceSys =
       SYSTEM_PROMPT +
       '\n\nŞU AN "DİLEKÇE" MODUNDASIN: avukatın anlattığı olaydan, MAHKEMEYE VERİLEBİLECEK ' +
       'düzeyde resmî bir dilekçe TASLAĞI yazıyorsun. Tür ve zorunlu yapı:\n' + structure +
-      '\n\nBİÇİM KURALLARI:\n' +
-      '• En üstte mahkeme başlığı (örn. "… NÖBETÇİ ASLİYE HUKUK MAHKEMESİ SAYIN HÂKİMLİĞİNE"). ' +
+      // ÇIKTI BİÇİMİ ARTIK SERBEST DEĞİL. Model bölümleri işaretli blok hâlinde
+      // yazar, belgeyi kod dizer; böylece zorunlu unsurun düşmesi (netice-i
+      // talep, harca esas değer) yapısal olarak imkânsız hâle gelir.
+      '\n\nÇIKTI BİÇİMİ — SADECE ŞU BLOKLARI YAZ, başka hiçbir şey yazma:\n' +
+      bloklarTarifi(body.dilekceType ?? 'dava') +
+      '\nHer bloğun içine YALNIZ o bölümün metnini yaz. Başlıkları, taraf satırlarını, ' +
+      'imza bloğunu ve kontrol listesi başlığını SEN yazma — onları biz diziyoruz.\n' +
+      '\nBİÇİM KURALLARI:\n' +
+      '• ###MAHKEME### bloğuna yalnız merci adını yaz (örn. "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ"). ' +
       'Doğru mahkeme/görev belli değilse en olası olanı yaz ve yanına [kontrol edin] notu koy.\n' +
-      '• Bilinmeyen bilgileri UYDURMA; köşeli parantezle boş bırak: [Davacı Ad-Soyad], [TC], [Esas No], [Tarih].\n' +
+      // ÖLÇÜLEN ARIZA: avukat yalnız "Mart-Mayıs kiraları ödenmedi, noterden ihtar
+      // çektik" dedi; taslakta "01.02.2026 tarihli sözleşme" ve "30.09.2026 tarihli
+      // ihtarname" belirdi. İkincisi kira aylarından SONRAYA düşüyordu ve
+      // netice-i talebe taşınmıştı. Avukat fark etmezse mahkemeye yanlış tarihli
+      // dilekçe sunar — bu, eksik dilekçeden ağır bir hatadır. Genel talimattaki
+      // "uydurma" yasağı numaraları koruyordu, TARİH ve TUTARI korumuyordu.
+      '• VERİ UYDURMA MUTLAK YASAK: avukatın anlatısında GEÇMEYEN hiçbir tarih, tutar, ad, ' +
+      'adres, TC, esas/karar numarası ya da sözleşme numarası yazma. Gerekiyorsa köşeli ' +
+      'parantezle boşluk bırak ve NEYİN doldurulacağını yaz: [sözleşme tarihi], ' +
+      '[ihtarname tarihi], [dava değeri]. Yanlış tarih, boş bırakmaktan çok daha kötüdür.\n' +
+      // Ölçülen ikinci arıza: DAVALI satırına "[Davacı Ad-Soyad]" yazıldı.
+      '• KÖŞELİ PARANTEZ ETİKETİ, AİT OLDUĞU ALANI SÖYLESİN: davalı satırına [Davacı Ad-Soyad] ' +
+      'yazma, [Davalı Ad-Soyad] yaz. Her boşluk hangi bilgiyi istediğini kendi kendine anlatsın.\n' +
       '• VAKIALARI numaralandır; her hukuki dayanağı gerçek madde numarasıyla ver (aşağıdaki DOSYADAKİ ' +
       'maddelere dayan; dosyada yoksa "ilgili mevzuat" de, madde UYDURMA).\n' +
       '• Sonda "HUKUKİ SEBEPLER", "DELİLLER" (her vakıaya bağlı), "NETİCE-İ TALEP" ve imza bloğu ' +
       '(Saygılarımla / [Davacı] Vekili / Av. [Ad Soyad]) bulunsun.\n' +
-      '• Taslağın en sonuna kısa bir "⚠️ KONTROL LİSTESİ" ekle: avukatın doldurması/denetlemesi gereken ' +
-      'boşluklar, süreler ve riskler (madde madde).\n' +
+      // BAŞLIK TEKRARI — ÖLÇÜLEN ARIZA. Bu talimat, ###KONTROL### bloğunun
+      // yanında ayrıca "KONTROL LİSTESİ başlığı ekle" diyordu; model ikisine
+      // de uyup başlığı KENDİSİ yazıyor, kod da aynı başlığı bir daha
+      // ekliyordu. Kontrol listesinin ne olduğu ve nereye yazılacağı zaten
+      // ###KONTROL### bloğunun tarifinde var (bkz. bloklarTarifi); burada
+      // tekrar istemek çelişkiye yol açıyordu.
+
+      // TALEP DÜŞÜRME — ölçümde görüldü. Avukat "tahliye ve kira alacağı"
+      // dedi, taslak yalnız alacağı istedi ve tahliye hiç geçmedi. Netice-i
+      // talepte olmayan şeye mahkeme hükmedemez (HMK m.26: taleple bağlılık);
+      // yani düşen talep, dilekçedeki en pahalı hatadır — avukat fark etmezse
+      // müvekkil o hakkı o davada kaybeder.
+      '• AVUKATIN SAYDIĞI HER TALEBİ NETİCE-İ TALEBE KOY. Olayda "tahliye ve alacak" gibi ' +
+      'birden çok istem varsa hepsini ayrı kalem olarak yaz; birini düşürme, birleştirme. ' +
+      'Talep edilmeyen şeye hükmedilemez.\n' +
       'Gerçekçi, tok ve profesyonel bir dille yaz. Gereksiz doldurma cümlesi kurma.' +
       dossier;
 
@@ -1007,16 +2279,32 @@ Deno.serve(async (req) => {
       let out = '';
       let uin = 0;
       let uout = 0;
-      const maxTok = Math.max(cfg.maxOut, tier === 'elit' || tier === 'ai' ? 4096 : 3000);
+      // Kullanım kaydı, GERÇEKTEN cevap veren modele yazılır (yedeğe iniş olabilir).
+      let kullanilanModel = model;
+      let faturali = cfg.billable;
+      const maxTok = dilekceMaxTok;
       if (provider === 'claude') {
-        // Sabit talimat önbelleğe; tür yapısı + araştırma dosyası arkaya.
-        const rest = dilekceSys.startsWith(SYSTEM_PROMPT) ? dilekceSys.slice(SYSTEM_PROMPT.length) : '';
-        const stable = rest ? SYSTEM_PROMPT : dilekceSys;
-        const r = await claudeChat(stable, rest, [{ role: 'user', text: promptQuestion }], maxTok, genKey);
+        // İKİ KATMANLI ÖNBELLEK — ölçülen kayıp buradaydı: dilekçe modunun
+        // TALİMATLARI ve TÜR YAPISI (mod bloğu) her istekte AYNI olduğu hâlde
+        // önbelleğin ARKASINA düşüyor ve tam fiyattan yeniden faturalanıyordu
+        // (~1.000 token/istek). Yalnız araştırma dosyası (dossier) gerçekten
+        // isteğe göre değişir; kesme noktası oraya taşındı.
+        //   katman 1: SYSTEM_PROMPT  → TÜM modlarda ortak
+        //   katman 2: mod bloğu      → aynı moddaki isteklerde ortak
+        //   arkada:   dossier        → her istekte değişir, önbelleğe alınamaz
+        const sabitKisim = dossier ? dilekceSys.slice(0, dilekceSys.length - dossier.length) : dilekceSys;
+        const modBlogu = sabitKisim.startsWith(SYSTEM_PROMPT) ? sabitKisim.slice(SYSTEM_PROMPT.length) : '';
+        const katmanlar = modBlogu ? [SYSTEM_PROMPT, modBlogu] : [sabitKisim];
+        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        out = r.text; uin = r.tin; uout = r.tout;
+        kullanilanModel = r.model; faturali = r.faturali;
+      } else if (provider === 'openai') {
+        const r = await openaiChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
         out = r.text; uin = r.tin; uout = r.tout;
       } else if (provider === 'groq') {
-        const r = await groqChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey);
+        const r = await ucretsizChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok);
         out = r.text; uin = r.tin; uout = r.tout;
+        kullanilanModel = r.model;
       } else {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
         const res = await fetch(url, {
@@ -1038,14 +2326,341 @@ Deno.serve(async (req) => {
       if (!out.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
-      await recordUsage(userData.user.id, model, uin, uout, cfg.billable);
-      return new Response(JSON.stringify({ text: out.trim(), tier, model }), {
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
+
+      // GÜDÜK TASLAK BİR KEZ YENİDEN DENENİR — BAŞKA MODELLE.
+      //
+      // ÖLÇÜLEN ARIZA: düplik dilekçesi 566 KARAKTERDE bitti. Zincirin en küçük
+      // modeli (20b) cevap vermişti ve çıkan şey bir dilekçe değil, bir
+      // paragraftı. Denetim bunu yakalıyor ve hak düşülmüyordu — ama avukatın
+      // elinde yine hiçbir şey yoktu. "Hakkınız düşmedi" dürüst bir cümledir,
+      // işini yapmaz.
+      //
+      // Yeniden deneme yalnız ücretsiz hatta ve YALNIZ BİR KEZ yapılır; aynı
+      // modele aynı soruyu sormak aynı güdük cevabı almanın pahalı yolu
+      // olduğundan, kusurlu cevabı veren model atlanır. Kota bunu kaldırır
+      // çünkü güdük çıktı seyrek: on senaryoluk koşuda bir kez görüldü.
+      if (provider === 'groq' && out.trim().length < DILEKCE_ASGARI) {
+        try {
+          const r2 = await ucretsizChat(
+            dilekceSys,
+            [{ role: 'user', text: promptQuestion }],
+            maxTok,
+            [kullanilanModel]
+          );
+          // Yalnız DAHA İYİSİ alınır: ikinci deneme de güdükse elde olanı
+          // bozmanın anlamı yok.
+          if (r2.text.trim().length > out.trim().length) {
+            out = r2.text; uin += r2.tin; uout += r2.tout; kullanilanModel = r2.model;
+          }
+        } catch {
+          // Kota ya da arıza: elde olan güdük taslakla devam edilir; denetim
+          // onu kusurlu sayar ve hak düşmez.
+        }
+      }
+
+      // Bölümleri modelden işaretli blok olarak alıp belgeyi KOD diziyoruz;
+      // zorunlu unsurun sessizce düşmesi böylece imkânsız hâle gelir.
+      //
+      // GERİ DÜŞÜŞ BİLİNÇLİ: model blokları hiç kullanmadıysa (ya da yarıdan
+      // azını yazdıysa) ham metin olduğu gibi verilir. Yarım ayrıştırılmış bir
+      // belge dizmek, elde olan çalışan metni bozmak olurdu.
+      const bloklar = bloklariAyristir(out);
+      const iskelet = iskeletSec(body.dilekceType ?? 'dava');
+      // DOSYA SEÇİLDİYSE künye avukatın kendi kaydından dolar. Hata yutulur:
+      // kayıt okunamadı diye taslak üretilmemesi, boşluklu taslaktan kötüdür.
+      let dosya: Record<string, string> = {};
+      try {
+        dosya = await dosyaKunyesi(supabase, body.caseId ?? null, body.dilekceType ?? 'dava');
+      } catch { /* künye dolmazsa kodun boşlukları kalır */ }
+      const beklenen = iskelet.bolumler.filter((b) => b.zorunlu).length;
+      const bulunan = iskelet.bolumler.filter((b) => b.zorunlu && (bloklar[b.anahtar] ?? '').trim()).length;
+      let govde = out.trim();
+      let eksikBolum: string[] = [];
+      if (bulunan >= Math.ceil(beklenen / 2)) {
+        const dizili = dilekceyiDiz(body.dilekceType ?? 'dava', bloklar, dosya);
+        govde = dizili.metin;
+        eksikBolum = dizili.eksik;
+      }
+
+      // Talimat sertleştirildi ama YETMEZ: model kuralı çoğu zaman tutar,
+      // tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
+      // mekanik denetimde.
+      const temiz = uydurmaTarihleriAyikla(govde, promptQuestion);
+      // TÜRE ÖZGÜ TALEP DENETİMİ. Talebi biz yazamayız — ne istendiğini avukat
+      // bilir ve uydurulmuş talep, eksik talepten kötüdür. Ama eksikliği
+      // görebiliriz: hâkim taleple bağlıdır (HMK m.26) ve netice-i talepte
+      // olmayan şeye hükmedilmez. Ölçümde istinaf talebi üç koşunun birinde
+      // düştü; talimat bunu tamamen gidermiyor, denetim gideriyor.
+      const talepEksik = talepUyarilari(body.dilekceType ?? 'dava', temiz.metin);
+      // Zorunlu bölümü eksik ya da yarım kalmış taslak, kullanıcının hakkından
+      // DÜŞÜLMEZ; gideri biz karşılarız. Bunu yanıtta da söylüyoruz ki avukat
+      // hakkının neden eksilmediğini bilsin.
+      const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, temiz.metin);
+      // ATLANAN KURAL DENETİMİ DİLEKÇEDE ÇALIŞMIYOR — ölçüm gösterdi ki burada
+      // ürettiği şey gürültü. Dört senaryoluk koşuda üç uyarı çıktı ve üçü de
+      // konu dışıydı: istinaf dilekçesinde "arabulucu" (o aşama çoktan geçmiş),
+      // bilirkişi raporuna itirazda ve düplikte "def'i" (arama cevap_dilekcesi
+      // kuralını 0,16 gibi düşük skorla ilk sıraya koymuştu).
+      //
+      // Sebep yapısal: dilekçe HEDEFLİ bir belgedir ve komşu bir kuralın orada
+      // geçmemesi normaldir; mütalaa ise uygulanacak kuralları KAPSAMAK
+      // zorunda olan bir çözümlemedir. Denetimin kanıtı da tamamen mütalaadan
+      // geliyordu. Yanlış uyarı, uyarının tamamını gürültüye çevirir ve avukat
+      // bir daha hiçbirine bakmaz; bu yüzden çalıştığı yerde bırakıldı.
+      // ÇAKIŞAN DAYANAK DENETİMİ — atlananKurallar'ın tersi. Gerçek kullanım
+      // denemesinde model, birbirinin alternatifi iki kuralı (temerrüt / iki
+      // haklı ihtar) birlikte dayanak gösterdi. "Alternatif kuralları ayırt
+      // et" talimatı eklendi ama İKİ BAĞIMSIZ ÜRETİMDE TUTARSIZ çalıştı: biri
+      // doğru ayrımı yaptı, diğeri yine ikisini birlikte yazdı. Talimatla tam
+      // gideremediğimiz için mekanik denetim: liste bilerek dar, yalnız
+      // kuralın kendi metninde "alternatif" dediği bilinen çiftler.
+      const cakisan = cakisanDayanaklar(new Set(dilekceKurallar.keys()), temiz.metin);
+      // UYDURMA TUTAR DENETİMİ — madde atfıyla aynı prensip: silinmez, uyarılır.
+      // Bkz. _shared/dilekce.ts > uydurmaTutarlariBul.
+      const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
+      const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
+      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
+      if (cfg.denemeLimit && kusurlu) await denemeHakkiSerbestBirak(userData.user.id);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'dilekce');
+      return new Response(
+        JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
+          hakDusulmedi: kusurlu || undefined, istekId,
+          talepEksik: talepEksik.length ? talepEksik : undefined,
+          cakisanDayanak: cakisan.length ? cakisan : undefined,
+          uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+          uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
+          beslemeKirpildi: dilekceKirpildi || undefined,
+          kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+      );
     } catch (e) {
       const msg = (e as Error).message;
       const known = msg === 'rate_limit' || msg === 'daily_quota';
-      return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+      // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
+      // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
+        status: known ? 429 : 502,
+        headers: CORS,
+      });
+    }
+  }
+
+  // ───────────── BELGE İNCELEME ─────────────
+  // İSTEM SUNUCUYA TAŞINDI. Önce inceleme istemi ekran dosyasında (istemcide)
+  // kuruluyordu. İki sonucu vardı ve ikisi de ölçülebilirliği kırıyordu:
+  //   • Ölçüm aracı istemi taklit etmek zorunda kalırdı; ölçtüğümüz şey
+  //     kullanıcının gördüğü çıktı olmazdı.
+  //   • Her iyileştirme uygulama güncellemesi gerektirirdi; oysa istem
+  //     burada olunca deploy yeter.
+  // Ayrıca bu yol, üretilen incelemeyi MEKANİK TARİH DENETİMİNDEN geçirmeyi
+  // mümkün kılıyor: incelemede geçen ama BELGEDE OLMAYAN bir tarih, avukatın
+  // ajandasına yanlış süre yazdırabilir — dilekçedeki uydurma tarihten daha
+  // sinsidir, çünkü avukat belgeyi zaten okuduğunu varsayar.
+  // KÜNYE ÇIKARIMI — UYAP belgesinden dosya kaydı.
+  //
+  // Çıkan değerler DOĞRUDAN dosya kaydına yazılıyor; bu yüzden burada uydurma,
+  // dilekçedekinden daha sinsidir. Yanlış esas numarasıyla açılmış bir dosya
+  // DOLU görünür ve kimse bir daha bakmaz. Bu yüzden model ne derse desin,
+  // belgede karşılığı olmayan alan atılır (bkz. _shared/kunye.ts).
+  if (isKunye) {
+    const kunyeSys =
+      'Sen bir hukuk bürosu asistanısın. Sana verilen UYAP belgesinden DOSYA KÜNYESİNİ çıkar.\n' +
+      'SADECE şu JSON şemasıyla yanıt ver, başka hiçbir şey yazma:\n' +
+      '{"title":"kısa dosya başlığı","court_name":"mahkeme adı","case_number":"esas no",' +
+      '"case_type":"dava türü","davaci":"davacı/şikayet eden taraf","davali":"davalı taraf",' +
+      '"opposing_party":"karşı taraf","hearing_date":"YYYY-MM-DD"}\n\n' +
+      'KURALLAR:\n' +
+      '• BELGEDE OLMAYAN HİÇBİR ŞEYİ YAZMA. Bir alanı bulamıyorsan BOŞ STRING bırak. ' +
+      'Uydurulmuş bir esas numarası, boş bırakılmış bir alandan çok daha kötüdür: ' +
+      'dosya yanlış numarayla açılır ve dolu göründüğü için kimse denetlemez.\n' +
+      '• court_name, case_number ve opposing_party belgede GEÇTİĞİ GİBİ yazılır; özetleme.\n' +
+      '• case_number yalnız ESAS numarasıdır (örn. "2026/1487"); karar numarası değil.\n' +
+      '• davaci ve davali HER ZAMAN doldurulur (belgede varsa). Bunlar belgeden okunur, ' +
+      'yorum gerektirmez.\n' +
+      '• opposing_party YALNIZ belge açıkça "KARŞI TARAF" diyorsa doldurulur. Belgede kimin ' +
+      'vekili olduğumuz yazmıyorsa bu alanı BOŞ bırak — hangi tarafın karşı taraf olduğu ' +
+      'belgeden çıkarılamaz ve yanlış tarafı yazmak dosyayı ters kurar. Avukat, davacı ve ' +
+      'davalı arasından kendisi seçer.\n' +
+      '• hearing_date yalnız GELECEK bir duruşma günüdür; karar tarihi ya da tebliğ tarihi değil.\n' +
+      '• title kısa olsun: taraf adı + dava türü yeter.';
+    try {
+      let out = '';
+      let uin = 0;
+      let uout = 0;
+      let kullanilanModel = model;
+      let faturali = cfg.billable;
+      // Künye çıkarımı KISA bir iştir: JSON birkaç yüz token. Geniş bir tavan
+      // vermek, ücretsiz sağlayıcının dakikalık sınırını (girdi + tavan) boşuna
+      // yakar ve isteği 413'e sokar.
+      const maxTok = 700;
+      if (provider === 'claude') {
+        // kunyeSys TAMAMEN STATİK (sabit JSON şema talimatı, araştırma dosyası
+        // yok) — önbelleğin arkasında durmasının hiçbir sebebi yoktu, her
+        // istekte tam fiyattan yeniden faturalanıyordu. İkinci katman yapıldı.
+        const r = await ucretliChat([SYSTEM_PROMPT, kunyeSys], '', [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        out = r.text; uin = r.tin; uout = r.tout; kullanilanModel = r.model; faturali = r.faturali;
+      } else if (provider === 'openai') {
+        const r = await openaiChat(kunyeSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        out = r.text; uin = r.tin; uout = r.tout;
+      } else {
+        const r = await ucretsizChat(kunyeSys, [{ role: 'user', text: promptQuestion }], maxTok);
+        out = r.text; uin = r.tin; uout = r.tout; kullanilanModel = r.model;
+      }
+      if (!out.trim()) {
+        return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
+      }
+
+      // JSON AYRIŞTIRMA SUNUCUDA. İstemcide yapılıyordu ve model açıklama
+      // eklediğinde sessizce boş künye dönüyordu.
+      let ham: Record<string, string> = {};
+      try {
+        const bas = out.indexOf('{');
+        const son = out.lastIndexOf('}');
+        if (bas >= 0 && son > bas) ham = JSON.parse(out.slice(bas, son + 1));
+      } catch { /* ayrıştırılamadı: boş künye ile devam */ }
+
+      const { kunye, atilan } = kunyeDogrula(ham as Kunye, promptQuestion);
+      // Doldurulabilen alan sayısı: hepsi boşsa çıkarım işe yaramamıştır ve
+      // kullanıcının hakkından düşülmez.
+      const doluAlan = ['court_name', 'case_number', 'opposing_party', 'davaci', 'davali', 'hearing_date']
+        .filter((k) => (kunye as Record<string, string | undefined>)[k]).length;
+      const kusurlu = doluAlan === 0;
+      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
+      if (cfg.denemeLimit && kusurlu) await denemeHakkiSerbestBirak(userData.user.id);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'kunye');
+      return new Response(
+        JSON.stringify({
+          kunye, atilan: atilan.length ? atilan : undefined,
+          tier, model: kullanilanModel,
+          hakDusulmedi: kusurlu || undefined,
+          kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet),
+        }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+      );
+    } catch (e) {
+      const msg = (e as Error).message;
+      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
+        status: known ? 429 : 502,
+        headers: CORS,
+      });
+    }
+  }
+
+  if (isBelge) {
+    const tur = BELGE_TURU[body.docKind ?? 'diger'] ?? BELGE_TURU.diger;
+    // Besleme sorgusu belgenin TAMAMI değil BAŞI: bir sözleşmenin bütünü
+    // arama sorgusu yapıldığında en sık geçen sözcükler kazanır ve ilgisiz
+    // mevzuat gelir. Baş kısım, belgenin ne olduğunu en çok anlatan yerdir.
+    const aramaMetni = `${tur.arama} ${promptQuestion.slice(0, 1200)}`;
+    let dossier = '';
+    try { dossier += await buildRules(supabase, aramaMetni); } catch { /* atla */ }
+    try { dossier += await buildMevzuat(supabase, aramaMetni); } catch { /* atla */ }
+
+    // BELGEDE KIRPMA DAHA DA KRİTİK: burada kullanıcının kendi metni de girdiye
+    // giriyor (12.000 karaktere kadar) ve besleme onun üstüne biniyor. Ücretsiz
+    // sağlayıcının dakikalık tavanı 8.000 token ve girdi + çıktı tavanı birlikte
+    // sayılıyor; sığmayan istek 413 ile reddediliyor, yani inceleme hiç
+    // üretilmiyor.
+    const belgeMaxTok = Math.max(cfg.maxOut, 3000);
+    let beslemeKirpildi = false;
+    if (provider === 'groq') {
+      const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + tur.ek + promptQuestion, belgeMaxTok);
+      dossier = k.besleme;
+      beslemeKirpildi = k.kirpildi;
+    }
+
+    const belgeSys =
+      SYSTEM_PROMPT +
+      '\n\nŞU AN "BELGE İNCELEME" MODUNDASIN. Aşağıdaki ' + tur.ad + ' metnini KIDEMLİ AVUKAT ' +
+      'gözüyle inceliyorsun. Amaç, avukatın belgeyi baştan sona okumadan RİSKİ ve SÜREYİ ' +
+      'görmesidir.\n\nŞU BAŞLIKLARLA, madde madde ve KISA yaz:\n' +
+      '1) ÖZET — belge ne diyor (2-3 cümle)\n' +
+      '2) RİSKLER — müvekkil aleyhine, tek taraflı ya da tehlikeli hükümler; her biri için NEDEN riskli\n' +
+      '3) EKSİKLER — olması gerekip de olmayan hüküm/unsurlar\n' +
+      '4) SÜRELER VE TARİHLER — metinde geçen ve kaçırılmaması gereken süreler\n' +
+      '5) ÖNERİLEN DEĞİŞİKLİKLER — eklenecek/düzeltilecek madde önerileri\n' +
+      tur.ek +
+      '\nKURALLAR:\n' +
+      '• Metinde OLMAYAN bilgiyi uydurma. Emin olmadığın noktada "teyit edilmeli" de.\n' +
+      '• TARİH UYDURMA: yalnız belgede geçen tarihleri yaz. Bir süre belgede tarihe ' +
+      'bağlanmamışsa "başlangıç tarihi teyit edilmeli" de, kendin tarih hesaplama.\n' +
+      '• Madde numarası verirken yalnız aşağıdaki dosyada gerçekten geçen maddeleri kullan; ' +
+      'dosyada yoksa "ilgili mevzuat" de.\n' +
+      '• Risk yoksa "belirgin risk görülmedi" de; risk üretmek için abartma.' +
+      dossier;
+
+    try {
+      const maxTok = belgeMaxTok;
+      let out = '';
+      let uin = 0;
+      let uout = 0;
+      let kullanilanModel = model;
+      let faturali = cfg.billable;
+      if (provider === 'claude') {
+        // Dilekçedeki ile aynı düzeltme: belge modunun statik talimatı da
+        // önbelleğe alınır, yalnız araştırma dosyası arkada kalır.
+        const sabitKisim = dossier ? belgeSys.slice(0, belgeSys.length - dossier.length) : belgeSys;
+        const modBlogu = sabitKisim.startsWith(SYSTEM_PROMPT) ? sabitKisim.slice(SYSTEM_PROMPT.length) : '';
+        const katmanlar = modBlogu ? [SYSTEM_PROMPT, modBlogu] : [sabitKisim];
+        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        out = r.text; uin = r.tin; uout = r.tout;
+        kullanilanModel = r.model; faturali = r.faturali;
+      } else if (provider === 'openai') {
+        const r = await openaiChat(belgeSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        out = r.text; uin = r.tin; uout = r.tout;
+      } else if (provider === 'groq') {
+        const r = await ucretsizChat(belgeSys, [{ role: 'user', text: promptQuestion }], maxTok);
+        out = r.text; uin = r.tin; uout = r.tout;
+        kullanilanModel = r.model;
+      } else {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: belgeSys }] },
+            contents: [{ role: 'user', parts: [{ text: promptQuestion }] }],
+            generationConfig: { temperature: 0.25, maxOutputTokens: maxTok },
+          }),
+        });
+        if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
+        const d = await res.json();
+        out = d.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+        const um = d.usageMetadata ?? {};
+        uin = um.promptTokenCount ?? 0;
+        uout = um.candidatesTokenCount ?? 0;
+      }
+      if (!out.trim()) {
+        return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
+      }
+      // Belgede geçmeyen tarihler ayıklanır: incelemedeki bir tarih, avukat
+      // için "bu gün son gün" demektir.
+      const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
+      const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, temiz.metin);
+      // UYDURMA TUTAR DENETİMİ — incelemedeki bir tutar, belgede hiç yoksa
+      // avukat için "bu belgede yazan miktar" sanılır. Bkz. dilekçedeki aynı
+      // denetim; burada "olay" yerine incelenen belgenin metni (promptQuestion).
+      const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
+      const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
+      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
+      if (cfg.denemeLimit && kusurlu) await denemeHakkiSerbestBirak(userData.user.id);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'belge');
+      return new Response(
+        JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
+          hakDusulmedi: kusurlu || undefined, istekId,
+          uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+          uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
+          beslemeKirpildi: beslemeKirpildi || undefined,
+          kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+      );
+    } catch (e) {
+      const msg = (e as Error).message;
+      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
+      // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
       });
@@ -1086,17 +2701,29 @@ Deno.serve(async (req) => {
   let text = '';
   let tin = 0;
   let tout = 0;
+  let kullanilanModel = model;
+  let faturali = cfg.billable;
   try {
     if (provider === 'claude') {
-      const r = await claudeChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey);
+      const r = await ucretliChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey, model);
+      text = r.text;
+      tin = r.tin;
+      tout = r.tout;
+      kullanilanModel = r.model;
+      faturali = r.faturali;
+    } else if (provider === 'openai') {
+      const r = await openaiChat(systemText, messages, maxOutputTokens, genKey, model);
       text = r.text;
       tin = r.tin;
       tout = r.tout;
     } else if (provider === 'groq') {
-      const r = await groqChat(systemText, messages, maxOutputTokens, genKey);
+      const r = await ucretsizChat(systemText, messages, maxOutputTokens);
       text = r.text;
       tin = r.tin;
       tout = r.tout;
+      // Hangi sağlayıcının cevapladığı kullanım kaydına yazılır: yedeğe ne
+      // sıklıkta düşüldüğü, kotanın gerçekten yetip yetmediğinin tek ölçüsü.
+      kullanilanModel = r.model;
     } else {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${genKey}`;
       const res = await fetch(url, {
@@ -1118,7 +2745,32 @@ Deno.serve(async (req) => {
   } catch (e) {
     const msg = (e as Error).message;
     const known = msg === 'rate_limit' || msg === 'daily_quota';
-    return new Response(JSON.stringify({ error: known ? msg : 'upstream' }), {
+
+    // İKİ SAĞLAYICI DA DÜŞTÜ. Hata kutusu göstermek yerine, aramanın zaten
+    // bulduğu mevzuatı doğrudan veriyoruz: avukat için "bir hata oluştu"
+    // yerine "İşK m.21: ...on işgünü..." görmek kıyaslanamayacak kadar iyidir.
+    //
+    // AYRIM YAPILMIYOR — kota, yoğunluk ya da beklenmedik arıza: kullanıcı
+    // açısından üçü de "asistan yanıt vermiyor" demektir ve üçünde de
+    // elimizdeki mevzuatı göstermek kırmızı kutudan iyidir. İlk tasarımda
+    // yalnız kota hâlinde yapılıyordu; denemede görüldü ki en olası ikinci
+    // arıza (yedek modelin adının eskimesi) 'upstream' sayılıyor ve tam da
+    // yedeğe en çok ihtiyaç duyulan anda özet devreye girmiyordu.
+    // Gerçek sebep yanıtta 'neden' alanında taşınır, gizlenmez.
+    {
+      const ozet = await mevzuatOzeti(supabase, messages[messages.length - 1]?.text ?? '').catch(() => '');
+      if (ozet) {
+        // Bilinçli olarak 200: istemci bunu normal bir yanıt gibi gösterir.
+        // 'model' alanı 'mevzuat-yedek' olduğu için ölçümde AI cevabıyla
+        // karışmaz ve yedeğe ne sıklıkta düşüldüğü sayılabilir.
+        return new Response(
+          JSON.stringify({ text: ozet, tier, model: 'mevzuat-yedek', yapayZekasiz: true, neden: msg, yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }),
+          { headers: { ...CORS, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
       status: known ? 429 : 502,
       headers: CORS,
     });
@@ -1127,8 +2779,11 @@ Deno.serve(async (req) => {
   if (!text) {
     return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
   }
-  await recordUsage(userData.user.id, model, tin, tout, cfg.billable);
-  return new Response(JSON.stringify({ text: text.trim(), tier, model }), {
+  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, true, 'sohbet');
+  return new Response(JSON.stringify({
+    text: text.trim(), tier, model: kullanilanModel, istekId,
+    kullanim: kullanimOzeti(kullanilanModel, tin, tout, maliyet),
+  }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
 });

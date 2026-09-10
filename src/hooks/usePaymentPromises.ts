@@ -5,6 +5,7 @@ import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import { cancelPromiseReminder, schedulePromiseReminder } from '@/lib/notifications';
 import { formatMoney } from '@/utils/format';
+import { taksitBolustur } from '@/utils/taksit';
 import type { PaymentPromise } from '@/types/database';
 
 /** True when the 0010 (payment_promises) section of KURULUM.sql hasn't run. */
@@ -122,17 +123,23 @@ export function useCreatePromiseInstallments() {
     }) => {
       const { clientName, total, count, firstDue, ...rest } = input;
       const group_id = uuidv4();
-      // Kuruş kaybı olmasın: son taksit yuvarlama farkını üstlenir.
-      const per = Math.floor((total / count) * 100) / 100;
-      const last = Math.round((total - per * (count - 1)) * 100) / 100;
-      const rows = Array.from({ length: count }, (_, i) => ({
+      /**
+       * Bölüştürme kuruş tabanlı ve saf bir modülde (bkz. utils/taksit.ts).
+       * Buradaki eski hesap toplamı doğru veriyordu ama kayan nokta yüzünden
+       * eşit olması gereken taksitleri eşit üretmiyordu; ölçümde 1.000-50.000 ₺
+       * aralığının ~%2'sinde fark son taksite yığılıyordu (en kötüsü 12 kuruş).
+       * Hesap artık test altında.
+       */
+      const { tutarlar } = taksitBolustur(total, count);
+      if (tutarlar.length === 0) throw new Error('taksit_gecersiz');
+      const rows = tutarlar.map((amount, i) => ({
         ...rest,
         owner_id: ownerId!,
-        amount: i === count - 1 ? last : per,
+        amount,
         due_date: format(addMonths(firstDue, i), 'yyyy-MM-dd'),
         group_id,
         seq: i + 1,
-        total_count: count,
+        total_count: tutarlar.length,
       }));
       const { data, error } = await supabase.from('payment_promises').insert(rows).select();
       if (error) throw error;

@@ -7,8 +7,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
-import { AI_ENABLED } from '@/config/features';
+import { AI_AKTARMA_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
+// Hata çevirisi ORTAK: aynı mantık ekranlarda ayrı yazılınca biri güncellenip
+// diğerleri geride kalıyordu (bkz. src/lib/aiHata.ts).
+import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useCreateCase } from '@/hooks/useCases';
 import { useCreateHearing } from '@/hooks/useHearings';
 import { useT } from '@/i18n';
@@ -35,6 +38,12 @@ const EMPTY: Extracted = {
   hearing_date: '',
 };
 
+/** Belgeden okunan taraflar — karşı tarafı avukat bunlardan seçer. */
+interface Taraflar {
+  davaci: string;
+  davali: string;
+}
+
 /**
  * BELGEDEN DOSYA AKTARMA — UYAP entegrasyonunun pratik köprüsü.
  * Avukat UYAP'tan dosyasını UDF/PDF olarak indirir, buraya yükler; uygulama
@@ -55,24 +64,25 @@ export default function DosyaAktarScreen() {
   const [stage, setStage] = useState('');
   const [form, setForm] = useState<Extracted>(EMPTY);
   const [rawLen, setRawLen] = useState(0);
+  // TARAFLARIN İKİSİ DE OKUNUR, SEÇİMİ AVUKAT YAPAR.
+  //
+  // Ölçülen arıza: yedi senaryonun ikisinde karşı taraf boş kaldı ve model
+  // HAKLIYDI — belge kimin vekili olduğumuzu söylemiyor, hangi tarafın karşı
+  // taraf olduğu belgeden çıkarılamaz. Modele tahmin ettirmek dosyayı ters
+  // kurma riskiydi; avukata boş alan bırakmak da çözüm değildi. İki taraf da
+  // gösteriliyor, bir dokunuşla seçiliyor.
+  const [taraflar, setTaraflar] = useState<Taraflar>({ davaci: '', davali: '' });
+  // Sunucunun belgede bulamadığı için attığı alanlar.
+  const [atilan, setAtilan] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!AI_ENABLED) {
+  if (!AI_AKTARMA_ENABLED) {
     return <ComingSoon headerTitle={t('imp.title')} title={t('soon.import')} desc={t('soon.desc')} icon="cloud-upload" />;
   }
 
-  const parseJson = (raw: string): Partial<Extracted> | null => {
-    const c = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const s = c.indexOf('{');
-    const e = c.lastIndexOf('}');
-    if (s < 0 || e <= s) return null;
-    try {
-      return JSON.parse(c.slice(s, e + 1)) as Partial<Extracted>;
-    } catch {
-      return null;
-    }
-  };
 
   const pickAndRead = async () => {
+    setError(null);
     setBusy(true);
     try {
       const res = await DocumentPicker.getDocumentAsync({
@@ -103,31 +113,37 @@ export default function DosyaAktarScreen() {
       }
       setRawLen(text.length);
 
-      // 2) AI ile dosya bilgilerini oku
+      // 2) Künyeyi SUNUCU çıkarır.
+      //
+      // İstem eskiden burada kuruluyordu ve bu üç şeyi imkânsız kılıyordu:
+      // çıkarımı ÖLÇMEK, istemi uygulama güncellemesi olmadan iyileştirmek ve
+      // çıkan künyeyi DENETLEMEK. Üstelik istek genel sohbet moduna gidiyordu.
+      // Sunucu artık belgede karşılığı olmayan alanı ATIYOR: uydurma bir esas
+      // numarası, boş alandan çok daha tehlikelidir — dolu görünür, kimse bir
+      // daha bakmaz.
       setStage(t('imp.stageRead'));
-      const prompt =
-        'Aşağıdaki hukuki belgeden dosya künyesini çıkar. SADECE şu JSON şemasında yanıt ver, ' +
-        'başka hiçbir açıklama yazma. Bilgi yoksa o alanı boş string bırak, UYDURMA:\n' +
-        '{"title":"kısa dosya başlığı","court_name":"mahkeme adı","case_number":"esas no",' +
-        '"case_type":"dava türü","opposing_party":"karşı taraf","hearing_date":"YYYY-MM-DD"}\n\n' +
-        '--- BELGE ---\n' +
-        text.slice(0, 9000);
       const { data: aiData, error: aiErr } = await supabase.functions.invoke('ai-chat', {
-        body: { messages: [{ role: 'user', text: prompt }] },
+        body: { mode: 'kunye', question: text.slice(0, 9000) },
       });
       if (aiErr) {
-        Alert.alert(t('imp.title'), t('ai.errGeneric'));
+        setError(aiHataMetni(await aiHataGovdesi(aiErr), t));
         return;
       }
-      const parsed = parseJson((aiData as { text?: string } | null)?.text ?? '');
+      const yanit = aiData as {
+        kunye?: Partial<Extracted> & { davaci?: string; davali?: string };
+        atilan?: string[];
+      } | null;
+      const k = yanit?.kunye ?? {};
       setForm({
-        title: parsed?.title?.trim() || '',
-        court_name: parsed?.court_name?.trim() || '',
-        case_number: parsed?.case_number?.trim() || '',
-        case_type: parsed?.case_type?.trim() || '',
-        opposing_party: parsed?.opposing_party?.trim() || '',
-        hearing_date: /^\d{4}-\d{2}-\d{2}$/.test(parsed?.hearing_date ?? '') ? parsed!.hearing_date! : '',
+        title: (k.title ?? '').trim(),
+        court_name: (k.court_name ?? '').trim(),
+        case_number: (k.case_number ?? '').trim(),
+        case_type: (k.case_type ?? '').trim(),
+        opposing_party: (k.opposing_party ?? '').trim(),
+        hearing_date: /^\d{4}-\d{2}-\d{2}$/.test(k.hearing_date ?? '') ? k.hearing_date! : '',
       });
+      setTaraflar({ davaci: (k.davaci ?? '').trim(), davali: (k.davali ?? '').trim() });
+      setAtilan(yanit?.atilan ?? []);
       setStep('review');
     } catch {
       Alert.alert(t('imp.title'), t('docrev.fileErr'));
@@ -196,6 +212,16 @@ export default function DosyaAktarScreen() {
       <ScreenHeader title={t('imp.title')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* HATA MESAJI EKRANDA. setError çağrılıyordu ama hiçbir yerde
+              çizilmiyordu: kota dolduğunda ya da sağlayıcı cevap vermediğinde
+              kullanıcı hiçbir şey görmüyor, ekran sessizce eski hâlinde
+              kalıyordu. */}
+          {!!error && (
+            <View style={styles.hataKutu}>
+              <Ionicons name="alert-circle-outline" size={16} color={colors.danger} />
+              <Text style={styles.hataMetin}>{error}</Text>
+            </View>
+          )}
           {step === 'pick' ? (
             <>
               <Text style={styles.lead}>{t('imp.lead')}</Text>
@@ -217,11 +243,47 @@ export default function DosyaAktarScreen() {
               </View>
               <Text style={styles.lead}>{t('imp.reviewLead')}</Text>
 
+              {/* SUNUCUNUN ATTIĞI ALANLAR. Belgede karşılığı bulunamayan alan
+                  boşaltılıyor; avukat neyin neden boş olduğunu bilmeli, yoksa
+                  "okuyamadı" ile "belgede yoktu" ayırt edilemez. */}
+              {atilan.length > 0 && (
+                <Text style={styles.uyari}>{t('imp.dropped', { alanlar: atilan.join(', ') })}</Text>
+              )}
               <Field label={t('imp.fTitle')} value={form.title} onChange={(v) => setForm((f) => ({ ...f, title: v }))} placeholder={t('imp.fTitlePh')} />
               <Field label={t('imp.fCourt')} value={form.court_name} onChange={(v) => setForm((f) => ({ ...f, court_name: v }))} />
               <Field label={t('imp.fNumber')} value={form.case_number} onChange={(v) => setForm((f) => ({ ...f, case_number: v }))} />
               <Field label={t('imp.fType')} value={form.case_type} onChange={(v) => setForm((f) => ({ ...f, case_type: v }))} />
               <Field label={t('imp.fOpposing')} value={form.opposing_party} onChange={(v) => setForm((f) => ({ ...f, opposing_party: v }))} />
+              {/* KARŞI TARAFI AVUKAT SEÇER. Belge kimin vekili olduğumuzu
+                  söylemediği için hangi tarafın karşı taraf olduğu belgeden
+                  ÇIKARILAMAZ; modele tahmin ettirmek dosyayı ters kurma riskiydi.
+                  İki taraf da okunup gösteriliyor: bir dokunuş, sıfır tahmin. */}
+              {(!!taraflar.davaci || !!taraflar.davali) && (
+                <View style={styles.tarafSec}>
+                  <Text style={styles.tarafBaslik}>{t('imp.pickOpposing')}</Text>
+                  <View style={styles.tarafSiraSat}>
+                    {[
+                      { etiket: t('imp.plaintiff'), ad: taraflar.davaci },
+                      { etiket: t('imp.defendant'), ad: taraflar.davali },
+                    ]
+                      .filter((x) => !!x.ad)
+                      .map((x) => {
+                        const secili = form.opposing_party.trim() === x.ad.trim();
+                        return (
+                          <Pressable
+                            key={x.etiket}
+                            onPress={() => setForm((f) => ({ ...f, opposing_party: secili ? '' : x.ad }))}
+                            style={[styles.tarafChip, secili && styles.tarafChipAktif]}
+                          >
+                            <Text style={[styles.tarafChipMetin, secili && styles.tarafChipMetinAktif]}>
+                              {x.etiket}: {x.ad}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                  </View>
+                </View>
+              )}
               <Field label={t('imp.fHearing')} value={form.hearing_date} onChange={(v) => setForm((f) => ({ ...f, hearing_date: v }))} placeholder="2026-09-15" />
               {!!form.hearing_date && (
                 <View style={styles.noteBox}>
@@ -260,6 +322,31 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
   lead: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 19, color: colors.textSecondary, marginBottom: spacing.md },
+  uyari: { fontFamily: fonts.semibold, fontSize: 12.5, lineHeight: 18, color: colors.warning, marginBottom: spacing.sm },
+  hataKutu: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: spacing.sm,
+    borderRadius: 10,
+    backgroundColor: colors.danger + '14',
+    marginBottom: spacing.md,
+  },
+  hataMetin: { flex: 1, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: colors.danger },
+  tarafSec: { marginTop: -spacing.xs, marginBottom: spacing.sm },
+  tarafBaslik: { fontFamily: fonts.regular, fontSize: 11.5, color: colors.textMuted, marginBottom: 6 },
+  tarafSiraSat: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tarafChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
+  },
+  tarafChipAktif: { borderColor: colors.primary, backgroundColor: colors.primary + '18' },
+  tarafChipMetin: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
+  tarafChipMetinAktif: { fontFamily: fonts.semibold, color: colors.primary },
   steps: { gap: spacing.sm, marginBottom: spacing.lg },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   stepNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },

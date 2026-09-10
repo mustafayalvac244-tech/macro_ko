@@ -69,3 +69,42 @@ export function useSetPremium() {
     },
   });
 }
+
+/**
+ * AI iş özeti — kontör, kâr, iade oranı ve hangi modelin cevapladığı.
+ *
+ * NEDEN AYRI SORGU. Bu oturumda kontör, ücret/maliyet ayrımı, iade ve günlük
+ * adil kullanım eklendi; hiçbiri panelde görünmüyordu. Görünmeyen bir iş modeli
+ * yönetilemez: "bugün kaç istek geçti", "ne kazandık", "kaç iade geldi",
+ * "hangi model cevaplıyor" sorularının cevabı olmadan ne fiyat ayarlanabilir ne
+ * de kalite sorunu fark edilebilir.
+ */
+export interface AdminAiOzeti {
+  bugun_istek: number;
+  bugun_token: number;
+  ay_istek: number;
+  ay_gider_try: number;
+  ay_satis_try: number;
+  ay_kar_try: number;
+  ay_iade: number;
+  ay_toplam_istek: number;
+  /** İade oranı (%). Ölçüm senaryolarını biz yazıyoruz; iade, gerçek dosyada
+   *  işe yaramadığını gören avukatın sözü — kalitenin en dürüst göstergesi. */
+  iade_orani: number;
+  iade_dagilim: Array<{ mod: string; iade: number; toplam: number }>;
+  /** Yüklenmiş ve henüz harcanmamış kontör: gelir değil, ÖDENMİŞ BORÇ. */
+  kontor_bakiye: number;
+  saglayicilar: Array<{ saglayici: string; sonuc: string; model: string | null; zaman: string }>;
+}
+
+export function useAdminAiOzeti() {
+  return useQuery({
+    queryKey: ['admin', 'ai-ozeti'],
+    staleTime: 30_000,
+    queryFn: async (): Promise<AdminAiOzeti> => {
+      const { data, error } = await supabase.rpc('admin_ai_ozeti');
+      if (error) throw error;
+      return data as AdminAiOzeti;
+    },
+  });
+}

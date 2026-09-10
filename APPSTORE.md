@@ -36,6 +36,12 @@ Oluşturuldu, içi dolduruldu ve **giriş testi yapıldı**.
 | **E-posta** | `demo@vekilpro.app` |
 | **Şifre** | `VekilDemo2026!` |
 
+> **Not (yayın gecesi güncellendi):** Plan limitleri devreye girdikten sonra bu
+> hesap ücretsiz katmanda kalıyordu ve finans modülünü açamıyordu. Hesaba
+> `is_premium` verildi; böylece incelemeci uygulamanın tamamını görebiliyor.
+> `ai_tier` BİLEREK boş bırakıldı — AI satın alma akışının incelemede test
+> edilebilir kalması için. Giriş canlıda yeniden denendi ve çalışıyor.
+
 İçeriği: **4 müvekkil, 4 dava, 5 duruşma, 3 süre, 7 finans kaydı** (gerçekçi
 İstanbul mahkemeleri ve dosya numaralarıyla). Duruşmalardan biri geçmiş tarihli
 — böylece incelemeci "Duruşma Çıkışı" özelliğini de görebilir.

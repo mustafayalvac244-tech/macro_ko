@@ -5,8 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
-import { AI_ENABLED } from '@/config/features';
+import { AI_MUTALAA_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
+import type { AiKullanim } from '@/hooks/useAiKontor';
+import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -28,10 +30,37 @@ export default function MutalaaScreen() {
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState('');
   const [issues, setIssues] = useState<string[]>([]);
+  // OLAYDA GEÇMEYEN TARİHLER. Mütalaada bu tarihler SİLİNMEZ: "fesih
+  // 14.04.2026, bir aylık süre 14.05.2026'da doluyor" cümlesi mütalaanın ta
+  // kendisidir ve silmek özelliğin değerini silmek olurdu. Ama sessizce doğru
+  // kabul ettirmek de olmaz — hesaplandığı açıkça yazılır.
+  const [hesaplanan, setHesaplanan] = useState<string[]>([]);
+  // Uydurma madde atfı: havuzdaki kanunun olmayan maddesine yapılan atıf.
+  // Mütalaada bu, en pahalı hata türü — metin hukuki dayanağını uyduruyor.
+  const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  // Dosyaya giren ama mütalaada izi bulunmayan kurallar. Ölçümde beş
+  // senaryonun ikisi buydu: kural havuzda vardı, dosyaya girdi, model yok
+  // saydı ("4 hafta içinde dava açın" — arabuluculuktan hiç söz etmedi).
+  const [atlananKural, setAtlananKural] = useState<string[]>([]);
+  // DAYANAK KURALLAR — mütalaanın beslendiği kural özetleri.
+  //
+  // Ölçülen arıza: işe iade mütalaasında doğru kural (fesihten itibaren BİR AY
+  // içinde ARABULUCUYA başvuru; dava şartı) dosyaya girdiği hâlde model kendi
+  // ezberini yazdı — "4 hafta içinde dava açın" dedi, arabuluculuktan hiç söz
+  // etmedi. Arabulucuya gidilmeden açılan dava usulden reddedilir; yani bu,
+  // doğrudan hak kaybı. Modelin kuralı yazacağına güvenemiyoruz, ama kuralın
+  // KENDİSİNİ mütalaanın altında gösterebiliriz: avukat çelişkiyi görür.
+  const [dayanak, setDayanak] = useState<Array<{ id: string; metin: string }>>([]);
+  const [dayanakAcik, setDayanakAcik] = useState(false);
+  // Kullanım ve iade: sunucu üç modda da destekliyor, ekranda yalnız dilekçede
+  // vardı. Hakkı yenen kullanıcı ürüne bir daha güvenmez — mütalaa en pahalı
+  // işlem olduğu için burada daha da önemli.
+  const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
+  const [hakDusulmedi, setHakDusulmedi] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsPro, setNeedsPro] = useState(false);
 
-  if (!AI_ENABLED) {
+  if (!AI_MUTALAA_ENABLED) {
     return <ComingSoon headerTitle={t('mut.title')} title={t('soon.mutalaa')} desc={t('soon.desc')} icon="library" />;
   }
 
@@ -43,40 +72,37 @@ export default function MutalaaScreen() {
     setNeedsPro(false);
     setText('');
     setIssues([]);
+    setHakDusulmedi(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
         body: { mode: 'mutalaa', question },
       });
       if (fnErr) {
-        let code = '';
-        try {
-          const ctx = (fnErr as { context?: Response }).context;
-          if (ctx && typeof ctx.json === 'function') code = (await ctx.json())?.error ?? '';
-        } catch {
-          // gövde okunamadı
-        }
+        // Hata çevirisi ORTAK: aynı mantık üç ekranda ayrı yazılınca biri
+        // güncellenip diğerleri geride kalıyordu (bkz. src/lib/aiHata.ts).
+        const govde = await aiHataGovdesi(fnErr);
+        const code = govde.error ?? '';
         if (code === 'tier_required') {
           setNeedsPro(true);
         } else {
-          setError(
-            code === 'daily_quota'
-              ? t('ai.errDailyQuota')
-              : code === 'quota_exceeded'
-                ? t('ai.errQuota')
-                : code === 'rate_limit'
-                  ? t('ai.errRateLimit')
-                  : t('ai.errGeneric')
-          );
+          setError(aiHataMetni(govde, t));
         }
         return;
       }
-      const payload = data as { text?: string; issues?: string[] } | null;
+      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; atlananKural?: string[]; dayanak?: Array<{ id: string; metin: string }> } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
       }
       setText(payload.text);
       setIssues(payload.issues ?? []);
+      setHesaplanan(payload.hesaplananTarih ?? []);
+      setUydurmaMadde(payload.uydurmaMadde ?? []);
+      setAtlananKural(payload.atlananKural ?? []);
+      setDayanak(payload.dayanak ?? []);
+      setDayanakAcik(false);
+      setKullanim(payload.kullanim ?? null);
+      setHakDusulmedi(!!payload.hakDusulmedi);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -159,6 +185,45 @@ export default function MutalaaScreen() {
                 </Pressable>
               </View>
               <Text selectable style={styles.body}>{text}</Text>
+              {uydurmaMadde.length > 0 && (
+                <Text style={styles.dateWarn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
+              )}
+              {atlananKural.length > 0 && (
+                <Text style={styles.dateWarn}>{t('ai.skippedRules', { terimler: atlananKural.join(', ') })}</Text>
+              )}
+              {hesaplanan.length > 0 && (
+                <Text style={styles.dateWarn}>
+                  {t('mut.calcDates', { tarihler: hesaplanan.join(', ') })}
+                </Text>
+              )}
+              {dayanak.length > 0 && (
+                <View style={styles.dayanak}>
+                  <Pressable onPress={() => setDayanakAcik((v) => !v)} hitSlop={6} style={styles.dayanakHead}>
+                    <Ionicons
+                      name={dayanakAcik ? 'chevron-down' : 'chevron-forward'}
+                      size={15}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.dayanakTitle}>{t('mut.groundsTitle', { n: String(dayanak.length) })}</Text>
+                  </Pressable>
+                  {dayanakAcik && (
+                    <>
+                      <Text style={styles.dayanakNote}>{t('mut.groundsNote')}</Text>
+                      {dayanak.map((k) => (
+                        <Text key={k.id} selectable style={styles.dayanakText}>{'\u2022 ' + k.metin}</Text>
+                      ))}
+                    </>
+                  )}
+                </View>
+              )}
+              {!!kullanim && (
+                <Text style={styles.usage}>
+                  {kullanim.maliyetTL > 0
+                    ? t('ai.usageCost', { token: String(kullanim.girdiToken + kullanim.ciktiToken), tl: kullanim.maliyetTL.toFixed(2) })
+                    : t('ai.usageFree', { token: String(kullanim.girdiToken + kullanim.ciktiToken) })}
+                </Text>
+              )}
+              {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
               <Text style={styles.disclaimer}>{t('mut.disclaimer')}</Text>
             </View>
           )}
@@ -276,6 +341,50 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.danger,
     flex: 1,
     lineHeight: 18,
+  },
+  usage: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  dateWarn: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.warning,
+    marginTop: spacing.sm,
+  },
+  dayanak: {
+    marginTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm,
+  },
+  dayanakHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 2,
+  },
+  dayanakTitle: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    color: colors.primary,
+  },
+  dayanakNote: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  dayanakText: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    lineHeight: 19,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
   },
   issuesCard: {
     backgroundColor: colors.surfaceAlt,

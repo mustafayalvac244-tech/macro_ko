@@ -19,6 +19,7 @@
 //
 // Idempotent: yalnız embedding'i NULL olan kayıtları işler, tekrar çağrılabilir.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -45,6 +46,13 @@ async function embed(text: string): Promise<number[]> {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+
+  // BAKIM UCU — YALNIZ SERVİS ANAHTARI. Ağ geçidinin verify_jwt ayarı yalnızca
+  // "geçerli bir JWT var mı" der, KİMİN olduğunu sormaz; bu kontrol olmadan
+  // kayıtlı herhangi bir kullanıcı bu ucu tetikleyebiliyordu (bkz. _shared/yetki.ts).
+  if (!(await servisYetkisiVarMi(req))) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: CORS });
+  }
 
   const url = Deno.env.get('SUPABASE_URL') ?? '';
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';

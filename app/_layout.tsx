@@ -2,10 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -23,6 +20,8 @@ import { DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
 import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
+import { asyncPersister, queryClient, QUERY_CACHE_MAX_AGE } from '@/lib/queryClient';
+import { configurePurchases, identifyPurchaser, resetPurchaser } from '@/lib/purchases';
 import { hydrateLanguage } from '@/i18n';
 import { hydrateTheme } from '@/theme/themeStore';
 import { useTheme } from '@/theme/useTheme';
@@ -36,18 +35,9 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Çevrimdışı dayanıklılık: sorgu önbelleği cihaza yazılır; avukat çekmeyen bir
 // yerde (adliye vb.) uygulamayı açtığında son senkronize davalar/takvim boş ekran
-// yerine okunur halde gelir. gcTime, önbelleğin 24 saat saklanmasını sağlar.
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 2, staleTime: 60_000, gcTime: 1000 * 60 * 60 * 24 },
-  },
-});
-
-const asyncPersister = createAsyncStoragePersister({
-  storage: AsyncStorage,
-  key: 'VEKIL_QUERY_CACHE',
-  throttleTime: 1000,
-});
+// yerine okunur halde gelir. İstemci ve kalıcı yazıcı artık src/lib/queryClient
+// içinde: çıkışta önbelleğin TEMİZLENEBİLMESİ için authStore'un da erişmesi
+// gerekiyordu (bkz. oradaki açıklama).
 
 
 export default function RootLayout() {
@@ -85,6 +75,9 @@ export default function RootLayout() {
     hydrateLock().catch(() => {});
     hydrateAdvanceAlerts().catch(() => {});
     registerForNotificationsAsync().catch(() => {});
+    // Anahtar yoksa (RevenueCat henüz kurulmadıysa) veya web'deyse sessizce
+    // atlar — bkz. src/lib/purchases.ts.
+    configurePurchases();
 
     // Immersive mode: hide the Android system navigation bar while using the
     // app; a swipe from the bottom edge reveals it temporarily.
@@ -112,6 +105,23 @@ export default function RootLayout() {
     return unsubscribe;
   }, [initialize]);
 
+  // RevenueCat kimliğini oturumla senkron tutar: giriş yapınca satın alma
+  // geçmişi gerçek kullanıcıya bağlanır (bkz. src/lib/purchases.ts), çıkış
+  // yapınca sıfırlanır — aksi hâlde bir sonraki kullanıcı öncekinin RevenueCat
+  // kimliğini (ve dolayısıyla premium durumunu) devralabilirdi.
+  //
+  // logOut yalnız GERÇEK bir "önce girişliydi, şimdi çıktı" geçişinde çağrılır
+  // — RevenueCat, hiç giriş yapılmamış (baştan anonim) bir kimlikte logOut()
+  // çağrılırsa hata fırlatıyor; uygulama her açılışta (henüz oturum yokken)
+  // gereksiz bir hata/uyarı üretmesin diye önceki değer izlenir.
+  const userId = useAuthStore((s) => s.session?.user.id);
+  const oncekiUserId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (userId) identifyPurchaser(userId);
+    else if (oncekiUserId.current) resetPurchaser();
+    oncekiUserId.current = userId;
+  }, [userId]);
+
   // Native splash'ı, uygulama iskeleti ekrana İLK DÜŞTÜĞÜ AN kapat — fontları
   // BEKLEME. Böylece ilk resim, sadece JavaScript yüklenene kadar durur (diğer
   // hızlı uygulamalar gibi minimum süre), font/oturum yüklemesini beklemez.
@@ -132,7 +142,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <PersistQueryClientProvider
           client={queryClient}
-          persistOptions={{ persister: asyncPersister, maxAge: 1000 * 60 * 60 * 24 }}
+          persistOptions={{ persister: asyncPersister, maxAge: QUERY_CACHE_MAX_AGE }}
         >
           <StatusBar style={statusBar} />
           <ErrorBoundary>

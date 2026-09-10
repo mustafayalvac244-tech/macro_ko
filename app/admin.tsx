@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
-import { useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
+import { useAdminAiOzeti, useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
+import { useAiSaglik } from '@/hooks/useAiSaglik';
 import { useT } from '@/i18n';
 import { fonts, spacing } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -24,8 +25,10 @@ export default function AdminScreen() {
   const isAdmin = useAuthStore((s) => s.profile?.is_admin);
 
   const overview = useAdminOverview();
+  const aiOzet = useAdminAiOzeti();
   const users = useAdminUsers();
   const setPremium = useSetPremium();
+  const saglik = useAiSaglik(!!isAdmin);
 
   if (!isAdmin) {
     return (
@@ -103,6 +106,66 @@ export default function AdminScreen() {
               <StatCard icon="sparkles" label={t('admin.aiCostMonth')} value={Math.round(o.ai_cost_month)} unit="₺" colors={colors} gold sub={t('admin.aiCostHint')} />
               <View style={{ flex: 2 }} />
             </View>
+
+            {/* İŞ ÖZETİ. Kontör, kâr ve iade oranı bu oturumda eklendi ama
+                hiçbir yerde görünmüyordu; görünmeyen bir iş modeli yönetilemez.
+                İade oranı özellikle önemli: ölçüm senaryolarını biz yazıyoruz,
+                iade ise gerçek dosyada işe yaramadığını gören avukatın sözü. */}
+            {aiOzet.data && (
+              <>
+                <View style={styles.statGrid}>
+                  <StatCard icon="today" label={t('admin.aiToday')} value={aiOzet.data.bugun_istek} colors={colors} sub={t('admin.aiTodayHint', { token: String(aiOzet.data.bugun_token) })} />
+                  <StatCard icon="cash" label={t('admin.aiProfit')} value={Math.round(aiOzet.data.ay_kar_try)} unit="₺" colors={colors} gold sub={t('admin.aiProfitHint', { gider: String(Math.round(aiOzet.data.ay_gider_try)), satis: String(Math.round(aiOzet.data.ay_satis_try)) })} />
+                  <StatCard icon="wallet" label={t('admin.aiCredit')} value={Math.round(aiOzet.data.kontor_bakiye)} unit="₺" colors={colors} sub={t('admin.aiCreditHint')} />
+                </View>
+                <View style={styles.statGrid}>
+                  <StatCard
+                    icon="thumbs-down"
+                    label={t('admin.aiRefund')}
+                    value={aiOzet.data.iade_orani}
+                    unit="%"
+                    colors={colors}
+                    sub={t('admin.aiRefundHint', { iade: String(aiOzet.data.ay_iade), toplam: String(aiOzet.data.ay_toplam_istek) })}
+                  />
+                  <View style={{ flex: 2 }} />
+                </View>
+                {aiOzet.data.iade_dagilim.length > 0 && (
+                  <Text allowFontScaling={false} style={styles.healthRow}>
+                    {aiOzet.data.iade_dagilim.map((d) => `${d.mod}: ${d.iade}/${d.toplam}`).join(' · ')}
+                  </Text>
+                )}
+              </>
+            )}
+
+            {/* Sağlayıcı sağlığı. "Yapay zekâ çalışmıyor" bilgisini müşteriden
+                öğrenmemek için: yedeksiz kaldığımızda burada görünür. */}
+            {saglik.data && (
+              <View style={styles.healthBox}>
+                <View style={styles.healthHead}>
+                  <Ionicons
+                    name={saglik.data.yedekli ? 'shield-checkmark' : 'warning'}
+                    size={15}
+                    color={saglik.data.yedekli ? colors.success : colors.warning}
+                  />
+                  <Text allowFontScaling={false} style={styles.healthTitle}>
+                    {saglik.data.yedekli ? t('admin.aiRedundant') : t('admin.aiNoBackup')}
+                  </Text>
+                </View>
+                {saglik.data.saglayicilar.map((p) => (
+                  <Text allowFontScaling={false} key={p.saglayici} style={styles.healthRow}>
+                    {p.calisiyor && !p.gercekSonSonuc?.match(/quota|limit|upstream/) ? '● ' : '○ '}
+                    {p.saglayici}
+                    {p.calisiyor ? ` — ${p.ms ?? 0} ms` : ` — ${p.neden ?? t('admin.aiDown')}`}
+                    {/* Yoklama geçse bile son gerçek çağrı kotaya takıldıysa
+                        sağlayıcı hizmet veremiyor demektir; iki bilgi ayrı
+                        gösterilir, biri diğerini gizlemez. */}
+                    {p.gercekSonSonuc && p.gercekSonSonuc !== 'ok'
+                      ? `  ·  son gerçek istek: ${p.gercekSonSonuc}`
+                      : ''}
+                  </Text>
+                ))}
+              </View>
+            )}
 
             {/* Kullanıcı listesi */}
             <Text allowFontScaling={false} style={styles.sectionLabel}>{t('admin.recentUsers')}</Text>
@@ -283,6 +346,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
+  healthBox: {
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    gap: 4,
+  },
+  healthHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  healthTitle: { fontFamily: fonts.semibold, fontSize: 13, color: colors.textPrimary },
+  healthRow: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
   statCard: {
     flex: 1,
     backgroundColor: colors.surface,

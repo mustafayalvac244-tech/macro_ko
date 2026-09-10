@@ -14,8 +14,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AI_ENABLED } from '@/config/features';
-import { ComingSoon } from '@/components/ComingSoon';
+import { AI_ICTIHAT_ANALIZ_ENABLED } from '@/config/features';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import {
@@ -50,7 +49,9 @@ export default function IctihatScreen() {
   const sum = useIctihatSummary();
   const kunye = useIctihatKunye();
 
-  const [mode, setMode] = useState<'analyze' | 'search' | 'kunye'>(AI_ENABLED ? 'analyze' : 'search');
+  const [mode, setMode] = useState<'analyze' | 'search' | 'kunye'>(
+    AI_ICTIHAT_ANALIZ_ENABLED ? 'analyze' : 'search'
+  );
   const [draft, setDraft] = useState('');
   const [court, setCourt] = useState<IctihatCourt>('yargitay');
   const [searchMode, setSearchMode] = useState<IctihatMode>('smart');
@@ -60,6 +61,44 @@ export default function IctihatScreen() {
   const [openDigest, setOpenDigest] = useState<IctihatDigest | null>(null);
   const [openMevzuat, setOpenMevzuat] = useState<MevzuatHit | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
+
+  /**
+   * ARAMA KİPLERİNİN GERÇEKTEN ETKİLİ OLDUĞU DURUMLAR.
+   *
+   * İki ölçülmüş uyumsuzluk vardı ve ikisi de kullanıcıya etkisiz düğme
+   * gösteriyordu:
+   *
+   * 1) TEK KELİMELİK SORGUDA "Tam ifade" hiçbir şey değiştirmez. Uçtaki ayrım
+   *    `multiWord` kontrolüne bağlı: sorgu tek kelimeyse hem "Akıllı" hem
+   *    "Tam ifade" aynı düz aramaya düşer. "İstismar" yazıp iki düğme arasında
+   *    gidip gelmek sonucu değiştirmiyordu.
+   *
+   * 2) İSTİNAF/YEREL dalında "En yeni" YAPILAMAZ. O dal UYAP Emsal'e gidiyor
+   *    ve `emsalSearch` bir sıralama parametresi almıyor; yalnız arananKelime,
+   *    pageSize ve pageNumber gönderiliyor. Elimizdeki tek sayfayı tarihe göre
+   *    dizmek "en yeni kararlar" demek olmazdı — sadece o sayfanın içini
+   *    sıralardı ve kullanıcıyı yanıltırdı. Bu yüzden kip GİZLENİYOR, sahte
+   *    bir uygulama yazılmıyor. ("Tam ifade" o dalda gerçekten çalışıyor:
+   *    tırnaklı sorgu UYAP Emsal'de de tam ifade araması yapıyor.)
+   */
+  const tekKelime = draft.trim().split(/\s+/).filter(Boolean).length < 2;
+  const modeChips = (
+    [
+      { id: 'smart', icon: 'sparkles-outline', label: t('ictihat.modeSmartSearch'), pasif: false },
+      { id: 'exact', icon: 'text-outline', label: t('ictihat.modeExact'), pasif: tekKelime },
+      ...(court === 'emsal'
+        ? []
+        : [{ id: 'recent', icon: 'time-outline', label: t('ictihat.modeRecent'), pasif: false } as const]),
+    ] as const
+  ).map((m) => ({ ...m }));
+
+  const modeHint = tekKelime && searchMode === 'exact'
+    ? t('ictihat.hintExactSingle')
+    : searchMode === 'exact'
+      ? t('ictihat.hintExact')
+      : searchMode === 'recent'
+        ? t('ictihat.hintRecent')
+        : t('ictihat.hintSmart');
 
   const runSearch = (q: string, c: IctihatCourt = court, m: IctihatMode = searchMode) => {
     setSelected(new Set());
@@ -121,10 +160,12 @@ export default function IctihatScreen() {
   const errText =
     error === 'rate_limit' ? t('ictihat.errRate') : error === 'source' ? t('ictihat.errSource') : t('ictihat.errGeneric');
 
-  // AI/İçtihat şu an kapalı (yakında): tüm ekranı "Çok Yakında" ile kapat.
-  if (!AI_ENABLED) {
-    return <ComingSoon headerTitle={t('ictihat.title')} title={t('soon.ictihat')} desc={t('soon.desc')} icon="reader" />;
-  }
+  // KALDIRILDI: burada tüm ekran AI_ENABLED'a bakıp "Çok Yakında" ile
+  // kapatılıyordu. Ekranın üç kipinden yalnız BİRİ (olay analizi) yapay zekâ
+  // kullanıyor; kelime araması ve künye doğrudan canlı UYAP/Bedesten'e gidiyor
+  // ve uçta hiçbir kısıt yok. Yani ürünün en güçlü, tamamen ücretsiz özelliği
+  // ilgisiz bir bayrak yüzünden kullanıcıya hiç açılmıyordu. Artık yalnız AI
+  // kipi gizleniyor (aşağıdaki mod seçici), ekran her zaman açık.
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
@@ -134,7 +175,13 @@ export default function IctihatScreen() {
       <View style={styles.modePills}>
         {(
           [
-            { id: 'analyze', icon: 'sparkles', label: t('ictihat.modeAnalyze') },
+            // Olay analizi yalnız AÇIKKEN listelenir. Kapalıyken sekmeyi
+            // gösterip arkasında "Çok Yakında" paneli açmak, kullanıcıya
+            // çalışmayan bir kapı sunmak olurdu — ekranın tamamının aynı
+            // sebeple kapalı kaldığı hatanın küçük hâli.
+            ...(AI_ICTIHAT_ANALIZ_ENABLED
+              ? [{ id: 'analyze', icon: 'sparkles', label: t('ictihat.modeAnalyze') } as const]
+              : []),
             { id: 'search', icon: 'search', label: t('ictihat.modeSearch') },
             { id: 'kunye', icon: 'pricetags', label: t('ictihat.modeKunye') },
           ] as const
@@ -196,7 +243,12 @@ export default function IctihatScreen() {
               key={c.id}
               onPress={() => {
                 setCourt(c.id);
-                if (searched && draft.trim()) runSearch(draft, c.id);
+                // İstinaf/Yerel'de "En yeni" desteklenmiyor; o kipteyken bu
+                // dala geçilirse sessizce Akıllı'ya dönülür, aksi hâlde
+                // kullanıcı görünmeyen bir kiple arama yapardı.
+                const m: IctihatMode = c.id === 'emsal' && searchMode === 'recent' ? 'smart' : searchMode;
+                if (m !== searchMode) setSearchMode(m);
+                if (searched && draft.trim()) runSearch(draft, c.id, m);
               }}
               style={[styles.courtChip, court === c.id && styles.courtChipActive]}
             >
@@ -205,17 +257,14 @@ export default function IctihatScreen() {
           ))}
         </View>
 
-        {/* Arama modu: Akıllı (tam ifade önce) / Tam ifade (ardışık) / En yeni */}
+        {/* Arama modu: Akıllı (tam ifade önce) / Tam ifade (ardışık) / En yeni
+            Üç kip de ETKİSİZ olabileceği durumlarda kullanıcıya sunulmaz ya da
+            soluklaştırılır — bkz. aşağıdaki iki kural. */}
         <View style={styles.modeRow}>
-          {(
-            [
-              { id: 'smart', icon: 'sparkles-outline', label: t('ictihat.modeSmartSearch') },
-              { id: 'exact', icon: 'text-outline', label: t('ictihat.modeExact') },
-              { id: 'recent', icon: 'time-outline', label: t('ictihat.modeRecent') },
-            ] as const
-          ).map((m) => (
+          {modeChips.map((m) => (
             <Pressable
               key={m.id}
+              disabled={m.pasif}
               onPress={() => {
                 // Aktif moda tekrar basınca varsayılana (Akıllı) dön — böylece
                 // kullanıcı bir modda takılı kalmaz.
@@ -223,17 +272,34 @@ export default function IctihatScreen() {
                 setSearchMode(next);
                 if (searched && draft.trim()) runSearch(draft, court, next);
               }}
-              style={[styles.modeChip, searchMode === m.id && styles.modeChipActive]}
+              style={[
+                styles.modeChip,
+                searchMode === m.id && styles.modeChipActive,
+                m.pasif && styles.modeChipDisabled,
+              ]}
             >
               <Ionicons
                 name={m.icon}
                 size={12}
-                color={searchMode === m.id ? colors.primary : colors.textMuted}
+                color={m.pasif ? colors.textMuted : searchMode === m.id ? colors.primary : colors.textMuted}
               />
-              <Text style={[styles.modeChipText, searchMode === m.id && styles.modeChipTextActive]}>{m.label}</Text>
+              <Text
+                style={[
+                  styles.modeChipText,
+                  searchMode === m.id && styles.modeChipTextActive,
+                  m.pasif && styles.modeChipTextDisabled,
+                ]}
+              >
+                {m.label}
+              </Text>
             </Pressable>
           ))}
         </View>
+
+        {/* Seçili kipin NE YAPTIĞINI tek satırda anlatır. Önceden uygulamada
+            bu kiplerin anlamını söyleyen hiçbir metin yoktu; kullanıcı üç
+            düğme görüp ne işe yaradıklarını tahmin etmek zorundaydı. */}
+        <Text style={styles.modeHint}>{modeHint}</Text>
 
         <ScrollView
           style={styles.flex}
@@ -318,7 +384,7 @@ export default function IctihatScreen() {
                 <Text style={styles.resultCount}>
                   {t('ictihat.resultCount', { count: total.toLocaleString('tr-TR') })}
                 </Text>
-                {AI_ENABLED && <Text style={styles.selectHint}>{t('ictihat.selectHint')}</Text>}
+                {AI_ICTIHAT_ANALIZ_ENABLED && <Text style={styles.selectHint}>{t('ictihat.selectHint')}</Text>}
               </View>
               {hits.map((hit) => (
                 <HitCard
@@ -328,7 +394,7 @@ export default function IctihatScreen() {
                   selected={selected.has(hit.id)}
                   onToggle={() => toggle(hit.id)}
                   onOpen={() => openDoc(hit)}
-                  hideCheckbox={!AI_ENABLED}
+                  hideCheckbox={!AI_ICTIHAT_ANALIZ_ENABLED}
                 />
               ))}
               {hasMore && (
@@ -358,7 +424,7 @@ export default function IctihatScreen() {
         </ScrollView>
 
         {/* AI özet çubuğu */}
-        {AI_ENABLED && selected.size > 0 && (
+        {AI_ICTIHAT_ANALIZ_ENABLED && selected.size > 0 && (
           <View style={styles.summaryBar}>
             <Pressable onPress={runSummary} style={styles.summaryBtn}>
               <Ionicons name="sparkles" size={18} color={colors.textInverse} />
@@ -598,8 +664,9 @@ function AnalyzePanel({
           : t('ictihat.errGeneric');
   const canRun = olay.trim().length >= 15 && !loading;
 
-  // AI henüz canlı değil: "Çok Yakında" göster, arka uca istek atma.
-  if (!AI_ENABLED) {
+  // Olay analizi ölçülmedi: "Çok Yakında" göster, arka uca istek atma.
+  // (Bu yalnız ANALİZ kipidir; arama ve künye her zaman açıktır.)
+  if (!AI_ICTIHAT_ANALIZ_ENABLED) {
     return (
       <ScrollView
         style={styles.flex}
@@ -1212,6 +1279,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   modeChipActive: {
     backgroundColor: colors.primarySoft,
     borderColor: colors.primary,
+  },
+  modeChipDisabled: {
+    opacity: 0.4,
+  },
+  modeChipTextDisabled: {
+    color: colors.textMuted,
+  },
+  modeHint: {
+    ...typography.small,
+    color: colors.textMuted,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xs,
+    lineHeight: 16,
   },
   modeChipText: {
     ...typography.small,

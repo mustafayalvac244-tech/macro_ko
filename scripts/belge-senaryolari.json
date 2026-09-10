@@ -1,0 +1,119 @@
+{
+ "_aciklama": "BELGE İNCELEME ölçüm senaryoları. Belgeler ELİMİZDE YAZILDI ve kusurlar BİLEREK yerleştirildi; böylece 'doğru cevap' tartışmaya açık değildir. Ölçülen şey, avukatın belgeyi baştan sona okumadan görmesi gereken riski incelemenin yakalayıp yakalamadığıdır. 'yakalamali' her biri yerleştirilmiş bir kusurdur; kaçırılırsa inceleme işe yaramamıştır.",
+ "senaryolar": [
+  {
+   "id": "sozlesme-tek-tarafli",
+   "kind": "sozlesme",
+   "yerlestirilen": [
+    "yalnız bir tarafa tanınan tazminatsız fesih hakkı",
+    "aleyhe ve fahiş cezai şart (bedelin üç katı)",
+    "süre-yer-konu sınırı olmayan rekabet yasağı",
+    "gecikme faizi oranı boş bırakılmış",
+    "yetki şartı karşı tarafın bulunduğu yer"
+   ],
+   "metin": "DANIŞMANLIK HİZMET SÖZLEŞMESİ\n\nMadde 1 - TARAFLAR\nHizmet Alan: ABC Lojistik A.Ş. (Merkez: İstanbul)\nHizmet Veren: Ayşe Yılmaz\n\nMadde 2 - KONU\nHizmet Veren, Hizmet Alan'a lojistik süreç danışmanlığı verecektir.\n\nMadde 3 - SÜRE\nSözleşme 01.02.2026 tarihinde başlar ve 24 ay sürer.\n\nMadde 4 - BEDEL VE ÖDEME\nAylık danışmanlık bedeli 40.000 TL'dir. Ödeme, faturanın tebliğinden sonra Hizmet Alan'ın uygun gördüğü tarihte yapılır. Gecikme hâlinde ___ oranında gecikme faizi işletilir.\n\nMadde 5 - FESİH\nHizmet Alan, sözleşmeyi dilediği zaman, sebep göstermeksizin ve herhangi bir tazminat ödemeksizin tek taraflı olarak feshedebilir. Hizmet Veren sözleşmeyi süresinden önce feshedemez.\n\nMadde 6 - CEZAİ ŞART\nHizmet Veren'in sözleşmeye aykırı davranması hâlinde, toplam sözleşme bedelinin ÜÇ KATI tutarında cezai şart ödemeyi kabul eder. Hizmet Alan'ın aykırılığı hâlinde herhangi bir cezai şart öngörülmemiştir.\n\nMadde 7 - REKABET YASAĞI\nHizmet Veren, sözleşme sona erdikten sonra lojistik alanında hiçbir yerde, hiçbir surette ve süresiz olarak faaliyette bulunamaz.\n\nMadde 8 - GİZLİLİK\nTaraflar öğrendikleri bilgileri gizli tutar.\n\nMadde 9 - YETKİ\nUyuşmazlıklarda İstanbul mahkemeleri ve icra daireleri yetkilidir.\n\nİşbu sözleşme 01.02.2026 tarihinde iki nüsha düzenlenmiştir.",
+   "yakalamali": [
+    "re:cezai şart",
+    "re:tek taraflı|sebep göstermeksizin|yalnız hizmet alan",
+    "re:rekabet yasağ",
+    "re:faiz",
+    "re:indiril|fahiş|aşırı|orantısız"
+   ],
+   "olmamali": [],
+   "notlar": "TBK m.182/son: hâkim, aşırı gördüğü ceza koşulunu KENDİLİĞİNDEN indirir. Süre-yer-konu bakımından sınırsız rekabet yasağı, ilişki hizmet sözleşmesi niteliğindeyse TBK m.445 (süre kural olarak iki yılı aşamaz), değilse genel hükümler ve kişilik hakkı (TMK m.23) uyarınca sakattır. Ödemenin 'Hizmet Alan'ın uygun gördüğü tarihte' yapılması vadeyi belirsiz bırakır; gecikme faizi oranı da boştur."
+  },
+  {
+   "id": "karar-kanun-yolu",
+   "kind": "karar",
+   "yerlestirilen": [
+    "istinaf süresi ve başlangıcı (tebliğ)",
+    "hüküm fıkrasında faize hiç değinilmemesi",
+    "vekâlet ücreti kalemi"
+   ],
+   "metin": "T.C.\nANKARA 7. ASLİYE HUKUK MAHKEMESİ\nESAS NO: 2025/412\nKARAR NO: 2026/88\n\nDAVACI: Mehmet Demir\nDAVALI: XYZ İnşaat Ltd. Şti.\nDAVA: Alacak\nKARAR TARİHİ: 18.02.2026\n\nGEREKÇE\nDavacı, davalı ile imzaladığı 10.01.2024 tarihli sözleşme uyarınca 180.000 TL alacağının ödenmediğini ileri sürmüştür. Toplanan deliller ve bilirkişi raporuna göre davacının 180.000 TL alacağının bulunduğu, davalının ödeme yaptığını ispat edemediği anlaşılmıştır. Davacı dava dilekçesinde alacağa işleyecek faizi de talep etmiştir.\n\nHÜKÜM\n1- Davanın KABULÜ ile 180.000 TL'nin davalıdan alınarak davacıya verilmesine,\n2- Alınması gereken harçtan peşin alınan harcın mahsubuna,\n3- Davacı kendisini vekille temsil ettirdiğinden karar tarihinde yürürlükte bulunan tarife uyarınca hesaplanan vekâlet ücretinin davalıdan alınarak davacıya verilmesine,\n4- Kararın taraflara tebliğine,\nDair, tarafların yokluğunda, kararın tebliğinden itibaren iki hafta içinde istinaf yolu açık olmak üzere karar verildi. 18.02.2026",
+   "yakalamali": [
+    "re:istinaf",
+    "re:iki hafta|2 hafta",
+    "re:tebliğ",
+    "re:faiz"
+   ],
+   "olmamali": [
+    "re:temyiz süresi|doğrudan temyiz"
+   ],
+   "notlar": "Hüküm fıkrasında talep edilen FAİZ hakkında karar verilmemiş; bu, tavzih/istinaf sebebi olabilecek bir eksikliktir ve inceleme bunu görmelidir. Kanun yolu istinaftır, süre tebliğden itibaren iki haftadır."
+  },
+  {
+   "id": "ihtarname-eksik",
+   "kind": "ihtarname",
+   "yerlestirilen": [
+    "muhataba süre verilmemiş",
+    "talep tutarı belirsiz",
+    "temerrüt ve faiz uyarısı yok"
+   ],
+   "metin": "İHTARNAME\n\nKEŞİDECİ: Selim Kaya\nMUHATAP: Deniz Ticaret Ltd. Şti.\n\nMuhatap şirket ile aramızda mevcut ticari ilişki kapsamında tarafınıza teslim edilen mallara ilişkin bakiye borcunuz bulunmaktadır. Söz konusu borç bugüne kadar ödenmemiştir.\n\nBorcunuzun bir an önce ödenmesini, aksi hâlde hukuki yollara başvurulacağını ihtar ederiz.\n\nKeşideci",
+   "yakalamali": [
+    "re:süre",
+    "re:tutar|miktar|belirsiz|belirli değil",
+    "re:temerrüt|faiz"
+   ],
+   "olmamali": [],
+   "notlar": "İhtarname, muhataba açık bir süre vermeli ve talebi belirli kılmalıdır; aksi hâlde temerrüde düşürme işlevini görmez. TBK m.117: belirli vadeli borçta ihtar gerekmez, aksi hâlde ihtarla temerrüt başlar."
+  },
+  {
+   "id": "kira-sozlesmesi-depozito",
+   "kind": "sozlesme",
+   "yerlestirilen": [
+    "TÜFE sınırını aşan sabit %40 kira artış oranı",
+    "boş tarihli tahliye taahhüdü",
+    "kiraya verenin sebep göstermeksizin tek taraflı tahliye hakkı",
+    "kefilin süresiz/sınırsız sorumluluğu",
+    "depozitonun iade şartının hiç yazılmaması"
+   ],
+   "metin": "KONUT KİRA SÖZLEŞMESİ\n\nMadde 1 - TARAFLAR\nKiraya Veren: Fatma Öz\nKiracı: Kemal Aydın\n\nMadde 2 - KONU\nİstanbul, Kadıköy'deki konut kiraya verilmiştir.\n\nMadde 3 - SÜRE\nSözleşme 01.03.2026 tarihinde başlar, bir (1) yıl süreyle geçerlidir.\n\nMadde 4 - KİRA BEDELİ\nAylık kira bedeli 25.000 TL olup her ayın 5'ine kadar ödenir. Her yıl kira bedeli %40 oranında artırılır.\n\nMadde 5 - DEPOZİTO\nKiracıdan 50.000 TL depozito alınmıştır.\n\nMadde 6 - TAHLİYE TAAHHÜDÜ\nKiracı, işbu sözleşmeyle birlikte imzaladığı tahliye taahhüdünü kiraya verene teslim etmiştir. (Tahliye taahhüdünde tarih bölümü boş bırakılmıştır.)\n\nMadde 7 - FESİH\nKiraya veren, dilediği zaman, sebep göstermeksizin kiracıyı tahliyeye davet edebilir.\n\nMadde 8 - KEFALET\nAhmet Yıldız, kiracının bu sözleşmeden doğan tüm borçlarına süresiz olarak müteselsil kefil olmuştur.\n\nMadde 9 - YETKİ\nUyuşmazlıklarda Kadıköy mahkemeleri yetkilidir.\n\nİşbu sözleşme 01.03.2026 tarihinde iki nüsha düzenlenmiştir.",
+   "yakalamali": [
+    "re:%40|TÜFE|ÜFE|tüketici fiyat",
+    "re:tahliye taahhüdü.*boş|boş.*tarih|tarihsiz|tarih.*bırakıl",
+    "re:sebep göstermeksizin|dilediği zaman",
+    "re:kefil.*süre|süresiz.*kefil|kefalet.*süre",
+    "re:depozito.*iade|iade şart"
+   ],
+   "olmamali": [],
+   "notlar": "TBK m.344: konut/çatılı işyeri kiralarında kira artışı bir önceki kira yılındaki TÜFE oranını geçemez; %40 sabit artış hükmü bu sınırı aşar. Boş tarihli tahliye taahhüdü yerleşik Yargıtay içtihadına göre geçersizdir (imza anında gerçek/serbest irade yokluğu kabul edilir). Kiraya verenin sebepsiz tek taraflı tahliye hakkı TBK'nın kiracıyı koruyucu hükümleriyle (m.347 vd.) bağdaşmaz. TBK m.583: kefalet sözleşmesinde azami miktar ve süre belirtilmesi zorunludur; süresiz/sınırsız kefalet ibaresi bu şekli şartla çelişir."
+  },
+  {
+   "id": "vekaletname-ozel-yetki",
+   "kind": "diger",
+   "yerlestirilen": [
+    "sulh olma yetkisi yok",
+    "feragat yetkisi yok",
+    "davayı kabul yetkisi yok",
+    "yemin teklif/kabul yetkisi yok"
+   ],
+   "metin": "VEKÂLETNAME\n\nBen, Aylin Kurt, aşağıda bilgileri yazılı avukatı, hakkımda açılmış/açacağım her türlü dava ve icra takibinde beni temsile, dilekçe ve evrak imzalamaya, duruşmalara katılmaya, tebligat almaya yetkili kılıyorum.\n\nVEKİL: Av. Serkan Demir\nVEKİL EDEN: Aylin Kurt\n\nİşbu vekâletname 04.01.2026 tarihinde düzenlenmiştir.",
+   "yakalamali": [
+    "re:sulh",
+    "re:feragat",
+    "re:kabul",
+    "re:yemin",
+    "re:özel yetki"
+   ],
+   "olmamali": [],
+   "notlar": "HMK m.74: sulh olma, davadan/haktan feragat, davayı kabul, yemin teklif etme/karşı tarafa bırakma/yemini kabul, başkasına vekâlet verme, haczedilmezlikten feragat gibi işlemler için vekâletnamede AÇIK ve ÖZEL yetki bulunması şarttır — genel dava takip yetkisi bunları kapsamaz. Bu vekâletnameyle avukat, örneğin sulh görüşmesinde anlaşma imzalayamaz."
+  },
+  {
+   "id": "odeme-emri-yanlis-sure",
+   "kind": "diger",
+   "yerlestirilen": [
+    "itiraz/ödeme süresi yanlış: '1 ay' yazılmış, doğrusu 7 gündür",
+    "mal beyanında bulunma yükümlülüğü hiç belirtilmemiş"
+   ],
+   "metin": "T.C.\nİSTANBUL 14. İCRA DAİRESİ\nDOSYA NO: 2026/1120 Esas\nÖRNEK NO: 7\n\nALACAKLI: Deniz Finans A.Ş.\nBORÇLU: Okan Şahin\n\nBORÇ: 85.000 TL asıl alacak, işlemiş faiziyle birlikte 92.400 TL\n\nYukarıda yazılı borcunuzu işbu ödeme emrinin tebliğinden itibaren 1 (bir) AY içinde icra dairemize ödemeniz, borca ve borca ilişkin herhangi bir itirazınız varsa yine bu süre içinde icra dairemize bildirmeniz, aksi hâlde cebri icraya devam olunacağı ihtar olunur.\n\nİcra Müdürü",
+   "yakalamali": [
+    "re:7 gün|yedi gün",
+    "re:mal beyan"
+   ],
+   "olmamali": [],
+   "notlar": "İİK m.60/62: ilamsız icra takibinde ödeme VE itiraz süresi tebliğden itibaren YEDİ (7) GÜNDÜR; belgede '1 ay' yazması ciddi bir usul hatasıdır ve borçlunun süre hesabını yanlış yapmasına yol açar. İİK m.74 uyarınca ödeme emrinde borçluya mal beyanında bulunma yükümlülüğünün de hatırlatılması gerekir; bu ihtar metinde hiç yoktur. NOT: 'olmamali' için '1 ay doğrudur' türü bir kalıp KASITLI OLARAK eklenmedi — model belgeyi doğru şekilde alıntılayıp ('1 ay yazıyor ama...') düzeltirse bu, alıntı metnine takılıp yanlış pozitif üretirdi (bkz. eslestir.mjs'in kendi geçmiş kör noktaları)."
+  }
+ ]
+}

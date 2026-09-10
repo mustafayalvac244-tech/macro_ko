@@ -51,16 +51,20 @@ export default function SettingsScreen() {
 
   const handleToggleLock = async (value: boolean) => {
     if (!value) {
-      setLockEnabled(false);
+      await setLockEnabled(false);
       return;
     }
     // Prove biometrics work before trusting the lock with app access.
     const result = await LocalAuthentication.authenticateAsync({ promptMessage: t('lock.prompt') }).catch(() => null);
-    if (result?.success) {
-      setLockEnabled(true);
-    } else {
+    if (!result?.success) {
       Alert.alert(t('lock.title'), t('lock.enableFailed'));
+      return;
     }
+    // TERCİH KAYDEDİLEMEZSE KULLANICI BUNU BİLMELİ. Yazma hatası eskiden
+    // yutuluyordu: anahtar açık görünüyor ama uygulama yeniden başlatılınca
+    // kilit yok. Kullanıcı kilidin kurulu olduğunu sanarak telefonunu bırakır.
+    const kaydedildi = await setLockEnabled(true);
+    if (!kaydedildi) Alert.alert(t('lock.title'), t('lock.saveFailed'));
   };
 
   const handleToggleNotifications = async (value: boolean) => {
@@ -265,6 +269,16 @@ export default function SettingsScreen() {
             <View style={styles.rowLeft}>
               <Ionicons name="shield-checkmark-outline" size={18} color={colors.success} />
               <Text style={styles.rowLabel}>{t('settings.privacy')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+          <View style={styles.rowDivider} />
+          {/* Kullanım Koşulları (EULA) — abonelik satan uygulamada mağaza
+              incelemesi uygulama içinden erişilebilir olmasını zorunlu tutar. */}
+          <Pressable style={styles.row} onPress={() => router.push('/terms' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
+              <Text style={styles.rowLabel}>{t('legal.termsTitle')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </Pressable>

@@ -1,3 +1,4 @@
+import { SUPABASE_YAPILANDIRILDI } from '@/lib/env';
 // Supabase (ve genel ağ) hata mesajları İngilizce döner; kullanıcıya
 // göstermeden önce bilinen kalıpları Türkçeye çevirir. Bilinmeyen
 // mesajlar olduğu gibi bırakılır (kendi fırlattığımız Türkçe hatalar dahil).
@@ -23,8 +24,25 @@ const PATTERNS: Array<[RegExp, string]> = [
   [/duplicate key value/i, 'Bu kayıt zaten mevcut.'],
 ];
 
-export function trError(message: string | null | undefined): string {
+/**
+ * @param yapilandirildi Supabase adresi/anahtarı tanımlı mı. Parametre olarak
+ * alınır ki işlev SAF kalsın: ortamdan okusaydı aynı girdi, ortama göre farklı
+ * çıktı verirdi ve birim testi ortama bağımlı hâle gelirdi.
+ */
+export function trError(
+  message: string | null | undefined,
+  yapilandirildi: boolean = SUPABASE_YAPILANDIRILDI
+): string {
   if (!message) return 'Bir hata oluştu. Lütfen tekrar deneyin.';
+  // YAPILANDIRMA EKSİĞİNİ AĞ HATASI SANMAYALIM. Supabase adresi/anahtarı
+  // tanımlı değilse istemci sahte bir adrese gider ve her istek "network
+  // request failed" verir; kullanıcı bağlantısını kontrol edip durur, oysa
+  // sorun .env dosyasındadır. Web derlemesinde tam olarak bu yaşandı:
+  // giriş ekranı sorunsuz açıldı, her deneme "İnternet bağlantısı kurulamadı"
+  // dedi ve sebep saatlerce bağlantıda arandı.
+  if (!yapilandirildi && /network request failed|fetch failed|failed to fetch|network error/i.test(message)) {
+    return 'Uygulama sunucu bilgileriyle yapılandırılmamış (.env eksik). Bu bir bağlantı sorunu değildir.';
+  }
   for (const [re, tr] of PATTERNS) {
     if (re.test(message)) return tr;
   }

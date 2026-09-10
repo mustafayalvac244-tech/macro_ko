@@ -127,3 +127,29 @@ describe('pendingOutcomeHearings', () => {
     expect(pendingOutcomeHearings([], now)).toEqual([]);
   });
 });
+
+/**
+ * DURUŞMADAN SONRA SORAN BİLDİRİMİN ZAMANI.
+ *
+ * Canlı veri: 49 duruşma kaydına karşılık 9 süre kaydı; geçmiş 23 duruşmanın
+ * 22'si işaretlenmemiş, dört ayrı avukatta. Mekanizma vardı (duruşma çıkışı
+ * ekranı, ana ekran kartı) — eksik olan doğru ANDA sormaktı.
+ */
+describe('duruşma sonrası sorma anı', () => {
+  // notifications.ts React Native'e bağlı olduğu için burada yalnız KURAL
+  // sınanıyor: gecikme iki saat ve geçmiş duruşmaya bildirim kurulmaz.
+  const IKI_SAAT = 120 * 60_000;
+  const soruAni = (planlanan: string) => new Date(new Date(planlanan).getTime() + IKI_SAAT);
+
+  it('duruşmadan iki saat sonra sorar', () => {
+    // Duruşma sırasında sormak rahatsız eder, ertesi güne bırakmak unutturur.
+    const s = soruAni('2026-09-10T10:00:00.000Z');
+    expect(s.toISOString()).toBe('2026-09-10T12:00:00.000Z');
+  });
+
+  it('geçmiş duruşma için soru anı geçmiştedir (bildirim kurulmaz)', () => {
+    const simdi = new Date('2026-09-10T09:00:00.000Z');
+    expect(soruAni('2026-09-09T10:00:00.000Z').getTime() <= simdi.getTime()).toBe(true);
+    expect(soruAni('2026-09-10T08:30:00.000Z').getTime() <= simdi.getTime()).toBe(false);
+  });
+});

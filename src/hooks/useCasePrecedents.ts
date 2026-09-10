@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { IctihatHit } from './useIctihat';
+import { caseCourt, caseSearchTerm } from '@/utils/emsalSecimi';
+
+// Saf seçim mantığı ayrı modülde (test edilebilsin diye); buradan yeniden
+// dışa veriliyor ki çağıran ekranlar tek yerden alsın.
+export { caseCourt, caseSearchTerm };
 
 /**
  * DAVANA EMSAL — avukatın kendi dosyasını, küratörlü Yargıtay içtihat bankasıyla
@@ -10,30 +15,15 @@ import type { IctihatHit } from './useIctihat';
  * aynı konu tekrar taranmaz, panel anında dolar.
  */
 
-/** Dosyanın konusundan temiz bir içtihat arama terimi çıkarır. */
-export function caseSearchTerm(c: { case_type?: string | null; title?: string | null } | null | undefined): string {
-  if (!c) return '';
-  // case_type en temiz sinyal ("İşçilik Alacağı", "Kira Tespiti"…). Yoksa başlığı,
-  // esas/karar numaralarını ve taraf ekini ayıklayarak kullan.
-  const primary = (c.case_type ?? '').trim();
-  if (primary) return primary;
-  let title = (c.title ?? '').trim();
-  // "2023/145", "E.2023/145" gibi dosya/esas numaralarını at.
-  title = title.replace(/\b[EK]\.?\s*\d{2,4}\s*\/\s*\d+/gi, ' ');
-  title = title.replace(/\b\d{2,4}\s*\/\s*\d+\b/g, ' ');
-  // Fazla boşlukları sadeleştir.
-  return title.replace(/\s{2,}/g, ' ').trim();
-}
-
 interface PrecedentResult {
   hits: IctihatHit[];
   total: number;
   source?: string;
 }
 
-async function fetchPrecedents(term: string): Promise<PrecedentResult> {
+async function fetchPrecedents(term: string, court: 'yargitay' | 'danistay'): Promise<PrecedentResult> {
   const { data, error } = await supabase.functions.invoke('ictihat', {
-    body: { action: 'search', query: term, court: 'yargitay', mode: 'smart', page: 1, pageSize: 6 },
+    body: { action: 'search', query: term, court, mode: 'smart', page: 1, pageSize: 6 },
   });
   if (error) {
     let code = '';
@@ -49,16 +39,22 @@ async function fetchPrecedents(term: string): Promise<PrecedentResult> {
   return { hits: res.hits ?? [], total: res.total ?? 0, source: res.source };
 }
 
-/** Verilen konu terimi için emsal Yargıtay kararlarını getirir (önbellekli). */
-export function useCasePrecedents(term: string) {
+/**
+ * Verilen konu terimi için emsal kararları getirir (önbellekli).
+ *
+ * `court` dosyanın yargı kolundan gelir (bkz. caseCourt) — önbellek anahtarına
+ * da girer, aksi hâlde idari bir dosya, daha önce görülmüş bir hukuk dosyasının
+ * Yargıtay sonuçlarını önbellekten okurdu.
+ */
+export function useCasePrecedents(term: string, court: 'yargitay' | 'danistay' = 'yargitay') {
   const q = term.trim();
   return useQuery({
-    queryKey: ['case-precedents', q],
+    queryKey: ['case-precedents', court, q],
     enabled: q.length >= 2,
     // Karar bankası nadiren değişir; 1 saat taze say, çevrimdışı için 24 saat sakla.
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 24,
     retry: 1,
-    queryFn: () => fetchPrecedents(q),
+    queryFn: () => fetchPrecedents(q, court),
   });
 }

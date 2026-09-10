@@ -5,12 +5,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ComingSoon } from '@/components/ComingSoon';
-import { AI_ENABLED } from '@/config/features';
+import { AI_DILEKCE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
+import { useCases } from '@/hooks/useCases';
+import type { AiKullanim } from '@/hooks/useAiKontor';
+import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { formatMoney } from '@/utils/format';
 
 /**
  * DİLEKÇE ÜRET — olay anlatımından mahkemeye hazır resmî dilekçe taslağı.
@@ -41,12 +45,50 @@ export default function DilekceUretScreen() {
   const t = useT();
 
   const [type, setType] = useState<string>('dava');
+  // DOSYA SEÇİMİ. Taslaklarda 13-21 arası köşeli parantez boşluğu çıkıyordu:
+  // [Davacı Ad-Soyad], [Vekil ad-soyad], [Esas No], [Mahkeme]… Avukat, programda
+  // ZATEN KAYITLI bilgileri taslağa elle geçiriyordu. Dosya seçilirse künyeyi
+  // sunucu bu kayıtlardan doldurur.
+  const [caseId, setCaseId] = useState<string | null>(null);
+  const { data: davalar } = useCases({ status: 'open' });
+  const secilenDava = (davalar ?? []).find((d) => d.id === caseId) ?? null;
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState('');
+  // SUNUCU İKİ ŞEYİ BİLİYOR, EKRAN SÖYLEMİYORDU:
+  //  • hangi ZORUNLU bölümün model tarafından hiç yazılmadığı (yerine boşluk
+  //    konuyor ama metnin ortasında, gözden kaçabilir),
+  //  • kaç UYDURMA tarihin ayıklandığı (model olayda geçmeyen tarih yazmış
+  //    demektir; avukat bunu bilmeli, çünkü kalanları da denetlemeli).
+  // İkisi de yanıtta geliyordu ve kullanılmıyordu.
+  const [eksikBolum, setEksikBolum] = useState<string[]>([]);
+  // Türe özgü talep denetimi: istinafta "kararın kaldırılması", temyizde
+  // "bozulması", itirazda açık itiraz beyanı. Hâkim taleple bağlıdır.
+  const [talepEksik, setTalepEksik] = useState<string[]>([]);
+  // ÇAKIŞAN DAYANAK. Gerçek kullanım denemesinde model, birbirinin alternatifi
+  // iki hukuki dayanağı (temerrüt / iki haklı ihtar) birlikte yazdı; talimatla
+  // tutarlı gideremedik. Mekanik denetim yalnız uyarır, hak düşürmez.
+  const [cakisanDayanak, setCakisanDayanak] = useState<string[]>([]);
+  // UYDURMA MADDE ATFI. Bu denetim aylardır yalnız ölçüm betiğinde vardı:
+  // uydurma atfı ölçüyor ama kullanıcıyı ondan korumuyorduk. Uydurma madde
+  // GERÇEK GÖRÜNÜR — biçimi doğru, numarası var — ve yanlışlığı ancak hâkim
+  // baktığında anlaşılır. Böyle bir taslak için hak da düşülmez.
+  const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  // UYDURMA TUTAR. Aynı kusur madde atfıyla: ölçüm betiğinde vardı, taslağı
+  // üreten uçta yoktu — avukatın gördüğü çıktıda hiç çalışmıyordu.
+  const [uydurmaTutar, setUydurmaTutar] = useState<number[]>([]);
+  const [ayiklanan, setAyiklanan] = useState(0);
+  // Bu isteğin maliyeti. Kontörle çalışan bir üründe harcamanın gizli kalması,
+  // kullanıcıyı bakiyesi bittiğinde şaşırtır; token sayısı ücretsiz katmanda da
+  // anlamlı, çünkü ortak günlük tavan token üzerinden doluyor.
+  const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
+  // "İşe yaramadı" için istek kimliği. Kusurlu çıktının bir kısmını mekanik
+  // yakalıyoruz, ama yapısal olarak düzgün görünüp hukuken işe yaramayan bir
+  // metni ancak avukat bilir; hakkını geri alabilmeli.
+  const [hakDusulmedi, setHakDusulmedi] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!AI_ENABLED) {
+  if (!AI_DILEKCE_ENABLED) {
     return <ComingSoon headerTitle={t('dlk.title')} title={t('soon.dilekce')} desc={t('soon.desc')} icon="document-text" />;
   }
 
@@ -56,35 +98,33 @@ export default function DilekceUretScreen() {
     setBusy(true);
     setError(null);
     setText('');
+    setHakDusulmedi(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
-        body: { mode: 'dilekce', dilekceType: type, question },
+        body: { mode: 'dilekce', dilekceType: type, question, caseId: caseId ?? undefined },
       });
       if (fnErr) {
-        let code = '';
-        try {
-          const ctx = (fnErr as { context?: Response }).context;
-          if (ctx && typeof ctx.json === 'function') code = (await ctx.json())?.error ?? '';
-        } catch {
-          // gövde okunamadı
-        }
-        setError(
-          code === 'daily_quota'
-            ? t('ai.errDailyQuota')
-            : code === 'quota_exceeded'
-              ? t('ai.errQuota')
-              : code === 'rate_limit'
-                ? t('ai.errRateLimit')
-                : t('ai.errGeneric')
-        );
+        // Hata çevirisi ORTAK: aynı mantık üç ekranda ayrı yazılınca biri
+        // güncellenip diğerleri geride kalıyordu (bkz. src/lib/aiHata.ts).
+        const govde = await aiHataGovdesi(fnErr);
+        const code = govde.error ?? '';
+        setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string } | null;
+      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[] } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
       }
       setText(payload.text);
+      setEksikBolum(payload.eksikBolum ?? []);
+      setTalepEksik(payload.talepEksik ?? []);
+      setCakisanDayanak(payload.cakisanDayanak ?? []);
+      setUydurmaMadde(payload.uydurmaMadde ?? []);
+      setUydurmaTutar(payload.uydurmaTutar ?? []);
+      setAyiklanan(Number(payload.ayiklananTarih ?? 0));
+      setKullanim(payload.kullanim ?? null);
+      setHakDusulmedi(!!payload.hakDusulmedi);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -118,7 +158,53 @@ export default function DilekceUretScreen() {
             })}
           </View>
 
+          {!!davalar?.length && (
+            <>
+              <Text style={styles.label}>{t('dlk.caseLabel')}</Text>
+              <Text style={styles.caseHint}>{t('dlk.caseHint')}</Text>
+              <View style={styles.chips}>
+                <Pressable
+                  onPress={() => setCaseId(null)}
+                  style={[styles.chip, !caseId && styles.chipOn]}
+                  disabled={busy}
+                >
+                  <Text style={[styles.chipText, !caseId && styles.chipTextOn]}>{t('dlk.caseNone')}</Text>
+                </Pressable>
+                {davalar.slice(0, 12).map((d) => {
+                  const on = caseId === d.id;
+                  return (
+                    <Pressable
+                      key={d.id}
+                      onPress={() => setCaseId(on ? null : d.id)}
+                      style={[styles.chip, on && styles.chipOn]}
+                      disabled={busy}
+                    >
+                      <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={1}>
+                        {d.title}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
           <Text style={styles.label}>{t('dlk.factsLabel')}</Text>
+          {/* DOSYA AÇIKLAMASI, AVUKATIN KENDİ METNİDİR. Olayı sıfırdan yeniden
+              yazmak, hızlandırmayı en çok yiyen adım. Metin kutuya EKLENİYOR
+              (doğrudan sunucuya gönderilmiyor): avukat ne gönderdiğini görür ve
+              düzeltebilir. Uydurma denetimi de olay metnini esas aldığı için,
+              buradaki tarihler kendi kaydından gelmiş sayılır — doğrusu budur. */}
+          {!!secilenDava?.description?.trim() && !q.includes(secilenDava.description.trim()) && (
+            <Pressable
+              onPress={() => setQ((v) => (v.trim() ? `${v.trim()}\n\n${secilenDava.description!.trim()}` : secilenDava.description!.trim()))}
+              disabled={busy}
+              style={({ pressed }) => [styles.addDesc, pressed && { opacity: 0.85 }]}
+            >
+              <Ionicons name="add-circle-outline" size={15} color={colors.primary} />
+              <Text style={styles.addDescText}>{t('dlk.addCaseDesc')}</Text>
+            </Pressable>
+          )}
           <TextInput
             style={styles.area}
             value={q}
@@ -161,6 +247,34 @@ export default function DilekceUretScreen() {
                 </Pressable>
               </View>
               <Text selectable style={styles.body}>{text}</Text>
+              {uydurmaMadde.length > 0 && (
+                <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
+              )}
+              {uydurmaTutar.length > 0 && (
+                <Text style={styles.warn}>
+                  {t('ai.fakeAmounts', { tutarlar: uydurmaTutar.map((tt) => formatMoney(tt)).join(', ') })}
+                </Text>
+              )}
+              {cakisanDayanak.map((u, i) => (
+                <Text key={i} style={styles.warn}>{u}</Text>
+              ))}
+              {talepEksik.length > 0 && (
+                <Text style={styles.warn}>{t('dlk.missingRelief', { uyari: talepEksik.join(' · ') })}</Text>
+              )}
+              {eksikBolum.length > 0 && (
+                <Text style={styles.warn}>{t('dlk.missingSections', { bolumler: eksikBolum.join(', ') })}</Text>
+              )}
+              {ayiklanan > 0 && (
+                <Text style={styles.warn}>{t('dlk.scrubbedDates', { n: String(ayiklanan) })}</Text>
+              )}
+              {!!kullanim && (
+                <Text style={styles.usage}>
+                  {kullanim.maliyetTL > 0
+                    ? t('ai.usageCost', { token: String(kullanim.girdiToken + kullanim.ciktiToken), tl: kullanim.maliyetTL.toFixed(2) })
+                    : t('ai.usageFree', { token: String(kullanim.girdiToken + kullanim.ciktiToken) })}
+                </Text>
+              )}
+              {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
               <Text style={styles.disclaimer}>{t('dlk.disclaimer')}</Text>
             </View>
           )}
@@ -172,6 +286,38 @@ export default function DilekceUretScreen() {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
+  usage: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  warn: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.warning,
+    marginTop: spacing.sm,
+  },
+  addDesc: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+  },
+  addDescText: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    color: colors.primary,
+  },
+  caseHint: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: colors.textMuted,
+    marginBottom: spacing.sm,
+  },
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
   lead: {
     fontFamily: fonts.regular,

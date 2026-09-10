@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="panel.css" />
+</head>
+<body>
+<header id="arac">
+  <span class="marka">Vekil<b>Pro</b></span>
+  <button id="okuBtn" title="Açık sayfadaki dava bilgilerini okur">Sayfadan dosya aç</button>
+</header>
+<div id="bildirim" hidden></div>
+<!--
+  UYGULAMA EKLENTİNİN İÇİNE GÖMÜLMEDİ, BARINDIRILAN SÜRÜM AÇILIYOR.
+
+  Gömme denendi ve iki sebeple bırakıldı: (1) web paketi 21 MB ve her güncelleme
+  eklentiyi yeniden yüklemeyi gerektirirdi; (2) pakette `eval` var, MV3 eklenti
+  sayfalarının CSP'si (script-src 'self') bunu engelliyor ve uygulama açılmıyor.
+  Barındırılan sayfa kendi CSP'siyle çalışır, eklenti 50 KB kalır ve uygulama
+  siz hiçbir şey yapmadan güncellenir.
+-->
+<iframe id="uygulama" src="https://mustafayalvac244-tech.github.io/macro_ko/app/" title="Vekil Pro"></iframe>
+<script type="module" src="panel.js"></script>
+</body>
+</html>
