@@ -99,8 +99,21 @@ export async function kunyeCikar(metin) {
     method: 'POST',
     body: JSON.stringify({ mode: 'kunye', question: metin.slice(0, 9000) }),
   });
-  const g = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(g?.error || 'kunye_basarisiz');
+  const govde = await r.text();
+  let g = {};
+  try { g = JSON.parse(govde); } catch { /* JSON değil: ham metni hatada göster */ }
+  if (!r.ok) {
+    // HATANIN SEBEBİNİ TAŞI. Önceden burada tek bir 'kunye_basarisiz' kodu
+    // atılıyordu ve popup onu 'Bilgiler çıkarılamadı' diye gösteriyordu: hem
+    // kullanıcı hem geliştirici için teşhis edilemez bir mesaj. Sunucunun kendi
+    // kodu ('not_configured', 'deneme_hakki_bitti', kota kodları…) ve HTTP
+    // durumu artık üste taşınıyor.
+    const kod = g?.error || `http_${r.status}`;
+    const e = new Error(kod);
+    e.durum = r.status;
+    e.ayrinti = (g?.message || govde || '').slice(0, 200);
+    throw e;
+  }
   return g?.kunye ?? {};
 }
 

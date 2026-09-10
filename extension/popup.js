@@ -123,10 +123,27 @@ $('okuBtn').addEventListener('click', async () => {
     onizlemeCiz(bulunan, metin.length);
   } catch (e) {
     const kod = String(e.message);
-    if (kod === 'metin_yetersiz') bilgi('Bu sayfada okunacak yeterli metin yok. Dosyanın detay sayfasını açın.', true);
-    else if (kod === 'deneme_hakki_bitti') bilgi('Ücretsiz deneme hakkınız doldu. AI paketiyle devam edebilirsiniz.', true);
-    else if (kod === 'oturum_yok') { gorunum(false); bilgi('Oturumunuz doldu, tekrar giriş yapın.', true); }
-    else bilgi('Bilgiler çıkarılamadı. Sayfayı kontrol edip tekrar deneyin.', true);
+    // TANIDIĞIMIZ KODLAR AÇIKÇA ANLATILIR; TANIMADIĞIMIZ KOD OLDUĞU GİBİ
+    // GÖSTERİLİR. "Bilgiler çıkarılamadı" gibi bir mesaj, sebebi hem
+    // kullanıcıdan hem geliştiriciden saklıyordu.
+    const SOZLUK = {
+      metin_yetersiz: 'Bu sayfada okunacak yeterli metin yok. Dosyanın detay sayfasını açın.',
+      deneme_hakki_bitti: 'Ücretsiz deneme hakkınız doldu (3 hak). AI paketiyle devam edebilirsiniz.',
+      not_configured: 'Yapay zekâ servisi şu an yapılandırılmamış. Sunucuda API anahtarı tanımlanmalı.',
+      ai_soru_kota_bitti: 'Bu ayki AI sorunuz doldu. Hak ayın başında yenilenir.',
+      quota_exceeded: 'Bu ayki AI kullanım hakkınız doldu. Hak ayın başında yenilenir.',
+      daily_quota: 'Ücretsiz AI havuzu şu an dolu (tüm kullanıcılarla ortak). Bir süre sonra tekrar deneyin.',
+      sekme_yok: 'Etkin sekme bulunamadı.',
+    };
+    if (kod === 'oturum_yok') {
+      gorunum(false);
+      bilgi('Oturumunuz doldu, tekrar giriş yapın.', true);
+    } else if (SOZLUK[kod]) {
+      bilgi(SOZLUK[kod], true);
+    } else {
+      const ek = e.ayrinti ? ` — ${e.ayrinti}` : '';
+      bilgi(`Çıkarma başarısız: ${kod}${ek}`, true);
+    }
   } finally {
     $('okuBtn').disabled = false;
   }
