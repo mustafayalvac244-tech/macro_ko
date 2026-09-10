@@ -8,7 +8,7 @@
 <main id="kok">
   <header><span class="marka">Vekil Pro</span></header>
 
-  <section id="giris" hidden>
+  <section id="giris">
     <p class="aciklama">Vekil Pro hesabınızla giriş yapın.</p>
     <input id="email" type="email" placeholder="E-posta" autocomplete="username" />
     <input id="sifre" type="password" placeholder="Şifre" autocomplete="current-password" />
@@ -31,5 +31,14 @@
   <p id="durum" role="status"></p>
 </main>
 <script type="module" src="popup.js"></script>
+<script>
+  // AÇILMAYAN POPUP TEŞHİSİ. Modül yüklenemezse (yol hatası, sözdizimi, CSP)
+  // popup sessizce boş kalır ve kullanıcı "açılmıyor" der. Hatayı ekrana yazmak,
+  // teşhisi devtools açmayı bilmeyen birinin de yapabilmesini sağlar.
+  window.addEventListener('error', (e) => {
+    const d = document.getElementById('durum');
+    if (d) { d.textContent = 'Eklenti hatası: ' + (e.message || 'bilinmeyen'); d.className = 'hata'; }
+  });
+</script>
 </body>
 </html>

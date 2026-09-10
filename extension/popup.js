@@ -140,4 +140,14 @@ $('cikisBtn').addEventListener('click', async () => {
   bilgi('');
 });
 
-(async () => gorunum(!!(await oturumOku())?.access_token))();
+// Açılışta oturum durumuna göre görünümü ayarla. Hata olursa GİRİŞ ekranı
+// açık kalır (HTML'de varsayılan görünür) — boş popup yerine kullanılabilir bir
+// ekran görürsünüz.
+(async () => {
+  try {
+    const o = await oturumOku();
+    gorunum(!!o?.access_token);
+  } catch (e) {
+    bilgi('Oturum okunamadı: ' + String(e?.message ?? e), true);
+  }
+})();
