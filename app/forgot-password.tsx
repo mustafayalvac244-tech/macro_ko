@@ -67,7 +67,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen genislik="form" edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('forgot.title')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

@@ -55,7 +55,7 @@ export default function ChangePasswordScreen() {
   };
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen genislik="form" edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('settings.changePassword')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useQueryClient } from '@tanstack/react-query';
@@ -29,6 +29,7 @@ import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
+import { ortalaStili } from '@/theme/duzen';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney, formatTime } from '@/utils/format';
@@ -73,6 +74,7 @@ export default function DashboardScreen() {
   const colors = __t.colors;
   const styles = makeStyles(colors);
   const insets = useSafeAreaInsets();
+  const { width: pencereGenisligi } = useWindowDimensions();
   const accentGold = accentGoldFor(colors.gold);
 
   const t = useT();
@@ -314,7 +316,13 @@ export default function DashboardScreen() {
     <View style={styles.root}>
       <StatusBar style={__t.statusBar} />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.xs, paddingBottom: 96 + insets.bottom }]}
+        // Geniş ekranda (web) içerik ortalanır; telefonda ortalaStili null döner
+        // ve dizideki null öge yok sayılır — natif düzen aynen korunur.
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.xs, paddingBottom: 96 + insets.bottom },
+          ortalaStili(pencereGenisligi),
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl tintColor={colors.textSecondary} refreshing={refreshing} onRefresh={onRefresh} />}
       >

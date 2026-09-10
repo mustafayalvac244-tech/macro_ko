@@ -66,7 +66,7 @@ export default function ConstitutionScreen() {
   };
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen genislik="dar" edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader title={t('const.title')} showBack />
       <View style={styles.searchWrap}>
         <Input

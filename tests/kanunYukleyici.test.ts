@@ -108,12 +108,16 @@ describe('web yükleyici', () => {
   });
 
   it('istek yolu public/veri/kanun altına gider (dışa aktarımın koyduğu yer)', async () => {
-    const f = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ short: 'y', name: '', source: '', articles: [] }) }));
+    const f = vi.fn(async (_url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ short: 'y', name: '', source: '', articles: [] }),
+    }));
     vi.stubGlobal('fetch', f);
 
     await web.ensureLaw('avukatlik');
 
-    const url = f.mock.calls[0][0] as string;
+    const url = f.mock.calls[0][0];
     expect(url.endsWith('/veri/kanun/avukatlik.json')).toBe(true);
   });
 });

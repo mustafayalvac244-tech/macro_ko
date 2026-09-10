@@ -14,6 +14,7 @@ import {
 import { Link, router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
+import { WebKart } from '@/components/ui/WebKart';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { VekilLogo } from '@/components/ui/VekilLogo';
@@ -128,8 +129,9 @@ export default function SignupScreen() {
   // yapması gerektiğini söylemeden uygulamaya sokamayız.
   if (dogrulamaBekliyor) {
     return (
-      <Screen>
+      <Screen genislik="form">
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <WebKart>
           <View style={styles.brand}>
             <VekilLogo size={72} nodeFill={colors.bg} />
             <Text style={styles.brandName}>{t('app.name')}</Text>
@@ -147,15 +149,17 @@ export default function SignupScreen() {
             size="lg"
             style={styles.submit}
           />
+          </WebKart>
         </ScrollView>
       </Screen>
     );
   }
 
   return (
-    <Screen>
+    <Screen genislik="form">
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <WebKart>
           <View style={styles.brand}>
             <VekilLogo size={72} nodeFill={colors.bg} />
             <Text style={styles.brandName}>{t('app.name')}</Text>
@@ -289,6 +293,7 @@ export default function SignupScreen() {
               <Text style={styles.footerLink}>{t('auth.signInLink')}</Text>
             </Link>
           </View>
+          </WebKart>
         </ScrollView>
       </KeyboardAvoidingView>
 
