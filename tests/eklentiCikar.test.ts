@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-// @ts-expect-error — eklenti saf JS, tip tanımı yok
+// eklenti saf JS; tip tanımı yok, vitest doğrudan okuyor
 import { doluSayisi, kucult, kunyeCikarYerel, mahkeme } from '../extension/lib/cikar.js';
 
 /**
