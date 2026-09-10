@@ -43,9 +43,38 @@ const ALANLAR = [
 
 let bulunan = null;
 
-function onizlemeCiz(k) {
+/** Kaydı açmaya yetecek asgari bilgi: ad ya da esas no. */
+function kayitlanabilirMi(k) {
+  return !!((k.title ?? '').trim() || (k.case_number ?? '').trim());
+}
+
+/**
+ * HİÇBİR ŞEY BULUNAMADIYSA TABLO GÖSTERİLMEZ.
+ *
+ * BULUNAN KUSUR (kullanıcı bildirdi). Beş satır da "bulunamadı" yazıp altında
+ * aktif bir "Dosyayı oluştur" düğmesi duruyordu. Bu, doğru davranışın en kötü
+ * anlatımıydı: sunucu belgede karşılığı olmayan alanı bilerek atıyor (uydurma
+ * esas numarası boş alandan tehlikelidir) ama ekran bunu ARIZA gibi gösteriyor
+ * ve kullanıcıya ne yapacağını söylemiyordu.
+ *
+ * Artık hiç alan çıkmadıysa tablo yerine ne yapılacağı yazılıyor; kayıt düğmesi
+ * de asgari bilgi yoksa kapalı.
+ */
+function onizlemeCiz(k, okunanKarakter) {
   const kap = $('alanlar');
   kap.innerHTML = '';
+
+  const doluSayisi = ALANLAR.filter(([a]) => (k[a] ?? '').toString().trim()).length;
+  if (doluSayisi === 0) {
+    $('onizleme').hidden = true;
+    bilgi(
+      `Bu sayfada dava bilgisi bulunamadı (${okunanKarakter} karakter okundu). ` +
+        'UYAP\'ta dosyanın DETAY sayfasını açıp tekrar deneyin.',
+      true
+    );
+    return;
+  }
+
   for (const [anahtar, etiket] of ALANLAR) {
     const deger = (k[anahtar] ?? '').toString().trim();
     const satir = document.createElement('div');
@@ -60,7 +89,9 @@ function onizlemeCiz(k) {
     satir.append(b, s);
     kap.append(satir);
   }
+  $('kaydetBtn').disabled = !kayitlanabilirMi(k);
   $('onizleme').hidden = false;
+  bilgi(kayitlanabilirMi(k) ? '' : 'Dosya adı ya da esas no bulunamadı; kayıt açılamıyor.', true);
 }
 
 $('girisBtn').addEventListener('click', async () => {
@@ -87,13 +118,12 @@ $('okuBtn').addEventListener('click', async () => {
   bilgi('Sayfa okunuyor…');
   try {
     const metin = await sayfaMetni();
-    bilgi('Bilgiler çıkarılıyor…');
+    bilgi(`Bilgiler çıkarılıyor… (${metin.length} karakter)`);
     bulunan = await kunyeCikar(metin);
-    onizlemeCiz(bulunan);
-    bilgi('');
+    onizlemeCiz(bulunan, metin.length);
   } catch (e) {
     const kod = String(e.message);
-    if (kod === 'metin_yetersiz') bilgi('Bu sayfada okunacak yeterli metin yok.', true);
+    if (kod === 'metin_yetersiz') bilgi('Bu sayfada okunacak yeterli metin yok. Dosyanın detay sayfasını açın.', true);
     else if (kod === 'deneme_hakki_bitti') bilgi('Ücretsiz deneme hakkınız doldu. AI paketiyle devam edebilirsiniz.', true);
     else if (kod === 'oturum_yok') { gorunum(false); bilgi('Oturumunuz doldu, tekrar giriş yapın.', true); }
     else bilgi('Bilgiler çıkarılamadı. Sayfayı kontrol edip tekrar deneyin.', true);
