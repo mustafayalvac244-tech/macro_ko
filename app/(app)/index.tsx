@@ -12,7 +12,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useCases } from '@/hooks/useCases';
-import { useCasePrecedents, caseSearchTerm } from '@/hooks/useCasePrecedents';
+import { useCasePrecedents, caseCourt, caseSearchTerm } from '@/hooks/useCasePrecedents';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useReminderSync } from '@/hooks/useReminderSync';
@@ -107,7 +107,8 @@ export default function DashboardScreen() {
     [caseList, selectedCaseId]
   );
   const precTerm = caseSearchTerm(selectedCase);
-  const precedents = useCasePrecedents(precTerm);
+  // İdari dosyada Danıştay, diğerlerinde Yargıtay sorulur.
+  const precedents = useCasePrecedents(precTerm, caseCourt(selectedCase));
 
   // Masraf avansı eksiye düşen müvekkiller (kapatılanlar hariç) — ana ekran uyarısı.
   const advanceDeficits = useAdvanceDeficits();
