@@ -1,9 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { addMonths, endOfMonth, format, startOfMonth, subMonths } from 'date-fns';
-import { enUS, tr as trLocale } from 'date-fns/locale';
-import { Ionicons } from '@expo/vector-icons';
+import { addMonths } from 'date-fns/addMonths';
+import { endOfMonth } from 'date-fns/endOfMonth';
+import { format } from 'date-fns/format';
+import { startOfMonth } from 'date-fns/startOfMonth';
+import { subMonths } from 'date-fns/subMonths';
+import { enUS } from 'date-fns/locale/en-US';
+import { tr as trLocale } from 'date-fns/locale/tr';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';

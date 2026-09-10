@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format } from 'date-fns/format';
 
 /**
  * Local daily-case bank (works offline; answers/points live in Supabase).

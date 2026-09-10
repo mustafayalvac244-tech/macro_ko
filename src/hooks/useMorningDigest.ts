@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { format } from 'date-fns';
+import { format } from 'date-fns/format';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { syncMorningDigests, digestBucket, type DigestDay, type DigestBucket } from '@/lib/notifications';

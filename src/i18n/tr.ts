@@ -1735,6 +1735,13 @@ export const tr = {
   'laws.empty': 'Sonuç bulunamadı',
   'laws.emptyDesc': 'Madde numarası veya farklı bir kelime deneyin.',
   'laws.notFound': 'Kanun bulunamadı.',
+  // Web sürümünde kanun metinleri paketten değil ağdan gelir (bkz.
+  // src/data/laws/loader.web.ts) — bu yüzden "çevrimdışı" iddiası web'de
+  // KULLANILMAZ, yerine bu anahtarlar gösterilir.
+  'laws.loading': 'Kanun metni yükleniyor…',
+  'laws.loadError': 'Kanun metni yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.',
+  'laws.onlineWeb': 'Web sürümünde kanun metinleri açtıkça indirilir.',
+  'laws.onlineShort': 'çevrimiçi',
   'laws.disclaimer': 'Bilgilendirme amaçlıdır; güncel ve resmî metin için mevzuat.gov.tr esas alınmalıdır.',
   'const.title': 'Anayasa',
   'const.short': 'Anayasa',

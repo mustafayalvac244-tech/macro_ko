@@ -3,9 +3,13 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useQueryClient } from '@tanstack/react-query';
-import { format, isToday, isTomorrow } from 'date-fns';
-import { tr as trLocale, enUS } from 'date-fns/locale';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { format } from 'date-fns/format';
+import { isToday } from 'date-fns/isToday';
+import { isTomorrow } from 'date-fns/isTomorrow';
+import { tr as trLocale } from 'date-fns/locale/tr';
+import { enUS } from 'date-fns/locale/en-US';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';

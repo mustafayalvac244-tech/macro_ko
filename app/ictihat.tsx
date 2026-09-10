@@ -13,7 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { AI_ICTIHAT_ANALIZ_ENABLED } from '@/config/features';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -109,11 +109,23 @@ export default function IctihatScreen() {
   // Kelime Arama moduna geçip aramayı otomatik başlat.
   // Mevzuat indeksini ekran açılır açılmaz ARKA PLANDA kur. Kullanıcı yazmaya
   // başladığında hazır olur; tek seferde kurulsa arayüz 1-2 sn donuyordu.
+  // Web'de kanun metinleri ağdan indiği için indeks HAZIR OLDUĞUNDA yeniden
+  // hesaplamak şart: aksi hâlde kullanıcı indeks kurulmadan arama yaparsa
+  // mevzuat sonuçları boş kalır ve bir daha güncellenmezdi.
+  const [mevzuatHazir, setMevzuatHazir] = useState(false);
   useEffect(() => {
+    let iptal = false;
     const task = InteractionManager.runAfterInteractions(() => {
-      warmMevzuatIndex().catch(() => {});
+      warmMevzuatIndex()
+        .then(() => {
+          if (!iptal) setMevzuatHazir(true);
+        })
+        .catch(() => {});
     });
-    return () => task.cancel();
+    return () => {
+      iptal = true;
+      task.cancel();
+    };
   }, []);
 
   const params = useLocalSearchParams<{ q?: string }>();
@@ -154,7 +166,8 @@ export default function IctihatScreen() {
   // İlgili kanun maddeleri (çevrimdışı mevzuat) — kelime aramasının yanında.
   const mevzuatHits = useMemo(
     () => (mode === 'search' && searched && query ? searchMevzuat(query) : []),
-    [mode, searched, query]
+    // mevzuatHazir bilerek bağımlılıkta: indeks kurulunca sonuçlar tazelenir.
+    [mode, searched, query, mevzuatHazir]
   );
 
   const errText =

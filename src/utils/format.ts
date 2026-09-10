@@ -1,5 +1,10 @@
-import { format, formatDistanceToNowStrict, isPast, isToday, isTomorrow } from 'date-fns';
-import { enUS, tr as trLocale } from 'date-fns/locale';
+import { format } from 'date-fns/format';
+import { formatDistanceToNowStrict } from 'date-fns/formatDistanceToNowStrict';
+import { isPast } from 'date-fns/isPast';
+import { isToday } from 'date-fns/isToday';
+import { isTomorrow } from 'date-fns/isTomorrow';
+import { enUS } from 'date-fns/locale/en-US';
+import { tr as trLocale } from 'date-fns/locale/tr';
 import { getLang, translate } from '@/i18n';
 
 function dateLocale() {

@@ -70,3 +70,9 @@ scripts/eval-cevap-hatalar.json
 # uygulama web'de İKONSUZ açılıyordu (42 font, hepsi 404). Sessiz bir arızaydı —
 # sayfa açılıyor, sadece her ikonun yerinde boş kare çıkıyordu.
 !docs/app/**
+
+# Web dışa aktarımının GEÇİCİ veri kopyası. Kanun JSON'ları web'de JS paketine
+# gömülmez, public/ üzerinden statik dosya olarak servis edilir; bu klasörü
+# scripts/web-veri-hazirla.mjs her dışa aktarımdan önce yeniden üretir.
+# Tek doğruluk kaynağı src/data/laws — kopya depoya girmez.
+/public/veri/

@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { loadLaw, type LawArticle } from '@/data/laws/loader';
+import type { LawArticle } from '@/data/laws/loader';
+import { useLaw } from '@/data/laws/useLaw';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -30,7 +31,8 @@ export default function LawBrowserScreen() {
   const t = useT();
 
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const law = useMemo(() => loadLaw(slug ?? ''), [slug]);
+  // Natifte metin pakette gömülü (anında gelir); web'de ağdan indirilir.
+  const { law, yukleniyor, hata } = useLaw(slug ?? '');
 
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -86,7 +88,14 @@ export default function LawBrowserScreen() {
       <Screen edges={['top', 'left', 'right', 'bottom']}>
         <ScreenHeader title={t('laws.title')} showBack />
         <Card>
-          <EmptyState icon="book-outline" title={t('laws.notFound')} />
+          {yukleniyor ? (
+            <View style={styles.durum}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={styles.durumMetni}>{t('laws.loading')}</Text>
+            </View>
+          ) : (
+            <EmptyState icon="book-outline" title={hata ? t('laws.loadError') : t('laws.notFound')} />
+          )}
         </Card>
       </Screen>
     );
@@ -111,7 +120,8 @@ export default function LawBrowserScreen() {
           containerStyle={styles.searchInput}
         />
         <Text style={styles.resultCount}>
-          {t('laws.results', { n: results.length })} · {t('laws.offlineShort')}
+          {t('laws.results', { n: results.length })} ·{' '}
+          {Platform.OS === 'web' ? t('laws.onlineShort') : t('laws.offlineShort')}
         </Text>
       </View>
 
@@ -268,5 +278,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.md,
     lineHeight: 15,
+  },
+  // Web'de kanun metni indirilirken gösterilen durum satırı.
+  durum: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+  },
+  durumMetni: {
+    ...typography.caption,
+    color: colors.textSecondary,
   },
 });

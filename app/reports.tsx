@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { format, subMonths } from 'date-fns';
-import { enUS, tr as trLocale } from 'date-fns/locale';
+import { format } from 'date-fns/format';
+import { subMonths } from 'date-fns/subMonths';
+import { enUS } from 'date-fns/locale/en-US';
+import { tr as trLocale } from 'date-fns/locale/tr';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';

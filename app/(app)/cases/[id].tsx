@@ -24,7 +24,7 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { computeLegalDue } from '@/utils/legalDates';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { WarPlanTab } from '@/components/case/WarPlanTab';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { hearingReminderMessage, sendClientReminder } from '@/utils/reminder';
