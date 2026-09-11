@@ -58,8 +58,11 @@ apk/
 # Supabase CLI yerel çalışma dosyaları (bağlı proje bilgisi, sürüm önbelleği)
 supabase/.temp/
 
-# Ölçüm çıktısı (hatalı cevapların tam metni; koşuya özgü, sürümlenmez)
-scripts/eval-cevap-hatalar.json
+# scripts/eval-cevap-hatalar.json BURADAN ÇIKARILDI. Diğer beş ölçümün sonucu
+# (sohbet/künye/dilekçe/mütalaa/belge) dalda tutuluyor ki iki koşu
+# karşılaştırılabilsin; yalnız cevap ölçümü yok sayılıyordu ve olcum.yml'nin
+# "sonuçları dala işle" adımı onu sessizce atlıyordu — 2026-09-11 koşusunda
+# 13 sorunun 2'si düştü ve düşen cevapların metni hiçbir yere kaydedilmedi.
 
 # Web sürümü derleme çıktısı DEĞİL: docs/app yayınlanıyor (GitHub Pages),
 # bilerek depoda tutuluyor. Buraya eklenmemeli.
