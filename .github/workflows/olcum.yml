@@ -45,6 +45,9 @@ on:
         description: 'Mevzuat ölçümünde anlamsal aramayı da kat (ai-chat beslemesi böyle)'
         type: boolean
         default: false
+      mevzuat_rpc:
+        description: 'Ölçülecek mevzuat arama fonksiyonu. ai-chat search_mevzuat_kural kullanıyor.'
+        default: 'search_mevzuat_kural'
       isle:
         description: 'Sonuç JSON dosyaları dala işlensin mi'
         type: boolean
@@ -73,6 +76,11 @@ jobs:
       # FTS + kural + anlamsal arama birlikte veriyor (buildMevzuat); salt
       # FTS ölçümü (%58,8) modelin gerçekte gördüğü beslemeyi ÖLÇMÜYORDU.
       EVAL_HIBRIT: ${{ inputs.hibrit && '1' || '' }}
+      # ÖLÇÜLEN FONKSİYON, UYGULAMANIN KULLANDIĞI OLMALI. eval-arama varsayılan
+      # olarak search_mevzuat_fts'i ölçüyordu; ai-chat ise search_mevzuat_kural
+      # çağırıyor (buildMevzuat, 0066). Bugüne kadarki %58,8, modelin hiç
+      # görmediği bir fonksiyonun ölçümüydü.
+      EVAL_RPC: ${{ inputs.mevzuat_rpc || 'search_mevzuat_kural' }}
     steps:
       - uses: actions/checkout@v4
         with:
