@@ -1,14 +1,14 @@
 {
-  "tarih": "2026-09-11T20:20:14.534Z",
-  "sureSn": 14,
+  "tarih": "2026-09-11T20:29:19.981Z",
+  "sureSn": 7,
   "modeller": [],
   "karisikModel": false,
   "sonuc": {
     "analyze": {
       "durum": 502,
-      "sureSn": 8,
+      "sureSn": 3,
       "hata": "source_unreachable",
-      "detay": "claude: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CexGkQQDwxyCr6dC84rwY\"}"
+      "detay": "claude: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CexHSm1piMtEKLUfqcVo6\"}"
     },
     "summarize": null,
     "kota": {
