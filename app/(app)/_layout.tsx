@@ -6,6 +6,8 @@ import { useAuthStore } from '@/store/authStore';
 import { Sidebar } from '@/components/Sidebar';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useSonGorulme } from '@/hooks/useSonGorulme';
+import { useCihazBildir } from '@/hooks/useCihazlar';
+import { YeniCihazUyarisi } from '@/components/YeniCihazUyarisi';
 import { kaliciMenuMu } from '@/theme/duzen';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme/useTheme';
@@ -62,6 +64,8 @@ export default function AppLayout() {
   // Uygulamayı açtı/öne getirdi damgası — yalnız okuyan kullanıcı da
   // "aktif" sayılsın diye (bkz. hooks/useSonGorulme).
   useSonGorulme();
+  // Yeni bir cihazdan girildiyse kullanıcıyı uyar (bkz. hooks/useCihazlar).
+  const { yeniCihaz, kapat: cihazUyarisiniKapat } = useCihazBildir();
   const session = useAuthStore((s) => s.session);
   if (!session) return <Redirect href="/(auth)/login" />;
 
@@ -134,6 +138,7 @@ export default function AppLayout() {
       {/* Kalıcı menü açıkken çekmece sürümü çizilmez: ikisi aynı anda
           görünürse aynı menü ekranda iki kez olurdu. */}
       {!kaliciMenu && <Sidebar />}
+      {yeniCihaz && <YeniCihazUyarisi onKapat={cihazUyarisiniKapat} />}
     </View>
   );
 }
