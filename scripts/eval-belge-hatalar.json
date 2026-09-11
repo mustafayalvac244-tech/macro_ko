@@ -1,0 +1,28 @@
+{
+ "tarih": "2026-09-11T18:43:57.508Z",
+ "sureSn": 133,
+ "modeller": [
+  {
+   "model": "claude-opus-5",
+   "istek": 2,
+   "girdiToken": 0,
+   "ciktiToken": 0,
+   "maliyetTL": 0
+  }
+ ],
+ "karisikModel": false,
+ "kusurlu": [
+  {
+   "id": "sozlesme-tek-tarafli",
+   "kind": "sozlesme",
+   "kacan": [],
+   "yasak": [],
+   "eksikBaslik": [
+    "eksikler",
+    "oneriler"
+   ],
+   "uydurmaTarih": [],
+   "inceleme": "## 1) ÖZET\n\nABC Lojistik A.Ş. ile gerçek kişi Ayşe Yılmaz arasında, 01.02.2026'dan itibaren 24 ay süreli, aylık 40.000 TL bedelli lojistik danışmanlık sözleşmesi. Metin, edim ve bedel dışındaki tüm ağırlığı Hizmet Veren üzerine yıkmakta; fesih, cezai şart ve rekabet yasağı hükümleri tek yönlü olarak Hizmet Alan lehine kurgulanmış. Hizmet Veren tarafındaysanız sözleşme mevcut hâliyle imzalanmaya uygun değildir.\n\n## 2) RİSKLER (Hizmet Veren aleyhine)\n\n**a) Madde 5 — Tek taraflı, sebepsiz ve tazminatsız fesih.** En ağır hüküm. Hizmet Alan 24 aylık taahhüde rağmen 1. ayda fesih edip hiçbir ödeme yapmayabilirken, Hizmet Veren'e fesih hakkı hiç tanınmamış. Bu, belirli süreli sözleşmenin bağlayıcılığını tamamen ortadan kaldıran, karşılıklılığı bozan bir kayıttır. Sözleşme hizmet (iş) sözleşmesi olarak nitelendirilirse, haklı sebep olmaksızın işveren tarafından yapılan derhal fesihte karşı tarafın sözleşme süresine ilişkin tazminat hakkı bulunur (TBK m.438); bu hakkı peşinen kaldıran kayıt tartışmalıdır. Ayrıca Hizmet Veren'in feshi hiç yasaklanamaz — TBK'nın haklı nedenle fesih hükümleri emredicidir (madde numarasını mevzuattan teyit edin).\n\n**b) Madde 6 — Sözleşme bedelinin ÜÇ KATI cezai şart, tek taraflı.** Toplam bedel 960.000 TL olduğuna göre ceza yaklaşık 2.880.000 TL'ye karşılık gelir; \"sözleşmeye aykırılık\" tanımı da yapılmamış, her küçük ihlal aynı cezayı doğurur görünümündedir. Tacir olmayan gerçek kişi yönünden aşırı cezai şart hâkim tarafından indirilir (TBK'nın cezai şarta ilişkin hükümleri — madde numarasını teyit edin); ancak bu ancak dava sonunda sağlanır, imza aşamasında ciddi bir baskı ve icra takibi riski yaratır. Hizmet Alan için hiç ceza öngörülmemesi dengesizliği açıkça göstermektedir.\n\n**c) Madde 7 — Süresiz, yersiz ve konu bakımından sınırsız rekabet yasağı.** \"Hiçbir yerde, hiçbir surette, süresiz\" ifadesi, Hizmet Veren'i meslekten fiilen men eder. TBK'nın rekabet yasağına ilişkin hükümleri yasağın süre, yer ve işin türü bakımından sınırlandırılmasını ve çalışanın ekonomik geleceğini hakkaniyete aykırı biçimde tehlikeye düşürmemesini şart koşar; sınır aşımı hâlinde hâkim yasağı sınırlar/geçersiz sayar (madde numaralarını mevzuattan teyit edin). Ayrıca yasak karşılığı hiçbir karşı edim (ödeme) öngörülmemiş.\n\n**d) Madde 4 — Muacceliyet yok, temerrüt doğmuyor.** \"Hizmet Alan'ın uygun gördüğü tarihte\" ödeme, borcu fiilen keyfe bağlı hâle getirir; vade belirsiz olduğu için temerrüt anı ve faiz başlangıcı saptanamaz,"
+  }
+ ]
+}

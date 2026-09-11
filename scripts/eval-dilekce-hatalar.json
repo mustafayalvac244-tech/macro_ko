@@ -1,7 +1,33 @@
 {
- "tarih": "2026-09-06T19:15:14.203Z",
- "olculenSenaryolar": [
-  "cevap-kismi-odeme"
+ "tarih": "2026-09-11T18:41:34.204Z",
+ "sureSn": 147,
+ "modeller": [
+  {
+   "model": "claude-opus-5",
+   "istek": 2,
+   "girdiToken": 0,
+   "ciktiToken": 0,
+   "maliyetTL": 0
+  }
  ],
- "kusurlu": []
+ "karisikModel": false,
+ "olculenSenaryolar": [
+  "dava-kira-tahliye",
+  "cevap-alacak"
+ ],
+ "kusurlu": [
+  {
+   "id": "cevap-alacak",
+   "tip": "cevap",
+   "model": "claude-opus-5",
+   "eksik": [
+    "re:delil",
+    "re:netice[- ]?i talep|sonuç ve talep"
+   ],
+   "yasak": [],
+   "uydurmaTarih": [],
+   "uydurmaTutar": [],
+   "taslak": "###MAHKEME###\n[Davanın açıldığı mahkemenin tam adı — dava dilekçesi/tebligat zarfından yazılacak; örn. \"… ASLİYE HUKUK MAHKEMESİ\" / \"… ASLİYE TİCARET MAHKEMESİ\"] [kontrol edin]\n\n###TARAF###\nDAVACI: [Davacı Ad-Soyad / Unvan]\nDAVALI: [Davalı (Müvekkil) Ad-Soyad, T.C. Kimlik No — HMK m.129/1 uyarınca zorunludur, Adres]\nVEKİLİ: [Davalı Vekili Av. Ad-Soyad, Sicil No, Adres]\nESAS NO: [Esas No]\n\n###KONU###\n[Dava dilekçesinin tebliğ tarihi] tarihinde tebliğ edilen dava dilekçesine karşı süresi içinde sunduğumuz cevaplarımız ile zamanaşımı def'imizin ve esasa ilişkin savunmalarımızın sunulması; davanın reddi talebimizden ibarettir.\n\n###USUL###\n1. İLK İTİRAZLARIMIZ (HMK m.116):\n[Yetki itirazı ileri sürülecekse bu başlık altında yazılacaktır: Dava konusu uyuşmazlıkta kesin yetki kuralı bulunmadığından, yetkili mahkemenin [yetkili mahkeme — dayanağı: davalının yerleşim yeri / sözleşmenin ifa yeri vb.] olduğu, işbu mahkemenin yetkisiz bulunduğu itirazında bulunuyoruz.] HMK m.117 ve m.131 uyarınca ilk itirazların tamamı yalnızca bu dilekçede ileri sürülebileceğinden, vekil tarafından yetki/tahkim itirazının bulunup bulunmadığı bu aşamada kesinleştirilmelidir.\n\n2. HUSUMET / SIFAT İTİRAZIMIZ:\nMüvekkil, davacıdan dava dilekçesinde belirtilen nitelikte herhangi bir hizmet almamış, davacı ile aralarında hizmete ilişkin bir hukuki ilişki hiç kurulmamıştır. Müvekkilin davacıya karşı borçlu olduğu bir ilişki bulunmadığından, husumet müvekkile yöneltilemez. Bu husus bir def'i değil, hakkın hiç doğmadığına ilişkin itirazdır ve mahkemece re'sen dikkate alınmalıdır.\n\n###ACIKLAMALAR###\n1. ZAMANAŞIMI DEF'İNDE BULUNUYORUZ.\nDavacı, [2019 yılında verildiği iddia edilen hizmet — dava dilekçesinde belirtilen tarih] tarihli olduğunu ileri sürdüğü bir hizmet ilişkisine dayanarak 250.000,00 TL alacak talep etmektedir. Dava dilekçesi müvekkile [dava dilekçesinin tebliğ tarihi] tarihinde tebliğ edilmiş olup, iddiaya konu edimin ifa edildiği ileri sürülen tarihten dava tarihine kadar yaklaşık yedi yıllık bir süre geçmiştir.\n\nDavacının dayandığı ilişki, TBK m.147'de beş yıllık zamanaşımına bağlanan alacaklardan ise — özellikle [somut ilişkinin niteliğine göre seçilecek: vekâlet / komisyon / acentalık / simsarlık sözleşmesinden doğan alacak (TBK m.147/5) veya eser sözleşmesinden doğan alacak (TBK m.147/6) yahut küçük sanat işleri ve küçük çapta perakende satışlardan doğan alacak (TBK m.147/3)] — talep konusu alacak dava tarihinden önce zamanaşımına uğramıştır. TBK m.152 uyarınca asıl alacak zamanaşımına uğradığından, talep edilen faiz ve bağlı alacaklar bakımından da zamanaşımı gerçekleşmiştir.\n\nTBK m.161 uyarınca zamanaşımı ileri sürülmedikçe hâkim tarafından kendiliğinden göz önüne alınamayacağından, işbu dilekçe ile AÇIKÇA ZAMANAŞIMI DEF'İNDE BULUNUYORUZ. Zamanaşımı def'inin ileri sürülmesi, davacının vakıa ve iddialarının kabulü anlamına gelmez.\n\n2. KABUL ANLAMINA GELMEMEK ÜZERE, ESASA İLİŞKİN CEVAPLARIMIZ:\nDavacının dava dilekçesinde ileri sürdüğü vakıaların tamamını, aşağıda ayrıca açıklananlar dışında, açıkça İNKÂR EDİYORUZ.\n\n2.1. Müvekkil, davacıdan dava dilekçesinde tanımlanan hizmeti ALMAMIŞTIR. Taraflar arasında yazılı ya da sözlü bir hizmet ilişkisi kurulmamış; davacı tarafından müvekkile herhangi bir edim ifa edilmemiştir.\n\n2.2. Davacı, iddia ettiği hizmet ilişkisinin varlığını ve içeriğini ispat etmek zorundadır. Dosyaya sunulan [dava dilekçesi ekinde sunulan belgeler — varsa tek tek belirtilecek] belgeler, müvekkilin borçlandığını göstermeye elverişli değildir; müvekkilin imzasını taşıyan bir sözleşme, teslim/kabul tutanağı, sipariş veya yazışma bulunmamaktadır. [Davacı tarafça müvekkile atfedilen imza bulunması hâlinde: Müvekkile atfedilen imzayı açıkça inkâr ediyor, imza incelemesi yapılmasını talep ediyoruz.]\n\n2.3. Davacının hizmet bedeline ilişkin olarak müvekkile kesilmiş bir fatura, gönderilmiş bir ihtar veya yapılmış bir tahsilat girişimi de bulunmamaktadır. [Dosyada fatura varsa: Müvekkile tebliğ edilmemiş / defterlerine kaydedilmemiş faturaya itiraz ediyoruz.] Uzun y"
+  }
+ ]
 }

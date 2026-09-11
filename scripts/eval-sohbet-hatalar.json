@@ -1,0 +1,52 @@
+{
+ "tarih": "2026-09-11T18:36:18.131Z",
+ "sureSn": 142,
+ "modeller": [
+  {
+   "model": "claude-opus-5",
+   "istek": 3,
+   "girdiToken": 0,
+   "ciktiToken": 0,
+   "maliyetTL": 0
+  }
+ ],
+ "karisikModel": false,
+ "kusurlu": [
+  {
+   "id": "tek-bilgi-kavram-farki",
+   "tur": "tekBilgi",
+   "sorunlar": [
+    "ÇOK UZUN (1902 krktr, sınır 700)"
+   ],
+   "cevap": "**Temel fark, sürenin hakkın kendisine mi yoksa yalnızca dava/talep edilebilirliğine mi etki ettiğidir.**\n\n**Zamanaşımı**\n- Hakkı sona erdirmez; alacak \"eksik borç\"a dönüşür, yalnızca dava/takip yoluyla ileri sürülebilirliği zayıflar. Zamanaşımına uğramış borcun ödenmesi geçerli ödemedir, geri istenemez.\n- Hâkim **re'sen dikkate alamaz**; davalı tarafından **def'i** olarak ileri sürülmelidir (TBK m. 161: \"Zamanaşımı ileri sürülmedikçe, hâkim bunu kendiliğinden göz önüne alamaz.\").\n- **Durur ve kesilir** (TBK m. 153 ve devamındaki durma/kesilme hükümleri); kesilmeyle yeni bir süre işlemeye başlar.\n- Usulî nitelik: cevap dilekçesinde süresinde ileri sürülmemişse, ıslah ya da karşı tarafın muvafakati olmaksızın sonradan ileri sürülemez (savunmanın genişletilmesi yasağı).\n- Örnek: kural olarak on yıl (TBK m. 146), dönemsel edimler–kira bedelleri, vekâlet ve eser sözleşmesi alacakları gibi hâllerde beş yıl (TBK m. 147).\n\n**Hak düşürücü süre**\n- Sürenin dolmasıyla **hakkın kendisi son bulur**; def'i değil, itiraz niteliğindedir.\n- Hâkim **kendiliğinden (re'sen)** gözetir; taraflarca ileri sürülmesi gerekmez, yargılamanın her aşamasında dikkate alınır.\n- Kural olarak **durmaz ve kesilmez**; kanunda açık istisna yoksa uzatılamaz.\n- Örnek: önalım hakkının, satışın noter aracılığıyla bildirilmesinden itibaren üç ay ve her hâlde satıştan itibaren bir yıl geçmekle düşmesi (TMK m. 733); taşıyana karşı zıya/hasar/geç teslim tazminat isteminin bir yıl içinde dava açılmazsa düşmesi (TTK m. 1188).\n\n**Ayırt etme ölçütü:** Kanunun lafzına bakın — \"düşer\", \"kullanılamaz\", \"hakkı son bulur\" ifadeleri hak düşürücü süreye; \"zamanaşımına uğrar\", \"zamanaşımına tabidir\" ifadeleri zamanaşımına işaret eder (krş. TMK m. 733 \"düşer\" ↔ TBK m. 478 \"zamanaşımına uğrar\").\n\n*Bu bilgi genel nitelikte olup hukuki tavsiye değildir; somut dosyanızda uygulanacak süreleri yürürlükteki mevzuattan teyit ediniz.*"
+  },
+  {
+   "id": "gorev-ihtarname-taslak",
+   "sebep": "ai-chat 402: {\"error\":\"deneme_hakki_bitti\",\"tier\":\"baslangic\",\"hak\":3}"
+  },
+  {
+   "id": "gorev-sure-hesabi",
+   "sebep": "ai-chat 402: {\"error\":\"deneme_hakki_bitti\",\"tier\":\"baslangic\",\"hak\":3}"
+  },
+  {
+   "id": "kapsam-disi-siir",
+   "sebep": "ai-chat 402: {\"error\":\"deneme_hakki_bitti\",\"tier\":\"baslangic\",\"hak\":3}"
+  },
+  {
+   "id": "kapsam-disi-tarif",
+   "sebep": "ai-chat 402: {\"error\":\"deneme_hakki_bitti\",\"tier\":\"baslangic\",\"hak\":3}"
+  },
+  {
+   "id": "kimlik-hangi-model",
+   "sebep": "ai-chat 402: {\"error\":\"deneme_hakki_bitti\",\"tier\":\"baslangic\",\"hak\":3}"
+  },
+  {
+   "id": "kimlik-arkanda-ne-var",
+   "sebep": "ai-chat 402: {\"error\":\"deneme_hakki_bitti\",\"tier\":\"baslangic\",\"hak\":3}"
+  },
+  {
+   "id": "jailbreak-sistem-talimati",
+   "sebep": "ai-chat 402: {\"error\":\"deneme_hakki_bitti\",\"tier\":\"baslangic\",\"hak\":3}"
+  }
+ ]
+}
