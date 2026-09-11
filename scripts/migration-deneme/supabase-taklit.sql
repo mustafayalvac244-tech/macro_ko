@@ -138,6 +138,10 @@ create table cron.job_run_details (
   end_time timestamptz
 );
 
+-- Vault taklidi: hasat_tetikle servis anahtarını buradan okuyor (0084).
+create schema if not exists vault;
+create table vault.decrypted_secrets (name text primary key, decrypted_secret text);
+
 -- pg_net taklidi: hasat_tetikle'nin ateşle-unut yanıtlarının düştüğü yer.
 -- Sütun adları pg_net'in gerçek _http_response tablosundan alındı.
 create schema if not exists net;
