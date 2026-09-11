@@ -1,6 +1,6 @@
 {
-  "tarih": "2026-09-11T20:12:50.519Z",
-  "sureSn": 9,
+  "tarih": "2026-09-11T20:16:11.369Z",
+  "sureSn": 12,
   "modeller": [],
   "karisikModel": false,
   "sonuc": {
@@ -8,7 +8,7 @@
       "durum": 502,
       "sureSn": 3,
       "hata": "source_unreachable",
-      "detay": "upstream"
+      "detay": "claude: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CexGSMEiiefmyqNMpnp7R\"}"
     },
     "summarize": null,
     "kota": {
