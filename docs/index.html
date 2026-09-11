@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vekil Pro — Avukatlar için dava, duruşma ve yapay zekâ asistanı</title>
+<meta name="description" content="Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız ücretsiz arama. Dava, duruşma, müvekkil ve finans yönetimi. Claude Opus 5 ile dilekçe taslağı ve hukuki mütalaa. iOS, Android ve web.">
+<meta name="theme-color" content="#0B1F45">
+<link rel="icon" href="app/favicon.ico">
+<meta property="og:title" content="Vekil Pro — avukatın büro ve araştırma asistanı">
+<meta property="og:description" content="Sınırsız ücretsiz içtihat araması, büro yönetimi ve Claude Opus 5 destekli dilekçe/mütalaa. iOS, Android ve web.">
+<meta property="og:type" content="website">
+<meta name="robots" content="index,follow">
+
+<!-- Uygulamanın kendi tipografisi: başlıklar Playfair, gövde Manrope.
+     Tanıtım sayfası uygulamayla aynı görünmeli; farklı font, iki ayrı ürün
+     izlenimi verir. preconnect, ilk boyamayı hızlandırır. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ── Renkler ───────────────────────────────────────────────────────────────
+   Lacivert (#173C7E) uygulamanın primary rengi; buradaki koyu ton (#0B1F45)
+   onun daha derin hâli. Altın vurgu, uygulamadaki "premium" rozetiyle aynı
+   işlevi görüyor. Açık/koyu tema, işletim sistemi tercihine göre. */
+:root{
+  --lacivert:#0B1F45; --lacivert-2:#173C7E; --lacivert-3:#2A5AB8;
+  --altin:#B8912F; --altin-2:#D9B356;
+  --zemin:#F4F7FC; --kart:#FFFFFF; --cizgi:#DDE5F2;
+  --metin:#0E1B33; --metin-2:#4A5A78; --metin-3:#7385A3;
+  --yesil:#12805C; --radius:16px;
+  --golge:0 1px 2px rgba(11,31,69,.04), 0 8px 24px rgba(11,31,69,.06);
+  --golge-yuksek:0 2px 4px rgba(11,31,69,.06), 0 18px 48px rgba(11,31,69,.12);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --lacivert:#050C1A; --lacivert-2:#2A5AB8; --lacivert-3:#5B8AE0;
+    --altin:#D9B356; --altin-2:#EBCE85;
+    --zemin:#070E1B; --kart:#111C33; --cizgi:#22314F;
+    --metin:#EAF0FB; --metin-2:#A9B8D2; --metin-3:#7C8CA8;
+    --yesil:#3FCF9B;
+    --golge:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    --golge-yuksek:0 2px 4px rgba(0,0,0,.4), 0 18px 48px rgba(0,0,0,.5);
+  }
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--zemin); color:var(--metin);
+  font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif; line-height:1.2; margin:0}
+p{margin:0}
+a{color:inherit}
+.sar{width:min(1120px,100% - 40px); margin-inline:auto}
+@media(max-width:640px){ .sar{width:calc(100% - 32px)} }
+
+/* ── Üst çubuk ─────────────────────────────────────────────────────────── */
+header{position:sticky; top:0; z-index:50; backdrop-filter:blur(12px);
+  background:color-mix(in srgb, var(--zemin) 88%, transparent);
+  border-bottom:1px solid var(--cizgi)}
+.ust{display:flex; align-items:center; justify-content:space-between; height:68px; gap:16px}
+.marka{display:flex; align-items:center; gap:10px; text-decoration:none; font-weight:800; font-size:19px; letter-spacing:-.3px}
+.marka .m{width:34px;height:34px;border-radius:9px;background:linear-gradient(140deg,var(--lacivert-2),var(--lacivert));
+  display:grid;place-items:center;color:#fff;font-family:'Playfair Display',serif;font-weight:700;font-size:18px;flex:none}
+nav{display:flex; align-items:center; gap:28px}
+nav a{color:var(--metin-2); text-decoration:none; font-size:14.5px; font-weight:600}
+nav a:hover{color:var(--metin)}
+@media(max-width:860px){ nav{display:none} }
+
+/* ── Düğmeler ──────────────────────────────────────────────────────────── */
+.dg{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:12px;
+  text-decoration:none;font-weight:700;font-size:15px;border:1px solid transparent;transition:.15s;white-space:nowrap}
+.dg-ana{background:var(--lacivert-2); color:#fff; box-shadow:var(--golge)}
+.dg-ana:hover{background:var(--lacivert); transform:translateY(-1px); box-shadow:var(--golge-yuksek)}
+.dg-cer{border-color:var(--cizgi); color:var(--metin); background:var(--kart)}
+.dg-cer:hover{border-color:var(--lacivert-3); color:var(--lacivert-3)}
+.dg-kck{padding:9px 16px; font-size:14px}
+
+/* ── Kahraman ──────────────────────────────────────────────────────────── */
+.kahraman{padding:84px 0 64px; text-align:center; position:relative; overflow:hidden}
+.kahraman::before{content:'';position:absolute;inset:-40% 20% auto;height:520px;
+  background:radial-gradient(ellipse at center, color-mix(in srgb,var(--lacivert-3) 16%,transparent), transparent 70%);
+  pointer-events:none}
+.rozet{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;border-radius:999px;
+  background:color-mix(in srgb,var(--altin) 14%,transparent); border:1px solid color-mix(in srgb,var(--altin) 32%,transparent);
+  color:var(--altin); font-size:12.5px; font-weight:700; letter-spacing:.4px; position:relative}
+.kahraman h1{font-size:clamp(34px,5.4vw,58px); margin:22px 0 0; letter-spacing:-1px; position:relative}
+.kahraman h1 em{font-style:normal; color:var(--lacivert-3)}
+.kahraman .alt{font-size:clamp(16px,2vw,19px); color:var(--metin-2); max-width:660px; margin:20px auto 0; position:relative}
+.kahraman .dgler{display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap;position:relative}
+.magaza-not{margin-top:14px; font-size:13.5px; color:var(--metin-3); position:relative}
+
+/* ── Ölçülmüş sayılar ──────────────────────────────────────────────────── */
+.sayilar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--cizgi);
+  border:1px solid var(--cizgi); border-radius:var(--radius); overflow:hidden; margin-top:56px; position:relative}
+.sayilar div{background:var(--kart); padding:22px 16px; text-align:center}
+.sayilar b{display:block; font-family:'Playfair Display',serif; font-size:26px; color:var(--lacivert-3)}
+.sayilar span{font-size:13px; color:var(--metin-3); font-weight:600}
+@media(max-width:720px){ .sayilar{grid-template-columns:repeat(2,1fr)} }
+
+/* ── Bölümler ──────────────────────────────────────────────────────────── */
+section{padding:80px 0}
+.bas{text-align:center; max-width:720px; margin:0 auto 48px}
+.bas h2{font-size:clamp(27px,3.6vw,38px); letter-spacing:-.6px}
+.bas p{color:var(--metin-2); margin-top:14px; font-size:17px}
+.etiket{font-size:12.5px;font-weight:800;letter-spacing:1.4px;color:var(--lacivert-3);text-transform:uppercase}
+
+.izgara{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:900px){ .izgara{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:620px){ .izgara{grid-template-columns:1fr} }
+.kutu{background:var(--kart);border:1px solid var(--cizgi);border-radius:var(--radius);padding:26px;box-shadow:var(--golge)}
+.kutu .ik{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:20px;
+  background:color-mix(in srgb,var(--lacivert-3) 12%,transparent); margin-bottom:16px}
+.kutu h3{font-size:18px;margin-bottom:8px}
+.kutu p{color:var(--metin-2);font-size:14.8px}
+
+/* ── Fiyat ─────────────────────────────────────────────────────────────── */
+.fiyatlar{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
+@media(max-width:900px){ .fiyatlar{grid-template-columns:1fr; max-width:460px; margin-inline:auto} }
+.plan{background:var(--kart);border:1px solid var(--cizgi);border-radius:var(--radius);padding:30px;box-shadow:var(--golge);position:relative}
+.plan.one{border-color:var(--lacivert-3);box-shadow:var(--golge-yuksek)}
+.plan.one::after{content:'EN ÇOK TERCİH EDİLEN';position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+  background:var(--lacivert-2);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.9px;padding:5px 13px;border-radius:999px;white-space:nowrap}
+.plan h3{font-size:19px}
+.plan .tag{color:var(--metin-3);font-size:13.5px;margin-top:4px;min-height:38px}
+.plan .ft{font-family:'Playfair Display',serif;font-size:38px;margin:14px 0 2px;letter-spacing:-1px}
+.plan .ft small{font-family:'Manrope',sans-serif;font-size:14px;color:var(--metin-3);font-weight:600;letter-spacing:0}
+.plan ul{list-style:none;padding:0;margin:22px 0 26px;display:grid;gap:11px}
+.plan li{display:flex;gap:10px;font-size:14.5px;color:var(--metin-2);align-items:flex-start}
+.plan li::before{content:'✓';color:var(--yesil);font-weight:800;flex:none}
+.plan .dg{width:100%;justify-content:center}
+
+/* ── Dürüstlük bölümü ──────────────────────────────────────────────────── */
+.durust{background:var(--lacivert);color:#EAF0FB;border-radius:24px;padding:56px 40px}
+.durust h2{color:#fff}
+.durust .bas p{color:#B9C8E4}
+.olcum{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:8px}
+@media(max-width:760px){ .olcum{grid-template-columns:1fr} }
+.olcum div{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);border-radius:13px;padding:18px 20px}
+.olcum b{display:block;font-size:15px;color:#fff;margin-bottom:4px}
+.olcum span{font-size:14px;color:#AFC0DE}
+.durust .not{margin-top:26px;font-size:13.5px;color:#8FA3C7;text-align:center}
+
+/* ── SSS ───────────────────────────────────────────────────────────────── */
+details{background:var(--kart);border:1px solid var(--cizgi);border-radius:13px;padding:18px 22px;margin-bottom:12px}
+details[open]{box-shadow:var(--golge)}
+summary{cursor:pointer;font-weight:700;font-size:15.5px;list-style:none;display:flex;justify-content:space-between;gap:16px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'+';color:var(--lacivert-3);font-size:22px;font-weight:400;flex:none}
+details[open] summary::after{content:'–'}
+details p{color:var(--metin-2);font-size:14.8px;margin-top:12px}
+
+/* ── Alt ───────────────────────────────────────────────────────────────── */
+footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
+.alt{display:flex;justify-content:space-between;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.alt a{color:var(--metin-2);text-decoration:none;font-size:14px;display:block;margin-top:9px}
+.alt a:hover{color:var(--lacivert-3)}
+.alt h4{font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--metin-3);margin:0;font-family:'Manrope',sans-serif}
+.telif{margin-top:34px;padding-top:22px;border-top:1px solid var(--cizgi);font-size:13px;color:var(--metin-3);text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sar ust">
+    <a class="marka" href="#"><span class="m">V</span>Vekil&nbsp;Pro</a>
+    <nav>
+      <a href="#ozellikler">Özellikler</a>
+      <a href="#yapayzeka">Yapay Zekâ</a>
+      <a href="#fiyat">Fiyatlar</a>
+      <a href="#olcum">Ölçümler</a>
+      <a href="#sss">S.S.S.</a>
+    </nav>
+    <a class="dg dg-ana dg-kck" href="app/">Uygulamayı Aç</a>
+  </div>
+</header>
+
+<div class="sar">
+  <div class="kahraman">
+    <span class="rozet">CLAUDE OPUS 5 · KVKK UYUMLU</span>
+    <h1>Araştırmayı ve yazmayı<br><em>size bırakmayan</em> büro asistanı</h1>
+    <p class="alt">Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız arama — ücretsiz.
+      Üstüne dava, duruşma, müvekkil ve finans yönetimi; istediğinizde yapay zekâ ile dilekçe taslağı ve hukuki mütalaa.</p>
+    <div class="dgler">
+      <a class="dg dg-ana" href="app/">Web sürümünü aç</a>
+      <a class="dg dg-cer" href="#fiyat">Fiyatları gör</a>
+    </div>
+    <!-- MAĞAZA BAĞLANTISI YOK ÇÜNKÜ LİSTELER HENÜZ CANLI DEĞİL.
+         Bugün ölçüldü: apps.apple.com/.../id6789656277 → 404,
+         play.google.com/...?id=com.macroko.legal → 404. Çalışmayan bir
+         mağaza rozeti koymak, gelen avukatı boş sayfaya götürür. Listeler
+         açıldığında buraya gerçek bağlantılar eklenecek. -->
+    <p class="magaza-not">iOS ve Android uygulamaları mağaza onayında. Web sürümü bugün kullanılabilir.</p>
+
+    <div class="sayilar">
+      <div><b>17</b><span>kanunun tam metni</span></div>
+      <div><b>6.107</b><span>madde, aranabilir</span></div>
+      <div><b>11/11</b><span>dilekçe ölçümü geçti</span></div>
+      <div><b>0 ₺</b><span>içtihat araması</span></div>
+    </div>
+  </div>
+</div>
+
+<section id="ozellikler">
+  <div class="sar">
+    <div class="bas">
+      <span class="etiket">Ne yapar</span>
+      <h2>Büro işi ile hukuki araştırma tek yerde</h2>
+      <p>Vekil Pro, dosya takibi yapan bir program ile içtihat veritabanını ayrı ayrı kullanma zorunluluğunu ortadan kaldırır.</p>
+    </div>
+    <div class="izgara">
+      <div class="kutu">
+        <div class="ik">⚖️</div>
+        <h3>İçtihat araması — ücretsiz</h3>
+        <p>Yargıtay ve Danıştay kararlarına Bedesten üzerinden, istinaf ve yerel mahkeme kararlarına UYAP Emsal üzerinden canlı erişim. Künye araması (esas/karar no) dahil. Ücretsiz katmanda da sınırsız.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">📁</div>
+        <h3>Dava ve duruşma yönetimi</h3>
+        <p>Dosya, taraf, duruşma, görev ve süre takibi. Duruşma çakışması uyarısı, adli tatil farkındalığı olan süre hesapları ve hatırlatmalar.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">👤</div>
+        <h3>Müvekkil ve belge kasası</h3>
+        <p>Müvekkil kayıtları, dosyaya bağlı belge arşivi, belge görüntüleyici ve dışa aktarma. Menfaat çatışması kontrolü.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">🧮</div>
+        <h3>Hesaplayıcılar ve şablonlar</h3>
+        <p>Kıdem/ihbar tazminatı, faiz, harç ve süre hesapları; dilekçe ve sözleşme şablonları. Ücretsiz katmanda sınırsız.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">💼</div>
+        <h3>Büro finansı</h3>
+        <p>Gelir–gider takibi, tahsilat durumu, serbest meslek makbuzu ve raporlar. Vekil Pro üyeliğine dahil.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">📱</div>
+        <h3>iPhone, Android ve bilgisayar</h3>
+        <p>Aynı hesap üç yerde. Adliyede telefondan, büroda büyük ekranda; çevrimdışıyken son eşitlenen dosyalar okunabilir kalır.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="yapayzeka">
+  <div class="sar">
+    <div class="bas">
+      <span class="etiket">Yapay Zekâ katmanı</span>
+      <h2>Claude Opus 5 — ama hafızasından değil, kaynaktan</h2>
+      <p>Yapay zekâya soru sormadan önce uygulama, kendi mevzuat ve içtihat havuzundan ilgili madde metinlerini ve gerçek kararları bulup modele veriyor. Amaç, madde numarası uydurmasını engellemek.</p>
+    </div>
+    <div class="izgara">
+      <div class="kutu">
+        <div class="ik">✍️</div>
+        <h3>Dilekçe taslağı</h3>
+        <p>Dava, cevap, istinaf, temyiz, ıslah, ihtarname, replik, düplik ve bilirkişiye itiraz. Bilinmeyen bilgiler köşeli parantezle boş bırakılır; uydurulmaz.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">🔎</div>
+        <h3>Hukuki mütalaa</h3>
+        <p>Olayı anlatın; uygulama sorunları ayırır, her biri için mevzuat ve içtihat toplar, atılacak adımları sürelerle yazar.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">📄</div>
+        <h3>Belge inceleme</h3>
+        <p>Sözleşme veya karar yükleyin; riskler, eksikler ve dikkat edilecek süreler çıkarılır. Belgede geçmeyen tarihler ayrıca işaretlenir.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">🏷️</div>
+        <h3>Künye çıkarımı</h3>
+        <p>Tebligat veya karar fotoğrafından mahkeme, esas no, taraflar ve duruşma tarihi okunur; dosya tek dokunuşla açılır.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">🛡️</div>
+        <h3>Uydurma denetimi</h3>
+        <p>Havuzdaki bir kanuna yapılan ama o kanunda bulunmayan madde atıfları, anlatılmayan tarih ve tutarlar mekanik olarak yakalanıp size gösterilir.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">🔒</div>
+        <h3>Verileriniz eğitime gitmez</h3>
+        <p>Sorularınız model eğitiminde kullanılmaz. Soru metni saklanmaz; yalnız kullanım ölçüsü (token) faturalama için tutulur.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="fiyat">
+  <div class="sar">
+    <div class="bas">
+      <span class="etiket">Fiyatlar</span>
+      <h2>İçtihat araması hep ücretsiz</h2>
+      <p>Ücret, büro yönetimini büyütmek ya da yapay zekâyı kullanmak isteyenden alınır. Deneme süresi yoktur; ücretsiz katman süresizdir.</p>
+    </div>
+    <div class="fiyatlar">
+      <div class="plan">
+        <h3>Ücretsiz</h3>
+        <p class="tag">Araştırma ve temel takip için</p>
+        <div class="ft">0 ₺</div>
+        <ul>
+          <li>Sınırsız içtihat araması</li>
+          <li>Mevzuat, hesaplayıcılar, şablonlar</li>
+          <li>Ajanda, duruşma ve hatırlatmalar</li>
+          <li>5 dava, 10 müvekkil, 20 belge</li>
+          <li>3 deneme yapay zekâ isteği</li>
+        </ul>
+        <a class="dg dg-cer" href="app/">Başla</a>
+      </div>
+
+      <div class="plan one">
+        <h3>Vekil Pro</h3>
+        <p class="tag">Büro yönetimini sınırsız kullanın</p>
+        <div class="ft">399 ₺ <small>/ ay</small></div>
+        <ul>
+          <li>Ücretsiz katmandaki her şey</li>
+          <li>Sınırsız dava, müvekkil ve belge</li>
+          <li>Büro finansı ve raporlar</li>
+          <li>Bilgisayardan kullanım (web sürümü)</li>
+          <li>Yapay zekâ ayrı pakettir</li>
+        </ul>
+        <a class="dg dg-ana" href="app/">Üyeliğe geç</a>
+      </div>
+
+      <div class="plan">
+        <h3>Vekil Pro + Yapay Zekâ</h3>
+        <p class="tag">Araştırmayı ve yazmayı devredin</p>
+        <div class="ft">2.999 ₺ <small>/ ay</small></div>
+        <ul>
+          <li>Vekil Pro'daki her şey</li>
+          <li>Ayda 250 yapay zekâ isteği</li>
+          <li>Ayda 12 hukuki mütalaa</li>
+          <li>Dilekçe, belge inceleme, künye</li>
+          <li>Claude Opus 5</li>
+        </ul>
+        <a class="dg dg-cer" href="app/">Yapay zekâyı aç</a>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--metin-3);font-size:13.5px;margin-top:26px">
+      Abonelikler App Store ve Google Play üzerinden satılır, aylık olarak otomatik yenilenir ve mağaza hesabınızdan istediğiniz zaman iptal edilebilir.
+    </p>
+  </div>
+</section>
+
+<section id="olcum">
+  <div class="sar">
+    <div class="durust">
+      <div class="bas">
+        <span class="etiket" style="color:var(--altin-2)">Ölçümler</span>
+        <h2>Ne ölçtüysek onu yazıyoruz</h2>
+        <p>Yapay zekânın kalitesi hakkında slogan yazmak kolay. Aşağıdakiler gerçek ölçüm sonuçlarıdır; ölçmediğimizi de yazıyoruz.</p>
+      </div>
+      <div class="olcum">
+        <div><b>Dilekçe: 11/11 senaryo geçti</b><span>Uydurma tarih/tutar 0, eksik zorunlu unsur 0. Tek koşu, 11 Eylül 2026.</span></div>
+        <div><b>Künye çıkarımı: 7/7 senaryo</b><span>Beklenen 20 alanın 20'si doğru, uydurulan alan 0.</span></div>
+        <div><b>Soru-cevap: 11/13 doğru</b><span>Düşen 2 cevabın içeriği doğruydu, yalnız fazla uzundu.</span></div>
+        <div><b>Mütalaa ve belge inceleme: ölçülmedi</b><span>Opus üzerinde henüz ölçüm tamamlanmadı; "iyi" demiyoruz.</span></div>
+        <div><b>Mevzuat havuzu: 17 kanun</b><span>6.107 madde. Karayolları Trafik Kanunu gibi eksikler açıkça kayıtlı.</span></div>
+        <div><b>İçtihat: canlı UYAP + kendi havuzumuz</b><span>Arama canlı kaynağa gider; yapay zekâyı beslediğimiz kendi havuzumuz 11.070 karar ve büyüyor.</span></div>
+      </div>
+      <p class="not">Yapay zekâ çıktısı hukuki tavsiye değildir ve avukatın denetimi yerine geçmez. Madde numaralarını ve kararları kullanmadan önce teyit ediniz.</p>
+    </div>
+  </div>
+</section>
+
+<section id="sss">
+  <div class="sar" style="max-width:820px">
+    <div class="bas">
+      <span class="etiket">Sık sorulanlar</span>
+      <h2>Merak edilenler</h2>
+    </div>
+
+    <details open>
+      <summary>İçtihat araması gerçekten ücretsiz mi?</summary>
+      <p>Evet. Yargıtay, Danıştay, bölge adliye/idare mahkemesi ve yerel mahkeme kararlarında arama, künye araması ve karar metnini okuma ücretsiz katmanda sınırsızdır ve öyle kalacaktır. Ücret, büro yönetimini büyütmek ya da yapay zekâyı kullanmak içindir.</p>
+    </details>
+
+    <details>
+      <summary>Yapay zekâ yanlış madde numarası verir mi?</summary>
+      <p>Verebilir — bu, bütün dil modellerinin bilinen kusurudur. İki şey yapıyoruz: modele soruyla ilgili gerçek madde metinlerini ve kararları önceden veriyoruz, ve çıktıdaki madde atıflarını kendi mevzuat veritabanımızla mekanik olarak denetleyip havuzumuzdaki bir kanunda bulunmayan atıfları size işaretliyoruz. Yine de son denetim avukata aittir.</p>
+    </details>
+
+    <details>
+      <summary>Verilerim nerede tutuluyor, eğitimde kullanılıyor mu?</summary>
+      <p>Veriler Supabase altyapısında, satır düzeyinde erişim kurallarıyla (RLS) tutulur; başka bir kullanıcı kayıtlarınıza erişemez. Sorularınız model eğitiminde kullanılmaz ve soru metni saklanmaz. Yedekleme süreleri ve hesap silme sonrası ne olduğu Kullanım Koşulları'nın 13. maddesinde açıkça yazılıdır.</p>
+    </details>
+
+    <details>
+      <summary>Web sürümünü kimler kullanabilir?</summary>
+      <p>Tarayıcı sürümü Vekil Pro üyeliğine dahildir. Ücretsiz katmanı mobil uygulamada sınırsız süreyle kullanmaya devam edebilirsiniz. Abonelik App Store veya Google Play üzerinden alınır; tarayıcıdan satın alma yapılamaz.</p>
+    </details>
+
+    <details>
+      <summary>Aboneliği nasıl iptal ederim?</summary>
+      <p>Abonelik mağaza hesabınıza bağlıdır: iPhone'da Ayarlar &gt; Apple Kimliği &gt; Abonelikler, Android'de Google Play &gt; Abonelikler bölümünden iptal edilir. İptal ettiğinizde dönem sonuna kadar kullanmaya devam edersiniz. Hesabı silmek aboneliği otomatik iptal etmez.</p>
+    </details>
+
+    <details>
+      <summary>Kullanmadığım yapay zekâ hakları devreder mi?</summary>
+      <p>Hayır. Aylık 250 istek ve 12 mütalaa hakkı her fatura döneminde yenilenir, kullanılmayan haklar sonraki aya aktarılmaz. Buna karşılık kusurlu çıktıda (eksik bölüm, uydurma veri) hak düşülmez; asıl model yanıt veremeyip yedeğe düşüldüğünde de hakkınız iade edilir.</p>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <div class="sar">
+    <div class="alt">
+      <div style="max-width:300px">
+        <a class="marka" href="#" style="font-size:18px"><span class="m">V</span>Vekil&nbsp;Pro</a>
+        <p style="color:var(--metin-3);font-size:14px;margin-top:12px">Avukatlar için dava, duruşma ve araştırma asistanı. Türkiye'de geliştirildi.</p>
+      </div>
+      <div>
+        <h4>Ürün</h4>
+        <a href="app/">Web sürümü</a>
+        <a href="#ozellikler">Özellikler</a>
+        <a href="#fiyat">Fiyatlar</a>
+        <a href="#olcum">Ölçümler</a>
+      </div>
+      <div>
+        <h4>Yasal</h4>
+        <a href="terms.html">Kullanım Koşulları</a>
+        <a href="privacy.html">Gizlilik Politikası</a>
+      </div>
+      <!-- İLETİŞİM SÜTUNU BİLEREK BOŞ. Depoda hiçbir yerde destek e-postası
+           yok (privacy.tsx, terms.tsx ve docs/privacy.html tarandı: sıfır
+           adres). Buraya uydurma bir adres yazmak, yazan avukatın cevap
+           alamaması demek. KVKK "veri sorumlusuna başvuru" için, App Store
+           inceleme için de bir iletişim yolu ZORUNLU — adres belirlenince
+           buraya ve gizlilik metnine eklenmeli. O zamana kadar geri bildirim
+           uygulama içindeki ekrandan alınıyor. -->
+      <!-- "app/feedback" GİBİ DERİN BAĞLANTI VERİLMEZ. Web sürümü tek
+           sayfalık bir uygulama (docs/app altında yalnız index.html var);
+           GitHub Pages böyle bir yolu 404 verir. Kök adrese gönderiyoruz,
+           kullanıcı menüden Geri Bildirim'e ulaşıyor. -->
+      <div>
+        <h4>Destek</h4>
+        <a href="app/">Uygulama içi geri bildirim</a>
+        <a href="terms.html">Abonelik ve iptal</a>
+      </div>
+    </div>
+    <p class="telif">© 2026 Vekil Pro · Bu sitedeki bilgiler hukuki tavsiye değildir.</p>
+  </div>
+</footer>
+
+</body>
+</html>
