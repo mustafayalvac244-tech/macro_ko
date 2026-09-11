@@ -28,8 +28,45 @@ export const AI_DILEKCE_ENABLED = true;
 /** Belge inceleme — ölçüldü, açık. */
 export const AI_BELGE_ENABLED = true;
 
-/** Hukuki mütalaa — Claude anahtarı gelene kadar kapalı (uçta da kilitli). */
-export const AI_MUTALAA_ENABLED = false;
+/**
+ * Derin hukuki değerlendirme — AÇILDI (2026-09-11, kullanıcı kararı).
+ *
+ * NEDEN AÇILDI: bu bayrağın kapalı olma gerekçesi tek bir şeydi —
+ * "Claude anahtarı gelene kadar kapalı". ANTHROPIC_API_KEY artık Supabase
+ * uç ortamında tanımlı, yani gerekçe ortadan kalktı. Katman seçimi anahtarın
+ * varlığına bakıyor ve deploy gerektirmeden Opus'a dönüyor
+ * (bkz. _shared/katman.ts: "Anahtar eklenince deploy gerekmeden Opus'a döner").
+ *
+ * ÜCRETSİZ KULLANICI BUNU GÖREMEZ, ve bu bayrakla ilgili değil: sunucu
+ * mütalaayı yalnız 'ai' katmanına açıyor ve diğerlerine 403 `tier_required`
+ * döndürüyor (ai-chat/index.ts:1667). Ekran o kodu zaten karşılıyor ve
+ * "Pro gerekli" durumunu gösteriyor. Yani bayrak yalnızca istemcideki
+ * "Çok Yakında" perdesiydi; kaldırıldı.
+ *
+ * ── DÜRÜSTLÜK NOTU: BU ÖZELLİĞİN KALİTESİ OPUS'LA ÖLÇÜLMEDİ ──
+ *
+ * Elimizdeki TEK mütalaa ölçümü 2026-09-05 tarihli ve BEŞ SENARYONUN BEŞİ DE
+ * KUSURLU çıkmış (scripts/eval-mutalaa-hatalar.json). O dosyada model künyesi
+ * YOK — ölçüm künye mekanizmasından önceydi — yani hangi modelin ürettiğini
+ * kesin bilmiyoruz. Anahtar o tarihte tanımlı olmadığı için ücretsiz bir model
+ * olduğu ÇIKARIMI yapılabilir, ama bu bir çıkarımdır, kayıt değil.
+ *
+ * Kusurların türü önemli: UYDURMA değil, EKSİK. Kaçırılanlar arasında
+ *   • işe iadede ZORUNLU ARABULUCULUK (dava şartı — atlanırsa dava usulden red)
+ *   • trafik kazasında uzamış (ceza) zamanaşımı
+ *   • kira tahliyesinde "iki haklı ihtar" ve süreler
+ *   • ödeme emrinde icra mahkemesi yolu ve "itiraz satışı durdurmaz"
+ *   • idari işlemde 60 gün, adli tatil, yürütmenin durdurulması
+ * var. Bunlar bir avukatın gözünden kaçarsa hak kaybı doğurur.
+ *
+ * Bu yüzden ekrandaki hukuki uyarı (HukukiUyari) ve "çıktı TASLAKTIR"
+ * çerçevesi burada kozmetik değil, gerekli. Opus'la ölçüm yapılana kadar
+ * "mütalaa kalitesi iyi" DENEMEZ; yalnız "erişime açıldı" denebilir.
+ *
+ * ÖLÇÜM TEK TIK UZAKTA: Actions → "AI Ölçümü" → grup: ai. eval-mutalaa beş
+ * senaryodur, en pahalı gruptaki en küçük settir.
+ */
+export const AI_MUTALAA_ENABLED = true;
 
 /**
  * UYAP belgesinden dosya aktarma — ÖLÇÜLDÜ ama henüz açılmadı.
