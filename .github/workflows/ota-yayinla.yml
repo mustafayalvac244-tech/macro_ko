@@ -1,0 +1,113 @@
+name: OTA Güncellemesi Yayınla
+
+# NEDEN BU DOSYA VAR.
+# Sözleşme ve gizlilik metinlerindeki YANLIŞ yedekleme beyanı düzeltildi, ama
+# bu düzeltme şu an yalnız depoda. Kullanıcının telefonundaki uygulama hâlâ
+# eski (yanlış) metni gösteriyor. Mağazaya yeni sürüm göndermeye gerek yok:
+# değişen şey JavaScript, yani OTA (havadan) güncellemeyle gidebilir.
+#
+# `eas update` bir SQL komutu ya da tarayıcı düğmesi değil; Expo CLI gerektiriyor.
+# Bu iş akışı CLI'yi GitHub'ın makinesinde kuruyor. Tarayıcıdan Run workflow
+# demek yetiyor.
+#
+# ÖLÇÜLEN UYUM (app.json + eas.json + Expo panosundan okundu):
+#   runtimeVersion politikası : "appVersion"  → çalışma zamanı = 3.3.2
+#   mevcut derlemelerin runtime'ı : 3.3.2      → EŞLEŞİYOR, güncelleme ulaşır
+#   build profillerinin kanalı    : production (hem preview hem production)
+# Çalışma zamanı eşleşmeseydi güncelleme yayımlanır ama HİÇBİR cihaza inmezdi
+# ve bunu fark etmek zor olurdu — o yüzden burada açıkça yazılı.
+#
+# OTA NE YAPAMAZ: yerel (native) kodu değiştiremez. Yeni bir kütüphane, izin,
+# ikon ya da sürüm numarası değişikliği gerekiyorsa mağaza derlemesi şart.
+# Bu güncellemedeki değişiklikler tamamen JS — metin ve ekran mantığı.
+#
+# GEREKEN TEK SECRET:
+#   EXPO_TOKEN — expo.dev/settings/access-tokens adresinden üretilir.
+
+on:
+  workflow_dispatch:
+    inputs:
+      kanal:
+        description: 'Yayın dalı (kanal ile aynı adda olmalı)'
+        default: production
+      mesaj:
+        description: 'Güncelleme notu (Expo panosunda görünür)'
+        default: 'Sözleşme ve gizlilik: yedekleme beyanı gerçeğe uyduruldu'
+
+permissions:
+  contents: read
+
+jobs:
+  yayinla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secret kontrolü
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN tanımlı değil."
+            echo "::error::expo.dev/settings/access-tokens → yeni token → Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # SESSİZ BOZULMA RİSKİ — bu yüzden açıkça yazılı.
+      # `eas update` paketi YENİDEN derler. EXPO_PUBLIC_* değişkenleri derleme
+      # anında gömülüyor; burada tanımlı olmazlarsa uygulama Supabase adresi
+      # OLMADAN paketlenir ve güncelleme inen herkeste açılmaz hâle gelir.
+      # eas.json'daki build profilleri bunları tanımlıyor ama `eas update` build
+      # profilini KULLANMAZ — bu yüzden burada tekrar ediliyor.
+      #
+      # Bu iki değer gizli DEĞİL: proje adresi ve `sb_publishable_` önekli anon
+      # anahtarı zaten eas.json'da, uygulama paketinde ve web derlemesinde
+      # yayımlanmış durumda. Tasarımı gereği herkese açıklar; secret yapmak
+      # güvenlik katmaz, yalnız kurulumda fazladan bir yazım hatası ihtimali
+      # doğurur (hasat iş akışında aynı gerekçe yazılı).
+      - name: Yayınla
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: https://wjshlysfmeqlnfiibknj.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_PUBLIC_SUPABASE_URL"
+          test -n "$EXPO_PUBLIC_SUPABASE_ANON_KEY"
+          eas update \
+            --branch "${{ inputs.kanal }}" \
+            --message "${{ inputs.mesaj }}" \
+            --non-interactive
+
+      - name: Sonuç
+        if: success()
+        run: |
+          {
+            echo "## OTA güncellemesi yayınlandı"
+            echo ""
+            echo "- Dal: \`${{ inputs.kanal }}\`"
+            echo "- Çalışma zamanı: **3.3.2** (app.json → runtimeVersion politikası \`appVersion\`)"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo ""
+            echo "### Kullanıcıya ne zaman iner"
+            echo "Uygulama güncellemeyi \`ON_LOAD\` ile, yani AÇILIŞTA arıyor"
+            echo "(app.json → updates.checkAutomatically). Uygulamayı tamamen"
+            echo "kapatıp yeniden açan kullanıcı bir sonraki açılışta yeni metni görür."
+            echo ""
+            echo "### Doğrulama"
+            echo "Expo panosu → Over-the-air updates → \`${{ inputs.kanal }}\` dalında"
+            echo "yeni kayıt görünmeli ve çalışma zamanı **3.3.2** yazmalı."
+            echo "Çalışma zamanı farklı çıkarsa güncelleme HİÇBİR mevcut derlemeye inmez."
+          } >> $GITHUB_STEP_SUMMARY
