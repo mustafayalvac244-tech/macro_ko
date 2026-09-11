@@ -775,6 +775,46 @@ async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
 }
 
 
+/**
+ * DENETİM SONUCUNU SAYI OLARAK KAYDET.
+ *
+ * NEDEN. Denetim ürüne girdi ama "ne kadar işe yarıyor" sorusunun cevabı yok
+ * ve tahminle doldurmak yasak. Gerçek model çıktısı üzerinde ölçüm yapmak API
+ * bütçesi istiyordu; bütçe yok. Bu kayıt, ölçümü GERÇEK KULLANIMDAN toplar:
+ * birkaç hafta sonra "şu kadar istekte şu kadar olanaksız atıf yakalandı"
+ * cümlesi tahmin değil ÖLÇÜM olarak kurulabilir.
+ *
+ * KULLANICI KİMLİĞİ VE ATIF METNİ YAZILMAZ — yalnız sayı. Gerekçesi migration
+ * 0118'in başında: ai_istek.user_id'nin cascade silinmesi tamamlanmış ölçümleri
+ * yok ediyordu ve bu körlük bir ölçümü kaybettirdi.
+ *
+ * HATA YUTULUR VE BEKLENMEZ: kayıt tutulamadı diye hazır bir cevabı
+ * geciktirmek ya da düşürmek, ölçmeye çalıştığımız şeyden daha çok zarar verir.
+ */
+function atifKaydiYaz(
+  mod: string,
+  model: string,
+  kararDenetimi: KararDenetimi | null,
+  uydurmaMadde: string[]
+): void {
+  const s = svc();
+  if (!s) return;
+  if (!kararDenetimi && uydurmaMadde.length === 0) return;
+  try {
+    void s.from('atif_denetim_kaydi').insert({
+      mod,
+      model,
+      toplam: kararDenetimi?.toplam ?? 0,
+      dogrulanan: kararDenetimi?.dogrulanan.length ?? 0,
+      havuzda_yok: kararDenetimi?.havuzdaYok.length ?? 0,
+      olanaksiz: kararDenetimi?.olanaksiz.length ?? 0,
+      uydurma_madde: uydurmaMadde.length,
+    }).then(() => {}, () => {});
+  } catch {
+    /* yutulur */
+  }
+}
+
 function kullanimOzeti(model: string, tin: number, tout: number, maliyet: number) {
   return {
     model,
@@ -2168,6 +2208,7 @@ Deno.serve(async (req) => {
         kusurluCikti('mutalaa', text) ||
         uydurmaMadde.length > 0 ||
         (kararDenetimi?.olanaksiz.length ?? 0) > 0;
+      atifKaydiYaz('mutalaa', kullanim.model, kararDenetimi, uydurmaMadde);
       // YEDEĞE DÜŞÜLDÜYSE MÜTALAA HAKKI GERİ VERİLİR (bkz. sohbet modundaki not):
       // 12 mütalaalık hakkın biri, ödenen modelin yazmadığı bir metne gitmesin.
       const yedekModel = cfg.provider === 'claude' && !kullanim.faturali;
@@ -2590,6 +2631,7 @@ async function dosyaKunyesi(
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
       const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0
         || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
+      atifKaydiYaz('dilekce', kullanilanModel, kararDenetimi, uydurmaMadde);
       // Yedeğe düşüldüyse hak geri verilir (bkz. sohbet modundaki not).
       const yedekModel = cfg.provider === 'claude' && !faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
@@ -2823,6 +2865,7 @@ async function dosyaKunyesi(
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
       const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0
         || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
+      atifKaydiYaz('belge', kullanilanModel, kararDenetimi, uydurmaMadde);
       // Yedeğe düşüldüyse hak geri verilir (bkz. sohbet modundaki not).
       const yedekModel = cfg.provider === 'claude' && !faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
@@ -2981,6 +3024,7 @@ async function dosyaKunyesi(
   const uydurmaMadde = await uydurmaMaddeDenetimi(text);
   const kararDenetimi = await kararAtfiDenetimi(text);
   const kusurlu = uydurmaMadde.length > 0 || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
+  atifKaydiYaz('sohbet', kullanilanModel, kararDenetimi, uydurmaMadde);
   if (yedekModel || kusurlu) {
     if (cfg.modLimits) await aiModSerbestBirak(userData.user.id, aiAy, false);
     if (cfg.denemeLimit) await denemeHakkiSerbestBirak(userData.user.id);

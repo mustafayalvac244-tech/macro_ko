@@ -1,0 +1,77 @@
+name: Kontrol
+
+# NEDEN VAR. Depoda 591 test ve iki ayrı tip denetimi var ama HİÇBİRİ otomatik
+# koşmuyordu: hepsi elle çalıştırıldığı kadar çalışıyordu. Uç işlevlerinin tip
+# denetimi bundan daha kötü durumdaydı — kök tsconfig o dizini hariç tutuyor,
+# ayrı denetimi de kimse koşmuyordu. deno-shim.d.ts tam bu yüzden (blok dışına
+# taşan bir değişken kullanıcının isteğinde çökecekti) yazılmıştı ve yazıldığı
+# günden beri yalnız elle koşuldu.
+#
+# Üç denetim de dakikalar değil SANİYELER sürüyor; elle koşmayı hatırlamaya
+# bağlı bırakmanın hiçbir gerekçesi yok.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kontrol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Değişen migration'ları bulabilmek için geçmiş gerekiyor.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Uygulama tip denetimi
+        run: npx tsc --noEmit
+
+      - name: Uç işlevleri tip denetimi
+        run: npx tsc -p supabase/functions
+
+      - name: Testler
+        run: npx vitest run
+
+      # Migration'lar gerçek Postgres'te koşturulur: sözdizimi, tip, yetki ve
+      # tetikleyici hataları ancak çalıştırınca görülüyor (0095 bunu pahalı
+      # öğretti).
+      #
+      # YALNIZ DEĞİŞEN MIGRATION'LAR koşturulur, hepsi değil. Ölçüldü: depodaki
+      # 118 migration'ın 43'ü taklit şemada düşüyor, çünkü taklit yalnız
+      # dokunulan tabloları emüle ediyor (kasten — bkz. supabase-taklit.sql).
+      # Hepsini koşturmak CI'yı kalıcı kırmızıya boyar; kalıcı kırmızı bir CI,
+      # olmayan CI'dan daha kötüdür çünkü gerçek hatayı da gizler.
+      - name: Değişen migration'ları bul
+        id: degisen
+        run: |
+          ONCE="${{ github.event.before }}"
+          if [ -n "${{ github.base_ref }}" ]; then
+            git fetch --quiet origin "${{ github.base_ref }}"
+            ONCE="origin/${{ github.base_ref }}"
+          elif [ -z "$ONCE" ] || [ "$ONCE" = "0000000000000000000000000000000000000000" ]; then
+            ONCE="HEAD~1"
+          fi
+          NUMARALAR=$(git diff --name-only --diff-filter=ACM "$ONCE" HEAD -- supabase/migrations/ 2>/dev/null \
+            | sed -n 's#.*/\([0-9]\{4\}\)_.*#\1#p' | sort -u | tr '\n' ' ')
+          echo "numaralar=$NUMARALAR" >> "$GITHUB_OUTPUT"
+          echo "Koşturulacak: ${NUMARALAR:-(yok)}"
+
+      - name: Migration denemesi (gerçek Postgres)
+        if: steps.degisen.outputs.numaralar != ''
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-16 postgresql-client-16
+          bash scripts/migration-deneme/calistir.sh ${{ steps.degisen.outputs.numaralar }}
