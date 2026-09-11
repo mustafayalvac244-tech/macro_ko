@@ -60,7 +60,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       # Eksik secret'ı SESSİZCE geçme: betikler anahtar yokken de başlayıp
       # anlamsız bir hatayla düşer ve sebebi kayıtta kaybolur.
