@@ -56,8 +56,18 @@
 
 import { writeFileSync } from 'node:fs';
 
-/** Varsayılan istek zaman aşımı (ms). Mütalaa çok adımlı olduğu için geniş. */
-export const ZAMAN_ASIMI_MS = Number(process.env.EVAL_ISTEK_ZAMAN_ASIMI ?? 240000);
+/**
+ * Varsayılan istek zaman aşımı (ms).
+ *
+ * NEDEN 450 SANİYE. Supabase Edge Function'ın duvar saati tavanı 400 sn;
+ * ai-chat bundan uzun süremez, sunucu keser. Buradaki süre o tavandan
+ * KISA olursa ölçüm, sunucunun bitirebileceği bir isteği kendisi keser ve
+ * "model yavaş" yerine "ölçüm sabırsız" ölçülmüş olur. 2026-09-11 kaydında
+ * mütalaa 14 dakikada tek senaryo bitiremedi; bunun sebebi henüz
+ * ölçülmedi (tavana çarpıp yeniden mi deniyor, yoksa yavaş mı) — sebebi
+ * anlamak için ölçümün ilk kesen taraf OLMAMASI gerekiyor.
+ */
+export const ZAMAN_ASIMI_MS = Number(process.env.EVAL_ISTEK_ZAMAN_ASIMI ?? 450000);
 
 /**
  * Zaman aşımlı fetch.
