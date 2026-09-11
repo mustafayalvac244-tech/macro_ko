@@ -25,6 +25,7 @@
 // Çıkış kodu: bir soru bile kaçarsa 1 (CI'da gerilemeyi yakalamak için).
 // ---------------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
+import { istek } from './istek.mjs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -49,7 +50,7 @@ const anahtar = (kanun, madde) => `${kanun} ${madde}`.trim();
 let degradeSoru = 0;
 
 async function ara(soru, deneme = 0) {
-  const res = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/rpc/${RPC}`, {
+  const res = await istek(`${url.replace(/\/+$/, '')}/rest/v1/rpc/${RPC}`, {
     method: 'POST',
     headers: {
       apikey: key,
@@ -90,7 +91,7 @@ async function ara(soru, deneme = 0) {
 }
 
 async function rpc(ad, govde) {
-  const res = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/rpc/${ad}`, {
+  const res = await istek(`${url.replace(/\/+$/, '')}/rest/v1/rpc/${ad}`, {
     method: 'POST',
     headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(govde),
@@ -99,7 +100,7 @@ async function rpc(ad, govde) {
 }
 
 async function sorguVektoru(soru) {
-  const res = await fetch(`${url.replace(/\/+$/, '')}/functions/v1/embed-ictihat`, {
+  const res = await istek(`${url.replace(/\/+$/, '')}/functions/v1/embed-ictihat`, {
     method: 'POST',
     headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ embed: soru }),

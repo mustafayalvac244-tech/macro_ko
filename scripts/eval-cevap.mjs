@@ -31,6 +31,7 @@
 // ---------------------------------------------------------------------------
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gecer } from './eslestir.mjs';
+import { istek, Butce } from './istek.mjs';
 import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
 import { katmanAyarla } from './eval-katman.mjs';
@@ -51,7 +52,14 @@ if (!url || !svc || !anon) {
 }
 
 const BEKLEME = Number(process.env.EVAL_BEKLEME ?? 20000);
-const uyu = (ms) => new Promise((r) => setTimeout(r, ms));
+// BÜTÇELİ UYKU — ölçülen arıza (2026-09-11, koşu 34635964721): tek bir 429,
+// bekleme.mjs'in 30 dakikalık üst sınırı ve 6 denemeyle birlikte, TEK soruyu
+// 3 saate kadar uzatabiliyordu. İşin tavanı 120 dakika olduğu için koşu
+// öldürülüyor ve sonuç yalnız SONDA yazıldığından elde HİÇBİR ölçüm kalmıyordu.
+// Artık uyku kalan bütçeyi aşamaz; bütçe dolunca ölçüm, o ana kadar ölçtüğünü
+// RAPORLAYARAK durur — sessizce bir saat beklemek yerine.
+const butce = new Butce();
+const uyu = (ms) => new Promise((r) => setTimeout(r, Math.min(ms, butce.kalan())));
 
 const EPOSTA = `eval-cevap-${Date.now()}@vekil.local`;
 const SIFRE = `Ev!${Math.random().toString(36).slice(2)}A9`;
@@ -91,7 +99,7 @@ async function jwtAl() {
 }
 
 async function sor(jwt, soru, deneme = 0) {
-  const res = await fetch(`${url}/functions/v1/ai-chat`, {
+  const res = await istek(`${url}/functions/v1/ai-chat`, {
     method: 'POST',
     headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages: [{ role: 'user', text: soru }] }),
@@ -147,6 +155,16 @@ try {
 
   let ilk = true;
   for (const s of sorular) {
+    // BÜTÇE KONTROLÜ — eksik ölçüm, hiç ölçümden iyidir; ama eksik olduğu
+    // SÖYLENMEK zorunda, yoksa oran düşük çıkar ve gerileme sanılır.
+    if (butce.doldu()) {
+      console.error(
+        `\nBÜTÇE DOLDU (${butce.satir()}) — kalan senaryolar ÖLÇÜLMEDİ.\n` +
+          'Bu koşudan oran ÇIKARMAYIN: ölçülen kalite değil, ayrılan süredir.'
+      );
+      process.exitCode = 2;
+      break;
+    }
     if (!ilk) await uyu(BEKLEME);
     ilk = false;
     let cevap;
