@@ -274,6 +274,7 @@ export const en: Record<keyof typeof tr, string> = {
 
   // Common
   'common.cancel': 'Cancel',
+  'common.ok': 'OK',
   'common.delete': 'Delete',
   'common.edit': 'Edit',
   'common.save': 'Save Changes',
@@ -1701,6 +1702,14 @@ export const en: Record<keyof typeof tr, string> = {
   'jobForm.failed': 'Could not publish. Please try again.',
 
   // Test payment
+  'ai.webEnterHint': 'Enter sends, Shift+Enter adds a line',
+  'cikti.copy': 'Copy',
+  'cikti.download': 'Download',
+  'cikti.share': 'Share',
+  'cikti.copied': 'Copied',
+  'cikti.downloaded': 'Downloaded',
+  'cikti.unsupported': 'Browser blocked it',
+  'cikti.failed': 'Failed — select the text and copy',
   'laws.title': 'Legislation',
   'laws.subtitle': 'Codes — offline, article search',
   'laws.offline': 'All texts on-device; open and search offline.',

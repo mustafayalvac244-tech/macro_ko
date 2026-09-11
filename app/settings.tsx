@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -57,14 +58,14 @@ export default function SettingsScreen() {
     // Prove biometrics work before trusting the lock with app access.
     const result = await LocalAuthentication.authenticateAsync({ promptMessage: t('lock.prompt') }).catch(() => null);
     if (!result?.success) {
-      Alert.alert(t('lock.title'), t('lock.enableFailed'));
+      uyar(t('lock.title'), t('lock.enableFailed'));
       return;
     }
     // TERCİH KAYDEDİLEMEZSE KULLANICI BUNU BİLMELİ. Yazma hatası eskiden
     // yutuluyordu: anahtar açık görünüyor ama uygulama yeniden başlatılınca
     // kilit yok. Kullanıcı kilidin kurulu olduğunu sanarak telefonunu bırakır.
     const kaydedildi = await setLockEnabled(true);
-    if (!kaydedildi) Alert.alert(t('lock.title'), t('lock.saveFailed'));
+    if (!kaydedildi) uyar(t('lock.title'), t('lock.saveFailed'));
   };
 
   const handleToggleNotifications = async (value: boolean) => {
@@ -72,21 +73,21 @@ export default function SettingsScreen() {
       const granted = await registerForNotificationsAsync();
       setNotificationsEnabled(granted);
       if (!granted) {
-        Alert.alert(t('settings.permTitle'), t('settings.permMsg'));
+        uyar(t('settings.permTitle'), t('settings.permMsg'));
       }
     } else {
-      Alert.alert(t('settings.sysTitle'), t('settings.sysMsg'));
+      uyar(t('settings.sysTitle'), t('settings.sysMsg'));
     }
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(t('settings.deleteAccount'), t('settings.deleteAccountWarn'), [
+    uyar(t('settings.deleteAccount'), t('settings.deleteAccountWarn'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('settings.deleteAccountContinue'),
         style: 'destructive',
         onPress: () => {
-          Alert.alert(t('settings.deleteAccountConfirmTitle'), t('settings.deleteAccountConfirmMsg'), [
+          uyar(t('settings.deleteAccountConfirmTitle'), t('settings.deleteAccountConfirmMsg'), [
             { text: t('common.cancel'), style: 'cancel' },
             {
               text: t('settings.deleteAccountConfirmBtn'),
@@ -98,7 +99,7 @@ export default function SettingsScreen() {
                   await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
                   router.replace('/(auth)/login');
                 } catch {
-                  Alert.alert(t('settings.deleteAccount'), t('settings.deleteAccountError'));
+                  uyar(t('settings.deleteAccount'), t('settings.deleteAccountError'));
                 } finally {
                   setIsDeleting(false);
                 }
@@ -115,28 +116,28 @@ export default function SettingsScreen() {
     setIsCheckingUpdate(true);
     try {
       if (__DEV__ || !Updates.isEnabled) {
-        Alert.alert(t('settings.updates'), t('settings.updatesUnavailable'));
+        uyar(t('settings.updates'), t('settings.updatesUnavailable'));
         return;
       }
       const result = await Updates.checkForUpdateAsync();
       if (result.isAvailable) {
         await Updates.fetchUpdateAsync();
-        Alert.alert(t('settings.updates'), t('settings.updateReady'), [
+        uyar(t('settings.updates'), t('settings.updateReady'), [
           { text: t('settings.updateLater'), style: 'cancel' },
           { text: t('settings.updateNow'), onPress: () => Updates.reloadAsync() },
         ]);
       } else {
-        Alert.alert(t('settings.updates'), t('settings.updateNone'));
+        uyar(t('settings.updates'), t('settings.updateNone'));
       }
     } catch {
-      Alert.alert(t('settings.updates'), t('settings.updateFailed'));
+      uyar(t('settings.updates'), t('settings.updateFailed'));
     } finally {
       setIsCheckingUpdate(false);
     }
   };
 
   const handleSignOut = () => {
-    Alert.alert(t('settings.signOut'), t('settings.signOutConfirm'), [
+    uyar(t('settings.signOut'), t('settings.signOutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('settings.signOut'),

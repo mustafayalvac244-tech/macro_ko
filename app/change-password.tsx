@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -50,7 +51,7 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    Alert.alert(t('settings.changePassword'), t('changePw.success'));
+    uyar(t('settings.changePassword'), t('changePw.success'));
     router.back();
   };
 

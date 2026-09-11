@@ -276,6 +276,7 @@ export const tr = {
 
   // Common
   'common.cancel': 'Vazgeç',
+  'common.ok': 'Tamam',
   'common.delete': 'Sil',
   'common.edit': 'Düzenle',
   'common.save': 'Değişiklikleri Kaydet',
@@ -1724,6 +1725,17 @@ export const tr = {
   'jobForm.failed': 'İlan yayınlanamadı. Lütfen tekrar deneyin.',
 
   // Deneme ödemesi
+  // ÇIKTI EYLEMLERİ — yapay zekâ metnini dışarı çıkarma (bkz. src/lib/cikti.ts).
+  // Web'de "paylaş" çoğu masaüstü tarayıcıda DESTEKLENMİYOR ve sessizce
+  // başarısız oluyordu; doğru eylemler kopyala ve indir.
+  'ai.webEnterHint': 'Enter gönderir, Shift+Enter satır atlar',
+  'cikti.copy': 'Kopyala',
+  'cikti.download': 'İndir',
+  'cikti.share': 'Paylaş',
+  'cikti.copied': 'Kopyalandı',
+  'cikti.downloaded': 'İndirildi',
+  'cikti.unsupported': 'Tarayıcı izin vermedi',
+  'cikti.failed': 'Olmadı, metni seçip kopyalayın',
   'laws.title': 'Mevzuat',
   'laws.subtitle': 'Kanunlar — çevrimdışı, madde arama',
   'laws.offline': 'Tüm metinler cihazda; internetsiz aç, ara.',

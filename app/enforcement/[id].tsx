@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns/format';
@@ -91,7 +92,7 @@ export default function EnforcementDetailScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert(t('enf.delete'), t('enf.deleteConfirm', { name: file.debtor_name }), [
+    uyar(t('enf.delete'), t('enf.deleteConfirm', { name: file.debtor_name }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -192,7 +193,7 @@ export default function EnforcementDetailScreen() {
                 <Pressable
                   hitSlop={8}
                   onPress={() =>
-                    Alert.alert(t('enf.deleteCollection'), formatMoney(Number(c.amount)), [
+                    uyar(t('enf.deleteCollection'), formatMoney(Number(c.amount)), [
                       { text: t('common.cancel'), style: 'cancel' },
                       { text: t('common.delete'), style: 'destructive', onPress: () => deleteCollection.mutate(c.id) },
                     ])

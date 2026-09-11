@@ -1,8 +1,11 @@
+import { useEffect } from 'react';
 import { Redirect, Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuthStore } from '@/store/authStore';
 import { Sidebar } from '@/components/Sidebar';
+import { useSidebarStore } from '@/store/sidebarStore';
+import { kaliciMenuMu } from '@/theme/duzen';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -40,13 +43,28 @@ function TabIcon({
 export default function AppLayout() {
   const __t = useTheme();
   const colors = __t.colors;
+  const styles = makeStyles(colors);
 
   const t = useT();
+  const { width } = useWindowDimensions();
+  // Masaüstü genişliğinde menü hamburgerin arkasından çıkıp ekranın solunda
+  // sürekli durur (bkz. src/theme/duzen.ts → kaliciMenuMu). Telefonda ve dar
+  // tarayıcıda false döner, çekmece davranışı aynen korunur.
+  const kaliciMenu = kaliciMenuMu(width);
+  // ScreenHeader hamburgeri bu bayrağa bakarak gizler (bkz. sidebarStore).
+  const setKalici = useSidebarStore((s) => s.setKalici);
+  useEffect(() => {
+    setKalici(kaliciMenu);
+    // (app) düzeninden çıkıldığında kök ekranlarda hamburger geri gelmeli.
+    return () => setKalici(false);
+  }, [kaliciMenu, setKalici]);
   const session = useAuthStore((s) => s.session);
   if (!session) return <Redirect href="/(auth)/login" />;
 
   return (
-    <>
+    <View style={[styles.kok, kaliciMenu && styles.kokSatir]}>
+      {kaliciMenu && <Sidebar kalici />}
+      <View style={styles.icerik}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -107,13 +125,26 @@ export default function AppLayout() {
           ),
         }}
       />
-    </Tabs>
-    <Sidebar />
-    </>
+      </Tabs>
+      </View>
+      {/* Kalıcı menü açıkken çekmece sürümü çizilmez: ikisi aynı anda
+          görünürse aynı menü ekranda iki kez olurdu. */}
+      {!kaliciMenu && <Sidebar />}
+    </View>
   );
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  kok: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  kokSatir: {
+    flexDirection: 'row',
+  },
+  icerik: {
+    flex: 1,
+  },
   iconWrap: {
     width: 46,
     height: 30,

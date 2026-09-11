@@ -14,7 +14,7 @@ import { describe, expect, it, vi } from 'vitest';
  */
 vi.mock('react-native', () => ({ Platform: { OS: 'ios' } }));
 
-const { genisEkranMi, ortalaStili, sutunSayisi } = await import('@/theme/duzen');
+const { genisEkranMi, ortalaStili, sutunSayisi, kaliciMenuMu } = await import('@/theme/duzen');
 
 describe('natifte geniş ekran düzeni', () => {
   it('en geniş tablette bile devreye girmez', () => {
@@ -25,6 +25,11 @@ describe('natifte geniş ekran düzeni', () => {
   it('ortalama stili her genişlikte null döner — natif düzen aynen kalır', () => {
     expect(ortalaStili(1366)).toBeNull();
     expect(ortalaStili(3000, 'form')).toBeNull();
+  });
+
+  it('kalıcı yan menü natifte ASLA açılmaz — telefonda yeri yok', () => {
+    expect(kaliciMenuMu(1366)).toBe(false);
+    expect(kaliciMenuMu(3000)).toBe(false);
   });
 
   it('sütun sayısı her zaman 1', () => {

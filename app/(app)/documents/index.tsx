@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Alert, FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -59,7 +60,7 @@ export default function DocumentVaultScreen() {
   };
 
   const handleDelete = (id: string, filePath: string, name: string) => {
-    Alert.alert(t('docs.deleteTitle'), t('docs.deleteConfirm', { name }), [
+    uyar(t('docs.deleteTitle'), t('docs.deleteConfirm', { name }), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.delete'), style: 'destructive', onPress: () => deleteDocument.mutate({ id, file_path: filePath }) },
     ]);

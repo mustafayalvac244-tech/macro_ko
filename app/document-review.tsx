@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_BELGE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
@@ -87,7 +89,7 @@ export default function DocumentReviewScreen() {
       if (name.endsWith('.txt')) {
         const content = await new File(asset.uri).text();
         if (!content.trim()) {
-          Alert.alert(t('docrev.title'), t('docrev.fileEmpty'));
+          uyar(t('docrev.title'), t('docrev.fileEmpty'));
           return;
         }
         setText(content.slice(0, MAX_CHARS));
@@ -102,7 +104,7 @@ export default function DocumentReviewScreen() {
         // Gövde okuma ortak yardımcıdan; kod eşlemesi doc-extract'e özgü.
         const govde = await aiHataGovdesi(fnErr);
         const code = govde.error ?? '';
-        Alert.alert(
+        uyar(
           t('docrev.title'),
           code === 'pdf_no_text'
             ? t('docrev.errScanned')
@@ -118,12 +120,12 @@ export default function DocumentReviewScreen() {
       const extracted = cikan?.text ?? '';
       setOkunamayanSayfa(cikan?.okunamayanSayfa ?? []);
       if (!extracted.trim()) {
-        Alert.alert(t('docrev.title'), t('docrev.fileEmpty'));
+        uyar(t('docrev.title'), t('docrev.fileEmpty'));
         return;
       }
       setText(extracted.slice(0, MAX_CHARS));
     } catch {
-      Alert.alert(t('docrev.title'), t('docrev.fileErr'));
+      uyar(t('docrev.title'), t('docrev.fileErr'));
     } finally {
       setExtracting(false);
     }
@@ -252,9 +254,7 @@ export default function DocumentReviewScreen() {
             <View style={styles.resultCard}>
               <View style={styles.resultHead}>
                 <Text style={styles.resultTitle}>{t('docrev.resultTitle')}</Text>
-                <Pressable onPress={() => Share.share({ message: result }).catch(() => {})} hitSlop={8}>
-                  <Ionicons name="share-outline" size={19} color={colors.primary} />
-                </Pressable>
+                <CiktiEylemleri metin={result} baslik={t('docrev.resultTitle')} />
               </View>
               {/* selectable: avukat bulguları kopyalayıp dilekçeye taşıyabilsin */}
               <Text selectable style={styles.resultText}>{result}</Text>

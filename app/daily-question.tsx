@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -28,13 +29,13 @@ export default function DailyQuestionScreen() {
     if (body.trim().length < 10) return;
     try {
       await submit.mutateAsync(body);
-      Alert.alert(t('daily.submittedTitle'), t('daily.submittedMsg'), [
+      uyar(t('daily.submittedTitle'), t('daily.submittedMsg'), [
         { text: t('common.done'), onPress: () => router.back() },
       ]);
     } catch (e) {
       const err = e as { code?: string; message?: string };
       const msg = err.code === '23505' ? t('daily.alreadyAnswered') : t('daily.failed');
-      Alert.alert(t('daily.title'), msg);
+      uyar(t('daily.title'), msg);
     }
   };
 

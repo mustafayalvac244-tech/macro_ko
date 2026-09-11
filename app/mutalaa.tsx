@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_MUTALAA_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
@@ -180,9 +181,7 @@ export default function MutalaaScreen() {
             <View style={styles.card}>
               <View style={styles.cardHead}>
                 <Text style={styles.cardTitle}>{t('mut.resultTitle')}</Text>
-                <Pressable onPress={() => Share.share({ message: text }).catch(() => {})} hitSlop={8}>
-                  <Ionicons name="share-outline" size={19} color={colors.primary} />
-                </Pressable>
+                <CiktiEylemleri metin={text} baslik={t('mut.resultTitle')} />
               </View>
               <Text selectable style={styles.body}>{text}</Text>
               {uydurmaMadde.length > 0 && (

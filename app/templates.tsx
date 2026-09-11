@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { metniPaylas } from '@/lib/cikti';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -26,7 +27,7 @@ export default function TemplatesScreen() {
   );
 
   const shareTemplate = (tpl: PetitionTemplate) => {
-    Share.share({ message: tpl.body, title: tpl.title }).catch(() => {});
+    metniPaylas(tpl.body, tpl.title);
   };
 
   return (

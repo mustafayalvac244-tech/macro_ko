@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -39,7 +40,7 @@ export default function JobsScreen() {
   const logJobToFinance = (job: JobWithOwner, kind: 'income' | 'expense') => {
     const amount = Number(job.fee_offer ?? 0);
     if (!(amount > 0)) {
-      Alert.alert(t('jobs.finance.title'), t('jobs.finance.noFee'));
+      uyar(t('jobs.finance.title'), t('jobs.finance.noFee'));
       return;
     }
     createFinance
@@ -53,16 +54,16 @@ export default function JobsScreen() {
         note: job.city ? `${t('jobs.title')} · ${job.city}` : t('jobs.title'),
       })
       .then(() =>
-        Alert.alert(
+        uyar(
           t('jobs.finance.title'),
           kind === 'income' ? t('jobs.finance.addedIncome') : t('jobs.finance.addedExpense')
         )
       )
-      .catch(() => Alert.alert(t('jobs.finance.title'), t('network.setupRequired')));
+      .catch(() => uyar(t('jobs.finance.title'), t('network.setupRequired')));
   };
 
   const askLogFinance = (job: JobWithOwner, kind: 'income' | 'expense') => {
-    Alert.alert(
+    uyar(
       t('jobs.finance.title'),
       kind === 'income' ? t('jobs.finance.askIncome') : t('jobs.finance.askExpense'),
       [
@@ -97,7 +98,7 @@ export default function JobsScreen() {
   };
 
   const handleOwnJobPress = (job: JobWithOwner) => {
-    Alert.alert(t('jobs.manageTitle'), job.title, [
+    uyar(t('jobs.manageTitle'), job.title, [
       { text: t('common.cancel'), style: 'cancel' },
       ...(job.status === 'open'
         ? [{ text: t('jobs.markAssigned'), onPress: () => updateStatus.mutate({ id: job.id, status: 'assigned' as const }) }]

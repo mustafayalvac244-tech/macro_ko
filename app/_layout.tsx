@@ -28,6 +28,7 @@ import { useTheme } from '@/theme/useTheme';
 import { hydrateLock } from '@/store/lockStore';
 import { hydrateAdvanceAlerts } from '@/store/advanceAlertStore';
 import { AppLock } from '@/components/AppLock';
+import { UyariKatmani } from '@/components/ui/UyariKatmani';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LaunchIntro } from '@/components/LaunchIntro';
 
@@ -193,6 +194,10 @@ export default function RootLayout() {
             <Stack.Screen name="contract" options={{ headerShown: false }} />
           </Stack>
           <AppLock />
+          {/* Web'de uyarı/onay penceresi — react-native-web'in Alert'i boş bir
+              fonksiyon olduğu için silme/çıkış onayları hiç açılmıyordu.
+              Natifte hiçbir şey çizmez. */}
+          <UyariKatmani />
           <LaunchIntro fontsReady={fontsReady} />
           </ErrorBoundary>
         </PersistQueryClientProvider>

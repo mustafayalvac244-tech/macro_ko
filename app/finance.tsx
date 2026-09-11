@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
+import type { UyariDugmesi } from '@/store/uyariStore';
 import { router } from 'expo-router';
 import { addMonths } from 'date-fns/addMonths';
 import { endOfMonth } from 'date-fns/endOfMonth';
@@ -198,11 +200,11 @@ export default function FinanceScreen() {
     );
 
     if (rows.length <= 6) {
-      Alert.alert(t('ofinance.title'), t('ofinance.exp.empty'));
+      uyar(t('ofinance.title'), t('ofinance.exp.empty'));
       return;
     }
     const ok = await shareCsv(`gelir-gider-${monthLabel}`, csv, t('ofinance.exp.shareTitle'));
-    if (!ok) Alert.alert(t('ofinance.title'), t('ofinance.exp.failed'));
+    if (!ok) uyar(t('ofinance.title'), t('ofinance.exp.failed'));
   };
 
   // Alıcı geri bildirimi: kaleme basınca doğrudan "sil" çıkıyordu; artık önce
@@ -254,7 +256,7 @@ export default function FinanceScreen() {
   };
 
   const handleEntryPress = (entry: FinanceEntry) => {
-    const buttons: Parameters<typeof Alert.alert>[2] = [
+    const buttons: UyariDugmesi[] = [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.edit'), onPress: () => openEditor(entry) },
     ];
@@ -269,14 +271,14 @@ export default function FinanceScreen() {
         });
       }
       buttons.push({ text: t('ofinance.deleteAll'), style: 'destructive', onPress: () => deleteEntry.mutate(entry.id) });
-      Alert.alert(
+      uyar(
         t('ofinance.entryActionsTitle'),
         stopped ? t('ofinance.resumeMsg') : t('ofinance.recurringDeleteMsg'),
         buttons
       );
     } else {
       buttons.push({ text: t('common.delete'), style: 'destructive', onPress: () => deleteEntry.mutate(entry.id) });
-      Alert.alert(t('ofinance.entryActionsTitle'), entry.title, buttons);
+      uyar(t('ofinance.entryActionsTitle'), entry.title, buttons);
     }
   };
 

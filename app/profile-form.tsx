@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -71,7 +72,7 @@ export default function ProfileFormScreen() {
       });
     }
     options.push({ text: t('common.cancel'), style: 'cancel' });
-    Alert.alert(t('profile.photoTitle'), undefined, options);
+    uyar(t('profile.photoTitle'), undefined, options);
   };
 
   const displayUri = stagedRemove ? null : (stagedPhoto?.uri ?? avatarUrl);

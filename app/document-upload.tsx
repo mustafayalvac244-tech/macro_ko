@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -78,7 +79,7 @@ export default function DocumentUploadScreen() {
       });
       router.back();
     } catch (err) {
-      Alert.alert(t('upload.failed'), err instanceof Error ? trError(err.message) : t('upload.tryAgain'));
+      uyar(t('upload.failed'), err instanceof Error ? trError(err.message) : t('upload.tryAgain'));
     }
   };
 
@@ -95,7 +96,7 @@ export default function DocumentUploadScreen() {
         mismatch.expected === 'photo'
           ? t('upload.mismatchPhoto', { cat: catLabel, kind: kindLabel })
           : t('upload.mismatchDoc', { cat: catLabel, kind: kindLabel });
-      Alert.alert(t('upload.mismatchTitle'), msg, [
+      uyar(t('upload.mismatchTitle'), msg, [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('upload.addAnyway'), style: 'destructive', onPress: doUpload },
       ]);

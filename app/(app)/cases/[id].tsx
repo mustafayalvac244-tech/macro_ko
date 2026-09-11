@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
+import { metniPaylas } from '@/lib/cikti';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -68,7 +70,7 @@ export default function CaseDetailScreen() {
     });
     const res = await sendClientReminder(client.data?.phone, text);
     if (res === 'no_phone' || res === 'failed') {
-      Share.share({ message: text }).catch(() => {});
+      metniPaylas(text);
     }
   };
   const updateDeadline = useUpdateDeadline();
@@ -150,7 +152,7 @@ export default function CaseDetailScreen() {
         priority: 'high',
         reminder_minutes_before: 24 * 60,
       });
-      Alert.alert(t('case.stageTitle'), t('case.istinafAdded'));
+      uyar(t('case.stageTitle'), t('case.istinafAdded'));
     } catch {
       // takvim görevi eklenemese de tarih kaydedildi
     }
@@ -160,7 +162,7 @@ export default function CaseDetailScreen() {
   const handleRemind = async (hearing: Hearing) => {
     const phone = client.data?.phone;
     if (!phone) {
-      Alert.alert(t('remind.title'), t('remind.noPhone'));
+      uyar(t('remind.title'), t('remind.noPhone'));
       return;
     }
     const message = hearingReminderMessage({
@@ -172,11 +174,11 @@ export default function CaseDetailScreen() {
       lawyerName: profile?.firm_name || profile?.full_name || null,
     });
     const result = await sendClientReminder(phone, message);
-    if (result === 'failed') Alert.alert(t('remind.title'), t('remind.failed'));
+    if (result === 'failed') uyar(t('remind.title'), t('remind.failed'));
   };
 
   const handleDelete = () => {
-    Alert.alert(t('case.delete'), t('case.deleteConfirm', { title: caseItem.title }), [
+    uyar(t('case.delete'), t('case.deleteConfirm', { title: caseItem.title }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -258,7 +260,7 @@ export default function CaseDetailScreen() {
               <Pressable
                 style={styles.finalizeBtn}
                 onPress={() =>
-                  Alert.alert(t('case.finalizeTitle'), t('case.finalizeMsg'), [
+                  uyar(t('case.finalizeTitle'), t('case.finalizeMsg'), [
                     { text: t('common.cancel'), style: 'cancel' },
                     {
                       text: t('case.finalizeConfirm'),
@@ -529,7 +531,7 @@ export default function CaseDetailScreen() {
                             color={colors.textMuted}
                             suppressHighlighting
                             onPress={() =>
-                              Alert.alert(t('fee.deleteInstallmentTitle'), formatMoney(Number(it.amount)), [
+                              uyar(t('fee.deleteInstallmentTitle'), formatMoney(Number(it.amount)), [
                                 { text: t('common.cancel'), style: 'cancel' },
                                 { text: t('common.delete'), style: 'destructive', onPress: () => deleteInstallment.mutate(it.id) },
                               ])
@@ -712,7 +714,7 @@ export default function CaseDetailScreen() {
                             color={colors.textMuted}
                             suppressHighlighting
                             onPress={() =>
-                              Alert.alert(t('finance.deleteTitle'), t('finance.deleteConfirm'), [
+                              uyar(t('finance.deleteTitle'), t('finance.deleteConfirm'), [
                                 { text: t('common.cancel'), style: 'cancel' },
                                 { text: t('common.delete'), style: 'destructive', onPress: () => deleteExpense.mutate(e.id) },
                               ])
@@ -748,7 +750,7 @@ export default function CaseDetailScreen() {
                         color={colors.textMuted}
                         suppressHighlighting
                         onPress={() =>
-                          Alert.alert(t('finance.deleteTitle'), t('finance.deleteConfirm'), [
+                          uyar(t('finance.deleteTitle'), t('finance.deleteConfirm'), [
                             { text: t('common.cancel'), style: 'cancel' },
                             { text: t('common.delete'), style: 'destructive', onPress: () => deletePayment.mutate(payment.id) },
                           ])

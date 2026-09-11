@@ -1,4 +1,5 @@
-import { Alert } from 'react-native';
+import {  } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import { getLang, translate } from '@/i18n';
 import { planLimitiCoz } from '@/config/planlar';
@@ -61,7 +62,7 @@ export function notifySaveError(err: unknown): void {
       limit.limit === 0
         ? translate(lang, `plan.kapali.${limit.tur}` as 'plan.kapali.finans')
         : translate(lang, `plan.doldu.${limit.tur}` as 'plan.doldu.dava', { n: String(limit.limit) });
-    Alert.alert(translate(lang, 'plan.limitBaslik'), govde, [
+    uyar(translate(lang, 'plan.limitBaslik'), govde, [
       { text: translate(lang, 'common.cancel'), style: 'cancel' },
       {
         text: translate(lang, 'plan.planlariGor'),
@@ -71,5 +72,5 @@ export function notifySaveError(err: unknown): void {
     return;
   }
 
-  Alert.alert(translate(lang, 'err.saveTitle'), messageFor(err));
+  uyar(translate(lang, 'err.saveTitle'), messageFor(err));
 }
