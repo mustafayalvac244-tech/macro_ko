@@ -119,3 +119,15 @@ $$;
 -- Supabase'in varsayılanı: authenticated tablolar üzerinde yetkili.
 grant usage on schema public to anon, authenticated, service_role;
 grant all on all tables in schema public to anon, authenticated, service_role;
+
+-- 0104 için: anon'un canlıda fazladan tuttuğu yetkileri taklit et.
+create table public.legal_rule_atif (rule_id text, kanun_short text, madde_no text, sira int);
+alter table public.legal_rule_atif enable row level security;
+create policy legal_rule_atif_read on public.legal_rule_atif for select to authenticated, anon using (true);
+create table public.mevzuat_maddeleri (id bigint generated always as identity primary key, metin text);
+create table public.legal_rules (id text primary key, baslik text);
+create table public.ictihat_atif (karar_id text, kanun_short text, madde_no text);
+create table public.oturum_cihazlari (id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id), cihaz text);
+alter table public.oturum_cihazlari enable row level security;
+grant select on public.oturum_cihazlari to authenticated;
+grant all on all tables in schema public to anon, authenticated, service_role;
