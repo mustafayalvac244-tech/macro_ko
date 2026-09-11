@@ -46,6 +46,17 @@ export interface AdminUser {
   ai_maliyet_toplam_try: number;
   dava_adedi: number;
   muvekkil_adedi: number;
+  /**
+   * UYGULAMA İÇİ ciro (kullanıcının KENDİ müvekkil geliri) — bize ödediğiyle
+   * (odenen_try) karıştırılmamalı. Tekrarlayan finans kayıtları burada BİR KEZ
+   * sayılır; kullanıcının kendi Finans ekranındaki aylık toplamla birebir aynı
+   * olmayabilir (bkz. 0096 migration başlığı).
+   */
+  gelir_try: number;
+  gider_try: number;
+  /** Dosya bazlı tahsilat kayıtları (payments). */
+  tahsilat_try: number;
+  finans_kayit_adedi: number;
 }
 
 export function useAdminOverview() {
