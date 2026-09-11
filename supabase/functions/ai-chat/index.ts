@@ -2822,9 +2822,25 @@ async function dosyaKunyesi(
   if (!text) {
     return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
   }
-  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, true, 'sohbet');
+  // YEDEĞE DÜŞÜLDÜYSE HAK GERİ VERİLİR VE KULLANICIYA SÖYLENİR.
+  //
+  // ÖLÇÜLEN ARIZA (2026-09-11): Anthropic kredisi bitince ücretli üyenin
+  // soruları sessizce Gemini/Groq'a gitti. İki sorun vardı: (1) uygulama
+  // bunu göstermiyordu, üye zayıf modelin cevabını Opus sanıyordu; (2) soru
+  // hakkı istek BAŞLAMADAN rezerve edildiği için (ai_mod_rezerve_et) üye,
+  // ödediği modelin cevaplamadığı bir soru için 250'lik hakkından bir tane
+  // kaybediyordu. "Yedeğe düşüldüğünde fatura kesilmez" ilkesi (ucretliChat)
+  // hak için de geçerli olmalı: asıl model cevaplamadıysa hak gitmez.
+  const yedekModel = provider === 'claude' && !faturali;
+  if (yedekModel) {
+    if (cfg.modLimits) await aiModSerbestBirak(userData.user.id, aiAy, false);
+    if (cfg.denemeLimit) await denemeHakkiSerbestBirak(userData.user.id);
+  }
+  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !yedekModel, 'sohbet');
   return new Response(JSON.stringify({
     text: text.trim(), tier, model: kullanilanModel, istekId,
+    // Uygulama bunu balonun altında uyarı olarak gösterir (AiMessage.yedek).
+    yedekModel: yedekModel || undefined,
     kullanim: kullanimOzeti(kullanilanModel, tin, tout, maliyet),
   }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },

@@ -1347,6 +1347,8 @@ export const tr = {
   'uyari.degerlendirme': 'Bu değerlendirme yalnızca girdiğiniz bilgilere dayanır; belgenin aslını kontrol edin. Hukuki tavsiye değildir, sorumluluk avukata aittir.',
   'uyari.sablon': 'Bu metin hazır bir şablondan üretildi; somut olayınıza uyarlanması gerekir. Hukuki tavsiye değildir, sorumluluk metni kullanan avukata aittir.',
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
+  // Sunucu asıl modele ulaşamayıp yedekle cevapladığında balonun altında görünür.
+  'ai.yedekModel': 'Bu yanıt yedek modelle üretildi; asıl model şu an ulaşılamıyor. Kalite düşük olabilir — soru hakkınızdan düşülmedi.',
   'ai.comingSoon': 'Vekil AI çok yakında',
   'ai.comingSoonDesc': 'Yapay zekâ asistanı son hazırlıklarını yapıyor. Çok yakında sorularınızı yanıtlamaya başlayacak!',
   'ai.comingSoonBadge': 'YAKINDA',

@@ -235,6 +235,7 @@ function Welcome({ onPick }: { onPick: (text: string) => void }) {
 function Bubble({ message }: { message: AiMessage }) {
   const __t = useTheme();
   const styles = makeStyles(__t.colors);
+  const t = useT();
   const isUser = message.role === 'user';
   return (
     <View style={[styles.bubbleRow, isUser ? styles.rowEnd : styles.rowStart]}>
@@ -242,6 +243,12 @@ function Bubble({ message }: { message: AiMessage }) {
         {/* selectable: metne basılı tutunca OS'in "Kopyala" menüsü açılır
             (alıcı geri bildirimi: "AI'dan yazı kopyalanmıyor"). */}
         <Text selectable style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>{message.text}</Text>
+        {/* YEDEK MODEL UYARISI. Sunucu asıl modele ulaşamayınca (kredi bitti,
+            anlık sınır, arıza) sessizce yedek modele düşüyor; bunu üyeden
+            saklamak dürüst değil — özellikle ücretli üyeden. Bkz. AiMessage.yedek. */}
+        {!isUser && message.yedek && (
+          <Text style={styles.yedekUyari}>{t('ai.yedekModel')}</Text>
+        )}
         {/* Modelin cevabı için kopyala/paylaş — web'de metni Word'e taşımanın
             tek pratik yolu. Kullanıcının kendi mesajında gereksiz. */}
         {!isUser && !!message.text && (
@@ -527,6 +534,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.body,
     color: colors.textPrimary,
     lineHeight: 21,
+  },
+  // Yedek model uyarısı: küçük, uyarı renginde, balonun içinde metnin altında.
+  yedekUyari: {
+    ...typography.caption,
+    color: colors.warning,
+    marginTop: 6,
   },
   bubbleTextUser: {
     color: colors.textInverse,

@@ -1319,6 +1319,7 @@ export const en: Record<keyof typeof tr, string> = {
   'uyari.degerlendirme': 'This assessment is based only on the details you entered; check the original document. It is not legal advice; responsibility rests with the lawyer.',
   'uyari.sablon': 'This text comes from a fixed template and must be adapted to your specific matter. It is not legal advice; responsibility rests with the lawyer using it.',
   'ai.disclaimer': 'AI answers are not legal advice; verify against current legislation.',
+  'ai.yedekModel': 'This answer came from a backup model; the primary model is unavailable right now. Quality may be lower — not deducted from your quota.',
   'ai.comingSoon': 'Vekil AI is coming soon',
   'ai.comingSoonDesc': 'The AI assistant is getting its final touches. It will start answering your questions very soon!',
   'ai.comingSoonBadge': 'SOON',

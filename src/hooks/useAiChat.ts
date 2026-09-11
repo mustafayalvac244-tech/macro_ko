@@ -9,6 +9,18 @@ export interface AiMessage {
   id: string;
   role: 'user' | 'model';
   text: string;
+  /**
+   * Sunucu asıl (ücretli) modele ulaşamayıp YEDEK modelle cevapladı.
+   *
+   * ÖLÇÜLEN ARIZA (2026-09-11): Anthropic kredisi bitince ai-chat sessizce
+   * Gemini/Groq'a düştü ve 1.999₺ ödeyen üye bunu HİÇ görmedi — uygulama
+   * yanıttaki `model` ve `yedekModel` alanlarını okumuyordu. Ücretli üyeye
+   * zayıf modelin cevabını asıl modelinkiymiş gibi göstermek dürüst değil;
+   * bu bayrak balonun altında küçük bir uyarı olarak görünür.
+   */
+  yedek?: boolean;
+  /** Cevabı hangi modelin yazdığı (sunucudan; teşhis ve şeffaflık için). */
+  model?: string;
 }
 
 /** Kenarda saklanan bir sohbet. Cihazda (AsyncStorage) tutulur. */
@@ -151,7 +163,15 @@ export function useAiChat() {
           return;
         }
 
-        const payload = data as { text?: string; tier?: 'basic' | 'plus' } | null;
+        const payload = data as {
+          text?: string;
+          tier?: 'basic' | 'plus';
+          model?: string;
+          /** Sunucu asıl modele ulaşamadı, yedekle cevapladı (bkz. AiMessage.yedek). */
+          yedekModel?: boolean;
+          /** İki sağlayıcı da düştü; bu bir model cevabı değil, mevzuat özeti. */
+          yapayZekasiz?: boolean;
+        } | null;
         const reply = payload?.text?.trim();
         if (!reply) {
           setError('generic');
@@ -159,7 +179,13 @@ export function useAiChat() {
         }
         if (payload?.tier) setTier(payload.tier);
 
-        const modelMsg: AiMessage = { id: nextId(), role: 'model', text: reply };
+        const modelMsg: AiMessage = {
+          id: nextId(),
+          role: 'model',
+          text: reply,
+          yedek: payload?.yedekModel === true || payload?.yapayZekasiz === true || undefined,
+          model: payload?.model,
+        };
         const withReply = [...historyRef.current, modelMsg];
         historyRef.current = withReply;
         setMessages(withReply);
