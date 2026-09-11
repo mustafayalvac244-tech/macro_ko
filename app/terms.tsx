@@ -92,7 +92,7 @@ const sectionsTr = (): Section[] => [
   {
     icon: 'person-remove-outline',
     title: '10. Hesabın Kapatılması',
-    body: 'Hesabınızı istediğiniz zaman Ayarlar > Hesabı Sil adımıyla kalıcı olarak silebilirsiniz. Silme işlemi geri alınamaz ve belgeler dahil tüm kayıtlarınızı kapsar. Hesabın silinmesi, mağaza üzerinden alınmış aboneliği otomatik olarak iptal ETMEZ; aboneliği ayrıca App Store / Google Play üzerinden kapatmanız gerekir.',
+    body: 'Hesabınızı istediğiniz zaman Ayarlar > Hesabı Sil adımıyla kalıcı olarak silebilirsiniz. Silme işlemi geri alınamaz ve belgeler dahil tüm kayıtlarınızı kapsar; yedeklerdeki kopyaların ne olduğu 13. maddede ayrıca açıklanmıştır. Hesabın silinmesi, mağaza üzerinden alınmış aboneliği otomatik olarak iptal ETMEZ; aboneliği ayrıca App Store / Google Play üzerinden kapatmanız gerekir.',
   },
   {
     icon: 'document-text-outline',
@@ -107,7 +107,7 @@ const sectionsTr = (): Section[] => [
   {
     icon: 'cloud-download-outline',
     title: '13. Yedekleme ve Veri Kaybı',
-    body: 'Verileriniz sağlayıcının altyapısında tutulur; bununla birlikte hesabınıza ait verilerin YEDEĞİNİ ALMAK sizin sorumluluğunuzdadır. Uygulama, dışa aktarma (CSV/metin) imkânı sunar. Kullanıcı hatası, hesabın silinmesi, sağlayıcı arızası, siber saldırı veya mücbir sebep hâlinde oluşabilecek veri kaybından; verinin yeniden oluşturulmasının maliyetinden ve bu kayıptan doğan dolaylı zararlardan Vekil Pro sorumlu değildir. Hesabı silme işlemi geri alınamaz ve yedeklenmiş bir kopya tutulmaz.',
+    body: 'Verileriniz sağlayıcının altyapısında tutulur; bununla birlikte hesabınıza ait verilerin YEDEĞİNİ ALMAK sizin sorumluluğunuzdadır. Uygulama, dışa aktarma (CSV/metin) imkânı sunar. Kullanıcı hatası, hesabın silinmesi, sağlayıcı arızası, siber saldırı veya mücbir sebep hâlinde oluşabilecek veri kaybından; verinin yeniden oluşturulmasının maliyetinden ve bu kayıptan doğan dolaylı zararlardan Vekil Pro sorumlu değildir.\n\nYEDEKLERİN KAPSAMI VE SÜRESİ (açıkça bildirilir): Veri kaybına karşı iki katman tutulur — (a) her gece alınan ve YİRMİ BİR (21) GÜN saklanan veritabanı kopyası, (b) her ayın başında alınan ve ON İKİ (12) AY saklanan aylık kopya. Bu kopyalar yalnızca hatalı silme, bozulma ya da arıza hâlinde kurtarma amacıyla tutulur; talep üzerine size tek tek kayıt geri yükleme hizmeti sunulacağı anlamına GELMEZ. Ayrıca bulut sağlayıcımız (Supabase) kendi altyapısında günlük yedek alır ve bunu YEDİ (7) GÜN saklar.\n\nHESABI SİLDİĞİNİZDE: Silme işlemi geri alınamaz. Silme anında kayıtlarınız yukarıdaki (a) ve (b) kopyalarından da silinir. Bulut sağlayıcısının kendi altyapı yedeği ise teknik olarak tek bir kullanıcı için ayıklanamaz; bu yedekteki kopya, en geç YEDİ (7) GÜN içinde saklama süresi dolarak kendiliğinden düşer. Bu süre içinde kaydınızın hiçbir amaçla kullanılmayacağını, yalnızca felaket kurtarma amacıyla erişilebilir kalacağını taahhüt ederiz.',
   },
   {
     icon: 'shield-outline',
@@ -187,7 +187,7 @@ const sectionsEn = (): Section[] => [
   {
     icon: 'person-remove-outline',
     title: '10. Closing Your Account',
-    body: 'You can permanently delete your account from Settings > Delete Account. Deletion cannot be undone and covers all records including documents. Deleting the account does NOT automatically cancel a store subscription — cancel it separately in App Store / Google Play.',
+    body: 'You can permanently delete your account from Settings > Delete Account. Deletion cannot be undone and covers all records including documents; what happens to backup copies is set out separately in section 13. Deleting the account does NOT automatically cancel a store subscription — cancel it separately in App Store / Google Play.',
   },
   {
     icon: 'document-text-outline',
@@ -202,7 +202,7 @@ const sectionsEn = (): Section[] => [
   {
     icon: 'cloud-download-outline',
     title: '13. Backups and Data Loss',
-    body: 'Your data is held on the provider\u2019s infrastructure; nevertheless, keeping a BACKUP of your data is your responsibility. The app offers export (CSV/text). Vekil Pro is not liable for data loss caused by user error, account deletion, provider failure, cyber attack or force majeure, nor for the cost of recreating data or any indirect loss arising from it. Account deletion cannot be undone and no copy is retained.',
+    body: 'Your data is held on the provider\u2019s infrastructure; nevertheless, keeping a BACKUP of your data is your responsibility. The app offers export (CSV/text). Vekil Pro is not liable for data loss caused by user error, account deletion, provider failure, cyber attack or force majeure, nor for the cost of recreating data or any indirect loss arising from it.\n\nWHAT BACKUPS EXIST AND FOR HOW LONG (disclosed expressly): two layers are kept against data loss \u2014 (a) a nightly database copy retained for TWENTY-ONE (21) DAYS, and (b) a monthly copy taken at the start of each month and retained for TWELVE (12) MONTHS. These copies exist solely to recover from erroneous deletion, corruption or failure; they do NOT mean that per-record restoration will be provided to you on request. In addition, our cloud provider (Supabase) takes its own daily infrastructure backup and retains it for SEVEN (7) DAYS.\n\nWHEN YOU DELETE YOUR ACCOUNT: deletion cannot be undone. At the moment of deletion your records are also removed from copies (a) and (b) above. The cloud provider\u2019s own infrastructure backup cannot technically be filtered for a single user; that copy expires on its own within at most SEVEN (7) DAYS. During that window we undertake that your records will not be used for any purpose and will remain accessible solely for disaster recovery.',
   },
   {
     icon: 'shield-outline',

@@ -25,12 +25,27 @@ jobs:
         with:
           node-version: '20'
 
+      # AYNI ANAHTAR, İKİ AD. Bu iş akışı secret'ı SUPABASE_SERVICE_KEY diye
+      # arıyordu, hasat ve ölçüm iş akışları ise SUPABASE_SERVICE_ROLE_KEY diye.
+      # İkisi de aynı service_role anahtarı. İki ad, secret'ı iki kez eklemeyi
+      # ya da yanlış adı aramayı gerektiriyordu — nitekim karıştı.
+      #
+      # Bundan sonra tek kanonik ad SUPABASE_SERVICE_ROLE_KEY. Eski ad geri
+      # düşüş olarak duruyor ki bu değişiklik mevcut kurulumu bozmasın.
+      # (Betiğin OKUDUĞU ortam değişkeni adı değişmedi: SUPABASE_SERVICE_KEY —
+      # bkz. scripts/backup-export.mjs:19. Değişen, onu hangi secret'ın
+      # beslediği.)
       - name: Veriyi dışarı al
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://wjshlysfmeqlnfiibknj.supabase.co' }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_KEY }}
           OUT_DIR: backup-out
-        run: node scripts/backup-export.mjs
+        run: |
+          if [ -z "$SUPABASE_SERVICE_KEY" ]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY tanımlı değil (eski ad SUPABASE_SERVICE_KEY de yok)."
+            exit 1
+          fi
+          node scripts/backup-export.mjs
 
       - name: Şifrele (AES-256)
         env:

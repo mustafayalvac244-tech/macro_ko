@@ -20,9 +20,16 @@
 --
 --   3) TAZELİK. Aynı konuda yeni içtihat eskisini bastırır.
 --
--- KIRILGANLIK NOTU: terim listesi (134 satır) bu depoda değil, yalnız canlı
--- veritabanında. Bu yüzden aşağıdaki puanlama terim METNİNE bakarak çalışır ve
--- listeyi bilmeyi gerektirmez; yeni terim eklenirse kendiliğinden puanlanır.
+-- DÜZELTME (2026-09-11, sonradan eklendi — yorum satırı, SQL değişmedi):
+-- Yukarıdaki "KIRILGANLIK NOTU" başlığıyla burada şu yazıyordu: "terim listesi
+-- (134 satır) bu depoda değil, yalnız canlı veritabanında." BU YANLIŞTI. Liste
+-- depoda: scripts/ictihat-terms.txt (137 satır, 3'ü tekrar → 134 tekil terim,
+-- canlıdaki sayıyla aynı). Yanlış not, listeyi görmeden puanlama yazmama yol
+-- açtı; doğrusunu görünce bu migration'ın iki sinyalinin hiç eşleşmediği
+-- ölçüldü. Ölçüm ve düzeltme: migration 0103.
+--
+-- Aşağıdaki puanlama terim METNİNE bakarak çalışır; yeni terim eklenirse
+-- kendiliğinden puanlanır.
 
 alter table public.ictihat_harvest_state
   add column if not exists oncelik integer not null default 100;

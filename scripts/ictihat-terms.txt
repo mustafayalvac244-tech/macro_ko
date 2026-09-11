@@ -14,7 +14,6 @@ kiracının tahliyesi
 ecrimisil
 elatmanın önlenmesi
 tapu iptali ve tescil
-elatmanın önlenmesi
 kat mülkiyeti
 ortaklığın giderilmesi
 şufa hakkı
@@ -160,8 +159,6 @@ temyiz incelemesi
 # Not: her terim UYAP Emsal'de sonuç sayısıyla doğrulanmıştır.
 işçilik alacakları davası
 kıdem ve ihbar tazminatı
-yıllık izin ücreti
-iş kazası tazminat
 tüketici hakem heyeti kararının iptali
 ayıplı mal iadesi
 haksız rekabetin tespiti

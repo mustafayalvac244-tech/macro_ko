@@ -43,14 +43,22 @@ fi
 
 HATA=0
 for D in "${DOSYALAR[@]}"; do
-  OUT=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -v ON_ERROR_STOP=1 -q -f "$D" 2>&1 | grep -v NOTICE || true)
+  # YALNIZ gerçek hataya bak. Eskiden "çıktı varsa hata" sayılıyordu; bu yüzden
+  # sonuç tablosu yazdıran migration'lar (ör. 0093/0094'teki cron.unschedule
+  # çağrıları) sorunsuz çalıştıkları hâlde HATA görünüyordu. Yanlış alarm veren
+  # bir tezgâh, bir süre sonra hiç okunmaz.
+  OUT=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -v ON_ERROR_STOP=1 -q -f "$D" 2>&1 | grep -E "ERROR|FATAL|PANIC" || true)
   if [ -z "$OUT" ]; then echo "OK    $(basename "$D")"; else echo "HATA  $(basename "$D")"; echo "$OUT" | head -5; HATA=1; fi
 done
 
 echo
 echo "--- ikinci kez (idempotans) ---"
 for D in "${DOSYALAR[@]}"; do
-  OUT=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -v ON_ERROR_STOP=1 -q -f "$D" 2>&1 | grep -v NOTICE || true)
+  # YALNIZ gerçek hataya bak. Eskiden "çıktı varsa hata" sayılıyordu; bu yüzden
+  # sonuç tablosu yazdıran migration'lar (ör. 0093/0094'teki cron.unschedule
+  # çağrıları) sorunsuz çalıştıkları hâlde HATA görünüyordu. Yanlış alarm veren
+  # bir tezgâh, bir süre sonra hiç okunmaz.
+  OUT=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -v ON_ERROR_STOP=1 -q -f "$D" 2>&1 | grep -E "ERROR|FATAL|PANIC" || true)
   [ -z "$OUT" ] || { echo "TEKRARDA HATA  $(basename "$D")"; echo "$OUT" | head -5; HATA=1; }
 done
 [ $HATA -eq 0 ] && echo "tekrar koşu temiz"
@@ -58,5 +66,30 @@ done
 echo
 echo "--- yetki ölçümü ---"
 psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -F' | ' -f "$KOK/scripts/migration-deneme/yetki-olcum.sql" || true
+
+# Yedekten silme ölçümü, YALNIZ 0102 bu koşuda uygulandıysa anlamlıdır.
+# Uygulanmadıysa sessizce atlanır — "ölçüm yapıldı" izlenimi verilmez.
+VAR=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA \
+  -c "select to_regprocedure('backup.kullaniciyi_yedeklerden_sil(uuid)') is not null" 2>/dev/null || echo f)
+if [ "$VAR" = "t" ]; then
+  echo
+  echo "--- yedekten silme ölçümü (0102) ---"
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -q -f "$KOK/scripts/migration-deneme/yedek-silme-olcum.sql" 2>&1 \
+    | grep -E "GEÇTİ|KALDI|BOZULDU|ERROR" || true
+fi
+
+# Öncelik ölçümü, YALNIZ 0103 bu koşuda uygulandıysa anlamlıdır.
+VAR2=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA \
+  -c "select to_regprocedure('public.tr_kucult(text)') is not null" 2>/dev/null || echo f)
+if [ "$VAR2" = "t" ]; then
+  echo
+  echo "--- hasat önceliği ölçümü (0103) ---"
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -q -c \
+    "alter table public.cases add column if not exists case_type text;
+     alter table public.ictihat_harvest_state add column if not exists oncelik integer not null default 100;" >/dev/null 2>&1
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -f "$KOK/scripts/migration-deneme/oncelik-olcum.sql" 2>&1 \
+    | grep -E "GEÇTİ|BOZULDU|ERROR" || true
+fi
+
 psql -h /tmp -p "$PORT" -U postgres -q -c "drop database $DB;" >/dev/null 2>&1 || true
 exit $HATA

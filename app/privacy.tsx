@@ -43,7 +43,7 @@ const SECTIONS_TR: Section[] = [
   {
     icon: 'person-remove-outline',
     title: 'Silme Hakkınız (KVKK m.7 ve m.11)',
-    body: 'KVKK kapsamında verilerinize erişme, düzeltme ve silme hakkına sahipsiniz. Ayarlar > Hesabı Sil adımıyla hesabınızı ve TÜM verilerinizi kalıcı olarak silebilirsiniz. Silme işlemi geri alınamaz ve sunucudaki tüm kayıtlarınızı (belgeler dahil) kapsar.',
+    body: 'KVKK kapsamında verilerinize erişme, düzeltme ve silme hakkına sahipsiniz. Ayarlar > Hesabı Sil adımıyla hesabınızı ve TÜM verilerinizi kalıcı olarak silebilirsiniz. Silme işlemi geri alınamaz ve sunucudaki tüm kayıtlarınızı (belgeler dahil) kapsar.\n\nYEDEKLER — açıkça bildirilir: Veri kaybına karşı her gece alınan ve 21 gün saklanan bir kopya ile her ayın başında alınıp 12 ay saklanan bir kopya tutulur. Hesabınızı sildiğinizde kayıtlarınız BU KOPYALARDAN DA silinir. Bulut sağlayıcımızın (Supabase) kendi altyapı yedeği ise tek bir kullanıcı için ayıklanamaz; oradaki kopya en geç 7 gün içinde saklama süresi dolarak kendiliğinden düşer ve bu süre boyunca yalnızca felaket kurtarma amacıyla erişilebilir kalır.',
   },
   {
     icon: 'chatbubble-ellipses-outline',
@@ -81,7 +81,7 @@ const SECTIONS_EN: Section[] = [
   {
     icon: 'person-remove-outline',
     title: 'Your Right to Erasure',
-    body: 'You have the right to access, correct and delete your data. Settings > Delete Account permanently removes your account and ALL data (documents included). This cannot be undone.',
+    body: 'You have the right to access, correct and delete your data. Settings > Delete Account permanently removes your account and ALL data (documents included). This cannot be undone.\n\nBACKUPS — disclosed expressly: a nightly copy retained for 21 days and a monthly copy retained for 12 months are kept against data loss. When you delete your account your records are removed from THOSE COPIES AS WELL. Our cloud provider’s (Supabase) own infrastructure backup cannot be filtered for a single user; that copy expires on its own within at most 7 days and remains accessible during that window solely for disaster recovery.',
   },
   {
     icon: 'chatbubble-ellipses-outline',
