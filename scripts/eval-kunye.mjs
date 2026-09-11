@@ -21,10 +21,16 @@
 // ---------------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { yeniKunye } from './olcum-kunyesi.mjs';
 import { dirname, join } from 'node:path';
 import { beklemeSuresi } from './bekleme.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ÖLÇÜM KÜNYESİ: sonucun HANGİ MODELDEN geldiğini kaydeder.
+// Bu olmadan "N kusur çıktı" cümlesi neyin N kusur verdiğini söylemiyor;
+// sonuç ne karşılaştırılabilir ne tekrarlanabilir olur.
+const kunye = yeniKunye();
 
 const url = (process.env.SUPABASE_URL ?? '').replace(/\/+$/, '');
 const svc = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
@@ -82,6 +88,7 @@ async function cikar(belge, deneme = 0) {
   }
   if (!res.ok) throw new Error(`ai-chat ${res.status}: ${(await res.text()).slice(0, 140)}`);
   const j = await res.json();
+  kunye.gor({ model: j?.model });
   return { kunye: j?.kunye ?? {}, atilan: j?.atilan ?? [], model: j?.model ?? '?' };
 }
 
@@ -151,6 +158,7 @@ try {
 }
 
 console.log('\n' + '─'.repeat(60));
+console.log(kunye.satir());
 console.log(`KÜNYE: ${gecen}/${senaryolar.length} senaryo tam temiz`);
 console.log(`Beklenen alanların doğru çıkarılanı: ${dogru}/${beklenenToplam}`);
 console.log(`UYDURULAN alan (boş kalmalıydı): ${uydurma}`);

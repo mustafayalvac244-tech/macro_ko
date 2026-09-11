@@ -20,10 +20,16 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { yeniKunye } from './olcum-kunyesi.mjs';
 import { beklemeSuresi } from './bekleme.mjs';
 import { degerlendir } from './sohbetDegerlendir.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ÖLÇÜM KÜNYESİ: sonucun HANGİ MODELDEN geldiğini kaydeder.
+// Bu olmadan "N kusur çıktı" cümlesi neyin N kusur verdiğini söylemiyor;
+// sonuç ne karşılaştırılabilir ne tekrarlanabilir olur.
+const kunye = yeniKunye();
 
 const url = process.env.SUPABASE_URL ?? '';
 const svc = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
@@ -94,6 +100,7 @@ async function sor(soru, deneme = 0) {
   }
   if (!res.ok) throw new Error(`ai-chat ${res.status}: ${(await res.text()).slice(0, 140)}`);
   const j = await res.json();
+  kunye.gor({ model: j?.model });
   return { metin: String(j?.text ?? ''), model: String(j?.model ?? '?') };
 }
 
@@ -147,7 +154,7 @@ try {
 
 if (kusurlu.length) {
   const yol = join(__dirname, 'eval-sohbet-hatalar.json');
-  writeFileSync(yol, JSON.stringify({ tarih: new Date().toISOString(), kusurlu }, null, 1), 'utf8');
+  writeFileSync(yol, JSON.stringify(kunye.ozet({ kusurlu }), null, 1), 'utf8');
   console.log(`\nKusurlu cevapların tam metni: ${yol}`);
 }
 
@@ -155,6 +162,7 @@ const olculen = sonuclar.length;
 const gecen = sonuclar.filter((s) => s.gecti).length;
 
 console.log('\n' + '─'.repeat(60));
+console.log(kunye.satir());
 console.log(`SOHBET: ${gecen}/${olculen} senaryo tam geçti (%${olculen ? ((gecen / olculen) * 100).toFixed(1) : 0})` +
   (olculen < tumSenaryolar.length ? ` — havuzdaki ${tumSenaryolar.length} senaryonun ${olculen} tanesi ölçüldü` : ''));
 for (const tur of ['tekBilgi', 'kapsamDisi', 'kimlik', 'jailbreak', 'gorev']) {

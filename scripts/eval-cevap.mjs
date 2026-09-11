@@ -32,9 +32,15 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gecer } from './eslestir.mjs';
 import { fileURLToPath } from 'node:url';
+import { yeniKunye } from './olcum-kunyesi.mjs';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ÖLÇÜM KÜNYESİ: sonucun HANGİ MODELDEN geldiğini kaydeder.
+// Bu olmadan "N kusur çıktı" cümlesi neyin N kusur verdiğini söylemiyor;
+// sonuç ne karşılaştırılabilir ne tekrarlanabilir olur.
+const kunye = yeniKunye();
 const url = (process.env.SUPABASE_URL ?? '').replace(/\/+$/, '');
 const svc = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 const anon = process.env.SUPABASE_ANON_KEY ?? '';
@@ -108,6 +114,7 @@ async function sor(jwt, soru, deneme = 0) {
   // model cevabı sayarsak, ölçüm modelin kalitesini değil o andaki sağlayıcı
   // yoğunluğunu ölçer — nitekim bir koşuda 13/13 olan sonuç, üçü özet olduğu
   // için 9/13 göründü. Özet geldiğinde beklenip yeniden sorulur.
+  kunye.gor({ model: govde?.model });
   if (govde?.yapayZekasiz || govde?.model === 'mevzuat-yedek') {
     if (deneme < 4) {
       const bekle = 30000 * (deneme + 1);
@@ -193,12 +200,13 @@ try {
 // başka bir cevabı incelemeye yol açar (bir kez tam olarak böyle oldu).
 if (basarisiz.length) {
   const dosya = join(__dirname, 'eval-cevap-hatalar.json');
-  writeFileSync(dosya, JSON.stringify({ tarih: new Date().toISOString(), basarisiz }, null, 2));
+  writeFileSync(dosya, JSON.stringify(kunye.ozet({ basarisiz }), null, 2));
   console.log(`\nHatalı cevapların tam metni: ${dosya}`);
 }
 
 const oran = sorular.length ? ((dogru / sorular.length) * 100).toFixed(1) : '0.0';
 console.log(`\n${'─'.repeat(60)}`);
+console.log(kunye.satir());
 console.log(`CEVAP DOĞRULUĞU: ${dogru}/${sorular.length} (%${oran})`);
 if (basarisiz.length) {
   console.log(`Hatalı cevap: ${basarisiz.length}`);

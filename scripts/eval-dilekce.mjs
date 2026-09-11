@@ -23,6 +23,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { yeniKunye } from './olcum-kunyesi.mjs';
 import { beklemeSuresi } from './bekleme.mjs';
 import { gecer, sadelestir } from './eslestir.mjs';
 // Tarih/tutar ayıklayıcıları AYRI MODÜLDE ve TESTLİ: bu denetim, ölçümün en
@@ -32,6 +33,11 @@ import { gecer, sadelestir } from './eslestir.mjs';
 import { mesruTutarlar, tarihler, tutarlar } from './uydurma.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ÖLÇÜM KÜNYESİ: sonucun HANGİ MODELDEN geldiğini kaydeder.
+// Bu olmadan "N kusur çıktı" cümlesi neyin N kusur verdiğini söylemiyor;
+// sonuç ne karşılaştırılabilir ne tekrarlanabilir olur.
+const kunye = yeniKunye();
 
 const url = process.env.SUPABASE_URL ?? '';
 const svc = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
@@ -217,6 +223,10 @@ try {
         uydurmaMadde: uydurmaMaddeUyari,
         cakisanDayanak: cakisanUyari,
       } = await uret(s.tip, s.olay));
+      // Künyeye HER istekte besle: koşu ortasında model değişirse (sağlayıcı
+      // yedeğe düştü, katman değişti) sonuç tek modele atfedilemez ve künye
+      // bunu karisikModel ile işaretler.
+      kunye.gor({ model: kullanilanModel });
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(
@@ -290,7 +300,7 @@ try {
   writeFileSync(
     yol,
     JSON.stringify(
-      { tarih: new Date().toISOString(), olculenSenaryolar: sonuclar.map((s) => s.id), kusurlu },
+      kunye.ozet({ olculenSenaryolar: sonuclar.map((s) => s.id), kusurlu }),
       null,
       1
     ),
@@ -305,6 +315,7 @@ const uydurmali = sonuclar.filter((s) => s.uydurmaTarih.length || s.uydurmaTutar
 const unsurEksik = sonuclar.reduce((t, s) => t + s.eksik.length, 0);
 
 console.log('\n' + '─'.repeat(60));
+console.log(kunye.satir());
 console.log(`DİLEKÇE: ${gecen}/${olculen} senaryo tam geçti (%${olculen ? ((gecen / olculen) * 100).toFixed(1) : 0})` +
   (olculen < tumSenaryolar.length ? ` — havuzdaki ${tumSenaryolar.length} senaryonun ${olculen} tanesi ölçüldü` : ''));
 console.log(`Uydurma veri içeren taslak: ${uydurmali}/${olculen}`);
