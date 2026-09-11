@@ -17,6 +17,7 @@ import { router } from 'expo-router';
 import { AI_ENABLED } from '@/config/features';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
 import { useAiChat, type AiMessage, type AiConversation } from '@/hooks/useAiChat';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -142,6 +143,8 @@ export default function AiChatScreen() {
         <View style={styles.disclaimerBar}>
           <Ionicons name="shield-checkmark-outline" size={13} color={colors.textMuted} />
           <Text style={styles.disclaimerText}>{t('ai.disclaimer')}</Text>
+          {/* Klavye ipucu yalnız web'de anlamlı; telefonda Enter satır atlar. */}
+          {Platform.OS === 'web' && <Text style={styles.disclaimerText}>· {t('ai.webEnterHint')}</Text>}
         </View>
 
         <View style={styles.inputBar}>
@@ -153,6 +156,30 @@ export default function AiChatScreen() {
             placeholderTextColor={colors.textMuted}
             multiline
             editable={!sending}
+            // WEB KLAVYESİ: Enter gönderir, Shift+Enter satır atlar.
+            // react-native-web'in kendi Enter yolu kullanılmadı: o yol
+            // multiline girdide onSubmitEditing'i ancak blurOnSubmit ile
+            // çağırıyor ve ardından girdiyi BLUR ediyor — her mesajdan sonra
+            // kutuya yeniden tıklamak gerekirdi. Burada olayı kendimiz
+            // yakalayıp preventDefault ediyoruz; odak kutuda kalıyor.
+            // (kaynak: react-native-web/src/exports/TextInput/index.js
+            //  → handleKeyDown, onKeyPress her tuşta ÖNCE çağrılıyor)
+            onKeyPress={(e) => {
+              if (Platform.OS !== 'web') return;
+              const ev = e as unknown as {
+                key?: string;
+                shiftKey?: boolean;
+                nativeEvent?: { isComposing?: boolean; keyCode?: number };
+                preventDefault?: () => void;
+              };
+              // IME (ör. Japonca/Çince giriş) sırasında Enter kelimeyi
+              // onaylar, mesaj göndermez.
+              const yaziliyor = ev.nativeEvent?.isComposing || ev.nativeEvent?.keyCode === 229;
+              if (ev.key === 'Enter' && !ev.shiftKey && !yaziliyor) {
+                ev.preventDefault?.();
+                if (!sending && draft.trim().length > 0) onSend(draft);
+              }
+            }}
           />
           <Pressable
             onPress={() => onSend(draft)}
@@ -226,6 +253,13 @@ function Bubble({ message }: { message: AiMessage }) {
         {/* selectable: metne basılı tutunca OS'in "Kopyala" menüsü açılır
             (alıcı geri bildirimi: "AI'dan yazı kopyalanmıyor"). */}
         <Text selectable style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>{message.text}</Text>
+        {/* Modelin cevabı için kopyala/paylaş — web'de metni Word'e taşımanın
+            tek pratik yolu. Kullanıcının kendi mesajında gereksiz. */}
+        {!isUser && !!message.text && (
+          <View style={styles.bubbleActions}>
+            <CiktiEylemleri metin={message.text} baslik="Vekil Pro sohbet" kucuk />
+          </View>
+        )}
       </View>
     </View>
   );
@@ -485,6 +519,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 18,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
+  },
+  bubbleActions: {
+    marginTop: spacing.xs,
+    marginLeft: -4,
   },
   bubbleUser: {
     backgroundColor: colors.primary,

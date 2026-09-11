@@ -1,5 +1,6 @@
 import { Platform, Share } from 'react-native';
 import { File, Paths } from 'expo-file-system';
+import { dosyaIndir } from '@/lib/cikti';
 import { toCsv } from '@/utils/csvMetni';
 
 // CSV metni üretimi saf modüle taşındı (test edilebilsin diye); çağrı
@@ -26,6 +27,15 @@ function safeName(name: string): string {
  */
 export async function shareCsv(fileName: string, csv: string, title: string): Promise<boolean> {
   const name = `${safeName(fileName)}.csv`;
+
+  // WEB: Share.share() burada HER ZAMAN başarısızdı. react-native-web'in
+  // Share'i navigator.share yoksa reject eder (masaüstü Linux/Firefox'ta yok)
+  // ve dosya paylaşımını hiç desteklemez — yani muhasebeciye gidecek CSV
+  // tarayıcıdan ASLA çıkmıyordu, üstelik sessizce. Web'de doğrusu indirmektir.
+  if (Platform.OS === 'web') {
+    return dosyaIndir(csv, name, 'text/csv') === 'indirildi';
+  }
+
   // Önce dosya olarak paylaşmayı dene (iOS): muhasebeci Excel'de açabilsin.
   if (Platform.OS === 'ios') {
     try {

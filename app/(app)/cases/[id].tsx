@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { metniPaylas } from '@/lib/cikti';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -68,7 +69,7 @@ export default function CaseDetailScreen() {
     });
     const res = await sendClientReminder(client.data?.phone, text);
     if (res === 'no_phone' || res === 'failed') {
-      Share.share({ message: text }).catch(() => {});
+      metniPaylas(text);
     }
   };
   const updateDeadline = useUpdateDeadline();

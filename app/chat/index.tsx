@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { metniPaylas } from '@/lib/cikti';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -60,7 +61,7 @@ export default function ChatListScreen() {
 
   const shareMyCode = () => {
     if (!myCode.data) return;
-    Share.share({ message: t('chat.codeShareMsg', { code: myCode.data }) }).catch(() => {});
+    metniPaylas(t('chat.codeShareMsg', { code: myCode.data }));
   };
 
   const needsSetup = !!conversations.error && isMissingNetworkTables(conversations.error);

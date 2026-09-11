@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { metniPaylas } from '@/lib/cikti';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Card } from '@/components/ui/Card';
@@ -151,9 +152,13 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
 
   const handleShare = () => {
     const body = SECTION_KEYS.map(({ key, label }) => `■ ${t(label as never)}\n\n${sections[key] || '—'}`).join('\n\n');
-    Share.share({
-      message: `DURUŞMA BRIEF — ${caseItem.title}${caseItem.case_number ? ` (${caseItem.case_number})` : ''}\n\n${body}\n\n— Vekil Pro`,
-    }).catch(() => {});
+    const baslik = `Duruşma Brief — ${caseItem.title}`;
+    // Web'de paylaşım çoğu masaüstü tarayıcıda yok; metniPaylas o durumda
+    // panoya kopyalar (eskiden hiçbir şey olmuyordu). Bkz. src/lib/cikti.ts.
+    metniPaylas(
+      `DURUŞMA BRIEF — ${caseItem.title}${caseItem.case_number ? ` (${caseItem.case_number})` : ''}\n\n${body}\n\n— Vekil Pro`,
+      baslik
+    );
   };
 
   const addQuickNote = () => {
