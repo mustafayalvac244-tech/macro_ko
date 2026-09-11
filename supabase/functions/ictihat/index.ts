@@ -158,6 +158,12 @@ async function hakSerbestBirak(cfg: KatmanCfg, userId: string): Promise<void> {
 }
 
 type Meter = { tin: number; tout: number };
+
+/** ai-chat'teki kullanimOzeti ile aynı biçim: { model, girdiToken, ciktiToken, maliyetTL }. */
+function kullanimOzeti(model: string, m: Meter, billable: boolean) {
+  const maliyet = billable ? costTry(model, m.tin, m.tout) : 0;
+  return { model, girdiToken: m.tin, ciktiToken: m.tout, maliyetTL: Math.round(maliyet * 100) / 100 };
+}
 // deno-lint-ignore no-explicit-any
 function meterAdd(m: Meter, j: any): void {
   m.tin += j?.usageMetadata?.promptTokenCount ?? 0;
@@ -1195,8 +1201,9 @@ Deno.serve(async (req) => {
         throw e;
       }
       await recordUsage(userData.user.id, cfg.model, meter.tin, meter.tout, cfg.billable, 'ictihat-ozet');
-      // 'model' yanıtta: ölçüm, sonucun hangi modelden geldiğini bilsin.
-      return json({ summary, count: docs.length, tier, model: cfg.model });
+      // 'model' ve 'kullanim' yanıtta: ölçüm, sonucun hangi modelden ve kaça
+      // geldiğini bilsin (ai-chat ile aynı biçim; künye bunu toplar).
+      return json({ summary, count: docs.length, tier, model: cfg.model, kullanim: kullanimOzeti(cfg.model, meter, cfg.billable) });
     }
 
     // OLAY ANALİZİ — avukat olayı anlatır; AI hukuki değerlendirme + çözüm yazar ve
