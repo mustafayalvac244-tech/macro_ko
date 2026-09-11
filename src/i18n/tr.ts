@@ -1346,6 +1346,24 @@ export const tr = {
   'uyari.yapayZeka': 'Bu metni yapay zekâ üretti. Madde numaraları, kararlar ve tutarlar HATALI ya da UYDURMA olabilir. Kullanmadan önce mevzuattan ve dosyanızdan teyit edin. Çıktı hukuki tavsiye değildir; sorumluluk metni kullanan avukata aittir.',
   'uyari.degerlendirme': 'Bu değerlendirme yalnızca girdiğiniz bilgilere dayanır; belgenin aslını kontrol edin. Hukuki tavsiye değildir, sorumluluk avukata aittir.',
   'uyari.sablon': 'Bu metin hazır bir şablondan üretildi; somut olayınıza uyarlanması gerekir. Hukuki tavsiye değildir, sorumluluk metni kullanan avukata aittir.',
+  // ── WEB SÜRÜMÜ (yalnız üyelere) ──────────────────────────────────────────
+  // Tarayıcı sürümü Vekil Pro üyeliğinin görünür karşılığı; mobil ücretsiz
+  // katmanla kullanılmaya devam ediyor.
+  'web.gateBadge': 'WEB SÜRÜMÜ',
+  'web.gateTitle': 'Tarayıcı sürümü Vekil Pro üyelerine özel',
+  'web.gateBody': 'Bilgisayardan kullanım, Vekil Pro üyeliğine dahildir. Telefonunuzdaki Vekil Pro uygulamasını ücretsiz katmanla kullanmaya devam edebilirsiniz.',
+  'web.gateStep1': 'Telefonunuzda Vekil Pro uygulamasını açın.',
+  'web.gateStep2': 'Ayarlar > Üyelik adımından Vekil Pro’ya geçin (abonelik App Store / Google Play üzerinden alınır; tarayıcıdan satın alma yapılamaz).',
+  'web.gateStep3': 'Bu sayfayı yenileyin — aynı hesapla giriş yapmanız yeterli.',
+  'web.gateAccount': 'Giriş yapılan hesap: {eposta}',
+  'web.gateSignOut': 'Başka hesapla giriş yap',
+  // Uygulamada web sürümünün tanıtımı (Ayarlar).
+  'web.promoTitle': 'Bilgisayardan da kullanın',
+  'web.promoBody': 'Vekil Pro üyeliğiniz tarayıcı sürümünü de kapsar: dosyalarınıza büyük ekranda, klavyeyle çalışın.',
+  'web.promoBodyLocked': 'Tarayıcı sürümü Vekil Pro üyelerine özeldir. Üyeliğe geçtiğinizde bilgisayardan da çalışabilirsiniz.',
+  'web.promoOpen': 'Adresi kopyala',
+  'web.promoCopied': 'Adres kopyalandı',
+  'web.promoCta': 'Vekil Pro’ya geç',
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
   // Sunucu asıl modele ulaşamayıp yedekle cevapladığında balonun altında görünür.
   'ai.yedekModel': 'Bu yanıt yedek modelle üretildi; asıl model şu an ulaşılamıyor. Kalite düşük olabilir — soru hakkınızdan düşülmedi.',
