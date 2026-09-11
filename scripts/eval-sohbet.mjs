@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
 import { beklemeSuresi } from './bekleme.mjs';
 import { degerlendir } from './sohbetDegerlendir.mjs';
+import { katmanAyarla } from './eval-katman.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -52,7 +53,12 @@ async function kullaniciAc() {
     body: JSON.stringify({ email: EPOSTA, password: SIFRE, email_confirm: true }),
   });
   if (!res.ok) throw new Error(`kullanıcı açılamadı: ${res.status}`);
-  return (await res.json()).id;
+  const uid = (await res.json()).id;
+  // ÜCRETLİ KATMANA AL. Yoksa kullanıcı 'baslangic' kalır ve YAŞAM BOYU
+  // 3 deneme hakkıyla sınırlanır; dördüncü senaryodan sonrası
+  // "deneme_hakki_bitti" döner ve ölçüm kaliteyi değil KOTAYI ölçer.
+  await katmanAyarla(url, svc, uid);
+  return uid;
 }
 async function kullaniciSil(id) {
   if (!id) return;

@@ -33,6 +33,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { gecer } from './eslestir.mjs';
 import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
+import { katmanAyarla } from './eval-katman.mjs';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -62,7 +63,12 @@ async function kullaniciAc() {
     body: JSON.stringify({ email: EPOSTA, password: SIFRE, email_confirm: true }),
   });
   if (!res.ok) throw new Error(`kullanıcı açılamadı: ${res.status} ${(await res.text()).slice(0, 150)}`);
-  return (await res.json()).id;
+  const uid = (await res.json()).id;
+  // ÜCRETLİ KATMANA AL. Yoksa kullanıcı 'baslangic' kalır ve YAŞAM BOYU
+  // 3 deneme hakkıyla sınırlanır; dördüncü senaryodan sonrası
+  // "deneme_hakki_bitti" döner ve ölçüm kaliteyi değil KOTAYI ölçer.
+  await katmanAyarla(url, svc, uid);
+  return uid;
 }
 
 async function kullaniciSil(id) {
