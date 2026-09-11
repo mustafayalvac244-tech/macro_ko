@@ -57,6 +57,12 @@ export interface AdminUser {
   /** Dosya bazlı tahsilat kayıtları (payments). */
   tahsilat_try: number;
   finans_kayit_adedi: number;
+  /**
+   * Uygulamayı en son AÇTIĞI an. Aktifliğin en doğru ölçüsü budur:
+   * last_sign_in_at oturum saklandığı için eskir, son_islem yalnız kayıt
+   * açanlarda dolar. En fazla 30 dakikada bir yazılır (bkz. 0097).
+   */
+  son_gorulme: string | null;
 }
 
 export function useAdminOverview() {

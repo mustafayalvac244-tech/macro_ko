@@ -297,6 +297,7 @@ function UserRow({
     return isNaN(d.getTime()) ? '' : format(d, 'dd.MM.yyyy');
   })();
   const sonGiris = bicim(user.last_sign_in_at);
+  const sonGorulme = bicim(user.son_gorulme);
   // 0095 migration'ı henüz uygulanmadıysa sunucu bu sütunları DÖNDÜRMEZ.
   // O durumda alan undefined gelir; ekranda "undefined" yazmasın diye her
   // biri boş/0 kabul ediliyor. (Son giriş eski RPC'de de vardı, o hemen çalışır.)
@@ -345,9 +346,17 @@ function UserRow({
             aktifliğin ölçüsü kendi açtığı son kayıttır. İkisini tek satırda
             birleştirmek yanıltıcı olurdu. */}
         <View style={styles.userDetayRow}>
-          <Ionicons name="log-in-outline" size={11} color={colors.textMuted} />
+          <Ionicons name="eye-outline" size={11} color={colors.textMuted} />
           <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
-            {sonGiris ? `Son giriş ${sonGiris}` : 'Hiç giriş yok'}
+            {/* SON GÖRÜLME birincil ölçüdür: uygulamayı her açtığında yazılır,
+                okuma da sayar (bkz. 0097). Yoksa SON GİRİŞ'e düşülür — ama o
+                oturum saklandığı için aylar öncesini gösterebilir, bu yüzden
+                "giriş" diye ayrı etiketlenir, aynı şeymiş gibi gösterilmez. */}
+            {sonGorulme
+              ? `Son görülme ${sonGorulme}`
+              : sonGiris
+                ? `Son giriş ${sonGiris}`
+                : 'Hiç giriş yok'}
           </Text>
           <Ionicons name="pulse-outline" size={11} color={colors.textMuted} />
           <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
