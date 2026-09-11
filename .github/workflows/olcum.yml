@@ -50,7 +50,13 @@ jobs:
     env:
       SUPABASE_URL: https://wjshlysfmeqlnfiibknj.supabase.co
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      # ANON ANAHTARI SECRET DEĞİL — ilk koşu bu yüzden boş görüp düştü.
+      # Bu değer tasarımı gereği herkese açık: `sb_publishable_` önekli, zaten
+      # eas.json'da, uygulama paketinde ve web derlemesinde yayımlanmış durumda.
+      # Secret yapmak güvenlik katmıyordu, yalnızca kurulumda İKİNCİ bir adım
+      # ve ikinci bir yazım hatası ihtimali doğuruyordu. Varsayılan yazıldı;
+      # secret tanımlıysa yine o kullanılır (başka projeye taşınabilsin diye).
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ' }}
       EVAL_SINIR: ${{ inputs.sinir }}
       EVAL_BEKLEME: ${{ inputs.bekleme }}
     steps:
@@ -67,14 +73,16 @@ jobs:
       - name: Secret kontrolü
         run: |
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "::error::SUPABASE_SERVICE_ROLE_KEY tanımlı değil (Settings → Secrets and variables → Actions)."
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY tanımlı değil."
+            echo "::error::Supabase → Project Settings → API → service_role anahtarı"
+            echo "::error::→ GitHub → Settings → Secrets and variables → Actions → New repository secret"
             exit 1
           fi
           if [ "${{ inputs.grup }}" != "arama" ] && [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "::error::AI grubu SUPABASE_ANON_KEY ister; tanımlı değil."
+            echo "::error::SUPABASE_ANON_KEY boş — varsayılan da tutmadı, iş akışını kontrol et."
             exit 1
           fi
-          echo "Secret'lar yerinde."
+          echo "Anahtarlar yerinde."
 
       - name: Arama ölçümü (API harcaması yok)
         if: ${{ inputs.grup == 'arama' || inputs.grup == 'hepsi' }}
