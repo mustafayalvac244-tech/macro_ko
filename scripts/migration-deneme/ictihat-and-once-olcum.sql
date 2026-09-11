@@ -32,6 +32,14 @@ select case
   else 'BOZULDU: nadir terimli sorgu — ilk sırada ' || coalesce((select s.id from public.search_ictihat_fts('trafik kazası', 2) s limit 1), 'hiçbir şey')
 end;
 
+-- 0113 ORTA BASAMAK: dört terimden üçünü içeren karar (A: kıdem+tazminat+
+-- zamanaşımı, "faiz" yok), yalnız ikisini içeren karardan (B) önde olmalı.
+select case
+  when (select s.id from public.search_ictihat_fts('kıdem tazminatı zamanaşımı faiz', 3) s limit 1) = 'A'
+  then 'GEÇTİ: n-1 terim basamağı — 3/4 terimli karar (A) ilk sırada'
+  else 'BOZULDU: n-1 basamağı — ilk sırada ' || coalesce((select s.id from public.search_ictihat_fts('kıdem tazminatı zamanaşımı faiz', 3) s limit 1), 'hiçbir şey')
+end;
+
 select case
   when (select p.prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public' and p.proname = 'search_ictihat_fts')

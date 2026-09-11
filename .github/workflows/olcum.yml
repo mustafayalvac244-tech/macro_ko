@@ -41,6 +41,10 @@ on:
       betikler:
         description: 'Yalnız bu betikler (boş = hepsi). Ör: eval-mutalaa eval-belge'
         default: ''
+      hibrit:
+        description: 'Mevzuat ölçümünde anlamsal aramayı da kat (ai-chat beslemesi böyle)'
+        type: boolean
+        default: false
       isle:
         description: 'Sonuç JSON dosyaları dala işlensin mi'
         type: boolean
@@ -65,6 +69,10 @@ jobs:
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ' }}
       EVAL_SINIR: ${{ inputs.sinir }}
       EVAL_BEKLEME: ${{ inputs.bekleme }}
+      # SALT FTS ile HİBRİT farklı şeyleri ölçer. ai-chat modele mevzuatı
+      # FTS + kural + anlamsal arama birlikte veriyor (buildMevzuat); salt
+      # FTS ölçümü (%58,8) modelin gerçekte gördüğü beslemeyi ÖLÇMÜYORDU.
+      EVAL_HIBRIT: ${{ inputs.hibrit && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
