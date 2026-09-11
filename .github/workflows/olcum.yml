@@ -80,7 +80,11 @@ jobs:
       # olarak search_mevzuat_fts'i ölçüyordu; ai-chat ise search_mevzuat_kural
       # çağırıyor (buildMevzuat, 0066). Bugüne kadarki %58,8, modelin hiç
       # görmediği bir fonksiyonun ölçümüydü.
-      EVAL_RPC: ${{ inputs.mevzuat_rpc || 'search_mevzuat_kural' }}
+      # DİKKAT: eval-ictihat DA EVAL_RPC okuyor (vars. search_ictihat_fts).
+      # Bu değişken iş düzeyinde EVAL_RPC olarak verilince içtihat ölçümü
+      # mevzuat fonksiyonunu çağırdı ve 0/150 çıktı (2026-09-11 20:38). Bu
+      # yüzden ad farklı; yalnız eval-arama'ya EVAL_RPC olarak aktarılıyor.
+      EVAL_MEVZUAT_RPC: ${{ inputs.mevzuat_rpc || 'search_mevzuat_kural' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -147,11 +151,14 @@ jobs:
         continue-on-error: true
         run: |
           echo "## Arama ölçümü" >> $GITHUB_STEP_SUMMARY
-          for b in eval-arama eval-ictihat; do
-            echo "### $b" >> $GITHUB_STEP_SUMMARY
-            node "scripts/$b.mjs" 2>&1 | tee "/tmp/$b.log"
-            tail -12 "/tmp/$b.log" >> $GITHUB_STEP_SUMMARY
-          done
+          # Mevzuat: fonksiyon adı yalnız BU betiğe EVAL_RPC olarak geçer.
+          echo "### eval-arama" >> $GITHUB_STEP_SUMMARY
+          EVAL_RPC="$EVAL_MEVZUAT_RPC" node scripts/eval-arama.mjs 2>&1 | tee /tmp/eval-arama.log
+          tail -12 /tmp/eval-arama.log >> $GITHUB_STEP_SUMMARY
+          # İçtihat: kendi varsayılanı (search_ictihat_fts); EVAL_RPC verilmez.
+          echo "### eval-ictihat" >> $GITHUB_STEP_SUMMARY
+          node scripts/eval-ictihat.mjs 2>&1 | tee /tmp/eval-ictihat.log
+          tail -12 /tmp/eval-ictihat.log >> $GITHUB_STEP_SUMMARY
 
       - name: AI ölçümü (GERÇEK PARA HARCAR)
         if: ${{ inputs.grup == 'ai' || inputs.grup == 'hepsi' }}
