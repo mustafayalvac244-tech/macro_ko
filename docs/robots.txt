@@ -1,0 +1,6 @@
+# Paylaşım görselinin kaynağı taranmasın: sayfa değil, şablon.
+User-agent: *
+Allow: /
+Disallow: /og.html
+
+Sitemap: https://mustafayalvac244-tech.github.io/macro_ko/sitemap.xml
