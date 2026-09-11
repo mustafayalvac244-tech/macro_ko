@@ -6,8 +6,9 @@ import { File } from 'expo-file-system';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
+import { DuzenlenebilirCikti } from '@/components/ui/DuzenlenebilirCikti';
 import { HukukiUyari } from '@/components/ui/HukukiUyari';
+import { AtifDenetimi, type KararDenetimiVerisi } from '@/components/ui/AtifDenetimi';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_BELGE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
@@ -43,6 +44,7 @@ export default function DocumentReviewScreen() {
   const [ayiklanan, setAyiklanan] = useState(0);
   // Uydurma kanun maddesi atfı: sunucu artık havuzla karşılaştırıp söylüyor.
   const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  const [kararDenetimi, setKararDenetimi] = useState<KararDenetimiVerisi | null>(null);
   const [uydurmaTutar, setUydurmaTutar] = useState<number[]>([]);
   // PDF'İN OKUNAMAYAN SAYFALARI (taranmış görüntü).
   //
@@ -157,7 +159,7 @@ export default function DocumentReviewScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[] } | null;
+      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       const reply = yanit?.text?.trim();
       if (!reply) {
         setError(t('ai.errGeneric'));
@@ -166,6 +168,7 @@ export default function DocumentReviewScreen() {
       setResult(reply);
       setAyiklanan(Number(yanit?.ayiklananTarih ?? 0));
       setUydurmaMadde(yanit?.uydurmaMadde ?? []);
+      setKararDenetimi(yanit?.kararDenetimi ?? null);
       setUydurmaTutar(yanit?.uydurmaTutar ?? []);
       setKullanim(yanit?.kullanim ?? null);
       setHakDusulmedi(!!yanit?.hakDusulmedi);
@@ -253,12 +256,13 @@ export default function DocumentReviewScreen() {
 
           {!!result && (
             <View style={styles.resultCard}>
-              <View style={styles.resultHead}>
-                <Text style={styles.resultTitle}>{t('docrev.resultTitle')}</Text>
-                <CiktiEylemleri metin={result} baslik={t('docrev.resultTitle')} />
-              </View>
-              {/* selectable: avukat bulguları kopyalayıp dilekçeye taşıyabilsin */}
-              <Text selectable style={styles.resultText}>{result}</Text>
+              {/* Bulgular düzenlenebilir: avukat kendi notunu ekleyip dosyaya
+                  öyle koyuyor. UDF YOK — inceleme notu mahkemeye verilmez. */}
+              <DuzenlenebilirCikti
+                metin={result}
+                baslik={t('docrev.resultTitle')}
+                etiket={t('docrev.resultTitle')}
+              />
               <HukukiUyari tur="yapayZeka" />
               {/* SUNUCU BUNLARI GÖNDERİYORDU, EKRAN HİÇBİRİNİ GÖSTERMİYORDU.
                   Beş durum (uydurma madde, ayıklanan tarih, kullanım, hak
@@ -269,6 +273,7 @@ export default function DocumentReviewScreen() {
               {uydurmaMadde.length > 0 && (
                 <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
               )}
+              <AtifDenetimi veri={kararDenetimi} />
               {uydurmaTutar.length > 0 && (
                 <Text style={styles.warn}>
                   {t('ai.fakeAmounts', { tutarlar: uydurmaTutar.map((tt) => formatMoney(tt)).join(', ') })}

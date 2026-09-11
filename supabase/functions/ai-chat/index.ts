@@ -38,6 +38,11 @@ import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
 // Uydurma madde atfı denetimi ORTAK dosyada (_shared/atif.ts). Ayıklayıcı bugüne
 // kadar yalnız ölçüm betiğinde vardı: ölçüyor ama korumuyorduk.
 import { maddeAtiflari } from '../_shared/atif.ts';
+// İçtihat (karar) atfı denetimi — madde denetiminin karar numarası karşılığı.
+// Uydurma "Yargıtay 9. HD 2019/12345 E." satırı, uydurma maddeden daha
+// tehlikelidir: yanlış maddeyi hâkim okuduğu an anlar, uydurma karar numarası
+// dosyaya girer ve ilk fark eden karşı vekil olur (bkz. _shared/kararAtif.ts).
+import { havuzSorgusu, kararAtiflari, tutarsizKararlar, type TutarsizKarar } from '../_shared/kararAtif.ts';
 // Dosyaya giren kuralın cevapta işlenip işlenmediği (_shared/kural.ts). Ölçülen
 // iki mütalaa kusurunun ikisi de "kural dosyadaydı, model yok saydı"ydı.
 import { atlananKurallar, cakisanDayanaklar } from '../_shared/kural.ts';
@@ -648,19 +653,112 @@ function kusurluCikti(mod: 'dilekce' | 'mutalaa' | 'belge' | 'sohbet', metin: st
  * HATA YUTULUR. Denetim başarısız olursa cevap yine verilir: atıf denetimi bir
  * ek güvence, çalışmanın önkoşulu değil. Denetim yüzünden hazır bir mütalaayı
  * çöpe atmak, korumaya çalıştığımız şeyden daha çok zarar verir.
+ *
+ * ── ÖLÇÜLEN ARIZA: DENETİM 0079'DAN BERİ SESSİZCE ÇALIŞMIYORDU ──────────────
+ *
+ * Bu işlev, ÇAĞIRAN KULLANICININ oturumuyla kurulmuş istemciyi (rol:
+ * `authenticated`) alıyordu. 0079 numaralı göç, para/kota fonksiyonlarıyla
+ * birlikte `uydurma_maddeler` üzerindeki EXECUTE yetkisini de
+ * `public, anon, authenticated`'tan geri aldı ve yalnız `service_role`a
+ * bıraktı. Yukarıdaki `if (error) return []` satırı da hatayı yutuyor. Sonuç:
+ * 0079'dan bu yana denetim HER istekte boş dönüyordu — ekranda uyarı hiç
+ * çıkmadı, `kusurlu` hiç tetiklenmedi, yani hak düşürme koruması da ölüydü.
+ *
+ * KANIT (11.09.2026, canlı projeye anon anahtarla doğrudan istek):
+ *   POST /rest/v1/rpc/uydurma_maddeler → HTTP 401
+ *   {"code":"42501","message":"permission denied for function uydurma_maddeler"}
+ * Bu ölçüm `anon` rolüyle yapıldı. `authenticated` için ayrı bir ölçüm
+ * yapılmadı; aynı yetki 0079'da ikisinden TEK bir `revoke ... from public,
+ * anon, authenticated` ifadesiyle alındığı için aynı sonucu veriyor olması
+ * beklenir — ama bu çıkarım, ölçümün kendisi değildir.
+ *
+ * DÜZELTME: istemci artık dışarıdan gelmiyor, `svc()` (servis anahtarı)
+ * kullanılıyor. Denetim kullanıcı verisine değil, herkese açık korpusa bakıyor;
+ * servis anahtarıyla çağrılması yetki genişletmesi değil.
  */
-async function uydurmaMaddeDenetimi(
-  db: ReturnType<typeof createClient>,
-  metin: string
-): Promise<string[]> {
+async function uydurmaMaddeDenetimi(metin: string): Promise<string[]> {
+  const s = svc();
+  if (!s) return [];
   try {
     const atiflar = maddeAtiflari(metin);
     if (!atiflar.length) return [];
-    const { data, error } = await db.rpc('uydurma_maddeler', { atiflar });
+    const { data, error } = await s.rpc('uydurma_maddeler', { atiflar });
     if (error) return [];
     return ((data ?? []) as Array<{ kanun: string; madde: string }>).map((a) => `${a.kanun} m.${a.madde}`);
   } catch {
     return [];
+  }
+}
+
+/** Ekrana giden karar atfı denetimi özeti. */
+export interface KararDenetimi {
+  /** Metinde bulunan toplam içtihat atfı sayısı. */
+  toplam: number;
+  /** Havuzumuzda BULUNAN atıflar ("2019/12345 E., 2020/6789 K."). */
+  dogrulanan: string[];
+  /** Bulunamayanlar. UYDURMA DEĞİL — havuz eksik olabilir, teyit istenir. */
+  havuzdaYok: string[];
+  /** Havuzdan bağımsız olarak MANTIKEN olamayacak atıflar. */
+  olanaksiz: Array<{ atif: string; sebep: TutarsizKarar['sebep'] }>;
+}
+
+/**
+ * ÇIKTIDAKİ İÇTİHAT (KARAR) ATIFLARI.
+ *
+ * Madde denetiminin karar numarası karşılığı — ve ondan daha gerekli olanı.
+ * Uydurma madde, hâkim metne bakar bakmaz anlaşılır; uydurma karar numarası
+ * dosyaya girer, karşı vekil UYAP'ta arar ve bulamaz.
+ *
+ * ÜÇ SONUÇ BİRBİRİNE KARIŞTIRILMAZ (bkz. _shared/kararAtif.ts):
+ *   • dogrulanan  — havuzda bulundu, kesin bilgi.
+ *   • havuzdaYok  — bulunamadı. Havuzumuzda ~11 bin karar var, Yargıtay
+ *                   milyonlarca karar verdi; yokluk BİZİM eksiğimizdir ve
+ *                   atfın uydurma olduğunu göstermez. "Teyit ediniz" denir.
+ *   • olanaksiz   — korpustan bağımsız olarak olamaz (karar yılı esas yılından
+ *                   önce, gelecek yıl, hiç var olmamış daire). Burada kesin
+ *                   konuşuruz çünkü konuşan korpus değil, aritmetiktir.
+ *
+ * İkinci ile üçüncüyü tek kovaya atmak iki yönde de yanlış olurdu: gerçek bir
+ * kararı "uydurma" diye işaretlemek uyarıyı gürültüye çevirir ve avukat bir
+ * daha hiçbirine bakmaz; olanaksız bir atfı "belki vardır" diye geçiştirmek
+ * ise korumanın kendisini boşa çıkarır.
+ *
+ * HATA YUTULUR — madde denetimindeki gerekçenin aynısı.
+ */
+async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
+  const s = svc();
+  if (!s) return null;
+  try {
+    const atiflar = kararAtiflari(metin);
+    if (!atiflar.length) return null;
+
+    const olanaksizlar = tutarsizKararlar(atiflar, new Date().getUTCFullYear());
+    const olanaksizHam = new Set(olanaksizlar.map((o) => o.atif.ham));
+
+    // Olanaksız atıfları havuzda ARAMIYORUZ: zaten bulunamayacaklar ve
+    // "havuzda yok" listesinde ikinci kez görünüp uyarıyı sulandırırlar.
+    const aranacak = atiflar.filter((a) => !olanaksizHam.has(a.ham));
+    const bulunan = new Set<string>();
+    if (aranacak.length) {
+      const { data, error } = await s.rpc('havuzdaki_kararlar', { atiflar: havuzSorgusu(aranacak) });
+      if (!error) {
+        for (const r of (data ?? []) as Array<{ esas: string; karar: string }>) {
+          bulunan.add(`${r.esas ?? ''}#${r.karar ?? ''}`);
+        }
+      }
+    }
+
+    const anahtar = (a: (typeof atiflar)[number]) =>
+      `${a.esasYil ? `${a.esasYil}/${a.esasNo}` : ''}#${a.kararYil ? `${a.kararYil}/${a.kararNo}` : ''}`;
+
+    return {
+      toplam: atiflar.length,
+      dogrulanan: aranacak.filter((a) => bulunan.has(anahtar(a))).map((a) => a.ham),
+      havuzdaYok: aranacak.filter((a) => !bulunan.has(anahtar(a))).map((a) => a.ham),
+      olanaksiz: olanaksizlar.map((o) => ({ atif: o.atif.ham, sebep: o.sebep })),
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -2044,12 +2142,20 @@ Deno.serve(async (req) => {
       // olmayan bir metin, doğru göründüğü için yanlış olmayan bir metinden
       // daha tehlikelidir. Hak düşülmez ve avukat hangi atfın havuzda
       // bulunmadığını görür.
-      const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, text);
+      const uydurmaMadde = await uydurmaMaddeDenetimi(text);
+      const kararDenetimi = await kararAtfiDenetimi(text);
       const atlanan = atlananKurallar(
         [...dayanakKurallar].map(([id, k]) => ({ id, zorunlu_terimler: k.terimler })),
         text
       );
-      const kusurlu = kusurluCikti('mutalaa', text) || uydurmaMadde.length > 0;
+      // OLANAKSIZ KARAR ATFI DA KUSURDUR, "havuzda yok" DEĞİLDİR. Birincisinde
+      // metin kendi içinde yanlış (karar yılı esas yılından önce olamaz);
+      // ikincisinde eksik olan bizim korpusumuz — onun bedelini avukatın
+      // hakkından düşmek haksızlık olur.
+      const kusurlu =
+        kusurluCikti('mutalaa', text) ||
+        uydurmaMadde.length > 0 ||
+        (kararDenetimi?.olanaksiz.length ?? 0) > 0;
       // YEDEĞE DÜŞÜLDÜYSE MÜTALAA HAKKI GERİ VERİLİR (bkz. sohbet modundaki not):
       // 12 mütalaalık hakkın biri, ödenen modelin yazmadığı bir metne gitmesin.
       const yedekModel = cfg.provider === 'claude' && !kullanim.faturali;
@@ -2069,6 +2175,7 @@ Deno.serve(async (req) => {
         // hak düşürmez (bkz. _shared/kural.ts).
         atlananKural: atlanan.length ? atlanan : undefined,
         uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+        kararDenetimi: kararDenetimi ?? undefined,
         hakDusulmedi: kusurlu || undefined,
         istekId,
         kullanim: kullanimOzeti(kullanim.model, meter.tin, meter.tout, kusurlu ? 0 : maliyet),
@@ -2442,7 +2549,11 @@ async function dosyaKunyesi(
       // Zorunlu bölümü eksik ya da yarım kalmış taslak, kullanıcının hakkından
       // DÜŞÜLMEZ; gideri biz karşılarız. Bunu yanıtta da söylüyoruz ki avukat
       // hakkının neden eksilmediğini bilsin.
-      const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, temiz.metin);
+      const uydurmaMadde = await uydurmaMaddeDenetimi(temiz.metin);
+      // KARAR ATFI DENETİMİ EN ÇOK BURADA GEREKLİ: mütalaa büroda kalır,
+      // dilekçe mahkemeye gider. Uydurma bir esas/karar numarasını ilk fark
+      // eden karşı vekil olur (bkz. kararAtfiDenetimi).
+      const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
       // ATLANAN KURAL DENETİMİ DİLEKÇEDE ÇALIŞMIYOR — ölçüm gösterdi ki burada
       // ürettiği şey gürültü. Dört senaryoluk koşuda üç uyarı çıktı ve üçü de
       // konu dışıydı: istinaf dilekçesinde "arabulucu" (o aşama çoktan geçmiş),
@@ -2465,7 +2576,8 @@ async function dosyaKunyesi(
       // UYDURMA TUTAR DENETİMİ — madde atfıyla aynı prensip: silinmez, uyarılır.
       // Bkz. _shared/dilekce.ts > uydurmaTutarlariBul.
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
-      const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
+      const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0
+        || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
       // Yedeğe düşüldüyse hak geri verilir (bkz. sohbet modundaki not).
       const yedekModel = cfg.provider === 'claude' && !faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
@@ -2478,6 +2590,7 @@ async function dosyaKunyesi(
           talepEksik: talepEksik.length ? talepEksik : undefined,
           cakisanDayanak: cakisan.length ? cakisan : undefined,
           uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+          kararDenetimi: kararDenetimi ?? undefined,
           uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: dilekceKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
@@ -2690,12 +2803,14 @@ async function dosyaKunyesi(
       // Belgede geçmeyen tarihler ayıklanır: incelemedeki bir tarih, avukat
       // için "bu gün son gün" demektir.
       const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
-      const uydurmaMadde = await uydurmaMaddeDenetimi(supabase, temiz.metin);
+      const uydurmaMadde = await uydurmaMaddeDenetimi(temiz.metin);
+      const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
       // UYDURMA TUTAR DENETİMİ — incelemedeki bir tutar, belgede hiç yoksa
       // avukat için "bu belgede yazan miktar" sanılır. Bkz. dilekçedeki aynı
       // denetim; burada "olay" yerine incelenen belgenin metni (promptQuestion).
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
-      const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
+      const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0
+        || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
       // Yedeğe düşüldüyse hak geri verilir (bkz. sohbet modundaki not).
       const yedekModel = cfg.provider === 'claude' && !faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
@@ -2706,6 +2821,7 @@ async function dosyaKunyesi(
           hakDusulmedi: (kusurlu || yedekModel) || undefined, istekId,
           yedekModel: yedekModel || undefined,
           uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+          kararDenetimi: kararDenetimi ?? undefined,
           uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: beslemeKirpildi || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
@@ -2845,16 +2961,27 @@ async function dosyaKunyesi(
   // kaybediyordu. "Yedeğe düşüldüğünde fatura kesilmez" ilkesi (ucretliChat)
   // hak için de geçerli olmalı: asıl model cevaplamadıysa hak gitmez.
   const yedekModel = provider === 'claude' && !faturali;
-  if (yedekModel) {
+  // ATIF DENETİMİ SOHBETTE HİÇ YOKTU — oysa uydurma atıf için EN RİSKLİ mod
+  // burasıdır. Dilekçe ve mütalaa denetleniyordu; "bu konuda emsal karar var
+  // mı" sorusu ise en çok sohbete soruluyor ve cevaptaki karar numarası
+  // doğrudan dilekçeye kopyalanıyor. Denetimi üç modda yapıp dördüncüde
+  // atlamak, korumayı en çok gerektiği yerde kapatmak demekti.
+  const uydurmaMadde = await uydurmaMaddeDenetimi(text);
+  const kararDenetimi = await kararAtfiDenetimi(text);
+  const kusurlu = uydurmaMadde.length > 0 || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
+  if (yedekModel || kusurlu) {
     if (cfg.modLimits) await aiModSerbestBirak(userData.user.id, aiAy, false);
     if (cfg.denemeLimit) await denemeHakkiSerbestBirak(userData.user.id);
   }
-  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !yedekModel, 'sohbet');
+  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !(yedekModel || kusurlu), 'sohbet');
   return new Response(JSON.stringify({
     text: text.trim(), tier, model: kullanilanModel, istekId,
     // Uygulama bunu balonun altında uyarı olarak gösterir (AiMessage.yedek).
     yedekModel: yedekModel || undefined,
-    kullanim: kullanimOzeti(kullanilanModel, tin, tout, maliyet),
+    uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+    kararDenetimi: kararDenetimi ?? undefined,
+    hakDusulmedi: kusurlu || undefined,
+    kullanim: kullanimOzeti(kullanilanModel, tin, tout, kusurlu ? 0 : maliyet),
   }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });

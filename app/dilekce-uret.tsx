@@ -4,7 +4,8 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
+import { DuzenlenebilirCikti } from '@/components/ui/DuzenlenebilirCikti';
+import { AtifDenetimi, type KararDenetimiVerisi } from '@/components/ui/AtifDenetimi';
 import { HukukiUyari } from '@/components/ui/HukukiUyari';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_DILEKCE_ENABLED } from '@/config/features';
@@ -76,6 +77,9 @@ export default function DilekceUretScreen() {
   // GERÇEK GÖRÜNÜR — biçimi doğru, numarası var — ve yanlışlığı ancak hâkim
   // baktığında anlaşılır. Böyle bir taslak için hak da düşülmez.
   const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  // Karar atfı denetimi: dilekçe mahkemeye gider, uydurma esas/karar numarasını
+  // ilk fark eden karşı vekil olur (bkz. src/components/ui/AtifDenetimi.tsx).
+  const [kararDenetimi, setKararDenetimi] = useState<KararDenetimiVerisi | null>(null);
   // UYDURMA TUTAR. Aynı kusur madde atfıyla: ölçüm betiğinde vardı, taslağı
   // üreten uçta yoktu — avukatın gördüğü çıktıda hiç çalışmıyordu.
   const [uydurmaTutar, setUydurmaTutar] = useState<number[]>([]);
@@ -113,7 +117,7 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[] } | null;
+      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -123,6 +127,7 @@ export default function DilekceUretScreen() {
       setTalepEksik(payload.talepEksik ?? []);
       setCakisanDayanak(payload.cakisanDayanak ?? []);
       setUydurmaMadde(payload.uydurmaMadde ?? []);
+      setKararDenetimi(payload.kararDenetimi ?? null);
       setUydurmaTutar(payload.uydurmaTutar ?? []);
       setAyiklanan(Number(payload.ayiklananTarih ?? 0));
       setKullanim(payload.kullanim ?? null);
@@ -242,18 +247,22 @@ export default function DilekceUretScreen() {
 
           {!!text && (
             <View style={styles.card}>
-              <View style={styles.cardHead}>
-                <Text style={styles.cardTitle}>{t('dlk.resultTitle')}</Text>
-                {/* UDF YALNIZ BURADA: dilekçe, UYAP'a yüklenmek üzere üretiliyor.
-                    Mütalaa ve belge incelemesi mahkemeye verilmez; oralarda
-                    UDF düğmesi işe yaramayan bir dosya üretirdi. */}
-                <CiktiEylemleri metin={text} baslik={t('dlk.resultTitle')} udf />
-              </View>
-              <Text selectable style={styles.body}>{text}</Text>
+              {/* TASLAK ARTIK BURADA DÜZENLENİYOR. Eskiden salt okunurdu: avukat
+                  metni Word'e alıp orada düzeltiyordu, yani ürettiğimiz UDF
+                  mahkemeye GİDEN metin değil, gitmeden önceki hâliydi.
+                  UDF YALNIZ BURADA: dilekçe UYAP'a yüklenmek üzere üretiliyor;
+                  mütalaa ve belge incelemesi mahkemeye verilmez. */}
+              <DuzenlenebilirCikti
+                metin={text}
+                baslik={t('dlk.resultTitle')}
+                etiket={t('dlk.resultTitle')}
+                udf
+              />
               <HukukiUyari tur="yapayZeka" />
               {uydurmaMadde.length > 0 && (
                 <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
               )}
+              <AtifDenetimi veri={kararDenetimi} />
               {uydurmaTutar.length > 0 && (
                 <Text style={styles.warn}>
                   {t('ai.fakeAmounts', { tutarlar: uydurmaTutar.map((tt) => formatMoney(tt)).join(', ') })}

@@ -1327,6 +1327,18 @@ export const tr = {
   'ai.skippedRules': 'Dosyaya giren kurallardan biri taslakta geçmiyor: {terimler}. Atlanmışsa hak kaybına yol açabilir; kontrol edin.',
   'ai.fakeArticles': 'DİKKAT: metinde havuzda bulunmayan madde atfı var — {maddeler}. Teyit etmeden kullanmayın.',
   'ai.fakeAmounts': 'DİKKAT: metinde olayda/belgede geçmeyen bir tutar var — {tutarlar}. Teyit etmeden kullanmayın.',
+  // KARAR ATFI DENETİMİ. Üç durum birbirine karıştırılmadan yazılır; "havuzda
+  // yok" ile "olamaz" aynı cümleye girerse uyarı gürültüye döner ve avukat
+  // bir daha hiçbirine bakmaz (bkz. src/components/ui/AtifDenetimi.tsx).
+  'atif.baslik': 'Karar atfı denetimi — metinde {n} içtihat atfı bulundu',
+  'atif.olanaksizBaslik': 'BU ATIFLAR OLAMAZ — düzeltmeden kullanmayın:',
+  'atif.havuzdaYokBaslik': 'Havuzumuzda bulunamadı — UYAP’tan teyit edin:',
+  'atif.havuzdaYokNot': 'Bulunamaması kararın yanlış olduğunu göstermez: havuzumuzda tüm Yargıtay kararları yok.',
+  'atif.dogrulandiBaslik': '{n} atıf havuzumuzda doğrulandı:',
+  'atif.sebepGelecekYil': 'gelecek bir yıla ait numara',
+  'atif.sebepKararEsastanOnce': 'karar yılı esas yılından önce olamaz',
+  'atif.sebepDaireYok': 'bu numarada bir daire hiç var olmadı',
+  'atif.sebepCokEski': 'bu tarih aralığı biçim hatasına işaret ediyor',
   'ai.usageCost': 'Bu istek: {token} token · {tl} TL kontörden düştü',
   'ai.usageFree': 'Bu istek: {token} token (ücretsiz katman — kontör düşmedi)',
   'ai.errKontor': 'AI kontörünüz bitti. Devam etmek için kontör yükleyin.',
@@ -1797,6 +1809,12 @@ export const tr = {
   'cikti.downloaded': 'İndirildi',
   'cikti.unsupported': 'Tarayıcı izin vermedi',
   'cikti.failed': 'Olmadı, metni seçip kopyalayın',
+  'cikti.duzenle': 'Düzenle',
+  'cikti.duzenlemeyiBitir': 'Bitti',
+  // Düzenleme yapıldığında dışa aktarılan metin DÜZENLENMİŞ olandır; avukatın
+  // bunu bilmesi şart, çünkü sorumluluğu üstlendiği metin artık kendi metni.
+  'cikti.duzenlendi': 'Bu metni siz düzenlediniz — kopyalama, indirme ve UYAP (UDF) çıktısı düzenlenmiş hâli alır.',
+  'cikti.aslinaDon': 'Aslına dön',
   'laws.title': 'Mevzuat',
   'laws.subtitle': 'Kanunlar — çevrimdışı, madde arama',
   'laws.offline': 'Tüm metinler cihazda; internetsiz aç, ara.',
