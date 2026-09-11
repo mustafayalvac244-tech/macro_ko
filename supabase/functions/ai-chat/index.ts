@@ -2050,10 +2050,14 @@ Deno.serve(async (req) => {
         text
       );
       const kusurlu = kusurluCikti('mutalaa', text) || uydurmaMadde.length > 0;
-      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, true);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !kusurlu, 'mutalaa');
+      // YEDEĞE DÜŞÜLDÜYSE MÜTALAA HAKKI GERİ VERİLİR (bkz. sohbet modundaki not):
+      // 12 mütalaalık hakkın biri, ödenen modelin yazmadığı bir metne gitmesin.
+      const yedekModel = cfg.provider === 'claude' && !kullanim.faturali;
+      if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, true);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !(kusurlu || yedekModel), 'mutalaa');
       return new Response(JSON.stringify({
         text: text.trim(), tier, model: kullanim.model, issues,
+        yedekModel: yedekModel || undefined,
         // Dosyaya giren kural özetleri. Bunlar BİZİM ÖZETİMİZDİR, kanun lafzı
         // değildir; ekranda da öyle etiketleniyor.
         dayanak: dayanakKurallar.size
@@ -2462,12 +2466,15 @@ async function dosyaKunyesi(
       // Bkz. _shared/dilekce.ts > uydurmaTutarlariBul.
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
       const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
-      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
-      if (cfg.denemeLimit && kusurlu) await denemeHakkiSerbestBirak(userData.user.id);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'dilekce');
+      // Yedeğe düşüldüyse hak geri verilir (bkz. sohbet modundaki not).
+      const yedekModel = cfg.provider === 'claude' && !faturali;
+      if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
+      if (cfg.denemeLimit && (kusurlu || yedekModel)) await denemeHakkiSerbestBirak(userData.user.id);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'dilekce');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
-          hakDusulmedi: kusurlu || undefined, istekId,
+          hakDusulmedi: (kusurlu || yedekModel) || undefined, istekId,
+          yedekModel: yedekModel || undefined,
           talepEksik: talepEksik.length ? talepEksik : undefined,
           cakisanDayanak: cakisan.length ? cakisan : undefined,
           uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
@@ -2568,14 +2575,17 @@ async function dosyaKunyesi(
       const doluAlan = ['court_name', 'case_number', 'opposing_party', 'davaci', 'davali', 'hearing_date']
         .filter((k) => (kunye as Record<string, string | undefined>)[k]).length;
       const kusurlu = doluAlan === 0;
-      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
-      if (cfg.denemeLimit && kusurlu) await denemeHakkiSerbestBirak(userData.user.id);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'kunye');
+      // Yedeğe düşüldüyse hak geri verilir (bkz. sohbet modundaki not).
+      const yedekModel = cfg.provider === 'claude' && !faturali;
+      if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
+      if (cfg.denemeLimit && (kusurlu || yedekModel)) await denemeHakkiSerbestBirak(userData.user.id);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'kunye');
       return new Response(
         JSON.stringify({
           kunye, atilan: atilan.length ? atilan : undefined,
           tier, model: kullanilanModel,
-          hakDusulmedi: kusurlu || undefined,
+          hakDusulmedi: (kusurlu || yedekModel) || undefined,
+          yedekModel: yedekModel || undefined,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet),
         }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
@@ -2686,12 +2696,15 @@ async function dosyaKunyesi(
       // denetim; burada "olay" yerine incelenen belgenin metni (promptQuestion).
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
       const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0;
-      if (cfg.modLimits && kusurlu) await aiModSerbestBirak(userData.user.id, aiAy, false);
-      if (cfg.denemeLimit && kusurlu) await denemeHakkiSerbestBirak(userData.user.id);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !kusurlu, 'belge');
+      // Yedeğe düşüldüyse hak geri verilir (bkz. sohbet modundaki not).
+      const yedekModel = cfg.provider === 'claude' && !faturali;
+      if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
+      if (cfg.denemeLimit && (kusurlu || yedekModel)) await denemeHakkiSerbestBirak(userData.user.id);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'belge');
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
-          hakDusulmedi: kusurlu || undefined, istekId,
+          hakDusulmedi: (kusurlu || yedekModel) || undefined, istekId,
+          yedekModel: yedekModel || undefined,
           uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
           uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: beslemeKirpildi || undefined,
