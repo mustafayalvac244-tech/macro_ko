@@ -1294,8 +1294,9 @@ Deno.serve(async (req) => {
         const analysis = await geminiAnalyze(olay, plan.issue, docs, cfg.provider, model, key, meter);
         await recordUsage(userData.user.id, model, meter.tin, meter.tout, cfg.billable, 'ictihat-analiz');
         // Uygulamaya, analizde kullanılan kararları (dokunup okunabilsin diye) döndür.
-        // 'model' yanıtta: ölçüm, sonucun hangi modelden geldiğini bilsin.
-        return json({ analysis, issue: plan.issue, queries, hits: docs.map((d) => d.hit), tier, model });
+        // 'model' ve 'kullanim' yanıtta: ölçüm, sonucun hangi modelden ve kaça
+        // geldiğini bilsin (ai-chat ile aynı biçim; künye bunu toplar).
+        return json({ analysis, issue: plan.issue, queries, hits: docs.map((d) => d.hit), tier, model, kullanim: kullanimOzeti(model, meter, cfg.billable) });
       } catch (e) {
         // Arızada (sağlayıcı, kaynak site, boş sonuç) rezerve edilen hak geri
         // verilir; avukat bizim arızamızın bedelini kotasından ödemesin.
