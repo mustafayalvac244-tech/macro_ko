@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -133,7 +134,7 @@ export default function PremiumScreen() {
     AsyncStorage.setItem('vekil-plan-intent', plan).catch(() => {});
     // AI paketi: arka uç hizmet veremiyorsa satın almayı hiç başlatma.
     if (plan === 'ai' && aiHizmetKapali) {
-      Alert.alert(t('premium.aiUnavailableTitle'), t('premium.aiUnavailableBody'));
+      uyar(t('premium.aiUnavailableTitle'), t('premium.aiUnavailableBody'));
       return;
     }
     const pkg = plan === 'ai' ? aiOfferingPkg : offeringPkg;
@@ -141,7 +142,7 @@ export default function PremiumScreen() {
     // web'deyse) pkg null gelir — eski "çok yakında" davranışına düşülür,
     // hiçbir şey kırılmaz.
     if (Platform.OS === 'web' || !pkg) {
-      Alert.alert(
+      uyar(
         t('premium.soonTitle'),
         t('premium.soonBody', { plan: plan === 'ai' ? t('premium.aiName') : t('premium.oneName') })
       );
@@ -155,9 +156,9 @@ export default function PremiumScreen() {
         // sunucudadır. Webhook birkaç saniye sürebildiği için profil birkaç kez
         // yeniden okunur.
         profilYenidenOku();
-        Alert.alert(t('premium.purchaseSuccessTitle'), t('premium.purchaseSuccessBody'));
+        uyar(t('premium.purchaseSuccessTitle'), t('premium.purchaseSuccessBody'));
       } else if (sonuc.kind === 'error') {
-        Alert.alert(t('premium.purchaseFailedTitle'), sonuc.message);
+        uyar(t('premium.purchaseFailedTitle'), sonuc.message);
       }
       // 'cancelled' ve 'unavailable' sessizce geçilir — kullanıcı zaten
       // vazgeçmiş ya da hiç teklif sunulmamıştır.
@@ -175,11 +176,11 @@ export default function PremiumScreen() {
         // sunucudadır. Webhook birkaç saniye sürebildiği için profil birkaç kez
         // yeniden okunur.
         profilYenidenOku();
-        Alert.alert(t('premium.restoreDoneTitle'), t('premium.restoreDoneBody'));
+        uyar(t('premium.restoreDoneTitle'), t('premium.restoreDoneBody'));
       } else if (sonuc.kind === 'error') {
-        Alert.alert(t('premium.purchaseFailedTitle'), sonuc.message);
+        uyar(t('premium.purchaseFailedTitle'), sonuc.message);
       } else {
-        Alert.alert(t('premium.restoreDoneTitle'), t('premium.restoreNoneBody'));
+        uyar(t('premium.restoreDoneTitle'), t('premium.restoreNoneBody'));
       }
     } finally {
       setBusyPlan(null);

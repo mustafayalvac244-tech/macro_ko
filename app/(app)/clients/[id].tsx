@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -101,7 +102,7 @@ export default function ClientDetailScreen() {
       setAdvanceAmount('');
       setAdvanceNote('');
     } catch (e) {
-      Alert.alert(
+      uyar(
         t('advance.title'),
         isMissingAdvanceTable(e) ? t('advance.setupRequired') : (e as Error).message ?? 'Error'
       );
@@ -117,7 +118,7 @@ export default function ClientDetailScreen() {
       setExpenseAmount('');
       setExpenseTitle('');
     } catch (e) {
-      Alert.alert(
+      uyar(
         t('advance.title'),
         isMissingAdvanceTable(e) ? t('advance.setupRequired') : (e as Error).message ?? 'Error'
       );
@@ -147,7 +148,7 @@ export default function ClientDetailScreen() {
   }
 
   const handleDelete = () => {
-    Alert.alert(t('client.delete'), t('client.deleteConfirm', { name: client.full_name }), [
+    uyar(t('client.delete'), t('client.deleteConfirm', { name: client.full_name }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -289,7 +290,7 @@ export default function ClientDetailScreen() {
                   <Pressable
                     hitSlop={8}
                     onPress={() =>
-                      Alert.alert(t('promise.deleteTitle'), formatMoney(Number(p.amount)), [
+                      uyar(t('promise.deleteTitle'), formatMoney(Number(p.amount)), [
                         { text: t('common.cancel'), style: 'cancel' },
                         { text: t('common.delete'), style: 'destructive', onPress: () => deletePromise.mutate(p.id) },
                       ])
@@ -418,7 +419,7 @@ export default function ClientDetailScreen() {
               <Pressable
                 hitSlop={8}
                 onPress={() =>
-                  Alert.alert(t('advance.deleteTitle'), formatMoney(Number(a.amount)), [
+                  uyar(t('advance.deleteTitle'), formatMoney(Number(a.amount)), [
                     { text: t('common.cancel'), style: 'cancel' },
                     { text: t('common.delete'), style: 'destructive', onPress: () => deleteAdvance.mutate(a.id) },
                   ])
@@ -454,7 +455,7 @@ export default function ClientDetailScreen() {
               <Pressable
                 hitSlop={8}
                 onPress={() =>
-                  Alert.alert(t('advance.deleteExpenseTitle'), formatMoney(Number(e.amount)), [
+                  uyar(t('advance.deleteExpenseTitle'), formatMoney(Number(e.amount)), [
                     { text: t('common.cancel'), style: 'cancel' },
                     { text: t('common.delete'), style: 'destructive', onPress: () => deleteExpense.mutate(e.id) },
                   ])

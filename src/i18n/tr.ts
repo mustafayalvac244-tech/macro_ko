@@ -276,6 +276,7 @@ export const tr = {
 
   // Common
   'common.cancel': 'Vazgeç',
+  'common.ok': 'Tamam',
   'common.delete': 'Sil',
   'common.edit': 'Düzenle',
   'common.save': 'Değişiklikleri Kaydet',

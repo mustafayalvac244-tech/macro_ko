@@ -1,17 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { AI_ENABLED } from '@/config/features';
@@ -300,7 +289,7 @@ function HistoryPanel({
   const t = useT();
 
   const confirmDelete = (id: string) => {
-    Alert.alert(t('ai.deleteChat'), t('ai.deleteChatConfirm'), [
+    uyar(t('ai.deleteChat'), t('ai.deleteChatConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('ai.deleteChat'), style: 'destructive', onPress: () => onDelete(id) },
     ]);

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -88,7 +89,7 @@ export default function DocumentReviewScreen() {
       if (name.endsWith('.txt')) {
         const content = await new File(asset.uri).text();
         if (!content.trim()) {
-          Alert.alert(t('docrev.title'), t('docrev.fileEmpty'));
+          uyar(t('docrev.title'), t('docrev.fileEmpty'));
           return;
         }
         setText(content.slice(0, MAX_CHARS));
@@ -103,7 +104,7 @@ export default function DocumentReviewScreen() {
         // Gövde okuma ortak yardımcıdan; kod eşlemesi doc-extract'e özgü.
         const govde = await aiHataGovdesi(fnErr);
         const code = govde.error ?? '';
-        Alert.alert(
+        uyar(
           t('docrev.title'),
           code === 'pdf_no_text'
             ? t('docrev.errScanned')
@@ -119,12 +120,12 @@ export default function DocumentReviewScreen() {
       const extracted = cikan?.text ?? '';
       setOkunamayanSayfa(cikan?.okunamayanSayfa ?? []);
       if (!extracted.trim()) {
-        Alert.alert(t('docrev.title'), t('docrev.fileEmpty'));
+        uyar(t('docrev.title'), t('docrev.fileEmpty'));
         return;
       }
       setText(extracted.slice(0, MAX_CHARS));
     } catch {
-      Alert.alert(t('docrev.title'), t('docrev.fileErr'));
+      uyar(t('docrev.title'), t('docrev.fileErr'));
     } finally {
       setExtracting(false);
     }

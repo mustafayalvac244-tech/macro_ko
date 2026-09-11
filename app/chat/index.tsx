@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { metniPaylas } from '@/lib/cikti';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -49,7 +50,7 @@ export default function ChatListScreen() {
   useDmRealtime();
 
   const confirmDeleteConversation = (peerId: string, peerName: string) => {
-    Alert.alert(t('chat.deleteTitle'), `${peerName}\n${t('chat.deleteConfirm')}`, [
+    uyar(t('chat.deleteTitle'), `${peerName}\n${t('chat.deleteConfirm')}`, [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -243,7 +244,7 @@ function OfficeTab() {
               createOffice
                 .mutateAsync(officeName)
                 .then(() => setOfficeName(''))
-                .catch(() => Alert.alert(t('office.createTitle'), t('network.setupRequired')))
+                .catch(() => uyar(t('office.createTitle'), t('network.setupRequired')))
             }
             loading={createOffice.isPending}
             disabled={officeName.trim().length < 2}
@@ -313,7 +314,7 @@ function OfficeTab() {
                       addMember
                         .mutateAsync({ officeId: office.id, userId: p.id })
                         .then(() => setInviteSearch(''))
-                        .catch(() => Alert.alert(t('office.invite'), t('jobForm.failed')))
+                        .catch(() => uyar(t('office.invite'), t('jobForm.failed')))
                     }
                   >
                     <Avatar name={p.full_name} size={38} />
@@ -347,7 +348,7 @@ function OfficeTab() {
               <Pressable
                 hitSlop={8}
                 onPress={() =>
-                  Alert.alert(
+                  uyar(
                     m.user_id === me ? t('office.leave') : t('office.remove'),
                     m.profile?.full_name ?? '',
                     [

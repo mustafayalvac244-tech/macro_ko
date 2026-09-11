@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
@@ -102,13 +103,13 @@ export default function DosyaAktarScreen() {
         const base64 = await new File(asset.uri).base64();
         const { data, error } = await supabase.functions.invoke('doc-extract', { body: { filename: name, base64 } });
         if (error) {
-          Alert.alert(t('imp.title'), t('docrev.fileErr'));
+          uyar(t('imp.title'), t('docrev.fileErr'));
           return;
         }
         text = (data as { text?: string } | null)?.text ?? '';
       }
       if (!text.trim()) {
-        Alert.alert(t('imp.title'), t('docrev.fileEmpty'));
+        uyar(t('imp.title'), t('docrev.fileEmpty'));
         return;
       }
       setRawLen(text.length);
@@ -146,7 +147,7 @@ export default function DosyaAktarScreen() {
       setAtilan(yanit?.atilan ?? []);
       setStep('review');
     } catch {
-      Alert.alert(t('imp.title'), t('docrev.fileErr'));
+      uyar(t('imp.title'), t('docrev.fileErr'));
     } finally {
       setBusy(false);
       setStage('');
@@ -155,7 +156,7 @@ export default function DosyaAktarScreen() {
 
   const save = async () => {
     if (!form.title.trim()) {
-      Alert.alert(t('imp.title'), t('imp.needTitle'));
+      uyar(t('imp.title'), t('imp.needTitle'));
       return;
     }
     setBusy(true);
@@ -184,11 +185,11 @@ export default function DosyaAktarScreen() {
           // duruşma yazılamazsa dosya yine oluşmuş olur
         }
       }
-      Alert.alert(t('imp.title'), t('imp.saved'), [
+      uyar(t('imp.title'), t('imp.saved'), [
         { text: t('common.done'), onPress: () => router.replace('/(app)/cases') },
       ]);
     } catch {
-      Alert.alert(t('imp.title'), t('imp.saveFailed'));
+      uyar(t('imp.title'), t('imp.saveFailed'));
     } finally {
       setBusy(false);
     }

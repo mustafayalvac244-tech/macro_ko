@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -69,7 +70,7 @@ export default function VekaletScreen() {
 
   const save = async () => {
     if (!clientId) {
-      Alert.alert(t('poa.title'), t('poa.pickClientFirst'));
+      uyar(t('poa.title'), t('poa.pickClientFirst'));
       return;
     }
     try {
@@ -95,12 +96,12 @@ export default function VekaletScreen() {
       setFormOpen(false);
       resetForm();
     } catch {
-      Alert.alert(t('poa.title'), t('poa.saveFailed'));
+      uyar(t('poa.title'), t('poa.saveFailed'));
     }
   };
 
   const confirmDelete = (p: PowerOfAttorney) => {
-    Alert.alert(t('poa.deleteTitle'), t('poa.deleteMsg'), [
+    uyar(t('poa.deleteTitle'), t('poa.deleteMsg'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.delete'), style: 'destructive', onPress: () => deletePoa.mutate(p.id) },
     ]);

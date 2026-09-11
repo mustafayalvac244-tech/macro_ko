@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { radius, shadow, spacing } from '@/theme/theme';
+import { etkilesim } from '@/theme/etkilesim';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -16,15 +17,31 @@ export function Card({ children, onPress, style, elevated = true, padded = true 
   const __t = useTheme();
   const styles = makeStyles(__t.colors);
 
-  const content = (
-    <View style={[styles.base, elevated && shadow.card, padded && styles.padded, style]}>{children}</View>
+  const content = (uzerinde: boolean) => (
+    <View
+      style={[
+        styles.base,
+        elevated && shadow.card,
+        padded && styles.padded,
+        // Fareyle üzerine gelince kenarlık belirginleşir. Ölçüldü (2026-09-11):
+        // uygulamadaki hiçbir tıklanabilir öge fareye YANIT VERMİYORDU —
+        // hover öncesi ve sonrası hesaplanan stiller birebir aynıydı. Başarılı
+        // web uygulamalarında satır/kart imleç üzerine gelince yanıt verir;
+        // vermeyen arayüz "tıklanmaz" hissi bırakıyor. Telefonda hover yok,
+        // orada bu dal hiç çalışmaz.
+        uzerinde && styles.uzerinde,
+        style,
+      ]}
+    >
+      {children}
+    </View>
   );
 
-  if (!onPress) return content;
+  if (!onPress) return content(false);
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [pressed && styles.pressed]}>
-      {content}
+    <Pressable onPress={onPress} style={(durum) => [etkilesim(durum).pressed && styles.pressed]}>
+      {(durum) => content(!!etkilesim(durum).hovered)}
     </Pressable>
   );
 }
@@ -41,5 +58,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
+  },
+  uzerinde: {
+    borderColor: colors.primaryMuted,
+    backgroundColor: colors.surfaceHover,
   },
 });

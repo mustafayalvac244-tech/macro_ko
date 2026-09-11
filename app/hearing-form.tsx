@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -145,7 +146,7 @@ export default function HearingFormScreen() {
     }
 
     // Yeni kayıt telefonun takvimine de yazılsın mı?
-    Alert.alert(t('devCal.askTitle'), t('devCal.askMsg'), [
+    uyar(t('devCal.askTitle'), t('devCal.askMsg'), [
       { text: t('common.no'), style: 'cancel', onPress: () => router.back() },
       {
         text: t('common.yes'),
@@ -156,9 +157,9 @@ export default function HearingFormScreen() {
             location: payload.location,
             notes: payload.notes,
           });
-          if (res === 'added') Alert.alert(t('devCal.addedTitle'), t('devCal.addedMsg'));
-          else if (res === 'unavailable') Alert.alert(t('devCal.askTitle'), t('devCal.unavailable'));
-          else if (res === 'error') Alert.alert(t('devCal.askTitle'), t('devCal.error'));
+          if (res === 'added') uyar(t('devCal.addedTitle'), t('devCal.addedMsg'));
+          else if (res === 'unavailable') uyar(t('devCal.askTitle'), t('devCal.unavailable'));
+          else if (res === 'error') uyar(t('devCal.askTitle'), t('devCal.error'));
           // 'canceled' → kullanıcı vazgeçti, mesaj gösterme
           router.back();
         },

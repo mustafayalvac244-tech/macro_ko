@@ -16,7 +16,7 @@ import { describe, expect, it, vi } from 'vitest';
 // gerekiyor, o yüzden modül taklit ediliyor. Varsayılan: web.
 vi.mock('react-native', () => ({ Platform: { OS: 'web' } }));
 
-const { genisEkranMi, ortalaStili, sutunSayisi, SUTUN_GENISLIKLERI, GENIS_ESIK } = await import('@/theme/duzen');
+const { genisEkranMi, ortalaStili, sutunSayisi, kaliciMenuMu, SUTUN_GENISLIKLERI, GENIS_ESIK, KALICI_MENU_ESIGI, YAN_MENU_GENISLIGI } = await import('@/theme/duzen');
 
 describe('genisEkranMi', () => {
   it('eşiğin altında geniş sayılmaz', () => {
@@ -72,5 +72,23 @@ describe('sutunSayisi', () => {
   it('kart en az genişliği büyükse sütun sayısı düşer', () => {
     // 1180'lik sütuna 700 px'lik iki kart sığmaz.
     expect(sutunSayisi(1920, 700)).toBe(1);
+  });
+});
+
+describe('kaliciMenuMu', () => {
+  it('eşiğin altında kalıcı menü yok — hamburger kalır', () => {
+    expect(kaliciMenuMu(KALICI_MENU_ESIGI - 1)).toBe(false);
+    expect(kaliciMenuMu(1024)).toBe(false);
+  });
+
+  it('eşik ve üstünde kalıcı menü açılır', () => {
+    expect(kaliciMenuMu(KALICI_MENU_ESIGI)).toBe(true);
+    expect(kaliciMenuMu(1920)).toBe(true);
+  });
+
+  it('menü + içerik sütunu eşiğe SIĞAR — içerik ezilmemeli', () => {
+    // Eşiğin seçilme sebebi bu: 272 + 1180 = 1452 ideal, ama en azından
+    // menüden sonra makul bir içerik alanı kalmalı.
+    expect(KALICI_MENU_ESIGI - YAN_MENU_GENISLIGI).toBeGreaterThanOrEqual(1000);
   });
 });

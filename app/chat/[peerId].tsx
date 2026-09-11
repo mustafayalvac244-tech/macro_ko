@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { format } from 'date-fns/format';
@@ -88,7 +89,7 @@ export default function ChatThreadScreen() {
 
   const confirmDelete = () => {
     if (!peerId) return;
-    Alert.alert(t('chat.deleteTitle'), t('chat.deleteConfirm'), [
+    uyar(t('chat.deleteTitle'), t('chat.deleteConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -97,7 +98,7 @@ export default function ChatThreadScreen() {
           deleteConversation
             .mutateAsync(peerId)
             .then(() => router.back())
-            .catch(() => Alert.alert(t('chat.deleteTitle'), t('upload.tryAgain'))),
+            .catch(() => uyar(t('chat.deleteTitle'), t('upload.tryAgain'))),
       },
     ]);
   };

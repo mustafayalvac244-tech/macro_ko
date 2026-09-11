@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -64,9 +65,9 @@ export default function FeedbackScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['feedback'] });
       setMessage('');
-      Alert.alert(t('settings.feedback'), t('feedback.thanks'), [{ text: t('common.done'), onPress: () => router.back() }]);
+      uyar(t('settings.feedback'), t('feedback.thanks'), [{ text: t('common.done'), onPress: () => router.back() }]);
     },
-    onError: () => Alert.alert(t('settings.feedback'), t('feedback.error')),
+    onError: () => uyar(t('settings.feedback'), t('feedback.error')),
   });
 
   return (

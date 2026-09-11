@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -183,7 +184,7 @@ export default function DurusmaCikisiScreen() {
       // Sıradaki duruşmaya geç
       resetForNext();
       if (idx >= pending.length - 1) {
-        Alert.alert(t('hout.title'), t('hout.allDone'), [{ text: t('common.done'), onPress: () => router.back() }]);
+        uyar(t('hout.title'), t('hout.allDone'), [{ text: t('common.done'), onPress: () => router.back() }]);
       }
     } catch {
       // hata uyarısı notifySaveError ile gösterildi

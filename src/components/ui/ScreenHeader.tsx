@@ -36,6 +36,8 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
   const openSidebar = useSidebarStore((s) => s.open);
+  // Menü solda sürekli duruyorsa hamburger aynı menüye ikinci bir giriş olurdu.
+  const kaliciMenu = useSidebarStore((s) => s.kalici);
   // Bir önceki ekran varsa geri okunu göster (alt sekmeden açılan Takvim,
   // Dosyalar, Müvekkiller gibi ekranlarda da menünün yanında görünür).
   const canGoBack = router.canGoBack();
@@ -52,7 +54,7 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </Pressable>
         ) : (
-          showMenu && (
+          showMenu && !kaliciMenu && (
             <Pressable onPress={openSidebar} hitSlop={10} style={styles.menuButton}>
               <Ionicons name="menu" size={24} color={colors.textPrimary} />
             </Pressable>

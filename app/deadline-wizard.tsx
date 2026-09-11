@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -71,11 +72,11 @@ export default function DeadlineWizardScreen() {
         reminder_minutes_before: Number(reminder),
         caseTitle: selectedCase.title,
       });
-      Alert.alert(t('wizard.createdTitle'), t('wizard.createdMsg', { date: formatDate(due.toISOString()) }), [
+      uyar(t('wizard.createdTitle'), t('wizard.createdMsg', { date: formatDate(due.toISOString()) }), [
         { text: t('common.done'), onPress: () => router.back() },
       ]);
     } catch {
-      Alert.alert(t('wizard.title'), t('financeForm.saveFailed'));
+      uyar(t('wizard.title'), t('financeForm.saveFailed'));
     }
   };
 

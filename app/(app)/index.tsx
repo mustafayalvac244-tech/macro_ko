@@ -29,7 +29,7 @@ import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
-import { ortalaStili } from '@/theme/duzen';
+import { kaliciMenuMu, ortalaStili } from '@/theme/duzen';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney, formatTime } from '@/utils/format';
@@ -329,9 +329,13 @@ export default function DashboardScreen() {
         {/* ---------- Üst çubuk ---------- */}
         <View style={styles.toolbar}>
           <View style={styles.toolbarLeft}>
-            <Pressable onPress={openSidebar} hitSlop={10}>
-              <Ionicons name="menu" size={24} color={colors.textPrimary} />
-            </Pressable>
+            {/* Menü zaten solda sürekli duruyorsa hamburger gereksiz —
+                aynı menüye iki giriş kullanıcıyı şaşırtır. */}
+            {!kaliciMenuMu(pencereGenisligi) && (
+              <Pressable onPress={openSidebar} hitSlop={10}>
+                <Ionicons name="menu" size={24} color={colors.textPrimary} />
+              </Pressable>
+            )}
             <View style={styles.brandRow}>
               <MaterialCommunityIcons name="scale-balance" size={22} color={colors.primary} />
               <Text allowFontScaling={false} style={styles.brandText}>

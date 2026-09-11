@@ -44,6 +44,29 @@ export function genisEkranMi(pencereGenisligi: number): boolean {
   return Platform.OS === 'web' && pencereGenisligi >= GENIS_ESIK;
 }
 
+/**
+ * KALICI YAN MENÜ.
+ *
+ * Uygulamanın menüsü hamburger düğmesinin arkasında duruyor — telefon deseni.
+ * Nielsen Norman Group'un dikey gezinme incelemesi bunun masaüstünde bir kusur
+ * olduğunu söylüyor: kullanıcı zamanın ~%80'inde ekranın SOL yarısına bakıyor,
+ * dikey liste yatay listeden daha hızlı taranıyor (tek bakışta daha çok öge)
+ * ve öneri açıkça "gezinmeyi görünür tut, hamburger menünün arkasına saklama".
+ * Kaynak: nngroup.com/articles/vertical-nav/
+ * Material 3 de aynı yönde: "expanded" (≥840dp) genişlikte kalıcı (standard)
+ * navigation drawer öneriliyor.
+ *
+ * EŞİK NEDEN 1280: menü 272 px. 1180 px'lik içerik sütunu + menü = 1452 px.
+ * 1280'in altında menüyü kalıcı yapmak içeriği ezerdi; orada hamburger daha
+ * doğru. Natifte her zaman false — telefonda kalıcı menü yeri yok.
+ */
+export const YAN_MENU_GENISLIGI = 272;
+export const KALICI_MENU_ESIGI = 1280;
+
+export function kaliciMenuMu(pencereGenisligi: number): boolean {
+  return Platform.OS === 'web' && pencereGenisligi >= KALICI_MENU_ESIGI;
+}
+
 export interface OrtalamaStili {
   width: '100%';
   maxWidth: number;

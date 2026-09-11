@@ -274,6 +274,7 @@ export const en: Record<keyof typeof tr, string> = {
 
   // Common
   'common.cancel': 'Cancel',
+  'common.ok': 'OK',
   'common.delete': 'Delete',
   'common.edit': 'Edit',
   'common.save': 'Save Changes',

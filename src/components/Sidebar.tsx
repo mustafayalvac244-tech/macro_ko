@@ -1,16 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  Animated,
-  Dimensions,
-  Easing,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, Dimensions, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +12,8 @@ import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { AI_BELGE_ENABLED, AI_DILEKCE_ENABLED, AI_ENABLED, AI_MUTALAA_ENABLED } from '@/config/features';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/tokens';
+import { YAN_MENU_GENISLIGI } from '@/theme/duzen';
+import { etkilesim } from '@/theme/etkilesim';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -41,7 +33,13 @@ interface NavItem {
  * tapping it expands an accordion with profile actions, tapping again
  * collapses it. Everything else is a flat shortcut list.
  */
-export function Sidebar() {
+/**
+ * @param kalici Masaüstünde (web, >=1280px) menü hamburgerin arkasında değil,
+ * ekranın solunda SÜREKLİ durur. Bkz. src/theme/duzen.ts → kaliciMenuMu.
+ * Telefonda ve dar tarayıcıda bu değer false'tur ve panel eskisi gibi
+ * üstten açılan bir çekmecedir.
+ */
+export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
   const visible = useSidebarStore((s) => s.isOpen);
   const onClose = useSidebarStore((s) => s.close);
   const __t = useTheme();
@@ -94,20 +92,30 @@ export function Sidebar() {
   };
 
   const go = (path: string) => {
+    // Kalıcı menüde kapanacak bir çekmece yok; doğrudan git.
+    if (kalici) {
+      router.push(path as Parameters<typeof router.push>[0]);
+      return;
+    }
     close(() => router.push(path as Parameters<typeof router.push>[0]));
   };
 
   const handleSignOut = () => {
-    Alert.alert(t('settings.signOut'), t('settings.signOutConfirm'), [
+    uyar(t('settings.signOut'), t('settings.signOutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('settings.signOut'),
         style: 'destructive',
         onPress: () => {
-          close(async () => {
+          const cik = async () => {
             await signOut();
             router.replace('/(auth)/login');
-          });
+          };
+          if (kalici) {
+            void cik();
+            return;
+          }
+          close(cik);
         },
       },
     ]);
@@ -160,19 +168,8 @@ export function Sidebar() {
 
   const chevronRotation = chevron.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
 
-  return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={() => close()} statusBarTranslucent>
-      <View style={styles.root}>
-        <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdrop }]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => close()} />
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.panel,
-            { width: PANEL_WIDTH, paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.md, transform: [{ translateX: translate }] },
-          ]}
-        >
+  const panelIcerigi = (
+    <>
           {/* Profile block — pinned on top, accordion below it */}
           <Pressable style={styles.profileRow} onPress={toggleProfile}>
             <Avatar name={profile?.full_name || t('dash.counselor')} size={48} uri={avatarUrl} premium={profile?.is_premium} />
@@ -234,6 +231,33 @@ export function Sidebar() {
           </ScrollView>
 
           <Text style={styles.version}>Vekil Pro v{Constants.expoConfig?.version ?? ''}</Text>
+    </>
+  );
+
+  // KALICI MENÜ (masaüstü web): Modal yok, animasyon yok, arka plan karartması
+  // yok — menü düzenin bir parçası, sürekli görünür. Bkz. duzen.ts açıklaması.
+  if (kalici) {
+    return (
+      <View style={[styles.kaliciPanel, { width: YAN_MENU_GENISLIGI, paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.md }]}>
+        {panelIcerigi}
+      </View>
+    );
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="none" onRequestClose={() => close()} statusBarTranslucent>
+      <View style={styles.root}>
+        <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdrop }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => close()} />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.panel,
+            { width: PANEL_WIDTH, paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.md, transform: [{ translateX: translate }] },
+          ]}
+        >
+          {panelIcerigi}
         </Animated.View>
       </View>
     </Modal>
@@ -305,6 +329,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   backdrop: {
     backgroundColor: 'rgba(10, 15, 30, 0.45)',
+  },
+  // Kalıcı menü: düzenin içinde, sağ kenarında ince ayraç. Gölge YOK —
+  // üstte yüzen bir çekmece değil, sayfanın bir sütunu.
+  kaliciPanel: {
+    backgroundColor: colors.surface,
+    borderRightWidth: 1,
+    borderRightColor: colors.borderSubtle,
+    paddingHorizontal: spacing.md,
   },
   panel: {
     position: 'absolute',
