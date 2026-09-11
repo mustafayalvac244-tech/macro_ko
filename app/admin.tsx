@@ -302,6 +302,11 @@ function UserRow({
   // biri boş/0 kabul ediliyor. (Son giriş eski RPC'de de vardı, o hemen çalışır.)
   const sonIslem = bicim(user.son_islem);
   const odenen = Number(user.odenen_try) || 0;
+  const gelir = Number(user.gelir_try) || 0;
+  const gider = Number(user.gider_try) || 0;
+  const tahsilat = Number(user.tahsilat_try) || 0;
+  const net = gelir - gider;
+  const tl = (n: number) => `₺${Math.round(n).toLocaleString('tr-TR')}`;
   return (
     <View style={styles.userRow}>
       <View style={styles.userAvatar}>
@@ -347,6 +352,22 @@ function UserRow({
           <Ionicons name="pulse-outline" size={11} color={colors.textMuted} />
           <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
             {sonIslem ? `Son işlem ${sonIslem}` : 'Kayıt açmamış'}
+          </Text>
+        </View>
+
+        {/* UYGULAMA İÇİ ciro — kullanıcının KENDİ müvekkil hacmi. Aşağıdaki
+            "Ödediği" satırıyla karıştırılmasın diye ayrı satır ve ayrı ikon. */}
+        <View style={styles.userDetayRow}>
+          <Ionicons name="bar-chart-outline" size={11} color={colors.textMuted} />
+          <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+            {`Gelir ${tl(gelir)} · Gider ${tl(gider)} · Net `}
+            <Text style={net >= 0 ? styles.userNetArti : styles.userNetEksi}>{tl(net)}</Text>
+          </Text>
+        </View>
+        <View style={styles.userDetayRow}>
+          <Ionicons name="wallet-outline" size={11} color={colors.textMuted} />
+          <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+            {`Tahsilat ${tl(tahsilat)} · ${user.finans_kayit_adedi ?? 0} finans kaydı`}
           </Text>
         </View>
 
@@ -592,6 +613,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   userOdenen: {
     color: colors.success,
+    fontWeight: '700',
+  },
+  userNetArti: {
+    color: colors.success,
+    fontWeight: '700',
+  },
+  userNetEksi: {
+    color: colors.danger,
     fontWeight: '700',
   },
   userAiCost: {
