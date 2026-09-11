@@ -1453,6 +1453,8 @@ export const tr = {
   'admin.aiCreditHint': 'Ödenmiş, henüz harcanmamış',
   'admin.aiRefund': 'İade oranı',
   'admin.aiRefundHint': 'bu ay {iade}/{toplam} istek iade edildi',
+  'admin.atifTitle': 'Atıf denetimi (son 30 gün)',
+  'admin.atifRow': '{mod}: {istek} istek · {atif} atıf · {dogru} doğrulandı · {yok} havuzda yok · {olanaksiz} olanaksız · {madde} uydurma madde',
   'admin.aiCostMonth': 'Bu Ay AI Maliyeti',
   'admin.aiCostHint': 'tüm kullanıcılar, faturalı katmanlar',
   'admin.aiRedundant': 'Yapay zekâ yedekli çalışıyor (iki sağlayıcı ayakta)',

@@ -1418,6 +1418,8 @@ export const en: Record<keyof typeof tr, string> = {
   'admin.aiCreditHint': 'Paid for, not yet spent',
   'admin.aiRefund': 'Refund rate',
   'admin.aiRefundHint': '{iade}/{toplam} requests refunded this month',
+  'admin.atifTitle': 'Citation check (last 30 days)',
+  'admin.atifRow': '{mod}: {istek} requests · {atif} citations · {dogru} verified · {yok} not in corpus · {olanaksiz} impossible · {madde} fabricated articles',
   'admin.aiCostMonth': 'AI Cost This Month',
   'admin.aiCostHint': 'all users, billable tiers',
   'admin.aiRedundant': 'AI has a backup provider (both up)',

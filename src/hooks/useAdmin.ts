@@ -129,6 +129,38 @@ export interface AdminAiOzeti {
   saglayicilar: Array<{ saglayici: string; sonuc: string; model: string | null; zaman: string }>;
 }
 
+/** Atıf denetimi özeti — bir satır = bir mod (sohbet/dilekçe/mütalaa/belge). */
+export interface AdminAtifSatiri {
+  mod: string;
+  istek_sayisi: number;
+  atif_sayisi: number;
+  dogrulanan: number;
+  havuzda_yok: number;
+  olanaksiz: number;
+  uydurma_madde: number;
+}
+
+/**
+ * ATIF DENETİMİNİN SONUCU.
+ *
+ * Denetim ürüne girdi ama "ne kadar işe yarıyor" ölçülmemişti; gerçek model
+ * çıktısında ölçmek API bütçesi istiyordu. Sayılar gerçek kullanımdan
+ * toplanıyor (migration 0118) ve burada okunuyor. Yazılıp hiç okunmayan bir
+ * kayıt ölçüm değildir — birkaç hafta sonra soruya yine tahminle cevap
+ * verilirdi.
+ */
+export function useAdminAtifDenetimi(gun = 30) {
+  return useQuery({
+    queryKey: ['admin', 'atif-denetimi', gun],
+    staleTime: 60_000,
+    queryFn: async (): Promise<AdminAtifSatiri[]> => {
+      const { data, error } = await supabase.rpc('admin_atif_denetimi', { gun });
+      if (error) throw error;
+      return (data ?? []) as AdminAtifSatiri[];
+    },
+  });
+}
+
 export function useAdminAiOzeti() {
   return useQuery({
     queryKey: ['admin', 'ai-ozeti'],

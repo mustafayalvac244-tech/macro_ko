@@ -5,7 +5,7 @@ import { format } from 'date-fns/format';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
-import { useAdminAiOzeti, useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
+import { useAdminAiOzeti, useAdminAtifDenetimi, useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
 import { useAiSaglik } from '@/hooks/useAiSaglik';
 import { useT } from '@/i18n';
 import { fonts, radius, spacing } from '@/theme/theme';
@@ -27,6 +27,7 @@ export default function AdminScreen() {
 
   const overview = useAdminOverview();
   const aiOzet = useAdminAiOzeti();
+  const atif = useAdminAtifDenetimi(30);
   const users = useAdminUsers();
   const setPremium = useSetPremium();
   const saglik = useAiSaglik(!!isAdmin);
@@ -150,6 +151,36 @@ export default function AdminScreen() {
                   </Text>
                 )}
               </>
+            )}
+
+            {/* ATIF DENETİMİ — ÖLÇÜM BURADA BİRİKİYOR.
+                "Bu denetim ne kadar işe yarıyor" sorusunun cevabı yoktu ve
+                tahminle doldurmak yasak. Gerçek model çıktısında ölçmek API
+                bütçesi istiyordu; sayılar bunun yerine GERÇEK KULLANIMDAN
+                toplanıyor. Oran değil sayı yazıyor: payda küçükken yüzde,
+                olduğundan güçlü bir izlenim yaratır. */}
+            {!!atif.data?.length && (
+              <View style={styles.healthBox}>
+                <View style={styles.healthHead}>
+                  <Ionicons name="shield-checkmark" size={15} color={colors.primary} />
+                  <Text allowFontScaling={false} style={styles.healthTitle}>
+                    {t('admin.atifTitle')}
+                  </Text>
+                </View>
+                {atif.data.map((r) => (
+                  <Text key={r.mod} allowFontScaling={false} style={styles.healthRow}>
+                    {t('admin.atifRow', {
+                      mod: r.mod,
+                      istek: String(r.istek_sayisi),
+                      atif: String(r.atif_sayisi),
+                      dogru: String(r.dogrulanan),
+                      yok: String(r.havuzda_yok),
+                      olanaksiz: String(r.olanaksiz),
+                      madde: String(r.uydurma_madde),
+                    })}
+                  </Text>
+                ))}
+              </View>
             )}
 
             {/* Sağlayıcı sağlığı. "Yapay zekâ çalışmıyor" bilgisini müşteriden
