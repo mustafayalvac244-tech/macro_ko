@@ -31,7 +31,7 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
 /**
- * Üyelik ekranı — ÜÇ katman: Ücretsiz → Vekil Pro (399 ₺) → + Yapay Zekâ (1.999 ₺).
+ * Üyelik ekranı — ÜÇ katman: Ücretsiz → Vekil Pro (399 ₺) → + Yapay Zekâ (3.999 ₺).
  *
  * ÜRÜN KARARI: içtihat araması ÜCRETSİZDİR ve öyle kalacaktır; ücret, büro
  * yönetimini büyütmek (sınırsız dava/müvekkil/belge, finans, yedekleme) ya da
@@ -358,7 +358,13 @@ export default function PremiumScreen() {
           <Text style={styles.tierTag}>{t('premium.aiTag')}</Text>
 
           <View style={styles.priceRow}>
-            <Text style={styles.price}>₺{AI_PRICE_TRY.toLocaleString('tr-TR')}</Text>
+            {/* MAĞAZANIN FİYATI ESASTIR. Tahsil edilen tutar mağaza ürününün
+                fiyatıdır; teklif yüklendiyse onu gösteriyoruz ki ekranda yazan
+                ile karttan çekilen hiçbir zaman ayrışmasın. Sabit, teklif
+                yüklenemediğinde (web, anahtar yok) yedek. */}
+            <Text style={styles.price}>
+              {aiOfferingPkg?.product.priceString ?? `₺${AI_PRICE_TRY.toLocaleString('tr-TR')}`}
+            </Text>
             <Text style={styles.per}>{t('premium.perMonth')}</Text>
           </View>
 
@@ -406,7 +412,9 @@ export default function PremiumScreen() {
               her iki katman da aynı ibareyi (autoRenewNote) kendi fiyatıyla
               gösteriyor; temel paketteki eski "ilk 7 gün ücretsiz" ince yazısı
               var olmayan bir denemeyi anlattığı için kaldırıldı. */}
-          <Text style={styles.finePrint}>{t('premium.autoRenewNote', { price: AI_PRICE_TRY.toLocaleString('tr-TR') })}</Text>
+          <Text style={styles.finePrint}>
+            {t('premium.autoRenewNote', { price: aiOfferingPkg?.product.priceString ?? AI_PRICE_TRY.toLocaleString('tr-TR') })}
+          </Text>
         </View>
 
         <View style={styles.noteRow}>

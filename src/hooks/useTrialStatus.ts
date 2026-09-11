@@ -6,8 +6,15 @@ export const MONTHLY_PRICE_TRY = 399;
  * AI katmanı aylık ücreti (TL) — Claude Opus 5, 250 soru + 12 mütalaa dahil
  * (bkz. supabase/functions/_shared/katman.ts > AI_SORU_LIMIT/AI_MUTALAA_LIMIT;
  * iki sayı burada da AYNI olmalı, kota koddan, fiyat buradan okunuyor).
+ *
+ * 1.999 → 3.999 (2026-09-11, ürün kararı). Bu sayı yalnız EKRANDAKİ ve
+ * koşullardaki fiyattır; gerçek tahsilat mağaza ürününün fiyatıdır
+ * (vekil_ai_monthly, App Store Connect / Play Console / RevenueCat). Üçü
+ * birden güncellenmezse ekran bir şey yazar, kart başka bir şey çeker —
+ * bu yüzden satın alma ekranı, teklif yüklendiyse mağazanın fiyatını
+ * gösterir ve bu sabit yalnız yedek olarak kalır (app/premium.tsx).
  */
-export const AI_PRICE_TRY = 1999;
+export const AI_PRICE_TRY = 3999;
 /** AI katmanının aylık soru/mütalaa hakkı — yalnız EKRANDA göstermek için;
  *  gerçek sınır sunucuda (_shared/katman.ts). */
 export const AI_SORU_HAKKI = 250;

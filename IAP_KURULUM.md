@@ -77,7 +77,7 @@ istenecek — `app.json`'dan): iOS Bundle ID ve Android Package Name ikisi de
 3. Grubun içine İKİ ürün ekleyin:
    - Ürün kimliği: `vekil_premium_monthly` — Süre **1 Ay** — Fiyat 399₺'ye en
      yakın Apple kademesi.
-   - Ürün kimliği: `vekil_ai_monthly` — Süre **1 Ay** — Fiyat 1.999₺'ye en
+   - Ürün kimliği: `vekil_ai_monthly` — Süre **1 Ay** — Fiyat 3.999₺'ye en
      yakın Apple kademesi.
    - İkisi için de yerelleştirme (en azından Türkçe): başlık + açıklama.
 4. Uygulamanızın "Uygulama İçi Satın Almalar Anlaşması"nın (Paid Apps
@@ -91,7 +91,7 @@ istenecek — `app.json`'dan): iOS Bundle ID ve Android Package Name ikisi de
 
 1. Play Console → uygulamanız → **Gelir kazanma → Abonelikler**.
 2. İki abonelik: `vekil_premium_monthly` (Apple ile AYNI isim, aylık, 399₺'ye
-   en yakın fiyat) ve `vekil_ai_monthly` (1.999₺'ye en yakın fiyat).
+   en yakın fiyat) ve `vekil_ai_monthly` (3.999₺'ye en yakın fiyat).
 
 ## 4. RevenueCat'i mağazalara bağlayın
 
