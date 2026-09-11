@@ -17,6 +17,7 @@
 // Kullanım: POST { "kaynak": "emsal" | "yargitay" | "danistay", "enFazla": 6 }
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
+import { sonrakiSayfa } from '../_shared/hasatSayfa.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -268,8 +269,14 @@ Deno.serve(async (req) => {
   }
 
   let eklenen = 0;
+  // Sayfayı BİTİREMEDEN kotaya takıldık mı? Sayfa ilerletme kararı buna bağlı;
+  // aşağıdaki uzun nota bak.
+  let yarimKaldi = false;
   for (const row of rows) {
-    if (eklenen >= enFazla) break;
+    if (eklenen >= enFazla) {
+      yarimKaldi = true;
+      break;
+    }
     const id = String(row.id);
     if (mevcut.has(id)) continue;
     // NAZİK HIZ. 800 ms'den 300 ms'ye indirildi. Ölçüm: eşzamanlılık 10'da
@@ -301,13 +308,40 @@ Deno.serve(async (req) => {
     if (!error) eklenen++;
   }
 
-  // Sayfayı ilerlet; son sayfaysa başa dön (yeni kararlar için tekrar tara).
-  const sonSayfa = rows.length < PAGE_SIZE;
+  /**
+   * SAYFANIN YARISI ÇÖPE GİDİYORDU — BULUNAN KAYIP.
+   *
+   * PAGE_SIZE 20, ama `enFazla` en çok 10 (cron da 10 geçiyor). Döngü 10 YENİ
+   * kayıt sonrası kırılıyordu; ardından sayfa KOŞULSUZ ilerletiliyordu:
+   *     next_page: sonSayfa ? 1 : page + 1
+   * Yani bir sayfada 20 yeni karar varsa 10'u alınıp KALAN 10'U BİR DAHA HİÇ
+   * GÖRÜLMÜYORDU. Sayfa geçilmişti; terim ancak listenin sonuna varıp başa
+   * döndüğünde oraya uğrayabilirdi.
+   *
+   * ÖLÇÜMLE BİRLEŞİNCE ANLAM KAZANDI: 404 terimin TAMAMI 2-5. sayfada.
+   * Hiçbiri ilerlememiş, hiçbiri bitmemiş. Yani atlanan kararların geri
+   * dönüşü pratikte hiç olmuyordu — sayfa başına en çok %50 kalıcı kayıp.
+   *
+   * DÜZELTME: kotaya takılıp sayfayı BİTİREMEDİYSEK sayfa İLERLEMEZ. Sonraki
+   * tur aynı sayfayı yeniden çeker; ilk 10'u `mevcut` süzgeci yinelenen diye
+   * eler ve kalanlar alınır. Sonsuz döngü olmaz: iki tur sonra sayfada yeni
+   * kalmaz, kotaya takılmayız ve sayfa normal şekilde ilerler.
+   *
+   * UYAP'A EK YÜK GETİRMEZ: tur başına yine bir liste isteği + en çok 10 belge
+   * isteği. Sadece artık indirdiğimizi çöpe atmıyoruz.
+   *
+   * `done` da yarım sayfada işaretlenmez; yoksa terim biten sayılıp taramadan
+   * düşerdi.
+   *
+   * Karar mantığı _shared/hasatSayfa.ts'te ve testli: edge çalışma zamanında
+   * gömülü kalsaydı yalnız canlıda fark edilebilirdi — nitekim aylarca öyle oldu.
+   */
+  const karar = sonrakiSayfa({ sayfa: page, satir: rows.length, sayfaBoyu: PAGE_SIZE, yarimKaldi });
   await supabase
     .from('ictihat_harvest_state')
     .update({
-      next_page: sonSayfa ? 1 : page + 1,
-      done: sonSayfa,
+      next_page: karar.sonrakiSayfa,
+      done: karar.bitti,
       total,
       updated_at: new Date().toISOString(),
     })
@@ -321,6 +355,9 @@ Deno.serve(async (req) => {
       taranan: rows.length,
       eklenen,
       toplam: total,
+      // Kotaya takılıp sayfa yarım kaldıysa SÖYLE: teşhis sorgusu bunu sayıp
+      // "kota mı dar, sonuç mu yok" ayrımını yapabilsin.
+      ...(yarimKaldi ? { yarim: true } : {}),
       // Öncelik sıralaması çalışmadıysa bunu SÖYLE. Sessizce eski davranışa
       // dönmek, "öncelikli hasat açık" sanmamıza yol açardı.
       ...(oncelikliCalisti ? {} : { uyari: 'oncelik_sutunu_yok__last_run_ile_siralandi' }),
