@@ -1,4 +1,5 @@
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { format } from 'date-fns/format';
 import { Screen } from '@/components/ui/Screen';
@@ -7,7 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useAdminAiOzeti, useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
 import { useAiSaglik } from '@/hooks/useAiSaglik';
 import { useT } from '@/i18n';
-import { fonts, spacing } from '@/theme/theme';
+import { fonts, radius, spacing } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -29,6 +30,20 @@ export default function AdminScreen() {
   const users = useAdminUsers();
   const setPremium = useSetPremium();
   const saglik = useAiSaglik(!!isAdmin);
+
+  // ARAMA. Liste en yeni 100 kaydı gösteriyordu; belirli bir kullanıcıyı
+  // ("burak en son ne zaman girdi") bulmanın yolu yoktu — listeyi gözle
+  // taramak gerekiyordu. Türkçe küçük harf kullanılıyor ki "İ" ile yazılan
+  // isimler de eşleşsin.
+  const [arama, setArama] = useState('');
+  const kullanicilar = useMemo(() => {
+    const liste = users.data ?? [];
+    const q = arama.trim().toLocaleLowerCase('tr');
+    if (!q) return liste;
+    return liste.filter((u) =>
+      `${u.full_name ?? ''} ${u.email ?? ''} ${u.firm_name ?? ''}`.toLocaleLowerCase('tr').includes(q)
+    );
+  }, [users.data, arama]);
 
   if (!isAdmin) {
     return (
@@ -169,10 +184,32 @@ export default function AdminScreen() {
 
             {/* Kullanıcı listesi */}
             <Text allowFontScaling={false} style={styles.sectionLabel}>{t('admin.recentUsers')}</Text>
+            <View style={styles.aramaKutusu}>
+              <Ionicons name="search-outline" size={16} color={colors.textMuted} />
+              <TextInput
+                style={styles.aramaGirdi}
+                value={arama}
+                onChangeText={setArama}
+                placeholder={t('admin.searchUser')}
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {arama.length > 0 && (
+                <Pressable onPress={() => setArama('')} hitSlop={8}>
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                </Pressable>
+              )}
+            </View>
+            {!!arama && (
+              <Text allowFontScaling={false} style={styles.aramaSonuc}>
+                {t('admin.searchResult', { n: String(kullanicilar.length) })}
+              </Text>
+            )}
             {users.isLoading ? (
               <View style={styles.center}><ActivityIndicator color={colors.gold} /></View>
             ) : (
-              (users.data ?? []).map((u) => (
+              kullanicilar.map((u) => (
                 <UserRow
                   key={u.id}
                   user={u}
@@ -250,10 +287,21 @@ function UserRow({
   revokeLabel: string;
 }) {
   const styles = makeStyles(colors);
+  const bicim = (iso: string | null | undefined): string => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? '' : format(d, 'dd.MM.yyyy HH:mm');
+  };
   const joined = (() => {
     const d = new Date(user.created_at);
     return isNaN(d.getTime()) ? '' : format(d, 'dd.MM.yyyy');
   })();
+  const sonGiris = bicim(user.last_sign_in_at);
+  // 0095 migration'ı henüz uygulanmadıysa sunucu bu sütunları DÖNDÜRMEZ.
+  // O durumda alan undefined gelir; ekranda "undefined" yazmasın diye her
+  // biri boş/0 kabul ediliyor. (Son giriş eski RPC'de de vardı, o hemen çalışır.)
+  const sonIslem = bicim(user.son_islem);
+  const odenen = Number(user.odenen_try) || 0;
   return (
     <View style={styles.userRow}>
       <View style={styles.userAvatar}>
@@ -283,6 +331,42 @@ function UserRow({
           <Ionicons name="sparkles-outline" size={11} color={colors.textMuted} />
           <Text allowFontScaling={false} style={styles.userAiCost}>
             ₺{Math.round(Number(user.ai_cost_try) || 0).toLocaleString('tr-TR')} / ay
+          </Text>
+        </View>
+
+        {/* SON GİRİŞ ve SON İŞLEM AYRI gösteriliyor. Oturum cihazda saklanıp
+            jeton otomatik tazelendiği için (lib/supabase.ts) çıkış yapmayan
+            bir kullanıcının "son giriş"i aylar öncesini gösterebilir —
+            aktifliğin ölçüsü kendi açtığı son kayıttır. İkisini tek satırda
+            birleştirmek yanıltıcı olurdu. */}
+        <View style={styles.userDetayRow}>
+          <Ionicons name="log-in-outline" size={11} color={colors.textMuted} />
+          <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+            {sonGiris ? `Son giriş ${sonGiris}` : 'Hiç giriş yok'}
+          </Text>
+          <Ionicons name="pulse-outline" size={11} color={colors.textMuted} />
+          <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+            {sonIslem ? `Son işlem ${sonIslem}` : 'Kayıt açmamış'}
+          </Text>
+        </View>
+
+        <View style={styles.userDetayRow}>
+          <Ionicons
+            name="cash-outline"
+            size={11}
+            color={odenen > 0 ? colors.success : colors.textMuted}
+          />
+          <Text
+            allowFontScaling={false}
+            style={[styles.userDetayText, odenen > 0 && styles.userOdenen]}
+            numberOfLines={1}
+          >
+            {`Ödediği ₺${odenen.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}`}
+            {(user.satin_alma_adet ?? 0) > 0 ? ` (${user.satin_alma_adet})` : ''}
+          </Text>
+          <Ionicons name="briefcase-outline" size={11} color={colors.textMuted} />
+          <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+            {`${user.dava_adedi ?? 0} dava · ${user.muvekkil_adedi ?? 0} müvekkil`}
           </Text>
         </View>
       </View>
@@ -470,6 +554,45 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     fontSize: 9.5,
     color: colors.primary,
+  },
+  aramaKutusu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    marginBottom: spacing.xs,
+  },
+  aramaGirdi: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 14,
+    // Web'de tarayıcının kendi odak halkası kutunun dışına taşıyordu.
+    outlineStyle: 'none',
+  } as never,
+  aramaSonuc: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+  },
+  userDetayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 3,
+    flexWrap: 'wrap',
+  },
+  userDetayText: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  userOdenen: {
+    color: colors.success,
+    fontWeight: '700',
   },
   userAiCost: {
     fontFamily: fonts.medium,
