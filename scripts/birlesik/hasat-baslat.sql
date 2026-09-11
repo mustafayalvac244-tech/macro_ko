@@ -545,8 +545,19 @@ revoke all on function backup.yedekte_iz_var_mi(uuid) from public, anon, authent
 -- öncelik puanlaması kurdum ve o dosyada "kurul ağırlığı" sinyalini ürünün
 -- ayırt edici özelliği gibi anlattım. ÖLÇMEMİŞTİM.
 --
+-- ÖLÇÜMÜN KAPSAMI — SONRADAN DÜZELTİLDİ (yorum satırı, SQL değişmedi):
+-- Aşağıda "134 terim — canlıdaki terim sayısıyla aynı" yazmıştım. İkinci kısım
+-- YANLIŞTI. Canlıda ÖLÇÜLDÜ (hasat_saglik, 2026-09-11): terim_sayisi = 404.
+-- Yani ölçümüm listenin yalnız ÜÇTE BİRİNİ kapsıyor. "134 terimden 1'i eşleşti"
+-- cümlesi depodaki liste için doğru, CANLI liste için ölçülmemiş bir tahmindir.
+-- Kaldırdığım iki kuralın canlı 404 terimde de ölü olup olmadığını
+-- scripts/hasat-kalite-olcum.sql (5. sorgu) ölçüyor; sonuç gelmeden "canlıda da
+-- ölüydü" diyemem. (Kuralları kaldırma kararı yine de savunulabilir: gerekçe
+-- sayı değil, terimlerin KONU sorgusu olması — kurul bilgisi arama metninde
+-- değil, sonucun daire alanında.)
+--
 -- ÖLÇÜM (2026-09-11, yerel PostgreSQL 16; girdi: scripts/ictihat-terms.txt'in
--- yorumsuz ve tekrarsız hâli = 134 terim — canlıdaki terim sayısıyla aynı):
+-- yorumsuz ve tekrarsız hâli = 134 terim):
 --
 --   +40 "yüksek yargı sinyali"  →  134 terimden 1'i eşleşti:
 --        « şirket genel kurul kararının iptali »
