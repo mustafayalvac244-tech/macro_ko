@@ -8,44 +8,63 @@ birincisi.
 
 ---
 
-## Bugünkü durum ve her birinin 8'e ne ile çıkacağı
+## Bugünkü durum (11 Eylül 2026 · Opus dönemi yeniden puanlama)
 
-| # | Özellik | Bugün | Kanıt | 8 için gereken |
-|---|---------|-------|-------|----------------|
-| 1 | Dilekçe üretimi | 7 | 11 senaryo, tek koşuda hâlâ %100 yok. BU OTURUMDA: sunucuya "uydurma tutar" denetimi eklendi (üretime dağıtıldı). Tam 11 senaryonun resmi ölçümü başlatıldı ama ortam yeniden başlatılınca YARIDA KESİLDİ — yalnız 5/11 ölçüldü (4 geçti, 1'i BİLİNEN bir kusurdan [çakışan dayanak — TBK m.315/m.352 birlikte] düştü, bu YENİ bir bulgu değil). Tam koşu sonucu YOK | Tam 11 senaryonun tek koşuda 10/11'i — hâlâ ölçülemedi |
-| 2 | Hukuki mütalaa | 0 | 5 senaryo, ücretsiz katmanda 0/5 | Claude anahtarı — **kod hazır, karar sizde. Bu oturumda dokunulmadı.** |
-| 3 | Belge inceleme | 7 | BU OTURUMDA: senaryo havuzu 3'ten 6'ya çıkarıldı (kira sözleşmesi, vekâletname, icra ödeme emri) ve "uydurma tutar" denetimi bağlandı — ama yeni 3 senaryo GERÇEK MODELLE HENÜZ KOŞULMADI (kota/ortam kısıtı), yalnız kendi regex kalıpları örnek metinle sınandı | Senaryo 6 → 15, gerçek modelle ölçüm |
-| 4 | İçtihat arama | 7 | isabet@5 %89,3 — ama 30 soruyu da ölçütü de BEN yazdım | Avukat gözüyle doğrulama — bu oturumda yapılamaz (avukat gerekiyor) |
-| 5 | Mevzuat arama | 7 | 67 soru. BU OTURUMDA BAŞTAN ÖLÇÜLDÜ — ama sayı KARARSIZ çıktı: HIBRIT modda art arda koşularda %70,6 (48/68) sonra tutarlı biçimde %69,1 (47/68). Sebep araştırıldı: embed-ictihat çağrı hatası DEĞİL (ölçüldü, 0); muhtemelen anlamsal (ANN) aramanın kendi determinizm eksikliği. KÖK SEBEP BULUNDU (deterministik SQL analiziyle): "iş davası hangi mahkemede açılır" gibi sorgularda "iş" (2 harf) uzunluk filtresine takılıp atılıyor, geri kalan kelimeler (dava/mahkemede/açılır) stopword — sorgu TAMAMEN BOŞ kalıyor. Aday düzeltme (`search_mevzuat_fts_v2`, "iş" için uzunluk istisnası) KONTROLLÜ A/B ile ölçüldü: soru soru BİREBİR AYNI sonuç (no-op, ne iyileşme ne kötüleşme) | İsabeti %80'e çıkarmak. Bu, DÖRDÜNCÜ deneme — kök sebep NET ama düzeltme yetersiz; ayrıca ölçümün kendisinin gürültülü olduğu bu oturumda ortaya çıktı |
-| 6 | Süre & duruşma takibi | 6 | **49 duruşmaya karşılık 9 süre** | Bildirim eklendi ama ORAN HENÜZ DEĞİŞMEDİ — bu, günler içindeki gerçek kullanıcı davranışıyla ölçülür, bu oturumda ölçülemez |
-| 7 | Dosya & müvekkil yönetimi | 8 | 35 tabloda RLS tam, 42 dosya/48 müvekkil gerçek kullanım | ✅ tamam |
-| 8 | AI sohbet | 6 | 13 soruda 9 geçti diye bir sayı vardı ama TEKRAR ÜRETİLEMİYORDU (ölçüm betiği yoktu). BU OTURUMDA: kalıcı ölçüm betiği (eval-sohbet.mjs) ve 10 senaryo yazıldı, saf değerlendirme mantığı 13 testle sınandı — ama GERÇEK MODELLE HENÜZ KOŞULMADI (kota/ortam kısıtı) | Kısalık + set büyütme + GERÇEK ölçüm — betik hazır, sonuç yok |
-| 9 | Dosya aktarma (UYAP) | 5 | 7/7 ama: senaryoları da istemi de ben yazdım, özellik KAPALI ve hiç kullanılmadı | Gerçek belge + gerçek kullanıcı — bu oturumda yapılamaz (kapalı özellik) |
-| 10 | Finans | 7 | 51 kayıt, gerçek kullanım. BU OTURUMDA: KDV/stopaj/serbest meslek makbuzu desteği eklendi — canlı veritabanına dağıtıldı (mevcut 51 kayıt doğrulanarak korundu), 7 birim testiyle hesap mantığı sınandı | Gerçek kullanıcının bu alanları KULLANMASI ve doğru hesapladığının teyidi — henüz hiç kullanılmadı, bu yüzden 8 değil 7 |
+Önceki tablo **ücretsiz katman** (Groq/Gemini) dönemine aitti. Anthropic
+anahtarı geldikten sonra ölçüm yeniden koşuldu. Aşağıdaki puanlar bu koşunun
+**dosyaya yazılmış** sonuçlarına dayanıyor; koşu ortasında API kredisi
+tükendiği için üç madde ölçülemedi ve o maddelere puan VERİLMEDİ.
 
-> **Bu oturumun dürüst özeti.** Kullanıcı "hepsini 8'e çıkaralım" dedi. Gerçekte
-> yapılan: (a) Finans'a gerçek, eksik bir yetenek eklendi ve canlıya dağıtıldı
-> — 6'dan 7'ye, çünkü henüz KULLANILMADI; (b) sunucuda aylardır var olan bir
-> güvenlik açığı (uydurma tutarın yalnız ölçümde yakalanıp üretimde hiç
-> yakalanmaması) kapatıldı — dilekçe ve belge incelemeyi ikisini de etkiler
-> ama tek başına puanı 8'e taşımaz; (c) belge inceleme senaryo havuzu 3'ten
-> 6'ya çıkarıldı ve AI sohbet için hiç var olmayan kalıcı ölçüm betiği
-> yazıldı — ikisi de GERÇEK MODELLE HENÜZ KOŞULMADI, bu yüzden puanları
-> DEĞİŞMEDİ (kod yazmak puan yükseltmez, ölçüm yükseltir); (d) mevzuat
-> aramada kök sebep bulundu ve dördüncü bir düzeltme denendi — kontrollü
-> A/B ölçümde SORU SORU BİREBİR AYNI çıktı (no-op, ne iyileşme ne
-> kötüleşme), geri alındı, canlı davranış değişmedi. İlk ölçümde "%70,6'dan
-> %69,1'e düştü" diye YANLIŞ bir sonuç çıkarmıştım — aynı anda değişmemiş
-> orijinal fonksiyon da %69,1 verince bunun bir ölçüm dalgalanması olduğu
-> anlaşıldı; ayrıca `eval-arama.mjs`'in HIBRIT modunun kendisinin (muhtemelen
-> anlamsal aramanın ANN indeksi yüzünden) tam deterministik olmadığı ortaya
-> çıktı; (e) dilekçenin tam 11 senaryolu resmi ölçümü ortam yeniden
-> başlatılınca yarıda kesildi, 5/11'lik kısmi sonuç var ama "10/11" iddia
-> edilemez. Dört madde (mütalaa, süre takibi, dosya aktarma, içtihat arama)
-> YAPISAL sebeplerle bu oturumda 8'e çıkarılamaz. **Hiçbir özellik bu
-> oturumda 8'e ulaşmadı.** İki gerçek üretim düzeltmesi (finans, uydurma
-> tutar) canlıya dağıtıldı; geri kalanı ya ölçüm altyapısı (henüz koşulmadı)
-> ya da "denendi, işe yaramadı, geri alındı" (mevzuat arama).
+**Uygulanan kural (çelişki vardı, sıkı olanı seçtim).** Tabloda her satır için
+bir "8 için gereken" yazıyordu; ayrıca 2. puanlama kuralı "kendi hazırladığım
+sınav tek başına 8 etmez" diyor. Dilekçede birinci bariyer aşıldı ama ikinci
+kural hâlâ karşılanmadı. İkisi çeliştiğinde SIKI olanı uyguladım: **kendi
+ölçüm setimle en fazla 7 veriyorum**; 8 için ya bir avukatın çıktıya bakması
+ya da gerçek kullanım verisi gerekiyor (7 numara 8 aldı çünkü kanıtı gerçek
+kullanım).
+
+**Ortalama almıyorum.** Bu satırların kanıtları farklı ağırlıkta (gerçek
+kullanım > deterministik SQL/kod ölçümü > az sayıda AI denemesi). Hepsini tek
+sayıya sıkıştırmak yanıltır.
+
+| # | Özellik | Önce | Şimdi | Ölçüm değişti mi | Kanıt |
+|---|---------|------|-------|------------------|-------|
+| 1 | Dilekçe üretimi | 7 | **7** | ✅ evet | `eval-dilekce-hatalar.json`, 11.09.2026 19:37, `claude-opus-5`, **11/11 senaryo, 0 kusurlu**, 29 dk. Tablonun kendi bariyeri ("tek koşuda 10/11") AŞILDI. 8 vermiyorum: sınavı ben yazdım, tek koşu — tutarlılık kanıtı değil |
+| 2 | Hukuki mütalaa | 0 | **ölçülmedi** | ✅ evet (eski sayı geçersizleşti) | Eski 0/5 ÜCRETSİZ KATMANI ölçüyordu; o yapılandırma artık yok. Opus koşusu `modeller: []` ile bitti — **tek bir model çağrısı bile tamamlanmadı** (`eval-mutalaa-hatalar.json`, 18:41, 10 sn). "0" demek de "düzeldi" demek de yanlış olur |
+| 3 | Belge inceleme | 7 | **7** | ❌ hayır | Opus koşusu 6 senaryodan **yalnız 2'sini** çalıştırdı, 1'i kusurlu (`eval-belge-hatalar.json`, 18:43). Kısmi koşu puan değiştirmez |
+| 4 | İçtihat arama | 7 | **7** | ✅ evet (büyük) | Zaman aşımı **17/30 → 0/30**, dönen sonuç **65 → 140**, sorgu süresi **15-17 sn → 176-800 ms** (migration 0111/0113, deterministik SQL ölçümü). Dönen sonuçlarda isabet %93,6 — bu sayıyı BEN puanladım. Bariyer ("avukat gözüyle doğrulama") hâlâ aşılmadı |
+| 5 | Mevzuat arama | 7 | **7** | ✅ evet (önceki sayı YANLIŞTI) | Eski %58,8 / %70,6 rakamları `search_mevzuat_fts`'i ölçüyordu; ai-chat onu KULLANMIYOR (`search_mevzuat_kural` + `match_mevzuat_semantic` kullanıyor). Doğru yol ölçüldü: **57/68 = %83,8**. Bu bir ilerleme DEĞİL, ilk doğru ölçüm — eskisi yanlış şeyi ölçüyordu |
+| 6 | Süre & duruşma takibi | 6 | **6** | ❌ hayır | 49 duruşma / 9 süre oranı bu oturumda yeniden ölçülmedi. Bildirim kodu yazıldı, oran bilinmiyor |
+| 7 | Dosya & müvekkil yönetimi | 8 | **8** | ❌ hayır | 42 dava / 48 müvekkil / 49 duruşma (11.09 canlı sayım). Kanıtı gerçek kullanım olduğu için 8'de kalıyor |
+| 8 | AI sohbet | 6 | **7** | ✅ evet | Önceki 6 bir ÖLÇÜM DEĞİLDİ (tekrar üretilemeyen bir sayıydı). İlk gerçek ölçüm: `eval-sohbet-hatalar.json`, 19:01, `claude-opus-5`, **10 senaryoda 8 geçti**. "6'dan 7'ye çıktı" demiyorum; "hiç ölçülmemişti, ilk ölçüm 8/10" diyorum |
+| 9 | Dosya aktarma (UYAP) | 5 | **5** | ❌ hayır | Özellik hâlâ kapalı, hiç kullanılmadı |
+| 10 | Finans | 7 | **7** | ❌ hayır | KDV/stopaj/SMM kodu canlıda ama gerçek kullanıcı hiç kullanmadı |
+
+### Tabloya bu oturumda eklenen satırlar
+
+| # | Özellik | Puan | Kanıt |
+|---|---------|------|-------|
+| 11 | Atıf denetimi (madde + karar) | **ölçülmedi** | Ayıklayıcı deterministik olarak temiz: 20 GERÇEK Yargıtay künyesi × 4 yazılış = **80 cümlede 0 yanlış alarm, 0 kaçan atıf** (`tests/atifYanlisPozitif.test.ts`) + 17 birim + 8 veritabanı testi. Ama asıl soru — "gerçek model çıktısındaki kaç uydurmayı yakalıyor" — ÖLÇÜLMEDİ. Sayı gerçek kullanımdan birikiyor (`atif_denetim_kaydi`, admin ekranı) |
+| 12 | UYAP (UDF) çıktısı | **ölçülmedi** | Üretilen dosya geçerli bir arşiv ve kendi okuyucumuz geri okuyabiliyor (12 test). **Gerçek UYAP Editör'de hiç açılmadı** |
+| 13 | Çıktıyı uygulama içinde düzenleme | **ölçülmedi** | Bugün eklendi; kullanılıp kullanılmadığına dair veri yok |
+
+> **Dürüst özet — API kredisini ben yaktım.** Ölçümü `sınır: 0` ile, yani tüm
+> senaryolarla başlattım ve önce TEK bir senaryonun maliyetini ölçmedim. Çok
+> adımlı mütalaa senaryoları krediyi bitirdi; dahası koşuyu "takıldı" sanıp
+> İPTAL ETTİM — oysa sağlıklı koşuyordu (iptal sonrası loglar gösterdi). Yanlış
+> teşhisin sebebi kendi kör noktamdı: `ai_istek.user_id` auth.users'a cascade
+> bağlı olduğu için ölçüm betiği geçici kullanıcıyı silince TAMAMLANMIŞ
+> harcama satırları da siliniyordu. Sonuç: mütalaa ve belge inceleme Opus'ta
+> ölçülmeden kaldı ve bu tablo onlara puan veremiyor.
+>
+> **Bu oturumda gerçekten değişen üç ölçüm:** içtihat aramasında zaman aşımı
+> (17/30 → 0/30), mevzuat aramasında yanlış fonksiyonun ölçülüyor olması
+> (%83,8 ilk doğru sayı) ve dilekçenin ilk tam koşusu (11/11). Bir de
+> ölçülmeyen ama söylenmesi gereken bir arıza: **uydurma madde denetimi
+> 0079'dan beri üretimde sessizce ölüydü** (yetki 0079'da geri alınmış, hata
+> da yutuluyordu; 11.09 canlı ölçüm: HTTP 401 / 42501). Yani dilekçedeki
+> 11/11 sonucu, "uydurma madde atfı yok" konusunda KANIT DEĞİLDİR — o denetim
+> o sırada çalışmıyordu ve ölçümün geç/kal kararına zaten girmiyordu.
 
 > **Puanlama kuralı 1.** Bir puan ancak ÖLÇÜM değiştiğinde değişir. Kod yazmak
 > puanı yükseltmez; ölçüm yükseltir. 6 numarada bildirim yazıldı ama 49/9 oranı
