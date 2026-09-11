@@ -1,0 +1,121 @@
+name: AI Ölçümü
+
+# NEDEN CI'DA KOŞUYOR.
+# Ölçüm betikleri SUPABASE_SERVICE_ROLE_KEY istiyor — RLS'i tamamen aşan,
+# veritabanının tamamına yetkili bir anahtar. Bu anahtarın bir sohbete, bir
+# istem kutusuna ya da bir geliştiricinin makinesine yazılması gerekmemeli.
+# Depo secret'ı olarak durur, iş akışı onu yalnız çalışma sırasında görür.
+# (Hasat iş akışı da aynı secret'ı kullanıyor, yani muhtemelen zaten tanımlı.)
+#
+# ÖLÇÜMÜN İKİ AYRI GRUBU VAR VE MALİYETLERİ ÇOK FARKLI:
+#
+#   arama  → eval-arama (67 soru) + eval-ictihat (30 soru)
+#            Yalnız veritabanı arama fonksiyonlarını ölçer. HİÇ AI ÇAĞRISI
+#            YOK, dolayısıyla API harcaması SIFIR. İstediğin kadar koş.
+#
+#   ai     → dilekçe (11) + mütalaa (5) + belge (6) + sohbet (10) + künye (7)
+#            + cevap (13) = 52 senaryo. Her biri gerçek bir Opus isteği, yani
+#            gerçek para. 149 senaryo değil, 52 — geri kalanı ücretsiz grupta.
+#
+# Sonuçlar hem iş akışı kaydına yazılır hem de JSON olarak dala işlenir
+# (scripts/eval-*-hatalar.json), böylece ölçüm sonucu depoda kalıcı olur ve
+# iki koşu karşılaştırılabilir.
+
+on:
+  workflow_dispatch:
+    inputs:
+      grup:
+        description: 'Hangi grup koşulsun'
+        type: choice
+        default: arama
+        options: [arama, ai, hepsi]
+      sinir:
+        description: 'Grup başına en fazla senaryo (0 = hepsi). ÖNCE 1 İLE DENE.'
+        default: '1'
+      bekleme:
+        description: 'İstekler arası bekleme (ms). Oran sınırına takılırsan artır.'
+        default: '5000'
+      isle:
+        description: 'Sonuç JSON dosyaları dala işlensin mi'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  olcum:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      SUPABASE_URL: https://wjshlysfmeqlnfiibknj.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      EVAL_SINIR: ${{ inputs.sinir }}
+      EVAL_BEKLEME: ${{ inputs.bekleme }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Eksik secret'ı SESSİZCE geçme: betikler anahtar yokken de başlayıp
+      # anlamsız bir hatayla düşer ve sebebi kayıtta kaybolur.
+      - name: Secret kontrolü
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY tanımlı değil (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          if [ "${{ inputs.grup }}" != "arama" ] && [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::AI grubu SUPABASE_ANON_KEY ister; tanımlı değil."
+            exit 1
+          fi
+          echo "Secret'lar yerinde."
+
+      - name: Arama ölçümü (API harcaması yok)
+        if: ${{ inputs.grup == 'arama' || inputs.grup == 'hepsi' }}
+        continue-on-error: true
+        run: |
+          echo "## Arama ölçümü" >> $GITHUB_STEP_SUMMARY
+          for b in eval-arama eval-ictihat; do
+            echo "### $b" >> $GITHUB_STEP_SUMMARY
+            node "scripts/$b.mjs" 2>&1 | tee "/tmp/$b.log"
+            tail -12 "/tmp/$b.log" >> $GITHUB_STEP_SUMMARY
+          done
+
+      - name: AI ölçümü (GERÇEK PARA HARCAR)
+        if: ${{ inputs.grup == 'ai' || inputs.grup == 'hepsi' }}
+        continue-on-error: true
+        run: |
+          echo "## AI ölçümü" >> $GITHUB_STEP_SUMMARY
+          # Sıra bilinçli: ucuz ve kısa olanlar önce. Bütçe biterse ya da oran
+          # sınırına takılırsak, en azından bir kısmı ölçülmüş olur.
+          for b in eval-sohbet eval-kunye eval-cevap eval-dilekce eval-mutalaa eval-belge; do
+            echo "### $b" >> $GITHUB_STEP_SUMMARY
+            node "scripts/$b.mjs" 2>&1 | tee "/tmp/$b.log"
+            # Künye satırı HANGİ MODELİN cevap verdiğini söyler; ücretsiz hatta
+            # düşülmüşse sonuç Opus'a atfedilemez ve bunu görmek şart.
+            grep -E "Ölçülen model|KARIŞIK MODEL" "/tmp/$b.log" >> $GITHUB_STEP_SUMMARY || true
+            tail -8 "/tmp/$b.log" >> $GITHUB_STEP_SUMMARY
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: olcum-sonuclari
+          path: scripts/eval-*-hatalar.json
+          if-no-files-found: warn
+
+      - name: Sonuçları dala işle
+        if: ${{ always() && inputs.isle }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/eval-*-hatalar.json 2>/dev/null || true
+          git diff --cached --quiet && { echo "Değişen sonuç yok."; exit 0; }
+          git commit -m "Ölçüm sonucu: ${{ inputs.grup }} (sınır ${{ inputs.sinir }})"
+          git push origin HEAD:${{ github.ref_name }}
