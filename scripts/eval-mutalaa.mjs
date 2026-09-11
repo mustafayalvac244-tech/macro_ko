@@ -38,12 +38,18 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { yeniKunye } from './olcum-kunyesi.mjs';
 import { beklemeSuresi } from './bekleme.mjs';
 import { gecer, sadelestir } from './eslestir.mjs';
 import { maddeAtiflari, mesruTutarlar, tarihler, tutarlar } from './uydurma.mjs';
 import { adimlarBolumu, eksikBolumler, sureIceriyor } from './mutalaa-olcut.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ÖLÇÜM KÜNYESİ: sonucun HANGİ MODELDEN geldiğini kaydeder.
+// Bu olmadan "N kusur çıktı" cümlesi neyin N kusur verdiğini söylemiyor;
+// sonuç ne karşılaştırılabilir ne tekrarlanabilir olur.
+const kunye = yeniKunye();
 
 const url = process.env.SUPABASE_URL ?? '';
 const svc = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
@@ -271,6 +277,7 @@ try {
         atlananKural: atlananKuralUyari,
         dayanak: dayanakKurallar,
       } = await uret(s.olay));
+      kunye.gor({ model: kullanilanModel });
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(
@@ -343,7 +350,7 @@ try {
 
 if (kusurlu.length) {
   const yol = join(__dirname, 'eval-mutalaa-hatalar.json');
-  writeFileSync(yol, JSON.stringify({ tarih: new Date().toISOString(), kusurlu }, null, 1), 'utf8');
+  writeFileSync(yol, JSON.stringify(kunye.ozet({ kusurlu }), null, 1), 'utf8');
   console.log(`\nKusurlu mütalaaların tam metni: ${yol}`);
 }
 
@@ -353,6 +360,7 @@ const kacirilan = sonuclar.reduce((t, s) => t + s.kacan.length, 0);
 const maddeUydurma = sonuclar.filter((s) => s.uydurmaMadde.length).length;
 
 console.log('\n' + '─'.repeat(60));
+console.log(kunye.satir());
 console.log(`MÜTALAA: ${gecen}/${olculen} senaryo tam geçti (%${olculen ? ((gecen / olculen) * 100).toFixed(1) : 0})` +
   (olculen < tumSenaryolar.length ? ` — havuzdaki ${tumSenaryolar.length} senaryonun ${olculen} tanesi ölçüldü` : ''));
 console.log(`Kaçırılan kritik unsur: ${kacirilan}`);

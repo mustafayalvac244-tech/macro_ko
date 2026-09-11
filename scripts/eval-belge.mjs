@@ -27,11 +27,17 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { yeniKunye } from './olcum-kunyesi.mjs';
 import { beklemeSuresi } from './bekleme.mjs';
 import { gecer, sadelestir } from './eslestir.mjs';
 import { tarihler } from './uydurma.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ÖLÇÜM KÜNYESİ: sonucun HANGİ MODELDEN geldiğini kaydeder.
+// Bu olmadan "N kusur çıktı" cümlesi neyin N kusur verdiğini söylemiyor;
+// sonuç ne karşılaştırılabilir ne tekrarlanabilir olur.
+const kunye = yeniKunye();
 
 const url = process.env.SUPABASE_URL ?? '';
 const svc = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
@@ -121,6 +127,7 @@ async function incele(kind, metin, deneme = 0) {
   }
   if (!res.ok) throw new Error(`ai-chat ${res.status}: ${(await res.text()).slice(0, 140)}`);
   const j = await res.json();
+  kunye.gor({ model: j?.model });
   if (j?.yapayZekasiz || j?.model === 'mevzuat-yedek') {
     if (deneme < 4) {
       await uyu(30000 * (deneme + 1));
@@ -234,7 +241,7 @@ try {
 
 if (kusurlu.length) {
   const yol = join(__dirname, 'eval-belge-hatalar.json');
-  writeFileSync(yol, JSON.stringify({ tarih: new Date().toISOString(), kusurlu }, null, 1), 'utf8');
+  writeFileSync(yol, JSON.stringify(kunye.ozet({ kusurlu }), null, 1), 'utf8');
   console.log(`\nKusurlu incelemelerin tam metni: ${yol}`);
 }
 
@@ -244,6 +251,7 @@ const kacirilan = sonuclar.reduce((t, s) => t + s.kacan.length, 0);
 const tarihUyduran = sonuclar.filter((s) => s.uydurmaTarih.length).length;
 
 console.log('\n' + '─'.repeat(60));
+console.log(kunye.satir());
 console.log(`BELGE: ${gecen}/${olculen} senaryo tam geçti (%${olculen ? ((gecen / olculen) * 100).toFixed(1) : 0})` +
   (olculen < tumSenaryolar.length ? ` — havuzdaki ${tumSenaryolar.length} senaryonun ${olculen} tanesi ölçüldü` : ''));
 console.log(`Kaçırılan yerleştirilmiş kusur: ${kacirilan}`);
