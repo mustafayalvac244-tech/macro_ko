@@ -102,5 +102,15 @@ if [ "$VAR3" = "t" ]; then
     | grep -E "GEÇTİ|BOZULDU|ERROR" || true
 fi
 
+# Karar atfı denetimi ölçümü, YALNIZ 0117 bu koşuda uygulandıysa anlamlıdır.
+VAR4=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA \
+  -c "select to_regprocedure('public.havuzdaki_kararlar(jsonb)') is not null" 2>/dev/null || echo f)
+if [ "$VAR4" = "t" ]; then
+  echo
+  echo "--- karar atfı denetimi ölçümü (0117) ---"
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -f "$KOK/scripts/migration-deneme/karar-atfi-olcum.sql" 2>&1 \
+    | grep -E "GEÇTİ|KALDI|ERROR" || true
+fi
+
 psql -h /tmp -p "$PORT" -U postgres -q -c "drop database $DB;" >/dev/null 2>&1 || true
 exit $HATA

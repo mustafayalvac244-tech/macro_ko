@@ -4,8 +4,9 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
+import { DuzenlenebilirCikti } from '@/components/ui/DuzenlenebilirCikti';
 import { HukukiUyari } from '@/components/ui/HukukiUyari';
+import { AtifDenetimi, type KararDenetimiVerisi } from '@/components/ui/AtifDenetimi';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_MUTALAA_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
@@ -40,6 +41,7 @@ export default function MutalaaScreen() {
   // Uydurma madde atfı: havuzdaki kanunun olmayan maddesine yapılan atıf.
   // Mütalaada bu, en pahalı hata türü — metin hukuki dayanağını uyduruyor.
   const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
+  const [kararDenetimi, setKararDenetimi] = useState<KararDenetimiVerisi | null>(null);
   // Dosyaya giren ama mütalaada izi bulunmayan kurallar. Ölçümde beş
   // senaryonun ikisi buydu: kural havuzda vardı, dosyaya girdi, model yok
   // saydı ("4 hafta içinde dava açın" — arabuluculuktan hiç söz etmedi).
@@ -91,7 +93,7 @@ export default function MutalaaScreen() {
         }
         return;
       }
-      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; atlananKural?: string[]; dayanak?: Array<{ id: string; metin: string }> } | null;
+      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; atlananKural?: string[]; dayanak?: Array<{ id: string; metin: string }>; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -100,6 +102,7 @@ export default function MutalaaScreen() {
       setIssues(payload.issues ?? []);
       setHesaplanan(payload.hesaplananTarih ?? []);
       setUydurmaMadde(payload.uydurmaMadde ?? []);
+      setKararDenetimi(payload.kararDenetimi ?? null);
       setAtlananKural(payload.atlananKural ?? []);
       setDayanak(payload.dayanak ?? []);
       setDayanakAcik(false);
@@ -180,15 +183,19 @@ export default function MutalaaScreen() {
 
           {!!text && (
             <View style={styles.card}>
-              <View style={styles.cardHead}>
-                <Text style={styles.cardTitle}>{t('mut.resultTitle')}</Text>
-                <CiktiEylemleri metin={text} baslik={t('mut.resultTitle')} />
-              </View>
-              <Text selectable style={styles.body}>{text}</Text>
+              {/* Mütalaa da düzenlenebilir: avukat kendi değerlendirmesini
+                  ekleyip dosyaya öyle koyuyor. UDF YOK — mütalaa mahkemeye
+                  verilmez (bkz. CiktiEylemleri.udf). */}
+              <DuzenlenebilirCikti
+                metin={text}
+                baslik={t('mut.resultTitle')}
+                etiket={t('mut.resultTitle')}
+              />
               <HukukiUyari tur="yapayZeka" />
               {uydurmaMadde.length > 0 && (
                 <Text style={styles.dateWarn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
               )}
+              <AtifDenetimi veri={kararDenetimi} />
               {atlananKural.length > 0 && (
                 <Text style={styles.dateWarn}>{t('ai.skippedRules', { terimler: atlananKural.join(', ') })}</Text>
               )}

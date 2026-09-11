@@ -21,6 +21,17 @@ export interface AiMessage {
   yedek?: boolean;
   /** Cevabı hangi modelin yazdığı (sunucudan; teşhis ve şeffaflık için). */
   model?: string;
+  /**
+   * Cevaptaki içtihat atıflarının denetim özeti (bkz. AtifDenetimi).
+   *
+   * SOHBETTE DENETİM HİÇ YOKTU. Dilekçe, mütalaa ve belge incelemesi
+   * denetleniyordu; "bu konuda emsal karar var mı" sorusu ise en çok buraya
+   * soruluyor ve cevaptaki karar numarası doğrudan dilekçeye kopyalanıyor.
+   * Korumayı en çok gerektiği yerde kapatmış olduk.
+   */
+  kararDenetimi?: { toplam: number; dogrulanan: Array<{ atif: string; daire?: string; tarih?: string; id?: string }>; havuzdaYok: string[]; olanaksiz: Array<{ atif: string; sebep: string }> };
+  /** Metinde havuzda bulunmayan kanun maddesi atfı (bkz. ai.fakeArticles). */
+  uydurmaMadde?: string[];
 }
 
 /** Kenarda saklanan bir sohbet. Cihazda (AsyncStorage) tutulur. */
@@ -171,6 +182,8 @@ export function useAiChat() {
           yedekModel?: boolean;
           /** İki sağlayıcı da düştü; bu bir model cevabı değil, mevzuat özeti. */
           yapayZekasiz?: boolean;
+          kararDenetimi?: AiMessage['kararDenetimi'];
+          uydurmaMadde?: string[];
         } | null;
         const reply = payload?.text?.trim();
         if (!reply) {
@@ -185,6 +198,8 @@ export function useAiChat() {
           text: reply,
           yedek: payload?.yedekModel === true || payload?.yapayZekasiz === true || undefined,
           model: payload?.model,
+          kararDenetimi: payload?.kararDenetimi,
+          uydurmaMadde: payload?.uydurmaMadde?.length ? payload.uydurmaMadde : undefined,
         };
         const withReply = [...historyRef.current, modelMsg];
         historyRef.current = withReply;

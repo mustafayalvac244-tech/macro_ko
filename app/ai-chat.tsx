@@ -7,6 +7,7 @@ import { AI_ENABLED } from '@/config/features';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
+import { AtifDenetimi } from '@/components/ui/AtifDenetimi';
 import { useAiChat, type AiMessage, type AiConversation } from '@/hooks/useAiChat';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -249,6 +250,15 @@ function Bubble({ message }: { message: AiMessage }) {
         {!isUser && message.yedek && (
           <Text style={styles.yedekUyari}>{t('ai.yedekModel')}</Text>
         )}
+        {/* ATIF DENETİMİ. Sohbet, uydurma karar numarası için en riskli mod:
+            "emsal karar var mı" sorusunun cevabındaki numara doğrudan
+            dilekçeye kopyalanıyor. Bkz. src/components/ui/AtifDenetimi.tsx. */}
+        {!isUser && !!message.uydurmaMadde?.length && (
+          <Text style={styles.yedekUyari}>
+            {t('ai.fakeArticles', { maddeler: message.uydurmaMadde.join(', ') })}
+          </Text>
+        )}
+        {!isUser && <AtifDenetimi veri={message.kararDenetimi} />}
         {/* Modelin cevabı için kopyala/paylaş — web'de metni Word'e taşımanın
             tek pratik yolu. Kullanıcının kendi mesajında gereksiz. */}
         {!isUser && !!message.text && (

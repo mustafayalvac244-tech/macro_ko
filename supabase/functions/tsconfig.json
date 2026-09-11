@@ -1,0 +1,24 @@
+{
+  // UÇ İŞLEVLERİ İÇİN AYRI TİP DENETİMİ.
+  //
+  // Kök tsconfig.json bu dizini `exclude` ediyor (Deno'ya özgü npm:/jsr:/https:
+  // içe aktarmaları tsc'yi düşürüyordu). Sonuç: uç işlevlerindeki hiçbir tip ya
+  // da kapsam hatası yakalanmıyordu — deno-shim.d.ts tam bu yüzden yazılmıştı
+  // ama onu ÇALIŞTIRAN hiçbir şey yoktu; denetim elle koşulduğu kadar vardı.
+  //
+  // Bu dosya o denetimi kalıcı hâle getiriyor: `npm run kontrol:uc` ve CI.
+  // Amaç Deno'yu taklit etmek değil, kendi kodumuzdaki hataları yakalamak.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    // Kökteki @types/* paketleri (React vb.) buraya karışmasın.
+    "types": []
+  },
+  "include": ["**/*.ts"]
+}

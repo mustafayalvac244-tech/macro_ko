@@ -161,6 +161,18 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 .alt a:hover{color:var(--lacivert-3)}
 .alt h4{font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--metin-3);margin:0;font-family:'Manrope',sans-serif}
 .telif{margin-top:34px;padding-top:22px;border-top:1px solid var(--cizgi);font-size:13px;color:var(--metin-3);text-align:center}
+
+/* Karşılaştırma tablosu. Dar ekranda yatay kaydırma KUTUNUN içinde kalır;
+   sayfanın kendisi asla yana kaymaz. */
+.kars-sar{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--cizgi);border-radius:var(--radius);background:var(--kart)}
+table.kars{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+table.kars th,table.kars td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--cizgi);vertical-align:top}
+table.kars thead th{font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:var(--metin-2)}
+table.kars tbody tr:last-child td{border-bottom:0}
+table.kars td:first-child{font-weight:700}
+table.kars .biz{background:rgba(197,160,84,.09)}
+table.kars thead th.biz{color:var(--altin-2)}
+.kars-not{font-size:13.5px;color:var(--metin-2);margin-top:14px;line-height:1.7}
 </style>
 </head>
 <body>
@@ -172,6 +184,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       <a href="#ozellikler">Özellikler</a>
       <a href="#yapayzeka">Yapay Zekâ</a>
       <a href="#fiyat">Fiyatlar</a>
+      <a href="#karsilastirma">Karşılaştırma</a>
       <a href="#olcum">Ölçümler</a>
       <a href="#sss">S.S.S.</a>
     </nav>
@@ -282,8 +295,13 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       </div>
       <div class="kutu">
         <div class="ik">🛡️</div>
-        <h3>Uydurma denetimi</h3>
-        <p>Havuzdaki bir kanuna yapılan ama o kanunda bulunmayan madde atıfları, anlatılmayan tarih ve tutarlar mekanik olarak yakalanıp size gösterilir.</p>
+        <h3>Atıf denetimi</h3>
+        <p>Çıktıdaki her kanun maddesi ve her Yargıtay/Danıştay karar numarası denetlenir. Sonuç üç ayrı etikettir: <b>doğrulandı</b> (havuzumuzda künyesiyle bulundu), <b>havuzda yok</b> (bizde bulunamadı — teyit edin) ve <b>olamaz</b> (karar yılı esas yılından önce, gelecek yıl numarası, hiç var olmamış daire). Olanaksız atıf çıkarsa o istek hakkınızdan düşülmez.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">✏️</div>
+        <h3>Uygulama içinde düzenleme</h3>
+        <p>Taslağı Word'e taşımadan burada düzeltin. Kopyalama, indirme ve UYAP (UDF) çıktısı düzenlenmiş hâli alır — mahkemeye giden metin, gönderdiğiniz metindir.</p>
       </div>
       <div class="kutu">
         <div class="ik">🔒</div>
@@ -350,6 +368,82 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
   </div>
 </section>
 
+<section id="karsilastirma">
+  <div class="sar">
+    <div class="bas">
+      <span class="etiket">Karşılaştırma</span>
+      <h2>Rakiplerimizi kendi açıklamalarıyla yazdık</h2>
+      <p>Aşağıdaki rakip bilgileri, firmaların kendi tanıtım sayfalarından ve yayımlanmış fiyat açıklamalarından alındı (Eylül 2026). Bizim sütunumuzdaki sayılar ise ölçüm sonucudur — kaynakları “Ölçümler” bölümünde.</p>
+    </div>
+    <div class="kars-sar">
+      <table class="kars">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="biz">Vekil Pro</th>
+            <th>Apilex</th>
+            <th>Lexedes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Yıllık ücret</td>
+            <td class="biz">2.999 ₺</td>
+            <td>40.000 ₺ (6 ay: 25.000 ₺; aylık seçenek yok)</td>
+            <td>990 – 5.490 ₺ arası paketler</td>
+          </tr>
+          <tr>
+            <td>Karar havuzu</td>
+            <td class="biz">11.378 karar — <b>sayılmış</b>, her gün büyüyor. Arama ayrıca canlı UYAP kaynağına gider.</td>
+            <td>“12 milyondan fazla karar” (kendi beyanı)</td>
+            <td>“11 milyon karar” (kendi beyanı)</td>
+          </tr>
+          <tr>
+            <td>Çıktıdaki atıf denetleniyor mu?</td>
+            <td class="biz">Evet. Her madde ve her karar numarası için üç ayrı sonuç: doğrulandı / havuzda yok / olamaz.</td>
+            <td>Tanıtımında böyle bir denetim yok</td>
+            <td>Tanıtımında böyle bir denetim yok</td>
+          </tr>
+          <tr>
+            <td>Yayımlanmış doğruluk ölçümü</td>
+            <td class="biz">Var — olumsuz sonuçlar ve “ölçülmedi” dahil</td>
+            <td>Bulamadık</td>
+            <td>Bulamadık</td>
+          </tr>
+          <tr>
+            <td>Büro yönetimi<br><span style="font-weight:400;color:var(--metin-2)">dava, müvekkil, duruşma, icra, kasa, süre</span></td>
+            <td class="biz">Tam — programın çekirdeği</td>
+            <td>Dosya/proje düzeni var; tahsilat, duruşma ve kasa takibi tanıtımda yok</td>
+            <td>Tanıtımında yok</td>
+          </tr>
+          <tr>
+            <td>Hesaplama araçları<br><span style="font-weight:400;color:var(--metin-2)">AAÜT, faiz, harç, kıdem-ihbar, SMM</span></td>
+            <td class="biz">Uygulamanın içinde, üyeliksiz</td>
+            <td>Tanıtımında yok</td>
+            <td>Ücretsiz web araçları var</td>
+          </tr>
+          <tr>
+            <td>Telefon uygulaması</td>
+            <td class="biz">iOS + Android + web</td>
+            <td>Android/iOS uygulaması var</td>
+            <td>Web</td>
+          </tr>
+          <tr>
+            <td>Ücretsiz kullanım</td>
+            <td class="biz">İçtihat ve mevzuat araması süresiz ücretsiz, üyelik gerekmez</td>
+            <td>Demo talebi</td>
+            <td>Ücretsiz hesaplama araçları</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="kars-not">
+      <b>Kaybettiğimiz yer de burada:</b> karar sayısı. Onlar milyonları gösteriyor, bizde sayılmış 11.378 karar var — aradaki fark yaklaşık bin kat ve bunu kapatmayı vaat etmiyoruz. Ayırdığımız disk, yüz binler mertebesinde bir havuza yeter, milyonlara değil. Bizim iddiamız havuzun büyüklüğü değil, <b>çıktıya ne olduğu</b>: verdiğimiz her madde ve karar numarası denetlenir, denetlenemeyen için “bilmiyoruz” yazarız.
+      Rakip bilgileri kendi tanıtım sayfalarından alındı; doğruluklarını biz sınamadık ve fiyatları değişebilir.
+    </p>
+  </div>
+</section>
+
 <section id="olcum">
   <div class="sar">
     <div class="durust">
@@ -365,7 +459,8 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
         <div><b>Mütalaa ve belge inceleme: ölçülmedi</b><span>Opus üzerinde henüz ölçüm tamamlanmadı; "iyi" demiyoruz.</span></div>
         <div><b>UDF çıktısı: yapı doğrulandı</b><span>Ürettiğimiz dosya geçerli bir arşiv ve kendi okuyucumuz geri okuyabiliyor. UYAP Editör'de gerçek bir dosyayla henüz denenmedi.</span></div>
         <div><b>Mevzuat havuzu: 17 kanun</b><span>6.107 madde. Karayolları Trafik Kanunu gibi eksikler açıkça kayıtlı.</span></div>
-        <div><b>İçtihat: canlı UYAP + kendi havuzumuz</b><span>Arama canlı kaynağa gider; yapay zekâyı beslediğimiz kendi havuzumuz 11.070 karar ve büyüyor.</span></div>
+        <div><b>İçtihat havuzu: 11.378 karar</b><span>11 Eylül 2026 sayımı; son 24 saatte +2.007. Arama ayrıca canlı UYAP kaynağına gider.</span></div>
+        <div><b>Atıf denetimi: 80 gerçek künyede 0 yanlış alarm</b><span>20 gerçek Yargıtay kararı, 4 ayrı yazılışla denendi: hiçbiri yanlışlıkla “olamaz” diye işaretlenmedi, hiçbiri denetimden kaçmadı. Ayrıca 17 birim ve 8 veritabanı testi geçti. Gerçek yapay zekâ çıktısında kaç uydurma atıf yakaladığı HENÜZ ÖLÇÜLMEDİ.</span></div>
       </div>
       <p class="not">Yapay zekâ çıktısı hukuki tavsiye değildir ve avukatın denetimi yerine geçmez. Madde numaralarını ve kararları kullanmadan önce teyit ediniz.</p>
     </div>
@@ -423,6 +518,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
         <a href="app/">Web sürümü</a>
         <a href="#ozellikler">Özellikler</a>
         <a href="#fiyat">Fiyatlar</a>
+        <a href="#karsilastirma">Karşılaştırma</a>
         <a href="#olcum">Ölçümler</a>
       </div>
       <div>

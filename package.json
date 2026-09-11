@@ -64,6 +64,8 @@
     "ios": "expo run:ios",
     "web": "node scripts/web-veri-hazirla.mjs && expo start --web",
     "test": "vitest run",
+    "kontrol": "tsc --noEmit && tsc -p supabase/functions && vitest run",
+    "kontrol:uc": "tsc -p supabase/functions",
     "test:watch": "vitest",
     "export:web": "node scripts/web-veri-hazirla.mjs && expo export --platform web --output-dir docs/app"
   },
