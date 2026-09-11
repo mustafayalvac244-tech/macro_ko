@@ -255,7 +255,13 @@ async function llmCall(
       if (e instanceof Anthropic.RateLimitError) throw new Error('rate_limit');
       if (e instanceof Anthropic.AuthenticationError) throw new Error('not_configured');
       if ((e as Error).message === 'refusal') throw e;
-      throw new Error('upstream');
+      // GERÇEK MESAJ TAŞINIR. İlk sürüm her şeyi 'upstream'e indirgiyordu ve
+      // ilk canlı yoklamada tam bu oldu: 3 saniyede 502, sebebi görünmez.
+      // Mesaj yanıtın 'detail' alanında dışarı çıkar (anahtar içermez; SDK
+      // hata mesajları durum kodu + API metnidir).
+      const hata = new Error('upstream') as Error & { ayrinti?: string };
+      hata.ayrinti = `claude: ${(e as Error)?.message ?? String(e)}`.slice(0, 300);
+      throw hata;
     }
   }
   if (provider === 'groq') {
@@ -1310,7 +1316,9 @@ Deno.serve(async (req) => {
     const msg = e instanceof Error ? e.message : 'upstream';
     if (msg === 'rate_limit') return json({ error: 'rate_limit' }, 429);
     if (msg === 'not_configured') return json({ error: 'not_configured' }, 503);
-    // Kaynak siteye ulaşılamazsa (geo/WAF) net bir kod dönelim.
-    return json({ error: 'source_unreachable', detail: msg }, 502);
+    // Kaynak siteye ulaşılamazsa (geo/WAF) net bir kod dönelim. 'ayrinti'
+    // varsa (Claude dalı) onu taşı: "upstream" tek başına teşhis ettirmiyor.
+    const ayrinti = (e as Error & { ayrinti?: string })?.ayrinti;
+    return json({ error: 'source_unreachable', detail: ayrinti ?? msg }, 502);
   }
 });
