@@ -4,6 +4,7 @@ import { uyar } from '@/lib/uyari';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HukukiUyari } from '@/components/ui/HukukiUyari';
 import { useClients } from '@/hooks/useClients';
 import {
   isExpired,
@@ -112,6 +113,9 @@ export default function VekaletScreen() {
       <ScreenHeader title={t('poa.title')} showBack rightIcon="add" onRightPress={() => setFormOpen(true)} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.lead}>{t('poa.lead')}</Text>
+        {/* "Kullanılabilir / sorunlu" rozetleri avukatın GİRDİĞİ bilgiden
+            hesaplanıyor; yanlış girilen bir özel yetki yanlış rozet üretir. */}
+        <HukukiUyari tur="degerlendirme" kucuk />
 
         {rows.length > 0 && (
           <View style={styles.statRow}>

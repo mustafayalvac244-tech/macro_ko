@@ -4,6 +4,7 @@ import { metniPaylas } from '@/lib/cikti';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HukukiUyari } from '@/components/ui/HukukiUyari';
 import { useAuthStore } from '@/store/authStore';
 import { useClients } from '@/hooks/useClients';
 import { buildContract, type ContractType, type FeeModel, type Taksit } from '@/utils/contractTemplate';
@@ -251,6 +252,7 @@ export default function ContractScreen() {
                 </View>
               ))}
               <Text allowFontScaling={false} selectable style={styles.docText}>{preview?.body}</Text>
+              <HukukiUyari tur="sablon" kucuk />
             </ScrollView>
             <Pressable style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]} onPress={onShare}>
               <Ionicons name="share-social" size={17} color={colors.textInverse} />

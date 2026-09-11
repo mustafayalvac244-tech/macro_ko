@@ -7,6 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
+import { HukukiUyari } from '@/components/ui/HukukiUyari';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_BELGE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
@@ -258,6 +259,7 @@ export default function DocumentReviewScreen() {
               </View>
               {/* selectable: avukat bulguları kopyalayıp dilekçeye taşıyabilsin */}
               <Text selectable style={styles.resultText}>{result}</Text>
+              <HukukiUyari tur="yapayZeka" />
               {/* SUNUCU BUNLARI GÖNDERİYORDU, EKRAN HİÇBİRİNİ GÖSTERMİYORDU.
                   Beş durum (uydurma madde, ayıklanan tarih, kullanım, hak
                   düşülmedi, iade) alınıp saklanıyor ama tek biri bile
