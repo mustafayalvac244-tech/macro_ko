@@ -40,7 +40,7 @@ const sectionsTr = (): Section[] => [
   {
     icon: 'person-circle-outline',
     title: '1. Kimler Kullanabilir',
-    body: 'Vekil Pro yalnızca avukatlar ve hukuk büroları için tasarlanmıştır. Kayıt sırasında verdiğiniz baro ve sicil bilgilerinin doğru olduğunu beyan edersiniz. Hesabınızı başkasıyla paylaşamaz, devredemezsiniz.',
+    body: 'Vekil Pro yalnızca avukatlar ve hukuk büroları için tasarlanmıştır; MESLEKİ ve TİCARİ amaçla, bir hukuk bürosunun faaliyeti kapsamında kullanılır. Kişisel/ev içi tüketim amaçlı bir hizmet değildir. Kayıt sırasında verdiğiniz baro ve sicil bilgilerinin doğru olduğunu beyan edersiniz. Hesabınızı başkasıyla paylaşamaz, devredemezsiniz; hesabınızdan yapılan işlemlerden siz sorumlusunuz.',
   },
   {
     icon: 'mail-open-outline',
@@ -98,6 +98,31 @@ const sectionsTr = (): Section[] => [
     icon: 'document-text-outline',
     title: '11. Değişiklikler ve İletişim',
     body: 'Bu koşullar güncellenebilir; önemli değişikliklerde uygulama içinde bilgilendirme yapılır. Soru ve talepleriniz için Ayarlar > Öneri & Şikayet kanalını kullanabilirsiniz.',
+  },
+  {
+    icon: 'alarm-outline',
+    title: '12. Süre ve Duruşma Hatırlatmaları Garanti Değildir',
+    body: 'Uygulamanın verdiği süre hesapları ve gönderdiği duruşma/süre hatırlatmaları YARDIMCI araçtır; sürenin takibi HER HÂLÜKÂRDA avukata aittir. Bildirimler cihaz kapalıyken, bildirim izni verilmediğinde, uygulama kaldırıldığında, telefon değiştirildiğinde, işletim sisteminin pil/arka plan kısıtları devredeyken veya mağaza/işletim sistemi tarafındaki bir arıza hâlinde ULAŞMAYABİLİR. Ayrıca iOS, bir uygulamanın bekleyen yerel bildirim sayısını 64 ile sınırlar; çok sayıda duruşma girildiğinde bu sınır nedeniyle bir kısım hatırlatma planlanamayabilir — uygulama en yakın tarihli olanlara öncelik verir. Süre hesapları adli tatil, resmî tatil ve hafta sonu kurallarını uygular ancak dinî bayram tarihleri ve mahkeme uygulamalarındaki istisnalar hesaba KATILMAZ. Bu nedenle hiçbir hatırlatma, süreyi kaçırmadığınızın güvencesi olarak kabul edilemez ve kaçırılan süreden doğan zararlardan Vekil Pro sorumlu tutulamaz.',
+  },
+  {
+    icon: 'cloud-download-outline',
+    title: '13. Yedekleme ve Veri Kaybı',
+    body: 'Verileriniz sağlayıcının altyapısında tutulur; bununla birlikte hesabınıza ait verilerin YEDEĞİNİ ALMAK sizin sorumluluğunuzdadır. Uygulama, dışa aktarma (CSV/metin) imkânı sunar. Kullanıcı hatası, hesabın silinmesi, sağlayıcı arızası, siber saldırı veya mücbir sebep hâlinde oluşabilecek veri kaybından; verinin yeniden oluşturulmasının maliyetinden ve bu kayıptan doğan dolaylı zararlardan Vekil Pro sorumlu değildir. Hesabı silme işlemi geri alınamaz ve yedeklenmiş bir kopya tutulmaz.',
+  },
+  {
+    icon: 'shield-outline',
+    title: '14. Sorumluluğun Sınırı',
+    body: 'Hizmet "olduğu gibi" ve "mevcut hâliyle" sunulur; belirli bir amaca uygunluk, kesintisizlik ve hatasızlık dâhil açık ya da örtülü hiçbir garanti verilmez. Vekil Pro; kâr kaybı, iş kaybı, müvekkil kaybı, itibar zararı, hak düşürücü süre veya zamanaşımının kaçırılması, yanlış ya da eksik çıktı kullanımı gibi DOLAYLI ve SONUÇ olarak doğan zararlardan sorumlu değildir. Her hâlükârda toplam sorumluluğumuz, zararın doğduğu olaydan önceki oniki (12) ay içinde bize fiilen ödediğiniz abonelik bedeli ile sınırlıdır; ücretsiz kullanımda bu tutar sıfırdır. Bu sınırlama, Türk Borçlar Kanunu m.115 uyarınca KASIT ve AĞIR KUSUR hâllerinde ve emredici hükümlerle sorumluluğun sınırlanamadığı diğer hâllerde UYGULANMAZ.',
+  },
+  {
+    icon: 'people-circle-outline',
+    title: '15. Tazmin (Rücu)',
+    body: 'Uygulamayı bu koşullara, mevzuata veya Avukatlık Kanunu ile meslek kurallarına aykırı kullanmanız; uygulamaya hukuka aykırı biçimde veri girmeniz ya da ürettiğiniz bir çıktıyı denetlemeden kullanmanız nedeniyle üçüncü kişiler (müvekkiliniz dâhil) tarafından Vekil Pro aleyhine bir talep ileri sürülürse, bu talepten ve makul savunma giderlerinden doğan zararı tazmin etmeyi kabul edersiniz.',
+  },
+  {
+    icon: 'business-outline',
+    title: '16. Uygulanacak Hukuk ve Uyuşmazlık',
+    body: 'Bu koşullara Türk hukuku uygulanır. Taraflar öncelikle uyuşmazlığı iyi niyetle çözmeye çalışır; talebinizi Ayarlar > Öneri & Şikayet kanalından iletebilirsiniz. Çözülemeyen uyuşmazlıklarda İstanbul (Çağlayan) Mahkemeleri ve İcra Daireleri yetkilidir. Bu yetki kaydı, tüketici sıfatıyla korunan kişilerin kanundan doğan yetkili mahkeme ve tüketici hakem heyetine başvuru haklarını ORTADAN KALDIRMAZ.',
   },
 ];
 
@@ -163,6 +188,31 @@ const sectionsEn = (): Section[] => [
     icon: 'document-text-outline',
     title: '11. Changes and Contact',
     body: 'These terms may be updated; significant changes will be announced in the app. For questions, use Settings > Feedback.',
+  },
+  {
+    icon: 'alarm-outline',
+    title: '12. Deadline and Hearing Reminders Are Not Guaranteed',
+    body: 'Deadline calculations and hearing/deadline reminders are AIDS only; tracking deadlines remains the lawyer\u2019s responsibility in all cases. Notifications may NOT arrive when the device is off, notification permission was not granted, the app was removed, the phone was changed, battery/background restrictions are active, or the store/operating system fails. iOS also caps pending local notifications at 64 per app; with many hearings some reminders may not be scheduled because of that cap \u2014 the app prioritises the nearest dates. Deadline calculations apply judicial recess, public holidays and weekend rules, but do NOT account for religious holiday dates or court-specific practice. No reminder may therefore be treated as assurance that a deadline was not missed, and Vekil Pro is not liable for losses arising from a missed deadline.',
+  },
+  {
+    icon: 'cloud-download-outline',
+    title: '13. Backups and Data Loss',
+    body: 'Your data is held on the provider\u2019s infrastructure; nevertheless, keeping a BACKUP of your data is your responsibility. The app offers export (CSV/text). Vekil Pro is not liable for data loss caused by user error, account deletion, provider failure, cyber attack or force majeure, nor for the cost of recreating data or any indirect loss arising from it. Account deletion cannot be undone and no copy is retained.',
+  },
+  {
+    icon: 'shield-outline',
+    title: '14. Limitation of Liability',
+    body: 'The service is provided "as is" and "as available", with no warranty of any kind, express or implied, including fitness for a particular purpose, uninterrupted operation or freedom from error. Vekil Pro is not liable for INDIRECT or CONSEQUENTIAL loss such as lost profit, lost business, lost clients, reputational harm, missed limitation or preclusion periods, or use of incorrect or incomplete output. In any event our total liability is limited to the subscription fees actually paid to us in the twelve (12) months preceding the event; for free use that amount is zero. This limitation does NOT apply in cases of intent or gross negligence under Article 115 of the Turkish Code of Obligations, or wherever mandatory law does not permit liability to be limited.',
+  },
+  {
+    icon: 'people-circle-outline',
+    title: '15. Indemnity',
+    body: 'If a third party (including your own client) brings a claim against Vekil Pro because you used the app contrary to these terms, the law or the Attorneys\u2019 Act and professional rules; entered data unlawfully; or used generated output without reviewing it, you agree to indemnify us for that claim and reasonable defence costs.',
+  },
+  {
+    icon: 'business-outline',
+    title: '16. Governing Law and Disputes',
+    body: 'These terms are governed by Turkish law. The parties will first try to resolve any dispute in good faith; you can reach us via Settings > Feedback. Unresolved disputes are subject to the Istanbul (\u00c7a\u011flayan) Courts and Enforcement Offices. This clause does NOT remove the statutory venue rights or consumer arbitration committee rights of persons protected as consumers.',
   },
 ];
 

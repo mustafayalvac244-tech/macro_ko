@@ -1339,6 +1339,13 @@ export const tr = {
   'ai.errQuotaWait': 'Ücretsiz AI hakkı şu an dolu — bu havuz tüm kullanıcılarla ortaktır. Yaklaşık {dk} dakika sonra tekrar deneyebilirsiniz.',
   'ai.errQuota': 'Bu ayki AI kullanım hakkınız doldu. Hakkınız ayın başında yenilenir.',
   'ai.errGeneric': 'Yanıt alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+  // HUKUKİ SORUMLULUK UYARILARI (bkz. components/ui/HukukiUyari).
+  // Metin bilerek KISA ve SOMUT: "sorumluluk kabul edilmez" gibi genel bir
+  // kalıp kullanıcı tarafından okunmuyor. Okunması gereken tek şey şu:
+  // çıktı taslaktır, kontrol avukata aittir.
+  'uyari.yapayZeka': 'Bu metni yapay zekâ üretti. Madde numaraları, kararlar ve tutarlar HATALI ya da UYDURMA olabilir. Kullanmadan önce mevzuattan ve dosyanızdan teyit edin. Çıktı hukuki tavsiye değildir; sorumluluk metni kullanan avukata aittir.',
+  'uyari.degerlendirme': 'Bu değerlendirme yalnızca girdiğiniz bilgilere dayanır; belgenin aslını kontrol edin. Hukuki tavsiye değildir, sorumluluk avukata aittir.',
+  'uyari.sablon': 'Bu metin hazır bir şablondan üretildi; somut olayınıza uyarlanması gerekir. Hukuki tavsiye değildir, sorumluluk metni kullanan avukata aittir.',
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
   'ai.comingSoon': 'Vekil AI çok yakında',
   'ai.comingSoonDesc': 'Yapay zekâ asistanı son hazırlıklarını yapıyor. Çok yakında sorularınızı yanıtlamaya başlayacak!',

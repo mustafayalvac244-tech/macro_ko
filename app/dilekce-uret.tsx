@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
+import { HukukiUyari } from '@/components/ui/HukukiUyari';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_DILEKCE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
@@ -246,6 +247,7 @@ export default function DilekceUretScreen() {
                 <CiktiEylemleri metin={text} baslik={t('dlk.resultTitle')} />
               </View>
               <Text selectable style={styles.body}>{text}</Text>
+              <HukukiUyari tur="yapayZeka" />
               {uydurmaMadde.length > 0 && (
                 <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
               )}

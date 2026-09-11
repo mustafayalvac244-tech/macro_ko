@@ -7,6 +7,7 @@ import { File } from 'expo-file-system';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { HukukiUyari } from '@/components/ui/HukukiUyari';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_AKTARMA_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
@@ -243,6 +244,10 @@ export default function DosyaAktarScreen() {
                 <Text style={styles.okText}>{t('imp.readOk', { n: rawLen })}</Text>
               </View>
               <Text style={styles.lead}>{t('imp.reviewLead')}</Text>
+              {/* Alanları belgeden YAPAY ZEKÂ çıkardı; esas no ya da mahkeme
+                  yanlış okunursa dosya ters kurulur. Uyarı alanların HEMEN
+                  ÜSTÜNDE: aşağı inince görünmeyen bir uyarının hükmü olmaz. */}
+              <HukukiUyari tur="yapayZeka" kucuk />
 
               {/* SUNUCUNUN ATTIĞI ALANLAR. Belgede karşılığı bulunamayan alan
                   boşaltılıyor; avukat neyin neden boş olduğunu bilmeli, yoksa
