@@ -1336,6 +1336,7 @@ export const en: Record<keyof typeof tr, string> = {
   'web.gateStep3': 'Refresh this page — signing in with the same account is enough.',
   'web.gateAccount': 'Signed in as: {eposta}',
   'web.gateSignOut': 'Sign in with another account',
+  'web.menu': 'Open on desktop (web)',
   'web.promoTitle': 'Use it on your computer too',
   'web.promoBody': 'Your Vekil Pro membership includes the browser version: work on a big screen, with a keyboard.',
   'web.promoBodyLocked': 'The browser version is for Vekil Pro members. Subscribe to work from your computer as well.',

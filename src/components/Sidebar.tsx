@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { AI_BELGE_ENABLED, AI_DILEKCE_ENABLED, AI_ENABLED, AI_MUTALAA_ENABLED } from '@/config/features';
+import { WEB_ADRESI } from '@/config/web';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/tokens';
 import { YAN_MENU_GENISLIGI } from '@/theme/duzen';
@@ -26,6 +27,14 @@ interface NavItem {
   path: string;
   color?: string;
   badge?: string;
+  /**
+   * Uygulama içi bir ekran değil, DIŞARIDAKİ bir adres (tarayıcıda açılır).
+   *
+   * Web sürümü bugüne kadar YALNIZ ayarlar ekranındaki bir kartta duruyordu —
+   * yani var olduğunu ancak ayarlara giren görüyordu. Menüde yeri olmayan
+   * özellik, olmayan özelliktir.
+   */
+  dis?: string;
 }
 
 /**
@@ -100,6 +109,15 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
     close(() => router.push(path as Parameters<typeof router.push>[0]));
   };
 
+  /** Dış adres: tarayıcıda açılır. Açılamazsa sessiz kalmaz, sebebini söyler. */
+  const disAc = (adres: string) => {
+    const ac = () => {
+      Linking.openURL(adres).catch(() => uyar(t('web.promoTitle'), adres));
+    };
+    if (kalici) ac();
+    else close(ac);
+  };
+
   const handleSignOut = () => {
     uyar(t('settings.signOut'), t('settings.signOutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -162,6 +180,10 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
     { icon: 'stats-chart-outline', label: t('reports.title'), path: '/reports' },
     { icon: 'notifications-outline', label: t('reminders.title'), path: '/reminders' },
     { icon: 'chatbubble-ellipses-outline', label: t('settings.feedback'), path: '/feedback' },
+    // WEB SÜRÜMÜ — telefonda menüde, web'de gereksiz (zaten oradasınız).
+    ...(Platform.OS === 'web'
+      ? []
+      : [{ icon: 'desktop-outline', label: t('web.menu'), path: '/web-surumu', dis: WEB_ADRESI } as NavItem]),
     // Yalnız yöneticiye görünür — büyüme/satış takibi ve premium yönetimi.
     ...(profile?.is_admin ? [{ icon: 'shield-checkmark-outline', label: t('admin.title'), path: '/admin' } as NavItem] : []),
   ];
@@ -223,7 +245,14 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
             />
             {officeOpen &&
               officeItems.map((item) => (
-                <SidebarItem key={item.path} icon={item.icon} label={item.label} onPress={() => go(item.path)} indented />
+                <SidebarItem
+                  key={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  onPress={() => (item.dis ? disAc(item.dis) : go(item.path))}
+                  indented
+                  badge={item.badge}
+                />
               ))}
 
             <View style={styles.divider} />

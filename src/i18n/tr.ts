@@ -1370,6 +1370,7 @@ export const tr = {
   'web.gateAccount': 'Giriş yapılan hesap: {eposta}',
   'web.gateSignOut': 'Başka hesapla giriş yap',
   // Uygulamada web sürümünün tanıtımı (Ayarlar).
+  'web.menu': 'Bilgisayardan aç (web)',
   'web.promoTitle': 'Bilgisayardan da kullanın',
   'web.promoBody': 'Vekil Pro üyeliğiniz tarayıcı sürümünü de kapsar: dosyalarınıza büyük ekranda, klavyeyle çalışın.',
   'web.promoBodyLocked': 'Tarayıcı sürümü Vekil Pro üyelerine özeldir. Üyeliğe geçtiğinizde bilgisayardan da çalışabilirsiniz.',
