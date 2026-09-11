@@ -1,3 +1,13 @@
+-- ⚠️ SUPABASE SQL EDITOR UYARISI (bu dosya birden çok SELECT içerir).
+-- Editor çok ifadeli bir betikte YALNIZ SON ifadenin sonucunu gösterir. Bu
+-- dosyayı olduğu gibi çalıştırırsan yalnızca en alttaki sorgunun tablosunu
+-- görürsün — diğerleri koşar ama görünmez. Bu, üç tur boyunca ölçüm sonucunu
+-- alamamamızın sebebiydi ve kusur bendeydi, dosyayı çalıştıranda değil.
+--
+-- İKİ YOL:
+--   a) Hepsini tek tabloda isteyen özet için: scripts/hasat-tek-rapor.sql
+--   b) Buradaki sorguları TEK TEK seçip (fareyle işaretle) Run'a bas.
+
 -- AI MALİYETİ — TAHMİN DEĞİL, GERÇEK KULLANIMDAN ÖLÇÜM.
 -- ===========================================================================
 -- NEDEN BU YOL. Soru başına maliyeti bilmiyoruz; sekiz ölçüm betiği anahtar
