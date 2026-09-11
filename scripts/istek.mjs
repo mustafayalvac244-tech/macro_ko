@@ -1,27 +1,49 @@
 // ZAMAN AŞIMLI İSTEK + BÜTÇELİ GERİ ÇEKİLME
 // ---------------------------------------------------------------------------
-// ÖLÇÜLEN ARIZA (2026-09-11, canlı koşu 34635964721). "tam ölçüm" koşusu
-// 51 dakika boyunca "in_progress" göründü ve veritabanına TEK BİR AI isteği
-// bile düşmedi. Bunu ai_harcama_ozeti(3) ile 70 saniye arayla iki kez ölçtüm:
-// her ikisinde de son istek 17:49:48 — yani koşu 18:55'te başlamadan ÖNCEKİ
-// istek. Koşu bir saat boyunca hiçbir şey üretmedi.
+// ÖNCE BİR DÜZELTME — bu dosyanın ilk hâlinde yazdığım teşhis YANLIŞTI.
 //
-// Sebebi kesin olarak ayıramadım (GitHub, koşan bir işin kaydını 404 ile
-// gizliyor; bitmeden okunamıyor). İki aday var ve İKİSİ DE gerçek kusur:
+// 2026-09-11'de koşu 34635964721'in 51 dakika boyunca "asılı" olduğunu
+// yazmıştım. Dayanağım şuydu: yeni ai_harcama_ozeti(3) fonksiyonunu 70 saniye
+// arayla iki kez çağırdım, ikisinde de "3 saatte 1 istek" çıktı. Buradan
+// "hiçbir AI isteği tamamlanmıyor" sonucunu çıkardım ve koşuyu İPTAL ETTİM.
 //
-//   1) HİÇBİR ÖLÇÜM BETİĞİNDE İSTEK ZAMAN AŞIMI YOKTU. Dokuz betikte de
-//      AbortController/AbortSignal geçmiyordu. Node'un fetch'i kendiliğinden
-//      zaman aşımına uğramaz: ai-chat tek bir istekte takılırsa betik SONSUZA
-//      kadar orada bekler.
+// Koşu iptal edilince kaydı okunabilir oldu ve teşhis çürüdü. Koşu SAĞLIKLIYDI:
+//     18:55-19:01  sohbet   8/10
+//     19:01-19:02  künye    7/7
+//     19:02-19:08  cevap   11/13
+//     19:08-19:37  dilekçe 11/11   (senaryo başına 1,5-7 dakika)
+//     19:37:35     mütalaa başladı
+//     19:51:39     ← ben iptal ettim
+// Yani mütalaa ve belge ölçümleri benim hatam yüzünden kayboldu.
 //
-//   2) TEK BİR 429, SESSİZCE 30 DAKİKA UYUTABİLİYORDU. bekleme.mjs sağlayıcının
-//      "şu kadar sonra dene" ipucunu okuyor ve üst sınır 30 dakika; üstelik
-//      6 denemeye kadar tekrarlıyor. Yani tek bir soru 3 saat sürebilir —
-//      işin 120 dakikalık tavanından uzun.
+// ÖLÇÜM ARACIM KÖRDÜ VE BUNU BİLMİYORDUM. ai_istek.user_id şöyle tanımlı:
+//     references auth.users(id) on delete cascade            (0056)
+// Ölçüm betikleri geçici kullanıcıyı SONDA siliyor; silinince o betiğin tüm
+// ai_istek satırları da cascade ile gidiyor. Yani biten betiklerin harcaması
+// geriye dönük OKUNAMIYOR. Baktığım iki anda (19:43, 19:45) koşan betik
+// mütalaaydı; kullanıcısı 19:37'de açılmıştı ve ilk mütalaa henüz bitmemişti —
+// sıfır satır, ama "takıldığı" için değil, YAVAŞ olduğu için.
 //
-// HER İKİ DURUMDA DA SONUÇ AYNI VE ASIL KÖTÜSÜ BU: betikler sonucu yalnız
-// SONDA yazdığı için, iş tavana çarpıp öldürüldüğünde ortaya HİÇBİR ÖLÇÜM
-// çıkmıyor. Bir saat geçiyor, elde veri yok, neyin olduğu da bilinmiyor.
+// DERS: bir aracın sıfır göstermesi, ölçtüğü şeyin sıfır olduğu anlamına
+// gelmez. Aracın o anda ne görebildiğini önce doğrulamak gerekir.
+//
+// ── PEKİ BU DOSYA NEDEN DURUYOR ────────────────────────────────────────────
+// Çünkü ARAMADIĞIM ama BULDUĞUM üç kusur gerçekti ve hâlâ gerçek. Bunlar o gün
+// tetiklenmedi; "tetiklenmedi" ile "yok" aynı şey değil:
+//
+//   1) DOKUZ ÖLÇÜM BETİĞİNİN HİÇBİRİNDE İSTEK ZAMAN AŞIMI YOKTU. Node'un
+//      fetch'i kendiliğinden zaman aşımına uğramaz; ai-chat tek bir istekte
+//      takılırsa betik sonsuza kadar bekler. Dilekçede tek senaryo 7 dakika
+//      sürdü — asılı bir istekle sağlıklı bir istek arasında ölçümün
+//      ayrım yapacak hiçbir aracı yoktu.
+//
+//   2) TEK BİR 429, SESSİZCE 30 DAKİKA UYUTABİLİYORDU (bekleme.mjs üst sınırı)
+//      ve bu 6 denemeye kadar tekrarlanabiliyordu: tek soru 3 saat, işin
+//      tavanı ise 120 dakika.
+//
+//   3) SONUÇ YALNIZ SONDA YAZILIYOR. İş tavana çarparsa o betiğin ölçümü
+//      tamamen kaybolur. Bu, 11 Eylül'de gerçekten oldu — mütalaa 14 dakika
+//      koşmuştu ve elde hiçbir şey kalmadı.
 //
 // Bu dosya üç şey getiriyor:
 //   • istek()      — zaman aşımlı fetch. Süre dolarsa ZAMAN_ASIMI hatası atar.
@@ -30,8 +52,7 @@
 //                    kadarki sonuç RAPORLANIR.
 //   • sonucYaz()   — sonucu her senaryodan sonra diske yazar, sonda değil.
 //
-// Bu dosya tek başına yetmez: iş akışında her betik `timeout` ile sarılıdır,
-// böylece burada öngörülmeyen bir takılma da döngüyü durduramaz.
+// Bu dosya tek başına yetmez: iş akışında her betik `timeout` ile sarılıdır.
 
 import { writeFileSync } from 'node:fs';
 

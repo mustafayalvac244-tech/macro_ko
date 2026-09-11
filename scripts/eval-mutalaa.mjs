@@ -61,12 +61,14 @@ if (!url || !svc || !anon) {
 }
 
 const BEKLEME = Number(process.env.EVAL_BEKLEME ?? 30000);
-// BÜTÇELİ UYKU — ölçülen arıza (2026-09-11, koşu 34635964721): tek bir 429,
-// bekleme.mjs'in 30 dakikalık üst sınırı ve 6 denemeyle birlikte, TEK soruyu
-// 3 saate kadar uzatabiliyordu. İşin tavanı 120 dakika olduğu için koşu
-// öldürülüyor ve sonuç yalnız SONDA yazıldığından elde HİÇBİR ölçüm kalmıyordu.
+// BÜTÇELİ UYKU. Tek bir 429, bekleme.mjs'in 30 dakikalık üst sınırı ve 6
+// denemeyle birlikte TEK soruyu 3 saate kadar uzatabiliyor; işin tavanı ise
+// 120 dakika. Sonuç yalnız SONDA yazıldığı için tavana çarpan koşudan elde
+// hiçbir ölçüm kalmıyor — 2026-09-11'de mütalaa tam olarak böyle kayboldu
+// (14 dakika koştu, hiçbir şey yazılmadı).
 // Artık uyku kalan bütçeyi aşamaz; bütçe dolunca ölçüm, o ana kadar ölçtüğünü
-// RAPORLAYARAK durur — sessizce bir saat beklemek yerine.
+// RAPORLAYARAK durur. Ayrıntılı teşhis ve o gün yaptığım YANLIŞ teşhisin
+// düzeltmesi: scripts/istek.mjs başlığı.
 const butce = new Butce();
 const uyu = (ms) => new Promise((r) => setTimeout(r, Math.min(ms, butce.kalan())));
 
@@ -226,6 +228,11 @@ async function uret(olay, deneme = 0) {
     uydurmaMadde: Array.isArray(j?.uydurmaMadde) ? j.uydurmaMadde : [],
     atlananKural: Array.isArray(j?.atlananKural) ? j.atlananKural : [],
     dayanak: Array.isArray(j?.dayanak) ? j.dayanak.map((k) => k?.id).filter(Boolean) : [],
+    // KULLANIM BİLGİSİ (token + maliyet). Mütalaa çok adımlı ama adımlar UÇTA
+    // koşuyor; dönen kullanim tüm adımların toplamı. Ölçüm bunu ATIYORDU ve
+    // künye maliyeti bu alandan topladığı için rapor satırı bugüne kadar her
+    // koşuda "₺0.00" yazdı — bu bir ölçüm değil, atılmış bir alandı.
+    kullanim: j?.kullanim ?? { model: j?.model },
   };
 }
 
@@ -287,6 +294,7 @@ try {
     let uydurmaMaddeUyari = [];
     let atlananKuralUyari = [];
     let dayanakKurallar = [];
+    let kullanimBilgisi = null;
     try {
       ({
         metin,
@@ -294,8 +302,9 @@ try {
         uydurmaMadde: uydurmaMaddeUyari,
         atlananKural: atlananKuralUyari,
         dayanak: dayanakKurallar,
+        kullanim: kullanimBilgisi,
       } = await uret(s.olay));
-      kunye.gor({ model: kullanilanModel });
+      kunye.gor(kullanimBilgisi ?? { model: kullanilanModel });
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(

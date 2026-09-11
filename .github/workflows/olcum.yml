@@ -38,6 +38,9 @@ on:
       betik_dk:
         description: 'Betik başına en fazla dakika (asılmaya karşı üst sınır)'
         default: '18'
+      betikler:
+        description: 'Yalnız bu betikler (boş = hepsi). Ör: eval-mutalaa eval-belge'
+        default: ''
       isle:
         description: 'Sonuç JSON dosyaları dala işlensin mi'
         type: boolean
@@ -142,13 +145,16 @@ jobs:
           # Sıra bilinçli: ucuz ve kısa olanlar önce. Bütçe biterse ya da oran
           # sınırına takılırsak, en azından bir kısmı ölçülmüş olur.
           #
-          # NEDEN `timeout` VAR. Ölçülen arıza (koşu 34635964721): koşu 51 dakika
-          # "in_progress" göründü ve veritabanına TEK BİR AI isteği düşmedi
-          # (ai_harcama_ozeti ile 70 sn arayla iki kez ölçüldü). Hiçbir ölçüm
-          # betiğinde istek zaman aşımı yoktu; Node'un fetch'i kendiliğinden
-          # zaman aşımına uğramaz. Tek bir asılı istek, 120 dakikalık iş
-          # tavanına kadar her şeyi kilitliyor ve sonuç adımlarına HİÇ
-          # sıra gelmiyordu — bir saat geçiyor, elde veri olmuyordu.
+          # NEDEN `timeout` VAR. Ölçüm betiklerinde istek zaman aşımı yoktu ve
+          # Node'un fetch'i kendiliğinden zaman aşımına uğramaz: asılı tek bir
+          # istek, 120 dakikalık iş tavanına kadar her şeyi kilitler ve sonuç
+          # adımlarına hiç sıra gelmez.
+          #
+          # BU RİSK SOYUT DEĞİL, ÇÜNKÜ SENARYOLAR GERÇEKTEN UZUN. 2026-09-11
+          # koşusunda dilekçe senaryoları 1,5-7 dakika sürdü; "yavaş" ile
+          # "asılı" arasında ölçümün ayrım yapacak hiçbir aracı yoktu. O gün
+          # ben de bu ikisini karıştırıp SAĞLIKLI bir koşuyu iptal ettim ve
+          # mütalaa ile belge ölçümlerini kaybettim (bkz. scripts/istek.mjs).
           #
           # `| tee` sayesinde çıkış kodu tee'ninki (0) olur, yani bir betiğin
           # öldürülmesi döngüyü durdurmaz; sıradaki betik ölçülür.
@@ -158,7 +164,25 @@ jobs:
           # `timeout` öldürürse hiçbir şey yazılmaz. Yani önce betik pes etsin.
           export EVAL_BETIK_BUTCESI=$(( (DK - 1) * 60000 ))
           echo "Betik başına: iç bütçe $(( DK - 1 ))dk, dış tavan ${DK}dk."
-          for b in eval-sohbet eval-kunye eval-cevap eval-dilekce eval-mutalaa eval-belge; do
+          # HANGİ BETİKLER. Boş bırakılırsa altısı da koşar.
+          #
+          # NEDEN SEÇİLEBİLİR OLMASI GEREKİYOR. Her senaryo gerçek bir Opus
+          # isteği, yani gerçek para. Koşu ortada kalırsa (2026-09-11'de tam
+          # olarak bu oldu: sohbet/künye/cevap/dilekçe ölçüldü, mütalaa ile
+          # belge kaldı) eksiği tamamlamak için altısını birden koşturmak,
+          # elde zaten ölçülmüş 41 senaryonun parasını ikinci kez ödemektir.
+          BETIKLER='${{ inputs.betikler }}'
+          [ -n "$BETIKLER" ] || BETIKLER='eval-sohbet eval-kunye eval-cevap eval-dilekce eval-mutalaa eval-belge'
+          # Girdi doğrulaması: yalnız var olan ölçüm betikleri koşabilir.
+          # Yoksa yazım hatası sessizce "hiç ölçüm yapılmadı" demek olurdu.
+          for b in $BETIKLER; do
+            if [ ! -f "scripts/$b.mjs" ]; then
+              echo "::error::scripts/$b.mjs yok — betik adını kontrol et."
+              exit 1
+            fi
+          done
+          echo "Koşulacak: $BETIKLER"
+          for b in $BETIKLER; do
             echo "### $b" >> $GITHUB_STEP_SUMMARY
             timeout -k 30s "${DK}m" node "scripts/$b.mjs" 2>&1 | tee "/tmp/$b.log"
             # timeout 124 ile öldürdüyse bunu RAPORA yaz; sessizce eksik bir

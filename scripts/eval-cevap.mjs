@@ -52,12 +52,14 @@ if (!url || !svc || !anon) {
 }
 
 const BEKLEME = Number(process.env.EVAL_BEKLEME ?? 20000);
-// BÜTÇELİ UYKU — ölçülen arıza (2026-09-11, koşu 34635964721): tek bir 429,
-// bekleme.mjs'in 30 dakikalık üst sınırı ve 6 denemeyle birlikte, TEK soruyu
-// 3 saate kadar uzatabiliyordu. İşin tavanı 120 dakika olduğu için koşu
-// öldürülüyor ve sonuç yalnız SONDA yazıldığından elde HİÇBİR ölçüm kalmıyordu.
+// BÜTÇELİ UYKU. Tek bir 429, bekleme.mjs'in 30 dakikalık üst sınırı ve 6
+// denemeyle birlikte TEK soruyu 3 saate kadar uzatabiliyor; işin tavanı ise
+// 120 dakika. Sonuç yalnız SONDA yazıldığı için tavana çarpan koşudan elde
+// hiçbir ölçüm kalmıyor — 2026-09-11'de mütalaa tam olarak böyle kayboldu
+// (14 dakika koştu, hiçbir şey yazılmadı).
 // Artık uyku kalan bütçeyi aşamaz; bütçe dolunca ölçüm, o ana kadar ölçtüğünü
-// RAPORLAYARAK durur — sessizce bir saat beklemek yerine.
+// RAPORLAYARAK durur. Ayrıntılı teşhis ve o gün yaptığım YANLIŞ teşhisin
+// düzeltmesi: scripts/istek.mjs başlığı.
 const butce = new Butce();
 const uyu = (ms) => new Promise((r) => setTimeout(r, Math.min(ms, butce.kalan())));
 
@@ -128,7 +130,16 @@ async function sor(jwt, soru, deneme = 0) {
   // model cevabı sayarsak, ölçüm modelin kalitesini değil o andaki sağlayıcı
   // yoğunluğunu ölçer — nitekim bir koşuda 13/13 olan sonuç, üçü özet olduğu
   // için 9/13 göründü. Özet geldiğinde beklenip yeniden sorulur.
-  kunye.gor({ model: govde?.model });
+  // KULLANIM BİLGİSİNİN TAMAMINI VER, YALNIZ MODELİ DEĞİL.
+  // ÖLÇÜLEN KUSUR (2026-09-11): ai-chat yanıtında
+  //     kullanim: { model, girdiToken, ciktiToken, maliyetTL }
+  // zaten dönüyor (ai-chat/index.ts:668, 2785). Betikler bunu ATIP yerine
+  // yalnız { model } veriyordu; künye maliyeti o alandan topladığı için
+  // rapor satırı BUGÜNE KADAR HER KOŞUDA "₺0.00" yazdı. Bu bir ölçüm değil,
+  // atılmış bir alandı — üstelik ölçüm kullanıcısı sonda silindiği için
+  // ai_istek satırları da cascade ile gidiyor, yani harcama başka hiçbir
+  // yerden geri okunamıyor.
+  kunye.gor(govde?.kullanim ?? { model: govde?.model });
   if (govde?.yapayZekasiz || govde?.model === 'mevzuat-yedek') {
     if (deneme < 4) {
       const bekle = 30000 * (deneme + 1);
