@@ -44,6 +44,13 @@ create policy oturum_cihazlari_read on public.oturum_cihazlari
   for select to authenticated using (user_id = auth.uid());
 
 revoke insert, update, delete on public.oturum_cihazlari from authenticated, anon;
+-- TABLO YETKİSİ AYRICA VERİLMELİ — yerel Postgres'te ölçüldü. RLS politikası
+-- tek başına YETMİYOR: politika "hangi satırları" görebileceğini söyler, ama
+-- tabloya SELECT yetkisi yoksa sorgu zaten yetki hatasıyla düşer.
+-- Ölçüm (migration uygulandıktan sonra, grant eklenmeden önce):
+--     has_table_privilege('authenticated','oturum_cihazlari','SELECT') → FALSE
+-- Yani cihaz listesi ekranda HER ZAMAN boş kalırdı ve sebebi görünmezdi.
+grant select on public.oturum_cihazlari to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Cihazı bildir. Dönen jsonb:

@@ -9,9 +9,26 @@
 -- diyerek damgayı İSTEDİĞİ tarihe çekebilirdi. "Son görülme" uydurulabilir bir
 -- alan olsaydı yönetim ekranındaki rakam hiçbir şey ifade etmezdi.
 --
--- 0077'de deneme_soru_kullanildi için tam olarak bu yapılmıştı; 0097'de aynısını
--- yapmayı atladım. İki katmanlı kapatılıyor: sütun yetkisi + tetikleyici.
-revoke update (son_gorulme) on public.profiles from authenticated, anon;
+-- SÜTUN BAZLI REVOKE TEK BAŞINA İŞE YARAMIYOR — YEREL POSTGRES'TE ÖLÇÜLDÜ.
+-- "revoke update (sutun) ... from authenticated" yazmak, rol TABLO SEVİYESİNDE
+-- update yetkisine sahipse HİÇBİR ŞEY YAPMAZ (Postgres: tablo yetkisi sütun
+-- yetkisini kapsar, sütun bazlı revoke onu delmez). Supabase'de authenticated
+-- rolü public şemadaki tablolarda tablo-geneli yetkilere sahiptir.
+-- Ölçüm (PostgreSQL 16, migration uygulandıktan SONRA):
+--     has_column_privilege('authenticated','profiles','son_gorulme','UPDATE') → TRUE
+-- Yani yalnız revoke yazsaydım "kapattım" derken hiçbir şey kapatmamış olurdum.
+-- 0077'deki deneme_soru_kullanildi revoke'u da AYNI SEBEPLE etkisiz; oradaki
+-- gerçek koruma da tetikleyicidir.
+--
+-- DOĞRU YOL: tablo-geneli update'i kaldır, kullanıcının MEŞRU olarak
+-- değiştirdiği sütunları tek tek geri ver. Uygulama profiles üzerinde yalnız
+-- şu beş sütunu yazıyor (src/store/authStore.ts: updateProfile / uploadAvatar /
+-- removeAvatar). Geri kalan her sütun artık istemciye kapalı.
+-- SECURITY DEFINER fonksiyonlar (handle_new_user, admin_set_premium,
+-- son_gorulme_dokun) sahibi olarak çalıştığı için bu kısıttan ETKİLENMEZ.
+revoke update on public.profiles from authenticated, anon;
+grant update (full_name, firm_name, bar_number, phone, avatar_url)
+  on public.profiles to authenticated;
 
 -- Tetikleyici ikinci güvenlik ağı: ileride biri tablo-geneli bir grant yazarsa
 -- (ör. "grant update on profiles to authenticated") sütun yetkisi geri gelir,
