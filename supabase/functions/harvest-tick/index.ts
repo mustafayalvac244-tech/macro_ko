@@ -197,17 +197,36 @@ Deno.serve(async (req) => {
    * larımızın GERÇEK dava karışımı, yüksek yargı ağırlığı ve tazelik. İkincil
    * sıralama hâlâ `last_run` — böylece aynı öncelikteki terimler sırayla
    * dolaşılır ve hiçbiri aç kalmaz.
+   *
+   * SESSİZ ÖLÜM RİSKİ (bu yüzden geri düşüş var). Bu işlev `oncelik` sütununa
+   * bağımlı; sütun yoksa (0093 uygulanmamışsa) PostgREST 42703 döndürür, bu
+   * işlev 500 verir ve hasat DURUR. Üstelik görünmez durur: hasat_tetikle
+   * net.http_post ile ateşle-unut çağırıyor, yanıtı kimse okumuyor. Yani tek
+   * bir eksik migration, hasadı haftalarca sessizce kapalı tutabilirdi.
+   * Bağımlılığı sürüm sırasına bırakmak yerine burada kırıyoruz: sütun yoksa
+   * eski davranışa (yalnız last_run) düşülür ve bunu yanıtta söyleriz.
    */
-  let q = supabase
-    .from('ictihat_harvest_state')
-    .select('terim, next_page')
-    .order('oncelik', { ascending: false })
-    .order('last_run', { ascending: true, nullsFirst: true })
-    .limit(1);
-  q = onek ? q.like('terim', `${onek}%`) : q.not('terim', 'like', '%:%');
-  const { data: durum, error: durumErr } = await q;
+  const terimSec = (oncelikliMi: boolean) => {
+    let s = supabase.from('ictihat_harvest_state').select('terim, next_page');
+    if (oncelikliMi) s = s.order('oncelik', { ascending: false });
+    s = s.order('last_run', { ascending: true, nullsFirst: true }).limit(1);
+    return onek ? s.like('terim', `${onek}%`) : s.not('terim', 'like', '%:%');
+  };
+
+  let oncelikliCalisti = true;
+  let { data: durum, error: durumErr } = await terimSec(true);
   if (durumErr) {
-    return new Response(JSON.stringify({ error: 'state_failed', detail: durumErr.message }), { status: 500, headers: CORS });
+    // 42703 = undefined_column. Yalnız bu hatada geri düş; başka hataları
+    // (yetki, ağ) maskelemek arızayı gizlemek olurdu.
+    const sutunYok = durumErr.code === '42703' || /oncelik/i.test(durumErr.message ?? '');
+    if (!sutunYok) {
+      return new Response(JSON.stringify({ error: 'state_failed', detail: durumErr.message }), { status: 500, headers: CORS });
+    }
+    oncelikliCalisti = false;
+    ({ data: durum, error: durumErr } = await terimSec(false));
+    if (durumErr) {
+      return new Response(JSON.stringify({ error: 'state_failed', detail: durumErr.message }), { status: 500, headers: CORS });
+    }
   }
   const kayit = (durum ?? [])[0] as { terim: string; next_page: number } | undefined;
   if (!kayit) return new Response(JSON.stringify({ error: 'terim_yok' }), { status: 404, headers: CORS });
@@ -294,7 +313,18 @@ Deno.serve(async (req) => {
     })
     .eq('terim', stateKey);
 
-  return new Response(JSON.stringify({ kaynak, terim, sayfa: page, taranan: rows.length, eklenen, toplam: total }), {
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
+  return new Response(
+    JSON.stringify({
+      kaynak,
+      terim,
+      sayfa: page,
+      taranan: rows.length,
+      eklenen,
+      toplam: total,
+      // Öncelik sıralaması çalışmadıysa bunu SÖYLE. Sessizce eski davranışa
+      // dönmek, "öncelikli hasat açık" sanmamıza yol açardı.
+      ...(oncelikliCalisti ? {} : { uyari: 'oncelik_sutunu_yok__last_run_ile_siralandi' }),
+    }),
+    { headers: { ...CORS, 'Content-Type': 'application/json' } }
+  );
 });
