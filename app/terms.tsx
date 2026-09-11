@@ -124,6 +124,11 @@ const sectionsTr = (): Section[] => [
     title: '16. Uygulanacak Hukuk ve Uyuşmazlık',
     body: 'Bu koşullara Türk hukuku uygulanır. Taraflar öncelikle uyuşmazlığı iyi niyetle çözmeye çalışır; talebinizi Ayarlar > Öneri & Şikayet kanalından iletebilirsiniz. Çözülemeyen uyuşmazlıklarda İstanbul (Çağlayan) Mahkemeleri ve İcra Daireleri yetkilidir. Bu yetki kaydı, tüketici sıfatıyla korunan kişilerin kanundan doğan yetkili mahkeme ve tüketici hakem heyetine başvuru haklarını ORTADAN KALDIRMAZ.',
   },
+  {
+    icon: 'hammer-outline',
+    title: '17. Bu Uygulama Bir ARAÇTIR, Danışman Değildir',
+    body: 'Vekil Pro bir hukuk bürosu yazılımıdır: kayıt tutar, süre hesabı ÖNERİR, mevzuat ve içtihat ARAR, dilekçe TASLAĞI çıkarır. Yaptığı iş bulmak, derlemek ve taslak yazmaktır — değerlendirmek, yorumlamak ve karar vermek değildir. Uygulama sizin adınıza hiçbir hukuki işlem yapmaz, hiçbir belgeyi mahkemeye ya da müvekkile göndermez, hiçbir süreyi sizin yerinize takip etmez ve hiçbir çıktısı hukuki mütalaa sayılamaz. Avukatlık Kanunu anlamında avukatlık faaliyeti yürütmez ve sizinle ya da müvekkilinizle avukat-müvekkil ilişkisi kurmaz. Uygulamanın ürettiği her metin TASLAKTIR; kullanılabilir hâle gelmesi sizin denetiminizle olur. Uygulamayı kullanmanız, dosyanızdaki mesleki sorumluluğunuzu ne azaltır ne de paylaştırır.',
+  },
 ];
 
 const sectionsEn = (): Section[] => [
@@ -213,6 +218,11 @@ const sectionsEn = (): Section[] => [
     icon: 'business-outline',
     title: '16. Governing Law and Disputes',
     body: 'These terms are governed by Turkish law. The parties will first try to resolve any dispute in good faith; you can reach us via Settings > Feedback. Unresolved disputes are subject to the Istanbul (\u00c7a\u011flayan) Courts and Enforcement Offices. This clause does NOT remove the statutory venue rights or consumer arbitration committee rights of persons protected as consumers.',
+  },
+  {
+    icon: 'hammer-outline',
+    title: '17. This App Is a TOOL, Not an Adviser',
+    body: 'Vekil Pro is law-office software: it keeps records, PROPOSES deadline calculations, SEARCHES legislation and case law, and produces petition DRAFTS. What it does is find, compile and draft — not assess, interpret or decide. The app performs no legal act on your behalf, sends no document to a court or client, tracks no deadline in your place, and none of its output may be treated as a legal opinion. It does not practise law within the meaning of the Attorneys\u2019 Act and forms no attorney-client relationship with you or your client. Every text it produces is a DRAFT; it becomes usable only through your review. Using the app neither reduces nor shares your professional responsibility in your file.',
   },
 ];
 
