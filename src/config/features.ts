@@ -105,10 +105,17 @@ export const AI_AKTARMA_ENABLED = true;
  */
 
 /**
- * İçtihatta OLAY ANALİZİ (yapay zekâ ile). Ölçülmedi, bu yüzden kapalı.
- * Kapalıyken yalnız bu KİP gizlenir; arama ve künye çalışmaya devam eder.
+ * İçtihatta OLAY ANALİZİ (yapay zekâ ile).
+ *
+ * AÇILDI (2026-09-11, kullanıcı kararı). Gerekçe AI_ENABLED ile aynı: ölçüm
+ * hâlâ yok, ama artık istekler Opus'a gidiyor (canlıda doğrulandı) ve bu kip
+ * ürünün asıl vaadi — "AI eski emsal davayı getirsin".
+ *
+ * Kapalıyken yalnız bu KİP gizleniyordu; arama ve künye zaten çalışıyordu.
+ * Ölçüm seti hazır: eval-ictihat 30 soru ve API HARCAMASI YOK (yalnız
+ * veritabanı arama fonksiyonlarını ölçüyor) — Actions → AI Ölçümü → arama.
  */
-export const AI_ICTIHAT_ANALIZ_ENABLED = false;
+export const AI_ICTIHAT_ANALIZ_ENABLED = true;
 
 /**
  * Ölçülmemiş AI özellikleri: sohbet ve savaş planı. Eski AI_ENABLED bayrağının
@@ -116,5 +123,18 @@ export const AI_ICTIHAT_ANALIZ_ENABLED = false;
  * değiştirmek, açılmaması gereken ekranları sessizce açma riski taşırdı.
  *
  * DİKKAT: içtihat ARTIK bu bayrağa bağlı değildir (yukarıya bakınız).
+ *
+ * AÇILDI (2026-09-11, kullanıcı kararı). Kapalı olma gerekçesi "ölçülmedi"ydi
+ * ve o gerekçe hâlâ geçerli — bu özellikler ölçülmedi. Kararı değiştiren şey
+ * başka: bugüne kadar bu ekranlar açılsaydı ÜCRETSİZ modellere düşerdi.
+ * Anahtar öncesi ölçülen 11 isteğin 11'i gpt-oss/qwen/gemini'ye gitmişti ve
+ * mütalaada ücretsiz modellerin kanun uydurduğu daha önce ölçülmüştü. Şimdi
+ * canlıda doğrulandı ki istekler Opus'a gidiyor (ai_istek: claude-opus-5).
+ * Yani risk aynı değil.
+ *
+ * YİNE DE KAYDA GEÇSİN: "ölçülmedi" ile "iyi çalışıyor" aynı şey değildir.
+ * Sohbet ve savaş planı için elimizde TEK bir ölçüm yok. Bu ekranların
+ * çıktısı TASLAKTIR ve ekrandaki hukuki uyarı burada kozmetik değil.
+ * Ölçüm: Actions → "AI Ölçümü" → grup: ai (eval-sohbet 10 senaryo).
  */
-export const AI_ENABLED = false;
+export const AI_ENABLED = true;
