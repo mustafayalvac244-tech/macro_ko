@@ -9,6 +9,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { SuggestInput } from '@/components/ui/SuggestInput';
 import { Button } from '@/components/ui/Button';
+import { cakismaBul } from '@/utils/durusmaCakismasi';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { CasePicker } from '@/components/CasePicker';
 import { useCase } from '@/hooks/useCases';
@@ -91,17 +92,32 @@ export default function HearingFormScreen() {
   const isSubmitting = createHearing.isPending || updateHearing.isPending;
   const allHearings = useAllHearings();
 
-  // Clash warning: another (not completed) hearing within ±90 minutes.
-  const clash = useMemo(() => {
-    const ts = scheduledAt.getTime();
-    const windowMs = 90 * 60 * 1000;
-    return (
-      (allHearings.data ?? []).find((h) => {
-        if (h.id === id || h.is_completed) return false;
-        return Math.abs(new Date(h.scheduled_at).getTime() - ts) < windowMs;
-      }) ?? null
-    );
-  }, [allHearings.data, scheduledAt, id]);
+  // ÇAKIŞMA UYARISI.
+  //
+  // ÖNCESİ: ±90 dakikadaki İLK kayıt bulunuyor ve tek bir cümle yazılıyordu.
+  // Konuma HİÇ bakılmıyordu — aynı adliyede 89 dk arayla iki duruşma ile
+  // FARKLI adliyede 5 dk arayla iki duruşma aynı uyarıyı alıyordu. Oysa biri
+  // sıkışık bir gün, diğeri fiziksel imkânsızlık; avukat ikisini ayırt
+  // edemeyince uyarı gürültüye dönüşüp görmezden geliniyor.
+  //
+  // ŞİMDİ: şiddete göre ayrılıyor (bkz. utils/durusmaCakismasi) ve en ağırı
+  // gösteriliyor, kalanların sayısı ekleniyor.
+  const cakismalar = useMemo(
+    () =>
+      cakismaBul(
+        { id, scheduled_at: scheduledAt.toISOString(), location },
+        (allHearings.data ?? []).map((h) => ({
+          id: h.id,
+          scheduled_at: h.scheduled_at,
+          title: h.case?.title ? `${h.title}` : h.title,
+          location: h.location,
+          is_completed: h.is_completed,
+        }))
+      ),
+    [allHearings.data, scheduledAt, id, location]
+  );
+  const clash = cakismalar[0] ?? null;
+  const clashKaydi = clash ? (allHearings.data ?? []).find((h) => h.id === clash.digeri.id) ?? null : null;
 
   // "Toplantı" kısayolundan açıldığında form toplantı odaklıdır: tür listesi
   // toplantı/arabuluculukla sınırlanır, başlık/öneri/buton metinleri değişir.
@@ -245,14 +261,27 @@ export default function HearingFormScreen() {
           )}
 
           {clash && (
-            <View style={styles.warnBox}>
-              <Ionicons name="warning" size={18} color={colors.warning} />
-              <Text style={styles.warnText}>
-                {t(currentIsHearing ? 'clash.warn' : 'clash.warnMeeting', {
-                  title: clash.title,
-                  time: formatTime(clash.scheduled_at),
-                  caseInfo: clash.case?.title ? ` · ${clash.case.title}` : '',
-                })}
+            <View style={[styles.warnBox, clash.tur === 'ortusuyor' && styles.warnBoxAgir]}>
+              <Ionicons
+                name={clash.tur === 'ortusuyor' ? 'alert-circle' : 'warning'}
+                size={18}
+                color={clash.tur === 'ortusuyor' ? colors.danger : colors.warning}
+              />
+              <Text style={[styles.warnText, clash.tur === 'ortusuyor' && styles.warnTextAgir]}>
+                {t(
+                  clash.tur === 'ortusuyor'
+                    ? 'clash.ortusuyor'
+                    : clash.tur === 'yol_yetmez'
+                      ? 'clash.yolYetmez'
+                      : 'clash.sikisik',
+                  {
+                    title: clash.digeri.title,
+                    time: formatTime(clash.digeri.scheduled_at),
+                    fark: String(clash.farkDk),
+                    caseInfo: clashKaydi?.case?.title ? ` · ${clashKaydi.case.title}` : '',
+                  }
+                )}
+                {cakismalar.length > 1 ? ` ${t('clash.digerleri', { n: String(cakismalar.length - 1) })}` : ''}
               </Text>
             </View>
           )}
@@ -408,6 +437,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   pickerDone: {
     marginTop: spacing.xs,
+  },
+  // Örtüşme (ikisine birden yetişilmez) kırmızı; yol payı/sıkışık sarı kalır.
+  warnBoxAgir: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
+  },
+  warnTextAgir: {
+    color: colors.danger,
   },
   warnBox: {
     flexDirection: 'row',

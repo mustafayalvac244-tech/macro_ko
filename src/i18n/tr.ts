@@ -1244,6 +1244,13 @@ export const tr = {
   'conflict.guc.guclu': 'güçlü',
   'conflict.guc.zayif': 'zayıf',
   'conflict.more':'ve {n} kayıt daha',
+  // ÇAKIŞMA ŞİDDETİ. Eski tek mesaj konuma bakmıyordu: aynı adliyede 89 dakika
+  // arayla iki duruşma ile FARKLI adliyede 5 dakika arayla iki duruşma aynı
+  // cümleyi alıyordu. Oysa biri sıkışık bir gün, diğeri fiziksel imkânsızlık.
+  'clash.ortusuyor': '⛔ Saatler örtüşüyor: {title} · {time}{caseInfo}. İkisine birden yetişilmez — mazeret/tevkil gerekir.',
+  'clash.yolYetmez': '⚠️ Farklı yerde, {fark} dk sonra: {title} · {time}{caseInfo}. Yol için süre yetmeyebilir.',
+  'clash.sikisik': 'ℹ️ Aynı yerde, {fark} dk sonra: {title} · {time}{caseInfo}. Gün sıkışık.',
+  'clash.digerleri':'ve {n} kayıt daha',
   'clash.warn': '⚠️ Aynı saate denk gelen başka bir işiniz var: {title} · {time}{caseInfo}. Mazeret/tevkil gerekebilir.',
   'clash.warnMeeting': '⚠️ Aynı saate denk gelen başka bir kaydınız var: {title} · {time}{caseInfo}. Çakışmayı gözden geçirin.',
 

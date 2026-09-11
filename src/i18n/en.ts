@@ -1230,6 +1230,10 @@ export const en: Record<keyof typeof tr, string> = {
   'conflict.guc.guclu': 'strong',
   'conflict.guc.zayif': 'weak',
   'conflict.more': 'and {n} more',
+  'clash.ortusuyor': '⛔ Times overlap: {title} · {time}{caseInfo}. You cannot attend both — file an excuse or send a substitute.',
+  'clash.yolYetmez': '⚠️ Different location, {fark} min later: {title} · {time}{caseInfo}. Travel time may not be enough.',
+  'clash.sikisik': 'ℹ️ Same location, {fark} min later: {title} · {time}{caseInfo}. Tight day.',
+  'clash.digerleri': 'and {n} more',
   'clash.warn': '⚠️ You have another commitment around this time: {title} · {time}{caseInfo}. You may need an excuse motion or substitution.',
   'clash.warnMeeting': '⚠️ You have another entry around this time: {title} · {time}{caseInfo}. Please review the overlap.',
 
