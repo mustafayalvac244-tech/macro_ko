@@ -1,0 +1,8 @@
+# NETLIFY AYARI — Cloudflare yerine Netlify seçilirse diye.
+# Ücretsiz adres: https://vekilpro.netlify.app
+# Bağlandıktan sonra ŞART (yoksa uygulama beyaz açılır):
+#   node scripts/web-adres.mjs https://vekilpro.netlify.app
+#   npm run export:web
+[build]
+  publish = "docs"
+  command = ""

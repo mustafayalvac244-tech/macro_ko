@@ -1,0 +1,16 @@
+# CLOUDFLARE PAGES AYARI — bağlanırken hiçbir şey yazmak gerekmesin diye.
+#
+# NEDEN. Bugünkü adres kullanıcıya gösterilecek gibi değil:
+#   https://mustafayalvac244-tech.github.io/macro_ko/
+# Ücretsiz ve iki dakikada alınabilen daha temiz bir adres Cloudflare Pages'te:
+#   https://vekilpro.pages.dev
+# Depoyu Cloudflare'e bağlarken "build command" boş, "output directory" ise
+# docs olmalı; bu dosya ikisini de kendisi söylüyor, panelde ayar girilmez.
+#
+# BAĞLANDIKTAN SONRA ŞART (yoksa uygulama beyaz açılır):
+#   node scripts/web-adres.mjs https://vekilpro.pages.dev
+#   npm run export:web
+# Sebep: web derlemesindeki varlık yolları /macro_ko/app ile gömülü; kök
+# alan adında bu yol 404 verir.
+name = "vekilpro"
+pages_build_output_dir = "docs"

@@ -4,18 +4,25 @@
 // web'de üyelik kapısının metni ve derleme yolu (app.json → experiments.baseUrl).
 // Üçü ayrışırsa kullanıcıya çalışmayan bir bağlantı gösteririz.
 //
-// ALAN ADI HENÜZ ALINMADI. Bugünkü yayın GitHub Pages üzerinde ve adres
-// kullanıcıya gösterilecek gibi değil:
+// ADRES HÂLÂ GITHUB PAGES'TE ve kullanıcıya gösterilecek gibi değil:
 //     https://mustafayalvac244-tech.github.io/macro_ko/app
-// Kendi alan adı alındığında YAPILACAKLAR (üçü birden, yoksa site açılmaz):
-//   1. Buradaki WEB_ADRESI yeni adrese çekilir.
-//   2. app.json → experiments.baseUrl "/macro_ko/app" yerine "/app" olur
-//      (özel alan adında site kökten servis edilir; baseUrl eski kalırsa
-//      bütün JS/CSS yolları 404 verir ve sayfa beyaz açılır).
-//   3. docs/CNAME dosyasına alan adı yazılır ve DNS'te A/ALIAS kayıtları
-//      GitHub Pages'e yönlendirilir. Sonra `npm run export:web` ile yeniden
-//      derlenip depoya işlenir.
-// Bu üç adım GitHub Pages'te kalmaya devam edildiği varsayımıyla yazıldı.
+//
+// ADRESİ DEĞİŞTİRMEK İÇİN ELLE DÜZENLEME YAPMAYIN — üç dosya birden değişmek
+// zorunda (burası, app.json → experiments.baseUrl, docs/index.html'deki
+// canonical/og:url + sitemap) ve biri unutulursa site sessizce bozulur.
+// Tek komut hepsini yazar:
+//
+//     node scripts/web-adres.mjs https://vekilpro.pages.dev
+//     npm run export:web            # ŞART: baseUrl derlemeye gömülüdür
+//
+// Özel alan adı alındıysa `--cname` ekleyin (GitHub Pages'te kalınıyorsa
+// docs/CNAME gerekir; pages.dev / netlify.app gibi barındırmalarda GEREKMEZ
+// ve dosya kalırsa karışıklık çıkarır).
+//
+// ÜCRETSİZ SEÇENEK: vekilpro.pages.dev (Cloudflare Pages) ya da
+// vekilpro.netlify.app. Depoda hazır ayar dosyaları var (wrangler.toml /
+// netlify.toml), panelde ayar girmek gerekmiyor. Gerçek alan adı (vekilpro.app
+// gibi) ÜCRETSİZ DEĞİLDİR — yıllık ücreti vardır.
 
 /** Web sürümünün açık adresi (kullanıcıya gösterilir). */
 export const WEB_ADRESI = 'https://mustafayalvac244-tech.github.io/macro_ko/app';

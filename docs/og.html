@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8">
+<!-- PAYLAŞIM GÖRSELİ KAYNAĞI. Bu dosya yayınlanan sayfa değildir; yalnız
+     docs/paylasim.png'i üretmek için Playwright ile 1200x630 ekran görüntüsü
+     alınır (bkz. scripts/paylasim-gorseli.mjs). Bağlantı WhatsApp'ta ya da
+     X'te paylaşıldığında görünen kart budur; daha önce hiç yoktu ve
+     bağlantı çıplak metin olarak gidiyordu. -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1200px;height:630px;background:linear-gradient(150deg,#0B1F45 0%,#132E63 55%,#0B1F45 100%);
+  font-family:'Manrope',system-ui,sans-serif;color:#EAF0FB;padding:64px 72px;display:flex;flex-direction:column;justify-content:space-between}
+.ust{display:flex;align-items:center;gap:14px}
+.m{width:52px;height:52px;border-radius:14px;background:#EAF0FB;color:#0B1F45;font-family:'Playfair Display',serif;
+  font-size:30px;display:grid;place-items:center;font-weight:700}
+.ad{font-size:29px;font-weight:800;letter-spacing:.2px}
+h1{font-family:'Playfair Display',serif;font-size:62px;line-height:1.12;letter-spacing:-1px;max-width:980px}
+h1 em{font-style:normal;color:#D9B356}
+.alt{font-size:23px;color:#A9B8D2;margin-top:20px;max-width:900px;line-height:1.5}
+.rozetler{display:flex;gap:12px;flex-wrap:wrap}
+.r{font-size:18px;font-weight:700;padding:11px 20px;border-radius:999px;background:rgba(234,240,251,.10);border:1px solid rgba(234,240,251,.20)}
+.r.altin{background:rgba(217,179,86,.16);border-color:rgba(217,179,86,.42);color:#EBCE85}
+</style></head><body>
+<div class="ust"><span class="m">V</span><span class="ad">Vekil&nbsp;Pro</span></div>
+<div>
+  <h1>Uydurma karar numarası<br><em>dilekçenize girmesin</em></h1>
+  <p class="alt">Yapay zekânın verdiği her kanun maddesi ve her Yargıtay karar numarası denetlenir: doğrulandı, havuzda yok ya da olamaz.</p>
+</div>
+<div class="rozetler">
+  <span class="r altin">Atıf denetimi</span>
+  <span class="r">Ücretsiz içtihat araması</span>
+  <span class="r">UYAP (UDF) çıktısı</span>
+  <span class="r">Dava · Duruşma · Finans</span>
+</div>
+</body></html>

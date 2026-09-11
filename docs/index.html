@@ -10,6 +10,18 @@
 <meta property="og:title" content="Vekil Pro — avukatın büro ve araştırma asistanı">
 <meta property="og:description" content="Sınırsız ücretsiz içtihat araması, büro yönetimi ve Claude Opus 5 destekli dilekçe/mütalaa. iOS, Android ve web.">
 <meta property="og:type" content="website">
+<meta property="og:locale" content="tr_TR">
+<meta property="og:site_name" content="Vekil Pro">
+<!-- PAYLAŞIM KARTI. Daha önce og:image yoktu: bağlantı WhatsApp'ta ya da X'te
+     çıplak metin olarak gidiyor, hiçbir önizleme çıkmıyordu. Görsel
+     docs/og.html'den üretiliyor (node scripts/paylasim-gorseli.mjs), yani
+     metni değişince kart da değişiyor. -->
+<meta property="og:image" content="https://mustafayalvac244-tech.github.io/macro_ko/paylasim.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://mustafayalvac244-tech.github.io/macro_ko/">
+<link rel="canonical" href="https://mustafayalvac244-tech.github.io/macro_ko/">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="robots" content="index,follow">
 
 <!-- Uygulamanın kendi tipografisi: başlıklar Playfair, gövde Manrope.
@@ -88,9 +100,14 @@ nav a:hover{color:var(--metin)}
 .rozet{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;border-radius:999px;
   background:color-mix(in srgb,var(--altin) 14%,transparent); border:1px solid color-mix(in srgb,var(--altin) 32%,transparent);
   color:var(--altin); font-size:12.5px; font-weight:700; letter-spacing:.4px; position:relative}
-.kahraman h1{font-size:clamp(34px,5.4vw,58px); margin:22px 0 0; letter-spacing:-1px; position:relative}
+.kahraman h1{font-size:clamp(32px,4.2vw,50px); margin:22px 0 0; letter-spacing:-1px; position:relative}
 .kahraman h1 em{font-style:normal; color:var(--lacivert-3)}
-.kahraman .alt{font-size:clamp(16px,2vw,19px); color:var(--metin-2); max-width:660px; margin:20px auto 0; position:relative}
+/* SINIF ÇAKIŞMASI DÜZELTİLDİ. Kahraman paragrafı da alt bilgi satırı da
+   `.alt` sınıfını kullanıyordu; ikincisi `display:flex` verdiği için kahraman
+   paragrafındaki her <b>/<em> FLEX ÖĞESİNE dönüşüp kendi satırına düşüyordu.
+   Paragraf tek parça yazıyken görünmüyordu, içine vurgu konunca çıktı. */
+.kahraman .kh-alt{font-size:clamp(16px,2vw,19px); color:var(--metin-2); max-width:660px; margin:20px auto 0; position:relative; display:block}
+.kahraman .kh-alt b{color:var(--metin); font-weight:800}
 .kahraman .dgler{display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap;position:relative}
 .magaza-not{margin-top:14px; font-size:13.5px; color:var(--metin-3); position:relative}
 
@@ -173,6 +190,42 @@ table.kars td:first-child{font-weight:700}
 table.kars .biz{background:rgba(197,160,84,.09)}
 table.kars thead th.biz{color:var(--altin-2)}
 .kars-not{font-size:13.5px;color:var(--metin-2);margin-top:14px;line-height:1.7}
+
+/* ── Kahraman: iki sütun + ürün görseli ────────────────────────────────────
+   Sayfada hiç görsel yoktu (ölçüldü: document.images.length === 0). Görsel
+   bir ekran görüntüsü DEĞİL, arayüzün çizimidir; altında öyle yazıyor. */
+.kh-izgara{display:grid;grid-template-columns:1.02fr .98fr;gap:44px;align-items:center;text-align:left;position:relative}
+.kh-sol{min-width:0}
+@media(max-width:940px){
+  .kh-izgara{grid-template-columns:1fr;gap:40px;text-align:center}
+  .kahraman .kh-alt{margin-inline:auto}
+  .kahraman .dgler{justify-content:center}
+}
+.kahraman h1{margin-top:18px}
+.kh-gorsel{margin:0;min-width:0}
+.kh-gorsel figcaption{margin-top:12px;font-size:12.5px;color:var(--metin-3);text-align:center}
+.cerceve{text-align:left;background:var(--kart);border:1px solid var(--cizgi);border-radius:14px;overflow:hidden;
+  box-shadow:0 28px 60px -28px rgba(14,27,51,.45), 0 2px 6px rgba(14,27,51,.06)}
+.cr-ust{display:flex;align-items:center;gap:6px;padding:10px 14px;background:var(--zemin);border-bottom:1px solid var(--cizgi)}
+.nk{width:9px;height:9px;border-radius:50%}
+.nk.k{background:#E3655B}.nk.s{background:#E0B341}.nk.y{background:#67B26F}
+.cr-adres{margin-left:10px;font-size:11.5px;color:var(--metin-3);font-weight:600;letter-spacing:.2px}
+.cr-govde{padding:16px}
+.cr-baslik{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.cr-baslik b{font-size:14px;margin-right:auto}
+.cr-eylem{font-size:10.5px;font-weight:700;color:var(--metin-2);border:1px solid var(--cizgi);
+  border-radius:999px;padding:4px 9px;white-space:nowrap}
+.cr-eylem.vurgu{color:#fff;background:var(--lacivert-2);border-color:transparent}
+.cr-satir{font-size:12.3px;color:var(--metin-2);line-height:1.75;margin:0}
+.cr-satir.sonek{color:var(--metin);font-weight:600}
+.denetim{margin-top:14px;border:1px solid var(--cizgi);border-radius:11px;padding:10px}
+.dn-ust{font-size:11.5px;color:var(--metin-3);font-weight:700;margin-bottom:8px}
+.dn{border-radius:8px;padding:9px 10px;margin-top:6px;font-size:11.4px;line-height:1.5}
+.dn b{display:block;font-size:11.4px;margin-bottom:2px}
+.dn.kirmizi{background:rgba(206,53,61,.10);color:#A32A31}
+.dn.sari{background:rgba(178,120,17,.12);color:#8A5C0C}
+.dn.yesil{background:rgba(21,138,84,.12);color:#0F6B41}
+.sayilar b i{font-family:'Manrope',system-ui,sans-serif;font-style:normal;font-size:20px;margin-left:2px}
 </style>
 </head>
 <body>
@@ -194,10 +247,13 @@ table.kars thead th.biz{color:var(--altin-2)}
 
 <div class="sar">
   <div class="kahraman">
+   <div class="kh-izgara">
+    <div class="kh-sol">
     <span class="rozet">CLAUDE OPUS 5 · KVKK UYUMLU</span>
-    <h1>Araştırmayı ve yazmayı<br><em>size bırakmayan</em> büro asistanı</h1>
-    <p class="alt">Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız arama — ücretsiz.
-      Üstüne dava, duruşma, müvekkil ve finans yönetimi; istediğinizde yapay zekâ ile dilekçe taslağı ve hukuki mütalaa.</p>
+    <h1>Uydurma karar numarası<br><em>dilekçenize girmesin</em></h1>
+    <p class="kh-alt">Yapay zekânın verdiği her kanun maddesi ve her Yargıtay karar numarası denetlenir:
+      doğrulandı, havuzda yok ya da <b>olamaz</b>. Üstüne dava, duruşma, müvekkil ve finans yönetimi —
+      ve içtihat aramasında sınır yok, ücret yok.</p>
     <div class="dgler">
       <a class="dg dg-ana" href="app/">Web sürümünü aç</a>
       <a class="dg dg-cer" href="#fiyat">Fiyatları gör</a>
@@ -208,12 +264,55 @@ table.kars thead th.biz{color:var(--altin-2)}
          mağaza rozeti koymak, gelen avukatı boş sayfaya götürür. Listeler
          açıldığında buraya gerçek bağlantılar eklenecek. -->
     <p class="magaza-not">iOS ve Android uygulamaları mağaza onayında. Web sürümü bugün kullanılabilir.</p>
+    </div><!-- /kh-sol -->
+
+    <!-- ÜRÜN GÖRSELİ. Sayfada bugüne kadar TEK BİR GÖRSEL YOKTU (ölçüldü:
+         document.images.length === 0) — baştan aşağı yazıydı. Rakip sitelerin
+         yanında zayıf görünmesinin ilk sebebi buydu.
+         BU BİR EKRAN GÖRÜNTÜSÜ DEĞİL, arayüzün temsilî çizimidir ve altında
+         öyle yazıyor. Gerçek ekran görüntüsü için üretim veritabanına sahte
+         dosya/müvekkil kaydı açmak gerekirdi; bunu yapmadık.
+         Yeşil satırdaki künye GERÇEK bir karardır (Yargıtay 7. HD, 2015/38005
+         E., 2016/3033 K., 14.02.2016 — src/data/ictihatDigest.ts). -->
+    <figure class="kh-gorsel" aria-label="Vekil Pro arayüzünün temsilî gösterimi: dilekçe taslağı ve atıf denetimi">
+      <div class="cerceve">
+        <div class="cr-ust"><span class="nk k"></span><span class="nk s"></span><span class="nk y"></span>
+          <span class="cr-adres">Vekil Pro · Dilekçe Üret</span></div>
+        <div class="cr-govde">
+          <div class="cr-baslik">
+            <b>Dilekçe Taslağı</b>
+            <span class="cr-eylem">✎ Düzenle</span><span class="cr-eylem">⧉ Kopyala</span><span class="cr-eylem vurgu">↓ UYAP (UDF)</span>
+          </div>
+          <p class="cr-satir">…davalının temerrüde düştüğü, TBK m.117 uyarınca sabittir. Müvekkilin</p>
+          <p class="cr-satir">kıdem tazminatı alacağı bakımından fesih tarihi esas alınmalıdır.</p>
+          <p class="cr-satir sonek">Yerleşik içtihat için bkz. Yargıtay 7. HD 2015/38005 E., 2016/3033 K.</p>
+
+          <div class="denetim">
+            <div class="dn-ust">🛡 Karar atfı denetimi — metinde 3 içtihat atfı bulundu</div>
+            <div class="dn kirmizi">
+              <b>BU ATIFLAR OLAMAZ — düzeltmeden kullanmayın:</b>
+              <span>• 2021/4412 E., 2019/1180 K. — karar yılı esas yılından önce olamaz</span>
+            </div>
+            <div class="dn sari">
+              <b>Havuzumuzda bulunamadı — UYAP'tan teyit edin:</b>
+              <span>2015/9903 E., 2016/7712 K.</span>
+            </div>
+            <div class="dn yesil">
+              <b>1 atıf havuzumuzda doğrulandı:</b>
+              <span>• 2015/38005 E., 2016/3033 K. — Yargıtay 7. Hukuk Dairesi (14.02.2016)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>Arayüzün temsilî gösterimi. Yeşil satırdaki künye gerçek bir Yargıtay kararıdır.</figcaption>
+    </figure>
+   </div><!-- /kh-izgara -->
 
     <div class="sayilar">
-      <div><b>17</b><span>kanunun tam metni</span></div>
-      <div><b>6.107</b><span>madde, aranabilir</span></div>
-      <div><b>11/11</b><span>dilekçe ölçümü geçti</span></div>
-      <div><b>0 ₺</b><span>içtihat araması</span></div>
+      <div><b>11.378</b><span>karar havuzu + canlı UYAP</span></div>
+      <div><b>6.107</b><span>kanun maddesi, tam metin</span></div>
+      <div><b>399<i>₺</i></b><span>ay — büro yönetimi, sınırsız</span></div>
+      <div><b>Ücretsiz</b><span>içtihat araması, üyeliksiz</span></div>
     </div>
   </div>
 </div>
@@ -387,10 +486,10 @@ table.kars thead th.biz{color:var(--altin-2)}
         </thead>
         <tbody>
           <tr>
-            <td>Yıllık ücret</td>
-            <td class="biz">2.999 ₺</td>
-            <td>40.000 ₺ (6 ay: 25.000 ₺; aylık seçenek yok)</td>
-            <td>990 – 5.490 ₺ arası paketler</td>
+            <td>Ücret</td>
+            <td class="biz">Büro yönetimi <b>399 ₺/ay</b>. Yapay zekâ katmanı <b>2.999 ₺/ay</b>, ayrı ve isteğe bağlı. İçtihat araması ücretsiz.</td>
+            <td>40.000 ₺/yıl ya da 25.000 ₺/6 ay — <b>aylık seçenek yok</b>, peşin</td>
+            <td>Aylık paketler: 990 / 2.990 (önerilen) / 5.490 ₺</td>
           </tr>
           <tr>
             <td>Karar havuzu</td>
@@ -439,6 +538,7 @@ table.kars thead th.biz{color:var(--altin-2)}
     </div>
     <p class="kars-not">
       <b>Kaybettiğimiz yer de burada:</b> karar sayısı. Onlar milyonları gösteriyor, bizde sayılmış 11.378 karar var — aradaki fark yaklaşık bin kat ve bunu kapatmayı vaat etmiyoruz. Ayırdığımız disk, yüz binler mertebesinde bir havuza yeter, milyonlara değil. Bizim iddiamız havuzun büyüklüğü değil, <b>çıktıya ne olduğu</b>: verdiğimiz her madde ve karar numarası denetlenir, denetlenemeyen için “bilmiyoruz” yazarız.
+      <b>Fiyatta ucuz olduğumuz iddiasında değiliz:</b> yapay zekâ katmanımız 2.999 ₺/ay, Lexedes'in önerdiği plan 2.990 ₺/ay — yani orada başa başız. Farkımız, yapay zekâyı almadan da (399 ₺/ay) tam bir büro programı almanız, içtihat aramasının hiç ücretlenmemesi ve peşin yıllık ödemeye zorlanmamanız.
       Rakip bilgileri kendi tanıtım sayfalarından alındı; doğruluklarını biz sınamadık ve fiyatları değişebilir.
     </p>
   </div>
