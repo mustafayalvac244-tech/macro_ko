@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuthStore } from '@/store/authStore';
 import { Sidebar } from '@/components/Sidebar';
 import { useSidebarStore } from '@/store/sidebarStore';
+import { useSonGorulme } from '@/hooks/useSonGorulme';
 import { kaliciMenuMu } from '@/theme/duzen';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme/useTheme';
@@ -58,6 +59,9 @@ export default function AppLayout() {
     // (app) düzeninden çıkıldığında kök ekranlarda hamburger geri gelmeli.
     return () => setKalici(false);
   }, [kaliciMenu, setKalici]);
+  // Uygulamayı açtı/öne getirdi damgası — yalnız okuyan kullanıcı da
+  // "aktif" sayılsın diye (bkz. hooks/useSonGorulme).
+  useSonGorulme();
   const session = useAuthStore((s) => s.session);
   if (!session) return <Redirect href="/(auth)/login" />;
 
