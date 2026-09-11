@@ -275,6 +275,8 @@ export const en: Record<keyof typeof tr, string> = {
   // Common
   'common.cancel': 'Cancel',
   'common.ok': 'OK',
+  'admin.searchUser': 'Search user (name, email, firm)',
+  'admin.searchResult': '{n} users found',
   'common.delete': 'Delete',
   'common.edit': 'Edit',
   'common.save': 'Save Changes',

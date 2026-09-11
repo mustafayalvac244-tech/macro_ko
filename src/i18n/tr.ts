@@ -277,6 +277,8 @@ export const tr = {
   // Common
   'common.cancel': 'Vazgeç',
   'common.ok': 'Tamam',
+  'admin.searchUser': 'Kullanıcı ara (ad, e-posta, büro)',
+  'admin.searchResult': '{n} kullanıcı bulundu',
   'common.delete': 'Sil',
   'common.edit': 'Düzenle',
   'common.save': 'Değişiklikleri Kaydet',

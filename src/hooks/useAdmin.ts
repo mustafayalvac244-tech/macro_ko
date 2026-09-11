@@ -30,7 +30,22 @@ export interface AdminUser {
   ai_tier: string;
   ai_cost_try: number;
   created_at: string;
+  /**
+   * Son GİRİŞ. Oturum cihazda saklandığı ve jeton otomatik tazelendiği için
+   * (lib/supabase.ts: persistSession + autoRefreshToken) çıkış yapmayan bir
+   * kullanıcı uygulamayı her gün açsa bile bu tarih aylar öncesini gösterebilir.
+   * Aktiflik ölçüsü olarak `son_islem` kullanılmalı.
+   */
   last_sign_in_at: string | null;
+  /** Kullanıcının kendi kayıtlarından (dava/müvekkil/duruşma/finans) en yenisi. */
+  son_islem: string | null;
+  /** Bize ödediği toplam: mağaza/Stripe satın almaları + AI kontör yüklemeleri. */
+  odenen_try: number;
+  satin_alma_adet: number;
+  /** AI'ın bize maliyeti (tüm dönemler). */
+  ai_maliyet_toplam_try: number;
+  dava_adedi: number;
+  muvekkil_adedi: number;
 }
 
 export function useAdminOverview() {
