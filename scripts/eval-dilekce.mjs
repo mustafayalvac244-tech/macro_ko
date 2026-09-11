@@ -31,6 +31,7 @@ import { gecer, sadelestir } from './eslestir.mjs';
 // gerçek bir kör nokta çıktı: kuruşlu yazılan tutar ("36.000,00 TL") hiç
 // eşleşmiyordu, yani resmî dilekçe dilindeki tutarların çoğu denetlenmiyordu.
 import { mesruTutarlar, tarihler, tutarlar } from './uydurma.mjs';
+import { katmanAyarla } from './eval-katman.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -60,7 +61,12 @@ async function kullaniciAc() {
     body: JSON.stringify({ email: EPOSTA, password: SIFRE, email_confirm: true }),
   });
   if (!res.ok) throw new Error(`kullanıcı açılamadı: ${res.status}`);
-  return (await res.json()).id;
+  const uid = (await res.json()).id;
+  // ÜCRETLİ KATMANA AL. Yoksa kullanıcı 'baslangic' kalır ve YAŞAM BOYU
+  // 3 deneme hakkıyla sınırlanır; dördüncü senaryodan sonrası
+  // "deneme_hakki_bitti" döner ve ölçüm kaliteyi değil KOTAYI ölçer.
+  await katmanAyarla(url, svc, uid);
+  return uid;
 }
 async function kullaniciSil(id) {
   if (!id) return;

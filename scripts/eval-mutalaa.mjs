@@ -91,7 +91,7 @@ async function katmaniYukselt(uid) {
   const res = await fetch(`${url}/rest/v1/profiles?id=eq.${uid}&select=id,ai_tier`, {
     method: 'PATCH',
     headers: { ...svcBaslik, Prefer: 'return=representation' },
-    body: JSON.stringify({ ai_tier: 'pro' }),
+    body: JSON.stringify({ ai_tier: 'ai' }),
   });
   if (!res.ok) throw new Error(`katman yükseltilemedi: ${res.status} ${(await res.text()).slice(0, 120)}`);
   const satir = await res.json();
@@ -100,7 +100,7 @@ async function katmaniYukselt(uid) {
   const ins = await fetch(`${url}/rest/v1/profiles?select=id,ai_tier`, {
     method: 'POST',
     headers: { ...svcBaslik, Prefer: 'return=representation,resolution=merge-duplicates' },
-    body: JSON.stringify({ id: uid, ai_tier: 'pro' }),
+    body: JSON.stringify({ id: uid, ai_tier: 'ai' }),
   });
   if (!ins.ok) throw new Error(`profil açılamadı: ${ins.status} ${(await ins.text()).slice(0, 160)}`);
 }
