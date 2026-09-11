@@ -86,7 +86,17 @@ create table public.ictihat_harvest_state (
 );
 create table public.ictihat_kararlar (
   id text primary key, kurul text, daire text, esas_no text, karar_no text,
-  karar_tarihi text, durum text, arama_terimi text, full_text text
+  karar_tarihi text, durum text, arama_terimi text, full_text text,
+  -- `fts` canlıda var ama depodaki hiçbir migration onu yaratmıyor (0034
+  -- yalnız fts_simple'ı ekliyor). Taklitte yokken 0108/0111 yerelde HİÇ
+  -- sınanamıyordu ("column k.fts does not exist"). Canlıdaki tanım
+  -- doğrulanmadı; arama fonksiyonlarının kullandığı biçim ('turkish'
+  -- yapılandırması, full_text üzerinden) burada taklit edildi.
+  fts tsvector generated always as (to_tsvector('turkish', coalesce(full_text, ''))) stored,
+  -- fts_simple'ı 0034 ekliyor ama o dosya önce mevzuat tablosuna dokunuyor ve
+  -- taklitte o sütunlar (kanun_short) olmadığı için ictihat kısmına hiç
+  -- gelemiyor. Arama fonksiyonu yerelde sınanabilsin diye burada hazır.
+  fts_simple tsvector generated always as (to_tsvector('simple', coalesce(full_text, ''))) stored
 );
 create function public.disk_musait_mi(p_esik_mb integer default 460)
 returns boolean language sql stable security definer set search_path to 'public' as $$

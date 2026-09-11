@@ -31,6 +31,7 @@ import { AppLock } from '@/components/AppLock';
 import { UyariKatmani } from '@/components/ui/UyariKatmani';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LaunchIntro } from '@/components/LaunchIntro';
+import { WebUyelikKapisi } from '@/components/WebUyelikKapisi';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -147,6 +148,13 @@ export default function RootLayout() {
         >
           <StatusBar style={statusBar} />
           <ErrorBoundary>
+          {/* WEB SÜRÜMÜ YALNIZ ÜYELERE (ürün kararı). Natifte ve oturum
+              yokken hiçbir şey yapmaz; yalnız tarayıcıda, giriş yapmış ve
+              üye OLMAYAN kullanıcıya açıklama ekranı gösterir. Kapı burada,
+              Stack'in DIŞINDA: üyelik ekranları kök seviyede (/ictihat,
+              /ai-chat, /premium …) ve yalnız (app) düzenini sarmak onları
+              açıkta bırakırdı. Bkz. src/components/WebUyelikKapisi.tsx. */}
+          <WebUyelikKapisi>
           <Stack
             screenOptions={{
               headerShown: false,
@@ -194,6 +202,7 @@ export default function RootLayout() {
             <Stack.Screen name="admin" options={{ headerShown: false }} />
             <Stack.Screen name="contract" options={{ headerShown: false }} />
           </Stack>
+          </WebUyelikKapisi>
           <AppLock />
           {/* Web'de uyarı/onay penceresi — react-native-web'in Alert'i boş bir
               fonksiyon olduğu için silme/çıkış onayları hiç açılmıyordu.

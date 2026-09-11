@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { indirilebilirMi, kopyalanabilirMi, metniIndir, metniKopyala, metniPaylas, paylasilabilirMi, type CiktiSonuc } from '@/lib/cikti';
+import { udfDisaAktar } from '@/lib/udfCikti';
 import { useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -14,6 +15,14 @@ interface Props {
   baslik: string;
   /** Küçük yerleşim (sohbet balonu gibi dar alanlar için). */
   kucuk?: boolean;
+  /**
+   * UYAP (UDF) indirme düğmesi gösterilsin mi?
+   *
+   * YALNIZ MAHKEMEYE VERİLECEK METİNDE AÇILIR (dilekçe). Sohbet cevabı ya da
+   * belge inceleme notu UYAP'a yüklenmez; oraya UDF düğmesi koymak, avukatı
+   * işe yaramayacak bir dosyayla baş başa bırakır.
+   */
+  udf?: boolean;
 }
 
 /**
@@ -26,7 +35,7 @@ interface Props {
  * Önceki davranış web'de SESSİZCE HİÇBİR ŞEY YAPMIYORDU — bkz. src/lib/cikti.ts
  * başındaki ölçüm notu.
  */
-export function CiktiEylemleri({ metin, baslik, kucuk = false }: Props) {
+export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false }: Props) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(colors, kucuk);
@@ -90,6 +99,22 @@ export function CiktiEylemleri({ metin, baslik, kucuk = false }: Props) {
         >
           <Ionicons name="download-outline" size={18} color={colors.primary} />
           <Text style={styles.dugmeMetni}>{t('cikti.download')}</Text>
+        </Pressable>
+      )}
+
+      {/* UYAP (UDF) — dilekçede en çok işe yarayan eylem. Uygulama bugüne
+          kadar yalnız düz metin veriyordu; avukat onu UYAP Editör'e
+          kopyalayıp biçimi elden geçirmek zorundaydı. Bkz. src/lib/udf.ts.
+          Küçük yerleşimde (sohbet balonu) gösterilmez. */}
+      {udf && !kucuk && (
+        <Pressable
+          onPress={async () => bildir(await udfDisaAktar(metin, baslik))}
+          hitSlop={8}
+          style={styles.dugme}
+          accessibilityLabel={t('cikti.udf')}
+        >
+          <Ionicons name="document-attach-outline" size={18} color={colors.primary} />
+          <Text style={styles.dugmeMetni}>{t('cikti.udf')}</Text>
         </Pressable>
       )}
 

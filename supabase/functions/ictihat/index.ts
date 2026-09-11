@@ -11,6 +11,7 @@
 //   supabase functions deploy ictihat
 //   (GEMINI_API_KEY zaten ai-chat için tanımlı; summarize onu kullanır)
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
 import { overLimit, tierConfig as ortakKatman } from '../_shared/katman.ts';
 // Dönem anahtarları ortak: bu uç günlük sayacı hiç bilmiyordu ve içtihat
 // ekranından yapılan AI çağrıları günlük haktan düşmüyordu (bkz. _shared/kullanim.ts).
@@ -34,14 +35,31 @@ const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
 // yolluyordu. Aynı üye, hangi ekranı açtığına göre başka bir modelle
 // konuşuyordu ve bunu kimse fark etmiyordu — iki dosyaya birden bakan yoktu.
 //
-// İÇTİHAT ÖZETİ ŞİMDİLİK GROQ'TA. Ortak tablo ücretli katmanı Claude'a
-// yolluyor ama buradaki llmCall yalnız Groq ve Gemini konuşuyor; Claude'un
-// JSON modu farklı (response_format yok) ve taşımayı ölçmeden yapmak, çalışan
-// bir yolu bozma riski. Bu yüzden Claude/OpenAI seçilen katman burada AÇIKÇA
-// Groq'a düşürülüyor — sessizce Gemini'ye gitmesindense görünür bir indirgeme.
+// İÇTİHAT AI'Sİ ARTIK CLAUDE KONUŞUYOR. Eskiden burada "şimdilik Groq'ta"
+// notu vardı: Claude/OpenAI seçilen katman AÇIKÇA Groq'a düşürülüyordu, çünkü
+// llmCall yalnız Groq ve Gemini konuşuyordu. Görünürlüğü yalnız bu yorumdaydı;
+// kullanıcı görmüyordu. Sonuç: 1.999₺ ödeyen "ai" katmanı üyesi, ürünün asıl
+// vaadi olan "olaya uygun emsal karar" analizini ÜCRETSİZ modelden alıyordu —
+// ve bu, 2026-09-11'de tsc'nin yakaladığı bir tip hatasıyla ortaya çıktı
+// (ortakKatman'a claudeOpusModel hiç verilmiyordu; canlıda undefined'dı).
+//
+// Üç şey birden düzeltildi, çünkü Opus'u açmak tek başına yetmezdi:
+//   1) llmCall'a Claude dalı (JSON modu için response_format yok; metinden
+//      ayıklanıyor, bkz. jsonAyikla).
+//   2) SORU/DENEME HAKKI SAYILIYOR. Bu uç ai_mod_rezerve_et'i hiç çağırmıyordu;
+//      Opus'a açınca içtihat ekranı, aylık 250 soru sözünün DIŞINDA sınırsız
+//      Opus çağrısı olurdu. Şimdi analiz ve özet, ai-chat'teki soru kotasından
+//      düşüyor; deneme katmanında yaşam boyu 3 haktan.
+//   3) ai_istek SATIRI YAZILIYOR. Bu uç yalnız ai_usage yazıyordu; içtihat
+//      Opus harcaması ne harcama özetinde ne iade mekanizmasında görünüyordu.
+//
+// HENÜZ ÖLÇÜLMEDİ: Opus'un içtihat analizinin kalitesi. Bu değişiklik modeli
+// değiştirir; "daha iyi" demek için ölçüm gerekir (eval-ictihat yalnız
+// aramayı ölçüyor, AI analizini ölçen bir set yok).
 
-// Sağlayıcıya göre anahtar: Groq → GROQ_API_KEY, Gemini → GEMINI_API_KEY.
+// Sağlayıcıya göre anahtar.
 function aiKey(provider: Provider): string | undefined {
+  if (provider === 'claude') return Deno.env.get('ANTHROPIC_API_KEY') ?? undefined;
   return provider === 'groq' ? (Deno.env.get('GROQ_API_KEY') ?? undefined) : (Deno.env.get('GEMINI_API_KEY') ?? undefined);
 }
 async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ calls: number; cost: number }> {
@@ -52,7 +70,7 @@ async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ 
   return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
 }
 /** Tavan aşıldı mı? (billable→TL, ücretsiz→çağrı sayısı) */
-async function recordUsage(userId: string, model: string, tin: number, tout: number, billable: boolean): Promise<void> {
+async function recordUsage(userId: string, model: string, tin: number, tout: number, billable: boolean, mod = 'ictihat'): Promise<void> {
   const s = svc();
   if (!s) return;
   const cost = billable ? costTry(model, tin, tout) : 0; // ücretsiz katman: maliyet 0
@@ -84,8 +102,68 @@ async function recordUsage(userId: string, model: string, tin: number, tout: num
     cost_try: Number(gp?.cost_try ?? 0) + cost,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,period' });
+
+  // İSTEK SATIRI — bu uç bunu HİÇ yazmıyordu. Soru metni saklanmaz; yalnız
+  // ölçü bilgileri. Yoksa içtihat ekranından yapılan Opus çağrıları harcama
+  // özetinde (ai_harcama_ozeti) görünmez ve iade edilemez.
+  try {
+    await s.from('ai_istek').insert({
+      user_id: userId, gun: g, mod, model, tokens_in: tin, tokens_out: tout, maliyet_try: cost, musteriye_yazildi: true,
+    });
+  } catch {
+    // Kayıt tutulamadıysa cevap yine verilir; yalnız iade edilemez.
+  }
 }
+
+type KatmanCfg = ReturnType<typeof tierConfig>['cfg'];
+
+/**
+ * İçtihat AI çağrısı için HAK REZERVE EDER — ai-chat'teki kapının aynısı.
+ *
+ * "ai" katmanı: aylık soru kotasından (ai_mod_rezerve_et, mütalaa değil).
+ * Deneme katmanı: yaşam boyu deneme hakkından (deneme_hakki_rezerve_et).
+ * Servis istemcisi kurulamadıysa AÇIK KAPI BIRAKMAYIZ: kota doğrulanamıyorsa
+ * reddetmek, "belki fazladan izin ver"den güvenlidir.
+ *
+ * @returns reddedildiyse 402 yanıtı, geçtiyse null
+ */
+async function hakRezerve(cfg: KatmanCfg, tier: string, userId: string): Promise<Response | null> {
+  const s = svc();
+  if (cfg.denemeLimit) {
+    const r = s ? (await s.rpc('deneme_hakki_rezerve_et', { p_user: userId, p_limit: cfg.denemeLimit })).data : false;
+    if (!r) return json({ error: 'deneme_hakki_bitti', tier, hak: cfg.denemeLimit }, 402);
+  }
+  if (cfg.modLimits) {
+    const r = s
+      ? (await s.rpc('ai_mod_rezerve_et', {
+          p_user: userId, p_ay: aiPeriod(), p_mutalaa: false,
+          p_soru_limit: cfg.modLimits.soru, p_mutalaa_limit: cfg.modLimits.mutalaa,
+        })).data
+      : false;
+    if (!r) return json({ error: 'ai_soru_kota_bitti', tier, hak: cfg.modLimits.soru }, 402);
+  }
+  return null;
+}
+
+/** Çağrı ARIZAYLA bittiyse rezerve edilen hakkı geri verir; hata yutulur. */
+async function hakSerbestBirak(cfg: KatmanCfg, userId: string): Promise<void> {
+  const s = svc();
+  if (!s) return;
+  try {
+    if (cfg.denemeLimit) await s.rpc('deneme_hakki_serbest_birak', { p_user: userId });
+    if (cfg.modLimits) await s.rpc('ai_mod_serbest_birak', { p_user: userId, p_ay: aiPeriod(), p_mutalaa: false });
+  } catch {
+    // geri verme başarısız olsa da kullanıcıya hata göstermeyiz; kayıp bizde kalır
+  }
+}
+
 type Meter = { tin: number; tout: number };
+
+/** ai-chat'teki kullanimOzeti ile aynı biçim: { model, girdiToken, ciktiToken, maliyetTL }. */
+function kullanimOzeti(model: string, m: Meter, billable: boolean) {
+  const maliyet = billable ? costTry(model, m.tin, m.tout) : 0;
+  return { model, girdiToken: m.tin, ciktiToken: m.tout, maliyetTL: Math.round(maliyet * 100) / 100 };
+}
 // deno-lint-ignore no-explicit-any
 function meterAdd(m: Meter, j: any): void {
   m.tin += j?.usageMetadata?.promptTokenCount ?? 0;
@@ -95,25 +173,47 @@ function meterAdd(m: Meter, j: any): void {
 // Sağlayıcı-genel LLM çağrısı: ücretsiz katman Groq (OpenAI uyumlu), Pro/Elit Gemini.
 // Groq llama-3.3-70b-versatile'ı 17.06.2026'da kaldırdı; halef gpt-oss-120b.
 const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b';
-type Provider = 'gemini' | 'groq';
+// Model adları ai-chat ile AYNI env değişkenlerinden: iki uç ayrışırsa aynı
+// üye ekrana göre başka modelle konuşur ve kimse fark etmez (bu bir kez oldu).
+const CLAUDE_MODEL = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
+const CLAUDE_OPUS_MODEL = Deno.env.get('VEKIL_CLAUDE_OPUS_MODEL') || 'claude-opus-5';
+type Provider = 'gemini' | 'groq' | 'claude';
 
 /**
  * Ortak katman tablosunu bu ucun konuşabildiği sağlayıcılara indirger.
- * Claude/OpenAI seçilen katman Groq'ta çalışır (yukarıdaki nota bakınız).
+ * Claude artık doğrudan konuşuluyor; yalnız OpenAI seçilirse Groq'a düşer
+ * (bu uçta OpenAI istemcisi yok). Claude anahtarı yoksa ortak tablo zaten
+ * Groq'a düşürüyor (katman.ts: claudeAnahtariVar).
  */
 function tierConfig(aiTier: string | null | undefined, isPremium: boolean) {
   const { tier, cfg } = ortakKatman(aiTier, isPremium, {
     groqModel: GROQ_MODEL,
-    claudeModel: Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5',
+    claudeModel: CLAUDE_MODEL,
+    claudeOpusModel: CLAUDE_OPUS_MODEL,
     claudeAnahtariVar: !!Deno.env.get('ANTHROPIC_API_KEY'),
   });
-  if (cfg.provider === 'claude' || cfg.provider === 'openai') {
+  if (cfg.provider === 'openai') {
     return {
       tier,
       cfg: { ...cfg, provider: 'groq' as Provider, model: GROQ_MODEL, billable: false, limitKind: 'calls' as const, limit: 4000 },
     };
   }
   return { tier, cfg: { ...cfg, provider: cfg.provider as Provider } };
+}
+
+/**
+ * Metnin içinden ilk JSON nesnesini ayıklar.
+ *
+ * Claude'da response_format yok; "yalnız JSON yaz" dense de bazen kod
+ * bloğu ya da bir cümle ekliyor. JSON.parse doğrudan çağrılırsa bu, planın
+ * sessizce boşa düşmesi demek (geminiPlan'daki catch {issue:'', queries:[]}).
+ * Groq/Gemini çıktısına da zararsız: zaten saf JSON'sa aynen döner.
+ */
+function jsonAyikla(metin: string): string {
+  const t = metin.replace(/```(?:json)?/gi, '').trim();
+  const bas = t.indexOf('{');
+  const son = t.lastIndexOf('}');
+  return bas >= 0 && son > bas ? t.slice(bas, son + 1) : t;
 }
 async function llmCall(
   provider: Provider,
@@ -125,6 +225,45 @@ async function llmCall(
   meter?: Meter
 ): Promise<string> {
   if (!apiKey) throw new Error('not_configured');
+  if (provider === 'claude') {
+    const client = new Anthropic({ apiKey });
+    try {
+      const res = await client.messages.create({
+        model,
+        // DÜŞÜNME TAVANA DAHİL. Adaptif düşünme açıkken düşünme token'ları da
+        // max_tokens'tan düşer; 400'lük bir tavan yalnız düşünmeye gidip metin
+        // boş dönebilir. Kısa JSON plan çağrısında düşünme KAPALI ve sıcaklık
+        // geçerli; metin üreten çağrılarda düşünme açık, tavana pay ekleniyor
+        // ve sıcaklık GÖNDERİLMİYOR (düşünme açıkken API reddeder).
+        max_tokens: opts.json ? opts.maxTokens : opts.maxTokens + 6000,
+        ...(opts.json ? { temperature: opts.temperature } : { thinking: { type: 'adaptive' } }),
+        system: opts.json ? `${system} YALNIZ geçerli bir JSON nesnesi döndür; kod bloğu, açıklama, başlık yazma.` : system,
+        messages: [{ role: 'user', content: userText }],
+      });
+      if (res.stop_reason === 'refusal') throw new Error('refusal');
+      const text = (res.content as Array<{ type: string; text?: string }>)
+        .filter((b) => b.type === 'text')
+        .map((b) => b.text ?? '')
+        .join('');
+      if (meter) {
+        const u = res.usage;
+        meter.tin += (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+        meter.tout += u.output_tokens ?? 0;
+      }
+      return opts.json ? jsonAyikla(text) : text;
+    } catch (e) {
+      if (e instanceof Anthropic.RateLimitError) throw new Error('rate_limit');
+      if (e instanceof Anthropic.AuthenticationError) throw new Error('not_configured');
+      if ((e as Error).message === 'refusal') throw e;
+      // GERÇEK MESAJ TAŞINIR. İlk sürüm her şeyi 'upstream'e indirgiyordu ve
+      // ilk canlı yoklamada tam bu oldu: 3 saniyede 502, sebebi görünmez.
+      // Mesaj yanıtın 'detail' alanında dışarı çıkar (anahtar içermez; SDK
+      // hata mesajları durum kodu + API metnidir).
+      const hata = new Error('upstream') as Error & { ayrinti?: string };
+      hata.ayrinti = `claude: ${(e as Error)?.message ?? String(e)}`.slice(0, 300);
+      throw hata;
+    }
+  }
   if (provider === 'groq') {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -1054,10 +1193,23 @@ Deno.serve(async (req) => {
       }
       const key = aiKey(cfg.provider);
       if (!key) return json({ error: 'not_configured' }, 503);
+      // SORU HAKKI — ai-chat'teki kapının aynısı; bu uç bunu hiç saymıyordu.
+      const red = await hakRezerve(cfg, tier, userData.user.id);
+      if (red) return red;
       const meter: Meter = { tin: 0, tout: 0 };
-      const summary = await geminiSummary(query, docs, cfg.provider, cfg.model, key, meter);
-      await recordUsage(userData.user.id, cfg.model, meter.tin, meter.tout, cfg.billable);
-      return json({ summary, count: docs.length, tier });
+      let summary: string;
+      try {
+        summary = await geminiSummary(query, docs, cfg.provider, cfg.model, key, meter);
+      } catch (e) {
+        // Arızada rezerve edilen hak geri verilir: avukat bizim arızamızın
+        // bedelini kotasından ödemesin.
+        await hakSerbestBirak(cfg, userData.user.id);
+        throw e;
+      }
+      await recordUsage(userData.user.id, cfg.model, meter.tin, meter.tout, cfg.billable, 'ictihat-ozet');
+      // 'model' ve 'kullanim' yanıtta: ölçüm, sonucun hangi modelden ve kaça
+      // geldiğini bilsin (ai-chat ile aynı biçim; künye bunu toplar).
+      return json({ summary, count: docs.length, tier, model: cfg.model, kullanim: kullanimOzeti(cfg.model, meter, cfg.billable) });
     }
 
     // OLAY ANALİZİ — avukat olayı anlatır; AI hukuki değerlendirme + çözüm yazar ve
@@ -1093,57 +1245,70 @@ Deno.serve(async (req) => {
       if (!key) return json({ error: 'not_configured' }, 503);
       const model = cfg.model;
       const meter: Meter = { tin: 0, tout: 0 };
+      // SORU HAKKI — analiz iki model çağrısı (plan + analiz) ama TEK soru
+      // sayılır: kullanıcıya verilen söz "250 soru", "500 model çağrısı" değil.
+      const red = await hakRezerve(cfg, tier, userData.user.id);
+      if (red) return red;
 
-      // 1) Olaydan arama terimleri üret.
-      const plan = await geminiPlan(olay, cfg.provider, model, key, meter);
-      const queries = plan.queries.length > 0 ? plan.queries : [olay.slice(0, 60)];
+      try {
+        // 1) Olaydan arama terimleri üret.
+        const plan = await geminiPlan(olay, cfg.provider, model, key, meter);
+        const queries = plan.queries.length > 0 ? plan.queries : [olay.slice(0, 60)];
 
-      // 2) Her terimle gerçek kararları topla (havuz + canlı), dedupe, sınırla.
-      const seen = new Set<string>();
-      const candidates: Hit[] = [];
-      for (const q of queries) {
-        if (candidates.length >= 8) break;
-        try {
-          const { data: ftsRows } = await supabase.rpc('search_ictihat_fts', { q, match_count: 4 });
-          for (const r of ftsRows ?? []) {
-            const h = rowToHit(r);
-            if (h.id && !seen.has(h.id)) { seen.add(h.id); candidates.push(h); }
-          }
-        } catch { /* havuz yoksa geç */ }
-        try {
-          const live = await emsalSearch(q, 1, 5);
-          for (const h of live.hits) {
-            if (h.id && !seen.has(h.id) && candidates.length < 10) { seen.add(h.id); candidates.push(h); }
-          }
-        } catch { /* canlı ulaşılamazsa geç */ }
-      }
-      if (candidates.length === 0) return json({ error: 'empty' }, 502);
-
-      // 3) En fazla 6 kararın gerçek metnini çek (havuz önce), AI'a ver.
-      const top = candidates.slice(0, 6);
-      const ids = top.map((h) => h.id);
-      const { data: corpusRows } = await supabase
-        .from('ictihat_kararlar')
-        .select('id,full_text')
-        .in('id', ids);
-      // deno-lint-ignore no-explicit-any
-      const corpusText = new Map<string, string>((corpusRows ?? []).map((r: any) => [String(r.id), String(r.full_text ?? '')]));
-
-      const docs: Array<{ hit: Hit; text: string }> = [];
-      for (const h of top) {
-        let text = corpusText.get(h.id) ?? '';
-        if (!text) {
-          try { text = await emsalDocument(h.id); } catch { text = ''; }
+        // 2) Her terimle gerçek kararları topla (havuz + canlı), dedupe, sınırla.
+        const seen = new Set<string>();
+        const candidates: Hit[] = [];
+        for (const q of queries) {
+          if (candidates.length >= 8) break;
+          try {
+            const { data: ftsRows } = await supabase.rpc('search_ictihat_fts', { q, match_count: 4 });
+            for (const r of ftsRows ?? []) {
+              const h = rowToHit(r);
+              if (h.id && !seen.has(h.id)) { seen.add(h.id); candidates.push(h); }
+            }
+          } catch { /* havuz yoksa geç */ }
+          try {
+            const live = await emsalSearch(q, 1, 5);
+            for (const h of live.hits) {
+              if (h.id && !seen.has(h.id) && candidates.length < 10) { seen.add(h.id); candidates.push(h); }
+            }
+          } catch { /* canlı ulaşılamazsa geç */ }
         }
-        if (text) docs.push({ hit: h, text });
-      }
-      if (docs.length === 0) return json({ error: 'empty' }, 502);
+        if (candidates.length === 0) return json({ error: 'empty' }, 502);
 
-      // 4) Olaya göre analiz + olaya uygun içtihat.
-      const analysis = await geminiAnalyze(olay, plan.issue, docs, cfg.provider, model, key, meter);
-      await recordUsage(userData.user.id, model, meter.tin, meter.tout, cfg.billable);
-      // Uygulamaya, analizde kullanılan kararları (dokunup okunabilsin diye) döndür.
-      return json({ analysis, issue: plan.issue, queries, hits: docs.map((d) => d.hit), tier });
+        // 3) En fazla 6 kararın gerçek metnini çek (havuz önce), AI'a ver.
+        const top = candidates.slice(0, 6);
+        const ids = top.map((h) => h.id);
+        const { data: corpusRows } = await supabase
+          .from('ictihat_kararlar')
+          .select('id,full_text')
+          .in('id', ids);
+        // deno-lint-ignore no-explicit-any
+        const corpusText = new Map<string, string>((corpusRows ?? []).map((r: any) => [String(r.id), String(r.full_text ?? '')]));
+
+        const docs: Array<{ hit: Hit; text: string }> = [];
+        for (const h of top) {
+          let text = corpusText.get(h.id) ?? '';
+          if (!text) {
+            try { text = await emsalDocument(h.id); } catch { text = ''; }
+          }
+          if (text) docs.push({ hit: h, text });
+        }
+        if (docs.length === 0) return json({ error: 'empty' }, 502);
+
+        // 4) Olaya göre analiz + olaya uygun içtihat.
+        const analysis = await geminiAnalyze(olay, plan.issue, docs, cfg.provider, model, key, meter);
+        await recordUsage(userData.user.id, model, meter.tin, meter.tout, cfg.billable, 'ictihat-analiz');
+        // Uygulamaya, analizde kullanılan kararları (dokunup okunabilsin diye) döndür.
+        // 'model' ve 'kullanim' yanıtta: ölçüm, sonucun hangi modelden ve kaça
+        // geldiğini bilsin (ai-chat ile aynı biçim; künye bunu toplar).
+        return json({ analysis, issue: plan.issue, queries, hits: docs.map((d) => d.hit), tier, model, kullanim: kullanimOzeti(model, meter, cfg.billable) });
+      } catch (e) {
+        // Arızada (sağlayıcı, kaynak site, boş sonuç) rezerve edilen hak geri
+        // verilir; avukat bizim arızamızın bedelini kotasından ödemesin.
+        await hakSerbestBirak(cfg, userData.user.id);
+        throw e;
+      }
     }
 
     return json({ error: 'bad_request' }, 400);
@@ -1151,7 +1316,9 @@ Deno.serve(async (req) => {
     const msg = e instanceof Error ? e.message : 'upstream';
     if (msg === 'rate_limit') return json({ error: 'rate_limit' }, 429);
     if (msg === 'not_configured') return json({ error: 'not_configured' }, 503);
-    // Kaynak siteye ulaşılamazsa (geo/WAF) net bir kod dönelim.
-    return json({ error: 'source_unreachable', detail: msg }, 502);
+    // Kaynak siteye ulaşılamazsa (geo/WAF) net bir kod dönelim. 'ayrinti'
+    // varsa (Claude dalı) onu taşı: "upstream" tek başına teşhis ettirmiyor.
+    const ayrinti = (e as Error & { ayrinti?: string })?.ayrinti;
+    return json({ error: 'source_unreachable', detail: ayrinti ?? msg }, 502);
   }
 });

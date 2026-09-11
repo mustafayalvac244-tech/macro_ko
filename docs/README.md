@@ -2,6 +2,9 @@
 
 `main` dalının bu klasöründen yayınlanır:
 
+- `index.html` — TANITIM SAYFASI (ana sayfa). Elle yazılır; terms.html gibi
+  üretilmez. İçindeki ÖLÇÜM SAYILARI gerçek koşulardan gelir — değiştirmeden
+  önce yeni ölçüm koşun, yoksa sayfa ölçülmemiş bir iddia yayınlar.
 - `privacy.html` — Gizlilik Politikası (App Store zorunlu alanı)
 - `terms.html` — Kullanım Koşulları / EULA (App Store Review 3.1.2)
 - `app/` — Vekil Pro'nun WEB SÜRÜMÜ (Chrome eklentisinin yan panelinde açılan sayfa)

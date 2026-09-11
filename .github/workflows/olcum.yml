@@ -35,6 +35,19 @@ on:
       bekleme:
         description: 'İstekler arası bekleme (ms). Oran sınırına takılırsan artır.'
         default: '5000'
+      betik_dk:
+        description: 'Betik başına en fazla dakika (asılmaya karşı üst sınır)'
+        default: '18'
+      betikler:
+        description: 'Yalnız bu betikler (boş = hepsi). Ör: eval-mutalaa eval-belge'
+        default: ''
+      hibrit:
+        description: 'Mevzuat ölçümünde anlamsal aramayı da kat (ai-chat beslemesi böyle)'
+        type: boolean
+        default: false
+      mevzuat_rpc:
+        description: 'Ölçülecek mevzuat arama fonksiyonu. ai-chat search_mevzuat_kural kullanıyor.'
+        default: 'search_mevzuat_kural'
       isle:
         description: 'Sonuç JSON dosyaları dala işlensin mi'
         type: boolean
@@ -46,7 +59,7 @@ permissions:
 jobs:
   olcum:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
     env:
       SUPABASE_URL: https://wjshlysfmeqlnfiibknj.supabase.co
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -59,6 +72,19 @@ jobs:
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ' }}
       EVAL_SINIR: ${{ inputs.sinir }}
       EVAL_BEKLEME: ${{ inputs.bekleme }}
+      # SALT FTS ile HİBRİT farklı şeyleri ölçer. ai-chat modele mevzuatı
+      # FTS + kural + anlamsal arama birlikte veriyor (buildMevzuat); salt
+      # FTS ölçümü (%58,8) modelin gerçekte gördüğü beslemeyi ÖLÇMÜYORDU.
+      EVAL_HIBRIT: ${{ inputs.hibrit && '1' || '' }}
+      # ÖLÇÜLEN FONKSİYON, UYGULAMANIN KULLANDIĞI OLMALI. eval-arama varsayılan
+      # olarak search_mevzuat_fts'i ölçüyordu; ai-chat ise search_mevzuat_kural
+      # çağırıyor (buildMevzuat, 0066). Bugüne kadarki %58,8, modelin hiç
+      # görmediği bir fonksiyonun ölçümüydü.
+      # DİKKAT: eval-ictihat DA EVAL_RPC okuyor (vars. search_ictihat_fts).
+      # Bu değişken iş düzeyinde EVAL_RPC olarak verilince içtihat ölçümü
+      # mevzuat fonksiyonunu çağırdı ve 0/150 çıktı (2026-09-11 20:38). Bu
+      # yüzden ad farklı; yalnız eval-arama'ya EVAL_RPC olarak aktarılıyor.
+      EVAL_MEVZUAT_RPC: ${{ inputs.mevzuat_rpc || 'search_mevzuat_kural' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -125,11 +151,14 @@ jobs:
         continue-on-error: true
         run: |
           echo "## Arama ölçümü" >> $GITHUB_STEP_SUMMARY
-          for b in eval-arama eval-ictihat; do
-            echo "### $b" >> $GITHUB_STEP_SUMMARY
-            node "scripts/$b.mjs" 2>&1 | tee "/tmp/$b.log"
-            tail -12 "/tmp/$b.log" >> $GITHUB_STEP_SUMMARY
-          done
+          # Mevzuat: fonksiyon adı yalnız BU betiğe EVAL_RPC olarak geçer.
+          echo "### eval-arama" >> $GITHUB_STEP_SUMMARY
+          EVAL_RPC="$EVAL_MEVZUAT_RPC" node scripts/eval-arama.mjs 2>&1 | tee /tmp/eval-arama.log
+          tail -12 /tmp/eval-arama.log >> $GITHUB_STEP_SUMMARY
+          # İçtihat: kendi varsayılanı (search_ictihat_fts); EVAL_RPC verilmez.
+          echo "### eval-ictihat" >> $GITHUB_STEP_SUMMARY
+          node scripts/eval-ictihat.mjs 2>&1 | tee /tmp/eval-ictihat.log
+          tail -12 /tmp/eval-ictihat.log >> $GITHUB_STEP_SUMMARY
 
       - name: AI ölçümü (GERÇEK PARA HARCAR)
         if: ${{ inputs.grup == 'ai' || inputs.grup == 'hepsi' }}
@@ -138,9 +167,52 @@ jobs:
           echo "## AI ölçümü" >> $GITHUB_STEP_SUMMARY
           # Sıra bilinçli: ucuz ve kısa olanlar önce. Bütçe biterse ya da oran
           # sınırına takılırsak, en azından bir kısmı ölçülmüş olur.
-          for b in eval-sohbet eval-kunye eval-cevap eval-dilekce eval-mutalaa eval-belge; do
+          #
+          # NEDEN `timeout` VAR. Ölçüm betiklerinde istek zaman aşımı yoktu ve
+          # Node'un fetch'i kendiliğinden zaman aşımına uğramaz: asılı tek bir
+          # istek, 120 dakikalık iş tavanına kadar her şeyi kilitler ve sonuç
+          # adımlarına hiç sıra gelmez.
+          #
+          # BU RİSK SOYUT DEĞİL, ÇÜNKÜ SENARYOLAR GERÇEKTEN UZUN. 2026-09-11
+          # koşusunda dilekçe senaryoları 1,5-7 dakika sürdü; "yavaş" ile
+          # "asılı" arasında ölçümün ayrım yapacak hiçbir aracı yoktu. O gün
+          # ben de bu ikisini karıştırıp SAĞLIKLI bir koşuyu iptal ettim ve
+          # mütalaa ile belge ölçümlerini kaybettim (bkz. scripts/istek.mjs).
+          #
+          # `| tee` sayesinde çıkış kodu tee'ninki (0) olur, yani bir betiğin
+          # öldürülmesi döngüyü durdurmaz; sıradaki betik ölçülür.
+          DK=${{ inputs.betik_dk }}
+          # İÇ BÜTÇE, DIŞ TAVANDAN BİR DAKİKA KISA. Fark bilerek var: betik
+          # kendi bütçesini dolduğunda ÖLÇTÜĞÜNÜ DOSYAYA YAZARAK durur;
+          # `timeout` öldürürse hiçbir şey yazılmaz. Yani önce betik pes etsin.
+          export EVAL_BETIK_BUTCESI=$(( (DK - 1) * 60000 ))
+          echo "Betik başına: iç bütçe $(( DK - 1 ))dk, dış tavan ${DK}dk."
+          # HANGİ BETİKLER. Boş bırakılırsa altısı da koşar.
+          #
+          # NEDEN SEÇİLEBİLİR OLMASI GEREKİYOR. Her senaryo gerçek bir Opus
+          # isteği, yani gerçek para. Koşu ortada kalırsa (2026-09-11'de tam
+          # olarak bu oldu: sohbet/künye/cevap/dilekçe ölçüldü, mütalaa ile
+          # belge kaldı) eksiği tamamlamak için altısını birden koşturmak,
+          # elde zaten ölçülmüş 41 senaryonun parasını ikinci kez ödemektir.
+          BETIKLER='${{ inputs.betikler }}'
+          [ -n "$BETIKLER" ] || BETIKLER='eval-sohbet eval-kunye eval-cevap eval-dilekce eval-mutalaa eval-belge'
+          # Girdi doğrulaması: yalnız var olan ölçüm betikleri koşabilir.
+          # Yoksa yazım hatası sessizce "hiç ölçüm yapılmadı" demek olurdu.
+          for b in $BETIKLER; do
+            if [ ! -f "scripts/$b.mjs" ]; then
+              echo "::error::scripts/$b.mjs yok — betik adını kontrol et."
+              exit 1
+            fi
+          done
+          echo "Koşulacak: $BETIKLER"
+          for b in $BETIKLER; do
             echo "### $b" >> $GITHUB_STEP_SUMMARY
-            node "scripts/$b.mjs" 2>&1 | tee "/tmp/$b.log"
+            timeout -k 30s "${DK}m" node "scripts/$b.mjs" 2>&1 | tee "/tmp/$b.log"
+            # timeout 124 ile öldürdüyse bunu RAPORA yaz; sessizce eksik bir
+            # ölçüm, düşük bir orana bakıp "gerileme" demeye yol açar.
+            if [ "${PIPESTATUS[0]}" = "124" ]; then
+              echo "**$b ${DK} dakikada ÖLDÜRÜLDÜ — eksik ölçüm, oran çıkarmayın.**" >> $GITHUB_STEP_SUMMARY
+            fi
             # Künye satırı HANGİ MODELİN cevap verdiğini söyler; ücretsiz hatta
             # düşülmüşse sonuç Opus'a atfedilemez ve bunu görmek şart.
             grep -E "Ölçülen model|KARIŞIK MODEL" "/tmp/$b.log" >> $GITHUB_STEP_SUMMARY || true

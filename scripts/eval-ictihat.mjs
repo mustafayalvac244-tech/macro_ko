@@ -29,6 +29,7 @@
 //   EVAL_SORU virgülle ayrılmış soru kimlikleri (vars. hepsi)
 // ---------------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
+import { istek } from './istek.mjs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -56,7 +57,7 @@ const sorular = SECIM.length ? tumSorular.filter((s) => SECIM.includes(s.id)) : 
 const kucult = (x) => String(x ?? '').toLocaleLowerCase('tr');
 
 async function ara(soru) {
-  const res = await fetch(`${url}/rest/v1/rpc/${RPC}`, {
+  const res = await istek(`${url}/rest/v1/rpc/${RPC}`, {
     method: 'POST',
     headers: { apikey: svc, Authorization: `Bearer ${svc}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ q: soru, match_count: K }),
@@ -73,7 +74,7 @@ async function ara(soru) {
 async function tamMetin(idler) {
   if (!idler.length) return new Map();
   const liste = idler.map((x) => `"${x}"`).join(',');
-  const res = await fetch(
+  const res = await istek(
     `${url}/rest/v1/ictihat_kararlar?select=id,daire,kurul,full_text&id=in.(${encodeURIComponent(liste)})`,
     { headers: { apikey: svc, Authorization: `Bearer ${svc}` } }
   );

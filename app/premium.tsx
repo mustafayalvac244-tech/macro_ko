@@ -10,7 +10,6 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
 import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
 import { UCRETSIZ_LIMIT } from '@/config/planlar';
-import { useAiSaglik } from '@/hooks/useAiSaglik';
 import {
   AI_ENTITLEMENT_ID,
   buyPackage,
@@ -31,7 +30,7 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
 /**
- * Üyelik ekranı — ÜÇ katman: Ücretsiz → Vekil Pro (399 ₺) → + Yapay Zekâ (1.999 ₺).
+ * Üyelik ekranı — ÜÇ katman: Ücretsiz → Vekil Pro (399 ₺) → + Yapay Zekâ (2.999 ₺).
  *
  * ÜRÜN KARARI: içtihat araması ÜCRETSİZDİR ve öyle kalacaktır; ücret, büro
  * yönetimini büyütmek (sınırsız dava/müvekkil/belge, finans, yedekleme) ya da
@@ -99,21 +98,27 @@ export default function PremiumScreen() {
   const subscribed = isPremium;
 
   /**
-   * AI PAKETİ, ARKA UÇ HİZMET VEREMEZKEN SATILMAMALI.
+   * SATIN ALMA KREDİYE BAĞLI DEĞİL — ürün sahibinin kararı (2026-09-11).
    *
-   * Ölçülen durum: ücretli hat Claude'a KİLİTLİ ve ANTHROPIC_API_KEY yoksa uç
-   * 503 'not_configured' döner (index.ts'teki genKey kontrolü) — sessizce ucuz
-   * modele düşmez, ki bu doğrusudur. Ama sonucu şu: anahtar tanımlı değilken
-   * 1.999 ₺'lik paketi satın alan kullanıcının HER AI isteği hata alır.
+   * Burada bir kilit vardı: AI sağlık yoklaması Claude'u ayakta görmezse
+   * (`ucretliAyakta === false`) satın alma hiç başlatılmıyordu. Gerekçesi
+   * "çalışmayan bir özelliğin ücretini almayalım" idi ve o gerekçe hâlâ doğru.
+   * Ama iş modeli şu: satış geldikçe API kredisi yükleniyor. Kilit, tam da
+   * ilk satışı imkânsız kılıyordu — kredi yoksa satış olmuyor, satış olmazsa
+   * kredi yüklenmiyor.
    *
-   * Bugün canlı bir risk yok çünkü RevenueCat hiç kurulmadı ve teklif null
-   * geliyor. Kurulduğu gün bu kapı kendiliğinden açılırdı; kilidi şimdi
-   * koyuyoruz. Yalnız "kesin biliyoruz ki çalışmıyor" (false) durumunda
-   * engellenir — sağlık yoklaması ağ hatasıyla dönerse (undefined) satın alma
-   * engellenmez, aksi hâlde geçici bir kesinti satışı durdururdu.
+   * KALDIRMANIN RİSKİ ÖLÇÜLDÜ VE KÜÇÜK. Kredi bittiğinde uç HATA DÖNMÜYOR:
+   * ücretli çağrı düşünce ucretliChat ücretsiz hatta (Groq/Gemini) iniyor,
+   * kullanıcı yine cevap alıyor ve BUGÜN eklenen iki koruma devreye giriyor —
+   * (a) balonun altında "bu yanıt yedek modelle üretildi" uyarısı,
+   * (b) soru/mütalaa hakkı GERİ VERİLİYOR, yani ödediği modelin yazmadığı
+   * cevap kotasından düşmüyor (bkz. ai-chat: yedekModel).
+   * Yani en kötü hâl "hizmet yok" değil, "geçici olarak zayıf model + açık
+   * uyarı + hak yanmıyor".
+   *
+   * useAiSaglik çağrısı kaldırıldı; kilit yoksa yoklamanın satın alma
+   * ekranında bir işi kalmıyor (ekran açılışında gereksiz bir uç çağrısı).
    */
-  const saglik = useAiSaglik(!isAiActive);
-  const aiHizmetKapali = saglik.data?.ucretliAyakta === false;
 
   /**
    * Sunucu (webhook) profiles.is_premium'u işleyene kadar birkaç saniye
@@ -132,11 +137,7 @@ export default function PremiumScreen() {
 
   const onSubscribe = async (plan: 'temel' | 'ai') => {
     AsyncStorage.setItem('vekil-plan-intent', plan).catch(() => {});
-    // AI paketi: arka uç hizmet veremiyorsa satın almayı hiç başlatma.
-    if (plan === 'ai' && aiHizmetKapali) {
-      uyar(t('premium.aiUnavailableTitle'), t('premium.aiUnavailableBody'));
-      return;
-    }
+    // AI paketinde kredi/sağlık kilidi YOK — yukarıdaki gerekçeye bakınız.
     const pkg = plan === 'ai' ? aiOfferingPkg : offeringPkg;
     // Bu katmanın Offering'i RevenueCat panelinde henüz kurulmadıysa (ya da
     // web'deyse) pkg null gelir — eski "çok yakında" davranışına düşülür,
@@ -358,7 +359,13 @@ export default function PremiumScreen() {
           <Text style={styles.tierTag}>{t('premium.aiTag')}</Text>
 
           <View style={styles.priceRow}>
-            <Text style={styles.price}>₺{AI_PRICE_TRY.toLocaleString('tr-TR')}</Text>
+            {/* MAĞAZANIN FİYATI ESASTIR. Tahsil edilen tutar mağaza ürününün
+                fiyatıdır; teklif yüklendiyse onu gösteriyoruz ki ekranda yazan
+                ile karttan çekilen hiçbir zaman ayrışmasın. Sabit, teklif
+                yüklenemediğinde (web, anahtar yok) yedek. */}
+            <Text style={styles.price}>
+              {aiOfferingPkg?.product.priceString ?? `₺${AI_PRICE_TRY.toLocaleString('tr-TR')}`}
+            </Text>
             <Text style={styles.per}>{t('premium.perMonth')}</Text>
           </View>
 
@@ -406,7 +413,9 @@ export default function PremiumScreen() {
               her iki katman da aynı ibareyi (autoRenewNote) kendi fiyatıyla
               gösteriyor; temel paketteki eski "ilk 7 gün ücretsiz" ince yazısı
               var olmayan bir denemeyi anlattığı için kaldırıldı. */}
-          <Text style={styles.finePrint}>{t('premium.autoRenewNote', { price: AI_PRICE_TRY.toLocaleString('tr-TR') })}</Text>
+          <Text style={styles.finePrint}>
+            {t('premium.autoRenewNote', { price: aiOfferingPkg?.product.priceString ?? AI_PRICE_TRY.toLocaleString('tr-TR') })}
+          </Text>
         </View>
 
         <View style={styles.noteRow}>

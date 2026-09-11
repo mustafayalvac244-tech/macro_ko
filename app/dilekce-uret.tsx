@@ -244,7 +244,10 @@ export default function DilekceUretScreen() {
             <View style={styles.card}>
               <View style={styles.cardHead}>
                 <Text style={styles.cardTitle}>{t('dlk.resultTitle')}</Text>
-                <CiktiEylemleri metin={text} baslik={t('dlk.resultTitle')} />
+                {/* UDF YALNIZ BURADA: dilekçe, UYAP'a yüklenmek üzere üretiliyor.
+                    Mütalaa ve belge incelemesi mahkemeye verilmez; oralarda
+                    UDF düğmesi işe yaramayan bir dosya üretirdi. */}
+                <CiktiEylemleri metin={text} baslik={t('dlk.resultTitle')} udf />
               </View>
               <Text selectable style={styles.body}>{text}</Text>
               <HukukiUyari tur="yapayZeka" />

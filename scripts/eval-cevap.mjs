@@ -31,6 +31,7 @@
 // ---------------------------------------------------------------------------
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gecer } from './eslestir.mjs';
+import { istek, Butce } from './istek.mjs';
 import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
 import { katmanAyarla } from './eval-katman.mjs';
@@ -51,7 +52,16 @@ if (!url || !svc || !anon) {
 }
 
 const BEKLEME = Number(process.env.EVAL_BEKLEME ?? 20000);
-const uyu = (ms) => new Promise((r) => setTimeout(r, ms));
+// BÜTÇELİ UYKU. Tek bir 429, bekleme.mjs'in 30 dakikalık üst sınırı ve 6
+// denemeyle birlikte TEK soruyu 3 saate kadar uzatabiliyor; işin tavanı ise
+// 120 dakika. Sonuç yalnız SONDA yazıldığı için tavana çarpan koşudan elde
+// hiçbir ölçüm kalmıyor — 2026-09-11'de mütalaa tam olarak böyle kayboldu
+// (14 dakika koştu, hiçbir şey yazılmadı).
+// Artık uyku kalan bütçeyi aşamaz; bütçe dolunca ölçüm, o ana kadar ölçtüğünü
+// RAPORLAYARAK durur. Ayrıntılı teşhis ve o gün yaptığım YANLIŞ teşhisin
+// düzeltmesi: scripts/istek.mjs başlığı.
+const butce = new Butce();
+const uyu = (ms) => new Promise((r) => setTimeout(r, Math.min(ms, butce.kalan())));
 
 const EPOSTA = `eval-cevap-${Date.now()}@vekil.local`;
 const SIFRE = `Ev!${Math.random().toString(36).slice(2)}A9`;
@@ -91,7 +101,7 @@ async function jwtAl() {
 }
 
 async function sor(jwt, soru, deneme = 0) {
-  const res = await fetch(`${url}/functions/v1/ai-chat`, {
+  const res = await istek(`${url}/functions/v1/ai-chat`, {
     method: 'POST',
     headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages: [{ role: 'user', text: soru }] }),
@@ -120,7 +130,16 @@ async function sor(jwt, soru, deneme = 0) {
   // model cevabı sayarsak, ölçüm modelin kalitesini değil o andaki sağlayıcı
   // yoğunluğunu ölçer — nitekim bir koşuda 13/13 olan sonuç, üçü özet olduğu
   // için 9/13 göründü. Özet geldiğinde beklenip yeniden sorulur.
-  kunye.gor({ model: govde?.model });
+  // KULLANIM BİLGİSİNİN TAMAMINI VER, YALNIZ MODELİ DEĞİL.
+  // ÖLÇÜLEN KUSUR (2026-09-11): ai-chat yanıtında
+  //     kullanim: { model, girdiToken, ciktiToken, maliyetTL }
+  // zaten dönüyor (ai-chat/index.ts:668, 2785). Betikler bunu ATIP yerine
+  // yalnız { model } veriyordu; künye maliyeti o alandan topladığı için
+  // rapor satırı BUGÜNE KADAR HER KOŞUDA "₺0.00" yazdı. Bu bir ölçüm değil,
+  // atılmış bir alandı — üstelik ölçüm kullanıcısı sonda silindiği için
+  // ai_istek satırları da cascade ile gidiyor, yani harcama başka hiçbir
+  // yerden geri okunamıyor.
+  kunye.gor(govde?.kullanim ?? { model: govde?.model });
   if (govde?.yapayZekasiz || govde?.model === 'mevzuat-yedek') {
     if (deneme < 4) {
       const bekle = 30000 * (deneme + 1);
@@ -147,6 +166,16 @@ try {
 
   let ilk = true;
   for (const s of sorular) {
+    // BÜTÇE KONTROLÜ — eksik ölçüm, hiç ölçümden iyidir; ama eksik olduğu
+    // SÖYLENMEK zorunda, yoksa oran düşük çıkar ve gerileme sanılır.
+    if (butce.doldu()) {
+      console.error(
+        `\nBÜTÇE DOLDU (${butce.satir()}) — kalan senaryolar ÖLÇÜLMEDİ.\n` +
+          'Bu koşudan oran ÇIKARMAYIN: ölçülen kalite değil, ayrılan süredir.'
+      );
+      process.exitCode = 2;
+      break;
+    }
     if (!ilk) await uyu(BEKLEME);
     ilk = false;
     let cevap;

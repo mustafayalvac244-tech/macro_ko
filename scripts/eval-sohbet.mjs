@@ -18,6 +18,7 @@
 //   node scripts/eval-sohbet.mjs
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { istek, Butce } from './istek.mjs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
@@ -41,7 +42,16 @@ if (!url || !svc || !anon) {
 }
 
 const BEKLEME = Number(process.env.EVAL_BEKLEME ?? 25000);
-const uyu = (ms) => new Promise((r) => setTimeout(r, ms));
+// BÜTÇELİ UYKU. Tek bir 429, bekleme.mjs'in 30 dakikalık üst sınırı ve 6
+// denemeyle birlikte TEK soruyu 3 saate kadar uzatabiliyor; işin tavanı ise
+// 120 dakika. Sonuç yalnız SONDA yazıldığı için tavana çarpan koşudan elde
+// hiçbir ölçüm kalmıyor — 2026-09-11'de mütalaa tam olarak böyle kayboldu
+// (14 dakika koştu, hiçbir şey yazılmadı).
+// Artık uyku kalan bütçeyi aşamaz; bütçe dolunca ölçüm, o ana kadar ölçtüğünü
+// RAPORLAYARAK durur. Ayrıntılı teşhis ve o gün yaptığım YANLIŞ teşhisin
+// düzeltmesi: scripts/istek.mjs başlığı.
+const butce = new Butce();
+const uyu = (ms) => new Promise((r) => setTimeout(r, Math.min(ms, butce.kalan())));
 
 const EPOSTA = `eval-sohbet-${Date.now()}@vekil.local`;
 const SIFRE = `Ev!${Math.random().toString(36).slice(2)}A9`;
@@ -81,7 +91,7 @@ async function jwtAl() {
 
 async function sor(soru, deneme = 0) {
   const jwt = await jwtAl();
-  const res = await fetch(`${url}/functions/v1/ai-chat`, {
+  const res = await istek(`${url}/functions/v1/ai-chat`, {
     method: 'POST',
     headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages: [{ role: 'user', text: soru }] }),
@@ -106,7 +116,16 @@ async function sor(soru, deneme = 0) {
   }
   if (!res.ok) throw new Error(`ai-chat ${res.status}: ${(await res.text()).slice(0, 140)}`);
   const j = await res.json();
-  kunye.gor({ model: j?.model });
+  // KULLANIM BİLGİSİNİN TAMAMINI VER, YALNIZ MODELİ DEĞİL.
+  // ÖLÇÜLEN KUSUR (2026-09-11): ai-chat yanıtında
+  //     kullanim: { model, girdiToken, ciktiToken, maliyetTL }
+  // zaten dönüyor (ai-chat/index.ts:668, 2785). Betikler bunu ATIP yerine
+  // yalnız { model } veriyordu; künye maliyeti o alandan topladığı için
+  // rapor satırı BUGÜNE KADAR HER KOŞUDA "₺0.00" yazdı. Bu bir ölçüm değil,
+  // atılmış bir alandı — üstelik ölçüm kullanıcısı sonda silindiği için
+  // ai_istek satırları da cascade ile gidiyor, yani harcama başka hiçbir
+  // yerden geri okunamıyor.
+  kunye.gor(j?.kullanim ?? { model: j?.model });
   return { metin: String(j?.text ?? ''), model: String(j?.model ?? '?') };
 }
 
@@ -129,6 +148,16 @@ try {
 
   let ilk = true;
   for (const s of senaryolar) {
+    // BÜTÇE KONTROLÜ — eksik ölçüm, hiç ölçümden iyidir; ama eksik olduğu
+    // SÖYLENMEK zorunda, yoksa oran düşük çıkar ve gerileme sanılır.
+    if (butce.doldu()) {
+      console.error(
+        `\nBÜTÇE DOLDU (${butce.satir()}) — kalan senaryolar ÖLÇÜLMEDİ.\n` +
+          'Bu koşudan oran ÇIKARMAYIN: ölçülen kalite değil, ayrılan süredir.'
+      );
+      process.exitCode = 2;
+      break;
+    }
     if (!ilk) await uyu(BEKLEME);
     ilk = false;
 

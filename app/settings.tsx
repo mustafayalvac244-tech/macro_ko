@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuthStore } from '@/store/authStore';
+import { WEB_ADRESI_KISA } from '@/config/web';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useCihazlarim, useTumOturumlariKapat, type OturumCihazi } from '@/hooks/useCihazlar';
 import { cihazAnahtari } from '@/lib/cihazKimligi';
@@ -285,6 +286,39 @@ export default function SettingsScreen() {
           </Pressable>
         </Card>
 
+        {/* WEB SÜRÜMÜ TANITIMI — yalnız NATİFTE.
+            Tarayıcıda zaten web sürümü açık; orada "bilgisayardan da kullanın"
+            demek anlamsız olurdu. Üye olmayana da gösterilir ama vaat
+            karıştırılmadan: metin üyeliğe özel olduğunu söyler, düğme üyelik
+            ekranına götürür.
+
+            KOPYALA DÜĞMESİ YOK, adres SEÇİLEBİLİR metin. İki sebep: (1) natif
+            pano için yeni bir paket gerekirdi ve yeni natif paket OTA ile
+            inmez, mağaza derlemesi ister — bu değişikliğin havadan gitmesini
+            engellerdi; (2) mevcut yardımcı (lib/cikti.ts > metniKopyala)
+            yalnız tarayıcıda çalışıyor, telefonda 'desteklenmiyor' döner.
+            Basılı tutup kopyalamak işletim sisteminin kendi yolu. */}
+        {Platform.OS !== 'web' && (
+          <Card style={styles.section}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="desktop-outline" size={18} color={colors.gold} />
+              <Text style={styles.rowLabel}>{t('web.promoTitle')}</Text>
+            </View>
+            <Text style={styles.webPromoBody}>
+              {profile?.is_premium ? t('web.promoBody') : t('web.promoBodyLocked')}
+            </Text>
+            <Text style={styles.webAdres} selectable>
+              {WEB_ADRESI_KISA}
+            </Text>
+            {!profile?.is_premium && (
+              <Button
+                label={t('web.promoCta')}
+                onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}
+              />
+            )}
+          </Card>
+        )}
+
         <Card style={styles.section}>
           <Pressable style={styles.row} onPress={handleCheckUpdates}>
             <View style={styles.rowLeft}>
@@ -394,6 +428,8 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  webPromoBody: { ...typography.body, color: colors.textSecondary, lineHeight: 21, marginTop: spacing.xs },
+  webAdres: { ...typography.caption, color: colors.primary, marginTop: spacing.xs, marginBottom: spacing.sm },
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,

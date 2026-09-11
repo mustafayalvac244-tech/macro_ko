@@ -91,5 +91,16 @@ if [ "$VAR2" = "t" ]; then
     | grep -E "GEÇTİ|BOZULDU|ERROR" || true
 fi
 
+# "Önce AND" ölçümü, YALNIZ 0111 bu koşuda uygulandıysa anlamlıdır (fonksiyon
+# gövdesinde ve_ids dizisi 0111'e özgü).
+VAR3=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA \
+  -c "select coalesce(position('ve_ids' in prosrc) > 0, false) from pg_proc where proname = 'search_ictihat_fts'" 2>/dev/null || echo f)
+if [ "$VAR3" = "t" ]; then
+  echo
+  echo "--- içtihat 'önce AND' ölçümü (0111) ---"
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -f "$KOK/scripts/migration-deneme/ictihat-and-once-olcum.sql" 2>&1 \
+    | grep -E "GEÇTİ|BOZULDU|ERROR" || true
+fi
+
 psql -h /tmp -p "$PORT" -U postgres -q -c "drop database $DB;" >/dev/null 2>&1 || true
 exit $HATA

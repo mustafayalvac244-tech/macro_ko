@@ -41,6 +41,7 @@ import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
 import { beklemeSuresi } from './bekleme.mjs';
 import { gecer, sadelestir } from './eslestir.mjs';
+import { istek, Butce } from './istek.mjs';
 import { maddeAtiflari, mesruTutarlar, tarihler, tutarlar } from './uydurma.mjs';
 import { adimlarBolumu, eksikBolumler, sureIceriyor } from './mutalaa-olcut.mjs';
 
@@ -60,7 +61,16 @@ if (!url || !svc || !anon) {
 }
 
 const BEKLEME = Number(process.env.EVAL_BEKLEME ?? 30000);
-const uyu = (ms) => new Promise((r) => setTimeout(r, ms));
+// BÜTÇELİ UYKU. Tek bir 429, bekleme.mjs'in 30 dakikalık üst sınırı ve 6
+// denemeyle birlikte TEK soruyu 3 saate kadar uzatabiliyor; işin tavanı ise
+// 120 dakika. Sonuç yalnız SONDA yazıldığı için tavana çarpan koşudan elde
+// hiçbir ölçüm kalmıyor — 2026-09-11'de mütalaa tam olarak böyle kayboldu
+// (14 dakika koştu, hiçbir şey yazılmadı).
+// Artık uyku kalan bütçeyi aşamaz; bütçe dolunca ölçüm, o ana kadar ölçtüğünü
+// RAPORLAYARAK durur. Ayrıntılı teşhis ve o gün yaptığım YANLIŞ teşhisin
+// düzeltmesi: scripts/istek.mjs başlığı.
+const butce = new Butce();
+const uyu = (ms) => new Promise((r) => setTimeout(r, Math.min(ms, butce.kalan())));
 
 const EPOSTA = `eval-mutalaa-${Date.now()}@vekil.local`;
 const SIFRE = `Ev!${Math.random().toString(36).slice(2)}A9`;
@@ -159,7 +169,7 @@ async function uret(olay, deneme = 0) {
   // bulabiliyor; jetonun ömrü bir saat. Denemeler arasında tazelenmezse ölçüm,
   // modelle ilgisi olmayan bir 401 yüzünden yarıda kalır.
   const jwt = await jwtAl();
-  const res = await fetch(`${url}/functions/v1/ai-chat`, {
+  const res = await istek(`${url}/functions/v1/ai-chat`, {
     method: 'POST',
     headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ mode: 'mutalaa', question: olay }),
@@ -218,6 +228,11 @@ async function uret(olay, deneme = 0) {
     uydurmaMadde: Array.isArray(j?.uydurmaMadde) ? j.uydurmaMadde : [],
     atlananKural: Array.isArray(j?.atlananKural) ? j.atlananKural : [],
     dayanak: Array.isArray(j?.dayanak) ? j.dayanak.map((k) => k?.id).filter(Boolean) : [],
+    // KULLANIM BİLGİSİ (token + maliyet). Mütalaa çok adımlı ama adımlar UÇTA
+    // koşuyor; dönen kullanim tüm adımların toplamı. Ölçüm bunu ATIYORDU ve
+    // künye maliyeti bu alandan topladığı için rapor satırı bugüne kadar her
+    // koşuda "₺0.00" yazdı — bu bir ölçüm değil, atılmış bir alandı.
+    kullanim: j?.kullanim ?? { model: j?.model },
   };
 }
 
@@ -261,6 +276,16 @@ try {
 
   let ilk = true;
   for (const s of senaryolar) {
+    // BÜTÇE KONTROLÜ — eksik ölçüm, hiç ölçümden iyidir; ama eksik olduğu
+    // SÖYLENMEK zorunda, yoksa oran düşük çıkar ve gerileme sanılır.
+    if (butce.doldu()) {
+      console.error(
+        `\nBÜTÇE DOLDU (${butce.satir()}) — kalan senaryolar ÖLÇÜLMEDİ.\n` +
+          'Bu koşudan oran ÇIKARMAYIN: ölçülen kalite değil, ayrılan süredir.'
+      );
+      process.exitCode = 2;
+      break;
+    }
     if (!ilk) await uyu(BEKLEME);
     ilk = false;
 
@@ -269,6 +294,7 @@ try {
     let uydurmaMaddeUyari = [];
     let atlananKuralUyari = [];
     let dayanakKurallar = [];
+    let kullanimBilgisi = null;
     try {
       ({
         metin,
@@ -276,8 +302,9 @@ try {
         uydurmaMadde: uydurmaMaddeUyari,
         atlananKural: atlananKuralUyari,
         dayanak: dayanakKurallar,
+        kullanim: kullanimBilgisi,
       } = await uret(s.olay));
-      kunye.gor({ model: kullanilanModel });
+      kunye.gor(kullanimBilgisi ?? { model: kullanilanModel });
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(
