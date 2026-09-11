@@ -694,8 +694,14 @@ async function uydurmaMaddeDenetimi(metin: string): Promise<string[]> {
 export interface KararDenetimi {
   /** Metinde bulunan toplam içtihat atfı sayısı. */
   toplam: number;
-  /** Havuzumuzda BULUNAN atıflar ("2019/12345 E., 2020/6789 K."). */
-  dogrulanan: string[];
+  /**
+   * Havuzumuzda BULUNAN atıflar — künyesiyle birlikte.
+   *
+   * Yalnız "doğrulandı" yazmak kanıt değil, damgadır. Avukat, doğruladığımızı
+   * söylediğimiz kararın hangi daireye ve hangi tarihe ait olduğunu görmeden
+   * bize güvenmek zorunda kalır; künyeyi gösterince kendisi bakar.
+   */
+  dogrulanan: Array<{ atif: string; daire?: string; tarih?: string; id?: string }>;
   /** Bulunamayanlar. UYDURMA DEĞİL — havuz eksik olabilir, teyit istenir. */
   havuzdaYok: string[];
   /** Havuzdan bağımsız olarak MANTIKEN olamayacak atıflar. */
@@ -738,12 +744,16 @@ async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
     // Olanaksız atıfları havuzda ARAMIYORUZ: zaten bulunamayacaklar ve
     // "havuzda yok" listesinde ikinci kez görünüp uyarıyı sulandırırlar.
     const aranacak = atiflar.filter((a) => !olanaksizHam.has(a.ham));
-    const bulunan = new Set<string>();
+    const bulunan = new Map<string, { daire?: string; tarih?: string; id?: string }>();
     if (aranacak.length) {
       const { data, error } = await s.rpc('havuzdaki_kararlar', { atiflar: havuzSorgusu(aranacak) });
       if (!error) {
-        for (const r of (data ?? []) as Array<{ esas: string; karar: string }>) {
-          bulunan.add(`${r.esas ?? ''}#${r.karar ?? ''}`);
+        for (const r of (data ?? []) as Array<{ esas: string; karar: string; karar_id?: string; daire?: string; karar_tarihi?: string }>) {
+          bulunan.set(`${r.esas ?? ''}#${r.karar ?? ''}`, {
+            daire: r.daire ?? undefined,
+            tarih: r.karar_tarihi ?? undefined,
+            id: r.karar_id ?? undefined,
+          });
         }
       }
     }
@@ -753,7 +763,9 @@ async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
 
     return {
       toplam: atiflar.length,
-      dogrulanan: aranacak.filter((a) => bulunan.has(anahtar(a))).map((a) => a.ham),
+      dogrulanan: aranacak
+        .filter((a) => bulunan.has(anahtar(a)))
+        .map((a) => ({ atif: a.ham, ...bulunan.get(anahtar(a))! })),
       havuzdaYok: aranacak.filter((a) => !bulunan.has(anahtar(a))).map((a) => a.ham),
       olanaksiz: olanaksizlar.map((o) => ({ atif: o.atif.ham, sebep: o.sebep })),
     };

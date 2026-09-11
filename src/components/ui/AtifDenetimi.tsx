@@ -26,7 +26,7 @@ import type { ThemeColors } from '@/theme/palettes';
  */
 export interface KararDenetimiVerisi {
   toplam: number;
-  dogrulanan: string[];
+  dogrulanan: Array<{ atif: string; daire?: string; tarih?: string; id?: string }>;
   havuzdaYok: string[];
   olanaksiz: Array<{ atif: string; sebep: string }>;
 }
@@ -86,9 +86,15 @@ export function AtifDenetimi({ veri }: { veri: KararDenetimiVerisi | null | unde
           <Text style={styles.yesilMetin}>
             {t('atif.dogrulandiBaslik', { n: String(veri.dogrulanan.length) })}
           </Text>
-          <Text style={styles.yesilMetin} selectable>
-            {veri.dogrulanan.join(' · ')}
-          </Text>
+          {/* Künye de yazılır: çıplak "doğrulandı" damgası kanıt değildir,
+              avukat hangi daireye ve tarihe baktığımızı görmeli. */}
+          {veri.dogrulanan.map((d) => (
+            <Text key={d.atif} style={styles.yesilMetin} selectable>
+              • {d.atif}
+              {d.daire ? ` — ${d.daire}` : ''}
+              {d.tarih ? ` (${d.tarih})` : ''}
+            </Text>
+          ))}
         </View>
       )}
     </View>

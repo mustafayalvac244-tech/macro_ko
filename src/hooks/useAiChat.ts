@@ -29,7 +29,7 @@ export interface AiMessage {
    * soruluyor ve cevaptaki karar numarası doğrudan dilekçeye kopyalanıyor.
    * Korumayı en çok gerektiği yerde kapatmış olduk.
    */
-  kararDenetimi?: { toplam: number; dogrulanan: string[]; havuzdaYok: string[]; olanaksiz: Array<{ atif: string; sebep: string }> };
+  kararDenetimi?: { toplam: number; dogrulanan: Array<{ atif: string; daire?: string; tarih?: string; id?: string }>; havuzdaYok: string[]; olanaksiz: Array<{ atif: string; sebep: string }> };
   /** Metinde havuzda bulunmayan kanun maddesi atfı (bkz. ai.fakeArticles). */
   uydurmaMadde?: string[];
 }
