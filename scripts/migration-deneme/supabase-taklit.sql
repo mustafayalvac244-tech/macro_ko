@@ -116,6 +116,42 @@ create function cron.unschedule(p_name text) returns boolean language sql as $$
   delete from cron.job where jobname = p_name returning true
 $$;
 
+-- DİKKAT — BU TABLONUN SÜTUNLARI BİLEREK GERÇEĞİNE SADIK:
+-- cron.job_run_details'te `jobname` YOKTUR, yalnız `jobid` vardır. İş adını
+-- görmek için cron.job ile birleştirmek gerekir.
+--
+-- Bu tablo taklide EKSİKTİ ve 0101'deki "if to_regclass(...) is not null"
+-- koruması yüzünden o blok yerelde hiç çalışmadı; sınanmamış kod canlıya gitti
+-- ve orada "42703: column d.jobname does not exist" ile patladı. Koruma hatayı
+-- engellemedi, SAKLADI. Sütun adlarını değiştirmeyin — taklidin değeri tam
+-- olarak gerçeğe sadık olmasından geliyor.
+create table cron.job_run_details (
+  jobid bigint,
+  runid bigint generated always as identity primary key,
+  job_pid integer,
+  database text,
+  username text,
+  command text,
+  status text,
+  return_message text,
+  start_time timestamptz,
+  end_time timestamptz
+);
+
+-- pg_net taklidi: hasat_tetikle'nin ateşle-unut yanıtlarının düştüğü yer.
+-- Sütun adları pg_net'in gerçek _http_response tablosundan alındı.
+create schema if not exists net;
+create table net._http_response (
+  id bigint generated always as identity primary key,
+  status_code integer,
+  content_type text,
+  headers jsonb,
+  content text,
+  timed_out boolean,
+  error_msg text,
+  created timestamptz not null default now()
+);
+
 -- Supabase'in varsayılanı: authenticated tablolar üzerinde yetkili.
 grant usage on schema public to anon, authenticated, service_role;
 grant all on all tables in schema public to anon, authenticated, service_role;
