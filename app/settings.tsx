@@ -16,10 +16,13 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuthStore } from '@/store/authStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
+import { useCihazlarim, useTumOturumlariKapat, type OturumCihazi } from '@/hooks/useCihazlar';
+import { cihazAnahtari } from '@/lib/cihazKimligi';
 import { useLockStore } from '@/store/lockStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
 import { useLangStore, useT, type Lang } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { format } from 'date-fns/format';
+import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -33,11 +36,31 @@ export default function SettingsScreen() {
   const setLang = useLangStore((s) => s.setLang);
   const profile = useAuthStore((s) => s.profile);
   const avatarUrl = useAvatarUrl();
+  const cihazlar = useCihazlarim();
+  const oturumlariKapat = useTumOturumlariKapat();
+  const [buAnahtar, setBuAnahtar] = useState<string | null>(null);
+  useEffect(() => {
+    void cihazAnahtari().then(setBuAnahtar);
+  }, []);
+
+  const handleOturumlariKapat = () => {
+    uyar(t('cihaz.hepsiniKapatOnayBaslik'), t('cihaz.hepsiniKapatOnayGovde'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('cihaz.hepsiniKapat'),
+        style: 'destructive',
+        onPress: () => {
+          oturumlariKapat.mutate(undefined, {
+            onSuccess: () => uyar(t('cihaz.baslik'), t('cihaz.kapatildi')),
+            onError: () => uyar(t('cihaz.baslik'), t('cihaz.kapatilamadi')),
+          });
+        },
+      },
+    ]);
+  };
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
-  const deleteAccount = useAuthStore((s) => s.deleteAccount);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const lockEnabled = useLockStore((s) => s.enabled);
   const setLockEnabled = useLockStore((s) => s.setEnabled);
@@ -80,35 +103,12 @@ export default function SettingsScreen() {
     }
   };
 
+  // HESAP SİLME ARTIK ŞİFRE İSTİYOR. Önceden yalnız iki onay penceresi vardı;
+  // masada açık kalan bir telefonda saldırganın şifreyi bilmesine gerek yoktu,
+  // iki kez "onayla" demesi yeterliydi. Şifre değiştirme ekranı zaten yeniden
+  // doğrulama yapıyordu — daha az zararlı işlem daha korunaklıydı.
   const handleDeleteAccount = () => {
-    uyar(t('settings.deleteAccount'), t('settings.deleteAccountWarn'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('settings.deleteAccountContinue'),
-        style: 'destructive',
-        onPress: () => {
-          uyar(t('settings.deleteAccountConfirmTitle'), t('settings.deleteAccountConfirmMsg'), [
-            { text: t('common.cancel'), style: 'cancel' },
-            {
-              text: t('settings.deleteAccountConfirmBtn'),
-              style: 'destructive',
-              onPress: async () => {
-                setIsDeleting(true);
-                try {
-                  await deleteAccount();
-                  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
-                  router.replace('/(auth)/login');
-                } catch {
-                  uyar(t('settings.deleteAccount'), t('settings.deleteAccountError'));
-                } finally {
-                  setIsDeleting(false);
-                }
-              },
-            },
-          ]);
-        },
-      },
-    ]);
+    router.push('/hesap-sil' as Parameters<typeof router.push>[0]);
   };
 
   const handleCheckUpdates = async () => {
@@ -298,6 +298,36 @@ export default function SettingsScreen() {
           <InfoRow label={t('settings.dataStorage')} value={t('settings.dataStorageValue')} />
         </Card>
 
+        {/* OTURUM GÜVENLİĞİ. Şifresi ele geçirilen bir avukatın bunu fark
+            etmesinin başka yolu yoktu; uygulama sessizce çalışmaya devam
+            ederdi. Liste bir kimlik KANITI değil, bir FARK ETME aracıdır —
+            uyarı notu bunu açıkça yazıyor, abartmıyoruz. */}
+        <Card style={styles.cihazKart}>
+          <View style={styles.cihazBaslikSatir}>
+            <Ionicons name="phone-portrait-outline" size={18} color={colors.primary} />
+            <Text style={styles.cihazBaslik}>{t('cihaz.baslik')}</Text>
+          </View>
+          <Text style={styles.cihazAciklama}>{t('cihaz.aciklama')}</Text>
+
+          {(cihazlar.data ?? []).length === 0 ? (
+            <Text style={styles.cihazBos}>{t('cihaz.yok')}</Text>
+          ) : (
+            (cihazlar.data ?? []).map((c) => (
+              <CihazSatiri key={c.id} cihaz={c} buCihazMi={c.cihaz_anahtari === buAnahtar} />
+            ))
+          )}
+
+          <Text style={styles.cihazNot}>{t('cihaz.uyariNotu')}</Text>
+          <Button
+            label={t('cihaz.hepsiniKapat')}
+            variant="secondary"
+            loading={oturumlariKapat.isPending}
+            onPress={handleOturumlariKapat}
+            fullWidth
+            style={styles.cihazButon}
+          />
+        </Card>
+
         <Button label={t('settings.signOut')} variant="secondary" onPress={handleSignOut} style={styles.signOutButton} />
 
         <Card style={styles.dangerCard}>
@@ -309,7 +339,6 @@ export default function SettingsScreen() {
           <Button
             label={t('settings.deleteAccount')}
             variant="danger"
-            loading={isDeleting}
             onPress={handleDeleteAccount}
             fullWidth
             style={styles.dangerButton}
@@ -317,6 +346,38 @@ export default function SettingsScreen() {
         </Card>
       </ScrollView>
     </Screen>
+  );
+}
+
+function CihazSatiri({ cihaz, buCihazMi }: { cihaz: OturumCihazi; buCihazMi: boolean }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const t = useT();
+  const bicim = (iso: string) => {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? '' : format(d, 'dd.MM.yyyy HH:mm');
+  };
+  return (
+    <View style={styles.cihazSatir}>
+      <Ionicons
+        name={cihaz.platform === 'web' ? 'globe-outline' : 'phone-portrait-outline'}
+        size={16}
+        color={buCihazMi ? colors.primary : colors.textMuted}
+      />
+      <View style={styles.cihazGovde}>
+        <Text style={styles.cihazAd} numberOfLines={1}>
+          {cihaz.ad || cihaz.platform || '—'}
+          {buCihazMi ? ` · ${t('cihaz.buCihaz')}` : ''}
+        </Text>
+        <Text style={styles.cihazMeta} numberOfLines={1}>
+          {t('cihaz.sonGorulme', { tarih: bicim(cihaz.son_gorulme) })}
+          {' · '}
+          {t('cihaz.ilkGorulme', { tarih: bicim(cihaz.ilk_gorulme) })}
+          {cihaz.uygulama_surumu ? ` · v${cihaz.uygulama_surumu}` : ''}
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -427,6 +488,32 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   langControl: {
     alignSelf: 'flex-start',
   },
+  cihazKart: {
+    marginTop: spacing.md,
+    gap: spacing.xs,
+  },
+  cihazBaslikSatir: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  cihazBaslik: { ...typography.h3, color: colors.textPrimary },
+  cihazAciklama: { ...typography.small, color: colors.textSecondary, lineHeight: 17 },
+  cihazBos: { ...typography.small, color: colors.textMuted, paddingVertical: spacing.sm },
+  cihazSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  cihazGovde: { flex: 1 },
+  cihazAd: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
+  cihazMeta: { ...typography.small, color: colors.textMuted },
+  cihazNot: {
+    ...typography.small,
+    color: colors.textMuted,
+    lineHeight: 16,
+    marginTop: spacing.xs,
+  },
+  cihazButon: { marginTop: spacing.sm, borderRadius: radius.md },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

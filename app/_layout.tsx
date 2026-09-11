@@ -182,6 +182,7 @@ export default function RootLayout() {
             <Stack.Screen name="enforcement/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="document-viewer" options={{ headerShown: false }} />
             <Stack.Screen name="change-password" options={{ presentation: 'modal', headerShown: false }} />
+            <Stack.Screen name="hesap-sil" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="profile-form" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
             <Stack.Screen name="privacy" options={{ headerShown: false }} />

@@ -277,6 +277,23 @@ export const tr = {
   // Common
   'common.cancel': 'Vazgeç',
   'common.ok': 'Tamam',
+  // OTURUM/CİHAZ GÜVENLİĞİ (bkz. 0099 migration + hooks/useCihazlar).
+  'cihaz.yeniBaslik': 'Yeni cihazdan giriş yapıldı',
+  'cihaz.yeniGovde': 'Hesabınıza tanımadığınız bir cihazdan girildiyse şifrenizi değiştirin ve diğer oturumları kapatın.',
+  'cihaz.incele': 'Cihazları gör',
+  'cihaz.baslik': 'Giriş yapılan cihazlar',
+  'cihaz.aciklama': 'Hesabınıza giren cihazlar. Tanımadığınız bir kayıt varsa diğer oturumları kapatın ve şifrenizi değiştirin.',
+  'cihaz.buCihaz': 'bu cihaz',
+  'cihaz.ilkGorulme': 'ilk giriş {tarih}',
+  'cihaz.sonGorulme': 'son görülme {tarih}',
+  'cihaz.hepsiniKapat': 'Diğer tüm oturumları kapat',
+  'cihaz.hepsiniKapatOnayBaslik': 'Diğer oturumlar kapatılsın mı?',
+  'cihaz.hepsiniKapatOnayGovde': 'Bu cihaz açık kalır. Diğer tüm cihazlarda yeniden giriş yapılması gerekir.',
+  'cihaz.kapatildi': 'Diğer oturumlar kapatıldı.',
+  'cihaz.kapatilamadi': 'Oturumlar kapatılamadı. Bağlantınızı kontrol edin.',
+  'cihaz.yok': 'Henüz kayıtlı cihaz yok.',
+  'cihaz.uyariNotu': 'Not: cihaz bilgisi uygulamadan gönderilir; kesin bir kimlik kanıtı değildir. Tarayıcıda site verilerini temizlerseniz aynı bilgisayar yeni cihaz görünür.',
+
   'admin.searchUser': 'Kullanıcı ara (ad, e-posta, büro)',
   'admin.searchResult': '{n} kullanıcı bulundu',
   'common.delete': 'Sil',
@@ -602,6 +619,13 @@ export const tr = {
   'settings.deleteAccount': 'Hesabı Sil',
   'settings.deleteAccountWarn':
     'Bu işlem GERİ ALINAMAZ. Hesabınızla birlikte tüm davalarınız, müvekkilleriniz, duruşmalarınız, görevleriniz ve yüklediğiniz tüm belgeler kalıcı olarak silinir.',
+  // HESAP SİLME — ŞİFREYLE YENİDEN DOĞRULAMA (bkz. app/hesap-sil.tsx).
+  'delAcc.lead': 'Hesabınızı silmeden önce kimliğinizi doğrulamamız gerekiyor. Açık bir oturumun tek başına yeterli olmaması içindir: telefonunuz masada açık kalsa bile hesabınız şifreniz olmadan silinemez.',
+  'delAcc.password': 'Şifreniz',
+  'delAcc.wrongPassword': 'Şifre doğrulanamadı. Tekrar deneyin.',
+  'delAcc.confirmWord': 'SİL',
+  'delAcc.typeWord': 'Onaylamak için "{word}" yazın',
+  'delAcc.note': 'Silme işlemi geri alınamaz. Dosyalarınız, müvekkilleriniz ve belgeleriniz kalıcı olarak silinir; yedek alınmaz.',
   'settings.deleteAccountConfirmTitle': 'Emin misiniz?',
   'settings.deleteAccountConfirmMsg': 'Tüm verileriniz kalıcı olarak silinecek. Bu son onaydır.',
   'settings.deleteAccountConfirmBtn': 'Evet, kalıcı olarak sil',
