@@ -58,6 +58,18 @@ revoke all on function public.son_gorulme_dokun() from public, anon;
 grant execute on function public.son_gorulme_dokun() to authenticated;
 
 -- Admin listesi bu sütunu da döndürsün (0096'nın üstüne ekleniyor).
+-- DÖNÜŞ TİPİ DEĞİŞİYOR → ÖNCE DROP ŞART.
+-- Postgres: "42P13 cannot change return type of existing function". CREATE OR
+-- REPLACE bir fonksiyonun döndürdüğü sütun kümesini DEĞİŞTİREMEZ; bu migration
+-- admin_recent_users'a yeni sütun ekliyor, dolayısıyla önce düşürülmeli.
+--
+-- DİKKAT — GÜVENLİK: drop, fonksiyonun YETKİLERİNİ DE SİLER. Yeniden
+-- oluşturulan fonksiyonda Postgres varsayılanı devreye girer ve EXECUTE
+-- yetkisi PUBLIC'e geri verilir. 0023 ve 0079'da bilerek kaldırılan bu yetki
+-- sessizce geri gelirdi. Bu yüzden aşağıda create'ten SONRA revoke/grant
+-- yeniden yazılıyor.
+drop function if exists public.admin_recent_users(integer);
+
 create or replace function public.admin_recent_users(p_limit integer default 60)
 returns table(
   id uuid, email text, full_name text, firm_name text, is_premium boolean,
@@ -120,6 +132,11 @@ begin
     limit greatest(1, least(p_limit, 200));
 end;
 $$;
+
+-- drop sonrası yetkiler yeniden kuruluyor (yukarıdaki nota bakınız).
+revoke all on function public.admin_recent_users(integer) from public, anon;
+grant execute on function public.admin_recent_users(integer) to authenticated;
+
 
 -- "Son 7 günde uygulamayı açan" gibi sorgular için.
 create index if not exists profiles_son_gorulme_idx on public.profiles (son_gorulme desc nulls last);

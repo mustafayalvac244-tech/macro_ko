@@ -24,6 +24,18 @@
 -- kayıt değil, toplam). Yalnız is_admin kullanıcıya, SECURITY DEFINER
 -- fonksiyon üzerinden döner; kayıt detayı hiçbir yerde açılmaz.
 
+-- DÖNÜŞ TİPİ DEĞİŞİYOR → ÖNCE DROP ŞART.
+-- Postgres: "42P13 cannot change return type of existing function". CREATE OR
+-- REPLACE bir fonksiyonun döndürdüğü sütun kümesini DEĞİŞTİREMEZ; bu migration
+-- admin_recent_users'a yeni sütun ekliyor, dolayısıyla önce düşürülmeli.
+--
+-- DİKKAT — GÜVENLİK: drop, fonksiyonun YETKİLERİNİ DE SİLER. Yeniden
+-- oluşturulan fonksiyonda Postgres varsayılanı devreye girer ve EXECUTE
+-- yetkisi PUBLIC'e geri verilir. 0023 ve 0079'da bilerek kaldırılan bu yetki
+-- sessizce geri gelirdi. Bu yüzden aşağıda create'ten SONRA revoke/grant
+-- yeniden yazılıyor.
+drop function if exists public.admin_recent_users(integer);
+
 create or replace function public.admin_recent_users(p_limit integer default 60)
 returns table(
   id uuid, email text, full_name text, firm_name text, is_premium boolean,
@@ -87,6 +99,11 @@ begin
     limit greatest(1, least(p_limit, 200));
 end;
 $$;
+
+-- drop sonrası yetkiler yeniden kuruluyor (yukarıdaki nota bakınız).
+revoke all on function public.admin_recent_users(integer) from public, anon;
+grant execute on function public.admin_recent_users(integer) to authenticated;
+
 
 -- Kullanıcı başına toplam alınıyor; sahip sütununda indeks yoksa 200 kişilik
 -- listede finance_entries ve payments tam taranırdı.
