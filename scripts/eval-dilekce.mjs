@@ -184,6 +184,12 @@ async function uret(tip, olay, deneme = 0) {
     // denetim; ölçümde bunun ateşleyip ateşlemediği görünmezse "koruma
     // çalıştı" ile "kimse fark etmedi" ayırt edilemez.
     cakisanDayanak: Array.isArray(j?.cakisanDayanak) ? j.cakisanDayanak : [],
+    // KARAR ATFI DENETİMİ. Ürüne 0117 ile girdi; ölçüm onu okumazsa ölçüm ile
+    // ürün arasında yine asimetri doğar — bu kez ters yönde: koruma üründe
+    // çalışır ama ölçüm hâlâ "uydurma karar numarası" diye bir arıza sınıfı
+    // olmadığını sanır. `olanaksiz` kusurdur; `havuzdaYok` DEĞİLDİR (havuzumuz
+    // eksik olabilir, bkz. _shared/kararAtif.ts).
+    kararDenetimi: j?.kararDenetimi ?? null,
   };
 }
 
@@ -245,6 +251,7 @@ try {
     let talepUyari = [];
     let uydurmaMaddeUyari = [];
     let cakisanUyari = [];
+    let kararUyari = null;
     let kullanimBilgisi = null;
     try {
       ({
@@ -253,6 +260,7 @@ try {
         talepEksik: talepUyari,
         uydurmaMadde: uydurmaMaddeUyari,
         cakisanDayanak: cakisanUyari,
+        kararDenetimi: kararUyari,
         kullanim: kullanimBilgisi,
       } = await uret(s.tip, s.olay));
       // Künyeye HER istekte besle: koşu ortasında model değişirse (sağlayıcı
@@ -300,8 +308,9 @@ try {
 
     const bosluk = (taslak.match(/\[[^\]]{2,40}\]/g) ?? []).length;
 
-    const gecti = eksik.length === 0 && yasak.length === 0 && uydurmaTarih.length === 0;
-    sonuclar.push({ id: s.id, gecti, eksik, yasak, uydurmaTarih, uydurmaTutar, bosluk, model: kullanilanModel, uzunluk: taslak.length, talepUyari, uydurmaMaddeUyari });
+    const olanaksizKarar = kararUyari?.olanaksiz?.map((o) => `${o.atif} (${o.sebep})`) ?? [];
+    const gecti = eksik.length === 0 && yasak.length === 0 && uydurmaTarih.length === 0 && olanaksizKarar.length === 0;
+    sonuclar.push({ id: s.id, gecti, eksik, yasak, uydurmaTarih, uydurmaTutar, bosluk, model: kullanilanModel, uzunluk: taslak.length, talepUyari, uydurmaMaddeUyari, olanaksizKarar });
 
     console.log(`${gecti ? '✓' : '✗'} ${s.id} (${s.tip})  ${taslak.length} krktr · ${bosluk} boşluk · ${kullanilanModel}`);
     if (eksik.length) console.log(`    EKSİK UNSUR : ${eksik.join(' | ')}`);
@@ -313,6 +322,8 @@ try {
     if (cakisanUyari.length) console.log(`    SUNUCU UYARDI (çakışan dayanak): ${cakisanUyari.join(' | ')}`);
     if (uydurmaTarih.length) console.log(`    UYDURMA TARİH: ${uydurmaTarih.join(', ')}`);
     if (uydurmaTutar.length) console.log(`    UYDURMA TUTAR: ${uydurmaTutar.join(', ')}`);
+    if (olanaksizKarar.length) console.log(`    OLANAKSIZ KARAR ATFI: ${olanaksizKarar.join(', ')}`);
+    if (kararUyari?.havuzdaYok?.length) console.log(`    havuzda bulunamayan karar atfı (kusur değil): ${kararUyari.havuzdaYok.join(', ')}`);
     if (!gecti) kusurlu.push({ id: s.id, tip: s.tip, model: kullanilanModel, eksik, yasak, uydurmaTarih, uydurmaTutar, taslak });
   }
 } finally {

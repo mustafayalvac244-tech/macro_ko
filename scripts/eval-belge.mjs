@@ -167,6 +167,8 @@ async function incele(kind, metin, deneme = 0) {
     ayiklananTarih: j?.ayiklananTarih ?? [],
     model: String(j?.model ?? '?'),
     uydurmaMadde: Array.isArray(j?.uydurmaMadde) ? j.uydurmaMadde : [],
+    // Karar atfı denetimi (0117). `olanaksiz` kusurdur; `havuzdaYok` değildir.
+    kararDenetimi: j?.kararDenetimi ?? null,
   };
 }
 
@@ -256,11 +258,14 @@ try {
     const belgeTarih = tarihler(s.metin);
     const uydurmaTarih = [...tarihler(inc)].filter((t) => !belgeTarih.has(t));
 
-    const gecti = kacan.length === 0 && yasak.length === 0 && eksikBaslik.length === 0 && uydurmaTarih.length === 0;
+    const olanaksizKarar = cikti.kararDenetimi?.olanaksiz?.map((o) => `${o.atif} (${o.sebep})`) ?? [];
+    const gecti = kacan.length === 0 && yasak.length === 0 && eksikBaslik.length === 0 && uydurmaTarih.length === 0 && olanaksizKarar.length === 0;
     sonuclar.push({ id: s.id, gecti, kacan, yasak, eksikBaslik, uydurmaTarih, ayiklanan: cikti.ayiklananTarih, uzunluk: inc.length });
 
     console.log(`${gecti ? '✓' : '✗'} ${s.id} (${s.kind})  ${inc.length} krktr · ${cikti.model}`);
     if (cikti.uydurmaMadde?.length) console.log(`    SUNUCU UYARDI (uydurma madde): ${cikti.uydurmaMadde.join(', ')}`);
+    if (olanaksizKarar.length) console.log(`    OLANAKSIZ KARAR ATFI: ${olanaksizKarar.join(', ')}`);
+    if (cikti.kararDenetimi?.havuzdaYok?.length) console.log(`    havuzda bulunamayan karar atfı (kusur değil): ${cikti.kararDenetimi.havuzdaYok.join(', ')}`);
     if (kacan.length) console.log(`    KAÇIRILAN KUSUR: ${kacan.join(' | ')}`);
     if (yasak.length) console.log(`    OLMAMALIYDI    : ${yasak.join(' | ')}`);
     if (eksikBaslik.length) console.log(`    EKSİK BAŞLIK   : ${eksikBaslik.join(', ')}`);

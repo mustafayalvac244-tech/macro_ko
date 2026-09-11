@@ -226,6 +226,8 @@ async function uret(olay, deneme = 0) {
     metin: String(j?.text ?? ''),
     model: String(j?.model ?? '?'),
     uydurmaMadde: Array.isArray(j?.uydurmaMadde) ? j.uydurmaMadde : [],
+    // Karar atfı denetimi (0117). `olanaksiz` kusurdur; `havuzdaYok` değildir.
+    kararDenetimi: j?.kararDenetimi ?? null,
     atlananKural: Array.isArray(j?.atlananKural) ? j.atlananKural : [],
     dayanak: Array.isArray(j?.dayanak) ? j.dayanak.map((k) => k?.id).filter(Boolean) : [],
     // KULLANIM BİLGİSİ (token + maliyet). Mütalaa çok adımlı ama adımlar UÇTA
@@ -292,6 +294,7 @@ try {
     let metin;
     let kullanilanModel = '?';
     let uydurmaMaddeUyari = [];
+    let kararUyari = null;
     let atlananKuralUyari = [];
     let dayanakKurallar = [];
     let kullanimBilgisi = null;
@@ -300,6 +303,7 @@ try {
         metin,
         model: kullanilanModel,
         uydurmaMadde: uydurmaMaddeUyari,
+        kararDenetimi: kararUyari,
         atlananKural: atlananKuralUyari,
         dayanak: dayanakKurallar,
         kullanim: kullanimBilgisi,
@@ -353,6 +357,7 @@ try {
       eksikBolum.length === 0 &&
       eksikTarih.length === 0 &&
       uydurmaMadde.length === 0 &&
+      (kararUyari?.olanaksiz?.length ?? 0) === 0 &&
       adimdaSure;
 
     sonuclar.push({ id: s.id, gecti, kacan, yasak, eksikBolum, hesaplananTarih, eksikTarih, uydurmaTutar, uydurmaMadde, adimdaSure, uzunluk: metin.length });
@@ -368,6 +373,8 @@ try {
     if (hesaplananTarih.length) console.log(`    (hesaplanan tarih: ${hesaplananTarih.join(', ')} — avukat teyit etmeli)`);
     if (uydurmaTutar.length) console.log(`    UYDURMA TUTAR: ${uydurmaTutar.join(', ')}`);
     if (uydurmaMadde.length) console.log(`    UYDURMA MADDE: ${uydurmaMadde.join(', ')}`);
+    if (kararUyari?.olanaksiz?.length) console.log(`    OLANAKSIZ KARAR ATFI: ${kararUyari.olanaksiz.map((o) => `${o.atif} (${o.sebep})`).join(', ')}`);
+    if (kararUyari?.havuzdaYok?.length) console.log(`    havuzda bulunamayan karar atfı (kusur değil): ${kararUyari.havuzdaYok.join(', ')}`);
     if (!adimdaSure) console.log('    ADIMLARDA SÜRE YOK (tavsiye değil, deneme yazısı)');
     if (!gecti) kusurlu.push({ id: s.id, kacan, yasak, eksikBolum, hesaplananTarih, eksikTarih, uydurmaTutar, uydurmaMadde, metin });
   }
