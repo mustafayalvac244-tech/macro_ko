@@ -41,7 +41,7 @@ export interface TierCfg {
   gunluk?: number;
   /**
    * AYLIK SORU/MÜTALAA KOTASI — yalnız "ai" katmanında dolu. "ai" katmanı
-   * 3.999₺/ay sabit ücrete SAYIYLA dahildir ("250 soru + 12 mütalaa"),
+   * 2.999₺/ay sabit ücrete SAYIYLA dahildir ("250 soru + 12 mütalaa"),
    * kontöre HİÇ bakmaz — avukata "bakiyeniz kadar" değil "ayda şu kadar"
    * sözü verildi. Mütalaa ayrı sayılır çünkü tek istek değil çok adımlı: tek
    * bir mütalaa, bir sohbet sorusunun 4-8 katı token tüketir.
@@ -82,7 +82,9 @@ export interface KatmanSecenek {
 const UCRETLI_TAVAN_TRY = 3000;
 
 /**
- * "AI" KATMANI FİYATLAMASI — 3.999₺/ay (2026-09-11; önce 1.999), 250 soru + 12 mütalaa, CLAUDE OPUS 5.
+ * "AI" KATMANI FİYATLAMASI — 2.999₺/ay (2026-09-11; 1.999 → 3.999 → 2.999,
+ * son değişiklik rakip Lexedes'in 2.990₺ planına göre), 250 soru + 12 mütalaa,
+ * CLAUDE OPUS 5.
  *
  * KANIT KAYNAĞI AYRIŞTIRILARAK SÖYLENİR:
  *   - Opus 5'in gerçek fiyatı ($5/$25 MTok) doğrulanmış bir kaynaktır (web

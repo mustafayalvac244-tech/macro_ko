@@ -30,7 +30,7 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
 /**
- * Üyelik ekranı — ÜÇ katman: Ücretsiz → Vekil Pro (399 ₺) → + Yapay Zekâ (3.999 ₺).
+ * Üyelik ekranı — ÜÇ katman: Ücretsiz → Vekil Pro (399 ₺) → + Yapay Zekâ (2.999 ₺).
  *
  * ÜRÜN KARARI: içtihat araması ÜCRETSİZDİR ve öyle kalacaktır; ücret, büro
  * yönetimini büyütmek (sınırsız dava/müvekkil/belge, finans, yedekleme) ya da
