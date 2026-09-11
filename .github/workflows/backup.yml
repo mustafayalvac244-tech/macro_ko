@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       # AYNI ANAHTAR, İKİ AD. Bu iş akışı secret'ı SUPABASE_SERVICE_KEY diye
       # arıyordu, hasat ve ölçüm iş akışları ise SUPABASE_SERVICE_ROLE_KEY diye.

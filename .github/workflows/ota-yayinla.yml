@@ -54,9 +54,16 @@ jobs:
             exit 1
           fi
 
+      # NODE 22, 20 DEĞİL — ÖLÇÜLEN HATA.
+      # İlk koşuda (run 1) burası '20' idi ve eas-cli kurulumu düştü:
+      #   error @oclif/plugin-autocomplete@3.3.0: The engine "node" is
+      #   incompatible with this module. Expected version ">=22.0.0".
+      #   Got "20.20.2"
+      # eas-cli 24.x artık Node 22 tabanı istiyor. Ayrıca GitHub koşucuları da
+      # Node 20'yi kullanımdan kaldırıyor ve her adımda uyarı basıyor.
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
 
       - run: npm ci
