@@ -1791,6 +1791,7 @@ export const tr = {
   'ai.webEnterHint': 'Enter gönderir, Shift+Enter satır atlar',
   'cikti.copy': 'Kopyala',
   'cikti.download': 'İndir',
+  'cikti.udf': 'UYAP (UDF)',
   'cikti.share': 'Paylaş',
   'cikti.copied': 'Kopyalandı',
   'cikti.downloaded': 'İndirildi',

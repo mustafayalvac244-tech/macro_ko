@@ -1752,6 +1752,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.webEnterHint': 'Enter sends, Shift+Enter adds a line',
   'cikti.copy': 'Copy',
   'cikti.download': 'Download',
+  'cikti.udf': 'UYAP (UDF)',
   'cikti.share': 'Share',
   'cikti.copied': 'Copied',
   'cikti.downloaded': 'Downloaded',

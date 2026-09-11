@@ -90,6 +90,34 @@ export function dosyaIndir(icerik: string, dosyaAdi: string, mime: string): Cikt
 }
 
 /**
+ * İKİLİ (binary) dosya indirir — yalnız web.
+ *
+ * NEDEN AYRI BİR İŞLEV. Yukarıdaki dosyaIndir metnin başına BOM ekliyor
+ * (Word'de Türkçe bozulmasın diye) ve bu METİN için doğru. Ama UDF bir ZIP;
+ * başına üç bayt eklemek ARŞİVİ BOZAR — imza kayar, dosya hiç açılmaz.
+ * Bu yüzden ikili yol BOM'suz ve ayrı.
+ */
+export function baytIndir(baytlar: Uint8Array, dosyaAdi: string, mime: string): CiktiSonuc {
+  if (!indirilebilirMi()) return 'desteklenmiyor';
+  try {
+    // Uint8Array'in kendi arabelleği paylaşılmış olabilir; dilim alınarak
+    // yalnız bu dosyanın baytları veriliyor.
+    const blob = new Blob([baytlar.slice().buffer as ArrayBuffer], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = dosyaAdi;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    return 'indirildi';
+  } catch {
+    return 'hata';
+  }
+}
+
+/**
  * Paylaşır. Natifte OS paylaşım sayfası; web'de Web Share API varsa o, YOKSA
  * sessizce başarısız olmak yerine PANOYA KOPYALAR — kullanıcı her hâlükârda
  * metne sahip olur.
