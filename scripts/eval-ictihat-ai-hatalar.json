@@ -1,0 +1,21 @@
+{
+  "tarih": "2026-09-11T20:12:50.519Z",
+  "sureSn": 9,
+  "modeller": [],
+  "karisikModel": false,
+  "sonuc": {
+    "analyze": {
+      "durum": 502,
+      "sureSn": 3,
+      "hata": "source_unreachable",
+      "detay": "upstream"
+    },
+    "summarize": null,
+    "kota": {
+      "durum": 402,
+      "hata": "deneme_hakki_bitti",
+      "hak": 3
+    }
+  },
+  "kusur": 2
+}
