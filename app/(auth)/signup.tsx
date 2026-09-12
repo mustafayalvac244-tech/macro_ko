@@ -22,6 +22,8 @@ import { useAuthStore } from '@/store/authStore';
 import { isValidTCKN } from '@/utils/tckn';
 import { BAROLAR } from '@/constants/barolar';
 import { KVKK_SURUM } from '@/config/kvkk';
+import { KvkkImza, type KvkkKanit } from '@/components/KvkkImza';
+import { useLangStore } from '@/i18n';
 import { Captcha } from '@/components/Captcha';
 import { CAPTCHA_ENABLED } from '@/config/captcha';
 import { DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
@@ -55,6 +57,14 @@ export default function SignupScreen() {
   // KVKK m.9 AÇIK RIZA. Varsayılan KAPALI olmak zorunda: önceden işaretli bir
   // kutu rıza sayılmaz — rızanın "özgür iradeyle" verilmiş olması şart.
   const [kvkkOnay, setKvkkOnay] = useState(false);
+  // RIZA, METNİN İÇİNDEN GEÇEREK VERİLİR. Kutuya doğrudan basmak rızayı
+  // açmaz: metin penceresi açılır, avukat metni sonuna kadar görür ve beyanı
+  // orada imzalar. "Bilgilendirilmiş rıza" ancak bilgilendirme gerçekten
+  // önüne konursa vardır; tek satırlık bir kutu bunu sağlamaz.
+  const [kvkkImzaAcik, setKvkkImzaAcik] = useState(false);
+  const [kvkkKanit, setKvkkKanit] = useState<KvkkKanit | null>(null);
+  const kvkkImzalandi = kvkkKanit !== null;
+  const dilTr = useLangStore((s) => s.lang) === 'tr';
   const [dogrulamaBekliyor, setDogrulamaBekliyor] = useState(false);
   const { signUp, isSubmitting, error, clearError } = useAuthStore();
 
@@ -117,9 +127,11 @@ export default function SignupScreen() {
 
     // SESSİZ KİLİT YOK. Düğmeyi devre dışı bırakmak yerine sebebi SÖYLÜYORUZ;
     // bu ekranda daha önce tam tersi yapılmış ve "basıyorum bir şey olmuyor"
-    // şikâyetine yol açmıştı.
+    // şikâyetine yol açmıştı. Metin hiç açılmadıysa ayrıca AÇIYORUZ: kullanıcı
+    // "işaretle" denen kutuyu arayıp bulamasın.
     if (!kvkkOnay) {
-      setLocalError(t('auth.kvkkRequired'));
+      setLocalError(kvkkImzalandi ? t('auth.kvkkRequired') : t('auth.kvkkMustSign'));
+      if (!kvkkImzalandi) setKvkkImzaAcik(true);
       return;
     }
 
@@ -134,7 +146,11 @@ export default function SignupScreen() {
       baro,
       captchaToken: captchaToken ?? undefined,
       kvkkRiza: kvkkOnay,
-      kvkkSurum: KVKK_SURUM,
+      // İmzalanan metnin sürümü kanıttan okunuyor: kullanıcı formu açıkken
+      // uygulama güncellenirse KVKK_SURUM değişmiş olabilir ve o zaman
+      // imzalanandan BAŞKA bir sürüm kaydedilirdi.
+      kvkkSurum: kvkkKanit?.surum ?? KVKK_SURUM,
+      kvkkKanit: kvkkKanit ?? undefined,
     });
 
     if (sonuc === 'girildi') {
@@ -279,13 +295,23 @@ export default function SignupScreen() {
               onayı isterse burada bir kutu belirir. */}
           <Captcha onToken={setCaptchaToken} onError={() => setCaptchaHatasi(true)} />
 
-          {/* AÇIK RIZA KUTUSU. Kullanım koşullarının kabulünden AYRI duruyor:
-              KVKK açık rızası, hizmetin sunulmasının şartı hâline getirilemez
-              ve başka onaylarla paketlenemez. Bu yüzden ayrı bir kutu ve ayrı
-              bir metin — ve altındaki not, geri alınabileceğini söylüyor. */}
+          {/* AÇIK RIZA — METNİN İÇİNDEN GEÇEREK. Kullanım koşullarının
+              kabulünden AYRI duruyor: KVKK açık rızası başka onaylarla
+              paketlenemez. Kutuya doğrudan basmak rızayı AÇMAZ; aydınlatma
+              metni tam gövdesiyle açılır, avukat sonuna kadar görür ve beyanı
+              orada imzalar. Tek satırlık bir kutu "bilgilendirilmiş rıza"
+              üretmez — bilgilendirmenin fiilen önüne konmuş olması gerekir. */}
           <Pressable
             style={styles.kvkkRow}
-            onPress={() => setKvkkOnay((v) => !v)}
+            onPress={() => {
+              if (!kvkkImzalandi) {
+                setKvkkImzaAcik(true);
+                return;
+              }
+              // İmzalandıktan sonra kutu normal çalışır: rıza geri alınabilir
+              // olmalı, aksi hâlde "özgür irade" sözü boşa çıkar.
+              setKvkkOnay((v) => !v);
+            }}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: kvkkOnay }}
             hitSlop={6}
@@ -295,11 +321,18 @@ export default function SignupScreen() {
             </View>
             <Text style={styles.kvkkText}>{t('auth.kvkkConsent')}</Text>
           </Pressable>
-          <Text
-            style={styles.kvkkLink}
-            onPress={() => router.push('/kvkk' as Parameters<typeof router.push>[0])}
-          >
-            {t('auth.kvkkLink')}
+
+          {kvkkImzalandi ? (
+            <View style={styles.kvkkImzaliSatir}>
+              <Ionicons name="checkmark-circle" size={15} color={colors.success} />
+              <Text style={styles.kvkkImzali}>
+                {t('auth.kvkkSigned', { surum: kvkkKanit.surum, sn: kvkkKanit.saniye })}
+              </Text>
+            </View>
+          ) : null}
+
+          <Text style={styles.kvkkLink} onPress={() => setKvkkImzaAcik(true)}>
+            {kvkkImzalandi ? t('auth.kvkkReopen') : t('auth.kvkkOpen')}
           </Text>
           <Text style={styles.kvkkNote}>{t('auth.kvkkNote')}</Text>
 
@@ -351,6 +384,20 @@ export default function SignupScreen() {
           </WebKart>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* İMZA PENCERESİ. Metnin tamamını gösterir, sonuna gelinmesini bekler
+          ve imzayla birlikte ölçülmüş bir kanıt döndürür. */}
+      <KvkkImza
+        visible={kvkkImzaAcik}
+        tr={dilTr}
+        onVazgec={() => setKvkkImzaAcik(false)}
+        onImza={(kanit) => {
+          setKvkkKanit(kanit);
+          setKvkkOnay(true);
+          setKvkkImzaAcik(false);
+          if (localError) setLocalError(null);
+        }}
+      />
 
       <BaroPicker
         visible={baroPickerOpen}
@@ -599,6 +646,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: spacing.xs,
     marginLeft: 28,
     textDecorationLine: 'underline',
+  },
+  kvkkImzaliSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: spacing.xs,
+    marginLeft: 28,
+  },
+  kvkkImzali: {
+    ...typography.small,
+    color: colors.success,
+    flex: 1,
+    lineHeight: 16,
   },
   kvkkNote: {
     ...typography.small,
