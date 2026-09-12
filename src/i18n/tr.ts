@@ -58,6 +58,14 @@ export const tr = {
   'forgot.submit': 'Şifreyi Güncelle',
   'forgot.resend': 'Kodu tekrar gönder',
   'forgot.success': 'Şifreniz güncellendi.',
+  'forgot.needEmail': 'Önce e-posta adresinizi yazın.',
+  'forgot.needCode': 'E-postanıza gelen kodu yazın.',
+  'forgot.codeUsed': 'Bu kod kullanıldı; yeni bir kod isteyin.',
+  'forgot.resent': 'Yeni kod gönderildi. E-postanızı kontrol edin.',
+  'forgot.resendIn': 'Kodu tekrar gönder ({n} sn)',
+  'forgot.spamHint': 'Posta gelmediyse spam ve "Tanıtımlar" klasörüne bakın. Gmail eski sıfırlama postalarını aynı başlık altında toplayabilir; yeni kod o yazışmanın en altında olur.',
+  'forgot.continue': 'Uygulamaya devam et',
+  'auth.passwordTooShort': 'Şifre en az 8 karakter olmalı.',
 
   // Tabs
   'tab.dashboard': 'Panel',
