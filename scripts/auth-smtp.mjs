@@ -34,7 +34,9 @@ if (!TOKEN || !KEY) {
 
 const govde = {
   smtp_host: 'smtp.resend.com',
-  smtp_port: 465,
+  // METİN, SAYI DEĞİL. Canlıda ölçüldü: sayı gönderilince API 400 veriyor
+  // ("smtp_port: Invalid input: expected string, received number").
+  smtp_port: '465',
   smtp_user: 'resend',
   smtp_pass: KEY,
   smtp_admin_email: GONDEREN,
