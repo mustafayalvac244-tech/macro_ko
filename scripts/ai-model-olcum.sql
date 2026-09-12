@@ -18,7 +18,10 @@
 with son as (
   select model, mod, maliyet_try, tokens_in, tokens_out, gun
   from public.ai_istek
-  where gun >= (current_date - 7)
+  -- `gun` METİN sütunu, tarih değil — canlıda 42883 ile öğrenildi. ISO
+  -- biçiminde (YYYY-MM-DD) tutulduğu için metin karşılaştırması tarih
+  -- sırasıyla aynı sonucu verir; ::date'e çevirmek biçim bozuksa düşerdi.
+  where gun >= (current_date - 7)::text
 ),
 satirlar as (
   select 10::numeric as sira, 'ÖZET' as bolum, 'son 7 günde istek' as alan,
@@ -52,7 +55,7 @@ satirlar as (
 
   -- ZAMAN: son günlerde ne oldu?
   union all
-  select 50, 'GÜN', gun::text,
+  select 50, 'GÜN', gun,
          count(*) || ' istek · ' || round(sum(maliyet_try), 2) || ' TL · '
          || coalesce(string_agg(distinct coalesce(nullif(model, ''), '(boş)'), ', '), '-')
   from son group by 2
