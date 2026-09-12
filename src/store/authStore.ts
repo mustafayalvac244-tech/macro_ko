@@ -37,7 +37,11 @@ interface AuthState {
     baro?: string;
     barNumber?: string;
     captchaToken?: string;
-  }) => Promise<'girildi' | 'dogrulama-gerekli' | 'hata'>;
+    /** KVKK m.9 yurt dışına aktarım açık rızası (kayıt ekranındaki kutu). */
+    kvkkRiza?: boolean;
+    /** Rızanın verildiği aydınlatma metni sürümü — delil için şart. */
+    kvkkSurum?: string;
+}) => Promise<'girildi' | 'dogrulama-gerekli' | 'hata'>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
@@ -153,7 +157,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return true;
   },
 
-  signUp: async ({ email, password, fullName, firmName, tcNo, baro, barNumber, captchaToken }) => {
+  signUp: async ({ email, password, fullName, firmName, tcNo, baro, barNumber, captchaToken, kvkkRiza, kvkkSurum }) => {
     set({ isSubmitting: true, error: null });
     // AVUKAT BİLGİLERİ ARTIK ÜSTVERİYLE GİDİYOR. Eskiden kayıttan sonra ayrı
     // bir UPDATE ile yazılıyorlardı; o istek oturum gerektirdiği için e-posta
@@ -170,6 +174,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           tc_no: tcNo ?? '',
           baro: baro ?? '',
           bar_number: barNumber ?? '',
+          // KVKK AÇIK RIZASI ÜSTVERİYLE GİDİYOR — istemciden ayrı bir INSERT
+          // ile değil. Sebep profil alanlarıyla aynı: e-posta doğrulaması
+          // açıkken signUp oturum döndürmüyor, oturumsuz istemci auth.uid()
+          // taşımadığı için kendi adına satır yazamaz ve rıza sessizce
+          // kaybolurdu. Tetikleyici (migration 0128) bunu okuyup kaydediyor.
+          kvkk_riza: kvkkRiza === true,
+          kvkk_surum: kvkkSurum ?? '',
         },
         ...(captchaToken ? { captchaToken } : {}),
       },

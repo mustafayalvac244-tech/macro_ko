@@ -275,6 +275,19 @@ export default function SettingsScreen() {
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </Pressable>
           <View style={styles.rowDivider} />
+          {/* KVKK AYDINLATMA METNİ — gizlilik metninden AYRI. Gizlilik metni
+              "veriniz güvende" anlatır; aydınlatma metninin biçimi ise kanunla
+              belirlidir (veri sorumlusu, hukuki sebep, aktarılan taraflar,
+              m.11 hakları, başvuru yolu). Kullanıcı rızasını buradan geri
+              alabilmek için de metne ulaşabilmeli. */}
+          <Pressable style={styles.row} onPress={() => router.push('/kvkk' as Parameters<typeof router.push>[0])}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="shield-half-outline" size={18} color={colors.primary} />
+              <Text style={styles.rowLabel}>KVKK Aydınlatma Metni</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+          <View style={styles.rowDivider} />
           {/* Kullanım Koşulları (EULA) — abonelik satan uygulamada mağaza
               incelemesi uygulama içinden erişilebilir olmasını zorunlu tutar. */}
           <Pressable style={styles.row} onPress={() => router.push('/terms' as Parameters<typeof router.push>[0])}>

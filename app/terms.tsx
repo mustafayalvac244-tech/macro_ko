@@ -77,7 +77,7 @@ const sectionsTr = (): Section[] => [
   {
     icon: 'lock-closed-outline',
     title: '7. Müvekkil Verisi ve Sır Saklama',
-    body: 'Uygulamaya girdiğiniz müvekkil verilerinin hukuka uygun şekilde işlendiğinden ve gerekli aydınlatma/rıza yükümlülüklerinin yerine getirildiğinden siz sorumlusunuz. Verileriniz yurt dışındaki (İrlanda / AB) sunucularda barındırılır; KVKK kapsamında yurt dışına aktarım değerlendirmesini kendi büronuz için yapmanız gerekir. Ayrıntı için Gizlilik ve KVKK metnine bakınız.',
+    body: 'Uygulamaya girdiğiniz müvekkil verilerinin hukuka uygun şekilde işlendiğinden ve gerekli aydınlatma/rıza yükümlülüklerinin yerine getirildiğinden siz sorumlusunuz. Kayıtlarınız yurt dışındaki (İrlanda / AB — ölçüldü: Supabase bölgesi eu-west-1) sunucularda barındırılır. AYRICA yapay zekâ özelliklerini kullandığınızda o isteğe kendi elinizle girdiğiniz metin, ABD merkezli yapay zekâ sağlayıcılarına aktarılır; bu aktarım açık rızanıza bağlıdır. KVKK kapsamında yurt dışına aktarım değerlendirmesini kendi büronuz için ve müvekkilleriniz bakımından yapmanız gerekir. Ayrıntı için Gizlilik ve KVKK metnine bakınız.',
   },
   {
     icon: 'ban-outline',
@@ -172,7 +172,7 @@ const sectionsEn = (): Section[] => [
   {
     icon: 'lock-closed-outline',
     title: '7. Client Data and Confidentiality',
-    body: 'You are responsible for processing client data lawfully and for meeting your own disclosure and consent obligations. Data is hosted on servers in Ireland (EU). See the Privacy and KVKK notice for details.',
+    body: 'You are responsible for processing client data lawfully and for meeting your own disclosure and consent obligations. Your records are hosted on servers in Ireland (EU — measured: Supabase region eu-west-1). IN ADDITION, when you use the AI features, the text you yourself enter in that request is transferred to AI providers based in the United States; that transfer depends on your explicit consent. You must carry out your own cross-border transfer assessment under KVKK, for your firm and for your clients. See the Privacy and KVKK notice for details.',
   },
   {
     icon: 'ban-outline',
