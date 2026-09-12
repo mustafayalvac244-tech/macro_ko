@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "playwright-core": "^1.63.0",
     "sharp": "^0.35.3",
     "typescript": "~6.0.3",
     "vitest": "^3.2.7"
@@ -67,7 +68,8 @@
     "kontrol": "tsc --noEmit && tsc -p supabase/functions && vitest run",
     "kontrol:uc": "tsc -p supabase/functions",
     "test:watch": "vitest",
-    "export:web": "node scripts/web-veri-hazirla.mjs && expo export --platform web --output-dir docs/app"
+    "export:web": "node scripts/web-veri-hazirla.mjs && expo export --platform web --output-dir docs/app",
+    "site": "node scripts/site-denetim-derle.mjs && node scripts/site-denetim-sina.mjs"
   },
   "private": true
 }

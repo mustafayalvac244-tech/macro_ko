@@ -125,3 +125,57 @@ describe('havuzSorgusu', () => {
     expect(havuzSorgusu(a)).toEqual([{ esas: '2021/500', karar: '' }]);
   });
 });
+
+/**
+ * ARKA ARKAYA İKİ KARAR — DAİRE KARIŞMASI.
+ *
+ * Bu blok, 12.09.2026'da anasayfanın canlı denetimini gerçek tarayıcıda
+ * sınarken çıkan bir hatayı sabitliyor. Pencere atıftan ÖNCEKİ 90 karakterdi
+ * ve daire araması penceredeki İLK eşleşmeyi alıyordu; oysa atfın kendi
+ * dairesi pencerenin SONUNDA durur. Bir paragrafta iki karar anıldığında
+ * ikincisinin dairesi birincisinden okunuyordu.
+ *
+ * Yanlış yönün ikisi de burada: yakalanmayan olanaksız daire ve — daha
+ * pahalısı — gerçek bir kararın komşusundan daire miras alıp "olamaz" diye
+ * işaretlenmesi.
+ */
+describe('aynı paragrafta birden çok karar', () => {
+  it('her atfın dairesini KENDİ önündeki daireden okur', () => {
+    const a = kararAtiflari(
+      'Bu yönde Yargıtay 9. HD 2021/4412 E., 2019/1180 K. sayılı kararı ile ' +
+        'Yargıtay 47. HD 2019/1 E., 2020/2 K. sayılı kararı emsaldir.'
+    );
+    expect(a).toHaveLength(2);
+    expect(a[0].daireNo).toBe(9);
+    expect(a[1].daireNo).toBe(47);
+  });
+
+  it('olmayan daireyi ikinci sırada da yakalar', () => {
+    const a = kararAtiflari(
+      'Yargıtay 9. HD 2018/100 E., 2019/200 K. ve Yargıtay 47. HD 2019/1 E., 2020/2 K.'
+    );
+    const sebepler = tutarsizKararlar(a, 2026).map((t) => t.sebep);
+    expect(sebepler).toEqual(['daire_yok']);
+  });
+
+  it('gerçek kararı komşusunun dairesi yüzünden olanaksız SAYMAZ', () => {
+    // Ters yön ve asıl pahalı olan: 47. HD'den sonra anılan gerçek bir
+    // 3. HD kararı, önündeki daireyi miras alsaydı uydurma ilan edilirdi.
+    const a = kararAtiflari(
+      'Yargıtay 47. HD 2019/1 E., 2020/2 K. kararının aksine, ' +
+        'Yargıtay 3. HD 2015/9999 E., 2016/8888 K. sayılı karar yerleşiktir.'
+    );
+    expect(a[1].daireNo).toBe(3);
+    const tutarsiz = tutarsizKararlar(a, 2026);
+    expect(tutarsiz).toHaveLength(1);
+    expect(tutarsiz[0].atif.daireNo).toBe(47);
+  });
+
+  it('Danıştay dairesini de en yakınından okur', () => {
+    const a = kararAtiflari(
+      'Danıştay 10. Daire 2018/123 E., 2019/456 K. ve Danıştay 13. Daire 2020/5 E., 2021/6 K.'
+    );
+    expect(a[0].daireNo).toBe(10);
+    expect(a[1].daireNo).toBe(13);
+  });
+});
