@@ -15,7 +15,7 @@
 // NEDEN KİLİTLİ DÜĞME YOK. Bu projede daha önce üç ekranda `disabled` düğme
 // yüzünden "basıyorum hiçbir şey olmuyor" hatası yaşandı. Burada düğme her
 // zaman basılabilir; şartı karşılamıyorsa SEBEBİ SÖYLER ve metinde ilerletir.
-import { useCallback, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   NativeScrollEvent,
@@ -35,7 +35,15 @@ import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
-/** İmzanın hangi koşulda atıldığına dair ÖLÇÜLMÜŞ olgular. Rıza kaydına yazılır. */
+/**
+ * İmzanın hangi koşulda atıldığına dair ÖLÇÜLMÜŞ olgular. Rıza kaydına yazılır.
+ *
+ * KANITIN GÜCÜNÜ ABARTMAYALIM: bu değerleri UYGULAMA ölçüp gönderiyor, sunucu
+ * bağımsız olarak gözlemlemiyor. Yani kayıt "uygulamanın o anda ölçtüğü
+ * durumu" gösterir; teknik bilgisi olan biri isterse başka bir değer
+ * gönderebilir. Yine de değerlidir — normal akışta ne olduğunun kaydıdır — ama
+ * "sunucu tarafından doğrulanmış" değildir ve öyle sunulmamalıdır.
+ */
 export interface KvkkKanit {
   /** Pencere kaç saniye açık kaldı. */
   saniye: number;
@@ -70,19 +78,24 @@ export function KvkkImza({ visible, tr, onVazgec, onImza }: Props) {
   const icerikYuksekligi = useRef(0);
   const sonKonum = useRef(0);
 
-  // Pencere her AÇILDIĞINDA sayaç sıfırlanır. Bir önceki açılışın süresi
-  // sonrakine eklenirse kanıt şişer; şişmiş kanıt, kanıt değildir.
-  const acildi = useCallback(() => {
+  // Pencere her AÇILDIĞINDA sayaç ve ölçümler sıfırlanır. Bir önceki açılışın
+  // süresi sonrakine eklenirse kanıt şişer; şişmiş kanıt, kanıt değildir.
+  //
+  // `Modal`ın `onShow`'una GÜVENMİYORUZ. Ne zaman —ve her platformda— tetiklendiği
+  // garanti değil; tetiklenmezse `acilis` 0 kalır ve "kaç saniye açık kaldı"
+  // epoch'tan beri geçen süre olarak, yani ~1,8 MİLYAR saniye olarak kaydedilir.
+  // Saçma bir kanıt, kanıt olmamaktan daha kötüdür: kayda bakan onu gerçek sanır.
+  // Etki, çizimden hemen sonra ve yerleşim olaylarından önce koşar.
+  useEffect(() => {
+    if (!visible) return;
     acilis.current = Date.now();
     setIlerleme(0);
     setSonaGeldi(false);
     setUyari(null);
     sonKonum.current = 0;
-    // Pencere kapanıp açıldığında kaydırıcı konumunu KORUR. Sıfırlanmazsa
-    // ikinci açılışta metin ortasından başlar ve "sona geldi" ölçümü ilk
-    // kaydırmada hemen doğru çıkardı — yani kapı kendiliğinden açılırdı.
-    kaydirici.current?.scrollTo({ y: 0, animated: false });
-  }, []);
+    ekranYuksekligi.current = 0;
+    icerikYuksekligi.current = 0;
+  }, [visible]);
 
   const kaydirildi = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
@@ -136,15 +149,24 @@ export function KvkkImza({ visible, tr, onVazgec, onImza }: Props) {
       return;
     }
     onImza({
-      saniye: Math.max(0, Math.round((Date.now() - acilis.current) / 1000)),
+      // İkinci emniyet: başlangıç anı bir şekilde kurulamadıysa 0 yazılır,
+      // epoch'tan beri geçen süre değil.
+      saniye: acilis.current > 0 ? Math.max(0, Math.round((Date.now() - acilis.current) / 1000)) : 0,
       sona_gelindi: true,
       yontem: 'kayit-imza-penceresi',
       surum: KVKK_SURUM,
     });
   };
 
+  // KAPALIYKEN GÖVDE HİÇ ÇİZİLMEZ. Sebep davranışsal: `Modal` kapanınca
+  // çocuklarını bazı platformlarda ayakta tutuyor ve ScrollView eski kaydırma
+  // konumunu KORUYOR. İkinci açılışta metin sonundan başlar, ilk kaydırma
+  // olayı "sona gelindi" der ve kapı kendiliğinden açılırdı — okutmadan
+  // imzalatan bir kapı, kapı değildir. Koşullu çizim her açılışta taze bir
+  // ScrollView yaratır; konum sıfırdan başlar.
   return (
-    <Modal visible={visible} animationType="slide" onShow={acildi} onRequestClose={onVazgec}>
+    <Modal visible={visible} animationType="slide" onRequestClose={onVazgec}>
+      {visible ? (
       <View style={styles.root}>
         {/* Başlık + ilerleme. Avukat ne kadar kaldığını GÖRMELİ; görünmeyen bir
             şarta takılmak, sessiz ölü düğmenin bir başka biçimidir. */}
@@ -219,6 +241,7 @@ export function KvkkImza({ visible, tr, onVazgec, onImza }: Props) {
           </Text>
         </View>
       </View>
+      ) : null}
     </Modal>
   );
 }
