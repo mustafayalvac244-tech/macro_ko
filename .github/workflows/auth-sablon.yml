@@ -1,0 +1,35 @@
+name: Auth E-posta Şablonu
+
+# NEDEN VAR. Şifre sıfırlama e-postası kod yerine SİHİRLİ BAĞLANTI
+# gönderiyordu: bağlantıya tıklayan kişi doğrudan hesaba giriyor, yeni şifre
+# hiç sorulmuyordu. Uygulama tarafı zaten doğruydu (forgot-password.tsx 6
+# haneli kod bekliyor); hatalı olan Supabase'deki e-posta şablonuydu.
+#
+# Şablon veritabanında değil PROJE AYARLARINDA duruyor, yani SQL ile
+# değiştirilemiyor. Management API'nin config ucundan yazılıyor; kimlik için
+# zaten tanımlı SUPABASE_ACCESS_TOKEN kullanılıyor, yeni secret yok.
+#
+# Panelden elle de yapılabilirdi ama o zaman yayındaki metin hiçbir yerde
+# kayıtlı olmazdı. Burada duruyor, gözden geçirilebiliyor ve tekrar
+# koşturulabiliyor.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  uygula:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Şablonu yaz ve geri okuyarak doğrula
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: wjshlysfmeqlnfiibknj
+        run: node scripts/auth-eposta-sablonu.mjs
