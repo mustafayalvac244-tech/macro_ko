@@ -41,7 +41,8 @@ const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
 // kullanıcı görmüyordu. Sonuç: 1.999₺ ödeyen "ai" katmanı üyesi, ürünün asıl
 // vaadi olan "olaya uygun emsal karar" analizini ÜCRETSİZ modelden alıyordu —
 // ve bu, 2026-09-11'de tsc'nin yakaladığı bir tip hatasıyla ortaya çıktı
-// (ortakKatman'a claudeOpusModel hiç verilmiyordu; canlıda undefined'dı).
+// (ortakKatman'a claudeOpusModel hiç verilmiyordu; canlıda undefined'dı —
+// o alan 12.09.2026'da tamamen kaldırıldı, artık tek alan claudeModel).
 //
 // Üç şey birden düzeltildi, çünkü Opus'u açmak tek başına yetmezdi:
 //   1) llmCall'a Claude dalı (JSON modu için response_format yok; metinden
@@ -176,7 +177,6 @@ const GROQ_MODEL = Deno.env.get('VEKIL_GROQ_MODEL') || 'openai/gpt-oss-120b';
 // Model adları ai-chat ile AYNI env değişkenlerinden: iki uç ayrışırsa aynı
 // üye ekrana göre başka modelle konuşur ve kimse fark etmez (bu bir kez oldu).
 const CLAUDE_MODEL = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
-const CLAUDE_OPUS_MODEL = Deno.env.get('VEKIL_CLAUDE_OPUS_MODEL') || 'claude-opus-5';
 type Provider = 'gemini' | 'groq' | 'claude';
 
 /**
@@ -189,7 +189,6 @@ function tierConfig(aiTier: string | null | undefined, isPremium: boolean) {
   const { tier, cfg } = ortakKatman(aiTier, isPremium, {
     groqModel: GROQ_MODEL,
     claudeModel: CLAUDE_MODEL,
-    claudeOpusModel: CLAUDE_OPUS_MODEL,
     claudeAnahtariVar: !!Deno.env.get('ANTHROPIC_API_KEY'),
   });
   if (cfg.provider === 'openai') {

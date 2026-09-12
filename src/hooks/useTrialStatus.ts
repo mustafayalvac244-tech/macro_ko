@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore';
 /** Aylık abonelik ücreti (TL). */
 export const MONTHLY_PRICE_TRY = 399;
 /**
- * AI katmanı aylık ücreti (TL) — Claude Opus 5, 250 soru + 12 mütalaa dahil
+ * AI katmanı aylık ücreti (TL) — Claude Sonnet 5, 250 soru + 12 mütalaa dahil
  * (bkz. supabase/functions/_shared/katman.ts > AI_SORU_LIMIT/AI_MUTALAA_LIMIT;
  * iki sayı burada da AYNI olmalı, kota koddan, fiyat buradan okunuyor).
  *

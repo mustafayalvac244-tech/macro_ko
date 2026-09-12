@@ -34,8 +34,8 @@ export const AI_BELGE_ENABLED = true;
  * NEDEN AÇILDI: bu bayrağın kapalı olma gerekçesi tek bir şeydi —
  * "Claude anahtarı gelene kadar kapalı". ANTHROPIC_API_KEY artık Supabase
  * uç ortamında tanımlı, yani gerekçe ortadan kalktı. Katman seçimi anahtarın
- * varlığına bakıyor ve deploy gerektirmeden Opus'a dönüyor
- * (bkz. _shared/katman.ts: "Anahtar eklenince deploy gerekmeden Opus'a döner").
+ * varlığına bakıyor ve deploy gerektirmeden Claude'a dönüyor
+ * (bkz. _shared/katman.ts: "Anahtar eklenince deploy gerekmeden Claude'a döner").
  *
  * ÜCRETSİZ KULLANICI BUNU GÖREMEZ, ve bu bayrakla ilgili değil: sunucu
  * mütalaayı yalnız 'ai' katmanına açıyor ve diğerlerine 403 `tier_required`
@@ -43,7 +43,7 @@ export const AI_BELGE_ENABLED = true;
  * "Pro gerekli" durumunu gösteriyor. Yani bayrak yalnızca istemcideki
  * "Çok Yakında" perdesiydi; kaldırıldı.
  *
- * ── DÜRÜSTLÜK NOTU: BU ÖZELLİĞİN KALİTESİ OPUS'LA ÖLÇÜLMEDİ ──
+ * ── DÜRÜSTLÜK NOTU: BU ÖZELLİĞİN KALİTESİ ÜCRETLİ MODELLE HİÇ ÖLÇÜLMEDİ ──
  *
  * Elimizdeki TEK mütalaa ölçümü 2026-09-05 tarihli ve BEŞ SENARYONUN BEŞİ DE
  * KUSURLU çıkmış (scripts/eval-mutalaa-hatalar.json). O dosyada model künyesi
@@ -60,8 +60,11 @@ export const AI_BELGE_ENABLED = true;
  * var. Bunlar bir avukatın gözünden kaçarsa hak kaybı doğurur.
  *
  * Bu yüzden ekrandaki hukuki uyarı (HukukiUyari) ve "çıktı TASLAKTIR"
- * çerçevesi burada kozmetik değil, gerekli. Opus'la ölçüm yapılana kadar
- * "mütalaa kalitesi iyi" DENEMEZ; yalnız "erişime açıldı" denebilir.
+ * çerçevesi burada kozmetik değil, gerekli. Ücretli modelle ölçüm yapılana
+ * kadar "mütalaa kalitesi iyi" DENEMEZ; yalnız "erişime açıldı" denebilir.
+ *
+ * 12.09.2026: model Opus 5'ten Sonnet 5'e indirildi (maliyet). Mütalaa
+ * Opus'ta da ölçülememişti, Sonnet'te de ölçülmedi — durum değişmedi.
  *
  * ÖLÇÜM TEK TIK UZAKTA: Actions → "AI Ölçümü" → grup: ai. eval-mutalaa beş
  * senaryodur, en pahalı gruptaki en küçük settir.
@@ -108,8 +111,8 @@ export const AI_AKTARMA_ENABLED = true;
  * İçtihatta OLAY ANALİZİ (yapay zekâ ile).
  *
  * AÇILDI (2026-09-11, kullanıcı kararı). Gerekçe AI_ENABLED ile aynı: ölçüm
- * hâlâ yok, ama artık istekler Opus'a gidiyor (canlıda doğrulandı) ve bu kip
- * ürünün asıl vaadi — "AI eski emsal davayı getirsin".
+ * hâlâ yok, ama artık istekler ücretli Claude modeline gidiyor (canlıda
+ * doğrulandı) ve bu kip ürünün asıl vaadi — "AI eski emsal davayı getirsin".
  *
  * Kapalıyken yalnız bu KİP gizleniyordu; arama ve künye zaten çalışıyordu.
  * Ölçüm seti hazır: eval-ictihat 30 soru ve API HARCAMASI YOK (yalnız
@@ -129,8 +132,9 @@ export const AI_ICTIHAT_ANALIZ_ENABLED = true;
  * başka: bugüne kadar bu ekranlar açılsaydı ÜCRETSİZ modellere düşerdi.
  * Anahtar öncesi ölçülen 11 isteğin 11'i gpt-oss/qwen/gemini'ye gitmişti ve
  * mütalaada ücretsiz modellerin kanun uydurduğu daha önce ölçülmüştü. Şimdi
- * canlıda doğrulandı ki istekler Opus'a gidiyor (ai_istek: claude-opus-5).
- * Yani risk aynı değil.
+ * canlıda doğrulandı ki istekler ücretli Claude modeline gidiyor (ai_istek:
+ * claude-opus-5 — o doğrulama 11.09'da Opus'la yapıldı; 12.09'da model
+ * Sonnet 5'e indirildi, sağlayıcı aynı kaldı). Yani risk aynı değil.
  *
  * YİNE DE KAYDA GEÇSİN: "ölçülmedi" ile "iyi çalışıyor" aynı şey değildir.
  * Sohbet ve savaş planı için elimizde TEK bir ölçüm yok. Bu ekranların
