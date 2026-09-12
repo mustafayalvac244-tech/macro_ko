@@ -25,6 +25,7 @@ on:
           - hasat-tur-teshis
           - katalog-durum
           - proje-bilgi
+          - ai-model-olcum
           - hasat-disk-sutun
           - hasat-verim-olcum
           - hasat-kalite-olcum
@@ -73,10 +74,28 @@ jobs:
           else
             node scripts/rapor-kos.mjs "$RAPOR" 2>&1 | tee /tmp/rapor.log
           fi
+
+          # ZAMANLANMIŞ KOŞUDA MODEL ÖLÇÜMÜ DE ALINIR.
+          # 12.09.2026'da ölçüldü: ücretli ("ai") katmanda yapılan iki isteğin
+          # İKİSİ DE ücretsiz modele düşmüştü; tek Opus isteği bir ÜCRETSİZ
+          # hesaptan gelmişti. Bu geri düşüş _shared/katman.ts'te bilerek var
+          # ("ödeyen üye boş ekran görmez") ama SESSİZ: ne üye görüyor ne biz.
+          # Sessiz kalırsa aylarca sürebilir, o yüzden her sabah bakılıyor.
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            node scripts/rapor-kos.mjs ai-model-olcum 2>&1 | tee /tmp/model.log || true
+          fi
           {
             echo "## $RAPOR"
             echo ''
             echo '```'
             cat /tmp/rapor.log
             echo '```'
+            if [ -s /tmp/model.log ]; then
+              echo ''
+              echo '## ai-model-olcum (hangi model gerçekten çalışıyor)'
+              echo ''
+              echo '```'
+              cat /tmp/model.log
+              echo '```'
+            fi
           } >> $GITHUB_STEP_SUMMARY
