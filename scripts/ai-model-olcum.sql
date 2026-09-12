@@ -14,6 +14,12 @@
 -- tablosuna hangi modelle karşılandığını yazıyor. Cevap orada.
 --
 -- Hiçbir şeyi DEĞİŞTİRMEZ, yalnız okur.
+--
+-- NOT (aynı hatayı bugün İKİNCİ kez yaptım): buradaki `group by` KONUM
+-- numarasıdır ve seçim listesi (sira, bolum, alan, deger) olduğu için
+-- gruplanacak ifade 3. konumdadır. `group by 2` yazmak, sabit bölüm metnine
+-- ('MODEL') göre gruplamak demektir ve 42803 ile düşer. hasat-tur-teshis.sql
+-- içinde aynı hatayı düzeltmiştim, buraya yazarken tekrarladım.
 
 with son as (
   select model, mod, maliyet_try, tokens_in, tokens_out, gun
@@ -34,7 +40,7 @@ satirlar as (
   union all
   select 20, 'MODEL', coalesce(nullif(model, ''), '(boş)'),
          count(*) || ' istek · ' || round(sum(maliyet_try), 2) || ' TL'
-  from son group by 2
+  from son group by 3
 
   -- ÜCRETSİZE DÜŞME SİNYALİ. Maliyeti sıfır olan istekler ücretsiz sağlayıcıyla
   -- karşılanmış demektir. Oran yüksekse ya kota taşıyor ya ödeme sorunu var.
@@ -51,13 +57,13 @@ satirlar as (
   select 40, 'MOD', coalesce(nullif(mod, ''), '(boş)'),
          count(*) || ' istek · modeller: '
          || coalesce(string_agg(distinct coalesce(nullif(model, ''), '(boş)'), ', '), '-')
-  from son group by 2
+  from son group by 3
 
   -- ZAMAN: son günlerde ne oldu?
   union all
   select 50, 'GÜN', gun,
          count(*) || ' istek · ' || round(sum(maliyet_try), 2) || ' TL · '
          || coalesce(string_agg(distinct coalesce(nullif(model, ''), '(boş)'), ', '), '-')
-  from son group by 2
+  from son group by 3
 )
 select bolum, alan, deger from satirlar order by sira, alan;
