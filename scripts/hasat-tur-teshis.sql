@@ -76,7 +76,9 @@ satirlar as (
          coalesce(y.status_code::text, '(kod yok)')
          || (case when y.timed_out then ' · zaman aşımı' else '' end),
          count(*)::text
-  from y group by 2
+  -- group by 3: seçim listesi (sira, bolum, alan, deger) — konum 3 "alan".
+  -- Burada 2 yazmıştım; 2 sabit 'DURUM' metnine denk geliyor ve sorgu düşüyor.
+  from y group by 3
 
   -- 4. ASIL AYRIM. Yanıtta "kaynak" geçiyorsa harvest-tick'tir; geçmiyorsa
   --    ya başka bir işin yanıtıdır ya da harvest-tick'in sert hatasıdır.
@@ -127,5 +129,22 @@ satirlar as (
   union all
   select 70, 'UYARI', 'oncelik sütunu yok uyarısı veren tur', count(*)::text
   from y where content like '%oncelik_sutunu_yok%'
+
+  -- 8. DİSK NEREYE GİDİYOR — ASIL SORU BU.
+  -- Ölçtüm (bugün, kaynağın kendisinden): bir Yargıtay kararının düz metni
+  -- ortalama 8,3 KB. Ama diskte karar başına 32,7 KB harcıyoruz. Aradaki
+  -- ~24 KB'ın nereye gittiğini BİLMİYORUM ve tahmin etmeyeceğim. İndeks
+  -- boyutları katalogdan doğrudan okunabiliyor; sütun adları da öyle.
+  -- (Sütun adlarını bilmeden pg_column_size yazamam: olmayan bir sütun adı
+  -- sorguyu derleme anında düşürür. Bu yüzden önce adları istiyorum.)
+  union all
+  select 80, 'İNDEKS', s.indexrelname,
+         pg_size_pretty(pg_relation_size(s.indexrelid))
+  from pg_stat_user_indexes s where s.relname = 'ictihat_kararlar'
+  union all
+  select 90, 'SÜTUN', a.attname, format_type(a.atttypid, a.atttypmod)
+  from pg_attribute a
+  where a.attrelid = 'public.ictihat_kararlar'::regclass
+    and a.attnum > 0 and not a.attisdropped
 )
 select bolum, alan, deger from satirlar order by sira, alan;
