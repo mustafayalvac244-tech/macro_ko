@@ -41,6 +41,12 @@ interface AuthState {
     kvkkRiza?: boolean;
     /** Rızanın verildiği aydınlatma metni sürümü — delil için şart. */
     kvkkSurum?: string;
+    /**
+     * İmzanın hangi koşulda atıldığına dair ÖLÇÜLMÜŞ olgular: metin penceresi
+     * kaç saniye açık kaldı, metnin sonuna gelindi mi. Okuma kanıtı DEĞİL
+     * (kaydırıp geçen de sona gelir); "metnin tamamı önüne kondu" kanıtı.
+     */
+    kvkkKanit?: { saniye: number; sona_gelindi: boolean; yontem: string; surum: string };
 }) => Promise<'girildi' | 'dogrulama-gerekli' | 'hata'>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -157,7 +163,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return true;
   },
 
-  signUp: async ({ email, password, fullName, firmName, tcNo, baro, barNumber, captchaToken, kvkkRiza, kvkkSurum }) => {
+  signUp: async ({ email, password, fullName, firmName, tcNo, baro, barNumber, captchaToken, kvkkRiza, kvkkSurum, kvkkKanit }) => {
     set({ isSubmitting: true, error: null });
     // AVUKAT BİLGİLERİ ARTIK ÜSTVERİYLE GİDİYOR. Eskiden kayıttan sonra ayrı
     // bir UPDATE ile yazılıyorlardı; o istek oturum gerektirdiği için e-posta
@@ -181,6 +187,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           // kaybolurdu. Tetikleyici (migration 0128) bunu okuyup kaydediyor.
           kvkk_riza: kvkkRiza === true,
           kvkk_surum: kvkkSurum ?? '',
+          // İmza koşulunun kanıtı da aynı yolla gidiyor; tetikleyici bunu
+          // rıza kaydının `kanit` sütununa yazıyor (migration 0130).
+          ...(kvkkKanit ? { kvkk_kanit: kvkkKanit } : {}),
         },
         ...(captchaToken ? { captchaToken } : {}),
       },

@@ -14,7 +14,26 @@
 // aydınlatma metni o satırı YAZMAZ, yerine eksik olduğunu söyler.
 
 /** Aydınlatma/rıza metinlerinin sürümü. Metin değişirse ARTIR. */
-export const KVKK_SURUM = '2026-09-1';
+export const KVKK_SURUM = '2026-09-2';
+
+/**
+ * ⚠️ ÇÖZÜLMESİ GEREKEN ÇELİŞKİ — kayıt, rıza olmadan tamamlanabilsin mi?
+ *
+ * `true`  → kayıt ekranı rıza olmadan hesap açtırmaz (bugünkü davranış; ürün
+ *           sahibinin açık tercihi).
+ * `false` → hesap açılır, YALNIZ yapay zekâ özellikleri kapalı kalır.
+ *
+ * DÜRÜST TESPİT: `true` iken açık rıza fiilen HİZMETİN ŞARTI hâline gelir.
+ * Kanun'un 5/1 anlamında rızanın "özgür iradeyle" verilmiş sayılabilmesi için
+ * vermemenin hizmete erişimi engellememesi beklenir; Kurul kararlarında
+ * tekrarlanan ölçüt budur. Bu yüzden aydınlatma metni, bayrak `true` olduğu
+ * sürece durumu OLDUĞU GİBİ yazar — "şartı değildir" diye yanlış beyanda
+ * bulunmaz (bkz. src/components/KvkkMetin.tsx, 5. ve 13. başlıklar).
+ *
+ * Düzeltme tek satırdır: bunu `false` yapmak yeterli; kayıt ekranı da metin de
+ * kendiliğinden buna göre davranır.
+ */
+export const RIZA_ZORUNLU = true;
 
 export interface VeriSorumlusu {
   /** Ticari unvan ya da avukatın/büronun adı. */
