@@ -146,31 +146,44 @@ const AI_SORU_LIMIT = 750;
 const AI_MUTALAA_LIMIT = 25;
 
 /**
- * TAŞMA MODELİ VE EK HAK.
+ * TAŞMA MODELİ VE EK HAK — BÜTÇEYE GÖRE BOYUTLANDI.
  *
- * Kota bitince istek reddediliyordu. Ödeme yapan avukat ayın ortasında
- * duvara çarpıp ayın kalanında ürünü hiç kullanamıyordu — bu, iptal edilen
- * aboneliğin en kısa yoludur. Artık daha ucuz bir modele düşüyor.
+ * ÜRÜN KARARI: bir üyenin aylık kullanım hakkı, ödediği paranın YARISI
+ * kadar olacak. 2.999₺'lik pakette hedef ~₺1.500 API gideri; kalan, kotayı
+ * doldurmayan üyelerden gelen kâr. Kullanım bazlı her planın işleyişi budur.
+ *
+ * BÜTÇE DAĞILIMI (en kötü durum, yani HERKES hakkını sonuna kadar kullanırsa):
+ *     750 Sonnet sorusu       ₺802   (birim ₺1,07 — ÖLÇÜM, n=7)
+ *     25 mütalaa              ₺214   (çarpan 8x — TAHMİN, ölçülmedi)
+ *     900 Haiku taşma isteği  ₺477   (birim ₺0,53 — fiyat doğrulandı)
+ *     ───────────────────────────
+ *     toplam                ₺1.493   = gelirin %50'si
+ * Üyeye görünen hak: ayda 1.650 istek + 25 mütalaa.
+ *
+ * BU BİR ÜST SINIR, BEKLENEN GİDER DEĞİL. Ortalama kullanımı BİLMİYORUZ —
+ * henüz ödeme yapan kullanıcı yok, yani ölçecek veri yok. Ortalama kullanıcı
+ * kotanın onda birini kullanırsa gerçek marj %50 değil ~%95 olur. Buradaki
+ * hesap "en kötü durumda bile zarar etmeyelim" içindir.
+ *
+ * MÜTALAA ÇARPANI HÂLÂ ÖLÇÜLMEDİ. Toplamın ₺214'ü tahmine dayanıyor; bu
+ * yüzden ₺1.500 rakamı bir ölçüm değil, en kötü uçtan kurulmuş bir sınırdır.
+ * Mütalaa ölçüldüğünde bu blok yeniden hesaplanmalı.
  *
  * NEDEN HAIKU, NEDEN GROQ DEĞİL. Groq ücretsiz ve zaten deneme katmanında
  * kullanılıyor, ama üzerinde GERÇEK bir mantık hatası ölçüldü (bkz.
  * DENEME_SORU_LIMIT yorumu: "aldı" fiilini "ödedi"ye çevirmişti). Ödeme
  * yapan bir avukatın ayın yarısını o kalitede geçirmesi, kapıyı kapatmaktan
  * daha kötü olabilir. Haiku aynı ailede ve hukuki Türkçede belirgin biçimde
- * daha güvenli.
+ * daha güvenli. Fiyatı 12.09.2026'da doğrulandı ($1/$5 per MTok, birden çok
+ * bağımsız kaynak).
  *
- * MALİYET. Haiku $1/$5 per MTok (12.09.2026'da doğrulandı, birden çok
- * bağımsız kaynak). Ölçülen dilekçe boyutuyla istek başına ≈ ₺0,53 —
- * Sonnet'in (₺1,07) yarısı.
- *     750 taşma isteği × ₺0,53 ≈ ₺398
- * Yani en kötü durumda aylık gider ₺1.016 → ₺1.414 (gelirin %34'ü → %47'si).
- * Bu üst sınır; ortalama kullanıcı kotanın yakınına bile gelmiyor.
- *
- * TAŞMA SINIRSIZ DEĞİL: sınırsız ucuz model de sınırsız maliyettir.
- * Ek hak da bitince istek yine reddedilir.
+ * TAŞMA SINIRSIZ DEĞİL: sınırsız ucuz model de sınırsız maliyettir. Ek hak
+ * da bitince istek yine reddedilir. UCRETLI_TAVAN_TRY (₺3.000) üstte ayrı
+ * bir emniyet kilidi olarak duruyor ve bu bütçenin iki katı — yani bütçe
+ * aşılsa bile tavan devreye girmeden önce fark edilir.
  */
 const AI_TASMA_MODEL = 'claude-haiku-4-5-20251001';
-const AI_TASMA_EK = 750;
+const AI_TASMA_EK = 900;
 
 /**
  * Ödeme yapmamış (free/baslangic) bir kullanıcıya YAŞAM BOYU (bir kez, hiç

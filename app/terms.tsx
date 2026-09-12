@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
-import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
+import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_ASIL_MODEL_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
 import { AI_MUTALAA_ENABLED } from '@/config/features';
 import { UCRETSIZ_LIMIT } from '@/config/planlar';
 import { useLangStore, useT } from '@/i18n';
@@ -66,8 +66,8 @@ const sectionsTr = (): Section[] => [
     icon: 'sparkles-outline',
     title: '5. Yapay Zekâ Kullanım Hakları',
     body: AI_MUTALAA_ENABLED
-      ? `Yapay Zekâ paketi aylık ${AI_SORU_HAKKI} soru ve ${AI_MUTALAA_HAKKI} hukuki mütalaa hakkı içerir. Haklar her fatura döneminde yenilenir, kullanılmayan haklar sonraki aya devretmez. Ücretsiz hesaplara ${DENEME_SORU_HAKKI} adet deneme sorusu tanımlanır.`
-      : `Yapay Zekâ paketi aylık ${AI_SORU_HAKKI} soru hakkı içerir. Haklar her fatura döneminde yenilenir, kullanılmayan haklar sonraki aya devretmez. Ücretsiz hesaplara ${DENEME_SORU_HAKKI} adet deneme sorusu tanımlanır. Bazı yapay zekâ özellikleri kademeli olarak açılmaktadır; satın alma ekranında yalnızca o an kullanılabilir olan özellikler listelenir.`,
+      ? `Yapay Zekâ paketi aylık ${AI_SORU_HAKKI} soru ve ${AI_MUTALAA_HAKKI} hukuki mütalaa hakkı içerir. Aylık hakkın ilk ${AI_ASIL_MODEL_HAKKI} isteği en yetenekli modelle karşılanır; aynı ay içindeki sonraki istekler daha hızlı ve daha hafif bir modele yönlendirilir — istek reddedilmez, yalnız çıktıyı üreten model değişir. Haklar her fatura döneminde yenilenir, kullanılmayan haklar sonraki aya devretmez. Ücretsiz hesaplara ${DENEME_SORU_HAKKI} adet deneme sorusu tanımlanır.`
+      : `Yapay Zekâ paketi aylık ${AI_SORU_HAKKI} soru hakkı içerir. Aylık hakkın ilk ${AI_ASIL_MODEL_HAKKI} isteği en yetenekli modelle karşılanır; aynı ay içindeki sonraki istekler daha hızlı ve daha hafif bir modele yönlendirilir — istek reddedilmez, yalnız çıktıyı üreten model değişir. Haklar her fatura döneminde yenilenir, kullanılmayan haklar sonraki aya devretmez. Ücretsiz hesaplara ${DENEME_SORU_HAKKI} adet deneme sorusu tanımlanır. Bazı yapay zekâ özellikleri kademeli olarak açılmaktadır; satın alma ekranında yalnızca o an kullanılabilir olan özellikler listelenir.`,
   },
   {
     icon: 'warning-outline',
@@ -161,8 +161,8 @@ const sectionsEn = (): Section[] => [
     icon: 'sparkles-outline',
     title: '5. AI Usage Allowances',
     body: AI_MUTALAA_ENABLED
-      ? `The AI plan includes ${AI_SORU_HAKKI} questions and ${AI_MUTALAA_HAKKI} legal opinions per month. Allowances reset each billing period and do not roll over. Free accounts get ${DENEME_SORU_HAKKI} trial questions.`
-      : `The AI plan includes ${AI_SORU_HAKKI} questions per month. Allowances reset each billing period and do not roll over. Free accounts get ${DENEME_SORU_HAKKI} trial questions. Some AI features are being rolled out gradually; the purchase screen lists only what is currently available.`,
+      ? `The AI plan includes ${AI_SORU_HAKKI} questions and ${AI_MUTALAA_HAKKI} legal opinions per month. The first ${AI_ASIL_MODEL_HAKKI} requests each month are served by the most capable model; later requests in the same month are routed to a faster, lighter model — requests are not refused, only the model producing the output changes. Allowances reset each billing period and do not roll over. Free accounts get ${DENEME_SORU_HAKKI} trial questions.`
+      : `The AI plan includes ${AI_SORU_HAKKI} questions per month. The first ${AI_ASIL_MODEL_HAKKI} requests each month are served by the most capable model; later requests in the same month are routed to a faster, lighter model — requests are not refused, only the model producing the output changes. Allowances reset each billing period and do not roll over. Free accounts get ${DENEME_SORU_HAKKI} trial questions. Some AI features are being rolled out gradually; the purchase screen lists only what is currently available.`,
   },
   {
     icon: 'warning-outline',

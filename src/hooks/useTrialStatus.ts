@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore';
 /** Aylık abonelik ücreti (TL). */
 export const MONTHLY_PRICE_TRY = 399;
 /**
- * AI katmanı aylık ücreti (TL) — 750 soru + 25 mütalaa dahil
+ * AI katmanı aylık ücreti (TL) — 1.650 soru + 25 mütalaa dahil
  * (bkz. supabase/functions/_shared/katman.ts > AI_SORU_LIMIT/AI_MUTALAA_LIMIT;
  * iki sayı burada da AYNI olmalı, kota koddan, fiyat buradan okunuyor).
  *
@@ -30,8 +30,19 @@ export const AI_PRICE_TRY = 2999;
 //
 // BURADAKİ SAYILAR YALNIZCA GÖSTERİM İÇİNDİR — gerçek kısıt uç işlevindedir.
 // İkisi ayrışırsa doğru olan sunucudur; bu yüzden ikisi birlikte değişmeli.
-export const AI_SORU_HAKKI = 750;
+export const AI_SORU_HAKKI = 1650;
 export const AI_MUTALAA_HAKKI = 25;
+
+/**
+ * İlk kaç istek ASIL modelle yapılır. Sonrası aynı ay içinde daha hızlı,
+ * daha hafif bir modele düşer — istek reddedilmez.
+ *
+ * Kullanıcıya söylenen toplam hak 1.650'dir çünkü GERÇEKTEN 1.650 istek
+ * yapabiliyor. Ama 751. istekten sonra çıktıyı üreten model değişiyor ve
+ * bunu söylememek, kullanıcının fark edeceği bir kalite değişikliğini
+ * gizlemek olurdu. Sözleşme metni (app/terms.tsx m.5) bu ayrımı yazıyor.
+ */
+export const AI_ASIL_MODEL_HAKKI = 750;
 /** Ödeme yapmamış kullanıcıya verilen YAŞAM BOYU (aylık değil) deneme sorusu
  *  sayısı — bkz. _shared/katman.ts > DENEME_SORU_LIMIT, gerçek sınır orada. */
 export const DENEME_SORU_HAKKI = 3;
