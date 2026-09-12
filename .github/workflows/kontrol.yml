@@ -66,6 +66,28 @@ jobs:
             exit 1
           fi
 
+      # WEB UYGULAMASININ 404 GERİ DÜŞÜŞÜ.
+      #
+      # Uygulama SPA olarak dışa aktarılıyor: yalnız index.html var, yollar
+      # tarayıcıda çözülüyor. GitHub Pages statik sunucu olduğu için
+      # /app/forgot-password gibi bir yolda 404 veriyordu (canlıda ölçüldü).
+      # Kod ekranındayken sayfayı yenileyen kullanıcı akışın başına dönüyor
+      # ve elindeki kodu kaybediyordu.
+      #
+      # 404.html, index.html'in kopyasıdır; Pages onu bulunamayan yollarda
+      # sunar ve uygulama adresi okuyup doğru ekranı açar. Kopya bayat
+      # kalırsa 404 sayfası ESKİ uygulamayı yükler; burada eşitlik aranıyor.
+      - name: Web 404 geri düşüşü yerinde mi
+        run: |
+          if [ ! -f docs/app/404.html ]; then
+            echo "::error::docs/app/404.html yok. npm run export:web çalıştırın."
+            exit 1
+          fi
+          if ! cmp -s docs/app/index.html docs/app/404.html; then
+            echo "::error::404.html, index.html ile aynı değil. npm run export:web çalıştırın."
+            exit 1
+          fi
+
       - name: Tarayıcıda site sınaması
         # playwright-core kendi kurulum komutunu taşıyor; ayrıca `playwright`
         # paketini bağımlılığa eklemeye gerek yok. Yerelde Chromium zaten

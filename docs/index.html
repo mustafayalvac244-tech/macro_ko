@@ -69,6 +69,13 @@ p{margin:0}
 a{color:inherit}
 .sar{width:min(1120px,100% - 40px); margin-inline:auto}
 @media(max-width:640px){ .sar{width:calc(100% - 32px)} }
+/* Rozet telefonda iki satıra bölünüyor ve baştaki nabız noktası iki satırın
+   ortasında asılı kalıyordu. Dar ekranda punto ve harf aralığı küçülüyor,
+   nokta da satırın başına sabitleniyor. */
+@media(max-width:560px){
+  .rozet{font-size:11px;letter-spacing:.2px;padding:6px 12px 6px 10px;text-align:left}
+  .rozet::before{align-self:flex-start;margin-top:4px}
+}
 
 /* ── Üst çubuk ─────────────────────────────────────────────────────────── */
 header{position:sticky; top:0; z-index:50; backdrop-filter:blur(12px);
@@ -92,16 +99,52 @@ nav a:hover{color:var(--metin)}
 .dg-cer:hover{border-color:var(--lacivert-3); color:var(--lacivert-3)}
 .dg-kck{padding:9px 16px; font-size:14px}
 
-/* ── Kahraman ──────────────────────────────────────────────────────────── */
-.kahraman{padding:84px 0 64px; text-align:center; position:relative; overflow:hidden}
-.kahraman::before{content:'';position:absolute;inset:-40% 20% auto;height:520px;
-  background:radial-gradient(ellipse at center, color-mix(in srgb,var(--lacivert-3) 16%,transparent), transparent 70%);
-  pointer-events:none}
-.rozet{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;border-radius:999px;
+/* ── Kahraman ──────────────────────────────────────────────────────────────
+   ÖNCEKİ HÂLİN SORUNU: tek bir soluk radyal leke dışında hiçbir derinlik
+   yoktu; koyu temada sayfa düpedüz düz bir zemin olarak görünüyordu ve
+   kullanıcı "bomboş" dedi. Üç katman eklendi: ince ölçüm ızgarası (hukuk
+   belgesinin kareli kağıdını andırır), iki renkli ışık lekesi ve üstten
+   yumuşak bir geçiş. Hiçbiri içeriğin okunurluğunu düşürmüyor; hepsi
+   pointer-events:none. */
+.kahraman{padding:76px 0 60px; position:relative}
+.kh-fon{position:absolute;inset:-80px 0 0;overflow:hidden;pointer-events:none;z-index:0}
+.kh-fon::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(var(--cizgi) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--cizgi) 1px,transparent 1px);
+  background-size:56px 56px;
+  opacity:.42;
+  -webkit-mask-image:radial-gradient(ellipse 90% 62% at 50% 22%,#000 20%,transparent 78%);
+          mask-image:radial-gradient(ellipse 90% 62% at 50% 22%,#000 20%,transparent 78%)}
+.kh-fon i{position:absolute;display:block;border-radius:50%;filter:blur(72px);opacity:.5}
+.kh-fon i:nth-child(1){width:620px;height:420px;left:-120px;top:-60px;
+  background:radial-gradient(circle,color-mix(in srgb,var(--lacivert-3) 55%,transparent),transparent 70%)}
+.kh-fon i:nth-child(2){width:520px;height:380px;right:-100px;top:40px;
+  background:radial-gradient(circle,color-mix(in srgb,var(--altin) 38%,transparent),transparent 70%)}
+@media (prefers-color-scheme: dark){
+  .kh-fon::before{opacity:.7}
+  .kh-fon i{opacity:.42}
+}
+.rozet{display:inline-flex;align-items:center;gap:9px;padding:7px 15px 7px 11px;border-radius:999px;
   background:color-mix(in srgb,var(--altin) 14%,transparent); border:1px solid color-mix(in srgb,var(--altin) 32%,transparent);
   color:var(--altin); font-size:12.5px; font-weight:700; letter-spacing:.4px; position:relative}
-.kahraman h1{font-size:clamp(32px,4.2vw,50px); margin:22px 0 0; letter-spacing:-1px; position:relative}
-.kahraman h1 em{font-style:normal; color:var(--lacivert-3)}
+/* Rozetin başındaki nabız: sayfa "duruyor" değil "çalışıyor" görünsün. */
+.rozet::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--altin);flex:none;
+  box-shadow:0 0 0 0 color-mix(in srgb,var(--altin) 70%,transparent);animation:nabiz 2.4s ease-out infinite}
+@keyframes nabiz{
+  0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--altin) 60%,transparent)}
+  70%{box-shadow:0 0 0 9px transparent}
+  100%{box-shadow:0 0 0 0 transparent}
+}
+.kahraman h1{font-size:clamp(36px,5.1vw,62px); margin:22px 0 0; letter-spacing:-1.8px; position:relative}
+/* Geçişin bittiği renk TEMAYA GÖRE değişiyor: açık zeminde --altin-2
+   (açık altın) neredeyse okunmuyordu; orada koyu altın kullanılıyor. */
+.kahraman h1 em{font-style:normal;
+  background:linear-gradient(102deg,var(--lacivert-2) 10%,var(--altin) 92%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+@media (prefers-color-scheme: dark){
+  .kahraman h1 em{background:linear-gradient(102deg,var(--lacivert-3) 10%,var(--altin-2) 92%);
+    -webkit-background-clip:text;background-clip:text}
+}
 /* SINIF ÇAKIŞMASI DÜZELTİLDİ. Kahraman paragrafı da alt bilgi satırı da
    `.alt` sınıfını kullanıyordu; ikincisi `display:flex` verdiği için kahraman
    paragrafındaki her <b>/<em> FLEX ÖĞESİNE dönüşüp kendi satırına düşüyordu.
@@ -111,13 +154,41 @@ nav a:hover{color:var(--metin)}
 .kahraman .dgler{display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap;position:relative}
 .magaza-not{margin-top:14px; font-size:13.5px; color:var(--metin-3); position:relative}
 
-/* ── Ölçülmüş sayılar ──────────────────────────────────────────────────── */
-.sayilar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--cizgi);
-  border:1px solid var(--cizgi); border-radius:var(--radius); overflow:hidden; margin-top:56px; position:relative}
-.sayilar div{background:var(--kart); padding:22px 16px; text-align:center}
-.sayilar b{display:block; font-family:'Playfair Display',serif; font-size:26px; color:var(--lacivert-3)}
-.sayilar span{font-size:13px; color:var(--metin-3); font-weight:600}
-@media(max-width:720px){ .sayilar{grid-template-columns:repeat(2,1fr)} }
+
+/* Kahraman güven satırı. Düğmelerin altında yalnız gri bir mağaza notu
+   duruyordu ve sütunun altı boş kalıyordu. Buradaki üç madde de doğrulanabilir
+   olgu; süsleme değil. */
+.kh-guven{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px;position:relative}
+.kh-guven span{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;
+  color:var(--metin-2);background:var(--kart);border:1px solid var(--cizgi);
+  border-radius:999px;padding:7px 13px}
+.kh-guven span::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--yesil);flex:none}
+@media(max-width:940px){ .kh-guven{justify-content:center} }
+
+/* ── Sayı şeridi ───────────────────────────────────────────────────────────
+   ÖNCEKİ HÂLİ ZAYIFTI. "6.107 kanun maddesi" tek başına dururken hiçbir şey
+   iddia etmiyordu; kullanıcı haklı olarak "rekabetçi değil" dedi. Sayının
+   kendisi doğru (5.908 madde + Anayasa 199) ama ÇERÇEVESİ yoktu: kaç kanun,
+   ne kadar kapsam, ne kadarı ücretsiz. Artık her kutu bir üst satır (bağlam)
+   + sayı + alt satır (ne olduğu) taşıyor ve sayılar iri. */
+.sayilar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:60px;position:relative;z-index:1}
+.sayilar div{background:var(--kart);border:1px solid var(--cizgi);border-radius:15px;
+  padding:20px 18px;box-shadow:var(--golge);position:relative;overflow:hidden}
+.sayilar div::after{content:'';position:absolute;left:0;right:0;top:0;height:2px;
+  background:linear-gradient(90deg,var(--lacivert-3),var(--altin-2));opacity:.75}
+.sayilar u{display:block;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:1.1px;
+  text-transform:uppercase;color:var(--metin-3);margin-bottom:7px}
+.sayilar b{display:block; font-family:'Playfair Display',serif; font-size:clamp(26px,3vw,34px);
+  line-height:1.05; letter-spacing:-.8px; color:var(--metin)}
+/* Birim SAYININ İÇİNDE değil, altındaki satırda. "6.107madde" bitişik
+   okunuyordu; araya boşluk koymak da dengesiz duruyordu. Sayı tek başına
+   durunca hem iri hem okunur oluyor. */
+.sayilar b i{font-family:'Manrope',sans-serif;font-style:normal;font-size:.46em;
+  color:var(--metin-3);margin-left:.3em;font-weight:700;letter-spacing:0;vertical-align:.12em}
+.sayilar span b{display:inline;font-family:inherit;font-size:inherit;color:var(--metin);letter-spacing:0}
+.sayilar span{display:block;font-size:13px; color:var(--metin-2); font-weight:600; margin-top:6px; line-height:1.45}
+@media(max-width:860px){ .sayilar{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:440px){ .sayilar{grid-template-columns:1fr} }
 
 /* ── Bölümler ──────────────────────────────────────────────────────────── */
 section{padding:80px 0}
@@ -170,6 +241,48 @@ section{padding:80px 0}
 .olcum span{font-size:14px;color:#AFC0DE}
 .durust .not{margin-top:26px;font-size:13.5px;color:#8FA3C7;text-align:center}
 
+
+/* ── 3 adımlık akış ────────────────────────────────────────────────────────
+   Sayfa "bomboş" görünüyordu çünkü baştan sona KUTU IZGARASIYDI: özellik
+   ızgarası, fiyat ızgarası, madde ızgarası. Hepsi aynı ritimde olunca göz
+   hiçbir yerde durmuyor ve sayfa uzun bir liste gibi okunuyor. Bu bölüm
+   ritmi kırıyor: yatay bir akış, numaralandırılmış ve aralarında çizgi. */
+.akis{display:grid;grid-template-columns:repeat(3,1fr);gap:0;position:relative}
+.adim{position:relative;padding:0 26px}
+.adim:first-child{padding-left:0}
+.adim:last-child{padding-right:0}
+.adim + .adim::before{content:'';position:absolute;left:0;top:26px;bottom:18px;width:1px;background:var(--cizgi)}
+.adim-no{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:14px;
+  font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:#fff;
+  background:linear-gradient(140deg,var(--lacivert-3),var(--lacivert-2));
+  box-shadow:0 10px 22px -10px color-mix(in srgb,var(--lacivert-3) 80%,transparent)}
+.adim h3{font-size:19px;margin:16px 0 8px}
+.adim p{color:var(--metin-2);font-size:14.8px}
+.adim code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;
+  background:var(--zemin);border:1px solid var(--cizgi);border-radius:7px;padding:2px 7px;color:var(--metin)}
+@media(max-width:880px){
+  .akis{grid-template-columns:1fr;gap:30px}
+  .adim{padding:0}
+  .adim + .adim::before{left:0;right:0;top:-15px;bottom:auto;width:auto;height:1px}
+}
+
+/* ── Bölüm ritmi ──────────────────────────────────────────────────────────
+   Her bölüm aynı zemindeydi; sayfa tek bir uzun şerit gibi akıyordu.
+   Dönüşümlü zemin, gözün bölümleri ayırmasını sağlıyor. */
+.serit{background:var(--kart);border-block:1px solid var(--cizgi)}
+
+/* ── Kaydırmada beliriş ───────────────────────────────────────────────────
+   Sayfa tamamen hareketsizdi. Bu, yalnız ilk görünüşte bir kez çalışan
+   çok kısa bir beliriş; dikkat dağıtmıyor, sayfanın canlı olduğunu söylüyor.
+   Hareketi azaltılmış cihazlarda hiç çalışmaz ve JS kapalıysa da içerik
+   görünür kalır (varsayılan: görünür; sınıfı JS ekliyor). */
+.gizle{opacity:0;transform:translateY(16px)}
+.belir{opacity:1;transform:none;transition:opacity .55s ease,transform .55s cubic-bezier(.2,.8,.3,1)}
+@media (prefers-reduced-motion: reduce){
+  .gizle{opacity:1;transform:none}
+  .belir{transition:none}
+}
+
 /* ── SSS ───────────────────────────────────────────────────────────────── */
 details{background:var(--kart);border:1px solid var(--cizgi);border-radius:13px;padding:18px 22px;margin-bottom:12px}
 details[open]{box-shadow:var(--golge)}
@@ -190,21 +303,61 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 /* ── Kahraman: iki sütun + ürün görseli ────────────────────────────────────
    Sayfada hiç görsel yoktu (ölçüldü: document.images.length === 0). Görsel
    bir ekran görüntüsü DEĞİL, arayüzün çizimidir; altında öyle yazıyor. */
-.kh-izgara{display:grid;grid-template-columns:1.02fr .98fr;gap:44px;align-items:center;text-align:left;position:relative}
+/* SATIR YÜKSEKLİKLERİ AÇIKÇA VERİLİYOR. Sağdaki kutu iki satırı birden
+   kapladığı için soldaki iki satır artan yüksekliği aralarında paylaşıyordu
+   ve paragrafla düğmeler arasında ~60px ölü boşluk kalıyordu. Birinci satır
+   içerik kadar, artan yer ikinci satıra; düğmeler o satırın tepesine
+   yaslanınca aradaki tek boşluk satır aralığının kendisi oluyor. */
+.kh-izgara{display:grid;grid-template-columns:1fr 1.06fr;grid-template-rows:min-content 1fr;
+  gap:26px 48px;align-items:center;
+  grid-template-areas:"yazi kutu" "eylem kutu";text-align:left;position:relative;z-index:1}
+.kh-sol{grid-area:yazi;align-self:end}
+.kh-gorsel{grid-area:kutu}
+.kh-eylem{grid-area:eylem;align-self:start;min-width:0}
 .kh-sol{min-width:0}
 @media(max-width:940px){
-  .kh-izgara{grid-template-columns:1fr;gap:40px;text-align:center}
+  /* Telefonda sıra: metin → DENETİM KUTUSU → düğmeler. */
+  .kh-izgara{grid-template-columns:1fr;grid-template-rows:auto;gap:30px;
+    grid-template-areas:"yazi" "kutu" "eylem";text-align:center}
+  .kh-sol,.kh-eylem{align-self:auto}
   .kahraman .kh-alt{margin-inline:auto}
   .kahraman .dgler{justify-content:center}
+  /* Kutunun içi HER ZAMAN sola hizalı kalır; ortalanmış bir denetim
+     çıktısı okunmaz. */
+  .kh-gorsel{text-align:left}
 }
 .kahraman h1{margin-top:18px}
 .kh-gorsel{margin:0;min-width:0}
 .kh-gorsel figcaption{margin-top:12px;font-size:12.5px;color:var(--metin-3);text-align:center}
-.cerceve{text-align:left;background:var(--kart);border:1px solid var(--cizgi);border-radius:14px;overflow:hidden;
-  box-shadow:0 28px 60px -28px rgba(14,27,51,.45), 0 2px 6px rgba(14,27,51,.06)}
-.cr-ust{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--zemin);border-bottom:1px solid var(--cizgi)}
-.cr-ust b{font-size:12.5px;letter-spacing:.3px;color:var(--metin);margin-right:auto}
-.canli-nk{width:7px;height:7px;border-radius:50%;background:var(--yesil);box-shadow:0 0 0 3px rgba(18,128,92,.18)}
+.cerceve{text-align:left;background:var(--kart);border:1px solid var(--cizgi);border-radius:16px;overflow:hidden;
+  box-shadow:0 40px 80px -36px rgba(14,27,51,.55), 0 2px 6px rgba(14,27,51,.06);
+  position:relative}
+/* Üstten geçen ince renkli şerit: kutunun bir "ürün penceresi" olduğunu
+   söyler ve koyu temada kenarı ayırır. */
+.cerceve::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;z-index:2;
+  background:linear-gradient(90deg,var(--lacivert-3),var(--altin-2),var(--lacivert-3))}
+@media (prefers-color-scheme: dark){
+  .cerceve{box-shadow:0 40px 90px -30px rgba(0,0,0,.85), 0 0 0 1px rgba(91,138,224,.14)}
+}
+.cr-ust{display:flex;align-items:center;gap:9px;padding:13px 15px;background:var(--zemin);border-bottom:1px solid var(--cizgi)}
+.cr-ust b{font-size:13px;letter-spacing:.2px;color:var(--metin);margin-right:auto}
+.cr-rozet{font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  color:var(--yesil);background:color-mix(in srgb,var(--yesil) 13%,transparent);
+  border:1px solid color-mix(in srgb,var(--yesil) 28%,transparent);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.canli-nk{width:8px;height:8px;border-radius:50%;background:var(--yesil);flex:none;
+  animation:nabizYesil 2s ease-out infinite}
+@keyframes nabizYesil{
+  0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--yesil) 60%,transparent)}
+  70%{box-shadow:0 0 0 8px transparent}
+  100%{box-shadow:0 0 0 0 transparent}
+}
+/* Sonuç satırları belirirken yerinden gelsin — "şimdi hesaplandı" hissi. */
+.dn{animation:dnGir .34s cubic-bezier(.2,.8,.3,1) both}
+@keyframes dnGir{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .dn{animation:none}
+  .canli-nk,.rozet::before{animation:none}
+}
 .cr-govde{padding:14px}
 .dn-yaz{width:100%;min-height:104px;resize:vertical;font-family:inherit;font-size:13px;line-height:1.7;
   color:var(--metin);background:var(--zemin);border:1px solid var(--cizgi);border-radius:10px;padding:11px 12px}
@@ -239,6 +392,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     <a class="marka" href="#"><span class="m">V</span>Vekil&nbsp;Pro</a>
     <nav>
       <a href="#ozellikler">Özellikler</a>
+      <a href="#nasil">Nasıl çalışır</a>
       <a href="#yapayzeka">Yapay Zekâ</a>
       <a href="#fiyat">Fiyatlar</a>
       <a href="#neden">Neden Vekil Pro</a>
@@ -250,6 +404,9 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 
 <div class="sar">
   <div class="kahraman">
+   <!-- Arka plan katmanları: ölçüm ızgarası + iki ışık lekesi. Tamamı
+        dekoratif, ekran okuyucudan gizli, tıklamayı engellemiyor. -->
+   <div class="kh-fon" aria-hidden="true"><i></i><i></i></div>
    <div class="kh-izgara">
     <div class="kh-sol">
     <!-- ROZET DEĞİL, DÜZ CÜMLE. Anthropic'in marka kuralı: ürününün Claude ile
@@ -263,6 +420,16 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     <p class="kh-alt">Yapay zekânın verdiği her kanun maddesi ve her Yargıtay karar numarası denetlenir:
       doğrulandı, havuzda yok ya da <b>olamaz</b>. Üstüne dava, duruşma, müvekkil ve finans yönetimi —
       ve içtihat aramasında sınır yok, ücret yok.</p>
+    </div><!-- /kh-sol -->
+
+    <!-- DÜĞMELER AYRI BİR IZGARA ÖĞESİ.
+         Sebebi telefon. Hepsi kh-sol içindeyken telefonda sıra şöyleydi:
+         başlık → paragraf → düğmeler → güven → not → VE ANCAK ONDAN SONRA
+         denetim kutusu. Yani sayfanın en iyi parçası, gelen kişinin görmek
+         için en çok kaydırması gereken yerdeydi. Ayrı öğe olunca ızgara
+         alanlarıyla sıra değiştirilebiliyor: telefonda kutu metnin hemen
+         altına, düğmeler kutunun altına geliyor. Masaüstünde düzen aynı. -->
+    <div class="kh-eylem">
     <div class="dgler">
       <a class="dg dg-ana" href="app/">Web sürümünü aç</a>
       <a class="dg dg-cer" href="#fiyat">Fiyatları gör</a>
@@ -278,8 +445,13 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
      henüz onaylanmadı ("enrollment under review"), yani uygulama hiç
      gönderilmedi. Gönderilmemiş bir uygulama "onayda" olamaz; bu cümle
      gelen avukata olmayan bir takvim vaat ediyordu. -->
+    <div class="kh-guven">
+      <span>Kayıt olmadan içtihat araması</span>
+      <span>Kredi kartı istenmiyor</span>
+      <span>Veriniz eğitime gitmez</span>
+    </div>
     <p class="magaza-not">iOS ve Android uygulamaları henüz mağazalarda değil; hazırlık sürüyor. Web sürümü bugün kullanılabilir.</p>
-    </div><!-- /kh-sol -->
+    </div><!-- /kh-eylem -->
 
     <!-- CANLI DENETİM — SAYFANIN KENDİSİ ÜRÜNÜ ÇALIŞTIRIYOR.
          Burada önce arayüzün temsilî bir ÇİZİMİ duruyordu; yani ürünün ne
@@ -297,7 +469,8 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       <div class="cerceve">
         <div class="cr-ust">
           <span class="canli-nk" aria-hidden="true"></span>
-          <b>Karar atfı denetimi — şimdi deneyin</b>
+          <b>Karar atfı denetimi</b>
+          <span class="cr-rozet">Tarayıcınızda çalışıyor</span>
         </div>
         <div class="cr-govde">
           <label class="gizli-etiket" for="dn-girdi">Denetlenecek metin</label>
@@ -315,11 +488,33 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     </div>
    </div><!-- /kh-izgara -->
 
+    <!-- SAYILAR — hepsi depodan sayıldı, tahmin yok:
+         16 kanun / 5.908 madde (src/data/laws) + Anayasa 199 madde
+         (src/data/anayasa.json) = 6.107. 81 baro (src/constants/barolar.ts).
+         15 dilekçe şablonu (src/constants/petitionTemplates.ts).
+         5 hesaplayıcı (app/calculators.tsx: AAÜT, faiz, harç, SMM,
+         kıdem/ihbar). Arama canlı olarak UYAP Emsal ve Bedesten'e gider. -->
     <div class="sayilar">
-      <div><b>Canlı</b><span>UYAP Emsal + Bedesten'de arama</span></div>
-      <div><b>6.107</b><span>kanun maddesi, tam metin</span></div>
-      <div><b>399<i>₺</i></b><span>ay — büro yönetimi, sınırsız</span></div>
-      <div><b>Ücretsiz</b><span>içtihat araması, üyeliksiz</span></div>
+      <div>
+        <u>Mevzuat</u>
+        <b>6.107</b>
+        <span><b>kanun maddesi</b> — 16 temel kanun ve Anayasa, tam metin</span>
+      </div>
+      <div>
+        <u>İçtihat</u>
+        <b>Canlı</b>
+        <span><b>UYAP Emsal ve Bedesten</b> — aramanız kaynağa gider, sınır yok</span>
+      </div>
+      <div>
+        <u>Büroda işinize yarayan</u>
+        <b>15</b>
+        <span><b>dilekçe şablonu</b> — ayrıca 5 hesaplayıcı: vekalet ücreti, faiz, harç, SMM, kıdem</span>
+      </div>
+      <div>
+        <u>Başlangıç</u>
+        <b>0<i>₺</i></b>
+        <span><b>üyeliksiz</b> — içtihat ve mevzuat araması süresiz ücretsiz</span>
+      </div>
     </div>
   </div>
 </div>
@@ -361,6 +556,33 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
         <div class="ik">06</div>
         <h3>iPhone, Android ve bilgisayar</h3>
         <p>Aynı hesap üç yerde. Adliyede telefondan, büroda büyük ekranda; çevrimdışıyken son eşitlenen dosyalar okunabilir kalır.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="nasil" class="serit">
+  <div class="sar">
+    <div class="bas">
+      <span class="etiket">Nasıl çalışır</span>
+      <h2>Soru sorun, taslak çıksın, künyesi denetlensin</h2>
+      <p>Üç adım. Aralarında kopyala-yapıştır yok, ikinci bir program yok.</p>
+    </div>
+    <div class="akis">
+      <div class="adim">
+        <span class="adim-no">1</span>
+        <h3>Dosyayı anlatın</h3>
+        <p>Olayı kendi cümlelerinizle yazın ya da mevcut dosyanızdan seçin. Müvekkil, taraf ve tarih bilgileri zaten programda duruyorsa yeniden yazmanıza gerek yok.</p>
+      </div>
+      <div class="adim">
+        <span class="adim-no">2</span>
+        <h3>Taslak ve dayanaklar gelsin</h3>
+        <p>Dilekçe taslağı, kanun maddeleri ve emsal kararlarla birlikte üretilir. Arama canlı olarak UYAP Emsal ve Bedesten'e gider; sonucu uygulama içinde düzenlersiniz.</p>
+      </div>
+      <div class="adim">
+        <span class="adim-no">3</span>
+        <h3>Denetimi görün, UYAP'a indirin</h3>
+        <p>Her madde ve her karar künyesi için tek tek sonuç: <code>doğrulandı</code>, <code>havuzda yok</code> ya da <code>olamaz</code>. Düzelttikten sonra <code>.udf</code> olarak indirin, UYAP Editör'de açılır.</p>
       </div>
     </div>
   </div>
@@ -686,16 +908,110 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     var dg = document.querySelectorAll(".dn-ornek");
     for (var n = 0; n < dg.length; n++) {
       dg[n].addEventListener("click", function () {
+        dur();
         girdi.value = ORNEK[this.getAttribute("data-ornek")] || "";
         ciz();
         girdi.focus();
       });
     }
-    ciz();
+
+    // ── AÇILIŞTA KENDİ KENDİNE YAZAR ────────────────────────────────────
+    // Kutu BOŞ açılıyordu. Sayfaya gelen kişi boş bir metin kutusu görüp
+    // "yine bir form" diye geçiyordu; ürünün ne yaptığı ancak o yazmaya
+    // zahmet ederse ortaya çıkıyordu — ki çoğu kimse zahmet etmez.
+    // Şimdi örnek paragraf kendi kendine yazılıyor ve uyarılar gözünün
+    // önünde beliriyor: sayfa açıldığı anda ürün ÇALIŞIYOR.
+    //
+    // Kullanıcı kutuya dokunduğu an (tıklama, klavye, örnek düğmesi)
+    // canlandırma ANINDA durur ve kutu tamamen ona geçer — kendi metnini
+    // yazarken harflerin üstüne yazan bir animasyon, yardımcı değil engeldir.
+    var zamanlayici = null;
+    function dur() {
+      if (zamanlayici) { clearTimeout(zamanlayici); zamanlayici = null; }
+    }
+    girdi.addEventListener("focus", dur);
+    girdi.addEventListener("keydown", dur);
+    girdi.addEventListener("pointerdown", dur);
+
+    function yaz(metin, i) {
+      // Noktalama sonrası küçük duraklama: makine gibi değil, okunur aksın.
+      girdi.value = metin.slice(0, i);
+      ciz();
+      if (i >= metin.length) { zamanlayici = null; return; }
+      var c = metin.charAt(i - 1);
+      var bekle = c === "." || c === "," ? 110 : 16;
+      zamanlayici = setTimeout(function () { yaz(metin, i + 1); }, bekle);
+    }
+
+    // Hareketi azaltılmış cihazlarda yazmıyoruz; sonucu doğrudan koyuyoruz.
+    var azHareket =
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (azHareket) {
+      girdi.value = ORNEK.uydurma;
+      ciz();
+    } else {
+      ciz();
+      zamanlayici = setTimeout(function () { yaz(ORNEK.uydurma, 1); }, 650);
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", haz);
   else haz();
+})();
+</script>
+
+<!-- KAYDIRMADA BELİRME.
+     Sayfa tamamen hareketsizdi. Bu, her öğede YALNIZ BİR KEZ çalışan çok
+     kısa bir beliriş.
+     ÖNEMLİ: gizleme sınıfını JS ekliyor, HTML'de yok. Böylece betik
+     çalışmazsa (eski tarayıcı, hata, JS kapalı) içerik olduğu gibi görünür
+     kalır — "animasyon kırılınca sayfa boş kalır" tuzağına düşmüyoruz.
+     IntersectionObserver yoksa hiç dokunmuyoruz. -->
+<script defer>
+(function () {
+  if (!('IntersectionObserver' in window)) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  function baslat() {
+    var hedefler = document.querySelectorAll(
+      'section .bas, .kutu, .adim, .plan, .olcum > div, .sayilar > div'
+    );
+    if (!hedefler.length) return;
+
+    for (var i = 0; i < hedefler.length; i++) hedefler[i].classList.add('gizle');
+
+    var g = new IntersectionObserver(function (girisler) {
+      for (var j = 0; j < girisler.length; j++) {
+        var e = girisler[j];
+        if (!e.isIntersecting) continue;
+        // Aynı satırdaki öğeler sırayla gelsin; hepsi birden zıplamasın.
+        var sira = Number(e.target.getAttribute('data-sira') || 0);
+        setTimeout(function (el) {
+          return function () { el.classList.add('belir'); };
+        }(e.target), sira * 70);
+        g.unobserve(e.target);
+      }
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+
+    // Kardeşler arasında sıra numarası ver.
+    var kaplar = document.querySelectorAll('.izgara, .akis, .fiyatlar, .olcum, .sayilar');
+    for (var k = 0; k < kaplar.length; k++) {
+      var cocuk = kaplar[k].children;
+      for (var c = 0; c < cocuk.length; c++) cocuk[c].setAttribute('data-sira', String(c));
+    }
+
+    for (var m = 0; m < hedefler.length; m++) g.observe(hedefler[m]);
+
+    // GÜVENLİK AĞI: bir öğe herhangi bir sebeple gözlemciden geçmezse
+    // sonsuza kadar görünmez kalmasın. 2,5 saniye sonra hepsi açılır.
+    setTimeout(function () {
+      for (var n = 0; n < hedefler.length; n++) hedefler[n].classList.add('belir');
+    }, 2500);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', baslat);
+  else baslat();
 })();
 </script>
 </body>
