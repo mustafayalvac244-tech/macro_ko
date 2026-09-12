@@ -9,8 +9,35 @@
 --     11.09 21:22 → 496 MB · 11.378 karar
 --     12.09 07:19 → 588 MB · 14.154 karar   (son 24 saatte +4.769 karar)
 --   yani ~222 MB/gün. 8 GB'lık Pro planında KALAN SÜRE ~34 GÜN.
--- Hasat çalışmıyor değil; fazla iyi çalışıyor ve disk onu taşımıyor.
+-- Hasat çalışmıyor değil; hızlanmış.
 -- Neyi küçülteceğimizi bilmeden küçültmeye kalkmak, yanlış şeyi taşımaktır.
+--
+-- ── SONUÇ (12.09.2026 07:20, canlı · 14.154 karar · tablo 459 MB) ──────────
+--   fts_simple (tsvector)   138 MB   %30,0
+--   fts        (tsvector)   100 MB   %21,7
+--   full_text  (text)        62 MB   %13,4
+--   embedding  vector(384)   19 MB   %4,1
+--   indeksler toplam        ~102 MB  %22,4
+--   ölü satır 2.366 / canlı 14.154 · son vacuum 11.09 19:49
+--
+-- İki tsvector sütunu TEK BAŞINA tablonun %51,7'si — üstelik türetildikleri
+-- full_text'in ~4 KATI. "Tam metni Storage'a taşıyalım" planı %13,4
+-- kazandırırdı; yanlış şeyi taşıyacaktık.
+--
+-- ── AMA REFAKTÖR YAPILMADI, BİLEREK ────────────────────────────────────────
+-- İkisi de canlı arama fonksiyonunda (0113) DEĞER olarak kullanılıyor
+-- (ts_rank puanlaması k.fts / k.fts_simple üzerinden). İfade indeksine
+-- çevirmek her aday satırda tsvector'ü yeniden hesaplatır; puanlama maliyeti
+-- zaten darboğazdı (bkz. 0110) ve zaman aşımları yeni düzeldi (17/30 → 0/30).
+--
+-- Asıl sebep ekonomik: 8 GB bir DUVAR DEĞİL, FATURA EŞİĞİ. Supabase Pro'da
+-- üstü $0,125/GB/ay. Ölçülen hızla (4.769 karar/gün) bir YIL hasat ≈ 1,75
+-- milyon karar ≈ 55 GB ≈ ayda +$6. Şemayı riske atıp ayda birkaç dolar
+-- kurtarmak, korpusun küçüklüğü rakip karşısındaki en zayıf yanımızken
+-- yanlış yeri optimize etmek olur.
+--
+-- ÖLÇÜLMEYEN: 1 milyon satırda arama başarımı. FTS ayarları ~11 bin satırda
+-- yapıldı; o ölçekte davranışı bilinmiyor.
 -- ===========================================================================
 -- ÖNCEKİ (canlı, 2026-09-11): 9.995 karar · tablo 332 MB · indeksler 77 MB
 -- · tam metin 44 MB · karar başına 34,1 KB.
