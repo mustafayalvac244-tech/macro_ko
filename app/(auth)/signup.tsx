@@ -21,6 +21,7 @@ import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
 import { isValidTCKN } from '@/utils/tckn';
 import { BAROLAR } from '@/constants/barolar';
+import { KVKK_SURUM } from '@/config/kvkk';
 import { Captcha } from '@/components/Captcha';
 import { CAPTCHA_ENABLED } from '@/config/captcha';
 import { DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
@@ -51,6 +52,9 @@ export default function SignupScreen() {
   const [baroPickerOpen, setBaroPickerOpen] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaHatasi, setCaptchaHatasi] = useState(false);
+  // KVKK m.9 AÇIK RIZA. Varsayılan KAPALI olmak zorunda: önceden işaretli bir
+  // kutu rıza sayılmaz — rızanın "özgür iradeyle" verilmiş olması şart.
+  const [kvkkOnay, setKvkkOnay] = useState(false);
   const [dogrulamaBekliyor, setDogrulamaBekliyor] = useState(false);
   const { signUp, isSubmitting, error, clearError } = useAuthStore();
 
@@ -111,6 +115,14 @@ export default function SignupScreen() {
       return;
     }
 
+    // SESSİZ KİLİT YOK. Düğmeyi devre dışı bırakmak yerine sebebi SÖYLÜYORUZ;
+    // bu ekranda daha önce tam tersi yapılmış ve "basıyorum bir şey olmuyor"
+    // şikâyetine yol açmıştı.
+    if (!kvkkOnay) {
+      setLocalError(t('auth.kvkkRequired'));
+      return;
+    }
+
     const sonuc = await signUp({
       // Giriş ekranıyla aynı sebep: klavye ilk harfi büyütürse kullanıcı
       // kaydolduğu adresle giriş yapamaz hâle gelir.
@@ -121,6 +133,8 @@ export default function SignupScreen() {
       tcNo: tcNo.trim(),
       baro,
       captchaToken: captchaToken ?? undefined,
+      kvkkRiza: kvkkOnay,
+      kvkkSurum: KVKK_SURUM,
     });
 
     if (sonuc === 'girildi') {
@@ -264,6 +278,30 @@ export default function SignupScreen() {
               da kullanıcı normalde hiçbir şey görmez — yalnız Turnstile insan
               onayı isterse burada bir kutu belirir. */}
           <Captcha onToken={setCaptchaToken} onError={() => setCaptchaHatasi(true)} />
+
+          {/* AÇIK RIZA KUTUSU. Kullanım koşullarının kabulünden AYRI duruyor:
+              KVKK açık rızası, hizmetin sunulmasının şartı hâline getirilemez
+              ve başka onaylarla paketlenemez. Bu yüzden ayrı bir kutu ve ayrı
+              bir metin — ve altındaki not, geri alınabileceğini söylüyor. */}
+          <Pressable
+            style={styles.kvkkRow}
+            onPress={() => setKvkkOnay((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: kvkkOnay }}
+            hitSlop={6}
+          >
+            <View style={[styles.kvkkBox, kvkkOnay && styles.kvkkBoxOn]}>
+              {kvkkOnay && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+            </View>
+            <Text style={styles.kvkkText}>{t('auth.kvkkConsent')}</Text>
+          </Pressable>
+          <Text
+            style={styles.kvkkLink}
+            onPress={() => router.push('/kvkk' as Parameters<typeof router.push>[0])}
+          >
+            {t('auth.kvkkLink')}
+          </Text>
+          <Text style={styles.kvkkNote}>{t('auth.kvkkNote')}</Text>
 
           {(localError || error) && <Text style={styles.error}>{localError ?? error}</Text>}
 
@@ -528,6 +566,46 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     lineHeight: 14,
+  },
+  kvkkRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  kvkkBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  kvkkBoxOn: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  kvkkText: {
+    ...typography.small,
+    color: colors.textSecondary,
+    flex: 1,
+    lineHeight: 17,
+  },
+  kvkkLink: {
+    ...typography.small,
+    color: colors.primary,
+    marginTop: spacing.xs,
+    marginLeft: 28,
+    textDecorationLine: 'underline',
+  },
+  kvkkNote: {
+    ...typography.small,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+    marginLeft: 28,
+    lineHeight: 16,
   },
   privacyHint: {
     ...typography.small,
