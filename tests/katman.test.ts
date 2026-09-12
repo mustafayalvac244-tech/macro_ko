@@ -74,7 +74,10 @@ describe('tierConfig', () => {
   });
 
   it('yalnız "ai" katmanının aylık soru/mütalaa kotası vardır; free/baslangic yaşam boyu deneme hakkı taşır', () => {
-    expect(tierConfig('ai', false, secenek).cfg.modLimits).toEqual({ soru: 250, mutalaa: 12 });
+    // Sayılar 12.09.2026'da 250/12'den yükseltildi: paket Opus varsayımıyla
+    // kurulmuştu (₺2,67/istek), Sonnet'te ölçülen birim maliyet ₺1,07.
+    // Gerekçe ve hesap: _shared/katman.ts (AI_SORU_LIMIT).
+    expect(tierConfig('ai', false, secenek).cfg.modLimits).toEqual({ soru: 750, mutalaa: 25 });
     expect(tierConfig('free', false, secenek).cfg.modLimits).toBeUndefined();
     expect(tierConfig('baslangic', false, secenek).cfg.denemeLimit).toBe(DENEME_SORU_LIMIT);
   });
