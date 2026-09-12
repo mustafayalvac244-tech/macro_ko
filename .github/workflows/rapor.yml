@@ -24,6 +24,7 @@ on:
           - hasat-tek-rapor
           - hasat-tur-teshis
           - katalog-durum
+          - proje-bilgi
           - hasat-disk-sutun
           - hasat-verim-olcum
           - hasat-kalite-olcum
@@ -65,7 +66,13 @@ jobs:
           RAPOR: ${{ inputs.rapor || 'hasat-tek-rapor' }}
         run: |
           set -o pipefail
-          node scripts/rapor-kos.mjs "$RAPOR" 2>&1 | tee /tmp/rapor.log
+          # proje-bilgi bir SQL raporu değil: verinin hangi bölgede durduğunu
+          # Supabase proje kaydından okur (KVKK aydınlatma metni buna dayanıyor).
+          if [ "$RAPOR" = "proje-bilgi" ]; then
+            node scripts/proje-bilgi.mjs 2>&1 | tee /tmp/rapor.log
+          else
+            node scripts/rapor-kos.mjs "$RAPOR" 2>&1 | tee /tmp/rapor.log
+          fi
           {
             echo "## $RAPOR"
             echo ''
