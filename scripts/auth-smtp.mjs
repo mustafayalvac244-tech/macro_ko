@@ -44,19 +44,38 @@ const govde = {
   // Aynı adrese arka arkaya mail gönderme aralığı (saniye). 60 varsayılan;
   // 20'ye çekiyoruz ki "kodu tekrar gönder" makul sürede çalışsın.
   smtp_max_frequency: 20,
+  // KOD UZUNLUĞU. Ekrandaki metinler "6 haneli" diyordu ama sunucu 8 haneli
+  // kod gönderiyordu ve giriş kutusu maxLength=6 ile 8 hanelinin YAZILMASINI
+  // bile engelliyordu — yani şifresini unutan kimse giremiyordu. Uzunluğu
+  // burada sabitliyoruz; ekran da artık uzunluğa bağımlı değil.
+  // SAYI. smtp_port'un aksine burası sayı bekliyor; canlıda ölçüldü
+  // ("mailer_otp_length: Invalid input: expected number, received string").
+  // İki alan aynı uçta olduğu hâlde farklı tip istiyor — tahmin edilemez.
+  mailer_otp_length: 6,
   rate_limit_email_sent: SAATLIK,
 };
 
-const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/config/auth`, {
-  method: 'PATCH',
-  headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify(govde),
-});
+const yaz = (g) =>
+  fetch(`https://api.supabase.com/v1/projects/${REF}/config/auth`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(g),
+  });
+
+let res = await yaz(govde);
 if (!res.ok) {
   // Anahtar hata gövdesinde geri dönebilir; yazdırmadan önce maskele.
   const t = (await res.text()).replaceAll(KEY, '***');
-  console.error(`HATA ${res.status}: ${t.slice(0, 400)}`);
-  process.exit(1);
+  // Tip beklentisi ileride değişirse alanı sessizce düşürmüyoruz — düşersek
+  // kod yine 8 hane kalır ve kimse fark etmez. Metinle bir kez daha deniyoruz.
+  if (res.status === 400 && /mailer_otp_length/.test(t)) {
+    console.warn(`mailer_otp_length tip uyuşmazlığı, metin olarak yeniden deneniyor: ${t.slice(0, 200)}`);
+    res = await yaz({ ...govde, mailer_otp_length: '6' });
+  }
+  if (!res.ok) {
+    console.error(`HATA ${res.status}: ${(await res.text()).replaceAll(KEY, '***').slice(0, 400)}`);
+    process.exit(1);
+  }
 }
 
 // Yazdıktan sonra GERİ OKU — "200 döndü" ile "ayar değişti" aynı şey değil.
@@ -69,9 +88,18 @@ console.log(`smtp_admin_email       ${c.smtp_admin_email}`);
 console.log(`smtp_sender_name       ${c.smtp_sender_name}`);
 console.log(`rate_limit_email_sent  ${c.rate_limit_email_sent}  (saatte)`);
 console.log(`smtp_max_frequency     ${c.smtp_max_frequency}  (saniye)`);
+console.log(`mailer_otp_length      ${c.mailer_otp_length ?? '(tanımsız)'}  (hane)`);
 
 if (c.smtp_host !== 'smtp.resend.com' || Number(c.rate_limit_email_sent) !== SAATLIK) {
   console.error('DOĞRULAMA BAŞARISIZ — ayar beklendiği gibi yazılmadı.');
+  process.exit(1);
+}
+// Kod uzunluğunu AYRICA doğruluyoruz. Bu hata tam olarak "yazdım, doğrulamadım"
+// yüzünden çıktı: şablona 6 yazıp sunucuyu okumamıştım.
+if (Number(c.mailer_otp_length) !== 6) {
+  console.error(
+    `DOĞRULAMA BAŞARISIZ — kod uzunluğu 6 olmadı (yayında: ${c.mailer_otp_length ?? 'tanımsız'}).`
+  );
   process.exit(1);
 }
 console.log(`\nTamam. Saatlik sınır 2 → ${SAATLIK}.`);
