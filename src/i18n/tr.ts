@@ -1362,6 +1362,8 @@ export const tr = {
   'ai.errSoruKota': 'Bu ayki AI sorunuz doldu. Hak ayın başında yenilenir.',
   'ai.errMutalaaKota': 'Bu ayki derin araştırma hakkınız doldu. Hak ayın başında yenilenir.',
   'ai.errDenemeBitti': '3 ücretsiz deneme sorunuzu kullandınız. AI’ı sınırsız kullanmak için AI paketine geçebilirsiniz.',
+  'ai.errKvkkRiza': 'Yapay zekâ özellikleri, KVKK açık rızanız olmadan çalışmaz: yazdığınız metin yurt dışındaki bir modele gönderiliyor ve bu aktarım rızaya bağlı. Ayarlar > KVKK Aydınlatma Metni ekranından metni okuyup imzaladığınızda hemen açılır.',
+  'ai.errKvkkKontrol': 'KVKK rıza kaydınız şu an okunamadı; bu bizim tarafımızdaki geçici bir arızadır, sizin bir eksiğiniz değil. Güvenlik gereği yapay zekâ isteği gönderilmedi. Birazdan tekrar deneyin.',
   'ai.errDailyQuota': 'Bugünkü ücretsiz AI hakkı doldu. Hak her gün yenilenir; yarın tekrar deneyebilir ya da kesintisiz kullanım için Pro’ya geçebilirsiniz.',
   'ai.errQuotaWait': 'Ücretsiz AI hakkı şu an dolu — bu havuz tüm kullanıcılarla ortaktır. Yaklaşık {dk} dakika sonra tekrar deneyebilirsiniz.',
   'ai.errQuota': 'Bu ayki AI kullanım hakkınız doldu. Hakkınız ayın başında yenilenir.',

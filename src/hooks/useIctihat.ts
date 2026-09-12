@@ -25,7 +25,11 @@ export interface IctihatHit {
   matched?: boolean;
 }
 
-export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'generic';
+// HATA EŞLEME BURADA DEĞİL. `src/lib/aiHata.ts` saf bir modül ve TESTLİ; bu
+// dosya supabase istemcisini (dolayısıyla react-native'i) çektiği için test
+// ortamında hiç yüklenemiyor. Eşlemeyi burada tutmak, onu sınanamaz kılardı.
+export { ictihatHataAnahtari, type IctihatError } from '@/lib/aiHata';
+import type { IctihatError } from '@/lib/aiHata';
 
 /** Arama mahkeme süzgeci. */
 export type IctihatCourt = 'yargitay' | 'danistay' | 'emsal';
@@ -54,6 +58,10 @@ function mapError(e: unknown): IctihatError {
   if (msg === 'rate_limit') return 'rate_limit';
   if (msg === 'source_unreachable') return 'source';
   if (msg === 'not_configured') return 'ai_off';
+  // KVKK kapısı: yalnız özet ve olay analizi bu kapıdan geçer; kelime araması
+  // ve künye sorgusu yurt dışına aktarım yapmadığı için hiç uğramaz.
+  if (msg === 'kvkk_riza_yok') return 'kvkk';
+  if (msg === 'kvkk_kontrol_hatasi') return 'kvkk_arizasi';
   return 'generic';
 }
 

@@ -42,7 +42,7 @@ export interface AiConversation {
   updatedAt: number;
 }
 
-type AiError = 'rate_limit' | 'daily_quota' | 'quota_exceeded' | 'generic';
+type AiError = 'rate_limit' | 'daily_quota' | 'quota_exceeded' | 'kvkk_riza_yok' | 'generic';
 
 const STORE_KEY = 'vekil.ai.conversations.v2';
 const MAX_CONVERSATIONS = 40;
@@ -169,7 +169,9 @@ export function useAiChat() {
             // gövde okunamazsa genel hataya düşer
           }
           setError(
-            code === 'rate_limit' || code === 'daily_quota' || code === 'quota_exceeded' ? code : 'generic'
+            code === 'rate_limit' || code === 'daily_quota' || code === 'quota_exceeded' || code === 'kvkk_riza_yok'
+              ? code
+              : 'generic'
           );
           return;
         }

@@ -97,6 +97,12 @@ export function KvkkRizaKarti({ tr }: { tr: boolean }) {
   if (!userId) return null;
 
   const rizaVar = son?.onay === true;
+  // ESKİ SÜRÜME VERİLMİŞ RIZA. Metin değiştiyse kullanıcı, imzaladığından
+  // farklı bir aydınlatmanın kapsamında sayılıyor demektir; hele değişiklik
+  // aktarılan tarafları ilgilendiriyorsa rıza o yeni kapsamı karşılamaz.
+  // Kendiliğinden geçersiz SAYMIYORUZ (bu, kullanıcıyı habersiz kesmek olurdu)
+  // ama saklamıyoruz da: durumu söyleyip yeniden imzalama yolunu gösteriyoruz.
+  const surumEski = rizaVar && son?.surum !== KVKK_SURUM;
 
   return (
     <>
@@ -131,13 +137,32 @@ export function KvkkRizaKarti({ tr }: { tr: boolean }) {
                       : 'NO RECORD FOUND. Your account may predate consent logging. Please read and sign the notice before using the AI features.')}
             </Text>
 
+            {surumEski && (
+              <Text style={styles.eski}>
+                {tr
+                  ? `Aydınlatma metni siz imzaladıktan sonra güncellendi (şimdiki sürüm ${KVKK_SURUM}). Rızanız geçerliliğini korur; yine de yeni metni okuyup yeniden imzalamanızı öneririz.`
+                  : `The notice was updated after you signed (current version ${KVKK_SURUM}). Your consent remains valid, but we recommend reading and signing the new text.`}
+              </Text>
+            )}
+
             {hata && <Text style={styles.hata}>{hata}</Text>}
+
+            {surumEski && (
+              <Button
+                label={tr ? 'Yeni metni oku ve yeniden imzala' : 'Read the new text and re-sign'}
+                onPress={() => setImzaAcik(true)}
+                variant="secondary"
+                loading={isliyor}
+                fullWidth
+                icon="refresh-outline"
+              />
+            )}
 
             {rizaVar ? (
               <Button
                 label={tr ? 'Rızamı geri al' : 'Withdraw my consent'}
                 onPress={() => yaz(false, null)}
-                variant="secondary"
+                variant={surumEski ? 'ghost' : 'secondary'}
                 loading={isliyor}
                 fullWidth
                 icon="close-circle-outline"
@@ -183,5 +208,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   bekle: { alignSelf: 'flex-start' },
   durum: { ...typography.caption, color: colors.textSecondary, lineHeight: 20 },
   hata: { ...typography.small, color: colors.danger },
+  eski: { ...typography.small, color: colors.warning, lineHeight: 17 },
   not: { ...typography.small, color: colors.textMuted, lineHeight: 16 },
 });
