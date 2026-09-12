@@ -39,7 +39,6 @@ export default function SignupScreen() {
   const [fullName, setFullName] = useState('');
   const [tcNo, setTcNo] = useState('');
   const [baro, setBaro] = useState('');
-  const [barNumber, setBarNumber] = useState('');
   const [firmName, setFirmName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -93,10 +92,6 @@ export default function SignupScreen() {
       eksik('baro', t('auth.baroRequired'));
       return;
     }
-    if (barNumber.trim().length < 1) {
-      eksik('barNumber', t('auth.barNumberRequired'));
-      return;
-    }
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
       eksik('email', t('auth.emailRequired'));
       return;
@@ -125,7 +120,6 @@ export default function SignupScreen() {
       firmName: firmName.trim(),
       tcNo: tcNo.trim(),
       baro,
-      barNumber: barNumber.trim(),
       captchaToken: captchaToken ?? undefined,
     });
 
@@ -232,16 +226,6 @@ export default function SignupScreen() {
               <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
             </Pressable>
           </View>
-
-          <Input
-            error={hataliAlan === 'barNumber' ? localError : null}
-            label={t('auth.barNumber')}
-            icon="ribbon-outline"
-            keyboardType="number-pad"
-            placeholder={t('auth.barNumberPlaceholder')}
-            value={barNumber}
-            onChangeText={touch((v: string) => setBarNumber(v.replace(/[^0-9]/g, '')))}
-          />
 
           <Input label={t('auth.firmName')} icon="briefcase-outline" placeholder={t('auth.firmNamePlaceholder')} value={firmName} onChangeText={touch(setFirmName)} />
 
