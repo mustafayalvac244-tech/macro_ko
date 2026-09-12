@@ -44,6 +44,11 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
+  // HANGİ ALAN eksik. Mesajın kendisi düğmenin yanında çıkıyordu; eksik kutu
+  // yedi alan yukarıdaysa kullanıcı mesajı görse bile nereye bakacağını
+  // bilmiyordu. Input zaten kırmızı çerçeve + alt yazı çizebiliyor, ama bu
+  // ekranların hiçbirinde kullanılmamıştı.
+  const [hataliAlan, setHataliAlan] = useState<string | null>(null);
   const [baroPickerOpen, setBaroPickerOpen] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaHatasi, setCaptchaHatasi] = useState(false);
@@ -54,42 +59,50 @@ export default function SignupScreen() {
   // message (e.g. a transient network failure) never lingers on screen.
   const touch = <T,>(setter: (v: T) => void) => (v: T) => {
     if (localError) setLocalError(null);
+    if (hataliAlan) setHataliAlan(null);
     if (error) clearError();
     setter(v);
+  };
+
+  /** Hem üstteki özet mesajı hem de kutunun kendi işaretini kurar. */
+  const eksik = (alan: string, mesaj: string) => {
+    setHataliAlan(alan);
+    setLocalError(mesaj);
   };
 
   const handleSubmit = async () => {
     clearError();
     setLocalError(null);
+    setHataliAlan(null);
 
     // Field-by-field validation with specific messages — the button is always
     // tappable so the user is told exactly what is missing.
     if (!fullName.trim()) {
-      setLocalError(t('auth.fullNameRequired'));
+      eksik('fullName', t('auth.fullNameRequired'));
       return;
     }
     if (!tcNo.trim()) {
-      setLocalError(t('auth.tcRequired'));
+      eksik('tcNo', t('auth.tcRequired'));
       return;
     }
     if (!isValidTCKN(tcNo.trim())) {
-      setLocalError(t('auth.tcInvalid'));
+      eksik('tcNo', t('auth.tcInvalid'));
       return;
     }
     if (baro === '') {
-      setLocalError(t('auth.baroRequired'));
+      eksik('baro', t('auth.baroRequired'));
       return;
     }
     if (barNumber.trim().length < 1) {
-      setLocalError(t('auth.barNumberRequired'));
+      eksik('barNumber', t('auth.barNumberRequired'));
       return;
     }
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setLocalError(t('auth.emailRequired'));
+      eksik('email', t('auth.emailRequired'));
       return;
     }
     if (password.length < 8) {
-      setLocalError(t('auth.passwordShort'));
+      eksik('password', t('auth.passwordShort'));
       return;
     }
 
@@ -104,7 +117,9 @@ export default function SignupScreen() {
     }
 
     const sonuc = await signUp({
-      email: email.trim(),
+      // Giriş ekranıyla aynı sebep: klavye ilk harfi büyütürse kullanıcı
+      // kaydolduğu adresle giriş yapamaz hâle gelir.
+      email: email.trim().toLowerCase(),
       password,
       fullName: fullName.trim(),
       firmName: firmName.trim(),
@@ -190,9 +205,10 @@ export default function SignupScreen() {
             </View>
           </View>
 
-          <Input label={t('auth.fullName')} icon="person-outline" placeholder={t('auth.fullNamePlaceholder')} value={fullName} onChangeText={touch(setFullName)} />
+          <Input error={hataliAlan === 'fullName' ? localError : null} label={t('auth.fullName')} icon="person-outline" autoComplete="name" textContentType="name" placeholder={t('auth.fullNamePlaceholder')} value={fullName} onChangeText={touch(setFullName)} />
 
           <Input
+            error={hataliAlan === 'tcNo' ? localError : null}
             label={t('auth.tcNo')}
             icon="card-outline"
             keyboardType="number-pad"
@@ -205,7 +221,10 @@ export default function SignupScreen() {
           {/* Baro seçici */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>{t('auth.baro')}</Text>
-            <Pressable style={styles.selectBox} onPress={() => setBaroPickerOpen(true)}>
+            <Pressable
+              style={[styles.selectBox, hataliAlan === 'baro' && styles.selectBoxError]}
+              onPress={() => setBaroPickerOpen(true)}
+            >
               <Ionicons name="business-outline" size={18} color={colors.textMuted} style={styles.selectIcon} />
               <Text style={[styles.selectText, !baro && styles.selectPlaceholder]}>
                 {baro ? `${baro} Barosu` : t('auth.baroPlaceholder')}
@@ -215,6 +234,7 @@ export default function SignupScreen() {
           </View>
 
           <Input
+            error={hataliAlan === 'barNumber' ? localError : null}
             label={t('auth.barNumber')}
             icon="ribbon-outline"
             keyboardType="number-pad"
@@ -225,19 +245,32 @@ export default function SignupScreen() {
 
           <Input label={t('auth.firmName')} icon="briefcase-outline" placeholder={t('auth.firmNamePlaceholder')} value={firmName} onChangeText={touch(setFirmName)} />
 
+          {/* autoComplete/textContentType olmadan parola yöneticileri ve
+              tarayıcı otomatik doldurması hiç devreye girmiyor; "new-password"
+              ayrıca tarayıcıya güçlü şifre önerdiriyor. */}
           <Input
+            error={hataliAlan === 'email' ? localError : null}
             label={t('auth.email')}
             icon="mail-outline"
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
+            autoComplete="email"
+            textContentType="username"
+            returnKeyType="next"
             placeholder={t('auth.emailPlaceholder')}
             value={email}
             onChangeText={touch(setEmail)}
           />
           <Input
+            error={hataliAlan === 'password' ? localError : null}
             label={t('auth.password')}
             icon="lock-closed-outline"
             secureTextEntry
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="go"
+            onSubmitEditing={handleSubmit}
             placeholder={t('auth.passwordHint')}
             value={password}
             onChangeText={touch(setPassword)}
@@ -302,6 +335,10 @@ export default function SignupScreen() {
         onClose={() => setBaroPickerOpen(false)}
         onSelect={(b) => {
           setBaro(b);
+          if (hataliAlan === 'baro') {
+            setHataliAlan(null);
+            setLocalError(null);
+          }
           setBaroPickerOpen(false);
         }}
       />
@@ -472,6 +509,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flex: 1,
     color: colors.textPrimary,
     fontSize: 15,
+  },
+  selectBoxError: {
+    borderColor: colors.danger,
   },
   selectPlaceholder: {
     color: colors.textMuted,

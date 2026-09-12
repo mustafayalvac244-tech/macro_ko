@@ -28,6 +28,19 @@ export default function ChangePasswordScreen() {
 
   const handleSubmit = async () => {
     setError(null);
+    // DÜĞME DOĞRULAMA YÜZÜNDEN KAPANMAZ. Eskiden
+    // disabled={!currentPassword || newPassword.length < 8 || !confirmPassword}
+    // vardı; kapalı düğme basışı sessizce yutuyor ve "yeni şifre en az 8
+    // karakter" kuralı ekranın hiçbir yerinde yazmıyordu. Kullanıcı basıyor,
+    // hiçbir şey olmuyor, sebebini göremiyordu.
+    if (!currentPassword) {
+      setError(t('changePw.currentRequired'));
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError(t('auth.passwordTooShort'));
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setError(t('changePw.mismatch'));
       return;
@@ -64,6 +77,8 @@ export default function ChangePasswordScreen() {
             label={t('changePw.current')}
             icon="lock-closed-outline"
             secureTextEntry
+            autoComplete="current-password"
+            textContentType="password"
             value={currentPassword}
             onChangeText={setCurrentPassword}
           />
@@ -71,6 +86,8 @@ export default function ChangePasswordScreen() {
             label={t('changePw.new')}
             icon="key-outline"
             secureTextEntry
+            autoComplete="new-password"
+            textContentType="newPassword"
             placeholder={t('auth.passwordHint')}
             value={newPassword}
             onChangeText={setNewPassword}
@@ -79,6 +96,10 @@ export default function ChangePasswordScreen() {
             label={t('changePw.confirm')}
             icon="key-outline"
             secureTextEntry
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="go"
+            onSubmitEditing={handleSubmit}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
           />
@@ -89,7 +110,6 @@ export default function ChangePasswordScreen() {
             label={t('forgot.submit')}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={!currentPassword || newPassword.length < 8 || !confirmPassword}
             fullWidth
             size="lg"
             style={styles.submit}

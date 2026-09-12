@@ -24,9 +24,31 @@ export default function LoginScreen() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const { signIn, isSubmitting, error, clearError } = useAuthStore();
 
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [hataliAlan, setHataliAlan] = useState<'email' | 'password' | null>(null);
+
   const handleSubmit = async () => {
     clearError();
-    const success = await signIn(email.trim(), password, captchaToken ?? undefined);
+    setLocalError(null);
+    setHataliAlan(null);
+    // DÜĞME DOĞRULAMA YÜZÜNDEN KAPANMAZ, KONUŞUR. Eskiden
+    // disabled={!email || !password} vardı: Button kapalıyken onPress'i
+    // sessizce yutuyor, kullanıcı basıyor ve HİÇBİR ŞEY olmuyordu — şifre
+    // sıfırlama ekranında aynı kusur yüzünden akış tamamen tıkanmıştı.
+    if (!email.trim()) {
+      setHataliAlan('email');
+      setLocalError(t('forgot.needEmail'));
+      return;
+    }
+    if (!password) {
+      setHataliAlan('password');
+      setLocalError(t('auth.passwordRequired'));
+      return;
+    }
+    // E-POSTA KÜÇÜK HARFE. Android klavyesi ilk harfi büyütebiliyor ve
+    // "Ali@..." ile yapılan giriş "E-posta veya şifre hatalı" dönüyor;
+    // kullanıcı şifresini yanlış hatırladığını sanıp sıfırlamaya gidiyor.
+    const success = await signIn(email.trim().toLowerCase(), password, captchaToken ?? undefined);
     if (success) router.replace('/(app)');
   };
 
@@ -46,22 +68,46 @@ export default function LoginScreen() {
 
           <Text style={styles.welcome}>{t('auth.welcomeLine')}</Text>
 
+          {/* autoComplete/textContentType: PAROLA YÖNETİCİSİ VE TARAYICI
+              OTOMATİK DOLDURMASI bunlar olmadan hiç çalışmaz. Chrome "şifreyi
+              kaydedeyim mi" diye sormaz, iOS Anahtar Zinciri kutuyu tanımaz.
+              Her uygulamada var; bizde yoktu. */}
           <Input
+            error={hataliAlan === 'email' ? localError : null}
             label={t('auth.email')}
             icon="mail-outline"
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
+            autoComplete="email"
+            textContentType="username"
+            returnKeyType="next"
             placeholder={t('auth.emailPlaceholder')}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(v) => {
+              if (localError) setLocalError(null);
+              if (hataliAlan) setHataliAlan(null);
+              setEmail(v);
+            }}
           />
           <Input
+            error={hataliAlan === 'password' ? localError : null}
             label={t('auth.password')}
             icon="lock-closed-outline"
             secureTextEntry
+            autoComplete="current-password"
+            textContentType="password"
+            // ENTER İLE GİRİŞ. Web sürümünde şifreyi yazıp Enter'a basmak
+            // hiçbir şey yapmıyordu; klavyeden fareye geçmek zorunda kalınıyordu.
+            returnKeyType="go"
+            onSubmitEditing={handleSubmit}
             placeholder={t('auth.passwordPlaceholder')}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(v) => {
+              if (localError) setLocalError(null);
+              if (hataliAlan) setHataliAlan(null);
+              setPassword(v);
+            }}
           />
 
           <Link href={'/forgot-password' as Parameters<typeof router.push>[0]} style={styles.forgotLink}>
@@ -71,13 +117,14 @@ export default function LoginScreen() {
           {/* Görünmez captcha — anahtar yoksa hiç çizilmez. */}
           <Captcha onToken={setCaptchaToken} />
 
-          {error && <Text style={styles.error}>{error}</Text>}
+          {(hataliAlan ? error : localError ?? error) && (
+            <Text style={styles.error}>{hataliAlan ? error : localError ?? error}</Text>
+          )}
 
           <Button
             label={t('auth.signIn')}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={!email || !password}
             fullWidth
             size="lg"
             style={styles.submit}

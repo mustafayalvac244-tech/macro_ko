@@ -65,6 +65,8 @@ export default function ForgotPasswordScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bilgi, setBilgi] = useState<string | null>(null);
+  // Eksik olan kutunun kendisi de işaretlensin; mesaj aşağıda kalıyordu.
+  const [hataliAlan, setHataliAlan] = useState<'email' | 'code' | 'password' | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   // Kalan bekleme (saniye). 0 ise tekrar gönderilebilir.
   const [bekleme, setBekleme] = useState(0);
@@ -81,12 +83,14 @@ export default function ForgotPasswordScreen() {
     async (tekrar: boolean) => {
       const adres = email.trim();
       if (!adres) {
+        setHataliAlan('email');
         setError(t('forgot.needEmail'));
         return;
       }
       setIsSubmitting(true);
       setError(null);
       setBilgi(null);
+      setHataliAlan(null);
       const { error: sendError } = await supabase.auth.resetPasswordForEmail(
         adres,
         captchaToken ? { captchaToken } : undefined
@@ -114,14 +118,17 @@ export default function ForgotPasswordScreen() {
   const handleUpdatePassword = async () => {
     // DOĞRULAMA DÜĞMEYİ KAPATMAZ, KONUŞUR. Eksik ne ise söylüyoruz.
     if (!code.trim()) {
+      setHataliAlan('code');
       setError(t('forgot.needCode'));
       return;
     }
     if (newPassword.length < SIFRE_ASGARI) {
+      setHataliAlan('password');
       setError(t('auth.passwordTooShort'));
       return;
     }
     if (kodHarcandi.current) {
+      setHataliAlan('code');
       setError(t('forgot.codeUsed'));
       return;
     }
@@ -129,6 +136,7 @@ export default function ForgotPasswordScreen() {
     setIsSubmitting(true);
     setError(null);
     setBilgi(null);
+    setHataliAlan(null);
 
     const { error: verifyError } = await supabase.auth.verifyOtp({
       email: email.trim(),
@@ -137,6 +145,7 @@ export default function ForgotPasswordScreen() {
     });
     if (verifyError) {
       setIsSubmitting(false);
+      setHataliAlan('code');
       setError(trError(verifyError.message));
       return;
     }
@@ -165,18 +174,28 @@ export default function ForgotPasswordScreen() {
             <>
               <Text style={styles.description}>{t('forgot.emailStep')}</Text>
               <Input
+                error={hataliAlan === 'email' ? error : null}
                 label={t('auth.email')}
                 icon="mail-outline"
                 autoCapitalize="none"
+                autoCorrect={false}
                 keyboardType="email-address"
+                autoComplete="email"
+                textContentType="username"
+                returnKeyType="go"
+                onSubmitEditing={() => gonder(false)}
                 placeholder={t('auth.emailPlaceholder')}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(v) => {
+                  if (hataliAlan) setHataliAlan(null);
+                  if (error) setError(null);
+                  setEmail(v);
+                }}
               />
               {/* Şifre sıfırlama, captcha'nın en çok işe yaradığı uçtur:
                   otomatik istekler e-posta kotasını tüketir. */}
               <Captcha onToken={setCaptchaToken} />
-              {error && <Text style={styles.error}>{error}</Text>}
+              {error && !hataliAlan && <Text style={styles.error}>{error}</Text>}
               <Button
                 label={t('forgot.sendCode')}
                 onPress={() => gonder(false)}
@@ -198,24 +217,40 @@ export default function ForgotPasswordScreen() {
                   gönderdiğinde kullanıcı kodu YAZAMIYORDU bile. Sunucu ayarı
                   değişirse ekran yine çalışsın diye tavan gevşek. */}
               <Input
+                error={hataliAlan === 'code' ? error : null}
                 label={t('forgot.code')}
                 icon="key-outline"
                 keyboardType="number-pad"
+                // Telefona gelen kodu klavye üstünden tek dokunuşla doldurur;
+                // kullanıcı postaya gidip kodu ezberlemek zorunda kalmaz.
+                autoComplete="one-time-code"
+                textContentType="oneTimeCode"
                 placeholder={t('forgot.codePlaceholder')}
                 value={code}
-                onChangeText={setCode}
+                onChangeText={(v) => {
+                  if (hataliAlan) setHataliAlan(null);
+                  setCode(v);
+                }}
                 maxLength={10}
               />
               <Input
+                error={hataliAlan === 'password' ? error : null}
                 label={t('forgot.newPassword')}
                 icon="lock-closed-outline"
                 secureTextEntry
+                autoComplete="new-password"
+                textContentType="newPassword"
+                returnKeyType="go"
+                onSubmitEditing={handleUpdatePassword}
                 placeholder={t('auth.passwordHint')}
                 value={newPassword}
-                onChangeText={setNewPassword}
+                onChangeText={(v) => {
+                  if (hataliAlan) setHataliAlan(null);
+                  setNewPassword(v);
+                }}
               />
               {bilgi && <Text style={styles.bilgi}>{bilgi}</Text>}
-              {error && <Text style={styles.error}>{error}</Text>}
+              {error && !hataliAlan && <Text style={styles.error}>{error}</Text>}
               <Button
                 label={t('forgot.submit')}
                 onPress={handleUpdatePassword}
