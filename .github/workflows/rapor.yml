@@ -1,0 +1,72 @@
+name: Rapor
+
+# NEDEN VAR. "Hasat performansı ne durumda?" sorusunun cevabı bugüne kadar
+# birinin Supabase SQL Editor'e oturup sorguyu elle çalıştırmasına bağlıydı.
+# Sık sorulan ve elle alınması gereken bir ölçüm, çoğu zaman hiç alınmayan
+# ölçümdür. Bu iş akışı aynı sorguyu tek tıkla koşturuyor ve sonucu koşu
+# özetine yazıyor.
+#
+# SALT OKUNUR. scripts/rapor-kos.mjs, dosyayı çalıştırmadan önce içinde
+# insert/update/delete/drop/alter/create gibi bir ifade var mı diye bakıyor
+# ve varsa REDDEDİYOR. Migration uygulamak için ayrı bir iş akışı var
+# (migration-uygula.yml); bu yol canlı veriyi değiştiremez.
+#
+# Yeni secret YOK: kimlik için zaten tanımlı SUPABASE_ACCESS_TOKEN.
+
+on:
+  workflow_dispatch:
+    inputs:
+      rapor:
+        description: 'Hangi rapor (scripts/<ad>.sql)'
+        default: 'hasat-tek-rapor'
+        type: choice
+        options:
+          - hasat-tek-rapor
+          - hasat-verim-olcum
+          - hasat-kalite-olcum
+          - hasat-disk-olcum
+          - ai-maliyet-olcum
+          - gelir-gider-sorgu
+  schedule:
+    # Her gün 06:00 UTC. Hasat gece boyunca çalışıyor; sabah ölçümü, bir
+    # önceki günün tam bir resmini veriyor.
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  rapor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Secret kontrolü
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN tanımlı değil."
+            exit 1
+          fi
+
+      - name: Koştur
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: wjshlysfmeqlnfiibknj
+          # Zamanlanmış koşuda seçim gelmiyor; varsayılan tek rapor.
+          RAPOR: ${{ inputs.rapor || 'hasat-tek-rapor' }}
+        run: |
+          set -o pipefail
+          node scripts/rapor-kos.mjs "$RAPOR" 2>&1 | tee /tmp/rapor.log
+          {
+            echo "## $RAPOR"
+            echo ''
+            echo '```'
+            cat /tmp/rapor.log
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
