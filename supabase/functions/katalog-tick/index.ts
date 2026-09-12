@@ -180,36 +180,68 @@ Deno.serve(async (req) => {
       { onConflict: 'tur,gun' }
     );
 
-  const sonuclar = await havuzda(pencereler, ES_ZAMAN, (p) =>
-    sayfaCek(tur, String(p.gun).slice(0, 10), p.sonraki_sayfa ?? 1)
-  );
+  /**
+   * BÜTÇELİ KUYRUK — çok sayfalı günler aynı turda boşaltılıyor.
+   *
+   * İlk sürümde her pencereden YALNIZ BİR sayfa çekiliyordu. Yoğun bir gün
+   * (ölçüldü: 2024-03-05 Yargıtay'da 1.632 karar = 17 sayfa) o zaman 17 ayrı
+   * tur ister ve sırası ancak 15.850 pencerenin TAMAMI bir kez dolaşıldıktan
+   * sonra gelirdi. Kapsama haftalar sürerdi.
+   *
+   * Şimdi dolu dönen bir sayfa, bir sonraki sayfasıyla kuyruğun SONUNA
+   * ekleniyor: önce tüm pencerelerin 1. sayfası, sonra dolu olanların 2.
+   * sayfası, diye devam ediyor. Bütçe (`istek`) dolunca tur bitiyor; kalanlar
+   * bir sonraki turda kaldığı yerden sürüyor.
+   */
+  type Is = { gun: string; sayfa: number };
+  type Durum = { sayfa: number; bitti: boolean; sonSatir: number };
 
+  const durum = new Map<string, Durum>();
   const satirlar: Satir[] = [];
-  const guncel: Array<Record<string, unknown>> = [];
-  let basarili = 0;
-  let biten = 0;
-  for (let i = 0; i < pencereler.length; i++) {
-    const p = pencereler[i];
-    const r = sonuclar[i];
-    // Bu pencere düştü: sayfası İLERLETİLMEZ, sonraki tur aynı yerden dener.
-    // Karar kaybı olmaz; yalnız bir tur gecikir.
-    if (r === undefined) continue;
-    basarili++;
-    satirlar.push(...r);
-    const sayfa = p.sonraki_sayfa ?? 1;
-    // Eksik sayfa = pencerenin sonu. Ölçüldü: 1.632 kayıtlı bir günde sayfa 17
-    // → 32 kayıt, sayfa 18 → 0.
-    const bittiMi = r.length < SAYFA_BOYU;
-    if (bittiMi) biten++;
-    guncel.push({
-      tur,
-      gun: p.gun,
-      son_calisma: simdi,
-      sonraki_sayfa: bittiMi ? sayfa : sayfa + 1,
-      bitti: bittiMi,
-      toplam: (sayfa - 1) * SAYFA_BOYU + r.length,
-    });
+  let butce = istek;
+  let basarisiz = 0;
+  const kuyruk: Is[] = pencereler.map((p) => ({
+    gun: String(p.gun).slice(0, 10),
+    sayfa: p.sonraki_sayfa ?? 1,
+  }));
+
+  while (butce > 0 && kuyruk.length > 0) {
+    // Parti boyu havuzun iki katı: havuz sürekli dolu kalsın ama bütçe de
+    // aşılmasın.
+    const parti = kuyruk.splice(0, Math.min(butce, ES_ZAMAN * 2));
+    butce -= parti.length;
+    const r = await havuzda(parti, ES_ZAMAN, (is) => sayfaCek(tur, is.gun, is.sayfa));
+    for (let i = 0; i < parti.length; i++) {
+      const is = parti[i];
+      const sonuc = r[i];
+      // Bu sayfa düştü: pencerenin durumu GÜNCELLENMEZ, sonraki tur aynı
+      // sayfadan devam eder. Karar kaybı olmaz, yalnız bir tur gecikir.
+      if (sonuc === undefined) {
+        basarisiz++;
+        continue;
+      }
+      satirlar.push(...sonuc);
+      const tamSayfa = sonuc.length >= SAYFA_BOYU;
+      durum.set(is.gun, {
+        sayfa: tamSayfa ? is.sayfa + 1 : is.sayfa,
+        bitti: !tamSayfa,
+        sonSatir: sonuc.length,
+      });
+      // Eksik sayfa = pencerenin sonu (ölçüldü: 1.632 kayıtlı günde sayfa 17
+      // → 32 kayıt, sayfa 18 → 0). Dolu sayfa varsa devamı kuyruğa.
+      if (tamSayfa) kuyruk.push({ gun: is.gun, sayfa: is.sayfa + 1 });
+    }
   }
+
+  const guncel = [...durum.entries()].map(([gun, d]) => ({
+    tur,
+    gun,
+    son_calisma: simdi,
+    sonraki_sayfa: d.sayfa,
+    bitti: d.bitti,
+    toplam: (d.sayfa - 1) * SAYFA_BOYU + (d.bitti ? d.sonSatir : 0),
+  }));
+  const biten = guncel.filter((g) => g.bitti).length;
 
   let yazilan = 0;
   let not: string | undefined;
@@ -235,7 +267,8 @@ Deno.serve(async (req) => {
 
   return cevap({
     pencere: pencereler.length,
-    basarili,
+    istek_kullanilan: istek - butce,
+    basarisiz_sayfa: basarisiz,
     gun_bitti: biten,
     taranan: satirlar.length,
     eklenen: yazilan,
