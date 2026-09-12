@@ -179,18 +179,6 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 .alt h4{font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--metin-3);margin:0;font-family:'Manrope',sans-serif}
 .telif{margin-top:34px;padding-top:22px;border-top:1px solid var(--cizgi);font-size:13px;color:var(--metin-3);text-align:center}
 
-/* Karşılaştırma tablosu. Dar ekranda yatay kaydırma KUTUNUN içinde kalır;
-   sayfanın kendisi asla yana kaymaz. */
-.kars-sar{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--cizgi);border-radius:var(--radius);background:var(--kart)}
-table.kars{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
-table.kars th,table.kars td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--cizgi);vertical-align:top}
-table.kars thead th{font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:var(--metin-2)}
-table.kars tbody tr:last-child td{border-bottom:0}
-table.kars td:first-child{font-weight:700}
-table.kars .biz{background:rgba(197,160,84,.09)}
-table.kars thead th.biz{color:var(--altin-2)}
-.kars-not{font-size:13.5px;color:var(--metin-2);margin-top:14px;line-height:1.7}
-
 /* ── Kahraman: iki sütun + ürün görseli ────────────────────────────────────
    Sayfada hiç görsel yoktu (ölçüldü: document.images.length === 0). Görsel
    bir ekran görüntüsü DEĞİL, arayüzün çizimidir; altında öyle yazıyor. */
@@ -237,7 +225,6 @@ table.kars thead th.biz{color:var(--altin-2)}
       <a href="#ozellikler">Özellikler</a>
       <a href="#yapayzeka">Yapay Zekâ</a>
       <a href="#fiyat">Fiyatlar</a>
-      <a href="#karsilastirma">Karşılaştırma</a>
       <a href="#neden">Neden Vekil Pro</a>
       <a href="#sss">S.S.S.</a>
     </nav>
@@ -279,8 +266,8 @@ table.kars thead th.biz{color:var(--altin-2)}
     </div><!-- /kh-sol -->
 
     <!-- ÜRÜN GÖRSELİ. Sayfada bugüne kadar TEK BİR GÖRSEL YOKTU (ölçüldü:
-         document.images.length === 0) — baştan aşağı yazıydı. Rakip sitelerin
-         yanında zayıf görünmesinin ilk sebebi buydu.
+         document.images.length === 0) — baştan aşağı yazıydı ve ürünün ne
+         olduğu okunmadan anlaşılmıyordu.
          BU BİR EKRAN GÖRÜNTÜSÜ DEĞİL, arayüzün temsilî çizimidir ve altında
          öyle yazıyor. Gerçek ekran görüntüsü için üretim veritabanına sahte
          dosya/müvekkil kaydı açmak gerekirdi; bunu yapmadık.
@@ -479,89 +466,19 @@ table.kars thead th.biz{color:var(--altin-2)}
   </div>
 </section>
 
-<section id="karsilastirma">
-  <div class="sar">
-    <div class="bas">
-      <span class="etiket">Karşılaştırma</span>
-      <h2>Rakiplerimizi kendi açıklamalarıyla yazdık</h2>
-      <p>Aşağıdaki rakip bilgileri, firmaların kendi tanıtım sayfalarından ve yayımlanmış fiyat açıklamalarından alındı (Eylül 2026). Bizim sütunumuzdaki sayılar ise ölçüm sonucudur — kaynakları “Ölçümler” bölümünde.</p>
-    </div>
-    <div class="kars-sar">
-      <table class="kars">
-        <thead>
-          <tr>
-            <th></th>
-            <th class="biz">Vekil Pro</th>
-            <th>Apilex</th>
-            <th>Lexedes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Ücret</td>
-            <td class="biz">Büro yönetimi <b>399 ₺/ay</b>. Yapay zekâ katmanı <b>2.999 ₺/ay</b>, ayrı ve isteğe bağlı. İçtihat araması ücretsiz.</td>
-            <td>40.000 ₺/yıl ya da 25.000 ₺/6 ay — <b>aylık seçenek yok</b>, peşin</td>
-            <td>Aylık paketler: 990 / 2.990 (önerilen) / 5.490 ₺</td>
-          </tr>
-          <tr>
-            <td>Karar havuzu</td>
-            <td class="biz">Arama <b>canlı olarak UYAP Emsal ve Bedesten'e</b> gider — yani kaynağın tamamında ararsınız, bizim havuzumuzla sınırlı değilsiniz. Ayrıca yapay zekâyı beslemek için kendi havuzumuzu tutuyoruz: 14.154 karar, her gün büyüyor.</td>
-            <td>“12 milyondan fazla karar” (kendi beyanı)</td>
-            <td>“11 milyon karar” (kendi beyanı)</td>
-          </tr>
-          <tr>
-            <td>Çıktıdaki atıf denetleniyor mu?</td>
-            <td class="biz">Evet. Her madde ve her karar numarası için üç ayrı sonuç: doğrulandı / havuzda yok / olamaz.</td>
-            <td>Tanıtımında böyle bir denetim yok</td>
-            <td>Tanıtımında böyle bir denetim yok</td>
-          </tr>
-          <tr>
-            <td>Büro yönetimi<br><span style="font-weight:400;color:var(--metin-2)">dava, müvekkil, duruşma, icra, kasa, süre</span></td>
-            <td class="biz">Tam — programın çekirdeği</td>
-            <td>Dosya/proje düzeni var; tahsilat, duruşma ve kasa takibi tanıtımda yok</td>
-            <td>Tanıtımında yok</td>
-          </tr>
-          <tr>
-            <td>Hesaplama araçları<br><span style="font-weight:400;color:var(--metin-2)">AAÜT, faiz, harç, kıdem-ihbar, SMM</span></td>
-            <td class="biz">Uygulamanın içinde, üyeliksiz</td>
-            <td>Tanıtımında yok</td>
-            <td>Ücretsiz web araçları var</td>
-          </tr>
-          <tr>
-            <td>Telefon uygulaması</td>
-            <td class="biz">iOS + Android + web</td>
-            <td>Android/iOS uygulaması var</td>
-            <td>Web</td>
-          </tr>
-          <tr>
-            <td>Ücretsiz kullanım</td>
-            <td class="biz">İçtihat ve mevzuat araması süresiz ücretsiz, üyelik gerekmez</td>
-            <td>Demo talebi</td>
-            <td>Ücretsiz hesaplama araçları</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="kars-not">
-      <b>Sayı yarışına girmiyoruz.</b> Onların ilan ettiği milyonlar, aramanın <b>bizde de canlı olarak gittiği</b> UYAP Emsal ve Bedesten havuzudur — aynı kaynak. Bizim ayrıca tuttuğumuz 14.154 karar, yapay zekâyı beslemek içindir ve her gün büyüyor; hedefimiz 1 milyon. İddiamız havuzun büyüklüğü değil, <b>çıktıya ne olduğu</b>: verdiğimiz her madde ve karar numarası denetlenir.
-      Rakip bilgileri kendi tanıtım sayfalarından alındı; doğruluklarını biz sınamadık ve fiyatları değişebilir.
-    </p>
-  </div>
-</section>
-
 <section id="neden">
   <div class="sar">
     <div class="durust">
       <div class="bas">
         <span class="etiket" style="color:var(--altin-2)">Neden Vekil Pro</span>
-        <h2>Rakiplerin yapmadığı üç şey</h2>
+        <h2>Bu programı ayıran şey</h2>
         <p>Hepsi bugün çalışıyor — yakında değil.</p>
       </div>
       <div class="olcum">
-        <div><b>Verdiğimiz her karar numarası denetlenir</b><span>Yapay zekânın yazdığı her kanun maddesi ve her Yargıtay/Danıştay künyesi kontrol edilir: doğrulandı, havuzda yok ya da <b>olamaz</b>. Uydurma bir esas numarası dilekçenize girmeden önce görürsünüz. Başka hiçbir üründe bu denetim yok.</span></div>
-        <div><b>İçtihat araması süresiz ücretsiz</b><span>Üyelik yok, sayaç yok, kredi kartı yok. Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız arama — canlı UYAP kaynağına da gider. Rakipler aynı iş için aylık 2.990 ₺ istiyor.</span></div>
+        <div><b>Verdiğimiz her karar numarası denetlenir</b><span>Yapay zekânın yazdığı her kanun maddesi ve her Yargıtay/Danıştay künyesi kontrol edilir: doğrulandı, havuzda yok ya da <b>olamaz</b>. Uydurma bir esas numarası dilekçenize girmeden önce görürsünüz.</span></div>
+        <div><b>İçtihat araması süresiz ücretsiz</b><span>Üyelik yok, sayaç yok, kredi kartı yok. Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız arama — canlı UYAP kaynağına da gider.</span></div>
         <div><b>Dilekçe doğrudan UYAP formatında iner</b><span>Ürettiğiniz taslağı uygulama içinde düzeltir, <b>.udf</b> olarak indirir, UYAP Editör'de açarsınız. Kopyala-yapıştır ve biçim düzeltme adımı yok.</span></div>
-        <div><b>Araştırma ile büro işi tek programda</b><span>Dava, duruşma, müvekkil, icra, kasa, süre takibi ve yapay zekâ aynı yerde. Rakipler yalnız araştırma aracı — büro yönetimini ayrıca almanız gerekir.</span></div>
+        <div><b>Araştırma ile büro işi tek programda</b><span>Dava, duruşma, müvekkil, icra, kasa, süre takibi ve yapay zekâ aynı yerde. İkinci bir program ve ikinci bir abonelik gerekmez.</span></div>
         <div><b>Telefonda da, bilgisayarda da</b><span>Duruşma çıkışında telefondan süre girer, büroda bilgisayardan dilekçe yazarsınız. Aynı hesap, aynı veri.</span></div>
         <div><b>Verileriniz eğitime gitmez</b><span>Sorularınız model eğitiminde kullanılmaz, soru metni saklanmaz. KVKK uyumlu.</span></div>
       </div>
@@ -621,7 +538,6 @@ table.kars thead th.biz{color:var(--altin-2)}
         <a href="app/">Web sürümü</a>
         <a href="#ozellikler">Özellikler</a>
         <a href="#fiyat">Fiyatlar</a>
-        <a href="#karsilastirma">Karşılaştırma</a>
         <a href="#neden">Neden Vekil Pro</a>
       </div>
       <div>
