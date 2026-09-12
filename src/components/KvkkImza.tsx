@@ -228,16 +228,22 @@ export function KvkkImza({ visible, tr, onVazgec, onImza }: Props) {
               {tr ? 'Rıza vermeden kapat' : 'Close without consenting'}
             </Text>
           </Pressable>
-          {/* Bu not, RIZA_ZORUNLU bayrağıyla birlikte değişir: kayıt rızasız
-              tamamlanamıyorken "şart değildir" demek yanlış beyan olurdu. */}
+          {/* KISA TUTULUYOR — ÖLÇÜLEN SEBEP. Burada uzun bir bildirim paragrafı
+              vardı ve tarayıcıda ölçüldü: 360x640 bir telefonda imza bloğu
+              ekranın %72'sini yiyor, okunacak metne 177px kalıyordu (~38 ekran
+              kaydırma). Okutmak için açtığımız pencerede okuma alanını yok
+              etmek, kapının amacını bozuyordu.
+              Metin SİLİNMEDİ, yerine taşındı: aynı bildirim yukarıdaki metnin
+              5. ve 13. başlıklarında tam hâliyle duruyor — yani imzalanan
+              metnin İÇİNDE, kenarda tekrar eden bir not olarak değil. */}
           <Text style={styles.not}>
             {RIZA_ZORUNLU
               ? (tr
-                  ? 'Açık bildirim: kayıt şu an bu rıza olmadan tamamlanamıyor. Bunun Kanun’un aradığı özgür irade ölçütüyle tam bağdaşmadığı, metnin 5. başlığında yazılıdır. Rızayı verdikten sonra Ayarlar’dan geri alabilirsiniz; hesabınız kapanmaz, yalnız yapay zekâ özellikleri durur. İmzanız, metin sürümü ve tarihiyle kaydedilir.'
-                  : 'Disclosed plainly: registration currently cannot be completed without this consent — section 5 explains why that is contestable. Once given, you can withdraw it in Settings; your account stays open and only the AI features stop. Your signature is recorded with the notice version and date.')
+                  ? 'Kayıt şu an bu rıza olmadan tamamlanamıyor (gerekçesi 5. başlıkta). Sonra Ayarlar’dan geri alabilirsiniz; hesabınız kapanmaz.'
+                  : 'Registration currently requires this consent (see section 5). You can withdraw it later in Settings; your account stays open.')
               : (tr
-                  ? 'Rıza, hizmetin şartı değildir: vermezseniz yalnız yapay zekâ özellikleri kapalı kalır, uygulamanın geri kalanını kullanabilirsiniz. İmzanız, metin sürümü ve tarihiyle birlikte kaydedilir.'
-                  : 'Consent is not a condition of service: without it only the AI features stay off and the rest of the app works. Your signature is recorded with the notice version and date.')}
+                  ? 'Rıza hizmetin şartı değildir; vermezseniz yalnız yapay zekâ özellikleri kapalı kalır.'
+                  : 'Consent is not a condition of service; without it only the AI features stay off.')}
           </Text>
         </View>
       </View>
