@@ -9,27 +9,37 @@ import { DENEME_SORU_LIMIT, overLimit, tierConfig } from '../supabase/functions/
  */
 const secenek = {
   groqModel: 'openai/gpt-oss-120b',
+  // ÜCRETLİ MODEL TEK ALANDA. Eskiden `claudeModel` (yedek) ve
+  // `claudeOpusModel` (asıl) diye iki alan vardı; hangisinin gerçekten
+  // kullanıldığı kod okunmadan anlaşılmıyordu ve ictihat ucu bir dönem
+  // ikincisini hiç almıyordu. 12.09.2026'da tek alana indirildi.
   claudeModel: 'claude-sonnet-5',
-  claudeOpusModel: 'claude-opus-5',
   claudeAnahtariVar: true,
 };
 
 describe('tierConfig', () => {
-  it('taban katmanlar (free/baslangic) artık Groq değil, deneme hakkıyla Opus kullanır', () => {
+  it('taban katmanlar (free/baslangic) artık Groq değil, deneme hakkıyla ücretli modeli kullanır', () => {
     for (const t of ['free', 'baslangic']) {
       const { cfg } = tierConfig(t, false, secenek);
       expect(cfg.provider, t).toBe('claude');
-      expect(cfg.model, t).toBe('claude-opus-5');
+      expect(cfg.model, t).toBe('claude-sonnet-5');
       expect(cfg.denemeLimit, t).toBe(DENEME_SORU_LIMIT);
     }
   });
 
-  it('"ai" katmanı Opus kullanır — tek ücretli katman', () => {
+  it('"ai" katmanı ücretli Claude modelini kullanır — tek ücretli katman', () => {
     const { cfg } = tierConfig('ai', false, secenek);
     expect(cfg.provider).toBe('claude');
-    expect(cfg.model).toBe('claude-opus-5');
+    expect(cfg.model).toBe('claude-sonnet-5');
     expect(cfg.billable).toBe(true);
     expect(cfg.denemeLimit).toBeUndefined();
+  });
+
+  it('model DIŞARIDAN gelir — env değişince tier tablosu peşinden gelir', () => {
+    // Opus'a dönmek tek env değişikliği olmalı (VEKIL_CLAUDE_MODEL); kod
+    // içinde model adı sabitlenirse "dönüş" bir deploy'a bağlanır.
+    const { cfg } = tierConfig('ai', false, { ...secenek, claudeModel: 'claude-opus-5' });
+    expect(cfg.model).toBe('claude-opus-5');
   });
 
   it('hiçbir katmanın birincil sağlayıcısı Gemini ya da Groq değildir (yalnız yedek)', () => {

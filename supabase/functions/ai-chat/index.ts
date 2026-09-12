@@ -102,7 +102,6 @@ const KONTOR_ESIGI = Number(Deno.env.get('VEKIL_KONTOR_ESIGI') || '15');
 // deploy'suz değiştirilebilir.
 const CLAUDE_MODEL = Deno.env.get('VEKIL_CLAUDE_MODEL') || 'claude-sonnet-5';
 // "ai" katmanının ve deneme hakkının kullandığı GERÇEK ücretli model.
-const CLAUDE_OPUS_MODEL = Deno.env.get('VEKIL_CLAUDE_OPUS_MODEL') || 'claude-opus-5';
 // Groq, llama-3.3-70b-versatile'ı 17.06.2026'da kullanımdan kaldırdı (404
 // model_not_found → tüm AI katmanları çöktü). Resmî önerilen halef: gpt-oss-120b.
 // Model env (VEKIL_GROQ_MODEL) ile deploy'suz değiştirilebilir.
@@ -1847,7 +1846,6 @@ Deno.serve(async (req) => {
   const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium, {
     groqModel: GROQ_MODEL,
     claudeModel: CLAUDE_MODEL,
-    claudeOpusModel: CLAUDE_OPUS_MODEL,
     claudeAnahtariVar: !!Deno.env.get('ANTHROPIC_API_KEY'),
     zorlaSaglayici: Deno.env.get('VEKIL_ZORLA_SAGLAYICI') ?? undefined,
     zorlaModel: Deno.env.get('VEKIL_ZORLA_MODEL') ?? undefined,

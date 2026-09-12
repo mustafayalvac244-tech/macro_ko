@@ -8,7 +8,22 @@ birincisi.
 
 ---
 
-## Bugünkü durum (11 Eylül 2026 · Opus dönemi yeniden puanlama)
+## Bugünkü durum (12 Eylül 2026 · Sonnet'e inildikten sonra)
+
+> ### ⚠ MODEL DEĞİŞTİ — 11 EYLÜL ÖLÇÜMLERİ GEÇERSİZ
+>
+> 12 Eylül 2026'da ücretli katman **Claude Opus 5 → Claude Sonnet 5**'e
+> indirildi (ürün kararı; gerekçe maliyet: ölçülmüş dilekçe boyutlarıyla
+> istek başına ₺2,67 yerine ₺1,07).
+>
+> Bunun puan tablosuna etkisi tek cümleyle: **11 Eylül'de Opus'ta yapılan iki
+> ölçüm, bugün kullandığımız modeli ölçmüyor.** Dilekçedeki 11/11 ve
+> sohbetteki 8/10, `claude-opus-5` künyeli artefaktlardır. Sonnet'te
+> tekrarlanana kadar bu iki satır **ölçülmemiş** sayılır.
+>
+> "Sonnet de en az o kadar iyidir" DEMİYORUZ — ölçmedik. Aynı şekilde "kalite
+> düştü" de demiyoruz; o da ölçülmedi. Tek doğru cümle: **bilinmiyor.**
+> Ölçüm tek komut uzakta ve artık para tavanlı (`betik_tl`).
 
 Önceki tablo **ücretsiz katman** (Groq/Gemini) dönemine aitti. Anthropic
 anahtarı geldikten sonra ölçüm yeniden koşuldu. Aşağıdaki puanlar bu koşunun
@@ -29,14 +44,14 @@ sayıya sıkıştırmak yanıltır.
 
 | # | Özellik | Önce | Şimdi | Ölçüm değişti mi | Kanıt |
 |---|---------|------|-------|------------------|-------|
-| 1 | Dilekçe üretimi | 7 | **7** | ✅ evet | `eval-dilekce-hatalar.json`, 11.09.2026 19:37, `claude-opus-5`, **11/11 senaryo, 0 kusurlu**, 29 dk. Tablonun kendi bariyeri ("tek koşuda 10/11") AŞILDI. 8 vermiyorum: sınavı ben yazdım, tek koşu — tutarlılık kanıtı değil |
+| 1 | Dilekçe üretimi | 7 | **ölçülmedi** | ⚠ model değişti | 11.09'da Opus'ta **11/11, 0 kusurlu** ölçüldü (`eval-dilekce-hatalar.json`, 19:37, `claude-opus-5`, 29 dk) — tablonun kendi bariyeri aşılmıştı. **Model 12.09'da Sonnet'e indirildiği için bu ölçüm artık kullandığımız modeli ölçmüyor.** Sonnet'te tekrarlanmadı |
 | 2 | Hukuki mütalaa | 0 | **ölçülmedi** | ✅ evet (eski sayı geçersizleşti) | Eski 0/5 ÜCRETSİZ KATMANI ölçüyordu; o yapılandırma artık yok. Opus koşusu `modeller: []` ile bitti — **tek bir model çağrısı bile tamamlanmadı** (`eval-mutalaa-hatalar.json`, 18:41, 10 sn). "0" demek de "düzeldi" demek de yanlış olur |
 | 3 | Belge inceleme | 7 | **7** | ❌ hayır | Opus koşusu 6 senaryodan **yalnız 2'sini** çalıştırdı, 1'i kusurlu (`eval-belge-hatalar.json`, 18:43). Kısmi koşu puan değiştirmez |
 | 4 | İçtihat arama | 7 | **7** | ✅ evet (büyük) | Zaman aşımı **17/30 → 0/30**, dönen sonuç **65 → 140**, sorgu süresi **15-17 sn → 176-800 ms** (migration 0111/0113, deterministik SQL ölçümü). Dönen sonuçlarda isabet %93,6 — bu sayıyı BEN puanladım. Bariyer ("avukat gözüyle doğrulama") hâlâ aşılmadı |
 | 5 | Mevzuat arama | 7 | **7** | ✅ evet (önceki sayı YANLIŞTI) | Eski %58,8 / %70,6 rakamları `search_mevzuat_fts`'i ölçüyordu; ai-chat onu KULLANMIYOR (`search_mevzuat_kural` + `match_mevzuat_semantic` kullanıyor). Doğru yol ölçüldü: **57/68 = %83,8**. Bu bir ilerleme DEĞİL, ilk doğru ölçüm — eskisi yanlış şeyi ölçüyordu |
 | 6 | Süre & duruşma takibi | 6 | **6** | ❌ hayır | 49 duruşma / 9 süre oranı bu oturumda yeniden ölçülmedi. Bildirim kodu yazıldı, oran bilinmiyor |
 | 7 | Dosya & müvekkil yönetimi | 8 | **8** | ❌ hayır | 42 dava / 48 müvekkil / 49 duruşma (11.09 canlı sayım). Kanıtı gerçek kullanım olduğu için 8'de kalıyor |
-| 8 | AI sohbet | 6 | **7** | ✅ evet | Önceki 6 bir ÖLÇÜM DEĞİLDİ (tekrar üretilemeyen bir sayıydı). İlk gerçek ölçüm: `eval-sohbet-hatalar.json`, 19:01, `claude-opus-5`, **10 senaryoda 8 geçti**. "6'dan 7'ye çıktı" demiyorum; "hiç ölçülmemişti, ilk ölçüm 8/10" diyorum |
+| 8 | AI sohbet | 6 | **ölçülmedi** | ⚠ model değişti | Önceki 6 bir ÖLÇÜM DEĞİLDİ. 11.09'da Opus'ta ilk gerçek ölçüm yapıldı: `eval-sohbet-hatalar.json`, 19:01, `claude-opus-5`, **10 senaryoda 8 geçti**. **Model değiştiği için o sayı da artık geçmişe ait.** Sonnet'te ölçülmedi |
 | 9 | Dosya aktarma (UYAP) | 5 | **5** | ❌ hayır | Özellik hâlâ kapalı, hiç kullanılmadı |
 | 10 | Finans | 7 | **7** | ❌ hayır | KDV/stopaj/SMM kodu canlıda ama gerçek kullanıcı hiç kullanmadı |
 
