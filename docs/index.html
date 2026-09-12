@@ -130,8 +130,16 @@ section{padding:80px 0}
 @media(max-width:900px){ .izgara{grid-template-columns:repeat(2,1fr)} }
 @media(max-width:620px){ .izgara{grid-template-columns:1fr} }
 .kutu{background:var(--kart);border:1px solid var(--cizgi);border-radius:var(--radius);padding:26px;box-shadow:var(--golge)}
-.kutu .ik{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:20px;
-  background:color-mix(in srgb,var(--lacivert-3) 12%,transparent); margin-bottom:16px}
+/* MADDE NUMARASI — emoji DEĞİL.
+   Burada her kutunun başında yuvarlak köşeli bir kare içinde emoji duruyordu
+   (⚖️ 📁 👤 …). O düzen, hazır şablonların en tanınır işareti: ürünün kendisi
+   hakkında hiçbir şey söylemiyor ve sayfayı "bunu bir yerden kopyalamışlar"
+   hissine sokuyor. Yerine hukuk metninin kendi dili kondu: numaralı madde,
+   başlık fontuyla (Playfair) ve altın ince çizgiyle. Hem bize ait, hem de
+   avukatın günlük olarak baktığı biçim. */
+.kutu .ik{font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:700;line-height:1;
+  color:var(--altin);margin-bottom:14px;padding-bottom:12px;letter-spacing:.5px;
+  border-bottom:1px solid var(--cizgi);display:block;width:100%}
 .kutu h3{font-size:18px;margin-bottom:8px}
 .kutu p{color:var(--metin-2);font-size:14.8px}
 
@@ -194,25 +202,33 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 .kh-gorsel figcaption{margin-top:12px;font-size:12.5px;color:var(--metin-3);text-align:center}
 .cerceve{text-align:left;background:var(--kart);border:1px solid var(--cizgi);border-radius:14px;overflow:hidden;
   box-shadow:0 28px 60px -28px rgba(14,27,51,.45), 0 2px 6px rgba(14,27,51,.06)}
-.cr-ust{display:flex;align-items:center;gap:6px;padding:10px 14px;background:var(--zemin);border-bottom:1px solid var(--cizgi)}
-.nk{width:9px;height:9px;border-radius:50%}
-.nk.k{background:#E3655B}.nk.s{background:#E0B341}.nk.y{background:#67B26F}
-.cr-adres{margin-left:10px;font-size:11.5px;color:var(--metin-3);font-weight:600;letter-spacing:.2px}
-.cr-govde{padding:16px}
-.cr-baslik{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.cr-baslik b{font-size:14px;margin-right:auto}
-.cr-eylem{font-size:10.5px;font-weight:700;color:var(--metin-2);border:1px solid var(--cizgi);
-  border-radius:999px;padding:4px 9px;white-space:nowrap}
-.cr-eylem.vurgu{color:#fff;background:var(--lacivert-2);border-color:transparent}
-.cr-satir{font-size:12.3px;color:var(--metin-2);line-height:1.75;margin:0}
-.cr-satir.sonek{color:var(--metin);font-weight:600}
-.denetim{margin-top:14px;border:1px solid var(--cizgi);border-radius:11px;padding:10px}
-.dn-ust{font-size:11.5px;color:var(--metin-3);font-weight:700;margin-bottom:8px}
-.dn{border-radius:8px;padding:9px 10px;margin-top:6px;font-size:11.4px;line-height:1.5}
-.dn b{display:block;font-size:11.4px;margin-bottom:2px}
+.cr-ust{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--zemin);border-bottom:1px solid var(--cizgi)}
+.cr-ust b{font-size:12.5px;letter-spacing:.3px;color:var(--metin);margin-right:auto}
+.canli-nk{width:7px;height:7px;border-radius:50%;background:var(--yesil);box-shadow:0 0 0 3px rgba(18,128,92,.18)}
+.cr-govde{padding:14px}
+.dn-yaz{width:100%;min-height:104px;resize:vertical;font-family:inherit;font-size:13px;line-height:1.7;
+  color:var(--metin);background:var(--zemin);border:1px solid var(--cizgi);border-radius:10px;padding:11px 12px}
+.dn-yaz:focus{outline:none;border-color:var(--lacivert-3);background:var(--kart)}
+.dn-arac{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px}
+.dn-ornek{font-size:11.5px;font-weight:700;color:var(--metin-2);background:transparent;cursor:pointer;
+  border:1px solid var(--cizgi);border-radius:999px;padding:5px 11px;font-family:inherit}
+.dn-ornek:hover{border-color:var(--lacivert-3);color:var(--lacivert-3)}
+.dn-sayac{margin-left:auto;font-size:11.5px;color:var(--metin-3);font-weight:600}
+.dn-sonuc{margin-top:11px;display:grid;gap:6px}
+.dn{border-radius:9px;padding:9px 11px;font-size:12px;line-height:1.55}
+.dn b{display:block;font-size:12px;margin-bottom:2px}
+.dn span{display:block}
 .dn.kirmizi{background:rgba(206,53,61,.10);color:#A32A31}
 .dn.sari{background:rgba(178,120,17,.12);color:#8A5C0C}
 .dn.yesil{background:rgba(21,138,84,.12);color:#0F6B41}
+.dn.sessiz{background:var(--zemin);color:var(--metin-3)}
+@media (prefers-color-scheme: dark){
+  .dn.kirmizi{background:rgba(227,101,91,.16);color:#F0A49D}
+  .dn.sari{background:rgba(224,179,65,.16);color:#E8C878}
+  .dn.yesil{background:rgba(63,207,155,.15);color:#6FDCB4}
+}
+.gizli-etiket{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.dn-not{margin-top:10px;font-size:11.5px;line-height:1.6;color:var(--metin-3)}
 .sayilar b i{font-family:'Manrope',system-ui,sans-serif;font-style:normal;font-size:20px;margin-left:2px}
 </style>
 </head>
@@ -265,46 +281,38 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     <p class="magaza-not">iOS ve Android uygulamaları henüz mağazalarda değil; hazırlık sürüyor. Web sürümü bugün kullanılabilir.</p>
     </div><!-- /kh-sol -->
 
-    <!-- ÜRÜN GÖRSELİ. Sayfada bugüne kadar TEK BİR GÖRSEL YOKTU (ölçüldü:
-         document.images.length === 0) — baştan aşağı yazıydı ve ürünün ne
-         olduğu okunmadan anlaşılmıyordu.
-         BU BİR EKRAN GÖRÜNTÜSÜ DEĞİL, arayüzün temsilî çizimidir ve altında
-         öyle yazıyor. Gerçek ekran görüntüsü için üretim veritabanına sahte
-         dosya/müvekkil kaydı açmak gerekirdi; bunu yapmadık.
-         Yeşil satırdaki künye GERÇEK bir karardır (Yargıtay 7. HD, 2015/38005
-         E., 2016/3033 K., 14.02.2016 — src/data/ictihatDigest.ts). -->
-    <figure class="kh-gorsel" aria-label="Vekil Pro arayüzünün temsilî gösterimi: dilekçe taslağı ve atıf denetimi">
+    <!-- CANLI DENETİM — SAYFANIN KENDİSİ ÜRÜNÜ ÇALIŞTIRIYOR.
+         Burada önce arayüzün temsilî bir ÇİZİMİ duruyordu; yani ürünün ne
+         yaptığını ANLATIYORDUK. Ekran görüntüsü koymak da aynı şey olurdu ve
+         herkesin sayfasında o var. Onun yerine ziyaretçi kendi metnini
+         yapıştırıyor ve denetimi burada, şimdi çalıştırıyor.
+         Çalıştırdığı kod docs/denetim.js — ELLE YAZILMADI,
+         supabase/functions/_shared/kararAtif.ts dosyasından derlendi
+         (scripts/site-denetim-derle.mjs). Yani site, sunucunun çalıştırdığı
+         kodun ta kendisini çalıştırıyor; benzerini değil.
+         SINIRI AÇIKÇA YAZIYOR: havuz sorgusu (14 bin kararlık veritabanı)
+         tarayıcıya inmez, bu yüzden burada yalnız havuzdan BAĞIMSIZ
+         olanaksızlık denetimi var. Kutunun altında bu cümle duruyor. -->
+    <div class="kh-gorsel">
       <div class="cerceve">
-        <div class="cr-ust"><span class="nk k"></span><span class="nk s"></span><span class="nk y"></span>
-          <span class="cr-adres">Vekil Pro · Dilekçe Üret</span></div>
+        <div class="cr-ust">
+          <span class="canli-nk" aria-hidden="true"></span>
+          <b>Karar atfı denetimi — şimdi deneyin</b>
+        </div>
         <div class="cr-govde">
-          <div class="cr-baslik">
-            <b>Dilekçe Taslağı</b>
-            <span class="cr-eylem">✎ Düzenle</span><span class="cr-eylem">⧉ Kopyala</span><span class="cr-eylem vurgu">↓ UYAP (UDF)</span>
+          <label class="gizli-etiket" for="dn-girdi">Denetlenecek metin</label>
+          <textarea id="dn-girdi" class="dn-yaz" spellcheck="false"
+            placeholder="Dilekçenizden bir paragraf yapıştırın. İçindeki Yargıtay/Danıştay künyeleri anında denetlenir."></textarea>
+          <div class="dn-arac">
+            <button class="dn-ornek" type="button" data-ornek="uydurma">Uydurma künye örneği</button>
+            <button class="dn-ornek" type="button" data-ornek="gercek">Gerçek künye örneği</button>
+            <span class="dn-sayac" id="dn-sayac"></span>
           </div>
-          <p class="cr-satir">…davalının temerrüde düştüğü, TBK m.117 uyarınca sabittir. Müvekkilin</p>
-          <p class="cr-satir">kıdem tazminatı alacağı bakımından fesih tarihi esas alınmalıdır.</p>
-          <p class="cr-satir sonek">Yerleşik içtihat için bkz. Yargıtay 7. HD 2015/38005 E., 2016/3033 K.</p>
-
-          <div class="denetim">
-            <div class="dn-ust">🛡 Karar atfı denetimi — metinde 3 içtihat atfı bulundu</div>
-            <div class="dn kirmizi">
-              <b>BU ATIFLAR OLAMAZ — düzeltmeden kullanmayın:</b>
-              <span>• 2021/4412 E., 2019/1180 K. — karar yılı esas yılından önce olamaz</span>
-            </div>
-            <div class="dn sari">
-              <b>Havuzumuzda bulunamadı — UYAP'tan teyit edin:</b>
-              <span>2015/9903 E., 2016/7712 K.</span>
-            </div>
-            <div class="dn yesil">
-              <b>1 atıf havuzumuzda doğrulandı:</b>
-              <span>• 2015/38005 E., 2016/3033 K. — Yargıtay 7. Hukuk Dairesi (14.02.2016)</span>
-            </div>
-          </div>
+          <div class="dn-sonuc" id="dn-sonuc"></div>
+          <p class="dn-not" id="dn-not"></p>
         </div>
       </div>
-      <figcaption>Arayüzün temsilî gösterimi. Yeşil satırdaki künye gerçek bir Yargıtay kararıdır.</figcaption>
-    </figure>
+    </div>
    </div><!-- /kh-izgara -->
 
     <div class="sayilar">
@@ -325,32 +333,32 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     </div>
     <div class="izgara">
       <div class="kutu">
-        <div class="ik">⚖️</div>
+        <div class="ik">01</div>
         <h3>İçtihat araması — ücretsiz</h3>
         <p>Yargıtay ve Danıştay kararlarına Bedesten üzerinden, istinaf ve yerel mahkeme kararlarına UYAP Emsal üzerinden canlı erişim. Künye araması (esas/karar no) dahil. Ücretsiz katmanda da sınırsız.</p>
       </div>
       <div class="kutu">
-        <div class="ik">📁</div>
+        <div class="ik">02</div>
         <h3>Dava ve duruşma yönetimi</h3>
         <p>Dosya, taraf, duruşma, görev ve süre takibi. Duruşma çakışması uyarısı, adli tatil farkındalığı olan süre hesapları ve hatırlatmalar.</p>
       </div>
       <div class="kutu">
-        <div class="ik">👤</div>
+        <div class="ik">03</div>
         <h3>Müvekkil ve belge kasası</h3>
         <p>Müvekkil kayıtları, dosyaya bağlı belge arşivi, belge görüntüleyici ve dışa aktarma. Menfaat çatışması kontrolü.</p>
       </div>
       <div class="kutu">
-        <div class="ik">🧮</div>
+        <div class="ik">04</div>
         <h3>Hesaplayıcılar ve şablonlar</h3>
         <p>Kıdem/ihbar tazminatı, faiz, harç ve süre hesapları; dilekçe ve sözleşme şablonları. Ücretsiz katmanda sınırsız.</p>
       </div>
       <div class="kutu">
-        <div class="ik">💼</div>
+        <div class="ik">05</div>
         <h3>Büro finansı</h3>
         <p>Gelir–gider takibi, tahsilat durumu, serbest meslek makbuzu ve raporlar. Vekil Pro üyeliğine dahil.</p>
       </div>
       <div class="kutu">
-        <div class="ik">📱</div>
+        <div class="ik">06</div>
         <h3>iPhone, Android ve bilgisayar</h3>
         <p>Aynı hesap üç yerde. Adliyede telefondan, büroda büyük ekranda; çevrimdışıyken son eşitlenen dosyalar okunabilir kalır.</p>
       </div>
@@ -367,42 +375,42 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     </div>
     <div class="izgara">
       <div class="kutu">
-        <div class="ik">✍️</div>
+        <div class="ik">01</div>
         <h3>Dilekçe taslağı</h3>
         <p>Dava, cevap, istinaf, temyiz, ıslah, ihtarname, replik, düplik ve bilirkişiye itiraz. Bilinmeyen bilgiler köşeli parantezle boş bırakılır; uydurulmaz.</p>
       </div>
       <div class="kutu">
-        <div class="ik">📤</div>
+        <div class="ik">02</div>
         <h3>UYAP'a hazır dosya (UDF)</h3>
         <p>Üretilen dilekçeyi UYAP'ın kendi formatında (.udf) indirin; UYAP Editör'de doğrudan açılır. Kopyala-yapıştır ve biçimi elden geçirme adımı ortadan kalkar.</p>
       </div>
       <div class="kutu">
-        <div class="ik">🔎</div>
+        <div class="ik">03</div>
         <h3>Hukuki mütalaa</h3>
         <p>Olayı anlatın; uygulama sorunları ayırır, her biri için mevzuat ve içtihat toplar, atılacak adımları sürelerle yazar.</p>
       </div>
       <div class="kutu">
-        <div class="ik">📄</div>
+        <div class="ik">04</div>
         <h3>Belge inceleme</h3>
         <p>Sözleşme veya karar yükleyin; riskler, eksikler ve dikkat edilecek süreler çıkarılır. Belgede geçmeyen tarihler ayrıca işaretlenir.</p>
       </div>
       <div class="kutu">
-        <div class="ik">🏷️</div>
+        <div class="ik">05</div>
         <h3>Künye çıkarımı</h3>
         <p>Tebligat veya karar fotoğrafından mahkeme, esas no, taraflar ve duruşma tarihi okunur; dosya tek dokunuşla açılır.</p>
       </div>
       <div class="kutu">
-        <div class="ik">🛡️</div>
+        <div class="ik">06</div>
         <h3>Atıf denetimi</h3>
         <p>Çıktıdaki her kanun maddesi ve her Yargıtay/Danıştay karar numarası denetlenir. Sonuç üç ayrı etikettir: <b>doğrulandı</b> (havuzumuzda künyesiyle bulundu), <b>havuzda yok</b> (bizde bulunamadı — teyit edin) ve <b>olamaz</b> (karar yılı esas yılından önce, gelecek yıl numarası, hiç var olmamış daire). Olanaksız atıf çıkarsa o istek hakkınızdan düşülmez.</p>
       </div>
       <div class="kutu">
-        <div class="ik">✏️</div>
+        <div class="ik">07</div>
         <h3>Uygulama içinde düzenleme</h3>
         <p>Taslağı Word'e taşımadan burada düzeltin. Kopyalama, indirme ve UYAP (UDF) çıktısı düzenlenmiş hâli alır — mahkemeye giden metin, gönderdiğiniz metindir.</p>
       </div>
       <div class="kutu">
-        <div class="ik">🔒</div>
+        <div class="ik">08</div>
         <h3>Verileriniz eğitime gitmez</h3>
         <p>Sorularınız model eğitiminde kullanılmaz. Soru metni saklanmaz; yalnız kullanım ölçüsü (token) faturalama için tutulur.</p>
       </div>
@@ -566,5 +574,129 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
   </div>
 </footer>
 
+
+<!-- CANLI DENETİMİ SÜREN KOD.
+     denetim.js ELLE YAZILMAZ: supabase/functions/_shared/kararAtif.ts
+     dosyasından derlenir (scripts/site-denetim-derle.mjs). Sunucudaki
+     denetimin benzeri değil, aynısıdır — sayfa böylece ürün hakkında
+     yanlış bir şey söyleyemez.
+     defer: sayfanın çizilmesini geciktirmez. Dosya yüklenemezse kutu
+     sessizce "denetim yüklenemedi" der; sayfanın geri kalanı etkilenmez. -->
+<script src="denetim.js" defer></script>
+<script defer>
+(function () {
+  var ORNEK = {
+    uydurma:
+      "Davalının temerrüde düştüğü sabittir. Bu yönde Yargıtay 9. HD 2021/4412 E., " +
+      "2019/1180 K. sayılı kararı ile Yargıtay 47. HD 2019/1 E., 2020/2 K. sayılı " +
+      "kararı emsal niteliktedir.",
+    gercek:
+      "Kıdem tazminatı bakımından fesih tarihi esas alınmalıdır; bkz. " +
+      "Yargıtay 7. HD 2015/38005 E., 2016/3033 K. sayılı karar.",
+  };
+  var SEBEP = {
+    karar_esastan_once: "karar yılı esas yılından önce — dosya açılmadan karar verilemez",
+    gelecek_yil: "gelecek bir yıl yazılmış",
+    daire_yok: "bu numarada bir daire hiç var olmadı",
+    cok_eski: "tarih bugünün dilekçesi için olağan dışı",
+  };
+
+  function haz() {
+    var girdi = document.getElementById("dn-girdi");
+    var sonuc = document.getElementById("dn-sonuc");
+    var sayac = document.getElementById("dn-sayac");
+    var not = document.getElementById("dn-not");
+    if (!girdi || !sonuc) return;
+
+    var D = window.VekilDenetim;
+    if (!D || !D.kararAtiflari) {
+      sonuc.innerHTML = '<div class="dn sessiz">Denetim yüklenemedi. Uygulamada çalışmaya devam eder.</div>';
+      return;
+    }
+
+    var yil = new Date().getFullYear();
+
+    function kacar(x) {
+      return String(x).replace(/[&<>"]/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+      });
+    }
+    function kunye(a) {
+      var p = [];
+      if (a.esasYil) p.push(a.esasYil + "/" + a.esasNo + " E.");
+      if (a.kararYil) p.push(a.kararYil + "/" + a.kararNo + " K.");
+      return p.join(", ");
+    }
+
+    function ciz() {
+      var metin = girdi.value;
+      if (!metin.trim()) {
+        sonuc.innerHTML = "";
+        sayac.textContent = "";
+        not.textContent = "Bu denetim tarayıcınızda çalışır; yazdığınız metin hiçbir yere gönderilmez.";
+        return;
+      }
+      var atiflar = D.kararAtiflari(metin);
+      var kotu = D.tutarsizKararlar(atiflar, yil);
+      var kotuSet = {};
+      for (var i = 0; i < kotu.length; i++) kotuSet[kunye(kotu[i].atif)] = kotu[i].sebep;
+
+      sayac.textContent = atiflar.length
+        ? atiflar.length + " künye bulundu"
+        : "künye bulunamadı";
+
+      if (!atiflar.length) {
+        sonuc.innerHTML =
+          '<div class="dn sessiz">Metinde karar künyesi görünmüyor. Örnek düğmelerinden birini deneyebilirsiniz.</div>';
+        not.textContent = "Bu denetim tarayıcınızda çalışır; yazdığınız metin hiçbir yere gönderilmez.";
+        return;
+      }
+
+      var h = "";
+      for (var j = 0; j < kotu.length; j++) {
+        h +=
+          '<div class="dn kirmizi"><b>BU ATIF OLAMAZ — düzeltmeden kullanmayın</b><span>' +
+          kacar(kunye(kotu[j].atif)) +
+          " — " +
+          kacar(SEBEP[kotu[j].sebep] || kotu[j].sebep) +
+          "</span></div>";
+      }
+      var temiz = [];
+      for (var k = 0; k < atiflar.length; k++) {
+        var ad = kunye(atiflar[k]);
+        if (!kotuSet[ad]) temiz.push(ad);
+      }
+      if (temiz.length) {
+        h +=
+          '<div class="dn sari"><b>' +
+          temiz.length +
+          " künyede aritmetik bir olanaksızlık yok</b><span>" +
+          kacar(temiz.join(" · ")) +
+          "</span></div>";
+      }
+      sonuc.innerHTML = h;
+      not.innerHTML =
+        "Burada yalnız <b>kesin olanı</b> görüyorsunuz: bir künyenin matematiksel olarak " +
+        "var olamayacağını. Künyenin gerçekten var olup olmadığı, 14 binden fazla kararlık " +
+        "havuzumuza ve canlı UYAP kaynağına sorulur — o denetim uygulamada çalışır. " +
+        "Bu kutudaki metin hiçbir yere gönderilmez.";
+    }
+
+    girdi.addEventListener("input", ciz);
+    var dg = document.querySelectorAll(".dn-ornek");
+    for (var n = 0; n < dg.length; n++) {
+      dg[n].addEventListener("click", function () {
+        girdi.value = ORNEK[this.getAttribute("data-ornek")] || "";
+        ciz();
+        girdi.focus();
+      });
+    }
+    ciz();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", haz);
+  else haz();
+})();
+</script>
 </body>
 </html>

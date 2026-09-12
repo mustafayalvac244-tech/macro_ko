@@ -90,8 +90,27 @@ function mahkemeOku(pencere: string): Pick<KararAtif, 'mahkeme' | 'daireTur' | '
   let daireTur = '';
   let daireNo = 0;
 
+  /**
+   * SON eşleşmeyi alır, ilkini DEĞİL.
+   *
+   * ÖLÇÜLEN HATA (12.09.2026, tarayıcı sınamasında çıktı). Pencere, atıftan
+   * ÖNCEKİ 90 karakterdir; atfın dairesi o pencerenin SONUNDA durur. Burada
+   * `.match()` kullanılıyordu ve o ilk eşleşmeyi döndürür. Bir paragrafta iki
+   * karar arka arkaya anıldığında ikincinin dairesi BİRİNCİDEN okunuyordu:
+   *   "... Yargıtay 9. HD 2021/4412 E. ... ile Yargıtay 47. HD 2019/1 E. ..."
+   * ikinci atıf "47. HD" değil "9. HD" sayılıyordu. İki yönde de zarar verir:
+   * var olmayan 47. daire YAKALANMAZ; ters durumda gerçek bir "3. HD" kararı,
+   * önündeki olmayan daireyi miras alıp "olamaz" diye İŞARETLENİR — ve yanlış
+   * pozitif burada kaçırmaktan pahalıdır, avukat uyarıya bir daha bakmaz.
+   */
+  const sonEslesme = (re: RegExp): RegExpMatchArray | null => {
+    let son: RegExpMatchArray | null = null;
+    for (const m of p.matchAll(re)) son = m;
+    return son;
+  };
+
   // "9. Hukuk Dairesi", "9. HD", "9.HD", "9 CD"
-  const yargitay = p.match(/(\d{1,2})\s*\.?\s*(hukuk|ceza|hd|cd)\b/);
+  const yargitay = sonEslesme(/(\d{1,2})\s*\.?\s*(hukuk|ceza|hd|cd)\b/g);
   if (yargitay) {
     daireNo = Number(yargitay[1]);
     const tur = yargitay[2];
@@ -100,7 +119,7 @@ function mahkemeOku(pencere: string): Pick<KararAtif, 'mahkeme' | 'daireTur' | '
 
   // Danıştay dairesi: "Danıştay 10. Daire" — "Hukuk/Ceza" geçmez.
   if (mahkeme === 'Danıştay') {
-    const dan = p.match(/(\d{1,2})\s*\.?\s*daire/);
+    const dan = sonEslesme(/(\d{1,2})\s*\.?\s*daire/g);
     if (dan) {
       daireNo = Number(dan[1]);
       daireTur = 'D';

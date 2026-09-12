@@ -45,6 +45,35 @@ jobs:
       - name: Testler
         run: npx vitest run
 
+      # ANASAYFADAKİ CANLI DENETİM — GERÇEK TARAYICIDA.
+      #
+      # Sayfa artık ürünün ÇALIŞTIĞINI iddia ediyor: ziyaretçi kendi metnini
+      # yapıştırıp denetimi orada koşturuyor. İddianın kendisi sınanmadan
+      # yayına gitmemeli. Ayrıca docs/denetim.js elle yazılmaz; kaynaktan
+      # derlenir. Burada YENİDEN derleyip depodakiyle karşılaştırıyoruz:
+      # kaynak değişip derleme unutulursa site eski mantığı çalıştırır ve
+      # sunucu ile site farklı şeyler söylemeye başlar.
+      #
+      # Bu adım, tarayıcı sınamasında çıkan gerçek bir hatadan sonra eklendi:
+      # arka arkaya iki karar anıldığında ikincisinin dairesi birincisinden
+      # okunuyordu (bkz. kararAtif.ts, sonEslesme).
+      - name: Site denetimi güncel mi
+        run: |
+          node scripts/site-denetim-derle.mjs
+          if ! git diff --quiet -- docs/denetim.js; then
+            echo "::error::docs/denetim.js kaynakla uyumsuz. Çalıştırın: node scripts/site-denetim-derle.mjs"
+            git diff --stat -- docs/denetim.js
+            exit 1
+          fi
+
+      - name: Tarayıcıda site sınaması
+        # playwright-core kendi kurulum komutunu taşıyor; ayrıca `playwright`
+        # paketini bağımlılığa eklemeye gerek yok. Yerelde Chromium zaten
+        # kurulu olduğu için betik onu bulur; burada indiriliyor.
+        run: |
+          npx playwright-core install --with-deps chromium
+          node scripts/site-denetim-sina.mjs
+
       # Migration'lar gerçek Postgres'te koşturulur: sözdizimi, tip, yetki ve
       # tetikleyici hataları ancak çalıştırınca görülüyor (0095 bunu pahalı
       # öğretti).
