@@ -113,7 +113,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "baseUrl": "/macro_ko/app"
+      "baseUrl": "/app"
     }
   }
 }

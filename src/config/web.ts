@@ -25,7 +25,7 @@
 // gibi) ÜCRETSİZ DEĞİLDİR — yıllık ücreti vardır.
 
 /** Web sürümünün açık adresi (kullanıcıya gösterilir). */
-export const WEB_ADRESI = 'https://mustafayalvac244-tech.github.io/macro_ko/app';
+export const WEB_ADRESI = 'https://vekilpro.app/app';
 
 /** Kullanıcıya gösterilecek kısa hâli — "https://" ve son eğik çizgi olmadan. */
 export const WEB_ADRESI_KISA = WEB_ADRESI.replace(/^https?:\/\//, '').replace(/\/+$/, '');
