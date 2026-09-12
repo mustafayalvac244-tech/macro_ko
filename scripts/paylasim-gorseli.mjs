@@ -16,19 +16,35 @@ import { dirname, join } from 'node:path';
 
 const kok = join(dirname(fileURLToPath(import.meta.url)), '..');
 
+// playwright-core, depodaki geliştirme bağımlılığı. Önce 'playwright'
+// deneniyordu ama o kurulu değil; betik her koşuda "kurulu değil" deyip
+// çıkıyordu — yani paylaşım kartı aylardır elle bile üretilemiyordu.
 let chromium;
 try {
-  ({ chromium } = await import('playwright'));
+  ({ chromium } = await import('playwright-core'));
 } catch {
-  console.error('playwright kurulu değil. Kur: npm i -D playwright');
+  console.error('playwright-core kurulu değil. Kur: npm i -D playwright-core');
   process.exit(1);
 }
 
-// Bu depoda tarayıcı önceden kurulu geliyor; yolu belirtmek indirme denemesini
-// engelliyor. Yoksa varsayılan çözümlemeye düşülür.
-const yol = process.env.PLAYWRIGHT_CHROMIUM || '/opt/pw-browsers/chromium';
-const { existsSync } = await import('node:fs');
-const tarayici = await chromium.launch(existsSync(yol) ? { executablePath: yol } : {});
+// TARAYICI YOLU ARANIR, SABİT YAZILMAZ. '/opt/pw-browsers/chromium' diye bir
+// dizin yok; gerçek ad sürüm numarası taşıyor (chromium-1194). Sabit yol
+// tutmadığı için betik sessizce varsayılana düşüp indirme deniyordu.
+const { existsSync, readdirSync } = await import('node:fs');
+function chromiumBul() {
+  if (process.env.CHROMIUM_YOLU) return process.env.CHROMIUM_YOLU;
+  const kok = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  if (!kok || !existsSync(kok)) return null;
+  for (const ad of readdirSync(kok).sort().reverse()) {
+    for (const son of ['chrome-linux/chrome', 'chrome-linux/headless_shell']) {
+      const y = join(kok, ad, son);
+      if (existsSync(y)) return y;
+    }
+  }
+  return null;
+}
+const yol = chromiumBul();
+const tarayici = await chromium.launch(yol ? { executablePath: yol } : {});
 
 const sayfa = await tarayici.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
 await sayfa.goto('file://' + join(kok, 'docs/og.html'), { waitUntil: 'load' });

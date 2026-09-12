@@ -159,7 +159,7 @@ describe('kotaRezerve', () => {
 
   it('TAŞMA DA BİTİNCE reddeder — sınırsız değildir', async () => {
     // Asıl risk burada: sınırsız ucuz model de sınırsız maliyettir.
-    const { cagir } = sahteRpc(1500); // 750 normal + 750 taşma, hepsi dolu
+    const { cagir } = sahteRpc(1650); // 750 normal + 900 taşma, hepsi dolu
     const r = await kotaRezerve(cfg, false, (s, m) => cagir(s, m));
     expect(r.ok).toBe(false);
     if (r.ok) return;
