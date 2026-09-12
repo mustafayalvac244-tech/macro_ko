@@ -25,6 +25,7 @@ on:
           - hasat-tur-teshis
           - katalog-durum
           - proje-bilgi
+          - ai-model-olcum
           - hasat-disk-sutun
           - hasat-verim-olcum
           - hasat-kalite-olcum
