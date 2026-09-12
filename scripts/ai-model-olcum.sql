@@ -22,12 +22,14 @@
 -- içinde aynı hatayı düzeltmiştim, buraya yazarken tekrarladım.
 
 with son as (
-  select model, mod, maliyet_try, tokens_in, tokens_out, gun
-  from public.ai_istek
+  select i.model, i.mod, i.maliyet_try, i.tokens_in, i.tokens_out, i.gun,
+         coalesce(nullif(p.ai_tier, ''), 'ücretsiz') as katman
+  from public.ai_istek i
+  left join public.profiles p on p.id = i.user_id
   -- `gun` METİN sütunu, tarih değil — canlıda 42883 ile öğrenildi. ISO
   -- biçiminde (YYYY-MM-DD) tutulduğu için metin karşılaştırması tarih
   -- sırasıyla aynı sonucu verir; ::date'e çevirmek biçim bozuksa düşerdi.
-  where gun >= (current_date - 7)::text
+  where i.gun >= (current_date - 7)::text
 ),
 satirlar as (
   select 10::numeric as sira, 'ÖZET' as bolum, 'son 7 günde istek' as alan,
@@ -50,6 +52,22 @@ satirlar as (
          || ' / ' || count(*)::text
          || '  (%' || coalesce(round(100.0 * count(*) filter (where coalesce(maliyet_try, 0) = 0)
                                      / nullif(count(*), 0), 1)::text, '0') || ')'
+  from son
+
+  -- ASIL AYRIM. Ücretsiz hesabın ücretsiz modele düşmesi DOĞRU davranıştır.
+  -- Sorun, ÜCRETLİ katmandaki bir isteğin bedelsiz bir modelle karşılanmasıdır:
+  -- _shared/katman.ts'te bu bilerek yazılmış bir geri düşüş ("Claude anahtarı
+  -- yoksa 'ai' katmanı da Groq'a düşer: ödeyen üye boş ekran görmez"). Faydalı
+  -- bir emniyet ama SESSİZ: ödeyen üye farkı göremez. Sayısı burada.
+  union all
+  select 35, 'KATMAN', katman,
+         count(*) || ' istek · bedelsiz ' || count(*) filter (where coalesce(maliyet_try, 0) = 0)
+         || ' · modeller: ' || coalesce(string_agg(distinct coalesce(nullif(model, ''), '(boş)'), ', '), '-')
+  from son group by 3
+  union all
+  select 36, 'KATMAN', '>> ÜCRETLİ katmanda bedelsiz model',
+         count(*) filter (where katman <> 'ücretsiz' and coalesce(maliyet_try, 0) = 0)::text
+         || ' / ' || count(*) filter (where katman <> 'ücretsiz')::text
   from son
 
   -- MOD BAZINDA: dilekçe mi sohbet mi, hangisi hangi modelde?
