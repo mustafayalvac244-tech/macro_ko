@@ -331,10 +331,19 @@ try {
             process.exitCode = 2;
             break;
           }
+        } else if (para.tavan > 0) {
+          // KÖR KOŞMAK YASAK. Buraya düşmek "maliyet sıfır" demek değil,
+          // "sunucu hiçbir kullanım bilgisi göndermedi" demektir — yani
+          // harcamayı izleyemiyoruz. Para tavanı İSTENMİŞKEN ücretli modeli
+          // kör koşturmak, 5 doları yakan davranışın aynısıdır.
+          console.error(
+            '\nKOŞU DURDURULDU — sunucu kullanım/maliyet bilgisi döndürmedi, harcama İZLENEMİYOR.\n' +
+              'Bu SIFIR HARCAMA DEĞİLDİR. Tavanı bilerek kaldırmak için EVAL_PARA_BUTCESI=0 verin.'
+          );
+          process.exitCode = 2;
+          break;
         } else {
-          // Ücretli modelde maliyet körken devam etmek, yakılan krediyi
-          // görmeden koşmaktır. Ücretsiz katmanda maliyet gerçekten yok.
-          console.error('UYARI: sunucu kullanım/maliyet bilgisi döndürmedi — harcama İZLENEMİYOR.');
+          console.error('UYARI: sunucu kullanım/maliyet bilgisi döndürmedi — harcama İZLENEMİYOR (tavan yok, devam ediliyor).');
         }
       }
     } catch (e) {

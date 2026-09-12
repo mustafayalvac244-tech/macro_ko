@@ -73,11 +73,22 @@ describe('ParaButcesi', () => {
     expect(b.ongoru()!.asar).toBe(false);
   });
 
-  it('ön yoklama, maliyet hiç görülmediyse null döner', () => {
-    // Öngörüyü sıfır maliyetten kurmak, "bedava" diye yanlış bir güven verirdi.
+  it('ön yoklama, hiç BİLİNEN örnek yoksa null döner (kör koşu işareti)', () => {
+    // null burada "bedava" değil, "sunucu hiçbir şey söylemedi" demek.
+    // Çağıran betik bunu görünce ücretli koşuyu durduruyor.
     const b = new ParaButcesi(10, 11);
     b.gor(null);
     expect(b.ongoru()).toBeNull();
+  });
+
+  it('ücretsiz katmanda (token var, maliyet 0) öngörü null DEĞİL, sıfırdır', () => {
+    // Bu ayrım olmasaydı ücretsiz koşular "kör" sanılıp boş yere durdurulurdu.
+    const b = new ParaButcesi(10, 11);
+    b.gor({ maliyetTL: 0, girdiToken: 900, ciktiToken: 300 });
+    const o = b.ongoru();
+    expect(o).not.toBeNull();
+    expect(o!.ongoru).toBe(0);
+    expect(o!.asar).toBe(false);
   });
 
   it('ön yoklamada bilinmeyen istekler ortalamayı düşürmez', () => {

@@ -204,8 +204,14 @@ export class ParaButcesi {
    * @returns {{ongoru: number, asar: boolean}|null} henüz maliyet görülmediyse null
    */
   ongoru() {
-    if (this.olculen === 0 || this.harcanan === 0) return null;
-    const ortalama = this.harcanan / Math.max(1, this.olculen - this.bilinmeyen);
+    // AYRIM ÖNEMLİ: "maliyeti bilmiyorum" ile "maliyet gerçekten sıfır" aynı
+    // şey değil. Ücretsiz katmanda token gelir, maliyet 0'dır ve bu SAĞLIKLI
+    // bir ölçümdür — orada koşuyu durdurmak yanlış olurdu. Öngörü yalnız
+    // TEK BİR bilinen örnek bile yoksa null döner; o durumda ücretli modeli
+    // kör koşturuyoruz demektir ve çağıran taraf durmalıdır.
+    const bilinen = this.olculen - this.bilinmeyen;
+    if (bilinen <= 0) return null;
+    const ortalama = this.harcanan / bilinen;
     const ongoru = ortalama * Math.max(this.senaryo, this.olculen);
     return { ongoru, asar: this.tavan > 0 && ongoru > this.tavan };
   }
