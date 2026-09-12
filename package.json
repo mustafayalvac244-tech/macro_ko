@@ -68,7 +68,7 @@
     "kontrol": "tsc --noEmit && tsc -p supabase/functions && vitest run",
     "kontrol:uc": "tsc -p supabase/functions",
     "test:watch": "vitest",
-    "export:web": "node scripts/web-veri-hazirla.mjs && expo export --platform web --output-dir docs/app",
+    "export:web": "node scripts/web-veri-hazirla.mjs && expo export --platform web --output-dir docs/app && node scripts/web-404.mjs",
     "site": "node scripts/site-denetim-derle.mjs && node scripts/site-denetim-sina.mjs"
   },
   "private": true
