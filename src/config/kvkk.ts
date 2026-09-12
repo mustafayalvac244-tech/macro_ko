@@ -30,8 +30,16 @@ export const KVKK_SURUM = '2026-09-2';
  * sürece durumu OLDUĞU GİBİ yazar — "şartı değildir" diye yanlış beyanda
  * bulunmaz (bkz. src/components/KvkkMetin.tsx, 5. ve 13. başlıklar).
  *
- * Düzeltme tek satırdır: bunu `false` yapmak yeterli; kayıt ekranı da metin de
- * kendiliğinden buna göre davranır.
+ * ⚠️ BAYRAĞI `true` TUTAN TEKNİK GEREKÇE ARTIK YOK. Daha önce şuydu: yapay
+ * zekâ uçları rıza denetlemediği için, rızasız kaydolan biri yine de metnini
+ * yurt dışına gönderebilirdi. O boşluk kapandı — uçlar artık rıza soruyor
+ * (supabase/functions/_shared/kvkkRiza.ts). Yani bugün bayrağı `false` yapmak
+ * hiçbir aktarımı denetimsiz bırakmaz; rıza vermeyen avukat hesabını açar,
+ * yalnız yapay zekâ özellikleri kapalı kalır ve nedenini ekranda görür.
+ *
+ * Bayrağın `true` kalması artık yalnız bir ÜRÜN TERCİHİDİR. Değiştirmek tek
+ * satır: `false` yapmak yeterli, kayıt ekranı da metin de kendiliğinden buna
+ * göre davranır.
  */
 export const RIZA_ZORUNLU = true;
 
