@@ -49,7 +49,7 @@ export interface TierCfg {
   gunluk?: number;
   /**
    * AYLIK SORU/MÜTALAA KOTASI — yalnız "ai" katmanında dolu. "ai" katmanı
-   * 2.999₺/ay sabit ücrete SAYIYLA dahildir ("250 soru + 12 mütalaa"),
+   * 2.999₺/ay sabit ücrete SAYIYLA dahildir ("750 soru + 25 mütalaa"),
    * kontöre HİÇ bakmaz — avukata "bakiyeniz kadar" değil "ayda şu kadar"
    * sözü verildi. Mütalaa ayrı sayılır çünkü tek istek değil çok adımlı: tek
    * bir mütalaa, bir sohbet sorusunun 4-8 katı token tüketir.
@@ -92,7 +92,7 @@ const UCRETLI_TAVAN_TRY = 3000;
 
 /**
  * "AI" KATMANI FİYATLAMASI — 2.999₺/ay (2026-09-11; 1.999 → 3.999 → 2.999,
- * son değişiklik rakip Lexedes'in 2.990₺ planına göre), 250 soru + 12 mütalaa,
+ * son değişiklik rakip Lexedes'in 2.990₺ planına göre), 750 soru + 25 mütalaa,
  * CLAUDE SONNET 5 (12.09.2026'da Opus 5'ten indirildi; gerekçe maliyet).
  *
  * KANIT KAYNAĞI AYRIŞTIRILARAK SÖYLENİR:
@@ -105,14 +105,33 @@ const UCRETLI_TAVAN_TRY = 3000;
  *         Sonnet ≈ ₺1,07   ·   Opus ≈ ₺2,67   (kur 42)
  *     Bu, indirmenin gerekçesinin kendisi.
  *   - Mütalaa çarpanı (4-8x) TAHMİNDİR, ölçülmedi. Mütalaa iki model çağrısı
- *     yapıyor ve dosyası çok daha büyük; 250 soru + 12 mütalaalık paketin
+ *     yapıyor ve dosyası çok daha büyük; 750 soru + 25 mütalaalık paketin
  *     gerçek maliyeti HÂLÂ ÖLÇÜLMEDİ.
  *   - "En kötü senaryo ~924₺" gibi eski toplamlar Opus varsayımıyla kurulmuş
  *     TAHMİNİ hesaplardı; model değiştiği için artık geçersizler ve yenisi
  *     ölçümle kurulacak (bkz. scripts/istek.mjs > ParaButcesi, ön yoklama).
  */
-const AI_SORU_LIMIT = 250;
-const AI_MUTALAA_LIMIT = 12;
+/**
+ * KOTA YÜKSELTİLDİ (12.09.2026): 250 → 750 soru, 12 → 25 mütalaa.
+ *
+ * SEBEP. 250/12 paketi OPUS varsayımıyla kurulmuştu (istek başına ₺2,67).
+ * Aynı gün Sonnet'e inildi ve ölçülen birim maliyet ₺1,07 oldu — yani paket
+ * bir anda gereğinden dar kaldı: kullanıcı üçte bir maliyetle aynı sayıda
+ * soru soruyordu.
+ *
+ * HESAP (birim ₺1,07 — n=7 GERÇEK ÖLÇÜM, veritabanından; kur 42):
+ *     750 soru            →  ₺802
+ *     25 mütalaa (en kötü) →  ₺214   ← çarpan 8x, ÖLÇÜLMEDİ, tahmin
+ *     toplam ~₺1.016 = 2.999₺ gelirin %34'ü
+ * 250/12'de bu oran %12 idi. %34, ürün maliyeti olarak rahat bir aralık ve
+ * UCRETLI_TAVAN_TRY (₺3.000) zaten üstte ayrı bir emniyet kilidi.
+ *
+ * DÜRÜSTLÜK NOTU: soru maliyeti ölçümdür, mütalaa çarpanı DEĞİLDİR. Yukarıdaki
+ * toplam bu yüzden bir ölçüm değil, en kötü uçtan kurulmuş bir üst sınırdır.
+ * Mütalaa gerçek maliyeti ölçülene kadar 25 rakamı temkinli tutuldu.
+ */
+const AI_SORU_LIMIT = 750;
+const AI_MUTALAA_LIMIT = 25;
 
 /**
  * Ödeme yapmamış (free/baslangic) bir kullanıcıya YAŞAM BOYU (bir kez, hiç
