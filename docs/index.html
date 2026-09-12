@@ -70,7 +70,20 @@ body{
   font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
 }
-h1,h2,h3{font-family:'Playfair Display',Georgia,serif; line-height:1.2; margin:0}
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif; line-height:1.2; margin:0;
+  /* DENGELİ SATIR SONU. Telefonda başlık "Uydurma karar / numarası" diye
+     bölünüyor ve tek kelimelik öksüz bir satır kalıyordu. `balance` satırları
+     eşit uzunlukta dağıtır; desteklemeyen tarayıcı yok sayar, bozulma olmaz. */
+  text-wrap:balance}
+/* Paragraflarda son satırda tek kelime kalmasın. */
+p,li,summary{text-wrap:pretty}
+/* KLAVYEYLE GEZENLER İÇİN GÖRÜNÜR ODAK. Sayfada hiç odak biçimi yoktu:
+   sekme tuşuyla ilerleyen kullanıcı nerede olduğunu göremiyordu. Yalnız
+   :focus-visible kullanılıyor — fareyle tıklayanda halka çıkmaz. */
+a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible,.dg:focus-visible{
+  outline:2px solid var(--lacivert-3); outline-offset:3px; border-radius:6px}
+/* Rakamlar sütun hâlinde dizilirken kaymasın (fiyatlar, madde numaraları). */
+.plan .ft,.kutu .ik,.sayilar b{font-variant-numeric:tabular-nums}
 p{margin:0}
 a{color:inherit}
 /* KAPSAYICI GENİŞLİĞİ — 1120px DARDI.
@@ -423,6 +436,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       <a href="#nasil">Nasıl çalışır</a>
       <a href="#yapayzeka">Yapay Zekâ</a>
       <a href="#fiyat">Fiyatlar</a>
+      <a href="#veri">Veri ve KVKK</a>
       <a href="#neden">Neden Vekil Pro</a>
       <a href="#sss">S.S.S.</a>
     </nav>
@@ -577,7 +591,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     <div class="bas">
       <span class="etiket">Ne yapar</span>
       <h2>Büro işi ile hukuki araştırma tek yerde</h2>
-      <p>Vekil Pro, dosya takibi yapan bir program ile içtihat veritabanını ayrı ayrı kullanma zorunluluğunu ortadan kaldırır.</p>
+      <p>Vekil Pro, dosya takibi yapan bir program ile içtihat veritabanını ayrı ayrı kullanma zorunluluğunu ortadan kaldırır. Dosyanın açılışından tahsilata kadar olan iş, araştırmayla aynı yerde durur.</p>
     </div>
     <div class="izgara">
       <div class="kutu">
@@ -609,6 +623,21 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
         <div class="ik">06</div>
         <h3>Telefon, tablet ve bilgisayar</h3>
         <p>Kurulum yok: aynı hesap, tarayıcısı olan her cihazda. Adliyede telefondan açar, büroda büyük ekranda devam edersiniz; çevrimdışı kalındığında son eşitlenen dosyalar okunabilir kalır. iOS ve Android uygulamaları mağaza sürecinde.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">07</div>
+        <h3>Vekâletname ve özel yetkiler</h3>
+        <p>Her vekâletnamede yazılı yetkileri tek tek işaretlersiniz. Sulh, feragat, kabul ve para tahsili gibi <b>açıkça verilmemiş bir yetkiyi</b> kullanmak üzereyken program size vekâletnamede yazmadığını söyler.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">08</div>
+        <h3>Mevzuat, Anayasa ve AİHM</h3>
+        <p>TMK, TBK, TTK, HMK, CMK, TCK, İİK, İYUK, İş Kanunu ve diğerleri madde metinleriyle; Anayasa ve AİHM kararları ayrı bölümlerde. Yapay zekâya gönderilen dayanak da buradan, tam metin olarak alınır.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">09</div>
+        <h3>İcra, tahsilat ve tevkil</h3>
+        <p>İcra dosyaları, ödeme günü takibi ve tahsilat durumu; serbest meslek makbuzu. Tevkil Panosu'nda başka ildeki duruşma için meslektaş arar ya da kendiniz iş alırsınız.</p>
       </div>
     </div>
   </div>
@@ -761,6 +790,51 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
   </div>
 </section>
 
+<section id="veri" class="serit">
+  <div class="sar">
+    <div class="bas">
+      <span class="etiket">Veri ve KVKK</span>
+      <h2>Müvekkil dosyası sıradan bir veri değildir</h2>
+      <p>Avukatın elindeki kayıt, meslek sırrı ve çoğu zaman Kanun'un 6. maddesi anlamında özel nitelikli veri taşır. Programın bu konuda ne yaptığını tahmin etmek zorunda kalmayın — hepsi yazılı.</p>
+    </div>
+    <div class="izgara">
+      <div class="kutu">
+        <div class="ik">01</div>
+        <h3>Kayıtlarınız Avrupa Birliği'nde durur</h3>
+        <p>Dava, müvekkil, belge ve finans kayıtlarınız İrlanda bölgesindeki sunucularda barındırılır. Aktarımda TLS, depolamada AES-256 şifreleme kullanılır.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">02</div>
+        <h3>Satır düzeyinde erişim</h3>
+        <p>Veritabanı, kaydın sahibini satır bazında kontrol eder: başka bir kullanıcı sizin kayıtlarınıza erişemez. Bu bir arayüz kısıtı değil, veritabanı kuralıdır.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">03</div>
+        <h3>Yapay zekâya ne gidiyorsa yazılı</h3>
+        <p>Yalnız o istekte sizin yazdığınız ya da eklediğiniz metin gider. Veritabanınız kendiliğinden taranmaz; dava ve müvekkil kayıtlarınız topluca aktarılmaz. Parolanız ve finans kayıtlarınız hiçbir koşulda gönderilmez.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">04</div>
+        <h3>Açık rıza okunarak imzalanır</h3>
+        <p>Yurt dışına aktarım için alınan rıza, tek bir kutuya basarak verilmez: aydınlatma metni tam gövdesiyle açılır, sonuna kadar görülür ve beyan orada imzalanır. İmza, metin sürümü ve tarihiyle kaydedilir.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">05</div>
+        <h3>Rızayı geri almak hesabınızı kapatmaz</h3>
+        <p>Ayarlar &gt; KVKK Aydınlatma Metni ekranından tek dokunuşla geri alırsınız. Yalnız yapay zekâ özellikleri durur; dosyalarınız, ajandanız ve içtihat aramanız çalışmaya devam eder. Rıza hizmetin şartı değildir.</p>
+      </div>
+      <div class="kutu">
+        <div class="ik">06</div>
+        <h3>Silme gerçekten siler</h3>
+        <p>Hesabı sildiğinizde kayıtlarınız canlı veritabanından ve yedeklerden silinir. Bulut sağlayıcısının kendi anlık görüntüsü tek kullanıcı için ayıklanamaz; süresi dolarak kendiliğinden düşer ve bu açıkça bildirilir.</p>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--metin-3);font-size:13.5px;margin-top:26px">
+      Ayrıntının tamamı uygulama içindeki <b>KVKK Aydınlatma Metni</b>'nde: veri sorumlusu, işleme amaçları, hukuki sebepler, aktarılan taraflar ve ülkeler, saklama süreleri, 11. madde haklarınız ve başvuru yolu.
+    </p>
+  </div>
+</section>
+
 <section id="neden">
   <div class="sar">
     <div class="durust">
@@ -815,6 +889,21 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     </details>
 
     <details>
+      <summary>Süre hesaplarına güvenebilir miyim?</summary>
+      <p>Hesaplar adli tatili, resmî tatilleri ve hafta sonunu uygular; duruşma çakışmasını da uyarır. Ama <b>dinî bayram tarihleri ve mahkeme uygulamalarındaki istisnalar hesaba katılmaz</b> ve hiçbir hatırlatma, süreyi kaçırmadığınızın güvencesi değildir — bildirim cihaz kapalıyken ya da işletim sisteminin arka plan kısıtları devredeyken ulaşmayabilir. Süre takibi her hâlükârda avukata aittir; program yardımcı araçtır. Bunu satış metninde değil, <a href="terms.html">Kullanım Koşulları</a>'nda da aynı açıklıkla yazıyoruz.</p>
+    </details>
+
+    <details>
+      <summary>İnternet kesilirse dosyalarım açılır mı?</summary>
+      <p>Son eşitlenen dava, müvekkil ve ajanda kayıtlarınız çevrimdışıyken de okunabilir kalır — adliyede kapsama düştüğünde duruşma saatine bakabilirsiniz. Yeni kayıt ve yapay zekâ istekleri bağlantı gerektirir.</p>
+    </details>
+
+    <details>
+      <summary>Verilerimi dışarı alabilir miyim?</summary>
+      <p>Evet. Dava, müvekkil ve finans kayıtlarınızı tablo (CSV) olarak dışa aktarabilir, belgelerinizi indirebilir, ürettiğiniz dilekçeleri UYAP biçiminde (.udf) ya da düz metin olarak alabilirsiniz. Veriniz programın içinde rehin kalmaz.</p>
+    </details>
+
+    <details>
       <summary>Kullanmadığım yapay zekâ hakları devreder mi?</summary>
       <p>Hayır — aylık kapasite her fatura döneminde sıfırdan yenilenir, kullanılmayan kısım sonraki aya aktarılmaz. Buna karşılık <b>kusurlu çıktı hakkınızdan düşülmez</b>: taslak yarım kalırsa, zorunlu bir bölüm eksikse ya da denetim &ldquo;olamaz&rdquo; diyen bir künye yakalarsa o istek sayılmaz. Asıl model yanıt veremeyip yedeğe düşüldüğünde de hakkınız iade edilir. Ayın kapasitesi dolduğunda kapı yüzünüze kapanmaz: istekler daha hızlı ve hafif bir modele yönlendirilir, reddedilmez. Her planın kesin aylık kapasitesi <a href="terms.html">Kullanım Koşulları</a>'nda ve satın alma ekranında yazılıdır.</p>
     </details>
@@ -833,7 +922,8 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
         <a href="app/">Web sürümü</a>
         <a href="#ozellikler">Özellikler</a>
         <a href="#fiyat">Fiyatlar</a>
-        <a href="#neden">Neden Vekil Pro</a>
+        <a href="#veri">Veri ve KVKK</a>
+      <a href="#neden">Neden Vekil Pro</a>
       </div>
       <div>
         <h4>Yasal</h4>
