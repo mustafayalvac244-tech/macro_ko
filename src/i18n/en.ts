@@ -1335,6 +1335,8 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.errSoruKota': 'Your AI questions for this month are used up. It renews at the start of next month.',
   'ai.errMutalaaKota': 'Your deep research runs for this month are used up. They renew at the start of next month.',
   'ai.errDenemeBitti': 'You’ve used your 3 free trial questions. Subscribe to the AI plan for unlimited use.',
+  'ai.errKvkkRiza': 'The AI features cannot run without your KVKK explicit consent: the text you write is sent to a model located abroad, and that transfer requires consent. Open Settings > KVKK Privacy Notice, read it and sign — the features turn on immediately.',
+  'ai.errKvkkKontrol': 'Your KVKK consent record could not be read just now — a temporary fault on our side, not something missing from you. For safety the AI request was not sent. Please try again shortly.',
   'ai.errDailyQuota': 'Today’s free AI allowance is used up. It resets daily — try again tomorrow, or upgrade to Pro for uninterrupted use.',
   'ai.errQuotaWait': 'The free AI allowance is full right now — this pool is shared by all users. Try again in about {dk} minutes.',
   'ai.errQuota': 'You’ve used this month’s AI allowance. It renews at the start of the month.',

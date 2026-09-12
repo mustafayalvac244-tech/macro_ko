@@ -26,6 +26,7 @@ import {
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 import { canliIctihat } from '../_shared/uyapCanli.ts';
+import { rizaKapisi } from '../_shared/kvkkRiza.ts';
 // Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
 import { beslemeyiKirp, kuralBasliklari } from '../_shared/besleme.ts';
@@ -1896,6 +1897,16 @@ Deno.serve(async (req) => {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
+
+  // ───────────── KVKK AÇIK RIZA KAPISI ─────────────
+  // Buradan SONRAKİ her yol, kullanıcının yazdığı metni yurt dışındaki bir
+  // modele gönderiyor. Rıza yoksa gönderilmez.
+  //
+  // Konumu bilerek İADE dalından sonra: iade yalnız veritabanı yazar, aktarım
+  // yapmaz. Rızasını geri almış biri de hakkını geri alabilmeli — aksi hâlde
+  // rızayı geri almanın bedeli olurdu ve rıza "özgür irade" olmaktan çıkardı.
+  const rizaRed = await rizaKapisi(supabase, CORS);
+  if (rizaRed) return rizaRed;
 
   // MÜTALAA modu: çok adımlı derin inceleme (Pro/Elit'e özel). Normal sohbetten
   // ayrılır çünkü birden fazla model çağrısı + geniş besleme kullanır.

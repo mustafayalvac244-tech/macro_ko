@@ -19,6 +19,7 @@ import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
 // Fiyat tablosu ortak: burada yalnız iki eski Gemini satırı kalmıştı ve
 // bilinmeyen her modeli gemini-2.5-pro fiyatından sayıyordu.
 import { costTry } from '../_shared/fiyat.ts';
+import { rizaKapisi } from '../_shared/kvkkRiza.ts';
 
 const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
 // MODEL_BASIC / MODEL_PLUS KALDIRILDI: katman tablosu ortak dosyaya taşınınca
@@ -1150,6 +1151,14 @@ Deno.serve(async (req) => {
       const ids = (body.ids ?? []).slice(0, 4);
       if (!query || ids.length === 0) return json({ error: 'bad_request' }, 400);
 
+      // KVKK KAPISI. Arama ve belge getirme kapının DIŞINDA (Türkiye'deki
+      // kaynağa ve kendi veritabanımıza gider); özet ise kullanıcının sorgusunu
+      // yurt dışındaki modele yollar. Kapı tam bu ayrımın üstünde duruyor:
+      // rıza vermeyen avukat içtihat aramaya devam edebilir, yalnız yapay zekâ
+      // özeti kapalı kalır.
+      const rizaRed = await rizaKapisi(supabase, CORS);
+      if (rizaRed) return rizaRed;
+
       // Önce havuzdan metin+meta (varsa), eksik kalanı canlı Emsal'den çek.
       const { data: corpusRows } = await supabase
         .from('ictihat_kararlar')
@@ -1225,6 +1234,12 @@ Deno.serve(async (req) => {
     if (action === 'analyze') {
       const olay = (body.olay ?? '').trim();
       if (olay.length < 15) return json({ error: 'bad_request' }, 400);
+
+      // KVKK KAPISI — analiz, avukatın yazdığı OLAY ANLATIMINI yurt dışındaki
+      // modele gönderir. Bu, uygulamadaki en hassas metinlerden biri: içinde
+      // müvekkil bilgisi bulunması olağandır.
+      const rizaRed = await rizaKapisi(supabase, CORS);
+      if (rizaRed) return rizaRed;
 
       // Üyelik katmanı + maliyet tavanı kontrolü (batma koruması).
       // profiles PII sertleştirmesiyle authenticated'a SELECT kapalı; tier'ı

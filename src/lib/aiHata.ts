@@ -32,7 +32,7 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errGeneric';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -68,6 +68,39 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   // Yaşam boyu deneme hakkı (3 soru) tükendi — kontör/kota gibi yenilenmez,
   // yalnız abonelikle devam edilir.
   if (kod === 'deneme_hakki_bitti') return t('ai.errDenemeBitti');
+  // KVKK açık rızası yok. Bu bir ARIZA DEĞİL, kuraldır: rıza olmadan metni
+  // yurt dışına gönderemeyiz. "Tekrar deneyin" demek yanıltıcı olurdu —
+  // tekrar denemek hiçbir zaman işe yaramaz. Mesaj, gidilecek YERİ söylüyor.
+  if (kod === 'kvkk_riza_yok') return t('ai.errKvkkRiza');
+  // Rıza kaydı OKUNAMADI — kullanıcının eksiği değil, bizim arızamız. Ayrı
+  // mesaj şart: "imzalayın" deseydik, imzalamış kullanıcıyı olmayan bir işe
+  // yollar ve gerçek arıza görünmez kalırdı.
+  if (kod === 'kvkk_kontrol_hatasi') return t('ai.errKvkkKontrol');
   if (kod === 'not_configured') return t('ai.errGeneric');
   return t('ai.errGeneric');
+}
+
+export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_arizasi' | 'generic';
+
+/**
+ * Hata kodunu çeviri anahtarına çevirir.
+ *
+ * NEDEN BURADA. Aynı üçlü koşul içtihat ekranında ÜÇ ayrı yerde elle yazılmıştı
+ * (arama, olay analizi, künye). Yeni bir hata türü eklendiğinde üçünü birden
+ * güncellemek gerekiyordu ve unutulan yer hiçbir hata vermeden yanlış cümleyi
+ * gösterirdi — sessizce. Tek sahip burası.
+ */
+export function ictihatHataAnahtari(error: IctihatError):
+  | 'ictihat.errAiOff' | 'ictihat.errRate' | 'ictihat.errSource'
+  | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ictihat.errGeneric' {
+  switch (error) {
+    case 'ai_off': return 'ictihat.errAiOff';
+    case 'rate_limit': return 'ictihat.errRate';
+    case 'source': return 'ictihat.errSource';
+    // KVKK mesajları ai-chat ile ORTAK: aynı sebeple kapanan iki ekranın iki
+    // farklı cümle söylemesi, kullanıcıya iki ayrı sorun varmış izlenimi verir.
+    case 'kvkk': return 'ai.errKvkkRiza';
+    case 'kvkk_arizasi': return 'ai.errKvkkKontrol';
+    default: return 'ictihat.errGeneric';
+  }
 }

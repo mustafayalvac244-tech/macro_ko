@@ -25,6 +25,7 @@ import {
   useIctihatSummary,
   type IctihatHit,
   type IctihatError,
+  ictihatHataAnahtari,
   type IctihatCourt,
   type IctihatMode,
 } from '@/hooks/useIctihat';
@@ -170,8 +171,9 @@ export default function IctihatScreen() {
     [mode, searched, query, mevzuatHazir]
   );
 
-  const errText =
-    error === 'rate_limit' ? t('ictihat.errRate') : error === 'source' ? t('ictihat.errSource') : t('ictihat.errGeneric');
+  // Hata metni tek yerden (useIctihat): aynı üçlü koşul bu ekranda üç ayrı
+  // yerde elle yazılıydı ve yeni bir tür eklendiğinde biri hep geride kalırdı.
+  const errText = error ? t(ictihatHataAnahtari(error)) : '';
 
   // KALDIRILDI: burada tüm ekran AI_ENABLED'a bakıp "Çok Yakında" ile
   // kapatılıyordu. Ekranın üç kipinden yalnız BİRİ (olay analizi) yapay zekâ
@@ -667,14 +669,7 @@ function AnalyzePanel({
   const t = useT();
   const { analysis, hits, loading, error, done, analyze } = state;
 
-  const errText: string =
-    error === 'ai_off'
-      ? t('ictihat.errAiOff')
-      : error === 'rate_limit'
-        ? t('ictihat.errRate')
-        : error === 'source'
-          ? t('ictihat.errSource')
-          : t('ictihat.errGeneric');
+  const errText: string = error ? t(ictihatHataAnahtari(error)) : '';
   const canRun = olay.trim().length >= 15 && !loading;
 
   // Olay analizi ölçülmedi: "Çok Yakında" göster, arka uca istek atma.
@@ -803,12 +798,7 @@ function KunyePanel({
   // Önizlemede işaretlenecek ifade: girilen esas (yoksa karar) numarası.
   const hq = extractKunyeNo(esas) || extractKunyeNo(karar);
 
-  const errText =
-    state.error === 'rate_limit'
-      ? t('ictihat.errRate')
-      : state.error === 'source'
-        ? t('ictihat.errSource')
-        : t('ictihat.errGeneric');
+  const errText = state.error ? t(ictihatHataAnahtari(state.error)) : '';
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
