@@ -142,7 +142,7 @@ export default function SignupScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <WebKart>
           <View style={styles.brand}>
-            <VekilLogo size={72} />
+            <VekilLogo size={72} nodeFill={colors.bg} />
             <Text style={styles.brandName}>{t('app.name')}</Text>
           </View>
           <View style={styles.verifyIconWrap}>
@@ -170,7 +170,7 @@ export default function SignupScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <WebKart>
           <View style={styles.brand}>
-            <VekilLogo size={72} />
+            <VekilLogo size={72} nodeFill={colors.bg} />
             <Text style={styles.brandName}>{t('app.name')}</Text>
           </View>
 
