@@ -142,6 +142,90 @@ export class Butce {
 }
 
 /**
+ * PARA BÜTÇESİ — ölçümün kaç lira harcadığını sayar ve tavanı geçince durdurur.
+ *
+ * NEDEN VAR (pahalı öğrenildi). 11 Eylül 2026'da 5 dolarlık API kredisi tek bir
+ * ölçüm koşusunda tükendi. Var olan `Butce` yalnız DUVAR SAATİNİ sayıyordu;
+ * parayı sayan hiçbir şey yoktu. Dahası ölçüm raporu her koşuda "₺0,00"
+ * yazıyordu — çünkü sunucu kullanım bilgisi göndermediğinde künye onu SIFIR
+ * kabul ediyordu. O sıfır "harcama yok" demek değildi, "bilmiyorum" demekti;
+ * ikisini aynı sayıya indirgemek, harcamayı görünmez yaptı.
+ *
+ * ÜÇ KURAL:
+ *   1. BİLİNMEYEN MALİYET SIFIR DEĞİLDİR. Sunucu maliyet döndürmezse bu
+ *      ayrıca sayılır ve raporda yazar. Ücretli modelde maliyet körken
+ *      koşuya devam etmek, 11 Eylül'de yapılan hatanın ta kendisidir.
+ *   2. ÖN YOKLAMA. İlk senaryonun maliyeti ölçülür ve kalan senaryolara
+ *      çarpılıp öngörü yazılır. Öngörü tavanı aşıyorsa koşu BAŞLAMADAN durur.
+ *   3. KOŞU ORTASINDA DA DURUR. Gerçek harcama tavana ulaşınca kalan
+ *      senaryolar ölçülmez ve raporda "ölçülmedi" diye görünür — "geçti"
+ *      diye değil.
+ *
+ * Tavan TL cinsinden: sunucu maliyeti TL döndürüyor (bkz. _shared/fiyat.ts).
+ */
+export class ParaButcesi {
+  /**
+   * @param {number} tavanTl  Harcama tavanı (TL). 0 ya da negatif = sınırsız.
+   * @param {number} senaryo  Koşulacak toplam senaryo sayısı (öngörü için).
+   */
+  constructor(tavanTl = Number(process.env.EVAL_PARA_BUTCESI ?? 0), senaryo = 0) {
+    this.tavan = Number.isFinite(tavanTl) && tavanTl > 0 ? tavanTl : 0;
+    this.senaryo = senaryo;
+    this.harcanan = 0;
+    this.olculen = 0;
+    /** Sunucunun maliyet döndürmediği istek sayısı. SIFIR DEĞİL, BİLİNMİYOR. */
+    this.bilinmeyen = 0;
+  }
+
+  /**
+   * Bir isteğin kullanım bilgisini işler.
+   * @param {{maliyetTL?: number, girdiToken?: number, ciktiToken?: number}|null|undefined} kullanim
+   */
+  gor(kullanim) {
+    this.olculen += 1;
+    const m = Number(kullanim?.maliyetTL);
+    // Token da maliyet de gelmediyse sunucu kullanım bildirmemiş demektir.
+    // maliyetTL === 0 ama token VARSA bu gerçek bir sıfırdır (ücretsiz katman).
+    const tokenVar = Number(kullanim?.girdiToken) > 0 || Number(kullanim?.ciktiToken) > 0;
+    if (!Number.isFinite(m) || (m === 0 && !tokenVar)) {
+      this.bilinmeyen += 1;
+      return;
+    }
+    this.harcanan += m;
+  }
+
+  /** Tavan aşıldı mı? Tavan yoksa asla dolmaz. */
+  doldu() {
+    return this.tavan > 0 && this.harcanan >= this.tavan;
+  }
+
+  /**
+   * ÖN YOKLAMA SONUCU. İlk ölçülen isteğin maliyetinden tüm koşuyu öngörür.
+   * @returns {{ongoru: number, asar: boolean}|null} henüz maliyet görülmediyse null
+   */
+  ongoru() {
+    // AYRIM ÖNEMLİ: "maliyeti bilmiyorum" ile "maliyet gerçekten sıfır" aynı
+    // şey değil. Ücretsiz katmanda token gelir, maliyet 0'dır ve bu SAĞLIKLI
+    // bir ölçümdür — orada koşuyu durdurmak yanlış olurdu. Öngörü yalnız
+    // TEK BİR bilinen örnek bile yoksa null döner; o durumda ücretli modeli
+    // kör koşturuyoruz demektir ve çağıran taraf durmalıdır.
+    const bilinen = this.olculen - this.bilinmeyen;
+    if (bilinen <= 0) return null;
+    const ortalama = this.harcanan / bilinen;
+    const ongoru = ortalama * Math.max(this.senaryo, this.olculen);
+    return { ongoru, asar: this.tavan > 0 && ongoru > this.tavan };
+  }
+
+  /** Rapor satırı — bilinmeyeni SAKLAMAZ. */
+  satir() {
+    const t = this.tavan > 0 ? `₺${this.tavan.toFixed(2)}` : 'sınırsız';
+    const bilinmeyenNot =
+      this.bilinmeyen > 0 ? `  ⚠ ${this.bilinmeyen} istekte maliyet BİLİNMİYOR (sıfır değil)` : '';
+    return `harcanan ₺${this.harcanan.toFixed(2)} / tavan ${t}${bilinmeyenNot}`;
+  }
+}
+
+/**
  * Sonucu HEMEN diske yazar.
  *
  * NEDEN HER SENARYODAN SONRA. Betikler sonucu yalnız sonda yazıyordu; koşu

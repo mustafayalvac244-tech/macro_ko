@@ -38,6 +38,9 @@ on:
       betik_dk:
         description: 'Betik başına en fazla dakika (asılmaya karşı üst sınır)'
         default: '18'
+      betik_tl:
+        description: 'Betik başına en fazla harcama (TL). 0 = sınırsız — ÖNERİLMEZ'
+        default: '150'
       betikler:
         description: 'Yalnız bu betikler (boş = hepsi). Ör: eval-mutalaa eval-belge'
         default: ''
@@ -186,7 +189,13 @@ jobs:
           # kendi bütçesini dolduğunda ÖLÇTÜĞÜNÜ DOSYAYA YAZARAK durur;
           # `timeout` öldürürse hiçbir şey yazılmaz. Yani önce betik pes etsin.
           export EVAL_BETIK_BUTCESI=$(( (DK - 1) * 60000 ))
-          echo "Betik başına: iç bütçe $(( DK - 1 ))dk, dış tavan ${DK}dk."
+          # PARA TAVANI. 11 Eylül 2026'da 5 dolarlık API kredisi TEK koşuda
+          # tükendi: o gün yalnız duvar saati sayılıyordu, parayı sayan hiçbir
+          # şey yoktu ve rapor her koşuda "₺0,00" yazıyordu. Betik artık ilk
+          # senaryonun maliyetini ölçüp tüm koşuyu öngörüyor; öngörü tavanı
+          # aşarsa TEK senaryo ölçülmüş hâlde durur.
+          export EVAL_PARA_BUTCESI=${{ inputs.betik_tl }}
+          echo "Betik başına: iç bütçe $(( DK - 1 ))dk, dış tavan ${DK}dk, para tavanı ₺${EVAL_PARA_BUTCESI}."
           # HANGİ BETİKLER. Boş bırakılırsa altısı da koşar.
           #
           # NEDEN SEÇİLEBİLİR OLMASI GEREKİYOR. Her senaryo gerçek bir Opus

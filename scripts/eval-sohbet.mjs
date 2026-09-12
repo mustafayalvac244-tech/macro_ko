@@ -18,7 +18,7 @@
 //   node scripts/eval-sohbet.mjs
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { istek, Butce } from './istek.mjs';
+import { istek, Butce , ParaButcesi } from './istek.mjs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
@@ -126,6 +126,7 @@ async function sor(soru, deneme = 0) {
   // ai_istek satırları da cascade ile gidiyor, yani harcama başka hiçbir
   // yerden geri okunamıyor.
   kunye.gor(j?.kullanim ?? { model: j?.model });
+  para.gor(j?.kullanim);
   return { metin: String(j?.text ?? ''), model: String(j?.model ?? '?') };
 }
 
@@ -136,6 +137,10 @@ if (SECIM.length) {
   if (bilinmeyen.length) throw new Error(`bilinmeyen senaryo: ${bilinmeyen.join(', ')}`);
 }
 const senaryolar = SECIM.length ? tumSenaryolar.filter((x) => SECIM.includes(x.id)) : tumSenaryolar;
+
+// PARA BÜTÇESİ (bkz. istek.mjs > ParaButcesi). 11 Eylül 2026: 5 dolarlık kredi
+// tek koşuda tükendi, çünkü yalnız duvar saati sayılıyordu.
+const para = new ParaButcesi(Number(process.env.EVAL_PARA_BUTCESI ?? 0), typeof senaryolar !== 'undefined' ? senaryolar.length : 0);
 
 let uid = null;
 const sonuclar = [];
@@ -150,7 +155,7 @@ try {
   for (const s of senaryolar) {
     // BÜTÇE KONTROLÜ — eksik ölçüm, hiç ölçümden iyidir; ama eksik olduğu
     // SÖYLENMEK zorunda, yoksa oran düşük çıkar ve gerileme sanılır.
-    if (butce.doldu()) {
+    if (butce.doldu() || para.doldu()) {
       console.error(
         `\nBÜTÇE DOLDU (${butce.satir()}) — kalan senaryolar ÖLÇÜLMEDİ.\n` +
           'Bu koşudan oran ÇIKARMAYIN: ölçülen kalite değil, ayrılan süredir.'
@@ -198,6 +203,10 @@ const gecen = sonuclar.filter((s) => s.gecti).length;
 
 console.log('\n' + '─'.repeat(60));
 console.log(kunye.satir());
+// HARCAMA HER KOŞUDA YAZILIR. Görünmeyen harcama, yakılan harcamadır: 11 Eylül
+// 2026'da rapor "₺0,00" yazdığı için 5 dolarlık kredinin bittiği ancak
+// sağlayıcı panelinden anlaşıldı.
+console.log(`HARCAMA: ${para.satir()}`);
 console.log(`SOHBET: ${gecen}/${olculen} senaryo tam geçti (%${olculen ? ((gecen / olculen) * 100).toFixed(1) : 0})` +
   (olculen < tumSenaryolar.length ? ` — havuzdaki ${tumSenaryolar.length} senaryonun ${olculen} tanesi ölçüldü` : ''));
 for (const tur of ['tekBilgi', 'kapsamDisi', 'kimlik', 'jailbreak', 'gorev']) {

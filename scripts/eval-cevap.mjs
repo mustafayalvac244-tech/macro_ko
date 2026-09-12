@@ -31,7 +31,7 @@
 // ---------------------------------------------------------------------------
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gecer } from './eslestir.mjs';
-import { istek, Butce } from './istek.mjs';
+import { istek, Butce, ParaButcesi } from './istek.mjs';
 import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
 import { katmanAyarla } from './eval-katman.mjs';
@@ -61,6 +61,10 @@ const BEKLEME = Number(process.env.EVAL_BEKLEME ?? 20000);
 // RAPORLAYARAK durur. Ayrıntılı teşhis ve o gün yaptığım YANLIŞ teşhisin
 // düzeltmesi: scripts/istek.mjs başlığı.
 const butce = new Butce();
+
+// PARA BÜTÇESİ (bkz. istek.mjs > ParaButcesi). 11 Eylül 2026: 5 dolarlık kredi
+// tek koşuda tükendi, çünkü yalnız duvar saati sayılıyordu.
+const para = new ParaButcesi(Number(process.env.EVAL_PARA_BUTCESI ?? 0), typeof senaryolar !== 'undefined' ? senaryolar.length : 0);
 const uyu = (ms) => new Promise((r) => setTimeout(r, Math.min(ms, butce.kalan())));
 
 const EPOSTA = `eval-cevap-${Date.now()}@vekil.local`;
@@ -140,6 +144,7 @@ async function sor(jwt, soru, deneme = 0) {
   // ai_istek satırları da cascade ile gidiyor, yani harcama başka hiçbir
   // yerden geri okunamıyor.
   kunye.gor(govde?.kullanim ?? { model: govde?.model });
+  para.gor(govde?.kullanim);
   if (govde?.yapayZekasiz || govde?.model === 'mevzuat-yedek') {
     if (deneme < 4) {
       const bekle = 30000 * (deneme + 1);
@@ -168,7 +173,7 @@ try {
   for (const s of sorular) {
     // BÜTÇE KONTROLÜ — eksik ölçüm, hiç ölçümden iyidir; ama eksik olduğu
     // SÖYLENMEK zorunda, yoksa oran düşük çıkar ve gerileme sanılır.
-    if (butce.doldu()) {
+    if (butce.doldu() || para.doldu()) {
       console.error(
         `\nBÜTÇE DOLDU (${butce.satir()}) — kalan senaryolar ÖLÇÜLMEDİ.\n` +
           'Bu koşudan oran ÇIKARMAYIN: ölçülen kalite değil, ayrılan süredir.'
@@ -242,6 +247,10 @@ if (basarisiz.length) {
 const oran = sorular.length ? ((dogru / sorular.length) * 100).toFixed(1) : '0.0';
 console.log(`\n${'─'.repeat(60)}`);
 console.log(kunye.satir());
+// HARCAMA HER KOŞUDA YAZILIR. Görünmeyen harcama, yakılan harcamadır: 11 Eylül
+// 2026'da rapor "₺0,00" yazdığı için 5 dolarlık kredinin bittiği ancak
+// sağlayıcı panelinden anlaşıldı.
+console.log(`HARCAMA: ${para.satir()}`);
 console.log(`CEVAP DOĞRULUĞU: ${dogru}/${sorular.length} (%${oran})`);
 if (basarisiz.length) {
   console.log(`Hatalı cevap: ${basarisiz.length}`);
