@@ -48,7 +48,10 @@ const govde = {
   // kod gönderiyordu ve giriş kutusu maxLength=6 ile 8 hanelinin YAZILMASINI
   // bile engelliyordu — yani şifresini unutan kimse giremiyordu. Uzunluğu
   // burada sabitliyoruz; ekran da artık uzunluğa bağımlı değil.
-  mailer_otp_length: '6',
+  // SAYI. smtp_port'un aksine burası sayı bekliyor; canlıda ölçüldü
+  // ("mailer_otp_length: Invalid input: expected number, received string").
+  // İki alan aynı uçta olduğu hâlde farklı tip istiyor — tahmin edilemez.
+  mailer_otp_length: 6,
   rate_limit_email_sent: SAATLIK,
 };
 
@@ -63,12 +66,11 @@ let res = await yaz(govde);
 if (!res.ok) {
   // Anahtar hata gövdesinde geri dönebilir; yazdırmadan önce maskele.
   const t = (await res.text()).replaceAll(KEY, '***');
-  // smtp_port metin isteniyor, mailer_otp_length'in hangi tipte beklendiğini
-  // BİLMİYORUZ — tahmin etmek yerine API ne dediyse ona göre bir kez daha
-  // deniyoruz. Sessizce alanı düşürmüyoruz: düşersek kod yine 8 hane kalır.
+  // Tip beklentisi ileride değişirse alanı sessizce düşürmüyoruz — düşersek
+  // kod yine 8 hane kalır ve kimse fark etmez. Metinle bir kez daha deniyoruz.
   if (res.status === 400 && /mailer_otp_length/.test(t)) {
-    console.warn(`mailer_otp_length tip uyuşmazlığı, sayı olarak yeniden deneniyor: ${t.slice(0, 200)}`);
-    res = await yaz({ ...govde, mailer_otp_length: 6 });
+    console.warn(`mailer_otp_length tip uyuşmazlığı, metin olarak yeniden deneniyor: ${t.slice(0, 200)}`);
+    res = await yaz({ ...govde, mailer_otp_length: '6' });
   }
   if (!res.ok) {
     console.error(`HATA ${res.status}: ${(await res.text()).replaceAll(KEY, '***').slice(0, 400)}`);
