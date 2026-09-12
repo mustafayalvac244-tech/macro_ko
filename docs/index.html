@@ -185,8 +185,11 @@ nav a:hover{color:var(--metin)}
   background:linear-gradient(90deg,var(--lacivert-3),var(--altin-2));opacity:.75}
 .sayilar u{display:block;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:1.1px;
   text-transform:uppercase;color:var(--metin-3);margin-bottom:7px}
-.sayilar b{display:block; font-family:'Playfair Display',serif; font-size:clamp(26px,3vw,34px);
-  line-height:1.05; letter-spacing:-.8px; color:var(--metin)}
+/* Vitrinde artık rakam değil KISA SÖZ duruyor ("Canlı", "Her künye",
+   "Büronun tamamı"). Rakam puntosunda bir söz dar kutuda taşıyor; ölçek
+   kutu genişliğine göre veriliyor ve kelime bölünmesine izin var. */
+.sayilar b{display:block; font-family:'Playfair Display',serif; font-size:clamp(21px,2.1vw,27px);
+  line-height:1.12; letter-spacing:-.5px; color:var(--metin); overflow-wrap:break-word; hyphens:auto}
 /* Birim SAYININ İÇİNDE değil, altındaki satırda. "6.107madde" bitişik
    okunuyordu; araya boşluk koymak da dengesiz duruyordu. Sayı tek başına
    durunca hem iri hem okunur oluyor. */
@@ -501,42 +504,42 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     </div>
    </div><!-- /kh-izgara -->
 
-    <!-- SAYILAR — hepsi depodan sayıldı, tahmin yok:
-         4 mahkeme kademesi: Yargıtay ve Danıştay Bedesten üzerinden, istinaf
-           ve yerel mahkeme UYAP Emsal üzerinden (supabase/functions/ictihat).
-         3 denetim sonucu: dogrulandi / havuzdaYok / olanaksiz
-           (supabase/functions/_shared/kararAtif.ts).
-         22 araç: yan menüdeki araç sayısı (src/components/Sidebar.tsx).
-         0 ₺: içtihat ve mevzuat araması üyeliksiz.
-
-         MEVZUAT SAYISI BİLEREK KALDIRILDI. Burada "6.107 kanun maddesi —
-         16 temel kanun" yazıyordu. Sayı doğruydu (5.908 + Anayasa 199) ama
-         bir YETENEK değil TAVAN ilan ediyordu: mevzuat aramamız tamamen
-         yerel, o 16 kanunun dışına çıkamıyor (içtihat aramasının aksine
-         hiçbir yere canlı sormuyor). Avukat "16 kanun" yazısını görünce
-         eksikleri saymaya başlar — Kat Mülkiyeti, İmar, KVKK, Vergi Usul,
-         Kamu İhale... Yani kart bizi güçlü değil DAR gösteriyordu.
-         Kanun havuzu genişlerse buraya geri konabilir. -->
+    <!-- VİTRİNDE RAKAM YOK, YETENEK VAR.
+         Burada önce sayılar duruyordu (4 mahkeme kademesi, 3 denetim sonucu,
+         22 araç). Hepsi doğruydu ama bir rakam vitrine konunca ziyaretçi onu
+         TAVAN olarak okur ve eksik arar — nitekim "16 temel kanun" tam bunu
+         yapıyordu. Bu yüzden vitrinde artık sayı değil, yeteneğin kendisi
+         yazıyor.
+         BURADAKİ HER İFADE DOĞRU OLMAK ZORUNDA. "Sınırsız" yalnız içtihat
+         araması için yazılıdır ve gerçekten sınırsızdır (ücretsiz katmanda
+         da sayaç yok). "Her künye denetlenir" gerçekten her künye için
+         çalışır. Mevzuatın KAPSAMI hakkında bir bütünlük iddiası YOKTUR ve
+         yazılmamalıdır: mevzuat aramamız yereldir ve 16 kanunla sınırlıdır;
+         "bütün mevzuat" demek, İmar Kanunu arayıp bulamayan avukata yalan
+         söylemek olur — üstelik ürünün tek iddiası "uydurma yok" iken.
+         PLAN SINIRLARI (fiyat bölümündeki 5 dava / 10 müvekkil / 250 istek)
+         BURADAN AYRIDIR VE KALDIRILAMAZ: satın alma öncesi görünmesi gereken
+         sözleşme şartlarıdır. -->
     <div class="sayilar">
       <div>
-        <u>Canlı arama</u>
-        <b>4</b>
-        <span><b>mahkeme kademesi</b> — Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız</span>
+        <u>İçtihat</u>
+        <b>Canlı</b>
+        <span>Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında <b>sınırsız</b> arama — kaynağın kendisine gider</span>
       </div>
       <div>
         <u>Çıktı denetimi</u>
-        <b>3</b>
-        <span><b>ayrı sonuç</b> — yapay zekânın verdiği her madde ve künye için: doğrulandı, havuzda yok ya da <b>olamaz</b></span>
+        <b>Her künye</b>
+        <span>Yapay zekânın verdiği <b>her</b> madde ve <b>her</b> karar numarası denetlenir: doğrulandı, havuzda yok ya da <b>olamaz</b></span>
       </div>
       <div>
         <u>Tek programda</u>
-        <b>22</b>
-        <span><b>araç</b> — dava, duruşma, müvekkil, icra, kasa, süre, rapor ve yapay zekâ</span>
+        <b>Büronun tamamı</b>
+        <span>Dava, duruşma, müvekkil, icra, kasa, süre takibi, raporlar ve yapay zekâ — ikinci bir program yok</span>
       </div>
       <div>
         <u>Başlangıç</u>
-        <b>0<i>₺</i></b>
-        <span><b>üyeliksiz</b> — içtihat ve mevzuat araması süresiz ücretsiz</span>
+        <b>Ücretsiz</b>
+        <span>İçtihat ve mevzuat araması <b>üyeliksiz</b> ve süresiz — kredi kartı istenmiyor</span>
       </div>
     </div>
   </div>
