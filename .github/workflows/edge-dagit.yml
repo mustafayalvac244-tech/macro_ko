@@ -30,6 +30,7 @@ on:
         default: harvest-tick
         options:
           - harvest-tick
+          - katalog-tick
           - ai-chat
           - ictihat
           - embed-ictihat

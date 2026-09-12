@@ -18,6 +18,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 import { sonrakiSayfa } from '../_shared/hasatSayfa.ts';
+import { havuzda } from '../_shared/havuz.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -35,7 +36,13 @@ const BEDESTEN_HEADERS = {
 };
 const PAGE_SIZE = 20;
 
-const uyu = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/**
+ * BELGE İNDİRMEDE EŞZAMANLILIK.
+ * Gerekçe ve ölçümler _shared/havuz.ts başlığında. Özet: seri+uyku 1,01
+ * belge/sn, eşzamanlılık 4'te 4,24 belge/sn ve 0 hata. 8 de hatasız çıktı ama
+ * yalnız tek bir patlamada ölçüldü; sürekli hız ölçülmedi, o yüzden 4.
+ */
+const ES_ZAMAN = 4;
 
 /** Kesme işareti UYAP aramasını tamamen öldürüyor (ölçüldü: 0 vs 86.985 kayıt). */
 function normalizeTerm(t: string): string {
@@ -156,6 +163,166 @@ async function bedestenDoc(id: string): Promise<string> {
   return htmlToText(b64ToUtf8(String(j?.data?.content ?? '')));
 }
 
+/**
+ * BELGELERİ İNDİR VE YAZ — her iki modun ortak adımı.
+ *
+ * ÜÇ DEĞİŞİKLİK, ÜÇÜ DE ÖLÇÜME DAYANIYOR:
+ *
+ * 1. ELEME ÖNCE. Eskiden döngü TÜM satırları geziyor, kotayı EKLENEN karar
+ *    sayısıyla sayıyordu; yani yinelenen satırlar da döngüyü tüketiyordu.
+ *    Şimdi önce havuzda olanlar ELENİYOR, sonra kalanların ilk `enFazla`
+ *    tanesi alınıyor. "Yarım kaldı mı" sorusu da netleşiyor: elenmişten sonra
+ *    hâlâ kotadan fazla YENİ satır varsa sayfa bitmemiştir.
+ *
+ * 2. EŞZAMANLI İNDİRME. Belge başına 300 ms uyku yerine 4'lü havuz.
+ *    Ölçüldü: 1,01 belge/sn → 4,24 belge/sn, 0 hata (bkz. _shared/havuz.ts).
+ *
+ * 3. TEK SEFERDE YAZ. Eskiden her belge için ayrı bir upsert gidiyordu; 10
+ *    belge = 10 ayrı veritabanı gidiş-dönüşü. Bugünkü teşhiste 6 saatte 33
+ *    "Gateway Timeout" ve 132 yetki reddi ölçüldü — veritabanı boğulduğunda
+ *    yetki kontrolü de düşüyor ve tur 403 alıyor. Gidiş-dönüş sayısını
+ *    azaltmak bu baskıyı doğrudan düşürür.
+ */
+async function belgeleriAl(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  kaynak: string,
+  rows: Satir[],
+  enFazla: number,
+  aramaTerimi: string
+): Promise<{ eklenen: number; yarimKaldi: boolean; not?: string; yazilanIdler: string[]; zatenVar: string[] }> {
+  const ids = rows.map((x) => String(x.id));
+  let mevcut = new Set<string>();
+  if (ids.length) {
+    const { data } = await supabase.from('ictihat_kararlar').select('id').in('id', ids);
+    mevcut = new Set(((data ?? []) as Array<{ id: string }>).map((x) => x.id));
+  }
+
+  const zatenVar = rows.map((r) => String(r.id)).filter((id) => mevcut.has(id));
+  const yeniler = rows.filter((r) => !mevcut.has(String(r.id)));
+  const yarimKaldi = yeniler.length > enFazla;
+  const alinacak = yeniler.slice(0, enFazla);
+  if (alinacak.length === 0) return { eklenen: 0, yarimKaldi, yazilanIdler: [], zatenVar };
+
+  const metinler = await havuzda(alinacak, ES_ZAMAN, async (row) => {
+    const id = String(row.id);
+    return kaynak === 'emsal' ? await emsalDoc(id) : await bedestenDoc(id);
+  });
+
+  // 200 karakterin altı gerçek karar metni değil (boş kabuk ya da hata sayfası).
+  const yazilacak = alinacak
+    .map((row, i) => ({ row, text: metinler[i] }))
+    .filter((x) => typeof x.text === 'string' && x.text.length >= 200)
+    .map(({ row, text }) => ({
+      id: String(row.id),
+      kurul: kurulOf(row.daire),
+      daire: row.daire ?? null,
+      esas_no: row.esasNo ?? null,
+      karar_no: row.kararNo ?? null,
+      karar_tarihi: row.kararTarihi ?? null,
+      durum: row.durum ?? null,
+      arama_terimi: aramaTerimi,
+      full_text: text as string,
+    }));
+
+  if (yazilacak.length === 0) return { eklenen: 0, yarimKaldi, yazilanIdler: [], zatenVar };
+
+  const { error } = await supabase.from('ictihat_kararlar').upsert(yazilacak, { onConflict: 'id' });
+  // YAZMA HATASI SESSİZ KALMAZ. Eski döngü hatayı yutuyordu: `if (!error)
+  // eklenen++` yazamayınca sayacı artırmıyor ama HİÇBİR ŞEY SÖYLEMİYORDU.
+  // Toplu yazmada bu daha da kritik: tek hata tüm sayfayı kaybettirir.
+  if (error) {
+    return { eklenen: 0, yarimKaldi, not: `upsert: ${String(error.message).slice(0, 90)}`, yazilanIdler: [], zatenVar };
+  }
+  return { eklenen: yazilacak.length, yarimKaldi, yazilanIdler: yazilacak.map((x) => x.id), zatenVar };
+}
+
+/**
+ * KATALOG TURU — metni HANGİ kararlar için indireceğimize biz karar veriyoruz.
+ *
+ * ESKİ DAVRANIŞ: bir anahtar kelime listesi dolaşılır, o terimin arama
+ * sonuçlarındaki kararların metni indirilirdi. Yani havuzun içeriğini
+ * RASTLANTI belirliyordu ve "elimizde ne yok" sorusunun cevabı yoktu.
+ *
+ * YENİ: katalog (0124) korpusun tamamını üstveri olarak sayıyor. Metin hasadı
+ * artık o katalogtan besleniyor: metni olmayan kararlar arasından EN YENİSİ
+ * önce. Böylece hem sıralama açık (avukat için 2024 kararı 2006'dan değerli)
+ * hem de "ne kadarının metni var" ölçülebilir bir sayı oluyor.
+ *
+ * Yinelenen indirme pratikte sıfır: katalog satırı metin geldiğinde
+ * işaretleniyor, kuyruk bir daha o kararı vermiyor.
+ */
+async function katalogTuru(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  kaynak: string,
+  enFazla: number
+): Promise<Response> {
+  const tur = kaynak === 'danistay' ? 'DANISTAYKARAR' : 'YARGITAYKARARI';
+  const bas = { ...CORS, 'Content-Type': 'application/json' };
+  const cevap = (o: Record<string, unknown>, durum = 200) =>
+    new Response(JSON.stringify({ kaynak, mod: 'katalog', ...o }), { status: durum, headers: bas });
+
+  const { data, error } = await supabase
+    .from('ictihat_katalog')
+    .select('id, daire, esas_yil, esas_sira, karar_yil, karar_sira, karar_tarihi')
+    .eq('tur', tur)
+    .eq('metin_var', false)
+    .order('son_deneme', { ascending: true, nullsFirst: true })
+    .order('karar_tarihi', { ascending: false })
+    .limit(enFazla);
+
+  if (error) return cevap({ error: 'katalog_state_failed', detail: String(error.message).slice(0, 120) }, 500);
+  type K = {
+    id: string; daire: string | null;
+    esas_yil: number | null; esas_sira: number | null;
+    karar_yil: number | null; karar_sira: number | null;
+    karar_tarihi: string | null;
+  };
+  const kayitlar = (data ?? []) as K[];
+  if (kayitlar.length === 0) return cevap({ eklenen: 0, not: 'katalogda metinsiz karar yok' });
+
+  // Denendi işareti ÖNCE konuyor: tur yarıda düşse bile aynı kararlar bir
+  // sonraki turda kuyruğun başında tekrar durmasın.
+  const idler = kayitlar.map((k) => k.id);
+  await supabase
+    .from('ictihat_katalog')
+    .update({ son_deneme: new Date().toISOString() })
+    .in('id', idler);
+
+  const rows: Satir[] = kayitlar.map((k) => ({
+    id: k.id,
+    daire: k.daire ?? '',
+    esasNo: k.esas_yil != null ? `${k.esas_yil}/${k.esas_sira}` : '',
+    kararNo: k.karar_yil != null ? `${k.karar_yil}/${k.karar_sira}` : '',
+    // ictihat_kararlar.karar_tarihi metin ve "GG.AA.YYYY" biçiminde tutuluyor.
+    kararTarihi: k.karar_tarihi ? String(k.karar_tarihi).slice(0, 10).split('-').reverse().join('.') : '',
+  }));
+
+  const { eklenen, not, yazilanIdler, zatenVar } = await belgeleriAl(
+    supabase,
+    kaynak,
+    rows,
+    enFazla,
+    'katalog'
+  );
+
+  // Metni artık elimizde olanları kuyruktan düşür. `zatenVar` de işaretleniyor:
+  // o kararlar ictihat_kararlar'a başka bir yoldan (terim modu) girmiş demektir
+  // ve katalog bunu bilmiyordu.
+  const bitenler = [...yazilanIdler, ...zatenVar];
+  if (bitenler.length) {
+    await supabase.from('ictihat_katalog').update({ metin_var: true }).in('id', bitenler);
+  }
+
+  return cevap({
+    istenen: kayitlar.length,
+    eklenen,
+    zaten_vardi: zatenVar.length,
+    ...(not ? { not } : {}),
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
@@ -175,13 +342,24 @@ Deno.serve(async (req) => {
 
   let kaynak = 'emsal';
   let enFazla = 6;
+  // MOD. 'terim' = eski davranış (anahtar kelime listesi). 'katalog' = metni
+  // olmayan kararları katalogdan alır; yalnız Bedesten kaynaklarında
+  // (yargitay/danistay) var, çünkü katalog o uçtan sayılıyor.
+  let mod: 'terim' | 'katalog' = 'terim';
   try {
     const body = await req.json();
     if (body?.kaynak === 'yargitay' || body?.kaynak === 'danistay') kaynak = body.kaynak;
-    enFazla = Math.min(10, Math.max(1, Number(body?.enFazla ?? 6)));
+    // TAVAN 10 → 40. Eski tavanın sebebi süre bütçesiydi: her belge arasında
+    // 300 ms uyku olduğu için 10 belge ~13 saniye sürüyordu. Eşzamanlılık 4 ile
+    // ölçülen hız 4,24 belge/sn; 40 belge ~10 saniye. Yani tur başına karar
+    // dört katına çıkarken turun süresi kısalıyor.
+    enFazla = Math.min(40, Math.max(1, Number(body?.enFazla ?? 6)));
+    if (body?.mod === 'katalog' && kaynak !== 'emsal') mod = 'katalog';
   } catch {
     // gövdesiz çağrı: varsayılan
   }
+
+  if (mod === 'katalog') return await katalogTuru(supabase, kaynak, enFazla);
 
   // Terim seçimi: en uzun süredir işlenmemiş olan. Böylece 134 terim sırayla
   // dolaşılır ve hep aynı konu taranmaz.
@@ -260,53 +438,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Havuzda olanları ele: aynı kararı tekrar indirip kaynağı yormayalım.
-  const ids = rows.map((x) => String(x.id));
-  let mevcut = new Set<string>();
-  if (ids.length) {
-    const { data } = await supabase.from('ictihat_kararlar').select('id').in('id', ids);
-    mevcut = new Set(((data ?? []) as Array<{ id: string }>).map((x) => x.id));
-  }
-
-  let eklenen = 0;
-  // Sayfayı BİTİREMEDEN kotaya takıldık mı? Sayfa ilerletme kararı buna bağlı;
-  // aşağıdaki uzun nota bak.
-  let yarimKaldi = false;
-  for (const row of rows) {
-    if (eklenen >= enFazla) {
-      yarimKaldi = true;
-      break;
-    }
-    const id = String(row.id);
-    if (mevcut.has(id)) continue;
-    // NAZİK HIZ. 800 ms'den 300 ms'ye indirildi. Ölçüm: eşzamanlılık 10'da
-    // 8,7 belge/sn güvenli, 16'da 429 geliyordu. Yeni hız ~0,17 belge/sn —
-    // ölçülen güvenli tavanın ellide biri. Kaynak UYAP bir KAMU hizmeti;
-    // hızlanmanın sınırı teknik değil, nezaket ve yasaklanmama riskidir.
-    await uyu(300);
-    let text = '';
-    try {
-      text = kaynak === 'emsal' ? await emsalDoc(id) : await bedestenDoc(id);
-    } catch {
-      continue;
-    }
-    if (!text || text.length < 200) continue;
-    const { error } = await supabase.from('ictihat_kararlar').upsert(
-      {
-        id,
-        kurul: kurulOf(row.daire),
-        daire: row.daire ?? null,
-        esas_no: row.esasNo ?? null,
-        karar_no: row.kararNo ?? null,
-        karar_tarihi: row.kararTarihi ?? null,
-        durum: row.durum ?? null,
-        arama_terimi: terim,
-        full_text: text,
-      },
-      { onConflict: 'id' }
-    );
-    if (!error) eklenen++;
-  }
+  const { eklenen, yarimKaldi, not: yazmaNotu } = await belgeleriAl(supabase, kaynak, rows, enFazla, terim);
 
   /**
    * SAYFANIN YARISI ÇÖPE GİDİYORDU — BULUNAN KAYIP.
@@ -358,6 +490,8 @@ Deno.serve(async (req) => {
       // Kotaya takılıp sayfa yarım kaldıysa SÖYLE: teşhis sorgusu bunu sayıp
       // "kota mı dar, sonuç mu yok" ayrımını yapabilsin.
       ...(yarimKaldi ? { yarim: true } : {}),
+      // Toplu yazma düştüyse SÖYLE. Eski döngü hatayı yutuyordu.
+      ...(yazmaNotu ? { not: yazmaNotu } : {}),
       // Öncelik sıralaması çalışmadıysa bunu SÖYLE. Sessizce eski davranışa
       // dönmek, "öncelikli hasat açık" sanmamıza yol açardı.
       ...(oncelikliCalisti ? {} : { uyari: 'oncelik_sutunu_yok__last_run_ile_siralandi' }),
