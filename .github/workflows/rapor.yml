@@ -84,6 +84,12 @@ jobs:
           # Sessiz kalırsa aylarca sürebilir, o yüzden her sabah bakılıyor.
           if [ "${{ github.event_name }}" = "schedule" ]; then
             node scripts/rapor-kos.mjs ai-model-olcum 2>&1 | tee /tmp/model.log || true
+            # KVKK RIZA DENETİMİ AÇILDIKTAN SONRA HER GÜN BAKILIR.
+            # 12.09.2026'da uçlara rıza kapısı kondu. Kapı sessiz bir şekilde
+            # yanlış çalışırsa (ya da kimse imzalamazsa) belirtisi tek olur:
+            # "kaydı yok VE ai kullanmış" sayısı düşmez. Bunu kullanıcıdan
+            # duymak, ölçümle görmekten çok daha geç olur.
+            node scripts/rapor-kos.mjs kvkk-durum 2>&1 | tee /tmp/kvkk.log || true
           fi
           {
             echo "## $RAPOR"
@@ -97,6 +103,14 @@ jobs:
               echo ''
               echo '```'
               cat /tmp/model.log
+              echo '```'
+            fi
+            if [ -s /tmp/kvkk.log ]; then
+              echo ''
+              echo '## kvkk-durum (rıza kapısı kimi kesiyor)'
+              echo ''
+              echo '```'
+              cat /tmp/kvkk.log
               echo '```'
             fi
           } >> $GITHUB_STEP_SUMMARY
