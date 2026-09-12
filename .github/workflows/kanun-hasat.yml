@@ -44,7 +44,10 @@ permissions:
 jobs:
   hasat:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 45 → 20. İlk koşu 45 dakika hiç çıktı vermeden takıldı ve iptal oldu.
+    # Artık betik erişimi 25 saniyede yokluyor ve ulaşamazsa hemen çıkıyor;
+    # 30 kanun için en kötü ~40 dakika değil, birkaç dakika.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -65,7 +68,9 @@ jobs:
           if [ "${{ inputs.tumu }}" = "evet" ]; then BAYRAK="--tumu"; fi
           ADET="${{ inputs.adet }}"
           if [ -n "$ADET" ]; then BAYRAK="$BAYRAK --adet $ADET"; fi
-          python3 scripts/kanun-hasat.py $BAYRAK | tee /tmp/hasat.log
+          # -u: Python çıktısını tamponlamasın. İlk koşuda 45 dakika boyunca
+          # tek satır görünmedi ve iş iptal edilince tampon kayboldu.
+          python3 -u scripts/kanun-hasat.py $BAYRAK 2>&1 | tee /tmp/hasat.log
           echo 'ozet<<SON' >> "$GITHUB_OUTPUT"
           tail -40 /tmp/hasat.log >> "$GITHUB_OUTPUT"
           echo 'SON' >> "$GITHUB_OUTPUT"
