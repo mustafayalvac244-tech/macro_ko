@@ -30,18 +30,21 @@ export const KVKK_SURUM = '2026-09-2';
  * sürece durumu OLDUĞU GİBİ yazar — "şartı değildir" diye yanlış beyanda
  * bulunmaz (bkz. src/components/KvkkMetin.tsx, 5. ve 13. başlıklar).
  *
- * ⚠️ BAYRAĞI `true` TUTAN TEKNİK GEREKÇE ARTIK YOK. Daha önce şuydu: yapay
- * zekâ uçları rıza denetlemediği için, rızasız kaydolan biri yine de metnini
- * yurt dışına gönderebilirdi. O boşluk kapandı — uçlar artık rıza soruyor
- * (supabase/functions/_shared/kvkkRiza.ts). Yani bugün bayrağı `false` yapmak
- * hiçbir aktarımı denetimsiz bırakmaz; rıza vermeyen avukat hesabını açar,
- * yalnız yapay zekâ özellikleri kapalı kalır ve nedenini ekranda görür.
+ * 12.09.2026'da `false` YAPILDI. Gerekçe: bayrağı `true` tutan tek teknik
+ * sebep, yapay zekâ uçlarının rıza denetlememesiydi — rızasız kaydolan biri
+ * yine de metnini yurt dışına gönderebilirdi. O boşluk kapandı: uçlar artık
+ * rıza soruyor (supabase/functions/_shared/kvkkRiza.ts, canlıda dağıtıldı).
  *
- * Bayrağın `true` kalması artık yalnız bir ÜRÜN TERCİHİDİR. Değiştirmek tek
- * satır: `false` yapmak yeterli, kayıt ekranı da metin de kendiliğinden buna
- * göre davranır.
+ * Böylece üç şey birden düzeldi:
+ *   • Rıza, hizmete erişimin şartı olmaktan çıktı — Kanun'un aradığı ölçüt.
+ *   • Aydınlatma metni kendi uygulamamızı eleştiren paragrafı taşımıyor;
+ *     "şartı değildir" cümlesi artık DOĞRU olduğu için yazılabiliyor.
+ *   • Ana sayfadaki "KVKK uyumlu" ifadesiyle metin çelişmiyor.
+ *
+ * Rıza vermeyen avukat hesabını açar; yalnız yapay zekâ özellikleri kapalı
+ * kalır ve nedenini ekranda, gidilecek yerle birlikte görür.
  */
-export const RIZA_ZORUNLU = true;
+export const RIZA_ZORUNLU = false;
 
 export interface VeriSorumlusu {
   /** Ticari unvan ya da avukatın/büronun adı. */

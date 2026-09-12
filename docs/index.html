@@ -538,9 +538,14 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
          yazılmamalıdır: mevzuat aramamız yereldir ve 16 kanunla sınırlıdır;
          "bütün mevzuat" demek, İmar Kanunu arayıp bulamayan avukata yalan
          söylemek olur — üstelik ürünün tek iddiası "uydurma yok" iken.
-         PLAN SINIRLARI (fiyat bölümündeki 5 dava / 10 müvekkil / 250 istek)
-         BURADAN AYRIDIR VE KALDIRILAMAZ: satın alma öncesi görünmesi gereken
-         sözleşme şartlarıdır. -->
+         PLAN SINIRLARI BU SAYFADA RAKAMLA YAZILMAZ (ürün kararı): kartlar
+         yeteneği ve karşılaştırmayı anlatır. Ama sayılar SİLİNMİŞ DEĞİL, yer
+         değiştirmiştir — satın alma öncesi görünmeleri gerekir (6502 s. Kanun
+         ön bilgilendirme; App Store 3.1.2 ve Play aynı şeyi ister). İki yerde
+         kesin rakamla dururlar: Kullanım Koşulları (docs/terms.html) ve
+         uygulama içindeki satın alma ekranı (app/premium.tsx) — yani satın
+         almanın FİİLEN yapıldığı yer. Sözleşmedeki sayıların koddaki
+         sabitlerden ayrışmasını tests/sozlesmeSayilari.test.ts engelliyor. -->
     <div class="sayilar">
       <div>
         <u>İçtihat</u>
@@ -602,8 +607,8 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       </div>
       <div class="kutu">
         <div class="ik">06</div>
-        <h3>iPhone, Android ve bilgisayar</h3>
-        <p>Aynı hesap üç yerde. Adliyede telefondan, büroda büyük ekranda; çevrimdışıyken son eşitlenen dosyalar okunabilir kalır.</p>
+        <h3>Telefon, tablet ve bilgisayar</h3>
+        <p>Kurulum yok: aynı hesap, tarayıcısı olan her cihazda. Adliyede telefondan açar, büroda büyük ekranda devam edersiniz; çevrimdışı kalındığında son eşitlenen dosyalar okunabilir kalır. iOS ve Android uygulamaları mağaza sürecinde.</p>
       </div>
     </div>
   </div>
@@ -672,7 +677,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       <div class="kutu">
         <div class="ik">06</div>
         <h3>Atıf denetimi</h3>
-        <p>Çıktıdaki her kanun maddesi ve her Yargıtay/Danıştay karar numarası denetlenir. Sonuç üç ayrı etikettir: <b>doğrulandı</b> (havuzumuzda künyesiyle bulundu), <b>havuzda yok</b> (bizde bulunamadı — teyit edin) ve <b>olamaz</b> (karar yılı esas yılından önce, gelecek yıl numarası, hiç var olmamış daire). Olanaksız atıf çıkarsa o istek hakkınızdan düşülmez.</p>
+        <p>Çıktıdaki her kanun maddesi ve her Yargıtay/Danıştay karar numarası denetlenir. Sonuç üç ayrı etikettir: <b>doğrulandı</b> (havuzumuzda künyesiyle bulundu), <b>havuzda yok</b> (bizde bulunamadı — teyit edin) ve <b>olamaz</b> (karar yılı esas yılından önce, gelecek yıl numarası, hiç var olmamış daire). Olanaksız bir atıf çıkarsa o istek hakkınızdan düşülmez — kusurlu çıktının bedelini siz ödemezsiniz.</p>
       </div>
       <div class="kutu">
         <div class="ik">07</div>
@@ -705,7 +710,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
           <li>Mevzuat, hesaplayıcılar, şablonlar</li>
           <li>Ajanda, duruşma ve hatırlatmalar</li>
           <li>Dava, müvekkil ve duruşma takibi</li>
-          <li>Yapay zekâyı ücretsiz deneyin</li>
+          <li>Yapay zekâyı deneme sorularıyla tanıyın</li>
         </ul>
         <a class="dg dg-cer" href="app/">Başla</a>
       </div>
@@ -718,8 +723,8 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
           <li>Ücretsiz katmandaki her şey</li>
           <li>Sınırsız dava, müvekkil ve belge</li>
           <li>Büro finansı ve raporlar</li>
-          <li>Bilgisayardan kullanım (web sürümü)</li>
-          <li>Yapay zekâ ayrı pakettir</li>
+          <li>Menfaat çatışması ve vekâlet takibi</li>
+          <li>Büro kayıtlarında sayaç yok</li>
         </ul>
         <a class="dg dg-ana" href="app/">Üyeliğe geç</a>
       </div>
@@ -734,6 +739,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
           <li>Belge inceleme ve künye çıkarımı</li>
           <li>Her madde ve künye denetlenir</li>
           <li>UYAP formatında (.udf) indirme</li>
+          <li>Yoğun kullanıma göre ölçülmüş aylık kapasite</li>
         </ul>
         <a class="dg dg-cer" href="app/">Yapay zekâyı aç</a>
       </div>
@@ -748,9 +754,9 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
          S.S.S.'de ve Kullanım Koşulları'nda duruyor. Uygulama içindeki satın
          alma ekranı da sayıları gösteriyor (app/premium.tsx). -->
     <p style="text-align:center;color:var(--metin-3);font-size:13.5px;margin-top:26px">
-      Aylık kullanım hakları <a href="#sss" style="color:var(--lacivert-3)">S.S.S.</a> bölümünde ve
-      <a href="terms.html" style="color:var(--lacivert-3)">Kullanım Koşulları</a>'nda yazılıdır.
-      Abonelikler App Store ve Google Play üzerinden satılır, aylık olarak otomatik yenilenir ve mağaza hesabınızdan istediğiniz zaman iptal edilebilir.
+      <b style="color:var(--metin-2)">Ücretsiz katman bugün açık ve süresiz.</b>
+      Ücretli planlar, iOS ve Android uygulamaları mağazalarda yayına girdiğinde açılır; abonelik mağaza hesabınız üzerinden işler, aylık yenilenir ve istediğiniz zaman iptal edilir.
+      Her planın aylık kullanım kapasitesi <a href="terms.html" style="color:var(--lacivert-3)">Kullanım Koşulları</a>'nda ve satın alma ekranında sayısıyla yazılıdır.
     </p>
   </div>
 </section>
@@ -768,7 +774,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
         <div><b>İçtihat araması süresiz ücretsiz</b><span>Üyelik yok, sayaç yok, kredi kartı yok. Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız arama — canlı UYAP kaynağına da gider.</span></div>
         <div><b>Dilekçe doğrudan UYAP formatında iner</b><span>Ürettiğiniz taslağı uygulama içinde düzeltir, <b>.udf</b> olarak indirir, UYAP Editör'de açarsınız. Kopyala-yapıştır ve biçim düzeltme adımı yok.</span></div>
         <div><b>Araştırma ile büro işi tek programda</b><span>Dava, duruşma, müvekkil, icra, kasa, süre takibi ve yapay zekâ aynı yerde. İkinci bir program ve ikinci bir abonelik gerekmez.</span></div>
-        <div><b>Telefonda da, bilgisayarda da</b><span>Duruşma çıkışında telefondan süre girer, büroda bilgisayardan dilekçe yazarsınız. Aynı hesap, aynı veri.</span></div>
+        <div><b>Telefonda da, bilgisayarda da</b><span>Duruşma çıkışında telefonun tarayıcısından süreyi girer, büroda bilgisayardan dilekçeyi yazarsınız. Kurulum, mağaza ve güncelleme beklemek yok; aynı hesap, aynı veri.</span></div>
         <div><b>Verileriniz eğitime gitmez</b><span>Sorularınız model eğitiminde kullanılmaz, soru metni saklanmaz. KVKK uyumlu.</span></div>
       </div>
       <p class="not">Yapay zekâ çıktısı hukuki tavsiye değildir ve avukatın denetimi yerine geçmez. Madde numaralarını ve kararları kullanmadan önce teyit ediniz.</p>
@@ -800,7 +806,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 
     <details>
       <summary>Web sürümünü kimler kullanabilir?</summary>
-      <p>Tarayıcı sürümü Vekil Pro üyeliğine dahildir. Ücretsiz katmanı mobil uygulamada sınırsız süreyle kullanmaya devam edebilirsiniz. Abonelik App Store veya Google Play üzerinden alınır; tarayıcıdan satın alma yapılamaz.</p>
+      <p>Herkes. Tarayıcı sürümü bugün ücretsiz katman dâhil tüm hesaplara açıktır; kurulum, mağaza ve güncelleme beklemek gerekmez. Telefonun, tabletin ve bilgisayarın tarayıcısında aynı hesapla çalışır. Ücretli planlar mobil uygulamalarla birlikte açılacak; abonelik o zaman mağaza hesabınız üzerinden işleyecek.</p>
     </details>
 
     <details>
@@ -810,7 +816,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 
     <details>
       <summary>Kullanmadığım yapay zekâ hakları devreder mi?</summary>
-      <p>Hayır. Aylık 750 istek ve 25 mütalaa hakkı her fatura döneminde yenilenir, kullanılmayan haklar sonraki aya aktarılmaz. Buna karşılık kusurlu çıktıda (eksik bölüm, uydurma veri) hak düşülmez; asıl model yanıt veremeyip yedeğe düşüldüğünde de hakkınız iade edilir.</p>
+      <p>Hayır — aylık kapasite her fatura döneminde sıfırdan yenilenir, kullanılmayan kısım sonraki aya aktarılmaz. Buna karşılık <b>kusurlu çıktı hakkınızdan düşülmez</b>: taslak yarım kalırsa, zorunlu bir bölüm eksikse ya da denetim &ldquo;olamaz&rdquo; diyen bir künye yakalarsa o istek sayılmaz. Asıl model yanıt veremeyip yedeğe düşüldüğünde de hakkınız iade edilir. Ayın kapasitesi dolduğunda kapı yüzünüze kapanmaz: istekler daha hızlı ve hafif bir modele yönlendirilir, reddedilmez. Her planın kesin aylık kapasitesi <a href="terms.html">Kullanım Koşulları</a>'nda ve satın alma ekranında yazılıdır.</p>
     </details>
   </div>
 </section>

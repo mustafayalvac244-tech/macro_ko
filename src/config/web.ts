@@ -31,6 +31,29 @@ export const WEB_ADRESI = 'https://vekilpro.app/app';
 export const WEB_ADRESI_KISA = WEB_ADRESI.replace(/^https?:\/\//, '').replace(/\/+$/, '');
 
 /**
+ * ⚠️ 12.09.2026'da `false` YAPILDI — DAYANAĞI ÇÖKTÜĞÜ İÇİN.
+ *
+ * Karar (2026-09-11) şu varsayıma dayanıyordu: "mobil uygulama ücretsiz
+ * katmanla kullanılabilmeye devam eder; web, üyeliğin görünür karşılığı olur."
+ * O varsayım BUGÜN GEÇERLİ DEĞİL — mobil uygulama henüz yayında değil
+ * (apps.apple.com ve play.google.com bağlantılarının ikisi de 404; site
+ * bunu kendi yorumunda yazıyor).
+ *
+ * Bayrak `true` iken oluşan zincir ÖLÇÜLDÜ ve çıkışı yoktu:
+ *   1. Ana sayfa "Web sürümünü aç" diyor, kayıt web'de çalışıyor.
+ *   2. Giriş yapılıyor, profil geliyor, `is_premium` varsayılanı false
+ *      (migration 0012) → kapı kapanıyor.
+ *   3. Kapı "telefonunuzdaki uygulamayı açın" diyor → uygulama yok.
+ *   4. "App Store / Google Play'den abone olun" diyor → mağaza 404.
+ *   5. Tarayıcıdan satın alma da yok (RevenueCat natife özgü).
+ * Yani ürünün TEK çalışan sürümü, hiç kimsenin geçemeyeceği bir kapının
+ * ardındaydı. Yeni gelen avukat için ürün fiilen kullanılamazdı.
+ *
+ * Mobil uygulamalar mağazada yayına girdiğinde bu bayrak yeniden `true`
+ * yapılabilir; o zaman kapının talimatı da gerçekten uygulanabilir olur.
+ *
+ * ────────────────────────────────────────────────────────────────────────
+ * Özgün gerekçe (kayıt için korunuyor):
  * Web sürümü YALNIZ ÜYELERE açıktır (ürün kararı, 2026-09-11).
  *
  * BU BİR GÜVENLİK SINIRI DEĞİLDİR, ürün kapısıdır. Verinin gerçek koruması
@@ -43,4 +66,4 @@ export const WEB_ADRESI_KISA = WEB_ADRESI.replace(/^https?:\/\//, '').replace(/\
  * hatası yüzünden dışarıda bırakmak, ödememiş birinin arayüzü görmesinden
  * daha pahalıdır.
  */
-export const WEB_YALNIZ_UYELERE = true;
+export const WEB_YALNIZ_UYELERE = false;

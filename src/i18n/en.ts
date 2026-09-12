@@ -735,6 +735,8 @@ export const en: Record<keyof typeof tr, string> = {
   'premium.choose': 'Choose {plan}',
   'premium.includes': 'Everything in {plan}, plus:',
   'premium.storeNote': 'Payment is handled securely via the App Store and Google Play. Cancel anytime.',
+  'premium.webTitle': 'Paid plans open soon',
+  'premium.webBody': 'The {plan} plan becomes purchasable once our iOS and Android apps are live in the stores — subscriptions run through your store account. Until then the free tier stays open indefinitely: unlimited case-law and legislation search, and uninterrupted case, hearing and calendar tracking.',
   'premium.soonTitle': 'Purchase unavailable right now',
   'premium.soonBody': 'The {plan} plan cannot be purchased on this device/build: the store offering could not be loaded. Use the current version from the App Store / Google Play; contact us if it persists.',
   'premium.purchaseSuccessTitle': 'Your subscription is active 🎉',

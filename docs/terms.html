@@ -64,7 +64,17 @@ Abonelikler otomatik olarak yenilenir. Yenilemeyi durdurmak için dönem bitimin
   </section>
   <section>
     <h2>5. Yapay Zekâ Kullanım Hakları</h2>
-    <p>Yapay Zekâ paketi aylık 250 soru ve 12 hukuki mütalaa hakkı içerir. Haklar her fatura döneminde yenilenir, kullanılmayan haklar sonraki aya devretmez. Ücretsiz hesaplara 3 adet deneme sorusu tanımlanır.</p>
+    <!-- ⚠️ BURADAKİ SAYILAR KODDAKİ SABİTLERLE AYNI OLMAK ZORUNDA.
+         Kaynak: src/hooks/useTrialStatus.ts (AI_SORU_HAKKI, AI_ASIL_MODEL_HAKKI,
+         AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI) ve gerçek kapı olarak
+         supabase/functions/_shared/katman.ts.
+         Uygulama içindeki sözleşme (app/terms.tsx) bu sayıları KODDAN okuyor;
+         bu dosya ise elle yazılı. 12.09.2026'da kota yükseltilince (250→750
+         asıl model, 12→25 mütalaa, +900 taşma) uygulama güncellendi ama bu
+         satır geride kaldı: aynı sözleşme web'de 250, uygulamada 1.650 diyordu.
+         Elle yazılan liste er ya da geç ayrışır — bu yüzden tests/sozlesmeSayilari.test.ts
+         artık bu dosyayı sabitlerle karşılaştırıyor ve ayrışırsa testi düşürüyor. -->
+    <p>Yapay Zekâ paketi aylık 1650 istek ve 25 hukuki mütalaa hakkı içerir. Aylık hakkın ilk 750 isteği en yetenekli modelle karşılanır; aynı ay içindeki sonraki istekler daha hızlı ve daha hafif bir modele yönlendirilir — istek reddedilmez, yalnız çıktıyı üreten model değişir. Haklar her fatura döneminde yenilenir, kullanılmayan haklar sonraki aya devretmez. Ücretsiz hesaplara 3 adet deneme sorusu tanımlanır.</p>
   </section>
   <section>
     <h2>6. Yapay Zekâ Çıktısı Hukuki Tavsiye Değildir</h2>

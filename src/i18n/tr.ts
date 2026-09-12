@@ -679,6 +679,11 @@ export const tr = {
   'premium.choose': '{plan}’ı Seç',
   'premium.includes': '{plan}’taki her şey, artı:',
   'premium.storeNote': 'Ödeme App Store ve Google Play üzerinden güvenle alınır. İstediğiniz zaman iptal edebilirsiniz.',
+  // WEB'DE SATIN ALMA — arıza değil, platform gerçeği. Uygulama içi satın
+  // alma mağazaya özgüdür; tarayıcıda böyle bir mekanizma yoktur. Bunu
+  // "yüklenemedi" diye yazmak, çalışan bir ürünü bozuk göstermekti.
+  'premium.webTitle': 'Ücretli planlar yakında açılıyor',
+  'premium.webBody': '{plan} paketi, iOS ve Android uygulamalarımız mağazalarda yayına girdiğinde satın alınabilir olacak — abonelikler mağaza hesabınız üzerinden işler. O güne kadar ücretsiz katman süresiz açık: içtihat ve mevzuat aramasını sınırsız, dava/duruşma/ajanda takibini kesintisiz kullanabilirsiniz.',
   'premium.soonTitle': 'Satın alma şu an yapılamıyor',
   'premium.soonBody': '{plan} paketi bu cihazda/sürümde satın alınamıyor: mağaza teklifi yüklenemedi. App Store / Google Play’deki güncel sürümü kullanın; sorun sürerse bize yazın.',
   'premium.purchaseSuccessTitle': 'Aboneliğiniz başladı 🎉',
