@@ -67,7 +67,14 @@ body{
 h1,h2,h3{font-family:'Playfair Display',Georgia,serif; line-height:1.2; margin:0}
 p{margin:0}
 a{color:inherit}
-.sar{width:min(1120px,100% - 40px); margin-inline:auto}
+/* KAPSAYICI GENİŞLİĞİ — 1120px DARDI.
+   Kullanıcı geniş ekranda baktı: içerik ortada dar bir sütunda kalıyor,
+   sağ ve sol kocaman boş. 1839px'lik bir pencerede 1120px içerik demek,
+   ekranın %39'unun boş kenar olması demek. Genişlik artık ekranla birlikte
+   büyüyor; çok geniş monitörlerde de satır uzunluğu okunmaz hâle gelmesin
+   diye 1440px'de duruyor. */
+.sar{width:min(1280px,100% - 56px); margin-inline:auto}
+@media(min-width:1600px){ .sar{width:min(1440px,100% - 96px)} }
 @media(max-width:640px){ .sar{width:calc(100% - 32px)} }
 /* Rozet telefonda iki satıra bölünüyor ve baştaki nabız noktası iki satırın
    ortasında asılı kalıyordu. Dar ekranda punto ve harf aralığı küçülüyor,
@@ -106,8 +113,9 @@ nav a:hover{color:var(--metin)}
    belgesinin kareli kağıdını andırır), iki renkli ışık lekesi ve üstten
    yumuşak bir geçiş. Hiçbiri içeriğin okunurluğunu düşürmüyor; hepsi
    pointer-events:none. */
+.kahraman-kap{position:relative;overflow:clip}
 .kahraman{padding:76px 0 60px; position:relative}
-.kh-fon{position:absolute;inset:-80px 0 0;overflow:hidden;pointer-events:none;z-index:0}
+.kh-fon{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
 .kh-fon::before{content:'';position:absolute;inset:0;
   background-image:linear-gradient(var(--cizgi) 1px,transparent 1px),
                    linear-gradient(90deg,var(--cizgi) 1px,transparent 1px);
@@ -116,9 +124,9 @@ nav a:hover{color:var(--metin)}
   -webkit-mask-image:radial-gradient(ellipse 90% 62% at 50% 22%,#000 20%,transparent 78%);
           mask-image:radial-gradient(ellipse 90% 62% at 50% 22%,#000 20%,transparent 78%)}
 .kh-fon i{position:absolute;display:block;border-radius:50%;filter:blur(72px);opacity:.5}
-.kh-fon i:nth-child(1){width:620px;height:420px;left:-120px;top:-60px;
+.kh-fon i:nth-child(1){width:min(760px,58vw);height:460px;left:-6vw;top:-90px;
   background:radial-gradient(circle,color-mix(in srgb,var(--lacivert-3) 55%,transparent),transparent 70%)}
-.kh-fon i:nth-child(2){width:520px;height:380px;right:-100px;top:40px;
+.kh-fon i:nth-child(2){width:min(620px,46vw);height:400px;right:-5vw;top:20px;
   background:radial-gradient(circle,color-mix(in srgb,var(--altin) 38%,transparent),transparent 70%)}
 @media (prefers-color-scheme: dark){
   .kh-fon::before{opacity:.7}
@@ -192,7 +200,7 @@ nav a:hover{color:var(--metin)}
 
 /* ── Bölümler ──────────────────────────────────────────────────────────── */
 section{padding:80px 0}
-.bas{text-align:center; max-width:720px; margin:0 auto 48px}
+.bas{text-align:center; max-width:760px; margin:0 auto 52px}
 .bas h2{font-size:clamp(27px,3.6vw,38px); letter-spacing:-.6px}
 .bas p{color:var(--metin-2); margin-top:14px; font-size:17px}
 .etiket{font-size:12.5px;font-weight:800;letter-spacing:1.4px;color:var(--lacivert-3);text-transform:uppercase}
@@ -402,11 +410,17 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
   </div>
 </header>
 
-<div class="sar">
+<!-- KAHRAMAN KAPSAYICISI — TAM GENİŞLİK.
+     Arka plan katmanları önce .sar'ın İÇİNDEYDİ; ızgara ve ışık lekeleri
+     yalnız içerik sütunu kadar uzanıyor, geniş ekranda sağ ve sol kenar
+     çıplak kalıyordu. Katmanlar artık sütunun dışında, ekranın tamamını
+     kaplıyor; içerik yine .sar ile ortada ve okunur genişlikte duruyor.
+     overflow:clip, ışık lekelerinin yatay kaydırma çubuğu yaratmasını
+     engelliyor. -->
+<div class="kahraman-kap">
+ <div class="kh-fon" aria-hidden="true"><i></i><i></i></div>
+ <div class="sar">
   <div class="kahraman">
-   <!-- Arka plan katmanları: ölçüm ızgarası + iki ışık lekesi. Tamamı
-        dekoratif, ekran okuyucudan gizli, tıklamayı engellemiyor. -->
-   <div class="kh-fon" aria-hidden="true"><i></i><i></i></div>
    <div class="kh-izgara">
     <div class="kh-sol">
     <!-- ROZET DEĞİL, DÜZ CÜMLE. Anthropic'in marka kuralı: ürününün Claude ile
@@ -417,9 +431,9 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
      artık açıkça olgusal. -->
     <span class="rozet">CLAUDE SONNET 5 İLE ÇALIŞIR · KVKK UYUMLU</span>
     <h1>Uydurma karar numarası<br><em>dilekçenize girmesin</em></h1>
-    <p class="kh-alt">Yapay zekânın verdiği her kanun maddesi ve her Yargıtay karar numarası denetlenir:
-      doğrulandı, havuzda yok ya da <b>olamaz</b>. Üstüne dava, duruşma, müvekkil ve finans yönetimi —
-      ve içtihat aramasında sınır yok, ücret yok.</p>
+    <p class="kh-alt">Yapay zekânın verdiği <b>her</b> kanun maddesi ve <b>her</b> karar künyesi denetlenir —
+      dilekçeniz mahkemeye gitmeden önce. Üstüne dava, duruşma, müvekkil, icra ve büro finansı aynı programda;
+      içtihat aramasında ne sınır var ne ücret.</p>
     </div><!-- /kh-sol -->
 
     <!-- DÜĞMELER AYRI BİR IZGARA ÖĞESİ.
@@ -450,7 +464,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       <span>Kredi kartı istenmiyor</span>
       <span>Veriniz eğitime gitmez</span>
     </div>
-    <p class="magaza-not">iOS ve Android uygulamaları henüz mağazalarda değil; hazırlık sürüyor. Web sürümü bugün kullanılabilir.</p>
+    <p class="magaza-not">Tarayıcıda hemen çalışır — kurulum yok. iOS ve Android uygulamaları hazırlanıyor.</p>
     </div><!-- /kh-eylem -->
 
     <!-- CANLI DENETİM — SAYFANIN KENDİSİ ÜRÜNÜ ÇALIŞTIRIYOR.
@@ -496,19 +510,19 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
          kıdem/ihbar). Arama canlı olarak UYAP Emsal ve Bedesten'e gider. -->
     <div class="sayilar">
       <div>
+        <u>Canlı arama</u>
+        <b>4</b>
+        <span><b>mahkeme kademesi</b> — Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız</span>
+      </div>
+      <div>
         <u>Mevzuat</u>
         <b>6.107</b>
         <span><b>kanun maddesi</b> — 16 temel kanun ve Anayasa, tam metin</span>
       </div>
       <div>
-        <u>İçtihat</u>
-        <b>Canlı</b>
-        <span><b>UYAP Emsal ve Bedesten</b> — aramanız kaynağa gider, sınır yok</span>
-      </div>
-      <div>
-        <u>Büroda işinize yarayan</u>
-        <b>15</b>
-        <span><b>dilekçe şablonu</b> — ayrıca 5 hesaplayıcı: vekalet ücreti, faiz, harç, SMM, kıdem</span>
+        <u>Tek programda</u>
+        <b>22</b>
+        <span><b>araç</b> — dava, duruşma, müvekkil, icra, kasa, süre, rapor ve yapay zekâ</span>
       </div>
       <div>
         <u>Başlangıç</u>
@@ -517,6 +531,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       </div>
     </div>
   </div>
+ </div>
 </div>
 
 <section id="ozellikler">
@@ -592,8 +607,8 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
   <div class="sar">
     <div class="bas">
       <span class="etiket">Yapay Zekâ katmanı</span>
-      <h2>Claude Sonnet 5 — ama hafızasından değil, kaynaktan</h2>
-      <p>Yapay zekâya soru sormadan önce uygulama, kendi mevzuat ve içtihat havuzundan ilgili madde metinlerini ve gerçek kararları bulup modele veriyor. Amaç, madde numarası uydurmasını engellemek.</p>
+      <h2>Dilekçeyi yazar, dayanağını gösterir, künyesini denetler</h2>
+      <p>Claude Sonnet 5 ile çalışır. Soru modele gitmeden önce ilgili kanun maddelerinin tam metni ve gerçek kararlar toplanıp eklenir; dönen metindeki her madde ve her künye tek tek denetlenir. Taslağı uygulama içinde düzeltir, <b>.udf</b> olarak indirir, UYAP Editör'de açarsınız.</p>
     </div>
     <div class="izgara">
       <div class="kutu">
@@ -898,10 +913,9 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       }
       sonuc.innerHTML = h;
       not.innerHTML =
-        "Burada yalnız <b>kesin olanı</b> görüyorsunuz: bir künyenin matematiksel olarak " +
-        "var olamayacağını. Künyenin gerçekten var olup olmadığı, 14 binden fazla kararlık " +
-        "havuzumuza ve canlı UYAP kaynağına sorulur — o denetim uygulamada çalışır. " +
-        "Bu kutudaki metin hiçbir yere gönderilmez.";
+        "Bu kutu <b>olamaz</b> diyeni gösteriyor. Uygulamada denetim devam ediyor: her künye " +
+        "canlı olarak UYAP Emsal ve Bedesten'e sorulur, her kanun maddesi tam metniyle " +
+        "karşılaştırılır. Yazdığınız metin hiçbir yere gönderilmez.";
     }
 
     girdi.addEventListener("input", ciz);
