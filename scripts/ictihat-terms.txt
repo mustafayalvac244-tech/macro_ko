@@ -163,3 +163,229 @@ tüketici hakem heyeti kararının iptali
 ayıplı mal iadesi
 haksız rekabetin tespiti
 ihya davası
+
+# ===========================================================================
+# 2026-09-12 GENİŞLETME — ölçümle gerekçelendirildi.
+#
+# ÖLÇÜM (canlı, son 6 saat): 720 hasat turunun 426'sı (%59) TAMAMEN BOŞ
+# döndü — bulunan her karar zaten havuzdaydı. Hız sınırı YOK (0 hata/429),
+# terim tükenmesi YOK (0 bitmiş terim), tur başına tavan 10 iken ortalama
+# yalnız 2,33 karar. Yani darboğaz ne kaynak ne ayar: 134 terimin madeni
+# tükenmiş. Cron'u sıklaştırmak yalnız boş tur sayısını artırırdı.
+#
+# Aşağıdakiler bu yüzden eklendi. Her yeni terim, hiç dokunulmamış bir karar
+# kümesinin kapısıdır; getirisi ölçülebilir (boş tur oranı düşmeli).
+# ===========================================================================
+
+# ---- İş hukuku (derinleştirme) ----
+fazla mesai alacağı
+hafta tatili ücreti
+ulusal bayram genel tatil ücreti
+yıllık izin ücreti alacağı
+asgari geçim indirimi alacağı
+iş kazası maddi tazminat
+iş kazası manevi tazminat
+meslek hastalığı tazminat
+sigortalılığın tespiti
+işverenin iş sağlığı güvenliği yükümlülüğü
+işe iade sonrası boşta geçen süre
+ibraname geçersizliği
+rekabet yasağı sözleşmesi işçi
+alt işveren asıl işveren ilişkisi
+muvazaalı alt işverenlik
+belirli süreli iş sözleşmesi
+deneme süreli iş sözleşmesi
+geçerli nedenle fesih işveren
+performans düşüklüğü fesih
+devamsızlık nedeniyle fesih
+işyeri devri işçilik alacakları
+
+# ---- Aile hukuku (derinleştirme) ----
+velayetin değiştirilmesi
+kişisel ilişki tesisi
+tedbir nafakası
+nafakanın artırılması
+nafakanın kaldırılması
+mal rejiminin tasfiyesi
+katılma alacağı
+değer artış payı alacağı
+edinilmiş mallara katılma
+aile konutu şerhi
+evlilik birliğinin temelinden sarsılması
+zina nedeniyle boşanma
+terk nedeniyle boşanma
+soybağının reddi
+evlat edinmenin iptali
+vesayet davası
+kısıtlama davası
+
+# ---- İcra ve iflas (derinleştirme) ----
+istihkak davası icra
+şikayet icra mahkemesi
+borca itiraz imzaya itiraz
+kambiyo senetlerine özgü takip
+ilamlı icra takibi
+haczedilmezlik şikayeti
+maaş haczi
+konkordato talebi
+iflasın ertelenmesi
+aciz vesikası
+rehnin paraya çevrilmesi
+ipoteğin paraya çevrilmesi yoluyla takip
+
+# ---- Gayrimenkul / imar / kamulaştırma ----
+muris muvazaası tapu iptali
+ortaklığın giderilmesi davası
+izale-i şuyu
+önalım hakkı şufa davası
+kat mülkiyeti uyuşmazlığı
+kat irtifakı
+ortak alan kullanımı apartman
+yönetim planına aykırılık
+acele kamulaştırma
+yapı ruhsatı iptali
+kaçak yapı yıkım kararı
+zilyetliğe dayalı tescil
+kadastro tespitine itiraz
+sınır tespiti davası
+
+# ---- Ticaret / şirketler (derinleştirme) ----
+genel kurul kararının iptali
+yönetim kurulu üyesinin sorumluluğu
+şirket ortaklığından çıkma
+haklı nedenle fesih şirket
+sermaye artırımının iptali
+çek iptali davası
+bono kambiyo vasfı
+ticari satımda ayıp ihbarı
+acentelik sözleşmesi portföy tazminatı
+franchise sözleşmesi uyuşmazlığı
+distribütörlük sözleşmesi feshi
+rekabet kurulu kararı iptali
+marka hükümsüzlüğü davası
+marka tecavüzü tazminat
+patent hükümsüzlüğü
+tasarım tecavüzü
+telif hakkı ihlali tazminat
+ticaret unvanına tecavüz
+alan adı uyuşmazlığı
+
+# ---- Sigorta / tazminat (derinleştirme) ----
+destekten yoksun kalma tazminatı
+sürekli iş göremezlik tazminatı
+geçici iş göremezlik
+kusur oranı tespiti bilirkişi
+trafik sigortası rücu davası
+kasko sigortası tazminat
+hayat sigortası ödeme talebi
+sağlık sigortası ödememe
+zorunlu deprem sigortası
+sigorta tahkim komisyonu
+rücuen tazminat sgk
+manevi tazminat miktarının belirlenmesi
+
+# ---- Sağlık / malpraktis ----
+tıbbi malpraktis tazminat
+hatalı tıbbi müdahale
+aydınlatılmış onam
+hastane hizmet kusuru
+estetik ameliyat eser sözleşmesi
+
+# ---- Ceza hukuku (derinleştirme) ----
+nitelikli dolandırıcılık
+rüşvet suçu
+irtikap suçu
+özel belgede sahtecilik
+mala zarar verme
+konut dokunulmazlığının ihlali
+şantaj suçu
+kişisel verilerin hukuka aykırı ele geçirilmesi
+bilişim sistemine girme
+banka veya kredi kartının kötüye kullanılması
+uyuşturucu ticareti suçu
+kullanmak için uyuşturucu bulundurma
+taksirle öldürme trafik
+kasten öldürmeye teşebbüs
+cinsel saldırı suçu
+çocuğun cinsel istismarı
+aile içi şiddet koruma kararı
+6284 sayılı kanun tedbir
+denetimli serbestlik
+koşullu salıverilme
+infazın ertelenmesi
+adli para cezası taksitlendirme
+etkin pişmanlık indirimi
+haksız tahrik indirimi
+meşru müdafaa ceza
+
+# ---- İdare / vergi (derinleştirme) ----
+disiplin cezasının iptali
+memur görevden uzaklaştırma
+atama işleminin iptali
+naklen atama iptali
+ihale iptali davası
+kamu ihale kurumu kararı
+belediye encümen kararı iptali
+yıkım kararının iptali
+ruhsat iptali işlemi
+idari para cezasının iptali
+usulsüzlük cezası iptali
+katma değer vergisi iadesi
+gelir vergisi tarhiyatı
+kurumlar vergisi tarhiyatı
+vergi tekniği raporu
+ödeme emrine itiraz vergi
+sahte fatura kullanma
+emlak vergisi uyuşmazlığı
+gümrük vergisi ceza kararı
+sosyal güvenlik prim borcu
+sgk idari para cezası
+yürütmenin durdurulması talebi
+
+# ---- Usul / kanun yolu (derinleştirme) ----
+istinaf başvuru süresi
+temyiz süresi ve şartları
+karar düzeltme talebi
+yargılamanın yenilenmesi
+eski hale getirme talebi
+ihtiyati tedbir talebi
+ihtiyati haciz talebi
+delil tespiti talebi
+bilirkişi raporuna itiraz
+tanık beyanının değerlendirilmesi
+yemin delili
+usulden red kararı
+dava şartı yokluğu
+zamanaşımı def'i
+hak düşürücü süre
+görevli mahkemenin belirlenmesi
+yetki itirazı
+davaların birleştirilmesi
+ıslah talebi
+kısmi dava belirsiz alacak
+arabuluculuk dava şartı
+zorunlu arabuluculuk ticari dava
+adli yardım talebi
+vekalet ücretine itiraz
+yargılama giderlerinin paylaştırılması
+
+# ---- Kişilik hakları / bilişim ----
+kişilik haklarına saldırı tazminat
+basın yoluyla kişilik hakkı ihlali
+internet içeriğinin kaldırılması
+erişimin engellenmesi kararı
+unutulma hakkı
+kvkk kurul kararı iptali
+kişisel verilerin korunması tazminat
+
+# ---- Tüketici (derinleştirme) ----
+konut kredisi erken kapama
+banka masraf iadesi
+kredi kartı aidat iadesi
+abonelik sözleşmesi cayma
+mesafeli satış cayma hakkı
+devre tatil sözleşmesi iptali
+paket tur sözleşmesi
+ayıplı araç iade
+garanti kapsamı uyuşmazlık
+tüketici hakem heyeti kararına itiraz
