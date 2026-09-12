@@ -3,4 +3,4 @@ User-agent: *
 Allow: /
 Disallow: /og.html
 
-Sitemap: https://mustafayalvac244-tech.github.io/macro_ko/sitemap.xml
+Sitemap: https://vekilpro.app/sitemap.xml
