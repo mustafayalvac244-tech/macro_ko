@@ -16,7 +16,7 @@
 // ve ayrı hızlarda çalışmalı; tek işlevde birleştirmek, ucuz olanı pahalı
 // olanın hızına mahkûm ederdi.
 //
-// Kullanım: POST { "tur": "YARGITAYKARARI" | "DANISTAYKARAR", "sayfa": 8 }
+// Kullanım: POST { "tur": "YARGITAYKARARI" | "DANISTAYKARAR", "istek": 20 }
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 import { havuzda } from '../_shared/havuz.ts';
@@ -125,13 +125,27 @@ Deno.serve(async (req) => {
   const supabase = createClient(url, key, { auth: { persistSession: false } });
 
   let tur = 'YARGITAYKARARI';
-  let sayfaSayisi = 8;
+  let istek = 20;
   try {
     const body = await req.json();
     if (body?.tur === 'DANISTAYKARAR') tur = 'DANISTAYKARAR';
-    // Tur başına kaç SAYFA çekilsin. 8 sayfa = 800 üstveri satırı ≈ 3 saniye.
-    // Belge indirmenin aksine bu istekler ucuz: yanıt üstveri, metin değil.
-    sayfaSayisi = Math.min(20, Math.max(1, Number(body?.sayfa ?? 8)));
+    /**
+     * TUR BAŞINA KAÇ ARAMA İSTEĞİ — İLK SÜRÜMDEKİ HATAM BURADAYDI.
+     *
+     * İlk yazdığım sürüm turda TEK pencere (tek gün) işliyordu. Canlıda
+     * ölçüldü: 7 dakikada yalnız 4 pencere kapandı. 15.850 pencere için bu
+     * dokuz aydan uzun sürerdi — yani "11 saatte tüm korpus" hesabım doğru
+     * ama TASARIM onu kullanamıyordu.
+     *
+     * Sebebi şu: çoğu gün 100'den az karar içeriyor, yani tek sayfada bitiyor.
+     * Tek pencerelik tur, o günü kapatıp DURUYORDU; oysa asıl maliyet turun
+     * kendisi (soğuk başlangıç + yetki kontrolü), arama isteği değil. Ölçülen
+     * arama hızı 271 satır/sn.
+     *
+     * Şimdi tur, birden çok pencereyi AYNI ANDA işliyor: 20 istek ≈ 5-6 saniye,
+     * ≈ 2.000 üstveri satırı.
+     */
+    istek = Math.min(40, Math.max(1, Number(body?.istek ?? body?.sayfa ?? 20)));
   } catch {
     // gövdesiz çağrı: varsayılan
   }
@@ -140,7 +154,7 @@ Deno.serve(async (req) => {
   const cevap = (o: Record<string, unknown>, durum = 200) =>
     new Response(JSON.stringify({ tur, ...o }), { status: durum, headers: bas });
 
-  // EN YENİ GÜN ÖNCE — ama önce hiç işlenmemişler. Avukat için 2024 kararı
+  // EN YENİ GÜN ÖNCE, ama önce hiç işlenmemişler. Avukat için 2024 kararı
   // 2006 kararından daha değerli.
   const { data, error } = await supabase
     .from('ictihat_katalog_pencere')
@@ -149,80 +163,82 @@ Deno.serve(async (req) => {
     .eq('bitti', false)
     .order('son_calisma', { ascending: true, nullsFirst: true })
     .order('gun', { ascending: false })
-    .limit(1);
+    .limit(istek);
 
   if (error) return cevap({ error: 'pencere_state_failed', detail: String(error.message).slice(0, 120) }, 500);
-  const kayit = (data ?? [])[0] as { gun: string; sonraki_sayfa: number } | undefined;
-  if (!kayit) return cevap({ error: 'pencere_yok' }, 404);
+  const pencereler = (data ?? []) as Array<{ gun: string; sonraki_sayfa: number }>;
+  if (pencereler.length === 0) return cevap({ error: 'pencere_yok' }, 404);
 
-  const gun = String(kayit.gun).slice(0, 10);
-  const bas_sayfa = kayit.sonraki_sayfa ?? 1;
+  const simdi = new Date().toISOString();
 
-  // Ne olursa olsun "işlendi" işaretle: bozuk bir pencere sonsuza kadar aynı
-  // günü seçtirmesin.
+  // Ne olursa olsun "dokunuldu" işaretle: bozuk bir pencere sonsuza kadar
+  // kuyruğun başında durmasın. Tek gidiş-dönüşte, hepsi birden.
   await supabase
     .from('ictihat_katalog_pencere')
-    .update({ son_calisma: new Date().toISOString() })
-    .eq('tur', tur)
-    .eq('gun', kayit.gun);
+    .upsert(
+      pencereler.map((p) => ({ tur, gun: p.gun, son_calisma: simdi })),
+      { onConflict: 'tur,gun' }
+    );
 
-  const sayfalar = Array.from({ length: sayfaSayisi }, (_, i) => bas_sayfa + i);
-  const sonuclar = await havuzda(sayfalar, ES_ZAMAN, (s) => sayfaCek(tur, gun, s));
+  const sonuclar = await havuzda(pencereler, ES_ZAMAN, (p) =>
+    sayfaCek(tur, String(p.gun).slice(0, 10), p.sonraki_sayfa ?? 1)
+  );
 
-  // İLK BOŞ SAYFAYA KADAR GÜVENİLİR. Eşzamanlı çektiğimiz için 3. sayfa
-  // patlarken 5. sayfa dönmüş olabilir; o durumda 4-5'i saymak, 3'ü sessizce
-  // atlamak olurdu. Bu yüzden yalnız KESİNTİSİZ başarılı ön ek kabul edilir.
-  let saglamSayfa = 0;
-  let bitti = false;
   const satirlar: Satir[] = [];
-  for (let i = 0; i < sonuclar.length; i++) {
+  const guncel: Array<Record<string, unknown>> = [];
+  let basarili = 0;
+  let biten = 0;
+  for (let i = 0; i < pencereler.length; i++) {
+    const p = pencereler[i];
     const r = sonuclar[i];
-    if (r === undefined) break; // hata: buradan sonrası belirsiz
-    saglamSayfa++;
+    // Bu pencere düştü: sayfası İLERLETİLMEZ, sonraki tur aynı yerden dener.
+    // Karar kaybı olmaz; yalnız bir tur gecikir.
+    if (r === undefined) continue;
+    basarili++;
     satirlar.push(...r);
-    if (r.length < SAYFA_BOYU) {
-      // Ölçüldü: 1.632 kayıtlı günde sayfa 17 → 32 kayıt, sayfa 18 → 0.
-      // Yani eksik sayfa, pencerenin sonudur.
-      bitti = true;
-      break;
-    }
-  }
-
-  if (saglamSayfa === 0) {
-    // Hepsi düştü: sayfa ilerletme, sonraki tur aynı yerden dener.
-    return cevap({ gun, sayfa: bas_sayfa, eklenen: 0, not: 'sayfa çekilemedi' });
+    const sayfa = p.sonraki_sayfa ?? 1;
+    // Eksik sayfa = pencerenin sonu. Ölçüldü: 1.632 kayıtlı bir günde sayfa 17
+    // → 32 kayıt, sayfa 18 → 0.
+    const bittiMi = r.length < SAYFA_BOYU;
+    if (bittiMi) biten++;
+    guncel.push({
+      tur,
+      gun: p.gun,
+      son_calisma: simdi,
+      sonraki_sayfa: bittiMi ? sayfa : sayfa + 1,
+      bitti: bittiMi,
+      toplam: (sayfa - 1) * SAYFA_BOYU + r.length,
+    });
   }
 
   let yazilan = 0;
   let not: string | undefined;
   if (satirlar.length) {
     // ignoreDuplicates: katalogda olan satır GÜNCELLENMEZ. Önemli, çünkü
-    // metin_var sütununu metin hasadı yazıyor; buradan tekrar yazmak onu
-    // false'a döndürüp aynı metni bir daha indirtirdi.
+    // metin_var ve son_deneme sütunlarını metin hasadı yazıyor; buradan
+    // tekrar yazmak onları sıfırlayıp aynı metni bir daha indirtirdi.
+    //
+    // Aynı tur içinde aynı id iki kez gelebilir (iki pencere aynı kararı
+    // döndürürse); upsert'e yinelenen anahtar göndermek tüm yazmayı düşürür,
+    // o yüzden önce tekilleştiriliyor.
+    const tekil = [...new Map(satirlar.map((x) => [x.id, x])).values()];
     const { error: yzErr, count } = await supabase
       .from('ictihat_katalog')
-      .upsert(satirlar, { onConflict: 'id', ignoreDuplicates: true, count: 'exact' });
+      .upsert(tekil, { onConflict: 'id', ignoreDuplicates: true, count: 'exact' });
     if (yzErr) not = `upsert: ${String(yzErr.message).slice(0, 90)}`;
-    else yazilan = count ?? satirlar.length;
+    else yazilan = count ?? tekil.length;
   }
 
-  await supabase
-    .from('ictihat_katalog_pencere')
-    .update({
-      sonraki_sayfa: bitti ? bas_sayfa : bas_sayfa + saglamSayfa,
-      bitti,
-      toplam: satirlar.length + (bas_sayfa - 1) * SAYFA_BOYU,
-    })
-    .eq('tur', tur)
-    .eq('gun', kayit.gun);
+  if (guncel.length) {
+    await supabase.from('ictihat_katalog_pencere').upsert(guncel, { onConflict: 'tur,gun' });
+  }
 
   return cevap({
-    gun,
-    sayfa: bas_sayfa,
-    cekilen_sayfa: saglamSayfa,
+    pencere: pencereler.length,
+    basarili,
+    gun_bitti: biten,
     taranan: satirlar.length,
     eklenen: yazilan,
-    ...(bitti ? { gun_bitti: true } : {}),
     ...(not ? { not } : {}),
   });
 });
