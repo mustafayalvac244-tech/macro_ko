@@ -59,7 +59,16 @@ type Satir = {
   karar_tarihi: string | null;
 };
 
-async function sayfaCek(tur: string, gun: string, sayfa: number): Promise<Satir[]> {
+/**
+ * @param gun    Pencerenin BAŞLANGICI (dahil).
+ * @param bitis  Pencerenin BİTİŞİ (dahil). Tek günlük pencerede gun ile aynı.
+ *
+ * Pencere neden aralık: Danıştay'ı gün gün taramak israftı. Ölçüldü — Danıştay
+ * 2005-2026 arası 407.292 karar, yani 4.073 sayfa; ama gün penceresiyle 7.925
+ * pencere açılıyordu ve isteklerin üçte ikisi BOŞ GÜN keşfetmeye gidiyordu.
+ * Ay penceresiyle aynı içerik 4.346 istekle geliyor.
+ */
+async function sayfaCek(tur: string, gun: string, bitis: string, sayfa: number): Promise<Satir[]> {
   const res = await fetch(`${BEDESTEN}/emsal-karar/searchDocuments`, {
     method: 'POST',
     headers: BEDESTEN_HEADERS,
@@ -70,7 +79,7 @@ async function sayfaCek(tur: string, gun: string, sayfa: number): Promise<Satir[
         itemTypeList: [tur],
         phrase: EVRENSEL,
         kararTarihiStart: `${gun}T00:00:00.000Z`,
-        kararTarihiEnd: `${gun}T23:59:59.999Z`,
+        kararTarihiEnd: `${bitis}T23:59:59.999Z`,
       },
     }),
   });
@@ -158,7 +167,7 @@ Deno.serve(async (req) => {
   // 2006 kararından daha değerli.
   const { data, error } = await supabase
     .from('ictihat_katalog_pencere')
-    .select('gun, sonraki_sayfa')
+    .select('gun, bitis, sonraki_sayfa')
     .eq('tur', tur)
     .eq('bitti', false)
     .order('son_calisma', { ascending: true, nullsFirst: true })
@@ -166,7 +175,7 @@ Deno.serve(async (req) => {
     .limit(istek);
 
   if (error) return cevap({ error: 'pencere_state_failed', detail: String(error.message).slice(0, 120) }, 500);
-  const pencereler = (data ?? []) as Array<{ gun: string; sonraki_sayfa: number }>;
+  const pencereler = (data ?? []) as Array<{ gun: string; bitis: string | null; sonraki_sayfa: number }>;
   if (pencereler.length === 0) return cevap({ error: 'pencere_yok' }, 404);
 
   const simdi = new Date().toISOString();
@@ -176,7 +185,10 @@ Deno.serve(async (req) => {
   await supabase
     .from('ictihat_katalog_pencere')
     .upsert(
-      pencereler.map((p) => ({ tur, gun: p.gun, son_calisma: simdi })),
+      // bitis de yazılıyor: sütun NOT NULL ve varsayılanı yok. Var olan satırda
+      // değeri değiştirmiyor (aynısını geri yazıyor), ama yük eksik kalırsa
+      // beklenmedik bir INSERT yolunda yazma düşerdi.
+      pencereler.map((p) => ({ tur, gun: p.gun, bitis: p.bitis ?? p.gun, son_calisma: simdi })),
       { onConflict: 'tur,gun' }
     );
 
@@ -193,24 +205,28 @@ Deno.serve(async (req) => {
    * sayfası, diye devam ediyor. Bütçe (`istek`) dolunca tur bitiyor; kalanlar
    * bir sonraki turda kaldığı yerden sürüyor.
    */
-  type Is = { gun: string; sayfa: number };
+  type Is = { gun: string; bitis: string; sayfa: number };
   type Durum = { sayfa: number; bitti: boolean; sonSatir: number };
 
   const durum = new Map<string, Durum>();
   const satirlar: Satir[] = [];
   let butce = istek;
   let basarisiz = 0;
-  const kuyruk: Is[] = pencereler.map((p) => ({
+  const kuyrukAsli: Is[] = pencereler.map((p) => ({
     gun: String(p.gun).slice(0, 10),
+    // bitis boşsa tek günlük pencere — 0127 öncesi satırlar böyle.
+    bitis: String(p.bitis ?? p.gun).slice(0, 10),
     sayfa: p.sonraki_sayfa ?? 1,
   }));
+  // Kuyruk tüketiliyor (splice); pencere→aralık eşlemesi için aslı saklanıyor.
+  const kuyruk: Is[] = [...kuyrukAsli];
 
   while (butce > 0 && kuyruk.length > 0) {
     // Parti boyu havuzun iki katı: havuz sürekli dolu kalsın ama bütçe de
     // aşılmasın.
     const parti = kuyruk.splice(0, Math.min(butce, ES_ZAMAN * 2));
     butce -= parti.length;
-    const r = await havuzda(parti, ES_ZAMAN, (is) => sayfaCek(tur, is.gun, is.sayfa));
+    const r = await havuzda(parti, ES_ZAMAN, (is) => sayfaCek(tur, is.gun, is.bitis, is.sayfa));
     for (let i = 0; i < parti.length; i++) {
       const is = parti[i];
       const sonuc = r[i];
@@ -229,13 +245,15 @@ Deno.serve(async (req) => {
       });
       // Eksik sayfa = pencerenin sonu (ölçüldü: 1.632 kayıtlı günde sayfa 17
       // → 32 kayıt, sayfa 18 → 0). Dolu sayfa varsa devamı kuyruğa.
-      if (tamSayfa) kuyruk.push({ gun: is.gun, sayfa: is.sayfa + 1 });
+      if (tamSayfa) kuyruk.push({ gun: is.gun, bitis: is.bitis, sayfa: is.sayfa + 1 });
     }
   }
 
+  const aralik = new Map(kuyrukAsli.map((p) => [String(p.gun).slice(0, 10), p.bitis]));
   const guncel = [...durum.entries()].map(([gun, d]) => ({
     tur,
     gun,
+    bitis: aralik.get(gun) ?? gun,
     son_calisma: simdi,
     sonraki_sayfa: d.sayfa,
     bitti: d.bitti,
