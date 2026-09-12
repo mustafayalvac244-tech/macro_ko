@@ -20,7 +20,7 @@
 // Env: EVAL_BEKLEME (vars. 25000), EVAL_SENARYO (virgüllü kimlik listesi)
 // ---------------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
-import { istek, Butce } from './istek.mjs';
+import { istek, Butce, ParaButcesi } from './istek.mjs';
 import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
 import { dirname, join } from 'node:path';
@@ -114,6 +114,7 @@ async function cikar(belge, deneme = 0) {
   // ai_istek satırları da cascade ile gidiyor, yani harcama başka hiçbir
   // yerden geri okunamıyor.
   kunye.gor(j?.kullanim ?? { model: j?.model });
+  para.gor(j?.kullanim);
   return { kunye: j?.kunye ?? {}, atilan: j?.atilan ?? [], model: j?.model ?? '?' };
 }
 
@@ -129,6 +130,10 @@ if (SECIM.length) {
 }
 const senaryolar = SECIM.length ? tumSenaryolar.filter((s) => SECIM.includes(s.id)) : tumSenaryolar;
 
+// PARA BÜTÇESİ (bkz. istek.mjs > ParaButcesi). 11 Eylül 2026: 5 dolarlık kredi
+// tek koşuda tükendi, çünkü yalnız duvar saati sayılıyordu.
+const para = new ParaButcesi(Number(process.env.EVAL_PARA_BUTCESI ?? 0), typeof senaryolar !== 'undefined' ? senaryolar.length : 0);
+
 let uid = null;
 let dogru = 0, beklenenToplam = 0, uydurma = 0, yanlis = 0, gecen = 0;
 
@@ -141,7 +146,7 @@ try {
   for (const s of senaryolar) {
     // BÜTÇE KONTROLÜ — eksik ölçüm, hiç ölçümden iyidir; ama eksik olduğu
     // SÖYLENMEK zorunda, yoksa oran düşük çıkar ve gerileme sanılır.
-    if (butce.doldu()) {
+    if (butce.doldu() || para.doldu()) {
       console.error(
         `\nBÜTÇE DOLDU (${butce.satir()}) — kalan senaryolar ÖLÇÜLMEDİ.\n` +
           'Bu koşudan oran ÇIKARMAYIN: ölçülen kalite değil, ayrılan süredir.'
@@ -194,6 +199,10 @@ try {
 
 console.log('\n' + '─'.repeat(60));
 console.log(kunye.satir());
+// HARCAMA HER KOŞUDA YAZILIR. Görünmeyen harcama, yakılan harcamadır: 11 Eylül
+// 2026'da rapor "₺0,00" yazdığı için 5 dolarlık kredinin bittiği ancak
+// sağlayıcı panelinden anlaşıldı.
+console.log(`HARCAMA: ${para.satir()}`);
 console.log(`KÜNYE: ${gecen}/${senaryolar.length} senaryo tam temiz`);
 console.log(`Beklenen alanların doğru çıkarılanı: ${dogru}/${beklenenToplam}`);
 console.log(`UYDURULAN alan (boş kalmalıydı): ${uydurma}`);

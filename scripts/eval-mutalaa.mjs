@@ -41,7 +41,7 @@ import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
 import { beklemeSuresi } from './bekleme.mjs';
 import { gecer, sadelestir } from './eslestir.mjs';
-import { istek, Butce } from './istek.mjs';
+import { istek, Butce, ParaButcesi } from './istek.mjs';
 import { maddeAtiflari, mesruTutarlar, tarihler, tutarlar } from './uydurma.mjs';
 import { adimlarBolumu, eksikBolumler, sureIceriyor } from './mutalaa-olcut.mjs';
 
@@ -263,6 +263,12 @@ if (SECIM.length) {
 const secilen = SECIM.length ? tumSenaryolar.filter((x) => SECIM.includes(x.id)) : tumSenaryolar;
 const senaryolar = SINIR > 0 ? secilen.slice(0, SINIR) : secilen;
 
+// PARA BÜTÇESİ — süre bütçesinin parasal eşi. 11 Eylül 2026'da 5 dolarlık API
+// kredisi tek koşuda tükendi: o gün yalnız duvar saati sayılıyordu, parayı
+// sayan hiçbir şey yoktu. EVAL_PARA_BUTCESI (TL) verilmezse sınırsız çalışır
+// ama harcama yine de raporlanır — görünmeyen harcama, yakılan harcamadır.
+const para = new ParaButcesi(Number(process.env.EVAL_PARA_BUTCESI ?? 0), senaryolar.length);
+
 let uid = null;
 const sonuclar = [];
 const kusurlu = [];
@@ -280,10 +286,10 @@ try {
   for (const s of senaryolar) {
     // BÜTÇE KONTROLÜ — eksik ölçüm, hiç ölçümden iyidir; ama eksik olduğu
     // SÖYLENMEK zorunda, yoksa oran düşük çıkar ve gerileme sanılır.
-    if (butce.doldu()) {
+    if (butce.doldu() || para.doldu()) {
       console.error(
-        `\nBÜTÇE DOLDU (${butce.satir()}) — kalan senaryolar ÖLÇÜLMEDİ.\n` +
-          'Bu koşudan oran ÇIKARMAYIN: ölçülen kalite değil, ayrılan süredir.'
+        `\nBÜTÇE DOLDU (${butce.satir()} · ${para.satir()}) — kalan senaryolar ÖLÇÜLMEDİ.\n` +
+          'Bu koşudan oran ÇIKARMAYIN: ölçülen kalite değil, ayrılan süre ve paradır.'
       );
       process.exitCode = 2;
       break;
@@ -309,6 +315,28 @@ try {
         kullanim: kullanimBilgisi,
       } = await uret(s.olay));
       kunye.gor(kullanimBilgisi ?? { model: kullanilanModel });
+      para.gor(kullanimBilgisi);
+      // ÖN YOKLAMA — yalnız İLK ölçülen istekten sonra. Tüm koşunun öngörülen
+      // maliyeti tavanı aşıyorsa burada dururuz: 11 Eylül'de eksik olan tam
+      // olarak buydu — tek senaryonun maliyeti ölçülmeden tam koşu başlatıldı.
+      if (para.olculen === 1) {
+        const o = para.ongoru();
+        if (o) {
+          console.log(`ÖN YOKLAMA: ilk senaryo ₺${para.harcanan.toFixed(2)} · ${senaryolar.length} senaryo için öngörü ₺${o.ongoru.toFixed(2)}`);
+          if (o.asar) {
+            console.error(
+              `\nKOŞU DURDURULDU — öngörülen maliyet (₺${o.ongoru.toFixed(2)}) tavanı (₺${para.tavan.toFixed(2)}) aşıyor.\n` +
+                'Tavanı yükseltin ya da EVAL_SINIR ile senaryo sayısını düşürün. Ölçülen tek senaryo raporda.'
+            );
+            process.exitCode = 2;
+            break;
+          }
+        } else {
+          // Ücretli modelde maliyet körken devam etmek, yakılan krediyi
+          // görmeden koşmaktır. Ücretsiz katmanda maliyet gerçekten yok.
+          console.error('UYARI: sunucu kullanım/maliyet bilgisi döndürmedi — harcama İZLENEMİYOR.');
+        }
+      }
     } catch (e) {
       if (e.message === 'DAILY_QUOTA' || e.message === 'YEDEK_OZET') {
         console.error(
@@ -395,6 +423,10 @@ const maddeUydurma = sonuclar.filter((s) => s.uydurmaMadde.length).length;
 
 console.log('\n' + '─'.repeat(60));
 console.log(kunye.satir());
+// HARCAMA HER KOŞUDA YAZILIR. Görünmeyen harcama, yakılan harcamadır: 11 Eylül
+// 2026'da rapor "₺0,00" yazdığı için 5 dolarlık kredinin bittiği ancak
+// sağlayıcı panelinden anlaşıldı.
+console.log(`HARCAMA: ${para.satir()}`);
 console.log(`MÜTALAA: ${gecen}/${olculen} senaryo tam geçti (%${olculen ? ((gecen / olculen) * 100).toFixed(1) : 0})` +
   (olculen < tumSenaryolar.length ? ` — havuzdaki ${tumSenaryolar.length} senaryonun ${olculen} tanesi ölçüldü` : ''));
 console.log(`Kaçırılan kritik unsur: ${kacirilan}`);

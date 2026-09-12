@@ -30,7 +30,7 @@ import { fileURLToPath } from 'node:url';
 import { yeniKunye } from './olcum-kunyesi.mjs';
 import { beklemeSuresi } from './bekleme.mjs';
 import { gecer, sadelestir } from './eslestir.mjs';
-import { istek, Butce } from './istek.mjs';
+import { istek, Butce, ParaButcesi } from './istek.mjs';
 import { tarihler } from './uydurma.mjs';
 import { katmanAyarla } from './eval-katman.mjs';
 
@@ -153,6 +153,7 @@ async function incele(kind, metin, deneme = 0) {
   // ai_istek satırları da cascade ile gidiyor, yani harcama başka hiçbir
   // yerden geri okunamıyor.
   kunye.gor(j?.kullanim ?? { model: j?.model });
+  para.gor(j?.kullanim);
   if (j?.yapayZekasiz || j?.model === 'mevzuat-yedek') {
     if (deneme < 4) {
       await uyu(30000 * (deneme + 1));
@@ -207,6 +208,10 @@ if (SECIM.length) {
 const secilen = SECIM.length ? tumSenaryolar.filter((x) => SECIM.includes(x.id)) : tumSenaryolar;
 const senaryolar = SINIR > 0 ? secilen.slice(0, SINIR) : secilen;
 
+// PARA BÜTÇESİ (bkz. istek.mjs > ParaButcesi). 11 Eylül 2026: 5 dolarlık kredi
+// tek koşuda tükendi, çünkü yalnız duvar saati sayılıyordu.
+const para = new ParaButcesi(Number(process.env.EVAL_PARA_BUTCESI ?? 0), typeof senaryolar !== 'undefined' ? senaryolar.length : 0);
+
 let uid = null;
 const sonuclar = [];
 const kusurlu = [];
@@ -221,7 +226,7 @@ try {
   for (const s of senaryolar) {
     // BÜTÇE KONTROLÜ — eksik ölçüm, hiç ölçümden iyidir; ama eksik olduğu
     // SÖYLENMEK zorunda, yoksa oran düşük çıkar ve gerileme sanılır.
-    if (butce.doldu()) {
+    if (butce.doldu() || para.doldu()) {
       console.error(
         `\nBÜTÇE DOLDU (${butce.satir()}) — kalan senaryolar ÖLÇÜLMEDİ.\n` +
           'Bu koşudan oran ÇIKARMAYIN: ölçülen kalite değil, ayrılan süredir.'
@@ -292,6 +297,10 @@ const tarihUyduran = sonuclar.filter((s) => s.uydurmaTarih.length).length;
 
 console.log('\n' + '─'.repeat(60));
 console.log(kunye.satir());
+// HARCAMA HER KOŞUDA YAZILIR. Görünmeyen harcama, yakılan harcamadır: 11 Eylül
+// 2026'da rapor "₺0,00" yazdığı için 5 dolarlık kredinin bittiği ancak
+// sağlayıcı panelinden anlaşıldı.
+console.log(`HARCAMA: ${para.satir()}`);
 console.log(`BELGE: ${gecen}/${olculen} senaryo tam geçti (%${olculen ? ((gecen / olculen) * 100).toFixed(1) : 0})` +
   (olculen < tumSenaryolar.length ? ` — havuzdaki ${tumSenaryolar.length} senaryonun ${olculen} tanesi ölçüldü` : ''));
 console.log(`Kaçırılan yerleştirilmiş kusur: ${kacirilan}`);
