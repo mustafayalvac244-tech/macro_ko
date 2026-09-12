@@ -139,14 +139,19 @@ export default function PremiumScreen() {
     AsyncStorage.setItem('vekil-plan-intent', plan).catch(() => {});
     // AI paketinde kredi/sağlık kilidi YOK — yukarıdaki gerekçeye bakınız.
     const pkg = plan === 'ai' ? aiOfferingPkg : offeringPkg;
-    // Bu katmanın Offering'i RevenueCat panelinde henüz kurulmadıysa (ya da
-    // web'deyse) pkg null gelir — eski "çok yakında" davranışına düşülür,
-    // hiçbir şey kırılmaz.
-    if (Platform.OS === 'web' || !pkg) {
-      uyar(
-        t('premium.soonTitle'),
-        t('premium.soonBody', { plan: plan === 'ai' ? t('premium.aiName') : t('premium.oneName') })
-      );
+    const planAdi = plan === 'ai' ? t('premium.aiName') : t('premium.oneName');
+
+    // İKİ AYRI DURUM, İKİ AYRI CÜMLE — eskiden ikisi de "mağaza teklifi
+    // yüklenemedi" diyordu ve bu WEB'DE YANLIŞ BEYANDI: web'de mağaza teklifi
+    // hiç istenmiyor ki yüklenemesin. Avukat, çalışmayan bir ürün gördüğünü
+    // sanıyordu; oysa uygulama içi satın alma mağazaya özgü bir şeydir.
+    if (Platform.OS === 'web') {
+      uyar(t('premium.webTitle'), t('premium.webBody', { plan: planAdi }));
+      return;
+    }
+    // Burada gerçekten bir arıza var: mağazadayız ama teklif gelmedi.
+    if (!pkg) {
+      uyar(t('premium.soonTitle'), t('premium.soonBody', { plan: planAdi }));
       return;
     }
     setBusyPlan(plan);

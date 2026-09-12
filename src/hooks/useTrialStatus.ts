@@ -1,51 +1,21 @@
 import { useAuthStore } from '@/store/authStore';
 
-/** Aylık abonelik ücreti (TL). */
-export const MONTHLY_PRICE_TRY = 399;
-/**
- * AI katmanı aylık ücreti (TL) — 1.650 soru + 25 mütalaa dahil
- * (bkz. supabase/functions/_shared/katman.ts > AI_SORU_LIMIT/AI_MUTALAA_LIMIT;
- * iki sayı burada da AYNI olmalı, kota koddan, fiyat buradan okunuyor).
- *
- * 1.999 → 3.999 → 2.999 (2026-09-11, ürün kararı). Son değişiklik RAKİP
- * FİYATINA göre: Lexedes'in önerdiği "Bireysel" planı 2.990 ₺/ay (liste
- * 3.490) ve o plan bizim AI katmanımızla aynı işi hedefliyor — derin
- * içtihat/mevzuat araştırması, dilekçe üretimi, belge analizi. 3.999'da
- * rakibin önerdiği plandan %34 pahalıydık.
- *
- * Bu sayı yalnız EKRANDAKİ ve koşullardaki fiyattır; gerçek tahsilat mağaza ürününün fiyatıdır
- * (vekil_ai_monthly, App Store Connect / Play Console / RevenueCat). Üçü
- * birden güncellenmezse ekran bir şey yazar, kart başka bir şey çeker —
- * bu yüzden satın alma ekranı, teklif yüklendiyse mağazanın fiyatını
- * gösterir ve bu sabit yalnız yedek olarak kalır (app/premium.tsx).
- */
-export const AI_PRICE_TRY = 2999;
-/** AI katmanının aylık soru/mütalaa hakkı — yalnız EKRANDA göstermek için;
- *  gerçek sınır sunucuda (_shared/katman.ts). */
-// KOTA YÜKSELTİLDİ (12.09.2026): 250 → 750 soru, 12 → 25 mütalaa.
-// Eski paket Opus varsayımıyla kurulmuştu (istek başına ₺2,67); aynı gün
-// Sonnet'e inildi ve ölçülen birim maliyet ₺1,07 oldu, yani paket gereğinden
-// dar kaldı. Gerekçe ve hesap tek yerde:
-// supabase/functions/_shared/katman.ts (AI_SORU_LIMIT).
-//
-// BURADAKİ SAYILAR YALNIZCA GÖSTERİM İÇİNDİR — gerçek kısıt uç işlevindedir.
-// İkisi ayrışırsa doğru olan sunucudur; bu yüzden ikisi birlikte değişmeli.
-export const AI_SORU_HAKKI = 1650;
-export const AI_MUTALAA_HAKKI = 25;
+// FİYAT VE KOTA SABİTLERİ BURADAN TAŞINDI → src/config/planlar.ts
+// Sebep ölçülmüş: bu dosya `authStore` üzerinden react-native çekiyor ve test
+// ortamı onu hiç ayrıştıramıyor ("Expected 'from', got 'typeOf'"). Sabitler
+// burada durdukça, web'deki sözleşmenin sayılarını kodla karşılaştıran bir
+// test YAZILAMIYORDU — nitekim docs/terms.html aylarca eski kotayı yazdı.
+// Saf `config` modülüne taşındılar; buradan yeniden dışa aktarılıyorlar ki
+// mevcut çağıranların hiçbiri değişmesin.
+export {
+  MONTHLY_PRICE_TRY,
+  AI_PRICE_TRY,
+  AI_SORU_HAKKI,
+  AI_MUTALAA_HAKKI,
+  AI_ASIL_MODEL_HAKKI,
+  DENEME_SORU_HAKKI,
+} from '@/config/planlar';
 
-/**
- * İlk kaç istek ASIL modelle yapılır. Sonrası aynı ay içinde daha hızlı,
- * daha hafif bir modele düşer — istek reddedilmez.
- *
- * Kullanıcıya söylenen toplam hak 1.650'dir çünkü GERÇEKTEN 1.650 istek
- * yapabiliyor. Ama 751. istekten sonra çıktıyı üreten model değişiyor ve
- * bunu söylememek, kullanıcının fark edeceği bir kalite değişikliğini
- * gizlemek olurdu. Sözleşme metni (app/terms.tsx m.5) bu ayrımı yazıyor.
- */
-export const AI_ASIL_MODEL_HAKKI = 750;
-/** Ödeme yapmamış kullanıcıya verilen YAŞAM BOYU (aylık değil) deneme sorusu
- *  sayısı — bkz. _shared/katman.ts > DENEME_SORU_LIMIT, gerçek sınır orada. */
-export const DENEME_SORU_HAKKI = 3;
 
 export interface TrialStatus {
   /** Abone mi (ödeme yaptı / premium verildi)? */
