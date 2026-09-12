@@ -25,6 +25,7 @@ import {
 // Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
+import { canliIctihat } from '../_shared/uyapCanli.ts';
 // Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
 import { beslemeyiKirp, kuralBasliklari } from '../_shared/besleme.ts';
@@ -1545,6 +1546,64 @@ async function mevzuatOzeti(supabase: any, question: string): Promise<string> {
 }
 
 // deno-lint-ignore no-explicit-any
+/**
+ * CANLI GETİRİLEN KARARLARI ARŞİVLE — en iyi çaba, hata yutulur.
+ *
+ * Amacı havuzun kullanıcıların GERÇEK ihtiyacına yakınsaması: aynı konu ikinci
+ * kez sorulduğunda kaynağa hiç gidilmez. Terim listesiyle rastgele toplamak
+ * yerine, talebin kendisi hasadı yönlendiriyor.
+ *
+ * DİSK FRENİ BURADA DA GEÇERLİ (bkz. migration 0084/0123). Aynı delik daha
+ * önce functions/ictihat tarafında bulunmuştu: fren yalnız arka plan hasadını
+ * kapsıyordu, kullanıcı aramasıyla tetiklenen yazmayı kapsamıyordu. Aynı
+ * hatayı burada tekrarlamıyoruz.
+ *
+ * Yazma başarısız olursa CEVAP ETKİLENMEZ: arşiv bir yan fayda, beslemenin
+ * kendisi zaten elimizde.
+ */
+// deno-lint-ignore no-explicit-any
+async function canliArsivle(supabase: any, kararlar: Array<{ id: string; daire: string; esasNo: string; kararNo: string; kararTarihi: string; metin: string }>, soru: string): Promise<void> {
+  try {
+    const { data: musait, error: frenHata } = await supabase.rpc('disk_musait_mi');
+    // Ölçemiyorsak YAZMAYIZ: emin olmadan yazmak, dolu diske yazmaya devam
+    // etmek demektir ve sonucu salt-okunur moddur.
+    if (frenHata || musait !== true) return;
+
+    const kurul = (daire: string): string => {
+      const d = (daire || '').toLocaleLowerCase('tr');
+      if (d.includes('bölge adliye')) return 'BAM';
+      if (d.includes('bölge idare')) return 'BİM';
+      if (d.includes('danıştay')) return 'Danıştay';
+      if (d.includes('yargıtay')) return 'Yargıtay';
+      if (d.includes('anayasa')) return 'AYM';
+      return 'Yerel';
+    };
+
+    await supabase.from('ictihat_kararlar').upsert(
+      kararlar.map((k) => ({
+        id: k.id,
+        kurul: kurul(k.daire),
+        daire: k.daire || null,
+        esas_no: k.esasNo || null,
+        karar_no: k.kararNo || null,
+        karar_tarihi: k.kararTarihi || null,
+        arama_terimi: soru.slice(0, 120),
+        full_text: k.metin,
+      })),
+      { onConflict: 'id' }
+    );
+
+    // Katalogda karşılığı varsa "metni var" diye işaretle: metin hasadı aynı
+    // kararı bir daha indirmesin.
+    await supabase
+      .from('ictihat_katalog')
+      .update({ metin_var: true })
+      .in('id', kararlar.map((k) => k.id));
+  } catch {
+    // Yutuluyor — bilerek. Arşiv yan fayda; avukatın cevabı buna bağlı değil.
+  }
+}
+
 async function buildGrounding(supabase: any, question: string): Promise<string> {
   // deno-lint-ignore no-explicit-any
   let rows: any[] = [];
@@ -1582,6 +1641,42 @@ async function buildGrounding(supabase: any, question: string): Promise<string> 
   push(ftsRes?.data);
   push(semRes?.data);
 
+  /**
+   * HAVUZ YETERSİZSE CANLI KAYNAĞA BAK.
+   *
+   * Havuzda 16.809 karar var, kaynakta 10.391.770 — yani bu besleme korpusun
+   * %0,16'sını görüyordu. Modele dayanacak gerçek karar verilmezse uydurur;
+   * uydurma atıf da bir hukuk uygulamasında yapılabilecek en pahalı hatadır.
+   *
+   * ÜÇ KURALLA: (1) yalnız havuz yetersizken — havuz cevap veriyorsa kamu
+   * hizmetine hiç dokunmuyoruz; (2) sıkı zaman aşımı, tekrar yok; (3) devre
+   * kesici. Ayrıntı ve ölçümler _shared/uyapCanli.ts başlığında.
+   *
+   * Kaynak düşerse cevap DÜŞMEZ: canliIctihat hata atmaz, boş liste döner ve
+   * besleme havuzdakiyle devam eder.
+   */
+  const YETERLI = 3;
+  let canliSayisi = 0;
+  if (rows.length < YETERLI) {
+    const canli = await canliIctihat(question, YETERLI - rows.length);
+    canliSayisi = canli.length;
+    for (const k of canli) {
+      if (seen.has(k.id)) continue;
+      seen.add(k.id);
+      rows.push({
+        id: k.id,
+        daire: k.daire,
+        esas_no: k.esasNo,
+        karar_no: k.kararNo,
+        karar_tarihi: k.kararTarihi,
+        snippet: k.metin,
+      });
+    }
+    // Getirdiğimizi SAKLA: havuz böylece kullanıcıların gerçek ihtiyacına
+    // yakınsar. Disk freni ve hata yutma arşivleyicinin içinde.
+    if (canli.length) await canliArsivle(supabase, canli, question);
+  }
+
   if (rows.length === 0) return '';
   rows = rows.slice(0, 5);
 
@@ -1594,7 +1689,7 @@ async function buildGrounding(supabase: any, question: string): Promise<string> 
     .join('\n\n');
 
   return (
-    '\n\nAŞAĞIDA, kendi içtihat havuzumuzdan soruyla ilgili GERÇEK karar özetleri var. ' +
+    `\n\nAŞAĞIDA soruyla ilgili GERÇEK karar özetleri var${canliSayisi ? ' (bir kısmı UYAP\'tan canlı getirildi)' : ''}. ` +
     'Yanıtında bunlardan yararlanabilir ve [1], [2] gibi atıflarla belirtebilirsin; ' +
     'ancak burada olmayan bir kararı UYDURMA:\n\n' +
     refs
