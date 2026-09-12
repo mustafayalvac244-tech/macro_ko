@@ -35,6 +35,12 @@ export const PRICING: Record<string, { in: number; out: number }> = {
   'gemini-2.0-flash': { in: 0.15, out: 0.6 },
   'gemini-2.5-pro': { in: 1.25, out: 10.0 },
   'claude-sonnet-5': { in: 2.0, out: 10.0 },
+  // TAŞMA MODELİ. Aylık kota bitince istek reddedilmiyor, buraya düşüyor.
+  // Fiyat 12.09.2026'da web aramasıyla doğrulandı; aynı rakam birden çok
+  // bağımsız kaynakta ($1 giriş / $5 çıkış per MTok) — Anthropic'in kendi
+  // sayfası değil. Ölçülen dilekçe boyutuyla (4.844 giriş + 1.573 çıkış,
+  // n=7) istek başına ≈ ₺0,53; Sonnet'in yarısı.
+  'claude-haiku-4-5-20251001': { in: 1.0, out: 5.0 },
   'claude-opus-5': { in: 5.0, out: 25.0 },
   'claude-fable-5-1': { in: 10.0, out: 50.0 },
   'gpt-5.6-terra': { in: 2.0, out: 12.0 },

@@ -24,7 +24,7 @@ import {
 } from '../_shared/dilekce.ts';
 // Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
 // ayrılmıştı (bkz. _shared/katman.ts).
-import { overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
+import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 // Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
 import { beslemeyiKirp, kuralBasliklari } from '../_shared/besleme.ts';
@@ -1843,7 +1843,9 @@ Deno.serve(async (req) => {
       prof = r.data as { is_premium?: boolean; ai_tier?: string } | null;
     }
   }
-  const { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium, {
+  // `cfg` let: kota taşmasında model ucuz olanla değiştiriliyor (aşağıda).
+  // eslint-disable-next-line prefer-const
+  let { tier, cfg } = tierConfig(prof?.ai_tier, !!prof?.is_premium, {
     groqModel: GROQ_MODEL,
     claudeModel: CLAUDE_MODEL,
     claudeAnahtariVar: !!Deno.env.get('ANTHROPIC_API_KEY'),
@@ -1938,31 +1940,40 @@ Deno.serve(async (req) => {
   // katı token tüketir, tek kotaya karıştırmak birinin ayda 250 mütalaa
   // çekip maliyeti öngörülemez yapmasına izin verirdi.
   const aiAy = aiPeriod();
-  if (cfg.modLimits) {
+  // KOTA BİTİNCE KAPI KAPANMIYOR, UCUZ MODELE DÜŞÜYOR.
+  //
+  // Eskiden burada 402 dönülüyordu: ödeme yapan avukat ayın ortasında
+  // "hakkınız bitti" duvarına çarpıyor ve ayın kalanında ürünü hiç
+  // kullanamıyordu. Ödediği ay boyunca kapalı kalan bir araç, yenilenmeyen
+  // bir aboneliktir. Artık taşma modeline geçiyor (bkz. katman.ts > tasma).
+  // Taşma da SINIRSIZ DEĞİL; ek hak da bitince yine 402 döner.
+  const rez = await kotaRezerve(cfg, isMutalaa, async (soruLimit, mutalaaLimit) => {
     const sk = svc();
     // Servis istemcisi kurulamadıysa (env eksik) AÇIK KAPI BIRAKMAYIZ:
     // rezervasyon denenemiyorsa kotayı doğrulayamadığımız anlamına gelir,
     // isteği reddetmek "belki fazladan izin ver"den güvenlidir.
-    const rezerveEdildi = sk
-      ? (await sk.rpc('ai_mod_rezerve_et', {
-          p_user: userData.user.id,
-          p_ay: aiAy,
-          p_mutalaa: isMutalaa,
-          p_soru_limit: cfg.modLimits.soru,
-          p_mutalaa_limit: cfg.modLimits.mutalaa,
-        })).data
-      : false;
-    if (!rezerveEdildi) {
-      return new Response(
-        JSON.stringify(
-          isMutalaa
-            ? { error: 'ai_mutalaa_kota_bitti', tier, hak: cfg.modLimits.mutalaa }
-            : { error: 'ai_soru_kota_bitti', tier, hak: cfg.modLimits.soru }
-        ),
-        { status: 402, headers: CORS }
-      );
-    }
+    if (!sk) return false;
+    return Boolean((await sk.rpc('ai_mod_rezerve_et', {
+      p_user: userData.user.id,
+      p_ay: aiAy,
+      p_mutalaa: isMutalaa,
+      p_soru_limit: soruLimit,
+      p_mutalaa_limit: mutalaaLimit,
+    })).data);
+  });
+  if (!rez.ok) {
+    return new Response(
+      JSON.stringify(
+        rez.sebep === 'mutalaa'
+          ? { error: 'ai_mutalaa_kota_bitti', tier, hak: rez.hak }
+          : { error: 'ai_soru_kota_bitti', tier, hak: rez.hak }
+      ),
+      { status: 402, headers: CORS }
+    );
   }
+  // Taşmadaysak bu istek ucuz modelle yapılır. cfg kopyalanıyor, mutasyon
+  // yok: aynı istek içinde cfg başka yerlerde de okunuyor.
+  if (rez.tasmada) cfg = { ...cfg, model: rez.model };
 
   // GÜVENLİK AĞI — "ai" katmanında da geçerli (bkz. UCRETLI_TAVAN_TRY notu):
   // yukarıdaki soru/mütalaa kotası normal kullanımda çok altında kalır

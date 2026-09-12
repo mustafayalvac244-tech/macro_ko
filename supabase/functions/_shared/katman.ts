@@ -56,6 +56,18 @@ export interface TierCfg {
    */
   modLimits?: { soru: number; mutalaa: number };
   /**
+   * TAŞMA — aylık kota bitince kapıyı kapatmak yerine daha ucuz modele geç.
+   *
+   * Eskiden kota dolunca istek 402 ile REDDEDİLİYORDU: ödeme yapan bir avukat
+   * ayın 20'sinde "hakkınız bitti" duvarına çarpıyor ve ayın kalanında ürünü
+   * hiç kullanamıyordu. Ödediği ay boyunca kapalı kalan bir araç, bir daha
+   * yenilenmeyen bir aboneliktir.
+   *
+   * ekLimit: taşmada verilen EK istek sayısı. Sınırsız DEĞİL — sınırsız ucuz
+   * model de sınırsız maliyettir. Bittiğinde yine 402 döner.
+   */
+  tasma?: { model: string; ekLimit: number };
+  /**
    * YAŞAM BOYU deneme hakkı — yalnız free/baslangic'te dolu. modLimits'ten
    * FARKI: modLimits AYLIK sıfırlanır (ai_mod_kota), bu ise BİR KEZ, hiç
    * yenilenmeden (bkz. profiles.deneme_soru_kullanildi ve
@@ -134,6 +146,33 @@ const AI_SORU_LIMIT = 750;
 const AI_MUTALAA_LIMIT = 25;
 
 /**
+ * TAŞMA MODELİ VE EK HAK.
+ *
+ * Kota bitince istek reddediliyordu. Ödeme yapan avukat ayın ortasında
+ * duvara çarpıp ayın kalanında ürünü hiç kullanamıyordu — bu, iptal edilen
+ * aboneliğin en kısa yoludur. Artık daha ucuz bir modele düşüyor.
+ *
+ * NEDEN HAIKU, NEDEN GROQ DEĞİL. Groq ücretsiz ve zaten deneme katmanında
+ * kullanılıyor, ama üzerinde GERÇEK bir mantık hatası ölçüldü (bkz.
+ * DENEME_SORU_LIMIT yorumu: "aldı" fiilini "ödedi"ye çevirmişti). Ödeme
+ * yapan bir avukatın ayın yarısını o kalitede geçirmesi, kapıyı kapatmaktan
+ * daha kötü olabilir. Haiku aynı ailede ve hukuki Türkçede belirgin biçimde
+ * daha güvenli.
+ *
+ * MALİYET. Haiku $1/$5 per MTok (12.09.2026'da doğrulandı, birden çok
+ * bağımsız kaynak). Ölçülen dilekçe boyutuyla istek başına ≈ ₺0,53 —
+ * Sonnet'in (₺1,07) yarısı.
+ *     750 taşma isteği × ₺0,53 ≈ ₺398
+ * Yani en kötü durumda aylık gider ₺1.016 → ₺1.414 (gelirin %34'ü → %47'si).
+ * Bu üst sınır; ortalama kullanıcı kotanın yakınına bile gelmiyor.
+ *
+ * TAŞMA SINIRSIZ DEĞİL: sınırsız ucuz model de sınırsız maliyettir.
+ * Ek hak da bitince istek yine reddedilir.
+ */
+const AI_TASMA_MODEL = 'claude-haiku-4-5-20251001';
+const AI_TASMA_EK = 750;
+
+/**
  * Ödeme yapmamış (free/baslangic) bir kullanıcıya YAŞAM BOYU (bir kez, hiç
  * yenilenmeyen) verilen deneme sorusu sayısı. Neden Groq değil Claude: Groq'ta
  * GERÇEK bir mantık hatası ölçüldü (bkz. konuşma geçmişi — "aldı" fiilini
@@ -183,6 +222,7 @@ export function tierConfig(
       limit: UCRETLI_TAVAN_TRY,
       maxOut: 8192,
       modLimits: { soru: AI_SORU_LIMIT, mutalaa: AI_MUTALAA_LIMIT },
+      tasma: { model: AI_TASMA_MODEL, ekLimit: AI_TASMA_EK },
     },
   };
 
@@ -226,4 +266,47 @@ export function tierConfig(
 /** Aylık tavan aşıldı mı? */
 export function overLimit(cfg: TierCfg, row: { calls: number; cost: number }): boolean {
   return cfg.limitKind === 'cost' ? row.cost >= cfg.limit : row.calls >= cfg.limit;
+}
+
+/**
+ * AYLIK KOTA REZERVASYONU — taşma dahil.
+ *
+ * İKİ AŞAMALI VE BİLEREK ÖYLE. Önce normal kotadan ister; dolmuşsa taşma
+ * tavanından (normal + ek) bir kez daha ister. İkinci çağrı sayacı yine
+ * artırır, yalnız daha yüksek bir tavana bakar — yani taşmada kaç istek
+ * kullanıldığı ayrı bir sütuna gerek kalmadan sayacın kendisinden okunur.
+ *
+ * NEDEN MIGRATION YOK. Sayacın yeni değerini döndürmek için RPC'nin dönüş
+ * tipini boolean'dan integer'a çevirmek gerekirdi; bu, CREATE OR REPLACE ile
+ * yapılamaz (önce DROP gerekir) ve DROP yetkileri düşürür. İkinci bir çağrı,
+ * yalnızca kota dolduğunda ve kullanıcı başına ayda bir kez yaşanır — bu
+ * maliyet, canlı bir fonksiyonu düşürüp yeniden kurmaktan ucuzdur.
+ *
+ * Çağıran taraf dönen `model` ile isteği yapar: taşmadaysa ucuz model.
+ */
+export type RezerveSonuc =
+  | { ok: true; tasmada: boolean; model: string }
+  | { ok: false; sebep: 'soru' | 'mutalaa'; hak: number };
+
+export async function kotaRezerve(
+  cfg: TierCfg,
+  mutalaaMi: boolean,
+  cagir: (soruLimit: number, mutalaaLimit: number) => Promise<boolean>
+): Promise<RezerveSonuc> {
+  if (!cfg.modLimits) return { ok: true, tasmada: false, model: cfg.model };
+  const { soru, mutalaa } = cfg.modLimits;
+
+  if (await cagir(soru, mutalaa)) return { ok: true, tasmada: false, model: cfg.model };
+
+  if (cfg.tasma) {
+    // Yalnız İSTENEN türün tavanı yükseltilir; diğeri olduğu gibi kalır ki
+    // soru taşması yanlışlıkla mütalaa hakkı açmasın.
+    const s2 = mutalaaMi ? soru : soru + cfg.tasma.ekLimit;
+    const m2 = mutalaaMi ? mutalaa + Math.ceil(cfg.tasma.ekLimit / 30) : mutalaa;
+    if (await cagir(s2, m2)) return { ok: true, tasmada: true, model: cfg.tasma.model };
+  }
+
+  return mutalaaMi
+    ? { ok: false, sebep: 'mutalaa', hak: mutalaa }
+    : { ok: false, sebep: 'soru', hak: soru };
 }
