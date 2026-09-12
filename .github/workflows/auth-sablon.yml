@@ -17,10 +17,10 @@ on:
   workflow_dispatch:
     inputs:
       kip:
-        description: 'yaz = şablonu uygula · oku = yalnız ayarları ve hız sınırlarını raporla'
+        description: 'oku = ayarları raporla · yaz = e-posta şablonunu uygula · smtp = kendi SMTP (Resend) ayarını uygula'
         type: choice
         default: oku
-        options: [oku, yaz]
+        options: [oku, yaz, smtp]
 
 permissions:
   contents: read
@@ -35,7 +35,17 @@ jobs:
         with:
           node-version: '22'
       - name: Şablon / ayar
+        if: inputs.kip != 'smtp'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: wjshlysfmeqlnfiibknj
         run: node scripts/auth-eposta-sablonu.mjs ${{ inputs.kip == 'oku' && '--oku' || '' }}
+
+      # SMTP anahtarı secret'tan gelir, koda hiç yazılmaz.
+      - name: Kendi SMTP'yi uygula (Resend)
+        if: inputs.kip == 'smtp'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: wjshlysfmeqlnfiibknj
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: node scripts/auth-smtp.mjs
