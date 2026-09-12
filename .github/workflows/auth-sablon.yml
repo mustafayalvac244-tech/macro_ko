@@ -15,6 +15,12 @@ name: Auth E-posta Şablonu
 
 on:
   workflow_dispatch:
+    inputs:
+      kip:
+        description: 'yaz = şablonu uygula · oku = yalnız ayarları ve hız sınırlarını raporla'
+        type: choice
+        default: oku
+        options: [oku, yaz]
 
 permissions:
   contents: read
@@ -28,8 +34,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Şablonu yaz ve geri okuyarak doğrula
+      - name: Şablon / ayar
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: wjshlysfmeqlnfiibknj
-        run: node scripts/auth-eposta-sablonu.mjs
+        run: node scripts/auth-eposta-sablonu.mjs ${{ inputs.kip == 'oku' && '--oku' || '' }}

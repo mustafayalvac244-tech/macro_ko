@@ -32,6 +32,10 @@
 const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
 const REF = process.env.SUPABASE_PROJECT_REF || 'wjshlysfmeqlnfiibknj';
 const KURU = process.argv.includes('--kuru');
+// --oku: hiçbir şey yazmaz, yalnız yayındaki e-posta ayarlarını ve HIZ
+// SINIRLARINI raporlar. Kullanıcı "bir kere gönderdim ama 'çok fazla deneme'
+// diyor" dedi; sınırın kaç olduğunu tahmin etmek yerine okuyoruz.
+const OKU = process.argv.includes('--oku');
 
 if (!TOKEN && !KURU) {
   console.error('SUPABASE_ACCESS_TOKEN gerekli.');
@@ -69,6 +73,28 @@ const govde = {
 
 if (KURU) {
   console.log(JSON.stringify(govde, null, 2));
+  process.exit(0);
+}
+
+if (OKU) {
+  const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/config/auth`, {
+    headers: { Authorization: `Bearer ${TOKEN}` },
+  });
+  const c = await r.json();
+  const alanlar = [
+    'smtp_host', 'smtp_sender_name', 'smtp_admin_email',
+    'rate_limit_email_sent', 'rate_limit_otp', 'rate_limit_verify',
+    'mailer_otp_exp', 'mailer_autoconfirm', 'mailer_secure_email_change_enabled',
+  ];
+  for (const a of alanlar) console.log(`${a.padEnd(38)} ${c[a] ?? '(tanımsız)'}`);
+  console.log(
+    c.smtp_host
+      ? `\nKENDİ SMTP'NİZ TANIMLI: ${c.smtp_host}`
+      : '\nKENDİ SMTP TANIMLI DEĞİL — Supabase\'in yerleşik servisi kullanılıyor.\n' +
+        'Yerleşik servis ÜRETİM İÇİN DEĞİLDİR: saatlik gönderim sayısı düşüktür ve\n' +
+        'teslim edilebilirliği garanti edilmez. Kayıt/şifre e-postaları buna bağlıysa\n' +
+        'aynı saatte birkaç kişiden fazlası e-postasını ALAMAZ.'
+  );
   process.exit(0);
 }
 
