@@ -17,6 +17,18 @@ with
 k as (
   select count(*)::numeric as karar from public.ictihat_kararlar
 ),
+-- Disk freninin GERÇEK eşiği: public.disk_musait_mi()'nin varsayılan argümanı.
+-- Katalogdan okunuyor ki rapor ile canlı ayar bir daha ayrışmasın.
+f as (
+  select coalesce(
+    nullif(regexp_replace(coalesce(pg_get_expr(p.proargdefaults, 0), ''), '\D', '', 'g'), '')::int,
+    30000
+  ) as esik_mb
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'disk_musait_mi'
+  limit 1
+),
 b as (
   select
     pg_total_relation_size('public.ictihat_kararlar')::numeric as tablo_bayt,
@@ -76,10 +88,15 @@ satirlar as (
   -- ASIL SAYI: tahminimi (10-15 KB) ölçümle değiştiren satır.
   select 14, 'DİSK', '>> KARAR BAŞINA KB', round(b.tablo_bayt / greatest(k.karar, 1) / 1024, 1)::text from k, b
   union all
-  select 15, 'DİSK', '>> 6000 MB frenine kalan karar',
-         to_char(greatest((6000::bigint * 1024 * 1024 - b.db_bayt)
+  -- FREN EŞİĞİ SABİT YAZILMIYOR — KENDİ HATAM. Burada 6000 sabiti duruyordu,
+  -- oysa eşik 0123 ile 30.000 MB'a çıkarılmıştı. Rapor bu yüzden kalan
+  -- kapasiteyi BEŞTE BİR gösteriyordu: 167 bin karar dedi, gerçek ~950 bin.
+  -- Eşik artık fonksiyonun kendi varsayılanından okunuyor; bir daha
+  -- değiştirildiğinde rapor kendiliğinden doğru kalır.
+  select 15, 'DİSK', '>> frene kalan karar (eşik: ' || f.esik_mb || ' MB)',
+         to_char(greatest((f.esik_mb::bigint * 1024 * 1024 - b.db_bayt)
                           / greatest(b.tablo_bayt / greatest(k.karar, 1), 1), 0), 'FM999G999G999')
-  from k, b
+  from k, b, f
   union all
   select 16, 'DİSK', '>> 1 milyon karar kaç GB eder',
          round(b.tablo_bayt / greatest(k.karar, 1) * 1000000 / 1024 / 1024 / 1024, 1)::text || ' GB'
