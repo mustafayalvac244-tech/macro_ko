@@ -32,6 +32,16 @@ import re
 import sys
 import tempfile
 
+# ÇIKTI TAMPONLANMAZ. İlk koşuda 45 dakika boyunca TEK SATIR bile
+# görünmedi: Python, çıktı bir terminale değil dosyaya/boruya gidince
+# tamponluyor ve iş iptal edilince tampon kayboluyor. Yani hasat ne
+# yaptığını söyleyemeden öldü. Artık her satır anında yazılıyor.
+os.environ.setdefault('PYTHONUNBUFFERED', '1')
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+except Exception:                                                  # noqa: BLE001
+    pass
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LAWS = os.path.join(ROOT, 'src', 'data', 'laws')
 LISTE = os.path.join(ROOT, 'scripts', 'kanunlar.json')
@@ -127,6 +137,31 @@ def yukleyici_yaz(sirali: list):
     return degisen
 
 
+def erisim_yoklamasi() -> str:
+    """mevzuat.gov.tr'ye ulaşılıyor mu — HASAT BAŞLAMADAN sorulur.
+
+    NEDEN. İlk koşuda hasat 45 dakika hiç çıktı vermeden takıldı ve iptal
+    oldu; kimse sebebini bilmiyordu. Oysa sorulacak tek bir soru vardı:
+    "sunucuya ulaşılıyor mu?" Artık ilk iş o soruluyor ve cevap raporun en
+    başında yazıyor. Ulaşılamıyorsa 30 kanunu tek tek denemenin anlamı yok.
+    """
+    import urllib.request, ssl
+    url = 'https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6098.pdf'   # TBK, kesin var
+    # CA PAKETİ AYIKLAYICIYLA AYNI OLMALI. İlk yazdığımda yoklama varsayılan
+    # kök sertifikaları kullanıyordu ve geliştirme ortamında
+    # CERTIFICATE_VERIFY_FAILED veriyordu — yani "erişim yok" diyordu, oysa
+    # sorun ağ değil sertifika zinciriydi. İki yer aynı bağlamı kullanmazsa
+    # yoklama, hasadın kendisiyle farklı bir şeyi ölçer.
+    ctx = ssl.create_default_context(cafile=PARSE.CA) if os.path.exists(PARSE.CA) else ssl.create_default_context()
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=25, context=ctx) as r:
+            bas = r.read(5)
+        return '' if bas == b'%PDF-' else f'beklenmedik yanıt: {bas!r}'
+    except Exception as e:                                          # noqa: BLE001
+        return f'{type(e).__name__}: {e}'
+
+
 def hasat(hepsi: bool, adet: int, yalniz_liste: bool) -> int:
     veri = json.load(open(LISTE, encoding='utf-8'))
     kanunlar = veri['kanunlar']
@@ -142,6 +177,14 @@ def hasat(hepsi: bool, adet: int, yalniz_liste: bool) -> int:
     if not eksik:
         print('eklenecek kanun yok.')
         return 0
+
+    sorun = erisim_yoklamasi()
+    if sorun:
+        print(f'\nMEVZUAT.GOV.TR\'YE ULAŞILAMIYOR — hasat yapılmadı.\n  {sorun}\n')
+        print('Bu bir kod hatası değil, ağ erişimi sorunu. Kanun PDF\'leri elle')
+        print('indirilip /tmp/law-<no>.pdf olarak konursa betik onları kullanır.')
+        return 0
+    print('mevzuat.gov.tr: erişim var\n')
 
     if adet:
         eksik = eksik[:adet]

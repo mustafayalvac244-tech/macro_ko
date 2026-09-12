@@ -55,6 +55,20 @@ ONEK_ADI = {'EK': 'Ek', 'GECICI': 'Geçici', '': ''}
 BOLUM = re.compile(r'^[A-ZÇĞİÖŞÜ\s]{3,40}(BÖLÜM|BAP|KISIM|FASIL)$')
 
 
+# ZAMAN AŞIMI 180 → 25 SANİYE.
+#
+# ÖLÇÜLEN HATA (12.09.2026). Hasat GitHub Actions'ta 45 dakika boyunca tek
+# satır çıktı vermeden takıldı ve iş akışı zaman aşımıyla İPTAL oldu; tek
+# bir kanun bile eklenemedi. Sebep: sunucuya bağlanılamadığında her deneme
+# 180 saniye bekliyor ve kanun başına ÜÇ tertip deneniyor — yani erişilemeyen
+# tek bir kanun 9 dakika yiyor. 30 kanunluk liste hiçbir zaman bitemezdi.
+#
+# 25 saniye, çalışan bir bağlantı için fazlasıyla yeterli (PDF'ler birkaç
+# yüz KB) ama erişilemeyen bir adresi hızlıca elemeyi sağlıyor: kanun başına
+# en kötü 75 saniye.
+INDIRME_ZAMAN_ASIMI = int(os.environ.get('KANUN_ZAMAN_ASIMI', '25'))
+
+
 def indir(no: str, hedef: str) -> str:
     """PDF'i indirir. mevzuat.gov.tr eski kanunlar için 1.3.*, yenileri için 1.5.* kullanır."""
     ctx = ssl.create_default_context(cafile=CA) if os.path.exists(CA) else None
@@ -63,7 +77,7 @@ def indir(no: str, hedef: str) -> str:
         url = f'https://www.mevzuat.gov.tr/MevzuatMetin/{tertip}.{no}.pdf'
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=180, context=ctx) as r:
+            with urllib.request.urlopen(req, timeout=INDIRME_ZAMAN_ASIMI, context=ctx) as r:
                 veri = r.read()
             if veri[:5] == b'%PDF-':
                 open(hedef, 'wb').write(veri)
