@@ -24,20 +24,48 @@ b as (
     pg_database_size(current_database())::numeric              as db_bayt
 ),
 -- ── Son 6 saatin edge yanıtları ─────────────────────────────────────────────
-y as (
+--
+-- İKİ KUSUR DÜZELTİLDİ (ikisi de bendeydi; ölçüm bu yüzden yanlış okunuyordu).
+--
+-- 1. PAYDA YANLIŞTI. Burada URL süzgeci yoktu. net._http_response, pg_net ile
+--    yapılan HER isteğin yanıtını tutuyor — hangi işlev olduğu yazmıyor. Yani
+--    hasatla ilgisi olmayan zamanlı işlerin yanıtları da "hasat turu" diye
+--    sayılıyordu. Son ölçümde 718 "tur"un 451'i kaynağı belirsizdi ve toplam
+--    0 karar üretmişti; bu 451 yanıt paydayı şişirip "boş tur oranı"nı
+--    olduğundan yüksek gösteriyordu.
+--
+-- 2. HATA TESTİ DARDI. Yalnız '%"not"%' hata sayılıyordu. harvest-tick sert
+--    hatalarda {"error":"forbidden"} / {"error":"state_failed"} /
+--    {"error":"terim_yok"} döndürüyor; hiçbirinde "not" geçmiyor. Bu yanıtlar
+--    HATA değil "boş tur (hepsi yinelenen)" diye sayılıyordu — yani yetki ya
+--    da migration arızası, "sonuç yok" gibi görünüyordu. Rapor üç turdur
+--    "HATA / HIZ SINIRI 0" yazıyordu; bu sıfır güvenilir değildi.
+--
+-- Artık payda YALNIZ harvest-tick yanıtları: gövdesinde "kaynak" geçen
+-- yanıtlar. Hasatla ilgisiz trafik ayrı bir satırda GÖRÜNÜR hâle getiriliyor
+-- (gizlenmiyor), ve hata testi HTTP durum kodunu da içeriyor.
+tum as (
   select
-    r.content,
-    coalesce(substring(r.content from '"eklenen":([0-9]+)')::int, 0) as eklenen,
-    coalesce(substring(r.content from '"kaynak":"([a-z]+)"'), '(bilinmiyor)') as kaynak,
-    (r.content like '%"not"%')  as hatali,
-    (r.content like '%"yarim"%') as yarim
+    r.status_code,
+    coalesce(r.content, '') as content
   from net._http_response r
   where r.created > now() - interval '6 hours'
+),
+y as (
+  select
+    t.content,
+    coalesce(substring(t.content from '"eklenen":([0-9]+)')::int, 0) as eklenen,
+    coalesce(substring(t.content from '"kaynak":"([a-z]+)"'), '(bilinmiyor)') as kaynak,
+    (t.content like '%"not"%' or coalesce(t.status_code, 0) <> 200) as hatali,
+    (t.content like '%"yarim"%') as yarim
+  from tum t
+  where t.content like '%"kaynak"%'
 ),
 satirlar as (
 
   -- 1. DİSK: "milyon karar" mümkün mü?
-  select 10 as sira, 'DİSK' as bolum, 'havuzdaki karar' as alan, to_char(k.karar, 'FM999G999G999') as deger from k
+  -- sira NUMERIC: araya satır sokabilmek için (22.5 gibi) ondalık kullanılıyor.
+  select 10::numeric as sira, 'DİSK' as bolum, 'havuzdaki karar' as alan, to_char(k.karar, 'FM999G999G999') as deger from k
   union all
   select 11, 'DİSK', 'içtihat tablosu', pg_size_pretty(b.tablo_bayt::bigint) from b
   union all
@@ -68,7 +96,17 @@ satirlar as (
   select 21, 'VERİM', 'saatlik', round(count(*) / 6.0)::text
   from public.ictihat_kararlar where created_at > now() - interval '6 hours'
   union all
-  select 22, 'VERİM', 'son 6 saatteki edge turu', count(*)::text from y
+  select 22, 'VERİM', 'son 6 saatteki hasat turu', count(*)::text from y
+  union all
+  -- Payda dışında bırakılanlar GİZLENMİYOR. Bu satır büyükse "hasat turu"
+  -- sandığımız trafiğin çoğu başka bir işe aitti demektir.
+  select 22.5, 'VERİM', '  (hasat dışı pg_net yanıtı — sayılmadı)', count(*)::text
+  from tum where content not like '%"kaynak"%'
+  union all
+  -- harvest-tick'in sert hataları: 403 forbidden, 500 state_failed, 404
+  -- terim_yok. Eskiden bunlar "boş tur" sayılıyordu.
+  select 22.6, 'VERİM', '  (sert hata döndüren yanıt)', count(*)::text
+  from tum where content like '%"error"%'
   union all
   -- Kova dağılımı: hız sınırı mı, yinelenen mi? Çözümleri TERS yönde.
   select 23, 'VERİM', '  ├ karar ekledi', count(*)::text from y where not hatali and eklenen > 0
