@@ -60,7 +60,7 @@ export default function LoginScreen() {
               şey yapmaz ve düzen aynen kalır (bkz. components/ui/WebKart). */}
           <WebKart>
           <View style={styles.brand}>
-            <VekilLogo size={132} nodeFill={colors.bg} />
+            <VekilLogo size={132} />
             <Text style={styles.brandName}>VEKİL</Text>
             <Text style={styles.brandSub}>AVUKAT YARDIMCI PROGRAMI</Text>
             <Text style={styles.brandSubGold}>AKILLI DAVA TAKİP SİSTEMİ</Text>

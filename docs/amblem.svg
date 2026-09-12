@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Vekil Pro">
+  <defs><linearGradient id="vg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#173C7E"/><stop offset="1" stop-color="#0B1F45"/>
+  </linearGradient></defs>
+  <rect width="64" height="64" rx="15" fill="url(#vg)"/>
+  <g fill="none" stroke="#E7C871" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M17 17 L29 42 L47 13"/>
+</g>
+<line x1="21" y1="51" x2="43" y2="51" stroke="#E7C871" stroke-width="4.0040000000000004" stroke-linecap="round"/>
+</svg>

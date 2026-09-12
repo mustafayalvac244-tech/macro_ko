@@ -1,54 +1,73 @@
 import React from 'react';
-import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Line, Path, Rect, Stop } from 'react-native-svg';
 
-const NAVY = '#1C3A5E';
-const GOLD = '#C6A24A';
+const LACIVERT = '#173C7E';
+const LACIVERT_KOYU = '#0B1F45';
+const ALTIN = '#E7C871';
 
 interface VekilLogoProps {
   size?: number;
-  /** Fill color for the node ring centers — match the surface behind the logo. */
+  /**
+   * KULLANILMIYOR — eski terazi amblemindeki halka içlerini zemine boyamak
+   * içindi. Yeni amblemde halka yok. Çağıranları kırmamak için kabul
+   * ediliyor; yeni kullanımlarda geçirmeyin.
+   * @deprecated
+   */
   nodeFill?: string;
+  /** Yuvarlak köşeli lacivert kutu çizilsin mi (varsayılan: evet). */
+  kutu?: boolean;
 }
 
 /**
- * The Vekil "tech scales of justice" mark as a true vector — crisp at any
- * size (no pixelation). Reused on the login/splash and anywhere the brand
- * emblem is shown.
+ * VEKİL PRO AMBLEMİ.
+ *
+ * ÖNCEKİ AMBLEM NEDEN DEĞİŞTİ. Burada ince çizgili bir "teknolojik terazi"
+ * vardı: 13 birim kalınlığında ~20 çizgi ve 8 daire. İki sorunu vardı ve
+ * ikisi de ölçülebilirdi:
+ *   • KÜÇÜLMÜYORDU. 34px'lik başlık ambleminde çizgiler birbirine giriyor,
+ *     faviconda tanınmaz hâle geliyordu. Tanıtım sayfasının bu amblemi
+ *     kullanmayıp düz bir "V" kutusu koymasının sebebi buydu — yani marka
+ *     web'de ve uygulamada FARKLI görünüyordu.
+ *   • KOYU TEMADA KAYBOLUYORDU. Çizgi rengi lacivert sabitti; koyu zeminde
+ *     zeminle aynı renge düşüyordu.
+ *
+ * YENİ AMBLEM — "V + onay". Dört aday çizilip 20/24/34/48/96 px'te, açık ve
+ * koyu temada gerçek tarayıcıda karşılaştırıldı.
+ *   • "V", Vekil'in baş harfi.
+ *   • Sağ kol sol koldan YÜKSEK bitiyor; şekil aynı anda bir onay
+ *     işaretidir. Ürünün tek iddiası ("verdiğimiz her künye denetlenir")
+ *     ile amblem aynı şeyi söylüyor.
+ *   • Altındaki kısa kiriş terazi tabanını andırır ve şekli yere basar.
+ * Üç çizgi: 20px'te bile okunur; tek renk olduğu için favicon, baskı ve tek
+ * renkli Android ikonunda da çalışır.
+ *
+ * TEK KAYNAK: scripts/amblem.mjs. Oradaki koordinatlarla BİREBİR aynı
+ * olmalı — web, favicon ve mağaza ikonları oradan üretiliyor. Birini
+ * değiştirirken diğerini de değiştirin, yoksa marka yine ikiye ayrılır.
  */
-export function VekilLogo({ size = 120, nodeFill = '#FFFFFF' }: VekilLogoProps) {
+export function VekilLogo({ size = 120, kutu = true }: VekilLogoProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 512 512">
-      {/* gold pan bowls */}
-      <Path d="M110 300 A46 46 0 0 0 202 300 Z" fill={GOLD} />
-      <Path d="M310 300 A46 46 0 0 0 402 300 Z" fill={GOLD} />
-
-      <G fill="none" stroke={NAVY} strokeWidth={13} strokeLinecap="round" strokeLinejoin="round">
-        <Line x1="140" y1="150" x2="372" y2="150" />
-        <Line x1="256" y1="168" x2="256" y2="402" />
-        <Line x1="156" y1="156" x2="110" y2="300" />
-        <Line x1="156" y1="156" x2="202" y2="300" />
-        <Line x1="356" y1="156" x2="310" y2="300" />
-        <Line x1="356" y1="156" x2="402" y2="300" />
-        <Line x1="110" y1="300" x2="202" y2="300" />
-        <Line x1="310" y1="300" x2="402" y2="300" />
-        <Line x1="196" y1="436" x2="316" y2="436" />
-        <Path d="M226 182 L226 206 L286 206 L286 182" />
-      </G>
-
-      <Path d="M238 402 L274 402 L292 436 L220 436 Z" fill={NAVY} />
-
-      <Circle cx="256" cy="86" r="17" fill="none" stroke={NAVY} strokeWidth={13} />
-      <Circle cx="256" cy="86" r="6" fill={GOLD} />
-      <Circle cx="256" cy="150" r="18" fill={nodeFill} stroke={NAVY} strokeWidth={13} />
-      <Circle cx="256" cy="150" r="6" fill={GOLD} />
-      <Circle cx="140" cy="150" r="17" fill={nodeFill} stroke={NAVY} strokeWidth={13} />
-      <Circle cx="140" cy="150" r="6" fill={GOLD} />
-      <Circle cx="372" cy="150" r="17" fill={nodeFill} stroke={NAVY} strokeWidth={13} />
-      <Circle cx="372" cy="150" r="6" fill={GOLD} />
-      <Line x1="256" y1="103" x2="256" y2="132" stroke={NAVY} strokeWidth={13} strokeLinecap="round" />
-
-      <Rect x="222" y="238" width="14" height="14" rx="2" fill={GOLD} />
-      <Rect x="276" y="238" width="14" height="14" rx="2" fill={GOLD} />
+    <Svg width={size} height={size} viewBox="0 0 64 64">
+      {kutu && (
+        <>
+          <Defs>
+            <LinearGradient id="vekilKutu" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor={LACIVERT} />
+              <Stop offset="1" stopColor={LACIVERT_KOYU} />
+            </LinearGradient>
+          </Defs>
+          <Rect width={64} height={64} rx={15} fill="url(#vekilKutu)" />
+        </>
+      )}
+      <Path
+        d="M17 17 L29 42 L47 13"
+        fill="none"
+        stroke={ALTIN}
+        strokeWidth={5.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Line x1={21} y1={51} x2={43} y2={51} stroke={ALTIN} strokeWidth={4} strokeLinecap="round" />
     </Svg>
   );
 }

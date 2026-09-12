@@ -82,7 +82,7 @@ export function AppLock() {
   // biometric prompt opens by itself; tapping the mark retries if canceled.
   return (
     <View style={[StyleSheet.absoluteFill, styles.container, { backgroundColor: colors.bg }]}>
-      <VekilLogo size={120} nodeFill={colors.primary} />
+      <VekilLogo size={120} />
       <Pressable
         onPress={authenticate}
         hitSlop={16}

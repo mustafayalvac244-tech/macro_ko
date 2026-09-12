@@ -6,7 +6,13 @@
 <title>Vekil Pro — Avukatlar için dava, duruşma ve yapay zekâ asistanı</title>
 <meta name="description" content="Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız ücretsiz arama. Dava, duruşma, müvekkil ve finans yönetimi. Güçlü yapay zekâ desteğiyle dilekçe taslağı ve hukuki mütalaa. iOS, Android ve web.">
 <meta name="theme-color" content="#0B1F45">
-<link rel="icon" href="app/favicon.ico">
+<!-- Favicon artık amblemin kendisi. Önce uygulamanın app/favicon.ico
+     dosyasına bağlıydı; o dosya eski terazi amblemiydi ve 16px'te
+     tanınmıyordu. SVG her boyutta keskin; .ico eski tarayıcılar için
+     yedek olarak duruyor. -->
+<link rel="icon" type="image/svg+xml" href="amblem.svg">
+<link rel="alternate icon" href="app/favicon.ico">
+<link rel="apple-touch-icon" href="app/favicon.ico">
 <meta property="og:title" content="Vekil Pro — avukatın büro ve araştırma asistanı">
 <meta property="og:description" content="Sınırsız ücretsiz içtihat araması, büro yönetimi ve yapay zekâ destekli dilekçe/mütalaa. iOS, Android ve web.">
 <meta property="og:type" content="website">
@@ -90,8 +96,12 @@ header{position:sticky; top:0; z-index:50; backdrop-filter:blur(12px);
   border-bottom:1px solid var(--cizgi)}
 .ust{display:flex; align-items:center; justify-content:space-between; height:68px; gap:16px}
 .marka{display:flex; align-items:center; gap:10px; text-decoration:none; font-weight:800; font-size:19px; letter-spacing:-.3px}
-.marka .m{width:34px;height:34px;border-radius:9px;background:linear-gradient(140deg,var(--lacivert-2),var(--lacivert));
-  display:grid;place-items:center;color:#fff;font-family:'Playfair Display',serif;font-weight:700;font-size:18px;flex:none}
+/* AMBLEM. Burada Playfair fontuyla yazılmış düz bir "V" kutusu duruyordu —
+   yani tanıtım sayfası uygulamanınkinden BAŞKA bir marka gösteriyordu.
+   Sebep, eski uygulama ambleminin (ince çizgili terazi) bu boyutta
+   okunmamasıydı. Yeni amblem 20px'te bile okunuyor; ikisi artık aynı.
+   Şekil scripts/amblem.mjs ile birebir aynı olmalı. */
+.marka .m{width:34px;height:34px;flex:none;display:block}
 nav{display:flex; align-items:center; gap:28px}
 nav a{color:var(--metin-2); text-decoration:none; font-size:14.5px; font-weight:600}
 nav a:hover{color:var(--metin)}
@@ -405,7 +415,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 
 <header>
   <div class="sar ust">
-    <a class="marka" href="#"><span class="m">V</span>Vekil&nbsp;Pro</a>
+    <a class="marka" href="#"><svg class="m" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="vkm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#173C7E"/><stop offset="1" stop-color="#0B1F45"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#vkm)"/><g fill="none" stroke="#E7C871" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17 L29 42 L47 13"/></g><line x1="21" y1="51" x2="43" y2="51" stroke="#E7C871" stroke-width="4" stroke-linecap="round"/></svg>Vekil&nbsp;Pro</a>
     <nav>
       <a href="#ozellikler">Özellikler</a>
       <a href="#nasil">Nasıl çalışır</a>
@@ -807,7 +817,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
   <div class="sar">
     <div class="alt">
       <div style="max-width:300px">
-        <a class="marka" href="#" style="font-size:18px"><span class="m">V</span>Vekil&nbsp;Pro</a>
+        <a class="marka" href="#" style="font-size:18px"><svg class="m" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="vkm2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#173C7E"/><stop offset="1" stop-color="#0B1F45"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#vkm2)"/><g fill="none" stroke="#E7C871" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17 L29 42 L47 13"/></g><line x1="21" y1="51" x2="43" y2="51" stroke="#E7C871" stroke-width="4" stroke-linecap="round"/></svg>Vekil&nbsp;Pro</a>
         <p style="color:var(--metin-3);font-size:14px;margin-top:12px">Avukatlar için dava, duruşma ve araştırma asistanı. Türkiye'de geliştirildi.</p>
       </div>
       <div>
