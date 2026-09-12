@@ -100,6 +100,10 @@ export default function ForgotPasswordScreen() {
           ) : (
             <>
               <Text style={styles.description}>{t('forgot.codeStep')}</Text>
+              {/* UZUNLUK VARSAYILMAZ. maxLength=6'ydı ve sunucu 8 haneli kod
+                  gönderdiğinde kullanıcı kodu YAZAMIYORDU bile — şifresini
+                  unutan herkes kilitli kalmıştı. Sunucu ayarı değişirse ekran
+                  yine çalışsın diye tavan gevşek. */}
               <Input
                 label={t('forgot.code')}
                 icon="key-outline"
@@ -107,7 +111,7 @@ export default function ForgotPasswordScreen() {
                 placeholder={t('forgot.codePlaceholder')}
                 value={code}
                 onChangeText={setCode}
-                maxLength={6}
+                maxLength={10}
               />
               <Input
                 label={t('forgot.newPassword')}

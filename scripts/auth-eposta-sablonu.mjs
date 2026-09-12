@@ -1,4 +1,4 @@
-// ŞİFRE SIFIRLAMA E-POSTASI: LİNK YERİNE 6 HANELİ KOD.
+// ŞİFRE SIFIRLAMA E-POSTASI: LİNK YERİNE KOD.
 //
 // BULUNAN HATA (kullanıcı bildirdi, 12.09.2026). Şifremi unuttum akışında
 // gelen e-postadaki bağlantıya tıklayınca kullanıcı DOĞRUDAN HESABA GİRİYOR,
@@ -6,7 +6,7 @@
 // dönüşmüş durumda.
 //
 // SEBEP UYGULAMADA DEĞİL. app/forgot-password.tsx zaten doğru yazılmış:
-// e-posta ister, sonra 6 haneli KOD ister ve verifyOtp({type:'recovery'})
+// e-posta ister, sonra KOD ister ve verifyOtp({type:'recovery'})
 // çağırır. Ama Supabase'in "Reset Password" e-posta şablonu varsayılan hâlde
 // duruyor ve içinde {{ .ConfirmationURL }} var — yani kod değil, tek
 // tıklamayla oturum açan bir sihirli bağlantı gönderiliyor. Kullanıcı o
@@ -84,7 +84,8 @@ if (OKU) {
   const alanlar = [
     'smtp_host', 'smtp_sender_name', 'smtp_admin_email',
     'rate_limit_email_sent', 'rate_limit_otp', 'rate_limit_verify',
-    'mailer_otp_exp', 'mailer_autoconfirm', 'mailer_secure_email_change_enabled',
+    'mailer_otp_exp', 'mailer_otp_length', 'mailer_autoconfirm',
+    'mailer_secure_email_change_enabled',
   ];
   for (const a of alanlar) console.log(`${a.padEnd(38)} ${c[a] ?? '(tanımsız)'}`);
   console.log(
@@ -128,4 +129,6 @@ if (!tokenVar || linkVar) {
   console.error('DOĞRULAMA BAŞARISIZ — şablon beklendiği gibi yazılmadı.');
   process.exit(1);
 }
-console.log('Şifre sıfırlama artık 6 haneli kod gönderiyor.');
+// Uzunluk bu betiğin değil auth ayarının işi; burada YALNIZ okuyup yazıyoruz,
+// "6 hane" diye varsaymıyoruz. Varsayım zaten hatanın kendisiydi.
+console.log(`Şifre sıfırlama artık kod gönderiyor. Kod uzunluğu: ${cfg.mailer_otp_length ?? 'tanımsız'} hane.`);
