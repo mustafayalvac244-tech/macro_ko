@@ -12,7 +12,7 @@
 //   (GEMINI_API_KEY zaten ai-chat için tanımlı; summarize onu kullanır)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
-import { overLimit, tierConfig as ortakKatman } from '../_shared/katman.ts';
+import { kotaRezerve, overLimit, tierConfig as ortakKatman } from '../_shared/katman.ts';
 // Dönem anahtarları ortak: bu uç günlük sayacı hiç bilmiyordu ve içtihat
 // ekranından yapılan AI çağrıları günlük haktan düşmüyordu (bkz. _shared/kullanim.ts).
 import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
@@ -128,22 +128,28 @@ type KatmanCfg = ReturnType<typeof tierConfig>['cfg'];
  *
  * @returns reddedildiyse 402 yanıtı, geçtiyse null
  */
-async function hakRezerve(cfg: KatmanCfg, tier: string, userId: string): Promise<Response | null> {
+async function hakRezerve(
+  cfg: KatmanCfg,
+  tier: string,
+  userId: string
+): Promise<{ red: Response } | { model: string }> {
   const s = svc();
   if (cfg.denemeLimit) {
     const r = s ? (await s.rpc('deneme_hakki_rezerve_et', { p_user: userId, p_limit: cfg.denemeLimit })).data : false;
-    if (!r) return json({ error: 'deneme_hakki_bitti', tier, hak: cfg.denemeLimit }, 402);
+    if (!r) return { red: json({ error: 'deneme_hakki_bitti', tier, hak: cfg.denemeLimit }, 402) };
   }
-  if (cfg.modLimits) {
-    const r = s
-      ? (await s.rpc('ai_mod_rezerve_et', {
-          p_user: userId, p_ay: aiPeriod(), p_mutalaa: false,
-          p_soru_limit: cfg.modLimits.soru, p_mutalaa_limit: cfg.modLimits.mutalaa,
-        })).data
-      : false;
-    if (!r) return json({ error: 'ai_soru_kota_bitti', tier, hak: cfg.modLimits.soru }, 402);
-  }
-  return null;
+  // KOTA BİTİNCE KAPI KAPANMIYOR, UCUZ MODELE DÜŞÜYOR (bkz. katman.ts > tasma).
+  // Ödeme yapan avukatın ayın ortasında duvara çarpması, yenilenmeyen bir
+  // aboneliğin en kısa yoludur. Taşma da sınırsız değildir.
+  const rez = await kotaRezerve(cfg, false, async (soruLimit, mutalaaLimit) => {
+    if (!s) return false;
+    return Boolean((await s.rpc('ai_mod_rezerve_et', {
+      p_user: userId, p_ay: aiPeriod(), p_mutalaa: false,
+      p_soru_limit: soruLimit, p_mutalaa_limit: mutalaaLimit,
+    })).data);
+  });
+  if (!rez.ok) return { red: json({ error: 'ai_soru_kota_bitti', tier, hak: rez.hak }, 402) };
+  return { model: rez.model };
 }
 
 /** Çağrı ARIZAYLA bittiyse rezerve edilen hakkı geri verir; hata yutulur. */
@@ -1193,19 +1199,22 @@ Deno.serve(async (req) => {
       const key = aiKey(cfg.provider);
       if (!key) return json({ error: 'not_configured' }, 503);
       // SORU HAKKI — ai-chat'teki kapının aynısı; bu uç bunu hiç saymıyordu.
-      const red = await hakRezerve(cfg, tier, userData.user.id);
-      if (red) return red;
+      const rez = await hakRezerve(cfg, tier, userData.user.id);
+      if ('red' in rez) return rez.red;
+      // Kota taştıysa bu istek ucuz modelle yapılır; maliyet ve yanıt künyesi
+      // de o modelle kaydedilir ki muhasebe gerçeği göstersin.
+      const aktifModel = rez.model;
       const meter: Meter = { tin: 0, tout: 0 };
       let summary: string;
       try {
-        summary = await geminiSummary(query, docs, cfg.provider, cfg.model, key, meter);
+        summary = await geminiSummary(query, docs, cfg.provider, aktifModel, key, meter);
       } catch (e) {
         // Arızada rezerve edilen hak geri verilir: avukat bizim arızamızın
         // bedelini kotasından ödemesin.
         await hakSerbestBirak(cfg, userData.user.id);
         throw e;
       }
-      await recordUsage(userData.user.id, cfg.model, meter.tin, meter.tout, cfg.billable, 'ictihat-ozet');
+      await recordUsage(userData.user.id, aktifModel, meter.tin, meter.tout, cfg.billable, 'ictihat-ozet');
       // 'model' ve 'kullanim' yanıtta: ölçüm, sonucun hangi modelden ve kaça
       // geldiğini bilsin (ai-chat ile aynı biçim; künye bunu toplar).
       return json({ summary, count: docs.length, tier, model: cfg.model, kullanim: kullanimOzeti(cfg.model, meter, cfg.billable) });
@@ -1242,12 +1251,14 @@ Deno.serve(async (req) => {
       }
       const key = aiKey(cfg.provider);
       if (!key) return json({ error: 'not_configured' }, 503);
-      const model = cfg.model;
       const meter: Meter = { tin: 0, tout: 0 };
       // SORU HAKKI — analiz iki model çağrısı (plan + analiz) ama TEK soru
-      // sayılır: kullanıcıya verilen söz "250 soru", "500 model çağrısı" değil.
-      const red = await hakRezerve(cfg, tier, userData.user.id);
-      if (red) return red;
+      // sayılır: kullanıcıya verilen söz "aylık N soru", "2N model çağrısı"
+      // değil.
+      const rez2 = await hakRezerve(cfg, tier, userData.user.id);
+      if ('red' in rez2) return rez2.red;
+      // Kota taştıysa her iki çağrı da ucuz modelle yapılır.
+      const model = rez2.model;
 
       try {
         // 1) Olaydan arama terimleri üret.

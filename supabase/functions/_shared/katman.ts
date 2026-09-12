@@ -49,12 +49,24 @@ export interface TierCfg {
   gunluk?: number;
   /**
    * AYLIK SORU/MÜTALAA KOTASI — yalnız "ai" katmanında dolu. "ai" katmanı
-   * 2.999₺/ay sabit ücrete SAYIYLA dahildir ("250 soru + 12 mütalaa"),
+   * 2.999₺/ay sabit ücrete SAYIYLA dahildir ("750 soru + 25 mütalaa"),
    * kontöre HİÇ bakmaz — avukata "bakiyeniz kadar" değil "ayda şu kadar"
    * sözü verildi. Mütalaa ayrı sayılır çünkü tek istek değil çok adımlı: tek
    * bir mütalaa, bir sohbet sorusunun 4-8 katı token tüketir.
    */
   modLimits?: { soru: number; mutalaa: number };
+  /**
+   * TAŞMA — aylık kota bitince kapıyı kapatmak yerine daha ucuz modele geç.
+   *
+   * Eskiden kota dolunca istek 402 ile REDDEDİLİYORDU: ödeme yapan bir avukat
+   * ayın 20'sinde "hakkınız bitti" duvarına çarpıyor ve ayın kalanında ürünü
+   * hiç kullanamıyordu. Ödediği ay boyunca kapalı kalan bir araç, bir daha
+   * yenilenmeyen bir aboneliktir.
+   *
+   * ekLimit: taşmada verilen EK istek sayısı. Sınırsız DEĞİL — sınırsız ucuz
+   * model de sınırsız maliyettir. Bittiğinde yine 402 döner.
+   */
+  tasma?: { model: string; ekLimit: number };
   /**
    * YAŞAM BOYU deneme hakkı — yalnız free/baslangic'te dolu. modLimits'ten
    * FARKI: modLimits AYLIK sıfırlanır (ai_mod_kota), bu ise BİR KEZ, hiç
@@ -92,7 +104,7 @@ const UCRETLI_TAVAN_TRY = 3000;
 
 /**
  * "AI" KATMANI FİYATLAMASI — 2.999₺/ay (2026-09-11; 1.999 → 3.999 → 2.999,
- * son değişiklik rakip Lexedes'in 2.990₺ planına göre), 250 soru + 12 mütalaa,
+ * son değişiklik rakip Lexedes'in 2.990₺ planına göre), 750 soru + 25 mütalaa,
  * CLAUDE SONNET 5 (12.09.2026'da Opus 5'ten indirildi; gerekçe maliyet).
  *
  * KANIT KAYNAĞI AYRIŞTIRILARAK SÖYLENİR:
@@ -105,14 +117,60 @@ const UCRETLI_TAVAN_TRY = 3000;
  *         Sonnet ≈ ₺1,07   ·   Opus ≈ ₺2,67   (kur 42)
  *     Bu, indirmenin gerekçesinin kendisi.
  *   - Mütalaa çarpanı (4-8x) TAHMİNDİR, ölçülmedi. Mütalaa iki model çağrısı
- *     yapıyor ve dosyası çok daha büyük; 250 soru + 12 mütalaalık paketin
+ *     yapıyor ve dosyası çok daha büyük; 750 soru + 25 mütalaalık paketin
  *     gerçek maliyeti HÂLÂ ÖLÇÜLMEDİ.
  *   - "En kötü senaryo ~924₺" gibi eski toplamlar Opus varsayımıyla kurulmuş
  *     TAHMİNİ hesaplardı; model değiştiği için artık geçersizler ve yenisi
  *     ölçümle kurulacak (bkz. scripts/istek.mjs > ParaButcesi, ön yoklama).
  */
-const AI_SORU_LIMIT = 250;
-const AI_MUTALAA_LIMIT = 12;
+/**
+ * KOTA YÜKSELTİLDİ (12.09.2026): 250 → 750 soru, 12 → 25 mütalaa.
+ *
+ * SEBEP. 250/12 paketi OPUS varsayımıyla kurulmuştu (istek başına ₺2,67).
+ * Aynı gün Sonnet'e inildi ve ölçülen birim maliyet ₺1,07 oldu — yani paket
+ * bir anda gereğinden dar kaldı: kullanıcı üçte bir maliyetle aynı sayıda
+ * soru soruyordu.
+ *
+ * HESAP (birim ₺1,07 — n=7 GERÇEK ÖLÇÜM, veritabanından; kur 42):
+ *     750 soru            →  ₺802
+ *     25 mütalaa (en kötü) →  ₺214   ← çarpan 8x, ÖLÇÜLMEDİ, tahmin
+ *     toplam ~₺1.016 = 2.999₺ gelirin %34'ü
+ * 250/12'de bu oran %12 idi. %34, ürün maliyeti olarak rahat bir aralık ve
+ * UCRETLI_TAVAN_TRY (₺3.000) zaten üstte ayrı bir emniyet kilidi.
+ *
+ * DÜRÜSTLÜK NOTU: soru maliyeti ölçümdür, mütalaa çarpanı DEĞİLDİR. Yukarıdaki
+ * toplam bu yüzden bir ölçüm değil, en kötü uçtan kurulmuş bir üst sınırdır.
+ * Mütalaa gerçek maliyeti ölçülene kadar 25 rakamı temkinli tutuldu.
+ */
+const AI_SORU_LIMIT = 750;
+const AI_MUTALAA_LIMIT = 25;
+
+/**
+ * TAŞMA MODELİ VE EK HAK.
+ *
+ * Kota bitince istek reddediliyordu. Ödeme yapan avukat ayın ortasında
+ * duvara çarpıp ayın kalanında ürünü hiç kullanamıyordu — bu, iptal edilen
+ * aboneliğin en kısa yoludur. Artık daha ucuz bir modele düşüyor.
+ *
+ * NEDEN HAIKU, NEDEN GROQ DEĞİL. Groq ücretsiz ve zaten deneme katmanında
+ * kullanılıyor, ama üzerinde GERÇEK bir mantık hatası ölçüldü (bkz.
+ * DENEME_SORU_LIMIT yorumu: "aldı" fiilini "ödedi"ye çevirmişti). Ödeme
+ * yapan bir avukatın ayın yarısını o kalitede geçirmesi, kapıyı kapatmaktan
+ * daha kötü olabilir. Haiku aynı ailede ve hukuki Türkçede belirgin biçimde
+ * daha güvenli.
+ *
+ * MALİYET. Haiku $1/$5 per MTok (12.09.2026'da doğrulandı, birden çok
+ * bağımsız kaynak). Ölçülen dilekçe boyutuyla istek başına ≈ ₺0,53 —
+ * Sonnet'in (₺1,07) yarısı.
+ *     750 taşma isteği × ₺0,53 ≈ ₺398
+ * Yani en kötü durumda aylık gider ₺1.016 → ₺1.414 (gelirin %34'ü → %47'si).
+ * Bu üst sınır; ortalama kullanıcı kotanın yakınına bile gelmiyor.
+ *
+ * TAŞMA SINIRSIZ DEĞİL: sınırsız ucuz model de sınırsız maliyettir.
+ * Ek hak da bitince istek yine reddedilir.
+ */
+const AI_TASMA_MODEL = 'claude-haiku-4-5-20251001';
+const AI_TASMA_EK = 750;
 
 /**
  * Ödeme yapmamış (free/baslangic) bir kullanıcıya YAŞAM BOYU (bir kez, hiç
@@ -164,6 +222,7 @@ export function tierConfig(
       limit: UCRETLI_TAVAN_TRY,
       maxOut: 8192,
       modLimits: { soru: AI_SORU_LIMIT, mutalaa: AI_MUTALAA_LIMIT },
+      tasma: { model: AI_TASMA_MODEL, ekLimit: AI_TASMA_EK },
     },
   };
 
@@ -207,4 +266,47 @@ export function tierConfig(
 /** Aylık tavan aşıldı mı? */
 export function overLimit(cfg: TierCfg, row: { calls: number; cost: number }): boolean {
   return cfg.limitKind === 'cost' ? row.cost >= cfg.limit : row.calls >= cfg.limit;
+}
+
+/**
+ * AYLIK KOTA REZERVASYONU — taşma dahil.
+ *
+ * İKİ AŞAMALI VE BİLEREK ÖYLE. Önce normal kotadan ister; dolmuşsa taşma
+ * tavanından (normal + ek) bir kez daha ister. İkinci çağrı sayacı yine
+ * artırır, yalnız daha yüksek bir tavana bakar — yani taşmada kaç istek
+ * kullanıldığı ayrı bir sütuna gerek kalmadan sayacın kendisinden okunur.
+ *
+ * NEDEN MIGRATION YOK. Sayacın yeni değerini döndürmek için RPC'nin dönüş
+ * tipini boolean'dan integer'a çevirmek gerekirdi; bu, CREATE OR REPLACE ile
+ * yapılamaz (önce DROP gerekir) ve DROP yetkileri düşürür. İkinci bir çağrı,
+ * yalnızca kota dolduğunda ve kullanıcı başına ayda bir kez yaşanır — bu
+ * maliyet, canlı bir fonksiyonu düşürüp yeniden kurmaktan ucuzdur.
+ *
+ * Çağıran taraf dönen `model` ile isteği yapar: taşmadaysa ucuz model.
+ */
+export type RezerveSonuc =
+  | { ok: true; tasmada: boolean; model: string }
+  | { ok: false; sebep: 'soru' | 'mutalaa'; hak: number };
+
+export async function kotaRezerve(
+  cfg: TierCfg,
+  mutalaaMi: boolean,
+  cagir: (soruLimit: number, mutalaaLimit: number) => Promise<boolean>
+): Promise<RezerveSonuc> {
+  if (!cfg.modLimits) return { ok: true, tasmada: false, model: cfg.model };
+  const { soru, mutalaa } = cfg.modLimits;
+
+  if (await cagir(soru, mutalaa)) return { ok: true, tasmada: false, model: cfg.model };
+
+  if (cfg.tasma) {
+    // Yalnız İSTENEN türün tavanı yükseltilir; diğeri olduğu gibi kalır ki
+    // soru taşması yanlışlıkla mütalaa hakkı açmasın.
+    const s2 = mutalaaMi ? soru : soru + cfg.tasma.ekLimit;
+    const m2 = mutalaaMi ? mutalaa + Math.ceil(cfg.tasma.ekLimit / 30) : mutalaa;
+    if (await cagir(s2, m2)) return { ok: true, tasmada: true, model: cfg.tasma.model };
+  }
+
+  return mutalaaMi
+    ? { ok: false, sebep: 'mutalaa', hak: mutalaa }
+    : { ok: false, sebep: 'soru', hak: soru };
 }

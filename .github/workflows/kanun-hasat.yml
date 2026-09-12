@@ -1,0 +1,133 @@
+name: Kanun Hasadı
+
+# NEDEN BU DOSYA VAR.
+#
+# Mevzuat havuzumuz 16 kanunla sınırlıydı ve bu bir ÜRÜN sınırıydı: içtihat
+# araması canlı olarak UYAP Emsal ve Bedesten'e giderken, mevzuat araması
+# yalnız pakete gömülü o 16 dosyayı görüyordu. Avukat İmar Kanunu ya da
+# Kat Mülkiyeti Kanunu aradığında hiçbir şey bulamıyordu.
+#
+# KANUNLARI GELİŞTİRME ORTAMINDAN ÇEKEMİYORUZ: mevzuat.gov.tr oradan
+# erişilemiyor (üç deneme, hepsi bağlantı hatası). GitHub'ın makinesinden
+# ise erişilebiliyor — içtihat hasadı da zaten aynı sebeple burada koşuyor.
+# Bu iş akışı o yüzden var.
+#
+# NE YAPAR. scripts/kanunlar.json'da olup src/data/laws'ta olmayan kanunları
+# indirir, PDF'i DOĞRULAR (yanlış numara başka bir kanunu bizim adımızla
+# kaydedebilir), maddelere ayırır, index.json ve iki yükleyici haritasını
+# yeniler ve sonucu bir PR olarak açar.
+#
+# NEDEN DOĞRUDAN main'E YAZMIYOR. Hasat, ayıklayıcının kararlarına güvenir
+# (punto eşiği, madde deseni, bölüm başlıkları). Yeni bir kanunun PDF biçimi
+# beklenenden farklıysa madde metni bozuk çıkabilir ve bu ancak insan gözüyle
+# anlaşılır. PR, o bakışın yapılabileceği yerdir. Ayrıca CI, PR üzerinde
+# testleri ve tip denetimini zaten koşturuyor.
+
+on:
+  workflow_dispatch:
+    inputs:
+      adet:
+        description: 'Bu koşuda en fazla kaç kanun (boş = hepsi)'
+        default: '10'
+      tumu:
+        description: 'Var olanları da yeniden çek (evet/hayır)'
+        default: 'hayır'
+  schedule:
+    # Haftada bir, pazar 04:00 UTC. Liste elle büyüdüğü için sık koşmanın
+    # anlamı yok; bu, listeye eklenip unutulan kanunların yakalanması için.
+    - cron: '0 4 * * 0'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  hasat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: pymupdf kur
+        run: pip install --quiet pymupdf
+
+      - name: Eksikleri göster
+        run: python3 scripts/kanun-hasat.py --liste
+
+      - name: Hasat
+        id: hasat
+        run: |
+          BAYRAK=""
+          if [ "${{ inputs.tumu }}" = "evet" ]; then BAYRAK="--tumu"; fi
+          ADET="${{ inputs.adet }}"
+          if [ -n "$ADET" ]; then BAYRAK="$BAYRAK --adet $ADET"; fi
+          python3 scripts/kanun-hasat.py $BAYRAK | tee /tmp/hasat.log
+          echo 'ozet<<SON' >> "$GITHUB_OUTPUT"
+          tail -40 /tmp/hasat.log >> "$GITHUB_OUTPUT"
+          echo 'SON' >> "$GITHUB_OUTPUT"
+
+      - name: Değişiklik var mı
+        id: fark
+        run: |
+          if git diff --quiet -- src/data/laws; then
+            echo "var=hayir" >> "$GITHUB_OUTPUT"
+            echo "Yeni kanun eklenmedi."
+          else
+            echo "var=evet" >> "$GITHUB_OUTPUT"
+            git diff --stat -- src/data/laws
+          fi
+
+      # TİP DENETİMİ PR AÇILMADAN ÖNCE. Yükleyici haritası üretiliyor; bozuk
+      # bir harita bütün uygulamayı derlenemez yapar. Burada yakalanırsa PR
+      # hiç açılmaz ve kimse bozuk bir dalı incelemek zorunda kalmaz.
+      - uses: actions/setup-node@v4
+        if: steps.fark.outputs.var == 'evet'
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Tip denetimi
+        if: steps.fark.outputs.var == 'evet'
+        run: |
+          npm ci
+          npx tsc --noEmit
+
+      - name: PR aç
+        if: steps.fark.outputs.var == 'evet'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: kanun-hasadi
+          delete-branch: true
+          title: 'Kanun hasadı: mevzuat havuzuna yeni kanunlar'
+          commit-message: |
+            Kanun hasadı: mevzuat havuzuna yeni kanunlar
+
+            scripts/kanun-hasat.py çıktısı. Her PDF, kanun numarası ve adıyla
+            doğrulandıktan sonra ayıklandı; 5 maddeden az çıkan ayıklamalar
+            yazılmadı. index.json ve iki yükleyici haritası yeniden üretildi.
+          body: |
+            `scripts/kanun-hasat.py` çıktısı — **elle düzenlenmedi.**
+
+            ## Koşu özeti
+
+            ```
+            ${{ steps.hasat.outputs.ozet }}
+            ```
+
+            ## Birleştirmeden önce bakılması gereken
+
+            Ayıklayıcı (`scripts/parse-law-pdf.py`) PDF'in biçimine dair
+            varsayımlar yapıyor: gövde puntosu, madde deseni, bölüm başlıkları.
+            Yeni bir kanunun PDF'i farklı dizilmişse madde metni bozuk çıkabilir
+            ve bunu ancak insan gözü anlar.
+
+            **Örnekleme yapın:** eklenen her kanundan birkaç maddeyi
+            mevzuat.gov.tr'deki metinle karşılaştırın — özellikle ilk madde,
+            son madde ve bir "Geçici Madde".
+
+            Madde sayısı beklenenden çok düşükse ayıklama yarıda kalmış
+            olabilir; o kanunu `scripts/kanunlar.json`'dan çıkarıp ayrı ele alın.

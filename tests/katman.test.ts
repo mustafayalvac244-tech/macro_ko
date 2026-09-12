@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DENEME_SORU_LIMIT, overLimit, tierConfig } from '../supabase/functions/_shared/katman';
+import { kotaRezerve, DENEME_SORU_LIMIT, overLimit, tierConfig } from '../supabase/functions/_shared/katman';
 
 /**
  * Bu tablonun iki kopyası vardı ve birbirinden ayrılmıştı: ai-chat'te ücretli
@@ -74,7 +74,10 @@ describe('tierConfig', () => {
   });
 
   it('yalnız "ai" katmanının aylık soru/mütalaa kotası vardır; free/baslangic yaşam boyu deneme hakkı taşır', () => {
-    expect(tierConfig('ai', false, secenek).cfg.modLimits).toEqual({ soru: 250, mutalaa: 12 });
+    // Sayılar 12.09.2026'da 250/12'den yükseltildi: paket Opus varsayımıyla
+    // kurulmuştu (₺2,67/istek), Sonnet'te ölçülen birim maliyet ₺1,07.
+    // Gerekçe ve hesap: _shared/katman.ts (AI_SORU_LIMIT).
+    expect(tierConfig('ai', false, secenek).cfg.modLimits).toEqual({ soru: 750, mutalaa: 25 });
     expect(tierConfig('free', false, secenek).cfg.modLimits).toBeUndefined();
     expect(tierConfig('baslangic', false, secenek).cfg.denemeLimit).toBe(DENEME_SORU_LIMIT);
   });
@@ -99,5 +102,92 @@ describe('overLimit', () => {
     const cfg = tierConfig('baslangic', false, secenek).cfg;
     expect(overLimit(cfg, { calls: cfg.limit, cost: 0 })).toBe(true);
     expect(overLimit(cfg, { calls: cfg.limit - 1, cost: 999 })).toBe(false);
+  });
+});
+
+/**
+ * KOTA TAŞMASI.
+ *
+ * Eskiden aylık hak bitince istek 402 ile REDDEDİLİYORDU: ödeme yapan avukat
+ * ayın ortasında duvara çarpıyor ve ayın kalanında ürünü hiç kullanamıyordu.
+ * Artık daha ucuz bir modele düşüyor.
+ *
+ * Buradaki testlerin yarısı taşmanın SINIRSIZ OLMADIĞINI kontrol ediyor:
+ * sınırsız ucuz model de sınırsız maliyettir ve asıl risk orada.
+ */
+describe('kotaRezerve', () => {
+  const cfg = tierConfig('ai', false, secenek).cfg;
+
+  /** Sayaçlı sahte RPC: gerçek fonksiyonun davranışını taklit eder. */
+  const sahteRpc = (baslangicSoru: number, baslangicMutalaa = 0) => {
+    const sayac = { soru: baslangicSoru, mutalaa: baslangicMutalaa };
+    const cagir = async (soruLimit: number, mutalaaLimit: number, mutalaaMi = false) => {
+      if (mutalaaMi) {
+        if (sayac.mutalaa >= mutalaaLimit) return false;
+        sayac.mutalaa += 1;
+        return true;
+      }
+      if (sayac.soru >= soruLimit) return false;
+      sayac.soru += 1;
+      return true;
+    };
+    return { sayac, cagir };
+  };
+
+  it('kota doluyken taşma modeline geçer, reddetmez', async () => {
+    const { cagir } = sahteRpc(750);
+    const r = await kotaRezerve(cfg, false, (s, m) => cagir(s, m));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.tasmada).toBe(true);
+    expect(r.model).toBe('claude-haiku-4-5-20251001');
+    expect(r.model).not.toBe(cfg.model);
+  });
+
+  it('kota doluyken normal modeli KULLANMAZ', async () => {
+    // Ters yön: taşmada pahalı modelle devam etmek, kotayı anlamsız kılar.
+    const { cagir } = sahteRpc(750);
+    const r = await kotaRezerve(cfg, false, (s, m) => cagir(s, m));
+    expect(r.ok && r.model).not.toBe('claude-sonnet-5');
+  });
+
+  it('kota doluyken bile sayaç artar — taşma bedavaya sayılmaz', async () => {
+    const { sayac, cagir } = sahteRpc(750);
+    await kotaRezerve(cfg, false, (s, m) => cagir(s, m));
+    expect(sayac.soru).toBe(751);
+  });
+
+  it('TAŞMA DA BİTİNCE reddeder — sınırsız değildir', async () => {
+    // Asıl risk burada: sınırsız ucuz model de sınırsız maliyettir.
+    const { cagir } = sahteRpc(1500); // 750 normal + 750 taşma, hepsi dolu
+    const r = await kotaRezerve(cfg, false, (s, m) => cagir(s, m));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.sebep).toBe('soru');
+  });
+
+  it('kota boşken normal modelle devam eder ve taşmaya hiç bakmaz', async () => {
+    const { sayac, cagir } = sahteRpc(0);
+    const r = await kotaRezerve(cfg, false, (s, m) => cagir(s, m));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.tasmada).toBe(false);
+    expect(r.model).toBe(cfg.model);
+    expect(sayac.soru).toBe(1);
+  });
+
+  it('soru taşması mütalaa hakkını AÇMAZ', async () => {
+    // Mütalaa bir sohbet sorusunun 4-8 katı token tüketiyor; soru tarafındaki
+    // taşma yanlışlıkla mütalaa tavanını yükseltirse maliyet öngörülemez olur.
+    const { sayac, cagir } = sahteRpc(750, 25);
+    await kotaRezerve(cfg, false, (s, m) => cagir(s, m));
+    expect(sayac.mutalaa).toBe(25);
+  });
+
+  it('taşması olmayan katmanda davranış değişmez', async () => {
+    const denemeCfg = tierConfig('baslangic', false, secenek).cfg;
+    const r = await kotaRezerve(denemeCfg, false, async () => false);
+    // modLimits yok: kotaRezerve hiç sormadan geçirir, kapı denemeLimit'te.
+    expect(r.ok).toBe(true);
   });
 });

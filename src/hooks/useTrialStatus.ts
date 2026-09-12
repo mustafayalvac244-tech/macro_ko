@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore';
 /** Aylık abonelik ücreti (TL). */
 export const MONTHLY_PRICE_TRY = 399;
 /**
- * AI katmanı aylık ücreti (TL) — Claude Sonnet 5, 250 soru + 12 mütalaa dahil
+ * AI katmanı aylık ücreti (TL) — 750 soru + 25 mütalaa dahil
  * (bkz. supabase/functions/_shared/katman.ts > AI_SORU_LIMIT/AI_MUTALAA_LIMIT;
  * iki sayı burada da AYNI olmalı, kota koddan, fiyat buradan okunuyor).
  *
@@ -22,8 +22,16 @@ export const MONTHLY_PRICE_TRY = 399;
 export const AI_PRICE_TRY = 2999;
 /** AI katmanının aylık soru/mütalaa hakkı — yalnız EKRANDA göstermek için;
  *  gerçek sınır sunucuda (_shared/katman.ts). */
-export const AI_SORU_HAKKI = 250;
-export const AI_MUTALAA_HAKKI = 12;
+// KOTA YÜKSELTİLDİ (12.09.2026): 250 → 750 soru, 12 → 25 mütalaa.
+// Eski paket Opus varsayımıyla kurulmuştu (istek başına ₺2,67); aynı gün
+// Sonnet'e inildi ve ölçülen birim maliyet ₺1,07 oldu, yani paket gereğinden
+// dar kaldı. Gerekçe ve hesap tek yerde:
+// supabase/functions/_shared/katman.ts (AI_SORU_LIMIT).
+//
+// BURADAKİ SAYILAR YALNIZCA GÖSTERİM İÇİNDİR — gerçek kısıt uç işlevindedir.
+// İkisi ayrışırsa doğru olan sunucudur; bu yüzden ikisi birlikte değişmeli.
+export const AI_SORU_HAKKI = 750;
+export const AI_MUTALAA_HAKKI = 25;
 /** Ödeme yapmamış kullanıcıya verilen YAŞAM BOYU (aylık değil) deneme sorusu
  *  sayısı — bkz. _shared/katman.ts > DENEME_SORU_LIMIT, gerçek sınır orada. */
 export const DENEME_SORU_HAKKI = 3;
