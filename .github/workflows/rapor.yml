@@ -23,6 +23,7 @@ on:
         options:
           - hasat-tek-rapor
           - hasat-tur-teshis
+          - hasat-disk-sutun
           - hasat-verim-olcum
           - hasat-kalite-olcum
           - hasat-disk-olcum
