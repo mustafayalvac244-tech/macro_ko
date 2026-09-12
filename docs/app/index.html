@@ -115,7 +115,22 @@
         white-space: pre-wrap;
       }
     </style>
-  <link rel="icon" href="/app/favicon.ico"/></head>
+  <link rel="icon" href="/app/favicon.ico"/><script id="vekil-derin-yol-geri-yukle">
+// 404.html'in sakladığı derin yolu, uygulama paketi yüklenmeden ÖNCE geri
+// koyar. Sıra önemli: router adresi okuduğunda doğru yol yerinde olmalı.
+(function () {
+  try {
+    var y = sessionStorage.getItem("vekilpro_derin_yol");
+    if (!y) return;
+    sessionStorage.removeItem("vekilpro_derin_yol");
+    // Yalnız kendi sitemizin /app/ altındaki yolları kabul edilir; dışarıdan
+    // gelen bir değerle adres çubuğunu oynatmayız.
+    if (y.charAt(0) !== '/' || y.indexOf('/app/') !== 0 || y.indexOf('//') === 0) return;
+    history.replaceState(null, '', y);
+  } catch (e) {}
+})();
+</script>
+</head>
 
   <body>
     <noscript> Bu uygulamayı çalıştırmak için JavaScript'i etkinleştirmelisiniz. </noscript>
