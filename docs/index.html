@@ -247,7 +247,13 @@ section{padding:80px 0}
 .olcum{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:8px}
 @media(max-width:760px){ .olcum{grid-template-columns:1fr} }
 .olcum div{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);border-radius:13px;padding:18px 20px}
-.olcum b{display:block;font-size:15px;color:#fff;margin-bottom:4px}
+/* DOĞRUDAN ÇOCUK. Kural ".olcum b" iken span İÇİNDEKİ vurgu <b>'leri de
+   blok oluyordu ve tek cümle üç satıra bölünüyordu ("…havuzda yok ya da" /
+   "olamaz" / ". Uydurma bir esas numarası…"). Aynı tuzak .alt sınıfında da
+   yaşanmıştı: bir satır-içi etikete blok/flex davranışı vermek, o etiketin
+   iç içe kullanımlarını da bozar. */
+.olcum > div > b{display:block;font-size:15px;color:#fff;margin-bottom:4px}
+.olcum span b{display:inline;font-size:inherit;color:#fff}
 .olcum span{font-size:14px;color:#AFC0DE}
 .durust .not{margin-top:26px;font-size:13.5px;color:#8FA3C7;text-align:center}
 
@@ -379,7 +385,8 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 .dn-sayac{margin-left:auto;font-size:11.5px;color:var(--metin-3);font-weight:600}
 .dn-sonuc{margin-top:11px;display:grid;gap:6px}
 .dn{border-radius:9px;padding:9px 11px;font-size:12px;line-height:1.55}
-.dn b{display:block;font-size:12px;margin-bottom:2px}
+.dn > b{display:block;font-size:12px;margin-bottom:2px}
+.dn span b{display:inline;font-size:inherit}
 .dn span{display:block}
 .dn.kirmizi{background:rgba(206,53,61,.10);color:#A32A31}
 .dn.sari{background:rgba(178,120,17,.12);color:#8A5C0C}
@@ -392,7 +399,6 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 }
 .gizli-etiket{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .dn-not{margin-top:10px;font-size:11.5px;line-height:1.6;color:var(--metin-3)}
-.sayilar b i{font-family:'Manrope',system-ui,sans-serif;font-style:normal;font-size:20px;margin-left:2px}
 </style>
 </head>
 <body>
@@ -686,8 +692,8 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
           <li>Sınırsız içtihat araması</li>
           <li>Mevzuat, hesaplayıcılar, şablonlar</li>
           <li>Ajanda, duruşma ve hatırlatmalar</li>
-          <li>Dava ve müvekkil takibi</li>
-          <li>Yapay zekâyı deneyin</li>
+          <li>Dava, müvekkil ve duruşma takibi</li>
+          <li>Yapay zekâyı ücretsiz deneyin</li>
         </ul>
         <a class="dg dg-cer" href="app/">Başla</a>
       </div>
@@ -712,9 +718,10 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
         <div class="ft">2.999 ₺ <small>/ ay</small></div>
         <ul>
           <li>Vekil Pro'daki her şey</li>
-          <li>Günlük çalışmaya yetecek kullanım</li>
-          <li>Dilekçe, mütalaa, belge inceleme</li>
-          <li>Her çıktıda madde ve künye denetimi</li>
+          <li>Dilekçe taslağı ve hukuki mütalaa</li>
+          <li>Belge inceleme ve künye çıkarımı</li>
+          <li>Her madde ve künye denetlenir</li>
+          <li>UYAP formatında (.udf) indirme</li>
         </ul>
         <a class="dg dg-cer" href="app/">Yapay zekâyı aç</a>
       </div>
