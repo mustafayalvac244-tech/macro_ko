@@ -174,11 +174,10 @@ nav a:hover{color:var(--metin)}
 @media(max-width:940px){ .kh-guven{justify-content:center} }
 
 /* ── Sayı şeridi ───────────────────────────────────────────────────────────
-   ÖNCEKİ HÂLİ ZAYIFTI. "6.107 kanun maddesi" tek başına dururken hiçbir şey
-   iddia etmiyordu; kullanıcı haklı olarak "rekabetçi değil" dedi. Sayının
-   kendisi doğru (5.908 madde + Anayasa 199) ama ÇERÇEVESİ yoktu: kaç kanun,
-   ne kadar kapsam, ne kadarı ücretsiz. Artık her kutu bir üst satır (bağlam)
-   + sayı + alt satır (ne olduğu) taşıyor ve sayılar iri. */
+   Her kutu: üst satır (bağlam) + iri sayı + alt satır (ne olduğu).
+   Hangi sayıların burada durduğu ve hangisinin NEDEN kaldırıldığı şeridin
+   HTML'indeki yorumda yazıyor — kısaca: bir sayı ancak yetenek anlatıyorsa
+   burada durur, tavan anlatıyorsa durmaz. */
 .sayilar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:60px;position:relative;z-index:1}
 .sayilar div{background:var(--kart);border:1px solid var(--cizgi);border-radius:15px;
   padding:20px 18px;box-shadow:var(--golge);position:relative;overflow:hidden}
@@ -503,11 +502,21 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
    </div><!-- /kh-izgara -->
 
     <!-- SAYILAR — hepsi depodan sayıldı, tahmin yok:
-         16 kanun / 5.908 madde (src/data/laws) + Anayasa 199 madde
-         (src/data/anayasa.json) = 6.107. 81 baro (src/constants/barolar.ts).
-         15 dilekçe şablonu (src/constants/petitionTemplates.ts).
-         5 hesaplayıcı (app/calculators.tsx: AAÜT, faiz, harç, SMM,
-         kıdem/ihbar). Arama canlı olarak UYAP Emsal ve Bedesten'e gider. -->
+         4 mahkeme kademesi: Yargıtay ve Danıştay Bedesten üzerinden, istinaf
+           ve yerel mahkeme UYAP Emsal üzerinden (supabase/functions/ictihat).
+         3 denetim sonucu: dogrulandi / havuzdaYok / olanaksiz
+           (supabase/functions/_shared/kararAtif.ts).
+         22 araç: yan menüdeki araç sayısı (src/components/Sidebar.tsx).
+         0 ₺: içtihat ve mevzuat araması üyeliksiz.
+
+         MEVZUAT SAYISI BİLEREK KALDIRILDI. Burada "6.107 kanun maddesi —
+         16 temel kanun" yazıyordu. Sayı doğruydu (5.908 + Anayasa 199) ama
+         bir YETENEK değil TAVAN ilan ediyordu: mevzuat aramamız tamamen
+         yerel, o 16 kanunun dışına çıkamıyor (içtihat aramasının aksine
+         hiçbir yere canlı sormuyor). Avukat "16 kanun" yazısını görünce
+         eksikleri saymaya başlar — Kat Mülkiyeti, İmar, KVKK, Vergi Usul,
+         Kamu İhale... Yani kart bizi güçlü değil DAR gösteriyordu.
+         Kanun havuzu genişlerse buraya geri konabilir. -->
     <div class="sayilar">
       <div>
         <u>Canlı arama</u>
@@ -515,9 +524,9 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
         <span><b>mahkeme kademesi</b> — Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız</span>
       </div>
       <div>
-        <u>Mevzuat</u>
-        <b>6.107</b>
-        <span><b>kanun maddesi</b> — 16 temel kanun ve Anayasa, tam metin</span>
+        <u>Çıktı denetimi</u>
+        <b>3</b>
+        <span><b>ayrı sonuç</b> — yapay zekânın verdiği her madde ve künye için: doğrulandı, havuzda yok ya da <b>olamaz</b></span>
       </div>
       <div>
         <u>Tek programda</u>
