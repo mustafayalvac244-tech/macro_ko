@@ -17,13 +17,25 @@ import { join, resolve } from 'node:path';
 import { existsSync, readdirSync } from 'node:fs';
 
 const adres = pathToFileURL(resolve('docs/index.html')).href;
-// Chromium bu ortamda hazır kurulu; indirme YAPILMAZ. Yol sürüm numarası
-// taşıdığı için sabit yazmak yerine aranıyor — sürüm yükseldiğinde betik
-// sessizce kırılmasın. CHROMIUM_YOLU ile dışarıdan da verilebilir.
+
+/**
+ * Chromium'u bulur — AMA BULAMAZSA PES ETMEZ.
+ *
+ * İki ayrı ortam var ve yolları farklı:
+ *   • Geliştirme kabı: Chromium hazır kurulu, /opt/pw-browsers altında ve
+ *     dizin adı sürüm numarası taşıyor (chromium-1194). İndirme İSTEMİYORUZ.
+ *   • CI: `playwright-core install` tarayıcıyı ~/.cache/ms-playwright altına
+ *     indirir ve Playwright onu kendisi bulur.
+ *
+ * İlk sürümde burada yalnız /opt/pw-browsers aranıyor, bulunamayınca
+ * process.exit(1) çağrılıyordu — CI tarayıcıyı indirmiş olmasına rağmen iş
+ * akışı "Chromium bulunamadı" diyerek düştü. Doğrusu: özel bir yol bulursak
+ * onu kullan, bulamazsak Playwright'ın kendi çözümüne bırak.
+ */
 function chromiumBul() {
   if (process.env.CHROMIUM_YOLU) return process.env.CHROMIUM_YOLU;
-  const kok = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/pw-browsers';
-  if (!existsSync(kok)) return null;
+  const kok = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  if (!kok || !existsSync(kok)) return null;
   for (const ad of readdirSync(kok).sort().reverse()) {
     for (const son of ['chrome-linux/chrome', 'chrome-linux/headless_shell']) {
       const y = join(kok, ad, son);
@@ -34,11 +46,8 @@ function chromiumBul() {
 }
 
 const yol = chromiumBul();
-if (!yol) {
-  console.error('Chromium bulunamadı. CHROMIUM_YOLU ile elle gösterebilirsiniz.');
-  process.exit(1);
-}
-const tarayici = await chromium.launch({ executablePath: yol });
+console.log(yol ? `Chromium: ${yol}` : 'Chromium: Playwright kendi kurulumunu kullanıyor');
+const tarayici = await chromium.launch(yol ? { executablePath: yol } : {});
 const sayfa = await tarayici.newPage();
 
 const konsolHatalari = [];
