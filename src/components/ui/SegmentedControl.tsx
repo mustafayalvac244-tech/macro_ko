@@ -57,6 +57,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    // SARMALAMA yalnız scrollable=false iken iş görür: yatay ScrollView'ın
+    // içinde genişlik sınırsız olduğu için sarma hiç tetiklenmez. Yani bu
+    // satır telefon davranışını (yana kaydırma) HİÇ değiştirmiyor; dar bir
+    // kabın içine konan kaydırmasız kontrolün seçeneklerini gizlemesini
+    // engelliyor. Gizlenen seçenek, olmayan seçenektir.
+    flexWrap: 'wrap',
     gap: spacing.xs,
   },
   chip: {
