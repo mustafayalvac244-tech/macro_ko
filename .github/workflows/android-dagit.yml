@@ -1,0 +1,149 @@
+name: Android Derle ve Gönder
+
+# NEDEN BU DOSYA VAR.
+# Google Play'e çıkmak iki ayrı iş: (1) imzalı bir AAB üretmek, (2) onu Play
+# Console'a yüklemek. İkisi de EAS CLI ile yapılıyor ama normal yolu
+# geliştiricinin bilgisayarına Node + EAS kurup komutları elle yazması.
+# O yol iki sorun doğuruyor: hangi sürümün hangi koddan çıktığı hiçbir yerde
+# kayıtlı olmuyor, ve derleme "benim makinemde çalıştı" durumuna bağlanıyor.
+# Burada koşunca commit ve çıktı bağlantısı koşu özetinde duruyor.
+#
+# ─────────────────────── GEREKEN İKİ SECRET ───────────────────────
+# Settings → Secrets and variables → Actions → New repository secret
+#
+#   EXPO_TOKEN
+#     expo.dev → Account settings → Access tokens → Create token.
+#     DİKKAT: bu belirteç Expo hesabınızdaki BÜTÜN projelerde derleme
+#     yapabilir. Sohbete, ekran görüntüsüne, hiçbir yere yazılmamalı.
+#
+#   GOOGLE_PLAY_SERVICE_ACCOUNT
+#     Play Console → Kullanıcılar ve izinler → API erişimi → yeni servis
+#     hesabı → Google Cloud'da JSON anahtar üret → Play Console'da o hesaba
+#     "Sürümleri yönet" yetkisi ver. İNDİRDİĞİNİZ JSON DOSYASININ TAMAMINI
+#     bu secret'a yapıştırın. Bu anahtar uygulama YAYIMLAMA yetkisi taşır.
+#
+# Secret'lar iş sırasında dosyaya yazılıp iş bitince siliniyor; depoya
+# hiçbir zaman girmiyorlar (.gitignore'da da kayıtlı).
+#
+# ─────────────────────── HANGİ KANAL (track) ───────────────────────
+# internal  → Dahili test. En hızlısı, inceleme yok, 100 kişiye kadar.
+# alpha     → KAPALI TEST. Kişisel geliştirici hesabının üretime geçmek için
+#             12 test kullanıcısı × 14 KESİNTİSİZ gün koşması gereken kanal
+#             budur (bkz. PLAY.md). internal test bu süreyi SAYMAZ.
+# beta      → Açık test.
+# production→ Herkese açık yayın.
+
+on:
+  workflow_dispatch:
+    inputs:
+      is:
+        description: 'Ne yapılsın'
+        type: choice
+        default: 'derle'
+        options:
+          - derle              # yalnız AAB üret
+          - derle-ve-gonder    # AAB üret + Play'e yükle
+          - gonder             # son derlemeyi Play'e yükle (yeniden derlemez)
+      kanal:
+        description: 'Play kanalı (yalnız gönderimde kullanılır)'
+        type: choice
+        default: 'internal'
+        options: [internal, alpha, beta, production]
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    # EAS derlemesi Expo'nun sunucusunda koşuyor; burada yalnız bekleniyor.
+    # Kuyruk yoğunsa 20-30 dakikayı bulabiliyor.
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Eksik secret'ı sessizce geçme: EAS anlaşılmaz bir kimlik hatasıyla
+      # düşer ve sebebi kayıtta kaybolur (edge-dagit.yml'de aynı gerekçe).
+      - name: Secret kontrolü
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          PLAY_SA: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN tanımlı değil. expo.dev → Account settings → Access tokens"
+            exit 1
+          fi
+          if [ "${{ inputs.is }}" != "derle" ] && [ -z "$PLAY_SA" ]; then
+            echo "::error::GOOGLE_PLAY_SERVICE_ACCOUNT tanımlı değil; gönderim yapılamaz."
+            echo "::error::Play Console → Kullanıcılar ve izinler → API erişimi → servis hesabı JSON'u"
+            exit 1
+          fi
+
+      - name: EAS CLI
+        run: npm install -g eas-cli@latest
+
+      # Anahtar dosyası ÇALIŞMA DİZİNİNE yazılıyor çünkü eas.json onu orada
+      # arıyor (submit.production.android.serviceAccountKeyPath). İş bitince
+      # aşağıdaki "always" adımı siliyor.
+      - name: Servis hesabı anahtarını yaz
+        if: inputs.is != 'derle'
+        env:
+          PLAY_SA: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$PLAY_SA" > play-service-account.json
+          # İçeriği YAZDIRMIYORUZ. Yalnız geçerli JSON mu ve doğru tür mü
+          # diye bakıyoruz: yanlış dosya yapıştırıldığında hata EAS'ın
+          # içinde çok daha geç ve anlaşılmaz biçimde çıkıyor.
+          node -e "
+            const j = require('./play-service-account.json');
+            if (j.type !== 'service_account') { console.error('::error::Bu bir servis hesabı JSON dosyası değil (type=' + j.type + ')'); process.exit(1); }
+            if (!j.client_email) { console.error('::error::JSON içinde client_email yok.'); process.exit(1); }
+            console.log('Servis hesabı okundu:', j.client_email);
+          "
+
+      - name: Derle (AAB)
+        if: inputs.is == 'derle' || inputs.is == 'derle-ve-gonder'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --platform android --profile production --non-interactive --wait
+
+      - name: Play'e gönder
+        if: inputs.is == 'derle-ve-gonder' || inputs.is == 'gonder'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          # --latest: en son BAŞARILI derlemeyi gönderir. Böylece "derle" ile
+          # "gonder" ayrı koşulabiliyor; derleme başarılıysa ama gönderim
+          # ayarı eksikse baştan derlemek gerekmiyor.
+          eas submit --platform android --profile production --latest --non-interactive \
+            --track "${{ inputs.kanal }}"
+
+      # BAŞARISIZ OLSA DA SİL. Anahtar dosyası çalışan makinede kalırsa
+      # sonraki adımlar ya da kayıtlar onu görebilir.
+      - name: Anahtarı sil
+        if: always()
+        run: rm -f play-service-account.json
+
+      - name: Özet
+        if: always()
+        run: |
+          {
+            echo "## Android — ${{ inputs.is }}"
+            echo ""
+            echo "Commit: \`${{ github.sha }}\`"
+            echo "Kanal: \`${{ inputs.kanal }}\`"
+            echo ""
+            echo "Derlemeler: https://expo.dev/accounts/_/projects/macro_ko/builds"
+            echo ""
+            echo "### Gönderimden sonra ne olur"
+            echo "- Play Console'da sürüm **taslak** olarak oluşur (eas.json:"
+            echo "  releaseStatus=draft). Yani otomatik yayınlanmaz; incelemeyi"
+            echo "  siz başlatırsınız. Bu bilerek böyle: yanlış bir derlemenin"
+            echo "  kendiliğinden kullanıcıya gitmesini istemiyoruz."
+            echo "- Kişisel geliştirici hesabında üretime geçmek için önce"
+            echo "  **kapalı testte (alpha) 12 kullanıcı × 14 kesintisiz gün**"
+            echo "  gerekiyor. Ayrıntı: PLAY.md"
+          } >> $GITHUB_STEP_SUMMARY

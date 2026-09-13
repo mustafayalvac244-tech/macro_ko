@@ -79,3 +79,11 @@ supabase/.temp/
 # scripts/web-veri-hazirla.mjs her dışa aktarımdan önce yeniden üretir.
 # Tek doğruluk kaynağı src/data/laws — kopya depoya girmez.
 /public/veri/
+
+# GOOGLE PLAY SERVİS HESABI ANAHTARI — depoya ASLA girmemeli.
+# Bu dosya, Play Console'da uygulama yayımlama yetkisi taşır: deponun
+# okunabildiği her yerde yayımlama yetkisi de okunabilir demektir. GitHub
+# Actions'ta secret'tan yazılıp iş bitince silinir (bkz. android-dagit.yml),
+# geliştirici bilgisayarında ise yalnız yerelde durur.
+play-service-account.json
+*service-account*.json

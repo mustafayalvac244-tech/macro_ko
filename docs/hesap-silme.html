@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hesabınızı Silme — Vekil Pro</title>
+<meta name="description" content="Vekil Pro hesabınızı ve tüm verilerinizi nasıl silersiniz: uygulama içinden tek adımda, geri alınamaz biçimde. Neyin silindiği ve ne kadar sürede silindiği açıkça yazılıdır.">
+<meta name="theme-color" content="#0B1F45">
+<link rel="icon" type="image/svg+xml" href="amblem-kucuk.svg">
+<link rel="canonical" href="https://vekilpro.app/hesap-silme.html">
+<meta name="robots" content="index,follow">
+
+<!-- NEDEN AYRI BİR SAYFA VAR.
+     Google Play, hesap açılmasına izin veren her uygulamadan hesap silme
+     için HERKESE AÇIK bir web adresi istiyor: kullanıcı uygulamayı silmiş
+     olsa bile hesabını nasıl sileceğini bulabilmeli. Bilgi gizlilik
+     metninin içinde de geçiyor ama orada bir paragrafın altında duruyor;
+     mağaza formuna verilecek adresin doğrudan bu soruyu yanıtlaması
+     gerekiyor.
+     İÇERİK GİZLİLİK METNİ VE KULLANIM KOŞULLARIYLA AYNI ŞEYİ SÖYLEMEK
+     ZORUNDA — özellikle yedek süreleri. Üç metin ayrışırsa hangisinin
+     doğru olduğu belli olmaz. Süreler app/terms.tsx (13. madde) ve
+     docs/terms.html ile aynıdır. -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --lacivert:#0B1F45; --lacivert-3:#2A5AB8; --altin:#B8912F;
+  --zemin:#F4F7FC; --kart:#FFFFFF; --cizgi:#DDE5F2;
+  --metin:#0E1B33; --metin-2:#4A5A78; --metin-3:#7385A3; --kirmizi:#A3341F;
+  --golge:0 1px 2px rgba(11,31,69,.04), 0 8px 24px rgba(11,31,69,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --lacivert:#050C1A; --lacivert-3:#5B8AE0; --altin:#D9B356;
+    --zemin:#070E1B; --kart:#111C33; --cizgi:#22314F;
+    --metin:#EAF0FB; --metin-2:#A9B8D2; --metin-3:#7C8CA8; --kirmizi:#E8846C;
+    --golge:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--zemin); color:var(--metin);
+  font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased}
+h1,h2{font-family:'Playfair Display',Georgia,serif; line-height:1.22; margin:0; text-wrap:balance}
+p,li{text-wrap:pretty}
+a{color:var(--lacivert-3)}
+:focus-visible{outline:2px solid var(--lacivert-3); outline-offset:3px; border-radius:6px}
+.sar{max-width:760px; margin:0 auto; padding-inline:20px}
+.ust{border-bottom:1px solid var(--cizgi); background:var(--kart)}
+.ust .sar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding-block:14px; flex-wrap:wrap}
+.marka{display:flex; align-items:center; gap:10px; font-weight:800; color:var(--metin); text-decoration:none}
+.marka img{width:28px; height:28px}
+.ust nav{display:flex; flex-wrap:wrap; gap:10px 18px; font-size:14px; font-weight:600}
+.ust nav a{color:var(--metin-2); text-decoration:none; white-space:nowrap}
+header.bas{padding-block:44px 8px}
+.etiket{display:inline-block; font-size:12px; font-weight:800; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--altin); margin-bottom:10px}
+h1{font-size:clamp(26px,5vw,36px)}
+.ozet{color:var(--metin-2); margin:14px 0 0; font-size:17px}
+section{background:var(--kart); border:1px solid var(--cizgi); border-radius:16px;
+  padding:22px 24px; margin:14px 0; box-shadow:var(--golge)}
+section h2{font-size:20px; margin-bottom:10px}
+section p{margin:0 0 12px} section p:last-child,section ul:last-child{margin-bottom:0}
+ol,ul{margin:0 0 12px; padding-left:22px} li{margin-bottom:8px}
+.adimlar li{font-weight:600}
+.adimlar li span{font-weight:400; color:var(--metin-2); display:block; font-size:14.5px}
+.uyari{border-color:var(--kirmizi)}
+.uyari h2{color:var(--kirmizi)}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--cizgi); vertical-align:top}
+th{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--metin-3); font-weight:800}
+tbody tr:last-child td{border-bottom:0}
+footer{color:var(--metin-3); font-size:14px; padding-block:28px 48px; text-align:center}
+footer a{color:var(--metin-2)}
+</style>
+</head>
+<body>
+
+<div class="ust">
+  <div class="sar">
+    <a class="marka" href="./"><img src="amblem-kucuk.svg" alt=""> Vekil&nbsp;Pro</a>
+    <nav>
+      <a href="./">Ana sayfa</a>
+      <a href="privacy.html">Gizlilik</a>
+      <a href="guvenlik.html">Güvenlik</a>
+      <a href="terms.html">Kullanım Koşulları</a>
+    </nav>
+  </div>
+</div>
+
+<div class="sar">
+  <header class="bas">
+    <span class="etiket">Hesap ve veri silme</span>
+    <h1>Hesabınızı ve tüm verilerinizi silme</h1>
+    <p class="ozet">Silme işlemi için bizden izin istemeniz, bir form doldurmanız ya da e-posta yazmanız gerekmez. Uygulamanın içinden kendiniz yaparsınız ve işlem anında başlar.</p>
+  </header>
+
+  <section>
+    <h2>Nasıl silinir</h2>
+    <ol class="adimlar">
+      <li>Vekil Pro'yu açın ve hesabınıza girin.
+        <span>Uygulamayı telefonunuzdan sildiyseniz hesabınız durmaya devam eder; tarayıcıdan <a href="app/">vekilpro.app/app</a> adresinden de girebilirsiniz.</span></li>
+      <li>Menüden <b>Ayarlar</b>'ı açın.</li>
+      <li><b>Hesabı Sil</b> adımına dokunun.</li>
+      <li>Uyarıyı okuyup onaylayın.
+        <span>Onay, yanlışlıkla basılmasın diye ayrıca istenir.</span></li>
+    </ol>
+    <p>Hesap silindiğinde oturumunuz kapanır ve aynı e-posta ile yeniden kayıt olabilirsiniz; eski kayıtlarınız geri gelmez.</p>
+  </section>
+
+  <section>
+    <h2>Ne siliniyor</h2>
+    <table>
+      <thead><tr><th>Veri</th><th>Ne oluyor</th></tr></thead>
+      <tbody>
+        <tr><td>Hesap bilgileriniz (ad, e-posta, telefon, büro, baro sicil)</td><td>Silinir</td></tr>
+        <tr><td>Dava, müvekkil, duruşma, görev ve süre kayıtlarınız</td><td>Silinir</td></tr>
+        <tr><td>Yüklediğiniz belgeler</td><td>Silinir</td></tr>
+        <tr><td>Finans kayıtlarınız (gelir-gider, tahsilat)</td><td>Silinir</td></tr>
+        <tr><td>KVKK açık rıza kaydınız</td><td>Silinir</td></tr>
+        <tr><td>Gecelik (21 gün) ve aylık (12 ay) yedek kopyalarımız</td><td>Kayıtlarınız bu kopyalardan da silinir</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="uyari">
+    <h2>Geri alınamaz — ve tek istisna</h2>
+    <p><b>Silme işlemi geri alınamaz.</b> Verinizi saklamak istiyorsanız silmeden önce dışa aktarın: gelir-gider dökümünü tablo (CSV) olarak, belgelerinizi tek tek, ürettiğiniz dilekçeleri UYAP biçiminde (.udf) ya da düz metin olarak indirebilirsiniz.</p>
+    <p><b>Tek istisnayı açıkça yazıyoruz:</b> bulut sağlayıcımızın kendi altyapı yedeği teknik olarak tek bir kullanıcı için ayıklanamıyor. Oradaki kopya en geç <b>7 gün</b> içinde saklama süresi dolarak kendiliğinden düşer; bu süre boyunca hiçbir amaçla kullanılmaz, yalnızca felaket kurtarma için erişilebilir kalır.</p>
+    <p>Bir de yasa gereği tutulması zorunlu kayıtlar saklıdır (örneğin satın alma yaptıysanız fatura/işlem kayıtları, ilgili mevzuatın öngördüğü süre boyunca). Bu kayıtlar dava ve müvekkil verilerinizi içermez.</p>
+  </section>
+
+  <section>
+    <h2>Aboneliğiniz varsa</h2>
+    <p><b>Hesabı silmek aboneliği kendiliğinden iptal etmez.</b> Abonelik Google Play (ya da App Store) hesabınıza bağlıdır ve oradan iptal edilir: <b>Google Play &gt; Menü &gt; Abonelikler &gt; Vekil Pro &gt; Aboneliği iptal et</b>. Hesabı silmeden önce iptal etmenizi öneririz; aksi hâlde dönem yenilenmeye devam eder.</p>
+  </section>
+
+  <section>
+    <h2>Uygulamaya giremiyorsanız</h2>
+    <p>Şifrenizi unuttuysanız giriş ekranındaki <b>Şifremi unuttum</b> adımından e-postanıza gelen kodla yeni şifre belirleyip girebilir, sonra yukarıdaki adımları izleyebilirsiniz.</p>
+    <p>Hiçbir şekilde giremiyorsanız uygulama içindeki <b>Öneri &amp; Şikayet</b> kanalından bize ulaşın; kimliğinizi doğruladıktan sonra silme talebinizi işleme alırız. (Veri sorumlusunun ticari unvanı ve başvuru adresi belirlendiğinde bu sayfaya ve <a href="privacy.html">gizlilik metnine</a> yazılacaktır.)</p>
+  </section>
+
+  <footer>
+    <a href="./">Ana sayfa</a> · <a href="privacy.html">Gizlilik Politikası</a> · <a href="guvenlik.html">Güvenlik ve Veri Merkezi</a> · <a href="terms.html">Kullanım Koşulları</a><br>
+    Vekil Pro bağımsız bir yazılımdır; Adalet Bakanlığı veya UYAP ile resmî bir bağlantısı yoktur.
+  </footer>
+</div>
+
+</body>
+</html>
