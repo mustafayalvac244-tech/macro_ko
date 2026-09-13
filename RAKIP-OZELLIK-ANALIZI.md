@@ -100,7 +100,7 @@ Sıralama "rakipte var + bizde yok + bizim mimarimizde yapılabilir" üçlüsün
 göre. Her madde için **ne olduğu** ve **neyi gerektirdiği** yazıldı; "kolay"
 demiyorum, çünkü hiçbirini kodlamadan süre tahmini vermek bu projede yasak.
 
-### 1. Zaman/çalışma kaydı — en büyük ve en yapılabilir boşluk
+### 1. Zaman/çalışma kaydı — ✅ YAZILDI (13.09.2026), canlıda DENENMEDİ
 
 Dört uluslararası üründe de merkezde; bizde **hiç yok** (ÖLÇÜLDÜ).
 
@@ -111,10 +111,31 @@ Türkiye itirazı meşru: avukatların çoğu saat başı çalışmıyor, nispi 
 - kurumsal/danışmanlık işinde saatlik ücret **zaten** var
 - tevkil verirken "bu iş ne kadar sürdü" sorusunun cevabı olur
 
-Gerektirdiği: bir tablo (`time_entries`: dosya, açıklama, dakika, tarih,
-ücretlendirilir mi, saatlik ücret), bir form, dosya ekranında toplam, raporda
-bir bölüm. Var olan RLS ve finans deseninin içine oturur — yeni mimari
-gerekmez.
+**Ne yazıldı:** `time_entries` tablosu (0131_zaman_kaydi.sql), çalışan sayaç,
+dosya ekranında "Çalışma Kayıtları" sekmesi, rapor ekranında "hangi dosya
+zamanımı yiyor" bölümü, profilde varsayılan saatlik ücret, CSV dışa aktarım.
+
+**Ne ölçüldü.** Göç, yerel bir Postgres 16.13'te gerçekten koşuldu ve altı
+davranış tek tek denendi — hepsi beklendiği gibi çıktı:
+
+| Denenen | Sonuç |
+|---|---|
+| 90 dk × 2000 ₺/sa | `amount` = 3000,00 |
+| Ücretlendirilmeyen kayıt | `amount` = 0 (NULL değil) |
+| 7 dk × 1234,56 ₺/sa | Veritabanı 144,03 — **JS önizlemesiyle birebir aynı** |
+| 1441 dakika | CHECK reddetti |
+| Boş açıklama | CHECK reddetti |
+| Başkasının dosyasına kayıt | Tetikleyici reddetti |
+| RLS: B avukatı A'nın kayıtları | 0 satır gördü, A adına yazamadı, silemedi |
+| Dosya silinince | Kaydı gitti; **dosyasız kayıtlar hayatta kaldı** |
+
+25 birim testi ve `tsc --noEmit` temiz (depo toplamı 721 test).
+
+**Ne ÖLÇÜLMEDİ — açıkça yazıyorum:** bu ekranlar gerçek bir cihazda ya da
+canlı Supabase'de hiç çalıştırılmadı. Göç canlıya uygulanmadı. Sayaç gerçek bir
+arka plan/uygulama kapanışı döngüsünde denenmedi; yalnız saf fonksiyonu test
+edildi. Yani "çalışıyor" değil, "yazıldı ve yerelde ölçülen kısmı doğru
+çıktı" diyebilirim.
 
 ### 2. Serbest meslek makbuzunun kendisi
 

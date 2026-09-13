@@ -27,6 +27,7 @@ import { hydrateTheme } from '@/theme/themeStore';
 import { useTheme } from '@/theme/useTheme';
 import { hydrateLock } from '@/store/lockStore';
 import { hydrateAdvanceAlerts } from '@/store/advanceAlertStore';
+import { hydrateSayac } from '@/store/sayacStore';
 import { AppLock } from '@/components/AppLock';
 import { UyariKatmani } from '@/components/ui/UyariKatmani';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -76,6 +77,8 @@ export default function RootLayout() {
     hydrateTheme().catch(() => {});
     hydrateLock().catch(() => {});
     hydrateAdvanceAlerts().catch(() => {});
+    // Çalışan sayaç, uygulama kapansa bile sürsün diye geri yükleniyor.
+    hydrateSayac().catch(() => {});
     registerForNotificationsAsync().catch(() => {});
     // Anahtar yoksa (RevenueCat henüz kurulmadıysa) veya web'deyse sessizce
     // atlar — bkz. src/lib/purchases.ts.

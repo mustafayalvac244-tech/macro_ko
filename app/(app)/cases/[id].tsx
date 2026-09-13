@@ -32,12 +32,13 @@ import { formatDate, formatMoney } from '@/utils/format';
 import { computeLegalDue } from '@/utils/legalDates';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { WarPlanTab } from '@/components/case/WarPlanTab';
+import { ZamanSekmesi } from '@/components/case/ZamanSekmesi';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { hearingReminderMessage, sendClientReminder } from '@/utils/reminder';
 import { useAuthStore } from '@/store/authStore';
 import type { FirstInstancePhase, InstanceStage, ClosedResult, Hearing } from '@/types/database';
 
-type Tab = 'overview' | 'hearings' | 'deadlines' | 'finance' | 'plan';
+type Tab = 'overview' | 'hearings' | 'deadlines' | 'time' | 'finance' | 'plan';
 
 export default function CaseDetailScreen() {
   const __t = useTheme();
@@ -260,6 +261,7 @@ export default function CaseDetailScreen() {
               { label: t('case.tabOverview'), value: 'overview' },
               { label: t('case.tabHearings'), value: 'hearings' },
               { label: t('case.tabDeadlines'), value: 'deadlines' },
+              { label: t('time.title'), value: 'time' },
               { label: t('case.tabFinance'), value: 'finance' },
               { label: t('case.tabPlan'), value: 'plan' },
             ]}
@@ -330,6 +332,8 @@ export default function CaseDetailScreen() {
             </Card>
           </View>
         )}
+
+        {tab === 'time' && <ZamanSekmesi caseId={caseItem.id} caseTitle={caseItem.title} />}
 
         {tab === 'plan' && <WarPlanTab caseItem={caseItem} hearings={hearings.data} />}
 
