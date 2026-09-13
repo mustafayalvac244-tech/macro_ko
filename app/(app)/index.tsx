@@ -598,8 +598,8 @@ export default function DashboardScreen() {
             style={({ pressed }) => [styles.heroCta, { backgroundColor: colors.primary }, pressed && { opacity: 0.85 }]}
             onPress={() => router.push('/(app)/calendar')}
           >
-            <Text allowFontScaling={false} style={[styles.heroCtaText, { color: '#FFFFFF' }]}>{t('dash.assist.start')}</Text>
-            <Ionicons name="arrow-forward" size={15} color="#FFFFFF" />
+            <Text allowFontScaling={false} style={[styles.heroCtaText, { color: colors.textInverse }]}>{t('dash.assist.start')}</Text>
+            <Ionicons name="arrow-forward" size={15} color={colors.textInverse} />
           </Pressable>
         </View>
 

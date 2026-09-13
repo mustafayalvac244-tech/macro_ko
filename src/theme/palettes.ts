@@ -89,11 +89,24 @@ const dark: ThemeColors = {
   textSecondary: '#A5B4CD',
   textMuted: '#6B7B97',
   textInverse: '#070E1B',
-  primary: '#5B8DEF',
-  primaryMuted: '#1F3A6B',
-  primarySoft: 'rgba(91, 141, 239, 0.17)',
-  gold: '#5B8DEF',
-  goldSoft: 'rgba(91, 141, 239, 0.17)',
+  // ── VURGU RENGİ ALTIN (13.09.2026, ürün sahibi kararı) ──────────────────
+  // Önce primary DE gold DA #5B8DEF idi: yani koyu temada "altın" diye bir
+  // şey yoktu, her vurgu açık maviydi. Referans olarak verilen koyu lacivert
+  // + altın tasarımın ağırlığı tam olarak buradan geliyor.
+  //
+  // TON SEÇİMİ RASTGELE DEĞİL: #E3C275, uygulamanın kendi amblemindeki
+  // altının aynısı (docs/amblem.svg). Marka işaretiyle arayüzün aynı altını
+  // kullanması, iki ayrı sarı görünmesini engelliyor.
+  //
+  // KONTRAST ÖLÇÜLDÜ (WCAG): zemin (#070E1B) üstünde 11.25, kart (#13203A)
+  // üstünde 9.45, ÜSTÜNDEKİ koyu yazı (textInverse) için 11.25. Eski açık
+  // mavi ikisinde de 5.98'di — yani altın hem daha okunur hem daha ağır.
+  // Eşik metin için 4.5; ikisi de fazlasıyla geçiyor.
+  primary: '#E3C275',
+  primaryMuted: '#6B5520',
+  primarySoft: 'rgba(227, 194, 117, 0.17)',
+  gold: '#E3C275',
+  goldSoft: 'rgba(227, 194, 117, 0.17)',
   success: '#31CC7D',
   successSoft: 'rgba(49, 204, 125, 0.16)',
   warning: '#E4AC4B',
@@ -234,7 +247,7 @@ export function digerTema(id: ThemeId): ThemeId {
 
 export const themeMetas: ThemeMeta[] = [
   { id: 'light', name: 'Klasik', nameEn: 'Classic', statusBar: 'dark', swatch: ['#EEF2F8', '#173C7E', '#B18A2B'] },
-  { id: 'dark', name: 'Gece', nameEn: 'Midnight', statusBar: 'light', swatch: ['#070E1B', '#5B8DEF', '#E9C86E'] },
+  { id: 'dark', name: 'Gece', nameEn: 'Midnight', statusBar: 'light', swatch: ['#070E1B', '#E3C275', '#E9C86E'] },
   { id: 'sepia', name: 'Parşömen', nameEn: 'Parchment', statusBar: 'dark', swatch: ['#E7DECB', '#1B3A5D', '#8F6E1D'] },
   { id: 'emerald', name: 'Zümrüt', nameEn: 'Emerald', statusBar: 'dark', swatch: ['#E9F1EC', '#0A6349', '#A97F1B'] },
   { id: 'obsidian', name: 'Obsidyen', nameEn: 'Obsidian', statusBar: 'light', swatch: ['#0A0A0D', '#E3BE58', '#E9C766'] },

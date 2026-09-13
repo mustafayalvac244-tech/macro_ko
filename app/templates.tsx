@@ -161,7 +161,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: spacing.sm,
   },
   shareBtnText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 14,
     fontWeight: '700',
   },

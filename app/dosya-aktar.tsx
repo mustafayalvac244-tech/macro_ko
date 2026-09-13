@@ -360,7 +360,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   stepText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textPrimary, flex: 1, lineHeight: 19 },
   cta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 15, marginTop: spacing.md },
   ctaOff: { opacity: 0.5 },
-  ctaText: { fontFamily: fonts.extrabold, fontWeight: '800', fontSize: 15, color: '#FFFFFF' },
+  ctaText: { fontFamily: fonts.extrabold, fontWeight: '800', fontSize: 15, color: colors.textInverse },
   okBox: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.successSoft, borderRadius: 12, padding: spacing.sm, marginBottom: spacing.md },
   okText: { fontFamily: fonts.semibold, fontWeight: '600', fontSize: 12.5, color: colors.success, flex: 1 },
   field: { marginBottom: spacing.sm },

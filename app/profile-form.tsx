@@ -111,7 +111,7 @@ export default function ProfileFormScreen() {
             <Pressable onPress={handlePhotoPress} style={styles.photoWrap}>
               <Avatar name={fullName || profile?.full_name || '?'} size={104} uri={displayUri} />
               <View style={[styles.photoBadge, { backgroundColor: colors.primary }]}>
-                <Ionicons name="camera" size={15} color="#FFFFFF" />
+                <Ionicons name="camera" size={15} color={colors.textInverse} />
               </View>
             </Pressable>
             <Text style={styles.photoHint}>
