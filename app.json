@@ -41,7 +41,7 @@
       }
     },
     "android": {
-      "package": "com.macroko.legal",
+      "package": "com.vekilpro.app",
       "adaptiveIcon": {
         "backgroundColor": "#EFEBE3",
         "foregroundImage": "./assets/android-icon-foreground.png",

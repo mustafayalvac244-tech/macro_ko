@@ -37,7 +37,8 @@ Bugüne kadarki bütün ölçümler bizim kendi kurduğumuz senaryolardı.
 
 | Konu | Durum | Kanıt |
 |---|---|---|
-| Android paket adı | `com.macroko.legal` | `app.json` |
+| Android paket adı | **`com.vekilpro.app`** (13.09.2026'da değişti) | `app.json` |
+| iOS bundle ID | `com.macroko.legal` — **Apple'da kayıtlı, değiştirilemiyor** | `eas.json` (ascAppId 6789656277) |
 | Sürüm | 3.3.2 · versionCode **uzaktan** (EAS) yönetiliyor, ilk derlemede 1→**2** oldu | `eas.json` (`appVersionSource: remote`) |
 | **İlk AAB** | **13.09.2026 12:04'te üretildi** — projenin ilk Android derlemesi | koşu #2, 24 dk, imzalama anahtarı EAS'ta hazırdı |
 | AAB derleme profili | `production` → `app-bundle` | `eas.json` |
@@ -238,7 +239,7 @@ gösterir. Hazırlamamı isterseniz söyleyin.
 ## 6. Sıra (bugünden itibaren)
 
 1. ~~**Siz:** `EXPO_TOKEN` ekleyin~~ — **zaten vardı**, derleme onunla koştu.
-2. **Siz:** Play Console'da uygulamayı oluşturun (`com.macroko.legal`)
+2. **Siz:** Play Console'da uygulamayı oluşturun — paket adı **`com.vekilpro.app`**
 3. ~~**Ben:** ilk AAB'yi üretirim~~ — **yapıldı, 13.09.2026 12:04**.
    Dosya: koşu #2'nin kaydındaki `expo.dev/artifacts/eas/...aab` bağlantısı.
    Play servis hesabı JSON'u olmadığı için **elle yüklenecek**: Play Console
@@ -276,3 +277,37 @@ yapıldı. Bildirimler, takvim izni, biyometrik kilit, Play Billing akışı ve
 dosya seçici natif tarafta **hiç denenmedi**. 3. adımdaki dahili test,
 bunların ilk gerçek sınavı olacak; oradan hata çıkması beklenen ve normal
 bir şeydir.
+
+---
+
+## 8. Paket adı neden değişti, neden yalnız Android'de
+
+**Karar (ürün sahibi, 13.09.2026):** Android paketi `com.macroko.legal` →
+**`com.vekilpro.app`**.
+
+**Neden şimdi ve neden acil olarak soruldu.** Play'e ilk yükleme yapıldıktan
+sonra paket adı **asla** değiştirilemez; uygulamayı silip yeniden yayımlamak
+bile eski kurulumları, yorumları ve sıralamayı kurtarmaz. Yani kararın son
+anı yüklemeden önceydi.
+
+**Görünür olduğu tek yer** mağaza bağlantısıdır:
+`play.google.com/store/apps/details?id=com.vekilpro.app`
+
+**iOS neden değişmedi.** Apple, bir uygulama kaydı oluşturulduktan sonra
+bundle ID'yi değiştirmeye izin vermiyor; `eas.json`'da o kayda ait bir
+`ascAppId` (6789656277) duruyor, yani kayıt var görünüyor.
+
+> **KONTROL EDİN — bir dakikalık iş.** App Store Connect'i açıp
+> `com.macroko.legal` ile bir uygulama kaydı GERÇEKTEN var mı bakın.
+> **Yoksa** bana söyleyin: iOS bundle'ı da `com.vekilpro.app` yaparım ve iki
+> platform aynı kalır. Hiçbir şey gönderilmemişken bu tek satırlık bir
+> değişiklik; kayıt oluştuktan sonra imkânsız.
+
+**Bunun bedeli (ödendi):** 12:04'te üretilen AAB `com.macroko.legal` ile
+imzalıydı, **kullanılamaz**. Yeni paket için EAS yeni bir imzalama anahtarı
+üretecek ve derleme baştan koşacak (~25 dk).
+
+**RevenueCat tarafı:** Android uygulaması yeni paket adıyla tanımlanmalı
+(`IAP_KURULUM.md` adım 2). iOS tarafı eski bundle ile kalıyor; RevenueCat
+zaten platform başına ayrı uygulama tuttuğu için bu çalışır, ama iki ayrı
+kimlik olduğunu bilerek kurun.
