@@ -39,3 +39,45 @@ Somut kurallar:
 
 Bu kural her konuşmada, her oturumda geçerlidir ve kullanıcı talebi olmadan
 da kendiliğinden uygulanır — hatırlatılmayı beklemez.
+
+# Sağlık verisi bu projeye karışmaz — kalıcı ve tartışmasız kural
+
+Ürün sahibinin kuralı (13.09.2026): **"Sağlık verisini buraya karıştırma, hep
+ayrı olacak."** Bu kural her oturumda geçerlidir ve hatırlatılmayı beklemez.
+
+Vekil Pro bir **hukuk** ürünüdür. Aynı Supabase projesinde bir eczane/sağlık
+uygulamasının tabloları bulundu — bunlar bizim migration'larımızda yok, kodumuz
+onlara hiç dokunmuyor, başka bir oturum doğrudan oluşturmuş.
+
+ÖLÇÜLDÜ (13.09.2026): `ilaclar` 23.005 satır / 19 MB, `prospektusler` 11.671
+satır / 223 MB — ikisi de **katalog**, kişisel veri değil. `kullanici_ilaclar`
+ve `kullanici_alimlar` **kişiye bağlı ve HENÜZ BOŞ**. Yani bugün ayırmak
+neredeyse bedava; ilk hasta kaydından sonra veri göçü + bilgilendirme + imha
+zincirine dönüşür.
+
+**Neden bu kadar önemli.** Sağlık verisi 6698 sayılı Kanun'un **6. maddesinde
+ÖZEL NİTELİKLİ** kişisel veridir:
+
+- işlenmesi kural olarak **açık rıza** ister (ya da kanunun saydığı dar
+  istisnalar — sır saklama yükümlüsü sağlık personeli eliyle işleme gibi),
+- **yeterli önlem** alınması zorunludur (Kurul kararlarıyla belirlenmiş),
+- **VERBİS kayıt yükümlülüğü**, çalışan sayısı/ciro eşiklerinden **bağımsız
+  olarak** doğabilir.
+
+Avukatın müvekkil dosyasıyla aynı veritabanında durması, Vekil Pro'nun uyum
+yükünü kendi işiyle **hiç ilgisi olmayan** bir sebeple ağırlaştırır. Bir
+sızıntı, bir haciz ya da bir Kurul denetimi iki ürünü birden kapsar. Ayrıca
+aydınlatma metnimiz "işlenen veri kategorileri"ni sayıyor; sağlık verisi orada
+yok ve **olmamalı**.
+
+## Somut kurallar
+
+- Bu depoya sağlık/ilaç/reçete/hasta verisi tutan **tablo, migration, uç işlevi
+  ya da ekran EKLENMEZ**. İstenirse ayrı bir Supabase projesi açılır.
+- Var olan eczane tablolarını **SİLME**: onlar başka bir ürünün verisi ve silmek
+  geri alınamaz. Durumu ölç, raporla, ürün sahibine söyle — kararı o verir.
+  Ölçüm aracı hazır: `scripts/saglik-verisi-ayrim.sql` (salt okunur).
+- Eczane uygulaması için devir notu `MIMARI-DEVIR.md`'dedir; oradaki mimari
+  bilgisi paylaşılır ama **veritabanı paylaşılmaz**.
+- `tests/saglikVerisiAyrimi.test.ts` bu kuralı kod tarafında koruyor: depoya
+  sağlık verisi şeması sızarsa test düşer.
