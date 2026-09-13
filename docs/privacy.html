@@ -41,14 +41,25 @@
 <main>
   <header>
     <h1>Vekil Pro — Gizlilik Politikası</h1>
-    <p class="updated">Son güncelleme: Ağustos 2026</p>
+    <!-- TARİH ELLE GÜNCELLENİR VE GÜNCELLENMEZSE YALAN OLUR. 13.09.2026'da
+         "Ağustos 2026" yazıyordu; oysa metin o tarihten sonra iki kez
+         değişmişti (rıza zorunluluğu kaldırıldı, aktarım listesi yenilendi).
+         Eski tarih, okuyan avukata "bu metin bir aydır aynı" diyordu. -->
+    <p class="updated">Son güncelleme: 13 Eylül 2026</p>
   </header>
 
   <p class="intro">Vekil Pro, meslek sırrına ve kişisel verilerin korunmasına saygı temelinde tasarlandı. İşte verilerinizin nasıl işlendiğinin özeti:</p>
 
   <section>
     <h2>Verileriniz Kime Ait?</h2>
-    <p>Vekil Pro'ya girdiğiniz tüm veriler (dava, müvekkil, belge, ajanda kayıtları) yalnızca size aittir. Veriler hesabınıza özeldir; diğer kullanıcılar, yalnızca sizin açıkça paylaştığınız bilgileri görebilir.</p>
+    <!-- "yalnızca sizin açıkça paylaştığınız bilgileri görebilir" YAZIYORDU —
+         ORTADA BÖYLE BİR ÖZELLİK YOK. Programda paylaşma, ekip, büro hesabı
+         ya da ikinci kullanıcı davet etme diye bir şey bulunmuyor; her satır
+         RLS ile tek sahibine kilitli (owner_id = auth.uid()). Bu cümle,
+         olmayan bir paylaşım özelliğini varmış gibi gösteriyor ve tam tersi
+         yöne — yani aleyhimize — okunuyordu: "demek ki bir şekilde başkası
+         görebiliyor". Gerçeği yazmak hem doğru hem daha güçlü. -->
+    <p>Vekil Pro'ya girdiğiniz tüm veriler (dava, müvekkil, belge, ajanda kayıtları) yalnızca size aittir. Programda paylaşma, ekip ya da ikinci kullanıcı diye bir şey yoktur: her kayıt veritabanı düzeyinde hesabınıza kilitlidir, başka hiçbir kullanıcı — hangi planda olursa olsun — kayıtlarınızı göremez.</p>
   </section>
 
   <section>
@@ -76,14 +87,28 @@ Tüm izinler isteğe bağlıdır ve yalnızca siz kullandığınızda çalışı
   <section>
     <h2>Verileriniz Satılmaz ve Paylaşılmaz</h2>
     <p>Verileriniz hiçbir üçüncü tarafa <strong>satılmaz</strong>, kiralanmaz veya reklam amacıyla paylaşılmaz. Uygulamada reklam ve izleme (tracking) teknolojisi bulunmaz.</p>
-    <p><strong>Ama bir istisna var ve açıkça söylüyoruz:</strong> yapay zekâ özelliklerini (soru sorma, dilekçe, mütalaa, belge incelemesi) kullandığınızda, <em>o istekte kendi elinizle girdiğiniz metin</em>, yanıtı üretebilmek için yurt dışındaki (ABD) yapay zekâ sağlayıcılarına gönderilir. Bu aktarım açık rızanıza bağlıdır; rıza vermezseniz yapay zekâ özellikleri çalışmaz, uygulamanın diğer tüm özellikleri çalışmaya devam eder. <strong>Açık bildirim:</strong> kayıt ekranı şu an bu rızayı zorunlu tutmaktadır; yani rıza vermeden hesap açılamamaktadır. Bunun Kanun’un aradığı özgür irade ölçütüyle tam bağdaşmadığını uygulama içindeki KVKK Aydınlatma Metni’nin 5. başlığında açıkça yazdık. Hesap açıldıktan sonra rıza, Ayarlar &gt; KVKK Aydınlatma Metni ekranından geri alınabilir; hesap kapanmaz. Veritabanınız kendiliğinden taranıp gönderilmez — yalnız o isteğe eklediğiniz metin gider.</p>
+    <p><strong>Ama bir istisna var ve açıkça söylüyoruz:</strong> yapay zekâ özelliklerini (soru sorma, dilekçe, mütalaa, belge incelemesi) kullandığınızda, <em>o istekte kendi elinizle girdiğiniz metin</em>, yanıtı üretebilmek için yurt dışındaki (ABD) yapay zekâ sağlayıcılarına gönderilir. Bu aktarım açık rızanıza bağlıdır; rıza vermezseniz yapay zekâ özellikleri çalışmaz, uygulamanın diğer tüm özellikleri çalışmaya devam eder. <!-- BU CÜMLE CANLIDA YANLIŞTI. 12.09.2026'da RIZA_ZORUNLU false'a
+          çekildi ve kayıt ekranı rıza kutusu boşken de hesap açıyor
+          (ölçüldü: canlı kayıt ekranında kutu boş bırakılıp "Hesap Oluştur"
+          denendi, rıza engeli çıkmadı). Buradaki metin ise hâlâ "zorunlu
+          tutulmaktadır" diyor ve üstüne kendi uygulamamızı Kanun'a
+          aykırılıkla suçluyordu. Aynı gün uygulama içindeki KVKK metninden
+          de bu öz-eleştiri kaldırılmıştı; geride yalnız bu sayfa kalmış.
+          tests/webMetinTutarlilik.test.ts bundan sonra düşmesini engelliyor. -->
+     <strong>Rıza hizmetin şartı değildir:</strong> kayıt ekranındaki rıza kutusu <em>isteğe bağlıdır</em> — işaretlemeden de hesap açabilir, içtihat ve mevzuat aramasını, dava/müvekkil/duruşma ve finans yönetimini eksiksiz kullanabilirsiniz; yalnızca yapay zekâ özellikleri kapalı kalır. Rızayı sonradan Ayarlar &gt; KVKK Aydınlatma Metni ekranından verebilir, verdikten sonra yine aynı ekrandan geri alabilirsiniz; geri almak hesabınızı kapatmaz ve kayıtlarınızı silmez. Veritabanınız kendiliğinden taranıp gönderilmez — yalnız o isteğe eklediğiniz metin gider.</p>
     <p>Kayıtlarınızın saklandığı sunucular İrlanda (AB) bölgesindedir. Hangi sağlayıcıya, hangi ülkeye ve hangi amaçla aktarım yapıldığının tam listesi uygulama içindeki <strong>KVKK Aydınlatma Metni</strong>'nde yer alır.</p>
     <p>Bunların dışında, yasal zorunluluk (mahkeme kararı vb.) hâlleri saklıdır.</p>
   </section>
 
   <section>
     <h2>Uygulama Güvenliği</h2>
-    <p>Dilerseniz Ayarlar'dan biyometrik kilit (parmak izi / Face ID) açabilirsiniz. Oturum bilgileriniz cihazınızda şifreli alanda (SecureStore) tutulur.</p>
+    <!-- "Oturum bilgileriniz cihazınızda şifreli alanda (SecureStore)
+         tutulur" YAZIYORDU — KOD BUNU YAPMIYOR. src/lib/supabase.ts oturumu
+         AsyncStorage'a yazar; SecureStore yalnız cihaz kimliği için
+         kullanılır (src/lib/cihazKimligi.ts). Yanlış bir güvenlik iddiası,
+         iddia etmemekten kötüdür: kullanıcı gerçekte olmayan bir korumaya
+         güvenerek davranır. -->
+    <p>Dilerseniz Ayarlar'dan biyometrik kilit (parmak izi / Face ID) açabilirsiniz. Giriş yaptığınızda cihazınızda saklanan oturum anahtarı, uygulamanın kendi veri alanında tutulur (tarayıcıda: o siteye ait yerel depo); işletim sisteminin şifreli kasası bugün yalnız cihaz kimliği için kullanılmaktadır. Ayrıntı: <a href="guvenlik.html">Güvenlik ve Veri Merkezi</a>.</p>
   </section>
 
   <section>
@@ -93,7 +118,13 @@ Tüm izinler isteğe bağlıdır ve yalnızca siz kullandığınızda çalışı
 
   <section>
     <h2>İletişim</h2>
-    <p>Gizlilikle ilgili soru ve talepleriniz için uygulama içindeki Ayarlar &gt; Öneri &amp; Şikayet kanalını kullanabilir veya bize e-posta gönderebilirsiniz.</p>
+    <!-- "veya bize e-posta gönderebilirsiniz" YAZIYORDU AMA ADRES YOKTU.
+         Depoda hiçbir yerde destek adresi geçmiyor (tarandı). Adressiz bir
+         "e-posta gönderin" cümlesi, KVKK m.11 başvurusunu yapmak isteyen
+         avukatı boşluğa gönderir. Ticari unvan ve başvuru adresi
+         belirlendiğinde (src/config/kvkk.ts → VERI_SORUMLUSU) buraya da
+         yazılacak; o zamana kadar çalışan tek kanal yazılıyor. -->
+    <p>Gizlilikle ilgili soru ve talepleriniz ile KVKK m.11 başvurularınız için uygulama içindeki <strong>Ayarlar &gt; Öneri &amp; Şikayet</strong> kanalını kullanın; başvurular bu kanaldan kayda geçer. Verilerin hangi sağlayıcıya, hangi ülkeye ve hangi amaçla aktarıldığının tam listesi <a href="guvenlik.html">Güvenlik ve Veri Merkezi</a> sayfasındadır.</p>
   </section>
 
   <footer>Vekil Pro bağımsız bir yazılımdır; Adalet Bakanlığı veya UYAP ile resmî bir bağlantısı yoktur.</footer>

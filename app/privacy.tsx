@@ -33,12 +33,16 @@ const SECTIONS_TR: Section[] = [
   {
     icon: 'eye-off-outline',
     title: 'Verileriniz Satılmaz ve Paylaşılmaz',
-    body: 'Verileriniz hiçbir üçüncü tarafa SATILMAZ, kiralanmaz veya reklam amacıyla paylaşılmaz.\n\nAMA BİR İSTİSNA VAR VE AÇIKÇA SÖYLÜYORUZ: yapay zekâ özelliklerini (soru sorma, dilekçe, mütalaa, belge incelemesi) kullandığınızda, O İSTEKTE KENDİ ELİNİZLE GİRDİĞİNİZ metin, yanıtı üretebilmek için yurt dışındaki (ABD) yapay zekâ sağlayıcılarına gönderilir. Bu, açık rızanıza bağlıdır; rıza vermezseniz yapay zekâ özellikleri çalışmaz, diğer her şey çalışmaya devam eder.\n\nAÇIK BİLDİRİM: kayıt ekranı şu an bu rızayı ZORUNLU tutmaktadır; yani rıza vermeden hesap açılamamaktadır. Bunun Kanun’un aradığı özgür irade ölçütüyle tam bağdaşmadığını KVKK Aydınlatma Metni’nin 5. başlığında açıkça yazdık. Hesabınız açıldıktan sonra rızayı Ayarlar > KVKK Aydınlatma Metni ekranından geri alabilirsiniz; hesabınız kapanmaz.\n\nVeritabanınız kendiliğinden taranıp gönderilmez: yalnız o isteğe eklediğiniz metin gider. Hangi sağlayıcılara, hangi ülkeye ve hangi amaçla aktarıldığının tam listesi KVKK Aydınlatma Metni’ndedir.\n\nBunun dışında, yasal zorunluluk (mahkeme kararı vb.) hâlleri saklıdır.',
+    body: 'Verileriniz hiçbir üçüncü tarafa SATILMAZ, kiralanmaz veya reklam amacıyla paylaşılmaz.\n\nAMA BİR İSTİSNA VAR VE AÇIKÇA SÖYLÜYORUZ: yapay zekâ özelliklerini (soru sorma, dilekçe, mütalaa, belge incelemesi) kullandığınızda, O İSTEKTE KENDİ ELİNİZLE GİRDİĞİNİZ metin, yanıtı üretebilmek için yurt dışındaki (ABD) yapay zekâ sağlayıcılarına gönderilir. Bu, açık rızanıza bağlıdır; rıza vermezseniz yapay zekâ özellikleri çalışmaz, diğer her şey çalışmaya devam eder.\n\nRIZA HİZMETİN ŞARTI DEĞİLDİR: kayıt ekranındaki rıza kutusu İSTEĞE BAĞLIDIR — işaretlemeden de hesap açabilir, içtihat ve mevzuat aramasını, dava/müvekkil/duruşma ve finans yönetimini eksiksiz kullanabilirsiniz; yalnız yapay zekâ özellikleri kapalı kalır. Rızayı sonradan Ayarlar > KVKK Aydınlatma Metni ekranından verebilir, aynı ekrandan geri alabilirsiniz; geri almak hesabınızı kapatmaz ve kaydınızı silmez.\n\nVeritabanınız kendiliğinden taranıp gönderilmez: yalnız o isteğe eklediğiniz metin gider. Hangi sağlayıcılara, hangi ülkeye ve hangi amaçla aktarıldığının tam listesi KVKK Aydınlatma Metni’ndedir.\n\nBunun dışında, yasal zorunluluk (mahkeme kararı vb.) hâlleri saklıdır.',
   },
   {
     icon: 'finger-print-outline',
     title: 'Uygulama Güvenliği',
-    body: 'Dilerseniz Ayarlar\'dan biyometrik kilit (parmak izi / Face ID) açabilirsiniz. Oturum bilgileriniz cihazınızda şifreli alanda (SecureStore) tutulur.',
+    // "SecureStore" YAZIYORDU — KOD BUNU YAPMIYOR (ölçüldü 13.09.2026).
+    // src/lib/supabase.ts oturumu AsyncStorage'a yazıyor; SecureStore yalnız
+    // cihaz kimliği için kullanılıyor (src/lib/cihazKimligi.ts). Yanlış bir
+    // güvenlik iddiası, hiç iddia etmemekten kötüdür.
+    body: 'Dilerseniz Ayarlar\'dan biyometrik kilit (parmak izi / Face ID) açabilirsiniz.\n\nOTURUM ANAHTARI NEREDE DURUYOR: giriş yaptığınızda cihazınızda saklanan oturum anahtarı, uygulamanın kendi veri alanında tutulur (tarayıcıda: o siteye ait yerel depo). İşletim sisteminin şifreli kasası (Keychain / Keystore) bugün yalnız cihaz kimliği için kullanılmaktadır, oturum anahtarı için değil. Bu anahtar cihazınızın ekran kilidiyle korunur; cihazınızı kilitsiz bırakmayın.',
   },
   {
     icon: 'person-remove-outline',
@@ -71,12 +75,12 @@ const SECTIONS_EN: Section[] = [
   {
     icon: 'eye-off-outline',
     title: 'Never Sold or Shared',
-    body: 'Your data is never SOLD, rented, or shared for advertising.\n\nTHERE IS ONE EXCEPTION AND WE STATE IT PLAINLY: when you use the AI features (questions, petitions, opinions, document review), the text YOU YOURSELF ENTER in that request is sent to AI providers located abroad (United States) so the answer can be produced. This depends on your explicit consent; without it the AI features do not run and everything else keeps working.\n\nDISCLOSED PLAINLY: the sign-up screen currently REQUIRES this consent, so an account cannot be created without it. Section 5 of the KVKK privacy notice states why that is contestable. Once your account exists you can withdraw consent from Settings > KVKK Privacy Notice; your account stays open.\n\nYour database is not scanned and sent on its own: only the text you attach to that request leaves. The full list of providers, countries and purposes is in the KVKK privacy notice.\n\nApart from that, disclosure occurs only where legally required (court order etc.).',
+    body: 'Your data is never SOLD, rented, or shared for advertising.\n\nTHERE IS ONE EXCEPTION AND WE STATE IT PLAINLY: when you use the AI features (questions, petitions, opinions, document review), the text YOU YOURSELF ENTER in that request is sent to AI providers located abroad (United States) so the answer can be produced. This depends on your explicit consent; without it the AI features do not run and everything else keeps working.\n\nCONSENT IS NOT A CONDITION OF SERVICE: the consent box on the sign-up screen is OPTIONAL — you can create an account without ticking it and use case-law and legislation search, case/client/hearing management and finance in full; only the AI features stay off. You can give consent later from Settings > KVKK Privacy Notice and withdraw it from the same screen; withdrawing does not close your account or delete any record.\n\nYour database is not scanned and sent on its own: only the text you attach to that request leaves. The full list of providers, countries and purposes is in the KVKK privacy notice.\n\nApart from that, disclosure occurs only where legally required (court order etc.).',
   },
   {
     icon: 'finger-print-outline',
     title: 'App Security',
-    body: 'You can enable a biometric lock (fingerprint / Face ID) from Settings. Session credentials are kept in your device\'s encrypted storage (SecureStore).',
+    body: 'You can enable a biometric lock (fingerprint / Face ID) from Settings.\n\nWHERE THE SESSION KEY IS KEPT: when you sign in, the session key stored on your device is held in the app\'s own data area (in a browser: that site\'s local storage). The operating system\'s encrypted vault (Keychain / Keystore) is currently used only for the device identifier, not for the session key. That key is protected by your device lock screen; do not leave your device unlocked.',
   },
   {
     icon: 'person-remove-outline',

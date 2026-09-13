@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Güvenlik ve Veri Merkezi — Vekil Pro</title>
+<meta name="description" content="Vekil Pro'da müvekkil verisi nerede durur, kim erişebilir, yapay zekâya ne gider, yedekler ne kadar saklanır, silme neyi siler. Aktarılan sağlayıcıların tam listesi ve henüz sahip olmadığımız belgeler.">
+<meta name="theme-color" content="#0B1F45">
+<link rel="icon" type="image/svg+xml" href="amblem-kucuk.svg">
+<link rel="canonical" href="https://vekilpro.app/guvenlik.html">
+<meta property="og:title" content="Vekil Pro — Güvenlik ve Veri Merkezi">
+<meta property="og:description" content="Veri nerede durur, kim erişir, yapay zekâya ne gider, ne gitmez. Aktarılan sağlayıcıların tam listesi.">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="tr_TR">
+<meta property="og:url" content="https://vekilpro.app/guvenlik.html">
+<meta property="og:image" content="https://vekilpro.app/paylasim.png">
+<meta name="robots" content="index,follow">
+
+<!-- NEDEN BU SAYFA VAR.
+     Yurt dışındaki hukuk yazılımlarının hepsinde bir "trust center" var
+     (Harvey, Clio, Spellbook); Türkiye'deki rakiplerde ise güvenlik tek
+     cümleye sıkışıyor: "KVKK'ya %100 uyumlu", "üst düzey şifreleme".
+     Bir avukat için bu cümleler hiçbir şey ifade etmez — meslek sırrını
+     emanet edeceği yerin ADINI, ÜLKESİNİ ve SÜRESİNİ sorar.
+     Bu sayfa o üç soruyu tek tek yanıtlıyor.
+     ESİNLENME, KOPYA DEĞİL: onlardan alınan fikir "güvenliği tek sayfada,
+     denetlenebilir biçimde yaz". Onlarda OLMAYAN bölüm ise en altta:
+     HENÜZ SAHİP OLMADIKLARIMIZ. Sertifikamız yokken sertifikadan söz
+     etmemek yetmez; olmadığını yazmak gerekir.
+
+     BURADAKİ HER İFADE KODDAN YA DA ÖLÇÜMDEN GELİR.
+     • Sağlayıcı listesi: src/config/kvkk.ts → ALICILAR
+     • Yapay zekâya gitmeyenler: src/config/kvkk.ts → AI_KAPSAM_DISI
+     • Yedek süreleri: app/terms.tsx (13. madde) ve docs/terms.html
+     • Bölge (İrlanda / eu-west-1): Supabase proje kaydından ÖLÇÜLDÜ
+     tests/webMetinTutarlilik.test.ts, listenin koddan ayrışmasını
+     yakalıyor: kvkk.ts'e sağlayıcı eklenip burası unutulursa test düşer. -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --lacivert:#0B1F45; --lacivert-2:#173C7E; --lacivert-3:#2A5AB8;
+  --altin:#B8912F; --zemin:#F4F7FC; --kart:#FFFFFF; --cizgi:#DDE5F2;
+  --metin:#0E1B33; --metin-2:#4A5A78; --metin-3:#7385A3;
+  --yesil:#12805C; --kirmizi:#A3341F; --radius:16px;
+  --golge:0 1px 2px rgba(11,31,69,.04), 0 8px 24px rgba(11,31,69,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --lacivert:#050C1A; --lacivert-2:#2A5AB8; --lacivert-3:#5B8AE0;
+    --altin:#D9B356; --zemin:#070E1B; --kart:#111C33; --cizgi:#22314F;
+    --metin:#EAF0FB; --metin-2:#A9B8D2; --metin-3:#7C8CA8;
+    --yesil:#3FCF9B; --kirmizi:#E8846C;
+    --golge:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--zemin); color:var(--metin);
+  font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif; line-height:1.22; margin:0; text-wrap:balance}
+p,li,td,th{text-wrap:pretty}
+a{color:var(--lacivert-3)}
+:focus-visible{outline:2px solid var(--lacivert-3); outline-offset:3px; border-radius:6px}
+
+.sar{max-width:860px; margin:0 auto; padding-inline:20px}
+
+/* Üst şerit — tanıtım sayfasına dönüş yolu her zaman görünür olsun. */
+.ust{border-bottom:1px solid var(--cizgi); background:var(--kart)}
+.ust .sar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding-block:14px; flex-wrap:wrap}
+.marka{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:-.2px; color:var(--metin); text-decoration:none}
+.marka img{width:28px; height:28px}
+/* Telefonda bağlantı ADLARI kendi içinde bölünüyordu ("Kullanım /
+   Koşulları" iki satır). nowrap + satır başına taşma, adı bütün tutuyor. */
+.ust nav{display:flex; flex-wrap:wrap; gap:10px 18px; font-size:14px; font-weight:600}
+.ust nav a{color:var(--metin-2); text-decoration:none; white-space:nowrap}
+@media (max-width:460px){ .ust nav{font-size:13px; gap:8px 14px} }
+.ust nav a:hover{color:var(--lacivert-3)}
+
+header.bas{padding-block:44px 8px}
+.etiket{display:inline-block; font-size:12px; font-weight:800; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--altin); margin-bottom:10px}
+h1{font-size:clamp(28px,5vw,40px)}
+.ozet{color:var(--metin-2); margin:14px 0 0; font-size:17px}
+.tarih{color:var(--metin-3); font-size:14px; margin-top:10px}
+
+/* Dört maddelik özet — sayfanın tamamını okumayacak kişi için. */
+.rozetler{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin:26px 0 8px}
+.rozet{background:var(--kart); border:1px solid var(--cizgi); border-radius:var(--radius);
+  padding:14px 16px; box-shadow:var(--golge)}
+.rozet b{display:block; font-size:15px; margin-bottom:2px}
+.rozet span{font-size:13.5px; color:var(--metin-2)}
+
+section{background:var(--kart); border:1px solid var(--cizgi); border-radius:var(--radius);
+  padding:22px 24px; margin:14px 0; box-shadow:var(--golge)}
+section h2{font-size:21px; margin-bottom:10px}
+section h2 .no{font-family:'Manrope',sans-serif; font-size:13px; font-weight:800;
+  color:var(--altin); display:block; letter-spacing:.1em; margin-bottom:4px}
+section p{margin:0 0 12px}
+section p:last-child, section ul:last-child{margin-bottom:0}
+ul{margin:0 0 12px; padding-left:20px}
+li{margin-bottom:6px}
+b, strong{font-weight:700}
+
+/* İki sütun: gider / gitmez. */
+.ikili{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px}
+.ikili > div{border:1px solid var(--cizgi); border-radius:12px; padding:14px 16px; background:var(--zemin)}
+.ikili h3{font-size:16px; margin-bottom:8px}
+.gider h3{color:var(--kirmizi)} .gitmez h3{color:var(--yesil)}
+.ikili ul{padding-left:18px; margin:0; font-size:14.5px}
+
+/* Sağlayıcı tablosu — dar ekranda yan kaydırma kendi kabında. */
+.tablo-kap{overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 0 12px}
+table{border-collapse:collapse; width:100%; min-width:520px; font-size:14.5px}
+th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--cizgi); vertical-align:top}
+th{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--metin-3); font-weight:800}
+tbody tr:last-child td{border-bottom:0}
+.ulke-ab{color:var(--yesil); font-weight:700; white-space:nowrap}
+.ulke-abd{color:var(--kirmizi); font-weight:700; white-space:nowrap}
+
+/* En önemli bölüm görsel olarak da ayrılsın. */
+.eksik{border-color:var(--altin)}
+.eksik h2{color:var(--altin)}
+
+footer{color:var(--metin-3); font-size:14px; padding-block:28px 48px; text-align:center}
+footer a{color:var(--metin-2)}
+</style>
+</head>
+<body>
+
+<div class="ust">
+  <div class="sar">
+    <a class="marka" href="./"><img src="amblem-kucuk.svg" alt=""> Vekil&nbsp;Pro</a>
+    <nav>
+      <a href="./">Ana sayfa</a>
+      <a href="privacy.html">Gizlilik</a>
+      <a href="terms.html">Kullanım Koşulları</a>
+      <a href="app/">Uygulamayı Aç</a>
+    </nav>
+  </div>
+</div>
+
+<div class="sar">
+  <header class="bas">
+    <span class="etiket">Güvenlik ve veri merkezi</span>
+    <h1>Müvekkil dosyanız nerede durur, kim görebilir, ne kadar kalır</h1>
+    <p class="ozet">Avukatın emanet ettiği veri sıradan bir veri değildir: meslek sırrıdır (1136 s.K. m.36) ve çoğu zaman 6698 s.K. m.6 anlamında özel nitelikli veri içerir. Bu sayfa &ldquo;güvenliğe önem veriyoruz&rdquo; demez; sağlayıcının adını, bulunduğu ülkeyi ve saklama süresini tek tek yazar.</p>
+    <p class="tarih">Son güncelleme: 13 Eylül 2026 · Bu sayfadaki liste uygulamanın kaynak kodundan hazırlanır ve bir otomatik sınama tarafından koda karşı denetlenir.</p>
+  </header>
+
+  <div class="rozetler">
+    <div class="rozet"><b>Kayıtlar AB'de</b><span>Veritabanı ve belgeler İrlanda bölgesinde</span></div>
+    <div class="rozet"><b>Satır düzeyinde kilit</b><span>Her kayıt tek sahibine bağlı; paylaşım özelliği yok</span></div>
+    <div class="rozet"><b>Eğitime gitmez</b><span>Yazdığınız metin model eğitiminde kullanılmaz</span></div>
+    <div class="rozet"><b>Silme gerçekten siler</b><span>Yedekler dâhil; tek istisnası aşağıda yazılı</span></div>
+  </div>
+
+  <section>
+    <h2><span class="no">01</span>Veri nerede durur</h2>
+    <p>Hesabınız, dava ve müvekkil kayıtlarınız, duruşma ve süre kayıtlarınız, yüklediğiniz belgeler ve finans kayıtlarınız <b>Supabase</b> altyapısında, <b>Avrupa Birliği — İrlanda</b> bölgesinde tutulur. Bu bölge bir pazarlama cümlesi değil, projenin kaydından okunan ölçülmüş bir değerdir (<code>eu-west-1</code>).</p>
+    <p>Aktarımda TLS, depolamada AES-256 şifreleme kullanılır.</p>
+    <!-- BU PARAGRAF BİLEREK BU KADAR AYRINTILI.
+         13.09.2026'da ölçüldü: hem docs/privacy.html hem app/privacy.tsx
+         "oturum bilgileriniz cihazda şifreli alanda (SecureStore) tutulur"
+         diyordu. KOD BUNU YAPMIYOR — src/lib/supabase.ts oturumu
+         AsyncStorage'a yazıyor; SecureStore yalnız cihaz kimliği için
+         kullanılıyor (src/lib/cihazKimligi.ts). Güvenlik sayfasında yanlış
+         bir güvenlik iddiası, hiç iddia etmemekten kötüdür. -->
+    <p><b>Oturum anahtarı nerede durur (açıkça):</b> giriş yaptığınızda cihazınızda saklanan oturum anahtarı, uygulamanın kendi veri alanında tutulur — tarayıcıda bu, o siteye ait yerel depodur. İşletim sisteminin şifreli kasası (Keychain / Keystore) bugün yalnız cihaz kimliği için kullanılıyor, oturum anahtarı için değil. Bu, cihazınızın ekran kilidiyle korunur; cihazı kilitsiz bırakmayın. Uygulamayı ayrıca parmak izi veya Face ID ile kilitleyebilirsiniz.</p>
+  </section>
+
+  <section>
+    <h2><span class="no">02</span>Kim erişebilir</h2>
+    <p>Veritabanındaki her satır, <b>satır düzeyinde güvenlik</b> (RLS) kuralıyla yalnız sahibine açıktır: sorgu, isteği yapan hesabın kimliğiyle eşleşmeyen hiçbir satırı döndürmez. Bu, uygulama kodundaki bir <i>if</i> değil, veritabanının kendi kuralıdır — uygulamada bir hata olsa bile başka bir hesabın kaydı dönmez.</p>
+    <p>Programda <b>paylaşma, ekip, büro hesabı ya da ikinci kullanıcı davet etme diye bir şey yoktur.</b> Bunun bir kolaylık eksiği olduğunu biliyoruz (aşağıda &ldquo;henüz sahip olmadıklarımız&rdquo; başlığında yazılı); ama bugünkü sonucu şudur: kayıtlarınızı sizden başka görebilecek bir kullanıcı hesabı yok.</p>
+    <p>Yasal zorunluluk hâlleri (usulüne uygun mahkeme kararı vb.) saklıdır.</p>
+  </section>
+
+  <section>
+    <h2><span class="no">03</span>Yapay zekâya ne gider, ne gitmez</h2>
+    <p>Yapay zekâ özelliklerini kullandığınızda <b>yalnız o istekte sizin yazdığınız ya da eklediğiniz metin</b> sağlayıcıya gönderilir. Veritabanınız kendiliğinden taranmaz; dava ve müvekkil kayıtlarınız topluca aktarılmaz.</p>
+    <div class="ikili">
+      <div class="gider">
+        <h3>Gönderilen</h3>
+        <ul>
+          <li>Yapay zekâ ekranına yazdığınız soru ya da olay anlatımı</li>
+          <li>İnceleme için kendi elinizle yüklediğiniz belgenin metni</li>
+          <li>Taslak üretimi için seçtiğiniz şablon ve alan bilgileri</li>
+        </ul>
+      </div>
+      <div class="gitmez">
+        <h3>Gönderilmeyen</h3>
+        <ul>
+          <li>Parolanız (hiçbir zaman düz metin olarak saklanmaz ya da iletilmez)</li>
+          <li>Finans kayıtlarınız ve ödeme bilgileriniz</li>
+          <li>Yapay zekâ isteğine kendiniz eklemediğiniz dava, müvekkil ve belge kayıtları</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:12px">Gönderilen metin <b>model eğitiminde kullanılmaz</b> ve soru metni tarafımızca saklanmaz. Yapay zekâ sağlayıcılarına aktarım <b>açık rızanıza bağlıdır</b>: rıza vermezseniz bu özellikler kapalı kalır, programın geri kalanı — içtihat ve mevzuat araması dâhil — eksiksiz çalışır.</p>
+  </section>
+
+  <section>
+    <h2><span class="no">04</span>Verinin aktarıldığı sağlayıcıların tam listesi</h2>
+    <p>Aşağıdaki liste uygulamanın kaynak kodundaki sağlayıcı tanımından hazırlanmıştır. Kodda bir sağlayıcı değişirse bu tablo da değişir; ayrışmasını otomatik sınama engeller.</p>
+    <div class="tablo-kap">
+      <table>
+        <thead><tr><th>Sağlayıcı</th><th>Ülke</th><th>Aktarım amacı</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Supabase <span style="color:var(--metin-3)">(veritabanı ve dosya saklama)</span></td>
+            <td class="ulke-ab">AB — İrlanda</td>
+            <td>Hesap, dava, müvekkil, belge ve finans kayıtlarının saklanması</td>
+          </tr>
+          <tr><td>Anthropic</td><td class="ulke-abd">ABD</td><td>Yapay zekâ ile dilekçe, mütalaa, belge incelemesi ve soru yanıtı üretimi</td></tr>
+          <tr><td>Google (Gemini)</td><td class="ulke-abd">ABD</td><td>Aynı yapay zekâ işlevleri için yedek/alternatif model</td></tr>
+          <tr><td>Groq</td><td class="ulke-abd">ABD</td><td>Aynı yapay zekâ işlevleri için hızlı model katmanı</td></tr>
+          <tr><td>OpenAI</td><td class="ulke-abd">ABD</td><td>Aynı yapay zekâ işlevleri için yedek model katmanı</td></tr>
+          <tr><td>Apple App Store / Google Play / RevenueCat</td><td class="ulke-abd">ABD</td><td>Abonelik satın alma ve doğrulama</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><b>Neden hepsi sayılıyor:</b> hangi model sağlayıcısının canlıda etkin olduğu sunucudaki gizli anahtarlara bağlıdır ve gün içinde değişebilir. Aydınlatmada fazlasını saymak eksik saymaktan güvenlidir: olabilecek en geniş aktarımı bilerek onay verirsiniz. <b>Kayıtlarınızın saklandığı yer tek başına Supabase'dir</b> — yukarıdaki ABD'li sağlayıcılar kayıtlarınızı saklamaz, yalnız o anda gönderdiğiniz metni işler.</p>
+  </section>
+
+  <section>
+    <h2><span class="no">05</span>Yedekler ve saklama süreleri</h2>
+    <ul>
+      <li>Her gece alınan veritabanı kopyası — <b>21 gün</b> saklanır</li>
+      <li>Her ayın başında alınan aylık kopya — <b>12 ay</b> saklanır</li>
+      <li>Bulut sağlayıcısının kendi altyapı yedeği — <b>7 gün</b> saklanır</li>
+    </ul>
+    <p>Bu kopyalar yalnızca hatalı silme, bozulma ya da arızadan kurtarma amacıyla tutulur; talep üzerine tek tek kayıt geri yükleneceği anlamına gelmez.</p>
+  </section>
+
+  <section>
+    <h2><span class="no">06</span>Hesabı sildiğinizde ne olur</h2>
+    <p>Ayarlar &gt; Hesabı Sil adımı geri alınamaz ve sunucudaki tüm kayıtlarınızı (belgeler dâhil) kapsar. Silme anında kayıtlarınız yukarıdaki gecelik ve aylık kopyalardan da silinir.</p>
+    <p><b>Tek istisnayı açıkça yazıyoruz:</b> bulut sağlayıcısının kendi altyapı yedeği teknik olarak tek bir kullanıcı için ayıklanamaz. Oradaki kopya en geç <b>7 gün</b> içinde saklama süresi dolarak kendiliğinden düşer; bu süre boyunca hiçbir amaçla kullanılmaz, yalnız felaket kurtarma için erişilebilir kalır.</p>
+  </section>
+
+  <section>
+    <h2><span class="no">07</span>Rıza nasıl alınır</h2>
+    <p>Yapay zekâ için gereken açık rıza, kayıt ekranında <b>isteğe bağlı</b> bir kutudur — işaretlemeden de hesap açılır. Rıza vermeyi seçerseniz aydınlatma metni bir pencerede açılır ve <b>sonuna kadar okumadan imza düğmesi çalışmaz</b>; okuma oranı ve pencerede geçirilen süre imza kanıtıyla birlikte kaydedilir.</p>
+    <p>Rızayı istediğiniz an Ayarlar &gt; KVKK Aydınlatma Metni ekranından geri alabilirsiniz. <b>Geri almak hesabınızı kapatmaz</b> ve tek bir kaydınızı silmez; yalnız yapay zekâ özellikleri kapanır.</p>
+  </section>
+
+  <section class="eksik">
+    <h2><span class="no">08</span>Henüz sahip olmadıklarımız</h2>
+    <p>Bu başlık, bulunması alışılmadık olduğu için burada. Bir güvenlik sayfasının değeri saydıklarından çok <b>saymadıklarını gizleyip gizlemediğinden</b> anlaşılır; aşağıdakiler bugün <b>yok</b> ve varmış gibi yazılmayacak:</p>
+    <ul>
+      <li><b>SOC 2 ya da ISO 27001 belgemiz yok.</b> Bu sayfadaki teknik önlemler gerçektir ama hiçbiri bağımsız bir denetim firması tarafından belgelenmiş değildir. Bir yazılımın &ldquo;KVKK'ya %100 uyumlu&rdquo; olduğunu kendi sitesinde yazması bir belge değildir — bizimki de olmazdı.</li>
+      <li><b>Bağımsız sızma testi yaptırılmadı.</b> Erişim kuralları kendi ölçümlerimizle sınanıyor; dışarıdan bir ekip denemedi.</li>
+      <li><b>Ekip / rol yönetimi yok.</b> Tek hesap, tek kullanıcı. Kâtip ya da stajyer için ayrı yetki verilemiyor; ortak büro kullanımı bugün mümkün değil.</li>
+      <li><b>Kayıt erişim günlüğü kullanıcıya gösterilmiyor.</b> Kendi kayıtlarınıza ne zaman erişildiğini gösteren bir ekran yok.</li>
+      <li><b>Veri sorumlusu ticari unvanı ve başvuru adresi henüz yayımlanmadı.</b> Belirlendiğinde bu sayfaya ve gizlilik metnine yazılacak; o zamana kadar başvuru yolu uygulama içindeki geri bildirim kanalıdır.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="no">09</span>Bir açık bulursanız</h2>
+    <p>Güvenlik açığı bulduğunuzu düşünüyorsanız uygulama içindeki <b>Ayarlar &gt; Öneri &amp; Şikayet</b> kanalından bildirin; bildirimi kayda geçiriyoruz. Açığı kamuya duyurmadan önce bize bildirmenizi rica ederiz. Bugün ödüllü bir hata avı programımız yok.</p>
+  </section>
+
+  <footer>
+    <a href="./">Ana sayfa</a> · <a href="privacy.html">Gizlilik Politikası</a> · <a href="terms.html">Kullanım Koşulları</a><br>
+    Vekil Pro bağımsız bir yazılımdır; Adalet Bakanlığı veya UYAP ile resmî bir bağlantısı yoktur.
+  </footer>
+</div>
+
+</body>
+</html>
