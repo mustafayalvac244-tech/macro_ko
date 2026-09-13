@@ -1,5 +1,5 @@
 :root { --ink:#14213D; --muted:#5A6785; --line:#E3E8F0; --accent:#173C7E; --bg:#F4F6FA; --danger:#B3261E; --ok:#158A54; }
-@media (prefers-color-scheme: dark) { :root { --ink:#EAF0FB; --muted:#9AA8C2; --line:#243149; --accent:#5B8DEF; --bg:#0B1220; } }
+@media (prefers-color-scheme: dark) { :root { --ink:#EAF0FB; --muted:#9AA8C2; --line:#243149; --accent:#E3C275; --bg:#0B1220; } }
 * { box-sizing:border-box; }
 html, body { height:100%; margin:0; }
 body { display:flex; flex-direction:column; background:var(--bg); color:var(--ink);
