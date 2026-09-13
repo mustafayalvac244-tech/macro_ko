@@ -1529,7 +1529,7 @@ export const en: Record<keyof typeof tr, string> = {
   'mut.workingHint': 'The matter is split into issues and researched separately; this can take a little while.',
   'mut.researched': 'Legal issues researched',
   'mut.resultTitle': 'Research Note',
-  'mut.needPro': 'Deep Research is a Pro and Elite feature. It performs multi-step legislation and case-law search; the standard AI assistant is available to all members.',
+  'mut.needPro': 'Deep Research is included in the Vekil Pro + AI plan. It splits the matter into legal issues and searches legislation and case law for each one; the single-question assistant works on the other tiers too.',
   'mut.calcDates': 'These dates do not appear in the facts you gave; they were CALCULATED in the research note — verify them: {tarihler}',
   'mut.disclaimer': 'This note is the output of an AI search; it is NOT a legal opinion or legal advice. Verify the authorities and current legislation yourself.',
 

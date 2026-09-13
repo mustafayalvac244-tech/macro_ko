@@ -1569,7 +1569,7 @@ export const tr = {
   'mut.workingHint': 'Konu parçalara ayrılıp ayrı ayrı araştırılıyor; bu biraz uzun sürebilir.',
   'mut.researched': 'Araştırılan hukuki sorunlar',
   'mut.resultTitle': 'Araştırma Notu',
-  'mut.needPro': 'Derin Araştırma, Pro ve Elit üyelere özel bir özelliktir. Çok adımlı mevzuat/içtihat taraması yapar; normal AI asistanı tüm üyelere açıktır.',
+  'mut.needPro': 'Derin Araştırma, Vekil Pro + Yapay Zekâ paketine dahildir. Olayı hukuki sorunlara bölüp her biri için ayrı ayrı mevzuat ve içtihat tarar; tek soruluk normal asistan diğer katmanlarda da çalışır.',
   'mut.calcDates': 'Şu tarihler anlattığınız olayda geçmiyor, araştırma notunda HESAPLANMIŞTIR — mutlaka teyit edin: {tarihler}',
   'mut.disclaimer': 'Bu not yapay zekâ taramasının çıktısıdır; mütalaa ya da hukuki tavsiye DEĞİLDİR. Dayanakları ve güncel mevzuatı kendiniz teyit edin.',
 

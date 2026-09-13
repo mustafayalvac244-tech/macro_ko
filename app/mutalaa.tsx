@@ -18,7 +18,12 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
 /**
- * MÜTALAA — Pro/Elit'e özel, çok adımlı derin hukuki inceleme.
+ * MÜTALAA — "Vekil Pro + Yapay Zekâ" paketine dahil, çok adımlı derin inceleme.
+ *
+ * KATMAN ADLARI: gerçekte iki katman var, `baslangic` ve `ai`
+ * (_shared/katman.ts: "ÜCRETLİ — tek katman"). "Pro" ve "Elit" eski bir
+ * yapıdan kalmıştı ve kullanıcıya gösterilen metinde duruyordu: avukat fiyat
+ * sayfasında olmayan bir plan arıyordu.
  * Sunucu olayı hukuki sorunlara böler, her sorun için mevzuat/kural/içtihat
  * toplar ve resmi bir mütalaa sentezler. Normal AI sohbetinden farkı: tek
  * cevap değil, araştırma dosyası üzerine kurulu bütünsel görüş.
