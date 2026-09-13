@@ -20,12 +20,11 @@
 // Idempotent: yalnız embedding'i NULL olan kayıtları işler, tekrar çağrılabilir.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
+// CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
+// Burada elle yazılmaları, altı uçta `x-client-info` başlığının izin
+// listesinden düşmesine ve tarayıcıda tam arızaya yol açmıştı.
+import { CORS } from '../_shared/cors.ts';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 // Model bir kez kurulur; her istekte yeniden yüklemek pahalı olurdu.
 // @ts-ignore — Supabase edge runtime globali

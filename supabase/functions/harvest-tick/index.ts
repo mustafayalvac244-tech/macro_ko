@@ -19,12 +19,11 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 import { sonrakiSayfa } from '../_shared/hasatSayfa.ts';
 import { havuzda } from '../_shared/havuz.ts';
+// CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
+// Burada elle yazılmaları, altı uçta `x-client-info` başlığının izin
+// listesinden düşmesine ve tarayıcıda tam arızaya yol açmıştı.
+import { CORS } from '../_shared/cors.ts';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 const EMSAL = 'https://emsal.uyap.gov.tr';
 const BEDESTEN = 'https://bedesten.adalet.gov.tr';
