@@ -847,7 +847,12 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
           <li>Mevzuat, hesaplayıcılar, şablonlar</li>
           <li>Ajanda, duruşma ve hatırlatmalar</li>
           <li>Dava, müvekkil ve duruşma takibi</li>
-          <li>Yapay zekâyı deneme sorularıyla tanıyın</li>
+          <!-- "Yapay zekâyı deneme sorularıyla tanıyın" SATIRI KALDIRILDI
+               (13.09.2026, ürün sahibi kararı): deneme hakkı ücretsiz
+               katmandan alınıp aylık pakete taşındı. Satır kalsaydı, ücretsiz
+               hesap açan avukata artık alamayacağı bir şey vaat edilmiş
+               olurdu — sunucu o isteği bugün 403 ile çeviriyor.
+               tests/sozlesmeSayilari.test.ts geri sızmasını engelliyor. -->
         </ul>
         <a class="dg dg-cer" href="app/">Başla</a>
       </div>
@@ -862,6 +867,13 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
           <li>Büro finansı ve raporlar</li>
           <li>Menfaat çatışması ve vekâlet takibi</li>
           <li>Büro kayıtlarında sayaç yok</li>
+          <!-- SAYI BURADA BİLEREK YAZILI. Sayfanın geri kalanında kota rakamı
+               yok (bkz. "vitrinde rakam yok" notu) çünkü aylık kapasiteler
+               değişebilir. Deneme hakkı ise tek ve kesin bir vaattir:
+               "birkaç deneme" demek, kaç tane olduğunu satın aldıktan sonra
+               öğrenmek demek olurdu. Rakam koddaki sabite bağlı
+               (tests/sozlesmeSayilari.test.ts). -->
+          <li>Yapay zekâyı tanımak için 3 deneme hakkı</li>
         </ul>
         <a class="dg dg-ana" href="app/">Üyeliğe geç</a>
       </div>

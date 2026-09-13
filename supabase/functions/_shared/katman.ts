@@ -11,9 +11,17 @@
 // "yarın" sanılması). Katman kararı buradan ve yalnız buradan verilir.
 //
 // KURAL (fiyatlama sadeleştirildi — tek ücretli katman, "ai"):
-//   • ÜCRETSİZ (free/baslangic) — hiç AI YOK. Yalnız YAŞAM BOYU (aylık değil)
-//     DENEME_SORU_LIMIT kadar bir tat verilir (bkz. denemeLimit), o da ücretli
-//     modelle — kalitesi düşük bir izlenim bırakmasın diye. Tükenince kapı kapanır.
+//   • ÜCRETSİZ (ödeme yok) — HİÇ AI YOK, deneme hakkı da YOK.
+//     13.09.2026'da değişti (ürün sahibi kararı): deneme hakkı ücretsiz
+//     katmandan alınıp ₺399'luk "Vekil Pro" paketine taşındı.
+//     GEREKÇE: 3 deneme, kullanıcı başına ~₺3'lük bir müşteri edinme
+//     maliyetiydi ve hiçbir ödeme adımı görmeden dağıtılıyordu. Artık ödeme
+//     yapmış ama AI paketi almamış üyeye veriliyor; yani parayı çoktan ödemiş
+//     birine "AI'ı da bir dene" demek için harcanıyor. Kararı veren şey
+//     ölçüm değil ürün tercihidir ve öyle yazılmalıdır.
+//   • ₺399 "Vekil Pro" (is_premium = true, ai_tier ≠ 'ai') — YAŞAM BOYU
+//     (aylık değil) DENEME_SORU_LIMIT kadar bir tat, o da ücretli modelle:
+//     kalitesi düşük bir izlenim bırakmasın diye. Tükenince kapı kapanır.
 //   • ÜCRETLİ = yalnız "ai" katmanı, CLAUDE SONNET 5 (12.09.2026'da Opus 5'ten
 //     indirildi — ürün kararı, gerekçe: maliyet. Opus $5/$25, Sonnet $2/$10 per
 //     MTok; ölçülmüş dilekçe boyutlarıyla (4.844 giriş + 1.573 çıkış, n=7)
@@ -76,6 +84,15 @@ export interface TierCfg {
    * !denemeLimit` şeklindedir.
    */
   denemeLimit?: number;
+  /**
+   * AI TAMAMEN KAPALI — ödeme yapmamış kullanıcı.
+   *
+   * NEDEN AYRI BİR ALAN, "limit: 0" DEĞİL. Sıfır limitle reddetmek, uçlarda
+   * "kotan bitti" (402) yoluna düşerdi ve kullanıcıya YANLIŞ sebep söylenirdi:
+   * beklerse yenilenecek sanır, oysa beklemekle açılmaz. Ayrı alan, ayrı hata
+   * kodu ve ayrı cümle demek — "bu özellik pakette yok, şu pakette var".
+   */
+  aiKapali?: true;
 }
 
 export interface KatmanSecenek {
@@ -186,8 +203,9 @@ const AI_TASMA_MODEL = 'claude-haiku-4-5-20251001';
 const AI_TASMA_EK = 900;
 
 /**
- * Ödeme yapmamış (free/baslangic) bir kullanıcıya YAŞAM BOYU (bir kez, hiç
- * yenilenmeyen) verilen deneme sorusu sayısı. Neden Groq değil Claude: Groq'ta
+ * ₺399'luk "Vekil Pro" üyesine YAŞAM BOYU (bir kez, hiç yenilenmeyen) verilen
+ * deneme sorusu sayısı. 13.09.2026'ya kadar ÜCRETSİZ katmandaydı; ürün sahibi
+ * kararıyla ödeme yapan pakete taşındı. Neden Groq değil Claude: Groq'ta
  * GERÇEK bir mantık hatası ölçüldü (bkz. konuşma geçmişi — "aldı" fiilini
  * "ödedi"ye çevirmişti); bir avukatın AI özelliğiyle İLK teması bu olursa
  * ürünü bir daha denemeyebilir. 3 istek, ölçülen dilekçe boyutlarıyla
@@ -197,7 +215,7 @@ export const DENEME_SORU_LIMIT = 3;
 
 export function tierConfig(
   aiTier: string | null | undefined,
-  _isPremium: boolean,
+  isPremium: boolean,
   secenek: KatmanSecenek
 ): { tier: string; cfg: TierCfg } {
   const { groqModel, claudeModel, claudeAnahtariVar } = secenek;
@@ -221,9 +239,32 @@ export function tierConfig(
     denemeLimit: DENEME_SORU_LIMIT,
   };
 
+  /**
+   * Ödeme yapmamış kullanıcı: AI kapalı.
+   *
+   * Alanlar yine de doldurulmuş, çünkü tip bunu istiyor ve bir gün bu dal
+   * yanlışlıkla çağrılırsa EN UCUZ yolda kalsın — ama `aiKapali` yüzünden
+   * uçlar buraya hiç gelmeden isteği reddediyor.
+   */
+  const kapaliCfg: TierCfg = {
+    provider: 'groq',
+    model: groqModel,
+    billable: false,
+    limitKind: 'calls',
+    limit: 0,
+    maxOut: 512,
+    aiKapali: true,
+  };
+
+  // ÜCRETSİZ İLE ₺399'U AYIRAN ŞEY is_premium.
+  // Bu parametre bugüne kadar KULLANILMIYORDU (adı `_isPremium` idi): ödeme
+  // yapan ₺399 üyesi ile hiç ödemeyen kullanıcı aynı deneme hakkını
+  // alıyordu. Artık deneme hakkı yalnız ödeyene veriliyor.
+  const odemesizVeyaDeneme: TierCfg = isPremium ? denemeCfg : kapaliCfg;
+
   const table: Record<string, TierCfg> = {
-    free: denemeCfg,
-    baslangic: denemeCfg,
+    free: odemesizVeyaDeneme,
+    baslangic: odemesizVeyaDeneme,
     // ÜCRETLİ — tek katman, Claude Sonnet 5. maxOut, ölçülen çıktı
     // uzunluklarına göre: dilekçe ~3.000 token ve adaptif düşünme de bu
     // tavana dahil.

@@ -41,8 +41,31 @@ describe('docs/terms.html — sözleşmedeki sayılar koddaki sabitlerle aynı m
     expect(gecer(AI_MUTALAA_HAKKI)).toBe(true);
   });
 
-  it('ücretsiz deneme sorusu sayısı yazılı', () => {
+  it('deneme hakkı sayısı yazılı', () => {
     expect(gecer(DENEME_SORU_HAKKI)).toBe(true);
+  });
+
+  /**
+   * DENEME HAKKI ÜCRETSİZ KATMANA GERİ SIZMASIN.
+   *
+   * 13.09.2026'da ürün sahibi kararıyla deneme hakkı ücretsiz katmandan
+   * alınıp ₺399'luk pakete taşındı; sunucu da aynı gün ödeme yapmamış
+   * kullanıcıya 403 döndürmeye başladı (_shared/katman.ts → aiKapali).
+   *
+   * RİSK ŞU: metin ile sunucu ayrışırsa hiçbir şey patlamaz. Satış sayfası
+   * "deneyin" der, kullanıcı hesap açar, düğmeye basar ve "bu özellik
+   * pakette yok" cevabını alır. Sessiz, geç fark edilen ve tam olarak
+   * güvenin kırıldığı yerde duran bir kusur. Bu test onu yakalıyor.
+   */
+  it('ücretsiz plan kartı yapay zekâ denemesi VAAT ETMİYOR', () => {
+    const site = readFileSync(new URL('../docs/index.html', import.meta.url), 'utf8')
+      .replace(/<!--[\s\S]*?-->/g, '');
+    const bas = site.indexOf('<h3>Ücretsiz</h3>');
+    const son = site.indexOf('<h3>Vekil Pro</h3>');
+    expect(bas, 'ücretsiz plan kartı bulunamadı').toBeGreaterThan(-1);
+    expect(son, 'Vekil Pro kartı bulunamadı').toBeGreaterThan(bas);
+    const kart = site.slice(bas, son);
+    expect(/deneme|yapay zek/i.test(kart), 'ücretsiz kart hâlâ yapay zekâ vaat ediyor').toBe(false);
   });
 
   it('ücretsiz katman satır sınırları yazılı', () => {

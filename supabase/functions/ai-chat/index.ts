@@ -1969,7 +1969,22 @@ Deno.serve(async (req) => {
     });
   }
 
-  // DENEME HAKKI — ödeme yapmamış (free/baslangic) kullanıcıya YAŞAM BOYU
+  // AI PAKETTE YOK — ödeme yapmamış kullanıcı.
+  //
+  // Deneme hakkı 13.09.2026'da ücretsiz katmandan alınıp ₺399'luk pakete
+  // taşındı (ürün sahibi kararı, bkz. _shared/katman.ts). Bu kontrol, deneme
+  // rezervasyonundan ÖNCE gelmeli: `aiKapali` cfg'sinde denemeLimit yoktur,
+  // yani aşağıdaki kapı bu isteği hiç görmez ve istek kontör kontrolüne
+  // düşerdi — kullanıcıya "kontörünüz bitti" denirdi. Yanlış sebep, en kötü
+  // hata mesajıdır: beklerse açılacak sanır, oysa beklemekle açılmaz.
+  if (cfg.aiKapali) {
+    return new Response(
+      JSON.stringify({ error: 'tier_required', tier, required: 'premium' }),
+      { status: 403, headers: CORS }
+    );
+  }
+
+  // DENEME HAKKI — ₺399'luk "Vekil Pro" üyesine YAŞAM BOYU
   // (aylık değil, hiç yenilenmeyen) DENEME_SORU_LIMIT kadar bir tat. Kontör/
   // modLimits kontrolünden ÖNCE çalışır ve tükenmişse isteği BAŞLAMADAN
   // reddeder — aksi hâlde aşağıdaki kontör kontrolü devreye girip (cfg.billable
