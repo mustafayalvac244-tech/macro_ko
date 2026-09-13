@@ -140,6 +140,11 @@ export const tr = {
   // Ana ekran masaüstünde tek sütuna sıkışıyordu; bu anahtarlar orada açılan
   // durum şeridi, yaklaşan süreler listesi ve kısayollar için.
   'dash.stat.cases': 'Aktif dosya',
+  // Üst çubuktaki hızlı tema düğmesi (yalnız web). Etiketler ekranda
+  // görünmüyor; ekran okuyucu ve erişilebilirlik için.
+  'tema.acik': 'Beyaz tema',
+  'tema.koyu': 'Koyu tema',
+
   'dash.stat.hearings': 'Bu hafta duruşma',
   'dash.stat.deadlines': 'Bekleyen süre',
   'dash.stat.outcomes': 'Sonuç bekleyen',

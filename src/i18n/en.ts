@@ -135,6 +135,9 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.fin.title': 'Financial Summary',
   // ── Dashboard grid (wide browser only) ─────────────────────────────────
   'dash.stat.cases': 'Open matters',
+  'tema.acik': 'Light theme',
+  'tema.koyu': 'Dark theme',
+
   'dash.stat.hearings': 'Hearings this week',
   'dash.stat.deadlines': 'Pending deadlines',
   'dash.stat.outcomes': 'Awaiting outcome',

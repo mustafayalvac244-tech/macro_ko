@@ -6,6 +6,7 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { useSidebarStore } from '@/store/sidebarStore';
+import { TemaDugmesiTek } from './TemaDugmesi';
 
 interface ScreenHeaderProps {
   title: string;
@@ -72,8 +73,12 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
         </View>
       </View>
 
-      {/* Sağ köşe: ana sayfa kısayolu (derin ekranlarda) + ekrana özel eylem. */}
+      {/* Sağ köşe: tema düğmesi (yalnız web) + ana sayfa kısayolu (derin
+          ekranlarda) + ekrana özel eylem. Tema düğmesi EN SOLDA: ekrana
+          özel eylem (kaydet, düzenle) en sağda kalsın — parmağın/farenin
+          gittiği yer orası ve her ekranda aynı yerde olmalı. */}
       <View style={styles.right}>
+        <TemaDugmesiTek />
         {deep && !hideHome && (
           <Pressable onPress={goHome} hitSlop={10} style={styles.homeButton}>
             <Ionicons name="home-outline" size={20} color={colors.textPrimary} />
