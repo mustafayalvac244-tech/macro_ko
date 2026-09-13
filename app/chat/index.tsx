@@ -446,7 +446,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 9,
   },
   codeShareText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -519,7 +519,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 5,
   },
   unreadBadgeText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 11,
     fontWeight: '800',
   },

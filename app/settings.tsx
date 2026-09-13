@@ -484,7 +484,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 2,
   },
   adminBadgeText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 10,
     fontWeight: '800',
   },

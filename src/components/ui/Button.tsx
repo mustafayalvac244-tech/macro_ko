@@ -81,7 +81,7 @@ export function Button({
 const makeVariantStyles = (colors: ThemeColors) => ({
   primary: StyleSheet.create({
     container: { backgroundColor: colors.primary },
-    text: { color: '#FFFFFF' },
+    text: { color: colors.textInverse },
   }),
   secondary: StyleSheet.create({
     container: { backgroundColor: colors.surfaceHover, borderWidth: 1, borderColor: colors.border },

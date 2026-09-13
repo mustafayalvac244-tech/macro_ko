@@ -110,7 +110,7 @@ export default function DeadlineWizardScreen() {
                   <Text style={styles.itemBasis}>{item.basis}</Text>
                 </View>
                 <View style={[styles.durationBadge, active && { backgroundColor: colors.primary }]}>
-                  <Text style={[styles.durationBadgeText, active && { color: '#FFFFFF' }]}>
+                  <Text style={[styles.durationBadgeText, active && { color: colors.textInverse }]}>
                     {durationLabel(item.amount, item.unit)}
                   </Text>
                 </View>

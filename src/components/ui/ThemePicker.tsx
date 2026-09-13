@@ -34,7 +34,7 @@ export function ThemePicker() {
               <View style={[styles.dot, styles.dotSmall, { backgroundColor: gold }]} />
               {active && (
                 <View style={[styles.check, { backgroundColor: colors.primary }]}>
-                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                  <Ionicons name="checkmark" size={12} color={colors.textInverse} />
                 </View>
               )}
             </View>

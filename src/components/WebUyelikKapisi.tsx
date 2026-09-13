@@ -141,7 +141,7 @@ const makeStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    adimNoYazi: { ...typography.small, color: '#FFFFFF' },
+    adimNoYazi: { ...typography.small, color: colors.textInverse },
     adimYazi: { ...typography.body, color: colors.textSecondary, flex: 1, lineHeight: 21 },
     hesap: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
     dugmeler: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, flexWrap: 'wrap' },
