@@ -45,7 +45,7 @@ kutunun üstündeki eski çizgili barkod için `ean13` ekle.
 Örnek ham içerik (`⟨GS⟩` = ASCII 29):
 
 ```
-]d2 01 08680000000017 21 2H4K9QW7X1 ⟨GS⟩ 17 271200 10 L27B14
+]d2 01 08680000000013 21 2H4K9QW7X1 ⟨GS⟩ 17 271200 10 L27B14
 ```
 
 ### Asıl tuzak: ayrıştırma
@@ -54,40 +54,25 @@ Parti ve seri numarası **değişken uzunlukta** ve `GS` ayıracıyla biter. Bu
 işlenmezse seri numarasının sonuna parti numarası yapışır — en sık yapılan hata,
 ve ekranda "çalışıyor" gibi görünür.
 
-```ts
-// Türk ilaç kutusunda geçen dört alan için yeterli ayrıştırıcı.
-// Not: GS1'de 3-4 karakterlik AI'lar da var; burada 2 karakter varsayılıyor.
-const GS = '\x1d';
-const SABIT: Record<string, number> = { '01': 14, '17': 6, '11': 6, '15': 6 };
+Çalışan ve test edilmiş hâli depoda: [`ilac-karekod/karekod.ts`](ilac-karekod/karekod.ts)
+(27 test geçiyor, `tsc --strict` temiz — bkz. [`ilac-karekod/README.md`](ilac-karekod/README.md)).
 
-export function karekoduAyristir(ham: string) {
-  let s = ham.replace(/^\]d2/, '');   // sembol ön eki
-  const a: Record<string, string> = {};
-  while (s.length >= 2) {
-    const ai = s.slice(0, 2);
-    s = s.slice(2);
-    const n = SABIT[ai];
-    if (n) {
-      a[ai] = s.slice(0, n);
-      s = s.slice(n);
-      if (s.startsWith(GS)) s = s.slice(1);
-    } else {
-      const i = s.indexOf(GS);            // ← bunu atlarsan seri bozulur
-      a[ai] = i < 0 ? s : s.slice(0, i);
-      s = i < 0 ? '' : s.slice(i + 1);
-    }
-  }
-  return { gtin: a['01'], seri: a['21'], parti: a['10'], skt: sktCevir(a['17']) };
-}
+Bu notun ilk hâlinde buraya yazdığım ayrıştırıcıyı **hiç çalıştırmamıştım**.
+Çalıştırınca iki gerçek hata çıktı:
 
-function sktCevir(v?: string) {                 // YYMMDD → Date
-  if (!v) return null;
-  const yil = 2000 + +v.slice(0, 2), ay = +v.slice(2, 4), gun = +v.slice(4, 6);
-  return gun === 0
-    ? new Date(yil, ay, 0)                      // 00 = ayın son günü
-    : new Date(yil, ay - 1, gun);
-}
-```
+1. Yukarıdaki örnek GTIN'in (`...017`) **kontrol hanesi tutmuyordu**; doğrusu
+   `...013`. Düzeltildi — ve modüle kontrol hanesi doğrulaması eklendi, çünkü
+   hatalı okumanın sessizce kabul edilmesi tam olarak bu demek.
+2. **Kutunun çizgili barkodu (EAN-13) yolu eksikti.** AI `(01)` standartta
+   zaten 14 hane sabit, yani 13 haneli GTIN karekoddan gelmez; eski çizgili
+   barkoddan gelir ve onda hiç AI yoktur. Önemli sonucu şu: EAN-13 **kutuyu
+   değil yalnız ürünü** tanır — seri numarası taşımadığı için o kodla ne Miat
+   Radarı ne de mükerrer sayım engeli çalışır.
+
+Ayrıca ilk hâl, tanınmayan bir AI'yı sessizce dizginin sonuna kadar yutuyor,
+sıradan bir QR okutulduğunda `undefined` dönüyor ve 30 Şubat gibi tarihleri
+sessizce 2 Mart'a kaydırıyordu. Hepsi düzeltildi.
+
 
 ---
 
@@ -303,7 +288,10 @@ eczacı kapıdan içeri alır.
    ve kullanım koşulları kontrol edilmeli.
 7. **Expo ayrıntısı.** `expo-camera`'da `datamatrix` formatının açılması gerektiği
    genel bilgiyle yazıldı; kullanılan Expo sürümünün kendi dokümanından teyit et.
-8. **Hiçbir sayı uydurulmadı.** Pazar büyüklüğü, kullanıcı sayısı, dönüşüm oranı,
+8. **Ayrıştırıcı gerçek kutuda denenmedi.** 27 test geçiyor ama sınav setini
+   de "doğru"nun tanımını da ben yazdım. Birkaç gerçek kutuyu okutup çıktıyı
+   kutunun üstündeki yazıyla karşılaştırman gerekir.
+9. **Hiçbir sayı uydurulmadı.** Pazar büyüklüğü, kullanıcı sayısı, dönüşüm oranı,
    gelir tahmini yok. Her `[köşeli parantez]` ölçülecek bir boşluk.
 
 ---
