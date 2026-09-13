@@ -33,6 +33,7 @@ on:
           - ai-maliyet-olcum
           - gelir-gider-sorgu
           - kvkk-durum
+          - olcek-testi
   schedule:
     # Her gün 06:00 UTC. Hasat gece boyunca çalışıyor; sabah ölçümü, bir
     # önceki günün tam bir resmini veriyor.
