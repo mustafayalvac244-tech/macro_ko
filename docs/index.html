@@ -30,6 +30,102 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="robots" content="index,follow">
 
+<!-- YAPISAL VERİ (JSON-LD) — SAYFADA HİÇ YOKTU.
+     Arama motoru bu sayfaya bakınca "bu ne?" sorusunu metinden tahmin
+     etmek zorundaydı. Rakiplerin tamamı bu işaretlemeyi kullanıyor; S.S.S.
+     işaretlemesi sonuç sayfasında soruların açılır olarak görünmesini
+     sağlıyor ve tıklanmadan önce cevabı gösteriyor.
+     DİKKAT — BURADAKİ HER ALAN SAYFADAKİ METİNLE AYNI OLMAK ZORUNDA.
+     Google, sayfada görünmeyen bir S.S.S. metnini işaretlemeyi kural
+     ihlali sayar; ayrıca farklı yazmak, sayfanın iki ayrı şey söylemesi
+     demektir. tests/webMetinTutarlilik.test.ts bu bloğun geçerli JSON
+     olduğunu ve soruların aşağıdaki S.S.S. başlıklarıyla birebir
+     eşleştiğini denetliyor. (Bu yorumda &quot;summary&quot; etiketi bilerek
+     açık yazılmıyor: yorum içinde bile geçse, başlıkları tarayan basit bir
+     düzenli ifade onu gerçek bir başlık sanıyor — testi yazarken tam olarak
+     bu oldu.)
+     FİYAT BİLEREK YAZILMADI: ücretli planlar bugün satın alınamıyor
+     (mağaza listeleri henüz canlı değil). Satın alınamayan bir şeye
+     arama sonucunda fiyat etiketi bastırmak, tıklayan avukata olmayan
+     bir satın alma yolu vaat eder. Ücretsiz katman gerçek olduğu için
+     yalnız o yazılı. PUAN/YORUM ALANI DA YOK: değerlendirmemiz yok;
+     olmayan yıldızı işaretlemek uydurmadır. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "Vekil Pro",
+      "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "Hukuk büro yönetimi ve hukuki araştırma",
+      "operatingSystem": "Web tarayıcısı",
+      "url": "https://vekilpro.app/",
+      "inLanguage": "tr-TR",
+      "description": "Avukatlar için dava, duruşma, müvekkil, icra ve büro finansı yönetimi; Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında ücretsiz ve sınırsız arama; yapay zekâ ile dilekçe taslağı ve hukuki mütalaa — üretilen her kanun maddesi ve her karar künyesi mekanik olarak denetlenir.",
+      "featureList": [
+        "Yargıtay, Danıştay, istinaf ve yerel mahkeme kararlarında sınırsız ücretsiz arama",
+        "Yapay zekâ çıktısındaki kanun maddesi ve karar künyelerinin mekanik denetimi",
+        "Dava, duruşma, süre ve görev yönetimi",
+        "Müvekkil ve belge kasası",
+        "Vekâletname ve özel yetki takibi",
+        "İcra, tahsilat ve tevkil",
+        "Büro finansı ve gelir-gider dökümü",
+        "UYAP Editör biçiminde (.udf) dilekçe çıktısı",
+        "UYAP belgesinden dava kaydı oluşturma"
+      ],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "TRY",
+        "description": "Ücretsiz katman: içtihat ve mevzuat araması üyeliksiz, sınırsız ve süresiz."
+      }
+    },
+    {
+      "@type": "WebSite",
+      "name": "Vekil Pro",
+      "url": "https://vekilpro.app/",
+      "inLanguage": "tr-TR"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "İçtihat araması gerçekten ücretsiz mi?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Evet. Yargıtay, Danıştay, bölge adliye/idare mahkemesi ve yerel mahkeme kararlarında arama, künye araması ve karar metnini okuma ücretsiz katmanda sınırsızdır ve öyle kalacaktır. Ücret, büro yönetimini büyütmek ya da yapay zekâyı kullanmak içindir." }
+        },
+        {
+          "@type": "Question",
+          "name": "UYAP'a bağlanıyor mu? Dosyalarım kendiliğinden gelir mi?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Hayır — dosyalarınız UYAP'tan kendiliğinden akmaz. Vekil Pro, avukat portalınıza bağlanan ya da dosya listenizi çeken bir program değildir; UYAP ve Adalet Bakanlığı ile resmî bir bağlantısı yoktur. Yapabildikleri: içtihat aramasında UYAP Emsal ve Bedesten kaynaklarına canlı gitmek, dilekçeyi UYAP Editör biçiminde (.udf) indirmek ve UYAP'tan indirdiğiniz dosya belgesinden mahkeme, esas no, taraf ve duruşma günü okuyarak dava kaydını kurmak. Tebligat (UETS) takibi yoktur." }
+        },
+        {
+          "@type": "Question",
+          "name": "Büroda birkaç kişiyiz, ekip olarak kullanabilir miyiz?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Bugün hayır. Vekil Pro tek hesap, tek kullanıcı olarak çalışır: kâtip, stajyer ya da ortak avukat için ayrı yetki verilemez, dosya paylaşılamaz. Karşılığında kayıtlarınızı sizden başka görebilecek bir kullanıcı hesabı yoktur; her satır veritabanı düzeyinde hesabınıza kilitlidir." }
+        },
+        {
+          "@type": "Question",
+          "name": "Yapay zekâ yanlış madde numarası verir mi?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Verebilir — bu, bütün dil modellerinin bilinen kusurudur. İki şey yapıyoruz: modele soruyla ilgili gerçek madde metinlerini ve kararları önceden veriyoruz, ve çıktıdaki madde atıflarını kendi mevzuat veritabanımızla mekanik olarak denetleyip havuzumuzdaki bir kanunda bulunmayan atıfları işaretliyoruz. Yine de son denetim avukata aittir." }
+        },
+        {
+          "@type": "Question",
+          "name": "Verilerim nerede tutuluyor, eğitimde kullanılıyor mu?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Veriler Supabase altyapısında, Avrupa Birliği — İrlanda bölgesinde, satır düzeyinde erişim kurallarıyla (RLS) tutulur; başka bir kullanıcı kayıtlarınıza erişemez. Sorularınız model eğitiminde kullanılmaz ve soru metni saklanmaz. Aktarılan sağlayıcıların tam listesi Güvenlik ve Veri Merkezi sayfasındadır." }
+        },
+        {
+          "@type": "Question",
+          "name": "Web sürümünü kimler kullanabilir?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Herkes. Tarayıcı sürümü bugün ücretsiz katman dâhil tüm hesaplara açıktır; kurulum, mağaza ve güncelleme beklemek gerekmez. Telefonun, tabletin ve bilgisayarın tarayıcısında aynı hesapla çalışır." }
+        }
+      ]
+    }
+  ]
+}
+</script>
+
 <!-- Uygulamanın kendi tipografisi: başlıklar Playfair, gövde Manrope.
      Tanıtım sayfası uygulamayla aynı görünmeli; farklı font, iki ayrı ürün
      izlenimi verir. preconnect, ilk boyamayı hızlandırır. -->
@@ -639,6 +735,18 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
         <h3>İcra, tahsilat ve tevkil</h3>
         <p>İcra dosyaları, ödeme günü takibi ve tahsilat durumu; serbest meslek makbuzu. Tevkil Panosu'nda başka ildeki duruşma için meslektaş arar ya da kendiniz iş alırsınız.</p>
       </div>
+      <!-- BU KART SAYFADA HİÇ YOKTU — OYSA ÖZELLİK CANLIDA ÇALIŞIYOR.
+           13.09.2026'da fark edildi: app/dosya-aktar.tsx açık
+           (AI_AKTARMA_ENABLED = true), kenar menüde duruyor ve doc-extract
+           ucunu çağırıyor. Rakiplerin vitrinindeki "UYAP'tan dosyalarınız
+           otomatik gelsin" vaadinin bizdeki dürüst karşılığı tam olarak bu:
+           bağlantı yok ama ELLE VERİ GİRİŞİ DE YOK. Sayfada yazmıyor olması,
+           ürünün en çok sorulan eksiğine verilebilecek cevabı saklamaktı. -->
+      <div class="kutu">
+        <div class="ik">10</div>
+        <h3>Belgeden dosya açma</h3>
+        <p>UYAP'tan indirdiğiniz dosya belgesini yükleyin; mahkeme, esas no, dava türü, karşı taraf ve duruşma günü okunup dava kaydınız kurulsun. Alanları onaylayıp kaydedersiniz — baştan elle yazmazsınız. <b>UYAP'a bağlanmaz</b>: belgeyi siz verirsiniz.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -830,7 +938,9 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       </div>
     </div>
     <p style="text-align:center;color:var(--metin-3);font-size:13.5px;margin-top:26px">
-      Ayrıntının tamamı uygulama içindeki <b>KVKK Aydınlatma Metni</b>'nde: veri sorumlusu, işleme amaçları, hukuki sebepler, aktarılan taraflar ve ülkeler, saklama süreleri, 11. madde haklarınız ve başvuru yolu.
+      Hangi sağlayıcıya, hangi ülkeye, hangi amaçla — adı adına tam liste, saklama süreleri ve <b>henüz sahip olmadığımız belgeler</b>:
+      <a href="guvenlik.html" style="color:var(--lacivert-3);font-weight:700">Güvenlik ve Veri Merkezi</a>.
+      Hukuki metnin tamamı uygulama içindeki <b>KVKK Aydınlatma Metni</b>'ndedir.
     </p>
   </div>
 </section>
@@ -873,9 +983,32 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
       <p>Verebilir — bu, bütün dil modellerinin bilinen kusurudur. İki şey yapıyoruz: modele soruyla ilgili gerçek madde metinlerini ve kararları önceden veriyoruz, ve çıktıdaki madde atıflarını kendi mevzuat veritabanımızla mekanik olarak denetleyip havuzumuzdaki bir kanunda bulunmayan atıfları size işaretliyoruz. Yine de son denetim avukata aittir.</p>
     </details>
 
+    <!-- BU ÜÇ SORU 13.09.2026'DA EKLENDİ.
+         Sebep: Türkiye'deki hukuk yazılımlarının tanıtım sayfaları tarandı
+         (hukas.com.tr, hukukcu.pro ve karşılaştırma yazıları). Hepsinin
+         vitrininde ilk sırada "UYAP/UETS entegrasyonu" duruyor. Yani bizim
+         sayfamıza gelen avukatın aklındaki İLK soru buydu ve sayfada hiçbir
+         yerde yanıtı yoktu. Yanıt "hayır" — ve bunu sormadan önce yazmak,
+         sorduktan sonra öğrenmesinden iyidir. Aynı taramadan çıkan diğer iki
+         standart soru da (ekip kullanımı, mevcut programdan geçiş) burada. -->
+    <details>
+      <summary>UYAP'a bağlanıyor mu? Dosyalarım kendiliğinden gelir mi?</summary>
+      <p><b>Hayır — dosyalarınız UYAP'tan kendiliğinden akmaz.</b> Vekil Pro, avukat portalınıza bağlanan, e-imzanızı kullanan ya da dosya listenizi çeken bir program değildir; UYAP ve Adalet Bakanlığı ile resmî bir bağlantısı yoktur. Bugün UYAP tarafında yapabildikleri şunlar: <b>(1)</b> içtihat aramasında UYAP Emsal ve Bedesten kaynaklarına canlı gider, kararın kendisini getirir; <b>(2)</b> ürettiği dilekçeyi UYAP Editör'ün kendi biçiminde (.udf) indirir, siz portala yüklersiniz; <b>(3)</b> UYAP'tan indirdiğiniz dosya belgesini yüklerseniz mahkeme, esas no, taraf ve duruşma günü gibi alanları okuyup davayı sizin yerinize açar — elle yazmazsınız. <b>Tebligat (UETS) takibi yoktur.</b> Bunu eksik sayan bir avukat için doğru tercih, UYAP entegrasyonunu merkezine alan bir program olabilir; biz merkeze çıktının denetimini koyduk.</p>
+    </details>
+
+    <details>
+      <summary>Büroda birkaç kişiyiz, ekip olarak kullanabilir miyiz?</summary>
+      <p><b>Bugün hayır.</b> Vekil Pro tek hesap, tek kullanıcı olarak çalışır: kâtip, stajyer ya da ortak avukat için ayrı yetki verilemez, dosya paylaşılamaz. Bunun bir kolaylık eksiği olduğunu biliyoruz. Karşılığında bugün şu kesin: kayıtlarınızı sizden başka görebilecek bir kullanıcı hesabı yoktur — her satır veritabanı düzeyinde hesabınıza kilitlidir. Ayrıntısı <a href="guvenlik.html">Güvenlik ve Veri Merkezi</a> sayfasında.</p>
+    </details>
+
+    <details>
+      <summary>Şu an başka bir program kullanıyorum, kayıtlarımı taşıyabilir miyim?</summary>
+      <p>Toplu aktarma aracı <b>yok</b>: başka bir programın yedeğini okuyup dosyalarınızı otomatik kuran bir ekran bulunmuyor. Pratikte iki yol var — dosyaları elle açmak ya da her dosya için UYAP belgesini yükleyip alanları yapay zekâya doldurtmak. Yürüyen dosya sayınız yüksekse bunu baştan bilin; sayfanın size zaman vaat edip sonra günlerce veri girişi yaptırmasını istemeyiz.</p>
+    </details>
+
     <details>
       <summary>Verilerim nerede tutuluyor, eğitimde kullanılıyor mu?</summary>
-      <p>Veriler Supabase altyapısında, satır düzeyinde erişim kurallarıyla (RLS) tutulur; başka bir kullanıcı kayıtlarınıza erişemez. Sorularınız model eğitiminde kullanılmaz ve soru metni saklanmaz. Yedekleme süreleri ve hesap silme sonrası ne olduğu Kullanım Koşulları'nın 13. maddesinde açıkça yazılıdır.</p>
+      <p>Veriler Supabase altyapısında, satır düzeyinde erişim kurallarıyla (RLS) tutulur; başka bir kullanıcı kayıtlarınıza erişemez. Sorularınız model eğitiminde kullanılmaz ve soru metni saklanmaz. Yedekleme süreleri ve hesap silme sonrası ne olduğu Kullanım Koşulları'nın 13. maddesinde açıkça yazılıdır. Verinin aktarıldığı sağlayıcıların tam listesi — adı, ülkesi ve amacı — <a href="guvenlik.html">Güvenlik ve Veri Merkezi</a> sayfasındadır.</p>
     </details>
 
     <details>
@@ -900,7 +1033,15 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 
     <details>
       <summary>Verilerimi dışarı alabilir miyim?</summary>
-      <p>Evet. Dava, müvekkil ve finans kayıtlarınızı tablo (CSV) olarak dışa aktarabilir, belgelerinizi indirebilir, ürettiğiniz dilekçeleri UYAP biçiminde (.udf) ya da düz metin olarak alabilirsiniz. Veriniz programın içinde rehin kalmaz.</p>
+      <!-- BU CEVAP FAZLASINI SÖYLÜYORDU. "Dava, müvekkil ve finans
+           kayıtlarınızı tablo (CSV) olarak dışa aktarabilir" yazıyordu;
+           13.09.2026 ölçümü: CSV dışa aktarma YALNIZ gelir-gider ekranında
+           var (src/utils/exportCsv.ts tek yerden çağrılıyor: app/finance.tsx).
+           Dava ve müvekkil listesi için böyle bir düğme yok. Veri
+           taşınabilirliği KVKK m.11 konusu; burada fazlasını söylemek, tam da
+           güvenmesi istenen yerde yanlış söylemek olur. Eksik özellik olduğu
+           gibi yazılıyor. -->
+      <p>Kısmen — bugünün gerçeği şu: <b>gelir-gider dökümünü</b> tablo (CSV) olarak dışa aktarabilir, <b>belgelerinizi</b> tek tek indirebilir, ürettiğiniz <b>dilekçeleri</b> UYAP biçiminde (.udf) ya da düz metin olarak alabilirsiniz. <b>Dava ve müvekkil listesi için toplu dışa aktarma düğmesi henüz yok</b> — yapılacaklar arasında ve bu satır kaldırıldığında geldiğini anlayacaksınız. Hesabınızı sildiğinizde kayıtlarınız gerçekten silinir; programın içinde rehin kalmaz.</p>
     </details>
 
     <details>
@@ -929,6 +1070,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
         <h4>Yasal</h4>
         <a href="terms.html">Kullanım Koşulları</a>
         <a href="privacy.html">Gizlilik Politikası</a>
+        <a href="guvenlik.html">Güvenlik ve Veri Merkezi</a>
       </div>
       <!-- İLETİŞİM SÜTUNU BİLEREK BOŞ. Depoda hiçbir yerde destek e-postası
            yok (privacy.tsx, terms.tsx ve docs/privacy.html tarandı: sıfır
