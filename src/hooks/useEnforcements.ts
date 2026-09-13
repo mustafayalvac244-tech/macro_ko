@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
+import { onbellekYamasi } from '@/utils/onbellekYamasi';
 import { useAuthStore } from '@/store/authStore';
 import type {
   EnforcementCollection,
@@ -111,13 +112,38 @@ export function useUpdateEnforcement() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    onError: notifySaveError,
     mutationFn: async ({ id, ...rest }: Partial<EnforcementFile> & { id: string }) => {
       const { data, error } = await supabase.from('enforcement_files').update(rest).eq('id', id).select().single();
       if (error) throw error;
       return data as EnforcementFile;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['enforcements'] }),
+
+    /**
+     * İYİMSER GÜNCELLEME — "Safha" rozetleri geç geçiyordu.
+     *
+     * Eskiden ekrandaki seçim, sunucudan İKİ kez dönülmeden kımıldamıyordu:
+     * önce UPDATE, sonra invalidate'in tetiklediği refetch. Yavaş bağlantıda
+     * bu "tıkladım, olmadı" hissi veriyor ve kullanıcı tekrar dokunuyor —
+     * yani ikinci bir yazma daha üretiyordu.
+     *
+     * Artık önbellek hemen yamanıyor; sunucu cevabı arkadan geliyor. Hata
+     * olursa yama geri alınıyor ve kullanıcıya söyleniyor: sessizce yanlış
+     * safhayı göstermek, gecikmeden kötüdür.
+     */
+    onMutate: async ({ id, ...rest }) => {
+      await queryClient.cancelQueries({ queryKey: ['enforcements'] });
+      const oncekiler = queryClient.getQueriesData({ queryKey: ['enforcements'] });
+      queryClient.setQueriesData({ queryKey: ['enforcements'] }, (eski) =>
+        onbellekYamasi<EnforcementFile>(eski, id, rest),
+      );
+      return { oncekiler };
+    },
+    onError: (err, _degiskenler, baglam) => {
+      baglam?.oncekiler.forEach(([anahtar, veri]) => queryClient.setQueryData(anahtar, veri));
+      notifySaveError(err);
+    },
+    // Başarıda da hatada da sunucudaki gerçekle hizalan.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['enforcements'] }),
   });
 }
 
