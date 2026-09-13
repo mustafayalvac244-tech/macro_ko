@@ -21,14 +21,19 @@ with rls_tablo as (
   where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
 ),
 kullanici_sutunlu as (
-  -- Politikaların dayandığı sütun; bu şemada sahiplik her yerde bu adla tutulur.
-  select t.oid, t.relname, a.attnum
+  -- Politikaların dayandığı sahiplik sütunu.
+  -- İKİ AD VAR ve ilk sürümde bunu kaçırdım: ana tablolar (cases, clients,
+  -- documents…) 'owner_id', sonradan eklenenler 'user_id' kullanıyor. Yalnız
+  -- 'user_id' arayan bir süzgeç, en kritik tabloları hiç görmeden "her şey
+  -- yolunda" diyordu — dar süzgeç, sessiz yalan.
+  select t.oid, t.relname, a.attname, a.attnum
   from rls_tablo t
   join pg_attribute a
-    on a.attrelid = t.oid and a.attname = 'user_id' and a.attnum > 0 and not a.attisdropped
+    on a.attrelid = t.oid and a.attname in ('user_id', 'owner_id')
+   and a.attnum > 0 and not a.attisdropped
 ),
 indeks_durumu as (
-  select k.relname,
+  select k.relname, k.attname,
          exists (
            select 1 from pg_index i
            where i.indrelid = k.oid and i.indkey[0] = k.attnum
@@ -55,13 +60,13 @@ baglanti as (
 satirlar as (
   -- ── 1. SAHİPLİK İNDEKSİ — ölçeklemenin en sessiz katili ─────────────────
   select 10::numeric as sira, 'RLS-INDEKS' as bolum,
-         '>> ' || relname || ' — user_id indeksi YOK' as alan,
+         '>> ' || relname || ' — ' || attname || ' indeksi YOK' as alan,
          'tahmini ' || tahmini_satir || ' satır · ' || pg_size_pretty(boyut)
          || ' — her kullanıcı sorgusu tam tarama riski' as deger
   from indeks_durumu where not indeks_var
   union all
   select 11, 'RLS-INDEKS', relname,
-         'indeks VAR · tahmini ' || tahmini_satir || ' satır · ' || pg_size_pretty(boyut)
+         attname || ' indeksi VAR · tahmini ' || tahmini_satir || ' satır · ' || pg_size_pretty(boyut)
   from indeks_durumu where indeks_var
 
   -- ── 2. TAM TARAMA ORANI — 1 MB üstü tablolarda ──────────────────────────
