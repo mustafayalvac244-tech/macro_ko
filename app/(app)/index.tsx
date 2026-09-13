@@ -12,6 +12,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
+import { TemaDugmesi } from '@/components/ui/TemaDugmesi';
 import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
@@ -423,6 +424,12 @@ export default function DashboardScreen() {
             </View>
           </View>
           <View style={styles.toolbarRight}>
+            {/* HIZLI TEMA DÜĞMESİ — koyu ↔ beyaz. Yalnız web'de görünür
+                (bkz. TemaDugmesi: telefonda üst çubukta yer yok, tam seçim
+                Ayarlar'da). Zilin SOLUNDA duruyor: bildirim ve hesap,
+                kullanıcının en sağda aradığı iki şey; görünüm tercihi
+                onların önüne geçmemeli. */}
+            <TemaDugmesi />
             <Pressable
               onPress={() => router.push('/reminders' as Parameters<typeof router.push>[0])}
               hitSlop={8}

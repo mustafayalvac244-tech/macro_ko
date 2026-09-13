@@ -206,6 +206,32 @@ const obsidian: ThemeColors = {
 
 export const palettes: Record<ThemeId, ThemeColors> = { light, dark, sepia, emerald, obsidian };
 
+/**
+ * BİR TEMA KOYU MU?
+ *
+ * NEDEN LİSTE DEĞİL, statusBar'DAN TÜRETİLİYOR. Koyu temaların adlarını ayrı
+ * bir dizide tutmak, altıncı tema eklendiği gün sessizce yanlışa düşer:
+ * yeni tema listeye yazılmazsa "açık" sayılır ve hızlı tema düğmesi onu
+ * açık temaya çevirmeye çalışırken hiçbir şey yapmamış gibi görünür.
+ * `statusBar` alanı ZATEN her tema için doldurulmak zorunda ve tam olarak
+ * aynı soruyu yanıtlıyor: 'light' (açık ikon) ⇒ zemin koyu.
+ */
+export function koyuTemaMi(id: ThemeId): boolean {
+  return themeMetas.find((m) => m.id === id)?.statusBar === 'light';
+}
+
+/**
+ * Hızlı tema düğmesinin bir sonraki teması.
+ *
+ * Kullanıcı Ayarlar'dan beş temadan birini seçebiliyor; üst çubuktaki düğme
+ * ise iki yönlü. Kural: koyu bir temadaysan Klasik'e (beyaz), açık bir
+ * temadaysan Gece'ye geç. Böylece Parşömen/Zümrüt seçen kullanıcının düğmesi
+ * de anlamlı çalışır — "hiçbir şey olmuyor" hissi doğmaz.
+ */
+export function digerTema(id: ThemeId): ThemeId {
+  return koyuTemaMi(id) ? 'light' : 'dark';
+}
+
 export const themeMetas: ThemeMeta[] = [
   { id: 'light', name: 'Klasik', nameEn: 'Classic', statusBar: 'dark', swatch: ['#EEF2F8', '#173C7E', '#B18A2B'] },
   { id: 'dark', name: 'Gece', nameEn: 'Midnight', statusBar: 'light', swatch: ['#070E1B', '#5B8DEF', '#E9C86E'] },
