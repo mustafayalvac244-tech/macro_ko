@@ -14,7 +14,7 @@ import { describe, expect, it, vi } from 'vitest';
  */
 vi.mock('react-native', () => ({ Platform: { OS: 'ios' } }));
 
-const { genisEkranMi, ortalaStili, sutunSayisi, kaliciMenuMu } = await import('@/theme/duzen');
+const { genisEkranMi, ortalaStili, sutunSayisi, kaliciMenuMu, panoOlculeri } = await import('@/theme/duzen');
 
 describe('natifte geniş ekran düzeni', () => {
   it('en geniş tablette bile devreye girmez', () => {
@@ -35,5 +35,20 @@ describe('natifte geniş ekran düzeni', () => {
   it('sütun sayısı her zaman 1', () => {
     expect(sutunSayisi(1366)).toBe(1);
     expect(sutunSayisi(3000, 200, 4)).toBe(1);
+  });
+
+  it('pano ızgarası natifte ASLA çok sütuna geçmez', () => {
+    // Telefonda üç sütun demek, her kartın ~120 px olması demek: kart değil,
+    // şerit. Katlanabilir bir telefon açıldığında genişlik 2000 px'i bulabilir;
+    // bu yüzden "genişlik yeter" koşulu tek başına yeterli DEĞİL, platform
+    // kontrolü şart.
+    for (const w of [390, 820, 1366, 2000, 3000]) {
+      const o = panoOlculeri(w, false);
+      expect(o.sutun).toBe(1);
+      // Tek sütunda her blok aynı genişlikte olmalı — bugünkü düzenin aynısı.
+      expect(o.yarim).toBe(o.tam);
+      expect(o.ucteBir).toBe(o.tam);
+      expect(o.ikiUcte).toBe(o.tam);
+    }
   });
 });
