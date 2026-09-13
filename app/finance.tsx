@@ -260,6 +260,15 @@ export default function FinanceScreen() {
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.edit'), onPress: () => openEditor(entry) },
     ];
+    // Makbuz dökümü YALNIZ gelir kaleminde anlamlı: gider için serbest meslek
+    // makbuzu kesilmez.
+    if (entry.kind === 'income') {
+      buttons.push({
+        text: t('makbuz.action'),
+        onPress: () =>
+          router.push(`/makbuz?id=${entry.id}` as Parameters<typeof router.push>[0]),
+      });
+    }
     if (entry.is_recurring) {
       const stopped = !!entry.recurring_until;
       if (stopped) {

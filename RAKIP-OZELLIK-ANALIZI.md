@@ -137,14 +137,29 @@ arka plan/uygulama kapanışı döngüsünde denenmedi; yalnız saf fonksiyonu t
 edildi. Yani "çalışıyor" değil, "yazıldı ve yerelde ölçülen kısmı doğru
 çıktı" diyebilirim.
 
-### 2. Serbest meslek makbuzunun kendisi
+### 2. Serbest meslek makbuzunun kendisi — ✅ YAZILDI (13.09.2026)
 
 Hesabı **var**, belgesi **yok** (ÖLÇÜLDÜ). Avukat KDV'yi ve stopajı ekranda
 görüyor ama müvekkile verecek makbuzu başka yerde yazıyor.
 
-Gerektirdiği: elimizdeki `hesaplaSmm` çıktısını PDF/yazdırılabilir bir
-belgeye dökmek. Zaten UDF ve PDF çıktı altyapısı var (`src/lib/cikti.ts`).
-Bu, listedeki en küçük iş ve en somut günlük faydası olan.
+**Ne yazıldı:** `src/utils/makbuzMetni.ts` + `app/makbuz.tsx`. Finans
+ekranında bir gelir kalemine dokununca "Makbuz dökümü" çıkıyor; belge
+kopyalanabilir, indirilebilir, paylaşılabilir (var olan `DuzenlenebilirCikti`
+altyapısı). Tutar rakamla **ve yazıyla** yazılıyor — yazıyla satırı elle en
+sık hata yapılan yerdir.
+
+**Belgenin içinde şu uyarı var ve bir test onu koruyor:** *"Bu belge bir
+DÖKÜMDÜR, resmî serbest meslek makbuzu değildir ve onun yerine geçmez."*
+Avukat bu çıktıyı resmî makbuz sanıp koçandan kesmezse vergisel eksiklik
+doğar ve bunu fark etmesi aylar sürer.
+
+**ÖLÇÜLMEDİ:** e-SMM zorunluluğunun bugünkü kapsamını (hangi mükellef, hangi
+eşik) doğrulamadım — bu yüzden metin "zorunluluk şudur" demiyor, yalnız "bu
+belge onun yerine geçmez" diyor. Türkçe sayı okunuşu için bir muhasebeci
+doğrulaması da yapılmadı; testleri ben yazdım.
+
+**Kalan eksik:** `finance_entries` tablosunda müvekkil bağı yok (ölçüldü:
+`client_id` sütunu yok), o yüzden müşteri adı ekranda elle giriliyor.
 
 ### 3. Müvekkil portalı / paylaşım bağlantısı
 

@@ -77,6 +77,14 @@ yok ve **olmamalı**.
 - Var olan eczane tablolarını **SİLME**: onlar başka bir ürünün verisi ve silmek
   geri alınamaz. Durumu ölç, raporla, ürün sahibine söyle — kararı o verir.
   Ölçüm aracı hazır: `scripts/saglik-verisi-ayrim.sql` (salt okunur).
+- **DİSK MALİYETİ KONUSU KAPANDI (13.09.2026, ürün sahibi kararı).** Eczane
+  tablolarının aynı Supabase faturasına yazıldığı ölçülüp raporlandı; ürün
+  sahibinin cevabı: *"ilaçpro daha fazla yer kaplamıcak, kaplarsa
+  genişletirim."* Yani tabloların orada durması ve büyürse planın
+  büyütülmesi **bilinçli bir karardır**. Bunu tekrar maliyet gerekçesiyle
+  gündeme getirme; ölçüm istenirse yapılır, uyarı tekrarlanmaz.
+  (KVKK ayrımı gerekçesi bundan AYRIDIR ve yukarıdaki kurallar aynen geçerli:
+  bu depoya sağlık verisi şeması hâlâ girmez.)
 - Eczane uygulaması için devir notu `MIMARI-DEVIR.md`'dedir; oradaki mimari
   bilgisi paylaşılır ama **veritabanı paylaşılmaz**.
 - `tests/saglikVerisiAyrimi.test.ts` bu kuralı kod tarafında koruyor: depoya
