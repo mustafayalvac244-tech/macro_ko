@@ -19,7 +19,16 @@
   Barındırılan sayfa kendi CSP'siyle çalışır, eklenti 50 KB kalır ve uygulama
   siz hiçbir şey yapmadan güncellenir.
 -->
-<iframe id="uygulama" src="https://mustafayalvac244-tech.github.io/macro_ko/app/" title="Vekil Pro"></iframe>
+<!--
+  ADRES 13.09.2026'DA DEĞİŞTİ — ve bu yalnız bir isim değişikliği değil,
+  ÇALIŞMAYAN BİR ADRESİN DÜZELTİLMESİ. Eski adres github.io/macro_ko/app/
+  idi; oysa web paketi `experiments.baseUrl = "/app"` ile derleniyor,
+  yani varlıklarını KÖKTEN (/app/_expo/...) istiyor. github.io'nun
+  proje alt yolundan servis edilince o istekler github.io/app/... adresine
+  gidiyor ve 404 dönüyordu: panel boş bir çerçeve gösterirdi.
+  Kendi alan adımızda site KÖKTE duruyor, yani doğru adres bu.
+-->
+<iframe id="uygulama" src="https://vekilpro.app/app/" title="Vekil Pro"></iframe>
 <script type="module" src="panel.js"></script>
 </body>
 </html>

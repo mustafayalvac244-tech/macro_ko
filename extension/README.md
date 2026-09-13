@@ -43,7 +43,7 @@ sessizce boşalır, metin kalıpları ise ekranda görünen yazıya bakar.
 
 ## Gereklilik
 
-Panel `https://mustafayalvac244-tech.github.io/macro_ko/app/` adresini açar.
+Panel `https://vekilpro.app/app/` adresini açar.
 Bu adresin yayında olması için **dalın `main`'e birleştirilmiş** olması gerekir
 (GitHub Pages `main` dalının `docs/` klasöründen yayın yapıyor).
 

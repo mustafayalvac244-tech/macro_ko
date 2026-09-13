@@ -23,5 +23,6 @@ sessiz bir arıza.
 
     npx expo export --platform web --output-dir docs/app
 
-`app.json` içindeki `experiments.baseUrl` = `/macro_ko/app` olmalı; yoksa
+`app.json` içindeki `experiments.baseUrl` = `/app` olmalı (kendi alan adında
+site KÖKTE duruyor; github.io proje alt yolu artık kullanılmıyor); yoksa
 varlık yolları kökten aranır ve alt yolda 404 verir.
