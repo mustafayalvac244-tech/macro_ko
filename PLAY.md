@@ -38,7 +38,8 @@ Bugüne kadarki bütün ölçümler bizim kendi kurduğumuz senaryolardı.
 | Konu | Durum | Kanıt |
 |---|---|---|
 | Android paket adı | `com.macroko.legal` | `app.json` |
-| Sürüm | 3.3.2 · versionCode uzaktan artıyor | `app.json`, `eas.json` (`appVersionSource: remote`) |
+| Sürüm | 3.3.2 · versionCode **uzaktan** (EAS) yönetiliyor, ilk derlemede 1→**2** oldu | `eas.json` (`appVersionSource: remote`) |
+| **İlk AAB** | **13.09.2026 12:04'te üretildi** — projenin ilk Android derlemesi | koşu #2, 24 dk, imzalama anahtarı EAS'ta hazırdı |
 | AAB derleme profili | `production` → `app-bundle` | `eas.json` |
 | E-posta altyapısı | **Çalışıyor** — `smtp.resend.com`, gönderen `noreply@vekilpro.app`, saatlik sınır 200, OTP 6 hane / 1 saat | 13.09.2026, `auth-sablon.yml` (kip: oku) canlı ayarlardan okundu |
 | Şifre sıfırlama | Kod tabanlı akış kurulu | `app/forgot-password.tsx` |
@@ -236,10 +237,12 @@ gösterir. Hazırlamamı isterseniz söyleyin.
 
 ## 6. Sıra (bugünden itibaren)
 
-1. **Siz:** iki secret'ı ekleyin (bölüm 2) — 10 dakika
+1. ~~**Siz:** `EXPO_TOKEN` ekleyin~~ — **zaten vardı**, derleme onunla koştu.
 2. **Siz:** Play Console'da uygulamayı oluşturun (`com.macroko.legal`)
-3. **Ben:** Actions → Android Derle ve Gönder → `derle-ve-gonder`, kanal
-   `internal` — ilk AAB'yi taslak olarak yükler
+3. ~~**Ben:** ilk AAB'yi üretirim~~ — **yapıldı, 13.09.2026 12:04**.
+   Dosya: koşu #2'nin kaydındaki `expo.dev/artifacts/eas/...aab` bağlantısı.
+   Play servis hesabı JSON'u olmadığı için **elle yüklenecek**: Play Console
+   → uygulama → Test → Dahili test → Yeni sürüm oluştur → AAB'yi sürükle.
 4. **Siz:** dahili testte kendi telefonunuzda açıp bakın. **Buraya kadar
    olan hiçbir şey ölçüm değildir** — gerçek bir Android cihazda uygulamanın
    açıldığı bugüne kadar hiç görülmedi.
@@ -248,6 +251,20 @@ gösterir. Hazırlamamı isterseniz söyleyin.
    Google hesabı istiyor), **kapalı test (alpha)** kanalına alın
 7. **14 gün bekleyin** — bu sürede gerçek kullanım verisi ölçülür
 8. Üretim erişimine başvurun
+
+---
+
+## 6.1 versionCode nereden geliyor
+
+`app.json`'daki `versionCode: 31` **13.09.2026'da kaldırıldı**. Sebebi
+derleme kaydındaki uyarı:
+
+> android.versionCode field in app config is ignored when version source is
+> set to remote
+
+Yani o 31 sayısı **hiç kullanılmıyordu**; gerçek sayaç EAS'ta duruyor ve ilk
+derlemede 1'den 2'ye çıktı. Dosyada bırakmak, ileride birinin app.json'a
+bakıp "31. derlemedeyiz" sanmasına yol açardı — Play ise 2 görecekti.
 
 ---
 
