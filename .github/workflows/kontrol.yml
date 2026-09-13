@@ -99,6 +99,56 @@ jobs:
             exit 1
           fi
 
+      # WEB PAKETİ BAYATLADI MI.
+      # -----------------------------------------------------------------
+      # NEDEN VAR: 13.09.2026 denetiminde docs/app'in üç sürüm geride kaldığı
+      # ölçüldü — zaman kaydı, makbuz ve gecikme düzeltmesi kaynakta vardı ama
+      # vekilpro.app/app hâlâ eski paketi servis ediyordu. Kimse fark etmedi
+      # çünkü CI yalnız dosyaların VARLIĞINI kontrol ediyordu, GÜNCELLİĞİNİ
+      # değil. Kullanıcı "düzelttim" denen bir hatayı ekranında görmeye devam
+      # ederse, hata düzeltilmemiş demektir.
+      #
+      # Ölçüm basit ve kesin: app/ veya src/ içine dokunan son commit,
+      # docs/app'e dokunan son committen YENİYSE paket bayattır.
+      - name: Web paketi kaynakla aynı sürümde mi
+        run: |
+          kaynak=$(git log -1 --format=%ct -- app src package.json)
+          paket=$(git log -1 --format=%ct -- docs/app)
+          if [ -z "$paket" ]; then
+            echo "::error::docs/app hiç derlenmemiş. npm run export:web çalıştırın."
+            exit 1
+          fi
+          if [ "$kaynak" -gt "$paket" ]; then
+            echo "::error::Web paketi BAYAT: kaynak $(date -d @$kaynak '+%Y-%m-%d %H:%M'), paket $(date -d @$paket '+%Y-%m-%d %H:%M'). npm run export:web çalıştırıp docs/app'i işleyin."
+            git log --oneline --format='  %h %s' "$paket"..HEAD -- app src | head -10
+            exit 1
+          fi
+          echo "Web paketi güncel."
+
+      # FONKSİYON GÖVDESİ SONLANDIRILMIŞ MI.
+      # -----------------------------------------------------------------
+      # NEDEN VAR: 0068 ve 0069, kapanış etiketinden ($function$) sonra ';'
+      # taşımadığı için HER koşucuda sözdizimi hatası veriyordu; ardındaki
+      # GRANT satırı gövdenin devamı sanılıyordu. İkisi de aylarca fark
+      # edilmedi çünkü CI yalnız DEĞİŞEN göçleri deniyor ve bu dosyalar
+      # yazıldıktan sonra hiç değişmedi.
+      - name: Migration fonksiyon gövdeleri kapanıyor mu
+        run: |
+          python3 - <<'PYEOF'
+          import re, glob, os, sys
+          bozuk = []
+          for f in sorted(glob.glob('supabase/migrations/*.sql')):
+              m_ = open(f, encoding='utf-8').read()
+              for m in re.finditer(r'^(\$[a-zA-Z_]*\$)[ \t]*$', m_, re.M):
+                  etiket = m.group(1)
+                  kalan = m_[m.end():].lstrip('\n \t')
+                  if m_[:m.start()].count(etiket) % 2 == 1 and kalan and not kalan.startswith(';'):
+                      bozuk.append(f"{os.path.basename(f)}: {etiket} sonrası ';' yok")
+          for b in bozuk:
+              print(f"::error::{b}")
+          sys.exit(1 if bozuk else 0)
+          PYEOF
+
       - name: Tarayıcıda site sınaması
         # playwright-core kendi kurulum komutunu taşıyor; ayrıca `playwright`
         # paketini bağımlılığa eklemeye gerek yok. Yerelde Chromium zaten

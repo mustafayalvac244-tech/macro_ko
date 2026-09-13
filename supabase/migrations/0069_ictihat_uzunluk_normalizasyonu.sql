@@ -119,7 +119,7 @@ begin
   order by mg.tier, mg.sc desc, k.id
   limit match_count;
 end;
-$function$
+$function$;
 
 
 grant execute on function public.search_ictihat_fts(text, integer) to authenticated, anon, service_role;

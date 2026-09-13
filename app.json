@@ -50,7 +50,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.NOTIFICATIONS",
+        "android.permission.POST_NOTIFICATIONS",
         "android.permission.SCHEDULE_EXACT_ALARM"
       ],
       "queries": [
