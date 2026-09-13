@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuthStore } from '@/store/authStore';
-import { WEB_ADRESI_KISA } from '@/config/web';
+import { WEB_ADRESI_KISA, WEB_YALNIZ_UYELERE } from '@/config/web';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useCihazlarim, useTumOturumlariKapat, type OturumCihazi } from '@/hooks/useCihazlar';
 import { cihazAnahtari } from '@/lib/cihazKimligi';
@@ -317,13 +317,19 @@ export default function SettingsScreen() {
               <Ionicons name="desktop-outline" size={18} color={colors.gold} />
               <Text style={styles.rowLabel}>{t('web.promoTitle')}</Text>
             </View>
+            {/* WEB ARTIK HERKESE AÇIK (src/config/web.ts > WEB_YALNIZ_UYELERE).
+                Burada ücretsiz kullanıcıya "tarayıcı sürümü üyelere özeldir"
+                yazıyor ve satın alma ekranına yollayan bir düğme duruyordu.
+                İkisi de artık YANLIŞ: sürüm ona da açık, üstelik yönlendirdiği
+                abonelik bugün hiçbir yerden satın alınamıyor (mağazalar henüz
+                yayında değil). Kapı geri gelirse bu koşul da geri gelmeli. */}
             <Text style={styles.webPromoBody}>
-              {profile?.is_premium ? t('web.promoBody') : t('web.promoBodyLocked')}
+              {WEB_YALNIZ_UYELERE && !profile?.is_premium ? t('web.promoBodyLocked') : t('web.promoBody')}
             </Text>
             <Text style={styles.webAdres} selectable>
               {WEB_ADRESI_KISA}
             </Text>
-            {!profile?.is_premium && (
+            {WEB_YALNIZ_UYELERE && !profile?.is_premium && (
               <Button
                 label={t('web.promoCta')}
                 onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}

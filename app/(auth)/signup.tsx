@@ -21,7 +21,7 @@ import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
 import { isValidTCKN } from '@/utils/tckn';
 import { BAROLAR } from '@/constants/barolar';
-import { KVKK_SURUM } from '@/config/kvkk';
+import { KVKK_SURUM, RIZA_ZORUNLU } from '@/config/kvkk';
 import { KvkkImza, type KvkkKanit } from '@/components/KvkkImza';
 import { useLangStore } from '@/i18n';
 import { Captcha } from '@/components/Captcha';
@@ -125,11 +125,17 @@ export default function SignupScreen() {
       return;
     }
 
-    // SESSİZ KİLİT YOK. Düğmeyi devre dışı bırakmak yerine sebebi SÖYLÜYORUZ;
-    // bu ekranda daha önce tam tersi yapılmış ve "basıyorum bir şey olmuyor"
-    // şikâyetine yol açmıştı. Metin hiç açılmadıysa ayrıca AÇIYORUZ: kullanıcı
-    // "işaretle" denen kutuyu arayıp bulamasın.
-    if (!kvkkOnay) {
+    // RIZA ARTIK KAYDIN ŞARTI DEĞİL — ve bu koşul onu okumak zorunda.
+    //
+    // Bayrak `false` yapıldığı hâlde burası KOŞULSUZ engelliyordu: aydınlatma
+    // metni avukata "rıza hizmetin şartı değildir" derken ekran tam tersini
+    // yapıyordu. Yayımlanan metnin yalan çıkması, bu projede tekrar eden hata
+    // sınıfının ta kendisi; kendi değişikliğimin yarısını yapmışım.
+    //
+    // SESSİZ KİLİT YOK. Zorunluyken bile düğme devre dışı bırakılmaz, sebep
+    // SÖYLENİR (daha önce tersi yapılmış ve "basıyorum bir şey olmuyor"
+    // şikâyetine yol açmıştı) ve metin hiç açılmadıysa ayrıca AÇILIR.
+    if (RIZA_ZORUNLU && !kvkkOnay) {
       setLocalError(kvkkImzalandi ? t('auth.kvkkRequired') : t('auth.kvkkMustSign'));
       if (!kvkkImzalandi) setKvkkImzaAcik(true);
       return;
@@ -335,6 +341,12 @@ export default function SignupScreen() {
             {kvkkImzalandi ? t('auth.kvkkReopen') : t('auth.kvkkOpen')}
           </Text>
           <Text style={styles.kvkkNote}>{t('auth.kvkkNote')}</Text>
+          {/* Rıza zorunlu değilken bunu AÇIKÇA söylüyoruz. Kutuyu boş bırakıp
+              devam edilebileceğini yazmazsak, kullanıcı yine de zorunlu sanır
+              ve metnin "şartı değildir" cümlesi kâğıt üstünde kalır. */}
+          {!RIZA_ZORUNLU && (
+            <Text style={styles.kvkkNote}>{t('auth.kvkkOptional')}</Text>
+          )}
 
           {(localError || error) && <Text style={styles.error}>{localError ?? error}</Text>}
 

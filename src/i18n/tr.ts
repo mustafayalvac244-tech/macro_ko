@@ -613,6 +613,7 @@ export const tr = {
   'auth.kvkkSigned': 'İmzalandı · metin sürümü {surum} · pencere {sn} sn açık kaldı',
   'auth.kvkkMustSign': 'Açık rıza, tek bir kutuyla değil, metin okunup imzalanarak verilir. Aydınlatma metni açılıyor.',
   'auth.kvkkRequired': 'Devam edebilmek için KVKK açık rıza kutusunu işaretlemeniz gerekiyor.',
+  'auth.kvkkOptional': 'Bu kutu isteğe bağlıdır: imzalamadan da hesabınızı açabilirsiniz. O hâlde yapay zekâ özellikleri kapalı başlar, uygulamanın geri kalanı normal çalışır ve rızayı sonradan Ayarlar’dan verebilirsiniz.',
   'auth.kvkkNote': 'Bu rıza yalnızca yapay zekâ özellikleri içindir; dilediğiniz zaman Ayarlar > KVKK Aydınlatma Metni ekranından geri alabilirsiniz. Geri aldığınızda hesabınız kapanmaz, uygulamanın diğer tüm özellikleri çalışmaya devam eder.',
   'auth.termsAccept': 'Kayıt olarak kabul ettiğiniz metin:',
   'auth.privacyLink': 'Verileriniz nasıl korunuyor? Gizlilik ve KVKK metnini okuyun',
@@ -1394,7 +1395,7 @@ export const tr = {
   // Uygulamada web sürümünün tanıtımı (Ayarlar).
   'web.menu': 'Bilgisayardan aç (web)',
   'web.promoTitle': 'Bilgisayardan da kullanın',
-  'web.promoBody': 'Vekil Pro üyeliğiniz tarayıcı sürümünü de kapsar: dosyalarınıza büyük ekranda, klavyeyle çalışın.',
+  'web.promoBody': 'Aynı hesap tarayıcıda da çalışır: dosyalarınıza büyük ekranda, klavyeyle bakın. Kurulum gerekmez, adresi açıp giriş yapmanız yeterli.',
   'web.promoBodyLocked': 'Tarayıcı sürümü Vekil Pro üyelerine özeldir. Üyeliğe geçtiğinizde bilgisayardan da çalışabilirsiniz.',
   'web.promoOpen': 'Adresi kopyala',
   'web.promoCopied': 'Adres kopyalandı',
