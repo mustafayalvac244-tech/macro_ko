@@ -1,23 +1,37 @@
 # Gerçek Satın Alma Kurulumu (RevenueCat) — Sıfırdan Rehber
 
+> **Son güncelleme: 13.09.2026.** Fiyatlar ve haklar o günkü koddan
+> yazıldı. Bu dosyadaki sayılar `src/config/planlar.ts` ve
+> `_shared/katman.ts` ile aynı olmak zorunda; ayrışırsa mağaza panelinde
+> yanlış ürün kurulur ve yanlış olduğu ancak ilk ödemede anlaşılır.
+> Play'e çıkış sırası için: **`PLAY.md`**.
+
 **İKİ AYRI ÜRÜN** artık **RevenueCat** üzerinden App Store / Google Play'in
 kendi satın alma sistemleriyle (StoreKit / Google Play Billing) alınır:
 
 | | Fiyat | Verdiği hak | Entitlement | Offering |
 |---|---|---|---|---|
 | Temel | 399₺/ay | Tüm dosya/müvekkil/finans özellikleri | `premium` | `default` (Current) |
-| AI | 1.999₺/ay | Temel + **250 soru + 12 mütalaa/ay** (Claude Opus 5) | `premium` VE `ai` | `ai` |
+| AI | 2.999₺/ay | Temel + **1650 istek** (ilk 750'si en yetenekli modelle) **+ 25 mütalaa/ay** | `premium` VE `ai` | `ai` |
 
 AI paketi HER İKİ entitlement'ı da vermeli — "AI planı Temel'i de içerir" sözü
 buradan gelir (kod bunu bekliyor, bkz. adım 4).
 
-**AI hiç almayan (free/baslangic) bir kullanıcı da AI'yı tamamen kapalı
-görmez** — YAŞAM BOYU (aylık değil, bir kez) 3 deneme sorusu hakkı var, o da
-Claude Opus 5 ile (Groq artık kullanıcıya hiç yönlendirilmiyor, yalnız
-sunucudaki hata-kurtarma zincirinde altyapı yedeği olarak kalıyor — bkz.
-`_shared/katman.ts`). Bu, satın alma ürünleriyle İLGİLİ DEĞİL, sunucu tarafı
-bir sayaçtır (`profiles.deneme_soru_kullanildi`), mağaza panelinde bir şey
-yapmanız gerekmez.
+**DENEME HAKKI 13.09.2026'DA DEĞİŞTİ (ürün sahibi kararı).** Eskiden ücretsiz
+katmandaydı; artık **₺399'luk Temel pakete** ait: 3 istek, YAŞAM BOYU (aylık
+değil, bir kez, yenilenmez). **Ödeme yapmamış kullanıcıda yapay zekâ tamamen
+kapalıdır** ve uçlar 403 `tier_required` döndürür.
+
+Bu bir **sunucu sayacıdır** (`profiles.deneme_soru_kullanildi`), satın alma
+ürünleriyle ilgisi yoktur — mağaza panelinde bunun için bir şey kurmanız
+gerekmez. Karar `_shared/katman.ts` içinde `is_premium` bayrağına bakılarak
+veriliyor, yani **Temel aboneliği RevenueCat üzerinden doğru kurulmazsa deneme
+hakkı da açılmaz.**
+
+Deneme istekleri ücretli modelle karşılanır: bir avukatın yapay zekâyla İLK
+teması kötü bir çıktı olursa ürünü bir daha denemeyebilir. (Groq kullanıcıya
+hiç yönlendirilmiyor; yalnız sunucudaki hata-kurtarma zincirinde altyapı
+yedeği olarak duruyor.)
 
 Kod tarafı **hazır** — aşağıdaki adımlar sizin (geliştirici hesabı sahibi
 olarak) mağaza panellerinde ve RevenueCat panelinde yapmanız gereken, kodla
@@ -49,8 +63,8 @@ sunucumuzu yazmak zorunda kalmayız.
   güvenli biçimde 503 dönüyor (`{"error":"not_configured"}`) — adım 5'te açılacak.
 - `purchases` tablosu — RevenueCat olaylarının denetim kaydı (migration 0072/
   0073, **zaten uygulandı**).
-- `supabase/functions/_shared/katman.ts` — "ai" katmanının 250 soru + 12
-  mütalaa/ay kotası (migration 0073 > `ai_mod_sayaci`), **zaten canlıda**.
+- `supabase/functions/_shared/katman.ts` — "ai" katmanının aylık hak
+  tanımı (1650 istek / 750 asıl model / 25 mütalaa) ve deneme kapısı.
   Kontöre değil sayıya bakar; kota dolunca `ai_soru_kota_bitti` /
   `ai_mutalaa_kota_bitti` hatası döner, istemci bunu anlıyor (`aiHata.ts`).
 
