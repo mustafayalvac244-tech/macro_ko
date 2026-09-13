@@ -42,7 +42,6 @@
     },
     "android": {
       "package": "com.macroko.legal",
-      "versionCode": 31,
       "adaptiveIcon": {
         "backgroundColor": "#EFEBE3",
         "foregroundImage": "./assets/android-icon-foreground.png",
