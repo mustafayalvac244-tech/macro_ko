@@ -82,6 +82,18 @@ jobs:
             exit 1
           fi
 
+      # BU ADIM İLK KOŞUDA UNUTULMUŞTU VE DERLEME 2 SANİYEDE DÜŞTÜ:
+      #   "Failed to resolve plugin for module 'expo-router' … Do you have
+      #    node modules installed?"
+      # Sebebi şu: `eas build` işi Expo'nun sunucusunda koşuyor ama uygulama
+      # yapılandırmasını (app.json + config plugin'leri) BURADA, yerelde
+      # çözüyor ve sonucu öyle yüklüyor. Plugin'ler node_modules'tan
+      # okunduğu için bağımlılıklar kurulmadan hiçbir şey çözülemiyor.
+      # "EAS bulutta derliyor, burada npm gerekmez" diye düşünmek tam olarak
+      # bu hataya yol açtı.
+      - name: Bağımlılıklar
+        run: npm ci
+
       - name: EAS CLI
         run: npm install -g eas-cli@latest
 
@@ -108,6 +120,9 @@ jobs:
         if: inputs.is == 'derle' || inputs.is == 'derle-ve-gonder'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          # Üretim derlemesinde "Expo Go kullanıyorsunuz" uyarısı anlamsız
+          # gürültü; kayıtta gerçek hatayı gölgeliyor.
+          EAS_BUILD_NO_EXPO_GO_WARNING: 'true'
         run: eas build --platform android --profile production --non-interactive --wait
 
       - name: Play'e gönder
