@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { File } from 'expo-file-system';
+import { dosyaBaytlari } from '@/lib/girdi';
 import type { Session } from '@supabase/supabase-js';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import { trError } from '@/lib/authErrors';
@@ -124,7 +124,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!userId) return;
     const oldPath = get().profile?.avatar_url;
 
-    const bytes = await new File(file.uri).arrayBuffer();
+    const bytes = await dosyaBaytlari(file);
     const ext = file.mimeType?.includes('png') ? 'png' : 'jpg';
     const path = `${userId}/profile/avatar-${Date.now()}.${ext}`;
 

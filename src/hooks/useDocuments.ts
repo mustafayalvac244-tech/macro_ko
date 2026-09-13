@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { File } from 'expo-file-system';
+import { dosyaBaytlari } from '@/lib/girdi';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { DOCUMENTS_BUCKET, MAX_DOSYA_BAYT, supabase } from '@/lib/supabase';
@@ -121,7 +121,7 @@ export function useUploadDocument() {
         throw new Error(dosyaBuyukKodu(Math.floor(MAX_DOSYA_BAYT / (1024 * 1024))));
       }
 
-      const bytes = await new File(file.uri).arrayBuffer();
+      const bytes = await dosyaBaytlari(file);
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const path = `${ownerId}/${caseId ?? 'general'}/${Date.now()}-${safeName}`;
 

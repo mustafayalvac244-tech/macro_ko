@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
+import { dosyaBase64, dosyaMetni } from '@/lib/girdi';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -90,7 +90,7 @@ export default function DocumentReviewScreen() {
       // Düz metin dosyasını doğrudan oku (sunucuya gitmeye gerek yok).
       setOkunamayanSayfa([]);
       if (name.endsWith('.txt')) {
-        const content = await new File(asset.uri).text();
+        const content = await dosyaMetni(asset);
         if (!content.trim()) {
           uyar(t('docrev.title'), t('docrev.fileEmpty'));
           return;
@@ -99,7 +99,7 @@ export default function DocumentReviewScreen() {
         return;
       }
 
-      const base64 = await new File(asset.uri).base64();
+      const base64 = await dosyaBase64(asset);
       const { data, error: fnErr } = await supabase.functions.invoke('doc-extract', {
         body: { filename: name, base64 },
       });
