@@ -34,6 +34,7 @@ on:
           - gelir-gider-sorgu
           - kvkk-durum
           - olcek-testi
+          - saglik-verisi-ayrim
   schedule:
     # Her gün 06:00 UTC. Hasat gece boyunca çalışıyor; sabah ölçümü, bir
     # önceki günün tam bir resmini veriyor.

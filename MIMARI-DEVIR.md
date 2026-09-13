@@ -125,6 +125,32 @@ hız bütçesini paylaşır. Bizde çakışma `429` ve TLS zaman aşımı ürett
 
 ## Bir ECZANE uygulaması için ek uyarılar
 
+### ⚠️ ÖNCE ŞU: KENDİ VERİTABANINI AÇ — Vekil Pro'nunkini KULLANMA
+
+Bu, tavsiye değil **kuraldır** (ürün sahibi, 13.09.2026: "sağlık verisini
+buraya karıştırma, hep ayrı olacak").
+
+13.09.2026'da ölçüldü: eczane tabloları Vekil Pro'nun Supabase projesinde
+duruyor — `ilaclar` (23.005 satır, 19 MB), `prospektusler` (11.671 satır,
+223 MB), `kullanici_ilaclar` ve `kullanici_alimlar`. Toplam 243 MB.
+
+**İYİ HABER: kişiye bağlı iki tablo HENÜZ BOŞ.** Yani ayrılma bugün
+neredeyse bedava — taşınacak kişisel veri yok, yalnız katalog yeniden
+yüklenir. Bir hasta kaydı girdiğiniz gün bu iş şu zincire dönüşür: veri göçü
++ ilgili kişiyi bilgilendirme + eski yerden imha + imhanın kanıtlanması.
+**Bugün yapın.**
+
+Neden böyle sert: sağlık verisi 6698 s.K. **m.6 özel nitelikli** veridir.
+Aynı veritabanında durduğu sürece bir sızıntı, bir haciz ya da bir Kurul
+denetimi **iki ürünü birden** kapsar; hukuk ürününün uyum yükü, kendi işiyle
+hiç ilgisi olmayan bir sebeple ağırlaşır. Ayrıca Vekil Pro'nun aydınlatma
+metni işlediği veri kategorilerini sayıyor ve sağlık verisi orada yok —
+olmamalı da.
+
+Ayrı proje açmanın maliyeti yok: Supabase'de yeni proje ücretsiz katmanda
+açılır, bu belgedeki mimarinin tamamı oraya birebir kurulur. Paylaşılan şey
+**bilgi**, veritabanı değil.
+
 ### Sağlık verisi ÖZEL NİTELİKLİDİR — çıta çok daha yüksek
 
 KVKK **m.6**: sağlık verisi özel nitelikli kişisel veridir. Reçete, ilaç
