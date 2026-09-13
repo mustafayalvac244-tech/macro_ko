@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { metniPaylas } from '@/lib/cikti';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -23,6 +23,10 @@ import { useCaseExpenses, useCreateCaseExpense, useCreateInstallment, useCreateP
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
+// GENİŞ EKRAN DÜZENİ — ana ekrandakiyle AYNI kaynaktan.
+// İkinci bir ızgara mantığı yazmak, iki ekranın zamanla farklı davranması
+// demek olurdu (bu depoda tam olarak bu sınıftan arızalar çıktı).
+import { kaliciMenuMu, panoOlculeri, PANO_ARALIK } from '@/theme/duzen';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { computeLegalDue } from '@/utils/legalDates';
@@ -43,6 +47,9 @@ export default function CaseDetailScreen() {
   const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>('overview');
+  const { width: pencereGenisligi } = useWindowDimensions();
+  const pano = panoOlculeri(pencereGenisligi, kaliciMenuMu(pencereGenisligi));
+  const panoMu = pano.sutun > 1;
 
   const { data: caseItem, isLoading } = useCase(id);
   const client = useClient(caseItem?.client_id ?? undefined);
@@ -192,7 +199,11 @@ export default function CaseDetailScreen() {
   };
 
   return (
-    <Screen>
+    // DOSYA DETAYI TARAYICIDA 1180 px'lik BİR ŞERİDE SIKIŞIYORDU: künye,
+    // durum/aşama ve sekme içeriği alt alta diziliyor, 1920 px'lik ekranın
+    // iki yanı boş kalıyordu. Artık geniş ekranda iki sütun — ayrıntısı
+    // aşağıdaki sarmalayıcının yanında.
+    <Screen genislik={panoMu ? 'pano' : 'genis'}>
       <ScreenHeader
         title={caseItem.title}
         subtitle={caseItem.case_number ? `#${caseItem.case_number}` : undefined}
@@ -202,7 +213,27 @@ export default function CaseDetailScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Card style={styles.summaryCard}>
+        {/* GENİŞ EKRAN DÜZENİ — iki sütun.
+            SOL (üçte iki): künye, sekmeler ve sekme içeriği. Yani dosyanın
+            OKUNAN tarafı.
+            SAĞ (üçte bir): durum/aşama paneli. Yani dosyanın DEĞİŞTİRİLEN
+            tarafı — derece, aşama, karar tarihi, müvekkile bilgi.
+
+            İLK DENEME BAŞKA TÜRLÜYDÜ ve ekran görüntüsünde kusuru görüldü:
+            künye ile durum kartı yan yana (yarım/yarım) konmuştu. Künye kısa,
+            durum paneli uzun olduğu için solda yüzlerce piksel boşluk kalıyor
+            ve pano "yarım kalmış" görünüyordu. Sütunları içeriğin CİNSİNE
+            göre ayırmak (okunan / değiştirilen) hem boşluğu kapattı hem de
+            ekranı anlamlı hâle getirdi.
+
+            Dar ekranda sarmalayıcılar stilsiz kalıyor: sıra ve görünüm
+            bugünküyle birebir aynı. Sarmalayıcılar iki durumda da RENDER
+            EDİLİYOR, yalnız stilleri değişiyor: "geniş ekranda şu JSX, dar
+            ekranda bu JSX" diye iki dal yazmak aynı kartların iki kopyasını
+            doğurur ve biri güncellenip diğeri unutulur. */}
+        <View style={panoMu ? { flexDirection: 'row', alignItems: 'flex-start', gap: PANO_ARALIK } : undefined}>
+        <View style={panoMu ? { width: pano.ikiUcte } : undefined}>
+        <Card style={StyleSheet.flatten([styles.summaryCard, panoMu && { marginBottom: PANO_ARALIK }])}>
           <View style={styles.badgeRow}>
             <CaseStatusBadge status={caseItem.status} />
             <PriorityBadge priority={caseItem.priority} />
@@ -221,167 +252,6 @@ export default function CaseDetailScreen() {
           {caseItem.opposing_counsel && <InfoRow label={t('case.opposingCounsel')} value={caseItem.opposing_counsel} />}
           <InfoRow label={t('case.opened')} value={formatDate(caseItem.opened_date)} />
           {caseItem.closed_date && <InfoRow label={t('case.closed')} value={formatDate(caseItem.closed_date)} />}
-        </Card>
-
-        {/* ---------- Dava Durumu ve Aşama (alıcı geri bildirimi) ---------- */}
-        <Card style={styles.stageCard}>
-          <Text style={styles.sectionLabel}>{t('case.stageTitle')}</Text>
-
-          {caseItem.status !== 'closed' && caseItem.status !== 'won' && caseItem.status !== 'lost' ? (
-            <>
-              <Text style={styles.stageLabel}>{t('case.instance')}</Text>
-              <SegmentedControl
-                scrollable={false}
-                options={[
-                  { value: 'ilk_derece', label: t('inst.ilk_derece') },
-                  { value: 'istinaf', label: t('inst.istinaf') },
-                  { value: 'temyiz', label: t('inst.temyiz') },
-                ]}
-                value={caseItem.instance_stage ?? 'ilk_derece'}
-                onChange={(v) => saveCase({ instance_stage: v as InstanceStage })}
-              />
-              {(caseItem.instance_stage ?? 'ilk_derece') === 'ilk_derece' && (
-                <>
-                  <Text style={styles.stageLabel}>{t('case.phase')}</Text>
-                  <SegmentedControl
-                    options={[
-                      { value: 'dilekceler', label: t('phase.dilekceler') },
-                      { value: 'on_inceleme', label: t('phase.on_inceleme') },
-                      { value: 'tahkikat', label: t('phase.tahkikat') },
-                      { value: 'bilirkisi_kesif', label: t('phase.bilirkisi_kesif') },
-                      { value: 'karar', label: t('phase.karar') },
-                    ]}
-                    value={caseItem.case_stage ?? 'dilekceler'}
-                    onChange={(v) => saveCase({ case_stage: v as FirstInstancePhase })}
-                  />
-                </>
-              )}
-              {/* Kesin karar: istinaf yolu kapalı → dosyayı kapatır, takvime istinaf düşmez. */}
-              <Pressable
-                style={styles.finalizeBtn}
-                onPress={() =>
-                  uyar(t('case.finalizeTitle'), t('case.finalizeMsg'), [
-                    { text: t('common.cancel'), style: 'cancel' },
-                    {
-                      text: t('case.finalizeConfirm'),
-                      onPress: () =>
-                        saveCase({ status: 'closed', closed_date: new Date().toISOString().slice(0, 10) }),
-                    },
-                  ])
-                }
-              >
-                <Ionicons name="lock-closed-outline" size={15} color={colors.gold} />
-                <Text style={styles.finalizeText}>{t('case.finalizeBtn')}</Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <Text style={styles.stageLabel}>{t('case.result')}</Text>
-              <SegmentedControl
-                scrollable={false}
-                options={[
-                  { value: 'kabul', label: t('result.kabul') },
-                  { value: 'ret', label: t('result.ret') },
-                  { value: 'kismen_kabul', label: t('result.kismen_kabul') },
-                  { value: 'diger', label: t('result.diger') },
-                ]}
-                value={caseItem.closed_result ?? 'kabul'}
-                onChange={(v) => saveCase({ closed_result: v as ClosedResult })}
-              />
-              <Input
-                label={t('case.decisionNo')}
-                placeholder="2026/123 K."
-                value={decisionNo}
-                onChangeText={setDecisionNo}
-                onEndEditing={() => saveCase({ decision_number: decisionNo.trim() || null })}
-              />
-              {(!caseItem.decision_number || !caseItem.decision_date) && (
-                <View style={styles.advWarn}>
-                  <Ionicons name="alert-circle" size={16} color={colors.danger} />
-                  <Text style={styles.advWarnText}>{t('case.decisionRequired')}</Text>
-                </View>
-              )}
-            </>
-          )}
-
-          <View style={styles.stageDates}>
-            <Pressable style={styles.stageDateBtn} onPress={() => setDatePicker('decision')}>
-              <Ionicons name="calendar-outline" size={15} color={colors.textMuted} />
-              <Text style={styles.stageDateText}>
-                {t('case.decisionDate')}: {caseItem.decision_date ? formatDate(caseItem.decision_date) : '—'}
-              </Text>
-            </Pressable>
-            <Pressable style={styles.stageDateBtn} onPress={() => setDatePicker('served')}>
-              <Ionicons name="calendar-outline" size={15} color={colors.gold} />
-              <Text style={styles.stageDateText}>
-                {t('case.servedDate')}: {caseItem.decision_served_date ? formatDate(caseItem.decision_served_date) : '—'}
-              </Text>
-            </Pressable>
-          </View>
-          <Text style={styles.stageHint}>{t('case.servedHint')}</Text>
-          {datePicker && (
-            <DateTimePicker locale="tr-TR"
-              // Kayıtlı tarihi göster (yoksa bugün); böylece geçmiş yıllar (ör.
-              // 2024) seçilebilir ve seçici "2026'ya geri atmaz".
-              value={
-                datePicker === 'decision'
-                  ? caseItem.decision_date
-                    ? new Date(`${caseItem.decision_date}T12:00:00`)
-                    : new Date()
-                  : caseItem.decision_served_date
-                    ? new Date(`${caseItem.decision_served_date}T12:00:00`)
-                    : new Date()
-              }
-              mode="date"
-              display={Platform.OS === 'android' ? 'spinner' : 'default'}
-              onChange={(_e, picked) => {
-                const which = datePicker;
-                setDatePicker(null);
-                if (!picked) return;
-                if (which === 'decision') saveCase({ decision_date: picked.toISOString().slice(0, 10) });
-                else if (which === 'served') handleServedDate(picked);
-              }}
-            />
-          )}
-
-          {/* Aşama açıklaması (kısa yardım) */}
-          <Text style={styles.stageDesc}>{t('case.stageHelp')}</Text>
-
-          {/* Serbest durum açıklaması */}
-          <Input
-            label={t('case.stageNote')}
-            placeholder={t('case.stageNotePh')}
-            value={stageNote}
-            onChangeText={setStageNote}
-            onEndEditing={() => saveCase({ stage_note: stageNote.trim() || null })}
-            multiline
-            numberOfLines={3}
-            style={styles.stageNoteInput}
-          />
-
-          <Button
-            label={t('case.araKarar')}
-            icon="alarm-outline"
-            variant="secondary"
-            onPress={() =>
-              router.push(
-                `/deadline-form?caseId=${caseItem.id}&title=${encodeURIComponent(t('case.araKararPrefix'))}` as Parameters<typeof router.push>[0]
-              )
-            }
-            fullWidth
-            style={styles.stageAra}
-          />
-
-          {/* Müvekkile bilgi ver: "davam ne oldu?" telefonlarını kesen tek dokunuş.
-              Metin kayıtlı bilgiden üretilir; tahmin/vaat içermez. */}
-          <Button
-            label={t('cupd.cta')}
-            icon="chatbubble-ellipses-outline"
-            variant="secondary"
-            onPress={shareClientUpdate}
-            fullWidth
-            style={styles.stageAra}
-          />
         </Card>
 
         <View style={styles.tabsWrap}>
@@ -765,6 +635,177 @@ export default function CaseDetailScreen() {
             </Card>
           </View>
         )}
+
+        </View>{/* sol sütun */}
+
+        {/* ---------- Dava Durumu ve Aşama (alıcı geri bildirimi) ---------- */}
+        <Card style={StyleSheet.flatten([styles.stageCard, panoMu && { width: pano.ucteBir, marginBottom: 0 }])}>
+          <Text style={styles.sectionLabel}>{t('case.stageTitle')}</Text>
+
+          {caseItem.status !== 'closed' && caseItem.status !== 'won' && caseItem.status !== 'lost' ? (
+            <>
+              <Text style={styles.stageLabel}>{t('case.instance')}</Text>
+              <SegmentedControl
+                scrollable={false}
+                options={[
+                  { value: 'ilk_derece', label: t('inst.ilk_derece') },
+                  { value: 'istinaf', label: t('inst.istinaf') },
+                  { value: 'temyiz', label: t('inst.temyiz') },
+                ]}
+                value={caseItem.instance_stage ?? 'ilk_derece'}
+                onChange={(v) => saveCase({ instance_stage: v as InstanceStage })}
+              />
+              {(caseItem.instance_stage ?? 'ilk_derece') === 'ilk_derece' && (
+                <>
+                  <Text style={styles.stageLabel}>{t('case.phase')}</Text>
+                  {/* GENİŞ EKRANDA KAYDIRMA YERİNE SARMA. Bu kontrol sağdaki
+                      dar panelde duruyor (~490 px) ve beş seçenek sığmıyor.
+                      Yatay kaydırma telefonda doğru, farede değil: "Karar"
+                      seçeneği kart kenarında kesiliyor ve ekranda hiç yokmuş
+                      gibi görünüyor. Telefonda davranış aynen kaydırma. */}
+                  <SegmentedControl
+                    scrollable={!panoMu}
+                    options={[
+                      { value: 'dilekceler', label: t('phase.dilekceler') },
+                      { value: 'on_inceleme', label: t('phase.on_inceleme') },
+                      { value: 'tahkikat', label: t('phase.tahkikat') },
+                      { value: 'bilirkisi_kesif', label: t('phase.bilirkisi_kesif') },
+                      { value: 'karar', label: t('phase.karar') },
+                    ]}
+                    value={caseItem.case_stage ?? 'dilekceler'}
+                    onChange={(v) => saveCase({ case_stage: v as FirstInstancePhase })}
+                  />
+                </>
+              )}
+              {/* Kesin karar: istinaf yolu kapalı → dosyayı kapatır, takvime istinaf düşmez. */}
+              <Pressable
+                style={styles.finalizeBtn}
+                onPress={() =>
+                  uyar(t('case.finalizeTitle'), t('case.finalizeMsg'), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    {
+                      text: t('case.finalizeConfirm'),
+                      onPress: () =>
+                        saveCase({ status: 'closed', closed_date: new Date().toISOString().slice(0, 10) }),
+                    },
+                  ])
+                }
+              >
+                <Ionicons name="lock-closed-outline" size={15} color={colors.gold} />
+                <Text style={styles.finalizeText}>{t('case.finalizeBtn')}</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.stageLabel}>{t('case.result')}</Text>
+              <SegmentedControl
+                scrollable={false}
+                options={[
+                  { value: 'kabul', label: t('result.kabul') },
+                  { value: 'ret', label: t('result.ret') },
+                  { value: 'kismen_kabul', label: t('result.kismen_kabul') },
+                  { value: 'diger', label: t('result.diger') },
+                ]}
+                value={caseItem.closed_result ?? 'kabul'}
+                onChange={(v) => saveCase({ closed_result: v as ClosedResult })}
+              />
+              <Input
+                label={t('case.decisionNo')}
+                placeholder="2026/123 K."
+                value={decisionNo}
+                onChangeText={setDecisionNo}
+                onEndEditing={() => saveCase({ decision_number: decisionNo.trim() || null })}
+              />
+              {(!caseItem.decision_number || !caseItem.decision_date) && (
+                <View style={styles.advWarn}>
+                  <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                  <Text style={styles.advWarnText}>{t('case.decisionRequired')}</Text>
+                </View>
+              )}
+            </>
+          )}
+
+          <View style={styles.stageDates}>
+            <Pressable style={styles.stageDateBtn} onPress={() => setDatePicker('decision')}>
+              <Ionicons name="calendar-outline" size={15} color={colors.textMuted} />
+              <Text style={styles.stageDateText}>
+                {t('case.decisionDate')}: {caseItem.decision_date ? formatDate(caseItem.decision_date) : '—'}
+              </Text>
+            </Pressable>
+            <Pressable style={styles.stageDateBtn} onPress={() => setDatePicker('served')}>
+              <Ionicons name="calendar-outline" size={15} color={colors.gold} />
+              <Text style={styles.stageDateText}>
+                {t('case.servedDate')}: {caseItem.decision_served_date ? formatDate(caseItem.decision_served_date) : '—'}
+              </Text>
+            </Pressable>
+          </View>
+          <Text style={styles.stageHint}>{t('case.servedHint')}</Text>
+          {datePicker && (
+            <DateTimePicker locale="tr-TR"
+              // Kayıtlı tarihi göster (yoksa bugün); böylece geçmiş yıllar (ör.
+              // 2024) seçilebilir ve seçici "2026'ya geri atmaz".
+              value={
+                datePicker === 'decision'
+                  ? caseItem.decision_date
+                    ? new Date(`${caseItem.decision_date}T12:00:00`)
+                    : new Date()
+                  : caseItem.decision_served_date
+                    ? new Date(`${caseItem.decision_served_date}T12:00:00`)
+                    : new Date()
+              }
+              mode="date"
+              display={Platform.OS === 'android' ? 'spinner' : 'default'}
+              onChange={(_e, picked) => {
+                const which = datePicker;
+                setDatePicker(null);
+                if (!picked) return;
+                if (which === 'decision') saveCase({ decision_date: picked.toISOString().slice(0, 10) });
+                else if (which === 'served') handleServedDate(picked);
+              }}
+            />
+          )}
+
+          {/* Aşama açıklaması (kısa yardım) */}
+          <Text style={styles.stageDesc}>{t('case.stageHelp')}</Text>
+
+          {/* Serbest durum açıklaması */}
+          <Input
+            label={t('case.stageNote')}
+            placeholder={t('case.stageNotePh')}
+            value={stageNote}
+            onChangeText={setStageNote}
+            onEndEditing={() => saveCase({ stage_note: stageNote.trim() || null })}
+            multiline
+            numberOfLines={3}
+            style={styles.stageNoteInput}
+          />
+
+          <Button
+            label={t('case.araKarar')}
+            icon="alarm-outline"
+            variant="secondary"
+            onPress={() =>
+              router.push(
+                `/deadline-form?caseId=${caseItem.id}&title=${encodeURIComponent(t('case.araKararPrefix'))}` as Parameters<typeof router.push>[0]
+              )
+            }
+            fullWidth
+            style={styles.stageAra}
+          />
+
+          {/* Müvekkile bilgi ver: "davam ne oldu?" telefonlarını kesen tek dokunuş.
+              Metin kayıtlı bilgiden üretilir; tahmin/vaat içermez. */}
+          <Button
+            label={t('cupd.cta')}
+            icon="chatbubble-ellipses-outline"
+            variant="secondary"
+            onPress={shareClientUpdate}
+            fullWidth
+            style={styles.stageAra}
+          />
+        </Card>
+
+        </View>{/* satır */}
 
         <Button label={t('case.delete')} variant="danger" onPress={handleDelete} style={styles.deleteButton} />
       </ScrollView>

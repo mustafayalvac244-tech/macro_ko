@@ -18,7 +18,12 @@ export const tr = {
   'auth.signupSubtitle': 'Büro çalışma alanınızı saniyeler içinde kurun.',
   'auth.pricingInfoTitle': 'Ücretsiz başlayın, kart istemiyoruz',
   'auth.pricingInfoBody':
-    'İçtihat araması, duruşma/görev ajandası ve hatırlatmalar sınırsız ve ücretsizdir. Ücretsiz planda {dava} dava, {muvekkil} müvekkil ve {belge} belge tutabilirsiniz; sınırsız kayıt ve finans modülü Vekil Pro ile açılır. Yapay zekâyı {n} ücretsiz denemeyle sınayabilirsiniz.',
+    // SON CÜMLE 13.09.2026'DA DEĞİŞTİ. "Yapay zekâyı {n} ücretsiz denemeyle
+    // sınayabilirsiniz" diyordu; deneme hakkı o gün ücretsiz katmandan
+    // alınıp ₺399'luk pakete taşındı (ürün sahibi kararı). Cümle kalsaydı
+    // kayıt ekranı, hesabı açan avukata hiç alamayacağı bir şey vaat
+    // etmiş olurdu — üstelik ilk ekranda.
+    'İçtihat araması, duruşma/görev ajandası ve hatırlatmalar sınırsız ve ücretsizdir. Ücretsiz planda {dava} dava, {muvekkil} müvekkil ve {belge} belge tutabilirsiniz; sınırsız kayıt, finans modülü ve {n} yapay zekâ denemesi Vekil Pro ile açılır.',
     'auth.lawyersOnly': 'Avukatlara özel platform',
   'auth.tcNo': 'T.C. Kimlik No',
   'auth.tcPlaceholder': '11 haneli kimlik numaranız',
@@ -738,7 +743,11 @@ export const tr = {
   'premium.f.freeMevzuat': 'Mevzuat, hukuki hesaplayıcılar ve dilekçe şablonları',
   'premium.f.freeAjanda': 'Sınırsız duruşma, görev, ajanda ve hatırlatma',
   'premium.f.freeLimits': '{dava} dava, {muvekkil} müvekkil, {belge} belge',
-  'premium.f.freeDeneme': '{n} ücretsiz yapay zekâ denemesi (Dilekçe Üret, Belge İncele, Belgeden Dosya Aç)',
+  // DENEME HAKKI 13.09.2026'DA ÜCRETSİZ KATMANDAN ALINDI (ürün sahibi kararı)
+  // ve ₺399'luk pakete taşındı. Anahtar adı da onunla birlikte değişti:
+  // 'freeDeneme' kalsaydı, ücretsiz katmanın listesinde duruyormuş gibi
+  // okunur ve bir sonraki düzenlemede yanlış yere geri konurdu.
+  'premium.f.proDeneme': '{n} yapay zekâ denemesi (Dilekçe Üret, Belge İncele, Belgeden Dosya Aç)',
   'premium.autoRenewNote': 'Aylık {price} ₺. Abonelik otomatik yenilenir. Dönem bitiminden 24 saat önce App Store / Google Play ayarlarından kapatmazsanız yenilenir.',
   'premium.aiSoonNote': 'Yapay zekâ katmanı satışta.',
   'premium.f.aiQuota': 'Ayda {soru} soru + {mutalaa} derin araştırma dahil',
@@ -1387,7 +1396,10 @@ export const tr = {
   'ai.errMutalaaKapali': 'Derin Araştırma şu anda kullanılamıyor. Bu özellik güçlü modelle çalışır; ücretsiz katmanın modeli bu iş için yeterli değil ve hatalı sonuç üretebiliyor. Dilekçe ve belge inceleme çalışmaya devam ediyor.',
   'ai.errSoruKota': 'Bu ayki AI sorunuz doldu. Hak ayın başında yenilenir.',
   'ai.errMutalaaKota': 'Bu ayki derin araştırma hakkınız doldu. Hak ayın başında yenilenir.',
-  'ai.errDenemeBitti': '3 ücretsiz deneme sorunuzu kullandınız. AI’ı sınırsız kullanmak için AI paketine geçebilirsiniz.',
+  'ai.errDenemeBitti': 'Deneme haklarınızı kullandınız. Yapay zekâyı sınırsız kullanmak için Yapay Zekâ paketine geçebilirsiniz.',
+  // Kota değil KAPSAM: ödeme yapmamış kullanıcı. "Bitti" demek yanlış olur,
+  // çünkü hiç başlamadı; beklemekle de açılmaz.
+  'ai.errPaketGerekli': 'Yapay zekâ özellikleri Vekil Pro paketine dahildir. Paketi görmek için Ayarlar > Vekil Pro adımına gidin.',
   'ai.errKvkkRiza': 'Yapay zekâ özellikleri, KVKK açık rızanız olmadan çalışmaz: yazdığınız metin yurt dışındaki bir modele gönderiliyor ve bu aktarım rızaya bağlı. Ayarlar > KVKK Aydınlatma Metni ekranından metni okuyup imzaladığınızda hemen açılır.',
   'ai.errKvkkKontrol': 'KVKK rıza kaydınız şu an okunamadı; bu bizim tarafımızdaki geçici bir arızadır, sizin bir eksiğiniz değil. Güvenlik gereği yapay zekâ isteği gönderilmedi. Birazdan tekrar deneyin.',
   'ai.errDailyQuota': 'Bugünkü ücretsiz AI hakkı doldu. Hak her gün yenilenir; yarın tekrar deneyebilir ya da kesintisiz kullanım için Pro’ya geçebilirsiniz.',

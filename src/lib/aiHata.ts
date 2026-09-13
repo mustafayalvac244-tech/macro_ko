@@ -32,7 +32,7 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errGeneric';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -76,11 +76,17 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   // mesaj şart: "imzalayın" deseydik, imzalamış kullanıcıyı olmayan bir işe
   // yollar ve gerçek arıza görünmez kalırdı.
   if (kod === 'kvkk_kontrol_hatasi') return t('ai.errKvkkKontrol');
+  // PAKETTE YOK — kota değil, kapsam. 13.09.2026'da deneme hakkı ücretsiz
+  // katmandan alınıp ₺399'luk pakete taşındı; ödeme yapmamış kullanıcı artık
+  // yapay zekâ uçlarından 403 `tier_required` alıyor. Bunu "kotanız bitti"
+  // diye göstermek yanlış sebep söylemek olurdu: kullanıcı beklerse
+  // açılacağını sanır, oysa beklemekle açılmaz.
+  if (kod === 'tier_required') return t('ai.errPaketGerekli');
   if (kod === 'not_configured') return t('ai.errGeneric');
   return t('ai.errGeneric');
 }
 
-export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_arizasi' | 'generic';
+export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_arizasi' | 'paket' | 'generic';
 
 /**
  * Hata kodunu çeviri anahtarına çevirir.
@@ -92,7 +98,7 @@ export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_a
  */
 export function ictihatHataAnahtari(error: IctihatError):
   | 'ictihat.errAiOff' | 'ictihat.errRate' | 'ictihat.errSource'
-  | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ictihat.errGeneric' {
+  | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errPaketGerekli' | 'ictihat.errGeneric' {
   switch (error) {
     case 'ai_off': return 'ictihat.errAiOff';
     case 'rate_limit': return 'ictihat.errRate';
@@ -101,6 +107,9 @@ export function ictihatHataAnahtari(error: IctihatError):
     // farklı cümle söylemesi, kullanıcıya iki ayrı sorun varmış izlenimi verir.
     case 'kvkk': return 'ai.errKvkkRiza';
     case 'kvkk_arizasi': return 'ai.errKvkkKontrol';
+    // Paket mesajı da ai-chat ile ORTAK: aynı sebeple kapanan iki ekranın iki
+    // ayrı cümle söylemesi, kullanıcıya iki ayrı sorun varmış izlenimi verir.
+    case 'paket': return 'ai.errPaketGerekli';
     default: return 'ictihat.errGeneric';
   }
 }

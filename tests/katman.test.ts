@@ -18,12 +18,48 @@ const secenek = {
 };
 
 describe('tierConfig', () => {
-  it('taban katmanlar (free/baslangic) artık Groq değil, deneme hakkıyla ücretli modeli kullanır', () => {
+  /**
+   * DENEME HAKKI ARTIK ÖDEYENE VERİLİYOR (13.09.2026, ürün sahibi kararı).
+   *
+   * Bu testler eskiden tam TERSİNİ sabitliyordu: "free/baslangic deneme
+   * hakkıyla ücretli modeli kullanır". Karar değişince testin de değişmesi
+   * gerekti — ama değiştirilen şey BEKLENTİ, kuralın kendisi değil: eski
+   * beklenti yanlış değildi, o günkü ürün kararıydı. Bunu yazıyorum ki
+   * ilerideki biri "test gevşetilmiş" sanmasın.
+   *
+   * AYIRAN ŞEY is_premium. Bu parametre bugüne kadar hiç kullanılmıyordu
+   * (adı `_isPremium` idi), yani ₺399 ödeyen üye ile hiç ödemeyen aynı
+   * hakkı alıyordu.
+   */
+  it('ödeme yapmamış kullanıcıda yapay zekâ TAMAMEN kapalı — deneme hakkı da yok', () => {
     for (const t of ['free', 'baslangic']) {
       const { cfg } = tierConfig(t, false, secenek);
+      expect(cfg.aiKapali, t).toBe(true);
+      expect(cfg.denemeLimit, t).toBeUndefined();
+      // Kapalı katman ücretli model çağırmamalı: yanlışlıkla çağrılsa bile
+      // fatura üretmesin.
+      expect(cfg.billable, t).toBe(false);
+    }
+  });
+
+  it('₺399 ödeyen üye (is_premium) deneme hakkını ücretli modelle alır', () => {
+    for (const t of ['free', 'baslangic']) {
+      const { cfg } = tierConfig(t, true, secenek);
+      expect(cfg.aiKapali, t).toBeUndefined();
       expect(cfg.provider, t).toBe('claude');
       expect(cfg.model, t).toBe('claude-sonnet-5');
       expect(cfg.denemeLimit, t).toBe(DENEME_SORU_LIMIT);
+    }
+  });
+
+  it('"ai" katmanı is_premium bayrağından BAĞIMSIZ olarak tam pakettir', () => {
+    // Abonelik durumu bir sebeple geç yazılırsa, AI paketini almış üyenin
+    // ekranı deneme hakkına düşmemeli.
+    for (const premium of [true, false]) {
+      const { cfg } = tierConfig('ai', premium, secenek);
+      expect(cfg.modLimits, String(premium)).toEqual({ soru: 750, mutalaa: 25 });
+      expect(cfg.denemeLimit, String(premium)).toBeUndefined();
+      expect(cfg.aiKapali, String(premium)).toBeUndefined();
     }
   });
 
@@ -42,9 +78,11 @@ describe('tierConfig', () => {
     expect(cfg.model).toBe('claude-opus-5');
   });
 
-  it('hiçbir katmanın birincil sağlayıcısı Gemini ya da Groq değildir (yalnız yedek)', () => {
+  it('hiçbir ÇALIŞAN katmanın birincil sağlayıcısı Gemini ya da Groq değildir (yalnız yedek)', () => {
+    // Ödeme yapmamış katman bu kuralın dışında: orada hiçbir sağlayıcıya
+    // gidilmiyor (aiKapali), cfg yalnız tipi doldurmak için var.
     for (const t of ['free', 'baslangic', 'ai', 'bilinmeyen']) {
-      const { cfg } = tierConfig(t, false, secenek);
+      const { cfg } = tierConfig(t, true, secenek);
       expect(cfg.provider, t).not.toBe('gemini');
       expect(cfg.provider, t).not.toBe('groq');
     }
@@ -59,27 +97,28 @@ describe('tierConfig', () => {
     expect(ai.denemeLimit).toBeUndefined();
     expect(ai.modLimits).toBeUndefined();
 
-    const deneme = tierConfig('baslangic', false, { ...secenek, claudeAnahtariVar: false }).cfg;
+    const deneme = tierConfig('baslangic', true, { ...secenek, claudeAnahtariVar: false }).cfg;
     expect(deneme.provider).toBe('groq');
     expect(deneme.denemeLimit).toBeUndefined();
   });
 
   it('deneme katmanında günlük hak yok — yaşam boyu sınır denemeLimit ile korunur', () => {
-    expect(tierConfig('baslangic', false, secenek).cfg.gunluk ?? 0).toBe(0);
+    expect(tierConfig('baslangic', true, secenek).cfg.gunluk ?? 0).toBe(0);
     expect(tierConfig('ai', false, secenek).cfg.gunluk ?? 0).toBe(0);
   });
 
   it('tanınmayan katman deneme hakkına (baslangic ile aynı) düşer', () => {
+    expect(tierConfig('yok-boyle-bir-sey', true, secenek).cfg).toEqual(tierConfig('baslangic', true, secenek).cfg);
     expect(tierConfig('yok-boyle-bir-sey', false, secenek).cfg).toEqual(tierConfig('baslangic', false, secenek).cfg);
   });
 
-  it('yalnız "ai" katmanının aylık soru/mütalaa kotası vardır; free/baslangic yaşam boyu deneme hakkı taşır', () => {
+  it('yalnız "ai" katmanının aylık soru/mütalaa kotası vardır; ödeyen temel üye yaşam boyu deneme hakkı taşır', () => {
     // Sayılar 12.09.2026'da 250/12'den yükseltildi: paket Opus varsayımıyla
     // kurulmuştu (₺2,67/istek), Sonnet'te ölçülen birim maliyet ₺1,07.
     // Gerekçe ve hesap: _shared/katman.ts (AI_SORU_LIMIT).
     expect(tierConfig('ai', false, secenek).cfg.modLimits).toEqual({ soru: 750, mutalaa: 25 });
     expect(tierConfig('free', false, secenek).cfg.modLimits).toBeUndefined();
-    expect(tierConfig('baslangic', false, secenek).cfg.denemeLimit).toBe(DENEME_SORU_LIMIT);
+    expect(tierConfig('baslangic', true, secenek).cfg.denemeLimit).toBe(DENEME_SORU_LIMIT);
   });
 
   it('ölçüm zorlaması sağlayıcıyı ve modeli geçersiz kılar', () => {

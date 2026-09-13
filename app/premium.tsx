@@ -239,14 +239,13 @@ export default function PremiumScreen() {
       muvekkil: String(UCRETSIZ_LIMIT.muvekkil),
       belge: String(UCRETSIZ_LIMIT.belge),
     }),
-    // DENEME HAKKI YALNIZ AÇIK OLAN AI EKRANLARINDA HARCANABİLİR. Satır
-    // "{n} deneme yapay zekâ SORUSU" diyordu; "soru" sohbet ekranını çağrıştırır
-    // ve sohbet kapalıdır (AI_ENABLED = false). Bugün bu hak yalnız Dilekçe Üret
-    // ve Belge İncele üzerinden kullanılabiliyor. İkisi de kapatılırsa satır hiç
-    // gösterilmez — kullanılamayan bir hakkı listelemek boş vaattir.
-    ...(AI_DILEKCE_ENABLED || AI_BELGE_ENABLED || AI_AKTARMA_ENABLED
-      ? [t('premium.f.freeDeneme', { n: String(DENEME_SORU_HAKKI) })]
-      : []),
+    // DENEME HAKKI BU LİSTEDEN 13.09.2026'DA ÇIKARILDI (ürün sahibi kararı):
+    // artık ücretsiz katmanda değil, ₺399'luk pakette. Satır aşağıdaki Pro
+    // listesine taşındı; sunucu tarafı da aynı gün değişti
+    // (_shared/katman.ts → yalnız is_premium true ise denemeCfg).
+    // Burada bir "yakında" ya da "deneyin" satırı BIRAKILMADI: ücretsiz
+    // kullanıcı yapay zekâ uçlarından artık 403 alıyor, yani listede
+    // görünen her satır gerçekten kullanılabilir olmalı.
   ];
 
   const features = [
@@ -267,6 +266,12 @@ export default function PremiumScreen() {
     // kullanıcıya AI'ın da geleceğini VAAT ediyordu. Oysa AI ayrı ve 1.999 ₺'lik
     // bir pakettir. Yanlış beklenti yaratan bir satırı satış ekranında tutmak,
     // sonradan "ben AI için ödedim" itirazını doğurur.
+    // DENEME HAKKI ARTIK BURADA. Yalnız AÇIK olan AI ekranlarında
+    // harcanabildiği için, üçü birden kapatılırsa satır hiç gösterilmiyor:
+    // kullanılamayan bir hakkı ücretli pakete yazmak boş vaattir.
+    ...(AI_DILEKCE_ENABLED || AI_BELGE_ENABLED || AI_AKTARMA_ENABLED
+      ? [t('premium.f.proDeneme', { n: String(DENEME_SORU_HAKKI) })]
+      : []),
     t('premium.f.aiSeparate'),
   ];
 

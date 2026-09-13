@@ -138,6 +138,11 @@ async function hakRezerve(
   tier: string,
   userId: string
 ): Promise<{ red: Response } | { model: string }> {
+  // AI PAKETTE YOK — ödeme yapmamış kullanıcı (bkz. _shared/katman.ts).
+  // ai-chat'teki kapının aynısı ve aynı sebeple deneme rezervasyonundan önce.
+  if (cfg.aiKapali) {
+    return { red: json({ error: 'tier_required', tier, required: 'premium' }, 403) };
+  }
   const s = svc();
   if (cfg.denemeLimit) {
     const r = s ? (await s.rpc('deneme_hakki_rezerve_et', { p_user: userId, p_limit: cfg.denemeLimit })).data : false;

@@ -60,6 +60,9 @@ function mapError(e: unknown): IctihatError {
   if (msg === 'not_configured') return 'ai_off';
   // KVKK kapısı: yalnız özet ve olay analizi bu kapıdan geçer; kelime araması
   // ve künye sorgusu yurt dışına aktarım yapmadığı için hiç uğramaz.
+  // Paket kapısı: ücretsiz kullanıcı yapay zekâ özetine/analizine giremez
+  // (kelime araması ve künye sorgusu ücretsiz ve sınırsız kalır).
+  if (msg === 'tier_required') return 'paket';
   if (msg === 'kvkk_riza_yok') return 'kvkk';
   if (msg === 'kvkk_kontrol_hatasi') return 'kvkk_arizasi';
   return 'generic';
