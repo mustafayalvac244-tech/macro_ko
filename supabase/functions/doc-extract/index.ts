@@ -13,11 +13,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { stripXml } from '../_shared/belgeMetni.ts';
 import JSZip from 'https://esm.sh/jszip@3.10.1';
 import { extractText, getDocumentProxy } from 'https://esm.sh/unpdf@0.12.1';
+// CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
+// Burada elle yazılmaları, altı uçta `x-client-info` başlığının izin
+// listesinden düşmesine ve tarayıcıda tam arızaya yol açmıştı.
+import { CORS } from '../_shared/cors.ts';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 
 /** ZIP tabanlı formatlardan (UDF/DOCX) metin çıkarır. */

@@ -19,11 +19,9 @@
 
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+// CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
+import { CORS as corsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 /**
  * KONTÖR PAKETLERİ. Tutarlar kuruş cinsindendir (Stripe en küçük birimi ister).

@@ -20,6 +20,10 @@ import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
 // bilinmeyen her modeli gemini-2.5-pro fiyatından sayıyordu.
 import { costTry } from '../_shared/fiyat.ts';
 import { rizaKapisi } from '../_shared/kvkkRiza.ts';
+// CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
+// Burada elle yazılmaları, altı uçta `x-client-info` başlığının izin
+// listesinden düşmesine ve tarayıcıda tam arızaya yol açmıştı.
+import { CORS } from '../_shared/cors.ts';
 
 const EMSAL_BASE = 'https://emsal.uyap.gov.tr';
 // MODEL_BASIC / MODEL_PLUS KALDIRILDI: katman tablosu ortak dosyaya taşınınca
@@ -305,11 +309,6 @@ async function llmCall(
   return j.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
 }
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });

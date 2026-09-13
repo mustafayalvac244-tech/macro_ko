@@ -12,12 +12,11 @@
 // boyutta tutulur (birkaç token) ki sağlık kontrolünün kendisi kotayı yemesin.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+// CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
+// Burada elle yazılmaları, altı uçta `x-client-info` başlığının izin
+// listesinden düşmesine ve tarayıcıda tam arızaya yol açmıştı.
+import { CORS } from '../_shared/cors.ts';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 type Durum = {
   saglayici: string;

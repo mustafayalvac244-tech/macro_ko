@@ -3,7 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
+import { dosyaBase64, dosyaMetni } from '@/lib/girdi';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -99,9 +99,9 @@ export default function DosyaAktarScreen() {
       setStage(t('imp.stageExtract'));
       let text = '';
       if (name.endsWith('.txt')) {
-        text = await new File(asset.uri).text();
+        text = await dosyaMetni(asset);
       } else {
-        const base64 = await new File(asset.uri).base64();
+        const base64 = await dosyaBase64(asset);
         const { data, error } = await supabase.functions.invoke('doc-extract', { body: { filename: name, base64 } });
         if (error) {
           uyar(t('imp.title'), t('docrev.fileErr'));

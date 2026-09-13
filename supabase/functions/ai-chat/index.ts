@@ -51,6 +51,10 @@ import { atlananKurallar, cakisanDayanaklar } from '../_shared/kural.ts';
 // Belgeden okunan künye, belgede karşılığı yoksa atılır (_shared/kunye.ts):
 // uydurma esas numarası dosyayı yanlış açar ve dolu göründüğü için denetlenmez.
 import { kunyeDogrula, type Kunye } from '../_shared/kunye.ts';
+// CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
+// Burada elle yazılmaları, altı uçta `x-client-info` başlığının izin
+// listesinden düşmesine ve tarayıcıda tam arızaya yol açmıştı.
+import { CORS } from '../_shared/cors.ts';
 
 /** Dosyaya giren bir kural: metni ve atlandığını gösteren ayırt edici terimler. */
 interface BeslenenKural {
@@ -1064,11 +1068,6 @@ const SYSTEM_PROMPT =
   '"Hukuki tavsiye değildir; güncel mevzuattan teyit ediniz." Bunu uzatma, ' +
   'başka uyarı ekleme, cevabın içinde tekrar etme.';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 /** Soruyu Gemini ile vektöre çevirir (Plus semantik içtihat beslemesi için). */
 /**
