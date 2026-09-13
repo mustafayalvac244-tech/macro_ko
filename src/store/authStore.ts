@@ -61,10 +61,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   error: null,
 
   initialize: () => {
-    supabase.auth.getSession().then(({ data }) => {
-      set({ session: data.session, isInitializing: false });
-      if (data.session) get().refreshProfile();
-    });
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        set({ session: data.session, isInitializing: false });
+        if (data.session) get().refreshProfile();
+      })
+      // ÇEVRİMDIŞI AÇILIŞTA YAKALANMAMIŞ HATA BIRAKMA.
+      // Bu çağrının .catch()'i yoktu: ağ yokken söz reddediliyor ve hiçbir yer
+      // sahiplenmediği için tarayıcıda "A network error occurred" diye sayfa
+      // hatası olarak patlıyordu. Müşteri gibi kontrol ederken (canlı paket,
+      // Supabase'e erişimi olmayan bir tarayıcı) tam olarak bu görüldü.
+      //
+      // Açılışı zaten aşağıdaki 2 sn'lik emniyet ağı kurtarıyordu, yani ekran
+      // kilitlenmiyordu; ama sahipsiz hata hem hata raporlamasını kirletiyor
+      // hem de bazı kurulumlarda kullanıcıya hata katmanı olarak görünüyor.
+      // Adliyede kapsama düşen avukat bunu görecek olan kişidir.
+      .catch(() => {
+        set({ isInitializing: false });
+      });
 
     // Güvenlik ağı: oturum okuma (token yenileme) ağ nedeniyle takılırsa açılış
     // ekranı sonsuza kadar beklemesin — en geç 2 sn'de uygulamayı aç. getSession
