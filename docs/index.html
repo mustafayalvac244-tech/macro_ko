@@ -140,6 +140,16 @@
    işlevi görüyor. Açık/koyu tema, işletim sistemi tercihine göre. */
 :root{
   --lacivert:#0B1F45; --lacivert-2:#173C7E; --lacivert-3:#2A5AB8;
+  /* VURGU = bağlantı, etiket ve kenarlık rengi. Açık temada lacivert,
+     koyu temada ALTIN (aşağıdaki koyu blokta). Ayrı değişken olmasının
+     sebebi: --lacivert-3 aynı zamanda beyaz yazı taşıyan bir zemin
+     gradyanında (.adim-no) kullanılıyor; onun altına dönmesi yazıyı
+     okunmaz bırakırdı. */
+  --vurgu:#2A5AB8;
+  /* ANA DÜĞME. Ayrı değişken, çünkü düğme bir ZEMİN: rengi değişince
+     üstündeki yazının da değişmesi gerekiyor. Tek değişkenle yapılsaydı
+     koyu modda beyaz yazı altın zeminde kalırdı (kontrast ~1.9 — okunmaz). */
+  --dugme:#173C7E; --dugme-hover:#0B1F45; --dugme-yazi:#FFFFFF;
   --altin:#B8912F; --altin-2:#D9B356;
   --zemin:#F4F7FC; --kart:#FFFFFF; --cizgi:#DDE5F2;
   --metin:#0E1B33; --metin-2:#4A5A78; --metin-3:#7385A3;
@@ -150,6 +160,14 @@
 @media (prefers-color-scheme: dark){
   :root{
     --lacivert:#050C1A; --lacivert-2:#2A5AB8; --lacivert-3:#5B8AE0;
+    /* Uygulamayla AYNI altın (#E3C275 — amblemin kendi altını).
+       Site ile uygulama farklı sarı kullanırsa aynı ürün iki ayrı
+       marka gibi görünür. */
+    --vurgu:#E3C275;
+    /* Altın zemin + koyu lacivert yazı — uygulamadaki düğmelerin aynısı
+       (src/theme/palettes.ts: primary #E3C275, textInverse #070E1B).
+       Kontrast 11.25; beyaz yazı olsaydı 1.9 olurdu. */
+    --dugme:#E3C275; --dugme-hover:#EBCE85; --dugme-yazi:#070E1B;
     --altin:#D9B356; --altin-2:#EBCE85;
     --zemin:#070E1B; --kart:#111C33; --cizgi:#22314F;
     --metin:#EAF0FB; --metin-2:#A9B8D2; --metin-3:#7C8CA8;
@@ -177,7 +195,7 @@ p,li,summary{text-wrap:pretty}
    sekme tuşuyla ilerleyen kullanıcı nerede olduğunu göremiyordu. Yalnız
    :focus-visible kullanılıyor — fareyle tıklayanda halka çıkmaz. */
 a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible,.dg:focus-visible{
-  outline:2px solid var(--lacivert-3); outline-offset:3px; border-radius:6px}
+  outline:2px solid var(--vurgu); outline-offset:3px; border-radius:6px}
 /* Rakamlar sütun hâlinde dizilirken kaymasın (fiyatlar, madde numaraları). */
 .plan .ft,.kutu .ik,.sayilar b{font-variant-numeric:tabular-nums}
 p{margin:0}
@@ -221,10 +239,10 @@ nav a:hover{color:var(--metin)}
 /* ── Düğmeler ──────────────────────────────────────────────────────────── */
 .dg{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:12px;
   text-decoration:none;font-weight:700;font-size:15px;border:1px solid transparent;transition:.15s;white-space:nowrap}
-.dg-ana{background:var(--lacivert-2); color:#fff; box-shadow:var(--golge)}
-.dg-ana:hover{background:var(--lacivert); transform:translateY(-1px); box-shadow:var(--golge-yuksek)}
+.dg-ana{background:var(--dugme); color:var(--dugme-yazi); box-shadow:var(--golge)}
+.dg-ana:hover{background:var(--dugme-hover); transform:translateY(-1px); box-shadow:var(--golge-yuksek)}
 .dg-cer{border-color:var(--cizgi); color:var(--metin); background:var(--kart)}
-.dg-cer:hover{border-color:var(--lacivert-3); color:var(--lacivert-3)}
+.dg-cer:hover{border-color:var(--vurgu); color:var(--vurgu)}
 .dg-kck{padding:9px 16px; font-size:14px}
 
 /* ── Kahraman ──────────────────────────────────────────────────────────────
@@ -271,7 +289,10 @@ nav a:hover{color:var(--metin)}
   background:linear-gradient(102deg,var(--lacivert-2) 10%,var(--altin) 92%);
   -webkit-background-clip:text;background-clip:text;color:transparent}
 @media (prefers-color-scheme: dark){
-  .kahraman h1 em{background:linear-gradient(102deg,var(--lacivert-3) 10%,var(--altin-2) 92%);
+  /* Gradyan koyu modda MAVİYLE başlıyordu; sayfanın geri kalanı altına
+     dönünce tek başına kalan mavi, vurgu yerine kopukluk gibi duruyordu.
+     İki altın tonu arasında geçiş, aynı işi kopukluk yaratmadan yapıyor. */
+  .kahraman h1 em{background:linear-gradient(102deg,var(--altin) 8%,var(--altin-2) 92%);
     -webkit-background-clip:text;background-clip:text}
 }
 /* SINIF ÇAKIŞMASI DÜZELTİLDİ. Kahraman paragrafı da alt bilgi satırı da
@@ -303,7 +324,7 @@ nav a:hover{color:var(--metin)}
 .sayilar div{background:var(--kart);border:1px solid var(--cizgi);border-radius:15px;
   padding:20px 18px;box-shadow:var(--golge);position:relative;overflow:hidden}
 .sayilar div::after{content:'';position:absolute;left:0;right:0;top:0;height:2px;
-  background:linear-gradient(90deg,var(--lacivert-3),var(--altin-2));opacity:.75}
+  background:linear-gradient(90deg,var(--vurgu),var(--altin-2));opacity:.75}
 .sayilar u{display:block;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:1.1px;
   text-transform:uppercase;color:var(--metin-3);margin-bottom:7px}
 /* Vitrinde artık rakam değil KISA SÖZ duruyor ("Canlı", "Her künye",
@@ -326,7 +347,7 @@ section{padding:80px 0}
 .bas{text-align:center; max-width:760px; margin:0 auto 52px}
 .bas h2{font-size:clamp(27px,3.6vw,38px); letter-spacing:-.6px}
 .bas p{color:var(--metin-2); margin-top:14px; font-size:17px}
-.etiket{font-size:12.5px;font-weight:800;letter-spacing:1.4px;color:var(--lacivert-3);text-transform:uppercase}
+.etiket{font-size:12.5px;font-weight:800;letter-spacing:1.4px;color:var(--vurgu);text-transform:uppercase}
 
 .izgara{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 @media(max-width:900px){ .izgara{grid-template-columns:repeat(2,1fr)} }
@@ -349,7 +370,7 @@ section{padding:80px 0}
 .fiyatlar{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
 @media(max-width:900px){ .fiyatlar{grid-template-columns:1fr; max-width:460px; margin-inline:auto} }
 .plan{background:var(--kart);border:1px solid var(--cizgi);border-radius:var(--radius);padding:30px;box-shadow:var(--golge);position:relative}
-.plan.one{border-color:var(--lacivert-3);box-shadow:var(--golge-yuksek)}
+.plan.one{border-color:var(--vurgu);box-shadow:var(--golge-yuksek)}
 .plan.one::after{content:'EN ÇOK TERCİH EDİLEN';position:absolute;top:-11px;left:50%;transform:translateX(-50%);
   background:var(--lacivert-2);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.9px;padding:5px 13px;border-radius:999px;white-space:nowrap}
 .plan h3{font-size:19px}
@@ -425,7 +446,7 @@ details{background:var(--kart);border:1px solid var(--cizgi);border-radius:13px;
 details[open]{box-shadow:var(--golge)}
 summary{cursor:pointer;font-weight:700;font-size:15.5px;list-style:none;display:flex;justify-content:space-between;gap:16px;align-items:center}
 summary::-webkit-details-marker{display:none}
-summary::after{content:'+';color:var(--lacivert-3);font-size:22px;font-weight:400;flex:none}
+summary::after{content:'+';color:var(--vurgu);font-size:22px;font-weight:400;flex:none}
 details[open] summary::after{content:'–'}
 details p{color:var(--metin-2);font-size:14.8px;margin-top:12px}
 
@@ -433,7 +454,7 @@ details p{color:var(--metin-2);font-size:14.8px;margin-top:12px}
 footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 .alt{display:flex;justify-content:space-between;gap:28px;flex-wrap:wrap;align-items:flex-start}
 .alt a{color:var(--metin-2);text-decoration:none;font-size:14px;display:block;margin-top:9px}
-.alt a:hover{color:var(--lacivert-3)}
+.alt a:hover{color:var(--vurgu)}
 .alt h4{font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--metin-3);margin:0;font-family:'Manrope',sans-serif}
 .telif{margin-top:34px;padding-top:22px;border-top:1px solid var(--cizgi);font-size:13px;color:var(--metin-3);text-align:center}
 
@@ -472,7 +493,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 /* Üstten geçen ince renkli şerit: kutunun bir "ürün penceresi" olduğunu
    söyler ve koyu temada kenarı ayırır. */
 .cerceve::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;z-index:2;
-  background:linear-gradient(90deg,var(--lacivert-3),var(--altin-2),var(--lacivert-3))}
+  background:linear-gradient(90deg,var(--vurgu),var(--altin-2),var(--vurgu))}
 @media (prefers-color-scheme: dark){
   .cerceve{box-shadow:0 40px 90px -30px rgba(0,0,0,.85), 0 0 0 1px rgba(91,138,224,.14)}
 }
@@ -498,11 +519,11 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
 .cr-govde{padding:14px}
 .dn-yaz{width:100%;min-height:104px;resize:vertical;font-family:inherit;font-size:13px;line-height:1.7;
   color:var(--metin);background:var(--zemin);border:1px solid var(--cizgi);border-radius:10px;padding:11px 12px}
-.dn-yaz:focus{outline:none;border-color:var(--lacivert-3);background:var(--kart)}
+.dn-yaz:focus{outline:none;border-color:var(--vurgu);background:var(--kart)}
 .dn-arac{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px}
 .dn-ornek{font-size:11.5px;font-weight:700;color:var(--metin-2);background:transparent;cursor:pointer;
   border:1px solid var(--cizgi);border-radius:999px;padding:5px 11px;font-family:inherit}
-.dn-ornek:hover{border-color:var(--lacivert-3);color:var(--lacivert-3)}
+.dn-ornek:hover{border-color:var(--vurgu);color:var(--vurgu)}
 .dn-sayac{margin-left:auto;font-size:11.5px;color:var(--metin-3);font-weight:600}
 .dn-sonuc{margin-top:11px;display:grid;gap:6px}
 .dn{border-radius:9px;padding:9px 11px;font-size:12px;line-height:1.55}
@@ -905,7 +926,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     <p style="text-align:center;color:var(--metin-3);font-size:13.5px;margin-top:26px">
       <b style="color:var(--metin-2)">Ücretsiz katman bugün açık ve süresiz.</b>
       Ücretli planlar, iOS ve Android uygulamaları mağazalarda yayına girdiğinde açılır; abonelik mağaza hesabınız üzerinden işler, aylık yenilenir ve istediğiniz zaman iptal edilir.
-      Her planın aylık kullanım kapasitesi <a href="terms.html" style="color:var(--lacivert-3)">Kullanım Koşulları</a>'nda ve satın alma ekranında sayısıyla yazılıdır.
+      Her planın aylık kullanım kapasitesi <a href="terms.html" style="color:var(--vurgu)">Kullanım Koşulları</a>'nda ve satın alma ekranında sayısıyla yazılıdır.
     </p>
   </div>
 </section>
@@ -951,7 +972,7 @@ footer{border-top:1px solid var(--cizgi);padding:44px 0 56px;margin-top:40px}
     </div>
     <p style="text-align:center;color:var(--metin-3);font-size:13.5px;margin-top:26px">
       Hangi sağlayıcıya, hangi ülkeye, hangi amaçla — adı adına tam liste, saklama süreleri ve <b>henüz sahip olmadığımız belgeler</b>:
-      <a href="guvenlik.html" style="color:var(--lacivert-3);font-weight:700">Güvenlik ve Veri Merkezi</a>.
+      <a href="guvenlik.html" style="color:var(--vurgu);font-weight:700">Güvenlik ve Veri Merkezi</a>.
       Hukuki metnin tamamı uygulama içindeki <b>KVKK Aydınlatma Metni</b>'ndedir.
     </p>
   </div>
