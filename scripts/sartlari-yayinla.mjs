@@ -137,8 +137,12 @@ const html = `<!doctype html>
 <meta name="description" content="Vekil Pro kullanım koşulları (EULA): abonelik şartları, yapay zekâ kullanımı, süre hatırlatmaları ve sorumluluk sınırları." />
 <style>
   :root { --bg:#F4F6FA; --card:#FFFFFF; --ink:#14213D; --muted:#5A6785; --line:#E3E8F0; --accent:#173C7E; }
+  /* Koyu modda vurgu ALTIN (#E3C275) — uygulamanın ve tanıtım sitesinin
+     kullandığı altınla aynı. Bu betik docs/terms.html'i ÜRETİYOR; burayı
+     düzeltmeden yalnız çıktıyı düzeltmek, bir sonraki üretimde maviyi
+     geri getirirdi. */
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#0B1220; --card:#131C2E; --ink:#EAF0FB; --muted:#9AA8C2; --line:#243149; --accent:#5B8DEF; }
+    :root { --bg:#0B1220; --card:#131C2E; --ink:#EAF0FB; --muted:#9AA8C2; --line:#243149; --accent:#E3C275; }
   }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
