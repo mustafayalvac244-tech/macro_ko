@@ -240,8 +240,14 @@ gösterir. Hazırlamamı isterseniz söyleyin.
 
 1. ~~**Siz:** `EXPO_TOKEN` ekleyin~~ — **zaten vardı**, derleme onunla koştu.
 2. **Siz:** Play Console'da uygulamayı oluşturun — paket adı **`com.vekilpro.app`**
-3. ~~**Ben:** ilk AAB'yi üretirim~~ — **yapıldı, 13.09.2026 12:04**.
-   Dosya: koşu #2'nin kaydındaki `expo.dev/artifacts/eas/...aab` bağlantısı.
+3. ~~**Ben:** ilk AAB'yi üretirim~~ — **yapıldı, 13.09.2026 13:57 (koşu #4)**.
+   ```
+   https://expo.dev/artifacts/eas/eUwBZnQwOAjMRrR04z5FmpWZbbGUqibpZkxnjxrTZkw.aab
+   ```
+   ⚠️ **Koşu #2'yi YÜKLEMEYİN.** Burada önce koşu #2 yazıyordu; o derlemede
+   paket adı hâlâ eski (`com.macroko.legal`) ve renkler eski. Play kaydını
+   `com.vekilpro.app` ile açıp oraya #2'yi yüklerseniz paket adı tutmaz.
+   Yüklenecek olan yukarıdaki bağlantıdır (commit `bc8f206`).
    Play servis hesabı JSON'u olmadığı için **elle yüklenecek**: Play Console
    → uygulama → Test → Dahili test → Yeni sürüm oluştur → AAB'yi sürükle.
 4. **Siz:** dahili testte kendi telefonunuzda açıp bakın. **Buraya kadar

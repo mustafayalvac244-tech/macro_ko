@@ -4,6 +4,15 @@ A cross-platform mobile app for lawyers to track cases, clients, court hearings,
 legal deadlines, and case documents — built with Expo (React Native) and Supabase.
 Fully bilingual (Turkish by default, English switchable in Settings).
 
+## Önce bunu okuyun
+
+**`KARAR-DEFTERI.md`** — alınmış kararlar, değişmez güvenlik kuralları, ürün
+sahibinin yapacakları ve açık işler. Bir konuşma kaybolsa bile projenin
+hafızası orada; yeni bir oturum oradan devam eder.
+
+**`AGENTS.md`** — dürüstlük kuralları ve sağlık verisi ayrımı. Her oturumda
+geçerli, hatırlatılmayı beklemez.
+
 ## Tech Stack
 
 - **App**: Expo SDK 57 (React Native 0.86, TypeScript), Expo Router (file-based navigation)
