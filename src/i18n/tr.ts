@@ -131,6 +131,26 @@ export const tr = {
   'dash.comm.msg': 'Mesaj',
   'dash.comm.empty': 'Henüz mesajlaşma yok. Kişi ekle simgesiyle meslektaş bulun.',
   'dash.fin.title': 'Finansal Özet',
+  // ── Pano (yalnız geniş tarayıcı) ────────────────────────────────────────
+  // Ana ekran masaüstünde tek sütuna sıkışıyordu; bu anahtarlar orada açılan
+  // durum şeridi, yaklaşan süreler listesi ve kısayollar için.
+  'dash.stat.cases': 'Aktif dosya',
+  'dash.stat.hearings': 'Bu hafta duruşma',
+  'dash.stat.deadlines': 'Bekleyen süre',
+  'dash.stat.outcomes': 'Sonuç bekleyen',
+  'dash.upcoming.title': 'Yaklaşan süreler',
+  'dash.upcoming.all': 'Takvim',
+  'dash.upcoming.empty': 'Yaklaşan süre görünmüyor. Yeni bir süre eklediğinizde burada çıkar.',
+  'dash.upcoming.due': 'Bugün',
+  'dash.upcoming.days': '{n} gün',
+  'dash.quick.title': 'Kısayollar',
+  'dash.quick.ictihat': 'İçtihat ara',
+  'dash.quick.dilekce': 'Dilekçe üret',
+  'dash.quick.aktar': 'Belgeden dosya aç',
+  'dash.quick.hesap': 'Hesaplayıcılar',
+  'dash.quick.mevzuat': 'Mevzuat',
+  'dash.quick.finans': 'Büro finansı',
+
   'dash.fin.month': 'Bu Ay',
   'dash.fin.income': 'Gelir',
   'dash.fin.expense': 'Gider',

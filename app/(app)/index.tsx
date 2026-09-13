@@ -29,7 +29,7 @@ import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, spacing, shadow } from '@/theme/theme';
-import { kaliciMenuMu, ortalaStili } from '@/theme/duzen';
+import { kaliciMenuMu, ortalaStili, panoOlculeri, PANO_ARALIK, PANO_YAN_BOSLUK } from '@/theme/duzen';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney, formatTime } from '@/utils/format';
@@ -86,6 +86,19 @@ export default function DashboardScreen() {
   const openSidebar = useSidebarStore((s) => s.open);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+
+  // PANO IZGARASI — yalnız geniş tarayıcıda devreye girer.
+  // Telefonda ve natifte `sutun` 1 döner ve her blok tam genişlik alır, yani
+  // bugünkü tek sütunlu düzenin birebir aynısı. Ölçüler tek yerden geliyor ve
+  // sınanıyor (src/theme/duzen.ts → panoOlculeri, tests/panoIzgara.test.ts).
+  const kaliciMenu = kaliciMenuMu(pencereGenisligi);
+  const pano = panoOlculeri(pencereGenisligi, kaliciMenu);
+  const panoMu = pano.sutun > 1;
+  /** Bloklara genişlik veren kısa yardımcı; tek sütunda hiçbir şey eklemez. */
+  const blok = useCallback(
+    (tur: 'tam' | 'yarim' | 'ucteBir' | 'ikiUcte') => (panoMu ? { width: pano[tur] } : null),
+    [panoMu, pano],
+  );
 
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
@@ -262,6 +275,56 @@ export default function DashboardScreen() {
     return { value: t('dash.assist.sugCalendar'), right: t('tab.calendar') };
   }, [nextDeadline, nextHearing, t]);
 
+  /**
+   * ÜST ŞERİTTEKİ DÖRT SAYI — yalnız panoda görünür.
+   *
+   * NEDEN VAR. Pano açıldığında ilk sorulan şey "bugün ne var" değil, "durum
+   * ne": kaç dosyam açık, bu hafta kaç duruşmam var, kaç süre yaklaşıyor.
+   * Bu sayılar zaten yüklenen veriden hesaplanıyor; ek istek YOK.
+   *
+   * SAYILAR VERİ GELMEDEN 0 GÖSTERMEZ. Yükleme sırasında 0 basmak, "hiç
+   * dosyan yok" demekle aynı şey — avukat bir an için verisini kaybettiğini
+   * sanır. Veri yoksa çizgi (—) gösteriliyor.
+   */
+  const panoSayilari = useMemo(() => {
+    const haftaSonu = Date.now() + 7 * 86_400_000;
+    const buHafta = (hearings.data ?? []).filter((h) => {
+      if (h.is_completed) return false;
+      const z = new Date(h.scheduled_at).getTime();
+      return z >= Date.now() && z <= haftaSonu;
+    }).length;
+    const bekleyenSure = (deadlines.data ?? []).filter(
+      (d) => !d.is_completed && new Date(d.due_at).getTime() >= Date.now(),
+    ).length;
+    return {
+      dosya: openCases.isPending ? null : caseList.length,
+      durusma: hearings.data ? buHafta : null,
+      sure: deadlines.data ? bekleyenSure : null,
+      sonuc: hearings.data ? pendingOutcomes.length : null,
+    };
+  }, [caseList.length, openCases.isPending, hearings.data, deadlines.data, pendingOutcomes.length]);
+
+  /**
+   * YAKLAŞAN SÜRELER — panonun sağ sütunundaki liste.
+   *
+   * Ana ekranda süreler yalnız "bugün" kutusunda ve tek bir "sıradaki" satırı
+   * olarak görünüyordu; yarından sonrası hiç görünmüyordu. Süre kaçırmanın en
+   * yaygın sebebi tam olarak bu: bugüne bakmak, haftaya bakmamak.
+   */
+  const yaklasanSureler = useMemo(() => {
+    return (deadlines.data ?? [])
+      .filter((d) => !d.is_completed && new Date(d.due_at).getTime() >= Date.now() - 86_400_000)
+      .sort((a, b) => new Date(a.due_at).getTime() - new Date(b.due_at).getTime())
+      .slice(0, 6)
+      .map((d) => ({
+        id: d.id,
+        baslik: d.title,
+        dosya: d.case?.title ?? '',
+        tarih: format(new Date(d.due_at), 'd MMM yyyy', { locale: dateLocale }),
+        kalanGun: Math.ceil((new Date(d.due_at).getTime() - Date.now()) / 86_400_000),
+      }));
+  }, [deadlines.data, dateLocale]);
+
   // Finance summary: this month vs last month (+ net cash flow)
   const fin = useMemo(() => {
     const entries = finance.data ?? [];
@@ -320,14 +383,30 @@ export default function DashboardScreen() {
         // ve dizideki null öge yok sayılır — natif düzen aynen korunur.
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + spacing.xs, paddingBottom: 96 + insets.bottom },
-          ortalaStili(pencereGenisligi),
+          { paddingTop: insets.top + spacing.xs, paddingBottom: (kaliciMenu ? 32 : 96) + insets.bottom },
+          // PANODA IZGARA, DAR EKRANDA YIĞIN.
+          // `alignItems: 'flex-start'` şart: olmazsa aynı satırdaki kartlar en
+          // uzunun boyuna esner ve kısa kartın içi kocaman bir boşluk olur.
+          // `rowGap`/`columnGap` ayrı veriliyor çünkü kartların kendi
+          // `marginBottom`u tek sütun düzeni için duruyor; panoda o marjı
+          // sıfırlayıp boşluğu ızgara yönetiyor.
+          panoMu
+            ? {
+                flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start',
+                columnGap: PANO_ARALIK, rowGap: PANO_ARALIK,
+                // Dolgu, blok genişliklerini hesaplayan sabitle AYNI olmak
+                // zorunda (bkz. duzen.ts → PANO_YAN_BOSLUK). Ayrıştığında son
+                // blok alt satıra düşüyor ve pano yine yarım kalıyor.
+                paddingHorizontal: PANO_YAN_BOSLUK,
+              }
+            : null,
+          ortalaStili(pencereGenisligi, panoMu ? 'pano' : 'genis'),
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl tintColor={colors.textSecondary} refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* ---------- Üst çubuk ---------- */}
-        <View style={styles.toolbar}>
+        <View style={[styles.toolbar, blok('tam')]}>
           <View style={styles.toolbarLeft}>
             {/* Menü zaten solda sürekli duruyorsa hamburger gereksiz —
                 aynı menüye iki giriş kullanıcıyı şaşırtır. */}
@@ -357,11 +436,27 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* ---------- Karşılama ---------- */}
-        <Text allowFontScaling={false} style={styles.greeting}>
-          {t(greetingKey)}, {firstName}
-        </Text>
-        <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
+        {/* ---------- Karşılama (+ panoda durum sayıları) ----------
+             Sayılar YALNIZ panoda çıkıyor. Telefonda aynı satıra dört sayı
+             sığmaz; sığdırmaya çalışmak, bugünkü sade karşılamayı bozar ve
+             ekranın üstünden yer çalar. Geniş tarayıcıda ise sağ taraf zaten
+             boştu — sayılar tam oraya oturuyor. */}
+        <View style={[styles.panoBaslikSatiri, blok('tam')]}>
+          <View>
+            <Text allowFontScaling={false} style={styles.greeting}>
+              {t(greetingKey)}, {firstName}
+            </Text>
+            <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
+          </View>
+          {panoMu && (
+            <View style={styles.panoSayilar}>
+              <PanoSayi etiket={t('dash.stat.cases')} deger={panoSayilari.dosya} />
+              <PanoSayi etiket={t('dash.stat.hearings')} deger={panoSayilari.durusma} />
+              <PanoSayi etiket={t('dash.stat.deadlines')} deger={panoSayilari.sure} />
+              <PanoSayi etiket={t('dash.stat.outcomes')} deger={panoSayilari.sonuc} />
+            </View>
+          )}
+        </View>
 
         {/* ---------- Plan durumu ----------
             Eskiden burada 7 günlük deneme sayacı ve "deneme süren doldu"
@@ -370,7 +465,7 @@ export default function DashboardScreen() {
             baskısız tek satır: kullanıcı hangi plandaysa onu söyler. */}
         {!trial.subscribed && (
           <Pressable
-            style={({ pressed }) => [styles.trialPill, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.trialPill, blok('tam'), pressed && { opacity: 0.85 }]}
             onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}
           >
             <Ionicons name="sparkles-outline" size={15} color={colors.primary} />
@@ -382,7 +477,7 @@ export default function DashboardScreen() {
         {/* ---------- Duruşma Çıkışı bekleyenler ---------- */}
         {pendingOutcomes.length > 0 && (
           <Pressable
-            style={({ pressed }) => [styles.outcomeCard, pressed && { opacity: 0.9 }]}
+            style={({ pressed }) => [styles.outcomeCard, blok('tam'), panoMu && styles.panoMarjsiz, pressed && { opacity: 0.9 }]}
             onPress={() => router.push('/durusma-cikisi' as Parameters<typeof router.push>[0])}
           >
             <View style={styles.outcomeIcon}>
@@ -411,8 +506,36 @@ export default function DashboardScreen() {
           </Pressable>
         )}
 
+        {/* ---------- Masraf avansı uyarısı (kapatılabilir) ---------- */}
+        {advanceAlerts.length > 0 && (
+          <View style={[styles.advanceAlert, blok('tam'), panoMu && styles.panoMarjsiz]}>
+            <View style={styles.advanceAlertHead}>
+              <Ionicons name="alert-circle" size={16} color={colors.danger} />
+              <Text allowFontScaling={false} style={styles.advanceAlertTitle}>{t('dash.advance.title')}</Text>
+            </View>
+            {advanceAlerts.slice(0, 4).map((d) => (
+              <View key={d.id} style={styles.advanceAlertRow}>
+                <Pressable style={styles.advanceAlertInfo} onPress={() => router.push(`/(app)/clients/${d.id}`)}>
+                  <Text allowFontScaling={false} style={styles.advanceAlertName} numberOfLines={1}>{d.name}</Text>
+                  <Text allowFontScaling={false} style={styles.advanceAlertAmount}>
+                    {t('dash.advance.need', { amount: formatMoney(d.deficit) })}
+                  </Text>
+                </Pressable>
+                <Pressable onPress={() => dismissAlert(d.id)} hitSlop={8} style={styles.advanceAlertClose}>
+                  <Ionicons name="close" size={16} color={colors.textMuted} />
+                </Pressable>
+              </View>
+            ))}
+            {advanceAlerts.length > 4 && (
+              <Text allowFontScaling={false} style={styles.advanceAlertMore}>
+                {t('dash.advance.more', { n: advanceAlerts.length - 4 })}
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* ---------- Sıradaki + Bugün ---------- */}
-        <View style={styles.hero}>
+        <View style={[styles.hero, blok('ikiUcte'), panoMu && styles.panoMarjsiz]}>
           <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.next.label')}</Text>
 
           {nextEvent ? (
@@ -473,37 +596,9 @@ export default function DashboardScreen() {
           </Pressable>
         </View>
 
-        {/* ---------- Masraf avansı uyarısı (kapatılabilir) ---------- */}
-        {advanceAlerts.length > 0 && (
-          <View style={styles.advanceAlert}>
-            <View style={styles.advanceAlertHead}>
-              <Ionicons name="alert-circle" size={16} color={colors.danger} />
-              <Text allowFontScaling={false} style={styles.advanceAlertTitle}>{t('dash.advance.title')}</Text>
-            </View>
-            {advanceAlerts.slice(0, 4).map((d) => (
-              <View key={d.id} style={styles.advanceAlertRow}>
-                <Pressable style={styles.advanceAlertInfo} onPress={() => router.push(`/(app)/clients/${d.id}`)}>
-                  <Text allowFontScaling={false} style={styles.advanceAlertName} numberOfLines={1}>{d.name}</Text>
-                  <Text allowFontScaling={false} style={styles.advanceAlertAmount}>
-                    {t('dash.advance.need', { amount: formatMoney(d.deficit) })}
-                  </Text>
-                </Pressable>
-                <Pressable onPress={() => dismissAlert(d.id)} hitSlop={8} style={styles.advanceAlertClose}>
-                  <Ionicons name="close" size={16} color={colors.textMuted} />
-                </Pressable>
-              </View>
-            ))}
-            {advanceAlerts.length > 4 && (
-              <Text allowFontScaling={false} style={styles.advanceAlertMore}>
-                {t('dash.advance.more', { n: advanceAlerts.length - 4 })}
-              </Text>
-            )}
-          </View>
-        )}
-
         {/* ---------- Davana Emsal (AI/İçtihat kapalıyken gizli) ---------- */}
         {AI_ENABLED && (
-        <View style={styles.card}>
+        <View style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
@@ -635,7 +730,7 @@ export default function DashboardScreen() {
         )}
 
         {/* ---------- Finansal Özet ---------- */}
-        <View style={styles.card}>
+        <View style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
@@ -657,14 +752,139 @@ export default function DashboardScreen() {
             <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
           </View>
         </View>
+
+        {/* ---------- Yaklaşan Süreler (yalnız pano) ----------
+             NEDEN YENİ. Ana ekranda süreler yalnız "bugün" kutusunda ve tek
+             bir "sıradaki" satırında görünüyordu; yarından sonrası hiç
+             görünmüyordu. Süre kaçırmanın en yaygın sebebi tam olarak bu:
+             bugüne bakmak, haftaya bakmamak. Telefonda eklenmedi çünkü orada
+             ekranın altına düşer ve görülmez — bu kart görülmek için var. */}
+        {panoMu && (
+          <View style={[styles.card, blok('ikiUcte'), styles.panoMarjsiz]}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderLeft}>
+                <View style={styles.cardHeaderIcon}>
+                  <Ionicons name="hourglass-outline" size={15} color={colors.primary} />
+                </View>
+                <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.upcoming.title')}</Text>
+              </View>
+              <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/(app)/calendar')} hitSlop={6}>
+                <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.upcoming.all')}</Text>
+                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+              </Pressable>
+            </View>
+
+            {deadlines.isPending ? (
+              <ActivityIndicator color={colors.textSecondary} style={{ paddingVertical: spacing.lg }} />
+            ) : yaklasanSureler.length === 0 ? (
+              <Text allowFontScaling={false} style={styles.bosDurum}>{t('dash.upcoming.empty')}</Text>
+            ) : (
+              yaklasanSureler.map((s, i) => {
+                // RENK BİR UYARI, SÜS DEĞİL: geçmiş ve bugün kırmızı, üç güne
+                // kadar altın, ötesi nötr. Avukat listeye bakmadan hangi satıra
+                // bugün dokunması gerektiğini görüyor.
+                const acil = s.kalanGun <= 0;
+                const yakin = s.kalanGun > 0 && s.kalanGun <= 3;
+                const renk = acil ? colors.danger : yakin ? accentGold : colors.textSecondary;
+                return (
+                  <Pressable
+                    key={s.id}
+                    style={({ pressed }) => [
+                      styles.sureSatir,
+                      i === yaklasanSureler.length - 1 && styles.sureSatirSon,
+                      pressed && { opacity: 0.7 },
+                    ]}
+                    onPress={() => router.push('/(app)/calendar')}
+                  >
+                    <View style={[styles.sureRozet, { backgroundColor: renk + '1F' }]}>
+                      <Text allowFontScaling={false} style={[styles.sureRozetYazi, { color: renk }]}>
+                        {acil ? t('dash.upcoming.due') : t('dash.upcoming.days', { n: s.kalanGun })}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text allowFontScaling={false} style={styles.sureBaslik} numberOfLines={1}>{s.baslik}</Text>
+                      <Text allowFontScaling={false} style={styles.sureAlt} numberOfLines={1}>
+                        {s.dosya ? `${s.dosya} · ${s.tarih}` : s.tarih}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+                  </Pressable>
+                );
+              })
+            )}
+          </View>
+        )}
+
+        {/* ---------- Kısayollar (yalnız pano) ----------
+             Telefonda bu kart GEREKSİZ: aynı yollar kenar menüsünde tek
+             dokunuş uzakta ve ekranın altında kimse görmez. Masaüstünde ise
+             panonun sağ alt köşesi zaten boştu ve en sık açılan altı ekran
+             oraya sığıyor. */}
+        {panoMu && (
+          <View style={[styles.card, blok('tam'), styles.panoMarjsiz]}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderLeft}>
+                <View style={styles.cardHeaderIcon}>
+                  <Ionicons name="flash-outline" size={15} color={colors.primary} />
+                </View>
+                <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.quick.title')}</Text>
+              </View>
+            </View>
+            <View style={styles.kisayolIzgara}>
+              {[
+                { ikon: 'search-outline', yazi: t('dash.quick.ictihat'), yol: '/ictihat' },
+                { ikon: 'document-text-outline', yazi: t('dash.quick.dilekce'), yol: '/dilekce-uret' },
+                { ikon: 'cloud-upload-outline', yazi: t('dash.quick.aktar'), yol: '/dosya-aktar' },
+                { ikon: 'calculator-outline', yazi: t('dash.quick.hesap'), yol: '/calculators' },
+                { ikon: 'library-outline', yazi: t('dash.quick.mevzuat'), yol: '/laws' },
+                { ikon: 'wallet-outline', yazi: t('dash.quick.finans'), yol: '/finance' },
+              ].map((k) => (
+                <Pressable
+                  key={k.yol}
+                  style={({ pressed }) => [styles.kisayol, pressed && { opacity: 0.75 }]}
+                  onPress={() => router.push(k.yol as Parameters<typeof router.push>[0])}
+                >
+                  <Ionicons name={k.ikon as keyof typeof Ionicons.glyphMap} size={16} color={colors.primary} />
+                  <Text allowFontScaling={false} style={styles.kisayolYazi} numberOfLines={1}>{k.yazi}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
       </ScrollView>
 
-      {/* ---------- Alt navigasyon ---------- */}
+      {/* ---------- Alt navigasyon ----------
+           KALICI MENÜ VARKEN GİZLENİYOR. Masaüstünde solda zaten sürekli bir
+           menü duruyor ve alt çubuk aynı üç yolu ikinci kez gösteriyordu:
+           ekranın altından ~70 px yer alıyor, aynı hedefe iki giriş sunarak
+           "hangisi doğru" sorusunu doğuruyordu. Telefonda hiçbir şey
+           değişmiyor — orada yan menü kalıcı değil ve alt çubuk asıl
+           gezinme yolu. */}
+      {!kaliciMenu && (
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <BottomTab icon="folder-open-outline" label={t('tab.fileIndex')} active onPress={() => router.push('/(app)/cases')} />
         <BottomTab icon="calendar-outline" label={t('tab.calendar')} onPress={() => router.push('/(app)/calendar')} />
         <BottomTab icon="people-outline" label={t('tab.clients')} onPress={() => router.push('/(app)/clients')} />
       </View>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Panonun üst şeridindeki tek bir sayı.
+ *
+ * `deger` null ise çizgi gösterir. Bu bilinçli: veri yüklenirken 0 basmak
+ * "hiç dosyan yok" demekle aynı şey ve avukat bir an için verisini
+ * kaybettiğini sanır.
+ */
+function PanoSayi({ etiket, deger }: { etiket: string; deger: number | null }) {
+  const __t = useTheme();
+  const styles = makeStyles(__t.colors);
+  return (
+    <View style={styles.panoSayiKutu}>
+      <Text allowFontScaling={false} style={styles.panoSayiEtiket} numberOfLines={1}>{etiket}</Text>
+      <Text allowFontScaling={false} style={styles.panoSayiDeger}>{deger === null ? '—' : deger}</Text>
     </View>
   );
 }
@@ -802,6 +1022,109 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.lg,
+  },
+
+  /* ── PANO (yalnız geniş tarayıcı) ──────────────────────────────────────
+     Kartların kendi `marginBottom`u tek sütunlu telefon düzeni için var.
+     Izgarada boşluğu `rowGap` yönetiyor; marj kalsaydı satır araları iki
+     kat açılır ve pano dağınık görünürdü. */
+  panoMarjsiz: {
+    marginBottom: 0,
+  },
+  /** Karşılama + dört sayı aynı satırda; dar ekranda alt alta. */
+  panoBaslikSatiri: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    flexWrap: 'wrap',
+  },
+  panoSayilar: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: spacing.lg,
+  },
+  panoSayiKutu: {
+    minWidth: 84,
+  },
+  panoSayiEtiket: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+    marginBottom: 2,
+  },
+  panoSayiDeger: {
+    fontFamily: SERIF,
+    fontSize: 26,
+    lineHeight: 30,
+    color: colors.textPrimary,
+  },
+  /** Yaklaşan süreler listesi. */
+  sureSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sureSatirSon: {
+    borderBottomWidth: 0,
+  },
+  sureRozet: {
+    minWidth: 54,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  sureRozetYazi: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+  },
+  sureBaslik: {
+    fontFamily: fonts.semibold,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  sureAlt: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  bosDurum: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.textMuted,
+    paddingVertical: spacing.md,
+  },
+  /** Kısayol ızgarası. */
+  kisayolIzgara: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  kisayol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
+    flexGrow: 1,
+    flexBasis: 140,
+  },
+  kisayolYazi: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.textPrimary,
+    flexShrink: 1,
   },
   toolbar: {
     flexDirection: 'row',
