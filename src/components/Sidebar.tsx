@@ -156,7 +156,9 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
   // göstermek olurdu — kullanıcı hiç dokunmaz.
   const yakinda = t('ai.comingSoonBadge');
   const aiBadge = AI_ENABLED ? undefined : yakinda;
-  // Mesajlaşma şimdilik gizli (istek üzerine); rotalar duruyor, giriş yok.
+  // NOT: "Mesajlaşma şimdilik gizli; rotalar duruyor, giriş yok" yazıyordu.
+  // 14.09.2026'da değişti: tevkil panosu ve yazışma WEB'de menüye açıldı,
+  // Android'de kod seviyesinde kapalı. Girişler officeItems'ın sonunda.
   const toolItems: NavItem[] = [
     { icon: 'sparkles-outline', label: t('ai.short'), path: '/ai-chat', badge: aiBadge },
     { icon: 'cloud-upload-outline', label: t('imp.short'), path: '/dosya-aktar', badge: aiBadge },
@@ -183,6 +185,23 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
     { icon: 'stats-chart-outline', label: t('reports.title'), path: '/reports' },
     { icon: 'notifications-outline', label: t('reminders.title'), path: '/reminders' },
     { icon: 'chatbubble-ellipses-outline', label: t('settings.feedback'), path: '/feedback' },
+    // TEVKİL PANOSU VE MESAJLAR — YALNIZ WEB.
+    //
+    // Koşul görsel bir tercih değil, beyanın kendisi: Android uygulamasında
+    // bu ekranlar YOK (kod native pakete girmiyor, bkz.
+    // src/components/tevkil/YalnizWeb.tsx) ve Play içerik anketinde
+    // "kullanıcılar birbirini görebilir mi" sorusuna "hayır" demeyi
+    // haklı çıkaran şey bu.
+    //
+    // Menüye koymadan önce KVKK metinleri güncellendi — sıra bilerek böyle:
+    // önce metin, sonra giriş. Tersi, ürünün anlatmadığı bir şeyi yapması
+    // demek olurdu (daha önce tam olarak bu yüzden kaldırılmışlardı).
+    ...(Platform.OS === 'web'
+      ? [
+          { icon: 'swap-horizontal-outline', label: t('tevkil.menuBoard'), path: '/tevkil' } as NavItem,
+          { icon: 'mail-outline', label: t('tevkil.menuInbox'), path: '/mesajlar' } as NavItem,
+        ]
+      : []),
     // WEB SÜRÜMÜ — telefonda menüde, web'de gereksiz (zaten oradasınız).
     ...(Platform.OS === 'web'
       ? []

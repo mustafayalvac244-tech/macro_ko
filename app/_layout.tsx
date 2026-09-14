@@ -193,16 +193,36 @@ export default function RootLayout() {
             <Stack.Screen name="privacy" options={{ headerShown: false }} />
             <Stack.Screen name="templates" options={{ headerShown: false }} />
             <Stack.Screen name="search" options={{ headerShown: false }} />
-            {/* TEVKİL PANOSU, SOHBET VE GÜNÜN SORUSU BURADAN KALDIRILDI (14.09.2026).
-                Ekranlar SİLİNMEDİ — src/ekranlar-beklemede/ altında duruyor.
-                Sebep: hiçbir menüden erişilemiyorlardı ama expo-router'da dosya
-                = rota olduğu için derin bağlantıyla açılabiliyorlardı. Bu iki
-                sorun demekti: (1) Play "kullanıcılar birbirine içerik gösterir
-                mi" sorusuna evet dedirtiyordu, (2) kod başka avukatlara ad/büro/
-                baro sicil gösterirken gizlilik metinlerinin hiçbiri bundan
-                bahsetmiyordu. Geri açmak için: dosyaları app/ altına taşıyın,
-                bu Stack kayıtlarını geri ekleyin VE ÖNCE KVKK metinlerini
-                güncelleyin. */}
+            {/* TEVKİL PANOSU VE MESLEKTAŞ YAZIŞMASI — GERİ AÇILDI (14.09.2026),
+                AMA YALNIZ WEB SÜRÜMÜNDE.
+
+                Önce kaldırılmışlardı çünkü menüden erişilemiyor ama derin
+                bağlantıyla açılabiliyorlardı; bu da (1) Play içerik anketinde
+                "kullanıcılar birbirini görebilir mi" sorusunu yanlış duruma
+                düşürüyor, (2) başka avukatlara ad/büro/baro sicil gösterirken
+                gizlilik metinlerinin hiçbiri bundan bahsetmiyordu.
+
+                İkisi de çözüldü:
+                (1) Ekran gövdeleri src/components/tevkil/ altında ve Metro
+                    platform uzantısıyla ayrılıyor — pano kodu NATIVE PAKETE
+                    HİÇ GİRMİYOR. Derin bağlantı çalışır ama "yalnız web"
+                    notu çıkar. Yani Android uygulamasında özellik gizli
+                    değil, YOK. PLAY.md 4.3 buna dayanıyor.
+                (2) KVKK metinlerine "Meslektaş Panosu" başlığı eklendi
+                    (src/components/KvkkMetin.tsx, docs/privacy.html,
+                    docs/guvenlik.html) ve tests/webMetinTutarlilik.test.ts
+                    rotalar varken metinlerin susmasını engelliyor.
+
+                Canlı ölçüm (0134): jobs tablosunda 2 ilan, dm_messages'ta 5
+                mesaj zaten vardı — ekranlar kapalı olduğu için görünmüyorlardı.
+
+                Günün sorusu ve büro sohbeti HÂLÂ PARKTA
+                (src/ekranlar-beklemede/), bilerek. Avukat rehberi de kapalı:
+                gerekçe src/components/tevkil/Mesajlar.web.tsx başlığında. */}
+            <Stack.Screen name="tevkil" options={{ headerShown: false }} />
+            <Stack.Screen name="tevkil-ilan" options={{ presentation: 'modal', headerShown: false }} />
+            <Stack.Screen name="mesajlar/index" options={{ headerShown: false }} />
+            <Stack.Screen name="mesajlar/[peerId]" options={{ headerShown: false }} />
             <Stack.Screen name="ai-chat" options={{ headerShown: false }} />
             <Stack.Screen name="ictihat" options={{ headerShown: false }} />
             <Stack.Screen name="aihm" options={{ headerShown: false }} />

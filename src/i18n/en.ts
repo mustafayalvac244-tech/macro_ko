@@ -1862,6 +1862,19 @@ export const en: Record<keyof typeof tr, string> = {
   'jobs.finance.addedExpense': 'Added as expense. ✓',
   'jobs.finance.noFee': 'No fee set on this listing; nothing to add.',
   'jobs.finance.prefix': 'Delegation',
+
+  // Referral board — web build only. See the Turkish file for why these live
+  // under their own `tevkil.` namespace.
+  'tevkil.webOnly': 'This feature is web-only',
+  'tevkil.webOnlyDesc':
+    'The referral board and colleague messaging are disabled in the mobile app; ' +
+    'sign in from a browser to use them.',
+  'tevkil.inboxSubtitle': 'Messages with colleagues about postings',
+  'tevkil.inboxEmptyDesc':
+    'Conversations start from a posting on the Referral Board: open one and tap ' +
+    '“Send Message”, or wait for a reply to your own posting.',
+  'tevkil.menuBoard': 'Referral Board',
+  'tevkil.menuInbox': 'Messages',
   'jobs.message': 'Send Message',
   'jobForm.title': 'New Listing',
   'jobForm.hint': 'Your listing is visible to all Vekil lawyers. Interested colleagues message you in-app.',
