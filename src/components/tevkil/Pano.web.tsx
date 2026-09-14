@@ -172,7 +172,7 @@ export default function JobsScreen() {
             <View style={styles.detailActions}>
               <Pressable
                 style={[styles.messageButton, styles.detailActionFlex]}
-                onPress={() => router.push(`/chat/${item.owner_id}` as Parameters<typeof router.push>[0])}
+                onPress={() => router.push(`/mesajlar/${item.owner_id}` as Parameters<typeof router.push>[0])}
               >
                 <Ionicons name="chatbubble-ellipses" size={16} color="#FFFFFF" />
                 <Text style={styles.messageButtonText}>{t('jobs.message')}</Text>
@@ -200,7 +200,7 @@ export default function JobsScreen() {
         subtitle={t('jobs.subtitle')}
         showBack
         rightIcon="add"
-        onRightPress={() => router.push('/job-form' as Parameters<typeof router.push>[0])}
+        onRightPress={() => router.push('/tevkil-ilan' as Parameters<typeof router.push>[0])}
       />
 
       {needsSetup && (

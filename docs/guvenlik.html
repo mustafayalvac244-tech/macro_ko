@@ -175,7 +175,12 @@ footer a{color:var(--metin-2)}
   <section>
     <h2><span class="no">02</span>Kim erişebilir</h2>
     <p>Veritabanındaki her satır, <b>satır düzeyinde güvenlik</b> (RLS) kuralıyla yalnız sahibine açıktır: sorgu, isteği yapan hesabın kimliğiyle eşleşmeyen hiçbir satırı döndürmez. Bu, uygulama kodundaki bir <i>if</i> değil, veritabanının kendi kuralıdır — uygulamada bir hata olsa bile başka bir hesabın kaydı dönmez.</p>
-    <p>Programda <b>paylaşma, ekip, büro hesabı ya da ikinci kullanıcı davet etme diye bir şey yoktur.</b> Bunun bir kolaylık eksiği olduğunu biliyoruz (aşağıda &ldquo;henüz sahip olmadıklarımız&rdquo; başlığında yazılı); ama bugünkü sonucu şudur: kayıtlarınızı sizden başka görebilecek bir kullanıcı hesabı yok.</p>
+    <!-- 14.09.2026: Bu paragraf "paylaşma diye bir şey yoktur" diyordu. Web'e
+         Tevkil Panosu açıldığı an yanlış olacaktı. Dosya kayıtları iddiası
+         AYNEN duruyor çünkü hâlâ doğru; eklenen şey panonun ne gösterdiği.
+         Ölçülmüş tam döküm: KVKK metni 7. başlık. -->
+    <p>Programda <b>ekip, büro hesabı ya da ikinci kullanıcı davet etme diye bir şey yoktur.</b> Bunun bir kolaylık eksiği olduğunu biliyoruz (aşağıda &ldquo;henüz sahip olmadıklarımız&rdquo; başlığında yazılı); ama bugünkü sonucu şudur: <b>dosya kayıtlarınızı</b> (dava, müvekkil, belge, ajanda, finans) sizden başka görebilecek bir kullanıcı hesabı yok.</p>
+    <p><b>Tek isteğe bağlı istisna: Tevkil Panosu.</b> Web sürümünde meslektaşlar arası ilan panosu var; mobil uygulamada <b>yok</b> — ekran kodu mobil pakete hiç girmiyor. İlan verirseniz <b>adınız ve büro adınız</b>, bir meslektaşla yazışırsanız ona ayrıca <b>baro sicil numaranız ve varsa profil fotoğrafınız</b> görünür. İlan vermez ve yazışmazsanız hiçbir bilginiz görünmez; sizi arayıp bulabilecekleri bir rehber de yoktur. Bu sınır yazıyla değil veritabanıyla kurulu: diğer avukatlara profil döndüren fonksiyon yalnız bu alanları döndürüyor, telefon/e-posta/kimlik numarası döndürmüyor. Mesajı yalnız gönderen ve alan okuyabilir.</p>
     <p>Yasal zorunluluk hâlleri (usulüne uygun mahkeme kararı vb.) saklıdır.</p>
   </section>
 

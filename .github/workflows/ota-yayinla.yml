@@ -86,6 +86,7 @@ jobs:
       # güvenlik katmaz, yalnız kurulumda fazladan bir yazım hatası ihtimali
       # doğurur (hasat iş akışında aynı gerekçe yazılı).
       - name: Yayınla
+        id: yayin
         env:
           EXPO_PUBLIC_SUPABASE_URL: https://wjshlysfmeqlnfiibknj.supabase.co
           EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ
@@ -96,25 +97,44 @@ jobs:
           eas update \
             --branch "${{ inputs.kanal }}" \
             --message "${{ inputs.mesaj }}" \
-            --non-interactive
+            --non-interactive 2>&1 | tee /tmp/ota.log
+
+          # ÇALIŞMA ZAMANINI EAS'TAN OKU, ELLE YAZMA.
+          # Özet 14.09.2026'ya kadar sabit "3.3.2" yazıyordu — yani app.json'daki
+          # sürüm bir gün yükseldiğinde özet sessizce yanlış bir sayı
+          # göstermeye başlayacaktı. Üstelik bu alan tam da "eşleşmezse
+          # güncelleme hiçbir cihaza inmez" diye uyardığımız alan: yanlış
+          # olduğunda en çok zarar veren yer burası. Artık EAS'ın kendi
+          # çıktısındaki "Runtime version" satırı okunuyor.
+          calisma="$(grep -oP '^\s*Runtime version\s+\K\S+' /tmp/ota.log | tail -1 || true)"
+          echo "calisma=${calisma:-OKUNAMADI}" >> "$GITHUB_OUTPUT"
+          pano="$(grep -oE 'https://expo\.dev/accounts/[^ ]+/updates/[0-9a-f-]+' /tmp/ota.log | tail -1 || true)"
+          echo "pano=$pano" >> "$GITHUB_OUTPUT"
 
       - name: Sonuç
         if: success()
+        env:
+          CALISMA: ${{ steps.yayin.outputs.calisma }}
+          PANO: ${{ steps.yayin.outputs.pano }}
         run: |
           {
             echo "## OTA güncellemesi yayınlandı"
             echo ""
             echo "- Dal: \`${{ inputs.kanal }}\`"
-            echo "- Çalışma zamanı: **3.3.2** (app.json → runtimeVersion politikası \`appVersion\`)"
+            echo "- Çalışma zamanı: **$CALISMA** (EAS çıktısından okundu, app.json →"
+            echo "  runtimeVersion politikası \`appVersion\`)"
             echo "- Commit: \`${{ github.sha }}\`"
+            [ -n "$PANO" ] && echo "- Expo panosu: $PANO"
             echo ""
             echo "### Kullanıcıya ne zaman iner"
             echo "Uygulama güncellemeyi \`ON_LOAD\` ile, yani AÇILIŞTA arıyor"
-            echo "(app.json → updates.checkAutomatically). Uygulamayı tamamen"
-            echo "kapatıp yeniden açan kullanıcı bir sonraki açılışta yeni metni görür."
+            echo "(app.json → updates.checkAutomatically). Uygulamayı **tamamen**"
+            echo "kapatıp (son kullanılanlardan kaydırarak; geri tuşu yetmez)"
+            echo "yeniden açan kullanıcı bir sonraki açılışta yeni sürümü görür."
             echo ""
-            echo "### Doğrulama"
-            echo "Expo panosu → Over-the-air updates → \`${{ inputs.kanal }}\` dalında"
-            echo "yeni kayıt görünmeli ve çalışma zamanı **3.3.2** yazmalı."
-            echo "Çalışma zamanı farklı çıkarsa güncelleme HİÇBİR mevcut derlemeye inmez."
+            echo "### Bu ölçüm ne söyler, ne söylemez"
+            echo "Yukarıdaki çalışma zamanı, güncellemenin **yayımlandığı** sürümdür."
+            echo "Cihazdaki derlemenin çalışma zamanı bununla AYNI değilse güncelleme"
+            echo "hiçbir cihaza inmez ve bunu fark etmek zordur — hata vermez, sadece"
+            echo "hiçbir şey olmaz. Gerçekten indiğini ancak bir cihazda görmek kanıtlar."
           } >> $GITHUB_STEP_SUMMARY

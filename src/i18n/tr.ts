@@ -1929,6 +1929,23 @@ export const tr = {
   'jobs.finance.addedExpense': 'Gider olarak finans kaydına eklendi. ✓',
   'jobs.finance.noFee': 'Bu ilanda ücret belirtilmemiş; finansa eklenemedi.',
   'jobs.finance.prefix': 'Tevkil',
+
+  // TEVKİL PANOSU — WEB SÜRÜMÜNE ÖZEL.
+  // Ayrı bir `tevkil.` ad alanı kullanılıyor. Sebebi ölçülmüş bir hata:
+  // toplu aktarım eklenirken anahtarlar `imp.` altına yazılmıştı ve
+  // dosya-aktar ekranının anahtarlarıyla çakıştı. Var olan `jobs.` /
+  // `jobForm.` / `chat.` anahtarları AYNEN kullanılıyor; buraya yalnız
+  // gerçekten YENİ olanlar giriyor.
+  'tevkil.webOnly': 'Bu özellik yalnız web sürümünde',
+  'tevkil.webOnlyDesc':
+    'Tevkil panosu ve meslektaş yazışması mobil uygulamada kapalıdır; ' +
+    'tarayıcıdan giriş yaparak kullanabilirsiniz.',
+  'tevkil.inboxSubtitle': 'İlan verdiğiniz meslektaşlarla yazışma',
+  'tevkil.inboxEmptyDesc':
+    'Yazışma, Tevkil Panosu’ndaki bir ilan üzerinden başlar: ilanı açıp ' +
+    '“Mesaj Gönder” deyin ya da kendi ilanınıza gelen mesajı bekleyin.',
+  'tevkil.menuBoard': 'Tevkil Panosu',
+  'tevkil.menuInbox': 'Mesajlar',
   'jobs.message': 'Mesaj Gönder',
   'jobForm.title': 'Yeni İlan',
   'jobForm.hint':

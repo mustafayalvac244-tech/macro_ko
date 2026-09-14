@@ -5,8 +5,18 @@ serbest kullanım, en çok kullanılan yolu bir kez daha doğrular; hiç
 ölçülmemiş yerleri değil. Aşağıdaki her madde, `YAYIN-DENETIMI.md`'de
 **"ÖLÇÜLMEDİ"** diye işaretlenmiş bir şeye nişan alıyor.
 
-**Kurulum:** APK bağlantısı ürün sahibinde. Android'de "bilinmeyen
-kaynaklardan yükleme" izni gerekiyor (Ayarlar → Uygulamalar → tarayıcıya izin).
+**Kurulum:** Bağlantıyı **Android telefonda** aç, sayfadaki düğme kurar.
+Android "bilinmeyen kaynaklardan yükleme" izni isteyecek (Ayarlar →
+Uygulamalar → tarayıcıya izin).
+
+https://expo.dev/accounts/olivyeejiru/projects/macro_ko/builds/7be3b109-a75d-458a-899c-0c3de6895f6e
+
+**Bir hata bildirince yeniden kurmana gerek YOK.** Uygulama kendini havadan
+güncelliyor (OTA): düzeltmeyi yayınladığımızda, uygulamayı **tamamen
+kapatıp** (son kullanılanlardan kaydır, sadece geri tuşu yetmez) yeniden
+açman yeterli — dakikalar içinde inerler. Yalnız izin/kütüphane gibi
+**yerel** değişiklikler yeni kurulum gerektirir; öyle bir şey olursa
+söyleriz. Bu yüzden "şu hata düzeldi mi" diye sorduğumuzda, önce kapat-aç.
 
 **Hata bulunca ne yazılacak:** ne yaptın, ne bekledin, ne oldu. Ekran
 görüntüsü varsa en iyisi. "Çalışmıyor" tek başına düzeltilemez.
@@ -48,6 +58,26 @@ Bunların hiçbiri bugüne kadar gerçek bir cihazda çalıştırılmadı.
       - Belgenin altında "bu resmî makbuz değildir" uyarısı duruyor mu?
 - [ ] **Safha rozetleri.** İcra dosyasında safhaya dokun — **gecikme var mı?**
       (Bu hafta düzeltildi, gerçek cihazda doğrulanmadı.)
+- [ ] ⭐ **Toplu aktarım — LİSTENİN EN DEĞERLİ MADDESİ.** Menü → **Toplu
+      Aktarım**. (Bu ekran ilk APK'da yoktu, havadan indi; göremiyorsan
+      uygulamayı tamamen kapatıp aç.)
+
+      **Neden en değerlisi:** ayrıştırıcıyı yazdım ve 27 testten geçiyor,
+      **ama testlerdeki örnek dosyaları ben uydurdum.** Gerçek bir UYAP ya
+      da büro programı çıktısıyla hiç denenmedi. Senin bir dosyan, benim
+      yazdığım yirmi testten daha çok şey söyler.
+
+      - UYAP Avukat Portal'dan ya da kullandığın programdan dosya listesini
+        **Excel/CSV olarak dışa aktar** ve olduğu gibi yükle — düzeltme,
+        sütun silme, başlık değiştirme yapma. Bozuk hâliyle görmemiz lazım.
+      - Sütunları doğru tanıdı mı? (Esas No, Mahkeme, Müvekkil, Karşı
+        Taraf, Açılış Tarihi)
+      - **Kuru çalıştırmada** kaç satır okundu, kaç satır atlandı ve
+        atlananların **sebebi** yazıyor mu?
+      - Tarihler doğru mu? (`04.02.2026` → 4 Şubat 2026)
+      - Türkçe harfler bozuldu mu? (Ş, İ, Ğ, Ü, Ö, Ç)
+      - **Dosya işe yaramazsa bile at bize** — hangi biçimde takıldığı
+        bilgisi, çalışan bir aktarımdan daha kıymetli.
 
 ## C. Senin bildiğin, bizim bilmediğimiz — en değerli kısım
 
