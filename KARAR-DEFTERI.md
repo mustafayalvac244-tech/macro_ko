@@ -48,9 +48,14 @@ Bunları Claude yapamaz; panel erişimi gerektiriyor.
 
 - [ ] **`VEKILPRO` adlı GitHub secret'ını sil ve o Expo token'ını iptal et.**
       (Ekran görüntüsünde açığa çıkmıştı; iptal edilmediyse hâlâ geçerli.)
-- [ ] **Göçleri canlı Supabase'de çalıştır:** `0131_zaman_kaydi.sql` (çalışma
-      kaydı; koşmazsa sekme sessizce boş görünür) ve
-      `0132_eksik_indeksler_onarim.sql` (0091'in yarım kalan indeksleri).
+- [x] ~~Göçleri canlı Supabase'de çalıştır~~ — **Claude yaptı 14.09.2026.**
+      `0131` (çalışma kaydı) ve `0132` (0091'in yarım kalan indeksleri) mevcut
+      `SUPABASE_ACCESS_TOKEN` ile uygulandı. Sonra `0133_canli_dogrulama.sql`
+      (salt okunur) koşuldu ve canlı şema **ölçüldü**: `amount` gerçekten
+      `ALWAYS` hesaplanan sütun, RLS açık (`time_entries own`), sahiplik
+      tetikleyicisi yerinde, üç CHECK kısıtı duruyor, `profiles.hourly_rate`
+      numeric, indekssiz FK kalmamış, canlı kayıt sayısı 0. Sekiz ölçüm de
+      yereldekiyle aynı çıktı. Ürün sahibinden bir şey gerekmiyor.
 - [ ] App Store Connect'te `com.macroko.legal` kaydı gerçekten var mı bak.
       Yoksa iOS de `com.vekilpro.app`'e hizalanabilir.
 - [ ] Play Console'da uygulamayı `com.vekilpro.app` paketiyle oluştur.
@@ -68,7 +73,8 @@ Bunları Claude yapamaz; panel erişimi gerektiriyor.
 
 | Alan | Değer |
 |---|---|
-| AAB | Koşu #5 — 14.09.2026, commit `4a6f660`. Bağlantı Actions kaydında. |
+| APK (telefona kurulur) | Koşu #6 — 14.09.2026, commit `1f1d35a`, `preview` profili. Bağlantı Actions kaydında. **Burak abiye gidecek olan bu.** |
+| AAB (Play'e yüklenir) | Koşu #5 — 14.09.2026, commit `4a6f660`. Bağlantı Actions kaydında. |
 | Önceki AAB | `eUwBZnQwOAjMRrR04z5FmpWZbbGUqibpZkxnjxrTZkw.aab` (`bc8f206`) — **ARTIK KULLANMAYIN**, zaman kaydını, makbuzu, gecikme düzeltmesini ve ekran temizliğini içermiyor |
 | İçerik | `com.vekilpro.app` + altın vurgu + zaman kaydı + makbuz dökümü + safha gecikme düzeltmesi + erişilemeyen ekranların çıkarılması |
 | Expo hesabı | `olivyeejiru` |
@@ -80,19 +86,36 @@ Bunları Claude yapamaz; panel erişimi gerektiriyor.
 
 Tam gerekçeler `RAKIP-OZELLIK-ANALIZI.md`'de.
 
-1. ✅ Zaman/çalışma kaydı — yazıldı, göç canlıya uygulanmadı
-2. ✅ Serbest meslek makbuzu dökümü — yazıldı
+1. ✅ Zaman/çalışma kaydı — yazıldı, canlıya uygulandı ve canlıda **ölçüldü**
+   (0133). Hiçbir avukat henüz kullanmadı: canlı kayıt sayısı 0.
+2. ✅ Serbest meslek makbuzu dökümü — yazıldı. Gerçek bir makbuzla
+   karşılaştırılmadı; doğruluğu Burak abi teyit edene kadar **varsayım**.
 2b. ⏸ **Tevkil panosu + sohbet geri açma** — kod hazır, park edildi.
     Açılacaksa sıra: KVKK metinleri → ekranlar → PLAY.md 4.3 → yeni AAB.
-3. ⏸ **İçe aktarım** — başlamadan önce bir rakip programın (Sinerji/KolayOfis)
-   gerçek dışa aktarma dosyası gerekiyor; biçimi bilmeden sütun eşleme ekranı
-   tasarlanamaz. **Ürün sahibinden bekleniyor.**
+3. 🟡 **İçe aktarım** — ekran ve ayrıştırıcı YAZILDI (`app/toplu-aktar.tsx`,
+   `src/utils/iceAktarim.ts`, 27 test). Ama testlerdeki örnek dosyaları **ben
+   uydurdum**: Türkçe Excel'in noktalı virgülü, BOM'u, tırnaklı hücresi gibi
+   bilinen tuzaklar karşılanıyor. **GERÇEK bir UYAP/Sinerji/KolayOfis dışa
+   aktarma dosyasıyla hiç denenmedi.** Ölçülen şey ayrıştırıcının benim
+   tanımladığım kurallara uyması; gerçek dosyayı okuyabildiği DEĞİL.
+   Ürün sahibinden hâlâ bir gerçek dosya bekleniyor — ama artık iş o dosyayı
+   beklemiyor, yalnız doğrulaması bekliyor.
 4. ⏸ Müvekkil portalı — verinin RLS sınırından çıktığı ilk özellik olur;
    ürün sahibi kararı gerekiyor
 5. ⏸ Ekip/büro dosya paylaşımı — en büyük mimari iş, her tablonun RLS
    politikası değişir
-6. ⛔ UYAP Avukat Portal / e-Tebligat — e-imza + web servis + sertifikasyon
-   istiyor; Expo uygulamasından yapılamaz, ayrı ürün kararı
+6. 🟡 **UYAP — "yapılamaz" demiştim, YANLIŞTI.** Düzeltildi 14.09.2026.
+   İki ayrı yol var ve ben ikisini birbirine karıştırıp ikisine birden
+   "olmaz" dedim:
+   - **Kurumsal web servis** (MoJ protokolü, sunucuda SSL sertifikası, özel
+     şirketler için 4.000+ dosya şartı, dosya başı yıllık ücret) — bu gerçekten
+     bugün bizim için kapalı.
+   - **Avukatın kendi e-imza/m-imzasıyla kendi tarayıcısında** portala girmesi
+     — sertifikasyon istemiyor. Bunun ne kadarının bize yaradığı
+     `UYAP-ENTEGRASYON-YOLU.md`'de yazılı.
+   Ürün sahibinin e-imzası yok; ilk somut adım bu yüzden Burak abinin
+   portaldan aldığı **gerçek bir dışa aktarma dosyası** (madde 3 ile aynı
+   dosya).
 
 **`finance_entries`'te müvekkil bağı yok** (`client_id` sütunu yok, ölçüldü) —
 bu yüzden makbuz ekranında müşteri adı elle giriliyor. Eklenirse orası
@@ -106,6 +129,10 @@ bu yüzden makbuz ekranında müşteri adı elle giriliyor. Eklenirse orası
 | `PLAY.md` | Google Play çıkış planı, mağaza metinleri, formlar |
 | `TESLIM.md` / `APPSTORE.md` | iOS yayın ve devir |
 | `RAKIP-OZELLIK-ANALIZI.md` | Rakip taraması, ölçülen boşluklar |
+| `YAYIN-DENETIMI.md` | Çıkış öncesi denetim: ne ölçüldü, ne ölçülmedi |
+| `BEKLEME-PENCERESI.md` | Google doğrulaması beklerken yapılacak işler |
+| `BURAK-TEST-LISTESI.md` | Gerçek avukata verilecek test listesi |
+| `UYAP-ENTEGRASYON-YOLU.md` | UYAP'ın hangi yolu açık, hangisi kapalı |
 | `UYAP-NOTU.md` | Bedesten içtihat ucu — ölçülmüş, başka projeye verilebilir |
 | `MIMARI-DEVIR.md` | Eczane uygulaması devir notu (veritabanı paylaşılmaz) |
 | `YEDEK.md` / `YEDEKLEME.md` | Yedekleme düzeni |

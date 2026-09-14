@@ -71,9 +71,19 @@ select olcum, deger from (
 
   union all
   -- 7. 0132'den sonra indekssiz yabancı anahtar kaldı mı.
-  --    Eczane tabloları sayımın DIŞINDA: AGENTS.md gereği onlara
-  --    dokunulmuyor, sayıma girerlerse her koşuda yanlış alarm verirler.
-  select 7, 'indekssiz FK (bizim tablolar)',
+  --
+  --    İLK YAZIMDA BURADA BİR AD LİSTESİ VARDI ve eczane tablolarını sayımdan
+  --    çıkarıyordu. İki sebeple kaldırıldı:
+  --    (a) `tests/saglikVerisiAyrimi.test.ts` onu haklı olarak yakaladı — o
+  --        bekçi migration dosyalarında sağlık/eczane tablo adı görmek
+  --        istemiyor ve "ben sadece hariç tutuyordum" ayrımını yapamaz;
+  --        yapabilmesi için SQL ayrıştırması gerekirdi, bu da bekçiyi
+  --        zayıflatırdı.
+  --    (b) Daha önemlisi: ölçümü GÖRMEDEN önce filtreliyordum. Hangi satırın
+  --        çıkacağını varsayıp elemek ölçüm değil, tahmindir.
+  --    Şimdi public şemasındaki BÜTÜN indekssiz FK'ler dökülüyor; hangi
+  --    tabloya ait oldukları çıktının kendisinde yazıyor.
+  select 7, 'indekssiz FK (tum public)',
     coalesce(string_agg(t.ad, ', ' order by t.ad), 'yok - temiz')
   from (
     select c.conrelid::regclass::text || '.' || a.attname as ad
@@ -83,7 +93,6 @@ select olcum, deger from (
     join pg_namespace n on n.oid = cl.relnamespace
     where c.contype = 'f' and n.nspname = 'public'
       and array_length(c.conkey, 1) = 1
-      and cl.relname not in ('kullanici_ilaclar', 'kullanici_alimlar', 'ilaclar', 'prospektusler')
       and not exists (
         select 1 from pg_index i
         where i.indrelid = c.conrelid and i.indkey[0] = c.conkey[1]
