@@ -218,3 +218,25 @@ export function panoOlculeri(pencereGenisligi: number, kaliciMenu: boolean): Pan
     ikiUcte: kullanilabilir - ucteBir - PANO_ARALIK,
   };
 }
+
+/**
+ * IZGARANIN SON SATIRINI BOŞLUKLA TAMAMLA.
+ *
+ * NEDEN VAR — 14.09.2026'da ekranda görüldü. Liste iki sütuna geçirilince
+ * son satırda tek öğe kalınca o öğe `flex: 1` yüzünden satırın TAMAMINI
+ * dolduruyor: üç müvekkilin ikisi yarım genişlikte, üçüncüsü tam genişlikte
+ * görünüyor ve kart boyutları tutarsız duruyor.
+ *
+ * NEDEN YÜZDE DEĞİL. `maxWidth: '50%'` ilk akla gelen çözüm ama bu dosyanın
+ * pano bölümünde yazılı olan sebeple çalışmıyor: React Native Web'de yüzde
+ * genişlikler `gap` ile birlikte taşma üretiyor (yüzde kabın tamamına göre
+ * hesaplanıyor, aralar ayrıca ekleniyor). Veriyi doldurmak hem taşmayı
+ * imkânsız kılıyor hem sınanabilir oluyor.
+ *
+ * Tek sütunda (natif ve dar tarayıcı) hiçbir şey eklenmiyor.
+ */
+export function izgaraDoldur<T>(veri: readonly T[], sutun: number): (T | null)[] {
+  if (sutun < 2 || veri.length === 0) return [...veri];
+  const eksik = (sutun - (veri.length % sutun)) % sutun;
+  return eksik === 0 ? [...veri] : [...veri, ...(Array<null>(eksik).fill(null))];
+}

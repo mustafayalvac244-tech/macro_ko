@@ -29,7 +29,7 @@ import { AI_ENABLED } from '@/config/features';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
 import { useLangStore, useT } from '@/i18n';
-import { fonts, spacing, shadow } from '@/theme/theme';
+import { fonts, radius, spacing, shadow } from '@/theme/theme';
 import { kaliciMenuMu, ortalaStili, panoOlculeri, PANO_ARALIK, PANO_YAN_BOSLUK } from '@/theme/duzen';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -1051,14 +1051,27 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'stretch',
     gap: spacing.lg,
   },
+  // İSTATİSTİKLER ARTIK KUTULU — 14.09.2026.
+  // Ölçülen sorun: bunlar panonun EN TARANABİLİR sayıları (avukat sabah
+  // açıp "bugün ne var" diye bakıyor) ama hiçbir kabın içinde değillerdi,
+  // başlığın yanında havada duruyorlardı. Yüzey + ince çerçeve, onları
+  // sayfadaki diğer kartlarla aynı dile sokuyor.
   panoSayiKutu: {
-    minWidth: 84,
+    minWidth: 96,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
   },
   panoSayiEtiket: {
     fontFamily: fonts.bold,
     fontSize: 10,
     letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    // textTransform:'uppercase' KALDIRILDI. Ekranda "AKTIF DOSYA" yazıyordu,
+    // "AKTİF DOSYA" değil: CSS Türkçedeki i→İ dönüşümünü bilmiyor, i→I
+    // yapıyor. Etiketler artık i18n'de zaten büyük harfle yazılı.
     color: colors.textMuted,
     marginBottom: 2,
   },

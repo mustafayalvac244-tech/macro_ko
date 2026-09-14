@@ -8,7 +8,7 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { CaseListItem } from '@/components/cases/CaseListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { sutunSayisi } from '@/theme/duzen';
+import { izgaraDoldur, sutunSayisi } from '@/theme/duzen';
 import { FAB } from '@/components/ui/FAB';
 import { useCases } from '@/hooks/useCases';
 import { useAllHearings } from '@/hooks/useHearings';
@@ -108,8 +108,8 @@ export default function CaseDirectoryScreen() {
         key={`sutun-${sutun}`}
         numColumns={sutun}
         columnWrapperStyle={sutun > 1 ? styles.satir : undefined}
-        data={rows}
-        keyExtractor={(row) => `${row.kind}-${row.item.id}`}
+        data={izgaraDoldur(rows, sutun)}
+        keyExtractor={(row, i) => (row ? `${row.kind}-${row.item.id}` : `bosluk-${i}`)}
         contentContainerStyle={styles.listContent}
         onRefresh={() => {
           refetch();
@@ -120,8 +120,9 @@ export default function CaseDirectoryScreen() {
           // minWidth:0 olmadan uzun dava başlıkları hücreyi şişirip sütunları
           // eşitsiz yapıyor (flex kutularının varsayılan min genişliği içeriğe
           // göre belirleniyor).
+          // null = ızgara boşluğu (izgaraDoldur).
           <View style={sutun > 1 ? styles.hucre : undefined}>
-            {row.kind === 'case' ? (
+            {!row ? null : row.kind === 'case' ? (
               <CaseListItem
                 caseItem={row.item}
                 nextHearingAt={nextHearingByCase.get(row.item.id)}

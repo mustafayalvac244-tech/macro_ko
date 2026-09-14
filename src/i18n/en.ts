@@ -134,13 +134,14 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.comm.empty': 'No conversations yet. Use the add-person icon to find colleagues.',
   'dash.fin.title': 'Financial Summary',
   // ── Dashboard grid (wide browser only) ─────────────────────────────────
-  'dash.stat.cases': 'Open matters',
+  // Written uppercase at source — see the Turkish file for why.
+  'dash.stat.cases': 'OPEN MATTERS',
   'tema.acik': 'Light theme',
   'tema.koyu': 'Dark theme',
 
-  'dash.stat.hearings': 'Hearings this week',
-  'dash.stat.deadlines': 'Pending deadlines',
-  'dash.stat.outcomes': 'Awaiting outcome',
+  'dash.stat.hearings': 'HEARINGS THIS WEEK',
+  'dash.stat.deadlines': 'PENDING DEADLINES',
+  'dash.stat.outcomes': 'AWAITING OUTCOME',
   'dash.upcoming.title': 'Upcoming deadlines',
   'dash.upcoming.all': 'Calendar',
   'dash.upcoming.empty': 'No upcoming deadlines. New ones appear here.',

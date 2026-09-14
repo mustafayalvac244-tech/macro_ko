@@ -139,15 +139,20 @@ export const tr = {
   // ── Pano (yalnız geniş tarayıcı) ────────────────────────────────────────
   // Ana ekran masaüstünde tek sütuna sıkışıyordu; bu anahtarlar orada açılan
   // durum şeridi, yaklaşan süreler listesi ve kısayollar için.
-  'dash.stat.cases': 'Aktif dosya',
+  // ETİKETLER BURADA BÜYÜK HARFLE YAZILI — CSS'e bırakılmıyor.
+  // Sebep ölçüldü (14.09.2026): stilde textTransform:'uppercase' vardı ve
+  // canlı ekranda "AKTIF DOSYA" yazıyordu, "AKTİF DOSYA" değil. CSS
+  // Türkçedeki i→İ dönüşümünü bilmiyor, i→I yapıyor. Metni kaynakta
+  // büyük yazmak tek güvenli yol.
+  'dash.stat.cases': 'AKTİF DOSYA',
   // Üst çubuktaki hızlı tema düğmesi (yalnız web). Etiketler ekranda
   // görünmüyor; ekran okuyucu ve erişilebilirlik için.
   'tema.acik': 'Beyaz tema',
   'tema.koyu': 'Koyu tema',
 
-  'dash.stat.hearings': 'Bu hafta duruşma',
-  'dash.stat.deadlines': 'Bekleyen süre',
-  'dash.stat.outcomes': 'Sonuç bekleyen',
+  'dash.stat.hearings': 'BU HAFTA DURUŞMA',
+  'dash.stat.deadlines': 'BEKLEYEN SÜRE',
+  'dash.stat.outcomes': 'SONUÇ BEKLEYEN',
   'dash.upcoming.title': 'Yaklaşan süreler',
   'dash.upcoming.all': 'Takvim',
   'dash.upcoming.empty': 'Yaklaşan süre görünmüyor. Yeni bir süre eklediğinizde burada çıkar.',
