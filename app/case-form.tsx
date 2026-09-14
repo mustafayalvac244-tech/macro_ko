@@ -196,7 +196,7 @@ export default function CaseFormScreen() {
     showPicker === 'opened' ? openedDate : firstHearingAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen edges={['top', 'left', 'right', 'bottom']} genislik="form">
       <ScreenHeader title={isEdit ? t('caseForm.editTitle') : t('caseForm.newTitle')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

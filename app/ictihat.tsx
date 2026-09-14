@@ -183,7 +183,7 @@ export default function IctihatScreen() {
   // kipi gizleniyor (aşağıdaki mod seçici), ekran her zaman açık.
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen edges={['top', 'left', 'right', 'bottom']} genislik="dar">
       <ScreenHeader title={t('ictihat.title')} showBack />
 
       {/* Mod seçimi: Olay Analizi / Kelime Arama / Künye ile Bul */}
@@ -493,7 +493,7 @@ export default function IctihatScreen() {
 
       {/* Kanun maddesi tam metni */}
       <Modal visible={!!openMevzuat} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpenMevzuat(null)}>
-        <Screen edges={['top', 'left', 'right', 'bottom']}>
+        <Screen edges={['top', 'left', 'right', 'bottom']} genislik="dar">
           <ScreenHeader
             title={openMevzuat ? `${openMevzuat.kod} · m.${openMevzuat.no}` : ''}
             rightIcon="close"
@@ -595,7 +595,7 @@ function DigestModal({
 
   return (
     <Modal visible={!!digest} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <Screen edges={['top', 'left', 'right', 'bottom']}>
+      <Screen edges={['top', 'left', 'right', 'bottom']} genislik="dar">
         <View style={styles.modalHeader}>
           <View style={styles.flex}>
             <Text style={styles.modalTitle} numberOfLines={2}>
@@ -1109,7 +1109,7 @@ function DocModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <Screen edges={['top', 'left', 'right', 'bottom']}>
+      <Screen edges={['top', 'left', 'right', 'bottom']} genislik="dar">
         <View style={styles.modalHeader}>
           <View style={styles.flex}>
             <Text style={styles.modalTitle} numberOfLines={1}>
@@ -1170,7 +1170,7 @@ function SummaryModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <Screen edges={['top', 'left', 'right', 'bottom']}>
+      <Screen edges={['top', 'left', 'right', 'bottom']} genislik="dar">
         <View style={styles.modalHeader}>
           <View style={styles.modalTitleRow}>
             <Ionicons name="sparkles" size={18} color={colors.gold} />

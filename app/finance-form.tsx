@@ -106,7 +106,7 @@ export default function FinanceFormScreen() {
   };
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen edges={['top', 'left', 'right', 'bottom']} genislik="form">
       <ScreenHeader
         title={isEdit ? t('financeForm.editTitle') : kind === 'income' ? t('financeForm.newIncome') : t('financeForm.newExpense')}
         showBack

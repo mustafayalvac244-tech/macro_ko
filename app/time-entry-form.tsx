@@ -96,7 +96,7 @@ export default function TimeEntryFormScreen() {
   };
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen edges={['top', 'left', 'right', 'bottom']} genislik="form">
       <ScreenHeader
         title={t('time.newTitle')}
         subtitle={params.caseTitle ?? t('time.noCase')}

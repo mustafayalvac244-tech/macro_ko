@@ -29,7 +29,13 @@ import { join, extname } from 'node:path';
 
 const KOK = new URL('..', import.meta.url).pathname;
 const WEB = join(KOK, 'docs', 'app');
-const CIKTI = join(KOK, 'magaza-gorselleri');
+// ÇIKTI VE GÖRÜNÜM ALANI DIŞARIDAN AYARLANABİLİR — 14.09.2026.
+// Sebep: bu düzenek Play mağaza görselleri için telefon boyutunda (412×915)
+// yazıldı. Ama WEB SÜRÜMÜ masaüstünde kullanılıyor ve oradaki görünümü hiç
+// kimse görmemişti. 300 satırlık sunucu + Supabase taklidini kopyalamak
+// yerine üç değişken env'den okunuyor; varsayılanlar aynen mağaza ayarı.
+//   VP_CIKTI=... VP_GENISLIK=1440 VP_YUKSEKLIK=900 VP_OLCEK=1
+const CIKTI = join(KOK, process.env.VP_CIKTI ?? 'magaza-gorselleri');
 const PORT = 4599;
 const PROJE = 'wjshlysfmeqlnfiibknj.supabase.co';
 
@@ -176,7 +182,9 @@ const sunucu = createServer(async (istek, cevap) => {
 
 /* ---------------- Çekim ---------------- */
 
-const EKRANLAR = [
+const EKRANLAR = (process.env.VP_EKRANLAR
+  ? process.env.VP_EKRANLAR.split(',').map((y) => ({ ad: y.replace(/\W+/g, '-').replace(/^-|-$/g, '') || 'kok', yol: y, bekle: 2600 }))
+  : null) ?? [
   { ad: '01-pano', yol: '/', bekle: 2600 },
   { ad: '02-davalar', yol: '/cases', bekle: 2200 },
   { ad: '03-takvim', yol: '/calendar', bekle: 2200 },
@@ -196,8 +204,12 @@ async function main() {
 
   // Play telefon ekran görüntüsü: 9:16, en az 320px. 1080x1920 standart.
   const baglam = await tarayici.newContext({
-    viewport: { width: 412, height: 915 },
-    deviceScaleFactor: 2.62, // 412*2.62 ≈ 1080 → Play'in istediği genişlik
+    viewport: {
+      width: Number(process.env.VP_GENISLIK ?? 412),
+      height: Number(process.env.VP_YUKSEKLIK ?? 915),
+    },
+    // 412*2.62 ≈ 1080 → Play'in istediği genişlik. Masaüstü incelemesinde 1.
+    deviceScaleFactor: Number(process.env.VP_OLCEK ?? 2.62),
     locale: 'tr-TR',
     timezoneId: 'Europe/Istanbul',
   });

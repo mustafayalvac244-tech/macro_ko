@@ -184,7 +184,7 @@ export default function HearingFormScreen() {
   };
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen edges={['top', 'left', 'right', 'bottom']} genislik="form">
       <ScreenHeader
         title={isEdit ? t('hearingForm.editTitle') : isMeetingType ? t('hearingForm.newMeetingTitle') : t('hearingForm.newTitle')}
         subtitle={caseItem?.title}
