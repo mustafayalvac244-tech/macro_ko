@@ -89,3 +89,20 @@ yok ve **olmamalı**.
   bilgisi paylaşılır ama **veritabanı paylaşılmaz**.
 - `tests/saglikVerisiAyrimi.test.ts` bu kuralı kod tarafında koruyor: depoya
   sağlık verisi şeması sızarsa test düşer.
+
+# Bu depodaki skill'ler — tetiklenmezse elle oku
+
+`.claude/skills/` altında üç skill var. Normalde işin konusuna göre
+kendiliğinden yüklenirler, ama tetikleme garanti değil: bir skill
+yüklenmediğinde sessizce yüklenmez, uyarı çıkmaz. O yüzden aşağıdaki
+işlerden birine başlıyorsan ilgili dosyayı elle oku.
+
+| Skill | Ne zaman | Neden var |
+|---|---|---|
+| `olcum` | Bir sayı, oran, hız, boyut ya da "durum ne" iddiası üretirken; rapor, kıyas, teşhis yazarken; bir aracın bize uygun olup olmadığına karar verirken | Kendi ölçümünle kendini kandırmamak. En pahalı hata: bir ölçüm dosyasının içindeki eskimiş sabite bakıp ürün sahibine "9 gün" demek — doğrusu 76'ydı. |
+| `supabase-goc` | `supabase/migrations/` altına dosya yazarken, şema/RLS/RPC/indeks işinde, "canlıda şu var mı" ölçerken | Çok ifadeli dosya tuzağı, `to_regclass`ın ayrıştırmayı korumaması, sütun adı varsaymak, pg_cron şeması, yerel deneme koşusu. |
+| `rn-ui-kit` | Ekran, bileşen, layout, stil, tema, navigasyon işinde | 5 tema (sabit hex 5'inde birden bozulur), `typography.*` stil nesnesidir, `colors.text` yoktur, 24 hazır `ui/` bileşeni. |
+
+**Kural:** bir skill'e yeni bir ders eklerken **gerçekten olmuş bir olaya**
+dayandır ve tarihini yaz. Genel tavsiye, skill'i uzatır ve hiçbir şeyi
+önlemez — bugüne kadar önlenen her hatanın arkasında somut bir olay var.

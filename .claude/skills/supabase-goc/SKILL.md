@@ -97,6 +97,55 @@ do $$ begin
 end $$;
 ```
 
+**`to_regclass` ÇALIŞMA ZAMANINDA korur, AYRIŞTIRMAYI korumaz.** Bu, yukarıdaki
+dersin daha sinsi kardeşi ve aynı gün içinde iki kez daha düştüm.
+
+```sql
+-- ÇALIŞMAZ: tablo yoksa CASE dalına hiç girilmese bile patlar
+case when to_regclass('public.jobs') is null then 'YOK'
+     else (select count(*)::text from public.jobs) end
+```
+
+Postgres ifadeyi **önce ayrıştırır**; `from public.jobs` metinde geçtiği
+sürece tablo aranır. Canlıda tablo olduğu için sorun görünmez — CI ise yalnız
+DEĞİŞEN göçleri BOŞ bir veritabanında oynattığı için orada patlar.
+
+Çözüm: tablo adını **metin** olarak geçir, `query_to_xml` çalışma zamanında
+koşsun:
+
+```sql
+case when to_regclass('public.jobs') is null then 'TABLO YOK'
+     else (xpath('/row/c/text()', query_to_xml(
+             'select count(*) as c from public.jobs', false, true, '')))[1]::text
+end
+```
+
+Sayı yine TAM olur (`pg_stat_user_tables` tahmini değil). Aynı kural
+`cron.job`, `cron.job_run_details` gibi eklenti şemaları için de geçerli —
+pg_cron kurulu değilse doğrudan referans ayrıştırmada patlar.
+
+**Sütun adlarını VARSAYMA — özellikle depoda `create table`'ı olmayan
+tablolarda.** `ictihat_kararlar` ve `ictihat_katalog`ı depodaki hiçbir göç
+yaratmıyor (yalnız canlıda ve taklit şemada varlar). Bir günde üç dosyada
+`max(created_at)` yazıp düştüm; `ictihat_katalog`ta sütunun adı `eklendi`.
+
+Bilmiyorsan bul, sonra **hangisini kullandığını çıktıya yaz**:
+
+```sql
+(select coalesce(max(column_name) filter (where column_name = 'created_at'),
+                 min(column_name))
+ from information_schema.columns
+ where table_schema='public' and table_name='x' and data_type like 'timestamp%')
+```
+
+İsimsiz bir tarih, yanlış sütundan gelmiş olabileceği için tek başına
+güvenilmez.
+
+**pg_cron şeması:** `cron.job`ta `jobname`, `schedule`, `command`, `active`
+var. `cron.job_run_details`te **`jobname` YOKTUR** — orada `jobid`, `runid`,
+`command`, `status`, `return_message`, `start_time`, `end_time` var. İş adını
+görmek istiyorsan `command`ın başını yazdır ya da `cron.job`a katıl.
+
 **`$function$` gövdesinin ardından `;` gelmeli.** Yoksa sonraki ifade gövdenin
 devamı sanılır ve hata çok daha ileride, anlaşılmaz biçimde çıkar.
 (`0068` ve `0069` bu yüzden düzeltildi; doğru kalıp 6 göçte var.)
@@ -142,3 +191,25 @@ gerçek sonuç göründü (dört eczane sütunu; bizim tablolarımız temiz).
   şema değiştiren bir göçün ardından bölüm 2'deki ölçüm göçünü yaz.
 - Uygulama kodu yeni bir tabloya `.from('x')` diyorsa, `tests/semaKapsami.test.ts`
   o tablo için bir `create table` arar — göçü yazmadan ekran yazma.
+
+## 7. Canlıya göndermeden önce YERELDE oynat
+
+`bash scripts/migration-deneme/calistir.sh 0134` — CI'ın koştuğunun aynısı:
+gerçek Postgres 16, Supabase taklidi, göç iki kez koşuluyor (idempotans).
+
+Bugün bu düzenek **beş hatayı** canlıya gitmeden yakaladı: `jobname` yok,
+`created_at` yok, `oncelik` yok, `from cron.job` ayrıştırma hatası ve
+`sayim()` diye var olmayan bir fonksiyon. Otuz saniyelik iş.
+
+**Taklit şema geride kalırsa yerel sınama işe yaramaz.** `ictihat_kararlar`
+gibi migration'ı olmayan tabloların şeması yalnız canlıda tam;
+`scripts/migration-deneme/supabase-taklit.sql` elle güncel tutuluyor.
+Canlıda olup taklitte olmayan bir sütun bulursan **göçü eğip bükme, taklidi
+gerçeğe uydur** — yoksa o tuzak bir sonraki dosyada seni yine bekler
+(14.09.2026'da `created_at` ve `oncelik` böyle eklendi).
+
+## 8. Ölçüm göçü yazıyorsan `olcum` skill'ini de oku
+
+Sayı üreten bir göç yazmak, ölçüm yapmaktır: eskimiş sabit, süzülmüş sonuç
+ve "koştu = doğru" tuzakları oradadır. Bu depoda en pahalı hata bir göçün
+İÇİNE gömülü eskimiş `6000` sabitiydi — çıktısı doğru görünüyordu ve yanlıştı.
