@@ -64,9 +64,23 @@ satirlar as (
   -- ASIL SAYI: tahminimi (10-15 KB) ölçümle değiştiren satır.
   select 14, 'DİSK', '>> KARAR BAŞINA KB', round(b.tablo_bayt / greatest(k.karar, 1) / 1024, 1)::text from k, b
   union all
-  select 15, 'DİSK', '>> 6000 MB frenine kalan karar',
-         to_char(greatest((6000::bigint * 1024 * 1024 - b.db_bayt)
-                          / greatest(b.tablo_bayt / greatest(k.karar, 1), 1), 0), 'FM999G999G999')
+  -- FREN EŞİĞİ ARTIK SABİT DEĞİL, CANLIDAN OKUNUYOR — 14.09.2026 düzeltmesi.
+  -- Burada `6000` yazılıydı ve ESKİMİŞTİ: canlı fren `disk_musait_mi`
+  -- fonksiyonunda 30.000 MB. Bu satırın çıktısına bakıp ürün sahibine
+  -- "frene 9 gün kaldı" dedim; doğrusu 76 gündü. Yani bir ölçüm dosyasının
+  -- çıktısı, İÇİNE GÖMÜLÜ SABİTLER kadar güvenilir. Eşik değiştiğinde bu
+  -- satır kendiliğinden doğruyu söylesin diye artık fonksiyondan okunuyor.
+  select 15, 'DİSK', '>> fren esigine kalan karar',
+         coalesce(
+           (select to_char(greatest((f.esik_mb::bigint * 1024 * 1024 - b.db_bayt)
+                            / greatest(b.tablo_bayt / greatest(k.karar, 1), 1), 0), 'FM999G999G999')
+              || '  (esik ' || f.esik_mb || ' MB)'
+            from (select coalesce((regexp_match(
+                    pg_get_functiondef(p.oid), 'p_esik_mb[^0-9]*([0-9]+)'))[1]::int, 0) as esik_mb
+                  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'disk_musait_mi' limit 1) f
+            where f.esik_mb > 0),
+           'FREN FONKSIYONU OKUNAMADI (!)')
   from k, b
   union all
   select 16, 'DİSK', '>> 1 milyon karar kaç GB eder',

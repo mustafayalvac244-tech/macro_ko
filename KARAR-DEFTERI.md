@@ -109,9 +109,24 @@ teorik tavanın (14.400) üstünde. Sınır disk:
 | Ölçüm | Değer |
 |---|---|
 | Havuz | 44.137 karar · karar başına **28,1 KB** |
-| 6000 MB frenine kalan | 135.890 karar → **~9 gün** |
+| ~~6000 MB frenine kalan~~ | ~~135.890 karar → ~9 gün~~ **← BU YANLIŞTI, aşağıya bak** |
+| **Canlı fren eşiği** | **30.000 MB** (ürün sahibinin 30 GB kararı) |
+| Bugünkü boyut · artış | 2.280 MB · **363,7 MB/gün** (son 24 saatte 13.252 karar) |
+| **>> Frene kalan** | **76 gün** |
+| 30 GB'a sığan karar | ~1.093.000 |
 | Katalog | 2.376.678 künye (metni bekleyen 2.353.945) |
 | Katalogun tamamı bugünkü maliyetle | **63,7 GB** — 30 GB kararının 2 katı |
+
+
+> ⚠️ **DÜZELTME (14.09.2026, aynı gün).** Yukarıda önce "6000 MB frenine
+> ~9 gün" yazmıştım ve bunu ürün sahibine de öyle söyledim. **Yanlıştı.**
+> Sebep: `0121` ölçüm dosyasının İÇİNDE 6000 sayısı sabit yazılı ve o sayı
+> eskimiş; canlı frenin gerçek eşiği `disk_musait_mi` fonksiyonunda
+> **30.000 MB**. Yani 0121'in çıktısını okurken onun kendi varsayımını
+> ölçüm sandım. Doğrusu 0139 ile canlıdan okundu: **76 gün.**
+>
+> Ders: bir ölçüm dosyasının çıktısı, o dosyanın içine gömülü sabitler kadar
+> güvenilirdir. `0121`'deki 6000 düzeltilmeli.
 
 **28,1 KB nereye gidiyor** (2000 satır örneklem, 0136):
 `full_text` **4,5 KB** · `fts` 7,3 KB · `fts_simple` **10,0 KB** · diğer 1,1 KB.

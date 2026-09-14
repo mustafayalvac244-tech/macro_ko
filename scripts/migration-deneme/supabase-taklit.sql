@@ -82,11 +82,26 @@ end $$;
 -- tabloları + 0084'ün disk freni.
 create table public.ictihat_harvest_state (
   terim text primary key, next_page int default 1, done boolean default false,
-  total int, last_run timestamptz, updated_at timestamptz
+  total int, last_run timestamptz, updated_at timestamptz,
+  -- `oncelik` 0093 (hasat önceliği) ile canlıya eklendi ama taklide
+  -- yansıtılmamıştı; 0121 onu okuduğu için deneme koşusunda düşüyordu.
+  -- Aynı gerekçe ictihat_kararlar.created_at'te de yazılı: bu tabloların
+  -- şeması yalnız canlıda tam, taklit geride kalınca migration'lar YERELDE
+  -- hiç sınanamıyor ve hatalar ancak canlıda görülüyor.
+  oncelik int default 100
 );
 create table public.ictihat_kararlar (
   id text primary key, kurul text, daire text, esas_no text, karar_no text,
   karar_tarihi text, durum text, arama_terimi text, full_text text,
+  -- `created_at` CANLIDA VAR, TAKLİTTE YOKTU — 14.09.2026'da eklendi.
+  -- Bu tabloyu depodaki hiçbir migration yaratmıyor (yalnız canlıda ve burada
+  -- var), o yüzden sütunları ancak canlıya bakarak bilinebiliyor. Eksikliği
+  -- BUGÜN ÜÇ AYRI DOSYADA tuzak oldu: 0121 (zaten yazılıydı, denemede
+  -- düşüyordu), 0135 ve 0139 (ikisini de yazarken created_at'i varsaydım ve
+  -- deneme koşusu yakaladı). Doğru çözüm migration'ları eğip bükmek değil,
+  -- taklidi gerçeğe uydurmak.
+  -- Canlıdaki varlığı 0135 ile ölçüldü: "created_at = 2026-09-14 17:46:03".
+  created_at timestamptz default now(),
   -- `fts` canlıda var ama depodaki hiçbir migration onu yaratmıyor (0034
   -- yalnız fts_simple'ı ekliyor). Taklitte yokken 0108/0111 yerelde HİÇ
   -- sınanamıyordu ("column k.fts does not exist"). Canlıdaki tanım
