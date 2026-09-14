@@ -160,6 +160,9 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
   const toolItems: NavItem[] = [
     { icon: 'sparkles-outline', label: t('ai.short'), path: '/ai-chat', badge: aiBadge },
     { icon: 'cloud-upload-outline', label: t('imp.short'), path: '/dosya-aktar', badge: aiBadge },
+    // Toplu aktarım AI kullanmıyor: dosya okunup sütunlar eşleniyor, o kadar.
+    // Bu yüzden rozetsiz — kota harcamıyor, ücretsiz katmanda da çalışır.
+    { icon: 'albums-outline', label: t('toplu.short'), path: '/toplu-aktar' },
     { icon: 'library-outline', label: t('mut.short'), path: '/mutalaa', badge: AI_MUTALAA_ENABLED ? undefined : yakinda },
     { icon: 'scan-outline', label: t('docrev.short'), path: '/document-review', badge: AI_BELGE_ENABLED ? undefined : yakinda },
     { icon: 'document-text-outline', label: t('dlk.short'), path: '/dilekce-uret', badge: AI_DILEKCE_ENABLED ? undefined : yakinda },
