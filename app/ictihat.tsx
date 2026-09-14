@@ -32,7 +32,7 @@ import {
 import { ICTIHAT_DIGESTS, matchDigests, type IctihatDigest } from '@/data/ictihatDigest';
 import { searchMevzuat, warmMevzuatIndex, type MevzuatHit } from '@/data/laws/searchMevzuat';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -730,6 +730,40 @@ function AnalyzePanel({
           </>
         )}
       </Pressable>
+
+      {/* BOŞ EKRANI DOLDURAN BÖLÜM — yalnız henüz hiçbir şey koşmamışken.
+          Ölçüldü (14.09.2026, 1440×900 tarayıcı): bu ekranın ALT YARISI
+          boştu. Amiral ücretsiz özelliğimizin ilk izlenimi boş bir metin
+          kutusuydu ve tanıtım sitesi insanları buraya gönderiyor.
+
+          İki iş yapıyor: örnekler "bu ne işe yarıyor" sorusunu ekranda
+          cevaplıyor (dokununca kutuya geliyor, kullanıcı boş sayfayla baş
+          başa kalmıyor), denetim kutusu da rakiplerde olmayan tek somut
+          farkımızı tam kararın verildiği yerde söylüyor.
+
+          `done` ya da `loading` olunca gizleniyor: sonuçlar geldikten sonra
+          örnek göstermek, okunan şeyin önüne geçerdi. */}
+      {!loading && !done && !error && (
+        <View style={styles.baslangic}>
+          <Text style={styles.baslangicBaslik}>{t('ictihat.orneklerBaslik')}</Text>
+          {([t('ictihat.ornek1'), t('ictihat.ornek2'), t('ictihat.ornek3')] as const).map((ornek) => (
+            <Pressable key={ornek.slice(0, 24)} style={styles.ornekSatir} onPress={() => setOlay(ornek)}>
+              <Ionicons name="return-down-forward-outline" size={15} color={colors.primary} />
+              <Text style={styles.ornekMetin} numberOfLines={2}>
+                {ornek}
+              </Text>
+            </Pressable>
+          ))}
+
+          <View style={styles.denetimKutu}>
+            <View style={styles.denetimBaslikSatir}>
+              <Ionicons name="shield-checkmark" size={16} color={colors.success} />
+              <Text style={styles.denetimBaslik}>{t('ictihat.denetimBaslik')}</Text>
+            </View>
+            <Text style={styles.denetimDesc}>{t('ictihat.denetimDesc')}</Text>
+          </View>
+        </View>
+      )}
 
       {loading && (
         <View style={styles.centerBox}>
@@ -1640,6 +1674,58 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 14,
     paddingVertical: 14,
+  },
+  // Boş ekranı dolduran bölüm — gerekçe JSX'te yazılı.
+  baslangic: {
+    marginTop: spacing.lg,
+    gap: spacing.xs,
+  },
+  baslangicBaslik: {
+    ...typography.small,
+    color: colors.textMuted,
+    fontWeight: '800',
+    textTransform: 'none', // Türkçe: uppercase "i" harfini "I" yapar, "İ" değil
+    marginBottom: 2,
+  },
+  ornekSatir: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  ornekMetin: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flex: 1,
+    minWidth: 0,
+    lineHeight: 19,
+  },
+  denetimKutu: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.successSoft,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    gap: 4,
+  },
+  denetimBaslikSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  denetimBaslik: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    fontWeight: '800',
+  },
+  denetimDesc: {
+    ...typography.small,
+    color: colors.textSecondary,
+    lineHeight: 17,
   },
   analyzeBtnDisabled: {
     opacity: 0.45,

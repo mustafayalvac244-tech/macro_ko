@@ -1825,6 +1825,27 @@ export const tr = {
   'ictihat.digestOpenFull': 'Kararın tam metnini aç',
   'ictihat.analyzeTitle': 'Uyuşmazlığı özetleyin, asistanınız içtihatı bulsun',
   'ictihat.analyzeDesc': 'Somut uyuşmazlığınızı özetleyin; yapay zekâ asistanınız hukuki değerlendirmesini yaparak uygun içtihatları sizin için bulsun.',
+
+  // ÖRNEK OLAYLAR VE DENETİM VAADİ — 14.09.2026.
+  // Sebep ölçüldü: 1440 px'lik tarayıcıda bu ekranın ALT YARISI boştu ve
+  // amiral ücretsiz özelliğimizin ilk izlenimi boş bir metin kutusuydu.
+  // Örnekler dokunulabilir: hem boşluğu dolduruyor hem "bu ne işe yarıyor"
+  // sorusunu ekranda cevaplıyor. Uydurma veri değil, arayüz metni.
+  // Örneklerin hepsi 15 karakterden uzun — buton eşiği o.
+  'ictihat.orneklerBaslik': 'Nasıl yazılır? Dokunun, kutuya gelsin',
+  // 1. örnek başta kiracı senaryosuydu ve KUTUDAKİ YER TUTUCUNUN aynısıydı —
+  // aynı metin ekranda iki kez görünüyordu. Farklı bir alana çevrildi;
+  // üç örnek artık üç ayrı hukuk dalını temsil ediyor (haksız fiil, iş,
+  // eser sözleşmesi) ve hiçbiri yer tutucuyu tekrarlamıyor.
+  'ictihat.ornek1':
+    'Müvekkiline kırmızı ışıkta geçen bir araç çarptı, kalıcı sakatlık kaldı. Sigorta şirketi kusur oranını tartışıyor; maddi ve manevi tazminat talep ediyoruz.',
+  'ictihat.ornek2':
+    'Müvekkilim 7 yıl çalıştıktan sonra işten çıkarıldı. İşveren devamsızlık gerekçe gösterdi ama tutanak tutulmadı, savunması alınmadı. Kıdem ve ihbar tazminatı talep ediyoruz.',
+  'ictihat.ornek3':
+    'Müvekkilim yükleniciye villa yaptırdı. Teslimden sonra çatıda su sızıntısı ve duvarlarda çatlak çıktı. Ayıplı ifa nedeniyle bedel indirimi ve zarar talep ediyoruz.',
+  'ictihat.denetimBaslik': 'Verilen her künye denetlenir',
+  'ictihat.denetimDesc':
+    'Yapay zekânın verdiği her kanun maddesi ve her karar künyesi, cevapla birlikte işaretlenir: doğrulandı, havuzda bulunamadı ya da olamaz. Uydurma bir karar numarası dilekçenize sessizce giremez.',
   'ictihat.analyzePlaceholder': 'Örn: Müvekkilim 5 yıldır kiracı. Ev sahibi kendi ihtiyacı olduğunu söyleyip tahliye davası açtı, ancak taşınmayı gerçekten düşünmüyor, daha yüksek kiraya vermek istiyor...',
   'ictihat.analyzeBtn': 'Değerlendir ve İçtihat Bul',
   'ictihat.analyzing': 'Uyuşmazlık değerlendiriliyor, uygun kararlar aranıyor...',

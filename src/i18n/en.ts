@@ -1758,6 +1758,20 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.digestOpenFull': 'Open the full decision',
   'ictihat.analyzeTitle': 'Summarize the dispute, your assistant finds the precedent',
   'ictihat.analyzeDesc': 'Summarize your dispute; your AI assistant makes its legal assessment and finds the fitting case law for you.',
+
+  // See the Turkish file for why these exist (measured: the bottom half of
+  // this screen was empty and it is our flagship free feature).
+  'ictihat.orneklerBaslik': 'Not sure how to phrase it? Tap an example',
+  // Was the tenant scenario, identical to the input placeholder — replaced.
+  'ictihat.ornek1':
+    'My client was hit by a car that ran a red light and is permanently disabled. The insurer disputes the fault ratio; we are claiming pecuniary and non-pecuniary damages.',
+  'ictihat.ornek2':
+    'My client was dismissed after 7 years. The employer cited absenteeism but kept no record and took no statement from him. We are claiming severance and notice pay.',
+  'ictihat.ornek3':
+    'My client had a contractor build a villa. After handover the roof leaked and the walls cracked. We are claiming a price reduction and damages for defective performance.',
+  'ictihat.denetimBaslik': 'Every citation is checked',
+  'ictihat.denetimDesc':
+    'Every statute reference and every case citation the AI produces is flagged alongside the answer: verified, not found in our pool, or impossible. A fabricated case number cannot slip silently into your petition.',
   'ictihat.analyzePlaceholder': 'e.g. My client has been a tenant for 5 years. The landlord filed an eviction claiming personal need, but does not really intend to move in — they want to re-let at a higher rent...',
   'ictihat.analyzeBtn': 'Assess & Find Case Law',
   'ictihat.analyzing': 'Assessing the dispute, searching for fitting decisions...',
