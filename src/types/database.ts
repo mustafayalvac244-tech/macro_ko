@@ -29,6 +29,8 @@ export interface Profile {
    *  RevenueCat webhook'u tarafından yazılır ve süre bitince geri alınır. */
   ai_tier?: string | null;
   is_admin?: boolean;
+  /** Varsayılan saatlik ücret (₺). Zaman kaydı formunu ön-doldurur. */
+  hourly_rate?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -280,6 +282,33 @@ export interface FinanceEntry {
   net_total: number;
   receipt_no: string | null;
   receipt_issued: boolean;
+}
+
+/**
+ * Zaman / çalışma kaydı. Şema: 0131_zaman_kaydi.sql
+ *
+ * `amount` veritabanında hesaplanır (generated column) — buraya yazılmaz,
+ * yalnız okunur. Uygulama tarafındaki önizleme için `tutarHesapla()` var
+ * ve aynı formülü kullanır.
+ */
+export interface TimeEntry {
+  id: string;
+  owner_id: string;
+  /** Dosyasız çalışma (büro işi, eğitim, ilk görüşme) için null olabilir. */
+  case_id: string | null;
+  description: string;
+  minutes: number;
+  worked_at: string;
+  billable: boolean;
+  /** Kaydın kendi ücreti — profildeki varsayılanın kopyasıdır. */
+  hourly_rate: number | null;
+  /** Veritabanında hesaplanır: billable && rate ? round(rate*dk/60, 2) : 0 */
+  amount: number;
+  created_at: string;
+}
+
+export interface TimeEntryWithCase extends TimeEntry {
+  cases: Pick<Case, 'id' | 'title'> | null;
 }
 
 export interface Payment {

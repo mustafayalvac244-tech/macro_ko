@@ -15,7 +15,9 @@ interface AuthState {
   error: string | null;
   initialize: () => () => void;
   refreshProfile: () => Promise<void>;
-  updateProfile: (patch: Partial<Pick<Profile, 'full_name' | 'firm_name' | 'bar_number' | 'phone'>>) => Promise<void>;
+  updateProfile: (
+    patch: Partial<Pick<Profile, 'full_name' | 'firm_name' | 'bar_number' | 'phone' | 'hourly_rate'>>,
+  ) => Promise<void>;
   uploadAvatar: (file: { uri: string; mimeType: string | null }) => Promise<void>;
   removeAvatar: () => Promise<void>;
   signIn: (email: string, password: string, captchaToken?: string) => Promise<boolean>;

@@ -14,6 +14,8 @@ import { useClients } from '@/hooks/useClients';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
+import { useAllTimeEntries } from '@/hooks/useTimeEntries';
+import { dakikaBicimle, dosyayaGoreOzet, zamanOzeti } from '@/utils/zamanKaydi';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -35,6 +37,15 @@ export default function ReportsScreen() {
   const deadlines = useAllDeadlines();
   const financeEntries = useFinanceEntries();
   const clients = useClients();
+  const timeEntries = useAllTimeEntries();
+
+  // Zaman raporu: hangi dosya süreyi yiyor. En çok süre alan ilk 8 dosya
+  // gösteriliyor — tam liste dosyanın kendi ekranında zaten var ve raporu
+  // 200 satırlık bir dökümle doldurmak onu okunmaz yapardı.
+  const zaman = useMemo(() => {
+    const kayitlar = timeEntries.data ?? [];
+    return { genel: zamanOzeti(kayitlar), dosyalar: dosyayaGoreOzet(kayitlar).slice(0, 8) };
+  }, [timeEntries.data]);
 
   const clientTypes = useMemo(() => {
     let gercek = 0;
@@ -189,6 +200,63 @@ export default function ReportsScreen() {
               </View>
             </Card>
 
+            {zaman.genel.adet > 0 && (
+              <>
+                <SectionHeader title={t('reports.timeByCase')} />
+                <Card style={styles.chartCard}>
+                  <View style={styles.pillRow}>
+                    <StatPill
+                      label={t('time.total')}
+                      value={dakikaBicimle(zaman.genel.toplamDakika)}
+                      color={colors.info}
+                    />
+                    <StatPill
+                      label={t('time.billableTotal')}
+                      value={dakikaBicimle(zaman.genel.ucretliDakika)}
+                      color={colors.success}
+                    />
+                    <StatPill
+                      label={t('time.amountTotal')}
+                      value={formatMoney(zaman.genel.toplamTutar)}
+                      color={colors.primary}
+                    />
+                  </View>
+
+                  {/* Çubuk boyu EN ÇOK süre alan dosyaya göre oranlanıyor;
+                      böylece en uzun dosya hep tam genişlik olur ve satırlar
+                      birbirine göre okunur. */}
+                  {zaman.dosyalar.map((d) => (
+                    <View key={d.caseId ?? 'yok'} style={styles.zamanSatir}>
+                      <Text style={styles.zamanBaslik} numberOfLines={1}>
+                        {d.baslik ?? t('time.noCase')}
+                      </Text>
+                      <View style={styles.zamanCubukYuva}>
+                        <View
+                          style={[
+                            styles.zamanCubuk,
+                            {
+                              backgroundColor: d.caseId ? colors.primary : colors.textMuted,
+                              width: `${Math.max(
+                                4,
+                                (d.toplamDakika / zaman.dosyalar[0].toplamDakika) * 100
+                              )}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.zamanSure}>{dakikaBicimle(d.toplamDakika)}</Text>
+                    </View>
+                  ))}
+
+                  {zaman.genel.ucretsizKalan > 0 && (
+                    <Text style={styles.zamanUyari}>
+                      {t('time.missingRate', { adet: String(zaman.genel.ucretsizKalan) })}
+                    </Text>
+                  )}
+                </Card>
+              </>
+            )}
+
             <SectionHeader title={t('reports.finance')} />
             <Card style={styles.chartCard}>
               <View style={styles.financeRow}>
@@ -223,7 +291,9 @@ export default function ReportsScreen() {
   );
 }
 
-function StatPill({ label, value, color }: { label: string; value: number; color: string }) {
+// value string de kabul ediyor: sayaç bölümünde süre ("2 sa 15 dk") ve para
+// biçimlenmiş metin olarak geliyor.
+function StatPill({ label, value, color }: { label: string; value: number | string; color: string }) {
   const __t = useTheme();
   const styles = makeStyles(__t.colors);
 
@@ -316,6 +386,40 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   pillRow: {
     flexDirection: 'row',
     gap: spacing.sm,
+  },
+  zamanSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  zamanBaslik: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    width: 110,
+  },
+  zamanCubukYuva: {
+    flex: 1,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceAlt,
+    overflow: 'hidden',
+  },
+  zamanCubuk: {
+    height: 8,
+    borderRadius: 999,
+  },
+  zamanSure: {
+    ...typography.small,
+    color: colors.textSecondary,
+    width: 74,
+    textAlign: 'right',
+  },
+  zamanUyari: {
+    ...typography.small,
+    color: colors.warning,
+    marginTop: spacing.sm,
+    lineHeight: 16,
   },
   pill: {
     flex: 1,

@@ -144,13 +144,25 @@ Veritabanı topluca gönderilmez. Saklama: Supabase (AB — İrlanda).
 
 ### 4.3 İçerik derecelendirmesi
 
-Anket: **Yardımcı program / üretkenlik**. Şiddet, cinsellik, kumar, kullanıcı
-üretimi içerik paylaşımı **yok**. Kullanıcılar birbirini göremez (uygulamada
-paylaşım/ekip özelliği yoktur).
+Anket: **Yardımcı program / üretkenlik**. Şiddet, cinsellik, kumar **yok**.
 
-> **Tevkil Panosu'na dikkat:** meslektaşlar arası iş ilanı panosu, ankette
-> "kullanıcılar içerik oluşturup başkalarına gösterebilir mi" sorusuna
-> **evet** dedirtir. Doğru cevap evet olmalı; saklamak yanlış beyandır.
+**"Kullanıcılar içerik oluşturup başkalarına gösterebilir mi?" → HAYIR.**
+
+Bu cevap 14.09.2026'da **kesinleşti** ve gerekçesi şudur: tevkil/devir ilan
+panosu, avukatlar arası sohbet ve büro sohbeti ekranları yayından **çıkarıldı**
+(`src/ekranlar-beklemede/` altına taşındılar, `app/` rota klasöründe değiller).
+Yani bu sürümde kullanıcıların birbirine içerik gösterebileceği hiçbir yüzey
+yok; her kayıt RLS ile tek sahibine kilitli.
+
+> ⚠️ **BU CEVAP ÜRÜNE BAĞLI, SABİT DEĞİL.** Ekranlar bir gün geri açılırsa
+> cevap **EVET**'e döner ve aynı anda üç şey birden güncellenmek zorundadır:
+> bu madde, 4.2'deki veri güvenliği formu ve KVKK/gizlilik metinleri
+> (`docs/privacy.html`, `src/components/KvkkMetin.tsx`). Sebep: pano açıkken
+> kod başka avukatlara **ad soyad, büro adı ve baro sicil numarası**
+> gösteriyor; bunu beyan etmemek hem yanlış beyan hem KVKK eksikliğidir.
+> Önceki sürümde bu bölüm kendi içinde çelişiyordu ("kullanıcılar birbirini
+> göremez" derken hemen altında "doğru cevap evet" diyordu) — formu dolduran
+> kişinin hangi cümleyi okuduğuna bağlı olarak yanlış beyan riski vardı.
 
 ### 4.4 Reklam kimliği (Advertising ID) izni
 
@@ -240,8 +252,14 @@ gösterir. Hazırlamamı isterseniz söyleyin.
 
 1. ~~**Siz:** `EXPO_TOKEN` ekleyin~~ — **zaten vardı**, derleme onunla koştu.
 2. **Siz:** Play Console'da uygulamayı oluşturun — paket adı **`com.vekilpro.app`**
-3. ~~**Ben:** ilk AAB'yi üretirim~~ — **yapıldı, 13.09.2026 12:04**.
-   Dosya: koşu #2'nin kaydındaki `expo.dev/artifacts/eas/...aab` bağlantısı.
+3. ~~**Ben:** ilk AAB'yi üretirim~~ — **yapıldı, 13.09.2026 13:57 (koşu #4)**.
+   ```
+   https://expo.dev/artifacts/eas/eUwBZnQwOAjMRrR04z5FmpWZbbGUqibpZkxnjxrTZkw.aab
+   ```
+   ⚠️ **Koşu #2'yi YÜKLEMEYİN.** Burada önce koşu #2 yazıyordu; o derlemede
+   paket adı hâlâ eski (`com.macroko.legal`) ve renkler eski. Play kaydını
+   `com.vekilpro.app` ile açıp oraya #2'yi yüklerseniz paket adı tutmaz.
+   Yüklenecek olan yukarıdaki bağlantıdır (commit `bc8f206`).
    Play servis hesabı JSON'u olmadığı için **elle yüklenecek**: Play Console
    → uygulama → Test → Dahili test → Yeni sürüm oluştur → AAB'yi sürükle.
 4. **Siz:** dahili testte kendi telefonunuzda açıp bakın. **Buraya kadar

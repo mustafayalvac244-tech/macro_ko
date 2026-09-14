@@ -32,6 +32,7 @@ export default function ProfileFormScreen() {
   const [firmName, setFirmName] = useState('');
   const [barNumber, setBarNumber] = useState('');
   const [phone, setPhone] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Photo changes are staged locally and only committed when "Save" is pressed,
@@ -45,6 +46,7 @@ export default function ProfileFormScreen() {
       setFirmName(profile.firm_name ?? '');
       setBarNumber(profile.bar_number ?? '');
       setPhone(profile.phone ?? '');
+      setHourlyRate(profile.hourly_rate != null ? String(profile.hourly_rate) : '');
     }
   }, [profile]);
 
@@ -77,6 +79,15 @@ export default function ProfileFormScreen() {
 
   const displayUri = stagedRemove ? null : (stagedPhoto?.uri ?? avatarUrl);
 
+  // Boş alan null demek (ücret yok), geçersiz sayı da null — ikisi de
+  // kaydedilir ve zaman kaydı ücretsiz sürer.
+  const parsedRate = (() => {
+    const ham = hourlyRate.replace(/\./g, '').replace(',', '.').trim();
+    if (!ham) return null;
+    const n = Number(ham);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  })();
+
   const handleSave = async () => {
     if (!fullName.trim()) return;
     setError(null);
@@ -87,6 +98,9 @@ export default function ProfileFormScreen() {
         firm_name: firmName.trim() || null,
         bar_number: barNumber.trim() || null,
         phone: phone.trim() || null,
+        // Boş bırakmak geçerli: saat başı çalışmayan avukat bu alanı hiç
+        // doldurmaz ve zaman kaydı yine tutulur, yalnız tutar hesaplanmaz.
+        hourly_rate: parsedRate,
       });
       // Commit any staged photo change alongside the text fields.
       if (stagedPhoto) {
@@ -142,6 +156,14 @@ export default function ProfileFormScreen() {
             onChangeText={setPhone}
             keyboardType="phone-pad"
           />
+          <Input
+            label={t('profile.hourlyRate')}
+            placeholder={t('profile.hourlyRatePlaceholder')}
+            value={hourlyRate}
+            onChangeText={setHourlyRate}
+            keyboardType="decimal-pad"
+          />
+          <Text style={styles.hourlyHint}>{t('profile.hourlyRateHint')}</Text>
 
           <Button
             label={t('common.save')}
@@ -159,6 +181,13 @@ export default function ProfileFormScreen() {
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  hourlyHint: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: -spacing.xs,
+    marginBottom: spacing.sm,
+    lineHeight: 16,
+  },
   flex: { flex: 1 },
   content: {
     paddingHorizontal: spacing.lg,

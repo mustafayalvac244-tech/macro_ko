@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
+import { onbellekYamasi } from '@/utils/onbellekYamasi';
 import { useAuthStore } from '@/store/authStore';
 import type { Case, CaseStatus, CaseWithClient, PriorityLevel } from '@/types/database';
 
@@ -128,7 +129,27 @@ export function useUpdateCase() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    onError: notifySaveError,
+    /**
+     * İYİMSER GÜNCELLEME — icra ekranındaki "Safha" gecikmesinin aynısı burada
+     * da vardı: aşama/durum/öncelik seçimi, sunucudan İKİ kez dönülmeden
+     * (UPDATE + invalidate'in tetiklediği refetch) ekranda kımıldamıyordu.
+     *
+     * Kullanıcı yalnız icra ekranını bildirdi; burada da aynı desen olduğu
+     * için ikisi birlikte düzeltildi — yalnız birini düzeltmek, aynı şikâyetin
+     * öbür ekranda durmasına yol açardı.
+     */
+    onMutate: async ({ id, ...rest }) => {
+      await queryClient.cancelQueries({ queryKey: ['cases'] });
+      const oncekiler = queryClient.getQueriesData({ queryKey: ['cases'] });
+      queryClient.setQueriesData({ queryKey: ['cases'] }, (eski) =>
+        onbellekYamasi<CaseWithClient>(eski, id, rest as Partial<CaseWithClient>),
+      );
+      return { oncekiler };
+    },
+    onError: (err, _degiskenler, baglam) => {
+      baglam?.oncekiler.forEach(([anahtar, veri]) => queryClient.setQueryData(anahtar, veri));
+      notifySaveError(err);
+    },
     mutationFn: async ({
       id,
       ...input
@@ -144,7 +165,8 @@ export function useUpdateCase() {
       if (error) throw error;
       return data as unknown as CaseWithClient;
     },
-    onSuccess: () => {
+    // Başarıda da hatada da sunucudaki gerçekle hizalan.
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
     },
   });
