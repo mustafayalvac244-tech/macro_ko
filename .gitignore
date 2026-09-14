@@ -87,3 +87,8 @@ supabase/.temp/
 # geliştirici bilgisayarında ise yalnız yerelde durur.
 play-service-account.json
 *service-account*.json
+
+# graphify-out: graphify (kod bilgi grafiği) çıktısı — 10 MB, üretilmiş dosya.
+# Depoya girmez: her koşuda yeniden üretilebiliyor (~40 sn) ve graph.json
+# kaynak kodun türevi, kendisi değil.
+graphify-out/
