@@ -123,14 +123,29 @@ jobs:
             console.log('Servis hesabı okundu:', j.client_email);
           "
 
-      - name: Derle (AAB)
+      # ADIM ADI ÖNCEDEN "Derle (AAB)" İDİ VE YANLIŞTI: profil seçilebilir
+      # olduğundan beri preview'da APK çıkıyor. Koşu listesinde "AAB" yazan
+      # bir adımın APK üretmesi, hangi dosyanın nereye gideceğini karıştırır.
+      - name: Derle
+        id: derle
         if: inputs.is == 'derle' || inputs.is == 'derle-ve-gonder'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           # Üretim derlemesinde "Expo Go kullanıyorsunuz" uyarısı anlamsız
           # gürültü; kayıtta gerçek hatayı gölgeliyor.
           EAS_BUILD_NO_EXPO_GO_WARNING: 'true'
-        run: eas build --platform android --profile ${{ inputs.profil }} --non-interactive --wait
+        run: |
+          set -o pipefail
+          eas build --platform android --profile ${{ inputs.profil }} \
+            --non-interactive --wait 2>&1 | tee /tmp/derleme.log
+          # DERLEME BAĞLANTISINI ÖZETE TAŞI. Eskiden bu bağlantı yalnız ham
+          # kayıtta duruyordu: APK'yı telefona kurmak için binlerce satır
+          # logun içinden elle bulmak gerekiyordu. EAS bağlantıyı "Open this
+          # link on your Android devices" satırından sonra basıyor; burada
+          # expo.dev/.../builds/<id> kalıbının SON eşleşmesi alınıyor (kuyruk
+          # sırasında aynı bağlantı birkaç kez yazılabiliyor).
+          baglanti="$(grep -oE 'https://expo\.dev/accounts/[^ ]+/builds/[0-9a-f-]+' /tmp/derleme.log | tail -1 || true)"
+          echo "baglanti=$baglanti" >> "$GITHUB_OUTPUT"
 
       - name: Play'e gönder
         # APK Play'e yüklenmez; preview profilinde gönderim adımı atlanır.
@@ -150,23 +165,43 @@ jobs:
         if: always()
         run: rm -f play-service-account.json
 
+      # ÖZET PROFİLE GÖRE DALLANIYOR — ÖNCEDEN DALLANMIYORDU VE YANILTIYORDU.
+      # 14.09.2026'daki preview koşusunda özet "Kanal: internal" ve "Play
+      # Console'da sürüm taslak olarak oluşur" yazdı; oysa gönderim adımı
+      # ATLANMIŞTI ve hiçbir şey Play'e gitmedi. Doğru olmayan bir özet,
+      # hiç özet olmamasından kötüdür: okuyan kişi Play Console'da olmayan
+      # bir taslağı arar.
       - name: Özet
         if: always()
+        env:
+          BAGLANTI: ${{ steps.derle.outputs.baglanti }}
         run: |
           {
-            echo "## Android — ${{ inputs.is }}"
+            echo "## Android — ${{ inputs.is }} (${{ inputs.profil }})"
             echo ""
             echo "Commit: \`${{ github.sha }}\`"
-            echo "Kanal: \`${{ inputs.kanal }}\`"
             echo ""
-            echo "Derlemeler: https://expo.dev/accounts/_/projects/macro_ko/builds"
-            echo ""
-            echo "### Gönderimden sonra ne olur"
-            echo "- Play Console'da sürüm **taslak** olarak oluşur (eas.json:"
-            echo "  releaseStatus=draft). Yani otomatik yayınlanmaz; incelemeyi"
-            echo "  siz başlatırsınız. Bu bilerek böyle: yanlış bir derlemenin"
-            echo "  kendiliğinden kullanıcıya gitmesini istemiyoruz."
-            echo "- Kişisel geliştirici hesabında üretime geçmek için önce"
-            echo "  **kapalı testte (alpha) 12 kullanıcı × 14 kesintisiz gün**"
-            echo "  gerekiyor. Ayrıntı: PLAY.md"
+            if [ -n "$BAGLANTI" ]; then
+              echo "**Derleme:** $BAGLANTI"
+              echo ""
+            fi
+            if [ "${{ inputs.profil }}" = "preview" ]; then
+              echo "### Bu bir APK — Play'e GİTMEDİ"
+              echo "- Gönderim adımı bilerek atlandı: Play yalnız AAB kabul eder."
+              echo "- Yukarıdaki bağlantıyı **Android telefonda** açın, sayfadaki"
+              echo "  düğme APK'yı kurar. Bilinmeyen kaynak izni istenebilir."
+              echo "- Bu sürüm Play'in kapalı test süresini SAYMAZ; yalnız"
+              echo "  elle test içindir."
+            else
+              echo "Kanal: \`${{ inputs.kanal }}\` (yalnız gönderim yapıldıysa geçerli)"
+              echo ""
+              echo "### Gönderimden sonra ne olur"
+              echo "- Play Console'da sürüm **taslak** olarak oluşur (eas.json:"
+              echo "  releaseStatus=draft). Yani otomatik yayınlanmaz; incelemeyi"
+              echo "  siz başlatırsınız. Bu bilerek böyle: yanlış bir derlemenin"
+              echo "  kendiliğinden kullanıcıya gitmesini istemiyoruz."
+              echo "- Kişisel geliştirici hesabında üretime geçmek için önce"
+              echo "  **kapalı testte (alpha) 12 kullanıcı × 14 kesintisiz gün**"
+              echo "  gerekiyor. Ayrıntı: PLAY.md"
+            fi
           } >> $GITHUB_STEP_SUMMARY

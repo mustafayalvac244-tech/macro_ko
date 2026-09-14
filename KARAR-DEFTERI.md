@@ -73,7 +73,7 @@ Bunları Claude yapamaz; panel erişimi gerektiriyor.
 
 | Alan | Değer |
 |---|---|
-| APK (telefona kurulur) | Koşu #6 — 14.09.2026, commit `1f1d35a`, `preview` profili. Bağlantı Actions kaydında. **Burak abiye gidecek olan bu.** |
+| APK (telefona kurulur) | Koşu #6 — 14.09.2026, commit `1f1d35a`, `preview` profili, 34,7 dk sürdü. **Burak abiye gidecek olan bu.** <br>https://expo.dev/accounts/olivyeejiru/projects/macro_ko/builds/7be3b109-a75d-458a-899c-0c3de6895f6e <br>Android telefonda açılır, sayfadaki düğme kurar. Play'e GİTMEDİ ve kapalı test süresini saymaz. |
 | AAB (Play'e yüklenir) | Koşu #5 — 14.09.2026, commit `4a6f660`. Bağlantı Actions kaydında. |
 | Önceki AAB | `eUwBZnQwOAjMRrR04z5FmpWZbbGUqibpZkxnjxrTZkw.aab` (`bc8f206`) — **ARTIK KULLANMAYIN**, zaman kaydını, makbuzu, gecikme düzeltmesini ve ekran temizliğini içermiyor |
 | İçerik | `com.vekilpro.app` + altın vurgu + zaman kaydı + makbuz dökümü + safha gecikme düzeltmesi + erişilemeyen ekranların çıkarılması |
