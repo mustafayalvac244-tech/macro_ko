@@ -55,9 +55,15 @@ select olcum, deger from (
   select 3, 'son 2 saatte basarisiz cron kosusu',
     case
       when to_regclass('cron.job_run_details') is null then 'KAYIT TABLOSU YOK'
+      -- DİKKAT: `job_run_details`te `jobname` YOKTUR — o sütun `cron.job`da.
+      -- İlk yazımda jobname kullandım ve deneme koşusu düşürdü; canlıda da
+      -- düşerdi. Gerçek pg_cron şeması: jobid, runid, command, status,
+      -- return_message, start_time, end_time. Ad yerine komutun başı
+      -- yazdırılıyor — hangi iş olduğu oradan anlaşılıyor.
       else coalesce((xpath('/row/c/text()', query_to_xml($q$
-        select coalesce(string_agg(jobname || ': ' || status || ' — ' ||
-                 coalesce(left(return_message, 80), ''), '; '), 'yok - temiz') as c
+        select coalesce(string_agg(left(regexp_replace(command, '\s+', ' ', 'g'), 60) ||
+                 ': ' || status || ' — ' || coalesce(left(return_message, 80), ''), '; '),
+                 'yok - temiz') as c
         from cron.job_run_details
         where start_time > now() - interval '2 hours' and status <> 'succeeded'
       $q$, false, true, '')))[1]::text, 'yok - temiz')
