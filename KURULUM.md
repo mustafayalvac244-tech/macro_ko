@@ -19,10 +19,38 @@ gerekir.
 3. Sol menüden **Project Settings → API** açın. Şu ikisini kopyalayın:
    - **Project URL** (ör. `https://abcd1234.supabase.co`)
    - **anon public** anahtarı (uzun `eyJ...` metni)
-4. Sol menüden **SQL Editor** açın → **New query** → bu depodaki
-   `supabase/migrations/0001_init.sql` dosyasının **tüm içeriğini** yapıştırın →
-   **Run**. (Tüm tabloları ve güvenlik kurallarını kurar.)
-5. **Authentication → Providers → Email**'in açık olduğundan emin olun.
+4. **Veritabanını kurun — SIRA ÖNEMLİ.** Sol menüden **SQL Editor** açın ve
+   aşağıdaki ikisini **bu sırayla** çalıştırın:
+
+   **4a.** `supabase/migrations/` altındaki dosyaları **numara sırasıyla**
+   (`0001_init.sql`'den sonuncusuna kadar) yapıştırıp çalıştırın.
+
+   **4b.** Sonra kökteki **`KURULUM.sql`** dosyasının tümünü çalıştırın.
+
+   > ⚠️ **İKİSİ DE ŞART, HİÇBİRİ TEK BAŞINA YETMEZ.** 13-14.09.2026
+   > denetiminde gerçek Postgres'te ölçüldü:
+   >
+   > - Yalnız `0001_init.sql` → uygulamanın sorguladığı **29 tablo eksik**.
+   > - Yalnız `0001` + `KURULUM.sql` → hâlâ **12 tablo eksik**; aralarında
+   >   `kvkk_onay` (yasal açık rıza kaydı), `feedback` (gizlilik metninin
+   >   gösterdiği başvuru kanalı), AI kota tabloları ve `time_entries` var.
+   > - Yalnız göçler (KURULUM.sql'siz) → **6 tablo eksik**; icra modülünün
+   >   tamamı (`enforcement_files`, `enforcement_collections`), müvekkil avans
+   >   defteri ve içtihat havuzu.
+   > - **Göçlerin tamamı + `KURULUM.sql`** → eksik tablo **yok**. Ölçülen tek
+   >   doğru yol budur.
+   >
+   > Her iki dosya da "varsa atla" mantığıyla yazıldı; iki kez çalıştırmak
+   > zararsızdır.
+
+   Depo sahibi için: göçleri tek tek yapıştırmak yerine
+   `.github/workflows/migration-uygula.yml` numara vererek koşturur.
+
+5. `ictihat_kararlar` tablosu **pgvector** eklentisini ister. Supabase'de
+   **Database → Extensions → `vector`** açık olmalı; kapalıysa içtihat
+   havuzu kurulmaz.
+
+6. **Authentication → Providers → Email**'in açık olduğundan emin olun.
    (İsterseniz **Authentication → Sign In / Providers** altında e-posta
    doğrulamasını kapatarak test için hızlı kayıt yapabilirsiniz.)
 

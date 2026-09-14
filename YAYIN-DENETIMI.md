@@ -151,7 +151,7 @@ Formu dolduran kişi ilk cümleyi okuyup "hayır" derse **yanlış beyan** olur 
 bu, uygulamanın kaldırılma sebebidir. C1'in kararı verildikten sonra bu bölüm
 tek bir cevaba indirilmeli.
 
-### C4 — 🟡 Kurulum belgesi eksik veritabanı üretiyor
+### C4 — 🟡 Kurulum belgesi eksik veritabanı üretiyor · ✅ DÜZELTİLDİ (14.09)
 
 Ölçüm: `KURULUM.md` yalnız `supabase/migrations/0001_init.sql`'i çalıştırmayı
 söylüyor. Diğer 126 göçten ve `KURULUM.sql`'den **hiç bahsetmiyor**
@@ -162,12 +162,51 @@ Göçler tek başına koşulduğunda kodun sorguladığı **6 tablo oluşmuyor**
 `client_advances`, `client_expenses`, `ictihat_kararlar`,
 `ictihat_harvest_state`.
 
-`KURULUM.sql` bu altısını kapatıyor (yerelde `ictihat_kararlar` yalnız pgvector
-olmadığı için düştü — benim ortamımın eksiği, deponun değil). Yani şema
-kurtarılabilir; **kurulum talimatı eksik.** Yeni bir ortam kuran ya da felaket
-kurtarma yapan kişi, belgeyi izlerse çalışmayan bir veritabanı elde eder.
+**14.09 düzeltmesi ve bir öz-eleştiri.** 13.09'da "KURULUM.sql altısını
+kapatıyor" diye yazmıştım; eksikti. Ölçtüğümde `0001 + KURULUM.sql` yolunun
+**12 tabloyu daha** bıraktığı çıktı — `kvkk_onay` (yasal açık rıza kaydı),
+`feedback` (gizlilik metninin gösterdiği başvuru kanalı), AI kota tabloları ve
+`time_entries` dahil. Yani göçler "isteğe bağlı" değil.
+
+Gerçek Postgres'te ölçülen dört yol:
+
+| Yol | Eksik tablo |
+|---|---|
+| Yalnız `0001_init.sql` | **29** |
+| `0001` + `KURULUM.sql` | **12** |
+| Yalnız göçlerin tamamı | **6** |
+| **Göçlerin tamamı → sonra `KURULUM.sql`** | **0** ✅ |
+
+`KURULUM.md` bu sıraya göre yeniden yazıldı. Ayrıca `tests/semaKapsami.test.ts`
+eklendi: kodun `.from('x')` ile sorguladığı her tablonun göçlerde ya da
+`KURULUM.sql`'de bir `create table` ifadesi olmalı. Bekçinin ısırdığı, olmayan
+bir tabloyu sorgulayan sahte dosyayla kanıtlandı.
 
 ---
+
+### C5 — 🟠 `0091`'in indeksleri hiç kurulmamış olabilir · ✅ ONARILDI (14.09)
+
+Ölçüm: 53 yabancı anahtardan 4'ü indekssiz — `client_advances.owner_id`,
+`client_expenses.owner_id`, `enforcement_collections.owner_id`,
+`admin_islem_log.yapan`.
+
+İlk üçü önemli: bu tabloların RLS politikaları `owner_id = auth.uid()` ile
+süzüyor, yani indekssizken **her okuma tam tarama**. Tek kullanıcıda fark
+edilmez, satır sayısı arttıkça sessizce ağırlaşır.
+
+Sebep bulundu: `0091_eksik_indeksler.sql` **tam olarak bu üç indeksi** kurmayı
+amaçlamış ama 26. satırda `relation "public.client_advances" does not exist`
+ile düşüyor — çünkü o tablolar göçlerde değil `KURULUM.sql`'de. Sonuç
+çalıştırma biçimine göre değişiyor ve ikisi de kötü: psql'de 26. satırdan
+sonraki **9 indeks de kurulmuyor**; Supabase SQL Editor betiği tek işlemde
+koşturduğu için **hiçbiri** kurulmamış olabilir.
+
+**Canlıdaki durumu ölçemedim** (service_role erişimim yok ve istemiyorum).
+Bu yüzden `0132_eksik_indeksler_onarim.sql` yazıldı: 0091'in tamamını
+`to_regclass` ile tablo/sütun varlığına bakarak yeniden kuruyor, var olanı
+atlıyor, olmayan tabloda patlamıyor. Hangi durumda olursa olsun doğru sonuca
+yakınsıyor. Boş bir veritabanında hatasız geçtiği ve tam kurulumda "indekssiz
+yabancı anahtar: 0 satır" verdiği ölçüldü.
 
 ## D. ÖLÇMEDİKLERİM — en önemli başlık
 
