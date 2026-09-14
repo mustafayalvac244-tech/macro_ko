@@ -99,6 +99,114 @@ değişmediyse OTA yeter. Bugünkü APK gerçekten gerekliydi —
 hata vermez — sadece hiçbir şey olmaz. Sürüm yükseltmek, elde derleme
 olmadan, sahadaki tüm kurulumları güncellemesiz bırakır.
 
+## 4a. Hasat — asıl sınır disk, hız değil (14.09.2026)
+
+**Bir daha "hasadı hızlandıralım" diye başlanmasın diye ölçüm burada.**
+
+Hasat YAVAŞ DEĞİL: metin hızı **615 karar/saat = 14.770/gün**, tasarlanan
+teorik tavanın (14.400) üstünde. Sınır disk:
+
+| Ölçüm | Değer |
+|---|---|
+| Havuz | 44.137 karar · karar başına **28,1 KB** |
+| ~~6000 MB frenine kalan~~ | ~~135.890 karar → ~9 gün~~ **← BU YANLIŞTI, aşağıya bak** |
+| **Canlı fren eşiği** | **30.000 MB** (ürün sahibinin 30 GB kararı) |
+| Bugünkü boyut · artış | 2.280 MB · **363,7 MB/gün** (son 24 saatte 13.252 karar) |
+| **>> Frene kalan** | **76 gün** |
+| 30 GB'a sığan karar | ~1.093.000 |
+| Katalog | 2.376.678 künye (metni bekleyen 2.353.945) |
+| Katalogun tamamı bugünkü maliyetle | **63,7 GB** — 30 GB kararının 2 katı |
+
+
+> ⚠️ **DÜZELTME (14.09.2026, aynı gün).** Yukarıda önce "6000 MB frenine
+> ~9 gün" yazmıştım ve bunu ürün sahibine de öyle söyledim. **Yanlıştı.**
+> Sebep: `0121` ölçüm dosyasının İÇİNDE 6000 sayısı sabit yazılı ve o sayı
+> eskimiş; canlı frenin gerçek eşiği `disk_musait_mi` fonksiyonunda
+> **30.000 MB**. Yani 0121'in çıktısını okurken onun kendi varsayımını
+> ölçüm sandım. Doğrusu 0139 ile canlıdan okundu: **76 gün.**
+>
+> Ders: bir ölçüm dosyasının çıktısı, o dosyanın içine gömülü sabitler kadar
+> güvenilirdir. `0121`'deki 6000 düzeltilmeli.
+
+**28,1 KB nereye gidiyor** (2000 satır örneklem, 0136):
+`full_text` **4,5 KB** · `fts` 7,3 KB · `fts_simple` **10,0 KB** · diğer 1,1 KB.
+Yani iki arama vektörü metnin 3,8 katı ve satırın %76'sı.
+
+### Yapıldı (0138, canlıya uygulandı, geri alınabilir)
+- Metin indirme kotası **40 → 15**. Sebep: 40'lık upsert `statement timeout`
+  yiyip turun tamamını kaybettiriyordu (eklenen 0). Yavaşlatma değil.
+- Katalog genişletme **4 dk → 30 dk** (~%95). Sebep: katalog metinden 76 kat
+  önde (159 yıllık kuyruk) ve 0129'da ölçüldüğü gibi aynı kamu kaynağına
+  yüklenip **avukatın beklediği AI cevabını** yavaşlatıyor.
+- Etki henüz ÖLÇÜLMEDİ; bir sonraki 0121 koşusunda bakılacak.
+
+### DENENDİ VE REDDEDİLDİ — stored tsvector'leri düşürmek
+Cazip görünüyordu: 28,1 → ~10,8 KB, katalogun tamamı 24,5 GB'a iner ve
+mevcut 30 GB kararının içine sığardı. **Yerel kıyasla ölçüldü, reddedildi.**
+
+| Şema | Toplam boyut | Sıralı arama |
+|---|---|---|
+| stored tsvector (bugün) | 931 MB | **455 ms** |
+| ifade indeksi | 454 MB | **60 sn'de bitmedi** |
+
+Sebep: `0113` sıralama için `ts_rank(k.fts, tq)` kullanıyor; sütun olmayınca
+tsvector her eşleşen satırda yeniden hesaplanıyor (birim maliyet ~1,9 ms/satır,
+19,5 KB metinde). Disk 2 kat iyileşiyor ama arama kullanılamaz hale geliyor.
+
+**Ara yol (doğrulanmadı):** yalnız `fts_simple`i düşürmek — 0113'te sıralama
+için değil, yalnız `@@` önek eşleşmesinde kullanılıyor ve `@@` indeksten
+cevaplanabilir. Karar başına 28,1 → ~18,1 KB olurdu. **Sentetik veriyle
+doğrulanamadı**: ürettiğim metinde her satır her kelimeyi içerdiği için her
+sorgu her satırla eşleşti ve planlayıcı indeksi hiç kullanmadı. Gerçek
+seçicilikte ölçmek gerekir.
+
+### Açık kalan — ürün sahibi kararı
+2,37 milyon kararın tamamı bugünkü maliyetle saklanamaz. Seçenek: kapsamı
+daraltmak (hangi mahkeme / hangi yıl aralığı avukat için değerli), ya da
+diski büyütmek. Bu teknik değil ürün kararı.
+
+## 4b. Araç değerlendirmesi — graphify (14.09.2026)
+
+**Karar: bağımlılık olarak alınmadı. Ara sıra kullanılabilir, ama Grep'in
+yerine geçmez.** Bir daha "bunu kullansak mı" diye tartışılmasın diye ölçüm
+burada.
+
+Ürün sahibi duyup sordu ("verimini artırıyormuş"). Gerçek bir araç —
+`Graphify-Labs/graphify`, PyPI'da `graphifyy` (çift y; `graphify` adı başkasında),
+Apache-2.0, sürüm 0.9.61. Kod tabanını tree-sitter ile yerel olarak ayrıştırıp
+bilgi grafiğine çeviriyor. LLM çağırmıyor, **para harcamıyor**.
+
+**ÖLÇÜLDÜ — bu depoda, 4 soruyla.** (Dört soru kapsamlı bir değerlendirme
+değildir; aşağısı gördüğüm kadarıdır.)
+
+| Ölçüm | Sonuç |
+|---|---|
+| İndeksleme | 588 dosya, **21-24 sn**, 5.922 düğüm / 18.459 kenar |
+| "AtifDenetimi'ni kim kullanıyor?" | ✅ **Doğru** — 4 ekranı da satır numarasıyla buldu, benim ölçümümle birebir |
+| "time_entries nedir?" | 🟡 Tablo→tablo referansları ve indeksler var, **sütun adları YOK** |
+| "Pano ekranından jobs tablosuna yol?" | ❌ **Bulamadı** |
+| SQL desteği | Ayrı kurulum ister (`graphifyy[sql]`); yoksa 154 göç grafiğe hiç girmiyor |
+
+**Neden bizde sınırlı kalıyor — iki yapısal sebep:**
+
+1. **Sütun adı taşımıyor.** Bugünkü gerçek hatam `ictihat_kararlar.created_at`
+   var sanmaktı; graphify bunu **önleyemezdi**. Çözen şey
+   `grep -A14 "create table"` oldu.
+2. **TypeScript ile SQL arasında köprü yok.** Veri erişimimiz
+   `supabase.from('jobs')` gibi METİN çağrıları; statik AST bunu SQL
+   tablosuna bağlayamıyor. Grafik iki ayrı ada hâlinde.
+
+**Sessiz risk — asıl dikkat edilecek nokta.** `src/utils/zamanKaydi.ts` için
+"sözdizimi hatası" deyip dosyadan yalnız **14 sembol** çıkardı. O dosya
+geçerli TypeScript: `tsc` temiz, 25 test geçiyor. Yani grafik, doğru
+görünürken eksik olabiliyor. **%99 doğru bir grafik, tam da otoriter
+göründüğü için tehlikelidir.** Doğruluğun önemli olduğu bir soruda cevabı
+Grep ile teyit etmeden kullanma.
+
+**Ne zaman işe yarar:** çok dosyaya yayılan bir refactor'ün etkisini görmek,
+tanımadığın bir bölüme oryantasyon. Maliyeti düşük (~40 sn kurulum+indeks),
+çıktısı `graphify-out/` (10 MB, `.gitignore`'da).
+
 ## 5. Açık işler — sıradaki gündem
 
 Tam gerekçeler `RAKIP-OZELLIK-ANALIZI.md`'de.
