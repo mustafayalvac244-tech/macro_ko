@@ -182,12 +182,6 @@ export default function RootLayout() {
             <Stack.Screen name="constitution" options={{ headerShown: false }} />
             <Stack.Screen name="laws" options={{ headerShown: false }} />
             <Stack.Screen name="law/[slug]" options={{ headerShown: false }} />
-            <Stack.Screen name="daily-question" options={{ presentation: 'modal', headerShown: false }} />
-            <Stack.Screen name="chat/index" options={{ headerShown: false }} />
-            <Stack.Screen name="chat/office" options={{ headerShown: false }} />
-            <Stack.Screen name="chat/[peerId]" options={{ headerShown: false }} />
-            <Stack.Screen name="jobs/index" options={{ headerShown: false }} />
-            <Stack.Screen name="job-form" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="promise-form" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="enforcement-form" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="enforcement/[id]" options={{ headerShown: false }} />
@@ -199,6 +193,16 @@ export default function RootLayout() {
             <Stack.Screen name="privacy" options={{ headerShown: false }} />
             <Stack.Screen name="templates" options={{ headerShown: false }} />
             <Stack.Screen name="search" options={{ headerShown: false }} />
+            {/* TEVKİL PANOSU, SOHBET VE GÜNÜN SORUSU BURADAN KALDIRILDI (14.09.2026).
+                Ekranlar SİLİNMEDİ — src/ekranlar-beklemede/ altında duruyor.
+                Sebep: hiçbir menüden erişilemiyorlardı ama expo-router'da dosya
+                = rota olduğu için derin bağlantıyla açılabiliyorlardı. Bu iki
+                sorun demekti: (1) Play "kullanıcılar birbirine içerik gösterir
+                mi" sorusuna evet dedirtiyordu, (2) kod başka avukatlara ad/büro/
+                baro sicil gösterirken gizlilik metinlerinin hiçbiri bundan
+                bahsetmiyordu. Geri açmak için: dosyaları app/ altına taşıyın,
+                bu Stack kayıtlarını geri ekleyin VE ÖNCE KVKK metinlerini
+                güncelleyin. */}
             <Stack.Screen name="ai-chat" options={{ headerShown: false }} />
             <Stack.Screen name="ictihat" options={{ headerShown: false }} />
             <Stack.Screen name="aihm" options={{ headerShown: false }} />
