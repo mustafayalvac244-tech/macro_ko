@@ -99,6 +99,57 @@ değişmediyse OTA yeter. Bugünkü APK gerçekten gerekliydi —
 hata vermez — sadece hiçbir şey olmaz. Sürüm yükseltmek, elde derleme
 olmadan, sahadaki tüm kurulumları güncellemesiz bırakır.
 
+## 4a. Hasat — asıl sınır disk, hız değil (14.09.2026)
+
+**Bir daha "hasadı hızlandıralım" diye başlanmasın diye ölçüm burada.**
+
+Hasat YAVAŞ DEĞİL: metin hızı **615 karar/saat = 14.770/gün**, tasarlanan
+teorik tavanın (14.400) üstünde. Sınır disk:
+
+| Ölçüm | Değer |
+|---|---|
+| Havuz | 44.137 karar · karar başına **28,1 KB** |
+| 6000 MB frenine kalan | 135.890 karar → **~9 gün** |
+| Katalog | 2.376.678 künye (metni bekleyen 2.353.945) |
+| Katalogun tamamı bugünkü maliyetle | **63,7 GB** — 30 GB kararının 2 katı |
+
+**28,1 KB nereye gidiyor** (2000 satır örneklem, 0136):
+`full_text` **4,5 KB** · `fts` 7,3 KB · `fts_simple` **10,0 KB** · diğer 1,1 KB.
+Yani iki arama vektörü metnin 3,8 katı ve satırın %76'sı.
+
+### Yapıldı (0138, canlıya uygulandı, geri alınabilir)
+- Metin indirme kotası **40 → 15**. Sebep: 40'lık upsert `statement timeout`
+  yiyip turun tamamını kaybettiriyordu (eklenen 0). Yavaşlatma değil.
+- Katalog genişletme **4 dk → 30 dk** (~%95). Sebep: katalog metinden 76 kat
+  önde (159 yıllık kuyruk) ve 0129'da ölçüldüğü gibi aynı kamu kaynağına
+  yüklenip **avukatın beklediği AI cevabını** yavaşlatıyor.
+- Etki henüz ÖLÇÜLMEDİ; bir sonraki 0121 koşusunda bakılacak.
+
+### DENENDİ VE REDDEDİLDİ — stored tsvector'leri düşürmek
+Cazip görünüyordu: 28,1 → ~10,8 KB, katalogun tamamı 24,5 GB'a iner ve
+mevcut 30 GB kararının içine sığardı. **Yerel kıyasla ölçüldü, reddedildi.**
+
+| Şema | Toplam boyut | Sıralı arama |
+|---|---|---|
+| stored tsvector (bugün) | 931 MB | **455 ms** |
+| ifade indeksi | 454 MB | **60 sn'de bitmedi** |
+
+Sebep: `0113` sıralama için `ts_rank(k.fts, tq)` kullanıyor; sütun olmayınca
+tsvector her eşleşen satırda yeniden hesaplanıyor (birim maliyet ~1,9 ms/satır,
+19,5 KB metinde). Disk 2 kat iyileşiyor ama arama kullanılamaz hale geliyor.
+
+**Ara yol (doğrulanmadı):** yalnız `fts_simple`i düşürmek — 0113'te sıralama
+için değil, yalnız `@@` önek eşleşmesinde kullanılıyor ve `@@` indeksten
+cevaplanabilir. Karar başına 28,1 → ~18,1 KB olurdu. **Sentetik veriyle
+doğrulanamadı**: ürettiğim metinde her satır her kelimeyi içerdiği için her
+sorgu her satırla eşleşti ve planlayıcı indeksi hiç kullanmadı. Gerçek
+seçicilikte ölçmek gerekir.
+
+### Açık kalan — ürün sahibi kararı
+2,37 milyon kararın tamamı bugünkü maliyetle saklanamaz. Seçenek: kapsamı
+daraltmak (hangi mahkeme / hangi yıl aralığı avukat için değerli), ya da
+diski büyütmek. Bu teknik değil ürün kararı.
+
 ## 4b. Araç değerlendirmesi — graphify (14.09.2026)
 
 **Karar: bağımlılık olarak alınmadı. Ara sıra kullanılabilir, ama Grep'in
