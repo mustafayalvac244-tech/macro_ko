@@ -6,8 +6,11 @@
 |---|---|
 | `ikon-512.png` | Uygulama simgesi (512×512) |
 | `01-pano.png` … `06-ictihat.png` | Telefon ekran görüntüleri (1079×2397) |
+| `one-cikan-1024x500.png` | Öne çıkan görsel (feature graphic) |
 
-**Eksik: öne çıkan görsel (1024×500).** Henüz üretilmedi.
+Öne çıkan görsel ayrı üretilir: `npm run magaza:one-cikan`
+(`scripts/one-cikan-gorsel.mjs`). Fontlar node_modules'ten okunup data URI
+olarak gömülüyor; render sırasında ağa çıkılmıyor.
 
 ## Ekran görüntülerindeki veri KURGUDUR
 
