@@ -44,6 +44,13 @@ on:
           - derle              # yalnız AAB üret
           - derle-ve-gonder    # AAB üret + Play'e yükle
           - gonder             # son derlemeyi Play'e yükle (yeniden derlemez)
+      profil:
+        description: 'Derleme profili — preview APK üretir (telefona doğrudan kurulur), production AAB üretir (Play için)'
+        type: choice
+        default: 'production'
+        options:
+          - production   # AAB — Play'e yüklenir, telefona KURULMAZ
+          - preview      # APK — telefona doğrudan kurulur, Play'e yüklenmez
       kanal:
         description: 'Play kanalı (yalnız gönderimde kullanılır)'
         type: choice
@@ -123,10 +130,11 @@ jobs:
           # Üretim derlemesinde "Expo Go kullanıyorsunuz" uyarısı anlamsız
           # gürültü; kayıtta gerçek hatayı gölgeliyor.
           EAS_BUILD_NO_EXPO_GO_WARNING: 'true'
-        run: eas build --platform android --profile production --non-interactive --wait
+        run: eas build --platform android --profile ${{ inputs.profil }} --non-interactive --wait
 
       - name: Play'e gönder
-        if: inputs.is == 'derle-ve-gonder' || inputs.is == 'gonder'
+        # APK Play'e yüklenmez; preview profilinde gönderim adımı atlanır.
+        if: (inputs.is == 'derle-ve-gonder' || inputs.is == 'gonder') && inputs.profil == 'production'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
