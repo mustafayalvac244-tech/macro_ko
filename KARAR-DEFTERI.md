@@ -75,12 +75,29 @@ Bunları Claude yapamaz; panel erişimi gerektiriyor.
 |---|---|
 | APK (telefona kurulur) | Koşu #6 — 14.09.2026, commit `1f1d35a`, `preview` profili, 34,7 dk sürdü. **Burak abiye gidecek olan bu.** <br>https://expo.dev/accounts/olivyeejiru/projects/macro_ko/builds/7be3b109-a75d-458a-899c-0c3de6895f6e <br>Android telefonda açılır, sayfadaki düğme kurar. Play'e GİTMEDİ ve kapalı test süresini saymaz. |
 | AAB (Play'e yüklenir) | Koşu #5 — 14.09.2026, commit `4a6f660`. Bağlantı Actions kaydında. |
+| Son OTA | Koşu #22 — 14.09.2026, commit `c3abe7b`, dal `production`, **çalışma zamanı 3.3.2** (EAS çıktısından okundu, APK ile eşleşiyor). İçerik: toplu aktarım ekranı + menü girişi — bunlar APK derlendikten SONRA yazıldığı için pakette yoktu. |
 | Önceki AAB | `eUwBZnQwOAjMRrR04z5FmpWZbbGUqibpZkxnjxrTZkw.aab` (`bc8f206`) — **ARTIK KULLANMAYIN**, zaman kaydını, makbuzu, gecikme düzeltmesini ve ekran temizliğini içermiyor |
 | İçerik | `com.vekilpro.app` + altın vurgu + zaman kaydı + makbuz dökümü + safha gecikme düzeltmesi + erişilemeyen ekranların çıkarılması |
 | Expo hesabı | `olivyeejiru` |
 
 > `versionCode` EAS'te tutuluyor (`appVersionSource: remote`), `app.json`'daki
 > değer YOK SAYILIR.
+
+**Ne zaman OTA yeter, ne zaman derleme şart** — 14.09.2026'da soruldu, ölçüldü:
+
+| Değişen şey | Yol | Süre |
+|---|---|---|
+| Ekran, metin, iş mantığı, dil dosyası, hesaplama | **OTA** (`ota-yayinla.yml`) | ~3 dk |
+| Yeni kütüphane, izin, ikon, paket adı, `version` | **Derleme** (`android-dagit.yml`) | ~35 dk |
+
+Kural: `package.json` bağımlılıkları ya da `app.json`'ın native alanları
+değişmediyse OTA yeter. Bugünkü APK gerçekten gerekliydi —
+`POST_NOTIFICATIONS` izni ve `com.vekilpro.app` paket adı native'di.
+
+**Sessiz tuzak:** `runtimeVersion` politikası `appVersion`. `app.json`'daki
+`version` yükseltilirse eski derlemeler yeni OTA'ları **hiç almaz** ve bu
+hata vermez — sadece hiçbir şey olmaz. Sürüm yükseltmek, elde derleme
+olmadan, sahadaki tüm kurulumları güncellemesiz bırakır.
 
 ## 5. Açık işler — sıradaki gündem
 
