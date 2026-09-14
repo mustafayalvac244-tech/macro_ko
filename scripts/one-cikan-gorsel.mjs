@@ -51,76 +51,94 @@ const TERAZI = `
    teraziyi kirletiyordu. Küçültülmüş önizlemede iyice lekeye dönüşüyordu.
    Not bırakılıyor ki aynı fikir tekrar denenip aynı yere varılmasın. */
 
-export function sayfa({ kunyeler, slogan, vaat }) {
+export function sayfa({ kunyeler, slogan, ustBaslik }) {
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face{font-family:'Imza';src:url('${IMZA}') format('truetype');font-weight:700}
 @font-face{font-family:'Baslik';src:url('${BASLIK}') format('truetype');font-weight:700}
 @font-face{font-family:'Govde';src:url('${GOVDE}') format('truetype');font-weight:600}
 @font-face{font-family:'Govde';src:url('${GOVDE_KALIN}') format('truetype');font-weight:800}
 :root{
-  --lacivert:#0B1F45; --lacivert-2:#173C7E; --derin:#06142E;
-  --altin:#E3C275; --altin-koyu:#B8912F; --cizgi:#F0F4FC;
+  --murekkep:#081A38;      /* derin mürekkep — parlak değil, DOLU */
+  --murekkep-2:#050F24;
+  --altin:#C9A75E;         /* varak altını: ekran altını (#E3C275) fazla parlak,
+                              varak daha mat ve daha pahalı okunuyor */
+  --altin-parlak:#E3C275;
+  --kagit:#EEF3FB;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{width:1024px;height:500px;overflow:hidden;
-  font-family:'Govde',system-ui,sans-serif;background:var(--derin)}
+  font-family:'Govde',system-ui,sans-serif;background:var(--murekkep-2)}
+
+/* ZEMİN: PARILTI YOK. Işıltılı radyal gradyan tüketici uygulaması dilidir;
+   hukuk dili DOLU ve SAKİN mürekkeptir. Yalnız çok hafif bir diyagonal
+   derinlik var, o kadar. */
 .tuval{position:relative;width:1024px;height:500px;overflow:hidden;
-  background:
-    radial-gradient(70% 120% at 74% 50%, rgba(30,72,148,.55) 0%, rgba(11,31,69,0) 62%),
-    linear-gradient(155deg,#0e2856 0%,#091a36 55%,#050e20 100%)}
+  background:linear-gradient(148deg,#0b2145 0%,#081a38 46%,#050f24 100%)}
 
-/* KÜNYE DOKUSU — v1'de gürültü yapıyordu: opaklık yüksekti, maske çalışmıyordu
-   ve başlığın İÇİNDEN geçiyordu. Artık YALNIZ sağ üçte birde, çok daha sönük
-   ve terazinin arkasında kalıyor. Amaç fark edilmek değil; bir avukatın
-   "burada künye var" diye HİSSETMESİ. */
-.kunye{position:absolute;right:0;top:0;width:430px;height:500px;
-  opacity:.045;color:#BFD6FF;font-size:13px;line-height:27px;
-  letter-spacing:.06em;white-space:pre;padding-top:10px;
-  -webkit-mask-image:radial-gradient(70% 60% at 60% 50%,#000 0%,transparent 78%);
-          mask-image:radial-gradient(70% 60% at 60% 50%,#000 0%,transparent 78%)}
+/* DOKU KALDIRILDI. Kâğıt dokusu olsun diye çapraz/dikey ince çizgiler
+   konmuştu ama 4px aralıkla ızgaraya dönüşüp SİNEKLİK gibi göründü —
+   malzeme hissi değil, render hatası gibi. Derin ve düz mürekkep zaten
+   daha pahalı okunuyor; doku eklemek burada kaybettiriyordu. */
+.doku{display:none}
 
-/* SAĞDAKİ TERAZİ — v1'de gri bir hayaletti. Artık ALTIN ve kendinden emin;
-   kompozisyonun ağırlık merkezi o. Kasten sağdan taşıyor ki çerçeveye
-   sıkışmış bir logo değil, arkada duran bir NESNE gibi okunsun. */
-/* TAMAMEN ÇERÇEVE İÇİNDE. Bir ara sağdan taşırıldı ve kefe kenarda
-   kesildi — kasıtlı kırpma gibi değil, kaza gibi duruyordu. Ayrıca Play bu
-   görseli bazı yerleşimlerde KENDİ kırpıyor; kenara dayamak o kırpmada
-   telafisi olmayan bir kayıp demek. */
-.dev{position:absolute;right:38px;top:50%;transform:translateY(-50%);
-  width:462px;height:462px}
-.dev svg{width:100%;height:100%;
-  filter:drop-shadow(0 20px 54px rgba(0,0,0,.5)) drop-shadow(0 0 22px rgba(227,194,117,.14))}
-.dev .kiris{stroke:#DCE7FA}
-.parilti{position:absolute;right:34px;top:50%;transform:translateY(-50%);
-  width:470px;height:470px;border-radius:50%;
-  background:radial-gradient(circle,rgba(227,194,117,.16) 0%,rgba(227,194,117,0) 66%)}
+/* ÇERÇEVE: ince altın çift cetvel. Diplomanın, beratın, mahkeme kararının
+   kenarındaki çizgi. Tek başına "resmî belge" diye okunuyor ve hiçbir
+   süs eklemeden görseli sınıf atlatıyor. */
+.cerceve{position:absolute;inset:22px;border:1px solid rgba(201,167,94,.5);
+  pointer-events:none}
+.cerceve::after{content:'';position:absolute;inset:5px;
+  border:1px solid rgba(201,167,94,.22)}
 
-/* Vinyet — kenarları hafif karartıp gözü merkeze topluyor. Play bu görseli
-   farklı zeminlerin üstünde gösteriyor; kenarları koyulaştırmak görselin
-   zeminle karışıp dağılmasını engelliyor. */
-.vinyet{position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(118% 96% at 50% 48%,rgba(0,0,0,0) 52%,rgba(0,0,0,.34) 100%)}
-.sol{position:absolute;left:78px;top:50%;transform:translateY(-50%);width:560px}
-.ad{font-family:'Imza';font-size:104px;color:#fff;line-height:.9;
-  text-shadow:0 4px 26px rgba(0,0,0,.4)}
-.cizgi{width:190px;height:3px;margin:30px 0 26px 3px;border-radius:2px;
-  background:linear-gradient(90deg,var(--altin) 0%,rgba(227,194,117,.05) 100%)}
-.slogan{font-family:'Baslik';font-size:44px;color:#EDF3FF;line-height:1.16;
-  letter-spacing:-.015em}
-.vaat{margin-top:28px;font-size:21px;font-weight:800;color:var(--altin);
-  letter-spacing:.05em}
-.vaat span{opacity:.45;margin:0 11px;font-weight:600}
+/* KÜNYE DOKUSU KALDIRILDI. Arka planda Yargıtay künyelerinden bir doku
+   vardı; fikir doğruydu (bir avukat "9. HD · 2024/1177 E." satırını bir
+   bakışta tanır) ama MÜHRÜN İÇİNDEN geçiyordu ve orada leke gibi duruyordu.
+   Maskeyle kurtarmak yerine kaldırıldı: bu görselde konuyu zaten mühür ve
+   "AVUKATLIK BÜRO YÖNETİMİ" satırı söylüyor, üçüncü bir işaret fazlalık.
+   Zarafet burada eklemekten değil, çıkarmaktan geliyor. */
+.kunye{display:none}
+
+.sol{position:absolute;left:82px;top:50%;transform:translateY(-50%);width:520px}
+
+/* ÜST SATIR: harfleri açılmış küçük serif. Kartvizit ve antet dilidir;
+   markanın önünde durmadan ona bir sınıf verir. */
+/* TÜRKÇE BÜYÜK HARF TUZAĞI. Burada CSS'in uppercase dönüşümü VARDI ve
+   "Yönetimi" kelimesini "YÖNETIMI" yapıyordu: CSS, Türkçenin i→İ kuralını
+   bilmez, noktasız I üretir. Türk avukata gösterilecek bir görselde Türkçe
+   imla hatası, anlatmaya çalıştığımız özenin tam tersini söyler.
+   Çözüm: dönüşümü CSS'e bırakmayıp metni ZATEN büyük yazmak. */
+.ust{font-family:'Baslik';font-size:15px;letter-spacing:.34em;
+  color:var(--altin);margin-bottom:20px;padding-left:3px}
+.ad{font-family:'Imza';font-size:96px;color:#fff;line-height:.92;
+  text-shadow:0 2px 20px rgba(0,0,0,.45)}
+/* Cetvel: iki uca da gitmeyen, ölçülü bir çizgi. */
+.cizgi{width:172px;height:1.5px;margin:28px 0 24px 4px;
+  background:linear-gradient(90deg,var(--altin-parlak) 0%,rgba(201,167,94,.12) 100%)}
+.slogan{font-family:'Baslik';font-size:33px;color:#E4ECFA;line-height:1.28;
+  letter-spacing:-.005em;font-weight:400}
+
+/* MÜHÜR. Terazi artık bir arayüz ikonu değil, bir MÜHÜR: altın halka içinde,
+   gravür gibi. Hukukun görsel dilinde mühür en güçlü işarettir ve
+   küçültüldüğünde bile tanınır — ince ayrıntıya değil, SİLUETE dayanıyor. */
+.muhur{position:absolute;right:104px;top:50%;transform:translateY(-50%);
+  width:334px;height:334px;border-radius:50%;
+  border:1.5px solid rgba(201,167,94,.68);
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 40% 34%,rgba(255,255,255,.045) 0%,rgba(255,255,255,0) 62%)}
+.muhur::before{content:'';position:absolute;inset:14px;border-radius:50%;
+  border:1px solid rgba(201,167,94,.4)}
+.muhur svg{width:224px;height:224px}
+.muhur .kiris{stroke:#E8EFFC}
 </style></head><body>
 <div class="tuval">
+  <div class="doku"></div>
   <div class="kunye">${kunyeler}</div>
-  <div class="vinyet"></div>
-  <div class="parilti"></div>
-  <div class="dev"><svg viewBox="0 0 512 512">${TERAZI}</svg></div>
+  <div class="muhur"><svg viewBox="0 0 512 512">${TERAZI}</svg></div>
+  <div class="cerceve"></div>
   <div class="sol">
+    <div class="ust">${ustBaslik}</div>
     <div class="ad">Vekil Pro</div>
     <div class="cizgi"></div>
     <div class="slogan">${slogan}</div>
-    <div class="vaat">${vaat.join('<span>·</span>')}</div>
   </div>
 </div>
 </body></html>`;
@@ -145,8 +163,8 @@ function kunyeDokusu() {
 
 const TASARIM = {
   kunyeler: kunyeDokusu(),
+  ustBaslik: 'AVUKATLIK BÜRO YÖNETİMİ',
   slogan: 'Büronuz ve içtihat<br>araştırmanız tek yerde.',
-  vaat: ['Dava takibi', 'Süre hesabı', 'İçtihat'],
 };
 
 async function main() {
