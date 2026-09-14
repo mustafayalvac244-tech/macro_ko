@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ALICILAR, RIZA_ZORUNLU } from '../src/config/kvkk';
@@ -123,5 +123,72 @@ describe('web metinleri kodla tutarlı', () => {
     // bir puana yıldız da bastırmıyoruz.
     const dump = JSON.stringify(veri);
     expect(/aggregateRating|reviewCount|ratingValue/i.test(dump)).toBe(false);
+  });
+
+  /**
+   * TEVKİL PANOSU AÇIKKEN METİNLER SUSAMAZ.
+   *
+   * NEDEN — bu tam olarak bir kez olmuş bir hata. Pano ve sohbet ekranları
+   * kodda çalışır durumdaydı ama `docs/privacy.html`, `KvkkMetin.tsx` ve
+   * `docs/guvenlik.html`'de "ilan", "tevkil", "mesaj", "pano" kelimeleri
+   * SIFIR kez geçiyordu (YAYIN-DENETIMI.md → C2). Ekranlar bu yüzden
+   * yayından çıkarılmıştı; 14.09.2026'da metinler yazıldıktan SONRA geri
+   * açıldı.
+   *
+   * Bu test o sırayı kilitliyor: rota dosyası varsa metin de olmak zorunda.
+   * Rotalar bir gün tekrar kaldırılırsa test kendiliğinden anlamsızlaşmasın
+   * diye koşul açıkça yazılı — kontrol yalnız rota VARKEN çalışır.
+   */
+  it('pano rotası varken gizlilik metinleri ondan bahsediyor', () => {
+    const rotaVar = existsSync(join(KOK, 'app', 'tevkil.tsx'));
+    if (!rotaVar) return; // pano kapalıysa metinlerin susması doğrudur
+
+    const metinler = {
+      'src/components/KvkkMetin.tsx': oku('src', 'components', 'KvkkMetin.tsx'),
+      'docs/privacy.html': oku('docs', 'privacy.html'),
+      'docs/guvenlik.html': oku('docs', 'guvenlik.html'),
+    };
+    for (const [ad, ham] of Object.entries(metinler)) {
+      // Yorum satırları sayılmıyor: bu dosyalarda hatanın NE OLDUĞUNU anlatan
+      // yorumlar var ve onların içinde tabii ki "pano" geçiyor. Kullanıcının
+      // GÖRDÜĞÜ metin aranıyor.
+      const govde = ham.replace(/<!--[\s\S]*?-->/g, '').replace(/^\s*\/\/.*$/gm, '');
+      expect(/tevkil|pano/i.test(govde), `${ad}: pano açık ama metin ondan hiç bahsetmiyor`).toBe(true);
+    }
+
+    // Eski ve artık yanlış olan mutlak cümle geri gelmesin. "paylaşma ...
+    // diye bir şey yoktur" pano açıkken yanlış beyandır.
+    const gizlilik = metinler['docs/privacy.html'].replace(/<!--[\s\S]*?-->/g, '');
+    expect(
+      /Programda paylaşma, ekip ya da ikinci kullanıcı diye bir şey yoktur/i.test(gizlilik),
+      'docs/privacy.html: pano açıkken "paylaşma diye bir şey yoktur" denemez',
+    ).toBe(false);
+  });
+
+  /**
+   * ANDROID'DE PANO GERÇEKTEN YOK — PLAY.md 4.3 buna dayanıyor.
+   *
+   * Ankette "kullanıcılar birbirini göremez" cevabı, özelliğin mobil pakette
+   * BULUNMAMASINA dayanıyor; menüden gizlenmiş olması yetmez (daha önceki
+   * hata tam buydu: ekran menüde yoktu ama rota olarak duruyordu).
+   *
+   * İki şart birlikte: (1) her web ekranının platformsuz bir karşılığı var,
+   * (2) o karşılık gerçek ekranı değil "yalnız web" notunu gösteriyor.
+   */
+  it('her web-only ekranın native karşılığı var ve pano kodu içermiyor', () => {
+    const kok = join(KOK, 'src', 'components', 'tevkil');
+    if (!existsSync(kok)) return;
+
+    for (const web of readdirSync(kok).filter((f) => f.endsWith('.web.tsx'))) {
+      const native = web.replace('.web.tsx', '.tsx');
+      expect(
+        existsSync(join(kok, native)),
+        `${web} için ${native} yok — Android'de gerçek ekran açılır ve Play cevabı yanlış beyana döner`,
+      ).toBe(true);
+      expect(
+        readFileSync(join(kok, native), 'utf8').includes('YalnizWeb'),
+        `${native} YalnizWeb göstermiyor; native tarafa işlevsel ekran sızmış olabilir`,
+      ).toBe(true);
+    }
   });
 });

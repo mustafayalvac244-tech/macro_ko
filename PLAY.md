@@ -148,21 +148,42 @@ Anket: **Yardımcı program / üretkenlik**. Şiddet, cinsellik, kumar **yok**.
 
 **"Kullanıcılar içerik oluşturup başkalarına gösterebilir mi?" → HAYIR.**
 
-Bu cevap 14.09.2026'da **kesinleşti** ve gerekçesi şudur: tevkil/devir ilan
-panosu, avukatlar arası sohbet ve büro sohbeti ekranları yayından **çıkarıldı**
-(`src/ekranlar-beklemede/` altına taşındılar, `app/` rota klasöründe değiller).
-Yani bu sürümde kullanıcıların birbirine içerik gösterebileceği hiçbir yüzey
-yok; her kayıt RLS ile tek sahibine kilitli.
+Bu cevap **ANDROID UYGULAMASI İÇİN** verilir ve Android uygulamasında
+kullanıcıların birbirine içerik gösterebileceği hiçbir yüzey **yoktur**.
 
-> ⚠️ **BU CEVAP ÜRÜNE BAĞLI, SABİT DEĞİL.** Ekranlar bir gün geri açılırsa
-> cevap **EVET**'e döner ve aynı anda üç şey birden güncellenmek zorundadır:
-> bu madde, 4.2'deki veri güvenliği formu ve KVKK/gizlilik metinleri
-> (`docs/privacy.html`, `src/components/KvkkMetin.tsx`). Sebep: pano açıkken
-> kod başka avukatlara **ad soyad, büro adı ve baro sicil numarası**
-> gösteriyor; bunu beyan etmemek hem yanlış beyan hem KVKK eksikliğidir.
-> Önceki sürümde bu bölüm kendi içinde çelişiyordu ("kullanıcılar birbirini
-> göremez" derken hemen altında "doğru cevap evet" diyordu) — formu dolduran
-> kişinin hangi cümleyi okuduğuna bağlı olarak yanlış beyan riski vardı.
+**14.09.2026 — durum değişti, cevap değişmedi. Sebebini okumadan formu
+doldurmayın.** Tevkil panosu ve meslektaş yazışması o gün **web sürümüne geri
+açıldı**. Buna rağmen Android cevabı "HAYIR" olarak kalıyor, çünkü özellik
+mobil uygulamada **gizlenmedi, gerçekten yok**:
+
+- Ekran gövdeleri `src/components/tevkil/` altında ve Metro'nun platform
+  uzantısıyla ayrılıyor: `Pano.web.tsx` yalnız **web** paketine giriyor,
+  native pakete `Pano.tsx` (bir "yalnız web sürümünde" notu) giriyor.
+- Yani derin bağlantıyla `/tevkil` açılsa bile Android'de pano kodu
+  **çalıştırılamaz — pakette bulunmuyor.**
+- Bu ayrım bilerek `app/` dışında yapıldı: Expo Router (SDK 57) dokümanına
+  göre `app/` içindeki platform uzantısı ancak platformsuz sürüm de varsa
+  çalışır, yani rota dosyası tek başına özelliği native'de gizleyemezdi.
+  Daha önceki hata tam buydu: ekranlar menüde yoktu ama rota olarak
+  duruyorlardı — **gizli bir özellik, ankette "hayır" demeyi haklı
+  çıkarmaz.** Şimdi gizli değil, yok.
+
+> ⚠️ **CEVABI "EVET"E ÇEVİRMENİZ GEREKEN TEK DURUM:** panonun Android'de de
+> açılması. O an `src/components/tevkil/*.web.tsx` bölmesi kaldırılmış ya da
+> menü koşulu (`Platform.OS === 'web'`, `src/components/Sidebar.tsx`)
+> gevşetilmiş demektir. Bu olursa aynı anda üç şey güncellenir: bu madde,
+> 4.2'deki veri güvenliği formu ve — zaten güncel olan — KVKK metinleri.
+>
+> **KVKK tarafı ARTIK GERİDE DEĞİL.** Aydınlatma metnine "7. Meslektaş
+> Panosu" başlığı eklendi (`src/components/KvkkMetin.tsx`, TR ve EN),
+> `docs/privacy.html` ve `docs/guvenlik.html` düzeltildi, `KVKK_SURUM`
+> `2026-09-3`'e yükseltildi. `tests/webMetinTutarlilik.test.ts` rota varken
+> metinlerin susmasını engelliyor.
+>
+> Ölçülen görünürlük (tahmin değil, koddan): panoda ilan sahibinin **ad soyad
+> ve büro adı**; yazışmada ek olarak **baro sicil numarası ve profil
+> fotoğrafı**. Telefon, e-posta, kimlik numarası ve dosya kayıtları hiçbir
+> durumda görünmüyor.
 
 ### 4.4 Reklam kimliği (Advertising ID) izni
 

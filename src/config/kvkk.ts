@@ -13,8 +13,16 @@
 // bildirmek, hiç bildirmemekten daha kötüdür. Alan `null` kaldığı sürece
 // aydınlatma metni o satırı YAZMAZ, yerine eksik olduğunu söyler.
 
-/** Aydınlatma/rıza metinlerinin sürümü. Metin değişirse ARTIR. */
-export const KVKK_SURUM = '2026-09-2';
+/**
+ * Aydınlatma/rıza metinlerinin sürümü. Metin değişirse ARTIR.
+ *
+ * 2026-09-3 (14.09.2026): Metne "7. Meslektaş Panosu — diğer avukatlara ne
+ * görünür" başlığı eklendi ve sonraki başlıklar 8-14'e kaydı. Bu ÖZDE bir
+ * değişiklik: yeni bir alıcı grubu (diğer kullanıcılar) açıklanıyor. Sürümü
+ * artırmasaydık, eski metne verilmiş rıza yeni metne verilmiş gibi görünürdü
+ * — yani kullanıcı hiç okumadığı bir açıklamaya rıza vermiş sayılırdı.
+ */
+export const KVKK_SURUM = '2026-09-3';
 
 /**
  * ⚠️ ÇÖZÜLMESİ GEREKEN ÇELİŞKİ — kayıt, rıza olmadan tamamlanabilsin mi?
