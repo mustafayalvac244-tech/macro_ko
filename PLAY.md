@@ -33,6 +33,52 @@ Bugüne kadarki bütün ölçümler bizim kendi kurduğumuz senaryolardı.
 
 ---
 
+## 0.1 EAS DERLEME KOTASI DOLDU — 15.09.2026'da ÖLÇÜLDÜ
+
+Koşu **#7** (15.09.2026 13:43, `main`, `derle` + `production`) **12 saniyede
+düştü**. Sebep kodda değil; EAS'ın kendi cevabı:
+
+> This account has used its **Android builds from the Free plan** this month,
+> which will reset in 15 days (on **Thu Oct 01 2026**).
+> Run `eas billing:subscribe starter --account olivyeejiru` to upgrade.
+
+Yani bu ay Ücretsiz plandaki Android derleme hakkı bitti. Bugüne kadar 6
+Android derlemesi koşuldu (#1 düştü, #2–#6 başarılı).
+
+**İki seçenek var, üçüncüsü yok:**
+
+| | Ne olur | Maliyet |
+|---|---|---|
+| **1 Ekim'i bekle** | Kota sıfırlanır, 3.4.0 derlenir | 0 ₺, **16 gün** |
+| **Starter planına geç** | Bugün derlenir | aylık ücret (Expo faturası) |
+
+### Ama 14 GÜNLÜK SAYAÇ BUNU BEKLEMEK ZORUNDA DEĞİL
+
+Elde **zaten yüklenebilir bir AAB var** — koşu #4, 13.09.2026, commit
+`bc8f206`, paket adı `com.vekilpro.app` (doğru), sürüm 3.3.2:
+
+```
+https://expo.dev/artifacts/eas/eUwBZnQwOAjMRrR04z5FmpWZbbGUqibpZkxnjxrTZkw.aab
+```
+
+Google'ın saydığı şey **test kullanıcısının kapalı testte kesintisiz kaldığı
+gün sayısı**; "en yeni derleme" diye bir koşul yok. Yani bu AAB'yi bugün
+**kapalı test (alpha)** kanalına yükleyip 12 kullanıcıyı davet etmek
+sayacı **bugün** başlatır. 3.4.0 derlendiğinde aynı kanala yeni sürüm olarak
+eklenir.
+
+> **ÖLÇÜLMEDİ:** Test süresi devam ederken kanala yeni bir AAB yüklemenin
+> sayacı etkileyip etkilemediğini doğrulamadım. Google'ın metni kullanıcı
+> kaydından bahsediyor, sürümden değil — ama bunu bir kaynaktan teyit
+> etmedim. Kritik olan tarihe yaklaşırken (≈29.09) Play Console'daki sayacın
+> kendisine bakıp doğrulayın.
+
+**Sıralamanın anlamı:** kapalı testi 3.4.0 için beklemek, 16 günlük kota
+beklemesini 14 günlük test beklemesinin **üstüne** ekler (toplam ≈30 gün).
+Bugün başlatmak ikisini **üst üste bindirir**.
+
+---
+
 ## 1. Bugün hazır olanlar (ölçüldü)
 
 | Konu | Durum | Kanıt |

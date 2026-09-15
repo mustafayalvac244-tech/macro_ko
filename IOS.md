@@ -67,6 +67,18 @@ etkileşim yapamaz. Bir kez kurulduktan sonra EAS saklar ve iş akışı
 Atlanırsa ilk koşu kimlik hatasıyla düşer — bu bir arıza değil, sıranın
 gereği.
 
+### b.2) EAS kotası — iOS tarafı ÖLÇÜLMEDİ
+
+15.09.2026'da Android derlemesi **kota dolduğu için** düştü (ayrıntı:
+`PLAY.md` §0.1). EAS'ın hata metni **"Android builds from the Free plan"**
+diyor — yani sayacı platform başına tutuyor gibi görünüyor.
+
+**Bunu varsayım olarak kullanma.** iOS tarafında kalan hak olup olmadığı
+ölçülmedi; bu ayda hiç iOS derlemesi koşulmadığı için hak duruyor
+**olabilir**, ama denenmeden bilinmez. İlk iOS koşusu zaten (a) ve (b)
+adımları tamamlanmadan düşeceği için, kota sorusunun cevabı da ancak o
+adımlardan sonra görülecek.
+
 ### c) Derle · **BEN ya da SEN**
 
 GitHub → Actions → **iOS Derle ve Gönder** → Run workflow
