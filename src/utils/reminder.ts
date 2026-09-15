@@ -69,9 +69,20 @@ export async function sendClientReminder(rawPhone: string | null | undefined, me
     //
     // Çözüm doğrudan openURL denemek: WhatsApp yoksa zaten hata fırlatır ve
     // aşağıdaki SMS yoluna düşeriz. Bu, izin listesine hiç ihtiyaç duymaz ve
-    // MEVCUT derlemelerde de çalışır (OTA ile gider). app.json'a izin
-    // tanımları ayrıca eklendi ki ileride canOpenURL kullanan biri aynı
-    // tuzağa düşmesin.
+    // MEVCUT derlemelerde de çalışır (OTA ile gider).
+    //
+    // ── 15.09.2026: app.json'daki `android.queries` KALDIRILDI ────────────
+    // "İleride canOpenURL kullanan biri aynı tuzağa düşmesin" diye eklenmişti
+    // ama Expo yapılandırma şemasında `android.queries` diye bir alan YOK:
+    // `npx expo-doctor` bunu şema hatası olarak veriyordu
+    //     "Field: android - should NOT have additional property 'queries'"
+    // Yani blok koruma sağlamıyordu; yalnız yapılandırmayı geçersiz kılıyordu.
+    // iOS tarafındaki karşılığı (`ios.infoPlist.LSApplicationQueriesSchemes`)
+    // GEÇERLİ bir alan ve DURUYOR.
+    //
+    // İleride Android'de canOpenURL gerekirse: manifest'e <queries> eklemek
+    // bir CONFIG PLUGIN işidir (withAndroidManifest), app.json alanı değil.
+    // O yazılmadan canOpenURL Android'de yine false döner.
     await Linking.openURL(waUrl);
     return 'whatsapp';
   } catch {

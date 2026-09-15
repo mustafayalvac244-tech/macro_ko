@@ -101,6 +101,82 @@ Kodda olmayan, yalnız panelde doldurulan alanlar:
 
 ---
 
+## 2.5 ÖN UÇUŞ KONTROLÜ — ÇÖZÜLDÜ (15.09.2026)
+
+`npx expo-doctor` önce **18/21** geçiyordu, üç denetim düşüyordu. Üçü de
+kapatıldı: **şimdi 21/21 geçiyor, sıfır sorun.**
+
+Bunlar EAS kuyruğuna girmeden bulundu — girseydik 30 dakika bekleyip hata
+alacaktık. Aşağıdaki kayıt, aynı sorunlar geri dönerse tanınsın diye duruyor.
+
+### a) `app.json` şema hatası — `android.queries` geçersiz alandı · **ÇÖZÜLDÜ**
+
+```
+Field: android - should NOT have additional property 'queries'
+```
+
+Expo yapılandırma şemasında `android.queries` diye bir alan yok. Blok,
+"ileride `canOpenURL` kullanan biri tuzağa düşmesin" diye savunma amaçlı
+eklenmişti — ama **koruma sağlamıyordu, yalnız yapılandırmayı geçersiz
+kılıyordu.**
+
+Kaldırmadan önce ölçüldü: `canOpenURL` kodun **hiçbir yerinde
+kullanılmıyor** (yalnız kaldırıldığını anlatan yorumlarda geçiyor). Her
+çağrı `Linking.openURL` ve o, `<queries>` gerektirmiyor. Yani kaldırmanın
+davranışa etkisi **sıfır**.
+
+iOS karşılığı `ios.infoPlist.LSApplicationQueriesSchemes` **geçerli bir
+alan** ve olduğu gibi duruyor.
+
+İleride Android'de `canOpenURL` gerekirse: manifest'e `<queries>` eklemek
+bir **config plugin** işidir (`withAndroidManifest`), app.json alanı değil.
+Not `src/utils/reminder.ts` içine yazıldı.
+
+### b) Hermes bellek regresyonu — iOS için asıl riskti · **ÇÖZÜLDÜ**
+
+```
+ÖNCE : expo@57.0.1 → Hermes V1 250829098.0.14  (ETKİLENEN)
+SONRA: expo@57.0.22                            (düzeltme .0.16'da geldi)
+```
+
+Expo'nun kendi duyurusunda geçen bilinen bir bellek regresyonu. Bellek
+sorunu iOS'ta Android'den sert sonuçlanır: sistem uygulamayı öldürür,
+kullanıcı "kapanıyor" der. Apple incelemesinde çökme = doğrudan ret.
+
+### c) 26 paket geride · **ÇÖZÜLDÜ**
+
+`npx expo install --fix` ile SDK'nın beklediği sürümlere çekildi:
+
+| paket | önce | sonra |
+|---|---|---|
+| expo | 57.0.1 | **57.0.22** |
+| react-native | 0.86.0 | 0.86.3 |
+| react-native-screens | 4.25.2 | 4.26.0 |
+| expo-router | 57.0.2 | 57.0.21 |
+| expo-updates | 57.0.6 | 57.0.22 |
+| react-native-reanimated | 4.5.0 | 4.5.1 |
+| react-native-worklets | 0.10.0 | 0.10.1 |
+
+### Yükseltme sonrası doğrulama — ÖLÇÜLDÜ
+
+- `npx expo-doctor` → **21/21 geçti**
+- `npx tsc --noEmit` → temiz
+- `npm test` → **71 dosya / 815 test geçti**
+- `npm run export:web` → derlendi
+- Pano ve dava listesi **render edilip gözle bakıldı**, bozulma yok
+
+**SIRA BİLEREK BÖYLEYDİ.** Sürüm yükseltmesi Android'i de etkiliyor ve
+Android test aşamasında. Yükseltmeyi iOS çıktıktan SONRA yapmak iki mağazayı
+birden riske atardı; ilk iOS derlemesinden ÖNCE yapıldı.
+
+**DİKKAT — natif derleme henüz yapılmadı.** Yukarıdaki doğrulamaların hepsi
+web/JS tarafı. Yükseltme natif bağımlılıkları da değiştirdi
+(react-native 0.86.0 → 0.86.3, reanimated, worklets); bunların derlenip
+telefonda çalıştığı **ölçülmedi**. İlk Android derlemesi de bu yüzden
+yeniden yapılmalı.
+
+---
+
 ## 3. Ölçülmemiş riskler — dürüstlük payı
 
 Bunlar "sorun var" demek değil; **bakılmadı** demek.
