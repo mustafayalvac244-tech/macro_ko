@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { digerTema, koyuTemaMi, themeMetas, palettes, type ThemeId } from '../src/theme/palettes';
+import { digerTema, koyuTemaMi, temaEsi, themeMetas, palettes, type ThemeId } from '../src/theme/palettes';
 
 /**
  * HIZLI TEMA DÜĞMESİNİN KARARI.
@@ -27,16 +27,42 @@ describe('tema düğmesi', () => {
     }
   });
 
-  it('koyu temadan beyaza, açık temadan koyuya geçer', () => {
+  it('düğme HER ZAMAN karşı moda geçirir (koyu ↔ açık)', () => {
+    // Eski test "koyudaysan mutlaka light'a git" diyordu ve bu, eşi olan
+    // temalar eklenince YANLIŞ bir kuralı koruyordu. Asıl şart daha basit ve
+    // daha güçlü: gidilen tema, bulunduğunun TERSİ modda olmalı.
     for (const id of HEPSI) {
-      expect(digerTema(id), id).toBe(koyuTemaMi(id) ? 'light' : 'dark');
+      expect(koyuTemaMi(digerTema(id)), id).toBe(!koyuTemaMi(id));
     }
   });
 
-  it('iki basışta başlangıç noktasına dönülür (light/dark için)', () => {
+  it('EŞİ OLAN TEMA KENDİ ÇİFTİNDE KALIR — temayı terk etmez', () => {
+    // GERÇEK HATA (15.09.2026, ürün sahibi bildirdi): "terminal gece gündüze
+    // tıklayınca gidiyor, başka moda yazı moduna geçiyor." Terminal koyu
+    // sayıldığı için düğme Klasik'e atıyordu; mono yazı da gidiyordu.
+    expect(digerTema('terminal')).toBe('terminal-light');
+    expect(digerTema('terminal-light')).toBe('terminal');
+    expect(temaEsi('terminal')).toBe('terminal-light');
+  });
+
+  it('iki basışta başlangıç noktasına dönülür', () => {
     // Kullanıcı yanlışlıkla bastıysa aynı düğmeyle geri alabilmeli.
+    // Eşi TANIMLI olan her tema bunu sağlamak zorunda.
+    for (const meta of themeMetas) {
+      if (!meta.esi) continue;
+      expect(digerTema(digerTema(meta.id)), meta.id).toBe(meta.id);
+    }
     expect(digerTema(digerTema('light'))).toBe('light');
     expect(digerTema(digerTema('dark'))).toBe('dark');
+  });
+
+  it('tanımlı her eş GERÇEKTEN karşı modda', () => {
+    // Eşi yanlış yazmak (koyu temanın eşi yine koyu) düğmeyi sessizce
+    // işlevsiz yapar: basarsın, ikon değişmez, hiçbir şey olmaz.
+    for (const meta of themeMetas) {
+      if (!meta.esi) continue;
+      expect(koyuTemaMi(meta.esi), `${meta.id} → ${meta.esi}`).toBe(!koyuTemaMi(meta.id));
+    }
   });
 
   it('koyu sayılan temaların zemini GERÇEKTEN koyu', () => {
