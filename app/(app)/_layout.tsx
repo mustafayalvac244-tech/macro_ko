@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { kose } from '@/theme/theme';
 import { Redirect, Tabs } from 'expo-router';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -67,7 +68,26 @@ export default function AppLayout() {
   // Yeni bir cihazdan girildiyse kullanıcıyı uyar (bkz. hooks/useCihazlar).
   const { yeniCihaz, kapat: cihazUyarisiniKapat } = useCihazBildir();
   const session = useAuthStore((s) => s.session);
-  if (!session) return <Redirect href="/(auth)/login" />;
+  // OTURUM DAHA OKUNMADAN GİRİŞE ATMA — 15.09.2026'da ÖLÇÜLDÜ.
+  //
+  // Burada yalnız `if (!session)` vardı. Oturum diskten ASENKRON okunuyor
+  // (authStore.initialize → supabase.auth.getSession), yani ilk karede session
+  // her zaman null. Sonuç: /app/cases gibi DERİN BİR ADRESLE açılan her sayfa
+  // önce /app/login'e atılıyor, oturum bir saniye sonra gelince de kullanıcı
+  // istediği ekrana değil PANOYA düşüyordu — istenen adres yolda kayboluyor.
+  //
+  // ÖLÇÜM (docs/app derlemesi, yerel sunucu, adres çubuğu izlendi):
+  //     0 ms  /app/cases   (açılış perdesi)
+  //   500 ms  /app/login   ← yönlendirme burada oluyor
+  // Yani yer imi, paylaşılan bağlantı ve SAYFA YENİLEME web sürümünde
+  // çalışmıyordu. Telefonda görünmez: orada derin adres yok.
+  //
+  // `isInitializing` zaten bu soruyu yanıtlıyor ("oturum okundu mu"). Okuma
+  // bitmeden karar vermiyoruz; o sırada ekranı LaunchIntro perdesi kapatıyor.
+  // Ağ takılırsa authStore'daki 2 sn'lik emniyet ağı bayrağı indiriyor, yani
+  // bu dal sonsuza kadar boş ekranda kalamaz.
+  const isInitializing = useAuthStore((s) => s.isInitializing);
+  if (!session) return isInitializing ? null : <Redirect href="/(auth)/login" />;
 
   return (
     <View style={[styles.kok, kaliciMenu && styles.kokSatir]}>
@@ -157,7 +177,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   iconWrap: {
     width: 46,
     height: 30,
-    borderRadius: 15,
+    borderRadius: kose(15),
     alignItems: 'center',
     justifyContent: 'center',
   },

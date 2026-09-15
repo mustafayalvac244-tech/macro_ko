@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -55,7 +55,7 @@ const makeStyles = (colors: ThemeColors) =>
     iconBox: {
       width: 84,
       height: 84,
-      borderRadius: 26,
+      borderRadius: kose(26),
       backgroundColor: colors.goldSoft,
       alignItems: 'center',
       justifyContent: 'center',
@@ -63,7 +63,7 @@ const makeStyles = (colors: ThemeColors) =>
     },
     badge: {
       backgroundColor: colors.gold,
-      borderRadius: 20,
+      borderRadius: kose(20),
       paddingHorizontal: 12,
       paddingVertical: 4,
       marginBottom: spacing.sm,

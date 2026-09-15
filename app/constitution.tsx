@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
 import anayasa from '@/data/anayasa.json';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -156,7 +156,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   noBadge: {
     minWidth: 40,
-    borderRadius: 10,
+    borderRadius: kose(10),
     backgroundColor: colors.primarySoft,
     paddingVertical: 6,
     paddingHorizontal: 6,

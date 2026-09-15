@@ -16,7 +16,7 @@ import {
 } from '@/utils/briefEngine';
 import { AI_ENABLED } from '@/config/features';
 import { useT } from '@/i18n';
-import { fonts, spacing, typography } from '@/theme/theme';
+import { fonts, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatTime } from '@/utils/format';
@@ -356,7 +356,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.primarySoft,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: kose(8),
     overflow: 'hidden',
   },
   h24Card: {
@@ -514,7 +514,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     backgroundColor: colors.primarySoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingHorizontal: 10,
     paddingVertical: 7,
   },

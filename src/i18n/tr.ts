@@ -139,15 +139,20 @@ export const tr = {
   // ── Pano (yalnız geniş tarayıcı) ────────────────────────────────────────
   // Ana ekran masaüstünde tek sütuna sıkışıyordu; bu anahtarlar orada açılan
   // durum şeridi, yaklaşan süreler listesi ve kısayollar için.
-  'dash.stat.cases': 'Aktif dosya',
+  // ETİKETLER BURADA BÜYÜK HARFLE YAZILI — CSS'e bırakılmıyor.
+  // Sebep ölçüldü (14.09.2026): stilde textTransform:'uppercase' vardı ve
+  // canlı ekranda "AKTIF DOSYA" yazıyordu, "AKTİF DOSYA" değil. CSS
+  // Türkçedeki i→İ dönüşümünü bilmiyor, i→I yapıyor. Metni kaynakta
+  // büyük yazmak tek güvenli yol.
+  'dash.stat.cases': 'AKTİF DOSYA',
   // Üst çubuktaki hızlı tema düğmesi (yalnız web). Etiketler ekranda
   // görünmüyor; ekran okuyucu ve erişilebilirlik için.
   'tema.acik': 'Beyaz tema',
   'tema.koyu': 'Koyu tema',
 
-  'dash.stat.hearings': 'Bu hafta duruşma',
-  'dash.stat.deadlines': 'Bekleyen süre',
-  'dash.stat.outcomes': 'Sonuç bekleyen',
+  'dash.stat.hearings': 'BU HAFTA DURUŞMA',
+  'dash.stat.deadlines': 'BEKLEYEN SÜRE',
+  'dash.stat.outcomes': 'SONUÇ BEKLEYEN',
   'dash.upcoming.title': 'Yaklaşan süreler',
   'dash.upcoming.all': 'Takvim',
   'dash.upcoming.empty': 'Yaklaşan süre görünmüyor. Yeni bir süre eklediğinizde burada çıkar.',
@@ -223,7 +228,12 @@ export const tr = {
   'dash.viewDoc': 'Evrak İncele',
   'dash.subline': 'Bugün verimli bir gün olsun.',
   'dash.todayProgram': 'Bugünün Programı',
-  'dash.next.label': 'SIRADAKI',
+  // "Sıradaki" → SIRADAKİ. İlk I doğru (sı→SI), SON harf "i" olduğu için "İ"
+  // olmalı. Burada 'SIRADAKI' yazılıydı ve panoda aylardır öyle görünüyordu
+  // (15.09.2026 ekran görüntüsünde fark edildi). Bu, CSS uppercase hatası
+  // DEĞİL — metin zaten büyük yazılmış, yalnız harf yanlış; bu yüzden
+  // VP_TARA taraması bunu yakalayamaz, gözle bulundu.
+  'dash.next.label': 'SIRADAKİ',
   'dash.today.label': 'BUGÜN',
   'dash.upcomingHearing': 'Yaklaşan Duruşma',
   'dash.upcomingTask': 'Yaklaşan Görev',
@@ -1825,6 +1835,27 @@ export const tr = {
   'ictihat.digestOpenFull': 'Kararın tam metnini aç',
   'ictihat.analyzeTitle': 'Uyuşmazlığı özetleyin, asistanınız içtihatı bulsun',
   'ictihat.analyzeDesc': 'Somut uyuşmazlığınızı özetleyin; yapay zekâ asistanınız hukuki değerlendirmesini yaparak uygun içtihatları sizin için bulsun.',
+
+  // ÖRNEK OLAYLAR VE DENETİM VAADİ — 14.09.2026.
+  // Sebep ölçüldü: 1440 px'lik tarayıcıda bu ekranın ALT YARISI boştu ve
+  // amiral ücretsiz özelliğimizin ilk izlenimi boş bir metin kutusuydu.
+  // Örnekler dokunulabilir: hem boşluğu dolduruyor hem "bu ne işe yarıyor"
+  // sorusunu ekranda cevaplıyor. Uydurma veri değil, arayüz metni.
+  // Örneklerin hepsi 15 karakterden uzun — buton eşiği o.
+  'ictihat.orneklerBaslik': 'Nasıl yazılır? Dokunun, kutuya gelsin',
+  // 1. örnek başta kiracı senaryosuydu ve KUTUDAKİ YER TUTUCUNUN aynısıydı —
+  // aynı metin ekranda iki kez görünüyordu. Farklı bir alana çevrildi;
+  // üç örnek artık üç ayrı hukuk dalını temsil ediyor (haksız fiil, iş,
+  // eser sözleşmesi) ve hiçbiri yer tutucuyu tekrarlamıyor.
+  'ictihat.ornek1':
+    'Müvekkiline kırmızı ışıkta geçen bir araç çarptı, kalıcı sakatlık kaldı. Sigorta şirketi kusur oranını tartışıyor; maddi ve manevi tazminat talep ediyoruz.',
+  'ictihat.ornek2':
+    'Müvekkilim 7 yıl çalıştıktan sonra işten çıkarıldı. İşveren devamsızlık gerekçe gösterdi ama tutanak tutulmadı, savunması alınmadı. Kıdem ve ihbar tazminatı talep ediyoruz.',
+  'ictihat.ornek3':
+    'Müvekkilim yükleniciye villa yaptırdı. Teslimden sonra çatıda su sızıntısı ve duvarlarda çatlak çıktı. Ayıplı ifa nedeniyle bedel indirimi ve zarar talep ediyoruz.',
+  'ictihat.denetimBaslik': 'Verilen her künye denetlenir',
+  'ictihat.denetimDesc':
+    'Yapay zekânın verdiği her kanun maddesi ve her karar künyesi, cevapla birlikte işaretlenir: doğrulandı, havuzda bulunamadı ya da olamaz. Uydurma bir karar numarası dilekçenize sessizce giremez.',
   'ictihat.analyzePlaceholder': 'Örn: Müvekkilim 5 yıldır kiracı. Ev sahibi kendi ihtiyacı olduğunu söyleyip tahliye davası açtı, ancak taşınmayı gerçekten düşünmüyor, daha yüksek kiraya vermek istiyor...',
   'ictihat.analyzeBtn': 'Değerlendir ve İçtihat Bul',
   'ictihat.analyzing': 'Uyuşmazlık değerlendiriliyor, uygun kararlar aranıyor...',
@@ -2014,4 +2045,17 @@ export const tr = {
   'const.emptyDesc': 'Madde numarası (ör. 141) ya da farklı bir kelime deneyin.',
   'const.sourceNote':
     'Kaynak: TBMM yayını — 2709 sayılı T.C. Anayasası (6771 sayılı Kanun değişiklikleri işlenmiş metin). Resmî ve güncel metin için mevzuat.gov.tr esas alınmalıdır.',
+  // ── Arama + Yeni çubuğu (panonun üstü) ───────────────────────────────────
+  // Ayrı ad alanı: bu çubuk panonun kendi metinlerinden bağımsız; aynı
+  // anahtarları paylaşsalardı birinde yapılan değişiklik diğerini sessizce
+  // bozardı (daha önce `imp.` ile `dosya-aktar` arasında tam olarak bu oldu).
+  'ust.ara': 'Dosya, müvekkil, içtihat ara…',
+  'ust.yeni': 'Yeni',
+  'ust.neEklensin': 'NE EKLEMEK İSTİYORSUNUZ?',
+  'ust.yeniDava': 'Dava dosyası',
+  'ust.yeniMuvekkil': 'Müvekkil',
+  'ust.yeniDurusma': 'Duruşma',
+  'ust.yeniSure': 'Süre / görev',
+  'ust.yeniCalisma': 'Çalışma süresi',
+  'ust.yeniFinans': 'Gelir / gider',
 } as const;

@@ -31,7 +31,7 @@ import {
 } from '@/hooks/useClientAdvances';
 import { useEnforcementsByClient } from '@/hooks/useEnforcements';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney, relativeDueLabel, isOverdue } from '@/utils/format';
@@ -678,7 +678,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   contactAction: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: kose(14),
     backgroundColor: colors.successSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -711,7 +711,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingVertical: spacing.xs,
-    borderRadius: 12,
+    borderRadius: kose(12),
   },
   financeItemHighlight: {
     backgroundColor: colors.dangerSoft,
@@ -724,7 +724,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.dangerSoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingHorizontal: spacing.sm,
     paddingVertical: 8,
     marginBottom: spacing.xs,
@@ -739,7 +739,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   advanceIcon: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: kose(12),
     backgroundColor: colors.successSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -747,7 +747,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   expenseIcon: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: kose(12),
     backgroundColor: colors.warningSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -759,7 +759,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
     borderWidth: 1,
     borderColor: colors.warning,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingVertical: 9,
     marginTop: spacing.sm,
   },
@@ -782,7 +782,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   enfIcon: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: kose(14),
     backgroundColor: colors.warningSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -795,7 +795,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   modalCard: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
+    borderRadius: kose(20),
     padding: spacing.lg,
   },
   modalTitle: {
@@ -814,7 +814,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
     marginBottom: spacing.sm,
@@ -849,7 +849,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'flex-start',
     gap: 5,
     backgroundColor: colors.infoSoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingHorizontal: spacing.sm,
     paddingVertical: 7,
     marginBottom: spacing.xs,
@@ -873,7 +873,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },
@@ -896,13 +896,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   progressTrack: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: kose(3),
     backgroundColor: colors.borderSubtle,
     overflow: 'hidden',
   },
   progressFill: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: kose(3),
     backgroundColor: colors.success,
   },
   groupMetaRow: {

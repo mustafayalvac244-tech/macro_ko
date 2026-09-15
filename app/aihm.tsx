@@ -5,7 +5,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AIHM_KARARLAR, aihmKategoriler, searchAihm, type AihmKarar } from '@/data/aihmKararlar';
 import { useT } from '@/i18n';
-import { fonts, spacing } from '@/theme/theme';
+import { fonts, spacing, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -226,14 +226,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.goldSoft,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: kose(14),
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
   introIcon: {
     width: 30,
     height: 30,
-    borderRadius: 9,
+    borderRadius: kose(9),
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -252,7 +252,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingHorizontal: spacing.sm,
     height: 46,
     marginBottom: spacing.sm,
@@ -299,7 +299,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: kose(16),
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
@@ -384,8 +384,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   modalCard: {
     backgroundColor: colors.bgElevated,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    borderTopLeftRadius: kose(22),
+    borderTopRightRadius: kose(22),
     maxHeight: '90%',
     paddingTop: spacing.md,
   },
@@ -408,7 +408,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   modalClose: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: kose(17),
     backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
@@ -428,7 +428,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingHorizontal: 10,
     paddingVertical: 6,
     minWidth: '30%',
@@ -451,7 +451,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sectionAccent: {
     backgroundColor: colors.goldSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,

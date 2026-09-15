@@ -9,7 +9,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useClient, useClients, useCreateClient, useUpdateClient } from '@/hooks/useClients';
 import { useCases } from '@/hooks/useCases';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import { isValidTCKN } from '@/utils/tckn';
 import { menfaatTara } from '@/utils/menfaatCatismasi';
@@ -17,6 +17,7 @@ import { MenfaatUyarisi } from '@/components/MenfaatUyarisi';
 
 export default function ClientFormScreen() {
   const { colors } = useTheme();
+  const styles = makeStyles();
   const t = useT();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEdit = !!id;
@@ -98,7 +99,7 @@ export default function ClientFormScreen() {
   };
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen edges={['top', 'left', 'right', 'bottom']} genislik="form">
       <ScreenHeader title={isEdit ? t('clientForm.editTitle') : t('clientForm.newTitle')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -169,7 +170,14 @@ export default function ClientFormScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// STİLLER RENDER ANINDA ÜRETİLİYOR — modül düzeyinde DEĞİL.
+// Sebep (15.09.2026): yazı tipi/boyut/köşe artık temaya bağlı
+// (bkz. src/theme/tokens.ts). Modül düzeyinde `StyleSheet.create` bir kez
+// çalışıp DONAR: uygulama Klasik temayla açılıp Terminal'e geçilince bu dosya
+// eski Manrope boyutlarında kalır ve ekranın geri kalanıyla uyumsuz görünür.
+// Ölçüldü: 94 dosya zaten fabrika kullanıyordu, donuk kalan 3 dosyadan biri
+// burasıydı.
+const makeStyles = () => StyleSheet.create({
   flex: { flex: 1 },
   content: {
     paddingHorizontal: spacing.lg,
@@ -192,7 +200,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.xs,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginBottom: spacing.md,
     marginTop: -4,

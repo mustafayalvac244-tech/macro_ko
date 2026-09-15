@@ -134,13 +134,14 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.comm.empty': 'No conversations yet. Use the add-person icon to find colleagues.',
   'dash.fin.title': 'Financial Summary',
   // ── Dashboard grid (wide browser only) ─────────────────────────────────
-  'dash.stat.cases': 'Open matters',
+  // Written uppercase at source — see the Turkish file for why.
+  'dash.stat.cases': 'OPEN MATTERS',
   'tema.acik': 'Light theme',
   'tema.koyu': 'Dark theme',
 
-  'dash.stat.hearings': 'Hearings this week',
-  'dash.stat.deadlines': 'Pending deadlines',
-  'dash.stat.outcomes': 'Awaiting outcome',
+  'dash.stat.hearings': 'HEARINGS THIS WEEK',
+  'dash.stat.deadlines': 'PENDING DEADLINES',
+  'dash.stat.outcomes': 'AWAITING OUTCOME',
   'dash.upcoming.title': 'Upcoming deadlines',
   'dash.upcoming.all': 'Calendar',
   'dash.upcoming.empty': 'No upcoming deadlines. New ones appear here.',
@@ -1758,6 +1759,20 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.digestOpenFull': 'Open the full decision',
   'ictihat.analyzeTitle': 'Summarize the dispute, your assistant finds the precedent',
   'ictihat.analyzeDesc': 'Summarize your dispute; your AI assistant makes its legal assessment and finds the fitting case law for you.',
+
+  // See the Turkish file for why these exist (measured: the bottom half of
+  // this screen was empty and it is our flagship free feature).
+  'ictihat.orneklerBaslik': 'Not sure how to phrase it? Tap an example',
+  // Was the tenant scenario, identical to the input placeholder — replaced.
+  'ictihat.ornek1':
+    'My client was hit by a car that ran a red light and is permanently disabled. The insurer disputes the fault ratio; we are claiming pecuniary and non-pecuniary damages.',
+  'ictihat.ornek2':
+    'My client was dismissed after 7 years. The employer cited absenteeism but kept no record and took no statement from him. We are claiming severance and notice pay.',
+  'ictihat.ornek3':
+    'My client had a contractor build a villa. After handover the roof leaked and the walls cracked. We are claiming a price reduction and damages for defective performance.',
+  'ictihat.denetimBaslik': 'Every citation is checked',
+  'ictihat.denetimDesc':
+    'Every statute reference and every case citation the AI produces is flagged alongside the answer: verified, not found in our pool, or impossible. A fabricated case number cannot slip silently into your petition.',
   'ictihat.analyzePlaceholder': 'e.g. My client has been a tenant for 5 years. The landlord filed an eviction claiming personal need, but does not really intend to move in — they want to re-let at a higher rent...',
   'ictihat.analyzeBtn': 'Assess & Find Case Law',
   'ictihat.analyzing': 'Assessing the dispute, searching for fitting decisions...',
@@ -1934,4 +1949,14 @@ export const en: Record<keyof typeof tr, string> = {
   'const.emptyDesc': 'Try an article number (e.g. 141) or a different keyword.',
   'const.sourceNote':
     'Source: Grand National Assembly (TBMM) publication — Constitution of the Republic of Türkiye No. 2709, consolidated incl. Law No. 6771. For the official current text, rely on mevzuat.gov.tr.',
+  // ── Search + New bar (top of the dashboard) ──────────────────────────────
+  'ust.ara': 'Search cases, clients, case law…',
+  'ust.yeni': 'New',
+  'ust.neEklensin': 'WHAT DO YOU WANT TO ADD?',
+  'ust.yeniDava': 'Case file',
+  'ust.yeniMuvekkil': 'Client',
+  'ust.yeniDurusma': 'Hearing',
+  'ust.yeniSure': 'Deadline / task',
+  'ust.yeniCalisma': 'Time entry',
+  'ust.yeniFinans': 'Income / expense',
 };

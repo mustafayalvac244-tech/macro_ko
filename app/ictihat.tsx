@@ -32,7 +32,7 @@ import {
 import { ICTIHAT_DIGESTS, matchDigests, type IctihatDigest } from '@/data/ictihatDigest';
 import { searchMevzuat, warmMevzuatIndex, type MevzuatHit } from '@/data/laws/searchMevzuat';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { radius, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -183,7 +183,7 @@ export default function IctihatScreen() {
   // kipi gizleniyor (aşağıdaki mod seçici), ekran her zaman açık.
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen edges={['top', 'left', 'right', 'bottom']} genislik="dar">
       <ScreenHeader title={t('ictihat.title')} showBack />
 
       {/* Mod seçimi: Olay Analizi / Kelime Arama / Künye ile Bul */}
@@ -493,7 +493,7 @@ export default function IctihatScreen() {
 
       {/* Kanun maddesi tam metni */}
       <Modal visible={!!openMevzuat} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpenMevzuat(null)}>
-        <Screen edges={['top', 'left', 'right', 'bottom']}>
+        <Screen edges={['top', 'left', 'right', 'bottom']} genislik="dar">
           <ScreenHeader
             title={openMevzuat ? `${openMevzuat.kod} · m.${openMevzuat.no}` : ''}
             rightIcon="close"
@@ -595,7 +595,7 @@ function DigestModal({
 
   return (
     <Modal visible={!!digest} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <Screen edges={['top', 'left', 'right', 'bottom']}>
+      <Screen edges={['top', 'left', 'right', 'bottom']} genislik="dar">
         <View style={styles.modalHeader}>
           <View style={styles.flex}>
             <Text style={styles.modalTitle} numberOfLines={2}>
@@ -730,6 +730,40 @@ function AnalyzePanel({
           </>
         )}
       </Pressable>
+
+      {/* BOŞ EKRANI DOLDURAN BÖLÜM — yalnız henüz hiçbir şey koşmamışken.
+          Ölçüldü (14.09.2026, 1440×900 tarayıcı): bu ekranın ALT YARISI
+          boştu. Amiral ücretsiz özelliğimizin ilk izlenimi boş bir metin
+          kutusuydu ve tanıtım sitesi insanları buraya gönderiyor.
+
+          İki iş yapıyor: örnekler "bu ne işe yarıyor" sorusunu ekranda
+          cevaplıyor (dokununca kutuya geliyor, kullanıcı boş sayfayla baş
+          başa kalmıyor), denetim kutusu da rakiplerde olmayan tek somut
+          farkımızı tam kararın verildiği yerde söylüyor.
+
+          `done` ya da `loading` olunca gizleniyor: sonuçlar geldikten sonra
+          örnek göstermek, okunan şeyin önüne geçerdi. */}
+      {!loading && !done && !error && (
+        <View style={styles.baslangic}>
+          <Text style={styles.baslangicBaslik}>{t('ictihat.orneklerBaslik')}</Text>
+          {([t('ictihat.ornek1'), t('ictihat.ornek2'), t('ictihat.ornek3')] as const).map((ornek) => (
+            <Pressable key={ornek.slice(0, 24)} style={styles.ornekSatir} onPress={() => setOlay(ornek)}>
+              <Ionicons name="return-down-forward-outline" size={15} color={colors.primary} />
+              <Text style={styles.ornekMetin} numberOfLines={2}>
+                {ornek}
+              </Text>
+            </Pressable>
+          ))}
+
+          <View style={styles.denetimKutu}>
+            <View style={styles.denetimBaslikSatir}>
+              <Ionicons name="shield-checkmark" size={16} color={colors.success} />
+              <Text style={styles.denetimBaslik}>{t('ictihat.denetimBaslik')}</Text>
+            </View>
+            <Text style={styles.denetimDesc}>{t('ictihat.denetimDesc')}</Text>
+          </View>
+        </View>
+      )}
 
       {loading && (
         <View style={styles.centerBox}>
@@ -1109,7 +1143,7 @@ function DocModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <Screen edges={['top', 'left', 'right', 'bottom']}>
+      <Screen edges={['top', 'left', 'right', 'bottom']} genislik="dar">
         <View style={styles.modalHeader}>
           <View style={styles.flex}>
             <Text style={styles.modalTitle} numberOfLines={1}>
@@ -1170,7 +1204,7 @@ function SummaryModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <Screen edges={['top', 'left', 'right', 'bottom']}>
+      <Screen edges={['top', 'left', 'right', 'bottom']} genislik="dar">
         <View style={styles.modalHeader}>
           <View style={styles.modalTitleRow}>
             <Ionicons name="sparkles" size={18} color={colors.gold} />
@@ -1218,7 +1252,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: kose(12),
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1330,7 +1364,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     backgroundColor: colors.goldSoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingHorizontal: spacing.sm,
     paddingVertical: 8,
     marginBottom: spacing.sm,
@@ -1352,7 +1386,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: 10,
     marginBottom: 7,
   },
@@ -1364,7 +1398,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   mevBadge: {
     backgroundColor: colors.primarySoft,
-    borderRadius: 6,
+    borderRadius: kose(6),
     paddingHorizontal: 7,
     paddingVertical: 2,
   },
@@ -1419,7 +1453,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   digestCard: {
     alignSelf: 'stretch',
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: kose(14),
     borderWidth: 1,
     borderColor: colors.gold,
     padding: spacing.md,
@@ -1436,7 +1470,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     backgroundColor: colors.goldSoft,
-    borderRadius: 7,
+    borderRadius: kose(7),
     paddingHorizontal: 7,
     paddingVertical: 2,
   },
@@ -1464,7 +1498,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   digestCatChip: {
     alignSelf: 'flex-start',
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 7,
+    borderRadius: kose(7),
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
@@ -1493,7 +1527,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   digestIlkeBox: {
     backgroundColor: colors.goldSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.md,
     marginBottom: spacing.md,
   },
@@ -1524,7 +1558,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingHorizontal: spacing.sm,
     paddingVertical: 8,
     marginBottom: spacing.md,
@@ -1557,7 +1591,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     backgroundColor: colors.primary,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: 12,
     marginTop: spacing.lg,
   },
@@ -1575,7 +1609,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   soonIcon: {
     width: 76,
     height: 76,
-    borderRadius: 24,
+    borderRadius: kose(24),
     backgroundColor: colors.goldSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1583,7 +1617,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   soonBadge: {
     backgroundColor: colors.gold,
-    borderRadius: 20,
+    borderRadius: kose(20),
     paddingHorizontal: 12,
     paddingVertical: 4,
     marginBottom: spacing.sm,
@@ -1627,7 +1661,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: kose(14),
     padding: spacing.md,
     minHeight: 140,
     marginBottom: spacing.sm,
@@ -1638,8 +1672,60 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     backgroundColor: colors.primary,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: 14,
+  },
+  // Boş ekranı dolduran bölüm — gerekçe JSX'te yazılı.
+  baslangic: {
+    marginTop: spacing.lg,
+    gap: spacing.xs,
+  },
+  baslangicBaslik: {
+    ...typography.small,
+    color: colors.textMuted,
+    fontWeight: '800',
+    textTransform: 'none', // Türkçe: uppercase "i" harfini "I" yapar, "İ" değil
+    marginBottom: 2,
+  },
+  ornekSatir: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  ornekMetin: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flex: 1,
+    minWidth: 0,
+    lineHeight: 19,
+  },
+  denetimKutu: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.successSoft,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    gap: 4,
+  },
+  denetimBaslikSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  denetimBaslik: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    fontWeight: '800',
+  },
+  denetimDesc: {
+    ...typography.small,
+    color: colors.textSecondary,
+    lineHeight: 17,
   },
   analyzeBtnDisabled: {
     opacity: 0.45,
@@ -1653,7 +1739,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 14,
+    borderRadius: kose(14),
     padding: spacing.md,
     marginTop: spacing.md,
   },
@@ -1680,7 +1766,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: kose(14),
   },
   searchInput: {
     flex: 1,
@@ -1700,7 +1786,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   welcomeIcon: {
     width: 60,
     height: 60,
-    borderRadius: 18,
+    borderRadius: kose(18),
     backgroundColor: colors.goldSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1729,7 +1815,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
   },
@@ -1761,7 +1847,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 14,
+    borderRadius: kose(14),
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
@@ -1791,7 +1877,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 8,
+    borderRadius: kose(8),
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
@@ -1813,7 +1899,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   durumBadge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.successSoft,
-    borderRadius: 8,
+    borderRadius: kose(8),
     paddingHorizontal: 8,
     paddingVertical: 2,
     marginTop: 6,
@@ -1834,7 +1920,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderRadius: 8,
+    borderRadius: kose(8),
     paddingHorizontal: 8,
     paddingVertical: 3,
     marginTop: 6,
@@ -1871,7 +1957,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   sonucBox: {
     marginTop: 8,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 10,
+    borderRadius: kose(10),
     borderLeftWidth: 3,
     borderLeftColor: colors.gold,
     paddingHorizontal: spacing.sm,
@@ -1893,7 +1979,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   srcBadge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.goldSoft,
-    borderRadius: 8,
+    borderRadius: kose(8),
     paddingHorizontal: 8,
     paddingVertical: 2,
     marginTop: 6,
@@ -1907,7 +1993,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   // ---- Künye ile karar bulma ----
   kunyeCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: kose(16),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     padding: spacing.md,
@@ -1949,7 +2035,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingHorizontal: spacing.sm,
     paddingVertical: 10,
   },
@@ -1959,7 +2045,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     backgroundColor: colors.primary,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: 12,
     marginTop: spacing.md,
   },
@@ -1982,7 +2068,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     backgroundColor: colors.successSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginBottom: spacing.sm,
   },
@@ -1997,7 +2083,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     backgroundColor: colors.dangerSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
@@ -2029,7 +2115,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: 13,
     marginTop: 2,
     marginBottom: spacing.xs,
@@ -2067,7 +2153,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     backgroundColor: colors.dangerSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     marginTop: spacing.sm,
@@ -2092,7 +2178,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     backgroundColor: colors.primary,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: 14,
   },
   summaryBtnText: {
@@ -2128,7 +2214,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   modalClose: {
     width: 34,
     height: 34,
-    borderRadius: 10,
+    borderRadius: kose(10),
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,

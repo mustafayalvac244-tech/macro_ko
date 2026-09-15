@@ -18,7 +18,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Card } from '@/components/ui/Card';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { ALICILAR, AI_KAPSAM_DISI, KVKK_SURUM, RIZA_ZORUNLU, VERI_SORUMLUSU, kimlikTamMi } from '@/config/kvkk';
@@ -388,7 +388,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   heroIcon: {
     width: 56,
     height: 56,
-    borderRadius: 18,
+    borderRadius: kose(18),
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',

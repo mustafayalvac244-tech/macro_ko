@@ -14,8 +14,11 @@ import { KvkkGovde } from '@/components/KvkkMetin';
 import { KvkkRizaKarti } from '@/components/KvkkRizaKarti';
 import { useLangStore } from '@/i18n';
 import { spacing } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
 
 export default function KvkkScreen() {
+  useTheme();
+  const styles = makeStyles();
   const lang = useLangStore((s) => s.lang);
   const tr = lang === 'tr';
 
@@ -33,6 +36,9 @@ export default function KvkkScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Stiller render anında üretiliyor — modül düzeyinde DEĞİL.
+// Yazı tipi/boyut/boşluk/köşe artık temaya bağlı (bkz. src/theme/tokens.ts);
+// donuk StyleSheet.create tema değişince eski değerlerde kalır.
+const makeStyles = () => StyleSheet.create({
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
 });

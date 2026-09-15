@@ -29,7 +29,7 @@ import { CAPTCHA_ENABLED } from '@/config/captcha';
 import { DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
 import { UCRETSIZ_LIMIT } from '@/config/planlar';
 import { useT } from '@/i18n';
-import { radius, spacing, typography } from '@/theme/theme';
+import { radius, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -546,7 +546,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   pricingIconWrap: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: kose(14),
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -635,7 +635,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   kvkkBox: {
     width: 20,
     height: 20,
-    borderRadius: 5,
+    borderRadius: kose(5),
     borderWidth: 1.5,
     borderColor: colors.border,
     alignItems: 'center',
@@ -690,7 +690,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignSelf: 'center',
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: kose(32),
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -747,8 +747,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   modalSheet: {
     backgroundColor: colors.bg,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: kose(24),
+    borderTopRightRadius: kose(24),
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
@@ -758,7 +758,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignSelf: 'center',
     width: 44,
     height: 5,
-    borderRadius: 3,
+    borderRadius: kose(3),
     backgroundColor: colors.border,
     marginBottom: spacing.sm,
   },

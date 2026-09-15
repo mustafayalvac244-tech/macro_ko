@@ -12,7 +12,8 @@ import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { AI_BELGE_ENABLED, AI_DILEKCE_ENABLED, AI_ENABLED, AI_MUTALAA_ENABLED } from '@/config/features';
 import { WEB_ADRESI } from '@/config/web';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/tokens';
+import { useBuyukHarf } from '@/lib/buyukHarf';
+import { spacing, typography, kose } from '@/theme/tokens';
 import { YAN_MENU_GENISLIGI } from '@/theme/duzen';
 import { etkilesim } from '@/theme/etkilesim';
 import { useTheme } from '@/theme/useTheme';
@@ -56,6 +57,7 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
   const styles = makeStyles(colors);
 
   const t = useT();
+  const buyut = useBuyukHarf();
   const insets = useSafeAreaInsets();
   const profile = useAuthStore((s) => s.profile);
   const session = useAuthStore((s) => s.session);
@@ -247,7 +249,7 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
             ))}
 
             <View style={styles.divider} />
-            <Text style={styles.sectionLabel}>{t('sidebar.toolsSection')}</Text>
+            <Text style={styles.sectionLabel}>{buyut(t('sidebar.toolsSection'))}</Text>
             <SidebarGroup
               icon="construct-outline"
               label={t('sidebar.tools')}
@@ -395,8 +397,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     top: 0,
     bottom: 0,
     backgroundColor: colors.surface,
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
+    borderTopRightRadius: kose(20),
+    borderBottomRightRadius: kose(20),
     paddingHorizontal: spacing.md,
     shadowColor: '#000',
     shadowOpacity: 0.25,
@@ -425,7 +427,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   accordion: {
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: spacing.xs,
     marginTop: 2,
   },
@@ -441,7 +443,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.small,
     color: colors.textMuted,
     fontWeight: '800',
-    textTransform: 'uppercase',
+    // textTransform YOK — Türkçe "i" tuzağı. CSS ile büyütülünce
+    // "Araçlar ve Yönetim" ekranda "ARAÇLAR VE YÖNETIM" çıkıyordu
+    // (15.09.2026'da canlı pakette ölçüldü). Büyütme artık useBuyukHarf ile.
     letterSpacing: 0.6,
     paddingHorizontal: spacing.sm,
     paddingTop: spacing.sm,
@@ -453,7 +457,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: 11,
     paddingHorizontal: spacing.sm,
-    borderRadius: 12,
+    borderRadius: kose(12),
   },
   itemIndented: {
     paddingLeft: spacing.lg,
@@ -469,7 +473,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   soonBadge: {
     backgroundColor: colors.goldSoft,
-    borderRadius: 8,
+    borderRadius: kose(8),
     paddingHorizontal: 7,
     paddingVertical: 2,
   },

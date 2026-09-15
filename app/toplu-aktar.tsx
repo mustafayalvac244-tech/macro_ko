@@ -20,7 +20,7 @@ import {
   type AktarimSonucu,
 } from '@/utils/iceAktarim';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -352,7 +352,7 @@ const makeStyles = (colors: ThemeColors) =>
       backgroundColor: colors.dangerSoft,
       borderWidth: 1,
       borderColor: colors.danger,
-      borderRadius: 12,
+      borderRadius: kose(12),
       padding: spacing.sm,
     },
     hataText: { ...typography.caption, color: colors.danger, flex: 1, lineHeight: 18 },

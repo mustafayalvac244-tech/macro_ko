@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { VekilLogo } from '@/components/ui/VekilLogo';
 import { kilitGerekliMi, useLockStore } from '@/store/lockStore';
 import { useT } from '@/i18n';
-import { spacing } from '@/theme/tokens';
+import { spacing, kose } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
 /**
@@ -15,6 +15,7 @@ import { useTheme } from '@/theme/useTheme';
  */
 export function AppLock() {
   const { colors } = useTheme();
+  const styles = makeStyles();
   const t = useT();
   const enabled = useLockStore((s) => s.enabled);
   const locked = useLockStore((s) => s.locked);
@@ -94,7 +95,10 @@ export function AppLock() {
   );
 }
 
-const styles = StyleSheet.create({
+// Stiller render anında üretiliyor — modül düzeyinde DEĞİL.
+// Yazı tipi/boyut/boşluk/köşe artık temaya bağlı (bkz. src/theme/tokens.ts);
+// donuk StyleSheet.create tema değişince eski değerlerde kalır.
+const makeStyles = () => StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -104,7 +108,7 @@ const styles = StyleSheet.create({
   mark: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: kose(32),
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

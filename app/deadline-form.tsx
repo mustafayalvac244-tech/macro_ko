@@ -14,7 +14,7 @@ import { useCase } from '@/hooks/useCases';
 import { useCreateDeadline, useDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { deadlineTitleSuggestions } from '@/constants/suggestions';
 import { useLangStore, useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
@@ -195,7 +195,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.xs,
     backgroundColor: colors.infoSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
@@ -218,7 +218,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,

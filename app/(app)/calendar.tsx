@@ -21,7 +21,7 @@ import { useAllDeadlines, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useAllPromises } from '@/hooks/usePaymentPromises';
 import { useAllInstallments } from '@/hooks/usePayments';
 import { useLangStore, useT } from '@/i18n';
-import { fonts, spacing, typography } from '@/theme/theme';
+import { fonts, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
@@ -720,7 +720,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.sm,
   },
   calendar: {
-    borderRadius: 16,
+    borderRadius: kose(16),
   },
   monthInfoRow: {
     flexDirection: 'row',
@@ -738,7 +738,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: colors.primarySoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
   },
@@ -772,7 +772,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingVertical: spacing.xs,
-    borderRadius: 12,
+    borderRadius: kose(12),
     marginHorizontal: 1,
   },
   weekDayActive: {
@@ -802,7 +802,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   weekDot: {
     width: 5,
     height: 5,
-    borderRadius: 3,
+    borderRadius: kose(3),
   },
   legend: {
     flexDirection: 'row',
@@ -818,7 +818,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   legendDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: kose(4),
   },
   legendLabel: {
     ...typography.small,
@@ -880,12 +880,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   itemDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: kose(3),
   },
   itemIcon: {
     width: 38,
     height: 38,
-    borderRadius: 12,
+    borderRadius: kose(12),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -912,7 +912,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   actionBtn: {
     width: 32,
     height: 32,
-    borderRadius: 10,
+    borderRadius: kose(10),
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primarySoft,
@@ -924,8 +924,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: kose(24),
+    borderTopRightRadius: kose(24),
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
@@ -934,7 +934,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignSelf: 'center',
     width: 40,
     height: 4,
-    borderRadius: 2,
+    borderRadius: kose(2),
     backgroundColor: colors.border,
     marginBottom: spacing.md,
   },
@@ -953,7 +953,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: 14,
     marginTop: spacing.sm,
   },
@@ -981,7 +981,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: 12,
   },
   postponeText: {
@@ -1016,7 +1016,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: 11,
     paddingHorizontal: 2,
   },

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -8,12 +8,13 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { CaseListItem } from '@/components/cases/CaseListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { izgaraDoldur, sutunSayisi } from '@/theme/duzen';
 import { FAB } from '@/components/ui/FAB';
 import { useCases } from '@/hooks/useCases';
 import { useAllHearings } from '@/hooks/useHearings';
 import { isMissingEnforcementTable, useEnforcements } from '@/hooks/useEnforcements';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
@@ -30,6 +31,12 @@ export default function CaseDirectoryScreen() {
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
   const t = useT();
+  // Kart 420 px'in altına düşerse tek sütuna dönülüyor: bu kartta ikon,
+  // başlık, mahkeme, esas no ve rozetler var; daha dar olunca rozetler
+  // alt satıra taşıp kart yüksekliğini düzensizleştiriyor.
+  const { width: pencere } = useWindowDimensions();
+  const sutun = sutunSayisi(pencere, 420, 2);
+
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'all' | 'open' | 'closed'>('all');
@@ -82,29 +89,54 @@ export default function CaseDirectoryScreen() {
         <Text style={styles.setupNote}>{t('enf.setupRequired')}</Text>
       )}
 
+      {/* GENİŞ EKRANDA İKİ SÜTUN — 14.09.2026.
+          Ölçüldü: 1440 px'lik tarayıcıda her kart 1120 px genişliğindeydi ama
+          içerik solda ~450 px'te bitiyordu; kartın sağ yarısı boştu ve ekrana
+          yalnız DÖRT dosya sığıyordu. 200 dosyalı bir avukat için bu, listeyi
+          kullanılamaz yapar.
+
+          `sutunSayisi` zaten src/theme/duzen.ts'te duruyordu ve hiçbir ekran
+          kullanmıyordu — yeni altyapı yazılmadı, var olan uygulandı.
+          Natifte ve dar tarayıcıda 1 dönüyor, yani telefonda hiçbir şey
+          değişmiyor.
+
+          `key` ŞART: React Native, numColumns uçuşta değişince listeyi
+          yeniden kurmak yerine hata veriyor ("Changing numColumns on the fly
+          is not supported"). Pencere yeniden boyutlandırıldığında sütun
+          sayısı değiştiği için anahtar da değişmeli. */}
       <FlatList
-        data={rows}
-        keyExtractor={(row) => `${row.kind}-${row.item.id}`}
+        key={`sutun-${sutun}`}
+        numColumns={sutun}
+        columnWrapperStyle={sutun > 1 ? styles.satir : undefined}
+        data={izgaraDoldur(rows, sutun)}
+        keyExtractor={(row, i) => (row ? `${row.kind}-${row.item.id}` : `bosluk-${i}`)}
         contentContainerStyle={styles.listContent}
         onRefresh={() => {
           refetch();
           enforcements.refetch();
         }}
         refreshing={isRefetching}
-        renderItem={({ item: row }) =>
-          row.kind === 'case' ? (
-            <CaseListItem
-              caseItem={row.item}
-              nextHearingAt={nextHearingByCase.get(row.item.id)}
-              onPress={() => router.push(`/(app)/cases/${row.item.id}`)}
-            />
-          ) : (
-            <EnforcementRow
-              file={row.item}
-              onPress={() => router.push(`/enforcement/${row.item.id}` as Parameters<typeof router.push>[0])}
-            />
-          )
-        }
+        renderItem={({ item: row }) => (
+          // minWidth:0 olmadan uzun dava başlıkları hücreyi şişirip sütunları
+          // eşitsiz yapıyor (flex kutularının varsayılan min genişliği içeriğe
+          // göre belirleniyor).
+          // null = ızgara boşluğu (izgaraDoldur).
+          <View style={sutun > 1 ? styles.hucre : undefined}>
+            {!row ? null : row.kind === 'case' ? (
+              <CaseListItem
+                caseItem={row.item}
+                nextHearingAt={nextHearingByCase.get(row.item.id)}
+                esitYukseklik={sutun > 1}
+                onPress={() => router.push(`/(app)/cases/${row.item.id}`)}
+              />
+            ) : (
+              <EnforcementRow
+                file={row.item}
+                onPress={() => router.push(`/enforcement/${row.item.id}` as Parameters<typeof router.push>[0])}
+              />
+            )}
+          </View>
+        )}
         ListEmptyComponent={
           !isLoading ? (
             <EmptyState
@@ -210,6 +242,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: 100,
   },
+  satir: {
+    gap: spacing.sm,
+  },
+  hucre: {
+    flex: 1,
+    minWidth: 0,
+  },
   setupNote: {
     ...typography.small,
     color: colors.warning,
@@ -221,7 +260,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: kose(16),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     paddingHorizontal: spacing.md,
@@ -231,7 +270,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   enfIcon: {
     width: 42,
     height: 42,
-    borderRadius: 14,
+    borderRadius: kose(14),
     backgroundColor: colors.warningSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -251,7 +290,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   enfBadge: {
     backgroundColor: colors.warningSoft,
-    borderRadius: 6,
+    borderRadius: kose(6),
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
@@ -279,8 +318,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: kose(24),
+    borderTopRightRadius: kose(24),
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
@@ -289,7 +328,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignSelf: 'center',
     width: 40,
     height: 4,
-    borderRadius: 2,
+    borderRadius: kose(2),
     backgroundColor: colors.border,
     marginBottom: spacing.md,
   },
@@ -312,7 +351,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   choiceIcon: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: kose(14),
     alignItems: 'center',
     justifyContent: 'center',
   },

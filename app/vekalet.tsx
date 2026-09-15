@@ -18,7 +18,7 @@ import {
   type SpecialAuthority,
 } from '@/hooks/usePowersOfAttorney';
 import { useT } from '@/i18n';
-import { fonts, spacing, shadow } from '@/theme/theme';
+import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
@@ -281,14 +281,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
   lead: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 19, color: colors.textSecondary, marginBottom: spacing.md },
   statRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
-  stat: { flex: 1, backgroundColor: colors.surface, borderRadius: 16, paddingVertical: spacing.md, alignItems: 'center', ...shadow.card },
+  stat: { flex: 1, backgroundColor: colors.surface, borderRadius: kose(16), paddingVertical: spacing.md, alignItems: 'center', ...shadow.card },
   statValue: { fontFamily: fonts.extrabold, fontWeight: '800', fontSize: 20, letterSpacing: -0.5 },
   statLabel: { fontFamily: fonts.medium, fontSize: 11, color: colors.textMuted, marginTop: 2 },
   empty: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxl },
   emptyText: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.lg, lineHeight: 19 },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 11, paddingHorizontal: spacing.lg, marginTop: spacing.sm },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primary, borderRadius: kose(12), paddingVertical: 11, paddingHorizontal: spacing.lg, marginTop: spacing.sm },
   addBtnText: { fontFamily: fonts.bold, fontWeight: '700', fontSize: 14, color: colors.textInverse },
-  card: { backgroundColor: colors.surface, borderRadius: 18, padding: spacing.md, marginBottom: spacing.sm, ...shadow.card },
+  card: { backgroundColor: colors.surface, borderRadius: kose(18), padding: spacing.md, marginBottom: spacing.sm, ...shadow.card },
   cardBad: { borderWidth: 1, borderColor: colors.danger },
   cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   name: { fontFamily: fonts.bold, fontWeight: '700', fontSize: 15, letterSpacing: -0.2, color: colors.textPrimary },
@@ -301,13 +301,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   authWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: spacing.sm },
   authOk: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.successSoft, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   authOkText: { fontFamily: fonts.semibold, fontWeight: '600', fontSize: 11, color: colors.success },
-  warnBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: colors.warningSoft, borderRadius: 10, padding: spacing.sm, marginTop: spacing.sm },
+  warnBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: colors.warningSoft, borderRadius: kose(10), padding: spacing.sm, marginTop: spacing.sm },
   warnText: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: 16, color: colors.textPrimary, flex: 1 },
   // form
   mBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   mDismiss: { flex: 1 },
-  sheet: { backgroundColor: colors.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, maxHeight: '88%' },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, marginTop: spacing.sm },
+  sheet: { backgroundColor: colors.bg, borderTopLeftRadius: kose(22), borderTopRightRadius: kose(22), paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, maxHeight: '88%' },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: kose(2), backgroundColor: colors.border, marginTop: spacing.sm },
   sheetTitle: { fontFamily: fonts.extrabold, fontWeight: '800', fontSize: 18, letterSpacing: -0.3, color: colors.textPrimary, marginVertical: spacing.sm },
   label: { fontFamily: fonts.semibold, fontWeight: '600', fontSize: 12, color: colors.textSecondary, marginTop: spacing.md, marginBottom: 6 },
   hint: { fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 16, color: colors.textMuted, marginBottom: 6 },
@@ -317,7 +317,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   chipOn: { backgroundColor: colors.primary },
   chipText: { fontFamily: fonts.semibold, fontWeight: '600', fontSize: 12.5, color: colors.textSecondary },
   chipTextOn: { color: colors.textInverse },
-  input: { backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.borderSubtle, paddingHorizontal: spacing.md, paddingVertical: 12, fontFamily: fonts.regular, fontSize: 14, color: colors.textPrimary },
-  saveBtn: { backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: spacing.lg },
+  input: { backgroundColor: colors.surface, borderRadius: kose(12), borderWidth: 1, borderColor: colors.borderSubtle, paddingHorizontal: spacing.md, paddingVertical: 12, fontFamily: fonts.regular, fontSize: 14, color: colors.textPrimary },
+  saveBtn: { backgroundColor: colors.primary, borderRadius: kose(14), paddingVertical: 15, alignItems: 'center', marginTop: spacing.lg },
   saveText: { fontFamily: fonts.extrabold, fontWeight: '800', fontSize: 15, color: colors.textInverse },
 });

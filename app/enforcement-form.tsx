@@ -12,7 +12,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { ClientPicker } from '@/components/ClientPicker';
 import { useCreateEnforcement, useEnforcement, useUpdateEnforcement } from '@/hooks/useEnforcements';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
@@ -110,7 +110,7 @@ export default function EnforcementFormScreen() {
   };
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen edges={['top', 'left', 'right', 'bottom']} genislik="form">
       <ScreenHeader title={isEdit ? t('enf.editTitle') : t('enf.formTitle')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -197,7 +197,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.xs,
     backgroundColor: colors.infoSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
@@ -227,7 +227,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,

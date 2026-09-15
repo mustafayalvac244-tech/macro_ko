@@ -71,7 +71,7 @@ export default function FeedbackScreen() {
   });
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen edges={['top', 'left', 'right', 'bottom']} genislik="form">
       <ScreenHeader title={t('settings.feedback')} showBack />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

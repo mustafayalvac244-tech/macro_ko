@@ -3,7 +3,7 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { useT } from '@/i18n';
@@ -72,7 +72,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   callBtn: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: kose(17),
     backgroundColor: colors.successSoft,
     alignItems: 'center',
     justifyContent: 'center',

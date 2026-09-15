@@ -1,4 +1,5 @@
 import React from 'react';
+import { kose } from '@/theme/theme';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 84,
     height: 84,
-    borderRadius: 26,
+    borderRadius: kose(26),
     backgroundColor: 'rgba(185,126,20,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: kose(14),
   },
   primary: {
     backgroundColor: '#1E63E9',

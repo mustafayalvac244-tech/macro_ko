@@ -7,7 +7,7 @@ import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_ASIL_MODEL_HAKKI, AI
 import { AI_MUTALAA_ENABLED } from '@/config/features';
 import { UCRETSIZ_LIMIT } from '@/config/planlar';
 import { useLangStore, useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -277,7 +277,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   heroIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: kose(24),
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',

@@ -27,7 +27,7 @@ import { useAllPayments } from '@/hooks/usePayments';
 import { FINANCE_CATEGORY_ICONS } from '@/constants/finance';
 import { toCsv, shareCsv } from '@/utils/exportCsv';
 import { useLangStore, useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney } from '@/utils/format';
@@ -448,7 +448,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.dangerSoft,
     borderWidth: 1,
     borderColor: colors.danger,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
@@ -467,7 +467,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   monthArrow: {
     width: 38,
     height: 38,
-    borderRadius: 12,
+    borderRadius: kose(12),
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
@@ -486,7 +486,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   summaryTile: {
     flex: 1,
-    borderRadius: 14,
+    borderRadius: kose(14),
     borderWidth: 1,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
@@ -512,7 +512,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: 11,
   },
   addButtonText: {
@@ -536,7 +536,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   entryIcon: {
     width: 38,
     height: 38,
-    borderRadius: 12,
+    borderRadius: kose(12),
     alignItems: 'center',
     justifyContent: 'center',
   },

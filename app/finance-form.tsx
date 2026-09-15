@@ -12,7 +12,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { isMissingFinanceTable, useCreateFinanceEntry, useUpdateFinanceEntry } from '@/hooks/useFinance';
 import { EXPENSE_CATEGORIES, FINANCE_CATEGORY_ICONS, INCOME_CATEGORIES } from '@/constants/finance';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
@@ -106,7 +106,7 @@ export default function FinanceFormScreen() {
   };
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
+    <Screen edges={['top', 'left', 'right', 'bottom']} genislik="form">
       <ScreenHeader
         title={isEdit ? t('financeForm.editTitle') : kind === 'income' ? t('financeForm.newIncome') : t('financeForm.newExpense')}
         showBack
@@ -324,7 +324,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.dangerSoft,
     borderWidth: 1,
     borderColor: colors.danger,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
@@ -398,7 +398,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
@@ -414,7 +414,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   recurringCard: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     padding: spacing.sm,

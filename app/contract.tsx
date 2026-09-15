@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useClients } from '@/hooks/useClients';
 import { buildContract, type ContractType, type FeeModel, type Taksit } from '@/utils/contractTemplate';
 import { useT } from '@/i18n';
-import { fonts, spacing } from '@/theme/theme';
+import { fonts, spacing, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -333,7 +333,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   intro: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: colors.textSecondary, marginBottom: spacing.md },
   segLabel: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted, marginBottom: 6 },
   segRow: { flexDirection: 'row', gap: 6, marginBottom: spacing.sm },
-  seg: { flex: 1, paddingVertical: 10, borderRadius: 11, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center' },
+  seg: { flex: 1, paddingVertical: 10, borderRadius: kose(11), borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center' },
   segActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   segText: { fontFamily: fonts.semibold, fontSize: 12.5, color: colors.textSecondary },
   segTextActive: { color: colors.textInverse },
@@ -341,8 +341,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   sectionTitle: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 15.5, color: colors.textPrimary },
   field: { marginBottom: spacing.sm },
   fieldLabel: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary, marginBottom: 4 },
-  input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 11, paddingHorizontal: 12, paddingVertical: 10, fontFamily: fonts.regular, fontSize: 14, color: colors.textPrimary },
-  pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: colors.gold, borderRadius: 11, paddingVertical: 10, marginBottom: spacing.sm },
+  input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: kose(11), paddingHorizontal: 12, paddingVertical: 10, fontFamily: fonts.regular, fontSize: 14, color: colors.textPrimary },
+  pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: colors.gold, borderRadius: kose(11), paddingVertical: 10, marginBottom: spacing.sm },
   pickerBtnText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.gold },
   chip: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
@@ -350,18 +350,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   chipTextActive: { color: colors.textInverse },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
   switchLabel: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textPrimary },
-  generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14, marginTop: spacing.md },
+  generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: kose(14), paddingVertical: 14, marginTop: spacing.md },
   generateBtnText: { fontFamily: fonts.extrabold, fontWeight: '800', fontSize: 15, color: colors.textInverse },
   modalWrap: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: spacing.lg },
+  modalCard: { backgroundColor: colors.bgElevated, borderTopLeftRadius: kose(22), borderTopRightRadius: kose(22), padding: spacing.lg },
   modalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   modalTitle: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 18, color: colors.textPrimary },
   emptyText: { fontFamily: fonts.regular, fontSize: 13, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.lg },
   clientItem: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle },
   clientItemText: { fontFamily: fonts.medium, fontSize: 14, color: colors.textPrimary, flex: 1 },
-  warnRow: { flexDirection: 'row', gap: 6, backgroundColor: colors.warningSoft, borderRadius: 9, padding: 8, marginBottom: 6 },
+  warnRow: { flexDirection: 'row', gap: 6, backgroundColor: colors.warningSoft, borderRadius: kose(9), padding: 8, marginBottom: 6 },
   warnText: { flex: 1, fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 16, color: colors.textPrimary },
   docText: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 19, color: colors.textPrimary, marginTop: spacing.sm },
-  shareBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: 13, paddingVertical: 13, marginTop: spacing.sm },
+  shareBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: kose(13), paddingVertical: 13, marginTop: spacing.sm },
   shareBtnText: { fontFamily: fonts.extrabold, fontWeight: '800', fontSize: 14.5, color: colors.textInverse },
 });

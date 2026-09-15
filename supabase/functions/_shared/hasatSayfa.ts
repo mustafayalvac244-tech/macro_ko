@@ -26,6 +26,20 @@ export type SayfaGirdi = {
   sayfaBoyu: number;
   /** Kotaya takılıp sayfa BİTİRİLEMEDİ mi? */
   yarimKaldi: boolean;
+  /**
+   * BİR TERİMDE EN FAZLA KAÇ SAYFA GEZİLİR (varsayılan: sınırsız).
+   *
+   * NEDEN EKLENDİ — 15.09.2026'da ÖLÇÜLDÜ. Kaynak, popüler bir terim için
+   * yarım milyondan fazla sonuç döndürüyor ("işçilik alacakları davası":
+   * total = 539.776). Sayfa yalnız EKSİK döndüğünde bitmiş sayıldığı için
+   * böyle bir terim ancak ~54.000 turda biter; pratikte HİÇ bitmez. Ölçüm:
+   * 970 terimin **sıfırı** bitmiş, iki terim 78. ve 534. sayfadaydı.
+   *
+   * Sonuç yalnız yavaşlık değil, KAPSAM ÇARPIKLIĞI: havuz birkaç terimin
+   * konusuyla doluyor, "zina nedeniyle boşanma" gibi 322 terim hiç
+   * çalışmıyordu. Tavan, terimin sırayı bırakıp başa dönmesini sağlar.
+   */
+  enFazlaSayfa?: number;
 };
 
 export type SayfaKarari = {
@@ -55,8 +69,14 @@ export function sonrakiSayfa(g: SayfaGirdi): SayfaKarari {
     return { sonrakiSayfa: g.sayfa, bitti: false };
   }
   const sonSayfa = g.satir < g.sayfaBoyu;
-  return {
-    sonrakiSayfa: sonSayfa ? 1 : g.sayfa + 1,
-    bitti: sonSayfa,
-  };
+  if (sonSayfa) return { sonrakiSayfa: 1, bitti: true };
+
+  // TAVANA GELDİYSE BAŞA DÖN — ama BİTTİ DEME.
+  // `bitti` "kaynakta bu terim için başka karar yok" demek; tavan ise bizim
+  // koyduğumuz bir sıra kuralı. Tavanda bitti işaretlemek, taranmamış
+  // yüzbinlerce kararı "tarandı" diye kaydeder ve bir daha hiç bakılmaz.
+  if (g.enFazlaSayfa && g.sayfa >= g.enFazlaSayfa) {
+    return { sonrakiSayfa: 1, bitti: false };
+  }
+  return { sonrakiSayfa: g.sayfa + 1, bitti: false };
 }

@@ -19,6 +19,12 @@
 //   • `.single()`/`.maybeSingle()` PostgREST'e `Accept: ...object+json`
 //     gönderiyor; dizi dönerseniz ekran boş kalır. Tekil istek TEK NESNE ister.
 //   • Finans tablosunun adı `finance` değil `finance_entries`.
+//   • İLİŞKİ ALANI `cases` DEĞİL `case`. Duruşma ve süre sorguları
+//     '*, case:cases(id, title, case_number)' ile TAKMA AD veriyor
+//     (src/hooks/useHearings.ts ve useDeadlines.ts). Taklitte `cases` yazılıydı
+//     ve ekranlarda dosya adının olduğu her yer sessizce "—" çiziyordu —
+//     15.09.2026'da terminal panosunun "dosya" sütunu boş çıkınca fark edildi.
+//     Yani düzenek ekranı YANLIŞ gösteriyordu; ekranda hata yoktu.
 //   • Oturum web'de AsyncStorage üzerinden localStorage'a yazılıyor.
 
 import { chromium } from 'playwright-core';
@@ -29,7 +35,13 @@ import { join, extname } from 'node:path';
 
 const KOK = new URL('..', import.meta.url).pathname;
 const WEB = join(KOK, 'docs', 'app');
-const CIKTI = join(KOK, 'magaza-gorselleri');
+// ÇIKTI VE GÖRÜNÜM ALANI DIŞARIDAN AYARLANABİLİR — 14.09.2026.
+// Sebep: bu düzenek Play mağaza görselleri için telefon boyutunda (412×915)
+// yazıldı. Ama WEB SÜRÜMÜ masaüstünde kullanılıyor ve oradaki görünümü hiç
+// kimse görmemişti. 300 satırlık sunucu + Supabase taklidini kopyalamak
+// yerine üç değişken env'den okunuyor; varsayılanlar aynen mağaza ayarı.
+//   VP_CIKTI=... VP_GENISLIK=1440 VP_YUKSEKLIK=900 VP_OLCEK=1
+const CIKTI = join(KOK, process.env.VP_CIKTI ?? 'magaza-gorselleri');
 const PORT = 4599;
 const PROJE = 'wjshlysfmeqlnfiibknj.supabase.co';
 
@@ -72,14 +84,14 @@ const davalar = [
 ];
 
 const durusmalar = [
-  { id: 'h1', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Tanık dinlenmesi', type: 'hearing', scheduled_at: gunEkle(2), location: 'İstanbul 9. İş Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-01T09:00:00Z', cases: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
-  { id: 'h2', owner_id: KULLANICI_ID, case_id: 'd2', title: 'Ön inceleme duruşması', type: 'hearing', scheduled_at: gunEkle(6), location: 'Kadıköy 3. Aile Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-04T09:00:00Z', cases: { id: 'd2', title: 'Arslan — Anlaşmalı Boşanma', case_number: '2026/1177' } },
-  { id: 'h3', owner_id: KULLANICI_ID, case_id: 'd3', title: 'Bilirkişi raporu duruşması', type: 'hearing', scheduled_at: gunEkle(13), location: 'İstanbul BAM 14. HD', notes: null, reminder_minutes_before: 2880, is_completed: false, created_at: '2026-08-09T09:00:00Z', cases: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
+  { id: 'h1', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Tanık dinlenmesi', type: 'hearing', scheduled_at: gunEkle(2), location: 'İstanbul 9. İş Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-01T09:00:00Z', case: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
+  { id: 'h2', owner_id: KULLANICI_ID, case_id: 'd2', title: 'Ön inceleme duruşması', type: 'hearing', scheduled_at: gunEkle(6), location: 'Kadıköy 3. Aile Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-04T09:00:00Z', case: { id: 'd2', title: 'Arslan — Anlaşmalı Boşanma', case_number: '2026/1177' } },
+  { id: 'h3', owner_id: KULLANICI_ID, case_id: 'd3', title: 'Bilirkişi raporu duruşması', type: 'hearing', scheduled_at: gunEkle(13), location: 'İstanbul BAM 14. HD', notes: null, reminder_minutes_before: 2880, is_completed: false, created_at: '2026-08-09T09:00:00Z', case: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
 ];
 
 const sureler = [
-  { id: 's1', owner_id: KULLANICI_ID, case_id: 'd3', title: 'İstinaf dilekçesine cevap', due_at: gunEkle(3), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-01T09:00:00Z', cases: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
-  { id: 's2', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Bilirkişi raporuna itiraz', due_at: gunEkle(8), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-03T09:00:00Z', cases: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
+  { id: 's1', owner_id: KULLANICI_ID, case_id: 'd3', title: 'İstinaf dilekçesine cevap', due_at: gunEkle(3), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-01T09:00:00Z', case: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
+  { id: 's2', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Bilirkişi raporuna itiraz', due_at: gunEkle(8), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-03T09:00:00Z', case: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
 ];
 
 const finans = [
@@ -176,7 +188,9 @@ const sunucu = createServer(async (istek, cevap) => {
 
 /* ---------------- Çekim ---------------- */
 
-const EKRANLAR = [
+const EKRANLAR = (process.env.VP_EKRANLAR
+  ? process.env.VP_EKRANLAR.split(',').map((y) => ({ ad: y.replace(/\W+/g, '-').replace(/^-|-$/g, '') || 'kok', yol: y, bekle: 2600 }))
+  : null) ?? [
   { ad: '01-pano', yol: '/', bekle: 2600 },
   { ad: '02-davalar', yol: '/cases', bekle: 2200 },
   { ad: '03-takvim', yol: '/calendar', bekle: 2200 },
@@ -184,6 +198,47 @@ const EKRANLAR = [
   { ad: '05-finans', yol: '/finance', bekle: 2400 },
   { ad: '06-ictihat', yol: '/ictihat', bekle: 2000 },
 ];
+
+/* ---------------- Türkçe büyük harf taraması (VP_TARA=1) ---------------- */
+//
+// NEDEN BU DÜZENEĞİN İÇİNDE. CSS `text-transform: uppercase` dil bilmez:
+// Türkçe "i" harfini "I" yapar, "İ" değil. Hata GÖZLE aranınca kaçıyor —
+// 14.09.2026'da pano ("AKTIF DOSYA"), 15.09.2026'da dava listesi ("KRITIK")
+// ve yan menü ("ARAÇLAR VE YÖNETIM") ayrı ayrı, aylar sonra fark edildi.
+//
+// KAÇIRILAN İLK DENEME, KAYDA GEÇİYOR: taramayı önce BOŞ veriyle koşan ayrı
+// bir betik olarak yazdım ve "3 hata var" dedim. Oysa veriye bağlı ekranlar
+// (rozetler, "SIRADAKI" başlığı) boş veriyle hiç çizilmiyor — yani en çok
+// görünen hatalar taramanın dışında kalmıştı. Bu yüzden tarama, SAHTE VERİSİ
+// zaten dolu olan bu düzeneğin içine taşındı.
+//
+// NE ÖLÇER: DOM'daki metin orijinaldir (büyütme yalnız görsel). Bir öğeye
+// uppercase uygulanıyorsa ve metninde küçük "i" varsa, ekranda mutlaka yanlış
+// harf çıkar. Bu deterministiktir — tekrar koşulunca aynı sonucu verir.
+//
+// NE ÖLÇMEZ: yalnız GEZİLEN ekranları ve o an EKRANDA OLAN öğeleri görür.
+// Açılmamış bir kip, boş liste, hata durumu taranmaz. "Temiz" çıkması
+// "hiç yok" demek değildir; "gezilenlerde yok" demektir.
+const TARA = !!process.env.VP_TARA;
+const buyukHarfBulgu = new Map();
+
+function buyukHarfTara(sayfa) {
+  return sayfa.evaluate(() => {
+    const cikti = [];
+    for (const el of document.querySelectorAll('*')) {
+      if (getComputedStyle(el).textTransform !== 'uppercase') continue;
+      // Yalnız kendi metnini taşıyan yaprak öğeler — aksi hâlde aynı metin
+      // her ata öğe için tekrar sayılır.
+      const metin = Array.from(el.childNodes)
+        .filter((n) => n.nodeType === 3)
+        .map((n) => n.textContent)
+        .join('')
+        .trim();
+      if (metin && /i/.test(metin)) cikti.push(metin);
+    }
+    return cikti;
+  }).catch(() => []);
+}
 
 async function main() {
   await new Promise((c) => sunucu.listen(PORT, c));
@@ -196,8 +251,12 @@ async function main() {
 
   // Play telefon ekran görüntüsü: 9:16, en az 320px. 1080x1920 standart.
   const baglam = await tarayici.newContext({
-    viewport: { width: 412, height: 915 },
-    deviceScaleFactor: 2.62, // 412*2.62 ≈ 1080 → Play'in istediği genişlik
+    viewport: {
+      width: Number(process.env.VP_GENISLIK ?? 412),
+      height: Number(process.env.VP_YUKSEKLIK ?? 915),
+    },
+    // 412*2.62 ≈ 1080 → Play'in istediği genişlik. Masaüstü incelemesinde 1.
+    deviceScaleFactor: Number(process.env.VP_OLCEK ?? 2.62),
     locale: 'tr-TR',
     timezoneId: 'Europe/Istanbul',
   });
@@ -265,7 +324,11 @@ async function main() {
 
   // Oturumu önceden yaz: giriş ekranı yerine doğrudan panoya düşsün.
   // Anahtar adı paketten OKUNDU: `sb-${hostname.split('.')[0]}-auth-token`.
-  await sayfa.addInitScript(
+  // OTURUM AÇMADAN ÇEKİM — VP_GIRISSIZ=1.
+  // Sebep: giriş/kayıt/şifre ekranları oturum açıkken hiç görünmüyordu, bu
+  // yüzden onlardaki hatalar (ör. 15.09.2026'da bildirilen kesik "Şifremi
+  // unuttum" bağlantısı) render edilip incelenemiyordu.
+  if (!process.env.VP_GIRISSIZ) await sayfa.addInitScript(
     ([id, eposta, jwt, exp, anahtar]) => {
       const oturum = {
         access_token: jwt, token_type: 'bearer', expires_in: 3600,
@@ -277,6 +340,18 @@ async function main() {
     },
     [KULLANICI_ID, profil.email, SAHTE_JWT, SON_KULLANMA, `sb-${PROJE.split('.')[0]}-auth-token`],
   );
+
+  // TEMA SEÇİMİ — VP_TEMA=terminal gibi.
+  // Sebep: uygulama varsayılan olarak Klasik (açık) temayla açılıyor; bir
+  // temanın gerçekten nasıl göründüğünü ancak seçiliyken çekebiliriz.
+  // Anahtar `src/theme/themeStore.ts` içindeki STORAGE_KEY ile aynı olmalı;
+  // AsyncStorage web'de anahtarı olduğu gibi localStorage'a yazıyor
+  // (yukarıdaki 'vekil-kilit' de aynı yoldan yazılıyor).
+  if (process.env.VP_TEMA) {
+    await sayfa.addInitScript((tema) => {
+      localStorage.setItem('vekil-theme', tema);
+    }, process.env.VP_TEMA);
+  }
 
   for (const ekran of EKRANLAR) {
     try {
@@ -299,6 +374,16 @@ async function main() {
         .catch(() => console.log('    (açılış perdesi kalkmadı — kare erken çekilmiş olabilir)'));
 
       await sayfa.waitForTimeout(ekran.bekle);
+
+      if (TARA) {
+        for (const m of await buyukHarfTara(sayfa)) {
+          if (!buyukHarfBulgu.has(m)) buyukHarfBulgu.set(m, new Set());
+          buyukHarfBulgu.get(m).add(ekran.yol);
+        }
+        console.log(`  · ${ekran.ad} tarandı`);
+        continue;
+      }
+
       const dosya = join(CIKTI, `${ekran.ad}.png`);
       await sayfa.screenshot({ path: dosya });
       console.log(`  ✓ ${ekran.ad}.png${hatalar.length ? '  ⚠ ' + hatalar[0] : ''}`);
@@ -310,6 +395,22 @@ async function main() {
 
   await tarayici.close();
   sunucu.close();
+
+  if (TARA) {
+    console.log('\nTÜRKÇE BÜYÜK HARF TARAMASI\n');
+    if (buyukHarfBulgu.size === 0) {
+      console.log('  Temiz — CSS ile büyütülüp içinde "i" geçen metin yok.');
+      return;
+    }
+    for (const [metin, yollar] of [...buyukHarfBulgu].sort()) {
+      console.log(`  "${metin}"`);
+      console.log(`      ekranda çıkan : ${metin.toUpperCase()}`);
+      console.log(`      olması gereken: ${metin.toLocaleUpperCase('tr-TR')}`);
+      console.log(`      görüldüğü yer : ${[...yollar].join(', ')}\n`);
+    }
+    process.exitCode = 1;
+    return;
+  }
   console.log('bitti →', CIKTI);
 }
 

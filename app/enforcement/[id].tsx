@@ -20,7 +20,7 @@ import {
   useUpdateEnforcement,
 } from '@/hooks/useEnforcements';
 import { useT } from '@/i18n';
-import { fonts, spacing, typography } from '@/theme/theme';
+import { fonts, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { computeKapak } from '@/utils/kapak';
@@ -338,13 +338,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   progressTrack: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: kose(3),
     backgroundColor: colors.borderSubtle,
     overflow: 'hidden',
   },
   progressFill: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: kose(3),
     backgroundColor: colors.success,
   },
   progressText: {
@@ -379,7 +379,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'flex-start',
     gap: 5,
     backgroundColor: colors.infoSoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingHorizontal: spacing.sm,
     paddingVertical: 7,
     marginTop: spacing.xs,
@@ -401,7 +401,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingBottom: spacing.md,
   },
   stageChip: {
-    borderRadius: 20,
+    borderRadius: kose(20),
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
@@ -431,7 +431,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     backgroundColor: colors.primarySoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
   },
@@ -460,7 +460,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   collIcon: {
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: kose(15),
     backgroundColor: colors.successSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -502,7 +502,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   modalCard: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
+    borderRadius: kose(20),
     padding: spacing.lg,
   },
   modalTitle: {
@@ -516,7 +516,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
     marginBottom: spacing.sm,
@@ -528,7 +528,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
     marginBottom: spacing.sm,

@@ -9,7 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { isMissingNetworkTables, useConversations, useDeleteConversation, useDmRealtime } from '@/hooks/useChat';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatTime } from '@/utils/format';
@@ -135,7 +135,7 @@ const makeStyles = (colors: ThemeColors) =>
       backgroundColor: colors.dangerSoft,
       borderWidth: 1,
       borderColor: colors.danger,
-      borderRadius: 12,
+      borderRadius: kose(12),
       padding: spacing.sm,
       marginHorizontal: spacing.lg,
       marginBottom: spacing.sm,
@@ -153,7 +153,7 @@ const makeStyles = (colors: ThemeColors) =>
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
-      borderRadius: 16,
+      borderRadius: kose(16),
       padding: spacing.sm,
       marginBottom: spacing.xs,
     },
@@ -187,7 +187,7 @@ const makeStyles = (colors: ThemeColors) =>
     unreadBadge: {
       minWidth: 20,
       height: 20,
-      borderRadius: 10,
+      borderRadius: kose(10),
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',

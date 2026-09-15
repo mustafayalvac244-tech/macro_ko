@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -221,14 +221,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 14,
+    borderRadius: kose(14),
     padding: spacing.sm,
     marginBottom: spacing.xs,
   },
   rowIcon: {
     width: 36,
     height: 36,
-    borderRadius: 11,
+    borderRadius: kose(11),
     alignItems: 'center',
     justifyContent: 'center',
   },

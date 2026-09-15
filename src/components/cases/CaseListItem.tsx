@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CaseStatusBadge, PriorityBadge } from '@/components/ui/StatusBadge';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatTime } from '@/utils/format';
@@ -14,9 +14,23 @@ interface CaseListItemProps {
   onPress: () => void;
   /** Bu davanın sıradaki (gelecek, tamamlanmamış) duruşma/keşif tarihi. */
   nextHearingAt?: string | null;
+  /**
+   * IZGARADA SATIR YÜKSEKLİĞİNİ DOLDUR.
+   *
+   * Geniş ekranda liste iki sütuna çıkıyor. Kartların içeriği eşit değil —
+   * bir davanın "Sıradaki duruşma" satırı varken diğerinde yok — ve kart
+   * kendi içeriği kadar yüksek olduğu için satırın altı TIRTIKLI kalıyordu
+   * (15.09.2026, dava listesi ekran görüntüsünde görüldü: soldaki kart
+   * sağdakinden ~30 px kısa bitiyor). Hücre zaten satır yüksekliğine
+   * uzuyor; eksik olan, kartın hücreyi doldurmasıydı.
+   *
+   * Tek sütunlu listede İSTENMEZ: orada kartın uzayacağı bir satır
+   * yüksekliği yok, `flex: 1` gereksiz.
+   */
+  esitYukseklik?: boolean;
 }
 
-export function CaseListItem({ caseItem, onPress, nextHearingAt }: CaseListItemProps) {
+export function CaseListItem({ caseItem, onPress, nextHearingAt, esitYukseklik }: CaseListItemProps) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
@@ -35,7 +49,7 @@ export function CaseListItem({ caseItem, onPress, nextHearingAt }: CaseListItemP
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [styles.card, esitYukseklik && styles.kartDoldur, pressed && { opacity: 0.85 }]}
     >
       <View style={[styles.accent, { backgroundColor: accent }]} />
       <View style={[styles.icon, { backgroundColor: colors.goldSoft, borderColor: colors.border }]}>
@@ -107,7 +121,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: kose(16),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     paddingVertical: spacing.sm,
@@ -116,19 +130,22 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.sm,
     overflow: 'hidden',
   },
+  kartDoldur: {
+    flex: 1,
+  },
   accent: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
     width: 4,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+    borderTopLeftRadius: kose(16),
+    borderBottomLeftRadius: kose(16),
   },
   icon: {
     width: 44,
     height: 44,
-    borderRadius: 13,
+    borderRadius: kose(13),
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -176,7 +193,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 5,
     alignSelf: 'flex-start',
     backgroundColor: colors.primarySoft,
-    borderRadius: 8,
+    borderRadius: kose(8),
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginTop: 6,
@@ -198,7 +215,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     backgroundColor: colors.goldSoft,
-    borderRadius: 8,
+    borderRadius: kose(8),
     paddingHorizontal: 7,
     paddingVertical: 3,
   },

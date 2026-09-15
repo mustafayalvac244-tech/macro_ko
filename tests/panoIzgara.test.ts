@@ -15,7 +15,7 @@ import { describe, expect, it, vi } from 'vitest';
  */
 vi.mock('react-native', () => ({ Platform: { OS: 'web' } }));
 
-const { panoOlculeri, PANO_ARALIK, PANO_YAN_BOSLUK, SUTUN_GENISLIKLERI } = await import('@/theme/duzen');
+const { panoOlculeri, PANO_ARALIK, PANO_YAN_BOSLUK, SUTUN_GENISLIKLERI, izgaraDoldur } = await import('@/theme/duzen');
 
 describe('pano ızgarası', () => {
   it('1920 px masaüstünde üç sütuna geçer', () => {
@@ -70,5 +70,24 @@ describe('pano ızgarası', () => {
     const menuli = panoOlculeri(1500, true);
     const menusuz = panoOlculeri(1500, false);
     expect(menuli.tam).toBeLessThan(menusuz.tam);
+  });
+});
+
+describe('izgaraDoldur', () => {
+  it('tek sütunda hiçbir şey eklemez', () => {
+    expect(izgaraDoldur([1, 2, 3], 1)).toEqual([1, 2, 3]);
+  });
+
+  it('SON SATIRDA TEK ÖĞE KALINCA BOŞLUK EKLER', () => {
+    // Bu olmadan üçüncü kart satırın tamamını dolduruyordu — ekranda görüldü.
+    expect(izgaraDoldur([1, 2, 3], 2)).toEqual([1, 2, 3, null]);
+  });
+
+  it('satır zaten tamsa dokunmaz', () => {
+    expect(izgaraDoldur([1, 2, 3, 4], 2)).toEqual([1, 2, 3, 4]);
+  });
+
+  it('boş listeye boşluk eklemez — boş durum bileşeni görünsün', () => {
+    expect(izgaraDoldur([], 2)).toEqual([]);
   });
 });

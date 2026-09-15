@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Card } from './Card';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -41,7 +41,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   iconWrap: {
     width: 32,
     height: 32,
-    borderRadius: 10,
+    borderRadius: kose(10),
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
@@ -8,10 +8,12 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { DocumentListItem } from '@/components/documents/DocumentListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { izgaraDoldur, sutunSayisi } from '@/theme/duzen';
 import { FAB } from '@/components/ui/FAB';
 import { useDeleteDocument, useDocuments } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
 import { spacing } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
 import type { DocumentCategory } from '@/types/database';
 import { aramaEslesir } from '@/utils/arama';
 
@@ -28,7 +30,15 @@ const CATEGORY_VALUES: (DocumentCategory | 'all')[] = [
 ];
 
 export default function DocumentVaultScreen() {
+  useTheme();
+  const styles = makeStyles();
   const t = useT();
+  // Geniş ekranda iki sütun. Gerekçe ve `key` zorunluluğu dava listesinde
+  // ayrıntılı yazılı: app/(app)/cases/index.tsx. Altyapı (sutunSayisi) zaten
+  // vardı, yalnız hiçbir ekran kullanmıyordu.
+  const { width: pencere } = useWindowDimensions();
+  const sutun = sutunSayisi(pencere, 360, 2);
+
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<DocumentCategory | 'all'>('all');
   const { data: documents, isLoading, refetch, isRefetching } = useDocuments();
@@ -77,18 +87,26 @@ export default function DocumentVaultScreen() {
       </View>
 
       <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
+        key={`sutun-${sutun}`}
+        numColumns={sutun}
+        columnWrapperStyle={sutun > 1 ? styles.satir : undefined}
+        data={izgaraDoldur(filtered, sutun)}
+        keyExtractor={(item, i) => item?.id ?? `bosluk-${i}`}
         contentContainerStyle={styles.listContent}
         onRefresh={refetch}
         refreshing={isRefetching}
         renderItem={({ item }) => (
-          <DocumentListItem
-            document={item}
-            showCase
-            onPress={() => handleOpen(item)}
-            onDelete={() => handleDelete(item.id, item.file_path, item.name)}
-          />
+          // null = ızgara boşluğu (izgaraDoldur).
+          <View style={sutun > 1 ? styles.hucre : undefined}>
+            {item ? (
+              <DocumentListItem
+                document={item}
+                showCase
+                onPress={() => handleOpen(item)}
+                onDelete={() => handleDelete(item.id, item.file_path, item.name)}
+              />
+            ) : null}
+          </View>
         )}
         ListEmptyComponent={
           !isLoading ? (
@@ -100,13 +118,23 @@ export default function DocumentVaultScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Stiller render anında üretiliyor — modül düzeyinde DEĞİL.
+// Yazı tipi/boyut/boşluk/köşe artık temaya bağlı (bkz. src/theme/tokens.ts);
+// donuk StyleSheet.create tema değişince eski değerlerde kalır.
+const makeStyles = () => StyleSheet.create({
   filters: {
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.sm,
   },
   segmentSpacing: {
     marginTop: spacing.sm,
+  },
+  satir: {
+    gap: spacing.sm,
+  },
+  hucre: {
+    flex: 1,
+    minWidth: 0,
   },
   listContent: {
     paddingHorizontal: spacing.lg,

@@ -14,7 +14,8 @@ import { useCases } from '@/hooks/useCases';
 import type { AiKullanim } from '@/hooks/useAiKontor';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
-import { fonts, spacing, shadow } from '@/theme/theme';
+import { useBuyukHarf } from '@/lib/buyukHarf';
+import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney } from '@/utils/format';
@@ -46,6 +47,7 @@ export default function DilekceUretScreen() {
   const colors = __t.colors;
   const styles = makeStyles(colors);
   const t = useT();
+  const buyut = useBuyukHarf();
 
   const [type, setType] = useState<string>('dava');
   // DOSYA SEÇİMİ. Taslaklarda 13-21 arası köşeli parantez boşluğu çıkıyordu:
@@ -148,7 +150,7 @@ export default function DilekceUretScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <Text style={styles.lead}>{t('dlk.lead')}</Text>
 
-          <Text style={styles.label}>{t('dlk.typeLabel')}</Text>
+          <Text style={styles.label}>{buyut(t('dlk.typeLabel'))}</Text>
           <View style={styles.chips}>
             {TYPES.map((it) => {
               const on = type === it.key;
@@ -167,7 +169,7 @@ export default function DilekceUretScreen() {
 
           {!!davalar?.length && (
             <>
-              <Text style={styles.label}>{t('dlk.caseLabel')}</Text>
+              <Text style={styles.label}>{buyut(t('dlk.caseLabel'))}</Text>
               <Text style={styles.caseHint}>{t('dlk.caseHint')}</Text>
               <View style={styles.chips}>
                 <Pressable
@@ -196,7 +198,7 @@ export default function DilekceUretScreen() {
             </>
           )}
 
-          <Text style={styles.label}>{t('dlk.factsLabel')}</Text>
+          <Text style={styles.label}>{buyut(t('dlk.factsLabel'))}</Text>
           {/* DOSYA AÇIKLAMASI, AVUKATIN KENDİ METNİDİR. Olayı sıfırdan yeniden
               yazmak, hızlandırmayı en çok yiyen adım. Metin kutuya EKLENİYOR
               (doğrudan sunucuya gönderilmiyor): avukat ne gönderdiğini görür ve
@@ -344,7 +346,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
     fontSize: 11,
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    // textTransform YOK — Türkçe "i" tuzağı: "Dilekçe türü" ekranda
+    // "DILEKÇE TÜRÜ", "Olay ve talebiniz" de "OLAY VE TALEBINIZ" çıkıyordu
+    // (15.09.2026'da canlı pakette ölçüldü). Büyütme useBuyukHarf ile.
     color: colors.textMuted,
     marginBottom: spacing.sm,
   },
@@ -380,7 +384,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     minHeight: 150,
     maxHeight: 280,
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: kose(16),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     padding: spacing.md,
@@ -396,7 +400,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: colors.primary,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: 15,
   },
   ctaOff: { opacity: 0.45 },
@@ -418,7 +422,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     backgroundColor: colors.dangerSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginTop: spacing.md,
   },
@@ -437,7 +441,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
+    borderRadius: kose(20),
     padding: spacing.lg,
     marginTop: spacing.md,
     ...shadow.card,
