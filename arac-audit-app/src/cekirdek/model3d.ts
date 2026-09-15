@@ -20,34 +20,43 @@ import { Arac, HatNoktasi, ModelKipi, Nokta3, Taraf, Yuzey } from './tipler';
  * ÖLÇÜ KAYNAĞI — bu ayrım önemli:
  *  - i20 ve BAYON: kamuya açık teknik veriden alınan YAKLAŞIK değerlerdir,
  *    üretici belgesinden doğrulanmadı. Şematik model için yeterli.
- *  - IONIQ 3: piyasaya çıkmamış bir araç. Buradaki ölçüler YER TUTUCUDUR,
- *    hiçbir kaynaktan ölçülmemiştir. Fotoğrafları/ölçüleri iletince
- *    düzeltilecek. `olcuDogrulandi: false` bunu uygulamada da görünür kılar.
+ *  - IONIQ 3: 15.09.2026'da yer tutucudan çıkarıldı. Araç 20.04.2026'da
+ *    tanıtıldı; boy/en/yükseklik/dingil artık kamuya açık lansman verisinden
+ *    geliyor (bkz. aşağıdaki not). Yani i20/BAYON ile AYNI güven seviyesine
+ *    geldi — üretici belgesinden hâlâ doğrulanmadı, o yüzden üçünde de
+ *    `olcuDogrulandi: false`.
+ *
+ * ÖN/ARKA SARKMA hiçbir araçta yayımlanmıyor; boy ile dingilden TÜRETİLDİ
+ * (toplam sarkma = boy − dingil, ikiye paylaştırıldı). Ölçüm değil, tahmin.
  */
 export const ARACLAR: Arac[] = [
   {
     id: 'ioniq3', ad: 'IONIQ 3', tam: 'Hyundai IONIQ 3', tip: 'ev',
-    renk: '#8FA6C4', olcuDogrulandi: false,
-    not: 'Ölçüler yer tutucudur — araç fotoğrafları/teknik verisi gelince güncellenecek.',
-    uzunluk: 4300, genislik: 1820, yukseklik: 1560, dingil: 2700, tekerR: 340,
-    onSarkma: 800, arkaSarkma: 800,
-    // Yüksek gövdeli, dik burunlu elektrikli crossover oranı
+    // Gövde nötr: A şiddeti vurgusu kırmızı çizilir, kırmızı gövdede kaybolur.
+    // Lansman rengi (Fierce Red) yalnız ikonda kullanılır — orada vurgu yok.
+    renk: '#9AA7B4', ikonRenk: '#C8202E', olcuDogrulandi: false,
+    not: 'Ölçüler 20.04.2026 lansmanının kamuya açık teknik verisinden: 4155×1800×1505 mm, dingil 2680 mm. Üretici belgesinden doğrulanmadı; ön/arka sarkma yayımlanmadığı için türetildi.',
+    uzunluk: 4155, genislik: 1800, yukseklik: 1505, dingil: 2680, tekerR: 325,
+    onSarkma: 790, arkaSarkma: 685,
+    // "Aero Hatch" (Cd 0.263): alçak ve yatık burun, HER İKİ SIRA boyunca düz
+    // tavan, sonra arka spoyler'a inen bagaj. Önceki yer tutucu bunu "dik
+    // burunlu yüksek crossover" diye çiziyordu — gerçek araçla ilgisi yoktu.
     ustHat: [
-      { x: 2150, y: 480, parca: 'on_tampon',    z: 0.44 },
-      { x: 2120, y: 800, parca: 'on_tampon',    z: 0.46 },
-      { x: 2020, y: 980, parca: 'on_izgara',    z: 0.46 },
-      { x: 1820, y: 1080, parca: 'kaput',       z: 0.47 },
-      { x: 1180, y: 1120, parca: 'kaput',       z: 0.47 },
-      { x: 560,  y: 1500, parca: 'on_cam',      z: 0.43 },
-      { x: 330,  y: 1560, parca: 'tavan',       z: 0.42 },
-      { x: -960, y: 1545, parca: 'tavan',       z: 0.42 },
-      { x: -1420, y: 1400, parca: 'arka_cam',   z: 0.43 },
-      { x: -1750, y: 1120, parca: 'bagaj_kapagi', z: 0.45 },
-      { x: -2080, y: 830, parca: 'bagaj_kapagi', z: 0.46 },
-      { x: -2150, y: 480, parca: 'arka_tampon', z: 0.44 },
+      { x: 2130, y: 460, parca: 'on_tampon',    z: 0.44 },
+      { x: 2095, y: 760, parca: 'on_tampon',    z: 0.46 },
+      { x: 2000, y: 900, parca: 'on_izgara',    z: 0.46 },
+      { x: 1830, y: 985, parca: 'kaput',        z: 0.47 },
+      { x: 1270, y: 1040, parca: 'kaput',       z: 0.47 },
+      { x: 470,  y: 1430, parca: 'on_cam',      z: 0.43 },
+      { x: 180,  y: 1505, parca: 'tavan',       z: 0.42 },
+      { x: -900, y: 1495, parca: 'tavan',       z: 0.42 },
+      { x: -1430, y: 1330, parca: 'arka_cam',   z: 0.43 },
+      { x: -1760, y: 1120, parca: 'bagaj_kapagi', z: 0.45 },
+      { x: -1960, y: 820, parca: 'bagaj_kapagi', z: 0.46 },
+      { x: -2025, y: 460, parca: 'arka_tampon', z: 0.44 },
     ],
-    belY: 1010, esikY: 430,
-    kapiX: { onBas: 1120, orta: -140, arkaSon: -1250 },
+    belY: 965, esikY: 430,
+    kapiX: { onBas: 1045, orta: -160, arkaSon: -1220 },
   },
   {
     id: 'i20', ad: 'i20', tam: 'Hyundai i20', tip: 'ice',

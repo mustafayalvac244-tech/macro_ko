@@ -85,7 +85,12 @@ export interface Arac {
   ad: string;
   tam: string;
   tip: AracTipi;
+  /** 3B modeldeki gövde rengi. Şiddet vurguları (A kırmızı) gövdenin ÜSTÜNE
+   *  çizildiği için burası nötr kalır — kırmızı gövdede kırmızı vurgu okunmaz. */
   renk: string;
+  /** Araç kartındaki silüet ikonunun rengi. Vurgu çizilmeyen tek yer burası
+   *  olduğu için gerçek lansman rengi kullanılabilir. Yoksa `renk`e düşer. */
+  ikonRenk?: string;
   /** false ise arayüz "ölçü doğrulanmadı" uyarısı gösterir. */
   olcuDogrulandi: boolean;
   not: string;

@@ -78,9 +78,29 @@ Neden: React Native'de `<canvas>` yok; Skia yeni bir yerel bağımlılık, SVG i
 koşar (`bilesenler/ModelTuvali.web.tsx`).
 
 **Modeller CAD değildir.** Dış ölçülerden türetilmiş şematik gövdelerdir; amaç
-"sol arka kapı" yazmak yerine oraya dokunabilmek. i20 ve BAYON ölçüleri kamuya
-açık veriden *yaklaşık*, **IONIQ 3 ölçüleri yer tutucu**. Uygulama bunu araç
-kartında rozetle ve denetim ekranında uyarıyla gösterir.
+"sol arka kapı" yazmak yerine oraya dokunabilmek. Üç aracın da boy/en/yükseklik
+/dingil değeri kamuya açık teknik veriden *yaklaşık* alındı, **üçü de üretici
+belgesinden doğrulanmadı** — uygulama bunu araç kartında rozetle ve denetim
+ekranında uyarıyla gösterir. Ön/arka sarkma hiçbirinde yayımlanmıyor, boy ile
+dingilden türetildi: ölçüm değil, tahmin.
+
+IONIQ 3 15.09.2026'ya kadar tamamen **yer tutucuydu** (hiçbir kaynaktan
+gelmeyen, "dik burunlu crossover" oranlı bir gövde). Araç 20.04.2026'da
+tanıtıldığı için artık gerçek lansman verisi kullanılıyor: 4155×1800×1505 mm,
+dingil 2680 mm, "Aero Hatch" silüeti (alçak burun, her iki sıra boyunca düz
+tavan, arka spoyler'a inen bagaj). Bu bir *doğrulama* değil, kaynaksızdan
+kamuya açık kaynağa geçiştir — i20/BAYON ile aynı seviye.
+
+### Araç kartındaki silüet ikonu
+
+`bilesenler/AracIkonu.tsx` ikonu elle çizmez; `model3d.ts`teki `ustHat`ten
+üretir. Elle çizilmiş SVG konsaydı ölçü düzeltmesinde 3B model güncellenir,
+ikon eski şekliyle kalırdı. Üç araç **aynı ölçekte** çizilir ki kartta i20
+gerçekten IONIQ 3'ten kısa görünsün.
+
+3B modelde gövde rengi nötr kalır: şiddet vurgusu (A kırmızı) gövdenin üstüne
+çizilir, kırmızı gövdede kırmızı vurgu okunmaz. IONIQ 3'ün lansman rengi
+(Fierce Red) yalnız ikonda kullanılır — vurgu çizilmeyen tek yer orası.
 
 ## Ceza puanı — okumadan kullanmayın
 

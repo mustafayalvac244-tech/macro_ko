@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AracIkonu } from '@/bilesenler/AracIkonu';
 import {
   Baslik, BaslikDugmesi, BilgiKutusu, Dugme, Girdi, Rozet,
 } from '@/bilesenler/temel';
@@ -102,6 +103,9 @@ export default function YeniDenetim() {
                   onPress={() => setAracId(a.id)}
                   style={[s.aracKart, secili && s.aracKartSecili]}
                 >
+                  <View style={s.aracIkon}>
+                    <AracIkonu arac={a} boy={34} />
+                  </View>
                   <Text style={[s.aracAd, secili && { color: renkler.birincil }]}>{a.ad}</Text>
                   <Text style={s.aracOlcu}>
                     {a.tip === 'ev' ? 'Elektrikli' : 'İçten yanmalı'}
@@ -210,6 +214,9 @@ const stiller = (r: Renkler) => StyleSheet.create({
     borderWidth: 2, borderColor: r.cizgiSolgun, padding: bosluk.sm,
   },
   aracKartSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
+  // Silüetler aynı ölçekte çizildiği için ikonlar sola hizalanır: kısa araç
+  // ortalanırsa boy farkı kaybolur.
+  aracIkon: { alignItems: 'flex-start' },
   aracAd: { ...tipografi.h3, color: r.metin },
   aracOlcu: { ...tipografi.caption, color: r.metinSolgun },
 
