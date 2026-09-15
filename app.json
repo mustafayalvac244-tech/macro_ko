@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vekil Pro",
     "slug": "macro_ko",
-    "version": "3.3.2",
+    "version": "3.4.0",
     "scheme": "vekil",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -52,17 +52,6 @@
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.SCHEDULE_EXACT_ALARM"
-      ],
-      "queries": [
-        {
-          "scheme": "whatsapp"
-        },
-        {
-          "scheme": "sms"
-        },
-        {
-          "scheme": "tel"
-        }
       ]
     },
     "web": {
