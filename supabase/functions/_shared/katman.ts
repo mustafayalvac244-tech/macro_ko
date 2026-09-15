@@ -211,7 +211,12 @@ const AI_TASMA_EK = 900;
  * ürünü bir daha denemeyebilir. 3 istek, ölçülen dilekçe boyutlarıyla
  * (₺1,07/istek) kullanıcı başına ~₺3'lük bir müşteri edinme maliyetidir.
  */
-export const DENEME_SORU_LIMIT = 3;
+// 3 → 10 (15.09.2026, ürün sahibi kararı). Maliyet ölçülen birim fiyattan
+// hesaplandı: 10 × ₺1,07 = ₺10,70 abone başına BİR KEZ (₺3,21'di). ₺399'luk
+// ilk ayın %2,7'si. Yaşam boyu olduğu için aylık tekrar etmez.
+// Sayaç `profiles.deneme_soru_kullanildi`'de duruyor ve sıfırlanmıyor: 3
+// hakkını bitirmiş mevcut üyeler bu değişiklikle 7 hak daha alır.
+export const DENEME_SORU_LIMIT = 10;
 
 export function tierConfig(
   aiTier: string | null | undefined,
