@@ -83,7 +83,16 @@ function ekranAna() {
     liste.textContent = '';
     liste.append(el('h2', { metin: `Son denetimler (${denetimler.length})` }));
     if (!denetimler.length) {
-      liste.append(el('div', { sinif: 'bos', metin: 'Henüz denetim yok. "Yeni Denetim" ile başlayın.' }));
+      // Boş kabuk yerine aracın NE YAPTIĞINI göster. Örnek denetim kaydı
+      // KOYMUYORUZ: bir QA aracında uydurma hata kaydı, gerçek sanılma riski
+      // taşır ve bu ürünün tek kırmızı çizgisi odur.
+      liste.append(el('div', { sinif: 'nasil' },
+        el('p', { metin: 'Henüz denetim kaydı yok. Akış üç adım:' }),
+        el('ol', {},
+          el('li', {}, el('b', { metin: 'Araç ve şasi' }), ' — barkodu okutun ya da 17 haneyi yazın; kontrol hanesi ve model yılı anında doğrulanır.'),
+          el('li', {}, el('b', { metin: '3B modelde parçaya dokunun' }), ' — 166 parça, her biri yalnız kendisinde anlamlı hata tiplerini açar.'),
+          el('li', {}, el('b', { metin: 'Hatayı seçin, isterseniz fotoğraflayın' }), ' — Excel’e fotoğraf hatanın yanına gömülü iner.')),
+        el('p', { sinif: 'nasil-not', metin: 'Her şey cihazda saklanır; internet olmadan da çalışır.' })));
       return;
     }
     const kutu = el('div', { sinif: 'hata-liste' });
@@ -636,14 +645,54 @@ async function fotoUrlleriTazele() {
 // DIŞA AKTARIM
 // ---------------------------------------------------------------------------
 
-function indir(veri, adi, tur) {
+// claude.ai Artifact kabuğu, sayfanın KENDİ başlattığı indirmeleri (blob
+// bağlantısı, <a download>) engeller. Orada dosyayı 'downloads' yeteneğiyle
+// veririz; kullanıcı bir onay kutusu görür. Başka her yerde (kendi sunucunuz,
+// tek dosya sürümü, yerel http) o yetenek yoktur ve normal bağlantı çalışır.
+// Tek kod yolu iki ortamı da karşılasın diye yetenek bir kez sorulup saklanır.
+let _indirmeYetenegi;
+function indirmeYetenegi() {
+  if (_indirmeYetenegi === undefined) {
+    _indirmeYetenegi = (typeof window !== 'undefined' && typeof window.claude?.use === 'function')
+      ? Promise.resolve(window.claude.use('downloads')).catch(() => null)
+      : Promise.resolve(null);
+  }
+  return _indirmeYetenegi;
+}
+
+/**
+ * Dosyayı kullanıcıya verir.
+ * @returns {Promise<boolean>} kullanıcı reddettiyse false
+ */
+async function indir(veri, adi, tur) {
   const blob = veri instanceof Blob ? veri : new Blob([veri], { type: tur });
+
+  const yetenek = await indirmeYetenegi();
+  if (yetenek) {
+    try {
+      await yetenek.save({ filename: adi, data: blob });
+      return true;
+    } catch (h) {
+      // Kullanıcı reddettiyse sessizce bırak; başka bir aksaklıkta normal
+      // bağlantı yolunu dene — dosyayı hiç vermemektense denemek yeğdir.
+      if (h?.code === 'declined' || h?.code === 'rate_limited') {
+        if (h.code === 'rate_limited') bildir('Bir indirme onayı zaten açık. Onu bitirip tekrar deneyin.', 'uyari');
+        return false;
+      }
+      if (h?.code === 'too_large') {
+        bildir('Dosya bu ortamda indirilemeyecek kadar büyük. Denetimi bölün ya da kendi sunucunuzdan açın.', 'hata');
+        return false;
+      }
+    }
+  }
+
   const url = URL.createObjectURL(blob);
   const a = el('a', { href: url, download: adi });
   document.body.append(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return true;
 }
 
 function dosyaAdi(d, uzanti) {
@@ -656,8 +705,8 @@ async function excelIndir() {
   try {
     const fotolar = await depo.fotografBaytlari(durum.denetim.id);
     const kitap = excelUret(durum.denetim, fotolar, durum.ayarlar);
-    indir(kitap, dosyaAdi(durum.denetim, 'xlsx'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    bildir(`Excel indirildi — ${fotolar.size} fotoğraf dosyanın içine gömüldü.`);
+    const verildi = await indir(kitap, dosyaAdi(durum.denetim, 'xlsx'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    if (verildi) bildir(`Excel indirildi — ${fotolar.size} fotoğraf dosyanın içine gömüldü.`);
   } catch (h) {
     bildir(`Excel üretilemedi: ${h.message}`, 'hata');
   }
@@ -671,9 +720,9 @@ async function topluDisaAktar(denetimler) {
     }
     const kitap = topluExcelUret(denetimler, hepsi, durum.ayarlar);
     const t = new Date();
-    indir(kitap, `toplu_denetim_${t.getFullYear()}${String(t.getMonth() + 1).padStart(2, '0')}${String(t.getDate()).padStart(2, '0')}.xlsx`,
+    const verildi = await indir(kitap, `toplu_denetim_${t.getFullYear()}${String(t.getMonth() + 1).padStart(2, '0')}${String(t.getDate()).padStart(2, '0')}.xlsx`,
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    bildir(`${denetimler.length} denetim tek dosyaya aktarıldı.`);
+    if (verildi) bildir(`${denetimler.length} denetim tek dosyaya aktarıldı.`);
   } catch (h) {
     bildir(`Toplu aktarım başarısız: ${h.message}`, 'hata');
   }
@@ -681,8 +730,8 @@ async function topluDisaAktar(denetimler) {
 
 async function yedekIndir() {
   const y = await depo.yedekAl();
-  indir(JSON.stringify(y), `arac_audit_yedek_${new Date().toISOString().slice(0, 10)}.json`, 'application/json');
-  bildir(`${y.denetimler.length} denetim, ${y.fotograflar.length} fotoğraf yedeklendi.`);
+  const verildi = await indir(JSON.stringify(y), `arac_audit_yedek_${new Date().toISOString().slice(0, 10)}.json`, 'application/json');
+  if (verildi) bildir(`${y.denetimler.length} denetim, ${y.fotograflar.length} fotoğraf yedeklendi.`);
 }
 
 // ---------------------------------------------------------------------------
@@ -701,7 +750,7 @@ function ekranRapor() {
   parca.append(el('div', { sinif: 'alt-cubuk yazdirma-gizle' },
     el('button', { onclick: () => window.print() }, '🖨 Yazdır / PDF'),
     el('button', { onclick: excelIndir }, '⤓ Excel'),
-    el('button', { onclick: () => indir(csvUret(d, durum.ayarlar), dosyaAdi(d, 'csv'), 'text/csv;charset=utf-8') }, '⤓ CSV'),
+    el('button', { onclick: () => { indir(csvUret(d, durum.ayarlar), dosyaAdi(d, 'csv'), 'text/csv;charset=utf-8').catch((h) => bildir(`CSV verilemedi: ${h.message}`, 'hata')); } }, '⤓ CSV'),
     el('button', { sinif: 'yesilb', onclick: denetimiBitir }, '✓ Bitir')));
   return parca;
 }
@@ -795,6 +844,12 @@ function ekranAyarlar() {
 // ---------------------------------------------------------------------------
 
 export async function baslat() {
+  // Belgenin dili Türkçe olmazsa CSS'in text-transform: uppercase kuralı
+  // "denetimler" -> "DENETIMLER" yazar; Türkçe'de doğrusu "DENETİMLER"dir.
+  // Kendi index.html'imizde lang="tr" var, ama uygulama bir kabuğun (ör.
+  // claude.ai Artifact) içine gömülüyse o kabuğun <html>'ini biz yazmayız.
+  if (typeof document !== 'undefined') document.documentElement.lang = 'tr';
+
   try {
     const kayitli = await depo.ayarOku('varsayilanlar', null);
     if (kayitli) durum.ayarlar = { ...durum.ayarlar, ...kayitli, esikler: { ...VARSAYILAN_ESIKLER, ...(kayitli.esikler ?? {}) } };

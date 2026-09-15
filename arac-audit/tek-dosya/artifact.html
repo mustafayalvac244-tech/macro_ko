@@ -1,11 +1,4 @@
-<!doctype html>
-<html lang="tr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#1D4ED8">
 <title>Araç Audit</title>
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9Ijk2IiBmaWxsPSIjMUQ0RUQ4Ii8+CiAgPHBhdGggZD0iTTk2IDI5NmwyNi04NGM3LTIyIDI3LTM2IDUwLTM2aDE2OGMyMyAwIDQzIDE0IDUwIDM2bDI2IDg0djc2YTE2IDE2IDAgMCAxLTE2IDE2aC0zMmExNiAxNiAwIDAgMS0xNi0xNnYtMjBIMTYwdjIwYTE2IDE2IDAgMCAxLTE2IDE2aC0zMmExNiAxNiAwIDAgMS0xNi0xNnoiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii45NSIvPgogIDxjaXJjbGUgY3g9IjE2MCIgY3k9IjMxNiIgcj0iMjIiIGZpbGw9IiMxRDRFRDgiLz48Y2lyY2xlIGN4PSIzNTIiIGN5PSIzMTYiIHI9IjIyIiBmaWxsPSIjMUQ0RUQ4Ii8+CiAgPHBhdGggZD0iTTE0MCAyNjhsMTgtNThjMy05IDExLTE1IDIxLTE1aDE1NGMxMCAwIDE4IDYgMjEgMTVsMTggNTh6IiBmaWxsPSIjMUQ0RUQ4IiBvcGFjaXR5PSIuMzUiLz4KICA8cGF0aCBkPSJNMTk2IDM4OGw0MCA0NCA4NC05NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzREMzk5IiBzdHJva2Utd2lkdGg9IjMwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==">
 <style>
 /* ARAÇ AUDIT — arayüz stilleri
    Saha koşulu varsayımları: tablet/telefon, eldivenli parmak, parlak fabrika
@@ -295,9 +288,12 @@ canvas#model { display: block; width: 100%; height: 300px; touch-action: none; }
 .gizli { display: none !important; }
 .yukleniyor { text-align: center; padding: 30px; color: var(--metin-soluk); }
 
+
+/* Artifact kabuğu :root'a güvenli alan payını ZATEN ekliyor. */
+.ust { padding-top: 10px; }
+.alt-cubuk { padding-bottom: 10px; }
+html, body { height: 100%; }
 </style>
-</head>
-<body>
 <div id="kok"><div class="yukleniyor">Yükleniyor…</div></div>
 <script>
 "use strict";
@@ -3608,5 +3604,3 @@ if (typeof document !== 'undefined') {
 
 })();
 </script>
-</body>
-</html>

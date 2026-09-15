@@ -111,12 +111,42 @@ ${parcalar.join('\n')}
 </html>
 `;
 
+  // ARTIFACT KİPİ — claude.ai Artifact kabuğu sayfayı kendi
+  // <!doctype><head></head><body> iskeletinin İÇİNE koyar. Bu yüzden orada
+  // html/head/body etiketleri YAZILMAZ; doğrudan <title> ve <style> ile
+  // başlanır. Kabuk ayrıca :root'u telefonun güvenli alanı kadar paylar, bu
+  // yüzden aynı payı ikinci kez eklemeyiz (yoksa çentikli telefonda üst çubuk
+  // iki kat boşluk alır).
+  const artifactHtml = `<title>Araç Audit</title>
+<style>
+${css}
+
+/* Artifact kabuğu :root'a güvenli alan payını ZATEN ekliyor. */
+.ust { padding-top: 10px; }
+.alt-cubuk { padding-bottom: 10px; }
+html, body { height: 100%; }
+</style>
+<div id="kok"><div class="yukleniyor">Yükleniyor…</div></div>
+<script>
+"use strict";
+(function () {
+${parcalar.join('\n')}
+})();
+</script>
+`;
+
   const cikisKlasor = join(KOK, 'tek-dosya');
   mkdirSync(cikisKlasor, { recursive: true });
   const cikis = join(cikisKlasor, 'arac-audit.html');
   writeFileSync(cikis, html, 'utf8');
-  return { cikis, boyut: Buffer.byteLength(html, 'utf8') };
+  const artifactCikis = join(cikisKlasor, 'artifact.html');
+  writeFileSync(artifactCikis, artifactHtml, 'utf8');
+  return {
+    cikis, boyut: Buffer.byteLength(html, 'utf8'),
+    artifactCikis, artifactBoyut: Buffer.byteLength(artifactHtml, 'utf8'),
+  };
 }
 
-const { cikis, boyut } = derle();
-console.log(`Tek dosya üretildi: ${cikis} (${(boyut / 1024).toFixed(0)} KB)`);
+const c = derle();
+console.log(`Tek dosya üretildi:  ${c.cikis} (${(c.boyut / 1024).toFixed(0)} KB)`);
+console.log(`Artifact sürümü:     ${c.artifactCikis} (${(c.artifactBoyut / 1024).toFixed(0)} KB)`);
