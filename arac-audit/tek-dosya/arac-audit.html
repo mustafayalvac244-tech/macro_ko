@@ -1,0 +1,3523 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#1D4ED8">
+<title>Araç Audit</title>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9Ijk2IiBmaWxsPSIjMUQ0RUQ4Ii8+CiAgPHBhdGggZD0iTTk2IDI5NmwyNi04NGM3LTIyIDI3LTM2IDUwLTM2aDE2OGMyMyAwIDQzIDE0IDUwIDM2bDI2IDg0djc2YTE2IDE2IDAgMCAxLTE2IDE2aC0zMmExNiAxNiAwIDAgMS0xNi0xNnYtMjBIMTYwdjIwYTE2IDE2IDAgMCAxLTE2IDE2aC0zMmExNiAxNiAwIDAgMS0xNi0xNnoiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii45NSIvPgogIDxjaXJjbGUgY3g9IjE2MCIgY3k9IjMxNiIgcj0iMjIiIGZpbGw9IiMxRDRFRDgiLz48Y2lyY2xlIGN4PSIzNTIiIGN5PSIzMTYiIHI9IjIyIiBmaWxsPSIjMUQ0RUQ4Ii8+CiAgPHBhdGggZD0iTTE0MCAyNjhsMTgtNThjMy05IDExLTE1IDIxLTE1aDE1NGMxMCAwIDE4IDYgMjEgMTVsMTggNTh6IiBmaWxsPSIjMUQ0RUQ4IiBvcGFjaXR5PSIuMzUiLz4KICA8cGF0aCBkPSJNMTk2IDM4OGw0MCA0NCA4NC05NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzREMzk5IiBzdHJva2Utd2lkdGg9IjMwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==">
+<style>
+/* ARAÇ AUDIT — arayüz stilleri
+   Saha koşulu varsayımları: tablet/telefon, eldivenli parmak, parlak fabrika
+   aydınlatması. Bu yüzden: en az 44px dokunma hedefi, yüksek kontrast,
+   ince gri yazı yok, kritik eylem her zaman ekranın altında (başparmak bölgesi). */
+
+:root {
+  --arka: #F4F6F8;
+  --kart: #FFFFFF;
+  --kenar: #D7DDE5;
+  --metin: #111827;
+  --metin-soluk: #5B6675;
+  --vurgu: #1D4ED8;
+  --vurgu-acik: #EFF4FF;
+  --a: #D92D20;
+  --b: #F79009;
+  --c: #EAAA08;
+  --yesil: #067647;
+  --golge: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .1);
+  --yuvarlak: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --arka: #0E1319; --kart: #171E26; --kenar: #2A3341;
+    --metin: #E8EDF3; --metin-soluk: #97A3B4; --vurgu-acik: #17243D;
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--arka); color: var(--metin);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overscroll-behavior-y: contain;
+}
+
+body { display: flex; flex-direction: column; }
+
+/* --- Üst çubuk --- */
+.ust {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px;
+  background: var(--kart); border-bottom: 1px solid var(--kenar);
+}
+.ust h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
+.ust .alt { font-size: 12px; color: var(--metin-soluk); }
+.ust-sol { flex: 1; min-width: 0; }
+.ust-sol h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.geri {
+  width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--kenar);
+  background: var(--kart); color: var(--metin); font-size: 20px; line-height: 1;
+  display: grid; place-items: center; cursor: pointer; flex: none;
+}
+
+/* --- Sayfa gövdesi --- */
+main { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px; padding-bottom: 96px; -webkit-overflow-scrolling: touch; }
+.sayfa { max-width: 900px; margin: 0 auto; display: grid; gap: 14px; }
+
+/* Grid/flex çocuklarının varsayılan min-width:auto'su, içindeki yatay kaydırıcının
+   (ör. hızlı seçim şeridi) DARALMASINI engeller: kutu içeriğe göre büyür ve tüm
+   sayfa yatay kayar. 15.09.2026 tarayıcı sınavında sayfa 420px yerine 2316px
+   ölçüldü; tuval de o yüzden yanlış boyuta gerildi. min-width:0 bunu kapatır. */
+.sayfa > *, .kart, .model-sarma { min-width: 0; }
+
+.kart {
+  background: var(--kart); border: 1px solid var(--kenar);
+  border-radius: var(--yuvarlak); padding: 14px; box-shadow: var(--golge);
+}
+.kart h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--metin-soluk); }
+
+/* --- Düğmeler --- */
+button, .dugme {
+  font: inherit; font-weight: 600; cursor: pointer;
+  border-radius: 10px; border: 1px solid var(--kenar);
+  background: var(--kart); color: var(--metin);
+  min-height: 44px; padding: 10px 14px;
+}
+button:active { transform: translateY(1px); }
+.birincil { background: var(--vurgu); border-color: var(--vurgu); color: #fff; }
+.tehlike { background: var(--a); border-color: var(--a); color: #fff; }
+.yesilb { background: var(--yesil); border-color: var(--yesil); color: #fff; }
+.kucuk { min-height: 36px; padding: 6px 10px; font-size: 13px; }
+.genis { width: 100%; }
+button[disabled] { opacity: .45; cursor: not-allowed; }
+
+.dugme-satir { display: flex; gap: 8px; flex-wrap: wrap; }
+.dugme-satir > * { flex: 1 1 auto; }
+
+/* --- Form --- */
+label.alan { display: grid; gap: 5px; font-size: 13px; color: var(--metin-soluk); font-weight: 600; }
+input, select, textarea {
+  font: inherit; color: var(--metin); background: var(--kart);
+  border: 1px solid var(--kenar); border-radius: 10px;
+  padding: 11px 12px; min-height: 44px; width: 100%;
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--vurgu); outline-offset: -1px; }
+.vin-girdi { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 18px; letter-spacing: .13em; text-transform: uppercase; }
+.izgara2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 480px) { .izgara2 { grid-template-columns: 1fr; } }
+
+.uyari { border-left: 3px solid var(--b); background: #FFFAEB; color: #7A2E0E; padding: 9px 11px; border-radius: 8px; font-size: 13px; }
+.hata-kutu { border-left: 3px solid var(--a); background: #FEF3F2; color: #7A271A; padding: 9px 11px; border-radius: 8px; font-size: 13px; }
+.bilgi { border-left: 3px solid var(--vurgu); background: var(--vurgu-acik); padding: 9px 11px; border-radius: 8px; font-size: 13px; }
+@media (prefers-color-scheme: dark) {
+  .uyari { background: #2A1F0B; color: #FEDF89; }
+  .hata-kutu { background: #2C1512; color: #FDA29B; }
+}
+
+/* --- Araç seçimi --- */
+.arac-izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.arac-kart {
+  display: grid; gap: 6px; padding: 14px; text-align: left;
+  border: 2px solid var(--kenar); border-radius: var(--yuvarlak); background: var(--kart);
+}
+.arac-kart[aria-pressed="true"] { border-color: var(--vurgu); background: var(--vurgu-acik); }
+.arac-kart b { font-size: 17px; }
+.arac-kart span { font-size: 12px; color: var(--metin-soluk); }
+.rozet { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 99px; background: var(--vurgu-acik); color: var(--vurgu); }
+.rozet.uyar { background: #FFFAEB; color: #B54708; }
+
+/* --- 3B alan --- */
+.model-sarma { position: relative; background: linear-gradient(180deg, #E8EDF3 0%, #D3DBE4 100%); border-radius: var(--yuvarlak); overflow: hidden; border: 1px solid var(--kenar); }
+@media (prefers-color-scheme: dark) { .model-sarma { background: linear-gradient(180deg, #1B2430 0%, #121820 100%); } }
+canvas#model { display: block; width: 100%; height: 300px; touch-action: none; }
+@media (min-width: 700px) { canvas#model { height: 380px; } }
+
+.model-arac { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; }
+.model-bakis { position: absolute; right: 10px; top: 10px; display: grid; gap: 6px; }
+.model-alt { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+.model-sarma button { background: rgba(255,255,255,.92); border-color: rgba(0,0,0,.08); backdrop-filter: blur(6px); min-height: 34px; padding: 5px 10px; font-size: 12px; }
+@media (prefers-color-scheme: dark) { .model-sarma button { background: rgba(23,30,38,.9); border-color: rgba(255,255,255,.1); color: var(--metin); } }
+.model-sarma button[aria-pressed="true"] { background: var(--vurgu); color: #fff; border-color: var(--vurgu); }
+.ipucu { font-size: 12px; color: var(--metin-soluk); padding: 6px 10px; background: rgba(255,255,255,.8); border-radius: 8px; }
+@media (prefers-color-scheme: dark) { .ipucu { background: rgba(23,30,38,.8); } }
+
+/* --- Hızlı seçim --- */
+.hizli { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; min-width: 0; }
+.hizli button {
+  flex: none; text-align: left; display: grid; gap: 2px; min-width: 156px;
+  padding: 9px 11px; background: var(--kart);
+}
+.hizli b { font-size: 13px; }
+.hizli span { font-size: 11px; color: var(--metin-soluk); }
+
+/* --- Hata listesi --- */
+.hata-liste { display: grid; gap: 8px; }
+.hata-satir {
+  display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center;
+  padding: 10px; border: 1px solid var(--kenar); border-radius: 10px; background: var(--kart);
+  text-align: left; width: 100%;
+}
+.siddet-pul { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 13px; }
+.siddet-A { background: var(--a); } .siddet-B { background: var(--b); } .siddet-C { background: var(--c); color: #4A3200; }
+.hata-satir .yol { font-size: 11px; color: var(--metin-soluk); }
+.hata-satir .ad { font-weight: 600; font-size: 14px; }
+.hata-satir .sag { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--metin-soluk); }
+.foto-pul { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; border: 1px solid var(--kenar); }
+.foto-sayi { background: var(--vurgu-acik); color: var(--vurgu); font-weight: 700; padding: 2px 7px; border-radius: 99px; }
+
+/* --- Alt eylem çubuğu --- */
+.alt-cubuk {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+  display: flex; gap: 8px; padding: 10px 14px calc(env(safe-area-inset-bottom, 0px) + 10px);
+  background: var(--kart); border-top: 1px solid var(--kenar);
+}
+.alt-cubuk > * { flex: 1; }
+
+/* --- Modal / alt sayfa --- */
+.perde { position: fixed; inset: 0; background: rgba(9, 14, 22, .55); z-index: 40; display: grid; align-items: end; }
+.sayfa-alt {
+  background: var(--kart); border-radius: 18px 18px 0 0; max-height: 92vh; overflow-y: auto;
+  padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); display: grid; gap: 12px;
+}
+@media (min-width: 700px) { .perde { align-items: center; justify-items: center; } .sayfa-alt { border-radius: 16px; width: min(680px, 94vw); max-height: 86vh; } }
+.sayfa-alt h3 { margin: 0; font-size: 17px; }
+.tutamak { width: 40px; height: 4px; background: var(--kenar); border-radius: 99px; margin: -6px auto 2px; }
+
+.grup-basligi { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--metin-soluk); margin-top: 6px; }
+.secenek-izgara { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 7px; }
+.secenek {
+  text-align: left; padding: 10px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--kenar); border-radius: 9px; background: var(--kart); min-height: 42px;
+}
+.secenek[aria-pressed="true"] { border-color: var(--vurgu); background: var(--vurgu-acik); color: var(--vurgu); }
+.secenek small { display: block; font-weight: 500; color: var(--metin-soluk); font-size: 11px; }
+
+.siddet-secim { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.siddet-secim button[aria-pressed="true"].s-A { background: var(--a); color: #fff; border-color: var(--a); }
+.siddet-secim button[aria-pressed="true"].s-B { background: var(--b); color: #fff; border-color: var(--b); }
+.siddet-secim button[aria-pressed="true"].s-C { background: var(--c); color: #3A2800; border-color: var(--c); }
+
+.adet-kutu { display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; align-items: center; }
+.adet-kutu input { text-align: center; font-weight: 700; font-size: 17px; }
+
+.foto-serit { display: flex; gap: 8px; flex-wrap: wrap; }
+.foto-kutu { position: relative; width: 84px; height: 84px; border-radius: 9px; overflow: hidden; border: 1px solid var(--kenar); }
+.foto-kutu img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.foto-kutu button { position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; min-height: 24px; padding: 0; border-radius: 6px; background: rgba(0,0,0,.6); color: #fff; border: 0; font-size: 14px; line-height: 1; }
+.foto-ekle { width: 84px; height: 84px; display: grid; place-items: center; border: 2px dashed var(--kenar); border-radius: 9px; background: transparent; font-size: 11px; color: var(--metin-soluk); gap: 2px; }
+
+/* --- Özet kutuları --- */
+.olcu-izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 8px; }
+.olcu { background: var(--kart); border: 1px solid var(--kenar); border-radius: 10px; padding: 10px; }
+.olcu b { display: block; font-size: 22px; line-height: 1.15; }
+.olcu span { font-size: 11px; color: var(--metin-soluk); }
+.sonuc-pul { font-weight: 800; padding: 4px 10px; border-radius: 99px; font-size: 13px; }
+.sonuc-KABUL { background: #ECFDF3; color: var(--yesil); }
+.sonuc-SARTLI { background: #FFFAEB; color: #B54708; }
+.sonuc-RED { background: #FEF3F2; color: #912018; }
+
+/* --- Denetim listesi --- */
+.liste-satir { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--kenar); border-radius: 10px; background: var(--kart); text-align: left; width: 100%; }
+.liste-satir .vin { font-family: ui-monospace, monospace; font-size: 13px; font-weight: 700; }
+.liste-satir .meta { font-size: 12px; color: var(--metin-soluk); }
+
+.bos { text-align: center; color: var(--metin-soluk); padding: 26px 12px; font-size: 14px; }
+
+/* --- Rapor --- */
+.rapor { background: #fff; color: #111827; padding: 18px; border-radius: var(--yuvarlak); }
+.rapor h1 { font-size: 19px; margin: 0 0 2px; }
+.rapor .r-arac { margin: 0 0 14px; color: #5B6675; font-size: 13px; }
+.r-izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.r-alan { border: 1px solid #E4E8EE; border-radius: 8px; padding: 7px 9px; }
+.r-alan span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: #6B7684; }
+.r-alan strong { font-size: 13px; }
+.r-sonuc { display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 8px; margin-bottom: 12px; background: #F4F6F8; }
+.r-sonuc-RED { background: #FEF3F2; } .r-sonuc-SARTLI { background: #FFFAEB; } .r-sonuc-KABUL { background: #ECFDF3; }
+.r-sonuc span { font-size: 12px; color: #5B6675; }
+/* Rapor tablosu telefonda sığmaz. Sayfanın tamamını yatay kaydırmak yerine
+   tabloyu KENDİ kaydırıcısına alıyoruz; başlık ve özet yerinde kalır. */
+.r-kaydir { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.r-tablo { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 12px; }
+.r-tablo th { background: #1D4ED8; color: #fff; padding: 7px 6px; text-align: left; font-size: 11px; }
+.r-tablo td { border: 1px solid #E4E8EE; padding: 6px; vertical-align: top; }
+.r-s { text-align: center; font-weight: 800; }
+.r-sA { background: #FEE4E2; color: #912018; } .r-sB { background: #FEF0C7; color: #B54708; } .r-sC { background: #FEFBE8; color: #854A0E; }
+.r-foto img { width: 92px; height: 70px; object-fit: cover; border-radius: 4px; margin: 1px; }
+.r-not { font-size: 11px; color: #6B7684; margin-top: 12px; }
+
+@media print {
+  .ust, .alt-cubuk, .yazdirma-gizle { display: none !important; }
+  main { padding: 0; overflow: visible; }
+  .rapor { border: 0; padding: 0; }
+  .r-kaydir { overflow: visible; }
+  .r-tablo { min-width: 0; }
+  body { background: #fff; }
+}
+
+.gizli { display: none !important; }
+.yukleniyor { text-align: center; padding: 30px; color: var(--metin-soluk); }
+
+</style>
+</head>
+<body>
+<div id="kok"><div class="yukleniyor">Yükleniyor…</div></div>
+<script>
+"use strict";
+(function () {
+
+/* ===== katalog.js ===== */
+// ARAÇ AUDIT — HATA KATALOĞU
+// ---------------------------------------------------------------------------
+// Bu dosya ürünün kalbidir: denetçinin elle yazmak yerine SEÇTİĞİ her şey
+// burada tanımlıdır. Üç katmanlı yapı kullanılır:
+//
+//     BÖLGE  ->  PARÇA  ->  HATA TİPİ
+//     "Sol yan"  "Arka kapı"  "Gıcırtı"        = Rear door squeak noise
+//     "İç tavan" "A direği garnişi" "Göçük"    = A pillar garnish dent
+//
+// Her parça, KENDİSİNE UYGUN hata gruplarını bildirir; böylece "multimedya
+// ekranı" için "boya akıntısı" gibi anlamsız bir seçenek hiç listelenmez.
+//
+// DÜRÜSTLÜK NOTU (AGENTS.md kuralı): aşağıdaki ceza puanı (demerit) ağırlıkları
+// ve kritiklik sınıfları ÖRNEK BAŞLANGIÇ DEĞERLERİDİR. Hiçbir üreticinin
+// resmî audit standardından ölçülmemiştir. Kendi standardınızın ağırlıklarını
+// girene kadar "puan" sütununu yalnızca kendi içinde kıyas için kullanın.
+// ---------------------------------------------------------------------------
+
+/** Kritiklik sınıfları. puan = ceza puanı (demerit) ağırlığı. */
+const SIDDETLER = [
+  { id: 'A', ad: 'Kritik',  en: 'Critical', puan: 10, renk: '#d92d20', aciklama: 'Güvenlik, yasal uygunluk veya fonksiyon kaybı. Araç sevk edilemez.' },
+  { id: 'B', ad: 'Majör',   en: 'Major',    puan: 5,  renk: '#f79009', aciklama: 'Müşterinin teslimde kesinlikle fark edeceği hata.' },
+  { id: 'C', ad: 'Minör',   en: 'Minor',    puan: 1,  renk: '#eaaa08', aciklama: 'Dikkatli incelemede fark edilen, kozmetik hata.' },
+];
+
+/** Hata grupları — parçalar bu grupları referans alır. */
+const HATA_GRUPLARI = {
+  yuzey:        { ad: 'Yüzey / Boya',      en: 'Surface / Paint' },
+  montaj:       { ad: 'Montaj / Uyum',     en: 'Fit & Finish' },
+  ses:          { ad: 'Ses (NVH)',         en: 'Noise (NVH)' },
+  fonksiyon:    { ad: 'Fonksiyon',         en: 'Function' },
+  doseme:       { ad: 'Döşeme / Kumaş',    en: 'Trim / Fabric' },
+  cam:          { ad: 'Cam',               en: 'Glass' },
+  sizdirmazlik: { ad: 'Sızdırmazlık',      en: 'Sealing / Leak' },
+  temizlik:     { ad: 'Temizlik',          en: 'Cleanliness' },
+};
+
+/**
+ * Hata tipleri. `siddet` alanı ÖNERİLEN başlangıç sınıfıdır; denetçi
+ * kayıt sırasında değiştirebilir (gerçek sınıf hatanın yerine/boyutuna bağlıdır).
+ */
+const HATA_TIPLERI = [
+  // --- Yüzey / Boya ---
+  { id: 'cizik',        grup: 'yuzey', ad: 'Çizik',                 en: 'Scratch',           siddet: 'C' },
+  { id: 'gocuk',        grup: 'yuzey', ad: 'Göçük',                 en: 'Dent',              siddet: 'B' },
+  { id: 'ezik',         grup: 'yuzey', ad: 'Ezik / Darbe izi',      en: 'Impact mark',       siddet: 'B' },
+  { id: 'toz_kir',      grup: 'yuzey', ad: 'Boya altı toz/kir',     en: 'Dirt inclusion',    siddet: 'C' },
+  { id: 'akinti',       grup: 'yuzey', ad: 'Boya akıntısı',         en: 'Paint run / sag',   siddet: 'B' },
+  { id: 'portakal',     grup: 'yuzey', ad: 'Portakal kabuğu',       en: 'Orange peel',       siddet: 'C' },
+  { id: 'krater',       grup: 'yuzey', ad: 'Kraterlenme',           en: 'Crater / fisheye',  siddet: 'B' },
+  { id: 'renk_farki',   grup: 'yuzey', ad: 'Renk / ton farkı',      en: 'Color mismatch',    siddet: 'B' },
+  { id: 'boyasiz',      grup: 'yuzey', ad: 'Boyasız / eksik boya',  en: 'Unpainted area',    siddet: 'A' },
+  { id: 'pas',          grup: 'yuzey', ad: 'Pas / korozyon',        en: 'Rust / corrosion',  siddet: 'A' },
+  { id: 'capak',        grup: 'yuzey', ad: 'Çapak / keskin kenar',  en: 'Burr / sharp edge', siddet: 'A' },
+  { id: 'sivi_izi',     grup: 'yuzey', ad: 'Sıvı / silikon izi',    en: 'Liquid residue',    siddet: 'C' },
+
+  // --- Montaj / Uyum ---
+  { id: 'bosluk',       grup: 'montaj', ad: 'Boşluk farkı (gap)',   en: 'Gap variation',     siddet: 'B' },
+  { id: 'kademe',       grup: 'montaj', ad: 'Kademe farkı (flush)', en: 'Flush variation',   siddet: 'B' },
+  { id: 'hizasiz',      grup: 'montaj', ad: 'Hizasız montaj',       en: 'Misaligned',        siddet: 'B' },
+  { id: 'gevsek',       grup: 'montaj', ad: 'Gevşek / oynuyor',     en: 'Loose',             siddet: 'B' },
+  { id: 'oturmamis',    grup: 'montaj', ad: 'Yerine oturmamış',     en: 'Not seated',        siddet: 'B' },
+  { id: 'eksik_parca',  grup: 'montaj', ad: 'Eksik parça',          en: 'Missing part',      siddet: 'A' },
+  { id: 'eksik_klips',  grup: 'montaj', ad: 'Eksik klips / vida',   en: 'Missing clip/screw',siddet: 'B' },
+  { id: 'kirik_klips',  grup: 'montaj', ad: 'Kırık klips',          en: 'Broken clip',       siddet: 'B' },
+  { id: 'yanlis_parca', grup: 'montaj', ad: 'Yanlış parça',         en: 'Wrong part',        siddet: 'A' },
+  { id: 'deforme',      grup: 'montaj', ad: 'Deforme / eğrilik',    en: 'Deformed',          siddet: 'B' },
+  { id: 'sikma_torku',  grup: 'montaj', ad: 'Tork / sıkma hatası',  en: 'Torque fault',      siddet: 'A' },
+
+  // --- Ses (NVH) ---
+  { id: 'gicirti',      grup: 'ses', ad: 'Gıcırtı',                 en: 'Squeak',            siddet: 'B' },
+  { id: 'tikirti',      grup: 'ses', ad: 'Tıkırtı / zangırtı',      en: 'Rattle',            siddet: 'B' },
+  { id: 'ruzgar_sesi',  grup: 'ses', ad: 'Rüzgâr sesi',             en: 'Wind noise',        siddet: 'B' },
+  { id: 'vurma',        grup: 'ses', ad: 'Vurma / darbe sesi',      en: 'Knock / thump',     siddet: 'B' },
+  { id: 'titresim',     grup: 'ses', ad: 'Titreşim',                en: 'Vibration',         siddet: 'B' },
+  { id: 'yol_sesi',     grup: 'ses', ad: 'Yol / lastik sesi',       en: 'Road noise',        siddet: 'C' },
+
+  // --- Fonksiyon ---
+  { id: 'calismiyor',   grup: 'fonksiyon', ad: 'Çalışmıyor',        en: 'Inoperative',       siddet: 'A' },
+  { id: 'aralikli',     grup: 'fonksiyon', ad: 'Aralıklı çalışıyor',en: 'Intermittent',      siddet: 'A' },
+  { id: 'zor_calisiyor',grup: 'fonksiyon', ad: 'Zor / ağır çalışıyor', en: 'Hard operation', siddet: 'B' },
+  { id: 'hata_kodu',    grup: 'fonksiyon', ad: 'Hata kodu (DTC)',   en: 'DTC present',       siddet: 'A' },
+  { id: 'uyari_lambasi',grup: 'fonksiyon', ad: 'Uyarı lambası yanıyor', en: 'Warning lamp',  siddet: 'A' },
+  { id: 'yanlis_yon',   grup: 'fonksiyon', ad: 'Ters / yanlış yön', en: 'Reversed operation',siddet: 'B' },
+  { id: 'ayar_bozuk',   grup: 'fonksiyon', ad: 'Ayar bozuk',        en: 'Out of adjustment', siddet: 'B' },
+
+  // --- Döşeme / Kumaş ---
+  { id: 'leke',         grup: 'doseme', ad: 'Leke',                 en: 'Stain',             siddet: 'B' },
+  { id: 'yirtik',       grup: 'doseme', ad: 'Yırtık / delik',       en: 'Tear / hole',       siddet: 'A' },
+  { id: 'burusuk',      grup: 'doseme', ad: 'Buruşuk / gergin değil',en: 'Wrinkle',          siddet: 'C' },
+  { id: 'dikis',        grup: 'doseme', ad: 'Dikiş hatası',         en: 'Stitching fault',   siddet: 'B' },
+  { id: 'iplik',        grup: 'doseme', ad: 'Sarkan iplik',         en: 'Loose thread',      siddet: 'C' },
+
+  // --- Cam ---
+  { id: 'cam_cizik',    grup: 'cam', ad: 'Cam çiziği',              en: 'Glass scratch',     siddet: 'B' },
+  { id: 'cam_catlak',   grup: 'cam', ad: 'Cam çatlağı',             en: 'Glass crack',       siddet: 'A' },
+  { id: 'cam_kalinti',  grup: 'cam', ad: 'Cam üzeri kalıntı',       en: 'Glass residue',     siddet: 'C' },
+  { id: 'bugu',         grup: 'cam', ad: 'İç buğulanma',            en: 'Internal fogging',  siddet: 'A' },
+
+  // --- Sızdırmazlık ---
+  { id: 'su_sizinti',   grup: 'sizdirmazlik', ad: 'Su sızıntısı',   en: 'Water leak',        siddet: 'A' },
+  { id: 'hava_sizinti', grup: 'sizdirmazlik', ad: 'Hava sızıntısı', en: 'Air leak',          siddet: 'B' },
+  { id: 'yag_sizinti',  grup: 'sizdirmazlik', ad: 'Yağ / sıvı sızıntısı', en: 'Fluid leak',  siddet: 'A' },
+  { id: 'fitil',        grup: 'sizdirmazlik', ad: 'Fitil oturmamış / kalkık', en: 'Weatherstrip not seated', siddet: 'B' },
+  { id: 'mastik',       grup: 'sizdirmazlik', ad: 'Mastik / sızdırmazlık hatası', en: 'Sealer fault', siddet: 'B' },
+
+  // --- Temizlik ---
+  { id: 'kirli',        grup: 'temizlik', ad: 'Kirli / tozlu',      en: 'Soiled / dusty',    siddet: 'C' },
+  { id: 'yapiskan',     grup: 'temizlik', ad: 'Yapışkan / etiket kalıntısı', en: 'Adhesive residue', siddet: 'C' },
+  { id: 'koku',         grup: 'temizlik', ad: 'Koku',               en: 'Odour',             siddet: 'B' },
+];
+
+/** Hızlı erişim haritası. */
+const HATA_TIPI_INDEKS = Object.fromEntries(HATA_TIPLERI.map((h) => [h.id, h]));
+
+// ---------------------------------------------------------------------------
+// BÖLGELER VE PARÇALAR
+// `gruplar`: bu parçada hangi hata grupları anlamlıdır (filtre için).
+// `mesh`   : 3B modeldeki tıklanabilir yüzeyin kimliği (varsa).
+// `cift`   : true ise parça sol/sağ olarak ikiye açılır.
+// ---------------------------------------------------------------------------
+
+const YUZEY_MONTAJ = ['yuzey', 'montaj'];
+const DIS_PANEL = ['yuzey', 'montaj', 'ses', 'sizdirmazlik', 'temizlik'];
+const IC_PANEL = ['montaj', 'ses', 'yuzey', 'doseme', 'temizlik'];
+const CAM_TAKIMI = ['cam', 'montaj', 'sizdirmazlik', 'ses', 'temizlik'];
+const ELEKTRIK = ['fonksiyon', 'montaj', 'ses'];
+
+/**
+ * "Ön çamurluk" -> "ön çamurluk". Ama "A direği garnişi" ve "USB / kablosuz şarj"
+ * gibi tek harfli ya da tümü büyük kısaltmayla başlayan adlar OLDUĞU GİBİ kalır;
+ * yoksa "Sol a direği garnişi" gibi yanlış bir ad üretilir.
+ */
+function bastanKucult(ad) {
+  const ilkKelime = ad.split(/[\s/]/, 1)[0];
+  if (ilkKelime.length <= 1 || ilkKelime === ilkKelime.toLocaleUpperCase('tr')) return ad;
+  return ad.charAt(0).toLocaleLowerCase('tr') + ad.slice(1);
+}
+
+/** Sol/sağ çift parçaları açan yardımcı. */
+function ciftle(parcalar) {
+  const cikti = [];
+  for (const p of parcalar) {
+    if (!p.cift) { cikti.push(p); continue; }
+    for (const [tk, tad, ten] of [['sol', 'Sol', 'LH'], ['sag', 'Sağ', 'RH']]) {
+      cikti.push({
+        ...p,
+        cift: false,
+        taraf: tk,
+        id: `${tk}_${p.id}`,
+        ad: `${tad} ${bastanKucult(p.ad)}`,
+        en: `${ten} ${bastanKucult(p.en)}`,
+        mesh: p.mesh ? `${tk}_${p.mesh}` : undefined,
+      });
+    }
+  }
+  return cikti;
+}
+
+const HAM_BOLGELER = [
+  {
+    id: 'dis_on', ad: 'Dış · Ön', en: 'Exterior · Front', grup: 'dis', simge: '▣',
+    parcalar: [
+      { id: 'on_tampon',    ad: 'Ön tampon',          en: 'Front bumper',        gruplar: DIS_PANEL, mesh: 'on_tampon' },
+      { id: 'on_izgara',    ad: 'Ön ızgara',          en: 'Front grille',        gruplar: DIS_PANEL, mesh: 'on_izgara' },
+      { id: 'alt_panjur',   ad: 'Alt hava panjuru',   en: 'Lower air shutter',   gruplar: DIS_PANEL },
+      { id: 'kaput',        ad: 'Kaput',              en: 'Hood',                gruplar: DIS_PANEL, mesh: 'kaput' },
+      { id: 'far',          ad: 'Far',                en: 'headlamp',            gruplar: ['fonksiyon', 'montaj', 'yuzey', 'cam'], mesh: 'far', cift: true },
+      { id: 'sis_far',      ad: 'Sis farı',           en: 'fog lamp',            gruplar: ['fonksiyon', 'montaj', 'yuzey'], cift: true },
+      { id: 'on_cam',       ad: 'Ön cam',             en: 'Windshield',          gruplar: CAM_TAKIMI, mesh: 'on_cam' },
+      { id: 'on_silecek',   ad: 'Ön silecek',         en: 'Front wiper',         gruplar: ['fonksiyon', 'montaj', 'ses'] },
+      { id: 'on_panel',     ad: 'Ön panel / su kanalı', en: 'Cowl panel',        gruplar: DIS_PANEL },
+      { id: 'on_plaka',     ad: 'Ön plaka yuvası',    en: 'Front plate holder',  gruplar: YUZEY_MONTAJ },
+      { id: 'on_amblem',    ad: 'Ön amblem',          en: 'Front emblem',        gruplar: YUZEY_MONTAJ },
+      { id: 'cekme_kapak',  ad: 'Çekme kancası kapağı', en: 'Tow hook cover',    gruplar: YUZEY_MONTAJ },
+    ],
+  },
+  {
+    id: 'dis_arka', ad: 'Dış · Arka', en: 'Exterior · Rear', grup: 'dis', simge: '▤',
+    parcalar: [
+      { id: 'arka_tampon',  ad: 'Arka tampon',        en: 'Rear bumper',         gruplar: DIS_PANEL, mesh: 'arka_tampon' },
+      { id: 'bagaj_kapagi', ad: 'Bagaj kapağı',       en: 'Tailgate',            gruplar: DIS_PANEL, mesh: 'bagaj_kapagi' },
+      { id: 'arka_cam',     ad: 'Arka cam',           en: 'Rear windshield',     gruplar: CAM_TAKIMI, mesh: 'arka_cam' },
+      { id: 'arka_silecek', ad: 'Arka silecek',       en: 'Rear wiper',          gruplar: ['fonksiyon', 'montaj', 'ses'] },
+      { id: 'stop',         ad: 'Stop lambası',       en: 'tail lamp',           gruplar: ['fonksiyon', 'montaj', 'yuzey', 'cam'], mesh: 'stop', cift: true },
+      { id: 'ucuncu_stop',  ad: 'Üçüncü stop lambası',en: 'High mount stop lamp',gruplar: ['fonksiyon', 'montaj'] },
+      { id: 'arka_plaka',   ad: 'Arka plaka yuvası',  en: 'Rear plate holder',   gruplar: YUZEY_MONTAJ },
+      { id: 'arka_amblem',  ad: 'Arka amblem / yazı', en: 'Rear emblem / badge', gruplar: YUZEY_MONTAJ },
+      { id: 'spoyler',      ad: 'Arka spoyler',       en: 'Rear spoiler',        gruplar: DIS_PANEL },
+      { id: 'difuzor',      ad: 'Arka difüzör',       en: 'Rear diffuser',       gruplar: DIS_PANEL },
+      { id: 'arka_panel',   ad: 'Arka panel',         en: 'Rear body panel',     gruplar: DIS_PANEL },
+    ],
+  },
+  {
+    id: 'dis_ust', ad: 'Dış · Üst', en: 'Exterior · Upper', grup: 'dis', simge: '▭',
+    parcalar: [
+      { id: 'tavan',        ad: 'Tavan sacı',         en: 'Roof panel',          gruplar: DIS_PANEL, mesh: 'tavan' },
+      { id: 'cam_tavan',    ad: 'Panoramik cam tavan',en: 'Panoramic roof',      gruplar: [...CAM_TAKIMI, 'fonksiyon'] },
+      { id: 'tavan_cita',   ad: 'Tavan çıtası',       en: 'roof moulding',       gruplar: DIS_PANEL, cift: true },
+      { id: 'tavan_bari',   ad: 'Tavan barı',         en: 'roof rail',           gruplar: DIS_PANEL, cift: true },
+      { id: 'anten',        ad: 'Anten',              en: 'Antenna',             gruplar: ['montaj', 'yuzey', 'fonksiyon'] },
+    ],
+  },
+  {
+    id: 'dis_alt', ad: 'Dış · Alt', en: 'Exterior · Underbody', grup: 'dis', simge: '▬',
+    parcalar: [
+      { id: 'alt_muhafaza', ad: 'Alt muhafaza / davlumbaz', en: 'Under cover',   gruplar: ['montaj', 'yuzey', 'ses'] },
+      { id: 'sase_alti',    ad: 'Şase altı / taban sacı',   en: 'Floor pan',     gruplar: ['yuzey', 'sizdirmazlik', 'montaj'] },
+      { id: 'batarya_muh',  ad: 'HV batarya muhafazası (EV)', en: 'HV battery casing', gruplar: ['montaj', 'yuzey', 'sizdirmazlik'], sadeceEv: true },
+      { id: 'yakit_deposu', ad: 'Yakıt deposu bölgesi',      en: 'Fuel tank area',gruplar: ['montaj', 'sizdirmazlik'], sadeceIce: true },
+      { id: 'egzoz_hatti',  ad: 'Egzoz hattı',               en: 'Exhaust line',  gruplar: ['montaj', 'ses', 'yuzey'], sadeceIce: true },
+    ],
+  },
+  {
+    id: 'ic_on', ad: 'İç · Ön konsol', en: 'Interior · Cockpit', grup: 'ic', simge: '▥',
+    parcalar: [
+      { id: 'ip_ust',       ad: 'Gösterge paneli üstü (IP)', en: 'Upper IP',     gruplar: IC_PANEL, mesh: 'ic_ip' },
+      { id: 'ip_alt',       ad: 'Gösterge paneli altı',      en: 'Lower IP',     gruplar: IC_PANEL },
+      { id: 'gosterge',     ad: 'Gösterge ekranı (cluster)', en: 'Instrument cluster', gruplar: ['fonksiyon', 'yuzey', 'montaj'], mesh: 'ic_gosterge' },
+      { id: 'multimedya',   ad: 'Multimedya ekranı',         en: 'Infotainment display', gruplar: ['fonksiyon', 'yuzey', 'montaj', 'cam'], mesh: 'ic_ekran' },
+      { id: 'orta_konsol',  ad: 'Orta konsol',               en: 'Center console', gruplar: IC_PANEL, mesh: 'ic_konsol' },
+      { id: 'vites',        ad: 'Vites / vites kolu',        en: 'Shifter',       gruplar: ['fonksiyon', 'montaj', 'ses', 'yuzey'] },
+      { id: 'direksiyon',   ad: 'Direksiyon simidi',         en: 'Steering wheel',gruplar: ['yuzey', 'montaj', 'doseme', 'fonksiyon'], mesh: 'ic_direksiyon' },
+      { id: 'direksiyon_dugme', ad: 'Direksiyon düğmeleri',  en: 'Steering wheel switches', gruplar: ELEKTRIK },
+      { id: 'klima_paneli', ad: 'Klima kontrol paneli',      en: 'HVAC control panel', gruplar: ELEKTRIK },
+      { id: 'hava_kanali',  ad: 'Hava üfleme kanalı',        en: 'Air vent',      gruplar: ['montaj', 'fonksiyon', 'ses', 'yuzey'] },
+      { id: 'torpido',      ad: 'Torpido gözü',              en: 'Glove box',     gruplar: [...IC_PANEL, 'fonksiyon'] },
+      { id: 'kol_dayama',   ad: 'Orta kol dayama',           en: 'Center armrest',gruplar: [...IC_PANEL, 'fonksiyon'] },
+      { id: 'sarj_usb',     ad: 'USB / kablosuz şarj',       en: 'USB / wireless charger', gruplar: ELEKTRIK },
+      { id: 'pedal',        ad: 'Pedal takımı',              en: 'Pedal assembly',gruplar: ['fonksiyon', 'montaj', 'ses'] },
+      { id: 'ayak_bolge',   ad: 'Ayak bölgesi / halı',       en: 'Footwell carpet', gruplar: ['doseme', 'montaj', 'temizlik', 'sizdirmazlik'], mesh: 'ayak_bolge' },
+      { id: 'tavan_konsol', ad: 'Ön tavan konsolu',          en: 'Overhead console', gruplar: [...IC_PANEL, 'fonksiyon'] },
+    ],
+  },
+  {
+    id: 'ic_kapi', ad: 'İç · Kapı döşemeleri', en: 'Interior · Door trim', grup: 'ic', simge: '▯',
+    parcalar: [
+      { id: 'on_kapi_doseme',   ad: 'Ön kapı döşemesi',    en: 'front door trim',   gruplar: IC_PANEL, mesh: 'on_kapi_doseme', cift: true },
+      { id: 'arka_kapi_doseme', ad: 'Arka kapı döşemesi',  en: 'rear door trim',    gruplar: IC_PANEL, mesh: 'arka_kapi_doseme', cift: true },
+      { id: 'ic_kapi_kolu',     ad: 'İç kapı açma kolu',   en: 'inner door handle', gruplar: ['fonksiyon', 'montaj', 'yuzey', 'ses'], cift: true },
+      { id: 'cam_dugme',        ad: 'Cam düğme paneli',    en: 'window switch panel', gruplar: ELEKTRIK, cift: true },
+      { id: 'hoparlor_izgara',  ad: 'Hoparlör ızgarası',   en: 'speaker grille',    gruplar: ['montaj', 'yuzey', 'fonksiyon'], cift: true },
+      { id: 'kapi_cebi',        ad: 'Kapı cebi',           en: 'door pocket',       gruplar: IC_PANEL, cift: true },
+      { id: 'kapi_esigi',       ad: 'Kapı eşiği çıtası',   en: 'door sill plate',   gruplar: ['montaj', 'yuzey', 'temizlik'], cift: true },
+    ],
+  },
+  {
+    id: 'ic_koltuk', ad: 'İç · Koltuklar', en: 'Interior · Seats', grup: 'ic', simge: '▮',
+    parcalar: [
+      { id: 'surucu_koltuk',    ad: 'Sürücü koltuğu',      en: 'Driver seat',       gruplar: [...IC_PANEL, 'fonksiyon'], mesh: 'koltuk_sol_on' },
+      { id: 'yolcu_koltuk',     ad: 'Ön yolcu koltuğu',    en: 'Passenger seat',    gruplar: [...IC_PANEL, 'fonksiyon'], mesh: 'koltuk_sag_on' },
+      { id: 'arka_koltuk_sirt', ad: 'Arka koltuk sırtlığı',en: 'Rear seat back',    gruplar: [...IC_PANEL, 'fonksiyon'], mesh: 'koltuk_arka' },
+      { id: 'arka_koltuk_otur', ad: 'Arka koltuk oturma',  en: 'Rear seat cushion', gruplar: IC_PANEL },
+      { id: 'baslik',           ad: 'Koltuk başlığı',      en: 'Headrest',          gruplar: [...IC_PANEL, 'fonksiyon'] },
+      { id: 'kemer',            ad: 'Emniyet kemeri',      en: 'Seat belt',         gruplar: ['fonksiyon', 'doseme', 'montaj'] },
+      { id: 'koltuk_ayar',      ad: 'Koltuk ayar mekanizması', en: 'Seat adjuster', gruplar: ['fonksiyon', 'ses', 'montaj'] },
+      { id: 'isofix',           ad: 'ISOFIX kapakları',    en: 'ISOFIX covers',     gruplar: ['montaj', 'yuzey'] },
+    ],
+  },
+  {
+    id: 'ic_tavan', ad: 'İç · Tavan ve garnişler', en: 'Interior · Headliner & garnish', grup: 'ic', simge: '▰',
+    parcalar: [
+      { id: 'tavan_doseme',  ad: 'Tavan döşemesi',     en: 'Headliner',            gruplar: IC_PANEL, mesh: 'ic_tavan_doseme' },
+      { id: 'a_garnis',      ad: 'A direği garnişi',   en: 'A pillar garnish',     gruplar: IC_PANEL, mesh: 'a_garnis', cift: true },
+      { id: 'b_garnis',      ad: 'B direği garnişi',   en: 'B pillar garnish',     gruplar: IC_PANEL, mesh: 'b_garnis', cift: true },
+      { id: 'c_garnis',      ad: 'C direği garnişi',   en: 'C pillar garnish',     gruplar: IC_PANEL, mesh: 'c_garnis', cift: true },
+      { id: 'gunuslik',      ad: 'Güneşlik',           en: 'sun visor',            gruplar: [...IC_PANEL, 'fonksiyon'], cift: true },
+      { id: 'tutamak',       ad: 'Tavan tutamağı',     en: 'assist grip',          gruplar: ['montaj', 'ses', 'fonksiyon'], cift: true },
+      { id: 'tavan_lamba',   ad: 'İç tavan lambası',   en: 'Interior dome lamp',   gruplar: ELEKTRIK },
+      { id: 'dikiz_ayna',    ad: 'İç dikiz aynası',    en: 'Interior mirror',      gruplar: ['montaj', 'fonksiyon', 'yuzey', 'ses'] },
+    ],
+  },
+  {
+    id: 'ic_bagaj', ad: 'İç · Bagaj', en: 'Interior · Luggage', grup: 'ic', simge: '▱',
+    parcalar: [
+      { id: 'bagaj_doseme',  ad: 'Bagaj taban döşemesi', en: 'Luggage floor trim', gruplar: IC_PANEL, mesh: 'ic_bagaj' },
+      { id: 'bagaj_hali',    ad: 'Bagaj halısı',         en: 'Luggage carpet',     gruplar: ['doseme', 'montaj', 'temizlik'] },
+      { id: 'bagaj_yan',     ad: 'Bagaj yan garnişi',    en: 'luggage side trim',  gruplar: IC_PANEL, cift: true },
+      { id: 'bagaj_ic_kapak',ad: 'Bagaj kapağı iç kaplaması', en: 'Tailgate inner trim', gruplar: IC_PANEL },
+      { id: 'stepne_bolme',  ad: 'Stepne / alet bölmesi',en: 'Spare wheel compartment', gruplar: ['montaj', 'temizlik', 'sizdirmazlik'] },
+      { id: 'bagaj_raf',     ad: 'Bagaj rafı / perdesi', en: 'Parcel shelf',       gruplar: [...IC_PANEL, 'fonksiyon'] },
+      { id: 'bagaj_lamba',   ad: 'Bagaj aydınlatması',   en: 'Luggage lamp',       gruplar: ELEKTRIK },
+    ],
+  },
+  {
+    id: 'motor', ad: 'Motor bölmesi', en: 'Engine / Power compartment', grup: 'motor', simge: '⚙',
+    parcalar: [
+      { id: 'kaput_alti',    ad: 'Kaput altı genel görünüm', en: 'Under hood general', gruplar: ['montaj', 'yuzey', 'temizlik'] },
+      { id: 'kablo_demeti',  ad: 'Kablo demeti / bağlantılar', en: 'Wiring harness', gruplar: ['montaj', 'fonksiyon'] },
+      { id: 'aku',           ad: 'Akü ve bağlantıları',  en: 'Battery & terminals',gruplar: ['montaj', 'fonksiyon'] },
+      { id: 'sivi_seviye',   ad: 'Sıvı seviyeleri',      en: 'Fluid levels',       gruplar: ['fonksiyon', 'sizdirmazlik'] },
+      { id: 'izolasyon',     ad: 'Kaput izolasyon keçesi',en: 'Hood insulation',   gruplar: ['montaj', 'ses'] },
+      { id: 'sogutma',       ad: 'Radyatör / soğutma',   en: 'Radiator / cooling', gruplar: ['montaj', 'sizdirmazlik', 'ses'] },
+      { id: 'hv_kablo',      ad: 'HV turuncu kablolar (EV)', en: 'HV cables',      gruplar: ['montaj', 'fonksiyon'], sadeceEv: true },
+      { id: 'sarj_soketi',   ad: 'Şarj soketi (AC/DC)',  en: 'Charge port',        gruplar: ['fonksiyon', 'montaj', 'yuzey'], sadeceEv: true },
+      { id: 'motor_ice',     ad: 'Motor / aktarma organları', en: 'Engine & drivetrain', gruplar: ['montaj', 'ses', 'sizdirmazlik'], sadeceIce: true },
+    ],
+  },
+  {
+    id: 'fonksiyon_testi', ad: 'Fonksiyon testi', en: 'Function test', grup: 'fonksiyon', simge: '⏻',
+    parcalar: [
+      { id: 'f_klima',       ad: 'Klima / ısıtma',       en: 'HVAC',               gruplar: ['fonksiyon', 'ses', 'temizlik'] },
+      { id: 'f_multimedya',  ad: 'Multimedya / bağlantı',en: 'Infotainment / connectivity', gruplar: ['fonksiyon'] },
+      { id: 'f_kamera',      ad: 'Kamera sistemi',       en: 'Camera system',      gruplar: ['fonksiyon', 'montaj'] },
+      { id: 'f_park_sensor', ad: 'Park sensörü',         en: 'Parking sensors',    gruplar: ['fonksiyon', 'montaj'] },
+      { id: 'f_adas',        ad: 'ADAS / sürücü destek', en: 'ADAS',               gruplar: ['fonksiyon'] },
+      { id: 'f_ic_aydinlatma', ad: 'İç aydınlatma',      en: 'Interior lighting',  gruplar: ['fonksiyon'] },
+      { id: 'f_dis_aydinlatma',ad: 'Dış aydınlatma',     en: 'Exterior lighting',  gruplar: ['fonksiyon'] },
+      { id: 'f_merkezi_kilit', ad: 'Merkezi kilit / anahtar', en: 'Central lock / key', gruplar: ['fonksiyon'] },
+      { id: 'f_cam_kaldirma',  ad: 'Cam kaldırma',       en: 'Power windows',      gruplar: ['fonksiyon', 'ses'] },
+      { id: 'f_ayna_katlama',  ad: 'Ayna katlama / ayar',en: 'Mirror fold / adjust', gruplar: ['fonksiyon', 'ses'] },
+      { id: 'f_koltuk_isitma', ad: 'Koltuk / direksiyon ısıtma', en: 'Seat & wheel heating', gruplar: ['fonksiyon'] },
+      { id: 'f_korna',         ad: 'Korna',              en: 'Horn',               gruplar: ['fonksiyon'] },
+      { id: 'f_silecek',       ad: 'Silecek / cam yıkama',en: 'Wiper & washer',    gruplar: ['fonksiyon', 'ses'] },
+      { id: 'f_sarj',          ad: 'Şarj işlemi (EV)',   en: 'Charging (EV)',      gruplar: ['fonksiyon'], sadeceEv: true },
+    ],
+  },
+  {
+    id: 'surus', ad: 'Yol testi', en: 'Road test', grup: 'surus', simge: '⇄',
+    parcalar: [
+      { id: 's_guc',         ad: 'Güç aktarma / kalkış', en: 'Powertrain / launch',gruplar: ['fonksiyon', 'ses'] },
+      { id: 's_sanziman',    ad: 'Şanzıman / redüktör',  en: 'Transmission / reducer', gruplar: ['fonksiyon', 'ses'] },
+      { id: 's_fren',        ad: 'Fren',                 en: 'Brakes',             gruplar: ['fonksiyon', 'ses'] },
+      { id: 's_direksiyon',  ad: 'Direksiyon davranışı', en: 'Steering behaviour', gruplar: ['fonksiyon', 'ses'] },
+      { id: 's_suspansiyon', ad: 'Süspansiyon / yol tutuş', en: 'Suspension / ride', gruplar: ['fonksiyon', 'ses'] },
+      { id: 's_rejen',       ad: 'Rejeneratif fren (EV)',en: 'Regenerative braking', gruplar: ['fonksiyon', 'ses'], sadeceEv: true },
+      { id: 's_lastik',      ad: 'Lastik / balans',      en: 'Tyre / balance',     gruplar: ['fonksiyon', 'ses'] },
+      { id: 's_sr',          ad: 'S&R — yolda gıcırtı/tıkırtı', en: 'S&R on road', gruplar: ['ses'] },
+      { id: 's_ruzgar',      ad: 'Yolda rüzgâr sesi',    en: 'Wind noise on road', gruplar: ['ses'] },
+      { id: 's_adas_yol',    ad: 'ADAS yol davranışı',   en: 'ADAS on road',       gruplar: ['fonksiyon'] },
+    ],
+  },
+];
+
+/** Yan panelleri (sol/sağ) üreten şablon — iki bölge olarak açılır. */
+const YAN_PARCALAR = [
+  { id: 'on_camurluk',   ad: 'Ön çamurluk',        en: 'Front fender',        gruplar: DIS_PANEL, mesh: 'on_camurluk' },
+  { id: 'a_diregi',      ad: 'A direği (dış)',     en: 'A pillar (ext.)',     gruplar: DIS_PANEL, mesh: 'a_diregi' },
+  { id: 'on_kapi',       ad: 'Ön kapı',            en: 'Front door',          gruplar: DIS_PANEL, mesh: 'on_kapi' },
+  { id: 'on_kapi_cam',   ad: 'Ön kapı camı',       en: 'Front door glass',    gruplar: CAM_TAKIMI, mesh: 'on_kapi_cam' },
+  { id: 'b_diregi',      ad: 'B direği (dış)',     en: 'B pillar (ext.)',     gruplar: DIS_PANEL, mesh: 'b_diregi' },
+  { id: 'arka_kapi',     ad: 'Arka kapı',          en: 'Rear door',           gruplar: DIS_PANEL, mesh: 'arka_kapi' },
+  { id: 'arka_kapi_cam', ad: 'Arka kapı camı',     en: 'Rear door glass',     gruplar: CAM_TAKIMI, mesh: 'arka_kapi_cam' },
+  { id: 'c_diregi',      ad: 'C direği (dış)',     en: 'C pillar (ext.)',     gruplar: DIS_PANEL, mesh: 'c_diregi' },
+  { id: 'arka_camurluk', ad: 'Arka çamurluk',      en: 'Rear fender / quarter', gruplar: DIS_PANEL, mesh: 'arka_camurluk' },
+  { id: 'marspiyel',     ad: 'Marşpiyel / eşik',   en: 'Rocker / side sill',  gruplar: DIS_PANEL, mesh: 'marspiyel' },
+  { id: 'ayna',          ad: 'Dış dikiz aynası',   en: 'Exterior mirror',     gruplar: [...DIS_PANEL, 'fonksiyon'], mesh: 'ayna' },
+  { id: 'kapi_kolu',     ad: 'Dış kapı kolu',      en: 'Exterior door handle',gruplar: [...DIS_PANEL, 'fonksiyon'] },
+  { id: 'cam_fitili',    ad: 'Cam / kapı fitili',  en: 'Door weatherstrip',   gruplar: ['sizdirmazlik', 'montaj', 'ses'] },
+  { id: 'kapi_cita',     ad: 'Kapı çıtası',        en: 'Door moulding',       gruplar: DIS_PANEL },
+  { id: 'on_jant',       ad: 'Ön jant / lastik',   en: 'Front wheel / tyre',  gruplar: ['yuzey', 'montaj', 'fonksiyon'], mesh: 'jant_on' },
+  { id: 'arka_jant',     ad: 'Arka jant / lastik', en: 'Rear wheel / tyre',   gruplar: ['yuzey', 'montaj', 'fonksiyon'], mesh: 'jant_arka' },
+  { id: 'davlumbaz',     ad: 'Çamurluk davlumbazı',en: 'Wheel arch liner',    gruplar: ['montaj', 'ses'] },
+  { id: 'dolum_kapagi',  ad: 'Yakıt / şarj kapağı',en: 'Fuel / charge lid',   gruplar: [...DIS_PANEL, 'fonksiyon'] },
+];
+
+/** Sol ve sağ yan bölgeleri, ortak şablondan türetilir. */
+function yanBolge(taraf, ad, en, simge) {
+  return {
+    id: `dis_${taraf}`, ad, en, grup: 'dis', simge, taraf,
+    parcalar: YAN_PARCALAR.map((p) => ({
+      ...p, taraf,
+      id: `${taraf}_${p.id}`,
+      mesh: p.mesh ? `${taraf}_${p.mesh}` : undefined,
+    })),
+  };
+}
+
+/** Tam bölge listesi — sol/sağ açılmış, sıralanmış hâli. */
+const BOLGELER = (() => {
+  const liste = HAM_BOLGELER.map((b) => ({ ...b, parcalar: ciftle(b.parcalar) }));
+  const onIndeks = liste.findIndex((b) => b.id === 'dis_arka');
+  liste.splice(onIndeks, 0,
+    yanBolge('sol', 'Dış · Sol yan', 'Exterior · LH side', '◧'),
+    yanBolge('sag', 'Dış · Sağ yan', 'Exterior · RH side', '◨'));
+  return liste;
+})();
+
+/** parcaId -> { ...parca, bolge } hızlı arama tablosu. */
+const PARCA_INDEKS = (() => {
+  const m = {};
+  for (const b of BOLGELER) for (const p of b.parcalar) m[p.id] = { ...p, bolgeId: b.id, bolgeAd: b.ad, bolgeEn: b.en };
+  return m;
+})();
+
+/** Bir parçada seçilebilecek hata tipleri (grubuna göre süzülmüş). */
+function parcaHataTipleri(parcaId) {
+  const p = PARCA_INDEKS[parcaId];
+  if (!p) return [];
+  const izin = new Set(p.gruplar);
+  return HATA_TIPLERI.filter((h) => izin.has(h.grup));
+}
+
+/** Araç tipine (ev/ice) uymayan parçaları eler. */
+function bolgelerAracIcin(arac) {
+  const ev = arac?.tip === 'ev';
+  return BOLGELER.map((b) => ({
+    ...b,
+    parcalar: b.parcalar.filter((p) => (p.sadeceEv ? ev : true) && (p.sadeceIce ? !ev : true)),
+  })).filter((b) => b.parcalar.length > 0);
+}
+
+/**
+ * Hızlı seçim kalıpları — denetçinin en sık gördüğü parça+hata ikilileri.
+ * Tek dokunuşla kayıt açar. Uygulama, kullanım sayacına göre bu listeyi
+ * kendi kendine yeniden sıralar (bkz. depo.js → sikKullanilanlar).
+ */
+const HIZLI_KALIPLAR = [
+  ['sol_arka_kapi', 'gicirti'], ['sag_arka_kapi', 'gicirti'],
+  ['sol_on_kapi', 'gicirti'],   ['sag_on_kapi', 'gicirti'],
+  ['sol_a_garnis', 'gocuk'],    ['sag_a_garnis', 'gocuk'],
+  ['sol_b_garnis', 'oturmamis'],['sag_b_garnis', 'oturmamis'],
+  ['kaput', 'bosluk'],          ['bagaj_kapagi', 'bosluk'],
+  ['on_tampon', 'kademe'],      ['arka_tampon', 'kademe'],
+  ['sol_on_kapi', 'bosluk'],    ['sag_on_kapi', 'bosluk'],
+  ['tavan', 'toz_kir'],         ['kaput', 'toz_kir'],
+  ['sol_arka_camurluk', 'cizik'], ['sag_arka_camurluk', 'cizik'],
+  ['ip_ust', 'tikirti'],        ['orta_konsol', 'tikirti'],
+  ['sol_on_kapi_doseme', 'tikirti'], ['sag_on_kapi_doseme', 'tikirti'],
+  ['tavan_doseme', 'leke'],     ['surucu_koltuk', 'leke'],
+  ['on_cam', 'cam_cizik'],      ['s_sr', 'gicirti'],
+  ['sol_cam_fitili', 'fitil'],  ['sag_cam_fitili', 'fitil'],
+  ['f_multimedya', 'calismiyor'], ['sol_far', 'calismiyor'],
+];
+
+
+/* ===== vin.js ===== */
+// VIN (şasi numarası) ve plaka doğrulama.
+// VIN her zaman 17 karakterdir (ISO 3779). I, O, Q harfleri hiç kullanılmaz —
+// 1, 0 ile karışmasın diye. Barkod okuyucu ya da elle giriş, ikisi de buradan
+// geçer; böylece "yanlış okundu" hatası kaydın en başında yakalanır.
+
+const VIN_UZUNLUK = 17;
+
+/** VIN'de yasak harfler: I, O, Q. */
+const YASAK = /[IOQ]/g;
+
+/** Harf -> sayı çevrimi (ISO 3779 kontrol hanesi hesabı). */
+const HARF_DEGER = {
+  A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8,
+  J: 1, K: 2, L: 3, M: 4, N: 5, P: 7, R: 9,
+  S: 2, T: 3, U: 4, V: 5, W: 6, X: 7, Y: 8, Z: 9,
+};
+
+/** Hane ağırlıkları; 9. hane (kontrol hanesi) 0 ağırlıklıdır. */
+const AGIRLIK = [8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2];
+
+/** Model yılı kodları — I, O, Q, U, Z ve 0 kullanılmaz. 30 yılda bir tekrarlar. */
+const YIL_KODLARI = 'ABCDEFGHJKLMNPRSTVWXY123456789'.split('');
+
+/**
+ * Okunan metni VIN'e çevirir: boşluk/tire atılır, büyütülür ve barkodun
+ * sıkça karıştırdığı karakterler düzeltilir (VIN'de I/O/Q olamayacağı için
+ * bu düzeltme güvenlidir, tahmin değildir).
+ */
+function vinNormalize(ham) {
+  return String(ham ?? '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .replace(/I/g, '1')
+    .replace(/O/g, '0')
+    .replace(/Q/g, '0');
+}
+
+/** ISO 3779 kontrol hanesini hesaplar; 10 sonucu 'X' ile gösterilir. */
+function kontrolHanesi(vin) {
+  let toplam = 0;
+  for (let i = 0; i < VIN_UZUNLUK; i++) {
+    const k = vin[i];
+    const deger = k >= '0' && k <= '9' ? Number(k) : HARF_DEGER[k];
+    if (deger === undefined) return null;
+    toplam += deger * AGIRLIK[i];
+  }
+  const kalan = toplam % 11;
+  return kalan === 10 ? 'X' : String(kalan);
+}
+
+/**
+ * VIN'in 10. hanesinden model yılı. 30 yıllık döngü olduğu için hangi
+ * döngüde olduğumuzu içinde bulunulan yıla göre seçeriz.
+ * @param {string} kod tek karakter
+ * @param {number} buYil
+ */
+function modelYili(kod, buYil = new Date().getFullYear()) {
+  const i = YIL_KODLARI.indexOf(String(kod).toUpperCase());
+  if (i === -1) return null;
+  let yil = 1980 + i;
+  while (yil + 30 <= buYil + 1) yil += 30;
+  return yil;
+}
+
+/**
+ * Üretici ön eki (WMI) için okunabilir ad.
+ * DİKKAT: bu tablo bilgi amaçlıdır, resmî SAE/ISO kaydından doğrulanmamıştır.
+ * Ayarlar ekranından düzenlenebilir; hiçbir kararı tek başına bağlamaz.
+ */
+const WMI_IPUCU = {
+  NLH: 'Hyundai Assan — Türkiye (doğrulayın)',
+  TMA: 'Hyundai — Çekya (doğrulayın)',
+  KMH: 'Hyundai — Kore (doğrulayın)',
+  NMT: 'Toyota — Türkiye (doğrulayın)',
+  VF1: 'Renault — Fransa (doğrulayın)',
+};
+
+/**
+ * VIN'i doğrular.
+ * @returns {{gecerli:boolean, vin:string, hatalar:string[], uyarilar:string[], bilgi:object}}
+ */
+function vinDogrula(ham) {
+  const vin = vinNormalize(ham);
+  const hatalar = [];
+  const uyarilar = [];
+
+  if (vin.length === 0) {
+    hatalar.push('Şasi numarası boş.');
+  } else if (vin.length !== VIN_UZUNLUK) {
+    hatalar.push(`Şasi numarası ${VIN_UZUNLUK} karakter olmalı — ${vin.length} karakter okundu.`);
+  }
+  if (YASAK.test(vin)) {
+    YASAK.lastIndex = 0;
+    hatalar.push('VIN içinde I, O veya Q harfi bulunamaz.');
+  }
+
+  const bilgi = {};
+  if (hatalar.length === 0) {
+    bilgi.wmi = vin.slice(0, 3);
+    bilgi.uretici = WMI_IPUCU[bilgi.wmi] ?? null;
+    bilgi.govde = vin.slice(3, 9);
+    bilgi.yilKodu = vin[9];
+    bilgi.modelYili = modelYili(vin[9]);
+    bilgi.fabrikaKodu = vin[10];
+    bilgi.seriNo = vin.slice(11);
+
+    const beklenen = kontrolHanesi(vin);
+    bilgi.kontrolHanesi = vin[8];
+    bilgi.beklenenKontrolHanesi = beklenen;
+    bilgi.kontrolHanesiUyuyor = beklenen !== null && beklenen === vin[8];
+    // Avrupa'da üretilen bazı araçlarda 9. hane kontrol hanesi DEĞİLDİR.
+    // Bu yüzden uyuşmazlık kaydı engellemez, yalnız uyarır.
+    if (!bilgi.kontrolHanesiUyuyor) {
+      uyarilar.push(`Kontrol hanesi uyuşmuyor (okunan "${vin[8]}", hesaplanan "${beklenen}"). Avrupa üretimi araçlarda bu hane kontrol hanesi olmayabilir; yine de barkodu bir kez daha okutun.`);
+    }
+    if (bilgi.modelYili === null) {
+      uyarilar.push('10. hane geçerli bir model yılı kodu değil.');
+    }
+  }
+
+  return { gecerli: hatalar.length === 0, vin, hatalar, uyarilar, bilgi };
+}
+
+// --- PLAKA ---------------------------------------------------------------
+// Fabrika denetiminde araçların çoğunda plaka olmaz; bu alan zorunlu değildir.
+// Türk plakası girilirse biçim kontrol edilir, uymayan giriş ENGELLENMEZ,
+// yalnızca uyarı verilir (ihracat/geçici plaka olabilir).
+
+const PLAKA_DESEN = /^(0[1-9]|[1-7]\d|8[01])([A-Z]{1,3})(\d{2,5})$/;
+
+function plakaNormalize(ham) {
+  return String(ham ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+    .replace(/İ/g, 'I').replace(/Ş/g, 'S').replace(/Ğ/g, 'G')
+    .replace(/Ü/g, 'U').replace(/Ö/g, 'O').replace(/Ç/g, 'C');
+}
+
+/**
+ * Türk plakasını biçimlendirir ve doğrular.
+ * Kural: 1 harf -> 4-5 rakam, 2 harf -> 3-4 rakam, 3 harf -> 2 rakam.
+ */
+function plakaDogrula(ham) {
+  const p = plakaNormalize(ham);
+  if (!p) return { gecerli: true, plaka: '', bicimli: '', uyarilar: [] };
+
+  const m = PLAKA_DESEN.exec(p);
+  if (!m) {
+    return { gecerli: false, plaka: p, bicimli: p, uyarilar: ['Türk plaka biçimine uymuyor (örn. 41 ABC 12). Geçici veya ihracat plakasıysa olduğu gibi bırakabilirsiniz.'] };
+  }
+  const [, il, harf, rakam] = m;
+  const izinli = { 1: [4, 5], 2: [3, 4], 3: [2, 2] }[harf.length];
+  const uyarilar = [];
+  if (rakam.length < izinli[0] || rakam.length > izinli[1]) {
+    uyarilar.push(`${harf.length} harfli plakada ${izinli[0]}${izinli[0] === izinli[1] ? '' : '-' + izinli[1]} rakam beklenir.`);
+  }
+  return { gecerli: uyarilar.length === 0, plaka: p, bicimli: `${il} ${harf} ${rakam}`, il, uyarilar };
+}
+
+
+/* ===== zip.js ===== */
+// Küçük ZIP yazıcı — dış bağımlılık YOK.
+// XLSX aslında içinde XML dosyaları olan bir ZIP arşividir. Excel, sıkıştırılmamış
+// ("store", yöntem 0) girdileri sorunsuz açar; bu yüzden deflate uygulamıyoruz.
+// Fotoğraflar zaten JPEG olarak sıkıştırılmış geldiği için kayıp da yok.
+
+/** CRC-32 tablosu (IEEE 802.3 polinomu, tersine çevrilmiş 0xEDB88320). */
+const CRC_TABLO = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(bayt) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bayt.length; i++) c = CRC_TABLO[(c ^ bayt[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+const KODLAYICI = new TextEncoder();
+
+/** Tarihi DOS zaman/tarih ikilisine çevirir (ZIP başlığı böyle ister). */
+function dosTarih(d) {
+  const yil = Math.max(1980, d.getFullYear());
+  return {
+    zaman: (d.getHours() << 11) | (d.getMinutes() << 5) | (Math.floor(d.getSeconds() / 2)),
+    tarih: ((yil - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(),
+  };
+}
+
+class Yazici {
+  constructor() { this.parcalar = []; this.uzunluk = 0; }
+  ekle(u8) { this.parcalar.push(u8); this.uzunluk += u8.length; }
+  u16(v) { const b = new Uint8Array(2); b[0] = v & 0xFF; b[1] = (v >>> 8) & 0xFF; this.ekle(b); }
+  u32(v) { const b = new Uint8Array(4); b[0] = v & 0xFF; b[1] = (v >>> 8) & 0xFF; b[2] = (v >>> 16) & 0xFF; b[3] = (v >>> 24) & 0xFF; this.ekle(b); }
+  topla() {
+    const cikti = new Uint8Array(this.uzunluk);
+    let o = 0;
+    for (const p of this.parcalar) { cikti.set(p, o); o += p.length; }
+    return cikti;
+  }
+}
+
+/**
+ * Dosya listesinden ZIP arşivi üretir.
+ * @param {{ad:string, veri:Uint8Array|string}[]} dosyalar
+ * @param {Date} [tarih]
+ * @returns {Uint8Array}
+ */
+function zipOlustur(dosyalar, tarih = new Date()) {
+  const { zaman, tarih: dtarih } = dosTarih(tarih);
+  const z = new Yazici();
+  const merkez = [];
+
+  for (const d of dosyalar) {
+    const ad = KODLAYICI.encode(d.ad);
+    const veri = typeof d.veri === 'string' ? KODLAYICI.encode(d.veri) : d.veri;
+    const kontrol = crc32(veri);
+    const konum = z.uzunluk;
+
+    // Yerel dosya başlığı
+    z.u32(0x04034b50);
+    z.u16(20);      // çıkarmak için gereken sürüm
+    z.u16(0x0800);  // bayrak: dosya adı UTF-8
+    z.u16(0);       // yöntem: store
+    z.u16(zaman); z.u16(dtarih);
+    z.u32(kontrol); z.u32(veri.length); z.u32(veri.length);
+    z.u16(ad.length); z.u16(0);
+    z.ekle(ad);
+    z.ekle(veri);
+
+    merkez.push({ ad, kontrol, boyut: veri.length, konum });
+  }
+
+  const merkezBasi = z.uzunluk;
+  for (const m of merkez) {
+    z.u32(0x02014b50);
+    z.u16(20); z.u16(20);
+    z.u16(0x0800); z.u16(0);
+    z.u16(zaman); z.u16(dtarih);
+    z.u32(m.kontrol); z.u32(m.boyut); z.u32(m.boyut);
+    z.u16(m.ad.length); z.u16(0); z.u16(0);
+    z.u16(0); z.u16(0); z.u32(0);
+    z.u32(m.konum);
+    z.ekle(m.ad);
+  }
+  const merkezBoyu = z.uzunluk - merkezBasi;
+
+  // Merkezî dizin sonu kaydı
+  z.u32(0x06054b50);
+  z.u16(0); z.u16(0);
+  z.u16(merkez.length); z.u16(merkez.length);
+  z.u32(merkezBoyu); z.u32(merkezBasi);
+  z.u16(0);
+
+  return z.topla();
+}
+
+
+/* ===== goruntu.js ===== */
+// Görüntü yardımcıları: boyut okuma (Excel'e gömerken en/boy oranı için şart)
+// ve tarayıcı tarafında küçültme (30 fotoğraflı bir denetim 150 MB olmasın diye).
+
+/**
+ * PNG / JPEG baytlarından piksel ölçüsünü okur. Tarayıcı API'sine ihtiyaç
+ * duymaz, bu yüzden testte de çalışır.
+ * @returns {{en:number, boy:number, tur:'png'|'jpeg'}|null}
+ */
+function goruntuBoyutu(bayt) {
+  if (!bayt || bayt.length < 24) return null;
+
+  // PNG: 8 baytlık imza + IHDR (en/boy 16. bayttan itibaren, big-endian)
+  if (bayt[0] === 0x89 && bayt[1] === 0x50 && bayt[2] === 0x4E && bayt[3] === 0x47) {
+    const g = (i) => (bayt[i] << 24 | bayt[i + 1] << 16 | bayt[i + 2] << 8 | bayt[i + 3]) >>> 0;
+    return { en: g(16), boy: g(20), tur: 'png' };
+  }
+
+  // JPEG: SOI'den sonra bölümleri atlayarak SOFn işaretini bul
+  if (bayt[0] === 0xFF && bayt[1] === 0xD8) {
+    let i = 2;
+    while (i + 9 < bayt.length) {
+      if (bayt[i] !== 0xFF) { i++; continue; }
+      const im = bayt[i + 1];
+      if (im === 0xD8 || im === 0x01 || (im >= 0xD0 && im <= 0xD7)) { i += 2; continue; }
+      const uzunluk = (bayt[i + 2] << 8) | bayt[i + 3];
+      // SOF0..SOF15 (DHT=C4, JPG=C8, DAC=CC hariç) çerçeve boyutunu taşır
+      const sof = im >= 0xC0 && im <= 0xCF && im !== 0xC4 && im !== 0xC8 && im !== 0xCC;
+      if (sof) {
+        return { boy: (bayt[i + 5] << 8) | bayt[i + 6], en: (bayt[i + 7] << 8) | bayt[i + 8], tur: 'jpeg' };
+      }
+      if (uzunluk < 2) return null;
+      i += 2 + uzunluk;
+    }
+  }
+  return null;
+}
+
+/** MIME türünü baytlardan çıkarır (Excel ilişkisinde uzantı doğru olmalı). */
+function goruntuTuru(bayt) {
+  const b = goruntuBoyutu(bayt);
+  return b ? (b.tur === 'png' ? 'image/png' : 'image/jpeg') : 'application/octet-stream';
+}
+
+/**
+ * Tarayıcıda fotoğrafı küçültür ve JPEG'e çevirir.
+ * Telefon kamerası 4000x3000 üretir; 30 hatalı bir denetimde bu 150 MB'lık
+ * bir Excel demektir. 1600 px uzun kenar, denetim fotoğrafı için fazlasıyla
+ * yeterli ve dosyayı ~40 kat küçültür.
+ * @param {Blob} blob
+ * @param {number} [enFazla] uzun kenar (piksel)
+ * @param {number} [kalite] 0-1
+ * @returns {Promise<{blob:Blob, en:number, boy:number}>}
+ */
+async function fotografKucult(blob, enFazla = 1600, kalite = 0.82) {
+  const bitmap = await createImageBitmap(blob);
+  const oran = Math.min(1, enFazla / Math.max(bitmap.width, bitmap.height));
+  const en = Math.max(1, Math.round(bitmap.width * oran));
+  const boy = Math.max(1, Math.round(bitmap.height * oran));
+
+  const tuval = typeof OffscreenCanvas !== 'undefined'
+    ? new OffscreenCanvas(en, boy)
+    : Object.assign(document.createElement('canvas'), { width: en, height: boy });
+  const ctx = tuval.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0, en, boy);
+  bitmap.close?.();
+
+  const kucuk = tuval.convertToBlob
+    ? await tuval.convertToBlob({ type: 'image/jpeg', quality: kalite })
+    : await new Promise((c) => tuval.toBlob(c, 'image/jpeg', kalite));
+  return { blob: kucuk, en, boy };
+}
+
+
+/* ===== xlsx.js ===== */
+// XLSX (Excel) yazıcı — dış bağımlılık YOK.
+// Excel'in .xlsx dosyası, içinde XML bulunan bir ZIP'tir. Burada yalnız
+// ihtiyacımız olan parçaları üretiyoruz: biçimler, sayfalar ve GÖMÜLÜ GÖRSEL.
+// Fotoğrafın hatanın yanındaki hücreye oturması bu dosyanın çizim (drawing)
+// bölümüyle olur; Excel açıldığında fotoğraf gerçekten dosyanın içindedir,
+// bağlantı değildir — dosyayı e-postayla göndermek yeter.
+
+
+
+const EMU_PIKSEL = 9525;      // 1 piksel = 9525 EMU
+const PUAN_PIKSEL = 96 / 72;  // 1 punto = 1.333 piksel
+
+// XML 1.0'da yasak olan denetim karakterleri. Bunlar dosyaya sızarsa Excel
+// dosyayı "bozuk" sayıp açmayı reddeder — barkod okuyucular ara sıra üretir.
+const YASAK_DENETIM = new RegExp('[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]', 'g');
+
+function xmlKacis(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+    .replace(YASAK_DENETIM, '');
+}
+
+/** 0 tabanlı sütun numarasını Excel harfine çevirir: 0 -> A, 26 -> AA */
+function sutunAdi(i) {
+  let s = '';
+  for (let n = i + 1; n > 0; n = Math.floor((n - 1) / 26)) {
+    s = String.fromCharCode(65 + ((n - 1) % 26)) + s;
+  }
+  return s;
+}
+
+function hucreAdi(satir, sutun) { return `${sutunAdi(sutun)}${satir + 1}`; }
+
+// --- BİÇİMLER -------------------------------------------------------------
+// Dizideki sıra, hücrelerin `stil` numarasıdır. Değiştirirseniz aşağıdaki
+// cellXfs listesini de aynı sırada güncelleyin.
+const STIL = {
+  NORMAL: 0, BASLIK: 1, GOVDE: 2, BASLIK_BUYUK: 3, ETIKET: 4,
+  SIDDET_A: 5, SIDDET_B: 6, SIDDET_C: 7, SAYI: 8, TARIH: 9, SOLUK: 10, GOVDE_ORTA: 11,
+};
+
+const STILLER_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="dd\\.mm\\.yyyy\\ hh:mm"/></numFmts>
+<fonts count="6">
+<font><sz val="10"/><color theme="1"/><name val="Calibri"/></font>
+<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
+<font><b/><sz val="14"/><color rgb="FF101828"/><name val="Calibri"/></font>
+<font><b/><sz val="10"/><color rgb="FF101828"/><name val="Calibri"/></font>
+<font><sz val="9"/><color rgb="FF667085"/><name val="Calibri"/></font>
+<font><b/><sz val="10"/><color rgb="FF7A271A"/><name val="Calibri"/></font>
+</fonts>
+<fills count="7">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF1D4ED8"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFEE4E2"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFEF0C7"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFEFBE8"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF2F4F7"/><bgColor indexed="64"/></patternFill></fill>
+</fills>
+<borders count="2">
+<border><left/><right/><top/><bottom/><diagonal/></border>
+<border>
+<left style="thin"><color rgb="FFD0D5DD"/></left><right style="thin"><color rgb="FFD0D5DD"/></right>
+<top style="thin"><color rgb="FFD0D5DD"/></top><bottom style="thin"><color rgb="FFD0D5DD"/></bottom><diagonal/>
+</border>
+</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="12">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
+<xf numFmtId="0" fontId="5" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf>
+</cellXfs>
+</styleSheet>`;
+
+// --- SAYFA ÜRETİMİ --------------------------------------------------------
+
+function hucreXml(satirNo, sutunNo, hucre) {
+  if (hucre === null || hucre === undefined || hucre === '') return '';
+  const nesne = typeof hucre === 'object';
+  const v = nesne ? hucre.v : hucre;
+  const stil = nesne ? (hucre.stil ?? 0) : 0;
+  const ref = hucreAdi(satirNo, sutunNo);
+  const s = stil ? ` s="${stil}"` : '';
+
+  if (v === null || v === undefined || v === '') return `<c r="${ref}"${s}/>`;
+  if (typeof v === 'number' && Number.isFinite(v)) return `<c r="${ref}"${s}><v>${v}</v></c>`;
+  if (typeof v === 'boolean') return `<c r="${ref}"${s} t="b"><v>${v ? 1 : 0}</v></c>`;
+  // Baştaki/sondaki boşluğun korunması için xml:space="preserve" şart
+  return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xmlKacis(v)}</t></is></c>`;
+}
+
+/**
+ * Tek sayfanın XML'ini üretir.
+ * @param {object} sayfa
+ * @param {boolean} cizimVar sayfada gömülü görsel var mı
+ */
+function sayfaXml(sayfa, cizimVar) {
+  const satirlar = sayfa.satirlar ?? [];
+  const yukseklikler = sayfa.satirYukseklikleri ?? {};
+
+  let govde = '';
+  for (let r = 0; r < satirlar.length; r++) {
+    const hucreler = satirlar[r] ?? [];
+    let ic = '';
+    for (let c = 0; c < hucreler.length; c++) ic += hucreXml(r, c, hucreler[c]);
+    const h = yukseklikler[r];
+    const hAttr = h ? ` ht="${h}" customHeight="1"` : '';
+    if (!ic && !hAttr) continue;
+    govde += `<row r="${r + 1}"${hAttr}>${ic}</row>`;
+  }
+
+  const sutunlar = (sayfa.sutunGenislikleri ?? []).map((g, i) =>
+    g ? `<col min="${i + 1}" max="${i + 1}" width="${g}" customWidth="1"/>` : '').join('');
+
+  const dondur = sayfa.dondur
+    ? `<pane xSplit="${sayfa.dondur.sutun ?? 0}" ySplit="${sayfa.dondur.satir ?? 0}" topLeftCell="${hucreAdi(sayfa.dondur.satir ?? 0, sayfa.dondur.sutun ?? 0)}" activePane="bottomRight" state="frozen"/>`
+    : '';
+
+  const birlesik = (sayfa.birlesikler ?? []).length
+    ? `<mergeCells count="${sayfa.birlesikler.length}">${sayfa.birlesikler.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>`
+    : '';
+
+  const filtre = sayfa.filtre ? `<autoFilter ref="${sayfa.filtre}"/>` : '';
+  const sonSutun = Math.max(0, (sayfa.sutunGenislikleri?.length ?? 1) - 1);
+  const boyutlar = satirlar.length
+    ? `<dimension ref="A1:${hucreAdi(satirlar.length - 1, sonSutun)}"/>`
+    : '<dimension ref="A1"/>';
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+${boyutlar}
+<sheetViews><sheetView workbookViewId="0"${sayfa.ilkSayfa ? ' tabSelected="1"' : ''}>${dondur}</sheetView></sheetViews>
+<sheetFormatPr defaultRowHeight="15"/>
+${sutunlar ? `<cols>${sutunlar}</cols>` : ''}
+<sheetData>${govde}</sheetData>
+${filtre}${birlesik}
+<pageMargins left="0.4" right="0.4" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>
+<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>
+${cizimVar ? '<drawing r:id="rIdDrawing"/>' : ''}
+</worksheet>`;
+}
+
+/** Gömülü görsellerin yerleşim XML'i (her görsel kendi hücresine oturur). */
+function cizimXml(gorseller) {
+  const parcalar = gorseller.map((g, i) => {
+    const cx = Math.round(g.gosterEn * EMU_PIKSEL);
+    const cy = Math.round(g.gosterBoy * EMU_PIKSEL);
+    const kayma = Math.round((g.xKayma ?? 0) * EMU_PIKSEL);
+    return `<xdr:oneCellAnchor>
+<xdr:from><xdr:col>${g.sutun}</xdr:col><xdr:colOff>${kayma + 19050}</xdr:colOff><xdr:row>${g.satir}</xdr:row><xdr:rowOff>19050</xdr:rowOff></xdr:from>
+<xdr:ext cx="${cx}" cy="${cy}"/>
+<xdr:pic>
+<xdr:nvPicPr><xdr:cNvPr id="${i + 2}" name="${xmlKacis(g.ad ?? `Fotograf ${i + 1}`)}" descr="${xmlKacis(g.aciklama ?? '')}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>
+<xdr:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId${i + 1}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>
+<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>
+</xdr:pic>
+<xdr:clientData/>
+</xdr:oneCellAnchor>`;
+  }).join('');
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">${parcalar}</xdr:wsDr>`;
+}
+
+/** Sayfa adındaki Excel'in kabul etmediği karakterleri temizler. */
+function sayfaAdiTemizle(ad) {
+  return String(ad).replace(/[\\/?*[\]:]/g, '-').slice(0, 31) || 'Sayfa';
+}
+
+/**
+ * Görselin hücre içinde kaplayacağı ölçüyü hesaplar (en/boy oranı korunur).
+ * @returns {{en:number, boy:number}} piksel
+ */
+function gosterimOlcusu(bayt, enFazlaEn = 150, enFazlaBoy = 110) {
+  const b = goruntuBoyutu(bayt);
+  if (!b || !b.en || !b.boy) return { en: enFazlaEn, boy: enFazlaBoy };
+  const oran = Math.min(enFazlaEn / b.en, enFazlaBoy / b.boy);
+  return { en: Math.max(1, Math.round(b.en * oran)), boy: Math.max(1, Math.round(b.boy * oran)) };
+}
+
+/**
+ * Çalışma kitabını üretir.
+ * @param {object[]} sayfalar
+ * @param {{baslik?:string, yazar?:string, tarih?:Date}} [ustVeri]
+ * @returns {Uint8Array}
+ */
+function xlsxOlustur(sayfalar, ustVeri = {}) {
+  const tarih = ustVeri.tarih ?? new Date();
+  const dosyalar = [];
+  const icerikTurleri = [];
+  const kitapSayfalari = [];
+  const kitapIliski = [];
+
+  let gorselSayaci = 0;
+
+  sayfalar.forEach((sayfa, i) => {
+    const no = i + 1;
+    const gorseller = sayfa.gorseller ?? [];
+    const cizimVar = gorseller.length > 0;
+
+    dosyalar.push({ ad: `xl/worksheets/sheet${no}.xml`, veri: sayfaXml({ ...sayfa, ilkSayfa: i === 0 }, cizimVar) });
+    icerikTurleri.push(`<Override PartName="/xl/worksheets/sheet${no}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`);
+    kitapSayfalari.push(`<sheet name="${xmlKacis(sayfaAdiTemizle(sayfa.ad))}" sheetId="${no}" r:id="rId${no}"/>`);
+    kitapIliski.push(`<Relationship Id="rId${no}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${no}.xml"/>`);
+
+    if (!cizimVar) return;
+
+    const medyaIliskileri = [];
+    gorseller.forEach((g, gi) => {
+      gorselSayaci += 1;
+      const png = goruntuBoyutu(g.veri)?.tur === 'png';
+      const medyaAd = `image${gorselSayaci}.${png ? 'png' : 'jpg'}`;
+      dosyalar.push({ ad: `xl/media/${medyaAd}`, veri: g.veri });
+      medyaIliskileri.push(`<Relationship Id="rId${gi + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${medyaAd}"/>`);
+    });
+
+    dosyalar.push({ ad: `xl/drawings/drawing${no}.xml`, veri: cizimXml(gorseller) });
+    dosyalar.push({
+      ad: `xl/drawings/_rels/drawing${no}.xml.rels`,
+      veri: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${medyaIliskileri.join('')}</Relationships>`,
+    });
+    dosyalar.push({
+      ad: `xl/worksheets/_rels/sheet${no}.xml.rels`,
+      veri: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdDrawing" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing${no}.xml"/></Relationships>`,
+    });
+    icerikTurleri.push(`<Override PartName="/xl/drawings/drawing${no}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`);
+  });
+
+  dosyalar.unshift(
+    {
+      ad: '[Content_Types].xml',
+      veri: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="jpg" ContentType="image/jpeg"/>
+<Default Extension="jpeg" ContentType="image/jpeg"/>
+<Default Extension="png" ContentType="image/png"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+${icerikTurleri.join('\n')}
+</Types>`,
+    },
+    {
+      ad: '_rels/.rels',
+      veri: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>`,
+    },
+    {
+      ad: 'docProps/core.xml',
+      veri: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<dc:title>${xmlKacis(ustVeri.baslik ?? 'Arac Denetim Raporu')}</dc:title>
+<dc:creator>${xmlKacis(ustVeri.yazar ?? 'Arac Audit')}</dc:creator>
+<cp:lastModifiedBy>${xmlKacis(ustVeri.yazar ?? 'Arac Audit')}</cp:lastModifiedBy>
+<dcterms:created xsi:type="dcterms:W3CDTF">${tarih.toISOString()}</dcterms:created>
+<dcterms:modified xsi:type="dcterms:W3CDTF">${tarih.toISOString()}</dcterms:modified>
+</cp:coreProperties>`,
+    },
+    {
+      ad: 'docProps/app.xml',
+      veri: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Arac Audit</Application></Properties>`,
+    },
+    { ad: 'xl/styles.xml', veri: STILLER_XML },
+    {
+      ad: 'xl/workbook.xml',
+      veri: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets>${kitapSayfalari.join('')}</sheets></workbook>`,
+    },
+    {
+      ad: 'xl/_rels/workbook.xml.rels',
+      veri: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${kitapIliski.join('')}
+<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`,
+    },
+  );
+
+  return zipOlustur(dosyalar, tarih);
+}
+
+/** Piksel yüksekliğini Excel satır yüksekliğine (punto) çevirir. */
+function pikselPunto(piksel) { return Math.round((piksel / PUAN_PIKSEL) * 10) / 10; }
+
+
+/* ===== model3d.js ===== */
+// 3B ARAÇ MODELİ — dış kütüphane YOK (three.js vb. yok).
+//
+// NE OLDUĞU KONUSUNDA DÜRÜST OLALIM: bunlar üreticinin CAD verisi değildir.
+// Araçların dış ölçülerinden (uzunluk/genişlik/yükseklik/dingil mesafesi)
+// türetilmiş ŞEMATİK modellerdir. Amaç güzel bir render değil, denetçinin
+// "sol arka kapı" yerine dokunup hatayı oraya yazabilmesidir. Her yüzeyin bir
+// `mesh` kimliği vardır ve bu kimlik katalog.js'teki parça kimliğiyle birebir
+// eşleşir.
+//
+// Motor: perspektif izdüşüm + ressam algoritması (derinliğe göre sıralayıp
+// arkadan öne çizme) + düz gölgeleme. Dokunma isabeti, izdüşürülmüş çokgende
+// nokta testi ile bulunur; yani ekranda ne görüyorsanız ona dokunursunuz.
+
+/**
+ * Araç ölçüleri.
+ *
+ * ÖLÇÜ KAYNAĞI — bu ayrım önemli:
+ *  - i20 ve BAYON: kamuya açık teknik veriden alınan YAKLAŞIK değerlerdir,
+ *    üretici belgesinden doğrulanmadı. Şematik model için yeterli.
+ *  - IONIQ 3: piyasaya çıkmamış bir araç. Buradaki ölçüler YER TUTUCUDUR,
+ *    hiçbir kaynaktan ölçülmemiştir. Fotoğrafları/ölçüleri iletince
+ *    düzeltilecek. `olcuDogrulandi: false` bunu uygulamada da görünür kılar.
+ */
+const ARACLAR = [
+  {
+    id: 'ioniq3', ad: 'IONIQ 3', tam: 'Hyundai IONIQ 3', tip: 'ev',
+    renk: '#8FA6C4', olcuDogrulandi: false,
+    not: 'Ölçüler yer tutucudur — araç fotoğrafları/teknik verisi gelince güncellenecek.',
+    uzunluk: 4300, genislik: 1820, yukseklik: 1560, dingil: 2700, tekerR: 340,
+    onSarkma: 800, arkaSarkma: 800,
+    // Yüksek gövdeli, dik burunlu elektrikli crossover oranı
+    ustHat: [
+      { x: 2150, y: 480, parca: 'on_tampon',    z: 0.44 },
+      { x: 2120, y: 800, parca: 'on_tampon',    z: 0.46 },
+      { x: 2020, y: 980, parca: 'on_izgara',    z: 0.46 },
+      { x: 1820, y: 1080, parca: 'kaput',       z: 0.47 },
+      { x: 1180, y: 1120, parca: 'kaput',       z: 0.47 },
+      { x: 560,  y: 1500, parca: 'on_cam',      z: 0.43 },
+      { x: 330,  y: 1560, parca: 'tavan',       z: 0.42 },
+      { x: -960, y: 1545, parca: 'tavan',       z: 0.42 },
+      { x: -1420, y: 1400, parca: 'arka_cam',   z: 0.43 },
+      { x: -1750, y: 1120, parca: 'bagaj_kapagi', z: 0.45 },
+      { x: -2080, y: 830, parca: 'bagaj_kapagi', z: 0.46 },
+      { x: -2150, y: 480, parca: 'arka_tampon', z: 0.44 },
+    ],
+    belY: 1010, esikY: 430,
+    kapiX: { onBas: 1120, orta: -140, arkaSon: -1250 },
+  },
+  {
+    id: 'i20', ad: 'i20', tam: 'Hyundai i20', tip: 'ice',
+    renk: '#C9CED6', olcuDogrulandi: false,
+    not: 'Ölçüler kamuya açık teknik veriden yaklaşık alındı; üretici belgesinden doğrulanmadı.',
+    uzunluk: 4040, genislik: 1775, yukseklik: 1450, dingil: 2580, tekerR: 315,
+    onSarkma: 830, arkaSarkma: 630,
+    ustHat: [
+      { x: 2020, y: 430, parca: 'on_tampon',    z: 0.43 },
+      { x: 1990, y: 720, parca: 'on_tampon',    z: 0.45 },
+      { x: 1900, y: 850, parca: 'on_izgara',    z: 0.45 },
+      { x: 1700, y: 950, parca: 'kaput',        z: 0.46 },
+      { x: 1080, y: 1030, parca: 'kaput',       z: 0.46 },
+      { x: 400,  y: 1400, parca: 'on_cam',      z: 0.42 },
+      { x: 180,  y: 1450, parca: 'tavan',       z: 0.41 },
+      { x: -820, y: 1430, parca: 'tavan',       z: 0.41 },
+      { x: -1280, y: 1300, parca: 'arka_cam',   z: 0.42 },
+      { x: -1660, y: 1020, parca: 'bagaj_kapagi', z: 0.44 },
+      { x: -1900, y: 760, parca: 'bagaj_kapagi', z: 0.45 },
+      { x: -1960, y: 430, parca: 'arka_tampon', z: 0.43 },
+    ],
+    belY: 930, esikY: 390,
+    kapiX: { onBas: 1000, orta: -180, arkaSon: -1150 },
+  },
+  {
+    id: 'bayon', ad: 'BAYON', tam: 'Hyundai BAYON', tip: 'ice',
+    renk: '#B7C3CE', olcuDogrulandi: false,
+    not: 'Ölçüler kamuya açık teknik veriden yaklaşık alındı; üretici belgesinden doğrulanmadı.',
+    uzunluk: 4180, genislik: 1775, yukseklik: 1500, dingil: 2580, tekerR: 325,
+    onSarkma: 830, arkaSarkma: 770,
+    ustHat: [
+      { x: 2090, y: 470, parca: 'on_tampon',    z: 0.43 },
+      { x: 2060, y: 760, parca: 'on_tampon',    z: 0.45 },
+      { x: 1960, y: 900, parca: 'on_izgara',    z: 0.45 },
+      { x: 1760, y: 1010, parca: 'kaput',       z: 0.46 },
+      { x: 1120, y: 1080, parca: 'kaput',       z: 0.46 },
+      { x: 440,  y: 1450, parca: 'on_cam',      z: 0.42 },
+      { x: 210,  y: 1500, parca: 'tavan',       z: 0.41 },
+      { x: -880, y: 1475, parca: 'tavan',       z: 0.41 },
+      { x: -1340, y: 1330, parca: 'arka_cam',   z: 0.42 },
+      { x: -1740, y: 1060, parca: 'bagaj_kapagi', z: 0.44 },
+      { x: -2030, y: 790, parca: 'bagaj_kapagi', z: 0.45 },
+      { x: -2090, y: 470, parca: 'arka_tampon', z: 0.43 },
+    ],
+    belY: 960, esikY: 410,
+    kapiX: { onBas: 1040, orta: -170, arkaSon: -1180 },
+  },
+];
+
+const ARAC_INDEKS = Object.fromEntries(ARACLAR.map((a) => [a.id, a]));
+
+// --- GEOMETRİ YARDIMCILARI -------------------------------------------------
+
+const CAM_RENK = '#334155B3';  // yarı saydam: kabin sezilsin ama araç "içi görünür" olmasın
+const LASTIK = '#23262B';
+const JANT = '#9AA3AE';
+const LAMBA_ON = '#E8EEF5';
+const LAMBA_ARKA = '#C0392B';
+const KARA_PLASTIK = '#3A4049';
+
+function yuz(mesh, noktalar, renk, ustunluk = 0) {
+  return { mesh, p: noktalar, renk, ustunluk };
+}
+
+/** ustHat üzerinde verilen x için y ve yarı-genişlik oranını lineer bulur. */
+function hatUzerinde(ustHat, x) {
+  for (let i = 0; i < ustHat.length - 1; i++) {
+    const a = ustHat[i]; const b = ustHat[i + 1];
+    const [ileri, geri] = a.x >= b.x ? [a, b] : [b, a];
+    if (x <= ileri.x && x >= geri.x) {
+      const t = ileri.x === geri.x ? 0 : (x - geri.x) / (ileri.x - geri.x);
+      return { y: geri.y + (ileri.y - geri.y) * t, z: geri.z + (ileri.z - geri.z) * t };
+    }
+  }
+  const son = x > ustHat[0].x ? ustHat[0] : ustHat[ustHat.length - 1];
+  return { y: son.y, z: son.z };
+}
+
+/**
+ * Verilen x'te yan gövdenin üst kenarı: kapı bölgesinde cam düzlemi (camlar
+ * gövdeden bir tık içeride), dışında ise sac panelin bel hattı.
+ */
+function yanNokta(arac, x) {
+  const W = arac.genislik / 2;
+  const kapiIcinde = x <= arac.kapiX.onBas && x >= arac.kapiX.arkaSon;
+  const hat = hatUzerinde(arac.ustHat, x);
+  return kapiIcinde
+    ? { y: Math.max(arac.belY, hat.y - 45), z: W * 0.97 }
+    : { y: Math.min(hat.y, arac.belY), z: W };
+}
+
+/** Silindir (tekerlek) yüzeyleri. */
+function tekerlek(meshId, x, r, z, kalinlik, dilim = 16) {
+  const yuzler = [];
+  // İç yüz HER ZAMAN gövde merkezine doğru gitmeli. İşareti z'den alırsak
+  // sağ taraf (z<0) için kalınlık dışa taşar ve tekerlek gövdenin dışında
+  // havada durur — 15.09.2026 ekran incelemesinde bu görüldü.
+  const dis = z;
+  const ic = z - Math.sign(z) * Math.abs(kalinlik);
+  const halka = [];
+  for (let i = 0; i < dilim; i++) {
+    const a = (i / dilim) * Math.PI * 2;
+    halka.push([x + Math.cos(a) * r, r + Math.sin(a) * r]);
+  }
+  // Dış yüz (jant görünümü) — ustunluk VERME: sıralamayı bozup gövdenin
+  // üstüne biner. Derinlik doğal sırasına bırakılır.
+  yuzler.push(yuz(meshId, halka.map(([px, py]) => [px, py, dis]), JANT));
+  // Sırt (lastik bandı)
+  for (let i = 0; i < dilim; i++) {
+    const [x1, y1] = halka[i]; const [x2, y2] = halka[(i + 1) % dilim];
+    yuzler.push(yuz(meshId, [[x1, y1, dis], [x2, y2, dis], [x2, y2, ic], [x1, y1, ic]], LASTIK));
+  }
+  // Küçük göbek
+  const gobek = halka.filter((_, i) => i % 2 === 0).map(([px, py]) => [x + (px - x) * 0.38, r + (py - r) * 0.38, dis + Math.sign(z) * 10]);
+  yuzler.push(yuz(meshId, gobek, '#6B7280'));
+  return yuzler;
+}
+
+function kutu(meshId, [x0, y0, z0], [dx, dy, dz], renk) {
+  const x1 = x0 + dx, y1 = y0 + dy, z1 = z0 + dz;
+  const k = (a, b, c, d) => yuz(meshId, [a, b, c, d], renk);
+  return [
+    k([x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]), // üst
+    k([x0, y0, z0], [x0, y0, z1], [x1, y0, z1], [x1, y0, z0]), // alt
+    k([x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0]), // ön
+    k([x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]), // arka
+    k([x0, y0, z1], [x0, y1, z1], [x1, y1, z1], [x1, y0, z1]), // sol
+    k([x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]), // sağ
+  ];
+}
+
+// --- DIŞ GÖVDE -------------------------------------------------------------
+
+/** Aracın dış yüzeylerini üretir. */
+function disGeometri(arac) {
+  const { ustHat, belY, esikY, kapiX, renk, genislik, tekerR, dingil } = arac;
+  const W = genislik / 2;
+  const yuzler = [];
+
+  // 1) ÜST KABUK — silüetin her parçası kendi mesh'i olarak genişliğe yayılır
+  // Bir noktanın `parca` alanı, O NOKTADA BİTEN dilimi adlandırır. Yani dilimin
+  // adı b.parca'dır, a.parca değil — aksi hâlde ön cam "kaput" diye, arka
+  // tampon ise hiç etiketlenmez.
+  for (let i = 0; i < ustHat.length - 1; i++) {
+    const a = ustHat[i], b = ustHat[i + 1];
+    const za = a.z * genislik, zb = b.z * genislik;
+    const camMi = b.parca === 'on_cam' || b.parca === 'arka_cam';
+    yuzler.push(yuz(b.parca,
+      [[a.x, a.y, za], [b.x, b.y, zb], [b.x, b.y, -zb], [a.x, a.y, -za]],
+      camMi ? CAM_RENK : renk));
+
+    // OMUZ: üst kabuk gövdeden dardır (tavan 0.42, gövde 0.50 genişlik). Aradaki
+    // şeridi doldurmazsak paneller havada yüzer gibi görünür — çamurluk üstü,
+    // tavan yağmur oluğu ve bagaj omzu tam olarak bu şerittir.
+    if (!camMi) {
+      for (const yon of [1, -1]) {
+        const ka = yanNokta(arac, a.x), kb = yanNokta(arac, b.x);
+        yuzler.push(yuz(b.parca, [
+          [a.x, a.y, yon * za], [b.x, b.y, yon * zb],
+          [b.x, kb.y, yon * kb.z], [a.x, ka.y, yon * ka.z],
+        ], renk));
+      }
+    }
+  }
+
+  // 2) YAN PANELLER — sol (+Z) ve sağ (-Z)
+  const yanlar = [['sol', 1], ['sag', -1]];
+  const onUc = ustHat[0].x, arkaUc = ustHat[ustHat.length - 1].x;
+  const camTabanX = ustHat.find((p) => p.parca === 'on_cam').x;      // ön cam tabanı
+  const tavanOnX = ustHat.find((p) => p.parca === 'tavan').x;
+  const tavanArka = [...ustHat].reverse().find((p) => p.parca === 'tavan');
+  const arkaCamAltX = ustHat.find((p) => p.parca === 'bagaj_kapagi').x;
+
+  for (const [taraf, yon] of yanlar) {
+    const zd = yon * W;
+    const p = (x, y) => [x, y, zd];
+
+    // Bel hattı altındaki gövde: çamurluk / kapılar / arka çamurluk.
+    // DİKKAT: çamurlukları aracın en uç noktasına kadar uzatMA. Uçta silüetin
+    // tepesi eşik hizasına iner, panel sivri bir dilime dönüşür ve araç "kar
+    // küreği" gibi görünür (15.09.2026 görsel incelemesi). Gövde, tampon
+    // başlangıcında biter; tamponun yana sarması ayrı bir yüzeydir.
+    const onGovdeX = ustHat[2].x;
+    const arkaGovdeX = ustHat[ustHat.length - 2].x;
+    // `tarafli: false` olanlar sol/sağ ayrımı OLMAYAN parçalardır: tampon tek
+    // parçadır, katalogda "sol_on_tampon" diye bir parça yoktur. Ön ek koyarsak
+    // dokunma "bilinmeyen parça" verir.
+    const dilimler = [
+      ['on_tampon', onUc, onGovdeX, false],
+      ['on_camurluk', onGovdeX, kapiX.onBas, true],
+      ['on_kapi', kapiX.onBas, kapiX.orta, true],
+      ['arka_kapi', kapiX.orta, kapiX.arkaSon, true],
+      ['arka_camurluk', kapiX.arkaSon, arkaGovdeX, true],
+      ['arka_tampon', arkaGovdeX, arkaUc, false],
+    ];
+    for (const [ad, xIleri, xGeri, tarafli] of dilimler) {
+      const ustIleri = Math.min(hatUzerinde(ustHat, xIleri).y, belY);
+      const ustGeri = Math.min(hatUzerinde(ustHat, xGeri).y, belY);
+      yuzler.push(yuz(tarafli ? `${taraf}_${ad}` : ad,
+        [p(xIleri, esikY), p(xIleri, ustIleri), p(xGeri, ustGeri), p(xGeri, esikY)], renk));
+    }
+
+    // Marşpiyel (eşik altı)
+    yuzler.push(yuz(`${taraf}_marspiyel`,
+      [p(kapiX.onBas + 120, esikY - 150), p(kapiX.onBas + 120, esikY),
+       p(kapiX.arkaSon - 120, esikY), p(kapiX.arkaSon - 120, esikY - 150)], KARA_PLASTIK));
+
+    // Bel hattı üstü: A direği / ön cam / B direği / arka cam / C direği
+    const zc = zd * 0.97; // camlar gövdeden bir tık içeride
+    const pc = (x, y) => [x, y, zc];
+    const direkKalin = 150;
+
+    const tavanOnY = hatUzerinde(ustHat, tavanOnX).y;
+    const tavanArkaY = tavanArka.y;
+
+    yuzler.push(yuz(`${taraf}_a_diregi`, [
+      pc(camTabanX, belY), pc(tavanOnX, tavanOnY),
+      pc(tavanOnX - direkKalin, tavanOnY), pc(camTabanX - direkKalin * 1.6, belY)], KARA_PLASTIK));
+
+    yuzler.push(yuz(`${taraf}_on_kapi_cam`, [
+      pc(camTabanX - direkKalin * 1.6, belY), pc(tavanOnX - direkKalin, tavanOnY),
+      pc(kapiX.orta + direkKalin / 2, hatUzerinde(ustHat, kapiX.orta).y), pc(kapiX.orta + direkKalin / 2, belY)], CAM_RENK));
+
+    yuzler.push(yuz(`${taraf}_b_diregi`, [
+      pc(kapiX.orta + direkKalin / 2, belY), pc(kapiX.orta + direkKalin / 2, hatUzerinde(ustHat, kapiX.orta).y),
+      pc(kapiX.orta - direkKalin / 2, hatUzerinde(ustHat, kapiX.orta).y), pc(kapiX.orta - direkKalin / 2, belY)], KARA_PLASTIK));
+
+    yuzler.push(yuz(`${taraf}_arka_kapi_cam`, [
+      pc(kapiX.orta - direkKalin / 2, belY), pc(kapiX.orta - direkKalin / 2, hatUzerinde(ustHat, kapiX.orta).y),
+      pc(tavanArka.x + direkKalin, tavanArkaY), pc(kapiX.arkaSon + direkKalin, belY)], CAM_RENK));
+
+    yuzler.push(yuz(`${taraf}_c_diregi`, [
+      pc(kapiX.arkaSon + direkKalin, belY), pc(tavanArka.x + direkKalin, tavanArkaY),
+      pc(tavanArka.x - direkKalin, tavanArkaY - 30), pc(arkaCamAltX + 120, belY)], KARA_PLASTIK));
+
+    // Ayna
+    const aynaX = camTabanX - 120;
+    yuzler.push(...kutu(`${taraf}_ayna`,
+      [aynaX, belY + 30, yon > 0 ? zd : zd - 90], [220, 120, 90], KARA_PLASTIK));
+
+    // Tekerlekler
+    const onX = dingil / 2, arkaX = -dingil / 2;
+    yuzler.push(...tekerlek(`${taraf}_jant_on`, onX, tekerR, yon > 0 ? W - 10 : -W + 10, yon > 0 ? 190 : -190));
+    yuzler.push(...tekerlek(`${taraf}_jant_arka`, arkaX, tekerR, yon > 0 ? W - 10 : -W + 10, yon > 0 ? 190 : -190));
+
+    // Farlar ve stoplar
+    const farX = ustHat[2].x - 30;
+    yuzler.push(yuz(`${taraf}_far`, [
+      [farX + 40, 820, yon * W * 0.86], [farX + 40, 960, yon * W * 0.86],
+      [farX - 150, 985, yon * W * 0.55], [farX - 150, 845, yon * W * 0.55]], LAMBA_ON, 1));
+    const stopX = arkaCamAltX - 60;
+    yuzler.push(yuz(`${taraf}_stop`, [
+      [stopX + 60, belY - 90, yon * W * 0.9], [stopX + 60, belY + 60, yon * W * 0.9],
+      [stopX - 140, belY + 40, yon * W * 0.62], [stopX - 140, belY - 110, yon * W * 0.62]], LAMBA_ARKA, 1));
+  }
+
+  // 3) IZGARA — ön yüze bindirilmiş panel
+  const izgara = ustHat[1];
+  yuzler.push(yuz('on_izgara', [
+    [izgara.x + 25, 760, W * 0.38], [izgara.x + 25, 960, W * 0.38],
+    [izgara.x + 25, 960, -W * 0.38], [izgara.x + 25, 760, -W * 0.38]], '#2B3038', 1));
+
+  return yuzler;
+}
+
+// --- İÇ MEKÂN --------------------------------------------------------------
+
+/** Kabin içi şematik: IP, konsol, direksiyon, koltuklar, kapı döşemeleri, garnişler. */
+function icGeometri(arac) {
+  const { genislik, belY, esikY, kapiX, ustHat } = arac;
+  const W = genislik / 2 - 60;
+  const yuzler = [];
+  const camTabanX = ustHat.find((p) => p.parca === 'on_cam').x;
+  const tabanY = esikY + 40;
+
+  // İç mekân paleti: hepsi koyu griyse ekranda tek bir kütle görünür ve
+  // denetçi parçayı ayırt edemez. Garnişler bilerek AÇIK tondadır — en sık
+  // hata alan bölgelerden biri onlar.
+  // Taban
+  yuzler.push(yuz('ayak_bolge', [
+    [camTabanX, tabanY, W], [kapiX.arkaSon - 300, tabanY, W],
+    [kapiX.arkaSon - 300, tabanY, -W], [camTabanX, tabanY, -W]], '#3B424C'));
+
+  // Gösterge paneli (IP)
+  yuzler.push(...kutu('ic_ip', [camTabanX - 40, belY - 180, -W], [420, 200, W * 2], '#6E7783'));
+  yuzler.push(yuz('ic_gosterge', [
+    [camTabanX - 50, belY - 20, W * 0.62], [camTabanX - 50, belY + 90, W * 0.62],
+    [camTabanX - 50, belY + 90, W * 0.18], [camTabanX - 50, belY - 20, W * 0.18]], '#12161C', 1));
+  yuzler.push(yuz('ic_ekran', [
+    [camTabanX - 60, belY - 20, W * 0.12], [camTabanX - 60, belY + 95, W * 0.12],
+    [camTabanX - 60, belY + 95, -W * 0.42], [camTabanX - 60, belY - 20, -W * 0.42]], '#0B1220', 1));
+
+  // Direksiyon (basit halka)
+  const dHalka = [];
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
+    dHalka.push([camTabanX - 330 + Math.sin(a) * 40, belY + 20 + Math.cos(a) * 170, W * 0.42 + Math.sin(a) * 170]);
+  }
+  yuzler.push(yuz('ic_direksiyon', dHalka, '#20252C', 2));
+
+  // Orta konsol
+  yuzler.push(...kutu('ic_konsol', [camTabanX - 900, tabanY, -W * 0.22], [900, 320, W * 0.44], '#5A626D'));
+
+  // Koltuklar
+  const koltuk = (mesh, x, z) => {
+    yuzler.push(...kutu(mesh, [x - 260, tabanY, z - 260], [520, 140, 520], '#8892A0'));      // oturma
+    yuzler.push(...kutu(mesh, [x - 300, tabanY + 140, z - 250], [180, 620, 500], '#8892A0')); // sırtlık
+    yuzler.push(...kutu(mesh, [x - 280, tabanY + 790, z - 160], [130, 230, 320], '#6B7482')); // başlık
+  };
+  koltuk('koltuk_sol_on', camTabanX - 800, W * 0.5);
+  koltuk('koltuk_sag_on', camTabanX - 800, -W * 0.5);
+  yuzler.push(...kutu('koltuk_arka', [kapiX.arkaSon + 120, tabanY, -W * 0.92], [520, 140, W * 1.84], '#8892A0'));
+  yuzler.push(...kutu('koltuk_arka', [kapiX.arkaSon + 80, tabanY + 140, -W * 0.92], [180, 620, W * 1.84], '#8892A0'));
+
+  // Bagaj
+  yuzler.push(...kutu('ic_bagaj', [kapiX.arkaSon - 900, tabanY, -W * 0.9], [900, 60, W * 1.8], '#4C535D'));
+
+  // Kapı döşemeleri + garnişler (sol/sağ)
+  for (const [taraf, yon] of [['sol', 1], ['sag', -1]]) {
+    const zd = yon * W;
+    const p = (x, y) => [x, y, zd];
+    yuzler.push(yuz(`${taraf}_on_kapi_doseme`, [
+      p(kapiX.onBas, tabanY), p(kapiX.onBas, belY + 60), p(kapiX.orta, belY + 60), p(kapiX.orta, tabanY)], '#646D79'));
+    yuzler.push(yuz(`${taraf}_arka_kapi_doseme`, [
+      p(kapiX.orta, tabanY), p(kapiX.orta, belY + 60), p(kapiX.arkaSon, belY + 60), p(kapiX.arkaSon, tabanY)], '#646D79'));
+
+    const tavanOnX = ustHat.find((q) => q.parca === 'tavan').x;
+    const tavanArka = [...ustHat].reverse().find((q) => q.parca === 'tavan');
+    yuzler.push(yuz(`${taraf}_a_garnis`, [
+      p(camTabanX, belY + 60), p(tavanOnX, hatUzerinde(ustHat, tavanOnX).y - 40),
+      p(tavanOnX - 140, hatUzerinde(ustHat, tavanOnX).y - 40), p(camTabanX - 200, belY + 60)], '#B9C2CE', 1));
+    yuzler.push(yuz(`${taraf}_b_garnis`, [
+      p(kapiX.orta + 80, belY + 60), p(kapiX.orta + 80, hatUzerinde(ustHat, kapiX.orta).y - 40),
+      p(kapiX.orta - 80, hatUzerinde(ustHat, kapiX.orta).y - 40), p(kapiX.orta - 80, belY + 60)], '#B9C2CE', 1));
+    yuzler.push(yuz(`${taraf}_c_garnis`, [
+      p(kapiX.arkaSon + 140, belY + 60), p(tavanArka.x + 140, tavanArka.y - 40),
+      p(tavanArka.x - 60, tavanArka.y - 60), p(kapiX.arkaSon - 60, belY + 60)], '#B9C2CE', 1));
+  }
+
+  // Tavan döşemesi (yukarıdan bakınca kabin kapanmasın diye yarı saydam)
+  const tavanOnX = ustHat.find((q) => q.parca === 'tavan').x;
+  const tavanArka = [...ustHat].reverse().find((q) => q.parca === 'tavan');
+  yuzler.push(yuz('ic_tavan_doseme', [
+    [tavanOnX, tavanArka.y - 60, W * 0.92], [tavanArka.x, tavanArka.y - 60, W * 0.92],
+    [tavanArka.x, tavanArka.y - 60, -W * 0.92], [tavanOnX, tavanArka.y - 60, -W * 0.92]], '#9AA3AE33'));
+
+  return yuzler;
+}
+
+// --- OYUNCU (RENDERER) -----------------------------------------------------
+
+function cikar(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+function capraz(a, b) {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+}
+function normalize(v) {
+  const u = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / u, v[1] / u, v[2] / u];
+}
+function nokta(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+
+/** Rengi belirli oranda karartıp/açarak gölgeleme uygular. */
+function golgele(hex, carpan) {
+  const t = hex.length >= 9 ? hex.slice(7) : '';
+  const s = hex.slice(1, 7);
+  const n = parseInt(s, 16);
+  const k = (v) => Math.max(0, Math.min(255, Math.round(v * carpan)));
+  const r = k((n >> 16) & 255), g = k((n >> 8) & 255), b = k(n & 255);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}${t}`;
+}
+
+class ModelGoruntuleyici {
+  /**
+   * @param {HTMLCanvasElement} tuval
+   * @param {{ dokunuldu?:(mesh:string)=>void }} [secenekler]
+   */
+  constructor(tuval, secenekler = {}) {
+    this.tuval = tuval;
+    this.ctx = tuval.getContext('2d');
+    this.secenekler = secenekler;
+    this.yuzler = [];
+    this.vurgular = new Map();  // meshId -> renk
+    this.secili = null;
+    this.yaw = -0.7; this.pitch = 0.42; this.uzaklik = 9200;
+    this.merkez = [0, 750, 0];
+    this.sonCizim = [];
+    this._olaylariBagla();
+  }
+
+  yukle(yuzler) { this.yuzler = yuzler; this.ciz(); }
+  vurgula(harita) { this.vurgular = harita; this.ciz(); }
+  sec(mesh) { this.secili = mesh; this.ciz(); }
+
+  aciAyarla(yaw, pitch) {
+    this.yaw = yaw;
+    this.pitch = Math.max(-0.25, Math.min(1.35, pitch));
+    this.ciz();
+  }
+
+  /** Hazır bakış açıları — denetçi "sol yan"a tek dokunuşla geçsin. */
+  bakis(ad) {
+    const acilar = {
+      // +x aracın ÖNÜ. Kamera yaw=0'da +x tarafında durur, yani ÖNDEN bakar.
+      // (15.09.2026: ikisi terstiydi, "Ön" düğmesi stop lambalarını gösteriyordu.)
+      on: [0, 0.25], arka: [Math.PI, 0.25],
+      // +z aracın SOL tarafı. Sol yanı görmek için kamera +z'de, yani yaw=+π/2.
+      // (15.09.2026: ölçümde "Sol" düğmesi sağ arka kapıyı öne getiriyordu.)
+      sol: [Math.PI / 2, 0.18], sag: [-Math.PI / 2, 0.18],
+      ust: [-0.7, 1.3], serbest: [-0.7, 0.42],
+      // Kabine yukarıdan-önden bakış: koltuklar, konsol ve garnişler bir arada görünür
+      kabin: [-1.15, 0.72],
+    };
+    const a = acilar[ad] ?? acilar.serbest;
+    this.aciAyarla(a[0], a[1]);
+  }
+
+  _kameraKonumu() {
+    const cy = Math.cos(this.pitch), sy = Math.sin(this.pitch);
+    return [
+      this.merkez[0] + this.uzaklik * cy * Math.cos(this.yaw),
+      this.merkez[1] + this.uzaklik * sy,
+      this.merkez[2] + this.uzaklik * cy * Math.sin(this.yaw),
+    ];
+  }
+
+  _izdusum() {
+    const g = this.tuval.width, b = this.tuval.height;
+    const goz = this._kameraKonumu();
+    const ileri = normalize(cikar(this.merkez, goz));
+    const sag = normalize(capraz(ileri, [0, 1, 0]));
+    const yukari = capraz(sag, ileri);
+    const odak = Math.min(g, b) * 1.15;
+    return (p) => {
+      const d = cikar(p, goz);
+      const z = nokta(d, ileri);
+      if (z <= 1) return null;
+      const k = odak / z * (this.uzaklik / 4200);
+      return [g / 2 + nokta(d, sag) * k, b / 2 - nokta(d, yukari) * k, z];
+    };
+  }
+
+  ciz() {
+    const { ctx, tuval } = this;
+    const g = tuval.width, b = tuval.height;
+    ctx.clearRect(0, 0, g, b);
+
+    const izd = this._izdusum();
+    const isik = normalize([0.35, 0.86, 0.36]);
+    const hazir = [];
+
+    for (const f of this.yuzler) {
+      const ekran = [];
+      let derinlik = 0; let gecerli = true;
+      for (const p of f.p) {
+        const e = izd(p);
+        if (!e) { gecerli = false; break; }
+        ekran.push(e); derinlik += e[2];
+      }
+      if (!gecerli || ekran.length < 3) continue;
+      derinlik /= ekran.length;
+
+      const n = normalize(capraz(cikar(f.p[1], f.p[0]), cikar(f.p[2], f.p[0])));
+      const isikMiktar = 0.52 + 0.48 * Math.abs(nokta(n, isik));
+
+      let renk = this.vurgular.get(f.mesh) ?? f.renk;
+      const seciliMi = this.secili === f.mesh;
+      if (seciliMi) renk = '#2563EB';
+      // ustunluk, eş düzlemli bindirmeleri (far, ızgara, jant göbeği) bir tık
+      // öne almak içindir. Ölçek büyük olursa parça aracın ÖBÜR ucundaki
+      // yüzeyleri de yener; ön bakışta çatının üstünde stop lambası görünür
+      // (15.09.2026'da tam bu oldu). 45 birim eş düzlemi ayırmaya yeter.
+      hazir.push({ f, ekran, derinlik: derinlik - (f.ustunluk ?? 0) * 45, renk: golgele(renk, isikMiktar), seciliMi });
+    }
+
+    hazir.sort((a, c) => c.derinlik - a.derinlik);
+    this.sonCizim = hazir;
+
+    for (const h of hazir) {
+      ctx.beginPath();
+      ctx.moveTo(h.ekran[0][0], h.ekran[0][1]);
+      for (let i = 1; i < h.ekran.length; i++) ctx.lineTo(h.ekran[i][0], h.ekran[i][1]);
+      ctx.closePath();
+      ctx.fillStyle = h.renk;
+      ctx.fill();
+      ctx.strokeStyle = h.seciliMi ? '#FFFFFF' : 'rgba(15,23,42,0.30)';
+      ctx.lineWidth = h.seciliMi ? 2.5 : 0.7;
+      ctx.stroke();
+    }
+  }
+
+  /** Ekran noktasının hangi parçaya denk geldiğini bulur (en öndeki kazanır). */
+  isabet(ekranX, ekranY) {
+    for (let i = this.sonCizim.length - 1; i >= 0; i--) {
+      const h = this.sonCizim[i];
+      if (noktaCokgende(ekranX, ekranY, h.ekran)) return h.f.mesh;
+    }
+    return null;
+  }
+
+  _olaylariBagla() {
+    const t = this.tuval;
+    let suruklu = false, sonX = 0, sonY = 0, hareket = 0, sonMesafe = 0;
+
+    const basla = (e) => {
+      const d = e.touches ? e.touches[0] : e;
+      suruklu = true; hareket = 0; sonX = d.clientX; sonY = d.clientY;
+    };
+    const oynat = (e) => {
+      if (e.touches?.length === 2) {
+        const [a, b] = e.touches;
+        const m = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+        if (sonMesafe) this.uzaklik = Math.max(4200, Math.min(18000, this.uzaklik * (sonMesafe / m)));
+        sonMesafe = m; this.ciz(); e.preventDefault(); return;
+      }
+      if (!suruklu) return;
+      const d = e.touches ? e.touches[0] : e;
+      const dx = d.clientX - sonX, dy = d.clientY - sonY;
+      hareket += Math.abs(dx) + Math.abs(dy);
+      sonX = d.clientX; sonY = d.clientY;
+      this.aciAyarla(this.yaw + dx * 0.008, this.pitch + dy * 0.006);
+      e.preventDefault();
+    };
+    const bitir = (e) => {
+      sonMesafe = 0;
+      if (suruklu && hareket < 8) {
+        const d = e.changedTouches ? e.changedTouches[0] : e;
+        const k = t.getBoundingClientRect();
+        const olcek = t.width / k.width;
+        const mesh = this.isabet((d.clientX - k.left) * olcek, (d.clientY - k.top) * olcek);
+        if (mesh) this.secenekler.dokunuldu?.(mesh);
+      }
+      suruklu = false;
+    };
+
+    t.addEventListener('pointerdown', basla);
+    t.addEventListener('pointermove', oynat);
+    t.addEventListener('pointerup', bitir);
+    t.addEventListener('pointercancel', () => { suruklu = false; });
+    t.addEventListener('touchmove', oynat, { passive: false });
+    t.addEventListener('wheel', (e) => {
+      this.uzaklik = Math.max(4200, Math.min(18000, this.uzaklik * (e.deltaY > 0 ? 1.1 : 0.9)));
+      this.ciz(); e.preventDefault();
+    }, { passive: false });
+  }
+}
+
+/** Işın atma yerine ekran düzleminde nokta-çokgen testi (ray casting). */
+function noktaCokgende(x, y, kose) {
+  let icinde = false;
+  for (let i = 0, j = kose.length - 1; i < kose.length; j = i++) {
+    const [xi, yi] = kose[i], [xj, yj] = kose[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi + 1e-9) + xi) icinde = !icinde;
+  }
+  return icinde;
+}
+
+/** Geometriyi moda göre üretir. */
+function geometriUret(aracId, mod = 'dis') {
+  const arac = ARAC_INDEKS[aracId];
+  if (!arac) return [];
+  return mod === 'ic' ? icGeometri(arac) : disGeometri(arac);
+}
+
+
+/* ===== puan.js ===== */
+// PUANLAMA VE ÖZET
+//
+// DÜRÜSTLÜK NOTU: buradaki ceza puanı (demerit) ağırlıkları ve karar eşikleri
+// ÖRNEK BAŞLANGIÇ DEĞERLERİDİR — hiçbir üreticinin resmî audit standardından
+// ölçülmemiştir. `ayarlar.esikler` ile değiştirilebilir. Kendi standardınızın
+// sayılarını girene kadar bu puanı yalnızca kendi denetimlerinizi birbiriyle
+// kıyaslamak için kullanın; mutlak bir kalite ölçütü gibi raporlamayın.
+
+
+const SIDDET_INDEKS = Object.fromEntries(SIDDETLER.map((s) => [s.id, s]));
+
+/** Varsayılan karar eşikleri — ayarlardan değiştirilebilir. */
+const VARSAYILAN_ESIKLER = {
+  kritikVarsaRed: true,   // tek bir A sınıfı hata bile aracı durdurur
+  sartliPuan: 15,         // bu puanın üstü "şartlı kabul"
+  redPuan: 40,            // bu puanın üstü "red"
+};
+
+/** Tek bir hatanın ceza puanı. */
+function hataPuani(hata) {
+  const s = SIDDET_INDEKS[hata.siddet];
+  return (s?.puan ?? 0) * (hata.adet ?? 1);
+}
+
+/** Hatanın makine okunur kodu — Excel'de pivot/filtre için sabit anahtar. */
+function hataKodu(hata) {
+  return `${hata.parcaId}.${hata.hataTipiId}`;
+}
+
+/** Hatanın insan okunur tam adı: "Dış · Sol yan / Arka kapı / Gıcırtı" */
+function hataAdi(hata, dil = 'tr') {
+  const p = PARCA_INDEKS[hata.parcaId];
+  const h = HATA_TIPI_INDEKS[hata.hataTipiId];
+  if (dil === 'en') {
+    return `${p?.bolgeEn ?? '?'} / ${p?.en ?? hata.parcaId} / ${h?.en ?? hata.hataTipiId}`;
+  }
+  return `${p?.bolgeAd ?? '?'} / ${p?.ad ?? hata.parcaId} / ${h?.ad ?? hata.hataTipiId}`;
+}
+
+/**
+ * Denetimin tam özeti.
+ * @param {{hatalar:any[]}} denetim
+ * @param {object} [esikler]
+ */
+function denetimOzeti(denetim, esikler = VARSAYILAN_ESIKLER) {
+  const hatalar = denetim?.hatalar ?? [];
+
+  const siddetDagilimi = Object.fromEntries(SIDDETLER.map((s) => [s.id, { adet: 0, puan: 0 }]));
+  const bolgeler = new Map();
+  const parcalar = new Map();
+  const gruplar = new Map();
+
+  let toplamAdet = 0, toplamPuan = 0, fotografli = 0;
+
+  for (const h of hatalar) {
+    const adet = h.adet ?? 1;
+    const puan = hataPuani(h);
+    toplamAdet += adet;
+    toplamPuan += puan;
+    if ((h.fotograflar?.length ?? 0) > 0) fotografli += 1;
+
+    if (siddetDagilimi[h.siddet]) {
+      siddetDagilimi[h.siddet].adet += adet;
+      siddetDagilimi[h.siddet].puan += puan;
+    }
+
+    const p = PARCA_INDEKS[h.parcaId];
+    const bKey = p?.bolgeId ?? 'bilinmeyen';
+    const b = bolgeler.get(bKey) ?? { id: bKey, ad: p?.bolgeAd ?? 'Bilinmeyen', adet: 0, puan: 0 };
+    b.adet += adet; b.puan += puan; bolgeler.set(bKey, b);
+
+    const pKey = h.parcaId;
+    const pk = parcalar.get(pKey) ?? { id: pKey, ad: p?.ad ?? pKey, bolgeAd: p?.bolgeAd ?? '', adet: 0, puan: 0 };
+    pk.adet += adet; pk.puan += puan; parcalar.set(pKey, pk);
+
+    const grupId = HATA_TIPI_INDEKS[h.hataTipiId]?.grup ?? 'bilinmeyen';
+    const gk = gruplar.get(grupId) ?? { id: grupId, adet: 0, puan: 0 };
+    gk.adet += adet; gk.puan += puan; gruplar.set(grupId, gk);
+  }
+
+  const sirala = (m) => [...m.values()].sort((a, b) => b.puan - a.puan || b.adet - a.adet);
+
+  return {
+    toplamHata: hatalar.length,
+    toplamAdet,
+    toplamPuan,
+    fotografliHata: fotografli,
+    fotografsizHata: hatalar.length - fotografli,
+    siddetDagilimi,
+    bolgeDagilimi: sirala(bolgeler),
+    parcaDagilimi: sirala(parcalar),
+    grupDagilimi: sirala(gruplar),
+    sonuc: sonucBelirle({ toplamPuan, siddetDagilimi }, esikler),
+  };
+}
+
+/**
+ * Karar: KABUL / ŞARTLI / RED.
+ * Eşikler ayarlanabilir; varsayılanlar örnektir, standart değildir.
+ */
+function sonucBelirle({ toplamPuan, siddetDagilimi }, esikler = VARSAYILAN_ESIKLER) {
+  const kritik = siddetDagilimi?.A?.adet ?? 0;
+  if (esikler.kritikVarsaRed && kritik > 0) {
+    return { kod: 'RED', ad: 'RED', en: 'REJECT', gerekce: `${kritik} adet kritik (A) hata bulundu.` };
+  }
+  if (toplamPuan >= esikler.redPuan) {
+    return { kod: 'RED', ad: 'RED', en: 'REJECT', gerekce: `Toplam ceza puanı ${toplamPuan}, red eşiği ${esikler.redPuan}.` };
+  }
+  if (toplamPuan >= esikler.sartliPuan) {
+    return { kod: 'SARTLI', ad: 'ŞARTLI KABUL', en: 'CONDITIONAL', gerekce: `Toplam ceza puanı ${toplamPuan}, şartlı eşiği ${esikler.sartliPuan}.` };
+  }
+  return { kod: 'KABUL', ad: 'KABUL', en: 'ACCEPT', gerekce: `Toplam ceza puanı ${toplamPuan}, şartlı eşiğin (${esikler.sartliPuan}) altında.` };
+}
+
+/** Birden çok denetimin toplu özeti — vardiya/hat raporu için. */
+function topluOzet(denetimler, esikler = VARSAYILAN_ESIKLER) {
+  const ozetler = denetimler.map((d) => ({ denetim: d, ozet: denetimOzeti(d, esikler) }));
+  const aracSayisi = ozetler.length || 1;
+  const toplamAdet = ozetler.reduce((t, o) => t + o.ozet.toplamAdet, 0);
+  const toplamPuan = ozetler.reduce((t, o) => t + o.ozet.toplamPuan, 0);
+
+  const parcaTop = new Map();
+  for (const { ozet } of ozetler) {
+    for (const p of ozet.parcaDagilimi) {
+      const k = parcaTop.get(p.id) ?? { ...p, adet: 0, puan: 0, aracSayisi: 0 };
+      k.adet += p.adet; k.puan += p.puan; k.aracSayisi += 1;
+      parcaTop.set(p.id, k);
+    }
+  }
+
+  return {
+    aracSayisi: ozetler.length,
+    toplamAdet,
+    toplamPuan,
+    // DPU = Defects Per Unit — araç başına düşen hata adedi
+    dpu: Math.round((toplamAdet / aracSayisi) * 100) / 100,
+    aracBasiPuan: Math.round((toplamPuan / aracSayisi) * 100) / 100,
+    sonucDagilimi: ozetler.reduce((a, o) => {
+      a[o.ozet.sonuc.kod] = (a[o.ozet.sonuc.kod] ?? 0) + 1; return a;
+    }, {}),
+    enSikParcalar: [...parcaTop.values()].sort((a, b) => b.adet - a.adet).slice(0, 20),
+    ozetler,
+  };
+}
+
+
+/* ===== depo.js ===== */
+// YEREL DEPO — IndexedDB.
+//
+// Neden sunucu değil: denetim sahada, çoğu zaman kapsama alanı zayıf bir
+// üretim hattında yapılır. Her kayıt önce CİHAZA yazılır; internet olmasa da
+// denetim kesintisiz sürer, Excel yine üretilir. Sunucuya gönderme (varsa)
+// sonradan eklenebilecek ayrı bir katmandır — veri kaybı riski buraya taşınmaz.
+
+const VERITABANI = 'aracAudit';
+const SURUM = 1;
+const DENETIMLER = 'denetimler';
+const FOTOGRAFLAR = 'fotograflar';
+const AYARLAR = 'ayarlar';
+const SAYACLAR = 'sayaclar';
+
+let _db = null;
+
+function db() {
+  if (_db) return _db;
+  _db = new Promise((coz, redi) => {
+    const istek = indexedDB.open(VERITABANI, SURUM);
+    istek.onupgradeneeded = () => {
+      const d = istek.result;
+      if (!d.objectStoreNames.contains(DENETIMLER)) {
+        const s = d.createObjectStore(DENETIMLER, { keyPath: 'id' });
+        s.createIndex('baslangic', 'baslangic');
+        s.createIndex('vin', 'vin');
+      }
+      if (!d.objectStoreNames.contains(FOTOGRAFLAR)) {
+        const s = d.createObjectStore(FOTOGRAFLAR, { keyPath: 'id' });
+        s.createIndex('denetimId', 'denetimId');
+      }
+      if (!d.objectStoreNames.contains(AYARLAR)) d.createObjectStore(AYARLAR, { keyPath: 'anahtar' });
+      if (!d.objectStoreNames.contains(SAYACLAR)) d.createObjectStore(SAYACLAR, { keyPath: 'kalip' });
+    };
+    istek.onsuccess = () => coz(istek.result);
+    istek.onerror = () => redi(istek.error);
+  });
+  return _db;
+}
+
+function islem(depoAdlari, mod, isGovdesi) {
+  return db().then((d) => new Promise((coz, redi) => {
+    const t = d.transaction(depoAdlari, mod);
+    let sonuc;
+    t.oncomplete = () => coz(sonuc);
+    t.onerror = () => redi(t.error);
+    t.onabort = () => redi(t.error);
+    sonuc = isGovdesi(t);
+    if (sonuc instanceof Promise) sonuc.then((v) => { sonuc = v; });
+  }));
+}
+
+const istekSoz = (istek) => new Promise((coz, redi) => {
+  istek.onsuccess = () => coz(istek.result);
+  istek.onerror = () => redi(istek.error);
+});
+
+function kimlikUret(onEk = 'd') {
+  return `${onEk}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// --- DENETİMLER ------------------------------------------------------------
+
+async function denetimKaydet(denetim) {
+  const d = await db();
+  const t = d.transaction(DENETIMLER, 'readwrite');
+  t.objectStore(DENETIMLER).put(denetim);
+  await new Promise((c, r) => { t.oncomplete = c; t.onerror = () => r(t.error); });
+  return denetim;
+}
+
+async function denetimGetir(id) {
+  const d = await db();
+  return istekSoz(d.transaction(DENETIMLER).objectStore(DENETIMLER).get(id));
+}
+
+/** En yeni denetimler önce. */
+async function denetimListele(enFazla = 100) {
+  const d = await db();
+  const hepsi = await istekSoz(d.transaction(DENETIMLER).objectStore(DENETIMLER).getAll());
+  return hepsi.sort((a, b) => String(b.baslangic).localeCompare(String(a.baslangic))).slice(0, enFazla);
+}
+
+async function denetimSil(id) {
+  const fotolar = await fotograflariGetir(id);
+  const d = await db();
+  const t = d.transaction([DENETIMLER, FOTOGRAFLAR], 'readwrite');
+  t.objectStore(DENETIMLER).delete(id);
+  for (const f of fotolar) t.objectStore(FOTOGRAFLAR).delete(f.id);
+  return new Promise((c, r) => { t.oncomplete = () => c(true); t.onerror = () => r(t.error); });
+}
+
+// --- FOTOĞRAFLAR -----------------------------------------------------------
+
+/**
+ * @param {string} denetimId
+ * @param {Blob} blob küçültülmüş JPEG
+ * @param {{en:number, boy:number, hataId?:string}} bilgi
+ */
+async function fotografKaydet(denetimId, blob, bilgi = {}) {
+  const kayit = {
+    id: kimlikUret('f'), denetimId, blob,
+    en: bilgi.en ?? 0, boy: bilgi.boy ?? 0,
+    hataId: bilgi.hataId ?? null, zaman: new Date().toISOString(),
+  };
+  const d = await db();
+  const t = d.transaction(FOTOGRAFLAR, 'readwrite');
+  t.objectStore(FOTOGRAFLAR).put(kayit);
+  await new Promise((c, r) => { t.oncomplete = c; t.onerror = () => r(t.error); });
+  return kayit;
+}
+
+async function fotografGetir(id) {
+  const d = await db();
+  return istekSoz(d.transaction(FOTOGRAFLAR).objectStore(FOTOGRAFLAR).get(id));
+}
+
+async function fotograflariGetir(denetimId) {
+  const d = await db();
+  return istekSoz(d.transaction(FOTOGRAFLAR).objectStore(FOTOGRAFLAR).index('denetimId').getAll(denetimId));
+}
+
+async function fotografSil(id) {
+  const d = await db();
+  const t = d.transaction(FOTOGRAFLAR, 'readwrite');
+  t.objectStore(FOTOGRAFLAR).delete(id);
+  return new Promise((c, r) => { t.oncomplete = () => c(true); t.onerror = () => r(t.error); });
+}
+
+/** Excel üretimi için: fotoId -> { bayt } haritası. */
+async function fotografBaytlari(denetimId) {
+  const kayitlar = await fotograflariGetir(denetimId);
+  const harita = new Map();
+  for (const k of kayitlar) {
+    harita.set(k.id, { bayt: new Uint8Array(await k.blob.arrayBuffer()), en: k.en, boy: k.boy });
+  }
+  return harita;
+}
+
+// --- AYARLAR ---------------------------------------------------------------
+
+async function ayarOku(anahtar, varsayilan = null) {
+  const d = await db();
+  const k = await istekSoz(d.transaction(AYARLAR).objectStore(AYARLAR).get(anahtar));
+  return k ? k.deger : varsayilan;
+}
+
+async function ayarYaz(anahtar, deger) {
+  const d = await db();
+  const t = d.transaction(AYARLAR, 'readwrite');
+  t.objectStore(AYARLAR).put({ anahtar, deger });
+  return new Promise((c, r) => { t.oncomplete = () => c(deger); t.onerror = () => r(t.error); });
+}
+
+// --- KULLANIM SAYACI -------------------------------------------------------
+// "Hatalar genelde benzer" — uygulama bunu ÖĞRENİR. Her kaydedilen parça+hata
+// ikilisi sayılır; hızlı seçim çubuğu bu sayaca göre yeniden sıralanır.
+
+async function kalipSay(parcaId, hataTipiId) {
+  const kalip = `${parcaId}.${hataTipiId}`;
+  const d = await db();
+  const t = d.transaction(SAYACLAR, 'readwrite');
+  const s = t.objectStore(SAYACLAR);
+  const mevcut = await istekSoz(s.get(kalip));
+  s.put({ kalip, sayi: (mevcut?.sayi ?? 0) + 1, son: new Date().toISOString() });
+  return new Promise((c, r) => { t.oncomplete = () => c(true); t.onerror = () => r(t.error); });
+}
+
+async function sikKullanilanlar(enFazla = 12) {
+  const d = await db();
+  const hepsi = await istekSoz(d.transaction(SAYACLAR).objectStore(SAYACLAR).getAll());
+  return hepsi
+    .sort((a, b) => b.sayi - a.sayi || String(b.son).localeCompare(String(a.son)))
+    .slice(0, enFazla)
+    .map((k) => ({ ...k, parcaId: k.kalip.slice(0, k.kalip.lastIndexOf('.')), hataTipiId: k.kalip.slice(k.kalip.lastIndexOf('.') + 1) }));
+}
+
+// --- YEDEK -----------------------------------------------------------------
+
+/** Tüm denetimleri (fotoğraflar base64 olarak) tek JSON'a alır. */
+async function yedekAl() {
+  const denetimler = await denetimListele(10000);
+  const fotograflar = [];
+  for (const d of denetimler) {
+    for (const f of await fotograflariGetir(d.id)) {
+      fotograflar.push({
+        id: f.id, denetimId: f.denetimId, hataId: f.hataId, en: f.en, boy: f.boy, zaman: f.zaman,
+        veri: await blobBase64(f.blob),
+      });
+    }
+  }
+  return { surum: 1, alindi: new Date().toISOString(), denetimler, fotograflar };
+}
+
+async function yedekYukle(yedek) {
+  if (!yedek?.denetimler) throw new Error('Yedek dosyası tanınmadı.');
+  for (const d of yedek.denetimler) await denetimKaydet(d);
+  const dbh = await db();
+  for (const f of yedek.fotograflar ?? []) {
+    const blob = base64Blob(f.veri);
+    const t = dbh.transaction(FOTOGRAFLAR, 'readwrite');
+    t.objectStore(FOTOGRAFLAR).put({ ...f, blob, veri: undefined });
+    await new Promise((c, r) => { t.oncomplete = c; t.onerror = () => r(t.error); });
+  }
+  return { denetim: yedek.denetimler.length, fotograf: (yedek.fotograflar ?? []).length };
+}
+
+function blobBase64(blob) {
+  return new Promise((coz, redi) => {
+    const o = new FileReader();
+    o.onload = () => coz(o.result);
+    o.onerror = () => redi(o.error);
+    o.readAsDataURL(blob);
+  });
+}
+
+function base64Blob(veriUrl) {
+  const [bas, govde] = String(veriUrl).split(',');
+  const tur = /:(.*?);/.exec(bas)?.[1] ?? 'image/jpeg';
+  const ham = atob(govde);
+  const bayt = new Uint8Array(ham.length);
+  for (let i = 0; i < ham.length; i++) bayt[i] = ham.charCodeAt(i);
+  return new Blob([bayt], { type: tur });
+}
+
+/** Depolama kotası — "yer doldu" hatasını sahada değil, önceden görelim. */
+async function depoDurumu() {
+  if (!navigator.storage?.estimate) return null;
+  const { usage = 0, quota = 0 } = await navigator.storage.estimate();
+  return { kullanilan: usage, kota: quota, oran: quota ? usage / quota : 0 };
+}
+
+const depo = { db, kimlikUret, denetimKaydet, denetimGetir, denetimListele, denetimSil, fotografKaydet, fotografGetir, fotograflariGetir, fotografSil, fotografBaytlari, ayarOku, ayarYaz, kalipSay, sikKullanilanlar, yedekAl, yedekYukle, depoDurumu };
+
+/* ===== rapor.js ===== */
+// RAPOR ÜRETİMİ — Excel (.xlsx), CSV ve yazdırılabilir HTML.
+//
+// ŞABLONA UYARLAMA: Excel'in sütun düzeni TEK BİR YERDEN, aşağıdaki SUTUNLAR
+// dizisinden gelir. Kendi şablonunuzu gönderdiğinizde değiştirilecek yer
+// yalnızca burasıdır — sıra, başlık, genişlik ve hücre değeri. `fotograf: true`
+// işaretli sütun, fotoğrafların Excel'in İÇİNE gömüleceği sütundur.
+
+
+
+
+
+/** Fotoğrafın Excel'de kaplayacağı en büyük ölçü (piksel). */
+const FOTO_EN = 150;
+const FOTO_BOY = 112;
+
+const bicimTarih = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  const iki = (n) => String(n).padStart(2, '0');
+  return `${iki(d.getDate())}.${iki(d.getMonth() + 1)}.${d.getFullYear()} ${iki(d.getHours())}:${iki(d.getMinutes())}`;
+};
+const bicimSaat = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+// ---------------------------------------------------------------------------
+// SÜTUN DÜZENİ — şablonunuza uyarlanacak tek nokta
+// ---------------------------------------------------------------------------
+const SUTUNLAR = [
+  { anahtar: 'sira',    baslik: '#',                  baslikEn: '#',                genislik: 5,  stil: STIL.SAYI,       deger: (h, i) => i + 1 },
+  { anahtar: 'kod',     baslik: 'Hata Kodu',          baslikEn: 'Defect Code',      genislik: 24, stil: STIL.GOVDE,      deger: (h) => hataKodu(h) },
+  { anahtar: 'bolge',   baslik: 'Bölge',              baslikEn: 'Zone',             genislik: 20, stil: STIL.GOVDE,      deger: (h, i, c) => (c.dil === 'en' ? PARCA_INDEKS[h.parcaId]?.bolgeEn : PARCA_INDEKS[h.parcaId]?.bolgeAd) ?? '' },
+  { anahtar: 'parca',   baslik: 'Parça',              baslikEn: 'Part',             genislik: 26, stil: STIL.GOVDE,      deger: (h, i, c) => (c.dil === 'en' ? PARCA_INDEKS[h.parcaId]?.en : PARCA_INDEKS[h.parcaId]?.ad) ?? h.parcaId },
+  { anahtar: 'hata',    baslik: 'Hata Tipi',          baslikEn: 'Defect',           genislik: 24, stil: STIL.GOVDE,      deger: (h, i, c) => (c.dil === 'en' ? HATA_TIPI_INDEKS[h.hataTipiId]?.en : HATA_TIPI_INDEKS[h.hataTipiId]?.ad) ?? h.hataTipiId },
+  { anahtar: 'grup',    baslik: 'Hata Grubu',         baslikEn: 'Defect Group',     genislik: 18, stil: STIL.GOVDE,      deger: (h, i, c) => { const g = HATA_GRUPLARI[HATA_TIPI_INDEKS[h.hataTipiId]?.grup]; return (c.dil === 'en' ? g?.en : g?.ad) ?? ''; } },
+  { anahtar: 'siddet',  baslik: 'Şiddet',             baslikEn: 'Severity',         genislik: 9,  stil: null,            deger: (h) => h.siddet, stilSecici: (h) => ({ A: STIL.SIDDET_A, B: STIL.SIDDET_B, C: STIL.SIDDET_C }[h.siddet] ?? STIL.GOVDE_ORTA) },
+  { anahtar: 'adet',    baslik: 'Adet',               baslikEn: 'Qty',              genislik: 7,  stil: STIL.SAYI,       deger: (h) => h.adet ?? 1 },
+  { anahtar: 'puan',    baslik: 'Ceza Puanı',         baslikEn: 'Demerit',          genislik: 11, stil: STIL.SAYI,       deger: (h) => (SIDDET_INDEKS[h.siddet]?.puan ?? 0) * (h.adet ?? 1) },
+  { anahtar: 'konum',   baslik: 'Konum / Açıklama',   baslikEn: 'Location / Note',  genislik: 34, stil: STIL.GOVDE,      deger: (h) => [h.konum, h.aciklama].filter(Boolean).join(' — ') },
+  { anahtar: 'foto',    baslik: 'Fotoğraf',           baslikEn: 'Photo',            genislik: 24, stil: STIL.GOVDE,      fotograf: true, deger: () => '' },
+  { anahtar: 'saat',    baslik: 'Tespit Saati',       baslikEn: 'Time',             genislik: 12, stil: STIL.GOVDE_ORTA, deger: (h) => bicimSaat(h.zaman) },
+  { anahtar: 'durum',   baslik: 'Durum',              baslikEn: 'Status',           genislik: 12, stil: STIL.GOVDE_ORTA, deger: (h) => (h.durum === 'kapali' ? 'Kapatıldı' : 'Açık') },
+];
+
+const baslikMetni = (s, dil) => (dil === 'en' ? s.baslikEn : s.baslik);
+
+/** Üst bilgi bloğundaki etiket/değer çiftleri. */
+function ustBilgiCiftleri(denetim, ozet, dil) {
+  const arac = ARAC_INDEKS[denetim.aracId];
+  const E = (tr, en) => (dil === 'en' ? en : tr);
+  return [
+    [E('Rapor No', 'Report No'), denetim.raporNo || '', E('Araç', 'Vehicle'), arac?.tam ?? denetim.aracId ?? '', E('Denetim Tarihi', 'Audit Date'), bicimTarih(denetim.baslangic)],
+    [E('Şasi No (VIN)', 'VIN'), denetim.vin || '', E('Plaka', 'Plate'), denetim.plaka || '—', E('Denetçi', 'Auditor'), denetim.denetci || ''],
+    [E('Üretim Hattı', 'Line'), denetim.hat || '', E('Vardiya', 'Shift'), denetim.vardiya || '', E('Denetim Tipi', 'Audit Type'), denetim.denetimTipi || ''],
+    [E('Toplam Hata', 'Total Defects'), ozet.toplamAdet, E('Toplam Ceza Puanı', 'Total Demerit'), ozet.toplamPuan, E('SONUÇ', 'RESULT'), dil === 'en' ? ozet.sonuc.en : ozet.sonuc.ad],
+  ];
+}
+
+/**
+ * Denetimin Excel çalışma kitabını üretir.
+ * @param {object} denetim
+ * @param {Map<string,{bayt:Uint8Array}>} fotograflar fotoId -> bayt
+ * @param {{dil?:'tr'|'en', esikler?:object}} [ayarlar]
+ * @returns {Uint8Array}
+ */
+function excelUret(denetim, fotograflar = new Map(), ayarlar = {}) {
+  const dil = ayarlar.dil ?? 'tr';
+  const baglam = { dil };
+  const ozet = denetimOzeti(denetim, ayarlar.esikler);
+  const hatalar = denetim.hatalar ?? [];
+  const sutunSayisi = SUTUNLAR.length;
+  const fotoSutunu = SUTUNLAR.findIndex((s) => s.fotograf);
+
+  const satirlar = [];
+  const birlesikler = [];
+
+  // Başlık
+  satirlar.push([{ v: dil === 'en' ? 'VEHICLE AUDIT REPORT' : 'ARAÇ DENETİM RAPORU', stil: STIL.BASLIK_BUYUK }]);
+  birlesikler.push(`A1:${sutunAdi(sutunSayisi - 1)}1`);
+  satirlar.push([]);
+
+  // Üst bilgi bloğu — her satırda üç etiket/değer çifti
+  const bolum = Math.floor(sutunSayisi / 3);
+  for (const cift of ustBilgiCiftleri(denetim, ozet, dil)) {
+    const satir = new Array(sutunSayisi).fill('');
+    for (let g = 0; g < 3; g++) {
+      const etiketSutun = g * bolum;
+      satir[etiketSutun] = { v: cift[g * 2], stil: STIL.ETIKET };
+      satir[etiketSutun + 1] = { v: cift[g * 2 + 1], stil: STIL.GOVDE };
+      const son = g === 2 ? sutunSayisi - 1 : (g + 1) * bolum - 1;
+      if (son > etiketSutun + 1) {
+        birlesikler.push(`${sutunAdi(etiketSutun + 1)}${satirlar.length + 1}:${sutunAdi(son)}${satirlar.length + 1}`);
+      }
+    }
+    satirlar.push(satir);
+  }
+
+  satirlar.push([]);
+  const tabloBaslikSatiri = satirlar.length;
+  satirlar.push(SUTUNLAR.map((s) => ({ v: baslikMetni(s, dil), stil: STIL.BASLIK })));
+
+  // Hata satırları
+  const gorseller = [];
+  const satirYukseklikleri = {};
+  let enFazlaFoto = 1;
+
+  hatalar.forEach((h, i) => {
+    const satirNo = satirlar.length;
+    satirlar.push(SUTUNLAR.map((s) => ({
+      v: s.deger(h, i, baglam),
+      stil: s.stilSecici ? s.stilSecici(h) : (s.stil ?? STIL.GOVDE),
+    })));
+
+    const fotolar = (h.fotograflar ?? []).map((fid) => fotograflar.get(fid)).filter((f) => f?.bayt?.length);
+    if (fotolar.length === 0) return;
+
+    enFazlaFoto = Math.max(enFazlaFoto, fotolar.length);
+    let kayma = 0;
+    let enYuksek = 0;
+    fotolar.forEach((f, fi) => {
+      const olcu = gosterimOlcusu(f.bayt, FOTO_EN, FOTO_BOY);
+      gorseller.push({
+        satir: satirNo, sutun: fotoSutunu, veri: f.bayt,
+        gosterEn: olcu.en, gosterBoy: olcu.boy, xKayma: kayma,
+        ad: `${hataKodu(h)} foto ${fi + 1}`,
+        aciklama: `${PARCA_INDEKS[h.parcaId]?.ad ?? h.parcaId} — ${HATA_TIPI_INDEKS[h.hataTipiId]?.ad ?? h.hataTipiId}`,
+      });
+      kayma += olcu.en + 6;
+      enYuksek = Math.max(enYuksek, olcu.boy);
+    });
+    satirYukseklikleri[satirNo] = pikselPunto(enYuksek + 12);
+  });
+
+  if (hatalar.length === 0) {
+    satirlar.push([{ v: dil === 'en' ? 'No defects recorded.' : 'Hata kaydedilmedi.', stil: STIL.GOVDE }]);
+  }
+
+  // Fotoğraf sütunu, yan yana gelen fotoğrafları alacak kadar genişletilir
+  const sutunGenislikleri = SUTUNLAR.map((s) => s.genislik);
+  if (gorseller.length) {
+    const gerekliPiksel = enFazlaFoto * (FOTO_EN + 6) + 10;
+    sutunGenislikleri[fotoSutunu] = Math.max(s_piksel(sutunGenislikleri[fotoSutunu]), gerekliPiksel) / 7;
+  }
+
+  const sonSatir = satirlar.length;
+  const raporSayfasi = {
+    ad: dil === 'en' ? 'Audit Report' : 'Denetim Raporu',
+    satirlar,
+    sutunGenislikleri,
+    satirYukseklikleri,
+    birlesikler,
+    dondur: { satir: tabloBaslikSatiri + 1, sutun: 0 },
+    filtre: `A${tabloBaslikSatiri + 1}:${sutunAdi(sutunSayisi - 1)}${Math.max(sonSatir, tabloBaslikSatiri + 2)}`,
+    gorseller,
+  };
+
+  return xlsxOlustur([raporSayfasi, ozetSayfasi(denetim, ozet, dil)], {
+    baslik: `${denetim.vin || 'Denetim'} — ${dil === 'en' ? 'Vehicle Audit' : 'Araç Denetimi'}`,
+    yazar: denetim.denetci || 'Arac Audit',
+  });
+}
+
+/** Excel sütun genişliği (karakter) -> piksel. */
+function s_piksel(genislik) { return (genislik ?? 8) * 7 + 5; }
+
+/** Özet sayfası: bölge, şiddet ve hata grubu dağılımı. */
+function ozetSayfasi(denetim, ozet, dil) {
+  const E = (tr, en) => (dil === 'en' ? en : tr);
+  const satirlar = [
+    [{ v: E('ÖZET', 'SUMMARY'), stil: STIL.BASLIK_BUYUK }],
+    [],
+    [{ v: E('Toplam hata kaydı', 'Defect records'), stil: STIL.ETIKET }, { v: ozet.toplamHata, stil: STIL.SAYI }],
+    [{ v: E('Toplam hata adedi', 'Total quantity'), stil: STIL.ETIKET }, { v: ozet.toplamAdet, stil: STIL.SAYI }],
+    [{ v: E('Toplam ceza puanı', 'Total demerit'), stil: STIL.ETIKET }, { v: ozet.toplamPuan, stil: STIL.SAYI }],
+    [{ v: E('Fotoğraflı hata', 'With photo'), stil: STIL.ETIKET }, { v: ozet.fotografliHata, stil: STIL.SAYI }],
+    [{ v: E('Fotoğrafsız hata', 'Without photo'), stil: STIL.ETIKET }, { v: ozet.fotografsizHata, stil: STIL.SAYI }],
+    [{ v: E('Sonuç', 'Result'), stil: STIL.ETIKET }, { v: dil === 'en' ? ozet.sonuc.en : ozet.sonuc.ad, stil: STIL.GOVDE }, { v: ozet.sonuc.gerekce, stil: STIL.GOVDE }],
+    [],
+    [{ v: E('ŞİDDETE GÖRE', 'BY SEVERITY'), stil: STIL.ETIKET }],
+    [{ v: E('Sınıf', 'Class'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }, { v: E('Ceza Puanı', 'Demerit'), stil: STIL.BASLIK }, { v: E('Tanım', 'Definition'), stil: STIL.BASLIK }],
+  ];
+  for (const s of SIDDETLER) {
+    const d = ozet.siddetDagilimi[s.id] ?? { adet: 0, puan: 0 };
+    satirlar.push([
+      { v: `${s.id} — ${dil === 'en' ? s.en : s.ad}`, stil: { A: STIL.SIDDET_A, B: STIL.SIDDET_B, C: STIL.SIDDET_C }[s.id] },
+      { v: d.adet, stil: STIL.SAYI }, { v: d.puan, stil: STIL.SAYI }, { v: s.aciklama, stil: STIL.GOVDE },
+    ]);
+  }
+
+  satirlar.push([], [{ v: E('BÖLGEYE GÖRE', 'BY ZONE'), stil: STIL.ETIKET }],
+    [{ v: E('Bölge', 'Zone'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }, { v: E('Ceza Puanı', 'Demerit'), stil: STIL.BASLIK }]);
+  for (const b of ozet.bolgeDagilimi) {
+    satirlar.push([{ v: b.ad, stil: STIL.GOVDE }, { v: b.adet, stil: STIL.SAYI }, { v: b.puan, stil: STIL.SAYI }]);
+  }
+
+  satirlar.push([], [{ v: E('EN ÇOK HATA ALAN PARÇALAR', 'TOP PARTS'), stil: STIL.ETIKET }],
+    [{ v: E('Parça', 'Part'), stil: STIL.BASLIK }, { v: E('Bölge', 'Zone'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }, { v: E('Ceza Puanı', 'Demerit'), stil: STIL.BASLIK }]);
+  for (const p of ozet.parcaDagilimi.slice(0, 20)) {
+    satirlar.push([{ v: p.ad, stil: STIL.GOVDE }, { v: p.bolgeAd, stil: STIL.GOVDE }, { v: p.adet, stil: STIL.SAYI }, { v: p.puan, stil: STIL.SAYI }]);
+  }
+
+  satirlar.push([], [{
+    v: E('Not: ceza puanı ağırlıkları ve karar eşikleri ayarlanabilir başlangıç değerleridir; resmî bir audit standardından alınmamıştır.',
+         'Note: demerit weights and decision thresholds are configurable starting values, not taken from an official audit standard.'),
+    stil: STIL.SOLUK,
+  }]);
+
+  return { ad: E('Özet', 'Summary'), satirlar, sutunGenislikleri: [34, 12, 14, 52] };
+}
+
+/**
+ * Birden çok denetimi tek kitapta toplar (vardiya/hat raporu).
+ * Fotoğraflar yalnızca ilk sayfada değil, her aracın kendi sayfasında yer alır.
+ */
+function topluExcelUret(denetimler, fotograflar = new Map(), ayarlar = {}) {
+  const dil = ayarlar.dil ?? 'tr';
+  const E = (tr, en) => (dil === 'en' ? en : tr);
+  const toplu = topluOzet(denetimler, ayarlar.esikler);
+
+  const satirlar = [
+    [{ v: E('TOPLU DENETİM RAPORU', 'BATCH AUDIT REPORT'), stil: STIL.BASLIK_BUYUK }],
+    [],
+    [{ v: E('Denetlenen araç', 'Vehicles audited'), stil: STIL.ETIKET }, { v: toplu.aracSayisi, stil: STIL.SAYI }],
+    [{ v: E('Toplam hata adedi', 'Total defects'), stil: STIL.ETIKET }, { v: toplu.toplamAdet, stil: STIL.SAYI }],
+    [{ v: 'DPU (Defects Per Unit)', stil: STIL.ETIKET }, { v: toplu.dpu, stil: STIL.SAYI }],
+    [{ v: E('Araç başı ceza puanı', 'Demerit per unit'), stil: STIL.ETIKET }, { v: toplu.aracBasiPuan, stil: STIL.SAYI }],
+    [],
+    [{ v: E('ARAÇLAR', 'VEHICLES'), stil: STIL.ETIKET }],
+    [E('Şasi No', 'VIN'), E('Plaka', 'Plate'), E('Araç', 'Vehicle'), E('Tarih', 'Date'), E('Denetçi', 'Auditor'),
+     E('Hata', 'Defects'), E('Puan', 'Demerit'), E('Sonuç', 'Result')].map((v) => ({ v, stil: STIL.BASLIK })),
+  ];
+
+  for (const { denetim, ozet } of toplu.ozetler) {
+    satirlar.push([
+      { v: denetim.vin ?? '', stil: STIL.GOVDE },
+      { v: denetim.plaka || '—', stil: STIL.GOVDE },
+      { v: ARAC_INDEKS[denetim.aracId]?.ad ?? denetim.aracId ?? '', stil: STIL.GOVDE },
+      { v: bicimTarih(denetim.baslangic), stil: STIL.GOVDE_ORTA },
+      { v: denetim.denetci ?? '', stil: STIL.GOVDE },
+      { v: ozet.toplamAdet, stil: STIL.SAYI },
+      { v: ozet.toplamPuan, stil: STIL.SAYI },
+      { v: dil === 'en' ? ozet.sonuc.en : ozet.sonuc.ad, stil: { RED: STIL.SIDDET_A, SARTLI: STIL.SIDDET_B, KABUL: STIL.GOVDE_ORTA }[ozet.sonuc.kod] },
+    ]);
+  }
+
+  satirlar.push([], [{ v: E('EN SIK TEKRARLAYAN PARÇALAR', 'MOST FREQUENT PARTS'), stil: STIL.ETIKET }],
+    [E('Parça', 'Part'), E('Bölge', 'Zone'), E('Toplam adet', 'Total qty'), E('Kaç araçta', 'Vehicles affected')]
+      .map((v) => ({ v, stil: STIL.BASLIK })));
+  for (const p of toplu.enSikParcalar) {
+    satirlar.push([{ v: p.ad, stil: STIL.GOVDE }, { v: p.bolgeAd, stil: STIL.GOVDE },
+      { v: p.adet, stil: STIL.SAYI }, { v: p.aracSayisi, stil: STIL.SAYI }]);
+  }
+
+  const sayfalar = [{
+    ad: E('Toplu Özet', 'Batch Summary'), satirlar,
+    sutunGenislikleri: [22, 14, 16, 18, 18, 10, 10, 16],
+    dondur: { satir: 9, sutun: 0 },
+  }];
+
+  // Her araç kendi sayfasına — fotoğraflar dahil
+  for (const d of denetimler) {
+    const tekKitap = tekSayfaVerisi(d, fotograflar, dil, ayarlar.esikler);
+    sayfalar.push(tekKitap);
+  }
+
+  return xlsxOlustur(sayfalar, { baslik: E('Toplu Denetim Raporu', 'Batch Audit Report'), yazar: ayarlar.yazar });
+}
+
+/** topluExcelUret için: tek aracın sayfa tanımını (fotoğraflarıyla) üretir. */
+function tekSayfaVerisi(denetim, fotograflar, dil, esikler) {
+  const baglam = { dil };
+  const hatalar = denetim.hatalar ?? [];
+  const fotoSutunu = SUTUNLAR.findIndex((s) => s.fotograf);
+  const satirlar = [SUTUNLAR.map((s) => ({ v: baslikMetni(s, dil), stil: STIL.BASLIK }))];
+  const gorseller = [];
+  const satirYukseklikleri = {};
+
+  hatalar.forEach((h, i) => {
+    const satirNo = satirlar.length;
+    satirlar.push(SUTUNLAR.map((s) => ({
+      v: s.deger(h, i, baglam),
+      stil: s.stilSecici ? s.stilSecici(h) : (s.stil ?? STIL.GOVDE),
+    })));
+    const fotolar = (h.fotograflar ?? []).map((fid) => fotograflar.get(fid)).filter((f) => f?.bayt?.length);
+    let kayma = 0, enYuksek = 0;
+    for (const [fi, f] of fotolar.entries()) {
+      const olcu = gosterimOlcusu(f.bayt, FOTO_EN, FOTO_BOY);
+      gorseller.push({ satir: satirNo, sutun: fotoSutunu, veri: f.bayt, gosterEn: olcu.en, gosterBoy: olcu.boy, xKayma: kayma, ad: `${hataKodu(h)} foto ${fi + 1}` });
+      kayma += olcu.en + 6; enYuksek = Math.max(enYuksek, olcu.boy);
+    }
+    if (enYuksek) satirYukseklikleri[satirNo] = pikselPunto(enYuksek + 12);
+  });
+
+  const ad = (denetim.vin || denetim.plaka || denetim.id || 'Arac').slice(-12);
+  return {
+    ad, satirlar,
+    sutunGenislikleri: SUTUNLAR.map((s) => s.genislik),
+    satirYukseklikleri, gorseller, dondur: { satir: 1, sutun: 0 },
+  };
+}
+
+// --- CSV -------------------------------------------------------------------
+
+/** Excel'in Türkçe yerelinde bozulmaması için ayraç ";" ve BOM eklenir. */
+function csvUret(denetim, ayarlar = {}) {
+  const dil = ayarlar.dil ?? 'tr';
+  const baglam = { dil };
+  const kacis = (v) => {
+    const s = String(v ?? '');
+    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const basliklar = [...SUTUNLAR.filter((s) => !s.fotograf).map((s) => baslikMetni(s, dil)),
+    dil === 'en' ? 'Photo count' : 'Fotoğraf adedi'];
+  const satirlar = (denetim.hatalar ?? []).map((h, i) => [
+    ...SUTUNLAR.filter((s) => !s.fotograf).map((s) => s.deger(h, i, baglam)),
+    (h.fotograflar ?? []).length,
+  ]);
+  return '﻿' + [basliklar, ...satirlar].map((r) => r.map(kacis).join(';')).join('\r\n');
+}
+
+// --- YAZDIRILABİLİR HTML ---------------------------------------------------
+
+/**
+ * Ekranda gösterilen / yazdırılan rapor.
+ * @param {object} denetim
+ * @param {Map<string,{url:string}>} fotoUrlleri fotoId -> nesne URL'si
+ */
+function htmlRapor(denetim, fotoUrlleri = new Map(), ayarlar = {}) {
+  const dil = ayarlar.dil ?? 'tr';
+  const baglam = { dil };
+  const ozet = denetimOzeti(denetim, ayarlar.esikler);
+  const arac = ARAC_INDEKS[denetim.aracId];
+  const g = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const E = (tr, en) => (dil === 'en' ? en : tr);
+
+  const ustBilgi = ustBilgiCiftleri(denetim, ozet, dil)
+    .flatMap((satir) => [[satir[0], satir[1]], [satir[2], satir[3]], [satir[4], satir[5]]])
+    .map(([e, d]) => `<div class="r-alan"><span>${g(e)}</span><strong>${g(d)}</strong></div>`).join('');
+
+  const gorunurSutunlar = SUTUNLAR.filter((s) => s.anahtar !== 'grup' && s.anahtar !== 'kod');
+  const basliklar = gorunurSutunlar.map((s) => `<th>${g(baslikMetni(s, dil))}</th>`).join('');
+
+  const govde = (denetim.hatalar ?? []).map((h, i) => {
+    const hucreler = gorunurSutunlar.map((s) => {
+      if (s.fotograf) {
+        const foto = (h.fotograflar ?? []).map((fid) => fotoUrlleri.get(fid)).filter(Boolean);
+        return `<td class="r-foto">${foto.map((f) => `<img src="${g(f.url)}" alt="">`).join('')}</td>`;
+      }
+      const sinif = s.anahtar === 'siddet' ? ` class="r-s r-s${g(h.siddet)}"` : '';
+      return `<td${sinif}>${g(s.deger(h, i, baglam))}</td>`;
+    }).join('');
+    return `<tr>${hucreler}</tr>`;
+  }).join('');
+
+  return `<section class="rapor">
+<header><h1>${E('Araç Denetim Raporu', 'Vehicle Audit Report')}</h1>
+<p class="r-arac">${g(arac?.tam ?? denetim.aracId ?? '')} · ${g(denetim.vin ?? '')}</p></header>
+<div class="r-izgara">${ustBilgi}</div>
+<div class="r-sonuc r-sonuc-${g(ozet.sonuc.kod)}"><strong>${g(dil === 'en' ? ozet.sonuc.en : ozet.sonuc.ad)}</strong><span>${g(ozet.sonuc.gerekce)}</span></div>
+<div class="r-kaydir"><table class="r-tablo"><thead><tr>${basliklar}</tr></thead><tbody>${govde || `<tr><td colspan="${gorunurSutunlar.length}">${E('Hata kaydedilmedi.', 'No defects recorded.')}</td></tr>`}</tbody></table></div>
+<p class="r-not">${E('Ceza puanı ağırlıkları ve karar eşikleri ayarlanabilir başlangıç değerleridir; resmî bir audit standardından alınmamıştır.',
+  'Demerit weights and decision thresholds are configurable starting values, not from an official audit standard.')}</p>
+</section>`;
+}
+
+
+
+/* ===== uygulama.js ===== */
+// ARAÇ AUDIT — uygulama akışı.
+// Tasarım ilkesi: bir hatayı kaydetmek EN FAZLA üç dokunuş olmalı.
+//   (1) 3B modelde parçaya dokun  (2) hata tipini seç  (3) Kaydet
+// Fotoğraf ve not isteğe bağlıdır; sonradan da eklenebilir.
+
+
+
+
+
+
+
+const durum = {
+  ekran: 'ana',
+  denetim: null,
+  goruntuleyici: null,
+  mod: 'dis',
+  seciliParca: null,
+  fotoUrlleri: new Map(),
+  ayarlar: { denetci: '', hat: '', vardiya: '', dil: 'tr', esikler: { ...VARSAYILAN_ESIKLER } },
+};
+
+const $ = (s, k = document) => k.querySelector(s);
+const el = (etiket, ozellikler = {}, ...cocuklar) => {
+  const d = document.createElement(etiket);
+  for (const [a, v] of Object.entries(ozellikler)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (a === 'sinif') d.className = v;
+    else if (a === 'metin') d.textContent = v;
+    else if (a === 'html') d.innerHTML = v;
+    else if (a.startsWith('on')) d.addEventListener(a.slice(2), v);
+    else d.setAttribute(a, v === true ? '' : v);
+  }
+  for (const c of cocuklar.flat()) if (c) d.append(c.nodeType ? c : document.createTextNode(c));
+  return d;
+};
+
+// ---------------------------------------------------------------------------
+// ÇATI
+// ---------------------------------------------------------------------------
+
+function ciz() {
+  const kok = $('#kok');
+  kok.textContent = '';
+  const ekranlar = { ana: ekranAna, yeni: ekranYeni, denetim: ekranDenetim, rapor: ekranRapor, ayarlar: ekranAyarlar };
+  kok.append((ekranlar[durum.ekran] ?? ekranAna)());
+}
+
+function git(ekran) { durum.ekran = ekran; ciz(); window.scrollTo(0, 0); }
+
+function ustCubuk(baslik, altYazi, geriEkran) {
+  return el('div', { sinif: 'ust' },
+    geriEkran ? el('button', { sinif: 'geri', 'aria-label': 'Geri', onclick: () => git(geriEkran) }, '‹') : null,
+    el('div', { sinif: 'ust-sol' },
+      el('h1', { metin: baslik }),
+      altYazi ? el('div', { sinif: 'alt', metin: altYazi }) : null));
+}
+
+function bildir(mesaj, tur = 'bilgi') {
+  const k = el('div', { sinif: tur === 'hata' ? 'hata-kutu' : tur === 'uyari' ? 'uyari' : 'bilgi', metin: mesaj,
+    style: 'position:fixed;left:14px;right:14px;bottom:86px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.18)' });
+  document.body.append(k);
+  setTimeout(() => k.remove(), 3800);
+}
+
+// ---------------------------------------------------------------------------
+// EKRAN: ANA
+// ---------------------------------------------------------------------------
+
+function ekranAna() {
+  const sayfa = el('div', { sinif: 'sayfa' });
+  const parca = el('div', {}, ustCubuk('Araç Audit', 'QA denetim kayıt ve raporlama'), el('main', {}, sayfa));
+
+  sayfa.append(el('div', { sinif: 'dugme-satir' },
+    el('button', { sinif: 'birincil genis', onclick: () => git('yeni') }, '+  Yeni Denetim'),
+    el('button', { sinif: 'kucuk', style: 'flex:0 0 auto', onclick: () => git('ayarlar') }, '⚙ Ayarlar')));
+
+  const liste = el('div', { sinif: 'kart' }, el('h2', { metin: 'Son denetimler' }), el('div', { sinif: 'yukleniyor', metin: 'Yükleniyor…' }));
+  sayfa.append(liste);
+
+  depo.denetimListele(60).then((denetimler) => {
+    liste.textContent = '';
+    liste.append(el('h2', { metin: `Son denetimler (${denetimler.length})` }));
+    if (!denetimler.length) {
+      liste.append(el('div', { sinif: 'bos', metin: 'Henüz denetim yok. "Yeni Denetim" ile başlayın.' }));
+      return;
+    }
+    const kutu = el('div', { sinif: 'hata-liste' });
+    for (const d of denetimler) {
+      const o = denetimOzeti(d, durum.ayarlar.esikler);
+      kutu.append(el('button', { sinif: 'liste-satir', onclick: () => denetimAc(d.id) },
+        el('div', {},
+          el('div', { sinif: 'vin', metin: d.vin || '(şasi yok)' }),
+          el('div', { sinif: 'meta', metin: `${ARAC_INDEKS[d.aracId]?.ad ?? d.aracId} · ${d.plaka || 'plakasız'} · ${bicimTarih(d.baslangic)}` })),
+        el('div', { sinif: 'sag' },
+          el('span', { sinif: `sonuc-pul sonuc-${o.sonuc.kod}`, metin: o.sonuc.ad }),
+          el('span', { metin: `${o.toplamAdet} hata` }))));
+    }
+    liste.append(kutu);
+    liste.append(el('div', { sinif: 'dugme-satir', style: 'margin-top:12px' },
+      el('button', { sinif: 'kucuk', onclick: () => topluDisaAktar(denetimler) }, '⤓ Tümünü Excel’e aktar'),
+      el('button', { sinif: 'kucuk', onclick: yedekIndir }, '💾 Yedek al')));
+  }).catch((h) => {
+    liste.textContent = '';
+    liste.append(el('div', { sinif: 'hata-kutu', metin: `Kayıtlar okunamadı: ${h.message}` }));
+  });
+
+  return parca;
+}
+
+async function denetimAc(id) {
+  durum.denetim = await depo.denetimGetir(id);
+  await fotoUrlleriTazele();
+  durum.mod = 'dis';
+  durum.seciliParca = null;
+  git('denetim');
+}
+
+// ---------------------------------------------------------------------------
+// EKRAN: YENİ DENETİM
+// ---------------------------------------------------------------------------
+
+function ekranYeni() {
+  const sayfa = el('div', { sinif: 'sayfa' });
+  const parca = el('div', {}, ustCubuk('Yeni Denetim', 'Araç ve şasi bilgisi', 'ana'), el('main', {}, sayfa));
+
+  let seciliArac = ARACLAR[0].id;
+
+  // --- Araç seçimi
+  const aracKutu = el('div', { sinif: 'arac-izgara' });
+  const aracKartlari = ARACLAR.map((a) => {
+    const k = el('button', { sinif: 'arac-kart', 'aria-pressed': a.id === seciliArac, onclick: () => {
+      seciliArac = a.id;
+      aracKartlari.forEach((kk, i) => kk.setAttribute('aria-pressed', ARACLAR[i].id === seciliArac));
+    } },
+      el('b', { metin: a.ad }),
+      el('span', { metin: `${a.tip === 'ev' ? 'Elektrikli' : 'İçten yanmalı'} · ${a.uzunluk}×${a.genislik}×${a.yukseklik} mm` }),
+      a.olcuDogrulandi ? null : el('span', { sinif: 'rozet uyar', metin: 'ölçü doğrulanmadı' }));
+    aracKutu.append(k);
+    return k;
+  });
+  sayfa.append(el('div', { sinif: 'kart' }, el('h2', { metin: 'Araç' }), aracKutu));
+
+  // --- Şasi
+  // maxlength KOYMA: barkod okuyucu ayraçlı metin gönderebilir ("NLH-B51...").
+  // 17'de kırpılırsa ayraç yüzünden SON HANE sessizce kaybolur ve hatalı VIN
+  // geçerli görünür. Uzunluk kırpmayla değil, normalize + doğrulama ile kontrol
+  // edilir. (15.09.2026 tarayıcı sınavında yakalandı.)
+  const vinGirdi = el('input', { sinif: 'vin-girdi', maxlength: '40', autocapitalize: 'characters',
+    autocomplete: 'off', spellcheck: 'false', placeholder: '17 haneli şasi numarası', inputmode: 'text' });
+  const vinDurum = el('div', { sinif: 'bilgi', metin: `Barkodu okutun ya da elle girin — ${VIN_UZUNLUK} hane.` });
+  const plakaGirdi = el('input', { placeholder: '41 ABC 12 (varsa)', autocapitalize: 'characters' });
+
+  const vinKontrol = () => {
+    const r = vinDogrula(vinGirdi.value);
+    vinGirdi.value = r.vin;
+    vinDurum.className = r.gecerli ? (r.uyarilar.length ? 'uyari' : 'bilgi') : 'hata-kutu';
+    if (!vinGirdi.value) { vinDurum.className = 'bilgi'; vinDurum.textContent = `Barkodu okutun ya da elle girin — ${VIN_UZUNLUK} hane.`; return r; }
+    const satirlar = [...r.hatalar, ...r.uyarilar];
+    if (r.gecerli && !satirlar.length) {
+      const b = r.bilgi;
+      vinDurum.textContent = `✓ Geçerli · ${b.uretici ?? b.wmi} · model yılı ${b.modelYili ?? '?'}`;
+    } else {
+      vinDurum.textContent = satirlar.join(' ');
+    }
+    return r;
+  };
+  vinGirdi.addEventListener('input', vinKontrol);
+
+  sayfa.append(el('div', { sinif: 'kart' },
+    el('h2', { metin: 'Şasi numarası (VIN)' }),
+    el('div', { style: 'display:grid;gap:9px' },
+      vinGirdi, vinDurum,
+      el('div', { sinif: 'dugme-satir' },
+        el('button', { sinif: 'kucuk', onclick: () => vinTara(vinGirdi, vinKontrol) }, '📷 Barkod okut'),
+        el('button', { sinif: 'kucuk', onclick: () => { vinGirdi.value = ''; vinKontrol(); vinGirdi.focus(); } }, '✕ Temizle')),
+      el('label', { sinif: 'alan' }, 'Plaka (varsa)', plakaGirdi))));
+
+  // --- Denetim bilgileri
+  const raporNo = el('input', { placeholder: 'örn. QA-2026-0412' });
+  const denetci = el('input', { placeholder: 'Ad Soyad', value: durum.ayarlar.denetci ?? '' });
+  const hat = el('input', { placeholder: 'örn. Montaj 2', value: durum.ayarlar.hat ?? '' });
+  const vardiya = el('select', {}, ...['', 'A', 'B', 'C'].map((v) => el('option', { value: v, metin: v || 'Seçiniz' })));
+  vardiya.value = durum.ayarlar.vardiya ?? '';
+  const tip = el('select', {}, ...['Seri denetim', 'Ara denetim', 'Final audit', 'Yol testi', 'Müşteri şikâyeti', 'Yeniden kontrol']
+    .map((v) => el('option', { value: v, metin: v })));
+
+  sayfa.append(el('div', { sinif: 'kart' },
+    el('h2', { metin: 'Denetim bilgileri' }),
+    el('div', { sinif: 'izgara2' },
+      el('label', { sinif: 'alan' }, 'Rapor No', raporNo),
+      el('label', { sinif: 'alan' }, 'Denetçi', denetci),
+      el('label', { sinif: 'alan' }, 'Üretim hattı', hat),
+      el('label', { sinif: 'alan' }, 'Vardiya', vardiya),
+      el('label', { sinif: 'alan' }, 'Denetim tipi', tip))));
+
+  const basla = async () => {
+    const r = vinKontrol();
+    if (!r.gecerli) { bildir('Şasi numarası eksik ya da hatalı.', 'hata'); vinGirdi.focus(); return; }
+    const p = plakaDogrula(plakaGirdi.value);
+    if (p.uyarilar.length) bildir(p.uyarilar[0], 'uyari');
+
+    durum.ayarlar.denetci = denetci.value.trim();
+    durum.ayarlar.hat = hat.value.trim();
+    durum.ayarlar.vardiya = vardiya.value;
+    await depo.ayarYaz('varsayilanlar', durum.ayarlar);
+
+    durum.denetim = {
+      id: depo.kimlikUret('d'),
+      aracId: seciliArac,
+      vin: r.vin,
+      plaka: p.bicimli,
+      raporNo: raporNo.value.trim(),
+      denetci: durum.ayarlar.denetci,
+      hat: durum.ayarlar.hat,
+      vardiya: durum.ayarlar.vardiya,
+      denetimTipi: tip.value,
+      baslangic: new Date().toISOString(),
+      bitis: null,
+      durum: 'devam',
+      hatalar: [],
+    };
+    await depo.denetimKaydet(durum.denetim);
+    durum.fotoUrlleri.clear();
+    durum.mod = 'dis';
+    git('denetim');
+  };
+
+  parca.append(el('div', { sinif: 'alt-cubuk' },
+    el('button', { sinif: 'birincil', onclick: basla }, 'Denetime Başla →')));
+  return parca;
+}
+
+/** Kamera + BarcodeDetector ile VIN okuma; desteklenmiyorsa elle girişe düşer. */
+async function vinTara(girdi, kontrol) {
+  if (!('BarcodeDetector' in window)) {
+    bildir('Bu tarayıcı barkod okumayı desteklemiyor — elle girin ya da Chrome (Android) kullanın.', 'uyari');
+    girdi.focus();
+    return;
+  }
+  let akis;
+  try {
+    akis = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+  } catch {
+    bildir('Kameraya erişilemedi. Tarayıcı izinlerini kontrol edin.', 'hata');
+    return;
+  }
+
+  const video = el('video', { autoplay: true, playsinline: true, muted: true,
+    style: 'width:100%;border-radius:12px;background:#000;max-height:60vh;object-fit:cover' });
+  video.srcObject = akis;
+
+  const kapat = () => { akis.getTracks().forEach((t) => t.stop()); perde.remove(); };
+  const perde = el('div', { sinif: 'perde', onclick: (e) => { if (e.target === perde) kapat(); } },
+    el('div', { sinif: 'sayfa-alt' },
+      el('div', { sinif: 'tutamak' }),
+      el('h3', { metin: 'Şasi barkodunu kameraya gösterin' }),
+      video,
+      el('div', { sinif: 'bilgi', metin: 'Code 128 / Code 39 / QR / DataMatrix okunur. Okunan metin 17 haneye göre süzülür.' }),
+      el('button', { onclick: kapat }, 'Vazgeç')));
+  document.body.append(perde);
+
+  const okuyucu = new window.BarcodeDetector({ formats: ['code_128', 'code_39', 'qr_code', 'data_matrix', 'pdf417', 'itf'] });
+  const dongu = async () => {
+    if (!document.body.contains(perde)) return;
+    try {
+      const bulunan = await okuyucu.detect(video);
+      for (const b of bulunan) {
+        const aday = vinDogrula(b.rawValue);
+        if (aday.gecerli) {
+          girdi.value = aday.vin;
+          kontrol();
+          navigator.vibrate?.(60);
+          kapat();
+          return;
+        }
+      }
+    } catch { /* kare atlandı, döngü sürer */ }
+    requestAnimationFrame(dongu);
+  };
+  video.addEventListener('loadeddata', () => requestAnimationFrame(dongu), { once: true });
+}
+
+// ---------------------------------------------------------------------------
+// EKRAN: DENETİM (ana çalışma ekranı)
+// ---------------------------------------------------------------------------
+
+function ekranDenetim() {
+  const d = durum.denetim;
+  const arac = ARAC_INDEKS[d.aracId];
+  const ozet = denetimOzeti(d, durum.ayarlar.esikler);
+  const sayfa = el('div', { sinif: 'sayfa' });
+  const parca = el('div', {}, ustCubuk(d.vin || 'Denetim', `${arac?.ad ?? d.aracId} · ${d.plaka || 'plakasız'}`, 'ana'), el('main', {}, sayfa));
+
+  // --- Özet ölçüler
+  sayfa.append(el('div', { sinif: 'olcu-izgara' },
+    el('div', { sinif: 'olcu' }, el('b', { metin: String(ozet.toplamAdet) }), el('span', { metin: 'hata adedi' })),
+    el('div', { sinif: 'olcu' }, el('b', { metin: String(ozet.toplamPuan) }), el('span', { metin: 'ceza puanı' })),
+    el('div', { sinif: 'olcu' }, el('b', { metin: String(ozet.siddetDagilimi.A.adet) }), el('span', { metin: 'kritik (A)' })),
+    el('div', { sinif: 'olcu' }, el('b', { metin: String(ozet.fotografliHata) }), el('span', { metin: 'fotoğraflı' })),
+    el('div', { sinif: 'olcu' }, el('span', { sinif: `sonuc-pul sonuc-${ozet.sonuc.kod}`, metin: ozet.sonuc.ad }), el('span', { style: 'margin-top:6px', metin: 'sonuç' }))));
+
+  // --- 3B model
+  const tuval = el('canvas', { id: 'model' });
+  const modBtn = (ad, etiket) => el('button', { 'aria-pressed': durum.mod === ad, onclick: () => { durum.mod = ad; ciz(); } }, etiket);
+  const bakisBtn = (ad, etiket) => el('button', { onclick: () => durum.goruntuleyici?.bakis(ad) }, etiket);
+
+  const modelSarma = el('div', { sinif: 'model-sarma' },
+    tuval,
+    el('div', { sinif: 'model-arac' }, modBtn('dis', 'Dış'), modBtn('ic', 'İç')),
+    el('div', { sinif: 'model-bakis' }, bakisBtn('sol', 'Sol'), bakisBtn('sag', 'Sağ'), bakisBtn('on', 'Ön'), bakisBtn('arka', 'Arka'), bakisBtn('ust', 'Üst')),
+    el('div', { sinif: 'model-alt' },
+      el('span', { sinif: 'ipucu', metin: 'Parçaya dokunun · sürükleyerek döndürün' }),
+      el('button', { onclick: () => bolgeListesiAc() }, '☰ Listeden seç')));
+  sayfa.append(modelSarma);
+  if (!arac?.olcuDogrulandi) {
+    sayfa.append(el('div', { sinif: 'uyari', metin: `${arac.ad}: ${arac.not} Model şematiktir; hata yerini parça adıyla birlikte not alın.` }));
+  }
+
+  // --- Hızlı seçim
+  const hizliKutu = el('div', { sinif: 'hizli' });
+  sayfa.append(el('div', { sinif: 'kart' }, el('h2', { metin: 'Hızlı seçim — en sık kaydedilenler' }), hizliKutu));
+  hizliDoldur(hizliKutu);
+
+  // --- Hata listesi
+  const listeKart = el('div', { sinif: 'kart' }, el('h2', { metin: `Kaydedilen hatalar (${d.hatalar.length})` }));
+  if (!d.hatalar.length) {
+    listeKart.append(el('div', { sinif: 'bos', metin: 'Henüz hata kaydı yok. Modelden bir parçaya dokunun.' }));
+  } else {
+    const liste = el('div', { sinif: 'hata-liste' });
+    d.hatalar.forEach((h, i) => {
+      const p = PARCA_INDEKS[h.parcaId];
+      const ht = HATA_TIPI_INDEKS[h.hataTipiId];
+      const fotoSayi = (h.fotograflar ?? []).length;
+      const ilkFoto = fotoSayi ? durum.fotoUrlleri.get(h.fotograflar[0]) : null;
+      liste.append(el('button', { sinif: 'hata-satir', onclick: () => hataDuzenleAc(i) },
+        el('div', { sinif: `siddet-pul siddet-${h.siddet}`, metin: h.siddet }),
+        el('div', {},
+          el('div', { sinif: 'ad', metin: `${p?.ad ?? h.parcaId} — ${ht?.ad ?? h.hataTipiId}` }),
+          el('div', { sinif: 'yol', metin: `${p?.bolgeAd ?? ''}${h.adet > 1 ? ` · ${h.adet} adet` : ''}${h.konum ? ` · ${h.konum}` : ''}` })),
+        el('div', { sinif: 'sag' },
+          ilkFoto ? el('img', { sinif: 'foto-pul', src: ilkFoto, alt: '' }) : null,
+          fotoSayi > 1 ? el('span', { sinif: 'foto-sayi', metin: `+${fotoSayi - 1}` }) : null,
+          fotoSayi === 0 ? el('span', { metin: '📷—' }) : null)));
+    });
+    listeKart.append(liste);
+  }
+  sayfa.append(listeKart);
+
+  // --- Alt çubuk
+  parca.append(el('div', { sinif: 'alt-cubuk' },
+    el('button', { sinif: 'birincil', onclick: () => bolgeListesiAc() }, '+ Hata Ekle'),
+    el('button', { onclick: excelIndir }, '⤓ Excel'),
+    el('button', { onclick: () => git('rapor') }, '🗎 Rapor')));
+
+  // 3B'yi DOM'a girdikten sonra kur
+  queueMicrotask(() => modelKur(tuval));
+  return parca;
+}
+
+function tuvalOlcusuGuncelle(tuval) {
+  const olcek = Math.min(window.devicePixelRatio || 1, 2);
+  const en = Math.max(1, Math.round(tuval.clientWidth * olcek));
+  const boy = Math.max(1, Math.round(tuval.clientHeight * olcek));
+  if (tuval.width === en && tuval.height === boy) return false;
+  tuval.width = en; tuval.height = boy;
+  return true;
+}
+
+function modelKur(tuval) {
+  tuvalOlcusuGuncelle(tuval);
+
+  // Tuval, kurulduktan SONRA da yeniden boyutlanabilir (hızlı seçim şeridi
+  // sonradan dolar, cihaz döner, klavye açılır). İzlemezsek arka plan tamponu
+  // eski ölçüde kalır ve dokunma isabeti kayar — 15.09.2026'da tam bu oldu.
+  if (durum.tuvalIzleyici) durum.tuvalIzleyici.disconnect();
+  if (typeof ResizeObserver !== 'undefined') {
+    durum.tuvalIzleyici = new ResizeObserver(() => {
+      if (tuvalOlcusuGuncelle(tuval)) durum.goruntuleyici?.ciz();
+    });
+    durum.tuvalIzleyici.observe(tuval);
+  }
+
+  durum.goruntuleyici = new ModelGoruntuleyici(tuval, {
+    dokunuldu: (mesh) => {
+      const parcaId = meshParcaBul(mesh);
+      if (parcaId) hataEkleAc(parcaId);
+    },
+  });
+  durum.goruntuleyici.yukle(geometriUret(durum.denetim.aracId, durum.mod));
+  durum.goruntuleyici.vurgula(hataVurgulari());
+  durum.goruntuleyici.bakis(durum.mod === 'ic' ? 'kabin' : 'serbest');
+}
+
+/** mesh kimliği -> parça kimliği (katalogda mesh alanıyla eşleşir). */
+function meshParcaBul(mesh) {
+  for (const b of BOLGELER) for (const p of b.parcalar) if (p.mesh === mesh) return p.id;
+  return null;
+}
+
+/** Hatası olan parçaları en yüksek şiddetin rengiyle boyar. */
+function hataVurgulari() {
+  const harita = new Map();
+  const oncelik = { A: 3, B: 2, C: 1 };
+  const enIyi = new Map();
+  for (const h of durum.denetim.hatalar) {
+    const p = PARCA_INDEKS[h.parcaId];
+    if (!p?.mesh) continue;
+    const mevcut = enIyi.get(p.mesh);
+    if (!mevcut || oncelik[h.siddet] > oncelik[mevcut]) enIyi.set(p.mesh, h.siddet);
+  }
+  for (const [mesh, siddet] of enIyi) harita.set(mesh, SIDDET_INDEKS[siddet]?.renk ?? '#D92D20');
+  return harita;
+}
+
+function hizliDoldur(kutu) {
+  depo.sikKullanilanlar(10).then((sik) => {
+    const kaynak = sik.length >= 4
+      ? sik.map((s) => [s.parcaId, s.hataTipiId])
+      : HIZLI_KALIPLAR;
+    kutu.textContent = '';
+    const gecerli = kaynak.filter(([p, h]) => PARCA_INDEKS[p] && HATA_TIPI_INDEKS[h]).slice(0, 14);
+    if (!gecerli.length) { kutu.append(el('div', { sinif: 'bos', metin: 'Kalıp yok.' })); return; }
+    for (const [parcaId, hataId] of gecerli) {
+      const p = PARCA_INDEKS[parcaId], h = HATA_TIPI_INDEKS[hataId];
+      kutu.append(el('button', { onclick: () => hataEkleAc(parcaId, hataId) },
+        el('b', { metin: `${p.ad} — ${h.ad}` }),
+        el('span', { metin: p.bolgeAd })));
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// BÖLGE / PARÇA SEÇİMİ
+// ---------------------------------------------------------------------------
+
+function altSayfa(baslik, ...icerik) {
+  const kapat = () => perde.remove();
+  const perde = el('div', { sinif: 'perde', onclick: (e) => { if (e.target === perde) kapat(); } },
+    el('div', { sinif: 'sayfa-alt' },
+      el('div', { sinif: 'tutamak' }),
+      el('h3', { metin: baslik }),
+      ...icerik.flat()));
+  document.body.append(perde);
+  return { perde, kapat };
+}
+
+function bolgeListesiAc() {
+  const arac = ARAC_INDEKS[durum.denetim.aracId];
+  const bolgeler = bolgelerAracIcin(arac);
+  const arama = el('input', { placeholder: 'Parça ara (örn. arka kapı, garniş, far)…', type: 'search' });
+  const sonuc = el('div', { style: 'display:grid;gap:8px' });
+
+  const { kapat } = altSayfa('Bölge ve parça seç', arama, sonuc);
+
+  const cizListe = () => {
+    const q = arama.value.trim().toLocaleLowerCase('tr');
+    sonuc.textContent = '';
+    for (const b of bolgeler) {
+      const parcalar = q
+        ? b.parcalar.filter((p) => `${p.ad} ${p.en} ${b.ad}`.toLocaleLowerCase('tr').includes(q))
+        : b.parcalar;
+      if (!parcalar.length) continue;
+      sonuc.append(el('div', { sinif: 'grup-basligi', metin: `${b.simge ?? ''} ${b.ad}` }));
+      const izgara = el('div', { sinif: 'secenek-izgara' });
+      for (const p of parcalar) {
+        izgara.append(el('button', { sinif: 'secenek', onclick: () => { kapat(); hataEkleAc(p.id); } },
+          p.ad, el('small', { metin: p.en })));
+      }
+      sonuc.append(izgara);
+    }
+    if (!sonuc.children.length) sonuc.append(el('div', { sinif: 'bos', metin: 'Eşleşen parça yok.' }));
+  };
+  arama.addEventListener('input', cizListe);
+  cizListe();
+}
+
+// ---------------------------------------------------------------------------
+// HATA EKLEME / DÜZENLEME
+// ---------------------------------------------------------------------------
+
+function hataEkleAc(parcaId, onSecilenHata = null) {
+  hataSayfasi({
+    parcaId,
+    hataTipiId: onSecilenHata,
+    siddet: onSecilenHata ? HATA_TIPI_INDEKS[onSecilenHata]?.siddet ?? 'C' : null,
+    adet: 1, konum: '', aciklama: '', fotograflar: [], durum: 'acik',
+  }, null);
+}
+
+function hataDuzenleAc(sira) {
+  hataSayfasi({ ...durum.denetim.hatalar[sira] }, sira);
+}
+
+function hataSayfasi(taslak, duzenlenenSira) {
+  const p = PARCA_INDEKS[taslak.parcaId];
+  const tipler = parcaHataTipleri(taslak.parcaId);
+  const gruplar = [...new Set(tipler.map((t) => t.grup))];
+
+  const tipKutu = el('div', { style: 'display:grid;gap:8px' });
+  const siddetKutu = el('div', { sinif: 'siddet-secim' });
+  const adetGirdi = el('input', { type: 'number', min: '1', max: '99', value: String(taslak.adet ?? 1), inputmode: 'numeric' });
+  const konumGirdi = el('input', { placeholder: 'örn. üst köşe, kol dayama hizası', value: taslak.konum ?? '' });
+  const aciklamaGirdi = el('textarea', { rows: '2', placeholder: 'Ek açıklama (isteğe bağlı)' });
+  aciklamaGirdi.value = taslak.aciklama ?? '';
+  const fotoSerit = el('div', { sinif: 'foto-serit' });
+
+  const siddetCiz = () => {
+    siddetKutu.textContent = '';
+    for (const s of SIDDETLER) {
+      siddetKutu.append(el('button', { sinif: `secenek s-${s.id}`, 'aria-pressed': taslak.siddet === s.id,
+        onclick: () => { taslak.siddet = s.id; siddetCiz(); } },
+        `${s.id} · ${s.ad}`, el('small', { metin: `${s.puan} puan` })));
+    }
+  };
+
+  const tipCiz = () => {
+    tipKutu.textContent = '';
+    for (const g of gruplar) {
+      tipKutu.append(el('div', { sinif: 'grup-basligi', metin: HATA_GRUPLARI[g]?.ad ?? g }));
+      const izgara = el('div', { sinif: 'secenek-izgara' });
+      for (const t of tipler.filter((x) => x.grup === g)) {
+        izgara.append(el('button', { sinif: 'secenek', 'aria-pressed': taslak.hataTipiId === t.id,
+          onclick: (ev) => {
+            taslak.hataTipiId = t.id;
+            if (duzenlenenSira === null) taslak.siddet = t.siddet;
+            tipCiz(); siddetCiz();
+            // Hata tipi seçildi; sırada Kaydet var. Uzun listede o düğme
+            // ekranın çok altında kalıyor ve "üç dokunuş" sözü bozuluyordu.
+            ev.currentTarget.closest('.sayfa-alt')?.querySelector('.eylemler')
+              ?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          } },
+          t.ad, el('small', { metin: t.en })));
+      }
+      tipKutu.append(izgara);
+    }
+  };
+
+  const fotoCiz = () => {
+    fotoSerit.textContent = '';
+    for (const fid of taslak.fotograflar) {
+      const url = durum.fotoUrlleri.get(fid);
+      fotoSerit.append(el('div', { sinif: 'foto-kutu' },
+        url ? el('img', { src: url, alt: '' }) : null,
+        el('button', { 'aria-label': 'Fotoğrafı sil', onclick: async () => {
+          taslak.fotograflar = taslak.fotograflar.filter((x) => x !== fid);
+          await depo.fotografSil(fid);
+          durum.fotoUrlleri.delete(fid);
+          fotoCiz();
+        } }, '×')));
+    }
+    fotoSerit.append(el('label', { sinif: 'foto-ekle' }, '📷', 'Fotoğraf',
+      el('input', { type: 'file', accept: 'image/*', capture: 'environment', multiple: true, style: 'display:none',
+        onchange: async (e) => {
+          const dosyalar = [...e.target.files];
+          e.target.value = '';
+          for (const dosya of dosyalar) {
+            try {
+              const { blob, en, boy } = await fotografKucult(dosya);
+              const kayit = await depo.fotografKaydet(durum.denetim.id, blob, { en, boy });
+              taslak.fotograflar.push(kayit.id);
+              durum.fotoUrlleri.set(kayit.id, URL.createObjectURL(blob));
+            } catch (h) {
+              bildir(`Fotoğraf işlenemedi: ${h.message}`, 'hata');
+            }
+          }
+          fotoCiz();
+        } })));
+  };
+
+  tipCiz(); siddetCiz(); fotoCiz();
+
+  const kaydet = async () => {
+    if (!taslak.hataTipiId) { bildir('Hata tipi seçin.', 'uyari'); return; }
+    if (!taslak.siddet) taslak.siddet = HATA_TIPI_INDEKS[taslak.hataTipiId]?.siddet ?? 'C';
+    taslak.adet = Math.max(1, Math.min(99, Number(adetGirdi.value) || 1));
+    taslak.konum = konumGirdi.value.trim();
+    taslak.aciklama = aciklamaGirdi.value.trim();
+    if (duzenlenenSira === null) {
+      taslak.id = depo.kimlikUret('h');
+      taslak.zaman = new Date().toISOString();
+      durum.denetim.hatalar.push(taslak);
+    } else {
+      durum.denetim.hatalar[duzenlenenSira] = taslak;
+    }
+    await depo.denetimKaydet(durum.denetim);
+    await depo.kalipSay(taslak.parcaId, taslak.hataTipiId);
+    kapat();
+    ciz();
+  };
+
+  const sil = async () => {
+    if (duzenlenenSira === null) { kapat(); return; }
+    for (const fid of durum.denetim.hatalar[duzenlenenSira].fotograflar ?? []) {
+      await depo.fotografSil(fid);
+      durum.fotoUrlleri.delete(fid);
+    }
+    durum.denetim.hatalar.splice(duzenlenenSira, 1);
+    await depo.denetimKaydet(durum.denetim);
+    kapat();
+    ciz();
+  };
+
+  const { kapat } = altSayfa(`${p?.ad ?? taslak.parcaId}`,
+    el('div', { sinif: 'bilgi', metin: `${p?.bolgeAd ?? ''} · ${p?.en ?? ''}` }),
+    el('div', { sinif: 'grup-basligi', metin: 'Hata tipi' }), tipKutu,
+    el('div', { sinif: 'grup-basligi', metin: 'Şiddet' }), siddetKutu,
+    el('div', { sinif: 'izgara2' },
+      el('label', { sinif: 'alan' }, 'Adet',
+        el('div', { sinif: 'adet-kutu' },
+          el('button', { onclick: () => { adetGirdi.value = Math.max(1, Number(adetGirdi.value) - 1); } }, '−'),
+          adetGirdi,
+          el('button', { onclick: () => { adetGirdi.value = Math.min(99, Number(adetGirdi.value) + 1); } }, '+'))),
+      el('label', { sinif: 'alan' }, 'Konum', konumGirdi)),
+    el('label', { sinif: 'alan' }, 'Açıklama', aciklamaGirdi),
+    el('div', { sinif: 'grup-basligi', metin: 'Fotoğraf (Excel’e otomatik gömülür)' }), fotoSerit,
+    el('div', { sinif: 'dugme-satir eylemler', style: 'margin-top:8px' },
+      duzenlenenSira !== null ? el('button', { sinif: 'tehlike', onclick: sil }, 'Sil') : null,
+      el('button', { onclick: () => kapat() }, 'Vazgeç'),
+      el('button', { sinif: 'birincil', onclick: kaydet }, 'Kaydet')));
+}
+
+// ---------------------------------------------------------------------------
+// FOTOĞRAF URL'leri
+// ---------------------------------------------------------------------------
+
+async function fotoUrlleriTazele() {
+  for (const url of durum.fotoUrlleri.values()) URL.revokeObjectURL(url);
+  durum.fotoUrlleri.clear();
+  const kayitlar = await depo.fotograflariGetir(durum.denetim.id);
+  for (const k of kayitlar) durum.fotoUrlleri.set(k.id, URL.createObjectURL(k.blob));
+}
+
+// ---------------------------------------------------------------------------
+// DIŞA AKTARIM
+// ---------------------------------------------------------------------------
+
+function indir(veri, adi, tur) {
+  const blob = veri instanceof Blob ? veri : new Blob([veri], { type: tur });
+  const url = URL.createObjectURL(blob);
+  const a = el('a', { href: url, download: adi });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function dosyaAdi(d, uzanti) {
+  const t = new Date(d.baslangic ?? Date.now());
+  const iki = (n) => String(n).padStart(2, '0');
+  return `denetim_${d.vin || 'sasisiz'}_${t.getFullYear()}${iki(t.getMonth() + 1)}${iki(t.getDate())}_${iki(t.getHours())}${iki(t.getMinutes())}.${uzanti}`;
+}
+
+async function excelIndir() {
+  try {
+    const fotolar = await depo.fotografBaytlari(durum.denetim.id);
+    const kitap = excelUret(durum.denetim, fotolar, durum.ayarlar);
+    indir(kitap, dosyaAdi(durum.denetim, 'xlsx'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    bildir(`Excel indirildi — ${fotolar.size} fotoğraf dosyanın içine gömüldü.`);
+  } catch (h) {
+    bildir(`Excel üretilemedi: ${h.message}`, 'hata');
+  }
+}
+
+async function topluDisaAktar(denetimler) {
+  try {
+    const hepsi = new Map();
+    for (const d of denetimler) {
+      for (const [k, v] of await depo.fotografBaytlari(d.id)) hepsi.set(k, v);
+    }
+    const kitap = topluExcelUret(denetimler, hepsi, durum.ayarlar);
+    const t = new Date();
+    indir(kitap, `toplu_denetim_${t.getFullYear()}${String(t.getMonth() + 1).padStart(2, '0')}${String(t.getDate()).padStart(2, '0')}.xlsx`,
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    bildir(`${denetimler.length} denetim tek dosyaya aktarıldı.`);
+  } catch (h) {
+    bildir(`Toplu aktarım başarısız: ${h.message}`, 'hata');
+  }
+}
+
+async function yedekIndir() {
+  const y = await depo.yedekAl();
+  indir(JSON.stringify(y), `arac_audit_yedek_${new Date().toISOString().slice(0, 10)}.json`, 'application/json');
+  bildir(`${y.denetimler.length} denetim, ${y.fotograflar.length} fotoğraf yedeklendi.`);
+}
+
+// ---------------------------------------------------------------------------
+// EKRAN: RAPOR
+// ---------------------------------------------------------------------------
+
+function ekranRapor() {
+  const d = durum.denetim;
+  const sayfa = el('div', { sinif: 'sayfa' });
+  const parca = el('div', {}, ustCubuk('Rapor', d.vin, 'denetim'), el('main', {}, sayfa));
+
+  const urlHarita = new Map();
+  for (const [id, url] of durum.fotoUrlleri) urlHarita.set(id, { url });
+  sayfa.append(el('div', { html: htmlRapor(d, urlHarita, durum.ayarlar) }));
+
+  parca.append(el('div', { sinif: 'alt-cubuk yazdirma-gizle' },
+    el('button', { onclick: () => window.print() }, '🖨 Yazdır / PDF'),
+    el('button', { onclick: excelIndir }, '⤓ Excel'),
+    el('button', { onclick: () => indir(csvUret(d, durum.ayarlar), dosyaAdi(d, 'csv'), 'text/csv;charset=utf-8') }, '⤓ CSV'),
+    el('button', { sinif: 'yesilb', onclick: denetimiBitir }, '✓ Bitir')));
+  return parca;
+}
+
+async function denetimiBitir() {
+  durum.denetim.durum = 'tamam';
+  durum.denetim.bitis = new Date().toISOString();
+  await depo.denetimKaydet(durum.denetim);
+  bildir('Denetim kapatıldı.');
+  git('ana');
+}
+
+// ---------------------------------------------------------------------------
+// EKRAN: AYARLAR
+// ---------------------------------------------------------------------------
+
+function ekranAyarlar() {
+  const sayfa = el('div', { sinif: 'sayfa' });
+  const parca = el('div', {}, ustCubuk('Ayarlar', null, 'ana'), el('main', {}, sayfa));
+  const e = durum.ayarlar.esikler;
+
+  const sartli = el('input', { type: 'number', value: String(e.sartliPuan), min: '1' });
+  const red = el('input', { type: 'number', value: String(e.redPuan), min: '1' });
+  const kritik = el('input', { type: 'checkbox' });
+  kritik.checked = e.kritikVarsaRed;
+  const dil = el('select', {}, el('option', { value: 'tr', metin: 'Türkçe' }), el('option', { value: 'en', metin: 'English' }));
+  dil.value = durum.ayarlar.dil;
+
+  sayfa.append(el('div', { sinif: 'kart' },
+    el('h2', { metin: 'Karar eşikleri' }),
+    el('div', { sinif: 'uyari', metin: 'Bu ağırlıklar ve eşikler ÖRNEK başlangıç değerleridir; resmî bir audit standardından alınmamıştır. Kendi standardınızın sayılarını girin.' }),
+    el('div', { sinif: 'izgara2', style: 'margin-top:10px' },
+      el('label', { sinif: 'alan' }, 'Şartlı kabul eşiği (puan)', sartli),
+      el('label', { sinif: 'alan' }, 'Red eşiği (puan)', red)),
+    el('label', { sinif: 'alan', style: 'margin-top:10px;display:flex;align-items:center;gap:10px' },
+      kritik, el('span', { metin: 'Tek bir kritik (A) hata aracı reddetsin' })),
+    el('div', { style: 'margin-top:12px' },
+      el('div', { sinif: 'grup-basligi', metin: 'Ceza puanı ağırlıkları' }),
+      el('div', { sinif: 'hata-liste' }, ...SIDDETLER.map((s) =>
+        el('div', { sinif: 'hata-satir' },
+          el('div', { sinif: `siddet-pul siddet-${s.id}`, metin: s.id }),
+          el('div', {}, el('div', { sinif: 'ad', metin: `${s.ad} — ${s.puan} puan` }), el('div', { sinif: 'yol', metin: s.aciklama })),
+          el('div', {})))))));
+
+  sayfa.append(el('div', { sinif: 'kart' },
+    el('h2', { metin: 'Rapor dili' }),
+    el('label', { sinif: 'alan' }, 'Excel ve rapor başlıkları', dil)));
+
+  const yedekGirdi = el('input', { type: 'file', accept: 'application/json', style: 'display:none',
+    onchange: async (ev) => {
+      const dosya = ev.target.files[0];
+      if (!dosya) return;
+      try {
+        const sonuc = await depo.yedekYukle(JSON.parse(await dosya.text()));
+        bildir(`${sonuc.denetim} denetim, ${sonuc.fotograf} fotoğraf geri yüklendi.`);
+      } catch (h) { bildir(`Yedek okunamadı: ${h.message}`, 'hata'); }
+      ev.target.value = '';
+    } });
+
+  const depoBilgi = el('div', { sinif: 'bilgi', metin: 'Depolama ölçülüyor…' });
+  depo.depoDurumu().then((s) => {
+    depoBilgi.textContent = s
+      ? `Kullanılan alan: ${(s.kullanilan / 1048576).toFixed(1)} MB / ${(s.kota / 1048576).toFixed(0)} MB (%${(s.oran * 100).toFixed(1)})`
+      : 'Tarayıcı depolama ölçümünü desteklemiyor.';
+  }).catch(() => { depoBilgi.textContent = 'Depolama durumu okunamadı.'; });
+
+  sayfa.append(el('div', { sinif: 'kart' },
+    el('h2', { metin: 'Veri' }), depoBilgi,
+    el('div', { sinif: 'dugme-satir', style: 'margin-top:10px' },
+      el('button', { onclick: yedekIndir }, '💾 Yedek al'),
+      el('button', { onclick: () => yedekGirdi.click() }, '↥ Yedek yükle')),
+    yedekGirdi));
+
+  parca.append(el('div', { sinif: 'alt-cubuk' },
+    el('button', { sinif: 'birincil', onclick: async () => {
+      durum.ayarlar.esikler = {
+        sartliPuan: Math.max(1, Number(sartli.value) || 15),
+        redPuan: Math.max(1, Number(red.value) || 40),
+        kritikVarsaRed: kritik.checked,
+      };
+      durum.ayarlar.dil = dil.value;
+      await depo.ayarYaz('varsayilanlar', durum.ayarlar);
+      bildir('Ayarlar kaydedildi.');
+      git('ana');
+    } }, 'Kaydet')));
+  return parca;
+}
+
+// ---------------------------------------------------------------------------
+// BAŞLANGIÇ
+// ---------------------------------------------------------------------------
+
+async function baslat() {
+  try {
+    const kayitli = await depo.ayarOku('varsayilanlar', null);
+    if (kayitli) durum.ayarlar = { ...durum.ayarlar, ...kayitli, esikler: { ...VARSAYILAN_ESIKLER, ...(kayitli.esikler ?? {}) } };
+  } catch { /* ilk açılış: ayar yok */ }
+  ciz();
+  window.addEventListener('resize', () => {
+    const t = document.getElementById('model');
+    if (durum.ekran === 'denetim' && t && tuvalOlcusuGuncelle(t)) durum.goruntuleyici?.ciz();
+  });
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', baslat);
+  else baslat();
+}
+
+})();
+</script>
+</body>
+</html>

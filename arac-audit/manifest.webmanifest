@@ -1,0 +1,15 @@
+{
+  "name": "Araç Audit — QA Denetim",
+  "short_name": "Araç Audit",
+  "description": "Şasi okuma, 3B model üzerinden hata seçimi ve fotoğraflı Excel raporu.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F4F6F8",
+  "theme_color": "#1D4ED8",
+  "lang": "tr",
+  "icons": [
+    { "src": "simge.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

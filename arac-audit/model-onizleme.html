@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model önizleme — Araç Audit</title>
+<style>
+  body { margin:0; background:#eef1f5; font:14px system-ui,sans-serif; color:#111827; padding:12px; }
+  h1 { font-size:17px; margin:0 0 4px; }
+  p.not { margin:0 0 14px; color:#5B6675; font-size:13px; max-width:70ch; }
+  .izgara { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:6px; }
+  figure { margin:0; background:linear-gradient(180deg,#E8EDF3,#D3DBE4); border-radius:10px; overflow:hidden; position:relative; }
+  figcaption { position:absolute; top:5px; left:7px; font-weight:700; font-size:12px; background:#ffffffcc; padding:2px 7px; border-radius:6px; }
+  canvas { display:block; width:100%; height:230px; touch-action:none; }
+</style>
+</head>
+<body>
+<h1>Model önizleme</h1>
+<p class="not">Araç ölçüleri <code>js/model3d.js → ARACLAR</code> içinde tanımlıdır. Bir ölçüyü
+değiştirdikten sonra bu sayfayı yenileyin: üç aracın altı bakışı yan yana görünür, oran
+bozuklukları hemen fark edilir. Bu sayfa uygulamanın çalışması için gerekli değildir,
+yalnız geliştirme aracıdır.</p>
+<div class="izgara" id="izgara"></div>
+<script type="module">
+import { ARACLAR, ModelGoruntuleyici, geometriUret } from './js/model3d.js';
+const bakislar = [['sol','Sol yan'],['on','Ön'],['arka','Arka'],['serbest','3/4'],['ust','Üst']];
+const izgara = document.getElementById('izgara');
+const kurulanlar = [];
+for (const a of ARACLAR) {
+  for (const [bk, ad] of bakislar) kur(a, 'dis', bk, `${a.ad} — ${ad}`);
+  kur(a, 'ic', 'kabin', `${a.ad} — iç mekân`);
+}
+function kur(arac, mod, bakis, etiket) {
+  const f = document.createElement('figure');
+  const c = document.createElement('canvas');
+  const b = document.createElement('figcaption');
+  b.textContent = etiket;
+  f.append(c, b); izgara.append(f);
+  kurulanlar.push({ c, arac, mod, bakis });
+}
+
+// Tuvalleri, izgara YERLEŞTİKTEN SONRA ölç. Eleman eklenirken ölçersek ilk
+// tuval tek başına tüm satırı kaplar ve 1200px genişlikte ölçülür; sonrakiler
+// daralınca ilk model ezik/uzak görünür.
+function hepsiniCiz() {
+  for (const k of kurulanlar) {
+    const en = Math.round(k.c.clientWidth * 2), boy = Math.round(k.c.clientHeight * 2);
+    if (!en || !boy) continue;
+    k.c.width = en; k.c.height = boy;
+    const g = k.g ?? (k.g = new ModelGoruntuleyici(k.c, {}));
+    g.yukle(geometriUret(k.arac.id, k.mod));
+    g.bakis(k.bakis);
+  }
+}
+requestAnimationFrame(() => requestAnimationFrame(hepsiniCiz));
+addEventListener('resize', hepsiniCiz);
+</script>
+</body>
+</html>

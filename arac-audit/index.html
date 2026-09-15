@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#1D4ED8">
+<meta name="description" content="Araç QA denetimi: şasi okuma, 3B model üzerinden hata seçimi, fotoğraflı Excel raporu.">
+<title>Araç Audit</title>
+<link rel="icon" href="simge.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="css/stil.css">
+</head>
+<body>
+<div id="kok"><div class="yukleniyor">Yükleniyor…</div></div>
+<script type="module" src="js/uygulama.js"></script>
+<script>
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+</script>
+</body>
+</html>
