@@ -21,7 +21,7 @@ import { useHearingsForCase } from '@/hooks/useHearings';
 import { useCreateDeadline, useDeadlinesForCase, useUpdateDeadline } from '@/hooks/useDeadlines';
 import { useCaseExpenses, useCreateCaseExpense, useCreateInstallment, useCreatePayment, useDeleteCaseExpense, useDeleteInstallment, useDeletePayment, useInstallments, usePaymentsForCase, useToggleInstallment } from '@/hooks/usePayments';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 // GENİŞ EKRAN DÜZENİ — ana ekrandakiyle AYNI kaynaktan.
 // İkinci bir ızgara mantığı yazmak, iki ekranın zamanla farklı davranması
@@ -897,7 +897,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingHorizontal: spacing.sm,
     paddingVertical: 10,
   },
@@ -913,7 +913,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
     borderWidth: 1,
     borderColor: colors.gold,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: 10,
     marginTop: spacing.sm,
   },
@@ -998,7 +998,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: spacing.sm,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 10,
+    borderRadius: kose(10),
   },
   instDateText: {
     ...typography.caption,
@@ -1010,7 +1010,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     backgroundColor: colors.dangerSoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
     padding: spacing.sm,
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
@@ -1055,7 +1055,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
     alignSelf: 'flex-start',
     backgroundColor: colors.successSoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingHorizontal: spacing.sm,
     paddingVertical: 7,
     marginTop: 2,
@@ -1125,7 +1125,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   paymentIcon: {
     width: 32,
     height: 32,
-    borderRadius: 10,
+    borderRadius: kose(10),
     backgroundColor: colors.successSoft,
     alignItems: 'center',
     justifyContent: 'center',

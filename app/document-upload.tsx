@@ -13,7 +13,7 @@ import { useClients } from '@/hooks/useClients';
 import { pickDocumentFile, pickImageFile, takePhotoFile, useUploadDocument } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
 import { trError } from '@/lib/authErrors';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatFileSize } from '@/utils/format';
@@ -227,7 +227,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   fileIconWrap: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: kose(12),
     backgroundColor: colors.goldSoft,
     alignItems: 'center',
     justifyContent: 'center',

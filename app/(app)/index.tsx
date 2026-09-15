@@ -29,7 +29,7 @@ import { AI_ENABLED } from '@/config/features';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
 import { useLangStore, useT } from '@/i18n';
-import { fonts, radius, spacing, shadow } from '@/theme/theme';
+import { fonts, monoTemaMi, radius, spacing, shadow, kose } from '@/theme/theme';
 import { kaliciMenuMu, ortalaStili, panoOlculeri, PANO_ARALIK, PANO_YAN_BOSLUK } from '@/theme/duzen';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -41,6 +41,18 @@ import { formatMoney, formatTime } from '@/utils/format';
  * butonu ve çanta karosu altın gradyanla dolgun bir görünüm alır.
  */
 const SERIF = 'PlayfairDisplay_700Bold';
+
+/**
+ * Panonun büyük başlık/sayı yazı tipi.
+ *
+ * Beş temada zarif serif (Playfair Display). TERMINAL temasında serif YOK:
+ * mono gövdenin yanında serif bir "4" yamalı duruyordu — tasarım yönü tek
+ * aralıklı bir alet, iki ayrı dünya değil. Render anında çağrılır, çünkü
+ * tema uygulama açıldıktan sonra da değişebiliyor.
+ */
+function vurguYazisi(): string {
+  return monoTemaMi() ? fonts.bold : SERIF;
+}
 
 /** Zengin, metalik altın — açık temaların koyu/kahverengi altını yerine kullanılır. */
 const RICH_GOLD = '#D4AF37';
@@ -852,7 +864,8 @@ export default function DashboardScreen() {
                   onPress={() => router.push(k.yol as Parameters<typeof router.push>[0])}
                 >
                   <Ionicons name={k.ikon as keyof typeof Ionicons.glyphMap} size={16} color={colors.primary} />
-                  <Text allowFontScaling={false} style={styles.kisayolYazi} numberOfLines={1}>{k.yazi}</Text>
+                  {/* Terminal temasında "Belgeden dosya aç" kesiliyordu — bkz. finLabel. */}
+                  <Text allowFontScaling={false} style={styles.kisayolYazi} numberOfLines={2}>{k.yazi}</Text>
                 </Pressable>
               ))}
             </View>
@@ -959,7 +972,11 @@ function FinCell({
   const good = pct == null ? true : positiveIsGood ? pct >= 0 : pct <= 0;
   return (
     <View style={styles.finCell}>
-      <Text allowFontScaling={false} style={styles.finLabel} numberOfLines={1}>
+      {/* İKİ SATIRA İZİN VAR. Tek satırdayken Terminal temasında
+          "Net Nakit Akışı" → "Net Nakit Akı…" diye kesiliyordu: tek aralıklı
+          yazı karakter başına daha geniş. Kelimeyi gizlemektense sarmak
+          doğrusu. */}
+      <Text allowFontScaling={false} style={styles.finLabel} numberOfLines={2}>
         {label}
       </Text>
       <View style={styles.finMidRow}>
@@ -1076,7 +1093,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: 2,
   },
   panoSayiDeger: {
-    fontFamily: SERIF,
+    fontFamily: vurguYazisi(),
     fontSize: 26,
     lineHeight: 30,
     color: colors.textPrimary,
@@ -1097,7 +1114,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     minWidth: 54,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    borderRadius: 10,
+    borderRadius: kose(10),
     alignItems: 'center',
   },
   sureRozetYazi: {
@@ -1133,7 +1150,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceAlt,
@@ -1204,14 +1221,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     backgroundColor: colors.primarySoft,
-    borderRadius: 16,
+    borderRadius: kose(16),
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
   outcomeIcon: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: kose(12),
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1248,7 +1265,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.primary,
   },
   hero: {
-    borderRadius: 24,
+    borderRadius: kose(24),
     backgroundColor: colors.surface,
     padding: spacing.lg,
     marginBottom: spacing.lg,
@@ -1256,7 +1273,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   // Masraf avansı uyarısı
   advanceAlert: {
-    borderRadius: 16,
+    borderRadius: kose(16),
     borderWidth: 1,
     borderColor: colors.danger,
     backgroundColor: colors.dangerSoft,
@@ -1300,7 +1317,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   advanceAlertClose: {
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: kose(15),
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1347,7 +1364,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   timeBlock: {
     backgroundColor: colors.primary,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: 10,
     paddingHorizontal: 12,
     alignItems: 'center',
@@ -1418,7 +1435,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   todayDot: {
     width: 7,
     height: 7,
-    borderRadius: 4,
+    borderRadius: kose(4),
   },
   todayTitle: {
     fontFamily: fonts.semibold,
@@ -1443,7 +1460,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   heroDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: kose(3),
     backgroundColor: colors.primary,
   },
   heroUpdated: {
@@ -1490,7 +1507,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    borderRadius: 14,
+    borderRadius: kose(14),
     backgroundColor: colors.primary,
     paddingVertical: 14,
     marginTop: spacing.md,
@@ -1506,7 +1523,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     letterSpacing: 0.2,
   },
   card: {
-    borderRadius: 24,
+    borderRadius: kose(24),
     backgroundColor: colors.surface,
     padding: spacing.lg,
     marginBottom: spacing.lg,
@@ -1554,7 +1571,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   focusIcon: {
     width: 58,
     height: 58,
-    borderRadius: 15,
+    borderRadius: kose(15),
     backgroundColor: colors.primarySoft,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1565,7 +1582,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flex: 1,
   },
   focusTitle: {
-    fontFamily: SERIF,
+    fontFamily: vurguYazisi(),
     fontSize: 15.5,
     lineHeight: 20,
     color: colors.textPrimary,
@@ -1609,7 +1626,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    borderRadius: 13,
+    borderRadius: kose(13),
     backgroundColor: colors.primarySoft,
     paddingVertical: 12,
     marginTop: spacing.sm,
@@ -1790,7 +1807,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   finBar: {
     width: 5,
-    borderRadius: 2,
+    borderRadius: kose(2),
   },
   finPctRow: {
     flexDirection: 'row',
@@ -1824,7 +1841,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   bottomTabIndicator: {
     width: 30,
     height: 2.5,
-    borderRadius: 2,
+    borderRadius: kose(2),
     backgroundColor: 'transparent',
     marginBottom: 3,
   },

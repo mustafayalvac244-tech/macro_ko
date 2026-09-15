@@ -14,7 +14,7 @@ import { useCases } from '@/hooks/useCases';
 import { useAllHearings } from '@/hooks/useHearings';
 import { isMissingEnforcementTable, useEnforcements } from '@/hooks/useEnforcements';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
@@ -260,7 +260,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: kose(16),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     paddingHorizontal: spacing.md,
@@ -270,7 +270,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   enfIcon: {
     width: 42,
     height: 42,
-    borderRadius: 14,
+    borderRadius: kose(14),
     backgroundColor: colors.warningSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -290,7 +290,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   enfBadge: {
     backgroundColor: colors.warningSoft,
-    borderRadius: 6,
+    borderRadius: kose(6),
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
@@ -318,8 +318,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: kose(24),
+    borderTopRightRadius: kose(24),
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
@@ -328,7 +328,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignSelf: 'center',
     width: 40,
     height: 4,
-    borderRadius: 2,
+    borderRadius: kose(2),
     backgroundColor: colors.border,
     marginBottom: spacing.md,
   },
@@ -351,7 +351,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   choiceIcon: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: kose(14),
     alignItems: 'center',
     justifyContent: 'center',
   },

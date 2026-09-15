@@ -13,6 +13,7 @@ import { FAB } from '@/components/ui/FAB';
 import { useDeleteDocument, useDocuments } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
 import { spacing } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
 import type { DocumentCategory } from '@/types/database';
 import { aramaEslesir } from '@/utils/arama';
 
@@ -29,6 +30,8 @@ const CATEGORY_VALUES: (DocumentCategory | 'all')[] = [
 ];
 
 export default function DocumentVaultScreen() {
+  useTheme();
+  const styles = makeStyles();
   const t = useT();
   // Geniş ekranda iki sütun. Gerekçe ve `key` zorunluluğu dava listesinde
   // ayrıntılı yazılı: app/(app)/cases/index.tsx. Altyapı (sutunSayisi) zaten
@@ -115,7 +118,10 @@ export default function DocumentVaultScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Stiller render anında üretiliyor — modül düzeyinde DEĞİL.
+// Yazı tipi/boyut/boşluk/köşe artık temaya bağlı (bkz. src/theme/tokens.ts);
+// donuk StyleSheet.create tema değişince eski değerlerde kalır.
+const makeStyles = () => StyleSheet.create({
   filters: {
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.sm,

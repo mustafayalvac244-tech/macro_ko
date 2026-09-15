@@ -15,7 +15,7 @@ import type { AiKullanim } from '@/hooks/useAiKontor';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 import { useBuyukHarf } from '@/lib/buyukHarf';
-import { fonts, spacing, shadow } from '@/theme/theme';
+import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney } from '@/utils/format';
@@ -384,7 +384,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     minHeight: 150,
     maxHeight: 280,
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: kose(16),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     padding: spacing.md,
@@ -400,7 +400,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: colors.primary,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: 15,
   },
   ctaOff: { opacity: 0.45 },
@@ -422,7 +422,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     backgroundColor: colors.dangerSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginTop: spacing.md,
   },
@@ -441,7 +441,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
+    borderRadius: kose(20),
     padding: spacing.lg,
     marginTop: spacing.md,
     ...shadow.card,

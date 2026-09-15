@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { getTodayQuestion } from '@/constants/dailyQuestions';
 import { useMyAnswerToday, useSubmitAnswer } from '@/hooks/useDailyQuestion';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -100,7 +100,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   questionCard: {
     backgroundColor: '#0F1F3D',
-    borderRadius: 18,
+    borderRadius: kose(18),
     padding: spacing.lg,
     marginBottom: spacing.md,
   },
@@ -150,7 +150,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   doneCard: {
     alignItems: 'center',
     backgroundColor: colors.successSoft,
-    borderRadius: 16,
+    borderRadius: kose(16),
     padding: spacing.lg,
   },
   doneTitle: {

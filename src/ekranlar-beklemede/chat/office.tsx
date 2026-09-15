@@ -6,7 +6,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useMyOffice, useOfficeMessages, useSendOfficeMessage } from '@/hooks/useOffice';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatTime } from '@/utils/format';
@@ -96,21 +96,21 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   bubble: {
     maxWidth: '84%',
-    borderRadius: 16,
+    borderRadius: kose(16),
     paddingHorizontal: spacing.sm,
     paddingVertical: 8,
   },
   bubbleMine: {
     alignSelf: 'flex-end',
     backgroundColor: colors.primary,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: kose(4),
   },
   bubbleTheirs: {
     alignSelf: 'flex-start',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: kose(4),
   },
   senderName: {
     ...typography.small,
@@ -155,7 +155,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: kose(16),
     paddingHorizontal: spacing.sm,
     paddingTop: 10,
     paddingBottom: 10,
@@ -164,7 +164,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   sendButton: {
     width: 42,
     height: 42,
-    borderRadius: 14,
+    borderRadius: kose(14),
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',

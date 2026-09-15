@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useAdminAiOzeti, useAdminAtifDenetimi, useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
 import { useAiSaglik } from '@/hooks/useAiSaglik';
 import { useT } from '@/i18n';
-import { fonts, radius, spacing } from '@/theme/theme';
+import { fonts, radius, spacing, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -494,7 +494,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   healthBox: {
     marginTop: spacing.sm,
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: kose(12),
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
@@ -508,13 +508,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: kose(16),
     padding: spacing.sm,
   },
   statIcon: {
     width: 30,
     height: 30,
-    borderRadius: 9,
+    borderRadius: kose(9),
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -544,14 +544,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: kose(14),
     padding: 10,
     marginBottom: 8,
   },
   userAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: kose(20),
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -606,7 +606,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   tierChip: {
     backgroundColor: colors.primarySoft,
-    borderRadius: 6,
+    borderRadius: kose(6),
     paddingHorizontal: 6,
     paddingVertical: 1,
   },
@@ -671,7 +671,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   toggleBtn: {
     minWidth: 66,
     height: 32,
-    borderRadius: 10,
+    borderRadius: kose(10),
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,

@@ -13,7 +13,7 @@ import { AI_BELGE_ENABLED, AI_DILEKCE_ENABLED, AI_ENABLED, AI_MUTALAA_ENABLED } 
 import { WEB_ADRESI } from '@/config/web';
 import { useT } from '@/i18n';
 import { useBuyukHarf } from '@/lib/buyukHarf';
-import { spacing, typography } from '@/theme/tokens';
+import { spacing, typography, kose } from '@/theme/tokens';
 import { YAN_MENU_GENISLIGI } from '@/theme/duzen';
 import { etkilesim } from '@/theme/etkilesim';
 import { useTheme } from '@/theme/useTheme';
@@ -397,8 +397,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     top: 0,
     bottom: 0,
     backgroundColor: colors.surface,
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
+    borderTopRightRadius: kose(20),
+    borderBottomRightRadius: kose(20),
     paddingHorizontal: spacing.md,
     shadowColor: '#000',
     shadowOpacity: 0.25,
@@ -427,7 +427,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   accordion: {
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: spacing.xs,
     marginTop: 2,
   },
@@ -457,7 +457,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: 11,
     paddingHorizontal: spacing.sm,
-    borderRadius: 12,
+    borderRadius: kose(12),
   },
   itemIndented: {
     paddingLeft: spacing.lg,
@@ -473,7 +473,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   soonBadge: {
     backgroundColor: colors.goldSoft,
-    borderRadius: 8,
+    borderRadius: kose(8),
     paddingHorizontal: 7,
     paddingVertical: 2,
   },

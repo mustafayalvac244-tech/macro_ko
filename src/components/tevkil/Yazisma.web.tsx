@@ -20,7 +20,7 @@ import {
 } from '@/hooks/useChat';
 import { useAuthStore } from '@/store/authStore';
 import { useLangStore, useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import type { DmMessage } from '@/types/database';
@@ -227,7 +227,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   headerAction: {
     width: 36,
     height: 36,
-    borderRadius: 11,
+    borderRadius: kose(11),
     backgroundColor: colors.dangerSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -256,21 +256,21 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   bubble: {
     maxWidth: '84%',
-    borderRadius: 16,
+    borderRadius: kose(16),
     paddingHorizontal: spacing.sm,
     paddingVertical: 8,
   },
   bubbleMine: {
     alignSelf: 'flex-end',
     backgroundColor: colors.primary,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: kose(4),
   },
   bubbleTheirs: {
     alignSelf: 'flex-start',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: kose(4),
   },
   bubbleText: {
     ...typography.body,
@@ -297,7 +297,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   emptyIcon: {
     width: 60,
     height: 60,
-    borderRadius: 20,
+    borderRadius: kose(20),
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -321,7 +321,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: kose(16),
     paddingHorizontal: spacing.sm,
     paddingTop: 10,
     paddingBottom: 10,
@@ -330,7 +330,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   sendButton: {
     width: 42,
     height: 42,
-    borderRadius: 14,
+    borderRadius: kose(14),
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',

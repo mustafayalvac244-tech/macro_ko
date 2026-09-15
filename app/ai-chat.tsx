@@ -10,7 +10,7 @@ import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
 import { AtifDenetimi } from '@/components/ui/AtifDenetimi';
 import { useAiChat, type AiMessage, type AiConversation } from '@/hooks/useAiChat';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -384,7 +384,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   soonIcon: {
     width: 84,
     height: 84,
-    borderRadius: 26,
+    borderRadius: kose(26),
     backgroundColor: colors.goldSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -392,7 +392,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   soonBadge: {
     backgroundColor: colors.gold,
-    borderRadius: 20,
+    borderRadius: kose(20),
     paddingHorizontal: 12,
     paddingVertical: 4,
     marginBottom: spacing.sm,
@@ -426,7 +426,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: spacing.md,
     backgroundColor: colors.goldSoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
   },
   tierPlusText: {
     ...typography.small,
@@ -443,7 +443,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: spacing.md,
     backgroundColor: colors.primarySoft,
-    borderRadius: 10,
+    borderRadius: kose(10),
   },
   tierUpsellText: {
     ...typography.small,
@@ -468,7 +468,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   welcomeIcon: {
     width: 64,
     height: 64,
-    borderRadius: 20,
+    borderRadius: kose(20),
     backgroundColor: colors.goldSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -497,7 +497,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
   },
@@ -522,7 +522,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   bubble: {
     maxWidth: '86%',
-    borderRadius: 18,
+    borderRadius: kose(18),
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
   },
@@ -532,13 +532,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   bubbleUser: {
     backgroundColor: colors.primary,
-    borderBottomRightRadius: 6,
+    borderBottomRightRadius: kose(6),
   },
   bubbleModel: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderBottomLeftRadius: 6,
+    borderBottomLeftRadius: kose(6),
   },
   bubbleText: {
     ...typography.body,
@@ -565,7 +565,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   errorBox: {
     backgroundColor: colors.dangerSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     marginTop: spacing.xs,
@@ -591,7 +591,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
     alignSelf: 'flex-start',
     backgroundColor: colors.gold,
-    borderRadius: 10,
+    borderRadius: kose(10),
     paddingVertical: 8,
     paddingHorizontal: spacing.md,
   },
@@ -632,7 +632,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 20,
+    borderRadius: kose(20),
     paddingHorizontal: spacing.md,
     paddingTop: Platform.OS === 'ios' ? 10 : 8,
     paddingBottom: Platform.OS === 'ios' ? 10 : 8,
@@ -641,7 +641,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   sendBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: kose(20),
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -660,8 +660,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   historySheet: {
     backgroundColor: colors.bg,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    borderTopLeftRadius: kose(22),
+    borderTopRightRadius: kose(22),
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
     maxHeight: '78%',
@@ -670,7 +670,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignSelf: 'center',
     width: 40,
     height: 4,
-    borderRadius: 2,
+    borderRadius: kose(2),
     backgroundColor: colors.border,
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
@@ -688,7 +688,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   historyClose: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: kose(16),
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -698,7 +698,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.primarySoft,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
@@ -718,7 +718,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,

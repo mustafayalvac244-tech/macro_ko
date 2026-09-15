@@ -19,7 +19,7 @@ import {
   type OutcomeId,
 } from '@/utils/hearingOutcome';
 import { useT } from '@/i18n';
-import { fonts, spacing, shadow } from '@/theme/theme';
+import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
@@ -390,7 +390,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   hearingCard: {
     backgroundColor: colors.surface,
-    borderRadius: 18,
+    borderRadius: kose(18),
     padding: spacing.md,
     ...shadow.card,
     marginBottom: spacing.lg,
@@ -431,7 +431,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     paddingHorizontal: spacing.md,
@@ -440,7 +440,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   dateBtnText: { fontFamily: fonts.bold, fontWeight: '700', fontSize: 14, color: colors.textPrimary },
   serviceBox: {
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 16,
+    borderRadius: kose(16),
     padding: spacing.md,
     marginTop: spacing.md,
     gap: 8,
@@ -450,7 +450,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   serviceHint: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, color: colors.textSecondary },
   daysInput: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     paddingHorizontal: spacing.md,
@@ -461,7 +461,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   preview: {
     backgroundColor: colors.primarySoft,
-    borderRadius: 16,
+    borderRadius: kose(16),
     padding: spacing.md,
     marginTop: spacing.lg,
     gap: 8,
@@ -479,7 +479,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   noteInput: {
     minHeight: 70,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     padding: spacing.md,

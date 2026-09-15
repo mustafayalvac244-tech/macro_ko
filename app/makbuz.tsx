@@ -11,7 +11,7 @@ import { DuzenlenebilirCikti } from '@/components/ui/DuzenlenebilirCikti';
 import { useFinanceEntries } from '@/hooks/useFinance';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { makbuzMetni } from '@/utils/makbuzMetni';
@@ -120,7 +120,7 @@ const makeStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       gap: spacing.xs,
       backgroundColor: colors.warningSoft,
-      borderRadius: 12,
+      borderRadius: kose(12),
       padding: spacing.sm,
       marginBottom: spacing.md,
     },

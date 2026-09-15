@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { PETITION_TEMPLATES, TEMPLATE_CATEGORIES, type PetitionTemplate } from '@/constants/petitionTemplates';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -119,7 +119,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   cardIcon: {
     width: 38,
     height: 38,
-    borderRadius: 12,
+    borderRadius: kose(12),
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -140,7 +140,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginTop: spacing.sm,
   },
@@ -156,7 +156,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: colors.primary,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: 11,
     marginTop: spacing.sm,
   },

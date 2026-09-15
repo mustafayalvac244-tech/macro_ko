@@ -17,7 +17,7 @@ import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useCreateCase } from '@/hooks/useCases';
 import { useCreateHearing } from '@/hooks/useHearings';
 import { useT } from '@/i18n';
-import { fonts, spacing, shadow } from '@/theme/theme';
+import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -334,7 +334,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'flex-start',
     gap: 8,
     padding: spacing.sm,
-    borderRadius: 10,
+    borderRadius: kose(10),
     backgroundColor: colors.danger + '14',
     marginBottom: spacing.md,
   },
@@ -345,7 +345,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   tarafChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: kose(8),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     backgroundColor: colors.surfaceAlt,
@@ -355,18 +355,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   tarafChipMetinAktif: { fontFamily: fonts.semibold, color: colors.primary },
   steps: { gap: spacing.sm, marginBottom: spacing.lg },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  stepNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  stepNum: { width: 24, height: 24, borderRadius: kose(12), backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   stepNumText: { fontFamily: fonts.extrabold, fontWeight: '800', fontSize: 12, color: colors.primary },
   stepText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textPrimary, flex: 1, lineHeight: 19 },
-  cta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 15, marginTop: spacing.md },
+  cta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: kose(14), paddingVertical: 15, marginTop: spacing.md },
   ctaOff: { opacity: 0.5 },
   ctaText: { fontFamily: fonts.extrabold, fontWeight: '800', fontSize: 15, color: colors.textInverse },
-  okBox: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.successSoft, borderRadius: 12, padding: spacing.sm, marginBottom: spacing.md },
+  okBox: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.successSoft, borderRadius: kose(12), padding: spacing.sm, marginBottom: spacing.md },
   okText: { fontFamily: fonts.semibold, fontWeight: '600', fontSize: 12.5, color: colors.success, flex: 1 },
   field: { marginBottom: spacing.sm },
   label: { fontFamily: fonts.semibold, fontWeight: '600', fontSize: 12, color: colors.textSecondary, marginBottom: 5 },
-  input: { backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.borderSubtle, paddingHorizontal: spacing.md, paddingVertical: 12, fontFamily: fonts.regular, fontSize: 14, color: colors.textPrimary },
-  noteBox: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.primarySoft, borderRadius: 12, padding: spacing.sm, marginTop: 2 },
+  input: { backgroundColor: colors.surface, borderRadius: kose(12), borderWidth: 1, borderColor: colors.borderSubtle, paddingHorizontal: spacing.md, paddingVertical: 12, fontFamily: fonts.regular, fontSize: 14, color: colors.textPrimary },
+  noteBox: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.primarySoft, borderRadius: kose(12), padding: spacing.sm, marginTop: 2 },
   noteText: { fontFamily: fonts.medium, fontSize: 12, color: colors.textPrimary, flex: 1, lineHeight: 17 },
   again: { alignItems: 'center', paddingVertical: spacing.md },
   againText: { fontFamily: fonts.semibold, fontWeight: '600', fontSize: 13, color: colors.primary },

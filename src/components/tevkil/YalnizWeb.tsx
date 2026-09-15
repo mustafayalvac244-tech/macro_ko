@@ -4,7 +4,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -64,7 +64,7 @@ const makeStyles = (colors: ThemeColors) =>
     icon: {
       width: 60,
       height: 60,
-      borderRadius: 20,
+      borderRadius: kose(20),
       backgroundColor: colors.primarySoft,
       alignItems: 'center',
       justifyContent: 'center',

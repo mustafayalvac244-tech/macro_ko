@@ -4,7 +4,7 @@ import { useThemeStore } from '@/theme/themeStore';
 import { useTheme } from '@/theme/useTheme';
 import { digerTema, koyuTemaMi, type ThemeColors } from '@/theme/palettes';
 import { useT } from '@/i18n';
-import { spacing } from '@/theme/theme';
+import { spacing, kose } from '@/theme/theme';
 
 /**
  * ÜST ÇUBUKTAKİ HIZLI TEMA DÜĞMESİ — koyu ↔ beyaz.
@@ -101,7 +101,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 2,
     padding: 3,
-    borderRadius: 12,
+    borderRadius: kose(12),
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
@@ -109,7 +109,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   dugme: {
     width: 30,
     height: 28,
-    borderRadius: 9,
+    borderRadius: kose(9),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -122,7 +122,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   tek: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: kose(10),
     marginRight: spacing.xs,
     backgroundColor: colors.surface,
     borderWidth: 1,

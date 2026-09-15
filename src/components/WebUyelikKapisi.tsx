@@ -26,7 +26,7 @@ import { useAuthStore } from '@/store/authStore';
 import { WEB_YALNIZ_UYELERE } from '@/config/web';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme/useTheme';
-import { radius, spacing, typography } from '@/theme/theme';
+import { radius, spacing, typography, kose } from '@/theme/theme';
 import type { ThemeColors } from '@/theme/palettes';
 
 export function WebUyelikKapisi({ children }: { children: ReactNode }) {
@@ -136,7 +136,7 @@ const makeStyles = (colors: ThemeColors) =>
     adimNo: {
       width: 22,
       height: 22,
-      borderRadius: 11,
+      borderRadius: kose(11),
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',

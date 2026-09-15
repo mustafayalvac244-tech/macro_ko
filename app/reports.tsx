@@ -17,7 +17,7 @@ import { useFinanceEntries } from '@/hooks/useFinance';
 import { useAllTimeEntries } from '@/hooks/useTimeEntries';
 import { dakikaBicimle, dosyayaGoreOzet, zamanOzeti } from '@/utils/zamanKaydi';
 import { useLangStore, useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatMoney } from '@/utils/format';
@@ -336,13 +336,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   barTrack: {
     flex: 1,
     height: 14,
-    borderRadius: 7,
+    borderRadius: kose(7),
     backgroundColor: colors.surfaceHover,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    borderRadius: 7,
+    borderRadius: kose(7),
   },
   barCount: {
     ...typography.bodyMedium,
@@ -375,7 +375,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   columnFill: {
     width: '100%',
-    borderRadius: 7,
+    borderRadius: kose(7),
     backgroundColor: colors.primary,
   },
   columnLabel: {
@@ -424,7 +424,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   pill: {
     flex: 1,
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: spacing.md,
   },
   pillValue: {
@@ -454,14 +454,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   progressTrack: {
     height: 10,
-    borderRadius: 5,
+    borderRadius: kose(5),
     backgroundColor: colors.surfaceHover,
     marginTop: spacing.md,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 5,
+    borderRadius: kose(5),
     backgroundColor: colors.success,
   },
 });

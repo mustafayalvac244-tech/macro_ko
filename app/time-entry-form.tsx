@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/Button';
 import { isMissingTimeTable, useCreateTimeEntry } from '@/hooks/useTimeEntries';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
@@ -254,7 +254,7 @@ const makeStyles = (colors: ThemeColors) =>
       backgroundColor: colors.dangerSoft,
       borderWidth: 1,
       borderColor: colors.danger,
-      borderRadius: 12,
+      borderRadius: kose(12),
       padding: spacing.sm,
       marginBottom: spacing.md,
     },
@@ -293,7 +293,7 @@ const makeStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       gap: spacing.xs,
       backgroundColor: colors.surfaceAlt,
-      borderRadius: 12,
+      borderRadius: kose(12),
       borderWidth: 1,
       borderColor: colors.border,
       paddingHorizontal: spacing.md,
@@ -317,7 +317,7 @@ const makeStyles = (colors: ThemeColors) =>
       justifyContent: 'space-between',
       gap: spacing.md,
       backgroundColor: colors.surfaceAlt,
-      borderRadius: 12,
+      borderRadius: kose(12),
       padding: spacing.sm,
       marginTop: -spacing.xs,
     },

@@ -18,6 +18,17 @@ import {
 } from '@expo-google-fonts/manrope';
 import { DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
 import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
+// TERMINAL TEMASININ YAZI TİPİ. Ürün sahibinin seçtiği maket bunu Google
+// Fonts'tan yüklüyordu — yani gördüğü şey gerçek JetBrains Mono'ydu, sistem
+// tek aralıklı yedeği değil. Aynı yazı tipini kullanmak, onayladığı görüntüyle
+// ekrandakini eşitliyor. Diğer beş temada HİÇ kullanılmıyor.
+import {
+  JetBrainsMono_400Regular,
+  JetBrainsMono_500Medium,
+  JetBrainsMono_600SemiBold,
+  JetBrainsMono_700Bold,
+  JetBrainsMono_800ExtraBold,
+} from '@expo-google-fonts/jetbrains-mono';
 import { useAuthStore } from '@/store/authStore';
 import { registerForNotificationsAsync } from '@/lib/notifications';
 import { asyncPersister, queryClient, QUERY_CACHE_MAX_AGE } from '@/lib/queryClient';
@@ -62,6 +73,11 @@ export default function RootLayout() {
     DancingScript_700Bold,
     PlayfairDisplay_600SemiBold,
     PlayfairDisplay_700Bold,
+    JetBrainsMono_400Regular,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_600SemiBold,
+    JetBrainsMono_700Bold,
+    JetBrainsMono_800ExtraBold,
   });
   // Fontlar 3 sn'de yüklenmezse yine de aç (donmuş splash'tan iyidir).
   const [fontsTimedOut, setFontsTimedOut] = useState(false);

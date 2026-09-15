@@ -16,7 +16,7 @@ import { useCase } from '@/hooks/useCases';
 import { useAllHearings, useCreateHearing, useHearing, useHearingsForCase, useUpdateHearing } from '@/hooks/useHearings';
 import { hearingTitleSuggestions, meetingTitleSuggestions } from '@/constants/suggestions';
 import { useLangStore, useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatTime } from '@/utils/format';
@@ -385,7 +385,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.xs,
   },
   typeChip: {
-    borderRadius: 20,
+    borderRadius: kose(20),
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
@@ -409,7 +409,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
@@ -431,7 +431,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },
@@ -453,7 +453,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.warningSoft,
     borderWidth: 1,
     borderColor: colors.warning,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginTop: spacing.sm,
   },

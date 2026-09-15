@@ -3,7 +3,8 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useT } from '@/i18n';
-import { fonts } from '@/theme/theme';
+import { fonts, kose } from '@/theme/theme';
+import { useTheme } from '@/theme/useTheme';
 
 // Gömülü splash karesiyle AYNI görsel — geçişte renk/kalite farkı sırıtmasın.
 const LOGO = require('../../assets/splash-icon.png');
@@ -32,6 +33,8 @@ let hasPlayed = false;
  * çizildiği için her ekran yoğunluğunda vektörel netliktedir.
  */
 export function LaunchIntro({ fontsReady = true }: { fontsReady?: boolean }) {
+  useTheme();
+  const styles = makeStyles();
   const t = useT();
   const [visible, setVisible] = useState(!hasPlayed);
 
@@ -128,7 +131,10 @@ export function LaunchIntro({ fontsReady = true }: { fontsReady?: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+// Stiller render anında üretiliyor — modül düzeyinde DEĞİL.
+// Yazı tipi/boyut/boşluk/köşe artık temaya bağlı (bkz. src/theme/tokens.ts);
+// donuk StyleSheet.create tema değişince eski değerlerde kalır.
+const makeStyles = () => StyleSheet.create({
   wrap: {
     zIndex: 1000,
     elevation: 1000,
@@ -161,7 +167,7 @@ const styles = StyleSheet.create({
   rule: {
     width: 132,
     height: 1.5,
-    borderRadius: 1,
+    borderRadius: kose(1),
     backgroundColor: 'rgba(201,162,75,0.65)',
   },
   slogan: {

@@ -5,12 +5,13 @@ import { useThemeStore } from '@/theme/themeStore';
 import { themeMetas } from '@/theme/palettes';
 import { useTheme } from '@/theme/useTheme';
 import { useLangStore } from '@/i18n';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { spacing, radius, typography, kose } from '@/theme/tokens';
 import { sutunSayisi } from '@/theme/duzen';
 
 /** Visual theme picker: a card per theme showing its actual bg/primary/gold swatch. */
 export function ThemePicker() {
   const { colors } = useTheme();
+  const styles = makeStyles();
   const themeId = useThemeStore((s) => s.themeId);
   const setTheme = useThemeStore((s) => s.setTheme);
   const lang = useLangStore((s) => s.lang);
@@ -61,7 +62,14 @@ export function ThemePicker() {
   );
 }
 
-const styles = StyleSheet.create({
+// STİLLER RENDER ANINDA ÜRETİLİYOR — modül düzeyinde DEĞİL.
+// Sebep (15.09.2026): yazı tipi/boyut/köşe artık temaya bağlı
+// (bkz. src/theme/tokens.ts). Modül düzeyinde `StyleSheet.create` bir kez
+// çalışıp DONAR: uygulama Klasik temayla açılıp Terminal'e geçilince bu dosya
+// eski Manrope boyutlarında kalır ve ekranın geri kalanıyla uyumsuz görünür.
+// Ölçüldü: 94 dosya zaten fabrika kullanıyordu, donuk kalan 3 dosyadan biri
+// burasıydı.
+const makeStyles = () => StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -90,12 +98,12 @@ const styles = StyleSheet.create({
   dot: {
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: kose(9),
   },
   dotSmall: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: kose(6),
   },
   check: {
     position: 'absolute',
@@ -103,7 +111,7 @@ const styles = StyleSheet.create({
     right: 4,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: kose(9),
     alignItems: 'center',
     justifyContent: 'center',
   },

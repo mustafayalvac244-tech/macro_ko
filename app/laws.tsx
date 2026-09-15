@@ -5,7 +5,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LAW_INDEX } from '@/data/laws/loader';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -105,14 +105,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 16,
+    borderRadius: kose(16),
     padding: spacing.sm,
     marginBottom: spacing.xs,
   },
   rowIcon: {
     width: 44,
     height: 44,
-    borderRadius: 13,
+    borderRadius: kose(13),
     alignItems: 'center',
     justifyContent: 'center',
   },

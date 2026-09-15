@@ -12,7 +12,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { pickImageFile, takePhotoFile } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -206,7 +206,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     right: -2,
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: kose(16),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -224,7 +224,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.dangerSoft,
     borderWidth: 1,
     borderColor: colors.danger,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginBottom: spacing.md,
   },

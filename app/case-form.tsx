@@ -14,7 +14,7 @@ import { useCreateHearing } from '@/hooks/useHearings';
 import { useClients } from '@/hooks/useClients';
 import { useT } from '@/i18n';
 import { trError } from '@/lib/authErrors';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatDateTime } from '@/utils/format';
@@ -419,7 +419,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
@@ -462,7 +462,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.dangerSoft,
     borderWidth: 1,
     borderColor: colors.danger,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginTop: spacing.lg,
   },
@@ -473,7 +473,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.warningSoft,
     borderWidth: 1,
     borderColor: colors.warning,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginBottom: spacing.md,
     marginTop: -4,

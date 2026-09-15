@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ciddiMi, type Bulgu } from '@/utils/menfaatCatismasi';
 import { useT } from '@/i18n';
-import { fonts, spacing } from '@/theme/theme';
+import { fonts, spacing, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -88,7 +88,7 @@ const makeStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     box: {
       borderWidth: 1,
-      borderRadius: 12,
+      borderRadius: kose(12),
       padding: spacing.md,
       marginBottom: spacing.md,
       gap: 6,

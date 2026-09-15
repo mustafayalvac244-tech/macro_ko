@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { useSidebarStore } from '@/store/sidebarStore';
@@ -122,7 +122,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginRight: spacing.xs,
     width: 40,
     height: 40,
-    borderRadius: 13,
+    borderRadius: kose(13),
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
@@ -132,7 +132,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   homeButton: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: kose(10),
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
@@ -143,7 +143,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginRight: spacing.sm,
     width: 40,
     height: 40,
-    borderRadius: 13,
+    borderRadius: kose(13),
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
@@ -162,7 +162,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   rightButton: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: kose(10),
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,

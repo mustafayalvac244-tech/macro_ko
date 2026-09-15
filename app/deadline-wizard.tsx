@@ -14,7 +14,7 @@ import { useCreateDeadline } from '@/hooks/useDeadlines';
 import { LEGAL_DEADLINES, LEGAL_DEADLINE_GROUPS, type LegalDeadlineGroup } from '@/constants/legalDeadlines';
 import { computeLegalDue, recessRuleForGroup } from '@/utils/legalDates';
 import { useLangStore, useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
@@ -240,7 +240,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.xs,
     backgroundColor: colors.infoSoft,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
@@ -268,7 +268,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: colors.borderSubtle,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingHorizontal: spacing.sm,
     paddingVertical: 10,
   },
@@ -304,7 +304,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 12,
+    borderRadius: kose(12),
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,

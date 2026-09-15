@@ -14,7 +14,7 @@ import { useCreateFinanceEntry } from '@/hooks/useFinance';
 import { isMissingNetworkTables } from '@/hooks/useChat';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDateTime, formatMoney, formatDate } from '@/utils/format';
@@ -249,7 +249,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.dangerSoft,
     borderWidth: 1,
     borderColor: colors.danger,
-    borderRadius: 12,
+    borderRadius: kose(12),
     padding: spacing.sm,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.sm,
@@ -285,7 +285,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   typeIcon: {
     width: 40,
     height: 40,
-    borderRadius: 13,
+    borderRadius: kose(13),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -348,7 +348,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: colors.primary,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: 10,
     marginTop: spacing.xs,
   },
@@ -358,7 +358,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: colors.success,
-    borderRadius: 12,
+    borderRadius: kose(12),
     paddingVertical: 10,
   },
   messageButtonText: {

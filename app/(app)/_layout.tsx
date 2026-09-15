@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { kose } from '@/theme/theme';
 import { Redirect, Tabs } from 'expo-router';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -176,7 +177,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   iconWrap: {
     width: 46,
     height: 30,
-    borderRadius: 15,
+    borderRadius: kose(15),
     alignItems: 'center',
     justifyContent: 'center',
   },

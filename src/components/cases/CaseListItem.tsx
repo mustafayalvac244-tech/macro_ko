@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CaseStatusBadge, PriorityBadge } from '@/components/ui/StatusBadge';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatTime } from '@/utils/format';
@@ -121,7 +121,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: kose(16),
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     paddingVertical: spacing.sm,
@@ -139,13 +139,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 4,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+    borderTopLeftRadius: kose(16),
+    borderBottomLeftRadius: kose(16),
   },
   icon: {
     width: 44,
     height: 44,
-    borderRadius: 13,
+    borderRadius: kose(13),
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -193,7 +193,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 5,
     alignSelf: 'flex-start',
     backgroundColor: colors.primarySoft,
-    borderRadius: 8,
+    borderRadius: kose(8),
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginTop: 6,
@@ -215,7 +215,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     backgroundColor: colors.goldSoft,
-    borderRadius: 8,
+    borderRadius: kose(8),
     paddingHorizontal: 7,
     paddingVertical: 3,
   },

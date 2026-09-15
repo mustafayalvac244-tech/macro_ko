@@ -25,7 +25,7 @@ import {
   AI_MUTALAA_ENABLED,
 } from '@/config/features';
 import { useT } from '@/i18n';
-import { fonts, radius, spacing, shadow } from '@/theme/theme';
+import { fonts, radius, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -498,7 +498,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.success,
   },
   card: {
-    borderRadius: 24,
+    borderRadius: kose(24),
     backgroundColor: colors.surface,
     padding: spacing.lg,
     borderWidth: 1.5,
@@ -578,7 +578,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
+    borderRadius: kose(14),
     paddingVertical: 14,
     marginTop: spacing.lg,
   },
@@ -589,7 +589,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.primary,
   },
   aiCard: {
-    borderRadius: 24,
+    borderRadius: kose(24),
     backgroundColor: colors.surface,
     padding: spacing.lg,
     borderWidth: 1.5,

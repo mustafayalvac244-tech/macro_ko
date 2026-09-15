@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from './Button';
-import { spacing, typography } from '@/theme/theme';
+import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
@@ -43,7 +43,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   iconWrap: {
     width: 64,
     height: 64,
-    borderRadius: 20,
+    borderRadius: kose(20),
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
