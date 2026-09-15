@@ -189,8 +189,21 @@ export function kose(px: number): number {
  * yeni bir nesne atasak o dosyaların elindeki referans eskisini göstermeye
  * devam ederdi.
  */
+/**
+ * TEK ARALIKLI YAZI KULLANAN TEMALAR.
+ *
+ * Terminal'in aydınlık eşi eklendiğinde (15.09.2026) burası `=== 'terminal'`
+ * kalsaydı Terminal Açık, terminal RENKLERİYLE ama MANROPE yazıyla çizilirdi —
+ * yani aynı temanın gündüz hâli olmaz, üçüncü bir yamalı tema olurdu.
+ */
+const MONO_TEMALAR: readonly ThemeId[] = ['terminal', 'terminal-light'];
+
+function monoMu(temaId: ThemeId): boolean {
+  return MONO_TEMALAR.includes(temaId);
+}
+
 export function temaTokenlariniUygula(temaId: ThemeId): void {
-  const terminal = temaId === 'terminal';
+  const terminal = monoMu(temaId);
   _monoTema = terminal;
   Object.assign(spacing, terminal ? TERMINAL_BOSLUK : VARSAYILAN_BOSLUK);
   Object.assign(radius, terminal ? TERMINAL_KOSE : VARSAYILAN_KOSE);
@@ -207,7 +220,7 @@ export function temaTokenlariniUygula(temaId: ThemeId): void {
 export function temaTokenlari(temaId: ThemeId): {
   spacing: BosLukSeti; radius: KoseSeti; fonts: YaziTipiSeti; typography: TipografiSeti;
 } {
-  const terminal = temaId === 'terminal';
+  const terminal = monoMu(temaId);
   return {
     spacing: { ...(terminal ? TERMINAL_BOSLUK : VARSAYILAN_BOSLUK) },
     radius: { ...(terminal ? TERMINAL_KOSE : VARSAYILAN_KOSE) },

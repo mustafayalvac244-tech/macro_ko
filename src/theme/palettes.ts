@@ -31,7 +31,14 @@ export interface ThemeColors {
   transparent: string;
 }
 
-export type ThemeId = 'light' | 'dark' | 'sepia' | 'emerald' | 'obsidian' | 'terminal';
+export type ThemeId =
+  | 'light'
+  | 'dark'
+  | 'sepia'
+  | 'emerald'
+  | 'obsidian'
+  | 'terminal'
+  | 'terminal-light';
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -39,6 +46,20 @@ export interface ThemeMeta {
   nameEn: string;
   statusBar: 'light' | 'dark'; // status bar icon style for this theme
   swatch: [string, string, string]; // preview swatch: bg, primary, gold
+  /**
+   * BU TEMANIN AYDINLIK/KARANLIK EŞİ — hızlı güneş/ay düğmesi buraya geçer.
+   *
+   * NEDEN EKLENDİ (15.09.2026, ürün sahibi bildirdi): "terminal gece gündüze
+   * tıklayınca gidiyor, başka moda yazı moduna geçiyor." Düğme `setTheme('light')`
+   * / `setTheme('dark')` diye SABİT yazılmıştı; Terminal'deyken güneşe basınca
+   * Klasik'e düşüyordunuz ve yazı tipi de Manrope'a dönüyordu. Yani düğme tema
+   * değiştirmiyor, temayı TERK ETTİRİYORDU.
+   *
+   * Eş tanımlıysa düğme o çift arasında gidip gelir. Tanımlı değilse eski
+   * davranış sürüyor (koyudan Klasik'e, açıktan Gece'ye) — Parşömen/Zümrüt/
+   * Obsidyen için makul bir karşılık yok, uydurmak yerine olduğu gibi bırakıldı.
+   */
+  esi?: ThemeId;
 }
 
 // ── 1) Klasik — cool marble light, deep royal navy + antique gold ───────────
@@ -256,6 +277,45 @@ const terminal: ThemeColors = {
   transparent: 'transparent',
 };
 
+// ── 7) Terminal Açık — aynı alet, gündüz ışığında ──────────────────────────
+// Ürün sahibi isteği (15.09.2026): "terminalın light modunu da ekle, geçiş
+// yapınca light dark geçiş olsun." Terminal artık varsayılan tema; güneş/ay
+// düğmesinin onu TERK ETTİRMEMESİ için aydınlık bir eşi olması gerekiyordu.
+//
+// Koyu Terminal GitHub'ın koyu konsol paletinden geliyordu; bu da aydınlık
+// karşılığından. Aynı aile, aynı yazı tipi, aynı yoğunluk — yalnız ışık
+// tersine dönüyor. Amaç "ikinci bir açık tema" değil, AYNI temanın gündüz hâli:
+// adliyede güneş altında telefonu okuyabilmek.
+const terminalAcik: ThemeColors = {
+  bg: '#F6F8FA',
+  bgElevated: '#FFFFFF',
+  surface: '#FFFFFF',
+  surfaceHover: '#EFF2F5',
+  surfaceAlt: '#F0F3F6',
+  border: '#D0D7DE',
+  borderSubtle: '#E4E8ED',
+  textPrimary: '#1F2328',
+  textSecondary: '#59636E',
+  textMuted: '#818B98',
+  textInverse: '#FFFFFF',
+  primary: '#1A7F37',
+  primaryMuted: '#DAFBE1',
+  primarySoft: 'rgba(26, 127, 55, 0.10)',
+  // Koyu sürümde olduğu gibi burada da ALTIN yok; sıcak vurgu kehribar.
+  gold: '#9A6700',
+  goldSoft: 'rgba(154, 103, 0, 0.10)',
+  success: '#1A7F37',
+  successSoft: 'rgba(26, 127, 55, 0.12)',
+  warning: '#9A6700',
+  warningSoft: 'rgba(154, 103, 0, 0.12)',
+  danger: '#CF222E',
+  dangerSoft: 'rgba(207, 34, 46, 0.10)',
+  info: '#0969DA',
+  infoSoft: 'rgba(9, 105, 218, 0.10)',
+  overlay: 'rgba(31, 35, 40, 0.42)',
+  transparent: 'transparent',
+};
+
 export const palettes: Record<ThemeId, ThemeColors> = {
   light,
   dark,
@@ -263,6 +323,7 @@ export const palettes: Record<ThemeId, ThemeColors> = {
   emerald,
   obsidian,
   terminal,
+  'terminal-light': terminalAcik,
 };
 
 /**
@@ -288,6 +349,26 @@ export function koyuTemaMi(id: ThemeId): boolean {
  * de anlamlı çalışır — "hiçbir şey olmuyor" hissi doğmaz.
  */
 export function digerTema(id: ThemeId): ThemeId {
+  return temaEsi(id);
+}
+
+/**
+ * BİR TEMANIN AYDINLIK/KARANLIK EŞİ.
+ *
+ * ÜRÜN SAHİBİ BİLDİRDİ (15.09.2026): "terminal gece gündüze tıklayınca gidiyor,
+ * başka moda yazı moduna geçiyor." Sebebi buradaydı: kural "koyudaysan Klasik'e,
+ * açıktaysan Gece'ye" diye SABİTTİ. Terminal koyu sayıldığı için güneşe basan
+ * kullanıcı Klasik'e düşüyor, mono yazı da gidiyordu — düğme temayı
+ * değiştirmiyor, TERK ETTİRİYORDU.
+ *
+ * Artık tema kendi eşini söylüyor (`themeMetas.esi`). Terminal ↔ Terminal Açık
+ * bir çift; Klasik ↔ Gece bir çift. Eşi tanımlı olmayan temalarda (Parşömen,
+ * Zümrüt, Obsidyen) eski davranış aynen sürüyor: onlar için makul bir karşılık
+ * yok ve uydurmak, kullanıcıyı hiç seçmediği bir temaya atmak olurdu.
+ */
+export function temaEsi(id: ThemeId): ThemeId {
+  const esi = themeMetas.find((m) => m.id === id)?.esi;
+  if (esi) return esi;
   return koyuTemaMi(id) ? 'light' : 'dark';
 }
 
@@ -297,7 +378,8 @@ export const themeMetas: ThemeMeta[] = [
   { id: 'sepia', name: 'Parşömen', nameEn: 'Parchment', statusBar: 'dark', swatch: ['#E7DECB', '#1B3A5D', '#8F6E1D'] },
   { id: 'emerald', name: 'Zümrüt', nameEn: 'Emerald', statusBar: 'dark', swatch: ['#E9F1EC', '#0A6349', '#A97F1B'] },
   { id: 'obsidian', name: 'Obsidyen', nameEn: 'Obsidian', statusBar: 'light', swatch: ['#0A0A0D', '#E3BE58', '#E9C766'] },
-  { id: 'terminal', name: 'Terminal', nameEn: 'Terminal', statusBar: 'light', swatch: ['#0A0C10', '#3FB950', '#D29922'] },
+  { id: 'terminal', name: 'Terminal', nameEn: 'Terminal', statusBar: 'light', swatch: ['#0A0C10', '#3FB950', '#D29922'], esi: 'terminal-light' },
+  { id: 'terminal-light', name: 'Terminal Açık', nameEn: 'Terminal Light', statusBar: 'dark', swatch: ['#F6F8FA', '#1A7F37', '#9A6700'], esi: 'terminal' },
 ];
 
 export function caseStatusColorsFor(c: ThemeColors): Record<string, { fg: string; bg: string }> {

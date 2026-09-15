@@ -54,8 +54,12 @@ describe('tema token setleri', () => {
       body: 15, bodyMedium: 15, caption: 13, small: 11,
     };
 
+    // Terminal AİLESİ (koyu + açık) bu karşılaştırmanın dışında: ikisi de
+    // bilerek mono ve yoğun. Ailenin tamamını dışlamak şart — yalnız 'terminal'
+    // dışlansaydı Terminal Açık eklendiğinde test onu "eski değerlerde olmalı"
+    // diye kovalar, doğru çalışan bir temayı hatalı gösterirdi.
     for (const meta of themeMetas) {
-      if (meta.id === 'terminal') continue;
+      if (meta.id.startsWith('terminal')) continue;
       const t = temaTokenlari(meta.id);
       expect(t.spacing, meta.id).toEqual(ESKI_BOSLUK);
       expect(t.radius, meta.id).toEqual(ESKI_KOSE);

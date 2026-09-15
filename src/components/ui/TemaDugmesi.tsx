@@ -2,7 +2,7 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useThemeStore } from '@/theme/themeStore';
 import { useTheme } from '@/theme/useTheme';
-import { digerTema, koyuTemaMi, type ThemeColors } from '@/theme/palettes';
+import { digerTema, koyuTemaMi, temaEsi, type ThemeColors } from '@/theme/palettes';
 import { useT } from '@/i18n';
 import { spacing, kose } from '@/theme/theme';
 
@@ -38,6 +38,20 @@ export function TemaDugmesi() {
   if (Platform.OS !== 'web') return null;
 
   const koyu = koyuTemaMi(themeId);
+  /**
+   * DÜĞME ARTIK SABİT TEMAYA GİTMİYOR, TEMANIN EŞİNE GİDİYOR.
+   *
+   * ÜRÜN SAHİBİ BİLDİRDİ (15.09.2026): "terminal gece gündüze tıklayınca
+   * gidiyor, başka moda yazı moduna geçiyor." Buradaki iki `onPress`
+   * `setTheme('light')` ve `setTheme('dark')` diye SABİT yazılmıştı: Terminal
+   * temasındayken güneşe basan kullanıcı Klasik'e düşüyor, mono yazı da gidiyordu.
+   * Düğme temayı değiştirmiyor, TEMAYI TERK ETTİRİYORDU.
+   *
+   * `temaEsi` her temanın kendi aydınlık/karanlık karşılığını veriyor
+   * (Terminal ↔ Terminal Açık, Klasik ↔ Gece). Eşi tanımlı olmayan temalarda
+   * eski davranış sürüyor.
+   */
+  const esi = temaEsi(themeId);
 
   return (
     <View style={styles.kap}>
@@ -47,7 +61,7 @@ export function TemaDugmesi() {
           düşündürür. İki düğmede hangisinin SEÇİLİ olduğu doğrudan
           görünür; basınca ne olacağı da tahmin gerektirmez. */}
       <Pressable
-        onPress={() => setTheme('light')}
+        onPress={() => koyu && setTheme(esi)}
         style={({ pressed }) => [styles.dugme, !koyu && styles.secili, pressed && styles.basili]}
         accessibilityRole="button"
         accessibilityState={{ selected: !koyu }}
@@ -56,7 +70,7 @@ export function TemaDugmesi() {
         <Ionicons name="sunny-outline" size={16} color={!koyu ? colors.primary : colors.textMuted} />
       </Pressable>
       <Pressable
-        onPress={() => setTheme('dark')}
+        onPress={() => !koyu && setTheme(esi)}
         style={({ pressed }) => [styles.dugme, koyu && styles.secili, pressed && styles.basili]}
         accessibilityRole="button"
         accessibilityState={{ selected: koyu }}
