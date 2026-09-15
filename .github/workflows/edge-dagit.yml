@@ -21,14 +21,46 @@ name: Edge İşlevi Dağıt
 # içinde, herkese açık. Gizli olmayanı secret yapmak, kurulumda ikinci bir
 # yazım hatası ihtimali doğuruyor (hasat iş akışında aynı gerekçe yazılı).
 
+# ─────────────────── İKİ TUZAK — 15.09.2026'DA İKİSİNE DE DÜŞÜLDÜ ───────────
+#
+# 1) VARSAYILAN İŞLEV SESSİZCE YANLIŞ OLANI DAĞITIR.
+#    `_shared/katman.ts`'teki deneme hakkı 3 → 10 yapıldı ve iş akışı GİRDİ
+#    VERİLMEDEN tetiklendi. `islev` varsayılanı `harvest-tick` olduğu için
+#    koşu "success" dedi — çünkü harvest-tick'i GERÇEKTEN dağıttı — ama
+#    ai-chat ve ictihat 2 gün öncesinin kodunda kaldı. Ekran 10 yazarken
+#    sunucu 3 uyguluyordu ve bunu yalnız `updated_at` damgalarına bakınca
+#    fark ettik.
+#    DERS: "success" DAĞITILDI demek değil, KOMUT HATASIZ KOŞTU demek.
+#    Dağıtımdan sonra doğrulama: list_edge_functions → `updated_at`
+#    gerçekten az önce mi? Sürüm numarası arttı mı?
+#    Varsayılan bu yüzden artık HEPSİ değil, harvest-tick de değil:
+#    bilerek seçilmeden hiçbir şey dağıtılmasın diye `SECIM-YAPILMADI`.
+#
+# 2) `_shared/` DEĞİŞİKLİĞİ BİR İŞLEVİ DEĞİŞTİRMİŞ GİBİ GÖRÜNMEZ.
+#    `_shared/katman.ts` ai-chat VE ictihat tarafından import ediliyor. O
+#    dosyaya dokunan bir değişiklikte İKİSİ BİRDEN dağıtılmalı; yalnız
+#    birini dağıtmak iki ucun farklı kural uygulamasına yol açar.
+#
+# 3) JWT BAYRAĞI CANLI AYARI SESSİZCE ÇEVİRİR.
+#    Depoda `supabase/config.toml` YOK, yani `verify_jwt` yalnız bu
+#    iş akışının bayrağıyla belirleniyor. Canlıdaki durum (15.09.2026):
+#        ai-chat ......... verify_jwt = FALSE
+#        ictihat ......... verify_jwt = TRUE
+#        ai-saglik ....... verify_jwt = TRUE
+#        harvest-tick .... verify_jwt = TRUE
+#    Varsayılan `true` ile ai-chat dağıtılırsa ayarı FALSE'tan TRUE'ya
+#    ÇEVİRİR. Her işlevi KENDİ mevcut ayarıyla dağıtın; emin değilseniz
+#    önce canlıdaki değere bakın, varsaymayın.
+
 on:
   workflow_dispatch:
     inputs:
       islev:
-        description: 'Dağıtılacak işlev'
+        description: 'Dağıtılacak işlev — _shared/ değiştiyse ai-chat VE ictihat, ikisi de'
         type: choice
-        default: harvest-tick
+        default: SECIM-YAPILMADI
         options:
+          - SECIM-YAPILMADI    # bilerek seçilmeden dağıtım olmasın
           - harvest-tick
           - katalog-tick
           - ai-chat
@@ -66,6 +98,18 @@ jobs:
         with:
           version: latest
 
+      # Seçim yapılmadan dağıtım yok. Girdisiz tetiklendiğinde eskiden
+      # varsayılan işlev sessizce dağıtılıyordu ve koşu "success" diyordu
+      # (bkz. dosya başındaki 1. tuzak). Artık açıkça düşüyor.
+      - name: Seçim kontrolü
+        run: |
+          if [ "${{ inputs.islev }}" = "SECIM-YAPILMADI" ]; then
+            echo "::error::Dağıtılacak işlev seçilmedi."
+            echo "::error::Actions → Run workflow → 'Dağıtılacak işlev' listesinden seçin."
+            echo "::error::_shared/ altında bir şey değiştiyse ai-chat VE ictihat, ikisini de dağıtın."
+            exit 1
+          fi
+
       - name: Dağıt
         run: |
           BAYRAK=""
@@ -89,6 +133,21 @@ jobs:
             echo "## Dağıtıldı: ${{ inputs.islev }}"
             echo ""
             echo "Commit: \`${{ github.sha }}\`"
+            echo "JWT doğrulaması: \`${{ inputs.jwt_dogrulama }}\`"
+            echo ""
+            echo "### ÖNCE BUNU DOĞRULAYIN — 'success' yetmez"
+            echo "Bu koşunun başarılı olması, komutun hatasız koştuğu anlamına"
+            echo "gelir; DOĞRU işlevin dağıtıldığı anlamına gelmez. 15.09.2026'da"
+            echo "tam olarak bu oldu: yanlış işlev dağıtıldı, koşu yine yeşildi."
+            echo ""
+            echo "Supabase panelinde Edge Functions listesine bakın:"
+            echo "- \`${{ inputs.islev }}\` için **Last updated** az önce mi?"
+            echo "- Sürüm numarası bir arttı mı?"
+            echo "- **verify_jwt** beklediğiniz değerde mi? (bayrak onu EZER)"
+            echo ""
+            echo "\`_shared/\` altında bir şey değiştiyse ai-chat ve ictihat'in"
+            echo "İKİSİ de dağıtılmalı — biri eksik kalırsa iki uç farklı kural"
+            echo "uygular."
             echo ""
             echo "### harvest-tick dağıtıldıysa bu sürümle gelen düzeltmeler"
             echo "- Kotaya takılınca sayfa artık İLERLEMİYOR: her sayfanın"
