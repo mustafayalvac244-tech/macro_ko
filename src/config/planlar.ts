@@ -111,4 +111,4 @@ export const AI_ASIL_MODEL_HAKKI = 750;
  * Yanlış olan yalnız yorumdu, davranış değil — ama eskimiş bir yorum,
  * yorum olmamasından kötüdür: sonraki oturumu yanlış yere götürür.
  */
-export const DENEME_SORU_HAKKI = 3;
+export const DENEME_SORU_HAKKI = 10;
