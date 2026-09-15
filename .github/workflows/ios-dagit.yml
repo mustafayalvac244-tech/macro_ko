@@ -101,6 +101,20 @@ jobs:
             exit 1
           fi
 
+          # BUNDLE ID 15.09.2026'DA DEĞİŞTİ (com.macroko.legal → com.vekilpro.app)
+          # ve eski ekibe ait dört değer eas.json'dan SİLİNDİ. Gönderim, ascAppId
+          # olmadan --non-interactive koşamaz; bunu burada söylemezsek hata EAS'ın
+          # içinde çok daha geç ve anlaşılmaz biçimde çıkar.
+          if [ "${{ inputs.is }}" != "derle" ]; then
+            if ! node -e "process.exit(require('./eas.json').submit.production.ios.ascAppId?0:1)"; then
+              echo "::error::eas.json'da ascAppId yok — gönderim yapılamaz."
+              echo "::error::Yeni App Store Connect kaydını (com.vekilpro.app) açın, sonra"
+              echo "::error::App Information → Apple ID değerini eas.json'a ascAppId olarak yazın."
+              echo "::error::Ayrıntı ve gereken diğer üç kimlik: IOS.md bölüm 0."
+              exit 1
+            fi
+          fi
+
       # Android dosyasındaki ders BURADA DA GEÇERLİ: `eas build` işi Expo'nun
       # sunucusunda koşuyor ama uygulama yapılandırmasını (app.json + config
       # plugin'leri) BURADA, yerelde çözüyor. Plugin'ler node_modules'tan

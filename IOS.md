@@ -10,6 +10,50 @@
 
 ---
 
+## 0. BUNDLE ID DEĞİŞTİ — `com.vekilpro.app` (15.09.2026, ürün sahibi kararı)
+
+```
+ÖNCE : com.macroko.legal    ← Apple ekibi 27V4XBQFG4'e kayıtlı, SENİN DEĞİL
+SONRA: com.vekilpro.app     ← Android paketiyle AYNI
+```
+
+**Neden mecburi, sadece tercih değil.** `TESLIM.md` şunu kayda geçirmiş:
+`com.macroko.legal`, **`27V4XBQFG4`** numaralı Apple ekibine kayıtlı ve o
+ekibin kimin olduğu hiç doğrulanmadı. Senin geliştirici hesabın 15.09.2026'da
+açıldı — yani o bundle ID'yi kendi hesabından kullanamazsın. `TESLIM.md`'deki
+"Yol A" (yeni bundle ID, temiz başlangıç) seçildi.
+
+### `eas.json`'dan SİLİNEN dört değer — hepsi eski ekibe aitti
+
+Bunlar artık orada **yok**, çünkü yanlış değerle dolu bir alan, boş bir
+alandan kötüdür: derleme yanlış hesaba gider ve hata çok geç anlaşılır.
+
+| alan | eski değer | neden silindi |
+|---|---|---|
+| `appleTeamId` | `27V4XBQFG4` | senin ekibin değil |
+| `ascAppId` | `6789656277` | o ekibin uygulama kaydı |
+| `ascApiKeyIssuerId` | `cd5326e9-b767-401b-b317-cad90854a845` | o ekibin anahtarı |
+| `ascApiKeyId` | `RV7JV3VRZB` | o ekibin anahtarı |
+
+Eski değerler burada **yalnız kayıt için** duruyor; hiçbiri kullanılmayacak.
+`ascApiKeyPath` kaldı, çünkü o bir dosya yolu ve iş akışı `.p8`'i oraya yazıyor.
+
+### Bunun sonucu — ne değişti
+
+- **App Store Connect'te YENİ bir uygulama kaydı açılacak** (`com.vekilpro.app`
+  ile). Apple bir kaydın bundle ID'sini sonradan değiştirmez.
+- Yeni kayıt yeni bir **`ascAppId`** üretir; `eas.json`'a o yazılacak.
+- **Abonelik ürünleri (`premium`, `ai`) yeni kayıtta yeniden tanımlanacak** —
+  ürünler uygulama kaydına bağlıdır, taşınmaz. Bkz. `IAP_KURULUM.md`.
+- **RevenueCat'teki iOS uygulaması** `com.vekilpro.app` ile kurulacak.
+- Kaybedilen bir şey **yok**: uygulama hiç yayınlanmadı, indirme sayısı sıfır.
+
+**Kazanç:** iOS ve Android artık **aynı** kimliği taşıyor (`com.vekilpro.app`).
+İki farklı kimlik taşımak, RevenueCat ve mağaza panellerinde her seferinde
+"hangisiydi" sorusu doğuruyordu.
+
+---
+
 ## 1. Ölçülen durum — Apple'ın en sık reddettiği noktalar
 
 Aşağıdaki her satır 15.09.2026'da depodan **arandı**, hatırlanmadı.
@@ -47,9 +91,19 @@ Değer  : indirdiğin .p8 dosyasının TAMAMI (BEGIN/END satırları dâhil)
   iptal edip yenisini üretmen gerekir.
 - **Bana yapıştırma.** Yayımlama yetkisi taşıyor; secret dışında hiçbir yere
   yazılmamalı.
-- Anahtarın kimlik bilgileri (key id `RV7JV3VRZB`, issuer id, team id
-  `27V4XBQFG4`, app id `6789656277`) gizli **değil** ve zaten `eas.json`'da
-  duruyor. Gizli olan yalnız `.p8`'in kendisi.
+
+**Anahtarı ürettikten sonra bana ŞU DÖRT BİLGİYİ ver** — bunlar gizli
+**değil**, `eas.json`'a yazılacaklar (eskileri silindi, bkz. §0):
+
+```
+Team ID      : Apple Developer → Membership (10 karakter)
+Issuer ID    : App Store Connect → Integrations → App Store Connect API sayfasının üstünde
+Key ID       : yeni ürettiğin anahtarın yanında yazan kimlik
+App ID       : yeni uygulama kaydını açtıktan sonra App Store Connect → App Information → Apple ID (sayı)
+```
+
+Bunlar `.p8`'in KENDİSİ değil, yalnız onu tanımlayan kimlikler — sohbete
+yazılmalarında sakınca yok. Gizli olan tek şey `.p8` dosyasının içeriği.
 
 `EXPO_TOKEN` zaten Android iş akışı için gerekiyordu; ikinci bir tane gerekmez.
 

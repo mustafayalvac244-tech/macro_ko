@@ -24,7 +24,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.macroko.legal",
+      "bundleIdentifier": "com.vekilpro.app",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"

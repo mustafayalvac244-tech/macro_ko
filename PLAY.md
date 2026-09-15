@@ -84,7 +84,7 @@ Bugün başlatmak ikisini **üst üste bindirir**.
 | Konu | Durum | Kanıt |
 |---|---|---|
 | Android paket adı | **`com.vekilpro.app`** (13.09.2026'da değişti) | `app.json` |
-| iOS bundle ID | `com.macroko.legal` — **Apple'da kayıtlı, değiştirilemiyor** | `eas.json` (ascAppId 6789656277) |
+| iOS bundle ID | **`com.vekilpro.app`** — 15.09.2026'da Android'le aynılaştı | `app.json` (gerekçe: IOS.md bölüm 0) |
 | Sürüm | 3.3.2 · versionCode **uzaktan** (EAS) yönetiliyor, ilk derlemede 1→**2** oldu | `eas.json` (`appVersionSource: remote`) |
 | **İlk AAB** | **13.09.2026 12:04'te üretildi** — projenin ilk Android derlemesi | koşu #2, 24 dk, imzalama anahtarı EAS'ta hazırdı |
 | AAB derleme profili | `production` → `app-bundle` | `eas.json` |
@@ -141,7 +141,8 @@ Kod tarafı hazır. Panelde kurulacak iki ürün — **fiyatlar ve haklar
   buradan geliyor ve kod bunu bekliyor.
 - Aylık haklar: **1650 istek** (ilk **750**'si en yetenekli modelle, sonrası
   daha hafif modele yönlenir) + **25 hukuki mütalaa**. Devretmez.
-- **3 deneme hakkı** ₺399'luk pakete aittir (13.09.2026 ürün kararı).
+- **10 deneme hakkı** ₺399'luk pakete aittir (13.09.2026 ürün kararı; sayı
+  15.09.2026'da 3'ten 10'a çıkarıldı).
   Ücretsiz hesapta yapay zekâ tamamen kapalıdır. Bu bir **sunucu sayacıdır**
   (`profiles.deneme_soru_kullanildi`), Play'de ürün olarak kurulmaz.
 - Adım adım RevenueCat kurulumu: `IAP_KURULUM.md`.
