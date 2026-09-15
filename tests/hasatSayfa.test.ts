@@ -63,3 +63,46 @@ describe('sonrakiSayfa', () => {
     expect(k.sonrakiSayfa).toBe(6);
   });
 });
+
+/**
+ * SAYFA TAVANI — 15.09.2026'da ÖLÇÜLEN arızanın testi.
+ *
+ * Canlıda: 970 terimin SIFIRI bitmiş, iki terim 78. ve 534. sayfada, kaynağın
+ * bildirdiği toplam sonuç 539.776. Sayfa yalnız EKSİK döndüğünde bitmiş
+ * sayıldığı için böyle bir terim pratikte hiç sıradan düşmüyor ve havuz
+ * birkaç terimin konusuyla doluyordu (322 terim hiç çalışmamıştı).
+ */
+describe('sayfa tavanı', () => {
+  const tam = { satir: 20, sayfaBoyu: 20, yarimKaldi: false };
+
+  it('tavan yoksa eskisi gibi ilerler', () => {
+    expect(sonrakiSayfa({ ...tam, sayfa: 900 })).toEqual({ sonrakiSayfa: 901, bitti: false });
+  });
+
+  it('tavanın altında normal ilerler', () => {
+    expect(sonrakiSayfa({ ...tam, sayfa: 4, enFazlaSayfa: 50 })).toEqual({ sonrakiSayfa: 5, bitti: false });
+  });
+
+  it('tavana gelince BAŞA döner', () => {
+    expect(sonrakiSayfa({ ...tam, sayfa: 50, enFazlaSayfa: 50 })).toEqual({ sonrakiSayfa: 1, bitti: false });
+  });
+
+  it('tavanda BİTTİ İŞARETLEMEZ — taranmamışı taranmış saymak olurdu', () => {
+    // `bitti` "kaynakta başka karar yok" demek. Tavan bizim sıra kuralımız;
+    // ikisini karıştırmak yüzbinlerce kararı kalıcı olarak gözden düşürür.
+    expect(sonrakiSayfa({ ...tam, sayfa: 50, enFazlaSayfa: 50 }).bitti).toBe(false);
+    expect(sonrakiSayfa({ ...tam, sayfa: 99, enFazlaSayfa: 50 }).bitti).toBe(false);
+  });
+
+  it('gerçekten biten terim tavandan ETKİLENMEZ', () => {
+    // Sayfa eksik döndü = kaynakta daha fazlası yok. Bu hâlâ bitti.
+    expect(sonrakiSayfa({ satir: 3, sayfaBoyu: 20, yarimKaldi: false, sayfa: 7, enFazlaSayfa: 50 }))
+      .toEqual({ sonrakiSayfa: 1, bitti: true });
+  });
+
+  it('kota yarım bıraktıysa tavan devreye girmez', () => {
+    // Yarım sayfa aynı sayfada kalmalı; tavan onu başa atarsa kalan kayıtlar kaybolur.
+    expect(sonrakiSayfa({ ...tam, sayfa: 50, enFazlaSayfa: 50, yarimKaldi: true }))
+      .toEqual({ sonrakiSayfa: 50, bitti: false });
+  });
+});

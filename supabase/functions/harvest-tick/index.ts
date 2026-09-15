@@ -34,6 +34,20 @@ const BEDESTEN_HEADERS = {
   AdaletApplicationName: 'UyapMevzuat',
 };
 const PAGE_SIZE = 20;
+/**
+ * BİR TERİMDE EN FAZLA KAÇ SAYFA GEZİLİR.
+ *
+ * ÖLÇÜLDÜ (15.09.2026): kaynak popüler bir terim için 539.776 sonuç
+ * bildiriyor. Sayfa yalnız EKSİK döndüğünde terim "bitti" sayıldığı için
+ * böyle bir terim ~27.000 turda biter — pratikte hiç bitmez. Canlıdaki 970
+ * terimin SIFIRI bitmişti; iki terim 78. ve 534. sayfadaydı.
+ *
+ * 50 sayfa = terim başına en çok 1.000 sonuç taranır, sonra sıra başkasına
+ * geçer ve terim başa döner. Sayı SEÇİMDİR, ölçüm değil: amaç "her terim
+ * makul sürede bir tur atsın". 324 terim × 50 sayfa, 20 turluk saatte
+ * ~33 günde bir tam tur demek. Tur süresi uzun gelirse tavan düşürülür.
+ */
+const EN_FAZLA_SAYFA = 50;
 
 /**
  * BELGE İNDİRMEDE EŞZAMANLILIK.
@@ -384,11 +398,47 @@ Deno.serve(async (req) => {
    * Bağımlılığı sürüm sırasına bırakmak yerine burada kırıyoruz: sütun yoksa
    * eski davranışa (yalnız last_run) düşülür ve bunu yanıtta söyleriz.
    */
-  const terimSec = (oncelikliMi: boolean) => {
+  /**
+   * ── 15.09.2026: SIRALAMA SQL'E TAŞINDI, ÇÜNKÜ ÖNCELİK KAPIYA DÖNMÜŞTÜ ──
+   *
+   * Yukarıdaki not "ikincil sıralama last_run, böylece hiçbiri aç kalmaz"
+   * diyor. CANLIDA ÖLÇÜLDÜ: doğru değil. `oncelik desc` BİRİNCİL olduğu için
+   * en yüksek öncelikli terim bitene kadar altındakiler hiç sıra almıyor — o
+   * terimler de hiç bitmiyor (kaynak 539.776 sonuç bildiriyor).
+   *
+   * Emsal yolundaki 324 terimin ölçülen hâli:
+   *   oncelik=113 olan 2 terim ......... bugün 08:20 ve 08:23'te çalışmış
+   *   kalan 322 terim .................. en yenisi 12.09 (3 gün önce)
+   *   hiç çalışmamış olanlar var ....... "zina nedeniyle boşanma" gibi
+   *   187 terim ........................ hâlâ 1. sayfada
+   *
+   * Yani havuz iki terimin konusuyla doluyordu. Hukuk ürününde bunun karşılığı
+   * "aradım, çıkmadı".
+   *
+   * PostgREST'in `.order()` zinciri hesaplanmış ifadeyle sıralayamıyor; açlık
+   * kuralı ("2 gündür dokunulmamış mı") tam olarak öyle bir ifade. Bu yüzden
+   * seçim `public.hasat_sonraki_terim` RPC'sine taşındı (migration 0140).
+   *
+   * GERİ DÜŞÜŞ KORUNUYOR: RPC yoksa (göç uygulanmamışsa) eski PostgREST yolu
+   * çalışır. Sebep aynı: hasat_tetikle ateşle-unut çağırıyor, yanıtı kimse
+   * okumuyor; tek bir eksik göç hasadı haftalarca SESSİZCE durdurabilir.
+   */
+  const terimSecEski = (oncelikliMi: boolean) => {
     let s = supabase.from('ictihat_harvest_state').select('terim, next_page');
     if (oncelikliMi) s = s.order('oncelik', { ascending: false });
     s = s.order('last_run', { ascending: true, nullsFirst: true }).limit(1);
     return onek ? s.like('terim', `${onek}%`) : s.not('terim', 'like', '%:%');
+  };
+
+  const terimSec = async (oncelikliMi: boolean) => {
+    if (oncelikliMi) {
+      const r = await supabase.rpc('hasat_sonraki_terim', { p_onek: onek ?? null });
+      // 42883 = undefined_function. Yalnız "RPC yok" hâlinde eskiye düş;
+      // başka hataları maskelemek arızayı gizlemek olurdu.
+      const rpcYok = r.error && (r.error.code === '42883' || /hasat_sonraki_terim/i.test(r.error.message ?? ''));
+      if (!rpcYok) return r;
+    }
+    return await terimSecEski(oncelikliMi);
   };
 
   let oncelikliCalisti = true;
@@ -467,7 +517,7 @@ Deno.serve(async (req) => {
    * Karar mantığı _shared/hasatSayfa.ts'te ve testli: edge çalışma zamanında
    * gömülü kalsaydı yalnız canlıda fark edilebilirdi — nitekim aylarca öyle oldu.
    */
-  const karar = sonrakiSayfa({ sayfa: page, satir: rows.length, sayfaBoyu: PAGE_SIZE, yarimKaldi });
+  const karar = sonrakiSayfa({ sayfa: page, satir: rows.length, sayfaBoyu: PAGE_SIZE, yarimKaldi, enFazlaSayfa: EN_FAZLA_SAYFA });
   await supabase
     .from('ictihat_harvest_state')
     .update({
