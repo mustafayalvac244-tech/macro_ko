@@ -1,0 +1,200 @@
+name: iOS Derle ve Gönder
+
+# NEDEN BU DOSYA VAR.
+# Apple Developer Program üyeliği 15.09.2026'da açıldı; o güne kadar iOS'a
+# çıkmanın önü kapalıydı ve depoda yalnız Android iş akışı vardı. Bu dosya
+# onun iOS eşi: aynı gerekçe, aynı kalıp (bkz. android-dagit.yml).
+#
+# ── BU İŞ AKIŞI HENÜZ HİÇ KOŞMADI ─────────────────────────────────────────
+# Yazıldığı anda tek bir iOS derlemesi bile yapılmamıştı. Yani aşağıdaki
+# adımlar Android'deki ÇALIŞTIĞI DOĞRULANMIŞ kalıptan türetildi ama iOS
+# tarafı DOĞRULANMADI. İlk koşuda tökezlemesi olağan; tökezlerse hata
+# mesajını buraya yorum olarak yazın — Android dosyasındaki "ilk koşuda
+# unutulmuştu" notları tam olarak böyle birikti.
+#
+# ─────────────────────── GEREKEN İKİ SECRET ───────────────────────
+# Settings → Secrets and variables → Actions → New repository secret
+#
+#   EXPO_TOKEN
+#     expo.dev → Account settings → Access tokens → Create token.
+#     Android iş akışıyla AYNI secret; ikinci bir tane gerekmiyor.
+#     DİKKAT: bu belirteç Expo hesabınızdaki BÜTÜN projelerde derleme
+#     yapabilir. Sohbete, ekran görüntüsüne, hiçbir yere yazılmamalı.
+#
+#   ASC_API_KEY_P8
+#     App Store Connect → Users and Access → Integrations → App Store Connect
+#     API → yeni anahtar (Rol: App Manager) → .p8 dosyasını indir.
+#     İNDİRDİĞİNİZ .p8 DOSYASININ TAMAMINI (BEGIN/END satırları dâhil) bu
+#     secret'a yapıştırın.
+#     .p8 BİR KEZ İNDİRİLİR, Apple ikinci kez vermez. Kaybederseniz anahtarı
+#     iptal edip yenisini üretmek gerekir.
+#     Bu anahtar uygulama YAYIMLAMA yetkisi taşır; secret dışında hiçbir yere
+#     yazılmamalı — sohbete de yapıştırılmamalı.
+#
+# Anahtarın KİMLİK bilgileri (key id, issuer id, team id, app id) secret
+# DEĞİL: eas.json içinde açıkça duruyorlar ve gizli değiller. Gizli olan
+# yalnız .p8'in kendisi. Gizli olmayanı secret yapmak, kurulumda ikinci bir
+# yazım hatası ihtimali doğuruyor (android-dagit.yml'de aynı gerekçe yazılı).
+#
+# ─────────────────────── İMZALAMA (asıl tuzak) ───────────────────────
+# Android'de imzalama anahtarını EAS kendiliğinden üretip saklıyor. iOS'ta
+# derleme için DAĞITIM SERTİFİKASI ve PROVISIONING PROFILE gerekiyor ve
+# bunlar ilk kez üretilirken Apple hesabına giriş ister — yani ETKİLEŞİM.
+# CI etkileşim yapamaz, bu yüzden:
+#
+#   İLK DERLEMEDEN ÖNCE BİR KEZ, KENDİ BİLGİSAYARINIZDA:
+#     npx eas-cli credentials --platform ios
+#   ve sertifika + profili oluşturtun. Sonrasında EAS onları saklar ve bu
+#   iş akışı --non-interactive koşabilir.
+#
+# Bunu atlarsanız ilk koşu kimlik/imzalama hatasıyla düşer. Bu bir arıza
+# değil, sıranın gereği.
+
+on:
+  workflow_dispatch:
+    inputs:
+      is:
+        description: 'Ne yapılsın'
+        type: choice
+        default: 'derle'
+        options:
+          - derle              # yalnız IPA üret
+          - derle-ve-gonder    # IPA üret + TestFlight'a yükle
+          - gonder             # son derlemeyi TestFlight'a yükle (yeniden derlemez)
+      profil:
+        description: 'Derleme profili — production App Store/TestFlight için, preview yalnız kayıtlı cihazlara kurulur'
+        type: choice
+        default: 'production'
+        options:
+          - production
+          - preview
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: ubuntu-latest
+    # EAS derlemesi Expo'nun sunucusunda (macOS) koşuyor; burada yalnız
+    # bekleniyor. iOS kuyruğu Android'den uzun olabiliyor.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Eksik secret'ı sessizce geçme: EAS anlaşılmaz bir kimlik hatasıyla
+      # düşer ve sebebi kayıtta kaybolur (android-dagit.yml'de aynı gerekçe).
+      - name: Secret kontrolü
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          ASC_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN tanımlı değil. expo.dev → Account settings → Access tokens"
+            exit 1
+          fi
+          if [ "${{ inputs.is }}" != "derle" ] && [ -z "$ASC_P8" ]; then
+            echo "::error::ASC_API_KEY_P8 tanımlı değil; gönderim yapılamaz."
+            echo "::error::App Store Connect → Users and Access → Integrations → App Store Connect API"
+            exit 1
+          fi
+
+      # Android dosyasındaki ders BURADA DA GEÇERLİ: `eas build` işi Expo'nun
+      # sunucusunda koşuyor ama uygulama yapılandırmasını (app.json + config
+      # plugin'leri) BURADA, yerelde çözüyor. Plugin'ler node_modules'tan
+      # okunduğu için bağımlılıklar kurulmadan hiçbir şey çözülemiyor.
+      - name: Bağımlılıklar
+        run: npm ci
+
+      - name: EAS CLI
+        run: npm install -g eas-cli@latest
+
+      # Anahtar dosyası ÇALIŞMA DİZİNİNE yazılıyor çünkü eas.json onu orada
+      # arıyor (submit.production.ios.ascApiKeyPath = ./asc-api-key.p8).
+      # İş bitince aşağıdaki "always" adımı siliyor.
+      - name: App Store Connect anahtarını yaz
+        if: inputs.is != 'derle'
+        env:
+          ASC_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          printf '%s' "$ASC_P8" > asc-api-key.p8
+          # İÇERİĞİ YAZDIRMIYORUZ. Yalnız biçim doğru mu diye bakıyoruz:
+          # yanlış dosya yapıştırıldığında hata EAS'ın içinde çok daha geç ve
+          # anlaşılmaz biçimde çıkıyor. En sık hata .p8 yerine .cer/.p12
+          # yapıştırmak ya da satır sonlarının kaybolması.
+          if ! head -1 asc-api-key.p8 | grep -q 'BEGIN PRIVATE KEY'; then
+            echo "::error::asc-api-key.p8 bir özel anahtar gibi görünmüyor."
+            echo "::error::Dosya '-----BEGIN PRIVATE KEY-----' ile başlamalı."
+            echo "::error::Secret'a .p8 dosyasının TAMAMINI yapıştırdığınızdan emin olun."
+            exit 1
+          fi
+          echo "Anahtar biçimi doğru (içerik yazdırılmadı)."
+
+      - name: Derle
+        id: derle
+        if: inputs.is == 'derle' || inputs.is == 'derle-ve-gonder'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_BUILD_NO_EXPO_GO_WARNING: 'true'
+        run: |
+          set -o pipefail
+          eas build --platform ios --profile ${{ inputs.profil }} \
+            --non-interactive --wait 2>&1 | tee /tmp/derleme.log
+          # Derleme bağlantısını özete taşı (Android'deki aynı gerekçe: bağlantı
+          # yalnız ham kayıtta kalırsa binlerce satır içinden elle aranıyor).
+          baglanti="$(grep -oE 'https://expo\.dev/accounts/[^ ]+/builds/[0-9a-f-]+' /tmp/derleme.log | tail -1 || true)"
+          echo "baglanti=$baglanti" >> "$GITHUB_OUTPUT"
+
+      - name: TestFlight'a gönder
+        if: (inputs.is == 'derle-ve-gonder' || inputs.is == 'gonder') && inputs.profil == 'production'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          # --latest: en son BAŞARILI derlemeyi gönderir. Böylece "derle" ile
+          # "gonder" ayrı koşulabiliyor; derleme başarılıysa ama gönderim
+          # ayarı eksikse baştan derlemek gerekmiyor.
+          eas submit --platform ios --profile production --latest --non-interactive
+
+      # BAŞARISIZ OLSA DA SİL. Anahtar dosyası çalışan makinede kalırsa
+      # sonraki adımlar ya da kayıtlar onu görebilir.
+      - name: Anahtarı sil
+        if: always()
+        run: rm -f asc-api-key.p8
+
+      - name: Özet
+        if: always()
+        env:
+          BAGLANTI: ${{ steps.derle.outputs.baglanti }}
+        run: |
+          {
+            echo "## iOS — ${{ inputs.is }} (${{ inputs.profil }})"
+            echo ""
+            echo "Commit: \`${{ github.sha }}\`"
+            echo ""
+            if [ -n "$BAGLANTI" ]; then
+              echo "**Derleme:** $BAGLANTI"
+              echo ""
+            fi
+            if [ "${{ inputs.profil }}" = "preview" ]; then
+              echo "### Bu sürüm TestFlight'a GİTMEDİ"
+              echo "- Gönderim adımı bilerek atlandı: preview profili dahili"
+              echo "  dağıtım için; yalnız EAS'a KAYITLI cihazlara kurulur."
+              echo "- Cihaz kaydı için: \`npx eas-cli device:create\`"
+            else
+              echo "### Gönderimden sonra ne olur"
+              echo "- Sürüm **TestFlight'a** yüklenir, App Store'da yayınlanmaz."
+              echo "- Apple'ın işlemesi (processing) 10–60 dakika sürebilir;"
+              echo "  o bitmeden TestFlight'ta görünmez."
+              echo "- Dış test (kendi cihazınız dışındakiler) için Apple'ın"
+              echo "  Beta App Review'undan geçmesi gerekir."
+            fi
+            echo ""
+            echo "### İlk koşuda düşerse"
+            echo "En olası sebep imzalama: iOS dağıtım sertifikası ve"
+            echo "provisioning profile ilk kez üretilirken Apple hesabına"
+            echo "giriş ister ve CI bunu yapamaz. Bir kez kendi bilgisayarınızda"
+            echo "\`npx eas-cli credentials --platform ios\` koşun, sonra bu iş"
+            echo "akışı sorunsuz çalışır."
+          } >> "$GITHUB_STEP_SUMMARY"
