@@ -228,7 +228,12 @@ export const tr = {
   'dash.viewDoc': 'Evrak İncele',
   'dash.subline': 'Bugün verimli bir gün olsun.',
   'dash.todayProgram': 'Bugünün Programı',
-  'dash.next.label': 'SIRADAKI',
+  // "Sıradaki" → SIRADAKİ. İlk I doğru (sı→SI), SON harf "i" olduğu için "İ"
+  // olmalı. Burada 'SIRADAKI' yazılıydı ve panoda aylardır öyle görünüyordu
+  // (15.09.2026 ekran görüntüsünde fark edildi). Bu, CSS uppercase hatası
+  // DEĞİL — metin zaten büyük yazılmış, yalnız harf yanlış; bu yüzden
+  // VP_TARA taraması bunu yakalayamaz, gözle bulundu.
+  'dash.next.label': 'SIRADAKİ',
   'dash.today.label': 'BUGÜN',
   'dash.upcomingHearing': 'Yaklaşan Duruşma',
   'dash.upcomingTask': 'Yaklaşan Görev',

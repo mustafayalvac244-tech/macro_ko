@@ -31,7 +31,7 @@ export interface ThemeColors {
   transparent: string;
 }
 
-export type ThemeId = 'light' | 'dark' | 'sepia' | 'emerald' | 'obsidian';
+export type ThemeId = 'light' | 'dark' | 'sepia' | 'emerald' | 'obsidian' | 'terminal';
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -217,7 +217,53 @@ const obsidian: ThemeColors = {
   transparent: 'transparent',
 };
 
-export const palettes: Record<ThemeId, ThemeColors> = { light, dark, sepia, emerald, obsidian };
+// ── 6) Terminal — koyu, yüksek yoğunluk, konsol renkleri ───────────────────
+// Ürün sahibinin 15.09.2026'da dört yön arasından seçtiği yön ("terminal baya
+// iyi ya onu yapalım"). Diğer beş tema "hukuk bürosu" hissi kurar; bu tema
+// "alet" hissi kurar: mürekkep siyahı zemin, tek vurgu yeşil, geri kalan her
+// şey susar. Renkler seçilen maketten BİREBİR alındı (uydurulmadı):
+//   zemin #0A0C10 · kâğıt #0E1116 · yazı #D7DCE4 · solgun #7C8798
+//   silik #4E5766 · çizgi #1C2028 · yeşil #3FB950 · kırmızı #F85149
+//   sarı  #D29922 · mavi   #58A6FF
+// Not: burada ALTIN yok — sıcak vurgu rolünü kehribar (#D29922) üstlenir,
+// tıpkı Zümrüt temasında altının primary'ye eşitlenmesi gibi.
+const terminal: ThemeColors = {
+  bg: '#0A0C10',
+  bgElevated: '#0E1116',
+  surface: '#0E1116',
+  surfaceHover: '#12161D', // maketteki satır vurgusu
+  surfaceAlt: '#0C0F14',
+  border: '#1C2028',
+  borderSubtle: '#14171E',
+  textPrimary: '#D7DCE4',
+  textSecondary: '#7C8798',
+  textMuted: '#4E5766',
+  textInverse: '#0A0C10',
+  primary: '#3FB950',
+  primaryMuted: '#16301C',
+  primarySoft: 'rgba(63, 185, 80, 0.14)',
+  gold: '#D29922',
+  goldSoft: 'rgba(210, 153, 34, 0.15)',
+  success: '#3FB950',
+  successSoft: 'rgba(63, 185, 80, 0.15)',
+  warning: '#D29922',
+  warningSoft: 'rgba(210, 153, 34, 0.15)',
+  danger: '#F85149',
+  dangerSoft: 'rgba(248, 81, 73, 0.15)',
+  info: '#58A6FF',
+  infoSoft: 'rgba(88, 166, 255, 0.15)',
+  overlay: 'rgba(0, 0, 0, 0.74)',
+  transparent: 'transparent',
+};
+
+export const palettes: Record<ThemeId, ThemeColors> = {
+  light,
+  dark,
+  sepia,
+  emerald,
+  obsidian,
+  terminal,
+};
 
 /**
  * BİR TEMA KOYU MU?
@@ -251,6 +297,7 @@ export const themeMetas: ThemeMeta[] = [
   { id: 'sepia', name: 'Parşömen', nameEn: 'Parchment', statusBar: 'dark', swatch: ['#E7DECB', '#1B3A5D', '#8F6E1D'] },
   { id: 'emerald', name: 'Zümrüt', nameEn: 'Emerald', statusBar: 'dark', swatch: ['#E9F1EC', '#0A6349', '#A97F1B'] },
   { id: 'obsidian', name: 'Obsidyen', nameEn: 'Obsidian', statusBar: 'light', swatch: ['#0A0A0D', '#E3BE58', '#E9C766'] },
+  { id: 'terminal', name: 'Terminal', nameEn: 'Terminal', statusBar: 'light', swatch: ['#0A0C10', '#3FB950', '#D29922'] },
 ];
 
 export function caseStatusColorsFor(c: ThemeColors): Record<string, { fg: string; bg: string }> {

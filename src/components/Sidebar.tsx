@@ -12,6 +12,7 @@ import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { AI_BELGE_ENABLED, AI_DILEKCE_ENABLED, AI_ENABLED, AI_MUTALAA_ENABLED } from '@/config/features';
 import { WEB_ADRESI } from '@/config/web';
 import { useT } from '@/i18n';
+import { useBuyukHarf } from '@/lib/buyukHarf';
 import { spacing, typography } from '@/theme/tokens';
 import { YAN_MENU_GENISLIGI } from '@/theme/duzen';
 import { etkilesim } from '@/theme/etkilesim';
@@ -56,6 +57,7 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
   const styles = makeStyles(colors);
 
   const t = useT();
+  const buyut = useBuyukHarf();
   const insets = useSafeAreaInsets();
   const profile = useAuthStore((s) => s.profile);
   const session = useAuthStore((s) => s.session);
@@ -247,7 +249,7 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
             ))}
 
             <View style={styles.divider} />
-            <Text style={styles.sectionLabel}>{t('sidebar.toolsSection')}</Text>
+            <Text style={styles.sectionLabel}>{buyut(t('sidebar.toolsSection'))}</Text>
             <SidebarGroup
               icon="construct-outline"
               label={t('sidebar.tools')}
@@ -441,7 +443,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.small,
     color: colors.textMuted,
     fontWeight: '800',
-    textTransform: 'uppercase',
+    // textTransform YOK — Türkçe "i" tuzağı. CSS ile büyütülünce
+    // "Araçlar ve Yönetim" ekranda "ARAÇLAR VE YÖNETIM" çıkıyordu
+    // (15.09.2026'da canlı pakette ölçüldü). Büyütme artık useBuyukHarf ile.
     letterSpacing: 0.6,
     paddingHorizontal: spacing.sm,
     paddingTop: spacing.sm,

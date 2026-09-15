@@ -14,6 +14,7 @@ import { useCases } from '@/hooks/useCases';
 import type { AiKullanim } from '@/hooks/useAiKontor';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
+import { useBuyukHarf } from '@/lib/buyukHarf';
 import { fonts, spacing, shadow } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -46,6 +47,7 @@ export default function DilekceUretScreen() {
   const colors = __t.colors;
   const styles = makeStyles(colors);
   const t = useT();
+  const buyut = useBuyukHarf();
 
   const [type, setType] = useState<string>('dava');
   // DOSYA SEÇİMİ. Taslaklarda 13-21 arası köşeli parantez boşluğu çıkıyordu:
@@ -148,7 +150,7 @@ export default function DilekceUretScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <Text style={styles.lead}>{t('dlk.lead')}</Text>
 
-          <Text style={styles.label}>{t('dlk.typeLabel')}</Text>
+          <Text style={styles.label}>{buyut(t('dlk.typeLabel'))}</Text>
           <View style={styles.chips}>
             {TYPES.map((it) => {
               const on = type === it.key;
@@ -167,7 +169,7 @@ export default function DilekceUretScreen() {
 
           {!!davalar?.length && (
             <>
-              <Text style={styles.label}>{t('dlk.caseLabel')}</Text>
+              <Text style={styles.label}>{buyut(t('dlk.caseLabel'))}</Text>
               <Text style={styles.caseHint}>{t('dlk.caseHint')}</Text>
               <View style={styles.chips}>
                 <Pressable
@@ -196,7 +198,7 @@ export default function DilekceUretScreen() {
             </>
           )}
 
-          <Text style={styles.label}>{t('dlk.factsLabel')}</Text>
+          <Text style={styles.label}>{buyut(t('dlk.factsLabel'))}</Text>
           {/* DOSYA AÇIKLAMASI, AVUKATIN KENDİ METNİDİR. Olayı sıfırdan yeniden
               yazmak, hızlandırmayı en çok yiyen adım. Metin kutuya EKLENİYOR
               (doğrudan sunucuya gönderilmiyor): avukat ne gönderdiğini görür ve
@@ -344,7 +346,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
     fontSize: 11,
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    // textTransform YOK — Türkçe "i" tuzağı: "Dilekçe türü" ekranda
+    // "DILEKÇE TÜRÜ", "Olay ve talebiniz" de "OLAY VE TALEBINIZ" çıkıyordu
+    // (15.09.2026'da canlı pakette ölçüldü). Büyütme useBuyukHarf ile.
     color: colors.textMuted,
     marginBottom: spacing.sm,
   },

@@ -126,6 +126,7 @@ export default function CaseDirectoryScreen() {
               <CaseListItem
                 caseItem={row.item}
                 nextHearingAt={nextHearingByCase.get(row.item.id)}
+                esitYukseklik={sutun > 1}
                 onPress={() => router.push(`/(app)/cases/${row.item.id}`)}
               />
             ) : (

@@ -14,9 +14,23 @@ interface CaseListItemProps {
   onPress: () => void;
   /** Bu davanın sıradaki (gelecek, tamamlanmamış) duruşma/keşif tarihi. */
   nextHearingAt?: string | null;
+  /**
+   * IZGARADA SATIR YÜKSEKLİĞİNİ DOLDUR.
+   *
+   * Geniş ekranda liste iki sütuna çıkıyor. Kartların içeriği eşit değil —
+   * bir davanın "Sıradaki duruşma" satırı varken diğerinde yok — ve kart
+   * kendi içeriği kadar yüksek olduğu için satırın altı TIRTIKLI kalıyordu
+   * (15.09.2026, dava listesi ekran görüntüsünde görüldü: soldaki kart
+   * sağdakinden ~30 px kısa bitiyor). Hücre zaten satır yüksekliğine
+   * uzuyor; eksik olan, kartın hücreyi doldurmasıydı.
+   *
+   * Tek sütunlu listede İSTENMEZ: orada kartın uzayacağı bir satır
+   * yüksekliği yok, `flex: 1` gereksiz.
+   */
+  esitYukseklik?: boolean;
 }
 
-export function CaseListItem({ caseItem, onPress, nextHearingAt }: CaseListItemProps) {
+export function CaseListItem({ caseItem, onPress, nextHearingAt, esitYukseklik }: CaseListItemProps) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
@@ -35,7 +49,7 @@ export function CaseListItem({ caseItem, onPress, nextHearingAt }: CaseListItemP
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [styles.card, esitYukseklik && styles.kartDoldur, pressed && { opacity: 0.85 }]}
     >
       <View style={[styles.accent, { backgroundColor: accent }]} />
       <View style={[styles.icon, { backgroundColor: colors.goldSoft, borderColor: colors.border }]}>
@@ -115,6 +129,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingLeft: spacing.md + 4,
     marginBottom: spacing.sm,
     overflow: 'hidden',
+  },
+  kartDoldur: {
+    flex: 1,
   },
   accent: {
     position: 'absolute',

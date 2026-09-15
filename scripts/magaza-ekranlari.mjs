@@ -193,6 +193,47 @@ const EKRANLAR = (process.env.VP_EKRANLAR
   { ad: '06-ictihat', yol: '/ictihat', bekle: 2000 },
 ];
 
+/* ---------------- Türkçe büyük harf taraması (VP_TARA=1) ---------------- */
+//
+// NEDEN BU DÜZENEĞİN İÇİNDE. CSS `text-transform: uppercase` dil bilmez:
+// Türkçe "i" harfini "I" yapar, "İ" değil. Hata GÖZLE aranınca kaçıyor —
+// 14.09.2026'da pano ("AKTIF DOSYA"), 15.09.2026'da dava listesi ("KRITIK")
+// ve yan menü ("ARAÇLAR VE YÖNETIM") ayrı ayrı, aylar sonra fark edildi.
+//
+// KAÇIRILAN İLK DENEME, KAYDA GEÇİYOR: taramayı önce BOŞ veriyle koşan ayrı
+// bir betik olarak yazdım ve "3 hata var" dedim. Oysa veriye bağlı ekranlar
+// (rozetler, "SIRADAKI" başlığı) boş veriyle hiç çizilmiyor — yani en çok
+// görünen hatalar taramanın dışında kalmıştı. Bu yüzden tarama, SAHTE VERİSİ
+// zaten dolu olan bu düzeneğin içine taşındı.
+//
+// NE ÖLÇER: DOM'daki metin orijinaldir (büyütme yalnız görsel). Bir öğeye
+// uppercase uygulanıyorsa ve metninde küçük "i" varsa, ekranda mutlaka yanlış
+// harf çıkar. Bu deterministiktir — tekrar koşulunca aynı sonucu verir.
+//
+// NE ÖLÇMEZ: yalnız GEZİLEN ekranları ve o an EKRANDA OLAN öğeleri görür.
+// Açılmamış bir kip, boş liste, hata durumu taranmaz. "Temiz" çıkması
+// "hiç yok" demek değildir; "gezilenlerde yok" demektir.
+const TARA = !!process.env.VP_TARA;
+const buyukHarfBulgu = new Map();
+
+function buyukHarfTara(sayfa) {
+  return sayfa.evaluate(() => {
+    const cikti = [];
+    for (const el of document.querySelectorAll('*')) {
+      if (getComputedStyle(el).textTransform !== 'uppercase') continue;
+      // Yalnız kendi metnini taşıyan yaprak öğeler — aksi hâlde aynı metin
+      // her ata öğe için tekrar sayılır.
+      const metin = Array.from(el.childNodes)
+        .filter((n) => n.nodeType === 3)
+        .map((n) => n.textContent)
+        .join('')
+        .trim();
+      if (metin && /i/.test(metin)) cikti.push(metin);
+    }
+    return cikti;
+  }).catch(() => []);
+}
+
 async function main() {
   await new Promise((c) => sunucu.listen(PORT, c));
   console.log(`sunucu: http://127.0.0.1:${PORT}`);
@@ -277,7 +318,11 @@ async function main() {
 
   // Oturumu önceden yaz: giriş ekranı yerine doğrudan panoya düşsün.
   // Anahtar adı paketten OKUNDU: `sb-${hostname.split('.')[0]}-auth-token`.
-  await sayfa.addInitScript(
+  // OTURUM AÇMADAN ÇEKİM — VP_GIRISSIZ=1.
+  // Sebep: giriş/kayıt/şifre ekranları oturum açıkken hiç görünmüyordu, bu
+  // yüzden onlardaki hatalar (ör. 15.09.2026'da bildirilen kesik "Şifremi
+  // unuttum" bağlantısı) render edilip incelenemiyordu.
+  if (!process.env.VP_GIRISSIZ) await sayfa.addInitScript(
     ([id, eposta, jwt, exp, anahtar]) => {
       const oturum = {
         access_token: jwt, token_type: 'bearer', expires_in: 3600,
@@ -289,6 +334,18 @@ async function main() {
     },
     [KULLANICI_ID, profil.email, SAHTE_JWT, SON_KULLANMA, `sb-${PROJE.split('.')[0]}-auth-token`],
   );
+
+  // TEMA SEÇİMİ — VP_TEMA=terminal gibi.
+  // Sebep: uygulama varsayılan olarak Klasik (açık) temayla açılıyor; bir
+  // temanın gerçekten nasıl göründüğünü ancak seçiliyken çekebiliriz.
+  // Anahtar `src/theme/themeStore.ts` içindeki STORAGE_KEY ile aynı olmalı;
+  // AsyncStorage web'de anahtarı olduğu gibi localStorage'a yazıyor
+  // (yukarıdaki 'vekil-kilit' de aynı yoldan yazılıyor).
+  if (process.env.VP_TEMA) {
+    await sayfa.addInitScript((tema) => {
+      localStorage.setItem('vekil-theme', tema);
+    }, process.env.VP_TEMA);
+  }
 
   for (const ekran of EKRANLAR) {
     try {
@@ -311,6 +368,16 @@ async function main() {
         .catch(() => console.log('    (açılış perdesi kalkmadı — kare erken çekilmiş olabilir)'));
 
       await sayfa.waitForTimeout(ekran.bekle);
+
+      if (TARA) {
+        for (const m of await buyukHarfTara(sayfa)) {
+          if (!buyukHarfBulgu.has(m)) buyukHarfBulgu.set(m, new Set());
+          buyukHarfBulgu.get(m).add(ekran.yol);
+        }
+        console.log(`  · ${ekran.ad} tarandı`);
+        continue;
+      }
+
       const dosya = join(CIKTI, `${ekran.ad}.png`);
       await sayfa.screenshot({ path: dosya });
       console.log(`  ✓ ${ekran.ad}.png${hatalar.length ? '  ⚠ ' + hatalar[0] : ''}`);
@@ -322,6 +389,22 @@ async function main() {
 
   await tarayici.close();
   sunucu.close();
+
+  if (TARA) {
+    console.log('\nTÜRKÇE BÜYÜK HARF TARAMASI\n');
+    if (buyukHarfBulgu.size === 0) {
+      console.log('  Temiz — CSS ile büyütülüp içinde "i" geçen metin yok.');
+      return;
+    }
+    for (const [metin, yollar] of [...buyukHarfBulgu].sort()) {
+      console.log(`  "${metin}"`);
+      console.log(`      ekranda çıkan : ${metin.toUpperCase()}`);
+      console.log(`      olması gereken: ${metin.toLocaleUpperCase('tr-TR')}`);
+      console.log(`      görüldüğü yer : ${[...yollar].join(', ')}\n`);
+    }
+    process.exitCode = 1;
+    return;
+  }
   console.log('bitti →', CIKTI);
 }
 
