@@ -33,6 +33,7 @@ import { fonts, monoTemaMi, radius, spacing, shadow, kose } from '@/theme/theme'
 import { kaliciMenuMu, ortalaStili, panoOlculeri, PANO_ARALIK, PANO_YAN_BOSLUK } from '@/theme/duzen';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { TerminalPano } from '@/components/terminal/TerminalPano';
 import { formatMoney, formatTime } from '@/utils/format';
 
 /**
@@ -82,7 +83,24 @@ function onGoldColor(hex: string): string {
   return luminance(hex) > 0.6 ? '#14213D' : '#FFFFFF';
 }
 
-export default function DashboardScreen() {
+/**
+ * PANO ROTASI — hangi düzenin çizileceğine burada karar veriliyor.
+ *
+ * Ürün sahibi Terminal yönünü seçti ve panonun da o tarzda olmasını istedi.
+ * Aşağıdaki premium pano BEŞ tema için tasarlanmış (altın gradyan, serif
+ * başlık, büyük kart) ve ~1800 satır; Terminal düzenini onun içine iç içe
+ * koşullarla yedirmek iki düzeni de kalıcı olarak kırılgan yapardı.
+ *
+ * Bu yüzden ayrışma EN ÜSTTE, tek satırda. Bu sarmalayıcı yalnız temayı
+ * okuyor; kancaların hepsi seçilen bileşenin içinde kalıyor, yani Terminal
+ * temasındayken premium panonun ~20 veri kancası hiç çalışmıyor.
+ */
+export default function DashboardRoute() {
+  const { themeId } = useTheme();
+  return themeId === 'terminal' ? <TerminalPano /> : <PremiumPano />;
+}
+
+function PremiumPano() {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(colors);

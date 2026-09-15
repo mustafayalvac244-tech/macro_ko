@@ -2045,4 +2045,43 @@ export const tr = {
   'const.emptyDesc': 'Madde numarası (ör. 141) ya da farklı bir kelime deneyin.',
   'const.sourceNote':
     'Kaynak: TBMM yayını — 2709 sayılı T.C. Anayasası (6771 sayılı Kanun değişiklikleri işlenmiş metin). Resmî ve güncel metin için mevzuat.gov.tr esas alınmalıdır.',
+  // ── TERMİNAL TEMASI — pano ve üst çubuk (15.09.2026) ─────────────────────
+  // Ayrı ad alanı: ürün sahibinin seçtiği Terminal düzeni var olan pano
+  // metinlerinin yanında DURUYOR, onların yerine geçmiyor. Aynı anahtarları
+  // paylaşsalardı, birinde yapılan bir değişiklik diğerini sessizce bozardı
+  // (daha önce `imp.` ile `dosya-aktar` arasında tam olarak bu yaşandı).
+  'term.ara': 'ara',
+  'term.sayac': 'Çalışan sayaç',
+  'term.yeni': 'yeni',
+  'term.yeniDava': 'Dava',
+  'term.yeniMuvekkil': 'Müvekkil',
+  'term.yeniDurusma': 'Duruşma',
+  'term.yeniSure': 'Süre / görev',
+  'term.yeniSure2': 'Çalışma süresi',
+  'term.yeniFinans': 'Gelir / gider',
+  'term.panoBaslik': 'PANO',
+  'term.acik': 'açık',
+  'term.durusma': 'duruşma',
+  'term.sure': 'süre',
+  'term.gecikmis': 'gecikmiş',
+  'term.ayNet': 'bu ay net',
+  'term.bugun': 'BUGÜN',
+  'term.bugunBos': 'Bugün için planlanmış bir işlem yok.',
+  'term.sureler': 'YAKLAŞAN SÜRELER',
+  'term.sureBos': 'Bekleyen süre yok.',
+  'term.kutuk': 'DOSYA KÜTÜĞÜ',
+  'term.filtreAcik': 'filtre: açık',
+  'term.dosyaBos': 'Açık dosya yok.',
+  'term.kayitSayisi': '{n} kayıt',
+  'term.sutunTarih': 'tarih',
+  'term.sutunGorev': 'görev',
+  'term.sutunDosya': 'dosya',
+  'term.sutunGun': 'gün',
+  'term.sutunEsas': 'esas',
+  'term.sutunMahkeme': 'mahkeme',
+  'term.sutunSiradaki': 'sıradaki',
+  // İPUCU YALNIZ ÇALIŞAN KISAYOLU YAZAR. Maketteki "j/k gez · enter aç"
+  // henüz yok; olmayan kısayolu ipucu diye yazmak kullanıcıyı denemeye
+  // çağırıp hiçbir şey olmamasıyla karşılaştırır.
+  'term.ipucu': 'ctrl+k ara · satıra tıkla aç',
 } as const;

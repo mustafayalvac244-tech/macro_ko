@@ -19,6 +19,12 @@
 //   • `.single()`/`.maybeSingle()` PostgREST'e `Accept: ...object+json`
 //     gönderiyor; dizi dönerseniz ekran boş kalır. Tekil istek TEK NESNE ister.
 //   • Finans tablosunun adı `finance` değil `finance_entries`.
+//   • İLİŞKİ ALANI `cases` DEĞİL `case`. Duruşma ve süre sorguları
+//     '*, case:cases(id, title, case_number)' ile TAKMA AD veriyor
+//     (src/hooks/useHearings.ts ve useDeadlines.ts). Taklitte `cases` yazılıydı
+//     ve ekranlarda dosya adının olduğu her yer sessizce "—" çiziyordu —
+//     15.09.2026'da terminal panosunun "dosya" sütunu boş çıkınca fark edildi.
+//     Yani düzenek ekranı YANLIŞ gösteriyordu; ekranda hata yoktu.
 //   • Oturum web'de AsyncStorage üzerinden localStorage'a yazılıyor.
 
 import { chromium } from 'playwright-core';
@@ -78,14 +84,14 @@ const davalar = [
 ];
 
 const durusmalar = [
-  { id: 'h1', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Tanık dinlenmesi', type: 'hearing', scheduled_at: gunEkle(2), location: 'İstanbul 9. İş Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-01T09:00:00Z', cases: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
-  { id: 'h2', owner_id: KULLANICI_ID, case_id: 'd2', title: 'Ön inceleme duruşması', type: 'hearing', scheduled_at: gunEkle(6), location: 'Kadıköy 3. Aile Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-04T09:00:00Z', cases: { id: 'd2', title: 'Arslan — Anlaşmalı Boşanma', case_number: '2026/1177' } },
-  { id: 'h3', owner_id: KULLANICI_ID, case_id: 'd3', title: 'Bilirkişi raporu duruşması', type: 'hearing', scheduled_at: gunEkle(13), location: 'İstanbul BAM 14. HD', notes: null, reminder_minutes_before: 2880, is_completed: false, created_at: '2026-08-09T09:00:00Z', cases: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
+  { id: 'h1', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Tanık dinlenmesi', type: 'hearing', scheduled_at: gunEkle(2), location: 'İstanbul 9. İş Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-01T09:00:00Z', case: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
+  { id: 'h2', owner_id: KULLANICI_ID, case_id: 'd2', title: 'Ön inceleme duruşması', type: 'hearing', scheduled_at: gunEkle(6), location: 'Kadıköy 3. Aile Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-04T09:00:00Z', case: { id: 'd2', title: 'Arslan — Anlaşmalı Boşanma', case_number: '2026/1177' } },
+  { id: 'h3', owner_id: KULLANICI_ID, case_id: 'd3', title: 'Bilirkişi raporu duruşması', type: 'hearing', scheduled_at: gunEkle(13), location: 'İstanbul BAM 14. HD', notes: null, reminder_minutes_before: 2880, is_completed: false, created_at: '2026-08-09T09:00:00Z', case: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
 ];
 
 const sureler = [
-  { id: 's1', owner_id: KULLANICI_ID, case_id: 'd3', title: 'İstinaf dilekçesine cevap', due_at: gunEkle(3), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-01T09:00:00Z', cases: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
-  { id: 's2', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Bilirkişi raporuna itiraz', due_at: gunEkle(8), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-03T09:00:00Z', cases: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
+  { id: 's1', owner_id: KULLANICI_ID, case_id: 'd3', title: 'İstinaf dilekçesine cevap', due_at: gunEkle(3), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-01T09:00:00Z', case: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
+  { id: 's2', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Bilirkişi raporuna itiraz', due_at: gunEkle(8), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-03T09:00:00Z', case: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
 ];
 
 const finans = [
