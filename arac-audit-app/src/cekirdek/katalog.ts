@@ -112,7 +112,49 @@ export const HATA_TIPLERI: HataTipi[] = [
 ];
 
 /** Hızlı erişim haritası. */
-export const HATA_TIPI_INDEKS = Object.fromEntries(HATA_TIPLERI.map((h) => [h.id, h]));
+export const HATA_TIPI_INDEKS: Record<string, HataTipi> =
+  Object.fromEntries(HATA_TIPLERI.map((h) => [h.id, h]));
+
+// ---------------------------------------------------------------------------
+// ÖZEL HATA TİPLERİ — ekibin uygulama içinden eklediği katman
+//
+// Neden var: sahada sürekli yeni ve çok spesifik hata çıkıyor. Her yeni hata
+// için kod değişikliği beklemek denetimi durdurur; denetçi hatayı ya "Diğer"e
+// yazar ya da hiç kaydetmez. İkisi de veriyi bozar.
+//
+// Yerleşik liste (yukarısı) DEĞİŞTİRİLMEZ — özel tipler onun ÜSTÜNE eklenir.
+// Böylece bir sonraki sürümde yerleşik listeyi güncellemek, ekibin kendi
+// eklediklerini silmez.
+// ---------------------------------------------------------------------------
+
+const OZEL_TIPLER: HataTipi[] = [];
+
+/**
+ * Depodan okunan özel tipleri kataloğa bağlar. Açılışta bir kez, sonra her
+ * ekleme/kaldırmada çağrılır.
+ *
+ * İNDEKS YERİNDE GÜNCELLENİR, yeniden atanmaz: `rapor.ts` ve `puan.ts`
+ * HATA_TIPI_INDEKS'i içe aktarma anında yakalıyor. Yeni bir nesne atasaydık
+ * o iki modül eski referansla çalışmaya devam eder ve özel tipli hatalar
+ * Excel'de ham kimlik ("ht_m4x9...") olarak görünürdü.
+ */
+export function ozelHataTipleriniAyarla(liste: HataTipi[]): void {
+  for (const t of OZEL_TIPLER) delete HATA_TIPI_INDEKS[t.id];
+  OZEL_TIPLER.length = 0;
+  for (const t of liste) {
+    // Yerleşik bir kimliği ezmeye izin verme: rapor ve puanlama sessizce
+    // başka bir hatayı anlatmaya başlar.
+    if (HATA_TIPLERI.some((y) => y.id === t.id)) continue;
+    OZEL_TIPLER.push(t);
+    // Kaldırılmış olsa bile indekse girer — eski raporlar adı çözebilsin.
+    HATA_TIPI_INDEKS[t.id] = t;
+  }
+}
+
+/** Yerleşik + özel, kaldırılmışlar hariç. Seçim listeleri bunu kullanır. */
+export function tumHataTipleri(): HataTipi[] {
+  return [...HATA_TIPLERI, ...OZEL_TIPLER.filter((t) => !t.silindi)];
+}
 
 // ---------------------------------------------------------------------------
 // BÖLGELER VE PARÇALAR
@@ -390,7 +432,7 @@ export function parcaHataTipleri(parcaId: string): HataTipi[] {
   const p = PARCA_INDEKS[parcaId];
   if (!p) return [];
   const izin = new Set(p.gruplar);
-  return HATA_TIPLERI.filter((h) => izin.has(h.grup));
+  return tumHataTipleri().filter((h) => izin.has(h.grup));
 }
 
 /** Araç tipine (ev/ice) uymayan parçaları eler. */

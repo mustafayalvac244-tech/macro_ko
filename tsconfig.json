@@ -7,5 +7,18 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  "exclude": ["node_modules", "supabase/functions", "arac-audit-app"]
+  "exclude": [
+    "node_modules",
+    "supabase/functions",
+    "arac-audit-app",
+    // arac-audit-app'in ÇEKİRDEK mantığını sınar, yani oraya import eder.
+    // Burada hariç tutulmazsa kök tsc zinciri takip edip
+    // arac-audit-app/src/cekirdek/goruntu.ts'e varır ve CI'da
+    // "Cannot find module 'expo-image-manipulator'" ile düşer: CI kökte
+    // `npm ci` koşuyor, arac-audit-app/node_modules hiç kurulmuyor.
+    // (15.09.2026'da node_modules geçici kaldırılarak ÖLÇÜLDÜ.)
+    // Vitest bu listeye bakmaz; test koşmaya devam eder. Dosyanın kendi tip
+    // denetimi arac-audit-app içindeki `npm run kontrol` ile yapılır.
+    "tests/aracAuditOzelHataTipi.test.ts"
+  ]
 }

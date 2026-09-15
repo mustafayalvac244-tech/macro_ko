@@ -195,6 +195,9 @@ export function Girdi({
       {etiket ? <Text style={s.alanEtiketi}>{etiket}</Text> : null}
       <TextInput
         placeholderTextColor={renkler.metinSolgun}
+        // Etiket ayrı bir Text olduğu için ekran okuyucu alanı adsız okur.
+        // Çağıran kendi etiketini verdiyse ona dokunma.
+        accessibilityLabel={rest.accessibilityLabel ?? etiket}
         style={[s.girdi, mono && s.girdiMono, !!hata && s.girdiHatali, style]}
         {...rest}
       />

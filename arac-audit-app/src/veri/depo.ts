@@ -12,7 +12,7 @@
 
 import * as SQLite from 'expo-sqlite';
 
-import { Denetim, Hata } from '@/cekirdek/tipler';
+import { Denetim, Hata, HataTipi } from '@/cekirdek/tipler';
 
 const VERITABANI = 'arac-audit.db';
 
@@ -107,6 +107,26 @@ const GOCLER: string[] = [
     kalip TEXT PRIMARY KEY NOT NULL,
     sayi  INTEGER NOT NULL DEFAULT 0,
     son   TEXT NOT NULL
+  );
+  `,
+
+  // 2 — ekibin kendi eklediği hata tipleri.
+  //
+  // `silindi` var ama satır GERÇEKTEN silinmez: eski hatalar hata_tipi_id ile
+  // buraya bağlı. Satırı silsek geçmiş raporlarda hata adı yerine ham kimlik
+  // görünürdü. Kaldırılan tip seçim listesinden çıkar, indekste kalır.
+  `
+  CREATE TABLE IF NOT EXISTS ozel_hata_tipleri (
+    id             TEXT PRIMARY KEY NOT NULL,
+    grup           TEXT NOT NULL,
+    ad             TEXT NOT NULL,
+    en             TEXT NOT NULL DEFAULT '',
+    siddet         TEXT NOT NULL DEFAULT 'C',
+    ekleyen        TEXT NOT NULL DEFAULT '',
+    silindi        INTEGER NOT NULL DEFAULT 0,
+    zaman          TEXT NOT NULL,
+    guncelleme     TEXT NOT NULL,
+    senkron_zamani TEXT
   );
   `,
 ];
@@ -369,6 +389,72 @@ export async function sikKullanilanlar(enFazla = 12): Promise<{ parcaId: string;
     const n = k.kalip.lastIndexOf('.');
     return { parcaId: k.kalip.slice(0, n), hataTipiId: k.kalip.slice(n + 1), sayi: k.sayi };
   });
+}
+
+// --- ÖZEL HATA TİPLERİ ----------------------------------------------------
+
+interface OzelTipSatiri {
+  id: string; grup: string; ad: string; en: string; siddet: string;
+  ekleyen: string; silindi: number;
+}
+
+/**
+ * Kaldırılmışlar DA döner. Çağıran (katalogDeposu) hepsini indekse bağlar ki
+ * eski raporlar adı çözebilsin; seçim listesi ayrıca süzer.
+ */
+export async function ozelHataTipleriOku(): Promise<HataTipi[]> {
+  const d = await db();
+  const satirlar = await d.getAllAsync<OzelTipSatiri>(
+    'SELECT id, grup, ad, en, siddet, ekleyen, silindi FROM ozel_hata_tipleri ORDER BY ad COLLATE NOCASE');
+  return satirlar.map((t) => ({
+    id: t.id,
+    grup: t.grup as HataTipi['grup'],
+    ad: t.ad,
+    en: t.en,
+    siddet: t.siddet as HataTipi['siddet'],
+    ekleyen: t.ekleyen,
+    ozel: true,
+    silindi: t.silindi === 1,
+  }));
+}
+
+export async function ozelHataTipiEkle(
+  girdi: { grup: HataTipi['grup']; ad: string; en: string; siddet: HataTipi['siddet']; ekleyen: string },
+): Promise<HataTipi> {
+  const d = await db();
+  // Kimlik üretilir, addan türetilmez: "Ön cam çiziği" iki kez eklenirse aynı
+  // kimliği üretir ve ikincisi birincinin üstüne yazardı.
+  const id = kimlikUret('ht');
+  const z = simdi();
+  await d.runAsync(
+    `INSERT INTO ozel_hata_tipleri (id, grup, ad, en, siddet, ekleyen, silindi, zaman, guncelleme, senkron_zamani)
+     VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, NULL)`,
+    id, girdi.grup, girdi.ad, girdi.en, girdi.siddet, girdi.ekleyen, z, z,
+  );
+  return { id, ...girdi, ozel: true, silindi: false };
+}
+
+/** Listeden kaldırır; satır durur, eski hatalar adını çözmeye devam eder. */
+export async function ozelHataTipiKaldir(id: string): Promise<void> {
+  const d = await db();
+  await d.runAsync(
+    'UPDATE ozel_hata_tipleri SET silindi = 1, guncelleme = ?, senkron_zamani = NULL WHERE id = ?',
+    simdi(), id);
+}
+
+export async function ozelHataTipiGeriAl(id: string): Promise<void> {
+  const d = await db();
+  await d.runAsync(
+    'UPDATE ozel_hata_tipleri SET silindi = 0, guncelleme = ?, senkron_zamani = NULL WHERE id = ?',
+    simdi(), id);
+}
+
+/** Bir hata tipinin kaç kayıtta kullanıldığı — kaldırmadan önce uyarmak için. */
+export async function hataTipiKullanimi(hataTipiId: string): Promise<number> {
+  const d = await db();
+  const satir = await d.getFirstAsync<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM hatalar WHERE hata_tipi_id = ?', hataTipiId);
+  return satir?.n ?? 0;
 }
 
 /** Sunucuya gönderilmeyi bekleyen kayıt sayısı — senkron rozeti için. */

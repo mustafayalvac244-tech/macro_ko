@@ -102,6 +102,42 @@ gerçekten IONIQ 3'ten kısa görünsün.
 çizilir, kırmızı gövdede kırmızı vurgu okunmaz. IONIQ 3'ün lansman rengi
 (Fierce Red) yalnız ikonda kullanılır — vurgu çizilmeyen tek yer orası.
 
+## Hata listesi kodda bitmiyor — ekip kendi tipini ekler
+
+Sahada sürekli yeni ve çok spesifik hata çıkıyor. Her yeni hata için sürüm
+beklemek denetimi durdurur: denetçi ya en yakın tipi seçip veriyi bozar ya da
+hiç kaydetmez. Bu yüzden hata tipi listesi **çalışma anında genişletilebilir**.
+
+Akış hata kaydı ekranındadır, ayrı bir yönetim ekranına gitmek gerekmez:
+denetçi arama kutusuna gördüğü hatayı yazar; listede yoksa kutu
+*"… adıyla yeni hata tipi ekle"* düğmesine dönüşür, ad ön dolu gelir, grup ve
+şiddet seçilir, tip eklenir **ve o anda seçili hâle gelir**.
+
+Kurallar ve gerekçeleri:
+
+- **Yerleşik liste (`cekirdek/katalog.ts`) değiştirilmez**, özel tipler onun
+  üstüne bindirilir. Böylece bir sonraki sürümde yerleşik listeyi güncellemek
+  ekibin kendi eklediklerini silmez.
+- **Grup seçimi parçanın izin verdiği gruplarla sınırlıdır.** Aksi hâlde
+  denetçi "cam" grubuna tip ekler, kapı sacında arar, bulamaz.
+- **Kaldırma gerçek silme değildir.** Eski hatalar `hata_tipi_id` ile o kayda
+  bağlı; satır silinse geçmiş raporlarda hata adı yerine `ht_m4x9k2` yazardı.
+  Kaldırılan tip seçim listesinden çıkar, indekste kalır.
+- **Katalog indeksi yerinde güncellenir, yeniden atanmaz.** `rapor.ts` ve
+  `puan.ts` indeksi içe aktarma anında yakalıyor; yeni nesne atansa o iki modül
+  eski referansla çalışır ve özel tipli hata Excel'de ham kimlik olarak çıkar.
+
+Bu davranışların bozulması SESSİZDİR — uygulama çalışmaya devam eder, hata
+ancak raporu açan kişi tarafından günler sonra fark edilir. O yüzden
+`tests/aracAuditOzelHataTipi.test.ts` hepsini tek tek sınar (Excel sütunlarının
+adı ve grubu çözmesi dahil).
+
+> Kök `tsconfig.json` bu test dosyasını hariç tutar. Gerekçe: dosya
+> `arac-audit-app`'e import ediyor, kök `tsc` zinciri takip edip
+> `expo-image-manipulator`a varıyor ve CI'da o paket kurulu olmadığı için
+> düşüyor (15.09.2026'da node_modules geçici kaldırılarak ölçüldü). Vitest
+> bu listeye bakmaz, test koşmaya devam eder.
+
 ## Ceza puanı — okumadan kullanmayın
 
 A/B/C ağırlıkları (10/5/1) ve eşikler (şartlı 15, red 40) **örnek başlangıç
@@ -116,6 +152,7 @@ denetimlerinizi kıyaslamak için kullanın.
 | Tasarım sistemi, iki tema | **Bitti** |
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
 | 166 parçalık katalog, VIN doğrulama, puanlama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
+| Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | **Bitti** |
 | SQLite yerel depo (senkrona hazır şema) | **Bitti** |
 | Excel/CSV üretimi ve paylaşımı | **Bitti** |

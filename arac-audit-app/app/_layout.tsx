@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { TemaSaglayici, useTema } from '@/tema';
+import { useKatalog } from '@/veri/katalogDeposu';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // Splash zaten gizlenmişse sorun değil.
@@ -28,6 +29,11 @@ export default function KokDuzen() {
     // beklemekten iyidir. Denetçi vardiyada; uygulama açılmak zorunda.
     if (yazilarHazir || yaziHatasi) SplashScreen.hideAsync().catch(() => {});
   }, [yazilarHazir, yaziHatasi]);
+
+  // Ekibin eklediği hata tiplerini kataloğa bağla. Açılışı BEKLETMEZ: hata
+  // kaydı ekranı bu iş bitmeden açılırsa yalnız yerleşik tipler görünür,
+  // liste yüklenince kendiliğinden tazelenir.
+  useEffect(() => { useKatalog.getState().yukle(); }, []);
 
   if (!yazilarHazir && !yaziHatasi) return null;
 

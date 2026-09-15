@@ -30,6 +30,15 @@ export interface HataTipi {
   en: string;
   /** Önerilen başlangıç şiddeti; denetçi değiştirebilir. */
   siddet: SiddetKodu;
+  /** true ise ekipçe uygulama içinden eklenmiştir, koddan gelmiyordur. */
+  ozel?: boolean;
+  /**
+   * Listeden kaldırıldı ama SİLİNMEDİ. Eski hatalar bu kimliğe bağlı; kaydı
+   * gerçekten silsek geçmiş raporlarda hata adı yerine ham kimlik görünürdü.
+   */
+  silindi?: boolean;
+  /** Ekleyen denetçi — özel tiplerde kimin eklediği sorulabilsin diye. */
+  ekleyen?: string;
 }
 
 export type Taraf = 'sol' | 'sag';

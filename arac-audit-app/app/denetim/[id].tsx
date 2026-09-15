@@ -250,6 +250,7 @@ export default function DenetimEkrani() {
         ) : (
           <HataSayfasi
             denetimId={denetim.id}
+            denetci={denetim.denetci}
             taslak={taslak}
             fotograflar={fotograflar}
             onKapat={() => { setTaslak(null); setAcikSayfa('yok'); }}
