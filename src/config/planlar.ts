@@ -96,6 +96,19 @@ export const AI_MUTALAA_HAKKI = 25;
  * gizlemek olurdu. Sözleşme metni (app/terms.tsx m.5) bu ayrımı yazıyor.
  */
 export const AI_ASIL_MODEL_HAKKI = 750;
-/** Ödeme yapmamış kullanıcıya verilen YAŞAM BOYU (aylık değil) deneme sorusu
- *  sayısı — bkz. _shared/katman.ts > DENEME_SORU_LIMIT, gerçek sınır orada. */
+/**
+ * ₺399'luk "Vekil Pro" ÜYESİNE verilen YAŞAM BOYU (aylık değil, hiç
+ * yenilenmeyen) deneme sorusu sayısı — gerçek sınır sunucuda:
+ * _shared/katman.ts > DENEME_SORU_LIMIT.
+ *
+ * BU YORUM 15.09.2026'DA DÜZELTİLDİ. Önceden "Ödeme yapmamış kullanıcıya
+ * verilen" yazıyordu; bu, 13.09.2026'daki ürün kararından ÖNCEKİ durumdu ve
+ * sunucunun bugünkü davranışının TERSİNİ söylüyordu. Sunucuda deneme hakkı
+ * yalnız `is_premium` true iken açılıyor (katman.ts > `odemesizVeyaDeneme`);
+ * ödeme yapmamış kullanıcı `kapaliCfg` alıyor ve isteği ai-chat/ictihat
+ * uçlarında model çağrılmadan ÖNCE 403 ile reddediliyor.
+ *
+ * Yanlış olan yalnız yorumdu, davranış değil — ama eskimiş bir yorum,
+ * yorum olmamasından kötüdür: sonraki oturumu yanlış yere götürür.
+ */
 export const DENEME_SORU_HAKKI = 3;
