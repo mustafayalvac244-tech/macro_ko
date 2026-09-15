@@ -75,11 +75,15 @@ tıklamalar ve bana vereceğiniz üç anahtar/sır.
 
 **Uygulama kimlikleri** (RevenueCat/App Store Connect/Play Console'da
 istenecek — `app.json`'dan): iOS Bundle ID ve Android Package Name ikisi de
-`com.vekilpro.app` (Android) / `com.macroko.legal` (iOS).
-**İKİSİ FARKLI** — Android paketi 13.09.2026'da değişti, iOS bundle'ı
-Apple'da kayıtlı olduğu için değişemedi (bkz. PLAY.md bölüm 8).
-RevenueCat platform başına ayrı uygulama tuttuğu için bu çalışır;
-ama Android uygulamasını eklerken YENİ paket adını yazın.
+iki platformda da **`com.vekilpro.app`**.
+**15.09.2026'DA AYNILAŞTILAR.** Önce iOS `com.macroko.legal` idi; o bundle ID
+bize ait olmayan bir Apple ekibine (27V4XBQFG4) kayıtlı olduğu için yeni
+hesapta kullanılamıyordu ve `com.vekilpro.app` yapıldı (bkz. IOS.md bölüm 0).
+RevenueCat'e iOS uygulamasını eklerken bu yeni bundle ID'yi yazın.
+
+> **App Store Connect'teki abonelik ürünleri YENİ kayıtta yeniden
+> tanımlanacak.** Ürünler uygulama kaydına bağlıdır, eski kayıttan taşınmaz.
+> Uygulama hiç yayınlanmadığı için kaybedilen bir şey yok.
 
 ## 1. RevenueCat hesabı açın (ücretsiz)
 

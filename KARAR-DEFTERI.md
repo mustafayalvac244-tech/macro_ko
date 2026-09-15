@@ -16,7 +16,8 @@ gerekiyorsa satır güncellenir ve tarihi değişir.
 | Tarih | Karar | Kim |
 |---|---|---|
 | 13.09.2026 | **3 AI deneme hakkı ₺399'luk pakete ait.** Ücretsiz katmanda AI yok. | Ürün sahibi |
-| 13.09.2026 | **Android paket adı `com.vekilpro.app`.** İlk Play yüklemesinden sonra DEĞİŞTİRİLEMEZ. iOS'ta `com.macroko.legal` duruyor (App Store kaydı zaten var). | Ürün sahibi |
+| 13.09.2026 | **Android paket adı `com.vekilpro.app`.** İlk Play yüklemesinden sonra DEĞİŞTİRİLEMEZ. | Ürün sahibi |
+| 15.09.2026 | **iOS bundle ID de `com.vekilpro.app`.** Eski `com.macroko.legal` bize ait olmayan Apple ekibine (27V4XBQFG4) kayıtlıydı; yeni hesapta kullanılamıyordu. App Store Connect'te YENİ kayıt açılacak, abonelik ürünleri yeniden tanımlanacak. Uygulama hiç yayınlanmadığı için kayıp yok. | Ürün sahibi |
 | 13.09.2026 | **Play hesabı kişisel (bireysel).** Bu yüzden 12 test kullanıcısı × 14 gün kapalı test zorunlu — bkz. PLAY.md. | Ürün sahibi |
 | 13.09.2026 | **İki abonelik birden**: ₺399 ve ₺2.999. | Ürün sahibi |
 | 13.09.2026 | **Vurgu rengi altın (`#E3C275`)**, açık mavi kaldırıldı. Hem uygulamada hem tanıtım sitesinde. | Ürün sahibi |
@@ -56,7 +57,7 @@ Bunları Claude yapamaz; panel erişimi gerektiriyor.
       tetikleyicisi yerinde, üç CHECK kısıtı duruyor, `profiles.hourly_rate`
       numeric, indekssiz FK kalmamış, canlı kayıt sayısı 0. Sekiz ölçüm de
       yereldekiyle aynı çıktı. Ürün sahibinden bir şey gerekmiyor.
-- [ ] App Store Connect'te `com.macroko.legal` kaydı gerçekten var mı bak.
+- [x] ~~App Store Connect'te `com.macroko.legal` kaydı var mı bak.~~ Konu kapandı 15.09.2026: bundle ID `com.vekilpro.app` yapıldı, eski kayıt kullanılmayacak.
       Yoksa iOS de `com.vekilpro.app`'e hizalanabilir.
 - [ ] Play Console'da uygulamayı `com.vekilpro.app` paketiyle oluştur.
 - [ ] AAB'yi iç teste yükle, gerçek telefona kur. **Uygulama bugüne kadar
