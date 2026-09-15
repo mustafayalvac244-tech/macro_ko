@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Araç Audit",
+    "slug": "arac-audit",
+    "version": "0.1.0",
+    "scheme": "aracaudit",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#F1F4F7",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aracaudit.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.aracaudit.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-font",
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Şasi barkodunu okutmak ve hata fotoğrafı çekmek için kamerayı kullanır.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Daha önce çektiğiniz hata fotoğraflarını denetime eklemek için galeriye erişir.",
+          "cameraPermission": "Hata fotoğrafını doğrudan çekip denetime eklemek için kamerayı kullanır."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
