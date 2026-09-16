@@ -168,6 +168,27 @@ Vekil Pro — vekilpro.app
 
 ---
 
+## Kimlik kilidi — izin gelince ne değişecek
+
+**Ürün sahibi, 16.09.2026:** *"Şu an niye söyletmiyorum? Çünkü henüz iznim yok."*
+
+Uygulamadaki kimlik kilidi (`ai-chat/index.ts` > KİMLİK) kalıcı bir ürün
+kararı DEĞİL, bir uyum duruşu. İzin gelmeden asistanın "Claude ile
+çalışıyorum" demesi açılmıyor.
+
+**İzin gelirse:**
+- Kilidin YALNIZ model adını söyleme kısmı gevşetilir.
+- Sistem talimatlarını ve iç kuralları ifşa etmeme kısmı **aynen kalır** —
+  o marka değil GÜVENLİK kuralı ve izinden bağımsız.
+- Gevşetmek o noktada ŞART olur: tanıtımda "Claude ile çalışır" okuyan
+  avukat, uygulamada sorduğunda "Ben Vekil AI'yım" cevabı alırsa bu güveni
+  artırmaz, AZALTIR.
+
+**İzin gelmezse:** kilit olduğu gibi kalır ve tanıtımda da Claude adı
+kullanılmaz. İkisi birlikte hareket eder.
+
+---
+
 ## Gönderilmeden önce yapılacaklar
 
 - [ ] **AD SOYAD ve E-POSTA** doldur
