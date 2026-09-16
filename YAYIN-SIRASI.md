@@ -105,7 +105,9 @@ olur.
 
 **Play Console → Büyüt → Ana mağaza girişi**
 
-- **Uygulama adı:** Vekil Pro
+- **Uygulama adı:** `Vekil Pro: Avukat Asistanı` (26 karakter, sınır 30)
+  > Play'de çakışma **yok**; App Store ile aynı olsun diye böyle. Gerekçe
+  > aşağıda B2'de.
 - **Kısa açıklama (80 karakter):**
   `Avukatın dosyası, takvimi ve içtihadı tek yerde.`
 - **Tam açıklama:** aşağıdaki "Mağaza metni" bölümünden kopyala
@@ -137,13 +139,34 @@ https://developer.apple.com/account/resources/identifiers/list
 https://appstoreconnect.apple.com/apps → **+** → Yeni Uygulama
 
 - Platform: iOS
-- Ad: Vekil Pro
+- Ad: `Vekil Pro: Avukat Asistanı`
 - Birincil dil: Türkçe
 - Bundle ID: `com.vekilpro.app`
 - SKU: `vekilpro-ios`
 
 Kayıt açılınca **App Information → Apple ID** sayısını not et — `eas.json`'a
 o yazılacak.
+
+### Neden düz "Vekil Pro" değil — 16.09.2026
+
+İlk denemede Apple reddetti: *"The app name you entered is already being
+used."*
+
+**ÖLÇÜLDÜ** (iTunes Search API, TR mağazası, 16.09.2026): `vekilpro` → **0
+sonuç**, `Vekil Pro` → alakasız 6 VPN uygulaması. Yani **yayında** o adı
+taşıyan bir uygulama yok. Yakın adlar var ama çakışmıyor: *Huquq360 Vekil*,
+*VekilAI*, *Vekil Gayrimenkul*.
+
+**Bu aramanın göremediği şey:** iTunes araması yalnız yayınlanmış
+uygulamaları kapsar. App Store Connect'te açılıp hiç yayınlanmamış bir kayıt
+da adı rezerve eder ve aramada görünmez. En olası tutan: `eas.json`'dan
+sildiğimiz eski kayıt (`ascAppId 6789656277`, ekip `27V4XBQFG4`).
+**Kanıtlanmadı** — ürün sahibinin o hesaba erişimi yok, dolayısıyla adı geri
+almanın pratik yolu da yok.
+
+Apple'ın benzersizlik denetimi **tam metin** üzerinde; ek kelime çakışmayı
+kaldırıyor. `app.json > name` hâlâ `Vekil Pro` — telefonun ana ekranında
+görünen ad değişmedi, değişen yalnız mağaza vitrini başlığı.
 
 ## B3 · API anahtarı üret · **SEN**
 
