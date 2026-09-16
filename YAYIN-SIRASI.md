@@ -109,10 +109,10 @@ olur.
 - **Kısa açıklama (80 karakter):**
   `Avukatın dosyası, takvimi ve içtihadı tek yerde.`
 - **Tam açıklama:** aşağıdaki "Mağaza metni" bölümünden kopyala
-- **Uygulama simgesi:** `assets/icon.png` (512×512'ye ölçeklenecek)
+- **Uygulama simgesi:** `magaza-pazarlama/play/icon-512.png` (tam 512×512)
 - **Öne çıkan görsel:** `magaza-pazarlama/play/feature-1024x500.png`
-- **Telefon ekran görüntüleri:** `magaza-pazarlama/play/` içindeki 6 PNG
-  *(Play en az 2 istiyor; 6'sını da koy, dönüşümü artırır)*
+- **Telefon ekran görüntüleri:** `magaza-pazarlama/play/01…08` — **8 PNG**
+  *(Play en az 2 istiyor, en çok 8 alıyor; sekizini de koy)*
 
 ## A4 · 14 gün sonra
 
@@ -199,7 +199,10 @@ https://github.com/mustafayalvac244-tech/macro_ko/actions/workflows/ios-dagit.ym
 - **App Privacy** ("Nutrition Label") — `docs/privacy.html` ile **birebir**
   tutarlı olmalı; eksik beyan yayından sonra da ceza sebebi
 - Kategori: Business ya da Productivity · Yaş sınırı · Destek adresi
-- Ekran görüntüleri: `magaza-pazarlama/ios/` (6.7", zorunlu boyut)
+- Ekran görüntüleri:
+  - **iPhone 6.7"** → `magaza-pazarlama/ios/01…08` (8 adet, 1290×2796)
+  - **iPad 13"** → `magaza-pazarlama/ipad/01…04` (4 adet, 2048×2732)
+    **ZORUNLU** — `supportsTablet: true` olduğu için Apple istiyor
 - **Abonelik ürünleri** (`premium`, `ai`) tanımlı ve **"Ready to Submit"**
   olmalı — onaylanmadan abonelikli sürüm incelemeye alınmaz
   (`IAP_KURULUM.md`)
