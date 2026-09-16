@@ -186,19 +186,30 @@ Değer : .p8 dosyasının TAMAMI (BEGIN/END satırları dâhil)
 
 > **Bana yapıştırma.** Yayımlama yetkisi taşıyor.
 
-## B4 · Bana üç bilgiyi ver · **SEN → BEN**
+## B4 · Bana iki bilgiyi ver · **SEN → BEN**
 
 Bunlar gizli **değil**, `eas.json`'a yazılacak (eskileri silindi):
 
 ```
 Issuer ID : App Store Connect API sayfasının üstünde
 Key ID    : yeni ürettiğin anahtarın yanında
-App ID    : B2'de not ettiğin Apple ID (sayı)
 ```
 
-> **Team ID geldi: `5NNRTB2436`.** 16.09.2026'da B1 ekranındaki "App ID
-> Prefix" satırından okundu ve `eas.json > submit.production.ios.appleTeamId`
-> alanına yazıldı. Eski `27V4XBQFG4` başka birinin ekibiydi.
+**Gelenler (16.09.2026, `eas.json > submit.production.ios`'a yazıldı):**
+
+| alan | değer | nereden |
+|---|---|---|
+| `appleTeamId` | `5NNRTB2436` | B1 ekranındaki "App ID Prefix" satırı |
+| `ascAppId` | `6812859016` | B2 kaydının Apple ID'si |
+
+> Eski `27V4XBQFG4` / `6789656277` başka birinin ekibine aitti, silinmişti.
+
+### Sürüm uyuşmazlığı — kapatılacak
+
+App Store Connect kaydı varsayılan **iOS 1.0** ile açıldı; `app.json` ise
+**3.4.0**. İncelemeye göndermeden önce ASC'deki sürüm alanı build'in
+`CFBundleShortVersionString` değeriyle aynı olmalı. TestFlight bunu
+takmıyor, **App Store incelemesi takıyor**. Bkz. B7.
 
 ### B1'de capability seçme — **ölçüldü, hiçbiri gerekmiyor**
 
@@ -235,6 +246,10 @@ https://github.com/mustafayalvac244-tech/macro_ko/actions/workflows/ios-dagit.ym
 
 ## B7 · App Store Connect'te doldurulacaklar · **SEN**
 
+- **Sürüm numarasını `3.4.0` yap** — kayıt `1.0` ile açıldı, `app.json`
+  3.4.0. Uyuşmazsa inceleme reddeder (B4'teki not)
+- **Trader status** (Business bölümü) — AB dağıtımı için zorunlu. Beyan
+  vermeyeceksen ülke listesini AB dışına daralt; varsayılan tüm dünyadır
 - Gizlilik politikası adresi: `https://vekilpro.app/privacy.html`
 - **App Privacy** ("Nutrition Label") — `docs/privacy.html` ile **birebir**
   tutarlı olmalı; eksik beyan yayından sonra da ceza sebebi
