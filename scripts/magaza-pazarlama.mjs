@@ -1,27 +1,49 @@
-// MAĞAZA PAZARLAMA GÖRSELLERİ — ham ekran görüntüsünü vitrin görseline çevirir.
+// MAĞAZA PAZARLAMA GÖRSELLERİ — ham ekran görüntüsünü VİTRİN görseline çevirir.
 // ---------------------------------------------------------------------------
 // NEDEN AYRI BİR BETİK. `magaza-ekranlari.mjs` uygulamanın GERÇEK ekranını
 // çekiyor ve öyle kalmalı — o dosyanın işi doğruluk. Bu betik ise o ham PNG'yi
-// alıp başlık, arka plan ve çerçeveyle vitrin görseline dönüştürüyor. İkisini
-// tek dosyada birleştirmek, "ekranı süslemek" ile "ekranı ölçmek" işlerini
-// karıştırırdı; süslenmiş bir görüntüyle hata aramak imkânsızdır.
+// alıp başlık, arka plan, çerçeve ve etiketlerle vitrin görseline çeviriyor.
+// Süslenmiş bir görüntüyle hata aramak imkânsızdır; ikisi karışmamalı.
+//
+// ÜRÜN SAHİBİ (16.09.2026): "abi reklam bu, orda şov yapman lazım" +
+// "rakiplerden fazla olan özellikleri vurgula."
+//
+// ŞOV: lacivert blok + ALTIN vurgulu başlık (altın, logodaki kefe rengi),
+// gerçek telefon çerçevesi bloktan taşarak çıkıyor, ekrandaki özelliğe işaret
+// eden altın etiketler, arkada ince defter çizgileri, öne çıkan görselde iki
+// telefon üst üste.
+//
+// VURGU: sıra ve başlıklar, depoda BELGELENMİŞ farklara göre —
+//   • Künye denetimi: AI'ın verdiği her madde/karar künyesi doğrulanır,
+//     havuzda yok ya da olamaz diye işaretlenir (BEKLEME-PENCERESI.md:
+//     "hiçbir rakip bunu denetlediğini söylemiyor"). BAŞ SIRADA.
+//   • Duruşma çıkışında süreyi tebligat/tefhim ayrımıyla türetme
+//     (KOSGEB.md 4.6, app/durusma-cikisi.tsx).
+//   • UYAP UDF/PDF'ten künye okuyup dosya açma (app/dosya-aktar.tsx).
+//   • Mevzuat cihazda — adliyede internet yokken de (src/data/laws).
+// "Rakiplerde yok" CÜMLESİ GÖRSELE YAZILMADI: Ticari Reklam Yönetmeliği
+// karşılaştırmalı reklamı nesnel kanıta bağlıyor ve iki mağaza da rakip
+// adı/iması istemiyor. Vurgu, o özelliklere baş sırayı ve büyük başlığı
+// vererek yapılıyor — rakibi anarak değil.
+//
+// KURAL: EKRAN GÖRÜNTÜSÜ HER ZAMAN GERÇEK. Etiket ve başlık ETRAFINA konur,
+// ekranın İÇİNE dokunulmaz. Sayılar ölçülmüş (16.09.2026): 66.870 karar,
+// 104.679 madde atfı. "66.000+" / "104.000+" bilerek yuvarlak ve düşük.
+//
+// FİYAT YALNIZ PLAY ÖNE ÇIKAN GÖRSELİNDE. Apple, vitrindeki fiyatın mağaza
+// fiyatıyla birebir tutmasını ister ve bölgeye göre değişebilir; iOS setine
+// fiyat konmadı. MONTHLY_PRICE_TRY değişirse burası da yeniden üretilmeli.
 //
 // NE ÜRETİR
-//   play/     1080×1920  — Google Play telefon ekran görüntüsü
-//   ios/      1290×2796  — App Store 6.7" (zorunlu boyut)
-//   play/feature-1024x500.png — Play "öne çıkan görsel", ZORUNLU ve tek boyut
+//   play/  1080×1920 ×N + feature-1024x500.png (Play "öne çıkan", ZORUNLU)
+//   ios/   1290×2796 ×N (App Store 6.7", zorunlu boyut)
 //
-// TASARIM KAYNAĞI: ürünün kendi Terminal paleti (src/theme/palettes.ts).
-// Vitrin görseli uygulamadan başka bir dünya gibi durmamalı; mağazada gördüğü
-// yeşil-siyahı açtığında da görsün.
-//
-// YAZI TİPİ: üründe JetBrains Mono kullanılıyor ama burada yerelde kurulu
-// olmayabilir. Google Fonts denenir, düşerse sistem monospace'ine iner —
-// görsel yine çıkar, yalnız harfler değişir. Betiği bir yazı tipi yüzünden
-// düşürmek, hiç görsel üretmemek demek olurdu.
+// PALET: ürünün Klasik (light) teması — ürün sahibi kararı "orijinal eski
+// teması güzel, reklamda bizim uygulama temasını kullan." Ekranlar da aynı
+// temayla çekiliyor (VP_TEMA=light).
 
 import { chromium } from 'playwright-core';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -29,143 +51,276 @@ const KOK = new URL('..', import.meta.url).pathname;
 const HAM = join(KOK, 'magaza-gorselleri');
 const CIKTI = join(KOK, 'magaza-pazarlama');
 
-// Terminal paleti — src/theme/palettes.ts ile aynı olmalı.
+// src/theme/palettes.ts > light ile birebir; altın ve derin lacivert
+// logodan (docs/amblem.svg): #E3C275 kefe, #0B1F45 gradyan ucu.
 const R = {
-  bg: '#0A0C10',
-  yuzey: '#0E1116',
-  cizgi: '#1C2028',
-  metin: '#D7DCE4',
-  soluk: '#7C8798',
-  yesil: '#3FB950',
-  altin: '#D29922',
+  bg: '#EEF2F8', yuzey: '#FFFFFF', cizgi: '#CFD9EA', metin: '#0F1B33', soluk: '#44506B',
+  lacivert: '#173C7E', derin: '#0B1F45', altin: '#E3C275', altinKoyu: '#B8944A',
 };
 
 /**
- * VİTRİN METİNLERİ.
+ * KARTLAR — sıra vurgudur: en ayırt edici özellik en önde.
  *
- * Her başlık, o ekranda GERÇEKTEN görünen şeyi anlatır — mağaza görselinde
- * ekranda olmayan bir şeyi vaat etmek, indirme sonrası ilk hayal kırıklığıdır
- * ve iki mağazada da yanıltıcı tanıtım sayılır.
+ * `vurgu` başlığın altınla yazılan kelimesi. Etiketlerin `y` değeri telefon
+ * ekranının yüzdesi (0 üst), `taraf` çıkış kenarı. Konumlar 16.09.2026'daki
+ * ekran düzenine göre — düzen değişirse etiket yanlış yere işaret eder;
+ * ÜRETTİKTEN SONRA GÖZLE BAK.
  *
- * "66.000+" sayısı bilerek YUVARLAK VE DÜŞÜK: korpus saatte ~570 büyüyor
- * (16.09.2026'da 66.870 ölçüldü), yani bu sayı her geçen gün daha da doğru
- * hâle gelir. Tam sayı yazmak, görseli bir hafta içinde yanlış yapardı.
+ * Başlıklar ekranda GERÇEKTEN görünen şeyi anlatır; garanti veren fiil yok.
  */
 const KARTLAR = [
-  { dosya: '01-pano.png',       ust: 'Gününüz tek ekranda', alt: 'Duruşma, süre ve emsal karar — sabah açtığınızda hepsi karşınızda.' },
-  { dosya: '02-davalar.png',    ust: 'Dosyalarınız düzende', alt: 'Aşama, mahkeme ve karşı taraf bilgisiyle tam dizin.' },
-  { dosya: '03-takvim.png',     ust: 'Süre kaçırmayın',      alt: 'Duruşma ve süreler takvimde, hatırlatmalarıyla birlikte.' },
-  { dosya: '06-ictihat.png',    ust: '66.000+ karar',        alt: 'Yargıtay ve Danıştay kararlarında tam metin araması.' },
-  { dosya: '04-dava-detay.png', ust: 'Dosyanın tam geçmişi', alt: 'Duruşmalar, süreler, belgeler ve çalışma kayıtları bir arada.' },
-  { dosya: '05-finans.png',     ust: 'Vekâlet ücreti hesaplı', alt: 'KDV ve stopaj otomatik; serbest meslek makbuzu hazır.' },
+  {
+    dosya: '06-ictihat.png',
+    ust: 'Uydurmayan', vurgu: 'yapay zekâ',
+    alt: 'Verilen her kanun maddesi ve karar künyesi denetlenir: doğrulandı, havuzda yok ya da olamaz.',
+    etiketler: [
+      { y: 23, taraf: 'sag', metin: 'Olayı anlatın, içtihadı bulsun' },
+      { y: 75, taraf: 'sol', metin: 'Her künye denetlenir' },
+    ],
+  },
+  {
+    // KISA EKRAN: içerik üst %54'te bitiyor, gerisi boş zemin. `kes` ile
+    // yalnız o kısım gösterilir; telefon tam çerçeveli ve ortalı çizilir.
+    dosya: '07-durusma-cikisi.png', kes: 0.60,
+    ust: 'Duruşmadan çıkın,', vurgu: 'süre hazır',
+    alt: 'Ne olduğunu seçin; tebligat/tefhim ayrımıyla süre türetilir ve takvime düşer.',
+    etiketler: [
+      { y: 27, taraf: 'sag', metin: 'Takvime düşer' },
+      { y: 39.5, taraf: 'sol', metin: 'Karar açıklandı → süre otomatik' },
+    ],
+  },
+  {
+    dosya: '08-dosya-aktar.png', kes: 0.40,
+    ust: 'UYAP dosyasını atın,', vurgu: 'künye hazır',
+    alt: 'UDF ya da PDF\'ten esas no, mahkeme ve taraflar okunur; dosya tek dokunuşla açılır.',
+    etiketler: [
+      { y: 19.5, taraf: 'sag', metin: 'Otomatik okunur' },
+      { y: 34, taraf: 'sol', metin: 'UDF / PDF' },
+    ],
+  },
+  {
+    dosya: '01-pano.png',
+    ust: 'Gününüz', vurgu: 'tek bakışta',
+    alt: 'Sabah açtığınızda duruşma, süre ve davanıza emsal karar hazır.',
+    etiketler: [
+      { y: 44, taraf: 'sag', metin: 'Bugünün duruşması ve süresi' },
+      { y: 64, taraf: 'sol', metin: 'Davanıza emsal — otomatik' },
+    ],
+  },
+  {
+    dosya: '05-finans.png',
+    ust: 'Vekâlet ücreti', vurgu: 'hesaplı',
+    alt: 'KDV ve stopaj otomatik; serbest meslek makbuzu bilgileri hazır.',
+    etiketler: [
+      { y: 30, taraf: 'sag', metin: 'KDV + stopaj otomatik' },
+    ],
+  },
+  {
+    dosya: '03-takvim.png',
+    ust: 'Süreler', vurgu: 'takvimde',
+    alt: 'Duruşma ve süreler hatırlatmalarıyla birlikte — mevzuat cihazda, adliyede internet olmasa da.',
+    etiketler: [
+      { y: 40, taraf: 'sag', metin: 'Duruşma günü işaretli' },
+    ],
+  },
 ];
 
-/** Ham PNG'yi data URI'ye çevirir — dosya yolu vermek tarayıcıda CSP'ye takılıyor. */
-async function dataUri(yol) {
+async function dataUri(yol, tip = 'image/png') {
   const b = await readFile(yol);
-  return `data:image/png;base64,${b.toString('base64')}`;
-}
-
-function sayfa({ genislik, yukseklik, ust, alt, img, telefonGenislik }) {
-  // Ölçüler orana göre türetiliyor ki aynı şablon hem 1080×1920 hem 1290×2796
-  // üretebilsin. Sabit piksel yazmak, ikinci boyutta her şeyi bozardı.
-  const bas = Math.round(genislik * 0.062);
-  const altP = Math.round(genislik * 0.034);
-  return `<!doctype html><html><head><meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;600&display=swap">
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{width:${genislik}px;height:${yukseklik}px;background:${R.bg};
-       display:flex;flex-direction:column;align-items:center;overflow:hidden;
-       font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
-  /* Arka planda çok hafif bir ışık — düz siyah, mağaza ızgarasında ölü durur. */
-  .isik{position:absolute;top:-18%;left:50%;transform:translateX(-50%);
-        width:${genislik * 1.3}px;height:${genislik * 1.3}px;border-radius:50%;
-        background:radial-gradient(circle,${R.yesil}22 0%,transparent 62%)}
-  .metin{position:relative;text-align:center;padding:${Math.round(genislik * 0.085)}px ${Math.round(genislik * 0.07)}px ${Math.round(genislik * 0.03)}px}
-  h1{font-size:${bas}px;font-weight:700;color:${R.metin};letter-spacing:-.02em;line-height:1.12;text-wrap:balance}
-  h1 em{font-style:normal;color:${R.yesil}}
-  p{margin-top:${Math.round(genislik * 0.022)}px;font-family:Manrope,system-ui,sans-serif;
-    font-size:${altP}px;font-weight:400;color:${R.soluk};line-height:1.45;text-wrap:balance}
-  .cerceve{position:relative;margin-top:auto;width:${telefonGenislik}px;
-           border:${Math.round(genislik * 0.004)}px solid ${R.cizgi};
-           border-radius:${Math.round(genislik * 0.035)}px ${Math.round(genislik * 0.035)}px 0 0;
-           border-bottom:none;overflow:hidden;background:${R.yuzey};
-           box-shadow:0 0 ${Math.round(genislik * 0.09)}px ${R.yesil}1f}
-  .cerceve img{display:block;width:100%}
-</style></head><body>
-  <div class="isik"></div>
-  <div class="metin"><h1>${ust}</h1><p>${alt}</p></div>
-  <div class="cerceve"><img src="${img}"></div>
-</body></html>`;
+  return `data:${tip};base64,${b.toString('base64')}`;
 }
 
 /**
- * Play "öne çıkan görsel" — 1024×500, ZORUNLU ve tek kabul edilen boyut.
- *
- * İKİ DÜZELTME (16.09.2026, ilk üretimde gözle görüldü):
- *  • Başlık üç satıra kırılıyordu ve kırılma yeri anlamsızdı ("takvimi" tek
- *    başına satırda kalmıştı). Metin kısaltıldı, `<br>` kaldırıldı ve
- *    genişlik iki satıra oturacak şekilde ayarlandı.
- *  • Sağ yarı boştu; sadece zayıf bir ışık vardı ve görsel dengesiz
- *    duruyordu. Oraya gerçek bir ekran görüntüsü kondu — hem boşluğu
- *    dolduruyor hem de mağaza ızgarasında ürünün ne olduğunu tek bakışta
- *    gösteriyor.
+ * YAZI TİPİ YERELDEN. İlk üretimde Google Fonts bağlantısı bu ortamda
+ * gelmedi ve başlık sistem fontuna düştü — ekrandaki Manrope ile
+ * çelişiyordu. Uygulama Manrope'u zaten node_modules'ta taşıyor
+ * (@expo-google-fonts/manrope); aynı dosyalar @font-face ile gömülüyor.
+ * Bulunamazsa Google Fonts'a düşer; o da gelmezse sistem fontu — betik
+ * yazı tipi yüzünden asla düşmez.
  */
-function oneCikan(img) {
-  return `<!doctype html><html><head><meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;600&display=swap">
-<style>
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+function fontBul(kok, ad) {
+  try {
+    for (const e of readdirSync(kok)) {
+      const y = join(kok, e);
+      if (statSync(y).isDirectory()) { const b = fontBul(y, ad); if (b) return b; }
+      else if (e === ad) return y;
+    }
+  } catch { /* klasör yok */ }
+  return null;
+}
+const FONT_KOK = join(KOK, 'node_modules', '@expo-google-fonts', 'manrope');
+const FONTLAR = [
+  { w: 400, dosya: 'Manrope_400Regular.ttf' },
+  { w: 600, dosya: 'Manrope_600SemiBold.ttf' },
+  { w: 800, dosya: 'Manrope_800ExtraBold.ttf' },
+].map((f) => ({ ...f, yol: fontBul(FONT_KOK, f.dosya) }));
+const fontCss = FONTLAR.filter((f) => f.yol).map((f) =>
+  `@font-face{font-family:Manrope;font-weight:${f.w};src:url(data:font/ttf;base64,${readFileSync(f.yol).toString('base64')}) format('truetype')}`
+).join('\n');
+const fontLink = fontCss ? '' : '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap">';
+console.log(fontCss ? `  yazı tipi: yerel Manrope (${FONTLAR.filter((f) => f.yol).length}/3 ağırlık)` : '  yazı tipi: yerel bulunamadı, Google Fonts deneniyor');
+
+function bas() {
+  return `<meta charset="utf-8">${fontLink}
+<style>${fontCss}
   *{margin:0;padding:0;box-sizing:border-box}
-  body{width:1024px;height:500px;background:${R.bg};overflow:hidden;position:relative;
-       display:flex;align-items:center;gap:40px;padding:0 0 0 64px;
-       font-family:'JetBrains Mono',ui-monospace,monospace}
-  .isik{position:absolute;right:16%;top:-46%;width:700px;height:700px;border-radius:50%;
-        background:radial-gradient(circle,${R.yesil}2e 0%,transparent 64%)}
-  .sol{position:relative;width:560px;flex:none}
-  .marka{font-size:25px;font-weight:700;color:${R.metin};letter-spacing:-.01em}
-  .marka span{color:${R.yesil}}
-  h1{margin-top:18px;font-size:44px;font-weight:700;color:${R.metin};
-     line-height:1.14;letter-spacing:-.025em}
-  h1 em{font-style:normal;color:${R.yesil}}
-  p{margin-top:15px;font-family:Manrope,system-ui,sans-serif;font-size:18px;
-    color:${R.soluk};line-height:1.5;max-width:500px}
-  .rozetler{margin-top:22px;display:flex;gap:9px}
-  .rozet{font-size:13px;color:${R.metin};border:1px solid ${R.cizgi};background:${R.yuzey};
-         border-radius:4px;padding:6px 12px;white-space:nowrap}
-  /* Ekran görüntüsü sağda, alttan taşacak şekilde — tam sığdırmak onu
-     okunamayacak kadar küçültürdü. */
-  .telefon{position:relative;flex:none;width:268px;margin-top:96px;
-           border:3px solid ${R.cizgi};border-bottom:none;
-           border-radius:22px 22px 0 0;overflow:hidden;background:${R.yuzey};
-           box-shadow:0 0 70px ${R.yesil}26}
+  :root{--bg:${R.bg};--yuzey:${R.yuzey};--cizgi:${R.cizgi};--metin:${R.metin};--soluk:${R.soluk};
+        --lacivert:${R.lacivert};--derin:${R.derin};--altin:${R.altin};--altinK:${R.altinKoyu}}
+  body{font-family:Manrope,system-ui,-apple-system,sans-serif;overflow:hidden;position:relative;background:var(--bg)}
+  .defter{position:absolute;inset:0;background-image:linear-gradient(var(--cizgi) 1px,transparent 1px);
+          background-size:100% 56px;opacity:.45}
+  .altinCizgi{height:4px;background:linear-gradient(90deg,var(--altin),transparent);border-radius:2px}
+</style>`;
+}
+
+/** Telefon kartı: lacivert blok + altın başlık + çerçeveli telefon + etiketler. */
+function kart({ genislik: G, yukseklik: Y, ust, vurgu, alt, etiketler, img, kes }) {
+  const px = (n) => Math.round(n * (G / 1080));
+  // Kırpılmış (kısa) ekranda telefon daha geniş: tam boy telefon kanvasın
+  // altından taşıp doluluk verir, kırpılmış olan taşmaz — aynı genişlikte
+  // kalsa altta büyük boş zemin kalırdı (ilk üretimde görüldü).
+  const telW = kes ? px(840) : px(760), blokH = px(600), telUst = px(430), cerceve = px(14);
+  // Ham ekran 1079×2397; telefon genişliğine ölçeklenmiş tam yüksekliği:
+  const ekranH = Math.round(telW * 2397 / 1079);
+  // Etiket konumu EKRAN PİKSELİNE göre — ekranın % kaçında olduğu, kanvasa
+  // göre değil. Böylece kırpılmış ve tam boy kartlarda aynı formül çalışır.
+  const etiketHtml = etiketler.map((e) => {
+    return `<div class="etiket ${e.taraf}" data-y="${e.y}">
+      <span class="nokta"></span><span class="ok"></span><span class="kutu">${e.metin}</span></div>`;
+  }).join('');
+  // KISA EKRAN: `kes` verilirse ekranın yalnız üst kısmı gösterilir ve
+  // telefon dört köşesi de yuvarlak, tam çerçeveli çizilir. Tam boy
+  // telefonda alt kenar kanvastan taşar; kırpılmışta taşacak şey yok, boş
+  // zemin görünürdü — o yüzden çerçeve kapatılıyor.
+  const gorunurH = kes ? Math.round(ekranH * kes) : null;
+  const koseAlt = kes ? px(64) : 0;
+  const ekranKoseAlt = kes ? px(50) : 0;
+  return `<!doctype html><html><head>${bas()}<style>
+  body{width:${G}px;height:${Y}px}
+  .blok{position:absolute;left:0;right:0;top:0;height:${blokH}px;
+        background:linear-gradient(160deg,var(--lacivert) 0%,var(--derin) 100%)}
+  .blok:after{content:'';position:absolute;right:-${px(140)}px;top:-${px(160)}px;width:${px(520)}px;height:${px(520)}px;
+        border-radius:50%;background:radial-gradient(circle,rgba(227,194,117,.28),transparent 62%)}
+  .metin{position:absolute;left:${px(72)}px;right:${px(72)}px;top:${px(88)}px;color:#fff}
+  .marka{display:flex;align-items:center;gap:${px(12)}px;font-weight:800;font-size:${px(26)}px;letter-spacing:.02em;opacity:.92}
+  .marka i{display:inline-block;width:${px(30)}px;height:${px(30)}px;border-radius:${px(7)}px;background:var(--altin)}
+  h1{margin-top:${px(26)}px;font-size:${px(84)}px;line-height:1.02;font-weight:800;letter-spacing:-.03em;text-wrap:balance}
+  h1 em{font-style:normal;color:var(--altin)}
+  p{margin-top:${px(18)}px;font-size:${px(29)}px;line-height:1.35;color:rgba(255,255,255,.84);max-width:${px(860)}px;text-wrap:balance}
+  .altinCizgi{width:${px(120)}px;margin-top:${px(20)}px}
+  .telefon{position:absolute;left:50%;transform:translateX(-50%);top:${telUst}px;width:${telW}px;
+           padding:${cerceve}px;background:var(--derin);
+           border-radius:${px(64)}px ${px(64)}px ${koseAlt}px ${koseAlt}px;
+           box-shadow:0 ${px(30)}px ${px(80)}px rgba(15,27,51,.35),0 0 0 ${px(2)}px rgba(227,194,117,.35)}
+  .telefon .ekran{border-radius:${px(50)}px ${px(50)}px ${ekranKoseAlt}px ${ekranKoseAlt}px;overflow:hidden;background:var(--yuzey);
+                  ${gorunurH ? `height:${gorunurH}px;` : ''}}
   .telefon img{display:block;width:100%}
+  .centik{position:absolute;left:50%;transform:translateX(-50%);top:${px(26)}px;width:${px(200)}px;height:${px(34)}px;
+          border-radius:${px(20)}px;background:var(--derin);z-index:2}
+  .etiket{position:absolute;display:flex;align-items:center;z-index:3}
+  .etiket.sag{right:${px(24)}px;flex-direction:row-reverse}
+  .etiket.sol{left:${px(24)}px}
+  .kutu{background:var(--yuzey);color:var(--metin);font-weight:600;font-size:${px(24)}px;
+        padding:${px(12)}px ${px(18)}px;border-radius:${px(10)}px;border:${px(2)}px solid var(--altin);
+        box-shadow:0 ${px(8)}px ${px(24)}px rgba(15,27,51,.18);white-space:nowrap}
+  .ok{width:${px(40)}px;height:${px(2)}px;background:var(--altinK)}
+  .nokta{width:${px(14)}px;height:${px(14)}px;border-radius:50%;background:var(--altin);
+         border:${px(3)}px solid var(--yuzey);box-shadow:0 0 0 ${px(2)}px var(--altinK)}
 </style></head><body>
-  <div class="isik"></div>
+  <div class="defter"></div><div class="blok"></div>
+  <div class="metin">
+    <div class="marka"><i></i>VEKİL PRO</div>
+    <h1>${ust} <em>${vurgu}</em></h1>
+    <div class="altinCizgi"></div>
+    <p>${alt}</p>
+  </div>
+  <div class="telefon"><div class="centik"></div><div class="ekran"><img src="${img}"></div></div>
+  ${etiketHtml}
+  <script>
+    // TELEFON METNİN ALTINA, ÖLÇEREK. Sabit ${telUst}px, iki satırlık
+    // başlıkta alt başlığın üstüne biniyordu (ilk üretimde 02 ve 03'te
+    // görüldü). Metin bloğunun gerçek altı ölçülüp telefon onun altına
+    // konuyor; lacivert blok da telefonu kapsayacak kadar uzatılıyor ki
+    // telefon her zaman bloktan "çıkıyor" görünsün. Etiketler de aynı
+    // ölçüme göre yerleşiyor — sunucu tarafında tahmin edilmiyor.
+    document.fonts.ready.then(() => {
+      const metin = document.querySelector('.metin').getBoundingClientRect();
+      const top = Math.max(${telUst}, Math.round(metin.bottom + ${px(36)}));
+      const tel = document.querySelector('.telefon');
+      tel.style.top = top + 'px';
+      document.querySelector('.blok').style.height = (top + ${px(170)}) + 'px';
+      // TAM BOY TELEFON KANVASTAN TAŞMALI. iOS kanvası (1290×2796) Play'den
+      // (1080×1920) orantılı olarak daha uzun; aynı genişlikteki telefon orada
+      // kanvasın ortasında düz kesilmiş bir alt kenarla bitiyordu (ilk üretimde
+      // görüldü). Genişlik, ekranın altı kanvasın altını geçecek şekilde
+      // burada hesaplanıyor; Play'de gereken 760'ın altında kaldığı için
+      // orada hiçbir şey değişmiyor. Kırpılmış kartlar tam çerçeveli, onlara
+      // dokunulmuyor.
+      let ekranH = ${ekranH};
+      if (!${kes ? 'true' : 'false'}) {
+        const gereken = Math.ceil((${Y} - top - ${cerceve} + ${px(40)}) * 1079 / 2397);
+        const w = Math.min(Math.max(${telW}, gereken), ${G} - 2 * ${px(56)});
+        tel.style.width = w + 'px';
+        ekranH = Math.round(w * 2397 / 1079);
+      }
+      document.querySelectorAll('.etiket').forEach((e) => {
+        e.style.top = (top + ${cerceve} + Math.round((Number(e.dataset.y) / 100) * ekranH)) + 'px';
+      });
+      document.body.dataset.hazir = '1';
+    });
+  </script>
+</body></html>`;
+}
+
+/** Play öne çıkan görsel — 1024×500, zorunlu tek boyut. İki telefon üst üste. */
+function oneCikan({ pano, ictihat, logo }) {
+  return `<!doctype html><html><head>${bas()}<style>
+  body{width:1024px;height:500px;background:linear-gradient(135deg,var(--lacivert) 0%,var(--derin) 70%)}
+  .defter{opacity:.08;background-image:linear-gradient(rgba(255,255,255,.9) 1px,transparent 1px)}
+  .isik{position:absolute;right:120px;top:-260px;width:640px;height:640px;border-radius:50%;
+        background:radial-gradient(circle,rgba(227,194,117,.32),transparent 62%)}
+  .sol{position:absolute;left:56px;top:50px;width:530px;color:#fff}
+  .marka{display:flex;align-items:center;gap:12px;font-weight:800;font-size:22px;letter-spacing:.02em}
+  .marka img{width:38px;height:38px;border-radius:9px}
+  h1{margin-top:20px;font-size:50px;line-height:1.04;font-weight:800;letter-spacing:-.03em}
+  h1 em{font-style:normal;color:var(--altin)}
+  .altinCizgi{width:96px;margin-top:14px}
+  p{margin-top:12px;font-size:17px;line-height:1.45;color:rgba(255,255,255,.84);max-width:480px}
+  .sayilar{margin-top:18px;display:flex;gap:9px}
+  .sayi{background:rgba(255,255,255,.08);border:1px solid rgba(227,194,117,.5);border-radius:8px;padding:8px 13px}
+  .sayi b{display:block;font-size:19px;color:var(--altin);letter-spacing:-.01em;white-space:nowrap}
+  .sayi span{display:block;font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+  .tel{position:absolute;padding:9px;background:var(--derin);border-radius:34px 34px 0 0;
+       box-shadow:0 20px 50px rgba(0,0,0,.45),0 0 0 1.5px rgba(227,194,117,.45)}
+  .tel .ekran{border-radius:26px 26px 0 0;overflow:hidden;background:#fff}
+  .tel img{display:block;width:100%}
+  .arka{right:64px;top:120px;width:230px;transform:rotate(6deg);opacity:.92}
+  .on{right:210px;top:74px;width:250px;transform:rotate(-4deg)}
+</style></head><body>
+  <div class="defter"></div><div class="isik"></div>
   <div class="sol">
-    <div class="marka">⚖ Vekil <span>Pro</span></div>
-    <h1>Avukatın dosyası,<br>takvimi ve <em>içtihadı</em></h1>
-    <p>Duruşma ve süre takibi, müvekkil yönetimi, vekâlet ücreti hesabı
-       ve 66.000+ Yargıtay-Danıştay kararında arama.</p>
-    <div class="rozetler">
-      <div class="rozet">Duruşma &amp; süre</div>
-      <div class="rozet">İçtihat araması</div>
-      <div class="rozet">Vekâlet ücreti</div>
+    <div class="marka"><img src="${logo}">VEKİL PRO</div>
+    <h1>Uydurmayan<br><em>yapay zekâ</em></h1>
+    <div class="altinCizgi"></div>
+    <p>Her karar künyesi denetlenir. Duruşma çıkışında süre otomatik. UYAP dosyasından künye tek dokunuşla.</p>
+    <div class="sayilar">
+      <div class="sayi"><b>66.000+</b><span>karar</span></div>
+      <div class="sayi"><b>104.000+</b><span>madde atfı</span></div>
+      <div class="sayi"><b>399 ₺ / ay</b><span>tek avukat fiyatı</span></div>
     </div>
   </div>
-  <div class="telefon"><img src="${img}"></div>
+  <div class="tel arka"><div class="ekran"><img src="${ictihat}"></div></div>
+  <div class="tel on"><div class="ekran"><img src="${pano}"></div></div>
 </body></html>`;
 }
 
 const BOYUTLAR = [
-  { ad: 'play', genislik: 1080, yukseklik: 1920, telefonGenislik: 860 },
-  { ad: 'ios',  genislik: 1290, yukseklik: 2796, telefonGenislik: 1010 },
+  { ad: 'play', genislik: 1080, yukseklik: 1920 },
+  { ad: 'ios',  genislik: 1290, yukseklik: 2796 },
 ];
 
-// TARAYICI YOLU ELLE VERİLİYOR — magaza-ekranlari.mjs ile aynı sebep.
-// playwright-core kendi indirdiği tarayıcıyı arıyor; bu ortamda tarayıcı
-// /opt/pw-browsers altında hazır kurulu ve `npx playwright install` YASAK
-// (ortam notu). Yol verilmezse betik "Executable doesn't exist" ile düşer.
+// Tarayıcı yolu elle: bu ortamda /opt/pw-browsers hazır, `playwright install` yasak.
 const tarayici = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: ['--no-sandbox'],
@@ -174,31 +329,27 @@ try {
   for (const b of BOYUTLAR) {
     const klasor = join(CIKTI, b.ad);
     if (!existsSync(klasor)) await mkdir(klasor, { recursive: true });
-    const sayfaNesnesi = await tarayici.newPage({
-      viewport: { width: b.genislik, height: b.yukseklik },
-      deviceScaleFactor: 1,
-    });
+    const sayfa = await tarayici.newPage({ viewport: { width: b.genislik, height: b.yukseklik }, deviceScaleFactor: 1 });
     let i = 0;
     for (const k of KARTLAR) {
       const hamYol = join(HAM, k.dosya);
       if (!existsSync(hamYol)) { console.log(`  ! atlandı (ham yok): ${k.dosya}`); continue; }
       i += 1;
-      const html = sayfa({ ...b, ust: k.ust, alt: k.alt, img: await dataUri(hamYol) });
-      await sayfaNesnesi.setContent(html, { waitUntil: 'load' });
-      // Yazı tipi ağdan geliyorsa yerleşmesini bekle; gelmezse zaman aşımı
-      // görseli düşürmesin diye yutuluyor.
-      await sayfaNesnesi.evaluate(() => document.fonts.ready).catch(() => {});
-      await sayfaNesnesi.waitForTimeout(350);
+      await sayfa.setContent(kart({ ...b, ...k, img: await dataUri(hamYol) }), { waitUntil: 'load' });
+      await sayfa.waitForSelector('body[data-hazir="1"]', { timeout: 8000 }).catch(() => {});
+      await sayfa.waitForTimeout(250);
       const ad = `${String(i).padStart(2, '0')}-${k.dosya.replace(/^\d+-/, '')}`;
-      await sayfaNesnesi.screenshot({ path: join(klasor, ad) });
+      await sayfa.screenshot({ path: join(klasor, ad) });
       console.log(`  ✓ ${b.ad}/${ad}`);
     }
-    await sayfaNesnesi.close();
+    await sayfa.close();
   }
-
-  // Öne çıkan görsel — yalnız Play istiyor.
   const fp = await tarayici.newPage({ viewport: { width: 1024, height: 500 }, deviceScaleFactor: 1 });
-  await fp.setContent(oneCikan(await dataUri(join(HAM, '01-pano.png'))), { waitUntil: 'load' });
+  await fp.setContent(oneCikan({
+    pano: await dataUri(join(HAM, '01-pano.png')),
+    ictihat: await dataUri(join(HAM, '06-ictihat.png')),
+    logo: await dataUri(join(KOK, 'docs', 'amblem.svg'), 'image/svg+xml'),
+  }), { waitUntil: 'load' });
   await fp.evaluate(() => document.fonts.ready).catch(() => {});
   await fp.waitForTimeout(350);
   await fp.screenshot({ path: join(CIKTI, 'play', 'feature-1024x500.png') });
