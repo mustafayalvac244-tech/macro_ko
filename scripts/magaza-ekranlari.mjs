@@ -83,13 +83,25 @@ const davalar = [
   { id: 'd4', owner_id: KULLANICI_ID, client_id: 'c1', title: 'Korkmaz — Fazla Mesai Alacağı', case_number: '2026/512', court_name: 'İstanbul 4. İş Mahkemesi', court_category: 'hukuk', case_type: 'İş Hukuku', status: 'pending', priority: 'low', instance_stage: 'ilk_derece', case_stage: 'dilekceler', opened_date: '2026-06-18', opposing_party: 'Anadolu Lojistik Ltd. Şti.', description: null, fee_amount: 22000, created_at: '2026-06-18T09:00:00Z', updated_at: gunEkle(-9), client: { id: 'c1', full_name: 'Mehmet Korkmaz', company: null } },
 ];
 
+// BUGÜN İÇİN EN AZ BİR İŞ OLMALI — 16.09.2026'da mağaza görselinde yakalandı.
+// Panonun "BUGÜN" bölümü boşken "Bugün için planlanmış bir işlem yok." yazıyor
+// ve bu, mağaza sayfasında ürünü ÇALIŞMIYOR gösteriyor. Sahte veri zaten
+// kurgu; kurgunun dolu olması gerekiyor.
+const bugunSaat = (saat, dakika = 0) => {
+  const d = new Date(bugun);
+  d.setHours(saat, dakika, 0, 0);
+  return d.toISOString();
+};
+
 const durusmalar = [
+  { id: 'h0', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Duruşma — tanık beyanları', type: 'hearing', scheduled_at: bugunSaat(14, 30), location: 'İstanbul 9. İş Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-09-01T09:00:00Z', case: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
   { id: 'h1', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Tanık dinlenmesi', type: 'hearing', scheduled_at: gunEkle(2), location: 'İstanbul 9. İş Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-01T09:00:00Z', case: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
   { id: 'h2', owner_id: KULLANICI_ID, case_id: 'd2', title: 'Ön inceleme duruşması', type: 'hearing', scheduled_at: gunEkle(6), location: 'Kadıköy 3. Aile Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-04T09:00:00Z', case: { id: 'd2', title: 'Arslan — Anlaşmalı Boşanma', case_number: '2026/1177' } },
   { id: 'h3', owner_id: KULLANICI_ID, case_id: 'd3', title: 'Bilirkişi raporu duruşması', type: 'hearing', scheduled_at: gunEkle(13), location: 'İstanbul BAM 14. HD', notes: null, reminder_minutes_before: 2880, is_completed: false, created_at: '2026-08-09T09:00:00Z', case: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
 ];
 
 const sureler = [
+  { id: 's0', owner_id: KULLANICI_ID, case_id: 'd2', title: 'Cevap dilekçesi son gün', due_at: bugunSaat(17, 0), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-02T09:00:00Z', case: { id: 'd2', title: 'Arslan — Anlaşmalı Boşanma', case_number: '2026/1177' } },
   { id: 's1', owner_id: KULLANICI_ID, case_id: 'd3', title: 'İstinaf dilekçesine cevap', due_at: gunEkle(3), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-01T09:00:00Z', case: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
   { id: 's2', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Bilirkişi raporuna itiraz', due_at: gunEkle(8), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-03T09:00:00Z', case: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
 ];
@@ -97,6 +109,12 @@ const sureler = [
 const finans = [
   { id: 'f1', owner_id: KULLANICI_ID, kind: 'income', category: 'fee', title: 'Doruk İnşaat — 2. taksit', amount: 60000, entry_date: gunEkle(-6).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: 20, withholding_rate: 20, vat_amount: 12000, withholding_amount: 12000, net_total: 60000, receipt_no: 'A-2026-014', receipt_issued: true, created_at: gunEkle(-6) },
   { id: 'f2', owner_id: KULLANICI_ID, kind: 'income', category: 'fee', title: 'Korkmaz — peşinat', amount: 20000, entry_date: gunEkle(-14).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: 20, withholding_rate: 20, vat_amount: 4000, withholding_amount: 4000, net_total: 20000, receipt_no: 'A-2026-011', receipt_issued: true, created_at: gunEkle(-14) },
+  // GEÇEN AY KAYITLARI — 16.09.2026'da eklendi. Öncesinde pano üç kutuda birden
+  // "%0 geçen aya göre" yazıyordu: kıyaslanacak önceki ay verisi yoktu. Mağaza
+  // görselinde üç sıfır yan yana, çalışmayan bir özellik gibi duruyordu.
+  { id: 'f4', owner_id: KULLANICI_ID, kind: 'income', category: 'fee', title: 'Arslan — vekâlet ücreti', amount: 45000, entry_date: gunEkle(-38).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: 20, withholding_rate: 20, vat_amount: 9000, withholding_amount: 9000, net_total: 45000, receipt_no: 'A-2026-008', receipt_issued: true, created_at: gunEkle(-38) },
+  { id: 'f5', owner_id: KULLANICI_ID, kind: 'expense', category: 'office', title: 'Büro kirası', amount: 28000, entry_date: gunEkle(-40).slice(0, 10), is_recurring: true, recurring_until: null, note: null, vat_rate: null, withholding_rate: null, vat_amount: null, withholding_amount: null, net_total: 28000, receipt_no: null, receipt_issued: false, created_at: gunEkle(-40) },
+  { id: 'f6', owner_id: KULLANICI_ID, kind: 'expense', category: 'other', title: 'Bilirkişi ücreti', amount: 6500, entry_date: gunEkle(-44).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: null, withholding_rate: null, vat_amount: null, withholding_amount: null, net_total: 6500, receipt_no: null, receipt_issued: false, created_at: gunEkle(-44) },
   { id: 'f3', owner_id: KULLANICI_ID, kind: 'expense', category: 'office', title: 'Büro kirası', amount: 28000, entry_date: gunEkle(-10).slice(0, 10), is_recurring: true, recurring_until: null, note: null, vat_rate: null, withholding_rate: null, vat_amount: null, withholding_amount: null, net_total: 28000, receipt_no: null, receipt_issued: false, created_at: gunEkle(-10) },
 ];
 
@@ -287,6 +305,26 @@ async function main() {
     // PROFİL RPC'DEN GELİYOR — tabloyu taklit etmek yetmez.
     if (url.pathname.endsWith('/rest/v1/rpc/my_profile')) return json(profil);
     if (url.pathname.includes('/rest/v1/rpc/')) return json([]);
+
+    // İÇTİHAT UÇ İŞLEVİ — 16.09.2026'da eklendi.
+    // "Davana Emsal" kartı ve içtihat ekranı `functions.invoke('ictihat')`
+    // çağırıyor; bu yol taklit edilmediği için kart mağaza görselinde
+    // "Bu konuda emsal karar bulunamadı" yazıyordu. Bir ARAMA ürününün
+    // vitrininde boş sonuç, ürünün en kötü tanıtımıdır.
+    // Buradaki kararlar KURGUDUR — gerçek karar metni mağazaya konulamaz.
+    if (url.pathname.includes('/functions/v1/ictihat')) {
+      return json({
+        hits: [
+          { id: 'y1', daire: '9. Hukuk Dairesi', esasNo: '2024/8812', kararNo: '2025/1043', kararTarihi: '2025-01-22', durum: 'Kesinleşti', src: 'yargitay', outcome: 'Bozma', matched: true,
+            snippet: 'Kıdem tazminatına esas ücretin belirlenmesinde, işçinin son ücreti ile birlikte süreklilik arz eden ikramiye ve sosyal yardımların da dikkate alınması gerekir.' },
+          { id: 'y2', daire: '22. Hukuk Dairesi', esasNo: '2024/6190', kararNo: '2024/14785', kararTarihi: '2024-11-08', durum: 'Kesinleşti', src: 'yargitay', outcome: 'Onama', matched: true,
+            snippet: 'İhbar önelinin kullandırılmadığı hâllerde, ihbar tazminatının brüt ücret üzerinden hesaplanması ve fesih tarihindeki ücretin esas alınması yerindedir.' },
+          { id: 'y3', daire: '9. Hukuk Dairesi', esasNo: '2023/15402', kararNo: '2024/3311', kararTarihi: '2024-03-14', durum: 'Kesinleşti', src: 'emsal', outcome: 'Bozma', matched: true,
+            snippet: 'İşyeri devri hâlinde devralan işveren, devir tarihinden önce doğmuş işçilik alacaklarından devreden ile birlikte müteselsilen sorumludur.' },
+        ],
+        total: 3,
+      });
+    }
 
     if (url.pathname.includes('/auth/v1/')) {
       return json({
