@@ -145,7 +145,17 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
   // collapsible groups so the panel stays scannable.
   const coreItems: NavItem[] = [
     { icon: 'home-outline', label: t('tab.dashboard'), path: '/(app)' },
-    { icon: 'search-outline', label: t('search.title'), path: '/search' },
+    // "Genel Arama" 16.09.2026'da KALDIRILDI — ürün sahibi kararı.
+    // Panodaki arama kutusu (AramaVeYeni) da tam olarak buraya, `/search`
+    // ekranına gidiyordu; menüde ikinci bir giriş aynı yere iki kapı açıyor
+    // ve kenar çubuğunu uzatmaktan başka bir şey yapmıyordu.
+    // EKRANIN KENDİSİ DURUYOR: /search rotası ve app/search.tsx kaldırılmadı,
+    // yalnız menü girişi gitti. Pano kutusundan, ctrl+K ile ve doğrudan
+    // bağlantıyla hâlâ açılıyor.
+    // BİLİNEN BEDEL: pano dışındaki bir ekrandayken aramaya gitmek artık iki
+    // tık (önce Panel, sonra kutu). Tek tıka indirmenin yolu ctrl+K'yı
+    // uygulama geneline taşımak; bugün yalnız pano açıkken çalışıyor
+    // (AramaVeYeni monte olduğunda kuruluyor).
     { icon: 'briefcase-outline', label: t('cases.title'), path: '/(app)/cases' },
     { icon: 'people-outline', label: t('clients.title'), path: '/(app)/clients' },
     { icon: 'calendar-outline', label: t('cal.title'), path: '/(app)/calendar' },
