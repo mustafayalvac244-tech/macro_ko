@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as Updates from 'expo-updates';
+import { kuresellHataYakalayiciyiKur } from '@/lib/hataKaydi';
 import { useFonts } from 'expo-font';
 import {
   Manrope_400Regular,
@@ -97,6 +98,12 @@ export default function RootLayout() {
     hydrateSayac().catch(() => {});
     registerForNotificationsAsync().catch(() => {});
     // Anahtar yoksa (RevenueCat henüz kurulmadıysa) veya web'deyse sessizce
+    // KÜRESEL HATA YAKALAYICI — EN BAŞTA. ErrorBoundary yalnız SARDIĞI React
+    // ağacındaki render hatalarını görüyor; modül seviyesinde ve effect içinde
+    // atılan hatalar ona hiç ulaşmıyor ve tam olarak "açılışta çöküyor"
+    // tipindeki en kötü çökmeler oradan geliyor (bkz. src/lib/hataKaydi.ts).
+    kuresellHataYakalayiciyiKur();
+
     // atlar — bkz. src/lib/purchases.ts.
     configurePurchases();
 
