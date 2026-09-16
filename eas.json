@@ -42,6 +42,7 @@
       "ios": {
         "appleTeamId": "5NNRTB2436",
         "ascAppId": "6812859016",
+        "ascApiKeyId": "954DS7AUM3",
         "ascApiKeyPath": "./asc-api-key.p8"
       },
       "android": {

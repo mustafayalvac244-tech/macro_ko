@@ -201,8 +201,22 @@ Key ID    : yeni ürettiğin anahtarın yanında
 |---|---|---|
 | `appleTeamId` | `5NNRTB2436` | B1 ekranındaki "App ID Prefix" satırı |
 | `ascAppId` | `6812859016` | B2 kaydının Apple ID'si |
+| `ascApiKeyId` | `954DS7AUM3` | B3'te üretilen `vekilpro-ci` anahtarı |
 
 > Eski `27V4XBQFG4` / `6789656277` başka birinin ekibine aitti, silinmişti.
+
+### `954DS7AUM3` anahtarı sohbete gönderildi — ürün sahibi kararı
+
+16.09.2026: `.p8` dosyası, "bana yapıştırma" uyarısına rağmen sohbete
+yüklendi. Oturumdaki kopya silindi; depoda izi yok (`git ls-files` temiz,
+`.gitignore` zaten `*.p8` kapatıyor). Ama anahtar, amaçlanan yol dışında bir
+yerden — konuşma kaydından — geçti.
+
+İptal edip yenisini üretmek önerildi (maliyeti ~2 dk, Apple 50 aktif
+anahtara izin veriyor). **Ürün sahibi kararı: "eskiden devam."** Yani bu
+anahtar bilinçli olarak kullanımda tutuluyor. Karar tekrar gündeme
+getirilmez; ama Apple hesabında beklenmedik bir yükleme/değişiklik
+görülürse **ilk bakılacak yer burasıdır.**
 
 ### Sürüm uyuşmazlığı — kapatılacak
 

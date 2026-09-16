@@ -105,12 +105,25 @@ jobs:
           # ve eski ekibe ait dört değer eas.json'dan SİLİNDİ. Gönderim, ascAppId
           # olmadan --non-interactive koşamaz; bunu burada söylemezsek hata EAS'ın
           # içinde çok daha geç ve anlaşılmaz biçimde çıkar.
+          # ascApiKeyPath TEK BAŞINA YETMEZ. `eas submit --non-interactive`,
+          # anahtar dosyası verildiğinde yanında ascApiKeyId ve
+          # ascApiKeyIssuerId de ister. 16.09.2026'da ascAppId geldi ama
+          # diğer ikisi hâlâ boştu; eski koruma yalnız ascAppId'ye baktığı
+          # için "tamam" derdi ve hata ancak derleme bittikten SONRA, EAS'ın
+          # içinde çıkardı — yani ~20-40 dakika ve bir derleme kotası sonra.
           if [ "${{ inputs.is }}" != "derle" ]; then
-            if ! node -e "process.exit(require('./eas.json').submit.production.ios.ascAppId?0:1)"; then
-              echo "::error::eas.json'da ascAppId yok — gönderim yapılamaz."
-              echo "::error::Yeni App Store Connect kaydını (com.vekilpro.app) açın, sonra"
-              echo "::error::App Information → Apple ID değerini eas.json'a ascAppId olarak yazın."
-              echo "::error::Ayrıntı ve gereken diğer üç kimlik: IOS.md bölüm 0."
+            eksik="$(node -e "
+              const i = require('./eas.json').submit.production.ios || {};
+              const g = ['ascAppId','ascApiKeyId','ascApiKeyIssuerId'].filter(k => !i[k]);
+              process.stdout.write(g.join(' '));
+            ")"
+            if [ -n "$eksik" ]; then
+              echo "::error::eas.json > submit.production.ios içinde eksik alan(lar): $eksik"
+              echo "::error::ascAppId            = App Store Connect → App Information → Apple ID"
+              echo "::error::ascApiKeyId         = Users and Access → Integrations → anahtarın Key ID'si"
+              echo "::error::ascApiKeyIssuerId   = aynı sayfanın üstündeki Issuer ID"
+              echo "::error::Bu üçü GİZLİ DEĞİL; gizli olan yalnız .p8 dosyasıdır."
+              echo "::error::Ayrıntı: YAYIN-SIRASI.md bölüm B4."
               exit 1
             fi
           fi
