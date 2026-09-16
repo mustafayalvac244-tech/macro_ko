@@ -186,22 +186,23 @@ Değer : .p8 dosyasının TAMAMI (BEGIN/END satırları dâhil)
 
 > **Bana yapıştırma.** Yayımlama yetkisi taşıyor.
 
-## B4 · Bana iki bilgiyi ver · **SEN → BEN**
+## B4 · Kimlikler · **TAMAM (16.09.2026)**
 
-Bunlar gizli **değil**, `eas.json`'a yazılacak (eskileri silindi):
+Dördü de geldi ve `eas.json`'a yazıldı. Gönderim koruması artık geçiyor
+(`node` ile doğrulandı, çıktı: "geçer").
 
-```
-Issuer ID : App Store Connect API sayfasının üstünde
-Key ID    : yeni ürettiğin anahtarın yanında
-```
-
-**Gelenler (16.09.2026, `eas.json > submit.production.ios`'a yazıldı):**
+**`eas.json > submit.production.ios`:**
 
 | alan | değer | nereden |
 |---|---|---|
 | `appleTeamId` | `5NNRTB2436` | B1 ekranındaki "App ID Prefix" satırı |
 | `ascAppId` | `6812859016` | B2 kaydının Apple ID'si |
 | `ascApiKeyId` | `954DS7AUM3` | B3'te üretilen `vekilpro-ci` anahtarı |
+| `ascApiKeyIssuerId` | `98bb20ac-…-99b4d7b88d20` | API sayfasının üstü |
+
+GitHub secret `ASC_API_KEY_P8` ürün sahibi tarafından eklendi (16.09.2026).
+**Doğrulanmadı** — GitHub secret'ın varlığını dışarıdan okutmuyor; ilk
+doğrulama iş akışının "Secret kontrolü" adımında olacak.
 
 > Eski `27V4XBQFG4` / `6789656277` başka birinin ekibine aitti, silinmişti.
 

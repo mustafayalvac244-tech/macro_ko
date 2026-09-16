@@ -43,6 +43,7 @@
         "appleTeamId": "5NNRTB2436",
         "ascAppId": "6812859016",
         "ascApiKeyId": "954DS7AUM3",
+        "ascApiKeyIssuerId": "98bb20ac-2c94-4868-a834-99b4d7b88d20",
         "ascApiKeyPath": "./asc-api-key.p8"
       },
       "android": {
