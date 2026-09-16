@@ -27,20 +27,22 @@
 // vererek yapılıyor — rakibi anarak değil.
 //
 // KURAL: EKRAN GÖRÜNTÜSÜ HER ZAMAN GERÇEK. Etiket ve başlık ETRAFINA konur,
-// ekranın İÇİNE dokunulmaz. Sayılar ölçülmüş (16.09.2026): 66.870 karar,
-// 104.679 madde atfı. "66.000+" / "104.000+" bilerek yuvarlak ve düşük.
+// ekranın İÇİNE dokunulmaz. İki mağaza da bunu şart koşuyor.
 //
-// FİYAT YALNIZ PLAY ÖNE ÇIKAN GÖRSELİNDE. Apple, vitrindeki fiyatın mağaza
-// fiyatıyla birebir tutmasını ister ve bölgeye göre değişebilir; iOS setine
-// fiyat konmadı. MONTHLY_PRICE_TRY değişirse burası da yeniden üretilmeli.
+// SAYI VE FİYAT YOK — ürün sahibi kararı (16.09.2026): "şu sikko verileri
+// yazma; 399/ay, 66.000 karar… adamlar yalan malan yazıyor." Önceki sürümde
+// öne çıkan görselde üç sayı çipi vardı (karar sayısı, madde atfı, aylık
+// fiyat). Hepsi çıkarıldı; yerine üç ÖZELLİK çipi kondu. Gerekçe ikili:
+// (a) rakamla yarışan vitrin, abartan rakiplerle aynı rafa koyar;
+// (b) rakam eskir — korpus saatte büyüyor, fiyat değişebilir — ve eskiyen
+// rakam yalan olur. Özellik eskimez.
 //
 // NE ÜRETİR
 //   play/  1080×1920 ×N + feature-1024x500.png (Play "öne çıkan", ZORUNLU)
 //   ios/   1290×2796 ×N (App Store 6.7", zorunlu boyut)
 //
-// PALET: ürünün Klasik (light) teması — ürün sahibi kararı "orijinal eski
-// teması güzel, reklamda bizim uygulama temasını kullan." Ekranlar da aynı
-// temayla çekiliyor (VP_TEMA=light).
+// PALET: ürünün Gece (dark) teması — ürün sahibi ekran görüntüsüyle seçti.
+// Ekranlar da aynı temayla çekiliyor (VP_TEMA=dark).
 
 import { chromium } from 'playwright-core';
 import { readFile, mkdir } from 'node:fs/promises';
@@ -51,11 +53,13 @@ const KOK = new URL('..', import.meta.url).pathname;
 const HAM = join(KOK, 'magaza-gorselleri');
 const CIKTI = join(KOK, 'magaza-pazarlama');
 
-// src/theme/palettes.ts > light ile birebir; altın ve derin lacivert
-// logodan (docs/amblem.svg): #E3C275 kefe, #0B1F45 gradyan ucu.
+// src/theme/palettes.ts > dark (Gece) ile birebir. Ürün sahibi 16.09.2026'da
+// Gece temasının ekran görüntüsünü gönderip "bunu kullan" dedi: lacivert
+// zemin, altın vurgu, Manrope. Ekranlar da aynı temayla çekiliyor
+// (VP_TEMA=dark). `lacivert`/`derin` blok gradyanı, `altin` logodaki kefe.
 const R = {
-  bg: '#EEF2F8', yuzey: '#FFFFFF', cizgi: '#CFD9EA', metin: '#0F1B33', soluk: '#44506B',
-  lacivert: '#173C7E', derin: '#0B1F45', altin: '#E3C275', altinKoyu: '#B8944A',
+  bg: '#0E1A2E', yuzey: '#13203A', cizgi: '#1C2D48', metin: '#ECF2FC', soluk: '#A5B4CD',
+  lacivert: '#13203A', derin: '#070E1B', altin: '#E3C275', altinKoyu: '#B8944A',
 };
 
 /**
@@ -169,7 +173,7 @@ function bas() {
         --lacivert:${R.lacivert};--derin:${R.derin};--altin:${R.altin};--altinK:${R.altinKoyu}}
   body{font-family:Manrope,system-ui,-apple-system,sans-serif;overflow:hidden;position:relative;background:var(--bg)}
   .defter{position:absolute;inset:0;background-image:linear-gradient(var(--cizgi) 1px,transparent 1px);
-          background-size:100% 56px;opacity:.45}
+          background-size:100% 56px;opacity:.7}
   .altinCizgi{height:4px;background:linear-gradient(90deg,var(--altin),transparent);border-radius:2px}
 </style>`;
 }
@@ -212,7 +216,7 @@ function kart({ genislik: G, yukseklik: Y, ust, vurgu, alt, etiketler, img, kes 
   .telefon{position:absolute;left:50%;transform:translateX(-50%);top:${telUst}px;width:${telW}px;
            padding:${cerceve}px;background:var(--derin);
            border-radius:${px(64)}px ${px(64)}px ${koseAlt}px ${koseAlt}px;
-           box-shadow:0 ${px(30)}px ${px(80)}px rgba(15,27,51,.35),0 0 0 ${px(2)}px rgba(227,194,117,.35)}
+           box-shadow:0 ${px(30)}px ${px(80)}px rgba(0,0,0,.55),0 0 0 ${px(2)}px rgba(227,194,117,.35)}
   .telefon .ekran{border-radius:${px(50)}px ${px(50)}px ${ekranKoseAlt}px ${ekranKoseAlt}px;overflow:hidden;background:var(--yuzey);
                   ${gorunurH ? `height:${gorunurH}px;` : ''}}
   .telefon img{display:block;width:100%}
@@ -223,7 +227,7 @@ function kart({ genislik: G, yukseklik: Y, ust, vurgu, alt, etiketler, img, kes 
   .etiket.sol{left:${px(24)}px}
   .kutu{background:var(--yuzey);color:var(--metin);font-weight:600;font-size:${px(24)}px;
         padding:${px(12)}px ${px(18)}px;border-radius:${px(10)}px;border:${px(2)}px solid var(--altin);
-        box-shadow:0 ${px(8)}px ${px(24)}px rgba(15,27,51,.18);white-space:nowrap}
+        box-shadow:0 ${px(8)}px ${px(24)}px rgba(0,0,0,.45);white-space:nowrap}
   .ok{width:${px(40)}px;height:${px(2)}px;background:var(--altinK)}
   .nokta{width:${px(14)}px;height:${px(14)}px;border-radius:50%;background:var(--altin);
          border:${px(3)}px solid var(--yuzey);box-shadow:0 0 0 ${px(2)}px var(--altinK)}
@@ -280,17 +284,16 @@ function oneCikan({ pano, ictihat, logo }) {
   .defter{opacity:.08;background-image:linear-gradient(rgba(255,255,255,.9) 1px,transparent 1px)}
   .isik{position:absolute;right:120px;top:-260px;width:640px;height:640px;border-radius:50%;
         background:radial-gradient(circle,rgba(227,194,117,.32),transparent 62%)}
-  .sol{position:absolute;left:56px;top:50px;width:530px;color:#fff}
+  .sol{position:absolute;left:56px;top:50px;width:470px;color:#fff}
   .marka{display:flex;align-items:center;gap:12px;font-weight:800;font-size:22px;letter-spacing:.02em}
   .marka img{width:38px;height:38px;border-radius:9px}
   h1{margin-top:20px;font-size:50px;line-height:1.04;font-weight:800;letter-spacing:-.03em}
   h1 em{font-style:normal;color:var(--altin)}
   .altinCizgi{width:96px;margin-top:14px}
   p{margin-top:12px;font-size:17px;line-height:1.45;color:rgba(255,255,255,.84);max-width:480px}
-  .sayilar{margin-top:18px;display:flex;gap:9px}
-  .sayi{background:rgba(255,255,255,.08);border:1px solid rgba(227,194,117,.5);border-radius:8px;padding:8px 13px}
-  .sayi b{display:block;font-size:19px;color:var(--altin);letter-spacing:-.01em;white-space:nowrap}
-  .sayi span{display:block;font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+  .ozellikler{margin-top:20px;display:flex;gap:9px;flex-wrap:wrap}
+  .ozellik{background:rgba(255,255,255,.06);border:1px solid rgba(227,194,117,.55);border-radius:8px;
+           padding:9px 14px;font-size:14px;font-weight:600;color:var(--metin);white-space:nowrap}
   .tel{position:absolute;padding:9px;background:var(--derin);border-radius:34px 34px 0 0;
        box-shadow:0 20px 50px rgba(0,0,0,.45),0 0 0 1.5px rgba(227,194,117,.45)}
   .tel .ekran{border-radius:26px 26px 0 0;overflow:hidden;background:#fff}
@@ -304,10 +307,10 @@ function oneCikan({ pano, ictihat, logo }) {
     <h1>Uydurmayan<br><em>yapay zekâ</em></h1>
     <div class="altinCizgi"></div>
     <p>Her karar künyesi denetlenir. Duruşma çıkışında süre otomatik. UYAP dosyasından künye tek dokunuşla.</p>
-    <div class="sayilar">
-      <div class="sayi"><b>66.000+</b><span>karar</span></div>
-      <div class="sayi"><b>104.000+</b><span>madde atfı</span></div>
-      <div class="sayi"><b>399 ₺ / ay</b><span>tek avukat fiyatı</span></div>
+    <div class="ozellikler">
+      <div class="ozellik">Her künye denetlenir</div>
+      <div class="ozellik">Duruşma çıkışında süre</div>
+      <div class="ozellik">UYAP'tan dosya aç</div>
     </div>
   </div>
   <div class="tel arka"><div class="ekran"><img src="${ictihat}"></div></div>
