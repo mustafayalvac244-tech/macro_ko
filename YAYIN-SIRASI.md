@@ -240,15 +240,73 @@ takmıyor, **App Store incelemesi takıyor**. Bkz. B7.
 Gereksiz capability işaretlemek zararsız değildir: bazıları (Push, Sign in
 with Apple) profil/sertifika üretimini ve inceleme sorularını değiştirir.
 
-## B5 · İmzalama kimliklerini oluştur · **SEN** (bilgisayarında, bir kez)
+## B5 · İmzalama kimliklerini oluştur · **SEN** (Windows, bir kez)
 
-```
-npx eas-cli credentials --platform ios
+### Neden atlanamıyor — ÖLÇÜLDÜ (16.09.2026, eas-cli 24.6.0 kaynağı)
+
+Ürün sahibi haklı olarak sordu: "bunu nereye yazacağım" — yani yerel kurulum
+gerçekten gerekli mi? Tahmin etmek yerine kaynak okundu.
+
+`build/credentials/ios/actions/SetUpDistributionCertificate.js:41`
+
+```js
+async runNonInteractiveAsync(_ctx, currentCertificate) {
+    log.warn('Distribution Certificate is not validated for non-interactive builds.');
+    if (!currentCertificate) {
+        throw new MissingCredentialsNonInteractiveError();
+    }
 ```
 
-> **Bu adım atlanamaz ve CI yapamaz.** iOS dağıtım sertifikası ilk kez
-> üretilirken Apple hesabına giriş ister; GitHub Actions etkileşim yapamaz.
-> Atlanırsa ilk koşu kimlik hatasıyla düşer — arıza değil, sıranın gereği.
+İki parça farklı davranıyor:
+
+| kimlik | CI'da üretilebilir mi |
+|---|---|
+| **Provisioning profile** | **Evet** — `EXPO_ASC_API_KEY_PATH` / `EXPO_ASC_KEY_ID` / `EXPO_ASC_ISSUER_ID` verilirse (kaynaktaki hata metni bunu açıkça söylüyor) |
+| **Dağıtım sertifikası** | **Hayır** — yoksa doğrudan `MissingCredentialsNonInteractiveError` |
+
+Ayrıca `eas credentials` komutunun **hiç** `--non-interactive` bayrağı yok
+(`--help` çıktısı: yalnız `-p/--platform`). Expo dokümanı da aynı yere
+çıkıyor: *"a successful build from your local machine ... ensures build
+credentials are created, including ... iOS distribution certs and
+provisioning profiles."*
+
+Expo web sitesinden sertifika üretme yolu da **yok** — sitede yalnız push
+anahtarı indiriliyor (`app-signing/app-credentials` sayfası okundu).
+
+### Windows'ta ne yapılacak
+
+Depo klonlu ve Node.js kurulu değilse sıra şu:
+
+1. **Node.js LTS kur:** https://nodejs.org → "LTS" düğmesi → indir, kur
+   (varsayılan seçeneklerle İleri-İleri).
+2. **Projeyi indir:** https://github.com/mustafayalvac244-tech/macro_ko
+   → yeşil **Code** → **Download ZIP** → indirilen dosyaya sağ tık →
+   **Tümünü ayıkla**. Git kurmaya gerek yok.
+3. **Komut İstemi'ni aç:** Başlat → `cmd` yaz → Enter.
+4. Klasöre gir (yol kendi ayıkladığın yer):
+   ```
+   cd %USERPROFILE%\Downloads\macro_ko-claude-legal-case-management-app-dipuvb
+   ```
+5. **Bağımlılıkları kur** (~3-5 dk). Bu adım şart: `app.json` içindeki config
+   plugin'leri `node_modules`tan çözülüyor, yoksa eas-cli uygulama
+   yapılandırmasını okuyamaz.
+   ```
+   npm install
+   ```
+6. **Expo'ya giriş yap:**
+   ```
+   npx eas-cli login
+   ```
+7. **Kimlikleri üret:**
+   ```
+   npx eas-cli credentials --platform ios
+   ```
+   Menüde sırasıyla: **production** profili → **Build Credentials** →
+   **All: Set up all the required credentials to build your project**.
+   Apple hesabına giriş isteyecek (Apple ID + şifre + iki adımlı doğrulama).
+
+Bitince EAS sertifikayı ve profili kendi tarafında saklar; sonraki her CI
+koşusu `--non-interactive` çalışabilir.
 
 ## B6 · Derle ve TestFlight'a gönder · **BEN**
 
