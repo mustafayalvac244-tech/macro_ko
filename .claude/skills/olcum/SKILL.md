@@ -52,6 +52,13 @@ bulup bulmadığına bak. Bulamıyorsa, bulamadığı diğer şeyler de kanıt d
   bitiş sinyali gelmemiştir. Yokluğu durum diye rapor etmeden önce,
   verinin tazeliğini gösteren bir alan bul ve onun değiştiğini gör.
 
+  **Çalışan alet (aynı gün bulundu):** `list_workflow_runs`'ı
+  `status=completed` ve `status=in_progress` süzgeçleriyle İKİ KEZ çağır.
+  Kontrol, bu bölümün kendi kuralı: iki küme ayrık mı ve biten koşular
+  gerçekten birinden diğerine geçmiş mi? Geçmişse süzgeç ayırt ediyor
+  demektir. Tek bir çağrının tek bir alanına bakmak yerine, **iki
+  tamamlayıcı sorgunun birbirini tutması** aranır.
+
 **Alışkanlık:** ölçüm çıktısında bir sayı "fazla temiz" ya da "fazla iyi"
 görünüyorsa, önce aleti şüpheli say. Bir durum alanı hiç değişmiyorsa da
 aynısını yap.
