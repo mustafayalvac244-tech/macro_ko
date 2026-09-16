@@ -36,28 +36,39 @@ bulup bulmadığına bak. Bulamıyorsa, bulamadığı diğer şeyler de kanıt d
   çıkaracaktım. Yakalatan şey: `length(to_tsvector(...))` = 1 sayısının
   makul olmaması.
 
-- **GitHub iş durumu olayı (16.09.2026).** iOS derlemesini izlerken
-  `list_workflow_jobs` iki saat boyunca "Derle: in_progress" döndürdü.
-  Kullanıcıya iki kez "hâlâ derliyor" dedim. Kayda (`get_job_logs`)
-  bakınca çıkan gerçek: koşu **3 dakikada düşmüştü**. Bir sonraki koşuda
-  aynı şey tekrarlandı (gerçekte 41 saniye). Uç bozuk değildi —
-  **bayattı**, ve bayat veri "hata" gibi görünmüyor, "durum" gibi
-  görünüyor.
+- **"Saatlerdir sürüyor" olayı (16.09.2026) — ölçülen şey SÜREYDİ ve
+  saati ben okuyamıyordum.**
 
-  Yakalatabilecek şey elimin altındaydı ve bakmadım: cevaptaki
-  `updated_at` alanı her çağrıda **aynı** kalıyordu. Canlı bir işin
-  damgası ilerlemek zorundadır; ilerlemiyorsa veri canlı değildir.
+  iOS derlemesini izlerken kullanıcıya sırayla "50 dakika oldu",
+  "80 dakika oldu", "kayıt ucu saatlerdir 404" dedim. Sonra kullanıcı
+  ekran görüntüsü attı: GitHub **"8 minutes ago"** yazıyordu.
 
-  **Ders:** "devam ediyor" bir ölçüm değil, **bir şeyin YOKLUĞUDUR** —
-  bitiş sinyali gelmemiştir. Yokluğu durum diye rapor etmeden önce,
-  verinin tazeliğini gösteren bir alan bul ve onun değiştiğini gör.
+  Gerçek süreler, GitHub damgalarından hesaplandı: koşu #1 **199 sn**,
+  #2 **48 sn**, #3 **62 sn**; dört koşu **9 dakikalık** bir aralıkta
+  başlamış. Benim "saatler" dediğim şey dakikalardı.
 
-  **Çalışan alet (aynı gün bulundu):** `list_workflow_runs`'ı
-  `status=completed` ve `status=in_progress` süzgeçleriyle İKİ KEZ çağır.
-  Kontrol, bu bölümün kendi kuralı: iki küme ayrık mı ve biten koşular
-  gerçekten birinden diğerine geçmiş mi? Geçmişse süzgeç ayırt ediyor
-  demektir. Tek bir çağrının tek bir alanına bakmak yerine, **iki
-  tamamlayıcı sorgunun birbirini tutması** aranır.
+  **Asıl hata teşhisti, gecikme değil.** Ben bu uyuşmazlığı "GitHub'ın
+  durum ucu bayat" diye açıkladım ve o açıklamayı bir ders olarak
+  yazdım. Oysa elimde tek bir bağımsız saat yoktu: kendi bekleme
+  sürelerimi gerçek zaman sanıp aleti suçladım. Bir ölçüm iki kaynağı
+  çelişiyorsa, **hangisinin bağımsız doğrulaması olduğuna bak** —
+  benimkinin yoktu.
+
+  **Ders 1:** geçen süre bir ÖLÇÜMDÜR ve kendi bekleyişin o ölçümün
+  aleti değildir. Süre iddiası yazacaksan iki damga arasındaki farkı
+  hesapla (`created_at` → `updated_at`), "şu kadar bekledim" deme.
+
+  **Ders 2:** bir aracı "bozuk/bayat" ilan etmek bir İDDİADIR ve kanıt
+  ister. Kanıtın yoksa "uyuşmuyor, sebebini bilmiyorum" de. Yanlış
+  teşhis, teşhissizlikten kötüdür: kural hâline gelir ve sonraki
+  oturumu yanlış yere götürür. (Bu maddenin ilk hâli tam olarak bunu
+  yaptı ve bir sonraki mesajda geri alınması gerekti.)
+
+  **Yine de faydalı olan:** `list_workflow_runs`'ı `status=completed` ve
+  `status=in_progress` ile iki kez çağırmak, tek bir alana bakmaktan
+  daha sağlamdır — iki küme ayrık çıkıyor ve biten koşular birinden
+  diğerine geçiyorsa süzgeç ayırt ediyor demektir. Bu, bayatlık
+  iddiasından bağımsız olarak iyi bir alışkanlık.
 
 **Alışkanlık:** ölçüm çıktısında bir sayı "fazla temiz" ya da "fazla iyi"
 görünüyorsa, önce aleti şüpheli say. Bir durum alanı hiç değişmiyorsa da

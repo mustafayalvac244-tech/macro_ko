@@ -298,12 +298,22 @@ eklemek, öğrenme döngüsünü 40 dakikadan 55 saniyeye indirdi. **Uzun bir
 işin ucundaki kısa adımı ayrı koşabilmek, o işi hızlandırmaktan daha
 değerli.**
 
-**2. GitHub'ın iş durumu ucuna bu ortamda GÜVENİLMİYOR.** Koşu #1 için
-`list_workflow_jobs` iki saat boyunca "Derle: in_progress" döndürdü; kayda
-bakınca **3 dakikada düşmüş** olduğu çıktı. Koşu #2 için aynı şey oldu
-(gerçekte 41 saniye). `updated_at` alanı hiç güncellenmiyor — bayat
-olduğunun işareti bu. **Tek güvenilir kaynak `get_job_logs`**, o da koşu
-bitene kadar 404 veriyor ve sonrasında dakikalarca gecikiyor.
+**2. Süreyi kendi bekleyişinle ölçme.** Bu koşuları izlerken ürün sahibine
+"50 dakika oldu", "80 dakika oldu", "kayıt ucu saatlerdir 404" dedim.
+Ürün sahibinin ekran görüntüsü **"8 minutes ago"** diyordu.
+
+GitHub damgalarından hesaplanan gerçek süreler: koşu #1 **199 sn**,
+#2 **48 sn**, #3 **62 sn**. Dördü **9 dakikalık** bir aralıkta başlamış.
+
+Dahası, bu uyuşmazlığı "GitHub'ın durum ucu bayat" diye teşhis edip o
+teşhisi bir ders olarak yazmıştım — **kanıtı yoktu ve geri alındı**.
+Doğrusu: süre iddiası yazacaksan iki damga arasındaki farkı hesapla
+(`created_at` → `updated_at`), kendi bekleyişine güvenme.
+
+Kalan pratik bilgi: `get_job_logs` koşu bitene kadar 404 veriyor, bu
+normal. Durum için `list_workflow_runs`'ı `status=completed` ve
+`status=in_progress` ile iki kez çağırmak tek bir alana bakmaktan daha
+sağlam.
 
 **SERTİFİKA SINIRI.** Betik her koşuşta yeni sertifika üretiyor (özel anahtar
 koşu bitince kayboluyor, eskisi bir daha kullanılamıyor). Apple hesap başına
