@@ -195,6 +195,7 @@ export default function MutalaaScreen() {
                 metin={text}
                 baslik={t('mut.resultTitle')}
                 etiket={t('mut.resultTitle')}
+                mod="mutalaa"
               />
               <HukukiUyari tur="yapayZeka" />
               {uydurmaMadde.length > 0 && (

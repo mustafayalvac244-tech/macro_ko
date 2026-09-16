@@ -259,6 +259,7 @@ export default function DilekceUretScreen() {
                 baslik={t('dlk.resultTitle')}
                 etiket={t('dlk.resultTitle')}
                 udf
+                mod="dilekce"
               />
               <HukukiUyari tur="yapayZeka" />
               {uydurmaMadde.length > 0 && (

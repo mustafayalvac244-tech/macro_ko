@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
+import { ciktiDuzeltmesiniBildir } from '@/lib/ciktiGeriBildirim';
 import { useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -37,9 +38,18 @@ interface Props {
   udf?: boolean;
   /** Başlık satırının soluna konacak etiket (ör. "Taslak"). */
   etiket?: string;
+  /**
+   * ÖLÇÜM ALANLARI — verilirse avukatın düzeltme MİKTARI kaydedilir.
+   * Metin ASLA gönderilmez, yalnız uzunluk ve değişim oranı
+   * (bkz. src/lib/ciktiGeriBildirim.ts). Verilmezse ölçüm yapılmaz;
+   * yani ölçüm, çağıranın açık tercihidir.
+   */
+  mod?: string;
+  model?: string | null;
+  istekId?: string | null;
 }
 
-export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket }: Props) {
+export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, model, istekId }: Props) {
   const __t = useTheme();
   const styles = makeStyles(__t.colors);
   const t = useT();
@@ -48,6 +58,10 @@ export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket }: Prop
   const [acik, setAcik] = useState(false);
   const asil = useRef(metin);
 
+  // ÖLÇÜM BİR KEZ GÖNDERİLİR. Her tuş vuruşunda göndermek hem gürültü
+  // üretir hem avukatın yazarken ürettiği ara hâlleri "düzeltme" sayardı.
+  const bildirildi = useRef(false);
+
   // YENİ TASLAK GELİNCE DÜZENLEME SIFIRLANIR. Kullanıcı "yeniden üret" dediğinde
   // ekranda eski metnin düzeltmeleri kalsaydı, hangi cümlenin yeni taslaktan
   // hangisinin eski düzeltmeden geldiği anlaşılmazdı.
@@ -55,7 +69,24 @@ export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket }: Prop
     asil.current = metin;
     setDuzenlenen(metin);
     setAcik(false);
+    bildirildi.current = false;
   }, [metin]);
+
+  // DÜZENLEME PANELİ KAPANINCA ÖLÇÜMÜ GÖNDER.
+  //
+  // Neden kapanışta: "avukat düzeltmeyi bitirdi" anının en yakın işareti bu.
+  // Kaydet düğmesi yok (metin zaten anlık kullanılıyor), bileşenin ayrılma
+  // anı ise React'te güvenilir biçimde yakalanamıyor — ekran değiştiğinde
+  // efekt temizliği ile ağ isteği yarışır.
+  //
+  // `mod` verilmemişse hiç ölçüm yapılmaz: ölçüm çağıranın açık tercihidir,
+  // bileşenin sessiz yan etkisi değil.
+  useEffect(() => {
+    if (acik || !mod || bildirildi.current) return;
+    if (duzenlenen === asil.current) return;
+    bildirildi.current = true;
+    void ciktiDuzeltmesiniBildir({ mod, model, istekId, asil: asil.current, son: duzenlenen });
+  }, [acik, mod, model, istekId, duzenlenen]);
 
   const degisti = duzenlenen !== asil.current;
 

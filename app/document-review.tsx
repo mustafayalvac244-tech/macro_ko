@@ -262,6 +262,7 @@ export default function DocumentReviewScreen() {
                 metin={result}
                 baslik={t('docrev.resultTitle')}
                 etiket={t('docrev.resultTitle')}
+                mod="belge"
               />
               <HukukiUyari tur="yapayZeka" />
               {/* SUNUCU BUNLARI GÖNDERİYORDU, EKRAN HİÇBİRİNİ GÖSTERMİYORDU.
