@@ -240,9 +240,39 @@ takmıyor, **App Store incelemesi takıyor**. Bkz. B7.
 Gereksiz capability işaretlemek zararsız değildir: bazıları (Push, Sign in
 with Apple) profil/sertifika üretimini ve inceleme sorularını değiştirir.
 
-## B5 · İmzalama kimliklerini oluştur · **SEN** (Windows, bir kez)
+## B5 · İmzalama kimlikleri · **ARTIK BEN YAPIYORUM** (16.09.2026)
 
-### Neden atlanamıyor — ÖLÇÜLDÜ (16.09.2026, eas-cli 24.6.0 kaynağı)
+**Ürün sahibi:** *"abi şunları sen yap ya bıktım."*
+
+Aşağıdaki "atlanamaz" bölümü **tarihsel kayıt olarak duruyor** çünkü tespiti
+doğruydu: `eas credentials` yolu gerçekten Apple şifresi ve iki adımlı
+doğrulama istiyor. Ama o yolun **tek yol olmadığı** anlaşıldı.
+
+**Yeni yol.** Sertifikayı ve provisioning profile'ı Apple'ın kendi REST
+API'siyle üretiyoruz. ASC API anahtarı başlı başına bir kimlik doğrulama
+yöntemi: şifre istemiyor, telefona kod göndermiyor. Üretilenler `.p12`
+olarak paketlenip `credentials.json` ile EAS'ın önüne konuyor; `eas.json`'a
+eklenen `production-yerel-imza` profili `credentialsSource: "local"`
+kullandığı için EAS kendi kimlik kurulumunu **hiç çalıştırmıyor**.
+
+- Betik: `scripts/ios-imza-uret.mjs`
+- İş akışı girdisi: `imza: apple-api`
+
+**ÖLÇÜLDÜ — koşu #1, 16.09.2026 18:23 UTC:**
+`İmza kimliklerini üret (Apple API)` adımı **2 saniyede başarılı**
+(18:23:56 → 18:23:58). Apple ID şifresi sorulmadı, doğrulama kodu
+istenmedi. Aynı koşuda ayrıca ilk kez doğrulandı: `ASC_API_KEY_P8` secret'ı
+gerçekten tanımlı ve içeriği geçerli bir özel anahtar.
+
+**SERTİFİKA SINIRI.** Betik her koşuşta yeni sertifika üretiyor (özel anahtar
+koşu bitince kayboluyor, eskisi bir daha kullanılamıyor). Apple hesap başına
+2 tanesine izin veriyor, yani üçüncü koşudan önce `eski_sertifika: iptal-et`
+seçilmeli. Varsayılan `dokunma`: hesapta sertifika varsa betik durup
+listeliyor, sessizce silmiyor.
+
+---
+
+### (TARİHSEL) Neden `eas credentials` yolu atlanamıyordu — eas-cli 24.6.0
 
 Ürün sahibi haklı olarak sordu: "bunu nereye yazacağım" — yani yerel kurulum
 gerçekten gerekli mi? Tahmin etmek yerine kaynak okundu.
@@ -273,7 +303,10 @@ provisioning profiles."*
 Expo web sitesinden sertifika üretme yolu da **yok** — sitede yalnız push
 anahtarı indiriliyor (`app-signing/app-credentials` sayfası okundu).
 
-### Windows'ta ne yapılacak
+### (TARİHSEL) Windows'ta ne yapılacaktı
+
+> **BU ARTIK GEREKMİYOR** — yukarıdaki Apple API yolu bunu ortadan kaldırdı.
+> Yalnız o yol bozulursa geri dönülecek yedek olarak duruyor.
 
 Depo klonlu ve Node.js kurulu değilse sıra şu:
 
