@@ -64,13 +64,45 @@ node scripts/magaza-pazarlama.mjs
 
 # A) GOOGLE PLAY
 
-## A1 · Kapalı testi BUGÜN başlat — en kritik adım
+## A0 · Play kaydını AÇ — bu adım eksikti (16.09.2026)
+
+**ÖLÇÜLDÜ, ürün sahibinin Play Console ekran görüntüsünden:** hesapta
+**yalnız 1 uygulama** var ve o İlaçPro (`com.ilacpro.app`). **Vekil Pro'nun
+Play kaydı hiç açılmamış.**
+
+Bu bölüm bugüne kadar "uygulamayı aç" diye başlıyordu — yani açılmış bir
+kayıt olduğunu **varsayıyordu**. Ürün sahibine defalarca "kapalı testi
+başlat" dendi; başlatılacak kayıt yoktu. Varsayım doğrulanmadan yazıldığı
+için kimse fark etmedi.
+
+**Hesap künyesi (aynı ekran görüntüsünden):**
+
+| | |
+|---|---|
+| Hesap adı | Vekilpro |
+| Tür | **Kişisel hesap** → 12 test kullanıcısı × 14 gün şartı geçerli |
+| Uygulama sayısı | 1 (İlaçPro) |
+| İlaçPro durumu | Taslak · **Dahili test** · İncelemede · 0 kullanıcı |
+
+**Üretim erişimi muafiyeti YOK.** 12×14 şartı uygulama başına değil hesap
+başına ve bir kez üretim erişimi alınınca sonraki uygulamalar muaf oluyor —
+ama bu hesap hiç üretime çıkmamış. İlaçPro **dahili testte** ve dahili test
+o sayaca **saymıyor**; sayan şey kapalı test.
+
+**Yapılacak:** https://play.google.com/console → **Uygulama oluştur**
+- Ad: `Vekil Pro: Avukat Asistanı`
+- Dil: Türkçe · Uygulama · Ücretsiz
+- Beyanlar (içerik politikası + ABD ihracat yasaları)
+
+Kayıt açılınca A1'e geç.
+
+## A1 · Kapalı testi başlat — en kritik adım
 
 Bu, 14 günlük sayacı başlatır. Beklemenin tek sebebi bu adımın geciktirilmesi
 olur.
 
 1. **Play Console** → https://play.google.com/console
-2. Uygulamayı aç (paket adı `com.vekilpro.app`)
+2. A0'da açtığın uygulamayı aç (paket adı `com.vekilpro.app`)
 3. Sol menü → **Test** → **Kapalı test** *(dahili test DEĞİL — o sayılmıyor)*
 4. **Yeni sürüm oluştur** → şu AAB'yi yükle:
    ```
