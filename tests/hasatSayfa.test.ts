@@ -83,15 +83,27 @@ describe('sayfa tavanı', () => {
     expect(sonrakiSayfa({ ...tam, sayfa: 4, enFazlaSayfa: 50 })).toEqual({ sonrakiSayfa: 5, bitti: false });
   });
 
-  it('tavana gelince BAŞA döner', () => {
-    expect(sonrakiSayfa({ ...tam, sayfa: 50, enFazlaSayfa: 50 })).toEqual({ sonrakiSayfa: 1, bitti: false });
+  it('tavana gelince BAŞA döner VE bitti işaretler', () => {
+    expect(sonrakiSayfa({ ...tam, sayfa: 50, enFazlaSayfa: 50 })).toEqual({ sonrakiSayfa: 1, bitti: true });
   });
 
-  it('tavanda BİTTİ İŞARETLEMEZ — taranmamışı taranmış saymak olurdu', () => {
-    // `bitti` "kaynakta başka karar yok" demek. Tavan bizim sıra kuralımız;
-    // ikisini karıştırmak yüzbinlerce kararı kalıcı olarak gözden düşürür.
-    expect(sonrakiSayfa({ ...tam, sayfa: 50, enFazlaSayfa: 50 }).bitti).toBe(false);
-    expect(sonrakiSayfa({ ...tam, sayfa: 99, enFazlaSayfa: 50 }).bitti).toBe(false);
+  it('tavanın ÖTESİNDEKİ sayfa da bitti işaretler — sonsuz döngüyü bu kapatır', () => {
+    // BU TEST BİR ARIZADAN DOĞDU (15.09.2026 akşam, canlıda ölçüldü).
+    // Önce tavanda `bitti: false` dönülüyordu ve gerekçe "taranmamışı
+    // taranmış saymayalım"dı. Sonucu şuydu: imleç 1'e düşüyor, done false
+    // kalıyor ve terim SONSUZA KADAR aynı ilk 50 sayfayı yürüyor — yeni
+    // hiçbir şey getirmeden her turda istek ve yazma üreterek.
+    // Ölçüm: `işçilik alacakları davası` 535. sayfadaydı (total 539.785),
+    // `yargitay:işçilik alacakları davası` 332. sayfada (total 1.218.395).
+    // 1,2 milyon sonuç 20'şerlik sayfalarla 60.000 sayfa demek — bu terimler
+    // "bitmemiş" tutulunca kapsam düzelmiyor, yalnız bütçe yanıyor.
+    expect(sonrakiSayfa({ ...tam, sayfa: 99, enFazlaSayfa: 50 })).toEqual({ sonrakiSayfa: 1, bitti: true });
+    expect(sonrakiSayfa({ ...tam, sayfa: 535, enFazlaSayfa: 50 })).toEqual({ sonrakiSayfa: 1, bitti: true });
+  });
+
+  it('tavan YOKSA eski davranış aynen sürer — sınırsız ilerler', () => {
+    // enFazlaSayfa verilmeyen çağrılar (katalog yolu) etkilenmemeli.
+    expect(sonrakiSayfa({ ...tam, sayfa: 999 })).toEqual({ sonrakiSayfa: 1000, bitti: false });
   });
 
   it('gerçekten biten terim tavandan ETKİLENMEZ', () => {
