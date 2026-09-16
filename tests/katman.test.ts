@@ -230,3 +230,56 @@ describe('kotaRezerve', () => {
     expect(r.ok).toBe(true);
   });
 });
+
+/**
+ * İŞE GÖRE MODEL — ürün sahibi kararı 16.09.2026: "Basit şeyleri Haiku'ya
+ * yaptıracağız. Avukata 'vay be çok iyi yapay zeka' dedirtecek yerde Sonnet."
+ *
+ * Bu testler tabloyu KİLİTLİYOR. Tablo tek satırlık bir dizidir (MOD_UCUZ) ve
+ * bir mod yanlış tarafa kayarsa kimse fark etmez: ucuz tarafa kayan dilekçe
+ * sessizce kalite düşürür, güçlü tarafa kayan künye sessizce para yakar.
+ * İkisi de ancak faturada ya da müşteri şikâyetinde görünürdü.
+ */
+describe('işe göre model seçimi', () => {
+  const ai = (mod?: string) => tierConfig('ai', false, { ...secenek, mod }).cfg.model;
+
+  it('sohbet ve künye UCUZ modele (Haiku) gider', () => {
+    expect(ai('sohbet')).toBe('claude-haiku-4-5-20251001');
+    expect(ai('kunye')).toBe('claude-haiku-4-5-20251001');
+  });
+
+  it('dilekçe ve mütalaa GÜÇLÜ modelde kalır — avukatın gördüğü iş', () => {
+    expect(ai('dilekce')).toBe('claude-sonnet-5');
+    expect(ai('mutalaa')).toBe('claude-sonnet-5');
+  });
+
+  it('belge GÜÇLÜ tarafta — hangi tarafa ait olduğu ÖLÇÜLMEDİ', () => {
+    // Bilinmeyeni ucuz tarafa koymak, ucuzluğu varsayım üzerine kurmaktır.
+    expect(ai('belge')).toBe('claude-sonnet-5');
+  });
+
+  it('mod verilmezse ya da tanınmazsa GÜÇLÜ modele düşer', () => {
+    // Unutmak KALİTE tarafına düşmeli, ucuz tarafa değil: bir mod adı
+    // değişirse ürün sessizce ucuzlamasın, sessizce pahalılaşsın.
+    expect(ai(undefined)).toBe('claude-sonnet-5');
+    expect(ai('')).toBe('claude-sonnet-5');
+    expect(ai('bilinmeyen-mod')).toBe('claude-sonnet-5');
+    expect(ai('SOHBET')).toBe('claude-sonnet-5'); // büyük harf ≠ eşleşme
+  });
+
+  it('DENEME işe göre yönlendirilmez — her modda güçlü modelde kalır', () => {
+    // 10 deneme isteği, ödeme yapmış avukatın AI ile ilk teması ve dönüşüm
+    // anıdır. Kazanç ~₺3,50; bir aboneliğin dönüşümünü buna riske atmayız.
+    const deneme = (mod?: string) => tierConfig('free', true, { ...secenek, mod }).cfg.model;
+    expect(deneme('sohbet')).toBe('claude-sonnet-5');
+    expect(deneme('kunye')).toBe('claude-sonnet-5');
+    expect(deneme('dilekce')).toBe('claude-sonnet-5');
+  });
+
+  it('ödeme yapmamış kullanıcıda mod hiçbir şeyi açmaz', () => {
+    // İşe göre yönlendirme bir KAPI DEĞİL: ücretsiz katmanda AI kapalı kalır.
+    for (const mod of ['sohbet', 'kunye', 'dilekce', 'mutalaa']) {
+      expect(tierConfig('free', false, { ...secenek, mod }).cfg.aiKapali).toBe(true);
+    }
+  });
+});
