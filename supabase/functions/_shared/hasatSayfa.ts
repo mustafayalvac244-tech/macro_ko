@@ -71,12 +71,36 @@ export function sonrakiSayfa(g: SayfaGirdi): SayfaKarari {
   const sonSayfa = g.satir < g.sayfaBoyu;
   if (sonSayfa) return { sonrakiSayfa: 1, bitti: true };
 
-  // TAVANA GELDİYSE BAŞA DÖN — ama BİTTİ DEME.
-  // `bitti` "kaynakta bu terim için başka karar yok" demek; tavan ise bizim
-  // koyduğumuz bir sıra kuralı. Tavanda bitti işaretlemek, taranmamış
-  // yüzbinlerce kararı "tarandı" diye kaydeder ve bir daha hiç bakılmaz.
+  // TAVANA GELDİYSE: BAŞA DÖN **VE** BİTTİ İŞARETLE.
+  //
+  // ── BU SATIR 15.09.2026 AKŞAMI DEĞİŞTİ. ÖNCEKİ HÂLİ SONSUZ DÖNGÜYDÜ. ──
+  //
+  // Önce `{ sonrakiSayfa: 1, bitti: false }` dönüyordu ve gerekçesi şuydu:
+  // "tavanda bitti demek, taranmamış yüzbinlerce kararı tarandı saymaktır."
+  // Gerekçe doğruydu, SONUCU yanlıştı: imleç 1'e düşüp `done` false kalınca
+  // terim SONSUZA KADAR AYNI İLK 50 SAYFAYI yürüyor. Yeni hiçbir şey
+  // getirmeyen, ama her turda HTTP isteği ve veritabanı yazması üreten bir
+  // döngü. "Bir daha hiç bakılmaz" korkusundan kaçarken "hep aynı yere
+  // bakılır" durumuna düşülmüştü.
+  //
+  // CANLIDA ÖLÇÜLDÜ (15.09.2026 19:16): dört terim tavanın çok ötesindeydi —
+  // `işçilik alacakları davası` 535. sayfada (total 539.785),
+  // `yargitay:işçilik alacakları davası` 332. sayfada (total 1.218.395).
+  // Bu terimler 20'şerlik sayfalarla ASLA bitmez: 1,2 milyon sonuç 60.000
+  // sayfa demek. Onları "bitmemiş" tutmak kapsamı düzeltmiyor, yalnız
+  // bütçeyi yiyor.
+  //
+  // YENİ ANLAM: `bitti` artık "bu terimden alacağımızı aldık" demek —
+  // ya kaynak tükendi ya da KENDİ derinlik sınırımıza vardık. İkisi de
+  // "şimdilik sırayı bırak" sonucunu verir ve fark, terimin nerede
+  // durduğunda değil, ne zaman geri döneceğinde.
+  //
+  // TARANMAMIŞ KARARLAR KAYBOLMUYOR: seçici RPC (migration 0141) bitmiş bir
+  // terimi 7 gün sonra yeniden uygun sayıyor ve imleç 1'de olduğu için
+  // terim EN YENİ kararlardan başlıyor. Yani derin sayfalar yerine yeni
+  // kararlar yakalanıyor — 1,2 milyonluk bir terimde zaten istediğimiz bu.
   if (g.enFazlaSayfa && g.sayfa >= g.enFazlaSayfa) {
-    return { sonrakiSayfa: 1, bitti: false };
+    return { sonrakiSayfa: 1, bitti: true };
   }
   return { sonrakiSayfa: g.sayfa + 1, bitti: false };
 }
