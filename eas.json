@@ -35,6 +35,13 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://wjshlysfmeqlnfiibknj.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ"
       }
+    },
+    "production-yerel-imza": {
+      "extends": "production",
+      "ios": {
+        "resourceClass": "m-medium",
+        "credentialsSource": "local"
+      }
     }
   },
   "submit": {

@@ -68,6 +68,20 @@ on:
         options:
           - production
           - preview
+      imza:
+        description: 'İmza kimlikleri nereden — eas: EAS deposundakiler (önce yerelde `eas credentials` koşulmuş olmalı) · apple-api: sertifikayı ve profili bu koşuda Apple API ile üret'
+        type: choice
+        default: 'eas'
+        options:
+          - eas
+          - apple-api
+      eski_sertifika:
+        description: 'apple-api seçildiyse ve hesapta zaten dağıtım sertifikası varsa ne yapılsın (Apple en fazla 2 tanesine izin veriyor)'
+        type: choice
+        default: 'dokunma'
+        options:
+          - dokunma
+          - iptal-et
 
 permissions:
   contents: read
@@ -95,10 +109,20 @@ jobs:
             echo "::error::EXPO_TOKEN tanımlı değil. expo.dev → Account settings → Access tokens"
             exit 1
           fi
-          if [ "${{ inputs.is }}" != "derle" ] && [ -z "$ASC_P8" ]; then
-            echo "::error::ASC_API_KEY_P8 tanımlı değil; gönderim yapılamaz."
-            echo "::error::App Store Connect → Users and Access → Integrations → App Store Connect API"
-            exit 1
+          # ASC anahtarı iki ayrı iş için gerekiyor: TestFlight'a gönderim ve
+          # (apple-api seçiliyse) imza kimliklerinin üretilmesi. İkincisi
+          # `derle` işinde de gerekiyor, o yüzden koşul tek başına
+          # "is != derle" olamaz.
+          if [ -z "$ASC_P8" ]; then
+            if [ "${{ inputs.is }}" != "derle" ]; then
+              echo "::error::ASC_API_KEY_P8 tanımlı değil; gönderim yapılamaz."
+              echo "::error::App Store Connect → Users and Access → Integrations → App Store Connect API"
+              exit 1
+            fi
+            if [ "${{ inputs.imza }}" = "apple-api" ]; then
+              echo "::error::ASC_API_KEY_P8 tanımlı değil; imza kimlikleri üretilemez."
+              exit 1
+            fi
           fi
 
           # BUNDLE ID 15.09.2026'DA DEĞİŞTİ (com.macroko.legal → com.vekilpro.app)
@@ -142,7 +166,7 @@ jobs:
       # arıyor (submit.production.ios.ascApiKeyPath = ./asc-api-key.p8).
       # İş bitince aşağıdaki "always" adımı siliyor.
       - name: App Store Connect anahtarını yaz
-        if: inputs.is != 'derle'
+        if: inputs.is != 'derle' || inputs.imza == 'apple-api'
         env:
           ASC_P8: ${{ secrets.ASC_API_KEY_P8 }}
         run: |
@@ -159,15 +183,46 @@ jobs:
           fi
           echo "Anahtar biçimi doğru (içerik yazdırılmadı)."
 
+      # ── İMZA KİMLİKLERİNİ APPLE API'SİYLE ÜRET ──────────────────────────
+      # NEDEN. `eas credentials` dağıtım sertifikasını üretirken Apple
+      # hesabına interaktif giriş (şifre + iki adımlı doğrulama) istiyor ve
+      # CI bunu yapamaz — ölçüldü, eas-cli 24.6.0
+      # SetUpDistributionCertificate.js:41 elde sertifika yoksa doğrudan
+      # MissingCredentialsNonInteractiveError fırlatıyor.
+      # ASC API anahtarı ise başlı başına bir kimlik doğrulama yöntemi ve
+      # şifre istemiyor. Sertifikayı ve profili onunla üretip EAS'ın önüne
+      # koyuyoruz; `credentialsSource: local` verildiğinde EAS kendi kimlik
+      # kurulumunu hiç çalıştırmıyor.
+      - name: İmza kimliklerini üret (Apple API)
+        if: inputs.imza == 'apple-api'
+        env:
+          ASC_KEY_PATH: ./asc-api-key.p8
+          BUNDLE_ID: com.vekilpro.app
+          CIKTI: ./ios-imza
+          ESKIYI_IPTAL: ${{ inputs.eski_sertifika == 'iptal-et' && 'evet' || 'hayir' }}
+        run: |
+          # Kimlikler eas.json'da zaten var ve gizli değiller; oradan oku ki
+          # iki yerde ayrı ayrı yazılıp birbirinden sapmasınlar.
+          ASC_KEY_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyId")" \
+          ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
+            node scripts/ios-imza-uret.mjs
+          # EAS credentials.json'ı PROJE KÖKÜNDE arıyor (ölçüldü:
+          # credentialsJson/read.js -> readRawAsync, projectDir kökü).
+          cp ios-imza/credentials.json ./credentials.json
+
       - name: Derle
         id: derle
         if: inputs.is == 'derle' || inputs.is == 'derle-ve-gonder'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EAS_BUILD_NO_EXPO_GO_WARNING: 'true'
+          # apple-api seçildiyse yerel kimlikleri kullanan profile geç.
+          # Seçilmediyse kullanıcının seçtiği profil aynen kalır.
+          PROFIL: ${{ inputs.imza == 'apple-api' && 'production-yerel-imza' || inputs.profil }}
         run: |
           set -o pipefail
-          eas build --platform ios --profile ${{ inputs.profil }} \
+          echo "Derleme profili: $PROFIL"
+          eas build --platform ios --profile "$PROFIL" \
             --non-interactive --wait 2>&1 | tee /tmp/derleme.log
           # Derleme bağlantısını özete taşı (Android'deki aynı gerekçe: bağlantı
           # yalnız ham kayıtta kalırsa binlerce satır içinden elle aranıyor).
@@ -186,9 +241,12 @@ jobs:
 
       # BAŞARISIZ OLSA DA SİL. Anahtar dosyası çalışan makinede kalırsa
       # sonraki adımlar ya da kayıtlar onu görebilir.
-      - name: Anahtarı sil
+      # BAŞARISIZ OLSA DA SİL. Burada üç ayrı gizli şey var: ASC anahtarı,
+      # dağıtım sertifikasının özel anahtarını taşıyan .p12 ve onun parolasını
+      # düz metin taşıyan credentials.json.
+      - name: Anahtarları sil
         if: always()
-        run: rm -f asc-api-key.p8
+        run: rm -rf asc-api-key.p8 credentials.json ios-imza
 
       - name: Özet
         if: always()
