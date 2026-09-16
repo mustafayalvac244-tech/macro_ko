@@ -61,6 +61,12 @@ on:
           - derle              # yalnız IPA üret
           - derle-ve-gonder    # IPA üret + TestFlight'a yükle
           - gonder             # son derlemeyi TestFlight'a yükle (yeniden derlemez)
+          # NEDEN VAR (16.09.2026): imza betiği Apple API'siyle konuşuyor ve
+          # ilk iki koşuda iki ayrı küçük hatayla düştü. Her denemeyi tam
+          # derlemeye bağlamak, 40 dakikalık bir derlemeyi 40 saniyelik bir
+          # API hatası için harcamak demekti. Bu seçenek yalnız imza adımını
+          # koşup durur.
+          - yalniz-imza        # kimlikleri üret, derleme ve gönderim yok
       profil:
         description: 'Derleme profili — production App Store/TestFlight için, preview yalnız kayıtlı cihazlara kurulur'
         type: choice

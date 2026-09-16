@@ -276,7 +276,14 @@ async function main() {
   // ayarı şu an işlevsiz. usesIcloudStorage açılırsa buraya 'ICLOUD'
   // eklenmeli VE iCloud konteyneri oluşturulmalı.
 
-  const acik = await api(`/bundleIds/${kayit.id}/bundleIdCapabilities?limit=200`);
+  // `limit` BURADA KULLANILAMAZ. Koşu #2 (16.09.2026) tam olarak bununla
+  // düştü:
+  //   400 PARAMETER_ERROR.ILLEGAL: The parameter 'limit' can not be used
+  //   with this request : This relationship does not support this parameter.
+  // Apple, üst düzey koleksiyonlarda (/certificates, /profiles, /bundleIds)
+  // `limit`i kabul ediyor ama İLİŞKİ uçlarında etmiyor. İkisini aynı
+  // sanmak bu hatanın kaynağıydı.
+  const acik = await api(`/bundleIds/${kayit.id}/bundleIdCapabilities`);
   const acikTipler = new Set((acik.data || []).map((c) => c.attributes?.capabilityType));
   for (const yetenek of GEREKEN_YETENEKLER) {
     if (acikTipler.has(yetenek)) {
