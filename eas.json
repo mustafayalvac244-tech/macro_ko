@@ -40,6 +40,7 @@
   "submit": {
     "production": {
       "ios": {
+        "appleTeamId": "5NNRTB2436",
         "ascApiKeyPath": "./asc-api-key.p8"
       },
       "android": {

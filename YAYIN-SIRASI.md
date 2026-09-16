@@ -163,16 +163,33 @@ Değer : .p8 dosyasının TAMAMI (BEGIN/END satırları dâhil)
 
 > **Bana yapıştırma.** Yayımlama yetkisi taşıyor.
 
-## B4 · Bana dört bilgiyi ver · **SEN → BEN**
+## B4 · Bana üç bilgiyi ver · **SEN → BEN**
 
 Bunlar gizli **değil**, `eas.json`'a yazılacak (eskileri silindi):
 
 ```
-Team ID   : developer.apple.com → Membership (10 karakter)
 Issuer ID : App Store Connect API sayfasının üstünde
 Key ID    : yeni ürettiğin anahtarın yanında
 App ID    : B2'de not ettiğin Apple ID (sayı)
 ```
+
+> **Team ID geldi: `5NNRTB2436`.** 16.09.2026'da B1 ekranındaki "App ID
+> Prefix" satırından okundu ve `eas.json > submit.production.ios.appleTeamId`
+> alanına yazıldı. Eski `27V4XBQFG4` başka birinin ekibiydi.
+
+### B1'de capability seçme — **ölçüldü, hiçbiri gerekmiyor**
+
+16.09.2026, kod okunarak:
+- `expo-notifications` kurulu ama yalnız `scheduleNotificationAsync`
+  çağrılıyor (`src/lib/notifications.ts` 63, 367, 474). `getExpoPushTokenAsync`
+  / `getDevicePushTokenAsync` **hiç yok** → bildirimler yerel →
+  **Push Notifications işaretlenmez.**
+- `signInWithOAuth` / `signInWithIdToken` / `expo-apple-authentication`
+  **hiç yok** → **Sign in with Apple gerekmez.**
+- In-App Purchase her App ID'de zaten açıktır, kutusu yoktur.
+
+Gereksiz capability işaretlemek zararsız değildir: bazıları (Push, Sign in
+with Apple) profil/sertifika üretimini ve inceleme sorularını değiştirir.
 
 ## B5 · İmzalama kimliklerini oluştur · **SEN** (bilgisayarında, bir kez)
 
