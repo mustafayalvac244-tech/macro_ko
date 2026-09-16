@@ -250,6 +250,52 @@ async function main() {
   }
   console.log(`Bundle ID bulundu: ${kayit.id}`);
 
+  // ── 5b. Gereken yetenekleri (capability) aç ───────────────────────────
+  //
+  // KOŞU #1'İ DÜŞÜREN ŞEY BUYDU (16.09.2026):
+  //   Provisioning profile "vekilpro-ci-..." doesn't include the Push
+  //   Notifications capability.
+  //   ... doesn't include the aps-environment entitlement.
+  //
+  // Hatanın kökeni bir ÖLÇÜM HATASI: B1 adımında "Push Notifications'ı
+  // işaretleme" denmişti ve gerekçe olarak JS kullanımı gösterilmişti
+  // (yalnız scheduleNotificationAsync var, push token alan satır yok — bu
+  // doğru). Ama entitlement'ı JS değil, `expo-notifications` config
+  // plugin'i yazıyor: push token hiç kullanılmasa da native projeye
+  // `aps-environment` ekliyor. Yani doğru şey değil, yanlış şey ölçülmüştü.
+  //
+  // Profil, App ID'de AÇIK olan yetenekleri içeriyor; o yüzden profili
+  // üretmeden ÖNCE burada açılmalı.
+  const GEREKEN_YETENEKLER = [
+    // expo-notifications config plugin -> aps-environment
+    'PUSH_NOTIFICATIONS',
+  ];
+  // NOT: expo-document-picker'ın iCloud entitlement'ları BUGÜN YAZILMIYOR.
+  // Koşul `config.ios?.usesIcloudStorage` (plugin kaynağı okundu) ve
+  // app.json'da o anahtar yok — yani app.json'daki iCloudContainerEnvironment
+  // ayarı şu an işlevsiz. usesIcloudStorage açılırsa buraya 'ICLOUD'
+  // eklenmeli VE iCloud konteyneri oluşturulmalı.
+
+  const acik = await api(`/bundleIds/${kayit.id}/bundleIdCapabilities?limit=200`);
+  const acikTipler = new Set((acik.data || []).map((c) => c.attributes?.capabilityType));
+  for (const yetenek of GEREKEN_YETENEKLER) {
+    if (acikTipler.has(yetenek)) {
+      console.log(`Yetenek zaten açık: ${yetenek}`);
+      continue;
+    }
+    await api('/bundleIdCapabilities', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: {
+          type: 'bundleIdCapabilities',
+          attributes: { capabilityType: yetenek },
+          relationships: { bundleId: { data: { type: 'bundleIds', id: kayit.id } } },
+        },
+      }),
+    });
+    console.log(`Yetenek açıldı: ${yetenek}`);
+  }
+
   // ── 6. Provisioning profile ───────────────────────────────────────────
   // Aynı adda profil varsa Apple ikincisini reddediyor; önce temizle.
   const profilAdi = `vekilpro-ci-${Date.now()}`;

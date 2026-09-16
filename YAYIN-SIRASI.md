@@ -226,19 +226,38 @@ App Store Connect kaydı varsayılan **iOS 1.0** ile açıldı; `app.json` ise
 `CFBundleShortVersionString` değeriyle aynı olmalı. TestFlight bunu
 takmıyor, **App Store incelemesi takıyor**. Bkz. B7.
 
-### B1'de capability seçme — **ölçüldü, hiçbiri gerekmiyor**
+### B1'de capability seçme — **İLK ÖLÇÜM YANLIŞTI, düzeltildi**
 
-16.09.2026, kod okunarak:
-- `expo-notifications` kurulu ama yalnız `scheduleNotificationAsync`
-  çağrılıyor (`src/lib/notifications.ts` 63, 367, 474). `getExpoPushTokenAsync`
-  / `getDevicePushTokenAsync` **hiç yok** → bildirimler yerel →
-  **Push Notifications işaretlenmez.**
-- `signInWithOAuth` / `signInWithIdToken` / `expo-apple-authentication`
-  **hiç yok** → **Sign in with Apple gerekmez.**
-- In-App Purchase her App ID'de zaten açıktır, kutusu yoktur.
+**Önce yazılan (16.09.2026, yanlış):** "hiçbiri gerekmiyor". Gerekçe,
+`src/lib/notifications.ts`'te yalnız `scheduleNotificationAsync` bulunması,
+`getExpoPushTokenAsync` / `getDevicePushTokenAsync`'in hiç olmamasıydı.
 
-Gereksiz capability işaretlemek zararsız değildir: bazıları (Push, Sign in
-with Apple) profil/sertifika üretimini ve inceleme sorularını değiştirir.
+**Ne oldu:** koşu #1 tam olarak bu yüzden düştü.
+
+```
+Provisioning profile "vekilpro-ci-..." doesn't include the
+Push Notifications capability.
+... doesn't include the aps-environment entitlement.
+```
+
+**Hata nerede:** ölçümün kendisi doğruydu ama **yanlış şeyi ölçüyordu.**
+Entitlement'ı JavaScript kullanımı değil, `expo-notifications` **config
+plugin'i** yazıyor. Push token hiç alınmasa bile plugin native projeye
+`aps-environment` ekliyor. Doğru soru "kod push kullanıyor mu" değil,
+"**hangi plugin entitlement yazıyor**".
+
+**Bugünkü durum (plugin kaynakları okunarak):**
+
+| yetenek | gerekli mi | neden |
+|---|---|---|
+| **Push Notifications** | **EVET** | `expo-notifications` plugin'i `aps-environment` yazıyor |
+| iCloud | hayır | `expo-document-picker` yazıyor **ama** `config.ios?.usesIcloudStorage` koşuluna bağlı; `app.json`'da o anahtar yok, yani `iCloudContainerEnvironment` ayarı bugün **işlevsiz** |
+| Sign in with Apple | hayır | `signInWithOAuth` / `signInWithIdToken` / `expo-apple-authentication` hiç yok |
+| In-App Purchase | — | her App ID'de zaten açık, kutusu yok |
+
+**Elle işaretlemene gerek yok:** `scripts/ios-imza-uret.mjs` artık profili
+üretmeden önce `GEREKEN_YETENEKLER` listesindekileri App ID üzerinde
+kendisi açıyor (ASC API `bundleIdCapabilities`).
 
 ## B5 · İmzalama kimlikleri · **ARTIK BEN YAPIYORUM** (16.09.2026)
 
