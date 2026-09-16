@@ -6,8 +6,20 @@
 //
 // NEDEN SAHTE VERİ. Boş ekranların görüntüsü mağazada ürünü olduğundan kötü
 // gösterir ("hiçbir şey yok" gibi durur). Gerçek müvekkil verisi ise mağazaya
-// konulamaz — o yüzden tamamen uydurma ama gerçekçi kayıtlar kullanılıyor.
-// Buradaki isimler ve dosyalar KURGUDUR.
+// konulamaz — o yüzden tamamen uydurma kayıtlar kullanılıyor.
+//
+// İSİMLER 16.09.2026'DA BAŞ HARFE İNDİRİLDİ. Ürün sahibi sordu: "niye Avukat
+// Selin?" Bakınca daha büyük bir sorun çıktı: sahte veri GERÇEK GİBİ
+// duruyordu — "Mehmet Korkmaz — Kıdem ve İhbar Tazminatı · İstanbul 9. İş
+// Mahkemesi · 2026/418". Gerçek ad-soyad, gerçek mahkeme, gerçek biçimli
+// esas numarası yan yana gelince birinin DOSYASI gibi görünüyor.
+//   (a) Kişilik hakkı: o adda biri o mahkemede gerçekten dava açmış olabilir.
+//   (b) Ters mesaj: bu ürün MÜVEKKİL GİZLİLİĞİ satıyor; vitrininde gerçek
+//       gibi duran müvekkil adı ve dosya numarası göstermek, sattığı şeyle
+//       çelişir. Dikkatli bir avukat bunu fark eder.
+// Çözüm: müvekkiller baş harf (M. K.), şirketler jenerik, mahkemeler
+// "Örnek ...", esas numaraları 2026/0001 biçiminde. Ekran dolu görünmeye
+// devam ediyor ama kimsenin dosyası gibi durmuyor.
 //
 // NASIL ÇALIŞIR. docs/app (derlenmiş web sürümü) yerel bir sunucudan servis
 // edilir, Playwright bütün Supabase isteklerini yakalayıp sahte cevap döner.
@@ -53,10 +65,10 @@ const KULLANICI_ID = '11111111-1111-1111-1111-111111111111';
 
 const profil = {
   id: KULLANICI_ID,
-  full_name: 'Av. Selin Aydın',
+  full_name: 'Av. Deniz Aksoy',
   email: 'ornek@vekilpro.app',
-  firm_name: 'Aydın Hukuk Bürosu',
-  bar_number: '34821',
+  firm_name: 'Aksoy Hukuk Bürosu',
+  bar_number: '00000',
   phone: null,
   avatar_url: null,
   is_premium: true,
@@ -68,19 +80,19 @@ const profil = {
 };
 
 const musteriler = [
-  { id: 'c1', owner_id: KULLANICI_ID, full_name: 'Mehmet Korkmaz', company: null, client_type: 'gercek', phone: '0532 000 00 00', email: null, created_at: '2026-02-01T09:00:00Z' },
-  { id: 'c2', owner_id: KULLANICI_ID, full_name: 'Zeynep Arslan', company: null, client_type: 'gercek', phone: null, email: null, created_at: '2026-03-11T09:00:00Z' },
-  { id: 'c3', owner_id: KULLANICI_ID, full_name: 'Doruk İnşaat A.Ş.', company: 'Doruk İnşaat A.Ş.', client_type: 'tuzel', phone: null, email: null, created_at: '2026-04-02T09:00:00Z' },
+  { id: 'c1', owner_id: KULLANICI_ID, full_name: 'M. K.', company: null, client_type: 'gercek', phone: '0500 000 00 00', email: null, created_at: '2026-02-01T09:00:00Z' },
+  { id: 'c2', owner_id: KULLANICI_ID, full_name: 'Z. A.', company: null, client_type: 'gercek', phone: null, email: null, created_at: '2026-03-11T09:00:00Z' },
+  { id: 'c3', owner_id: KULLANICI_ID, full_name: 'İnşaat Firması A.Ş.', company: 'İnşaat Firması A.Ş.', client_type: 'tuzel', phone: null, email: null, created_at: '2026-04-02T09:00:00Z' },
 ];
 
 const bugun = new Date();
 const gunEkle = (n) => new Date(bugun.getTime() + n * 86400000).toISOString();
 
 const davalar = [
-  { id: 'd1', owner_id: KULLANICI_ID, client_id: 'c1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418', court_name: 'İstanbul 9. İş Mahkemesi', court_category: 'hukuk', case_type: 'İş Hukuku', status: 'active', priority: 'high', instance_stage: 'ilk_derece', case_stage: 'tahkikat', opened_date: '2026-02-04', opposing_party: 'Anadolu Lojistik Ltd. Şti.', description: null, fee_amount: 48000, created_at: '2026-02-04T09:00:00Z', updated_at: gunEkle(-2), client: { id: 'c1', full_name: 'Mehmet Korkmaz', company: null } },
-  { id: 'd2', owner_id: KULLANICI_ID, client_id: 'c2', title: 'Arslan — Anlaşmalı Boşanma', case_number: '2026/1177', court_name: 'Kadıköy 3. Aile Mahkemesi', court_category: 'hukuk', case_type: 'Aile Hukuku', status: 'active', priority: 'medium', instance_stage: 'ilk_derece', case_stage: 'on_inceleme', opened_date: '2026-03-12', opposing_party: 'Kerem Arslan', description: null, fee_amount: 32000, created_at: '2026-03-12T09:00:00Z', updated_at: gunEkle(-5), client: { id: 'c2', full_name: 'Zeynep Arslan', company: null } },
-  { id: 'd3', owner_id: KULLANICI_ID, client_id: 'c3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903', court_name: 'İstanbul 6. Asliye Ticaret Mahkemesi', court_category: 'hukuk', case_type: 'Ticaret Hukuku', status: 'active', priority: 'critical', instance_stage: 'istinaf', case_stage: null, opened_date: '2025-11-20', opposing_party: 'Batı Yapı San. Tic. A.Ş.', description: null, fee_amount: 175000, created_at: '2025-11-20T09:00:00Z', updated_at: gunEkle(-1), client: { id: 'c3', full_name: 'Doruk İnşaat A.Ş.', company: 'Doruk İnşaat A.Ş.' } },
-  { id: 'd4', owner_id: KULLANICI_ID, client_id: 'c1', title: 'Korkmaz — Fazla Mesai Alacağı', case_number: '2026/512', court_name: 'İstanbul 4. İş Mahkemesi', court_category: 'hukuk', case_type: 'İş Hukuku', status: 'pending', priority: 'low', instance_stage: 'ilk_derece', case_stage: 'dilekceler', opened_date: '2026-06-18', opposing_party: 'Anadolu Lojistik Ltd. Şti.', description: null, fee_amount: 22000, created_at: '2026-06-18T09:00:00Z', updated_at: gunEkle(-9), client: { id: 'c1', full_name: 'Mehmet Korkmaz', company: null } },
+  { id: 'd1', owner_id: KULLANICI_ID, client_id: 'c1', title: 'M. K. — Kıdem ve İhbar Tazminatı', case_number: '2026/0001', court_name: 'Örnek İş Mahkemesi', court_category: 'hukuk', case_type: 'İş Hukuku', status: 'active', priority: 'high', instance_stage: 'ilk_derece', case_stage: 'tahkikat', opened_date: '2026-02-04', opposing_party: 'Lojistik Firması Ltd. Şti.', description: null, fee_amount: 48000, created_at: '2026-02-04T09:00:00Z', updated_at: gunEkle(-2), client: { id: 'c1', full_name: 'M. K.', company: null } },
+  { id: 'd2', owner_id: KULLANICI_ID, client_id: 'c2', title: 'Z. A. — Anlaşmalı Boşanma', case_number: '2026/0002', court_name: 'Örnek Aile Mahkemesi', court_category: 'hukuk', case_type: 'Aile Hukuku', status: 'active', priority: 'medium', instance_stage: 'ilk_derece', case_stage: 'on_inceleme', opened_date: '2026-03-12', opposing_party: 'K. A.', description: null, fee_amount: 32000, created_at: '2026-03-12T09:00:00Z', updated_at: gunEkle(-5), client: { id: 'c2', full_name: 'Z. A.', company: null } },
+  { id: 'd3', owner_id: KULLANICI_ID, client_id: 'c3', title: 'İnşaat Firması — Eser Sözleşmesinden Alacak', case_number: '2026/0003', court_name: 'Örnek Asliye Ticaret Mahkemesi', court_category: 'hukuk', case_type: 'Ticaret Hukuku', status: 'active', priority: 'critical', instance_stage: 'istinaf', case_stage: null, opened_date: '2025-11-20', opposing_party: 'Yapı Firması A.Ş.', description: null, fee_amount: 175000, created_at: '2025-11-20T09:00:00Z', updated_at: gunEkle(-1), client: { id: 'c3', full_name: 'İnşaat Firması A.Ş.', company: 'İnşaat Firması A.Ş.' } },
+  { id: 'd4', owner_id: KULLANICI_ID, client_id: 'c1', title: 'M. K. — Fazla Mesai Alacağı', case_number: '2026/0004', court_name: 'Örnek İş Mahkemesi', court_category: 'hukuk', case_type: 'İş Hukuku', status: 'pending', priority: 'low', instance_stage: 'ilk_derece', case_stage: 'dilekceler', opened_date: '2026-06-18', opposing_party: 'Lojistik Firması Ltd. Şti.', description: null, fee_amount: 22000, created_at: '2026-06-18T09:00:00Z', updated_at: gunEkle(-9), client: { id: 'c1', full_name: 'M. K.', company: null } },
 ];
 
 // BUGÜN İÇİN EN AZ BİR İŞ OLMALI — 16.09.2026'da mağaza görselinde yakalandı.
@@ -94,25 +106,25 @@ const bugunSaat = (saat, dakika = 0) => {
 };
 
 const durusmalar = [
-  { id: 'h0', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Duruşma — tanık beyanları', type: 'hearing', scheduled_at: bugunSaat(14, 30), location: 'İstanbul 9. İş Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-09-01T09:00:00Z', case: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
-  { id: 'h1', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Tanık dinlenmesi', type: 'hearing', scheduled_at: gunEkle(2), location: 'İstanbul 9. İş Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-01T09:00:00Z', case: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
-  { id: 'h2', owner_id: KULLANICI_ID, case_id: 'd2', title: 'Ön inceleme duruşması', type: 'hearing', scheduled_at: gunEkle(6), location: 'Kadıköy 3. Aile Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-04T09:00:00Z', case: { id: 'd2', title: 'Arslan — Anlaşmalı Boşanma', case_number: '2026/1177' } },
-  { id: 'h3', owner_id: KULLANICI_ID, case_id: 'd3', title: 'Bilirkişi raporu duruşması', type: 'hearing', scheduled_at: gunEkle(13), location: 'İstanbul BAM 14. HD', notes: null, reminder_minutes_before: 2880, is_completed: false, created_at: '2026-08-09T09:00:00Z', case: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
+  { id: 'h0', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Duruşma — tanık beyanları', type: 'hearing', scheduled_at: bugunSaat(14, 30), location: 'Örnek İş Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-09-01T09:00:00Z', case: { id: 'd1', title: 'M. K. — Kıdem ve İhbar Tazminatı', case_number: '2026/0001' } },
+  { id: 'h1', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Tanık dinlenmesi', type: 'hearing', scheduled_at: gunEkle(2), location: 'Örnek İş Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-01T09:00:00Z', case: { id: 'd1', title: 'M. K. — Kıdem ve İhbar Tazminatı', case_number: '2026/0001' } },
+  { id: 'h2', owner_id: KULLANICI_ID, case_id: 'd2', title: 'Ön inceleme duruşması', type: 'hearing', scheduled_at: gunEkle(6), location: 'Örnek Aile Mahkemesi', notes: null, reminder_minutes_before: 1440, is_completed: false, created_at: '2026-08-04T09:00:00Z', case: { id: 'd2', title: 'Z. A. — Anlaşmalı Boşanma', case_number: '2026/0002' } },
+  { id: 'h3', owner_id: KULLANICI_ID, case_id: 'd3', title: 'Bilirkişi raporu duruşması', type: 'hearing', scheduled_at: gunEkle(13), location: 'Örnek Bölge Adliye Mahkemesi', notes: null, reminder_minutes_before: 2880, is_completed: false, created_at: '2026-08-09T09:00:00Z', case: { id: 'd3', title: 'İnşaat Firması — Eser Sözleşmesinden Alacak', case_number: '2026/0003' } },
 ];
 
 const sureler = [
-  { id: 's0', owner_id: KULLANICI_ID, case_id: 'd2', title: 'Cevap dilekçesi son gün', due_at: bugunSaat(17, 0), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-02T09:00:00Z', case: { id: 'd2', title: 'Arslan — Anlaşmalı Boşanma', case_number: '2026/1177' } },
-  { id: 's1', owner_id: KULLANICI_ID, case_id: 'd3', title: 'İstinaf dilekçesine cevap', due_at: gunEkle(3), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-01T09:00:00Z', case: { id: 'd3', title: 'Doruk İnşaat — Eser Sözleşmesinden Doğan Alacak', case_number: '2026/903' } },
-  { id: 's2', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Bilirkişi raporuna itiraz', due_at: gunEkle(8), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-03T09:00:00Z', case: { id: 'd1', title: 'Korkmaz — Kıdem ve İhbar Tazminatı', case_number: '2026/418' } },
+  { id: 's0', owner_id: KULLANICI_ID, case_id: 'd2', title: 'Cevap dilekçesi son gün', due_at: bugunSaat(17, 0), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-02T09:00:00Z', case: { id: 'd2', title: 'Z. A. — Anlaşmalı Boşanma', case_number: '2026/0002' } },
+  { id: 's1', owner_id: KULLANICI_ID, case_id: 'd3', title: 'İstinaf dilekçesine cevap', due_at: gunEkle(3), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-01T09:00:00Z', case: { id: 'd3', title: 'İnşaat Firması — Eser Sözleşmesinden Alacak', case_number: '2026/0003' } },
+  { id: 's2', owner_id: KULLANICI_ID, case_id: 'd1', title: 'Bilirkişi raporuna itiraz', due_at: gunEkle(8), is_completed: false, notes: null, reminder_minutes_before: 1440, created_at: '2026-09-03T09:00:00Z', case: { id: 'd1', title: 'M. K. — Kıdem ve İhbar Tazminatı', case_number: '2026/0001' } },
 ];
 
 const finans = [
-  { id: 'f1', owner_id: KULLANICI_ID, kind: 'income', category: 'fee', title: 'Doruk İnşaat — 2. taksit', amount: 60000, entry_date: gunEkle(-6).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: 20, withholding_rate: 20, vat_amount: 12000, withholding_amount: 12000, net_total: 60000, receipt_no: 'A-2026-014', receipt_issued: true, created_at: gunEkle(-6) },
-  { id: 'f2', owner_id: KULLANICI_ID, kind: 'income', category: 'fee', title: 'Korkmaz — peşinat', amount: 20000, entry_date: gunEkle(-14).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: 20, withholding_rate: 20, vat_amount: 4000, withholding_amount: 4000, net_total: 20000, receipt_no: 'A-2026-011', receipt_issued: true, created_at: gunEkle(-14) },
+  { id: 'f1', owner_id: KULLANICI_ID, kind: 'income', category: 'fee', title: 'İnşaat Firması — 2. taksit', amount: 60000, entry_date: gunEkle(-6).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: 20, withholding_rate: 20, vat_amount: 12000, withholding_amount: 12000, net_total: 60000, receipt_no: 'ÖRNEK-01', receipt_issued: true, created_at: gunEkle(-6) },
+  { id: 'f2', owner_id: KULLANICI_ID, kind: 'income', category: 'fee', title: 'M. K. — peşinat', amount: 20000, entry_date: gunEkle(-14).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: 20, withholding_rate: 20, vat_amount: 4000, withholding_amount: 4000, net_total: 20000, receipt_no: 'ÖRNEK-02', receipt_issued: true, created_at: gunEkle(-14) },
   // GEÇEN AY KAYITLARI — 16.09.2026'da eklendi. Öncesinde pano üç kutuda birden
   // "%0 geçen aya göre" yazıyordu: kıyaslanacak önceki ay verisi yoktu. Mağaza
   // görselinde üç sıfır yan yana, çalışmayan bir özellik gibi duruyordu.
-  { id: 'f4', owner_id: KULLANICI_ID, kind: 'income', category: 'fee', title: 'Arslan — vekâlet ücreti', amount: 45000, entry_date: gunEkle(-38).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: 20, withholding_rate: 20, vat_amount: 9000, withholding_amount: 9000, net_total: 45000, receipt_no: 'A-2026-008', receipt_issued: true, created_at: gunEkle(-38) },
+  { id: 'f4', owner_id: KULLANICI_ID, kind: 'income', category: 'fee', title: 'Z. A. — vekâlet ücreti', amount: 45000, entry_date: gunEkle(-38).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: 20, withholding_rate: 20, vat_amount: 9000, withholding_amount: 9000, net_total: 45000, receipt_no: 'ÖRNEK-03', receipt_issued: true, created_at: gunEkle(-38) },
   { id: 'f5', owner_id: KULLANICI_ID, kind: 'expense', category: 'office', title: 'Büro kirası', amount: 28000, entry_date: gunEkle(-40).slice(0, 10), is_recurring: true, recurring_until: null, note: null, vat_rate: null, withholding_rate: null, vat_amount: null, withholding_amount: null, net_total: 28000, receipt_no: null, receipt_issued: false, created_at: gunEkle(-40) },
   { id: 'f6', owner_id: KULLANICI_ID, kind: 'expense', category: 'other', title: 'Bilirkişi ücreti', amount: 6500, entry_date: gunEkle(-44).slice(0, 10), is_recurring: false, recurring_until: null, note: null, vat_rate: null, withholding_rate: null, vat_amount: null, withholding_amount: null, net_total: 6500, receipt_no: null, receipt_issued: false, created_at: gunEkle(-44) },
   { id: 'f3', owner_id: KULLANICI_ID, kind: 'expense', category: 'office', title: 'Büro kirası', amount: 28000, entry_date: gunEkle(-10).slice(0, 10), is_recurring: true, recurring_until: null, note: null, vat_rate: null, withholding_rate: null, vat_amount: null, withholding_amount: null, net_total: 28000, receipt_no: null, receipt_issued: false, created_at: gunEkle(-10) },

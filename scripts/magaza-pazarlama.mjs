@@ -13,18 +13,27 @@
 // eden altın etiketler, arkada ince defter çizgileri, öne çıkan görselde iki
 // telefon üst üste.
 //
-// VURGU: sıra ve başlıklar, depoda BELGELENMİŞ farklara göre —
-//   • Künye denetimi: AI'ın verdiği her madde/karar künyesi doğrulanır,
-//     havuzda yok ya da olamaz diye işaretlenir (BEKLEME-PENCERESI.md:
-//     "hiçbir rakip bunu denetlediğini söylemiyor"). BAŞ SIRADA.
-//   • Duruşma çıkışında süreyi tebligat/tefhim ayrımıyla türetme
-//     (KOSGEB.md 4.6, app/durusma-cikisi.tsx).
-//   • UYAP UDF/PDF'ten künye okuyup dosya açma (app/dosya-aktar.tsx).
-//   • Mevzuat cihazda — adliyede internet yokken de (src/data/laws).
+// SIRA — ÜRÜN SAHİBİ KARARI (16.09.2026): "normal app de var ya bedava,
+// sadece AI öne çıkmasın." Vitrin artık ÜCRETSİZ İŞ AKIŞIYLA açılıyor,
+// yapay zekâ EN SONDA ve "ayrı bir pakette" diye işaretli.
+//
+// Neden doğru: AI ayrı ve ücretli bir katman. Vitrini onunla açmak,
+// indiren kişinin ücretli bir özellik beklemesine yol açar ve ilk açılışta
+// hayal kırıklığı olur — iki mağazada da en sık şikâyet sebeplerinden.
+//
+// ÜCRETSİZ OLDUĞU KODDAN DOĞRULANDI (src/config/planlar.ts > UCRETSIZ_LIMIT
+// ve üstündeki gerekçe bloğu): duruşma, görev, ajanda ve hatırlatmalar
+// SINIRSIZ ücretsiz; içtihat araması, mevzuat, hesaplayıcılar ve dilekçe
+// şablonları da ücretsiz. Ücretli olanlar: sınırsız kayıt, finans modülü
+// (ücretsizde kapalı) ve yapay zekâ. Görselde "ücretsiz" yalnız gerçekten
+// ücretsiz olanın yanında yazıyor.
+//
+// Sıradaki ayırt edici özellikler kodda doğrulandı: duruşma çıkışında süre
+// türetme (app/durusma-cikisi.tsx), UYAP UDF/PDF'ten künye
+// (app/dosya-aktar.tsx), künye denetimi (AtifDenetimi.tsx).
 // "Rakiplerde yok" CÜMLESİ GÖRSELE YAZILMADI: Ticari Reklam Yönetmeliği
 // karşılaştırmalı reklamı nesnel kanıta bağlıyor ve iki mağaza da rakip
-// adı/iması istemiyor. Vurgu, o özelliklere baş sırayı ve büyük başlığı
-// vererek yapılıyor — rakibi anarak değil.
+// adı/iması istemiyor.
 //
 // KURAL: EKRAN GÖRÜNTÜSÜ HER ZAMAN GERÇEK. Etiket ve başlık ETRAFINA konur,
 // ekranın İÇİNE dokunulmaz. İki mağaza da bunu şart koşuyor.
@@ -74,23 +83,29 @@ const R = {
  */
 const KARTLAR = [
   {
-    dosya: '06-ictihat.png',
-    ust: 'Uydurmayan', vurgu: 'yapay zekâ',
-    alt: 'Verilen her kanun maddesi ve karar künyesi denetlenir: doğrulandı, havuzda yok ya da olamaz.',
+    dosya: '01-pano.png',
+    ust: 'Gününüz', vurgu: 'tek bakışta',
+    alt: 'Duruşmalar, süreler ve dosyalarınız sabah açtığınızda karşınızda.',
     etiketler: [
-      { y: 23, taraf: 'sag', metin: 'Olayı anlatın, içtihadı bulsun' },
-      { y: 75, taraf: 'sol', metin: 'Her künye denetlenir' },
+      { y: 44, taraf: 'sag', metin: 'Bugünün duruşması ve süresi' },
+      { y: 64, taraf: 'sol', metin: 'Davanıza emsal — otomatik' },
     ],
   },
   {
-    // KISA EKRAN: içerik üst %54'te bitiyor, gerisi boş zemin. `kes` ile
-    // yalnız o kısım gösterilir; telefon tam çerçeveli ve ortalı çizilir.
     dosya: '07-durusma-cikisi.png', kes: 0.60,
     ust: 'Duruşmadan çıkın,', vurgu: 'süre hazır',
     alt: 'Ne olduğunu seçin; tebligat/tefhim ayrımıyla süre türetilir ve takvime düşer.',
     etiketler: [
       { y: 27, taraf: 'sag', metin: 'Takvime düşer' },
       { y: 39.5, taraf: 'sol', metin: 'Karar açıklandı → süre otomatik' },
+    ],
+  },
+  {
+    dosya: '03-takvim.png',
+    ust: 'Duruşma ve süreler', vurgu: 'takvimde',
+    alt: 'Sınırsız duruşma, süre ve hatırlatma — ücretsiz planda da.',
+    etiketler: [
+      { y: 40, taraf: 'sag', metin: 'Hatırlatma 1 gün önce' },
     ],
   },
   {
@@ -103,15 +118,6 @@ const KARTLAR = [
     ],
   },
   {
-    dosya: '01-pano.png',
-    ust: 'Gününüz', vurgu: 'tek bakışta',
-    alt: 'Sabah açtığınızda duruşma, süre ve davanıza emsal karar hazır.',
-    etiketler: [
-      { y: 44, taraf: 'sag', metin: 'Bugünün duruşması ve süresi' },
-      { y: 64, taraf: 'sol', metin: 'Davanıza emsal — otomatik' },
-    ],
-  },
-  {
     dosya: '05-finans.png',
     ust: 'Vekâlet ücreti', vurgu: 'hesaplı',
     alt: 'KDV ve stopaj otomatik; serbest meslek makbuzu bilgileri hazır.',
@@ -120,11 +126,16 @@ const KARTLAR = [
     ],
   },
   {
-    dosya: '03-takvim.png',
-    ust: 'Süreler', vurgu: 'takvimde',
-    alt: 'Duruşma ve süreler hatırlatmalarıyla birlikte — mevzuat cihazda, adliyede internet olmasa da.',
+    // AI EN SONDA — ürün sahibi kararı 16.09.2026: "normal app de var ya
+    // bedava, sadece AI öne çıkmasın." Doğru karar: AI AYRI BİR PAKET.
+    // Vitrini onunla açmak, indiren kişinin ücretli bir özellik beklemesine
+    // yol açar ve ilk açılışta hayal kırıklığı olur.
+    dosya: '06-ictihat.png',
+    ust: 'İsterseniz', vurgu: 'yapay zekâ',
+    alt: 'Ayrı bir pakette: olayı anlatın, içtihadı bulsun. Verilen her künye denetlenir.',
     etiketler: [
-      { y: 40, taraf: 'sag', metin: 'Duruşma günü işaretli' },
+      { y: 23, taraf: 'sag', metin: 'Olayı anlatın, içtihadı bulsun' },
+      { y: 75, taraf: 'sol', metin: 'Her künye denetlenir' },
     ],
   },
 ];
@@ -304,13 +315,13 @@ function oneCikan({ pano, ictihat, logo }) {
   <div class="defter"></div><div class="isik"></div>
   <div class="sol">
     <div class="marka"><img src="${logo}">VEKİL PRO</div>
-    <h1>Uydurmayan<br><em>yapay zekâ</em></h1>
+    <h1>Avukatın<br><em>dijital bürosu</em></h1>
     <div class="altinCizgi"></div>
-    <p>Her karar künyesi denetlenir. Duruşma çıkışında süre otomatik. UYAP dosyasından künye tek dokunuşla.</p>
+    <p>Dosya, duruşma ve süre takibi — ücretsiz. Vekâlet ücreti hesabı, içtihat araması ve isteğe bağlı yapay zekâ.</p>
     <div class="ozellikler">
-      <div class="ozellik">Her künye denetlenir</div>
-      <div class="ozellik">Duruşma çıkışında süre</div>
+      <div class="ozellik">Duruşma &amp; süre takibi</div>
       <div class="ozellik">UYAP'tan dosya aç</div>
+      <div class="ozellik">İçtihat araması</div>
     </div>
   </div>
   <div class="tel arka"><div class="ekran"><img src="${ictihat}"></div></div>
