@@ -147,6 +147,26 @@ const KARTLAR = [
       { y: 30, taraf: 'sag', metin: 'KDV + stopaj otomatik' },
     ],
   },
+  {
+    // Hesaplayıcılar ÜCRETSİZ. Ekranda AAÜT tarifesinin Resmî Gazete
+    // künyesi görünüyor; "kaynağını söyleyen hesap" iyi bir vitrin.
+    dosya: '10-calculators.png', kes: 0.45,
+    ust: 'Hesaplayıcılar', vurgu: 'ücretsiz',
+    alt: 'Vekâlet ücreti, faiz, harç ve SMM makbuzu — tarifenin Resmî Gazete künyesiyle birlikte.',
+    etiketler: [
+      { y: 12, taraf: 'sag', metin: 'Faiz · harç · SMM' },
+      { y: 39, taraf: 'sol', metin: 'Tarife künyesi görünür' },
+    ],
+  },
+  {
+    dosya: '11-dilekce-uret.png',
+    ust: 'Dilekçe', vurgu: 'taslağı',
+    alt: 'On bir dilekçe türü. Dosya seçerseniz mahkeme, esas no ve taraflar kayıtlarınızdan yazılır.',
+    etiketler: [
+      { y: 20, taraf: 'sag', metin: 'On bir dilekçe türü' },
+      { y: 44, taraf: 'sol', metin: 'Dosyadan otomatik doldurur' },
+    ],
+  },
 ];
 
 async function dataUri(yol, tip = 'image/png') {

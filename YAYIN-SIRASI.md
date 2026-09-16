@@ -16,20 +16,49 @@
 
 ---
 
-## Hazır olanlar (ben yaptım)
+## Hazır olanlar (ben yaptım) — kaç tane gerekiyor, kaç tane var
 
-| şey | nerede |
+| ne | mağaza şartı | üretilen | nerede |
+|---|---|---|---|
+| **Play** telefon görseli | en az 2, **en çok 8** | **8** ✅ | `magaza-pazarlama/play/01…08` |
+| **Play** öne çıkan görsel | **1 zorunlu**, tam 1024×500 | **1** ✅ | `play/feature-1024x500.png` |
+| **Play** uygulama simgesi | **1 zorunlu**, tam 512×512 | **1** ✅ | `play/icon-512.png` |
+| **App Store** iPhone 6.7" | en az 1, en çok 10 | **8** ✅ | `magaza-pazarlama/ios/01…08` |
+| **App Store** iPad 13" | **zorunlu** (`supportsTablet: true`) | **4** ✅ | `magaza-pazarlama/ipad/01…04` |
+
+> **iPad'i az kalsın atlıyordum.** `app.json`'da `ios.supportsTablet: true`
+> olduğu için Apple iPad görselini ZORUNLU tutuyor ve olmadan gönderim
+> reddedilir. 2048×2732 boyutunda dört görsel üretildi; iPad'in iki sütunlu
+> düzeni telefondan farklı göründüğü için bunlar çerçevesiz, ham hâlleriyle
+> kullanılıyor — Apple bunu kabul ediyor ve tablet düzenini olduğu gibi
+> göstermek daha dürüst.
+>
+> Alternatif: `supportsTablet: false` yapmak. O zaman iPad görseli
+> gerekmez ama iPad kullanan avukatlar uygulamayı App Store'da bulamaz.
+> Karar senin; bugünkü hâliyle iPad destekli gidiyoruz.
+
+**Vitrin sırası** (ürün sahibi kararı): yapay zekâ başta, ücretsiz olan
+ayrıca ve açıkça yazılı.
+1. Uydurmayan yapay zekâ · 2. Duruşmadan çıkın, süre hazır ·
+3. UYAP dosyasını atın · 4. Gününüz tek bakışta ·
+5. Duruşma ve süreler **ücretsiz** · 6. Vekâlet ücreti hesaplı ·
+7. Hesaplayıcılar **ücretsiz** · 8. Dilekçe taslağı
+
+**Görsellerde sayı ve fiyat YOK** (ürün sahibi kararı): rakam eskir ve
+eskiyen rakam yalan olur; özellik eskimez.
+
+| diğer | nerede |
 |---|---|
-| Play telefon ekran görüntüleri (1080×1920, 6 adet) | `magaza-pazarlama/play/` |
-| Play öne çıkan görsel (1024×500, **zorunlu**) | `magaza-pazarlama/play/feature-1024x500.png` |
-| App Store 6.7" görselleri (1290×2796, 6 adet) | `magaza-pazarlama/ios/` |
-| Ham ekran görüntüleri (çerçevesiz) | `magaza-gorselleri/` |
-| Uygulama simgesi | `assets/icon.png` |
 | Gizlilik politikası | https://vekilpro.app/privacy.html |
 | Kullanım koşulları | https://vekilpro.app/terms.html |
 | Hesap silme sayfası | https://vekilpro.app/hesap-silme.html |
 
-Görseller yeniden üretilecekse: `node scripts/magaza-ekranlari.mjs && node scripts/magaza-pazarlama.mjs`
+Yeniden üretmek için:
+```
+VP_TEMA=dark node scripts/magaza-ekranlari.mjs
+VP_TEMA=dark VP_EKRANLAR=/durusma-cikisi,/dosya-aktar,/laws,/calculators,/dilekce-uret node scripts/magaza-ekranlari.mjs
+node scripts/magaza-pazarlama.mjs
+```
 
 ---
 
