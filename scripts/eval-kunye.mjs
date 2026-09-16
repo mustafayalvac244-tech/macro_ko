@@ -132,7 +132,27 @@ const senaryolar = SECIM.length ? tumSenaryolar.filter((s) => SECIM.includes(s.i
 
 // PARA BÜTÇESİ (bkz. istek.mjs > ParaButcesi). 11 Eylül 2026: 5 dolarlık kredi
 // tek koşuda tükendi, çünkü yalnız duvar saati sayılıyordu.
-const para = new ParaButcesi(Number(process.env.EVAL_PARA_BUTCESI ?? 0), typeof senaryolar !== 'undefined' ? senaryolar.length : 0);
+/**
+ * VARSAYILAN TAVAN ₺50 — 0 (SINIRSIZ) DEĞİL.
+ *
+ * 16.09.2026'DA ÜRÜN SAHİBİ SÖYLEDİ: "sen 5 doları 2 dakikada bitirdin."
+ * Haklıydı. Bu bütçe koruması zaten 11 Eylül'deki aynı olaydan sonra
+ * yazılmıştı — ama varsayılanı 0'dı ve 0 "sınırsız" demek. Yani korumayı
+ * yazdım, sonra ORTAM DEĞİŞKENİNİ VERMEYİ UNUTUNCA koruma hiç çalışmadı.
+ *
+ * Bu depoda defalarca yakalanan kalıbın aynısı: VAR OLAN AMA KORUMAYAN
+ * KORUMA. (app.json'daki geçersiz `android.queries` bloğu, canOpenURL
+ * tuzağına karşı "savunma" diye eklenmişti ve hiçbir şey savunmuyordu.)
+ *
+ * TERSİNE ÇEVRİLDİ: artık unutmak GÜVENLİ tarafa düşüyor. Tavanı bilerek
+ * kaldırmak isteyen EVAL_PARA_BUTCESI=0 yazar — yani sınırsız harcama
+ * bundan sonra bir KARAR, bir unutma değil.
+ */
+const PARA_TAVANI_VARSAYILAN = 50;
+const paraTavani = process.env.EVAL_PARA_BUTCESI === undefined
+  ? PARA_TAVANI_VARSAYILAN
+  : Number(process.env.EVAL_PARA_BUTCESI);
+const para = new ParaButcesi(paraTavani, typeof senaryolar !== 'undefined' ? senaryolar.length : 0);
 
 let uid = null;
 let dogru = 0, beklenenToplam = 0, uydurma = 0, yanlis = 0, gecen = 0;

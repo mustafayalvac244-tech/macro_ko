@@ -267,7 +267,27 @@ const senaryolar = SINIR > 0 ? secilen.slice(0, SINIR) : secilen;
 // kredisi tek koşuda tükendi: o gün yalnız duvar saati sayılıyordu, parayı
 // sayan hiçbir şey yoktu. EVAL_PARA_BUTCESI (TL) verilmezse sınırsız çalışır
 // ama harcama yine de raporlanır — görünmeyen harcama, yakılan harcamadır.
-const para = new ParaButcesi(Number(process.env.EVAL_PARA_BUTCESI ?? 0), senaryolar.length);
+/**
+ * VARSAYILAN TAVAN ₺50 — 0 (SINIRSIZ) DEĞİL.
+ *
+ * 16.09.2026'DA ÜRÜN SAHİBİ SÖYLEDİ: "sen 5 doları 2 dakikada bitirdin."
+ * Haklıydı. Bu bütçe koruması zaten 11 Eylül'deki aynı olaydan sonra
+ * yazılmıştı — ama varsayılanı 0'dı ve 0 "sınırsız" demek. Yani korumayı
+ * yazdım, sonra ORTAM DEĞİŞKENİNİ VERMEYİ UNUTUNCA koruma hiç çalışmadı.
+ *
+ * Bu depoda defalarca yakalanan kalıbın aynısı: VAR OLAN AMA KORUMAYAN
+ * KORUMA. (app.json'daki geçersiz `android.queries` bloğu, canOpenURL
+ * tuzağına karşı "savunma" diye eklenmişti ve hiçbir şey savunmuyordu.)
+ *
+ * TERSİNE ÇEVRİLDİ: artık unutmak GÜVENLİ tarafa düşüyor. Tavanı bilerek
+ * kaldırmak isteyen EVAL_PARA_BUTCESI=0 yazar — yani sınırsız harcama
+ * bundan sonra bir KARAR, bir unutma değil.
+ */
+const PARA_TAVANI_VARSAYILAN = 50;
+const paraTavani = process.env.EVAL_PARA_BUTCESI === undefined
+  ? PARA_TAVANI_VARSAYILAN
+  : Number(process.env.EVAL_PARA_BUTCESI);
+const para = new ParaButcesi(paraTavani, senaryolar.length);
 
 let uid = null;
 const sonuclar = [];

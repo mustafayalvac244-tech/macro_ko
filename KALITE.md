@@ -1,5 +1,29 @@
 # Her açıdan 8/10 planı
 
+> ## ÖLÇÜMÜ CLAUDE KOŞMAZ — 16.09.2026, ürün sahibi kuralı
+>
+> **"Abi sen koşma. Sen 5 doları 2 dakikada bitirdin."**
+>
+> `scripts/eval-*.mjs` betikleri **gerçek para harcar** ve harcama ürün
+> sahibinin faturasına yazılır. Bu yüzden:
+>
+> - Claude bu betikleri **kendiliğinden koşmaz** — ürün sahibi o koşu için
+>   açıkça "koş" demedikçe.
+> - "Ölçüm tek komut uzakta" cümlesi bu dosyada bir DAVET gibi duruyordu;
+>   artık öyle okunmamalı. Komut kısa, fatura kısa değil.
+> - Claude ölçüm yerine şunu yapar: hangi betiğin, hangi ortam değişkeniyle,
+>   yaklaşık ne kadara koşacağını **söyler** ve kararı ürün sahibine bırakır.
+>
+> **BU OLAY İKİ KEZ YAŞANDI.** 11 Eylül'de tek senaryonun maliyeti ölçülmeden
+> tam koşu başlatıldı; düzeltme olarak `ParaButcesi` yazıldı. Ama varsayılanı
+> **0 = sınırsız**'dı — yani koruma vardı, korumuyordu. 16 Eylül'de ürün
+> sahibi faturadan fark etti.
+>
+> Varsayılan artık **₺50** (`PARA_TAVANI_VARSAYILAN`, altı eval betiğinde).
+> Unutmak artık güvenli tarafa düşüyor; sınırsız harcamak için
+> `EVAL_PARA_BUTCESI=0` yazmak gerekiyor — yani bir KARAR, bir unutma değil.
+
+
 Hedef: on özelliğin **her biri** avukat gözünden en az 8/10.
 
 Puanlar tahminle değil ölçümle veriliyor. Ölçümü olmayan özelliğe puan
