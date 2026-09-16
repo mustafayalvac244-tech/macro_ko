@@ -3,6 +3,7 @@ import { kose } from '@/theme/theme';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { hataKaydet } from '@/lib/hataKaydi';
 
 interface Props {
   children: React.ReactNode;
@@ -28,6 +29,11 @@ export class ErrorBoundary extends React.Component<Props, State> {
   componentDidCatch(error: Error) {
     // Keep a breadcrumb in the JS console / crash logs.
     console.error('Uncaught UI error:', error);
+    // 16.09.2026'DA EKLENDİ. Yukarıdaki satır tek başına yeterli sanılıyordu;
+    // gerçek bir cihazda `console.error` HİÇBİR YERE gitmiyor. Bir iPhone
+    // çökmesi araştırılırken elimizde tek satır kayıt olmadığı görüldü ve
+    // teşhis tahmine kaldı. Artık kayıt veritabanına da düşüyor.
+    hataKaydet(error, 'render');
   }
 
   private reset = () => {
