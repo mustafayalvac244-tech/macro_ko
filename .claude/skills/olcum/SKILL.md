@@ -36,8 +36,25 @@ bulup bulmadığına bak. Bulamıyorsa, bulamadığı diğer şeyler de kanıt d
   çıkaracaktım. Yakalatan şey: `length(to_tsvector(...))` = 1 sayısının
   makul olmaması.
 
+- **GitHub iş durumu olayı (16.09.2026).** iOS derlemesini izlerken
+  `list_workflow_jobs` iki saat boyunca "Derle: in_progress" döndürdü.
+  Kullanıcıya iki kez "hâlâ derliyor" dedim. Kayda (`get_job_logs`)
+  bakınca çıkan gerçek: koşu **3 dakikada düşmüştü**. Bir sonraki koşuda
+  aynı şey tekrarlandı (gerçekte 41 saniye). Uç bozuk değildi —
+  **bayattı**, ve bayat veri "hata" gibi görünmüyor, "durum" gibi
+  görünüyor.
+
+  Yakalatabilecek şey elimin altındaydı ve bakmadım: cevaptaki
+  `updated_at` alanı her çağrıda **aynı** kalıyordu. Canlı bir işin
+  damgası ilerlemek zorundadır; ilerlemiyorsa veri canlı değildir.
+
+  **Ders:** "devam ediyor" bir ölçüm değil, **bir şeyin YOKLUĞUDUR** —
+  bitiş sinyali gelmemiştir. Yokluğu durum diye rapor etmeden önce,
+  verinin tazeliğini gösteren bir alan bul ve onun değiştiğini gör.
+
 **Alışkanlık:** ölçüm çıktısında bir sayı "fazla temiz" ya da "fazla iyi"
-görünüyorsa, önce aleti şüpheli say.
+görünüyorsa, önce aleti şüpheli say. Bir durum alanı hiç değişmiyorsa da
+aynısını yap.
 
 ---
 

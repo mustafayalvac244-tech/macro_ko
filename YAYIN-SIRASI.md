@@ -277,11 +277,33 @@ kullandığı için EAS kendi kimlik kurulumunu **hiç çalıştırmıyor**.
 - Betik: `scripts/ios-imza-uret.mjs`
 - İş akışı girdisi: `imza: apple-api`
 
-**ÖLÇÜLDÜ — koşu #1, 16.09.2026 18:23 UTC:**
-`İmza kimliklerini üret (Apple API)` adımı **2 saniyede başarılı**
-(18:23:56 → 18:23:58). Apple ID şifresi sorulmadı, doğrulama kodu
-istenmedi. Aynı koşuda ayrıca ilk kez doğrulandı: `ASC_API_KEY_P8` secret'ı
-gerçekten tanımlı ve içeriği geçerli bir özel anahtar.
+**ÖLÇÜLDÜ — üç koşu, 16.09.2026:**
+
+| koşu | ne denendi | sonuç |
+|---|---|---|
+| #1 | `derle-ve-gonder` | Sertifika + profil üretildi, `.p12` paketlendi, **EAS "Using local iOS credentials (credentials.json)" dedi** — sonra Xcode `aps-environment` eksikliğinden düştü |
+| #2 | aynısı, yetenek açma eklendi | Sertifika iptal + yeniden üretildi; `bundleIdCapabilities?limit=200` 400 verdi |
+| #3 | `yalniz-imza` | **Baştan sona geçti:** yetenek açıldı, eski profil silindi, yenisi üretildi, `credentials.json` yazıldı — 55 saniye |
+
+Apple ID şifresi hiçbir koşuda sorulmadı, doğrulama kodu istenmedi.
+Koşu #1 ayrıca ilk kez doğruladı: `ASC_API_KEY_P8` secret'ı gerçekten
+tanımlı ve içeriği geçerli bir özel anahtar.
+
+### İki ders
+
+**1. `yalniz-imza` modu neden var.** İlk iki hata da Apple API ile ilgili
+küçük hatalardı ve ikisi de 40 saniyede belli oluyordu — ama tam derlemeye
+bağlı oldukları için her denemede 40 dakika bekleniyordu. Ayrı bir mod
+eklemek, öğrenme döngüsünü 40 dakikadan 55 saniyeye indirdi. **Uzun bir
+işin ucundaki kısa adımı ayrı koşabilmek, o işi hızlandırmaktan daha
+değerli.**
+
+**2. GitHub'ın iş durumu ucuna bu ortamda GÜVENİLMİYOR.** Koşu #1 için
+`list_workflow_jobs` iki saat boyunca "Derle: in_progress" döndürdü; kayda
+bakınca **3 dakikada düşmüş** olduğu çıktı. Koşu #2 için aynı şey oldu
+(gerçekte 41 saniye). `updated_at` alanı hiç güncellenmiyor — bayat
+olduğunun işareti bu. **Tek güvenilir kaynak `get_job_logs`**, o da koşu
+bitene kadar 404 veriyor ve sonrasında dakikalarca gecikiyor.
 
 **SERTİFİKA SINIRI.** Betik her koşuşta yeni sertifika üretiyor (özel anahtar
 koşu bitince kayboluyor, eskisi bir daha kullanılamıyor). Apple hesap başına
