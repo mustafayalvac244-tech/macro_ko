@@ -150,6 +150,36 @@ RevenueCat'e iOS uygulamasını eklerken bu yeni bundle ID'yi yazın.
 
 ## 6. İstemci API anahtarlarını uygulamaya ekleyin
 
+> ### ⚠️ BU ADIM HÂLÂ YAPILMADI — 16.09.2026'da ölçüldü
+>
+> `eas.json`'daki `preview` ve `production` profillerinin `env` bloklarında
+> **yalnız iki Supabase değişkeni var**; RevenueCat anahtarları yok.
+> Depoda `EXPO_PUBLIC_REVENUECAT_*` yalnız iki yerde geçiyor ve ikisi de
+> `purchases.ts`'teki okuma satırları — hiçbir yerde **yazılmıyorlar**.
+>
+> **Sonucu ne:** `src/lib/purchases.ts:42`
+> ```ts
+> const apiKey = Platform.OS === 'ios' ? IOS_KEY : ANDROID_KEY;
+> if (!apiKey) { ...; return; }   // satın alma SESSİZCE kapalı
+> ```
+> Yani uygulama abonelik ekranını gösteriyor, kullanıcı düğmeye basıyor ve
+> **hiçbir şey olmuyor.** Çökme yok, hata yok — bu yüzden fark edilmedi.
+>
+> **Nerede ölçüldü:** Play'e yüklenen `vekilpro-3.3.2.aab`, Android koşu #4
+> (13.09.2026, commit `bc8f206`) çıktısı. O commit'te `purchases.ts` ve
+> `react-native-purchases` VAR, anahtar YOK.
+>
+> **Şu an tek iyi tarafı:** Play mağaza kaydında "dijital ürün satın alma:
+> Hayır" denmiş ve bu, çalışma zamanı davranışına *kazara* uyuyor. Kapalı
+> test için sorun değil. **Üretimden önce üçü birden gerekir:**
+> 1. `goog_`/`appl_` anahtarları aşağıdaki gibi `eas.json`'a
+> 2. Play Console'da `premium` ve `ai` abonelik ürünleri
+> 3. Beyan "Evet"e döner → içerik derecelendirme + veri güvenliği formları
+>    güncellenir
+>
+> Anahtarlar **gizli değildir** (istemciye gömülüyorlar) — sohbete
+> yazılabilir. Gizli olan RevenueCat *secret* anahtarı ve webhook sırrıdır.
+
 RevenueCat panelinde **Project Settings → API Keys**'te iOS ve Android için
 ayrı "Public app-specific API key" değerleri var (bunlar GİZLİ değildir,
 Stripe'ın publishable key'i gibi uygulama içine gömülebilir). `eas.json`
