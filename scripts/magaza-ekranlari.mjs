@@ -379,9 +379,17 @@ async function main() {
     [KULLANICI_ID, profil.email, SAHTE_JWT, SON_KULLANMA, `sb-${PROJE.split('.')[0]}-auth-token`],
   );
 
-  // TEMA SEÇİMİ — VP_TEMA=terminal gibi.
-  // Sebep: uygulama varsayılan olarak Klasik (açık) temayla açılıyor; bir
-  // temanın gerçekten nasıl göründüğünü ancak seçiliyken çekebiliriz.
+  // TEMA SEÇİMİ — VP_TEMA=terminal-light gibi.
+  //
+  // YORUM 16.09.2026'DA DÜZELTİLDİ. Önceden "uygulama varsayılan olarak
+  // Klasik (açık) temayla açılıyor" yazıyordu; bu 15.09.2026'da DEĞİŞTİ,
+  // varsayılan artık `terminal` (koyu) — bkz. themeStore.ts > ACILIS_TEMASI.
+  // Eskimiş yorum, VP_TEMA verilmediğinde ne çekildiğini yanlış söylüyordu.
+  //
+  // VP_TEMA VERİLMEZSE uygulamanın KENDİ varsayılanı çekilir, yani yeni bir
+  // kullanıcının ilk açılışta gördüğü hâl. Mağaza görselinde doğrusu genelde
+  // budur; başka bir tema çekmek, indiren kişinin göreceğinden farklı bir
+  // vitrin göstermek olur.
   // Anahtar `src/theme/themeStore.ts` içindeki STORAGE_KEY ile aynı olmalı;
   // AsyncStorage web'de anahtarı olduğu gibi localStorage'a yazıyor
   // (yukarıdaki 'vekil-kilit' de aynı yoldan yazılıyor).

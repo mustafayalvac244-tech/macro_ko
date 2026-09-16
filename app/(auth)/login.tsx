@@ -189,29 +189,52 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.danger,
     marginBottom: spacing.md,
   },
+  // DAR EKRANDA KESİLİYORDU — 16.09.2026, ürün sahibi telefonda gördü:
+  // "şifremi unuttum yazmıyor, şifremi yazıyor."
+  //
+  // SEBEP: React Native, satır içindeki Text'i sığmadığında SARMAZ, KESER.
+  // Web'de 412px'te zar zor sığıyor (ölçüldü: metin 788px'te bitiyor, kap
+  // 824px) — 360dp'lik bir telefonda taşıyor ve ikinci kelime gidiyor.
+  // Ölçüm web'de yapıldığı için sorun web'de GÖRÜNMÜYORDU; native'de bir
+  // derleme olmadığı için de hiç yakalanmamıştı.
+  //
+  // flexShrink: 0 → kabı daraldığında metni kısaltma, olduğu gibi bırak.
+  // maxWidth: '100%' → yine de kaptan taşıp ekran dışına çıkmasın.
   forgotLink: {
     alignSelf: 'flex-end',
     marginBottom: spacing.md,
+    flexShrink: 0,
+    maxWidth: '100%',
   },
   forgotText: {
     ...typography.caption,
     color: colors.primary,
+    flexShrink: 0,
   },
   submit: {
     marginTop: spacing.xs,
   },
+  // AYNI ARIZA, İKİNCİ YER: "hesap oluştur yerine hesap yazıyor."
+  // İki Text yan yana ve toplam genişlik kabı aşınca RN ikincisini kesiyor.
+  // flexWrap: 'wrap' → sığmazsa ALT SATIRA insin; kesilmek yerine sarılsın.
+  // gap → sarıldığında iki kelime birbirine yapışmasın.
   footer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.xxs,
     marginTop: spacing.xl,
   },
   footerText: {
     ...typography.body,
     color: colors.textSecondary,
+    flexShrink: 0,
   },
   footerLink: {
     ...typography.bodyMedium,
     color: colors.primary,
+    flexShrink: 0,
   },
   copyright: {
     ...typography.small,
