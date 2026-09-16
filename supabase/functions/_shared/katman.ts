@@ -104,9 +104,58 @@ export interface KatmanSecenek {
   claudeModel: string;
   /** ANTHROPIC_API_KEY tanımlı mı? Değilse ücretli katman Groq'a düşer. */
   claudeAnahtariVar: boolean;
+  /**
+   * İSTENEN İŞ TÜRÜ — model buna göre seçilir (bkz. MOD_UCUZ).
+   * `body.mode`'dan gelir: 'sohbet' | 'dilekce' | 'mutalaa' | 'belge' | 'kunye'.
+   * Verilmezse güçlü model kullanılır — yani unutmak KALİTE tarafına düşer,
+   * ucuz tarafa değil.
+   */
+  mod?: string;
   /** Ölçüm için sağlayıcı/model zorlama (üretimde tanımsız). */
   zorlaSaglayici?: string;
   zorlaModel?: string;
+}
+
+/**
+ * İŞE GÖRE MODEL — ürün sahibi kararı, 16.09.2026.
+ *
+ * "Basit şeyleri Haiku'ya yaptıracağız. Avukata 'vay be çok iyi yapay zeka'
+ * dedirtecek yerde Sonnet kullanırız."
+ *
+ * ÖNCEKİ TASARIMIN ARIZASI. Yönlendirme İŞE değil SIRAYA göreydi: ilk 750
+ * istek güçlü modelle, sonrası Haiku. Bunun anlamı şuydu — çok çalışan
+ * avukatın **751. dilekçesi** Haiku'ya düşüyordu. Yani sistem, en çok kullanan
+ * kullanıcının EN ÖNEMLİ çıktısını düşürüyordu. İşe göre yönlendirme bunu da
+ * düzeltiyor: dilekçe ve mütalaa sıradan bağımsız olarak güçlü modelde kalır.
+ *
+ * ÖLÇÜM (canlı `ai_istek`, 16.09.2026 — n=16, KÜÇÜK ama fark yapısal):
+ *
+ *   mod       ort.girdi  ort.çıktı   Haiku    Sonnet   ne iş
+ *   kunye         2.282       169   ₺0,13    ₺0,26   sınıflandırma
+ *   sohbet        5.473       426   ₺0,32    ₺0,64   kısa cevap
+ *   dilekce       4.842     1.771   ₺0,58    ₺1,15   MAHKEMEYE GİDEN BELGE
+ *   mutalaa      21.055     3.216   ₺1,56    ₺3,12   en yüksek bahis
+ *
+ * Ayrım kalite değil GÖRÜNÜRLÜK ve BAHİS üzerinden: künye bir sınıflandırma
+ * işidir, çıktısı 169 token ve kullanıcı onu bir form alanı olarak görür.
+ * Dilekçe ise avukatın okuyup imzaladığı, mahkemeye sunduğu metindir.
+ *
+ * BELGE BİLEREK GÜÇLÜ TARAFTA. Ölçümde `belge` modunda hiç satır yoktu, yani
+ * hangi tarafa ait olduğu BİLİNMİYOR. Bilinmeyeni ucuz tarafa koymak, ucuzluğu
+ * varsayım üzerine kurmak olurdu; bilinmeyen güçlü tarafta durur ve ölçüldükten
+ * sonra taşınır.
+ *
+ * ÖLÇÜLMEDİ — DÜRÜSTLÜK PAYI: Haiku'nun bu iki modda YETERLİ olduğu
+ * ölçülmedi. Sistem istemi bütün modellere aynı gidiyor (uydurma yasağı,
+ * kapsam kilidi, kimlik kilidi) ama küçük modellerin talimat izleme gücü
+ * genelde daha düşüktür. Tablo ölçümle düzeltilecek; bugünkü hâli bir
+ * BAŞLANGIÇ, bir sonuç değil.
+ */
+const MOD_UCUZ: readonly string[] = ['sohbet', 'kunye'];
+
+/** İş türüne göre model seçer. Mod bilinmiyorsa güçlü model. */
+export function modModeli(mod: string | undefined, gucluModel: string, ucuzModel: string): string {
+  return mod && MOD_UCUZ.includes(mod) ? ucuzModel : gucluModel;
 }
 
 /**
@@ -228,6 +277,13 @@ export function tierConfig(
 
   const denemeCfg: TierCfg = {
     provider: 'claude',
+    // DENEME İŞE GÖRE YÖNLENDİRİLMEZ — BİLEREK. `ai` katmanı sohbet/künyeyi
+    // Haiku'ya yollar; deneme YOLLAMAZ, her modda güçlü modelde kalır.
+    //
+    // Sebep: bu 10 istek, ödeme yapmış bir avukatın yapay zekâyla İLK teması
+    // ve dönüşüm anıdır. Fark ₺11,50 yerine ~₺8 — yani ₺3,50. Bir aboneliğin
+    // dönüşümünü ₺3,50 için riske atmak kötü bir takas olurdu. Aynı gerekçe
+    // denemenin Groq yerine Claude'da koşmasının da sebebi (yukarıda).
     model: claudeModel,
     // billable:true — deneme isteklerinin GERÇEK maliyeti (ai_usage/ai_istek)
     // kaydedilsin isteriz, kendi muhasebemiz için. Kontörden düşülmeye
@@ -275,7 +331,9 @@ export function tierConfig(
     // tavana dahil.
     ai: {
       provider: 'claude',
-      model: claudeModel,
+      // İŞE GÖRE MODEL (bkz. MOD_UCUZ). sohbet/künye Haiku'ya, dilekçe ve
+      // mütalaa Sonnet'te kalır — sıradan bağımsız olarak.
+      model: modModeli(secenek.mod, claudeModel, AI_TASMA_MODEL),
       billable: true,
       limitKind: 'cost',
       limit: UCRETLI_TAVAN_TRY,

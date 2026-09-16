@@ -1954,6 +1954,11 @@ Deno.serve(async (req) => {
     groqModel: GROQ_MODEL,
     claudeModel: CLAUDE_MODEL,
     claudeAnahtariVar: !!Deno.env.get('ANTHROPIC_API_KEY'),
+    // İŞE GÖRE MODEL — sohbet/künye Haiku'ya, dilekçe/mütalaa Sonnet'te kalır
+    // (bkz. _shared/katman.ts > MOD_UCUZ). `body.mode` istemciden gelir ama
+    // seçimi SUNUCU yapar: istemcinin gönderdiği bir model adı değil, yalnız
+    // hangi İŞİ istediği okunuyor. Tanınmayan bir mod güçlü modele düşer.
+    mod: body.mode,
     zorlaSaglayici: Deno.env.get('VEKIL_ZORLA_SAGLAYICI') ?? undefined,
     zorlaModel: Deno.env.get('VEKIL_ZORLA_MODEL') ?? undefined,
   });
