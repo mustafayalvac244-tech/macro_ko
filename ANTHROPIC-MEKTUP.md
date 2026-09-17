@@ -20,8 +20,30 @@
 
 | kanal | ne için | not |
 |---|---|---|
-| https://anthropic.com/contact-sales/startup-program | kredi | **Şart: kurumsal yatırımcıdan öz sermaye yatırımı.** Yatırım yoksa bu kapı kapalı — yine de form üzerinden yazmak ücretsiz |
+| https://anthropic.com/contact-sales/startup-program | kredi | **Yatırım ŞART DEĞİL** — ayrıntı aşağıda |
 | contact-sales (genel) | hacim fiyatı / tanışma | Asıl hedef bu |
+
+### Geri alma: "yatırım şart" iddiası yanlıştı (17.09.2026)
+
+Bu dosyanın ilk hâlinde şöyle yazıyordu: *"Şart: kurumsal yatırımcıdan öz
+sermaye yatırımı. Yatırım yoksa bu kapı kapalı."* **Kaynağı yoktu.**
+
+**Anthropic'in kendi resmî şartlar sayfası** (`anthropic.com/startup-program-official-terms`,
+17.09.2026'da okundu) bunu söylemiyor:
+
+> *"Anthropic will consider multiple factors when evaluating applications,
+> including, but not limited to, **business traction, investment, and
+> funding**, as well as **Claude integration and usage**."*
+
+Yani yatırım bir **değerlendirme ölçütü**, ön şart değil. Sayfada şirket yaşı
+ya da "daha önce kredi almamış olma" şartı da yok.
+
+Uygun olmayan ülkeler listesi var (Belarus, Çin, Küba, İran, Myanmar, Kuzey
+Kore, Rusya, Sudan, Suriye, Kırım…) — **Türkiye listede yok.**
+
+**Kapı kapalı değil.** Ama açık olması "gireriz" demek değil: baktıkları iki
+şey iş çekişi ve Claude kullanımı, ve bugün ikisi de sıfıra yakın. Gerçek
+engel yatırımsızlık değil, **kullanıcısızlık**.
 
 **Marka kullanımı — sınırlar (kaynak: Anthropic marka kuralları):**
 - ✅ Düz metinle "Claude ile çalışır" / "Powered by Claude"
@@ -91,8 +113,12 @@ started yet. I have no outside investment; everything above was built and paid
 for solo.
 
 **What I'm asking.**
-1. Am I eligible for startup credits, given I have no institutional equity
-   funding? If not, I'd like to discuss volume pricing as usage grows.
+1. I would like to apply to the Claude for Startups program. I have no
+   institutional funding — your terms list funding as one factor among
+   several, alongside traction and Claude usage, so I would rather be judged
+   on the two things I can actually show you: the corpus, and how carefully
+   the model is constrained. If credits are not a fit at this stage, I would
+   like to discuss volume pricing as usage grows.
 2. May I state on my website and in the app that Vekil Pro is built on Claude?
    Turkish lawyers are sceptical of AI, and naming the model they are actually
    talking to would do more for trust than anything I can say myself.
@@ -165,9 +191,12 @@ başlamadı. Dışarıdan yatırım almadım; yukarıdakilerin tamamı tek baş�
 kuruldu ve ödendi.
 
 **Ne istiyorum.**
-1. Kurumsal öz sermaye yatırımım olmadığı hâlde girişim kredilerine uygun
-   muyum? Değilsem, kullanım büyüdükçe hacim fiyatlandırmasını konuşmak
-   isterim.
+1. Claude for Startups programına başvurmak istiyorum. Kurumsal yatırımım
+   yok — şartlarınız yatırımı, çekiş ve Claude kullanımıyla birlikte
+   değerlendirme ölçütlerinden biri olarak sayıyor; ben de gösterebileceğim
+   iki şey üzerinden değerlendirilmeyi tercih ederim: korpus ve modelin ne
+   kadar sıkı sınırlandırıldığı. Krediler bu aşamada uygun değilse, kullanım
+   büyüdükçe hacim fiyatlandırmasını konuşmak isterim.
 2. Web sitemde ve uygulamada Vekil Pro'nun Claude üzerine kurulu olduğunu
    belirtebilir miyim? Türk avukatlar yapay zekâya şüpheyle yaklaşıyor ve
    konuştukları modelin adını söylemek, benim söyleyebileceğim her şeyden daha
