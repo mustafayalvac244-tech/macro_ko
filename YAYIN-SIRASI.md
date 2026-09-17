@@ -315,7 +315,12 @@ kullandığı için EAS kendi kimlik kurulumunu **hiç çalıştırmıyor**.
 |---|---|---|
 | #1 | `derle-ve-gonder` | Sertifika + profil üretildi, `.p12` paketlendi, **EAS "Using local iOS credentials (credentials.json)" dedi** — sonra Xcode `aps-environment` eksikliğinden düştü |
 | #2 | aynısı, yetenek açma eklendi | Sertifika iptal + yeniden üretildi; `bundleIdCapabilities?limit=200` 400 verdi |
-| #3 | `yalniz-imza` | **Baştan sona geçti:** yetenek açıldı, eski profil silindi, yenisi üretildi, `credentials.json` yazıldı — 55 saniye |
+| #3 | `yalniz-imza` | **Baştan sona geçti:** yetenek açıldı, eski profil silindi, yenisi üretildi, `credentials.json` yazıldı — 62 saniye |
+| #4 | `derle-ve-gonder` | **BAŞARILI.** 18:32:22 → 19:11:14 (39 dk). IPA derlendi ve **TestFlight'a yüklendi**. Derleme: `7bfc29c1-374e-4150-8402-53445f462fb5` |
+
+**B6 TAMAMLANDI (16.09.2026 19:11 UTC).** Apple girişi, şifre ve iki adımlı
+doğrulama hiçbir koşuda istenmedi. Ürün sahibinin Windows'ta terminal açması
+gerekmedi.
 
 Apple ID şifresi hiçbir koşuda sorulmadı, doğrulama kodu istenmedi.
 Koşu #1 ayrıca ilk kez doğruladı: `ASC_API_KEY_P8` secret'ı gerçekten
