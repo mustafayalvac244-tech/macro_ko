@@ -264,6 +264,53 @@ kalitesi hakkında hiçbir şey iddia etmiyor.
 alınamadı; yani **34 bir alt sınırdır**. Google Play hiç taranmadı. Hiçbir
 rakibin çıktısı denenmedi.
 
+Nitekim alt sınır olduğu doğrulandı: aynı gün yapılan web aramasında App
+Store listesinde olmayan ürünler çıktı — **Jupytr, Jure, FulLegal, LexChat,
+De Jure AI**. Bunlar web öncelikli, yani mağaza taraması onları hiç görmüyor.
+
+---
+
+## Hiç kimse hangi modeli kullandığını söylemiyor (17.09.2026)
+
+**ÖLÇÜLDÜ, metin taraması.** 37 uygulamanın App Store açıklaması ve sürüm
+notları indirildi ve şu kalıplar arandı: `claude|anthropic`,
+`gpt|openai|chatgpt`, `gemini|google ai|vertex`, `llama|mistral`,
+`kendi model|özel model|eğitilmiş model`.
+
+| | |
+|---|---|
+| Taranan açıklama | **37** |
+| Herhangi bir model adı geçen | **0** |
+
+Web tarafı da aynı: Apilex'in platform sayfasında model adı yok (sayfa
+okundu), De Jure AI'da yok, aramada hiçbir Türk hukuk yapay zekâsı bir
+sağlayıcı adı vermiyor.
+
+**Bunun ANLAMI ve ANLAMADIĞI şey.** Ölçülen: *kimse açıkça söylemiyor.*
+Ölçülmeyen: *kimse kullanmıyor.* Çoğu muhtemelen bir sağlayıcı kullanıyor ve
+adını vermiyor; bunu bilemem.
+
+**Mektubun 2. talebini güçlendiren nokta bu.** 12 ürün "yapay zekâ asistanı"
+diyor, hiçbiri neyin üstünde çalıştığını söylemiyor. "Claude ile çalışır"
+diyen ilk Türk hukuk ürünü olmak, bugün piyasada karşılığı olmayan bir
+konum — ve avukatın yapay zekâya duyduğu güvensizliğin tam da kaynağına
+(kime güveneceğini bilememe) değiyor.
+
+## Rahatsız edici bulgular — küçümsenmeyecek
+
+- **Apilex "11-12 milyon içtihat" iddia ediyor** (kendi sitesinden okundu).
+  Bizde 82.721 tam metin + 2.588.108 katalog satırı var. İddia doğrulanmadı
+  ve "karar" ile "katalog kaydı"nı karıştırıyor olabilirler — ama korpus
+  genişliğinde yarışmanın kaybedilecek bir savaş olduğu değişmiyor.
+- **Türkiye Barolar Birliği kendi yapay zekâ asistanını yapıyor** ve çözüm
+  ortakları çağrısı açmış. Üç kategoriden biri: *"Mevcut Ürün Sahipleri —
+  çalışan prototipi ya da bitmiş ürünü olan şirketler."* Bu tarif Vekil Pro.
+  200 bin avukatın çatı örgütü: rakip olursa en güçlüsü, ortak olursa en
+  güçlü dağıtım kanalı.
+  **DOĞRULANMADI:** çağrı Şubat 2026 tarihli, çalıştay Eylül'de sonuç
+  paneliyle tamamlanmış görünüyor; başvuru penceresi kapanmış olabilir.
+  TBB'nin **DavaTek** adlı bir uygulaması da var.
+
 ## Bu mektupta BİLEREK OLMAYAN şeyler
 
 - **Kullanıcı sayısı vaadi yok.** Sıfır kullanıcı var ve mektup bunu açıkça
