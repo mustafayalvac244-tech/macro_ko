@@ -4,8 +4,8 @@
 > için erken temas.
 >
 > **İçindeki her sayı bu depodan ya da canlı veritabanından ölçüldü.** Ölçüm
-> zamanı: 16.09.2026 11:51 UTC. Gönderilmeden önce tazelenmeli — korpus saatte
-> ~570 karar büyüyor, yani bir hafta bekleyen mektup yanlış sayı taşır.
+> zamanı: 17.09.2026 18:24 UTC. Gönderilmeden önce tazelenmeli — korpus saatte
+> ~510 karar büyüyor, yani bir hafta bekleyen mektup yanlış sayı taşır.
 >
 > **KAYNAĞI OLMAYAN HİÇBİR RAKAM YOK.** Özellikle rakip cirosu YAZILMADI:
 > o bilgi bir ödeme kuruluşu çalışanından geldi ve (a) aritmetiği tutmuyordu
@@ -41,27 +41,34 @@ for lawyers in Turkey. It runs on Claude and I'd like to talk about two
 things: startup credits, and whether I may state publicly that the product is
 built on Claude.
 
-**Why Turkey is an underserved market.** There are over 200,000 registered
-lawyers in Turkey (Union of Turkish Bar Associations). Existing practice
-software is priced around 50,000 TRY per year, so a product with a few
-thousand subscribers reaches nine-figure TRY annual revenue. Almost none of
-these tools do real legal-AI work, and none of them work well in Turkish.
+**The market.** There are over 200,000 registered lawyers in Turkey (Union of
+Turkish Bar Associations), and the category is crowded. Counted on the Turkish
+App Store in September 2026: **34** practice-management, case-tracking or
+legal-research apps, of which **12 advertise an AI assistant** and **6 sell
+access to a case-law or legislation database** — including long-established
+publishers. So I am not going to tell you this is an empty market.
+
+What I have that I have not seen elsewhere is a corpus I built rather than
+licensed, and a retrieval layer that marks every statute reference and case
+citation in the model's output as verified, not-found, or impossible. I have
+not evaluated the competitors' output, so I make no claim about their quality;
+I can only show you mine.
 
 **What I have built.** The product is a React Native / Expo app with a
 Supabase backend. Alongside it I run a continuous harvester that builds a
-Turkish case-law corpus. Measured today, 16 September 2026:
+Turkish case-law corpus. Measured today, 17 September 2026:
 
 | | |
 |---|---|
-| Full-text court decisions | **66,870** |
-| Added in the last 24 hours | **13,438** |
-| Case-number catalogue rows | **2,513,592** |
-| Extracted statute citations | **104,679** |
-| Corpus size on disk | **2.2 GB** |
+| Full-text court decisions | **82,721** |
+| Added in the last 24 hours | **12,295** |
+| Case-number catalogue rows | **2,588,108** |
+| Extracted statute citations | **130,486** |
+| Corpus size on disk | **2.1 GB** |
 
 This corpus is the part I think matters. It is not licensed from anyone; it is
 harvested, de-duplicated, indexed for full-text and semantic search, and it
-grows around 570 decisions per hour without supervision. Retrieval over it is
+grows around 510 decisions per hour without supervision. Retrieval over it is
 what lets Claude answer with real Turkish case law instead of plausible-
 sounding invention — which in legal work is the only thing that matters.
 
@@ -78,9 +85,10 @@ opinions always go to the strongest model, while classification and short chat
 go to Haiku. That decision came from measuring real token sizes per task type,
 not from guessing.
 
-**Where I am.** The product is pre-launch. Android is in closed testing and
-iOS is about to enter TestFlight. I have no outside investment; everything
-above was built and paid for solo.
+**Where I am.** The product is pre-launch. The iOS build is on TestFlight;
+the Android closed test is set up but the 14-day tester requirement has not
+started yet. I have no outside investment; everything above was built and paid
+for solo.
 
 **What I'm asking.**
 1. Am I eligible for startup credits, given I have no institutional equity
@@ -110,27 +118,33 @@ araştırma ürünü geliştiriyorum. Claude üzerinde çalışıyor ve iki konu
 konuşmak istiyorum: girişim kredileri, ve ürünün Claude üzerine kurulu
 olduğunu açıkça söyleyip söyleyemeyeceğim.
 
-**Türkiye neden ihmal edilmiş bir pazar.** Türkiye'de 200 binden fazla kayıtlı
-avukat var (TBB). Mevcut büro yazılımları yıllık 50.000 ₺ bandında
-fiyatlanıyor; yani birkaç bin aboneli bir ürün yüz milyon ₺ mertebesinde
-yıllık gelire ulaşıyor. Bu araçların neredeyse hiçbiri gerçek hukuki yapay
-zekâ işi yapmıyor ve hiçbiri Türkçede iyi çalışmıyor.
+**Pazar.** Türkiye'de 200 binden fazla kayıtlı avukat var (TBB) ve kategori
+kalabalık. Eylül 2026'da Türkiye App Store'unda sayıldı: **34** büro yönetimi,
+dava takip ya da hukuki araştırma uygulaması; bunların **12'si yapay zekâ
+asistanı** iddia ediyor, **6'sı içtihat/mevzuat veritabanı** satıyor — aralarında
+köklü yayıncılar var. Yani size "boş pazar" demeyeceğim.
+
+Başkasında görmediğim şey şu: lisanslamadığım, kendim kurduğum bir korpus; ve
+modelin çıktısındaki her kanun maddesini ve karar künyesini *doğrulandı*,
+*bulunamadı* ya da *olamaz* diye işaretleyen bir erişim katmanı. Rakiplerin
+çıktısını denemedim, o yüzden kaliteleri hakkında bir şey iddia etmiyorum;
+yalnız kendiminkini gösterebilirim.
 
 **Ne kurdum.** Ürün React Native / Expo ve Supabase üzerinde. Yanında kesintisiz
 çalışan bir hasat sistemi Türkçe içtihat korpusu kuruyor. Bugün ölçülen
-(16 Eylül 2026):
+(17 Eylül 2026):
 
 | | |
 |---|---|
-| Tam metinli mahkeme kararı | **66.870** |
-| Son 24 saatte eklenen | **13.438** |
-| Karar numarası kataloğu | **2.513.592** satır |
-| Çıkarılmış kanun maddesi atfı | **104.679** |
-| Korpusun disk boyutu | **2,2 GB** |
+| Tam metinli mahkeme kararı | **82.721** |
+| Son 24 saatte eklenen | **12.295** |
+| Karar numarası kataloğu | **2.588.108** satır |
+| Çıkarılmış kanun maddesi atfı | **130.486** |
+| Korpusun disk boyutu | **2,1 GB** |
 
 Bence asıl önemli kısım bu korpus. Kimseden lisanslanmadı; hasat edildi,
 yinelenenler ayıklandı, tam metin ve anlamsal arama için indekslendi ve
-gözetimsiz olarak saatte ~570 karar büyüyor. Claude'un uydurma yerine gerçek
+gözetimsiz olarak saatte ~510 karar büyüyor. Claude'un uydurma yerine gerçek
 Türk içtihadıyla cevap vermesini sağlayan şey bu — ki hukukta önemli olan tek
 şey budur.
 
@@ -145,9 +159,10 @@ Ayrıca kotaya göre değil **işe göre** yönlendiriyorum: dilekçe ve mütala
 zaman en güçlü modele, sınıflandırma ve kısa sohbet Haiku'ya gidiyor. Bu karar
 iş türü başına gerçek token boyutlarını ölçerek verildi, tahminle değil.
 
-**Neredeyim.** Ürün henüz yayında değil. Android kapalı testte, iOS
-TestFlight'a girmek üzere. Dışarıdan yatırım almadım; yukarıdakilerin tamamı
-tek başıma kuruldu ve ödendi.
+**Neredeyim.** Ürün henüz yayında değil. iOS derlemesi TestFlight'ta;
+Android kapalı testi kuruldu ama 14 günlük test kullanıcısı şartı henüz
+başlamadı. Dışarıdan yatırım almadım; yukarıdakilerin tamamı tek başıma
+kuruldu ve ödendi.
 
 **Ne istiyorum.**
 1. Kurumsal öz sermaye yatırımım olmadığı hâlde girişim kredilerine uygun
@@ -197,6 +212,57 @@ kullanılmaz. İkisi birlikte hareket eder.
 - [ ] **Korpus sayılarını tazele** — mektup bir hafta beklerse rakamlar eskir;
       sorgu `ANTHROPIC-MEKTUP.md` üstünde
 - [ ] **Apilex cirosunu YAZMA** — gerekçe yukarıda
+
+## Geri alınan iddia — rakip yokluğu (17.09.2026)
+
+**Ürün sahibi:** *"piyasada 10'dan fazla bizim uygulama benzeri gördüm, yok
+diyodun."*
+
+**Haklıydı.** Mektubun ilk hâlinde şu cümle vardı ve **hiç ölçülmemişti:**
+
+> *"Almost none of these tools do real legal-AI work, and none of them work
+> well in Turkish."*
+
+Ne bir uygulama sayılmıştı, ne biri denenmişti. Üstelik bu depodaki kural
+(`AGENTS.md` + `olcum` skill'i) piyasa iddialarının da ölçüm istediğini
+açıkça söylüyor; kural çiğnenen yer bizzat benim yazdığım mektuptu.
+
+**ÖLÇÜLDÜ (iTunes Search API, TR mağazası, 17.09.2026).** Üç arama terimi
+(`dava takip`, `büro yönetimi avukat`, `içtihat`) ile; devlet uygulamaları
+(UYAP, e-Adalet, Celse, Resmî Gazete, YİM…), tek büroya ait uygulamalar ve
+alakasızlar ayıklandıktan sonra:
+
+| | |
+|---|---|
+| Benzersiz rakip uygulama | **34** |
+| Bunlardan yapay zekâ asistanı iddia eden | **12** |
+| İçtihat/mevzuat veritabanı satan | **6** |
+| Ayıklanan | 14 devlet · 11 alakasız · 3 tek büro |
+
+Yapay zekâ iddia edenler: Apilex, Yargı AI, De Jure AI, Huky AI, Avocate AI,
+Arguman.ai, LexChat, Justly, Kanun Yolu, Avist, Hukas, Cübbe.
+İçtihat/mevzuat veritabanları: **Kazancı**, **Sinerji Mevzuat**,
+**Corpus Hukuk**, **KararVar**, AvukatApp, İçtihat Bülteni.
+
+### Düzeltmenin kendisi de bir kez yanlış yazıldı
+
+İlk düzeltmede cümle şöyle kurulmuştu: *"hiçbiri bir içtihat korpusu
+yayımlamıyor."* Üçüncü arama sonucu gelince bunun da yanlış olduğu görüldü —
+Kazancı ve Sinerji Türkiye'nin köklü içtihat veritabanı satıcıları, işleri
+zaten bu. Yani bir ölçülmemiş iddia düzeltilirken yerine ikinci bir
+ölçülmemiş iddia yazılmıştı.
+
+**Ders:** bir iddiayı geri alırken yerine koyduğun cümle de bir iddiadır ve
+aynı ölçümü ister. "Rakip yok" ile "rakiplerde şu yok" arasında kanıt
+bakımından fark yoktur.
+
+Mektuptaki paragraf artık rakipleri küçümsemiyor; yalnız kendi ölçülebilir
+şeyini gösteriyor (kendi kurduğu korpus + atıf denetimi) ve rakiplerin
+kalitesi hakkında hiçbir şey iddia etmiyor.
+
+**Ölçümün sınırları:** `avukat` ve `hukuk` terimleri API hız sınırına takıldı,
+alınamadı; yani **34 bir alt sınırdır**. Google Play hiç taranmadı. Hiçbir
+rakibin çıktısı denenmedi.
 
 ## Bu mektupta BİLEREK OLMAYAN şeyler
 
