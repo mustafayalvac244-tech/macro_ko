@@ -438,6 +438,54 @@ https://github.com/mustafayalvac244-tech/macro_ko/actions/workflows/ios-dagit.ym
 > iOS kotası **ölçülmedi** — EAS'ın hatası "Android builds" diyordu, yani
 > sayaç platform başına tutuluyor *gibi* görünüyor ama denenmedi.
 
+## 18.09.2026 — bu oturumda BİTENLER ve kalanlar
+
+### App Store Connect — API'den yazıldı, canlıdan doğrulandı
+
+| alan | değer |
+|---|---|
+| `usesIdfa` | `false` |
+| `copyright` | `2026 Vekil Pro` |
+| `contentRightsDeclaration` | `USES_THIRD_PARTY_CONTENT` |
+| `appStoreAgeRating` | **`TWELVE_PLUS`** — Apple anketten hesapladı |
+| `vekil_premium_monthly` | oluşturuldu · Türkçe metin · **399 TL** |
+| `vekil_ai_monthly` | Türkçe metin eklendi · **2.999 TL** (399,99'dan düzeltildi) |
+
+`contentRightsDeclaration`'ın **ilk PATCH'i tutmadı**: Apple "kabul" deyip
+değeri geri döndürdü ama sonraki okuma `null` gösterdi. İkinci deneme tuttu
+ve iki ayrı okumayla doğrulandı. Ders: **"kabul edildi" ile "yazıldı" aynı
+şey değil** — yazan her iş, ayrı bir okumayla kapatılmalı.
+
+### Çökme kaydı tablosu canlıya uygulandı — ama YARIM
+
+`0143_istemci_hata` **canlıda hiç yoktu** (ölçüldü). Uygulandı ve doğrulandı:
+11 sütun, RLS açık, 2 politika, 3 indeks.
+
+**⚠ BOŞLUK:** iki politika da `to authenticated`. Göçün kendi gerekçesi
+*"en değerli çökme, giriş yapılmamışken açılışta olandır"* diyor ve `owner_id`
+bunun için nullable — ama oturum yokken istemci `anon` rolüyle konuşur ve
+INSERT **reddedilir**. Yani tam olarak yakalanmak istenen çökme hâlâ
+kaydedilemiyor.
+
+Kendi başıma genişletmedim: `anon`a açık INSERT, kimlik doğrulaması olmayan
+bir yazma ucu demek. Çözüm ürün sahibi kararıyla yazılır (`anon` için yalnız
+`owner_id is null` koşullu INSERT + hız sınırı). Ayrıntı:
+`src/lib/hataKaydi.ts` başındaki not.
+
+### App Privacy API'den YAZILAMIYOR — ölçüldü
+
+Üç uç da 404: `/appDataUsages`, `/appDataUsagePublishStates`,
+`/appDataUsagesPublishState`. Bu beyan yalnız arayüzden giriliyor.
+Cevap tablosu **`scripts/asc-app-privacy.md`**'de, Apple'ın sorduğu sırayla
+ve her satırın yanında koddaki kaynağıyla.
+
+### Yeni derleme TestFlight'a gönderildi
+
+Koşu #23, commit `324ec5e4` — yani **Gece teması bu pakette var**.
+Apple'ın işlemesi 10–60 dakika sürer.
+
+---
+
 ## B7 · App Store Connect'te doldurulacaklar · **SEN**
 
 - **Sürüm numarasını `3.4.0` yap** — kayıt `1.0` ile açıldı, `app.json`
