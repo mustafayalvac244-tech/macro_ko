@@ -191,4 +191,75 @@ describe('web metinleri kodla tutarlı', () => {
       ).toBe(true);
     }
   });
+
+  /**
+   * TOPLANAN HER VERİ KATEGORİSİ AYDINLATMA METNİNDE SAYILMAK ZORUNDA.
+   *
+   * GERÇEK EKSİK (18.09.2026'da ölçülerek bulundu, kullanıcı bildirmemişti):
+   * kayıt ekranı T.C. kimlik numarasını ZORUNLU alıyor
+   * (app/(auth)/signup.tsx: `if (!tcNo.trim()) eksik('tcNo', ...)`), ama
+   * üç metnin üçü de "Kimlik: ad, soyad" diyip kimlik numarasını hiç
+   * saymıyordu. Aynı şekilde `clients` tablosunda `tc_no` ve `address`,
+   * `purchases` tablosunda satın alma kaydı var; hiçbiri sayılmıyordu.
+   *
+   * Kanun m.10 aydınlatma yükümlülüğünün ilk unsuru "işlenen kişisel veri
+   * kategorileri"dir. Eksik sayım, metnin kendisini sakat bırakır — ve bu
+   * eksiklik Apple/Play veri etiketlerine de aynen yansır, çünkü etiketler
+   * bu listeden dolduruluyor.
+   *
+   * NE YAPMAZ: metnin hukuken yeterli olduğunu söylemez. Yalnız "kodun
+   * TOPLADIĞI alan metinde geçiyor mu" sorusunu yanıtlar.
+   */
+  it('kod bir veri alanı topluyorsa aydınlatma metinleri onu sayıyor', () => {
+    const govdesi = (ham: string) =>
+      ham.replace(/<!--[\s\S]*?-->/g, '').replace(/^\s*\/\/.*$/gm, '');
+
+    const metinler = {
+      'docs/privacy.html': govdesi(oku('docs', 'privacy.html')),
+      'app/privacy.tsx': govdesi(oku('app', 'privacy.tsx')),
+      'src/components/KvkkMetin.tsx': govdesi(oku('src', 'components', 'KvkkMetin.tsx')),
+    };
+
+    // 1) Kayıt ekranı kimlik numarasını zorunlu alıyor mu? Metne değil KODA
+    //    bakılıyor; alan bir gün isteğe bağlı olursa test kendiliğinden
+    //    gevşer, silinmesi gerekmez.
+    const kayit = oku('app', '(auth)', 'signup.tsx');
+    const kimlikZorunlu = /if \(!tcNo\.trim\(\)\)/.test(kayit);
+    if (kimlikZorunlu) {
+      for (const [ad, metin] of Object.entries(metinler)) {
+        // "kimlik numarası" tek başına aranmaz: müvekkil kaydına ait cümle de
+        // o kelimeleri içeriyor ve testi sahte biçimde geçirir. Bu tam olarak
+        // olan şeydi — kontrol yazıldı, geçti, sonra metin silinince YİNE
+        // geçti. Aranan şey kullanıcının KENDİ kaydına özgü ibare.
+        expect(
+          /kayıt sırasında zorunludur|kayıtta zorunludur|required at sign-up/i.test(metin),
+          `${ad}: kayıt ekranı T.C. kimlik numarasını zorunlu alıyor ama metin onu hesap bilgisi olarak saymıyor`,
+        ).toBe(true);
+      }
+    }
+
+    // 2) Müvekkil kaydında kimlik numarası ve adres alanları var mı?
+    const musteriTipi = oku('src', 'types', 'database.ts');
+    const musteriKimlik = /tc_no: string \| null;/.test(musteriTipi);
+    const musteriAdres = /address: string \| null;/.test(musteriTipi);
+    if (musteriKimlik && musteriAdres) {
+      for (const [ad, metin] of Object.entries(metinler)) {
+        expect(
+          /müvekkilin T\.?C\.? kimlik numaras[^.]{0,40}adres|client’s national ID number and address/i.test(metin),
+          `${ad}: müvekkil kaydı kimlik no ve adres tutuyor ama metin bunu söylemiyor`,
+        ).toBe(true);
+      }
+    }
+
+    // 3) Satın alma defteri var mı? (purchases tablosu)
+    const satinAlmaVar = existsSync(join(KOK, 'supabase', 'migrations', '0011_purchases.sql'));
+    if (satinAlmaVar) {
+      for (const [ad, metin] of Object.entries(metinler)) {
+        expect(
+          /Satın alma|Purchases:/i.test(metin),
+          `${ad}: satın alma kaydı tutuluyor ama metin onu bir kategori olarak saymıyor`,
+        ).toBe(true);
+      }
+    }
+  });
 });

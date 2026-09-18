@@ -28,7 +28,11 @@ const SECTIONS_TR: Section[] = [
   {
     icon: 'document-text-outline',
     title: 'Hangi Veriler İşlenir?',
-    body: '• Hesap bilgileri: ad soyad, e-posta, telefon (isteğe bağlı), büro adı, baro sicil no (isteğe bağlı)\n• Uygulama verileri: dava, müvekkil, duruşma, görev, belge ve finans kayıtlarınız\n• Teknik veriler: uygulama sürümü ve hata kayıtları (kişisel içerik olmadan)',
+    body:
+      '• Hesap bilgileri: ad soyad, T.C. kimlik numarası (kayıt sırasında zorunludur), e-posta, telefon (isteğe bağlı), büro adı, bağlı olduğunuz baro ve sicil numarası (isteğe bağlı)\n' +
+      '• Uygulama verileri: dava, müvekkil, duruşma, görev, belge ve finans kayıtlarınız. Müvekkil kaydı, siz girerseniz müvekkilin T.C. kimlik numarasını ve adresini de içerir; kimlik numarası dava dilekçesinin zorunlu unsurudur (HMK m.119/1-c).\n' +
+      '• Satın alma kayıtları: abonelik ürünü, platform, tutar ve tarih\n' +
+      '• Teknik veriler: uygulama sürümü ve hata kayıtları (kişisel içerik olmadan)',
   },
   {
     icon: 'eye-off-outline',

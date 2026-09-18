@@ -76,11 +76,12 @@ const TR: Bolum[] = [
     icon: 'layers-outline',
     title: '2. İşlenen Kişisel Veri Kategorileri',
     body:
-      '• Kimlik: ad, soyad\n' +
+      '• Kimlik: ad, soyad, T.C. kimlik numarası (kayıt sırasında zorunludur)\n' +
       '• İletişim: e-posta adresi, telefon numarası (isteğe bağlı)\n' +
       '• Mesleki bilgi: büro adı, bağlı olunan baro, sicil numarası (isteğe bağlı)\n' +
-      '• Müşteri işlem: dava, müvekkil, duruşma, görev, süre ve belge kayıtlarınız\n' +
+      '• Müşteri işlem: dava, müvekkil, duruşma, görev, süre ve belge kayıtlarınız. Müvekkil kaydı, girmeniz hâlinde müvekkilin T.C. kimlik numarasını ve adresini de içerir; kimlik numarası dava dilekçesinin zorunlu unsurudur (HMK m.119/1-c).\n' +
       '• Finans: tahsilat, gider ve vekâlet ücreti kayıtlarınız\n' +
+      '• Satın alma: abonelik ürünü, satın alma platformu, tutar ve tarih\n' +
       '• İşlem güvenliği: oturum kayıtları, cihaz ve uygulama sürümü, hata kayıtları, IP bilgisi\n' +
       '• Yapay zekâ istekleri: bu özelliklere kendi elinizle girdiğiniz ya da yüklediğiniz metin ve belgeler',
   },
@@ -240,7 +241,15 @@ const EN: Bolum[] = [
   {
     icon: 'layers-outline',
     title: '2. Categories of Personal Data',
-    body: '• Identity: name, surname\n• Contact: e-mail, phone (optional)\n• Professional: firm name, bar association, registration number (optional)\n• Client transactions: your case, client, hearing, task, deadline and document records\n• Finance: collection, expense and fee records\n• Security: session logs, device and app version, error logs, IP\n• AI requests: text and documents you personally enter or upload into those features',
+    body:
+      '• Identity: name, surname, Turkish national ID number (required at sign-up)\n' +
+      '• Contact: e-mail, phone (optional)\n' +
+      '• Professional: firm name, bar association, registration number (optional)\n' +
+      '• Client transactions: your case, client, hearing, task, deadline and document records. If you enter them, a client record also holds the client’s national ID number and address; the ID number is a mandatory element of a statement of claim (Code of Civil Procedure art. 119/1-c).\n' +
+      '• Finance: collection, expense and fee records\n' +
+      '• Purchases: subscription product, purchase platform, amount and date\n' +
+      '• Security: session logs, device and app version, error logs, IP\n' +
+      '• AI requests: text and documents you personally enter or upload into those features',
   },
   {
     icon: 'alert-circle-outline',
