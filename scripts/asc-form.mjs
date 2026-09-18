@@ -684,6 +684,98 @@ async function fiyatKur(abonelikId, noktaId) {
   return false;
 }
 
-const MODLAR = { yaz, 'abonelik-oku': abonelikOku, 'abonelik-yaz': abonelikYaz, oku };
+/**
+ * KALAN ASC ALANLARINI YAZ — yaş sınırından AYRI üç beyan.
+ *
+ * ÜRÜN SAHİBİ ONAYI: 18.09.2026, "önerdiğin gibi yap" (yaş sınırı
+ * taslağıyla birlikte) ve "sen yap her şeyi bitir".
+ * Cevaplar ve gerekçeleri scripts/asc-yas-siniri-taslak.md'de:
+ *
+ *   usesIdfa=false               uygulamada reklam ve izleme yok
+ *   copyright="2026 Vekil Pro"   ürün sahibi isterse ticari unvanla değişir
+ *   contentRightsDeclaration     mahkeme kararları ve kanun metinleri
+ *                                üçüncü taraf içeriktir; kamuya açık resmî
+ *                                belge olmaları bunu değiştirmez
+ *
+ * ALAN DEĞERLERİ EZBERLENMİYOR. contentRightsDeclaration bir enum ve
+ * doğru değeri bilmiyorum; önce YANLIŞ bir değer gönderilip Apple'ın
+ * kabul ettiği listeyi söylemesi sağlanıyor. Reddedilen PATCH hiçbir
+ * şeyi değiştirmez — bu numara yaş sınırında şemayı öğretmişti.
+ */
+async function alanlarYaz() {
+  const surumler = await api(`/apps/${APP_ID}/appStoreVersions?limit=5`);
+  const surum = (surumler?.data || []).find((s) => s.attributes?.appStoreState === 'PREPARE_FOR_SUBMISSION')
+    || (surumler?.data || [])[0];
+  if (!surum) { console.error('HATA: yazılacak sürüm bulunamadı.'); process.exit(1); }
+  console.log(`Sürüm ${surum.id} — ${surum.attributes?.versionString} (${surum.attributes?.appStoreState})`);
+  console.log(`  bugünkü usesIdfa=${JSON.stringify(surum.attributes?.usesIdfa)} copyright=${JSON.stringify(surum.attributes?.copyright)}`);
+
+  // 1) SÜRÜM ALANLARI
+  try {
+    const c = await api(`/appStoreVersions/${surum.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: {
+          type: 'appStoreVersions', id: surum.id,
+          attributes: { usesIdfa: false, copyright: '2026 Vekil Pro' },
+        },
+      }),
+    });
+    console.log(`  ✓ usesIdfa=${c?.data?.attributes?.usesIdfa} copyright=${JSON.stringify(c?.data?.attributes?.copyright)}`);
+  } catch (e) {
+    for (const s of String(e.message).split('\n')) console.log(`  ${s}`);
+  }
+
+  // 2) İÇERİK HAKLARI — enum değeri ölçülerek bulunuyor.
+  const app = await api(`/apps/${APP_ID}`);
+  console.log(`\ncontentRightsDeclaration bugün: ${JSON.stringify(app?.data?.attributes?.contentRightsDeclaration)}`);
+
+  const adaylar = [
+    'USES_THIRD_PARTY_CONTENT',
+    'CONTAINS_THIRD_PARTY_CONTENT',
+    'DOES_NOT_USE_THIRD_PARTY_CONTENT',
+  ];
+  for (const deger of adaylar) {
+    // "Üçüncü taraf içerik İÇERİYOR" cevabını veren ilk aday kabul edilince
+    // durulur. Son aday ("içermiyor") listede YALNIZ Apple'ın enum'unu
+    // öğrenmek için var; ona sıra gelirse bir öncekiler reddedilmiş demektir
+    // ve o zaman da GÖNDERİLMEZ — yanlış beyan olurdu.
+    if (deger === 'DOES_NOT_USE_THIRD_PARTY_CONTENT') {
+      console.log('  → doğru enum bulunamadı. "içermiyor" GÖNDERİLMEDİ (yanlış beyan olurdu).');
+      break;
+    }
+    console.log(`  deneme: ${deger}`);
+    try {
+      const c = await api(`/apps/${APP_ID}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ data: { type: 'apps', id: APP_ID, attributes: { contentRightsDeclaration: deger } } }),
+      });
+      console.log(`  ✓ KABUL: ${c?.data?.attributes?.contentRightsDeclaration}`);
+      break;
+    } catch (e) {
+      for (const s of String(e.message).split('\n').slice(1)) console.log(`    ${s}`);
+    }
+  }
+
+  // 3) APP PRIVACY (veri etiketi) — API'den yazılabiliyor mu ÖLÇ.
+  // Bilmiyorum; Apple bu beyanı uzun süre yalnız arayüzde tuttu. Boş POST
+  // ile sınanıyor, hiçbir şey oluşturmaz.
+  console.log('\n── App Privacy uçları sınanıyor (HİÇBİR ŞEY OLUŞTURMAZ) ─────');
+  for (const tip of ['appDataUsages', 'appDataUsagePublishStates', 'appDataUsagesPublishState']) {
+    try {
+      await api(`/${tip}`, { method: 'POST', body: JSON.stringify({ data: { type: tip, attributes: {}, relationships: {} } }) });
+      console.log(`  /${tip}: BEKLENMEDİK — boş POST kabul edildi`);
+    } catch (e) {
+      const m = String(e.message);
+      const ilk = m.split('\n')[1] || m.split('\n')[0];
+      console.log(`  /${tip}: ${ilk.trim().slice(0, 150)}`);
+    }
+  }
+
+  console.log('\n═══ YAZIM SONRASI ═══');
+  await oku();
+}
+
+const MODLAR = { yaz, 'abonelik-oku': abonelikOku, 'abonelik-yaz': abonelikYaz, 'alanlar-yaz': alanlarYaz, oku };
 const islem = MODLAR[MOD] || oku;
 islem().catch((e) => { console.error(`\n${e.message}`); process.exit(1); });
