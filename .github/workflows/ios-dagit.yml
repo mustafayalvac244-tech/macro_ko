@@ -234,6 +234,11 @@ jobs:
       # ayrı ayrı ve `|| true` ile koşuyor: biri bayrak hatası verirse
       # diğer ikisinin çıktısı yine de alınsın. İlk koşudan sonra hangisinin
       # nasıl çağrıldığı buraya yazılmalı.
+      #
+      # ÇIKTI İKİ YERE GİDİYOR — 18.09.2026'da öğrenildi. İlk hâlinde her şey
+      # yalnız $GITHUB_STEP_SUMMARY'ye yazılıyordu; adım 9 saniyede başarıyla
+      # koştu ama çıktısı iş kaydında GÖRÜNMEDİ ve API'den okunamadı. Yani
+      # rapor üretildi, raporu isteyen kişi göremedi. `tee` ile ikisine birden.
       - name: Durum (App Store / TestFlight)
         if: inputs.is == 'durum'
         env:
@@ -256,7 +261,7 @@ jobs:
             echo '```'
             eas testflight:feedback 2>&1 | tail -60 || echo "(testflight:feedback çalışmadı)"
             echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Derle
         id: derle
