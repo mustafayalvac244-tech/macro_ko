@@ -49,4 +49,14 @@ select olcum, deger from (
          coalesce(count(*)::text, 'YOK (!)')
     from public.ictihat_kararlar
     where created_at > now() - interval '10 minutes'
+  union all
+  -- ZAMAN DAMGASI ŞART. Hız, iki ölçüm arasındaki FARKTAN hesaplanır;
+  -- damgasız iki çıktıdan hız çıkarmak, kendi bekleyişini saat sanmaktır
+  -- (.claude/skills/olcum 1. madde, 16.09.2026'da gerçekten yapılan hata).
+  select 11, 'olcum ani', now()::text
+  union all
+  -- updated_at BU İŞ İÇİN GÜVENİLİR DEĞİL: embedding yazılırken bumplanmıyor.
+  -- 9. satır "1" dedi, oysa aynı pencerede 17 başarılı çağrı (51 kayıt) vardı.
+  -- Doğru ölçüm, 7. satırdaki SAYININ iki koşu arasındaki farkıdır.
+  select 12, 'not', 'hiz = 7. satirin farki / 11. satirin farki'
 ) ozet order by sira;
