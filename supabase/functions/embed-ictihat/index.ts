@@ -60,8 +60,16 @@ Deno.serve(async (req) => {
   }
   const supabase = createClient(url, key, { auth: { persistSession: false } });
 
-  // Ölçüldü: 4 kayıt güvenli, 8 kayıt WORKER_RESOURCE_LIMIT veriyor.
-  let limit = 4;
+  // ÖLÇÜLDÜ (18.09.2026, cron kapalıyken yalıtılmış koşu): limit=6 çağrısı
+  // HER SEFERİNDE 546 WORKER_RESOURCE_LIMIT veriyor. Canlı cron tam da 6 ile
+  // çağırıyordu; son 3 saatteki 60 çağrının 60'ı da düşmüştü. Kayıtlar
+  // tek tek update edildiği için çöküşten önce yazılanlar kalıyordu —
+  // bu yüzden vektörleme "yavaş" görünüyordu, oysa %100 hata veriyordu.
+  // Tavan 6'dan 4'e çekildi, varsayılan 3'e indi.
+  let limit = 3;
+  // Paralel işçilerin AYNI satırları seçmemesi için atlama. Cron'da her iş
+  // farklı bir atla değeriyle çağrılır; kümeler ayrık olur.
+  let atla = 0;
   let kaynak = 'ictihat';
   let sorguMetni: string | null = null;
   // Toplu doldurmayı hızlandırmak için: iki işçi listenin iki ucundan başlayıp
@@ -70,7 +78,8 @@ Deno.serve(async (req) => {
   let sira: 'asc' | 'desc' = 'asc';
   try {
     const body = await req.json();
-    limit = Math.min(6, Math.max(1, Number(body?.limit ?? 4)));
+    limit = Math.min(4, Math.max(1, Number(body?.limit ?? 3)));
+    atla = Math.max(0, Number(body?.atla ?? 0) || 0);
     if (body?.kaynak === 'mevzuat') kaynak = 'mevzuat';
     if (typeof body?.embed === 'string' && body.embed.trim()) sorguMetni = body.embed;
     if (body?.sira === 'desc') sira = 'desc';
@@ -104,7 +113,7 @@ Deno.serve(async (req) => {
     .select(alanlar)
     .is('embedding', null)
     .order('id', { ascending: sira === 'asc' })
-    .limit(limit);
+    .range(atla, atla + limit - 1);
   if (error) {
     return new Response(JSON.stringify({ error: 'query_failed', detail: error.message }), { status: 500, headers: CORS });
   }
@@ -148,7 +157,7 @@ Deno.serve(async (req) => {
     .is('embedding', null);
 
   return new Response(
-    JSON.stringify({ processed, failed: failed.length, remaining: count ?? null }),
+    JSON.stringify({ processed, failed: failed.length, remaining: count ?? null, atla, limit }),
     { headers: { ...CORS, 'Content-Type': 'application/json' } }
   );
 });
