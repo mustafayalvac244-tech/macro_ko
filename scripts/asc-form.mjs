@@ -174,6 +174,37 @@ async function abonelikOku() {
             console.log(`    ${ad} okunamadı: ${String(e.message).split('\n')[0]}`);
           }
         }
+
+        // FİYAT KAYITLARINI AÇ — 18.09.2026, koşu #17'den sonra eklendi.
+        //
+        // NEDEN. Yeni ürüne 399 TL kurma denemesi dört ayrı gövdeyle de
+        // "An error occurred while processing the pricing information"
+        // aldı ve ilk hipotezim "Paid Apps sözleşmesi imzasız" idi. Ama
+        // bu hipotezi ZAYIFLATAN bir ölçüm var: var olan AI ürününün
+        // 50 fiyat kaydı ZATEN DURUYOR. Sözleşme fiyatlamayı komple
+        // kilitliyor olsaydı o 50 kaydın da olmaması gerekirdi.
+        //
+        // Bu yüzden hipotezi savunmak yerine ALTERNATİFİ ölçüyorum:
+        // o 50 kayıt 50 ayrı ülke mi (yani Apple bir TEMEL ülkeden
+        // türetmiş), yoksa hepsi Türkiye mi? Temel-ülke düzeniyse yeni
+        // ürüne doğrudan TUR noktası göndermek yanlış sıra demektir ve
+        // hata da bunu anlatıyor olur.
+        try {
+          const f = await api(`/subscriptions/${s.id}/prices?include=subscriptionPricePoint,territory&limit=200`);
+          const dahil = f?.included || [];
+          const ulkeler = dahil.filter((d) => d.type === 'territories').map((d) => d.id);
+          const noktalar = dahil.filter((d) => d.type === 'subscriptionPricePoints');
+          console.log(`    fiyat detayı: ${ulkeler.length} ülke — ${ulkeler.slice(0, 8).join(', ')}${ulkeler.length > 8 ? ' …' : ''}`);
+          for (const n of noktalar.slice(0, 3)) {
+            console.log(`      nokta ${n.id.slice(0, 10)}… customerPrice=${n.attributes?.customerPrice} proceeds=${n.attributes?.proceeds}`);
+          }
+          const tur = noktalar.find((n) => {
+            try { return JSON.parse(Buffer.from(n.id, 'base64').toString()).t === 'TUR'; } catch { return false; }
+          });
+          if (tur) console.log(`      TÜRKİYE kaydı: ${tur.attributes?.customerPrice} TL`);
+        } catch (e) {
+          console.log(`    fiyat detayı okunamadı: ${String(e.message).split('\n')[0]}`);
+        }
       }
     } catch (e) {
       console.log(`  ürünler okunamadı: ${String(e.message).split('\n')[0]}`);
