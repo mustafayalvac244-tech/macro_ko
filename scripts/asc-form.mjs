@@ -180,30 +180,59 @@ async function abonelikOku() {
     }
   }
 
-  // YAZMA İZNİ VAR MI — BOŞ BİR POST İLE SINA.
-  // Eksik gövdeyle gönderilen istek ürün OLUŞTURMAZ. İki cevaptan biri gelir:
+  // YAZMA İZNİ VE ŞEMA — BOŞ POST'LARLA SINA.
+  //
+  // Eksik gövdeyle gönderilen istek HİÇBİR ŞEY OLUŞTURMAZ. Üç cevaptan biri:
   //   409 / 400 "şu alan zorunlu"  → uç AÇIK, yalnız gövde eksik  → YAZABİLİRİM
   //   403 FORBIDDEN_ERROR          → uç bu anahtara KAPALI        → YAZAMAM
-  // Aynı numara yaş sınırında şemayı öğretmişti; burada İZNİ ölçüyor.
-  console.log('\n── yazma izni sınaması (ürün OLUŞTURMAZ) ────────────────────');
-  try {
-    await api('/subscriptionGroups', {
-      method: 'POST',
-      body: JSON.stringify({
-        data: { type: 'subscriptionGroups', attributes: {}, relationships: {} },
-      }),
-    });
-    console.log('  BEKLENMEDİK: boş POST kabul edildi. Çıktıyı elle incele.');
-  } catch (e) {
-    console.log(`  ${e.message}`);
-    const m = e.message;
-    if (m.includes('403') || m.includes('FORBIDDEN')) {
-      console.log('\n  → SONUÇ: uç bu anahtara KAPALI. Abonelikler elle açılacak.');
-    } else if (m.includes('409') || m.includes('400')) {
-      console.log('\n  → SONUÇ: uç AÇIK (Apple yalnız eksik alanlardan şikâyet etti).');
-      console.log('     Ürünler API ile oluşturulabilir; sıradaki adım gövdeyi yazmak.');
-    } else {
-      console.log('\n  → SONUÇ belirsiz; hata metnini oku.');
+  //   başka                        → elle oku
+  //
+  // HER UÇ AYRI ÖLÇÜLÜYOR. `/subscriptionGroups` açık çıktı diye
+  // `/subscriptions` de açıktır DENEMEZ — Apple izinleri uç bazında
+  // veriyor. Bir uçtan diğerine genelleme yapmak tam da kaçındığımız şey.
+  //
+  // Yan fayda: 409 metni ZORUNLU ALAN ADLARINI sayıyor. Yaş sınırı
+  // beyanında şema tam olarak böyle öğrenildi (koşu #10) ve ezberden
+  // yazılan alan adlarının Apple'a yanlış beyan olma riski ortadan kalktı.
+  console.log('\n── yazma izni + şema sınaması (HİÇBİR ŞEY OLUŞTURMAZ) ───────');
+  for (const tip of ['subscriptionGroups', 'subscriptions', 'subscriptionLocalizations', 'subscriptionPrices']) {
+    console.log(`\n  POST /${tip}`);
+    try {
+      await api(`/${tip}`, {
+        method: 'POST',
+        body: JSON.stringify({ data: { type: tip, attributes: {}, relationships: {} } }),
+      });
+      console.log('    BEKLENMEDİK: boş POST kabul edildi. Çıktıyı elle incele.');
+    } catch (e) {
+      for (const satir of String(e.message).split('\n').slice(1)) console.log(`   ${satir}`);
+      const m = e.message;
+      if (m.includes('403') || m.includes('FORBIDDEN')) {
+        console.log('    → KAPALI (bu uç elle yapılacak)');
+      } else if (m.includes('409') || m.includes('400')) {
+        console.log('    → AÇIK (yalnız eksik alanlardan şikâyet etti)');
+      } else {
+        console.log('    → belirsiz; hata metnini oku');
+      }
+    }
+  }
+
+  // TÜRKİYE FİYAT NOKTASI. Apple abonelik fiyatını serbest sayı olarak
+  // almıyor; önceden tanımlı "price point" kimliklerinden birini istiyor.
+  // Var olan ürün üzerinden Türkiye noktalarını listeleyip 399 ₺'ye en
+  // yakınını bulmak, yeni ürünün fiyatını API'den kurabilmenin ön şartı.
+  const ilkUrun = (await api(`/subscriptionGroups/${liste[0]?.id}/subscriptions`).catch(() => null))?.data?.[0];
+  if (ilkUrun) {
+    console.log('\n── Türkiye fiyat noktaları (399 ₺ civarı) ───────────────────');
+    try {
+      const nok = await api(`/subscriptions/${ilkUrun.id}/pricePoints?filter[territory]=TUR&limit=200`);
+      const hepsi = (nok?.data || [])
+        .map((p) => ({ id: p.id, tl: Number(p.attributes?.customerPrice) }))
+        .filter((p) => Number.isFinite(p.tl))
+        .sort((a, b) => Math.abs(a.tl - 399) - Math.abs(b.tl - 399));
+      console.log(`  toplam ${nok?.data?.length || 0} nokta; 399'a en yakın 5:`);
+      for (const p of hepsi.slice(0, 5)) console.log(`    ${p.tl} TL  → ${p.id}`);
+    } catch (e) {
+      console.log(`  okunamadı: ${String(e.message).split('\n')[0]}`);
     }
   }
 }
