@@ -67,6 +67,15 @@ on:
           # API hatası için harcamak demekti. Bu seçenek yalnız imza adımını
           # koşup durur.
           - yalniz-imza        # kimlikleri üret, derleme ve gönderim yok
+          # SALT OKUNUR — hiçbir şey derlemez, göndermez, değiştirmez.
+          # NEDEN VAR (18.09.2026): ürün sahibi "bizim onay ne oldu" diye
+          # sordu ve App Store Connect'e erişimim olmadığı için cevap
+          # veremedim. eas-cli bu bilgiyi ASC anahtarıyla okuyabiliyor ve
+          # anahtar zaten secret'ta; yani cevap ulaşılabilirmiş, ben
+          # bakmamışım. Aynı komut kümesi TestFlight çökme kayıtlarını da
+          # getiriyor — "güncelleme sonrası çöktü" iddiasının hâlâ
+          # ölçülmemiş cevabı orada olabilir (bkz. src/lib/hataKaydi.ts).
+          - durum              # App Store / TestFlight durumu + çökme + geri bildirim
       profil:
         description: 'Derleme profili — production App Store/TestFlight için, preview yalnız kayıtlı cihazlara kurulur'
         type: choice
@@ -215,6 +224,39 @@ jobs:
           # EAS credentials.json'ı PROJE KÖKÜNDE arıyor (ölçüldü:
           # credentialsJson/read.js -> readRawAsync, projectDir kökü).
           cp ios-imza/credentials.json ./credentials.json
+
+      # ── SALT OKUNUR DURUM ────────────────────────────────────────────────
+      # Üç komut da App Store Connect'ten OKUR, hiçbir şey değiştirmez.
+      # Kimlik bilgileri eas.json'dan, .p8 yukarıdaki adımdan geliyor.
+      #
+      # DÜRÜSTLÜK NOTU: bu üç komutun bayrakları DOĞRULANMADI — yalnız
+      # `oclif.manifest.json` içindeki açıklamaları okundu. O yüzden her biri
+      # ayrı ayrı ve `|| true` ile koşuyor: biri bayrak hatası verirse
+      # diğer ikisinin çıktısı yine de alınsın. İlk koşudan sonra hangisinin
+      # nasıl çağrıldığı buraya yazılmalı.
+      - name: Durum (App Store / TestFlight)
+        if: inputs.is == 'durum'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          {
+            echo "## iOS durum raporu"
+            echo ""
+            echo "### App Store / TestFlight"
+            echo '```'
+            eas submit:status 2>&1 | tail -60 || echo "(submit:status çalışmadı)"
+            echo '```'
+            echo ""
+            echo "### TestFlight çökmeleri"
+            echo '```'
+            eas testflight:crashes 2>&1 | tail -60 || echo "(testflight:crashes çalışmadı)"
+            echo '```'
+            echo ""
+            echo "### TestFlight test kullanıcısı geri bildirimi"
+            echo '```'
+            eas testflight:feedback 2>&1 | tail -60 || echo "(testflight:feedback çalışmadı)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Derle
         id: derle
