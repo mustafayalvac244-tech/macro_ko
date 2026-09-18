@@ -889,10 +889,8 @@ async function incelemeyeGonder() {
   }
   console.log(`Sürüm ${surum.attributes?.versionString} (${surum.id}) — ${surum.attributes?.appStoreState}`);
 
-  // ÖNCE EKSİKLERİ ÖLÇ. Gönderim reddedilirse sebebini aramak için ikinci
-  // bir koşu harcamayalım; Apple "check associated errors" diyor ama neyi
-  // kastettiğini söylemiyor, o yüzden liste burada zaten çıkarılıyor.
-  await surumEksikleri(surum.id);
+  // EKSİK ÖLÇÜMÜ ÇIKTININ SONUNDA — 18.09.2026 dersi. Başa konduğunda
+  // GitHub'ın iş kaydı API'si (son ~130 satır) tam da o listeyi kesiyordu.
 
   // Açık bir gönderim zaten var mı? İkinci bir tane açmak hataya yol açar.
   let gonderim = null;
@@ -960,6 +958,8 @@ async function incelemeyeGonder() {
     console.log('  ✗ GÖNDERİLEMEDİ — Apple\'ın söylediği EKSİKLER:');
     for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
   }
+
+  await surumEksikleri(surum.id);
 
   console.log('\n═══ ÖZET ═══');
   try {
