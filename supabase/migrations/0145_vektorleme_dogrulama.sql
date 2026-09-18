@@ -59,4 +59,15 @@ select olcum, deger from (
   -- 9. satır "1" dedi, oysa aynı pencerede 17 başarılı çağrı (51 kayıt) vardı.
   -- Doğru ölçüm, 7. satırdaki SAYININ iki koşu arasındaki farkıdır.
   select 12, 'not', 'hiz = 7. satirin farki / 11. satirin farki'
+  union all
+  -- MEVZUAT DA AYNI BORUYU KULLANIYOR. Kararlar düzelirken maddeler geride
+  -- kalırsa, anlamsal mevzuat araması sessizce zayıf kalır — kullanıcı bunu
+  -- "arama kötü" diye yaşar, sebebini göremez.
+  select 13, 'mevzuat embedding VAR',
+         coalesce(count(*) filter (where embedding is not null)::text, 'YOK (!)')
+    from public.mevzuat_maddeleri
+  union all
+  select 14, 'mevzuat embedding YOK',
+         coalesce(count(*) filter (where embedding is null)::text, 'YOK (!)')
+    from public.mevzuat_maddeleri
 ) ozet order by sira;
