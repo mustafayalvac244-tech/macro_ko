@@ -961,15 +961,27 @@ async function incelemeyeGonder() {
 
   await surumEksikleri(surum.id);
 
+  // ÖZET EN SONDA VE KISA — GitHub iş kaydı API'si yalnız son ~130 satır
+  // veriyor ve bugün üç kez tam da okumak istediğim satırı kesti. Kural:
+  // uzun çıktının sonunda, ölçtüğün şeyi tek satır tekrarla.
   console.log('\n═══ ÖZET ═══');
   try {
     const son = await api(`/appStoreVersions/${surum.id}`);
     console.log(`  appStoreState = ${JSON.stringify(son?.data?.attributes?.appStoreState)}`);
+  } catch { /* yoksay */ }
+  try {
+    const b = await api(`/appStoreVersions/${surum.id}/build`);
+    console.log(`  derleme       = ${b?.data ? b.data.attributes?.version : 'YOK (!)'}`);
+  } catch { console.log('  derleme       = YOK (!)'); }
+  try {
     const g = await api(`/reviewSubmissions/${gonderim.id}`);
-    console.log(`  reviewSubmission state = ${JSON.stringify(g?.data?.attributes?.state)}`);
+    console.log(`  gönderim      = ${JSON.stringify(g?.data?.attributes?.state)} (submitted=${g?.data?.attributes?.submitted})`);
+    const ogeler = await api(`/reviewSubmissions/${gonderim.id}/items`);
+    console.log(`  gönderim öğe  = ${(ogeler?.data || []).length} adet`);
   } catch (e) {
-    console.log(`  özet okunamadı: ${String(e.message).split('\n')[0]}`);
+    console.log(`  gönderim okunamadı: ${String(e.message).split('\n')[1] || e.message}`);
   }
+  console.log(`  SONUÇ: ${(await api(`/appStoreVersions/${surum.id}`))?.data?.attributes?.appStoreState === 'PREPARE_FOR_SUBMISSION' ? 'HÂLÂ GÖNDERİLMEDİ' : 'GÖNDERİLDİ'}`);
 }
 
 /**
