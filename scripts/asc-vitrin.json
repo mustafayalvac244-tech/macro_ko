@@ -16,5 +16,10 @@
       "tip": "APP_IPAD_PRO_3GEN_129",
       "klasor": "magaza-pazarlama/ipad"
     }
-  ]
+  ],
+  "_appInfo": "18.09.2026: privacyPolicyUrl BOŞ çıktı ve zorunluymuş. Kategori de yalnız BOŞSA yazılır — doluysa ürün sahibinin seçimi olabilir, üstüne yazmak onun kararını sessizce değiştirmek olur.",
+  "gizlilikAdresi": "https://vekilpro.app/privacy.html",
+  "_kategori": "YAYIN-SIRASI.md B7: \"Kategori: Business ya da Productivity\". Büro yönetimi + hukuki araştırma olduğu için birincil BUSINESS, ikincil PRODUCTIVITY.",
+  "birincilKategori": "BUSINESS",
+  "ikincilKategori": "PRODUCTIVITY"
 }

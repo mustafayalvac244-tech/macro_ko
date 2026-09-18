@@ -1162,6 +1162,66 @@ async function vitrinYaz() {
     }
   }
 
+  // ── 3c) appInfo: GİZLİLİK ADRESİ VE KATEGORİ ──────────────────────────
+  //
+  // 18.09.2026'da ölçüldü: `privacyPolicyUrl` BOŞTU. Hesap açan ve veri
+  // toplayan bir uygulamada bu alan ZORUNLU; boşken Apple sürümü almaz ve
+  // verdiği hata yine belirsiz "not in valid state" olur.
+  //
+  // Bu alanı günlerce gözden kaçırdım çünkü vitrini yalnız
+  // `appStoreVersion` tarafında aradım. Vitrin iki nesneye bölünmüş ve
+  // ikinci yarıya hiç bakmamıştım.
+  const appInfolar = (await api(`/apps/${APP_ID}/appInfos`))?.data || [];
+  for (const bilgi of appInfolar) {
+    // KATEGORİ — yalnız boşsa yazılır. Doluysa ürün sahibinin seçimi
+    // olabilir ve üstüne yazmak onun kararını sessizce değiştirmek olur.
+    for (const [ad, iliski, deger] of [
+      ['primaryCategory', 'primaryCategory', metin.birincilKategori],
+      ['secondaryCategory', 'secondaryCategory', metin.ikincilKategori],
+    ]) {
+      let varMi = null;
+      try { varMi = (await api(`/appInfos/${bilgi.id}/${iliski}`))?.data || null; } catch { /* yok */ }
+      if (varMi) { console.log(`  ${ad} zaten dolu: ${varMi.id}`); continue; }
+      if (!deger) { console.log(`  ${ad} boş bırakıldı (tanım dosyasında yok)`); continue; }
+      try {
+        await api(`/appInfos/${bilgi.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            data: {
+              type: 'appInfos', id: bilgi.id,
+              relationships: { [iliski]: { data: { type: 'appCategories', id: deger } } },
+            },
+          }),
+        });
+        console.log(`  ✓ ${ad} = ${deger}`);
+      } catch (e) {
+        for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
+      }
+    }
+
+    const yerelBilgi = (await api(`/appInfos/${bilgi.id}/appInfoLocalizations`))?.data || [];
+    for (const l of yerelBilgi) {
+      if (l.attributes?.privacyPolicyUrl) {
+        console.log(`  ${l.attributes.locale} gizlilik adresi zaten var`);
+        continue;
+      }
+      try {
+        const c = await api(`/appInfoLocalizations/${l.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            data: {
+              type: 'appInfoLocalizations', id: l.id,
+              attributes: { privacyPolicyUrl: metin.gizlilikAdresi },
+            },
+          }),
+        });
+        console.log(`  ✓ ${l.attributes?.locale} gizlilik adresi = ${c?.data?.attributes?.privacyPolicyUrl}`);
+      } catch (e) {
+        for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
+      }
+    }
+  }
+
   // ── 4) İNCELEME BİLGİSİ ───────────────────────────────────────────────
   // Apple, inceleme sırasında bir sorun çıkarsa ULAŞACAĞI kişiyi istiyor.
   // Kamuya açık değil; mağaza sayfasında görünmez.
