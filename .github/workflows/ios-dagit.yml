@@ -105,6 +105,11 @@ on:
           # scripts/asc-yas-siniri-taslak.md'de, ürün sahibi onaylı.
           # Ayrıca App Privacy uçlarının API'ye açık olup olmadığını ölçer.
           - alanlar-yaz        # usesIdfa · copyright · içerik hakları
+          # SÜRÜMÜ APPLE İNCELEMESİNE GÖNDERİR. Ürün sahibi: 18.09.2026,
+          # "abi artık sal şu programı ya". Reddedilirse Apple'ın hata
+          # metni GERÇEK eksik listesidir — bizim tahminimiz değil.
+          # Gönderim App Store Connect'ten iptal edilebilir, kalıcı değil.
+          - incelemeye-gonder  # App Store incelemesine sun
       profil:
         description: 'Derleme profili — production App Store/TestFlight için, preview yalnız kayıtlı cihazlara kurulur'
         type: choice
@@ -351,6 +356,22 @@ jobs:
             ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
             APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
               node scripts/asc-form.mjs abonelik-yaz 2>&1 || echo "(abonelik-yaz düştü — hata yukarıda)"
+            echo '```'
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # SÜRÜMÜ APPLE İNCELEMESİNE GÖNDERİR.
+      - name: İncelemeye gönder
+        if: inputs.is == 'incelemeye-gonder'
+        env:
+          ASC_KEY_PATH: ./asc-api-key.p8
+        run: |
+          {
+            echo "## App Store incelemesine gönderim"
+            echo '```'
+            ASC_KEY_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyId")" \
+            ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
+            APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
+              node scripts/asc-form.mjs incelemeye-gonder 2>&1 || echo "(gönderim düştü — hata yukarıda)"
             echo '```'
           } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
