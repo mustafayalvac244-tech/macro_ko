@@ -76,6 +76,12 @@ on:
           # getiriyor — "güncelleme sonrası çöktü" iddiasının hâlâ
           # ölçülmemiş cevabı orada olabilir (bkz. src/lib/hataKaydi.ts).
           - durum              # App Store / TestFlight durumu + çökme + geri bildirim
+          # SALT OKUNUR. App Store Connect'teki form alanlarını (yaş sınırı
+          # beyanı, kategori, sürüm durumu) canlı API'den çekip basar.
+          # NEDEN: Apple'ın doküman sayfaları JavaScript ile çiziliyor ve
+          # okunamıyor; alan adlarını ezberden yazmak Apple'a yanlış beyan
+          # vermek demek. Önce gerçek nesne okunur, sonra cevap yazılır.
+          - form-oku           # ASC form alanlarını olduğu gibi dök
       profil:
         description: 'Derleme profili — production App Store/TestFlight için, preview yalnız kayıtlı cihazlara kurulur'
         type: choice
@@ -269,6 +275,24 @@ jobs:
             echo "### TestFlight test kullanıcısı geri bildirimi"
             echo '```'
             eas testflight:feedback 2>&1 | tail -60 || echo "(testflight:feedback çalışmadı)"
+            echo '```'
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # SALT OKUNUR — App Store Connect form alanlarını canlı API'den döker.
+      # Yaş sınırı beyanının ALAN ADLARINI öğrenmenin tek güvenilir yolu bu:
+      # Apple'ın doküman sayfaları JavaScript ile çiziliyor ve okunamıyor.
+      - name: ASC formlarını oku
+        if: inputs.is == 'form-oku'
+        env:
+          ASC_KEY_PATH: ./asc-api-key.p8
+        run: |
+          {
+            echo "## App Store Connect form alanları"
+            echo '```'
+            ASC_KEY_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyId")" \
+            ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
+            APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
+              node scripts/asc-form.mjs oku 2>&1 || echo "(asc-form.mjs düştü)"
             echo '```'
           } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
