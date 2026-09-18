@@ -1501,9 +1501,23 @@ async function tamDenetim() {
   yaz('inceleme bilgisi', d?._hata ? null : `${d?.data?.attributes?.contactFirstName} ${d?.data?.attributes?.contactLastName}`);
 
   console.log('\n═══ ABONELİKLER ═══');
+  // HER PARÇAYI AYRI GÖSTER — 18.09.2026. "MISSING_METADATA" tek başına
+  // hangi parçanın eksik olduğunu söylemiyor. Fiyat, Türkçe metin,
+  // inceleme notu ve inceleme görseli tek tek basılıyor ki hangisinin
+  // yazılmadığı görünsün. Dördü de doluyken hâlâ MISSING_METADATA ise
+  // eksik API'nin dışında demektir (Paid Apps sözleşmesi en güçlü aday).
   for (const g of (await oku(`/apps/${APP_ID}/subscriptionGroups?limit=50`))?.data || []) {
     for (const u of (await oku(`/subscriptionGroups/${g.id}/subscriptions`))?.data || []) {
-      console.log(`  ${u.attributes?.productId.padEnd(24)} state=${u.attributes?.state}`);
+      console.log(`\n  ${u.attributes?.productId}  state=${u.attributes?.state}`);
+      const f = await oku(`/subscriptions/${u.id}/prices?limit=200`);
+      yaz('  fiyat kaydı', f?._hata ? null : `${(f?.data || []).length} adet`);
+      const y = await oku(`/subscriptions/${u.id}/subscriptionLocalizations`);
+      yaz('  yerelleştirme', y?._hata ? null : `${(y?.data || []).length} dil`);
+      yaz('  inceleme notu', u.attributes?.reviewNote && `${u.attributes.reviewNote.length} krktr`);
+      const g2 = await oku(`/subscriptions/${u.id}/appStoreReviewScreenshot`);
+      yaz('  inceleme görseli', g2?._hata ? null : (g2?.data ? g2.data.attributes?.assetDeliveryState?.state || 'var' : null));
+      const a = await oku(`/subscriptions/${u.id}/subscriptionAvailability`);
+      yaz('  satışa açıklık', a?._hata ? null : (a?.data ? 'var' : null));
     }
   }
 
