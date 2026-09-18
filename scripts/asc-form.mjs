@@ -865,6 +865,32 @@ async function surumEksikleri(surumId) {
     }
   }
 
+  // 3b) APP PRIVACY — API'den OKUNABİLİYOR MU?
+  //
+  // Vitrinin doldurulabilen HER PARÇASI dolduruldu ve doğrulandı, ama
+  // Apple hâlâ "not in valid state" diyor. Geriye API'nin açmadığını
+  // ölçtüğüm tek alan kaldı: veri etiketi.
+  // Daha önce üç YAZMA ucu denendi (hepsi 404). Şimdi OKUMA uçları
+  // deneniyor: biri cevap verirse beyan API'den erişilebilir demektir ve
+  // yazılabilir; hepsi 404 verirse bu alan gerçekten yalnız arayüzde.
+  console.log('  — App Privacy okuma uçları:');
+  for (const yol of [
+    `/apps/${APP_ID}/appPrivacyDetails`,
+    '/appDataUsageCategories?limit=1',
+    '/appDataUsagePurposes?limit=1',
+    '/appDataUsageDataProtections?limit=1',
+    `/apps/${APP_ID}/appDataUsages?limit=1`,
+    `/apps/${APP_ID}/appDataUsagesPublishState`,
+  ]) {
+    try {
+      const c = await api(yol);
+      console.log(`      ${yol.replace(APP_ID, '{app}')} → VAR (${(c?.data?.length ?? (c?.data ? 1 : 0))} kayıt)`);
+    } catch (e) {
+      const m = String(e.message).split('\n')[1] || '';
+      console.log(`      ${yol.replace(APP_ID, '{app}')} → ${m.trim().slice(0, 60)}`);
+    }
+  }
+
   // 4) İNCELEME BİLGİSİ: Apple'ın ulaşacağı kişi + demo hesap.
   try {
     const d = await api(`/appStoreVersions/${surumId}/appStoreReviewDetail`);
