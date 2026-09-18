@@ -19,7 +19,7 @@
 //
 // Env:
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   (zorunlu)
-//   EMBED_BATCH        çağrı başına karar (vars. 4, en fazla 6)
+//   EMBED_BATCH        çağrı başına karar (vars. 3, en fazla 4)
 //   EMBED_MAX_CALLS    bu çalışmadaki en fazla çağrı (vars. 500)
 //   EMBED_DELAY        çağrılar arası bekleme, ms (vars. 750)
 //   EMBED_MAX_STRIKES  art arda kaç geçici hataya katlanılacağı (vars. 15)
@@ -28,7 +28,11 @@
 //                      toplu doldurmayı hızlandırmak için
 // ---------------------------------------------------------------------------
 
-const BATCH = Math.min(6, Math.max(1, Number(process.env.EMBED_BATCH ?? 4)));
+// 18.09.2026 ÖLÇÜMÜ: uçtaki tavan 6'dan 4'e indirildi. Canlı cron limit=6 ile
+// çağırıyordu ve üç saatteki 60 çağrının 60'ı da 546 WORKER_RESOURCE_LIMIT
+// veriyordu; yalıtılmış tek çağrı da aynı hatayı verdi. Buradaki tavan uçla
+// aynı olmalı, yoksa betik sessizce uçta kırpılan bir sayı gönderir.
+const BATCH = Math.min(4, Math.max(1, Number(process.env.EMBED_BATCH ?? 3)));
 const MAX_CALLS = Number(process.env.EMBED_MAX_CALLS ?? 500);
 // Ölçüldü: 250ms'lik hızda ~85 çağrı sonra worker kaynak sınırına takılıyor.
 // Daha nazik hız, sınıra hiç çarpmadan tamamlama şansını artırıyor.
