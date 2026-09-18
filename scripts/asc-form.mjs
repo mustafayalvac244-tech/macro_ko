@@ -813,6 +813,72 @@ async function alanlarYaz() {
  * (state CANCELING). Yani bu, silinemeyen bir ürün kimliği gibi
  * kalıcı bir adım DEĞİL.
  */
+/**
+ * SÜRÜM NEDEN İNCELEMEYE ALINMIYOR — eksikleri TEK TEK oku.
+ *
+ * NEDEN VAR (18.09.2026). Gönderim denendi ve Apple şunu dedi:
+ *   409 STATE_ERROR "not in valid state ... check associated errors"
+ * Yani "eksik var" diyor ama neyin eksik olduğunu SÖYLEMİYOR.
+ *
+ * Buradaki her satır, App Store'un yayın için zorunlu tuttuğu bir
+ * parçayı ayrı ayrı ölçüyor. Tahmin listesi değil: her biri canlı
+ * uçtan okunuyor ve boşsa "YOK" yazıyor.
+ */
+async function surumEksikleri(surumId) {
+  console.log('\n═══ SÜRÜMÜN EKSİKLERİ (ölçüm) ═══');
+
+  // 1) DERLEME BAĞLI MI. TestFlight'a yüklenmiş olmak YETMEZ — o derlemenin
+  //    App Store sürümüne AYRICA bağlanması gerekir. İki ayrı şey.
+  try {
+    const b = await api(`/appStoreVersions/${surumId}/build`);
+    console.log(`  derleme: ${b?.data ? `${b.data.id} (${b.data.attributes?.version})` : 'YOK (!)'}`);
+  } catch (e) {
+    console.log(`  derleme: YOK (!) — ${String(e.message).split('\n')[0]}`);
+  }
+
+  // 2) METİNLER: açıklama, anahtar kelime, "yenilikler".
+  let yereller = [];
+  try {
+    const y = await api(`/appStoreVersions/${surumId}/appStoreVersionLocalizations`);
+    yereller = y?.data || [];
+    console.log(`  yerelleştirme: ${yereller.length} dil`);
+    for (const l of yereller) {
+      const a = l.attributes || {};
+      console.log(`    ${a.locale}: açıklama=${a.description ? `${a.description.length} krktr` : 'YOK (!)'} · anahtar=${a.keywords ? 'var' : 'YOK (!)'} · destek=${a.supportUrl ? 'var' : 'YOK (!)'} · yenilikler=${a.whatsNew ? 'var' : '(ilk sürümde gerekmez)'}`);
+    }
+  } catch (e) {
+    console.log(`  yerelleştirme okunamadı: ${String(e.message).split('\n')[0]}`);
+  }
+
+  // 3) EKRAN GÖRÜNTÜLERİ — her dil için ayrı küme.
+  for (const l of yereller) {
+    try {
+      const k = await api(`/appStoreVersionLocalizations/${l.id}/appScreenshotSets`);
+      const kumeler = k?.data || [];
+      if (!kumeler.length) { console.log(`    ${l.attributes?.locale} ekran görüntüsü: HİÇ KÜME YOK (!)`); continue; }
+      for (const s of kumeler) {
+        const g = await api(`/appScreenshotSets/${s.id}/appScreenshots`);
+        console.log(`    ${l.attributes?.locale} ${s.attributes?.screenshotDisplayType}: ${(g?.data || []).length} görsel`);
+      }
+    } catch (e) {
+      console.log(`    ${l.attributes?.locale} ekran görüntüsü okunamadı: ${String(e.message).split('\n')[0]}`);
+    }
+  }
+
+  // 4) İNCELEME BİLGİSİ: Apple'ın ulaşacağı kişi + demo hesap.
+  try {
+    const d = await api(`/appStoreVersions/${surumId}/appStoreReviewDetail`);
+    const a = d?.data?.attributes || {};
+    console.log(`  inceleme bilgisi: ${d?.data ? 'var' : 'YOK (!)'}`);
+    if (d?.data) {
+      console.log(`    kişi=${a.contactFirstName || 'YOK (!)'} ${a.contactLastName || ''} · e-posta=${a.contactEmail || 'YOK (!)'} · telefon=${a.contactPhone || 'YOK (!)'}`);
+      console.log(`    demo hesap gerekli mi=${a.demoAccountRequired} · kullanıcı=${a.demoAccountName ? 'var' : 'YOK'}`);
+    }
+  } catch (e) {
+    console.log(`  inceleme bilgisi: YOK (!) — ${String(e.message).split('\n')[0]}`);
+  }
+}
+
 async function incelemeyeGonder() {
   const surumler = await api(`/apps/${APP_ID}/appStoreVersions?limit=5`);
   const surum = (surumler?.data || []).find((s) => s.attributes?.appStoreState === 'PREPARE_FOR_SUBMISSION');
@@ -822,6 +888,11 @@ async function incelemeyeGonder() {
     return;
   }
   console.log(`Sürüm ${surum.attributes?.versionString} (${surum.id}) — ${surum.attributes?.appStoreState}`);
+
+  // ÖNCE EKSİKLERİ ÖLÇ. Gönderim reddedilirse sebebini aramak için ikinci
+  // bir koşu harcamayalım; Apple "check associated errors" diyor ama neyi
+  // kastettiğini söylemiyor, o yüzden liste burada zaten çıkarılıyor.
+  await surumEksikleri(surum.id);
 
   // Açık bir gönderim zaten var mı? İkinci bir tane açmak hataya yol açar.
   let gonderim = null;
