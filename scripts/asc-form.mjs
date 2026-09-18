@@ -1526,13 +1526,30 @@ async function tamDenetim() {
   yaz('inceleme bilgisi', d?._hata ? null : `${d?.data?.attributes?.contactFirstName} ${d?.data?.attributes?.contactLastName}`);
 
   console.log('\n═══ ABONELİKLER ═══');
+  // HATAYI YUTMA — 18.09.2026'da bu bölüm BOŞ döndü ve boşluğun sebebi
+  // anlaşılamadı: ürünler mi silindi, Apple mı cevap vermedi? `oku()`
+  // hatayı `{_hata}` olarak döndürüyor, `?.data || []` ise onu sessizce
+  // boş listeye çeviriyordu. Yani ölçüm aracı, ölçmek istediğim şeyi
+  // gizliyordu — bugün üçüncü kez aynı tür hata.
+  const grupCevap = await oku(`/apps/${APP_ID}/subscriptionGroups?limit=50`);
+  if (grupCevap?._hata) {
+    console.log(`  ✗ GRUPLAR OKUNAMADI: ${grupCevap._hata}`);
+    console.log('    (boş liste DEĞİL — Apple cevap vermedi. Bugün bu uçta 500 alınmıştı.)');
+  } else if (!(grupCevap?.data || []).length) {
+    console.log('  ✗ HİÇ GRUP YOK — bu beklenmedik, ürünler bu sabah oradaydı.');
+  } else {
+    console.log(`  ${grupCevap.data.length} grup okundu`);
+  }
   // HER PARÇAYI AYRI GÖSTER — 18.09.2026. "MISSING_METADATA" tek başına
   // hangi parçanın eksik olduğunu söylemiyor. Fiyat, Türkçe metin,
   // inceleme notu ve inceleme görseli tek tek basılıyor ki hangisinin
   // yazılmadığı görünsün. Dördü de doluyken hâlâ MISSING_METADATA ise
   // eksik API'nin dışında demektir (Paid Apps sözleşmesi en güçlü aday).
-  for (const g of (await oku(`/apps/${APP_ID}/subscriptionGroups?limit=50`))?.data || []) {
-    for (const u of (await oku(`/subscriptionGroups/${g.id}/subscriptions`))?.data || []) {
+  for (const g of grupCevap?.data || []) {
+    const urunCevap = await oku(`/subscriptionGroups/${g.id}/subscriptions`);
+    if (urunCevap?._hata) { console.log(`  ✗ grup ${g.id} ürünleri okunamadı: ${urunCevap._hata}`); continue; }
+    if (!(urunCevap?.data || []).length) console.log(`  ✗ grup ${g.id} BOŞ görünüyor`);
+    for (const u of urunCevap?.data || []) {
       console.log(`\n  ${u.attributes?.productId}  state=${u.attributes?.state}`);
       const f = await oku(`/subscriptions/${u.id}/prices?limit=200`);
       yaz('  fiyat kaydı', f?._hata ? null : `${(f?.data || []).length} adet`);
