@@ -873,6 +873,27 @@ async function surumEksikleri(surumId) {
   // Daha önce üç YAZMA ucu denendi (hepsi 404). Şimdi OKUMA uçları
   // deneniyor: biri cevap verirse beyan API'den erişilebilir demektir ve
   // yazılabilir; hepsi 404 verirse bu alan gerçekten yalnız arayüzde.
+  // APPLE'A KENDİ ŞEMASINI SÖYLET — 18.09.2026.
+  //
+  // Uç adlarını TAHMİN ederek dokuz kez 404 aldım. Tahmin, yokluğun
+  // kanıtı değildir: yanlış adı denemiş de olabilirim. Doğrusu Apple'a
+  // sordurmak — `include=` alanına saçma bir değer verilince Apple hata
+  // metninde GEÇERLİ ilişkilerin tamamını sayıyor.
+  // Aynı numara bugün yaş sınırında ve aboneliklerde şemayı öğretmişti.
+  console.log('  — Apple\'ın kabul ettiği ilişkiler (kendi ağzından):');
+  for (const [ad, yol] of [
+    ['apps', `/apps/${APP_ID}?include=gecersizIliskiAdi`],
+    ['appStoreVersions', `/appStoreVersions/${surumId}?include=gecersizIliskiAdi`],
+  ]) {
+    try {
+      await api(yol);
+      console.log(`      ${ad}: BEKLENMEDİK — saçma include kabul edildi`);
+    } catch (e) {
+      const metin = String(e.message).replace(/\s+/g, ' ');
+      console.log(`      ${ad}: ${metin.slice(0, 700)}`);
+    }
+  }
+
   console.log('  — App Privacy okuma uçları:');
   for (const yol of [
     `/apps/${APP_ID}/appPrivacyDetails`,
