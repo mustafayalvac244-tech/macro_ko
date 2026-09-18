@@ -774,6 +774,19 @@ async function alanlarYaz() {
 
   console.log('\n═══ YAZIM SONRASI ═══');
   await oku();
+
+  // ÖZET EN SONA — 18.09.2026, koşu #25'te öğrenildi.
+  // GitHub'ın iş kaydı API'si yalnız son ~130 satırı veriyor. `oku()` çıktısı
+  // uzun ve alanlar alfabetik; `contentRightsDeclaration` listenin başında
+  // olduğu için tam da doğrulamak istediğim satır kesiliyordu. Yani rapor
+  // üretildi ama raporun tek önemli satırı okunamadı.
+  // Ders: uzun çıktının SONUNDA, ölçmek istediğin şeyi tek satır tekrarla.
+  const son = await api(`/apps/${APP_ID}`);
+  const sonSurum = await api(`/appStoreVersions/${surum.id}`);
+  console.log('\n═══ ÖZET (doğrulama) ═══');
+  console.log(`  contentRightsDeclaration = ${JSON.stringify(son?.data?.attributes?.contentRightsDeclaration)}`);
+  console.log(`  usesIdfa                 = ${JSON.stringify(sonSurum?.data?.attributes?.usesIdfa)}`);
+  console.log(`  copyright                = ${JSON.stringify(sonSurum?.data?.attributes?.copyright)}`);
 }
 
 const MODLAR = { yaz, 'abonelik-oku': abonelikOku, 'abonelik-yaz': abonelikYaz, 'alanlar-yaz': alanlarYaz, oku };
