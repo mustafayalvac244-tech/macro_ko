@@ -191,17 +191,30 @@ async function abonelikOku() {
         // hata da bunu anlatıyor olur.
         try {
           const f = await api(`/subscriptions/${s.id}/prices?include=subscriptionPricePoint,territory&limit=200`);
-          const dahil = f?.included || [];
-          const ulkeler = dahil.filter((d) => d.type === 'territories').map((d) => d.id);
-          const noktalar = dahil.filter((d) => d.type === 'subscriptionPricePoints');
-          console.log(`    fiyat detayı: ${ulkeler.length} ülke — ${ulkeler.slice(0, 8).join(', ')}${ulkeler.length > 8 ? ' …' : ''}`);
-          for (const n of noktalar.slice(0, 3)) {
-            console.log(`      nokta ${n.id.slice(0, 10)}… customerPrice=${n.attributes?.customerPrice} proceeds=${n.attributes?.proceeds}`);
+          const kayitlar = f?.data || [];
+          const dahil = new Map((f?.included || []).map((d) => [`${d.type}:${d.id}`, d]));
+
+          // HER FİYAT KAYDINI KENDİ ÜLKESİYLE EŞLEŞTİR.
+          //
+          // ÖNCEKİ SÜRÜM YANLIŞ OKUYORDU — 18.09.2026, koşu #18. `included`
+          // dizisinde ülkeleri ve fiyat noktalarını AYRI AYRI sayıp "175
+          // ülke" dedi ve TUR noktasını arayıp "Türkiye kaydı 399,99 TL"
+          // diye bastı. Ama `included` bir HAVUZ: kaydın kendi ilişkisine
+          // bakmadan oradan seçilen nokta, o kaydın noktası olmayabilir.
+          // Yani o satır bir ÖLÇÜM DEĞİL, eşleştirilmemiş bir tahmindi.
+          // Doğrusu: her `prices` kaydının relationships'inden gidip
+          // ülkesini ve noktasını birlikte çözmek.
+          const satirlar = [];
+          for (const k of kayitlar) {
+            const uId = k.relationships?.territory?.data?.id;
+            const nId = k.relationships?.subscriptionPricePoint?.data?.id;
+            const n = nId ? dahil.get(`subscriptionPricePoints:${nId}`) : null;
+            satirlar.push({ ulke: uId || '?', fiyat: n?.attributes?.customerPrice ?? '?' });
           }
-          const tur = noktalar.find((n) => {
-            try { return JSON.parse(Buffer.from(n.id, 'base64').toString()).t === 'TUR'; } catch { return false; }
-          });
-          if (tur) console.log(`      TÜRKİYE kaydı: ${tur.attributes?.customerPrice} TL`);
+          console.log(`    fiyat detayı: ${satirlar.length} kayıt`);
+          const turkiye = satirlar.find((x) => x.ulke === 'TUR');
+          console.log(`      TÜRKİYE: ${turkiye ? `${turkiye.fiyat} TL` : 'KAYIT YOK'}`);
+          for (const x of satirlar.slice(0, 5)) console.log(`      ${x.ulke} = ${x.fiyat}`);
         } catch (e) {
           console.log(`    fiyat detayı okunamadı: ${String(e.message).split('\n')[0]}`);
         }
