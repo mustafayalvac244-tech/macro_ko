@@ -597,12 +597,32 @@ async function urunKur(u, grupId, mevcut, ulkeler) {
     }
 
     const gorselYolu = 'magaza-pazarlama/inceleme/premium.png';
-    let gorseller = [];
-    try {
-      gorseller = (await api(`/subscriptions/${urun.id}/appStoreReviewScreenshot`))?.data ? [1] : [];
-    } catch { gorseller = []; }
-    if (gorseller.length) {
-      console.log('  inceleme görseli zaten var');
+    let mevcutGorsel = null;
+    try { mevcutGorsel = (await api(`/subscriptions/${urun.id}/appStoreReviewScreenshot`))?.data || null; } catch { /* yok */ }
+
+    // BAŞARISIZ GÖRSELİ SİL — 18.09.2026'da ölçüldü.
+    //
+    // İlk yükleme "başarılı" göründü ama Apple'ın kendi durumu FAILED
+    // yazıyordu: görsel 1079×2797'ydi, oysa Apple inceleme görselinde
+    // GERÇEK CİHAZ BOYUTU istiyor (6.7 inç için 1290×2796).
+    // Yükleme adımlarının hepsi 2xx döndüğü için "oldu" sanmıştım;
+    // ASIL ÖLÇÜM `assetDeliveryState.state` alanıymış.
+    //
+    // Ders: bir yüklemenin kabul edildiğini HTTP durumundan değil,
+    // nesnenin kendi durum alanından öğren.
+    const durum = mevcutGorsel?.attributes?.assetDeliveryState?.state;
+    if (mevcutGorsel && durum !== 'COMPLETE') {
+      console.log(`  inceleme görseli durumu ${durum} → siliniyor`);
+      try {
+        await api(`/subscriptionAppStoreReviewScreenshots/${mevcutGorsel.id}`, { method: 'DELETE' });
+        mevcutGorsel = null;
+      } catch (e) {
+        console.log(`    silinemedi: ${String(e.message).split('\n')[1] || e.message}`);
+      }
+    }
+
+    if (mevcutGorsel) {
+      console.log('  inceleme görseli zaten var (COMPLETE)');
     } else if (!fs.existsSync(gorselYolu)) {
       console.log(`  ✗ inceleme görseli bulunamadı: ${gorselYolu}`);
     } else {
@@ -632,7 +652,12 @@ async function urunKur(u, grupId, mevcut, ulkeler) {
             data: { type: 'subscriptionAppStoreReviewScreenshots', id: rez.data.id, attributes: { uploaded: true, sourceFileChecksum: ozet } },
           }),
         });
-        console.log('  ✓ inceleme görseli yüklendi');
+        // "Yüklendi" DEMEDEN ÖNCE APPLE'A SOR. Bugün bir kez HTTP 2xx'i
+        // başarı sandım ve Apple'ın durumu FAILED'dı.
+        const son = await api(`/subscriptionAppStoreReviewScreenshots/${rez.data.id}`);
+        const d = son?.data?.attributes?.assetDeliveryState?.state;
+        if (d === 'COMPLETE') console.log('  ✓ inceleme görseli yüklendi (COMPLETE)');
+        else console.log(`  ✗ inceleme görseli durumu: ${d} — ${JSON.stringify(son?.data?.attributes?.assetDeliveryState?.errors || [])}`);
       } catch (e) {
         for (const s of String(e.message).split('\n').slice(0, 4)) console.log(`    ${s}`);
       }
@@ -1515,7 +1540,10 @@ async function tamDenetim() {
       yaz('  yerelleştirme', y?._hata ? null : `${(y?.data || []).length} dil`);
       yaz('  inceleme notu', u.attributes?.reviewNote && `${u.attributes.reviewNote.length} krktr`);
       const g2 = await oku(`/subscriptions/${u.id}/appStoreReviewScreenshot`);
-      yaz('  inceleme görseli', g2?._hata ? null : (g2?.data ? g2.data.attributes?.assetDeliveryState?.state || 'var' : null));
+      // FAILED'ı 'dolu' sayma: bugün tam da bu yüzden 'görsel var' sanıldı.
+      const gd = g2?._hata ? null : g2?.data?.attributes?.assetDeliveryState?.state;
+      yaz('  inceleme görseli', gd === 'COMPLETE' ? 'COMPLETE' : (gd ? null : null));
+      if (gd && gd !== 'COMPLETE') console.log(`      (durum: ${gd} — Apple reddetti)`);
       const a = await oku(`/subscriptions/${u.id}/subscriptionAvailability`);
       yaz('  satışa açıklık', a?._hata ? null : (a?.data ? 'var' : null));
     }
