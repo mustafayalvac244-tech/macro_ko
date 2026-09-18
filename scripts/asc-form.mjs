@@ -223,14 +223,38 @@ async function abonelikOku() {
   const ilkUrun = (await api(`/subscriptionGroups/${liste[0]?.id}/subscriptions`).catch(() => null))?.data?.[0];
   if (ilkUrun) {
     console.log('\n── Türkiye fiyat noktaları (399 ₺ civarı) ───────────────────');
+    //
+    // SAYFALAMA ŞART — 18.09.2026'da yapılan ve AYNI KOŞUDA yakalanan hata.
+    // İlk sürüm tek sayfa (`limit=200`) okuyup "399'a en yakın" diye sıraladı
+    // ve 199,99 TL'yi en yakın gösterdi. Saçma: 399 varsa 199,99 en yakın
+    // olamaz. Sebep, `limit=200` Apple'ın SAYFA BAŞINA üst sınırı olması ve
+    // noktaların artan sırada gelmesi — yani liste 199,99'da KESİLMİŞTİ,
+    // orada BİTMEMİŞTİ. "200 nokta" da toplam değil, ilk sayfanın boyutuydu.
+    //
+    // DERS: bir listenin sonunu gördüğünü, `next` bağlantısına bakmadan
+    // varsayma. Kesilmiş liste, üzerinde yapılan her sıralamayı ve her
+    // "en yakın/en büyük/toplam" iddiasını sessizce yanlışlar.
     try {
-      const nok = await api(`/subscriptions/${ilkUrun.id}/pricePoints?filter[territory]=TUR&limit=200`);
-      const hepsi = (nok?.data || [])
-        .map((p) => ({ id: p.id, tl: Number(p.attributes?.customerPrice) }))
-        .filter((p) => Number.isFinite(p.tl))
-        .sort((a, b) => Math.abs(a.tl - 399) - Math.abs(b.tl - 399));
-      console.log(`  toplam ${nok?.data?.length || 0} nokta; 399'a en yakın 5:`);
-      for (const p of hepsi.slice(0, 5)) console.log(`    ${p.tl} TL  → ${p.id}`);
+      let yol = `/subscriptions/${ilkUrun.id}/pricePoints?filter[territory]=TUR&limit=200`;
+      const hepsi = [];
+      let sayfa = 0;
+      while (yol && sayfa < 20) {
+        const nok = await api(yol);
+        for (const p of nok?.data || []) {
+          const tl = Number(p.attributes?.customerPrice);
+          if (Number.isFinite(tl)) hepsi.push({ id: p.id, tl });
+        }
+        sayfa += 1;
+        const sonraki = nok?.links?.next;
+        yol = sonraki ? sonraki.replace(/^https:\/\/api\.appstoreconnect\.apple\.com\/v1/, '') : null;
+      }
+      const enBuyuk = hepsi.reduce((a, b) => (b.tl > a.tl ? b : a), { tl: -1 });
+      console.log(`  ${sayfa} sayfada toplam ${hepsi.length} nokta (en yüksek ${enBuyuk.tl} TL)`);
+      for (const hedef of [399, 2999]) {
+        const yakin = [...hepsi].sort((a, b) => Math.abs(a.tl - hedef) - Math.abs(b.tl - hedef)).slice(0, 3);
+        console.log(`  ${hedef} TL'ye en yakın:`);
+        for (const p of yakin) console.log(`    ${p.tl} TL  → ${p.id}`);
+      }
     } catch (e) {
       console.log(`  okunamadı: ${String(e.message).split('\n')[0]}`);
     }
