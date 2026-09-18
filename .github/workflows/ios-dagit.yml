@@ -119,6 +119,12 @@ on:
           # döngü eksik sayısı kadar tur attı. Doğrusu aramak değil,
           # LİSTEYİ ÇIKARMAK.
           - tam-denetim        # eksik listesi, tek koşuda, hiçbir şey yazmaz
+          # YAZAR — uygulamanın SATIŞ ÜLKESİNİ ve FİYATINI kurar.
+          # 18.09.2026: appAvailabilityV2 404 NOT_FOUND verdi. Bu, diğer
+          # 404'lerden FARKLI: 'yol geçersiz' değil 'KAYIT YOK'. Yani
+          # uygulamanın hiç satış ülkesi seçilmemişti ve ülkesi olmayan
+          # uygulama yayınlanamıyor. Türkiye ile sınırlı kuruluyor.
+          - fiyat-ulke-yaz     # satış ülkesi (TUR) + ücretsiz fiyat çizelgesi
           # SÜRÜMÜ APPLE İNCELEMESİNE GÖNDERİR. Ürün sahibi: 18.09.2026,
           # "abi artık sal şu programı ya". Reddedilirse Apple'ın hata
           # metni GERÇEK eksik listesidir — bizim tahminimiz değil; ayrıca
@@ -371,6 +377,22 @@ jobs:
             ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
             APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
               node scripts/asc-form.mjs abonelik-yaz 2>&1 || echo "(abonelik-yaz düştü — hata yukarıda)"
+            echo '```'
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # YAZAR — satış ülkesi ve fiyat çizelgesi.
+      - name: Fiyat ve ülke
+        if: inputs.is == 'fiyat-ulke-yaz'
+        env:
+          ASC_KEY_PATH: ./asc-api-key.p8
+        run: |
+          {
+            echo "## Satış ülkesi ve fiyat"
+            echo '```'
+            ASC_KEY_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyId")" \
+            ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
+            APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
+              node scripts/asc-form.mjs fiyat-ulke-yaz 2>&1 || echo "(fiyat-ulke-yaz düştü)"
             echo '```'
           } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 

@@ -1446,9 +1446,125 @@ async function tamDenetim() {
   console.log('  Apple\'ın arayüzdeki "Add for Review" uyarısı hâlâ en kesin kaynak.');
 }
 
+/**
+ * FİYAT VE SATIŞ ÜLKESİ — uygulamanın kendisi için.
+ *
+ * NEDEN VAR (18.09.2026). Tam denetim tek eksik bıraktı:
+ *   appAvailabilityV2 → 404 NOT_FOUND
+ * Bu 404 diğerlerinden FARKLI. Ötekiler "PATH_ERROR: URL path is not
+ * valid" diyordu — yol yok demek. Bu ise "NOT_FOUND: The specified
+ * resource does not exist" — yol VAR, KAYIT yok. Yani uygulamanın hiç
+ * satış ülkesi seçilmemiş ve ülkesi olmayan uygulama yayınlanamaz.
+ *
+ * İki 404'ü ayırt etmek bu işi çözdü; ayırt etmeseydim "bu uç da kapalı"
+ * deyip geçecektim. Hata metninin KELİMESİ ölçümün parçası.
+ *
+ * TÜRKİYE İLE SINIRLI — bilinçli:
+ *   • ürün Türk hukuku ürünü, arayüz Türkçe
+ *   • abonelikler de Türkiye ile sınırlı (aynı gün kuruldu)
+ *   • AB'de satış `YAYIN-SIRASI.md` B7'deki TRADER STATUS beyanını
+ *     zorunlu kılıyor ve o beyan hâlâ verilmedi
+ * Genişletmek sonradan tek koşu; daraltmak ise satıştayken sorun olur.
+ */
+async function fiyatUlkeYaz() {
+  // v2 ucu /v1 tabanında değil; tam adresle çağrılıyor.
+  const v2 = async (yol, secenek) => {
+    const cevap = await fetch(`https://api.appstoreconnect.apple.com/v2${yol}`, {
+      ...secenek,
+      headers: { Authorization: `Bearer ${TOKEN ??= jwtUret()}`, 'Content-Type': 'application/json', ...(secenek?.headers || {}) },
+    });
+    const metin = await cevap.text();
+    let veri = null;
+    try { veri = metin ? JSON.parse(metin) : null; } catch { /* HTML */ }
+    if (!cevap.ok) {
+      const detay = veri?.errors ? veri.errors.map((e) => `${e.status} ${e.code}: ${e.title} — ${e.detail}`).join('\n  ') : metin.slice(0, 400);
+      throw new Error(`Apple API ${cevap.status} ${secenek?.method || 'GET'} v2${yol}\n  ${detay}`);
+    }
+    return veri;
+  };
+
+  console.log('═══ SATIŞ ÜLKESİ ═══');
+  let acik = null;
+  try { acik = (await v2(`/apps/${APP_ID}/appAvailability`))?.data || null; } catch (e) {
+    console.log(`  okunamadı: ${String(e.message).split('\n')[1] || e.message}`);
+  }
+  if (acik) {
+    console.log(`  zaten var: ${acik.id} · yeni ülkelere otomatik=${acik.attributes?.availableInNewTerritories}`);
+  } else {
+    console.log('  yok → POST /v2/appAvailabilities (yalnız Türkiye)');
+    try {
+      const c = await v2('/appAvailabilities', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: {
+            type: 'appAvailabilities',
+            attributes: { availableInNewTerritories: false },
+            relationships: {
+              app: { data: { type: 'apps', id: APP_ID } },
+              territoryAvailabilities: { data: [{ type: 'territoryAvailabilities', id: 'TUR' }] },
+            },
+          },
+          included: [{
+            type: 'territoryAvailabilities',
+            id: 'TUR',
+            attributes: { available: true },
+            relationships: { territory: { data: { type: 'territories', id: 'TUR' } } },
+          }],
+        }),
+      });
+      console.log(`  ✓ kuruldu: ${c?.data?.id}`);
+    } catch (e) {
+      for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
+    }
+  }
+
+  console.log('\n═══ FİYAT (ücretsiz uygulama) ═══');
+  let cizelge = null;
+  try { cizelge = (await api(`/apps/${APP_ID}/appPriceSchedule`))?.data || null; } catch (e) {
+    console.log(`  okunamadı: ${String(e.message).split('\n')[1] || e.message}`);
+  }
+  if (cizelge) {
+    console.log(`  zaten var: ${cizelge.id}`);
+  } else {
+    console.log('  yok → POST /v1/appPriceSchedules (ücretsiz)');
+    // ÜCRETSİZ = Apple'ın "0" kademesi. Kademe kimliğini UYDURMUYORUM:
+    // uygulamanın kendi fiyat noktalarından Türkiye'de 0 olanı aranıyor.
+    let nokta = null;
+    try {
+      const nk = await api(`/apps/${APP_ID}/appPricePoints?filter[territory]=TUR&limit=200`);
+      nokta = (nk?.data || []).find((p) => Number(p.attributes?.customerPrice) === 0) || null;
+      console.log(`  ${(nk?.data || []).length} fiyat noktası okundu; sıfır kademesi ${nokta ? 'bulundu' : 'BULUNAMADI'}`);
+    } catch (e) {
+      console.log(`  fiyat noktaları okunamadı: ${String(e.message).split('\n')[1] || e.message}`);
+    }
+    try {
+      const govde = {
+        data: {
+          type: 'appPriceSchedules',
+          relationships: {
+            app: { data: { type: 'apps', id: APP_ID } },
+            baseTerritory: { data: { type: 'territories', id: 'TUR' } },
+            manualPrices: { data: nokta ? [{ type: 'appPrices', id: '${yeni}' }] : [] },
+          },
+        },
+        included: nokta ? [{
+          type: 'appPrices', id: '${yeni}',
+          attributes: { startDate: null },
+          relationships: { appPricePoint: { data: { type: 'appPricePoints', id: nokta.id } } },
+        }] : [],
+      };
+      const c = await api('/appPriceSchedules', { method: 'POST', body: JSON.stringify(govde) });
+      console.log(`  ✓ kuruldu: ${c?.data?.id}`);
+    } catch (e) {
+      for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
+    }
+  }
+}
+
 const MODLAR = {
   yaz,
   'tam-denetim': tamDenetim,
+  'fiyat-ulke-yaz': fiyatUlkeYaz,
   'vitrin-yaz': vitrinYaz,
   'abonelik-oku': abonelikOku,
   'abonelik-yaz': abonelikYaz,
