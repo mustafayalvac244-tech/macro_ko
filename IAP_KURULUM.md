@@ -150,7 +150,23 @@ RevenueCat'e iOS uygulamasını eklerken bu yeni bundle ID'yi yazın.
 
 ## 6. İstemci API anahtarlarını uygulamaya ekleyin
 
-> ### ⚠️ BU ADIM HÂLÂ YAPILMADI — 16.09.2026'da ölçüldü
+> ### ✅ ANDROID TARAFI KAPATILDI — 18.09.2026
+>
+> `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` artık `eas.json`'daki **preview ve
+> production** profillerinde tanımlı (`goog_…`). RevenueCat'te Google Play
+> uygulaması oluşturuldu ve anahtar oradan alındı.
+>
+> **iOS TARAFI HÂLÂ AÇIK:** `EXPO_PUBLIC_REVENUECAT_IOS_KEY` yok. RevenueCat'te
+> Apple App Store uygulaması oluşturulup `appl_…` anahtarı alınmalı; yoksa
+> iOS'ta satın alma aynı sessiz sebeple kapalı kalır.
+>
+> **BU DEĞİŞİKLİK OTA İLE GİTMEZ.** Ortam değişkenleri derleme zamanında
+> paketin içine gömülüyor; anahtarın etkili olması için **yeni bir derleme**
+> gerekiyor. Play'e yüklü olan `vekilpro-3.3.2.aab` bu anahtarı TAŞIMIYOR.
+>
+> ---
+>
+> ### (TARİHSEL) Bu adım 16.09.2026'da yapılmamıştı
 >
 > `eas.json`'daki `preview` ve `production` profillerinin `env` bloklarında
 > **yalnız iki Supabase değişkeni var**; RevenueCat anahtarları yok.

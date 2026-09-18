@@ -19,7 +19,8 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://wjshlysfmeqlnfiibknj.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_wGafOymnUrpXTwfRAJQTVFodYcM"
       }
     },
     "production": {
@@ -33,7 +34,8 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://wjshlysfmeqlnfiibknj.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_wGafOymnUrpXTwfRAJQTVFodYcM"
       }
     },
     "production-yerel-imza": {
