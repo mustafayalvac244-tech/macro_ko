@@ -1062,6 +1062,48 @@ async function vitrinYaz() {
       await ekranKumesiYukle(l, kume);
     }
   }
+
+  // ── 4) İNCELEME BİLGİSİ ───────────────────────────────────────────────
+  // Apple, inceleme sırasında bir sorun çıkarsa ULAŞACAĞI kişiyi istiyor.
+  // Kamuya açık değil; mağaza sayfasında görünmez.
+  // Bilgiyi ürün sahibi verdi (18.09.2026) — uydurulmadı.
+  const inc = JSON.parse(fs.readFileSync('scripts/asc-inceleme.json', 'utf8'));
+  const nitelikler = {
+    contactFirstName: inc.contactFirstName,
+    contactLastName: inc.contactLastName,
+    contactPhone: inc.contactPhone,
+    contactEmail: inc.contactEmail,
+    demoAccountRequired: inc.demoAccountRequired,
+    notes: inc.notes,
+  };
+  let mevcutInc = null;
+  try { mevcutInc = (await api(`/appStoreVersions/${surum.id}/appStoreReviewDetail`))?.data || null; } catch { /* yok */ }
+  try {
+    if (mevcutInc) {
+      const c = await api(`/appStoreReviewDetails/${mevcutInc.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ data: { type: 'appStoreReviewDetails', id: mevcutInc.id, attributes: nitelikler } }),
+      });
+      console.log(`  ✓ inceleme bilgisi güncellendi: ${c?.data?.attributes?.contactFirstName} ${c?.data?.attributes?.contactLastName}`);
+    } else {
+      const c = await api('/appStoreReviewDetails', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: {
+            type: 'appStoreReviewDetails',
+            attributes: nitelikler,
+            relationships: { appStoreVersion: { data: { type: 'appStoreVersions', id: surum.id } } },
+          },
+        }),
+      });
+      console.log(`  ✓ inceleme bilgisi yazıldı: ${c?.data?.attributes?.contactFirstName} ${c?.data?.attributes?.contactLastName} · ${c?.data?.attributes?.contactPhone}`);
+    }
+  } catch (e) {
+    for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
+  }
+
+  console.log('\n═══ VİTRİN SONRASI EKSİKLER ═══');
+  await surumEksikleri(surum.id);
 }
 
 /**

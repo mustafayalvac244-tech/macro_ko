@@ -1,0 +1,15 @@
+{
+  "_not": "App Store 'App Review Information' beyanı. Ürün sahibi 18.09.2026'da verdi: 'bayram gömükpınar 05373815505'. Apple bu bilgiyi inceleme sırasında bir sorun çıkarsa ULAŞMAK için istiyor; kamuya açık değildir, mağaza sayfasında görünmez.",
+  "contactFirstName": "Bayram",
+  "contactLastName": "Gömükpınar",
+  "_telefon": "Apple uluslararası biçim bekliyor; 0537... → +90537...",
+  "contactPhone": "+905373815505",
+  "_eposta": "Ürün sahibinin hesabındaki adres. YANLIŞSA TEK SATIRDA DEĞİŞİR — Apple bu adrese inceleme sorusu gönderir, okunmayan bir adres redde yol açar.",
+  "contactEmail": "mustafayalvac244@gmail.com",
+
+  "_demoHesap": "FALSE seçildi çünkü kayıt ÜCRETSİZ ve saniyeler sürüyor: e-posta + parola, davet yok, doğrulama beklentisi yok, ve ücretsiz planda içtihat araması dâhil çekirdek özellikler açık (src/config/planlar.ts > UCRETSIZ_LIMIT). Apple, serbest kaydı olan uygulamalarda demo hesabı zorunlu tutmuyor. Sahte bir demo hesabı uydurmaktansa gerçeği yazmak doğru: inceleyen kendi hesabını açabilir.",
+  "demoAccountRequired": false,
+
+  "_notlar": "İnceleyen İngilizce okuyor. Üç şey söylenmeli: (1) kayıt serbest, (2) neyin ücretli olduğu — kilitli bir ekran görünce 'çalışmıyor' sanmasın, (3) içtihat metinlerinin kamuya açık mahkeme kararları olduğu; ceza kararları şiddet/cinsel suç anlatısı içerdiği için yaş sınırı 12+ beyan edildi ve inceleyen bunu bağlamıyla görsün.",
+  "notes": "Vekil Pro is a practice-management and legal-research app for lawyers in Turkey. The interface is Turkish.\n\nACCOUNT: No demo account is needed. Sign-up is free and takes seconds (email + password). There is no invitation, no waiting list and no manual approval.\n\nWHAT IS FREE: case files, clients, hearings, deadlines, calendar, reminders, legal calculators, petition templates, and unlimited full-text search of Turkish court decisions (Yargitay / Danistay).\n\nWHAT IS PAID: unlimited records and the finance module (Vekil Pro, 399 TRY/month) and the AI assistant (Vekil Pro AI, 2999 TRY/month). Both are auto-renewing subscriptions in one group and can be tested with a StoreKit sandbox account. If a screen shows a lock icon, it is a paywall, not a defect.\n\nCONTENT: The case-law texts are public decisions published by Turkish courts. Criminal decisions describe violent and sexual offences in factual legal language; this is why the age rating was declared 12+ rather than 4+.\n\nPRIVACY: No advertising, no tracking, no IDFA. Text a user explicitly sends to the AI assistant is transmitted to a third-party model provider, and that transfer requires the user's separate, revocable consent; without consent the AI features stay off and everything else works."
+}
