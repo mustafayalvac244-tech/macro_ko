@@ -383,10 +383,34 @@ async function abonelikYaz() {
   // ürünün yerelleştirmesi hiç yazılmadı. Oysa o yerelleştirme, var olan
   // ürünün MISSING_METADATA olmasının ÖLÇÜLEN sebebiydi — yani en çok
   // ihtiyaç duyulan adım, en az önemli adımın hatası yüzünden atlandı.
+  // ÜLKE LİSTESİNİ VAR OLAN ÜRÜNDEN KOPYALA — uydurma.
+  //
+  // İlk sürüm yeni ürünü YALNIZ Türkiye'ye açıyordu. Bu, 175 ülkede
+  // satılan AI ürünüyle tutarsız olurdu: aynı grupta biri dünyaya açık,
+  // diğeri tek ülkeye kapalı. Grup içi yükseltme/düşürme böyle bir
+  // eşitsizlikte beklendiği gibi çalışmaz.
+  // Doğrusu, canlıda ne varsa onu kopyalamak. Okunamazsa TUR'a düşülür
+  // ve bu AÇIKÇA yazılır — sessizce daraltmak en kötüsü olurdu.
+  let ulkeler = ['TUR'];
+  for (const s of mevcut) {
+    try {
+      const a = await api(`/subscriptions/${s.id}/subscriptionAvailability`);
+      if (!a?.data) continue;
+      const ulk = await api(`/subscriptionAvailabilities/${a.data.id}/availableTerritories?limit=200`);
+      const liste = (ulk?.data || []).map((t) => t.id);
+      if (liste.length) {
+        ulkeler = liste;
+        console.log(`Ülke listesi ${s.attributes?.productId} ürününden kopyalandı: ${liste.length} ülke`);
+        break;
+      }
+    } catch { /* sıradaki ürünü dene */ }
+  }
+  if (ulkeler.length === 1) console.log('UYARI: ülke listesi okunamadı, yalnız TUR kullanılacak.');
+
   const hatalar = [];
   for (const u of tanim.urunler || []) {
     try {
-      await urunKur(u, grupId, mevcut);
+      await urunKur(u, grupId, mevcut, ulkeler);
     } catch (e) {
       console.log(`\n  ✗ ${u.productId} yarıda kaldı: ${String(e.message).split('\n')[0]}`);
       hatalar.push(`${u.productId}: ${String(e.message).split('\n').slice(0, 3).join(' | ')}`);
@@ -402,7 +426,7 @@ async function abonelikYaz() {
   }
 }
 
-async function urunKur(u, grupId, mevcut) {
+async function urunKur(u, grupId, mevcut, ulkeler) {
   {
     console.log(`\n═══ ${u.productId} ═══`);
 
@@ -452,12 +476,72 @@ async function urunKur(u, grupId, mevcut) {
       console.log(`  ✓ yerelleştirme: ${c.data.id}`);
     }
 
-    // 3) FİYAT
+    // 3) SATIŞA AÇIKLIK (availability) — 18.09.2026'da eklenen hipotez.
+    //
+    // NEDEN. Yeni ürüne Türkiye fiyatı kurma denemesi DÖRT ayrı gövdeyle de
+    // "An error occurred while processing the pricing information" aldı.
+    // İlk hipotezim (Paid Apps imzasız) kendi ölçümümle çürüdü: var olan
+    // AI ürününün 175 ülkede fiyatı DURUYOR.
+    //
+    // Yeni hipotez: bir ürüne bir ÜLKENİN fiyatı, o ürün o ülkede SATIŞA
+    // AÇIK değilse kurulamıyor. AI ürününün açıklığı arayüzden kurulmuş
+    // (175 ülke), yeni ürünün hiç yok. "Türkiye fiyatı" ile "Türkiye'de
+    // satılıyor" ayrı iki nesne ve ikincisi önce gelmeli.
+    //
+    // DOĞRULANMADI — aşağıdaki okuma bunu söyleyecek. Hipotez yanlışsa
+    // çıktı da öyle diyecek; iddia etmiyorum, ölçüyorum.
+    let acikMi = null;
+    try {
+      const a = await api(`/subscriptions/${urun.id}/subscriptionAvailability`);
+      acikMi = a?.data || null;
+      if (acikMi) {
+        console.log(`  satışa açıklık: VAR (${acikMi.id}) availableInNewTerritories=${acikMi.attributes?.availableInNewTerritories}`);
+        const ulk = await api(`/subscriptionAvailabilities/${acikMi.id}/availableTerritories?limit=200`);
+        const liste = (ulk?.data || []).map((t) => t.id);
+        console.log(`    ${liste.length} ülke · Türkiye ${liste.includes('TUR') ? 'İÇİNDE' : 'YOK'}`);
+      } else {
+        console.log('  satışa açıklık: uç cevap verdi ama data boş');
+      }
+    } catch (e) {
+      console.log(`  satışa açıklık YOK — ${String(e.message).split('\n')[0]}`);
+    }
+
+    if (!acikMi) {
+      console.log('  → satışa açıklık kuruluyor (POST /subscriptionAvailabilities)');
+      try {
+        const c = await api('/subscriptionAvailabilities', {
+          method: 'POST',
+          body: JSON.stringify({
+            data: {
+              type: 'subscriptionAvailabilities',
+              attributes: { availableInNewTerritories: true },
+              relationships: {
+                subscription: { data: { type: 'subscriptions', id: urun.id } },
+                availableTerritories: { data: ulkeler.map((t) => ({ type: 'territories', id: t })) },
+              },
+            },
+          }),
+        });
+        console.log(`  ✓ satışa açıklık kuruldu: ${c.data.id}`);
+      } catch (e) {
+        for (const satir of String(e.message).split('\n')) console.log(`    ${satir}`);
+      }
+    }
+
+    // 4) FİYAT
     const fiyatlar = (await api(`/subscriptions/${urun.id}/prices`))?.data || [];
-    if (fiyatlar.length) {
-      console.log(`  fiyat zaten var (${fiyatlar.length} kayıt) — DOKUNULMADI`);
+    const turFiyat = await turkiyeFiyatiniOku(urun.id);
+    if (turFiyat !== null && turFiyat === u.fiyatTL) {
+      console.log(`  Türkiye fiyatı zaten ${turFiyat} TL — DOKUNULMADI`);
     } else {
-      console.log(`  fiyat yok → ${u.fiyatTL} TL kademesi aranıyor`);
+      if (turFiyat !== null) {
+        // ÜRÜN SAHİBİ KARARI 18.09.2026: "2 paketimiz var ... 399 ve 2999".
+        // Yani yanlış kademede duran fiyat DÜZELTİLECEK. Abone yok, o
+        // yüzden preserveCurrentPrice gerekmiyor — ama varyant merdiveninde
+        // yine de deneniyor.
+        console.log(`  Türkiye fiyatı ${turFiyat} TL ama ${u.fiyatTL} olmalı → DÜZELTİLECEK`);
+      }
+      console.log(`  ${u.fiyatTL} TL kademesi aranıyor (mevcut ${fiyatlar.length} kayıt)`);
       let sayfaYolu = `/subscriptions/${urun.id}/pricePoints?filter[territory]=TUR&limit=200`;
       let nokta = null;
       let sayfa = 0;
@@ -476,6 +560,29 @@ async function urunKur(u, grupId, mevcut) {
       }
     }
   }
+}
+
+/**
+ * Bir ürünün BUGÜNKÜ Türkiye fiyatını oku (yoksa null).
+ *
+ * Her `prices` kaydının `territory` ve `subscriptionPricePoint`
+ * ilişkileri BİRLİKTE çözülüyor. Tek başına `included` havuzundan nokta
+ * seçmek 18.09.2026'da yanlış sayı ürettiydi — kaydın kendi ilişkisine
+ * bakılmadan seçilen nokta o kaydın noktası değildir.
+ */
+async function turkiyeFiyatiniOku(abonelikId) {
+  try {
+    const f = await api(`/subscriptions/${abonelikId}/prices?include=subscriptionPricePoint,territory&limit=200`);
+    const dahil = new Map((f?.included || []).map((d) => [`${d.type}:${d.id}`, d]));
+    for (const k of f?.data || []) {
+      if (k.relationships?.territory?.data?.id !== 'TUR') continue;
+      const nId = k.relationships?.subscriptionPricePoint?.data?.id;
+      const n = nId ? dahil.get(`subscriptionPricePoints:${nId}`) : null;
+      const tl = Number(n?.attributes?.customerPrice);
+      return Number.isFinite(tl) ? tl : null;
+    }
+  } catch { /* okunamadıysa yokmuş gibi davran; yazma adımı zaten hata basar */ }
+  return null;
 }
 
 /**
@@ -502,8 +609,8 @@ async function fiyatKur(abonelikId, noktaId) {
   const varyantlar = [
     ['yalnız ilişkiler', {}],
     ['startDate: null', { startDate: null }],
+    ['preserveCurrentPrice: true', { preserveCurrentPrice: true }],
     ['startDate: null + preserveCurrentPrice: false', { startDate: null, preserveCurrentPrice: false }],
-    ['preserveCurrentPrice: false', { preserveCurrentPrice: false }],
   ];
   for (const [ad, nitelikler] of varyantlar) {
     console.log(`  fiyat denemesi — ${ad}`);
