@@ -1355,8 +1355,100 @@ async function ekranKumesiYukle(yerel, kume) {
   }
 }
 
+/**
+ * TAM DENETİM — Apple'ın yayın için istediği HER nesneyi tek koşuda dök.
+ *
+ * NEDEN VAR (18.09.2026). Ürün sahibi haklı olarak patladı: "bu kadar
+ * basit bir işi yapamıyorsun". Sebebi yöntemdi. Gönderim reddedilince
+ * TEK bir eksik arayıp düzelttim, tekrar denedim, yine reddedildi, bir
+ * sonrakini aradım. Apple'ın hatası belirsiz ("not in valid state") ve
+ * bu döngü eksik sayısı kadar tur atıyor. Beş tur attı:
+ *   derleme bağlı değil → açıklama yok → görsel yok → inceleme bilgisi
+ *   yok → gizlilik adresi yok → ...
+ *
+ * DOĞRU YÖNTEM: aramayı bırak, LİSTEYİ ÇIKAR. Bu mod hiçbir şey yazmaz;
+ * yayın için gereken her nesneyi okuyup dolu/boş diye basar. Bir tur.
+ *
+ * KAPSAM BEYANI: aşağıdaki liste Apple'ın istediklerinin TAMAMI DEĞİL,
+ * bugüne kadar karşılaşılanların toplamıdır. Yeni bir eksik çıkarsa
+ * BURAYA EKLENECEK — tekrar tek tek aramaya dönülmeyecek.
+ */
+async function tamDenetim() {
+  const yaz = (etiket, deger, zorunlu = true) => {
+    const bos = deger === null || deger === undefined || deger === '' || deger === 0;
+    console.log(`  ${bos ? (zorunlu ? '✗' : '·') : '✓'} ${etiket.padEnd(34)} ${bos ? (zorunlu ? 'YOK — ZORUNLU' : 'boş (zorunlu değil)') : deger}`);
+  };
+  const oku = async (yol) => { try { return await api(yol); } catch (e) { return { _hata: String(e.message).split('\n')[1] || e.message }; } };
+
+  console.log('═══ UYGULAMA ═══');
+  const app = (await oku(`/apps/${APP_ID}`))?.data;
+  yaz('bundleId', app?.attributes?.bundleId);
+  yaz('contentRightsDeclaration', app?.attributes?.contentRightsDeclaration);
+
+  // FİYAT VE ÜLKE — bugüne kadar HİÇ ÖLÇÜLMEDİ. Uygulamanın kendisinin
+  // fiyat çizelgesi ve satış ülkesi yoksa yayınlanamaz; aboneliklerde
+  // aynı tuzağa düşülmüştü (satışa açıklık fiyattan önce gelir).
+  const fiyat = await oku(`/apps/${APP_ID}/appPriceSchedule`);
+  yaz('fiyat çizelgesi', fiyat?._hata ? `okunamadı (${fiyat._hata.slice(0, 40)})` : (fiyat?.data ? fiyat.data.id : null));
+  for (const yol of [`/apps/${APP_ID}/appAvailabilityV2`, `/apps/${APP_ID}/appAvailability`]) {
+    const a = await oku(yol);
+    if (!a?._hata) { yaz(`satış ülkeleri (${yol.split('/').pop()})`, a?.data ? a.data.id : null); break; }
+    console.log(`  ? ${yol.split('/').pop().padEnd(34)} ${a._hata.slice(0, 60)}`);
+  }
+
+  console.log('\n═══ appInfo (uygulamaya özel vitrin) ═══');
+  for (const bilgi of (await oku(`/apps/${APP_ID}/appInfos`))?.data || []) {
+    yaz('appStoreAgeRating', bilgi.attributes?.appStoreAgeRating);
+    for (const k of ['primaryCategory', 'secondaryCategory']) {
+      const c = await oku(`/appInfos/${bilgi.id}/${k}`);
+      yaz(k, c?._hata ? null : c?.data?.id, k === 'primaryCategory');
+    }
+    for (const l of (await oku(`/appInfos/${bilgi.id}/appInfoLocalizations`))?.data || []) {
+      const a = l.attributes || {};
+      yaz(`${a.locale} ad`, a.name);
+      yaz(`${a.locale} altbaşlık`, a.subtitle, false);
+      yaz(`${a.locale} gizlilik adresi`, a.privacyPolicyUrl);
+    }
+  }
+
+  console.log('\n═══ appStoreVersion (sürüme özel vitrin) ═══');
+  const s = ((await oku(`/apps/${APP_ID}/appStoreVersions?limit=5`))?.data || [])
+    .find((x) => x.attributes?.appStoreState === 'PREPARE_FOR_SUBMISSION');
+  if (!s) { console.log('  PREPARE_FOR_SUBMISSION sürümü YOK'); return; }
+  yaz('versionString', s.attributes?.versionString);
+  yaz('copyright', s.attributes?.copyright);
+  yaz('usesIdfa', String(s.attributes?.usesIdfa));
+  const b = await oku(`/appStoreVersions/${s.id}/build`);
+  yaz('derleme', b?._hata ? null : b?.data?.attributes?.version);
+  for (const l of (await oku(`/appStoreVersions/${s.id}/appStoreVersionLocalizations`))?.data || []) {
+    const a = l.attributes || {};
+    yaz(`${a.locale} açıklama`, a.description && `${a.description.length} krktr`);
+    yaz(`${a.locale} anahtar kelime`, a.keywords);
+    yaz(`${a.locale} destek adresi`, a.supportUrl);
+    for (const kume of (await oku(`/appStoreVersionLocalizations/${l.id}/appScreenshotSets`))?.data || []) {
+      const g = await oku(`/appScreenshotSets/${kume.id}/appScreenshots`);
+      const sayi = (g?.data || []).length;
+      const eksik = (g?.data || []).filter((x) => x.attributes?.assetDeliveryState?.state !== 'COMPLETE');
+      yaz(`${a.locale} ${kume.attributes?.screenshotDisplayType}`, `${sayi} görsel${eksik.length ? ` — ${eksik.length} TAMAMLANMAMIŞ (!)` : ''}`);
+    }
+  }
+  const d = await oku(`/appStoreVersions/${s.id}/appStoreReviewDetail`);
+  yaz('inceleme bilgisi', d?._hata ? null : `${d?.data?.attributes?.contactFirstName} ${d?.data?.attributes?.contactLastName}`);
+
+  console.log('\n═══ ABONELİKLER ═══');
+  for (const g of (await oku(`/apps/${APP_ID}/subscriptionGroups?limit=50`))?.data || []) {
+    for (const u of (await oku(`/subscriptionGroups/${g.id}/subscriptions`))?.data || []) {
+      console.log(`  ${u.attributes?.productId.padEnd(24)} state=${u.attributes?.state}`);
+    }
+  }
+
+  console.log('\n→ Bu liste TAM DEĞİL; bugüne kadar karşılaşılanların toplamı.');
+  console.log('  Apple\'ın arayüzdeki "Add for Review" uyarısı hâlâ en kesin kaynak.');
+}
+
 const MODLAR = {
   yaz,
+  'tam-denetim': tamDenetim,
   'vitrin-yaz': vitrinYaz,
   'abonelik-oku': abonelikOku,
   'abonelik-yaz': abonelikYaz,

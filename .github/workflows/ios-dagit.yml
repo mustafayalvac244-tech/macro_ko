@@ -113,6 +113,12 @@ on:
           # söylenmişti — ölçülmemiş bir iddiaydı ve yanlıştı.
           # DERLEMEYİ BAĞLAMAK AYRI BİR İŞLEM: TestFlight'a yüklemek yetmiyor.
           - vitrin-yaz         # derleme + metin + ekran görüntüleri
+          # SALT OKUNUR — yayın için gereken HER nesneyi tek koşuda döker.
+          # NEDEN (18.09.2026): gönderim reddedilince TEK eksik arayıp
+          # düzeltip tekrar denedim; Apple'ın hatası belirsiz olduğu için
+          # döngü eksik sayısı kadar tur attı. Doğrusu aramak değil,
+          # LİSTEYİ ÇIKARMAK.
+          - tam-denetim        # eksik listesi, tek koşuda, hiçbir şey yazmaz
           # SÜRÜMÜ APPLE İNCELEMESİNE GÖNDERİR. Ürün sahibi: 18.09.2026,
           # "abi artık sal şu programı ya". Reddedilirse Apple'ın hata
           # metni GERÇEK eksik listesidir — bizim tahminimiz değil; ayrıca
@@ -365,6 +371,22 @@ jobs:
             ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
             APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
               node scripts/asc-form.mjs abonelik-yaz 2>&1 || echo "(abonelik-yaz düştü — hata yukarıda)"
+            echo '```'
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # SALT OKUNUR — yayın eksiklerinin tam listesi.
+      - name: Tam denetim
+        if: inputs.is == 'tam-denetim'
+        env:
+          ASC_KEY_PATH: ./asc-api-key.p8
+        run: |
+          {
+            echo "## Yayın eksikleri — tam liste"
+            echo '```'
+            ASC_KEY_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyId")" \
+            ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
+            APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
+              node scripts/asc-form.mjs tam-denetim 2>&1 || echo "(tam-denetim düştü)"
             echo '```'
           } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
