@@ -455,6 +455,40 @@ https://github.com/mustafayalvac244-tech/macro_ko/actions/workflows/ios-dagit.ym
 - **Abonelik ürünleri** (`premium`, `ai`) tanımlı ve **"Ready to Submit"**
   olmalı — onaylanmadan abonelikli sürüm incelemeye alınmaz
   (`IAP_KURULUM.md`)
+- **Abonelik "Review Information" ekran görüntüsü** →
+  `magaza-pazarlama/inceleme/premium.png`. Apple satın alma ekranının
+  KENDİSİNİ ister; görsel 18.09.2026'da ÜCRETSİZ kullanıcıyla yeniden
+  çekildi (`VP_UCRETSIZ=1`), çünkü ilk çekimde sahte profil premium'du ve
+  ekranda "Premium Üyeliğiniz aktif" yazıyordu — inceleyen satın alma
+  akışını göremezdi
+
+---
+
+## Varsayılan tema `dark` (Gece) oldu — 18.09.2026, ürün sahibi kararı
+
+**Ne bozuktu.** Üç yerde üç farklı tema vardı ve bu ölçüldü:
+
+| yer | tema |
+|---|---|
+| `src/theme/themeStore.ts` (kod) | `terminal` (yeşil vurgulu) |
+| ürün sahibinin telefonu | `dark` — çünkü paket **14.09 derlemesi**, 15.09'daki terminal değişikliği oraya hiç gitmedi |
+| `magaza-pazarlama/` tüm vitrin görselleri | `dark` (ham çekim `VP_TEMA=dark` ile zorlanmış, süsleme paleti de dark hex'leri) |
+
+Yani 3.4.0 yayınlansaydı **her yeni kullanıcı**, mağazada gördüğünden farklı
+renkte bir uygulama açacaktı. `PAZAR.md`'de ölçülmüş bir rakip şikâyeti tam
+olarak bu kalıpta: *"Uygulama görsellerinde içtihat kararları var olarak
+gözüyor ama uygulamada yok. Kullanıcıları yanıltma amaçlı görsel
+kullanılmış."*
+
+**Ne yapıldı.** `ACILIS_TEMASI = 'dark'`. Terminal kaldırılmadı — Ayarlar'dan
+seçilebilen temalardan biri.
+
+**AÇIKÇA SÖYLENMESİ GEREKEN — bu düzeltme 3.4.0'DA YOK.** TestFlight'a giden
+3.4.0 derlemesi terminal varsayılanıyla paketlendi. Değişiklik JS tarafında,
+yani teknik olarak OTA ile gidebilir; ürün sahibinin *"telefonu değiştirme"*
+kuralı gereği **OTA yayınlanmadı**. Mağazaya bu hâliyle ulaşması için
+**yeni bir derleme** gerekir. Mağaza görselleri yeniden çekilmedi çünkü
+zaten Gece temasındaydı — değişen taraf uygulamaydı, vitrin değil.
 
 ---
 

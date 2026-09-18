@@ -63,6 +63,19 @@ if (!existsSync(CIKTI)) mkdirSync(CIKTI, { recursive: true });
 
 const KULLANICI_ID = '11111111-1111-1111-1111-111111111111';
 
+// VP_UCRETSIZ=1 → sahte kullanıcı ÜCRETSİZ pakette olur.
+//
+// NEDEN EKLENDİ (18.09.2026). Apple, abonelik ürünü için "Review
+// Information" ekran görüntüsü istiyor: satın alma ekranının KENDİSİ.
+// İlk çekimde profil `is_premium: true` olduğu için /premium ekranı
+// "Premium Üyeliğiniz aktif" rozetiyle çıktı — yani inceleyene satın alma
+// akışı DEĞİL, zaten satın almış birinin ekranı gönderilecekti. Bu bir
+// ret sebebi; Apple'ın görmek istediği şey planlar ve fiyat.
+//
+// Varsayılan hâlâ `true`: mağaza vitrini görselleri ürünün dolu hâlini
+// göstermeli, kilit ekranını değil.
+const UCRETSIZ = process.env.VP_UCRETSIZ === '1';
+
 const profil = {
   id: KULLANICI_ID,
   full_name: 'Av. Deniz Aksoy',
@@ -71,8 +84,8 @@ const profil = {
   bar_number: '00000',
   phone: null,
   avatar_url: null,
-  is_premium: true,
-  ai_tier: 'ai',
+  is_premium: !UCRETSIZ,
+  ai_tier: UCRETSIZ ? 'free' : 'ai',
   is_admin: false,
   hourly_rate: 3000,
   created_at: '2026-01-04T09:00:00Z',
@@ -393,10 +406,13 @@ async function main() {
 
   // TEMA SEÇİMİ — VP_TEMA=terminal-light gibi.
   //
-  // YORUM 16.09.2026'DA DÜZELTİLDİ. Önceden "uygulama varsayılan olarak
-  // Klasik (açık) temayla açılıyor" yazıyordu; bu 15.09.2026'da DEĞİŞTİ,
-  // varsayılan artık `terminal` (koyu) — bkz. themeStore.ts > ACILIS_TEMASI.
-  // Eskimiş yorum, VP_TEMA verilmediğinde ne çekildiğini yanlış söylüyordu.
+  // YORUM İKİ KEZ DÜZELTİLDİ, ÇÜNÜKÜ İKİ KEZ ESKİDİ — bu satırlar
+  // varsayılan tema her değiştiğinde GÜNCELLENMELİ:
+  //   16.09.2026 → "Klasik (açık)" yazıyordu, varsayılan `terminal` olmuştu.
+  //   18.09.2026 → `terminal` yazıyordu, varsayılan `dark` (Gece) oldu.
+  // Bugünkü doğru hâli: varsayılan `dark` — bkz. themeStore.ts >
+  // ACILIS_TEMASI. Yani mağaza görselleri için ARTIK VP_TEMA VERMEYE GEREK
+  // YOK; uygulamanın kendi açılış teması zaten vitrindeki temadır.
   //
   // VP_TEMA VERİLMEZSE uygulamanın KENDİ varsayılanı çekilir, yani yeni bir
   // kullanıcının ilk açılışta gördüğü hâl. Mağaza görselinde doğrusu genelde
