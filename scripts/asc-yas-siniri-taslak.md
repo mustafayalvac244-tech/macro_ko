@@ -1,5 +1,23 @@
 # App Store yaş sınırı beyanı — cevaplar ve gerekçeleri
 
+> ## ✅ YAZILDI — 18.09.2026 15:24 UTC, koşu #11
+>
+> Apple PATCH'i kabul etti. Yazıldıktan sonra okunan değerler:
+> ```
+> violenceRealistic                           = INFREQUENT_OR_MILD
+> violenceRealisticProlongedGraphicOrSadistic = NONE
+> sexualContentOrNudity                       = INFREQUENT_OR_MILD
+> sexualContentGraphicAndNudity               = NONE
+> profanityOrCrudeHumor                       = INFREQUENT_OR_MILD
+> userGeneratedContent · socialMedia · unrestrictedWebAccess
+> parentalControls                            = false
+> ```
+> `socialMediaAgeRestricted` boş kaldı ve Apple onu zorunlu tutmadı.
+>
+> **Tip tahminleri doğruymuş:** içerik alanları sıklık enum'u
+> (NONE / INFREQUENT_OR_MILD), davranış alanları boolean. Apple hiçbirine
+> tip hatası vermedi — bu sefer kanıtlandı, çünkü istek KABUL EDİLDİ.
+
 > **18.09.2026.** Ürün sahibi onayı: *"önerdiğin gibi yap."* Öneri şuydu:
 > korpus ceza kararları içerdiği için şiddet ve yetişkin temalarını
 > **"seyrek/hafif"** beyan etmek; muhtemel sonuç 12+ ya da 17+.
