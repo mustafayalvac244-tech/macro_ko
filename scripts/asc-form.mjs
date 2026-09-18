@@ -972,8 +972,191 @@ async function incelemeyeGonder() {
   }
 }
 
+/**
+ * APP STORE VİTRİNİNİ DOLDUR — derleme, metin, ekran görüntüleri.
+ *
+ * NEDEN VAR (18.09.2026). Gönderim denendi, Apple "not in valid state"
+ * dedi ve eksikleri ölçtüğümde vitrinin TAMAMEN BOŞ olduğu çıktı:
+ *   derleme YOK · açıklama YOK · anahtar kelime YOK · destek adresi YOK
+ *   ekran görüntüsü HİÇ YOK · inceleme bilgisi YOK
+ *
+ * BÜTÜN OTURUM BOYUNCA YANLIŞ ŞEYİ SÖYLEDİM. Ürün sahibine tıkanıklığın
+ * "Paid Apps sözleşmesi" olduğunu söyledim; o, ekranda gördüğü bir uyarıydı
+ * ve ben ölçmeden kendi iddiama çevirdim. Gerçek tıkanıklık bu listeydi ve
+ * neredeyse tamamı API'den doldurulabiliyormuş.
+ *
+ * TEKRAR KOŞULABİLİR: her adım önce canlıyı okur, dolu olanı atlar.
+ */
+async function vitrinYaz() {
+  const surumler = await api(`/apps/${APP_ID}/appStoreVersions?limit=5`);
+  const surum = (surumler?.data || []).find((s) => s.attributes?.appStoreState === 'PREPARE_FOR_SUBMISSION');
+  if (!surum) { console.error('PREPARE_FOR_SUBMISSION sürümü yok.'); process.exit(1); }
+  console.log(`Sürüm ${surum.attributes?.versionString} (${surum.id})`);
+
+  // ── 1) DERLEMEYİ BAĞLA ────────────────────────────────────────────────
+  // TestFlight'a yüklemek YETMİYOR: derlemenin App Store sürümüne AYRICA
+  // bağlanması gerekiyor. Bu iki işlem Apple'da ayrı ve bunu bilmiyordum.
+  let derli = null;
+  try { derli = (await api(`/appStoreVersions/${surum.id}/build`))?.data || null; } catch { /* yok */ }
+  if (derli) {
+    console.log(`  derleme zaten bağlı: ${derli.attributes?.version}`);
+  } else {
+    const derlemeler = await api(`/builds?filter[app]=${APP_ID}&sort=-uploadedDate&limit=10`);
+    // İŞLENMESİ BİTMİŞ olanı seç. VALID olmayan derleme bağlanamaz.
+    const uygun = (derlemeler?.data || []).find((b) => b.attributes?.processingState === 'VALID');
+    if (!uygun) {
+      console.log('  ✗ bağlanabilir derleme YOK. Yüklenenlerin durumu:');
+      for (const b of derlemeler?.data || []) console.log(`      ${b.attributes?.version} → ${b.attributes?.processingState}`);
+    } else {
+      console.log(`  derleme bağlanıyor: ${uygun.attributes?.version} (${uygun.id})`);
+      try {
+        await api(`/appStoreVersions/${surum.id}/relationships/build`, {
+          method: 'PATCH',
+          body: JSON.stringify({ data: { type: 'builds', id: uygun.id } }),
+        });
+        console.log('  ✓ derleme bağlandı');
+      } catch (e) {
+        for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
+      }
+    }
+  }
+
+  // ── 2) METİNLER ───────────────────────────────────────────────────────
+  // Metin YAYIN-SIRASI.md'deki onaylı mağaza metninden alınıyor, burada
+  // yeniden yazılmıyor — iki yerde iki farklı metin olmasın diye.
+  const metin = JSON.parse(fs.readFileSync('scripts/asc-vitrin.json', 'utf8'));
+  const yereller = (await api(`/appStoreVersions/${surum.id}/appStoreVersionLocalizations`))?.data || [];
+  for (const l of yereller) {
+    const a = l.attributes || {};
+    if (a.description && a.keywords && a.supportUrl) {
+      console.log(`  ${a.locale} metni zaten dolu — dokunulmadı`);
+      continue;
+    }
+    console.log(`  ${a.locale} metni yazılıyor`);
+    try {
+      const c = await api(`/appStoreVersionLocalizations/${l.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          data: {
+            type: 'appStoreVersionLocalizations', id: l.id,
+            attributes: {
+              description: metin.aciklama,
+              keywords: metin.anahtarKelimeler,
+              supportUrl: metin.destekAdresi,
+              marketingUrl: metin.tanitimAdresi,
+              promotionalText: metin.tanitimMetni,
+            },
+          },
+        }),
+      });
+      const y = c?.data?.attributes || {};
+      console.log(`  ✓ açıklama ${y.description?.length} krktr · anahtar "${y.keywords}" · destek ${y.supportUrl}`);
+    } catch (e) {
+      for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
+    }
+  }
+
+  // ── 3) EKRAN GÖRÜNTÜLERİ ──────────────────────────────────────────────
+  for (const l of yereller) {
+    for (const kume of metin.ekranKumeleri) {
+      await ekranKumesiYukle(l, kume);
+    }
+  }
+}
+
+/**
+ * BİR EKRAN GÖRÜNTÜSÜ KÜMESİNİ YÜKLE — Apple'ın dört adımlı akışı.
+ *
+ * Apple görseli doğrudan kabul etmiyor; önce yer ayırtıyorsun, verdiği
+ * adrese dosyayı PUT ediyorsun, sonra MD5 özetiyle "yükledim" diyorsun.
+ * Özet yanlışsa Apple görseli sessizce reddeder — bu yüzden checksum
+ * dosyadan hesaplanıyor, uydurulmuyor.
+ */
+async function ekranKumesiYukle(yerel, kume) {
+  const yol = kume.klasor;
+  if (!fs.existsSync(yol)) { console.log(`  ${kume.tip}: klasör yok (${yol})`); return; }
+  const dosyalar = fs.readdirSync(yol).filter((f) => f.endsWith('.png') && /^\d/.test(f)).sort();
+  if (!dosyalar.length) { console.log(`  ${kume.tip}: görsel yok`); return; }
+
+  // Küme var mı?
+  const kumeler = (await api(`/appStoreVersionLocalizations/${yerel.id}/appScreenshotSets`))?.data || [];
+  let k = kumeler.find((x) => x.attributes?.screenshotDisplayType === kume.tip);
+  if (!k) {
+    try {
+      const c = await api('/appScreenshotSets', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: {
+            type: 'appScreenshotSets',
+            attributes: { screenshotDisplayType: kume.tip },
+            relationships: { appStoreVersionLocalization: { data: { type: 'appStoreVersionLocalizations', id: yerel.id } } },
+          },
+        }),
+      });
+      k = c.data;
+      console.log(`  ${kume.tip}: küme açıldı ${k.id}`);
+    } catch (e) {
+      console.log(`  ${kume.tip}: küme AÇILAMADI —`);
+      for (const s of String(e.message).split('\n').slice(1)) console.log(`      ${s}`);
+      return;
+    }
+  }
+
+  const mevcut = (await api(`/appScreenshotSets/${k.id}/appScreenshots`))?.data || [];
+  if (mevcut.length >= dosyalar.length) {
+    console.log(`  ${kume.tip}: zaten ${mevcut.length} görsel var — atlandı`);
+    return;
+  }
+  const varOlanAdlar = new Set(mevcut.map((m) => m.attributes?.fileName));
+
+  for (const dosya of dosyalar) {
+    if (varOlanAdlar.has(dosya)) { console.log(`    ${dosya} zaten var`); continue; }
+    const tamYol = `${yol}/${dosya}`;
+    const icerik = fs.readFileSync(tamYol);
+    try {
+      // (a) YER AYIRT
+      const rez = await api('/appScreenshots', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: {
+            type: 'appScreenshots',
+            attributes: { fileName: dosya, fileSize: icerik.length },
+            relationships: { appScreenshotSet: { data: { type: 'appScreenshotSets', id: k.id } } },
+          },
+        }),
+      });
+      const gorsel = rez.data;
+
+      // (b) APPLE'IN VERDİĞİ ADRESLERE PARÇA PARÇA YÜKLE
+      for (const op of gorsel.attributes?.uploadOperations || []) {
+        const basliklar = {};
+        for (const h of op.requestHeaders || []) basliklar[h.name] = h.value;
+        const cevap = await fetch(op.url, {
+          method: op.method,
+          headers: basliklar,
+          body: icerik.subarray(op.offset, op.offset + op.length),
+        });
+        if (!cevap.ok) throw new Error(`yükleme ${cevap.status} ${await cevap.text()}`);
+      }
+
+      // (c) ÖZETLE MÜHÜRLE — checksum DOSYADAN hesaplanıyor, uydurulmuyor
+      const ozet = crypto.createHash('md5').update(icerik).digest('hex');
+      await api(`/appScreenshots/${gorsel.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          data: { type: 'appScreenshots', id: gorsel.id, attributes: { uploaded: true, sourceFileChecksum: ozet } },
+        }),
+      });
+      console.log(`    ✓ ${dosya}`);
+    } catch (e) {
+      console.log(`    ✗ ${dosya}: ${String(e.message).split('\n').slice(0, 2).join(' | ')}`);
+    }
+  }
+}
+
 const MODLAR = {
   yaz,
+  'vitrin-yaz': vitrinYaz,
   'abonelik-oku': abonelikOku,
   'abonelik-yaz': abonelikYaz,
   'alanlar-yaz': alanlarYaz,
