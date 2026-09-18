@@ -438,7 +438,59 @@ https://github.com/mustafayalvac244-tech/macro_ko/actions/workflows/ios-dagit.ym
 > iOS kotası **ölçülmedi** — EAS'ın hatası "Android builds" diyordu, yani
 > sayaç platform başına tutuluyor *gibi* görünüyor ama denenmedi.
 
-## ⛔ YAYINI BEKLETEN TEK ŞEY — App Privacy (18.09.2026, ölçüldü)
+## ⛔ YAYINI BEKLETEN TEK ŞEY — Paid Apps sözleşmesi (18.09.2026, KANITLANDI)
+
+Bu sefer iddia değil. Ayırt edici ölçüm kuruldu ve sonuç net:
+
+```
+vekil_ai_monthly        state=MISSING_METADATA
+  ✓ fiyat 175 kayıt · ✓ Türkçe metin · ✓ inceleme notu 402 krktr
+  ✓ inceleme görseli COMPLETE · ✓ satışa açıklık var
+vekil_premium_monthly   state=MISSING_METADATA
+  ✓ fiyat 1 kayıt · ✓ Türkçe metin · ✓ inceleme notu 415 krktr
+  ✓ inceleme görseli COMPLETE · ✓ satışa açıklık var
+```
+
+**API'den yazılabilen HER parça dolu ve ikisi de hâlâ MISSING_METADATA.**
+Yani eksik, API'nin ulaşabildiği yerin dışında. `IAP_KURULUM.md` §2.4 bunu
+zaten yazıyordu:
+
+> *"Paid Apps Agreement'ın İMZALANMIŞ ve banka/vergi bilgilerinin girilmiş
+> olması gerekir — yoksa ürünler 'onaya hazır' duruma geçmez."*
+
+### YAPILACAK — ürün sahibi, ~15 dakika
+
+App Store Connect → **Business** (ya da Agreements, Tax, and Banking) →
+**Paid Apps** sözleşmesini imzala, sonra **banka hesabı** ve **vergi
+bilgisi** formlarını doldur. Üçü de tamamlanmadan ürünler beklemede kalır.
+
+Bittiğinde gönderim tek koşu: iş akışı → `incelemeye-gonder`.
+
+### NEDEN BU KADAR UZUN SÜRDÜ — yöntem hatası, kayda geçiyor
+
+Gönderim reddedilince **tek eksik arayıp** düzelttim, tekrar denedim, yine
+reddedildi, bir sonrakini aradım. Apple'ın hatası belirsiz olduğu için
+döngü eksik sayısı kadar tur attı:
+
+```
+derleme bağlı değil → açıklama yok → ekran görüntüsü yok →
+inceleme bilgisi yok → gizlilik adresi yok → satış ülkesi yok →
+abonelik inceleme görseli FAILED → …
+```
+
+Doğrusu ilk turda **listeyi çıkarmaktı** (`tam-denetim` modu bunun için
+yazıldı). Ayrıca üç kez aynı kökten hata yapıldı — **aracın sessizliğini
+veri sanmak**:
+
+| sanılan | gerçek |
+|---|---|
+| tek 404 = "bu alan yok" | yol vardı, KAYIT yoktu (satış ülkesi) |
+| HTTP 2xx = "kabul edildi" | Apple `assetDeliveryState=FAILED` yazmıştı |
+| yutulmuş hata = "boş liste" | Apple cevap vermemişti, ürünler yerindeydi |
+
+---
+
+## App Privacy — 18.09.2026, ölçüldü (API'de YOK)
 
 App Store vitrininin **doldurulabilen her parçası doldu ve canlıdan
 doğrulandı** (aşağıdaki tablo). Apple yine de sürümü incelemeye almıyor:
