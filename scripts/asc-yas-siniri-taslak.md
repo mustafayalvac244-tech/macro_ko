@@ -74,3 +74,24 @@ appStoreVersion 1837e750-3b34-4bef-ba72-98e770d8f5b9
   `docs/privacy.html` ile birebir tutmalı. Taslağı ayrıca çıkarılacak.
 - **Trader status** — AB'de tacir olup olmadığı beyanı. Tamamen ürün
   sahibinin; üçüncü kişi veremez.
+
+## Apple'ın öğrettiği: dört alan ZORUNLU (koşu #10, 18.09.2026)
+
+İlk PATCH 409 döndü ve tip hatası vermedi — yalnız dört alanın eksik
+olduğunu söyledi:
+
+```
+409 ENTITY_ERROR.ATTRIBUTE.REQUIRED
+  gunsOrOtherWeapons · ageAssurance · advertising · parentalControls
+```
+
+Gönderilen 19 alanın tipleri hakkında **şikâyet yoktu**; yani sıklık
+enum'u / boolean ayrımı doğru tahmin edilmiş görünüyor (kesin kanıt değil,
+Apple önce zorunluluğu denetliyor olabilir).
+
+| alan | cevap | gerekçe |
+|---|---|---|
+| `gunsOrOtherWeapons` | **seyrek/hafif** | ceza kararları ateşli silahla işlenen suçları anlatıyor; diğer şiddet alanlarıyla aynı çizgi |
+| `advertising` | **hayır** | uygulamada reklam yok. `PAZAR.md`'de ölçüldü: rakip Corpus Hukuk'un 1 yıldızlarının çoğu uygunsuz reklamdan; reklamsızlık bizim ayırt edici yanımız |
+| `parentalControls` | **hayır** | ebeveyn denetimi özelliği yok; hedef kitle avukat |
+| `ageAssurance` | **hayır** | yaş doğrulama mekanizması yok |

@@ -1,32 +1,31 @@
 {
   "_not": "Bu dosya Apple'a gönderilen BEYANDIR. Gerekçeleri asc-yas-siniri-taslak.md'de. Ürün sahibi onayı: 18.09.2026, 'önerdiğin gibi yap'.",
   "_alan_tipleri_dogrulanmadi": "Hangi alanın sıklık enum'u (NONE/INFREQUENT_OR_MILD/FREQUENT_OR_INTENSE), hangisinin boolean olduğu Apple dokümanından okunamadı (sayfalar JS ile çiziliyor). İlk PATCH denemesi Apple'ın doğrulama hatasını döndürecek ve tipler oradan öğrenilecek. Reddedilen PATCH hiçbir şeyi değiştirmez.",
-
   "beyanId": "3e8a75b7-414e-474e-9b9a-f43b29f53620",
-
   "nitelikler": {
     "violenceCartoonOrFantasy": "NONE",
     "violenceRealistic": "INFREQUENT_OR_MILD",
     "violenceRealisticProlongedGraphicOrSadistic": "NONE",
-
     "sexualContentOrNudity": "INFREQUENT_OR_MILD",
     "sexualContentGraphicAndNudity": "NONE",
-
     "profanityOrCrudeHumor": "INFREQUENT_OR_MILD",
     "matureOrSuggestiveThemes": "INFREQUENT_OR_MILD",
     "alcoholTobaccoOrDrugUseOrReferences": "INFREQUENT_OR_MILD",
-
     "horrorOrFearThemes": "NONE",
     "medicalOrTreatmentInformation": "NONE",
     "gamblingSimulated": "NONE",
     "contests": "NONE",
-
     "gambling": false,
     "unrestrictedWebAccess": false,
     "userGeneratedContent": false,
     "messagingAndChat": false,
     "socialMedia": false,
     "lootBox": false,
-    "healthOrWellnessTopics": false
-  }
+    "healthOrWellnessTopics": false,
+    "gunsOrOtherWeapons": "INFREQUENT_OR_MILD",
+    "advertising": false,
+    "parentalControls": false,
+    "ageAssurance": false
+  },
+  "_apple_409_dersi": "Koşu #10: Apple 409 ENTITY_ERROR.ATTRIBUTE.REQUIRED verdi ve dört alanın ZORUNLU olduğunu söyledi: gunsOrOtherWeapons, ageAssurance, advertising, parentalControls. Gönderilen 19 alanın tipleri hakkında şikâyet YOKTU."
 }
