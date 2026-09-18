@@ -334,7 +334,32 @@ async function abonelikYaz() {
   const mevcut = (await api(`/subscriptionGroups/${grupId}/subscriptions`))?.data || [];
   console.log(`Gruptaki mevcut ürünler: ${mevcut.map((s) => s.attributes?.productId).join(', ') || '(yok)'}`);
 
+  // BİR ÜRÜNÜN HATASI DİĞERİNİ ENGELLEMESİN — 18.09.2026, koşu #16 dersi.
+  // İlk sürümde fiyat POST'u 409 verince betik komple düştü ve SIRADAKİ
+  // ürünün yerelleştirmesi hiç yazılmadı. Oysa o yerelleştirme, var olan
+  // ürünün MISSING_METADATA olmasının ÖLÇÜLEN sebebiydi — yani en çok
+  // ihtiyaç duyulan adım, en az önemli adımın hatası yüzünden atlandı.
+  const hatalar = [];
   for (const u of tanim.urunler || []) {
+    try {
+      await urunKur(u, grupId, mevcut);
+    } catch (e) {
+      console.log(`\n  ✗ ${u.productId} yarıda kaldı: ${String(e.message).split('\n')[0]}`);
+      hatalar.push(`${u.productId}: ${String(e.message).split('\n').slice(0, 3).join(' | ')}`);
+    }
+  }
+
+  console.log('\n═══ YAZIM SONRASI CANLI DURUM ═══');
+  await abonelikOku();
+
+  if (hatalar.length) {
+    console.log('\n═══ TAMAMLANMAYANLAR ═══');
+    for (const h of hatalar) console.log(`  ${h}`);
+  }
+}
+
+async function urunKur(u, grupId, mevcut) {
+  {
     console.log(`\n═══ ${u.productId} ═══`);
 
     // 1) ÜRÜN
@@ -402,25 +427,65 @@ async function abonelikYaz() {
       if (!nokta) {
         console.log(`  ✗ ${u.fiyatTL} TL kademesi bulunamadı (${sayfa} sayfa tarandı). Fiyat ATLANDI.`);
       } else {
-        await api('/subscriptionPrices', {
-          method: 'POST',
-          body: JSON.stringify({
-            data: {
-              type: 'subscriptionPrices',
-              relationships: {
-                subscription: { data: { type: 'subscriptions', id: urun.id } },
-                subscriptionPricePoint: { data: { type: 'subscriptionPricePoints', id: nokta.id } },
-              },
-            },
-          }),
-        });
-        console.log(`  ✓ fiyat kuruldu: ${u.fiyatTL} TL`);
+        console.log(`  kademe bulundu: ${nokta.id}`);
+        await fiyatKur(urun.id, nokta.id);
       }
     }
   }
+}
 
-  console.log('\n═══ YAZIM SONRASI CANLI DURUM ═══');
-  await abonelikOku();
+/**
+ * FİYAT KUR — VARYANTLARI SIRAYLA DENE.
+ *
+ * KOŞU #16'DA DÜŞTÜ. Gövde yalnız iki ilişki taşıyordu (Apple'ın boş-POST
+ * sınamasında ZORUNLU dediği tam olarak bu ikisiydi) ve Apple şunu döndü:
+ *   409 ENTITY_ERROR.RELATIONSHIP.INVALID
+ *   "An error occurred while processing the pricing information."
+ *
+ * Bu metin hangi alanın eksik olduğunu SÖYLEMİYOR — zorunluluk sınaması
+ * sadece "olmazsa olmaz"ları sayıyor, "kabul edilmek için gereken"leri
+ * değil. İkisi aynı şey değilmiş; bu ders burada öğrenildi.
+ *
+ * Bu yüzden tek gövde yerine bir merdiven deneniyor ve HER BİRİNİN cevabı
+ * basılıyor. Reddedilen POST hiçbir şey oluşturmaz, yani merdiven güvenli.
+ *
+ * MUHTEMEL AMA ÖLÇÜLMEMİŞ BİR SEBEP DAHA VAR: Paid Apps (Uygulama İçi
+ * Satın Alma) sözleşmesi imzalanmadan Apple fiyat işlemeyi reddediyor
+ * olabilir. Bunu API'den okuyamıyorum, yani DOĞRULANMADI — merdiven
+ * hepsinde düşerse en güçlü aday bu, ama iddia değil hipotez.
+ */
+async function fiyatKur(abonelikId, noktaId) {
+  const varyantlar = [
+    ['yalnız ilişkiler', {}],
+    ['startDate: null', { startDate: null }],
+    ['startDate: null + preserveCurrentPrice: false', { startDate: null, preserveCurrentPrice: false }],
+    ['preserveCurrentPrice: false', { preserveCurrentPrice: false }],
+  ];
+  for (const [ad, nitelikler] of varyantlar) {
+    console.log(`  fiyat denemesi — ${ad}`);
+    try {
+      await api('/subscriptionPrices', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: {
+            type: 'subscriptionPrices',
+            attributes: nitelikler,
+            relationships: {
+              subscription: { data: { type: 'subscriptions', id: abonelikId } },
+              subscriptionPricePoint: { data: { type: 'subscriptionPricePoints', id: noktaId } },
+            },
+          },
+        }),
+      });
+      console.log(`  ✓ KABUL EDİLDİ — çalışan gövde: ${ad}`);
+      return true;
+    } catch (e) {
+      for (const satir of String(e.message).split('\n').slice(1)) console.log(`     ${satir}`);
+    }
+  }
+  console.log('  ✗ dört gövdenin dördü de reddedildi. Fiyat KURULMADI.');
+  console.log('    En güçlü aday (DOĞRULANMADI): Paid Apps sözleşmesi imzalı değil.');
+  return false;
 }
 
 const MODLAR = { yaz, 'abonelik-oku': abonelikOku, 'abonelik-yaz': abonelikYaz, oku };
