@@ -118,6 +118,96 @@ async function oku() {
   }
 }
 
+/**
+ * ABONELİK DURUMUNU OKU — SALT OKUNUR.
+ *
+ * NEDEN VAR (18.09.2026). Ürün sahibi "bunları sen yapamaz mısın" dedi;
+ * elimde ASC anahtarı var ve abonelik ürünleri Apple'ın en büyük
+ * tıkanıklığı ("Unable to Add for Review" üç şartından biri). Ama
+ * abonelik uçlarının bu anahtarla YAZILABİLİR olup olmadığını BİLMİYORUM
+ * — Apple bazı uçları yalnız Account Holder rolüne açıyor, bazı uçlar
+ * "Paid Apps" sözleşmesi imzalanmadan hiç çalışmıyor.
+ *
+ * Bu yüzden ilk adım TAHMİN DEĞİL ÖLÇÜM: ne var, ne yok, hangi uç ne
+ * hata veriyor. Yazma ancak bu çıktı görüldükten sonra yazılır. Aynı
+ * ders yaş sınırı beyanında işe yaradı: reddedilen istek hiçbir şeyi
+ * değiştirmiyor, ama Apple'ın hata metni şemayı öğretiyor.
+ */
+async function abonelikOku() {
+  console.log(`Uygulama: ${APP_ID}`);
+
+  let gruplar = null;
+  try {
+    gruplar = await api(`/apps/${APP_ID}/subscriptionGroups?limit=50`);
+  } catch (e) {
+    console.log(`\nsubscriptionGroups OKUNAMADI:\n  ${e.message}`);
+    console.log('\n→ Bu uç bu anahtara kapalıysa abonelik ürünleri ELLE açılmalı.');
+    return;
+  }
+
+  const liste = gruplar?.data || [];
+  console.log(`\nAbonelik grubu sayısı: ${liste.length}`);
+  if (!liste.length) {
+    console.log('→ Hiç grup yok. Grup oluşturmak POST /subscriptionGroups ister.');
+  }
+
+  for (const g of liste) {
+    yazdirAlanlar(`subscriptionGroup ${g.id}`, g.attributes);
+
+    // İLİŞKİ VERİSİ KENDİLİĞİNDEN GELMEZ (18.09.2026 dersi) — uca doğrudan sor.
+    try {
+      const urunler = await api(`/subscriptionGroups/${g.id}/subscriptions`);
+      const u = urunler?.data || [];
+      console.log(`\n  grup ${g.id} içinde ${u.length} ürün:`);
+      for (const s of u) {
+        yazdirAlanlar(`  subscription ${s.id}`, s.attributes);
+
+        // Fiyat ve yerelleştirme ayrı nesneler; eksikleri burada görünür.
+        for (const [ad, yol] of [
+          ['fiyatlar', `/subscriptions/${s.id}/prices`],
+          ['yerelleştirme', `/subscriptions/${s.id}/subscriptionLocalizations`],
+        ]) {
+          try {
+            const c = await api(yol);
+            console.log(`    ${ad}: ${(c?.data || []).length} kayıt`);
+          } catch (e) {
+            console.log(`    ${ad} okunamadı: ${String(e.message).split('\n')[0]}`);
+          }
+        }
+      }
+    } catch (e) {
+      console.log(`  ürünler okunamadı: ${String(e.message).split('\n')[0]}`);
+    }
+  }
+
+  // YAZMA İZNİ VAR MI — BOŞ BİR POST İLE SINA.
+  // Eksik gövdeyle gönderilen istek ürün OLUŞTURMAZ. İki cevaptan biri gelir:
+  //   409 / 400 "şu alan zorunlu"  → uç AÇIK, yalnız gövde eksik  → YAZABİLİRİM
+  //   403 FORBIDDEN_ERROR          → uç bu anahtara KAPALI        → YAZAMAM
+  // Aynı numara yaş sınırında şemayı öğretmişti; burada İZNİ ölçüyor.
+  console.log('\n── yazma izni sınaması (ürün OLUŞTURMAZ) ────────────────────');
+  try {
+    await api('/subscriptionGroups', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: { type: 'subscriptionGroups', attributes: {}, relationships: {} },
+      }),
+    });
+    console.log('  BEKLENMEDİK: boş POST kabul edildi. Çıktıyı elle incele.');
+  } catch (e) {
+    console.log(`  ${e.message}`);
+    const m = e.message;
+    if (m.includes('403') || m.includes('FORBIDDEN')) {
+      console.log('\n  → SONUÇ: uç bu anahtara KAPALI. Abonelikler elle açılacak.');
+    } else if (m.includes('409') || m.includes('400')) {
+      console.log('\n  → SONUÇ: uç AÇIK (Apple yalnız eksik alanlardan şikâyet etti).');
+      console.log('     Ürünler API ile oluşturulabilir; sıradaki adım gövdeyi yazmak.');
+    } else {
+      console.log('\n  → SONUÇ belirsiz; hata metnini oku.');
+    }
+  }
+}
+
 async function yaz() {
   const yol = 'scripts/asc-yas-siniri.json';
   if (!fs.existsSync(yol)) {
@@ -144,5 +234,6 @@ async function yaz() {
   yazdirAlanlar('yazıldıktan sonra', sonuc?.data?.attributes);
 }
 
-const islem = MOD === 'yaz' ? yaz : oku;
+const MODLAR = { yaz, 'abonelik-oku': abonelikOku, oku };
+const islem = MODLAR[MOD] || oku;
 islem().catch((e) => { console.error(`\n${e.message}`); process.exit(1); });

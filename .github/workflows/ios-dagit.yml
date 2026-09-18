@@ -87,6 +87,13 @@ on:
           # scripts/asc-yas-siniri-taslak.md'den okunur. Ürün sahibi
           # onayı olmadan koşturulmaz; kazara çalışmasın diye ayrı mod.
           - yas-siniri-yaz     # yaş sınırı beyanını Apple'a yaz
+          # SALT OKUNUR. Abonelik gruplarını ve ürünlerini döker, sonra
+          # EKSİK GÖVDELİ bir POST ile YAZMA İZNİNİ sınar — o istek ürün
+          # oluşturmaz, yalnız Apple'ın 403 mü 409 mu döndüğünü ölçer.
+          # NEDEN (18.09.2026): ürün sahibi "bunları sen yap" dedi ve
+          # abonelik ürünleri Apple'ın üç şartından biri. Ama bu uçların
+          # ASC anahtarına açık olup olmadığı BİLİNMİYOR; önce ölçülüyor.
+          - abonelik-oku       # abonelik ürünleri + yazma izni ölçümü
       profil:
         description: 'Derleme profili — production App Store/TestFlight için, preview yalnız kayıtlı cihazlara kurulur'
         type: choice
@@ -298,6 +305,24 @@ jobs:
             ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
             APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
               node scripts/asc-form.mjs oku 2>&1 || echo "(asc-form.mjs düştü)"
+            echo '```'
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # SALT OKUNUR — abonelik ürünleri ve yazma izni ölçümü.
+      # İçindeki POST eksik gövdelidir: ürün OLUŞTURMAZ, yalnız Apple'ın
+      # 403 (kapalı) mı 409/400 (açık, gövde eksik) mı döndüğünü ölçer.
+      - name: Abonelikleri oku
+        if: inputs.is == 'abonelik-oku'
+        env:
+          ASC_KEY_PATH: ./asc-api-key.p8
+        run: |
+          {
+            echo "## Abonelik ürünleri ve yazma izni"
+            echo '```'
+            ASC_KEY_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyId")" \
+            ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
+            APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
+              node scripts/asc-form.mjs abonelik-oku 2>&1 || echo "(abonelik-oku düştü)"
             echo '```'
           } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
