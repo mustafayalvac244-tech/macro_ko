@@ -90,6 +90,45 @@ RevenueCat'e iOS uygulamasını eklerken bu yeni bundle ID'yi yazın.
 1. https://app.revenuecat.com/signup adresinden hesap açın.
 2. Yeni bir **Proje** oluşturun (ör. "Vekil Pro").
 
+## ⚠ ÖLÇÜLDÜ 18.09.2026 — `vekil_ai_monthly` TÜRKİYE'DE 399,99 ₺
+
+Canlı App Store Connect API'sinden okundu (koşu #19, `abonelik-oku`):
+
+```
+vekil_ai_monthly  6813558875   175 ülkede fiyatlı
+  TÜRKİYE = 399,99 TL          ← olması gereken: 2.999 TL
+  ARE 24,99 · AFG 6,99 · ATG 6,99 · AIA 6,99 · ALB 7,99
+```
+
+Yabancı ülke rakamları da aynı yöne işaret ediyor: 6,99–9,99 bandı, yani
+**Temel paketin kademesi**. AI ürünü Temel'in fiyatıyla açılmış görünüyor.
+
+**Bu ölçüm iki aşamada doğrulandı** çünkü ilk okuma güvenilir değildi.
+İlk sürüm Apple'ın `included` havuzundan "içinde TUR geçen ilk fiyat
+noktasını" seçiyordu — kaydın kendi ilişkisine bakmadan. O bir eşleştirme
+değil tahmindi. Doğrusu her `prices` kaydının `territory` ve
+`subscriptionPricePoint` ilişkilerini BİRLİKTE çözmek; yukarıdaki sayı öyle
+okundu.
+
+**Neden önemli — hesap `supabase/functions/_shared/katman.ts`'den:**
+
+| | |
+|---|---|
+| en kötü durumda API gideri (750 soru + 25 mütalaa + taşma) | **₺1.493** |
+| hedeflenen fiyat | ₺2.999 → gider gelirin %50'si |
+| **ölçülen fiyat** | **₺399,99** → Apple payı düştükten sonra ~₺280–340 net |
+
+Yani kotasını dolduran bir abone, hedeflenen kâr yerine belirgin zarar
+yazar. **Bu bir üst sınırdır, beklenen gider değil** — katman.ts'in kendi
+notu: ortalama kullanım BİLİNMİYOR, ödeme yapan kullanıcı henüz yok.
+Ortalama kullanıcı kotanın onda birini kullanırsa 399,99 da zarar
+ettirmeyebilir. Ama tasarlanan fiyat bu değil ve fark 7,5 kat.
+
+**KARAR ÜRÜN SAHİBİNİN.** Fiyatı düzeltmek, 399,99'da bırakmak ya da
+paketi yeniden kurgulamak — üçü de savunulabilir, seçim ölçümün değil.
+
+---
+
 ## 2. App Store Connect'te İKİ abonelik ürünü tanımlayın
 
 1. App Store Connect → uygulamanız → **Abonelikler** (Subscriptions).
