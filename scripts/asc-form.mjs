@@ -93,13 +93,21 @@ async function oku() {
   const infos = await api(`/apps/${APP_ID}/appInfos`);
   for (const bilgi of infos?.data || []) {
     yazdirAlanlar(`appInfo ${bilgi.id}`, bilgi.attributes);
-    const iliski = bilgi.relationships?.ageRatingDeclaration?.data;
-    if (iliski?.id) {
-      const beyan = await api(`/ageRatingDeclarations/${iliski.id}`);
-      yazdirAlanlar(`ageRatingDeclaration ${iliski.id}`, beyan?.data?.attributes);
-      console.log(`\n  → YAZ modunda kullanılacak id: ${iliski.id}`);
-    } else {
-      console.log('  (bu appInfo için ageRatingDeclaration bağlı değil)');
+
+    // JSON:API'DE İLİŞKİ VERİSİ KENDİLİĞİNDEN GELMEZ — 18.09.2026'da öğrenildi.
+    // İlk sürüm `bilgi.relationships.ageRatingDeclaration.data` okuyordu ve
+    // boş çıkınca "beyan nesnesi yok" sanıldı. Oysa `include` istenmeden
+    // ilişkiler yalnız `links` taşıyor. Doğrusu ilişki ucuna doğrudan sormak.
+    try {
+      const beyan = await api(`/appInfos/${bilgi.id}/ageRatingDeclaration`);
+      if (beyan?.data) {
+        yazdirAlanlar(`ageRatingDeclaration ${beyan.data.id}`, beyan.data.attributes);
+        console.log(`\n  → YAZ modunda kullanılacak id: ${beyan.data.id}`);
+      } else {
+        console.log('  ageRatingDeclaration: uç cevap verdi ama data boş');
+      }
+    } catch (e) {
+      console.log(`  ageRatingDeclaration okunamadı: ${String(e.message).split('\n')[0]}`);
     }
   }
 
