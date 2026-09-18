@@ -90,13 +90,56 @@ RevenueCat'e iOS uygulamasını eklerken bu yeni bundle ID'yi yazın.
 1. https://app.revenuecat.com/signup adresinden hesap açın.
 2. Yeni bir **Proje** oluşturun (ör. "Vekil Pro").
 
-## ⚠ ÖLÇÜLDÜ 18.09.2026 — `vekil_ai_monthly` TÜRKİYE'DE 399,99 ₺
+## ✅ ÇÖZÜLDÜ 18.09.2026 — App Store abonelik ürünleri API'den kuruldu
 
-Canlı App Store Connect API'sinden okundu (koşu #19, `abonelik-oku`):
+Son ölçüm (koşu #22, `abonelik-oku`), App Store Connect'ten okunan hâli:
 
 ```
-vekil_ai_monthly  6813558875   175 ülkede fiyatlı
-  TÜRKİYE = 399,99 TL          ← olması gereken: 2.999 TL
+Grup 22395385 "Vekil Premium"
+├─ vekil_ai_monthly       6813558875  seviye 1
+│    TÜRKİYE 2.999 TL ✅   Türkçe metin ✅   satışa açık: TUR
+└─ vekil_premium_monthly  6813613690  seviye 2
+     TÜRKİYE   399 TL ✅   Türkçe metin ✅   satışa açık: TUR
+```
+
+Ürün sahibi kararı: *"2 paketimiz var nasıl yapcaksak öyle yapcaz 399 ve
+2999."* İkisi de o değerde.
+
+**İkisi de hâlâ `MISSING_METADATA`.** Fiyat ve Türkçe metin tamam; kalan
+eksikler için aşağıdaki §2 ve B7 listesine bakın (inceleme görseli, Paid
+Apps sözleşmesi).
+
+### ÇÖZÜMÜ AÇAN ŞEY: satışa açıklık, fiyattan ÖNCE gelir
+
+Fiyat POST'u dört ayrı gövdeyle reddedilmişti
+(`409 ... An error occurred while processing the pricing information`).
+Eksik olan gövde değil **önceki adımdı**: bir ürüne bir ülkenin FİYATI,
+o ürün o ülkede **satışa açık değilken** kurulamıyor. Apple'da
+"Türkiye fiyatı" ile "Türkiye'de satılıyor" ayrı iki nesne.
+Açıklık kurulduktan sonra en baştan denenen gövde ilk seferde kabul edildi.
+
+### ⚠ YAN HASAR — AI ürününün satış alanı 175 ülkeden 1'e indi
+
+**Bunu Claude yaptı, 18.09.2026, ve hatası kendi çıkarımıydı.**
+`vekil_ai_monthly`'nin availability ucu **404** döndü; betik bunu "yok
+demek ki" diye okuyup yeni bir açıklık kurdu — içinde **yalnız Türkiye**.
+Oysa o ürünün **175 ülkede fiyatı vardı**, yani 404 "yok" demek değildi.
+
+**KURAL (kalıcı): bir nesnenin YOKLUĞUNU tek bir 404'ten çıkarma, hele
+o çıkarımla YAZACAKSAN.** Aynı nesneye dair başka bir ölçüm tersini
+söylüyorsa yazma DUR. Betiğe koruma eklendi: fiyat kaydı olan bir ürüne
+artık açıklık yazılmıyor.
+
+**Karar ürün sahibinin.** Türkiye'ye daralmış olmak muhtemelen ürüne
+uygun (Türk hukuku ürünü; ayrıca AB satışı `YAYIN-SIRASI.md` B7'deki
+**trader status** beyanını zorunlu kılıyor ve o beyan hâlâ verilmedi).
+`availableInNewTerritories=true` kaldı. Genişletmek isteniyorsa ülke
+listesi yazılıp aynı uçtan güncellenir — tek koşu.
+
+### Eski ölçüm (tarih için duruyor)
+
+```
+vekil_ai_monthly  →  TÜRKİYE = 399,99 TL   ← yanlıştı, düzeltildi
   ARE 24,99 · AFG 6,99 · ATG 6,99 · AIA 6,99 · ALB 7,99
 ```
 
