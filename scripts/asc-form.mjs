@@ -1491,7 +1491,39 @@ async function fiyatUlkeYaz() {
   if (acik) {
     console.log(`  zaten var: ${acik.id} · yeni ülkelere otomatik=${acik.attributes?.availableInNewTerritories}`);
   } else {
-    console.log('  yok → POST /v2/appAvailabilities (yalnız Türkiye)');
+    // APPLE BÜTÜN ÜLKELERİ BİRDEN İSTİYOR — 18.09.2026, ikinci denemede
+    // öğrenildi. Yalnız TUR gönderilince Apple tek tek saymaya başladı:
+    //   "expects an included resource with type 'territories' and id 'MLI'
+    //    but no matching resource was included" · PLW · MRT · JAM · …
+    // Yani bu uç KISMİ güncelleme kabul etmiyor; satış haritasının TAMAMI
+    // gönderiliyor. Her ülke için bir kayıt, Türkiye'de available=true,
+    // ötekilerde false.
+    //
+    // ÜLKE LİSTESİ UYDURULMUYOR: Apple'ın kendi /territories ucundan
+    // sayfalanarak okunuyor. Elle yazılmış bir liste eksik ya da fazla
+    // olurdu ve hata yine tek tek eksik ülke saymakla geçerdi.
+    const ulkeler = [];
+    let sayfaYolu = '/territories?limit=200';
+    let sayfa = 0;
+    while (sayfaYolu && sayfa < 10) {
+      const c = await api(sayfaYolu);
+      for (const t of c?.data || []) ulkeler.push(t.id);
+      sayfa += 1;
+      const sonraki = c?.links?.next;
+      sayfaYolu = sonraki ? sonraki.replace(/^https:\/\/api\.appstoreconnect\.apple\.com\/v1/, '') : null;
+    }
+    console.log(`  Apple'ın ülke listesi: ${ulkeler.length} ülke (${sayfa} sayfa)`);
+    if (!ulkeler.includes('TUR')) {
+      console.log('  ✗ TUR listede yok — beklenmedik, durduruldu.');
+      return;
+    }
+
+    // SATIR İÇİ KİMLİK '${yerel}' BİÇİMİNDE OLMALI — ilk denemede 'TUR'
+    // yazıldı ve Apple söyledi: "For inline creation, the id must be a
+    // local id with the format '${local-id}'". O kimlik ülke kodu değil,
+    // istek içinde `data` ile `included`ı bağlayan geçici takma ad.
+    const yerelKimlik = (u) => `\${u_${u}}`;
+    console.log(`  → POST /v2/appAvailabilities — yalnız TUR açık, ${ulkeler.length - 1} ülke kapalı`);
     try {
       const c = await v2('/appAvailabilities', {
         method: 'POST',
@@ -1501,28 +1533,25 @@ async function fiyatUlkeYaz() {
             attributes: { availableInNewTerritories: false },
             relationships: {
               app: { data: { type: 'apps', id: APP_ID } },
-              // SATIR İÇİ OLUŞTURMADA KİMLİK '${yerel}' BİÇİMİNDE OLMALI.
-              // İlk denemede 'TUR' yazıldı ve Apple açıkça söyledi:
-              //   409 ENTITY_ERROR.INCLUDED.INVALID_ID — "For inline
-              //   creation, the id must be a local id with the format
-              //   '${local-id}'"
-              // Yani bu kimlik ülke kodu değil, istek içinde geçici bir
-              // TAKMA AD: `data` ile `included` bloklarını birbirine
-              // bağlıyor. Gerçek ülke kodu aşağıdaki `territory`de.
-              territoryAvailabilities: { data: [{ type: 'territoryAvailabilities', id: '${turkiye}' }] },
+              territoryAvailabilities: {
+                data: ulkeler.map((u) => ({ type: 'territoryAvailabilities', id: yerelKimlik(u) })),
+              },
             },
           },
-          included: [{
+          included: ulkeler.map((u) => ({
             type: 'territoryAvailabilities',
-            id: '${turkiye}',
-            attributes: { available: true },
-            relationships: { territory: { data: { type: 'territories', id: 'TUR' } } },
-          }],
+            id: yerelKimlik(u),
+            attributes: { available: u === 'TUR' },
+            relationships: { territory: { data: { type: 'territories', id: u } } },
+          })),
         }),
       });
       console.log(`  ✓ kuruldu: ${c?.data?.id}`);
     } catch (e) {
-      for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
+      // Hata uzun olabilir (ülke başına bir satır); ilk beşi yeter.
+      const satirlar = String(e.message).split('\n');
+      for (const s of satirlar.slice(0, 6)) console.log(`    ${s}`);
+      if (satirlar.length > 6) console.log(`    … ${satirlar.length - 6} satır daha`);
     }
   }
 
