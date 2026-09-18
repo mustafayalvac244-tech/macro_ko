@@ -156,9 +156,11 @@ RevenueCat'e iOS uygulamasını eklerken bu yeni bundle ID'yi yazın.
 > production** profillerinde tanımlı (`goog_…`). RevenueCat'te Google Play
 > uygulaması oluşturuldu ve anahtar oradan alındı.
 >
-> **iOS TARAFI HÂLÂ AÇIK:** `EXPO_PUBLIC_REVENUECAT_IOS_KEY` yok. RevenueCat'te
-> Apple App Store uygulaması oluşturulup `appl_…` anahtarı alınmalı; yoksa
-> iOS'ta satın alma aynı sessiz sebeple kapalı kalır.
+> **iOS TARAFI DA KAPATILDI — 18.09.2026.** `EXPO_PUBLIC_REVENUECAT_IOS_KEY`
+> (`appl_…`) her iki profile de yazıldı. RevenueCat'te Apple App Store
+> uygulaması oluşturuldu; bu adımda ayrıca **In-App Purchase anahtarı**
+> (ASC API anahtarından AYRI bir .p8) ve onun kendi **Issuer ID**'si gerekti.
+> İkisi App Store Connect → Integrations → **In-App Purchase** sekmesinde.
 >
 > **BU DEĞİŞİKLİK OTA İLE GİTMEZ.** Ortam değişkenleri derleme zamanında
 > paketin içine gömülüyor; anahtarın etkili olması için **yeni bir derleme**
