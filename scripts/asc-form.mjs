@@ -573,6 +573,71 @@ async function urunKur(u, grupId, mevcut, ulkeler) {
       }
     }
 
+    // 3d) İNCELEME NOTU VE GÖRSELİ — MISSING_METADATA'nın kalan sebebi.
+    //
+    // 18.09.2026: fiyat ve Türkçe metin tamamlandıktan sonra bile iki
+    // abonelik de MISSING_METADATA kaldı. Apple abonelik için AYRICA
+    // inceleme notu ve satın alma ekranının GÖRSELİNİ istiyor.
+    // Görsel hazır: magaza-pazarlama/inceleme/premium.png — bugün ücretsiz
+    // kullanıcıyla yeniden çekildi ki inceleyen planları ve fiyatı görsün.
+    if (!urun.attributes?.reviewNote && u.incelemeNotu) {
+      try {
+        await api(`/subscriptions/${urun.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            data: { type: 'subscriptions', id: urun.id, attributes: { reviewNote: u.incelemeNotu } },
+          }),
+        });
+        console.log('  ✓ inceleme notu yazıldı');
+      } catch (e) {
+        for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
+      }
+    } else if (urun.attributes?.reviewNote) {
+      console.log('  inceleme notu zaten var');
+    }
+
+    const gorselYolu = 'magaza-pazarlama/inceleme/premium.png';
+    let gorseller = [];
+    try {
+      gorseller = (await api(`/subscriptions/${urun.id}/appStoreReviewScreenshot`))?.data ? [1] : [];
+    } catch { gorseller = []; }
+    if (gorseller.length) {
+      console.log('  inceleme görseli zaten var');
+    } else if (!fs.existsSync(gorselYolu)) {
+      console.log(`  ✗ inceleme görseli bulunamadı: ${gorselYolu}`);
+    } else {
+      const icerik = fs.readFileSync(gorselYolu);
+      try {
+        const rez = await api('/subscriptionAppStoreReviewScreenshots', {
+          method: 'POST',
+          body: JSON.stringify({
+            data: {
+              type: 'subscriptionAppStoreReviewScreenshots',
+              attributes: { fileName: 'premium.png', fileSize: icerik.length },
+              relationships: { subscription: { data: { type: 'subscriptions', id: urun.id } } },
+            },
+          }),
+        });
+        for (const op of rez.data.attributes?.uploadOperations || []) {
+          const basliklar = {};
+          for (const h of op.requestHeaders || []) basliklar[h.name] = h.value;
+          const c = await fetch(op.url, { method: op.method, headers: basliklar, body: icerik.subarray(op.offset, op.offset + op.length) });
+          if (!c.ok) throw new Error(`yükleme ${c.status}`);
+        }
+        // Özet DOSYADAN hesaplanıyor; yanlış özet görseli sessizce reddettirir.
+        const ozet = crypto.createHash('md5').update(icerik).digest('hex');
+        await api(`/subscriptionAppStoreReviewScreenshots/${rez.data.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            data: { type: 'subscriptionAppStoreReviewScreenshots', id: rez.data.id, attributes: { uploaded: true, sourceFileChecksum: ozet } },
+          }),
+        });
+        console.log('  ✓ inceleme görseli yüklendi');
+      } catch (e) {
+        for (const s of String(e.message).split('\n').slice(0, 4)) console.log(`    ${s}`);
+      }
+    }
+
     // 4) FİYAT
     const fiyatlar = (await api(`/subscriptions/${urun.id}/prices`))?.data || [];
     const turFiyat = await turkiyeFiyatiniOku(urun.id);

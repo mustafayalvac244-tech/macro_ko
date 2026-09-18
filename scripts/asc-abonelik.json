@@ -16,7 +16,8 @@
         "locale": "tr",
         "name": "Vekil Pro",
         "description": "Sınırsız dosya, müvekkil ve finans"
-      }
+      },
+      "incelemeNotu": "Vekil Pro Premium unlocks unlimited case files, clients and documents, plus the finance module (fees, collections, expenses). Free accounts already include unlimited case-law search, legal calculators and petition templates; this subscription removes the record limits and opens finance. Purchase screen: Settings > Vekil Pro Uyelik, or the lock icon on any limited screen. Testable with a StoreKit sandbox account."
     },
     {
       "_not": "BU ÜRÜN ZATEN VAR (id 6813558875) ve 50 fiyat kaydı girilmiş. Betik var olanı yeniden oluşturmaz, fiyatına dokunmaz; yalnız SIFIR olan yerelleştirmesini doldurur — MISSING_METADATA'nın ölçülen sebebi buydu.",
@@ -30,7 +31,9 @@
         "locale": "tr",
         "name": "Vekil Pro AI",
         "description": "Yapay zekâ destekli hukuki araştırma"
-      }
+      },
+      "incelemeNotu": "Vekil Pro AI unlocks the AI assistant: legal research over Turkish court decisions, petition drafting and document review. It also includes everything in Vekil Pro Premium. Every statute reference and case citation the assistant returns is checked against our corpus and labelled verified / not found / impossible. Purchase screen: Settings > Vekil Pro Uyelik. Testable with a StoreKit sandbox account."
     }
-  ]
+  ],
+  "_incelemeNotu": "Apple abonelik için inceleme notu ve satın alma ekranının görselini istiyor; ikisi eksikken ürün MISSING_METADATA kalıyor. Not İNGİLİZCE çünkü inceleyen Türkçe okumuyor ve üç şeyi söylemesi gerekiyor: abonelik neyi açıyor, satın alma ekranına nereden gidiliyor, sandbox ile denenebiliyor."
 }
