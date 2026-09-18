@@ -438,6 +438,53 @@ https://github.com/mustafayalvac244-tech/macro_ko/actions/workflows/ios-dagit.ym
 > iOS kotası **ölçülmedi** — EAS'ın hatası "Android builds" diyordu, yani
 > sayaç platform başına tutuluyor *gibi* görünüyor ama denenmedi.
 
+## ⛔ YAYINI BEKLETEN TEK ŞEY — App Privacy (18.09.2026, ölçüldü)
+
+App Store vitrininin **doldurulabilen her parçası doldu ve canlıdan
+doğrulandı** (aşağıdaki tablo). Apple yine de sürümü incelemeye almıyor:
+
+```
+POST /reviewSubmissionItems
+  409 STATE_ERROR.ENTITY_STATE_INVALID
+  "This resource cannot be reviewed, please check associated errors"
+```
+
+Boş olan tek alan **App Privacy (veri etiketi)** ve o API'ye KAPALI.
+**Dokuz uç denendi, dokuzu da 404** — üç yazma, altı okuma:
+
+```
+POST /appDataUsages · /appDataUsagePublishStates · /appDataUsagesPublishState
+GET  /apps/{id}/appPrivacyDetails · /appDataUsageCategories
+     /appDataUsagePurposes · /appDataUsageDataProtections
+     /apps/{id}/appDataUsages · /apps/{id}/appDataUsagesPublishState
+```
+
+Yani bu adım **yalnız arayüzden** yapılabiliyor ve ürün sahibinde.
+
+### YAPILACAK — 10 dakika, App Store Connect → App Privacy
+
+Cevap tablosu hazır: **`scripts/asc-app-privacy.md`**. Apple'ın sorduğu
+sırayla dizili ve her satırın yanında koddaki kaynağı yazılı. Özeti:
+toplananların hepsi "Uygulama İşlevi" amaçlı, hepsi kimliğe bağlı,
+**hiçbiri izleme (tracking) için değil** — ATT izni de istenmiyor.
+
+Bittikten sonra gönderim tek koşu: iş akışı → `incelemeye-gonder`.
+Gönderim kabı zaten açık (`2966aff9-…`, READY_FOR_REVIEW, 0 öğe);
+betik onu yeniden kullanıp sürümü içine koyacak.
+
+### DÜZELTME — sabah söylediğim yanlıştı
+
+Gün boyu "tıkanıklık Paid Apps sözleşmesi" dendi. **Ölçülmemiş bir
+iddiaydı ve yanlıştı.** Asıl tıkanıklık vitrinin tamamen boş olmasıydı;
+onu ölçmek yerine ürün sahibinin ekranda gördüğü bir uyarı tekrarlandı.
+Paid Apps hâlâ gerekli — ama **abonelik ürünlerinin** "Ready to Submit"e
+geçmesi için; uygulamanın incelemeye girmesini engelleyen o değildi.
+
+**Ders:** bir engeli ölçmeden adlandırma. Denemek reddedilse bile
+bedavadır ve reddin metni gerçek listeyi verir.
+
+---
+
 ## 18.09.2026 — bu oturumda BİTENLER ve kalanlar
 
 ### App Store Connect — API'den yazıldı, canlıdan doğrulandı
