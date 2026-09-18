@@ -229,11 +229,20 @@ jobs:
       # Üç komut da App Store Connect'ten OKUR, hiçbir şey değiştirmez.
       # Kimlik bilgileri eas.json'dan, .p8 yukarıdaki adımdan geliyor.
       #
-      # DÜRÜSTLÜK NOTU: bu üç komutun bayrakları DOĞRULANMADI — yalnız
-      # `oclif.manifest.json` içindeki açıklamaları okundu. O yüzden her biri
-      # ayrı ayrı ve `|| true` ile koşuyor: biri bayrak hatası verirse
-      # diğer ikisinin çıktısı yine de alınsın. İlk koşudan sonra hangisinin
-      # nasıl çağrıldığı buraya yazılmalı.
+      # DOĞRULANDI (18.09.2026, koşu #6). Üçü de bayraksız çalışıyor;
+      # kimlik bilgilerini eas.json'dan, .p8'i yukarıdaki adımdan alıyorlar.
+      # Örnek çıktı:
+      #   App Store   Live: none · In review: none · Pending release: none
+      #   TestFlight  3.4.0 (2) — internal: ready for beta testing,
+      #               external: ready for beta submission
+      #   No TestFlight crashes have been reported for com.vekilpro.app.
+      #
+      # DİKKAT — "çökme yok" bir kanıt DEĞİL: TestFlight'ta henüz test
+      # kullanıcısı yok, sıfır çökme sıfır kullanıcının sonucu. Ürün
+      # sahibinin bildirdiği iPhone çökmesi bununla ÇÜRÜTÜLMEZ.
+      #
+      # `eas submit:status` Android tarafını vermiyor ("not available through
+      # EAS yet"); Play durumu için Play Console'a bakılacak.
       #
       # ÇIKTI İKİ YERE GİDİYOR — 18.09.2026'da öğrenildi. İlk hâlinde her şey
       # yalnız $GITHUB_STEP_SUMMARY'ye yazılıyordu; adım 9 saniyede başarıyla
