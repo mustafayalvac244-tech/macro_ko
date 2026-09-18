@@ -912,6 +912,46 @@ async function surumEksikleri(surumId) {
     }
   }
 
+  // 5) appInfo TARAFI — 18.09.2026'da fark edildi, HİÇ ÖLÇÜLMEMİŞTİ.
+  //
+  // Sürüm alanlarını (açıklama, anahtar kelime, ekran görüntüsü) ölçüp
+  // "vitrin doldu" dedim. Ama App Store'da vitrin İKİ nesneye bölünmüş:
+  //   appStoreVersion      → sürüme özel: açıklama, anahtar, görseller
+  //   appInfo              → uygulamaya özel: KATEGORİ, ad, altbaşlık,
+  //                          GİZLİLİK POLİTİKASI ADRESİ
+  // İkincisine hiç bakmadım. Kategori ya da gizlilik adresi boşsa Apple
+  // sürümü kesinlikle almaz ve hatası yine "not in valid state" olur.
+  // Yani "her şeyi doldurdum" dediğim yerde bakmadığım bir yarı vardı.
+  try {
+    const infos = await api(`/apps/${APP_ID}/appInfos`);
+    for (const bilgi of infos?.data || []) {
+      for (const [ad, yol] of [
+        ['birincil kategori', `/appInfos/${bilgi.id}/primaryCategory`],
+        ['ikincil kategori', `/appInfos/${bilgi.id}/secondaryCategory`],
+      ]) {
+        try {
+          const c = await api(yol);
+          console.log(`  ${ad}: ${c?.data ? c.data.id : 'YOK (!)'}`);
+        } catch (e) {
+          console.log(`  ${ad}: YOK (!) — ${String(e.message).split('\n')[0].slice(0, 60)}`);
+        }
+      }
+      try {
+        const y = await api(`/appInfos/${bilgi.id}/appInfoLocalizations`);
+        for (const l of y?.data || []) {
+          const a = l.attributes || {};
+          console.log(`  appInfo ${a.locale}: ad=${a.name || 'YOK (!)'} · altbaşlık=${a.subtitle || '(boş, zorunlu değil)'}`);
+          console.log(`    gizlilik adresi = ${a.privacyPolicyUrl || 'YOK (!)'}`);
+          console.log(`    gizlilik seçenek adresi = ${a.privacyChoicesUrl || '(boş, zorunlu değil)'}`);
+        }
+      } catch (e) {
+        console.log(`  appInfoLocalizations okunamadı: ${String(e.message).split('\n')[0]}`);
+      }
+    }
+  } catch (e) {
+    console.log(`  appInfo okunamadı: ${String(e.message).split('\n')[0]}`);
+  }
+
   // 4) İNCELEME BİLGİSİ: Apple'ın ulaşacağı kişi + demo hesap.
   try {
     const d = await api(`/appStoreVersions/${surumId}/appStoreReviewDetail`);
