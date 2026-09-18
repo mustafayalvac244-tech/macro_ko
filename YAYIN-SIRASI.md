@@ -459,7 +459,19 @@ GET  /apps/{id}/appPrivacyDetails · /appDataUsageCategories
      /apps/{id}/appDataUsages · /apps/{id}/appDataUsagesPublishState
 ```
 
+Son olarak Apple'a **kendi şemasını söyletmek** denendi (`include=` alanına
+saçma bir değer verip geçerli ilişki listesini döktürmek — bu numara aynı
+gün yaş sınırında ve aboneliklerde şemayı öğretmişti). **Burada işe
+yaramadı:** Apple yalnız *"'x' is not a valid relationship name"* diyor,
+geçerli adları saymıyor.
+
+> **Numaranın sınırı da bir ölçüm.** "Reddedilen istek şemayı öğretir"
+> kuralı her uçta geçerli değil: `409 ENTITY_ERROR` eksik alanları
+> sayıyor ama `400 PARAMETER_ERROR` saymıyor. Bunu bilmek, bir dahaki
+> sefer aynı kapıyı tekrar çalmayı önler.
+
 Yani bu adım **yalnız arayüzden** yapılabiliyor ve ürün sahibinde.
+Toplam **12 uç denendi** (3 yazma + 6 okuma + 2 şema + 1 ilişki listesi).
 
 ### YAPILACAK — 10 dakika, App Store Connect → App Privacy
 
