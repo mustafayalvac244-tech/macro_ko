@@ -1501,12 +1501,20 @@ async function fiyatUlkeYaz() {
             attributes: { availableInNewTerritories: false },
             relationships: {
               app: { data: { type: 'apps', id: APP_ID } },
-              territoryAvailabilities: { data: [{ type: 'territoryAvailabilities', id: 'TUR' }] },
+              // SATIR İÇİ OLUŞTURMADA KİMLİK '${yerel}' BİÇİMİNDE OLMALI.
+              // İlk denemede 'TUR' yazıldı ve Apple açıkça söyledi:
+              //   409 ENTITY_ERROR.INCLUDED.INVALID_ID — "For inline
+              //   creation, the id must be a local id with the format
+              //   '${local-id}'"
+              // Yani bu kimlik ülke kodu değil, istek içinde geçici bir
+              // TAKMA AD: `data` ile `included` bloklarını birbirine
+              // bağlıyor. Gerçek ülke kodu aşağıdaki `territory`de.
+              territoryAvailabilities: { data: [{ type: 'territoryAvailabilities', id: '${turkiye}' }] },
             },
           },
           included: [{
             type: 'territoryAvailabilities',
-            id: 'TUR',
+            id: '${turkiye}',
             attributes: { available: true },
             relationships: { territory: { data: { type: 'territories', id: 'TUR' } } },
           }],
