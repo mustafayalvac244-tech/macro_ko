@@ -470,8 +470,15 @@ jobs:
         if: always()
         run: rm -rf asc-api-key.p8 credentials.json ios-imza
 
+      # YALNIZ DERLEME/GÖNDERİM MODLARINDA — 18.09.2026'da öğrenildi.
+      #
+      # Bu adım ~45 satırlık bir betiği iş kaydına yazıyor ve GitHub'ın kayıt
+      # API'si yalnız son ~130 satırı veriyor. Salt okunur modlarda (form-oku,
+      # abonelik-oku, incelemeye-gonder…) bu 45 satır, okunmak İÇİN üretilen
+      # ölçüm çıktısını pencereden dışarı itiyordu — bugün DÖRT kez.
+      # Rapor üretilip okunamıyorsa rapor yok demektir.
       - name: Özet
-        if: always()
+        if: always() && (inputs.is == 'derle' || inputs.is == 'derle-ve-gonder' || inputs.is == 'gonder' || inputs.is == 'yalniz-imza')
         env:
           BAGLANTI: ${{ steps.derle.outputs.baglanti }}
         run: |
