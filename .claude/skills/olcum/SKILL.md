@@ -70,6 +70,25 @@ bulup bulmadığına bak. Bulamıyorsa, bulamadığı diğer şeyler de kanıt d
   diğerine geçiyorsa süzgeç ayırt ediyor demektir. Bu, bayatlık
   iddiasından bağımsız olarak iyi bir alışkanlık.
 
+- **`updated_at` olayı (18.09.2026) — sütunun VAR olması, YAZILDIĞI anlamına
+  gelmez.** Embedding'in ilerleyip ilerlemediğini ölçmek için
+  `embedding is not null and updated_at > now() - interval '24 hours'`
+  yazdım. Sonuç "1" çıktı; aynı pencerede 17 başarılı çağrı (51 kayıt)
+  vardı. Yani sütun embedding yazılırken bumplanmıyor — `update({embedding})`
+  başka hiçbir alana dokunmuyor ve tabloda tetikleyici yok.
+
+  Tehlikeli olan şu: bu ölçüm bir önceki turda **"birikmiş kayıtların
+  hiçbirine dokunulmuyor"** gibi çarpıcı bir sonuç vermişti ve o sonuç
+  doğru GÖRÜNÜYORDU (kapsama gerçekten düşüyordu). İki bağımsız sebep aynı
+  çıktıyı üretiyordu; ölçüm ikisini ayırt edemiyordu. Rapor edilmedi, çünkü
+  ayırt edici bir ikinci ölçüm istendi — doğru refleks buydu.
+
+  **Ders:** bir zaman sütununa dayanarak "şu iş yapıldı/yapılmadı" derken,
+  önce o sütunun O İŞ SIRASINDA gerçekten değiştiğini kanıtla. Kanıtlamanın
+  ucuz yolu: kesin olarak yapıldığını bildiğin bir işten sonra sütuna bak.
+  Sayım (`count(*) filter (where ...)`) iki damgalı koşu arasında
+  farklandığında güvenilirdir; tek koşuluk zaman sütunu değildir.
+
 **Alışkanlık:** ölçüm çıktısında bir sayı "fazla temiz" ya da "fazla iyi"
 görünüyorsa, önce aleti şüpheli say. Bir durum alanı hiç değişmiyorsa da
 aynısını yap.
