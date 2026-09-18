@@ -218,6 +218,29 @@ async function abonelikOku() {
         } catch (e) {
           console.log(`    fiyat detayı okunamadı: ${String(e.message).split('\n')[0]}`);
         }
+
+        // SATIŞA AÇIKLIK — 18.09.2026, koşu #20'den SONRA eklendi, ACİL.
+        //
+        // NEDEN ACİL. O koşuda AI ürününün availability ucu 404 döndü ve
+        // betiğim "yok demek ki" deyip YENİ BİR TANE kurdu — içinde
+        // YALNIZ TÜRKİYE. Oysa AI ürününün 175 ülkede fiyatı vardı, yani
+        // bir yerde satışa açıklığı olmalıydı. 404'ü "yok" diye okumak
+        // benim çıkarımımdı, Apple'ın sözü değil.
+        // Sonuç: AI'ın satış alanını 175 ülkeden 1'e DARALTMIŞ olabilirim.
+        // Bu ekran o ihtimali ölçüyor. Daraldıysa geri genişletilecek.
+        try {
+          const a = await api(`/subscriptions/${s.id}/subscriptionAvailability`);
+          if (a?.data) {
+            const ulk = await api(`/subscriptionAvailabilities/${a.data.id}/availableTerritories?limit=200`);
+            const l = (ulk?.data || []).map((t) => t.id);
+            console.log(`    satışa açık: ${l.length} ülke · yeni ülkelere otomatik=${a.data.attributes?.availableInNewTerritories}`);
+            console.log(`      ${l.slice(0, 10).join(', ')}${l.length > 10 ? ' …' : ''}`);
+          } else {
+            console.log('    satışa açık: uç cevap verdi ama data boş');
+          }
+        } catch (e) {
+          console.log(`    fiyat detayı okunamadı: ${String(e.message).split('\n')[0]}`);
+        }
       }
     } catch (e) {
       console.log(`  ürünler okunamadı: ${String(e.message).split('\n')[0]}`);
@@ -490,6 +513,13 @@ async function urunKur(u, grupId, mevcut, ulkeler) {
     //
     // DOĞRULANMADI — aşağıdaki okuma bunu söyleyecek. Hipotez yanlışsa
     // çıktı da öyle diyecek; iddia etmiyorum, ölçüyorum.
+    // Açıklık yazmadan ÖNCE fiyat sayısını öğren: aşağıdaki koruma buna
+    // dayanıyor (fiyatı olan ürünün satış alanı da vardır).
+    let fiyatSayisi = null;
+    try {
+      fiyatSayisi = ((await api(`/subscriptions/${urun.id}/prices?limit=200`))?.data || []).length;
+    } catch { fiyatSayisi = null; }
+
     let acikMi = null;
     try {
       const a = await api(`/subscriptions/${urun.id}/subscriptionAvailability`);
@@ -506,7 +536,22 @@ async function urunKur(u, grupId, mevcut, ulkeler) {
       console.log(`  satışa açıklık YOK — ${String(e.message).split('\n')[0]}`);
     }
 
-    if (!acikMi) {
+    // 404'Ü "YOK" DİYE OKUMA — 18.09.2026, koşu #20'de canlıda hasar verdi.
+    //
+    // O koşuda AI ürününün availability ucu 404 döndü. Betik "yok demek ki"
+    // deyip YENİ bir açıklık kurdu, içinde YALNIZ TÜRKİYE — çünkü ülke
+    // listesini kopyalama denemesi de aynı 404'e takılıp sessizce TUR'a
+    // düşmüştü. Oysa o ürünün 175 ÜLKEDE FİYATI vardı; yani bir yerde
+    // satışa açıklığı olmalıydı ve 404 "yok" demek değildi.
+    //
+    // KURAL: bir nesnenin YOKLUĞUNU tek bir 404'ten çıkarma, hele o
+    // çıkarımla YAZACAKSAN. Aynı nesneye dair başka bir ölçüm (burada:
+    // 175 ülkelik fiyat listesi) tersini söylüyorsa, yazma DUR.
+    if (!acikMi && (fiyatSayisi ?? 0) > 1) {
+      console.log(`  ⚠ satışa açıklık okunamadı AMA ürünün ${fiyatSayisi} fiyat kaydı var.`);
+      console.log('    Çelişki: fiyatı olan ürünün satış alanı da olmalı. YAZILMIYOR —');
+      console.log('    daraltma riski var. Ülke listesi elle doğrulanmalı.');
+    } else if (!acikMi) {
       console.log('  → satışa açıklık kuruluyor (POST /subscriptionAvailabilities)');
       try {
         const c = await api('/subscriptionAvailabilities', {
