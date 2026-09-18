@@ -1470,7 +1470,30 @@ async function tamDenetim() {
   };
   const oku = async (yol) => { try { return await api(yol); } catch (e) { return { _hata: String(e.message).split('\n')[1] || e.message }; } };
 
-  console.log('═══ UYGULAMA ═══');
+  // HESAP ROLLERİ — 18.09.2026'da eklendi.
+  //
+  // NEDEN. Ürün sahibi "Paid Apps yok" dedi. Sebebi menüyü bulamamak
+  // olabilir, ama daha olası bir açıklama var ve ÖLÇÜLEBİLİR: Apple
+  // sözleşme sayfasını YALNIZ "Account Holder" rolüne gösteriyor. Rol
+  // farklıysa o bölüm menüde hiç çıkmaz ve insan haklı olarak "yok" der.
+  //
+  // Bunu sormak yerine okuyorum. Rol listesi API'de duruyor.
+  console.log('═══ HESAP ROLLERİ ═══');
+  const kullanicilar = await oku('/users?limit=50');
+  if (kullanicilar?._hata) {
+    console.log(`  okunamadı: ${kullanicilar._hata}`);
+    console.log('  (bu uç App Manager anahtarına kapalı olabilir — o da bir bilgi)');
+  } else {
+    for (const k of kullanicilar?.data || []) {
+      const a = k.attributes || {};
+      console.log(`  ${(a.username || '?').padEnd(34)} roller=${(a.roles || []).join(',')}`);
+    }
+    const sahip = (kullanicilar?.data || []).find((k) => (k.attributes?.roles || []).includes('ACCOUNT_HOLDER'));
+    console.log(`  → ACCOUNT_HOLDER: ${sahip ? sahip.attributes?.username : 'listede görünmüyor'}`);
+    console.log('  Sözleşme sayfasını yalnız bu rol görür.');
+  }
+
+  console.log('\n═══ UYGULAMA ═══');
   const app = (await oku(`/apps/${APP_ID}`))?.data;
   yaz('bundleId', app?.attributes?.bundleId);
   yaz('contentRightsDeclaration', app?.attributes?.contentRightsDeclaration);
