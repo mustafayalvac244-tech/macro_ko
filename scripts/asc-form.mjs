@@ -287,6 +287,142 @@ async function yaz() {
   yazdirAlanlar('yazıldıktan sonra', sonuc?.data?.attributes);
 }
 
-const MODLAR = { yaz, 'abonelik-oku': abonelikOku, oku };
+/**
+ * ABONELİK ÜRÜNLERİNİ KUR — YAZAR.
+ *
+ * ÜRÜN SAHİBİ ONAYI: 18.09.2026, "Hepsini kur". Onay şu bilgiyle alındı:
+ * App Store'da bir ürün kimliği BİR KEZ oluşturulunca SİLİNEMEZ, yalnız
+ * "kullanılamaz" yapılabilir.
+ *
+ * NE YAPAR (hepsi ölçülmüş şemayla — alan adları koşu #14'te Apple'ın
+ * kendi 409 metninden okundu, ezberlenmedi):
+ *   1. Ürün yoksa  POST /subscriptions
+ *   2. Yerelleştirme yoksa  POST /subscriptionLocalizations
+ *   3. Fiyat yoksa  POST /subscriptionPrices
+ *
+ * TEKRAR KOŞULABİLİR. Her adım önce canlıyı okur, var olanı atlar. Betik
+ * yarıda düşerse yeniden koşmak kaldığı yerden devam eder, kopya üretmez —
+ * kopya üretilemeyecek bir yerde (silinemeyen ürün kimliği) bu şart.
+ *
+ * FİYAT KADEMESİ ÜRÜNE BAĞLI — 18.09.2026'da ölçüldü. Fiyat noktası
+ * kimliği base64 ve içi {"s":"<abonelik id>","t":"TUR","p":"..."}. Yani
+ * var olan ürünün 399 TL kademesi YENİ ürüne geçmez; her ürünün kendi
+ * kademesi kendi ucundan okunmalı. Bunu kontrol etmeseydim yeni ürüne
+ * başka bir ürünün fiyat kimliğini göndermiş olurdum.
+ */
+async function abonelikYaz() {
+  const yol = 'scripts/asc-abonelik.json';
+  if (!fs.existsSync(yol)) {
+    console.error(`HATA: ${yol} yok. Ürün tanımı olmadan yazma yapılmaz.`);
+    process.exit(1);
+  }
+  const tanim = JSON.parse(fs.readFileSync(yol, 'utf8'));
+  const grupId = tanim.grupId;
+  if (!grupId) { console.error('HATA: grupId yok.'); process.exit(1); }
+
+  // Canlıdaki grubu DOĞRULA. Dosyadaki id eskimişse yanlış gruba ürün
+  // eklemek, silinemeyen bir ürünü yanlış yere koymak demek.
+  const gruplar = await api(`/apps/${APP_ID}/subscriptionGroups?limit=50`);
+  const grup = (gruplar?.data || []).find((g) => g.id === grupId);
+  if (!grup) {
+    console.error(`HATA: grup ${grupId} bu uygulamada yok. Canlıdaki gruplar:`);
+    for (const g of gruplar?.data || []) console.error(`  ${g.id} = ${g.attributes?.referenceName}`);
+    process.exit(1);
+  }
+  console.log(`Grup doğrulandı: ${grupId} = "${grup.attributes?.referenceName}"`);
+
+  const mevcut = (await api(`/subscriptionGroups/${grupId}/subscriptions`))?.data || [];
+  console.log(`Gruptaki mevcut ürünler: ${mevcut.map((s) => s.attributes?.productId).join(', ') || '(yok)'}`);
+
+  for (const u of tanim.urunler || []) {
+    console.log(`\n═══ ${u.productId} ═══`);
+
+    // 1) ÜRÜN
+    let urun = mevcut.find((s) => s.attributes?.productId === u.productId);
+    if (urun) {
+      console.log(`  ürün zaten var (${urun.id}) — OLUŞTURULMADI`);
+    } else {
+      console.log('  ürün yok → POST /subscriptions');
+      const c = await api('/subscriptions', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: {
+            type: 'subscriptions',
+            attributes: {
+              name: u.name,
+              productId: u.productId,
+              subscriptionPeriod: u.subscriptionPeriod,
+              familySharable: u.familySharable,
+              groupLevel: u.groupLevel,
+            },
+            relationships: { group: { data: { type: 'subscriptionGroups', id: grupId } } },
+          },
+        }),
+      });
+      urun = c.data;
+      console.log(`  ✓ oluşturuldu: ${urun.id}  state=${urun.attributes?.state}`);
+    }
+
+    // 2) YERELLEŞTİRME — MISSING_METADATA'nın ölçülen sebebi.
+    const yereller = (await api(`/subscriptions/${urun.id}/subscriptionLocalizations`))?.data || [];
+    const varOlan = yereller.find((y) => y.attributes?.locale === u.yerel.locale);
+    if (varOlan) {
+      console.log(`  yerelleştirme (${u.yerel.locale}) zaten var — dokunulmadı`);
+    } else {
+      console.log(`  yerelleştirme yok → POST /subscriptionLocalizations (${u.yerel.locale})`);
+      const c = await api('/subscriptionLocalizations', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: {
+            type: 'subscriptionLocalizations',
+            attributes: { locale: u.yerel.locale, name: u.yerel.name, description: u.yerel.description },
+            relationships: { subscription: { data: { type: 'subscriptions', id: urun.id } } },
+          },
+        }),
+      });
+      console.log(`  ✓ yerelleştirme: ${c.data.id}`);
+    }
+
+    // 3) FİYAT
+    const fiyatlar = (await api(`/subscriptions/${urun.id}/prices`))?.data || [];
+    if (fiyatlar.length) {
+      console.log(`  fiyat zaten var (${fiyatlar.length} kayıt) — DOKUNULMADI`);
+    } else {
+      console.log(`  fiyat yok → ${u.fiyatTL} TL kademesi aranıyor`);
+      let sayfaYolu = `/subscriptions/${urun.id}/pricePoints?filter[territory]=TUR&limit=200`;
+      let nokta = null;
+      let sayfa = 0;
+      while (sayfaYolu && !nokta && sayfa < 20) {
+        const s = await api(sayfaYolu);
+        nokta = (s?.data || []).find((p) => Number(p.attributes?.customerPrice) === u.fiyatTL) || null;
+        sayfa += 1;
+        const sonraki = s?.links?.next;
+        sayfaYolu = sonraki ? sonraki.replace(/^https:\/\/api\.appstoreconnect\.apple\.com\/v1/, '') : null;
+      }
+      if (!nokta) {
+        console.log(`  ✗ ${u.fiyatTL} TL kademesi bulunamadı (${sayfa} sayfa tarandı). Fiyat ATLANDI.`);
+      } else {
+        await api('/subscriptionPrices', {
+          method: 'POST',
+          body: JSON.stringify({
+            data: {
+              type: 'subscriptionPrices',
+              relationships: {
+                subscription: { data: { type: 'subscriptions', id: urun.id } },
+                subscriptionPricePoint: { data: { type: 'subscriptionPricePoints', id: nokta.id } },
+              },
+            },
+          }),
+        });
+        console.log(`  ✓ fiyat kuruldu: ${u.fiyatTL} TL`);
+      }
+    }
+  }
+
+  console.log('\n═══ YAZIM SONRASI CANLI DURUM ═══');
+  await abonelikOku();
+}
+
+const MODLAR = { yaz, 'abonelik-oku': abonelikOku, 'abonelik-yaz': abonelikYaz, oku };
 const islem = MODLAR[MOD] || oku;
 islem().catch((e) => { console.error(`\n${e.message}`); process.exit(1); });
