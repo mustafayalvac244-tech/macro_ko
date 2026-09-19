@@ -1631,8 +1631,34 @@ async function tamDenetim() {
   // FİYAT VE ÜLKE — bugüne kadar HİÇ ÖLÇÜLMEDİ. Uygulamanın kendisinin
   // fiyat çizelgesi ve satış ülkesi yoksa yayınlanamaz; aboneliklerde
   // aynı tuzağa düşülmüştü (satışa açıklık fiyattan önce gelir).
+  // ⚠ BU KONTROL BİR HAFTA BOYUNCA YANLIŞ ✓ VERDİ (19.09.2026'da bulundu).
+  //
+  // Eskiden yalnız `appPriceSchedule` NESNESİNİN var olup olmadığına
+  // bakıyordu ve nesne vardı — ama İÇİ BOŞTU. Apple'ın arayüzü şunu
+  // diyordu: "You must choose a price tier in Pricing." Denetim ise
+  // "✓ fiyat çizelgesi" diye rapor ediyordu.
+  //
+  // Bir ilişkinin VAR OLMASI, İÇİNİN DOLU OLMASI demek değildir. Aynı tuzak
+  // abonelik grubunda da vardı: grup vardı, adı yoktu. İkisi de "nesne var
+  // mı" diye sorup "içinde ne var" diye sormamaktan çıktı.
   const fiyat = await oku(`/apps/${APP_ID}/appPriceSchedule`);
-  yaz('fiyat çizelgesi', fiyat?._hata ? `okunamadı (${fiyat._hata.slice(0, 40)})` : (fiyat?.data ? fiyat.data.id : null));
+  if (fiyat?._hata) {
+    yaz('fiyat çizelgesi', `okunamadı (${fiyat._hata.slice(0, 40)})`);
+  } else if (!fiyat?.data) {
+    yaz('fiyat çizelgesi', null);
+  } else {
+    const fiyatlar = await oku(`/appPriceSchedules/${fiyat.data.id}/manualPrices?limit=10`);
+    const adet = fiyatlar?._hata ? null : (fiyatlar?.data || []).length;
+    if (adet === null) {
+      yaz('fiyat çizelgesi', `çizelge ${fiyat.data.id} — fiyatlar OKUNAMADI`);
+    } else if (adet === 0) {
+      yaz('fiyat çizelgesi', null);
+      console.log('      Çizelge nesnesi var ama İÇİ BOŞ — Apple bunu');
+      console.log('      "You must choose a price tier in Pricing" diye reddeder.');
+    } else {
+      yaz('fiyat çizelgesi', `${adet} fiyat kaydı (${fiyat.data.id})`);
+    }
+  }
   for (const yol of [`/apps/${APP_ID}/appAvailabilityV2`, `/apps/${APP_ID}/appAvailability`]) {
     const a = await oku(yol);
     if (!a?._hata) { yaz(`satış ülkeleri (${yol.split('/').pop()})`, a?.data ? a.data.id : null); break; }
