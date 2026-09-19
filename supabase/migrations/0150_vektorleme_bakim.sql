@@ -1,0 +1,28 @@
+-- BAKIM — ictihat_kararlar üzerinde VACUUM ANALYZE
+-- ===========================================================================
+-- NEDEN (19.09.2026, ölçüldü). Gece boyunca on binlerce satırın `embedding`
+-- sütunu NULL'dan dolu hâle geldi. Postgres'te UPDATE, satırın ESKİ sürümünü
+-- ölü tuple olarak bırakır ve bu satırlar `ictihat_embedding_missing_idx`
+-- (WHERE embedding IS NULL) indeksinden düşer — ama indeks girdileri ÖLÜ
+-- olarak orada kalır, VACUUM gelene kadar.
+--
+-- Sonuç: "kaç kayıt vektörsüz" sayımı, indeks-içi taramayken bile ölü
+-- girdileri gezmek zorunda kalır ve DAKİKALAR sürer. Ölçüldü: bu sayımı
+-- yapan salt okunur göç 5 dakikadan uzun asılı kaldı; doğrudan SQL
+-- bağlantısından aynı sorgu 60 saniyede zaman aşımına düştü. Oysa dün
+-- 21:00'de aynı sorgunun planı 5,9 ms diyordu.
+--
+-- Bu, gece yaşanan tıkanmanın İKİNCİ yarısı. Birincisi (edge işlevinin her
+-- çağrıda bu sayımı yapması) ayrı bir değişiklikle kaldırıldı. İkisi birbirini
+-- besliyordu: sayım yavaşladıkça bağlantılar daha uzun tutuluyor, bağlantılar
+-- tükendikçe her şey yavaşlıyordu.
+--
+-- VACUUM bir işlem (transaction) içinde koşamaz. Uygulayıcı SQL'i doğrudan
+-- Management API'ye gönderiyor ve sarmalamıyor; sarmalıyorsa bu göç açık bir
+-- hata verir — sessizce yanlış bir şey yapmaz. Hata gelirse doğru yol,
+-- autovacuum'u beklemek ya da ayarını sıkılaştırmaktır.
+--
+-- BU GÖÇ VERİYİ DEĞİŞTİRMEZ. Yalnız ölü tuple'ları temizler ve
+-- istatistikleri tazeler.
+
+vacuum (analyze) public.ictihat_kararlar;
