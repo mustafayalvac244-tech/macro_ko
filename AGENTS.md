@@ -59,13 +59,7 @@ Aynı gün yapılmış üç ihlal:
 - **"16 işçi uygulandı."** Göç koşusu düşmüştü, doğrulanmadan "uygulandı"
   denildi. Sistem hâlâ 8'deydi.
 
-**İhlal ettiğinde ne yapılır:** kendini suçlayan bir cümle yazmak hiçbir şey
-önlemez. Yapılacak şey şudur — üçü birden, tek yerde:
-1. Uydurduğun sayıyı aynen yaz,
-2. Ölçülen doğrusunu yaz,
-3. Nereden ölçtüğünü yaz (komut, uç, log adı).
-
-Kullanıcı senin pişmanlığını değil, doğru sayıyı ve kaynağını istiyor.
+**İhlal yok. Uydurma yok.** Ölçmediysen sayı yazma.
 
 ## Bekleme yasak (19.09.2026, ürün sahibi kuralı)
 
