@@ -1738,6 +1738,13 @@ async function tamDenetim() {
     if (!(urunCevap?.data || []).length) console.log(`  ✗ grup ${g.id} BOŞ görünüyor`);
     for (const u of urunCevap?.data || []) {
       console.log(`\n  ${u.attributes?.productId}  state=${u.attributes?.state}`);
+      // SÜRE (subscriptionPeriod) — 19.09.2026'da eklendi, ürün sahibinin
+      // uyarısıyla: "aylığı seçmedik, doldurmadık". Denetim bu alanı hiç
+      // basmıyordu; oysa süresi olmayan bir abonelik MISSING_METADATA'dan
+      // çıkamaz. Yazma kodunda (POST /subscriptions) gönderiliyor ama
+      // gönderildiği ile YAZILDIĞI ayrı şeyler — bu yüzden geri okunuyor.
+      yaz('  süre (subscriptionPeriod)', u.attributes?.subscriptionPeriod || null);
+      yaz('  aile paylaşımı', u.attributes?.familySharable === undefined ? null : String(u.attributes.familySharable));
       const f = await oku(`/subscriptions/${u.id}/prices?limit=200`);
       yaz('  fiyat kaydı', f?._hata ? null : `${(f?.data || []).length} adet`);
       const y = await oku(`/subscriptions/${u.id}/subscriptionLocalizations`);
