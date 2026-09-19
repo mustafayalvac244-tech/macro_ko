@@ -398,6 +398,54 @@ async function abonelikYaz() {
   }
   console.log(`Grup doğrulandı: ${grupId} = "${grup.attributes?.referenceName}"`);
 
+  // ── GRUBUN YERELLEŞTİRMESİ ────────────────────────────────────────────────
+  // 19.09.2026'da BULUNDU VE BU BİR HAFTALIK ENGELİN SEBEBİYDİ.
+  //
+  // referenceName yalnız İÇERİDE görünen bir etikettir; müşteriye görünen ad
+  // AYRI bir nesnededir: subscriptionGroupLocalizations. O nesne hiç
+  // oluşturulmamıştı ve grubun adı HİÇBİR DİLDE yoktu. Grup adsızken
+  // gruptaki her ürün MISSING_METADATA'da takılı kalıyor.
+  //
+  // Denetim bunu neden görmedi: ürünün dört alanını (fiyat, yerelleştirme,
+  // inceleme notu, inceleme görseli) tek tek ölçüyordu ama GRUBUN KENDİSİNE
+  // hiç bakmıyordu. Dördü de ✓ göründüğü için eksik "API'nin dışında" sanıldı
+  // ve ürün sahibine günlerce yanlış sebep (Paid Apps sözleşmesi) söylendi.
+  {
+    const mevcutYerel = (await api(`/subscriptionGroups/${grupId}/subscriptionGroupLocalizations`))?.data || [];
+    const istenen = tanim.grupYerel || { locale: 'tr', name: 'Vekil Pro', customAppName: 'Vekil Pro' };
+    const ayni = mevcutYerel.find((l) => l.attributes?.locale === istenen.locale);
+    if (ayni) {
+      console.log(`  ✓ grup yerelleştirmesi zaten var (${istenen.locale}): "${ayni.attributes?.name}"`);
+    } else {
+      console.log(`  grup yerelleştirmesi YOK → POST /subscriptionGroupLocalizations (${istenen.locale})`);
+      const c = await api('/subscriptionGroupLocalizations', {
+        method: 'POST',
+        body: {
+          data: {
+            type: 'subscriptionGroupLocalizations',
+            attributes: {
+              locale: istenen.locale,
+              name: istenen.name,
+              customAppName: istenen.customAppName,
+            },
+            relationships: {
+              subscriptionGroup: { data: { type: 'subscriptionGroups', id: grupId } },
+            },
+          },
+        },
+      });
+      console.log(`  ✓ grup adı yazıldı: ${c?.data?.id}`);
+      // KABUL EDİLDİ ≠ YAZILDI. Geri okumadan "oldu" denmez — bu depoda
+      // contentRightsDeclaration tam olarak böyle yanıltmıştı (2xx döndü,
+      // alan null kaldı).
+      const geri = (await api(`/subscriptionGroups/${grupId}/subscriptionGroupLocalizations`))?.data || [];
+      const dogrula = geri.find((l) => l.attributes?.locale === istenen.locale);
+      console.log(dogrula?.attributes?.name
+        ? `  ✓ geri okundu: "${dogrula.attributes.name}"`
+        : '  ✗ GERİ OKUNAMADI — yazıldığı doğrulanamadı (!)');
+    }
+  }
+
   const mevcut = (await api(`/subscriptionGroups/${grupId}/subscriptions`))?.data || [];
   console.log(`Gruptaki mevcut ürünler: ${mevcut.map((s) => s.attributes?.productId).join(', ') || '(yok)'}`);
 

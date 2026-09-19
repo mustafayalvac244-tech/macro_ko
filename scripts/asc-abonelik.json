@@ -35,5 +35,10 @@
       "incelemeNotu": "Vekil Pro AI unlocks the AI assistant: legal research over Turkish court decisions, petition drafting and document review. It also includes everything in Vekil Pro Premium. Every statute reference and case citation the assistant returns is checked against our corpus and labelled verified / not found / impossible. Purchase screen: Settings > Vekil Pro Uyelik. Testable with a StoreKit sandbox account."
     }
   ],
-  "_incelemeNotu": "Apple abonelik için inceleme notu ve satın alma ekranının görselini istiyor; ikisi eksikken ürün MISSING_METADATA kalıyor. Not İNGİLİZCE çünkü inceleyen Türkçe okumuyor ve üç şeyi söylemesi gerekiyor: abonelik neyi açıyor, satın alma ekranına nereden gidiliyor, sandbox ile denenebiliyor."
+  "_incelemeNotu": "Apple abonelik için inceleme notu ve satın alma ekranının görselini istiyor; ikisi eksikken ürün MISSING_METADATA kalıyor. Not İNGİLİZCE çünkü inceleyen Türkçe okumuyor ve üç şeyi söylemesi gerekiyor: abonelik neyi açıyor, satın alma ekranına nereden gidiliyor, sandbox ile denenebiliyor.",
+  "grupYerel": {
+    "locale": "tr",
+    "name": "Vekil Pro",
+    "customAppName": "Vekil Pro"
+  }
 }
