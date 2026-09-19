@@ -18,10 +18,17 @@
 --    tablosu için varsayılan çok gevşek.
 -- 2) TEK SEFERLİK: şu anki birikim elle temizleniyor.
 --
--- VACUUM işlem içinde koşamaz ve uygulayıcı ağ geçidi 2 dakikada kopabilir
--- (19.09'da 0150 tam olarak böyle düştü: Cloudflare 524). Bu yüzden ALTER
--- TABLE ÖNCE geliyor: o anında biter ve kalıcıdır. VACUUM düşse bile
--- autovacuum yeni eşikle işi devralır.
+-- ELLE VACUUM BU DOSYADA YOK — BİLEREK.
+-- İlk hâlinde vardı ve göç şu hatayla düştü:
+--   25001: VACUUM cannot run inside a transaction block
+-- Yani uygulayıcı (Supabase Management API) SQL'i bir işlemle sarmalıyor.
+-- Daha kötüsü: hata yüzünden ALTER TABLE'lar da geri alındı, yani hiçbir
+-- şey uygulanmadı. Tek bir çalışmayan ifade, çalışan ifadeleri de götürdü.
+-- (0150'de aynı deneme Cloudflare 524 ile düşmüştü; sebebi şimdi anlaşıldı.)
+--
+-- ELLE VACUUM GEREKMİYOR: ölçek %2'ye inince eşik 2.657.763 × 0,02 ≈ 53.000
+-- olur ve tabloda ŞU AN 104.836 ölü satır var — yani eşiğin iki katı.
+-- Autovacuum ayar uygulanır uygulanmaz kendiliğinden devreye girer.
 
 alter table public.ictihat_katalog set (
   autovacuum_vacuum_scale_factor = 0.02,
@@ -35,4 +42,3 @@ alter table public.ictihat_kararlar set (
   autovacuum_vacuum_cost_limit = 2000
 );
 
-vacuum (analyze) public.ictihat_katalog;
