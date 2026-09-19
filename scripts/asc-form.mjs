@@ -418,22 +418,59 @@ async function abonelikYaz() {
       console.log(`  ✓ grup yerelleştirmesi zaten var (${istenen.locale}): "${ayni.attributes?.name}"`);
     } else {
       console.log(`  grup yerelleştirmesi YOK → POST /subscriptionGroupLocalizations (${istenen.locale})`);
-      const c = await api('/subscriptionGroupLocalizations', {
+
+      // ŞEMAYI APPLE'A SÖYLETİYORUZ — 19.09.2026.
+      // İlk deneme 422 ENTITY_UNPROCESSABLE ile düştü ve Apple HANGİ alanın
+      // sorunlu olduğunu söylemedi ("Unexpected error"). Alan adı tahmin
+      // etmek yerine, BOŞ attributes ile bir sonda atılıyor: Apple o zaman
+      // ENTITY_ERROR.ATTRIBUTE.REQUIRED ile zorunlu alanları TEK TEK sayıyor.
+      // Bu numara bu depoda abonelik ürünleri kurulurken zaten işe yaramıştı.
+      // Sonda yazma DEĞİL: boş gövde hiçbir zaman kabul edilmez.
+      const gonder = async (attrs) => api('/subscriptionGroupLocalizations', {
         method: 'POST',
         body: {
           data: {
             type: 'subscriptionGroupLocalizations',
-            attributes: {
-              locale: istenen.locale,
-              name: istenen.name,
-              customAppName: istenen.customAppName,
-            },
+            attributes: attrs,
             relationships: {
               subscriptionGroup: { data: { type: 'subscriptionGroups', id: grupId } },
             },
           },
         },
       });
+
+      let c = null;
+      try {
+        c = await gonder({
+          locale: istenen.locale,
+          name: istenen.name,
+          customAppName: istenen.customAppName,
+        });
+      } catch (e1) {
+        console.log(`  ✗ tam gövde reddedildi: ${String(e1.message).split('\n')[0]}`);
+
+        // SONDA 1: boş attributes → zorunlu alanların listesi.
+        try {
+          await gonder({});
+          console.log('  (!) boş gövde KABUL EDİLDİ — beklenmedik, şema varsayımı yanlış.');
+        } catch (e2) {
+          console.log('  Apple\'ın zorunlu alan listesi (boş gövde sondası):');
+          for (const satir of String(e2.message).split('\n')) {
+            if (satir.trim()) console.log(`    ${satir.trim()}`);
+          }
+        }
+
+        // SONDA 2: customAppName olmadan. Apple bu alanı bazı durumlarda
+        // reddediyor (uygulama adıyla çakışma). Zorunlu olan yalnız
+        // name + locale ise bu geçer.
+        try {
+          c = await gonder({ locale: istenen.locale, name: istenen.name });
+          console.log('  ✓ customAppName OLMADAN kabul edildi — o alan sorunluymuş.');
+        } catch (e3) {
+          console.log(`  ✗ customAppName'siz de reddedildi: ${String(e3.message).split('\n')[0]}`);
+          throw e1;
+        }
+      }
       console.log(`  ✓ grup adı yazıldı: ${c?.data?.id}`);
       // KABUL EDİLDİ ≠ YAZILDI. Geri okumadan "oldu" denmez — bu depoda
       // contentRightsDeclaration tam olarak böyle yanıltmıştı (2xx döndü,
