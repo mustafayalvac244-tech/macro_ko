@@ -20,8 +20,14 @@ düşünmek.**
 **OLAY (18/19.09.2026 gecesi).** Vektörleme işçisi 8 → 16 → 32 → 64
 çıkarıldı. İlk dört dakika harika göründü: 7.699/saat, hata %2,2. Sonra
 veritabanı yeni bağlantı kabul edemez hâle geldi — `select now()` bile
-açılamıyordu — ve bu hâlde **7,5 saat** kaldı. Ürün sahibi uyandığında
-enkaz gördü.
+açılamıyordu.
+
+Şiddeti ÖLÇÜLDÜ (Postgres kayıtları, saatlik ERROR sayısı): 22:00 saatinde
+**879**, ardından gece boyu **26–51/saat**. Yani ağır tıkanma ~1 saat sürdü,
+sonrasında sistem aksak ama çalışır hâldeydi. *(Bu satırın ilk hâli "7,5 saat
+tıkalı kaldı" diyordu — ürün sahibine de öyle söylendi ve YANLIŞTI. Hatanın
+büyüklüğünü abartmak da bir tür yanlış bilgidir; AGENTS.md'nin dürüstlük
+kuralı yalnız küçültmeyi değil büyütmeyi de yasaklar.)*
 
 Sebep, işçi sayısı değildi. Uç işlevi **her çağrının sonunda** şunu
 koşuyordu:
