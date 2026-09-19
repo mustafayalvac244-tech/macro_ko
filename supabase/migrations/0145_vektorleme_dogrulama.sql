@@ -1,73 +1,59 @@
 -- SALT OKUNUR ÖLÇÜM — hiçbir şey yazmaz.
--- 0144 uygulandı; "uygulandı" ile "çalışıyor" ayrı şeylerdir. Bu dosya
--- ikincisini ölçer: cron işleri gerçekten kuruldu mu, çağrılar 200 mü
--- dönüyor, embedding sayısı gerçekten artıyor mu.
 --
--- Tek ifade — çok ifadeli dosyada yalnız SON ifade döner (skill kuralı).
+-- ÖLÇÜM ARACININ KENDİSİ SORUNA KATKIDAYDI (19.09.2026). Bu dosyanın eski
+-- hâli `count(*) filter (where embedding is not null)` kullanıyordu: bu, tüm
+-- tabloyu (100 bin satır, her birinde tam metin + 384 boyutlu vektör) taramak
+-- demek ve dakikalarca sürüyor. Yani "yük var mı" diye bakan sorgu, yükün bir
+-- parçasıydı.
+--
+-- Artık yalnız KISMİ İNDEKSTEN okunuyor:
+--   ictihat_embedding_missing_idx  ON (id) WHERE embedding IS NULL
+-- Bu indeks yalnız vektörsüz kayıtları tutuyor, sayımı indeks-içi yapılıyor.
+-- Toplam satır sayısı ise pg_class.reltuples'tan TAHMİN olarak alınıyor ve
+-- adında öyle yazıyor — kesin sayıymış gibi sunulmuyor.
+--
+-- Tek ifade: çok ifadeli dosyada yalnız SON ifade döner (skill kuralı).
 select olcum, deger from (
-  select 1 as sira, 'vektorle isi sayisi' as olcum,
+  select 1 as sira, 'embedding YOK (kesin, kismi indeks)' as olcum,
          coalesce(count(*)::text, 'YOK (!)') as deger
+    from public.ictihat_kararlar where embedding is null
+  union all
+  select 2, 'toplam karar (TAHMIN, reltuples)',
+         coalesce(nullif(reltuples, -1)::bigint::text, 'YOK (!)')
+    from pg_class where oid = 'public.ictihat_kararlar'::regclass
+  union all
+  select 3, 'olcum ani', now()::text
+  union all
+  select 4, 'vektorle cron isi',
+         coalesce(string_agg(jobname || ' @ ' || schedule || ' :: ' || command, ' | '), 'YOK (!)')
     from cron.job where jobname like 'vekil_vektorle%'
   union all
-  select 2, 'zamanlama',
-         coalesce(string_agg(distinct schedule, ' | '), 'YOK (!)')
-    from cron.job where jobname like 'vekil_vektorle%'
+  select 5, 'toplam aktif cron isi',
+         coalesce(count(*)::text, 'YOK (!)') from cron.job where active
   union all
-  select 3, 'hepsi aktif mi',
-         coalesce(string_agg(distinct active::text, ','), 'YOK (!)')
-    from cron.job where jobname like 'vekil_vektorle%'
-  union all
-  select 4, 'son 10 dk BASARILI cagri',
+  select 6, 'son 10 dk BASARILI cagri',
          coalesce(count(*)::text, 'YOK (!)')
     from net._http_response
     where created > now() - interval '10 minutes' and content like '%processed%'
   union all
-  select 5, 'son 10 dk KAYNAK HATASI',
+  select 7, 'son 10 dk KAYNAK HATASI',
          coalesce(count(*)::text, 'YOK (!)')
     from net._http_response
     where created > now() - interval '10 minutes' and content like '%WORKER_RESOURCE_LIMIT%'
   union all
-  select 6, 'ornek yanit govdesi',
+  select 8, 'ornek yanit govdesi',
          coalesce(left(max(content), 160), 'YANIT YOK (!)')
     from net._http_response
     where created > now() - interval '10 minutes' and content like '%processed%'
   union all
-  select 7, 'embedding VAR',
-         coalesce(count(*) filter (where embedding is not null)::text, 'YOK (!)')
-    from public.ictihat_kararlar
-  union all
-  select 8, 'embedding YOK',
-         coalesce(count(*) filter (where embedding is null)::text, 'YOK (!)')
-    from public.ictihat_kararlar
-  union all
-  select 9, 'son 10 dk yazilan embedding',
-         coalesce(count(*)::text, 'YOK (!)')
-    from public.ictihat_kararlar
-    where embedding is not null and updated_at > now() - interval '10 minutes'
-  union all
-  select 10, 'son 10 dk gelen yeni karar (hasat)',
+  select 9, 'son 10 dk gelen yeni karar (hasat)',
          coalesce(count(*)::text, 'YOK (!)')
     from public.ictihat_kararlar
     where created_at > now() - interval '10 minutes'
   union all
-  -- ZAMAN DAMGASI ŞART. Hız, iki ölçüm arasındaki FARKTAN hesaplanır;
-  -- damgasız iki çıktıdan hız çıkarmak, kendi bekleyişini saat sanmaktır
-  -- (.claude/skills/olcum 1. madde, 16.09.2026'da gerçekten yapılan hata).
-  select 11, 'olcum ani', now()::text
+  select 10, 'mevzuat embedding YOK',
+         coalesce(count(*)::text, 'YOK (!)')
+    from public.mevzuat_maddeleri where embedding is null
   union all
-  -- updated_at BU İŞ İÇİN GÜVENİLİR DEĞİL: embedding yazılırken bumplanmıyor.
-  -- 9. satır "1" dedi, oysa aynı pencerede 17 başarılı çağrı (51 kayıt) vardı.
-  -- Doğru ölçüm, 7. satırdaki SAYININ iki koşu arasındaki farkıdır.
-  select 12, 'not', 'hiz = 7. satirin farki / 11. satirin farki'
-  union all
-  -- MEVZUAT DA AYNI BORUYU KULLANIYOR. Kararlar düzelirken maddeler geride
-  -- kalırsa, anlamsal mevzuat araması sessizce zayıf kalır — kullanıcı bunu
-  -- "arama kötü" diye yaşar, sebebini göremez.
-  select 13, 'mevzuat embedding VAR',
-         coalesce(count(*) filter (where embedding is not null)::text, 'YOK (!)')
-    from public.mevzuat_maddeleri
-  union all
-  select 14, 'mevzuat embedding YOK',
-         coalesce(count(*) filter (where embedding is null)::text, 'YOK (!)')
-    from public.mevzuat_maddeleri
+  select 11, 'not', 'hiz = 1. satirin DUSUSU / 3. satirin farki'
 ) ozet order by sira;
