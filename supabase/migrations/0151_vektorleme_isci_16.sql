@@ -50,9 +50,17 @@ select olcum, deger from (
          coalesce(string_agg(jobname || ' @ ' || schedule || ' :: ' || command, ' | '), 'YOK (!)') as deger
     from cron.job where jobname like 'vekil_vektorle%'
   union all
-  select 2, 'embedding YOK (kismi indeks)',
-         coalesce(count(*)::text, 'YOK (!)')
-    from public.ictihat_kararlar where embedding is null
-  union all
-  select 3, 'olcum ani', now()::text
+  -- BURADA VEKTÖRSÜZ KAYIT SAYIMI YOKTU — BİLEREK.
+  -- İlk hâlinde vardı ve göç Cloudflare 524 (ağ geçidi zaman aşımı) ile
+  -- DÜŞTÜ: o sayım, gece biriken ölü tuple'lar yüzünden hâlâ dakikalar
+  -- sürüyor. Yani cron değişikliğini uygulayan göç, kendi doğrulama
+  -- sorgusu yüzünden uygulanamadı.
+  --
+  -- Bu, .claude/skills/once-dusun 7. maddesinin ta kendisi ("ölçüm aracının
+  -- kendisi yükün parçası olabilir") — madde 19.09.2026'da yazıldı ve aynı
+  -- gün tekrar aynı hataya düşüldü. Kural yazmak, kuralı uygulamak değildir.
+  --
+  -- Bir DEĞİŞİKLİK göçü, değişikliğin kendisini doğrular; havuzun durumu
+  -- ayrı ve salt okunur bir göçün işidir (0145).
+  select 2, 'olcum ani', now()::text
 ) ozet order by sira;
