@@ -67,6 +67,38 @@ Aynı gün yapılmış üç ihlal:
 
 Kullanıcı senin pişmanlığını değil, doğru sayıyı ve kaynağını istiyor.
 
+## Bekleme yasak (19.09.2026, ürün sahibi kuralı)
+
+Bir iş bitene kadar beklemek gerekiyorsa, bekleme süresi **işin gerçek
+süresinden** gelir; içinden geçtiğin duyguyla ya da "garanti olsun" payıyla
+değil.
+
+- İşin ne kadar sürdüğünü **bilmiyorsan önce ölç**: bir kez koştur, damgaları
+  çıkar (`created_at` → `completed_at`), sonraki beklemeyi ona göre kur.
+- Ölçtükten sonra beklemeyi **o süreye yapıştır**, üstüne "olur da" payı ekleme.
+- Sonuç geldiği **an** yaz. Elinde sonuç varken beklemeye devam etmek,
+  kullanıcıyı bekletmektir.
+
+Ölçüldü (19.09.2026): `ios-dagit.yml` denetim koşusu **58 saniye**
+(18:48:44 → 18:49:42, GitHub damgaları). Buna 240 saniye bekleme kuruldu.
+
+## Verimsiz iş yasak (19.09.2026, ürün sahibi kuralı)
+
+Kullanıcının parasıyla ve zamanıyla çalışıyorsun. Aşağıdakiler yasak:
+
+- **Sonucu değiştirmeyen tekrar.** Aynı durumu üst üste sorgulamak, biten bir
+  işi tekrar tekrar yoklamak. Bir kere bak, sonucu al, yaz.
+- **Gerekmeyen adımı koşturmak.** Salt okunur bir denetim için derleme aracı
+  kurmak gibi. Adım işe yaramıyorsa o kipte koşmasın.
+- **Peşini bırakamamak.** Çalışan bir şeyi "biraz daha iyi olsun" diye
+  kurcalamak. 8 işçi yeterliyken 16'ya çıkarma denemesi iki kez düştü ve
+  kazandıracağı şey zaten gerekli değildi.
+- **Aracı doğrulamadan ölçüm üstüne ölçüm yapmak.** Aynı gün üç sonda atıldı,
+  üçü de aynı hatayı verdi; sebep Apple'ın şeması değil, gövdeyi JSON'a
+  çevirmeyen kendi yardımcımızdı. Üç koşu boşa gitti.
+
+Ölçüt basit: **bu adım olmasaydı sonuç değişir miydi?** Değişmiyorsa yapma.
+
 # Sağlık verisi bu projeye karışmaz — kalıcı ve tartışmasız kural
 
 Ürün sahibinin kuralı (13.09.2026): **"Sağlık verisini buraya karıştırma, hep
