@@ -1595,9 +1595,43 @@ async function tamDenetim() {
   // HER PARÇAYI AYRI GÖSTER — 18.09.2026. "MISSING_METADATA" tek başına
   // hangi parçanın eksik olduğunu söylemiyor. Fiyat, Türkçe metin,
   // inceleme notu ve inceleme görseli tek tek basılıyor ki hangisinin
-  // yazılmadığı görünsün. Dördü de doluyken hâlâ MISSING_METADATA ise
-  // eksik API'nin dışında demektir (Paid Apps sözleşmesi en güçlü aday).
+  // yazılmadığı görünsün.
+  //
+  // 19.09.2026 DÜZELTMESİ: bu yorumun eski hâli "dördü de doluyken hâlâ
+  // MISSING_METADATA ise eksik Paid Apps sözleşmesidir" diyordu. Bu bir
+  // ÇIKARIMDI, ölçüm değildi — ve ürün sahibine günlerce sebep diye
+  // söylendi. Gönderim gerçekten denendiğinde Apple bambaşka bir şey dedi:
+  //   409 STATE_ERROR.ENTITY_STATE_INVALID — appStoreVersions ... is not in
+  //   valid state.
+  // Yani engel sözleşme değil, SÜRÜMÜN KENDİSİYDİ. O cümle buradan silindi;
+  // yerine hiçbir tahmin konmadı. Eksik bulunamıyorsa doğru cevap
+  // "bilmiyorum, Apple'ın arayüzüne bakılmalı"dır.
   for (const g of grupCevap?.data || []) {
+    // GRUBUN KENDİ YERELLEŞTİRMESİ — 19.09.2026'da eklendi.
+    //
+    // NEDEN: denetim bugüne kadar "N grup okundu" deyip grubun İÇİNE
+    // bakıyordu ama GRUBUN KENDİSİNİ hiç ölçmüyordu. Abonelik grubunun her
+    // dil için bir adı (ve müşteriye görünen uygulama adı) olmak zorunda;
+    // eksikse gruptaki ürünler MISSING_METADATA'dan çıkamaz.
+    //
+    // Bu, "her parçayı ayrı göster" fikrinin atlanmış parçasıydı: ürünün
+    // dört alanı tek tek basılıyordu, grubunki hiç basılmıyordu.
+    const gYerel = await oku(`/subscriptionGroups/${g.id}/subscriptionGroupLocalizations`);
+    if (gYerel?._hata) {
+      console.log(`  ✗ grup ${g.id} yerelleştirmesi OKUNAMADI: ${gYerel._hata}`);
+    } else if (!(gYerel?.data || []).length) {
+      console.log(`  ✗ grup ${g.id} YERELLEŞTİRMESİ YOK (!) — grubun adı hiçbir dilde yazılmamış.`);
+      console.log('    Grup adsızken gruptaki ürünler MISSING_METADATA\'dan çıkamaz.');
+    } else {
+      for (const gl of gYerel.data) {
+        const a = gl.attributes || {};
+        const eksik = [];
+        if (!a.name) eksik.push('ad');
+        if (!a.customAppName) eksik.push('uygulama adı (isteğe bağlı)');
+        console.log(`  ${eksik.includes('ad') ? '✗' : '✓'} grup yerelleştirme ${a.locale}: ad=${a.name || 'YOK (!)'} · uygulama adı=${a.customAppName || '(boş)'}`);
+      }
+    }
+
     const urunCevap = await oku(`/subscriptionGroups/${g.id}/subscriptions`);
     if (urunCevap?._hata) { console.log(`  ✗ grup ${g.id} ürünleri okunamadı: ${urunCevap._hata}`); continue; }
     if (!(urunCevap?.data || []).length) console.log(`  ✗ grup ${g.id} BOŞ görünüyor`);
