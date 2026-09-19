@@ -919,11 +919,40 @@ async function surumEksikleri(surumId) {
 
   // 1) DERLEME BAĞLI MI. TestFlight'a yüklenmiş olmak YETMEZ — o derlemenin
   //    App Store sürümüne AYRICA bağlanması gerekir. İki ayrı şey.
+  let derlemeId = null;
   try {
     const b = await api(`/appStoreVersions/${surumId}/build`);
+    derlemeId = b?.data?.id ?? null;
     console.log(`  derleme: ${b?.data ? `${b.data.id} (${b.data.attributes?.version})` : 'YOK (!)'}`);
   } catch (e) {
     console.log(`  derleme: YOK (!) — ${String(e.message).split('\n')[0]}`);
+  }
+
+  // 1b) İHRACAT UYUMLULUĞU (export compliance) — 19.09.2026'da eklendi.
+  //
+  // NEDEN: gönderim denemesi Apple'dan şunu aldı:
+  //   409 STATE_ERROR.ENTITY_STATE_INVALID — appStoreVersions ... is not in
+  //   valid state. "please check associated errors to see why."
+  // Apple o "ilişkili hataları" API'den vermiyor. Bu alan, o hatayı veren en
+  // yaygın sebeplerden biri ve BUGÜNE KADAR HİÇ ÖLÇÜLMEMİŞTİ.
+  //
+  // `usesNonExemptEncryption` null ise App Store Connect derlemeyi "Missing
+  // Compliance" sayar ve sürüm incelemeye alınamaz. Bu bir BEYANDIR; burada
+  // yalnız OKUNUYOR, yazılmıyor — yanlış beyan hukuki sonuç doğurur ve kararı
+  // ürün sahibi verir.
+  if (derlemeId) {
+    try {
+      const d = await api(`/builds/${derlemeId}`);
+      const v = d?.data?.attributes?.usesNonExemptEncryption;
+      if (v === null || v === undefined) {
+        console.log('  ihracat uyumluluğu: BEYAN EDİLMEMİŞ (!) — "Missing Compliance"');
+        console.log('    Bu, sürümün incelemeye alınmasını ENGELLER.');
+      } else {
+        console.log(`  ihracat uyumluluğu: beyan edilmiş (usesNonExemptEncryption=${v})`);
+      }
+    } catch (e) {
+      console.log(`  ihracat uyumluluğu: OKUNAMADI — ${String(e.message).split('\n')[0]}`);
+    }
   }
 
   // 2) METİNLER: açıklama, anahtar kelime, "yenilikler".
