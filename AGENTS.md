@@ -40,6 +40,33 @@ Somut kurallar:
 Bu kural her konuşmada, her oturumda geçerlidir ve kullanıcı talebi olmadan
 da kendiliğinden uygulanır — hatırlatılmayı beklemez.
 
+## Bol keseden sayı sallamak yasak (19.09.2026, ürün sahibi kuralı)
+
+Bir sayı yazarken — süre, boyut, sıklık, eşik, bekleme, limit — o sayı ya
+**ölçülmüş** olacak ya da yanında **"ölçülmedi, tahmin"** yazacak. Üçüncü bir
+seçenek yok. "Herhâlde bu kadar sürer" diye yazılan sayı uydurmadır.
+
+Aynı gün yapılmış üç ihlal:
+
+- **240 saniyelik körlemesine bekleme.** Bir iş akışı koşusunun ne kadar
+  sürdüğü hiç ölçülmeden "240 saniye bekle" yazıldı. Ölçüldüğünde koşu
+  **58 saniye** sürüyordu. Ürün sahibi dakikalarca boşuna bekledi ve
+  haklı olarak sordu: "sana koy diyen oldu mu?" Hayır, kimse demedi.
+- **"Veritabanı 7,5 saat bağlantı kabul etmedi."** Ölçülmemişti. Postgres
+  kayıtları okununca ağır tıkanmanın **~1 saat** sürdüğü, sonrasının saatte
+  ~40 hatayla aksak ama çalışır olduğu görüldü. Hatanın büyüklüğünü abartmak
+  da yanlış bilgidir; bu kural küçültmeyi de büyütmeyi de yasaklar.
+- **"16 işçi uygulandı."** Göç koşusu düşmüştü, doğrulanmadan "uygulandı"
+  denildi. Sistem hâlâ 8'deydi.
+
+**İhlal ettiğinde ne yapılır:** kendini suçlayan bir cümle yazmak hiçbir şey
+önlemez. Yapılacak şey şudur — üçü birden, tek yerde:
+1. Uydurduğun sayıyı aynen yaz,
+2. Ölçülen doğrusunu yaz,
+3. Nereden ölçtüğünü yaz (komut, uç, log adı).
+
+Kullanıcı senin pişmanlığını değil, doğru sayıyı ve kaynağını istiyor.
+
 # Sağlık verisi bu projeye karışmaz — kalıcı ve tartışmasız kural
 
 Ürün sahibinin kuralı (13.09.2026): **"Sağlık verisini buraya karıştırma, hep
