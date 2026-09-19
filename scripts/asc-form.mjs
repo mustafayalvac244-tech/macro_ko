@@ -55,8 +55,24 @@ function jwtUret() {
 let TOKEN = null;
 async function api(yol, secenek = {}) {
   TOKEN ??= jwtUret();
+  // GÖVDE NESNE OLARAK GELİRSE JSON'A ÇEVİR — 19.09.2026'da eklendi.
+  //
+  // Bu yardımcı `...secenek`i doğrudan fetch'e yayıyordu. `body` bir NESNE
+  // olarak verilirse fetch onu `"[object Object]"` diye gönderir ve Apple
+  // haklı olarak şunu der:
+  //   422 ENTITY_UNPROCESSABLE: The request entity is not a valid request
+  //   document object — Unexpected error
+  // Hata mesajı alan adı vermediği için saatlerce Apple'ın şemasında
+  // aranacak bir sorun sanıldı; oysa kusur bizim aracımızdaydı. Dosyadaki
+  // eski yazmaların hepsi `JSON.stringify` yazdığı için tuzak görünmüyordu:
+  // kural yazılı değildi, yalnız alışkanlıktı — ve yeni kod alışkanlığı
+  // bilmiyordu.
+  const govde = secenek.body && typeof secenek.body === 'object' && !(secenek.body instanceof ArrayBuffer) && !ArrayBuffer.isView(secenek.body)
+    ? JSON.stringify(secenek.body)
+    : secenek.body;
   const cevap = await fetch(`${API}${yol}`, {
     ...secenek,
+    body: govde,
     headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...(secenek.headers || {}) },
   });
   if (cevap.status === 204) return null;
