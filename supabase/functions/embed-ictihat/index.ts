@@ -70,6 +70,8 @@ Deno.serve(async (req) => {
   // Paralel işçilerin AYNI satırları seçmemesi için atlama. Cron'da her iş
   // farklı bir atla değeriyle çağrılır; kümeler ayrık olur.
   let atla = 0;
+  // VARSAYILAN KAPALI. Sebebi aşağıda, `remaining` hesabının yanında.
+  let kalanSayilsin = false;
   let kaynak = 'ictihat';
   let sorguMetni: string | null = null;
   // Toplu doldurmayı hızlandırmak için: iki işçi listenin iki ucundan başlayıp
@@ -80,6 +82,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     limit = Math.min(4, Math.max(1, Number(body?.limit ?? 3)));
     atla = Math.max(0, Number(body?.atla ?? 0) || 0);
+    // "kaç kayıt kaldı" sayımı İSTEĞE BAĞLI oldu — bkz. aşağıdaki not.
+    kalanSayilsin = body?.kalan === true;
     if (body?.kaynak === 'mevzuat') kaynak = 'mevzuat';
     if (typeof body?.embed === 'string' && body.embed.trim()) sorguMetni = body.embed;
     if (body?.sira === 'desc') sira = 'desc';
@@ -151,13 +155,36 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { count } = await supabase
-    .from(tablo)
-    .select('id', { count: 'exact', head: true })
-    .is('embedding', null);
+  // ────────────────────────────────────────────────────────────────────────
+  // BU SAYIM VERİTABANINI DİZ ÇÖKERTTİ — 18/19.09.2026 gecesi, ölçüldü.
+  //
+  // Burada eskiden HER çağrının sonunda koşulsuz olarak
+  //     select count(*) from ictihat_kararlar where embedding is null
+  // vardı. Tek başına zararsız; ama paralel işçi sayısı 64'e çıkarıldığında
+  // dakikada 64 kez koşan ~70 bin satırlık bir sayıma dönüştü.
+  //
+  // SONUÇ: Postgres kayıtlarında saatlerce "canceling statement due to
+  // statement timeout" ve doğrudan SQL bağlantılarının zaman aşımına
+  // düşmesi — `select now()` bile açılamıyordu. Proje durumu ACTIVE_HEALTHY
+  // idi, yani düşen veritabanı değil BAĞLANTI KAPASİTESİYDİ.
+  // İşçi 64 → 8'e indirilince veritabanı bir dakika içinde düzeldi; teşhis
+  // böyle doğrulandı (tahmin değil).
+  //
+  // İRONİ VE ASIL DERS: bu sayı hiçbir işe yaramıyordu. Cron onu okumuyor.
+  // Yalnız scripts/embed-ictihat.mjs döngüsü duracağı yeri bilmek için
+  // kullanıyor. Yani maliyeti ödeyen taraf ile faydasını gören taraf ayrıydı.
+  // Artık İSTEYEN öder: gövdede `kalan: true` gönderilirse sayılır.
+  let kalan: number | null = null;
+  if (kalanSayilsin) {
+    const { count } = await supabase
+      .from(tablo)
+      .select('id', { count: 'exact', head: true })
+      .is('embedding', null);
+    kalan = count ?? null;
+  }
 
   return new Response(
-    JSON.stringify({ processed, failed: failed.length, remaining: count ?? null, atla, limit }),
+    JSON.stringify({ processed, failed: failed.length, remaining: kalan, atla, limit }),
     { headers: { ...CORS, 'Content-Type': 'application/json' } }
   );
 });

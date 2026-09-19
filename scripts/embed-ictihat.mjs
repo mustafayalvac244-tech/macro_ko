@@ -81,7 +81,14 @@ async function main() {
           apikey: key,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ limit: BATCH, kaynak: KAYNAK, sira: SIRA }),
+        // `kalan: true` — "kaç kayıt kaldı" sayımını AÇIKÇA istiyoruz.
+        // Uçta bu sayım artık varsayılan olarak KAPALI: 70 bin satırlık bir
+        // sayımdı ve cron'un 64 paralel işçisiyle birlikte veritabanını
+        // bağlantı kabul edemez hâle getirdi (18/19.09.2026 gecesi ölçüldü).
+        // Maliyeti ödeyen taraf ile faydasını gören taraf ayrıydı; artık
+        // isteyen ödüyor. Bu betik döngüsünü nerede durduracağını bilmek
+        // için sayıya gerçekten ihtiyaç duyuyor, o yüzden burada açık.
+        body: JSON.stringify({ limit: BATCH, kaynak: KAYNAK, sira: SIRA, kalan: true }),
       });
       body = await res.text();
     } catch (e) {
