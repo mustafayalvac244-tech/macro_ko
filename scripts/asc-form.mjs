@@ -1750,6 +1750,32 @@ async function tamDenetim() {
       if (gd && gd !== 'COMPLETE') console.log(`      (durum: ${gd} — Apple reddetti)`);
       const a = await oku(`/subscriptions/${u.id}/subscriptionAvailability`);
       yaz('  satışa açıklık', a?._hata ? null : (a?.data ? 'var' : null));
+
+      // ÜLKE SAYISI ile FİYAT SAYISI KARŞILAŞTIRILIYOR — 19.09.2026'da eklendi.
+      //
+      // NEDEN: grup adı yazıldıktan sonra vekil_ai_monthly READY_TO_SUBMIT'e
+      // geçti ama vekil_premium_monthly MISSING_METADATA'da kaldı. İkisi
+      // arasındaki tek görünür fark fiyat kaydı sayısıydı: 175'e karşı 1.
+      //
+      // Bir abonelik N ülkede satışa açıksa o N ülkenin HEPSİNDE fiyatı
+      // olmalı. Açık ülke > fiyatlı ülke ise Apple ürünü eksik sayar ve
+      // bunu "MISSING_METADATA" diye tek kelimeyle söyler — hangi parçanın
+      // eksik olduğunu söylemez. Denetim bugüne kadar iki sayıyı ayrı ayrı
+      // basıyordu ama BİRBİRİYLE KARŞILAŞTIRMIYORDU; yan yana konmayan iki
+      // doğru sayı, yanlış bir sonuca yol açabiliyor.
+      if (a?.data?.id) {
+        const ulk = await oku(`/subscriptionAvailabilities/${a.data.id}/availableTerritories?limit=200`);
+        const ulkeSayisi = ulk?._hata ? null : (ulk?.data || []).length;
+        const fiyatSayisi = f?._hata ? null : (f?.data || []).length;
+        if (ulkeSayisi === null || fiyatSayisi === null) {
+          console.log('  ?   ülke/fiyat karşılaştırması yapılamadı (biri okunamadı)');
+        } else if (ulkeSayisi === fiyatSayisi) {
+          console.log(`  ✓   ülke=fiyat                        ${ulkeSayisi} ülke, ${fiyatSayisi} fiyat`);
+        } else {
+          console.log(`  ✗   ÜLKE/FİYAT UYUŞMUYOR (!)          ${ulkeSayisi} ülkede satışta ama ${fiyatSayisi} fiyat kaydı var`);
+          console.log('      Fiyatsız ülke, ürünü MISSING_METADATA\'da tutar.');
+        }
+      }
     }
   }
 
