@@ -65,7 +65,13 @@ jobs:
     timeout-minutes: 150
     env:
       SUPABASE_URL: https://wjshlysfmeqlnfiibknj.supabase.co
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # _2 varsa o kullanılır. Sebebi: ilk eklenen secret publishable/anon
+      # anahtarıydı ve ölçüm 30/30 soruda "permission denied for function
+      # search_ictihat_fts (42501)" aldı. Fonksiyonun service_role izni
+      # VARDI (pg_proc.proacl ile ölçüldü), yani sorun izin değil anahtardı.
+      # Secret'ı değiştirmek yerine ikincisi eklendiği için buraya yedek
+      # kondu; _2 boşsa eski secret kullanılmaya devam eder.
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_2 || secrets.SUPABASE_SERVICE_ROLE_KEY }}
       # ANON ANAHTARI SECRET DEĞİL — ilk koşu bu yüzden boş görüp düştü.
       # Bu değer tasarımı gereği herkese açık: `sb_publishable_` önekli, zaten
       # eas.json'da, uygulama paketinde ve web derlemesinde yayımlanmış durumda.
