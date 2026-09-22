@@ -145,7 +145,7 @@ yok ve **olmamalı**.
 
 # Bu depodaki skill'ler — tetiklenmezse elle oku
 
-`.claude/skills/` altında üç skill var. Normalde işin konusuna göre
+`.claude/skills/` altında dört skill var. Normalde işin konusuna göre
 kendiliğinden yüklenirler, ama tetikleme garanti değil: bir skill
 yüklenmediğinde sessizce yüklenmez, uyarı çıkmaz. O yüzden aşağıdaki
 işlerden birine başlıyorsan ilgili dosyayı elle oku.
@@ -155,8 +155,71 @@ işlerden birine başlıyorsan ilgili dosyayı elle oku.
 | `once-dusun` | Canlıyı değiştiren HER işten önce: bir ayar sayısını büyütürken (işçi, eşzamanlılık, sıklık, limit), cron kurarken, uç dağıtırken, göç uygularken, dış servise yazarken, teşhis söylerken, koruma testi yazarken | 18/19.09.2026: vektörleme işçisi 64'e çıkarıldı. Ağır tıkanma bir saat sürdü (22:00'de 879 Postgres hatası), sonrasında gece boyu saatte ~40 hatayla aksak çalıştı. Sebep işçi sayısı değil, her çağrıda koşan 70 bin satırlık bir sayımın 64 ile çarpılmasıydı — ve uyarı (`"remaining":null`) ekrandaydı, üstünden geçildi. |
 | `olcum` | Bir sayı, oran, hız, boyut ya da "durum ne" iddiası üretirken; rapor, kıyas, teşhis yazarken; bir aracın bize uygun olup olmadığına karar verirken | Kendi ölçümünle kendini kandırmamak. En pahalı hata: bir ölçüm dosyasının içindeki eskimiş sabite bakıp ürün sahibine "9 gün" demek — doğrusu 76'ydı. |
 | `supabase-goc` | `supabase/migrations/` altına dosya yazarken, şema/RLS/RPC/indeks işinde, "canlıda şu var mı" ölçerken | Çok ifadeli dosya tuzağı, `to_regclass`ın ayrıştırmayı korumaması, sütun adı varsaymak, pg_cron şeması, yerel deneme koşusu. |
-| `rn-ui-kit` | Ekran, bileşen, layout, stil, tema, navigasyon işinde | 5 tema (sabit hex 5'inde birden bozulur), `typography.*` stil nesnesidir, `colors.text` yoktur, 24 hazır `ui/` bileşeni. |
+| `rn-ui-kit` | Ekran, bileşen, layout, stil, tema, navigasyon işinde | 5 tema (sabit hex 5'inde birden bozulur), `typography.*` stil nesnesidir, `colors.text` yoktur, 25 hazır `ui/` bileşeni. |
 
 **Kural:** bir skill'e yeni bir ders eklerken **gerçekten olmuş bir olaya**
 dayandır ve tarihini yaz. Genel tavsiye, skill'i uzatır ve hiçbir şeyi
 önlemez — bugüne kadar önlenen her hatanın arkasında somut bir olay var.
+
+
+## Dışarıdan gelen skill'ler — bize UYMAYANLAR (ölçüldü 22.09.2026)
+
+Yukarıdaki dört skill bu depoya ait. Ama oturuma hesap/paket seviyesinden
+BAŞKA skill'ler de yükleniyor ve bazıları bu projede **yanlış iş yaptırır**.
+Aşağıdakiler ölçülerek bulundu; henüz zarar vermediler, bu yüzden "olay"
+değil "tuzak" olarak yazılıyorlar.
+
+### 1. `anthropic-skills:rn-ui-kit` — KULLANMA, doldurulmamış şablondur
+
+Hesap seviyesinde, adı bizimkiyle neredeyse aynı olan ikinci bir kopya var
+(82 satır; bizimki 206). İçinde `#______` boş renk alanları ve
+"[ ] NativeWind / [ ] StyleSheet" seçilmemiş kutular duruyor. Taşıdığı dört
+kural bu depoda **yanlıştır** — bizim sürümümüz onları bilerek silmişti:
+
+| Şablonun kuralı | Depodaki gerçek (22.09.2026) |
+|---|---|
+| "Görseller için `expo-image`" | 0 dosya kullanıyor |
+| "Animasyon için `react-native-reanimated`" | 0 dosya kullanıyor |
+| "150 satırı geçen bileşeni böl" | 121 `.tsx`'in 68'i geçiyor |
+| "Her dokunulabilir öğeye `accessibilityLabel`" | 82 dosyanın 7'sinde var |
+| "Paylaşılan bileşenler `components/` altında" | bizde `src/components/ui/` |
+
+Doğru olan **`rn-ui-kit`** (ön ek yok, proje skill'i). Ön ekli olanı görürsen
+yükleme; yüklendiyse kurallarını uygulama.
+
+### 2. `claude-api` — "tek sağlayıcı" kuralı bizim mimarimizi kırar
+
+Skill aynen şunu diyor: *"Never mix the two"* (resmî SDK ile ham HTTP aynı
+projede karışmaz) ve *"default to Claude Opus 5"*.
+
+Bizde ÖLÇÜLEN durum: `supabase/functions/ai-chat/index.ts` **hem**
+`npm:@anthropic-ai/sdk` **hem** Gemini/GPT uçları için ham `fetch` kullanıyor.
+Bu bir kaza değil, **katmanlı maliyet modelinin kendisi** (`_shared/katman.ts`,
+`_shared/fiyat.ts`): ucuz işi `gpt-oss-20b`/`gemini-flash` yapar, pahalı işi
+Claude'a çıkar. Skill'i harfiyen uygulamak iki zarar verir:
+- ham `fetch` yolları "düzeltilir" → **Gemini yolu kırılır**,
+- her şey Opus 5'e çekilir → **fatura katlanır**.
+
+Claude tarafına dokunurken skill'in SDK bilgisi (model kimlikleri, adaptive
+thinking, akış) **doğrudur ve kullanılır**; "tek sağlayıcı" ve "varsayılan
+model" kısmı **bu depoda geçersizdir**.
+
+### 3. `artifact-design` · `theme-factory` · `dataviz` — HTML üretirler, biz RN yazıyoruz
+
+Üçü de "tema", "grafik", "görsel albeni" gibi kelimelerle tetikleniyor ve
+Google Fonts + CDN + yayınlanmış HTML sayfası üretmeye götürüyor. Bizim
+ekranlarımız React Native. Ürün sahibi "şu ekranı düzelt" dediğinde
+**gerçek ekran dosyası düzeltilir**, yanına bir artifact sayfası açılmaz.
+(İstisna: ürün sahibi açıkça web sayfası/artifact isterse geçerlidirler.)
+
+### 4. `anthropic-skills:docs` · `loop` · `skill-creator` — token yakarlar
+
+- `docs`: "rapor/özet" istendiğinde turn'ün İLK tool çağrısı belge iskeleti
+  olsun der. "Durum ne" sorusuna belge açmak, sohbette iki satırla
+  verilebilecek cevabı pahalılaştırır.
+- `loop`: tekrarlayan uyandırma kurar — AGENTS.md'nin
+  *"sonucu değiştirmeyen tekrar yasak"* kuralıyla doğrudan çelişir.
+- `skill-creator`: tasarımı gereği her deneme için İKİ alt-ajan açar
+  (skill'li + skill'siz) ve iterasyonlarca tekrarlar.
+
+Üçü de ürün sahibi **açıkça isterse** koşar; kendiliğinden koşmaz.
