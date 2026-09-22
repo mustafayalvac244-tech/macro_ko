@@ -1,8 +1,10 @@
 # ko-macro
 
-Knight Online için combo / farm makrosu ve mob doğuş (respawn) takipçisi.
-Tuşlara bir **Arduino Leonardo** basar; PC tarafındaki Python programı ne
-zaman neye basılacağına karar verir.
+Knight Online için bir **KOXP** — combo atan, kendi başına farm eden
+makro ve mob doğuş (respawn) takipçisi. Okçu ve priest için.
+
+Tuşlara bir **Arduino Leonardo** basar; PC tarafındaki Python programı
+ekranı okuyup ne zaman neye basılacağına karar verir.
 
 ---
 

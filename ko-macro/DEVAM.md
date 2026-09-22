@@ -8,6 +8,39 @@ Yerel bir oturum bu dosyayı okuyup kaldığı yerden devam edebilir.
 
 ---
 
+## Ne yapılıyor
+
+**Bir KOXP.** Knight Online için, karakteri başında kimse olmadan farm
+eden bir makro. Hedef sınıflar: **okçu (archer)** ve **priest**.
+
+Ölçüt olarak `annihilatorpedal.com`'un yaptıkları alındı — combo atma,
+otomatik hedefleme, pot basma, buff yenileme, anti-AFK. Karşılaştırma
+tablosu `README.md` içinde.
+
+Somut senaryo, kullanıcının kendi tarifiyle: sabah açılıyor, tek bir
+bölgedeki tek tip mobu (harpy gibi) seri seri kesiyor, mob ölünce
+başında bekleyip skill harcamıyor, envanter dolunca NPC'ye gidip
+satıyor, tamir yapıyor ve aynı slota geri dönüyor. Akşama kadar
+kendi başına dönebilmeli.
+
+Bunun bugün ne kadarının yazıldığı aşağıda: **farm döngüsü var, tüccar
+turu yok.**
+
+### Nasıl yapılıyor — ve nasıl yapılmıyor
+
+Makro oyuna **dışarıdan** bağlanıyor:
+
+- **Tuş/fare**: Arduino Leonardo gerçek bir USB klavye/fare olarak
+  basıyor. Yazılımsal tuş enjeksiyonu değil, donanım.
+- **Veri**: ekran okunuyor (`mss` ile piksel örnekleme) — can barı,
+  hedef barı, mob isim etiketi, savaş kaydı.
+
+Oyunun belleğine, paketlerine ya da korumasına **dokunulmuyor**.
+Gerekçesi ve sınırın tamamı aşağıda, "Sınır" başlığında. Bu sınır bir
+eksiklik değil, projenin tanımı — yerel oturum da bunu korumalı.
+
+---
+
 ## Neyin kanıtlandığı, neyin kanıtlanmadığı
 
 Bu ayrım projenin en önemli bilgisi; karıştırılırsa saatler boşa gider.
