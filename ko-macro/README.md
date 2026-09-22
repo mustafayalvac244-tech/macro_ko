@@ -151,6 +151,9 @@ kendi saati belirler — 1 ms çözünürlükle.
 
 ## Kurulum
 
+> Bu projeyi geliştirmeye devam edeceksen önce **[DEVAM.md](./DEVAM.md)** —
+> neyin test edildiğini, neyin hâlâ denenmediğini ve sıradaki adımı anlatıyor.
+>
 > Hiç programlama bilmiyorsan **[KURULUM.md](./KURULUM.md)** dosyasını oku —
 > sıfırdan adım adım anlatıyor. Aşağısı özet.
 
