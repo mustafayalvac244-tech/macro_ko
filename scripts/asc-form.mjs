@@ -1435,12 +1435,23 @@ async function vitrinYaz() {
   // bağlanması gerekiyor. Bu iki işlem Apple'da ayrı ve bunu bilmiyordum.
   let derli = null;
   try { derli = (await api(`/appStoreVersions/${surum.id}/build`))?.data || null; } catch { /* yok */ }
-  if (derli) {
-    console.log(`  derleme zaten bağlı: ${derli.attributes?.version}`);
+  const derlemeler = await api(`/builds?filter[app]=${APP_ID}&sort=-uploadedDate&limit=10`);
+  // İŞLENMESİ BİTMİŞ olanı seç. VALID olmayan derleme bağlanamaz.
+  const uygun = (derlemeler?.data || []).find((b) => b.attributes?.processingState === 'VALID');
+  // 23.09.2026 DÜZELTİLDİ: eskiden sürüme bir derleme bağlıysa "zaten bağlı"
+  // deyip çıkıyordu. Giriş hatası düzeltmesini taşıyan derleme 4 çıktığında
+  // incelemeye yine derleme 3 gidecekti. Artık bağlı olandan DAHA YENİ bir
+  // VALID derleme varsa ona geçiliyor.
+  const numara = (b) => Number(b?.attributes?.version) || 0;
+  if (derli && (!uygun || numara(uygun) <= numara(derli))) {
+    // "En yeni İŞLENMİŞ derleme" — daha yenisi yüklenmiş ama Apple hâlâ
+    // işliyor olabilir (PROCESSING). Liste her zaman basılır ki "en yenisi 3"
+    // yazısı, işlenmekte olan 4'ü gizlemesin.
+    console.log(`  derleme zaten bağlı, işlenmiş en yeni derleme bu: ${derli.attributes?.version}`);
+    console.log('  yüklenenlerin durumu:');
+    for (const b of derlemeler?.data || []) console.log(`      ${b.attributes?.version} → ${b.attributes?.processingState}`);
   } else {
-    const derlemeler = await api(`/builds?filter[app]=${APP_ID}&sort=-uploadedDate&limit=10`);
-    // İŞLENMESİ BİTMİŞ olanı seç. VALID olmayan derleme bağlanamaz.
-    const uygun = (derlemeler?.data || []).find((b) => b.attributes?.processingState === 'VALID');
+    if (derli) console.log(`  bağlı derleme ${derli.attributes?.version} → daha yeni ${uygun.attributes?.version} ile değiştiriliyor`);
     if (!uygun) {
       console.log('  ✗ bağlanabilir derleme YOK. Yüklenenlerin durumu:');
       for (const b of derlemeler?.data || []) console.log(`      ${b.attributes?.version} → ${b.attributes?.processingState}`);
