@@ -1202,6 +1202,41 @@ async function surumEksikleri(surumId) {
 // PREPARE_FOR_SUBMISSION = hiç gönderilmemiş yeni sürüm.
 const GONDERILEBILIR = ['PREPARE_FOR_SUBMISSION', 'REJECTED', 'DEVELOPER_REJECTED'];
 
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║ API'DEN GÖNDERİM 23.09.2026'DA TIKANDI — SONRAKİ OTURUM OKUSUN.      ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+// Altı koşu harcandı. Apple'ın kendi cevapları (tahmin değil, hepsi kayıtta):
+//
+//   POST   /reviewSubmissionItems
+//     409 appStoreVersions '891482751' is not in valid state.
+//         This resource cannot be reviewed.
+//   PATCH  /reviewSubmissions { submitted: true }
+//     409 App must have an approved appStoreVersions, or an appStoreVersions
+//         must be included in this review submission.
+//   DELETE /reviewSubmissions/071b176e-...
+//     403 The resource 'reviewSubmissions' does not allow 'DELETE'.
+//   PATCH  /reviewSubmissions { canceled: true }
+//     409 Resource is not in cancellable state
+//
+// DURUM: sürüm 3.4.0 = REJECTED. 18.09'dan kalma, sürüm İÇERMEYEN bir
+// gönderim kabı (071b176e, READY_FOR_REVIEW) duruyor; silinemiyor,
+// iptal edilemiyor, içine sürüm konulamıyor. Dört kapı da kapalı.
+//
+// SÜRÜMDE EKSİK YOK (aynı koşuda ölçüldü): derleme 3 · ihracat uyumluluğu
+// beyan edilmiş · tr açıklama 1249 krktr · anahtar kelime var · destek
+// adresi var · 12 ekran görüntüsü · kategori · gizlilik adresi · inceleme
+// bilgisi + demo hesap. Yani engel eksik alan DEĞİL, sürümün REJECTED
+// durumu ile bayat kabın birlikte yarattığı kilit.
+//
+// ÇALIŞAN YOL: App Store Connect ARAYÜZÜ. Hesap sahibi
+// (bayram.gomukpnar@icloud.com) uygulamayı açar → 3.4.0 (Rejected) →
+// "Add for Review" → "Submit to App Review". Arayüz bu durumu çözüyor,
+// API çözmüyor.
+//
+// SONRAKİ OTURUM: buradan devam etme. Önce `tam-denetim` koş; sürüm
+// PREPARE_FOR_SUBMISSION ya da WAITING_FOR_REVIEW'a geçmişse bu tıkanıklık
+// kalkmış demektir. Geçmemişse yeniden API denemek altı koşu daha yakar.
+
 async function incelemeyeGonder() {
   const surumler = await api(`/apps/${APP_ID}/appStoreVersions?limit=5`);
   const surum = (surumler?.data || []).find((s) => GONDERILEBILIR.includes(s.attributes?.appStoreState));
