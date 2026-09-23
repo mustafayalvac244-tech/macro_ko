@@ -166,11 +166,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signIn: async (email, password, captchaToken) => {
     set({ isSubmitting: true, error: null });
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-      options: captchaToken ? { captchaToken } : undefined,
-    });
+    const dene = () =>
+      supabase.auth.signInWithPassword({
+        email,
+        password,
+        options: captchaToken ? { captchaToken } : undefined,
+      });
+    let { error } = await dene();
+    // SUNUCU GEÇİCİ OLARAK DÜŞTÜYSE SESSİZCE TEKRAR DENE.
+    // 23.09.2026 ölçümü: 22.09'da bir kullanıcının 7 giriş denemesinin 6'sı
+    // 504 döndü; aynı saatte 1 deneme geçti. Yani hata kalıcı değil, ara
+    // sıra. Kullanıcıya hata gösterip "tekrar bas" demek yerine uygulama
+    // kendisi tekrar dener.
+    //
+    // CAPTCHA JETONU VARSA TEKRAR DENEME YOK: Turnstile jetonu tek
+    // kullanımlık. İlk istek sunucuya ulaşıp jetonu harcadıysa ikinci deneme
+    // "captcha" hatasıyla döner — kullanıcıya 504'ten daha anlaşılmaz bir
+    // hata göstermiş oluruz.
+    //
+    // Bekleme süreleri (1,5 sn ve 3 sn) ÖLÇÜLMEDİ, seçildi: 504'lerin kaç
+    // saniyede geçtiği bilinmiyor. Toplam ek bekleme 4,5 sn ile sınırlı ki
+    // düğme uzun süre dönüp durmasın.
+    if (!captchaToken) {
+      for (const bekle of [1500, 3000]) {
+        if (!error || !(error.status && error.status >= 500)) break;
+        await new Promise((r) => setTimeout(r, bekle));
+        ({ error } = await dene());
+      }
+    }
     set({ isSubmitting: false });
     if (error) {
       set({ error: trError(error.message) });
