@@ -1253,13 +1253,25 @@ async function incelemeyeGonder() {
 
       const muhurlu = gonderim.attributes?.submitted === true;
       if (!surumIceriyorMu && !muhurlu) {
-        console.log(`  → Kap sürüm içermiyor ve mühürlenmemiş; SİLİNİYOR: ${gonderim.id}`);
+        // DELETE DENENDİ VE APPLE REDDETTİ (23.09.2026, kendi ağzından):
+        //   403 FORBIDDEN_ERROR: The resource 'reviewSubmissions' does not
+        //   allow 'DELETE'. Allowed operations are: CREATE, GET_COLLECTION,
+        //   GET_INSTANCE, UPDATE
+        // Yani kap silinmiyor, yalnız GÜNCELLENİYOR. İptal etmenin yolu da
+        // bu: PATCH { canceled: true }. Tahmin değil — izin verilen işlem
+        // listesini Apple'ın kendisi saydı.
+        console.log(`  → Kap sürüm içermiyor ve mühürlenmemiş; İPTAL EDİLİYOR: ${gonderim.id}`);
         try {
-          await api(`/reviewSubmissions/${gonderim.id}`, { method: 'DELETE' });
-          console.log('    ✓ silindi — temiz kap açılacak');
+          const c = await api(`/reviewSubmissions/${gonderim.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              data: { type: 'reviewSubmissions', id: gonderim.id, attributes: { canceled: true } },
+            }),
+          });
+          console.log(`    ✓ iptal edildi — state=${c?.data?.attributes?.state} — temiz kap açılacak`);
           gonderim = null;
         } catch (e) {
-          console.log('    ✗ silinemedi — Apple\'ın söylediği:');
+          console.log('    ✗ iptal edilemedi — Apple\'ın söylediği:');
           for (const t of String(e.message).split('\n')) console.log(`      ${t}`);
         }
       } else if (surumIceriyorMu) {
