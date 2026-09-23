@@ -506,6 +506,12 @@ jobs:
 
       - name: TestFlight'a gönder
         if: (inputs.is == 'derle-ve-gonder' || inputs.is == 'gonder') && inputs.profil == 'production'
+        # 23.09.2026: koşu 35891836417'de bu adım 60+ dakika sessizce takıldı,
+        # derleme Apple'a hiç ulaşmadı ve iptal isteğine de yanıt vermedi.
+        # İşin 120 dk'lık sınırı tek bir adım için fazla. Ölçülen tek tam
+        # koşu (18.09, #23) derleme+gönderimi 13,8 dk'da bitirmişti; 20 dk
+        # o ölçümden seçildi, gönderimin kendi süresi ayrıca ÖLÇÜLMEDİ.
+        timeout-minutes: 20
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
