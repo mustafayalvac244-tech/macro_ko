@@ -162,7 +162,27 @@ async function main() {
     );
   }
 
-  if (mevcut.length > 0) {
+  // TEK SERTİFİKA İPTALİ — 23.09.2026'da eklendi.
+  //
+  // "Hepsini iptal et" bu hesapta TEHLİKELİ çıktı. Ölçülen liste:
+  //   AZQB78822U · DISTRIBUTION     · 18.09 18:08 — BİZİM (9 dk sonra derleme
+  //                                   3'ün koşusu başladı; anahtarı kayıp)
+  //   MK673L5BTW · IOS_DISTRIBUTION · 20.09 09:44 — o saatte koşumuz YOK,
+  //                                   türü farklı; büyük ihtimalle aynı Apple
+  //                                   hesabındaki İlaç Pro'nun
+  // Hepsini iptal etmek İlaç Pro'nun bir sonraki derlemesini bozardı. Bu yol
+  // yalnız kimliği VERİLEN sertifikayı iptal eder, gerisine dokunmaz.
+  const IPTAL_ID = (process.env.IPTAL_ID || '').trim();
+  if (IPTAL_ID) {
+    const hedef = mevcut.find((c) => c.id === IPTAL_ID);
+    if (!hedef) {
+      console.error(`\nHATA: ${IPTAL_ID} kimlikli dağıtım sertifikası hesapta yok. Hiçbir şey iptal edilmedi.`);
+      process.exit(1);
+    }
+    await api(`/certificates/${hedef.id}`, { method: 'DELETE' });
+    console.log(`\nYalnız bu iptal edildi: ${hedef.id} · seri ${hedef.attributes.serialNumber}`);
+    console.log(`Dokunulmayan: ${mevcut.filter((c) => c.id !== IPTAL_ID).map((c) => c.id).join(', ') || '(yok)'}`);
+  } else if (mevcut.length > 0) {
     if (!ESKIYI_IPTAL) {
       console.error(
         '\nHATA: Zaten dağıtım sertifikası var ama özel anahtarları bizde yok,\n' +

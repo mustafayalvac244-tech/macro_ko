@@ -152,6 +152,14 @@ on:
         options:
           - dokunma
           - iptal-et
+      # 23.09.2026: "iptal-et" HESAPTAKİ BÜTÜN dağıtım sertifikalarını
+      # siliyor; hesapta başka bir uygulamanın (İlaç Pro) sertifikası da
+      # olduğu ölçüldü. Bu alan doluysa YALNIZ o kimlikli sertifika iptal
+      # edilir, "eski_sertifika" seçimi yok sayılır.
+      iptal_sertifika_id:
+        description: 'apple-api: YALNIZ bu kimlikli dağıtım sertifikasını iptal et (boş = eski_sertifika seçimi geçerli). Kimlikleri yalniz-imza koşusu listeler.'
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -270,6 +278,7 @@ jobs:
           BUNDLE_ID: com.vekilpro.app
           CIKTI: ./ios-imza
           ESKIYI_IPTAL: ${{ inputs.eski_sertifika == 'iptal-et' && 'evet' || 'hayir' }}
+          IPTAL_ID: ${{ inputs.iptal_sertifika_id }}
         run: |
           # Kimlikler eas.json'da zaten var ve gizli değiller; oradan oku ki
           # iki yerde ayrı ayrı yazılıp birbirinden sapmasınlar.
