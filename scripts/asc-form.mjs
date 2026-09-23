@@ -1186,11 +1186,27 @@ async function surumEksikleri(surumId) {
   }
 }
 
+// GÖNDERİLEBİLİR SÜRÜM DURUMLARI.
+//
+// 23.09.2026'DA ÖLÇÜLDÜ VE BU LİSTE BU YÜZDEN VAR. Apple 20.09'da
+// Guideline 2.1 ile reddetti; cevabı yazdım ama sürüm sıraya girmedi ve
+// üç gün öylece durdu. Sebep Apple değildi: reddedilen sürümün durumu
+// REJECTED olur, PREPARE_FOR_SUBMISSION'a DÖNMEZ. Bu işlev yalnız
+// PREPARE_FOR_SUBMISSION arıyordu, dolayısıyla "gönderilecek sürüm yok"
+// deyip çıkıyordu. Yani üç günlük gecikmenin sebebi tek bir eksik durum
+// adıydı — ve kimse fark etmedi çünkü çıktı "yok" diyordu, "neden yok"
+// demiyordu.
+//
+// REJECTED            = Apple reddetti, sürüm düzenlenebilir, TEKRAR GÖNDERİLİR.
+// DEVELOPER_REJECTED  = biz geri çektik, aynı şekilde tekrar gönderilir.
+// PREPARE_FOR_SUBMISSION = hiç gönderilmemiş yeni sürüm.
+const GONDERILEBILIR = ['PREPARE_FOR_SUBMISSION', 'REJECTED', 'DEVELOPER_REJECTED'];
+
 async function incelemeyeGonder() {
   const surumler = await api(`/apps/${APP_ID}/appStoreVersions?limit=5`);
-  const surum = (surumler?.data || []).find((s) => s.attributes?.appStoreState === 'PREPARE_FOR_SUBMISSION');
+  const surum = (surumler?.data || []).find((s) => GONDERILEBILIR.includes(s.attributes?.appStoreState));
   if (!surum) {
-    console.log('Gönderilecek PREPARE_FOR_SUBMISSION sürümü yok. Mevcut durumlar:');
+    console.log(`Gönderilebilir sürüm yok (aranan: ${GONDERILEBILIR.join(', ')}). Mevcut durumlar:`);
     for (const s of surumler?.data || []) console.log(`  ${s.attributes?.versionString} = ${s.attributes?.appStoreState}`);
     return;
   }
@@ -1288,7 +1304,11 @@ async function incelemeyeGonder() {
   } catch (e) {
     console.log(`  gönderim okunamadı: ${String(e.message).split('\n')[1] || e.message}`);
   }
-  console.log(`  SONUÇ: ${(await api(`/appStoreVersions/${surum.id}`))?.data?.attributes?.appStoreState === 'PREPARE_FOR_SUBMISSION' ? 'HÂLÂ GÖNDERİLMEDİ' : 'GÖNDERİLDİ'}`);
+  // SONUÇ ölçüsü de düzeltildi (23.09.2026): eskiden yalnız
+  // PREPARE_FOR_SUBMISSION'a bakıyordu, dolayısıyla REJECTED'da kalmış bir
+  // sürüm için "GÖNDERİLDİ" yazardı — yanlış bir başarı raporu.
+  const sonDurum = (await api(`/appStoreVersions/${surum.id}`))?.data?.attributes?.appStoreState;
+  console.log(`  SONUÇ: ${GONDERILEBILIR.includes(sonDurum) ? `HÂLÂ GÖNDERİLMEDİ (${sonDurum})` : `GÖNDERİLDİ (${sonDurum})`}`);
 }
 
 /**
