@@ -1220,7 +1220,23 @@ async function incelemeyeGonder() {
   try {
     const acik = await api(`/reviewSubmissions?filter[app]=${APP_ID}&filter[platform]=IOS&filter[state]=READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW,UNRESOLVED_ISSUES`);
     gonderim = (acik?.data || [])[0] || null;
-    if (gonderim) console.log(`  Açık gönderim VAR: ${gonderim.id} state=${gonderim.attributes?.state}`);
+    if (gonderim) {
+      console.log(`  Açık gönderim VAR: ${gonderim.id} state=${gonderim.attributes?.state}`);
+      // 23.09.2026: PATCH submitted:true "bir appStoreVersion eklenmeli" diye
+      // düştü, oysa özet "1 öğe" diyordu. Yani öğenin NE olduğu bilinmiyordu.
+      // Sayı değil, İÇERİK bas — sayı teşhis etmiyor.
+      try {
+        const ogeler = await api(`/reviewSubmissions/${gonderim.id}/items`);
+        for (const o of ogeler?.data || []) {
+          const r = o.relationships || {};
+          const neyi = Object.keys(r).filter((k) => r[k]?.data).map((k) => `${k}=${r[k].data.id}`).join(' ');
+          console.log(`    öğe ${o.id} state=${o.attributes?.state} ${neyi || '(ilişki yok)'}`);
+        }
+        if (!(ogeler?.data || []).length) console.log('    (öğe yok)');
+      } catch (e) {
+        console.log(`    öğeler okunamadı: ${String(e.message).split('\n')[1] || e.message}`);
+      }
+    }
   } catch (e) {
     console.log(`  açık gönderim sorgusu: ${String(e.message).split('\n')[1] || e.message}`);
   }
@@ -1328,8 +1344,12 @@ async function incelemeyeGonder() {
  */
 async function vitrinYaz() {
   const surumler = await api(`/apps/${APP_ID}/appStoreVersions?limit=5`);
-  const surum = (surumler?.data || []).find((s) => s.attributes?.appStoreState === 'PREPARE_FOR_SUBMISSION');
-  if (!surum) { console.error('PREPARE_FOR_SUBMISSION sürümü yok.'); process.exit(1); }
+  // 23.09.2026: REJECTED sürüm de düzenlenebilir — bkz. GONDERILEBILIR.
+  // Burası yalnız PREPARE_FOR_SUBMISSION arıyordu, bu yüzden red sonrası
+  // inceleme bilgisi (demo hesap dâhil) hiç yazılamadı.
+  const surum = (surumler?.data || []).find((s) => GONDERILEBILIR.includes(s.attributes?.appStoreState));
+  if (!surum) { console.error(`Düzenlenebilir sürüm yok (aranan: ${GONDERILEBILIR.join(', ')}).`); process.exit(1); }
+  console.log(`Sürüm ${surum.attributes?.versionString} — ${surum.attributes?.appStoreState}`);
   console.log(`Sürüm ${surum.attributes?.versionString} (${surum.id})`);
 
   // ── 1) DERLEMEYİ BAĞLA ────────────────────────────────────────────────
@@ -1473,6 +1493,15 @@ async function vitrinYaz() {
     contactPhone: inc.contactPhone,
     contactEmail: inc.contactEmail,
     demoAccountRequired: inc.demoAccountRequired,
+    // 23.09.2026 ÖLÇÜLDÜ: canlıda `demoAccountRequired=false · kullanıcı=YOK`
+    // duruyordu. Sebep buydu — bu iki alan hiç yazılmıyordu. Guideline 2.1
+    // reddi tam da "uygulamaya nasıl gireceğiz" sorusuydu; hesabı mesaja
+    // yazıp forma yazmamak, inceleyeni aynı soruya geri götürür.
+    // Apple demoAccountRequired=false iken ad/şifre kabul etmiyor, o yüzden
+    // yalnız gerekliyse gönderiliyor.
+    ...(inc.demoAccountRequired
+      ? { demoAccountName: inc.demoAccountName, demoAccountPassword: inc.demoAccountPassword }
+      : {}),
     notes: inc.notes,
   };
   let mevcutInc = null;
