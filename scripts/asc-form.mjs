@@ -1225,16 +1225,45 @@ async function incelemeyeGonder() {
       // 23.09.2026: PATCH submitted:true "bir appStoreVersion eklenmeli" diye
       // düştü, oysa özet "1 öğe" diyordu. Yani öğenin NE olduğu bilinmiyordu.
       // Sayı değil, İÇERİK bas — sayı teşhis etmiyor.
+      // BAYAT KAP TEMİZLİĞİ — 23.09.2026, ölçülerek bulundu.
+      //
+      // Apple aynı anda İKİ çelişkili şey söylüyordu:
+      //   POST  /reviewSubmissionItems → "appStoreVersions ... is not in valid state"
+      //   PATCH /reviewSubmissions     → "an appStoreVersions must be included"
+      // Yani "sürümü ekleyemezsin" ve "sürümü eklemelisin". Çelişki değil:
+      // 18.09'da açılmış, hiç mühürlenmemiş bir gönderim kabı duruyor ve
+      // içindeki öğe sürüm DEĞİL. Sürüm o kaba bağlı olduğu için ikinci bir
+      // kaba eklenemiyor; kap da sürüm içermediği için mühürlenemiyor.
+      //
+      // Çözüm: mühürlenmemiş kabı sil, temizini aç. Mühürlenmemiş bir
+      // gönderim Apple'a HİÇ ULAŞMAMIŞTIR; silmek inceleme sırasını
+      // etkilemez, geri alınamaz bir şey kaybolmaz.
+      let surumIceriyorMu = false;
       try {
-        const ogeler = await api(`/reviewSubmissions/${gonderim.id}/items`);
+        const ogeler = await api(`/reviewSubmissions/${gonderim.id}/items?include=appStoreVersion`);
         for (const o of ogeler?.data || []) {
-          const r = o.relationships || {};
-          const neyi = Object.keys(r).filter((k) => r[k]?.data).map((k) => `${k}=${r[k].data.id}`).join(' ');
-          console.log(`    öğe ${o.id} state=${o.attributes?.state} ${neyi || '(ilişki yok)'}`);
+          const v = o.relationships?.appStoreVersion?.data?.id || null;
+          if (v) surumIceriyorMu = true;
+          console.log(`    öğe state=${o.attributes?.state} appStoreVersion=${v || 'YOK'}`);
         }
         if (!(ogeler?.data || []).length) console.log('    (öğe yok)');
       } catch (e) {
         console.log(`    öğeler okunamadı: ${String(e.message).split('\n')[1] || e.message}`);
+      }
+
+      const muhurlu = gonderim.attributes?.submitted === true;
+      if (!surumIceriyorMu && !muhurlu) {
+        console.log(`  → Kap sürüm içermiyor ve mühürlenmemiş; SİLİNİYOR: ${gonderim.id}`);
+        try {
+          await api(`/reviewSubmissions/${gonderim.id}`, { method: 'DELETE' });
+          console.log('    ✓ silindi — temiz kap açılacak');
+          gonderim = null;
+        } catch (e) {
+          console.log('    ✗ silinemedi — Apple\'ın söylediği:');
+          for (const t of String(e.message).split('\n')) console.log(`      ${t}`);
+        }
+      } else if (surumIceriyorMu) {
+        console.log('  → Kap zaten sürümü içeriyor; yeniden eklenmeyecek.');
       }
     }
   } catch (e) {
@@ -1265,6 +1294,8 @@ async function incelemeyeGonder() {
   }
 
   // 2) SÜRÜMÜ KABA KOY
+  // Kap yeni açıldıysa sürüm kesinlikle yok; eski kap sürümü zaten
+  // içeriyorsa ikinci kez POST etmek 409 verir ve çıktıyı kirletir.
   console.log('\n2) POST /reviewSubmissionItems');
   try {
     const c = await api('/reviewSubmissionItems', {
