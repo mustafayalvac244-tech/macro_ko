@@ -1681,9 +1681,32 @@ async function tamDenetim() {
   }
 
   console.log('\n═══ appStoreVersion (sürüme özel vitrin) ═══');
-  const s = ((await oku(`/apps/${APP_ID}/appStoreVersions?limit=5`))?.data || [])
-    .find((x) => x.attributes?.appStoreState === 'PREPARE_FOR_SUBMISSION');
-  if (!s) { console.log('  PREPARE_FOR_SUBMISSION sürümü YOK'); return; }
+  // 23.09.2026 — BURASI BİR ÇIKMAZDI, DÜZELTİLDİ.
+  // Eskiden yalnız "PREPARE_FOR_SUBMISSION sürümü YOK" yazıp dönüyordu.
+  // Ürün sahibi "onaylandı mı" diye sorduğunda denetim tam da bunu bastı ve
+  // TEŞHİS OLMADIĞI İÇİN bir koşu daha gerekti: sürüm neden yok, hangi
+  // durumda, ne yapılmalı — hiçbiri yazmıyordu. Bir denetimin işi eksiği
+  // söylemek değil, SEBEBİ söylemektir.
+  const tumSurumler = (await oku(`/apps/${APP_ID}/appStoreVersions?limit=5`))?.data || [];
+  const s = tumSurumler.find((x) => x.attributes?.appStoreState === 'PREPARE_FOR_SUBMISSION');
+  if (!s) {
+    console.log('  PREPARE_FOR_SUBMISSION sürümü YOK — düzenlenebilir sürüm yok.');
+    if (!tumSurumler.length) {
+      console.log('  Uygulamanın HİÇ sürümü yok; App Store Connect\'te yeni sürüm açılmalı.');
+    } else {
+      console.log('  Mevcut sürümler ve durumları:');
+      for (const x of tumSurumler) {
+        console.log(`    ${x.attributes?.versionString}  =  ${x.attributes?.appStoreState}  (id ${x.id})`);
+      }
+      console.log('  NE ANLAMA GELİR:');
+      console.log('    REJECTED / DEVELOPER_REJECTED → sürüm düzenlenebilir hâle');
+      console.log('      gelir ama durumu PREPARE_FOR_SUBMISSION olmaz; yeniden');
+      console.log('      göndermek için aynı sürüm nesnesi kullanılır.');
+      console.log('    WAITING_FOR_REVIEW / IN_REVIEW → zaten Apple\'da, bekle.');
+      console.log('    READY_FOR_SALE → yayında; yeni sürüm açılmalı.');
+    }
+    return;
+  }
   yaz('versionString', s.attributes?.versionString);
   yaz('copyright', s.attributes?.copyright);
   yaz('usesIdfa', String(s.attributes?.usesIdfa));
