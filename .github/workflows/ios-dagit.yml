@@ -528,12 +528,14 @@ jobs:
 
       - name: TestFlight'a gönder
         if: (inputs.is == 'derle-ve-gonder' || inputs.is == 'gonder') && inputs.profil == 'production'
-        # 23.09.2026: koşu 35891836417'de bu adım 60+ dakika sessizce takıldı,
-        # derleme Apple'a hiç ulaşmadı ve iptal isteğine de yanıt vermedi.
-        # İşin 120 dk'lık sınırı tek bir adım için fazla. Ölçülen tek tam
-        # koşu (18.09, #23) derleme+gönderimi 13,8 dk'da bitirmişti; 20 dk
-        # o ölçümden seçildi, gönderimin kendi süresi ayrıca ÖLÇÜLMEDİ.
-        timeout-minutes: 20
+        # SÜRE SINIRI YOK — BİLEREK. 24.09.2026'da ölçüldü (EAS gönderim kaydı):
+        #   derleme 2 → 31 dk · derleme 3 → 5 dk · derleme 5 → 76 dk
+        # 23.09'da bu adım 60 dk "takıldı" sanılıp iptal edildi; oysa gönderim
+        # EAS sunucusunda sürüyordu ve 18:17'de BAŞARIYLA bitti. Buraya bir
+        # an için 20 dk sınır kondu — 76 dk'lık başarılı gönderimi yarıda
+        # keserdi, geri alındı. İşin kendi 120 dk sınırı yeterli.
+        # DERS: "CLI sessiz" ≠ "takıldı". Önce `durum` ile EAS gönderim
+        # listesine bak (Status: in progress / finished / errored).
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
