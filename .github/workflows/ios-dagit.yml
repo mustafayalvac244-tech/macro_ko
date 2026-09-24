@@ -334,6 +334,28 @@ jobs:
             echo '```'
             eas testflight:feedback 2>&1 | tail -60 || echo "(testflight:feedback çalışmadı)"
             echo '```'
+            # GÖNDERİM HATASI — 24.09.2026'da eklendi.
+            # 23.09'da iki gönderim (koşu 84 ve 86) EAS sunucusunda 60+ dk
+            # "Submitting" kalıp düştü. CLI yalnız "Something went wrong when
+            # submitting your app to Apple App Store Connect" yazdı; GERÇEK
+            # hata EAS'ın gönderim kaydında duruyor ve CLI onu basmıyor.
+            # Sebebi bilmeden üçüncü kez göndermek bir saat daha yakardı.
+            echo ""
+            echo "### Son iOS gönderimleri (EAS)"
+            echo '```'
+            eas submit:list --platform ios --non-interactive 2>&1 | head -80 || echo "(submit:list çalışmadı)"
+            echo '```'
+            echo ""
+            echo "### Son gönderimlerin hata metni (Expo API)"
+            echo '```'
+            # Proje kimliği gizli değil (EAS çıktısında basılıyor). Belirteç
+            # yalnız başlıkta gider, çıktıya yazılmaz.
+            curl -s https://api.expo.dev/graphql \
+              -H "Authorization: Bearer $EXPO_TOKEN" -H 'content-type: application/json' \
+              -d '{"query":"{ app { byId(appId: \"7645a179-55d0-45a2-a1f7-1208d82140c8\") { submissions(offset: 0, limit: 4, filter: { platform: IOS }) { id status createdAt updatedAt error { errorCode message } } } } }"}' \
+              | head -c 4000 || echo "(Expo API okunamadı)"
+            echo ""
+            echo '```'
           } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
       # SALT OKUNUR — App Store Connect form alanlarını canlı API'den döker.
