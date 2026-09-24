@@ -1834,7 +1834,11 @@ async function tamDenetim() {
     } else {
       console.log('  Mevcut sürümler ve durumları:');
       for (const x of tumSurumler) {
-        console.log(`    ${x.attributes?.versionString}  =  ${x.attributes?.appStoreState}  (id ${x.id})`);
+        // 24.09.2026: sürüm WAITING_FOR_REVIEW'a geçtiğinde "hangi derleme
+        // gönderildi" sorusunun cevabı buradaydı ama basılmıyordu.
+        const bd = await oku(`/appStoreVersions/${x.id}/build`);
+        const derlemeNo = bd?._hata ? '?' : (bd?.data?.attributes?.version ?? 'YOK');
+        console.log(`    ${x.attributes?.versionString}  =  ${x.attributes?.appStoreState}  · derleme ${derlemeNo}  (id ${x.id})`);
       }
       console.log('  NE ANLAMA GELİR:');
       console.log('    REJECTED / DEVELOPER_REJECTED → sürüm düzenlenebilir hâle');
