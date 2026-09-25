@@ -1,3 +1,4 @@
+import { yerelGunISO } from '@/lib/yerelGun';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
@@ -49,7 +50,7 @@ export default function JobsScreen() {
         category: 'fee',
         title: `${t('jobs.finance.prefix')}: ${job.title}`,
         amount,
-        entry_date: new Date().toISOString().slice(0, 10),
+        entry_date: yerelGunISO(),
         is_recurring: false,
         note: job.city ? `${t('jobs.title')} · ${job.city}` : t('jobs.title'),
       })

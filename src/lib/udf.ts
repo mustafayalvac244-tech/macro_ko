@@ -1,3 +1,4 @@
+import { yerelGunISO } from '@/lib/yerelGun';
 // UDF ÜRETİCİ — üretilen dilekçeyi UYAP'ın kendi formatında verir.
 // ---------------------------------------------------------------------------
 // NEDEN VAR. Uygulama UDF OKUYABİLİYORDU (doc-extract: ZIP içinden content.xml)
@@ -257,6 +258,6 @@ export function udfDosyaAdi(baslik: string): string {
     .replace(/[^A-Za-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60);
-  const gun = new Date().toISOString().slice(0, 10);
+  const gun = yerelGunISO();
   return `${sade || 'dilekce'}-${gun}.udf`;
 }
