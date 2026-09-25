@@ -681,7 +681,10 @@ async function urunKur(u, grupId, mevcut, ulkeler) {
     // inceleme notu ve satın alma ekranının GÖRSELİNİ istiyor.
     // Görsel hazır: magaza-pazarlama/inceleme/premium.png — bugün ücretsiz
     // kullanıcıyla yeniden çekildi ki inceleyen planları ve fiyatı görsün.
-    if (!urun.attributes?.reviewNote && u.incelemeNotu) {
+    // 25.09.2026: yalnız BOŞSA yazılıyordu; nottaki satın alma yolu yanlış
+    // çıkınca ("Vekil Pro Uyelik" — Ayarlar'daki satırın adı "Vekil
+    // Premium") düzeltme Apple'a hiç gitmeyecekti. Artık farklıysa da yazılır.
+    if (u.incelemeNotu && urun.attributes?.reviewNote !== u.incelemeNotu) {
       try {
         await api(`/subscriptions/${urun.id}`, {
           method: 'PATCH',
@@ -694,7 +697,7 @@ async function urunKur(u, grupId, mevcut, ulkeler) {
         for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
       }
     } else if (urun.attributes?.reviewNote) {
-      console.log('  inceleme notu zaten var');
+      console.log('  inceleme notu zaten güncel');
     }
 
     const gorselYolu = 'magaza-pazarlama/inceleme/premium.png';
