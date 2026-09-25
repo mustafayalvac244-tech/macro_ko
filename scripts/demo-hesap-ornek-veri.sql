@@ -9,6 +9,13 @@
 -- Bütün kayıtlar KURGUSAL ve "Örnek" diye işaretli; gerçek kişi, gerçek
 -- dosya, TC kimlik numarası YOK.
 --
+-- CANLIYA UYGULANDI 25.09.2026 ~13:23 UTC. Demo hesapla GERÇEK girişle
+-- (RLS yolu, incelemecinin göreceği yol) geri okundu: 3 müvekkil, 3 dava,
+-- 3 yaklaşan duruşma (27.09, 04.10, 15.10), 2 süre (28.09, 01.10).
+-- DİKKAT: tarihler sabitlendi — inceleme 27.09'dan sonra yapılırsa ilk
+-- duruşma "geçmiş" görünür. Yeniden gönderimde tarihleri tazelemek için
+-- demo hesabın kayıtlarını silip bu betiği tekrar çalıştırmak yeter.
+--
 -- TEKRAR ÇALIŞTIRILABİLİR: hesapta en az bir dava varsa hiçbir şey yazmaz.
 -- Tarihler now()'a göre — duruşmalar her zaman "yaklaşan" görünür.
 
