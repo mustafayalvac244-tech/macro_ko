@@ -197,23 +197,9 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
     { icon: 'stats-chart-outline', label: t('reports.title'), path: '/reports' },
     { icon: 'notifications-outline', label: t('reminders.title'), path: '/reminders' },
     { icon: 'chatbubble-ellipses-outline', label: t('settings.feedback'), path: '/feedback' },
-    // TEVKİL PANOSU VE MESAJLAR — YALNIZ WEB.
-    //
-    // Koşul görsel bir tercih değil, beyanın kendisi: Android uygulamasında
-    // bu ekranlar YOK (kod native pakete girmiyor, bkz.
-    // src/components/tevkil/YalnizWeb.tsx) ve Play içerik anketinde
-    // "kullanıcılar birbirini görebilir mi" sorusuna "hayır" demeyi
-    // haklı çıkaran şey bu.
-    //
-    // Menüye koymadan önce KVKK metinleri güncellendi — sıra bilerek böyle:
-    // önce metin, sonra giriş. Tersi, ürünün anlatmadığı bir şeyi yapması
-    // demek olurdu (daha önce tam olarak bu yüzden kaldırılmışlardı).
-    ...(Platform.OS === 'web'
-      ? [
-          { icon: 'swap-horizontal-outline', label: t('tevkil.menuBoard'), path: '/tevkil' } as NavItem,
-          { icon: 'mail-outline', label: t('tevkil.menuInbox'), path: '/mesajlar' } as NavItem,
-        ]
-      : []),
+    // TEVKİL PANOSU VE MESAJLAR — 26.09.2026'da ürün sahibi kararıyla KAPATILDI.
+    // Gerekçe: Av.K. m.48 / reklam yasağı yönünden ücretli ilan riski ve
+    // kapıda avukat doğrulaması olmaması. Veri silinmedi; yetkiler 0158 ile kapalı.
     // WEB SÜRÜMÜ — telefonda menüde, web'de gereksiz (zaten oradasınız).
     ...(Platform.OS === 'web'
       ? []
