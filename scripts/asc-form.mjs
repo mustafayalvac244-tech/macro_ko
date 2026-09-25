@@ -1661,15 +1661,42 @@ async function ekranKumesiYukle(yerel, kume) {
     }
   }
 
+  // İÇERİK KARŞILAŞTIRMASI — 25.09.2026, Apple 2.3.7 reddi.
+  //
+  // Eskiden "kümede yeterince görsel varsa atla" deniyordu. Görsellerden
+  // "ücretsiz" yazısı çıkarılıp yeniden üretildiğinde bu kural YENİ
+  // görselleri hiç yüklemeyecekti: Apple'da hâlâ reddedilen görseller
+  // kalacak, rapor "atlandı" diyecekti. Aynı kural iPad'e bir hata sayfası
+  // ("Unmatched Route") görselinin girmesine de göz yummuştu.
+  //
+  // Şimdi: Apple'daki görsellerin MD5'i yerel dosyalarınkiyle SIRASIYLA
+  // birebir aynıysa dokunulmaz; değilse kümedeki her görsel silinip
+  // yereldekiler sırayla yüklenir. Kısmi eşleşmeye güvenilmez — sıra da
+  // mağazada görünen şeyin parçası.
   const mevcut = (await api(`/appScreenshotSets/${k.id}/appScreenshots`))?.data || [];
-  if (mevcut.length >= dosyalar.length) {
-    console.log(`  ${kume.tip}: zaten ${mevcut.length} görsel var — atlandı`);
+  const yerelOzetler = dosyalar.map((d) => crypto.createHash('md5').update(fs.readFileSync(`${yol}/${d}`)).digest('hex'));
+  const uzakOzetler = mevcut.map((m) => m.attributes?.sourceFileChecksum || '');
+  if (uzakOzetler.join() === yerelOzetler.join()) {
+    console.log(`  ${kume.tip}: ${mevcut.length} görsel yerelle birebir aynı — dokunulmadı`);
     return;
   }
-  const varOlanAdlar = new Set(mevcut.map((m) => m.attributes?.fileName));
+  if (mevcut.length) {
+    console.log(`  ${kume.tip}: Apple'daki ${mevcut.length} görsel yerelden farklı — silinip yeniden yüklenecek`);
+    for (const m of mevcut) {
+      try {
+        await api(`/appScreenshots/${m.id}`, { method: 'DELETE' });
+        console.log(`    − ${m.attributes?.fileName} silindi`);
+      } catch (e) {
+        // Silinemeyen görsel varken yüklemeye devam etmek, eskiyle yeniyi
+        // karışık bırakır. Dur ve söyle.
+        console.log(`    ✗ ${m.attributes?.fileName} SİLİNEMEDİ — küme yarım kalmasın diye yükleme yapılmadı`);
+        for (const s of String(e.message).split('\n')) console.log(`      ${s}`);
+        return;
+      }
+    }
+  }
 
   for (const dosya of dosyalar) {
-    if (varOlanAdlar.has(dosya)) { console.log(`    ${dosya} zaten var`); continue; }
     const tamYol = `${yol}/${dosya}`;
     const icerik = fs.readFileSync(tamYol);
     try {

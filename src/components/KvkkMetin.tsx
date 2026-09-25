@@ -76,7 +76,7 @@ const TR: Bolum[] = [
     icon: 'layers-outline',
     title: '2. İşlenen Kişisel Veri Kategorileri',
     body:
-      '• Kimlik: ad, soyad, T.C. kimlik numarası (kayıt sırasında zorunludur)\n' +
+      '• Kimlik: ad, soyad, T.C. kimlik numarası (girilmişse; isteğe bağlıdır)\n' +
       '• İletişim: e-posta adresi, telefon numarası (isteğe bağlı)\n' +
       '• Mesleki bilgi: büro adı, bağlı olunan baro, sicil numarası (isteğe bağlı)\n' +
       '• Müşteri işlem: dava, müvekkil, duruşma, görev, süre ve belge kayıtlarınız. Müvekkil kaydı, girmeniz hâlinde müvekkilin T.C. kimlik numarasını ve adresini de içerir; kimlik numarası dava dilekçesinin zorunlu unsurudur (HMK m.119/1-c).\n' +
@@ -242,7 +242,7 @@ const EN: Bolum[] = [
     icon: 'layers-outline',
     title: '2. Categories of Personal Data',
     body:
-      '• Identity: name, surname, Turkish national ID number (required at sign-up)\n' +
+      '• Identity: name, surname, Turkish national ID number (if provided; optional)\n' +
       '• Contact: e-mail, phone (optional)\n' +
       '• Professional: firm name, bar association, registration number (optional)\n' +
       '• Client transactions: your case, client, hearing, task, deadline and document records. If you enter them, a client record also holds the client’s national ID number and address; the ID number is a mandatory element of a statement of claim (Code of Civil Procedure art. 119/1-c).\n' +

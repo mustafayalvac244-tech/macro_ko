@@ -22,7 +22,7 @@ export const en: Record<keyof typeof tr, string> = {
   'auth.pricingInfoBody':
     'Case law search, your hearing/task calendar and reminders are unlimited and free. The free plan holds {dava} cases, {muvekkil} clients and {belge} documents; unlimited records, the finance module and {n} AI trial runs come with Vekil Pro.',
     'auth.lawyersOnly': 'A platform exclusive to lawyers',
-  'auth.tcNo': 'National ID (T.C.)',
+  'auth.tcNo': 'National ID (T.C., optional)',
   'auth.tcPlaceholder': 'Your 11-digit national ID',
   'auth.fullNameRequired': 'Enter your full name.',
   'auth.tcRequired': 'Enter your Turkish ID number.',

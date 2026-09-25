@@ -225,6 +225,23 @@ describe('web metinleri kodla tutarlı', () => {
     //    gevşer, silinmesi gerekmez.
     const kayit = oku('app', '(auth)', 'signup.tsx');
     const kimlikZorunlu = /if \(!tcNo\.trim\(\)\)/.test(kayit);
+    const kimlikToplaniyor = /setTcNo\(/.test(kayit);
+    // TERS YÖN — 25.09.2026, Apple Guideline 5.1.1 reddiyle alan isteğe
+    // bağlı oldu. O zaman metin "zorunludur" DEMEMELİ (kullanıcıya yanlış
+    // bilgi, ve Apple'ın reddettiği şeyin ta kendisi) ama alanı yine
+    // SAYMALI: isteğe bağlı olsa da girilirse toplanıyor.
+    if (!kimlikZorunlu && kimlikToplaniyor) {
+      for (const [ad, metin] of Object.entries(metinler)) {
+        expect(
+          /kayıt sırasında zorunludur|kayıtta zorunludur|required at sign-up/i.test(metin),
+          `${ad}: T.C. kimlik numarası artık isteğe bağlı ama metin hâlâ "zorunlu" diyor`,
+        ).toBe(false);
+        expect(
+          /kimlik numarası \((girilmişse; )?isteğe bağlı|national ID number \(if provided; optional\)/i.test(metin),
+          `${ad}: kayıt ekranı T.C. kimlik numarasını (isteğe bağlı) topluyor ama metin onu saymıyor`,
+        ).toBe(true);
+      }
+    }
     if (kimlikZorunlu) {
       for (const [ad, metin] of Object.entries(metinler)) {
         // "kimlik numarası" tek başına aranmaz: müvekkil kaydına ait cümle de
