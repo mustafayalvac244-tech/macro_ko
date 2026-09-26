@@ -46,9 +46,11 @@
    login.tsx:113 ve :135, signup.tsx:393. Öneri: Pressable + tek Text.
 8. Statik çeviri anahtarı taraması: eksik 0/1.819 (26.09, kod taraması).
    Dinamik anahtarlar (51 yer) canlı değerlerle kısmen karşılaştırıldı.
-9. Ürün sahibi araç izinlerinin hepsinin sorulmadan onaylanmasını istiyor;
-   Claude kendi izin ayarını değiştiremiyor (Self-Modification engeli).
-   Ürün sahibi oturumun izin modundan açmalı.
+9. İzinler (resmi belge, 26.09 okundu): bulut oturumunda mod menüsü yalnız
+   Accept edits / Plan / Auto sunar — "Bypass permissions isn't available".
+   Repo `.claude/settings.json`'daki bypass/dontAsk bulutta YOK SAYILIR.
+   En az soru = Auto (arka planda güvenlik denetimi; Apple gönderimi ve kendi
+   izin ayarını değiştirme bu denetimce engellendi). "Bypass var" deme — yok.
 
 ## 3. Kritik kimlikler
 
