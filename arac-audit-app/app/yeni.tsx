@@ -12,11 +12,15 @@ import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { ayarOku, ayarYaz, denetimOlustur } from '@/veri/depo';
 import { useTarama } from '@/veri/tarama';
 
-const DENETIM_TIPLERI = ['Seri denetim', 'Ara denetim', 'Final audit', 'Yol testi', 'Müşteri şikâyeti', 'Yeniden kontrol'];
+// İlk seçenek varsayılandır. "HMC Audit" ekibin gerçek tablosundaki Source
+// değeri (26.09.2026 ekran görüntüsü); diğerleri ilk sürümden kalan tahminler.
+const DENETIM_TIPLERI = ['HMC Audit', 'Seri denetim', 'Ara denetim', 'Final audit', 'Yol testi', 'Müşteri şikâyeti', 'Yeniden kontrol'];
 const VARDIYALAR = ['A', 'B', 'C'];
 
-/** Denetçi/hat/vardiya her araçta aynı kalır — bir kez yazılsın, hatırlansın. */
-interface Varsayilanlar { denetci: string; hat: string; vardiya: string; denetimTipi: string }
+/** Denetçi/hat/vardiya/faz/ekip her araçta aynı kalır — bir kez yazılsın, hatırlansın. */
+interface Varsayilanlar {
+  denetci: string; hat: string; vardiya: string; denetimTipi: string; faz: string; ekip: string;
+}
 
 export default function YeniDenetim() {
   const router = useRouter();
@@ -27,7 +31,9 @@ export default function YeniDenetim() {
   const [vinHam, setVinHam] = useState('');
   const [plakaHam, setPlakaHam] = useState('');
   const [raporNo, setRaporNo] = useState('');
-  const [v, setV] = useState<Varsayilanlar>({ denetci: '', hat: '', vardiya: '', denetimTipi: DENETIM_TIPLERI[0]! });
+  const [v, setV] = useState<Varsayilanlar>({
+    denetci: '', hat: '', vardiya: '', denetimTipi: DENETIM_TIPLERI[0]!, faz: '', ekip: '',
+  });
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [denendi, setDenendi] = useState(false);
 
@@ -58,7 +64,8 @@ export default function YeniDenetim() {
       const d = await denetimOlustur({
         aracId, vin: vin.vin, plaka: plaka.bicimli, raporNo: raporNo.trim(),
         denetci: v.denetci.trim(), hat: v.hat.trim(), vardiya: v.vardiya,
-        denetimTipi: v.denetimTipi, baslangic: new Date().toISOString(),
+        denetimTipi: v.denetimTipi, faz: v.faz.trim(), ekip: v.ekip.trim(),
+        baslangic: new Date().toISOString(),
       });
       router.replace({ pathname: '/denetim/[id]', params: { id: d.id } });
     } finally {
@@ -98,7 +105,7 @@ export default function YeniDenetim() {
                 <Pressable
                   key={a.id}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: secili }}
+                  aria-checked={secili}
                   accessibilityLabel={`${a.tam} seç`}
                   onPress={() => setAracId(a.id)}
                   style={[s.aracKart, secili && s.aracKartSecili]}
@@ -153,6 +160,14 @@ export default function YeniDenetim() {
 
         <View style={s.bolum}>
           <Text style={s.bolumBaslik}>DENETİM BİLGİLERİ</Text>
+          <View style={s.satir}>
+            <View style={{ flex: 1 }}>
+              <Girdi etiket="FAZ" value={v.faz} onChangeText={(t) => setV({ ...v, faz: t })} placeholder="LP2" autoCapitalize="characters" />
+            </View>
+            <View style={{ flex: 2 }}>
+              <Girdi etiket="EKİP" value={v.ekip} onChangeText={(t) => setV({ ...v, ekip: t })} placeholder="QE Team 2" />
+            </View>
+          </View>
           <Girdi etiket="RAPOR NO" value={raporNo} onChangeText={setRaporNo} placeholder="QA-2026-0412" />
           <Girdi etiket="DENETÇİ" value={v.denetci} onChangeText={(t) => setV({ ...v, denetci: t })} placeholder="Ad Soyad" />
           <Girdi etiket="ÜRETİM HATTI" value={v.hat} onChangeText={(t) => setV({ ...v, hat: t })} placeholder="Montaj 2" />
@@ -164,7 +179,7 @@ export default function YeniDenetim() {
             ))}
           </View>
 
-          <Text style={s.alanEtiketi}>DENETİM TİPİ</Text>
+          <Text style={s.alanEtiketi}>KAYNAK (RAPORDA "SOURCE")</Text>
           <View style={s.secimSatiri}>
             {DENETIM_TIPLERI.map((x) => (
               <Secim key={x} metin={x} secili={v.denetimTipi === x} onPress={() => setV({ ...v, denetimTipi: x })} />
@@ -191,7 +206,7 @@ function Secim({ metin, secili, onPress }: { metin: string; secili: boolean; onP
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityState={{ selected: secili }}
+      aria-checked={secili}
       accessibilityLabel={metin}
       onPress={onPress}
       style={[s.secim, secili && s.secimSecili]}

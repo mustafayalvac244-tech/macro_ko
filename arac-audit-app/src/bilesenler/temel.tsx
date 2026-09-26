@@ -232,8 +232,17 @@ export function Rozet({
  * "düzeltilecek" ile "kabul edildi" karışmasın.
  */
 export function DereceRozeti({
-  derece, kabul = false, buyuk = false,
-}: { derece: string; kabul?: boolean; buyuk?: boolean }) {
+  derece, kabul, buyuk = false,
+}: {
+  derece: string;
+  /**
+   * ZORUNLU, varsayılanı yok. İsteğe bağlıyken rapor ekranı onu geçirmeyi
+   * unuttu ve (3) orada düz 3 göründü (26.09.2026). Artık her kullanan yer
+   * bulgunun kabul durumunu açıkça vermek zorunda — derleyici zorluyor.
+   */
+  kabul: boolean;
+  buyuk?: boolean;
+}) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { on, arka } = dereceRenkleri(renkler, derece);

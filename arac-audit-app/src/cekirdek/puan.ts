@@ -45,20 +45,24 @@ export function denetimOzeti(denetim: { hatalar?: Hata[] } | null | undefined): 
   const hatalar = denetim?.hatalar ?? [];
 
   const dereceDagilimi = Object.fromEntries(
-    DERECELER.map((s) => [s.id, { adet: 0 }]),
+    DERECELER.map((s) => [s.id, { adet: 0, kabul: 0 }]),
   ) as Ozet['dereceDagilimi'];
   const bolgeler = new Map<string, Dagilim>();
   const parcalar = new Map<string, Dagilim>();
   const gruplar = new Map<string, Dagilim>();
 
-  let toplamAdet = 0, fotografli = 0;
+  let toplamAdet = 0, kabulEdilebilirAdet = 0, fotografli = 0;
 
   for (const h of hatalar) {
     const adet = h.adet ?? 1;
     toplamAdet += adet;
     if ((h.fotograflar?.length ?? 0) > 0) fotografli += 1;
 
-    if (dereceDagilimi[h.derece]) dereceDagilimi[h.derece].adet += adet;
+    if (h.kabulEdilebilir) kabulEdilebilirAdet += adet;
+    const dd = dereceDagilimi[h.derece];
+    if (dd) {
+      if (h.kabulEdilebilir) dd.kabul += adet; else dd.adet += adet;
+    }
 
     const p = PARCA_INDEKS[h.parcaId];
     const bKey = p?.bolgeId ?? 'bilinmeyen';
@@ -80,6 +84,7 @@ export function denetimOzeti(denetim: { hatalar?: Hata[] } | null | undefined): 
   return {
     toplamHata: hatalar.length,
     toplamAdet,
+    kabulEdilebilirAdet,
     fotografliHata: fotografli,
     fotografsizHata: hatalar.length - fotografli,
     dereceDagilimi,
@@ -94,6 +99,7 @@ export function topluOzet(denetimler: Denetim[]) {
   const ozetler = denetimler.map((d) => ({ denetim: d, ozet: denetimOzeti(d) }));
   const aracSayisi = ozetler.length || 1;
   const toplamAdet = ozetler.reduce((t, o) => t + o.ozet.toplamAdet, 0);
+  const kabulAdet = ozetler.reduce((t, o) => t + o.ozet.kabulEdilebilirAdet, 0);
 
   const parcaTop = new Map<string, Dagilim>();
   for (const { ozet } of ozetler) {
@@ -107,9 +113,11 @@ export function topluOzet(denetimler: Denetim[]) {
   return {
     aracSayisi: ozetler.length,
     toplamAdet,
+    kabulAdet,
     // DPU = Defects Per Unit — araç başına düşen hata adedi. Bu bir puan
-    // değil, sayım: kaç araçta kaç hata bulundu.
-    dpu: Math.round((toplamAdet / aracSayisi) * 100) / 100,
+    // değil, sayım. Kabul edilebilir `(n)` bulgular DPU'ya GİRMEZ: tanım gereği
+    // düzeltilecek hata değiller; girselerse hata oranını şişirirler.
+    dpu: Math.round(((toplamAdet - kabulAdet) / aracSayisi) * 100) / 100,
     enSikParcalar: [...parcaTop.values()].sort((a, b) => b.adet - a.adet).slice(0, 20),
     ozetler,
   };

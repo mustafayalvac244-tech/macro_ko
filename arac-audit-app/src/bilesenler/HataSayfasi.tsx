@@ -7,7 +7,7 @@ import {
 import { Dugme, Girdi, HataKutusu, DereceRozeti } from '@/bilesenler/temel';
 import { fotografKucult } from '@/cekirdek/goruntu';
 import { HATA_GRUPLARI, PARCA_INDEKS, parcaHataTipleri, DERECELER } from '@/cekirdek/katalog';
-import { Hata, HataGrubuId, HataTipi, DereceKodu } from '@/cekirdek/tipler';
+import { DereceKodu, Hata, HataGrubuId, HataTipi, SorunTipi } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { fotografKaydet, FotografKaydi, fotografSil } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -49,6 +49,8 @@ export function HataSayfasi({
   const [hataTipiId, setHataTipiId] = useState<string | null>(null);
   const [derece, setDerece] = useState<DereceKodu>('1');
   const [kabul, setKabul] = useState(false);
+  const [sorunTipi, setSorunTipi] = useState<SorunTipi>('Part');
+  const [sorumlu, setSorumlu] = useState('');
   const [adet, setAdet] = useState('1');
   const [konum, setKonum] = useState('');
   const [aciklama, setAciklama] = useState('');
@@ -66,6 +68,8 @@ export function HataSayfasi({
     setHataTipiId(taslak.hataTipiId || null);
     setDerece(taslak.derece || '1');
     setKabul(!!taslak.kabulEdilebilir);
+    setSorunTipi(taslak.sorunTipi === 'Complex' ? 'Complex' : 'Part');
+    setSorumlu(taslak.sorumlu ?? '');
     setAdet(String(taslak.adet || 1));
     setKonum(taslak.konum ?? '');
     setAciklama(taslak.aciklama ?? '');
@@ -139,12 +143,14 @@ export function HataSayfasi({
       hataTipiId,
       derece,
       kabulEdilebilir: kabul,
+      sorunTipi,
+      sorumlu: sorumlu.trim(),
       adet: Math.max(1, Math.min(99, Number(adet) || 1)),
       konum: konum.trim(),
       aciklama: aciklama.trim(),
       fotograflar: fotoIdleri,
     }, fotoIdleri);
-  }, [aciklama, adet, fotoIdleri, hataTipiId, kabul, konum, onKaydet, derece, taslak]);
+  }, [aciklama, adet, fotoIdleri, hataTipiId, kabul, konum, onKaydet, derece, sorumlu, sorunTipi, taslak]);
 
   const fotoHaritasi = useMemo(
     () => new Map(fotograflar.map((f) => [f.id, f])),
@@ -261,6 +267,32 @@ export function HataSayfasi({
         </View>
 
         <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} />
+
+        <Text style={s.bolumBaslik}>TÜR</Text>
+        <View style={s.izgara}>
+          {(['Part', 'Complex'] as const).map((tur) => (
+            <Pressable
+              key={tur}
+              accessibilityRole="radio"
+              aria-checked={sorunTipi === tur}
+              accessibilityLabel={`Tür ${tur}`}
+              onPress={() => setSorunTipi(tur)}
+              style={[s.secenek, { flexBasis: 120 }, sorunTipi === tur && s.secenekSecili]}
+            >
+              <Text style={[s.secenekAd, sorunTipi === tur && { color: renkler.birincil }]}>{tur}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Girdi
+          etiket="SORUMLU"
+          value={sorumlu}
+          onChangeText={setSorumlu}
+          placeholder="HMTR PD (tedarikçi)"
+          ipucu={sorunTipi === 'Part'
+            ? 'Part hatasında yazılan sorumlu bu parçaya öğrenilir; sonraki kayıtlarda kendiliğinden gelir.'
+            : 'Complex hatanın sorumlusu parçaya öğrenilmez.'}
+        />
 
         <View style={s.ikiliSatir}>
           <View style={{ flex: 1, gap: bosluk.xxs }}>

@@ -94,15 +94,20 @@ export function Model3B({
 }
 
 function KucukDugme({
-  metin, onPress, secili = false,
+  metin, onPress, secili,
 }: { metin: string; onPress: () => void; secili?: boolean }) {
+  // Varsayılan VERİLMEZ: undefined "seçim değil, komut düğmesi" demek; false'a
+  // çevrilirse aşağıdaki rol ayrımı çalışmaz ve her düğme radyo olur.
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   return (
     <Pressable
-      accessibilityRole="button"
+      // İki kullanım: Dış/İç seçimi (secili verilir → radyo) ve görünüm komutları
+      // (secili yok → düz düğme). aria-checked yalnız radyoda geçerli; düğmeye
+      // konursa geçersiz ARIA olur.
+      accessibilityRole={secili === undefined ? 'button' : 'radio'}
       accessibilityLabel={metin}
-      accessibilityState={{ selected: secili }}
+      aria-checked={secili === undefined ? undefined : secili}
       onPress={onPress}
       style={({ pressed }) => [s.kucukDugme, secili && s.kucukDugmeSecili, pressed && { opacity: 0.7 }]}
     >

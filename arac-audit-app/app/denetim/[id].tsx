@@ -9,7 +9,7 @@ import {
   AltSayfa, Baslik, BaslikDugmesi, DereceRozeti, Dugme, Ekran, HataKutusu, Yukleniyor,
 } from '@/bilesenler/temel';
 import {
-  bolgelerAracIcin, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaHataTipleri,
+  bolgelerAracIcin, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi,
 } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { dereceGosterimi } from '@/cekirdek/puan';
@@ -17,7 +17,7 @@ import { Denetim, DereceKodu, Hata, HataTipi, Parca } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import {
   ayarOku, ayarYaz, denetimGetir, FotografKaydi, fotograflariGetir, fotografiHataBagla,
-  hataKaydet, hataSil, kalipSay, kimlikUret,
+  hataKaydet, hataSil, kimlikUret,
 } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
 
@@ -62,6 +62,11 @@ export default function DenetimEkrani() {
   const [kayitHatasi, setKayitHatasi] = useState<string | null>(null);
 
   const [sonKayit, setSonKayit] = useState<{ id: string; metin: string } | null>(null);
+  // Parça → sorumlu (ekibin tablosunda L: "HMTR PD (HWASEUNG)"). Ayrıntı
+  // ekranında bir parça için yazılan sorumlu burada öğrenilir, o parçanın
+  // sonraki hızlı kayıtlarına kendiliğinden gelir. Hiç yazılmamışsa BOŞ kalır:
+  // bilinmeyen bir sorumluyu tahmin edip rapora basmak yanlış kişiye iş açar.
+  const [sorumluHaritasi, setSorumluHaritasi] = useState<Record<string, string>>({});
   const bildirimZamanlayici = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tek alt sayfa: aynı anda iki Modal açıldığında kapanan modal DOM'da asılı
@@ -85,6 +90,7 @@ export default function DenetimEkrani() {
 
   useEffect(() => {
     ayarOku<DereceKodu>('sonDerece', '1').then(setDerece).catch(() => { /* ilk açılış */ });
+    ayarOku<Record<string, string>>('sorumluHaritasi', {}).then(setSorumluHaritasi).catch(() => { /* ilk açılış */ });
     return () => { if (bildirimZamanlayici.current) clearTimeout(bildirimZamanlayici.current); };
   }, []);
 
@@ -155,6 +161,8 @@ export default function DenetimEkrani() {
       hataTipiId: t.id,
       derece,
       kabulEdilebilir: kabul,
+      sorunTipi: 'Part',
+      sorumlu: sorumluHaritasi[parcaId] ?? '',
       adet: 1, konum: '', aciklama: '', fotograflar: [],
       zaman: new Date().toISOString(),
       durum: 'acik',
@@ -167,10 +175,10 @@ export default function DenetimEkrani() {
       setKayitHatasi(`Kaydedilemedi: ${h instanceof Error ? h.message : String(h)}`);
       return;
     }
-    kalipSay(parcaId, t.id).catch(() => { /* sayaç kritik değil */ });
+    // Kullanım sayacını hataKaydet kendisi artırıyor. Burada da çağrılıyordu;
+    // hızlı girişteki her kayıt iki kez sayılıyordu (26.09.2026'da fark edildi).
 
-    const p = PARCA_INDEKS[parcaId];
-    setSonKayit({ id: kayit.id, metin: `${p?.ad ?? parcaId} — ${t.ad} · ${dereceGosterimi(kayit)}` });
+    setSonKayit({ id: kayit.id, metin: `${parcaTamAdi(parcaId)} — ${t.ad} · ${dereceGosterimi(kayit)}` });
     if (bildirimZamanlayici.current) clearTimeout(bildirimZamanlayici.current);
     bildirimZamanlayici.current = setTimeout(() => setSonKayit(null), 6000);
 
@@ -178,7 +186,7 @@ export default function DenetimEkrani() {
     parcalaraDon();
     setParcaArama('');
     await tazele();
-  }, [denetim, parcaId, derece, kabul, parcalaraDon, tazele]);
+  }, [denetim, parcaId, derece, kabul, sorumluHaritasi, parcalaraDon, tazele]);
 
   const geriAl = useCallback(async () => {
     if (!sonKayit) return;
@@ -196,10 +204,21 @@ export default function DenetimEkrani() {
       ...t, id: hataId, zaman: t.zaman ?? new Date().toISOString(), fotograflar: fotoIdleri,
     });
     for (const fid of fotoIdleri) await fotografiHataBagla(fid, hataId);
+
+    // Sorumluyu yalnız PART hatalarından öğren. Complex bir hatanın sorumlusu
+    // çoğu zaman bir tasarım ekibi ("MSV Closure Design Team 1"); onu parçaya
+    // bağlarsak o parçanın sonraki sıradan hataları yanlış yere yazılır.
+    const yeniSorumlu = t.sorumlu?.trim() ?? '';
+    if (t.sorunTipi === 'Part' && yeniSorumlu && sorumluHaritasi[t.parcaId] !== yeniSorumlu) {
+      const harita = { ...sorumluHaritasi, [t.parcaId]: yeniSorumlu };
+      setSorumluHaritasi(harita);
+      ayarYaz('sorumluHaritasi', harita).catch(() => { /* öğrenilmezse elle yazılır */ });
+    }
+
     setTaslak(null);
     setAcikSayfa('liste');
     await tazele();
-  }, [denetim, tazele]);
+  }, [denetim, sorumluHaritasi, tazele]);
 
   const ayrintiSil = useCallback(async (hataId: string) => {
     await hataSil(hataId);
@@ -494,19 +513,21 @@ function KayitListesi({
             <Pressable
               key={h.id}
               accessibilityRole="button"
-              accessibilityLabel={`${p?.ad} ${t?.ad}, derece ${dereceGosterimi(h)} — düzenle`}
+              accessibilityLabel={`${parcaTamAdi(h.parcaId)} ${t?.ad}, derece ${dereceGosterimi(h)} — düzenle`}
               onPress={() => onAc(h)}
               style={({ pressed }) => [s.kayitSatir, pressed && s.basili]}
             >
               <Text style={s.kayitSira}>{sirali.length - i}</Text>
               <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={s.kayitAd} numberOfLines={1}>{p?.ad ?? h.parcaId} — {t?.ad ?? h.hataTipiId}</Text>
+                <Text style={s.kayitAd} numberOfLines={1}>{parcaTamAdi(h.parcaId)} — {t?.ad ?? h.hataTipiId}</Text>
                 <Text style={s.kayitAlt} numberOfLines={1}>
                   {[
                     p?.bolgeAd,
                     h.adet > 1 ? `${h.adet} adet` : null,
                     h.konum || null,
+                    h.sorunTipi === 'Complex' ? 'Complex' : null,
+                    h.sorumlu ? `→ ${h.sorumlu}` : null,
                     h.fotograflar.length ? `📷 ${h.fotograflar.length}` : null,
                   ].filter(Boolean).join(' · ')}
                 </Text>

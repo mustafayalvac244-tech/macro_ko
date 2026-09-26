@@ -22,6 +22,9 @@
  */
 export type DereceKodu = '1' | '2' | '3';
 
+/** Ekibin tablosundaki iki değer; ekran görüntüsünde ikisi de geçiyor. */
+export type SorunTipi = 'Part' | 'Complex';
+
 export interface Derece {
   id: DereceKodu;
   ad: string;
@@ -157,6 +160,14 @@ export interface Hata {
    * kabul edilmiş bir bulgu düzeltilecek hata gibi görünür.
    */
   kabulEdilebilir: boolean;
+  /** Ekibin tablosunda H sütunu: parçaya bağlı mı, birden çok parçayı mı ilgilendiriyor. */
+  sorunTipi: SorunTipi;
+  /**
+   * Ekibin tablosunda L sütunu, ör. "HMTR PD (HWASEUNG)". Parçaya göre öğrenilir:
+   * bir parça için bir kez yazılınca o parçanın sonraki hatalarına kendiliğinden
+   * gelir. Varsayılan boş — bilinmeyen bir sorumlu UYDURULMAZ.
+   */
+  sorumlu: string;
   adet: number;
   konum: string;
   aciklama: string;
@@ -184,7 +195,12 @@ export interface Denetim {
   denetci: string;
   hat: string;
   vardiya: string;
+  /** Tablodaki "Source" sütunu — ör. "HMC Audit". */
   denetimTipi: string;
+  /** Üretim/pilot fazı — ör. "LP2". Ekibin tablosunda E sütunu. */
+  faz: string;
+  /** Denetimi yapan ekip — ör. "QE Team 2". Ekibin tablosunda K sütunu. */
+  ekip: string;
   /** ISO 8601. */
   baslangic: string;
   bitis: string | null;
@@ -209,10 +225,18 @@ export interface Dagilim {
 
 export interface Ozet {
   toplamHata: number;
+  /** Tüm bulgular, kabul edilebilir olanlar DAHİL (adet toplamı). */
   toplamAdet: number;
+  /** Parantezli `(n)` yazılan, iş emri doğurmayan bulgular (adet toplamı). */
+  kabulEdilebilirAdet: number;
   fotografliHata: number;
   fotografsizHata: number;
-  dereceDagilimi: Record<DereceKodu, { adet: number }>;
+  /**
+   * `adet` yalnız düzeltilecek hatalar; `kabul` aynı derecedeki kabul
+   * edilebilir bulgular. Ayrı tutulur: "3 kötü, (3) kabul edilebilir" —
+   * ikisini tek sayıda toplamak "3 × derece 3" yazıp birini yanlış sayardı.
+   */
+  dereceDagilimi: Record<DereceKodu, { adet: number; kabul: number }>;
   bolgeDagilimi: Dagilim[];
   parcaDagilimi: Dagilim[];
   grupDagilimi: Dagilim[];

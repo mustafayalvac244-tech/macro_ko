@@ -151,6 +151,17 @@ const GOCLER: string[] = [
   UPDATE ozel_hata_tipleri SET derece = CASE derece
     WHEN 'A' THEN '3' WHEN 'B' THEN '2' WHEN 'C' THEN '1' ELSE derece END;
   `,
+
+  // 4 — ekibin kendi Excel tablosundaki sütunlar (26.09.2026 ekran görüntüsü):
+  // faz (E: "LP2"), ekip (K: "QE Team 2"), sorun tipi (H: Part/Complex),
+  // sorumlu (L: "HMTR PD (HWASEUNG)"). Eski kayıtlar: faz/ekip/sorumlu boş,
+  // sorun tipi 'Part' — tablodaki satırların neredeyse hepsi Part.
+  `
+  ALTER TABLE denetimler ADD COLUMN faz  TEXT NOT NULL DEFAULT '';
+  ALTER TABLE denetimler ADD COLUMN ekip TEXT NOT NULL DEFAULT '';
+  ALTER TABLE hatalar ADD COLUMN sorun_tipi TEXT NOT NULL DEFAULT 'Part';
+  ALTER TABLE hatalar ADD COLUMN sorumlu    TEXT NOT NULL DEFAULT '';
+  `,
 ];
 
 async function gocleriUygula(d: SQLite.SQLiteDatabase): Promise<void> {
@@ -173,12 +184,14 @@ const simdi = () => new Date().toISOString();
 interface DenetimSatiri {
   id: string; arac_id: string; vin: string; plaka: string; rapor_no: string;
   denetci: string; hat: string; vardiya: string; denetim_tipi: string;
+  faz: string; ekip: string;
   baslangic: string; bitis: string | null; durum: string; senkron_zamani: string | null;
 }
 
 interface HataSatiri {
   id: string; denetim_id: string; parca_id: string; hata_tipi_id: string;
-  derece: string; kabul_edilebilir: number; adet: number; konum: string; aciklama: string; zaman: string;
+  derece: string; kabul_edilebilir: number; sorun_tipi: string; sorumlu: string;
+  adet: number; konum: string; aciklama: string; zaman: string;
   durum: string; atanan_kisi: string | null; gideren: string | null;
   giderilme_zamani: string | null; dogrulayan: string | null; dogrulama_zamani: string | null;
 }
@@ -187,6 +200,7 @@ function denetimeCevir(d: DenetimSatiri, hatalar: Hata[]): Denetim {
   return {
     id: d.id, aracId: d.arac_id, vin: d.vin, plaka: d.plaka, raporNo: d.rapor_no,
     denetci: d.denetci, hat: d.hat, vardiya: d.vardiya, denetimTipi: d.denetim_tipi,
+    faz: d.faz ?? '', ekip: d.ekip ?? '',
     baslangic: d.baslangic, bitis: d.bitis, durum: d.durum as Denetim['durum'],
     senkronZamani: d.senkron_zamani, hatalar,
   };
@@ -196,6 +210,7 @@ function hataya(h: HataSatiri, fotograflar: string[]): Hata {
   return {
     id: h.id, parcaId: h.parca_id, hataTipiId: h.hata_tipi_id,
     derece: h.derece as Hata['derece'], kabulEdilebilir: h.kabul_edilebilir === 1,
+    sorunTipi: h.sorun_tipi === 'Complex' ? 'Complex' : 'Part', sorumlu: h.sorumlu ?? '',
     adet: h.adet, konum: h.konum,
     aciklama: h.aciklama, zaman: h.zaman, durum: h.durum as Hata['durum'],
     atananKisi: h.atanan_kisi, gideren: h.gideren, giderilmeZamani: h.giderilme_zamani,
@@ -211,10 +226,10 @@ export async function denetimOlustur(
   const id = kimlikUret('d');
   await d.runAsync(
     `INSERT INTO denetimler (id, arac_id, vin, plaka, rapor_no, denetci, hat, vardiya,
-       denetim_tipi, baslangic, bitis, durum, guncelleme, senkron_zamani)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'devam', ?, NULL)`,
+       denetim_tipi, faz, ekip, baslangic, bitis, durum, guncelleme, senkron_zamani)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'devam', ?, NULL)`,
     id, girdi.aracId, girdi.vin, girdi.plaka, girdi.raporNo, girdi.denetci,
-    girdi.hat, girdi.vardiya, girdi.denetimTipi, girdi.baslangic, simdi(),
+    girdi.hat, girdi.vardiya, girdi.denetimTipi, girdi.faz, girdi.ekip, girdi.baslangic, simdi(),
   );
   return { ...girdi, id, bitis: null, durum: 'devam', senkronZamani: null, hatalar: [] };
 }
@@ -274,7 +289,8 @@ export async function denetimGuncelle(id: string, alanlar: Partial<Denetim>): Pr
   const d = await db();
   const esleme: Record<string, string> = {
     plaka: 'plaka', raporNo: 'rapor_no', denetci: 'denetci', hat: 'hat',
-    vardiya: 'vardiya', denetimTipi: 'denetim_tipi', bitis: 'bitis', durum: 'durum',
+    vardiya: 'vardiya', denetimTipi: 'denetim_tipi', faz: 'faz', ekip: 'ekip',
+    bitis: 'bitis', durum: 'durum',
   };
   const setler: string[] = [];
   const degerler: SQLite.SQLiteBindValue[] = [];
@@ -301,13 +317,15 @@ export async function denetimSil(id: string): Promise<void> {
 export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
   const d = await db();
   await d.runAsync(
-    `INSERT INTO hatalar (id, denetim_id, parca_id, hata_tipi_id, derece, kabul_edilebilir, adet, konum,
+    `INSERT INTO hatalar (id, denetim_id, parca_id, hata_tipi_id, derece, kabul_edilebilir,
+        sorun_tipi, sorumlu, adet, konum,
         aciklama, zaman, durum, atanan_kisi, gideren, giderilme_zamani, dogrulayan,
         dogrulama_zamani, guncelleme, senkron_zamani)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
      ON CONFLICT(id) DO UPDATE SET
         parca_id = excluded.parca_id, hata_tipi_id = excluded.hata_tipi_id,
         derece = excluded.derece, kabul_edilebilir = excluded.kabul_edilebilir,
+        sorun_tipi = excluded.sorun_tipi, sorumlu = excluded.sorumlu,
         adet = excluded.adet, konum = excluded.konum,
         aciklama = excluded.aciklama, durum = excluded.durum,
         atanan_kisi = excluded.atanan_kisi, gideren = excluded.gideren,
@@ -315,7 +333,7 @@ export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
         dogrulama_zamani = excluded.dogrulama_zamani,
         guncelleme = excluded.guncelleme, senkron_zamani = NULL`,
     hata.id, denetimId, hata.parcaId, hata.hataTipiId, hata.derece,
-    hata.kabulEdilebilir ? 1 : 0, hata.adet,
+    hata.kabulEdilebilir ? 1 : 0, hata.sorunTipi ?? 'Part', hata.sorumlu ?? '', hata.adet,
     hata.konum, hata.aciklama, hata.zaman, hata.durum, hata.atananKisi ?? null,
     hata.gideren ?? null, hata.giderilmeZamani ?? null, hata.dogrulayan ?? null,
     hata.dogrulamaZamani ?? null, simdi(),

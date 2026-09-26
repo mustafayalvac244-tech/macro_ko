@@ -16,7 +16,7 @@
 // girene kadar "puan" sütununu yalnızca kendi içinde kıyas için kullanın.
 // ---------------------------------------------------------------------------
 
-import { AracTipi, Bolge, HataGrubu, HataGrubuId, HataTipi, Parca, ParcaKayit, Derece, Taraf } from './tipler';
+import { AracTipi, Bolge, Derece, Dil, HataGrubu, HataGrubuId, HataTipi, Parca, ParcaKayit, Taraf } from './tipler';
 /**
  * Dereceler — ekibin kendi sistemi. Ceza puanı YOK.
  *
@@ -184,10 +184,16 @@ const ELEKTRIK: HataGrubuId[] = ['fonksiyon', 'montaj', 'ses'];
  * gibi tek harfli ya da tümü büyük kısaltmayla başlayan adlar OLDUĞU GİBİ kalır;
  * yoksa "Sol a direği garnişi" gibi yanlış bir ad üretilir.
  */
-function bastanKucult(ad: string): string {
-  const ilkKelime = ad.split(/[\s/]/, 1)[0];
-  if (ilkKelime.length <= 1 || ilkKelime === ilkKelime.toLocaleUpperCase('tr')) return ad;
-  return ad.charAt(0).toLocaleLowerCase('tr') + ad.slice(1);
+export function bastanKucult(ad: string, dil: Dil = 'tr'): string {
+  // Yerel ayar dile göre SEÇİLMELİ: Türkçe yerelde "Inoperative" →
+  // "ınoperative" olur (26.09.2026'da ölçüldü: "Inner".toLocaleLowerCase("tr")
+  // === "ınner"). O gün katalogda bu yoldan geçen bozuk ad yoktu — şansa
+  // bağlıydı; raporun İngilizce açıklama sütunu ise "I" ile başlayan hata
+  // tiplerini (Inoperative, Intermittent, Impact mark) doğrudan küçültüyor.
+  const yerel = dil === 'en' ? 'en' : 'tr';
+  const ilkKelime = ad.split(/[\s/]/, 1)[0] ?? '';
+  if (ilkKelime.length <= 1 || ilkKelime === ilkKelime.toLocaleUpperCase(yerel)) return ad;
+  return ad.charAt(0).toLocaleLowerCase(yerel) + ad.slice(1);
 }
 
 /** Sol/sağ çift parçaları açan yardımcı. */
@@ -203,7 +209,7 @@ function ciftle(parcalar: Parca[]): Parca[] {
         taraf: tk,
         id: `${tk}_${p.id}`,
         ad: `${tad} ${bastanKucult(p.ad)}`,
-        en: `${ten} ${bastanKucult(p.en)}`,
+        en: `${ten} ${bastanKucult(p.en, 'en')}`,
         mesh: p.mesh ? `${tk}_${p.mesh}` : undefined,
       });
     }
@@ -438,6 +444,26 @@ export const PARCA_INDEKS: Record<string, ParcaKayit> = (() => {
 })();
 
 /** Bir parçada seçilebilecek hata tipleri (grubuna göre süzülmüş). */
+/**
+ * Parçanın TEK BAŞINA okunabilen adı, taraf dahil: "Sol ön çamurluk" /
+ * "LH front fender".
+ *
+ * Neden: katalog tutarsız. İç döşeme ve garnişler (`cift` ile açılanlar) adında
+ * tarafı taşıyor ("Sol ön kapı döşemesi"); dış yan paneller taşımıyor ("Ön
+ * çamurluk"), tarafları yalnız bölge adında ("Dış · Sol yan"). Bölge sütunu
+ * olmadan okunan her yerde — raporun açıklama sütunu, kayıt bildirimi —
+ * "Front fender scratch" hangi tarafın çamurluğu belli değildi.
+ */
+export function parcaTamAdi(parcaId: string, dil: Dil = 'tr'): string {
+  const p = PARCA_INDEKS[parcaId];
+  if (!p) return parcaId;
+  const ad = dil === 'en' ? p.en : p.ad;
+  if (!p.taraf) return ad;
+  const onEk = dil === 'en' ? (p.taraf === 'sol' ? 'LH' : 'RH') : (p.taraf === 'sol' ? 'Sol' : 'Sağ');
+  if (ad.startsWith(`${onEk} `)) return ad;
+  return `${onEk} ${bastanKucult(ad, dil)}`;
+}
+
 export function parcaHataTipleri(parcaId: string): HataTipi[] {
   const p = PARCA_INDEKS[parcaId];
   if (!p) return [];

@@ -38,7 +38,7 @@ export default function Ayarlar() {
             <Pressable
               key={t.deger}
               accessibilityRole="radio"
-              accessibilityState={{ selected: tercih === t.deger }}
+              aria-checked={tercih === t.deger}
               accessibilityLabel={`${t.etiket} tema`}
               onPress={() => tercihiAyarla(t.deger)}
               style={[s.secim, tercih === t.deger && s.secimSecili]}
@@ -100,7 +100,8 @@ function OzelTipler() {
     <>
       {tipler.map((t) => (
         <View key={t.id} style={[s.siddetSatiri, t.silindi && { opacity: 0.6 }]}>
-          <DereceRozeti derece={t.derece} />
+          {/* Bu bir hata TİPİ, kaydedilmiş bulgu değil: tipin kabul durumu yok. */}
+          <DereceRozeti derece={t.derece} kabul={false} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.siddetAd} numberOfLines={2}>
               {t.ad}{t.silindi ? ' — listeden kaldırıldı' : ''}

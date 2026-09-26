@@ -7,13 +7,20 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   Baslik, BaslikDugmesi, BilgiKutusu, Dugme, HataKutusu, Olcu, DereceRozeti, Yukleniyor,
 } from '@/bilesenler/temel';
-import { HATA_TIPI_INDEKS, PARCA_INDEKS } from '@/cekirdek/katalog';
+import { HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { denetimOzeti } from '@/cekirdek/puan';
 import { bicimTarih, csvUret, excelUret } from '@/cekirdek/rapor';
 import { Denetim, FotografBaytlari } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { denetimGetir, denetimGuncelle, fotograflariGetir } from '@/veri/depo';
+
+/**
+ * Paylaşılan dosyanın dili. Ekibin kendi tablosu ("Part Related Issues") baştan
+ * sona İngilizce — başlıklar da, açıklamalar da. Ekran Türkçe kalır; dosya
+ * ekibin kullandığı dilde çıkar.
+ */
+const DOSYA_DILI = 'en' as const;
 
 export default function RaporEkrani() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -68,10 +75,10 @@ export default function RaporEkrani() {
 
       if (tur === 'xlsx') {
         const fotolar = await fotoBaytlari(denetim);
-        dosya.write(excelUret(denetim, fotolar));
+        dosya.write(excelUret(denetim, fotolar, { dil: DOSYA_DILI }));
         setBilgi(`${fotolar.size} fotoğraf dosyanın içine gömüldü.`);
       } else {
-        dosya.write(csvUret(denetim));
+        dosya.write(csvUret(denetim, { dil: DOSYA_DILI }));
       }
 
       if (await Sharing.isAvailableAsync()) {
@@ -119,20 +126,23 @@ export default function RaporEkrani() {
       <ScrollView contentContainerStyle={s.govde} showsVerticalScrollIndicator={false}>
 
         <View style={s.olcuSatiri}>
-          <Olcu deger={ozet.toplamAdet} etiket="hata adedi" genis />
+          <Olcu deger={ozet.toplamAdet} etiket="bulgu" genis />
           <Olcu deger={ozet.dereceDagilimi['3'].adet} etiket="derece 3" genis />
+          <Olcu deger={ozet.kabulEdilebilirAdet} etiket="kabul edilebilir" genis />
           <Olcu deger={ozet.fotografliHata} etiket="fotoğraflı" genis />
         </View>
 
         <View style={s.kunye}>
           {[
             ['Araç', arac?.tam ?? denetim.aracId],
+            ['Faz', denetim.faz || '—'],
+            ['Ekip', denetim.ekip || '—'],
             ['Şasi', denetim.vin],
             ['Plaka', denetim.plaka || '—'],
             ['Rapor No', denetim.raporNo || '—'],
             ['Denetçi', denetim.denetci || '—'],
             ['Hat / Vardiya', [denetim.hat, denetim.vardiya].filter(Boolean).join(' / ') || '—'],
-            ['Tip', denetim.denetimTipi || '—'],
+            ['Kaynak', denetim.denetimTipi || '—'],
             ['Tarih', bicimTarih(denetim.baslangic)],
           ].map(([e, d]) => (
             <View key={e} style={s.kunyeSatiri}>
@@ -155,14 +165,20 @@ export default function RaporEkrani() {
         <Text style={s.bolumBaslik}>HATALAR ({denetim.hatalar.length})</Text>
         {denetim.hatalar.map((h) => (
           <View key={h.id} style={s.hataSatiri}>
-            <DereceRozeti derece={h.derece} />
+            {/* kabul GEÇİLMELİ: geçilmezse (3) bu ekranda düz 3 görünüyordu —
+                kabul edilmiş bulgu düzeltilecek hata gibi (26.09.2026). */}
+            <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.hataAd} numberOfLines={1}>
-                {PARCA_INDEKS[h.parcaId]?.ad ?? h.parcaId} — {HATA_TIPI_INDEKS[h.hataTipiId]?.ad ?? h.hataTipiId}
+                {parcaTamAdi(h.parcaId)} — {HATA_TIPI_INDEKS[h.hataTipiId]?.ad ?? h.hataTipiId}
               </Text>
               <Text style={s.hataYol} numberOfLines={1}>
-                {PARCA_INDEKS[h.parcaId]?.bolgeAd}
-                {h.fotograflar.length ? ` · ${h.fotograflar.length} fotoğraf` : ''}
+                {[
+                  PARCA_INDEKS[h.parcaId]?.bolgeAd,
+                  h.sorunTipi === 'Complex' ? 'Complex' : null,
+                  h.sorumlu ? `→ ${h.sorumlu}` : null,
+                  h.fotograflar.length ? `${h.fotograflar.length} fotoğraf` : null,
+                ].filter(Boolean).join(' · ')}
               </Text>
             </View>
           </View>

@@ -201,6 +201,46 @@ SQLite'ında gerçek SQL koşularak doğrulandı. Toplu yeniden adlandırma sır
 göç 1 ve 2'deki `siddet` sütun adı da yanlışlıkla değişmişti; tarayıcı testi
 "no such column: siddet" ile yakaladı, eski göçler orijinaline döndürüldü.
 
+**Sayımlarda kabul edilebilir bulgu ayrı tutulur.** Özetteki derece tablosu
+iki sütun: düzeltilecek hata ve kabul edilebilir. DPU (araç başı hata)
+kabul edilebilir bulguları saymaz — tanım gereği düzeltilecek hata değiller.
+
+## Rapor — ekibin kendi tablosu ("Part Related Issues")
+
+Kaynak: ekibin 26.09.2026'da gönderdiği ekran görüntüsü. Excel artık o
+tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
+İngilizce; uygulama ekranı Türkçe kalır):
+
+| No | Area | Phase | Grade | Issue | Type | Photo | Source | Team | Responsible |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Exterior · LH side | LP2 | 3 | LH front fender scratch | Part | *(gömülü)* | HMC Audit | QE Team 2 | HMTR PD (SEOHON E-HWA) |
+| 2 | Exterior · LH side | LP2 | (2) | LH front door gap variation - upper corner (x2) | Part | | HMC Audit | QE Team 2 | |
+
+- Başlık satırı ekibinkini izler: `Hyundai IONIQ 3 LP2 — Part-Related Issues
+  (QE Team 2, 26.09.2026)`. İlk sayfanın adı "Part Related Issues".
+- **Issue** sütunu elle yazılmaz, üretilir: `{parça} {hata} - {ayrıntı}` —
+  ekibin kendi yazımı ("FR door trim wrinkle - quadrant inner…") örnek alındı.
+  Parça adı **her zaman tarafı içerir** (`parcaTamAdi`): katalogda dış yan
+  paneller tarafı taşımıyordu ("Front fender"), "hangi çamurluk?" belli
+  değildi.
+- İngilizce küçültme İngilizce yerel ayarla yapılır. Türkçe yerelde "I" → "ı"
+  olur; "Inoperative" raporda "ınoperative" çıkardı (ölçüldü, testte var).
+- **Phase / Team / Source** denetim başlangıcında bir kez girilir ve
+  hatırlanır. Source'un varsayılanı "HMC Audit".
+- **Type** (Part/Complex) varsayılan Part; ayrıntı ekranından değişir.
+- **Responsible parçaya öğrenilir:** ayrıntı ekranında bir parça için yazılan
+  sorumlu, o parçanın sonraki hızlı kayıtlarına kendiliğinden gelir.
+  Hiç yazılmamışsa **boş kalır** — tahmin edilip rapora basılmaz. Complex
+  hatanın sorumlusu (çoğu zaman bir tasarım ekibi) parçaya **öğretilmez**;
+  öğretilseydi o parçanın sıradan hataları tasarım ekibine yazılırdı.
+
+**Bilinmeyen — uydurulmadı, ekibe sorulacak:**
+- Ekibin tablosundaki **C ve D** sütunları (sayılar) — rapora konmadı.
+- **F** sütununda görülen sarı **"A"** — derece oraya kondu ama "A"nın
+  anlamı bilinmiyor.
+- **Area** değerleri: ekibin tablosunda "Moving & Interior" gibi daha kaba
+  alanlar var; şimdilik kendi bölge adlarımız yazılıyor.
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |
@@ -213,7 +253,7 @@ göç 1 ve 2'deki `siddet` sütun adı da yanlışlıkla değişmişti; tarayıc
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |
 | SQLite yerel depo (senkrona hazır şema) | **Bitti** |
-| Excel/CSV üretimi ve paylaşımı | **Bitti** — ama sütunlar ekibin tablosuna henüz uyarlanmadı |
+| Excel/CSV üretimi ve paylaşımı | **Bitti** — ekibin tablosunun düzeninde, İngilizce; C/D sütunları ve F'deki "A" bilinmiyor |
 | **Merkezi sunucu (Supabase), çok kullanıcı, yönetici panosu** | **YAPILMADI** — sıradaki iş |
 | Hata takip döngüsü (atandı → giderildi → doğrulandı) | Şema hazır, arayüz **yapılmadı** |
 | Barkod okuma | Kodu yazıldı, **gerçek kamerayla denenmedi** |
@@ -225,6 +265,13 @@ Uygulama `expo export --platform web` ile paketlendi ve gerçek Chromium'da
 uçtan uca koşuldu: açılış → yeni denetim → VIN doğrulama → SQLite'a yazma →
 3B modelin çizilmesi (tuval %37 dolu) → 166 parça içinde arama → hata kaydı →
 rapor → koyu tema. Tip denetimi (`strict`) sıfır hatayla geçiyor.
+
+**Excel dosyasının kendisi** (26.09.2026): uygulamanın `excelUret` koduyla
+gerçek bir JPEG gömülü örnek rapor üretildi ve uygulamadan BAĞIMSIZ bir
+okuyucuyla (openpyxl) açıldı: ZIP bütünlüğü, sayfa adları, başlık, 10 sütun
+başlığı, her hücrenin değeri, `(2)` gösterimi, fotoğrafın doğru hücreye (Photo
+sütunu, doğru satır) ve 149×112 px boyuta oturduğu okundu. **Gerçek Excel'de
+açılmadı** — bu ortamda Excel yok.
 
 **Native tarafta hiçbir şey denenmedi.** Web paketi, mantığın ve arayüzün
 doğru olduğunu gösterir; kamera, barkod, dosya paylaşımı ve WebView'ın tablet
