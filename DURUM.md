@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 26.09.2026 10:30 UTC
+**Son güncelleme:** 26.09.2026 akşam (web paketi Supabase adresi düzeltildi)
 
 ## 1. Şu an — yayın durumu
 
@@ -25,7 +25,9 @@
   2.1(b) abonelik yüklenmiyor → RevenueCat `default`/`ai` teklifleri ürün
   sahibi tarafından dolduruldu (26.09 ölçüldü).
 - **Web** (`vekilpro.app/app`) `main` dalından yayınlanıyor; `docs/app`
-  `npm run export:web` ile üretilip commit edilir. Canlı paket = main'deki.
+  `npm run export:web` ile üretilip commit edilir. **18.09–26.09 arası canlı
+  web giriş yaptırmıyordu** (paket Supabase adresi olmadan derlenmişti);
+  26.09'da düzeltildi. Artık ortam yoksa derleme durur, tests/webPaketi düşer.
 - **Android/Play:** başlanmadı (bkz. KARAR-DEFTERI §3).
 - **Hasat** yayına kadar durduruldu (0156). Vektörleme kapalı (0154/0155).
 
@@ -40,6 +42,17 @@
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
 5. Supabase panelinde "Leaked password protection" kapalı (bir tık).
 6. KVKK veri sorumlusu kimliği (unvan/adres/e-posta) hâlâ eksik.
+7. Android "Şifremi unuttum" kesilmesi: login/signup'taki `<Link><Text/></Link>`
+   Pressable + tek Text yapıldı (26.09). Android'de DOĞRULANMADI (emülatör
+   yok) — ürün sahibi yeni derlemede bakmalı. Kod değişikliği; iOS/Android'e
+   ancak yeni derleme ya da OTA ile gider.
+8. Statik çeviri anahtarı taraması: eksik 0/1.819 (26.09, kod taraması).
+   Dinamik anahtarlar (51 yer) canlı değerlerle kısmen karşılaştırıldı.
+9. İzinler (resmi belge, 26.09 okundu): bulut oturumunda mod menüsü yalnız
+   Accept edits / Plan / Auto sunar — "Bypass permissions isn't available".
+   Repo `.claude/settings.json`'daki bypass/dontAsk bulutta YOK SAYILIR.
+   En az soru = Auto (arka planda güvenlik denetimi; Apple gönderimi ve kendi
+   izin ayarını değiştirme bu denetimce engellendi). "Bypass var" deme — yok.
 
 ## 3. Kritik kimlikler
 

@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { WebKart } from '@/components/ui/WebKart';
@@ -390,9 +390,9 @@ export default function SignupScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t('auth.haveAccount')}</Text>
-            <Link href="/(auth)/login" replace>
+            <Pressable onPress={() => router.replace('/(auth)/login')} hitSlop={8} accessibilityRole="link">
               <Text style={styles.footerLink}>{t('auth.signInLink')}</Text>
-            </Link>
+            </Pressable>
           </View>
           </WebKart>
         </ScrollView>
