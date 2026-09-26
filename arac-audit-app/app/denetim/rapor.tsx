@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
-  Baslik, BaslikDugmesi, BilgiKutusu, Dugme, HataKutusu, Olcu, SiddetRozeti, Yukleniyor,
+  Baslik, BaslikDugmesi, BilgiKutusu, Dugme, HataKutusu, Olcu, DereceRozeti, Yukleniyor,
 } from '@/bilesenler/temel';
 import { HATA_TIPI_INDEKS, PARCA_INDEKS } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
@@ -107,8 +107,6 @@ export default function RaporEkrani() {
   }
 
   const arac = ARAC_INDEKS[denetim.aracId];
-  const sonucRenk = ozet.sonuc.kod === 'RED' ? renkler.tehlike
-    : ozet.sonuc.kod === 'SARTLI' ? renkler.uyari : renkler.basari;
 
   return (
     <View style={{ flex: 1, backgroundColor: renkler.bg }}>
@@ -119,14 +117,10 @@ export default function RaporEkrani() {
       />
 
       <ScrollView contentContainerStyle={s.govde} showsVerticalScrollIndicator={false}>
-        <View style={s.sonucKutu}>
-          <Text style={[s.sonucMetin, { color: sonucRenk }]}>{ozet.sonuc.ad}</Text>
-          <Text style={s.gerekce}>{ozet.sonuc.gerekce}</Text>
-        </View>
 
         <View style={s.olcuSatiri}>
           <Olcu deger={ozet.toplamAdet} etiket="hata adedi" genis />
-          <Olcu deger={ozet.toplamPuan} etiket="ceza puanı" genis />
+          <Olcu deger={ozet.dereceDagilimi['3'].adet} etiket="derece 3" genis />
           <Olcu deger={ozet.fotografliHata} etiket="fotoğraflı" genis />
         </View>
 
@@ -154,14 +148,14 @@ export default function RaporEkrani() {
         ) : ozet.bolgeDagilimi.map((b) => (
           <View key={b.id} style={s.dagilimSatiri}>
             <Text style={s.dagilimAd} numberOfLines={1}>{b.ad}</Text>
-            <Text style={s.dagilimSayi}>{b.adet} hata · {b.puan} puan</Text>
+            <Text style={s.dagilimSayi}>{b.adet} hata</Text>
           </View>
         ))}
 
         <Text style={s.bolumBaslik}>HATALAR ({denetim.hatalar.length})</Text>
         {denetim.hatalar.map((h) => (
           <View key={h.id} style={s.hataSatiri}>
-            <SiddetRozeti siddet={h.siddet} />
+            <DereceRozeti derece={h.derece} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.hataAd} numberOfLines={1}>
                 {PARCA_INDEKS[h.parcaId]?.ad ?? h.parcaId} — {HATA_TIPI_INDEKS[h.hataTipiId]?.ad ?? h.hataTipiId}
@@ -176,11 +170,6 @@ export default function RaporEkrani() {
 
         {bilgi ? <BilgiKutusu metin={bilgi} /> : null}
         {hata ? <HataKutusu metin={hata} /> : null}
-
-        <BilgiKutusu
-          tur="uyari"
-          metin="Ceza puanı ağırlıkları ve karar eşikleri ayarlanabilir başlangıç değerleridir; resmî bir audit standardından alınmamıştır."
-        />
       </ScrollView>
 
       <View style={s.altCubuk}>

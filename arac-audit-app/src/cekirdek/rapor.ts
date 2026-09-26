@@ -22,8 +22,8 @@ export interface Sutun {
 }
 
 import { xlsxOlustur, STIL, gosterimOlcusu, pikselPunto, sutunAdi } from './xlsx';
-import { PARCA_INDEKS, HATA_TIPI_INDEKS, HATA_GRUPLARI, SIDDETLER } from './katalog';
-import { denetimOzeti, hataKodu, SIDDET_INDEKS, topluOzet } from './puan';
+import { PARCA_INDEKS, HATA_TIPI_INDEKS, HATA_GRUPLARI, DERECELER } from './katalog';
+import { denetimOzeti, dereceGosterimi, hataKodu, topluOzet } from './puan';
 import { ARAC_INDEKS } from './model3d';
 
 /** Fotoğrafın Excel'de kaplayacağı en büyük ölçü (piksel). */
@@ -54,9 +54,8 @@ export const SUTUNLAR: Sutun[] = [
   { anahtar: 'parca',   baslik: 'Parça',              baslikEn: 'Part',             genislik: 26, stil: STIL.GOVDE,      deger: (h, i, c) => (c.dil === 'en' ? PARCA_INDEKS[h.parcaId]?.en : PARCA_INDEKS[h.parcaId]?.ad) ?? h.parcaId },
   { anahtar: 'hata',    baslik: 'Hata Tipi',          baslikEn: 'Defect',           genislik: 24, stil: STIL.GOVDE,      deger: (h, i, c) => (c.dil === 'en' ? HATA_TIPI_INDEKS[h.hataTipiId]?.en : HATA_TIPI_INDEKS[h.hataTipiId]?.ad) ?? h.hataTipiId },
   { anahtar: 'grup',    baslik: 'Hata Grubu',         baslikEn: 'Defect Group',     genislik: 18, stil: STIL.GOVDE,      deger: (h, i, c) => { const g = HATA_GRUPLARI[HATA_TIPI_INDEKS[h.hataTipiId]?.grup]; return (c.dil === 'en' ? g?.en : g?.ad) ?? ''; } },
-  { anahtar: 'siddet',  baslik: 'Şiddet',             baslikEn: 'Severity',         genislik: 9,  stil: null,            deger: (h) => h.siddet, stilSecici: (h) => ({ A: STIL.SIDDET_A, B: STIL.SIDDET_B, C: STIL.SIDDET_C }[h.siddet] ?? STIL.GOVDE_ORTA) },
+  { anahtar: 'derece',  baslik: 'Derece',             baslikEn: 'Grade',            genislik: 9,  stil: null,            deger: (h) => dereceGosterimi(h), stilSecici: (h) => ({ '3': STIL.DERECE_3, '2': STIL.DERECE_2, '1': STIL.DERECE_1 }[h.derece] ?? STIL.GOVDE_ORTA) },
   { anahtar: 'adet',    baslik: 'Adet',               baslikEn: 'Qty',              genislik: 7,  stil: STIL.SAYI,       deger: (h) => h.adet ?? 1 },
-  { anahtar: 'puan',    baslik: 'Ceza Puanı',         baslikEn: 'Demerit',          genislik: 11, stil: STIL.SAYI,       deger: (h) => (SIDDET_INDEKS[h.siddet]?.puan ?? 0) * (h.adet ?? 1) },
   { anahtar: 'konum',   baslik: 'Konum / Açıklama',   baslikEn: 'Location / Note',  genislik: 34, stil: STIL.GOVDE,      deger: (h) => [h.konum, h.aciklama].filter(Boolean).join(' — ') },
   { anahtar: 'foto',    baslik: 'Fotoğraf',           baslikEn: 'Photo',            genislik: 24, stil: STIL.GOVDE,      fotograf: true, deger: () => '' },
   { anahtar: 'saat',    baslik: 'Tespit Saati',       baslikEn: 'Time',             genislik: 12, stil: STIL.GOVDE_ORTA, deger: (h) => bicimSaat(h.zaman) },
@@ -73,7 +72,7 @@ function ustBilgiCiftleri(denetim: Denetim, ozet: Ozet, dil: Dil): (string | num
     [E('Rapor No', 'Report No'), denetim.raporNo || '', E('Araç', 'Vehicle'), arac?.tam ?? denetim.aracId ?? '', E('Denetim Tarihi', 'Audit Date'), bicimTarih(denetim.baslangic)],
     [E('Şasi No (VIN)', 'VIN'), denetim.vin || '', E('Plaka', 'Plate'), denetim.plaka || '—', E('Denetçi', 'Auditor'), denetim.denetci || ''],
     [E('Üretim Hattı', 'Line'), denetim.hat || '', E('Vardiya', 'Shift'), denetim.vardiya || '', E('Denetim Tipi', 'Audit Type'), denetim.denetimTipi || ''],
-    [E('Toplam Hata', 'Total Defects'), ozet.toplamAdet, E('Toplam Ceza Puanı', 'Total Demerit'), ozet.toplamPuan, E('SONUÇ', 'RESULT'), dil === 'en' ? ozet.sonuc.en : ozet.sonuc.ad],
+    [E('Toplam Hata', 'Total Defects'), ozet.toplamAdet, E('Fotoğraflı', 'With Photo'), ozet.fotografliHata, '', ''],
   ];
 }
 
@@ -91,7 +90,7 @@ export function excelUret(
 ): Uint8Array {
   const dil = ayarlar.dil ?? 'tr';
   const baglam = { dil };
-  const ozet = denetimOzeti(denetim, ayarlar.esikler);
+  const ozet = denetimOzeti(denetim);
   const hatalar = denetim.hatalar ?? [];
   const sutunSayisi = SUTUNLAR.length;
   const fotoSutunu = SUTUNLAR.findIndex((s) => s.fotograf);
@@ -196,39 +195,31 @@ function ozetSayfasi(denetim: Denetim, ozet: Ozet, dil: Dil): Sayfa {
     [],
     [{ v: E('Toplam hata kaydı', 'Defect records'), stil: STIL.ETIKET }, { v: ozet.toplamHata, stil: STIL.SAYI }],
     [{ v: E('Toplam hata adedi', 'Total quantity'), stil: STIL.ETIKET }, { v: ozet.toplamAdet, stil: STIL.SAYI }],
-    [{ v: E('Toplam ceza puanı', 'Total demerit'), stil: STIL.ETIKET }, { v: ozet.toplamPuan, stil: STIL.SAYI }],
     [{ v: E('Fotoğraflı hata', 'With photo'), stil: STIL.ETIKET }, { v: ozet.fotografliHata, stil: STIL.SAYI }],
     [{ v: E('Fotoğrafsız hata', 'Without photo'), stil: STIL.ETIKET }, { v: ozet.fotografsizHata, stil: STIL.SAYI }],
-    [{ v: E('Sonuç', 'Result'), stil: STIL.ETIKET }, { v: dil === 'en' ? ozet.sonuc.en : ozet.sonuc.ad, stil: STIL.GOVDE }, { v: ozet.sonuc.gerekce, stil: STIL.GOVDE }],
     [],
-    [{ v: E('ŞİDDETE GÖRE', 'BY SEVERITY'), stil: STIL.ETIKET }],
-    [{ v: E('Sınıf', 'Class'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }, { v: E('Ceza Puanı', 'Demerit'), stil: STIL.BASLIK }, { v: E('Tanım', 'Definition'), stil: STIL.BASLIK }],
+    [{ v: E('DERECEYE GÖRE', 'BY GRADE'), stil: STIL.ETIKET }],
+    [{ v: E('Derece', 'Grade'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }, { v: E('Tanım', 'Definition'), stil: STIL.BASLIK }],
   ];
-  for (const s of SIDDETLER) {
-    const d = ozet.siddetDagilimi[s.id] ?? { adet: 0, puan: 0 };
+  for (const s of DERECELER) {
+    const d = ozet.dereceDagilimi[s.id] ?? { adet: 0 };
     satirlar.push([
-      { v: `${s.id} — ${dil === 'en' ? s.en : s.ad}`, stil: { A: STIL.SIDDET_A, B: STIL.SIDDET_B, C: STIL.SIDDET_C }[s.id] },
-      { v: d.adet, stil: STIL.SAYI }, { v: d.puan, stil: STIL.SAYI }, { v: s.aciklama, stil: STIL.GOVDE },
+      { v: `${s.id} — ${dil === 'en' ? s.en : s.ad}`, stil: { '3': STIL.DERECE_3, '2': STIL.DERECE_2, '1': STIL.DERECE_1 }[s.id] },
+      { v: d.adet, stil: STIL.SAYI }, { v: s.aciklama, stil: STIL.GOVDE },
     ]);
   }
 
   satirlar.push([], [{ v: E('BÖLGEYE GÖRE', 'BY ZONE'), stil: STIL.ETIKET }],
-    [{ v: E('Bölge', 'Zone'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }, { v: E('Ceza Puanı', 'Demerit'), stil: STIL.BASLIK }]);
+    [{ v: E('Bölge', 'Zone'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }]);
   for (const b of ozet.bolgeDagilimi) {
-    satirlar.push([{ v: b.ad, stil: STIL.GOVDE }, { v: b.adet, stil: STIL.SAYI }, { v: b.puan, stil: STIL.SAYI }]);
+    satirlar.push([{ v: b.ad, stil: STIL.GOVDE }, { v: b.adet, stil: STIL.SAYI }]);
   }
 
   satirlar.push([], [{ v: E('EN ÇOK HATA ALAN PARÇALAR', 'TOP PARTS'), stil: STIL.ETIKET }],
-    [{ v: E('Parça', 'Part'), stil: STIL.BASLIK }, { v: E('Bölge', 'Zone'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }, { v: E('Ceza Puanı', 'Demerit'), stil: STIL.BASLIK }]);
+    [{ v: E('Parça', 'Part'), stil: STIL.BASLIK }, { v: E('Bölge', 'Zone'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }]);
   for (const p of ozet.parcaDagilimi.slice(0, 20)) {
-    satirlar.push([{ v: p.ad, stil: STIL.GOVDE }, { v: p.bolgeAd, stil: STIL.GOVDE }, { v: p.adet, stil: STIL.SAYI }, { v: p.puan, stil: STIL.SAYI }]);
+    satirlar.push([{ v: p.ad, stil: STIL.GOVDE }, { v: p.bolgeAd, stil: STIL.GOVDE }, { v: p.adet, stil: STIL.SAYI }]);
   }
-
-  satirlar.push([], [{
-    v: E('Not: ceza puanı ağırlıkları ve karar eşikleri ayarlanabilir başlangıç değerleridir; resmî bir audit standardından alınmamıştır.',
-         'Note: demerit weights and decision thresholds are configurable starting values, not taken from an official audit standard.'),
-    stil: STIL.SOLUK,
-  }]);
 
   return { ad: E('Özet', 'Summary'), satirlar, sutunGenislikleri: [34, 12, 14, 52] };
 }
@@ -244,7 +235,7 @@ export function topluExcelUret(
 ): Uint8Array {
   const dil = ayarlar.dil ?? 'tr';
   const E = (tr: string, en: string): string => (dil === 'en' ? en : tr);
-  const toplu = topluOzet(denetimler, ayarlar.esikler);
+  const toplu = topluOzet(denetimler);
 
   const satirlar: Hucre[][] = [
     [{ v: E('TOPLU DENETİM RAPORU', 'BATCH AUDIT REPORT'), stil: STIL.BASLIK_BUYUK }],
@@ -252,7 +243,6 @@ export function topluExcelUret(
     [{ v: E('Denetlenen araç', 'Vehicles audited'), stil: STIL.ETIKET }, { v: toplu.aracSayisi, stil: STIL.SAYI }],
     [{ v: E('Toplam hata adedi', 'Total defects'), stil: STIL.ETIKET }, { v: toplu.toplamAdet, stil: STIL.SAYI }],
     [{ v: 'DPU (Defects Per Unit)', stil: STIL.ETIKET }, { v: toplu.dpu, stil: STIL.SAYI }],
-    [{ v: E('Araç başı ceza puanı', 'Demerit per unit'), stil: STIL.ETIKET }, { v: toplu.aracBasiPuan, stil: STIL.SAYI }],
     [],
     [{ v: E('ARAÇLAR', 'VEHICLES'), stil: STIL.ETIKET }],
     [E('Şasi No', 'VIN'), E('Plaka', 'Plate'), E('Araç', 'Vehicle'), E('Tarih', 'Date'), E('Denetçi', 'Auditor'),
@@ -267,8 +257,6 @@ export function topluExcelUret(
       { v: bicimTarih(denetim.baslangic), stil: STIL.GOVDE_ORTA },
       { v: denetim.denetci ?? '', stil: STIL.GOVDE },
       { v: ozet.toplamAdet, stil: STIL.SAYI },
-      { v: ozet.toplamPuan, stil: STIL.SAYI },
-      { v: dil === 'en' ? ozet.sonuc.en : ozet.sonuc.ad, stil: { RED: STIL.SIDDET_A, SARTLI: STIL.SIDDET_B, KABUL: STIL.GOVDE_ORTA }[ozet.sonuc.kod] },
     ]);
   }
 
@@ -361,7 +349,7 @@ export function htmlRapor(
 ): string {
   const dil = ayarlar.dil ?? 'tr';
   const baglam = { dil };
-  const ozet = denetimOzeti(denetim, ayarlar.esikler);
+  const ozet = denetimOzeti(denetim);
   const arac = ARAC_INDEKS[denetim.aracId];
   const kacisHaritasi: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
   const g = (s: unknown): string => String(s ?? '').replace(/[&<>"]/g, (c) => kacisHaritasi[c] ?? c);
@@ -382,7 +370,7 @@ export function htmlRapor(
           .filter((f): f is { url: string } => !!f?.url);
         return `<td class="r-foto">${foto.map((f) => `<img src="${g(f.url)}" alt="">`).join('')}</td>`;
       }
-      const sinif = s.anahtar === 'siddet' ? ` class="r-s r-s${g(h.siddet)}"` : '';
+      const sinif = s.anahtar === 'derece' ? ` class="r-s r-s${g(h.derece)}"` : '';
       return `<td${sinif}>${g(s.deger(h, i, baglam))}</td>`;
     }).join('');
     return `<tr>${hucreler}</tr>`;
@@ -392,10 +380,7 @@ export function htmlRapor(
 <header><h1>${E('Araç Denetim Raporu', 'Vehicle Audit Report')}</h1>
 <p class="r-arac">${g(arac?.tam ?? denetim.aracId ?? '')} · ${g(denetim.vin ?? '')}</p></header>
 <div class="r-izgara">${ustBilgi}</div>
-<div class="r-sonuc r-sonuc-${g(ozet.sonuc.kod)}"><strong>${g(dil === 'en' ? ozet.sonuc.en : ozet.sonuc.ad)}</strong><span>${g(ozet.sonuc.gerekce)}</span></div>
 <div class="r-kaydir"><table class="r-tablo"><thead><tr>${basliklar}</tr></thead><tbody>${govde || `<tr><td colspan="${gorunurSutunlar.length}">${E('Hata kaydedilmedi.', 'No defects recorded.')}</td></tr>`}</tbody></table></div>
-<p class="r-not">${E('Ceza puanı ağırlıkları ve karar eşikleri ayarlanabilir başlangıç değerleridir; resmî bir audit standardından alınmamıştır.',
-  'Demerit weights and decision thresholds are configurable starting values, not from an official audit standard.')}</p>
 </section>`;
 }
 

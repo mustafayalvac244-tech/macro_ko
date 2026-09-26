@@ -4,10 +4,10 @@ import {
   Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 
-import { Dugme, Girdi, HataKutusu, SiddetRozeti } from '@/bilesenler/temel';
+import { Dugme, Girdi, HataKutusu, DereceRozeti } from '@/bilesenler/temel';
 import { fotografKucult } from '@/cekirdek/goruntu';
-import { HATA_GRUPLARI, PARCA_INDEKS, parcaHataTipleri, SIDDETLER } from '@/cekirdek/katalog';
-import { Hata, HataGrubuId, HataTipi, SiddetKodu } from '@/cekirdek/tipler';
+import { HATA_GRUPLARI, PARCA_INDEKS, parcaHataTipleri, DERECELER } from '@/cekirdek/katalog';
+import { Hata, HataGrubuId, HataTipi, DereceKodu } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { fotografKaydet, FotografKaydi, fotografSil } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -47,7 +47,8 @@ export function HataSayfasi({
   const tipEkle = useKatalog((d) => d.ekle);
 
   const [hataTipiId, setHataTipiId] = useState<string | null>(null);
-  const [siddet, setSiddet] = useState<SiddetKodu>('C');
+  const [derece, setDerece] = useState<DereceKodu>('1');
+  const [kabul, setKabul] = useState(false);
   const [adet, setAdet] = useState('1');
   const [konum, setKonum] = useState('');
   const [aciklama, setAciklama] = useState('');
@@ -63,7 +64,8 @@ export function HataSayfasi({
   if (taslak && taslak !== acilanTaslak) {
     setAcilanTaslak(taslak);
     setHataTipiId(taslak.hataTipiId || null);
-    setSiddet(taslak.siddet || 'C');
+    setDerece(taslak.derece || '1');
+    setKabul(!!taslak.kabulEdilebilir);
     setAdet(String(taslak.adet || 1));
     setKonum(taslak.konum ?? '');
     setAciklama(taslak.aciklama ?? '');
@@ -90,7 +92,7 @@ export function HataSayfasi({
 
   const tipSec = useCallback((t: HataTipi) => {
     setHataTipiId(t.id);
-    if (!duzenleme) setSiddet(t.siddet);
+    if (!duzenleme) setDerece(t.derece);
   }, [duzenleme]);
 
   const fotografEkle = useCallback(async (kameradan: boolean) => {
@@ -135,13 +137,14 @@ export function HataSayfasi({
     onKaydet({
       ...taslak,
       hataTipiId,
-      siddet,
+      derece,
+      kabulEdilebilir: kabul,
       adet: Math.max(1, Math.min(99, Number(adet) || 1)),
       konum: konum.trim(),
       aciklama: aciklama.trim(),
       fotograflar: fotoIdleri,
     }, fotoIdleri);
-  }, [aciklama, adet, fotoIdleri, hataTipiId, konum, onKaydet, siddet, taslak]);
+  }, [aciklama, adet, fotoIdleri, hataTipiId, kabul, konum, onKaydet, derece, taslak]);
 
   const fotoHaritasi = useMemo(
     () => new Map(fotograflar.map((f) => [f.id, f])),
@@ -157,7 +160,7 @@ export function HataSayfasi({
           <Text style={s.parcaAd} numberOfLines={1}>{parca?.ad ?? taslak.parcaId}</Text>
           <Text style={s.parcaYol} numberOfLines={1}>{parca?.bolgeAd} · {parca?.en}</Text>
         </View>
-        {hataTipiId ? <SiddetRozeti siddet={siddet} buyuk /> : null}
+        {hataTipiId ? <DereceRozeti derece={derece} kabul={kabul} buyuk /> : null}
       </View>
 
       <ScrollView style={s.kaydir} contentContainerStyle={s.kaydirIc} keyboardShouldPersistTaps="handled">
@@ -237,25 +240,27 @@ export function HataSayfasi({
           </Pressable>
         ) : null}
 
-        <Text style={s.bolumBaslik}>ŞİDDET</Text>
+        <Text style={s.bolumBaslik}>DERECE</Text>
         <View style={s.izgara}>
-          {SIDDETLER.map((sd) => {
-            const secili = siddet === sd.id;
+          {DERECELER.map((sd) => {
+            const secili = derece === sd.id;
             return (
               <Pressable
                 key={sd.id}
                 accessibilityRole="radio"
                 aria-checked={secili}
-                accessibilityLabel={`${sd.ad} — ${sd.puan} puan`}
-                onPress={() => setSiddet(sd.id)}
+                accessibilityLabel={`Derece ${sd.ad}`}
+                onPress={() => setDerece(sd.id)}
                 style={[s.secenek, { flexBasis: 100 }, secili && s.secenekSecili]}
               >
-                <Text style={[s.secenekAd, secili && { color: renkler.birincil }]}>{sd.id} · {sd.ad}</Text>
-                <Text style={s.secenekEn}>{sd.puan} puan</Text>
+                <Text style={[s.secenekBuyuk, secili && { color: renkler.birincil }]}>{sd.ad}</Text>
+                
               </Pressable>
             );
           })}
         </View>
+
+        <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} />
 
         <View style={s.ikiliSatir}>
           <View style={{ flex: 1, gap: bosluk.xxs }}>
@@ -346,12 +351,12 @@ export function HataSayfasi({
  * "cam" grubuna bir tip ekler, kapı sacında aramaya devam eder ve eklediği
  * şeyi bulamaz — eklediğini sanıp kaydetmeden geçer.
  */
-function YeniTipFormu({
+export function YeniTipFormu({
   baslangicAd, izinliGruplar, onEkle, onVazgec,
 }: {
   baslangicAd: string;
   izinliGruplar: HataGrubuId[];
-  onEkle: (g: { grup: HataGrubuId; ad: string; en: string; siddet: SiddetKodu }) => Promise<void>;
+  onEkle: (g: { grup: HataGrubuId; ad: string; en: string; derece: DereceKodu }) => Promise<void>;
   onVazgec: () => void;
 }) {
   const { renkler } = useTema();
@@ -359,7 +364,7 @@ function YeniTipFormu({
   const [ad, setAd] = useState(baslangicAd);
   const [en, setEn] = useState('');
   const [grup, setGrup] = useState<HataGrubuId | null>(izinliGruplar[0] ?? null);
-  const [siddet, setSiddet] = useState<SiddetKodu>('C');
+  const [derece, setDerece] = useState<DereceKodu>('1');
   const [kaydediliyor, setKaydediliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -368,7 +373,7 @@ function YeniTipFormu({
     setKaydediliyor(true);
     setHata(null);
     try {
-      await onEkle({ grup, ad: ad.trim(), en: en.trim(), siddet });
+      await onEkle({ grup, ad: ad.trim(), en: en.trim(), derece });
     } catch (h) {
       setHata(h instanceof Error ? h.message : String(h));
     } finally {
@@ -408,19 +413,19 @@ function YeniTipFormu({
 
       <Text style={s.alanEtiketi}>ÖNERİLEN ŞİDDET</Text>
       <View style={s.izgara}>
-        {SIDDETLER.map((sd) => (
+        {DERECELER.map((sd) => (
           <Pressable
             key={sd.id}
             accessibilityRole="radio"
-            aria-checked={siddet === sd.id}
+            aria-checked={derece === sd.id}
             // "Önerilen şiddet" öneki ŞART: ana sayfadaki ŞİDDET seçimi de
             // ekranda duruyor, aynı etiketle iki radyo ekran okuyucuda
             // ayırt edilemez.
-            accessibilityLabel={`Önerilen şiddet ${sd.ad} — ${sd.puan} puan`}
-            onPress={() => setSiddet(sd.id)}
-            style={[s.secenek, { flexBasis: 100 }, siddet === sd.id && s.secenekSecili]}
+            accessibilityLabel={`Önerilen derece ${sd.ad}`}
+            onPress={() => setDerece(sd.id)}
+            style={[s.secenek, { flexBasis: 100 }, derece === sd.id && s.secenekSecili]}
           >
-            <Text style={[s.secenekAd, siddet === sd.id && { color: renkler.birincil }]}>
+            <Text style={[s.secenekAd, derece === sd.id && { color: renkler.birincil }]}>
               {sd.id} · {sd.ad}
             </Text>
           </Pressable>
@@ -440,6 +445,35 @@ function YeniTipFormu({
         />
       </View>
     </View>
+  );
+}
+
+/**
+ * "Kabul edilebilir" anahtarı. Açıkken derece parantezle yazılır: (3).
+ *
+ * Etiket anahtarın NE YAZDIRACAĞINI gösterir, yalnız açık/kapalı değil: denetçi
+ * raporda "(3)" mü "3" mü çıkacağını kaydetmeden görsün. Parantez anlamı tersine
+ * çeviriyor; yanlış basılırsa kabul edilmiş bulgu iş emri doğurur.
+ */
+export function KabulAnahtari({
+  kabul, derece, onDegis,
+}: { kabul: boolean; derece: DereceKodu; onDegis: (k: boolean) => void }) {
+  const { renkler } = useTema();
+  const s = useMemo(() => stiller(renkler), [renkler]);
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      aria-checked={kabul}
+      accessibilityLabel={`Kabul edilebilir — raporda ${kabul ? `(${derece})` : derece} yazılır`}
+      onPress={() => onDegis(!kabul)}
+      style={[s.kabulSatir, kabul && s.kabulSatirAcik]}
+    >
+      <View style={[s.kabulKutu, kabul && { backgroundColor: renkler.birincil, borderColor: renkler.birincil }]}>
+        {kabul ? <Text style={s.kabulTik}>✓</Text> : null}
+      </View>
+      <Text style={s.kabulMetin}>Kabul edilebilir</Text>
+      <Text style={s.kabulOnizleme}>{kabul ? `(${derece})` : derece}</Text>
+    </Pressable>
   );
 }
 
@@ -472,6 +506,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   secenekSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   secenekSatir: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   secenekAd: { ...tipografi.captionOrta, color: r.metin, flexShrink: 1 },
+  secenekBuyuk: { ...tipografi.h3, color: r.metin, textAlign: 'center' },
   secenekEn: { ...tipografi.caption, color: r.metinSolgun, fontSize: 11 },
   ozelIsaret: {
     ...tipografi.caption, fontSize: 9, color: r.bilgi,
@@ -528,6 +563,20 @@ const stiller = (r: Renkler) => StyleSheet.create({
     borderColor: r.cizgiGuclu, backgroundColor: r.yuzey,
   },
   fotoEkleMetin: { ...tipografi.caption, color: r.metinIkincil, textAlign: 'center' },
+
+  kabulSatir: {
+    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: DOKUNMA,
+    paddingHorizontal: bosluk.sm, borderRadius: kose.md,
+    borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+  },
+  kabulSatirAcik: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
+  kabulKutu: {
+    width: 24, height: 24, borderRadius: kose.sm, borderWidth: 1.5,
+    borderColor: r.cizgiGuclu, alignItems: 'center', justifyContent: 'center',
+  },
+  kabulTik: { ...tipografi.captionOrta, color: r.metinTers },
+  kabulMetin: { ...tipografi.bodyOrta, color: r.metin, flex: 1 },
+  kabulOnizleme: { ...tipografi.sayiBuyuk, color: r.metin },
 
   eylemler: {
     flexDirection: 'row', gap: bosluk.xs, padding: bosluk.md,

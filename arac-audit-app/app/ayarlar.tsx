@@ -2,12 +2,10 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Baslik, BaslikDugmesi, BilgiKutusu, Dugme, Girdi, SiddetRozeti } from '@/bilesenler/temel';
-import { HATA_GRUPLARI, SIDDETLER } from '@/cekirdek/katalog';
-import { VARSAYILAN_ESIKLER } from '@/cekirdek/puan';
-import { Esikler } from '@/cekirdek/tipler';
+import { Baslik, BaslikDugmesi, BilgiKutusu, Dugme, DereceRozeti } from '@/bilesenler/temel';
+import { HATA_GRUPLARI } from '@/cekirdek/katalog';
 import { bosluk, DOKUNMA, kose, Renkler, TemaTercihi, tipografi, useTema } from '@/tema';
-import { ayarOku, ayarYaz, bekleyenSenkron, hataTipiKullanimi } from '@/veri/depo';
+import { bekleyenSenkron, hataTipiKullanimi } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
 
 const TEMALAR: { deger: TemaTercihi; etiket: string }[] = [
@@ -21,12 +19,9 @@ export default function Ayarlar() {
   const { renkler, tercih, tercihiAyarla } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
 
-  const [esikler, setEsikler] = useState<Esikler>(VARSAYILAN_ESIKLER);
   const [bekleyen, setBekleyen] = useState(0);
-  const [kaydedildi, setKaydedildi] = useState(false);
 
   useEffect(() => {
-    ayarOku<Esikler>('esikler', VARSAYILAN_ESIKLER).then(setEsikler).catch(() => {});
     bekleyenSenkron().then(setBekleyen).catch(() => {});
   }, []);
 
@@ -53,52 +48,7 @@ export default function Ayarlar() {
           ))}
         </View>
 
-        <Text style={s.bolumBaslik}>KARAR EŞİKLERİ</Text>
-        <BilgiKutusu
-          tur="uyari"
-          metin="Bu ağırlıklar ve eşikler ÖRNEK başlangıç değerleridir; resmî bir audit standardından alınmamıştır. Kendi standardınızın sayılarını girin."
-        />
-        <View style={s.ikili}>
-          <View style={{ flex: 1 }}>
-            <Girdi
-              etiket="ŞARTLI EŞİĞİ"
-              value={String(esikler.sartliPuan)}
-              keyboardType="number-pad"
-              onChangeText={(t) => setEsikler({ ...esikler, sartliPuan: Math.max(1, Number(t) || 0) })}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Girdi
-              etiket="RED EŞİĞİ"
-              value={String(esikler.redPuan)}
-              keyboardType="number-pad"
-              onChangeText={(t) => setEsikler({ ...esikler, redPuan: Math.max(1, Number(t) || 0) })}
-            />
-          </View>
-        </View>
-        <Pressable
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: esikler.kritikVarsaRed }}
-          accessibilityLabel="Tek kritik hata aracı reddetsin"
-          onPress={() => setEsikler({ ...esikler, kritikVarsaRed: !esikler.kritikVarsaRed })}
-          style={s.onay}
-        >
-          <View style={[s.kutu, esikler.kritikVarsaRed && { backgroundColor: renkler.birincil, borderColor: renkler.birincil }]}>
-            {esikler.kritikVarsaRed ? <Text style={s.tik}>✓</Text> : null}
-          </View>
-          <Text style={s.onayMetin}>Tek bir kritik (A) hata aracı reddetsin</Text>
-        </Pressable>
 
-        <Text style={s.bolumBaslik}>CEZA PUANI AĞIRLIKLARI</Text>
-        {SIDDETLER.map((sd) => (
-          <View key={sd.id} style={s.siddetSatiri}>
-            <SiddetRozeti siddet={sd.id} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.siddetAd}>{sd.ad} — {sd.puan} puan</Text>
-              <Text style={s.siddetNot}>{sd.aciklama}</Text>
-            </View>
-          </View>
-        ))}
 
         <Text style={s.bolumBaslik}>EKİBİN EKLEDİĞİ HATA TİPLERİ</Text>
         <OzelTipler />
@@ -110,19 +60,8 @@ export default function Ayarlar() {
             : 'Gönderilmeyi bekleyen kayıt yok.'}
         />
 
-        {kaydedildi ? <BilgiKutusu metin="Ayarlar kaydedildi." /> : null}
       </ScrollView>
 
-      <View style={s.altCubuk}>
-        <Dugme
-          metin="Kaydet"
-          tur="birincil"
-          onPress={async () => {
-            await ayarYaz('esikler', esikler);
-            setKaydedildi(true);
-          }}
-        />
-      </View>
     </View>
   );
 }
@@ -161,7 +100,7 @@ function OzelTipler() {
     <>
       {tipler.map((t) => (
         <View key={t.id} style={[s.siddetSatiri, t.silindi && { opacity: 0.6 }]}>
-          <SiddetRozeti siddet={t.siddet} />
+          <DereceRozeti derece={t.derece} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.siddetAd} numberOfLines={2}>
               {t.ad}{t.silindi ? ' — listeden kaldırıldı' : ''}

@@ -1,8 +1,9 @@
 # Araç Audit — tablet uygulaması
 
 QA denetimi için **Android/iOS tablet uygulaması** (Expo SDK 57 · React Native).
-Şasi okut, 3B modelde parçaya dokun, hatayı seç; fotoğraf Excel'in içine gömülü
-çıkar. Her kayıt önce cihaza yazılır — hat kapsama alanı dışındayken de çalışır.
+Şasi okut, araç modelini seç, **parçaya dokun → hataya dokun → kaydedildi.**
+Fotoğraf Excel'in içine gömülü çıkar. Her kayıt önce cihaza yazılır — hat
+kapsama alanı dışındayken de çalışır.
 
 > Bu klasör **Vekil Pro'dan tamamen bağımsızdır**: kendi `package.json`'ı, kendi
 > `app.json`'ı, kendi `node_modules`'ı var. Kökteki `tsconfig.json` bu klasörü
@@ -42,7 +43,7 @@ app/                    ekranlar (expo-router: dosya = rota)
 src/
   tema/                 token'lar, iki palet, TemaSaglayici
   bilesenler/           paylaşılan arayüz — yeni bileşen yazmadan önce buraya bak
-  cekirdek/             ALAN MANTIĞI: katalog, VIN, puanlama, XLSX motoru
+  cekirdek/             ALAN MANTIĞI: katalog, VIN, derece/özet, XLSX motoru
   veri/depo.ts          SQLite — senkrona hazır normalize şema
 ```
 
@@ -138,12 +139,65 @@ adı ve grubu çözmesi dahil).
 > düşüyor (15.09.2026'da node_modules geçici kaldırılarak ölçüldü). Vitest
 > bu listeye bakmaz, test koşmaya devam eder.
 
-## Ceza puanı — okumadan kullanmayın
+## Hızlı giriş — çalışma ekranının tek amacı
 
-A/B/C ağırlıkları (10/5/1) ve eşikler (şartlı 15, red 40) **örnek başlangıç
-değerleridir; hiçbir üreticinin resmî audit standardından ölçülmemiştir.**
-Ayarlardan değiştirilir. Kendi sayılarınızı girene kadar bu puanı yalnız kendi
-denetimlerinizi kıyaslamak için kullanın.
+16.09.2026 ürün sahibi geri bildirimi: *"programı hiç beğenmedim… parça
+seçilecek, gap mı scratch mı seçilecek, hataları tak tak girebilecekler."*
+
+Önceki çalışma ekranı 3B modeli merkeze koyuyordu ve her kayıt bir form
+açıyordu. Şimdiki akış:
+
+    parça ara → parçaya dokun → hataya dokun → KAYDEDİLDİ
+
+- **Derece üstte sabit durur, son seçilen hatırlanır.** Aynı derecede art arda
+  girişte, son dokunulan bir parçaya kayıt **2 dokunuş**, yeni parçaya 2 dokunuş
+  + arama. (Tarayıcıda sayıldı; tablette sayılmadı.)
+- **Kayıttan sonra "Geri al" çıkar** — yanlış dokunuş tek dokunuşla silinir.
+- **Fotoğraf, not, adet hızlı yolda değil**; "Liste"den kayda dokunup sonradan
+  eklenir.
+- **3B model ana ekrandan kaldırıldı** ("görünüm sonraya kalsın"). Bileşen
+  dosyaları duruyor; sipariş edilen gerçek model gelince geri bağlanacak.
+
+**Bilinen tuzak, düzeltildi:** "Geri al" bildirimi ızgaranın son satırının
+üstünde yüzüyor. İlk sürümde metin alanı dokunuşu yutuyordu, kayıttan sonraki
+6 sn o satıra basılamıyordu. Şimdi dokunuşu yalnız "Geri al" düğmesi alıyor.
+Bunu sınayan ilk testim **yanlıştı** — Playwright tıklamadan önce düğmeyi
+kaydırıp bildirimin altından çıkarıyordu, düzeltmesiz pakette de geçiyordu.
+Kaydırmayan ham tıklamaya çevrilince hatayı düzeltmesiz pakette yakaladı,
+düzeltmeli pakette geçti.
+
+## Derece — ekibin kendi sistemi, puan yok
+
+Üç derece var: **1, 2, 3.** Her biri iki durumda yazılır:
+
+| Yazım | Anlamı |
+|---|---|
+| `3` | hata — düzeltilmesi gerekir |
+| `(3)` | kabul edilebilir — kayda geçer, iş emri doğurmaz |
+
+Parantez süs değil, **anlamı tersine çevirir.** Bu yüzden:
+
+- Gösterimin tek kaynağı `dereceGosterimi()` (`cekirdek/puan.ts`). Ekran ve
+  Excel aynı fonksiyonu kullanır; test ikisinin ayrışmadığını sınar.
+- **"Kabul edilebilir" anahtarı yapışkan değildir**, her kayıttan sonra kapanır.
+  Yapışkan olsaydı bir kez açık unutulan anahtar sonraki gerçek hataları
+  sessizce "(3)" yazardı.
+- Rozet parantezi hem metinle hem kesikli çerçeveyle gösterir; ayrım yalnız
+  renge bırakılmadı.
+
+**Sıralama varsayımı — teyit bekliyor:** "3 kötü" dendiği için 3 en ağır, 1 en
+hafif kabul edildi. Ters ise `cekirdek/katalog.ts` içindeki `DERECELER`de üç
+`id` yer değiştirir. Kademelerin yazılı bir tanımı ekipten alınmadı.
+
+**Ceza puanı ve KABUL/ŞARTLI/RED kaldırıldı** (16.09.2026, ürün sahibi: *"bizde
+öyle bir şey yok"*). Uydurma bir puanı rapora yazmak, olmayan bir ölçütü varmış
+gibi gösterir. Geri eklenmemeli.
+
+**Veri göçü (göç 3):** eski `A/B/C` kayıtları `3/2/1`'e dönüştürülür. Hem eski
+cihaz yolu (göç 2'de A/B/C verisiyle) hem yeni kurulum yolu Node'un yerleşik
+SQLite'ında gerçek SQL koşularak doğrulandı. Toplu yeniden adlandırma sırasında
+göç 1 ve 2'deki `siddet` sütun adı da yanlışlıkla değişmişti; tarayıcı testi
+"no such column: siddet" ile yakaladı, eski göçler orijinaline döndürüldü.
 
 ## Durum — ne bitti, ne bitmedi
 
@@ -151,11 +205,13 @@ denetimlerinizi kıyaslamak için kullanın.
 |---|---|
 | Tasarım sistemi, iki tema | **Bitti** |
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
-| 166 parçalık katalog, VIN doğrulama, puanlama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
+| 166 parçalık katalog, VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
+| Hızlı giriş (2 dokunuş), geri al | **Bitti** |
+| Derece 1/2/3 + kabul edilebilir (parantez) | **Bitti** — sıralama varsayımı teyit bekliyor |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
-| 3B model — dokunmayla parça seçimi | **Bitti** |
+| 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |
 | SQLite yerel depo (senkrona hazır şema) | **Bitti** |
-| Excel/CSV üretimi ve paylaşımı | **Bitti** |
+| Excel/CSV üretimi ve paylaşımı | **Bitti** — ama sütunlar ekibin tablosuna henüz uyarlanmadı |
 | **Merkezi sunucu (Supabase), çok kullanıcı, yönetici panosu** | **YAPILMADI** — sıradaki iş |
 | Hata takip döngüsü (atandı → giderildi → doğrulandı) | Şema hazır, arayüz **yapılmadı** |
 | Barkod okuma | Kodu yazıldı, **gerçek kamerayla denenmedi** |

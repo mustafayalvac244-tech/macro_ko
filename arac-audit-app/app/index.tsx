@@ -7,9 +7,7 @@ import {
   HataKutusu, Rozet, Yukleniyor,
 } from '@/bilesenler/temel';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
-import { sonucBelirle, VARSAYILAN_ESIKLER } from '@/cekirdek/puan';
 import { bicimTarih } from '@/cekirdek/rapor';
-import { Esikler } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { bekleyenSenkron, DenetimOzetSatiri, denetimleriListele } from '@/veri/depo';
 
@@ -39,7 +37,6 @@ export default function DenetimListesi() {
     return () => { iptal = true; };
   }, []));
 
-  const esikler: Esikler = VARSAYILAN_ESIKLER;
 
   return (
     <Ekran kenarlar={['top']}>
@@ -75,7 +72,6 @@ export default function DenetimListesi() {
             renderItem={({ item }) => (
               <DenetimSatiri
                 satir={item}
-                esikler={esikler}
                 onPress={() => router.push({ pathname: '/denetim/[id]', params: { id: item.id } })}
               />
             )}
@@ -87,20 +83,12 @@ export default function DenetimListesi() {
 }
 
 function DenetimSatiri({
-  satir, esikler, onPress,
-}: { satir: DenetimOzetSatiri; esikler: Esikler; onPress: () => void }) {
+  satir, onPress,
+}: { satir: DenetimOzetSatiri; onPress: () => void }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
 
   const arac = ARAC_INDEKS[satir.aracId];
-  const sonuc = sonucBelirle(
-    { toplamPuan: satir.puan, siddetDagilimi: { A: { adet: satir.kritik, puan: 0 } } },
-    esikler,
-  );
-  const sonucRenk = sonuc.kod === 'RED' ? renkler.tehlike
-    : sonuc.kod === 'SARTLI' ? renkler.uyari : renkler.basari;
-  const sonucZemin = sonuc.kod === 'RED' ? renkler.tehlikeYumusak
-    : sonuc.kod === 'SARTLI' ? renkler.uyariYumusak : renkler.basariYumusak;
 
   return (
     <Pressable
@@ -122,12 +110,12 @@ function DenetimSatiri({
       </View>
 
       <View style={s.satirSag}>
-        <View style={[s.sonucPul, { backgroundColor: sonucZemin }]}>
-          <Text style={[s.sonucMetin, { color: sonucRenk }]}>{sonuc.ad}</Text>
-        </View>
-        <Text style={s.sayilar}>
-          {satir.hataAdedi} hata · {satir.puan} puan
-        </Text>
+        {satir.agirAdedi > 0 ? (
+          <View style={[s.sonucPul, { backgroundColor: renkler.tehlikeYumusak }]}>
+            <Text style={[s.sonucMetin, { color: renkler.tehlike }]}>{satir.agirAdedi} × derece 3</Text>
+          </View>
+        ) : null}
+        <Text style={s.sayilar}>{satir.hataAdedi} hata</Text>
       </View>
     </Pressable>
   );

@@ -69,7 +69,7 @@ export function hucreAdi(satir: number, sutun: number): string { return `${sutun
 // cellXfs listesini de aynı sırada güncelleyin.
 export const STIL = {
   NORMAL: 0, BASLIK: 1, GOVDE: 2, BASLIK_BUYUK: 3, ETIKET: 4,
-  SIDDET_A: 5, SIDDET_B: 6, SIDDET_C: 7, SAYI: 8, TARIH: 9, SOLUK: 10, GOVDE_ORTA: 11,
+  DERECE_3: 5, DERECE_2: 6, DERECE_1: 7, SAYI: 8, TARIH: 9, SOLUK: 10, GOVDE_ORTA: 11,
 };
 
 const STILLER_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

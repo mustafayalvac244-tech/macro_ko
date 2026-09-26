@@ -37,6 +37,12 @@ async function ac(): Promise<SQLite.SQLiteDatabase> {
  * Şema göçleri. Sürüm `user_version` içinde tutulur; her göç YALNIZ BİR KEZ
  * ve sırayla çalışır. Yeni sürüm eklerken diziye EKLE, var olanı DEĞİŞTİRME —
  * değiştirilen bir göç, sahadaki cihazlarda hiç çalışmaz.
+ *
+ * TOPLU YENİDEN ADLANDIRMA BU DİZİYE DOKUNMAMALI (16.09.2026'da oldu):
+ * `siddet` → `derece` geçişinde dosya genelinde yapılan bul-değiştir, göç 1 ve
+ * 2'deki sütun adını da değiştirdi. Sonuç: yeni kurulumda göç 1 zaten `derece`
+ * yarattı, göç 3'teki `RENAME COLUMN siddet` sütun bulamayıp düştü ve uygulama
+ * açılmadı. Eski göçlerdeki `siddet` adı KASITLIDIR — o gün tablo öyleydi.
  */
 const GOCLER: string[] = [
   // 1 — ilk şema
@@ -129,6 +135,22 @@ const GOCLER: string[] = [
     senkron_zamani TEXT
   );
   `,
+
+  // 3 — A/B/C + ceza puanı sistemi bırakıldı; ekibin kendi derecesine geçildi.
+  //
+  // Üç kademe (1/2/3) ve ayrı bir "kabul edilebilir" bayrağı var; bayrak açıkken
+  // derece raporda parantezle yazılır: (3). Eski kayıtlar sıralama varsayımına
+  // göre eşlendi — A en ağırdı, 3 en ağır kabul edildi.
+  `
+  ALTER TABLE hatalar RENAME COLUMN siddet TO derece;
+  ALTER TABLE hatalar ADD COLUMN kabul_edilebilir INTEGER NOT NULL DEFAULT 0;
+  UPDATE hatalar SET derece = CASE derece
+    WHEN 'A' THEN '3' WHEN 'B' THEN '2' WHEN 'C' THEN '1' ELSE derece END;
+
+  ALTER TABLE ozel_hata_tipleri RENAME COLUMN siddet TO derece;
+  UPDATE ozel_hata_tipleri SET derece = CASE derece
+    WHEN 'A' THEN '3' WHEN 'B' THEN '2' WHEN 'C' THEN '1' ELSE derece END;
+  `,
 ];
 
 async function gocleriUygula(d: SQLite.SQLiteDatabase): Promise<void> {
@@ -156,7 +178,7 @@ interface DenetimSatiri {
 
 interface HataSatiri {
   id: string; denetim_id: string; parca_id: string; hata_tipi_id: string;
-  siddet: string; adet: number; konum: string; aciklama: string; zaman: string;
+  derece: string; kabul_edilebilir: number; adet: number; konum: string; aciklama: string; zaman: string;
   durum: string; atanan_kisi: string | null; gideren: string | null;
   giderilme_zamani: string | null; dogrulayan: string | null; dogrulama_zamani: string | null;
 }
@@ -173,7 +195,8 @@ function denetimeCevir(d: DenetimSatiri, hatalar: Hata[]): Denetim {
 function hataya(h: HataSatiri, fotograflar: string[]): Hata {
   return {
     id: h.id, parcaId: h.parca_id, hataTipiId: h.hata_tipi_id,
-    siddet: h.siddet as Hata['siddet'], adet: h.adet, konum: h.konum,
+    derece: h.derece as Hata['derece'], kabulEdilebilir: h.kabul_edilebilir === 1,
+    adet: h.adet, konum: h.konum,
     aciklama: h.aciklama, zaman: h.zaman, durum: h.durum as Hata['durum'],
     atananKisi: h.atanan_kisi, gideren: h.gideren, giderilmeZamani: h.giderilme_zamani,
     dogrulayan: h.dogrulayan, dogrulamaZamani: h.dogrulama_zamani,
@@ -215,23 +238,24 @@ export async function hatalariGetir(denetimId: string): Promise<Hata[]> {
 /** Liste ekranı için özet satırlar — hataların tamamını çekmeden. */
 export interface DenetimOzetSatiri {
   id: string; aracId: string; vin: string; plaka: string; baslangic: string;
-  durum: string; denetci: string; hataAdedi: number; puan: number; kritik: number;
+  durum: string; denetci: string; hataAdedi: number;
+  /** Kabul edilebilir işaretlenmemiş 3. derece hata adedi. */
+  agirAdedi: number;
   senkronlandi: boolean;
 }
 
 export async function denetimleriListele(enFazla = 100): Promise<DenetimOzetSatiri[]> {
   const d = await db();
-  // Ceza puanı SQL'de hesaplanır: 200 denetimi belleğe çekip toplamak,
-  // liste ekranını açılışta tutuklaştırırdı.
+  // Sayım SQL'de yapılır: 200 denetimi belleğe çekip toplamak, liste
+  // ekranını açılışta tutuklaştırırdı.
   const satirlar = await d.getAllAsync<{
     id: string; arac_id: string; vin: string; plaka: string; baslangic: string;
     durum: string; denetci: string; senkron_zamani: string | null;
-    hata_adedi: number | null; puan: number | null; kritik: number | null;
+    hata_adedi: number | null; agir: number | null;
   }>(
     `SELECT dn.id, dn.arac_id, dn.vin, dn.plaka, dn.baslangic, dn.durum, dn.denetci, dn.senkron_zamani,
             COALESCE(SUM(h.adet), 0) AS hata_adedi,
-            COALESCE(SUM(h.adet * CASE h.siddet WHEN 'A' THEN 10 WHEN 'B' THEN 5 ELSE 1 END), 0) AS puan,
-            COALESCE(SUM(CASE WHEN h.siddet = 'A' THEN h.adet ELSE 0 END), 0) AS kritik
+            COALESCE(SUM(CASE WHEN h.derece = '3' AND h.kabul_edilebilir = 0 THEN h.adet ELSE 0 END), 0) AS agir
        FROM denetimler dn
        LEFT JOIN hatalar h ON h.denetim_id = dn.id
       GROUP BY dn.id
@@ -242,7 +266,7 @@ export async function denetimleriListele(enFazla = 100): Promise<DenetimOzetSati
   return satirlar.map((s) => ({
     id: s.id, aracId: s.arac_id, vin: s.vin, plaka: s.plaka, baslangic: s.baslangic,
     durum: s.durum, denetci: s.denetci, hataAdedi: s.hata_adedi ?? 0,
-    puan: s.puan ?? 0, kritik: s.kritik ?? 0, senkronlandi: !!s.senkron_zamani,
+    agirAdedi: s.agir ?? 0, senkronlandi: !!s.senkron_zamani,
   }));
 }
 
@@ -277,19 +301,21 @@ export async function denetimSil(id: string): Promise<void> {
 export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
   const d = await db();
   await d.runAsync(
-    `INSERT INTO hatalar (id, denetim_id, parca_id, hata_tipi_id, siddet, adet, konum,
+    `INSERT INTO hatalar (id, denetim_id, parca_id, hata_tipi_id, derece, kabul_edilebilir, adet, konum,
         aciklama, zaman, durum, atanan_kisi, gideren, giderilme_zamani, dogrulayan,
         dogrulama_zamani, guncelleme, senkron_zamani)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
      ON CONFLICT(id) DO UPDATE SET
         parca_id = excluded.parca_id, hata_tipi_id = excluded.hata_tipi_id,
-        siddet = excluded.siddet, adet = excluded.adet, konum = excluded.konum,
+        derece = excluded.derece, kabul_edilebilir = excluded.kabul_edilebilir,
+        adet = excluded.adet, konum = excluded.konum,
         aciklama = excluded.aciklama, durum = excluded.durum,
         atanan_kisi = excluded.atanan_kisi, gideren = excluded.gideren,
         giderilme_zamani = excluded.giderilme_zamani, dogrulayan = excluded.dogrulayan,
         dogrulama_zamani = excluded.dogrulama_zamani,
         guncelleme = excluded.guncelleme, senkron_zamani = NULL`,
-    hata.id, denetimId, hata.parcaId, hata.hataTipiId, hata.siddet, hata.adet,
+    hata.id, denetimId, hata.parcaId, hata.hataTipiId, hata.derece,
+    hata.kabulEdilebilir ? 1 : 0, hata.adet,
     hata.konum, hata.aciklama, hata.zaman, hata.durum, hata.atananKisi ?? null,
     hata.gideren ?? null, hata.giderilmeZamani ?? null, hata.dogrulayan ?? null,
     hata.dogrulamaZamani ?? null, simdi(),
@@ -394,7 +420,7 @@ export async function sikKullanilanlar(enFazla = 12): Promise<{ parcaId: string;
 // --- ÖZEL HATA TİPLERİ ----------------------------------------------------
 
 interface OzelTipSatiri {
-  id: string; grup: string; ad: string; en: string; siddet: string;
+  id: string; grup: string; ad: string; en: string; derece: string;
   ekleyen: string; silindi: number;
 }
 
@@ -405,13 +431,13 @@ interface OzelTipSatiri {
 export async function ozelHataTipleriOku(): Promise<HataTipi[]> {
   const d = await db();
   const satirlar = await d.getAllAsync<OzelTipSatiri>(
-    'SELECT id, grup, ad, en, siddet, ekleyen, silindi FROM ozel_hata_tipleri ORDER BY ad COLLATE NOCASE');
+    'SELECT id, grup, ad, en, derece, ekleyen, silindi FROM ozel_hata_tipleri ORDER BY ad COLLATE NOCASE');
   return satirlar.map((t) => ({
     id: t.id,
     grup: t.grup as HataTipi['grup'],
     ad: t.ad,
     en: t.en,
-    siddet: t.siddet as HataTipi['siddet'],
+    derece: t.derece as HataTipi['derece'],
     ekleyen: t.ekleyen,
     ozel: true,
     silindi: t.silindi === 1,
@@ -419,7 +445,7 @@ export async function ozelHataTipleriOku(): Promise<HataTipi[]> {
 }
 
 export async function ozelHataTipiEkle(
-  girdi: { grup: HataTipi['grup']; ad: string; en: string; siddet: HataTipi['siddet']; ekleyen: string },
+  girdi: { grup: HataTipi['grup']; ad: string; en: string; derece: HataTipi['derece']; ekleyen: string },
 ): Promise<HataTipi> {
   const d = await db();
   // Kimlik üretilir, addan türetilmez: "Ön cam çiziği" iki kez eklenirse aynı
@@ -427,9 +453,9 @@ export async function ozelHataTipiEkle(
   const id = kimlikUret('ht');
   const z = simdi();
   await d.runAsync(
-    `INSERT INTO ozel_hata_tipleri (id, grup, ad, en, siddet, ekleyen, silindi, zaman, guncelleme, senkron_zamani)
+    `INSERT INTO ozel_hata_tipleri (id, grup, ad, en, derece, ekleyen, silindi, zaman, guncelleme, senkron_zamani)
      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, NULL)`,
-    id, girdi.grup, girdi.ad, girdi.en, girdi.siddet, girdi.ekleyen, z, z,
+    id, girdi.grup, girdi.ad, girdi.en, girdi.derece, girdi.ekleyen, z, z,
   );
   return { id, ...girdi, ozel: true, silindi: false };
 }

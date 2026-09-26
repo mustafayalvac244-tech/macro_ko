@@ -50,12 +50,12 @@ export interface Renkler {
   bilgiYumusak: string;
 
   // Hata şiddeti — A kritik, B majör, C minör
-  siddetA: string;
-  siddetAYumusak: string;
-  siddetB: string;
-  siddetBYumusak: string;
-  siddetC: string;
-  siddetCYumusak: string;
+  derece3: string;
+  derece3Yumusak: string;
+  derece2: string;
+  derece2Yumusak: string;
+  derece1: string;
+  derece1Yumusak: string;
 
   // Diğer
   perde: string;
@@ -95,12 +95,12 @@ const acik: Renkler = {
   bilgi: '#1B5A9F',
   bilgiYumusak: '#E0EBF8',
 
-  siddetA: '#AE2018',
-  siddetAYumusak: '#FCE2DF',
-  siddetB: '#B85E09',
-  siddetBYumusak: '#FCEDD9',
-  siddetC: '#8C6E08',
-  siddetCYumusak: '#F8F1D4',
+  derece3: '#AE2018',
+  derece3Yumusak: '#FCE2DF',
+  derece2: '#B85E09',
+  derece2Yumusak: '#FCEDD9',
+  derece1: '#8C6E08',
+  derece1Yumusak: '#F8F1D4',
 
   perde: 'rgba(10, 16, 22, 0.55)',
   seffaf: 'transparent',
@@ -140,12 +140,12 @@ const koyu: Renkler = {
   bilgi: '#6CA6EE',
   bilgiYumusak: '#0F223B',
 
-  siddetA: '#FF7A6A',
-  siddetAYumusak: '#33140E',
-  siddetB: '#F2A43F',
-  siddetBYumusak: '#31220B',
-  siddetC: '#DFC248',
-  siddetCYumusak: '#2C2608',
+  derece3: '#FF7A6A',
+  derece3Yumusak: '#33140E',
+  derece2: '#F2A43F',
+  derece2Yumusak: '#31220B',
+  derece1: '#DFC248',
+  derece1Yumusak: '#2C2608',
 
   perde: 'rgba(0, 0, 0, 0.66)',
   seffaf: 'transparent',
@@ -154,10 +154,10 @@ const koyu: Renkler = {
 export const PALETLER: Record<TemaAdi, Renkler> = { acik, koyu };
 
 /** Şiddet kodundan renk çifti — tabloda, rozette, 3B modelde aynı kaynak. */
-export function siddetRenkleri(renkler: Renkler, siddet: string) {
-  switch (siddet) {
-    case 'A': return { on: renkler.siddetA, arka: renkler.siddetAYumusak };
-    case 'B': return { on: renkler.siddetB, arka: renkler.siddetBYumusak };
-    default: return { on: renkler.siddetC, arka: renkler.siddetCYumusak };
+export function dereceRenkleri(renkler: Renkler, derece: string) {
+  switch (derece) {
+    case '3': return { on: renkler.derece3, arka: renkler.derece3Yumusak };
+    case '2': return { on: renkler.derece2, arka: renkler.derece2Yumusak };
+    default: return { on: renkler.derece1, arka: renkler.derece1Yumusak };
   }
 }

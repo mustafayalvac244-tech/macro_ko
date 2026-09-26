@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Edge, SafeAreaView } from 'react-native-safe-area-context';
 
-import { bosluk, DOKUNMA, HITSLOP, kose, Renkler, siddetRenkleri, tipografi, useTema } from '@/tema';
+import { bosluk, DOKUNMA, HITSLOP, kose, Renkler, dereceRenkleri, tipografi, useTema } from '@/tema';
 
 // --- ALT SAYFA ------------------------------------------------------------
 
@@ -224,13 +224,33 @@ export function Rozet({
  * Şiddet rozeti. Bilgiyi YALNIZ renkle aktarmaz — harf de taşır, böylece
  * renk körlüğünde ve siyah-beyaz çıktıda da okunur.
  */
-export function SiddetRozeti({ siddet, buyuk = false }: { siddet: string; buyuk?: boolean }) {
+/**
+ * Derece rozeti: `3` ya da `(3)`.
+ *
+ * Kabul edilebilir bulgu PARANTEZLE yazılır ve dolgusuz çizilir. Asıl ayrım
+ * parantezdedir, renk yardımcıdır — renk körlüğünde ve siyah-beyaz çıktıda da
+ * "düzeltilecek" ile "kabul edildi" karışmasın.
+ */
+export function DereceRozeti({
+  derece, kabul = false, buyuk = false,
+}: { derece: string; kabul?: boolean; buyuk?: boolean }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
-  const { on, arka } = siddetRenkleri(renkler, siddet);
+  const { on, arka } = dereceRenkleri(renkler, derece);
   return (
-    <View style={[s.siddetPul, buyuk && s.siddetPulBuyuk, { backgroundColor: arka, borderColor: on }]}>
-      <Text style={[s.siddetHarf, buyuk && s.siddetHarfBuyuk, { color: on }]}>{siddet}</Text>
+    <View
+      accessibilityLabel={kabul ? `Derece ${derece}, kabul edilebilir` : `Derece ${derece}`}
+      style={[
+        s.siddetPul, buyuk && s.siddetPulBuyuk,
+        kabul
+          ? { backgroundColor: 'transparent', borderColor: renkler.cizgiGuclu, borderStyle: 'dashed' }
+          : { backgroundColor: arka, borderColor: on },
+        kabul && { minWidth: buyuk ? 56 : 40 },
+      ]}
+    >
+      <Text style={[s.siddetHarf, buyuk && s.siddetHarfBuyuk, { color: kabul ? renkler.metinIkincil : on }]}>
+        {kabul ? `(${derece})` : derece}
+      </Text>
     </View>
   );
 }

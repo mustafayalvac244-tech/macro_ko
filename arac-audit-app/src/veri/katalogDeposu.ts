@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 import { ozelHataTipleriniAyarla } from '@/cekirdek/katalog';
-import { HataGrubuId, HataTipi, SiddetKodu } from '@/cekirdek/tipler';
+import { HataGrubuId, HataTipi, DereceKodu } from '@/cekirdek/tipler';
 import {
   ozelHataTipiEkle, ozelHataTipiGeriAl, ozelHataTipiKaldir, ozelHataTipleriOku,
 } from '@/veri/depo';
@@ -23,7 +23,7 @@ interface KatalogDurumu {
   hata: string | null;
   yukle: () => Promise<void>;
   ekle: (girdi: {
-    grup: HataGrubuId; ad: string; en: string; siddet: SiddetKodu; ekleyen: string;
+    grup: HataGrubuId; ad: string; en: string; derece: DereceKodu; ekleyen: string;
   }) => Promise<HataTipi>;
   kaldir: (id: string) => Promise<void>;
   geriAl: (id: string) => Promise<void>;

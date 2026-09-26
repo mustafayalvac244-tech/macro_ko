@@ -64,6 +64,6 @@ export function useTema(): TemaBaglami {
   return b;
 }
 
-export { PALETLER, siddetRenkleri } from './paletler';
+export { PALETLER, dereceRenkleri } from './paletler';
 export type { Renkler, TemaAdi } from './paletler';
 export * from './olculer';

@@ -16,12 +16,19 @@
 // girene kadar "puan" sütununu yalnızca kendi içinde kıyas için kullanın.
 // ---------------------------------------------------------------------------
 
-import { AracTipi, Bolge, HataGrubu, HataGrubuId, HataTipi, Parca, ParcaKayit, Siddet, Taraf } from './tipler';
-/** Kritiklik sınıfları. puan = ceza puanı (demerit) ağırlığı. */
-export const SIDDETLER: Siddet[] = [
-  { id: 'A', ad: 'Kritik',  en: 'Critical', puan: 10, renk: '#d92d20', aciklama: 'Güvenlik, yasal uygunluk veya fonksiyon kaybı. Araç sevk edilemez.' },
-  { id: 'B', ad: 'Majör',   en: 'Major',    puan: 5,  renk: '#f79009', aciklama: 'Müşterinin teslimde kesinlikle fark edeceği hata.' },
-  { id: 'C', ad: 'Minör',   en: 'Minor',    puan: 1,  renk: '#eaaa08', aciklama: 'Dikkatli incelemede fark edilen, kozmetik hata.' },
+import { AracTipi, Bolge, HataGrubu, HataGrubuId, HataTipi, Parca, ParcaKayit, Derece, Taraf } from './tipler';
+/**
+ * Dereceler — ekibin kendi sistemi. Ceza puanı YOK.
+ *
+ * SIRALAMA VARSAYIMI (teyit bekliyor): ürün sahibi "3 kötü" dedi, bu yüzden
+ * 3 en ağır, 1 en hafif kabul edildi. Ters ise düzeltmesi tek satır: aşağıdaki
+ * üç `id` değerini yer değiştirin. Ad olarak sayının kendisi kullanılıyor;
+ * ekibin tablosunda da kademelerin yazılı bir adı yok.
+ */
+export const DERECELER: Derece[] = [
+  { id: '3', ad: '3', en: '3', renk: '#d92d20', aciklama: 'En ağır kademe. (Kademelerin resmî tanımı ekipten alınmadı.)' },
+  { id: '2', ad: '2', en: '2', renk: '#f79009', aciklama: 'Orta kademe.' },
+  { id: '1', ad: '1', en: '1', renk: '#eaaa08', aciklama: 'En hafif kademe.' },
 ];
 
 /** Hata grupları — parçalar bu grupları referans alır. */
@@ -37,78 +44,78 @@ export const HATA_GRUPLARI: Record<HataGrubuId, HataGrubu> = {
 };
 
 /**
- * Hata tipleri. `siddet` alanı ÖNERİLEN başlangıç sınıfıdır; denetçi
+ * Hata tipleri. `derece` alanı ÖNERİLEN başlangıç sınıfıdır; denetçi
  * kayıt sırasında değiştirebilir (gerçek sınıf hatanın yerine/boyutuna bağlıdır).
  */
 export const HATA_TIPLERI: HataTipi[] = [
   // --- Yüzey / Boya ---
-  { id: 'cizik',        grup: 'yuzey', ad: 'Çizik',                 en: 'Scratch',           siddet: 'C' },
-  { id: 'gocuk',        grup: 'yuzey', ad: 'Göçük',                 en: 'Dent',              siddet: 'B' },
-  { id: 'ezik',         grup: 'yuzey', ad: 'Ezik / Darbe izi',      en: 'Impact mark',       siddet: 'B' },
-  { id: 'toz_kir',      grup: 'yuzey', ad: 'Boya altı toz/kir',     en: 'Dirt inclusion',    siddet: 'C' },
-  { id: 'akinti',       grup: 'yuzey', ad: 'Boya akıntısı',         en: 'Paint run / sag',   siddet: 'B' },
-  { id: 'portakal',     grup: 'yuzey', ad: 'Portakal kabuğu',       en: 'Orange peel',       siddet: 'C' },
-  { id: 'krater',       grup: 'yuzey', ad: 'Kraterlenme',           en: 'Crater / fisheye',  siddet: 'B' },
-  { id: 'renk_farki',   grup: 'yuzey', ad: 'Renk / ton farkı',      en: 'Color mismatch',    siddet: 'B' },
-  { id: 'boyasiz',      grup: 'yuzey', ad: 'Boyasız / eksik boya',  en: 'Unpainted area',    siddet: 'A' },
-  { id: 'pas',          grup: 'yuzey', ad: 'Pas / korozyon',        en: 'Rust / corrosion',  siddet: 'A' },
-  { id: 'capak',        grup: 'yuzey', ad: 'Çapak / keskin kenar',  en: 'Burr / sharp edge', siddet: 'A' },
-  { id: 'sivi_izi',     grup: 'yuzey', ad: 'Sıvı / silikon izi',    en: 'Liquid residue',    siddet: 'C' },
+  { id: 'cizik',        grup: 'yuzey', ad: 'Çizik',                 en: 'Scratch',           derece: '1' },
+  { id: 'gocuk',        grup: 'yuzey', ad: 'Göçük',                 en: 'Dent',              derece: '2' },
+  { id: 'ezik',         grup: 'yuzey', ad: 'Ezik / Darbe izi',      en: 'Impact mark',       derece: '2' },
+  { id: 'toz_kir',      grup: 'yuzey', ad: 'Boya altı toz/kir',     en: 'Dirt inclusion',    derece: '1' },
+  { id: 'akinti',       grup: 'yuzey', ad: 'Boya akıntısı',         en: 'Paint run / sag',   derece: '2' },
+  { id: 'portakal',     grup: 'yuzey', ad: 'Portakal kabuğu',       en: 'Orange peel',       derece: '1' },
+  { id: 'krater',       grup: 'yuzey', ad: 'Kraterlenme',           en: 'Crater / fisheye',  derece: '2' },
+  { id: 'renk_farki',   grup: 'yuzey', ad: 'Renk / ton farkı',      en: 'Color mismatch',    derece: '2' },
+  { id: 'boyasiz',      grup: 'yuzey', ad: 'Boyasız / eksik boya',  en: 'Unpainted area',    derece: '3' },
+  { id: 'pas',          grup: 'yuzey', ad: 'Pas / korozyon',        en: 'Rust / corrosion',  derece: '3' },
+  { id: 'capak',        grup: 'yuzey', ad: 'Çapak / keskin kenar',  en: 'Burr / sharp edge', derece: '3' },
+  { id: 'sivi_izi',     grup: 'yuzey', ad: 'Sıvı / silikon izi',    en: 'Liquid residue',    derece: '1' },
 
   // --- Montaj / Uyum ---
-  { id: 'bosluk',       grup: 'montaj', ad: 'Boşluk farkı (gap)',   en: 'Gap variation',     siddet: 'B' },
-  { id: 'kademe',       grup: 'montaj', ad: 'Kademe farkı (flush)', en: 'Flush variation',   siddet: 'B' },
-  { id: 'hizasiz',      grup: 'montaj', ad: 'Hizasız montaj',       en: 'Misaligned',        siddet: 'B' },
-  { id: 'gevsek',       grup: 'montaj', ad: 'Gevşek / oynuyor',     en: 'Loose',             siddet: 'B' },
-  { id: 'oturmamis',    grup: 'montaj', ad: 'Yerine oturmamış',     en: 'Not seated',        siddet: 'B' },
-  { id: 'eksik_parca',  grup: 'montaj', ad: 'Eksik parça',          en: 'Missing part',      siddet: 'A' },
-  { id: 'eksik_klips',  grup: 'montaj', ad: 'Eksik klips / vida',   en: 'Missing clip/screw',siddet: 'B' },
-  { id: 'kirik_klips',  grup: 'montaj', ad: 'Kırık klips',          en: 'Broken clip',       siddet: 'B' },
-  { id: 'yanlis_parca', grup: 'montaj', ad: 'Yanlış parça',         en: 'Wrong part',        siddet: 'A' },
-  { id: 'deforme',      grup: 'montaj', ad: 'Deforme / eğrilik',    en: 'Deformed',          siddet: 'B' },
-  { id: 'sikma_torku',  grup: 'montaj', ad: 'Tork / sıkma hatası',  en: 'Torque fault',      siddet: 'A' },
+  { id: 'bosluk',       grup: 'montaj', ad: 'Boşluk farkı (gap)',   en: 'Gap variation',     derece: '2' },
+  { id: 'kademe',       grup: 'montaj', ad: 'Kademe farkı (flush)', en: 'Flush variation',   derece: '2' },
+  { id: 'hizasiz',      grup: 'montaj', ad: 'Hizasız montaj',       en: 'Misaligned',        derece: '2' },
+  { id: 'gevsek',       grup: 'montaj', ad: 'Gevşek / oynuyor',     en: 'Loose',             derece: '2' },
+  { id: 'oturmamis',    grup: 'montaj', ad: 'Yerine oturmamış',     en: 'Not seated',        derece: '2' },
+  { id: 'eksik_parca',  grup: 'montaj', ad: 'Eksik parça',          en: 'Missing part',      derece: '3' },
+  { id: 'eksik_klips',  grup: 'montaj', ad: 'Eksik klips / vida',   en: 'Missing clip/screw',derece: '2' },
+  { id: 'kirik_klips',  grup: 'montaj', ad: 'Kırık klips',          en: 'Broken clip',       derece: '2' },
+  { id: 'yanlis_parca', grup: 'montaj', ad: 'Yanlış parça',         en: 'Wrong part',        derece: '3' },
+  { id: 'deforme',      grup: 'montaj', ad: 'Deforme / eğrilik',    en: 'Deformed',          derece: '2' },
+  { id: 'sikma_torku',  grup: 'montaj', ad: 'Tork / sıkma hatası',  en: 'Torque fault',      derece: '3' },
 
   // --- Ses (NVH) ---
-  { id: 'gicirti',      grup: 'ses', ad: 'Gıcırtı',                 en: 'Squeak',            siddet: 'B' },
-  { id: 'tikirti',      grup: 'ses', ad: 'Tıkırtı / zangırtı',      en: 'Rattle',            siddet: 'B' },
-  { id: 'ruzgar_sesi',  grup: 'ses', ad: 'Rüzgâr sesi',             en: 'Wind noise',        siddet: 'B' },
-  { id: 'vurma',        grup: 'ses', ad: 'Vurma / darbe sesi',      en: 'Knock / thump',     siddet: 'B' },
-  { id: 'titresim',     grup: 'ses', ad: 'Titreşim',                en: 'Vibration',         siddet: 'B' },
-  { id: 'yol_sesi',     grup: 'ses', ad: 'Yol / lastik sesi',       en: 'Road noise',        siddet: 'C' },
+  { id: 'gicirti',      grup: 'ses', ad: 'Gıcırtı',                 en: 'Squeak',            derece: '2' },
+  { id: 'tikirti',      grup: 'ses', ad: 'Tıkırtı / zangırtı',      en: 'Rattle',            derece: '2' },
+  { id: 'ruzgar_sesi',  grup: 'ses', ad: 'Rüzgâr sesi',             en: 'Wind noise',        derece: '2' },
+  { id: 'vurma',        grup: 'ses', ad: 'Vurma / darbe sesi',      en: 'Knock / thump',     derece: '2' },
+  { id: 'titresim',     grup: 'ses', ad: 'Titreşim',                en: 'Vibration',         derece: '2' },
+  { id: 'yol_sesi',     grup: 'ses', ad: 'Yol / lastik sesi',       en: 'Road noise',        derece: '1' },
 
   // --- Fonksiyon ---
-  { id: 'calismiyor',   grup: 'fonksiyon', ad: 'Çalışmıyor',        en: 'Inoperative',       siddet: 'A' },
-  { id: 'aralikli',     grup: 'fonksiyon', ad: 'Aralıklı çalışıyor',en: 'Intermittent',      siddet: 'A' },
-  { id: 'zor_calisiyor',grup: 'fonksiyon', ad: 'Zor / ağır çalışıyor', en: 'Hard operation', siddet: 'B' },
-  { id: 'hata_kodu',    grup: 'fonksiyon', ad: 'Hata kodu (DTC)',   en: 'DTC present',       siddet: 'A' },
-  { id: 'uyari_lambasi',grup: 'fonksiyon', ad: 'Uyarı lambası yanıyor', en: 'Warning lamp',  siddet: 'A' },
-  { id: 'yanlis_yon',   grup: 'fonksiyon', ad: 'Ters / yanlış yön', en: 'Reversed operation',siddet: 'B' },
-  { id: 'ayar_bozuk',   grup: 'fonksiyon', ad: 'Ayar bozuk',        en: 'Out of adjustment', siddet: 'B' },
+  { id: 'calismiyor',   grup: 'fonksiyon', ad: 'Çalışmıyor',        en: 'Inoperative',       derece: '3' },
+  { id: 'aralikli',     grup: 'fonksiyon', ad: 'Aralıklı çalışıyor',en: 'Intermittent',      derece: '3' },
+  { id: 'zor_calisiyor',grup: 'fonksiyon', ad: 'Zor / ağır çalışıyor', en: 'Hard operation', derece: '2' },
+  { id: 'hata_kodu',    grup: 'fonksiyon', ad: 'Hata kodu (DTC)',   en: 'DTC present',       derece: '3' },
+  { id: 'uyari_lambasi',grup: 'fonksiyon', ad: 'Uyarı lambası yanıyor', en: 'Warning lamp',  derece: '3' },
+  { id: 'yanlis_yon',   grup: 'fonksiyon', ad: 'Ters / yanlış yön', en: 'Reversed operation',derece: '2' },
+  { id: 'ayar_bozuk',   grup: 'fonksiyon', ad: 'Ayar bozuk',        en: 'Out of adjustment', derece: '2' },
 
   // --- Döşeme / Kumaş ---
-  { id: 'leke',         grup: 'doseme', ad: 'Leke',                 en: 'Stain',             siddet: 'B' },
-  { id: 'yirtik',       grup: 'doseme', ad: 'Yırtık / delik',       en: 'Tear / hole',       siddet: 'A' },
-  { id: 'burusuk',      grup: 'doseme', ad: 'Buruşuk / gergin değil',en: 'Wrinkle',          siddet: 'C' },
-  { id: 'dikis',        grup: 'doseme', ad: 'Dikiş hatası',         en: 'Stitching fault',   siddet: 'B' },
-  { id: 'iplik',        grup: 'doseme', ad: 'Sarkan iplik',         en: 'Loose thread',      siddet: 'C' },
+  { id: 'leke',         grup: 'doseme', ad: 'Leke',                 en: 'Stain',             derece: '2' },
+  { id: 'yirtik',       grup: 'doseme', ad: 'Yırtık / delik',       en: 'Tear / hole',       derece: '3' },
+  { id: 'burusuk',      grup: 'doseme', ad: 'Buruşuk / gergin değil',en: 'Wrinkle',          derece: '1' },
+  { id: 'dikis',        grup: 'doseme', ad: 'Dikiş hatası',         en: 'Stitching fault',   derece: '2' },
+  { id: 'iplik',        grup: 'doseme', ad: 'Sarkan iplik',         en: 'Loose thread',      derece: '1' },
 
   // --- Cam ---
-  { id: 'cam_cizik',    grup: 'cam', ad: 'Cam çiziği',              en: 'Glass scratch',     siddet: 'B' },
-  { id: 'cam_catlak',   grup: 'cam', ad: 'Cam çatlağı',             en: 'Glass crack',       siddet: 'A' },
-  { id: 'cam_kalinti',  grup: 'cam', ad: 'Cam üzeri kalıntı',       en: 'Glass residue',     siddet: 'C' },
-  { id: 'bugu',         grup: 'cam', ad: 'İç buğulanma',            en: 'Internal fogging',  siddet: 'A' },
+  { id: 'cam_cizik',    grup: 'cam', ad: 'Cam çiziği',              en: 'Glass scratch',     derece: '2' },
+  { id: 'cam_catlak',   grup: 'cam', ad: 'Cam çatlağı',             en: 'Glass crack',       derece: '3' },
+  { id: 'cam_kalinti',  grup: 'cam', ad: 'Cam üzeri kalıntı',       en: 'Glass residue',     derece: '1' },
+  { id: 'bugu',         grup: 'cam', ad: 'İç buğulanma',            en: 'Internal fogging',  derece: '3' },
 
   // --- Sızdırmazlık ---
-  { id: 'su_sizinti',   grup: 'sizdirmazlik', ad: 'Su sızıntısı',   en: 'Water leak',        siddet: 'A' },
-  { id: 'hava_sizinti', grup: 'sizdirmazlik', ad: 'Hava sızıntısı', en: 'Air leak',          siddet: 'B' },
-  { id: 'yag_sizinti',  grup: 'sizdirmazlik', ad: 'Yağ / sıvı sızıntısı', en: 'Fluid leak',  siddet: 'A' },
-  { id: 'fitil',        grup: 'sizdirmazlik', ad: 'Fitil oturmamış / kalkık', en: 'Weatherstrip not seated', siddet: 'B' },
-  { id: 'mastik',       grup: 'sizdirmazlik', ad: 'Mastik / sızdırmazlık hatası', en: 'Sealer fault', siddet: 'B' },
+  { id: 'su_sizinti',   grup: 'sizdirmazlik', ad: 'Su sızıntısı',   en: 'Water leak',        derece: '3' },
+  { id: 'hava_sizinti', grup: 'sizdirmazlik', ad: 'Hava sızıntısı', en: 'Air leak',          derece: '2' },
+  { id: 'yag_sizinti',  grup: 'sizdirmazlik', ad: 'Yağ / sıvı sızıntısı', en: 'Fluid leak',  derece: '3' },
+  { id: 'fitil',        grup: 'sizdirmazlik', ad: 'Fitil oturmamış / kalkık', en: 'Weatherstrip not seated', derece: '2' },
+  { id: 'mastik',       grup: 'sizdirmazlik', ad: 'Mastik / sızdırmazlık hatası', en: 'Sealer fault', derece: '2' },
 
   // --- Temizlik ---
-  { id: 'kirli',        grup: 'temizlik', ad: 'Kirli / tozlu',      en: 'Soiled / dusty',    siddet: 'C' },
-  { id: 'yapiskan',     grup: 'temizlik', ad: 'Yapışkan / etiket kalıntısı', en: 'Adhesive residue', siddet: 'C' },
-  { id: 'koku',         grup: 'temizlik', ad: 'Koku',               en: 'Odour',             siddet: 'B' },
+  { id: 'kirli',        grup: 'temizlik', ad: 'Kirli / tozlu',      en: 'Soiled / dusty',    derece: '1' },
+  { id: 'yapiskan',     grup: 'temizlik', ad: 'Yapışkan / etiket kalıntısı', en: 'Adhesive residue', derece: '1' },
+  { id: 'koku',         grup: 'temizlik', ad: 'Koku',               en: 'Odour',             derece: '2' },
 ];
 
 /** Hızlı erişim haritası. */

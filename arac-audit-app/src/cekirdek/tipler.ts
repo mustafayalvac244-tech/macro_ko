@@ -5,14 +5,25 @@
 // alanın adını yanlış yazmak orada sessiz veri kaybı demek.
 
 /** Hata kritikliği. A durdurur, B müşteri görür, C kozmetiktir. */
-export type SiddetKodu = 'A' | 'B' | 'C';
+/**
+ * DERECE — ekibin kendi sistemi (16.09.2026'da ürün sahibinden alındı).
+ *
+ * Üç derece var: 1, 2, 3. Her derece İKİ DURUMDA yazılabilir:
+ *   3    → hata. Düzeltilmesi gerekir.
+ *   (3)  → kabul edilebilir. Kayda geçer ama iş emri doğurmaz.
+ *
+ * Yani toplam altı gösterim: 1 2 3 (1) (2) (3). Parantez bir süs değil,
+ * anlamı TERSİNE çeviren işarettir — raporda kaybolursa "düzeltilecek" ile
+ * "kabul edildi" birbirine karışır.
+ *
+ * Eskiden burada A/B/C ve ceza puanı vardı; ikisi de ekipte yoktu, kaldırıldı.
+ */
+export type DereceKodu = '1' | '2' | '3';
 
-export interface Siddet {
-  id: SiddetKodu;
+export interface Derece {
+  id: DereceKodu;
   ad: string;
   en: string;
-  /** Ceza puanı (demerit) ağırlığı — ayarlanabilir başlangıç değeri. */
-  puan: number;
   renk: string;
   aciklama: string;
 }
@@ -29,7 +40,7 @@ export interface HataTipi {
   ad: string;
   en: string;
   /** Önerilen başlangıç şiddeti; denetçi değiştirebilir. */
-  siddet: SiddetKodu;
+  derece: DereceKodu;
   /** true ise ekipçe uygulama içinden eklenmiştir, koddan gelmiyordur. */
   ozel?: boolean;
   /**
@@ -137,7 +148,13 @@ export interface Hata {
   id: string;
   parcaId: string;
   hataTipiId: string;
-  siddet: SiddetKodu;
+  derece: DereceKodu;
+  /**
+   * true ise derece raporda PARANTEZ İÇİNDE yazılır: `(3)`. Anlamı "bu kademede
+   * ama kabul edilebilir" — kayda geçer, iş emri doğurmaz. Parantez kaybolursa
+   * kabul edilmiş bir bulgu düzeltilecek hata gibi görünür.
+   */
+  kabulEdilebilir: boolean;
   adet: number;
   konum: string;
   aciklama: string;
@@ -175,44 +192,28 @@ export interface Denetim {
   senkronZamani?: string | null;
 }
 
-// --- PUANLAMA -------------------------------------------------------------
-
-export interface Esikler {
-  /** Tek bir A sınıfı hata aracı reddetsin mi. */
-  kritikVarsaRed: boolean;
-  sartliPuan: number;
-  redPuan: number;
-}
-
-export type SonucKodu = 'KABUL' | 'SARTLI' | 'RED';
-
-export interface Sonuc {
-  kod: SonucKodu;
-  ad: string;
-  en: string;
-  gerekce: string;
-}
+// --- ÖZET -----------------------------------------------------------------
+//
+// Ceza puanı ve KABUL/ŞARTLI/RED tipleri 16.09.2026'da kaldırıldı: ekipte
+// böyle bir sistem yok, uydurma bir ölçüt raporda gerçekmiş gibi görünüyordu.
 
 export interface Dagilim {
   id: string;
   ad: string;
   bolgeAd?: string;
   adet: number;
-  puan: number;
   aracSayisi?: number;
 }
 
 export interface Ozet {
   toplamHata: number;
   toplamAdet: number;
-  toplamPuan: number;
   fotografliHata: number;
   fotografsizHata: number;
-  siddetDagilimi: Record<SiddetKodu, { adet: number; puan: number }>;
+  dereceDagilimi: Record<DereceKodu, { adet: number }>;
   bolgeDagilimi: Dagilim[];
   parcaDagilimi: Dagilim[];
   grupDagilimi: Dagilim[];
-  sonuc: Sonuc;
 }
 
 // --- RAPOR ----------------------------------------------------------------
@@ -221,7 +222,6 @@ export type Dil = 'tr' | 'en';
 
 export interface RaporAyarlari {
   dil?: Dil;
-  esikler?: Esikler;
   yazar?: string;
 }
 
