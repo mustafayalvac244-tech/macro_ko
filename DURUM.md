@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 26.09.2026 10:30 UTC
+**Son güncelleme:** 26.09.2026 (Android "şifremi unuttum" açık işi eklendi)
 
 ## 1. Şu an — yayın durumu
 
@@ -40,6 +40,15 @@
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
 5. Supabase panelinde "Leaked password protection" kapalı (bir tık).
 6. KVKK veri sorumlusu kimliği (unvan/adres/e-posta) hâlâ eksik.
+7. **Android: girişte "Şifremi unuttum" kesik görünüyor** (ürün sahibi 26.09
+   bildirdi; 16.09'daki flexShrink düzeltmesi tutmadı). Tahmin, ÖLÇÜLMEDİ (bu
+   ortamda Android emülatörü yok): `<Link><Text/></Link>` iç içe Text —
+   login.tsx:113 ve :135, signup.tsx:393. Öneri: Pressable + tek Text.
+8. Statik çeviri anahtarı taraması: eksik 0/1.819 (26.09, kod taraması).
+   Dinamik anahtarlar (51 yer) canlı değerlerle kısmen karşılaştırıldı.
+9. Ürün sahibi araç izinlerinin hepsinin sorulmadan onaylanmasını istiyor;
+   Claude kendi izin ayarını değiştiremiyor (Self-Modification engeli).
+   Ürün sahibi oturumun izin modundan açmalı.
 
 ## 3. Kritik kimlikler
 
