@@ -8,7 +8,7 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
-import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
+import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_ASIL_MODEL_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
 import { UCRETSIZ_LIMIT } from '@/config/planlar';
 import {
   AI_ENTITLEMENT_ID,
@@ -207,11 +207,17 @@ export default function PremiumScreen() {
    * Artık bir özellik ancak AÇIKSA reklam edilir. Bayrak açıldığında satır
    * kendiliğinden geri gelir — listeyi elle güncellemeyi unutmak imkânsız.
    */
+  // FİYAT MAĞAZADAN OKUNUR — 26.09.2026. Bu kart sabit MONTHLY_PRICE_TRY
+  // (399) basıyordu; App Store ürünü 399,99 TL (ölçüldü). Gösterilen fiyatın
+  // tahsil edilenden farklı olması Apple 3.1.2 reddi ve yanıltıcı fiyattır.
+  // AI kartı zaten böyle çalışıyordu. Sabit yalnız teklif yüklenemezse yedek.
+  const proFiyat = offeringPkg?.product.priceString ?? `₺${MONTHLY_PRICE_TRY.toLocaleString('tr-TR')}`;
+
   const aiFeatures = [
     // Kota satırı yalnız gerçekten kullanılabilen hakları sayar.
     AI_MUTALAA_ENABLED
-      ? t('premium.f.aiQuota', { soru: String(AI_SORU_HAKKI), mutalaa: String(AI_MUTALAA_HAKKI) })
-      : t('premium.f.aiQuotaSoruOnly', { soru: String(AI_SORU_HAKKI) }),
+      ? t('premium.f.aiQuota', { soru: AI_SORU_HAKKI.toLocaleString('tr-TR'), mutalaa: String(AI_MUTALAA_HAKKI), asil: String(AI_ASIL_MODEL_HAKKI) })
+      : t('premium.f.aiQuotaSoruOnly', { soru: AI_SORU_HAKKI.toLocaleString('tr-TR'), asil: String(AI_ASIL_MODEL_HAKKI) }),
     AI_ENABLED ? t('premium.f.aiAssistant') : null,
     AI_MUTALAA_ENABLED ? t('premium.f.aiMutalaa') : null,
     AI_DILEKCE_ENABLED ? t('premium.f.aiDilekce') : null,
@@ -322,7 +328,7 @@ export default function PremiumScreen() {
           <Text style={styles.tierTag}>{t('premium.oneTag')}</Text>
 
           <View style={styles.priceRow}>
-            <Text style={styles.price}>₺{MONTHLY_PRICE_TRY}</Text>
+            <Text style={styles.price}>{proFiyat}</Text>
             <Text style={styles.per}>{t('premium.perMonth')}</Text>
           </View>
 
@@ -354,7 +360,7 @@ export default function PremiumScreen() {
           )}
 
           {!subscribed && (
-            <Text style={styles.finePrint}>{t('premium.autoRenewNote', { price: String(MONTHLY_PRICE_TRY) })}</Text>
+            <Text style={styles.finePrint}>{t('premium.autoRenewNote', { price: proFiyat })}</Text>
           )}
         </View>
 
@@ -424,7 +430,7 @@ export default function PremiumScreen() {
               gösteriyor; temel paketteki eski "ilk 7 gün ücretsiz" ince yazısı
               var olmayan bir denemeyi anlattığı için kaldırıldı. */}
           <Text style={styles.finePrint}>
-            {t('premium.autoRenewNote', { price: aiOfferingPkg?.product.priceString ?? AI_PRICE_TRY.toLocaleString('tr-TR') })}
+            {t('premium.autoRenewNote', { price: aiOfferingPkg?.product.priceString ?? `₺${AI_PRICE_TRY.toLocaleString('tr-TR')}` })}
           </Text>
         </View>
 
