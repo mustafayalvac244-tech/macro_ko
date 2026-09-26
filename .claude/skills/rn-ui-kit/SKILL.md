@@ -73,8 +73,8 @@ Kurallar:
   — bunlar skalaya girmez, zaten kodda da öyle.
 - **Renkli zemin üstündeki yazı/ikon `colors.textInverse` kullanır**, çıplak
   `'#FFFFFF'` değil.
-  > Ölçüm: depoda tema dosyaları dışında **84 sabit hex** var, **64'ü
-  > `#FFFFFF`** ve `textInverse` zaten tam olarak `#FFFFFF`. Bugün çalışıyorlar,
+  > Ölçüm (22.09.2026): depoda tema dosyaları dışında **84 sabit hex** var,
+  > **57'si `#FFFFFF`** ve `textInverse` zaten tam olarak `#FFFFFF`. Bugün çalışıyorlar,
   > bozuk değiller — bu yüzden **toplu değiştirilmediler** (64 yeri elle
   > değiştirmenin kullanıcıya görünen faydası yok, regresyon riski var).
   > Kural YENİ kod için geçerli. Mevcutlar bilinen borç.
@@ -84,7 +84,7 @@ Kurallar:
 
 ## 2. Stil yaklaşımı — `StyleSheet.create`
 
-Ölçüm: **104 dosya `StyleSheet.create`, 0 dosya NativeWind/`className`.**
+Ölçüm (22.09.2026): **106 dosya `StyleSheet.create`, 0 dosya NativeWind/`className`.**
 
 - Tema bağımlı stiller dosya sonunda `makeStyles(colors: ThemeColors)`
   fabrikasıyla üretilir — sabit `StyleSheet.create` tema değişince donar.
@@ -98,9 +98,9 @@ Kurallar:
 
 - Ekranlar `app/` altında (expo-router, dosya = rota). **64 ekran.**
 - Paylaşılan arayüz bileşenleri **`src/components/ui/`** altında — `components/`
-  değil. Bugün **24 bileşen** var; yeni bir şey yazmadan önce buraya bak:
+  değil. Bugün **25 bileşen** var; yeni bir şey yazmadan önce buraya bak:
 
-  `Screen · ScreenHeader · Card · Button · Input · Badge · StatusBadge ·
+  `AramaVeYeni · Screen · ScreenHeader · Card · Button · Input · Badge · StatusBadge ·
   EmptyState · SegmentedControl · SearchBar · SectionHeader · StatCard ·
   Avatar · FAB · SuggestInput · ThemePicker · TemaDugmesi · VekilLogo ·
   WebKart · HukukiUyari · AtifDenetimi · CiktiEylemleri ·
@@ -109,8 +109,8 @@ Kurallar:
 - Props için TypeScript tipi yaz, `any` kullanma.
 - Dosya sırası: importlar → tipler → bileşen → `makeStyles` (en altta).
 
-> Şablondaki **"150 satırı geçen bileşeni böl"** kuralı SİLİNDİ: 120 `.tsx`
-> dosyasının **67'si** 150 satırı geçiyor. Uymadığımız bir kuralı yazmak,
+> Şablondaki **"150 satırı geçen bileşeni böl"** kuralı SİLİNDİ: 121 `.tsx`
+> dosyasının **68'i** 150 satırı geçiyor. Uymadığımız bir kuralı yazmak,
 > sonraki oturumu çalışan ekranları bölmeye iter.
 
 ### Platforma özel ekran (yalnız web / yalnız native)
@@ -168,7 +168,7 @@ Play içerik anketi bağlantısı: `src/components/tevkil/YalnizWeb.tsx`.
 - Metin kontrastı en az 4.5:1.
 
 > **HENÜZ UYULMUYOR — `accessibilityLabel`.** Ölçüm: dokunulabilir öğe içeren
-> **70 dosyanın yalnız 6'sında** `accessibilityLabel` var. Yani bu bir kural
+> **82 dosyanın yalnız 7'sinde** `accessibilityLabel` var. Yani bu bir kural
 > değil, **hedef**. Dürüst duruş: *yeni* yazdığın dokunulabilir öğelere ekle;
 > ama "projede erişilebilirlik var" diye rapor etme — yok. Geriye dönük
 > tamamlanması ayrı ve ölçülmemiş bir iş.

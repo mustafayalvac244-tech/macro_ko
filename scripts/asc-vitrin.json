@@ -1,0 +1,25 @@
+{
+  "_not": "App Store vitrin metni. Açıklama YAYIN-SIRASI.md > Mağaza metni bölümünden ALINDI, burada yeniden yazılmadı — iki yerde iki farklı metin olmasın diye. Değiştirmek gerekirse ÖNCE YAYIN-SIRASI.md düzeltilir, sonra bu dosya oradan üretilir.",
+  "aciklama": "Vekil Pro, avukatlar için tasarlanmış bir büro yönetimi ve hukuki araştırma\nuygulamasıdır.\n\nDOSYA VE MÜVEKKİL YÖNETİMİ\n• Dava dosyalarınızı mahkeme, aşama ve karşı taraf bilgisiyle tutun\n• Müvekkil kayıtları, vekâletnameler ve belgeler tek yerde\n• Her dosyanın duruşma, süre ve çalışma kaydı geçmişi\n\nDURUŞMA VE SÜRE TAKİBİ\n• Duruşmalarınız ve süreleriniz takvimde\n• Hatırlatmalar — süre kaçırma riskini azaltır\n• Günlük görünüm: bugün ne var, sırada ne var\n\nİÇTİHAT ARAMASI\n• Yargıtay ve Danıştay kararlarında tam metin araması\n• Olayınızı anlatın, ilgili içtihat bulunsun\n• Verilen her kanun maddesi ve karar künyesi işaretlenir:\n  doğrulandı, havuzda bulunamadı ya da olamaz\n\nFİNANS\n• Vekâlet ücreti, tahsilat ve gider takibi\n• KDV ve stopaj otomatik hesaplanır\n• Serbest meslek makbuzu bilgileri hazır\n\nMEVZUAT VE HESAPLAYICILAR\n• Kanun metinlerinde arama\n• Kıdem tazminatı, faiz ve harç hesaplayıcıları\n• Dilekçe şablonları\n\nGÜVENLİK\n• Verileriniz şifreli aktarılır\n• Uygulama kilidi (Face ID / parmak izi)\n• Hesabınızı ve verilerinizi uygulama içinden kalıcı olarak silebilirsiniz\n\nYapay zekâ özellikleri ayrı bir pakettedir; ücretsiz hesaplarda kapalıdır.\n\nGizlilik: https://vekilpro.app/privacy.html\nKoşullar: https://vekilpro.app/terms.html",
+  "_anahtar": "Apple sınırı 100 karakter, virgülle ayrılır, boşluk israf olur. Ürün adı ve kategori adı YAZILMAZ (Apple zaten indeksliyor).",
+  "anahtarKelimeler": "avukat,hukuk,dava,içtihat,duruşma,müvekkil,mevzuat,tazminat,yargıtay,danıştay,büro",
+  "destekAdresi": "https://vekilpro.app",
+  "tanitimAdresi": "https://vekilpro.app",
+  "_tanitim": "promotionalText 170 karakter; sürüm göndermeden değiştirilebilen tek alan.",
+  "tanitimMetni": "Dosyanız, takviminiz ve içtihat aramanız tek yerde. Duruşmadan çıkın, süre hazır olsun.",
+  "ekranKumeleri": [
+    {
+      "tip": "APP_IPHONE_67",
+      "klasor": "magaza-pazarlama/ios"
+    },
+    {
+      "tip": "APP_IPAD_PRO_3GEN_129",
+      "klasor": "magaza-pazarlama/ipad"
+    }
+  ],
+  "_appInfo": "18.09.2026: privacyPolicyUrl BOŞ çıktı ve zorunluymuş. Kategori de yalnız BOŞSA yazılır — doluysa ürün sahibinin seçimi olabilir, üstüne yazmak onun kararını sessizce değiştirmek olur.",
+  "gizlilikAdresi": "https://vekilpro.app/privacy.html",
+  "_kategori": "YAYIN-SIRASI.md B7: \"Kategori: Business ya da Productivity\". Büro yönetimi + hukuki araştırma olduğu için birincil BUSINESS, ikincil PRODUCTIVITY.",
+  "birincilKategori": "BUSINESS",
+  "ikincilKategori": "PRODUCTIVITY"
+}

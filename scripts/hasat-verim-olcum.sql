@@ -1,49 +1,47 @@
 -- ⚠️ SUPABASE SQL EDITOR UYARISI (bu dosya birden çok SELECT içerir).
 -- Editor çok ifadeli bir betikte YALNIZ SON ifadenin sonucunu gösterir. Bu
 -- dosyayı olduğu gibi çalıştırırsan yalnızca en alttaki sorgunun tablosunu
--- görürsün — diğerleri koşar ama görünmez. Bu, üç tur boyunca ölçüm sonucunu
--- alamamamızın sebebiydi ve kusur bendeydi, dosyayı çalıştıranda değil.
+-- görürsün — diğerleri koşar ama görünmez.
 --
 -- İKİ YOL:
 --   a) Hepsini tek tabloda isteyen özet için: scripts/hasat-tek-rapor.sql
 --   b) Buradaki sorguları TEK TEK seçip (fareyle işaretle) Run'a bas.
 
--- HASAT VERİMİ — neden saatte 600 değil 85?
+-- HASAT VERİMİ
 -- ===========================================================================
--- ÖNCE KENDİ HATAMI DÜZELTİYORUM. Bir önceki turda "gözlenen verim tur başına
--- ~7,3 karar, yani ~438 karar/saat, 1 milyona ~94 gün" dedim. ÖLÇÜM BUNU
--- YALANLADI:
+-- ⛔ BU DOSYANIN ESKİ BAŞLIĞI 6 KAT YANLIŞTI — 18.09.2026'da yakalandı.
 --
---     son_6_saat | eklenen_karar 511 | saatlik 85 | günlük ~2.044
+-- Eskiden burada "gerçek hız saatte 85 … 1 milyona 484 gün" yazıyordu ve o
+-- sayı bir yorum satırında donmuştu. Ürün sahibi "hasat verimi nasıl" diye
+-- sorduğunda doğru davranış bu dosyayı AÇIP OKUMAK değil, canlıyı ÖLÇMEKTİ.
+-- Ölçüldüğünde çıkan:
 --
--- Gerçek hız saatte 85. Benim rakamım 5 KAT FAZLAYDI. Sebebi: 46 dakikalık
--- bir pencereden (334 karar) saatlik hız çıkarmıştım; o pencere bundle'ın
--- uygulandığı ana denk geliyordu ve muhtemelen birikmiş işi boşaltıyordu.
--- Kısa pencereden uzun vadeli hız çıkarmak, tam olarak yapmamam gereken şeydi.
+--     18.09.2026 20:45 · ictihat_kararlar 96.194 karar
+--     son 1 saat 501 · son 6 saat 3.204 · son 24 saat 12.274
+--     saatlik dağılım 12 saattir 496–560 arası, yani SABİT
 --
--- DÜZELTİLMİŞ ARİTMETİK (ölçülen 2.044 karar/gün ile):
---     (1.000.000 − 9.705) / 2.044 ≈ 484 GÜN ≈ 16 AY.
+-- Yani gerçek hız ~510/saat, 85 değil. Eski sayı bir zamanlar doğru olabilir
+-- ama ölçüldüğü an geçmişte kaldı; yorum satırı onunla birlikte eskimedi.
 --
--- ŞİMDİ ASIL SORU. Zamanlama saatte 600 karara izin veriyor
--- (3 kaynak × 20 tur × 10 karar) ama 85 geliyor — kapasitenin %14'ü.
--- Tur başına ~1,4 karar. Demek ki DARBOĞAZ CRON SIKLIĞI DEĞİL. Cron'u
--- hızlandırmak, zaten boş dönen turları daha sık boş döndürmekten başka bir
--- şey yapmaz.
+-- DERS (.claude/skills/olcum 2. madde): ölçüm dosyasının İÇİNDEKİ sabit,
+-- ölçümün kendisi DEĞİLDİR. Bu dosyadaki sorguları koş, başlığındaki sayıyı
+-- okuma. Bir sayı yazacaksan tarihini ve ölçüm anını da yaz — bu paragraf
+-- da bir gün eskiyecek ve okuyanın bunu anlaması gerekecek.
 --
--- İKİ OLASILIK VAR ve ayırt edilmeleri şart, çünkü çözümleri TERS:
+-- ── Aşağıdaki sorgular hâlâ geçerli ────────────────────────────────────────
+-- Soru şu: zamanlama saatte daha fazlasına izin verirken neden bu kadar
+-- geliyor? İki olasılık var ve çözümleri TERS:
 --
---   A) YİNELENEN SONUÇ. Aramalar birbirini örtüyor ("kıdem tazminatı" ile
---      "işçilik alacakları" aynı kararları getiriyor). Havuzda olan eleniyor,
+--   A) YİNELENEN SONUÇ. Aramalar birbirini örtüyor. Havuzda olan eleniyor,
 --      geriye az yeni kalıyor. → Çözüm: daha çok/ayrık terim, sayfa ilerletme.
 --
 --   B) UYAP HIZ SINIRI. harvest-tick'in kendi yorumu şöyle diyor:
 --        "UYAP hız sınırında 429 DEĞİL, HTTP 200 + boş sonuç döndürüyor."
---      Bu durumda işlev 200 döner ama gövdede `not` alanı ve `eklenen: 0`
---      vardır. Dışarıdan "54 yanıtın hepsi 200" diye bakınca BAŞARILI görünür.
+--      Dışarıdan "hepsi 200" diye bakınca BAŞARILI görünür.
 --      → Çözüm: YAVAŞLATMAK. Hızlandırmak durumu kötüleştirir.
 --
--- Yanıt gövdeleri net._http_response'ta zaten duruyor; kimse bakmamış.
--- Bu dosya oraya bakar. Hiçbir şeyi değiştirmez.
+-- Yanıt gövdeleri net._http_response'ta duruyor; bu dosya oraya bakar.
+-- Hiçbir şeyi değiştirmez.
 
 -- ── 1) TURLARIN SONUCU: kaçı karar ekledi, kaçı boş döndü, kaçı hata? ───────
 -- EN AYIRT EDİCİ SORGU. 'hata/hız sınırı' kovası büyükse sebep (B),

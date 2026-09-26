@@ -36,8 +36,62 @@ bulup bulmadığına bak. Bulamıyorsa, bulamadığı diğer şeyler de kanıt d
   çıkaracaktım. Yakalatan şey: `length(to_tsvector(...))` = 1 sayısının
   makul olmaması.
 
+- **"Saatlerdir sürüyor" olayı (16.09.2026) — ölçülen şey SÜREYDİ ve
+  saati ben okuyamıyordum.**
+
+  iOS derlemesini izlerken kullanıcıya sırayla "50 dakika oldu",
+  "80 dakika oldu", "kayıt ucu saatlerdir 404" dedim. Sonra kullanıcı
+  ekran görüntüsü attı: GitHub **"8 minutes ago"** yazıyordu.
+
+  Gerçek süreler, GitHub damgalarından hesaplandı: koşu #1 **199 sn**,
+  #2 **48 sn**, #3 **62 sn**; dört koşu **9 dakikalık** bir aralıkta
+  başlamış. Benim "saatler" dediğim şey dakikalardı.
+
+  **Asıl hata teşhisti, gecikme değil.** Ben bu uyuşmazlığı "GitHub'ın
+  durum ucu bayat" diye açıkladım ve o açıklamayı bir ders olarak
+  yazdım. Oysa elimde tek bir bağımsız saat yoktu: kendi bekleme
+  sürelerimi gerçek zaman sanıp aleti suçladım. Bir ölçüm iki kaynağı
+  çelişiyorsa, **hangisinin bağımsız doğrulaması olduğuna bak** —
+  benimkinin yoktu.
+
+  **Ders 1:** geçen süre bir ÖLÇÜMDÜR ve kendi bekleyişin o ölçümün
+  aleti değildir. Süre iddiası yazacaksan iki damga arasındaki farkı
+  hesapla (`created_at` → `updated_at`), "şu kadar bekledim" deme.
+
+  **Ders 2:** bir aracı "bozuk/bayat" ilan etmek bir İDDİADIR ve kanıt
+  ister. Kanıtın yoksa "uyuşmuyor, sebebini bilmiyorum" de. Yanlış
+  teşhis, teşhissizlikten kötüdür: kural hâline gelir ve sonraki
+  oturumu yanlış yere götürür. (Bu maddenin ilk hâli tam olarak bunu
+  yaptı ve bir sonraki mesajda geri alınması gerekti.)
+
+  **Yine de faydalı olan:** `list_workflow_runs`'ı `status=completed` ve
+  `status=in_progress` ile iki kez çağırmak, tek bir alana bakmaktan
+  daha sağlamdır — iki küme ayrık çıkıyor ve biten koşular birinden
+  diğerine geçiyorsa süzgeç ayırt ediyor demektir. Bu, bayatlık
+  iddiasından bağımsız olarak iyi bir alışkanlık.
+
+- **`updated_at` olayı (18.09.2026) — sütunun VAR olması, YAZILDIĞI anlamına
+  gelmez.** Embedding'in ilerleyip ilerlemediğini ölçmek için
+  `embedding is not null and updated_at > now() - interval '24 hours'`
+  yazdım. Sonuç "1" çıktı; aynı pencerede 17 başarılı çağrı (51 kayıt)
+  vardı. Yani sütun embedding yazılırken bumplanmıyor — `update({embedding})`
+  başka hiçbir alana dokunmuyor ve tabloda tetikleyici yok.
+
+  Tehlikeli olan şu: bu ölçüm bir önceki turda **"birikmiş kayıtların
+  hiçbirine dokunulmuyor"** gibi çarpıcı bir sonuç vermişti ve o sonuç
+  doğru GÖRÜNÜYORDU (kapsama gerçekten düşüyordu). İki bağımsız sebep aynı
+  çıktıyı üretiyordu; ölçüm ikisini ayırt edemiyordu. Rapor edilmedi, çünkü
+  ayırt edici bir ikinci ölçüm istendi — doğru refleks buydu.
+
+  **Ders:** bir zaman sütununa dayanarak "şu iş yapıldı/yapılmadı" derken,
+  önce o sütunun O İŞ SIRASINDA gerçekten değiştiğini kanıtla. Kanıtlamanın
+  ucuz yolu: kesin olarak yapıldığını bildiğin bir işten sonra sütuna bak.
+  Sayım (`count(*) filter (where ...)`) iki damgalı koşu arasında
+  farklandığında güvenilirdir; tek koşuluk zaman sütunu değildir.
+
 **Alışkanlık:** ölçüm çıktısında bir sayı "fazla temiz" ya da "fazla iyi"
-görünüyorsa, önce aleti şüpheli say.
+görünüyorsa, önce aleti şüpheli say. Bir durum alanı hiç değişmiyorsa da
+aynısını yap.
 
 ---
 

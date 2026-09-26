@@ -5,7 +5,7 @@ description: Vekil Pro'nun Supabase göç (migration) kuralları — çok ifadel
 
 # Vekil Pro — Supabase göçleri
 
-`supabase/migrations/` altında bugün **130 göç** var. Sıradaki dosyanı
+`supabase/migrations/` altında bugün **149 göç** var. Sıradaki dosyanı
 yazmadan önce buradakilere uy.
 
 > **BU DOSYA ÖLÇÜLEREK YAZILDI (14.09.2026).** Aşağıdaki kuralların her biri
@@ -55,7 +55,7 @@ Hiçbir şey yazmayan, yalnız canlıyı ölçen göç. Ne zaman kullanılır:
 - Bir göç "UYGULANDI" dedi diye **doğru oturduğu anlaşılmaz**. Göç hatasız
   koşup yine de beklenenden farklı şema bırakabilir (sütun tipi, kısıt,
   politika, tetikleyici). Ölçüm göçü o farkı kapatır.
-- Yerel ≠ canlı. Canlıda pgvector, pg_cron, `KURULUM.sql` ve 130 göç birikmiş.
+- Yerel ≠ canlı. Canlıda pgvector, pg_cron, `KURULUM.sql` ve 149 göç birikmiş.
 
 Dosya başlığında **neden yazıldığı** ve **ne ölçmediği** açıkça yazılır.
 

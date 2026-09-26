@@ -1,0 +1,44 @@
+{
+  "_not": "Bu dosya App Store Connect'e YAZILACAK abonelik tanımıdır. Ürün sahibi onayı: 18.09.2026, 'Hepsini kur'. Yapı IAP_KURULUM.md §2 ile birebir: TEK grup, iki ürün — Temel'den AI'a geçişin 'upgrade' sayılması için ikisi aynı grupta olmalı.",
+  "_uyari": "APP STORE ÜRÜN KİMLİĞİ SİLİNEMEZ. Bir kez oluşturulduktan sonra yalnız 'kullanılamaz' yapılabilir. productId alanları src/lib/purchases.ts ve IAP_KURULUM.md ile AYNI olmalı; yazım hatası geri alınamaz.",
+  "grupId": "22395385",
+  "grupAdi": "Vekil Premium",
+  "urunler": [
+    {
+      "productId": "vekil_premium_monthly",
+      "name": "Vekil Pro Premium",
+      "subscriptionPeriod": "ONE_MONTH",
+      "familySharable": false,
+      "_groupLevel": "2 = alt kademe. AI (level 1) üst kademe; böylece Temel'den AI'a geçiş Apple tarafında YÜKSELTME sayılıyor (IAP_KURULUM.md §2).",
+      "groupLevel": 2,
+      "fiyatTL": 399,
+      "yerel": {
+        "locale": "tr",
+        "name": "Vekil Pro",
+        "description": "Sınırsız dosya, müvekkil ve finans"
+      },
+      "incelemeNotu": "Vekil Pro Premium unlocks unlimited case files, clients and documents, plus the finance module (fees, collections, expenses). Free accounts already include unlimited case-law search, legal calculators and petition templates; this subscription removes the record limits and opens finance. Purchase screen: Settings > Vekil Premium (opens the \"Vekil Pro Üyelik\" plans screen), or the lock icon on any limited screen. Testable with a StoreKit sandbox account."
+    },
+    {
+      "_not": "BU ÜRÜN ZATEN VAR (id 6813558875) ve 50 fiyat kaydı girilmiş. Betik var olanı yeniden oluşturmaz, fiyatına dokunmaz; yalnız SIFIR olan yerelleştirmesini doldurur — MISSING_METADATA'nın ölçülen sebebi buydu.",
+      "productId": "vekil_ai_monthly",
+      "name": "Vekil Pro AI",
+      "subscriptionPeriod": "ONE_MONTH",
+      "familySharable": false,
+      "groupLevel": 1,
+      "fiyatTL": 2999,
+      "yerel": {
+        "locale": "tr",
+        "name": "Vekil Pro AI",
+        "description": "Yapay zekâ destekli hukuki araştırma"
+      },
+      "incelemeNotu": "Vekil Pro AI unlocks the AI assistant: legal research over Turkish court decisions, petition drafting and document review. It also includes everything in Vekil Pro Premium. Every statute reference and case citation the assistant returns is checked against our corpus and labelled verified / not found / impossible. Purchase screen: Settings > Vekil Premium (opens the \"Vekil Pro Üyelik\" plans screen). Testable with a StoreKit sandbox account."
+    }
+  ],
+  "_incelemeNotu": "Apple abonelik için inceleme notu ve satın alma ekranının görselini istiyor; ikisi eksikken ürün MISSING_METADATA kalıyor. Not İNGİLİZCE çünkü inceleyen Türkçe okumuyor ve üç şeyi söylemesi gerekiyor: abonelik neyi açıyor, satın alma ekranına nereden gidiliyor, sandbox ile denenebiliyor.",
+  "grupYerel": {
+    "locale": "tr",
+    "name": "Vekil Pro",
+    "customAppName": "Vekil Pro"
+  }
+}

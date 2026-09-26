@@ -87,6 +87,14 @@ const R = {
  *
  * Başlıklar ekranda GERÇEKTEN görünen şeyi anlatır; garanti veren fiil yok.
  */
+// ── APPLE 2.3.7 REDDİ — 25.09.2026 ─────────────────────────────────────
+// Apple, mağaza GÖRSELLERİNDE fiyat ya da "ücretsiz" gibi ifadeyi kabul
+// etmiyor; fiyat bilgisi yalnız açıklama metninde olabilir. 16.09'daki ürün
+// sahibi isteği ("ücretsizi de göster") bu yüzden görsellerden AÇIKLAMA
+// METNİNE taşındı. Kaldırılanlar: iki kartın "ücretsiz" vurgusu, iki alt
+// metindeki "Ücretsiz"/"ücretsiz planda", "Yapay zekâ ayrı bir pakette"
+// (paket = fiyat katmanı imâsı). Buraya geri eklenmez; tests/magazaGorsel
+// bu kelimeleri yakalar.
 const KARTLAR = [
   {
     // AI BAŞTA — en ayırt edici özellik (BEKLEME-PENCERESI.md: hiçbir rakip
@@ -98,7 +106,7 @@ const KARTLAR = [
     // bunu gizlemek ilk açılışta hayal kırıklığı olurdu.
     dosya: '06-ictihat.png',
     ust: 'Uydurmayan', vurgu: 'yapay zekâ',
-    alt: 'Verilen her kanun maddesi ve karar künyesi denetlenir. Yapay zekâ ayrı bir pakette.',
+    alt: 'Verilen her kanun maddesi ve karar künyesi denetlenir.',
     etiketler: [
       { y: 23, taraf: 'sag', metin: 'Olayı anlatın, içtihadı bulsun' },
       { y: 75, taraf: 'sol', metin: 'Her künye denetlenir' },
@@ -107,7 +115,7 @@ const KARTLAR = [
   {
     dosya: '07-durusma-cikisi.png', kes: 0.60,
     ust: 'Duruşmadan çıkın,', vurgu: 'süre hazır',
-    alt: 'Ne olduğunu seçin; tebligat/tefhim ayrımıyla süre türetilir ve takvime düşer. Ücretsiz.',
+    alt: 'Ne olduğunu seçin; tebligat/tefhim ayrımıyla süre türetilir ve takvime düşer.',
     etiketler: [
       { y: 27, taraf: 'sag', metin: 'Takvime düşer' },
       { y: 39.5, taraf: 'sol', metin: 'Karar açıklandı → süre otomatik' },
@@ -133,8 +141,8 @@ const KARTLAR = [
   },
   {
     dosya: '03-takvim.png',
-    ust: 'Duruşma ve süreler', vurgu: 'ücretsiz',
-    alt: 'Sınırsız duruşma, süre ve hatırlatma — ücretsiz planda da. İçtihat araması da ücretsiz.',
+    ust: 'Duruşma ve süreler', vurgu: 'tek takvimde',
+    alt: 'Duruşma, süre ve hatırlatmalar bir arada; süre dolmadan bildirim gelir.',
     etiketler: [
       { y: 40, taraf: 'sag', metin: 'Hatırlatma 1 gün önce' },
     ],
@@ -151,7 +159,7 @@ const KARTLAR = [
     // Hesaplayıcılar ÜCRETSİZ. Ekranda AAÜT tarifesinin Resmî Gazete
     // künyesi görünüyor; "kaynağını söyleyen hesap" iyi bir vitrin.
     dosya: '10-calculators.png', kes: 0.45,
-    ust: 'Hesaplayıcılar', vurgu: 'ücretsiz',
+    ust: 'Hesaplayıcılar', vurgu: 'kaynaklı',
     alt: 'Vekâlet ücreti, faiz, harç ve SMM makbuzu — tarifenin Resmî Gazete künyesiyle birlikte.',
     etiketler: [
       { y: 12, taraf: 'sag', metin: 'Faiz · harç · SMM' },
@@ -347,10 +355,10 @@ function oneCikan({ pano, ictihat, logo }) {
     <div class="marka"><img src="${logo}">VEKİL PRO</div>
     <h1>Uydurmayan<br><em>yapay zekâ</em></h1>
     <div class="altinCizgi"></div>
-    <p>Her karar künyesi denetlenir. Dosya, duruşma ve süre takibi ile içtihat araması <b>ücretsiz</b>; yapay zekâ isteğe bağlı pakette.</p>
+    <p>Her karar künyesi denetlenir. Dosya, duruşma ve süre takibi, içtihat araması ve yapay zekâ taslakları tek uygulamada.</p>
     <div class="ozellikler">
       <div class="ozellik">Her künye denetlenir</div>
-      <div class="ozellik">Duruşma &amp; süre — ücretsiz</div>
+      <div class="ozellik">Duruşma &amp; süre takibi</div>
       <div class="ozellik">UYAP'tan dosya aç</div>
     </div>
   </div>

@@ -90,6 +90,88 @@ RevenueCat'e iOS uygulamasını eklerken bu yeni bundle ID'yi yazın.
 1. https://app.revenuecat.com/signup adresinden hesap açın.
 2. Yeni bir **Proje** oluşturun (ör. "Vekil Pro").
 
+## ✅ ÇÖZÜLDÜ 18.09.2026 — App Store abonelik ürünleri API'den kuruldu
+
+Son ölçüm (koşu #22, `abonelik-oku`), App Store Connect'ten okunan hâli:
+
+```
+Grup 22395385 "Vekil Premium"
+├─ vekil_ai_monthly       6813558875  seviye 1
+│    TÜRKİYE 2.999 TL ✅   Türkçe metin ✅   satışa açık: TUR
+└─ vekil_premium_monthly  6813613690  seviye 2
+     TÜRKİYE   399 TL ✅   Türkçe metin ✅   satışa açık: TUR
+```
+
+Ürün sahibi kararı: *"2 paketimiz var nasıl yapcaksak öyle yapcaz 399 ve
+2999."* İkisi de o değerde.
+
+**İkisi de hâlâ `MISSING_METADATA`.** Fiyat ve Türkçe metin tamam; kalan
+eksikler için aşağıdaki §2 ve B7 listesine bakın (inceleme görseli, Paid
+Apps sözleşmesi).
+
+### ÇÖZÜMÜ AÇAN ŞEY: satışa açıklık, fiyattan ÖNCE gelir
+
+Fiyat POST'u dört ayrı gövdeyle reddedilmişti
+(`409 ... An error occurred while processing the pricing information`).
+Eksik olan gövde değil **önceki adımdı**: bir ürüne bir ülkenin FİYATI,
+o ürün o ülkede **satışa açık değilken** kurulamıyor. Apple'da
+"Türkiye fiyatı" ile "Türkiye'de satılıyor" ayrı iki nesne.
+Açıklık kurulduktan sonra en baştan denenen gövde ilk seferde kabul edildi.
+
+### ⚠ YAN HASAR — AI ürününün satış alanı 175 ülkeden 1'e indi
+
+**Bunu Claude yaptı, 18.09.2026, ve hatası kendi çıkarımıydı.**
+`vekil_ai_monthly`'nin availability ucu **404** döndü; betik bunu "yok
+demek ki" diye okuyup yeni bir açıklık kurdu — içinde **yalnız Türkiye**.
+Oysa o ürünün **175 ülkede fiyatı vardı**, yani 404 "yok" demek değildi.
+
+**KURAL (kalıcı): bir nesnenin YOKLUĞUNU tek bir 404'ten çıkarma, hele
+o çıkarımla YAZACAKSAN.** Aynı nesneye dair başka bir ölçüm tersini
+söylüyorsa yazma DUR. Betiğe koruma eklendi: fiyat kaydı olan bir ürüne
+artık açıklık yazılmıyor.
+
+**Karar ürün sahibinin.** Türkiye'ye daralmış olmak muhtemelen ürüne
+uygun (Türk hukuku ürünü; ayrıca AB satışı `YAYIN-SIRASI.md` B7'deki
+**trader status** beyanını zorunlu kılıyor ve o beyan hâlâ verilmedi).
+`availableInNewTerritories=true` kaldı. Genişletmek isteniyorsa ülke
+listesi yazılıp aynı uçtan güncellenir — tek koşu.
+
+### Eski ölçüm (tarih için duruyor)
+
+```
+vekil_ai_monthly  →  TÜRKİYE = 399,99 TL   ← yanlıştı, düzeltildi
+  ARE 24,99 · AFG 6,99 · ATG 6,99 · AIA 6,99 · ALB 7,99
+```
+
+Yabancı ülke rakamları da aynı yöne işaret ediyor: 6,99–9,99 bandı, yani
+**Temel paketin kademesi**. AI ürünü Temel'in fiyatıyla açılmış görünüyor.
+
+**Bu ölçüm iki aşamada doğrulandı** çünkü ilk okuma güvenilir değildi.
+İlk sürüm Apple'ın `included` havuzundan "içinde TUR geçen ilk fiyat
+noktasını" seçiyordu — kaydın kendi ilişkisine bakmadan. O bir eşleştirme
+değil tahmindi. Doğrusu her `prices` kaydının `territory` ve
+`subscriptionPricePoint` ilişkilerini BİRLİKTE çözmek; yukarıdaki sayı öyle
+okundu.
+
+**Neden önemli — hesap `supabase/functions/_shared/katman.ts`'den:**
+
+| | |
+|---|---|
+| en kötü durumda API gideri (750 soru + 25 mütalaa + taşma) | **₺1.493** |
+| hedeflenen fiyat | ₺2.999 → gider gelirin %50'si |
+| **ölçülen fiyat** | **₺399,99** → Apple payı düştükten sonra ~₺280–340 net |
+
+Yani kotasını dolduran bir abone, hedeflenen kâr yerine belirgin zarar
+yazar. **Bu bir üst sınırdır, beklenen gider değil** — katman.ts'in kendi
+notu: ortalama kullanım BİLİNMİYOR, ödeme yapan kullanıcı henüz yok.
+Ortalama kullanıcı kotanın onda birini kullanırsa 399,99 da zarar
+ettirmeyebilir. Ama tasarlanan fiyat bu değil ve fark 7,5 kat.
+
+**KARAR ÜRÜN SAHİBİNİN.** Fiyatı düzeltmek, 399,99'da bırakmak ya da
+paketi yeniden kurgulamak — üçü de savunulabilir, seçim ölçümün değil.
+
+---
+
 ## 2. App Store Connect'te İKİ abonelik ürünü tanımlayın
 
 1. App Store Connect → uygulamanız → **Abonelikler** (Subscriptions).
@@ -149,6 +231,54 @@ RevenueCat'e iOS uygulamasını eklerken bu yeni bundle ID'yi yazın.
    panelindeki AYNI değer).
 
 ## 6. İstemci API anahtarlarını uygulamaya ekleyin
+
+> ### ✅ ANDROID TARAFI KAPATILDI — 18.09.2026
+>
+> `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` artık `eas.json`'daki **preview ve
+> production** profillerinde tanımlı (`goog_…`). RevenueCat'te Google Play
+> uygulaması oluşturuldu ve anahtar oradan alındı.
+>
+> **iOS TARAFI DA KAPATILDI — 18.09.2026.** `EXPO_PUBLIC_REVENUECAT_IOS_KEY`
+> (`appl_…`) her iki profile de yazıldı. RevenueCat'te Apple App Store
+> uygulaması oluşturuldu; bu adımda ayrıca **In-App Purchase anahtarı**
+> (ASC API anahtarından AYRI bir .p8) ve onun kendi **Issuer ID**'si gerekti.
+> İkisi App Store Connect → Integrations → **In-App Purchase** sekmesinde.
+>
+> **BU DEĞİŞİKLİK OTA İLE GİTMEZ.** Ortam değişkenleri derleme zamanında
+> paketin içine gömülüyor; anahtarın etkili olması için **yeni bir derleme**
+> gerekiyor. Play'e yüklü olan `vekilpro-3.3.2.aab` bu anahtarı TAŞIMIYOR.
+>
+> ---
+>
+> ### (TARİHSEL) Bu adım 16.09.2026'da yapılmamıştı
+>
+> `eas.json`'daki `preview` ve `production` profillerinin `env` bloklarında
+> **yalnız iki Supabase değişkeni var**; RevenueCat anahtarları yok.
+> Depoda `EXPO_PUBLIC_REVENUECAT_*` yalnız iki yerde geçiyor ve ikisi de
+> `purchases.ts`'teki okuma satırları — hiçbir yerde **yazılmıyorlar**.
+>
+> **Sonucu ne:** `src/lib/purchases.ts:42`
+> ```ts
+> const apiKey = Platform.OS === 'ios' ? IOS_KEY : ANDROID_KEY;
+> if (!apiKey) { ...; return; }   // satın alma SESSİZCE kapalı
+> ```
+> Yani uygulama abonelik ekranını gösteriyor, kullanıcı düğmeye basıyor ve
+> **hiçbir şey olmuyor.** Çökme yok, hata yok — bu yüzden fark edilmedi.
+>
+> **Nerede ölçüldü:** Play'e yüklenen `vekilpro-3.3.2.aab`, Android koşu #4
+> (13.09.2026, commit `bc8f206`) çıktısı. O commit'te `purchases.ts` ve
+> `react-native-purchases` VAR, anahtar YOK.
+>
+> **Şu an tek iyi tarafı:** Play mağaza kaydında "dijital ürün satın alma:
+> Hayır" denmiş ve bu, çalışma zamanı davranışına *kazara* uyuyor. Kapalı
+> test için sorun değil. **Üretimden önce üçü birden gerekir:**
+> 1. `goog_`/`appl_` anahtarları aşağıdaki gibi `eas.json`'a
+> 2. Play Console'da `premium` ve `ai` abonelik ürünleri
+> 3. Beyan "Evet"e döner → içerik derecelendirme + veri güvenliği formları
+>    güncellenir
+>
+> Anahtarlar **gizli değildir** (istemciye gömülüyorlar) — sohbete
+> yazılabilir. Gizli olan RevenueCat *secret* anahtarı ve webhook sırrıdır.
 
 RevenueCat panelinde **Project Settings → API Keys**'te iOS ve Android için
 ayrı "Public app-specific API key" değerleri var (bunlar GİZLİ değildir,

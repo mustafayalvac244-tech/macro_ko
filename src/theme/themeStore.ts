@@ -4,18 +4,25 @@ import { themeMetas, type ThemeId } from './palettes';
 import { temaTokenlariniUygula } from './tokens';
 
 /**
- * AÇILIŞ TEMASI — 15.09.2026, ürün sahibi kararı: "ana tema terminal olsun".
+ * AÇILIŞ TEMASI — 18.09.2026, ürün sahibi kararı: varsayılan `dark` (Gece).
  *
- * Terminal önce yalnız seçilebilir bir tema olarak eklenmişti; artık
- * uygulamanın varsayılan görünümü. Diğer altı tema duruyor ve Ayarlar'dan
- * seçiliyor — bu bir kaldırma değil, varsayılanın değişmesi.
+ * TARİHÇE VE NEDEN GERİ ALINDI. 15.09.2026'da varsayılan `terminal` yapıldı.
+ * Ama o değişiklik ürün sahibinin telefonuna hiç ULAŞMADI (telefondaki paket
+ * 14.09 derlemesi) ve mağaza görselleri `magaza-pazarlama/` altında Gece
+ * temasıyla çekilmişti. Yani üç yerde üç farklı tema vardı:
+ *   kod = terminal · telefon = dark · reklam görselleri = dark
+ * 3.4.0 yayınlansaydı HER YENİ KULLANICI mağazada gördüğünden farklı bir
+ * uygulama açacaktı. `PAZAR.md`'de ölçülmüş bir rakip şikâyeti tam olarak bu:
+ * "Uygulama görsellerinde ... var gözüküyor ama uygulamada yok."
+ *
+ * Terminal KALDIRILMADI — Ayarlar'dan seçilebilen temalardan biri.
  *
  * TOKEN'LAR BURADA, MODÜL YÜKLENİRKEN UYGULANIYOR. `spacing/radius/fonts/
  * typography` tanımlandıkları anda KLASİK değerlerle doluyor (bkz. tokens.ts).
- * Yalnız `themeId`yi değiştirseydik ilk kare TERMINAL RENKLERİ + MANROPE YAZI
+ * Yalnız `themeId`yi değiştirseydik ilk kare YENİ RENKLER + ESKİ YAZI TİPİ
  * ile çizilirdi: kullanıcı açılışta bir anlık yamalı ekran görürdü.
  */
-const ACILIS_TEMASI: ThemeId = 'terminal';
+const ACILIS_TEMASI: ThemeId = 'dark';
 temaTokenlariniUygula(ACILIS_TEMASI);
 
 const STORAGE_KEY = 'vekil-theme';

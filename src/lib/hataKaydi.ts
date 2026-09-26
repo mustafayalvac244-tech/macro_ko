@@ -24,6 +24,30 @@ const YIGIN_SINIR = 4000;
 export type HataKaynagi = 'render' | 'effect' | 'global' | 'promise';
 
 /**
+ * ⚠ BİLİNEN BOŞLUK — GİRİŞ YAPMAMIŞ KULLANICININ ÇÖKMESİ KAYDEDİLEMİYOR.
+ *
+ * ÖLÇÜLDÜ 18.09.2026, göç canlıya uygulandıktan hemen sonra:
+ *   istemci_hata politikaları  →  INSERT to authenticated
+ *                                 SELECT to authenticated
+ *
+ * Göçün kendi gerekçesi şunu diyor: *"en değerli çökme, kullanıcı henüz
+ * giriş yapmamışken açılışta olandır"* — `owner_id` tam da bunun için
+ * nullable yapılmış. Ama oturum yokken istemci `anon` rolüyle konuşur ve
+ * politika `authenticated` istediği için INSERT **reddedilir**. Yani tam
+ * olarak yakalamak istediğimiz çökme hâlâ kaydedilemiyor.
+ *
+ * NEDEN KENDİ BAŞIMA GENİŞLETMEDİM. `anon`a açık bir INSERT politikası,
+ * kimlik doğrulaması olmayan bir yazma ucu demektir; bu depoda RLS kuralı
+ * (`.claude/skills/supabase-goc`) bunu bilinçli karar olmadan yasaklıyor.
+ * Ürün sahibi isterse çözüm şöyle olur: `anon` için yalnız
+ * `owner_id is null` koşullu INSERT + hız sınırı. Karar verilmeden
+ * yazılmayacak.
+ *
+ * BUGÜN NE ÇALIŞIYOR: giriş yapmış kullanıcının çökmesi kaydediliyor.
+ * BUGÜN NE ÇALIŞMIYOR: açılışta, oturum kurulmadan olan çökme.
+ */
+
+/**
  * ASLA FIRLATMAZ, ASLA BEKLETMEZ.
  *
  * Bir hata kaydedicinin kendisinin hata fırlatması, teşhis etmeye çalıştığı

@@ -216,36 +216,8 @@ export default function RootLayout() {
             <Stack.Screen name="privacy" options={{ headerShown: false }} />
             <Stack.Screen name="templates" options={{ headerShown: false }} />
             <Stack.Screen name="search" options={{ headerShown: false }} />
-            {/* TEVKİL PANOSU VE MESLEKTAŞ YAZIŞMASI — GERİ AÇILDI (14.09.2026),
-                AMA YALNIZ WEB SÜRÜMÜNDE.
-
-                Önce kaldırılmışlardı çünkü menüden erişilemiyor ama derin
-                bağlantıyla açılabiliyorlardı; bu da (1) Play içerik anketinde
-                "kullanıcılar birbirini görebilir mi" sorusunu yanlış duruma
-                düşürüyor, (2) başka avukatlara ad/büro/baro sicil gösterirken
-                gizlilik metinlerinin hiçbiri bundan bahsetmiyordu.
-
-                İkisi de çözüldü:
-                (1) Ekran gövdeleri src/components/tevkil/ altında ve Metro
-                    platform uzantısıyla ayrılıyor — pano kodu NATIVE PAKETE
-                    HİÇ GİRMİYOR. Derin bağlantı çalışır ama "yalnız web"
-                    notu çıkar. Yani Android uygulamasında özellik gizli
-                    değil, YOK. PLAY.md 4.3 buna dayanıyor.
-                (2) KVKK metinlerine "Meslektaş Panosu" başlığı eklendi
-                    (src/components/KvkkMetin.tsx, docs/privacy.html,
-                    docs/guvenlik.html) ve tests/webMetinTutarlilik.test.ts
-                    rotalar varken metinlerin susmasını engelliyor.
-
-                Canlı ölçüm (0134): jobs tablosunda 2 ilan, dm_messages'ta 5
-                mesaj zaten vardı — ekranlar kapalı olduğu için görünmüyorlardı.
-
-                Günün sorusu ve büro sohbeti HÂLÂ PARKTA
-                (src/ekranlar-beklemede/), bilerek. Avukat rehberi de kapalı:
-                gerekçe src/components/tevkil/Mesajlar.web.tsx başlığında. */}
-            <Stack.Screen name="tevkil" options={{ headerShown: false }} />
-            <Stack.Screen name="tevkil-ilan" options={{ presentation: 'modal', headerShown: false }} />
-            <Stack.Screen name="mesajlar/index" options={{ headerShown: false }} />
-            <Stack.Screen name="mesajlar/[peerId]" options={{ headerShown: false }} />
+            {/* TEVKİL PANOSU VE MESLEKTAŞ MESAJLARI 26.09.2026'da KAPATILDI (ürün sahibi kararı).
+                Ekranlar silindi; veri silinmedi, erişim 0158 ile kapalı. */}
             <Stack.Screen name="ai-chat" options={{ headerShown: false }} />
             <Stack.Screen name="ictihat" options={{ headerShown: false }} />
             <Stack.Screen name="aihm" options={{ headerShown: false }} />

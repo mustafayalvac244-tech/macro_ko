@@ -17,6 +17,14 @@ const PATTERNS: Array<[RegExp, string]> = [
   [/user not found/i, 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.'],
   [/signups? not allowed/i, 'Yeni kayıt şu anda kapalı.'],
   [/rate limit|too many requests/i, 'Çok fazla deneme yapıldı. Lütfen bir süre sonra tekrar deneyin.'],
+  // SUNUCU TARAFI ZAMAN AŞIMI — AĞ HATASINDAN ÖNCE gelmeli.
+  // 23.09.2026, gerçek kullanıcı ekranı: giriş düğmesine basınca kırmızıyla
+  //   {"status":504,"statusText":"gateway timed out","redirected":false,"url":"https://…/auth/v1/token?…"}
+  // yazdı. Aşağıdaki ağ deseni `timeout` arıyordu, Supabase ağ geçidi
+  // `timed out` yazıyor; eşleşmeyince ham JSON — sunucu adresiyle birlikte —
+  // kullanıcıya basıldı. Ayrıca bu BİZİM sunucumuzun sorunu: "bağlantınızı
+  // kontrol edin" demek kullanıcıyı suçsuz yere kendi internetine yollar.
+  [/gateway time-?d? ?out|bad gateway|service unavailable|"status"\s*:\s*50[0-9]|AuthRetryableFetchError/i, 'Sunucu şu an yanıt veremedi. Birkaç saniye sonra tekrar deneyin — bu sizin bağlantınızla ilgili değil.'],
   [/network request failed|fetch failed|failed to fetch|network error|timeout/i, 'İnternet bağlantısı kurulamadı. Bağlantınızı kontrol edip tekrar deneyin.'],
   [/jwt expired|refresh token/i, 'Oturum süreniz doldu. Lütfen tekrar giriş yapın.'],
   [/payload too large|exceeded the maximum allowed size/i, 'Dosya boyutu izin verilen sınırı aşıyor.'],
@@ -45,6 +53,15 @@ export function trError(
   }
   for (const [re, tr] of PATTERNS) {
     if (re.test(message)) return tr;
+  }
+  // HAM ÇIKTI KORUMASI. Tanımadığımız mesajı olduğu gibi bırakıyoruz — çünkü
+  // kendi fırlattığımız Türkçe hatalar da buradan geçiyor. AMA ham JSON ya da
+  // içinde sunucu adresi olan bir metin hiçbir zaman kullanıcı diline
+  // çevrilmiş bir hata değildir: bir kütüphanenin iç çıktısıdır. 504 olayı
+  // tam böyle sızdı. Desen listesi bir gün yine bir biçimi kaçırırsa, en
+  // azından sunucu adresi ve teknik döküm ekrana düşmesin.
+  if (/^\s*[{[]/.test(message) || /https?:\/\//i.test(message)) {
+    return 'Sunucu beklenmedik bir yanıt verdi. Birkaç saniye sonra tekrar deneyin.';
   }
   return message;
 }

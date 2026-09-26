@@ -25,7 +25,7 @@ export const tr = {
     // etmiş olurdu — üstelik ilk ekranda.
     'İçtihat araması, duruşma/görev ajandası ve hatırlatmalar sınırsız ve ücretsizdir. Ücretsiz planda {dava} dava, {muvekkil} müvekkil ve {belge} belge tutabilirsiniz; sınırsız kayıt, finans modülü ve {n} yapay zekâ denemesi Vekil Pro ile açılır.',
     'auth.lawyersOnly': 'Avukatlara özel platform',
-  'auth.tcNo': 'T.C. Kimlik No',
+  'auth.tcNo': 'T.C. Kimlik No (isteğe bağlı)',
   'auth.tcPlaceholder': '11 haneli kimlik numaranız',
   'auth.fullNameRequired': 'Ad soyad girin.',
   'auth.tcRequired': 'T.C. kimlik numaranızı girin.',

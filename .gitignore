@@ -92,3 +92,4 @@ play-service-account.json
 # Depoya girmez: her koşuda yeniden üretilebiliyor (~40 sn) ve graph.json
 # kaynak kodun türevi, kendisi değil.
 graphify-out/
+ios-imza/

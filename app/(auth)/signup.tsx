@@ -94,11 +94,12 @@ export default function SignupScreen() {
       eksik('fullName', t('auth.fullNameRequired'));
       return;
     }
-    if (!tcNo.trim()) {
-      eksik('tcNo', t('auth.tcRequired'));
-      return;
-    }
-    if (!isValidTCKN(tcNo.trim())) {
+    // T.C. KİMLİK NO İSTEĞE BAĞLI — 25.09.2026, Apple Guideline 5.1.1 reddi.
+    // Apple: uygulamanın işlevi için gerekmeyen kişisel veri zorunlu
+    // istenemez. Kayıt, dava takibi ve arama kimlik numarası olmadan
+    // çalışıyor; veritabanında alan zaten boş kalabiliyordu (0086).
+    // Girilirse yine doğrulanır — yanlış numara kaydedilmesin diye.
+    if (tcNo.trim() && !isValidTCKN(tcNo.trim())) {
       eksik('tcNo', t('auth.tcInvalid'));
       return;
     }
