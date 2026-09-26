@@ -6,7 +6,9 @@
 
 /** Hata kritikliği. A durdurur, B müşteri görür, C kozmetiktir. */
 /**
- * DERECE — ekibin kendi sistemi (16.09.2026'da ürün sahibinden alındı).
+ * DERECE — ekibin kendi sistemi. Ürün sahibinden iki aşamada alındı:
+ * 16.09.2026 "3 var, parantez içi 3 var"; 26.09.2026 anlamı: "3 kötü, parantez
+ * içi 3 kabul edilebilir demek".
  *
  * Üç derece var: 1, 2, 3. Her derece İKİ DURUMDA yazılabilir:
  *   3    → hata. Düzeltilmesi gerekir.
@@ -194,7 +196,7 @@ export interface Denetim {
 
 // --- ÖZET -----------------------------------------------------------------
 //
-// Ceza puanı ve KABUL/ŞARTLI/RED tipleri 16.09.2026'da kaldırıldı: ekipte
+// Ceza puanı ve KABUL/ŞARTLI/RED tipleri 26.09.2026'da kaldırıldı (istek 16.09): ekipte
 // böyle bir sistem yok, uydurma bir ölçüt raporda gerçekmiş gibi görünüyordu.
 
 export interface Dagilim {

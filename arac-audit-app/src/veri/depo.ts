@@ -38,7 +38,7 @@ async function ac(): Promise<SQLite.SQLiteDatabase> {
  * ve sırayla çalışır. Yeni sürüm eklerken diziye EKLE, var olanı DEĞİŞTİRME —
  * değiştirilen bir göç, sahadaki cihazlarda hiç çalışmaz.
  *
- * TOPLU YENİDEN ADLANDIRMA BU DİZİYE DOKUNMAMALI (16.09.2026'da oldu):
+ * TOPLU YENİDEN ADLANDIRMA BU DİZİYE DOKUNMAMALI (26.09.2026'da oldu):
  * `siddet` → `derece` geçişinde dosya genelinde yapılan bul-değiştir, göç 1 ve
  * 2'deki sütun adını da değiştirdi. Sonuç: yeni kurulumda göç 1 zaten `derece`
  * yarattı, göç 3'teki `RENAME COLUMN siddet` sütun bulamayıp düştü ve uygulama

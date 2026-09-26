@@ -108,7 +108,7 @@ describe('özel hata tipleri — Excel sütunları', () => {
 });
 
 describe('derece gösterimi — parantez anlamı tersine çevirir', () => {
-  // Ekibin sistemi (16.09.2026): 3 = hata, (3) = kabul edilebilir. Parantez
+  // Ekibin sistemi (26.09.2026): 3 = hata, (3) = kabul edilebilir. Parantez
   // raporda kaybolursa kabul edilmiş bir bulgu iş emri doğurur; fazladan
   // eklenirse gerçek bir hata "kabul edildi" diye kapanır. İki yön de
   // sessizdir, o yüzden ikisi de sınanır.

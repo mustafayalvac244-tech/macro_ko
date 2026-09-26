@@ -1,7 +1,8 @@
 // ÖZET — SAYAR, PUANLAMAZ.
 //
 // Burada bir zamanlar ceza puanı (demerit) ağırlıkları ve KABUL/ŞARTLI/RED
-// eşikleri vardı. 16.09.2026'da ürün sahibi kaldırttı: "puan sistemini kaldır,
+// eşikleri vardı. Ürün sahibi 16.09.2026'da istedi, 26.09.2026'da kaldırıldı:
+// "puan sistemini kaldır,
 // bizde öyle bir şey yok." Ekibin gerçek denetim tablosunda da puan sütunu ya
 // da karar damgası yok — sınıf (A/B/C…), parça, hata açıklaması ve sorumlu var.
 //

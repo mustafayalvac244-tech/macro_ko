@@ -24,7 +24,7 @@ import { useKatalog } from '@/veri/katalogDeposu';
 /**
  * ÇALIŞMA EKRANI — hızlı giriş.
  *
- * 16.09.2026 ürün sahibi geri bildirimi: "programı hiç beğenmedim… parça
+ * 26.09.2026 ürün sahibi geri bildirimi: "programı hiç beğenmedim… parça
  * seçilecek, gap mı scratch mı seçilecek, hataları tak tak girebilecekler."
  * Önceki ekran 3B modeli merkeze koyuyordu ve her kayıt bir form açıyordu.
  * Bu ekran tersini yapar:
@@ -423,7 +423,7 @@ export default function DenetimEkrani() {
       {sonKayit ? (
         // Bildirim altta, hata ızgarasının son satırının ÜSTÜNDE yüzüyor. Metin
         // kısmı dokunuşu yutarsa kayıttan sonraki 6 sn boyunca o satırdaki
-        // düğmelere basılamıyor — hızlı girişin tam ortasında (16.09.2026 ekran
+        // düğmelere basılamıyor — hızlı girişin tam ortasında (26.09.2026 ekran
         // incelemesi). Dokunuşu yalnız "Geri al" alır, gerisi alttakine geçer.
         <View style={s.bildirim} accessibilityLiveRegion="polite" pointerEvents="box-none">
           <View style={{ flex: 1 }} pointerEvents="none">

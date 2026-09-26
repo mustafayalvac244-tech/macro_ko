@@ -141,7 +141,7 @@ adı ve grubu çözmesi dahil).
 
 ## Hızlı giriş — çalışma ekranının tek amacı
 
-16.09.2026 ürün sahibi geri bildirimi: *"programı hiç beğenmedim… parça
+26.09.2026 ürün sahibi geri bildirimi: *"programı hiç beğenmedim… parça
 seçilecek, gap mı scratch mı seçilecek, hataları tak tak girebilecekler."*
 
 Önceki çalışma ekranı 3B modeli merkeze koyuyordu ve her kayıt bir form
@@ -185,11 +185,13 @@ Parantez süs değil, **anlamı tersine çevirir.** Bu yüzden:
 - Rozet parantezi hem metinle hem kesikli çerçeveyle gösterir; ayrım yalnız
   renge bırakılmadı.
 
-**Sıralama varsayımı — teyit bekliyor:** "3 kötü" dendiği için 3 en ağır, 1 en
-hafif kabul edildi. Ters ise `cekirdek/katalog.ts` içindeki `DERECELER`de üç
-`id` yer değiştirir. Kademelerin yazılı bir tanımı ekipten alınmadı.
+**Sıralama: 3 en ağır, 1 en hafif.** Dayanağı (26.09.2026): "3 kötü" dendi;
+ürün sahibine "3'ü en ağır kabul ettim, tersiyse söyle" diye soruldu, yanıt
+"evet" oldu. Yanlış çıkarsa `cekirdek/katalog.ts` içindeki `DERECELER`de üç
+`id` yer değiştirir. **Hâlâ alınmadı:** kademelerin yazılı tanımı (1 ile 2'yi
+ne ayırır).
 
-**Ceza puanı ve KABUL/ŞARTLI/RED kaldırıldı** (16.09.2026, ürün sahibi: *"bizde
+**Ceza puanı ve KABUL/ŞARTLI/RED kaldırıldı** (26.09.2026; istek 16.09.2026, ürün sahibi: *"bizde
 öyle bir şey yok"*). Uydurma bir puanı rapora yazmak, olmayan bir ölçütü varmış
 gibi gösterir. Geri eklenmemeli.
 
@@ -207,7 +209,7 @@ göç 1 ve 2'deki `siddet` sütun adı da yanlışlıkla değişmişti; tarayıc
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
 | 166 parçalık katalog, VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
 | Hızlı giriş (2 dokunuş), geri al | **Bitti** |
-| Derece 1/2/3 + kabul edilebilir (parantez) | **Bitti** — sıralama varsayımı teyit bekliyor |
+| Derece 1/2/3 + kabul edilebilir (parantez) | **Bitti** — sıralama ürün sahibine soruldu ("evet"); kademe tanımları alınmadı |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |
 | SQLite yerel depo (senkrona hazır şema) | **Bitti** |

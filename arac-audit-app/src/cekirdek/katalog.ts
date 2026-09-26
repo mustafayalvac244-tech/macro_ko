@@ -20,10 +20,13 @@ import { AracTipi, Bolge, HataGrubu, HataGrubuId, HataTipi, Parca, ParcaKayit, D
 /**
  * Dereceler — ekibin kendi sistemi. Ceza puanı YOK.
  *
- * SIRALAMA VARSAYIMI (teyit bekliyor): ürün sahibi "3 kötü" dedi, bu yüzden
- * 3 en ağır, 1 en hafif kabul edildi. Ters ise düzeltmesi tek satır: aşağıdaki
- * üç `id` değerini yer değiştirin. Ad olarak sayının kendisi kullanılıyor;
- * ekibin tablosunda da kademelerin yazılı bir adı yok.
+ * SIRALAMA: 3 en ağır, 1 en hafif. Dayanağı (26.09.2026): ürün sahibi "3 kötü"
+ * dedi; ona "3'ü en ağır, 1'i en hafif kabul ettim, tersiyse söyle" diye
+ * soruldu, yanıtı "evet" oldu. Yanlış çıkarsa düzeltmesi tek satır: aşağıdaki
+ * üç `id` değerini yer değiştirin.
+ *
+ * HÂLÂ BİLİNMEYEN: kademelerin yazılı tanımı (1 ile 2'yi ne ayırır). Ad olarak
+ * sayının kendisi kullanılıyor; ekibin tablosunda da kademe adı yok.
  */
 export const DERECELER: Derece[] = [
   { id: '3', ad: '3', en: '3', renk: '#d92d20', aciklama: 'En ağır kademe. (Kademelerin resmî tanımı ekipten alınmadı.)' },
