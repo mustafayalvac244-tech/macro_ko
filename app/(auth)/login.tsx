@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Link, router } from 'expo-router';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { WebKart } from '@/components/ui/WebKart';
 import { Input } from '@/components/ui/Input';
@@ -110,9 +110,19 @@ export default function LoginScreen() {
             }}
           />
 
-          <Link href={'/forgot-password' as Parameters<typeof router.push>[0]} style={styles.forgotLink}>
+          {/* ANDROID'DE KESİLİYORDU (16.09 ve 26.09, ürün sahibi telefonda gördü:
+              "şifremi unuttum yazmıyor, şifremi yazıyor"). expo-router Link
+              native'de kendisi bir Text; içine Text koyunca iç içe Text oluşuyor
+              ve Android son kelimeyi kesebiliyor. Pressable bir View'dır: içinde
+              TEK Text kalır. (Sebep Android'de ölçülmedi — emülatör yok.) */}
+          <Pressable
+            onPress={() => router.push('/forgot-password' as Parameters<typeof router.push>[0])}
+            style={styles.forgotLink}
+            hitSlop={8}
+            accessibilityRole="link"
+          >
             <Text style={styles.forgotText}>{t('auth.forgot')}</Text>
-          </Link>
+          </Pressable>
 
           {/* Görünmez captcha — anahtar yoksa hiç çizilmez. */}
           <Captcha onToken={setCaptchaToken} />
@@ -132,9 +142,9 @@ export default function LoginScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
-            <Link href="/(auth)/signup" replace>
+            <Pressable onPress={() => router.replace('/(auth)/signup')} hitSlop={8} accessibilityRole="link">
               <Text style={styles.footerLink}>{t('auth.createOne')}</Text>
-            </Link>
+            </Pressable>
           </View>
 
           <Text style={styles.copyright}>© 2026 VEKİL Yazılım</Text>
