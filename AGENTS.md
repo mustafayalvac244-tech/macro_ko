@@ -1,3 +1,18 @@
+# Geçmiş kaybolmasın — DURUM.md (26.09.2026, ürün sahibi kuralı)
+
+Ürün sahibi: *"Context window doldukça buna çözüm bul, unutma geçmişi."*
+Uzun sohbet özetlenir ve ayrıntı kaybolur; sohbetin kendisi korunamaz. Çözüm
+sohbete bağımlı olmamak: **`DURUM.md` her oturumda otomatik yüklenir**
+(CLAUDE.md → `@DURUM.md`) ve özetlemeden etkilenmez.
+
+- Önemli bir adım bittiği AN (yayın, derleme, göç, ürün sahibi kararı, yeni
+  açık iş) `DURUM.md` güncellenir ve **aynı turda commit + push edilir.**
+  Push edilmeyen güncelleme, konteyner kapanınca kaybolur.
+- DURUM.md yalnız ŞU ANI tutar ve kısa kalır (≤120 satır, test denetler).
+  Gerekçe ve tarihçe `KARAR-DEFTERI.md`'ye yazılır.
+- Özetlenmiş bir oturumda önce DURUM.md'ye güven, sonra `git log` ile
+  doğrula; özetle çelişirse ölçülmüş olan (git/canlı) doğrudur.
+
 # Expo HAS CHANGED
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.

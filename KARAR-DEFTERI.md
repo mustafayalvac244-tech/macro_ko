@@ -23,6 +23,10 @@ gerekiyorsa satır güncellenir ve tarihi değişir.
 | 13.09.2026 | **Vurgu rengi altın (`#E3C275`)**, açık mavi kaldırıldı. Hem uygulamada hem tanıtım sitesinde. | Ürün sahibi |
 | 13.09.2026 | **Eczane (İlaçPro) tablolarının disk maliyeti konusu kapandı.** "Daha fazla yer kaplamıcak, kaplarsa genişletirim." Bir daha maliyet gerekçesiyle gündeme getirilmez. KVKK ayrım kuralı AYRI ve geçerli (bkz. AGENTS.md). | Ürün sahibi |
 | önceki | **Disk freni 30 GB.** "Ek ücret öderim." Supabase Pro'da 8 GB dahil, üstü $0,125/GB/ay → 30 GB'da ayda +$2,75. | Ürün sahibi |
+| 26.09.2026 | **Tevkil panosu ve meslektaş mesajları KAPATILDI** ("tevkili kapat"). Rotalar/ekranlar silindi, KVKK metninden başlık çıktı, 0158 ile erişim kapandı; veri silinmedi. 14.09'daki "geri açıldı" kararının yerine geçer. | Ürün sahibi |
+| 25.09.2026 | **T.C. Kimlik No kayıtta isteğe bağlı** (Apple 5.1.1). Girilirse doğrulanır. | Ürün sahibi (Apple reddi üzerine) |
+| 26.09.2026 | **Geçmiş DURUM.md'de tutulur**, CLAUDE.md'den otomatik yüklenir; her önemli adımda güncellenir. | Ürün sahibi |
+| 26.09.2026 | **Az soru:** "sorma, hepsine evet diyorum". Yalnız gerçekten ürün sahibine ait kararlar sorulur. | Ürün sahibi |
 | önceki | **PR'ları Claude kendi merge eder.** "sen et merge her zaman" | Ürün sahibi |
 | 14.09.2026 | **Tevkil panosu, sohbet ve günün sorusu yayından ÇIKARILDI.** Silinmediler; `src/ekranlar-beklemede/` altında duruyorlar (1.928 satır). Sebep: menüde yoktular ama derin bağlantıyla açılabiliyorlardı, bu da Play içerik anketini ve KVKK metinlerini yanlış duruma düşürüyordu. **Geri açma sırası: önce KVKK/gizlilik metinleri, sonra ekranlar, sonra PLAY.md 4.3.** | Ürün sahibi onayı ile |
 
