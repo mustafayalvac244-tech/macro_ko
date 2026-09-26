@@ -105,7 +105,10 @@ const KARTLAR = [
     // görselin alt metni). "Ayrı pakette" ibaresi duruyor: AI ücretli ve
     // bunu gizlemek ilk açılışta hayal kırıklığı olurdu.
     dosya: '06-ictihat.png',
-    ust: 'Uydurmayan', vurgu: 'yapay zekâ',
+    // 26.09.2026: 'Uydurmayan' mutlak bir doğruluk vaadiydi ve terms m.6
+    // ("yapay zekâ hata yapabilir") ile çelişiyordu. Yaptığımız şey uydurmamak
+    // değil, DENETLEMEK — başlık onu söylüyor.
+    ust: 'Atıfları denetlenen', vurgu: 'yapay zekâ',
     alt: 'Verilen her kanun maddesi ve karar künyesi denetlenir.',
     etiketler: [
       { y: 23, taraf: 'sag', metin: 'Olayı anlatın, içtihadı bulsun' },
@@ -353,7 +356,7 @@ function oneCikan({ pano, ictihat, logo }) {
   <div class="defter"></div><div class="isik"></div>
   <div class="sol">
     <div class="marka"><img src="${logo}">VEKİL PRO</div>
-    <h1>Uydurmayan<br><em>yapay zekâ</em></h1>
+    <h1>Atıfları denetlenen<br><em>yapay zekâ</em></h1>
     <div class="altinCizgi"></div>
     <p>Her karar künyesi denetlenir. Dosya, duruşma ve süre takibi, içtihat araması ve yapay zekâ taslakları tek uygulamada.</p>
     <div class="ozellikler">

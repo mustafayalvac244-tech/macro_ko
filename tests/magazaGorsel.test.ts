@@ -30,6 +30,9 @@ describe('mağaza görsel başlıkları (Apple 2.3.7)', () => {
     ['premium', /premium/i],
     ['abonelik', /abonelik|subscription/i],
     ['deneme süresi', /deneme süresi|trial/i],
+    // 26.09.2026: 'Uydurmayan yapay zekâ' mutlak doğruluk vaadiydi; terms m.6
+    // yapay zekânın hata yapabileceğini söylüyor. Yanıltıcı reklam riski.
+    ['mutlak doğruluk vaadi', /uydurma(yan|z)|hatasız|yanılmaz|%100/i],
   ])('başlıklarda "%s" yok', (_ad, desen) => {
     expect(kod.match(desen)?.[0] ?? null).toBeNull();
   });
