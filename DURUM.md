@@ -10,15 +10,13 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 26.09.2026 akşam (web paketi Supabase adresi düzeltildi)
+**Son güncelleme:** 27.09.2026 18:15 UTC (Apple incelemede)
 
 ## 1. Şu an — yayın durumu
 
-- **iOS 3.4.0** App Store Connect'te `PREPARE_FOR_SUBMISSION`, **derleme 7
-  bağlı** (26.09 10:28 UTC, doğrulandı). Apple'a GÖNDERİLMEDİ.
-- **Engel yok.** Gönder düğmesine **ürün sahibi** basacak: API'den gönderim
-  bu oturumun izin denetimince engellendi (26.09). Gönderirken: sürüm
-  sayfasında iki abonelik işaretlenir + 3 maddelik ret yanıtı yapıştırılır.
+- **iOS 3.4.0 Apple'da: `WAITING_FOR_REVIEW`, derleme 7** (27.09 18:15 UTC
+  okundu). İki abonelik de `WAITING_FOR_REVIEW` — sürümle birlikte gitmiş.
+  Ürün sahibi arayüzden gönderdi (API'den gönderim izin denetimince engelli).
 - Apple 2. ret (25.09) üç maddeydi, üçü de kapandı:
   2.3.7 görsellerde fiyat → görseller değişti, yüklendi (MD5 eşleşti) ·
   5.1.1 TC zorunlu → isteğe bağlı (derleme 6+) ·
@@ -33,8 +31,7 @@
 
 ## 2. Sıradaki / açık işler
 
-1. Ürün sahibi gönderdikten sonra: `tam-denetim` ile durumu oku, aboneliklerin
-   `WAITING_FOR_REVIEW` olduğunu doğrula.
+1. İnceleme sonucunu `tam-denetim` ile oku (sürüm satırı: `3.4.0  =  DURUM`).
 2. Demo hesabın (bayram@vekilpro.app) duruşma tarihleri sabit (ilki 27.09);
    inceleme uzarsa `scripts/demo-hesap-ornek-veri.sql` ile tazele.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
