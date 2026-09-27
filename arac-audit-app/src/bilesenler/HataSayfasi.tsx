@@ -1,14 +1,15 @@
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ViewStyle,
 } from 'react-native';
 
-import { Dugme, Girdi, HataKutusu, DereceRozeti } from '@/bilesenler/temel';
+import { GRUP_SIMGELERI, S } from '@/bilesenler/simgeler';
+import { AramaKutusu, DereceRozeti, Dugme, Girdi, HataKutusu, Secenek } from '@/bilesenler/temel';
 import { fotografKucult } from '@/cekirdek/goruntu';
 import { HATA_GRUPLARI, PARCA_INDEKS, parcaHataTipleri, DERECELER } from '@/cekirdek/katalog';
 import { DereceKodu, Hata, HataGrubuId, HataTipi, SorunTipi } from '@/cekirdek/tipler';
-import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
+import { bosluk, DOKUNMA, dereceRenkleri, kose, Renkler, tipografi, useTema } from '@/tema';
 import { fotografKaydet, FotografKaydi, fotografSil } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
 
@@ -172,14 +173,11 @@ export function HataSayfasi({
       <ScrollView style={s.kaydir} contentContainerStyle={s.kaydirIc} keyboardShouldPersistTaps="handled">
         <Text style={s.bolumBaslik}>HATA TİPİ</Text>
 
-        <TextInput
-          value={arama}
-          onChangeText={setArama}
-          placeholder="Hata ara — gıcırtı, göçük, boşluk…"
-          placeholderTextColor={renkler.metinSolgun}
-          accessibilityLabel="Hata tipi ara"
-          style={s.arama}
-          autoCorrect={false}
+        <AramaKutusu
+          deger={arama}
+          degistir={setArama}
+          yerTutucu="Hata ara — gıcırtı, göçük, boşluk…"
+          erisimEtiketi="Hata tipi ara"
         />
 
         {yeniAcik ? (
@@ -198,7 +196,7 @@ export function HataSayfasi({
 
         {!yeniAcik && gruplar.map((g) => (
           <View key={g} style={{ gap: bosluk.xxs }}>
-            <Text style={s.grupBaslik}>{HATA_GRUPLARI[g]?.ad ?? g}</Text>
+            <GrupBasligi grup={g} />
             <View style={s.izgara}>
               {suzulmus.filter((t) => t.grup === g).map((t) => {
                 const secili = hataTipiId === t.id;
@@ -240,47 +238,29 @@ export function HataSayfasi({
             onPress={() => setYeniAcik(true)}
             style={[s.yeniDugme, suzulmus.length === 0 && { borderColor: renkler.birincil }]}
           >
+            <S.ekle size={18} color={renkler.birincil} strokeWidth={2.25} />
             <Text style={s.yeniDugmeMetin}>
-              {q ? `+ "${arama.trim()}" adıyla yeni hata tipi ekle` : '+ Yeni hata tipi ekle'}
+              {q ? `"${arama.trim()}" adıyla yeni hata tipi ekle` : 'Yeni hata tipi ekle'}
             </Text>
           </Pressable>
         ) : null}
 
         <Text style={s.bolumBaslik}>DERECE</Text>
-        <View style={s.izgara}>
-          {DERECELER.map((sd) => {
-            const secili = derece === sd.id;
-            return (
-              <Pressable
-                key={sd.id}
-                accessibilityRole="radio"
-                aria-checked={secili}
-                accessibilityLabel={`Derece ${sd.ad}`}
-                onPress={() => setDerece(sd.id)}
-                style={[s.secenek, { flexBasis: 100 }, secili && s.secenekSecili]}
-              >
-                <Text style={[s.secenekBuyuk, secili && { color: renkler.birincil }]}>{sd.ad}</Text>
-                
-              </Pressable>
-            );
-          })}
-        </View>
+        <DereceSecici derece={derece} onSec={setDerece} />
 
         <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} />
 
         <Text style={s.bolumBaslik}>TÜR</Text>
         <View style={s.izgara}>
           {(['Part', 'Complex'] as const).map((tur) => (
-            <Pressable
+            <Secenek
               key={tur}
-              accessibilityRole="radio"
-              aria-checked={sorunTipi === tur}
-              accessibilityLabel={`Tür ${tur}`}
+              metin={tur}
+              erisimEtiketi={`Tür ${tur}`}
+              secili={sorunTipi === tur}
               onPress={() => setSorunTipi(tur)}
-              style={[s.secenek, { flexBasis: 120 }, sorunTipi === tur && s.secenekSecili]}
-            >
-              <Text style={[s.secenekAd, sorunTipi === tur && { color: renkler.birincil }]}>{tur}</Text>
-            </Pressable>
+              style={{ flexGrow: 1, flexBasis: 120 }}
+            />
           ))}
         </View>
 
@@ -303,7 +283,7 @@ export function HataSayfasi({
                 onPress={() => setAdet(String(Math.max(1, (Number(adet) || 1) - 1)))}
                 style={s.adetDugme}
               >
-                <Text style={s.adetDugmeMetin}>−</Text>
+                <S.azalt size={20} color={renkler.metin} strokeWidth={2.25} />
               </Pressable>
               <TextInput
                 value={adet}
@@ -317,7 +297,7 @@ export function HataSayfasi({
                 onPress={() => setAdet(String(Math.min(99, (Number(adet) || 1) + 1)))}
                 style={s.adetDugme}
               >
-                <Text style={s.adetDugmeMetin}>+</Text>
+                <S.ekle size={20} color={renkler.metin} strokeWidth={2.25} />
               </Pressable>
             </View>
           </View>
@@ -341,7 +321,7 @@ export function HataSayfasi({
                   onPress={() => fotografiKaldir(id)}
                   style={s.fotoSil}
                 >
-                  <Text style={s.fotoSilMetin}>×</Text>
+                  <S.kapat size={16} color={renkler.cubukMetin} strokeWidth={2.5} />
                 </Pressable>
               </View>
             );
@@ -352,7 +332,12 @@ export function HataSayfasi({
             disabled={fotoYukleniyor}
             style={s.fotoEkle}
           >
-            <Text style={s.fotoEkleMetin}>{fotoYukleniyor ? '…' : '📷\nÇek'}</Text>
+            {fotoYukleniyor ? <ActivityIndicator color={renkler.birincil} /> : (
+              <>
+                <S.kamera size={22} color={renkler.birincil} strokeWidth={2} />
+                <Text style={s.fotoEkleMetin}>Çek</Text>
+              </>
+            )}
           </Pressable>
           <Pressable
             accessibilityRole="button" accessibilityLabel="Galeriden seç"
@@ -360,7 +345,8 @@ export function HataSayfasi({
             disabled={fotoYukleniyor}
             style={s.fotoEkle}
           >
-            <Text style={s.fotoEkleMetin}>🖼{'\n'}Galeri</Text>
+            <S.galeri size={22} color={renkler.birincil} strokeWidth={2} />
+            <Text style={s.fotoEkleMetin}>Galeri</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -428,41 +414,22 @@ export function YeniTipFormu({
       <Text style={s.alanEtiketi}>GRUP</Text>
       <View style={s.izgara}>
         {izinliGruplar.map((g) => (
-          <Pressable
+          <Secenek
             key={g}
-            accessibilityRole="radio"
-            aria-checked={grup === g}
-            accessibilityLabel={HATA_GRUPLARI[g]?.ad ?? g}
+            metin={HATA_GRUPLARI[g]?.ad ?? g}
+            simge={GRUP_SIMGELERI[g]}
+            secili={grup === g}
             onPress={() => setGrup(g)}
-            style={[s.secenek, { flexBasis: 120 }, grup === g && s.secenekSecili]}
-          >
-            <Text style={[s.secenekAd, grup === g && { color: renkler.birincil }]}>
-              {HATA_GRUPLARI[g]?.ad ?? g}
-            </Text>
-          </Pressable>
+            style={{ flexGrow: 1, flexBasis: 150, justifyContent: 'flex-start' }}
+          />
         ))}
       </View>
 
-      <Text style={s.alanEtiketi}>ÖNERİLEN ŞİDDET</Text>
-      <View style={s.izgara}>
-        {DERECELER.map((sd) => (
-          <Pressable
-            key={sd.id}
-            accessibilityRole="radio"
-            aria-checked={derece === sd.id}
-            // "Önerilen şiddet" öneki ŞART: ana sayfadaki ŞİDDET seçimi de
-            // ekranda duruyor, aynı etiketle iki radyo ekran okuyucuda
-            // ayırt edilemez.
-            accessibilityLabel={`Önerilen derece ${sd.ad}`}
-            onPress={() => setDerece(sd.id)}
-            style={[s.secenek, { flexBasis: 100 }, derece === sd.id && s.secenekSecili]}
-          >
-            <Text style={[s.secenekAd, derece === sd.id && { color: renkler.birincil }]}>
-              {sd.id} · {sd.ad}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <Text style={s.alanEtiketi}>ÖNERİLEN DERECE</Text>
+      {/* "Önerilen derece" öneki ŞART: çalışma ekranındaki DERECE seçimi de
+          ekranda duruyor, aynı etiketle iki radyo ekran okuyucuda ayırt
+          edilemez. */}
+      <DereceSecici derece={derece} onSec={setDerece} etiketOnEki="Önerilen derece" kucuk />
 
       <View style={s.yeniEylemler}>
         <Dugme metin="Vazgeç" tur="sessiz" kucuk onPress={onVazgec} style={{ flex: 1 }} />
@@ -488,8 +455,8 @@ export function YeniTipFormu({
  * çeviriyor; yanlış basılırsa kabul edilmiş bulgu iş emri doğurur.
  */
 export function KabulAnahtari({
-  kabul, derece, onDegis,
-}: { kabul: boolean; derece: DereceKodu; onDegis: (k: boolean) => void }) {
+  kabul, derece, onDegis, style,
+}: { kabul: boolean; derece: DereceKodu; onDegis: (k: boolean) => void; style?: ViewStyle }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   return (
@@ -498,14 +465,79 @@ export function KabulAnahtari({
       aria-checked={kabul}
       accessibilityLabel={`Kabul edilebilir — raporda ${kabul ? `(${derece})` : derece} yazılır`}
       onPress={() => onDegis(!kabul)}
-      style={[s.kabulSatir, kabul && s.kabulSatirAcik]}
+      style={({ pressed }) => [s.kabulSatir, kabul && s.kabulSatirAcik, pressed && { opacity: 0.8 }, style]}
     >
-      <View style={[s.kabulKutu, kabul && { backgroundColor: renkler.birincil, borderColor: renkler.birincil }]}>
-        {kabul ? <Text style={s.kabulTik}>✓</Text> : null}
+      {/* Ray + topuz: açık/kapalı yalnız renkle değil TOPUZUN YERİYLE de okunur. */}
+      <View style={[s.ray, kabul && s.rayAcik]}>
+        <View style={[s.topuz, kabul && s.topuzAcik]} />
       </View>
-      <Text style={s.kabulMetin}>Kabul edilebilir</Text>
-      <Text style={s.kabulOnizleme}>{kabul ? `(${derece})` : derece}</Text>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={s.kabulMetin} numberOfLines={1}>Kabul edilebilir</Text>
+        <Text style={s.kabulAlt} numberOfLines={1}>Raporda parantezle yazılır</Text>
+      </View>
+      <View style={[s.kabulOnizleme, kabul && s.kabulOnizlemeAcik]}>
+        <Text style={s.kabulOnizlemeMetin}>{kabul ? `(${derece})` : derece}</Text>
+      </View>
     </Pressable>
+  );
+}
+
+/**
+ * Derece seçici: 3 · 2 · 1 (3 en ağır). Seçili olan kendi derece rengiyle DOLU
+ * çizilir, diğerleri boş kutuda yalnız rakamı derece renginde taşır. Seçim
+ * yalnız renkle değil dolu/boş farkıyla da okunur; rakam her zaman yazılıdır.
+ * Kontrastlar ölçüldü (27.09.2026): seçili rakam en az 5.28:1, seçili olmayan
+ * rakam kendi zemininde en az 5.28:1 — iki temada da.
+ */
+export function DereceSecici({
+  derece, onSec, etiketOnEki = 'Derece', kucuk = false,
+}: {
+  derece: DereceKodu;
+  onSec: (d: DereceKodu) => void;
+  /** Aynı ekranda iki derece seçici varsa ekran okuyucu ayırt etsin diye. */
+  etiketOnEki?: string;
+  kucuk?: boolean;
+}) {
+  const { renkler } = useTema();
+  const s = useMemo(() => stiller(renkler), [renkler]);
+  return (
+    <View style={s.dereceSatir}>
+      {DERECELER.map((d) => {
+        const secili = derece === d.id;
+        const { on } = dereceRenkleri(renkler, d.id);
+        return (
+          <Pressable
+            key={d.id}
+            accessibilityRole="radio"
+            aria-checked={secili}
+            accessibilityLabel={`${etiketOnEki} ${d.ad}`}
+            onPress={() => onSec(d.id)}
+            style={({ pressed }) => [
+              s.dereceDugme, kucuk && s.dereceDugmeKucuk,
+              secili ? { backgroundColor: on, borderColor: on } : null,
+              pressed && { opacity: 0.72 },
+            ]}
+          >
+            <Text style={[kucuk ? s.dereceRakamKucuk : s.dereceRakam, { color: secili ? renkler.metinTers : on }]}>
+              {d.ad}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Hata grubu başlığı — simge okumadan tanımayı sağlar, 37 kutu arasında göz grubu bulur. */
+export function GrupBasligi({ grup }: { grup: HataGrubuId }) {
+  const { renkler } = useTema();
+  const s = useMemo(() => stiller(renkler), [renkler]);
+  const Ikon = GRUP_SIMGELERI[grup];
+  return (
+    <View style={s.grupSatir}>
+      {Ikon ? <Ikon size={15} color={renkler.metinIkincil} strokeWidth={2} /> : null}
+      <Text style={s.grupBaslik}>{HATA_GRUPLARI[grup]?.ad ?? grup}</Text>
+    </View>
   );
 }
 
@@ -521,13 +553,8 @@ const stiller = (r: Renkler) => StyleSheet.create({
   kaydirIc: { paddingHorizontal: bosluk.md, paddingBottom: bosluk.md, gap: bosluk.sm },
 
   bolumBaslik: { ...tipografi.etiket, color: r.metinSolgun, marginTop: bosluk.xs },
+  grupSatir: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: bosluk.xxs },
   grupBaslik: { ...tipografi.captionOrta, color: r.metinIkincil },
-
-  arama: {
-    ...tipografi.body, color: r.metin, minHeight: DOKUNMA,
-    paddingHorizontal: bosluk.sm, backgroundColor: r.yuzey,
-    borderWidth: 1, borderColor: r.cizgi, borderRadius: kose.md,
-  },
 
   izgara: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   secenek: {
@@ -538,7 +565,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   secenekSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   secenekSatir: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   secenekAd: { ...tipografi.captionOrta, color: r.metin, flexShrink: 1 },
-  secenekBuyuk: { ...tipografi.h3, color: r.metin, textAlign: 'center' },
   secenekEn: { ...tipografi.caption, color: r.metinSolgun, fontSize: 11 },
   ozelIsaret: {
     ...tipografi.caption, fontSize: 9, color: r.bilgi,
@@ -549,6 +575,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   bos: { ...tipografi.body, color: r.metinSolgun, paddingVertical: bosluk.xs },
 
   yeniDugme: {
+    flexDirection: 'row', gap: bosluk.xs,
     minHeight: DOKUNMA, alignItems: 'center', justifyContent: 'center',
     borderRadius: kose.md, borderWidth: 1, borderStyle: 'dashed',
     borderColor: r.cizgiGuclu, backgroundColor: r.yuzey, paddingHorizontal: bosluk.sm,
@@ -570,7 +597,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
     width: DOKUNMA, height: DOKUNMA, alignItems: 'center', justifyContent: 'center',
     borderRadius: kose.sm, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
   },
-  adetDugmeMetin: { ...tipografi.h2, color: r.metin },
   adetGirdi: {
     flex: 1, textAlign: 'center', ...tipografi.sayiBuyuk, color: r.metin,
     borderWidth: 1, borderColor: r.cizgi, borderRadius: kose.sm,
@@ -588,27 +614,46 @@ const stiller = (r: Renkler) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderRadius: kose.sm, backgroundColor: r.perde,
   },
-  fotoSilMetin: { ...tipografi.bodyOrta, color: '#FFFFFF' },
   fotoEkle: {
-    width: 84, height: 84, alignItems: 'center', justifyContent: 'center',
+    width: 84, height: 84, alignItems: 'center', justifyContent: 'center', gap: 4,
     borderRadius: kose.sm, borderWidth: 1, borderStyle: 'dashed',
     borderColor: r.cizgiGuclu, backgroundColor: r.yuzey,
   },
-  fotoEkleMetin: { ...tipografi.caption, color: r.metinIkincil, textAlign: 'center' },
+  fotoEkleMetin: { ...tipografi.captionOrta, color: r.metinIkincil, textAlign: 'center' },
 
   kabulSatir: {
-    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: DOKUNMA,
-    paddingHorizontal: bosluk.sm, borderRadius: kose.md,
+    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: 60,
+    paddingHorizontal: bosluk.sm, paddingVertical: 6, borderRadius: kose.md,
     borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
   },
   kabulSatirAcik: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
-  kabulKutu: {
-    width: 24, height: 24, borderRadius: kose.sm, borderWidth: 1.5,
-    borderColor: r.cizgiGuclu, alignItems: 'center', justifyContent: 'center',
+  // Kapalı rayın kenarı metinSolgun: cizgiGuclu yüzeyde 2.58:1 idi, bir
+  // denetim öğesinin sınırı için WCAG 1.4.11'in 3:1'inin altında (27.09.2026).
+  ray: {
+    width: 48, height: 28, borderRadius: kose.pill, borderWidth: 1.5, padding: 2,
+    borderColor: r.metinSolgun, backgroundColor: r.yuzeyAlt, justifyContent: 'center',
   },
-  kabulTik: { ...tipografi.captionOrta, color: r.metinTers },
-  kabulMetin: { ...tipografi.bodyOrta, color: r.metin, flex: 1 },
-  kabulOnizleme: { ...tipografi.sayiBuyuk, color: r.metin },
+  rayAcik: { backgroundColor: r.birincil, borderColor: r.birincil },
+  topuz: { width: 21, height: 21, borderRadius: kose.pill, backgroundColor: r.metinSolgun },
+  topuzAcik: { backgroundColor: r.metinTers, alignSelf: 'flex-end' },
+  kabulMetin: { ...tipografi.bodyOrta, color: r.metin },
+  kabulAlt: { ...tipografi.caption, color: r.metinSolgun },
+  kabulOnizleme: {
+    minWidth: 54, height: 40, paddingHorizontal: 6, borderRadius: kose.sm,
+    borderWidth: 1.5, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  kabulOnizlemeAcik: { borderStyle: 'dashed', borderColor: r.birincil },
+  kabulOnizlemeMetin: { ...tipografi.sayiBuyuk, fontSize: 22, lineHeight: 28, color: r.metin },
+
+  dereceSatir: { flexDirection: 'row', gap: bosluk.xs },
+  dereceDugme: {
+    flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center',
+    borderRadius: kose.md, borderWidth: 1.5, borderColor: r.cizgi, backgroundColor: r.yuzey,
+  },
+  dereceDugmeKucuk: { minHeight: DOKUNMA },
+  dereceRakam: { ...tipografi.h1, fontSize: 26, lineHeight: 32 },
+  dereceRakamKucuk: { ...tipografi.h3 },
 
   eylemler: {
     flexDirection: 'row', gap: bosluk.xs, padding: bosluk.md,

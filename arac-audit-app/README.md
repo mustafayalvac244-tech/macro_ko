@@ -37,12 +37,14 @@ app/                    ekranlar (expo-router: dosya = rota)
   index.tsx             denetim listesi
   yeni.tsx              yeni denetim (araç + şasi)
   barkod.tsx            şasi barkodu okuma
-  ayarlar.tsx           tema, karar eşikleri
-  denetim/[id].tsx      ÇALIŞMA EKRANI — 3B model + hata kaydı
+  ayarlar.tsx           tema, ekibin eklediği hata tipleri, veri durumu
+  denetim/[id].tsx      ÇALIŞMA EKRANI — hızlı giriş; tablette iki bölme
   denetim/rapor.tsx     rapor, Excel/CSV paylaşımı
 src/
   tema/                 token'lar, iki palet, TemaSaglayici
   bilesenler/           paylaşılan arayüz — yeni bileşen yazmadan önce buraya bak
+    temel.tsx           Baslik, BaslikDugmesi, Dugme, Secenek, AramaKutusu, Olcu, AltCubuk…
+    simgeler.ts         TEK simge kaynağı (lucide) — ekranlar simgeyi buradan alır
   cekirdek/             ALAN MANTIĞI: katalog, VIN, derece/özet, XLSX motoru
   veri/depo.ts          SQLite — senkrona hazır normalize şema
 ```
@@ -57,12 +59,39 @@ src/
 - **`tipografi.*` bir stil nesnesidir**, sayı değil: `{ ...tipografi.h3, color: ... }`.
 - **Dokunma hedefi en az 48 px** (`DOKUNMA`). Eldivenli parmak için.
 - **Üç durumu da ele al**: yükleniyor · boş · hata.
-- **Bilgiyi yalnız renkle verme.** Şiddet rozeti hem renk hem harf taşır.
+- **Bilgiyi yalnız renkle verme.** Derece rozeti hem renk hem rakam taşır;
+  seçili seçenek tik simgesi, açık anahtar topuzun yeri ile de ayrılır.
 - **Aynı anda tek alt sayfa.** `AltSayfa` kabuğu bir tanedir, içeriği değişir —
   iki `Modal` üst üste açıldığında kapanan modal DOM'da asılı kalıp alttakini
   engelliyor (15.09.2026'da ölçüldü).
 - Yeni yerel bağımlılık eklemeden önce **sor**: her biri OTA ile gidemeyecek
-  yeni bir derleme demek.
+  yeni bir derleme demek. (`lucide-react-native` yerel DEĞİL: zaten kurulu
+  `react-native-svg` üstünde saf JavaScript; yeni derleme gerektirmez.)
+
+### Görsel dil (27.09.2026)
+
+- **Üstte koyu uygulama çubuğu — iki temada da.** Sahada ekranın hangi
+  uygulamada olduğunu bir bakışta ayırır; durum çubuğu simgeleri bu yüzden hep
+  açık renk. Çubuk `Baslik`tır ve **üst güvenli alanı kendisi alır**; alt
+  eylem çubuğu `AltCubuk`tur, ev çubuğu payını o alır. (Önceden yeni denetim,
+  rapor ve ayarlar ekranları güvenli alanı hiç almıyordu — çentikli cihazda
+  başlık durum çubuğunun altında kalırdı.)
+- **Simgeler yalnız `simgeler.ts`ten.** Emoji ve `‹ ⤓ ✓ 📷` gibi yazı işaretleri
+  kaldırıldı: emoji cihazın yazı tipiyle çizilir, üreticiden üreticiye değişir.
+  Simge adları sürümler arasında değişiyor; yeni bir ad eklerken kurulu
+  paketin içinde ara (`grep "exports.Ad = " node_modules/lucide-react-native/dist/cjs/lucide-react-native.js`).
+- **Tablet düzeni**: `useDuzen().tablet` — kısa kenar ≥ 600 (Android'in
+  "sw600dp" tablet eşiği) VE genişlik ≥ 720. Telefon yatay çevrilse de tek
+  bölmede kalır. Tablette çalışma ekranı iki bölmedir (solda parçalar hep
+  açık); telefonda iki adım.
+- **Kontrast ölçülür, göz kararı verilmez** (WCAG formülü, 27.09.2026). Açık
+  temada üç renk eşiğin altındaydı ve düzeltildi: `metinSolgun` 3.53 → en az
+  4.60:1, derece 2 rozeti 3.93 → 4.63:1, derece 1 rozeti 4.26 → 4.65:1. Yeni
+  çubuk: yazı 15.2:1, soluk yazı 5.9:1 (düğme zemininde), vurgu düğmesi
+  yazısı 7.6:1. Derece seçici: seçili rakam ve seçili olmayan rakam iki
+  temada da en az 5.28:1. `cizgiGuclu` yüzeyde 2.58:1 — denetim öğesinin
+  TEK sınırı olarak kullanılmaz (kabul anahtarının kapalı rayı bu yüzden
+  `metinSolgun` kenarlı).
 
 ## Yazı tipi neden IBM Plex
 
@@ -246,6 +275,7 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
 | | |
 |---|---|
 | Tasarım sistemi, iki tema | **Bitti** |
+| Görsel yenileme: koyu çubuk, simgeler, tablette iki bölme, kartlar | **Bitti** — web'de tablet/telefon × açık/koyu koşuldu; **gerçek tablette görülmedi** |
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
 | 166 parçalık katalog, VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
 | Hızlı giriş (2 dokunuş), geri al | **Bitti** |
@@ -272,6 +302,24 @@ okuyucuyla (openpyxl) açıldı: ZIP bütünlüğü, sayfa adları, başlık, 10
 başlığı, her hücrenin değeri, `(2)` gösterimi, fotoğrafın doğru hücreye (Photo
 sütunu, doğru satır) ve 149×112 px boyuta oturduğu okundu. **Gerçek Excel'de
 açılmadı** — bu ortamda Excel yok.
+
+**Görsel yenileme** (27.09.2026): aynı uçtan uca sınav yeni düzene uyarlandı
+ve dört düzende koşuldu — tablet 1024×768 ve telefon 390×844, her biri açık
+ve koyu temada. Dördünde de 13 adımın hepsi geçti: iki dokunuşla kayıt,
+derecenin hatırlanması, bildirimin altındaki düğmeye HAM tıklamayla basılması
+(ölçüm: 3 → 4 kayıt), kabul anahtarının yapışkan olmaması, geri al, sorumlu
+öğrenme, raporda 1 × (3) ve 4 × 3 rozeti. Ekran görüntülerine tek tek
+bakıldı; bulunan kusurlar (telefonda ana sayfa kartında şasinin "NLHB51ABPD…"
+diye kesilmesi, web'de girdilerin üstüne tarayıcının siyah odak çizgisinin
+binmesi, koyu temada çubuğun sol bölmeyle birleşmesi) düzeltilip yeniden
+koşuldu. Bu sınavı ve "doğru" tanımını ben yazdım; bağımsız bir doğrulama
+değildir.
+
+**Ekrandaki yanlış bir cümle düzeltildi** (27.09.2026): ana sayfa "kayıtlar
+bağlantı gelince kendiliğinden gönderilecek" diyordu. Doğru değildi —
+gönderen bir kod yok, sunucu kurulmadı. Artık "kayıtlar yalnız bu cihazda;
+dışarı almak için raporu Excel olarak paylaşın" diyor; her karttaki
+"GÖNDERİLMEDİ" rozeti de kaldırıldı (hep doğruydu, bilgi taşımıyordu).
 
 **Native tarafta hiçbir şey denenmedi.** Web paketi, mantığın ve arayüzün
 doğru olduğunu gösterir; kamera, barkod, dosya paylaşımı ve WebView'ın tablet

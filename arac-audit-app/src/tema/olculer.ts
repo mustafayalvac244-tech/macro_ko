@@ -74,3 +74,13 @@ export const DOKUNMA = 48;
 
 /** İkona verilecek dokunma payı (küçük ikonlar için). */
 export const HITSLOP = { top: 10, bottom: 10, left: 10, right: 10 } as const;
+
+/**
+ * Tablet düzeni eşiği (dp). İki koşul birlikte aranır:
+ *  - kısa kenar >= 600: Android'in "sw600dp" tablet eşiği. Telefon yatay
+ *    çevrilince genişliği 800'ü geçer ama yüksekliği ~400 kalır; iki bölmeli
+ *    düzen orada sıkışır. Kısa kenar şartı telefonu hep tek bölmede tutar.
+ *  - genişlik >= 720: dikey tablet (768–834) iki bölmeli açılsın.
+ */
+export const TABLET_KISA_KENAR = 600;
+export const TABLET_GENISLIK = 720;

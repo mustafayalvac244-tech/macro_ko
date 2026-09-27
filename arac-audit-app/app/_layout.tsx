@@ -49,10 +49,12 @@ export default function KokDuzen() {
 }
 
 function Govde() {
-  const { renkler, temaAdi } = useTema();
+  const { renkler } = useTema();
   return (
     <>
-      <StatusBar style={temaAdi === 'koyu' ? 'light' : 'dark'} />
+      {/* Uygulama çubuğu iki temada da koyu (paletler.ts → cubuk); durum
+          çubuğu simgeleri de o yüzden iki temada da açık renk. */}
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,

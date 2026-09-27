@@ -1,21 +1,22 @@
-import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Baslik, BaslikDugmesi, BilgiKutusu, Dugme, DereceRozeti } from '@/bilesenler/temel';
+import { GRUP_SIMGELERI, S, Simge } from '@/bilesenler/simgeler';
+import {
+  Baslik, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi, Kart, Secenek,
+} from '@/bilesenler/temel';
 import { HATA_GRUPLARI } from '@/cekirdek/katalog';
-import { bosluk, DOKUNMA, kose, Renkler, TemaTercihi, tipografi, useTema } from '@/tema';
+import { bosluk, kose, Renkler, TemaTercihi, tipografi, useTema } from '@/tema';
 import { bekleyenSenkron, hataTipiKullanimi } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
 
-const TEMALAR: { deger: TemaTercihi; etiket: string }[] = [
-  { deger: 'sistem', etiket: 'Sistem' },
-  { deger: 'acik', etiket: 'Açık' },
-  { deger: 'koyu', etiket: 'Koyu' },
+const TEMALAR: { deger: TemaTercihi; etiket: string; simge: Simge }[] = [
+  { deger: 'sistem', etiket: 'Sistem', simge: S.sistemTema },
+  { deger: 'acik', etiket: 'Açık', simge: S.acikTema },
+  { deger: 'koyu', etiket: 'Koyu', simge: S.koyuTema },
 ];
 
 export default function Ayarlar() {
-  const router = useRouter();
   const { renkler, tercih, tercihiAyarla } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
 
@@ -26,43 +27,44 @@ export default function Ayarlar() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: renkler.bg }}>
-      <Baslik
-        baslik="Ayarlar"
-        sol={<BaslikDugmesi metin="‹" erisimEtiketi="Geri" onPress={() => router.back()} />}
-      />
+    <Ekran>
+      <Baslik baslik="Ayarlar" sol={<GeriDugmesi />} />
       <ScrollView contentContainerStyle={s.govde}>
-        <Text style={s.bolumBaslik}>GÖRÜNÜM</Text>
-        <View style={s.satir}>
-          {TEMALAR.map((t) => (
-            <Pressable
-              key={t.deger}
-              accessibilityRole="radio"
-              aria-checked={tercih === t.deger}
-              accessibilityLabel={`${t.etiket} tema`}
-              onPress={() => tercihiAyarla(t.deger)}
-              style={[s.secim, tercih === t.deger && s.secimSecili]}
-            >
-              <Text style={[s.secimMetin, tercih === t.deger && { color: renkler.birincil }]}>{t.etiket}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <Kart>
+          <BolumBasligi metin="GÖRÜNÜM" simge={S.gorunum} />
+          <Text style={s.aciklama}>Üst çubuk iki temada da koyudur; içerik seçilen temayı izler.</Text>
+          <View style={s.satir}>
+            {TEMALAR.map((t) => (
+              <Secenek
+                key={t.deger}
+                metin={t.etiket}
+                simge={t.simge}
+                erisimEtiketi={`${t.etiket} tema`}
+                secili={tercih === t.deger}
+                onPress={() => tercihiAyarla(t.deger)}
+                style={{ flex: 1 }}
+              />
+            ))}
+          </View>
+        </Kart>
 
+        <Kart>
+          <BolumBasligi metin="EKİBİN EKLEDİĞİ HATA TİPLERİ" simge={S.etiket} />
+          <OzelTipler />
+        </Kart>
 
-
-        <Text style={s.bolumBaslik}>EKİBİN EKLEDİĞİ HATA TİPLERİ</Text>
-        <OzelTipler />
-
-        <Text style={s.bolumBaslik}>VERİ</Text>
-        <BilgiKutusu
-          metin={bekleyen > 0
-            ? `${bekleyen} kayıt sunucuya gönderilmeyi bekliyor. Merkezi sunucu bağlantısı henüz kurulmadı — kayıtlar cihazda güvende.`
-            : 'Gönderilmeyi bekleyen kayıt yok.'}
-        />
-
+        <Kart>
+          <BolumBasligi metin="VERİ" simge={S.veri} />
+          {/* "Gönderilmeyi bekliyor" demiyoruz: gönderen bir kod yok, sunucu
+              kurulmadı. Sayı, cihazda duran satırların sayısıdır. */}
+          <BilgiKutusu
+            metin={bekleyen > 0
+              ? `${bekleyen} kayıt (denetim, hata ve fotoğraf satırı) yalnız bu cihazda. Merkezi sunucu bağlantısı henüz kurulmadı; dışarı almak için denetim raporunu Excel olarak paylaşın.`
+              : 'Cihazda kayıt yok.'}
+          />
+        </Kart>
       </ScrollView>
-
-    </View>
+    </Ekran>
   );
 }
 
@@ -98,62 +100,56 @@ function OzelTipler() {
 
   return (
     <>
-      {tipler.map((t) => (
-        <View key={t.id} style={[s.siddetSatiri, t.silindi && { opacity: 0.6 }]}>
+      {tipler.map((t) => {
+        const GrupIkon = GRUP_SIMGELERI[t.grup];
+        return (
+        <View key={t.id} style={[s.tipSatiri, t.silindi && { opacity: 0.6 }]}>
           {/* Bu bir hata TİPİ, kaydedilmiş bulgu değil: tipin kabul durumu yok. */}
           <DereceRozeti derece={t.derece} kabul={false} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.siddetAd} numberOfLines={2}>
+            <Text style={s.tipAd} numberOfLines={2}>
               {t.ad}{t.silindi ? ' — listeden kaldırıldı' : ''}
             </Text>
-            <Text style={s.siddetNot} numberOfLines={2}>
+            <View style={s.tipNotSatir}>
+              {GrupIkon ? <GrupIkon size={13} color={renkler.metinSolgun} strokeWidth={2} /> : null}
+              <Text style={s.tipNot} numberOfLines={2}>
               {[
                 HATA_GRUPLARI[t.grup]?.ad ?? t.grup,
                 t.en || null,
                 t.ekleyen ? `ekleyen: ${t.ekleyen}` : null,
                 `${kullanim[t.id] ?? 0} kayıtta kullanıldı`,
               ].filter(Boolean).join(' · ')}
-            </Text>
+              </Text>
+            </View>
           </View>
           <Dugme
             metin={t.silindi ? 'Geri al' : 'Kaldır'}
+            simge={t.silindi ? S.geriAl : S.sil}
             kucuk
             tur={t.silindi ? 'ikincil' : 'sessiz'}
+            erisimEtiketi={`${t.ad}: ${t.silindi ? 'listeye geri al' : 'listeden kaldır'}`}
             onPress={() => (t.silindi ? geriAl(t.id) : kaldir(t.id))}
           />
         </View>
-      ))}
+        );
+      })}
     </>
   );
 }
 
 const stiller = (r: Renkler) => StyleSheet.create({
-  govde: { padding: bosluk.md, gap: bosluk.sm, paddingBottom: bosluk.xxxl },
-  bolumBaslik: { ...tipografi.etiket, color: r.metinSolgun, marginTop: bosluk.sm },
+  govde: {
+    padding: bosluk.md, gap: bosluk.md, paddingBottom: bosluk.xxxl,
+    width: '100%', maxWidth: 760, alignSelf: 'center',
+  },
+  aciklama: { ...tipografi.caption, color: r.metinSolgun },
   satir: { flexDirection: 'row', gap: bosluk.xs },
-  ikili: { flexDirection: 'row', gap: bosluk.xs },
-  secim: {
-    flex: 1, minHeight: DOKUNMA, alignItems: 'center', justifyContent: 'center',
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
-  },
-  secimSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
-  secimMetin: { ...tipografi.bodyOrta, color: r.metin },
-  onay: { flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: DOKUNMA },
-  kutu: {
-    width: 26, height: 26, borderRadius: kose.sm, borderWidth: 1.5,
-    borderColor: r.cizgiGuclu, alignItems: 'center', justifyContent: 'center',
-  },
-  tik: { color: '#FFFFFF', ...tipografi.captionOrta },
-  onayMetin: { ...tipografi.body, color: r.metin, flex: 1 },
-  siddetSatiri: {
+  tipSatiri: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
     padding: bosluk.xs, borderRadius: kose.md,
     borderWidth: 1, borderColor: r.cizgiSolgun, backgroundColor: r.yuzey,
   },
-  siddetAd: { ...tipografi.bodyOrta, color: r.metin },
-  siddetNot: { ...tipografi.caption, color: r.metinSolgun },
-  altCubuk: {
-    padding: bosluk.md, backgroundColor: r.bgYukseltilmis,
-    borderTopWidth: 1, borderTopColor: r.cizgiSolgun,
-  },
+  tipAd: { ...tipografi.bodyOrta, color: r.metin },
+  tipNotSatir: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  tipNot: { ...tipografi.caption, color: r.metinSolgun, flexShrink: 1 },
 });

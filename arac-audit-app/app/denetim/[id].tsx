@@ -1,19 +1,26 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Pressable, ScrollView, SectionList, StyleSheet, Text, TextInput, View,
+  Pressable, ScrollView, SectionList, StyleSheet, Text, View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HataSayfasi, HataTaslagi, KabulAnahtari, YeniTipFormu } from '@/bilesenler/HataSayfasi';
 import {
-  AltSayfa, Baslik, BaslikDugmesi, DereceRozeti, Dugme, Ekran, HataKutusu, Yukleniyor,
+  DereceSecici, GrupBasligi, HataSayfasi, HataTaslagi, KabulAnahtari, YeniTipFormu,
+} from '@/bilesenler/HataSayfasi';
+import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
+import {
+  AltSayfa, AramaKutusu, Baslik, BaslikCipi, BaslikDugmesi, BolumBasligi, BosDurum, DereceRozeti,
+  Dugme, Ekran, GeriDugmesi, HataKutusu, Olcu, Rozet, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import {
-  bolgelerAracIcin, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi,
+  bolgelerAracIcin, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi,
 } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
-import { dereceGosterimi } from '@/cekirdek/puan';
-import { Denetim, DereceKodu, Hata, HataTipi, Parca } from '@/cekirdek/tipler';
+import { denetimOzeti, dereceGosterimi } from '@/cekirdek/puan';
+import {
+  BolgeGrubu, Denetim, DereceKodu, Hata, HataGrubuId, HataTipi, Parca,
+} from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import {
   ayarOku, ayarYaz, denetimGetir, FotografKaydi, fotograflariGetir, fotografiHataBagla,
@@ -35,6 +42,12 @@ import { useKatalog } from '@/veri/katalogDeposu';
  * girişte her kayıt tek dokunuştur. Fotoğraf, not, adet sonradan, kaydedilen
  * hatalar listesinden eklenir — hızlı yolun üstünde durmaz.
  *
+ * DÜZEN (27.09.2026): tablette İKİ BÖLME — solda parça gezgini hep açık,
+ * sağda hata paneli. Telefonda iki adım: önce parça listesi, sonra hata
+ * paneli. Kayıt akışı ikisinde de aynıdır: kayıttan sonra parça seçimi
+ * kalkar. Seçim kalsaydı bir sonraki hata, denetçi başka parçaya baktığı hâlde
+ * eski parçaya yazılabilirdi.
+ *
  * 3B model buradan kaldırıldı ("görünüm sonraya kalsın"). Bileşen dosyaları
  * duruyor; gerçek araç modeli geldiğinde geri bağlanacak.
  */
@@ -43,6 +56,8 @@ export default function DenetimEkrani() {
   const router = useRouter();
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  const { tablet } = useDuzen();
+  const kenar = useSafeAreaInsets();
   const ozelTipler = useKatalog((d) => d.ozelTipler);
   const tipEkle = useKatalog((d) => d.ekle);
 
@@ -108,6 +123,7 @@ export default function DenetimEkrani() {
     return bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })
       .map((b) => ({
         baslik: b.ad,
+        grup: b.grup,
         data: q
           ? b.parcalar.filter((p) => `${p.ad} ${p.en} ${b.ad}`.toLocaleLowerCase('tr').includes(q))
           : b.parcalar,
@@ -128,6 +144,13 @@ export default function DenetimEkrani() {
     return sonuc;
   }, [denetim?.hatalar]);
 
+  /** Parça başına kayıt sayısı — gezginde rozet olarak görünür. */
+  const parcaSayilari = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const h of denetim?.hatalar ?? []) m.set(h.parcaId, (m.get(h.parcaId) ?? 0) + 1);
+    return m;
+  }, [denetim?.hatalar]);
+
   // --- HATA IZGARASI ----------------------------------------------------
   const tipler = useMemo(() => {
     if (!parcaId) return [];
@@ -137,6 +160,13 @@ export default function DenetimEkrani() {
     // ozelTipler: yeni tip eklendiğinde ızgara anında tazelensin.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parcaId, hataArama, ozelTipler]);
+
+  /** Izgara grup grup çizilir; grup sırası listedeki ilk görünüşe göre. */
+  const tipGruplari = useMemo(() => {
+    const m = new Map<HataGrubuId, HataTipi[]>();
+    for (const t of tipler) m.set(t.grup, [...(m.get(t.grup) ?? []), t]);
+    return [...m.entries()];
+  }, [tipler]);
 
   const parcaSec = useCallback((pid: string) => {
     setParcaId(pid);
@@ -227,182 +257,183 @@ export default function DenetimEkrani() {
     await tazele();
   }, [tazele]);
 
-  // --- DURUMLAR ---------------------------------------------------------
-  const geriDugmesi = <BaslikDugmesi metin="‹" erisimEtiketi="Geri" onPress={() => router.back()} />;
+  const kaydiAc = useCallback((h: Hata) => {
+    setTaslak({ ...h });
+    setAcikSayfa('hata');
+  }, []);
 
+  // --- DURUMLAR ---------------------------------------------------------
   if (yuklemeHatasi) {
     return (
-      <Ekran kenarlar={['top']}>
-        <Baslik baslik="Denetim" sol={geriDugmesi} />
+      <Ekran>
+        <Baslik baslik="Denetim" sol={<GeriDugmesi />} />
         <View style={{ padding: bosluk.md }}><HataKutusu metin={yuklemeHatasi} /></View>
       </Ekran>
     );
   }
   if (!denetim) {
     return (
-      <Ekran kenarlar={['top']}>
-        <Baslik baslik="Denetim" sol={geriDugmesi} />
+      <Ekran>
+        <Baslik baslik="Denetim" sol={<GeriDugmesi />} />
         <Yukleniyor metin="Denetim açılıyor…" />
       </Ekran>
     );
   }
 
   const hataSayisi = denetim.hatalar.length;
+  const seciliAdet = parcaId ? parcaSayilari.get(parcaId) ?? 0 : 0;
 
-  return (
-    <Ekran kenarlar={['top']}>
-      <Baslik
-        baslik={denetim.vin || 'Denetim'}
-        altBaslik={`${arac?.ad ?? denetim.aracId}${denetim.plaka ? ` · ${denetim.plaka}` : ''}`}
-        sol={geriDugmesi}
-        sag={(
-          <View style={s.baslikSag}>
-            <Dugme
-              metin={`Liste (${hataSayisi})`}
-              kucuk
-              erisimEtiketi={`Kaydedilen ${hataSayisi} hata`}
-              onPress={() => setAcikSayfa('liste')}
-            />
-            <Dugme
-              metin="Rapor"
-              kucuk
-              tur="birincil"
-              onPress={() => router.push({ pathname: '/denetim/rapor', params: { id: denetim.id } })}
-            />
-          </View>
-        )}
-      />
+  // --- PARÇA GEZGİNİ ----------------------------------------------------
+  const parcaGezgini = (
+    <View style={s.gezgin}>
+      <View style={s.aramaKutu}>
+        <AramaKutusu
+          deger={parcaArama}
+          degistir={setParcaArama}
+          yerTutucu="Parça ara — kaput, A direği, ön kapı…"
+          erisimEtiketi="Parça ara"
+        />
+      </View>
 
-      {!parca ? (
-        // ADIM 1 — PARÇA
-        <View style={{ flex: 1 }}>
-          <View style={s.aramaKutu}>
-            <TextInput
-              value={parcaArama}
-              onChangeText={setParcaArama}
-              placeholder="Parça ara — kaput, A direği, ön kapı…"
-              placeholderTextColor={renkler.metinSolgun}
-              accessibilityLabel="Parça ara"
-              style={s.arama}
-              autoCorrect={false}
-            />
-          </View>
-
-          <SectionList<Parca, { baslik: string }>
-            sections={bolumler}
-            keyExtractor={(p) => p.id}
-            stickySectionHeadersEnabled
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={s.parcaListe}
-            ListHeaderComponent={sonParcalar.length && !parcaArama ? (
-              <View style={{ gap: bosluk.xs, marginBottom: bosluk.sm }}>
-                <Text style={s.bolumBaslik}>SON DOKUNULANLAR</Text>
-                <View style={s.cipSatir}>
-                  {sonParcalar.map((pid) => (
-                    <Pressable
-                      key={pid}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${PARCA_INDEKS[pid]!.ad} — ${PARCA_INDEKS[pid]!.bolgeAd}`}
-                      onPress={() => parcaSec(pid)}
-                      style={({ pressed }) => [s.cip, pressed && s.basili]}
-                    >
-                      <Text style={s.cipAd} numberOfLines={1}>{PARCA_INDEKS[pid]!.ad}</Text>
-                      <Text style={s.cipAlt} numberOfLines={1}>{PARCA_INDEKS[pid]!.bolgeAd}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-            renderSectionHeader={({ section }) => (
-              <Text style={s.bolgeBaslik}>{section.baslik}</Text>
-            )}
-            renderItem={({ item }) => (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${item.ad} (${item.en})`}
-                onPress={() => parcaSec(item.id)}
-                style={({ pressed }) => [s.parcaSatir, pressed && s.basili]}
-              >
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={s.parcaAd} numberOfLines={1}>{item.ad}</Text>
-                  <Text style={s.parcaEn} numberOfLines={1}>{item.en}</Text>
-                </View>
-                <Text style={s.ok}>›</Text>
-              </Pressable>
-            )}
-            ListEmptyComponent={<Text style={s.bos}>“{parcaArama.trim()}” ile eşleşen parça yok.</Text>}
-          />
-        </View>
-      ) : (
-        // ADIM 2 — HATA
-        <View style={{ flex: 1 }}>
-          <View style={s.parcaBaslik}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Parça listesine dön"
-              onPress={parcalaraDon}
-              style={({ pressed }) => [s.geriDugme, pressed && s.basili]}
-            >
-              <Text style={s.geriMetin}>‹ Parçalar</Text>
-            </Pressable>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.seciliParca} numberOfLines={1}>{parca.ad}</Text>
-              <Text style={s.seciliYol} numberOfLines={1}>{parca.bolgeAd} · {parca.en}</Text>
-            </View>
-          </View>
-
-          <View style={s.dereceSerit}>
-            <Text style={s.dereceEtiket}>DERECE</Text>
-            <View style={s.dereceSatir}>
-              {DERECELER.map((d) => {
-                const secili = derece === d.id;
+      <SectionList<Parca, { baslik: string; grup: BolgeGrubu }>
+        sections={bolumler}
+        keyExtractor={(p) => p.id}
+        stickySectionHeadersEnabled
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={s.parcaListe}
+        ListHeaderComponent={sonParcalar.length && !parcaArama ? (
+          <View style={s.sonBlok}>
+            <BolumBasligi metin="SON DOKUNULANLAR" simge={S.son} />
+            <View style={s.cipSatir}>
+              {sonParcalar.map((pid) => {
+                const p = PARCA_INDEKS[pid]!;
                 return (
                   <Pressable
-                    key={d.id}
-                    accessibilityRole="radio"
-                    aria-checked={secili}
-                    accessibilityLabel={`Derece ${d.ad}`}
-                    onPress={() => dereceSec(d.id)}
-                    style={[s.dereceDugme, secili && s.dereceDugmeSecili]}
+                    key={pid}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${p.ad} — ${p.bolgeAd}`}
+                    onPress={() => parcaSec(pid)}
+                    style={({ pressed }) => [s.cip, pid === parcaId && s.cipSecili, pressed && s.basili]}
                   >
-                    <Text style={[s.dereceMetin, secili && { color: renkler.metinTers }]}>{d.ad}</Text>
+                    <Text style={s.cipAd} numberOfLines={1}>{p.ad}</Text>
+                    <Text style={s.cipAlt} numberOfLines={1}>{p.bolgeAd}</Text>
                   </Pressable>
                 );
               })}
             </View>
-            <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} />
           </View>
+        ) : null}
+        renderSectionHeader={({ section }) => {
+          const Ikon = BOLGE_SIMGELERI[section.grup];
+          return (
+            <View style={s.bolgeBaslik}>
+              {Ikon ? <Ikon size={15} color={renkler.metinSolgun} strokeWidth={2} /> : null}
+              <Text style={s.bolgeBaslikMetin} numberOfLines={1}>{section.baslik}</Text>
+            </View>
+          );
+        }}
+        renderItem={({ item }) => {
+          const adet = parcaSayilari.get(item.id) ?? 0;
+          // Tablette parça bir SEÇİM (sağ bölme onu gösterir) → radyo; telefonda
+          // bir sonraki adıma geçiş → düğme.
+          const secili = tablet && item.id === parcaId;
+          return (
+            <Pressable
+              accessibilityRole={tablet ? 'radio' : 'button'}
+              aria-checked={tablet ? secili : undefined}
+              accessibilityLabel={`${item.ad} (${item.en})${adet ? `, ${adet} kayıt` : ''}`}
+              onPress={() => parcaSec(item.id)}
+              style={({ pressed }) => [s.parcaSatir, secili && s.parcaSatirSecili, pressed && s.basili]}
+            >
+              <View style={[s.seciliCizgi, secili && { backgroundColor: renkler.birincil }]} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[s.parcaAd, secili && { color: renkler.birincil }]} numberOfLines={1}>{item.ad}</Text>
+                <Text style={s.parcaEn} numberOfLines={1}>{item.en}</Text>
+              </View>
+              {adet > 0 ? (
+                <View style={s.adetPul}><Text style={s.adetPulMetin}>{adet}</Text></View>
+              ) : null}
+              {!tablet ? <S.ileri size={20} color={renkler.metinSolgun} strokeWidth={2} /> : null}
+            </Pressable>
+          );
+        }}
+        ListEmptyComponent={<Text style={s.bos}>“{parcaArama.trim()}” ile eşleşen parça yok.</Text>}
+      />
+    </View>
+  );
 
-          <ScrollView contentContainerStyle={s.hataGovde} keyboardShouldPersistTaps="handled">
-            <TextInput
-              value={hataArama}
-              onChangeText={setHataArama}
-              placeholder="Hata ara — gap, scratch, gıcırtı…"
-              placeholderTextColor={renkler.metinSolgun}
-              accessibilityLabel="Hata tipi ara"
-              style={s.arama}
-              autoCorrect={false}
-            />
+  // --- HATA PANELİ ------------------------------------------------------
+  const hataPaneli = parca ? (
+    <View style={{ flex: 1 }}>
+      <View style={s.parcaBaslik}>
+        {!tablet ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Parça listesine dön"
+            onPress={parcalaraDon}
+            style={({ pressed }) => [s.geriDugme, pressed && s.basili]}
+          >
+            <S.geri size={20} color={renkler.birincil} strokeWidth={2.25} />
+            <Text style={s.geriMetin}>Parçalar</Text>
+          </Pressable>
+        ) : null}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={s.seciliParca} numberOfLines={1}>{parca.ad}</Text>
+          <Text style={s.seciliYol} numberOfLines={1}>{parca.bolgeAd} · {parca.en}</Text>
+        </View>
+        {seciliAdet > 0 ? (
+          <Rozet metin={`${seciliAdet} KAYIT`} renk={renkler.birincil} zemin={renkler.birincilYumusak} />
+        ) : null}
+        {tablet ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Parça seçimini kaldır"
+            onPress={parcalaraDon}
+            style={({ pressed }) => [s.kapatDugme, pressed && s.basili]}
+          >
+            <S.kapat size={20} color={renkler.metinIkincil} strokeWidth={2} />
+          </Pressable>
+        ) : null}
+      </View>
 
-            {kayitHatasi ? <HataKutusu metin={kayitHatasi} /> : null}
+      <View style={[s.dereceSerit, tablet && s.dereceSeritTablet]}>
+        <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
+          <Text style={s.dereceEtiket}>DERECE — 3 EN AĞIR</Text>
+          <DereceSecici derece={derece} onSec={dereceSec} />
+        </View>
+        <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} style={tablet ? { flex: 1 } : undefined} />
+      </View>
 
-            {yeniTipAcik ? (
-              <YeniTipFormu
-                baslangicAd={hataArama.trim()}
-                izinliGruplar={parca.gruplar}
-                onVazgec={() => setYeniTipAcik(false)}
-                onEkle={async (girdi) => {
-                  const t = await tipEkle({ ...girdi, ekleyen: denetim.denetci?.trim() ?? '' });
-                  setYeniTipAcik(false);
-                  // Yeni tip eklendiyse denetçi onu kaydetmek için ekledi:
-                  // ikinci bir dokunuş istemeden hemen kaydet.
-                  await hizliKaydet(t);
-                }}
-              />
-            ) : (
-              <>
+      <ScrollView contentContainerStyle={s.hataGovde} keyboardShouldPersistTaps="handled">
+        <AramaKutusu
+          deger={hataArama}
+          degistir={setHataArama}
+          yerTutucu="Hata ara — gap, scratch, gıcırtı…"
+          erisimEtiketi="Hata tipi ara"
+        />
+
+        {kayitHatasi ? <HataKutusu metin={kayitHatasi} /> : null}
+
+        {yeniTipAcik ? (
+          <YeniTipFormu
+            baslangicAd={hataArama.trim()}
+            izinliGruplar={parca.gruplar}
+            onVazgec={() => setYeniTipAcik(false)}
+            onEkle={async (girdi) => {
+              const t = await tipEkle({ ...girdi, ekleyen: denetim.denetci?.trim() ?? '' });
+              setYeniTipAcik(false);
+              // Yeni tip eklendiyse denetçi onu kaydetmek için ekledi:
+              // ikinci bir dokunuş istemeden hemen kaydet.
+              await hizliKaydet(t);
+            }}
+          />
+        ) : (
+          <>
+            {tipGruplari.map(([g, liste]) => (
+              <View key={g} style={s.grup}>
+                <GrupBasligi grup={g} />
                 <View style={s.hataIzgara}>
-                  {tipler.map((t) => (
+                  {liste.map((t) => (
                     <Pressable
                       key={t.id}
                       accessibilityRole="button"
@@ -410,53 +441,109 @@ export default function DenetimEkrani() {
                       onPress={() => hizliKaydet(t)}
                       style={({ pressed }) => [s.hataDugme, pressed && s.hataDugmeBasili]}
                     >
-                      <Text style={s.hataAd} numberOfLines={2}>{t.ad}</Text>
+                      <View style={s.hataDugmeUst}>
+                        <Text style={s.hataAd} numberOfLines={2}>{t.ad}</Text>
+                        {t.ozel ? <Text style={s.ekipIsaret}>EKİP</Text> : null}
+                      </View>
                       {t.en ? <Text style={s.hataEn} numberOfLines={1}>{t.en}</Text> : null}
-                      {t.ozel ? <Text style={s.ekipIsaret}>EKİP</Text> : null}
                     </Pressable>
                   ))}
                 </View>
+              </View>
+            ))}
 
-                {tipler.length === 0 ? (
-                  <Text style={s.bos}>
-                    {hataArama.trim() ? `“${hataArama.trim()}” listede yok.` : 'Bu parça için tanımlı hata tipi yok.'}
-                  </Text>
-                ) : null}
+            {tipler.length === 0 ? (
+              <Text style={s.bos}>
+                {hataArama.trim() ? `“${hataArama.trim()}” listede yok.` : 'Bu parça için tanımlı hata tipi yok.'}
+              </Text>
+            ) : null}
 
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={hataArama.trim() ? `“${hataArama.trim()}” adıyla yeni hata tipi ekle` : 'Yeni hata tipi ekle'}
-                  onPress={() => setYeniTipAcik(true)}
-                  style={[s.yeniTip, tipler.length === 0 && { borderColor: renkler.birincil }]}
-                >
-                  <Text style={s.yeniTipMetin}>
-                    {hataArama.trim() ? `+ “${hataArama.trim()}” adıyla yeni hata tipi` : '+ Yeni hata tipi'}
-                  </Text>
-                </Pressable>
-              </>
-            )}
-          </ScrollView>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={hataArama.trim() ? `“${hataArama.trim()}” adıyla yeni hata tipi ekle` : 'Yeni hata tipi ekle'}
+              onPress={() => setYeniTipAcik(true)}
+              style={({ pressed }) => [s.yeniTip, tipler.length === 0 && { borderColor: renkler.birincil }, pressed && s.basili]}
+            >
+              <S.ekle size={18} color={renkler.birincil} strokeWidth={2.25} />
+              <Text style={s.yeniTipMetin}>
+                {hataArama.trim() ? `“${hataArama.trim()}” adıyla yeni hata tipi` : 'Yeni hata tipi'}
+              </Text>
+            </Pressable>
+          </>
+        )}
+      </ScrollView>
+    </View>
+  ) : null;
+
+  return (
+    <Ekran>
+      <Baslik
+        // Tablette başlık şasi numarasıdır. Telefonda 17 hane düğmelerle aynı
+        // satıra sığmıyor ve SONDAN kesiliyordu — ayırt edici seri numarası
+        // tam da sondadır. Orada başlık araç adı olur, şasi alttaki çipe iner.
+        mono={tablet}
+        baslik={tablet ? (denetim.vin || 'Denetim') : (arac?.ad ?? 'Denetim')}
+        sol={<GeriDugmesi />}
+        cipler={(
+          <>
+            {!tablet && denetim.vin ? <BaslikCipi metin={denetim.vin} mono /> : null}
+            {tablet ? <BaslikCipi simge={S.arac} metin={arac?.ad ?? denetim.aracId} /> : null}
+            {denetim.plaka ? <BaslikCipi metin={denetim.plaka} mono /> : null}
+            {denetim.faz ? <BaslikCipi simge={S.faz} metin={denetim.faz} /> : null}
+            {denetim.ekip ? <BaslikCipi simge={S.ekip} metin={denetim.ekip} /> : null}
+          </>
+        )}
+        sag={(
+          <>
+            <BaslikDugmesi
+              simge={S.liste}
+              metin="Kayıtlar"
+              sayac={hataSayisi}
+              erisimEtiketi={`Kaydedilen ${hataSayisi} hata`}
+              onPress={() => setAcikSayfa('liste')}
+            />
+            <BaslikDugmesi
+              simge={S.rapor}
+              metin="Rapor"
+              birincil
+              erisimEtiketi="Rapor"
+              onPress={() => router.push({ pathname: '/denetim/rapor', params: { id: denetim.id } })}
+            />
+          </>
+        )}
+      />
+
+      {tablet ? (
+        <View style={s.ikiBolme}>
+          <View style={s.solBolme}>{parcaGezgini}</View>
+          <View style={s.sagBolme}>
+            {hataPaneli ?? <DenetimOzeti denetim={denetim} derece={derece} onAc={kaydiAc} onTumu={() => setAcikSayfa('liste')} />}
+          </View>
         </View>
-      )}
+      ) : (hataPaneli ?? parcaGezgini)}
 
       {sonKayit ? (
         // Bildirim altta, hata ızgarasının son satırının ÜSTÜNDE yüzüyor. Metin
         // kısmı dokunuşu yutarsa kayıttan sonraki 6 sn boyunca o satırdaki
         // düğmelere basılamıyor — hızlı girişin tam ortasında (26.09.2026 ekran
         // incelemesi). Dokunuşu yalnız "Geri al" alır, gerisi alttakine geçer.
-        <View style={s.bildirim} accessibilityLiveRegion="polite" pointerEvents="box-none">
-          <View style={{ flex: 1 }} pointerEvents="none">
-            <Text style={s.bildirimMetin} numberOfLines={2}>✓ {sonKayit.metin}</Text>
+        <View style={[s.bildirimKap, { bottom: bosluk.md + kenar.bottom }]} pointerEvents="box-none">
+          <View style={s.bildirim} accessibilityLiveRegion="polite" pointerEvents="box-none">
+            <View style={s.bildirimSol} pointerEvents="none">
+              <S.tamam size={20} color={renkler.cubukVurgu} strokeWidth={2.25} />
+              <Text style={s.bildirimMetin} numberOfLines={2}>{sonKayit.metin}</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Son kaydı geri al"
+              onPress={geriAl}
+              hitSlop={8}
+              style={({ pressed }) => [s.geriAlDugme, pressed && s.basili]}
+            >
+              <S.geriAl size={18} color={renkler.cubukVurgu} strokeWidth={2.25} />
+              <Text style={s.geriAlMetin}>Geri al</Text>
+            </Pressable>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Son kaydı geri al"
-            onPress={geriAl}
-            hitSlop={8}
-            style={s.geriAlDugme}
-          >
-            <Text style={s.geriAlMetin}>Geri al</Text>
-          </Pressable>
         </View>
       ) : null}
 
@@ -468,7 +555,7 @@ export default function DenetimEkrani() {
         {acikSayfa === 'liste' ? (
           <KayitListesi
             hatalar={denetim.hatalar}
-            onAc={(h) => { setTaslak({ ...h }); setAcikSayfa('hata'); }}
+            onAc={kaydiAc}
             onKapat={() => setAcikSayfa('yok')}
           />
         ) : (
@@ -487,6 +574,100 @@ export default function DenetimEkrani() {
   );
 }
 
+/**
+ * Tablette parça seçilmemişken sağ bölme: ne yapılacağı ve denetimin o anki
+ * durumu. Sayılar rapor ekranıyla AYNI kaynaktan (`denetimOzeti`) gelir;
+ * iki ekranda farklı sayı görmek denetçinin ikisine de güvenini bitirir.
+ */
+function DenetimOzeti({
+  denetim, derece, onAc, onTumu,
+}: {
+  denetim: Denetim;
+  derece: DereceKodu;
+  onAc: (h: Hata) => void;
+  onTumu: () => void;
+}) {
+  const { renkler } = useTema();
+  const s = useMemo(() => stiller(renkler), [renkler]);
+  const ozet = useMemo(() => denetimOzeti(denetim), [denetim]);
+  const son = useMemo(
+    () => [...denetim.hatalar].sort((a, b) => b.zaman.localeCompare(a.zaman)).slice(0, 5),
+    [denetim.hatalar],
+  );
+
+  return (
+    <ScrollView contentContainerStyle={s.ozetGovde}>
+      <BosDurum
+        simge={S.sec}
+        baslik="Soldan bir parça seçin"
+        aciklama="Sonra hata tipine dokunun — kayıt o anda düşer, form açılmaz."
+        eylem={(
+          <View style={s.seciliDerece}>
+            <Text style={s.seciliDereceMetin}>Seçili derece</Text>
+            <DereceRozeti derece={derece} kabul={false} />
+          </View>
+        )}
+      />
+
+      <View style={s.olcuSatiri}>
+        <Olcu genis simge={S.rapor} deger={ozet.toplamAdet} etiket="bulgu" renk={renkler.birincil} zemin={renkler.birincilYumusak} />
+        <Olcu genis simge={S.uyari} deger={ozet.dereceDagilimi['3'].adet} etiket="derece 3" renk={renkler.derece3} zemin={renkler.derece3Yumusak} />
+        <Olcu genis simge={S.kabul} deger={ozet.kabulEdilebilirAdet} etiket="kabul edilebilir" />
+      </View>
+
+      {son.length ? (
+        <View style={{ gap: bosluk.xs }}>
+          <BolumBasligi
+            metin="SON KAYITLAR"
+            simge={S.son}
+            sag={<Dugme metin="Tümü" kucuk tur="sessiz" simge={S.liste} onPress={onTumu} erisimEtiketi="Tüm kayıtları aç" />}
+          />
+          {son.map((h) => (
+            <KayitSatiri key={h.id} hata={h} onPress={() => onAc(h)} />
+          ))}
+        </View>
+      ) : null}
+    </ScrollView>
+  );
+}
+
+/** Kaydedilmiş tek hata satırı — liste sayfasında ve özet bölmesinde aynı. */
+function KayitSatiri({ hata: h, sira, onPress }: { hata: Hata; sira?: number; onPress: () => void }) {
+  const { renkler } = useTema();
+  const s = useMemo(() => stiller(renkler), [renkler]);
+  const p = PARCA_INDEKS[h.parcaId];
+  const t = HATA_TIPI_INDEKS[h.hataTipiId];
+  const alt = [
+    p?.bolgeAd,
+    h.adet > 1 ? `${h.adet} adet` : null,
+    h.konum || null,
+    h.sorunTipi === 'Complex' ? 'Complex' : null,
+    h.sorumlu ? `→ ${h.sorumlu}` : null,
+  ].filter(Boolean).join(' · ');
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${parcaTamAdi(h.parcaId)} ${t?.ad}, derece ${dereceGosterimi(h)} — düzenle`}
+      onPress={onPress}
+      style={({ pressed }) => [s.kayitSatir, pressed && s.basili]}
+    >
+      {sira !== undefined ? <Text style={s.kayitSira}>{sira}</Text> : null}
+      <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={s.kayitAd} numberOfLines={1}>{parcaTamAdi(h.parcaId)} — {t?.ad ?? h.hataTipiId}</Text>
+        {alt ? <Text style={s.kayitAlt} numberOfLines={1}>{alt}</Text> : null}
+      </View>
+      {h.fotograflar.length ? (
+        <View style={s.fotoSayi}>
+          <S.kamera size={14} color={renkler.metinIkincil} strokeWidth={2} />
+          <Text style={s.fotoSayiMetin}>{h.fotograflar.length}</Text>
+        </View>
+      ) : null}
+      <S.ileri size={18} color={renkler.metinSolgun} strokeWidth={2} />
+    </Pressable>
+  );
+}
+
 /** Kaydedilen hatalar — fotoğraf, not ve adet buradan, isteğe bağlı eklenir. */
 function KayitListesi({
   hatalar, onAc, onKapat,
@@ -501,41 +682,16 @@ function KayitListesi({
 
   return (
     <>
-      <Text style={s.listeBaslik}>Kaydedilen hatalar ({hatalar.length})</Text>
-      <Text style={s.listeNot}>Fotoğraf, not ya da adet eklemek için hataya dokunun.</Text>
+      <View style={s.listeUst}>
+        <Text style={s.listeBaslik}>Kaydedilen hatalar ({hatalar.length})</Text>
+        <Text style={s.listeNot}>Fotoğraf, not ya da adet eklemek için hataya dokunun.</Text>
+      </View>
       <ScrollView style={{ flexGrow: 1 }} contentContainerStyle={s.listeGovde}>
         {sirali.length === 0 ? (
-          <Text style={s.bos}>Henüz hata kaydedilmedi.</Text>
-        ) : sirali.map((h, i) => {
-          const p = PARCA_INDEKS[h.parcaId];
-          const t = HATA_TIPI_INDEKS[h.hataTipiId];
-          return (
-            <Pressable
-              key={h.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${parcaTamAdi(h.parcaId)} ${t?.ad}, derece ${dereceGosterimi(h)} — düzenle`}
-              onPress={() => onAc(h)}
-              style={({ pressed }) => [s.kayitSatir, pressed && s.basili]}
-            >
-              <Text style={s.kayitSira}>{sirali.length - i}</Text>
-              <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={s.kayitAd} numberOfLines={1}>{parcaTamAdi(h.parcaId)} — {t?.ad ?? h.hataTipiId}</Text>
-                <Text style={s.kayitAlt} numberOfLines={1}>
-                  {[
-                    p?.bolgeAd,
-                    h.adet > 1 ? `${h.adet} adet` : null,
-                    h.konum || null,
-                    h.sorunTipi === 'Complex' ? 'Complex' : null,
-                    h.sorumlu ? `→ ${h.sorumlu}` : null,
-                    h.fotograflar.length ? `📷 ${h.fotograflar.length}` : null,
-                  ].filter(Boolean).join(' · ')}
-                </Text>
-              </View>
-              <Text style={s.ok}>›</Text>
-            </Pressable>
-          );
-        })}
+          <BosDurum simge={S.liste} baslik="Henüz hata kaydedilmedi" />
+        ) : sirali.map((h, i) => (
+          <KayitSatiri key={h.id} hata={h} sira={sirali.length - i} onPress={() => onAc(h)} />
+        ))}
       </ScrollView>
       <View style={s.listeEylem}>
         <Dugme metin="Kapat" onPress={onKapat} style={{ flex: 1 }} />
@@ -545,30 +701,41 @@ function KayitListesi({
 }
 
 const stiller = (r: Renkler) => StyleSheet.create({
-  baslikSag: { flexDirection: 'row', gap: bosluk.xs },
-  basili: { backgroundColor: r.yuzeyAlt },
+  basili: { opacity: 0.72 },
 
+  // İki bölme (tablet)
+  ikiBolme: { flex: 1, flexDirection: 'row' },
+  solBolme: {
+    width: '36%', minWidth: 300, maxWidth: 420,
+    borderRightWidth: 1, borderRightColor: r.cizgi,
+  },
+  sagBolme: { flex: 1, minWidth: 0 },
+
+  // Parça gezgini
+  gezgin: { flex: 1, backgroundColor: r.bgYukseltilmis },
   aramaKutu: { paddingHorizontal: bosluk.md, paddingTop: bosluk.sm, paddingBottom: bosluk.xs },
-  arama: {
-    ...tipografi.body, color: r.metin, minHeight: DOKUNMA,
-    paddingHorizontal: bosluk.sm, backgroundColor: r.yuzey,
-    borderWidth: 1, borderColor: r.cizgi, borderRadius: kose.md,
-  },
-
-  parcaListe: { paddingHorizontal: bosluk.md, paddingBottom: 120 },
-  bolumBaslik: { ...tipografi.etiket, color: r.metinSolgun },
+  parcaListe: { paddingBottom: 120 },
+  sonBlok: { gap: bosluk.xs, paddingHorizontal: bosluk.md, paddingTop: bosluk.xs, paddingBottom: bosluk.sm },
   bolgeBaslik: {
-    ...tipografi.etiket, color: r.metinSolgun, backgroundColor: r.bg,
-    paddingTop: bosluk.sm, paddingBottom: bosluk.xxs,
+    flexDirection: 'row', alignItems: 'center', gap: bosluk.xs,
+    paddingHorizontal: bosluk.md, paddingTop: bosluk.sm, paddingBottom: 6,
+    backgroundColor: r.bgYukseltilmis, borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun,
   },
+  bolgeBaslikMetin: { ...tipografi.captionOrta, color: r.metinIkincil, flex: 1 },
   parcaSatir: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
-    minHeight: 56, paddingHorizontal: bosluk.xs,
+    minHeight: 58, paddingRight: bosluk.md,
     borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun,
   },
+  parcaSatirSecili: { backgroundColor: r.birincilYumusak },
+  seciliCizgi: { width: 4, alignSelf: 'stretch', backgroundColor: 'transparent', marginRight: bosluk.xs },
   parcaAd: { ...tipografi.bodyOrta, color: r.metin },
   parcaEn: { ...tipografi.caption, color: r.metinSolgun },
-  ok: { ...tipografi.h2, color: r.metinSolgun },
+  adetPul: {
+    minWidth: 26, height: 24, paddingHorizontal: 7, borderRadius: kose.pill,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: r.yuzeyVurgu,
+  },
+  adetPulMetin: { ...tipografi.captionOrta, color: r.metin, fontVariant: ['tabular-nums'] },
 
   cipSatir: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   cip: {
@@ -576,77 +743,102 @@ const stiller = (r: Renkler) => StyleSheet.create({
     paddingHorizontal: bosluk.sm, paddingVertical: 6,
     borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
   },
+  cipSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   cipAd: { ...tipografi.captionOrta, color: r.metin },
   cipAlt: { ...tipografi.caption, color: r.metinSolgun, fontSize: 11 },
 
+  // Hata paneli
   parcaBaslik: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
-    paddingHorizontal: bosluk.md, paddingVertical: bosluk.xs,
+    paddingHorizontal: bosluk.md, paddingVertical: bosluk.sm,
     borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun, backgroundColor: r.bgYukseltilmis,
   },
   geriDugme: {
-    minHeight: DOKUNMA, justifyContent: 'center', paddingHorizontal: bosluk.sm,
+    flexDirection: 'row', alignItems: 'center', gap: 2,
+    minHeight: DOKUNMA, paddingLeft: bosluk.xs, paddingRight: bosluk.sm,
     borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
   },
   geriMetin: { ...tipografi.bodyOrta, color: r.birincil },
+  kapatDugme: {
+    width: DOKUNMA, height: DOKUNMA, alignItems: 'center', justifyContent: 'center',
+    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+  },
   seciliParca: { ...tipografi.h2, color: r.metin },
   seciliYol: { ...tipografi.caption, color: r.metinSolgun },
 
   dereceSerit: {
-    gap: bosluk.xs, paddingHorizontal: bosluk.md, paddingVertical: bosluk.sm,
-    borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun,
+    gap: bosluk.sm, paddingHorizontal: bosluk.md, paddingVertical: bosluk.sm,
+    borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun, backgroundColor: r.bgYukseltilmis,
   },
+  dereceSeritTablet: { flexDirection: 'row', alignItems: 'flex-end', gap: bosluk.md },
   dereceEtiket: { ...tipografi.etiket, color: r.metinSolgun },
-  dereceSatir: { flexDirection: 'row', gap: bosluk.xs },
-  dereceDugme: {
-    flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center',
-    borderRadius: kose.md, borderWidth: 2, borderColor: r.cizgi, backgroundColor: r.yuzey,
-  },
-  dereceDugmeSecili: { borderColor: r.birincil, backgroundColor: r.birincil },
-  dereceMetin: { ...tipografi.h1, color: r.metin },
 
-  hataGovde: { padding: bosluk.md, gap: bosluk.sm, paddingBottom: 120 },
+  hataGovde: { padding: bosluk.md, gap: bosluk.md, paddingBottom: 120 },
+  grup: { gap: bosluk.xs },
   hataIzgara: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   hataDugme: {
-    flexGrow: 1, flexBasis: 150, minHeight: 64, justifyContent: 'center', gap: 2,
+    flexGrow: 1, flexBasis: 160, minHeight: 64, justifyContent: 'center', gap: 2,
     paddingHorizontal: bosluk.sm, paddingVertical: bosluk.xs,
     borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    boxShadow: `0 1px 2px ${r.golge}`,
   },
   hataDugmeBasili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
-  hataAd: { ...tipografi.bodyOrta, color: r.metin },
+  hataDugmeUst: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  hataAd: { ...tipografi.bodyOrta, color: r.metin, flex: 1 },
   hataEn: { ...tipografi.caption, color: r.metinSolgun },
-  ekipIsaret: { ...tipografi.caption, fontSize: 10, color: r.bilgi },
+  ekipIsaret: {
+    ...tipografi.etiket, fontSize: 9, lineHeight: 13, color: r.bilgi,
+    borderWidth: 1, borderColor: r.bilgi, borderRadius: kose.sm, paddingHorizontal: 4, marginTop: 3,
+  },
 
   yeniTip: {
+    flexDirection: 'row', gap: bosluk.xs,
     minHeight: DOKUNMA, alignItems: 'center', justifyContent: 'center',
     borderRadius: kose.md, borderWidth: 1, borderStyle: 'dashed',
     borderColor: r.cizgiGuclu, backgroundColor: r.yuzey, paddingHorizontal: bosluk.sm,
   },
   yeniTipMetin: { ...tipografi.bodyOrta, color: r.birincil, textAlign: 'center' },
 
-  bos: { ...tipografi.body, color: r.metinSolgun, paddingVertical: bosluk.md, textAlign: 'center' },
+  bos: { ...tipografi.body, color: r.metinSolgun, padding: bosluk.md, textAlign: 'center' },
 
+  // Tablet özet bölmesi
+  ozetGovde: { padding: bosluk.lg, gap: bosluk.md, paddingBottom: 120, maxWidth: 760, width: '100%', alignSelf: 'center' },
+  olcuSatiri: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
+  seciliDerece: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, marginTop: bosluk.xxs },
+  seciliDereceMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
+
+  // Bildirim — iki temada da uygulama çubuğunun koyu yüzeyi.
+  bildirimKap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: bosluk.md },
   bildirim: {
-    position: 'absolute', left: bosluk.md, right: bosluk.md, bottom: bosluk.md,
+    width: '100%', maxWidth: 640,
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
-    paddingLeft: bosluk.md, paddingRight: bosluk.xs, minHeight: 56,
-    borderRadius: kose.md, backgroundColor: r.metin,
+    paddingLeft: bosluk.md, paddingRight: bosluk.xs, minHeight: 58,
+    borderRadius: kose.lg, backgroundColor: r.cubuk, borderWidth: 1, borderColor: r.cubukCizgi,
+    boxShadow: `0 6px 18px ${r.golge}`,
   },
-  bildirimMetin: { ...tipografi.bodyOrta, color: r.bg, flex: 1 },
-  geriAlDugme: { minHeight: DOKUNMA, justifyContent: 'center', paddingHorizontal: bosluk.sm },
-  geriAlMetin: { ...tipografi.bodyOrta, color: r.birincilYumusak },
+  bildirimSol: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
+  bildirimMetin: { ...tipografi.bodyOrta, color: r.cubukMetin, flex: 1 },
+  geriAlDugme: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    minHeight: DOKUNMA, paddingHorizontal: bosluk.sm, borderRadius: kose.md,
+  },
+  geriAlMetin: { ...tipografi.bodyOrta, color: r.cubukVurgu },
 
-  listeBaslik: { ...tipografi.h2, color: r.metin, paddingHorizontal: bosluk.md },
-  listeNot: { ...tipografi.caption, color: r.metinSolgun, paddingHorizontal: bosluk.md },
+  // Kayıt listesi
+  listeUst: { paddingHorizontal: bosluk.md, gap: 2 },
+  listeBaslik: { ...tipografi.h2, color: r.metin },
+  listeNot: { ...tipografi.caption, color: r.metinSolgun },
   listeGovde: { paddingHorizontal: bosluk.md, paddingBottom: bosluk.md, gap: 6 },
   kayitSatir: {
-    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: 56,
-    paddingHorizontal: bosluk.xs, borderRadius: kose.md,
+    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: 58,
+    paddingHorizontal: bosluk.sm, borderRadius: kose.md,
     borderWidth: 1, borderColor: r.cizgiSolgun, backgroundColor: r.yuzey,
   },
-  kayitSira: { ...tipografi.caption, color: r.metinSolgun, width: 22, textAlign: 'right' },
+  kayitSira: { ...tipografi.caption, color: r.metinSolgun, width: 22, textAlign: 'right', fontVariant: ['tabular-nums'] },
   kayitAd: { ...tipografi.bodyOrta, color: r.metin },
   kayitAlt: { ...tipografi.caption, color: r.metinSolgun },
+  fotoSayi: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  fotoSayiMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
   listeEylem: {
     padding: bosluk.md, borderTopWidth: 1, borderTopColor: r.cizgiSolgun,
     backgroundColor: r.bgYukseltilmis,
