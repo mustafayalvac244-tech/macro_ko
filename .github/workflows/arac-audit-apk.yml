@@ -1,0 +1,107 @@
+name: Araç Audit — APK
+
+# NEDEN BU DOSYA VAR (27.09.2026).
+# Ürün sahibi uygulamayı telefona kurmak istedi. Geliştirme ortamında APK
+# derlenemiyor: Android SDK'nın indirildiği dl.google.com ağ politikasıyla
+# kapalı (403). GitHub'ın ubuntu-latest makinesinde Android SDK ve NDK hazır
+# geliyor; derleme burada, Expo hesabı GEREKMEDEN yerelde (gradle) yapılır.
+#
+# Vekil Pro'nun android-dagit.yml'i BİLEREK kullanılmadı: o, Vekil Pro'nun
+# Expo hesabına bağlı EAS derlemesi. Araç Audit ayrı bir ürün; aynı hesaba
+# kaydedilmemeli.
+#
+# ÇIKTI: koşu sayfasının altında "arac-audit-apk" adlı ek (zip). İçindeki
+# app-release.apk telefona doğrudan kurulur ("bilinmeyen kaynak" izni ister).
+#
+# İMZA: Expo şablonunun depoya giren debug.keystore'u. Her derlemede AYNI
+# anahtar olduğu için yeni APK eskisinin üstüne kurulur (veriler silinmez).
+# Play Store'a yüklenemez — bu yalnız elle dağıtım içindir.
+
+on:
+  push:
+    branches: ['claude/vehicle-audit-app-rear95']
+    paths:
+      - 'arac-audit-app/**'
+      - '.github/workflows/arac-audit-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Art arda iki push gelirse eskisini boşuna bitirme.
+concurrency:
+  group: arac-audit-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: arac-audit-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: arac-audit-app/package-lock.json
+
+      # Gradle 9 ve Android Gradle eklentisi JDK 17+ istiyor.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Bağımlılıklar
+        run: npm ci
+
+      # Yayına girmeden önce tip denetimi: kırık kodla APK üretmenin anlamı yok.
+      - name: Tip denetimi
+        run: npx tsc --noEmit
+
+      # android/ klasörü depoda YOK; app.json'dan her derlemede üretilir.
+      - name: Android projesini üret
+        run: npx expo prebuild --platform android --no-install
+        env:
+          CI: '1'
+
+      # İki mimari: arm64-v8a (güncel telefonların hepsi) ve armeabi-v7a
+      # (32 bit Android çalıştıran ucuz telefonlar). x86 yalnız emülatör içindir.
+      - name: APK derle
+        working-directory: arac-audit-app/android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a --no-daemon
+
+      - name: APK'yı adlandır
+        id: ad
+        run: |
+          kisa="$(git rev-parse --short HEAD)"
+          ad="arac-audit-${kisa}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$ad"
+          echo "ad=$ad" >> "$GITHUB_OUTPUT"
+          ls -la "$ad"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arac-audit-apk
+          path: arac-audit-app/${{ steps.ad.outputs.ad }}
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Özet
+        if: success()
+        run: |
+          {
+            echo "## Araç Audit APK"
+            echo ""
+            echo "Commit: \`${{ github.sha }}\`"
+            echo ""
+            echo "- Aşağıdaki **Artifacts** bölümünden \`arac-audit-apk\` zip'ini indirin,"
+            echo "  içindeki \`${{ steps.ad.outputs.ad }}\` dosyasını telefona atıp açın."
+            echo "- Telefon \"bilinmeyen kaynak\" izni isteyebilir."
+            echo "- Play Store'a yüklenemez (debug anahtarıyla imzalı)."
+          } >> "$GITHUB_STEP_SUMMARY"
