@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 28.09.2026 (kayıt "şifre yanlış" hatası)
+**Son güncelleme:** 28.09.2026 (ücretsiz 5 deneme + OTA)
 
 ## 1. Şu an — yayın durumu
 
@@ -31,11 +31,10 @@
 
 ## 2. Sıradaki / açık işler
 
-0. **Kayıtta sahte başarı (28.09, canlı kayıtla doğrulandı):** zaten kayıtlı
-   e-postayla kayıt olunca Supabase sahte 200 döndürüyor (identities boş, hesap
-   açılmıyor); uygulama "doğrula" diyordu, kullanıcı eski şifreyle "hatalı"
-   aldı. Düzeltildi (authStore.signUp) — web'de canlı; iOS'a ANCAK OTA ya da
-   yeni derlemeyle gider (OTA ürün sahibi onayı ister).
+0. 28.09: kayıtta sahte başarı düzeltildi (authStore.signUp) + ücretsiz katmana
+   5 deneme sorusu (Haiku; sunucu ai-chat v111 / ictihat v54 dağıtıldı).
+   Web canlı; telefonlara OTA ile gönderildi (ürün sahibi: "göndermeden önce
+   bunu da ekle"). OTA'nın telefona indiği ÖLÇÜLMEDİ.
 1. İnceleme sonucunu `tam-denetim` ile oku (sürüm satırı: `3.4.0  =  DURUM`).
 2. Demo hesabın (bayram@vekilpro.app) duruşma tarihleri sabit (ilki 27.09);
    inceleme uzarsa `scripts/demo-hesap-ornek-veri.sql` ile tazele.
