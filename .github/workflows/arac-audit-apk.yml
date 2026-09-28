@@ -10,23 +10,29 @@ name: Araç Audit — APK
 # Expo hesabına bağlı EAS derlemesi. Araç Audit ayrı bir ürün; aynı hesaba
 # kaydedilmemeli.
 #
-# ÇIKTI: koşu sayfasının altında "arac-audit-apk" adlı ek (zip). İçindeki
-# app-release.apk telefona doğrudan kurulur ("bilinmeyen kaynak" izni ister).
+# ÇIKTI iki yerde:
+#  - koşu sayfasının altında "arac-audit-apk" adlı ek (zip; 30 gün durur),
+#  - "Araç Audit APK <commit>" adlı TASLAK SÜRÜM: doğrudan .apk iner, zip yok.
+#    Gerekçe ve görünürlük: .github/scripts/arac-audit-taslak-surum.sh
+# APK telefona doğrudan kurulur ("bilinmeyen kaynak" izni ister).
 #
 # İMZA: Expo şablonunun depoya giren debug.keystore'u. Her derlemede AYNI
 # anahtar olduğu için yeni APK eskisinin üstüne kurulur (veriler silinmez).
 # Play Store'a yüklenemez — bu yalnız elle dağıtım içindir.
 
+# Derleme yalnız UYGULAMA değişince başlar. Bu dosyanın kendisi bilerek
+# listede YOK: iş akışını düzenlemek 18 dakikalık bir derleme başlatmasın
+# (ilk başarılı derleme 17 dk 21 sn sürdü, 27.09.2026).
 on:
   push:
     branches: ['claude/vehicle-audit-app-rear95']
     paths:
       - 'arac-audit-app/**'
-      - '.github/workflows/arac-audit-apk.yml'
   workflow_dispatch:
 
+# contents: write → yalnız taslak sürümü oluşturmak için.
 permissions:
-  contents: read
+  contents: write
 
 # Art arda iki push gelirse eskisini boşuna bitirme.
 concurrency:
@@ -92,6 +98,14 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      # Ek zaten yüklendi; bu adım düşerse APK kaybolmaz, "APK'yı taslak
+      # sürüme koy" iş akışıyla sonradan taşınır.
+      - name: Taslak sürüme koy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: ../.github/scripts/arac-audit-taslak-surum.sh "${{ steps.ad.outputs.ad }}" "$GITHUB_SHA"
+
       - name: Özet
         if: success()
         run: |
@@ -100,8 +114,9 @@ jobs:
             echo ""
             echo "Commit: \`${{ github.sha }}\`"
             echo ""
-            echo "- Aşağıdaki **Artifacts** bölümünden \`arac-audit-apk\` zip'ini indirin,"
-            echo "  içindeki \`${{ steps.ad.outputs.ad }}\` dosyasını telefona atıp açın."
+            echo "- **Releases** sayfasındaki \"Araç Audit APK\" taslağından .apk'yı"
+            echo "  doğrudan indirin; ya da aşağıdaki **Artifacts** bölümünden"
+            echo "  \`arac-audit-apk\` zip'ini indirip içindeki \`${{ steps.ad.outputs.ad }}\`'yı açın."
             echo "- Telefon \"bilinmeyen kaynak\" izni isteyebilir."
             echo "- Play Store'a yüklenemez (debug anahtarıyla imzalı)."
           } >> "$GITHUB_STEP_SUMMARY"
