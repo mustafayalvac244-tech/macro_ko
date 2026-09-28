@@ -172,3 +172,26 @@ export function useAdminAiOzeti() {
     },
   });
 }
+
+/** Deneme takibi (28.09.2026) — soru METNİ yok, yalnız ölçü (bkz. 0159). */
+export interface AdminDenemeTakibi {
+  deneyen_kisi: number;
+  ucretsiz_bitiren: number;
+  ucretliye_gecen: number;
+  son7_istek: number;
+  son7_iade: number;
+  mod_dagilim: { mod: string; adet: number }[];
+  kisiler: { ad: string | null; premium: boolean; kullanilan: number; son: string | null; iade: number; modlar: string | null }[];
+}
+
+export function useAdminDenemeTakibi() {
+  return useQuery({
+    queryKey: ['admin', 'deneme-takibi'],
+    staleTime: 30_000,
+    queryFn: async (): Promise<AdminDenemeTakibi> => {
+      const { data, error } = await supabase.rpc('admin_deneme_takibi', { p_limit: 50 });
+      if (error) throw error;
+      return data as AdminDenemeTakibi;
+    },
+  });
+}

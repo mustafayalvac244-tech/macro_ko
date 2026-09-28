@@ -5,7 +5,7 @@ import { format } from 'date-fns/format';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
-import { useAdminAiOzeti, useAdminAtifDenetimi, useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
+import { useAdminAiOzeti, useAdminDenemeTakibi, useAdminAtifDenetimi, useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
 import { useAiSaglik } from '@/hooks/useAiSaglik';
 import { useT } from '@/i18n';
 import { fonts, radius, spacing, kose } from '@/theme/theme';
@@ -27,6 +27,7 @@ export default function AdminScreen() {
 
   const overview = useAdminOverview();
   const aiOzet = useAdminAiOzeti();
+  const deneme = useAdminDenemeTakibi();
   const atif = useAdminAtifDenetimi(30);
   const users = useAdminUsers();
   const setPremium = useSetPremium();
@@ -150,6 +151,30 @@ export default function AdminScreen() {
                     {aiOzet.data.iade_dagilim.map((d) => `${d.mod}: ${d.iade}/${d.toplam}`).join(' · ')}
                   </Text>
                 )}
+              </>
+            )}
+
+            {/* DENEME TAKİBİ — 28.09.2026 ("denemedeki soruları takip edeceğiz").
+                Soru METNİ yok: saklanmıyor (müvekkil sırrı, aydınlatma metni).
+                Kim denedi, kaçını kullandı, hangi işte, kaç hata/iade, kaçı
+                ücretliye geçti — bunlar gerçek kullanımdan (0159). */}
+            {deneme.data && (
+              <>
+                <View style={styles.statGrid}>
+                  <StatCard icon="flask" label={t('admin.trialUsers')} value={deneme.data.deneyen_kisi} colors={colors} sub={t('admin.trialUsersHint', { bitiren: String(deneme.data.ucretsiz_bitiren) })} />
+                  <StatCard icon="trending-up" label={t('admin.trialConverted')} value={deneme.data.ucretliye_gecen} colors={colors} gold />
+                  <StatCard icon="time" label={t('admin.trialWeek')} value={deneme.data.son7_istek} colors={colors} sub={t('admin.trialWeekHint', { iade: String(deneme.data.son7_iade) })} />
+                </View>
+                {deneme.data.mod_dagilim.length > 0 && (
+                  <Text style={styles.healthRow}>
+                    {deneme.data.mod_dagilim.map((d) => `${d.mod}: ${d.adet}`).join(' · ')}
+                  </Text>
+                )}
+                {deneme.data.kisiler.map((k, i) => (
+                  <Text key={i} style={styles.healthRow}>
+                    {`${k.ad || '—'} · ${k.kullanilan} soru${k.premium ? ' · Pro' : ''}${k.iade ? ` · ${k.iade} iade` : ''}${k.modlar ? ` · ${k.modlar}` : ''}${k.son ? ` · ${new Date(k.son).toLocaleDateString('tr-TR')}` : ''}`}
+                  </Text>
+                ))}
               </>
             )}
 
