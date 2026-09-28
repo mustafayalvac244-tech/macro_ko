@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 28.09.2026 (ücretsiz 5 deneme + OTA)
+**Son güncelleme:** 28.09.2026 (deneme takibi)
 
 ## 1. Şu an — yayın durumu
 
@@ -35,6 +35,8 @@
    5 deneme sorusu (Haiku; sunucu ai-chat v111 / ictihat v54 dağıtıldı).
    Web canlı; telefonlara OTA ile gönderildi (ürün sahibi: "göndermeden önce
    bunu da ekle"). OTA'nın telefona indiği ÖLÇÜLMEDİ.
+   Deneme takibi: yönetici ekranı → "Deneyen kişi / Ücretliye geçen / Deneme
+   (7 gün)" (0159 admin_deneme_takibi). Soru METNİ saklanmıyor, gösterilmiyor.
 1. İnceleme sonucunu `tam-denetim` ile oku (sürüm satırı: `3.4.0  =  DURUM`).
 2. Demo hesabın (bayram@vekilpro.app) duruşma tarihleri sabit (ilki 27.09);
    inceleme uzarsa `scripts/demo-hesap-ornek-veri.sql` ile tazele.
@@ -57,7 +59,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0158`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0159`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
