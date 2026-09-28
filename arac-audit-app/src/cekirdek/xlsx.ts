@@ -173,6 +173,7 @@ function sayfaXml(sayfa: Sayfa & { ilkSayfa?: boolean }, cizimVar: boolean): str
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
 ${boyutlar}
 <sheetViews><sheetView workbookViewId="0"${sayfa.ilkSayfa ? ' tabSelected="1"' : ''}>${dondur}</sheetView></sheetViews>
 <sheetFormatPr defaultRowHeight="15"/>
@@ -235,6 +236,12 @@ export function xlsxOlustur(sayfalar: Sayfa[], ustVeri: KitapUstVerisi = {}): Ui
   const icerikTurleri: string[] = [];
   const kitapSayfalari: string[] = [];
   const kitapIliski: string[] = [];
+  // YAZDIRMA (28.09.2026). pageSetup'taki fitToWidth="1", sheetPr'de
+  // fitToPage="1" OLMADAN yok sayılır; tablo A4 yatayda ~1,2–1,3 sayfa
+  // genişliğine taşıyordu (ekip liderinin sınaması, gerçek Excel'de
+  // denenmedi — hesap). Başlık satırı da her basılan sayfada tekrarlanır:
+  // filtre aralığının ilk satırı tablo başlığıdır.
+  const tanimlar: string[] = [];
 
   let gorselSayaci = 0;
 
@@ -246,6 +253,11 @@ export function xlsxOlustur(sayfalar: Sayfa[], ustVeri: KitapUstVerisi = {}): Ui
     dosyalar.push({ ad: `xl/worksheets/sheet${no}.xml`, veri: sayfaXml({ ...sayfa, ilkSayfa: i === 0 }, cizimVar) });
     icerikTurleri.push(`<Override PartName="/xl/worksheets/sheet${no}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`);
     kitapSayfalari.push(`<sheet name="${xmlKacis(sayfaAdiTemizle(sayfa.ad))}" sheetId="${no}" r:id="rId${no}"/>`);
+    const baslikSatiri = sayfa.filtre ? /^[A-Z]+(\d+):/.exec(sayfa.filtre)?.[1] : undefined;
+    if (baslikSatiri) {
+      const ad = sayfaAdiTemizle(sayfa.ad).replace(/'/g, "''");
+      tanimlar.push(`<definedName name="_xlnm.Print_Titles" localSheetId="${i}">${xmlKacis(`'${ad}'!$${baslikSatiri}:$${baslikSatiri}`)}</definedName>`);
+    }
     kitapIliski.push(`<Relationship Id="rId${no}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${no}.xml"/>`);
 
     if (!cizimVar) return;
@@ -318,7 +330,7 @@ ${icerikTurleri.join('\n')}
       ad: 'xl/workbook.xml',
       veri: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-<sheets>${kitapSayfalari.join('')}</sheets></workbook>`,
+<sheets>${kitapSayfalari.join('')}</sheets>${tanimlar.length ? `<definedNames>${tanimlar.join('')}</definedNames>` : ''}</workbook>`,
     },
     {
       ad: 'xl/_rels/workbook.xml.rels',

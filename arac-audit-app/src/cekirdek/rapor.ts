@@ -39,7 +39,7 @@ export interface Sutun {
 }
 
 import { xlsxOlustur, STIL, gosterimOlcusu, pikselPunto, sutunAdi } from './xlsx';
-import { bastanKucult, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi } from './katalog';
+import { bastanKucult, BOLGELER, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi } from './katalog';
 import { denetimOzeti, dereceGosterimi, hataKodu, topluOzet } from './puan';
 import { ARAC_INDEKS } from './model3d';
 import { kmGoster } from './aracBilgisi';
@@ -107,6 +107,18 @@ export const SUTUNLAR: Sutun[] = [
 const baslikMetni = (s: Sutun, dil: Dil): string => (dil === 'en' ? s.baslikEn : s.baslik);
 
 /** Üst bilgi bloğundaki etiket/değer çiftleri. */
+/** "In progress" / "Completed 28.09.2026 14:05" — dosyanın taslak mı son hâl mi olduğu. */
+export function durumMetni(denetim: Denetim, dil: Dil): string {
+  if (denetim.durum !== 'tamam') return dil === 'en' ? 'In progress' : 'Devam ediyor';
+  const zaman = denetim.bitis ? ` ${bicimTarih(denetim.bitis)}` : '';
+  return (dil === 'en' ? 'Completed' : 'Tamamlandı') + zaman;
+}
+
+/** Özet sayfası İngilizce dosyada İngilizce: bölge adı kimlikten. */
+function bolgeAdi(id: string, ad: string, dil: Dil): string {
+  return dil === 'en' ? (BOLGELER.find((b) => b.id === id)?.en ?? ad) : ad;
+}
+
 function ustBilgiCiftleri(denetim: Denetim, ozet: Ozet, dil: Dil): (string | number)[][] {
   const arac = ARAC_INDEKS[denetim.aracId];
   const E = (tr: string, en: string): string => (dil === 'en' ? en : tr);
@@ -118,9 +130,10 @@ function ustBilgiCiftleri(denetim: Denetim, ozet: Ozet, dil: Dil): (string | num
     [E('Faz', 'Phase'), denetim.faz || '', E('Ekip', 'Team'), denetim.ekip || '', E('Kaynak', 'Source'), denetim.denetimTipi || ''],
     // Spec ve km 28.09.2026'da eklendi; eski denetimde boş kalırlar.
     [E('Denetçi', 'Auditor'), denetim.denetci || '', 'Spec', denetim.spec || '', E('Kilometre', 'Mileage'), kmGoster(denetim.km, dil)],
-    hatVardiya
-      ? [E('Rapor No', 'Report No'), denetim.raporNo || '', E('Hat / Vardiya', 'Line / Shift'), hatVardiya]
-      : [E('Rapor No', 'Report No'), denetim.raporNo || ''],
+    // Durum 28.09.2026'da eklendi: yarım ve bitmiş denetimin dosyaları hücre
+    // hücre aynıydı; alan kişi taslak mı son hâl mi anlayamıyordu (sınama).
+    [E('Rapor No', 'Report No'), denetim.raporNo || '', E('Durum', 'Status'), durumMetni(denetim, dil),
+      ...(hatVardiya ? [E('Hat / Vardiya', 'Line / Shift'), hatVardiya] : [])],
     [E('Toplam bulgu', 'Total findings'), ozet.toplamAdet, E('Kabul edilebilir (n)', 'Acceptable (n)'), ozet.kabulEdilebilirAdet, E('Fotoğraflı', 'With photo'), ozet.fotografliHata],
   ];
 }
@@ -274,14 +287,21 @@ function ozetSayfasi(denetim: Denetim, ozet: Ozet, dil: Dil): Sayfa {
 
   satirlar.push([], [{ v: E('BÖLGEYE GÖRE', 'BY ZONE'), stil: STIL.ETIKET }],
     [{ v: E('Bölge', 'Zone'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }]);
+  // İngilizce dosyada BY ZONE ve TOP PARTS Türkçe kalıyordu; parçalarda taraf
+  // yoktu ("Ön kapı" iki kez). Ad kimlikten, tarafıyla ve dosyanın dilinde.
   for (const b of ozet.bolgeDagilimi) {
-    satirlar.push([{ v: b.ad, stil: STIL.GOVDE }, { v: b.adet, stil: STIL.SAYI }]);
+    satirlar.push([{ v: bolgeAdi(b.id, b.ad, dil), stil: STIL.GOVDE }, { v: b.adet, stil: STIL.SAYI }]);
   }
 
   satirlar.push([], [{ v: E('EN ÇOK HATA ALAN PARÇALAR', 'TOP PARTS'), stil: STIL.ETIKET }],
     [{ v: E('Parça', 'Part'), stil: STIL.BASLIK }, { v: E('Bölge', 'Zone'), stil: STIL.BASLIK }, { v: E('Adet', 'Qty'), stil: STIL.BASLIK }]);
   for (const p of ozet.parcaDagilimi.slice(0, 20)) {
-    satirlar.push([{ v: p.ad, stil: STIL.GOVDE }, { v: p.bolgeAd, stil: STIL.GOVDE }, { v: p.adet, stil: STIL.SAYI }]);
+    const k = PARCA_INDEKS[p.id];
+    satirlar.push([
+      { v: k ? parcaTamAdi(p.id, dil) : p.ad, stil: STIL.GOVDE },
+      { v: (dil === 'en' ? k?.bolgeEn : k?.bolgeAd) ?? p.bolgeAd, stil: STIL.GOVDE },
+      { v: p.adet, stil: STIL.SAYI },
+    ]);
   }
 
   return { ad: E('Özet', 'Summary'), satirlar, sutunGenislikleri: [34, 12, 14, 52] };
@@ -329,7 +349,10 @@ export function topluExcelUret(
     [E('Parça', 'Part'), E('Bölge', 'Zone'), E('Toplam adet', 'Total qty'), E('Kaç araçta', 'Vehicles affected')]
       .map((v) => ({ v, stil: STIL.BASLIK })));
   for (const p of toplu.enSikParcalar) {
-    satirlar.push([{ v: p.ad, stil: STIL.GOVDE }, { v: p.bolgeAd, stil: STIL.GOVDE },
+    const k = PARCA_INDEKS[p.id];
+    satirlar.push([
+      { v: k ? parcaTamAdi(p.id, dil) : p.ad, stil: STIL.GOVDE },
+      { v: (dil === 'en' ? k?.bolgeEn : k?.bolgeAd) ?? p.bolgeAd, stil: STIL.GOVDE },
       { v: p.adet, stil: STIL.SAYI }, { v: p.aracSayisi, stil: STIL.SAYI }]);
   }
 

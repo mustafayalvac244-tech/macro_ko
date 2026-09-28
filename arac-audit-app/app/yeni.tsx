@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AracIkonu } from '@/bilesenler/AracIkonu';
@@ -10,10 +10,11 @@ import {
 } from '@/bilesenler/temel';
 import { KM_HANE, kmAyikla, kmSadelestir, SPECLER } from '@/cekirdek/aracBilgisi';
 import { HAZIR_DENETCILER, HAZIR_FAZLAR, LISTE_ANAHTARI, listedeyse } from '@/cekirdek/listeler';
-import { ARACLAR } from '@/cekirdek/model3d';
+import { ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
+import { bicimTarih } from '@/cekirdek/rapor';
 import { plakaDogrula, VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
-import { ayarOku, ayarYaz, denetimOlustur } from '@/veri/depo';
+import { ayarOku, ayarYaz, denetimOlustur, vinIleDenetimler } from '@/veri/depo';
 import { useTarama } from '@/veri/tarama';
 
 /**
@@ -29,8 +30,14 @@ const KAYNAK = 'HMC Audit';
  * Denetçi/faz/ekip her araçta aynı kalır — bir kez seçilsin, hatırlansın.
  * Eski kayıtta hat/vardiya/denetimTipi de var; bilerek OKUNMUYOR: form artık
  * onları göstermiyor, görünmeyen bir değer rapora sessizce yazılmamalı.
+ *
+ * Araç da hatırlanır (28.09.2026): form her seferinde IONIQ 3 seçili açılıyor,
+ * BAYON hattındaki denetçi seçmeyi unutursa denetim yanlış parça kataloğuyla
+ * açılıyordu (sınama). Artık son kullanılan araç seçili gelir.
  */
-interface Varsayilanlar { denetci: string; faz: string; ekip: string }
+interface Varsayilanlar { denetci: string; faz: string; ekip: string; aracId?: string }
+
+type OncekiDenetim = Awaited<ReturnType<typeof vinIleDenetimler>>[number];
 
 export default function YeniDenetim() {
   const router = useRouter();
@@ -50,6 +57,13 @@ export default function YeniDenetim() {
   const fazlar = useSecimListesi(LISTE_ANAHTARI.faz, HAZIR_FAZLAR);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [denendi, setDenendi] = useState(false);
+  // İlk "Denetime başla" dokunuşunda eksik künye ve aynı şasi SÖYLENİR; ikinci
+  // dokunuş yine de başlatır (sınama: denetçisiz, fazsız ve aynı şasiyle
+  // uyarısız başlıyordu, künye sonradan düzeltilemiyordu).
+  const [eksikSoylendi, setEksikSoylendi] = useState(false);
+  const [onceki, setOnceki] = useState<{ vin: string; liste: OncekiDenetim[] } | null>(null);
+  const kaydir = useRef<ScrollView>(null);
+  const [bilgiY, setBilgiY] = useState(0);
 
   // Barkod ekranı okuduğu şasiyi burada bırakır; geri döndüğümüzde alıp
   // temizliyoruz ki aynı numara ikinci bir denetime sızmasın.
@@ -63,6 +77,7 @@ export default function YeniDenetim() {
     ayarOku<Partial<Varsayilanlar> | null>('varsayilanlar', null)
       .then((k) => {
         if (k) setV({ denetci: k.denetci ?? '', faz: k.faz ?? '', ekip: k.ekip ?? '' });
+        if (k?.aracId && ARAC_INDEKS[k.aracId]) setAracId(k.aracId);
       })
       .catch(() => { /* ilk açılış */ });
   }, []);
@@ -70,16 +85,32 @@ export default function YeniDenetim() {
   const vin = useMemo(() => vinDogrula(vinHam), [vinHam]);
   const plaka = useMemo(() => plakaDogrula(plakaHam), [plakaHam]);
 
+  const eksikler = [
+    !listedeyse(denetciler.liste, v.denetci) && 'denetçi',
+    !listedeyse(fazlar.liste, v.faz) && 'faz',
+  ].filter(Boolean) as string[];
+  const onceVar = !!onceki && onceki.vin === vin.vin && onceki.liste.length > 0;
+
   const basla = useCallback(async () => {
     setDenendi(true);
     if (!vin.gecerli) return;
+    if (eksikler.length && !eksikSoylendi) {
+      setEksikSoylendi(true);
+      kaydir.current?.scrollTo({ y: bilgiY, animated: true });
+      return;
+    }
+    if (onceki?.vin !== vin.vin) {
+      const liste = await vinIleDenetimler(vin.vin).catch(() => []);
+      setOnceki({ vin: vin.vin, liste });
+      if (liste.length) return;
+    }
     setGonderiliyor(true);
     try {
       // Yalnız ekranda SEÇİLİ görünen değer yazılır: listeden kaldırılmış bir
       // ad hatırlanmış olsa bile formda görünmüyorsa rapora da gitmez.
       const denetci = listedeyse(denetciler.liste, v.denetci);
       const faz = listedeyse(fazlar.liste, v.faz);
-      await ayarYaz('varsayilanlar', { denetci, faz, ekip: v.ekip });
+      await ayarYaz('varsayilanlar', { denetci, faz, ekip: v.ekip, aracId });
       const d = await denetimOlustur({
         aracId, vin: vin.vin, plaka: plaka.bicimli, raporNo: raporNo.trim(),
         denetci, hat: '', vardiya: '', denetimTipi: KAYNAK, faz, ekip: v.ekip.trim(),
@@ -90,14 +121,23 @@ export default function YeniDenetim() {
     } finally {
       setGonderiliyor(false);
     }
-  }, [aracId, denetciler.liste, fazlar.liste, kmHam, plaka.bicimli, raporNo, router, spec, v, vin.gecerli, vin.vin]);
+  }, [aracId, bilgiY, denetciler.liste, eksikSoylendi, eksikler.length, fazlar.liste, kmHam, onceki, plaka.bicimli,
+    raporNo, router, spec, v, vin.gecerli, vin.vin]);
+
+  const oncekiniAc = (d: OncekiDenetim) => (d.durum === 'tamam'
+    ? router.replace({ pathname: '/denetim/rapor', params: { id: d.id, kaynak: 'ana' } })
+    : router.replace({ pathname: '/denetim/[id]', params: { id: d.id } }));
 
   // VIN durumu: boşken yol göster, doluyken ne bulduğunu söyle.
+  // Geçersiz şasinin hatası denendikten sonra kutunun ALTINDA kırmızı yazıyor;
+  // aynı cümle bir de turuncu kutuda çıkıyordu (sınama) — artık tek yerde.
   const vinDurumu = !vinHam
     ? { tur: 'bilgi' as const, metin: `Barkodu okutun ya da ${VIN_UZUNLUK} haneyi yazın.` }
     : vin.gecerli && !vin.uyarilar.length
       ? { tur: 'basari' as const, metin: `Geçerli · ${vin.bilgi.uretici ?? vin.bilgi.wmi} · model yılı ${vin.bilgi.modelYili ?? '?'}` }
-      : { tur: 'uyari' as const, metin: [...vin.hatalar, ...vin.uyarilar].join(' ') };
+      : denendi && !vin.gecerli
+        ? null
+        : { tur: 'uyari' as const, metin: [...vin.hatalar, ...vin.uyarilar].join(' ') };
 
   return (
     <KeyboardAvoidingView
@@ -107,6 +147,7 @@ export default function YeniDenetim() {
       <Baslik baslik="Yeni denetim" altBaslik="Araç, şasi ve denetim bilgisi" sol={<GeriDugmesi />} />
 
       <ScrollView
+        ref={kaydir}
         contentContainerStyle={[s.govde, tablet && s.govdeTablet]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -162,7 +203,7 @@ export default function YeniDenetim() {
               accessibilityLabel="Şasi numarası"
               hata={denendi && !vin.gecerli ? vin.hatalar.join(' ') : undefined}
             />
-            <BilgiKutusu tur={vinDurumu.tur} metin={vinDurumu.metin} />
+            {vinDurumu ? <BilgiKutusu tur={vinDurumu.tur} metin={vinDurumu.metin} /> : null}
             <View style={s.satir}>
               <Dugme metin="Barkod okut" simge={S.barkod} kucuk onPress={() => router.push('/barkod')} style={{ flex: 1 }} />
               <Dugme metin="Temizle" simge={S.kapat} kucuk tur="sessiz" onPress={() => setVinHam('')} />
@@ -171,7 +212,7 @@ export default function YeniDenetim() {
               etiket="PLAKA (VARSA)"
               value={plakaHam}
               onChangeText={setPlakaHam}
-              placeholder="41 ABC 12"
+              placeholder="Örn. 41 ABC 12"
               autoCapitalize="characters"
               accessibilityLabel="Plaka"
               ipucu={plakaHam && plaka.uyarilar.length ? plaka.uyarilar[0] : undefined}
@@ -207,7 +248,7 @@ export default function YeniDenetim() {
           </Kart>
         </View>
 
-        <View style={[s.sutun, tablet && s.sutunTablet]}>
+        <View style={[s.sutun, tablet && s.sutunTablet]} onLayout={(e) => setBilgiY(e.nativeEvent.layout.y)}>
           <Kart>
             <BolumBasligi metin="DENETİM BİLGİLERİ" simge={S.rapor} />
             <EklenebilirSecim
@@ -227,15 +268,35 @@ export default function YeniDenetim() {
               yerTutucu="Ör. P1"
               buyukHarf
             />
-            <Girdi etiket="EKİP" value={v.ekip} onChangeText={(t) => setV({ ...v, ekip: t })} placeholder="QE Team 2" />
+            {/* "QE Team 2" girilmiş bir değer gibi görünüyordu (üç ajan da); raporda
+                Ekip "—" çıktı. */}
+            <Girdi etiket="EKİP" value={v.ekip} onChangeText={(t) => setV({ ...v, ekip: t })} placeholder="Örn. QE Team 2" />
             <Girdi etiket="RAPOR NO" value={raporNo} onChangeText={setRaporNo} placeholder="İsteğe bağlı" />
           </Kart>
         </View>
       </ScrollView>
 
+      {eksikler.length && eksikSoylendi ? (
+        <View style={s.uyariBandi}>
+          <BilgiKutusu
+            tur="uyari"
+            metin={`${eksikler.map((e) => e[0]!.toLocaleUpperCase('tr') + e.slice(1)).join(' ve ')} seçilmedi; raporda boş kalır. Seçin ya da yine de başlatın.`}
+          />
+        </View>
+      ) : null}
+      {onceVar && onceki ? (
+        <View style={s.uyariBandi}>
+          <BilgiKutusu
+            tur="uyari"
+            metin={`Bu şasi için ${onceki.liste.length} denetim var. Son: ${bicimTarih(onceki.liste[0]!.baslangic)} · ${ARAC_INDEKS[onceki.liste[0]!.aracId]?.ad ?? onceki.liste[0]!.aracId} · ${onceki.liste[0]!.durum === 'tamam' ? 'tamamlandı' : 'devam ediyor'}.`}
+          />
+          <Dugme metin="Onu aç" kucuk simge={S.liste} onPress={() => oncekiniAc(onceki.liste[0]!)} erisimEtiketi="Bu şasinin son denetimini aç" />
+        </View>
+      ) : null}
+
       <AltCubuk style={tablet ? { justifyContent: 'flex-end' } : undefined}>
         <Dugme
-          metin="Denetime başla"
+          metin={(eksikler.length && eksikSoylendi) || onceVar ? 'Yine de başla' : 'Denetime başla'}
           tur="birincil"
           simge={S.basla}
           simgeSonda
@@ -276,4 +337,8 @@ const stiller = (r: Renkler) => StyleSheet.create({
   satir: { flexDirection: 'row', gap: bosluk.xs },
   specKmSatir: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: bosluk.sm },
   alanEtiketi: { ...tipografi.etiket, color: r.metinSolgun },
+  uyariBandi: {
+    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, flexWrap: 'wrap',
+    paddingHorizontal: bosluk.md, paddingTop: bosluk.xs, backgroundColor: r.bg,
+  },
 });

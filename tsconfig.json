@@ -24,6 +24,9 @@
     "tests/aracAuditListeler.test.ts",
     "tests/aracAuditAracTipi.test.ts",
     "tests/aracAuditAracBilgisi.test.ts",
-    "tests/aracAuditSurum.test.ts"
+    "tests/aracAuditSurum.test.ts",
+    "tests/aracAuditArama.test.ts",
+    "tests/aracAuditVinUygulama.test.ts",
+    "tests/aracAuditRaporDurum.test.ts"
   ]
 }

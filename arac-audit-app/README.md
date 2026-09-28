@@ -47,6 +47,16 @@ güncelleme kimliğiyle karşılaştırılınca indiği görülür.
 
 - **Bir kez yeni APK gerekir.** 0.2.0'dan önceki APK'larda güncelleme modülü
   (`expo-updates`) yok; onlar OTA alamaz.
+- **İlk yayın 0.2.0 APK'ya inmez — beklenen.** Telefon yalnız çalışan
+  paketten **daha yeni** bir güncellemeye geçer (`expo-updates` 57.0.23,
+  `LoaderSelectionPolicyFilterAware.kt`: `commitTime` karşılaştırması). APK'nın
+  içindeki paketin zamanı derleme anıdır (`createManifestForBuildAsync.js`:
+  `commitTime: new Date()`). İlk OTA (koşu 36408770278) başarılı APK
+  derlemesinden (koşu 36410058049) **önce** yayımlandı; bu yüzden o APK'da
+  Sürüm "APK ile gelen paket", "Güncellemeleri denetle" "Güncel" der. İkisi
+  aynı kod, kayıp yok. Telefona inecek ilk güncelleme APK'dan sonraki ilk
+  yayındır. Bu, kaynak koddan ve koşu sırasından çıkarım; **telefonda
+  görülmedi.**
 - **Derleme belleği.** 0.2.0'ın ilk derlemesi (koşu 36408769922) kod hatasıyla
   değil bellekle düştü: `expo-updates` altı Android modülü ekledi ve yayın
   öncesi lint analizleri Gradle'ın 512 MiB metaspace sınırına sığmadı
@@ -218,10 +228,19 @@ açıyordu. Şimdiki akış:
 
     parça ara → parçaya dokun → hataya dokun → KAYDEDİLDİ
 
-- **Derece üstte sabit durur, son seçilen hatırlanır.** Aynı derecede art arda
-  girişte, son dokunulan bir parçaya kayıt **2 dokunuş**, yeni parçaya 2 dokunuş
-  + arama. (Tarayıcıda sayıldı; tablette sayılmadı.)
-- **Kayıttan sonra "Geri al" çıkar** — yanlış dokunuş tek dokunuşla silinir.
+- **Derece yeni parçada 1'den başlar** (28.09.2026'dan). Önceden son seçilen
+  derece hatırlanıp bir sonraki parçaya taşınıyordu; kullanılabilirlik
+  sınamasında bu, dereceye bakmayan denetçinin önceki dereceyi **sessizce**
+  yazması demekti (aşağıda "Kullanılabilirlik sınaması"). Izgaranın üstünde
+  "Dokunduğunuz hata [n] olarak kaydedilir" yazar.
+- **Kayıttan sonra bildirimde iki düğme var:** "Aynı parçaya" (aynı parçaya bir
+  hata daha; derece korunur — **2 dokunuş**) ve "Geri al" (yanlış dokunuş tek
+  dokunuşla silinir; ardından kısa bir "Geri alındı" bildirimi). Yeni parçaya
+  kayıt: parçaya dokun, gerekirse dereceyi seç, hataya dokun. (Tarayıcıda
+  sayıldı; tablette sayılmadı.)
+- **Parçalar tarafıyla yazılır** ("Sol ön kapı", "Sağ ön kapı"); arama kelime
+  kelime ve sırasız, Türkçe karakter şart değil ("sag on kapi" bulur), LH/RH ve
+  İngilizce adla da bulur.
 - **Fotoğraf, not, adet hızlı yolda değil**; "Liste"den kayda dokunup sonradan
   eklenir.
 - **3B model ana ekrandan kaldırıldı** ("görünüm sonraya kalsın"). Bileşen
@@ -335,6 +354,7 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
 | Parça kataloğu (169 parça; elektrikli araçta 163, benzinlide 161 listelenir), VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
 | Hızlı giriş (2 dokunuş), geri al | **Bitti** |
+| Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **Bitti** — sıralama ürün sahibine soruldu ("evet"); kademe tanımları alınmadı |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |
@@ -345,6 +365,89 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
 | Barkod okuma | Kodu yazıldı, **gerçek kamerayla denenmedi** |
 | Gerçek cihazda çalıştırma | APK ürün sahibinin telefonunda açıldı (ekran görüntüsü, 28.09.2026); kamera, barkod, paylaşım **denenmedi** |
 | OTA güncelleme (EAS Update) | Kuruldu — telefona indiği **görülmedi** |
+
+### Kullanılabilirlik sınaması (28.09.2026)
+
+Ürün sahibi: *"Kullanımı biraz kötü. 3 ajan kur, kullansınlar, yorum
+yapsınlar. Yoruma göre düzelt."*
+
+**Yöntem ve sınırı.** Üç yapay zekâ ajanı uygulamanın **web paketini**
+gerçek Chromium'da, dokunmatik telefon (390×844) ve tablet (1024×768, 768×1024)
+boyutunda kullandı: deneyimli hat denetçisi (telefon, hız), ilk kez kullanan
+denetçi (tablet), ekip lideri (rapor, Excel, koyu tema). Senaryoları ve
+"doğru"yu ajanlar ve ben yazdık, her akış **bir kez** koşuldu. Bunlar **gerçek
+kullanıcı verisi değildir**; dokunuş sayıları ve öğe konumları deterministik
+ölçüm, "anlaşılmadı" yargıları tek bir AI denemesinin gözlemidir. Kamera,
+barkod, paylaşım menüsü, eldiven, güneş ışığı web'de ölçülemedi.
+
+**Üçünün de bağımsız olarak gördüğü, düzeltilenler:**
+- Sol/sağ parçalar aynı adla görünüyordu; "sol ön kapı" araması dıştaki kapıyı
+  bulmuyordu → tam ad tarafıyla, arama kelime kelime/sırasız/Türkçe karaktersiz.
+- Kaydı düzeltmek zahmetliydi: düzenlemede DERECE 37 kutunun altındaydı
+  (telefonda y=1370) → düzenlemede derece en üstte, hata tipi katlı.
+- "Sil" onaysız, geri alınamaz ve "Vazgeç"in 8 px yanındaydı → iki adımlı onay,
+  ayrı yerde (silme fotoğrafları da siliyor; geri al yerine onay).
+- Bitmiş denetim uyarısız değişiyordu, "Bitir" onaysızdı → bitmiş kart raporu
+  açar; çalışma ekranında bant; değişiklik olursa denetim yeniden "devam
+  ediyor" olur; "Bitir" iki adımlı.
+- EKİP/PLAKA örnek metinleri girilmiş değer gibiydi → "Örn. …".
+- Kontrol hanesi uyarısı test şasisinde çıkıyordu → yalnız zorunlu olduğu
+  bölgelerde (K. Amerika 1–5, Çin L). **Gerçek HMTR şasileriyle denenmedi.**
+
+**İkisinin gördüğü:** derecenin yeni parçaya sessizce taşınması (yeni parçada
+1), başladıktan sonra künyenin düzeltilememesi ("Bilgiler" sayfası; denetim
+silme), denetçi/faz boşken uyarısız başlaması (ilk dokunuşta söylenir), formda
+her seferinde IONIQ 3 seçili gelmesi (son araç hatırlanır), aynı şasinin
+uyarısız ikinci kez açılması ("Onu aç / Yine de başla").
+
+**Birinin gördüğü:** Türkçe karaktersiz arama, "Aynı parçaya" kısayolu, sessiz
+geri al, telefonda başlık çiplerinin ~132 px tutması (tek satır), camda "Cam"
+grubunun en altta olması (parçanın kendi grup sırası), ana sayfada arama/süzgeç
+yokluğu, rapordaki satırdan düzeltme (9 dokunuş → 1), rapor listesinin derece
+sırası, Excel'de durum/bitiş zamanı, İngilizce dosyada Türkçe kalan Summary,
+yazdırmada `fitToPage` eksikliği, özel tipte İngilizce ad uyarısı, "(3)"
+önizlemesine "Raporda" etiketi, dikey tablette kesilen şasi.
+
+**Yapılmayanlar:** merkezi sunucu (tabletler arası görünürlük), Excel'in gerçek
+Excel'de açılıp basılması, telefonda raporun kısaltılması (künye listeden önce
+duruyor), web'de Excel paylaşımının çalışması (web'e özgü; uygulama değil).
+
+**Göndermeden önceki uçtan uca sınav.** Bu dalda her push OTA ile telefonlara
+yayımlandığı için düzeltmeler önce web paketinde, gerçek Chromium'da sınandı.
+Hızlı giriş sınavı artık **20 adım** (27.09'da 13'tü; aradakilerin bir kısmı
+başka özellikler için eklendi). Bu iş için eklenenler: yeni parçada derecenin
+1'e dönmesi, Bitir'in onayı, bitmiş kartın raporu açması, rapordaki satırdan
+düzenleme (derece üstte), bitmiş denetimin kayıtla yeniden açılması, aynı şasi
+uyarısı, "Bilgiler"de ekibin düzeltilip geri okunması, iki silme onayının
+ekranda görünmesi, denetimin silinmesi, ana sayfada şasinin son haneleriyle
+arama. Gönderilmeden **dört gerçek hata** çıktı; ikisini sınav, ikisini ekran
+görüntüsü gösterdi:
+
+1. Rapordaki hata satırının ekran okuyucu etiketinde derece yoktu (düğmenin
+   etiketi içindeki rozetinkini örtüyordu) → etikete derece ve kabul eklendi.
+2. "Bitir" ve "Denetimi sil" ana sayfaya `router.replace('/')` ile dönüyordu:
+   çalışma ekranı yığında kalıyor, üstüne ikinci bir ana sayfa biniyordu —
+   Android'de geri tuşu kapanmış bir denetime dönerdi. → `router.dismissTo('/')`.
+   **Kontrol vakası:** eski kodla derlenen pakette adım düştü ("Denetim ara"
+   iki ekranda), yenisinde geçti.
+3. Silme onayı kaydırmanın en altında açılıyor, "Evet, sil" alttaki
+   Vazgeç/Kaydet çubuğunun arkasında kalıyordu (kayıt ve denetim silmede).
+   Bunu sınav değil **ekran görüntüsü** gösterdi: Playwright tıklamadan önce
+   kendisi kaydırdığı için "tıklanabildi" bunu kanıtlamıyordu. → Onay açılınca
+   kendiliğinden sona kaydırır; sınava düğmenin ortasında en üstte kendisinin
+   olduğunu ölçen bir denetim eklendi. **Kontrol vakası:** eski pakette düştü.
+4. Kayıt düzenlemede ADET kutusu (iki 48 px düğme + sayı) satırın üçte birine
+   sığmıyordu: web'de "+" KONUM'un altında kalıyor, telefonda sayıya yer
+   kalmıyordu. **Bu işten önce de vardı** (satır değişmemişti) ve üç ajanın
+   raporlarında yok; ekran görüntüsünde görüldü. → ADET sabit genişlikte, dar
+   ekranda KONUM alt satıra iner; sınava "+" ile sayının üstünün açık olduğunu
+   ölçen denetim eklendi. **Kontrol vakası:** eski pakette düştü.
+
+Son koşu (düzeltmelerden sonra): tablet 1024×768 ve telefon 390×844, açık ve
+koyu temada **dört düzende de 20/20**; birim testleri 896/896.
+
+Sınırı: sınavı ve "doğru" tanımını ben yazdım; web paketi, telefon değil;
+her düzende bir koşu. Bağımsız doğrulama değildir.
 
 ### Neyin nasıl doğrulandığı
 

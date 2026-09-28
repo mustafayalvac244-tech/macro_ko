@@ -16,7 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
-  ActivityIndicator, Modal, Platform, Pressable, StyleSheet,
+  ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet,
   Text, TextInput, TextInputProps, useWindowDimensions, View, ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -101,6 +101,7 @@ export function Baslik({
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const kenar = useSafeAreaInsets();
+  const { tablet } = useDuzen();
   return (
     <View
       style={[s.cubuk, {
@@ -119,7 +120,14 @@ export function Baslik({
         </View>
         {sag ? <View style={s.cubukSag}>{sag}</View> : null}
       </View>
-      {cipler ? <View style={s.cubukCipler}>{cipler}</View> : null}
+      {/* Telefonda çipler TEK SATIR, yana kayar: sarınca başlık ~132 px'e çıkıp
+          hata kutularını aşağı itiyordu (sınama, 28.09.2026). */}
+      {cipler && tablet ? <View style={s.cubukCipler}>{cipler}</View> : null}
+      {cipler && !tablet ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.cubukCiplerTek}>
+          {cipler}
+        </ScrollView>
+      ) : null}
     </View>
   );
 }
@@ -592,6 +600,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   cubukAlt: { ...tipografi.caption, color: r.cubukMetinSolgun },
   cubukSag: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
   cubukCipler: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingBottom: 2 },
+  cubukCiplerTek: { flexDirection: 'row', gap: 6, paddingBottom: 2 },
   cubukCip: {
     flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 320,
     paddingHorizontal: bosluk.xs, paddingVertical: 4, borderRadius: kose.pill,

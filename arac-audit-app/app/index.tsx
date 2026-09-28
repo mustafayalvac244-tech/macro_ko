@@ -6,9 +6,10 @@ import { AracIkonu } from '@/bilesenler/AracIkonu';
 import { GuncellemeBildirimi } from '@/bilesenler/Guncelleme';
 import { S } from '@/bilesenler/simgeler';
 import {
-  Baslik, BaslikDugmesi, BolumBasligi, BosDurum, Dugme, Ekran,
-  HataKutusu, Rozet, useDuzen, Yukleniyor,
+  AramaKutusu, Baslik, BaslikDugmesi, BolumBasligi, BosDurum, Dugme, Ekran,
+  HataKutusu, Rozet, Secenek, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
+import { aramaSadelestir } from '@/cekirdek/arama';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
@@ -25,6 +26,12 @@ export default function DenetimListesi() {
 
   const [satirlar, setSatirlar] = useState<DenetimOzetSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  // ARAMA VE SÜZGEÇ (28.09.2026): ekip lideri 200 kayıtta bir şasiyi bulmak
+  // için tablette ~16, telefonda ~37 ekran kaydırmak zorundaydı (sınama; 3
+  // kayıtla ölçülüp hesaplandı). Şasi son haneleriyle de bulunur: eşleşme
+  // kelime başından değil, İÇİNDEN.
+  const [arama, setArama] = useState('');
+  const [suzgec, setSuzgec] = useState<'hepsi' | 'devam' | 'tamam'>('hepsi');
 
   // Ekrana her dönüşte tazele: denetim ekranından çıkınca liste güncel olmalı.
   useFocusEffect(useCallback(() => {
@@ -43,6 +50,27 @@ export default function DenetimListesi() {
   }, []));
 
   const yeniDenetim = () => router.push('/yeni');
+
+  const gorunen = useMemo(() => {
+    const sozcukler = aramaSadelestir(arama).split(' ').filter(Boolean);
+    return (satirlar ?? []).filter((d) => {
+      if (suzgec !== 'hepsi' && d.durum !== suzgec) return false;
+      if (!sozcukler.length) return true;
+      const metin = aramaSadelestir([
+        d.vin, d.plaka, ARAC_INDEKS[d.aracId]?.ad, d.spec, d.denetci, bicimTarih(d.baslangic),
+      ].filter(Boolean).join(' '));
+      return sozcukler.every((q) => metin.includes(q));
+    });
+  }, [satirlar, arama, suzgec]);
+
+  const devamSayisi = (satirlar ?? []).filter((d) => d.durum === 'devam').length;
+  const tamamSayisi = (satirlar ?? []).length - devamSayisi;
+
+  // Bitmiş denetimin kartı RAPORU açar: önceden çalışma ekranı açılıyor ve
+  // raporu görmek isteyen biri yanlışlıkla kayıt ekleyebiliyordu (sınama).
+  const kartiAc = (d: DenetimOzetSatiri) => (d.durum === 'tamam'
+    ? router.push({ pathname: '/denetim/rapor', params: { id: d.id, kaynak: 'ana' } })
+    : router.push({ pathname: '/denetim/[id]', params: { id: d.id } }));
 
   const ust = (
     <View style={s.ust}>
@@ -74,15 +102,32 @@ export default function DenetimListesi() {
           gönderen kod yok (27.09.2026). */}
 
       {satirlar?.length ? (
-        <BolumBasligi
-          metin="DENETİMLER"
-          simge={S.liste}
-          sag={(
-            <Text style={s.sayac}>
-              {satirlar.length >= LISTE_SINIRI ? `son ${LISTE_SINIRI}` : satirlar.length}
-            </Text>
-          )}
-        />
+        <View style={s.aramaBlok}>
+          <AramaKutusu
+            deger={arama}
+            degistir={setArama}
+            yerTutucu="Şasi (son haneler de olur), plaka, araç, denetçi…"
+            erisimEtiketi="Denetim ara"
+          />
+          <View style={s.suzgecSatir}>
+            {([
+              ['hepsi', `Tümü ${satirlar.length}`],
+              ['devam', `Devam eden ${devamSayisi}`],
+              ['tamam', `Tamamlanan ${tamamSayisi}`],
+            ] as const).map(([k, metin]) => (
+              <Secenek key={k} metin={metin} secili={suzgec === k} onPress={() => setSuzgec(k)} />
+            ))}
+          </View>
+          <BolumBasligi
+            metin="DENETİMLER"
+            simge={S.liste}
+            sag={(
+              <Text style={s.sayac}>
+                {satirlar.length >= LISTE_SINIRI && gorunen.length === satirlar.length ? `son ${LISTE_SINIRI}` : gorunen.length}
+              </Text>
+            )}
+          />
+        </View>
       ) : null}
     </View>
   );
@@ -104,7 +149,7 @@ export default function DenetimListesi() {
           // Sütun sayısı değişince FlatList baştan kurulmalı; anahtar bunu sağlar.
           key={tablet ? 'iki' : 'tek'}
           numColumns={tablet ? 2 : 1}
-          data={satirlar ?? []}
+          data={gorunen}
           keyExtractor={(d) => d.id}
           style={{ flex: 1 }}
           contentContainerStyle={s.liste}
@@ -114,7 +159,9 @@ export default function DenetimListesi() {
           columnWrapperStyle={tablet ? s.sutunSatiri : undefined}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={ust}
-          ListEmptyComponent={(
+          ListEmptyComponent={satirlar?.length ? (
+            <Text style={s.eslesmeYok}>Aramayla eşleşen denetim yok.</Text>
+          ) : (
             <BosDurum
               simge={S.arac}
               baslik="Henüz denetim kaydı yok"
@@ -126,7 +173,7 @@ export default function DenetimListesi() {
               <DenetimKarti
                 satir={item}
                 tablet={tablet}
-                onPress={() => router.push({ pathname: '/denetim/[id]', params: { id: item.id } })}
+                onPress={() => kartiAc(item)}
               />
             </View>
           )}
@@ -150,7 +197,7 @@ function DenetimKarti({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${satir.vin} denetimini aç`}
+      accessibilityLabel={devam ? `${satir.vin} denetimini aç` : `${satir.vin} raporunu aç`}
       onPress={onPress}
       style={({ pressed }) => [s.kart, tablet && s.kartIkili, pressed && s.basili]}
     >
@@ -164,13 +211,13 @@ function DenetimKarti({
             {arac?.ad ?? satir.aracId}{satir.spec ? ` · ${satir.spec}` : ''}{satir.plaka ? ` · ${satir.plaka}` : ''}
           </Text>
         </View>
-        {/* Telefonda rozet alt satıra iner: aynı satırda şasiyi sondan kesiyordu,
-            ayırt edici seri numarası da tam kesilen kısımda. */}
-        {tablet ? durumRozeti : null}
       </View>
 
+      {/* Rozet HER BOYUTTA alt satırda: aynı satırda şasiyi sondan kesiyordu —
+          önce telefonda, sonra dikey tablette ("NLHB51ABPDH…", sınama
+          28.09.2026). Ayırt edici seri numarası tam kesilen kısımda. */}
       <View style={s.kartAlt}>
-        {tablet ? null : durumRozeti}
+        {durumRozeti}
         <View style={s.metaSatir}>
           <S.tarih size={14} color={renkler.metinSolgun} strokeWidth={2} />
           <Text style={s.meta} numberOfLines={1}>{bicimTarih(satir.baslangic)}</Text>
@@ -182,7 +229,7 @@ function DenetimKarti({
           </View>
         ) : null}
         <View style={{ flex: 1 }} />
-        <Text style={s.sayilar}>{satir.hataAdedi} bulgu</Text>
+        <Text style={s.sayilar}>{satir.hataAdedi} hata</Text>
         {satir.agirAdedi > 0 ? (
           <View style={[s.sonucPul, { backgroundColor: renkler.derece3Yumusak }]}>
             <Text style={[s.sonucMetin, { color: renkler.derece3 }]}>{satir.agirAdedi} × DERECE 3</Text>
@@ -217,6 +264,9 @@ const stiller = (r: Renkler) => StyleSheet.create({
   kahramanAlt: { ...tipografi.caption, color: r.cubukMetinSolgun },
 
   sayac: { ...tipografi.captionOrta, color: r.metinSolgun, fontVariant: ['tabular-nums'] },
+  aramaBlok: { gap: bosluk.sm },
+  suzgecSatir: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
+  eslesmeYok: { ...tipografi.body, color: r.metinSolgun, textAlign: 'center', paddingVertical: bosluk.lg },
 
   kart: {
     gap: bosluk.sm, padding: bosluk.sm,

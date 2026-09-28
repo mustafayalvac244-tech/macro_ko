@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ViewStyle,
 } from 'react-native';
@@ -7,7 +7,8 @@ import {
 import { GRUP_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, DereceRozeti, Dugme, Girdi, HataKutusu, Secenek } from '@/bilesenler/temel';
 import { fotografKucult } from '@/cekirdek/goruntu';
-import { HATA_GRUPLARI, PARCA_INDEKS, parcaHataTipleri, DERECELER } from '@/cekirdek/katalog';
+import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
+import { HATA_GRUPLARI, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi, DERECELER } from '@/cekirdek/katalog';
 import { DereceKodu, Hata, HataGrubuId, HataTipi, SorunTipi } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, dereceRenkleri, kose, Renkler, tipografi, useTema } from '@/tema';
 import { fotografKaydet, FotografKaydi, fotografSil } from '@/veri/depo';
@@ -61,6 +62,14 @@ export function HataSayfasi({
   const [acilanTaslak, setAcilanTaslak] = useState<HataTaslagi | null>(null);
   const [arama, setArama] = useState('');
   const [yeniAcik, setYeniAcik] = useState(false);
+  /** Tip ızgarası açık mı? Düzenlemede katlı başlar ("Değiştir" ile açılır). */
+  const [tipAcik, setTipAcik] = useState(true);
+  const [silOnay, setSilOnay] = useState(false);
+  // Onay kutusu kaydırmanın EN ALTINDA açılır; kendiliğinden kaydırılmazsa
+  // "Evet, sil" alttaki Vazgeç/Kaydet çubuğunun arkasında kalıyordu
+  // (uçtan uca sınamanın ekran görüntüsü, 28.09.2026).
+  const kaydirma = useRef<ScrollView>(null);
+  const onayaKaydir = useRef(false);
 
   // Sayfa her açılışta taslaktan doldurulur. useEffect yerine render sırasında
   // karşılaştırma: taslak değiştiği anda alanlar doğru değerle çizilsin.
@@ -78,6 +87,8 @@ export function HataSayfasi({
     setFotoHatasi(null);
     setArama('');
     setYeniAcik(false);
+    setTipAcik(!taslak.id);
+    setSilOnay(false);
   }
 
   const parca = taslak ? PARCA_INDEKS[taslak.parcaId] : undefined;
@@ -87,9 +98,9 @@ export function HataSayfasi({
     [taslak, ozelTipler],
   );
 
-  const q = arama.trim().toLocaleLowerCase('tr');
+  const q = arama.trim();
   const suzulmus = useMemo(
-    () => (q ? tipler.filter((t) => `${t.ad} ${t.en}`.toLocaleLowerCase('tr').includes(q)) : tipler),
+    () => (q ? tipler.filter((t) => aramaEslesir(aramaMetni(t.ad, t.en), q)) : tipler),
     [q, tipler],
   );
   const gruplar = useMemo(() => [...new Set(suzulmus.map((t) => t.grup))], [suzulmus]);
@@ -160,200 +171,279 @@ export function HataSayfasi({
 
   if (!taslak) return null;
 
+  const seciliTip = tipler.find((t) => t.id === hataTipiId);
+
+  // --- BÖLÜMLER ----------------------------------------------------------
+  // Yeni kayıtta sıra: hata tipi → derece → ayrıntı. VAR OLAN kaydı
+  // düzenlerken sıra tersine döner: derece en üstte, 37 kutuluk tip ızgarası
+  // katlı. Kullanılabilirlik sınamasında (üç ajan, 28.09.2026) derecesini
+  // düzeltmek için telefonda ~650 px kaydırmak gerekiyordu (DERECE y=1370).
+
+  const tipBolumu = !tipAcik ? (
+    <View style={s.tipOzet}>
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text style={s.bolumBaslik}>HATA TİPİ</Text>
+        <Text style={s.tipOzetAd} numberOfLines={2}>{seciliTip?.ad ?? taslak.hataTipiId}</Text>
+      </View>
+      <Dugme metin="Değiştir" kucuk onPress={() => setTipAcik(true)} erisimEtiketi="Hata tipini değiştir" />
+    </View>
+  ) : (
+    <>
+      <Text style={s.bolumBaslik}>HATA TİPİ</Text>
+
+      <AramaKutusu
+        deger={arama}
+        degistir={setArama}
+        yerTutucu="Hata ara — gıcırtı, göçük, boşluk…"
+        erisimEtiketi="Hata tipi ara"
+      />
+
+      {yeniAcik ? (
+        <YeniTipFormu
+          baslangicAd={arama.trim()}
+          izinliGruplar={parca?.gruplar ?? []}
+          onVazgec={() => setYeniAcik(false)}
+          onEkle={async (girdi) => {
+            const t = await tipEkle({ ...girdi, ekleyen: denetci?.trim() ?? '' });
+            setYeniAcik(false);
+            setArama('');
+            tipSec(t);
+          }}
+        />
+      ) : null}
+
+      {!yeniAcik && gruplar.map((g) => (
+        <View key={g} style={{ gap: bosluk.xxs }}>
+          <GrupBasligi grup={g} />
+          <View style={s.izgara}>
+            {suzulmus.filter((t) => t.grup === g).map((t) => {
+              const secili = hataTipiId === t.id;
+              return (
+                <Pressable
+                  key={t.id}
+                  accessibilityRole="radio"
+                  aria-checked={secili}
+                  accessibilityLabel={`${t.ad}${t.en ? ` (${t.en})` : ''}`}
+                  onPress={() => tipSec(t)}
+                  style={[s.secenek, secili && s.secenekSecili]}
+                >
+                  <View style={s.secenekSatir}>
+                    <Text style={[s.secenekAd, secili && { color: renkler.birincil }]} numberOfLines={2}>
+                      {t.ad}
+                    </Text>
+                    {/* Ekip eklemesi olduğu hem işaretle hem metinle belli
+                        olsun: yalnız renkle ayırmak erişilebilir değil. */}
+                    {t.ozel ? <Text style={s.ozelIsaret}>EKİP</Text> : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ))}
+
+      {!yeniAcik && suzulmus.length === 0 ? (
+        <Text style={s.bos}>
+          {q ? `"${arama.trim()}" listede yok.` : 'Bu parça için tanımlı hata tipi yok.'}
+        </Text>
+      ) : null}
+
+      {!yeniAcik ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={q ? `"${arama.trim()}" adıyla yeni hata tipi ekle` : 'Yeni hata tipi ekle'}
+          onPress={() => setYeniAcik(true)}
+          style={[s.yeniDugme, suzulmus.length === 0 && { borderColor: renkler.birincil }]}
+        >
+          <S.ekle size={18} color={renkler.birincil} strokeWidth={2.25} />
+          <Text style={s.yeniDugmeMetin}>
+            {q ? `"${arama.trim()}" adıyla yeni hata tipi ekle` : 'Yeni hata tipi ekle'}
+          </Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+
+  const dereceBolumu = (
+    <>
+      <Text style={s.bolumBaslik}>DERECE — 3 EN AĞIR</Text>
+      <DereceSecici derece={derece} onSec={setDerece} />
+      <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} />
+    </>
+  );
+
+  const ayrintiBolumu = (
+    <>
+      <Text style={s.bolumBaslik}>TÜR</Text>
+      <View style={s.izgara}>
+        {(['Part', 'Complex'] as const).map((tur) => (
+          <Secenek
+            key={tur}
+            metin={tur}
+            erisimEtiketi={`Tür ${tur}`}
+            secili={sorunTipi === tur}
+            onPress={() => setSorunTipi(tur)}
+            style={{ flexGrow: 1, flexBasis: 120 }}
+          />
+        ))}
+      </View>
+
+      <Girdi
+        etiket="SORUMLU"
+        value={sorumlu}
+        onChangeText={setSorumlu}
+        placeholder="Örn. HMTR PD (tedarikçi)"
+        ipucu={sorunTipi === 'Part'
+          ? 'Part hatasında yazılan sorumlu bu parçaya öğrenilir; sonraki kayıtlarda kendiliğinden gelir.'
+          : 'Complex hatanın sorumlusu parçaya öğrenilmez.'}
+      />
+
+      <View style={s.adetKonumSatir}>
+        <View style={{ gap: bosluk.xxs }}>
+          <Text style={s.alanEtiketi}>ADET</Text>
+          <View style={s.adetKutu}>
+            <Pressable
+              accessibilityRole="button" accessibilityLabel="Adedi azalt"
+              onPress={() => setAdet(String(Math.max(1, (Number(adet) || 1) - 1)))}
+              style={s.adetDugme}
+            >
+              <S.azalt size={20} color={renkler.metin} strokeWidth={2.25} />
+            </Pressable>
+            <TextInput
+              value={adet}
+              onChangeText={setAdet}
+              keyboardType="number-pad"
+              accessibilityLabel="Adet"
+              style={s.adetGirdi}
+            />
+            <Pressable
+              accessibilityRole="button" accessibilityLabel="Adedi artır"
+              onPress={() => setAdet(String(Math.min(99, (Number(adet) || 1) + 1)))}
+              style={s.adetDugme}
+            >
+              <S.ekle size={20} color={renkler.metin} strokeWidth={2.25} />
+            </Pressable>
+          </View>
+        </View>
+        <View style={s.konumKutu}>
+          <Girdi etiket="KONUM" value={konum} onChangeText={setKonum} placeholder="Örn. üst köşe" />
+        </View>
+      </View>
+
+      <Girdi etiket="AÇIKLAMA" value={aciklama} onChangeText={setAciklama} placeholder="İsteğe bağlı" multiline />
+    </>
+  );
+
+  const fotoBolumu = (
+    <>
+      <Text style={s.bolumBaslik}>FOTOĞRAF — EXCEL’E OTOMATİK GÖMÜLÜR</Text>
+      {fotoHatasi ? <HataKutusu metin={fotoHatasi} /> : null}
+      <View style={s.fotoSerit}>
+        {fotoIdleri.map((id) => {
+          const f = fotoHaritasi.get(id);
+          return (
+            <View key={id} style={s.fotoKutu}>
+              {f ? <Image source={{ uri: f.uri }} style={s.fotoGorsel} /> : null}
+              <Pressable
+                accessibilityRole="button" accessibilityLabel="Fotoğrafı sil"
+                onPress={() => fotografiKaldir(id)}
+                style={s.fotoSil}
+              >
+                <S.kapat size={16} color={renkler.cubukMetin} strokeWidth={2.5} />
+              </Pressable>
+            </View>
+          );
+        })}
+        <Pressable
+          accessibilityRole="button" accessibilityLabel="Fotoğraf çek"
+          onPress={() => fotografEkle(true)}
+          disabled={fotoYukleniyor}
+          style={s.fotoEkle}
+        >
+          {fotoYukleniyor ? <ActivityIndicator color={renkler.birincil} /> : (
+            <>
+              <S.kamera size={22} color={renkler.birincil} strokeWidth={2} />
+              <Text style={s.fotoEkleMetin}>Çek</Text>
+            </>
+          )}
+        </Pressable>
+        <Pressable
+          accessibilityRole="button" accessibilityLabel="Galeriden seç"
+          onPress={() => fotografEkle(false)}
+          disabled={fotoYukleniyor}
+          style={s.fotoEkle}
+        >
+          <S.galeri size={22} color={renkler.birincil} strokeWidth={2} />
+          <Text style={s.fotoEkleMetin}>Galeri</Text>
+        </Pressable>
+      </View>
+    </>
+  );
+
+  // SİLME İKİ ADIMLI ve Kaydet/Vazgeç'ten UZAKTA. Önceden "Sil" (51×48)
+  // "Vazgeç"in 8 px yanındaydı ve tek dokunuşla, onaysız siliyordu (sınama).
+  // Geri almak yerine onay: silme kaydın fotoğraflarını da siliyor
+  // (hataSil), geri getirilemez.
+  const silBolumu = duzenleme && onSil ? (
+    <View style={s.silBolumu}>
+      {!silOnay ? (
+        <Dugme metin="Bu kaydı sil" simge={S.sil} onPress={() => { onayaKaydir.current = true; setSilOnay(true); }} erisimEtiketi="Bu kaydı sil" />
+      ) : (
+        <View style={s.silOnayKutu}>
+          <Text style={s.silOnayMetin}>
+            {fotoIdleri.length
+              ? `Kayıt ve ${fotoIdleri.length} fotoğrafı silinecek. Geri alınamaz.`
+              : 'Kayıt silinecek. Geri alınamaz.'}
+          </Text>
+          <View style={s.ikiliSatir}>
+            <Dugme metin="Vazgeç" tur="sessiz" onPress={() => setSilOnay(false)} style={{ flex: 1 }} erisimEtiketi="Silmekten vazgeç" />
+            <Dugme metin="Evet, sil" tur="tehlike" simge={S.sil} onPress={() => taslak.id && onSil(taslak.id)} style={{ flex: 1 }} />
+          </View>
+        </View>
+      )}
+    </View>
+  ) : null;
+
   return (
     <>
       <View style={s.baslikSatiri}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.parcaAd} numberOfLines={1}>{parca?.ad ?? taslak.parcaId}</Text>
+          <Text style={s.parcaAd} numberOfLines={1}>{parca ? parcaTamAdi(parca.id) : taslak.parcaId}</Text>
           <Text style={s.parcaYol} numberOfLines={1}>{parca?.bolgeAd}</Text>
         </View>
         {hataTipiId ? <DereceRozeti derece={derece} kabul={kabul} buyuk /> : null}
       </View>
 
-      <ScrollView style={s.kaydir} contentContainerStyle={s.kaydirIc} keyboardShouldPersistTaps="handled">
-        <Text style={s.bolumBaslik}>HATA TİPİ</Text>
-
-        <AramaKutusu
-          deger={arama}
-          degistir={setArama}
-          yerTutucu="Hata ara — gıcırtı, göçük, boşluk…"
-          erisimEtiketi="Hata tipi ara"
-        />
-
-        {yeniAcik ? (
-          <YeniTipFormu
-            baslangicAd={arama.trim()}
-            izinliGruplar={parca?.gruplar ?? []}
-            onVazgec={() => setYeniAcik(false)}
-            onEkle={async (girdi) => {
-              const t = await tipEkle({ ...girdi, ekleyen: denetci?.trim() ?? '' });
-              setYeniAcik(false);
-              setArama('');
-              tipSec(t);
-            }}
-          />
-        ) : null}
-
-        {!yeniAcik && gruplar.map((g) => (
-          <View key={g} style={{ gap: bosluk.xxs }}>
-            <GrupBasligi grup={g} />
-            <View style={s.izgara}>
-              {suzulmus.filter((t) => t.grup === g).map((t) => {
-                const secili = hataTipiId === t.id;
-                return (
-                  <Pressable
-                    key={t.id}
-                    accessibilityRole="radio"
-                    aria-checked={secili}
-                    accessibilityLabel={`${t.ad}${t.en ? ` (${t.en})` : ''}`}
-                    onPress={() => tipSec(t)}
-                    style={[s.secenek, secili && s.secenekSecili]}
-                  >
-                    <View style={s.secenekSatir}>
-                      <Text style={[s.secenekAd, secili && { color: renkler.birincil }]} numberOfLines={2}>
-                        {t.ad}
-                      </Text>
-                      {/* Ekip eklemesi olduğu hem işaretle hem metinle belli
-                          olsun: yalnız renkle ayırmak erişilebilir değil. */}
-                      {t.ozel ? <Text style={s.ozelIsaret}>EKİP</Text> : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ))}
-
-        {!yeniAcik && suzulmus.length === 0 ? (
-          <Text style={s.bos}>
-            {q ? `"${arama.trim()}" listede yok.` : 'Bu parça için tanımlı hata tipi yok.'}
-          </Text>
-        ) : null}
-
-        {!yeniAcik ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={q ? `"${arama.trim()}" adıyla yeni hata tipi ekle` : 'Yeni hata tipi ekle'}
-            onPress={() => setYeniAcik(true)}
-            style={[s.yeniDugme, suzulmus.length === 0 && { borderColor: renkler.birincil }]}
-          >
-            <S.ekle size={18} color={renkler.birincil} strokeWidth={2.25} />
-            <Text style={s.yeniDugmeMetin}>
-              {q ? `"${arama.trim()}" adıyla yeni hata tipi ekle` : 'Yeni hata tipi ekle'}
-            </Text>
-          </Pressable>
-        ) : null}
-
-        <Text style={s.bolumBaslik}>DERECE</Text>
-        <DereceSecici derece={derece} onSec={setDerece} />
-
-        <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} />
-
-        <Text style={s.bolumBaslik}>TÜR</Text>
-        <View style={s.izgara}>
-          {(['Part', 'Complex'] as const).map((tur) => (
-            <Secenek
-              key={tur}
-              metin={tur}
-              erisimEtiketi={`Tür ${tur}`}
-              secili={sorunTipi === tur}
-              onPress={() => setSorunTipi(tur)}
-              style={{ flexGrow: 1, flexBasis: 120 }}
-            />
-          ))}
-        </View>
-
-        <Girdi
-          etiket="SORUMLU"
-          value={sorumlu}
-          onChangeText={setSorumlu}
-          placeholder="HMTR PD (tedarikçi)"
-          ipucu={sorunTipi === 'Part'
-            ? 'Part hatasında yazılan sorumlu bu parçaya öğrenilir; sonraki kayıtlarda kendiliğinden gelir.'
-            : 'Complex hatanın sorumlusu parçaya öğrenilmez.'}
-        />
-
-        <View style={s.ikiliSatir}>
-          <View style={{ flex: 1, gap: bosluk.xxs }}>
-            <Text style={s.alanEtiketi}>ADET</Text>
-            <View style={s.adetKutu}>
-              <Pressable
-                accessibilityRole="button" accessibilityLabel="Adedi azalt"
-                onPress={() => setAdet(String(Math.max(1, (Number(adet) || 1) - 1)))}
-                style={s.adetDugme}
-              >
-                <S.azalt size={20} color={renkler.metin} strokeWidth={2.25} />
-              </Pressable>
-              <TextInput
-                value={adet}
-                onChangeText={setAdet}
-                keyboardType="number-pad"
-                accessibilityLabel="Adet"
-                style={s.adetGirdi}
-              />
-              <Pressable
-                accessibilityRole="button" accessibilityLabel="Adedi artır"
-                onPress={() => setAdet(String(Math.min(99, (Number(adet) || 1) + 1)))}
-                style={s.adetDugme}
-              >
-                <S.ekle size={20} color={renkler.metin} strokeWidth={2.25} />
-              </Pressable>
-            </View>
-          </View>
-          <View style={{ flex: 2 }}>
-            <Girdi etiket="KONUM" value={konum} onChangeText={setKonum} placeholder="üst köşe, kol dayama hizası" />
-          </View>
-        </View>
-
-        <Girdi etiket="AÇIKLAMA" value={aciklama} onChangeText={setAciklama} placeholder="İsteğe bağlı" multiline />
-
-        <Text style={s.bolumBaslik}>FOTOĞRAF — EXCEL’E OTOMATİK GÖMÜLÜR</Text>
-        {fotoHatasi ? <HataKutusu metin={fotoHatasi} /> : null}
-        <View style={s.fotoSerit}>
-          {fotoIdleri.map((id) => {
-            const f = fotoHaritasi.get(id);
-            return (
-              <View key={id} style={s.fotoKutu}>
-                {f ? <Image source={{ uri: f.uri }} style={s.fotoGorsel} /> : null}
-                <Pressable
-                  accessibilityRole="button" accessibilityLabel="Fotoğrafı sil"
-                  onPress={() => fotografiKaldir(id)}
-                  style={s.fotoSil}
-                >
-                  <S.kapat size={16} color={renkler.cubukMetin} strokeWidth={2.5} />
-                </Pressable>
-              </View>
-            );
-          })}
-          <Pressable
-            accessibilityRole="button" accessibilityLabel="Fotoğraf çek"
-            onPress={() => fotografEkle(true)}
-            disabled={fotoYukleniyor}
-            style={s.fotoEkle}
-          >
-            {fotoYukleniyor ? <ActivityIndicator color={renkler.birincil} /> : (
-              <>
-                <S.kamera size={22} color={renkler.birincil} strokeWidth={2} />
-                <Text style={s.fotoEkleMetin}>Çek</Text>
-              </>
-            )}
-          </Pressable>
-          <Pressable
-            accessibilityRole="button" accessibilityLabel="Galeriden seç"
-            onPress={() => fotografEkle(false)}
-            disabled={fotoYukleniyor}
-            style={s.fotoEkle}
-          >
-            <S.galeri size={22} color={renkler.birincil} strokeWidth={2} />
-            <Text style={s.fotoEkleMetin}>Galeri</Text>
-          </Pressable>
-        </View>
+      <ScrollView
+        ref={kaydirma}
+        style={s.kaydir}
+        contentContainerStyle={s.kaydirIc}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => {
+          if (!onayaKaydir.current) return;
+          onayaKaydir.current = false;
+          kaydirma.current?.scrollToEnd({ animated: true });
+        }}
+      >
+        {duzenleme ? (
+          <>
+            {dereceBolumu}
+            {ayrintiBolumu}
+            {fotoBolumu}
+            {tipBolumu}
+            {silBolumu}
+          </>
+        ) : (
+          <>
+            {tipBolumu}
+            {dereceBolumu}
+            {ayrintiBolumu}
+            {fotoBolumu}
+          </>
+        )}
       </ScrollView>
 
       <View style={s.eylemler}>
-        {duzenleme && onSil ? (
-          <Dugme metin="Sil" tur="tehlike" onPress={() => taslak.id && onSil(taslak.id)} />
-        ) : null}
         <Dugme metin="Vazgeç" tur="sessiz" onPress={onKapat} style={{ flex: 1 }} />
         <Dugme metin="Kaydet" tur="birincil" pasif={!hataTipiId} onPress={kaydet} style={{ flex: 1 }} />
       </View>
@@ -407,8 +497,17 @@ export function YeniTipFormu({
 
       {hata ? <HataKutusu metin={hata} /> : null}
 
-      <Girdi etiket="ADI (TÜRKÇE)" value={ad} onChangeText={setAd} placeholder="Ör. Fitil ucu kalkık" />
-      <Girdi etiket="İNGİLİZCESİ (RAPOR İÇİN, İSTEĞE BAĞLI)" value={en} onChangeText={setEn} placeholder="Weatherstrip lifted" />
+      <Girdi etiket="ADI (TÜRKÇE)" value={ad} onChangeText={setAd} placeholder="Örn. Fitil ucu kalkık" />
+      {/* İngilizcesi boş bırakılınca İngilizce raporda Türkçe ad çıkıyordu
+          ("Front bumper hare" — sınama, 28.09.2026). Zorunlu yapılmadı:
+          denetçi hattayken İngilizce aramasın; ama ne olacağı yazılı. */}
+      <Girdi
+        etiket="İNGİLİZCESİ (RAPOR İÇİN)"
+        value={en}
+        onChangeText={setEn}
+        placeholder="Örn. Weatherstrip lifted"
+        ipucu={en.trim() ? undefined : 'Boş kalırsa İngilizce raporda Türkçe adı yazılır.'}
+      />
 
       <Text style={s.alanEtiketi}>GRUP</Text>
       <View style={s.izgara}>
@@ -470,9 +569,15 @@ export function KabulAnahtari({
       <View style={[s.ray, kabul && s.rayAcik]}>
         <View style={[s.topuz, kabul && s.topuzAcik]} />
       </View>
-      <Text style={[s.kabulMetin, { flex: 1 }]} numberOfLines={1}>Kabul edilebilir</Text>
-      <View style={[s.kabulOnizleme, kabul && s.kabulOnizlemeAcik]}>
-        <Text style={s.kabulOnizlemeMetin}>{kabul ? `(${derece})` : derece}</Text>
+      {/* İki satıra sarabilir: dikey tablette "Kabul e…" diye kesiliyordu. */}
+      <Text style={[s.kabulMetin, { flex: 1 }]} numberOfLines={2}>Kabul edilebilir</Text>
+      {/* "Raporda" etiketi: etiketsiz "(3)" kutusu ilk kez kullanana bir şey
+          söylemiyordu (sınama, 28.09.2026). Kutu raporda yazılacak olanı gösterir. */}
+      <View style={s.kabulOnizlemeKap}>
+        <Text style={s.kabulOnizlemeEtiket}>Raporda</Text>
+        <View style={[s.kabulOnizleme, kabul && s.kabulOnizlemeAcik]}>
+          <Text style={s.kabulOnizlemeMetin}>{kabul ? `(${derece})` : derece}</Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -587,13 +692,19 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   ikiliSatir: { flexDirection: 'row', gap: bosluk.xs, alignItems: 'flex-end' },
   alanEtiketi: { ...tipografi.etiket, color: r.metinSolgun },
+  // ADET SABİT GENİŞLİKTE. Önceden satırın üçte biriydi: iki 48'lik düğme ve
+  // sayı sığmıyordu — web'de "+" KONUM'un altında kalıyor, telefonda sayıya yer
+  // kalmıyordu (uçtan uca sınamanın ekran görüntüsü, 28.09.2026). Dar ekranda
+  // KONUM alt satıra iner.
+  adetKonumSatir: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs, alignItems: 'flex-end' },
+  konumKutu: { flexGrow: 1, flexBasis: 160, minWidth: 0 },
   adetKutu: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   adetDugme: {
     width: DOKUNMA, height: DOKUNMA, alignItems: 'center', justifyContent: 'center',
     borderRadius: kose.sm, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
   },
   adetGirdi: {
-    flex: 1, textAlign: 'center', ...tipografi.sayiBuyuk, color: r.metin,
+    width: 60, textAlign: 'center', ...tipografi.sayiBuyuk, color: r.metin,
     borderWidth: 1, borderColor: r.cizgi, borderRadius: kose.sm,
     backgroundColor: r.yuzey, minHeight: DOKUNMA,
   },
@@ -638,6 +749,8 @@ const stiller = (r: Renkler) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   kabulOnizlemeAcik: { borderStyle: 'dashed', borderColor: r.birincil },
+  kabulOnizlemeKap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  kabulOnizlemeEtiket: { ...tipografi.caption, color: r.metinIkincil },
   kabulOnizlemeMetin: { ...tipografi.sayiBuyuk, fontSize: 22, lineHeight: 28, color: r.metin },
 
   dereceSatir: { flexDirection: 'row', gap: bosluk.xs },
@@ -648,6 +761,20 @@ const stiller = (r: Renkler) => StyleSheet.create({
   dereceDugmeKucuk: { minHeight: DOKUNMA },
   dereceRakam: { ...tipografi.h1, fontSize: 26, lineHeight: 32 },
   dereceRakamKucuk: { ...tipografi.h3 },
+
+  tipOzet: {
+    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, marginTop: bosluk.xs,
+    padding: bosluk.sm, borderRadius: kose.md,
+    borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+  },
+  tipOzetAd: { ...tipografi.bodyOrta, color: r.metin },
+
+  silBolumu: { marginTop: bosluk.lg, paddingTop: bosluk.md, borderTopWidth: 1, borderTopColor: r.cizgiSolgun },
+  silOnayKutu: {
+    gap: bosluk.sm, padding: bosluk.sm, borderRadius: kose.md,
+    borderWidth: 1, borderColor: r.tehlike, backgroundColor: r.tehlikeYumusak,
+  },
+  silOnayMetin: { ...tipografi.bodyOrta, color: r.tehlike },
 
   eylemler: {
     flexDirection: 'row', gap: bosluk.xs, padding: bosluk.md,

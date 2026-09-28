@@ -2,7 +2,7 @@ import { File, Paths } from 'expo-file-system';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { S } from '@/bilesenler/simgeler';
 import {
@@ -16,6 +16,7 @@ import { kmGoster } from '@/cekirdek/aracBilgisi';
 import { bicimTarih, csvUret, excelUret } from '@/cekirdek/rapor';
 import { Denetim, FotografBaytlari } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
+import { AcmaIstegi, useAcmaIstegi } from '@/veri/acmaIstegi';
 import { denetimGetir, denetimGuncelle, fotograflariGetir } from '@/veri/depo';
 
 /**
@@ -26,8 +27,12 @@ import { denetimGetir, denetimGuncelle, fotograflariGetir } from '@/veri/depo';
 const DOSYA_DILI = 'en' as const;
 
 export default function RaporEkrani() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // kaynak=ana: rapor ana sayfadan (bitmiş denetimin kartından) açıldı; çalışma
+  // ekranına GERİ dönülmez, ona GEÇİLİR.
+  const { id, kaynak } = useLocalSearchParams<{ id: string; kaynak?: string }>();
   const router = useRouter();
+  const acmaIste = useAcmaIstegi((d) => d.iste);
+  const [bitirOnay, setBitirOnay] = useState(false);
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { tablet } = useDuzen();
@@ -102,11 +107,34 @@ export default function RaporEkrani() {
     }
   }, [denetim, dosyaAdi, fotoBaytlari]);
 
+  // BİTİR İKİ ADIMLI. Önceden onaysızdı, "CSV"nin 8 px yanındaydı ve doğrudan
+  // ana sayfaya atıyordu (üç ajanın sınaması, 28.09.2026).
   const bitir = useCallback(async () => {
     if (!denetim) return;
+    if (!bitirOnay) { setBitirOnay(true); return; }
     await denetimGuncelle(denetim.id, { durum: 'tamam', bitis: new Date().toISOString() });
-    router.replace('/');
-  }, [denetim, router]);
+    // replace('/') DEĞİL: o, yığındaki çalışma ekranını bırakıp üstüne ikinci
+    // bir ana sayfa koyuyordu; Android'de geri tuşu eski ekrana dönüyordu
+    // (uçtan uca sınama, 28.09.2026). dismissTo ana sayfaya kadar kapatır.
+    router.dismissTo('/');
+  }, [denetim, router, bitirOnay]);
+
+  /**
+   * Çalışma ekranında bir şeyi açar: rapordaki hata satırı → o kaydın
+   * düzenlemesi; künyedeki "Düzenle" → denetim bilgileri. Önceden bir hatayı
+   * düzeltip rapora dönmek 9 dokunuştu (sınama).
+   */
+  const calismaEkranindaAc = useCallback((istek: AcmaIstegi) => {
+    acmaIste(istek);
+    if (kaynak === 'ana' || !router.canGoBack()) router.replace({ pathname: '/denetim/[id]', params: { id: istek.denetimId } });
+    else router.back();
+  }, [acmaIste, kaynak, router]);
+
+  /** Rapordaki liste dereceye göre: önce 3, kabul edilemezler önce, sonra zaman. */
+  const siraliHatalar = useMemo(() => [...(denetim?.hatalar ?? [])].sort((a, b) =>
+    (Number(b.derece) - Number(a.derece))
+    || (Number(a.kabulEdilebilir) - Number(b.kabulEdilebilir))
+    || a.zaman.localeCompare(b.zaman)), [denetim]);
 
   if (!denetim) {
     return (
@@ -137,6 +165,9 @@ export default function RaporEkrani() {
       ? [['Hat / Vardiya', [denetim.hat, denetim.vardiya].filter(Boolean).join(' / ')] as [string, string]]
       : []),
     ['Tarih', bicimTarih(denetim.baslangic)],
+    ['Durum', denetim.durum === 'tamam'
+      ? `Tamamlandı${denetim.bitis ? ` · ${bicimTarih(denetim.bitis)}` : ''}`
+      : 'Devam ediyor'],
   ];
 
   return (
@@ -159,7 +190,7 @@ export default function RaporEkrani() {
 
       <ScrollView contentContainerStyle={s.govde} showsVerticalScrollIndicator={false}>
         <View style={s.olcuSatiri}>
-          <Olcu genis simge={S.rapor} deger={ozet.toplamAdet} etiket="bulgu" renk={renkler.birincil} zemin={renkler.birincilYumusak} />
+          <Olcu genis simge={S.rapor} deger={ozet.toplamAdet} etiket="hata" renk={renkler.birincil} zemin={renkler.birincilYumusak} />
           <Olcu genis simge={S.uyari} deger={ozet.dereceDagilimi['3'].adet} etiket="derece 3" renk={renkler.derece3} zemin={renkler.derece3Yumusak} />
           <Olcu genis simge={S.kabul} deger={ozet.kabulEdilebilirAdet} etiket="kabul edilebilir" />
           <Olcu genis simge={S.kamera} deger={ozet.fotografliHata} etiket="fotoğraflı" />
@@ -167,7 +198,20 @@ export default function RaporEkrani() {
 
         <View style={[s.ikili, tablet && s.ikiliTablet]}>
           <Kart style={tablet ? { flex: 1 } : undefined}>
-            <BolumBasligi metin="KÜNYE" simge={S.etiket} />
+            <BolumBasligi
+              metin="KÜNYE"
+              simge={S.etiket}
+              sag={(
+                <Dugme
+                  metin="Düzenle"
+                  kucuk
+                  tur="sessiz"
+                  simge={S.duzenle}
+                  erisimEtiketi="Denetim bilgilerini düzenle"
+                  onPress={() => calismaEkranindaAc({ denetimId: denetim.id, tur: 'bilgiler' })}
+                />
+              )}
+            />
             <View style={s.kunye}>
               {kunye.map(([e, d, mono]) => (
                 <View key={e} style={[s.kunyeHucre, tablet && s.kunyeHucreIkili]}>
@@ -221,11 +265,19 @@ export default function RaporEkrani() {
         </View>
 
         <Kart>
-          <BolumBasligi metin={`HATALAR (${denetim.hatalar.length})`} simge={S.liste} />
+          <BolumBasligi metin={`HATALAR (${denetim.hatalar.length}) — DERECEYE GÖRE`} simge={S.liste} />
           <View testID="rapor-hatalar" style={{ gap: 6 }}>
             {denetim.hatalar.length === 0 ? <Text style={s.bos}>Hata kaydedilmedi.</Text> : null}
-            {denetim.hatalar.map((h) => (
-              <View key={h.id} style={s.hataSatiri}>
+            {siraliHatalar.map((h) => (
+              <Pressable
+                key={h.id}
+                accessibilityRole="button"
+                // Derece etikette olmalı: düğmenin etiketi içindeki rozetin
+                // etiketini örter; yoksa ekran okuyucu sıralamayı duyuramaz.
+                accessibilityLabel={`${parcaTamAdi(h.parcaId)} ${HATA_TIPI_INDEKS[h.hataTipiId]?.ad ?? ''}, derece ${h.derece}${h.kabulEdilebilir ? ', kabul edilebilir' : ''} — düzenle`}
+                onPress={() => calismaEkranindaAc({ denetimId: denetim.id, tur: 'hata', hataId: h.id })}
+                style={({ pressed }) => [s.hataSatiri, pressed && { opacity: 0.72 }]}
+              >
                 {/* kabul GEÇİLMELİ: geçilmezse (3) bu ekranda düz 3 görünüyordu —
                     kabul edilmiş bulgu düzeltilecek hata gibi (26.09.2026). */}
                 <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
@@ -248,7 +300,8 @@ export default function RaporEkrani() {
                     <Text style={s.fotoSayiMetin}>{h.fotograflar.length}</Text>
                   </View>
                 ) : null}
-              </View>
+                <S.ileri size={18} color={renkler.metinSolgun} strokeWidth={2} />
+              </Pressable>
             ))}
           </View>
         </Kart>
@@ -256,6 +309,15 @@ export default function RaporEkrani() {
         {bilgi ? <BilgiKutusu metin={bilgi} /> : null}
         {hata ? <HataKutusu metin={hata} /> : null}
       </ScrollView>
+
+      {bitirOnay ? (
+        <View style={s.onayBandi}>
+          <Text style={s.onayMetin}>
+            Denetim "tamamlandı" olarak işaretlenecek. Sonradan kayıt eklenirse yeniden açılır.
+          </Text>
+          <Dugme metin="Vazgeç" tur="sessiz" kucuk onPress={() => setBitirOnay(false)} erisimEtiketi="Bitirmekten vazgeç" />
+        </View>
+      ) : null}
 
       <AltCubuk style={tablet ? { justifyContent: 'flex-end' } : undefined}>
         <Dugme
@@ -275,7 +337,13 @@ export default function RaporEkrani() {
           onPress={() => paylas('csv')}
         />
         {denetim.durum === 'devam' ? (
-          <Dugme metin="Bitir" erisimEtiketi="Denetimi bitir" simge={S.tamam} onPress={bitir} />
+          <Dugme
+            metin={bitirOnay ? 'Evet, bitir' : 'Bitir'}
+            erisimEtiketi={bitirOnay ? 'Denetimi bitirmeyi onayla' : 'Denetimi bitir'}
+            simge={S.tamam}
+            tur={bitirOnay ? 'birincil' : 'ikincil'}
+            onPress={bitir}
+          />
         ) : null}
       </AltCubuk>
     </Ekran>
@@ -328,4 +396,11 @@ const stiller = (r: Renkler) => StyleSheet.create({
   hataYol: { ...tipografi.caption, color: r.metinSolgun },
   fotoSayi: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   fotoSayiMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
+
+  onayBandi: {
+    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
+    paddingHorizontal: bosluk.md, paddingVertical: bosluk.xs,
+    borderTopWidth: 1, borderTopColor: r.cizgiSolgun, backgroundColor: r.uyariYumusak,
+  },
+  onayMetin: { ...tipografi.caption, color: r.uyari, flex: 1 },
 });

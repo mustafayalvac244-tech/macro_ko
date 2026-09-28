@@ -137,10 +137,16 @@ export function vinDogrula(ham: unknown): VinSonucu {
     bilgi.kontrolHanesi = vin[8];
     bilgi.beklenenKontrolHanesi = beklenen;
     bilgi.kontrolHanesiUyuyor = beklenen !== null && beklenen === vin[8];
-    // Avrupa'da üretilen bazı araçlarda 9. hane kontrol hanesi DEĞİLDİR.
-    // Bu yüzden uyuşmazlık kaydı engellemez, yalnız uyarır.
-    if (!bilgi.kontrolHanesiUyuyor) {
-      uyarilar.push(`Kontrol hanesi uyuşmuyor (okunan "${vin[8]}", hesaplanan "${beklenen}"). Avrupa üretimi araçlarda bu hane kontrol hanesi olmayabilir; yine de barkodu bir kez daha okutun.`);
+    // KONTROL HANESİ YALNIZ ZORUNLU OLDUĞU YERDE UYARIR (28.09.2026).
+    // 9. hanenin kontrol hanesi olması Kuzey Amerika'da (WMI ilk hanesi 1–5)
+    // ve Çin'de (L) zorunlu; Türkiye (N) ve Avrupa üretiminde değil. Önceki
+    // sürüm her araçta "uyuşmuyor … barkodu bir kez daha okutun" diyordu;
+    // kullanılabilirlik sınamasında üç ajanın üçü buna takıldı. Gerçek HMTR
+    // şasileriyle DENENMEDİ; bu hanenin kontrol hanesi olup olmadığı ekipten
+    // teyit edilmeli. Uyuşmazlık hiçbir durumda kaydı engellemez.
+    const zorunlu = /^[1-5L]/.test(vin);
+    if (zorunlu && !bilgi.kontrolHanesiUyuyor) {
+      uyarilar.push(`Kontrol hanesi uyuşmuyor (okunan "${vin[8]}", hesaplanan "${beklenen}"): şasi yanlış okunmuş olabilir. Etiketle karşılaştırın; doğruysa devam edin.`);
     }
     if (bilgi.modelYili === null) {
       uyarilar.push('10. hane geçerli bir model yılı kodu değil.');

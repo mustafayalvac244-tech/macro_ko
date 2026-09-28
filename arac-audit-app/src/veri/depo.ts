@@ -12,7 +12,7 @@
 
 import * as SQLite from 'expo-sqlite';
 
-import { Denetim, Hata, HataTipi } from '@/cekirdek/tipler';
+import { Denetim, DenetimDurumu, Hata, HataTipi } from '@/cekirdek/tipler';
 
 const VERITABANI = 'arac-audit.db';
 
@@ -296,7 +296,11 @@ export async function denetimleriListele(enFazla = 100): Promise<DenetimOzetSati
 
 export async function denetimGuncelle(id: string, alanlar: Partial<Denetim>): Promise<void> {
   const d = await db();
+  // aracId ve vin 28.09.2026'da eklendi: denetim bilgileri başladıktan sonra
+  // düzeltilebiliyor (kullanılabilirlik sınaması). Araç yalnız kayıtlı
+  // parçaların hepsi yeni araçta da varsa değişir — kararı ekran veriyor.
   const esleme: Record<string, string> = {
+    aracId: 'arac_id', vin: 'vin',
     plaka: 'plaka', raporNo: 'rapor_no', denetci: 'denetci', hat: 'hat',
     vardiya: 'vardiya', denetimTipi: 'denetim_tipi', faz: 'faz', ekip: 'ekip',
     spec: 'spec', km: 'km', bitis: 'bitis', durum: 'durum',
@@ -314,6 +318,22 @@ export async function denetimGuncelle(id: string, alanlar: Partial<Denetim>): Pr
   setler.push('guncelleme = ?', 'senkron_zamani = NULL');
   degerler.push(simdi(), id);
   await d.runAsync(`UPDATE denetimler SET ${setler.join(', ')} WHERE id = ?`, ...degerler);
+}
+
+/**
+ * Bu şasiyle açılmış denetimler, en yenisi önce. Yeni denetimde "bu şasi için
+ * zaten bir denetim var" uyarısı için: aynı şasi uyarısız ikinci kez
+ * açılabiliyordu, listede aynı şasili iki kart kalıyordu (sınama, 28.09.2026).
+ */
+export async function vinIleDenetimler(vin: string): Promise<
+  { id: string; aracId: string; baslangic: string; durum: DenetimDurumu }[]
+> {
+  const d = await db();
+  const satirlar = await d.getAllAsync<{ id: string; arac_id: string; baslangic: string; durum: DenetimDurumu }>(
+    'SELECT id, arac_id, baslangic, durum FROM denetimler WHERE vin = ? ORDER BY baslangic DESC',
+    vin,
+  );
+  return satirlar.map((r) => ({ id: r.id, aracId: r.arac_id, baslangic: r.baslangic, durum: r.durum }));
 }
 
 export async function denetimSil(id: string): Promise<void> {

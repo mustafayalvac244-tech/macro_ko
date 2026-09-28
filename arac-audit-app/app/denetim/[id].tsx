@@ -5,26 +5,30 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DenetimBilgileri } from '@/bilesenler/DenetimBilgileri';
 import {
   DereceSecici, GrupBasligi, HataSayfasi, HataTaslagi, KabulAnahtari, YeniTipFormu,
 } from '@/bilesenler/HataSayfasi';
 import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
 import {
-  AltSayfa, AramaKutusu, Baslik, BaslikCipi, BaslikDugmesi, BolumBasligi, BosDurum, DereceRozeti,
+  AltSayfa, AramaKutusu, Baslik, BaslikCipi, BaslikDugmesi, BilgiKutusu, BolumBasligi, BosDurum, DereceRozeti,
   Dugme, Ekran, GeriDugmesi, HataKutusu, Rozet, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
+import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import {
-  bolgelerAracIcin, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi,
+  bolgelerAracIcin, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaAramaMetni, parcaHataTipleri, parcaTamAdi,
 } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { dereceGosterimi } from '@/cekirdek/puan';
+import { bicimTarih } from '@/cekirdek/rapor';
 import {
   BolgeGrubu, Denetim, DereceKodu, Hata, HataGrubuId, HataTipi, Parca,
 } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
+import { useAcmaIstegi } from '@/veri/acmaIstegi';
 import {
-  ayarOku, ayarYaz, denetimGetir, FotografKaydi, fotograflariGetir, fotografiHataBagla,
-  hataKaydet, hataSil, kimlikUret,
+  ayarOku, ayarYaz, denetimGetir, denetimGuncelle, denetimSil, FotografKaydi, fotograflariGetir,
+  fotografiHataBagla, hataKaydet, hataSil, kimlikUret,
 } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
 
@@ -38,9 +42,14 @@ import { useKatalog } from '@/veri/katalogDeposu';
  *
  *   parçaya dokun → hataya dokun → KAYDEDİLDİ. Form yok.
  *
- * Derece üstte sabit durur ve son seçilen hatırlanır; aynı derecede art arda
- * girişte her kayıt tek dokunuştur. Fotoğraf, not, adet sonradan, kaydedilen
- * hatalar listesinden eklenir — hızlı yolun üstünde durmaz.
+ * Derece hata panelinin üstünde durur. YENİ PARÇADA 1'DEN BAŞLAR (28.09.2026):
+ * önceden son seçilen derece hatırlanıp bir sonraki parçaya taşınıyordu;
+ * kullanılabilirlik sınamasında üç ajandan ikisi bunu en önemli sorunlardan
+ * saydı — dereceye bakmayan denetçi önceki dereceyi SESSİZCE yazıyordu
+ * (telefonda 14 kaydın 10'unda seçili gelen derece istenenden farklıydı; o
+ * dereceleri ajan kendisi seçti). Aynı parçaya art arda hata için bildirimde
+ * "Aynı parçaya" var; o yoldan dönülünce derece korunur. Fotoğraf, not, adet
+ * sonradan, kaydedilen hatalar listesinden eklenir — hızlı yolun üstünde durmaz.
  *
  * DÜZEN (27.09.2026): tablette İKİ BÖLME — solda parça gezgini hep açık,
  * sağda hata paneli. Telefonda iki adım: önce parça listesi, sonra hata
@@ -51,6 +60,11 @@ import { useKatalog } from '@/veri/katalogDeposu';
  * 3B model buradan kaldırıldı ("görünüm sonraya kalsın"). Bileşen dosyaları
  * duruyor; gerçek araç modeli geldiğinde geri bağlanacak.
  */
+/** Alttaki bildirim: bir kayıt düştü (geri alınabilir) ya da geri alındı. */
+type Bildirim =
+  | { tur: 'kayit'; id: string; metin: string; parcaId: string }
+  | { tur: 'geriAlindi'; metin: string };
+
 export default function DenetimEkrani() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -76,7 +90,7 @@ export default function DenetimEkrani() {
   const [yeniTipAcik, setYeniTipAcik] = useState(false);
   const [kayitHatasi, setKayitHatasi] = useState<string | null>(null);
 
-  const [sonKayit, setSonKayit] = useState<{ id: string; metin: string } | null>(null);
+  const [bildirim, setBildirim] = useState<Bildirim | null>(null);
   // Parça → sorumlu (ekibin tablosunda L: "HMTR PD (HWASEUNG)"). Ayrıntı
   // ekranında bir parça için yazılan sorumlu burada öğrenilir, o parçanın
   // sonraki hızlı kayıtlarına kendiliğinden gelir. Hiç yazılmamışsa BOŞ kalır:
@@ -86,7 +100,7 @@ export default function DenetimEkrani() {
 
   // Tek alt sayfa: aynı anda iki Modal açıldığında kapanan modal DOM'da asılı
   // kalıp alttakini engelliyordu (15.09.2026). İçerik değişir, kabuk tektir.
-  const [acikSayfa, setAcikSayfa] = useState<'yok' | 'liste' | 'hata'>('yok');
+  const [acikSayfa, setAcikSayfa] = useState<'yok' | 'liste' | 'hata' | 'bilgiler'>('yok');
   const [taslak, setTaslak] = useState<HataTaslagi | null>(null);
 
   const tazele = useCallback(async () => {
@@ -103,30 +117,40 @@ export default function DenetimEkrani() {
 
   useEffect(() => { tazele(); }, [tazele]);
 
+  const bildirimGoster = useCallback((b: Bildirim | null, sure = 0) => {
+    if (bildirimZamanlayici.current) clearTimeout(bildirimZamanlayici.current);
+    setBildirim(b);
+    if (b && sure) bildirimZamanlayici.current = setTimeout(() => setBildirim(null), sure);
+  }, []);
+
+  // BİTMİŞ DENETİM DEĞİŞİRSE YENİDEN AÇILIR. Önceden "TAMAMLANDI" denetime
+  // uyarısız kayıt eklenebiliyor, kart "tamamlandı" demeye devam ediyordu;
+  // gönderilmiş Excel sessizce eskiyordu (üç ajanın sınaması, 28.09.2026).
+  // Ekranın üstünde bunu söyleyen bir bant var; değişiklik olunca durum
+  // "devam ediyor"a döner, bitiş zamanı silinir.
+  const yenidenAcGerekirse = useCallback(async () => {
+    if (denetim?.durum === 'tamam') await denetimGuncelle(denetim.id, { durum: 'devam', bitis: null });
+  }, [denetim?.durum, denetim?.id]);
+
   useEffect(() => {
-    ayarOku<DereceKodu>('sonDerece', '1').then(setDerece).catch(() => { /* ilk açılış */ });
     ayarOku<Record<string, string>>('sorumluHaritasi', {}).then(setSorumluHaritasi).catch(() => { /* ilk açılış */ });
     return () => { if (bildirimZamanlayici.current) clearTimeout(bildirimZamanlayici.current); };
   }, []);
 
-  const dereceSec = useCallback((d: DereceKodu) => {
-    setDerece(d);
-    ayarYaz('sonDerece', d).catch(() => { /* hatırlanmazsa sorun değil */ });
-  }, []);
+  const dereceSec = useCallback((d: DereceKodu) => setDerece(d), []);
 
   const arac = denetim ? ARAC_INDEKS[denetim.aracId] : undefined;
   const parca = parcaId ? PARCA_INDEKS[parcaId] : undefined;
 
   // --- PARÇA LİSTESİ ----------------------------------------------------
+  // Arama kelime kelime ve sırasız; Türkçe karakter şart değil (arama.ts).
   const bolumler = useMemo(() => {
-    const q = parcaArama.trim().toLocaleLowerCase('tr');
+    const q = parcaArama.trim();
     return bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })
       .map((b) => ({
         baslik: b.ad,
         grup: b.grup,
-        data: q
-          ? b.parcalar.filter((p) => `${p.ad} ${p.en} ${b.ad}`.toLocaleLowerCase('tr').includes(q))
-          : b.parcalar,
+        data: q ? b.parcalar.filter((p) => aramaEslesir(parcaAramaMetni(p.id), q)) : b.parcalar,
       }))
       .filter((b) => b.data.length > 0);
   }, [parcaArama, arac?.tip]);
@@ -154,9 +178,9 @@ export default function DenetimEkrani() {
   // --- HATA IZGARASI ----------------------------------------------------
   const tipler = useMemo(() => {
     if (!parcaId) return [];
-    const q = hataArama.trim().toLocaleLowerCase('tr');
+    const q = hataArama.trim();
     const hepsi = parcaHataTipleri(parcaId);
-    return q ? hepsi.filter((t) => `${t.ad} ${t.en}`.toLocaleLowerCase('tr').includes(q)) : hepsi;
+    return q ? hepsi.filter((t) => aramaEslesir(aramaMetni(t.ad, t.en), q)) : hepsi;
     // ozelTipler: yeni tip eklendiğinde ızgara anında tazelensin.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parcaId, hataArama, ozelTipler]);
@@ -168,11 +192,14 @@ export default function DenetimEkrani() {
     return [...m.entries()];
   }, [tipler]);
 
+  /** Parçayı açar. Derece 1'e, "kabul edilebilir" kapalıya döner (dosya başı notu). */
   const parcaSec = useCallback((pid: string) => {
     setParcaId(pid);
     setHataArama('');
     setYeniTipAcik(false);
     setKayitHatasi(null);
+    setDerece('1');
+    setKabul(false);
   }, []);
 
   const parcalaraDon = useCallback(() => {
@@ -205,26 +232,42 @@ export default function DenetimEkrani() {
       setKayitHatasi(`Kaydedilemedi: ${h instanceof Error ? h.message : String(h)}`);
       return;
     }
+    // Kayıt düştü; bitmiş denetimi yeniden açamazsak bu kaydı "kaydedilemedi"
+    // diye göstermek yanlış olurdu — yalnız durum güncellenmemiş kalır.
+    await yenidenAcGerekirse().catch(() => {});
     // Kullanım sayacını hataKaydet kendisi artırıyor. Burada da çağrılıyordu;
     // hızlı girişteki her kayıt iki kez sayılıyordu (26.09.2026'da fark edildi).
 
-    setSonKayit({ id: kayit.id, metin: `${parcaTamAdi(parcaId)} — ${t.ad} · ${dereceGosterimi(kayit)}` });
-    if (bildirimZamanlayici.current) clearTimeout(bildirimZamanlayici.current);
-    bildirimZamanlayici.current = setTimeout(() => setSonKayit(null), 6000);
+    bildirimGoster({
+      tur: 'kayit', id: kayit.id, parcaId,
+      metin: `${parcaTamAdi(parcaId)} — ${t.ad} · ${dereceGosterimi(kayit)}`,
+    }, 6000);
 
     setKabul(false);
     parcalaraDon();
     setParcaArama('');
     await tazele();
-  }, [denetim, parcaId, derece, kabul, sorumluHaritasi, parcalaraDon, tazele]);
+  }, [denetim, parcaId, derece, kabul, sorumluHaritasi, parcalaraDon, tazele, bildirimGoster, yenidenAcGerekirse]);
 
+  // Geri almak SESSİZ değil: yalnız başlıktaki sayaç değişiyordu (sınamada
+  // "geri alındı mı?" sorusu kaldı). Kısa bir "Geri alındı" bildirimi çıkar.
   const geriAl = useCallback(async () => {
-    if (!sonKayit) return;
-    if (bildirimZamanlayici.current) clearTimeout(bildirimZamanlayici.current);
-    await hataSil(sonKayit.id);
-    setSonKayit(null);
+    if (bildirim?.tur !== 'kayit') return;
+    await hataSil(bildirim.id);
+    bildirimGoster({ tur: 'geriAlindi', metin: `Geri alındı: ${bildirim.metin}` }, 3000);
     await tazele();
-  }, [sonKayit, tazele]);
+  }, [bildirim, tazele, bildirimGoster]);
+
+  // Aynı parçaya art arda hata: listeye dönüp parçayı yeniden aramak yerine
+  // bildirimden tek dokunuş. Derece KORUNUR — aynı parçada kalınıyor.
+  const ayniParcaya = useCallback(() => {
+    if (bildirim?.tur !== 'kayit') return;
+    setParcaId(bildirim.parcaId);
+    setHataArama('');
+    setYeniTipAcik(false);
+    setKayitHatasi(null);
+    bildirimGoster(null);
+  }, [bildirim, bildirimGoster]);
 
   // --- AYRINTILI DÜZENLEME (isteğe bağlı) ------------------------------
   const ayrintiKaydet = useCallback(async (t: HataTaslagi, fotoIdleri: string[]) => {
@@ -234,6 +277,7 @@ export default function DenetimEkrani() {
       ...t, id: hataId, zaman: t.zaman ?? new Date().toISOString(), fotograflar: fotoIdleri,
     });
     for (const fid of fotoIdleri) await fotografiHataBagla(fid, hataId);
+    await yenidenAcGerekirse();
 
     // Sorumluyu yalnız PART hatalarından öğren. Complex bir hatanın sorumlusu
     // çoğu zaman bir tasarım ekibi ("MSV Closure Design Team 1"); onu parçaya
@@ -248,19 +292,51 @@ export default function DenetimEkrani() {
     setTaslak(null);
     setAcikSayfa('liste');
     await tazele();
-  }, [denetim, sorumluHaritasi, tazele]);
+  }, [denetim, sorumluHaritasi, tazele, yenidenAcGerekirse]);
 
   const ayrintiSil = useCallback(async (hataId: string) => {
     await hataSil(hataId);
+    await yenidenAcGerekirse();
     setTaslak(null);
     setAcikSayfa('liste');
     await tazele();
-  }, [tazele]);
+  }, [tazele, yenidenAcGerekirse]);
 
   const kaydiAc = useCallback((h: Hata) => {
     setTaslak({ ...h });
     setAcikSayfa('hata');
   }, []);
+
+  // Rapordan gelen "şunu aç" isteği (acmaIstegi.ts): o kaydın düzenlemesi ya
+  // da denetim bilgileri. Bir kez okunur, silinir.
+  const acmaIstegi = useAcmaIstegi((d) => d.istek);
+  const acmaIste = useAcmaIstegi((d) => d.iste);
+  useEffect(() => {
+    if (!acmaIstegi || !denetim || acmaIstegi.denetimId !== denetim.id) return;
+    if (acmaIstegi.tur === 'hata') {
+      const h = denetim.hatalar.find((x) => x.id === acmaIstegi.hataId);
+      if (h) kaydiAc(h);
+    } else {
+      setAcikSayfa('bilgiler');
+    }
+    acmaIste(null);
+  }, [acmaIstegi, denetim, kaydiAc, acmaIste]);
+
+  const bilgileriKaydet = useCallback(async (alanlar: Partial<Denetim>) => {
+    if (!denetim) return;
+    await denetimGuncelle(denetim.id, alanlar);
+    // Araç değiştiyse seçili parça yeni aracın listesinde olmayabilir (tablette
+    // seçim açık kalır): seçimi kaldır.
+    if (alanlar.aracId && alanlar.aracId !== denetim.aracId) parcalaraDon();
+    setAcikSayfa('yok');
+    await tazele();
+  }, [denetim, tazele, parcalaraDon]);
+
+  const denetimiSil = useCallback(async () => {
+    if (!denetim) return;
+    await denetimSil(denetim.id);
+    router.dismissTo('/'); // replace('/') yığında ikinci ana sayfa bırakırdı (rapor.tsx → bitir)
+  }, [denetim, router]);
 
   // --- DURUMLAR ---------------------------------------------------------
   if (yuklemeHatasi) {
@@ -311,11 +387,11 @@ export default function DenetimEkrani() {
                   <Pressable
                     key={pid}
                     accessibilityRole="button"
-                    accessibilityLabel={`${p.ad} — ${p.bolgeAd}`}
+                    accessibilityLabel={`${parcaTamAdi(pid)} — ${p.bolgeAd}`}
                     onPress={() => parcaSec(pid)}
                     style={({ pressed }) => [s.cip, pid === parcaId && s.cipSecili, pressed && s.basili]}
                   >
-                    <Text style={s.cipAd} numberOfLines={1}>{p.ad}</Text>
+                    <Text style={s.cipAd} numberOfLines={1}>{parcaTamAdi(pid)}</Text>
                     <Text style={s.cipAlt} numberOfLines={1}>{p.bolgeAd}</Text>
                   </Pressable>
                 );
@@ -341,14 +417,17 @@ export default function DenetimEkrani() {
             <Pressable
               accessibilityRole={tablet ? 'radio' : 'button'}
               aria-checked={tablet ? secili : undefined}
-              accessibilityLabel={`${item.ad} (${item.en})${adet ? `, ${adet} kayıt` : ''}`}
+              accessibilityLabel={`${parcaTamAdi(item.id)} (${parcaTamAdi(item.id, 'en')})${adet ? `, ${adet} kayıt` : ''}`}
               onPress={() => parcaSec(item.id)}
               style={({ pressed }) => [s.parcaSatir, secili && s.parcaSatirSecili, pressed && s.basili]}
             >
               <View style={[s.seciliCizgi, secili && { backgroundColor: renkler.birincil }]} />
               {/* İngilizce ad ekranda yok (28.09.2026, "çok kalabalık"); aramada
-                  ve ekran okuyucu etiketinde duruyor, raporda kullanılıyor. */}
-              <Text style={[s.parcaAd, secili && { color: renkler.birincil }]} numberOfLines={1}>{item.ad}</Text>
+                  ve ekran okuyucu etiketinde duruyor, raporda kullanılıyor.
+                  Ad TARAFIYLA yazılır ("Sol ön kapı"): iki yanda da "Ön kapı"
+                  görünüyordu, taraf yalnız gri bölüm başlığındaydı (üç ajanın
+                  kullanılabilirlik sınaması, 28.09.2026). */}
+              <Text style={[s.parcaAd, secili && { color: renkler.birincil }]} numberOfLines={1}>{parcaTamAdi(item.id)}</Text>
               {adet > 0 ? (
                 <View style={s.adetPul}><Text style={s.adetPulMetin}>{adet}</Text></View>
               ) : null}
@@ -377,7 +456,7 @@ export default function DenetimEkrani() {
           </Pressable>
         ) : null}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.seciliParca} numberOfLines={1}>{parca.ad}</Text>
+          <Text style={s.seciliParca} numberOfLines={1}>{parcaTamAdi(parca.id)}</Text>
           <Text style={s.seciliYol} numberOfLines={1}>{parca.bolgeAd}</Text>
         </View>
         {seciliAdet > 0 ? (
@@ -410,6 +489,20 @@ export default function DenetimEkrani() {
           yerTutucu="Hata ara — gap, scratch, gıcırtı…"
           erisimEtiketi="Hata tipi ara"
         />
+
+        {/* Hata kutularının üstünde hangi dereceyle kaydedileceği yazmıyordu
+            (sınama, 28.09.2026). Sonuç burada: dokunulan hata BU dereceyle düşer. */}
+        {/* Ekran okuyucu için TEK cümle; rozet ağaçtan gizli — yoksa derece
+            seçicisiyle aynı adlı ("Derece 3") ikinci bir öğe oluyordu. */}
+        <View
+          style={s.kayitDerecesi}
+          accessible
+          accessibilityLabel={`Dokunduğunuz hata derece ${kabul ? `(${derece}), kabul edilebilir` : derece} olarak kaydedilir`}
+        >
+          <Text style={s.kayitDerecesiMetin} aria-hidden>Dokunduğunuz hata</Text>
+          <View aria-hidden><DereceRozeti derece={derece} kabul={kabul} /></View>
+          <Text style={s.kayitDerecesiMetin} aria-hidden>olarak kaydedilir</Text>
+        </View>
 
         {kayitHatasi ? <HataKutusu metin={kayitHatasi} /> : null}
 
@@ -495,6 +588,12 @@ export default function DenetimEkrani() {
         sag={(
           <>
             <BaslikDugmesi
+              simge={S.duzenle}
+              metin="Bilgiler"
+              erisimEtiketi="Denetim bilgilerini düzenle"
+              onPress={() => setAcikSayfa('bilgiler')}
+            />
+            <BaslikDugmesi
               simge={S.liste}
               metin="Kayıtlar"
               sayac={hataSayisi}
@@ -512,46 +611,79 @@ export default function DenetimEkrani() {
         )}
       />
 
+      {denetim.durum === 'tamam' ? (
+        <View style={s.tamamBandi}>
+          <BilgiKutusu
+            metin={`Bu denetim tamamlandı${denetim.bitis ? ` (${bicimTarih(denetim.bitis)})` : ''}. Kayıt ekler, düzeltir ya da silerseniz yeniden "devam ediyor" olur.`}
+          />
+        </View>
+      ) : null}
+
       {tablet ? (
         <View style={s.ikiBolme}>
           <View style={s.solBolme}>{parcaGezgini}</View>
           <View style={s.sagBolme}>
-            {hataPaneli ?? <DenetimOzeti denetim={denetim} derece={derece} onAc={kaydiAc} onTumu={() => setAcikSayfa('liste')} />}
+            {hataPaneli ?? <DenetimOzeti denetim={denetim} onAc={kaydiAc} onTumu={() => setAcikSayfa('liste')} />}
           </View>
         </View>
       ) : (hataPaneli ?? parcaGezgini)}
 
-      {sonKayit ? (
+      {bildirim ? (
         // Bildirim altta, hata ızgarasının son satırının ÜSTÜNDE yüzüyor. Metin
         // kısmı dokunuşu yutarsa kayıttan sonraki 6 sn boyunca o satırdaki
         // düğmelere basılamıyor — hızlı girişin tam ortasında (26.09.2026 ekran
-        // incelemesi). Dokunuşu yalnız "Geri al" alır, gerisi alttakine geçer.
+        // incelemesi). Dokunuşu yalnız düğmeler alır, gerisi alttakine geçer.
+        // Telefonda düğmeler ikinci satıra iner (metin kısalmasın diye).
         <View style={[s.bildirimKap, { bottom: bosluk.md + kenar.bottom }]} pointerEvents="box-none">
           <View style={s.bildirim} accessibilityLiveRegion="polite" pointerEvents="box-none">
             <View style={s.bildirimSol} pointerEvents="none">
-              <S.tamam size={20} color={renkler.cubukVurgu} strokeWidth={2.25} />
-              <Text style={s.bildirimMetin} numberOfLines={2}>{sonKayit.metin}</Text>
+              {bildirim.tur === 'kayit'
+                ? <S.tamam size={20} color={renkler.cubukVurgu} strokeWidth={2.25} />
+                : <S.geriAl size={20} color={renkler.cubukVurgu} strokeWidth={2.25} />}
+              <Text style={s.bildirimMetin} numberOfLines={3}>{bildirim.metin}</Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Son kaydı geri al"
-              onPress={geriAl}
-              hitSlop={8}
-              style={({ pressed }) => [s.geriAlDugme, pressed && s.basili]}
-            >
-              <S.geriAl size={18} color={renkler.cubukVurgu} strokeWidth={2.25} />
-              <Text style={s.geriAlMetin}>Geri al</Text>
-            </Pressable>
+            {bildirim.tur === 'kayit' ? (
+              <View style={s.bildirimDugmeler} pointerEvents="box-none">
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Aynı parçaya bir hata daha: ${parcaTamAdi(bildirim.parcaId)}`}
+                  onPress={ayniParcaya}
+                  hitSlop={8}
+                  style={({ pressed }) => [s.geriAlDugme, pressed && s.basili]}
+                >
+                  <S.ekle size={18} color={renkler.cubukVurgu} strokeWidth={2.25} />
+                  <Text style={s.geriAlMetin}>Aynı parçaya</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Son kaydı geri al"
+                  onPress={geriAl}
+                  hitSlop={8}
+                  style={({ pressed }) => [s.geriAlDugme, pressed && s.basili]}
+                >
+                  <S.geriAl size={18} color={renkler.cubukVurgu} strokeWidth={2.25} />
+                  <Text style={s.geriAlMetin}>Geri al</Text>
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         </View>
       ) : null}
 
       <AltSayfa
         gorunur={acikSayfa !== 'yok'}
-        tamYukseklik={acikSayfa === 'liste'}
+        tamYukseklik={acikSayfa === 'liste' || acikSayfa === 'bilgiler'}
         onKapat={() => { setAcikSayfa('yok'); setTaslak(null); }}
       >
-        {acikSayfa === 'liste' ? (
+        {acikSayfa === 'bilgiler' ? (
+          <DenetimBilgileri
+            key={denetim.id}
+            denetim={denetim}
+            onKaydet={bilgileriKaydet}
+            onSil={denetimiSil}
+            onKapat={() => setAcikSayfa('yok')}
+          />
+        ) : acikSayfa === 'liste' ? (
           <KayitListesi
             hatalar={denetim.hatalar}
             onAc={kaydiAc}
@@ -579,10 +711,9 @@ export default function DenetimEkrani() {
  * sayılar rapor ekranında.
  */
 function DenetimOzeti({
-  denetim, derece, onAc, onTumu,
+  denetim, onAc, onTumu,
 }: {
   denetim: Denetim;
-  derece: DereceKodu;
   onAc: (h: Hata) => void;
   onTumu: () => void;
 }) {
@@ -595,16 +726,13 @@ function DenetimOzeti({
 
   return (
     <ScrollView contentContainerStyle={s.ozetGovde}>
+      {/* "Seçili derece" rozeti kalktı: derece artık parça açılınca seçiliyor
+          (yeni parçada 1). "Kayıt o anda düşer" ilk kez kullanan birine bir şey
+          söylemiyordu (sınama, 28.09.2026). */}
       <BosDurum
         simge={S.sec}
         baslik="Soldan bir parça seçin"
-        aciklama="Sonra hata tipine dokunun — kayıt o anda düşer, form açılmaz."
-        eylem={(
-          <View style={s.seciliDerece}>
-            <Text style={s.seciliDereceMetin}>Seçili derece</Text>
-            <DereceRozeti derece={derece} kabul={false} />
-          </View>
-        )}
+        aciklama="Sonra dereceyi seçip hataya dokunun; hata o anda kaydedilir."
       />
 
       {son.length ? (
@@ -676,7 +804,7 @@ function KayitListesi({
     <>
       <View style={s.listeUst}>
         <Text style={s.listeBaslik}>Kaydedilen hatalar ({hatalar.length})</Text>
-        <Text style={s.listeNot}>Fotoğraf, not ya da adet eklemek için hataya dokunun.</Text>
+        <Text style={s.listeNot}>Düzeltmek, silmek ya da fotoğraf eklemek için kayda dokunun.</Text>
       </View>
       <ScrollView style={{ flexGrow: 1 }} contentContainerStyle={s.listeGovde}>
         {sirali.length === 0 ? (
@@ -694,6 +822,8 @@ function KayitListesi({
 
 const stiller = (r: Renkler) => StyleSheet.create({
   basili: { opacity: 0.72 },
+
+  tamamBandi: { paddingHorizontal: bosluk.md, paddingTop: bosluk.sm, paddingBottom: bosluk.xs, backgroundColor: r.bg },
 
   // İki bölme (tablet)
   ikiBolme: { flex: 1, flexDirection: 'row' },
@@ -793,19 +923,20 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   // Tablet özet bölmesi
   ozetGovde: { padding: bosluk.lg, gap: bosluk.md, paddingBottom: 120, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  seciliDerece: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, marginTop: bosluk.xxs },
-  seciliDereceMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
+  kayitDerecesi: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  kayitDerecesiMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
 
   // Bildirim — iki temada da uygulama çubuğunun koyu yüzeyi.
   bildirimKap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: bosluk.md },
   bildirim: {
     width: '100%', maxWidth: 640,
-    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: bosluk.sm,
     paddingLeft: bosluk.md, paddingRight: bosluk.xs, minHeight: 58,
     borderRadius: kose.lg, backgroundColor: r.cubuk, borderWidth: 1, borderColor: r.cubukCizgi,
     boxShadow: `0 6px 18px ${r.golge}`,
   },
-  bildirimSol: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
+  bildirimSol: { flexGrow: 1, flexBasis: 220, flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, paddingVertical: bosluk.xs },
+  bildirimDugmeler: { flexDirection: 'row', alignItems: 'center', gap: 2, marginLeft: 'auto' },
   bildirimMetin: { ...tipografi.bodyOrta, color: r.cubukMetin, flex: 1 },
   geriAlDugme: {
     flexDirection: 'row', alignItems: 'center', gap: 6,

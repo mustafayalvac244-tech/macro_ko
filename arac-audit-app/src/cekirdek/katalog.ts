@@ -16,6 +16,7 @@
 // girene kadar "puan" sütununu yalnızca kendi içinde kıyas için kullanın.
 // ---------------------------------------------------------------------------
 
+import { aramaMetni } from './arama';
 import { AracTipi, Bolge, Derece, Dil, HataGrubu, HataGrubuId, HataTipi, Parca, ParcaKayit, Taraf } from './tipler';
 /**
  * Dereceler — ekibin kendi sistemi. Ceza puanı YOK.
@@ -452,7 +453,6 @@ export const PARCA_INDEKS: Record<string, ParcaKayit> = (() => {
   return m;
 })();
 
-/** Bir parçada seçilebilecek hata tipleri (grubuna göre süzülmüş). */
 /**
  * Parçanın TEK BAŞINA okunabilen adı, taraf dahil: "Sol ön çamurluk" /
  * "LH front fender".
@@ -473,11 +473,41 @@ export function parcaTamAdi(parcaId: string, dil: Dil = 'tr'): string {
   return `${onEk} ${bastanKucult(ad, dil)}`;
 }
 
+/**
+ * Bir parçada seçilebilecek hata tipleri, PARÇANIN KENDİ grup sırasıyla:
+ * camda önce "Cam", elektrikte önce "Fonksiyon". Genel katalog sırası
+ * kullanıldığında ön camda "Cam çiziği" ızgaranın en altında kalıyordu
+ * (kullanılabilirlik sınaması, 28.09.2026: telefonda y=1108). Grup içindeki
+ * sıra korunur; sıralama motorun kararlılığına bırakılmadı.
+ */
 export function parcaHataTipleri(parcaId: string): HataTipi[] {
   const p = PARCA_INDEKS[parcaId];
   if (!p) return [];
-  const izin = new Set(p.gruplar);
-  return tumHataTipleri().filter((h) => izin.has(h.grup));
+  const sira = new Map(p.gruplar.map((g, i) => [g, i] as const));
+  return tumHataTipleri()
+    .map((h, i) => ({ h, i }))
+    .filter(({ h }) => sira.has(h.grup))
+    .sort((a, b) => (sira.get(a.h.grup)! - sira.get(b.h.grup)!) || (a.i - b.i))
+    .map(({ h }) => h);
+}
+
+const TARAF_ES_ANLAM: Record<Taraf, string> = { sol: 'sol lh left', sag: 'sağ rh right' };
+const PARCA_ARAMA = new Map<string, string>();
+
+/**
+ * Parçanın aranabilir metni: tarafıyla tam adı (iki dilde), bölgesi ve taraf
+ * eş anlamlıları (sol = LH = left). Eşleştirme kuralı `arama.ts`te.
+ */
+export function parcaAramaMetni(parcaId: string): string {
+  let m = PARCA_ARAMA.get(parcaId);
+  if (m === undefined) {
+    const p = PARCA_INDEKS[parcaId];
+    m = p
+      ? aramaMetni(parcaTamAdi(p.id), parcaTamAdi(p.id, 'en'), p.bolgeAd, p.bolgeEn, p.taraf ? TARAF_ES_ANLAM[p.taraf] : '')
+      : '';
+    PARCA_ARAMA.set(parcaId, m);
+  }
+  return m;
 }
 
 /** Araç tipine (ev/ice) uymayan parçaları eler. */
