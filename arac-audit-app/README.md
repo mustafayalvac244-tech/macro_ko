@@ -254,8 +254,18 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
   değildi.
 - İngilizce küçültme İngilizce yerel ayarla yapılır. Türkçe yerelde "I" → "ı"
   olur; "Inoperative" raporda "ınoperative" çıkardı (ölçüldü, testte var).
-- **Phase / Team / Source** denetim başlangıcında bir kez girilir ve
-  hatırlanır. Source'un varsayılanı "HMC Audit".
+- **Phase (faz)** ve **denetçi** listeden seçilir, sonraki denetimde
+  hatırlanır (ürün sahibi, 28.09.2026). Faz listesi hazır gelir: T1, T2, LP1,
+  LP2, Pre-M, M, SOP. İkisine de formdaki "+ Ekle" ile ad eklenir; Ayarlar'da
+  eklenir ve kaldırılır. "lp2" yazmak ikinci bir LP2 açmaz, var olanı seçer.
+  Listeler **cihazda** saklanır: bir tablette eklenen ad öbürüne geçmez
+  (merkezi sunucu yok). Hazır denetçi listesi boş; nedeni
+  `src/cekirdek/listeler.ts`'te.
+- **Team** elle yazılır ve hatırlanır.
+- **Source** her denetimde "HMC Audit". Formdaki kaynak seçimi, üretim hattı
+  ve vardiya ürün sahibinin isteğiyle kaldırıldı (28.09.2026). Eski bir
+  denetimde hat/vardiya doluysa raporda yine görünür; boşsa "Line / Shift"
+  satırı hiç basılmaz.
 - **Type** (Part/Complex) varsayılan Part; ayrıntı ekranından değişir.
 - **Responsible parçaya öğrenilir:** ayrıntı ekranında bir parça için yazılan
   sorumlu, o parçanın sonraki hızlı kayıtlarına kendiliğinden gelir.

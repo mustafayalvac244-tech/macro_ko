@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { ListeDuzenle, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { GRUP_SIMGELERI, S, Simge } from '@/bilesenler/simgeler';
 import {
-  Baslik, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi, Kart, Secenek,
+  Baslik, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi, Kart, Secenek, useDuzen,
 } from '@/bilesenler/temel';
 import { HATA_GRUPLARI } from '@/cekirdek/katalog';
+import { HAZIR_DENETCILER, HAZIR_FAZLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
 import { bosluk, kose, Renkler, TemaTercihi, tipografi, useTema } from '@/tema';
 import { bekleyenSenkron, hataTipiKullanimi } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -19,6 +21,12 @@ const TEMALAR: { deger: TemaTercihi; etiket: string; simge: Simge }[] = [
 export default function Ayarlar() {
   const { renkler, tercih, tercihiAyarla } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  // Telefonda üç seçenek yan yana; simge + ad + tik sığmıyor, "Sistem" "Sis…"
+  // diye kesiliyordu (28.09.2026 ekran görüntüsü). Dar ekranda simge düşer;
+  // tik kalır, çünkü seçimi yalnız renkle değil onunla da gösteriyoruz.
+  const { en } = useDuzen();
+  const denetciler = useSecimListesi(LISTE_ANAHTARI.denetci, HAZIR_DENETCILER);
+  const fazlar = useSecimListesi(LISTE_ANAHTARI.faz, HAZIR_FAZLAR);
 
   const [bekleyen, setBekleyen] = useState(0);
 
@@ -38,7 +46,7 @@ export default function Ayarlar() {
               <Secenek
                 key={t.deger}
                 metin={t.etiket}
-                simge={t.simge}
+                simge={en >= 600 ? t.simge : undefined}
                 erisimEtiketi={`${t.etiket} tema`}
                 secili={tercih === t.deger}
                 onPress={() => tercihiAyarla(t.deger)}
@@ -46,6 +54,19 @@ export default function Ayarlar() {
               />
             ))}
           </View>
+        </Kart>
+
+        {/* Yeni denetim formundaki hazır seçenekler. Kaldırılan ad eski
+            denetimlerde yazılı kalır; yalnız yeni denetimde seçilemez. */}
+        <Kart>
+          <BolumBasligi metin="DENETÇİLER" simge={S.ekip} />
+          <Text style={s.aciklama}>Yeni denetimde listeden seçilir. Bu cihazda saklanır; başka tablete geçmez.</Text>
+          <ListeDuzenle ad="Denetçi" liste={denetciler} yerTutucu="Ad Soyad" />
+        </Kart>
+
+        <Kart>
+          <BolumBasligi metin="FAZLAR" simge={S.faz} />
+          <ListeDuzenle ad="Faz" liste={fazlar} yerTutucu="Ör. P1" buyukHarf />
         </Kart>
 
         <Kart>

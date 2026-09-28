@@ -128,7 +128,11 @@ export default function RaporEkrani() {
     ['Kaynak', denetim.denetimTipi || '—'],
     ['Rapor No', denetim.raporNo || '—'],
     ['Denetçi', denetim.denetci || '—'],
-    ['Hat / Vardiya', [denetim.hat, denetim.vardiya].filter(Boolean).join(' / ') || '—'],
+    // Hat ve vardiya formdan kaldırıldı (28.09.2026); yalnız eski bir
+    // denetimde doluysa gösterilir.
+    ...([denetim.hat, denetim.vardiya].some(Boolean)
+      ? [['Hat / Vardiya', [denetim.hat, denetim.vardiya].filter(Boolean).join(' / ')] as [string, string]]
+      : []),
     ['Tarih', bicimTarih(denetim.baslangic)],
   ];
 

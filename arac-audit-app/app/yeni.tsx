@@ -3,25 +3,33 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AracIkonu } from '@/bilesenler/AracIkonu';
+import { EklenebilirSecim, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { S } from '@/bilesenler/simgeler';
 import {
-  AltCubuk, Baslik, BilgiKutusu, BolumBasligi, Dugme, GeriDugmesi, Girdi, Kart, Rozet, Secenek, useDuzen,
+  AltCubuk, Baslik, BilgiKutusu, BolumBasligi, Dugme, GeriDugmesi, Girdi, Kart, Rozet, useDuzen,
 } from '@/bilesenler/temel';
+import { HAZIR_DENETCILER, HAZIR_FAZLAR, LISTE_ANAHTARI, listedeyse } from '@/cekirdek/listeler';
 import { ARACLAR } from '@/cekirdek/model3d';
 import { plakaDogrula, VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { ayarOku, ayarYaz, denetimOlustur } from '@/veri/depo';
 import { useTarama } from '@/veri/tarama';
 
-// İlk seçenek varsayılandır. "HMC Audit" ekibin gerçek tablosundaki Source
-// değeri (26.09.2026 ekran görüntüsü); diğerleri ilk sürümden kalan tahminler.
-const DENETIM_TIPLERI = ['HMC Audit', 'Seri denetim', 'Ara denetim', 'Final audit', 'Yol testi', 'Müşteri şikâyeti', 'Yeniden kontrol'];
-const VARDIYALAR = ['A', 'B', 'C'];
+/**
+ * Raporun "Source" sütunu. Ekibin tablosundaki değer (26.09.2026 ekran
+ * görüntüsü). Formdaki kaynak seçimi, üretim hattı ve vardiya ürün sahibinin
+ * isteğiyle kaldırıldı (28.09.2026): "Üretim hattını kaldır. Vardiya kaldır.
+ * Aşağıya da üretim seri üretim şeylerini kaldır." Seçeneklerin HMC Audit
+ * dışındakiler zaten ilk sürümden kalan tahminlerdi.
+ */
+const KAYNAK = 'HMC Audit';
 
-/** Denetçi/hat/vardiya/faz/ekip her araçta aynı kalır — bir kez yazılsın, hatırlansın. */
-interface Varsayilanlar {
-  denetci: string; hat: string; vardiya: string; denetimTipi: string; faz: string; ekip: string;
-}
+/**
+ * Denetçi/faz/ekip her araçta aynı kalır — bir kez seçilsin, hatırlansın.
+ * Eski kayıtta hat/vardiya/denetimTipi de var; bilerek OKUNMUYOR: form artık
+ * onları göstermiyor, görünmeyen bir değer rapora sessizce yazılmamalı.
+ */
+interface Varsayilanlar { denetci: string; faz: string; ekip: string }
 
 export default function YeniDenetim() {
   const router = useRouter();
@@ -33,9 +41,9 @@ export default function YeniDenetim() {
   const [vinHam, setVinHam] = useState('');
   const [plakaHam, setPlakaHam] = useState('');
   const [raporNo, setRaporNo] = useState('');
-  const [v, setV] = useState<Varsayilanlar>({
-    denetci: '', hat: '', vardiya: '', denetimTipi: DENETIM_TIPLERI[0]!, faz: '', ekip: '',
-  });
+  const [v, setV] = useState<Varsayilanlar>({ denetci: '', faz: '', ekip: '' });
+  const denetciler = useSecimListesi(LISTE_ANAHTARI.denetci, HAZIR_DENETCILER);
+  const fazlar = useSecimListesi(LISTE_ANAHTARI.faz, HAZIR_FAZLAR);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [denendi, setDenendi] = useState(false);
 
@@ -48,8 +56,10 @@ export default function YeniDenetim() {
   }, [okunanVin, taramayiTemizle]);
 
   useEffect(() => {
-    ayarOku<Varsayilanlar | null>('varsayilanlar', null)
-      .then((k) => { if (k) setV((o) => ({ ...o, ...k })); })
+    ayarOku<Partial<Varsayilanlar> | null>('varsayilanlar', null)
+      .then((k) => {
+        if (k) setV({ denetci: k.denetci ?? '', faz: k.faz ?? '', ekip: k.ekip ?? '' });
+      })
       .catch(() => { /* ilk açılış */ });
   }, []);
 
@@ -62,18 +72,21 @@ export default function YeniDenetim() {
     if (!vin.gecerli) return;
     setGonderiliyor(true);
     try {
-      await ayarYaz('varsayilanlar', v);
+      // Yalnız ekranda SEÇİLİ görünen değer yazılır: listeden kaldırılmış bir
+      // ad hatırlanmış olsa bile formda görünmüyorsa rapora da gitmez.
+      const denetci = listedeyse(denetciler.liste, v.denetci);
+      const faz = listedeyse(fazlar.liste, v.faz);
+      await ayarYaz('varsayilanlar', { denetci, faz, ekip: v.ekip });
       const d = await denetimOlustur({
         aracId, vin: vin.vin, plaka: plaka.bicimli, raporNo: raporNo.trim(),
-        denetci: v.denetci.trim(), hat: v.hat.trim(), vardiya: v.vardiya,
-        denetimTipi: v.denetimTipi, faz: v.faz.trim(), ekip: v.ekip.trim(),
+        denetci, hat: '', vardiya: '', denetimTipi: KAYNAK, faz, ekip: v.ekip.trim(),
         baslangic: new Date().toISOString(),
       });
       router.replace({ pathname: '/denetim/[id]', params: { id: d.id } });
     } finally {
       setGonderiliyor(false);
     }
-  }, [aracId, plaka.bicimli, raporNo, router, v, vin.gecerli, vin.vin]);
+  }, [aracId, denetciler.liste, fazlar.liste, plaka.bicimli, raporNo, router, v, vin.gecerli, vin.vin]);
 
   // VIN durumu: boşken yol göster, doluyken ne bulduğunu söyle.
   const vinDurumu = !vinHam
@@ -168,37 +181,25 @@ export default function YeniDenetim() {
         <View style={[s.sutun, tablet && s.sutunTablet]}>
           <Kart>
             <BolumBasligi metin="DENETİM BİLGİLERİ" simge={S.rapor} />
-            <View style={s.satir}>
-              <View style={{ flex: 1 }}>
-                <Girdi etiket="FAZ" value={v.faz} onChangeText={(t) => setV({ ...v, faz: t })} placeholder="LP2" autoCapitalize="characters" />
-              </View>
-              <View style={{ flex: 2 }}>
-                <Girdi etiket="EKİP" value={v.ekip} onChangeText={(t) => setV({ ...v, ekip: t })} placeholder="QE Team 2" />
-              </View>
-            </View>
-            <Girdi etiket="RAPOR NO" value={raporNo} onChangeText={setRaporNo} placeholder="QA-2026-0412" />
-            <Girdi etiket="DENETÇİ" value={v.denetci} onChangeText={(t) => setV({ ...v, denetci: t })} placeholder="Ad Soyad" />
-            <Girdi etiket="ÜRETİM HATTI" value={v.hat} onChangeText={(t) => setV({ ...v, hat: t })} placeholder="Montaj 2" />
-
-            <Text style={s.alanEtiketi}>VARDİYA</Text>
-            <View style={s.secimSatiri}>
-              {VARDIYALAR.map((x) => (
-                <Secenek
-                  key={x}
-                  metin={x}
-                  secili={v.vardiya === x}
-                  onPress={() => setV({ ...v, vardiya: v.vardiya === x ? '' : x })}
-                  style={{ minWidth: 72 }}
-                />
-              ))}
-            </View>
-
-            <Text style={s.alanEtiketi}>KAYNAK (RAPORDA "SOURCE")</Text>
-            <View style={s.secimSatiri}>
-              {DENETIM_TIPLERI.map((x) => (
-                <Secenek key={x} metin={x} secili={v.denetimTipi === x} onPress={() => setV({ ...v, denetimTipi: x })} />
-              ))}
-            </View>
+            <EklenebilirSecim
+              baslik="DENETÇİ"
+              ad="Denetçi"
+              liste={denetciler}
+              deger={listedeyse(denetciler.liste, v.denetci)}
+              degistir={(d) => setV({ ...v, denetci: d })}
+              yerTutucu="Ad Soyad"
+            />
+            <EklenebilirSecim
+              baslik="FAZ"
+              ad="Faz"
+              liste={fazlar}
+              deger={listedeyse(fazlar.liste, v.faz)}
+              degistir={(d) => setV({ ...v, faz: d })}
+              yerTutucu="Ör. P1"
+              buyukHarf
+            />
+            <Girdi etiket="EKİP" value={v.ekip} onChangeText={(t) => setV({ ...v, ekip: t })} placeholder="QE Team 2" />
+            <Girdi etiket="RAPOR NO" value={raporNo} onChangeText={setRaporNo} placeholder="İsteğe bağlı" />
           </Kart>
         </View>
       </ScrollView>
@@ -227,7 +228,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   },
   sutun: { gap: bosluk.md },
   sutunTablet: { flex: 1, minWidth: 0 },
-  alanEtiketi: { ...tipografi.etiket, color: r.metinSolgun, marginTop: bosluk.xxs },
 
   aracIzgara: { flexDirection: 'row', gap: bosluk.xs, flexWrap: 'wrap' },
   aracKart: {
@@ -245,5 +245,4 @@ const stiller = (r: Renkler) => StyleSheet.create({
   aracOlcu: { ...tipografi.caption, color: r.metinSolgun },
 
   satir: { flexDirection: 'row', gap: bosluk.xs },
-  secimSatiri: { flexDirection: 'row', gap: bosluk.xs, flexWrap: 'wrap' },
 });

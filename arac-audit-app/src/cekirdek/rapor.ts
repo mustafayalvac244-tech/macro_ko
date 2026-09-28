@@ -109,11 +109,15 @@ const baslikMetni = (s: Sutun, dil: Dil): string => (dil === 'en' ? s.baslikEn :
 function ustBilgiCiftleri(denetim: Denetim, ozet: Ozet, dil: Dil): (string | number)[][] {
   const arac = ARAC_INDEKS[denetim.aracId];
   const E = (tr: string, en: string): string => (dil === 'en' ? en : tr);
+  // Hat ve vardiya formdan kaldırıldı (28.09.2026). Yeni denetimde boş
+  // "Line / Shift" satırı basılmaz; eski bir denetimde doluysa kaybolmasın.
   const hatVardiya = [denetim.hat, denetim.vardiya].filter(Boolean).join(' / ');
   return [
     [E('Araç', 'Vehicle'), arac?.tam ?? denetim.aracId ?? '', E('Şasi No (VIN)', 'VIN'), denetim.vin || '', E('Tarih', 'Date'), bicimTarih(denetim.baslangic)],
     [E('Faz', 'Phase'), denetim.faz || '', E('Ekip', 'Team'), denetim.ekip || '', E('Kaynak', 'Source'), denetim.denetimTipi || ''],
-    [E('Denetçi', 'Auditor'), denetim.denetci || '', E('Hat / Vardiya', 'Line / Shift'), hatVardiya, E('Rapor No', 'Report No'), denetim.raporNo || ''],
+    hatVardiya
+      ? [E('Denetçi', 'Auditor'), denetim.denetci || '', E('Hat / Vardiya', 'Line / Shift'), hatVardiya, E('Rapor No', 'Report No'), denetim.raporNo || '']
+      : [E('Denetçi', 'Auditor'), denetim.denetci || '', E('Rapor No', 'Report No'), denetim.raporNo || ''],
     [E('Toplam bulgu', 'Total findings'), ozet.toplamAdet, E('Kabul edilebilir (n)', 'Acceptable (n)'), ozet.kabulEdilebilirAdet, E('Fotoğraflı', 'With photo'), ozet.fotografliHata],
   ];
 }
@@ -149,7 +153,9 @@ export function excelUret(
   const bolum = Math.floor(sutunSayisi / 3);
   for (const cift of ustBilgiCiftleri(denetim, ozet, dil)) {
     const satir: Hucre[] = new Array(sutunSayisi).fill('');
-    for (let g = 0; g < 3; g++) {
+    // Bir satırda üçten az çift olabilir (hat/vardiya boşken denetçi satırı
+    // iki çifttir); eksik çift için biçimli boş etiket hücresi basılmaz.
+    for (let g = 0; g < 3 && g * 2 < cift.length; g++) {
       const etiketSutun = g * bolum;
       satir[etiketSutun] = { v: cift[g * 2], stil: STIL.ETIKET };
       satir[etiketSutun + 1] = { v: cift[g * 2 + 1], stil: STIL.GOVDE };
@@ -412,7 +418,8 @@ export function htmlRapor(
   const E = (tr: string, en: string): string => (dil === 'en' ? en : tr);
 
   const ustBilgi = ustBilgiCiftleri(denetim, ozet, dil)
-    .flatMap((satir) => [[satir[0], satir[1]], [satir[2], satir[3]], [satir[4], satir[5]]])
+    .flatMap((satir) => [[satir[0], satir[1]], [satir[2], satir[3]], [satir[4], satir[5]]]
+      .filter(([e]) => e !== undefined))
     .map(([e, d]) => `<div class="r-alan"><span>${g(e)}</span><strong>${g(d)}</strong></div>`).join('');
 
   const gorunurSutunlar = SUTUNLAR;
