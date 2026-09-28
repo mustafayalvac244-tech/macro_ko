@@ -47,6 +47,11 @@ güncelleme kimliğiyle karşılaştırılınca indiği görülür.
 
 - **Bir kez yeni APK gerekir.** 0.2.0'dan önceki APK'larda güncelleme modülü
   (`expo-updates`) yok; onlar OTA alamaz.
+- **Derleme belleği.** 0.2.0'ın ilk derlemesi (koşu 36408769922) kod hatasıyla
+  değil bellekle düştü: `expo-updates` altı Android modülü ekledi ve yayın
+  öncesi lint analizleri Gradle'ın 512 MiB metaspace sınırına sığmadı
+  (`OutOfMemoryError: Metaspace`). APK iş akışı artık Gradle'a 4 GiB heap ve
+  1,5 GiB metaspace veriyor.
 - **OTA yerel kodu değiştiremez:** yeni kütüphane, izin, ikon, paket adı.
   Bunlarda `app.json → version` yükseltilir ve yeni APK kurulur. Çalışma zamanı
   politikası `appVersion`: güncelleme yalnız aynı sürümdeki APK'lara iner.

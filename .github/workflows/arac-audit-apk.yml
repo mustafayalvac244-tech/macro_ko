@@ -79,6 +79,19 @@ jobs:
         env:
           CI: '1'
 
+      # GRADLE BELLEĞİ (28.09.2026). expo-updates derlemeye altı Android modülü
+      # ekledi (expo-updates, -interface, -eas-client, -json-utils, -manifests,
+      # -structured-headers). Koşu 36408769922'de yayın öncesi lint analizleri
+      # Expo şablonunun sınırına (heap 2 GiB, metaspace 512 MiB) sığmadı:
+      # "OutOfMemoryError: Metaspace", üç lintVitalAnalyzeRelease görevi düştü.
+      # Kullanıcı düzeyindeki gradle.properties, projedekini ezer (Gradle'ın
+      # özellik önceliği). Koşucuda 16 GB bellek var.
+      - name: Gradle belleği
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8" >> ~/.gradle/gradle.properties
+          cat ~/.gradle/gradle.properties
+
       # İki mimari: arm64-v8a (güncel telefonların hepsi) ve armeabi-v7a
       # (32 bit Android çalıştıran ucuz telefonlar). x86 yalnız emülatör içindir.
       - name: APK derle
