@@ -1410,7 +1410,7 @@ export const en: Record<keyof typeof tr, string> = {
   // AI Assistant (keyless — the customer never enters a key, signing in is enough)
   'ai.title': 'Vekil AI',
   'ai.short': 'AI Assistant',
-  'ai.welcome': 'Hi, I’m Vekil AI 👋',
+  'ai.welcome': 'Hi, I’m the Vekil Pro assistant 👋',
   'ai.welcomeDesc': 'Give it a task: it drafts petitions, proposes deadline calculations, compiles step and evidence lists, and quotes real court decisions. All of it is a draft; the final call is yours.',
   'ai.sample1': 'Draft a formal notice for unpaid rent',
   'ai.sample2': 'Difference between rent determination and rent adaptation cases?',

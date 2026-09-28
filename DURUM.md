@@ -37,6 +37,8 @@
    bunu da ekle"). OTA'nın telefona indiği ÖLÇÜLMEDİ.
    Deneme takibi: yönetici ekranı → "Deneyen kişi / Ücretliye geçen / Deneme
    (7 gün)" (0159 admin_deneme_takibi). Soru METNİ saklanmıyor, gösterilmiyor.
+   Yapay zekâ kendini "Vekil Pro asistanıyım" diye tanıtıyor (28.09, eski ad
+   "Vekil AI"); AI olduğunu saklamaz, model/şirket adını söylemez.
 1. İnceleme sonucunu `tam-denetim` ile oku (sürüm satırı: `3.4.0  =  DURUM`).
 2. Demo hesabın (bayram@vekilpro.app) duruşma tarihleri sabit (ilki 27.09);
    inceleme uzarsa `scripts/demo-hesap-ornek-veri.sql` ile tazele.
