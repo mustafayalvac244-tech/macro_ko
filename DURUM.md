@@ -33,6 +33,12 @@
 
 ## 2. Sıradaki / açık işler
 
+00. **ACİL — satın alma sunucuya ulaşmıyor.** `revenuecat-webhook` 28.09'da
+   `503 not_configured` döndü (REVENUECAT_WEBHOOK_SECRET yok); `purchases`
+   tablosunda hiç RevenueCat olayı yok. Ödeyen kullanıcının is_premium/ai_tier'ı
+   AÇILMAZ. Ürün sahibi: aynı rastgele değeri Supabase secret'a ve RevenueCat →
+   Integrations → Webhooks → Authorization'a girecek. Doğrulama: yetkisiz POST
+   503 değil 401 dönmeli. Satın alma bildirimi: RevenueCat iOS uygulaması.
 0. 28.09: kayıtta sahte başarı düzeltildi (authStore.signUp) + ücretsiz katmana
    5 deneme sorusu (Haiku; sunucu ai-chat v111 / ictihat v54 dağıtıldı).
    Web canlı; telefonlara OTA ile gönderildi (ürün sahibi: "göndermeden önce
