@@ -1465,7 +1465,7 @@ export const tr = {
   // AI Asistan (anahtarsız — müşteri hiçbir anahtar girmez, giriş yapmak yeterli)
   'ai.title': 'Vekil AI',
   'ai.short': 'AI Asistan',
-  'ai.welcome': 'Merhaba, ben Vekil AI 👋',
+  'ai.welcome': 'Merhaba, ben Vekil Pro asistanı 👋',
   'ai.welcomeDesc': 'Görev verin: dilekçe taslağı çıkarır, süre hesabı önerir, adım ve delil listesi derler, gerçek Yargıtay kararlarından alıntı getirir. Hepsi taslaktır; son söz sizindir.',
   'ai.sample1': 'Kira bedelinin ödenmemesi için ihtarname taslağı hazırla',
   'ai.sample2': 'Tebliğ 12.03.2026 ise istinaf süresinin son gününü hesapla',

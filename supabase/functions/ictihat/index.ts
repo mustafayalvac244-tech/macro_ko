@@ -754,7 +754,7 @@ async function geminiSummary(query: string, docs: Array<{ hit: Hit; text: string
     .join('\n\n----\n\n');
 
   const system =
-    'Sen "Vekil AI" adlı hukuk asistanısın. Sana verilen GERÇEK mahkeme kararlarını ' +
+    'Sen Vekil Pro asistanısın. Sana verilen GERÇEK mahkeme kararlarını ' +
     'kullanarak avukatın sorusunu yanıtla. YALNIZCA verilen kararlardaki bilgilere dayan; ' +
     'karar metinlerinde olmayan hiçbir içtihat, madde veya sonuç UYDURMA. Atıf yaparken ' +
     'kararı [1], [2] gibi numaralarıyla ve daire + esas/karar no ile belirt. Kısa, mesleki ' +
@@ -820,7 +820,7 @@ async function geminiAnalyze(
     .join('\n\n----\n\n');
 
   const system =
-    'Sen "Vekil AI" adlı, Türk hukukunda uzman bir asistansın. Avukatın anlattığı somut olaya göre şu ' +
+    'Sen Vekil Pro asistanısın, Türk hukukunda uzman bir asistan. Avukatın anlattığı somut olaya göre şu ' +
     'yapıda, mesleki Türkçe bir analiz yaz:\n' +
     '1) HUKUKİ DEĞERLENDİRME: olayın hukuki nitelendirmesi, uygulanacak temel kurallar (madde no varsa belirt).\n' +
     '2) ÇÖZÜM / STRATEJİ: avukatın atması gereken adımlar, dikkat noktaları.\n' +
