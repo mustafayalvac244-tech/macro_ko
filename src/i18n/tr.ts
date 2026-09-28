@@ -757,6 +757,7 @@ export const tr = {
   'premium.f.freeIctihat': 'Sınırsız içtihat araması (Yargıtay, Danıştay, istinaf, yerel)',
   'premium.f.freeMevzuat': 'Mevzuat, hukuki hesaplayıcılar ve dilekçe şablonları',
   'premium.f.freeAjanda': 'Sınırsız duruşma, görev, ajanda ve hatırlatma',
+  'premium.f.freeDeneme': 'Yapay zekâyı tanımak için {n} deneme sorusu (tek seferlik)',
   'premium.f.freeLimits': '{dava} dava, {muvekkil} müvekkil, {belge} belge',
   // DENEME HAKKI 13.09.2026'DA ÜCRETSİZ KATMANDAN ALINDI (ürün sahibi kararı)
   // ve ₺399'luk pakete taşındı. Anahtar adı da onunla birlikte değişti:

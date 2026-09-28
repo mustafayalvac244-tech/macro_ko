@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  AI_SORU_HAKKI, AI_MUTALAA_HAKKI, AI_ASIL_MODEL_HAKKI, DENEME_SORU_HAKKI, UCRETSIZ_LIMIT,
+  AI_SORU_HAKKI, AI_MUTALAA_HAKKI, AI_ASIL_MODEL_HAKKI, DENEME_SORU_HAKKI, UCRETSIZ_DENEME_HAKKI, UCRETSIZ_LIMIT,
 } from '../src/config/planlar';
 
 /**
@@ -46,26 +46,28 @@ describe('docs/terms.html — sözleşmedeki sayılar koddaki sabitlerle aynı m
   });
 
   /**
-   * DENEME HAKKI ÜCRETSİZ KATMANA GERİ SIZMASIN.
+   * SİTE KARTLARI SUNUCUYLA AYNI DENEME SAYISINI SÖYLESİN — 28.09.2026.
    *
-   * 13.09.2026'da ürün sahibi kararıyla deneme hakkı ücretsiz katmandan
-   * alınıp ₺399'luk pakete taşındı; sunucu da aynı gün ödeme yapmamış
-   * kullanıcıya 403 döndürmeye başladı (_shared/katman.ts → aiKapali).
-   *
-   * RİSK ŞU: metin ile sunucu ayrışırsa hiçbir şey patlamaz. Satış sayfası
-   * "deneyin" der, kullanıcı hesap açar, düğmeye basar ve "bu özellik
-   * pakette yok" cevabını alır. Sessiz, geç fark edilen ve tam olarak
-   * güvenin kırıldığı yerde duran bir kusur. Bu test onu yakalıyor.
+   * Metin ile sunucu ayrışırsa hiçbir şey patlamaz; kullanıcı yanlış sayıyı
+   * okur. 25.09'a kadar Vekil Pro kartı "3" diyordu, sunucu 10 veriyordu.
+   * Ücretsiz karta 5 deneme 28.09'da geri geldi (ürün sahibi kararı).
    */
-  it('ücretsiz plan kartı yapay zekâ denemesi VAAT ETMİYOR', () => {
+  it('ücretsiz kart ücretsiz deneme sayısını, Vekil Pro kartı toplam sayıyı yazıyor', () => {
     const site = readFileSync(new URL('../docs/index.html', import.meta.url), 'utf8')
       .replace(/<!--[\s\S]*?-->/g, '');
     const bas = site.indexOf('<h3>Ücretsiz</h3>');
-    const son = site.indexOf('<h3>Vekil Pro</h3>');
+    const orta = site.indexOf('<h3>Vekil Pro</h3>');
     expect(bas, 'ücretsiz plan kartı bulunamadı').toBeGreaterThan(-1);
-    expect(son, 'Vekil Pro kartı bulunamadı').toBeGreaterThan(bas);
-    const kart = site.slice(bas, son);
-    expect(/deneme|yapay zek/i.test(kart), 'ücretsiz kart hâlâ yapay zekâ vaat ediyor').toBe(false);
+    expect(orta, 'Vekil Pro kartı bulunamadı').toBeGreaterThan(bas);
+    const ucretsiz = site.slice(bas, orta);
+    const pro = site.slice(orta, orta + 1500);
+    expect(ucretsiz).toContain(`${UCRETSIZ_DENEME_HAKKI} deneme sorusu`);
+    expect(pro).toContain(`toplam ${DENEME_SORU_HAKKI} deneme sorusu`);
+  });
+
+  it('sözleşme ücretsiz deneme sayısını yazıyor', () => {
+    expect(HTML).toContain(`tek seferlik ${UCRETSIZ_DENEME_HAKKI} soru`);
+    expect(HTML).toContain(`toplam ${DENEME_SORU_HAKKI} soruya`);
   });
 
   it('ücretsiz katman satır sınırları yazılı', () => {

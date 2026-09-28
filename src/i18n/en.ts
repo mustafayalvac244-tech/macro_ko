@@ -792,6 +792,7 @@ export const en: Record<keyof typeof tr, string> = {
   'premium.f.freeIctihat': 'Unlimited case law search (Cassation, Council of State, appellate, local)',
   'premium.f.freeMevzuat': 'Legislation, legal calculators and petition templates',
   'premium.f.freeAjanda': 'Unlimited hearings, tasks, calendar and reminders',
+  'premium.f.freeDeneme': '{n} AI trial questions to get to know it (one-time)',
   'premium.f.freeLimits': '{dava} cases, {muvekkil} clients, {belge} documents',
   'premium.f.proDeneme': '{n} AI trial runs (Petition Drafting, Document Review, Import from Document)',
   'premium.autoRenewNote': '{price} per month. Subscription renews automatically. It renews unless you turn it off in App Store / Google Play settings 24 hours before the period ends.',

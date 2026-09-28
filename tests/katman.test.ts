@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { kotaRezerve, DENEME_SORU_LIMIT, overLimit, tierConfig } from '../supabase/functions/_shared/katman';
+import { kotaRezerve, DENEME_SORU_LIMIT, UCRETSIZ_DENEME_LIMIT, overLimit, tierConfig } from '../supabase/functions/_shared/katman';
 
 /**
  * Bu tablonun iki kopyası vardı ve birbirinden ayrılmıştı: ai-chat'te ücretli
@@ -31,14 +31,17 @@ describe('tierConfig', () => {
    * (adı `_isPremium` idi), yani ₺399 ödeyen üye ile hiç ödemeyen aynı
    * hakkı alıyordu.
    */
-  it('ödeme yapmamış kullanıcıda yapay zekâ TAMAMEN kapalı — deneme hakkı da yok', () => {
+  // 28.09.2026 ürün sahibi kararı: ücretsiz kullanıcıya 5 deneme sorusu, Haiku.
+  // (13.09'daki "ücretsizde yapay zekâ tamamen kapalı" kuralının yerine geçer.)
+  it('ödeme yapmamış kullanıcı 5 deneme sorusunu Haiku ile alır', () => {
+    expect(UCRETSIZ_DENEME_LIMIT).toBe(5);
     for (const t of ['free', 'baslangic']) {
       const { cfg } = tierConfig(t, false, secenek);
-      expect(cfg.aiKapali, t).toBe(true);
-      expect(cfg.denemeLimit, t).toBeUndefined();
-      // Kapalı katman ücretli model çağırmamalı: yanlışlıkla çağrılsa bile
-      // fatura üretmesin.
-      expect(cfg.billable, t).toBe(false);
+      expect(cfg.aiKapali, t).toBeUndefined();
+      expect(cfg.provider, t).toBe('claude');
+      expect(cfg.model, t).toMatch(/haiku/);
+      expect(cfg.denemeLimit, t).toBe(UCRETSIZ_DENEME_LIMIT);
+      expect(cfg.limit, t).toBe(UCRETSIZ_DENEME_LIMIT);
     }
   });
 
@@ -276,10 +279,21 @@ describe('işe göre model seçimi', () => {
     expect(deneme('dilekce')).toBe('claude-sonnet-5');
   });
 
-  it('ödeme yapmamış kullanıcıda mod hiçbir şeyi açmaz', () => {
-    // İşe göre yönlendirme bir KAPI DEĞİL: ücretsiz katmanda AI kapalı kalır.
+  it('ödeme yapmamış kullanıcıda mod modeli yükseltmez — her işte Haiku, 5 hak', () => {
+    // İşe göre yönlendirme bir KAPI DEĞİL: dilekçe istense de ücretsiz deneme
+    // güçlü modele çıkmaz. (Mütalaa ai-chat'te ayrıca 'ai' katmanına kilitli.)
     for (const mod of ['sohbet', 'kunye', 'dilekce', 'mutalaa']) {
-      expect(tierConfig('free', false, { ...secenek, mod }).cfg.aiKapali).toBe(true);
+      const { cfg } = tierConfig('free', false, { ...secenek, mod });
+      expect(cfg.model, mod).toMatch(/haiku/);
+      expect(cfg.denemeLimit, mod).toBe(UCRETSIZ_DENEME_LIMIT);
     }
+  });
+});
+
+describe('deneme sayıları — sunucu ile ekran aynı (28.09.2026)', () => {
+  it('UCRETSIZ_DENEME_LIMIT (sunucu) = UCRETSIZ_DENEME_HAKKI (ekran/sözleşme)', async () => {
+    const { UCRETSIZ_DENEME_HAKKI, DENEME_SORU_HAKKI } = await import('../src/config/planlar');
+    expect(UCRETSIZ_DENEME_LIMIT).toBe(UCRETSIZ_DENEME_HAKKI);
+    expect(DENEME_SORU_LIMIT).toBe(DENEME_SORU_HAKKI);
   });
 });
