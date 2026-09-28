@@ -7,8 +7,9 @@ name: Araç Audit — APK
 # geliyor; derleme burada, Expo hesabı GEREKMEDEN yerelde (gradle) yapılır.
 #
 # Vekil Pro'nun android-dagit.yml'i BİLEREK kullanılmadı: o, Vekil Pro'nun
-# Expo hesabına bağlı EAS derlemesi. Araç Audit ayrı bir ürün; aynı hesaba
-# kaydedilmemeli.
+# Expo projesine bağlı EAS derlemesi. Derleme burada hâlâ hesapsız (gradle).
+# OTA güncellemesi hesapsız olmadığı için (28.09.2026) aynı Expo hesabında
+# AYRI bir proje açıldı: @olivyeejiru/arac-audit — bkz. arac-audit-ota.yml.
 #
 # ÇIKTI: koşu sayfasının altında "arac-audit-apk" adlı ek (zip; 30 gün durur).
 # İçindeki .apk telefona doğrudan kurulur ("bilinmeyen kaynak" izni ister).
@@ -100,6 +101,44 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      # APK'NIN İÇİNİ DENETLE (28.09.2026). Geliştirme ortamı APK'yı indiremiyor
+      # (artifact deposu ağda kapalı); içinde ne olduğunu ancak burada görürüz.
+      # OTA için üçü şart ve biri tutmazsa güncelleme HATA VERMEDEN hiç inmez:
+      #   - güncelleme adresi app.json'daki projeye işaret etmeli,
+      #   - kanal başlığı "production" olmalı,
+      #   - çalışma zamanı app.json'daki sürümle aynı olmalı.
+      # Kontrol vakası: paket adı dökümde MUTLAKA vardır. O bulunamazsa sorun
+      # ayarda değil aracın kendisindedir — "yok" sonuçlarına güvenilmez.
+      # Ek yüklendikten SONRA koşar: denetim bozuk çıkarsa derleme boşa gitmesin.
+      - name: APK içi denetim (OTA ayarları)
+        id: denetim
+        run: |
+          set -euo pipefail
+          apk="${{ steps.ad.outputs.ad }}"
+          aapt2="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2"
+          echo "araç: $aapt2"
+          "$aapt2" dump xmltree --file AndroidManifest.xml "$apk" > /tmp/manifest.txt
+          "$aapt2" dump resources "$apk" > /tmp/kaynaklar.txt
+          grep -q 'com.aracaudit.app' /tmp/manifest.txt \
+            || { echo "::error::Kontrol vakası düştü: paket adı dökümde yok, araç çalışmıyor."; exit 1; }
+
+          kimlik="$(node -p "require('./app.json').expo.extra?.eas?.projectId ?? ''")"
+          surum="$(node -p "require('./app.json').expo.version")"
+          [ -n "$kimlik" ] || { echo "::error::app.json'da extra.eas.projectId yok; bu APK OTA alamaz."; exit 1; }
+
+          grep -q "https://u.expo.dev/$kimlik" /tmp/manifest.txt \
+            || { echo "::error::Güncelleme adresi APK'da yok ya da başka projeye işaret ediyor."; exit 1; }
+          grep -q 'expo-channel-name' /tmp/manifest.txt && grep -q 'production' /tmp/manifest.txt \
+            || { echo "::error::Kanal başlığı (production) APK'da yok."; exit 1; }
+          grep -A2 'expo_runtime_version' /tmp/kaynaklar.txt | grep -q "\"$surum\"" \
+            || { echo "::error::Çalışma zamanı APK'da $surum değil."; grep -A2 'expo_runtime_version' /tmp/kaynaklar.txt || true; exit 1; }
+          unzip -l "$apk" | grep -q 'assets/app.manifest' \
+            || { echo "::error::Gömülü güncelleme bildirimi (assets/app.manifest) APK'da yok."; exit 1; }
+
+          echo "kimlik=$kimlik" >> "$GITHUB_OUTPUT"
+          echo "surum=$surum" >> "$GITHUB_OUTPUT"
+          echo "OTA ayarları APK'da doğrulandı: proje $kimlik, kanal production, çalışma zamanı $surum."
+
       - name: Özet
         if: success()
         run: |
@@ -112,4 +151,9 @@ jobs:
             echo "  içindeki \`${{ steps.ad.outputs.ad }}\` dosyasını telefona atıp açın."
             echo "- Telefon \"bilinmeyen kaynak\" izni isteyebilir."
             echo "- Play Store'a yüklenemez (debug anahtarıyla imzalı)."
+            echo ""
+            echo "### OTA — APK'nın içinde doğrulandı"
+            echo "- Güncelleme adresi: \`https://u.expo.dev/${{ steps.denetim.outputs.kimlik }}\`"
+            echo "- Kanal: \`production\` · Çalışma zamanı: **${{ steps.denetim.outputs.surum }}**"
+            echo "- Bu APK, çalışma zamanı ${{ steps.denetim.outputs.surum }} olan OTA güncellemelerini alır."
           } >> "$GITHUB_STEP_SUMMARY"

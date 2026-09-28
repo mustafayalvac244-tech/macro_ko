@@ -23,6 +23,7 @@
     // Aynı gerekçe: rapor.ts üzerinden aynı zincire varır (28.09.2026).
     "tests/aracAuditListeler.test.ts",
     "tests/aracAuditAracTipi.test.ts",
-    "tests/aracAuditAracBilgisi.test.ts"
+    "tests/aracAuditAracBilgisi.test.ts",
+    "tests/aracAuditSurum.test.ts"
   ]
 }

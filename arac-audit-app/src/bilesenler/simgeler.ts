@@ -14,9 +14,9 @@
 
 import {
   AppWindow, Armchair, ArrowRight, Calendar, Camera, CarFront, Check, ChevronLeft, ChevronRight,
-  CircleCheck, CircleDashed, ClipboardList, Clock, CloudUpload, Database, Droplets, Factory,
+  CircleCheck, CircleDashed, ClipboardList, Clock, CloudDownload, CloudUpload, Database, Droplets, Factory,
   FileSpreadsheet, FileText, Gauge, Hash, History, Image, Info, Layers, List, LucideIcon, Minus,
-  Monitor, Moon, MousePointerClick, Paintbrush, Palette, Pencil, Plus, Ruler, ScanBarcode, Search,
+  Monitor, Moon, MousePointerClick, Paintbrush, Palette, Pencil, Plus, RotateCw, Ruler, ScanBarcode, Search,
   Settings, Sparkles, Sun, Tag, Trash2, TriangleAlert, Undo2, User, Users, Volume2, Wrench, X, Zap,
 } from 'lucide-react-native';
 
@@ -65,6 +65,8 @@ export const S = {
   duzenle: Pencil,
   azalt: Minus,
   etiket: Tag,
+  guncelleme: CloudDownload,
+  yenidenBaslat: RotateCw,
 } satisfies Record<string, Simge>;
 
 /**

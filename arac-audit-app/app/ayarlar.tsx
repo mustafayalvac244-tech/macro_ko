@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ListeDuzenle, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
+import { SurumKarti } from '@/bilesenler/Guncelleme';
 import { GRUP_SIMGELERI, S, Simge } from '@/bilesenler/simgeler';
 import {
   Baslik, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi, Kart, Secenek, useDuzen,
@@ -84,6 +85,9 @@ export default function Ayarlar() {
               : 'Cihazda kayıt yok.'}
           />
         </Kart>
+
+        {/* Hangi paketin çalıştığı ve elle güncelleme denetimi. Web'de gizli. */}
+        <SurumKarti />
       </ScrollView>
     </Ekran>
   );

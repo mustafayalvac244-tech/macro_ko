@@ -2,7 +2,19 @@
   "expo": {
     "name": "Araç Audit",
     "slug": "arac-audit",
-    "version": "0.1.0",
+    "owner": "olivyeejiru",
+    "version": "0.2.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b553b239-3636-4b29-9b4e-cc908e625b16",
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      },
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "scheme": "aracaudit",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
@@ -45,6 +57,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b553b239-3636-4b29-9b4e-cc908e625b16"
+      }
     }
   }
 }

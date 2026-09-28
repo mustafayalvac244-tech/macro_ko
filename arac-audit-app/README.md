@@ -29,6 +29,41 @@ gerekir; `expo-camera`, `expo-sqlite` gibi yerel modüller Expo Go içinde
 npx eas build --profile development --platform android
 ```
 
+## Telefona kurma ve güncelleme
+
+**Kurma (APK).** `.github/workflows/arac-audit-apk.yml` uygulama her
+değiştiğinde GitHub'ın makinesinde APK derler (≈18 dk, Expo hesabı gerekmez).
+Koşu sayfasının altındaki `arac-audit-apk` zip'inden çıkan .apk telefona kurulur.
+
+**Güncelleme (OTA, 28.09.2026'dan).** Ürün sahibi: "OTA ile güncelleme at."
+`.github/workflows/arac-audit-ota.yml`, uygulama değişip bu dala push edilince
+JavaScript paketini Expo'nun güncelleme sunucusuna (EAS Update) yayımlar.
+Telefon her açılışta denetler ve **arka planda** indirir; açılış beklemez
+(fabrikada bağlantı zayıf olabilir). İnince ana sayfada "Yeni sürüm hazır ·
+kayıtlar silinmez" şeridi çıkar; "Yeniden başlat"a basılmazsa bir sonraki
+açılışta kendiliğinden devreye girer. Hangi paketin çalıştığı **Ayarlar →
+Sürüm**'de yazar ("Güncelleme 1a2b3c4d · tarih"); iş akışı özetindeki Android
+güncelleme kimliğiyle karşılaştırılınca indiği görülür.
+
+- **Bir kez yeni APK gerekir.** 0.2.0'dan önceki APK'larda güncelleme modülü
+  (`expo-updates`) yok; onlar OTA alamaz.
+- **OTA yerel kodu değiştiremez:** yeni kütüphane, izin, ikon, paket adı.
+  Bunlarda `app.json → version` yükseltilir ve yeni APK kurulur. Çalışma zamanı
+  politikası `appVersion`: güncelleme yalnız aynı sürümdeki APK'lara iner.
+- **Bekçi.** `package.json`, `package-lock.json` ya da `app.json` değişip sürüm
+  aynı kaldıysa iş akışı yayımlamaz — eski APK'da olmayan bir yerel modülü
+  çağıran JS oraya inip uygulamayı çökertebilirdi.
+- **Hesap.** Güncellemeler Vekil Pro'nun Expo hesabında (olivyeejiru) **ayrı
+  bir projede** (`@olivyeejiru/arac-audit`) durur; kimliği, kanalı ve
+  güncellemeleri Vekil Pro'nunkilerle kesişmez. 27.09'da APK için bu hesap
+  bilerek kullanılmamıştı (gradle hesapsız derliyor); OTA hesapsız olmuyor.
+- **Neyin doğrulandığı.** `expo-updates` 57.0.23'ün ayar kodu ve `eas-cli`
+  24.8.0'ın kaynağı okundu (docs.expo.dev bu ortamdan erişilemedi). Geçici bir
+  kopyada `expo prebuild` ile üretilen AndroidManifest'te güncelleme adresi,
+  kanal başlığı ve çalışma zamanı (0.2.0) görüldü; APK iş akışı derlenen
+  APK'nın **içinde** bu üçünü ayrıca denetliyor. **Telefona gerçekten indiği
+  henüz görülmedi.**
+
 ## Dosya düzeni
 
 ```
@@ -303,7 +338,8 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
 | **Merkezi sunucu (Supabase), çok kullanıcı, yönetici panosu** | **YAPILMADI** — sıradaki iş |
 | Hata takip döngüsü (atandı → giderildi → doğrulandı) | Şema hazır, arayüz **yapılmadı** |
 | Barkod okuma | Kodu yazıldı, **gerçek kamerayla denenmedi** |
-| Gerçek cihazda çalıştırma | **Denenmedi** — bu ortamda emülatör yok |
+| Gerçek cihazda çalıştırma | APK ürün sahibinin telefonunda açıldı (ekran görüntüsü, 28.09.2026); kamera, barkod, paylaşım **denenmedi** |
+| OTA güncelleme (EAS Update) | Kuruldu — telefona indiği **görülmedi** |
 
 ### Neyin nasıl doğrulandığı
 

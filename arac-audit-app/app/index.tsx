@@ -3,6 +3,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AracIkonu } from '@/bilesenler/AracIkonu';
+import { GuncellemeBildirimi } from '@/bilesenler/Guncelleme';
 import { S } from '@/bilesenler/simgeler';
 import {
   Baslik, BaslikDugmesi, BolumBasligi, BosDurum, Dugme, Ekran,
@@ -45,6 +46,10 @@ export default function DenetimListesi() {
 
   const ust = (
     <View style={s.ust}>
+      {/* Arka planda yeni sürüm indiyse (OTA). Web'de ve inen sürüm yokken
+          hiçbir şey çizmez. */}
+      <GuncellemeBildirimi />
+
       <View style={[s.kahraman, !tablet && s.kahramanDar]}>
         <View style={s.kahramanSimge}>
           <S.barkod size={26} color={renkler.cubukVurgu} strokeWidth={2} />
