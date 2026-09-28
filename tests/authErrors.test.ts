@@ -3,7 +3,12 @@ import { trError } from '@/lib/authErrors';
 
 describe('trError', () => {
   it('bilinen Supabase hatalarını Türkçeye çevirir', () => {
-    expect(trError('Invalid login credentials')).toBe('E-posta veya şifre hatalı.');
+    expect(trError('Invalid login credentials')).toBe('E-posta veya şifre hatalı. Şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.');
+  });
+
+  it('zaten kayıtlı e-posta — Supabase sahte başarı döndürdüğünde (28.09.2026)', () => {
+    expect(trError('zaten-kayitli')).toMatch(/zaten bir hesap var/);
+    expect(trError('zaten-kayitli')).toMatch(/Şifremi unuttum/);
     expect(trError('Email not confirmed')).toBe(
       'E-posta adresiniz henüz doğrulanmamış. Gelen kutunuzu kontrol edin.'
     );
@@ -28,7 +33,7 @@ describe('trError', () => {
   });
 
   it('yapılandırma eksik olsa da ağ DIŞI hatalar aynı çevrilir', () => {
-    expect(trError('Invalid login credentials', false)).toBe('E-posta veya şifre hatalı.');
+    expect(trError('Invalid login credentials', false)).toBe('E-posta veya şifre hatalı. Şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.');
   });
 
   it('yetki hatasını kullanıcı diline çevirir (RLS sızdırmaz)', () => {
@@ -76,6 +81,6 @@ describe('trError', () => {
   });
 
   it('büyük/küçük harf farkı gözetmez', () => {
-    expect(trError('INVALID LOGIN CREDENTIALS')).toBe('E-posta veya şifre hatalı.');
+    expect(trError('INVALID LOGIN CREDENTIALS')).toBe('E-posta veya şifre hatalı. Şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.');
   });
 });

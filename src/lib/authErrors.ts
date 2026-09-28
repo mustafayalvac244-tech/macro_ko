@@ -3,7 +3,10 @@ import { SUPABASE_YAPILANDIRILDI } from '@/lib/env';
 // göstermeden önce bilinen kalıpları Türkçeye çevirir. Bilinmeyen
 // mesajlar olduğu gibi bırakılır (kendi fırlattığımız Türkçe hatalar dahil).
 const PATTERNS: Array<[RegExp, string]> = [
-  [/invalid login credentials/i, 'E-posta veya şifre hatalı.'],
+  [/invalid login credentials/i, 'E-posta veya şifre hatalı. Şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.'],
+  // Kayıt ekranı, Supabase'in sahte "başarılı" yanıtını bu anahtarla bildirir
+  // (bkz. authStore.signUp, 28.09.2026).
+  [/^zaten-kayitli$/, 'Bu e-posta ile zaten bir hesap var. Giriş yapın; şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.'],
   [/email rate limit exceeded|over_email_send_rate_limit/i, 'Kısa sürede çok fazla deneme yapıldı. Lütfen bir süre sonra tekrar deneyin.'],
   [/for security purposes.*only request this after (\d+) seconds?/i, 'Güvenlik nedeniyle lütfen kısa bir süre sonra tekrar deneyin.'],
   [/user already registered|already been registered/i, 'Bu e-posta ile zaten bir hesap var. Giriş yapmayı deneyin.'],

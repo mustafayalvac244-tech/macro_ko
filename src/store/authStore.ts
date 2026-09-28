@@ -49,7 +49,7 @@ interface AuthState {
      * (kaydırıp geçen de sona gelir); "metnin tamamı önüne kondu" kanıtı.
      */
     kvkkKanit?: { saniye: number; sona_gelindi: boolean; yontem: string; surum: string };
-}) => Promise<'girildi' | 'dogrulama-gerekli' | 'hata'>;
+}) => Promise<'girildi' | 'dogrulama-gerekli' | 'zaten-kayitli' | 'hata'>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
@@ -236,6 +236,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (error) {
       set({ isSubmitting: false, error: trError(error.message) });
       return 'hata';
+    }
+    // E-POSTA ZATEN KAYITLIYSA SUPABASE HATA VERMEZ — 28.09.2026.
+    // Güvenlik gereği (hesap varlığını sızdırmamak için) sahte bir kullanıcı
+    // döndürür: identities dizisi BOŞTUR ve hesap açılmaz. Biz bunu "kayıt
+    // tamam, e-postanı doğrula" diye gösteriyorduk; kullanıcı eski hesabının
+    // şifresini hatırlamadığı için girişte "şifre hatalı" alıp takıldı
+    // (canlı kayıt, 28.09 11:16–11:18 UTC: kayıt 200, yeni satır yok,
+    // ardından şifre sıfırlamayla girildi).
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      set({ isSubmitting: false, error: trError('zaten-kayitli') });
+      return 'zaten-kayitli';
     }
     // Oturum yoksa e-posta doğrulaması açık demektir: kullanıcı kutusundaki
     // bağlantıya tıklayana kadar giriş yapamaz ve uygulamaya yönlendirilmemeli.
