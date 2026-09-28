@@ -267,6 +267,20 @@ const AI_TASMA_EK = 900;
 // hakkını bitirmiş mevcut üyeler bu değişiklikle 7 hak daha alır.
 export const DENEME_SORU_LIMIT = 10;
 
+/**
+ * ÜCRETSİZ KATMANA 5 DENEME SORUSU — 28.09.2026, ürün sahibi kararı:
+ * "Herkese 5 deneme soru hakkı vereceğiz, Haiku'dan cevaplayacak."
+ *
+ * 13.09'daki "ücretsizde yapay zekâ yok" kararının yerine geçer. Aynı yaşam
+ * boyu sayaç (`profiles.deneme_soru_kullanildi`) kullanılır: ücretsiz
+ * kullanıcı 5'i bitirip Vekil Pro'ya geçerse toplam 10'a tamamlanır.
+ * Model Haiku (AI_TASMA_MODEL). Derin araştırma (mütalaa) bu hakka dahil
+ * DEĞİL — ai-chat onu yalnız 'ai' katmanına açıyor.
+ * Maliyet: katman.ts'teki Haiku birim fiyatıyla (₺0,53, yukarıdaki yorum)
+ * 5 × ₺0,53 ≈ ₺2,65 kullanıcı başına BİR KEZ — ÖLÇÜLMEDİ, o birimden hesap.
+ */
+export const UCRETSIZ_DENEME_LIMIT = 5;
+
 export function tierConfig(
   aiTier: string | null | undefined,
   isPremium: boolean,
@@ -321,7 +335,15 @@ export function tierConfig(
   // Bu parametre bugüne kadar KULLANILMIYORDU (adı `_isPremium` idi): ödeme
   // yapan ₺399 üyesi ile hiç ödemeyen kullanıcı aynı deneme hakkını
   // alıyordu. Artık deneme hakkı yalnız ödeyene veriliyor.
-  const odemesizVeyaDeneme: TierCfg = isPremium ? denemeCfg : kapaliCfg;
+  const ucretsizDenemeCfg: TierCfg = {
+    ...denemeCfg,
+    model: AI_TASMA_MODEL,
+    limit: UCRETSIZ_DENEME_LIMIT,
+    denemeLimit: UCRETSIZ_DENEME_LIMIT,
+  };
+  // kapaliCfg artık yalnız bir güvenlik ağı: hiçbir katman onu seçmiyor.
+  void kapaliCfg;
+  const odemesizVeyaDeneme: TierCfg = isPremium ? denemeCfg : ucretsizDenemeCfg;
 
   const table: Record<string, TierCfg> = {
     free: odemesizVeyaDeneme,

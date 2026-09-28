@@ -14,6 +14,7 @@ export {
   AI_MUTALAA_HAKKI,
   AI_ASIL_MODEL_HAKKI,
   DENEME_SORU_HAKKI,
+  UCRETSIZ_DENEME_HAKKI,
 } from '@/config/planlar';
 
 

@@ -9,7 +9,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
 import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_ASIL_MODEL_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
-import { UCRETSIZ_LIMIT } from '@/config/planlar';
+import { UCRETSIZ_LIMIT, UCRETSIZ_DENEME_HAKKI } from '@/config/planlar';
 import {
   AI_ENTITLEMENT_ID,
   buyPackage,
@@ -245,7 +245,10 @@ export default function PremiumScreen() {
       muvekkil: String(UCRETSIZ_LIMIT.muvekkil),
       belge: String(UCRETSIZ_LIMIT.belge),
     }),
-    // DENEME HAKKI BU LİSTEDEN 13.09.2026'DA ÇIKARILDI (ürün sahibi kararı):
+    // 28.09.2026: ücretsiz katmana 5 deneme sorusu GERİ GELDİ (ürün sahibi
+    // kararı; sunucu: _shared/katman.ts > UCRETSIZ_DENEME_LIMIT, Haiku ile).
+    t('premium.f.freeDeneme', { n: String(UCRETSIZ_DENEME_HAKKI) }),
+    // (Tarihçe) DENEME HAKKI BU LİSTEDEN 13.09.2026'DA ÇIKARILMIŞTI:
     // artık ücretsiz katmanda değil, ₺399'luk pakette. Satır aşağıdaki Pro
     // listesine taşındı; sunucu tarafı da aynı gün değişti
     // (_shared/katman.ts → yalnız is_premium true ise denemeCfg).
