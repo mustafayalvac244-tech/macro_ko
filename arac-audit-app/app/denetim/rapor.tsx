@@ -12,6 +12,7 @@ import {
 import { DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { denetimOzeti } from '@/cekirdek/puan';
+import { kmGoster } from '@/cekirdek/aracBilgisi';
 import { bicimTarih, csvUret, excelUret } from '@/cekirdek/rapor';
 import { Denetim, FotografBaytlari } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
@@ -123,6 +124,8 @@ export default function RaporEkrani() {
     ['Araç', arac?.tam ?? denetim.aracId],
     ['Şasi', denetim.vin, true],
     ['Plaka', denetim.plaka || '—', true],
+    ['Spec', denetim.spec || '—'],
+    ['Kilometre', kmGoster(denetim.km) || '—'],
     ['Faz', denetim.faz || '—'],
     ['Ekip', denetim.ekip || '—'],
     ['Kaynak', denetim.denetimTipi || '—'],

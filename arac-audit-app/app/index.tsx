@@ -156,7 +156,7 @@ function DenetimKarti({
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.vin} numberOfLines={1}>{satir.vin || '(şasi yok)'}</Text>
           <Text style={s.meta} numberOfLines={1}>
-            {arac?.ad ?? satir.aracId}{satir.plaka ? ` · ${satir.plaka}` : ''}
+            {arac?.ad ?? satir.aracId}{satir.spec ? ` · ${satir.spec}` : ''}{satir.plaka ? ` · ${satir.plaka}` : ''}
           </Text>
         </View>
         {/* Telefonda rozet alt satıra iner: aynı satırda şasiyi sondan kesiyordu,

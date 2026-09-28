@@ -42,6 +42,7 @@ import { xlsxOlustur, STIL, gosterimOlcusu, pikselPunto, sutunAdi } from './xlsx
 import { bastanKucult, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi } from './katalog';
 import { denetimOzeti, dereceGosterimi, hataKodu, topluOzet } from './puan';
 import { ARAC_INDEKS } from './model3d';
+import { kmGoster } from './aracBilgisi';
 
 /**
  * Ekibin tablosundaki "Issue" sütunu: bölge sütunu olmadan da tek başına
@@ -115,9 +116,11 @@ function ustBilgiCiftleri(denetim: Denetim, ozet: Ozet, dil: Dil): (string | num
   return [
     [E('Araç', 'Vehicle'), arac?.tam ?? denetim.aracId ?? '', E('Şasi No (VIN)', 'VIN'), denetim.vin || '', E('Tarih', 'Date'), bicimTarih(denetim.baslangic)],
     [E('Faz', 'Phase'), denetim.faz || '', E('Ekip', 'Team'), denetim.ekip || '', E('Kaynak', 'Source'), denetim.denetimTipi || ''],
+    // Spec ve km 28.09.2026'da eklendi; eski denetimde boş kalırlar.
+    [E('Denetçi', 'Auditor'), denetim.denetci || '', 'Spec', denetim.spec || '', E('Kilometre', 'Mileage'), kmGoster(denetim.km, dil)],
     hatVardiya
-      ? [E('Denetçi', 'Auditor'), denetim.denetci || '', E('Hat / Vardiya', 'Line / Shift'), hatVardiya, E('Rapor No', 'Report No'), denetim.raporNo || '']
-      : [E('Denetçi', 'Auditor'), denetim.denetci || '', E('Rapor No', 'Report No'), denetim.raporNo || ''],
+      ? [E('Rapor No', 'Report No'), denetim.raporNo || '', E('Hat / Vardiya', 'Line / Shift'), hatVardiya]
+      : [E('Rapor No', 'Report No'), denetim.raporNo || ''],
     [E('Toplam bulgu', 'Total findings'), ozet.toplamAdet, E('Kabul edilebilir (n)', 'Acceptable (n)'), ozet.kabulEdilebilirAdet, E('Fotoğraflı', 'With photo'), ozet.fotografliHata],
   ];
 }

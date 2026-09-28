@@ -167,7 +167,7 @@ describe('derece gösterimi — parantez anlamı tersine çevirir', () => {
   it('DPU kabul edilebilir bulguları saymaz', () => {
     const d = (hatalar: Hata[]): Denetim => ({
       id: 'd', aracId: 'i20', vin: '', plaka: '', raporNo: '', denetci: '', hat: '', vardiya: '',
-      denetimTipi: '', faz: '', ekip: '', baslangic: '', bitis: null, durum: 'devam', hatalar,
+      denetimTipi: '', faz: '', ekip: '', spec: '', km: null, baslangic: '', bitis: null, durum: 'devam', hatalar,
     });
     const t = topluOzet([d([h('3', false), h('2', true)]), d([h('1', true)])]);
     // 3 bulgu, 2'si kabul edilebilir → 2 araçta 1 hata → 0.5
@@ -234,7 +234,7 @@ describe('ekibin tablosu — "Part Related Issues" düzeni', () => {
   it('başlık ekibin tablosunun ilk satırını izler', () => {
     const d: Denetim = {
       id: 'd', aracId: 'ioniq3', vin: 'V', plaka: '', raporNo: '', denetci: '', hat: '', vardiya: '',
-      denetimTipi: 'HMC Audit', faz: 'LP2', ekip: 'QE Team 2',
+      denetimTipi: 'HMC Audit', faz: 'LP2', ekip: 'QE Team 2', spec: '', km: null,
       baslangic: '2026-09-26T08:30:00', bitis: null, durum: 'devam', hatalar: [],
     };
     expect(raporBasligi(d, 'en')).toBe('Hyundai IONIQ 3 LP2 — Part-Related Issues (QE Team 2, 26.09.2026)');

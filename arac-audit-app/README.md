@@ -262,6 +262,12 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
   (merkezi sunucu yok). Hazır denetçi listesi boş; nedeni
   `src/cekirdek/listeler.ts`'te.
 - **Team** elle yazılır ve hatırlanır.
+- **Spec (LH / RH)** ve **km** (ürün sahibi, 28.09.2026) şasi kartında
+  girilir; araca özgü oldukları için **hatırlanmaz**. Raporun başlık
+  bloğunda "Spec" ve "Mileage" olarak çıkar, çalışma ekranı başlığında ve ana
+  sayfa kartında spec görünür. Km yalnız rakam tutar (en çok 7 hane);
+  girilmezse boş kalır, 0 ile karışmaz (veritabanında NULL — göç 5). "LH /
+  RH"nin anlamı ekipten teyit edilmedi; uygulama yorumlamadan yazar.
 - **Source** her denetimde "HMC Audit". Formdaki kaynak seçimi, üretim hattı
   ve vardiya ürün sahibinin isteğiyle kaldırıldı (28.09.2026). Eski bir
   denetimde hat/vardiya doluysa raporda yine görünür; boşsa "Line / Shift"

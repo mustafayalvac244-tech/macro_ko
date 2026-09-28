@@ -6,8 +6,9 @@ import { AracIkonu } from '@/bilesenler/AracIkonu';
 import { EklenebilirSecim, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { S } from '@/bilesenler/simgeler';
 import {
-  AltCubuk, Baslik, BilgiKutusu, BolumBasligi, Dugme, GeriDugmesi, Girdi, Kart, useDuzen,
+  AltCubuk, Baslik, BilgiKutusu, BolumBasligi, Dugme, GeriDugmesi, Girdi, Kart, Secenek, useDuzen,
 } from '@/bilesenler/temel';
+import { KM_HANE, kmAyikla, kmSadelestir, SPECLER } from '@/cekirdek/aracBilgisi';
 import { HAZIR_DENETCILER, HAZIR_FAZLAR, LISTE_ANAHTARI, listedeyse } from '@/cekirdek/listeler';
 import { ARACLAR } from '@/cekirdek/model3d';
 import { plakaDogrula, VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
@@ -40,6 +41,9 @@ export default function YeniDenetim() {
   const [aracId, setAracId] = useState(ARACLAR[0]!.id);
   const [vinHam, setVinHam] = useState('');
   const [plakaHam, setPlakaHam] = useState('');
+  // Spec ve km ARACA özgü (şasi, plaka gibi): hatırlanmaz, her araçta girilir.
+  const [spec, setSpec] = useState('');
+  const [kmHam, setKmHam] = useState('');
   const [raporNo, setRaporNo] = useState('');
   const [v, setV] = useState<Varsayilanlar>({ denetci: '', faz: '', ekip: '' });
   const denetciler = useSecimListesi(LISTE_ANAHTARI.denetci, HAZIR_DENETCILER);
@@ -79,13 +83,14 @@ export default function YeniDenetim() {
       const d = await denetimOlustur({
         aracId, vin: vin.vin, plaka: plaka.bicimli, raporNo: raporNo.trim(),
         denetci, hat: '', vardiya: '', denetimTipi: KAYNAK, faz, ekip: v.ekip.trim(),
+        spec, km: kmAyikla(kmHam),
         baslangic: new Date().toISOString(),
       });
       router.replace({ pathname: '/denetim/[id]', params: { id: d.id } });
     } finally {
       setGonderiliyor(false);
     }
-  }, [aracId, denetciler.liste, fazlar.liste, plaka.bicimli, raporNo, router, v, vin.gecerli, vin.vin]);
+  }, [aracId, denetciler.liste, fazlar.liste, kmHam, plaka.bicimli, raporNo, router, spec, v, vin.gecerli, vin.vin]);
 
   // VIN durumu: boşken yol göster, doluyken ne bulduğunu söyle.
   const vinDurumu = !vinHam
@@ -171,6 +176,34 @@ export default function YeniDenetim() {
               accessibilityLabel="Plaka"
               ipucu={plakaHam && plaka.uyarilar.length ? plaka.uyarilar[0] : undefined}
             />
+            <View style={s.specKmSatir}>
+              <View style={{ gap: bosluk.xxs }}>
+                <Text style={s.alanEtiketi}>SPEC</Text>
+                <View style={s.satir}>
+                  {SPECLER.map((x) => (
+                    <Secenek
+                      key={x}
+                      metin={x}
+                      erisimEtiketi={`Spec ${x}`}
+                      secili={spec === x}
+                      onPress={() => setSpec(spec === x ? '' : x)}
+                      style={{ minWidth: 72 }}
+                    />
+                  ))}
+                </View>
+              </View>
+              <View style={{ flex: 1, minWidth: 140 }}>
+                <Girdi
+                  etiket="KM"
+                  value={kmHam}
+                  onChangeText={(t) => setKmHam(kmSadelestir(t))}
+                  placeholder="Göstergedeki değer"
+                  keyboardType="number-pad"
+                  maxLength={KM_HANE}
+                  accessibilityLabel="Kilometre"
+                />
+              </View>
+            </View>
           </Kart>
         </View>
 
@@ -241,4 +274,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   aracTip: { ...tipografi.caption, color: r.metinSolgun },
 
   satir: { flexDirection: 'row', gap: bosluk.xs },
+  specKmSatir: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: bosluk.sm },
+  alanEtiketi: { ...tipografi.etiket, color: r.metinSolgun },
 });

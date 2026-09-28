@@ -201,6 +201,10 @@ export interface Denetim {
   faz: string;
   /** Denetimi yapan ekip — ör. "QE Team 2". Ekibin tablosunda K sütunu. */
   ekip: string;
+  /** "LH" / "RH" (ürün sahibi, 28.09.2026). Boş = girilmedi. Bkz. aracBilgisi.ts. */
+  spec: string;
+  /** Aracın kilometresi, denetim anında. null = girilmedi (0 değil). */
+  km: number | null;
   /** ISO 8601. */
   baslangic: string;
   bitis: string | null;

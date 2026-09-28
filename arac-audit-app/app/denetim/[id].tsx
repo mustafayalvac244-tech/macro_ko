@@ -487,6 +487,7 @@ export default function DenetimEkrani() {
             {!tablet && denetim.vin ? <BaslikCipi metin={denetim.vin} mono /> : null}
             {tablet ? <BaslikCipi simge={S.arac} metin={arac?.ad ?? denetim.aracId} /> : null}
             {denetim.plaka ? <BaslikCipi metin={denetim.plaka} mono /> : null}
+            {denetim.spec ? <BaslikCipi metin={`Spec ${denetim.spec}`} /> : null}
             {denetim.faz ? <BaslikCipi simge={S.faz} metin={denetim.faz} /> : null}
             {denetim.ekip ? <BaslikCipi simge={S.ekip} metin={denetim.ekip} /> : null}
           </>

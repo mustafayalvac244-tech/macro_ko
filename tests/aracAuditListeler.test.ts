@@ -46,7 +46,7 @@ describe('seçim listeleri', () => {
 describe('rapor başlığı — hat ve vardiya', () => {
   const d = (hat: string, vardiya: string): Denetim => ({
     id: 'd', aracId: 'ioniq3', vin: 'V', plaka: '', raporNo: 'R-1', denetci: 'Denetçi A', hat, vardiya,
-    denetimTipi: 'HMC Audit', faz: 'LP2', ekip: 'QE Team 2',
+    denetimTipi: 'HMC Audit', faz: 'LP2', ekip: 'QE Team 2', spec: '', km: null,
     baslangic: '2026-09-28T08:30:00', bitis: null, durum: 'devam', hatalar: [],
   });
 
