@@ -1,0 +1,202 @@
+name: Araç Audit — OTA
+
+# NEDEN BU DOSYA VAR (28.09.2026).
+# Ürün sahibi: "OTA ile güncelleme at." Her değişiklikte zip indirip APK
+# kurmak yerine, uygulama açılışta yeni sürümü kendisi indirsin.
+#
+# EXPO HESABI — KARAR DEĞİŞTİ, AÇIKÇA YAZILI.
+# 27.09'da APK iş akışı Vekil Pro'nun Expo hesabını (olivyeejiru) BİLEREK
+# kullanmadı: derleme hesapsız (gradle) yapılabiliyordu. OTA ise hesapsız
+# olmuyor — güncellemeleri Expo'nun sunucusu (EAS Update) dağıtıyor. Ayrım o
+# yüzden hesap düzeyinde değil PROJE düzeyinde: @olivyeejiru/arac-audit ayrı
+# bir proje; kimliği, kanalı ve güncellemeleri Vekil Pro'nunkilerle hiç
+# kesişmez. Aynı depo sırrı (EXPO_TOKEN) kullanılıyor; hesap ve kota ortak.
+#
+# NE ZAMAN ÇALIŞIR.
+# Uygulama değişip bu dala push edilince. Yalnız .md değiştiyse çalışmaz
+# (paket aynı kalır, cihazlar boşuna indirmesin).
+#
+# İLK KOŞU PROJEYİ KURAR, YAYIMLAMAZ.
+# app.json'da extra.eas.projectId yoksa `eas init` projeyi açar (aynı adla
+# varsa bağlar) ve kimliği özete yazar. Kimlik app.json'a işlenip commit'lenene
+# kadar yayın yapılmaz: güncelleme adresi APK'nın İÇİNE gömülüyor, yani önce
+# o kimlikle derlenmiş bir APK'nın telefona kurulması gerekiyor.
+#
+# OTA NE YAPAMAZ.
+# Yerel (native) kodu değiştiremez: yeni kütüphane, izin, ikon, paket adı.
+# Çalışma zamanı politikası "appVersion": app.json'daki `version` ne ise
+# çalışma zamanı odur. Güncelleme yalnız AYNI çalışma zamanındaki APK'lara
+# iner. Aşağıdaki bekçi bu yüzden var.
+
+on:
+  push:
+    branches: ['claude/vehicle-audit-app-rear95']
+    paths:
+      - 'arac-audit-app/**'
+      - '!arac-audit-app/**/*.md'
+      - '.github/workflows/arac-audit-ota.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Yayın yarıda KESİLMESİN; ikinci push sıraya girsin. Kesmek yerine sıraya
+# almak, son commit'in en son yayımlanmasını garanti ediyor.
+concurrency:
+  group: arac-audit-ota-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  yayinla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: arac-audit-app
+    steps:
+      # Bekçi, push'tan önceki commit'le karşılaştırıyor; sığ klonda o commit yok.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret kontrolü
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN tanımlı değil (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+
+      # Node 22: eas-cli 24.x Node 22 istiyor (Vekil Pro'nun OTA iş akışında
+      # Node 20 ile kurulum düştü, 14.09.2026).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: arac-audit-app/package-lock.json
+
+      - name: Bağımlılıklar
+        run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Proje kimliği
+        id: proje
+        run: |
+          set -euo pipefail
+          kimlik="$(node -p "require('./app.json').expo.extra?.eas?.projectId ?? ''")"
+          if [ -n "$kimlik" ]; then
+            echo "Proje: $kimlik (app.json)"
+            echo "kimlik=$kimlik" >> "$GITHUB_OUTPUT"
+            echo "ilk=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # --account verildiğinde eas-cli onay sormadan açar ya da bağlar
+          # (eas-cli 24.8.0 kaynağında okundu: skipConfirmation). --force YOK:
+          # var olan bir bağı ezmesin.
+          eas init --account olivyeejiru --non-interactive --json > /tmp/init.json
+          cat /tmp/init.json
+          kimlik="$(node -p "require('/tmp/init.json').projectId")"
+          durum="$(node -p "require('/tmp/init.json').status")"
+          pano="$(node -p "require('/tmp/init.json').dashboardUrl ?? ''")"
+          echo "kimlik=$kimlik" >> "$GITHUB_OUTPUT"
+          echo "ilk=1" >> "$GITHUB_OUTPUT"
+          {
+            echo "## EAS projesi hazır — bu koşu YAYIMLAMADI"
+            echo ""
+            echo "- Proje kimliği: \`$kimlik\`"
+            echo "- Durum: \`$durum\` (created = yeni açıldı, linked = zaten vardı)"
+            [ -n "$pano" ] && echo "- Pano: $pano"
+            echo ""
+            echo "Sıradaki adım: kimlik app.json'a (extra.eas.projectId ve"
+            echo "updates.url) yazılıp commit'lenir; o commit'ten derlenen APK"
+            echo "telefona BİR KEZ kurulur. Sonraki her değişiklik OTA ile iner."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # YEREL KOD BEKÇİSİ.
+      # package.json, package-lock.json ya da app.json değiştiyse yerel kod
+      # değişmiş olabilir. Sürüm AYNI kalırsa bu JS eski APK'lara iner ve
+      # olmayan bir yerel modülü çağırıp çökebilir. O durumda yayımlamıyoruz.
+      # Sürüm yükseldiyse güncelleme YENİ çalışma zamanına gider; eski APK'lar
+      # onu hiç görmez (yeni APK kurulana kadar).
+      # Önceki commit bulunamazsa da yayımlamıyoruz: karşılaştıramadığımız
+      # şeyi güvenli saymıyoruz.
+      - name: Yerel kod bekçisi
+        if: steps.proje.outputs.ilk == '0' && github.event_name == 'push'
+        env:
+          ONCE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ONCE" ] || [ "$ONCE" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "${ONCE}^{commit}" 2>/dev/null; then
+            echo "::error::Push'tan önceki commit bulunamadı ($ONCE); yerel değişiklik denetlenemedi, yayımlanmadı."
+            exit 1
+          fi
+          degisen="$(git diff --name-only "$ONCE" HEAD -- package.json package-lock.json app.json)"
+          if [ -z "$degisen" ]; then
+            echo "Yerel koda dokunan dosya değişmedi: yayın güvenli."
+            exit 0
+          fi
+          echo "Değişen yerel dosyalar:"; echo "$degisen"
+          eski="$(git show "${ONCE}:arac-audit-app/app.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).expo.version))')"
+          yeni="$(node -p "require('./app.json').expo.version")"
+          if [ "$eski" = "$yeni" ]; then
+            echo "::error::Yerel dosyalar değişti ama sürüm aynı ($yeni). Bu güncelleme eski APK'lara inip çökertebilir. app.json → expo.version yükseltilmeli ve yeni APK kurulmalı."
+            exit 1
+          fi
+          echo "Sürüm $eski → $yeni: güncelleme yeni çalışma zamanına ($yeni) gidecek; $eski APK'ları bunu almaz."
+
+      # --environment: SDK 55 ve üstünde zorunlu (eas-cli 24.8.0 kaynağı;
+      # verilmezse etkileşimsiz modda soru sorup düşer). Bu projede sunucu
+      # tarafı değişken yok; uygulama EXPO_PUBLIC_* da kullanmıyor.
+      # --channel: kanal ya da dal yoksa eas-cli ikisini açıp bağlıyor.
+      # --platform android: iOS derlemesi yok, boşuna paketlenmesin.
+      - name: Yayınla
+        id: yayin
+        if: steps.proje.outputs.ilk == '0'
+        run: |
+          set -euo pipefail
+          mesaj="$(git log -1 --format=%s)"
+          eas update --channel production --environment production --platform android \
+            --message "$mesaj" --non-interactive --json > /tmp/ota.json
+          cat /tmp/ota.json
+          node -e '
+            const u = require("/tmp/ota.json")[0];
+            const yaz = (k, v) => require("fs").appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${v ?? ""}\n`);
+            yaz("grup", u.group); yaz("kimlik", u.id); yaz("calisma", u.runtimeVersion); yaz("commit", u.gitCommitHash);
+          '
+
+      - name: Sonuç
+        if: success() && steps.proje.outputs.ilk == '0'
+        env:
+          GRUP: ${{ steps.yayin.outputs.grup }}
+          KIMLIK: ${{ steps.yayin.outputs.kimlik }}
+          CALISMA: ${{ steps.yayin.outputs.calisma }}
+          COMMIT: ${{ steps.yayin.outputs.commit }}
+        run: |
+          {
+            echo "## OTA güncellemesi yayımlandı"
+            echo ""
+            echo "- Kanal: \`production\` · Platform: Android"
+            echo "- Çalışma zamanı: **$CALISMA** (eas-cli çıktısından okundu)"
+            echo "- Güncelleme grubu: \`$GRUP\`"
+            echo "- Android güncelleme kimliği: \`$KIMLIK\` — telefonda Ayarlar → Sürüm"
+            echo "  satırında ilk 8 hanesi (\`${KIMLIK:0:8}\`) görünür."
+            echo "- Commit: \`$COMMIT\`"
+            echo "- Pano: https://expo.dev/accounts/olivyeejiru/projects/arac-audit/updates/$GRUP"
+            echo ""
+            echo "### Telefona ne zaman iner"
+            echo "Uygulama açılışta denetler ve arka planda indirir; indirme bitince"
+            echo "ana sayfada \"Yeni sürüm hazır\" çıkar. Ayarlar → Sürüm'de hangi"
+            echo "güncellemenin çalıştığı görünür."
+            echo ""
+            echo "### Bu özet ne söylemez"
+            echo "Yalnız YAYIMLANDIĞINI söyler. Telefondaki APK'nın çalışma zamanı"
+            echo "$CALISMA değilse güncelleme ona hiç inmez ve hata da vermez."
+            echo "İndiğini ancak telefonda Ayarlar → Sürüm kanıtlar."
+          } >> "$GITHUB_STEP_SUMMARY"
