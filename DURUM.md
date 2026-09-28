@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 28.09.2026 (deneme takibi)
+**Son güncelleme:** 28.09.2026 (hasat yeniden açıldı)
 
 ## 1. Şu an — yayın durumu
 
@@ -27,7 +27,9 @@
   web giriş yaptırmıyordu** (paket Supabase adresi olmadan derlenmişti);
   26.09'da düzeltildi. Artık ortam yoksa derleme durur, tests/webPaketi düşer.
 - **Android/Play:** başlanmadı (bkz. KARAR-DEFTERI §3).
-- **Hasat** yayına kadar durduruldu (0156). Vektörleme kapalı (0154/0155).
+- **Hasat AÇIK** (28.09 18:34 UTC, 0160; ürün sahibi "hasata devam"). Geri alma
+  eşiği: kullanıcı tablolarında zaman aşımı → 0156 ifadesiyle kapat.
+  Vektörleme hâlâ kapalı (0154/0155).
 
 ## 2. Sıradaki / açık işler
 
@@ -62,7 +64,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0159`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0160`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
