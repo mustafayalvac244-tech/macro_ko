@@ -287,7 +287,7 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
 | Tasarım sistemi, iki tema | **Bitti** |
 | Görsel yenileme: koyu çubuk, simgeler, tablette iki bölme, kartlar | **Bitti** — web'de tablet/telefon × açık/koyu koşuldu; **gerçek tablette görülmedi** |
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
-| 166 parçalık katalog, VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
+| Parça kataloğu (169 parça; elektrikli araçta 163, benzinlide 161 listelenir), VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
 | Hızlı giriş (2 dokunuş), geri al | **Bitti** |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **Bitti** — sıralama ürün sahibine soruldu ("evet"); kademe tanımları alınmadı |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
@@ -324,6 +324,26 @@ diye kesilmesi, web'de girdilerin üstüne tarayıcının siyah odak çizgisinin
 binmesi, koyu temada çubuğun sol bölmeyle birleşmesi) düzeltilip yeniden
 koşuldu. Bu sınavı ve "doğru" tanımını ben yazdım; bağımsız bir doğrulama
 değildir.
+
+**Araç tipine göre parçalar ve sadeleştirme** (28.09.2026, ürün sahibi:
+"Elektrikli araç seçince özellikler ona göre gelsin. Çok kalabalık olmasın"):
+elektrikli araçta "Yakıt / şarj kapağı" yerine **Şarj kapağı**, "Şanzıman /
+redüktör" yerine **Redüktör** listelenir; benzinlide tersi. Yalnız elektrikliye
+çıkan parçaların adındaki "(EV)" eki kalktı. Eski parça kimlikleri korundu
+(eski kayıtlar çözülmeye devam eder; testte var). Ekrandan kalkanlar: araç
+kartındaki ölçüler, "ölçü doğrulanmadı" etiketi ve ölçü uyarısı; ana sayfadaki
+dört sayı kutusu ve sunucu kutusu (bilgi başlığın altında: "Kayıtlar yalnız bu
+cihazda"); parça satırlarındaki ve hata kutularındaki İngilizce alt satır
+(aramada ve raporda duruyor); kabul anahtarının alt satırı; tabletteki özet
+bölmesinin sayı kutuları. **Hata tiplerinden hiçbiri silinmedi** — hangisinin
+ekipte hiç kullanılmadığını ekip bilir. Şarj/yakıt kapağının hangi yanda olduğu
+bilinmiyor; iki yanda da listelenir.
+
+**Bildirim sınavı sıkılaştırıldı** (28.09.2026): hata kutuları kısalınca eski
+ölçüm kurulamadı; ilk düzeltme denemesi bildirimin geçirgen dolgusuna dokunuyor
+ve dokunuşu yutan (kasıtlı bozulmuş) pakette de GEÇİYORDU. Şimdi ölçüm
+bildirimin yazı alanında parmağın neye değdiğine bakıyor; bozuk pakette tablet
+ve telefonda düştüğü, düzgün pakette geçtiği görüldü.
 
 **Ekrandaki yanlış bir cümle düzeltildi** (27.09.2026): ana sayfa "kayıtlar
 bağlantı gelince kendiliğinden gönderilecek" diyordu. Doğru değildi —

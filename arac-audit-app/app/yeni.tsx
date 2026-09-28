@@ -6,7 +6,7 @@ import { AracIkonu } from '@/bilesenler/AracIkonu';
 import { EklenebilirSecim, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { S } from '@/bilesenler/simgeler';
 import {
-  AltCubuk, Baslik, BilgiKutusu, BolumBasligi, Dugme, GeriDugmesi, Girdi, Kart, Rozet, useDuzen,
+  AltCubuk, Baslik, BilgiKutusu, BolumBasligi, Dugme, GeriDugmesi, Girdi, Kart, useDuzen,
 } from '@/bilesenler/temel';
 import { HAZIR_DENETCILER, HAZIR_FAZLAR, LISTE_ANAHTARI, listedeyse } from '@/cekirdek/listeler';
 import { ARACLAR } from '@/cekirdek/model3d';
@@ -65,7 +65,6 @@ export default function YeniDenetim() {
 
   const vin = useMemo(() => vinDogrula(vinHam), [vinHam]);
   const plaka = useMemo(() => plakaDogrula(plakaHam), [plakaHam]);
-  const arac = ARACLAR.find((a) => a.id === aracId)!;
 
   const basla = useCallback(async () => {
     setDenendi(true);
@@ -133,18 +132,15 @@ export default function YeniDenetim() {
                       ) : null}
                     </View>
                     <Text style={[s.aracAd, secili && { color: renkler.birincil }]}>{a.ad}</Text>
-                    <Text style={s.aracOlcu}>
-                      {a.tip === 'ev' ? 'Elektrikli' : 'İçten yanmalı'}
-                      {'\n'}{a.uzunluk}×{a.genislik}×{a.yukseklik} mm
-                    </Text>
-                    {!a.olcuDogrulandi ? (
-                      <Rozet metin="ÖLÇÜ DOĞRULANMADI" renk={renkler.uyari} zemin={renkler.uyariYumusak} />
-                    ) : null}
+                    {/* Ölçüler, "ölçü doğrulanmadı" etiketi ve ölçü uyarısı
+                        kaldırıldı (ürün sahibi, 28.09.2026: "çok kalabalık
+                        olmasın"). Ölçüler yalnız 3B model içindi; model akıştan
+                        çıktı. Doğrulanmamış oldukları model3d.ts'te yazılı. */}
+                    <Text style={s.aracTip}>{a.tip === 'ev' ? 'Elektrikli' : 'İçten yanmalı'}</Text>
                   </Pressable>
                 );
               })}
             </View>
-            {!arac.olcuDogrulandi ? <BilgiKutusu tur="uyari" metin={arac.not} /> : null}
           </Kart>
 
           <Kart>
@@ -242,7 +238,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   aracAd: { ...tipografi.h3, color: r.metin },
-  aracOlcu: { ...tipografi.caption, color: r.metinSolgun },
+  aracTip: { ...tipografi.caption, color: r.metinSolgun },
 
   satir: { flexDirection: 'row', gap: bosluk.xs },
 });

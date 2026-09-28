@@ -165,7 +165,7 @@ export function HataSayfasi({
       <View style={s.baslikSatiri}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.parcaAd} numberOfLines={1}>{parca?.ad ?? taslak.parcaId}</Text>
-          <Text style={s.parcaYol} numberOfLines={1}>{parca?.bolgeAd} · {parca?.en}</Text>
+          <Text style={s.parcaYol} numberOfLines={1}>{parca?.bolgeAd}</Text>
         </View>
         {hataTipiId ? <DereceRozeti derece={derece} kabul={kabul} buyuk /> : null}
       </View>
@@ -217,7 +217,6 @@ export function HataSayfasi({
                           olsun: yalnız renkle ayırmak erişilebilir değil. */}
                       {t.ozel ? <Text style={s.ozelIsaret}>EKİP</Text> : null}
                     </View>
-                    {t.en ? <Text style={s.secenekEn}>{t.en}</Text> : null}
                   </Pressable>
                 );
               })}
@@ -471,10 +470,7 @@ export function KabulAnahtari({
       <View style={[s.ray, kabul && s.rayAcik]}>
         <View style={[s.topuz, kabul && s.topuzAcik]} />
       </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={s.kabulMetin} numberOfLines={1}>Kabul edilebilir</Text>
-        <Text style={s.kabulAlt} numberOfLines={1}>Raporda parantezle yazılır</Text>
-      </View>
+      <Text style={[s.kabulMetin, { flex: 1 }]} numberOfLines={1}>Kabul edilebilir</Text>
       <View style={[s.kabulOnizleme, kabul && s.kabulOnizlemeAcik]}>
         <Text style={s.kabulOnizlemeMetin}>{kabul ? `(${derece})` : derece}</Text>
       </View>
@@ -565,7 +561,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   secenekSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   secenekSatir: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   secenekAd: { ...tipografi.captionOrta, color: r.metin, flexShrink: 1 },
-  secenekEn: { ...tipografi.caption, color: r.metinSolgun, fontSize: 11 },
   ozelIsaret: {
     ...tipografi.caption, fontSize: 9, color: r.bilgi,
     borderWidth: 1, borderColor: r.bilgi, borderRadius: kose.sm,
@@ -637,7 +632,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   topuz: { width: 21, height: 21, borderRadius: kose.pill, backgroundColor: r.metinSolgun },
   topuzAcik: { backgroundColor: r.metinTers, alignSelf: 'flex-end' },
   kabulMetin: { ...tipografi.bodyOrta, color: r.metin },
-  kabulAlt: { ...tipografi.caption, color: r.metinSolgun },
   kabulOnizleme: {
     minWidth: 54, height: 40, paddingHorizontal: 6, borderRadius: kose.sm,
     borderWidth: 1.5, borderColor: r.cizgi, backgroundColor: r.yuzey,

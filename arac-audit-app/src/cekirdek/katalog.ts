@@ -266,7 +266,7 @@ const HAM_BOLGELER: Bolge[] = [
     parcalar: [
       { id: 'alt_muhafaza', ad: 'Alt muhafaza / davlumbaz', en: 'Under cover',   gruplar: ['montaj', 'yuzey', 'ses'] },
       { id: 'sase_alti',    ad: 'Şase altı / taban sacı',   en: 'Floor pan',     gruplar: ['yuzey', 'sizdirmazlik', 'montaj'] },
-      { id: 'batarya_muh',  ad: 'HV batarya muhafazası (EV)', en: 'HV battery casing', gruplar: ['montaj', 'yuzey', 'sizdirmazlik'], sadeceEv: true },
+      { id: 'batarya_muh',  ad: 'HV batarya muhafazası', en: 'HV battery casing', gruplar: ['montaj', 'yuzey', 'sizdirmazlik'], sadeceEv: true },
       { id: 'yakit_deposu', ad: 'Yakıt deposu bölgesi',      en: 'Fuel tank area',gruplar: ['montaj', 'sizdirmazlik'], sadeceIce: true },
       { id: 'egzoz_hatti',  ad: 'Egzoz hattı',               en: 'Exhaust line',  gruplar: ['montaj', 'ses', 'yuzey'], sadeceIce: true },
     ],
@@ -351,8 +351,8 @@ const HAM_BOLGELER: Bolge[] = [
       { id: 'sivi_seviye',   ad: 'Sıvı seviyeleri',      en: 'Fluid levels',       gruplar: ['fonksiyon', 'sizdirmazlik'] },
       { id: 'izolasyon',     ad: 'Kaput izolasyon keçesi',en: 'Hood insulation',   gruplar: ['montaj', 'ses'] },
       { id: 'sogutma',       ad: 'Radyatör / soğutma',   en: 'Radiator / cooling', gruplar: ['montaj', 'sizdirmazlik', 'ses'] },
-      { id: 'hv_kablo',      ad: 'HV turuncu kablolar (EV)', en: 'HV cables',      gruplar: ['montaj', 'fonksiyon'], sadeceEv: true },
-      { id: 'sarj_soketi',   ad: 'Şarj soketi (AC/DC)',  en: 'Charge port',        gruplar: ['fonksiyon', 'montaj', 'yuzey'], sadeceEv: true },
+      { id: 'hv_kablo',      ad: 'HV turuncu kablolar', en: 'HV cables',           gruplar: ['montaj', 'fonksiyon'], sadeceEv: true },
+      { id: 'sarj_soketi',   ad: 'Şarj soketi',          en: 'Charge port',        gruplar: ['fonksiyon', 'montaj', 'yuzey'], sadeceEv: true },
       { id: 'motor_ice',     ad: 'Motor / aktarma organları', en: 'Engine & drivetrain', gruplar: ['montaj', 'ses', 'sizdirmazlik'], sadeceIce: true },
     ],
   },
@@ -372,18 +372,22 @@ const HAM_BOLGELER: Bolge[] = [
       { id: 'f_koltuk_isitma', ad: 'Koltuk / direksiyon ısıtma', en: 'Seat & wheel heating', gruplar: ['fonksiyon'] },
       { id: 'f_korna',         ad: 'Korna',              en: 'Horn',               gruplar: ['fonksiyon'] },
       { id: 'f_silecek',       ad: 'Silecek / cam yıkama',en: 'Wiper & washer',    gruplar: ['fonksiyon', 'ses'] },
-      { id: 'f_sarj',          ad: 'Şarj işlemi (EV)',   en: 'Charging (EV)',      gruplar: ['fonksiyon'], sadeceEv: true },
+      { id: 'f_sarj',          ad: 'Şarj işlemi',        en: 'Charging',           gruplar: ['fonksiyon'], sadeceEv: true },
     ],
   },
   {
     id: 'surus', ad: 'Yol testi', en: 'Road test', grup: 'surus', simge: '⇄',
     parcalar: [
       { id: 's_guc',         ad: 'Güç aktarma / kalkış', en: 'Powertrain / launch',gruplar: ['fonksiyon', 'ses'] },
-      { id: 's_sanziman',    ad: 'Şanzıman / redüktör',  en: 'Transmission / reducer', gruplar: ['fonksiyon', 'ses'] },
+      // Elektrikli araçta şanzıman yok, tek kademeli redüktör var; ikisi tek
+      // satırda ("Şanzıman / redüktör") her iki araçta da görünüyordu. Kimlik
+      // korunuyor: eski kayıtlar benzinli parçaya bağlı kalır (28.09.2026).
+      { id: 's_sanziman',    ad: 'Şanzıman',             en: 'Transmission',       gruplar: ['fonksiyon', 'ses'], sadeceIce: true },
+      { id: 's_reduktor',    ad: 'Redüktör',             en: 'Reduction gear',     gruplar: ['fonksiyon', 'ses'], sadeceEv: true },
       { id: 's_fren',        ad: 'Fren',                 en: 'Brakes',             gruplar: ['fonksiyon', 'ses'] },
       { id: 's_direksiyon',  ad: 'Direksiyon davranışı', en: 'Steering behaviour', gruplar: ['fonksiyon', 'ses'] },
       { id: 's_suspansiyon', ad: 'Süspansiyon / yol tutuş', en: 'Suspension / ride', gruplar: ['fonksiyon', 'ses'] },
-      { id: 's_rejen',       ad: 'Rejeneratif fren (EV)',en: 'Regenerative braking', gruplar: ['fonksiyon', 'ses'], sadeceEv: true },
+      { id: 's_rejen',       ad: 'Rejeneratif fren',     en: 'Regenerative braking', gruplar: ['fonksiyon', 'ses'], sadeceEv: true },
       { id: 's_lastik',      ad: 'Lastik / balans',      en: 'Tyre / balance',     gruplar: ['fonksiyon', 'ses'] },
       { id: 's_sr',          ad: 'S&R — yolda gıcırtı/tıkırtı', en: 'S&R on road', gruplar: ['ses'] },
       { id: 's_ruzgar',      ad: 'Yolda rüzgâr sesi',    en: 'Wind noise on road', gruplar: ['ses'] },
@@ -411,7 +415,12 @@ const YAN_PARCALAR: Parca[] = [
   { id: 'on_jant',       ad: 'Ön jant / lastik',   en: 'Front wheel / tyre',  gruplar: ['yuzey', 'montaj', 'fonksiyon'], mesh: 'jant_on' },
   { id: 'arka_jant',     ad: 'Arka jant / lastik', en: 'Rear wheel / tyre',   gruplar: ['yuzey', 'montaj', 'fonksiyon'], mesh: 'jant_arka' },
   { id: 'davlumbaz',     ad: 'Çamurluk davlumbazı',en: 'Wheel arch liner',    gruplar: ['montaj', 'ses'] },
-  { id: 'dolum_kapagi',  ad: 'Yakıt / şarj kapağı',en: 'Fuel / charge lid',   gruplar: [...DIS_PANEL, 'fonksiyon'] },
+  // "Yakıt / şarj kapağı" idi ve iki araç tipinde de görünüyordu: elektrikli
+  // araçta "yakıt" yazıyordu. Ayrıldı; eski kimlik benzinlide kaldı
+  // (28.09.2026). Hangi YANDA olduğu araçtan araca değişir ve elimizde bu
+  // bilgi yok — tahmin edilmedi, iki yanda da listelenir.
+  { id: 'dolum_kapagi',  ad: 'Yakıt kapağı',       en: 'Fuel door',           gruplar: [...DIS_PANEL, 'fonksiyon'], sadeceIce: true },
+  { id: 'sarj_kapagi',   ad: 'Şarj kapağı',        en: 'Charge port door',    gruplar: [...DIS_PANEL, 'fonksiyon'], sadeceEv: true },
 ];
 
 /** Sol ve sağ yan bölgeleri, ortak şablondan türetilir. */

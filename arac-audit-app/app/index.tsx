@@ -5,8 +5,8 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AracIkonu } from '@/bilesenler/AracIkonu';
 import { S } from '@/bilesenler/simgeler';
 import {
-  Baslik, BaslikDugmesi, BilgiKutusu, BolumBasligi, BosDurum, Dugme, Ekran,
-  HataKutusu, Olcu, Rozet, useDuzen, Yukleniyor,
+  Baslik, BaslikDugmesi, BolumBasligi, BosDurum, Dugme, Ekran,
+  HataKutusu, Rozet, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { bicimTarih } from '@/cekirdek/rapor';
@@ -41,19 +41,6 @@ export default function DenetimListesi() {
     return () => { iptal = true; };
   }, []));
 
-  const ozet = useMemo(() => {
-    if (!satirlar) return null;
-    const bugun = new Date().toDateString();
-    let devam = 0, bugunku = 0, bulgu = 0, agir = 0;
-    for (const x of satirlar) {
-      if (x.durum === 'devam') devam += 1;
-      if (new Date(x.baslangic).toDateString() === bugun) bugunku += 1;
-      bulgu += x.hataAdedi;
-      agir += x.agirAdedi;
-    }
-    return { devam, bugunku, bulgu, agir };
-  }, [satirlar]);
-
   const yeniDenetim = () => router.push('/yeni');
 
   const ust = (
@@ -75,19 +62,11 @@ export default function DenetimListesi() {
         />
       </View>
 
-      {ozet && satirlar?.length ? (
-        <View style={s.olcuSatiri}>
-          <Olcu genis simge={S.vardiya} deger={ozet.devam} etiket="devam eden" renk={renkler.bilgi} zemin={renkler.bilgiYumusak} />
-          <Olcu genis simge={S.tarih} deger={ozet.bugunku} etiket="bugün başlatılan" renk={renkler.birincil} zemin={renkler.birincilYumusak} />
-          <Olcu genis simge={S.rapor} deger={ozet.bulgu} etiket="bulgu" />
-          <Olcu genis simge={S.uyari} deger={ozet.agir} etiket="derece 3" renk={renkler.derece3} zemin={renkler.derece3Yumusak} />
-        </View>
-      ) : null}
-
-      {/* Eskiden burada "bağlantı gelince kendiliğinden gönderilecek" yazıyordu.
-          Doğru değildi: gönderen bir kod yok, sunucu kurulmadı (27.09.2026'da
-          fark edildi). Denetçi kayıtlarının bir yere gittiğini sanmamalı. */}
-      <BilgiKutusu metin="Merkezi sunucu bağlantısı henüz yok: kayıtlar yalnız bu cihazda. Dışarı almak için denetimin raporunu Excel olarak paylaşın." />
+      {/* Özet sayı kutuları ve sunucu uyarı kutusu kaldırıldı (ürün sahibi,
+          28.09.2026: "çok kalabalık olmasın"). Kayıtların yalnız cihazda
+          olduğu başlığın alt satırında ve Ayarlar → Veri'de yazıyor; eskiden
+          burada yazan "bağlantı gelince gönderilecek" cümlesi YANLIŞTI —
+          gönderen kod yok (27.09.2026). */}
 
       {satirlar?.length ? (
         <BolumBasligi
@@ -107,7 +86,7 @@ export default function DenetimListesi() {
     <Ekran>
       <Baslik
         baslik="Denetimler"
-        altBaslik="Araç Audit"
+        altBaslik="Kayıtlar yalnız bu cihazda"
         sag={<BaslikDugmesi simge={S.ayarlar} erisimEtiketi="Ayarlar" onPress={() => router.push('/ayarlar')} />}
       />
 
@@ -232,7 +211,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   kahramanBaslik: { ...tipografi.h2, color: r.cubukMetin },
   kahramanAlt: { ...tipografi.caption, color: r.cubukMetinSolgun },
 
-  olcuSatiri: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   sayac: { ...tipografi.captionOrta, color: r.metinSolgun, fontVariant: ['tabular-nums'] },
 
   kart: {

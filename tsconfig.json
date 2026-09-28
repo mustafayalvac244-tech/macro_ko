@@ -21,6 +21,7 @@
     // denetimi arac-audit-app içindeki `npm run kontrol` ile yapılır.
     "tests/aracAuditOzelHataTipi.test.ts",
     // Aynı gerekçe: rapor.ts üzerinden aynı zincire varır (28.09.2026).
-    "tests/aracAuditListeler.test.ts"
+    "tests/aracAuditListeler.test.ts",
+    "tests/aracAuditAracTipi.test.ts"
   ]
 }

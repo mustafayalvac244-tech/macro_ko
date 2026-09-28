@@ -11,13 +11,13 @@ import {
 import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
 import {
   AltSayfa, AramaKutusu, Baslik, BaslikCipi, BaslikDugmesi, BolumBasligi, BosDurum, DereceRozeti,
-  Dugme, Ekran, GeriDugmesi, HataKutusu, Olcu, Rozet, useDuzen, Yukleniyor,
+  Dugme, Ekran, GeriDugmesi, HataKutusu, Rozet, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import {
   bolgelerAracIcin, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi,
 } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
-import { denetimOzeti, dereceGosterimi } from '@/cekirdek/puan';
+import { dereceGosterimi } from '@/cekirdek/puan';
 import {
   BolgeGrubu, Denetim, DereceKodu, Hata, HataGrubuId, HataTipi, Parca,
 } from '@/cekirdek/tipler';
@@ -346,10 +346,9 @@ export default function DenetimEkrani() {
               style={({ pressed }) => [s.parcaSatir, secili && s.parcaSatirSecili, pressed && s.basili]}
             >
               <View style={[s.seciliCizgi, secili && { backgroundColor: renkler.birincil }]} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={[s.parcaAd, secili && { color: renkler.birincil }]} numberOfLines={1}>{item.ad}</Text>
-                <Text style={s.parcaEn} numberOfLines={1}>{item.en}</Text>
-              </View>
+              {/* İngilizce ad ekranda yok (28.09.2026, "çok kalabalık"); aramada
+                  ve ekran okuyucu etiketinde duruyor, raporda kullanılıyor. */}
+              <Text style={[s.parcaAd, secili && { color: renkler.birincil }]} numberOfLines={1}>{item.ad}</Text>
               {adet > 0 ? (
                 <View style={s.adetPul}><Text style={s.adetPulMetin}>{adet}</Text></View>
               ) : null}
@@ -379,7 +378,7 @@ export default function DenetimEkrani() {
         ) : null}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.seciliParca} numberOfLines={1}>{parca.ad}</Text>
-          <Text style={s.seciliYol} numberOfLines={1}>{parca.bolgeAd} · {parca.en}</Text>
+          <Text style={s.seciliYol} numberOfLines={1}>{parca.bolgeAd}</Text>
         </View>
         {seciliAdet > 0 ? (
           <Rozet metin={`${seciliAdet} KAYIT`} renk={renkler.birincil} zemin={renkler.birincilYumusak} />
@@ -445,7 +444,6 @@ export default function DenetimEkrani() {
                         <Text style={s.hataAd} numberOfLines={2}>{t.ad}</Text>
                         {t.ozel ? <Text style={s.ekipIsaret}>EKİP</Text> : null}
                       </View>
-                      {t.en ? <Text style={s.hataEn} numberOfLines={1}>{t.en}</Text> : null}
                     </Pressable>
                   ))}
                 </View>
@@ -575,9 +573,9 @@ export default function DenetimEkrani() {
 }
 
 /**
- * Tablette parça seçilmemişken sağ bölme: ne yapılacağı ve denetimin o anki
- * durumu. Sayılar rapor ekranıyla AYNI kaynaktan (`denetimOzeti`) gelir;
- * iki ekranda farklı sayı görmek denetçinin ikisine de güvenini bitirir.
+ * Tablette parça seçilmemişken sağ bölme: ne yapılacağı, seçili derece ve son
+ * kayıtlar. Sayı kutuları vardı, kaldırıldı (28.09.2026, "çok kalabalık");
+ * sayılar rapor ekranında.
  */
 function DenetimOzeti({
   denetim, derece, onAc, onTumu,
@@ -589,7 +587,6 @@ function DenetimOzeti({
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
-  const ozet = useMemo(() => denetimOzeti(denetim), [denetim]);
   const son = useMemo(
     () => [...denetim.hatalar].sort((a, b) => b.zaman.localeCompare(a.zaman)).slice(0, 5),
     [denetim.hatalar],
@@ -608,12 +605,6 @@ function DenetimOzeti({
           </View>
         )}
       />
-
-      <View style={s.olcuSatiri}>
-        <Olcu genis simge={S.rapor} deger={ozet.toplamAdet} etiket="bulgu" renk={renkler.birincil} zemin={renkler.birincilYumusak} />
-        <Olcu genis simge={S.uyari} deger={ozet.dereceDagilimi['3'].adet} etiket="derece 3" renk={renkler.derece3} zemin={renkler.derece3Yumusak} />
-        <Olcu genis simge={S.kabul} deger={ozet.kabulEdilebilirAdet} etiket="kabul edilebilir" />
-      </View>
 
       {son.length ? (
         <View style={{ gap: bosluk.xs }}>
@@ -729,8 +720,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   },
   parcaSatirSecili: { backgroundColor: r.birincilYumusak },
   seciliCizgi: { width: 4, alignSelf: 'stretch', backgroundColor: 'transparent', marginRight: bosluk.xs },
-  parcaAd: { ...tipografi.bodyOrta, color: r.metin },
-  parcaEn: { ...tipografi.caption, color: r.metinSolgun },
+  parcaAd: { ...tipografi.bodyOrta, color: r.metin, flex: 1, minWidth: 0 },
   adetPul: {
     minWidth: 26, height: 24, paddingHorizontal: 7, borderRadius: kose.pill,
     alignItems: 'center', justifyContent: 'center', backgroundColor: r.yuzeyVurgu,
@@ -777,7 +767,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   grup: { gap: bosluk.xs },
   hataIzgara: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   hataDugme: {
-    flexGrow: 1, flexBasis: 160, minHeight: 64, justifyContent: 'center', gap: 2,
+    flexGrow: 1, flexBasis: 150, minHeight: 52, justifyContent: 'center', gap: 2,
     paddingHorizontal: bosluk.sm, paddingVertical: bosluk.xs,
     borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
     boxShadow: `0 1px 2px ${r.golge}`,
@@ -785,7 +775,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   hataDugmeBasili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   hataDugmeUst: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   hataAd: { ...tipografi.bodyOrta, color: r.metin, flex: 1 },
-  hataEn: { ...tipografi.caption, color: r.metinSolgun },
   ekipIsaret: {
     ...tipografi.etiket, fontSize: 9, lineHeight: 13, color: r.bilgi,
     borderWidth: 1, borderColor: r.bilgi, borderRadius: kose.sm, paddingHorizontal: 4, marginTop: 3,
@@ -803,7 +792,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   // Tablet özet bölmesi
   ozetGovde: { padding: bosluk.lg, gap: bosluk.md, paddingBottom: 120, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  olcuSatiri: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   seciliDerece: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, marginTop: bosluk.xxs },
   seciliDereceMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
 
