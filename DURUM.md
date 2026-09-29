@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 28.09.2026 (hasat yeniden açıldı)
+**Son güncelleme:** 29.09.2026 (PC geçişi hazır → PC-GECIS.md)
 
 ## 1. Şu an — yayın durumu
 
