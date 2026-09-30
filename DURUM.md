@@ -46,7 +46,7 @@
    sonra SİLİNECEK. E-posta YOK (ürün sahibi: "e-posta isteyen kim").
 0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
    Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
-   yönetici ekranı → "Bildirim gönder" (son N / herkes). OTA gönderildi.
+   yönetici ekranı → "Bildirim gönder" (son N / herkes). OTA 5961921e (30.09 17:35).
    AÇIK: telefona düştüğü ÖLÇÜLMEDİ; iOS için Expo'da APNs anahtarı tanımlı mı
    BİLİNMİYOR (bilet "InvalidCredentials" dönerse eksik o). Adres ancak
    kullanıcı yeni sürümü açıp izin verince oluşur. Web paneline girmedi.
