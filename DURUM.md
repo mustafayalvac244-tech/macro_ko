@@ -105,3 +105,6 @@
 - `main`'e birleştirirken eski dallar düzeltilmiş dosyaları geri getirebilir
   (iPad hata görseli, "ücretsiz" başlığı) — çakışmada bizimkini tut, testi koş.
 - Satış ekranı fiyatı sabitten değil mağazadan (`priceString`) okunmalı.
+- 30.09: "Zoho ile bilgi@vekilpro.app bedava" denildi; ücretsiz planın yalnız bazı
+  veri merkezlerinde olduğu biliniyordu ama söylenmedi — AB'de yoktu (4 $/ay).
+  Koşula bağlı bilgi "evet" diye verilmez; koşul cevabın İLK cümlesine yazılır.
