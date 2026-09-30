@@ -39,6 +39,12 @@
    AÇILMAZ. Ürün sahibi: aynı rastgele değeri Supabase secret'a ve RevenueCat →
    Integrations → Webhooks → Authorization'a girecek. Doğrulama: yetkisiz POST
    503 değil 401 dönmeli. Satın alma bildirimi: RevenueCat iOS uygulaması.
+0a. 30.09: Claude ÇALIŞMIYOR — yeni ANTHROPIC_API_KEY çalışma alanına bağlı değil
+   (ai_saglayici_durum: 400 "not scoped to a workspace"). Ürün sahibi anahtarı
+   Workspace=Default seçerek yeniden oluşturacak (30 gün sınırlı; ~30.10'da
+   yenile). Test hesabı ai-test-kontrol@vekilpro.app (d6d41785…) doğrulamadan
+   sonra SİLİNECEK. Sonra üyelere "5 deneme sorusu" e-postası (hepsinde
+   deneme_soru_kullanildi=0, ölçüldü).
 0. 28.09: kayıtta sahte başarı düzeltildi (authStore.signUp) + ücretsiz katmana
    5 deneme sorusu (Haiku; sunucu ai-chat v111 / ictihat v54 dağıtıldı).
    Web canlı; telefonlara OTA ile gönderildi (ürün sahibi: "göndermeden önce
