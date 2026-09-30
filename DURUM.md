@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 29.09.2026 (PC geçişi hazır → PC-GECIS.md)
+**Son güncelleme:** 30.09.2026 (uygulama bildirimi — 0161 + OTA)
 
 ## 1. Şu an — yayın durumu
 
@@ -43,8 +43,13 @@
    (ai_saglayici_durum: 400 "not scoped to a workspace"). Ürün sahibi anahtarı
    Workspace=Default seçerek yeniden oluşturacak (30 gün sınırlı; ~30.10'da
    yenile). Test hesabı ai-test-kontrol@vekilpro.app (d6d41785…) doğrulamadan
-   sonra SİLİNECEK. Sonra üyelere "5 deneme sorusu" e-postası (hepsinde
-   deneme_soru_kullanildi=0, ölçüldü).
+   sonra SİLİNECEK. E-posta YOK (ürün sahibi: "e-posta isteyen kim").
+0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
+   Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
+   yönetici ekranı → "Bildirim gönder" (son N / herkes). OTA gönderildi.
+   AÇIK: telefona düştüğü ÖLÇÜLMEDİ; iOS için Expo'da APNs anahtarı tanımlı mı
+   BİLİNMİYOR (bilet "InvalidCredentials" dönerse eksik o). Adres ancak
+   kullanıcı yeni sürümü açıp izin verince oluşur. Web paneline girmedi.
 0. 28.09: kayıtta sahte başarı düzeltildi (authStore.signUp) + ücretsiz katmana
    5 deneme sorusu (Haiku; sunucu ai-chat v111 / ictihat v54 dağıtıldı).
    Web canlı; telefonlara OTA ile gönderildi (ürün sahibi: "göndermeden önce
@@ -76,7 +81,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0160`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0161`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
