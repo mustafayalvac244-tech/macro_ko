@@ -195,3 +195,49 @@ export function useAdminDenemeTakibi() {
     },
   });
 }
+
+/**
+ * UYGULAMA BİLDİRİMİ (push) — 30.09.2026, bkz. 0161_push_bildirim.
+ * Özet: kaç cihaz / kişi bildirim alabiliyor (adresi kayıtlı olan).
+ * Gönder: `sonKayit` null → herkes; n → en son kayıt olan n kişi.
+ */
+export interface AdminBildirimOzet {
+  cihaz: number;
+  kisi: number;
+}
+
+export interface AdminBildirimSonuc {
+  gonderim_id: number;
+  hedef_kisi: number;
+  hedef_cihaz: number;
+}
+
+export function useAdminBildirimOzet() {
+  return useQuery({
+    queryKey: ['admin', 'bildirim-ozet'],
+    staleTime: 30_000,
+    queryFn: async (): Promise<AdminBildirimOzet> => {
+      const { data, error } = await supabase.rpc('admin_bildirim_ozet');
+      if (error) throw error;
+      return data as AdminBildirimOzet;
+    },
+  });
+}
+
+export function useAdminBildirimGonder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ baslik, metin, sonKayit }: { baslik: string; metin: string; sonKayit: number | null }) => {
+      const { data, error } = await supabase.rpc('admin_bildirim_gonder', {
+        p_baslik: baslik,
+        p_metin: metin,
+        p_son_kayit: sonKayit,
+      });
+      if (error) throw error;
+      return data as AdminBildirimSonuc;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'bildirim-ozet'] });
+    },
+  });
+}

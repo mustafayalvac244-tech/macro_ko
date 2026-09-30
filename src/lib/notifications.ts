@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
+import { supabase } from '@/lib/supabase';
 import { getLang, translate } from '@/i18n';
 import { formatDateTime } from '@/utils/format';
 import { bildirimMetni, type BildirimKaynagi } from '@/utils/bildirimMetni';
@@ -43,6 +45,35 @@ export async function registerForNotificationsAsync(): Promise<boolean> {
     finalStatus = requested.status;
   }
   return finalStatus === 'granted';
+}
+
+/**
+ * SUNUCUDAN BİLDİRİM (push) ADRESİ — 30.09.2026 (bkz. 0161_push_bildirim).
+ *
+ * Önceden hiçbir cihazın adresi kaydedilmiyordu; kayıt olup uygulamayı bir
+ * daha açmayan kullanıcıya ulaşmanın yolu yoktu. İzin yoksa izin İSTEMEZ —
+ * izni `registerForNotificationsAsync` ister; bu yalnız adresi kaydeder.
+ * Web'de ve simülatörde çalışmaz (push yalnız gerçek cihazda var).
+ */
+let kayitliPushAdresi: string | null = null;
+
+export async function pushAdresiniKaydet(): Promise<void> {
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
+  if (!Device.isDevice) return;
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') return;
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  if (!projectId) return;
+  const { data: adres } = await Notifications.getExpoPushTokenAsync({ projectId });
+  const { error } = await supabase.rpc('push_cihaz_kaydet', { p_token: adres, p_platform: Platform.OS });
+  if (!error) kayitliPushAdresi = adres;
+}
+
+/** Çıkışta çağrılır: bu telefon, çıkış yapılan hesabın bildirimlerini almasın. */
+export async function pushAdresiniSil(): Promise<void> {
+  if (!kayitliPushAdresi) return;
+  await supabase.rpc('push_cihaz_sil', { p_token: kayitliPushAdresi });
+  kayitliPushAdresi = null;
 }
 
 interface ScheduleReminderParams {

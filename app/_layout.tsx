@@ -31,7 +31,7 @@ import {
   JetBrainsMono_800ExtraBold,
 } from '@expo-google-fonts/jetbrains-mono';
 import { useAuthStore } from '@/store/authStore';
-import { registerForNotificationsAsync } from '@/lib/notifications';
+import { pushAdresiniKaydet, registerForNotificationsAsync } from '@/lib/notifications';
 import { asyncPersister, queryClient, QUERY_CACHE_MAX_AGE } from '@/lib/queryClient';
 import { configurePurchases, identifyPurchaser, resetPurchaser } from '@/lib/purchases';
 import { hydrateLanguage } from '@/i18n';
@@ -96,7 +96,6 @@ export default function RootLayout() {
     hydrateAdvanceAlerts().catch(() => {});
     // Çalışan sayaç, uygulama kapansa bile sürsün diye geri yükleniyor.
     hydrateSayac().catch(() => {});
-    registerForNotificationsAsync().catch(() => {});
     // Anahtar yoksa (RevenueCat henüz kurulmadıysa) veya web'deyse sessizce
     // KÜRESEL HATA YAKALAYICI — EN BAŞTA. ErrorBoundary yalnız SARDIĞI React
     // ağacındaki render hatalarını görüyor; modül seviyesinde ve effect içinde
@@ -148,6 +147,17 @@ export default function RootLayout() {
     if (userId) identifyPurchaser(userId);
     else if (oncekiUserId.current) resetPurchaser();
     oncekiUserId.current = userId;
+  }, [userId]);
+
+  // BİLDİRİM İZNİ + ADRESİ — oturum açılınca (bkz. 0161_push_bildirim).
+  // İzin önceden açılışta, oturumdan bağımsız isteniyordu; sunucudan bildirim
+  // için adresin bir HESABA yazılması gerektiğinden istek oturuma taşındı.
+  // Aynı anda iki izin isteği yarışmasın diye açılıştaki çağrı kaldırıldı.
+  useEffect(() => {
+    if (!userId) return;
+    registerForNotificationsAsync()
+      .then((izin) => (izin ? pushAdresiniKaydet() : undefined))
+      .catch(() => {});
   }, [userId]);
 
   // Native splash'ı, uygulama iskeleti ekrana İLK DÜŞTÜĞÜ AN kapat — fontları
