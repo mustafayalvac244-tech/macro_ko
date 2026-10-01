@@ -1961,6 +1961,15 @@ Deno.serve(async (req) => {
   // Referanslar mütalaa bloğunda mutalaaQuestion adıyla kullanılıyordu; alias.
   const mutalaaQuestion = promptQuestion;
 
+  // HASAT TALEBİ (0162) — sorulan konu hasatta öne alınsın. Metin SAKLANMAZ:
+  // sunucu yalnız sabit konu listesiyle eşleştirip "konu/gün/adet" sayar.
+  // Ateşle-unut: cevabı bekletmez, hata cevabı bozmaz.
+  {
+    const s = svc();
+    const sonSoru = String(messages[messages.length - 1]?.text ?? '');
+    if (s && sonSoru) void s.rpc('hasat_talep_kaydet', { p_metin: sonSoru, p_kaynak: 'ai' }).then(() => {}, () => {});
+  }
+
   // Üyelik katmanı + maliyet tavanı (batma koruması).
   // profiles PII sertleştirmesiyle authenticated'a SELECT kapalı; kullanıcının
   // KENDİ tier'ını SERVİS anahtarıyla (RLS bypass) oku. Aksi halde .from(profiles)

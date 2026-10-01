@@ -883,6 +883,13 @@ Deno.serve(async (req) => {
       if (!query) return json({ error: 'bad_request' }, 400);
       const pageSize = Math.min(20, Math.max(1, Number(body.pageSize ?? 15)));
       const page = Math.max(1, Number(body.page ?? 1));
+      // HASAT TALEBİ (0162) — aranan konu hasatta öne alınsın. Yalnız ilk
+      // sayfa sayılır (sayfa çevirmek yeni talep değil). Metin SAKLANMAZ;
+      // ateşle-unut, aramayı bekletmez.
+      if (page === 1) {
+        const s = svc();
+        if (s) void s.rpc('hasat_talep_kaydet', { p_metin: query, p_kaynak: 'arama' }).then(() => {}, () => {});
+      }
       // Mahkeme süzgeci: 'yargitay' (Bedesten) | 'danistay' (Bedesten) | 'emsal'
       // (UYAP Emsal: BAM + yerel). Varsayılan Yargıtay — en üst mahkeme.
       const court = body.court ?? 'yargitay';
