@@ -248,7 +248,7 @@ const AI_MUTALAA_LIMIT = 25;
  * bir emniyet kilidi olarak duruyor ve bu bütçenin iki katı — yani bütçe
  * aşılsa bile tavan devreye girmeden önce fark edilir.
  */
-const AI_TASMA_MODEL = 'claude-haiku-4-5-20251001';
+export const AI_TASMA_MODEL = 'claude-haiku-4-5-20251001';
 const AI_TASMA_EK = 900;
 
 /**

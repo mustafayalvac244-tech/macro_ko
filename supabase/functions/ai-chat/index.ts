@@ -10,6 +10,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 // bırakmıyoruz — sürüm yükseltmesi bilinçli bir karar olsun.
 import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
 import { claudeIle } from '../_shared/claudeIstemci.ts';
+import { uyarlamaliDusunmeVar } from '../_shared/claudeModel.ts';
 // Dilekçe iskeleti ve belge türleri ayrı dosyada: orası saf mantık ve TESTLİ
 // (tests/dilekceIskelet.test.ts). Uç işlevinin içindeyken sınanamıyordu.
 import {
@@ -182,7 +183,8 @@ async function claudeChat(
     const res = await claudeIle(apiKey, (client) => client.messages.create({
       model,
       max_tokens: maxTokens,
-      thinking: { type: 'adaptive' },
+      // Haiku 4.5 uyarlamalı düşünmeyi reddeder (400) — bkz. _shared/claudeModel.ts.
+      ...(uyarlamaliDusunmeVar(model) ? { thinking: { type: 'adaptive' } } : {}),
       system: system as never,
       messages: msgs.map((m) => ({
         role: m.role === 'model' ? ('assistant' as const) : ('user' as const),

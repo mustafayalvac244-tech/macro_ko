@@ -13,6 +13,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
 import { claudeIle } from '../_shared/claudeIstemci.ts';
+import { uyarlamaliDusunmeVar } from '../_shared/claudeModel.ts';
 import { kotaRezerve, overLimit, tierConfig as ortakKatman } from '../_shared/katman.ts';
 // Dönem anahtarları ortak: bu uç günlük sayacı hiç bilmiyordu ve içtihat
 // ekranından yapılan AI çağrıları günlük haktan düşmüyordu (bkz. _shared/kullanim.ts).
@@ -251,7 +252,8 @@ async function llmCall(
         // geçerli; metin üreten çağrılarda düşünme açık, tavana pay ekleniyor
         // ve sıcaklık GÖNDERİLMİYOR (düşünme açıkken API reddeder).
         max_tokens: opts.json ? opts.maxTokens : opts.maxTokens + 6000,
-        ...(opts.json ? { temperature: opts.temperature } : { thinking: { type: 'adaptive' } }),
+        // Haiku 4.5 uyarlamalı düşünmeyi reddeder (400) — bkz. _shared/claudeModel.ts.
+        ...(opts.json ? { temperature: opts.temperature } : uyarlamaliDusunmeVar(model) ? { thinking: { type: 'adaptive' } } : {}),
         system: opts.json ? `${system} YALNIZ geçerli bir JSON nesnesi döndür; kod bloğu, açıklama, başlık yazma.` : system,
         messages: [{ role: 'user', content: userText }],
       }));
