@@ -30,3 +30,14 @@ describe('yedek modelin cevabı hak saymaz', () => {
     for (const c of sayaclar) expect(c, c).toContain('(musteriyeYaz ? 1 : 0)');
   });
 });
+
+describe('deneme isteğinde düşünme kapalı', () => {
+  // 01.10.2026 canlıda ölçüldü: denemenin 3.000 token'lık dilekçe tavanını
+  // Sonnet'in düşünmesi yedi, metin boş döndü, istek yedek modele düştü.
+  it('her ucretliChat çağrısı deneme bayrağıyla düşünmeyi kapatıyor', () => {
+    const cagrilar = kod.match(/await ucretliChat\([^;]*\);/g) ?? [];
+    expect(cagrilar.length).toBeGreaterThanOrEqual(5);
+    for (const c of cagrilar) expect(c, c).toMatch(/!cfg\.denemeLimit\)\s*;$/);
+    expect(kod).toMatch(/dusunme && uyarlamaliDusunmeVar\(model\)/);
+  });
+});

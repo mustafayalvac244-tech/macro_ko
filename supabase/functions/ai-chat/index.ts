@@ -166,7 +166,13 @@ async function claudeChat(
   // "opus ile ölç" denildiğinde istek yine Sonnet'e gidiyor, maliyet ise
   // opus fiyatından işleniyordu. Yani karşılaştırma koşusu, ölçtüğünü sandığı
   // modeli hiç ölçmüyordu — Gemini yedeğindeki sessiz ölüm hatasının aynısı.
-  model: string
+  model: string,
+  // DENEME İSTEĞİNDE DÜŞÜNME KAPALI (01.10.2026 canlıda ölçüldü). Ücretsiz
+  // denemenin dilekçesi 3.000 token tavanla Sonnet'e gitti; uyarlamalı düşünme
+  // tavanı yedi, metin BOŞ döndü (durum 'ok'), istek yedek modele düştü —
+  // Sonnet yine faturalandı, kayda 0 yazıldı. Denemede düşünme yok: tavanın
+  // tamamı metne kalır, maliyet öngörülebilir olur.
+  dusunme = true
 ): Promise<{ text: string; tin: number; tout: number }> {
   // Anthropic en fazla 4 kesme noktası kabul eder; boş katmanlar atlanır.
   const katmanlar = (Array.isArray(stableSystem) ? stableSystem : [stableSystem])
@@ -184,7 +190,7 @@ async function claudeChat(
       model,
       max_tokens: maxTokens,
       // Haiku 4.5 uyarlamalı düşünmeyi reddeder (400) — bkz. _shared/claudeModel.ts.
-      ...(uyarlamaliDusunmeVar(model) ? { thinking: { type: 'adaptive' } } : {}),
+      ...(dusunme && uyarlamaliDusunmeVar(model) ? { thinking: { type: 'adaptive' } } : {}),
       system: system as never,
       messages: msgs.map((m) => ({
         role: m.role === 'model' ? ('assistant' as const) : ('user' as const),
@@ -244,11 +250,12 @@ async function ucretliChat(
   msgs: Array<{ role: 'user' | 'model'; text: string }>,
   maxTokens: number,
   apiKey: string,
-  model: string
+  model: string,
+  dusunme = true
 ): Promise<{ text: string; tin: number; tout: number; model: string; faturali: boolean }> {
   let ilkHata: Error | null = null;
   try {
-    const r = await claudeChat(stableSystem, groundingSystem, msgs, maxTokens, apiKey, model);
+    const r = await claudeChat(stableSystem, groundingSystem, msgs, maxTokens, apiKey, model, dusunme);
     if (r.text.trim()) return { ...r, model, faturali: true };
     ilkHata = new Error('empty');
   } catch (e) {
@@ -2217,7 +2224,7 @@ Deno.serve(async (req) => {
         // (araştırma dosyası) her adımda değiştiği için arkaya konur.
         const stable = sys.startsWith(SYSTEM_PROMPT) ? SYSTEM_PROMPT : sys;
         const rest = sys.startsWith(SYSTEM_PROMPT) ? sys.slice(SYSTEM_PROMPT.length) : '';
-        const r = await ucretliChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey, model);
+        const r = await ucretliChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey, model, !cfg.denemeLimit);
         meter.tin += r.tin;
         meter.tout += r.tout;
         kullanim.model = r.model;
@@ -2684,7 +2691,7 @@ async function dosyaKunyesi(
         const sabitKisim = dossier ? dilekceSys.slice(0, dilekceSys.length - dossier.length) : dilekceSys;
         const modBlogu = sabitKisim.startsWith(SYSTEM_PROMPT) ? sabitKisim.slice(SYSTEM_PROMPT.length) : '';
         const katmanlar = modBlogu ? [SYSTEM_PROMPT, modBlogu] : [sabitKisim];
-        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model, !cfg.denemeLimit);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
@@ -2896,7 +2903,7 @@ async function dosyaKunyesi(
         // kunyeSys TAMAMEN STATİK (sabit JSON şema talimatı, araştırma dosyası
         // yok) — önbelleğin arkasında durmasının hiçbir sebebi yoktu, her
         // istekte tam fiyattan yeniden faturalanıyordu. İkinci katman yapıldı.
-        const r = await ucretliChat([SYSTEM_PROMPT, kunyeSys], '', [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        const r = await ucretliChat([SYSTEM_PROMPT, kunyeSys], '', [{ role: 'user', text: promptQuestion }], maxTok, genKey, model, !cfg.denemeLimit);
         out = r.text; uin = r.tin; uout = r.tout; kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
         const r = await openaiChat(kunyeSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
@@ -3005,7 +3012,7 @@ async function dosyaKunyesi(
         const sabitKisim = dossier ? belgeSys.slice(0, belgeSys.length - dossier.length) : belgeSys;
         const modBlogu = sabitKisim.startsWith(SYSTEM_PROMPT) ? sabitKisim.slice(SYSTEM_PROMPT.length) : '';
         const katmanlar = modBlogu ? [SYSTEM_PROMPT, modBlogu] : [sabitKisim];
-        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model, !cfg.denemeLimit);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
@@ -3114,7 +3121,7 @@ async function dosyaKunyesi(
   let faturali = cfg.billable;
   try {
     if (provider === 'claude') {
-      const r = await ucretliChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey, model);
+      const r = await ucretliChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey, model, !cfg.denemeLimit);
       text = r.text;
       tin = r.tin;
       tout = r.tout;
