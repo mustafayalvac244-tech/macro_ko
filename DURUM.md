@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 01.10.2026 (hasat talebe göre — 0162/0163)
+**Son güncelleme:** 01.10.2026 (Claude çalışıyor, deneme ücretsiz)
 
 ## 1. Şu an — yayın durumu
 
@@ -44,12 +44,13 @@
    AÇILMAZ. Ürün sahibi: aynı rastgele değeri Supabase secret'a ve RevenueCat →
    Integrations → Webhooks → Authorization'a girecek. Doğrulama: yetkisiz POST
    503 değil 401 dönmeli. Satın alma bildirimi: RevenueCat iOS uygulaması.
-0a. Claude ÇALIŞMIYOR (01.10 ölçüldü) — ANTHROPIC_API_KEY çalışma alanına bağlı
-   değil (400 "not scoped"). Admin API ile otomatik bulma 403 → İMKÂNSIZ.
-   _shared/claudeIstemci.ts: CALISMA_ALANI sabiti (wrkspc_…) doldurulunca 400'de
-   başlıkla yeniden dener — kimliği ürün sahibi verecek. Kullanıcılar bu arada
-   yedek modelden (gpt-oss-120b) cevap alıyor, hata değil. Anahtar ~30.10 biter. Test hesabı ai-test-kontrol@vekilpro.app (d6d41785…) doğrulamadan
-   sonra SİLİNECEK. E-posta YOK (ürün sahibi: "e-posta isteyen kim").
+0a. **Claude ÇALIŞIYOR (01.10 17:14 ölçüldü).** Üç hata düzeltildi: anahtar
+   çalışma alanına bağlı değildi → CALISMA_ALANI (Default, _shared/claudeIstemci);
+   Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
+   düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
+   Deneme sorusu maliyeti ölçüldü: ₺0,36–0,39 (8,3 bin girdi token). Anahtar
+   ~30.10 biter. Test hesabı silindi; ürün sahibinin -8,38 TL'si sıfırlandı.
+   DERS: iki edge işlevi aynı anda dağıtılınca biri kayboldu — tek tek dağıt.
 0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
    Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
    yönetici ekranı → "Bildirim gönder" (son N / herkes). OTA 5961921e (30.09 17:35).
@@ -65,7 +66,6 @@
    Yapay zekâ kendini "Vekil Pro asistanıyım" diye tanıtıyor (28.09; sunucu
    ai-chat v112 / ictihat v55; karşılama metni 2. OTA ile gitti. Eski ad
    "Vekil AI"); AI olduğunu saklamaz, model/şirket adını söylemez.
-1. (Apple incelemesi bitti — 3.4.0 yayında; demo hesap tazeleme gereksiz.)
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
