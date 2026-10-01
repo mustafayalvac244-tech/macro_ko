@@ -9,6 +9,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 // aylarca ölü kaldı ve kimse fark etmedi. Ücretli hattı aynı riske
 // bırakmıyoruz — sürüm yükseltmesi bilinçli bir karar olsun.
 import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
+import { claudeIle } from '../_shared/claudeIstemci.ts';
 // Dilekçe iskeleti ve belge türleri ayrı dosyada: orası saf mantık ve TESTLİ
 // (tests/dilekceIskelet.test.ts). Uç işlevinin içindeyken sınanamıyordu.
 import {
@@ -166,7 +167,6 @@ async function claudeChat(
   // modeli hiç ölçmüyordu — Gemini yedeğindeki sessiz ölüm hatasının aynısı.
   model: string
 ): Promise<{ text: string; tin: number; tout: number }> {
-  const client = new Anthropic({ apiKey });
   // Anthropic en fazla 4 kesme noktası kabul eder; boş katmanlar atlanır.
   const katmanlar = (Array.isArray(stableSystem) ? stableSystem : [stableSystem])
     .filter((k) => k.trim())
@@ -179,7 +179,7 @@ async function claudeChat(
   if (groundingSystem.trim()) system.push({ type: 'text', text: groundingSystem });
 
   try {
-    const res = await client.messages.create({
+    const res = await claudeIle(apiKey, (client) => client.messages.create({
       model,
       max_tokens: maxTokens,
       thinking: { type: 'adaptive' },
@@ -188,7 +188,7 @@ async function claudeChat(
         role: m.role === 'model' ? ('assistant' as const) : ('user' as const),
         content: m.text,
       })),
-    });
+    }));
     // Güvenlik reddi: içerik okunmadan önce stop_reason kontrol edilmeli.
     if (res.stop_reason === 'refusal') throw new Error('refusal');
     // Blok tipi YAPISAL yazılıyor, Anthropic.TextBlock ile değil: tsc, Deno'nun
