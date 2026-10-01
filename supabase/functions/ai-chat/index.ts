@@ -186,36 +186,58 @@ async function claudeChat(
   if (groundingSystem.trim()) system.push({ type: 'text', text: groundingSystem });
 
   try {
-    const res = await claudeIle(apiKey, (client) => client.messages.create({
-      model,
-      max_tokens: maxTokens,
-      // Haiku 4.5 uyarlamalı düşünmeyi reddeder (400) — bkz. _shared/claudeModel.ts.
-      // Sonnet/Opus 5'te düşünme varsayılan AÇIK; kapatmak açık 'disabled' ister.
-      ...dusunmeAyari(model, dusunme),
-      system: system as never,
-      messages: msgs.map((m) => ({
-        role: m.role === 'model' ? ('assistant' as const) : ('user' as const),
-        content: m.text,
-      })),
+    // YARIM KALMA OLMASIN (01.10.2026, ürün sahibi). Ölçüldü: deneme dilekçesi
+    // 3.000 token tavanda "davalıdan tahsiline; y" diye kesildi. Tavan dolarsa
+    // (stop_reason 'max_tokens') model kaldığı yerden DEVAM ettirilir ve metin
+    // birleştirilir. En çok DEVAM_EN_FAZLA ek tur — sonsuz döngü ve sınırsız
+    // fatura olmasın diye.
+    const DEVAM_EN_FAZLA = 2;
+    const temelMesajlar = msgs.map((m) => ({
+      role: m.role === 'model' ? ('assistant' as const) : ('user' as const),
+      content: m.text,
     }));
-    // Güvenlik reddi: içerik okunmadan önce stop_reason kontrol edilmeli.
-    if (res.stop_reason === 'refusal') throw new Error('refusal');
-    // Blok tipi YAPISAL yazılıyor, Anthropic.TextBlock ile değil: tsc, Deno'nun
-    // 'npm:' içe aktarmalarını çözemediği için o ad uzayı burada yok ve tek bir
-    // çözülemeyen tip, tip denetiminin tamamını gürültüye çevirir (bu dosyada
-    // aylarca hiç denetim yoktu, bkz. deno-shim.d.ts).
-    const text = (res.content as Array<{ type: string; text?: string }>)
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text ?? '')
-      .join('');
-    const u = res.usage;
-    // Önbellek okuması da girdi sayılır (ucuz olsa da ölçüme dahil edilir).
-    const tin = (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+    let text = '';
+    let tin = 0;
+    let tout = 0;
+    for (let tur = 0; tur <= DEVAM_EN_FAZLA; tur++) {
+      const mesajlar = tur === 0
+        ? temelMesajlar
+        : [
+            ...temelMesajlar,
+            { role: 'assistant' as const, content: text },
+            { role: 'user' as const, content: 'Metin yarıda kesildi. Kaldığın yerden, önceki kısmı TEKRAR ETMEDEN ve açıklama eklemeden devam et.' },
+          ];
+      const res = await claudeIle(apiKey, (client) => client.messages.create({
+        model,
+        max_tokens: maxTokens,
+        // Haiku 4.5 uyarlamalı düşünmeyi reddeder (400) — bkz. _shared/claudeModel.ts.
+        // Sonnet/Opus 5'te düşünme varsayılan AÇIK; kapatmak açık 'disabled' ister.
+        ...dusunmeAyari(model, dusunme),
+        system: system as never,
+        messages: mesajlar,
+      }));
+      // Güvenlik reddi: içerik okunmadan önce stop_reason kontrol edilmeli.
+      if (res.stop_reason === 'refusal') throw new Error('refusal');
+      // Blok tipi YAPISAL yazılıyor, Anthropic.TextBlock ile değil: tsc, Deno'nun
+      // 'npm:' içe aktarmalarını çözemediği için o ad uzayı burada yok ve tek bir
+      // çözülemeyen tip, tip denetiminin tamamını gürültüye çevirir (bu dosyada
+      // aylarca hiç denetim yoktu, bkz. deno-shim.d.ts).
+      const parca = (res.content as Array<{ type: string; text?: string }>)
+        .filter((b) => b.type === 'text')
+        .map((b) => b.text ?? '')
+        .join('');
+      text += parca;
+      const u = res.usage;
+      // Önbellek okuması da girdi sayılır (ucuz olsa da ölçüme dahil edilir).
+      tin += (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+      tout += u.output_tokens ?? 0;
+      if (res.stop_reason !== 'max_tokens' || !parca.trim()) break;
+    }
     // Ücretli hat da durum tablosuna yazar: sağlık raporu, ücretsiz sağlayıcılar
     // için yoklamanın yalan söylediğini gerçek çağrılardan öğrenmişti; para
     // ödeyen katmanı bu görünürlükten mahrum bırakmak tutarsız olurdu.
     void durumYaz('claude', 'ok', undefined, model);
-    return { text, tin, tout: u.output_tokens ?? 0 };
+    return { text, tin, tout };
   } catch (e) {
     let sonuc = 'upstream';
     if (e instanceof Anthropic.RateLimitError) sonuc = 'rate_limit';
@@ -2615,7 +2637,9 @@ async function dosyaKunyesi(
     // istek 413 ile REDDEDİLİYOR, yani cevap hiç üretilmiyor. Zayıf bir cevap,
     // hiç cevap olmamasından iyidir. Claude'da böyle bir tavan yok, dosya tam
     // gider.
-    const dilekceMaxTok = Math.max(cfg.maxOut, tier === 'ai' ? 4096 : 3000);
+    // 6.000 — ürün sahibi kararı (01.10.2026). 3.000'de deneme dilekçesi
+    // kesildi (ölçüldü). Tavan yine dolarsa claudeChat kaldığı yerden devam eder.
+    const dilekceMaxTok = Math.max(cfg.maxOut, 6000);
     let dilekceKirpildi = false;
     if (provider === 'groq') {
       const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + structure + promptQuestion, dilekceMaxTok);
