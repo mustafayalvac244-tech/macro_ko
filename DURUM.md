@@ -49,7 +49,7 @@
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
    Anahtar ~30.10 biter. Test hesapları silindi. PR #127 main'e birleşti, OTA 27.
-   Deneme: sabit Sonnet 5, düşünme kapalı (v124/v63); dilekçe ₺2,21, 3k tavanda KESİLDİ.
+   Deneme: Sonnet 5, düşünme kapalı; dilekçe tavanı 6k + kesilirse devam (ai-chat v125).
 0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
    Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
    yönetici ekranı → "Bildirim gönder" (son N / herkes). OTA 5961921e (30.09 17:35).
