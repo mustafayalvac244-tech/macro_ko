@@ -38,6 +38,6 @@ describe('deneme isteğinde düşünme kapalı', () => {
     const cagrilar = kod.match(/await ucretliChat\([^;]*\);/g) ?? [];
     expect(cagrilar.length).toBeGreaterThanOrEqual(5);
     for (const c of cagrilar) expect(c, c).toMatch(/!cfg\.denemeLimit\)\s*;$/);
-    expect(kod).toMatch(/dusunme && uyarlamaliDusunmeVar\(model\)/);
+    expect(kod).toMatch(/\.\.\.dusunmeAyari\(model, dusunme\)/);
   });
 });

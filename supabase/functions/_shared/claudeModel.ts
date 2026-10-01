@@ -21,3 +21,22 @@ export function uyarlamaliDusunmeVar(model: string): boolean {
   if (/-4-20\d{6}/.test(m)) return false;
   return true;
 }
+
+/**
+ * İstek için `thinking` alanı — 01.10.2026 belgeyle doğrulandı
+ * (platform.claude.com › build-with-claude/thinking):
+ *  - Opus 5, Sonnet 5 (ve 5.x, Fable, Mythos) DÜŞÜNMEYİ VARSAYILAN AÇIK getirir;
+ *    alanı göndermemek KAPATMAZ. Kapatmak için `{type: 'disabled'}` gerekir.
+ *  - Sonnet 5.5, Opus 5.5, Fable ve Mythos `disabled`'ı 400 ile reddeder —
+ *    onlarda kapatılamaz, alan gönderilmez.
+ *  - Haiku 4.5 ve 4.5 öncesi uyarlamalı düşünmeyi reddeder; alan gönderilmez.
+ * CANLI OLAY: denemede "alanı gönderme" ile kapattığımızı sandık; Sonnet 5 yine
+ * düşündü, 3.000 token tavanı yedi, metin boş döndü (iki dilekçe denemesi).
+ */
+export function dusunmeAyari(model: string, dusunme: boolean): { thinking?: { type: 'adaptive' | 'disabled' } } {
+  if (!uyarlamaliDusunmeVar(model)) return {};
+  if (dusunme) return { thinking: { type: 'adaptive' } };
+  const m = model.toLowerCase();
+  if (/sonnet-5-5|opus-5-5|fable|mythos/.test(m)) return {};
+  return { thinking: { type: 'disabled' } };
+}
