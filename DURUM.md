@@ -44,10 +44,11 @@
    AÇILMAZ. Ürün sahibi: aynı rastgele değeri Supabase secret'a ve RevenueCat →
    Integrations → Webhooks → Authorization'a girecek. Doğrulama: yetkisiz POST
    503 değil 401 dönmeli. Satın alma bildirimi: RevenueCat iOS uygulaması.
-0a. 30.09: Claude ÇALIŞMIYOR — yeni ANTHROPIC_API_KEY çalışma alanına bağlı değil
-   (ai_saglayici_durum: 400 "not scoped to a workspace"). Ürün sahibi anahtarı
-   Workspace=Default seçerek yeniden oluşturacak (30 gün sınırlı; ~30.10'da
-   yenile). Test hesabı ai-test-kontrol@vekilpro.app (d6d41785…) doğrulamadan
+0a. Claude ÇALIŞMIYOR (01.10 ölçüldü) — ANTHROPIC_API_KEY çalışma alanına bağlı
+   değil (400 "not scoped"). Admin API ile otomatik bulma 403 → İMKÂNSIZ.
+   _shared/claudeIstemci.ts: CALISMA_ALANI sabiti (wrkspc_…) doldurulunca 400'de
+   başlıkla yeniden dener — kimliği ürün sahibi verecek. Kullanıcılar bu arada
+   yedek modelden (gpt-oss-120b) cevap alıyor, hata değil. Anahtar ~30.10 biter. Test hesabı ai-test-kontrol@vekilpro.app (d6d41785…) doğrulamadan
    sonra SİLİNECEK. E-posta YOK (ürün sahibi: "e-posta isteyen kim").
 0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
    Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
