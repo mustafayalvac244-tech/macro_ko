@@ -850,7 +850,13 @@ async function recordUsage(
   tout: number,
   billable: boolean,
   musteriyeYaz = true,
-  mod = 'sohbet'
+  mod = 'sohbet',
+  // DENEME İSTEĞİ KONTÖRDEN DÜŞMEZ — 01.10.2026 canlıda ölçüldü. katman.ts
+  // "bakiye sıfır, düşüm sessizce başarısız olur" varsayıyordu; YANLIŞ:
+  // ai_kontor_dus bakiyeyi eksiye indiriyor (satır yoksa -tutar ile açıyor).
+  // Ücretsiz deneme sorusu test hesabında bakiyeyi -1,07 TL yaptı. Maliyet
+  // yine gider defterine (ai_usage / ai_istek.maliyet_try) yazılır.
+  deneme = false
 ): Promise<{ maliyet: number; istekId: string | null }> {
   const s = svc();
   if (!s) return { maliyet: 0, istekId: null };
@@ -858,7 +864,7 @@ async function recordUsage(
   // ÜCRET, MALİYET DEĞİLDİR. Kontörden düşen tutar satıştır; maliyet gider
   // defterine yazılır. İkisini tek sayıya indirgemek, "ne kazandık" sorusunu
   // cevaplanamaz hâle getirir ve iadede yanlış tutar geri verilir.
-  const ucret = cost > 0 ? Math.round(cost * KAR_KATSAYISI * 100) / 100 : 0;
+  const ucret = cost > 0 && !deneme ? Math.round(cost * KAR_KATSAYISI * 100) / 100 : 0;
   const p = aiPeriod();
   const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
   const prev = data as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
@@ -2384,7 +2390,7 @@ Deno.serve(async (req) => {
       // 12 mütalaalık hakkın biri, ödenen modelin yazmadığı bir metne gitmesin.
       const yedekModel = cfg.provider === 'claude' && !kullanim.faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, true);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !(kusurlu || yedekModel), 'mutalaa');
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !(kusurlu || yedekModel), 'mutalaa', !!cfg.denemeLimit);
       return new Response(JSON.stringify({
         text: text.trim(), tier, model: kullanim.model, issues,
         yedekModel: yedekModel || undefined,
@@ -2807,7 +2813,7 @@ async function dosyaKunyesi(
       const yedekModel = cfg.provider === 'claude' && !faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
       if (cfg.denemeLimit && (kusurlu || yedekModel)) await denemeHakkiSerbestBirak(userData.user.id);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'dilekce');
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'dilekce', !!cfg.denemeLimit);
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
           hakDusulmedi: (kusurlu || yedekModel) || undefined, istekId,
@@ -2917,7 +2923,7 @@ async function dosyaKunyesi(
       const yedekModel = cfg.provider === 'claude' && !faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
       if (cfg.denemeLimit && (kusurlu || yedekModel)) await denemeHakkiSerbestBirak(userData.user.id);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'kunye');
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'kunye', !!cfg.denemeLimit);
       return new Response(
         JSON.stringify({
           kunye, atilan: atilan.length ? atilan : undefined,
@@ -3041,7 +3047,7 @@ async function dosyaKunyesi(
       const yedekModel = cfg.provider === 'claude' && !faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
       if (cfg.denemeLimit && (kusurlu || yedekModel)) await denemeHakkiSerbestBirak(userData.user.id);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'belge');
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'belge', !!cfg.denemeLimit);
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
           hakDusulmedi: (kusurlu || yedekModel) || undefined, istekId,
@@ -3200,7 +3206,7 @@ async function dosyaKunyesi(
     if (cfg.modLimits) await aiModSerbestBirak(userData.user.id, aiAy, false);
     if (cfg.denemeLimit) await denemeHakkiSerbestBirak(userData.user.id);
   }
-  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !(yedekModel || kusurlu), 'sohbet');
+  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !(yedekModel || kusurlu), 'sohbet', !!cfg.denemeLimit);
   return new Response(JSON.stringify({
     text: text.trim(), tier, model: kullanilanModel, istekId,
     // Uygulama bunu balonun altında uyarı olarak gösterir (AiMessage.yedek).

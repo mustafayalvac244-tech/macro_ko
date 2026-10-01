@@ -1,0 +1,23 @@
+// Deneme sorusu kontörden DÜŞMEZ — 01.10.2026 canlıda ölçüldü: ücretsiz deneme
+// sorusu test hesabının kontör bakiyesini -1,07 TL yaptı (ai_kontor_dus bakiyeyi
+// eksiye indiriyor; "sıfır bakiyede sessizce başarısız olur" varsayımı yanlıştı).
+//
+// Korunan: ai-chat'teki HER recordUsage çağrısı deneme bayrağını geçiyor ve
+// ücret hesabı bu bayrakta sıfır. Yeni bir mod eklenip bayrak unutulursa düşer.
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const kod = readFileSync(join(__dirname, '..', 'supabase/functions/ai-chat/index.ts'), 'utf8');
+
+describe('deneme sorusu kontörden düşmez', () => {
+  it('her recordUsage çağrısı deneme bayrağını geçiyor', () => {
+    const cagrilar = kod.match(/await recordUsage\([^;]*\);/g) ?? [];
+    expect(cagrilar.length).toBeGreaterThanOrEqual(5);
+    for (const c of cagrilar) expect(c, c).toMatch(/!!cfg\.denemeLimit\)\s*;$/);
+  });
+
+  it('ücret deneme bayrağında sıfır', () => {
+    expect(kod).toMatch(/const ucret = cost > 0 && !deneme \?/);
+  });
+});

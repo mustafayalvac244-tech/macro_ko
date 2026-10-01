@@ -300,12 +300,12 @@ export function tierConfig(
     // denemenin Groq yerine Claude'da koşmasının da sebebi (yukarıda).
     model: claudeModel,
     // billable:true — deneme isteklerinin GERÇEK maliyeti (ai_usage/ai_istek)
-    // kaydedilsin isteriz, kendi muhasebemiz için. Kontörden düşülmeye
-    // ÇALIŞILIR ama free/baslangic kullanıcının kontör bakiyesi yok/sıfır
-    // olduğundan bu deneme sessizce başarısız olur (bkz. ai_kontor_dus'un
-    // çağrıldığı recordUsage: "Bakiye düşülemediyse kullanıcının cevabı
-    // engellenmez; kayıp bizde kalır") — yani gider bize yazılır, kullanıcıya
-    // hiç fatura çıkmaz. denemeLimit alanı, aşağıdaki kontör ÖN kontrolünü
+    // kaydedilsin isteriz, kendi muhasebemiz için. KONTÖRDEN DÜŞÜLMEZ:
+    // recordUsage `deneme` bayrağıyla ücreti sıfırlar (ai-chat, 01.10.2026).
+    // Bu yorumun eski hâli "bakiye sıfır, düşüm sessizce başarısız olur"
+    // diyordu — CANLIDA YANLIŞ ÇIKTI: ai_kontor_dus bakiyeyi eksiye indiriyor
+    // (test hesabı -1,07 TL, ürün sahibinin hesabı 11.09'dan -8,38 TL).
+    // denemeLimit alanı, aşağıdaki kontör ÖN kontrolünü
     // (index.ts: billable && !modLimits && !denemeLimit) atlatır.
     billable: true,
     limitKind: 'calls',
