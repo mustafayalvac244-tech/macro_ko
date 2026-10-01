@@ -10,13 +10,12 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 28.09.2026 (deneme takibi)
+**Son güncelleme:** 01.10.2026 (Claude çalışıyor, deneme ücretsiz)
 
 ## 1. Şu an — yayın durumu
 
-- **iOS 3.4.0 Apple'da: `WAITING_FOR_REVIEW`, derleme 7** (27.09 18:15 UTC
-  okundu). İki abonelik de `WAITING_FOR_REVIEW` — sürümle birlikte gitmiş.
-  Ürün sahibi arayüzden gönderdi (API'den gönderim izin denetimince engelli).
+- **iOS 3.4.0 App Store'da YAYINDA** (iTunes lookup id 6812859016, TR,
+  yayın 27.09 19:46 UTC — 01.10 ölçüldü). Sitede App Store bağlantısı YOK (eklenecek).
 - Apple 2. ret (25.09) üç maddeydi, üçü de kapandı:
   2.3.7 görsellerde fiyat → görseller değişti, yüklendi (MD5 eşleşti) ·
   5.1.1 TC zorunlu → isteğe bağlı (derleme 6+) ·
@@ -27,21 +26,45 @@
   web giriş yaptırmıyordu** (paket Supabase adresi olmadan derlenmişti);
   26.09'da düzeltildi. Artık ortam yoksa derleme durur, tests/webPaketi düşer.
 - **Android/Play:** başlanmadı (bkz. KARAR-DEFTERI §3).
-- **Hasat** yayına kadar durduruldu (0156). Vektörleme kapalı (0154/0155).
+- **Hasat AÇIK** (28.09 18:34 UTC, 0160; ürün sahibi "hasata devam"). Geri alma
+  eşiği: kullanıcı tablolarında zaman aşımı → 0156 ifadesiyle kapat.
+  Vektörleme hâlâ kapalı (0154/0155). Ölçüldü 01.10: 24 saatte 14.373 yeni
+  karar (katalog 11.037 + terim 3.336).
+- **Hasat talebe göre (0162, 01.10):** ai-chat sorusu ve içtihat araması (1.
+  sayfa) 970 sabit konuyla eşleşir → hasat_konu_talep sayacı (METİN YOK, kişi
+  yok) + öncelik ≥200 → emsal hasadında saatte bir öne alınır. Sıklık aynı.
+  0163: sınıra takılıp bitmiş talepli konu 51. sayfadan sürer; harvest-tick
+  talepli konuda 200 sayfaya iner. Test araması sayacı silindi (gerçek değil).
 
 ## 2. Sıradaki / açık işler
 
+00. **ACİL — satın alma sunucuya ulaşmıyor.** `revenuecat-webhook` 28.09'da
+   `503 not_configured` döndü (REVENUECAT_WEBHOOK_SECRET yok); `purchases`
+   tablosunda hiç RevenueCat olayı yok. Ödeyen kullanıcının is_premium/ai_tier'ı
+   AÇILMAZ. Ürün sahibi: aynı rastgele değeri Supabase secret'a ve RevenueCat →
+   Integrations → Webhooks → Authorization'a girecek. Doğrulama: yetkisiz POST
+   503 değil 401 dönmeli. Satın alma bildirimi: RevenueCat iOS uygulaması.
+0a. **Claude ÇALIŞIYOR (01.10 17:14 ölçüldü).** Üç hata düzeltildi: anahtar
+   çalışma alanına bağlı değildi → CALISMA_ALANI (Default, _shared/claudeIstemci);
+   Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
+   düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
+   Deneme (Haiku) ölçüldü ₺0,36–0,39/soru. Anahtar ~30.10 biter. Test hesabı silindi.
+   Ücretsiz deneme → SABİT Sonnet 5 CANLIDA (01.10; ai-chat v122, ictihat v62).
+0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
+   Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
+   yönetici ekranı → "Bildirim gönder" (son N / herkes). OTA 5961921e (30.09 17:35).
+   AÇIK: telefona düştüğü ÖLÇÜLMEDİ; iOS için Expo'da APNs anahtarı tanımlı mı
+   BİLİNMİYOR (bilet "InvalidCredentials" dönerse eksik o). Adres ancak
+   kullanıcı yeni sürümü açıp izin verince oluşur. Web paneline girmedi.
 0. 28.09: kayıtta sahte başarı düzeltildi (authStore.signUp) + ücretsiz katmana
    5 deneme sorusu (Haiku; sunucu ai-chat v111 / ictihat v54 dağıtıldı).
    Web canlı; telefonlara OTA ile gönderildi (ürün sahibi: "göndermeden önce
    bunu da ekle"). OTA'nın telefona indiği ÖLÇÜLMEDİ.
    Deneme takibi: yönetici ekranı → "Deneyen kişi / Ücretliye geçen / Deneme
    (7 gün)" (0159 admin_deneme_takibi). Soru METNİ saklanmıyor, gösterilmiyor.
-   Yapay zekâ kendini "Vekil Pro asistanıyım" diye tanıtıyor (28.09, eski ad
+   Yapay zekâ kendini "Vekil Pro asistanıyım" diye tanıtıyor (28.09; sunucu
+   ai-chat v112 / ictihat v55; karşılama metni 2. OTA ile gitti. Eski ad
    "Vekil AI"); AI olduğunu saklamaz, model/şirket adını söylemez.
-1. İnceleme sonucunu `tam-denetim` ile oku (sürüm satırı: `3.4.0  =  DURUM`).
-2. Demo hesabın (bayram@vekilpro.app) duruşma tarihleri sabit (ilki 27.09);
-   inceleme uzarsa `scripts/demo-hesap-ornek-veri.sql` ile tazele.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
@@ -61,7 +84,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0159`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0163`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
@@ -78,6 +101,7 @@
 - Sır/anahtar sohbete, depoya yazılmaz; `service_role`/`sb_secret_` asla.
 - Kullanıcının sohbete yazdığı kişisel veri (TC no vb.) hiçbir yere yazılmaz.
 - Telefona izinsiz OTA yok. Ücretli değerlendirme betiği izinsiz koşmaz.
+  01.10: "para harcama, bakiyeyi bitirme" — test için yapay zekâya SORU SORMA.
 - Sağlık verisi bu depoya girmez; eczane tablolarına/fonksiyonlarına dokunma.
 - Tevkil panosu ve meslektaş mesajları **KAPALI** (26.09, 0158). Veri
   silinmedi. Açmak ürün sahibi kararı.
@@ -90,3 +114,6 @@
 - `main`'e birleştirirken eski dallar düzeltilmiş dosyaları geri getirebilir
   (iPad hata görseli, "ücretsiz" başlığı) — çakışmada bizimkini tut, testi koş.
 - Satış ekranı fiyatı sabitten değil mağazadan (`priceString`) okunmalı.
+- 30.09: "Zoho ile bilgi@vekilpro.app bedava" denildi; ücretsiz planın yalnız bazı
+  veri merkezlerinde olduğu biliniyordu ama söylenmedi — AB'de yoktu (4 $/ay).
+  Koşula bağlı bilgi "evet" diye verilmez; koşul cevabın İLK cümlesine yazılır.

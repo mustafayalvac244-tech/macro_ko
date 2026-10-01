@@ -53,7 +53,7 @@ const sectionsTr = (): Section[] => [
     body:
       `• Ücretsiz: 0 ₺. İçtihat araması (Yargıtay, Danıştay, istinaf, yerel) SINIRSIZ ve süresizdir; mevzuat, hesaplayıcılar, dilekçe şablonları, duruşma/görev/ajanda ve hatırlatmalar da sınırsızdır. ${UCRETSIZ_LIMIT.dava} dava, ${UCRETSIZ_LIMIT.muvekkil} müvekkil ve ${UCRETSIZ_LIMIT.belge} belge kaydedilebilir.\n` +
       `• Vekil Pro (temel): aylık ${MONTHLY_PRICE_TRY} ₺. Sınırsız dava, müvekkil ve belge; finans modülü ve raporlar. Deneme süresi yoktur; ücretsiz plan süresizdir.\n` +
-      `• Yapay zekâ denemesi: ücretsiz planda hesap başına tek seferlik ${UCRETSIZ_DENEME_HAKKI} soru (daha hafif bir modelle yanıtlanır; derin araştırma dahil değildir). Vekil Pro üyeliğinde bu hak toplam ${DENEME_SORU_HAKKI} soruya tamamlanır.\n` +
+      `• Yapay zekâ denemesi: ücretsiz planda hesap başına tek seferlik ${UCRETSIZ_DENEME_HAKKI} soru (derin araştırma dahil değildir). Vekil Pro üyeliğinde bu hak toplam ${DENEME_SORU_HAKKI} soruya tamamlanır.\n` +
       `• Vekil Pro + Yapay Zekâ: aylık ${AI_PRICE_TRY.toLocaleString('tr-TR')} ₺. Temel paketteki her şeyi içerir.\n\n` +
       'İçtihat aramasının ücretsiz olması bir kampanya değil, ürünün kalıcı kuralıdır; ileride ücretli hâle getirilmeyecektir. Ücretli plana geçmezseniz mevcut kayıtlarınız silinmez ve erişilebilir kalır; yalnız yeni kayıt ekleme sınıra tabidir.\n\n' +
       'Abonelikler otomatik olarak yenilenir. Yenilemeyi durdurmak için dönem bitiminden en az 24 saat önce cihazınızın App Store / Google Play hesap ayarlarından aboneliği kapatmanız gerekir. Ücret, dönem bitiminden önceki 24 saat içinde tahsil edilir.',
@@ -154,7 +154,7 @@ const sectionsEn = (): Section[] => [
     body:
       `• Free: 0 TRY. Case law search (Cassation, Council of State, appellate, local) is UNLIMITED and permanent; legislation, calculators, petition templates, hearings, tasks, calendar and reminders are unlimited too. You may store ${UCRETSIZ_LIMIT.dava} cases, ${UCRETSIZ_LIMIT.muvekkil} clients and ${UCRETSIZ_LIMIT.belge} documents.\n` +
       `• Vekil Pro (base): ${MONTHLY_PRICE_TRY} TRY per month. Unlimited cases, clients and documents; finance module and reports. There is no trial period; the free plan does not expire.\n` +
-      `• AI trial: on the free plan, a one-time ${UCRETSIZ_DENEME_HAKKI} questions per account (answered by a lighter model; deep research is not included). With Vekil Pro this is topped up to ${DENEME_SORU_HAKKI} questions in total.\n` +
+      `• AI trial: on the free plan, a one-time ${UCRETSIZ_DENEME_HAKKI} questions per account (deep research is not included). With Vekil Pro this is topped up to ${DENEME_SORU_HAKKI} questions in total.\n` +
       `• Vekil Pro + AI: ${AI_PRICE_TRY.toLocaleString('en-US')} TRY per month, including everything in the base plan.\n\n` +
       'Free case law search is a permanent rule of the product, not a promotion; it will not become paid later. If you do not subscribe, your existing records are never deleted and stay accessible; only adding new records is subject to the limit.\n\n' +
       'Subscriptions renew automatically. To stop renewal, turn the subscription off in your App Store / Google Play account settings at least 24 hours before the period ends. Payment is charged within the 24 hours before renewal.',

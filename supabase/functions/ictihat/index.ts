@@ -12,6 +12,8 @@
 //   (GEMINI_API_KEY zaten ai-chat için tanımlı; summarize onu kullanır)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
+import { claudeIle } from '../_shared/claudeIstemci.ts';
+import { uyarlamaliDusunmeVar } from '../_shared/claudeModel.ts';
 import { kotaRezerve, overLimit, tierConfig as ortakKatman } from '../_shared/katman.ts';
 // Dönem anahtarları ortak: bu uç günlük sayacı hiç bilmiyordu ve içtihat
 // ekranından yapılan AI çağrıları günlük haktan düşmüyordu (bkz. _shared/kullanim.ts).
@@ -241,9 +243,8 @@ async function llmCall(
 ): Promise<string> {
   if (!apiKey) throw new Error('not_configured');
   if (provider === 'claude') {
-    const client = new Anthropic({ apiKey });
     try {
-      const res = await client.messages.create({
+      const res = await claudeIle(apiKey, (client) => client.messages.create({
         model,
         // DÜŞÜNME TAVANA DAHİL. Adaptif düşünme açıkken düşünme token'ları da
         // max_tokens'tan düşer; 400'lük bir tavan yalnız düşünmeye gidip metin
@@ -251,10 +252,11 @@ async function llmCall(
         // geçerli; metin üreten çağrılarda düşünme açık, tavana pay ekleniyor
         // ve sıcaklık GÖNDERİLMİYOR (düşünme açıkken API reddeder).
         max_tokens: opts.json ? opts.maxTokens : opts.maxTokens + 6000,
-        ...(opts.json ? { temperature: opts.temperature } : { thinking: { type: 'adaptive' } }),
+        // Haiku 4.5 uyarlamalı düşünmeyi reddeder (400) — bkz. _shared/claudeModel.ts.
+        ...(opts.json ? { temperature: opts.temperature } : uyarlamaliDusunmeVar(model) ? { thinking: { type: 'adaptive' } } : {}),
         system: opts.json ? `${system} YALNIZ geçerli bir JSON nesnesi döndür; kod bloğu, açıklama, başlık yazma.` : system,
         messages: [{ role: 'user', content: userText }],
-      });
+      }));
       if (res.stop_reason === 'refusal') throw new Error('refusal');
       const text = (res.content as Array<{ type: string; text?: string }>)
         .filter((b) => b.type === 'text')
@@ -883,6 +885,13 @@ Deno.serve(async (req) => {
       if (!query) return json({ error: 'bad_request' }, 400);
       const pageSize = Math.min(20, Math.max(1, Number(body.pageSize ?? 15)));
       const page = Math.max(1, Number(body.page ?? 1));
+      // HASAT TALEBİ (0162) — aranan konu hasatta öne alınsın. Yalnız ilk
+      // sayfa sayılır (sayfa çevirmek yeni talep değil). Metin SAKLANMAZ;
+      // ateşle-unut, aramayı bekletmez.
+      if (page === 1) {
+        const s = svc();
+        if (s) void s.rpc('hasat_talep_kaydet', { p_metin: query, p_kaynak: 'arama' }).then(() => {}, () => {});
+      }
       // Mahkeme süzgeci: 'yargitay' (Bedesten) | 'danistay' (Bedesten) | 'emsal'
       // (UYAP Emsal: BAM + yerel). Varsayılan Yargıtay — en üst mahkeme.
       const court = body.court ?? 'yargitay';

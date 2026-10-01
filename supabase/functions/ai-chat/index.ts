@@ -9,6 +9,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 // aylarca ölü kaldı ve kimse fark etmedi. Ücretli hattı aynı riske
 // bırakmıyoruz — sürüm yükseltmesi bilinçli bir karar olsun.
 import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
+import { claudeIle } from '../_shared/claudeIstemci.ts';
+import { uyarlamaliDusunmeVar } from '../_shared/claudeModel.ts';
 // Dilekçe iskeleti ve belge türleri ayrı dosyada: orası saf mantık ve TESTLİ
 // (tests/dilekceIskelet.test.ts). Uç işlevinin içindeyken sınanamıyordu.
 import {
@@ -164,9 +166,14 @@ async function claudeChat(
   // "opus ile ölç" denildiğinde istek yine Sonnet'e gidiyor, maliyet ise
   // opus fiyatından işleniyordu. Yani karşılaştırma koşusu, ölçtüğünü sandığı
   // modeli hiç ölçmüyordu — Gemini yedeğindeki sessiz ölüm hatasının aynısı.
-  model: string
+  model: string,
+  // DENEME İSTEĞİNDE DÜŞÜNME KAPALI (01.10.2026 canlıda ölçüldü). Ücretsiz
+  // denemenin dilekçesi 3.000 token tavanla Sonnet'e gitti; uyarlamalı düşünme
+  // tavanı yedi, metin BOŞ döndü (durum 'ok'), istek yedek modele düştü —
+  // Sonnet yine faturalandı, kayda 0 yazıldı. Denemede düşünme yok: tavanın
+  // tamamı metne kalır, maliyet öngörülebilir olur.
+  dusunme = true
 ): Promise<{ text: string; tin: number; tout: number }> {
-  const client = new Anthropic({ apiKey });
   // Anthropic en fazla 4 kesme noktası kabul eder; boş katmanlar atlanır.
   const katmanlar = (Array.isArray(stableSystem) ? stableSystem : [stableSystem])
     .filter((k) => k.trim())
@@ -179,16 +186,17 @@ async function claudeChat(
   if (groundingSystem.trim()) system.push({ type: 'text', text: groundingSystem });
 
   try {
-    const res = await client.messages.create({
+    const res = await claudeIle(apiKey, (client) => client.messages.create({
       model,
       max_tokens: maxTokens,
-      thinking: { type: 'adaptive' },
+      // Haiku 4.5 uyarlamalı düşünmeyi reddeder (400) — bkz. _shared/claudeModel.ts.
+      ...(dusunme && uyarlamaliDusunmeVar(model) ? { thinking: { type: 'adaptive' } } : {}),
       system: system as never,
       messages: msgs.map((m) => ({
         role: m.role === 'model' ? ('assistant' as const) : ('user' as const),
         content: m.text,
       })),
-    });
+    }));
     // Güvenlik reddi: içerik okunmadan önce stop_reason kontrol edilmeli.
     if (res.stop_reason === 'refusal') throw new Error('refusal');
     // Blok tipi YAPISAL yazılıyor, Anthropic.TextBlock ile değil: tsc, Deno'nun
@@ -242,11 +250,12 @@ async function ucretliChat(
   msgs: Array<{ role: 'user' | 'model'; text: string }>,
   maxTokens: number,
   apiKey: string,
-  model: string
+  model: string,
+  dusunme = true
 ): Promise<{ text: string; tin: number; tout: number; model: string; faturali: boolean }> {
   let ilkHata: Error | null = null;
   try {
-    const r = await claudeChat(stableSystem, groundingSystem, msgs, maxTokens, apiKey, model);
+    const r = await claudeChat(stableSystem, groundingSystem, msgs, maxTokens, apiKey, model, dusunme);
     if (r.text.trim()) return { ...r, model, faturali: true };
     ilkHata = new Error('empty');
   } catch (e) {
@@ -848,7 +857,13 @@ async function recordUsage(
   tout: number,
   billable: boolean,
   musteriyeYaz = true,
-  mod = 'sohbet'
+  mod = 'sohbet',
+  // DENEME İSTEĞİ KONTÖRDEN DÜŞMEZ — 01.10.2026 canlıda ölçüldü. katman.ts
+  // "bakiye sıfır, düşüm sessizce başarısız olur" varsayıyordu; YANLIŞ:
+  // ai_kontor_dus bakiyeyi eksiye indiriyor (satır yoksa -tutar ile açıyor).
+  // Ücretsiz deneme sorusu test hesabında bakiyeyi -1,07 TL yaptı. Maliyet
+  // yine gider defterine (ai_usage / ai_istek.maliyet_try) yazılır.
+  deneme = false
 ): Promise<{ maliyet: number; istekId: string | null }> {
   const s = svc();
   if (!s) return { maliyet: 0, istekId: null };
@@ -856,14 +871,19 @@ async function recordUsage(
   // ÜCRET, MALİYET DEĞİLDİR. Kontörden düşen tutar satıştır; maliyet gider
   // defterine yazılır. İkisini tek sayıya indirgemek, "ne kazandık" sorusunu
   // cevaplanamaz hâle getirir ve iadede yanlış tutar geri verilir.
-  const ucret = cost > 0 ? Math.round(cost * KAR_KATSAYISI * 100) / 100 : 0;
+  const ucret = cost > 0 && !deneme ? Math.round(cost * KAR_KATSAYISI * 100) / 100 : 0;
   const p = aiPeriod();
   const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
   const prev = data as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
   await s.from('ai_usage').upsert({
     user_id: userId,
     period: p,
-    calls: (prev?.calls ?? 0) + 1,
+    // AYLIK SAYAÇ DA "HAK GİTMEZ" KURALINA UYAR (01.10.2026 canlıda ölçüldü).
+    // Önce koşulsuz +1'di: Claude düşüp yedek modelin cevapladığı istekler
+    // aylık çağrı hakkından düşüyordu — test hesabında 4 yedek + 1 Claude
+    // cevabı, 5 soruluk ücretsiz denemeyi "quota_exceeded" ile kapattı.
+    // Günlük satır zaten musteriyeYaz'a bakıyordu; ikisi artık aynı.
+    calls: (prev?.calls ?? 0) + (musteriyeYaz ? 1 : 0),
     tokens_in: (prev?.tokens_in ?? 0) + tin,
     tokens_out: (prev?.tokens_out ?? 0) + tout,
     cost_try: Number(prev?.cost_try ?? 0) + cost,
@@ -1961,6 +1981,15 @@ Deno.serve(async (req) => {
   // Referanslar mütalaa bloğunda mutalaaQuestion adıyla kullanılıyordu; alias.
   const mutalaaQuestion = promptQuestion;
 
+  // HASAT TALEBİ (0162) — sorulan konu hasatta öne alınsın. Metin SAKLANMAZ:
+  // sunucu yalnız sabit konu listesiyle eşleştirip "konu/gün/adet" sayar.
+  // Ateşle-unut: cevabı bekletmez, hata cevabı bozmaz.
+  {
+    const s = svc();
+    const sonSoru = String(messages[messages.length - 1]?.text ?? '');
+    if (s && sonSoru) void s.rpc('hasat_talep_kaydet', { p_metin: sonSoru, p_kaynak: 'ai' }).then(() => {}, () => {});
+  }
+
   // Üyelik katmanı + maliyet tavanı (batma koruması).
   // profiles PII sertleştirmesiyle authenticated'a SELECT kapalı; kullanıcının
   // KENDİ tier'ını SERVİS anahtarıyla (RLS bypass) oku. Aksi halde .from(profiles)
@@ -2195,7 +2224,7 @@ Deno.serve(async (req) => {
         // (araştırma dosyası) her adımda değiştiği için arkaya konur.
         const stable = sys.startsWith(SYSTEM_PROMPT) ? SYSTEM_PROMPT : sys;
         const rest = sys.startsWith(SYSTEM_PROMPT) ? sys.slice(SYSTEM_PROMPT.length) : '';
-        const r = await ucretliChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey, model);
+        const r = await ucretliChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey, model, !cfg.denemeLimit);
         meter.tin += r.tin;
         meter.tout += r.tout;
         kullanim.model = r.model;
@@ -2373,7 +2402,7 @@ Deno.serve(async (req) => {
       // 12 mütalaalık hakkın biri, ödenen modelin yazmadığı bir metne gitmesin.
       const yedekModel = cfg.provider === 'claude' && !kullanim.faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, true);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !(kusurlu || yedekModel), 'mutalaa');
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !(kusurlu || yedekModel), 'mutalaa', !!cfg.denemeLimit);
       return new Response(JSON.stringify({
         text: text.trim(), tier, model: kullanim.model, issues,
         yedekModel: yedekModel || undefined,
@@ -2662,7 +2691,7 @@ async function dosyaKunyesi(
         const sabitKisim = dossier ? dilekceSys.slice(0, dilekceSys.length - dossier.length) : dilekceSys;
         const modBlogu = sabitKisim.startsWith(SYSTEM_PROMPT) ? sabitKisim.slice(SYSTEM_PROMPT.length) : '';
         const katmanlar = modBlogu ? [SYSTEM_PROMPT, modBlogu] : [sabitKisim];
-        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model, !cfg.denemeLimit);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
@@ -2796,7 +2825,7 @@ async function dosyaKunyesi(
       const yedekModel = cfg.provider === 'claude' && !faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
       if (cfg.denemeLimit && (kusurlu || yedekModel)) await denemeHakkiSerbestBirak(userData.user.id);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'dilekce');
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'dilekce', !!cfg.denemeLimit);
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan, eksikBolum,
           hakDusulmedi: (kusurlu || yedekModel) || undefined, istekId,
@@ -2874,7 +2903,7 @@ async function dosyaKunyesi(
         // kunyeSys TAMAMEN STATİK (sabit JSON şema talimatı, araştırma dosyası
         // yok) — önbelleğin arkasında durmasının hiçbir sebebi yoktu, her
         // istekte tam fiyattan yeniden faturalanıyordu. İkinci katman yapıldı.
-        const r = await ucretliChat([SYSTEM_PROMPT, kunyeSys], '', [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        const r = await ucretliChat([SYSTEM_PROMPT, kunyeSys], '', [{ role: 'user', text: promptQuestion }], maxTok, genKey, model, !cfg.denemeLimit);
         out = r.text; uin = r.tin; uout = r.tout; kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
         const r = await openaiChat(kunyeSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
@@ -2906,7 +2935,7 @@ async function dosyaKunyesi(
       const yedekModel = cfg.provider === 'claude' && !faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
       if (cfg.denemeLimit && (kusurlu || yedekModel)) await denemeHakkiSerbestBirak(userData.user.id);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'kunye');
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'kunye', !!cfg.denemeLimit);
       return new Response(
         JSON.stringify({
           kunye, atilan: atilan.length ? atilan : undefined,
@@ -2983,7 +3012,7 @@ async function dosyaKunyesi(
         const sabitKisim = dossier ? belgeSys.slice(0, belgeSys.length - dossier.length) : belgeSys;
         const modBlogu = sabitKisim.startsWith(SYSTEM_PROMPT) ? sabitKisim.slice(SYSTEM_PROMPT.length) : '';
         const katmanlar = modBlogu ? [SYSTEM_PROMPT, modBlogu] : [sabitKisim];
-        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model, !cfg.denemeLimit);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
@@ -3030,7 +3059,7 @@ async function dosyaKunyesi(
       const yedekModel = cfg.provider === 'claude' && !faturali;
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
       if (cfg.denemeLimit && (kusurlu || yedekModel)) await denemeHakkiSerbestBirak(userData.user.id);
-      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'belge');
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'belge', !!cfg.denemeLimit);
       return new Response(
         JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
           hakDusulmedi: (kusurlu || yedekModel) || undefined, istekId,
@@ -3092,7 +3121,7 @@ async function dosyaKunyesi(
   let faturali = cfg.billable;
   try {
     if (provider === 'claude') {
-      const r = await ucretliChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey, model);
+      const r = await ucretliChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey, model, !cfg.denemeLimit);
       text = r.text;
       tin = r.tin;
       tout = r.tout;
@@ -3189,7 +3218,7 @@ async function dosyaKunyesi(
     if (cfg.modLimits) await aiModSerbestBirak(userData.user.id, aiAy, false);
     if (cfg.denemeLimit) await denemeHakkiSerbestBirak(userData.user.id);
   }
-  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !(yedekModel || kusurlu), 'sohbet');
+  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !(yedekModel || kusurlu), 'sohbet', !!cfg.denemeLimit);
   return new Response(JSON.stringify({
     text: text.trim(), tier, model: kullanilanModel, istekId,
     // Uygulama bunu balonun altında uyarı olarak gösterir (AiMessage.yedek).

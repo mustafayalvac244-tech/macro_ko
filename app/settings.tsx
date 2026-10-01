@@ -20,7 +20,7 @@ import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useCihazlarim, useTumOturumlariKapat, type OturumCihazi } from '@/hooks/useCihazlar';
 import { cihazAnahtari } from '@/lib/cihazKimligi';
 import { useLockStore } from '@/store/lockStore';
-import { registerForNotificationsAsync } from '@/lib/notifications';
+import { pushAdresiniKaydet, registerForNotificationsAsync } from '@/lib/notifications';
 import { useLangStore, useT, type Lang } from '@/i18n';
 import { format } from 'date-fns/format';
 import { radius, spacing, typography } from '@/theme/theme';
@@ -96,6 +96,7 @@ export default function SettingsScreen() {
     if (value) {
       const granted = await registerForNotificationsAsync();
       setNotificationsEnabled(granted);
+      if (granted) pushAdresiniKaydet().catch(() => {});
       if (!granted) {
         uyar(t('settings.permTitle'), t('settings.permMsg'));
       }

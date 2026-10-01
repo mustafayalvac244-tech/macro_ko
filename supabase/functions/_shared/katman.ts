@@ -248,7 +248,7 @@ const AI_MUTALAA_LIMIT = 25;
  * bir emniyet kilidi olarak duruyor ve bu bütçenin iki katı — yani bütçe
  * aşılsa bile tavan devreye girmeden önce fark edilir.
  */
-const AI_TASMA_MODEL = 'claude-haiku-4-5-20251001';
+export const AI_TASMA_MODEL = 'claude-haiku-4-5-20251001';
 const AI_TASMA_EK = 900;
 
 /**
@@ -274,12 +274,20 @@ export const DENEME_SORU_LIMIT = 10;
  * 13.09'daki "ücretsizde yapay zekâ yok" kararının yerine geçer. Aynı yaşam
  * boyu sayaç (`profiles.deneme_soru_kullanildi`) kullanılır: ücretsiz
  * kullanıcı 5'i bitirip Vekil Pro'ya geçerse toplam 10'a tamamlanır.
- * Model Haiku (AI_TASMA_MODEL). Derin araştırma (mütalaa) bu hakka dahil
- * DEĞİL — ai-chat onu yalnız 'ai' katmanına açıyor.
- * Maliyet: katman.ts'teki Haiku birim fiyatıyla (₺0,53, yukarıdaki yorum)
- * 5 × ₺0,53 ≈ ₺2,65 kullanıcı başına BİR KEZ — ÖLÇÜLMEDİ, o birimden hesap.
+ * Derin araştırma (mütalaa) bu hakka dahil DEĞİL — ai-chat onu yalnız 'ai'
+ * katmanına açıyor.
+ *
+ * MODEL: SONNET (01.10.2026, ürün sahibi: "haiku kötüyse sonnete geçelim").
+ * Önce Haiku'ydu (AI_TASMA_MODEL). Ölçülen Haiku maliyeti soru başı ₺0,36–0,39
+ * (iki gerçek istek, ~8,3 bin girdi token). Haiku'nun kalitesi ÖLÇÜLMEDİ —
+ * tek bir cevapta kira artışı kuralını hakkaniyet kuralıyla karıştırdığı
+ * görüldü. Geçiş gerekçesi ₺399 denemesindekiyle aynı: kullanıcının yapay
+ * zekâyla İLK teması, dönüşüm anı. Sonnet fiyatı Haiku'nun 2 katı ($2/$10
+ * vs $1/$5 MTok, platform.claude.com/pricing 28.09 okundu) → soru başı
+ * TAHMİN ≈ ₺0,8 (ölçülmedi; yeni tokenizer ve uyarlamalı düşünme artırabilir).
  */
 export const UCRETSIZ_DENEME_LIMIT = 5;
+export const UCRETSIZ_DENEME_MODEL = 'claude-sonnet-5';
 
 export function tierConfig(
   aiTier: string | null | undefined,
@@ -300,12 +308,12 @@ export function tierConfig(
     // denemenin Groq yerine Claude'da koşmasının da sebebi (yukarıda).
     model: claudeModel,
     // billable:true — deneme isteklerinin GERÇEK maliyeti (ai_usage/ai_istek)
-    // kaydedilsin isteriz, kendi muhasebemiz için. Kontörden düşülmeye
-    // ÇALIŞILIR ama free/baslangic kullanıcının kontör bakiyesi yok/sıfır
-    // olduğundan bu deneme sessizce başarısız olur (bkz. ai_kontor_dus'un
-    // çağrıldığı recordUsage: "Bakiye düşülemediyse kullanıcının cevabı
-    // engellenmez; kayıp bizde kalır") — yani gider bize yazılır, kullanıcıya
-    // hiç fatura çıkmaz. denemeLimit alanı, aşağıdaki kontör ÖN kontrolünü
+    // kaydedilsin isteriz, kendi muhasebemiz için. KONTÖRDEN DÜŞÜLMEZ:
+    // recordUsage `deneme` bayrağıyla ücreti sıfırlar (ai-chat, 01.10.2026).
+    // Bu yorumun eski hâli "bakiye sıfır, düşüm sessizce başarısız olur"
+    // diyordu — CANLIDA YANLIŞ ÇIKTI: ai_kontor_dus bakiyeyi eksiye indiriyor
+    // (test hesabı -1,07 TL, ürün sahibinin hesabı 11.09'dan -8,38 TL).
+    // denemeLimit alanı, aşağıdaki kontör ÖN kontrolünü
     // (index.ts: billable && !modLimits && !denemeLimit) atlatır.
     billable: true,
     limitKind: 'calls',
@@ -337,7 +345,11 @@ export function tierConfig(
   // alıyordu. Artık deneme hakkı yalnız ödeyene veriliyor.
   const ucretsizDenemeCfg: TierCfg = {
     ...denemeCfg,
-    model: AI_TASMA_MODEL,
+    // SABİT Sonnet — claudeModel DEĞİL: o VEKIL_CLAUDE_MODEL ortamıyla değişir
+    // (11.09'da ₺399 denemesi claude-opus-5'e gitmişti; Opus ≈ Haiku'nun 5
+    // katı). Herkese açık ücretsiz denemenin maliyeti ortam ayarına bağlı
+    // kalmasın. Bkz. UCRETSIZ_DENEME_LIMIT.
+    model: UCRETSIZ_DENEME_MODEL,
     limit: UCRETSIZ_DENEME_LIMIT,
     denemeLimit: UCRETSIZ_DENEME_LIMIT,
   };

@@ -7,6 +7,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
 import { useAdminAiOzeti, useAdminDenemeTakibi, useAdminAtifDenetimi, useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
 import { useAiSaglik } from '@/hooks/useAiSaglik';
+import { BildirimGonder } from '@/components/admin/BildirimGonder';
 import { useT } from '@/i18n';
 import { fonts, radius, spacing, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -177,6 +178,9 @@ export default function AdminScreen() {
                 ))}
               </>
             )}
+
+            {/* UYGULAMA BİLDİRİMİ — 30.09.2026 (bkz. 0161_push_bildirim). */}
+            <BildirimGonder />
 
             {/* ATIF DENETİMİ — ÖLÇÜM BURADA BİRİKİYOR.
                 "Bu denetim ne kadar işe yarıyor" sorusunun cevabı yoktu ve

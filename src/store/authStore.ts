@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import { trError } from '@/lib/authErrors';
 import { resetQueryCache } from '@/lib/queryClient';
-import { cancelAllReminders } from '@/lib/notifications';
+import { cancelAllReminders, pushAdresiniSil } from '@/lib/notifications';
 import type { Profile } from '@/types/database';
 
 interface AuthState {
@@ -259,6 +259,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
+    // Oturum kapanmadan ÖNCE: silme RPC'si kimlik ister. Bu telefon, çıkış
+    // yapılan hesaba gönderilen bildirimleri artık almaz (bkz. 0161).
+    await pushAdresiniSil().catch(() => {});
     await supabase.auth.signOut();
     set({ session: null, profile: null });
     // ÇIKIŞTA MÜVEKKİL VERİSİ CİHAZDA KALMAZ. İki ayrı artık vardı:
