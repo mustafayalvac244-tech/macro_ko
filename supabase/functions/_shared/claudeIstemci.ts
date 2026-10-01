@@ -36,7 +36,10 @@ async function jsonAl(yol: string, apiKey: string): Promise<unknown> {
   const r = await fetch(`${API}${yol}`, {
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
   });
-  return r.ok ? await r.json() : null;
+  if (r.ok) return await r.json();
+  // Teşhis için durum ve hata mesajı kayda yazılır (anahtar yanıtta yer almaz).
+  console.error(`claude admin ${yol.split('?')[0]} → ${r.status} ${(await r.text()).slice(0, 240)}`);
+  return null;
 }
 
 /** Çalışma alanı kimliğini bulur; bulamazsa null. Sonuç süreç boyunca saklanır. */
