@@ -48,9 +48,8 @@
    çalışma alanına bağlı değildi → CALISMA_ALANI (Default, _shared/claudeIstemci);
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
-   Deneme sorusu maliyeti ölçüldü: ₺0,36–0,39 (8,3 bin girdi token). Anahtar
-   ~30.10 biter. Test hesabı silindi; ürün sahibinin -8,38 TL'si sıfırlandı.
-   DERS: iki edge işlevi aynı anda dağıtılınca biri kayboldu — tek tek dağıt.
+   Deneme (Haiku) ölçüldü ₺0,36–0,39/soru. Anahtar ~30.10 biter. Test hesabı silindi.
+   Ücretsiz deneme → Sonnet 5 (ae38f4b) DEPODA, CANLIDA DEĞİL (dağıtım durduruldu).
 0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
    Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
    yönetici ekranı → "Bildirim gönder" (son N / herkes). OTA 5961921e (30.09 17:35).
@@ -102,6 +101,7 @@
 - Sır/anahtar sohbete, depoya yazılmaz; `service_role`/`sb_secret_` asla.
 - Kullanıcının sohbete yazdığı kişisel veri (TC no vb.) hiçbir yere yazılmaz.
 - Telefona izinsiz OTA yok. Ücretli değerlendirme betiği izinsiz koşmaz.
+  01.10: "para harcama, bakiyeyi bitirme" — test için yapay zekâya SORU SORMA.
 - Sağlık verisi bu depoya girmez; eczane tablolarına/fonksiyonlarına dokunma.
 - Tevkil panosu ve meslektaş mesajları **KAPALI** (26.09, 0158). Veri
   silinmedi. Açmak ürün sahibi kararı.
