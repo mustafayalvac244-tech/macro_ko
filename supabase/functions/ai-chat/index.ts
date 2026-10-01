@@ -871,7 +871,12 @@ async function recordUsage(
   await s.from('ai_usage').upsert({
     user_id: userId,
     period: p,
-    calls: (prev?.calls ?? 0) + 1,
+    // AYLIK SAYAÇ DA "HAK GİTMEZ" KURALINA UYAR (01.10.2026 canlıda ölçüldü).
+    // Önce koşulsuz +1'di: Claude düşüp yedek modelin cevapladığı istekler
+    // aylık çağrı hakkından düşüyordu — test hesabında 4 yedek + 1 Claude
+    // cevabı, 5 soruluk ücretsiz denemeyi "quota_exceeded" ile kapattı.
+    // Günlük satır zaten musteriyeYaz'a bakıyordu; ikisi artık aynı.
+    calls: (prev?.calls ?? 0) + (musteriyeYaz ? 1 : 0),
     tokens_in: (prev?.tokens_in ?? 0) + tin,
     tokens_out: (prev?.tokens_out ?? 0) + tout,
     cost_try: Number(prev?.cost_try ?? 0) + cost,

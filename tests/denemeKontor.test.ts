@@ -21,3 +21,12 @@ describe('deneme sorusu kontörden düşmez', () => {
     expect(kod).toMatch(/const ucret = cost > 0 && !deneme \?/);
   });
 });
+
+describe('yedek modelin cevabı hak saymaz', () => {
+  it('aylık ve günlük çağrı sayacı musteriyeYaz bayrağına bakıyor', () => {
+    const govde = kod.slice(kod.indexOf('async function recordUsage('), kod.indexOf('const SYSTEM_PROMPT ='));
+    const sayaclar = govde.match(/calls: \(\w+\?\.calls \?\? 0\) \+ [^,]+,/g) ?? [];
+    expect(sayaclar.length).toBe(2);
+    for (const c of sayaclar) expect(c, c).toContain('(musteriyeYaz ? 1 : 0)');
+  });
+});
