@@ -10,13 +10,12 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 01.10.2026 (hasat talebe göre — 0162)
+**Son güncelleme:** 01.10.2026 (hasat talebe göre — 0162/0163)
 
 ## 1. Şu an — yayın durumu
 
-- **iOS 3.4.0 Apple'da: `WAITING_FOR_REVIEW`, derleme 7** (27.09 18:15 UTC
-  okundu). İki abonelik de `WAITING_FOR_REVIEW` — sürümle birlikte gitmiş.
-  Ürün sahibi arayüzden gönderdi (API'den gönderim izin denetimince engelli).
+- **iOS 3.4.0 App Store'da YAYINDA** (iTunes lookup id 6812859016, TR,
+  yayın 27.09 19:46 UTC — 01.10 ölçüldü). Sitede App Store bağlantısı YOK (eklenecek).
 - Apple 2. ret (25.09) üç maddeydi, üçü de kapandı:
   2.3.7 görsellerde fiyat → görseller değişti, yüklendi (MD5 eşleşti) ·
   5.1.1 TC zorunlu → isteğe bağlı (derleme 6+) ·
@@ -34,6 +33,8 @@
 - **Hasat talebe göre (0162, 01.10):** ai-chat sorusu ve içtihat araması (1.
   sayfa) 970 sabit konuyla eşleşir → hasat_konu_talep sayacı (METİN YOK, kişi
   yok) + öncelik ≥200 → emsal hasadında saatte bir öne alınır. Sıklık aynı.
+  0163: sınıra takılıp bitmiş talepli konu 51. sayfadan sürer; harvest-tick
+  talepli konuda 200 sayfaya iner. Test araması sayacı silindi (gerçek değil).
 
 ## 2. Sıradaki / açık işler
 
@@ -85,7 +86,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0162`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0163`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
