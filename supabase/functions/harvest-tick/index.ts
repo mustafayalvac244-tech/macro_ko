@@ -48,6 +48,11 @@ const PAGE_SIZE = 20;
  * ~33 günde bir tam tur demek. Tur süresi uzun gelirse tavan düşürülür.
  */
 const EN_FAZLA_SAYFA = 50;
+// SORULAN KONU DAHA DERİNE (01.10.2026, ürün sahibi: "sorulan konulara yoğunluk
+// ver"). Kullanıcının aradığı/sorduğu konu (0162: öncelik ≥ 200) 50 yerine 200
+// sayfaya kadar iner. Tur SIKLIĞI aynı — yalnız o konuda daha çok sayfa gezilir.
+const TALEP_ONCELIGI = 200;
+const EN_FAZLA_SAYFA_TALEP = 200;
 
 /**
  * BELGE İNDİRMEDE EŞZAMANLILIK.
@@ -465,10 +470,17 @@ Deno.serve(async (req) => {
 
   // Bu tur ne olursa olsun terimi "işlendi" say: hata alsak bile sıradaki tur
   // başka terime geçsin, aynı bozuk terimde sonsuza kadar takılıp kalmasın.
-  await supabase
+  // Aynı yazma `oncelik`i de geri getirir (ek sorgu yok): sorulan konu
+  // (0162/0163, öncelik ≥ 200) daha derine iner — bkz. derinlikSiniri.
+  const { data: isaret } = await supabase
     .from('ictihat_harvest_state')
     .update({ last_run: new Date().toISOString() })
-    .eq('terim', stateKey);
+    .eq('terim', stateKey)
+    .select('oncelik')
+    .maybeSingle();
+  const derinlikSiniri = ((isaret as { oncelik?: number } | null)?.oncelik ?? 0) >= TALEP_ONCELIGI
+    ? EN_FAZLA_SAYFA_TALEP
+    : EN_FAZLA_SAYFA;
 
   let rows: Satir[] = [];
   let total = 0;
@@ -517,7 +529,7 @@ Deno.serve(async (req) => {
    * Karar mantığı _shared/hasatSayfa.ts'te ve testli: edge çalışma zamanında
    * gömülü kalsaydı yalnız canlıda fark edilebilirdi — nitekim aylarca öyle oldu.
    */
-  const karar = sonrakiSayfa({ sayfa: page, satir: rows.length, sayfaBoyu: PAGE_SIZE, yarimKaldi, enFazlaSayfa: EN_FAZLA_SAYFA });
+  const karar = sonrakiSayfa({ sayfa: page, satir: rows.length, sayfaBoyu: PAGE_SIZE, yarimKaldi, enFazlaSayfa: derinlikSiniri });
   await supabase
     .from('ictihat_harvest_state')
     .update({

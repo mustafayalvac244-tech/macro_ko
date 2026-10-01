@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 30.09.2026 (uygulama bildirimi — 0161 + OTA)
+**Son güncelleme:** 01.10.2026 (hasat talebe göre — 0162)
 
 ## 1. Şu an — yayın durumu
 
@@ -29,7 +29,11 @@
 - **Android/Play:** başlanmadı (bkz. KARAR-DEFTERI §3).
 - **Hasat AÇIK** (28.09 18:34 UTC, 0160; ürün sahibi "hasata devam"). Geri alma
   eşiği: kullanıcı tablolarında zaman aşımı → 0156 ifadesiyle kapat.
-  Vektörleme hâlâ kapalı (0154/0155).
+  Vektörleme hâlâ kapalı (0154/0155). Ölçüldü 01.10: 24 saatte 14.373 yeni
+  karar (katalog 11.037 + terim 3.336).
+- **Hasat talebe göre (0162, 01.10):** ai-chat sorusu ve içtihat araması (1.
+  sayfa) 970 sabit konuyla eşleşir → hasat_konu_talep sayacı (METİN YOK, kişi
+  yok) + öncelik ≥200 → emsal hasadında saatte bir öne alınır. Sıklık aynı.
 
 ## 2. Sıradaki / açık işler
 
@@ -81,7 +85,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0161`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0162`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
