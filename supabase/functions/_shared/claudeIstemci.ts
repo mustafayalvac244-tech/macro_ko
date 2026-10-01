@@ -24,8 +24,13 @@ import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
 // tipi bu yüzden SDK'nın kendisinden türetilir ve çağıran yerlerdeki gibi gevşek kalır.
 type Istemci = InstanceType<typeof Anthropic>;
 
-/** Ürün sahibinin Claude Console'daki çalışma alanı (Settings → Workspaces). */
-export const CALISMA_ALANI = '';
+/** Ürün sahibinin Claude Console'daki çalışma alanı (Settings → Workspaces,
+ *  "Default"; 01.10.2026 ekran görüntüsünden okundu). */
+export const CALISMA_ALANI = 'wrkspc_01CsanGrVZduYcKUiTEnGbcE';
+
+// Bu süreçte "not scoped" 400'ü bir kez görüldüyse sonraki istekler başlığı
+// BAŞTAN taşır — her soruda önce reddedilip sonra yeniden denenmesin.
+let baslikGerekli = false;
 
 /** 400 "anthropic-workspace-id … required" hatası mı? */
 export function calismaAlaniHatasiMi(e: unknown): boolean {
@@ -44,11 +49,14 @@ function calismaAlani(): string {
 // yerler yanıtı eskisi gibi yapısal olarak okur.
 // deno-lint-ignore no-explicit-any
 export async function claudeIle(apiKey: string, is: (istemci: Istemci) => Promise<any>): Promise<any> {
+  const alan = calismaAlani();
+  const baslikli = () => new Anthropic({ apiKey, defaultHeaders: { 'anthropic-workspace-id': alan } });
+  if (baslikGerekli && alan) return await is(baslikli());
   try {
     return await is(new Anthropic({ apiKey }));
   } catch (e) {
-    const alan = calismaAlani();
     if (!calismaAlaniHatasiMi(e) || !alan) throw e;
-    return await is(new Anthropic({ apiKey, defaultHeaders: { 'anthropic-workspace-id': alan } }));
+    baslikGerekli = true;
+    return await is(baslikli());
   }
 }
