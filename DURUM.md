@@ -64,9 +64,7 @@
    Yapay zekâ kendini "Vekil Pro asistanıyım" diye tanıtıyor (28.09; sunucu
    ai-chat v112 / ictihat v55; karşılama metni 2. OTA ile gitti. Eski ad
    "Vekil AI"); AI olduğunu saklamaz, model/şirket adını söylemez.
-1. İnceleme sonucunu `tam-denetim` ile oku (sürüm satırı: `3.4.0  =  DURUM`).
-2. Demo hesabın (bayram@vekilpro.app) duruşma tarihleri sabit (ilki 27.09);
-   inceleme uzarsa `scripts/demo-hesap-ornek-veri.sql` ile tazele.
+1. (Apple incelemesi bitti — 3.4.0 yayında; demo hesap tazeleme gereksiz.)
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
