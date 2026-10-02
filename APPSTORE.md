@@ -73,9 +73,11 @@ sorusu ortadan kalktı.
 ## 2. Promotional Text (170 karakter — istediğin zaman değiştirilebilir)
 
 ```
-16 temel kanun ve 5.900'ü aşkın madde internetsiz cepte. Duruşma çıkışında süreyi kaydedin; kanuni süre dayanağıyla takvime düşsün.
+10 milyonu aşkın emsal kararda arama, 16 temel kanun internetsiz cepte. Duruşma çıkışında süreyi kaydedin; kanuni süre takvime düşsün.
 ```
-(2026-10-02: kanun sayısı 8 → 16. Açıklama yalnız yeni sürümle değişir; bu metin incelemesiz, hemen değiştirilebilir.)
+(2026-10-03: kanun sayısı 8 → 16; içtihat araması Adalet Bakanlığı'nın herkese açık emsal karar arşivinde canlı arar —
+kaynakta 10.391.770 karar, `supabase/functions/_shared/uyapCanli.ts` ölçümü. Açıklama yalnız yeni sürümle değişir; bu metin
+incelemesiz, hemen değiştirilebilir. Yalnız bugün doğru olan sayı yazılır: hedef sayı yazmak yanıltıcı reklamdır ve Apple 2.3.1'e takılır.)
 
 ---
 
@@ -112,6 +114,11 @@ ADLİYEDE İNTERNET OLMASA DA ÇALIŞIR
 • 16 temel kanun, 5.908 madde cihazınızda çevrimdışı: HMK, TMK, TBK, TTK,
   İİK, TCK, CMK, İş Kanunu, Avukatlık Kanunu, İYUK ve diğerleri
 • Son senkronize dosyalarınız çevrimdışı okunabilir
+
+İÇTİHAT ARAMA
+• 10 milyonu aşkın emsal kararda arama: Adalet Bakanlığı'nın herkese açık karar
+  arşivinde Yargıtay, istinaf ve yerel mahkeme kararları
+• Dava ekranından "Davana emsal" ile konuya uygun kararlara tek dokunuşla geçin
 
 HUKUKİ ARAÇLAR
 • Dilekçe şablonları (mazeret, itiraz, istinaf ve daha fazlası)
