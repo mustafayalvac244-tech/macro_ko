@@ -40,7 +40,7 @@
 000. **SATIŞ PLANI (03.10, "hepsini yap"):** kayıt kısaldı (TC/büro "Ek
    bilgiler" altında), ana ekranda "3 adımda başla" kartı, kullanım sayacı
    (0165 CANLI; kişisel veri yok; yönetici → "Kullanım (sayaç)"), gizlilik
-   metni güncellendi. Web paketi 5a7ffd1. Telefonlara OTA GİTMEDİ — sorulacak.
+   metni güncellendi. WEB CANLI (PR #129; 03.10 ölçüldü). Telefonlara OTA GİTMEDİ.
    ÜRÜN SAHİBİ, OTA'dan ÖNCE: App Store Connect → App Privacy → "Usage Data →
    Product Interaction · Analytics · kimliğe bağlı değil" (API kapalı).
    Android: Play hesabı (25 $) ürün sahibinde; metinler PLAY.md'de.

@@ -143,7 +143,8 @@ Kod tarafı hazır. Panelde kurulacak iki ürün — **fiyatlar ve haklar
   daha hafif modele yönlenir) + **25 hukuki mütalaa**. Devretmez.
 - **10 deneme hakkı** ₺399'luk pakete aittir (13.09.2026 ürün kararı; sayı
   15.09.2026'da 3'ten 10'a çıkarıldı).
-  Ücretsiz hesapta yapay zekâ tamamen kapalıdır. Bu bir **sunucu sayacıdır**
+  Ücretsiz hesapta ayrıca **5 deneme sorusu** var (28.09.2026'dan beri,
+  `UCRETSIZ_DENEME_HAKKI`). İkisi de **sunucu sayacıdır**
   (`profiles.deneme_soru_kullanildi`), Play'de ürün olarak kurulmaz.
 - Adım adım RevenueCat kurulumu: `IAP_KURULUM.md`.
 
