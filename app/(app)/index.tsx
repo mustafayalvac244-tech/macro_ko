@@ -27,6 +27,7 @@ import { useFinanceEntries } from '@/hooks/useFinance';
 import { useAdvanceDeficits } from '@/hooks/useClientAdvances';
 import { useAdvanceAlertStore } from '@/store/advanceAlertStore';
 import { AI_ENABLED } from '@/config/features';
+import { IlkAdimlar } from '@/components/IlkAdimlar';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
 import { useLangStore, useT } from '@/i18n';
@@ -486,6 +487,11 @@ export default function DashboardScreen() {
               <PanoSayi etiket={t('dash.stat.outcomes')} deger={panoSayilari.sonuc} />
             </View>
           )}
+        </View>
+
+        {/* İLK ADIMLAR — yeni kullanıcıya ne yapacağını söyler (03.10.2026, satış planı). */}
+        <View style={blok('tam')}>
+          <IlkAdimlar aiAcik={AI_ENABLED} />
         </View>
 
         {/* ---------- Plan durumu ----------
