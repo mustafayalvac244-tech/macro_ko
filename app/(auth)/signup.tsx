@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
+import { kullanimKaydet } from '@/lib/kullanim';
 import { isValidTCKN } from '@/utils/tckn';
 import { BAROLAR } from '@/constants/barolar';
 import { KVKK_SURUM, RIZA_ZORUNLU } from '@/config/kvkk';
@@ -164,6 +165,7 @@ export default function SignupScreen() {
       kvkkKanit: kvkkKanit ?? undefined,
     });
 
+    if (sonuc === 'girildi' || sonuc === 'dogrulama-gerekli') kullanimKaydet('olay:kayit_tamam');
     if (sonuc === 'girildi') {
       router.replace('/(app)');
     } else if (sonuc === 'dogrulama-gerekli') {

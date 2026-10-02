@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
+import { kullanimKaydet } from '@/lib/kullanim';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -146,25 +147,32 @@ export default function PremiumScreen() {
     // hiç istenmiyor ki yüklenemesin. Avukat, çalışmayan bir ürün gördüğünü
     // sanıyordu; oysa uygulama içi satın alma mağazaya özgü bir şeydir.
     if (Platform.OS === 'web') {
+      kullanimKaydet(`olay:satin_alma_web_${plan}`);
       uyar(t('premium.webTitle'), t('premium.webBody', { plan: planAdi }));
       return;
     }
     // Burada gerçekten bir arıza var: mağazadayız ama teklif gelmedi.
     if (!pkg) {
+      kullanimKaydet(`olay:teklif_yok_${plan}`);
       uyar(t('premium.soonTitle'), t('premium.soonBody', { plan: planAdi }));
       return;
     }
     setBusyPlan(plan);
+    kullanimKaydet(`olay:satin_alma_basla_${plan}`);
     try {
       const sonuc = await buyPackage(pkg);
       if (sonuc.kind === 'success') {
+        kullanimKaydet(`olay:satin_alma_tamam_${plan}`);
         // Yetkiyi RevenueCat'in yanıtından DEĞİL, profilden okuruz: son söz
         // sunucudadır. Webhook birkaç saniye sürebildiği için profil birkaç kez
         // yeniden okunur.
         profilYenidenOku();
         uyar(t('premium.purchaseSuccessTitle'), t('premium.purchaseSuccessBody'));
       } else if (sonuc.kind === 'error') {
+        kullanimKaydet(`olay:satin_alma_hata_${plan}`);
         uyar(t('premium.purchaseFailedTitle'), sonuc.message);
+      } else if (sonuc.kind === 'cancelled') {
+        kullanimKaydet(`olay:satin_alma_vazgec_${plan}`);
       }
       // 'cancelled' ve 'unavailable' sessizce geçilir — kullanıcı zaten
       // vazgeçmiş ya da hiç teklif sunulmamıştır.
