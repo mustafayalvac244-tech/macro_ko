@@ -37,6 +37,7 @@ export const en: Record<keyof typeof tr, string> = {
   'auth.baroNone': 'No bar found.',
   'auth.fullName': 'Full name',
   'auth.fullNamePlaceholder': 'Jordan Blake',
+  'auth.optionalFields': 'More details (optional): ID number, firm name',
   'auth.firmName': 'Firm name (optional)',
   'auth.firmNamePlaceholder': 'Blake & Partners LLP',
   'auth.passwordRequired': 'Enter your password.',

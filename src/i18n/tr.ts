@@ -40,6 +40,7 @@ export const tr = {
   'auth.baroNone': 'Baro bulunamadı.',
   'auth.fullName': 'Ad Soyad',
   'auth.fullNamePlaceholder': 'Deniz Yılmaz',
+  'auth.optionalFields': 'Ek bilgiler (isteğe bağlı): T.C. kimlik no, büro adı',
   'auth.firmName': 'Büro adı (isteğe bağlı)',
   'auth.firmNamePlaceholder': 'Yılmaz Hukuk Bürosu',
   'auth.passwordRequired': 'Şifrenizi yazın.',
