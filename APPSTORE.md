@@ -73,8 +73,9 @@ sorusu ortadan kalktı.
 ## 2. Promotional Text (170 karakter — istediğin zaman değiştirilebilir)
 
 ```
-Duruşma çıkışında süreyi kaydet, uygulama kanuni süreyi kendisi hesaplasın. Dava, müvekkil, duruşma ve büro finansı tek yerde.
+16 temel kanun ve 5.900'ü aşkın madde internetsiz cepte. Duruşma çıkışında süreyi kaydedin; kanuni süre dayanağıyla takvime düşsün.
 ```
+(2026-10-02: kanun sayısı 8 → 16. Açıklama yalnız yeni sürümle değişir; bu metin incelemesiz, hemen değiştirilebilir.)
 
 ---
 
@@ -108,7 +109,8 @@ BÜRO FİNANSI
 • Aylık özet ve muhasebeciye tek dokunuşla CSV aktarımı
 
 ADLİYEDE İNTERNET OLMASA DA ÇALIŞIR
-• 8 temel kanun, 4.674 madde cihazınızda çevrimdışı
+• 16 temel kanun, 5.908 madde cihazınızda çevrimdışı: HMK, TMK, TBK, TTK,
+  İİK, TCK, CMK, İş Kanunu, Avukatlık Kanunu, İYUK ve diğerleri
 • Son senkronize dosyalarınız çevrimdışı okunabilir
 
 HUKUKİ ARAÇLAR
