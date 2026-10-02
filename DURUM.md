@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 01.10.2026 (Claude çalışıyor, deneme ücretsiz)
+**Son güncelleme:** 02.10.2026 (işçilik kural düzeltmesi + denetim)
 
 ## 1. Şu an — yayın durumu
 
@@ -49,7 +49,8 @@
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
    Anahtar ~30.10 biter. Test hesapları silindi. PR #127 main'e birleşti, OTA 27.
-   Deneme: Sonnet 5, düşünme kapalı; dilekçe tavanı 6k + kesilirse devam (ai-chat v125).
+   Deneme: Sonnet 5, düşünme kapalı; dilekçe tavanı 6k + kesilirse devam.
+   02.10: 0164 + v126 — kuraldaki "2 hafta" hatası düzeltildi, iscilik_faiz + denetim.
 0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
    Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
    yönetici ekranı → "Bildirim gönder" (son N / herkes). OTA 5961921e (30.09 17:35).
@@ -74,8 +75,6 @@
    Pressable + tek Text yapıldı (26.09). Android'de DOĞRULANMADI (emülatör
    yok) — ürün sahibi yeni derlemede bakmalı. Kod değişikliği; iOS/Android'e
    ancak yeni derleme ya da OTA ile gider.
-8. Statik çeviri anahtarı taraması: eksik 0/1.819 (26.09, kod taraması).
-   Dinamik anahtarlar (51 yer) canlı değerlerle kısmen karşılaştırıldı.
 9. İzinler (resmi belge, 26.09 okundu): bulut oturumunda mod menüsü yalnız
    Accept edits / Plan / Auto sunar — "Bypass permissions isn't available".
    Repo `.claude/settings.json`'daki bypass/dontAsk bulutta YOK SAYILIR.
@@ -84,7 +83,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0163`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0164`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
