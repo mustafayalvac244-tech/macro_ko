@@ -57,8 +57,13 @@ Deno.serve(async (req) => {
     });
   }
 
+  // "Bearer " ÖNEKİ VE BOŞLUK TOLERE EDİLİR (03.10.2026). RevenueCat panelindeki
+  // örnek değer "Bearer Xz3a…" biçiminde; ürün sahibi kurarken test olayı 401
+  // aldı. Karşılaştırılan şey yine sırrın KENDİSİ — önek/boşluk güvenlik
+  // katmaz, yalnız yanlış kurulumu sessizce kırar.
+  const sade = (v: string | null) => (v ?? '').trim().replace(/^Bearer\s+/i, '').trim();
   const gelenYetki = req.headers.get('authorization') ?? req.headers.get('Authorization');
-  if (gelenYetki !== webhookSecret) {
+  if (!sade(gelenYetki) || sade(gelenYetki) !== sade(webhookSecret)) {
     console.error('revenuecat webhook: yetki basligi tutmadi');
     return new Response(JSON.stringify({ error: 'unauthorized' }), {
       status: 401,

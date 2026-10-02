@@ -10,21 +10,20 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 01.10.2026 (Claude çalışıyor, deneme ücretsiz)
+**Son güncelleme:** 03.10.2026 (satış planı: sayaç 0165 canlı, web paketi, PR)
 
 ## 1. Şu an — yayın durumu
 
 - **iOS 3.4.0 App Store'da YAYINDA** (iTunes lookup id 6812859016, TR,
-  yayın 27.09 19:46 UTC — 01.10 ölçüldü). Sitede App Store bağlantısı YOK (eklenecek).
+  yayın 27.09 19:46 UTC — 01.10 ölçüldü). Sitede App Store bağlantısı main'de
+  (957a16a, başka oturum: Safari şeridi + 2. düğme; benimki çakışmada bırakıldı).
 - Apple 2. ret (25.09) üç maddeydi, üçü de kapandı:
   2.3.7 görsellerde fiyat → görseller değişti, yüklendi (MD5 eşleşti) ·
   5.1.1 TC zorunlu → isteğe bağlı (derleme 6+) ·
   2.1(b) abonelik yüklenmiyor → RevenueCat `default`/`ai` teklifleri ürün
   sahibi tarafından dolduruldu (26.09 ölçüldü).
-- **Web** (`vekilpro.app/app`) `main` dalından yayınlanıyor; `docs/app`
-  `npm run export:web` ile üretilip commit edilir. **18.09–26.09 arası canlı
-  web giriş yaptırmıyordu** (paket Supabase adresi olmadan derlenmişti);
-  26.09'da düzeltildi. Artık ortam yoksa derleme durur, tests/webPaketi düşer.
+- **Web** (`vekilpro.app/app`) `main`'den yayınlanır; `docs/app` = `npm run
+  export:web` (41 sn, 03.10 ölçüldü) + commit. Ortam yoksa derleme durur.
 - **Android/Play:** başlanmadı (bkz. KARAR-DEFTERI §3).
 - **Hasat AÇIK** (28.09 18:34 UTC, 0160; ürün sahibi "hasata devam"). Geri alma
   eşiği: kullanıcı tablolarında zaman aşımı → 0156 ifadesiyle kapat.
@@ -38,33 +37,33 @@
 
 ## 2. Sıradaki / açık işler
 
-00. **ACİL — satın alma sunucuya ulaşmıyor.** `revenuecat-webhook` 28.09'da
-   `503 not_configured` döndü (REVENUECAT_WEBHOOK_SECRET yok); `purchases`
-   tablosunda hiç RevenueCat olayı yok. Ödeyen kullanıcının is_premium/ai_tier'ı
-   AÇILMAZ. Ürün sahibi: aynı rastgele değeri Supabase secret'a ve RevenueCat →
-   Integrations → Webhooks → Authorization'a girecek. Doğrulama: yetkisiz POST
-   503 değil 401 dönmeli. Satın alma bildirimi: RevenueCat iOS uygulaması.
+000. **SATIŞ PLANI (03.10, "hepsini yap"):** kayıt kısaldı (TC/büro "Ek
+   bilgiler" altında), ana ekranda "3 adımda başla" kartı, kullanım sayacı
+   (0165 CANLI; kişisel veri yok; yönetici → "Kullanım (sayaç)"), gizlilik
+   metni güncellendi. Web paketi 5a7ffd1. Telefonlara OTA GİTMEDİ — sorulacak.
+   ÜRÜN SAHİBİ, OTA'dan ÖNCE: App Store Connect → App Privacy → "Usage Data →
+   Product Interaction · Analytics · kimliğe bağlı değil" (API kapalı).
+   Android: Play hesabı (25 $) ürün sahibinde; metinler PLAY.md'de.
+
+00. **Satın alma webhook'u ÇALIŞIYOR** (02.10 22:38 UTC ölçüldü: RevenueCat test
+   olayı → 200). Sır Supabase + RevenueCat'te. Gerçek ilk satın almada is_premium
+   açıldığı ayrıca doğrulanmalı. 'Bearer' toleransı depoda (038d9bf), DAĞITILMADI.
 0a. **Claude ÇALIŞIYOR (01.10 17:14 ölçüldü).** Üç hata düzeltildi: anahtar
    çalışma alanına bağlı değildi → CALISMA_ALANI (Default, _shared/claudeIstemci);
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
    Anahtar ~30.10 biter. Test hesapları silindi. PR #127 main'e birleşti, OTA 27.
-   Deneme: sabit Sonnet 5, düşünme kapalı (v124/v63); dilekçe ₺2,21, 3k tavanda KESİLDİ.
+   Deneme: Sonnet 5, düşünme kapalı; dilekçe tavanı 6k + kesilirse devam.
+   02.10: 0164 + v126 — kuraldaki "2 hafta" hatası düzeltildi, iscilik_faiz + denetim.
 0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
    Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
    yönetici ekranı → "Bildirim gönder" (son N / herkes). OTA 5961921e (30.09 17:35).
    AÇIK: telefona düştüğü ÖLÇÜLMEDİ; iOS için Expo'da APNs anahtarı tanımlı mı
    BİLİNMİYOR (bilet "InvalidCredentials" dönerse eksik o). Adres ancak
    kullanıcı yeni sürümü açıp izin verince oluşur. Web paneline girmedi.
-0. 28.09: kayıtta sahte başarı düzeltildi (authStore.signUp) + ücretsiz katmana
-   5 deneme sorusu (Haiku; sunucu ai-chat v111 / ictihat v54 dağıtıldı).
-   Web canlı; telefonlara OTA ile gönderildi (ürün sahibi: "göndermeden önce
-   bunu da ekle"). OTA'nın telefona indiği ÖLÇÜLMEDİ.
-   Deneme takibi: yönetici ekranı → "Deneyen kişi / Ücretliye geçen / Deneme
-   (7 gün)" (0159 admin_deneme_takibi). Soru METNİ saklanmıyor, gösterilmiyor.
-   Yapay zekâ kendini "Vekil Pro asistanıyım" diye tanıtıyor (28.09; sunucu
-   ai-chat v112 / ictihat v55; karşılama metni 2. OTA ile gitti. Eski ad
-   "Vekil AI"); AI olduğunu saklamaz, model/şirket adını söylemez.
+0. 28.09: kayıtta sahte başarı düzeltildi + ücretsiz 5 deneme sorusu (OTA
+   gitti, telefona indiği ÖLÇÜLMEDİ). Deneme takibi: yönetici → 0159; soru
+   METNİ saklanmıyor. AI kendini "Vekil Pro asistanıyım" diye tanıtır.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
@@ -74,17 +73,12 @@
    Pressable + tek Text yapıldı (26.09). Android'de DOĞRULANMADI (emülatör
    yok) — ürün sahibi yeni derlemede bakmalı. Kod değişikliği; iOS/Android'e
    ancak yeni derleme ya da OTA ile gider.
-8. Statik çeviri anahtarı taraması: eksik 0/1.819 (26.09, kod taraması).
-   Dinamik anahtarlar (51 yer) canlı değerlerle kısmen karşılaştırıldı.
-9. İzinler (resmi belge, 26.09 okundu): bulut oturumunda mod menüsü yalnız
-   Accept edits / Plan / Auto sunar — "Bypass permissions isn't available".
-   Repo `.claude/settings.json`'daki bypass/dontAsk bulutta YOK SAYILIR.
-   En az soru = Auto (arka planda güvenlik denetimi; Apple gönderimi ve kendi
-   izin ayarını değiştirme bu denetimce engellendi). "Bypass var" deme — yok.
+9. İzinler: bulut oturumunda yalnız Accept edits / Plan / Auto var; repo
+   ayarındaki bypass/dontAsk YOK SAYILIR. En az soru = Auto. "Bypass var" deme.
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0163`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0165`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
@@ -113,6 +107,8 @@
   (26.09). Test/komut zincirinde çıkış kodunu boruya kaptırma.
 - `main`'e birleştirirken eski dallar düzeltilmiş dosyaları geri getirebilir
   (iPad hata görseli, "ücretsiz" başlığı) — çakışmada bizimkini tut, testi koş.
+  İSTİSNA (03.10): main'e BAŞKA oturum doğrudan yazmış olabilir; birleştirmeden
+  önce `git log HEAD..origin/main` bak, daha yeni/doğru olanı tut.
 - Satış ekranı fiyatı sabitten değil mağazadan (`priceString`) okunmalı.
 - 30.09: "Zoho ile bilgi@vekilpro.app bedava" denildi; ücretsiz planın yalnız bazı
   veri merkezlerinde olduğu biliniyordu ama söylenmedi — AB'de yoktu (4 $/ay).

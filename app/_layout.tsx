@@ -3,7 +3,8 @@ import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
+import { kullanimKaydet, yolSade } from '@/lib/kullanim';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
@@ -148,6 +149,13 @@ export default function RootLayout() {
     else if (oncekiUserId.current) resetPurchaser();
     oncekiUserId.current = userId;
   }, [userId]);
+
+  // KULLANIM SAYACI — hangi ekrana girildi (bkz. 0165, src/lib/kullanim.ts).
+  // Kimlik parçaları ':id' yapılır; kullanıcı kimliği gönderilmez.
+  const yol = usePathname();
+  useEffect(() => {
+    kullanimKaydet(`ekran:${yolSade(yol)}`);
+  }, [yol]);
 
   // BİLDİRİM İZNİ + ADRESİ — oturum açılınca (bkz. 0161_push_bildirim).
   // İzin önceden açılışta, oturumdan bağımsız isteniyordu; sunucudan bildirim

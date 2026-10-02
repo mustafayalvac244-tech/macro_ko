@@ -190,7 +190,7 @@ create table public.legal_rule_atif (rule_id text, kanun_short text, madde_no te
 alter table public.legal_rule_atif enable row level security;
 create policy legal_rule_atif_read on public.legal_rule_atif for select to authenticated, anon using (true);
 create table public.mevzuat_maddeleri (id bigint generated always as identity primary key, metin text);
-create table public.legal_rules (id text primary key, baslik text);
+create table public.legal_rules (id text primary key, baslik text, triggers text default '', body text, zorunlu_terimler text[] default '{}');
 create table public.ictihat_atif (karar_id text, kanun_short text, madde_no text);
 create table public.oturum_cihazlari (id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id), cihaz text);
 alter table public.oturum_cihazlari enable row level security;

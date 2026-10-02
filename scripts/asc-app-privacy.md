@@ -111,7 +111,7 @@ kategorilerini eksiksiz saymak zorunda. Ürün sahibine bildirildi.
 | Location | ❌ | konum izni hiç istenmiyor |
 | Contacts | ❌ | telefon rehberi okunmuyor |
 | Browsing / Search History | ❌ | uygulama içi tarayıcı yok |
-| Usage Data | ❌ | analitik SDK'sı yok |
+| **Usage Data → Product Interaction** | ✅ (03.10.2026'dan beri) | `kullanim_sayac` (göç 0165): gün × ekran/olay × platform TOPLAM sayacı. Analitik SDK'sı yok. **Bu tür için cevaplar farklı:** amaç = **Analytics** · kimliğe bağlı = **No** (kullanıcı/cihaz kimliği tutulmuyor) · tracking = NO |
 | Sensitive Info | ❌ | Apple'ın tanımı ırk/din/cinsel yönelim/biyometri; TC no bu listede DEĞİL, "Other Data" altında beyan edildi |
 
 Üç sorunun cevabı tüm türlerde aynı:

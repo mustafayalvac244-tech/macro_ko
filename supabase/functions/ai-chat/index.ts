@@ -50,6 +50,8 @@ import { havuzSorgusu, kararAtiflari, tutarsizKararlar, type TutarsizKarar } fro
 // Dosyaya giren kuralın cevapta işlenip işlenmediği (_shared/kural.ts). Ölçülen
 // iki mütalaa kusurunun ikisi de "kural dosyadaydı, model yok saydı"ydı.
 import { atlananKurallar, cakisanDayanaklar } from '../_shared/kural.ts';
+// Bilinen işçilik hata kalıpları (faiz türü, 2 hafta, zamanaşımı) — model çağrısız (02.10.2026).
+import { iscilikUyarilari } from '../_shared/iscilikDenetim.ts';
 // Belgeden okunan künye, belgede karşılığı yoksa atılır (_shared/kunye.ts):
 // uydurma esas numarası dosyayı yanlış açar ve dolu göründüğü için denetlenmez.
 import { kunyeDogrula, type Kunye } from '../_shared/kunye.ts';
@@ -186,36 +188,58 @@ async function claudeChat(
   if (groundingSystem.trim()) system.push({ type: 'text', text: groundingSystem });
 
   try {
-    const res = await claudeIle(apiKey, (client) => client.messages.create({
-      model,
-      max_tokens: maxTokens,
-      // Haiku 4.5 uyarlamalı düşünmeyi reddeder (400) — bkz. _shared/claudeModel.ts.
-      // Sonnet/Opus 5'te düşünme varsayılan AÇIK; kapatmak açık 'disabled' ister.
-      ...dusunmeAyari(model, dusunme),
-      system: system as never,
-      messages: msgs.map((m) => ({
-        role: m.role === 'model' ? ('assistant' as const) : ('user' as const),
-        content: m.text,
-      })),
+    // YARIM KALMA OLMASIN (01.10.2026, ürün sahibi). Ölçüldü: deneme dilekçesi
+    // 3.000 token tavanda "davalıdan tahsiline; y" diye kesildi. Tavan dolarsa
+    // (stop_reason 'max_tokens') model kaldığı yerden DEVAM ettirilir ve metin
+    // birleştirilir. En çok DEVAM_EN_FAZLA ek tur — sonsuz döngü ve sınırsız
+    // fatura olmasın diye.
+    const DEVAM_EN_FAZLA = 2;
+    const temelMesajlar = msgs.map((m) => ({
+      role: m.role === 'model' ? ('assistant' as const) : ('user' as const),
+      content: m.text,
     }));
-    // Güvenlik reddi: içerik okunmadan önce stop_reason kontrol edilmeli.
-    if (res.stop_reason === 'refusal') throw new Error('refusal');
-    // Blok tipi YAPISAL yazılıyor, Anthropic.TextBlock ile değil: tsc, Deno'nun
-    // 'npm:' içe aktarmalarını çözemediği için o ad uzayı burada yok ve tek bir
-    // çözülemeyen tip, tip denetiminin tamamını gürültüye çevirir (bu dosyada
-    // aylarca hiç denetim yoktu, bkz. deno-shim.d.ts).
-    const text = (res.content as Array<{ type: string; text?: string }>)
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text ?? '')
-      .join('');
-    const u = res.usage;
-    // Önbellek okuması da girdi sayılır (ucuz olsa da ölçüme dahil edilir).
-    const tin = (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+    let text = '';
+    let tin = 0;
+    let tout = 0;
+    for (let tur = 0; tur <= DEVAM_EN_FAZLA; tur++) {
+      const mesajlar = tur === 0
+        ? temelMesajlar
+        : [
+            ...temelMesajlar,
+            { role: 'assistant' as const, content: text },
+            { role: 'user' as const, content: 'Metin yarıda kesildi. Kaldığın yerden, önceki kısmı TEKRAR ETMEDEN ve açıklama eklemeden devam et.' },
+          ];
+      const res = await claudeIle(apiKey, (client) => client.messages.create({
+        model,
+        max_tokens: maxTokens,
+        // Haiku 4.5 uyarlamalı düşünmeyi reddeder (400) — bkz. _shared/claudeModel.ts.
+        // Sonnet/Opus 5'te düşünme varsayılan AÇIK; kapatmak açık 'disabled' ister.
+        ...dusunmeAyari(model, dusunme),
+        system: system as never,
+        messages: mesajlar,
+      }));
+      // Güvenlik reddi: içerik okunmadan önce stop_reason kontrol edilmeli.
+      if (res.stop_reason === 'refusal') throw new Error('refusal');
+      // Blok tipi YAPISAL yazılıyor, Anthropic.TextBlock ile değil: tsc, Deno'nun
+      // 'npm:' içe aktarmalarını çözemediği için o ad uzayı burada yok ve tek bir
+      // çözülemeyen tip, tip denetiminin tamamını gürültüye çevirir (bu dosyada
+      // aylarca hiç denetim yoktu, bkz. deno-shim.d.ts).
+      const parca = (res.content as Array<{ type: string; text?: string }>)
+        .filter((b) => b.type === 'text')
+        .map((b) => b.text ?? '')
+        .join('');
+      text += parca;
+      const u = res.usage;
+      // Önbellek okuması da girdi sayılır (ucuz olsa da ölçüme dahil edilir).
+      tin += (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+      tout += u.output_tokens ?? 0;
+      if (res.stop_reason !== 'max_tokens' || !parca.trim()) break;
+    }
     // Ücretli hat da durum tablosuna yazar: sağlık raporu, ücretsiz sağlayıcılar
     // için yoklamanın yalan söylediğini gerçek çağrılardan öğrenmişti; para
     // ödeyen katmanı bu görünürlükten mahrum bırakmak tutarsız olurdu.
     void durumYaz('claude', 'ok', undefined, model);
-    return { text, tin, tout: u.output_tokens ?? 0 };
+    return { text, tin, tout };
   } catch (e) {
     let sonuc = 'upstream';
     if (e instanceof Anthropic.RateLimitError) sonuc = 'rate_limit';
@@ -1169,7 +1193,8 @@ const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: s
       'İŞE İADE (7036 s. Kanun m.3 ve 4857 s. İş K. m.20): İşe iade talebinde DAVA ŞARTI ARABULUCULUK zorunludur. ' +
       'İşçi, fesih bildiriminin TEBLİĞİNDEN İTİBAREN 1 AY içinde arabulucuya başvurmak zorundadır. Taraflar ' +
       'anlaşamazsa, arabuluculuk SON TUTANAĞININ düzenlendiği tarihten itibaren 2 HAFTA içinde İŞ MAHKEMESİNDE ' +
-      'işe iade davası açılır. Süreler hak düşürücüdür.',
+      'işe iade davası açılır. Süreler hak düşürücüdür. Bu 2 haftalık dava açma süresi YALNIZ İŞE İADE davası ' +
+      'içindir; kıdem, ihbar, ücret, fazla çalışma ve yıllık izin ALACAĞI davalarında böyle bir süre YOKTUR.',
   },
   {
     id: 'istinaf_temyiz_hukuk',
@@ -1256,6 +1281,21 @@ const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: s
       '5 YILDIR. Bu 5 yıllık süre, iş sözleşmesinin 12.10.2017 tarihinden SONRA sona erdiği hâllerde uygulanır; ' +
       'daha önceki fesihlerde geçiş hükümleri ve 10 yıllık genel zamanaşımı gündeme gelir. Ücret, fazla mesai, ' +
       'yıllık izin ücreti gibi ücret niteliğindeki alacaklarda zamanaşımı zaten 5 yıldır (TBK m.147).',
+  },
+  {
+    // 02.10.2026 — kaynak: İş K. m.34 ve m.120 (src/data/laws/is-kanunu.json),
+    // Yargıtay 22. HD 20.10.2014 ve 7. HD 20.04.2016 (havuzdaki kararlar).
+    // Ölçülen hata: deneme dilekçesi ödenmeyen ücrete "yasal faiz" istedi.
+    id: 'iscilik_faiz',
+    triggers: ['kıdem', 'kidem', 'ücret alacağı', 'ucret alacagi', 'ödenmeyen ücret', 'odenmeyen ucret', 'fazla çalışma', 'fazla calisma', 'fazla mesai', 'yıllık izin', 'yillik izin', 'ihbar', 'işçilik', 'iscilik', 'faiz'],
+    minHits: 2,
+    text:
+      'İŞÇİLİK ALACAKLARINDA FAİZ TÜRÜ: Gününde ödenmeyen ÜCRET için mevduata uygulanan EN YÜKSEK faiz ' +
+      'istenir (İş K. m.34); Yargıtay ücret alacağına başka faiz yürütülmesini hatalı bulmuştur. KIDEM ' +
+      'tazminatı için de bankalarca mevduata uygulanan EN YÜKSEK faiz istenir (1475 s. Kanun m.14, İş K. ' +
+      'm.120 ile yürürlükte). İhbar tazminatı, fazla çalışma ücreti ve yıllık izin ücreti için uygulamada ' +
+      'genellikle YASAL faiz istenir. Faizin BAŞLANGIÇ tarihi kaleme göre değişir (fesih/temerrüt, dava ' +
+      'veya ıslah tarihi); her kalem için faiz türü ve başlangıcı AYRI yazılmalıdır.',
   },
   {
     id: 'tuketici_hakem_heyeti',
@@ -1357,7 +1397,9 @@ const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: s
       'uyuşmazlıklar (ilamsız icra takibi/tahliye takibi hariç), TAŞINMAZIN PAYLAŞTIRILMASI ve ORTAKLIĞIN ' +
       'GİDERİLMESİ (izale-i şuyu) ile KOMŞULUK HUKUKUNDAN doğan uyuşmazlıklar; (4) 6502 s. Kanun kapsamındaki ' +
       'tüketici uyuşmazlıkları (hakem heyeti sınırı üstü). Arabulucuya başvurulmadan açılan dava, dava şartı ' +
-      'yokluğundan USULDEN REDDEDİLİR. Anlaşamama hâlinde son tutanaktan itibaren 2 HAFTA içinde dava açılır.',
+      'yokluğundan USULDEN REDDEDİLİR. Anlaşamama sonrası dava açma için ayrı bir süre YALNIZ İŞE İADEDE ' +
+      'vardır (son tutanaktan itibaren 2 hafta, İş K. m.20); işçilik ALACAK, ticari, kira ve tüketici ' +
+      'davalarında böyle bir süre yoktur — bu davalarda yalnız zamanaşımı ve kanuni süreler işler.',
   },
   {
     id: 'ihtiyac_tahliye',
@@ -2615,7 +2657,9 @@ async function dosyaKunyesi(
     // istek 413 ile REDDEDİLİYOR, yani cevap hiç üretilmiyor. Zayıf bir cevap,
     // hiç cevap olmamasından iyidir. Claude'da böyle bir tavan yok, dosya tam
     // gider.
-    const dilekceMaxTok = Math.max(cfg.maxOut, tier === 'ai' ? 4096 : 3000);
+    // 6.000 — ürün sahibi kararı (01.10.2026). 3.000'de deneme dilekçesi
+    // kesildi (ölçüldü). Tavan yine dolarsa claudeChat kaldığı yerden devam eder.
+    const dilekceMaxTok = Math.max(cfg.maxOut, 6000);
     let dilekceKirpildi = false;
     if (provider === 'groq') {
       const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + structure + promptQuestion, dilekceMaxTok);
@@ -2815,7 +2859,7 @@ async function dosyaKunyesi(
       // doğru ayrımı yaptı, diğeri yine ikisini birlikte yazdı. Talimatla tam
       // gideremediğimiz için mekanik denetim: liste bilerek dar, yalnız
       // kuralın kendi metninde "alternatif" dediği bilinen çiftler.
-      const cakisan = cakisanDayanaklar(new Set(dilekceKurallar.keys()), temiz.metin);
+      const cakisan = [...cakisanDayanaklar(new Set(dilekceKurallar.keys()), temiz.metin), ...iscilikUyarilari(temiz.metin)];
       // UYDURMA TUTAR DENETİMİ — madde atfıyla aynı prensip: silinmez, uyarılır.
       // Bkz. _shared/dilekce.ts > uydurmaTutarlariBul.
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);

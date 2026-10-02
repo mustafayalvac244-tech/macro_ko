@@ -73,8 +73,11 @@ sorusu ortadan kalktı.
 ## 2. Promotional Text (170 karakter — istediğin zaman değiştirilebilir)
 
 ```
-Duruşma çıkışında süreyi kaydet, uygulama kanuni süreyi kendisi hesaplasın. Dava, müvekkil, duruşma ve büro finansı tek yerde.
+11 milyonu aşkın emsal kararda arama, 16 temel kanun internetsiz cepte. Duruşma çıkışında süreyi kaydedin; kanuni süre takvime düşsün.
 ```
+(2026-10-03: kanun sayısı 8 → 16. Karar sayısı ölçüldü (2026-10-03, "karar" kelimesiyle toplam): Adalet Bakanlığı bedesten arşivi
+Yargıtay + Danıştay 10.421.853, UYAP Emsal istinaf + yerel 858.997 → 11.280.850; içtihat araması ikisinde de arar. Açıklama yalnız yeni sürümle
+değişir; bu metin incelemesiz, hemen değiştirilebilir. Yalnız bugün doğru olan sayı yazılır.)
 
 ---
 
@@ -108,8 +111,14 @@ BÜRO FİNANSI
 • Aylık özet ve muhasebeciye tek dokunuşla CSV aktarımı
 
 ADLİYEDE İNTERNET OLMASA DA ÇALIŞIR
-• 8 temel kanun, 4.674 madde cihazınızda çevrimdışı
+• 16 temel kanun, 5.908 madde cihazınızda çevrimdışı: HMK, TMK, TBK, TTK,
+  İİK, TCK, CMK, İş Kanunu, Avukatlık Kanunu, İYUK ve diğerleri
 • Son senkronize dosyalarınız çevrimdışı okunabilir
+
+İÇTİHAT ARAMA
+• 11 milyonu aşkın emsal kararda arama: Yargıtay, Danıştay, istinaf ve yerel
+  mahkeme kararları (Adalet Bakanlığı'nın herkese açık karar arşivleri)
+• Dava ekranından "Davana emsal" ile konuya uygun kararlara tek dokunuşla geçin
 
 HUKUKİ ARAÇLAR
 • Dilekçe şablonları (mazeret, itiraz, istinaf ve daha fazlası)

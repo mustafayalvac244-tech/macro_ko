@@ -41,3 +41,16 @@ describe('deneme isteğinde düşünme kapalı', () => {
     expect(kod).toMatch(/\.\.\.dusunmeAyari\(model, dusunme\)/);
   });
 });
+
+describe('dilekçe yarım kalmaz', () => {
+  // 01.10.2026 ölçüldü: deneme dilekçesi 3.000 token tavanda kesildi.
+  // Ürün sahibi: "token sınırı 6000 olsun", "yarım kalma ihtimali olmasın".
+  it('dilekçe tavanı en az 6.000', () => {
+    expect(kod).toMatch(/const dilekceMaxTok = Math\.max\(cfg\.maxOut, 6000\);/);
+  });
+  it('tavan dolunca (max_tokens) kaldığı yerden devam ediliyor', () => {
+    const govde = kod.slice(kod.indexOf('async function claudeChat('), kod.indexOf('async function ucretliChat('));
+    expect(govde).toMatch(/stop_reason !== 'max_tokens'/);
+    expect(govde).toMatch(/text \+= parca/);
+  });
+});

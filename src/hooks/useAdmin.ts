@@ -241,3 +241,28 @@ export function useAdminBildirimGonder() {
     },
   });
 }
+
+/**
+ * KULLANIM SAYACI — 03.10.2026, bkz. 0165_kullanim_sayac.
+ * Gün × olay × platform sayacı; kişi bilgisi YOK. Olay adı 'ekran:/yol' ya da
+ * 'olay:ad' biçiminde. Bir ekran/olay, bir uygulama açılışında bir kez sayılır.
+ */
+export interface AdminKullanimSatiri {
+  olay: string;
+  adet: number;
+  ios: number | null;
+  android: number | null;
+  web: number | null;
+}
+
+export function useAdminKullanimOzet(gun: number) {
+  return useQuery({
+    queryKey: ['admin', 'kullanim-ozet', gun],
+    staleTime: 30_000,
+    queryFn: async (): Promise<AdminKullanimSatiri[]> => {
+      const { data, error } = await supabase.rpc('admin_kullanim_ozet', { p_gun: gun });
+      if (error) throw error;
+      return (data ?? []) as AdminKullanimSatiri[];
+    },
+  });
+}

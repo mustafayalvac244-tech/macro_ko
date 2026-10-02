@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
+import { kullanimKaydet } from '@/lib/kullanim';
 import { isValidTCKN } from '@/utils/tckn';
 import { BAROLAR } from '@/constants/barolar';
 import { KVKK_SURUM, RIZA_ZORUNLU } from '@/config/kvkk';
@@ -43,6 +44,10 @@ export default function SignupScreen() {
   const [tcNo, setTcNo] = useState('');
   const [baro, setBaro] = useState('');
   const [firmName, setFirmName] = useState('');
+  // KISA KAYIT (03.10.2026, satış planı): TC ve büro adı isteğe bağlı; ilk
+  // ekranda kalabalık yapmasınlar diye kapalı bir bölümde. Doldurulursa
+  // eskisi gibi kaydedilir; TC girilirse yine doğrulanır.
+  const [ekAlanlar, setEkAlanlar] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -160,6 +165,7 @@ export default function SignupScreen() {
       kvkkKanit: kvkkKanit ?? undefined,
     });
 
+    if (sonuc === 'girildi' || sonuc === 'dogrulama-gerekli') kullanimKaydet('olay:kayit_tamam');
     if (sonuc === 'girildi') {
       router.replace('/(app)');
     } else if (sonuc === 'dogrulama-gerekli') {
@@ -238,17 +244,6 @@ export default function SignupScreen() {
 
           <Input error={hataliAlan === 'fullName' ? localError : null} label={t('auth.fullName')} icon="person-outline" autoComplete="name" textContentType="name" placeholder={t('auth.fullNamePlaceholder')} value={fullName} onChangeText={touch(setFullName)} />
 
-          <Input
-            error={hataliAlan === 'tcNo' ? localError : null}
-            label={t('auth.tcNo')}
-            icon="card-outline"
-            keyboardType="number-pad"
-            maxLength={11}
-            placeholder={t('auth.tcPlaceholder')}
-            value={tcNo}
-            onChangeText={touch((v: string) => setTcNo(v.replace(/[^0-9]/g, '')))}
-          />
-
           {/* Baro seçici */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>{t('auth.baro')}</Text>
@@ -264,7 +259,26 @@ export default function SignupScreen() {
             </Pressable>
           </View>
 
-          <Input label={t('auth.firmName')} icon="briefcase-outline" placeholder={t('auth.firmNamePlaceholder')} value={firmName} onChangeText={touch(setFirmName)} />
+          <Pressable onPress={() => setEkAlanlar((v) => !v)} style={styles.ekBaslik} hitSlop={8}>
+            <Text style={styles.ekBaslikYazi}>{t('auth.optionalFields')}</Text>
+            <Ionicons name={ekAlanlar ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
+          </Pressable>
+          {(ekAlanlar || hataliAlan === 'tcNo') && (
+            <>
+              <Input
+                error={hataliAlan === 'tcNo' ? localError : null}
+                label={t('auth.tcNo')}
+                icon="card-outline"
+                keyboardType="number-pad"
+                maxLength={11}
+                placeholder={t('auth.tcPlaceholder')}
+                value={tcNo}
+                onChangeText={touch((v: string) => setTcNo(v.replace(/[^0-9]/g, '')))}
+              />
+
+              <Input label={t('auth.firmName')} icon="briefcase-outline" placeholder={t('auth.firmNamePlaceholder')} value={firmName} onChangeText={touch(setFirmName)} />
+            </>
+          )}
 
           {/* autoComplete/textContentType olmadan parola yöneticileri ve
               tarayıcı otomatik doldurması hiç devreye girmiyor; "new-password"
@@ -566,6 +580,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 17,
   },
+  ekBaslik: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  ekBaslikYazi: { ...typography.caption, color: colors.textSecondary },
   field: {
     marginBottom: spacing.md,
   },
