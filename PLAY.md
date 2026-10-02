@@ -181,7 +181,7 @@ koddan ve ölçümden çıkarıldı (`src/config/kvkk.ts` → `ALICILAR`):
 | Aktarımda şifreleme | **Evet** (TLS) |
 | Kullanıcı silme isteyebilir mi? | **Evet** — uygulama içi ve vekilpro.app/hesap-silme.html |
 | Toplanan türler | Kişisel bilgi (ad, e-posta, telefon — telefon isteğe bağlı); Uygulama etkinliği; **Dosyalar ve belgeler** (kullanıcının yüklediği); Uygulama bilgileri ve performansı (hata kayıtları) |
-| Kullanım amacı | Uygulama işlevselliği, hesap yönetimi |
+| Kullanım amacı | Uygulama işlevselliği, hesap yönetimi; **Uygulama etkinliği → Analiz** (03.10.2026'dan beri: `kullanim_sayac`, göç 0165 — hangi ekranın kaç kez açıldığının kimliksiz günlük toplamı, kendi sunucumuzda; üçüncü taraf analiz SDK'sı yok) |
 | Reklam / izleme | **YOK** — uygulamada reklam kimliği, izleme ya da üçüncü taraf analiz yok |
 
 **Paylaşım kimlerle (formda "üçüncü taraf" olarak beyan edilir):**
