@@ -10,12 +10,12 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 02.10.2026 (işçilik kural düzeltmesi + denetim)
+**Son güncelleme:** 03.10.2026 (webhook çalışıyor; satış planı uygulanıyor)
 
 ## 1. Şu an — yayın durumu
 
 - **iOS 3.4.0 App Store'da YAYINDA** (iTunes lookup id 6812859016, TR,
-  yayın 27.09 19:46 UTC — 01.10 ölçüldü). Sitede App Store bağlantısı YOK (eklenecek).
+  yayın 27.09 19:46 UTC — 01.10 ölçüldü). Siteye App Store bağlantısı eklendi (852e7a6).
 - Apple 2. ret (25.09) üç maddeydi, üçü de kapandı:
   2.3.7 görsellerde fiyat → görseller değişti, yüklendi (MD5 eşleşti) ·
   5.1.1 TC zorunlu → isteğe bağlı (derleme 6+) ·
@@ -38,12 +38,9 @@
 
 ## 2. Sıradaki / açık işler
 
-00. **ACİL — satın alma sunucuya ulaşmıyor.** `revenuecat-webhook` 28.09'da
-   `503 not_configured` döndü (REVENUECAT_WEBHOOK_SECRET yok); `purchases`
-   tablosunda hiç RevenueCat olayı yok. Ödeyen kullanıcının is_premium/ai_tier'ı
-   AÇILMAZ. Ürün sahibi: aynı rastgele değeri Supabase secret'a ve RevenueCat →
-   Integrations → Webhooks → Authorization'a girecek. Doğrulama: yetkisiz POST
-   503 değil 401 dönmeli. Satın alma bildirimi: RevenueCat iOS uygulaması.
+00. **Satın alma webhook'u ÇALIŞIYOR** (02.10 22:38 UTC ölçüldü: RevenueCat test
+   olayı → 200). Sır Supabase + RevenueCat'te. Gerçek ilk satın almada is_premium
+   açıldığı ayrıca doğrulanmalı. 'Bearer' toleransı depoda (038d9bf), DAĞITILMADI.
 0a. **Claude ÇALIŞIYOR (01.10 17:14 ölçüldü).** Üç hata düzeltildi: anahtar
    çalışma alanına bağlı değildi → CALISMA_ALANI (Default, _shared/claudeIstemci);
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
