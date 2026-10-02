@@ -10,21 +10,20 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 03.10.2026 (webhook çalışıyor; satış planı uygulanıyor)
+**Son güncelleme:** 03.10.2026 (satış planı: sayaç 0165 canlı, web paketi, PR)
 
 ## 1. Şu an — yayın durumu
 
 - **iOS 3.4.0 App Store'da YAYINDA** (iTunes lookup id 6812859016, TR,
-  yayın 27.09 19:46 UTC — 01.10 ölçüldü). Siteye App Store bağlantısı eklendi (852e7a6).
+  yayın 27.09 19:46 UTC — 01.10 ölçüldü). Sitede App Store bağlantısı main'de
+  (957a16a, başka oturum: Safari şeridi + 2. düğme; benimki çakışmada bırakıldı).
 - Apple 2. ret (25.09) üç maddeydi, üçü de kapandı:
   2.3.7 görsellerde fiyat → görseller değişti, yüklendi (MD5 eşleşti) ·
   5.1.1 TC zorunlu → isteğe bağlı (derleme 6+) ·
   2.1(b) abonelik yüklenmiyor → RevenueCat `default`/`ai` teklifleri ürün
   sahibi tarafından dolduruldu (26.09 ölçüldü).
-- **Web** (`vekilpro.app/app`) `main` dalından yayınlanıyor; `docs/app`
-  `npm run export:web` ile üretilip commit edilir. **18.09–26.09 arası canlı
-  web giriş yaptırmıyordu** (paket Supabase adresi olmadan derlenmişti);
-  26.09'da düzeltildi. Artık ortam yoksa derleme durur, tests/webPaketi düşer.
+- **Web** (`vekilpro.app/app`) `main`'den yayınlanır; `docs/app` = `npm run
+  export:web` (41 sn, 03.10 ölçüldü) + commit. Ortam yoksa derleme durur.
 - **Android/Play:** başlanmadı (bkz. KARAR-DEFTERI §3).
 - **Hasat AÇIK** (28.09 18:34 UTC, 0160; ürün sahibi "hasata devam"). Geri alma
   eşiği: kullanıcı tablolarında zaman aşımı → 0156 ifadesiyle kapat.
@@ -37,6 +36,14 @@
   talepli konuda 200 sayfaya iner. Test araması sayacı silindi (gerçek değil).
 
 ## 2. Sıradaki / açık işler
+
+000. **SATIŞ PLANI (03.10, "hepsini yap"):** kayıt kısaldı (TC/büro "Ek
+   bilgiler" altında), ana ekranda "3 adımda başla" kartı, kullanım sayacı
+   (0165 CANLI; kişisel veri yok; yönetici → "Kullanım (sayaç)"), gizlilik
+   metni güncellendi. Web paketi 5a7ffd1. Telefonlara OTA GİTMEDİ — sorulacak.
+   ÜRÜN SAHİBİ, OTA'dan ÖNCE: App Store Connect → App Privacy → "Usage Data →
+   Product Interaction · Analytics · kimliğe bağlı değil" (API kapalı).
+   Android: Play hesabı (25 $) ürün sahibinde; metinler PLAY.md'de.
 
 00. **Satın alma webhook'u ÇALIŞIYOR** (02.10 22:38 UTC ölçüldü: RevenueCat test
    olayı → 200). Sır Supabase + RevenueCat'te. Gerçek ilk satın almada is_premium
@@ -54,15 +61,9 @@
    AÇIK: telefona düştüğü ÖLÇÜLMEDİ; iOS için Expo'da APNs anahtarı tanımlı mı
    BİLİNMİYOR (bilet "InvalidCredentials" dönerse eksik o). Adres ancak
    kullanıcı yeni sürümü açıp izin verince oluşur. Web paneline girmedi.
-0. 28.09: kayıtta sahte başarı düzeltildi (authStore.signUp) + ücretsiz katmana
-   5 deneme sorusu (Haiku; sunucu ai-chat v111 / ictihat v54 dağıtıldı).
-   Web canlı; telefonlara OTA ile gönderildi (ürün sahibi: "göndermeden önce
-   bunu da ekle"). OTA'nın telefona indiği ÖLÇÜLMEDİ.
-   Deneme takibi: yönetici ekranı → "Deneyen kişi / Ücretliye geçen / Deneme
-   (7 gün)" (0159 admin_deneme_takibi). Soru METNİ saklanmıyor, gösterilmiyor.
-   Yapay zekâ kendini "Vekil Pro asistanıyım" diye tanıtıyor (28.09; sunucu
-   ai-chat v112 / ictihat v55; karşılama metni 2. OTA ile gitti. Eski ad
-   "Vekil AI"); AI olduğunu saklamaz, model/şirket adını söylemez.
+0. 28.09: kayıtta sahte başarı düzeltildi + ücretsiz 5 deneme sorusu (OTA
+   gitti, telefona indiği ÖLÇÜLMEDİ). Deneme takibi: yönetici → 0159; soru
+   METNİ saklanmıyor. AI kendini "Vekil Pro asistanıyım" diye tanıtır.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
@@ -72,15 +73,12 @@
    Pressable + tek Text yapıldı (26.09). Android'de DOĞRULANMADI (emülatör
    yok) — ürün sahibi yeni derlemede bakmalı. Kod değişikliği; iOS/Android'e
    ancak yeni derleme ya da OTA ile gider.
-9. İzinler (resmi belge, 26.09 okundu): bulut oturumunda mod menüsü yalnız
-   Accept edits / Plan / Auto sunar — "Bypass permissions isn't available".
-   Repo `.claude/settings.json`'daki bypass/dontAsk bulutta YOK SAYILIR.
-   En az soru = Auto (arka planda güvenlik denetimi; Apple gönderimi ve kendi
-   izin ayarını değiştirme bu denetimce engellendi). "Bypass var" deme — yok.
+9. İzinler: bulut oturumunda yalnız Accept edits / Plan / Auto var; repo
+   ayarındaki bypass/dontAsk YOK SAYILIR. En az soru = Auto. "Bypass var" deme.
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0164`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0165`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
@@ -109,6 +107,8 @@
   (26.09). Test/komut zincirinde çıkış kodunu boruya kaptırma.
 - `main`'e birleştirirken eski dallar düzeltilmiş dosyaları geri getirebilir
   (iPad hata görseli, "ücretsiz" başlığı) — çakışmada bizimkini tut, testi koş.
+  İSTİSNA (03.10): main'e BAŞKA oturum doğrudan yazmış olabilir; birleştirmeden
+  önce `git log HEAD..origin/main` bak, daha yeni/doğru olanı tut.
 - Satış ekranı fiyatı sabitten değil mağazadan (`priceString`) okunmalı.
 - 30.09: "Zoho ile bilgi@vekilpro.app bedava" denildi; ücretsiz planın yalnız bazı
   veri merkezlerinde olduğu biliniyordu ama söylenmedi — AB'de yoktu (4 $/ay).
