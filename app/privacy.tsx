@@ -32,7 +32,7 @@ const SECTIONS_TR: Section[] = [
       '• Hesap bilgileri: ad soyad, T.C. kimlik numarası (isteğe bağlı), e-posta, telefon (isteğe bağlı), büro adı, bağlı olduğunuz baro ve sicil numarası (isteğe bağlı)\n' +
       '• Uygulama verileri: dava, müvekkil, duruşma, görev, belge ve finans kayıtlarınız. Müvekkil kaydı, siz girerseniz müvekkilin T.C. kimlik numarasını ve adresini de içerir; kimlik numarası dava dilekçesinin zorunlu unsurudur (HMK m.119/1-c).\n' +
       '• Satın alma kayıtları: abonelik ürünü, platform, tutar ve tarih\n' +
-      '• Teknik veriler: uygulama sürümü ve hata kayıtları (kişisel içerik olmadan)',
+      '• Teknik veriler: uygulama sürümü, hata kayıtları ve hangi ekranların kaç kez açıldığını gösteren günlük toplam sayaçlar (kişisel içerik olmadan; sayaçlar kimliğinizle ilişkilendirilmez)',
   },
   {
     icon: 'eye-off-outline',
@@ -74,7 +74,7 @@ const SECTIONS_EN: Section[] = [
   {
     icon: 'document-text-outline',
     title: 'What Is Processed?',
-    body: '• Account: name, email, phone (optional), firm name, bar number (optional)\n• App data: your case, client, hearing, task, document and finance records\n• Technical: app version and crash logs (without personal content)',
+    body: '• Account: name, email, phone (optional), firm name, bar number (optional)\n• App data: your case, client, hearing, task, document and finance records\n• Technical: app version, crash logs and daily total counts of which screens were opened (without personal content; the counts are not linked to your identity)',
   },
   {
     icon: 'eye-off-outline',

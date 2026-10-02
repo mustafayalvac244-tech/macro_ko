@@ -669,7 +669,7 @@ export const tr = {
   'auth.privacyLink': 'Verileriniz nasıl korunuyor? Gizlilik ve KVKK metnini okuyun',
   'privacy.title': 'Gizlilik ve KVKK',
   'privacy.intro': 'Vekil Pro, meslek sırrına ve kişisel verilerin korunmasına saygı temelinde tasarlandı. İşte verilerinizin nasıl işlendiğinin özeti:',
-  'privacy.updated': 'Son güncelleme: Temmuz 2026',
+  'privacy.updated': 'Son güncelleme: Ekim 2026',
 
   // Kullanım Koşulları (EULA) — abonelik satan uygulamada mağaza ZORUNLU tutar.
   'legal.termsTitle': 'Kullanım Koşulları',

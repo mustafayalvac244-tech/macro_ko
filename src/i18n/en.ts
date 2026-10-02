@@ -714,7 +714,7 @@ export const en: Record<keyof typeof tr, string> = {
   'auth.privacyLink': 'How is your data protected? Read the privacy notice',
   'privacy.title': 'Privacy & Data Protection',
   'privacy.intro': 'Vekil Pro is built on respect for attorney-client privilege and personal data protection. Here is how your data is handled:',
-  'privacy.updated': 'Last updated: July 2026',
+  'privacy.updated': 'Last updated: October 2026',
 
   'legal.termsTitle': 'Terms of Use',
   'legal.termsIntro': 'By using Vekil Pro you accept the terms below. The sections on subscriptions, AI usage and responsibility matter most.',
