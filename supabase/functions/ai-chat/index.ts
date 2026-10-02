@@ -50,6 +50,8 @@ import { havuzSorgusu, kararAtiflari, tutarsizKararlar, type TutarsizKarar } fro
 // Dosyaya giren kuralın cevapta işlenip işlenmediği (_shared/kural.ts). Ölçülen
 // iki mütalaa kusurunun ikisi de "kural dosyadaydı, model yok saydı"ydı.
 import { atlananKurallar, cakisanDayanaklar } from '../_shared/kural.ts';
+// Bilinen işçilik hata kalıpları (faiz türü, 2 hafta, zamanaşımı) — model çağrısız (02.10.2026).
+import { iscilikUyarilari } from '../_shared/iscilikDenetim.ts';
 // Belgeden okunan künye, belgede karşılığı yoksa atılır (_shared/kunye.ts):
 // uydurma esas numarası dosyayı yanlış açar ve dolu göründüğü için denetlenmez.
 import { kunyeDogrula, type Kunye } from '../_shared/kunye.ts';
@@ -1191,7 +1193,8 @@ const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: s
       'İŞE İADE (7036 s. Kanun m.3 ve 4857 s. İş K. m.20): İşe iade talebinde DAVA ŞARTI ARABULUCULUK zorunludur. ' +
       'İşçi, fesih bildiriminin TEBLİĞİNDEN İTİBAREN 1 AY içinde arabulucuya başvurmak zorundadır. Taraflar ' +
       'anlaşamazsa, arabuluculuk SON TUTANAĞININ düzenlendiği tarihten itibaren 2 HAFTA içinde İŞ MAHKEMESİNDE ' +
-      'işe iade davası açılır. Süreler hak düşürücüdür.',
+      'işe iade davası açılır. Süreler hak düşürücüdür. Bu 2 haftalık dava açma süresi YALNIZ İŞE İADE davası ' +
+      'içindir; kıdem, ihbar, ücret, fazla çalışma ve yıllık izin ALACAĞI davalarında böyle bir süre YOKTUR.',
   },
   {
     id: 'istinaf_temyiz_hukuk',
@@ -1278,6 +1281,21 @@ const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: s
       '5 YILDIR. Bu 5 yıllık süre, iş sözleşmesinin 12.10.2017 tarihinden SONRA sona erdiği hâllerde uygulanır; ' +
       'daha önceki fesihlerde geçiş hükümleri ve 10 yıllık genel zamanaşımı gündeme gelir. Ücret, fazla mesai, ' +
       'yıllık izin ücreti gibi ücret niteliğindeki alacaklarda zamanaşımı zaten 5 yıldır (TBK m.147).',
+  },
+  {
+    // 02.10.2026 — kaynak: İş K. m.34 ve m.120 (src/data/laws/is-kanunu.json),
+    // Yargıtay 22. HD 20.10.2014 ve 7. HD 20.04.2016 (havuzdaki kararlar).
+    // Ölçülen hata: deneme dilekçesi ödenmeyen ücrete "yasal faiz" istedi.
+    id: 'iscilik_faiz',
+    triggers: ['kıdem', 'kidem', 'ücret alacağı', 'ucret alacagi', 'ödenmeyen ücret', 'odenmeyen ucret', 'fazla çalışma', 'fazla calisma', 'fazla mesai', 'yıllık izin', 'yillik izin', 'ihbar', 'işçilik', 'iscilik', 'faiz'],
+    minHits: 2,
+    text:
+      'İŞÇİLİK ALACAKLARINDA FAİZ TÜRÜ: Gününde ödenmeyen ÜCRET için mevduata uygulanan EN YÜKSEK faiz ' +
+      'istenir (İş K. m.34); Yargıtay ücret alacağına başka faiz yürütülmesini hatalı bulmuştur. KIDEM ' +
+      'tazminatı için de bankalarca mevduata uygulanan EN YÜKSEK faiz istenir (1475 s. Kanun m.14, İş K. ' +
+      'm.120 ile yürürlükte). İhbar tazminatı, fazla çalışma ücreti ve yıllık izin ücreti için uygulamada ' +
+      'genellikle YASAL faiz istenir. Faizin BAŞLANGIÇ tarihi kaleme göre değişir (fesih/temerrüt, dava ' +
+      'veya ıslah tarihi); her kalem için faiz türü ve başlangıcı AYRI yazılmalıdır.',
   },
   {
     id: 'tuketici_hakem_heyeti',
@@ -1379,7 +1397,9 @@ const LEGAL_KB: Array<{ id: string; triggers: string[]; minHits: number; text: s
       'uyuşmazlıklar (ilamsız icra takibi/tahliye takibi hariç), TAŞINMAZIN PAYLAŞTIRILMASI ve ORTAKLIĞIN ' +
       'GİDERİLMESİ (izale-i şuyu) ile KOMŞULUK HUKUKUNDAN doğan uyuşmazlıklar; (4) 6502 s. Kanun kapsamındaki ' +
       'tüketici uyuşmazlıkları (hakem heyeti sınırı üstü). Arabulucuya başvurulmadan açılan dava, dava şartı ' +
-      'yokluğundan USULDEN REDDEDİLİR. Anlaşamama hâlinde son tutanaktan itibaren 2 HAFTA içinde dava açılır.',
+      'yokluğundan USULDEN REDDEDİLİR. Anlaşamama sonrası dava açma için ayrı bir süre YALNIZ İŞE İADEDE ' +
+      'vardır (son tutanaktan itibaren 2 hafta, İş K. m.20); işçilik ALACAK, ticari, kira ve tüketici ' +
+      'davalarında böyle bir süre yoktur — bu davalarda yalnız zamanaşımı ve kanuni süreler işler.',
   },
   {
     id: 'ihtiyac_tahliye',
@@ -2839,7 +2859,7 @@ async function dosyaKunyesi(
       // doğru ayrımı yaptı, diğeri yine ikisini birlikte yazdı. Talimatla tam
       // gideremediğimiz için mekanik denetim: liste bilerek dar, yalnız
       // kuralın kendi metninde "alternatif" dediği bilinen çiftler.
-      const cakisan = cakisanDayanaklar(new Set(dilekceKurallar.keys()), temiz.metin);
+      const cakisan = [...cakisanDayanaklar(new Set(dilekceKurallar.keys()), temiz.metin), ...iscilikUyarilari(temiz.metin)];
       // UYDURMA TUTAR DENETİMİ — madde atfıyla aynı prensip: silinmez, uyarılır.
       // Bkz. _shared/dilekce.ts > uydurmaTutarlariBul.
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);

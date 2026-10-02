@@ -1,0 +1,61 @@
+İSTANBUL NÖBETÇİ İŞ MAHKEMESİ
+
+DAVACI : [Davacı Ad-Soyad], TC: [Davacı TC Kimlik No], Adres: [Davacı Adres]
+VEKİLİ : Av. [Ad Soyad], Adres: [Vekil Adres]
+DAVALI : [Davalı Şirket Unvanı], Adres: [Davalı Adres]
+
+KONU
+Davacı işçinin iş sözleşmesini haklı nedenle feshi nedeniyle kıdem tazminatı, ödenmeyen ücret alacakları, fazla çalışma ücreti ve kullanılmayan yıllık izin ücreti alacaklarının davalıdan tahsili talebinden ibarettir (Belirsiz Alacak Davası - HMK m.107).
+
+HARCA ESAS DAVA DEĞERİ
+[Fazlaya ilişkin haklar saklı kalmak kaydıyla] 50.000,00 TL (Belirsiz Alacak Davası; HMK m.107 gereği alacağın gerçek miktarı yargılama sırasında bilirkişi incelemesi sonucunda belirlenecek olup, talep arttırım dilekçesi ile kesinleştirilecektir.)
+
+AÇIKLAMALAR
+1. Davacı, davalı işyerinde 01.03.2019-15.08.2026 tarihleri arasında, kesintisiz olarak "depo sorumlusu" unvanıyla çalışmıştır. (Delil: SGK hizmet dökümü, işyeri özlük dosyası, tanık)
+
+2. Davacının son brüt ücreti 42.000,00 TL olup, ayrıca aylık 3.000,00 TL tutarında yol ve yemek yardımı almaktaydı. Bu yardımlar giydirilmiş ücretin bir parçası olup kıdem tazminatı hesabında dikkate alınmalıdır. (Delil: Maaş bordroları, banka hesap dökümü, ücret bordrolarına ilişkin kayıtlar)
+
+3. Davalı işveren, davacının Haziran 2026 ve Temmuz 2026 aylarına ait ücretlerini, ödeme tarihleri geldiği hâlde ödememiştir. (Delil: Banka hesap dökümü, bordro, davalı işyeri kayıtları)
+
+4. Davacı, ücretlerinin ödenmemesi üzerine 15.08.2026 tarihinde davalıya çektiği noter ihtarnamesi ile iş sözleşmesini İşK m.24/II-e uyarınca haklı nedenle feshetmiştir. Ücretin ödenmemesi, işçiye haklı fesih hakkı veren kanuni bir sebeptir ve bu durumda işçi kıdem tazminatına hak kazanır. (Delil: [İhtarname tarihi: 15.08.2026] tarihli noter ihtarnamesi ve tebliğ şerhi)
+
+5. Davalı, ihtarnameye verdiği cevapta "işçinin işi kendisinin bıraktığını" iddia etmiştir. Bu iddia gerçeği yansıtmamaktadır; fesih, münhasıran işverenin ücret ödeme yükümlülüğünü ihlali sonucu gerçekleşmiştir. Ücretin ödenmediği ispatlanabilir bir vakıa olup, ispat yükü ödemeyi iddia eden davalı işverendedir.
+
+6. Davacı, çalışması boyunca haftada ortalama 9 saat fazla çalışma yapmış, bu çalışmalarının karşılığı hiçbir şekilde ödenmemiştir. Fazla çalışmanın ispatı her türlü delille (tanık dahil) mümkündür; işveren tarafından fazla çalışmanın bordroda gösterilmemiş olması işçinin bu alacağını talep etmesine engel değildir. (Delil: Tanık beyanları, işyeri giriş-çıkış kayıtları, vardiya çizelgeleri, varsa mesai onay yazışmaları)
+
+7. Davacının 2024 ve 2025 yıllarına ait yıllık ücretli izinleri hiç kullandırılmamış olup, iş sözleşmesinin feshi nedeniyle bu izinlerin ücrete dönüştürülmesi gerekmektedir. Yıllık iznin kullandırıldığını ispat yükü işverene aittir; işveren bu hususu ancak işçinin imzasını taşıyan izin defteri/formu ile ispatlayabilir. (Delil: İzin defteri/formu [işveren uhdesinde, celbi talep olunur], tanık)
+
+8. Taraflar arasında 7036 sayılı Kanun'un 3. maddesi uyarınca dava şartı olan zorunlu arabuluculuğa başvurulmuş, görüşmeler 20.09.2026 tarihinde anlaşmama ile sonuçlanmış olup işbu dava, son tutanak tarihinden itibaren yasal 2 haftalık süre içinde açılmaktadır. (Delil: Arabuluculuk son tutanağı)
+
+9. Dava, HMK m.107 uyarınca belirsiz alacak davası olarak açılmış olup, alacak kalemlerinin gerçek tutarı bilirkişi incelemesi sonucunda netleşecek ve talep arttırım dilekçesi ile kesinleştirilecektir.
+
+HUKUKİ SEBEPLER
+4857 sayılı İş Kanunu m.24 (işçinin haklı nedenle fesih hakkı, özellikle ücretin ödenmemesi), İş Kanunu'nun kıdem tazminatına ve yıllık izne ilişkin hükümleri, İş Kanunu'nun fazla çalışma ücretine ilişkin hükümleri, 7036 sayılı İş Mahkemeleri Kanunu m.3 (zorunlu arabuluculuk), HMK m.107 (belirsiz alacak davası), HMK m.119, 6098 sayılı Türk Borçlar Kanunu'nun temerrüde ilişkin hükümleri ve ilgili diğer mevzuat.
+
+DELİLLER
+1. Davalı işyeri özlük dosyası ve SGK hizmet dökümü (işe giriş-çıkış tarihleri, unvan)
+2. Maaş bordroları, banka hesap dökümleri (ücret miktarı, yol-yemek yardımı, ödenmeyen aylar)
+3. 15.08.2026 tarihli noter ihtarnamesi, tebliğ şerhi ve davalının buna verdiği cevabi yazı
+4. Tanık anlatımları (fazla çalışma, işyerindeki çalışma düzeni, fesih sebebi)
+5. İşyeri giriş-çıkış/vardiya kayıtları, varsa mesai çizelgeleri
+6. İzin defteri/formu (davalı uhdesinde olup celbi talep olunur)
+7. Arabuluculuk son tutanağı (20.09.2026 tarihli)
+8. Bilirkişi incelemesi
+9. Her türlü yasal delil
+
+NETİCE-İ TALEP
+Yukarıda açıklanan nedenlerle, fazlaya ilişkin haklarımız saklı kalmak kaydıyla;
+
+1. Kıdem tazminatının [Dava değeri - kıdem tazminatı tutarı] TL üzerinden, fesih tarihi olan 15.08.2026'dan itibaren işleyecek mevduata uygulanan EN YÜKSEK BANKA MEVDUAT FAİZİ ile birlikte,
+
+2. Ödenmeyen Haziran ve Temmuz 2026 ücret alacaklarının [Dava değeri - ücret alacağı tutarı] TL üzerinden, her bir ayın ücretinin muaccel olduğu tarihten itibaren işleyecek YASAL FAİZ ile birlikte,
+
+3. Fazla çalışma ücreti alacağının [Dava değeri - fazla çalışma tutarı] TL üzerinden, dava/alacağın muacceliyet tarihinden itibaren işleyecek YASAL FAİZ ile birlikte,
+
+4. Kullandırılmayan 2024 ve 2025 yılı izin ücreti alacağının [Dava değeri - izin ücreti tutarı] TL üzerinden, fesih tarihi olan 15.08.2026'dan itibaren işleyecek YASAL FAİZ ile birlikte,
+
+davalıdan tahsiline; y
+
+Saygılarımla,
+Davacı Vekili
+Av. [Vekil ad-soyad]
