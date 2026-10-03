@@ -1439,6 +1439,8 @@ export const en: Record<keyof typeof tr, string> = {
   'atif.kaynakUyap': 'verified live on UYAP',
   'atif.cikarildiBaslik': '{n} unverifiable case citation(s) were removed from the text.',
   'atif.cikarildiNot': 'A "[precedent: …]" placeholder was left instead. Citations found neither in our corpus nor on live UYAP, or logically impossible, are never shown to you. Add a real decision from the Case-law search screen.',
+  'atif.oneriBaslik': 'REAL decisions found in our corpus/UYAP for the removed citation:',
+  'atif.oneriNot': 'These were not inserted into the text: read them and add one yourself if it fits your case. Search the citation in Case-law search to see the full text.',
   'atif.havuzdaYokBaslik': 'Not found in our corpus — verify on UYAP:',
   'atif.havuzdaYokNot': 'Not finding it does not mean the decision is wrong: our corpus does not hold every Court of Cassation decision.',
   'atif.dogrulandiBaslik': '{n} citation(s) verified in our corpus:',

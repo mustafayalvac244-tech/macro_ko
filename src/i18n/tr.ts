@@ -1502,6 +1502,8 @@ export const tr = {
   'atif.kaynakUyap': 'UYAP’ta canlı doğrulandı',
   'atif.cikarildiBaslik': '{n} doğrulanamayan karar künyesi metinden çıkarıldı.',
   'atif.cikarildiNot': 'Yerine "[emsal karar: …]" bırakıldı. Ne havuzumuzda ne canlı UYAP aramasında bulunan ya da mantıken olamayan künyeler size gösterilmez. Gerçek kararı İçtihat Arama ekranından ekleyin.',
+  'atif.oneriBaslik': 'Çıkarılan künye yerine havuzda/UYAP’ta bulunan GERÇEK kararlar:',
+  'atif.oneriNot': 'Bu kararlar metne eklenmedi: içeriğini okuyup olayınıza uyuyorsa siz ekleyin. Künyeyi İçtihat Arama’da aratıp tam metni görebilirsiniz.',
   'atif.havuzdaYokBaslik': 'Havuzumuzda bulunamadı — UYAP’tan teyit edin:',
   'atif.havuzdaYokNot': 'Bulunamaması kararın yanlış olduğunu göstermez: havuzumuzda tüm Yargıtay kararları yok.',
   'atif.dogrulandiBaslik': '{n} atıf havuzumuzda doğrulandı:',

@@ -31,6 +31,8 @@ export interface KararDenetimiVerisi {
   havuzdaYok: string[];
   /** Havuzda yok VE canlı UYAP aramasında da yok (03.10.2026). Eski sunucuda alan gelmez. */
   canlidaYok?: string[];
+  /** Çıkarılan künyenin cümlesi için havuzda/UYAP'ta bulunan GERÇEK karar adayları. */
+  oneriler?: Array<{ icin: string; kararlar: Array<{ atif: string; daire?: string; tarih?: string; id?: string; ozet?: string }> }>;
   olanaksiz: Array<{ atif: string; sebep: string }>;
 }
 
@@ -56,6 +58,24 @@ export function AtifDenetimi({ veri }: { veri: KararDenetimiVerisi | null | unde
         <View style={[styles.satir, styles.kirmizi]}>
           <Text style={styles.kirmiziMetin}>{t('atif.cikarildiBaslik', { n: String(cikarilan) })}</Text>
           <Text style={styles.kucukNot}>{t('atif.cikarildiNot')}</Text>
+        </View>
+      )}
+
+      {/* ÇIKARILAN KÜNYE YERİNE GERÇEK ADAYLAR — metne sokulmaz, avukat seçer. */}
+      {(veri.oneriler?.length ?? 0) > 0 && (
+        <View style={[styles.satir, styles.mavi]}>
+          <Text style={styles.maviMetin}>{t('atif.oneriBaslik')}</Text>
+          {veri.oneriler!.map((o, i) => (
+            <View key={i} style={{ gap: 2 }}>
+              <Text style={styles.kucukNot} numberOfLines={2}>“{o.icin}”</Text>
+              {o.kararlar.map((k) => (
+                <Text key={k.atif + (k.id ?? '')} style={styles.maviMetin} selectable>
+                  • {k.atif}{k.tarih ? ` (${k.tarih})` : ''}{k.ozet ? ` — ${k.ozet}` : ''}
+                </Text>
+              ))}
+            </View>
+          ))}
+          <Text style={styles.kucukNot}>{t('atif.oneriNot')}</Text>
         </View>
       )}
 
@@ -106,6 +126,8 @@ function makeStyles(colors: ThemeColors) {
     kirmizi: { backgroundColor: colors.dangerSoft },
     sari: { backgroundColor: colors.warningSoft },
     yesil: { backgroundColor: colors.successSoft },
+    mavi: { backgroundColor: colors.infoSoft },
+    maviMetin: { ...typography.caption, color: colors.info },
     kirmiziMetin: { ...typography.caption, color: colors.danger, fontWeight: '600' },
     sariMetin: { ...typography.caption, color: colors.warning },
     yesilMetin: { ...typography.caption, color: colors.success },
