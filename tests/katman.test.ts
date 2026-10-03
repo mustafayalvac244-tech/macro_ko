@@ -77,11 +77,14 @@ describe('tierConfig', () => {
     expect(cfg.denemeLimit).toBeUndefined();
   });
 
-  it('model DIŞARIDAN gelir — env değişince tier tablosu peşinden gelir', () => {
-    // Opus'a dönmek tek env değişikliği olmalı (VEKIL_CLAUDE_MODEL); kod
-    // içinde model adı sabitlenirse "dönüş" bir deploy'a bağlanır.
-    const { cfg } = tierConfig('ai', false, { ...secenek, claudeModel: 'claude-opus-5' });
-    expect(cfg.model).toBe('claude-opus-5');
+  it('ücretli model SABİT Sonnet 5 — ortam ayarı değiştiremez (03.10.2026)', () => {
+    // Eskiden VEKIL_CLAUDE_MODEL'den geliyordu; canlıdaki değer okunamıyordu.
+    // Ödeyen müşterinin modeli gizli bir ayara bağlı kalmasın (ürün sahibi).
+    for (const mod of ['sohbet', 'dilekce', 'mutalaa', 'belge', undefined]) {
+      const { cfg } = tierConfig('ai', false, { ...secenek, mod, claudeModel: 'claude-opus-5' });
+      expect(cfg.model, String(mod)).toBe('claude-sonnet-5');
+    }
+    expect(tierConfig('free', true, { ...secenek, claudeModel: 'claude-opus-5' }).cfg.model).toBe('claude-sonnet-5');
   });
 
   it('hiçbir ÇALIŞAN katmanın birincil sağlayıcısı Gemini ya da Groq değildir (yalnız yedek)', () => {
@@ -249,9 +252,10 @@ describe('kotaRezerve', () => {
 describe('işe göre model seçimi', () => {
   const ai = (mod?: string) => tierConfig('ai', false, { ...secenek, mod }).cfg.model;
 
-  it('sohbet ve künye UCUZ modele (Haiku) gider', () => {
-    expect(ai('sohbet')).toBe('claude-haiku-4-5-20251001');
+  it('yalnız künye UCUZ modele (Haiku) gider; sohbet Sonnet (03.10.2026)', () => {
     expect(ai('kunye')).toBe('claude-haiku-4-5-20251001');
+    // 2.999 ₺ ödeyenin sohbeti ücretsiz denemeden zayıf olmasın.
+    expect(ai('sohbet')).toBe('claude-sonnet-5');
   });
 
   it('dilekçe ve mütalaa GÜÇLÜ modelde kalır — avukatın gördüğü iş', () => {
