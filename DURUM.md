@@ -26,10 +26,8 @@
   eşiği: kullanıcı tablolarında zaman aşımı → 0156 ifadesiyle kapat.
   Vektörleme hâlâ kapalı (0154/0155). Ölçüldü 01.10: 24 saatte 14.373 yeni
   karar (katalog 11.037 + terim 3.336).
-- **Hasat talebe göre (0162, 01.10):** ai-chat sorusu ve içtihat araması (1.
-  sayfa) 970 sabit konuyla eşleşir → hasat_konu_talep sayacı (METİN YOK, kişi
-  yok) + öncelik ≥200 → emsal hasadında saatte bir öne alınır. Sıklık aynı.
-  0163: bitmiş talepli konu 51. sayfadan sürer; talepli konuda 200 sayfaya iner.
+- **Hasat talebe göre (0162/0163):** soru/arama 324 düz konuyla eşleşir → talep
+  sayacı + öncelik ≥200 → öne alınır. 03.10: sayaç HİÇ kayıt tutmamış (bkz. 0a).
 
 ## 2. Sıradaki / açık işler
 
@@ -57,6 +55,9 @@
    Deneme: Sonnet 5, düşünme kapalı; dilekçe tavanı 6k + kesilirse devam.
    03.10: 2.999 ₺ paketi: dilekçe+mütalaa OPUS 5 (maxOut 16k, tahmin), sohbet+belge
    Sonnet 5, künye+taşma Haiku (v131). Denemeler Sonnet. Opus maliyeti ÖLÇÜLMEDİ.
+   03.10 ölçüldü: sohbet ₺2,20/soru (tahmin ₺0,64), dilekçe ₺2,11. Geçmiş önbelleği +
+   önbellek fiyatı → 0168, ai-chat v135, PR #138; etkisi ÖLÇÜLMEDİ (onbellek_okunan).
+   Talep sayacı (hasat_konu_talep) 0 kayıt — sebebi BULUNAMADI (açık iş).
 0b. 30.09: UYGULAMA BİLDİRİMİ (0161; yönetici → "Bildirim gönder", son N / herkes).
    AÇIK: telefona düştüğü ÖLÇÜLMEDİ; iOS APNs anahtarı Expo'da tanımlı mı BİLİNMİYOR
    (bilet "InvalidCredentials" dönerse eksik o). Web paneline girmedi.
@@ -69,7 +70,7 @@
    / ulaşılamadı(sarı). ÜRÜN SAHİBİ: "kullanıcıya yazılamaz, çıkar ama zekice" →
    canlıda yok + olanaksız künye METİNDEN ÇIKARILIR (4 mod), cümlesi için havuz/
    canlı GERÇEK karar ÖNERİSİ döner (metne girmez); içtihat istenince dosyaya 5–6
-   karar. ai-chat v134, PR #137. Ekran OTA'YA GİTMEDİ (web canlı). ÖLÇÜLMEDİ.
+   karar. ai-chat v134, PR #137, OTA 220cb0d (03.10 20:09 UTC). ÖLÇÜLMEDİ.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
@@ -81,7 +82,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0167`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0168`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
