@@ -43,7 +43,8 @@
    metni güncellendi. WEB CANLI (PR #129; 03.10 ölçüldü). Telefonlara OTA GİTMEDİ.
    ÜRÜN SAHİBİ, OTA'dan ÖNCE: App Store Connect → App Privacy → "Usage Data →
    Product Interaction · Analytics · kimliğe bağlı değil" (API kapalı).
-   Android: Play hesabı (25 $) ürün sahibinde; metinler PLAY.md'de.
+   Android: Play hesabı VAR (03.10). AAB derlemesi main'den başlatıldı, sonucu
+   ÖLÇÜLMEDİ. Web'de satın alma yok; mesaj iPhone'a yönlendirir (PR #130).
 
 00. **Satın alma webhook'u ÇALIŞIYOR** (02.10 22:38 UTC ölçüldü: RevenueCat test
    olayı → 200). Sır Supabase + RevenueCat'te. Gerçek ilk satın almada is_premium
