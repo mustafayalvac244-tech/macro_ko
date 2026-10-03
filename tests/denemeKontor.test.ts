@@ -14,7 +14,8 @@ describe('deneme sorusu kontörden düşmez', () => {
   it('her recordUsage çağrısı deneme bayrağını geçiyor', () => {
     const cagrilar = kod.match(/await recordUsage\([^;]*\);/g) ?? [];
     expect(cagrilar.length).toBeGreaterThanOrEqual(5);
-    for (const c of cagrilar) expect(c, c).toMatch(/!!cfg\.denemeLimit\)\s*;$/);
+    // Deneme bayrağından sonra yalnız önbellek ölçümü (03.10.2026) gelebilir.
+    for (const c of cagrilar) expect(c, c).toMatch(/!!cfg\.denemeLimit(?:, \w+)?\)\s*;$/);
   });
 
   it('ücret deneme bayrağında sıfır', () => {
