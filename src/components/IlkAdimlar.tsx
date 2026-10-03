@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useClients } from '@/hooks/useClients';
 import { useT } from '@/i18n';
+import { UCRETSIZ_DENEME_HAKKI } from '@/config/planlar';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -52,7 +53,7 @@ export function IlkAdimlar({ aiAcik }: { aiAcik: boolean }) {
     { id: 'muvekkil', ikon: 'person-add-outline' as const, baslik: t('ilk.client'), alt: t('ilk.clientSub'), bitti: muvekkilVar, git: '/client-form' },
     { id: 'arama', ikon: 'search-outline' as const, baslik: t('ilk.search'), alt: t('ilk.searchSub'), bitti: !!durum.arama, git: '/ictihat' },
     ...(aiAcik
-      ? [{ id: 'ai', ikon: 'sparkles-outline' as const, baslik: t('ilk.ai'), alt: t('ilk.aiSub'), bitti: !!durum.ai, git: '/ai-chat' }]
+      ? [{ id: 'ai', ikon: 'sparkles-outline' as const, baslik: t('ilk.ai'), alt: t('ilk.aiSub', { n: String(UCRETSIZ_DENEME_HAKKI) }), bitti: !!durum.ai, git: '/ai-chat' }]
       : []),
   ];
   if (adimlar.every((a) => a.bitti)) return null;

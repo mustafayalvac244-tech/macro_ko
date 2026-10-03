@@ -67,7 +67,7 @@ describe('docs/terms.html — sözleşmedeki sayılar koddaki sabitlerle aynı m
 
   it('sözleşme ücretsiz deneme sayısını yazıyor', () => {
     expect(HTML).toContain(`tek seferlik ${UCRETSIZ_DENEME_HAKKI} soru`);
-    expect(HTML).toContain(`toplam ${DENEME_SORU_HAKKI} soruya`);
+    expect(HTML).toContain(`toplam hak ${DENEME_SORU_HAKKI} sorudur`);
   });
 
   it('ücretsiz katman satır sınırları yazılı', () => {

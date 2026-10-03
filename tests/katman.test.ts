@@ -34,8 +34,9 @@ describe('tierConfig', () => {
   // 28.09.2026 ürün sahibi kararı: ücretsiz kullanıcıya 5 deneme sorusu.
   // (13.09'daki "ücretsizde yapay zekâ tamamen kapalı" kuralının yerine geçer.)
   // 01.10.2026: model Haiku'dan Sonnet'e ("haiku kötüyse sonnete geçelim").
-  it('ödeme yapmamış kullanıcı 5 deneme sorusunu Sonnet ile alır', () => {
-    expect(UCRETSIZ_DENEME_LIMIT).toBe(5);
+  it('ödeme yapmamış kullanıcı 10 deneme sorusunu Sonnet ile alır', () => {
+    // 03.10.2026: 5 → 10.
+    expect(UCRETSIZ_DENEME_LIMIT).toBe(10);
     for (const t of ['free', 'baslangic']) {
       // claudeModel Opus'a ayarlı olsa bile ücretsiz deneme Sonnet'te kalır.
       const { cfg } = tierConfig(t, false, { ...secenek, claudeModel: 'claude-opus-5' });
