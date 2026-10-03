@@ -33,6 +33,38 @@
         "description": "Yapay zekâ destekli hukuki araştırma"
       },
       "incelemeNotu": "Vekil Pro AI unlocks the AI assistant: legal research over Turkish court decisions, petition drafting and document review. It also includes everything in Vekil Pro Premium. Every statute reference and case citation the assistant returns is checked against our corpus and labelled verified / not found / impossible. Purchase screen: Settings > Vekil Premium (opens the \"Vekil Pro Üyelik\" plans screen). Testable with a StoreKit sandbox account."
+    },
+    {
+      "_not": "AI paketinin uzun dönem seçeneği (03.10.2026, ürün sahibi: '6 aylık alırlarsa aylık 2499, yıllık alırlarsa aylık 1999'). Aylık AI ile AYNI seviye (1): yalnız süre farklı, hizmet aynı. Apple TL fiyat listesinde tam karşılık yoksa en yakın kademe seçilir (fiyatEnYakin) ve çıktıda yazılır.",
+      "productId": "vekil_ai_six_month",
+      "name": "Vekil Pro AI 6 Ay",
+      "subscriptionPeriod": "SIX_MONTHS",
+      "familySharable": false,
+      "groupLevel": 1,
+      "fiyatTL": 14994,
+      "fiyatEnYakin": true,
+      "yerel": {
+        "locale": "tr",
+        "name": "Vekil Pro AI (6 ay)",
+        "description": "Yapay zekâ destekli hukuki araştırma, 6 aylık"
+      },
+      "incelemeNotu": "Vekil Pro AI (6 months / 1 year) is the same AI plan as the monthly Vekil Pro AI subscription, billed for a longer period at a lower monthly-equivalent price. It unlocks the AI assistant (legal research over Turkish court decisions, petition drafting, document review) and includes everything in Vekil Pro Premium. Purchase screen: Settings > Vekil Premium (opens the \"Vekil Pro Üyelik\" plans screen), choose the period under Vekil Pro AI. Testable with a StoreKit sandbox account."
+    },
+    {
+      "_not": "AI paketinin uzun dönem seçeneği (03.10.2026, ürün sahibi: '6 aylık alırlarsa aylık 2499, yıllık alırlarsa aylık 1999'). Aylık AI ile AYNI seviye (1): yalnız süre farklı, hizmet aynı. Apple TL fiyat listesinde tam karşılık yoksa en yakın kademe seçilir (fiyatEnYakin) ve çıktıda yazılır.",
+      "productId": "vekil_ai_annual",
+      "name": "Vekil Pro AI 1 Yıl",
+      "subscriptionPeriod": "ONE_YEAR",
+      "familySharable": false,
+      "groupLevel": 1,
+      "fiyatTL": 23988,
+      "fiyatEnYakin": true,
+      "yerel": {
+        "locale": "tr",
+        "name": "Vekil Pro AI (yıllık)",
+        "description": "Yapay zekâ destekli hukuki araştırma, yıllık"
+      },
+      "incelemeNotu": "Vekil Pro AI (6 months / 1 year) is the same AI plan as the monthly Vekil Pro AI subscription, billed for a longer period at a lower monthly-equivalent price. It unlocks the AI assistant (legal research over Turkish court decisions, petition drafting, document review) and includes everything in Vekil Pro Premium. Purchase screen: Settings > Vekil Premium (opens the \"Vekil Pro Üyelik\" plans screen), choose the period under Vekil Pro AI. Testable with a StoreKit sandbox account."
     }
   ],
   "_incelemeNotu": "Apple abonelik için inceleme notu ve satın alma ekranının görselini istiyor; ikisi eksikken ürün MISSING_METADATA kalıyor. Not İNGİLİZCE çünkü inceleyen Türkçe okumuyor ve üç şeyi söylemesi gerekiyor: abonelik neyi açıyor, satın alma ekranına nereden gidiliyor, sandbox ile denenebiliyor.",
