@@ -776,6 +776,30 @@ export interface KararDenetimi {
  *
  * HATA YUTULUR — madde denetimindeki gerekçenin aynısı.
  */
+/**
+ * UYDURMA KÜNYE METNE GİRMEZ — 03.10.2026, ürün sahibi: "kullanıcıya yazılamaz".
+ *
+ * İlk tasarım künyeyi metinde bırakıp kırmızı uyarı veriyordu. Yanlış: avukat
+ * uyarıyı görmeyebilir, metni kopyalayıp dilekçeye koyar, ilk fark eden karşı
+ * vekil olur. Ne havuzda ne canlı UYAP'ta bulunan (canlidaYok) ve mantıken
+ * olamayan (olanaksiz) künyeler metinden ÇIKARILIR, yerine yer tutucu kalır.
+ * Havuzda olmayıp canlı kaynağa ulaşılamayanlar (havuzdaYok) kalır: gerçek
+ * olabilir, "teyit edin" denir.
+ */
+const KUNYE_YER_TUTUCU = '[emsal karar: İçtihat Arama ekranından gerçek bir karar ekleyin]';
+function uydurmaKunyeleriCikar(metin: string, d: KararDenetimi | null): { metin: string; cikarilan: number } {
+  if (!d) return { metin, cikarilan: 0 };
+  let m = metin;
+  let cikarilan = 0;
+  for (const ham of [...d.canlidaYok, ...d.olanaksiz.map((o) => o.atif)]) {
+    if (!ham) continue;
+    const once = m;
+    m = m.split(ham).join(KUNYE_YER_TUTUCU);
+    if (m !== once) cikarilan++;
+  }
+  return { metin: m, cikarilan };
+}
+
 async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
   const s = svc();
   if (!s) return null;
@@ -2464,6 +2488,7 @@ Deno.serve(async (req) => {
       // bulunmadığını görür.
       const uydurmaMadde = await uydurmaMaddeDenetimi(text);
       const kararDenetimi = await kararAtfiDenetimi(text);
+      const sonMetin = uydurmaKunyeleriCikar(text, kararDenetimi).metin;
       const atlanan = atlananKurallar(
         [...dayanakKurallar].map(([id, k]) => ({ id, zorunlu_terimler: k.terimler })),
         text
@@ -2485,7 +2510,7 @@ Deno.serve(async (req) => {
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, true);
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !(kusurlu || yedekModel), 'mutalaa', !!cfg.denemeLimit);
       return new Response(JSON.stringify({
-        text: text.trim(), tier, model: kullanim.model, issues,
+        text: sonMetin.trim(), tier, model: kullanim.model, issues,
         yedekModel: yedekModel || undefined,
         // Dosyaya giren kural özetleri. Bunlar BİZİM ÖZETİMİZDİR, kanun lafzı
         // değildir; ekranda da öyle etiketleniyor.
@@ -2885,6 +2910,7 @@ async function dosyaKunyesi(
       // dilekçe mahkemeye gider. Uydurma bir esas/karar numarasını ilk fark
       // eden karşı vekil olur (bkz. kararAtfiDenetimi).
       const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
+      temiz.metin = uydurmaKunyeleriCikar(temiz.metin, kararDenetimi).metin;
       // ATLANAN KURAL DENETİMİ DİLEKÇEDE ÇALIŞMIYOR — ölçüm gösterdi ki burada
       // ürettiği şey gürültü. Dört senaryoluk koşuda üç uyarı çıktı ve üçü de
       // konu dışıydı: istinaf dilekçesinde "arabulucu" (o aşama çoktan geçmiş),
@@ -3137,6 +3163,7 @@ async function dosyaKunyesi(
       const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
       const uydurmaMadde = await uydurmaMaddeDenetimi(temiz.metin);
       const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
+      temiz.metin = uydurmaKunyeleriCikar(temiz.metin, kararDenetimi).metin;
       // UYDURMA TUTAR DENETİMİ — incelemedeki bir tutar, belgede hiç yoksa
       // avukat için "bu belgede yazan miktar" sanılır. Bkz. dilekçedeki aynı
       // denetim; burada "olay" yerine incelenen belgenin metni (promptQuestion).
@@ -3301,7 +3328,8 @@ async function dosyaKunyesi(
   // atlamak, korumayı en çok gerektiği yerde kapatmak demekti.
   const uydurmaMadde = await uydurmaMaddeDenetimi(text);
   const kararDenetimi = await kararAtfiDenetimi(text);
-  const kusurlu = uydurmaMadde.length > 0 || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
+  const sonMetin = uydurmaKunyeleriCikar(text, kararDenetimi).metin;
+  const kusurlu = uydurmaMadde.length > 0 || (kararDenetimi?.olanaksiz.length ?? 0) > 0 || (kararDenetimi?.canlidaYok.length ?? 0) > 0;
   atifKaydiYaz('sohbet', kullanilanModel, kararDenetimi, uydurmaMadde);
   if (yedekModel || kusurlu) {
     if (cfg.modLimits) await aiModSerbestBirak(userData.user.id, aiAy, false);
@@ -3309,7 +3337,7 @@ async function dosyaKunyesi(
   }
   const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !(yedekModel || kusurlu), 'sohbet', !!cfg.denemeLimit);
   return new Response(JSON.stringify({
-    text: text.trim(), tier, model: kullanilanModel, istekId,
+    text: sonMetin.trim(), tier, model: kullanilanModel, istekId,
     // Uygulama bunu balonun altında uyarı olarak gösterir (AiMessage.yedek).
     yedekModel: yedekModel || undefined,
     uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,

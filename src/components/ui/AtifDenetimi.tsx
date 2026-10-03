@@ -17,9 +17,10 @@ import type { ThemeColors } from '@/theme/palettes';
  *   • HAVUZDA YOK  — bizde ~11 bin karar var, Yargıtay milyonlarca karar
  *     verdi. Bulamamak BİZİM eksiğimizdir. "Uydurma" demek, gerçek bir kararı
  *     yanlış diye işaretlemektir; o yüzden burada yazan şey "teyit ediniz".
- *   • OLANAKSIZ    — korpustan bağımsız olarak olamaz (karar yılı esas
- *     yılından önce, gelecek yıl, hiç var olmamış daire). Kesin konuşabildiğimiz
- *     tek yer; o yüzden tek kırmızı da burası.
+ *   • ÇIKARILDI    — mantıken olamayan (karar yılı esas yılından önce, gelecek
+ *     yıl, olmayan daire) ya da ne havuzda ne canlı UYAP'ta bulunan künye.
+ *     03.10.2026'dan beri bunlar sunucuda METİNDEN ÇIKARILIR ve burada
+ *     LİSTELENMEZ (ürün sahibi: "kullanıcıya yazılamaz"); yalnız sayısı yazar.
  *
  * Rakiplerde bu denetimin karşılığı yok: karar sayısı ilan ediliyor, çıktıdaki
  * atfın doğrulanıp doğrulanmadığı ilan edilmiyor.
@@ -39,21 +40,7 @@ export function AtifDenetimi({ veri }: { veri: KararDenetimiVerisi | null | unde
   const t = useT();
 
   if (!veri || veri.toplam <= 0) return null;
-
-  const sebepMetni = (s: string) => {
-    switch (s) {
-      case 'gelecek_yil':
-        return t('atif.sebepGelecekYil');
-      case 'karar_esastan_once':
-        return t('atif.sebepKararEsastanOnce');
-      case 'daire_yok':
-        return t('atif.sebepDaireYok');
-      case 'cok_eski':
-        return t('atif.sebepCokEski');
-      default:
-        return '';
-    }
-  };
+  const cikarilan = veri.olanaksiz.length + (veri.canlidaYok?.length ?? 0);
 
   return (
     <View style={styles.kutu}>
@@ -62,26 +49,13 @@ export function AtifDenetimi({ veri }: { veri: KararDenetimiVerisi | null | unde
         <Text style={styles.baslik}>{t('atif.baslik', { n: String(veri.toplam) })}</Text>
       </View>
 
-      {veri.olanaksiz.length > 0 && (
+      {/* ÇIKARILAN KÜNYELER — 03.10.2026, ürün sahibi: "kullanıcıya yazılamaz".
+          Ne havuzda ne canlı UYAP'ta bulunan ya da mantıken olamayan künye
+          sunucuda metinden çıkarılır; burada künye LİSTELENMEZ, yalnız sayı. */}
+      {cikarilan > 0 && (
         <View style={[styles.satir, styles.kirmizi]}>
-          <Text style={styles.kirmiziMetin}>{t('atif.olanaksizBaslik')}</Text>
-          {veri.olanaksiz.map((o) => (
-            <Text key={o.atif} style={styles.kirmiziMetin} selectable>
-              • {o.atif} — {sebepMetni(o.sebep)}
-            </Text>
-          ))}
-        </View>
-      )}
-
-      {/* NE HAVUZDA NE UYAP'TA — 03.10.2026. Kaynak cevap verdi ve karar çıkmadı:
-          burada "teyit edin" değil "kullanmayın" denir. */}
-      {(veri.canlidaYok?.length ?? 0) > 0 && (
-        <View style={[styles.satir, styles.kirmizi]}>
-          <Text style={styles.kirmiziMetin}>{t('atif.canlidaYokBaslik')}</Text>
-          <Text style={styles.kirmiziMetin} selectable>
-            {veri.canlidaYok!.join(' · ')}
-          </Text>
-          <Text style={styles.kucukNot}>{t('atif.canlidaYokNot')}</Text>
+          <Text style={styles.kirmiziMetin}>{t('atif.cikarildiBaslik', { n: String(cikarilan) })}</Text>
+          <Text style={styles.kucukNot}>{t('atif.cikarildiNot')}</Text>
         </View>
       )}
 
