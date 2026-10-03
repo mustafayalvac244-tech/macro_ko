@@ -17,11 +17,8 @@
 - **iOS 3.4.0 App Store'da YAYINDA** (iTunes lookup id 6812859016, TR,
   yayın 27.09 19:46 UTC — 01.10 ölçüldü). Sitede App Store bağlantısı main'de
   (957a16a, başka oturum: Safari şeridi + 2. düğme; benimki çakışmada bırakıldı).
-- Apple 2. ret (25.09) üç maddeydi, üçü de kapandı:
-  2.3.7 görsellerde fiyat → görseller değişti, yüklendi (MD5 eşleşti) ·
-  5.1.1 TC zorunlu → isteğe bağlı (derleme 6+) ·
-  2.1(b) abonelik yüklenmiyor → RevenueCat `default`/`ai` teklifleri ürün
-  sahibi tarafından dolduruldu (26.09 ölçüldü).
+- Apple 2. ret (25.09) üç maddeydi, üçü de kapandı (2.3.7 görseller · 5.1.1 TC
+  isteğe bağlı · 2.1(b) RevenueCat teklifleri dolduruldu; 26.09 ölçüldü).
 - **Web** (`vekilpro.app/app`) `main`'den yayınlanır; `docs/app` = `npm run
   export:web` (41 sn, 03.10 ölçüldü) + commit. Ortam yoksa derleme durur.
 - **Android/Play:** başlanmadı (bkz. KARAR-DEFTERI §3).
@@ -60,15 +57,17 @@
    Deneme: Sonnet 5, düşünme kapalı; dilekçe tavanı 6k + kesilirse devam.
    03.10: 2.999 ₺ paketi: dilekçe+mütalaa OPUS 5 (maxOut 16k, tahmin), sohbet+belge
    Sonnet 5, künye+taşma Haiku (v131). Denemeler Sonnet. Opus maliyeti ÖLÇÜLMEDİ.
-   02.10: 0164 + v126 — kuraldaki "2 hafta" hatası düzeltildi, iscilik_faiz + denetim.
-0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
-   Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
-   yönetici ekranı → "Bildirim gönder" (son N / herkes). OTA 5961921e (30.09 17:35).
-   AÇIK: telefona düştüğü ÖLÇÜLMEDİ; iOS için Expo'da APNs anahtarı tanımlı mı
-   BİLİNMİYOR (bilet "InvalidCredentials" dönerse eksik o). Adres ancak
-   kullanıcı yeni sürümü açıp izin verince oluşur. Web paneline girmedi.
-0. ÜCRETSİZ DENEME 10 (03.10, ürün sahibi; 0166 + ai-chat v129 + ictihat v66; web
-   + OTA 82feafd 17:58 UTC; kart 3. adım → Dilekçe Üret). Soru/cevap METNİ saklanmaz.
+0b. 30.09: UYGULAMA BİLDİRİMİ (0161; yönetici → "Bildirim gönder", son N / herkes).
+   AÇIK: telefona düştüğü ÖLÇÜLMEDİ; iOS APNs anahtarı Expo'da tanımlı mı BİLİNMİYOR
+   (bilet "InvalidCredentials" dönerse eksik o). Web paneline girmedi.
+0. ÜCRETSİZ DENEME 10 (03.10; 0166, OTA 82feafd; kart 3. adım → Dilekçe Üret).
+   Soru/cevap METNİ saklanmaz.
+0c. **KÜNYE CANLI TEYİDİ (03.10, 0167, ai-chat v132, ictihat v68, PR #136).** Olay:
+   avukat dilekçeye içtihat istedi, model 2 künye yazdı, ikisi havuzda yoktu;
+   künye araması 6× 502 (Emsal düşünce tüm arama düşüyordu). Şimdi: havuzda
+   olmayan Yargıtay künyesi Bedesten'de aranır → doğrulandı(uyap) / canlıda YOK
+   (kırmızı, hak düşmez) / ulaşılamadı(sarı). İstem: yalnız dosyadaki karar.
+   Ekran değişikliği OTA'YA GİTMEDİ (web canlı). İşe yaradığı ÖLÇÜLMEDİ.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
@@ -82,7 +81,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0166`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0167`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
