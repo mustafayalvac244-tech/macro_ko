@@ -151,7 +151,13 @@ export interface KatmanSecenek {
  * genelde daha düşüktür. Tablo ölçümle düzeltilecek; bugünkü hâli bir
  * BAŞLANGIÇ, bir sonuç değil.
  */
-const MOD_UCUZ: readonly string[] = ['sohbet', 'kunye'];
+// 03.10.2026 — SOHBET UCUZ TARAFTAN ÇIKTI (ürün sahibi: "2999'da emin olalım,
+// memnuniyet şart"). 2.999 ₺ ödeyen üyenin sohbeti Haiku'ya gidiyordu; ücretsiz
+// deneme ise Sonnet'teydi — yani ödeyen, denemeden daha zayıf model alıyordu.
+// Sözleşme de "ilk 750 istek en yetenekli modelle" diyordu; sohbette bu doğru
+// değildi. Künye bir form doldurma sınıflandırması, kullanıcı metin olarak
+// görmüyor: ucuz tarafta kaldı.
+const MOD_UCUZ: readonly string[] = ['kunye'];
 
 /** İş türüne göre model seçer. Mod bilinmiyorsa güçlü model. */
 export function modModeli(mod: string | undefined, gucluModel: string, ucuzModel: string): string {
@@ -249,6 +255,14 @@ const AI_MUTALAA_LIMIT = 25;
  * aşılsa bile tavan devreye girmeden önce fark edilir.
  */
 export const AI_TASMA_MODEL = 'claude-haiku-4-5-20251001';
+
+/**
+ * ÜCRETLİ İŞİN MODELİ — SABİT (03.10.2026, ürün sahibi kararı).
+ * Önceden VEKIL_CLAUDE_MODEL ortam ayarından geliyordu ve canlıdaki değeri
+ * koddan okunamıyordu (11.09'da bir dilekçe Opus'a gitmişti). Ödeyen
+ * müşterinin hangi modeli aldığı bir gizli ayara bağlı kalmasın.
+ */
+export const AI_UCRETLI_MODEL = 'claude-sonnet-5';
 const AI_TASMA_EK = 900;
 
 /**
@@ -307,7 +321,7 @@ export function tierConfig(
     // ve dönüşüm anıdır. Fark ₺11,50 yerine ~₺8 — yani ₺3,50. Bir aboneliğin
     // dönüşümünü ₺3,50 için riske atmak kötü bir takas olurdu. Aynı gerekçe
     // denemenin Groq yerine Claude'da koşmasının da sebebi (yukarıda).
-    model: claudeModel,
+    model: AI_UCRETLI_MODEL,
     // billable:true — deneme isteklerinin GERÇEK maliyeti (ai_usage/ai_istek)
     // kaydedilsin isteriz, kendi muhasebemiz için. KONTÖRDEN DÜŞÜLMEZ:
     // recordUsage `deneme` bayrağıyla ücreti sıfırlar (ai-chat, 01.10.2026).
@@ -366,9 +380,9 @@ export function tierConfig(
     // tavana dahil.
     ai: {
       provider: 'claude',
-      // İŞE GÖRE MODEL (bkz. MOD_UCUZ). sohbet/künye Haiku'ya, dilekçe ve
-      // mütalaa Sonnet'te kalır — sıradan bağımsız olarak.
-      model: modModeli(secenek.mod, claudeModel, AI_TASMA_MODEL),
+      // İŞE GÖRE MODEL (bkz. MOD_UCUZ). Yalnız künye Haiku'ya; sohbet, dilekçe,
+      // mütalaa, belge Sonnet 5'te (AI_UCRETLI_MODEL) — ilk 750 istek boyunca.
+      model: modModeli(secenek.mod, AI_UCRETLI_MODEL, AI_TASMA_MODEL),
       billable: true,
       limitKind: 'cost',
       limit: UCRETLI_TAVAN_TRY,

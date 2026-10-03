@@ -68,7 +68,7 @@
    BİLİNMİYOR (bilet "InvalidCredentials" dönerse eksik o). Adres ancak
    kullanıcı yeni sürümü açıp izin verince oluşur. Web paneline girmedi.
 0. ÜCRETSİZ DENEME 10 (03.10, ürün sahibi; 0166 + ai-chat v129 + ictihat v66; web
-   canlı; telefondaki "5" yazısı OTA'ya kadar eski). Soru/cevap METNİ saklanmaz.
+   + OTA 82feafd 17:58 UTC; kart 3. adım → Dilekçe Üret). Soru/cevap METNİ saklanmaz.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
