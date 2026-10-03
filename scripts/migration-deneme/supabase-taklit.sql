@@ -193,6 +193,8 @@ create table public.mevzuat_maddeleri (id bigint generated always as identity pr
 create table public.legal_rules (id text primary key, baslik text, triggers text default '', body text, zorunlu_terimler text[] default '{}');
 create table public.ictihat_atif (karar_id text, kanun_short text, madde_no text);
 create table public.oturum_cihazlari (id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id), cihaz text);
+-- 0056 (ai_istek) — 0168 bu tabloya sütun ekliyor (03.10.2026).
+create table if not exists public.ai_istek (id uuid primary key default gen_random_uuid(), user_id uuid, gun text not null default '', mod text not null default 'sohbet', model text, tokens_in integer not null default 0, tokens_out integer not null default 0, maliyet_try numeric(12,4) not null default 0, ucret_try numeric(12,4) not null default 0, musteriye_yazildi boolean not null default true, iade_edildi boolean not null default false, iade_sebep text, olusturuldu timestamptz not null default now());
 -- 0118 (atıf denetimi sayaçları) — 0167 bu tabloya sütun ekliyor; taklitte yoksa 0167 tek başına düşer (03.10.2026, CI'da ölçüldü).
 create table public.atif_denetim_kaydi (id bigint generated always as identity primary key, olusturuldu timestamptz not null default now(), mod text not null, model text, toplam integer not null default 0, dogrulanan integer not null default 0, havuzda_yok integer not null default 0, olanaksiz integer not null default 0, uydurma_madde integer not null default 0);
 alter table public.oturum_cihazlari enable row level security;

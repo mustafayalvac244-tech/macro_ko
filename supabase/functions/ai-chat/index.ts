@@ -28,11 +28,12 @@ import {
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 import { canliIctihat, canliKunyeDogrula } from '../_shared/uyapCanli.ts';
+import { mesajlariHazirla } from '../_shared/onbellek.ts';
 import { rizaKapisi } from '../_shared/kvkkRiza.ts';
 // Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
 import { beslemeyiKirp, kuralBasliklari } from '../_shared/besleme.ts';
-import { costTry, PRICING, USD_TRY } from '../_shared/fiyat.ts';
+import { faturaGirdi, costTry, PRICING, USD_TRY } from '../_shared/fiyat.ts';
 // Aylık ve günlük sayaç anahtarları ORTAK dosyada (_shared/kullanim.ts). Bu uçta
 // da kendi kopyası vardı: ortak dosya tam bu kopyayı gidermek için yazılmıştı ama
 // ictihat'e bağlanıp burası unutulmuştu — yani "tek kaynak" yarım kalmıştı.
@@ -175,17 +176,21 @@ async function claudeChat(
   // Sonnet yine faturalandı, kayda 0 yazıldı. Denemede düşünme yok: tavanın
   // tamamı metne kalır, maliyet öngörülebilir olur.
   dusunme = true
-): Promise<{ text: string; tin: number; tout: number }> {
+): Promise<{ text: string; tin: number; tout: number; onbellekOkunan: number; onbellekYazilan: number }> {
+  // GEÇMİŞ ÖNBELLEĞİ (03.10.2026, bkz. _shared/onbellek.ts): çok turlu sohbette
+  // değişen araştırma dosyası son mesaja taşınır, son asistan cevabına kesme
+  // noktası konur. Tek mesajlı işler değişmez.
+  const hazir = mesajlariHazirla(msgs, groundingSystem);
   // Anthropic en fazla 4 kesme noktası kabul eder; boş katmanlar atlanır.
   const katmanlar = (Array.isArray(stableSystem) ? stableSystem : [stableSystem])
     .filter((k) => k.trim())
-    .slice(0, 4);
+    .slice(0, hazir.mesajKesmesi ? 3 : 4);
   const system: Array<Record<string, unknown>> = katmanlar.map((k) => ({
     type: 'text',
     text: k,
     cache_control: { type: 'ephemeral' },
   }));
-  if (groundingSystem.trim()) system.push({ type: 'text', text: groundingSystem });
+  if (hazir.dosyaSistemde && groundingSystem.trim()) system.push({ type: 'text', text: groundingSystem });
 
   try {
     // YARIM KALMA OLMASIN (01.10.2026, ürün sahibi). Ölçüldü: deneme dilekçesi
@@ -194,13 +199,12 @@ async function claudeChat(
     // birleştirilir. En çok DEVAM_EN_FAZLA ek tur — sonsuz döngü ve sınırsız
     // fatura olmasın diye.
     const DEVAM_EN_FAZLA = 2;
-    const temelMesajlar = msgs.map((m) => ({
-      role: m.role === 'model' ? ('assistant' as const) : ('user' as const),
-      content: m.text,
-    }));
+    const temelMesajlar = hazir.mesajlar;
     let text = '';
     let tin = 0;
     let tout = 0;
+    let onbellekOkunan = 0;
+    let onbellekYazilan = 0;
     for (let tur = 0; tur <= DEVAM_EN_FAZLA; tur++) {
       const mesajlar = tur === 0
         ? temelMesajlar
@@ -231,7 +235,11 @@ async function claudeChat(
       text += parca;
       const u = res.usage;
       // Önbellek okuması da girdi sayılır (ucuz olsa da ölçüme dahil edilir).
-      tin += (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+      // MALİYET ÖNBELLEK FİYATIYLA (03.10.2026): okunan 0,1, yazılan 1,25 kat.
+      // tin artık "tam fiyat eşdeğeri girdi"; ham sayılar ayrıca döner.
+      tin += faturaGirdi(u.input_tokens ?? 0, u.cache_read_input_tokens ?? 0, u.cache_creation_input_tokens ?? 0);
+      onbellekOkunan += u.cache_read_input_tokens ?? 0;
+      onbellekYazilan += u.cache_creation_input_tokens ?? 0;
       tout += u.output_tokens ?? 0;
       if (res.stop_reason !== 'max_tokens' || !parca.trim()) break;
     }
@@ -239,7 +247,7 @@ async function claudeChat(
     // için yoklamanın yalan söylediğini gerçek çağrılardan öğrenmişti; para
     // ödeyen katmanı bu görünürlükten mahrum bırakmak tutarsız olurdu.
     void durumYaz('claude', 'ok', undefined, model);
-    return { text, tin, tout };
+    return { text, tin, tout, onbellekOkunan, onbellekYazilan };
   } catch (e) {
     let sonuc = 'upstream';
     if (e instanceof Anthropic.RateLimitError) sonuc = 'rate_limit';
@@ -277,7 +285,7 @@ async function ucretliChat(
   apiKey: string,
   model: string,
   dusunme = true
-): Promise<{ text: string; tin: number; tout: number; model: string; faturali: boolean }> {
+): Promise<{ text: string; tin: number; tout: number; model: string; faturali: boolean; onbellekOkunan?: number; onbellekYazilan?: number }> {
   let ilkHata: Error | null = null;
   try {
     const r = await claudeChat(stableSystem, groundingSystem, msgs, maxTokens, apiKey, model, dusunme);
@@ -1006,7 +1014,10 @@ async function recordUsage(
   // ai_kontor_dus bakiyeyi eksiye indiriyor (satır yoksa -tutar ile açıyor).
   // Ücretsiz deneme sorusu test hesabında bakiyeyi -1,07 TL yaptı. Maliyet
   // yine gider defterine (ai_usage / ai_istek.maliyet_try) yazılır.
-  deneme = false
+  deneme = false,
+  // Önbellek ham sayıları (03.10.2026, 0168) — maliyet zaten tin'de doğru;
+  // bunlar "önbellek ne kadar tuttu" ölçümü için.
+  onbellek?: { okunan: number; yazilan: number }
 ): Promise<{ maliyet: number; istekId: string | null }> {
   const s = svc();
   if (!s) return { maliyet: 0, istekId: null };
@@ -1077,6 +1088,8 @@ async function recordUsage(
         model,
         tokens_in: tin,
         tokens_out: tout,
+        onbellek_okunan: onbellek?.okunan ?? 0,
+        onbellek_yazilan: onbellek?.yazilan ?? 0,
         maliyet_try: cost,
         ucret_try: ucret,
         musteriye_yazildi: musteriyeYaz,
@@ -3300,6 +3313,7 @@ async function dosyaKunyesi(
   let tout = 0;
   let kullanilanModel = model;
   let faturali = cfg.billable;
+  let sohbetOnbellek: { okunan: number; yazilan: number } | undefined;
   try {
     if (provider === 'claude') {
       const r = await ucretliChat(SYSTEM_PROMPT, grounding, messages, maxOutputTokens, genKey, model, !cfg.denemeLimit);
@@ -3308,6 +3322,7 @@ async function dosyaKunyesi(
       tout = r.tout;
       kullanilanModel = r.model;
       faturali = r.faturali;
+      sohbetOnbellek = { okunan: r.onbellekOkunan ?? 0, yazilan: r.onbellekYazilan ?? 0 };
     } else if (provider === 'openai') {
       const r = await openaiChat(systemText, messages, maxOutputTokens, genKey, model);
       text = r.text;
@@ -3400,7 +3415,7 @@ async function dosyaKunyesi(
     if (cfg.modLimits) await aiModSerbestBirak(userData.user.id, aiAy, false);
     if (cfg.denemeLimit) await denemeHakkiSerbestBirak(userData.user.id);
   }
-  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !(yedekModel || kusurlu), 'sohbet', !!cfg.denemeLimit);
+  const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !(yedekModel || kusurlu), 'sohbet', !!cfg.denemeLimit, sohbetOnbellek);
   return new Response(JSON.stringify({
     text: sonMetin.trim(), tier, model: kullanilanModel, istekId,
     // Uygulama bunu balonun altında uyarı olarak gösterir (AiMessage.yedek).

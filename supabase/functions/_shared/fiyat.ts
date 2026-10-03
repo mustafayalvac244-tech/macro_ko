@@ -69,6 +69,17 @@ export function enPahaliFiyat(): { in: number; out: number } {
   return en;
 }
 
+/**
+ * ÖNBELLEK FİYATIYLA FATURALANAN GİRDİ — 03.10.2026.
+ * Anthropic önbellekten okunan girdiyi temel fiyatın 0,1'i, önbelleğe yazılanı
+ * (5 dk) 1,25'i ile faturalar. Önceden üçü tam fiyattan toplanıyordu; ölçülen
+ * sohbet maliyeti bu yüzden olduğundan yüksek görünüyordu. Döndürülen sayı
+ * "tam fiyat eşdeğeri girdi token"dır: costTry'a doğrudan verilir.
+ */
+export function faturaGirdi(girdi: number, onbellekOkunan: number, onbellekYazilan: number): number {
+  return Math.round((girdi || 0) + 0.1 * (onbellekOkunan || 0) + 1.25 * (onbellekYazilan || 0));
+}
+
 /** Bir çağrının TL maliyeti. */
 export function costTry(model: string, tin: number, tout: number): number {
   const p = PRICING[model] ?? enPahaliFiyat();

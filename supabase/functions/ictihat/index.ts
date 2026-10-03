@@ -20,7 +20,7 @@ import { kotaRezerve, overLimit, tierConfig as ortakKatman } from '../_shared/ka
 import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
 // Fiyat tablosu ortak: burada yalnız iki eski Gemini satırı kalmıştı ve
 // bilinmeyen her modeli gemini-2.5-pro fiyatından sayıyordu.
-import { costTry } from '../_shared/fiyat.ts';
+import { costTry, faturaGirdi } from '../_shared/fiyat.ts';
 import { rizaKapisi } from '../_shared/kvkkRiza.ts';
 // CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
 // Burada elle yazılmaları, altı uçta `x-client-info` başlığının izin
@@ -266,7 +266,8 @@ async function llmCall(
         .join('');
       if (meter) {
         const u = res.usage;
-        meter.tin += (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+        // Önbellek fiyatıyla (03.10.2026, bkz. _shared/fiyat.ts > faturaGirdi).
+        meter.tin += faturaGirdi(u.input_tokens ?? 0, u.cache_read_input_tokens ?? 0, u.cache_creation_input_tokens ?? 0);
         meter.tout += u.output_tokens ?? 0;
       }
       return opts.json ? jsonAyikla(text) : text;
