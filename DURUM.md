@@ -37,6 +37,11 @@
 
 ## 2. Sıradaki / açık işler
 
+0000. **ACİL — OTA'larda SATIN ALMA KAPALIYDI (03.10 bulundu).** ota-yayinla.yml
+   RevenueCat anahtarlarını vermiyordu → OTA inen telefonda RevenueCat kurulmuyor.
+   Düzeltildi (PR #131, tests/otaOrtam). YENİ OTA ATILMADAN telefonlarda düzelmez.
+   RevenueCat'teki tek abonelik SANDBOX (02.10, fa842f88…) — gerçek satış 0.
+   Teşhis sorgusu RevenueCat'te 8 boş müşteri kaydı oluşturdu (v1 GET yaratır).
 000. **SATIŞ PLANI (03.10, "hepsini yap"):** kayıt kısaldı (TC/büro "Ek
    bilgiler" altında), ana ekranda "3 adımda başla" kartı, kullanım sayacı
    (0165 CANLI; kişisel veri yok; yönetici → "Kullanım (sayaç)"), gizlilik
@@ -62,9 +67,8 @@
    AÇIK: telefona düştüğü ÖLÇÜLMEDİ; iOS için Expo'da APNs anahtarı tanımlı mı
    BİLİNMİYOR (bilet "InvalidCredentials" dönerse eksik o). Adres ancak
    kullanıcı yeni sürümü açıp izin verince oluşur. Web paneline girmedi.
-0. 28.09: kayıtta sahte başarı düzeltildi + ücretsiz 5 deneme sorusu (OTA
-   gitti, telefona indiği ÖLÇÜLMEDİ). Deneme takibi: yönetici → 0159; soru
-   METNİ saklanmıyor. AI kendini "Vekil Pro asistanıyım" diye tanıtır.
+0. 28.09: kayıtta sahte başarı düzeltildi + ücretsiz 5 deneme sorusu; deneme
+   takibi 0159 (soru METNİ saklanmaz). AI kendini "Vekil Pro asistanıyım" der.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
@@ -74,8 +78,7 @@
    Pressable + tek Text yapıldı (26.09). Android'de DOĞRULANMADI (emülatör
    yok) — ürün sahibi yeni derlemede bakmalı. Kod değişikliği; iOS/Android'e
    ancak yeni derleme ya da OTA ile gider.
-9. İzinler: bulut oturumunda yalnız Accept edits / Plan / Auto var; repo
-   ayarındaki bypass/dontAsk YOK SAYILIR. En az soru = Auto. "Bypass var" deme.
+9. Bulutta yalnız Accept edits / Plan / Auto var; bypass YOK. En az soru = Auto.
 
 ## 3. Kritik kimlikler
 
