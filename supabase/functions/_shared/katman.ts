@@ -286,7 +286,8 @@ export const DENEME_SORU_LIMIT = 10;
  * vs $1/$5 MTok, platform.claude.com/pricing 28.09 okundu) → soru başı
  * TAHMİN ≈ ₺0,8 (ölçülmedi; yeni tokenizer ve uyarlamalı düşünme artırabilir).
  */
-export const UCRETSIZ_DENEME_LIMIT = 5;
+// 03.10.2026: 5 → 10 (ürün sahibi; avukat geri bildirimi: "dilekçe yazarken 5 soru az").
+export const UCRETSIZ_DENEME_LIMIT = 10;
 export const UCRETSIZ_DENEME_MODEL = 'claude-sonnet-5';
 
 export function tierConfig(

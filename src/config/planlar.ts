@@ -113,5 +113,6 @@ export const AI_ASIL_MODEL_HAKKI = 750;
  */
 export const DENEME_SORU_HAKKI = 10;
 /** Ücretsiz katmanın yaşam boyu deneme sorusu (28.09.2026). Gerçek sınır
- *  sunucuda: _shared/katman.ts > UCRETSIZ_DENEME_LIMIT. Haiku ile yanıtlanır. */
-export const UCRETSIZ_DENEME_HAKKI = 5;
+ *  sunucuda: _shared/katman.ts > UCRETSIZ_DENEME_LIMIT. Sonnet ile yanıtlanır.
+ *  03.10.2026: 5 → 10 (ürün sahibi kararı). */
+export const UCRETSIZ_DENEME_HAKKI = 10;

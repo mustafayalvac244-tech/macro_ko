@@ -260,7 +260,7 @@ export default function PremiumScreen() {
       belge: String(UCRETSIZ_LIMIT.belge),
     }),
     // 28.09.2026: ücretsiz katmana 5 deneme sorusu GERİ GELDİ (ürün sahibi
-    // kararı; sunucu: _shared/katman.ts > UCRETSIZ_DENEME_LIMIT, Haiku ile).
+    // kararı; sunucu: _shared/katman.ts > UCRETSIZ_DENEME_LIMIT, Sonnet ile; 03.10'da 10).
     t('premium.f.freeDeneme', { n: String(UCRETSIZ_DENEME_HAKKI) }),
     // (Tarihçe) DENEME HAKKI BU LİSTEDEN 13.09.2026'DA ÇIKARILMIŞTI:
     // artık ücretsiz katmanda değil, ₺399'luk pakette. Satır aşağıdaki Pro
