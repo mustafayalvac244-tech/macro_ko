@@ -8,6 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { PurchasesPackage } from 'react-native-purchases';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useAuthStore } from '@/store/authStore';
 import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_ASIL_MODEL_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
 import { UCRETSIZ_LIMIT, UCRETSIZ_DENEME_HAKKI } from '@/config/planlar';
@@ -86,7 +87,13 @@ export default function PremiumScreen() {
   const isPremium = !!profile?.is_premium;
   const isAiActive = profile?.ai_tier === 'ai';
   const [offeringPkg, setOfferingPkg] = useState<PurchasesPackage | null>(null);
-  const [aiOfferingPkg, setAiOfferingPkg] = useState<PurchasesPackage | null>(null);
+  // AI PAKETİ SÜRELERİ (03.10.2026, ürün sahibi: "6 aylık alırlarsa aylık 2499,
+  // yıllık alırlarsa aylık 1999"). RevenueCat 'ai' teklifinde hangi paket varsa
+  // o seçenek görünür; yalnız aylık varsa seçici hiç çıkmaz.
+  const [aiPaketler, setAiPaketler] = useState<{ aylik: PurchasesPackage | null; alti: PurchasesPackage | null; yillik: PurchasesPackage | null }>({ aylik: null, alti: null, yillik: null });
+  const [aiDonem, setAiDonem] = useState<'aylik' | 'alti' | 'yillik'>('yillik');
+  const aiOfferingPkg = aiPaketler[aiDonem] ?? aiPaketler.aylik ?? aiPaketler.alti ?? aiPaketler.yillik;
+  const aiSecilenDonem: 'aylik' | 'alti' | 'yillik' = aiPaketler[aiDonem] ? aiDonem : aiPaketler.aylik ? 'aylik' : aiPaketler.alti ? 'alti' : 'yillik';
   const [busyPlan, setBusyPlan] = useState<'temel' | 'ai' | 'restore' | null>(null);
 
 
@@ -96,7 +103,13 @@ export default function PremiumScreen() {
   // (bkz. IAP_KURULUM.md — RevenueCat panelinde "ai" adıyla kurulmalı).
   useEffect(() => {
     getCurrentOffering().then((offering) => setOfferingPkg(offering?.monthly ?? offering?.availablePackages[0] ?? null));
-    getOffering(AI_ENTITLEMENT_ID).then((offering) => setAiOfferingPkg(offering?.monthly ?? offering?.availablePackages[0] ?? null));
+    getOffering(AI_ENTITLEMENT_ID).then((offering) =>
+      setAiPaketler({
+        aylik: offering?.monthly ?? (offering?.sixMonth || offering?.annual ? null : offering?.availablePackages[0] ?? null),
+        alti: offering?.sixMonth ?? null,
+        yillik: offering?.annual ?? null,
+      })
+    );
   }, []);
 
   const subscribed = isPremium;
@@ -399,8 +412,33 @@ export default function PremiumScreen() {
             <Text style={styles.price}>
               {aiOfferingPkg?.product.priceString ?? `₺${AI_PRICE_TRY.toLocaleString('tr-TR')}`}
             </Text>
-            <Text style={styles.per}>{t('premium.perMonth')}</Text>
+            <Text style={styles.per}>
+              {aiSecilenDonem === 'alti' ? t('premium.perSixMonths') : aiSecilenDonem === 'yillik' ? t('premium.perYear') : t('premium.perMonth')}
+            </Text>
           </View>
+          {/* AYLIK EŞDEĞER — mağazanın kendi hesabı (pricePerMonthString). Ödenen
+              tutar yukarıda büyük yazılı; Apple 3.1.2 ödenen tutarın öne çıkmasını
+              istiyor, aylık eşdeğer küçük kalır. */}
+          {aiSecilenDonem !== 'aylik' && aiOfferingPkg?.product.pricePerMonthString ? (
+            <Text style={styles.aylikEsdeger}>
+              {t('premium.monthlyEquivalent', { price: aiOfferingPkg.product.pricePerMonthString })}
+              {aiPaketler.aylik && aiOfferingPkg.product.pricePerMonth
+                ? ` · ${t('premium.saving', { pct: String(Math.round((1 - aiOfferingPkg.product.pricePerMonth / aiPaketler.aylik.product.price) * 100)) })}`
+                : ''}
+            </Text>
+          ) : null}
+          {[aiPaketler.aylik, aiPaketler.alti, aiPaketler.yillik].filter(Boolean).length > 1 && !isAiActive && (
+            <SegmentedControl<'aylik' | 'alti' | 'yillik'>
+              scrollable={false}
+              options={[
+                ...(aiPaketler.aylik ? [{ label: t('premium.periodMonthly'), value: 'aylik' as const }] : []),
+                ...(aiPaketler.alti ? [{ label: t('premium.periodSixMonths'), value: 'alti' as const }] : []),
+                ...(aiPaketler.yillik ? [{ label: t('premium.periodYearly'), value: 'yillik' as const }] : []),
+              ]}
+              value={aiSecilenDonem}
+              onChange={setAiDonem}
+            />
+          )}
 
           <View style={styles.includesRow}>
             <Ionicons name="add-circle-outline" size={14} color={colors.primary} />
@@ -447,7 +485,9 @@ export default function PremiumScreen() {
               gösteriyor; temel paketteki eski "ilk 7 gün ücretsiz" ince yazısı
               var olmayan bir denemeyi anlattığı için kaldırıldı. */}
           <Text style={styles.finePrint}>
-            {t('premium.autoRenewNote', { price: aiOfferingPkg?.product.priceString ?? `₺${AI_PRICE_TRY.toLocaleString('tr-TR')}` })}
+            {aiSecilenDonem === 'aylik'
+              ? t('premium.autoRenewNote', { price: aiOfferingPkg?.product.priceString ?? `₺${AI_PRICE_TRY.toLocaleString('tr-TR')}` })
+              : t(aiSecilenDonem === 'alti' ? 'premium.autoRenewNoteSixMonths' : 'premium.autoRenewNoteYearly', { price: aiOfferingPkg?.product.priceString ?? '' })}
           </Text>
         </View>
 
@@ -492,6 +532,7 @@ function onGold(hex: string): string {
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+    aylikEsdeger: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary, marginTop: -4, marginBottom: spacing.sm },
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,

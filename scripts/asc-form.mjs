@@ -784,12 +784,28 @@ async function urunKur(u, grupId, mevcut, ulkeler) {
       let sayfaYolu = `/subscriptions/${urun.id}/pricePoints?filter[territory]=TUR&limit=200`;
       let nokta = null;
       let sayfa = 0;
+      // EN YAKIN KADEME (03.10.2026): uzun dönem AI fiyatı (6×2.499, 12×1.999)
+      // Apple'ın TL listesinde birebir olmayabilir. fiyatEnYakin işaretli
+      // üründe tam eşleşme yoksa taranan noktaların en yakını seçilir ve
+      // AÇIKÇA yazılır. İşaretsiz üründe davranış aynı: tam eşleşme yoksa atla.
+      let enYakin = null;
       while (sayfaYolu && !nokta && sayfa < 20) {
         const s = await api(sayfaYolu);
-        nokta = (s?.data || []).find((p) => Number(p.attributes?.customerPrice) === u.fiyatTL) || null;
+        const veri = s?.data || [];
+        nokta = veri.find((p) => Number(p.attributes?.customerPrice) === u.fiyatTL) || null;
+        if (u.fiyatEnYakin) {
+          for (const p of veri) {
+            const fark = Math.abs(Number(p.attributes?.customerPrice) - u.fiyatTL);
+            if (Number.isFinite(fark) && (!enYakin || fark < enYakin.fark)) enYakin = { p, fark };
+          }
+        }
         sayfa += 1;
         const sonraki = s?.links?.next;
         sayfaYolu = sonraki ? sonraki.replace(/^https:\/\/api\.appstoreconnect\.apple\.com\/v1/, '') : null;
+      }
+      if (!nokta && u.fiyatEnYakin && enYakin) {
+        nokta = enYakin.p;
+        console.log(`  ⚠ ${u.fiyatTL} TL tam kademe YOK → en yakın seçildi: ${nokta.attributes?.customerPrice} TL (fark ${enYakin.fark})`);
       }
       if (!nokta) {
         console.log(`  ✗ ${u.fiyatTL} TL kademesi bulunamadı (${sayfa} sayfa tarandı). Fiyat ATLANDI.`);
