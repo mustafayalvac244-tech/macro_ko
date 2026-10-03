@@ -90,10 +90,22 @@ jobs:
         env:
           EXPO_PUBLIC_SUPABASE_URL: https://wjshlysfmeqlnfiibknj.supabase.co
           EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ
+          # 03.10.2026: BU İKİSİ EKSİKTİ. OTA inen her telefonda RevenueCat hiç
+          # kurulmuyordu (src/lib/purchases.ts anahtar boşsa sessizce çıkar):
+          # satın alma ekranı teklif göstermiyor, kullanıcı RevenueCat'e
+          # bağlanmıyordu. Ölçüldü: iOS bildirim adresi olan (yani 30.09 OTA'sını
+          # açmış) 2 kullanıcının 2'si de RevenueCat'te YOKTU. Herkese açık
+          # (appl_/goog_) anahtarlar; eas.json'da da duruyorlar.
+          # tests/otaOrtam.test.ts: eas.json production'daki her EXPO_PUBLIC_*
+          # burada da olmak zorunda.
+          EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: goog_wGafOymnUrpXTwfRAJQTVFodYcM
+          EXPO_PUBLIC_REVENUECAT_IOS_KEY: appl_uHtkSFCZqqrJcKfLOleUcgySgnG
         run: |
           set -euo pipefail
           test -n "$EXPO_PUBLIC_SUPABASE_URL"
           test -n "$EXPO_PUBLIC_SUPABASE_ANON_KEY"
+          test -n "$EXPO_PUBLIC_REVENUECAT_IOS_KEY"
+          test -n "$EXPO_PUBLIC_REVENUECAT_ANDROID_KEY"
           eas update \
             --branch "${{ inputs.kanal }}" \
             --message "${{ inputs.mesaj }}" \
