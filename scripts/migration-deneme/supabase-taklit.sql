@@ -193,6 +193,8 @@ create table public.mevzuat_maddeleri (id bigint generated always as identity pr
 create table public.legal_rules (id text primary key, baslik text, triggers text default '', body text, zorunlu_terimler text[] default '{}');
 create table public.ictihat_atif (karar_id text, kanun_short text, madde_no text);
 create table public.oturum_cihazlari (id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id), cihaz text);
+-- 0118 (atıf denetimi sayaçları) — 0167 bu tabloya sütun ekliyor; taklitte yoksa 0167 tek başına düşer (03.10.2026, CI'da ölçüldü).
+create table public.atif_denetim_kaydi (id bigint generated always as identity primary key, olusturuldu timestamptz not null default now(), mod text not null, model text, toplam integer not null default 0, dogrulanan integer not null default 0, havuzda_yok integer not null default 0, olanaksiz integer not null default 0, uydurma_madde integer not null default 0);
 alter table public.oturum_cihazlari enable row level security;
 grant select on public.oturum_cihazlari to authenticated;
 grant all on all tables in schema public to anon, authenticated, service_role;

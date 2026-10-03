@@ -40,7 +40,6 @@
    RevenueCat anahtarlarını vermiyordu → OTA inen telefonda RevenueCat kurulmuyor.
    Düzeltildi (PR #131) + OTA 3ee398e9 (03.10 12:03 UTC, 3.4.0); inişi ÖLÇÜLMEDİ.
    RevenueCat'teki tek abonelik SANDBOX (02.10, fa842f88…) — gerçek satış 0.
-   Teşhis sorgusu RevenueCat'te 8 boş müşteri kaydı oluşturdu (v1 GET yaratır).
 000. **SATIŞ PLANI (03.10, "hepsini yap"):** kayıt kısaldı (TC/büro "Ek
    bilgiler" altında), ana ekranda "3 adımda başla" kartı, kullanım sayacı
    (0165 CANLI; kişisel veri yok; yönetici → "Kullanım (sayaç)"), gizlilik
@@ -59,7 +58,8 @@
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
    Anahtar ~30.10 biter.
    Deneme: Sonnet 5, düşünme kapalı; dilekçe tavanı 6k + kesilirse devam.
-   03.10: 2.999 ₺ paketi SABİT Sonnet 5 (sohbet dahil; yalnız künye+taşma Haiku), v130.
+   03.10: 2.999 ₺ paketi: dilekçe+mütalaa OPUS 5 (maxOut 16k, tahmin), sohbet+belge
+   Sonnet 5, künye+taşma Haiku (v131). Denemeler Sonnet. Opus maliyeti ÖLÇÜLMEDİ.
    02.10: 0164 + v126 — kuraldaki "2 hafta" hatası düzeltildi, iscilik_faiz + denetim.
 0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
    Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
