@@ -8,7 +8,7 @@
 // mağazayla konuşan RevenueCat'in imzaladığı bildirime güveniyoruz.
 //
 // İKİ AYRI ÜRÜN, İKİ AYRI ENTİTLEMENT. "premium" (temel, 399₺) is_premium'u,
-// "ai" (1.499₺, 250 soru + 12 mütalaa — bkz. _shared/katman.ts) ai_tier'ı
+// "ai" (2.999₺, 750 soru + 25 mütalaa — bkz. _shared/katman.ts) ai_tier'ı
 // açar; bir olay entitlement_ids'inde İKİSİ BİRDEN de olabilir. Hangisinin
 // hangi ürüne bağlı olduğu RevenueCat panelinde kurulur (bkz. IAP_KURULUM.md);
 // biz burada yalnız RevenueCat'in söylediği entitlement_ids'e göre davranırız,

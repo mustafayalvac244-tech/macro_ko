@@ -143,7 +143,8 @@ Kod tarafı hazır. Panelde kurulacak iki ürün — **fiyatlar ve haklar
   daha hafif modele yönlenir) + **25 hukuki mütalaa**. Devretmez.
 - **10 deneme hakkı** ₺399'luk pakete aittir (13.09.2026 ürün kararı; sayı
   15.09.2026'da 3'ten 10'a çıkarıldı).
-  Ücretsiz hesapta yapay zekâ tamamen kapalıdır. Bu bir **sunucu sayacıdır**
+  Ücretsiz hesapta ayrıca **5 deneme sorusu** var (28.09.2026'dan beri,
+  `UCRETSIZ_DENEME_HAKKI`). İkisi de **sunucu sayacıdır**
   (`profiles.deneme_soru_kullanildi`), Play'de ürün olarak kurulmaz.
 - Adım adım RevenueCat kurulumu: `IAP_KURULUM.md`.
 
@@ -181,7 +182,7 @@ koddan ve ölçümden çıkarıldı (`src/config/kvkk.ts` → `ALICILAR`):
 | Aktarımda şifreleme | **Evet** (TLS) |
 | Kullanıcı silme isteyebilir mi? | **Evet** — uygulama içi ve vekilpro.app/hesap-silme.html |
 | Toplanan türler | Kişisel bilgi (ad, e-posta, telefon — telefon isteğe bağlı); Uygulama etkinliği; **Dosyalar ve belgeler** (kullanıcının yüklediği); Uygulama bilgileri ve performansı (hata kayıtları) |
-| Kullanım amacı | Uygulama işlevselliği, hesap yönetimi |
+| Kullanım amacı | Uygulama işlevselliği, hesap yönetimi; **Uygulama etkinliği → Analiz** (03.10.2026'dan beri: `kullanim_sayac`, göç 0165 — hangi ekranın kaç kez açıldığının kimliksiz günlük toplamı, kendi sunucumuzda; üçüncü taraf analiz SDK'sı yok) |
 | Reklam / izleme | **YOK** — uygulamada reklam kimliği, izleme ya da üçüncü taraf analiz yok |
 
 **Paylaşım kimlerle (formda "üçüncü taraf" olarak beyan edilir):**

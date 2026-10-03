@@ -733,8 +733,9 @@ export const tr = {
   // WEB'DE SATIN ALMA — arıza değil, platform gerçeği. Uygulama içi satın
   // alma mağazaya özgüdür; tarayıcıda böyle bir mekanizma yoktur. Bunu
   // "yüklenemedi" diye yazmak, çalışan bir ürünü bozuk göstermekti.
-  'premium.webTitle': 'Ücretli planlar yakında açılıyor',
-  'premium.webBody': '{plan} paketi, iOS ve Android uygulamalarımız mağazalarda yayına girdiğinde satın alınabilir olacak — abonelikler mağaza hesabınız üzerinden işler. O güne kadar ücretsiz katman süresiz açık: içtihat ve mevzuat aramasını sınırsız, dava/duruşma/ajanda takibini kesintisiz kullanabilirsiniz.',
+  'premium.webTitle': 'Abonelik iPhone uygulamasından alınır',
+  'premium.webBody': '{plan} paketi App Store\'daki Vekil Pro iPhone uygulamasından satın alınır; abonelik Apple hesabınız üzerinden işler ve aynı Vekil Pro hesabıyla web\'de de geçerli olur. Android uygulaması hazırlanıyor. Ücretsiz katman süresiz açık: içtihat ve mevzuat araması, dava/duruşma/ajanda takibi.',
+  'premium.webOpenStore': 'App Store\'u aç',
   'premium.soonTitle': 'Satın alma şu an yapılamıyor',
   'premium.soonBody': '{plan} paketi bu cihazda/sürümde satın alınamıyor: mağaza teklifi yüklenemedi. App Store / Google Play’deki güncel sürümü kullanın; sorun sürerse bize yazın.',
   'premium.purchaseSuccessTitle': 'Aboneliğiniz başladı 🎉',
