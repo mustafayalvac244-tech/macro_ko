@@ -749,6 +749,14 @@ export interface KararDenetimi {
    * uydurmadır ve kırmızı gösterilir. Kaynağa ulaşılamadıysa havuzdaYok'ta kalır.
    */
   canlidaYok: string[];
+  /**
+   * ÇIKARILAN KÜNYE YERİNE GERÇEK KARAR ÖNERİSİ (03.10.2026, ürün sahibi:
+   * "çıkar ama zekice"). Uydurma künyenin geçtiği cümleyle havuzda/canlı
+   * kaynakta GERÇEK karar aranır; bulunanlar metne SOKULMAZ (modelin
+   * okumadığı bir kararı dilekçeye yazmak yeni bir uydurma olurdu), avukata
+   * "bu cümle için teyit edilmiş adaylar" olarak sunulur.
+   */
+  oneriler?: Array<{ icin: string; kararlar: Array<{ atif: string; daire?: string; tarih?: string; id?: string; ozet?: string }> }>;
   /** Havuzdan bağımsız olarak MANTIKEN olamayacak atıflar. */
   olanaksiz: Array<{ atif: string; sebep: TutarsizKarar['sebep'] }>;
 }
@@ -776,6 +784,81 @@ export interface KararDenetimi {
  *
  * HATA YUTULUR — madde denetimindeki gerekçenin aynısı.
  */
+/**
+ * UYDURMA KÜNYE METNE GİRMEZ — 03.10.2026, ürün sahibi: "kullanıcıya yazılamaz".
+ *
+ * İlk tasarım künyeyi metinde bırakıp kırmızı uyarı veriyordu. Yanlış: avukat
+ * uyarıyı görmeyebilir, metni kopyalayıp dilekçeye koyar, ilk fark eden karşı
+ * vekil olur. Ne havuzda ne canlı UYAP'ta bulunan (canlidaYok) ve mantıken
+ * olamayan (olanaksiz) künyeler metinden ÇIKARILIR, yerine yer tutucu kalır.
+ * Havuzda olmayıp canlı kaynağa ulaşılamayanlar (havuzdaYok) kalır: gerçek
+ * olabilir, "teyit edin" denir.
+ */
+const KUNYE_YER_TUTUCU = '[emsal karar: aşağıdaki önerilerden ya da İçtihat Arama ekranından gerçek bir karar ekleyin]';
+
+/** Künyenin geçtiği cümle (±1 cümle sınırı, ≤300 karakter), künye çıkarılmış hâliyle. */
+function kunyeCumlesi(metin: string, ham: string): string {
+  const i = metin.indexOf(ham);
+  if (i < 0) return '';
+  const bas = Math.max(0, Math.max(metin.lastIndexOf('.', i - 1), metin.lastIndexOf('\n', i - 1)) + 1);
+  const sonAday = [metin.indexOf('.', i + ham.length), metin.indexOf('\n', i + ham.length)].filter((x) => x >= 0);
+  const son = sonAday.length ? Math.min(...sonAday) : metin.length;
+  return metin.slice(bas, son).split(ham).join(' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+}
+
+/**
+ * Çıkarılan künyenin cümlesi için GERÇEK karar arar: önce havuz (FTS), yoksa
+ * canlı kaynak (bütçe ve devre kesici uyapCanli'de; canlı bulunan arşivlenir,
+ * havuz böylece kullanıcının gerçek ihtiyacına yakınsar). Hata yutulur: öneri
+ * bulunamaması cevabı geciktirmez, düşürmez.
+ */
+async function gercekKararOner(cumle: string): Promise<Array<{ atif: string; daire?: string; tarih?: string; id?: string; ozet?: string }>> {
+  const s = svc();
+  if (!s || cumle.length < 20) return [];
+  try {
+    const { data } = await s.rpc('search_ictihat_fts', { q: cumle, match_count: 2 });
+    // deno-lint-ignore no-explicit-any
+    let rows = (data ?? []) as any[];
+    if (rows.length === 0) {
+      const canli = await canliIctihat(cumle, 2);
+      if (canli.length) {
+        await canliArsivle(s, canli, cumle);
+        rows = canli.map((k) => ({ id: k.id, daire: k.daire, esas_no: k.esasNo, karar_no: k.kararNo, karar_tarihi: k.kararTarihi, snippet: k.metin }));
+      }
+    }
+    return rows.slice(0, 2).map((r) => ({
+      atif: `${r.daire ?? ''} E. ${r.esas_no ?? ''} K. ${r.karar_no ?? ''}`.replace(/\s+/g, ' ').trim(),
+      daire: r.daire ?? undefined,
+      tarih: r.karar_tarihi ?? undefined,
+      id: r.id ? String(r.id) : undefined,
+      ozet: String(r.snippet ?? '').replace(/\s+/g, ' ').slice(0, 160) || undefined,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function uydurmaKunyeleriCikar(metin: string, d: KararDenetimi | null): Promise<{ metin: string; cikarilan: number }> {
+  if (!d) return { metin, cikarilan: 0 };
+  let m = metin;
+  let cikarilan = 0;
+  const oneriler: NonNullable<KararDenetimi['oneriler']> = [];
+  const hamlar = [...d.canlidaYok, ...d.olanaksiz.map((o) => o.atif)].filter(Boolean);
+  // Öneri aramaları eşzamanlı, en fazla 3 künye (her biri 1 FTS + en çok 1 canlı).
+  const cumleler = hamlar.slice(0, 3).map((ham) => kunyeCumlesi(metin, ham));
+  const bulunanlar = await Promise.all(cumleler.map((c) => gercekKararOner(c)));
+  for (const [i, ham] of hamlar.entries()) {
+    const once = m;
+    m = m.split(ham).join(KUNYE_YER_TUTUCU);
+    if (m === once) continue;
+    cikarilan++;
+    const kararlar = bulunanlar[i] ?? [];
+    if (kararlar.length) oneriler.push({ icin: cumleler[i].slice(0, 140), kararlar });
+  }
+  if (oneriler.length) d.oneriler = oneriler;
+  return { metin: m, cikarilan };
+}
+
 async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
   const s = svc();
   if (!s) return null;
@@ -1728,7 +1811,13 @@ async function canliArsivle(supabase: any, kararlar: Array<{ id: string; daire: 
   }
 }
 
-async function buildGrounding(supabase: any, question: string): Promise<string> {
+// "İçtihat ekle / emsal karar" istenmişse dosyaya daha çok GERÇEK karar girer:
+// modelin ezberden künye yazma sebebi dosyada seçecek karar olmamasıdır
+// (03.10.2026 olayı). Eşik ve üst sınır ölçülmedi, tahmin.
+function ictihatIstenmis(soru: string): boolean {
+  return /i[çc]tihat|emsal|yarg[ıi]tay|dan[ıi][şs]tay|karar(?:ı|lar)?\b/i.test(soru);
+}
+async function buildGrounding(supabase: any, question: string, enAz = 3, enCok = 5): Promise<string> {
   // deno-lint-ignore no-explicit-any
   let rows: any[] = [];
   // Anlamsal arama artık TÜM katmanlarda çalışır: yerleşik model ücretsiz ve
@@ -1779,7 +1868,7 @@ async function buildGrounding(supabase: any, question: string): Promise<string> 
    * Kaynak düşerse cevap DÜŞMEZ: canliIctihat hata atmaz, boş liste döner ve
    * besleme havuzdakiyle devam eder.
    */
-  const YETERLI = 3;
+  const YETERLI = enAz;
   let canliSayisi = 0;
   if (rows.length < YETERLI) {
     const canli = await canliIctihat(question, YETERLI - rows.length);
@@ -1802,7 +1891,7 @@ async function buildGrounding(supabase: any, question: string): Promise<string> 
   }
 
   if (rows.length === 0) return '';
-  rows = rows.slice(0, 5);
+  rows = rows.slice(0, enCok);
 
   const refs = rows
     .map(
@@ -2464,6 +2553,7 @@ Deno.serve(async (req) => {
       // bulunmadığını görür.
       const uydurmaMadde = await uydurmaMaddeDenetimi(text);
       const kararDenetimi = await kararAtfiDenetimi(text);
+      const sonMetin = (await uydurmaKunyeleriCikar(text, kararDenetimi)).metin;
       const atlanan = atlananKurallar(
         [...dayanakKurallar].map(([id, k]) => ({ id, zorunlu_terimler: k.terimler })),
         text
@@ -2485,7 +2575,7 @@ Deno.serve(async (req) => {
       if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, true);
       const { maliyet, istekId } = await recordUsage(userData.user.id, kullanim.model, meter.tin, meter.tout, kullanim.faturali, !(kusurlu || yedekModel), 'mutalaa', !!cfg.denemeLimit);
       return new Response(JSON.stringify({
-        text: text.trim(), tier, model: kullanim.model, issues,
+        text: sonMetin.trim(), tier, model: kullanim.model, issues,
         yedekModel: yedekModel || undefined,
         // Dosyaya giren kural özetleri. Bunlar BİZİM ÖZETİMİZDİR, kanun lafzı
         // değildir; ekranda da öyle etiketleniyor.
@@ -2688,7 +2778,7 @@ async function dosyaKunyesi(
     const dilekceKurallar = new Map<string, BeslenenKural>();
     try { dossier += await buildRules(supabase, promptQuestion, dilekceKurallar); } catch { /* atla */ }
     try { dossier += await buildMevzuat(supabase, promptQuestion); } catch { /* atla */ }
-    try { dossier += await buildGrounding(supabase, promptQuestion); } catch { /* atla */ }
+    try { dossier += await buildGrounding(supabase, promptQuestion, ictihatIstenmis(promptQuestion) ? 5 : 3, ictihatIstenmis(promptQuestion) ? 6 : 5); } catch { /* atla */ }
 
     // GROQ'A GİDERKEN BESLEME TAVANA SIĞDIRILIR. Ücretsiz anahtarda dakikalık
     // tavan 8.000 token ve sağlayıcı girdi + çıktı tavanını topluyor; sığmayan
@@ -2885,6 +2975,7 @@ async function dosyaKunyesi(
       // dilekçe mahkemeye gider. Uydurma bir esas/karar numarasını ilk fark
       // eden karşı vekil olur (bkz. kararAtfiDenetimi).
       const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
+      temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       // ATLANAN KURAL DENETİMİ DİLEKÇEDE ÇALIŞMIYOR — ölçüm gösterdi ki burada
       // ürettiği şey gürültü. Dört senaryoluk koşuda üç uyarı çıktı ve üçü de
       // konu dışıydı: istinaf dilekçesinde "arabulucu" (o aşama çoktan geçmiş),
@@ -3137,6 +3228,7 @@ async function dosyaKunyesi(
       const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
       const uydurmaMadde = await uydurmaMaddeDenetimi(temiz.metin);
       const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
+      temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       // UYDURMA TUTAR DENETİMİ — incelemedeki bir tutar, belgede hiç yoksa
       // avukat için "bu belgede yazan miktar" sanılır. Bkz. dilekçedeki aynı
       // denetim; burada "olay" yerine incelenen belgenin metni (promptQuestion).
@@ -3301,7 +3393,8 @@ async function dosyaKunyesi(
   // atlamak, korumayı en çok gerektiği yerde kapatmak demekti.
   const uydurmaMadde = await uydurmaMaddeDenetimi(text);
   const kararDenetimi = await kararAtfiDenetimi(text);
-  const kusurlu = uydurmaMadde.length > 0 || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
+  const sonMetin = (await uydurmaKunyeleriCikar(text, kararDenetimi)).metin;
+  const kusurlu = uydurmaMadde.length > 0 || (kararDenetimi?.olanaksiz.length ?? 0) > 0 || (kararDenetimi?.canlidaYok.length ?? 0) > 0;
   atifKaydiYaz('sohbet', kullanilanModel, kararDenetimi, uydurmaMadde);
   if (yedekModel || kusurlu) {
     if (cfg.modLimits) await aiModSerbestBirak(userData.user.id, aiAy, false);
@@ -3309,7 +3402,7 @@ async function dosyaKunyesi(
   }
   const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, tin, tout, faturali, !(yedekModel || kusurlu), 'sohbet', !!cfg.denemeLimit);
   return new Response(JSON.stringify({
-    text: text.trim(), tier, model: kullanilanModel, istekId,
+    text: sonMetin.trim(), tier, model: kullanilanModel, istekId,
     // Uygulama bunu balonun altında uyarı olarak gösterir (AiMessage.yedek).
     yedekModel: yedekModel || undefined,
     uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,

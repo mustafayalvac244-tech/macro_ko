@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { kunyeNormalize } from '../supabase/functions/_shared/kunyeBicim';
+import { kararAtiflari } from '../supabase/functions/_shared/kararAtif';
 
 const KOK = join(__dirname, '..');
 const oku = (p: string) => readFileSync(join(KOK, p), 'utf8');
@@ -51,13 +52,35 @@ describe('canlı künye teyidi', () => {
     expect(aiChat).toContain('canlida_yok: kararDenetimi?.canlidaYok.length ?? 0');
   });
 
-  it("ekran kırmızı bloğu gösteriyor, metinler tr ve en'de", () => {
+  it('uydurma künye METİNDEN ÇIKARILIR, dört modda da (ürün sahibi: "kullanıcıya yazılamaz")', () => {
+    // Çıkarma: canlıda yok + olanaksız; havuzdaYok (ulaşılamadı) kalır.
+    expect(aiChat).toMatch(/const hamlar = \[\.\.\.d\.canlidaYok, \.\.\.d\.olanaksiz\.map/);
+    expect((aiChat.match(/uydurmaKunyeleriCikar\(/g) ?? []).length).toBe(5); // tanım + 4 mod
+    // ZEKİCE: çıkarılan künyenin cümlesi için gerçek karar aranır ve ÖNERİ olarak
+    // döner; metne sokulmaz (modelin okumadığı karar dilekçeye girmez).
+    expect(aiChat).toMatch(/async function gercekKararOner\(cumle: string\)/);
+    expect(aiChat).toContain("s.rpc('search_ictihat_fts', { q: cumle, match_count: 2 })");
+    expect(aiChat).toContain('if (oneriler.length) d.oneriler = oneriler;');
+    // İçtihat istenmişse dosyaya daha çok gerçek karar girer.
+    expect(aiChat).toContain('ictihatIstenmis(promptQuestion) ? 5 : 3');
+    // Çıkarılan metin yanıta gidiyor (orijinal değil).
+    expect(aiChat).toContain('text: sonMetin.trim(), tier, model: kullanim.model, issues,');
+    expect(aiChat).toContain('text: sonMetin.trim(), tier, model: kullanilanModel, istekId,');
+    // ham, metindeki yazılış: split/join ile çıkarılabilmesi için ALT DİZE olmalı.
+    const metin = 'Yargıtay 9. HD, E. 2019/1234, K. 2020/5678 sayılı kararı uyarınca';
+    for (const a of kararAtiflari(metin)) expect(metin).toContain(a.ham);
+  });
+
+  it("ekran künyeyi LİSTELEMEZ, yalnız sayı; metinler tr ve en'de", () => {
     const ui = oku('src/components/ui/AtifDenetimi.tsx');
-    expect(ui).toContain("t('atif.canlidaYokBaslik')");
+    expect(ui).toContain("t('atif.cikarildiBaslik', { n: String(cikarilan) })");
+    expect(ui).not.toContain('veri.canlidaYok!.join');
+    expect(ui).not.toMatch(/veri\.olanaksiz\.map/);
     expect(ui).toContain("t('atif.kaynakUyap')");
+    expect(ui).toContain("t('atif.oneriBaslik')");
     for (const dil of ['tr', 'en']) {
       const s = oku(`src/i18n/${dil}.ts`);
-      for (const k of ['atif.canlidaYokBaslik', 'atif.canlidaYokNot', 'atif.kaynakUyap']) {
+      for (const k of ['atif.cikarildiBaslik', 'atif.cikarildiNot', 'atif.kaynakUyap', 'atif.oneriBaslik', 'atif.oneriNot']) {
         expect(s, `${dil}: ${k}`).toContain(`'${k}':`);
       }
     }
