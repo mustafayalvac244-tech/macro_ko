@@ -775,6 +775,15 @@ export const tr = {
   // 'freeDeneme' kalsaydı, ücretsiz katmanın listesinde duruyormuş gibi
   // okunur ve bir sonraki düzenlemede yanlış yere geri konurdu.
   'premium.f.proDeneme': '{n} yapay zekâ denemesi (Dilekçe Üret, Belge İncele, Belgeden Dosya Aç)',
+  'premium.perSixMonths': '/ 6 ay',
+  'premium.perYear': '/ yıl',
+  'premium.periodMonthly': 'Aylık',
+  'premium.periodSixMonths': '6 aylık',
+  'premium.periodYearly': 'Yıllık',
+  'premium.monthlyEquivalent': 'Aylık {price}’ye denk gelir',
+  'premium.saving': 'aylığa göre %{pct} tasarruf',
+  'premium.autoRenewNoteSixMonths': '6 ayda bir {price}. Abonelik otomatik yenilenir. Dönem bitiminden 24 saat önce App Store / Google Play ayarlarından kapatmazsanız yenilenir.',
+  'premium.autoRenewNoteYearly': 'Yılda bir {price}. Abonelik otomatik yenilenir. Dönem bitiminden 24 saat önce App Store / Google Play ayarlarından kapatmazsanız yenilenir.',
   'premium.autoRenewNote': 'Aylık {price}. Abonelik otomatik yenilenir. Dönem bitiminden 24 saat önce App Store / Google Play ayarlarından kapatmazsanız yenilenir.',
   'premium.aiSoonNote': 'Yapay zekâ katmanı satışta.',
   'premium.f.aiQuota': 'Ayda {soru} soru + {mutalaa} derin araştırma dahil (ilk {asil} soru ana modelle, sonrası daha hafif modelle yanıtlanır)',

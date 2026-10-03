@@ -17,8 +17,6 @@
 - **iOS 3.4.0 App Store'da YAYINDA** (iTunes lookup id 6812859016, TR,
   yayın 27.09 19:46 UTC — 01.10 ölçüldü). Sitede App Store bağlantısı main'de
   (957a16a, başka oturum: Safari şeridi + 2. düğme; benimki çakışmada bırakıldı).
-- Apple 2. ret (25.09) üç maddeydi, üçü de kapandı (2.3.7 görseller · 5.1.1 TC
-  isteğe bağlı · 2.1(b) RevenueCat teklifleri dolduruldu; 26.09 ölçüldü).
 - **Web** (`vekilpro.app/app`) `main`'den yayınlanır; `docs/app` = `npm run
   export:web` (41 sn, 03.10 ölçüldü) + commit. Ortam yoksa derleme durur.
 - **Android/Play:** başlanmadı (bkz. KARAR-DEFTERI §3).
@@ -31,10 +29,8 @@
 
 ## 2. Sıradaki / açık işler
 
-0000. **ACİL — OTA'larda SATIN ALMA KAPALIYDI (03.10 bulundu).** ota-yayinla.yml
-   RevenueCat anahtarlarını vermiyordu → OTA inen telefonda RevenueCat kurulmuyor.
-   Düzeltildi (PR #131) + OTA 3ee398e9 (03.10 12:03 UTC, 3.4.0); inişi ÖLÇÜLMEDİ.
-   RevenueCat'teki tek abonelik SANDBOX (02.10, fa842f88…) — gerçek satış 0.
+0000. OTA'larda satın alma kapalıydı (RevenueCat anahtarı yoktu) → PR #131 + OTA
+   3ee398e9 ile düzeldi; inişi ÖLÇÜLMEDİ. Tek abonelik SANDBOX; gerçek satış 0.
 000. **SATIŞ PLANI (03.10, "hepsini yap"):** kayıt kısaldı (TC/büro "Ek
    bilgiler" altında), ana ekranda "3 adımda başla" kartı, kullanım sayacı
    (0165 CANLI; kişisel veri yok; yönetici → "Kullanım (sayaç)"), gizlilik
@@ -44,6 +40,12 @@
    Android: Play hesabı VAR (03.10). AAB derlemesi main'den başlatıldı, sonucu
    ÖLÇÜLMEDİ. Web'de satın alma yok; mesaj iPhone'a yönlendirir (PR #130).
 
+00a. **AI UZUN DÖNEM (03.10, ürün sahibi "6 ay aylık 2499, yıl aylık 1999"):** App
+   Store'da vekil_ai_six_month 14.999 TL, vekil_ai_annual 23.999 TL kuruldu (tam
+   kademe yok, en yakın; MISSING_METADATA, görsel işleniyor, yalnız TUR). Satış
+   ekranında süre seçici (RevenueCat'te paket varsa görünür). ÜRÜN SAHİBİ:
+   RevenueCat → iki ürünü premium+ai'ye bağla, 'ai' teklifine Six Month + Annual
+   paketi ekle; Apple'a incelemeye gönder. Sözleşme/site metni satışa açılınca.
 00. **Satın alma webhook'u ÇALIŞIYOR** (02.10 22:38 UTC ölçüldü: RevenueCat test
    olayı → 200). Sır Supabase + RevenueCat'te. Gerçek ilk satın almada is_premium
    açıldığı ayrıca doğrulanmalı. 'Bearer' toleransı depoda (038d9bf), DAĞITILMADI.
@@ -58,9 +60,7 @@
    03.10 ölçüldü: sohbet ₺2,20/soru (tahmin ₺0,64), dilekçe ₺2,11. Geçmiş önbelleği +
    önbellek fiyatı → 0168, ai-chat v135, PR #138; etkisi ÖLÇÜLMEDİ (onbellek_okunan).
    Talep sayacı (hasat_konu_talep) 0 kayıt — sebebi BULUNAMADI (açık iş).
-0b. 30.09: UYGULAMA BİLDİRİMİ (0161; yönetici → "Bildirim gönder", son N / herkes).
-   AÇIK: telefona düştüğü ÖLÇÜLMEDİ; iOS APNs anahtarı Expo'da tanımlı mı BİLİNMİYOR
-   (bilet "InvalidCredentials" dönerse eksik o). Web paneline girmedi.
+0b. Bildirim (0161): telefona düştüğü ÖLÇÜLMEDİ; Expo'da APNs anahtarı BİLİNMİYOR.
 0. ÜCRETSİZ DENEME 10 (03.10; 0166, OTA 82feafd; kart 3. adım → Dilekçe Üret).
    Soru/cevap METNİ saklanmaz.
 0c. **KÜNYE CANLI TEYİDİ (03.10, 0167, ai-chat v132, ictihat v68, PR #136).** Olay:
