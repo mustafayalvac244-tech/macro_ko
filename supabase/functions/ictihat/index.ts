@@ -1089,8 +1089,20 @@ Deno.serve(async (req) => {
         .catch(() => []);
       const collected: Hit[] = [];
       const seen = new Set<string>();
+      // EMSAL DÜŞERSE BEDESTEN'LE DEVAM (03.10.2026). Ölçüldü: 21:21–21:25'te
+      // künye aramaları 6 kez 502 döndü; Emsal'in tek hatası tüm aramayı
+      // düşürüyordu, Bedesten sonucu hiç bakılmadan çöpe gidiyordu.
+      let emsalDustu = false;
       for (let p = 1; p <= 3; p++) {
-        const { hits: rows, total } = await emsalSearch(`"${term}"`, p, 20);
+        let rows: Hit[] = [];
+        let total = 0;
+        try {
+          ({ hits: rows, total } = await emsalSearch(`"${term}"`, p, 20));
+        } catch (e) {
+          emsalDustu = true;
+          console.error('kunye: emsal araması düştü:', e instanceof Error ? e.message : String(e));
+          break;
+        }
         for (const h of rows) {
           if (h.id && !seen.has(h.id)) {
             seen.add(h.id);
@@ -1106,6 +1118,9 @@ Deno.serve(async (req) => {
           collected.push(h);
         }
       }
+
+      // İki kaynak da boş VE Emsal düştüyse bu "yok" değil "ulaşılamadı"dır.
+      if (emsalDustu && collected.length === 0) throw new Error('source_unreachable');
 
       const matches = (h: Hit) =>
         (!esas || h.esasNo === esas) &&
@@ -1359,6 +1374,8 @@ Deno.serve(async (req) => {
     // Kaynak siteye ulaşılamazsa (geo/WAF) net bir kod dönelim. 'ayrinti'
     // varsa (Claude dalı) onu taşı: "upstream" tek başına teşhis ettirmiyor.
     const ayrinti = (e as Error & { ayrinti?: string })?.ayrinti;
+    // 03.10.2026: 502'nin sebebi kayıtlarda görünmüyordu (yalnız "booted").
+    console.error('ictihat 502:', msg, ayrinti ?? '');
     return json({ error: 'source_unreachable', detail: ayrinti ?? msg }, 502);
   }
 });

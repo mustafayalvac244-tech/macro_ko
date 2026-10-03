@@ -1500,6 +1500,9 @@ export const tr = {
   // bir daha hiçbirine bakmaz (bkz. src/components/ui/AtifDenetimi.tsx).
   'atif.baslik': 'Karar atfı denetimi — metinde {n} içtihat atfı bulundu',
   'atif.olanaksizBaslik': 'BU ATIFLAR OLAMAZ — düzeltmeden kullanmayın:',
+  'atif.canlidaYokBaslik': 'NE HAVUZUMUZDA NE UYAP’TA BULUNDU — bu künyeleri kullanmayın:',
+  'atif.canlidaYokNot': 'Canlı UYAP/Bedesten aramasında bu esas/karar numarasıyla karar çıkmadı; büyük olasılıkla uydurmadır. Dilekçeden çıkarın.',
+  'atif.kaynakUyap': 'UYAP’ta canlı doğrulandı',
   'atif.havuzdaYokBaslik': 'Havuzumuzda bulunamadı — UYAP’tan teyit edin:',
   'atif.havuzdaYokNot': 'Bulunamaması kararın yanlış olduğunu göstermez: havuzumuzda tüm Yargıtay kararları yok.',
   'atif.dogrulandiBaslik': '{n} atıf havuzumuzda doğrulandı:',

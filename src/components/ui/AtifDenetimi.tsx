@@ -26,8 +26,10 @@ import type { ThemeColors } from '@/theme/palettes';
  */
 export interface KararDenetimiVerisi {
   toplam: number;
-  dogrulanan: Array<{ atif: string; daire?: string; tarih?: string; id?: string }>;
+  dogrulanan: Array<{ atif: string; daire?: string; tarih?: string; id?: string; kaynak?: 'havuz' | 'uyap' }>;
   havuzdaYok: string[];
+  /** Havuzda yok VE canlı UYAP aramasında da yok (03.10.2026). Eski sunucuda alan gelmez. */
+  canlidaYok?: string[];
   olanaksiz: Array<{ atif: string; sebep: string }>;
 }
 
@@ -71,6 +73,18 @@ export function AtifDenetimi({ veri }: { veri: KararDenetimiVerisi | null | unde
         </View>
       )}
 
+      {/* NE HAVUZDA NE UYAP'TA — 03.10.2026. Kaynak cevap verdi ve karar çıkmadı:
+          burada "teyit edin" değil "kullanmayın" denir. */}
+      {(veri.canlidaYok?.length ?? 0) > 0 && (
+        <View style={[styles.satir, styles.kirmizi]}>
+          <Text style={styles.kirmiziMetin}>{t('atif.canlidaYokBaslik')}</Text>
+          <Text style={styles.kirmiziMetin} selectable>
+            {veri.canlidaYok!.join(' · ')}
+          </Text>
+          <Text style={styles.kucukNot}>{t('atif.canlidaYokNot')}</Text>
+        </View>
+      )}
+
       {veri.havuzdaYok.length > 0 && (
         <View style={[styles.satir, styles.sari]}>
           <Text style={styles.sariMetin}>{t('atif.havuzdaYokBaslik')}</Text>
@@ -93,6 +107,7 @@ export function AtifDenetimi({ veri }: { veri: KararDenetimiVerisi | null | unde
               • {d.atif}
               {d.daire ? ` — ${d.daire}` : ''}
               {d.tarih ? ` (${d.tarih})` : ''}
+              {d.kaynak === 'uyap' ? ` · ${t('atif.kaynakUyap')}` : ''}
             </Text>
           ))}
         </View>

@@ -24,6 +24,9 @@
 //
 // Hata ATMAZ. En kötü hâlde boş liste döner ve cevap havuzla üretilir.
 import { DevreKesici, korumaliGetir } from './dayaniklilik.ts';
+import { kunyeNormalize } from './kunyeBicim.ts';
+
+export { kunyeNormalize };
 
 const BEDESTEN = 'https://bedesten.adalet.gov.tr';
 const BASLIK = {
@@ -193,6 +196,84 @@ export async function canliIctihat(terim: string, adet = 3): Promise<CanliKarar[
     if (typeof m === 'string' && m.length >= 200) cikan.push({ ...secilen[i], metin: m });
   }
   return cikan;
+}
+
+/**
+ * CANLI KÜNYE TEYİDİ — 03.10.2026.
+ *
+ * OLAY (03.10, gerçek kullanıcı): dilekçeye "içtihat ekle" denince model iki
+ * karar yazdı; ikisi de havuzda yoktu ve avukat aynı künyeyi İçtihat Arama'da
+ * da bulamadı. Havuz korpusun küçük bir parçası, "havuzda yok" uyarısı bu
+ * yüzden sarı kalıyordu — avukat için işe yaramaz bir belirsizlik. Bedesten
+ * 10 milyonu aşkın karar tutuyor: orada da yoksa künye büyük olasılıkla
+ * uydurmadır ve bunu kırmızıyla söyleriz.
+ *
+ * Aynı bütçe ve devre kesici: kaynak düşükse null döner (karar verilmez),
+ * bulunamazsa { bulundu: false } (kaynak cevap verdi, karar yok).
+ * Bedesten'de yalnız Yargıtay taranır; Danıştay/AYM/BAM künyesi için
+ * çağıran bu fonksiyonu kullanmamalı (yanlış "yok" demesin).
+ */
+export interface KunyeTeyit {
+  bulundu: boolean;
+  daire?: string;
+  tarih?: string;
+  id?: string;
+}
+
+async function kunyeAra(terim: string, sinyal: AbortSignal) {
+  // Künye aramasında terim TEMİZLENMEZ: "2019/1234" bölü işaretiyle aranır
+  // (functions/ictihat 'kunye' eylemiyle aynı yol, canlıda çalıştığı ölçüldü).
+  const res = await fetch(`${BEDESTEN}/emsal-karar/searchDocuments`, {
+    method: 'POST',
+    headers: BASLIK,
+    signal: sinyal,
+    body: JSON.stringify({
+      data: { pageSize: 20, pageNumber: 1, itemTypeList: ['YARGITAYKARARI'], phrase: terim },
+    }),
+  });
+  if (!res.ok) throw new Error(`bedesten ${res.status}`);
+  const j = await res.json();
+  const meta = j?.metadata ?? {};
+  if (meta.FMTY === 'ERROR' || String(meta.FMC ?? '').includes('EXCEPTION')) {
+    throw new Error(`bedesten ${meta.FMC ?? 'hata'}`);
+  }
+  // deno-lint-ignore no-explicit-any
+  const list = (j?.data?.emsalKararList ?? []) as any[];
+  return list
+    .map((r) => {
+      let birim = String(r.birimAdi ?? '').trim();
+      if (birim.startsWith('Yargıtay')) birim = birim.slice('Yargıtay'.length).trim();
+      return {
+        id: String(r.documentId ?? ''),
+        daire: birim ? `Yargıtay ${birim}` : 'Yargıtay',
+        esasNo: r.esasNoYil != null ? `${r.esasNoYil}/${r.esasNoSira}` : '',
+        kararNo: r.kararNoYil != null ? `${r.kararNoYil}/${r.kararNoSira}` : '',
+        kararTarihi: r.kararTarihiStr ? String(r.kararTarihiStr) : '',
+      };
+    })
+    .filter((x) => x.id);
+}
+
+/**
+ * Esas ve/veya karar numarasını canlı kaynakta arar.
+ * @returns null → kaynağa ulaşılamadı; { bulundu:false } → kaynak cevap verdi, yok.
+ */
+export async function canliKunyeDogrula(esas: string, karar: string): Promise<KunyeTeyit | null> {
+  const e = kunyeNormalize(esas);
+  const k = kunyeNormalize(karar);
+  const terim = e || k;
+  if (!terim) return null;
+  const liste = await korumaliGetir(
+    devre,
+    (s) => kunyeAra(terim, s),
+    { ms: ARAMA_MS, ad: 'canlı künye teyidi' },
+    null as Awaited<ReturnType<typeof kunyeAra>> | null
+  );
+  if (liste === null) return null;
+  const esle = liste.find(
+    (x) => (!e || kunyeNormalize(x.esasNo) === e) && (!k || kunyeNormalize(x.kararNo) === k)
+  );
+  return esle ? { bulundu: true, daire: esle.daire, tarih: esle.kararTarihi, id: esle.id } : { bulundu: false };
 }
 
 /** Teşhis için: devre şu an hangi durumda. */

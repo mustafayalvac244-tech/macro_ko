@@ -27,7 +27,7 @@ import {
 // Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
-import { canliIctihat } from '../_shared/uyapCanli.ts';
+import { canliIctihat, canliKunyeDogrula } from '../_shared/uyapCanli.ts';
 import { rizaKapisi } from '../_shared/kvkkRiza.ts';
 // Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
@@ -740,9 +740,15 @@ export interface KararDenetimi {
    * söylediğimiz kararın hangi daireye ve hangi tarihe ait olduğunu görmeden
    * bize güvenmek zorunda kalır; künyeyi gösterince kendisi bakar.
    */
-  dogrulanan: Array<{ atif: string; daire?: string; tarih?: string; id?: string }>;
+  dogrulanan: Array<{ atif: string; daire?: string; tarih?: string; id?: string; kaynak?: 'havuz' | 'uyap' }>;
   /** Bulunamayanlar. UYDURMA DEĞİL — havuz eksik olabilir, teyit istenir. */
   havuzdaYok: string[];
+  /**
+   * Havuzda YOK ve CANLI UYAP/Bedesten aramasında da YOK (03.10.2026). Kaynak
+   * cevap verdiği hâlde künye çıkmadıysa buraya düşer; büyük olasılıkla
+   * uydurmadır ve kırmızı gösterilir. Kaynağa ulaşılamadıysa havuzdaYok'ta kalır.
+   */
+  canlidaYok: string[];
   /** Havuzdan bağımsız olarak MANTIKEN olamayacak atıflar. */
   olanaksiz: Array<{ atif: string; sebep: TutarsizKarar['sebep'] }>;
 }
@@ -783,7 +789,7 @@ async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
     // Olanaksız atıfları havuzda ARAMIYORUZ: zaten bulunamayacaklar ve
     // "havuzda yok" listesinde ikinci kez görünüp uyarıyı sulandırırlar.
     const aranacak = atiflar.filter((a) => !olanaksizHam.has(a.ham));
-    const bulunan = new Map<string, { daire?: string; tarih?: string; id?: string }>();
+    const bulunan = new Map<string, { daire?: string; tarih?: string; id?: string; kaynak?: 'havuz' | 'uyap' }>();
     if (aranacak.length) {
       const { data, error } = await s.rpc('havuzdaki_kararlar', { atiflar: havuzSorgusu(aranacak) });
       if (!error) {
@@ -792,6 +798,7 @@ async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
             daire: r.daire ?? undefined,
             tarih: r.karar_tarihi ?? undefined,
             id: r.karar_id ?? undefined,
+            kaynak: 'havuz',
           });
         }
       }
@@ -800,12 +807,38 @@ async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
     const anahtar = (a: (typeof atiflar)[number]) =>
       `${a.esasYil ? `${a.esasYil}/${a.esasNo}` : ''}#${a.kararYil ? `${a.kararYil}/${a.kararNo}` : ''}`;
 
+    // CANLI TEYİT (03.10.2026, bkz. _shared/uyapCanli.ts > canliKunyeDogrula).
+    // Havuzda bulunmayan Yargıtay künyeleri Bedesten'de aranır: bulunursa
+    // doğrulanır (kaynak 'uyap'), kaynak cevap verip bulamazsa 'canlidaYok'a
+    // düşer (kırmızı), kaynağa ulaşılamazsa sarıda kalır. En fazla 4 künye,
+    // eşzamanlı; bütçe ve devre kesici uyapCanli'de.
+    const CANLI_TEYIT_EN_FAZLA = 4;
+    const havuzdaOlmayan = aranacak.filter((a) => !bulunan.has(anahtar(a)));
+    const canlidaYok: string[] = [];
+    const adaylar = havuzdaOlmayan
+      .filter((a) => a.mahkeme === '' || a.mahkeme === 'Yargıtay')
+      .slice(0, CANLI_TEYIT_EN_FAZLA);
+    await Promise.all(
+      adaylar.map(async (a) => {
+        const esas = a.esasYil ? `${a.esasYil}/${a.esasNo}` : '';
+        const karar = a.kararYil ? `${a.kararYil}/${a.kararNo}` : '';
+        const r = await canliKunyeDogrula(esas, karar);
+        if (r === null) return;
+        if (r.bulundu) bulunan.set(anahtar(a), { daire: r.daire, tarih: r.tarih, id: r.id, kaynak: 'uyap' });
+        else canlidaYok.push(a.ham);
+      })
+    );
+    const canlidaYokSet = new Set(canlidaYok);
+
     return {
       toplam: atiflar.length,
       dogrulanan: aranacak
         .filter((a) => bulunan.has(anahtar(a)))
         .map((a) => ({ atif: a.ham, ...bulunan.get(anahtar(a))! })),
-      havuzdaYok: aranacak.filter((a) => !bulunan.has(anahtar(a))).map((a) => a.ham),
+      havuzdaYok: aranacak
+        .filter((a) => !bulunan.has(anahtar(a)) && !canlidaYokSet.has(a.ham))
+        .map((a) => a.ham),
+      canlidaYok,
       olanaksiz: olanaksizlar.map((o) => ({ atif: o.atif.ham, sebep: o.sebep })),
     };
   } catch {
@@ -847,6 +880,8 @@ function atifKaydiYaz(
       dogrulanan: kararDenetimi?.dogrulanan.length ?? 0,
       havuzda_yok: kararDenetimi?.havuzdaYok.length ?? 0,
       olanaksiz: kararDenetimi?.olanaksiz.length ?? 0,
+      canli_dogrulanan: kararDenetimi?.dogrulanan.filter((d) => d.kaynak === 'uyap').length ?? 0,
+      canlida_yok: kararDenetimi?.canlidaYok.length ?? 0,
       uydurma_madde: uydurmaMadde.length,
     }).then(() => {}, () => {});
   } catch {
@@ -2380,6 +2415,7 @@ Deno.serve(async (req) => {
         '6. ATILACAK ADIMLAR (sıralı, süreleriyle)\n' +
         'Aşağıdaki ARAŞTIRMA DOSYASINDAKİ gerçek kural/madde/kararlara dayan; dosyada olmayan madde ' +
         'numarası veya karar UYDURMA. Kapsamlı ama gereksiz tekrarsız yaz.\n' +
+        'Dosyada uygun karar yoksa "[emsal karar: İçtihat Arama ile ekleyin]" yaz; esas/karar numarasını ezberden yazma.\n' +
         // KURAL DOSYAYA GİRDİ AMA MÜTALAAYA GİRMEDİ — ölçümde iki kez görüldü.
         // İşe iade olayında ise_iade kuralı beslemenin BİRİNCİ sırasındaydı ve
         // arabuluculuğun dava şartı olduğunu söylüyordu; mütalaada tek kelime
@@ -2439,7 +2475,9 @@ Deno.serve(async (req) => {
       const kusurlu =
         kusurluCikti('mutalaa', text) ||
         uydurmaMadde.length > 0 ||
-        (kararDenetimi?.olanaksiz.length ?? 0) > 0;
+        (kararDenetimi?.olanaksiz.length ?? 0) > 0 ||
+        // Ne havuzda ne canlı kaynakta olan künye = uydurma; hak düşülmez.
+        (kararDenetimi?.canlidaYok.length ?? 0) > 0;
       atifKaydiYaz('mutalaa', kullanim.model, kararDenetimi, uydurmaMadde);
       // YEDEĞE DÜŞÜLDÜYSE MÜTALAA HAKKI GERİ VERİLİR (bkz. sohbet modundaki not):
       // 12 mütalaalık hakkın biri, ödenen modelin yazmadığı bir metne gitmesin.
@@ -2696,6 +2734,12 @@ async function dosyaKunyesi(
       'yazma, [Davalı Ad-Soyad] yaz. Her boşluk hangi bilgiyi istediğini kendi kendine anlatsın.\n' +
       '• VAKIALARI numaralandır; her hukuki dayanağı gerçek madde numarasıyla ver (aşağıdaki DOSYADAKİ ' +
       'maddelere dayan; dosyada yoksa "ilgili mevzuat" de, madde UYDURMA).\n' +
+      // ÖLÇÜLEN ARIZA (03.10.2026, gerçek kullanıcı): avukat "içtihat ekle"
+      // dedi, model iki karar künyesi yazdı; ikisi de ne havuzda ne UYAP'ta
+      // vardı. Madde için olan "uydurma" yasağı karar künyesini kapsamıyordu.
+      '• İÇTİHAT: yalnız aşağıdaki DOSYADA listelenen kararlara ([1], [2] gibi) atıf yap. ' +
+      'Avukat emsal istese bile dosyada uygun karar yoksa esas/karar numarası UYDURMA, ezberden yazma; ' +
+      'yerine "[emsal karar: İçtihat Arama ekranından ekleyin]" yaz.\n' +
       '• Sonda "HUKUKİ SEBEPLER", "DELİLLER" (her vakıaya bağlı), "NETİCE-İ TALEP" ve imza bloğu ' +
       '(Saygılarımla / [Davacı] Vekili / Av. [Ad Soyad]) bulunsun.\n' +
       // BAŞLIK TEKRARI — ÖLÇÜLEN ARIZA. Bu talimat, ###KONTROL### bloğunun
@@ -2863,7 +2907,7 @@ async function dosyaKunyesi(
       // UYDURMA TUTAR DENETİMİ — madde atfıyla aynı prensip: silinmez, uyarılır.
       // Bkz. _shared/dilekce.ts > uydurmaTutarlariBul.
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
-      const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0
+      const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0 || (kararDenetimi?.canlidaYok.length ?? 0) > 0
         || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
       atifKaydiYaz('dilekce', kullanilanModel, kararDenetimi, uydurmaMadde);
       // Yedeğe düşüldüyse hak geri verilir (bkz. sohbet modundaki not).
@@ -3097,7 +3141,7 @@ async function dosyaKunyesi(
       // avukat için "bu belgede yazan miktar" sanılır. Bkz. dilekçedeki aynı
       // denetim; burada "olay" yerine incelenen belgenin metni (promptQuestion).
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
-      const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0
+      const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0 || (kararDenetimi?.canlidaYok.length ?? 0) > 0
         || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
       atifKaydiYaz('belge', kullanilanModel, kararDenetimi, uydurmaMadde);
       // Yedeğe düşüldüyse hak geri verilir (bkz. sohbet modundaki not).
