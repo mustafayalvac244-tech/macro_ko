@@ -80,9 +80,13 @@ describe('tierConfig', () => {
   it('ücretli model SABİT Sonnet 5 — ortam ayarı değiştiremez (03.10.2026)', () => {
     // Eskiden VEKIL_CLAUDE_MODEL'den geliyordu; canlıdaki değer okunamıyordu.
     // Ödeyen müşterinin modeli gizli bir ayara bağlı kalmasın (ürün sahibi).
-    for (const mod of ['sohbet', 'dilekce', 'mutalaa', 'belge', undefined]) {
-      const { cfg } = tierConfig('ai', false, { ...secenek, mod, claudeModel: 'claude-opus-5' });
+    for (const mod of ['sohbet', 'belge', undefined]) {
+      const { cfg } = tierConfig('ai', false, { ...secenek, mod, claudeModel: 'claude-opus-5-5' });
       expect(cfg.model, String(mod)).toBe('claude-sonnet-5');
+    }
+    for (const mod of ['dilekce', 'mutalaa']) {
+      const { cfg } = tierConfig('ai', false, { ...secenek, mod, claudeModel: 'claude-opus-5-5' });
+      expect(cfg.model, mod).toBe('claude-opus-5');
     }
     expect(tierConfig('free', true, { ...secenek, claudeModel: 'claude-opus-5' }).cfg.model).toBe('claude-sonnet-5');
   });
@@ -258,9 +262,14 @@ describe('işe göre model seçimi', () => {
     expect(ai('sohbet')).toBe('claude-sonnet-5');
   });
 
-  it('dilekçe ve mütalaa GÜÇLÜ modelde kalır — avukatın gördüğü iş', () => {
-    expect(ai('dilekce')).toBe('claude-sonnet-5');
-    expect(ai('mutalaa')).toBe('claude-sonnet-5');
+  it('dilekçe ve mütalaa OPUS — avukatın gördüğü iş (03.10.2026)', () => {
+    expect(ai('dilekce')).toBe('claude-opus-5');
+    expect(ai('mutalaa')).toBe('claude-opus-5');
+    // Düşünme token'ları max_tokens'a dahil: tavan yüksek.
+    for (const mod of ['dilekce', 'mutalaa']) {
+      expect(tierConfig('ai', false, { ...secenek, mod }).cfg.maxOut, mod).toBe(16000);
+    }
+    expect(tierConfig('ai', false, { ...secenek, mod: 'sohbet' }).cfg.maxOut).toBe(8192);
   });
 
   it('belge GÜÇLÜ tarafta — hangi tarafa ait olduğu ÖLÇÜLMEDİ', () => {
@@ -283,6 +292,7 @@ describe('işe göre model seçimi', () => {
     const deneme = (mod?: string) => tierConfig('free', true, { ...secenek, mod }).cfg.model;
     expect(deneme('sohbet')).toBe('claude-sonnet-5');
     expect(deneme('kunye')).toBe('claude-sonnet-5');
+    // Opus yalnız 'ai' katmanında; deneme dilekçesi Sonnet (maliyet).
     expect(deneme('dilekce')).toBe('claude-sonnet-5');
   });
 

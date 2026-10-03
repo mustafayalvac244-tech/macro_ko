@@ -32,8 +32,7 @@
 - **Hasat talebe göre (0162, 01.10):** ai-chat sorusu ve içtihat araması (1.
   sayfa) 970 sabit konuyla eşleşir → hasat_konu_talep sayacı (METİN YOK, kişi
   yok) + öncelik ≥200 → emsal hasadında saatte bir öne alınır. Sıklık aynı.
-  0163: sınıra takılıp bitmiş talepli konu 51. sayfadan sürer; harvest-tick
-  talepli konuda 200 sayfaya iner. Test araması sayacı silindi (gerçek değil).
+  0163: bitmiş talepli konu 51. sayfadan sürer; talepli konuda 200 sayfaya iner.
 
 ## 2. Sıradaki / açık işler
 
@@ -58,8 +57,9 @@
    çalışma alanına bağlı değildi → CALISMA_ALANI (Default, _shared/claudeIstemci);
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
-   Anahtar ~30.10 biter. Test hesapları silindi. PR #127 main'e birleşti, OTA 27.
+   Anahtar ~30.10 biter.
    Deneme: Sonnet 5, düşünme kapalı; dilekçe tavanı 6k + kesilirse devam.
+   03.10: 2.999 ₺ paketi SABİT Sonnet 5 (sohbet dahil; yalnız künye+taşma Haiku), v130.
    02.10: 0164 + v126 — kuraldaki "2 hafta" hatası düzeltildi, iscilik_faiz + denetim.
 0b. 30.09: UYGULAMA BİLDİRİMİ yazıldı: 0161 (push_cihaz, admin_bildirim_gonder,
    Expo push + pg_net) canlıda doğrulandı; oturum açılınca izin+adres kaydı;
