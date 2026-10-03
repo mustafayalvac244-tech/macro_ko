@@ -26,7 +26,7 @@ import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
 import { useAdvanceDeficits } from '@/hooks/useClientAdvances';
 import { useAdvanceAlertStore } from '@/store/advanceAlertStore';
-import { AI_ENABLED } from '@/config/features';
+import { AI_DILEKCE_ENABLED, AI_ENABLED } from '@/config/features';
 import { IlkAdimlar } from '@/components/IlkAdimlar';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
@@ -491,7 +491,7 @@ export default function DashboardScreen() {
 
         {/* İLK ADIMLAR — yeni kullanıcıya ne yapacağını söyler (03.10.2026, satış planı). */}
         <View style={blok('tam')}>
-          <IlkAdimlar aiAcik={AI_ENABLED} />
+          <IlkAdimlar aiAcik={AI_ENABLED && AI_DILEKCE_ENABLED} />
         </View>
 
         {/* ---------- Plan durumu ----------
