@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { kullanimKaydet } from '@/lib/kullanim';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,6 +29,9 @@ import { useT } from '@/i18n';
 import { fonts, radius, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+
+// Web'de satın alma yok (mağazaya özgü); web kullanıcısı iPhone uygulamasına yönlendirilir.
+const APP_STORE_URL = 'https://apps.apple.com/tr/app/vekil-pro-avukat-asistan%C4%B1/id6812859016';
 
 /**
  * Üyelik ekranı — ÜÇ katman: Ücretsiz → Vekil Pro (399 ₺) → + Yapay Zekâ (2.999 ₺).
@@ -148,7 +151,10 @@ export default function PremiumScreen() {
     // sanıyordu; oysa uygulama içi satın alma mağazaya özgü bir şeydir.
     if (Platform.OS === 'web') {
       kullanimKaydet(`olay:satin_alma_web_${plan}`);
-      uyar(t('premium.webTitle'), t('premium.webBody', { plan: planAdi }));
+      uyar(t('premium.webTitle'), t('premium.webBody', { plan: planAdi }), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('premium.webOpenStore'), onPress: () => void Linking.openURL(APP_STORE_URL) },
+      ]);
       return;
     }
     // Burada gerçekten bir arıza var: mağazadayız ama teklif gelmedi.
