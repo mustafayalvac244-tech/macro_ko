@@ -66,17 +66,17 @@
    avukat dilekçeye içtihat istedi, model 2 künye yazdı, ikisi havuzda yoktu;
    künye araması 6× 502 (Emsal düşünce tüm arama düşüyordu). Şimdi: havuzda
    olmayan Yargıtay künyesi Bedesten'de aranır → doğrulandı(uyap) / canlıda YOK
-   (kırmızı, hak düşmez) / ulaşılamadı(sarı). İstem: yalnız dosyadaki karar.
-   Ekran değişikliği OTA'YA GİTMEDİ (web canlı). İşe yaradığı ÖLÇÜLMEDİ.
+   / ulaşılamadı(sarı). ÜRÜN SAHİBİ: "kullanıcıya yazılamaz, çıkar ama zekice" →
+   canlıda yok + olanaksız künye METİNDEN ÇIKARILIR (4 mod), cümlesi için havuz/
+   canlı GERÇEK karar ÖNERİSİ döner (metne girmez); içtihat istenince dosyaya 5–6
+   karar. ai-chat v134, PR #137. Ekran OTA'YA GİTMEDİ (web canlı). ÖLÇÜLMEDİ.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
 5. Supabase panelinde "Leaked password protection" kapalı (bir tık).
 6. KVKK veri sorumlusu kimliği (unvan/adres/e-posta) hâlâ eksik.
-7. Android "Şifremi unuttum" kesilmesi: login/signup'taki `<Link><Text/></Link>`
-   Pressable + tek Text yapıldı (26.09). Android'de DOĞRULANMADI (emülatör
-   yok) — ürün sahibi yeni derlemede bakmalı. Kod değişikliği; iOS/Android'e
-   ancak yeni derleme ya da OTA ile gider.
+7. Android "Şifremi unuttum" kesilmesi düzeltildi (26.09, Pressable + tek Text);
+   Android'de DOĞRULANMADI (emülatör yok) — ürün sahibi yeni derlemede bakmalı.
 9. Bulutta yalnız Accept edits / Plan / Auto var; bypass YOK. En az soru = Auto.
 
 ## 3. Kritik kimlikler
