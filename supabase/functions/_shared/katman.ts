@@ -159,9 +159,36 @@ export interface KatmanSecenek {
 // görmüyor: ucuz tarafta kaldı.
 const MOD_UCUZ: readonly string[] = ['kunye'];
 
+/**
+ * AĞIR İŞ — OPUS (03.10.2026, ürün sahibi: "dilekçe, mütalaa Opus olsun ama
+ * saçmalamasın"). Avukatın mahkemeye sunduğu ya da müvekkile verdiği metin
+ * en güçlü modelde; sohbet ve belge Sonnet'te kalır. Yalnız 'ai' katmanında:
+ * ücretsiz ve ₺399 denemesi Sonnet'te (maliyet; ürün sahibi "para harcama").
+ *
+ * "Saçmalamasın" için modelden bağımsız denetimler zaten her çıktıda koşuyor:
+ * uydurma madde/tutar, karar atfı havuz denetimi, çakışan dayanak, işçilik
+ * uyarıları, kusurlu çıktıda hak düşülmemesi. Opus'ta uyarlamalı düşünme
+ * AÇIK (dusunme = !denemeLimit → true) ve düşünme token'ları max_tokens'a
+ * DAHİL olduğundan tavan yükseltildi (AGIR_IS_MAX_OUT).
+ *
+ * MALİYET (hesap, ölçüm değil): Opus $5/$25, Sonnet'in 2,5 katı. Ölçülen Sonnet
+ * dilekçesi ₺2,21 → Opus ≈ ₺5,5 + düşünme; mütalaa ₺3,12 → ≈ ₺7,8. Gerçek
+ * değer ilk aboneden ai_istek.maliyet_try ile ölçülecek.
+ */
+const MOD_AGIR: readonly string[] = ['dilekce', 'mutalaa'];
+export const AI_AGIR_IS_MODEL = 'claude-opus-5';
+/** Ağır işte çıktı tavanı — düşünme + ~3.000 token metin. ÖLÇÜLMEDİ, tahmin. */
+export const AGIR_IS_MAX_OUT = 16000;
+
 /** İş türüne göre model seçer. Mod bilinmiyorsa güçlü model. */
-export function modModeli(mod: string | undefined, gucluModel: string, ucuzModel: string): string {
+export function modModeli(mod: string | undefined, gucluModel: string, ucuzModel: string, agirModel = gucluModel): string {
+  if (mod && MOD_AGIR.includes(mod)) return agirModel;
   return mod && MOD_UCUZ.includes(mod) ? ucuzModel : gucluModel;
+}
+
+/** Dilekçe/mütalaa mı (Opus + yüksek çıktı tavanı)? */
+export function agirIsMi(mod: string | undefined): boolean {
+  return !!mod && MOD_AGIR.includes(mod);
 }
 
 /**
@@ -380,13 +407,13 @@ export function tierConfig(
     // tavana dahil.
     ai: {
       provider: 'claude',
-      // İŞE GÖRE MODEL (bkz. MOD_UCUZ). Yalnız künye Haiku'ya; sohbet, dilekçe,
-      // mütalaa, belge Sonnet 5'te (AI_UCRETLI_MODEL) — ilk 750 istek boyunca.
-      model: modModeli(secenek.mod, AI_UCRETLI_MODEL, AI_TASMA_MODEL),
+      // İŞE GÖRE MODEL (bkz. MOD_UCUZ / MOD_AGIR). Künye Haiku; sohbet ve belge
+      // Sonnet 5; dilekçe ve mütalaa Opus 5 — ilk 750 istek boyunca.
+      model: modModeli(secenek.mod, AI_UCRETLI_MODEL, AI_TASMA_MODEL, AI_AGIR_IS_MODEL),
       billable: true,
       limitKind: 'cost',
       limit: UCRETLI_TAVAN_TRY,
-      maxOut: 8192,
+      maxOut: agirIsMi(secenek.mod) ? AGIR_IS_MAX_OUT : 8192,
       modLimits: { soru: AI_SORU_LIMIT, mutalaa: AI_MUTALAA_LIMIT },
       tasma: { model: AI_TASMA_MODEL, ekLimit: AI_TASMA_EK },
     },
