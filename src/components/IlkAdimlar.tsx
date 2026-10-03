@@ -18,6 +18,11 @@ import type { ThemeColors } from '@/theme/palettes';
  * boş ana ekrana düşüyordu ("Bugün için planlanmış bir işlem yok"); ne
  * yapacağını söyleyen hiçbir şey yoktu.
  *
+ * 03.10.2026: üçüncü adım sohbet yerine DİLEKÇE ÜRET ekranına gider. Bir avukat
+ * 5 deneme hakkının 5'ini de sohbette dilekçe yazdırmaya harcadı; tek seferde
+ * tam dilekçe yazan ekranı bulamamıştı (sohbet her turda tüm geçmişi yeniden
+ * yollar, hak da hızlı biter).
+ *
  * Üç adım, her biri tek dokunuş. Müvekkil adımı gerçek veriden işaretlenir
  * (müvekkili var mı); arama ve yapay zekâ adımları dokunulunca. Üçü bitince ya
  * da "Gizle" denince bir daha görünmez (cihazda saklanır — sunucuya bir şey
@@ -53,7 +58,7 @@ export function IlkAdimlar({ aiAcik }: { aiAcik: boolean }) {
     { id: 'muvekkil', ikon: 'person-add-outline' as const, baslik: t('ilk.client'), alt: t('ilk.clientSub'), bitti: muvekkilVar, git: '/client-form' },
     { id: 'arama', ikon: 'search-outline' as const, baslik: t('ilk.search'), alt: t('ilk.searchSub'), bitti: !!durum.arama, git: '/ictihat' },
     ...(aiAcik
-      ? [{ id: 'ai', ikon: 'sparkles-outline' as const, baslik: t('ilk.ai'), alt: t('ilk.aiSub', { n: String(UCRETSIZ_DENEME_HAKKI) }), bitti: !!durum.ai, git: '/ai-chat' }]
+      ? [{ id: 'ai', ikon: 'document-text-outline' as const, baslik: t('ilk.ai'), alt: t('ilk.aiSub', { n: String(UCRETSIZ_DENEME_HAKKI) }), bitti: !!durum.ai, git: '/dilekce-uret' }]
       : []),
   ];
   if (adimlar.every((a) => a.bitti)) return null;
