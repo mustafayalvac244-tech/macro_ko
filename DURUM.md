@@ -71,7 +71,8 @@
    Editör'de AÇILMADI — avukat denemeli); Dilekçe Üret'e dosya ekleme, PDF sayfa
    görüntüsüyle (20 sayfa / 8 MB tavan, maliyet ÖLÇÜLMEDİ); web'de sesle yazma; Belge
    Arşivi'ne Belge Yükle (yükleme ekranı hiçbir yerden açılmıyordu); menüden Toplu
-   Aktarım çıktı, Derin Araştırma → Hukuki Araştırma. Dağıtım durumu: DAĞITILMADI.
+   Aktarım çıktı, Derin Araştırma → Hukuki Araştırma. WEB CANLI (main d5703e7),
+   ai-chat v136, doc-extract v21. TELEFONA OTA GİTMEDİ (izin bekliyor).
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
