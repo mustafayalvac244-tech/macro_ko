@@ -53,7 +53,7 @@
    Anahtar ~30.10 biter.
    Modeller (04.10): HER İŞ HAIKU 4.5 (ürün sahibi "hepsini haiku yap"; deneme+ücretli;
    katman.ts AI_MODELI). Kalite farkı ÖLÇÜLMEDİ — ürün sahibiyle birlikte denenecek.
-   Yeni 'duzelt' modu: dilekçe ekranında "Yapay zekâya düzelttir" (PR #143).
+   Yeni 'duzelt' modu: "Yapay zekâya düzelttir" (PR #143; ai-chat v137, ictihat v70).
    HIZ (03.10, 12 istek): sohbet 24–38 sn, dilekçe 45–74 sn; ~20/~38 sn'si bizim
    arama+denetim adımları (çıkarım). Paralelleştirme + uzunluk kuralı: KARAR BEKLİYOR.
    03.10 ölçüldü: sohbet ₺2,20/soru, dilekçe ₺2,11 → geçmiş önbelleği (0168, v135);
@@ -72,7 +72,7 @@
    görüntüsüyle (20 sayfa / 8 MB tavan, maliyet ÖLÇÜLMEDİ); web'de sesle yazma; Belge
    Arşivi'ne Belge Yükle (yükleme ekranı hiçbir yerden açılmıyordu); menüden Toplu
    Aktarım çıktı, Derin Araştırma → Hukuki Araştırma. WEB CANLI (main d5703e7),
-   ai-chat v136, doc-extract v21. TELEFONA OTA GİTMEDİ (izin bekliyor).
+   doc-extract v21. TELEFONA OTA GİTMEDİ (izin bekliyor).
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
