@@ -4,7 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack, usePathname } from 'expo-router';
-import { kullanimKaydet, yolSade } from '@/lib/kullanim';
+import { kullanimKaydet, reklamKaynaginiKaydet, yolSade } from '@/lib/kullanim';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
@@ -156,6 +156,9 @@ export default function RootLayout() {
   useEffect(() => {
     kullanimKaydet(`ekran:${yolSade(yol)}`);
   }, [yol]);
+  useEffect(() => {
+    reklamKaynaginiKaydet();
+  }, []);
 
   // BİLDİRİM İZNİ + ADRESİ — oturum açılınca (bkz. 0161_push_bildirim).
   // İzin önceden açılışta, oturumdan bağımsız isteniyordu; sunucudan bildirim

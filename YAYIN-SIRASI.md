@@ -694,7 +694,10 @@ GÜVENLİK
 • Uygulama kilidi (Face ID / parmak izi)
 • Hesabınızı ve verilerinizi uygulama içinden kalıcı olarak silebilirsiniz
 
-Yapay zekâ özellikleri ayrı bir pakettedir; ücretsiz hesaplarda kapalıdır.
+YAPAY ZEKÂ
+• Ücretsiz hesapta 10 soruluk deneme hakkı: soru sorun, dilekçe yazdırın
+• Doğrulanamayan karar künyesi metne giremez; yerine gerçek karar önerilir
+• Devamı Vekil Pro AI paketindedir
 
 Gizlilik: https://vekilpro.app/privacy.html
 Koşullar: https://vekilpro.app/terms.html

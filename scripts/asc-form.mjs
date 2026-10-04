@@ -191,6 +191,17 @@ async function abonelikOku() {
           }
         }
 
+        // İNCELEME GÖRSELİ DURUMU — 04.10.2026. Yeni iki ürün 9 saat sonra hâlâ
+        // MISSING_METADATA'ydı ve okuma görselin durumunu göstermiyordu; sebep
+        // tahminle ("işleniyor") söylenmişti. Artık ölçülüyor.
+        try {
+          const g = (await api(`/subscriptions/${s.id}/appStoreReviewScreenshot`))?.data;
+          const ds = g?.attributes?.assetDeliveryState;
+          console.log(`    inceleme görseli: ${g ? `${ds?.state} ${JSON.stringify(ds?.errors || [])} ${g.attributes?.imageAsset?.width ?? '?'}x${g.attributes?.imageAsset?.height ?? '?'}` : 'YOK'}`);
+        } catch (e) {
+          console.log(`    inceleme görseli okunamadı: ${String(e.message).split('\n')[0]}`);
+        }
+
         // FİYAT KAYITLARINI AÇ — 18.09.2026, koşu #17'den sonra eklendi.
         //
         // NEDEN. Yeni ürüne 399 TL kurma denemesi dört ayrı gövdeyle de
@@ -770,7 +781,9 @@ async function urunKur(u, grupId, mevcut, ulkeler) {
     // 4) FİYAT
     const fiyatlar = (await api(`/subscriptions/${urun.id}/prices`))?.data || [];
     const turFiyat = await turkiyeFiyatiniOku(urun.id);
-    if (turFiyat !== null && turFiyat === u.fiyatTL) {
+    if (turFiyat !== null && (turFiyat === u.fiyatTL || (u.fiyatEnYakin && Math.abs(turFiyat - u.fiyatTL) <= 50))) {
+      // fiyatEnYakin: tam kademe yoktu, en yakını kurulmuştu (03.10.2026) —
+      // her koşuda yeniden "düzeltmeye" kalkmasın.
       console.log(`  Türkiye fiyatı zaten ${turFiyat} TL — DOKUNULMADI`);
     } else {
       if (turFiyat !== null) {
@@ -1439,6 +1452,52 @@ async function incelemeyeGonder() {
  *
  * TEKRAR KOŞULABİLİR: her adım önce canlıyı okur, dolu olanı atlar.
  */
+/**
+ * TANITIM METNİNİ CANLI SÜRÜME YAZ — 04.10.2026 (ürün sahibi: "reklam
+ * üzerine çalış, vurucu şeyler").
+ *
+ * promotionalText, App Store'da YENİ SÜRÜM GÖNDERMEDEN değiştirilebilen tek
+ * metin alanı (170 karakter) ve mağaza sayfasında açıklamanın ÜSTÜNDE görünür.
+ * vitrin-yaz yalnız düzenlenebilir (yayın öncesi) sürüme yazar ve dolu metne
+ * dokunmaz; bu kip yayındaki (READY_FOR_SALE) sürümün tanıtım metnini her
+ * koşuda scripts/asc-vitrin.json > tanitimMetni ile DEĞİŞTİRİR ve geri okur.
+ * Açıklama/anahtar kelime yayındaki sürümde değiştirilemez — onlar bir
+ * sonraki sürümle gider (vitrin-yaz).
+ */
+async function tanitimYaz() {
+  const metin = JSON.parse(fs.readFileSync('scripts/asc-vitrin.json', 'utf8'));
+  const tanitim = String(metin.tanitimMetni || '').trim();
+  if (!tanitim || tanitim.length > 170) {
+    console.error(`HATA: tanıtım metni boş ya da 170 karakteri aşıyor (${tanitim.length}).`);
+    process.exit(1);
+  }
+  const surumler = (await api(`/apps/${APP_ID}/appStoreVersions?limit=10`))?.data || [];
+  const canli = surumler.find((s) => s.attributes?.appStoreState === 'READY_FOR_SALE');
+  if (!canli) {
+    console.error('Yayında (READY_FOR_SALE) sürüm yok. Sürümler:');
+    for (const s of surumler) console.error(`  ${s.attributes?.versionString} → ${s.attributes?.appStoreState}`);
+    process.exit(1);
+  }
+  console.log(`Yayındaki sürüm ${canli.attributes?.versionString} (${canli.id})`);
+  const yereller = (await api(`/appStoreVersions/${canli.id}/appStoreVersionLocalizations`))?.data || [];
+  for (const l of yereller) {
+    const eski = l.attributes?.promotionalText || '';
+    console.log(`  ${l.attributes?.locale} eski: "${eski}"`);
+    if (eski === tanitim) { console.log('  aynı — dokunulmadı'); continue; }
+    try {
+      await api(`/appStoreVersionLocalizations/${l.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ data: { type: 'appStoreVersionLocalizations', id: l.id, attributes: { promotionalText: tanitim } } }),
+      });
+      // KABUL EDİLDİ ≠ YAZILDI: geri oku.
+      const geri = (await api(`/appStoreVersionLocalizations/${l.id}`))?.data?.attributes?.promotionalText || '';
+      console.log(geri === tanitim ? `  ✓ yazıldı ve geri okundu (${tanitim.length} krktr)` : `  ✗ geri okunan farklı: "${geri}"`);
+    } catch (e) {
+      for (const s of String(e.message).split('\n')) console.log(`    ${s}`);
+    }
+  }
+}
+
 async function vitrinYaz() {
   const surumler = await api(`/apps/${APP_ID}/appStoreVersions?limit=5`);
   // 23.09.2026: REJECTED sürüm de düzenlenebilir — bkz. GONDERILEBILIR.
@@ -2184,6 +2243,7 @@ const MODLAR = {
   'tam-denetim': tamDenetim,
   'fiyat-ulke-yaz': fiyatUlkeYaz,
   'vitrin-yaz': vitrinYaz,
+  'tanitim-yaz': tanitimYaz,
   'abonelik-oku': abonelikOku,
   'abonelik-yaz': abonelikYaz,
   'alanlar-yaz': alanlarYaz,
