@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -66,6 +66,13 @@ export default function DilekceUretScreen() {
   // gerekiyor"). Cevap dilekçesi karşı tarafın dilekçesi okunmadan yazılamaz;
   // avukat onu olay kutusuna elle özetliyordu. PDF sayfa görüntüsüyle okunur.
   const [ekler, setEkler] = useState<BelgeEki[]>([]);
+  // YAPAY ZEKÂYLA DÜZELT (04.10.2026, ürün sahibi: "dilekçenin düzeltmesini
+  // de o yapsın"). Gönderilen metin, avukatın elle düzelttiği GÜNCEL hâldir.
+  const guncelMetin = useRef('');
+  const [talimat, setTalimat] = useState('');
+  const [duzeltiliyor, setDuzeltiliyor] = useState(false);
+  const [onceki, setOnceki] = useState<string | null>(null);
+  const [duzeltHata, setDuzeltHata] = useState<string | null>(null);
   const [ekUyari, setEkUyari] = useState<{ pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState('');
@@ -115,6 +122,9 @@ export default function DilekceUretScreen() {
     setBusy(true);
     setError(null);
     setText('');
+    setOnceki(null);
+    setTalimat('');
+    setDuzeltHata(null);
     setHakDusulmedi(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
@@ -148,6 +158,47 @@ export default function DilekceUretScreen() {
       setError(t('ai.errGeneric'));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const duzelt = async () => {
+    const tal = talimat.trim();
+    const taslak = guncelMetin.current || text;
+    if (tal.length < 3 || duzeltiliyor || busy) return;
+    setDuzeltiliyor(true);
+    setDuzeltHata(null);
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
+        body: { mode: 'duzelt', question: tal, taslak, kaynak: q.trim() || undefined },
+      });
+      if (fnErr) {
+        setDuzeltHata(aiHataMetni(await aiHataGovdesi(fnErr), t));
+        return;
+      }
+      const y = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; kisaKaldi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
+      if (!y?.text) {
+        setDuzeltHata(t('ai.errGeneric'));
+        return;
+      }
+      if (y.kisaKaldi) {
+        // Model yalnız değişen parçayı yazmış ya da kesilmiş: taslağın
+        // yerine KONMAZ, yoksa dilekçenin geri kalanı kaybolurdu.
+        setDuzeltHata(t('dlk.duzeltKisa'));
+        return;
+      }
+      setOnceki(taslak);
+      setText(y.text);
+      setTalimat('');
+      setUydurmaMadde(y.uydurmaMadde ?? []);
+      setKararDenetimi(y.kararDenetimi ?? null);
+      setUydurmaTutar(y.uydurmaTutar ?? []);
+      setAyiklanan(Number(y.ayiklananTarih ?? 0));
+      setKullanim(y.kullanim ?? null);
+      setHakDusulmedi(!!y.hakDusulmedi);
+    } catch {
+      setDuzeltHata(t('ai.errGeneric'));
+    } finally {
+      setDuzeltiliyor(false);
     }
   };
 
@@ -275,7 +326,47 @@ export default function DilekceUretScreen() {
                 etiket={t('dlk.resultTitle')}
                 udf
                 mod="dilekce"
+                onMetinDegisti={(m) => (guncelMetin.current = m)}
               />
+              <View style={styles.duzeltKutu}>
+                <Text style={styles.duzeltBaslik}>{t('dlk.duzeltBaslik')}</Text>
+                <TextInput
+                  style={styles.duzeltGirdi}
+                  value={talimat}
+                  onChangeText={setTalimat}
+                  placeholder={t('dlk.duzeltPlaceholder')}
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  textAlignVertical="top"
+                  editable={!duzeltiliyor}
+                />
+                <SesleYaz metin={talimat} onChange={setTalimat} disabled={duzeltiliyor} />
+                <View style={styles.duzeltSatir}>
+                  <Pressable
+                    onPress={duzelt}
+                    disabled={duzeltiliyor || talimat.trim().length < 3}
+                    style={({ pressed }) => [styles.duzeltDugme, (duzeltiliyor || talimat.trim().length < 3) && styles.ctaOff, pressed && { opacity: 0.85 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('dlk.duzeltCalistir')}
+                  >
+                    {duzeltiliyor ? <ActivityIndicator size="small" color={colors.textInverse} /> : <Ionicons name="sparkles" size={15} color={colors.textInverse} />}
+                    <Text style={styles.duzeltDugmeMetin}>{duzeltiliyor ? t('dlk.duzeltiliyor') : t('dlk.duzeltCalistir')}</Text>
+                  </Pressable>
+                  {onceki !== null && !duzeltiliyor && (
+                    <Pressable
+                      onPress={() => {
+                        setText(onceki);
+                        setOnceki(null);
+                      }}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.addDescText}>{t('dlk.duzeltGeriAl')}</Text>
+                    </Pressable>
+                  )}
+                </View>
+                {!!duzeltHata && <Text style={styles.warn}>{duzeltHata}</Text>}
+              </View>
               <HukukiUyari tur="yapayZeka" />
               {uydurmaMadde.length > 0 && (
                 <Text style={styles.warn}>{t('ai.fakeArticles', { maddeler: uydurmaMadde.join(', ') })}</Text>
@@ -324,6 +415,49 @@ export default function DilekceUretScreen() {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
+  duzeltKutu: {
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    gap: spacing.xs,
+  },
+  duzeltBaslik: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  duzeltGirdi: {
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    color: colors.textPrimary,
+    minHeight: 64,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: kose(10),
+    padding: spacing.sm,
+    backgroundColor: colors.surface,
+  },
+  duzeltSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flexWrap: 'wrap',
+  },
+  duzeltDugme: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 40,
+    paddingHorizontal: spacing.md,
+    borderRadius: kose(10),
+    backgroundColor: colors.primary,
+  },
+  duzeltDugmeMetin: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.textInverse,
+  },
   usage: {
     fontFamily: fonts.regular,
     fontSize: 11.5,

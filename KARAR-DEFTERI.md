@@ -252,6 +252,41 @@ Tam gerekçeler `RAKIP-OZELLIK-ANALIZI.md`'de.
 bu yüzden makbuz ekranında müşteri adı elle giriliyor. Eklenirse orası
 ön-dolar.
 
+## 5a. Avukat geri bildirimi turu (04.10.2026)
+
+Ürün sahibinin aktardığı avukat geri bildirimleri, geliş sırasıyla (PR #142).
+
+- **"Üretilen dilekçeye düzeltme butonu"** — düzenleme ZATEN vardı ama 13 px'lik
+  bir yazıydı; `ai_cikti_geri_bildirim` tablosunda o güne kadar 0 satır vardı.
+  Çerçeveli Düzelt düğmesi + uzun metnin altında tekrar. Ders: var olan özellik
+  bulunamıyorsa yoktur.
+- **"UDF'de yüklemede sıkıntı var, sözleşmede yok"** — iki ayrı kusur: kasa
+  seçicisinde `.udf`/`*/*` yoktu (iPhone'da gri), web'de `*/*` tarayıcı
+  süzgecine girmiyor (Chromium `GetFileTypesFromAcceptType` MIME'i uzantıya
+  çevirir; UDF'nin MIME'i yok). Üretilen UDF de UDF-Toolkit şablonuna hizalandı
+  (1.8, `hvl-default` stili). UYAP Editör Linux 5.4.20 indirildi; gerçek
+  editörde açma denemesi ürün sahibi durdurduğu için YAPILMADI.
+- **"Bu tarafta hiç belge ekle yok"** — Belge Arşivi'nde FAB içe aktarılmış ama
+  hiç çizilmemişti (12.09'dan beri); yükleme rotası hiçbir yerden açılmıyordu.
+- **"Dilekçe Üret'e dosya ekleme" + "PDF sadece yazıları çıkarıyor"** — PDF artık
+  Claude'a belge bloğu (sayfa görüntüsü + metin). Tavanlar ürün kararı: 3 ek,
+  20 sayfa görüntü, 8 MB. Maliyet TAHMİN: Anthropic örneğinde sayfa başı ~2.300
+  token; gerçek değer `ai_istek.tokens_in`'den okunacak.
+- **"Toplu Aktarım / Derin Araştırma ne yapıyor belirsiz"** — Toplu Aktarım
+  menüden çıktı (2 ekran açılışı); Derin Araştırma satılan özellik (2 kullanım),
+  silinmedi, adı Hukuki Araştırma oldu.
+- **"Ekstra mikrofon"** — web'de tarayıcının konuşma tanıması. Chrome sesi kendi
+  hizmetine gönderir (MDN); not düğmenin yanında. Telefonda uygulama içi mikrofon
+  yeni derleme ister — ürün sahibi kararı bekliyor.
+- **"Yapay zekâ yavaş, cevaplar kısa" → SOHBET HAIKU.** Ölçüm (03.10, 12 istek):
+  sohbet 24–38 sn, model ~100 token/sn yazıyor; ~20 sn modelden bağımsız
+  arama/denetim adımları (doğrusal uydurmadan çıkarım). Kısalık, sistem
+  talimatındaki 500/900 karakter kuralından (11.09, benim ölçüm setim). Önerim
+  Haiku DEĞİL, paralelleştirme + kural gevşetmeydi; ürün sahibi "haiku'ya
+  geçelim, test edeceğiz" dedi — karar onun, uygulandı (ai-chat v136). 01.10'da
+  tersi yapılmıştı ("haiku kötüyse sonnete geçelim"); karşılaştırma ölçülerek
+  yapılmalı.
+
 ## 6. Nerede ne yazıyor
 
 | Dosya | İçeriği |
