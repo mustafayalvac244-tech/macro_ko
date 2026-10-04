@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 04.10.2026 (reklam seti, AI 6 ay/yıl ürünleri, önbellek)
+**Son güncelleme:** 04.10.2026 (avukat geri bildirimi: UDF, ek belge/PDF, sesle yazma, sohbet Haiku)
 
 ## 1. Şu an — yayın durumu
 
@@ -29,26 +29,20 @@
 
 ## 2. Sıradaki / açık işler
 
-000. **SATIŞ PLANI (03.10, "hepsini yap"):** kayıt kısaldı (TC/büro "Ek
-   bilgiler" altında), ana ekranda "3 adımda başla" kartı, kullanım sayacı
-   (0165 CANLI; kişisel veri yok; yönetici → "Kullanım (sayaç)"), gizlilik
-   metni güncellendi. WEB CANLI (PR #129). Telefonlara OTA 3ee398e9 ile gitti.
-   ÜRÜN SAHİBİ: App Privacy → Usage Data/Product Interaction/Analytics (API kapalı).
-   Android: Play hesabı VAR (03.10). AAB derlemesi main'den başlatıldı, sonucu
-   ÖLÇÜLMEDİ. Web'de satın alma yok; mesaj iPhone'a yönlendirir (PR #130).
+000. **SATIŞ PLANI (03.10):** kısa kayıt, "3 adımda başla", kullanım sayacı (0165),
+   gizlilik metni — WEB+OTA CANLI. ÜRÜN SAHİBİ: App Privacy → Usage Data/Product
+   Interaction/Analytics. Android: Play hesabı VAR; AAB derlemesi sonucu ÖLÇÜLMEDİ.
+   Web'de satın alma yok; mesaj iPhone'a yönlendirir (PR #130).
 
 00r. **REKLAM (04.10, "full reklam, vurucu şeyler"):** REKLAM.md (kanıt tablosu,
    Meta/Google/LinkedIn/Story metinleri, yazılmayacak iddialar). App Store
    tanıtım metni canlıya yazıldı (tanitim-yaz, 12:10 UTC, 160 krktr, geri okundu).
    Web'de utm → sayaç `kaynak:<kaynak>/<kampanya>`. BEKLENEN: avukat alıntıları
    için yazılı izin; reklam kanalı; story çekimi için 1 dilekçe onayı (≈₺5,5).
-00a. **AI UZUN DÖNEM (03.10, ürün sahibi "6 ay aylık 2499, yıl aylık 1999"):** App
-   Store'da vekil_ai_six_month 14.999 TL, vekil_ai_annual 23.999 TL kuruldu (tam
-   kademe yok, en yakın; yalnız TUR). 04.10: hâlâ MISSING_METADATA; görsel COMPLETE,
-   metin/not/fiyat/ülke dolu — eksik alan API'de görünmüyor (onaylılarda 175 fiyat). Satış
-   ekranında süre seçici (RevenueCat'te paket varsa görünür). ÜRÜN SAHİBİ:
-   RevenueCat → iki ürünü premium+ai'ye bağla, 'ai' teklifine Six Month + Annual
-   paketi ekle; Apple'a incelemeye gönder. Sözleşme/site metni satışa açılınca.
+00a. **AI UZUN DÖNEM (03.10):** vekil_ai_six_month 14.999 TL, vekil_ai_annual 23.999 TL
+   (yalnız TUR) — 04.10 hâlâ MISSING_METADATA, eksik alan API'de görünmüyor. Satış
+   ekranında süre seçici hazır. ÜRÜN SAHİBİ: RevenueCat → iki ürünü premium+ai'ye ve
+   'ai' teklifine (Six Month + Annual) bağla; ASC'deki uyarıyı oku, incelemeye gönder.
 00. **Satın alma webhook'u ÇALIŞIYOR** (02.10 22:38 UTC ölçüldü: RevenueCat test
    olayı → 200). Sır Supabase + RevenueCat'te. Gerçek ilk satın almada is_premium
    açıldığı ayrıca doğrulanmalı. 'Bearer' toleransı depoda (038d9bf), DAĞITILMADI.
@@ -57,22 +51,27 @@
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
    Anahtar ~30.10 biter.
-   Deneme: Sonnet 5, düşünme kapalı; dilekçe tavanı 6k + kesilirse devam.
-   03.10: 2.999 ₺ paketi: dilekçe+mütalaa OPUS 5 (maxOut 16k, tahmin), sohbet+belge
-   Sonnet 5, künye+taşma Haiku (v131). Denemeler Sonnet. Opus maliyeti ÖLÇÜLMEDİ.
+   Modeller (04.10): SOHBET HAIKU 4.5 (ürün sahibi "haiku'ya geçelim, test edeceğiz";
+   deneme+ücretli), belge Sonnet 5, dilekçe+mütalaa Opus 5 (ai; denemede Sonnet).
+   Opus maliyeti ÖLÇÜLMEDİ. Dilekçe tavanı 6k (deneme) / 16k (Opus) + kesilirse devam.
+   HIZ (03.10, 12 istek): sohbet 24–38 sn, dilekçe 45–74 sn; ~20/~38 sn'si bizim
+   arama+denetim adımları (çıkarım). Paralelleştirme + uzunluk kuralı: KARAR BEKLİYOR.
    03.10 ölçüldü: sohbet ₺2,20/soru, dilekçe ₺2,11 → geçmiş önbelleği (0168, v135);
    etkisi ÖLÇÜLMEDİ (onbellek_okunan). Gerçek satış 0; tek abonelik sandbox.
    Talep sayacı (hasat_konu_talep) 0 kayıt — sebebi BULUNAMADI (açık iş).
 0b. Bildirim (0161): telefona düştüğü ÖLÇÜLMEDİ; Expo'da APNs anahtarı BİLİNMİYOR.
 0. ÜCRETSİZ DENEME 10 (03.10; 0166, OTA 82feafd; kart → Dilekçe Üret). Metin saklanmaz.
-0c. **KÜNYE CANLI TEYİDİ (03.10, 0167, ai-chat v132, ictihat v68, PR #136).** Olay:
-   avukat dilekçeye içtihat istedi, model 2 künye yazdı, ikisi havuzda yoktu;
-   künye araması 6× 502 (Emsal düşünce tüm arama düşüyordu). Şimdi: havuzda
-   olmayan Yargıtay künyesi Bedesten'de aranır → doğrulandı(uyap) / canlıda YOK
-   / ulaşılamadı(sarı). ÜRÜN SAHİBİ: "kullanıcıya yazılamaz, çıkar ama zekice" →
-   canlıda yok + olanaksız künye METİNDEN ÇIKARILIR (4 mod), cümlesi için havuz/
-   canlı GERÇEK karar ÖNERİSİ döner (metne girmez); içtihat istenince dosyaya 5–6
-   karar. ai-chat v134, PR #137, OTA 220cb0d (03.10 20:09 UTC). ÖLÇÜLMEDİ.
+0c. **KÜNYE CANLI TEYİDİ (03.10, 0167, PR #136/#137, OTA 220cb0d).** Havuzda olmayan
+   Yargıtay künyesi Bedesten'de aranır; canlıda yok/olanaksız künye METİNDEN
+   ÇIKARILIR (ürün sahibi "kullanıcıya yazılamaz"), yerine gerçek karar ÖNERİSİ.
+   İçtihat istenince dosyaya 5–6 karar. Gerçek kullanımda ÖLÇÜLMEDİ.
+0d. **AVUKAT GERİ BİLDİRİMİ (04.10, PR #142):** Düzelt düğmesi (düzenleme vardı ama
+   bulunmuyordu: ai_cikti_geri_bildirim 0 satır); UDF her seçicide (web süzgecinde ve
+   kasada yoktu), kasada UDF metni okunur, üretilen UDF 1.8 + hvl-default (UYAP
+   Editör'de AÇILMADI — avukat denemeli); Dilekçe Üret'e dosya ekleme, PDF sayfa
+   görüntüsüyle (20 sayfa / 8 MB tavan, maliyet ÖLÇÜLMEDİ); web'de sesle yazma; Belge
+   Arşivi'ne Belge Yükle (yükleme ekranı hiçbir yerden açılmıyordu); menüden Toplu
+   Aktarım çıktı, Derin Araştırma → Hukuki Araştırma. Dağıtım durumu: DAĞITILMADI.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.

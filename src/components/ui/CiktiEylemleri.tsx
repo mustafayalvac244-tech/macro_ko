@@ -23,6 +23,11 @@ interface Props {
    * işe yaramayacak bir dosyayla baş başa bırakır.
    */
   udf?: boolean;
+  /**
+   * Her dışa aktarma eyleminde çağrılır (kopyala/indir/UDF/paylaş).
+   * DuzenlenebilirCikti bunu "avukat düzeltmeyi bitirdi" işareti sayar.
+   */
+  onDisaAktar?: () => void;
 }
 
 /**
@@ -35,7 +40,7 @@ interface Props {
  * Önceki davranış web'de SESSİZCE HİÇBİR ŞEY YAPMIYORDU — bkz. src/lib/cikti.ts
  * başındaki ölçüm notu.
  */
-export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false }: Props) {
+export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false, onDisaAktar }: Props) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(colors, kucuk);
@@ -50,6 +55,7 @@ export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false }: Pr
   }, []);
 
   const bildir = (s: CiktiSonuc) => {
+    onDisaAktar?.();
     setDurum(s);
     if (zamanlayici.current) clearTimeout(zamanlayici.current);
     zamanlayici.current = setTimeout(() => setDurum(null), 2200);

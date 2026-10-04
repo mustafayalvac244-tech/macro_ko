@@ -1,6 +1,6 @@
 import type { DocumentCategory } from '@/types/database';
 
-export type FileKind = 'image' | 'pdf' | 'word' | 'other';
+export type FileKind = 'image' | 'pdf' | 'word' | 'udf' | 'other';
 
 /** Detect the broad kind of a file from its MIME type / filename. */
 export function detectFileKind(mime: string | null, name: string): FileKind {
@@ -8,6 +8,8 @@ export function detectFileKind(mime: string | null, name: string): FileKind {
   const n = name.toLowerCase();
   if (m.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|bmp)$/.test(n)) return 'image';
   if (m === 'application/pdf' || n.endsWith('.pdf')) return 'pdf';
+  // UYAP belgesi. MIME türü yok; tarayıcı boş, iPhone octet-stream verir.
+  if (n.endsWith('.udf')) return 'udf';
   if (m.includes('word') || /\.(docx?|odt|rtf)$/.test(n)) return 'word';
   return 'other';
 }

@@ -38,7 +38,9 @@ describe('deneme isteğinde düşünme kapalı', () => {
   it('her ucretliChat çağrısı deneme bayrağıyla düşünmeyi kapatıyor', () => {
     const cagrilar = kod.match(/await ucretliChat\([^;]*\);/g) ?? [];
     expect(cagrilar.length).toBeGreaterThanOrEqual(5);
-    for (const c of cagrilar) expect(c, c).toMatch(/!cfg\.denemeLimit\)\s*;$/);
+    // Deneme bayrağı düşünme argümanıdır; ardından (04.10.2026'dan beri)
+    // isteğe bağlı EK BELGE argümanı gelebilir.
+    for (const c of cagrilar) expect(c, c).toMatch(/,\s*!cfg\.denemeLimit\s*(?:\)\s*;$|,)/);
     expect(kod).toMatch(/\.\.\.dusunmeAyari\(model, dusunme\)/);
   });
 });

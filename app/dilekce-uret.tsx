@@ -2,11 +2,15 @@ import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { SesleYaz } from '@/components/ui/SesleYaz';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { DuzenlenebilirCikti } from '@/components/ui/DuzenlenebilirCikti';
 import { AtifDenetimi, type KararDenetimiVerisi } from '@/components/ui/AtifDenetimi';
 import { HukukiUyari } from '@/components/ui/HukukiUyari';
+import { BelgeEkleri } from '@/components/ui/BelgeEkleri';
+import type { BelgeEki } from '@/lib/belgeEki';
+import { ekGovdesi } from '@/lib/belgeEkiKurallari';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_DILEKCE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
@@ -58,6 +62,11 @@ export default function DilekceUretScreen() {
   const { data: davalar } = useCases({ status: 'open' });
   const secilenDava = (davalar ?? []).find((d) => d.id === caseId) ?? null;
   const [q, setQ] = useState('');
+  // EKLİ BELGELER (04.10.2026, avukat: "buraya dosya ekleme koyulması
+  // gerekiyor"). Cevap dilekçesi karşı tarafın dilekçesi okunmadan yazılamaz;
+  // avukat onu olay kutusuna elle özetliyordu. PDF sayfa görüntüsüyle okunur.
+  const [ekler, setEkler] = useState<BelgeEki[]>([]);
+  const [ekUyari, setEkUyari] = useState<{ pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState('');
   // SUNUCU İKİ ŞEYİ BİLİYOR, EKRAN SÖYLEMİYORDU:
@@ -109,7 +118,7 @@ export default function DilekceUretScreen() {
     setHakDusulmedi(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
-        body: { mode: 'dilekce', dilekceType: type, question, caseId: caseId ?? undefined },
+        body: { mode: 'dilekce', dilekceType: type, question, caseId: caseId ?? undefined, ekler: ekler.length ? ekGovdesi(ekler) : undefined },
       });
       if (fnErr) {
         // Hata çevirisi ORTAK: aynı mantık üç ekranda ayrı yazılınca biri
@@ -119,7 +128,7 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
+      const payload = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!payload?.text) {
         setError(t('ai.errGeneric'));
         return;
@@ -134,6 +143,7 @@ export default function DilekceUretScreen() {
       setAyiklanan(Number(payload.ayiklananTarih ?? 0));
       setKullanim(payload.kullanim ?? null);
       setHakDusulmedi(!!payload.hakDusulmedi);
+      setEkUyari(payload.ekUyari ?? null);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -224,6 +234,11 @@ export default function DilekceUretScreen() {
             textAlignVertical="top"
             editable={!busy}
           />
+          <SesleYaz metin={q} onChange={setQ} disabled={busy} />
+
+          <Text style={styles.label}>{buyut(t('dlk.ekLabel'))}</Text>
+          <Text style={styles.caseHint}>{t('dlk.ekHint')}</Text>
+          <BelgeEkleri ekler={ekler} onChange={setEkler} disabled={busy} />
 
           <Pressable
             onPress={run}
@@ -282,6 +297,13 @@ export default function DilekceUretScreen() {
               )}
               {ayiklanan > 0 && (
                 <Text style={styles.warn}>{t('dlk.scrubbedDates', { n: String(ayiklanan) })}</Text>
+              )}
+              {!!ekUyari?.taranmis && <Text style={styles.warn}>{t('ek.taranmisUyari')}</Text>}
+              {!!ekUyari?.pdfdenMetne?.length && (
+                <Text style={styles.warn}>{t('ek.metneDustu', { adlar: ekUyari.pdfdenMetne.join(', ') })}</Text>
+              )}
+              {!!ekUyari?.okunamayan?.length && (
+                <Text style={styles.warn}>{t('ek.okunamayan', { adlar: ekUyari.okunamayan.join(', ') })}</Text>
               )}
               {!!kullanim && (
                 <Text style={styles.usage}>

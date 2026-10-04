@@ -9,23 +9,39 @@ import { yerelGunISO } from '@/lib/yerelGun';
 // tuttuğu formattır — .txt bir dilekçe UYAP'a doğrudan girmez.
 //
 // ── FORMAT NEREDEN DOĞRULANDI ──────────────────────────────────────────────
-// UYAP'ın yayımlanmış bir şeması yok. Yapı, gerçek bir UDF'nin içeriğini
-// veren kaynaktan alındı (delphiturkiye.com forumundaki birebir XML örneği)
-// ve uygulamanın KENDİ UDF okuyucusuyla (supabase/functions/_shared/belgeMetni
-// > stripXml) turlanarak sınandı — yazdığımızı geri okuyabiliyoruz.
+// UYAP'ın yayımlanmış bir şeması yok. İlk sürüm bir forum örneğinden
+// (delphiturkiye.com) alınmıştı: format_id 1.7, tek stil ("default").
+//
+// 04.10.2026 GÜNCELLEMESİ (avukat: "UDF'de yüklemede sıkıntı var"). Şablon,
+// UYAP'a yüklenecek dosya üretmek için yazılmış açık kaynak aracın şablonuyla
+// AYNI hâle getirildi: github.com/saidsurucu/UDF-Toolkit > main.py. Üç fark
+// vardı ve üçü de giderildi:
+//   1. format_id 1.7 → 1.8 (güncel UYAP belgeleri 1.8; udfpdf paketi de
+//      UYAP çıktısını "format v1.8" diye tanımlıyor),
+//   2. <elements resolver="hvl-default"> bir stile atıf yapıyor ama
+//      <styles> içinde "hvl-default" adlı stil YOKTU — yalnız "default" vardı,
+//   3. paragraflarda LeftIndent/RightIndent yoktu (o araçta hep var).
+// Paragraf sonundaki "\n"i paragrafın içinde saymayı SÜRDÜRÜYORUZ: UYAP
+// Editör Java Swing ile yazılmış ve Swing belge modelinde paragraf kendi
+// satır sonunu kapsar; udfpdf okuyucusu da gerçek UDF'lerde paragraf
+// metninin içinde "\n" bekliyor.
+//
+// HÂLÂ ÖLÇÜLMEDİ: gerçek UYAP Editör'de açılması. Editörün Linux sürümü
+// (5.4.20, uyap.gov.tr) 04.10'da indirildi, deneme koşusu yapılmadı.
+// Doğrulama, bir avukatın dosyayı UYAP Editör'de açmasıyla olacak.
 //
 //     .udf  =  ZIP
 //                └── content.xml
 //
-//     <template format_id="1.7">
+//     <template format_id="1.8">
 //       <content><![CDATA[ bütün metin, tek parça ]]></content>
 //       <properties><pageFormat .../></properties>
 //       <elements resolver="hvl-default">
-//         <paragraph Alignment="0" resolver="hvl-default">
-//           <content startOffset="0" length="24" .../>
+//         <paragraph Alignment="0" LeftIndent="0.0" RightIndent="0.0">
+//           <content startOffset="0" length="24" family=".." size=".." />
 //         </paragraph>
 //       </elements>
-//       <styles><style name="default" .../></styles>
+//       <styles><style name="default" .../><style name="hvl-default" .../></styles>
 //     </template>
 //
 // EN KRİTİK KURAL: <elements> içindeki startOffset/length değerleri CDATA
@@ -131,9 +147,8 @@ export function udfIcerikXml(metin: string): string {
     // karakter ve örtülmezse toplam, metin uzunluğunu tutmaz.
     const uzunluk = satir.length + 1;
     parcalar.push(
-      `<paragraph Alignment="${hiza}" resolver="hvl-default">` +
-        `<content Alignment="${hiza}" resolver="hvl-default" family="${xmlKacis(YAZI.aile)}" size="${YAZI.boyut}" ` +
-        `startOffset="${ofset}" length="${uzunluk}" />` +
+      `<paragraph Alignment="${hiza}" LeftIndent="0.0" RightIndent="0.0">` +
+        `<content startOffset="${ofset}" length="${uzunluk}" family="${xmlKacis(YAZI.aile)}" size="${YAZI.boyut}" />` +
         `</paragraph>`
     );
     ofset += uzunluk;
@@ -148,16 +163,21 @@ export function udfIcerikXml(metin: string): string {
   const cdata = govde.replace(/]]>/g, ']]]]><![CDATA[>');
 
   return (
-    `<?xml version="1.0" encoding="UTF-8"?>\n` +
-    `<template format_id="1.7">\n` +
+    `<?xml version="1.0" encoding="UTF-8" ?>\n` +
+    `<template format_id="1.8">\n` +
     `<content><![CDATA[${cdata}]]></content>\n` +
     `<properties><pageFormat mediaSizeName="${SAYFA.mediaSizeName}" ` +
     `leftMargin="${SAYFA.kenar}" rightMargin="${SAYFA.kenar}" ` +
     `topMargin="${SAYFA.kenar}" bottomMargin="${SAYFA.kenar}" ` +
     `paperOrientation="${SAYFA.yon}" headerFOffset="20.0" footerFOffset="20.0" /></properties>\n` +
     `<elements resolver="hvl-default">${parcalar.join('')}</elements>\n` +
-    `<styles><style name="default" description="Geçerli" family="${xmlKacis(YAZI.aile)}" ` +
-    `size="${YAZI.boyut}" bold="false" italic="false" /></styles>\n` +
+    // İKİ STİL. "hvl-default", <elements resolver="hvl-default"> atfının
+    // karşılığı; "default" UYAP'ın kendi arayüz stili (değerler UDF-Toolkit
+    // şablonundan birebir).
+    `<styles><style name="default" description="Geçerli" family="Dialog" size="12" ` +
+    `bold="false" italic="false" foreground="-13421773" ` +
+    `FONT_ATTRIBUTE_KEY="javax.swing.plaf.FontUIResource[family=Dialog,name=Dialog,style=plain,size=12]" />` +
+    `<style name="hvl-default" family="${xmlKacis(YAZI.aile)}" size="${YAZI.boyut}" description="Gövde" /></styles>\n` +
     `</template>`
   );
 }

@@ -9,7 +9,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { DocumentListItem } from '@/components/documents/DocumentListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { izgaraDoldur, sutunSayisi } from '@/theme/duzen';
-import { FAB } from '@/components/ui/FAB';
+import { Button } from '@/components/ui/Button';
 import { useDeleteDocument, useDocuments } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
 import { spacing } from '@/theme/theme';
@@ -76,10 +76,19 @@ export default function DocumentVaultScreen() {
     ]);
   };
 
+  // BELGE YÜKLEME KAPISI (04.10.2026, ürün sahibi: "bu tarafta hiç belge
+  // ekle yok ki"). Ekran 12.09'da yazıldığında FAB içe aktarılmış ama hiç
+  // çizilmemişti; /document-upload rotasına uygulamanın HİÇBİR yerinden
+  // gidilmiyordu. Arşivdeki belgelerin en yenisi Temmuz'dandı (ölçüldü).
+  // Etiketli düğme, simgeli FAB'dan iyi: web'de sağ alttaki yuvarlak düğme
+  // geniş ekranda gözden kaçıyor.
+  const yukle = () => router.push('/document-upload' as Parameters<typeof router.push>[0]);
+
   return (
     <Screen>
       <ScreenHeader showMenu title={t('docs.title')} subtitle={documents ? t('docs.count', { n: documents.length }) : undefined} />
       <View style={styles.filters}>
+        <Button label={t('upload.title')} icon="cloud-upload-outline" onPress={yukle} style={styles.yukle} />
         <SearchBar value={search} onChangeText={setSearch} placeholder={t('docs.search')} />
         <View style={styles.segmentSpacing}>
           <SegmentedControl options={categoryOptions} value={category} onChange={setCategory} />
@@ -110,7 +119,13 @@ export default function DocumentVaultScreen() {
         )}
         ListEmptyComponent={
           !isLoading ? (
-            <EmptyState icon="folder-open-outline" title={t('docs.empty')} description={t('docs.emptyDesc')} />
+            <EmptyState
+              icon="folder-open-outline"
+              title={t('docs.empty')}
+              description={t('docs.emptyDesc')}
+              actionLabel={t('upload.title')}
+              onAction={yukle}
+            />
           ) : null
         }
       />
@@ -128,6 +143,10 @@ const makeStyles = () => StyleSheet.create({
   },
   segmentSpacing: {
     marginTop: spacing.sm,
+  },
+  yukle: {
+    alignSelf: 'flex-start',
+    marginBottom: spacing.sm,
   },
   satir: {
     gap: spacing.sm,

@@ -15,6 +15,8 @@ export interface AiHataYaniti {
   error?: string;
   /** Sağlayıcının bildirdiği yeniden deneme süresi (saniye). */
   yeniden?: number;
+  /** doc-extract 'pdf_no_text' döndüğünde PDF'in sayfa sayısı. */
+  sayfa?: number;
 }
 
 /** Edge işlevi hatasının gövdesini okur; okunamazsa boş nesne döner. */
@@ -32,7 +34,7 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errEkBuyuk' | 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errGeneric';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -51,6 +53,9 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
     return kod === 'daily_quota' ? t('ai.errDailyQuota') : t('ai.errRateLimit');
   }
   if (kod === 'quota_exceeded') return t('ai.errQuota');
+  // Eklenen belgelerin toplam boyutu sunucu tavanını aştı (bkz.
+  // supabase/functions/_shared/belgeEki.ts). Hak düşmez, istek başlamadı.
+  if (kod === 'ek_buyuk') return t('ai.errEkBuyuk');
   // Kontör bitmesi kota değildir: beklemekle geçmez, yükleme gerektirir.
   // İkisini aynı mesaja bağlamak kullanıcıyı boşuna bekletirdi.
   if (kod === 'kontor_bitti') return t('ai.errKontor');

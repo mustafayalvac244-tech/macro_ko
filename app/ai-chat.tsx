@@ -4,6 +4,7 @@ import { uyar } from '@/lib/uyari';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { AI_ENABLED } from '@/config/features';
+import { SesleYazDugmesi, SesleYazDurumu, useDikte } from '@/components/ui/SesleYaz';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
@@ -24,6 +25,9 @@ export default function AiChatScreen() {
     useAiChat();
   const showUpsell = error === 'daily_quota' || error === 'quota_exceeded';
   const [draft, setDraft] = useState('');
+  // SESLE YAZMA (04.10.2026, avukat: "ekstra mikrofon istiyorlar yazarken").
+  // Yalnız web'de görünür; bkz. src/hooks/useSesleYaz.ts.
+  const ses = useDikte(draft, setDraft);
   const [historyOpen, setHistoryOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -34,6 +38,8 @@ export default function AiChatScreen() {
   }, [messages, sending]);
 
   const onSend = (text: string) => {
+    // Gönderince dikte de biter: sonraki parça yeni mesajın başına eklenmesin.
+    if (ses.dinliyor) ses.durdur();
     setDraft('');
     send(text);
   };
@@ -137,6 +143,9 @@ export default function AiChatScreen() {
           {Platform.OS === 'web' && <Text style={styles.disclaimerText}>· {t('ai.webEnterHint')}</Text>}
         </View>
 
+        <View style={styles.sesDurum}>
+          <SesleYazDurumu ses={ses} />
+        </View>
         <View style={styles.inputBar}>
           <TextInput
             style={styles.input}
@@ -171,6 +180,7 @@ export default function AiChatScreen() {
               }
             }}
           />
+          <SesleYazDugmesi ses={ses} disabled={sending} />
           <Pressable
             onPress={() => onSend(draft)}
             disabled={sending || draft.trim().length === 0}
@@ -613,6 +623,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.small,
     color: colors.textMuted,
     fontSize: 11,
+  },
+  sesDurum: {
+    paddingHorizontal: spacing.md,
   },
   inputBar: {
     flexDirection: 'row',

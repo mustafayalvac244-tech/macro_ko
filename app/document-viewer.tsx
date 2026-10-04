@@ -6,6 +6,8 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { supabase, DOCUMENTS_BUCKET } from '@/lib/supabase';
+import { udfMi } from '@/lib/belgeTurleri';
+import { baytlariBase64 } from '@/utils/base64Metni';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -38,6 +40,38 @@ export default function DocumentViewerScreen() {
 
   const isImage = (mime ?? '').startsWith('image/') || /\.(jpe?g|png|gif|webp|heic)$/i.test(name ?? '');
   const isPdf = (mime ?? '') === 'application/pdf' || /\.pdf$/i.test(name ?? '');
+  // UDF UYGULAMADA OKUNUR (04.10.2026). Kasaya UDF yüklenebilir oldu; ama UDF
+  // bir ZIP paketi, ne tarayıcı ne telefon onu gösterir. "Harici uygulamada
+  // aç" yalnız UYAP Editör kurulu bilgisayarda işe yarar. Metni, belge
+  // incelemenin kullandığı aynı sunucu ucu (doc-extract) çıkarır; dosya
+  // saklanmaz, yalnız metin döner.
+  const isUdf = udfMi(name);
+  const [udfMetni, setUdfMetni] = useState<string | null>(null);
+  const [udfHata, setUdfHata] = useState(false);
+
+  useEffect(() => {
+    if (!url || !isUdf) return;
+    let active = true;
+    (async () => {
+      try {
+        const yanit = await fetch(url);
+        if (!yanit.ok) throw new Error(String(yanit.status));
+        const base64 = baytlariBase64(new Uint8Array(await yanit.arrayBuffer()));
+        const { data, error: fnErr } = await supabase.functions.invoke('doc-extract', {
+          body: { filename: name ?? 'belge.udf', base64 },
+        });
+        const metin = (data as { text?: string } | null)?.text ?? '';
+        if (!active) return;
+        if (fnErr || !metin.trim()) setUdfHata(true);
+        else setUdfMetni(metin);
+      } catch {
+        if (active) setUdfHata(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [url, isUdf, name]);
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
@@ -80,7 +114,30 @@ export default function DocumentViewerScreen() {
         />
       )}
 
-      {url && !isImage && !isPdf && (
+      {url && isUdf && !udfMetni && !udfHata && (
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.primary} size="large" />
+          <Text style={styles.udfBekle}>{t('viewer.udfReading')}</Text>
+        </View>
+      )}
+
+      {url && isUdf && !!udfMetni && (
+        <ScrollView style={styles.flex} contentContainerStyle={styles.udfWrap}>
+          <Text style={styles.udfNot}>{t('viewer.udfNote')}</Text>
+          <Text selectable style={styles.udfMetin}>
+            {udfMetni}
+          </Text>
+          <Button
+            label={t('viewer.openExternal')}
+            icon="open-outline"
+            variant="secondary"
+            onPress={() => Linking.openURL(url)}
+            style={styles.fallbackBtn}
+          />
+        </ScrollView>
+      )}
+
+      {url && !isImage && !isPdf && (!isUdf || udfHata) && (
         <View style={styles.center}>
           <Text style={styles.fallbackText}>{t('viewer.unsupported')}</Text>
           <Button label={t('viewer.openExternal')} icon="open-outline" onPress={() => Linking.openURL(url)} style={styles.fallbackBtn} />
@@ -121,5 +178,23 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   fallbackBtn: {
     marginTop: spacing.sm,
+  },
+  udfWrap: {
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  udfBekle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
+  udfNot: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  udfMetin: {
+    ...typography.body,
+    color: colors.textPrimary,
+    lineHeight: 22,
   },
 });
