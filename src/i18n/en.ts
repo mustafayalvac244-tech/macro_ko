@@ -1971,6 +1971,7 @@ export const en: Record<keyof typeof tr, string> = {
   'cikti.failed': 'Failed — select the text and copy',
   'cikti.duzenle': 'Edit',
   'cikti.duzenlemeyiBitir': 'Done',
+  'cikti.duzeltIpucu': 'Correct the text right here. Copy, download and UYAP (UDF) export use the corrected version.',
   'cikti.duzenlendi': 'You edited this text — copy, download and UYAP (UDF) export use the edited version.',
   'cikti.aslinaDon': 'Revert to original',
   'laws.title': 'Legislation',

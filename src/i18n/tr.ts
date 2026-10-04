@@ -2060,8 +2060,9 @@ export const tr = {
   'cikti.downloaded': 'İndirildi',
   'cikti.unsupported': 'Tarayıcı izin vermedi',
   'cikti.failed': 'Olmadı, metni seçip kopyalayın',
-  'cikti.duzenle': 'Düzenle',
+  'cikti.duzenle': 'Düzelt',
   'cikti.duzenlemeyiBitir': 'Bitti',
+  'cikti.duzeltIpucu': 'Metni burada doğrudan düzeltin. Kopyalama, indirme ve UYAP (UDF) çıktısı düzeltilmiş hâli alır.',
   // Düzenleme yapıldığında dışa aktarılan metin DÜZENLENMİŞ olandır; avukatın
   // bunu bilmesi şart, çünkü sorumluluğu üstlendiği metin artık kendi metni.
   'cikti.duzenlendi': 'Bu metni siz düzenlediniz — kopyalama, indirme ve UYAP (UDF) çıktısı düzenlenmiş hâli alır.',

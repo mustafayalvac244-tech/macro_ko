@@ -88,43 +88,73 @@ export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, m
     void ciktiDuzeltmesiniBildir({ mod, model, istekId, asil: asil.current, son: duzenlenen });
   }, [acik, mod, model, istekId, duzenlenen]);
 
+  // DIŞA AKTARMA DA "BİTTİ" SAYILIR (04.10.2026). Ölçüm yalnız "Bitti"ye
+  // basınca gidiyordu; avukat düzeltip doğrudan UDF'ye basarsa hiç kayıt
+  // düşmüyordu. Tablo o güne kadar 0 satırdı — düğmenin bulunmadığını mı,
+  // ölçümün kaçtığını mı gösterdiği ayırt edilemiyordu.
+  const disaAktarildi = () => {
+    if (!mod || bildirildi.current || duzenlenen === asil.current) return;
+    bildirildi.current = true;
+    void ciktiDuzeltmesiniBildir({ mod, model, istekId, asil: asil.current, son: duzenlenen });
+  };
+
   const degisti = duzenlenen !== asil.current;
+  // UZUN METİNDE ALTTA DA DÜĞME. Dilekçe birkaç ekran boyu; üstteki düğme,
+  // avukat metni okuyup sona geldiğinde görünmüyor. Kısa çıktıda tekrar
+  // gürültü olur, o yüzden yalnız uzun metinde.
+  const altSatir = duzenlenen.length > 1200;
+
+  // "DÜZELT" BİR DÜĞMEDİR, BAĞLANTI DEĞİL (04.10.2026, avukat geri bildirimi:
+  // "üretilen dilekçeye düzeltme butonu eklenebilir"). Düzenleme özelliği
+  // vardı ama 13 px'lik mavi bir yazıydı; ai_cikti_geri_bildirim tablosunda
+  // o güne kadar tek satır yoktu. Avukat aradığı şeyi bulamadıysa özellik
+  // yok demektir.
+  const duzeltDugmesi = (
+    <Pressable
+      onPress={() => setAcik((v) => !v)}
+      hitSlop={6}
+      style={({ pressed }) => [styles.duzeltDugme, acik && styles.duzeltDugmeAcik, pressed && { opacity: 0.85 }]}
+      accessibilityRole="button"
+      accessibilityLabel={acik ? t('cikti.duzenlemeyiBitir') : t('cikti.duzenle')}
+    >
+      <Ionicons
+        name={acik ? 'checkmark' : 'create-outline'}
+        size={17}
+        color={acik ? __t.colors.textInverse : __t.colors.primary}
+      />
+      <Text style={[styles.duzeltMetin, acik && styles.duzeltMetinAcik]}>
+        {acik ? t('cikti.duzenlemeyiBitir') : t('cikti.duzenle')}
+      </Text>
+    </Pressable>
+  );
 
   return (
     <View>
       <View style={styles.ustSatir}>
         {!!etiket && <Text style={styles.etiket}>{etiket}</Text>}
         <View style={styles.ustSag}>
-          <Pressable
-            onPress={() => setAcik((v) => !v)}
-            hitSlop={8}
-            style={styles.duzenleDugme}
-            accessibilityRole="button"
-            accessibilityLabel={acik ? t('cikti.duzenlemeyiBitir') : t('cikti.duzenle')}
-          >
-            <Ionicons
-              name={acik ? 'checkmark-outline' : 'create-outline'}
-              size={16}
-              color={__t.colors.primary}
-            />
-            <Text style={styles.duzenleMetin}>{acik ? t('cikti.duzenlemeyiBitir') : t('cikti.duzenle')}</Text>
-          </Pressable>
+          {duzeltDugmesi}
           {/* Dışa aktarma DÜZENLENMİŞ metni alır — bkz. dosya başındaki not. */}
-          <CiktiEylemleri metin={duzenlenen} baslik={baslik} udf={udf} />
+          <CiktiEylemleri metin={duzenlenen} baslik={baslik} udf={udf} onDisaAktar={disaAktarildi} />
         </View>
       </View>
 
       {acik ? (
-        <TextInput
-          value={duzenlenen}
-          onChangeText={setDuzenlenen}
-          multiline
-          style={styles.girdi}
-          textAlignVertical="top"
-          // Web'de uzun metinde otomatik büyüme yok; sabit yükseklik + kaydırma
-          // daha öngörülebilir davranıyor.
-          scrollEnabled
-        />
+        <>
+          <Text style={styles.ipucu}>{t('cikti.duzeltIpucu')}</Text>
+          <TextInput
+            value={duzenlenen}
+            onChangeText={setDuzenlenen}
+            multiline
+            autoFocus
+            style={styles.girdi}
+            textAlignVertical="top"
+            // Web'de uzun metinde otomatik büyüme yok; sabit yükseklik + kaydırma
+            // daha öngörülebilir davranıyor.
+            scrollEnabled
+            accessibilityLabel={t('cikti.duzenle')}
+          />
+        </>
       ) : (
         <Text selectable style={styles.govde}>
           {duzenlenen}
@@ -134,9 +164,16 @@ export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, m
       {degisti && (
         <View style={styles.degistiSatir}>
           <Text style={styles.degistiMetin}>{t('cikti.duzenlendi')}</Text>
-          <Pressable onPress={() => setDuzenlenen(asil.current)} hitSlop={8}>
+          <Pressable onPress={() => setDuzenlenen(asil.current)} hitSlop={8} accessibilityRole="button">
             <Text style={styles.geriDon}>{t('cikti.aslinaDon')}</Text>
           </Pressable>
+        </View>
+      )}
+
+      {altSatir && (
+        <View style={styles.altSatir}>
+          {duzeltDugmesi}
+          <CiktiEylemleri metin={duzenlenen} baslik={baslik} udf={udf} onDisaAktar={disaAktarildi} />
         </View>
       )}
     </View>
@@ -154,9 +191,32 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing.xs,
     },
     etiket: { ...typography.caption, color: colors.textSecondary },
-    ustSag: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
-    duzenleDugme: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    duzenleMetin: { ...typography.caption, color: colors.primary, fontWeight: '600' },
+    ustSag: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm, flexShrink: 1 },
+    duzeltDugme: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      minHeight: 36,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.sm,
+      borderWidth: 1.5,
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+    },
+    duzeltDugmeAcik: { backgroundColor: colors.primary },
+    duzeltMetin: { ...typography.caption, color: colors.primary, fontWeight: '700' },
+    duzeltMetinAcik: { color: colors.textInverse },
+    ipucu: { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.xs },
+    altSatir: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      marginTop: spacing.md,
+      paddingTop: spacing.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
     govde: { ...typography.body, color: colors.textPrimary, lineHeight: 22 },
     girdi: {
       ...typography.body,
