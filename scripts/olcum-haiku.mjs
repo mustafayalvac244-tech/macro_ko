@@ -13,7 +13,7 @@
 // sunucunun maliyetTL'si kusurlu cevapta 0 yazar, harcamayı gizlerdi.
 // Bir sonraki istekten önce harcanan + ₺4 tavanı aşacaksa durulur.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,9 +23,12 @@ const svc = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !anon || !svc) throw new Error('SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY gerekli');
 
 const KUR = 42;
-const TAVAN_TL = Number(process.env.OLCUM_TL_TAVANI ?? 40);
+// Fiyat ($/M girdi, çıktı) cevaptaki modele göre; bilinmeyen model en pahalıdan.
+const FIYAT = { 'claude-haiku-4-5-20251001': [1, 5], 'claude-sonnet-5': [2, 10] };
+const TAVAN_TL = Number(process.env.OLCUM_TL_TAVANI ?? process.env.EVAL_PARA_BUTCESI ?? 40);
 const PAY_TL = 4; // bir isteğin üst tahmini — ölçülmedi, tavanı aşmamak için pay
-const SONUC = join(__dirname, 'olcum-haiku-sonuc.json');
+// Sonuç dosyası çağrılan betiğin adından: olcum-sonnet.mjs -> olcum-sonnet-sonuc.json.
+const SONUC = join(__dirname, `${basename(process.argv[1] ?? 'olcum-haiku', '.mjs')}-sonuc.json`);
 
 const EPOSTA = `olcum-haiku-${Date.now()}@vekil.local`;
 const SIFRE = `Ol!${Math.random().toString(36).slice(2)}A9`;
@@ -88,7 +91,8 @@ async function ai(tur, id, govde, not = '') {
   }
   const { durum, ms, veri } = await cagir('ai-chat', govde);
   const k = veri?.kullanim ?? {};
-  const tl = (((k.girdiToken ?? 0) / 1e6) * 1 + ((k.ciktiToken ?? 0) / 1e6) * 5) * KUR;
+  const [fg, fc] = FIYAT[veri?.model ?? k.model] ?? [5, 25];
+  const tl = (((k.girdiToken ?? 0) / 1e6) * fg + ((k.ciktiToken ?? 0) / 1e6) * fc) * KUR;
   harcananTL += tl;
   const kayit = {
     tur, id, not, durum, sureSn: Math.round(ms / 100) / 10,

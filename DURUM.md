@@ -51,7 +51,7 @@
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
    Anahtar ~30.10 biter.
-   Modeller (04.10): HER İŞ HAIKU 4.5 (ürün sahibi "hepsini haiku yap"; deneme+ücretli;
+   Modeller (04.10 son): HER İŞ SONNET 5 ("sonnet yap"; önce Haiku denendi; deneme+ücretli;
    katman.ts AI_MODELI). ÖLÇÜLDÜ 04.10 (7 istek, ₺5,77; scripts/olcum-haiku-sonuc.json):
    hız kazancı yok (sohbet 25–30 sn), maliyet ~4 kat düşük; madde no hatası + yazım hatası var.
    Yeni 'duzelt' modu: "Yapay zekâya düzelttir" (PR #143; ai-chat v137, ictihat v70).
