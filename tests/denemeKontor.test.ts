@@ -40,7 +40,9 @@ describe('deneme isteğinde düşünme kapalı', () => {
     expect(cagrilar.length).toBeGreaterThanOrEqual(5);
     // Deneme bayrağı düşünme argümanıdır; ardından (04.10.2026'dan beri)
     // isteğe bağlı EK BELGE argümanı gelebilir.
-    for (const c of cagrilar) expect(c, c).toMatch(/,\s*!cfg\.denemeLimit\s*(?:\)\s*;$|,)/);
+    // Ya deneme bayrağı ya da DÜŞÜNME HİÇ YOK (false — mütalaa, 04.10.2026:
+    // süre sınırı). İkisi de denemede düşünmeyi kapatır.
+    for (const c of cagrilar) expect(c, c).toMatch(/,\s*(?:!cfg\.denemeLimit|false)\s*(?:\)\s*;$|,)/);
     expect(kod).toMatch(/\.\.\.dusunmeAyari\(model, dusunme\)/);
   });
 });
