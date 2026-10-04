@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 04.10.2026 (her iş Haiku, yapay zekâyla düzelt, UDF, ek belge/PDF, sesle yazma)
+**Son güncelleme:** 04.10.2026 (site denetimi: "KVKK uyumlu" ve fotoğraftan künye iddiası kaldırıldı)
 
 ## 1. Şu an — yayın durumu
 
@@ -65,14 +65,14 @@
    Yargıtay künyesi Bedesten'de aranır; canlıda yok/olanaksız künye METİNDEN
    ÇIKARILIR (ürün sahibi "kullanıcıya yazılamaz"), yerine gerçek karar ÖNERİSİ.
    İçtihat istenince dosyaya 5–6 karar. Gerçek kullanımda ÖLÇÜLMEDİ.
-0d. **AVUKAT GERİ BİLDİRİMİ (04.10, PR #142):** Düzelt düğmesi (düzenleme vardı ama
-   bulunmuyordu: ai_cikti_geri_bildirim 0 satır); UDF her seçicide (web süzgecinde ve
-   kasada yoktu), kasada UDF metni okunur, üretilen UDF 1.8 + hvl-default (UYAP
-   Editör'de AÇILMADI — avukat denemeli); Dilekçe Üret'e dosya ekleme, PDF sayfa
-   görüntüsüyle (20 sayfa / 8 MB tavan, maliyet ÖLÇÜLMEDİ); web'de sesle yazma; Belge
-   Arşivi'ne Belge Yükle (yükleme ekranı hiçbir yerden açılmıyordu); menüden Toplu
-   Aktarım çıktı, Derin Araştırma → Hukuki Araştırma. WEB CANLI. OTA GİTTİ: 7b06a953
-   (04.10 17:20 UTC, çalışma zamanı 3.4.0, d8fcaa9); cihaza indiği ÖLÇÜLMEDİ.
+0d. **AVUKAT GERİ BİLDİRİMİ (04.10, PR #142):** Düzelt düğmesi; UDF her seçicide, üretilen
+   UDF 1.8 + hvl-default (UYAP Editör'de AÇILMADI — avukat denemeli); Dilekçe Üret'e dosya
+   ekleme, PDF sayfa görüntüsüyle (20 sayfa / 8 MB, maliyet ÖLÇÜLMEDİ); web'de sesle yazma;
+   Belge Arşivi'ne Belge Yükle; Derin Araştırma → Hukuki Araştırma. WEB CANLI. OTA 7b06a953
+   (04.10 17:20 UTC, 3.4.0); cihaza indiği ÖLÇÜLMEDİ. SİTE (04.10 akşam): "KVKK uyumlu" ×2,
+   fotoğraftan künye, "olamaz", CSV/web planı SSS'leri düzeltildi; gizlilikte ek belge + web
+   mikrofonu yazılı (testle korunur). Uygulama içi gizlilik metni: web'de, OTA'ya GİTMEDİ.
+
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
