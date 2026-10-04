@@ -116,8 +116,10 @@ Deno.serve(async (req) => {
       sayfaSayisi = sayfalar.length;
       text = sayfalar.join('\n').trim();
       if (!text) {
-        // Taranmış (görüntü) PDF — metin katmanı yok.
-        return new Response(JSON.stringify({ error: 'pdf_no_text' }), { status: 422, headers: CORS });
+        // Taranmış (görüntü) PDF — metin katmanı yok. SAYFA SAYISI DA DÖNER
+        // (04.10.2026): metni olmayan PDF artık yapay zekâya GÖRÜNTÜSÜYLE
+        // gidebiliyor; istemci sayfa tavanını bilmek için sayıya ihtiyaç duyar.
+        return new Response(JSON.stringify({ error: 'pdf_no_text', sayfa: sayfaSayisi }), { status: 422, headers: CORS });
       }
     } else if (filename.endsWith('.udf')) {
       text = await fromZip(bytes, 'udf');

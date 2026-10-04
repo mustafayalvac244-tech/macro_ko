@@ -180,6 +180,27 @@ export const AI_AGIR_IS_MODEL = 'claude-opus-5';
 /** Ağır işte çıktı tavanı — düşünme + ~3.000 token metin. ÖLÇÜLMEDİ, tahmin. */
 export const AGIR_IS_MAX_OUT = 16000;
 
+/**
+ * SOHBET HAIKU'DA (04.10.2026, ürün sahibi: "haiku'ya geçelim, test edeceğiz").
+ * Avukat geri bildirimi: "yapay zekâ yavaş cevap veriyor". Bu bir DENEME
+ * kararıdır ve geçmişi var: 01.10'da Haiku'dan Sonnet'e geçilmişti ("haiku
+ * kötüyse sonnete geçelim"). Yalnız asistan SOHBETİ; dilekçe/mütalaa Opus'ta,
+ * belge Sonnet'te kalır. Denemede de, ücretli katmanda da aynı.
+ *
+ * Ölçüm (03.10, 12 gerçek istek, sunucu kaydı): sohbet 24–38 sn sürüyordu,
+ * bunun ~4 sn'si yazma; kalan ~20 sn modelden bağımsız arama/denetim adımları
+ * (çıkarım: süre ile çıktı uzunluğunun doğrusal uydurması). Yani Haiku'nun
+ * kazandıracağı süre sınırlı olabilir; sonuç ölçülerek değerlendirilecek.
+ *
+ * Mod adı AÇIKÇA 'sohbet' olmalı: ai-chat sohbet isteğine 'sohbet' adını
+ * kendisi verir. Tanınmayan/boş mod hâlâ güçlü modele düşer (aşağıda).
+ */
+// Haiku 4.5 — AI_TASMA_MODEL ile aynı model (o sabit dosyada daha aşağıda tanımlı).
+export const SOHBET_MODELI = 'claude-haiku-4-5-20251001';
+export function sohbetMi(mod: string | undefined): boolean {
+  return mod === 'sohbet';
+}
+
 /** İş türüne göre model seçer. Mod bilinmiyorsa güçlü model. */
 export function modModeli(mod: string | undefined, gucluModel: string, ucuzModel: string, agirModel = gucluModel): string {
   if (mod && MOD_AGIR.includes(mod)) return agirModel;
@@ -348,7 +369,8 @@ export function tierConfig(
     // ve dönüşüm anıdır. Fark ₺11,50 yerine ~₺8 — yani ₺3,50. Bir aboneliğin
     // dönüşümünü ₺3,50 için riske atmak kötü bir takas olurdu. Aynı gerekçe
     // denemenin Groq yerine Claude'da koşmasının da sebebi (yukarıda).
-    model: AI_UCRETLI_MODEL,
+    // 04.10.2026 İSTİSNA: sohbet Haiku'ya gider (SOHBET_MODELI, yukarıda).
+    model: sohbetMi(secenek.mod) ? SOHBET_MODELI : AI_UCRETLI_MODEL,
     // billable:true — deneme isteklerinin GERÇEK maliyeti (ai_usage/ai_istek)
     // kaydedilsin isteriz, kendi muhasebemiz için. KONTÖRDEN DÜŞÜLMEZ:
     // recordUsage `deneme` bayrağıyla ücreti sıfırlar (ai-chat, 01.10.2026).
@@ -391,7 +413,7 @@ export function tierConfig(
     // (11.09'da ₺399 denemesi claude-opus-5'e gitmişti; Opus ≈ Haiku'nun 5
     // katı). Herkese açık ücretsiz denemenin maliyeti ortam ayarına bağlı
     // kalmasın. Bkz. UCRETSIZ_DENEME_LIMIT.
-    model: UCRETSIZ_DENEME_MODEL,
+    model: sohbetMi(secenek.mod) ? SOHBET_MODELI : UCRETSIZ_DENEME_MODEL,
     limit: UCRETSIZ_DENEME_LIMIT,
     denemeLimit: UCRETSIZ_DENEME_LIMIT,
   };
@@ -409,7 +431,7 @@ export function tierConfig(
       provider: 'claude',
       // İŞE GÖRE MODEL (bkz. MOD_UCUZ / MOD_AGIR). Künye Haiku; sohbet ve belge
       // Sonnet 5; dilekçe ve mütalaa Opus 5 — ilk 750 istek boyunca.
-      model: modModeli(secenek.mod, AI_UCRETLI_MODEL, AI_TASMA_MODEL, AI_AGIR_IS_MODEL),
+      model: sohbetMi(secenek.mod) ? SOHBET_MODELI : modModeli(secenek.mod, AI_UCRETLI_MODEL, AI_TASMA_MODEL, AI_AGIR_IS_MODEL),
       billable: true,
       limitKind: 'cost',
       limit: UCRETLI_TAVAN_TRY,

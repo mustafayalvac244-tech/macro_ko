@@ -29,6 +29,8 @@ import {
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 import { canliIctihat, canliKunyeDogrula } from '../_shared/uyapCanli.ts';
 import { mesajlariHazirla } from '../_shared/onbellek.ts';
+// Avukatın eklediği belgeler (dilekçe/belge inceleme) — PDF görüntüsüyle gider.
+import { denetimKaynagi, ekAciklamasi, ekleriAyikla, pdfBloklari, taranmisSayfaVar, type Ek } from '../_shared/belgeEki.ts';
 import { rizaKapisi } from '../_shared/kvkkRiza.ts';
 // Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
@@ -175,7 +177,10 @@ async function claudeChat(
   // tavanı yedi, metin BOŞ döndü (durum 'ok'), istek yedek modele düştü —
   // Sonnet yine faturalandı, kayda 0 yazıldı. Denemede düşünme yok: tavanın
   // tamamı metne kalır, maliyet öngörülebilir olur.
-  dusunme = true
+  dusunme = true,
+  // PDF BELGE BLOKLARI (04.10.2026, bkz. _shared/belgeEki.ts). Son kullanıcı
+  // mesajının BAŞINA konur: Anthropic "PDF'i metinden önce koyun" diyor.
+  belgeBloklari: Array<Record<string, unknown>> = []
 ): Promise<{ text: string; tin: number; tout: number; onbellekOkunan: number; onbellekYazilan: number }> {
   // GEÇMİŞ ÖNBELLEĞİ (03.10.2026, bkz. _shared/onbellek.ts): çok turlu sohbette
   // değişen araştırma dosyası son mesaja taşınır, son asistan cevabına kesme
@@ -199,7 +204,12 @@ async function claudeChat(
     // birleştirilir. En çok DEVAM_EN_FAZLA ek tur — sonsuz döngü ve sınırsız
     // fatura olmasın diye.
     const DEVAM_EN_FAZLA = 2;
-    const temelMesajlar = hazir.mesajlar;
+    let temelMesajlar: Array<{ role: 'user' | 'assistant'; content: unknown }> = hazir.mesajlar;
+    if (belgeBloklari.length) {
+      const son = temelMesajlar[temelMesajlar.length - 1];
+      const metinBloklari = typeof son.content === 'string' ? [{ type: 'text', text: son.content }] : (son.content as unknown[]);
+      temelMesajlar = [...temelMesajlar.slice(0, -1), { role: 'user', content: [...belgeBloklari, ...metinBloklari] }];
+    }
     let text = '';
     let tin = 0;
     let tout = 0;
@@ -220,7 +230,7 @@ async function claudeChat(
         // Sonnet/Opus 5'te düşünme varsayılan AÇIK; kapatmak açık 'disabled' ister.
         ...dusunmeAyari(model, dusunme),
         system: system as never,
-        messages: mesajlar,
+        messages: mesajlar as never,
       }));
       // Güvenlik reddi: içerik okunmadan önce stop_reason kontrol edilmeli.
       if (res.stop_reason === 'refusal') throw new Error('refusal');
@@ -284,11 +294,14 @@ async function ucretliChat(
   maxTokens: number,
   apiKey: string,
   model: string,
-  dusunme = true
+  dusunme = true,
+  // EKLİ BELGE: Claude'a PDF blokları gider; yedek hat PDF okuyamaz, ona
+  // aynı eklerin METNİYLE kurulmuş mesajlar gider (bkz. _shared/belgeEki.ts).
+  ek?: { bloklar: Array<Record<string, unknown>>; yedekMsgs: Array<{ role: 'user' | 'model'; text: string }> }
 ): Promise<{ text: string; tin: number; tout: number; model: string; faturali: boolean; onbellekOkunan?: number; onbellekYazilan?: number }> {
   let ilkHata: Error | null = null;
   try {
-    const r = await claudeChat(stableSystem, groundingSystem, msgs, maxTokens, apiKey, model, dusunme);
+    const r = await claudeChat(stableSystem, groundingSystem, msgs, maxTokens, apiKey, model, dusunme, ek?.bloklar ?? []);
     if (r.text.trim()) return { ...r, model, faturali: true };
     ilkHata = new Error('empty');
   } catch (e) {
@@ -297,7 +310,7 @@ async function ucretliChat(
   }
   try {
     const duz = Array.isArray(stableSystem) ? stableSystem.join('') : stableSystem;
-    const y = await ucretsizChat(duz + groundingSystem, msgs, maxTokens);
+    const y = await ucretsizChat(duz + groundingSystem, ek?.yedekMsgs ?? msgs, maxTokens);
     return { ...y, faturali: false };
   } catch {
     // Her iki hat da düştüyse ÜCRETLİ hattın hatası bildirilir: kullanıcının
@@ -2083,7 +2096,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
 
-  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string; istekId?: string; sebep?: string };
+  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string; istekId?: string; sebep?: string; ekler?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -2155,9 +2168,24 @@ Deno.serve(async (req) => {
   const messages = (isMutalaa || isDilekce || isBelge || isKunye)
     ? [{ role: 'user' as const, text: promptQuestion }]
     : (body.messages ?? []).slice(-30);
-  if (messages.length === 0 || ((isMutalaa || isDilekce || isBelge || isKunye) && promptQuestion.length < 20)) {
+  // EKLİ BELGELER — yalnız dilekçe ve belge incelemede (bkz. _shared/belgeEki.ts).
+  // Boyut tavanı aşılırsa istek BAŞLAMADAN reddedilir: hak düşmez, kota
+  // rezerve edilmez.
+  const ekSonuc = (isDilekce || isBelge) ? ekleriAyikla(body.ekler) : { ekler: [] as Ek[], pdfdenMetne: [] as string[], okunamayan: [] as string[] };
+  if ('hata' in ekSonuc && ekSonuc.hata) {
+    return new Response(JSON.stringify({ error: ekSonuc.hata }), { status: 413, headers: CORS });
+  }
+  const ekler = ekSonuc.ekler;
+  // Belge incelemede PDF'in kendisi ek olarak gelir; soru kutusu yalnız
+  // avukatın (isteğe bağlı) notudur ve boş olabilir.
+  const notYeter = isBelge && ekler.length > 0;
+  if (messages.length === 0 || ((isMutalaa || isDilekce || isBelge || isKunye) && promptQuestion.length < 20 && !notYeter)) {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
+  // Ekranın avukata söyleyeceği ek durumu (görüntüsüyle okunamayanlar).
+  const ekUyari = (ekSonuc.pdfdenMetne.length || ekSonuc.okunamayan.length || taranmisSayfaVar(ekler))
+    ? { pdfdenMetne: ekSonuc.pdfdenMetne, okunamayan: ekSonuc.okunamayan, taranmis: taranmisSayfaVar(ekler) || undefined }
+    : undefined;
   // Referanslar mütalaa bloğunda mutalaaQuestion adıyla kullanılıyordu; alias.
   const mutalaaQuestion = promptQuestion;
 
@@ -2193,7 +2221,9 @@ Deno.serve(async (req) => {
     // (bkz. _shared/katman.ts > MOD_UCUZ). `body.mode` istemciden gelir ama
     // seçimi SUNUCU yapar: istemcinin gönderdiği bir model adı değil, yalnız
     // hangi İŞİ istediği okunuyor. Tanınmayan bir mod güçlü modele düşer.
-    mod: body.mode,
+    // Sohbet isteği mod göndermez; ADINI BURADA alır (04.10.2026): sohbet
+    // Haiku'ya gider, ama tanınmayan bir mod yine güçlü modele düşmeli.
+    mod: body.mode ?? 'sohbet',
     zorlaSaglayici: Deno.env.get('VEKIL_ZORLA_SAGLAYICI') ?? undefined,
     zorlaModel: Deno.env.get('VEKIL_ZORLA_MODEL') ?? undefined,
   });
@@ -2783,15 +2813,24 @@ async function dosyaKunyesi(
       islah: 'ISLAH DİLEKÇESİ (HMK m.176 vd.). Neyin ıslah edildiği (talep sonucu/vakıa), gerekçe, harç tamamlama beyanı, yeni netice-i talep.',
     };
     const structure = typeMap[body.dilekceType ?? ''] ?? typeMap['dava'];
+    // EKLİ BELGELER (04.10.2026, avukat: "buraya dosya ekleme koyulması
+    // gerekiyor"). Claude'a PDF'ler belge bloğu olarak gider ve metinleri
+    // tekrar yazılmaz; yedek hatlara her ekin METNİ gider. Uydurma tarih/tutar
+    // denetimi anlatım + eklerin metniyle yapılır: ekteki gerçek tarih
+    // "uydurma" sayılmasın. Bkz. _shared/belgeEki.ts.
+    const ekAramasi = ekler.length ? `${promptQuestion}\n${ekler.map((e) => e.metin).join('\n').slice(0, 1200)}` : promptQuestion;
+    const claudeSoru = ekler.length ? `${ekAciklamasi(ekler, true)}OLAY VE TALEP (avukatın anlatımı):\n${promptQuestion}` : promptQuestion;
+    const yedekSoru = ekler.length ? `${ekAciklamasi(ekler, false)}OLAY VE TALEP (avukatın anlatımı):\n${promptQuestion}` : promptQuestion;
+    const denetimMetni = denetimKaynagi(promptQuestion, ekler);
       let dossier = '';
     // Dosyaya giren kural kimlikleri toplanır — atlanan kural denetimi için
     // DEĞİL (o dilekçede gürültü ürettiği için kaldırılmıştı), ÇAKIŞAN DAYANAK
     // denetimi için: birbirinin alternatifi iki kuralın ikisi de dayanak
     // gösterilirse avukat uyarılır (bkz. _shared/kural.ts, cakisanDayanaklar).
     const dilekceKurallar = new Map<string, BeslenenKural>();
-    try { dossier += await buildRules(supabase, promptQuestion, dilekceKurallar); } catch { /* atla */ }
-    try { dossier += await buildMevzuat(supabase, promptQuestion); } catch { /* atla */ }
-    try { dossier += await buildGrounding(supabase, promptQuestion, ictihatIstenmis(promptQuestion) ? 5 : 3, ictihatIstenmis(promptQuestion) ? 6 : 5); } catch { /* atla */ }
+    try { dossier += await buildRules(supabase, ekAramasi, dilekceKurallar); } catch { /* atla */ }
+    try { dossier += await buildMevzuat(supabase, ekAramasi); } catch { /* atla */ }
+    try { dossier += await buildGrounding(supabase, ekAramasi, ictihatIstenmis(promptQuestion) ? 5 : 3, ictihatIstenmis(promptQuestion) ? 6 : 5); } catch { /* atla */ }
 
     // GROQ'A GİDERKEN BESLEME TAVANA SIĞDIRILIR. Ücretsiz anahtarda dakikalık
     // tavan 8.000 token ve sağlayıcı girdi + çıktı tavanını topluyor; sığmayan
@@ -2803,7 +2842,7 @@ async function dosyaKunyesi(
     const dilekceMaxTok = Math.max(cfg.maxOut, 6000);
     let dilekceKirpildi = false;
     if (provider === 'groq') {
-      const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + structure + promptQuestion, dilekceMaxTok);
+      const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + structure + yedekSoru, dilekceMaxTok);
       dossier = k.besleme;
       dilekceKirpildi = k.kirpildi;
     }
@@ -2857,6 +2896,12 @@ async function dosyaKunyesi(
       // talepte olmayan şeye mahkeme hükmedemez (HMK m.26: taleple bağlılık);
       // yani düşen talep, dilekçedeki en pahalı hatadır — avukat fark etmezse
       // müvekkil o hakkı o davada kaybeder.
+      // EKLİ BELGE KURALI (04.10.2026). Sabit metin: mod bloğu önbellekte
+      // kalsın diye ekin varlığına göre değişmez.
+      '• AVUKAT BELGE EKLEDİYSE ("AVUKATIN EKLEDİĞİ BELGELER"): karşı tarafın dilekçesi, sözleşme, ' +
+      'karar ya da bilirkişi raporu olayın parçasıdır. Tarih, tutar, taraf ve esas numarasını oradan ' +
+      'alabilirsin; ne anlatımda ne belgede geçen bilgiyi yine UYDURMA. Cevap, replik, düplik, istinaf, ' +
+      'temyiz, itiraz ve bilirkişiye itirazda eklenen belgedeki her iddiayı ya da gerekçeyi tek tek karşıla.\n' +
       '• AVUKATIN SAYDIĞI HER TALEBİ NETİCE-İ TALEBE KOY. Olayda "tahliye ve alacak" gibi ' +
       'birden çok istem varsa hepsini ayrı kalem olarak yaz; birini düşürme, birleştirme. ' +
       'Talep edilmeyen şeye hükmedilemez.\n' +
@@ -2883,14 +2928,15 @@ async function dosyaKunyesi(
         const sabitKisim = dossier ? dilekceSys.slice(0, dilekceSys.length - dossier.length) : dilekceSys;
         const modBlogu = sabitKisim.startsWith(SYSTEM_PROMPT) ? sabitKisim.slice(SYSTEM_PROMPT.length) : '';
         const katmanlar = modBlogu ? [SYSTEM_PROMPT, modBlogu] : [sabitKisim];
-        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model, !cfg.denemeLimit);
+        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: claudeSoru }], maxTok, genKey, model, !cfg.denemeLimit,
+          ekler.length ? { bloklar: pdfBloklari(ekler), yedekMsgs: [{ role: 'user', text: yedekSoru }] } : undefined);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
-        const r = await openaiChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        const r = await openaiChat(dilekceSys, [{ role: 'user', text: yedekSoru }], maxTok, genKey, model);
         out = r.text; uin = r.tin; uout = r.tout;
       } else if (provider === 'groq') {
-        const r = await ucretsizChat(dilekceSys, [{ role: 'user', text: promptQuestion }], maxTok);
+        const r = await ucretsizChat(dilekceSys, [{ role: 'user', text: yedekSoru }], maxTok);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model;
       } else {
@@ -2900,7 +2946,7 @@ async function dosyaKunyesi(
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: dilekceSys }] },
-            contents: [{ role: 'user', parts: [{ text: promptQuestion }] }],
+            contents: [{ role: 'user', parts: [{ text: yedekSoru }] }],
             generationConfig: { temperature: 0.35, maxOutputTokens: maxTok },
           }),
         });
@@ -2931,7 +2977,7 @@ async function dosyaKunyesi(
         try {
           const r2 = await ucretsizChat(
             dilekceSys,
-            [{ role: 'user', text: promptQuestion }],
+            [{ role: 'user', text: yedekSoru }],
             maxTok,
             [kullanilanModel]
           );
@@ -2973,7 +3019,7 @@ async function dosyaKunyesi(
       // Talimat sertleştirildi ama YETMEZ: model kuralı çoğu zaman tutar,
       // tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
       // mekanik denetimde.
-      const temiz = uydurmaTarihleriAyikla(govde, promptQuestion);
+      const temiz = uydurmaTarihleriAyikla(govde, denetimMetni);
       // TÜRE ÖZGÜ TALEP DENETİMİ. Talebi biz yazamayız — ne istendiğini avukat
       // bilir ve uydurulmuş talep, eksik talepten kötüdür. Ama eksikliği
       // görebiliriz: hâkim taleple bağlıdır (HMK m.26) ve netice-i talepte
@@ -3010,7 +3056,7 @@ async function dosyaKunyesi(
       const cakisan = [...cakisanDayanaklar(new Set(dilekceKurallar.keys()), temiz.metin), ...iscilikUyarilari(temiz.metin)];
       // UYDURMA TUTAR DENETİMİ — madde atfıyla aynı prensip: silinmez, uyarılır.
       // Bkz. _shared/dilekce.ts > uydurmaTutarlariBul.
-      const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
+      const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, denetimMetni);
       const kusurlu = kusurluCikti('dilekce', temiz.metin, eksikBolum) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0 || (kararDenetimi?.canlidaYok.length ?? 0) > 0
         || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
       atifKaydiYaz('dilekce', kullanilanModel, kararDenetimi, uydurmaMadde);
@@ -3029,6 +3075,7 @@ async function dosyaKunyesi(
           kararDenetimi: kararDenetimi ?? undefined,
           uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: dilekceKirpildi || undefined,
+          ekUyari,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
@@ -3151,10 +3198,17 @@ async function dosyaKunyesi(
 
   if (isBelge) {
     const tur = BELGE_TURU[body.docKind ?? 'diger'] ?? BELGE_TURU.diger;
+    // PDF GÖRÜNTÜSÜYLE (04.10.2026, ürün sahibi: "PDF yükleme sadece yazıları
+    // çıkarıyor"). PDF ek olarak gelir; soru kutusu avukatın notudur. Ek yoksa
+    // eski yol: soru kutusu belgenin metnidir. Bkz. _shared/belgeEki.ts.
+    const belgeKaynak = ekler.length ? denetimKaynagi(promptQuestion, ekler) : promptQuestion;
+    const not = ekler.length && promptQuestion ? `AVUKATIN NOTU: ${promptQuestion}` : 'Eklenen belgeyi incele.';
+    const claudeSoru = ekler.length ? `${ekAciklamasi(ekler, true)}${not}` : promptQuestion;
+    const yedekSoru = ekler.length ? `${ekAciklamasi(ekler, false)}${not}` : promptQuestion;
     // Besleme sorgusu belgenin TAMAMI değil BAŞI: bir sözleşmenin bütünü
     // arama sorgusu yapıldığında en sık geçen sözcükler kazanır ve ilgisiz
     // mevzuat gelir. Baş kısım, belgenin ne olduğunu en çok anlatan yerdir.
-    const aramaMetni = `${tur.arama} ${promptQuestion.slice(0, 1200)}`;
+    const aramaMetni = `${tur.arama} ${belgeKaynak.slice(0, 1200)}`;
     let dossier = '';
     try { dossier += await buildRules(supabase, aramaMetni); } catch { /* atla */ }
     try { dossier += await buildMevzuat(supabase, aramaMetni); } catch { /* atla */ }
@@ -3167,14 +3221,14 @@ async function dosyaKunyesi(
     const belgeMaxTok = Math.max(cfg.maxOut, 3000);
     let beslemeKirpildi = false;
     if (provider === 'groq') {
-      const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + tur.ek + promptQuestion, belgeMaxTok);
+      const k = beslemeyiKirp(dossier, SYSTEM_PROMPT + tur.ek + yedekSoru, belgeMaxTok);
       dossier = k.besleme;
       beslemeKirpildi = k.kirpildi;
     }
 
     const belgeSys =
       SYSTEM_PROMPT +
-      '\n\nŞU AN "BELGE İNCELEME" MODUNDASIN. Aşağıdaki ' + tur.ad + ' metnini KIDEMLİ AVUKAT ' +
+      '\n\nŞU AN "BELGE İNCELEME" MODUNDASIN. Avukatın verdiği ' + tur.ad + ' belgesini KIDEMLİ AVUKAT ' +
       'gözüyle inceliyorsun. Amaç, avukatın belgeyi baştan sona okumadan RİSKİ ve SÜREYİ ' +
       'görmesidir.\n\nŞU BAŞLIKLARLA, madde madde ve KISA yaz:\n' +
       '1) ÖZET — belge ne diyor (2-3 cümle)\n' +
@@ -3205,14 +3259,15 @@ async function dosyaKunyesi(
         const sabitKisim = dossier ? belgeSys.slice(0, belgeSys.length - dossier.length) : belgeSys;
         const modBlogu = sabitKisim.startsWith(SYSTEM_PROMPT) ? sabitKisim.slice(SYSTEM_PROMPT.length) : '';
         const katmanlar = modBlogu ? [SYSTEM_PROMPT, modBlogu] : [sabitKisim];
-        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model, !cfg.denemeLimit);
+        const r = await ucretliChat(katmanlar, dossier, [{ role: 'user', text: claudeSoru }], maxTok, genKey, model, !cfg.denemeLimit,
+          ekler.length ? { bloklar: pdfBloklari(ekler), yedekMsgs: [{ role: 'user', text: yedekSoru }] } : undefined);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model; faturali = r.faturali;
       } else if (provider === 'openai') {
-        const r = await openaiChat(belgeSys, [{ role: 'user', text: promptQuestion }], maxTok, genKey, model);
+        const r = await openaiChat(belgeSys, [{ role: 'user', text: yedekSoru }], maxTok, genKey, model);
         out = r.text; uin = r.tin; uout = r.tout;
       } else if (provider === 'groq') {
-        const r = await ucretsizChat(belgeSys, [{ role: 'user', text: promptQuestion }], maxTok);
+        const r = await ucretsizChat(belgeSys, [{ role: 'user', text: yedekSoru }], maxTok);
         out = r.text; uin = r.tin; uout = r.tout;
         kullanilanModel = r.model;
       } else {
@@ -3222,7 +3277,7 @@ async function dosyaKunyesi(
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: belgeSys }] },
-            contents: [{ role: 'user', parts: [{ text: promptQuestion }] }],
+            contents: [{ role: 'user', parts: [{ text: yedekSoru }] }],
             generationConfig: { temperature: 0.25, maxOutputTokens: maxTok },
           }),
         });
@@ -3238,14 +3293,14 @@ async function dosyaKunyesi(
       }
       // Belgede geçmeyen tarihler ayıklanır: incelemedeki bir tarih, avukat
       // için "bu gün son gün" demektir.
-      const temiz = uydurmaTarihleriAyikla(out.trim(), promptQuestion);
+      const temiz = uydurmaTarihleriAyikla(out.trim(), belgeKaynak);
       const uydurmaMadde = await uydurmaMaddeDenetimi(temiz.metin);
       const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
       temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       // UYDURMA TUTAR DENETİMİ — incelemedeki bir tutar, belgede hiç yoksa
       // avukat için "bu belgede yazan miktar" sanılır. Bkz. dilekçedeki aynı
       // denetim; burada "olay" yerine incelenen belgenin metni (promptQuestion).
-      const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, promptQuestion);
+      const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, belgeKaynak);
       const kusurlu = kusurluCikti('belge', temiz.metin) || uydurmaMadde.length > 0 || uydurmaTutar.length > 0 || (kararDenetimi?.canlidaYok.length ?? 0) > 0
         || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
       atifKaydiYaz('belge', kullanilanModel, kararDenetimi, uydurmaMadde);
@@ -3262,6 +3317,7 @@ async function dosyaKunyesi(
           kararDenetimi: kararDenetimi ?? undefined,
           uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: beslemeKirpildi || undefined,
+          ekUyari,
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
