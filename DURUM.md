@@ -39,9 +39,9 @@
    tanıtım metni canlıya yazıldı (tanitim-yaz, 12:10 UTC, 160 krktr, geri okundu).
    Web'de utm → sayaç `kaynak:<kaynak>/<kampanya>`. BEKLENEN: avukat alıntıları
    için yazılı izin; reklam kanalı; story çekimi için 1 dilekçe onayı (≈₺5,5).
-00a. **AI FİYAT (04.10 son, ürün sahibi):** aylık 2.999 TL; YILLIK aylık 2.499 (=29.988 TL,
-   en yakın kademe, vekil_ai_annual); 6 AYLIK İPTAL (uygulama göstermez, ürün satışta
-   değil). ÜRÜN SAHİBİ: RevenueCat 'ai' teklifine Annual paketini bağla; ASC'den incelemeye gönder.
+00a. **AI FİYAT (04.10 son):** aylık 2.999 TL; YILLIK 29.999 TL (Apple'dan geri okundu; hedef
+   12×2.499=29.988, tam kademe yok); 6 aylık İPTAL (gösterilmez, satışta değil). Yıllık hâlâ
+   MISSING_METADATA. ÜRÜN SAHİBİ: RevenueCat 'ai'ye Annual bağla, ASC'den incelemeye gönder.
 00. **Satın alma webhook'u ÇALIŞIYOR** (02.10 22:38 UTC ölçüldü: RevenueCat test
    olayı → 200). Sır Supabase + RevenueCat'te. Gerçek ilk satın almada is_premium
    açıldığı ayrıca doğrulanmalı. 'Bearer' toleransı depoda (038d9bf), DAĞITILMADI.
@@ -71,8 +71,8 @@
    Editör'de AÇILMADI — avukat denemeli); Dilekçe Üret'e dosya ekleme, PDF sayfa
    görüntüsüyle (20 sayfa / 8 MB tavan, maliyet ÖLÇÜLMEDİ); web'de sesle yazma; Belge
    Arşivi'ne Belge Yükle (yükleme ekranı hiçbir yerden açılmıyordu); menüden Toplu
-   Aktarım çıktı, Derin Araştırma → Hukuki Araştırma. WEB CANLI (main d5703e7),
-   doc-extract v21. TELEFONA OTA GİTMEDİ (izin bekliyor).
+   Aktarım çıktı, Derin Araştırma → Hukuki Araştırma. WEB CANLI. OTA GİTTİ: 7b06a953
+   (04.10 17:20 UTC, çalışma zamanı 3.4.0, d8fcaa9); cihaza indiği ÖLÇÜLMEDİ.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
