@@ -52,7 +52,8 @@
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
    Anahtar ~30.10 biter.
    Modeller (04.10): HER İŞ HAIKU 4.5 (ürün sahibi "hepsini haiku yap"; deneme+ücretli;
-   katman.ts AI_MODELI). Kalite farkı ÖLÇÜLMEDİ — ürün sahibiyle birlikte denenecek.
+   katman.ts AI_MODELI). ÖLÇÜLDÜ 04.10 (7 istek, ₺5,77; scripts/olcum-haiku-sonuc.json):
+   hız kazancı yok (sohbet 25–30 sn), maliyet ~4 kat düşük; madde no hatası + yazım hatası var.
    Yeni 'duzelt' modu: "Yapay zekâya düzelttir" (PR #143; ai-chat v137, ictihat v70).
    HIZ (03.10, 12 istek): sohbet 24–38 sn, dilekçe 45–74 sn; ~20/~38 sn'si bizim
    arama+denetim adımları (çıkarım). Paralelleştirme + uzunluk kuralı: KARAR BEKLİYOR.
