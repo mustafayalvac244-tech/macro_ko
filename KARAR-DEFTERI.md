@@ -287,6 +287,17 @@ bu yüzden makbuz ekranında müşteri adı elle giriliyor. Eklenirse orası
   tersi yapılmıştı ("haiku kötüyse sonnete geçelim"); karşılaştırma ölçülerek
   yapılmalı.
 
+### Haiku / Sonnet ölçümü (04.10.2026, ürün sahibinin 1 $ bütçesiyle)
+
+Aynı 7 senaryo, cevaplar okunarak değerlendirildi (senaryoları ben seçtim,
+tek deneme). Haiku ₺5,77; Sonnet ₺9,01 + mütalaa yeniden ₺3,94 + düşen ilk
+Sonnet mütalaasının kaydedilemeyen maliyeti (TAHMİN ≤ ₺6). Haiku: hız
+kazancı yok, dilekçede dava değeri/faiz hatası, incelemede yanlış TBK maddeleri
+(189, 489), sık yazım hatası. Sonnet: sohbet, dilekçe, inceleme ve araştırma
+temiz; emin olmadığı madde numarasını yazmak yerine "teyit edin" diyor. Ürün
+sahibi "sonnet yap" dedi → her iş Sonnet 5. Yan bulgu: Sonnet + düşünmeyle
+mütalaa Supabase süre sınırına (150 sn) çarpıyordu; düzeltildi.
+
 ## 6. Nerede ne yazıyor
 
 | Dosya | İçeriği |

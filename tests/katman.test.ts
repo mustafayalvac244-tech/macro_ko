@@ -85,7 +85,7 @@ describe('tierConfig', () => {
       expect(cfg.model, String(mod)).toBe('claude-sonnet-5');
     }
     // 04.10.2026: sohbet Haiku (ürün sahibi deneme kararı) — ortam yine değiştiremez.
-    expect(tierConfig('ai', false, { ...secenek, mod: 'sohbet', claudeModel: 'claude-opus-5-5' }).cfg.model).toBe('claude-sonnet-5');
+    expect(tierConfig('ai', false, { ...secenek, mod: 'sohbet', claudeModel: 'claude-opus-5-5' }).cfg.model).toBe('claude-haiku-4-5-20251001');
     for (const mod of ['dilekce', 'mutalaa']) {
       const { cfg } = tierConfig('ai', false, { ...secenek, mod, claudeModel: 'claude-opus-5-5' });
       expect(cfg.model, mod).toBe('claude-sonnet-5');
@@ -262,7 +262,7 @@ describe('işe göre model seçimi', () => {
   it('künye ve SOHBET Haiku (04.10.2026, ürün sahibi: "haiku\'ya geçelim, test edeceğiz")', () => {
     expect(ai('kunye')).toBe('claude-sonnet-5');
     // 01.10'da Sonnet'e çıkmıştı; 04.10'da hız şikâyeti üzerine Haiku denemesi.
-    expect(ai('sohbet')).toBe('claude-sonnet-5');
+    expect(ai('sohbet')).toBe('claude-haiku-4-5-20251001');
   });
 
   it('dilekçe ve mütalaa OPUS — avukatın gördüğü iş (03.10.2026)', () => {
@@ -294,7 +294,7 @@ describe('işe göre model seçimi', () => {
     // anıdır. Kazanç ~₺3,50; bir aboneliğin dönüşümünü buna riske atmayız.
     const deneme = (mod?: string) => tierConfig('free', true, { ...secenek, mod }).cfg.model;
     // TEK İSTİSNA (04.10.2026): sohbet denemede de Haiku.
-    expect(deneme('sohbet')).toBe('claude-sonnet-5');
+    expect(deneme('sohbet')).toBe('claude-haiku-4-5-20251001');
     expect(deneme('kunye')).toBe('claude-sonnet-5');
     // Opus yalnız 'ai' katmanında; deneme dilekçesi Sonnet (maliyet).
     expect(deneme('dilekce')).toBe('claude-sonnet-5');
@@ -310,7 +310,7 @@ describe('işe göre model seçimi', () => {
     }
     // 04.10.2026: sohbet Haiku; hak sayısı aynı.
     const sohbet = tierConfig('free', false, { ...secenek, mod: 'sohbet' }).cfg;
-    expect(sohbet.model).toBe('claude-sonnet-5');
+    expect(sohbet.model).toBe('claude-haiku-4-5-20251001');
     expect(sohbet.denemeLimit).toBe(UCRETSIZ_DENEME_LIMIT);
   });
 });
@@ -323,14 +323,16 @@ describe('deneme sayıları — sunucu ile ekran aynı (28.09.2026)', () => {
   });
 });
 
-describe('her iş tek modelde: Sonnet 5 (04.10.2026, Haiku ölçümünden sonra)', () => {
-  // Ürün sahibi: "hepsini haiku yap, dilekçenin düzeltmesini de o yapsın".
-  it('deneme ve ücretli katmanda her mod Sonnet 5', () => {
+describe('işe göre model (04.10.2026 son karar)', () => {
+  // Ürün sahibi: "sohbet ve yapay zekâyla düzeltme Haiku kalacak, diğerleri
+  // Sonnet". Dayanak: scripts/olcum-{haiku,sonnet}-sonuc.json.
+  it('deneme ve ücretli katmanda: sohbet + düzeltme Haiku, gerisi Sonnet', () => {
     for (const t of ['free', 'baslangic', 'ai']) {
       for (const premium of [false, true]) {
-        for (const mod of [undefined, 'sohbet', 'belge', 'dilekce', 'mutalaa', 'kunye', 'duzelt']) {
+        for (const mod of [undefined, 'sohbet', 'belge', 'dilekce', 'mutalaa', 'kunye', 'duzelt', 'bilinmeyen']) {
           const { cfg } = tierConfig(t, premium, { ...secenek, mod, claudeModel: 'claude-opus-5' });
-          expect(cfg.model, `${t}/${premium}/${mod}`).toBe('claude-sonnet-5');
+          const beklenen = mod === 'sohbet' || mod === 'duzelt' ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-5';
+          expect(cfg.model, `${t}/${premium}/${mod}`).toBe(beklenen);
         }
       }
     }
