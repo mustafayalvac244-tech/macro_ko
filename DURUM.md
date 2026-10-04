@@ -78,8 +78,7 @@
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
 5. Supabase "Leaked password protection" kapalı (bir tık). 6. KVKK veri sorumlusu kimliği eksik.
-7. Android "Şifremi unuttum" kesilmesi düzeltildi (26.09, Pressable + tek Text);
-   Android'de DOĞRULANMADI (emülatör yok) — ürün sahibi yeni derlemede bakmalı.
+7. Android "Şifremi unuttum" düzeltmesi (26.09) Android'de DOĞRULANMADI (emülatör yok).
 
 ## 3. Kritik kimlikler
 
