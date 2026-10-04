@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { uyar } from '@/lib/uyari';
-import * as DocumentPicker from 'expo-document-picker';
-import { dosyaBase64, dosyaMetni } from '@/lib/girdi';
-import { belgeSeciciTurleri } from '@/lib/belgeTurleri';
+import { BelgeEkleri } from '@/components/ui/BelgeEkleri';
+import type { BelgeEki } from '@/lib/belgeEki';
+import { ekGovdesi } from '@/lib/belgeEkiKurallari';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -54,86 +53,27 @@ export default function DocumentReviewScreen() {
   // sekiz sayfanın dördü (ücret tabloları) hiç gelmedi. Sözleşmedeki ödeme
   // planı ya da karardaki hesap tablosu da aynı şekilde sessizce düşer ve
   // inceleme, belgenin tamamını görmüş gibi konuşur.
-  const [okunamayanSayfa, setOkunamayanSayfa] = useState<number[]>([]);
+  // BELGE ARTIK EK OLARAK GİDER (04.10.2026, ürün sahibi: "PDF yükleme sadece
+  // yazıları çıkarıyor"). Eskiden dosyanın metni bu ekrandaki kutuya dökülüp
+  // düz metin olarak gönderiliyordu: taranmış sayfa, tablo, mühür kayboluyordu
+  // ve tamamen taranmış PDF reddediliyordu. Şimdi PDF sayfa görüntüsüyle
+  // okunur; kutu yapıştırılan metin ya da avukatın notu içindir.
+  const [ekler, setEkler] = useState<BelgeEki[]>([]);
+  const [ekUyari, setEkUyari] = useState<{ pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean } | null>(null);
   // Kullanım ve iade — sunucu üç modda da destekliyor.
   const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
   const [hakDusulmedi, setHakDusulmedi] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!AI_BELGE_ENABLED) {
     return <ComingSoon headerTitle={t('docrev.title')} title={t('soon.docrev')} desc={t('soon.desc')} icon="scan" />;
   }
 
-  /**
-   * Dosyadan metin al: PDF / DOCX / UDF (UYAP) / TXT. Bu formatlardan metin
-   * çıkarımı sunucudaki doc-extract fonksiyonunda yapılır (telefonda native
-   * kütüphane gerekirdi). Alıcı isteği: "pdf, doc ve UDF ekleyemeyecek miyiz?"
-   */
-  const pickFile = async () => {
-    setExtracting(true);
-    try {
-      const res = await DocumentPicker.getDocumentAsync({
-        // Web'de '.udf' UZANTISI şart; '*/*' tarayıcı süzgecine girmiyor ve UDF
-        // pencerede görünmüyordu. Bkz. src/lib/belgeTurleri.ts.
-        type: belgeSeciciTurleri(Platform.OS),
-        copyToCacheDirectory: true,
-      });
-      if (res.canceled || !res.assets?.[0]) return;
-      const asset = res.assets[0];
-      const name = (asset.name || '').toLowerCase();
-
-      // Düz metin dosyasını doğrudan oku (sunucuya gitmeye gerek yok).
-      setOkunamayanSayfa([]);
-      if (name.endsWith('.txt')) {
-        const content = await dosyaMetni(asset);
-        if (!content.trim()) {
-          uyar(t('docrev.title'), t('docrev.fileEmpty'));
-          return;
-        }
-        setText(content.slice(0, MAX_CHARS));
-        return;
-      }
-
-      const base64 = await dosyaBase64(asset);
-      const { data, error: fnErr } = await supabase.functions.invoke('doc-extract', {
-        body: { filename: name, base64 },
-      });
-      if (fnErr) {
-        // Gövde okuma ortak yardımcıdan; kod eşlemesi doc-extract'e özgü.
-        const govde = await aiHataGovdesi(fnErr);
-        const code = govde.error ?? '';
-        uyar(
-          t('docrev.title'),
-          code === 'pdf_no_text'
-            ? t('docrev.errScanned')
-            : code === 'doc_legacy'
-              ? t('docrev.errDocLegacy')
-              : code === 'too_large'
-                ? t('docrev.errTooLarge')
-                : t('docrev.fileErr')
-        );
-        return;
-      }
-      const cikan = data as { text?: string; sayfa?: number; okunamayanSayfa?: number[] } | null;
-      const extracted = cikan?.text ?? '';
-      setOkunamayanSayfa(cikan?.okunamayanSayfa ?? []);
-      if (!extracted.trim()) {
-        uyar(t('docrev.title'), t('docrev.fileEmpty'));
-        return;
-      }
-      setText(extracted.slice(0, MAX_CHARS));
-    } catch {
-      uyar(t('docrev.title'), t('docrev.fileErr'));
-    } finally {
-      setExtracting(false);
-    }
-  };
-
   const analyze = async () => {
     const body = text.trim();
-    if (body.length < 80 || busy) return;
+    // Ek varsa kutu yalnız nottur ve boş olabilir.
+    if ((!ekler.length && body.length < 80) || busy) return;
     setBusy(true);
     setError(null);
     setResult('');
@@ -146,7 +86,7 @@ export default function DocumentReviewScreen() {
       // türüne göre mevzuat besliyor ve incelemede geçen ama BELGEDE OLMAYAN
       // tarihleri ayıklıyor.
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
-        body: { mode: 'belge', docKind: kind, question: body },
+        body: { mode: 'belge', docKind: kind, question: body, ekler: ekler.length ? ekGovdesi(ekler) : undefined },
       });
       if (fnErr) {
         // Hata çevirisi ORTAK: aynı mantık üç ekranda ayrı yazılınca biri
@@ -156,7 +96,7 @@ export default function DocumentReviewScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const yanit = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
+      const yanit = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       const reply = yanit?.text?.trim();
       if (!reply) {
         setError(t('ai.errGeneric'));
@@ -169,6 +109,7 @@ export default function DocumentReviewScreen() {
       setUydurmaTutar(yanit?.uydurmaTutar ?? []);
       setKullanim(yanit?.kullanim ?? null);
       setHakDusulmedi(!!yanit?.hakDusulmedi);
+      setEkUyari(yanit?.ekUyari ?? null);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -176,7 +117,7 @@ export default function DocumentReviewScreen() {
     }
   };
 
-  const tooShort = text.trim().length < 80;
+  const tooShort = !ekler.length && text.trim().length < 80;
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
@@ -193,24 +134,13 @@ export default function DocumentReviewScreen() {
             ))}
           </View>
 
-          <Pressable
-            onPress={pickFile}
-            disabled={extracting}
-            style={({ pressed }) => [styles.fileBtn, pressed && { opacity: 0.85 }, extracting && { opacity: 0.6 }]}
-          >
-            {extracting ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Ionicons name="document-attach-outline" size={18} color={colors.primary} />
-            )}
-            <Text style={styles.fileBtnText}>{extracting ? t('docrev.extracting') : t('docrev.pickFile')}</Text>
-          </Pressable>
+          <BelgeEkleri ekler={ekler} onChange={setEkler} disabled={busy} enCok={1} />
 
           <TextInput
             style={styles.area}
             value={text}
             onChangeText={(v) => setText(v.slice(0, MAX_CHARS))}
-            placeholder={t('docrev.placeholder')}
+            placeholder={ekler.length ? t('docrev.ekNotPlaceholder') : t('docrev.placeholder')}
             placeholderTextColor={colors.textMuted}
             multiline
             textAlignVertical="top"
@@ -219,17 +149,6 @@ export default function DocumentReviewScreen() {
             <Text style={styles.meta}>{t('docrev.chars', { n: text.trim().length })}</Text>
             {text.length >= MAX_CHARS && <Text style={styles.metaWarn}>{t('docrev.truncated')}</Text>}
           </View>
-          {/* Uyarı, inceleme İSTENMEDEN ÖNCE burada duruyor: eksik okunmuş bir
-              belgeyi incelemeye göndermek, eksik olduğunu sonradan öğrenmekten
-              kötüdür — avukat o ana kadar sonuca göre karar vermiş olur. */}
-          {okunamayanSayfa.length > 0 && (
-            <Text style={styles.warn}>
-              {t('docrev.scannedPages', {
-                n: String(okunamayanSayfa.length),
-                sayfalar: okunamayanSayfa.join(', '),
-              })}
-            </Text>
-          )}
 
           <Pressable
             onPress={analyze}
@@ -279,6 +198,13 @@ export default function DocumentReviewScreen() {
               )}
               {ayiklanan > 0 && (
                 <Text style={styles.warn}>{t('dlk.scrubbedDates', { n: String(ayiklanan) })}</Text>
+              )}
+              {!!ekUyari?.taranmis && <Text style={styles.warn}>{t('ek.taranmisUyari')}</Text>}
+              {!!ekUyari?.pdfdenMetne?.length && (
+                <Text style={styles.warn}>{t('ek.metneDustu', { adlar: ekUyari.pdfdenMetne.join(', ') })}</Text>
+              )}
+              {!!ekUyari?.okunamayan?.length && (
+                <Text style={styles.warn}>{t('ek.okunamayan', { adlar: ekUyari.okunamayan.join(', ') })}</Text>
               )}
               {!!kullanim && (
                 <Text style={styles.usage}>
@@ -346,22 +272,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   chipTextActive: {
     color: '#FFFFFF',
-  },
-  fileBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    backgroundColor: colors.primarySoft,
-    borderRadius: kose(12),
-    paddingVertical: 12,
-    marginBottom: spacing.sm,
-  },
-  fileBtnText: {
-    fontFamily: fonts.bold,
-    fontWeight: '700',
-    fontSize: 13.5,
-    color: colors.primary,
   },
   area: {
     minHeight: 190,

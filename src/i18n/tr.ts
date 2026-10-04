@@ -1544,6 +1544,7 @@ export const tr = {
   'ek.gorselTaranmis': '{n} sayfa ({t} taranmış) · sayfa görüntüleriyle okunacak',
   'ek.metin': 'metni okunacak',
   'ek.metinPdf': '{n} sayfa · görüntü sınırı ({tavan} sayfa) doldu, yalnız metni okunacak',
+  'ek.metinPdfTaranmis': '{n} sayfa · görüntü sınırı ({tavan} sayfa) doldu, yalnız metni okunacak; {t} taranmış sayfa OKUNMAYACAK',
   'ek.kaldir': 'Kaldır',
   'ek.hata.bos': 'Dosya boş görünüyor.',
   'ek.hata.taranmisUzun': 'Bu PDF taranmış ve {tavan} sayfadan uzun; okunamıyor. Gerekli sayfaları ayırıp ekleyin.',

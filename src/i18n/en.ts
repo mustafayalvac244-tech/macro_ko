@@ -1479,6 +1479,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ek.gorselTaranmis': '{n} pages ({t} scanned) · read with page images',
   'ek.metin': 'text will be read',
   'ek.metinPdf': '{n} pages · image limit ({tavan} pages) reached, text only',
+  'ek.metinPdfTaranmis': '{n} pages · image limit ({tavan} pages) reached, text only; {t} scanned pages will NOT be read',
   'ek.kaldir': 'Remove',
   'ek.hata.bos': 'The file looks empty.',
   'ek.hata.taranmisUzun': 'This PDF is scanned and longer than {tavan} pages; it cannot be read. Split out the pages you need.',
