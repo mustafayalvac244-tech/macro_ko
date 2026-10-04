@@ -100,6 +100,19 @@ describe('web metinleri kodla tutarlı', () => {
     expect(finans).toContain("from '@/utils/exportCsv'");
   });
 
+  it('sitede ölçülmemiş uyum ve olmayan yetenek iddiası yok', () => {
+    // 04.10.2026 site denetimi: ana sayfa iki yerde "KVKK uyumlu" diyordu.
+    // KVKK m.9 yurt dışı aktarım adımları (standart sözleşme + Kurum'a
+    // bildirim) yapılmadı (KVKK-UYUM.md); REKLAM.md bu ifadeyi yasaklıyor.
+    // Aynı denetimde "tebligat fotoğrafından künye çıkarımı" yazıyordu:
+    // doc-extract görsel okumuyor, Belgeden Dosya Aç PDF/UDF/Word alıyor.
+    for (const ad of ['index.html', 'privacy.html', 'guvenlik.html', 'terms.html']) {
+      const sayfa = oku('docs', ad).replace(/<!--[\s\S]*?-->/g, '');
+      expect(/KVKK[ -]uyumlu/i.test(sayfa), `${ad} "KVKK uyumlu" diyor`).toBe(false);
+      expect(/fotoğrafından/i.test(sayfa), `${ad} fotoğraftan okuma vaat ediyor`).toBe(false);
+    }
+  });
+
   it('yapısal veri (JSON-LD) geçerli ve sorular sayfadakiyle aynı', () => {
     const sayfa = oku('docs', 'index.html');
     const blok = sayfa.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
