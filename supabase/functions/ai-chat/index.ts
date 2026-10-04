@@ -2096,7 +2096,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
 
-  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string; istekId?: string; sebep?: string; ekler?: unknown };
+  let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string; istekId?: string; sebep?: string; ekler?: unknown; taslak?: string; kaynak?: string };
   try {
     body = await req.json();
   } catch {
@@ -2164,8 +2164,12 @@ Deno.serve(async (req) => {
   // sohbet moduna gidiyordu; yani dosya künyesi çıkarımı için hiçbir özel
   // talimat ya da koruma yoktu.
   const isKunye = body.mode === 'kunye';
+  // DÜZELT modu (04.10.2026, ürün sahibi: "dilekçenin düzeltmesini de o
+  // yapsın"): üretilmiş dilekçe taslağını avukatın talimatıyla yeniden yazar.
+  // `taslak` = avukatın elindeki GÜNCEL metin, `question` = talimat.
+  const isDuzelt = body.mode === 'duzelt';
   const promptQuestion = (body.question ?? '').trim();
-  const messages = (isMutalaa || isDilekce || isBelge || isKunye)
+  const messages = (isMutalaa || isDilekce || isBelge || isKunye || isDuzelt)
     ? [{ role: 'user' as const, text: promptQuestion }]
     : (body.messages ?? []).slice(-30);
   // EKLİ BELGELER — yalnız dilekçe ve belge incelemede (bkz. _shared/belgeEki.ts).
@@ -2179,7 +2183,9 @@ Deno.serve(async (req) => {
   // Belge incelemede PDF'in kendisi ek olarak gelir; soru kutusu yalnız
   // avukatın (isteğe bağlı) notudur ve boş olabilir.
   const notYeter = isBelge && ekler.length > 0;
-  if (messages.length === 0 || ((isMutalaa || isDilekce || isBelge || isKunye) && promptQuestion.length < 20 && !notYeter)) {
+  // Düzeltme talimatı kısa olabilir ("daha resmî yaz"); taslak ise gerçek bir dilekçe olmalı.
+  const duzeltGecersiz = isDuzelt && (promptQuestion.length < 3 || String(body.taslak ?? '').trim().length < 200);
+  if (messages.length === 0 || duzeltGecersiz || ((isMutalaa || isDilekce || isBelge || isKunye) && promptQuestion.length < 20 && !notYeter)) {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
   // Ekranın avukata söyleyeceği ek durumu (görüntüsüyle okunamayanlar).
@@ -2781,6 +2787,87 @@ async function dosyaKunyesi(
   // seçilen dilekçe türüne göre (dava, cevap, istinaf, temyiz, itiraz, ihtarname…)
   // resmî yapıda tam bir taslak üretiriz. Tek çağrı — mütalaadan hafiftir ama
   // besleme aynıdır (uydurma yasağı korunur).
+  // ───────────── YAPAY ZEKÂYLA DÜZELT (04.10.2026) ─────────────
+  // Avukat taslağı elle düzeltebiliyordu (Düzelt düğmesi); ürün sahibi
+  // düzeltmeyi yapay zekânın da yapmasını istedi. Çıktı TAM metindir ve
+  // dilekçeyle AYNI mekanik denetimlerden geçer: taslakta/olayda/talimatta
+  // olmayan tarih çıkarılır, uydurma madde ve tutar uyarılır, doğrulanamayan
+  // karar künyesi metinden çıkarılır ("kullanıcıya yazılamaz").
+  if (isDuzelt) {
+    const taslak = String(body.taslak ?? '').slice(0, 60_000);
+    const kaynak = String(body.kaynak ?? '').slice(0, 20_000);
+    const duzeltSys =
+      SYSTEM_PROMPT +
+      '\n\nŞU AN "DİLEKÇE DÜZELTME" MODUNDASIN. Avukat sana daha önce üretilmiş bir dilekçe ' +
+      'taslağı ve bir düzeltme talimatı veriyor.\nKURALLAR:\n' +
+      '• Yalnız talimatın istediğini değiştir; geri kalan metni AYNEN koru (başlıklar, taraflar, ' +
+      'imza bloğu, kontrol listesi dahil).\n' +
+      '• Çıktı, düzeltilmiş dilekçenin TAMAMIDIR. Açıklama, özet, "şunları değiştirdim" notu YAZMA.\n' +
+      '• VERİ UYDURMA YASAK: taslakta, olayda ya da talimatta geçmeyen tarih, tutar, ad, adres, ' +
+      'esas/karar numarası yazma; gerekiyorsa köşeli parantezle boşluk bırak: [tarih].\n' +
+      '• Yeni bir mahkeme kararı künyesi EKLEME; talimat içtihat istese bile ' +
+      '"[emsal karar: İçtihat Arama ekranından ekleyin]" yaz.\n' +
+      '• Madde numarası eklerken yalnız emin olduğun maddeyi yaz; emin değilsen "ilgili mevzuat" de.';
+    const soru = `DİLEKÇE TASLAĞI:\n${taslak}\n\n` +
+      (kaynak.trim() ? `AVUKATIN İLK ANLATIMI (olay):\n${kaynak}\n\n` : '') +
+      `DÜZELTME TALİMATI:\n${promptQuestion}`;
+    // Tam metni yeniden yazdığı için tavan taslağın boyuyla büyür (TAHMİN:
+    // Türkçe ~2,5 karakter/token); kesilirse claudeChat kaldığı yerden devam eder.
+    const maxTok = Math.min(16000, Math.max(cfg.maxOut, Math.ceil(taslak.length / 2.5) + 1000));
+    try {
+      let out = '';
+      let uin = 0;
+      let uout = 0;
+      let kullanilanModel = model;
+      let faturali = cfg.billable;
+      if (provider === 'claude') {
+        const r = await ucretliChat(duzeltSys, '', [{ role: 'user', text: soru }], maxTok, genKey, model, !cfg.denemeLimit);
+        out = r.text; uin = r.tin; uout = r.tout;
+        kullanilanModel = r.model; faturali = r.faturali;
+      } else {
+        const r = await ucretsizChat(duzeltSys, [{ role: 'user', text: soru }], maxTok);
+        out = r.text; uin = r.tin; uout = r.tout;
+        kullanilanModel = r.model;
+      }
+      if (!out.trim()) {
+        return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
+      }
+      const denetimMetni = `${kaynak}\n\n${taslak}\n\n${promptQuestion}`;
+      const temiz = uydurmaTarihleriAyikla(out.trim(), denetimMetni);
+      const uydurmaMadde = await uydurmaMaddeDenetimi(temiz.metin);
+      const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
+      temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
+      const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, denetimMetni);
+      // Taslağın üçte birinden kısa çıktı: büyük olasılıkla yalnız değişen
+      // parçayı yazdı ya da kesildi. Avukatın hakkı düşmez.
+      const kisaKaldi = temiz.metin.length < taslak.length * 0.3;
+      const kusurlu = kisaKaldi || uydurmaMadde.length > 0 || uydurmaTutar.length > 0
+        || (kararDenetimi?.canlidaYok.length ?? 0) > 0 || (kararDenetimi?.olanaksiz.length ?? 0) > 0;
+      atifKaydiYaz('duzelt', kullanilanModel, kararDenetimi, uydurmaMadde);
+      const yedekModel = cfg.provider === 'claude' && !faturali;
+      if (cfg.modLimits && (kusurlu || yedekModel)) await aiModSerbestBirak(userData.user.id, aiAy, false);
+      if (cfg.denemeLimit && (kusurlu || yedekModel)) await denemeHakkiSerbestBirak(userData.user.id);
+      const { maliyet, istekId } = await recordUsage(userData.user.id, kullanilanModel, uin, uout, faturali, !(kusurlu || yedekModel), 'duzelt', !!cfg.denemeLimit);
+      return new Response(
+        JSON.stringify({ text: temiz.metin, tier, model: kullanilanModel, ayiklananTarih: temiz.ayiklanan,
+          hakDusulmedi: (kusurlu || yedekModel) || undefined, istekId,
+          kisaKaldi: kisaKaldi || undefined,
+          uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+          kararDenetimi: kararDenetimi ?? undefined,
+          uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
+          kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+      );
+    } catch (e) {
+      const msg = (e as Error).message;
+      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
+        status: known ? 429 : 502,
+        headers: CORS,
+      });
+    }
+  }
+
   if (isDilekce) {
     const typeMap: Record<string, string> = {
       dava: 'DAVA DİLEKÇESİ (HMK m.119). Unsurlar eksiksiz: mahkeme, taraflar (ad-soyad/TC/adres — bilinmiyorsa [ ]), AYRI BİR SATIR HÂLİNDE "HARCA ESAS DAVA DEĞERİ" (HMK m.119/1-d ZORUNLU unsurdur; hesaplanamıyorsa [Dava değeri] bırak, satırı ATLAMA — eksikliği dilekçe ihtarına yol açar), açık ve sıralı VAKIALAR, her vakıanın hangi DELİLLE ispatlanacağı, hukuki sebepler, ve NETİCE-İ TALEP (talep sonucu net kalemler + faiz TÜRÜ ve BAŞLANGIÇ TARİHİ + yargılama gideri/vekalet ücreti).',

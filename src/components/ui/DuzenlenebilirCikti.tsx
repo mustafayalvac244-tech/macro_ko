@@ -47,9 +47,14 @@ interface Props {
   mod?: string;
   model?: string | null;
   istekId?: string | null;
+  /**
+   * Avukatın elindeki GÜNCEL metin (elle düzeltmeler dahil) her değiştiğinde.
+   * "Yapay zekâya düzelttir" bu metni gönderir; asıl metni değil.
+   */
+  onMetinDegisti?: (metin: string) => void;
 }
 
-export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, model, istekId }: Props) {
+export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, model, istekId, onMetinDegisti }: Props) {
   const __t = useTheme();
   const styles = makeStyles(__t.colors);
   const t = useT();
@@ -97,6 +102,12 @@ export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, m
     bildirildi.current = true;
     void ciktiDuzeltmesiniBildir({ mod, model, istekId, asil: asil.current, son: duzenlenen });
   };
+
+  const bildirGuncel = useRef(onMetinDegisti);
+  bildirGuncel.current = onMetinDegisti;
+  useEffect(() => {
+    bildirGuncel.current?.(duzenlenen);
+  }, [duzenlenen]);
 
   const degisti = duzenlenen !== asil.current;
   // UZUN METİNDE ALTTA DA DÜĞME. Dilekçe birkaç ekran boyu; üstteki düğme,

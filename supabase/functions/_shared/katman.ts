@@ -197,6 +197,17 @@ export const AGIR_IS_MAX_OUT = 16000;
  */
 // Haiku 4.5 — AI_TASMA_MODEL ile aynı model (o sabit dosyada daha aşağıda tanımlı).
 export const SOHBET_MODELI = 'claude-haiku-4-5-20251001';
+
+/**
+ * HER İŞ HAIKU (04.10.2026, ürün sahibi: "hepsini haiku yap, dilekçenin
+ * düzeltmesini de o yapsın"). Sohbet denemesinin hemen ardından gelen karar:
+ * dilekçe, mütalaa, belge, künye, düzeltme — deneme ve ücretli katmanda hepsi
+ * Haiku 4.5. 03.10'daki "dilekçe+mütalaa Opus" kararının YERİNE geçer.
+ * Modelden bağımsız denetimler (uydurma tarih/tutar/madde, künye canlı teyidi,
+ * kusurlu çıktıda hak düşmemesi) aynen çalışır. Kalite farkı ÖLÇÜLMEDİ.
+ * Geri dönmek: bu sabiti ve aşağıdaki üç `model:` satırını eski hâline almak.
+ */
+export const AI_MODELI = SOHBET_MODELI;
 export function sohbetMi(mod: string | undefined): boolean {
   return mod === 'sohbet';
 }
@@ -370,7 +381,7 @@ export function tierConfig(
     // dönüşümünü ₺3,50 için riske atmak kötü bir takas olurdu. Aynı gerekçe
     // denemenin Groq yerine Claude'da koşmasının da sebebi (yukarıda).
     // 04.10.2026 İSTİSNA: sohbet Haiku'ya gider (SOHBET_MODELI, yukarıda).
-    model: sohbetMi(secenek.mod) ? SOHBET_MODELI : AI_UCRETLI_MODEL,
+    model: AI_MODELI,
     // billable:true — deneme isteklerinin GERÇEK maliyeti (ai_usage/ai_istek)
     // kaydedilsin isteriz, kendi muhasebemiz için. KONTÖRDEN DÜŞÜLMEZ:
     // recordUsage `deneme` bayrağıyla ücreti sıfırlar (ai-chat, 01.10.2026).
@@ -413,7 +424,7 @@ export function tierConfig(
     // (11.09'da ₺399 denemesi claude-opus-5'e gitmişti; Opus ≈ Haiku'nun 5
     // katı). Herkese açık ücretsiz denemenin maliyeti ortam ayarına bağlı
     // kalmasın. Bkz. UCRETSIZ_DENEME_LIMIT.
-    model: sohbetMi(secenek.mod) ? SOHBET_MODELI : UCRETSIZ_DENEME_MODEL,
+    model: AI_MODELI,
     limit: UCRETSIZ_DENEME_LIMIT,
     denemeLimit: UCRETSIZ_DENEME_LIMIT,
   };
@@ -431,7 +442,7 @@ export function tierConfig(
       provider: 'claude',
       // İŞE GÖRE MODEL (bkz. MOD_UCUZ / MOD_AGIR). Künye Haiku; sohbet ve belge
       // Sonnet 5; dilekçe ve mütalaa Opus 5 — ilk 750 istek boyunca.
-      model: sohbetMi(secenek.mod) ? SOHBET_MODELI : modModeli(secenek.mod, AI_UCRETLI_MODEL, AI_TASMA_MODEL, AI_AGIR_IS_MODEL),
+      model: AI_MODELI,
       billable: true,
       limitKind: 'cost',
       limit: UCRETLI_TAVAN_TRY,

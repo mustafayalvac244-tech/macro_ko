@@ -52,10 +52,10 @@ describe('canlı künye teyidi', () => {
     expect(aiChat).toContain('canlida_yok: kararDenetimi?.canlidaYok.length ?? 0');
   });
 
-  it('uydurma künye METİNDEN ÇIKARILIR, dört modda da (ürün sahibi: "kullanıcıya yazılamaz")', () => {
+  it('uydurma künye METİNDEN ÇIKARILIR, beş modda da (ürün sahibi: "kullanıcıya yazılamaz")', () => {
     // Çıkarma: canlıda yok + olanaksız; havuzdaYok (ulaşılamadı) kalır.
     expect(aiChat).toMatch(/const hamlar = \[\.\.\.d\.canlidaYok, \.\.\.d\.olanaksiz\.map/);
-    expect((aiChat.match(/uydurmaKunyeleriCikar\(/g) ?? []).length).toBe(5); // tanım + 4 mod
+    expect((aiChat.match(/uydurmaKunyeleriCikar\(/g) ?? []).length).toBe(6); // tanım + 5 mod (04.10.2026: yapay zekâyla düzelt)
     // ZEKİCE: çıkarılan künyenin cümlesi için gerçek karar aranır ve ÖNERİ olarak
     // döner; metne sokulmaz (modelin okumadığı karar dilekçeye girmez).
     expect(aiChat).toMatch(/async function gercekKararOner\(cumle: string\)/);
