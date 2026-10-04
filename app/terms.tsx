@@ -53,7 +53,7 @@ const sectionsTr = (): Section[] => [
     body:
       `• Ücretsiz: 0 ₺. İçtihat araması (Yargıtay, Danıştay, istinaf, yerel) SINIRSIZ ve süresizdir; mevzuat, hesaplayıcılar, dilekçe şablonları, duruşma/görev/ajanda ve hatırlatmalar da sınırsızdır. ${UCRETSIZ_LIMIT.dava} dava, ${UCRETSIZ_LIMIT.muvekkil} müvekkil ve ${UCRETSIZ_LIMIT.belge} belge kaydedilebilir.\n` +
       `• Vekil Pro (temel): aylık ${MONTHLY_PRICE_TRY} ₺. Sınırsız dava, müvekkil ve belge; finans modülü ve raporlar. Deneme süresi yoktur; ücretsiz plan süresizdir.\n` +
-      `• Yapay zekâ denemesi: ücretsiz planda hesap başına tek seferlik ${UCRETSIZ_DENEME_HAKKI} soru (derin araştırma dahil değildir). Vekil Pro (temel) üyeliğinde de toplam hak ${DENEME_SORU_HAKKI} sorudur.\n` +
+      `• Yapay zekâ denemesi: ücretsiz planda hesap başına tek seferlik ${UCRETSIZ_DENEME_HAKKI} soru (hukuki araştırma dahil değildir). Vekil Pro (temel) üyeliğinde de toplam hak ${DENEME_SORU_HAKKI} sorudur.\n` +
       `• Vekil Pro + Yapay Zekâ: aylık ${AI_PRICE_TRY.toLocaleString('tr-TR')} ₺. Temel paketteki her şeyi içerir.\n\n` +
       'İçtihat aramasının ücretsiz olması bir kampanya değil, ürünün kalıcı kuralıdır; ileride ücretli hâle getirilmeyecektir. Ücretli plana geçmezseniz mevcut kayıtlarınız silinmez ve erişilebilir kalır; yalnız yeni kayıt ekleme sınıra tabidir.\n\n' +
       'Abonelikler otomatik olarak yenilenir. Yenilemeyi durdurmak için dönem bitiminden en az 24 saat önce cihazınızın App Store / Google Play hesap ayarlarından aboneliği kapatmanız gerekir. Ücret, dönem bitiminden önceki 24 saat içinde tahsil edilir.',

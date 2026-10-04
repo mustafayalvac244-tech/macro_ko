@@ -236,6 +236,19 @@ export default function DosyaAktarScreen() {
                 {busy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="cloud-upload-outline" size={18} color="#FFFFFF" />}
                 <Text style={styles.ctaText}>{busy ? stage || t('imp.working') : t('imp.pick')}</Text>
               </Pressable>
+              {/* TOPLU AKTARIMIN YENİ KAPISI (04.10.2026). Kenar çubuğundan
+                  çıkarıldı; çok dosyayı tablodan aktarmak isteyen avukat
+                  "belgeden dosya aç"a gelir, burada bulur. */}
+              <Pressable
+                onPress={() => router.push('/toplu-aktar' as Parameters<typeof router.push>[0])}
+                disabled={busy}
+                hitSlop={8}
+                accessibilityRole="link"
+                style={({ pressed }) => [styles.topluBag, pressed && { opacity: 0.7 }]}
+              >
+                <Ionicons name="albums-outline" size={15} color={colors.primary} />
+                <Text style={styles.topluBagMetin}>{t('imp.topluBag')}</Text>
+              </Pressable>
             </>
           ) : (
             <>
@@ -360,6 +373,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   stepText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textPrimary, flex: 1, lineHeight: 19 },
   cta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: kose(14), paddingVertical: 15, marginTop: spacing.md },
   ctaOff: { opacity: 0.5 },
+  topluBag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'center',
+    marginTop: spacing.md,
+    paddingVertical: 6,
+  },
+  topluBagMetin: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.primary,
+  },
   ctaText: { fontFamily: fonts.extrabold, fontWeight: '800', fontSize: 15, color: colors.textInverse },
   okBox: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.successSoft, borderRadius: kose(12), padding: spacing.sm, marginBottom: spacing.md },
   okText: { fontFamily: fonts.semibold, fontWeight: '600', fontSize: 12.5, color: colors.success, flex: 1 },
