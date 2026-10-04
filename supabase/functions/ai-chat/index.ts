@@ -2607,8 +2607,8 @@ Deno.serve(async (req) => {
       // olmayan bir metin, doğru göründüğü için yanlış olmayan bir metinden
       // daha tehlikelidir. Hak düşülmez ve avukat hangi atfın havuzda
       // bulunmadığını görür.
-      const uydurmaMadde = await uydurmaMaddeDenetimi(text);
-      const kararDenetimi = await kararAtfiDenetimi(text);
+      // Madde ve karar denetimi birbirinden bağımsız: paralel (04.10.2026).
+      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(text), kararAtfiDenetimi(text)]);
       const sonMetin = (await uydurmaKunyeleriCikar(text, kararDenetimi)).metin;
       const atlanan = atlananKurallar(
         [...dayanakKurallar].map(([id, k]) => ({ id, zorunlu_terimler: k.terimler })),
@@ -2841,8 +2841,8 @@ async function dosyaKunyesi(
       }
       const denetimMetni = `${kaynak}\n\n${taslak}\n\n${promptQuestion}`;
       const temiz = uydurmaTarihleriAyikla(out.trim(), denetimMetni);
-      const uydurmaMadde = await uydurmaMaddeDenetimi(temiz.metin);
-      const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
+      // Madde ve karar denetimi birbirinden bağımsız: paralel (04.10.2026).
+      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin)]);
       temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, denetimMetni);
       // Taslağın üçte birinden kısa çıktı: büyük olasılıkla yalnız değişen
@@ -2922,9 +2922,15 @@ async function dosyaKunyesi(
     // denetimi için: birbirinin alternatifi iki kuralın ikisi de dayanak
     // gösterilirse avukat uyarılır (bkz. _shared/kural.ts, cakisanDayanaklar).
     const dilekceKurallar = new Map<string, BeslenenKural>();
-    try { dossier += await buildRules(supabase, ekAramasi, dilekceKurallar); } catch { /* atla */ }
-    try { dossier += await buildMevzuat(supabase, ekAramasi); } catch { /* atla */ }
-    try { dossier += await buildGrounding(supabase, ekAramasi, ictihatIstenmis(promptQuestion) ? 5 : 3, ictihatIstenmis(promptQuestion) ? 6 : 5); } catch { /* atla */ }
+    // ÜÇ ARAMA PARALEL (04.10.2026) — sohbetteki gerekçeyle; sıra korunur.
+    {
+      const [kural, mevzuat, ictihat] = await Promise.all([
+        buildRules(supabase, ekAramasi, dilekceKurallar).catch(() => ''),
+        buildMevzuat(supabase, ekAramasi).catch(() => ''),
+        buildGrounding(supabase, ekAramasi, ictihatIstenmis(promptQuestion) ? 5 : 3, ictihatIstenmis(promptQuestion) ? 6 : 5).catch(() => ''),
+      ]);
+      dossier += `${kural}${mevzuat}${ictihat}`;
+    }
 
     // GROQ'A GİDERKEN BESLEME TAVANA SIĞDIRILIR. Ücretsiz anahtarda dakikalık
     // tavan 8.000 token ve sağlayıcı girdi + çıktı tavanını topluyor; sığmayan
@@ -3123,11 +3129,11 @@ async function dosyaKunyesi(
       // Zorunlu bölümü eksik ya da yarım kalmış taslak, kullanıcının hakkından
       // DÜŞÜLMEZ; gideri biz karşılarız. Bunu yanıtta da söylüyoruz ki avukat
       // hakkının neden eksilmediğini bilsin.
-      const uydurmaMadde = await uydurmaMaddeDenetimi(temiz.metin);
       // KARAR ATFI DENETİMİ EN ÇOK BURADA GEREKLİ: mütalaa büroda kalır,
       // dilekçe mahkemeye gider. Uydurma bir esas/karar numarasını ilk fark
-      // eden karşı vekil olur (bkz. kararAtfiDenetimi).
-      const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
+      // eden karşı vekil olur (bkz. kararAtfiDenetimi). Madde denetimiyle
+      // bağımsız oldukları için PARALEL (04.10.2026).
+      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin)]);
       temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       // ATLANAN KURAL DENETİMİ DİLEKÇEDE ÇALIŞMIYOR — ölçüm gösterdi ki burada
       // ürettiği şey gürültü. Dört senaryoluk koşuda üç uyarı çıktı ve üçü de
@@ -3304,8 +3310,14 @@ async function dosyaKunyesi(
     // mevzuat gelir. Baş kısım, belgenin ne olduğunu en çok anlatan yerdir.
     const aramaMetni = `${tur.arama} ${belgeKaynak.slice(0, 1200)}`;
     let dossier = '';
-    try { dossier += await buildRules(supabase, aramaMetni); } catch { /* atla */ }
-    try { dossier += await buildMevzuat(supabase, aramaMetni); } catch { /* atla */ }
+    {
+      // İKİ ARAMA PARALEL (04.10.2026); sıra korunur.
+      const [kural, mevzuat] = await Promise.all([
+        buildRules(supabase, aramaMetni).catch(() => ''),
+        buildMevzuat(supabase, aramaMetni).catch(() => ''),
+      ]);
+      dossier += `${kural}${mevzuat}`;
+    }
 
     // BELGEDE KIRPMA DAHA DA KRİTİK: burada kullanıcının kendi metni de girdiye
     // giriyor (12.000 karaktere kadar) ve besleme onun üstüne biniyor. Ücretsiz
@@ -3388,8 +3400,8 @@ async function dosyaKunyesi(
       // Belgede geçmeyen tarihler ayıklanır: incelemedeki bir tarih, avukat
       // için "bu gün son gün" demektir.
       const temiz = uydurmaTarihleriAyikla(out.trim(), belgeKaynak);
-      const uydurmaMadde = await uydurmaMaddeDenetimi(temiz.metin);
-      const kararDenetimi = await kararAtfiDenetimi(temiz.metin);
+      // Madde ve karar denetimi birbirinden bağımsız: paralel (04.10.2026).
+      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin)]);
       temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       // UYDURMA TUTAR DENETİMİ — incelemedeki bir tutar, belgede hiç yoksa
       // avukat için "bu belgede yazan miktar" sanılır. Bkz. dilekçedeki aynı
@@ -3436,24 +3448,16 @@ async function dosyaKunyesi(
   {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (lastUser?.text) {
-      // Önce KESİN KURALLAR (yerleşik içtihat) — modelin tahminini ezer.
-      // Anahtar kelime + anlam araması birlikte (olay anlatımını da yakalar).
-      try {
-        grounding += await buildRules(supabase, lastUser.text);
-      } catch {
-        // kural beslemesi başarısızsa devam
-      }
-      // Gerçek kanun madde metinleri (kendi mevzuat veritabanımız) — genel doğruluk.
-      try {
-        grounding += await buildMevzuat(supabase, lastUser.text);
-      } catch {
-        // mevzuat beslemesi başarısızsa devam
-      }
-      try {
-        grounding += await buildGrounding(supabase, lastUser.text);
-      } catch {
-        // besleme başarısızsa yalın yanıtla devam
-      }
+      // Önce KESİN KURALLAR (yerleşik içtihat), sonra gerçek kanun metinleri,
+      // sonra içtihat. ÜÇÜ PARALEL (04.10.2026): sırayla çalışıyorlardı ve
+      // ölçülen sohbet süresinin (24–38 sn) ~20 sn'si modelden bağımsızdı.
+      // Dosyadaki SIRA korunur; biri düşerse diğerleri yine girer.
+      const [kural, mevzuat, ictihat] = await Promise.all([
+        buildRules(supabase, lastUser.text).catch(() => ''),
+        buildMevzuat(supabase, lastUser.text).catch(() => ''),
+        buildGrounding(supabase, lastUser.text).catch(() => ''),
+      ]);
+      grounding += `${kural}${mevzuat}${ictihat}`;
     }
   }
   const systemText = SYSTEM_PROMPT + grounding;
@@ -3556,8 +3560,8 @@ async function dosyaKunyesi(
   // mı" sorusu ise en çok sohbete soruluyor ve cevaptaki karar numarası
   // doğrudan dilekçeye kopyalanıyor. Denetimi üç modda yapıp dördüncüde
   // atlamak, korumayı en çok gerektiği yerde kapatmak demekti.
-  const uydurmaMadde = await uydurmaMaddeDenetimi(text);
-  const kararDenetimi = await kararAtfiDenetimi(text);
+  // Madde ve karar denetimi birbirinden bağımsız: paralel (04.10.2026).
+  const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(text), kararAtfiDenetimi(text)]);
   const sonMetin = (await uydurmaKunyeleriCikar(text, kararDenetimi)).metin;
   const kusurlu = uydurmaMadde.length > 0 || (kararDenetimi?.olanaksiz.length ?? 0) > 0 || (kararDenetimi?.canlidaYok.length ?? 0) > 0;
   atifKaydiYaz('sohbet', kullanilanModel, kararDenetimi, uydurmaMadde);

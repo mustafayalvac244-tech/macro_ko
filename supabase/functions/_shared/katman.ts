@@ -212,6 +212,18 @@ export const SOHBET_MODELI = 'claude-haiku-4-5-20251001';
 // yanlış madde numarası ve yazım hatası. Sonnet aynı senaryolarla ölçülecek
 // (scripts/olcum-sonnet-sonuc.json).
 export const AI_MODELI = 'claude-sonnet-5'; // = AI_UCRETLI_MODEL (aşağıda tanımlı)
+
+/**
+ * İŞE GÖRE (04.10.2026 son karar, ürün sahibi: "sohbet ve yapay zekâyla
+ * düzeltme Haiku kalacak, diğerleri Sonnet"). İki turlu ölçüme dayanır
+ * (scripts/olcum-{haiku,sonnet}-sonuc.json): sohbet ve düzeltmede Haiku
+ * yeterliydi; dilekçe, inceleme ve araştırmada yanlış madde ve uydurma süre
+ * yazdı. Tanınmayan mod Sonnet'e düşer.
+ */
+const HAIKU_ISLER: readonly string[] = ['sohbet', 'duzelt'];
+export function isModeli(mod: string | undefined): string {
+  return mod && HAIKU_ISLER.includes(mod) ? SOHBET_MODELI : AI_MODELI;
+}
 export function sohbetMi(mod: string | undefined): boolean {
   return mod === 'sohbet';
 }
@@ -385,7 +397,7 @@ export function tierConfig(
     // dönüşümünü ₺3,50 için riske atmak kötü bir takas olurdu. Aynı gerekçe
     // denemenin Groq yerine Claude'da koşmasının da sebebi (yukarıda).
     // 04.10.2026 İSTİSNA: sohbet Haiku'ya gider (SOHBET_MODELI, yukarıda).
-    model: AI_MODELI,
+    model: isModeli(secenek.mod),
     // billable:true — deneme isteklerinin GERÇEK maliyeti (ai_usage/ai_istek)
     // kaydedilsin isteriz, kendi muhasebemiz için. KONTÖRDEN DÜŞÜLMEZ:
     // recordUsage `deneme` bayrağıyla ücreti sıfırlar (ai-chat, 01.10.2026).
@@ -428,7 +440,7 @@ export function tierConfig(
     // (11.09'da ₺399 denemesi claude-opus-5'e gitmişti; Opus ≈ Haiku'nun 5
     // katı). Herkese açık ücretsiz denemenin maliyeti ortam ayarına bağlı
     // kalmasın. Bkz. UCRETSIZ_DENEME_LIMIT.
-    model: AI_MODELI,
+    model: isModeli(secenek.mod),
     limit: UCRETSIZ_DENEME_LIMIT,
     denemeLimit: UCRETSIZ_DENEME_LIMIT,
   };
@@ -446,7 +458,7 @@ export function tierConfig(
       provider: 'claude',
       // İŞE GÖRE MODEL (bkz. MOD_UCUZ / MOD_AGIR). Künye Haiku; sohbet ve belge
       // Sonnet 5; dilekçe ve mütalaa Opus 5 — ilk 750 istek boyunca.
-      model: AI_MODELI,
+      model: isModeli(secenek.mod),
       billable: true,
       limitKind: 'cost',
       limit: UCRETLI_TAVAN_TRY,

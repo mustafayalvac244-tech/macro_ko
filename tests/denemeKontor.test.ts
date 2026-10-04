@@ -59,3 +59,12 @@ describe('dilekçe yarım kalmaz', () => {
     expect(govde).toMatch(/text \+= parca/);
   });
 });
+
+describe('aramalar ve denetimler paralel (04.10.2026)', () => {
+  // Ölçüm: sohbetin ~20 sn'si, dilekçenin ~38 sn'si modelden bağımsızdı ve
+  // aramalar SIRAYLA yapılıyordu; mütalaa bu yüzden 150 sn sınırına çarptı.
+  it('hiçbir arama ya da madde denetimi tek başına beklenmez', () => {
+    expect(kod).not.toMatch(/await (buildRules|buildMevzuat|buildGrounding|uydurmaMaddeDenetimi)\(/);
+    expect((kod.match(/Promise\.all\(\[\s*buildRules\(/g) ?? []).length).toBeGreaterThanOrEqual(3);
+  });
+});

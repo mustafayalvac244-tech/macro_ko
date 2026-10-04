@@ -51,13 +51,13 @@
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
    Anahtar ~30.10 biter.
-   Modeller (04.10 son): HER İŞ SONNET 5 ("sonnet yap"; önce Haiku denendi; deneme+ücretli;
-   katman.ts AI_MODELI). ÖLÇÜM 04.10 aynı 7 senaryo (scripts/olcum-{haiku,sonnet}-sonuc.json):
+   Modeller (04.10 son): SOHBET + DÜZELT HAIKU, gerisi SONNET 5 (ürün sahibi; katman.ts
+   isModeli). ÖLÇÜM 04.10 aynı 7 senaryo (scripts/olcum-{haiku,sonnet}-sonuc.json):
    Haiku hızlı değil, yanlış madde no + yazım hatası; Sonnet temiz, ~2 kat pahalı. Mütalaa
    süre sınırına çarpıyordu (546) → aramalar paralel + düşünmesiz: 72,9 sn (ai-chat v139).
    Yeni 'duzelt' modu: "Yapay zekâya düzelttir" (PR #143; ai-chat v137, ictihat v70).
-   HIZ (03.10, 12 istek): sohbet 24–38 sn, dilekçe 45–74 sn; ~20/~38 sn'si bizim
-   arama+denetim adımları (çıkarım). Paralelleştirme + uzunluk kuralı: KARAR BEKLİYOR.
+   HIZ: sohbet/dilekçe/belge aramaları + madde/karar denetimi PARALEL (04.10). Uzunluk
+   kuralı (500/900 krktr) değişmedi — karar bekliyor.
    03.10 ölçüldü: sohbet ₺2,20/soru, dilekçe ₺2,11 → geçmiş önbelleği (0168, v135);
    etkisi ÖLÇÜLMEDİ (onbellek_okunan). Gerçek satış 0; tek abonelik sandbox.
    Talep sayacı (hasat_konu_talep) 0 kayıt — sebebi BULUNAMADI (açık iş).
