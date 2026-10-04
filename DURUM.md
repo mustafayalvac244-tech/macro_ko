@@ -61,6 +61,8 @@
    04.10 gece (avukat "kısa, detay yok"): sohbet 500/900 krktr tavanı KALDIRILDI (~800–4.000),
    madde başına 2 karar; ai_istek'e sure_ms/model_bas_ms/model_ms (0169) — 20 sn nerede, gerçek
    kullanımda görülecek. Telefonda mikrofon YOK: klavye dikte ipucu (yerel modül = derleme).
+   APİLEX YORUM DERSİ (04.10, KARAR-DEFTERI §5b): doğrulama e-postası TEKRAR GÖNDER (kayıt+giriş)
+   eklendi; SMTP Resend ölçüldü; Play yorumları OKUNAMADI. OTA BEKLİYOR (izin yok).
 0b. Bildirim (0161) telefona düştüğü ÖLÇÜLMEDİ. 0. Ücretsiz deneme 10 soru (0166).
 0c. **KÜNYE CANLI TEYİDİ (03.10, 0167, PR #136/#137, OTA 220cb0d).** Havuzda olmayan
    Yargıtay künyesi Bedesten'de aranır; canlıda yok/olanaksız künye METİNDEN

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -71,7 +71,36 @@ export default function SignupScreen() {
   const kvkkImzalandi = kvkkKanit !== null;
   const dilTr = useLangStore((s) => s.lang) === 'tr';
   const [dogrulamaBekliyor, setDogrulamaBekliyor] = useState(false);
-  const { signUp, isSubmitting, error, clearError } = useAuthStore();
+  // DOĞRULAMA E-POSTASINI TEKRAR GÖNDER (04.10.2026). Rakip uygulamanın
+  // App Store yorumlarında 7 olumsuz yorumun 3'ü "kod/e-posta gelmiyor, hesap
+  // açılamıyor"du. Bizde bekleme ekranında yalnız "giriş ekranına dön" vardı;
+  // posta gelmeyen kullanıcı için hiçbir çıkış yoktu. Geri sayım şifre
+  // sıfırlama ekranıyla aynı (25 sn); sunucu daha uzun süre söylerse o kazanır.
+  const [tekrarBekleme, setTekrarBekleme] = useState(25);
+  const [tekrarBilgi, setTekrarBilgi] = useState<string | null>(null);
+  const [tekrarHata, setTekrarHata] = useState<string | null>(null);
+  const [tekrarGonderiliyor, setTekrarGonderiliyor] = useState(false);
+  useEffect(() => {
+    if (tekrarBekleme <= 0) return;
+    const z = setTimeout(() => setTekrarBekleme((n) => n - 1), 1000);
+    return () => clearTimeout(z);
+  }, [tekrarBekleme]);
+  const tekrarGonder = async () => {
+    setTekrarBilgi(null);
+    setTekrarHata(null);
+    setTekrarGonderiliyor(true);
+    const sonuc = await resendVerification(email, captchaToken ?? undefined);
+    setTekrarGonderiliyor(false);
+    if (sonuc.hata) {
+      setTekrarHata(sonuc.hata);
+      if (sonuc.bekle > 0) setTekrarBekleme(sonuc.bekle);
+      return;
+    }
+    kullanimKaydet('olay:dogrulama_tekrar_gonder');
+    setTekrarBilgi(t('auth.resendVerifyDone'));
+    setTekrarBekleme(25);
+  };
+  const { signUp, isSubmitting, error, clearError, resendVerification } = useAuthStore();
 
   // Clears any stale error the moment the user edits a field, so an old
   // message (e.g. a transient network failure) never lingers on screen.
@@ -194,6 +223,16 @@ export default function SignupScreen() {
           <Text style={styles.heading}>{t('auth.verifyTitle')}</Text>
           <Text style={styles.verifyBody}>{t('auth.verifyBody', { email: email.trim() })}</Text>
           <Text style={styles.verifyHint}>{t('auth.verifyHint')}</Text>
+          {!!tekrarBilgi && <Text style={styles.verifyBilgi}>{tekrarBilgi}</Text>}
+          {!!tekrarHata && <Text style={styles.verifyHata}>{tekrarHata}</Text>}
+          <Button
+            label={tekrarBekleme > 0 ? t('auth.resendVerifyIn', { n: String(tekrarBekleme) }) : t('auth.resendVerify')}
+            variant="ghost"
+            disabled={tekrarBekleme > 0 || tekrarGonderiliyor}
+            loading={tekrarGonderiliyor}
+            onPress={tekrarGonder}
+            fullWidth
+          />
           <Button
             label={t('auth.verifyGoLogin')}
             onPress={() => router.replace('/(auth)/login')}
@@ -731,6 +770,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     marginBottom: spacing.lg,
+  },
+  verifyBilgi: {
+    ...typography.caption,
+    color: colors.success,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  verifyHata: {
+    ...typography.caption,
+    color: colors.danger,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
   },
   termsHint: {
     ...typography.small,

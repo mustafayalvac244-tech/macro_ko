@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
+import { DOGRULANMAMIS } from '@/lib/authErrors';
 import { Captcha } from '@/components/Captcha';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -22,10 +23,21 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const { signIn, isSubmitting, error, clearError } = useAuthStore();
+  const { signIn, isSubmitting, error, clearError, resendVerification } = useAuthStore();
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [hataliAlan, setHataliAlan] = useState<'email' | 'password' | null>(null);
+  // "E-posta doğrulanmamış" hatasında tekrar gönderme düğmesi (04.10.2026;
+  // gerekçe app/(auth)/signup.tsx > tekrarGonder).
+  const [tekrarBilgi, setTekrarBilgi] = useState<string | null>(null);
+  const [tekrarGonderiliyor, setTekrarGonderiliyor] = useState(false);
+  const dogrulanmamis = error === DOGRULANMAMIS;
+  const tekrarGonder = async () => {
+    setTekrarGonderiliyor(true);
+    const sonuc = await resendVerification(email, captchaToken ?? undefined);
+    setTekrarGonderiliyor(false);
+    setTekrarBilgi(sonuc.hata ?? t('auth.resendVerifyDone'));
+  };
 
   const handleSubmit = async () => {
     clearError();
@@ -130,6 +142,17 @@ export default function LoginScreen() {
           {(hataliAlan ? error : localError ?? error) && (
             <Text style={styles.error}>{hataliAlan ? error : localError ?? error}</Text>
           )}
+          {dogrulanmamis && (
+            <Button
+              label={t('auth.resendVerify')}
+              variant="ghost"
+              disabled={tekrarGonderiliyor}
+              loading={tekrarGonderiliyor}
+              onPress={tekrarGonder}
+              fullWidth
+            />
+          )}
+          {dogrulanmamis && !!tekrarBilgi && <Text style={styles.bilgi}>{tekrarBilgi}</Text>}
 
           <Button
             label={t('auth.signIn')}
@@ -193,6 +216,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.xl,
+  },
+  bilgi: {
+    ...typography.caption,
+    color: colors.success,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
   },
   error: {
     ...typography.caption,

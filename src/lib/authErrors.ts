@@ -2,6 +2,14 @@ import { SUPABASE_YAPILANDIRILDI } from '@/lib/env';
 // Supabase (ve genel ağ) hata mesajları İngilizce döner; kullanıcıya
 // göstermeden önce bilinen kalıpları Türkçeye çevirir. Bilinmeyen
 // mesajlar olduğu gibi bırakılır (kendi fırlattığımız Türkçe hatalar dahil).
+/**
+ * Doğrulanmamış e-posta mesajı DIŞA AÇIK: giriş ekranı bu mesajı görünce
+ * "doğrulama e-postasını tekrar gönder" düğmesi çizer (04.10.2026 — rakip
+ * uygulamanın App Store yorumlarında en sık 1 yıldız sebebi "kod/e-posta
+ * gelmiyor, hesap açılamıyor"ydu; bizde tekrar gönderme hiç yoktu).
+ */
+export const DOGRULANMAMIS = 'E-posta adresiniz henüz doğrulanmamış. Gelen kutunuzu (ve spam klasörünü) kontrol edin.';
+
 const PATTERNS: Array<[RegExp, string]> = [
   [/invalid login credentials/i, 'E-posta veya şifre hatalı. Şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.'],
   // Kayıt ekranı, Supabase'in sahte "başarılı" yanıtını bu anahtarla bildirir
@@ -13,7 +21,7 @@ const PATTERNS: Array<[RegExp, string]> = [
   [/password should be at least (\d+) characters?/i, 'Şifre en az 8 karakter olmalı.'],
   [/password should contain/i, 'Şifre gerekli karakter çeşitlerini içermiyor (harf ve rakam kullanın).'],
   [/unable to validate email address|invalid format|invalid email/i, 'Geçerli bir e-posta adresi girin.'],
-  [/email not confirmed/i, 'E-posta adresiniz henüz doğrulanmamış. Gelen kutunuzu kontrol edin.'],
+  [/email not confirmed/i, DOGRULANMAMIS],
   [/new password should be different/i, 'Yeni şifre eski şifrenizden farklı olmalı.'],
   [/token has expired|otp.*expired|expired.*otp/i, 'Kodun süresi dolmuş. Lütfen yeni kod isteyin.'],
   [/token.*invalid|invalid.*token|invalid.*otp|otp.*invalid/i, 'Kod hatalı. Lütfen kontrol edip tekrar deneyin.'],
