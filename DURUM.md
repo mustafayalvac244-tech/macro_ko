@@ -39,10 +39,9 @@
    tanıtım metni canlıya yazıldı (tanitim-yaz, 12:10 UTC, 160 krktr, geri okundu).
    Web'de utm → sayaç `kaynak:<kaynak>/<kampanya>`. BEKLENEN: avukat alıntıları
    için yazılı izin; reklam kanalı; story çekimi için 1 dilekçe onayı (≈₺5,5).
-00a. **AI UZUN DÖNEM (03.10):** vekil_ai_six_month 14.999 TL, vekil_ai_annual 23.999 TL
-   (yalnız TUR) — 04.10 hâlâ MISSING_METADATA, eksik alan API'de görünmüyor. Satış
-   ekranında süre seçici hazır. ÜRÜN SAHİBİ: RevenueCat → iki ürünü premium+ai'ye ve
-   'ai' teklifine (Six Month + Annual) bağla; ASC'deki uyarıyı oku, incelemeye gönder.
+00a. **AI FİYAT (04.10 son, ürün sahibi):** aylık 2.999 TL; YILLIK aylık 2.499 (=29.988 TL,
+   en yakın kademe, vekil_ai_annual); 6 AYLIK İPTAL (uygulama göstermez, ürün satışta
+   değil). ÜRÜN SAHİBİ: RevenueCat 'ai' teklifine Annual paketini bağla; ASC'den incelemeye gönder.
 00. **Satın alma webhook'u ÇALIŞIYOR** (02.10 22:38 UTC ölçüldü: RevenueCat test
    olayı → 200). Sır Supabase + RevenueCat'te. Gerçek ilk satın almada is_premium
    açıldığı ayrıca doğrulanmalı. 'Bearer' toleransı depoda (038d9bf), DAĞITILMADI.

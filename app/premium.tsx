@@ -87,9 +87,10 @@ export default function PremiumScreen() {
   const isPremium = !!profile?.is_premium;
   const isAiActive = profile?.ai_tier === 'ai';
   const [offeringPkg, setOfferingPkg] = useState<PurchasesPackage | null>(null);
-  // AI PAKETİ SÜRELERİ (03.10.2026, ürün sahibi: "6 aylık alırlarsa aylık 2499,
-  // yıllık alırlarsa aylık 1999"). RevenueCat 'ai' teklifinde hangi paket varsa
-  // o seçenek görünür; yalnız aylık varsa seçici hiç çıkmaz.
+  // AI PAKETİ SÜRELERİ. 04.10.2026 son karar (ürün sahibi: "indirimi iptal et",
+  // "yıllık alırlarsa 2499, aylık 2999"): 6 AYLIK SEÇENEK KALDIRILDI, yalnız
+  // aylık ve yıllık. RevenueCat 'ai' teklifinde 6 aylık paket dursa bile
+  // GÖSTERİLMEZ. Yalnız aylık varsa seçici hiç çıkmaz.
   const [aiPaketler, setAiPaketler] = useState<{ aylik: PurchasesPackage | null; alti: PurchasesPackage | null; yillik: PurchasesPackage | null }>({ aylik: null, alti: null, yillik: null });
   const [aiDonem, setAiDonem] = useState<'aylik' | 'alti' | 'yillik'>('yillik');
   const aiOfferingPkg = aiPaketler[aiDonem] ?? aiPaketler.aylik ?? aiPaketler.alti ?? aiPaketler.yillik;
@@ -105,8 +106,8 @@ export default function PremiumScreen() {
     getCurrentOffering().then((offering) => setOfferingPkg(offering?.monthly ?? offering?.availablePackages[0] ?? null));
     getOffering(AI_ENTITLEMENT_ID).then((offering) =>
       setAiPaketler({
-        aylik: offering?.monthly ?? (offering?.sixMonth || offering?.annual ? null : offering?.availablePackages[0] ?? null),
-        alti: offering?.sixMonth ?? null,
+        aylik: offering?.monthly ?? (offering?.annual ? null : offering?.availablePackages[0] ?? null),
+        alti: null,
         yillik: offering?.annual ?? null,
       })
     );
@@ -432,7 +433,6 @@ export default function PremiumScreen() {
               scrollable={false}
               options={[
                 ...(aiPaketler.aylik ? [{ label: t('premium.periodMonthly'), value: 'aylik' as const }] : []),
-                ...(aiPaketler.alti ? [{ label: t('premium.periodSixMonths'), value: 'alti' as const }] : []),
                 ...(aiPaketler.yillik ? [{ label: t('premium.periodYearly'), value: 'yillik' as const }] : []),
               ]}
               value={aiSecilenDonem}
