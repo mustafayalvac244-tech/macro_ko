@@ -42,7 +42,8 @@
 
 00a. **AI UZUN DÖNEM (03.10, ürün sahibi "6 ay aylık 2499, yıl aylık 1999"):** App
    Store'da vekil_ai_six_month 14.999 TL, vekil_ai_annual 23.999 TL kuruldu (tam
-   kademe yok, en yakın; MISSING_METADATA, görsel işleniyor, yalnız TUR). Satış
+   kademe yok, en yakın; yalnız TUR). 04.10: hâlâ MISSING_METADATA; görsel COMPLETE,
+   metin/not/fiyat/ülke dolu — eksik alan API'de görünmüyor (onaylılarda 175 fiyat). Satış
    ekranında süre seçici (RevenueCat'te paket varsa görünür). ÜRÜN SAHİBİ:
    RevenueCat → iki ürünü premium+ai'ye bağla, 'ai' teklifine Six Month + Annual
    paketi ekle; Apple'a incelemeye gönder. Sözleşme/site metni satışa açılınca.
@@ -78,7 +79,6 @@
 6. KVKK veri sorumlusu kimliği (unvan/adres/e-posta) hâlâ eksik.
 7. Android "Şifremi unuttum" kesilmesi düzeltildi (26.09, Pressable + tek Text);
    Android'de DOĞRULANMADI (emülatör yok) — ürün sahibi yeni derlemede bakmalı.
-9. Bulutta yalnız Accept edits / Plan / Auto var; bypass YOK. En az soru = Auto.
 
 ## 3. Kritik kimlikler
 
