@@ -191,6 +191,17 @@ async function abonelikOku() {
           }
         }
 
+        // İNCELEME GÖRSELİ DURUMU — 04.10.2026. Yeni iki ürün 9 saat sonra hâlâ
+        // MISSING_METADATA'ydı ve okuma görselin durumunu göstermiyordu; sebep
+        // tahminle ("işleniyor") söylenmişti. Artık ölçülüyor.
+        try {
+          const g = (await api(`/subscriptions/${s.id}/appStoreReviewScreenshot`))?.data;
+          const ds = g?.attributes?.assetDeliveryState;
+          console.log(`    inceleme görseli: ${g ? `${ds?.state} ${JSON.stringify(ds?.errors || [])} ${g.attributes?.imageAsset?.width ?? '?'}x${g.attributes?.imageAsset?.height ?? '?'}` : 'YOK'}`);
+        } catch (e) {
+          console.log(`    inceleme görseli okunamadı: ${String(e.message).split('\n')[0]}`);
+        }
+
         // FİYAT KAYITLARINI AÇ — 18.09.2026, koşu #17'den sonra eklendi.
         //
         // NEDEN. Yeni ürüne 399 TL kurma denemesi dört ayrı gövdeyle de
@@ -770,7 +781,9 @@ async function urunKur(u, grupId, mevcut, ulkeler) {
     // 4) FİYAT
     const fiyatlar = (await api(`/subscriptions/${urun.id}/prices`))?.data || [];
     const turFiyat = await turkiyeFiyatiniOku(urun.id);
-    if (turFiyat !== null && turFiyat === u.fiyatTL) {
+    if (turFiyat !== null && (turFiyat === u.fiyatTL || (u.fiyatEnYakin && Math.abs(turFiyat - u.fiyatTL) <= 50))) {
+      // fiyatEnYakin: tam kademe yoktu, en yakını kurulmuştu (03.10.2026) —
+      // her koşuda yeniden "düzeltmeye" kalkmasın.
       console.log(`  Türkiye fiyatı zaten ${turFiyat} TL — DOKUNULMADI`);
     } else {
       if (turFiyat !== null) {
