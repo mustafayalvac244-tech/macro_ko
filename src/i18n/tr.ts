@@ -1543,6 +1543,8 @@ export const tr = {
   'dlk.duzeltGeriAl': 'Geri al',
   'dlk.duzeltKisa': 'Yapay zekâ dilekçenin tamamını değil yalnız bir parçasını döndürdü; metniniz değiştirilmedi ve hakkınız düşmedi. Talimatı biraz daha açık yazıp tekrar deneyin.',
   'ses.yaz': 'Sesle yaz',
+  'ses.klavyeIos': 'Sesle yazmak için kutuya dokunun ve klavyenin altındaki mikrofon tuşuna basın. Tuş görünmüyorsa iPhone Ayarlar\'ında Genel › Klavye bölümünden dikteyi açın.',
+  'ses.klavyeAndroid': 'Sesle yazmak için kutuya dokunun ve klavyenizdeki mikrofon simgesine basın.',
   'ses.durdur': 'Dinleniyor · durdur',
   'ses.dinliyor': 'Dinleniyor…',
   'ses.not': 'Sesiniz tarayıcının konuşma tanıma özelliğiyle metne çevrilir. Chrome gibi bazı tarayıcılar sesi bu iş için kendi hizmetine gönderir; Vekil Pro sesi almaz ve saklamaz.',

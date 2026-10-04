@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 04.10.2026 (site denetimi: "KVKK uyumlu" ve fotoğraftan künye iddiası kaldırıldı)
+**Son güncelleme:** 04.10.2026 gece (UDF gerçek editörde açıldı; sohbet uzunluk tavanı kalktı; adım süresi 0169)
 
 ## 1. Şu an — yayın durumu
 
@@ -19,13 +19,11 @@
   (957a16a, başka oturum: Safari şeridi + 2. düğme; benimki çakışmada bırakıldı).
 - **Web** (`vekilpro.app/app`) `main`'den yayınlanır; `docs/app` = `npm run
   export:web` (41 sn, 03.10 ölçüldü) + commit. Ortam yoksa derleme durur.
-- **Android/Play:** başlanmadı (bkz. KARAR-DEFTERI §3).
 - **Hasat AÇIK** (28.09 18:34 UTC, 0160; ürün sahibi "hasata devam"). Geri alma
   eşiği: kullanıcı tablolarında zaman aşımı → 0156 ifadesiyle kapat.
   Vektörleme hâlâ kapalı (0154/0155). Ölçüldü 01.10: 24 saatte 14.373 yeni
   karar (katalog 11.037 + terim 3.336).
-- **Hasat talebe göre (0162/0163):** soru/arama 324 düz konuyla eşleşir → talep
-  sayacı + öncelik ≥200 → öne alınır. 03.10: sayaç HİÇ kayıt tutmamış (bkz. 0a).
+- **Hasat talebe göre (0162/0163):** talep sayacı 03.10'da HİÇ kayıt tutmamış (bkz. 0a).
 
 ## 2. Sıradaki / açık işler
 
@@ -60,13 +58,17 @@
    03.10 ölçüldü: sohbet ₺2,20/soru, dilekçe ₺2,11 → geçmiş önbelleği (0168, v135);
    etkisi ÖLÇÜLMEDİ (onbellek_okunan). Gerçek satış 0; tek abonelik sandbox.
    Talep sayacı (hasat_konu_talep) 0 kayıt — sebebi BULUNAMADI (açık iş).
+   04.10 gece (avukat "kısa, detay yok"): sohbet 500/900 krktr tavanı KALDIRILDI (~800–4.000),
+   madde başına 2 karar; ai_istek'e sure_ms/model_bas_ms/model_ms (0169) — 20 sn nerede, gerçek
+   kullanımda görülecek. Telefonda mikrofon YOK: klavye dikte ipucu (yerel modül = derleme).
 0b. Bildirim (0161) telefona düştüğü ÖLÇÜLMEDİ. 0. Ücretsiz deneme 10 soru (0166).
 0c. **KÜNYE CANLI TEYİDİ (03.10, 0167, PR #136/#137, OTA 220cb0d).** Havuzda olmayan
    Yargıtay künyesi Bedesten'de aranır; canlıda yok/olanaksız künye METİNDEN
    ÇIKARILIR (ürün sahibi "kullanıcıya yazılamaz"), yerine gerçek karar ÖNERİSİ.
    İçtihat istenince dosyaya 5–6 karar. Gerçek kullanımda ÖLÇÜLMEDİ.
 0d. **AVUKAT GERİ BİLDİRİMİ (04.10, PR #142):** Düzelt düğmesi; UDF her seçicide, üretilen
-   UDF 1.8 + hvl-default (UYAP Editör'de AÇILMADI — avukat denemeli); Dilekçe Üret'e dosya
+   UDF 1.8 + hvl-default; GERÇEK UYAP Editör 5.4.20'de (Linux) AÇILDI, başlıklar kalın
+   (scripts/udf-editor-denetim.md; Windows ve kaydet/e-imza denenmedi); Dilekçe Üret'e dosya
    ekleme, PDF sayfa görüntüsüyle (20 sayfa / 8 MB, maliyet ÖLÇÜLMEDİ); web'de sesle yazma;
    Belge Arşivi'ne Belge Yükle; Derin Araştırma → Hukuki Araştırma. WEB CANLI. OTA 7b06a953
    (04.10 17:20 UTC, 3.4.0); cihaza indiği ÖLÇÜLMEDİ. SİTE (04.10 akşam): "KVKK uyumlu" ×2,
@@ -81,7 +83,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0168`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0169`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
@@ -90,7 +92,6 @@
   iptal etme.** Build numarası uzaktan artar (son: 7).
 - Süreler (ölçüldü): derleme+gönderim koşusu 8–46 dk; Apple işleme ≤24 dk
   (derleme 7); `vitrin-yaz`/`tam-denetim` ~1–2 dk.
-- RevenueCat teklifleri public `appl_` anahtarla ölçülür (eas.json'da).
 
 ## 4. Kalıcı ürün sahibi kuralları (özet — tamamı AGENTS.md/KARAR-DEFTERI)
 

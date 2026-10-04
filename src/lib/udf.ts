@@ -148,7 +148,11 @@ export function udfIcerikXml(metin: string): string {
     const uzunluk = satir.length + 1;
     parcalar.push(
       `<paragraph Alignment="${hiza}" LeftIndent="0.0" RightIndent="0.0">` +
-        `<content startOffset="${ofset}" length="${uzunluk}" family="${xmlKacis(YAZI.aile)}" size="${YAZI.boyut}" />` +
+        `<content startOffset="${ofset}" length="${uzunluk}" family="${xmlKacis(YAZI.aile)}" size="${YAZI.boyut}"` +
+        // Ortalanan başlık KALIN (mahkeme başlığı, AÇIKLAMALAR, NETİCE-İ
+        // TALEP). 04.10.2026: gerçek UYAP Editör 5.4.20'de açılıp kalın
+        // göründüğü doğrulandı (scripts/udf-editor-denetim.md).
+        `${hiza === HIZA.orta ? ' bold="true"' : ''} />` +
         `</paragraph>`
     );
     ofset += uzunluk;

@@ -28,6 +28,7 @@ import {
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 import { canliIctihat, canliKunyeDogrula } from '../_shared/uyapCanli.ts';
+import { modelSuresi, sureIzle, sureOzeti } from '../_shared/adimSure.ts';
 import { mesajlariHazirla } from '../_shared/onbellek.ts';
 // Avukatın eklediği belgeler (dilekçe/belge inceleme) — PDF görüntüsüyle gider.
 import { denetimKaynagi, ekAciklamasi, ekleriAyikla, pdfBloklari, taranmisSayfaVar, type Ek } from '../_shared/belgeEki.ts';
@@ -287,7 +288,12 @@ async function claudeChat(
  * Güvenlik reddi yedeğe geçirmez: reddi başka sağlayıcıyla dolanmak, kararı
  * yok saymak olur.
  */
-async function ucretliChat(
+/** Model çağrısı + süre ölçümü (bkz. _shared/adimSure.ts). */
+function ucretliChat(...a: Parameters<typeof ucretliChatIc>): ReturnType<typeof ucretliChatIc> {
+  return modelSuresi(() => ucretliChatIc(...a));
+}
+
+async function ucretliChatIc(
   stableSystem: string | string[],
   groundingSystem: string,
   msgs: Array<{ role: 'user' | 'model'; text: string }>,
@@ -1106,6 +1112,7 @@ async function recordUsage(
         maliyet_try: cost,
         ucret_try: ucret,
         musteriye_yazildi: musteriyeYaz,
+        ...sureOzeti(),
       })
       .select('id')
       .single();
@@ -1191,29 +1198,34 @@ const SYSTEM_PROMPT =
   // Sınırlar ölçüm setindeki üst sınırlardan (700 / 1.200 krktr) pay bırakılarak
   // seçildi; bunu saklamıyorum: ölçüt ürün kararının kendisidir (avukat
   // satırı arıyor, sayfayı değil).
-  'CEVAP UZUNLUĞU — SORUYA ORANTILI YAZ. Uzunluk kalite değildir; avukat aradığı ' +
-  'satırı bulmak için sayfa taramak zorunda kalmamalı. İki sınır var ve kapanış ' +
-  'cümlesi de bu sınırların İÇİNDEDİR: ' +
-  '(A) TEK CEVAPLI SORU (bir süre, görevli mahkeme, bir madde numarası, evet/hayır, ' +
-  'iki kavramın farkı, bir tanım): CEVABI İLK CÜMLEDE VER, tek cümle dayanak ekle, ' +
-  'BİTİR. EN FAZLA 3 CÜMLE ve yaklaşık 500 karakter. Kavram farkı sorulduysa her ' +
-  'kavrama BİR cümle, farka BİR cümle; örnek, "pratik sonuç", paragraf başlıkları YOK. ' +
-  '(B) AÇIKLAMA İSTEYEN SORU (nasıl yapılır, hangi şartlar, hangi süreler): EN FAZLA ' +
-  '6 CÜMLE ya da en fazla 5 maddelik kısa liste, yaklaşık 900 karakter. ' +
-  'Her iki türde de: sorulmadıkça tablo, "uygulama adımları", yol haritası, dilekçe ' +
-  'taslağı, kontrol listesi, özet bölümü, kalın başlık EKLEME; sorulmayan unsuru ' +
-  '(görevli mahkeme sorulduysa yetkiyi ve husumeti, süre sorulduysa mahkemeyi, dayanak ' +
-  'sorulduysa usulü) EKLEME; ilgisiz yan konuları ve tekrar eden uyarıları yazma. ' +
-  'Kapsamlı çıktıyı yalnızca avukat gerçekten bir İŞ istediğinde üret (dilekçe, ' +
-  'ihtarname, adım planı, süre hesabı); o zaman da yalnız istenen çıktıyı ver ve ' +
-  'sonuna kısa bir "KONTROL LİSTESİ" ekle. Aynı şeyi iki kez söyleme. Tek cümlelik ' +
-  'cevap doğruysa tek cümle yaz. ' +
+  //
+  // ÜÇÜNCÜ KARAR (04.10.2026) — YUKARIDAKİ SINIR KALDIRILDI. Avukat geri
+  // bildirimi: "cevaplar kısa, detay yok". 500/900 karakter tavanı benim
+  // hazırladığım ölçüm setinin ölçütüydü (bkz. üstteki not); gerçek kullanıcı
+  // ölçütü onun tersini söyledi ve kanıt hiyerarşisinde gerçek kullanıcı önde
+  // gelir. Dolgu yasağı (tablo, kontrol listesi, tekrar, genel uyarı) KALDI;
+  // kalkan yalnız işe yarayan ayrıntıyı kesen tavan. Karakter aralıkları ürün
+  // kararıdır, ölçüm değildir; maliyet/süre etkisi ÖLÇÜLMEDİ.
+  'CEVAP UZUNLUĞU — AVUKAT AYRINTI İSTER, DOLGU İSTEMEZ. Cevabı İLK CÜMLEDE ver, sonra ' +
+  'işe yarayan ayrıntıyı yaz: (A) TEK CEVAPLI SORU (bir süre, görevli mahkeme, bir madde, ' +
+  'evet/hayır, iki kavramın farkı, bir tanım): ilk cümlede cevap; ardından DAYANAK (kanun ' +
+  'maddesi ve ne dediği), işin sonucunu değiştiren ayrıntı (sürenin başlangıç anı ve ' +
+  'niteliği, istisnası, kaçırılırsa ne olacağı) ve kaynaklarda varsa ilgili karar. Yaklaşık ' +
+  '800–1.500 karakter. (B) AÇIKLAMA İSTEYEN SORU (nasıl yapılır, hangi şartlar, hangi ' +
+  'süreler, ne yapmalıyım): şartları ve adımları TEK TEK, her birinin dayanağıyla yaz; ' +
+  'süreleri, görevli/yetkili mahkemeyi, gerekli belgeleri, sık yapılan hataları ve ' +
+  'kaynaklardaki emsal kararları ekle; gerekiyorsa kısa başlık ve numaralı liste kullan. ' +
+  'Yaklaşık 1.500–4.000 karakter. Avukat açıkça "kısa" isterse kısa yaz. Her iki türde de: ' +
+  'aynı şeyi iki kez söyleme; "bir avukata danışın" gibi genel uyarıları ve soruyla ' +
+  'ilgisiz yan konuları yazma; sorulmadıkça tablo, kontrol listesi ve dilekçe taslağı ' +
+  'EKLEME. Avukat bir İŞ istediğinde (dilekçe, ihtarname, adım planı, süre hesabı) istenen ' +
+  'çıktının tamamını ver ve sonuna kısa bir "KONTROL LİSTESİ" ekle. ' +
   //
   // MUHAKEME DİSİPLİNİ: her hukuki soruda tutarlı, avukat gibi düşünme yöntemi.
   // DÜŞÜNME düzeni, cevap şablonu değil — bkz. yukarıdaki ölçüm notu.
   'MUHAKEME DİSİPLİNİ — bu bir DÜŞÜNME düzenidir, cevap şablonu DEĞİLDİR: aşağıdaki ' +
-  'dört unsuru kafanda ayrı ayrı ve doğru değerlendir, ama yazıya yalnız SORULAN ' +
-  'unsuru geçir. (1) GÖREVLİ ve YETKİLİ mahkeme; (2) SÜRE varsa: sürenin uzunluğu, ' +
+  'dört unsuru kafanda ayrı ayrı ve doğru değerlendir; yazıya sorulan unsuru ve ' +
+  'sonucu DEĞİŞTİREN unsurları geçir, ilgisizleri geçirme. (1) GÖREVLİ ve YETKİLİ mahkeme; (2) SÜRE varsa: sürenin uzunluğu, ' +
   'BAŞLANGIÇ ANI (tefhim mi tebliğ mi, olayın/öğrenmenin tarihi mi) ve NİTELİĞİ (hak ' +
   'düşürücü süre mi, zamanaşımı mı — bunları karıştırma); (3) HUSUMET: davanın kime ' +
   'karşı yöneltileceği (doğru davalı/hasım); (4) DAYANAK: ilgili kanun maddesi ve varsa ' +
@@ -1948,34 +1960,38 @@ async function buildGrounding(supabase: any, question: string, enAz = 3, enCok =
  * atıf çıkarıldı. Örnek denetimde TBK m.315 için dönen beş kararın beşi de
  * gerçekten temerrüt nedeniyle tahliye kararıydı.
  *
- * Besleme KISA tutulur (en fazla üç madde, madde başına bir karar): tek bilgi
- * sorulan soruya sayfa dolusu cevap ürettirmemek için uzunluk kuralı yeni
- * konuldu; onu bu blokla geri bozmak anlamsız olurdu.
+ * Besleme: en fazla üç madde, madde başına İKİ karar (04.10.2026'ya kadar
+ * bir karardı — kısa cevap kuralıyla birlikte; avukat "detay yok" deyince o
+ * kural kalktı, bu kısıt da gevşetildi). Üç sorgu PARALEL koşar: sırayla
+ * beklemek cevabın süresine eklenirdi.
  */
 // deno-lint-ignore no-explicit-any
 async function maddeyiUygulayanKararlar(supabase: any, rows: any[]): Promise<string> {
   const secilen = rows.slice(0, 3);
-  const parcalar: string[] = [];
-  for (const r of secilen) {
-    const kanun = String(r?.kanun_short ?? '').trim();
-    const madde = parseInt(String(r?.madde_no ?? ''), 10);
-    if (!kanun || !Number.isFinite(madde)) continue;
-    try {
-      const { data } = await supabase.rpc('kararlar_madde_ile', {
-        p_kanun: kanun,
-        p_madde: madde,
-        p_limit: 1,
-      });
-      for (const k of (data ?? []) as Array<Record<string, unknown>>) {
-        parcalar.push(
-          `• ${kanun} m.${madde} → ${k.daire ?? ''} E.${k.esas_no ?? ''} K.${k.karar_no ?? ''} (${k.karar_tarihi ?? ''}): ` +
-            String(k.snippet ?? '').slice(0, 180).trim()
+  const gruplar = await Promise.all(
+    secilen.map(async (r): Promise<string[]> => {
+      const kanun = String(r?.kanun_short ?? '').trim();
+      const madde = parseInt(String(r?.madde_no ?? ''), 10);
+      if (!kanun || !Number.isFinite(madde)) return [];
+      try {
+        const { data } = await supabase.rpc('kararlar_madde_ile', {
+          p_kanun: kanun,
+          p_madde: madde,
+          p_limit: 2,
+        });
+        return ((data ?? []) as Array<Record<string, unknown>>).map(
+          (k) =>
+            `• ${kanun} m.${madde} → ${k.daire ?? ''} E.${k.esas_no ?? ''} K.${k.karar_no ?? ''} (${k.karar_tarihi ?? ''}): ` +
+            String(k.snippet ?? '').slice(0, 300).trim()
         );
+      } catch {
+        // atıf haritası yoksa besleme yine çalışır
+        return [];
       }
-    } catch {
-      // atıf haritası yoksa besleme yine çalışır
-    }
-  }
+    })
+  );
+  // Sıra korunur: Promise.all sonucu girdi sırasındadır.
+  const parcalar = gruplar.flat();
   if (parcalar.length === 0) return '';
   return (
     '\n\n### BU MADDELERİ UYGULAYAN GERÇEK KARARLAR (kendi havuzumuz; karar metninde maddeye açık atıf var):\n' +
@@ -2071,7 +2087,7 @@ async function buildMevzuat(supabase: any, question: string): Promise<string> {
   );
 }
 
-Deno.serve(async (req) => {
+Deno.serve((req) => sureIzle(async () => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS });
   }
@@ -3581,4 +3597,4 @@ async function dosyaKunyesi(
   }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
-});
+}));
