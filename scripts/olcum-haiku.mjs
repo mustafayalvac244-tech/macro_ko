@@ -119,11 +119,15 @@ const sohbetler = oku('sohbet-senaryolari.json').senaryolar;
 const dilekceler = oku('dilekce-senaryolari.json').senaryolar;
 const mutalaalar = oku('mutalaa-senaryolari.json').senaryolar;
 
+// olcum-*-mutalaa.mjs adıyla çağrılırsa YALNIZ hukuki araştırma koşar
+// (04.10.2026: Sonnet mütalaası süre sınırına çarpmıştı; düzeltmenin doğrulaması).
+const YALNIZ_MUTALAA = /mutalaa/.test(basename(process.argv[1] ?? ''));
 let uid = null;
 try {
   uid = await kullaniciAc();
   console.log('Test kullanıcısı açıldı (ai katmanı, rıza var).');
 
+  if (!YALNIZ_MUTALAA) {
   // 1) Sohbet — doğrusu bilinen üç soru: süre, kavram farkı, tarih hesabı.
   for (const id of ['tek-bilgi-istinaf-suresi', 'tek-bilgi-kavram-farki', 'gorev-sure-hesabi']) {
     const s = sohbetler.find((x) => x.id === id);
@@ -150,6 +154,7 @@ try {
     ekler: [{ ad: 'sozlesme.pdf', metin: c.text ?? '', pdf, sayfa: c.sayfa ?? 2, taranmis: (c.okunamayanSayfa ?? []).length }],
   }, '2. sayfa taranmış: Madde 7 (süresiz rekabet yasağı) yalnız görüntüde.');
 
+  }
   // 5) Hukuki araştırma (çok adımlı).
   const m = mutalaalar[0];
   await ai('mutalaa', m.id, { mode: 'mutalaa', question: m.olay }, m.olay);

@@ -2434,13 +2434,18 @@ Deno.serve(async (req) => {
     // bile yedeğe indiyse tamamı ücretsiz sayılır — eksik ölçmek, kullanıcıdan
     // fazla ölçmekten iyidir.
     const kullanim = { model, faturali: cfg.billable };
+    // DÜŞÜNME KAPALI (04.10.2026, ölçüldü): Sonnet 5 + uyarlamalı düşünmeyle
+    // mütalaa 151,6 sn'de Supabase'in istek süresi sınırına çarpıp HTTP 546
+    // ile düştü (scripts/olcum-sonnet-sonuc.json); Haiku (düşünmesiz) aynı
+    // senaryoyu 90 sn'de bitirmişti. Düşünmenin kalite katkısı ölçülmedi;
+    // hiç cevap verememek ise ölçüldü.
     const call = async (sys: string, userText: string, maxTok: number): Promise<string> => {
       if (provider === 'claude') {
         // Sabit talimat (SYSTEM_PROMPT) önbelleğe alınır; sys'in geri kalanı
         // (araştırma dosyası) her adımda değiştiği için arkaya konur.
         const stable = sys.startsWith(SYSTEM_PROMPT) ? SYSTEM_PROMPT : sys;
         const rest = sys.startsWith(SYSTEM_PROMPT) ? sys.slice(SYSTEM_PROMPT.length) : '';
-        const r = await ucretliChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey, model, !cfg.denemeLimit);
+        const r = await ucretliChat(stable, rest, [{ role: 'user', text: userText }], maxTok, genKey, model, false);
         meter.tin += r.tin;
         meter.tout += r.tout;
         kullanim.model = r.model;
@@ -2515,21 +2520,23 @@ Deno.serve(async (req) => {
       // Dosyaya giren kurallar ayrıca TOPLANIR ve yanıtla birlikte gönderilir:
       // model kuralı yazmasa bile avukat dayanağı ham hâliyle görsün.
       const dayanakKurallar = new Map<string, BeslenenKural>();
-      try { dossier += await buildRules(supabase, mutalaaQuestion, dayanakKurallar); } catch { /* atla */ }
-      try { dossier += await buildMevzuat(supabase, mutalaaQuestion); } catch { /* atla */ }
-      for (const issue of issues) {
-        let block = '';
-        try {
-          block += await buildRules(supabase, issue, dayanakKurallar);
-        } catch { /* atla */ }
-        try {
-          block += await buildMevzuat(supabase, issue);
-        } catch { /* atla */ }
-        try {
-          block += await buildGrounding(supabase, issue);
-        } catch { /* atla */ }
-        if (block) dossier += `\n\n══════ ARAŞTIRMA KONUSU: ${issue} ══════${block}`;
-      }
+      // ARAMALAR PARALEL (04.10.2026). Önce 2 + 4×3 arama SIRAYLA yapılıyordu
+      // ve mütalaa süre sınırına çarptı (yukarıdaki not). Sonuçların dosyadaki
+      // SIRASI korunur: önce genel, sonra sorunlar verildikleri sırayla.
+      const [ustKural, ustMevzuat, ...konuBloklari] = await Promise.all([
+        buildRules(supabase, mutalaaQuestion, dayanakKurallar).catch(() => ''),
+        buildMevzuat(supabase, mutalaaQuestion).catch(() => ''),
+        ...issues.map(async (issue) => {
+          const [r, m, g] = await Promise.all([
+            buildRules(supabase, issue, dayanakKurallar).catch(() => ''),
+            buildMevzuat(supabase, issue).catch(() => ''),
+            buildGrounding(supabase, issue).catch(() => ''),
+          ]);
+          const block = `${r}${m}${g}`;
+          return block ? `\n\n══════ ARAŞTIRMA KONUSU: ${issue} ══════${block}` : '';
+        }),
+      ]);
+      dossier += `${ustKural}${ustMevzuat}${konuBloklari.join('')}`;
 
       // 3) Sentez — resmi mütalaa
       //
