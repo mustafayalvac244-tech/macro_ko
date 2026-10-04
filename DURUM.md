@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 04.10.2026 (avukat geri bildirimi: UDF, ek belge/PDF, sesle yazma, sohbet Haiku)
+**Son güncelleme:** 04.10.2026 (her iş Haiku, yapay zekâyla düzelt, UDF, ek belge/PDF, sesle yazma)
 
 ## 1. Şu an — yayın durumu
 
@@ -51,9 +51,9 @@
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
    Anahtar ~30.10 biter.
-   Modeller (04.10): SOHBET HAIKU 4.5 (ürün sahibi "haiku'ya geçelim, test edeceğiz";
-   deneme+ücretli), belge Sonnet 5, dilekçe+mütalaa Opus 5 (ai; denemede Sonnet).
-   Opus maliyeti ÖLÇÜLMEDİ. Dilekçe tavanı 6k (deneme) / 16k (Opus) + kesilirse devam.
+   Modeller (04.10): HER İŞ HAIKU 4.5 (ürün sahibi "hepsini haiku yap"; deneme+ücretli;
+   katman.ts AI_MODELI). Kalite farkı ÖLÇÜLMEDİ — ürün sahibiyle birlikte denenecek.
+   Yeni 'duzelt' modu: dilekçe ekranında "Yapay zekâya düzelttir" (PR #143).
    HIZ (03.10, 12 istek): sohbet 24–38 sn, dilekçe 45–74 sn; ~20/~38 sn'si bizim
    arama+denetim adımları (çıkarım). Paralelleştirme + uzunluk kuralı: KARAR BEKLİYOR.
    03.10 ölçüldü: sohbet ₺2,20/soru, dilekçe ₺2,11 → geçmiş önbelleği (0168, v135);
