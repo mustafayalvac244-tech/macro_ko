@@ -1,0 +1,133 @@
+{
+ "tarih": "2026-10-04T16:44:10.598Z",
+ "tavanTL": 14,
+ "harcananTL": 11.37,
+ "sonuclar": [
+  {
+   "tur": "sohbet",
+   "id": "tek-bilgi-istinaf-suresi",
+   "not": "İstinaf süresi kaç gündür?",
+   "durum": 200,
+   "sureSn": 22.1,
+   "model": "claude-haiku-4-5-20251001",
+   "girdiToken": 8491,
+   "ciktiToken": 115,
+   "hesaplananTL": 0.38,
+   "karakter": 246,
+   "hata": null,
+   "uyarilar": {},
+   "metin": "İstinaf süresi, gerekçeli kararın **tebliğinden itibaren 2 HAFTADIR** (HMK m.345).\n\nBaşlangıç anı tefhim değil, kural olarak **tebliğ** tarihi olduğu için bu tarihi izleyen günden sayılır.\n\nHukuki tavsiye değildir; güncel mevzuattan teyit ediniz."
+  },
+  {
+   "tur": "sohbet",
+   "id": "tek-bilgi-kavram-farki",
+   "not": "Zamanaşımı ile hak düşürücü süre arasındaki fark nedir?",
+   "durum": 200,
+   "sureSn": 22.8,
+   "model": "claude-haiku-4-5-20251001",
+   "girdiToken": 7973,
+   "ciktiToken": 490,
+   "hesaplananTL": 0.44,
+   "karakter": 1088,
+   "hata": null,
+   "uyarilar": {},
+   "metin": "**ZAMANAŞIMI:** Alacağa ilişkin talep/dava etme hakkını SONA ERDİRMEZ; sadece talebi/davayı reddettiren bir def'i (savunma sebebi) oluşturur. Borçlu/davalı **kendiliğinden ileri sürmedikçe hâkim tarafından dikkate alınmaz** (TBK m.161). Başlayıp durabilir, kesilebilir. Sorumlu tutulan kişinin (ön ödeme yapan) rücu davası, zamanaşımı süresinin sona ermesinden sonra da açılabilir.\n\n**HAK DÜŞÜRÜCÜ SÜRE:** Hakkın kendisini **SON EDEREK ortadan kaldırır**. Süre dolunca hak tamamen YITIRILIR; ileri sürülmesine gerek yoktur, **hâkim tarafından RE'SEN (kendiliğinden) dikkate alınır**. Durma ve kesilme yoktur. Örneğin, taşıyıcıya karşı tazminat hakkı bir yıl içinde kullanılmadığında hak düşer (TTK m.1188); bu durumda dava reddedilir, def'i değil.\n\n**Pratik sonuç:** Zamanaşımında taraf \"borçlu zamanaşımı süresinden yararlanıyor\" diye def'i ileri sürmek zorundadır; hâkim kendi başına göz önüne alamaz. Hak düşürücü sürede taraf hiçbir şey söylemese bile hâkim süre dolmuşsa hakkın düşmüş olduğunu dikkate alarak davayı reddeder.\n\nHukuki tavsiye değildir; güncel mevzuattan teyit ediniz."
+  },
+  {
+   "tur": "sohbet",
+   "id": "gorev-sure-hesabi",
+   "not": "Tebligat 03.03.2026 tarihinde yapıldı. İki haftalık istinaf süresinin son günü nedir? Adım adım hesapla.",
+   "durum": 200,
+   "sureSn": 22.8,
+   "model": "claude-haiku-4-5-20251001",
+   "girdiToken": 9599,
+   "ciktiToken": 344,
+   "hesaplananTL": 0.48,
+   "karakter": 637,
+   "hata": null,
+   "uyarilar": {},
+   "metin": "# İSTİNAF SÜRESİ HESAPLAMASI\n\n**Tebliğ tarihi:** 03.03.2026 (pazartesi)\n\n**Süre:** 2 hafta (14 gün)\n\n**Adım adım hesap (HMK m.345 ve CMK m.39 uyarınca):**\n\n1. **Sürenin başlangıcı:** Tebliğin ertesi günü (CMK m.39/1)\n   - 04.03.2026 (salı) — 1. gün\n\n2. **14 gün sayılması:**\n   - Haftalar: 04–10 Mart (1. hafta) + 11–17 Mart (2. hafta) = 14 gün\n\n3. **Son gün:** 17.03.2026 (salı)\n\n4. **Mesai saati bitiminde sona erer** (CMK m.39/2–3)\n\n---\n\n**SONUÇ:** İstinaf dilekçesi **17 Mart 2026 Salı günü mesai saati bitiminde** verilmiş sayılır. 18 Mart 2026'den itibaren geç kalmış olur.\n\nHukuki tavsiye değildir; güncel mevzuattan teyit ediniz."
+  },
+  {
+   "tur": "dilekce",
+   "id": "dava-kira-tahliye",
+   "not": "Müvekkilim Ankara'da bir daireyi aylık 12.000 TL'ye kiraya verdi. Kiracı Mart, Nisan ve Mayıs 2026 kiralarını ödemedi. Noterden ihtarname çektik, 30 gün süre verdik, yine ödemedi. Tahliye ve birikmiş kira alacağının tahsilini istiyoruz.",
+   "durum": 200,
+   "sureSn": 58.1,
+   "model": "claude-sonnet-5",
+   "girdiToken": 12454,
+   "ciktiToken": 3660,
+   "hesaplananTL": 2.58,
+   "karakter": 3772,
+   "hata": null,
+   "uyarilar": {
+    "ayiklananTarih": 0,
+    "eksikBolum": []
+   },
+   "metin": "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ\n\nDAVACI : [Davacı Ad-Soyad/Unvan], [TC Kimlik No], [Adres]\nVEKİLİ : Av. [Ad-Soyad], [Adres]\nDAVALI : [Davalı Ad-Soyad], [TC Kimlik No], [Adres]\n\nKONU\nDavalının kira bedelini ödemede temerrüde düşmesi nedeniyle kiralanan taşınmazdan tahliyesi ile birikmiş kira alacağının tahsili talebinden ibarettir.\n\nHARCA ESAS DAVA DEĞERİ\n36.000 TL (Mart, Nisan, Mayıs 2026 ayları kira bedeli toplamı) + tahliye talebi\n\nAÇIKLAMALAR\n1. Müvekkil davacı ile davalı arasında, Ankara ili, [ilçe/mahalle/adres] adresinde bulunan taşınmaza ilişkin olarak [sözleşme tarihi] tarihli kira sözleşmesi akdedilmiş olup, aylık kira bedeli 12.000 TL olarak kararlaştırılmıştır. (Delil: Kira sözleşmesi)\n\n2. Davalı kiracı, Mart 2026, Nisan 2026 ve Mayıs 2026 aylarına ait kira bedellerini, toplam 36.000 TL'yi, vadesinde ve süresinde ödememiş, muaccel kira borcunu yerine getirmemiştir. (Delil: Kira sözleşmesi, taraflar arası yazışmalar, banka hesap dökümü – ödeme yapılmadığına ilişkin)\n\n3. Müvekkil, davalının bu temerrüdü üzerine [ihtarname tarihi] tarihinde noter kanalıyla ihtarname keşide etmiş, davalıya birikmiş kira borcunu ödemesi için TBK m.315 uyarınca otuz (30) günlük süre vermiş ve bu süre içinde ödeme yapılmadığı takdirde sözleşmenin feshedileceğini ve tahliye talep edileceğini bildirmiştir. İhtarname [tebliğ tarihi] tarihinde davalıya tebliğ edilmiştir. (Delil: Noter ihtarnamesi ve tebligat mazbatası)\n\n4. Verilen otuz günlük süre [sürenin bittiği tarih] tarihinde dolmuş olmasına rağmen davalı, birikmiş kira borcunu halen ödememiş, temerrüdünü sürdürmüştür. Bu durumda TBK m.315 uyarınca kira sözleşmesinin feshi ve kiralananın tahliyesi şartları oluşmuştur.\n\n5. Davalının ödemediği 36.000 TL kira alacağının da temerrüt faiziyle birlikte tahsili gerekmektedir.\n\nHUKUKİ SEBEPLER\n6098 sayılı Türk Borçlar Kanunu m.315 (kiracının temerrüdü nedeniyle fesih ve tahliye), HMK m.4/1-a (kira ilişkisinden doğan uyuşmazlıklarda sulh hukuk mahkemesinin görevi), HMK m.119 ve ilgili diğer mevzuat hükümleri.\n\nDELİLLER\n1. [Sözleşme tarihi] tarihli kira sözleşmesi aslı/örneği,\n2. [İhtarname tarihi] tarihli noter ihtarnamesi ve tebliğ mazbatası,\n3. Davalının ödeme yapmadığına ilişkin banka hesap hareketleri/dekontlar,\n4. Tanık beyanları [varsa isim-adres],\n5. Gerekirse keşif ve bilirkişi incelemesi,\n6. Her türlü yasal delil.\n\nNETİCE-İ TALEP\nYukarıda açıklanan nedenlerle;\n\n1. Davalının temerrüdü nedeniyle kira sözleşmesinin feshi ile kiralanan taşınmazdan DAVALININ TAHLİYESİNE,\n\n2. Ödenmeyen Mart, Nisan, Mayıs 2026 aylarına ait toplam 36.000 TL kira alacağının, her bir ay bedelinin muaccel olduğu tarihten itibaren işleyecek yasal temerrüt faiziyle birlikte davalıdan tahsiline,\n\n3. Yargılama giderleri ve vekalet ücretinin davalı üzerinde bırakılmasına,\n\nkarar verilmesini saygılarımla vekaleten arz ve talep ederim.\n\nSaygılarımla,\nDavacı Vekili\nAv. [Vekil ad-soyad]\n\n⚠️ KONTROL LİSTESİ\n- İhtarnamenin keşide ve tebliğ tarihleri ile otuz günlük sürenin bitiş tarihi kesinleştirilip dilekçeye işlenmeli; süre hesabı ihtarname tebliğ tarihinden itibaren yapılmalıdır.\n- Kira sözleşmesinin tarihi, taşınmazın açık adresi ve tarafların kimlik/TC bilgileri tamamlanmalıdır.\n- Kiralanan taşınmazların tahliyesine ilişkin uyuşmazlıklarda dava açılmadan önce arabuluculuğa başvuru zorunluluğu bulunup bulunmadığı güncel mevzuattan teyit edilmeli, varsa arabuluculuk son tutanağı dilekçeye eklenmelidir.\n- Her bir ay bedelinin ayrı ayrı hangi tarihte muaccel olduğu (vade tarihleri) sözleşmeden tespit edilip faiz başlangıç tarihleri buna göre netleştirilmelidir.\n- İhtarnamede hem ödeme ihtarı hem de süresinde ödenmezse fesih bildiriminin açıkça yer aldığından emin olunmalı (TBK m.315 şartı).\n\nHukuki tavsiye değildir; güncel mevzuattan teyit ediniz."
+  },
+  {
+   "tur": "duzelt",
+   "id": "dava-kira-tahliye",
+   "not": "Netice-i talepte tahliye talebini birinci sıraya al ve dilekçenin en sonuna \"EKLER\" başlığı altında \"1- Kira sözleşmesi, 2- Noter ihtarnamesi ve tebliğ şerhi\" listesini ekle.",
+   "durum": 200,
+   "sureSn": 19.7,
+   "model": "claude-haiku-4-5-20251001",
+   "girdiToken": 5186,
+   "ciktiToken": 1796,
+   "hesaplananTL": 0.59,
+   "karakter": 3835,
+   "hata": null,
+   "uyarilar": {
+    "ayiklananTarih": 0
+   },
+   "metin": "ANKARA NÖBETÇİ SULH HUKUK MAHKEMESİ\n\nDAVACI : [Davacı Ad-Soyad/Unvan], [TC Kimlik No], [Adres]\nVEKİLİ : Av. [Ad-Soyad], [Adres]\nDAVALI : [Davalı Ad-Soyad], [TC Kimlik No], [Adres]\n\nKONU\nDavalının kira bedelini ödemede temerrüde düşmesi nedeniyle kiralanan taşınmazdan tahliyesi ile birikmiş kira alacağının tahsili talebinden ibarettir.\n\nHARCA ESAS DAVA DEĞERİ\n36.000 TL (Mart, Nisan, Mayıs 2026 ayları kira bedeli toplamı) + tahliye talebi\n\nAÇIKLAMALAR\n1. Müvekkil davacı ile davalı arasında, Ankara ili, [ilçe/mahalle/adres] adresinde bulunan taşınmaza ilişkin olarak [sözleşme tarihi] tarihli kira sözleşmesi akdedilmiş olup, aylık kira bedeli 12.000 TL olarak kararlaştırılmıştır. (Delil: Kira sözleşmesi)\n\n2. Davalı kiracı, Mart 2026, Nisan 2026 ve Mayıs 2026 aylarına ait kira bedellerini, toplam 36.000 TL'yi, vadesinde ve süresinde ödememiş, muaccel kira borcunu yerine getirmemiştir. (Delil: Kira sözleşmesi, taraflar arası yazışmalar, banka hesap dökümü – ödeme yapılmadığına ilişkin)\n\n3. Müvekkil, davalının bu temerrüdü üzerine [ihtarname tarihi] tarihinde noter kanalıyla ihtarname keşide etmiş, davalıya birikmiş kira borcunu ödemesi için TBK m.315 uyarınca otuz (30) günlük süre vermiş ve bu süre içinde ödeme yapılmadığı takdirde sözleşmenin feshedileceğini ve tahliye talep edileceğini bildirmiştir. İhtarname [tebliğ tarihi] tarihinde davalıya tebliğ edilmiştir. (Delil: Noter ihtarnamesi ve tebligat mazbatası)\n\n4. Verilen otuz günlük süre [sürenin bittiği tarih] tarihinde dolmuş olmasına rağmen davalı, birikmiş kira borcunu halen ödememiş, temerrüdünü sürdürmüştür. Bu durumda TBK m.315 uyarınca kira sözleşmesinin feshi ve kiralananın tahliyesi şartları oluşmuştur.\n\n5. Davalının ödenmeyen 36.000 TL kira alacağının da temerrüt faiziyle birlikte tahsili gerekmektedir.\n\nHUKUKİ SEBEPLER\n6098 sayılı Türk Borçlar Kanunu m.315 (kiracının temerrüdü nedeniyle fesih ve tahliye), HMK m.4/1-a (kira ilişkisinden doğan uyuşmazlıklarda sulh hukuk mahkemesinin görevi), HMK m.119 ve ilgili diğer mevzuat hükümleri.\n\nDELİLLER\n1. [Sözleşme tarihi] tarihli kira sözleşmesi aslı/örneği,\n2. [İhtarname tarihi] tarihli noter ihtarnamesi ve tebliğ mazbatası,\n3. Davalının ödeme yapmadığına ilişkin banka hesap hareketleri/dekontlar,\n4. Tanık beyanları [varsa isim-adres],\n5. Gerekirse keşif ve bilirkişi incelemesi,\n6. Her türlü yasal delil.\n\nNETİCE-İ TALEP\nYukarıda açıklanan nedenlerle;\n\n1. Davalının temerrüdü nedeniyle kira sözleşmesinin feshi ile kiralanan taşınmazdan DAVALININ TAHLİYESİNE,\n\n2. Ödenmeyen Mart, Nisan, Mayıs 2026 aylarına ait toplam 36.000 TL kira alacağının, her bir ay bedelinin muaccel olduğu tarihten itibaren işleyecek yasal temerrüt faiziyle birlikte davalıdan tahsiline,\n\n3. Yargılama giderleri ve vekalet ücretinin davalı üzerinde bırakılmasına,\n\nkarar verilmesini saygılarımla vekaleten arz ve talep ederim.\n\nSaygılarımla,\nDavacı Vekili\nAv. [Vekil ad-soyad]\n\nEKLER\n1. Kira sözleşmesi\n2. Noter ihtarnamesi ve tebliğ şerhi\n\n⚠️ KONTROL LİSTESİ\n- İhtarnamenin keşide ve tebliğ tarihleri ile otuz günlük sürenin bitiş tarihi kesinleştirilip dilekçeye işlenmeli; süre hesabı ihtarname tebliğ tarihinden itibaren yapılmalıdır.\n- Kira sözleşmesinin tarihi, taşınmazın açık adresi ve tarafların kimlik/TC bilgileri tamamlanmalıdır.\n- Kiralanan taşınmazların tahliyesine ilişkin uyuşmazlıklarda dava açılmadan önce arabuluculuğa başvuru zorunluluğu bulunup bulunmadığı güncel mevzuattan teyit edilmeli, varsa arabuluculuk son tutanağı dilekçeye eklenmelidir.\n- Her bir ay bedelinin ayrı ayrı hangi tarihte muaccel olduğu (vade tarihleri) sözleşmeden tespit edilip faiz başlangıç tarihleri buna göre netleştirilmelidir.\n- İhtarnamede hem ödeme ihtarı hem de süresinde ödenmezse fesih bildiriminin açıkça yer aldığından emin olunmalı (TBK m.315 şartı).\n\nHukuki tavsiye değildir; güncel mevzuattan teyit ediniz."
+  },
+  {
+   "tur": "doc-extract",
+   "durum": 200,
+   "sayfa": 2,
+   "okunamayanSayfa": [
+    2
+   ],
+   "metinIcindeRekabet": false
+  },
+  {
+   "tur": "belge",
+   "id": "pdf-taranmis-sayfa",
+   "not": "2. sayfa taranmış: Madde 7 (süresiz rekabet yasağı) yalnız görüntüde.",
+   "durum": 200,
+   "sureSn": 64.6,
+   "model": "claude-sonnet-5",
+   "girdiToken": 11635,
+   "ciktiToken": 4361,
+   "hesaplananTL": 2.81,
+   "karakter": 2787,
+   "hata": null,
+   "uyarilar": {
+    "ayiklananTarih": 1,
+    "ekUyari": {
+     "pdfdenMetne": [],
+     "okunamayan": [],
+     "taranmis": true
+    }
+   },
+   "metin": "# SÖZLEŞME İNCELEMESİ\n\n## 1) ÖZET\nABC Lojistik A.Ş. ile Ayşe Yılmaz arasında, 01.02.2026 başlangıçlı, 24 ay süreli, aylık 40.000 TL bedelli lojistik danışmanlık sözleşmesi. Fesih, cezai şart ve rekabet yasağı hükümleri büyük ölçüde Hizmet Alan (ABC Lojistik) lehine, Hizmet Veren (Ayşe Yılmaz) aleyhine tek taraflı düzenlenmiş.\n\n## 2) RİSKLER\n- **Madde 5 (Fesih):** Hizmet Alan sebepsiz, tazminatsız ve dilediği an fesih yetkisine sahipken Hizmet Veren'e hiç fesih hakkı tanınmamış — ağır dengesizlik, Hizmet Veren aleyhine.\n- **Madde 6 (Cezai Şart):** Sadece Hizmet Veren için, üstelik toplam bedelin 3 katı gibi aşırı yüksek bir cezai şart öngörülmüş; Hizmet Alan'ın aykırılığına karşılık hiçbir yaptırım yok. Aşırı cezai şart Türk Borçlar Kanunu'nun hakime tanıdığı indirim yetkisi kapsamında dava konusu edilebilir (ilgili madde numarası mevzuattan teyit edilmeli), ancak sözleşme metninde baştan tek taraflılık ciddi risk.\n- **Madde 7 (Rekabet Yasağı):** \"Hiçbir yerde, hiçbir surette ve süresiz\" ifadesiyle süre, yer ve konu sınırı olmaksızın düzenlenmiş. Türk Borçlar Kanunu'nun rekabet yasağına ilişkin hükümleri sınırlandırma (süre-yer-konu) zorunluluğu arar; bu hâliyle madde kısmen veya tamamen geçersiz sayılma riski taşır (madde numarası mevzuattan teyit edilmeli).\n- **Madde 4 (Ödeme):** Ödeme tarihi \"Hizmet Alan'ın uygun gördüğü tarih\" şeklinde belirsiz bırakılmış — Hizmet Veren açısından ödeme güvencesizliği yaratır.\n\n## 3) EKSİKLER\n- Madde 4'te gecikme faizi oranı boş bırakılmış (\" ___ oranında\").\n- Hizmet Veren için fesih hakkı/bildirim süresi yok.\n- Mücbir sebep hükmü yok.\n- Devir/alt yüklenici yasağı hükmü yok.\n- Tebligat adresleri belirtilmemiş.\n- Uyuşmazlık çözüm yöntemi (arabuluculuk vb.) yok.\n- İmza bölümü/taraf imzaları belgede görünmüyor.\n\n## 4) SÜRELER VE TARİHLER\n- Sözleşme başlangıcı: 01.02.2026, süre 24 ay (bitiş tarihi bu veriden hesapla yaklaşık [tarih — doldurun]'dir, kesin bitiş tarihini sözleşme ekinde/düzenleme tarihinden teyit edin).\n- Gecikme faizi oranı boş bırakılmış — doldurulmadan imzalanırsa uyuşmazlıkta belirsizlik yaratır.\n- Fesih bildirim süresi metinde yok.\n\n## 5) ÖNERİLEN DEĞİŞİKLİKLER\n- Madde 5'e Hizmet Veren lehine de makul bildirim süreli fesih hakkı eklenmeli; Hizmet Alan'ın sebepsiz fesihte belli bir tazminat/ihbar bedeli ödemesi öngörülmeli.\n- Madde 6'daki cezai şart karşılıklı hale getirilmeli, oran makul seviyeye çekilmeli.\n- Madde 7'ye somut süre (örn. belirli ay/yıl), coğrafi sınır ve faaliyet konusu sınırı eklenmeli.\n- Madde 4'te ödeme vadesi somut güne bağlanmalı (örn. \"faturanın tebliğinden itibaren X gün içinde\"), gecikme faizi oranı doldurulmalı.\n- Mücbir sebep, devir yasağı, tebligat adresi ve uyuşmazlık çözüm yöntemi maddeleri eklenmeli.\n\nHukuki tavsiye değildir; güncel mevzuattan teyit ediniz."
+  },
+  {
+   "tur": "mutalaa",
+   "id": "ise-iade-suresi",
+   "not": "Müvekkil 6 yıldır çalıştığı fabrikadan 14.04.2026 tarihinde 'performans düşüklüğü' gerekçesiyle yazılı bildirimle çıkarıldı. İşyerinde 60 işçi var, müvekkil sendika üyesi değil. Savunması alınmamış. Bugün 20.04.2026. Ne yapabiliriz?",
+   "durum": 200,
+   "sureSn": 73.4,
+   "model": "claude-sonnet-5",
+   "girdiToken": 29889,
+   "ciktiToken": 3753,
+   "hesaplananTL": 4.09,
+   "karakter": 6362,
+   "hata": null,
+   "uyarilar": {},
+   "metin": "# HUKUKİ MÜTALAA\n\n## 1. OLAY VE TESPİTLER\n\n- Müvekkil, 6 yıldır (6 yıllık kıdemle) çalıştığı fabrikada **14.04.2026** tarihinde yazılı bildirimle, **\"performans düşüklüğü\"** gerekçesiyle işten çıkarılmıştır.\n- İşyerinde **60 işçi** çalışmaktadır (30 işçi eşiği aşılmıştır).\n- Müvekkil sendika üyesi değildir (ayrımcılık/sendikal fesih iddiası bu olayda gündeme gelmez).\n- Fesih öncesi müvekkilden **yazılı savunma alınmamıştır**.\n- Bugünün tarihi: **20.04.2026** — fesih bildiriminin tebliğinden bu yana 6 gün geçmiştir.\n\n## 2. HUKUKİ SORUNLAR\n\n1. Müvekkil iş güvencesi hükümlerinin (İşK m.18 vd.) kapsamında mıdır?\n2. \"Performans düşüklüğü\" gerekçesi, somut ve ispatlanabilir verilerle desteklenmediği takdirde geçerli sebep sayılır mı?\n3. Savunma alınmaksızın yapılan feshin geçerliliği ne olur?\n4. İşe iade talebi için dava şartı ve süreler nelerdir; 20.04.2026 itibarıyla süreler ne durumdadır?\n\n## 3. İNCELEME\n\n**A) İş güvencesi kapsamı (İşK m.18)**\n\nİşK m.18 uyarınca, otuz veya daha fazla işçi çalıştıran işyerlerinde en az altı aylık kıdemi olan işçinin belirsiz süreli iş sözleşmesini fesheden işveren, işçinin yeterliliğinden veya davranışlarından ya da işletmenin/işyerinin/işin gereklerinden kaynaklanan **geçerli bir sebebe** dayanmak zorundadır. İşyerinde 60 işçi çalışması ve müvekkilin 6 yıllık kıdemi, her iki kümülatif şartı da (30+ işçi, 6+ ay kıdem) fazlasıyla karşılamaktadır. Müvekkil **iş güvencesi kapsamındadır**; bu nedenle işveren fesih için mutlaka geçerli bir sebep göstermek ve bunu ispatla yükümlü olmak durumundadır.\n\n**B) \"Performans düşüklüğü\" gerekçesinin geçerliliği**\n\nPerformans düşüklüğü, İşK m.18'de sayılan \"işçinin yeterliliğinden kaynaklanan\" sebepler kapsamında değerlendirilebilecek bir husustur; ancak bunun geçerli sebep sayılabilmesi için işverenin **somut, ölçülebilir, objektif kriterlere dayalı performans değerlendirme sistemi** ile işçinin düşük performansını **belgeli şekilde** ortaya koyması, işçiye önceden uyarı/ihtar yapılmış olması ve düşüklüğün süreklilik arz ettiğinin kanıtlanması gerekir. Soyut, genel ve belgesiz \"performans düşüklüğü\" ifadesi — hangi kriterlere göre, hangi dönemde, hangi verilerle düşük performans tespit edildiği gösterilmedikçe — geçerli sebep olarak kabul edilmez; feshin ispat yükü İşK m.20 gereği işverendedir. Elimizdeki bilgilere göre müvekkile somut bir performans kriteri, hedef, uyarı tebliğ edilip edilmediği netleşmemiştir; bu, dava stratejimiz açısından kritik bir inceleme noktasıdır.\n\n**C) Savunma alınmaması**\n\nİşK m.19 hükmü (dosyada madde metni verilmemiş olmakla birlikte yerleşik uygulama ve Yargıtay içtihadı uyarınca) işçinin davranışı veya verimi ile ilgili nedenlerle yapılan fesihlerde, işçinin **savunmasının alınması zorunlu** tutulmuştur; savunma alınmadan yapılan fesih **geçersiz** sayılır. Somut olayda performans düşüklüğü gerekçesiyle fesih yapılmış ve savunma alınmamıştır. Bu durum tek başına feshin geçersizliğini doğurmaya elverişli, güçlü bir usul eksikliğidir. (Madde numarasını mevzuattan teyit ediniz; dosyada m.19'un lafzı verilmediğinden içeriğe ilişkin yerleşik uygulamayı aktarıyorum.)\n\n**D) Süreler — dava şartı arabuluculuk ve işe iade davası**\n\nİşe iade talebinde dava şartı arabuluculuk zorunludur (7036 s. Kanun m.3, İşK m.20). Müvekkil, fesih bildiriminin **tebliğinden itibaren 1 ay** içinde arabulucuya başvurmak zorundadır:\n\n- Fesih bildirimi tebliği: **14.04.2026**\n- 1 aylık arabuluculuk başvuru süresi: **14.05.2026** günü sona erer (ayın aynı sayılı günü).\n- Bugün **20.04.2026** olduğundan süre **henüz dolmamıştır**, yaklaşık 24 gün daha mevcuttur.\n\nArabuluculukta anlaşma sağlanamazsa, **son tutanak tarihinden itibaren 2 hafta** içinde iş mahkemesinde işe iade davası açılmalıdır (bu süre hak düşürücüdür). Bu süre yalnız işe iade davası içindir; kıdem/ihbar tazminatı gibi alacak talepleri açısından ayrı bir hak düşürücü süre yoktur, zamanaşımı kuralları uygulanır.\n\n## 4. RİSKLER VE KARŞI TARAFIN OLASI SAVUNMALARI\n\n- İşveren, performans düşüklüğüne ilişkin somut belge (performans değerlendirme formları, hedef tutturamama raporları, önceki yazılı uyarılar) sunarsa geçerli sebep iddiasını güçlendirebilir; bu belgelerin dosyaya girip girmediği araştırılmalıdır.\n- İşveren, savunma talep yazısının tebliğ edilip müvekkilin cevap vermediğini iddia edebilir; bu ihtimale karşı tebligat usulsüzlüğü/savunma talebinin hiç yapılmadığı yönünde delil toplanmalıdır (tanık, yazışma, e-posta kayıtları).\n- Arabuluculuk sürecinde işveren anlaşmaya yanaşmayabilir; bu durumda 2 haftalık dava açma süresine kesinlikle dikkat edilmelidir, aksi halde dava şartı yokluğu nedeniyle usulden ret riski doğar.\n\n## 5. SONUÇ VE KANAAT\n\nMüvekkil iş güvencesi kapsamındadır (İşK m.18). Performans düşüklüğü gerekçesinin somut delillerle desteklenmediği ve savunma alınmadan fesih yapıldığı görülmektedir; bu iki husus birlikte değerlendirildiğinde feshin **geçersizliğinin** mahkemece tespit edilme ihtimali kuvvetlidir. Süre açısından henüz 1 aylık arabuluculuk başvuru süresi dolmamıştır (son gün 14.05.2026); gecikmeden arabulucuya başvurulması tavsiye olunur.\n\n## 6. ATILACAK ADIMLAR\n\n1. **Derhal** işyerindeki performans kriterleri, önceki uyarılar, bordro ve özlük dosyasının bir örneğini müvekkilden talep edin.\n2. **En geç 14.05.2026 tarihine kadar** (tercihen hemen) arabuluculuk bürosuna işe iade talebiyle başvurun — dava şartıdır, kaçırılırsa dava usulden reddedilir.\n3. Arabuluculukta anlaşma olmazsa, **son tutanak tarihinden itibaren 2 hafta içinde** iş mahkemesinde işe iade davası açın (hak düşürücü süre).\n4. Aynı dilekçede/ayrı talep olarak kıdem tazminatı, ihbar tazminatı ve varsa kullanılmayan yıllık izin ücreti taleplerini de arabuluculuk başvurusuna dahil edin (bu alacaklarda 2 haftalık süre yoktur, 5 yıllık zamanaşımı uygulanır).\n5. Savunma talebinin yapılıp yapılmadığını, performans değerlendirme sisteminin varlığını gösterir delil listesi hazırlayın.\n\n**KONTROL LİSTESİ**\n- [ ] Fesih bildiriminin tebliğ tarihi ve tebligat şekli (yazılı/elden/posta) teyit edildi mi?\n- [ ] Savunma istem yazısı var mı, varsa tebliğ edildi mi? \n- [ ] Performans kriterlerine ve önceki uyarılara ilişkin belge talep edildi mi?\n- [ ] Arabuluculuk başvurusu 14.05.2026'dan önce yapılacak mı?\n- [ ] İşK m.19'un (savunma hakkı) güncel lafzı mevzuattan teyit edildi mi?\n\nHukuki tavsiye değildir; güncel mevzuattan teyit ediniz."
+  }
+ ]
+}
