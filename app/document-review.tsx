@@ -3,6 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { uyar } from '@/lib/uyari';
 import * as DocumentPicker from 'expo-document-picker';
 import { dosyaBase64, dosyaMetni } from '@/lib/girdi';
+import { belgeSeciciTurleri } from '@/lib/belgeTurleri';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -74,13 +75,9 @@ export default function DocumentReviewScreen() {
     setExtracting(true);
     try {
       const res = await DocumentPicker.getDocumentAsync({
-        type: [
-          'application/pdf',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-          'application/msword', // .doc
-          'text/plain',
-          '*/*', // .udf gibi bilinmeyen MIME'ler için
-        ],
+        // Web'de '.udf' UZANTISI şart; '*/*' tarayıcı süzgecine girmiyor ve UDF
+        // pencerede görünmüyordu. Bkz. src/lib/belgeTurleri.ts.
+        type: belgeSeciciTurleri(Platform.OS),
         copyToCacheDirectory: true,
       });
       if (res.canceled || !res.assets?.[0]) return;

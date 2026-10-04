@@ -96,10 +96,15 @@ describe('udfIcerikXml — offset aritmetiği', () => {
 describe('udfIcerikXml — yapı', () => {
   it('UYAP yapısının zorunlu parçalarını taşır', () => {
     const xml = udfIcerikXml(DILEKCE);
-    expect(xml).toContain('<template format_id="1.7">');
+    expect(xml).toContain('<template format_id="1.8">');
     expect(xml).toContain('<pageFormat');
     expect(xml).toContain('<elements resolver="hvl-default">');
     expect(xml).toContain('<styles>');
+    // resolver="hvl-default" bir stile atıf yapar; stil tanımı olmalı
+    // (04.10.2026'ya kadar yoktu — bkz. src/lib/udf.ts).
+    expect(xml).toContain('<style name="hvl-default"');
+    expect(xml).toContain('<style name="default"');
+    expect(xml).toMatch(/<paragraph Alignment="\d" LeftIndent="0\.0" RightIndent="0\.0">/);
     expect(xml).toContain('Times New Roman');
   });
 

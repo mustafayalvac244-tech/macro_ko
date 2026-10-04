@@ -1,8 +1,10 @@
+import { Platform } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { dosyaBaytlari } from '@/lib/girdi';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { DOCUMENTS_BUCKET, MAX_DOSYA_BAYT, supabase } from '@/lib/supabase';
+import { icerikTuru, kasaSeciciTurleri } from '@/lib/belgeTurleri';
 import { dosyaBuyukKodu } from '@/utils/hataKodu';
 import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
@@ -52,7 +54,9 @@ interface PickedFile {
 
 export async function pickDocumentFile(): Promise<PickedFile | null> {
   const result = await DocumentPicker.getDocumentAsync({
-    type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
+    // UDF DAHİL (04.10.2026). Liste '.udf' ve '*/*' içermiyordu: iPhone'da
+    // UDF seçicide gri kalıyordu. Ayrıntı: src/lib/belgeTurleri.ts.
+    type: kasaSeciciTurleri(Platform.OS),
     copyToCacheDirectory: true,
     multiple: false,
   });
@@ -127,7 +131,7 @@ export function useUploadDocument() {
 
       const { error: uploadError } = await supabase.storage
         .from(DOCUMENTS_BUCKET)
-        .upload(path, bytes, { contentType: file.mimeType ?? 'application/octet-stream' });
+        .upload(path, bytes, { contentType: icerikTuru(file.name, file.mimeType) });
       if (uploadError) throw uploadError;
 
       const { data, error } = await supabase
@@ -140,7 +144,7 @@ export function useUploadDocument() {
           category,
           file_path: path,
           file_size: file.size,
-          mime_type: file.mimeType,
+          mime_type: icerikTuru(file.name, file.mimeType),
         })
         .select()
         .single();

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { stripXml } from '../supabase/functions/_shared/belgeMetni';
+import { stripXml, udfMetni } from '../supabase/functions/_shared/belgeMetni';
+import { udfIcerikXml } from '@/lib/udf';
 
 /**
  * Bu işlev yanlış çalıştığında ekran "Dosya boş görünüyor" diyor ve avukat
@@ -40,5 +41,32 @@ describe('stripXml', () => {
   it('boş girdide çökmez', () => {
     expect(stripXml('')).toBe('');
     expect(stripXml(undefined as unknown as string)).toBe('');
+  });
+});
+
+describe('udfMetni', () => {
+  it('belgenin kendi "<…>" ifadesini silmez', () => {
+    const xml = '<?xml version="1.0" encoding="UTF-8" ?><template format_id="1.8"><content><![CDATA[Ek <ek-1> ve a < b ama c > d\n]]></content><elements resolver="hvl-default"><paragraph><content startOffset="0" length="10" /></paragraph></elements></template>';
+    expect(udfMetni(xml)).toBe('Ek <ek-1> ve a < b ama c > d');
+  });
+
+  it('resim ve boş paragraf yer tutucularını atar', () => {
+    const xml = '<template><content><![CDATA[Başlık\n\uFFFC\n\u200B\nGövde]]></content></template>';
+    expect(udfMetni(xml)).toBe('Başlık\n\nGövde');
+  });
+
+  it('bölünmüş CDATA parçalarını birleştirir', () => {
+    // "]]>" içeren metni kendi üreticimiz böyle yazar.
+    const xml = udfIcerikXml('a ]]> b');
+    expect(udfMetni(xml)).toBe('a ]]> b');
+  });
+
+  it('kendi ürettiğimiz UDF\'yi turlar', () => {
+    const metin = 'MAHKEMESİNE\n\nDAVACI : Ayşe & Ali "Yılmaz"\nNETİCE-İ TALEP';
+    expect(udfMetni(udfIcerikXml(metin))).toBe(metin);
+  });
+
+  it('CDATA yoksa kaba okumaya düşer', () => {
+    expect(udfMetni('<template><content>düz metin</content></template>')).toBe('düz metin');
   });
 });

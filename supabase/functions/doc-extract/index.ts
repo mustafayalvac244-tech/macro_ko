@@ -10,7 +10,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // Metin ayıklama saf mantık ve TESTLİ (tests/belgeMetni.test.ts): UDF
 // dosyalarındaki CDATA bloğu sessizce siliniyordu, kimse fark etmiyordu.
-import { stripXml } from '../_shared/belgeMetni.ts';
+import { stripXml, udfMetni } from '../_shared/belgeMetni.ts';
 import JSZip from 'https://esm.sh/jszip@3.10.1';
 import { extractText, getDocumentProxy } from 'https://esm.sh/unpdf@0.12.1';
 // CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
@@ -29,7 +29,9 @@ async function fromZip(bytes: Uint8Array, kind: 'udf' | 'docx'): Promise<string>
       Object.keys(zip.files).find((f) => f.toLowerCase() === 'content.xml') ??
       Object.keys(zip.files).find((f) => f.toLowerCase().endsWith('.xml'));
     if (!name) throw new Error('udf_content_not_found');
-    return stripXml(await zip.files[name].async('string'));
+    // udfMetni: belgenin kendi "<…>" ifadelerini etiket sanıp silmez,
+    // resim/boş paragraf yer tutucularını atar (bkz. _shared/belgeMetni.ts).
+    return udfMetni(await zip.files[name].async('string'));
   }
   const doc = zip.files['word/document.xml'];
   if (!doc) throw new Error('docx_content_not_found');

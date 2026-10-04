@@ -4,6 +4,7 @@ import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { dosyaBase64, dosyaMetni } from '@/lib/girdi';
+import { belgeSeciciTurleri } from '@/lib/belgeTurleri';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -88,7 +89,9 @@ export default function DosyaAktarScreen() {
     setBusy(true);
     try {
       const res = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', '*/*'],
+        // UYAP'tan inen dosya çoğunlukla UDF; web'de '.udf' uzantısı olmadan
+        // pencerede görünmüyordu. Bkz. src/lib/belgeTurleri.ts.
+        type: belgeSeciciTurleri(Platform.OS),
         copyToCacheDirectory: true,
       });
       if (res.canceled || !res.assets?.[0]) return;
