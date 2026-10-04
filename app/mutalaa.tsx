@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { SesleYaz } from '@/components/ui/SesleYaz';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { DuzenlenebilirCikti } from '@/components/ui/DuzenlenebilirCikti';
@@ -143,6 +144,7 @@ export default function MutalaaScreen() {
             textAlignVertical="top"
             editable={!busy}
           />
+          <SesleYaz metin={q} onChange={setQ} disabled={busy} />
 
           <Pressable
             onPress={run}

@@ -4,6 +4,7 @@ import { BelgeEkleri } from '@/components/ui/BelgeEkleri';
 import type { BelgeEki } from '@/lib/belgeEki';
 import { ekGovdesi } from '@/lib/belgeEkiKurallari';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { SesleYaz } from '@/components/ui/SesleYaz';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { DuzenlenebilirCikti } from '@/components/ui/DuzenlenebilirCikti';
@@ -149,6 +150,7 @@ export default function DocumentReviewScreen() {
             <Text style={styles.meta}>{t('docrev.chars', { n: text.trim().length })}</Text>
             {text.length >= MAX_CHARS && <Text style={styles.metaWarn}>{t('docrev.truncated')}</Text>}
           </View>
+          <SesleYaz metin={text} onChange={(v) => setText(v.slice(0, MAX_CHARS))} disabled={busy} />
 
           <Pressable
             onPress={analyze}
