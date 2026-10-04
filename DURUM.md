@@ -56,8 +56,8 @@
    Haiku hızlı değil, yanlış madde no + yazım hatası; Sonnet temiz, ~2 kat pahalı. Mütalaa
    süre sınırına çarpıyordu (546) → aramalar paralel + düşünmesiz: 72,9 sn (ai-chat v139).
    Yeni 'duzelt' modu: "Yapay zekâya düzelttir" (PR #143; ai-chat v137, ictihat v70).
-   HIZ: sohbet/dilekçe/belge aramaları + madde/karar denetimi PARALEL (04.10). Uzunluk
-   kuralı (500/900 krktr) değişmedi — karar bekliyor.
+   HIZ: aramalar + denetimler PARALEL (v140). Ölçüldü: sohbet 25–30 → 22–23 sn, dilekçe
+   66 → 58 sn; ~20 sn hâlâ modelden bağımsız, NEREDE harcandığı ÖLÇÜLMEDİ (adım süresi yok).
    03.10 ölçüldü: sohbet ₺2,20/soru, dilekçe ₺2,11 → geçmiş önbelleği (0168, v135);
    etkisi ÖLÇÜLMEDİ (onbellek_okunan). Gerçek satış 0; tek abonelik sandbox.
    Talep sayacı (hasat_konu_talep) 0 kayıt — sebebi BULUNAMADI (açık iş).
