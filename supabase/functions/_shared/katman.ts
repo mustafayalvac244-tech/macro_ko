@@ -207,7 +207,11 @@ export const SOHBET_MODELI = 'claude-haiku-4-5-20251001';
  * kusurlu çıktıda hak düşmemesi) aynen çalışır. Kalite farkı ÖLÇÜLMEDİ.
  * Geri dönmek: bu sabiti ve aşağıdaki üç `model:` satırını eski hâline almak.
  */
-export const AI_MODELI = SOHBET_MODELI;
+// 04.10.2026 (aynı gün, ölçümden sonra): ürün sahibi "sonnet yap". Haiku
+// ölçümü (scripts/olcum-haiku-sonuc.json): hız kazancı yok, hukuki metinde
+// yanlış madde numarası ve yazım hatası. Sonnet aynı senaryolarla ölçülecek
+// (scripts/olcum-sonnet-sonuc.json).
+export const AI_MODELI = 'claude-sonnet-5'; // = AI_UCRETLI_MODEL (aşağıda tanımlı)
 export function sohbetMi(mod: string | undefined): boolean {
   return mod === 'sohbet';
 }

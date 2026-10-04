@@ -244,7 +244,9 @@ jobs:
         if: always()
         with:
           name: olcum-sonuclari
-          path: scripts/eval-*-hatalar.json
+          path: |
+            scripts/eval-*-hatalar.json
+            scripts/olcum-*-sonuc.json
           if-no-files-found: warn
 
       - name: Sonuçları dala işle
@@ -252,7 +254,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/eval-*-hatalar.json 2>/dev/null || true
+          git add scripts/eval-*-hatalar.json scripts/olcum-*-sonuc.json 2>/dev/null || true
           git diff --cached --quiet && { echo "Değişen sonuç yok."; exit 0; }
           git commit -m "Ölçüm sonucu: ${{ inputs.grup }} (sınır ${{ inputs.sinir }})"
           git push origin HEAD:${{ github.ref_name }}
