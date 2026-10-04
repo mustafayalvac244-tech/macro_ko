@@ -298,6 +298,26 @@ temiz; emin olmadığı madde numarasını yazmak yerine "teyit edin" diyor. Ür
 sahibi "sonnet yap" dedi → her iş Sonnet 5. Yan bulgu: Sonnet + düşünmeyle
 mütalaa Supabase süre sınırına (150 sn) çarpıyordu; düzeltildi.
 
+## 5b. Rakip yorumlarından ders — Apilex (04.10.2026, ürün sahibi: "apilexte olan sorunları yorumlardan al, bizde olmasın")
+
+Ölçüm: App Store TR, Apilex (id 6752776204, sürüm 1.3.4, 4,73★ / 271 oy),
+iTunes RSS ile 55 yazılı yorum (22.03–30.09.2026): 48×5★, 1×2★, 6×1★.
+Google Play: 4,2★ / 140 yorum görüldü ama yorum metinleri çekilemedi
+(sayfa JS'le çiziyor; üç deneme) — Android şikâyetleri OKUNMADI.
+
+| Apilex şikâyeti (1–2★) | Bizde ölçülen | Yapılan |
+|---|---|---|
+| Doğrulama kodu/e-postası gelmiyor, hesap açılamıyor (3 yorum) | Kendi SMTP (Resend, noreply@vekilpro.app, 200/sa) tanımlı; doğrulama açık; ama "tekrar gönder" HİÇ YOKTU | Kayıt bekleme ekranı + girişte "doğrulanmamış" hatasına tekrar gönder düğmesi (25 sn geri sayım; sunucu süresi kazanır) |
+| Ücretsiz deneme yok, fiyat anlaşılmadan alınamıyor (2) | 10 ücretsiz soru; vitrin ve tanıtım metninde yazılı; fiyat mağazadan okunuyor | — |
+| "Paket değiştirin" → "uygun paket bulunamadı" (satın alma kırık) | RevenueCat ölçüldü: default ve ai tekliflerinde yalnız aylık; ekran yalnız var olan paketi gösterir | — (yıllık ASC'de hâlâ eksik; ekran onu göstermiyor) |
+| Uygulama 400 TL + içeride paket | İndirme ücretsiz | — |
+| "Çalışmıyor" | ErrorBoundary var; çökme raporlama YOK | — (açık) |
+
+5★ yorumlarda övülenler (bizde durumu): kaynakça veren agent (atıf denetimi
+var), projeler/dosya entegrasyonu (dava dosyası var), Resmî Gazete özeti
+(YOK), sözleşme üretme (dilekçe var, sözleşme şablonu ÖLÇÜLMEDİ), web+mobil
+(var).
+
 ## 6. Nerede ne yazıyor
 
 | Dosya | İçeriği |

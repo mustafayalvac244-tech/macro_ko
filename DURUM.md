@@ -61,7 +61,8 @@
    04.10 gece (avukat "kısa, detay yok"): sohbet 500/900 krktr tavanı KALDIRILDI (~800–4.000),
    madde başına 2 karar; ai_istek'e sure_ms/model_bas_ms/model_ms (0169) — 20 sn nerede, gerçek
    kullanımda görülecek. Telefonda mikrofon YOK: klavye dikte ipucu (yerel modül = derleme).
-0b. Bildirim (0161) telefona düştüğü ÖLÇÜLMEDİ. 0. Ücretsiz deneme 10 soru (0166).
+   APİLEX DERSİ (04.10, KARAR-DEFTERI §5b): doğrulama e-postası TEKRAR GÖNDER eklendi; SMTP
+   Resend ölçüldü. 0b. Bildirim (0161) telefona düştüğü ÖLÇÜLMEDİ. 0. Deneme 10 soru (0166).
 0c. **KÜNYE CANLI TEYİDİ (03.10, 0167, PR #136/#137, OTA 220cb0d).** Havuzda olmayan
    Yargıtay künyesi Bedesten'de aranır; canlıda yok/olanaksız künye METİNDEN
    ÇIKARILIR (ürün sahibi "kullanıcıya yazılamaz"), yerine gerçek karar ÖNERİSİ.
@@ -78,8 +79,7 @@
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
    bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
-5. Supabase "Leaked password protection" kapalı (bir tık). 6. KVKK veri sorumlusu kimliği eksik.
-7. Android "Şifremi unuttum" düzeltmesi (26.09) Android'de DOĞRULANMADI (emülatör yok).
+5. Leaked password protection kapalı. 6. KVKK veri sorumlusu kimliği eksik. 7. Android şifre sıfırlama DOĞRULANMADI.
 
 ## 3. Kritik kimlikler
 

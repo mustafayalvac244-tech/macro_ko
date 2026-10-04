@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { trError } from '@/lib/authErrors';
+import { DOGRULANMAMIS, trError } from '@/lib/authErrors';
 
 describe('trError', () => {
   it('bilinen Supabase hatalarını Türkçeye çevirir', () => {
@@ -9,9 +9,7 @@ describe('trError', () => {
   it('zaten kayıtlı e-posta — Supabase sahte başarı döndürdüğünde (28.09.2026)', () => {
     expect(trError('zaten-kayitli')).toMatch(/zaten bir hesap var/);
     expect(trError('zaten-kayitli')).toMatch(/Şifremi unuttum/);
-    expect(trError('Email not confirmed')).toBe(
-      'E-posta adresiniz henüz doğrulanmamış. Gelen kutunuzu kontrol edin.'
-    );
+    expect(trError('Email not confirmed')).toBe(DOGRULANMAMIS);
     expect(trError('User already registered')).toBe(
       'Bu e-posta ile zaten bir hesap var. Giriş yapmayı deneyin.'
     );
@@ -82,5 +80,12 @@ describe('trError', () => {
 
   it('büyük/küçük harf farkı gözetmez', () => {
     expect(trError('INVALID LOGIN CREDENTIALS')).toBe('E-posta veya şifre hatalı. Şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.');
+  });
+});
+
+describe('doğrulanmamış e-posta — tekrar gönder düğmesi bu mesaja bağlı (04.10.2026)', () => {
+  it('"Email not confirmed" dışa açık sabitle birebir aynı mesaja çevrilir', () => {
+    expect(trError('Email not confirmed')).toBe(DOGRULANMAMIS);
+    expect(DOGRULANMAMIS).toMatch(/spam/);
   });
 });

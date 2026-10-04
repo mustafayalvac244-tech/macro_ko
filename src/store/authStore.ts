@@ -3,6 +3,7 @@ import { dosyaBaytlari } from '@/lib/girdi';
 import type { Session } from '@supabase/supabase-js';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import { trError } from '@/lib/authErrors';
+import { beklemeSaniyesi } from '@/lib/authBekleme';
 import { resetQueryCache } from '@/lib/queryClient';
 import { cancelAllReminders, pushAdresiniSil } from '@/lib/notifications';
 import type { Profile } from '@/types/database';
@@ -53,6 +54,13 @@ interface AuthState {
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
+  /**
+   * Kayıt doğrulama e-postasını yeniden yollar. `hata` Türkçe mesaj (başarıda
+   * null); `bekle` sunucunun "şu kadar saniye sonra" dediği süre (yoksa 0). Supabase zaten doğrulanmış adres için de "ok"
+   * döner (hesap varlığını sızdırmamak için); bu yüzden "gönderildi" demek
+   * her durumda doğrudur.
+   */
+  resendVerification: (email: string, captchaToken?: string) => Promise<{ hata: string | null; bekle: number }>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -322,4 +330,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  resendVerification: async (email, captchaToken) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase(),
+      options: captchaToken ? { captchaToken } : undefined,
+    });
+    if (!error) return { hata: null, bekle: 0 };
+    return { hata: trError(error.message), bekle: beklemeSaniyesi(error.message) ?? 0 };
+  },
 }));
