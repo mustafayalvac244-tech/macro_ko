@@ -9,8 +9,8 @@ describe('degerlendir — tekBilgi (CEVAP UZUNLUĞU kuralı)', () => {
     expect(degerlendir(s, cikti)).toEqual([]);
   });
 
-  it('700 karakteri aşan cevabı işaretler', () => {
-    const cikti = { metin: 'x'.repeat(701) };
+  it('1.800 karakteri aşan cevabı işaretler', () => {
+    const cikti = { metin: 'x'.repeat(1801) };
     expect(degerlendir(s, cikti).some((x) => x.includes('ÇOK UZUN'))).toBe(true);
   });
 
@@ -85,5 +85,15 @@ describe('degerlendir — gorev', () => {
   it('neredeyse boş cevabı işaretler', () => {
     const cikti = { metin: 'Üzgünüm, yapamam.' };
     expect(degerlendir(s, cikti).some((x) => x.includes('ÇOK KISA'))).toBe(true);
+  });
+});
+
+describe('sohbet talimatı — uzunluk tavanı geri gelmesin', () => {
+  it('500/900 karakterlik kısa cevap tavanı yok (avukat: "kısa, detay yok", 04.10.2026)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const kod = readFileSync(new URL('../supabase/functions/ai-chat/index.ts', import.meta.url), 'utf8');
+    expect(kod).not.toContain('EN FAZLA 3 CÜMLE');
+    expect(kod).not.toContain('6 CÜMLE ya da en fazla 5 maddelik');
+    expect(kod).toContain('AVUKAT AYRINTI İSTER, DOLGU İSTEMEZ');
   });
 });

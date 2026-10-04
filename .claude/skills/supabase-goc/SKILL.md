@@ -5,7 +5,7 @@ description: Vekil Pro'nun Supabase göç (migration) kuralları — çok ifadel
 
 # Vekil Pro — Supabase göçleri
 
-`supabase/migrations/` altında bugün **149 göç** var. Sıradaki dosyanı
+`supabase/migrations/` altında bugün **165 göç** var (04.10.2026 sayıldı). Sıradaki dosyanı
 yazmadan önce buradakilere uy.
 
 > **BU DOSYA ÖLÇÜLEREK YAZILDI (14.09.2026).** Aşağıdaki kuralların her biri

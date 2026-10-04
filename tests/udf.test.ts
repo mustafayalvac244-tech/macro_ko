@@ -115,6 +115,14 @@ describe('udfIcerikXml — yapı', () => {
     expect(hizalar[1]).toBe('3'); // iki yana yaslı
   });
 
+  it('ortalanan başlık kalın, gövde kalın değil (UYAP Editör 5.4.20\'de doğrulandı, 04.10.2026)', () => {
+    const xml = udfIcerikXml('NETİCE-İ TALEP\nDavanın kabulüne karar verilmesini arz ederiz.');
+    const p = xml.match(/<paragraph[^>]*>.*?<\/paragraph>/g) ?? [];
+    expect(p[0]).toContain('Alignment="1"');
+    expect(p[0]).toContain('bold="true"');
+    expect(p[1]).not.toContain('bold=');
+  });
+
   it('Türkçe büyük harf kuralını doğru uygular ("İ" ve "ı")', () => {
     // "İDDİA" büyük harflidir; JS'in varsayılan toUpperCase'i "i"yi "I" yapar
     // ve Türkçe metinlerde yanlış karar verilirdi.

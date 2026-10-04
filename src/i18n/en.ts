@@ -1478,6 +1478,8 @@ export const en: Record<keyof typeof tr, string> = {
   'dlk.duzeltGeriAl': 'Undo',
   'dlk.duzeltKisa': 'The AI returned only part of the petition; your text was not changed and your quota was not used. Make the instruction clearer and try again.',
   'ses.yaz': 'Dictate',
+  'ses.klavyeIos': 'To dictate, tap the field and press the microphone key at the bottom of the keyboard. No key? Turn on dictation in iPhone Settings under General › Keyboard.',
+  'ses.klavyeAndroid': 'To dictate, tap the field and press the microphone icon on your keyboard.',
   'ses.durdur': 'Listening · stop',
   'ses.dinliyor': 'Listening…',
   'ses.not': 'Your speech is converted to text by the browser’s speech recognition. Some browsers, such as Chrome, send the audio to their own service for this; Vekil Pro does not receive or store the audio.',

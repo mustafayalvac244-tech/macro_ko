@@ -37,7 +37,9 @@ export function degerlendir(s, cikti) {
   const sorunlar = [];
 
   if (s.tur === 'tekBilgi') {
-    if (inc.length > 700) sorunlar.push(`ÇOK UZUN (${inc.length} krktr, sınır 700)`);
+    // 04.10.2026: 700 → 1.800. Avukat "kısa, detay yok" dedi; talimat tek cevaplı
+    // soruda artık ~800–1.500 karakter istiyor (ai-chat, CEVAP UZUNLUĞU).
+    if (inc.length > 1800) sorunlar.push(`ÇOK UZUN (${inc.length} krktr, sınır 1.800)`);
     if (TABLO_DESENI.test(inc) || DOLGU_DESENI.test(sade)) {
       sorunlar.push('İSTENMEYEN DOLGU (tablo/kontrol listesi/adım listesi)');
     }

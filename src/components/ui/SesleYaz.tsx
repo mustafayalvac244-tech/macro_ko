@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSesleYaz } from '@/hooks/useSesleYaz';
 import { dikteEkle } from '@/utils/dikte';
@@ -12,7 +12,13 @@ type Durum = ReturnType<typeof useSesleYaz>;
 
 /**
  * SESLE YAZMA DÜĞMESİ — gerekçe ve sınırlar: src/hooks/useSesleYaz.ts.
- * Tarayıcı desteklemiyorsa (ve telefonda) hiçbir şey çizmez.
+ * Tarayıcı desteklemiyorsa hiçbir şey çizmez.
+ *
+ * TELEFONDA İPUCU (04.10.2026). Avukatlar "yazarken mikrofon" istedi ve
+ * uygulamayı çoğunlukla iPhone'da kullanıyor; düğme yalnız web'de olduğu için
+ * telefonda istek karşılanmamıştı. Uygulama içi mikrofon yeni bir yerel modül
+ * ister (derleme + App Store incelemesi). O karar verilene kadar telefonda
+ * klavyenin kendi dikte tuşu GÖSTERİLİR — çoğu kişi orada olduğunu bilmiyor.
  */
 
 /**
@@ -76,7 +82,15 @@ export function SesleYaz({ metin, onChange, disabled }: { metin: string; onChang
   const styles = makeStyles(__t.colors);
   const t = useT();
   const ses = useDikte(metin, onChange);
-  if (!ses.destek) return null;
+  if (!ses.destek) {
+    if (Platform.OS !== 'ios' && Platform.OS !== 'android') return null;
+    return (
+      <View style={styles.ipucu}>
+        <Ionicons name="mic-outline" size={15} color={__t.colors.textSecondary} />
+        <Text style={styles.ipucuMetin}>{t(Platform.OS === 'ios' ? 'ses.klavyeIos' : 'ses.klavyeAndroid')}</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.satirSarmal}>
       <Pressable
@@ -109,6 +123,8 @@ function makeStyles(colors: ThemeColors) {
     },
     yuvarlakAcik: { backgroundColor: colors.danger, borderColor: colors.danger },
     satirSarmal: { gap: spacing.xs, marginTop: spacing.xs },
+    ipucu: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: spacing.xs },
+    ipucuMetin: { ...typography.small, color: colors.textSecondary, flex: 1 },
     satir: {
       flexDirection: 'row',
       alignItems: 'center',

@@ -1,0 +1,46 @@
+// İSTEK ADIM SÜRELERİ — 04.10.2026.
+// ---------------------------------------------------------------------------
+// Avukat eleştirisi: "yapay zekâ yavaş". Ölçüldü (04.10, olcum-paralel):
+// sohbet 22–23 sn; model değiştirmek süreyi kısaltmadı, yani zamanın büyük
+// kısmı modelin DIŞINDA — ama NEREDE olduğu bilinmiyordu, çünkü yalnız toplam
+// süre ölçülebiliyordu. Bu modül her istekte üç sayı tutar ve ai_istek'e
+// yazılır (0169): toplam, modele kadar geçen (arama/hazırlık), modelde geçen.
+// Kalan (toplam − modele kadar − model) = denetim + kayıt. Böylece teşhis
+// para harcayan test çağrısıyla değil, GERÇEK kullanımın kendisiyle yapılır.
+//
+// Neden AsyncLocalStorage: aynı işlem eşzamanlı istekleri birlikte işler;
+// modül düzeyinde tek bir değişken istekleri birbirine karıştırırdı. Süre
+// bağlamı her isteğe ayrı açılır, parametre olarak taşımak gerekmez.
+import { AsyncLocalStorage } from 'node:async_hooks';
+
+interface Baglam {
+  t0: number;
+  modelBas: number | null;
+  modelMs: number;
+}
+
+const depo = new AsyncLocalStorage<Baglam>();
+
+/** İsteği bir süre bağlamı içinde koşturur. */
+export function sureIzle<T>(fn: () => T): T {
+  return depo.run({ t0: Date.now(), modelBas: null, modelMs: 0 }, fn);
+}
+
+/** Model çağrısını sarar: ilk başlangıç anını ve toplam model süresini tutar. */
+export async function modelSuresi<T>(fn: () => Promise<T>): Promise<T> {
+  const b = depo.getStore();
+  const bas = Date.now();
+  if (b && b.modelBas === null) b.modelBas = bas - b.t0;
+  try {
+    return await fn();
+  } finally {
+    if (b) b.modelMs += Date.now() - bas;
+  }
+}
+
+/** ai_istek sütunları. Bağlam yoksa (ör. test) boş döner. */
+export function sureOzeti(): { sure_ms?: number; model_bas_ms?: number | null; model_ms?: number } {
+  const b = depo.getStore();
+  if (!b) return {};
+  return { sure_ms: Date.now() - b.t0, model_bas_ms: b.modelBas, model_ms: b.modelMs };
+}

@@ -16,6 +16,15 @@ declare module 'npm:*';
 declare module 'jsr:*';
 declare module 'https://*';
 
+// _shared/adimSure.ts — Deno'nun Node uyumluluk katmanı (04.10.2026).
+// Yalnız kullandığımız yüzey; tam @types/node kurmak gereksiz.
+declare module 'node:async_hooks' {
+  export class AsyncLocalStorage<T> {
+    run<R>(store: T, fn: () => R): R;
+    getStore(): T | undefined;
+  }
+}
+
 // Deno çalışma ortamı globalleri.
 declare const Deno: {
   env: { get(ad: string): string | undefined };
