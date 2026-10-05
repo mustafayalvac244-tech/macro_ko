@@ -1,0 +1,12 @@
+-- 05.10.2026 — İSTEK ADIMLARI (bkz. supabase/functions/_shared/adimSure.ts > adim).
+--
+-- Ürün sahibi: "performanstan memnun değiller". 0169 toplam/model sürelerini
+-- tutuyordu; model dışındaki ~20 sn'nin HANGİ adımda geçtiği yine bilinmiyordu.
+-- Bu sütun adım adına ms tutar: giris, riza, besleme_kural, besleme_mevzuat,
+-- besleme_ictihat, embedding, ictihat_canli, denetim_madde, denetim_karar,
+-- kunye_canli, kunye_cikar, dosya_kunyesi, mevzuat_ozeti.
+-- Soru metni yine SAKLANMAZ; yalnız süre.
+--
+-- SIRA ŞART: bu göç ai-chat dağıtımından ÖNCE uygulanır. Sütun yokken
+-- ai_istek insert'i düşer ve iade kaydı tutulamaz.
+alter table public.ai_istek add column if not exists adimlar jsonb;
