@@ -2027,7 +2027,7 @@ export const en: Record<keyof typeof tr, string> = {
   'rg.maddeSayisi': '{n} items',
   'rg.mukerrerVar': 'supplementary issue',
   'rg.mukerrer': 'In supplementary issue',
-  'rg.oneCikanYok': 'Only appointments and university regulations today. Tap to see all.',
+  'rg.oneCikanYok': 'No highlighted items: all {n} are university regulations or appointments. Tap to see all.',
   'rg.yalnizIlan': 'No legislation or court decisions in this issue; announcements only.',
   'rg.kaynakAc': 'Open on the Official Gazette website',
   'rg.not': 'Titles are taken verbatim from the Official Gazette index; this is not an AI summary. Announcements are not listed. Updated several times a day.',

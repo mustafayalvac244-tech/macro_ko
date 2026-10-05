@@ -57,7 +57,11 @@ export function ResmiGazeteKarti({ cerceve }: { cerceve?: StyleProp<ViewStyle> }
       </Text>
 
       {onemli.length === 0 ? (
-        <Text style={styles.bos}>{gun.maddeler.length === 0 ? t('rg.yalnizIlan') : t('rg.oneCikanYok')}</Text>
+        <Pressable onPress={ac} accessibilityRole="button">
+          <Text style={styles.bos}>
+            {gun.maddeler.length === 0 ? t('rg.yalnizIlan') : t('rg.oneCikanYok', { n: String(gun.maddeler.length) })}
+          </Text>
+        </Pressable>
       ) : (
         onemli.map((m, i) => (
           <Pressable key={`${m.url}-${i}`} onPress={ac} style={({ pressed }) => [styles.madde, pressed && styles.basili]} accessibilityRole="button">

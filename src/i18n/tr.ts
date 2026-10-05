@@ -2120,7 +2120,7 @@ export const tr = {
   'rg.maddeSayisi': '{n} madde',
   'rg.mukerrerVar': 'mükerrer sayı var',
   'rg.mukerrer': 'Mükerrer sayıda',
-  'rg.oneCikanYok': 'Bugün yalnız atama kararı ve üniversite yönetmelikleri var. Tümünü görmek için dokunun.',
+  'rg.oneCikanYok': 'Öne çıkan madde yok: {n} maddenin tamamı üniversite yönetmeliği ya da atama kararı. Tümünü görmek için dokunun.',
   'rg.yalnizIlan': 'Bu sayıda mevzuat ya da yargı kararı yok; yalnız ilanlar var.',
   'rg.kaynakAc': 'Resmî Gazete sitesinde aç',
   'rg.not': 'Başlıklar Resmî Gazete fihristinden aynen alınır; yapay zekâ özeti değildir. İlanlar listelenmez. Liste günde birkaç kez güncellenir.',
