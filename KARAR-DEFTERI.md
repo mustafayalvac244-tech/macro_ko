@@ -252,6 +252,10 @@ Tam gerekçeler `RAKIP-OZELLIK-ANALIZI.md`'de.
 bu yüzden makbuz ekranında müşteri adı elle giriliyor. Eklenirse orası
 ön-dolar.
 
+**Açık iş (DURUM'dan taşındı, 05.10.2026):** hasat talep sayacı
+(`hasat_konu_talep`, 0162/0163) 03.10'da HİÇ kayıt tutmamıştı; sebebi
+bulunamadı.
+
 ## 5a. Avukat geri bildirimi turu (04.10.2026)
 
 Ürün sahibinin aktardığı avukat geri bildirimleri, geliş sırasıyla (PR #142).
