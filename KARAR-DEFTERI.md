@@ -327,6 +327,28 @@ var), projeler/dosya entegrasyonu (dava dosyası var), Resmî Gazete özeti
 (YOK), sözleşme üretme (dilekçe var, sözleşme şablonu ÖLÇÜLMEDİ), web+mobil
 (var).
 
+## 5c. Neden satmıyor — huni ölçümü (05.10.2026, ürün sahibi: "kimse almıyor, şapkayı önüne koy düşün, bu senin programın")
+
+Ölçüldü (canlı veritabanı, test kalıplı hesaplar ve ürün sahibi hariç):
+- 02.07–05.10 arası **15 gerçek hesap**; 14'ü giriş yapmış, 5'i ertesi
+  gün(ler)de dönmüş, 4'ü dava, 4'ü müvekkil açmış, 7'si yapay zekâ denemiş.
+- Gerçek satış **0**. Satın alma ekranı iOS'ta 3 kez açılmış (03.10), **1**
+  satın alma başlatılmış, Apple ödeme ekranında **vazgeçilmiş**.
+- App Store'da 0 oy, 0 yorum. Web'de satın alma yok (yalnız iPhone); Android yok.
+- Web ekran sayaçlarında `/`, `/login`, `/signup`, `/forgot-password` her
+  biri ~100 (03–05.10) — birbirine bu kadar yakın olması gerçek trafik
+  değil otomatik ziyaret izlenimi veriyor; AYIRT EDİLMEDİ.
+
+Piyasa (web araması 05.10.2026, kaynaklar sohbette): De Jure 1.500–6.800 ₺/ay
+(baro üyesine %25–40 indirim), Avudex 800/1.600/3.600 ₺/ay + ücretsiz deneme,
+Lawlera 594–1.050 ₺/ay (indirimli), KatipAI 199 → 499 ₺/ay, Lexform ücretsiz,
+Apilex 24.999,99 ₺/ay — 39.999,99 ₺/6 ay (bir kaynak), web'den satış hepsinde.
+Bizim AI paketi **2.999 ₺/ay**, yalnız iPhone'dan.
+
+Maliyet (ölçüldü 03.10): soru başı ~₺2,1–2,2 (Sonnet). Ücretli tavan bugün
+kullanıcı başına ₺3.000/ay maliyet + 750 soru (katman.ts) — fiyat düşerse
+tavan da düşmeli, yoksa yoğun kullanıcı zarar ettirir.
+
 ## 6. Nerede ne yazıyor
 
 | Dosya | İçeriği |
