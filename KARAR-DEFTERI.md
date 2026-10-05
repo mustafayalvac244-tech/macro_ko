@@ -349,6 +349,26 @@ Maliyet (ölçüldü 03.10): soru başı ~₺2,1–2,2 (Sonnet). Ücretli tavan 
 kullanıcı başına ₺3.000/ay maliyet + 750 soru (katman.ts) — fiyat düşerse
 tavan da düşmeli, yoksa yoğun kullanıcı zarar ettirir.
 
+## 5d. Performans — model dışı bekleme nerede (05.10.2026, ürün sahibi: "fiyatla alakası yok, performanstan memnun değiller")
+
+Modelsiz kuru koşu (ai-chat `x-kuru-kosu`, scripts/olcum-adim.mjs; 04.10'da
+Sonnet'in ürettiği 7 gerçek cevap × 2, harcama ₺0, sonuç
+scripts/olcum-adim-sonuc.json): besleme_mevzuat 3,0–16,3 sn, besleme_ictihat
+0,8–16,8 sn; denetimler (madde/künye/canlı teyit) < 0,6 sn; embedding ~0,3 sn.
+
+Veritabanında ayrı ölçüm (EXPLAIN ANALYZE): kararlar_madde_ile 5.429 ms
+(her soruda 3 kez) — sebep `select distinct kanun` 337 bin satır tarıyordu;
+search_ictihat_fts önek basamağında count(*) 14.176 ms.
+
+0172 (05.10 20:10 UTC, GitHub Actions arızası yüzünden iş akışıyla değil
+Supabase apply_migration ile uygulandı): kararlar_madde_ile **136 ms**;
+search_ictihat_fts kira sorusunda **4.266 ms** (kalan süre disk okuması —
+5,1 GB tablo, hasat sürekli yazıyor; ÇÖZÜLMEDİ). Sonuç eşitliği: madde 5/5
+aynı; fts 11/12 aynı, farklı olanda ESKİ fonksiyon da kendi içinde kararsız
+(sırasız limit 1500 — ayrı kalite sorunu, açık).
+
+Uçtan uca kuru koşu 0172 sonrası TEKRARLANMADI (Actions arızası).
+
 ## 6. Nerede ne yazıyor
 
 | Dosya | İçeriği |
