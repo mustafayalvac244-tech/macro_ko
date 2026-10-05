@@ -28,6 +28,8 @@ import { useAdvanceDeficits } from '@/hooks/useClientAdvances';
 import { useAdvanceAlertStore } from '@/store/advanceAlertStore';
 import { AI_DILEKCE_ENABLED, AI_ENABLED } from '@/config/features';
 import { IlkAdimlar } from '@/components/IlkAdimlar';
+import { ResmiGazeteKarti } from '@/components/ResmiGazeteKarti';
+import { useResmiGazete } from '@/hooks/useResmiGazete';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
 import { useLangStore, useT } from '@/i18n';
@@ -115,6 +117,9 @@ export default function DashboardScreen() {
     [panoMu, pano],
   );
 
+  // Resmî Gazete kartı veri varsa çizilir; panoda kısayollar o zaman 2/3'e
+  // iner ki son satır [gazete 1/3 + kısayollar 2/3] dolu kalsın.
+  const resmiGazeteVar = (useResmiGazete().data?.length ?? 0) > 0;
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
   const finance = useFinanceEntries();
@@ -851,13 +856,16 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* ---------- Resmî Gazete (veri yoksa çizilmez) ---------- */}
+        <ResmiGazeteKarti cerceve={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]} />
+
         {/* ---------- Kısayollar (yalnız pano) ----------
              Telefonda bu kart GEREKSİZ: aynı yollar kenar menüsünde tek
              dokunuş uzakta ve ekranın altında kimse görmez. Masaüstünde ise
              panonun sağ alt köşesi zaten boştu ve en sık açılan altı ekran
              oraya sığıyor. */}
         {panoMu && (
-          <View style={[styles.card, blok('tam'), styles.panoMarjsiz]}>
+          <View style={[styles.card, blok(resmiGazeteVar ? 'ikiUcte' : 'tam'), styles.panoMarjsiz]}>
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <View style={styles.cardHeaderIcon}>

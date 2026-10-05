@@ -68,6 +68,7 @@ on:
           - embed-ictihat
           - ai-saglik
           - doc-extract
+          - resmi-gazete
           - HEPSİ
       jwt_dogrulama:
         description: 'JWT doğrulaması açık kalsın (varsayılan: evet)'
