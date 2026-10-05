@@ -27,6 +27,7 @@ gerekiyorsa satır güncellenir ve tarihi değişir.
 | 25.09.2026 | **T.C. Kimlik No kayıtta isteğe bağlı** (Apple 5.1.1). Girilirse doğrulanır. | Ürün sahibi (Apple reddi üzerine) |
 | 26.09.2026 | **Geçmiş DURUM.md'de tutulur**, CLAUDE.md'den otomatik yüklenir; her önemli adımda güncellenir. | Ürün sahibi |
 | 26.09.2026 | **Az soru:** "sorma, hepsine evet diyorum". Yalnız gerçekten ürün sahibine ait kararlar sorulur. | Ürün sahibi |
+| 05.10.2026 | **Sohbet ve düzeltme Haiku'da KALIR.** Sonnet'e geri alma önerisi (performans şikâyeti) reddedildi: "maliyet çok fazla oluyor, olmaz". Ölçümdeki ağır Haiku hataları (dava değeri/faiz, yanlış TBK maddesi) dilekçe ve incelemedeydi — onlar Sonnet'te. Sohbette görülen: yazım hatası. | Ürün sahibi |
 | 28.09.2026 | **Ücretsiz katmana 5 yapay zekâ deneme sorusu, Haiku ile.** 13.09'daki "ücretsizde AI yok" kararının yerine geçer. Vekil Pro'da toplam 10. | Ürün sahibi |
 | önceki | **PR'ları Claude kendi merge eder.** "sen et merge her zaman" | Ürün sahibi |
 | 14.09.2026 | **Tevkil panosu, sohbet ve günün sorusu yayından ÇIKARILDI.** Silinmediler; `src/ekranlar-beklemede/` altında duruyorlar (1.928 satır). Sebep: menüde yoktular ama derin bağlantıyla açılabiliyorlardı, bu da Play içerik anketini ve KVKK metinlerini yanlış duruma düşürüyordu. **Geri açma sırası: önce KVKK/gizlilik metinleri, sonra ekranlar, sonra PLAY.md 4.3.** | Ürün sahibi onayı ile |

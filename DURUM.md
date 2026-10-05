@@ -46,7 +46,7 @@
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
    Anahtar ~30.10 biter.
-   Modeller (04.10 son): SOHBET + DÜZELT HAIKU, gerisi SONNET 5 (ürün sahibi; katman.ts
+   Modeller (05.10 teyit, "maliyet çok, olmaz"): SOHBET + DÜZELT HAIKU, gerisi SONNET 5 (katman.ts
    isModeli). ÖLÇÜM 04.10 aynı 7 senaryo (scripts/olcum-{haiku,sonnet}-sonuc.json):
    Haiku hızlı değil, yanlış madde no + yazım hatası; Sonnet temiz, ~2 kat pahalı. Mütalaa
    süre sınırına çarpıyordu (546) → aramalar paralel + düşünmesiz: 72,9 sn (ai-chat v139).
