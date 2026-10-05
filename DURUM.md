@@ -10,20 +10,18 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 04.10.2026 gece (UDF gerçek editörde açıldı; sohbet uzunluk tavanı kalktı; adım süresi 0169)
+**Son güncelleme:** 05.10.2026 (Resmî Gazete fihristi canlı: 0170 + resmi-gazete işlevi + kart)
 
 ## 1. Şu an — yayın durumu
 
 - **iOS 3.4.0 App Store'da YAYINDA** (iTunes lookup id 6812859016, TR,
-  yayın 27.09 19:46 UTC — 01.10 ölçüldü). Sitede App Store bağlantısı main'de
-  (957a16a, başka oturum: Safari şeridi + 2. düğme; benimki çakışmada bırakıldı).
+  yayın 27.09 19:46 UTC — 01.10 ölçüldü). Sitede App Store bağlantısı var.
 - **Web** (`vekilpro.app/app`) `main`'den yayınlanır; `docs/app` = `npm run
   export:web` (41 sn, 03.10 ölçüldü) + commit. Ortam yoksa derleme durur.
 - **Hasat AÇIK** (28.09 18:34 UTC, 0160; ürün sahibi "hasata devam"). Geri alma
   eşiği: kullanıcı tablolarında zaman aşımı → 0156 ifadesiyle kapat.
   Vektörleme hâlâ kapalı (0154/0155). Ölçüldü 01.10: 24 saatte 14.373 yeni
   karar (katalog 11.037 + terim 3.336).
-- **Hasat talebe göre (0162/0163):** talep sayacı 03.10'da HİÇ kayıt tutmamış (bkz. 0a).
 
 ## 2. Sıradaki / açık işler
 
@@ -63,6 +61,8 @@
    kullanımda görülecek. Telefonda mikrofon YOK: klavye dikte ipucu (yerel modül = derleme).
    APİLEX DERSİ (04.10, KARAR-DEFTERI §5b): doğrulama e-postası TEKRAR GÖNDER eklendi; SMTP
    Resend ölçüldü. 0b. Bildirim (0161) telefona düştüğü ÖLÇÜLMEDİ. 0. Deneme 10 soru (0166).
+   RESMÎ GAZETE (05.10): fihrist 3 saatte bir çekilir (cron vekil_resmi_gazete, 0170); 7 gün
+   canlıda 200 (367–710 ms). Başlıklar aynen, AI özeti YOK. Ana kart + /resmi-gazete. OTA BEKLİYOR.
 0c. **KÜNYE CANLI TEYİDİ (03.10, 0167, PR #136/#137, OTA 220cb0d).** Havuzda olmayan
    Yargıtay künyesi Bedesten'de aranır; canlıda yok/olanaksız künye METİNDEN
    ÇIKARILIR (ürün sahibi "kullanıcıya yazılamaz"), yerine gerçek karar ÖNERİSİ.
@@ -83,7 +83,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0169`.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0170`.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE

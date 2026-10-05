@@ -194,6 +194,7 @@ export function Sidebar({ kalici = false }: { kalici?: boolean } = {}) {
     { icon: 'create-outline', label: t('contract.title'), path: '/contract' },
     { icon: 'calculator-outline', label: t('calc.title'), path: '/calculators' },
     { icon: 'library-outline', label: t('laws.title'), path: '/laws' },
+    { icon: 'newspaper-outline', label: t('rg.title'), path: '/resmi-gazete' },
   ];
   const officeItems: NavItem[] = [
     { icon: 'checkmark-done-outline', label: t('hout.short'), path: '/durusma-cikisi' },

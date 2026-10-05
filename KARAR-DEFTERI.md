@@ -313,6 +313,15 @@ Google Play: 4,2★ / 140 yorum görüldü ama yorum metinleri çekilemedi
 | Uygulama 400 TL + içeride paket | İndirme ücretsiz | — |
 | "Çalışmıyor" | ErrorBoundary var; çökme raporlama YOK | — (açık) |
 
+**Canlı ölçüm (05.10.2026 06:24–06:25 UTC, ürün sahibi "emin ol"):** anon
+anahtarla gerçek kayıt (`mustafayalvac244+vekil-dogrulama-0624@gmail.com`,
+plus-adres; doğrulanmadı, SİLİNMEDİ — silme onayı verilmedi) → /signup 200,
+1,6 sn (SMTP içinde, hata yok) → hemen /resend → **429 "18 saniye sonra"**
+(uygulama bu sayıyı geri sayıma koyar) → 37 sn sonra /resend → **200, 1,0 sn**,
+auth_logs'ta hata yok. Captcha: Turnstile anahtarı derlemede yok, sunucu
+captcha'sız isteği kabul etti. Gelen kutusuna DÜŞTÜĞÜ ölçülmedi (Gmail okuma
+yetkisi yok); ürün sahibi kendi kutusunda iki doğrulama e-postası görmeli.
+
 5★ yorumlarda övülenler (bizde durumu): kaynakça veren agent (atıf denetimi
 var), projeler/dosya entegrasyonu (dava dosyası var), Resmî Gazete özeti
 (YOK), sözleşme üretme (dilekçe var, sözleşme şablonu ÖLÇÜLMEDİ), web+mobil
