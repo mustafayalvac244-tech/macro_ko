@@ -1,0 +1,305 @@
+{
+ "tarih": "2026-10-05T16:57:44.836Z",
+ "sonuclar": [
+  {
+   "tur": "sohbet",
+   "id": "tek-bilgi-istinaf-suresi",
+   "tekrar": 1,
+   "durum": 200,
+   "duvarMs": 12369,
+   "beslemeMs": 10057,
+   "denetimMs": 227,
+   "adimlar": {
+    "embedding": 242,
+    "besleme_kural": 913,
+    "besleme_ictihat": 2294,
+    "besleme_mevzuat": 10057,
+    "denetim_karar": 0,
+    "denetim_madde": 227,
+    "kunye_cikar": 0
+   },
+   "beslemeKarakter": {
+    "kural": 4499,
+    "mevzuat": 5994,
+    "ictihat": 2142
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "sohbet",
+   "id": "tek-bilgi-istinaf-suresi",
+   "tekrar": 2,
+   "durum": 200,
+   "duvarMs": 4435,
+   "beslemeMs": 3129,
+   "denetimMs": 516,
+   "adimlar": {
+    "embedding": 242,
+    "besleme_kural": 530,
+    "besleme_ictihat": 1200,
+    "besleme_mevzuat": 3128,
+    "denetim_karar": 1,
+    "denetim_madde": 515,
+    "kunye_cikar": 1
+   },
+   "beslemeKarakter": {
+    "kural": 4499,
+    "mevzuat": 5994,
+    "ictihat": 2142
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "sohbet",
+   "id": "tek-bilgi-kavram-farki",
+   "tekrar": 1,
+   "durum": 200,
+   "duvarMs": 6468,
+   "beslemeMs": 5243,
+   "denetimMs": 488,
+   "adimlar": {
+    "embedding": 262,
+    "besleme_kural": 560,
+    "besleme_ictihat": 2394,
+    "besleme_mevzuat": 5243,
+    "denetim_karar": 0,
+    "denetim_madde": 488,
+    "kunye_cikar": 0
+   },
+   "beslemeKarakter": {
+    "kural": 2977,
+    "mevzuat": 6419,
+    "ictihat": 2193
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "sohbet",
+   "id": "tek-bilgi-kavram-farki",
+   "tekrar": 2,
+   "durum": 200,
+   "duvarMs": 5186,
+   "beslemeMs": 2992,
+   "denetimMs": 586,
+   "adimlar": {
+    "embedding": 306,
+    "besleme_kural": 580,
+    "besleme_ictihat": 830,
+    "besleme_mevzuat": 2992,
+    "denetim_karar": 1,
+    "denetim_madde": 586,
+    "kunye_cikar": 0
+   },
+   "beslemeKarakter": {
+    "kural": 2977,
+    "mevzuat": 6419,
+    "ictihat": 2193
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "sohbet",
+   "id": "gorev-sure-hesabi",
+   "tekrar": 1,
+   "durum": 200,
+   "duvarMs": 9967,
+   "beslemeMs": 8905,
+   "denetimMs": 320,
+   "adimlar": {
+    "embedding": 302,
+    "besleme_kural": 196,
+    "besleme_mevzuat": 7218,
+    "besleme_ictihat": 8904,
+    "denetim_karar": 0,
+    "denetim_madde": 320,
+    "kunye_cikar": 0
+   },
+   "beslemeKarakter": {
+    "kural": 5629,
+    "mevzuat": 6915,
+    "ictihat": 2182
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "sohbet",
+   "id": "gorev-sure-hesabi",
+   "tekrar": 2,
+   "durum": 200,
+   "duvarMs": 4568,
+   "beslemeMs": 3176,
+   "denetimMs": 506,
+   "adimlar": {
+    "embedding": 427,
+    "besleme_kural": 522,
+    "besleme_ictihat": 840,
+    "besleme_mevzuat": 3175,
+    "denetim_karar": 1,
+    "denetim_madde": 506,
+    "kunye_cikar": 0
+   },
+   "beslemeKarakter": {
+    "kural": 5629,
+    "mevzuat": 6915,
+    "ictihat": 2182
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "dilekce",
+   "id": "dava-kira-tahliye",
+   "tekrar": 1,
+   "durum": 200,
+   "duvarMs": 17800,
+   "beslemeMs": 16804,
+   "denetimMs": 510,
+   "adimlar": {
+    "embedding": 305,
+    "besleme_kural": 217,
+    "besleme_mevzuat": 15663,
+    "besleme_ictihat": 16803,
+    "denetim_karar": 0,
+    "denetim_madde": 510,
+    "kunye_cikar": 0
+   },
+   "beslemeKarakter": {
+    "kural": 3839,
+    "mevzuat": 6957,
+    "ictihat": 2189
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "dilekce",
+   "id": "dava-kira-tahliye",
+   "tekrar": 2,
+   "durum": 200,
+   "duvarMs": 17330,
+   "beslemeMs": 16271,
+   "denetimMs": 500,
+   "adimlar": {
+    "embedding": 314,
+    "besleme_kural": 373,
+    "besleme_ictihat": 7076,
+    "besleme_mevzuat": 16271,
+    "denetim_karar": 1,
+    "denetim_madde": 500,
+    "kunye_cikar": 0
+   },
+   "beslemeKarakter": {
+    "kural": 3839,
+    "mevzuat": 6957,
+    "ictihat": 2201
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "duzelt",
+   "id": "dava-kira-tahliye",
+   "tekrar": 1,
+   "durum": 200,
+   "duvarMs": 10612,
+   "beslemeMs": 9192,
+   "denetimMs": 566,
+   "adimlar": {
+    "embedding": 346,
+    "besleme_kural": 258,
+    "besleme_ictihat": 8227,
+    "besleme_mevzuat": 9191,
+    "denetim_karar": 0,
+    "denetim_madde": 565,
+    "kunye_cikar": 1
+   },
+   "beslemeKarakter": {
+    "kural": 3863,
+    "mevzuat": 5742,
+    "ictihat": 2083
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "duzelt",
+   "id": "dava-kira-tahliye",
+   "tekrar": 2,
+   "durum": 200,
+   "duvarMs": 6104,
+   "beslemeMs": 4773,
+   "denetimMs": 529,
+   "adimlar": {
+    "embedding": 304,
+    "besleme_kural": 587,
+    "besleme_mevzuat": 4067,
+    "besleme_ictihat": 4772,
+    "denetim_karar": 1,
+    "denetim_madde": 529,
+    "kunye_cikar": 0
+   },
+   "beslemeKarakter": {
+    "kural": 3863,
+    "mevzuat": 5742,
+    "ictihat": 2182
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "belge",
+   "id": "pdf-taranmis-sayfa",
+   "tekrar": 1,
+   "durum": 200,
+   "duvarMs": 11104,
+   "beslemeMs": 10618,
+   "denetimMs": 2,
+   "adimlar": {
+    "embedding": 307,
+    "besleme_kural": 566,
+    "besleme_ictihat": 1227,
+    "besleme_mevzuat": 10617,
+    "denetim_madde": 2,
+    "denetim_karar": 1,
+    "kunye_cikar": 0
+   },
+   "beslemeKarakter": {
+    "kural": 3513,
+    "mevzuat": 6123,
+    "ictihat": 2170
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  },
+  {
+   "tur": "belge",
+   "id": "pdf-taranmis-sayfa",
+   "tekrar": 2,
+   "durum": 200,
+   "duvarMs": 7640,
+   "beslemeMs": 6718,
+   "denetimMs": 3,
+   "adimlar": {
+    "embedding": 317,
+    "besleme_kural": 593,
+    "besleme_ictihat": 1235,
+    "besleme_mevzuat": 6717,
+    "denetim_madde": 2,
+    "denetim_karar": 1,
+    "kunye_cikar": 0
+   },
+   "beslemeKarakter": {
+    "kural": 3513,
+    "mevzuat": 6123,
+    "ictihat": 2170
+   },
+   "atif": 0,
+   "uydurmaMadde": 0
+  }
+ ]
+}
