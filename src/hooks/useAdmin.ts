@@ -63,6 +63,13 @@ export interface AdminUser {
    * açanlarda dolar. En fazla 30 dakikada bir yazılır (bkz. 0097).
    */
   son_gorulme: string | null;
+  /**
+   * Nereden geldi (0173): "iPhone", "Web · meta/ekim", "Web · google.com",
+   * "Web · doğrudan"; eski kayıtlarda "iPhone (cihaz kaydından)" — o yalnız
+   * platformdur, reklam/site bilgisi değil; hiçbiri yoksa "bilinmiyor".
+   * Göç uygulanmadıysa undefined gelir.
+   */
+  kaynak?: string | null;
 }
 
 export function useAdminOverview() {

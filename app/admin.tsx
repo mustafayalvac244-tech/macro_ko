@@ -45,7 +45,8 @@ export default function AdminScreen() {
     const q = arama.trim().toLocaleLowerCase('tr');
     if (!q) return liste;
     return liste.filter((u) =>
-      `${u.full_name ?? ''} ${u.email ?? ''} ${u.firm_name ?? ''}`.toLocaleLowerCase('tr').includes(q)
+      // Kaynak da aranır: "meta", "iphone" yazınca o kanaldan gelenler süzülür.
+      `${u.full_name ?? ''} ${u.email ?? ''} ${u.firm_name ?? ''} ${u.kaynak ?? ''}`.toLocaleLowerCase('tr').includes(q)
     );
   }, [users.data, arama]);
 
@@ -394,6 +395,14 @@ function UserRow({
         <Text allowFontScaling={false} style={styles.userMeta} numberOfLines={1}>
           {user.email}{joined ? `  ·  ${joined}` : ''}
         </Text>
+        {!!user.kaynak && (
+          <View style={styles.userDetayRow}>
+            <Ionicons name="navigate-outline" size={11} color={colors.textMuted} />
+            <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+              Nereden: {user.kaynak}
+            </Text>
+          </View>
+        )}
         <View style={styles.userAiRow}>
           <View style={styles.tierChip}>
             <Text allowFontScaling={false} style={styles.tierChipText}>{tierLabel(user.ai_tier)}</Text>
