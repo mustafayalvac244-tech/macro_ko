@@ -20,7 +20,13 @@ const ADIM_MS = 60;
 const SURE_MS = 380;
 const YEREL = Platform.OS !== 'web';
 
-function useHareketAzalt(): boolean | null {
+/** Ana ekran girişi bu açılışta oynadı mı (sonradan monte olan parçalar için). */
+export function girisOynadi(): boolean {
+  return oynadi;
+}
+
+/** Sistemde "hareketi azalt" açık mı; okunana kadar null. */
+export function useHareketAzalt(): boolean | null {
   const [azalt, setAzalt] = useState<boolean | null>(null);
   useEffect(() => {
     let canli = true;
