@@ -12,6 +12,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
+import { Belir, SayanSayi } from '@/components/ui/Belir';
 import { AramaVeYeni } from '@/components/ui/AramaVeYeni';
 import { TemaDugmesi } from '@/components/ui/TemaDugmesi';
 import { useAuthStore } from '@/store/authStore';
@@ -477,7 +478,7 @@ export default function DashboardScreen() {
              sığmaz; sığdırmaya çalışmak, bugünkü sade karşılamayı bozar ve
              ekranın üstünden yer çalar. Geniş tarayıcıda ise sağ taraf zaten
              boştu — sayılar tam oraya oturuyor. */}
-        <View style={[styles.panoBaslikSatiri, blok('tam')]}>
+        <Belir sira={0} style={[styles.panoBaslikSatiri, blok('tam')]}>
           <View>
             <Text allowFontScaling={false} style={styles.greeting}>
               {t(greetingKey)}, {firstName}
@@ -492,12 +493,12 @@ export default function DashboardScreen() {
               <PanoSayi etiket={t('dash.stat.outcomes')} deger={panoSayilari.sonuc} />
             </View>
           )}
-        </View>
+        </Belir>
 
         {/* İLK ADIMLAR — yeni kullanıcıya ne yapacağını söyler (03.10.2026, satış planı). */}
-        <View style={blok('tam')}>
+        <Belir sira={1} style={blok('tam')}>
           <IlkAdimlar aiAcik={AI_ENABLED && AI_DILEKCE_ENABLED} />
-        </View>
+        </Belir>
 
         {/* ---------- Plan durumu ----------
             Eskiden burada 7 günlük deneme sayacı ve "deneme süren doldu"
@@ -576,7 +577,7 @@ export default function DashboardScreen() {
         )}
 
         {/* ---------- Sıradaki + Bugün ---------- */}
-        <View style={[styles.hero, blok('ikiUcte'), panoMu && styles.panoMarjsiz]}>
+        <Belir sira={2} style={[styles.hero, blok('ikiUcte'), panoMu && styles.panoMarjsiz]}>
           <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.next.label')}</Text>
 
           {nextEvent ? (
@@ -635,11 +636,11 @@ export default function DashboardScreen() {
             <Text allowFontScaling={false} style={[styles.heroCtaText, { color: colors.textInverse }]}>{t('dash.assist.start')}</Text>
             <Ionicons name="arrow-forward" size={15} color={colors.textInverse} />
           </Pressable>
-        </View>
+        </Belir>
 
         {/* ---------- Davana Emsal (AI/İçtihat kapalıyken gizli) ---------- */}
         {AI_ENABLED && (
-        <View style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
+        <Belir sira={3} style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
@@ -767,11 +768,11 @@ export default function DashboardScreen() {
               )}
             </View>
           )}
-        </View>
+        </Belir>
         )}
 
         {/* ---------- Finansal Özet ---------- */}
-        <View style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
+        <Belir sira={4} style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
@@ -792,7 +793,7 @@ export default function DashboardScreen() {
             <View style={styles.finDivider} />
             <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
           </View>
-        </View>
+        </Belir>
 
         {/* ---------- Yaklaşan Süreler (yalnız pano) ----------
              NEDEN YENİ. Ana ekranda süreler yalnız "bugün" kutusunda ve tek
@@ -801,7 +802,7 @@ export default function DashboardScreen() {
              bugüne bakmak, haftaya bakmamak. Telefonda eklenmedi çünkü orada
              ekranın altına düşer ve görülmez — bu kart görülmek için var. */}
         {panoMu && (
-          <View style={[styles.card, blok('ikiUcte'), styles.panoMarjsiz]}>
+          <Belir sira={5} style={[styles.card, blok('ikiUcte'), styles.panoMarjsiz]}>
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <View style={styles.cardHeaderIcon}>
@@ -853,11 +854,11 @@ export default function DashboardScreen() {
                 );
               })
             )}
-          </View>
+          </Belir>
         )}
 
         {/* ---------- Resmî Gazete (veri yoksa çizilmez) ---------- */}
-        <ResmiGazeteKarti cerceve={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]} />
+        <ResmiGazeteKarti sira={6} cerceve={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]} />
 
         {/* ---------- Kısayollar (yalnız pano) ----------
              Telefonda bu kart GEREKSİZ: aynı yollar kenar menüsünde tek
@@ -865,7 +866,7 @@ export default function DashboardScreen() {
              panonun sağ alt köşesi zaten boştu ve en sık açılan altı ekran
              oraya sığıyor. */}
         {panoMu && (
-          <View style={[styles.card, blok(resmiGazeteVar ? 'ikiUcte' : 'tam'), styles.panoMarjsiz]}>
+          <Belir sira={7} style={[styles.card, blok(resmiGazeteVar ? 'ikiUcte' : 'tam'), styles.panoMarjsiz]}>
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <View style={styles.cardHeaderIcon}>
@@ -894,7 +895,7 @@ export default function DashboardScreen() {
                 </Pressable>
               ))}
             </View>
-          </View>
+          </Belir>
         )}
       </ScrollView>
 
@@ -929,7 +930,11 @@ function PanoSayi({ etiket, deger }: { etiket: string; deger: number | null }) {
   return (
     <View style={styles.panoSayiKutu}>
       <Text allowFontScaling={false} style={styles.panoSayiEtiket} numberOfLines={1}>{etiket}</Text>
-      <Text allowFontScaling={false} style={styles.panoSayiDeger}>{deger === null ? '—' : deger}</Text>
+      {deger === null ? (
+        <Text allowFontScaling={false} style={styles.panoSayiDeger}>—</Text>
+      ) : (
+        <SayanSayi deger={deger} style={styles.panoSayiDeger} />
+      )}
     </View>
   );
 }

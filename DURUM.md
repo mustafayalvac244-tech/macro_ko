@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 06.10.2026 (yönetici panelinde kullanıcı kaynağı 0173; gece görevi düzeltildi 0174)
+**Son güncelleme:** 06.10.2026 (bento girişi ana ekranda; panelde kullanıcı kaynağı 0173; gece görevi 0174)
 
 ## 1. Şu an — yayın durumu
 
@@ -59,7 +59,7 @@
    APİLEX DERSİ (04.10, KARAR-DEFTERI §5b): doğrulama e-postası TEKRAR GÖNDER eklendi; SMTP
    Resend ölçüldü. 0b. Bildirim (0161) ÖLÇÜLMEDİ. 0. Deneme 10 soru (0166).
    RESMÎ GAZETE (05.10): fihrist 3 saatte bir çekilir (cron vekil_resmi_gazete, 0170); 7 gün
-   canlıda 200 (367–710 ms). Başlıklar aynen, AI özeti YOK. Ana kart + /resmi-gazete. OTA BEKLİYOR.
+   canlıda 200 (367–710 ms). Başlıklar aynen, AI özeti YOK. OTA BEKLİYOR. 06.10 BENTO: kartlar sırayla belirir (ui/Belir).
    PERFORMANS (05.10, KARAR §5d): madde-karar sorgusu 5,4 sn→136 ms; içtihat FTS hâlâ ~4 sn (disk).
    06.10: panelde "Nereden:" (kayit_kaynagi; eski kayıtlar cihaz kaydından platform). vekil_madde_baglam
    29.09'dan beri düşüyordu → 10 dk sınır (elle 205,7 sn'de bitti). Hasat INSERT'leri 30–63 sn sürüyor (disk).

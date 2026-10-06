@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { format } from 'date-fns/format';
 import { tr as trLocale } from 'date-fns/locale/tr';
 import { enUS } from 'date-fns/locale/en-US';
+import { Belir } from '@/components/ui/Belir';
 import { useResmiGazete } from '@/hooks/useResmiGazete';
 import { onemliMaddeler } from '@/lib/resmiGazete';
 import { useLangStore, useT } from '@/i18n';
@@ -19,9 +20,10 @@ const GOSTERILEN = 3;
  * En son günün öne çıkan en çok 3 maddesi (atama kararları ve üniversite iç
  * yönetmelikleri hariç; kural src/lib/resmiGazete.ts). Öne çıkan yoksa yalnız
  * madde sayısı yazar — kart boş başlık uydurmaz. Veri yoksa hiç çizilmez.
- * Kabı (kart çerçevesi, ızgara yeri) ana ekran verir: `cerceve` stili.
+ * Kabı (kart çerçevesi, ızgara yeri) ana ekran verir: `cerceve` stili;
+ * `sira` ana ekrandaki bento giriş sırası (src/components/ui/Belir.tsx).
  */
-export function ResmiGazeteKarti({ cerceve }: { cerceve?: StyleProp<ViewStyle> }) {
+export function ResmiGazeteKarti({ cerceve, sira = 0 }: { cerceve?: StyleProp<ViewStyle>; sira?: number }) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(colors);
@@ -36,7 +38,7 @@ export function ResmiGazeteKarti({ cerceve }: { cerceve?: StyleProp<ViewStyle> }
   const ac = () => router.push('/resmi-gazete' as Parameters<typeof router.push>[0]);
 
   return (
-    <View style={cerceve}>
+    <Belir sira={sira} style={cerceve}>
       <View style={styles.baslikSatir}>
         <View style={styles.baslikSol}>
           <View style={styles.ikon}>
@@ -70,7 +72,7 @@ export function ResmiGazeteKarti({ cerceve }: { cerceve?: StyleProp<ViewStyle> }
           </Pressable>
         ))
       )}
-    </View>
+    </Belir>
   );
 }
 

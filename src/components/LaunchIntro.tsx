@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useT } from '@/i18n';
 import { fonts, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
+import { perdeKalkti } from '@/lib/acilisPerdesi';
 
 // Gömülü splash karesiyle AYNI görsel — geçişte renk/kalite farkı sırıtmasın.
 const LOGO = require('../../assets/splash-icon.png');
@@ -55,7 +56,10 @@ export function LaunchIntro({ fontsReady = true }: { fontsReady?: boolean }) {
   const curtain = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      perdeKalkti();
+      return;
+    }
     hasPlayed = true;
     let done = false;
     const finish = () => {
