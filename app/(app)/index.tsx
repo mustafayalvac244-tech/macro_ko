@@ -12,7 +12,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
-import { Belir, SayanSayi } from '@/components/ui/Belir';
 import { AramaVeYeni } from '@/components/ui/AramaVeYeni';
 import { TemaDugmesi } from '@/components/ui/TemaDugmesi';
 import { useAuthStore } from '@/store/authStore';
@@ -30,8 +29,6 @@ import { useAdvanceAlertStore } from '@/store/advanceAlertStore';
 import { AI_DILEKCE_ENABLED, AI_ENABLED } from '@/config/features';
 import { IlkAdimlar } from '@/components/IlkAdimlar';
 import { ResmiGazeteKarti } from '@/components/ResmiGazeteKarti';
-import { BuHaftaKarti } from '@/components/BuHaftaKarti';
-import { SayacKarti } from '@/components/SayacKarti';
 import { useResmiGazete } from '@/hooks/useResmiGazete';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
@@ -480,7 +477,7 @@ export default function DashboardScreen() {
              sığmaz; sığdırmaya çalışmak, bugünkü sade karşılamayı bozar ve
              ekranın üstünden yer çalar. Geniş tarayıcıda ise sağ taraf zaten
              boştu — sayılar tam oraya oturuyor. */}
-        <Belir sira={0} style={[styles.panoBaslikSatiri, blok('tam')]}>
+        <View style={[styles.panoBaslikSatiri, blok('tam')]}>
           <View>
             <Text allowFontScaling={false} style={styles.greeting}>
               {t(greetingKey)}, {firstName}
@@ -495,12 +492,12 @@ export default function DashboardScreen() {
               <PanoSayi etiket={t('dash.stat.outcomes')} deger={panoSayilari.sonuc} />
             </View>
           )}
-        </Belir>
+        </View>
 
         {/* İLK ADIMLAR — yeni kullanıcıya ne yapacağını söyler (03.10.2026, satış planı). */}
-        <Belir sira={1} style={blok('tam')}>
+        <View style={blok('tam')}>
           <IlkAdimlar aiAcik={AI_ENABLED && AI_DILEKCE_ENABLED} />
-        </Belir>
+        </View>
 
         {/* ---------- Plan durumu ----------
             Eskiden burada 7 günlük deneme sayacı ve "deneme süren doldu"
@@ -578,11 +575,8 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* ---------- Çalışan sayaç (yalnız çalışırken) ---------- */}
-        <SayacKarti sira={2} yatay={panoMu} cerceve={[styles.card, blok('tam'), panoMu && styles.panoMarjsiz]} />
-
         {/* ---------- Sıradaki + Bugün ---------- */}
-        <Belir sira={2} style={[styles.hero, blok('ikiUcte'), panoMu && styles.panoMarjsiz]}>
+        <View style={[styles.hero, blok('ikiUcte'), panoMu && styles.panoMarjsiz]}>
           <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.next.label')}</Text>
 
           {nextEvent ? (
@@ -641,11 +635,11 @@ export default function DashboardScreen() {
             <Text allowFontScaling={false} style={[styles.heroCtaText, { color: colors.textInverse }]}>{t('dash.assist.start')}</Text>
             <Ionicons name="arrow-forward" size={15} color={colors.textInverse} />
           </Pressable>
-        </Belir>
+        </View>
 
         {/* ---------- Davana Emsal (AI/İçtihat kapalıyken gizli) ---------- */}
         {AI_ENABLED && (
-        <Belir sira={3} style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
+        <View style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
@@ -773,20 +767,11 @@ export default function DashboardScreen() {
               )}
             </View>
           )}
-        </Belir>
+        </View>
         )}
 
-        {/* ---------- Bu Hafta (günlere göre duruşma + süre) ----------
-             Panoda [Bu Hafta | Finans | Yaklaşan Süreler] üçte birlik satırı. */}
-        <BuHaftaKarti
-          sira={4}
-          durusmalar={hearings.data}
-          sureler={deadlines.data}
-          cerceve={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}
-        />
-
         {/* ---------- Finansal Özet ---------- */}
-        <Belir sira={5} style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
+        <View style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
@@ -807,7 +792,7 @@ export default function DashboardScreen() {
             <View style={styles.finDivider} />
             <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
           </View>
-        </Belir>
+        </View>
 
         {/* ---------- Yaklaşan Süreler (yalnız pano) ----------
              NEDEN YENİ. Ana ekranda süreler yalnız "bugün" kutusunda ve tek
@@ -816,7 +801,7 @@ export default function DashboardScreen() {
              bugüne bakmak, haftaya bakmamak. Telefonda eklenmedi çünkü orada
              ekranın altına düşer ve görülmez — bu kart görülmek için var. */}
         {panoMu && (
-          <Belir sira={6} style={[styles.card, blok('ucteBir'), styles.panoMarjsiz]}>
+          <View style={[styles.card, blok('ikiUcte'), styles.panoMarjsiz]}>
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <View style={styles.cardHeaderIcon}>
@@ -868,11 +853,11 @@ export default function DashboardScreen() {
                 );
               })
             )}
-          </Belir>
+          </View>
         )}
 
         {/* ---------- Resmî Gazete (veri yoksa çizilmez) ---------- */}
-        <ResmiGazeteKarti sira={7} cerceve={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]} />
+        <ResmiGazeteKarti cerceve={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]} />
 
         {/* ---------- Kısayollar (yalnız pano) ----------
              Telefonda bu kart GEREKSİZ: aynı yollar kenar menüsünde tek
@@ -880,7 +865,7 @@ export default function DashboardScreen() {
              panonun sağ alt köşesi zaten boştu ve en sık açılan altı ekran
              oraya sığıyor. */}
         {panoMu && (
-          <Belir sira={8} style={[styles.card, blok(resmiGazeteVar ? 'ikiUcte' : 'tam'), styles.panoMarjsiz]}>
+          <View style={[styles.card, blok(resmiGazeteVar ? 'ikiUcte' : 'tam'), styles.panoMarjsiz]}>
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <View style={styles.cardHeaderIcon}>
@@ -909,7 +894,7 @@ export default function DashboardScreen() {
                 </Pressable>
               ))}
             </View>
-          </Belir>
+          </View>
         )}
       </ScrollView>
 
@@ -944,11 +929,7 @@ function PanoSayi({ etiket, deger }: { etiket: string; deger: number | null }) {
   return (
     <View style={styles.panoSayiKutu}>
       <Text allowFontScaling={false} style={styles.panoSayiEtiket} numberOfLines={1}>{etiket}</Text>
-      {deger === null ? (
-        <Text allowFontScaling={false} style={styles.panoSayiDeger}>—</Text>
-      ) : (
-        <SayanSayi deger={deger} style={styles.panoSayiDeger} />
-      )}
+      <Text allowFontScaling={false} style={styles.panoSayiDeger}>{deger === null ? '—' : deger}</Text>
     </View>
   );
 }
