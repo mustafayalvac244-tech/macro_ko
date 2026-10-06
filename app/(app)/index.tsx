@@ -30,6 +30,8 @@ import { useAdvanceAlertStore } from '@/store/advanceAlertStore';
 import { AI_DILEKCE_ENABLED, AI_ENABLED } from '@/config/features';
 import { IlkAdimlar } from '@/components/IlkAdimlar';
 import { ResmiGazeteKarti } from '@/components/ResmiGazeteKarti';
+import { BuHaftaKarti } from '@/components/BuHaftaKarti';
+import { SayacKarti } from '@/components/SayacKarti';
 import { useResmiGazete } from '@/hooks/useResmiGazete';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
@@ -576,6 +578,9 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* ---------- Çalışan sayaç (yalnız çalışırken) ---------- */}
+        <SayacKarti sira={2} yatay={panoMu} cerceve={[styles.card, blok('tam'), panoMu && styles.panoMarjsiz]} />
+
         {/* ---------- Sıradaki + Bugün ---------- */}
         <Belir sira={2} style={[styles.hero, blok('ikiUcte'), panoMu && styles.panoMarjsiz]}>
           <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.next.label')}</Text>
@@ -771,8 +776,17 @@ export default function DashboardScreen() {
         </Belir>
         )}
 
+        {/* ---------- Bu Hafta (günlere göre duruşma + süre) ----------
+             Panoda [Bu Hafta | Finans | Yaklaşan Süreler] üçte birlik satırı. */}
+        <BuHaftaKarti
+          sira={4}
+          durusmalar={hearings.data}
+          sureler={deadlines.data}
+          cerceve={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}
+        />
+
         {/* ---------- Finansal Özet ---------- */}
-        <Belir sira={4} style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
+        <Belir sira={5} style={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={styles.cardHeaderIcon}>
@@ -802,7 +816,7 @@ export default function DashboardScreen() {
              bugüne bakmak, haftaya bakmamak. Telefonda eklenmedi çünkü orada
              ekranın altına düşer ve görülmez — bu kart görülmek için var. */}
         {panoMu && (
-          <Belir sira={5} style={[styles.card, blok('ikiUcte'), styles.panoMarjsiz]}>
+          <Belir sira={6} style={[styles.card, blok('ucteBir'), styles.panoMarjsiz]}>
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <View style={styles.cardHeaderIcon}>
@@ -858,7 +872,7 @@ export default function DashboardScreen() {
         )}
 
         {/* ---------- Resmî Gazete (veri yoksa çizilmez) ---------- */}
-        <ResmiGazeteKarti sira={6} cerceve={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]} />
+        <ResmiGazeteKarti sira={7} cerceve={[styles.card, blok('ucteBir'), panoMu && styles.panoMarjsiz]} />
 
         {/* ---------- Kısayollar (yalnız pano) ----------
              Telefonda bu kart GEREKSİZ: aynı yollar kenar menüsünde tek
@@ -866,7 +880,7 @@ export default function DashboardScreen() {
              panonun sağ alt köşesi zaten boştu ve en sık açılan altı ekran
              oraya sığıyor. */}
         {panoMu && (
-          <Belir sira={7} style={[styles.card, blok(resmiGazeteVar ? 'ikiUcte' : 'tam'), styles.panoMarjsiz]}>
+          <Belir sira={8} style={[styles.card, blok(resmiGazeteVar ? 'ikiUcte' : 'tam'), styles.panoMarjsiz]}>
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <View style={styles.cardHeaderIcon}>
