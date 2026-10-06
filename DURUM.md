@@ -84,8 +84,8 @@
 ## 3. Kritik kimlikler
 
 - Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0174` (0172 apply_migration ile; Actions arızası).
-- Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
-  merge eder** ("sen et merge her zaman").
+- Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, Claude merge eder
+  AMA **06.10: "Bana göstermeden yayınlama"** — main'e birleştirme = web yayını; önce görüntü göster, onay al.
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
   `yalniz-imza` ile listele, YALNIZ bizim önceki derlemenin sertifikasını
   `iptal_sertifika_id` ile iptal et. **`MK673L5BTW` İlaç Pro'nundur — ASLA
