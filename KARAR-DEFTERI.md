@@ -350,7 +350,7 @@ Lawlera 594–1.050 ₺/ay (indirimli), KatipAI 199 → 499 ₺/ay, Lexform ücr
 Apilex 24.999,99 ₺/ay — 39.999,99 ₺/6 ay (bir kaynak), web'den satış hepsinde.
 Bizim AI paketi **2.999 ₺/ay**, yalnız iPhone'dan.
 
-Maliyet (ölçüldü 03.10): soru başı ~₺2,1–2,2 (Sonnet). Ücretli tavan bugün
+Maliyet (ölçüldü 03.10): soru başı ~₺2,1–2,2 (Sonnet); sohbet geçmişi önbelleği (0168, ai-chat v135) etkisi ÖLÇÜLMEDİ (ai_istek.onbellek_okunan). 'duzelt' modu PR #143 (ai-chat v137). Ücretli tavan bugün
 kullanıcı başına ₺3.000/ay maliyet + 750 soru (katman.ts) — fiyat düşerse
 tavan da düşmeli, yoksa yoğun kullanıcı zarar ettirir.
 

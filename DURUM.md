@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 05.10.2026 gece (performans: 0171 adım süresi, 0172 yavaş sorgular — KARAR §5d)
+**Son güncelleme:** 06.10.2026 (yönetici panelinde kullanıcı kaynağı 0173; gece görevi düzeltildi 0174)
 
 ## 1. Şu an — yayın durumu
 
@@ -50,19 +50,19 @@
    isModeli). ÖLÇÜM 04.10 aynı 7 senaryo (scripts/olcum-{haiku,sonnet}-sonuc.json):
    Haiku hızlı değil, yanlış madde no + yazım hatası; Sonnet temiz, ~2 kat pahalı. Mütalaa
    süre sınırına çarpıyordu (546) → aramalar paralel + düşünmesiz: 72,9 sn (ai-chat v139).
-   Yeni 'duzelt' modu: "Yapay zekâya düzelttir" (PR #143; ai-chat v137, ictihat v70).
    HIZ: aramalar + denetimler PARALEL (v140). Ölçüldü: sohbet 25–30 → 22–23 sn, dilekçe
    66 → 58 sn; ~20 sn hâlâ modelden bağımsız, NEREDE harcandığı ÖLÇÜLMEDİ (adım süresi yok).
-   03.10 ölçüldü: sohbet ₺2,20/soru, dilekçe ₺2,11 → geçmiş önbelleği (0168, v135);
-   etkisi ÖLÇÜLMEDİ (onbellek_okunan). Gerçek satış 0; tek abonelik sandbox.
+   Maliyet/önbellek ölçümü: KARAR-DEFTERI §5c. Gerçek satış 0; tek abonelik sandbox.
    04.10 gece (avukat "kısa, detay yok"): sohbet 500/900 krktr tavanı KALDIRILDI (~800–4.000),
    madde başına 2 karar; ai_istek'e sure_ms/model_bas_ms/model_ms (0169) — 20 sn nerede, gerçek
    kullanımda görülecek. Telefonda mikrofon YOK: klavye dikte ipucu (yerel modül = derleme).
    APİLEX DERSİ (04.10, KARAR-DEFTERI §5b): doğrulama e-postası TEKRAR GÖNDER eklendi; SMTP
-   Resend ölçüldü. 0b. Bildirim (0161) telefona düştüğü ÖLÇÜLMEDİ. 0. Deneme 10 soru (0166).
+   Resend ölçüldü. 0b. Bildirim (0161) ÖLÇÜLMEDİ. 0. Deneme 10 soru (0166).
    RESMÎ GAZETE (05.10): fihrist 3 saatte bir çekilir (cron vekil_resmi_gazete, 0170); 7 gün
    canlıda 200 (367–710 ms). Başlıklar aynen, AI özeti YOK. Ana kart + /resmi-gazete. OTA BEKLİYOR.
    PERFORMANS (05.10, KARAR §5d): madde-karar sorgusu 5,4 sn→136 ms; içtihat FTS hâlâ ~4 sn (disk).
+   06.10: panelde "Nereden:" (kayit_kaynagi; eski kayıtlar cihaz kaydından platform). vekil_madde_baglam
+   29.09'dan beri düşüyordu → 10 dk sınır (elle 205,7 sn'de bitti). Hasat INSERT'leri 30–63 sn sürüyor (disk).
 0c. **KÜNYE CANLI TEYİDİ (03.10, 0167, PR #136/#137, OTA 220cb0d).** Havuzda olmayan
    Yargıtay künyesi Bedesten'de aranır; canlıda yok/olanaksız künye METİNDEN
    ÇIKARILIR (ürün sahibi "kullanıcıya yazılamaz"), yerine gerçek karar ÖNERİSİ.
@@ -83,7 +83,7 @@
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0172` (0172 apply_migration ile; Actions arızası).
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0174` (0172 apply_migration ile; Actions arızası).
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
   merge eder** ("sen et merge her zaman").
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
