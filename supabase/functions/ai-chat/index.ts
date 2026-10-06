@@ -28,7 +28,8 @@ import {
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 import { canliIctihat, canliKunyeDogrula } from '../_shared/uyapCanli.ts';
-import { modelSuresi, sureIzle, sureOzeti } from '../_shared/adimSure.ts';
+import { adim, modelSuresi, sureIzle, sureOzeti } from '../_shared/adimSure.ts';
+import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 import { mesajlariHazirla } from '../_shared/onbellek.ts';
 // Avukatın eklediği belgeler (dilekçe/belge inceleme) — PDF görüntüsüyle gider.
 import { denetimKaynagi, ekAciklamasi, ekleriAyikla, pdfBloklari, taranmisSayfaVar, type Ek } from '../_shared/belgeEki.ts';
@@ -742,7 +743,10 @@ function kusurluCikti(mod: 'dilekce' | 'mutalaa' | 'belge' | 'sohbet', metin: st
  * kullanılıyor. Denetim kullanıcı verisine değil, herkese açık korpusa bakıyor;
  * servis anahtarıyla çağrılması yetki genişletmesi değil.
  */
-async function uydurmaMaddeDenetimi(metin: string): Promise<string[]> {
+/** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
+const uydurmaMaddeDenetimi = (...a: Parameters<typeof uydurmaMaddeDenetimiIc>): ReturnType<typeof uydurmaMaddeDenetimiIc> => adim('denetim_madde', () => uydurmaMaddeDenetimiIc(...a));
+
+async function uydurmaMaddeDenetimiIc(metin: string): Promise<string[]> {
   const s = svc();
   if (!s) return [];
   try {
@@ -865,7 +869,10 @@ async function gercekKararOner(cumle: string): Promise<Array<{ atif: string; dai
   }
 }
 
-async function uydurmaKunyeleriCikar(metin: string, d: KararDenetimi | null): Promise<{ metin: string; cikarilan: number }> {
+/** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
+const uydurmaKunyeleriCikar = (...a: Parameters<typeof uydurmaKunyeleriCikarIc>): ReturnType<typeof uydurmaKunyeleriCikarIc> => adim('kunye_cikar', () => uydurmaKunyeleriCikarIc(...a));
+
+async function uydurmaKunyeleriCikarIc(metin: string, d: KararDenetimi | null): Promise<{ metin: string; cikarilan: number }> {
   if (!d) return { metin, cikarilan: 0 };
   let m = metin;
   let cikarilan = 0;
@@ -886,7 +893,10 @@ async function uydurmaKunyeleriCikar(metin: string, d: KararDenetimi | null): Pr
   return { metin: m, cikarilan };
 }
 
-async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
+/** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
+const kararAtfiDenetimi = (...a: Parameters<typeof kararAtfiDenetimiIc>): ReturnType<typeof kararAtfiDenetimiIc> => adim('denetim_karar', () => kararAtfiDenetimiIc(...a));
+
+async function kararAtfiDenetimiIc(metin: string): Promise<KararDenetimi | null> {
   const s = svc();
   if (!s) return null;
   try {
@@ -932,7 +942,7 @@ async function kararAtfiDenetimi(metin: string): Promise<KararDenetimi | null> {
       adaylar.map(async (a) => {
         const esas = a.esasYil ? `${a.esasYil}/${a.esasNo}` : '';
         const karar = a.kararYil ? `${a.kararYil}/${a.kararNo}` : '';
-        const r = await canliKunyeDogrula(esas, karar);
+        const r = await adim('kunye_canli', () => canliKunyeDogrula(esas, karar));
         if (r === null) return;
         if (r.bulundu) bulunan.set(anahtar(a), { daire: r.daire, tarih: r.tarih, id: r.id, kaynak: 'uyap' });
         else canlidaYok.push(a.ham);
@@ -1650,7 +1660,10 @@ function matchKBRules(question: string): Array<{ id: string; text: string }> {
  * tetiklenmiyordu ve model madde uyduruyordu — kalite şikayetinin ana sebebi.
  */
 // deno-lint-ignore no-explicit-any
-async function buildRules(supabase: any, question: string, toplanan?: Map<string, BeslenenKural>): Promise<string> {
+/** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
+const buildRules = (...a: Parameters<typeof buildRulesIc>): ReturnType<typeof buildRulesIc> => adim('besleme_kural', () => buildRulesIc(...a));
+
+async function buildRulesIc(supabase: any, question: string, toplanan?: Map<string, BeslenenKural>): Promise<string> {
   const picked = new Map<string, BeslenenKural>();
   for (const r of matchKBRules(question)) picked.set(r.id, { metin: r.text, terimler: [] });
   try {
@@ -1735,7 +1748,10 @@ async function buildRules(supabase: any, question: string, toplanan?: Map<string
  * uydurma riski sıfırdır ve hiç kota harcamaz.
  */
 // deno-lint-ignore no-explicit-any
-async function mevzuatOzeti(supabase: any, question: string): Promise<string> {
+/** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
+const mevzuatOzeti = (...a: Parameters<typeof mevzuatOzetiIc>): ReturnType<typeof mevzuatOzetiIc> => adim('mevzuat_ozeti', () => mevzuatOzetiIc(...a));
+
+async function mevzuatOzetiIc(supabase: any, question: string): Promise<string> {
   // ALAKA EŞİĞİ BURADA DA GEÇERLİ. İlk denemede eşik uygulanmadığı için özet,
   // "işe iade" sorusuna iş kazası zamanaşımı kuralını ve 2014 tarihli bir prim
   // yapılandırma geçici maddesini de bastı. Model yokken gürültüyü ayıklayacak
@@ -1855,7 +1871,10 @@ async function canliArsivle(supabase: any, kararlar: Array<{ id: string; daire: 
 function ictihatIstenmis(soru: string): boolean {
   return /i[çc]tihat|emsal|yarg[ıi]tay|dan[ıi][şs]tay|karar(?:ı|lar)?\b/i.test(soru);
 }
-async function buildGrounding(supabase: any, question: string, enAz = 3, enCok = 5): Promise<string> {
+/** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
+const buildGrounding = (...a: Parameters<typeof buildGroundingIc>): ReturnType<typeof buildGroundingIc> => adim('besleme_ictihat', () => buildGroundingIc(...a));
+
+async function buildGroundingIc(supabase: any, question: string, enAz = 3, enCok = 5): Promise<string> {
   // deno-lint-ignore no-explicit-any
   let rows: any[] = [];
   // Anlamsal arama artık TÜM katmanlarda çalışır: yerleşik model ücretsiz ve
@@ -1881,7 +1900,7 @@ async function buildGrounding(supabase: any, question: string, enAz = 3, enCok =
     }
   };
 
-  const qEmb = await embedQuery(question);
+  const qEmb = await adim('embedding', () => embedQuery(question));
   const [semRes, ftsRes] = await Promise.all([
     qEmb
       ? supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: 4 })
@@ -1909,7 +1928,7 @@ async function buildGrounding(supabase: any, question: string, enAz = 3, enCok =
   const YETERLI = enAz;
   let canliSayisi = 0;
   if (rows.length < YETERLI) {
-    const canli = await canliIctihat(question, YETERLI - rows.length);
+    const canli = await adim('ictihat_canli', () => canliIctihat(question, YETERLI - rows.length));
     canliSayisi = canli.length;
     for (const k of canli) {
       if (seen.has(k.id)) continue;
@@ -2008,13 +2027,16 @@ async function maddeyiUygulayanKararlar(supabase: any, rows: any[]): Promise<str
  * kural kural eklemeden genel doğruluğu artıran kalıcı altyapıdır.
  */
 // deno-lint-ignore no-explicit-any
-async function buildMevzuat(supabase: any, question: string): Promise<string> {
+/** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
+const buildMevzuat = (...a: Parameters<typeof buildMevzuatIc>): ReturnType<typeof buildMevzuatIc> => adim('besleme_mevzuat', () => buildMevzuatIc(...a));
+
+async function buildMevzuatIc(supabase: any, question: string): Promise<string> {
   // HİBRİT: kelime araması + anlamsal arama BİRLİKTE (içtihatta kurulan düzenin
   // aynısı). Gerekçesi ölçüldü: kelime araması, avukatın günlük diliyle kanunun
   // terimini eşleştiremiyor — "şiddetli geçimsizlik" yazan avukat, "evlilik
   // birliğinin temelinden sarsılması" diyen TMK m.166'yı bulamıyor; ortak
   // kelime yok. Anlamsal arama tam bu boşluğu kapatır.
-  const qEmb = await embedQuery(question);
+  const qEmb = await adim('embedding', () => embedQuery(question));
   const [ftsRes, semRes] = await Promise.all([
     supabase.rpc('search_mevzuat_kural', { q: question, match_count: 7 }),
     qEmb
@@ -2095,6 +2117,46 @@ Deno.serve((req) => sureIzle(async () => {
     return new Response(JSON.stringify({ error: 'method' }), { status: 405, headers: CORS });
   }
 
+  // KURU KOŞU — MODEL ÇAĞRILMAZ (05.10.2026). Ürün sahibi: "performanstan
+  // memnun değiller". Sohbetin ~20 sn'si modelin dışında geçiyordu ama hangi
+  // adımda olduğu bilinmiyordu; test sorusu sormak para (ürün sahibi kuralı:
+  // test için yapay zekâya soru sorulmaz). Bu dal besleme (kural/mevzuat/
+  // içtihat) ve denetim (madde/künye/canlı teyit/öneri) adımlarını GERÇEK
+  // soru ve daha önce üretilmiş GERÇEK cevap üzerinde koşar, süreleri döner.
+  // Yalnız servis anahtarıyla: kullanıcıya kapalı (aksi hâlde bedava ve
+  // sınırsız bir canlı-kaynak yükü olurdu). Betik: scripts/olcum-adim.mjs.
+  if (req.headers.get('x-kuru-kosu') === '1') {
+    if (!(await servisYetkisiVarMi(req))) {
+      return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: CORS });
+    }
+    const s = svc();
+    if (!s) return new Response(JSON.stringify({ error: 'not_configured' }), { status: 500, headers: CORS });
+    const g = await req.json().catch(() => ({}));
+    const soru = String(g?.soru ?? '');
+    const cevap = String(g?.cevap ?? '');
+    const t0 = Date.now();
+    const [kural, mevzuat, ictihat] = await Promise.all([
+      buildRules(s, soru).catch(() => ''),
+      buildMevzuat(s, soru).catch(() => ''),
+      buildGrounding(s, soru).catch(() => ''),
+    ]);
+    const t1 = Date.now();
+    const [madde, karar] = await Promise.all([uydurmaMaddeDenetimi(cevap), kararAtfiDenetimi(cevap)]);
+    await uydurmaKunyeleriCikar(cevap, karar);
+    const t2 = Date.now();
+    return new Response(
+      JSON.stringify({
+        beslemeMs: t1 - t0,
+        denetimMs: t2 - t1,
+        adimlar: sureOzeti().adimlar,
+        beslemeKarakter: { kural: kural.length, mevzuat: mevzuat.length, ictihat: ictihat.length },
+        atif: karar?.toplam ?? 0,
+        uydurmaMadde: madde.length,
+      }),
+      { headers: { ...CORS, 'Content-Type': 'application/json' } }
+    );
+  }
+
   // Only signed-in Vekil users may use the assistant.
   const authHeader = req.headers.get('Authorization') ?? '';
   const supabase = createClient(
@@ -2102,7 +2164,8 @@ Deno.serve((req) => sureIzle(async () => {
     Deno.env.get('SUPABASE_ANON_KEY')!,
     { global: { headers: { Authorization: authHeader } } }
   );
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  // deno-lint-ignore no-explicit-any
+  const { data: userData, error: userErr } = await adim<any>('giris', () => supabase.auth.getUser());
   if (userErr || !userData.user) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: CORS });
   }
@@ -2159,7 +2222,7 @@ Deno.serve((req) => sureIzle(async () => {
   // Konumu bilerek İADE dalından sonra: iade yalnız veritabanı yazar, aktarım
   // yapmaz. Rızasını geri almış biri de hakkını geri alabilmeli — aksi hâlde
   // rızayı geri almanın bedeli olurdu ve rıza "özgür irade" olmaktan çıkardı.
-  const rizaRed = await rizaKapisi(supabase, CORS);
+  const rizaRed = await adim('riza', () => rizaKapisi(supabase, CORS));
   if (rizaRed) return rizaRed;
 
   // MÜTALAA modu: çok adımlı derin inceleme (Pro/Elit'e özel). Normal sohbetten
@@ -2700,7 +2763,10 @@ Deno.serve((req) => sureIzle(async () => {
  * Sorgu, çağıranın kendi oturumuyla (RLS altında) yapılır: başkasının dosyası
  * hiçbir koşulda okunamaz.
  */
-async function dosyaKunyesi(
+/** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
+const dosyaKunyesi = (...a: Parameters<typeof dosyaKunyesiIc>): ReturnType<typeof dosyaKunyesiIc> => adim('dosya_kunyesi', () => dosyaKunyesiIc(...a));
+
+async function dosyaKunyesiIc(
   db: ReturnType<typeof createClient>,
   caseId: string | null,
   tip: string

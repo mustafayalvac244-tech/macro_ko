@@ -17,13 +17,15 @@ interface Baglam {
   t0: number;
   modelBas: number | null;
   modelMs: number;
+  /** Adım adına toplam ms (05.10.2026 — 20 sn'nin hangi adımda gittiği). */
+  adimlar: Record<string, number>;
 }
 
 const depo = new AsyncLocalStorage<Baglam>();
 
 /** İsteği bir süre bağlamı içinde koşturur. */
 export function sureIzle<T>(fn: () => T): T {
-  return depo.run({ t0: Date.now(), modelBas: null, modelMs: 0 }, fn);
+  return depo.run({ t0: Date.now(), modelBas: null, modelMs: 0, adimlar: {} }, fn);
 }
 
 /** Model çağrısını sarar: ilk başlangıç anını ve toplam model süresini tutar. */
@@ -38,9 +40,29 @@ export async function modelSuresi<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Adlandırılmış bir adımın süresini toplar (aynı ad birden çok kez koşarsa
+ * süreler TOPLANIR; paralel koşan adımların toplamı duvar saatini aşabilir —
+ * bu bir hata değil, "bu adım toplam ne kadar iş yaptı" ölçüsüdür).
+ */
+export async function adim<T>(ad: string, fn: () => Promise<T>): Promise<T> {
+  const b = depo.getStore();
+  const bas = Date.now();
+  try {
+    return await fn();
+  } finally {
+    if (b) b.adimlar[ad] = (b.adimlar[ad] ?? 0) + (Date.now() - bas);
+  }
+}
+
 /** ai_istek sütunları. Bağlam yoksa (ör. test) boş döner. */
-export function sureOzeti(): { sure_ms?: number; model_bas_ms?: number | null; model_ms?: number } {
+export function sureOzeti(): {
+  sure_ms?: number;
+  model_bas_ms?: number | null;
+  model_ms?: number;
+  adimlar?: Record<string, number>;
+} {
   const b = depo.getStore();
   if (!b) return {};
-  return { sure_ms: Date.now() - b.t0, model_bas_ms: b.modelBas, model_ms: b.modelMs };
+  return { sure_ms: Date.now() - b.t0, model_bas_ms: b.modelBas, model_ms: b.modelMs, adimlar: { ...b.adimlar } };
 }

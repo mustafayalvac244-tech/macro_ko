@@ -27,6 +27,7 @@ gerekiyorsa satır güncellenir ve tarihi değişir.
 | 25.09.2026 | **T.C. Kimlik No kayıtta isteğe bağlı** (Apple 5.1.1). Girilirse doğrulanır. | Ürün sahibi (Apple reddi üzerine) |
 | 26.09.2026 | **Geçmiş DURUM.md'de tutulur**, CLAUDE.md'den otomatik yüklenir; her önemli adımda güncellenir. | Ürün sahibi |
 | 26.09.2026 | **Az soru:** "sorma, hepsine evet diyorum". Yalnız gerçekten ürün sahibine ait kararlar sorulur. | Ürün sahibi |
+| 05.10.2026 | **Sohbet ve düzeltme Haiku'da KALIR.** Sonnet'e geri alma önerisi (performans şikâyeti) reddedildi: "maliyet çok fazla oluyor, olmaz". Ölçümdeki ağır Haiku hataları (dava değeri/faiz, yanlış TBK maddesi) dilekçe ve incelemedeydi — onlar Sonnet'te. Sohbette görülen: yazım hatası. | Ürün sahibi |
 | 28.09.2026 | **Ücretsiz katmana 5 yapay zekâ deneme sorusu, Haiku ile.** 13.09'daki "ücretsizde AI yok" kararının yerine geçer. Vekil Pro'da toplam 10. | Ürün sahibi |
 | önceki | **PR'ları Claude kendi merge eder.** "sen et merge her zaman" | Ürün sahibi |
 | 14.09.2026 | **Tevkil panosu, sohbet ve günün sorusu yayından ÇIKARILDI.** Silinmediler; `src/ekranlar-beklemede/` altında duruyorlar (1.928 satır). Sebep: menüde yoktular ama derin bağlantıyla açılabiliyorlardı, bu da Play içerik anketini ve KVKK metinlerini yanlış duruma düşürüyordu. **Geri açma sırası: önce KVKK/gizlilik metinleri, sonra ekranlar, sonra PLAY.md 4.3.** | Ürün sahibi onayı ile |
@@ -252,6 +253,10 @@ Tam gerekçeler `RAKIP-OZELLIK-ANALIZI.md`'de.
 bu yüzden makbuz ekranında müşteri adı elle giriliyor. Eklenirse orası
 ön-dolar.
 
+**Açık iş (DURUM'dan taşındı, 05.10.2026):** hasat talep sayacı
+(`hasat_konu_talep`, 0162/0163) 03.10'da HİÇ kayıt tutmamıştı; sebebi
+bulunamadı.
+
 ## 5a. Avukat geri bildirimi turu (04.10.2026)
 
 Ürün sahibinin aktardığı avukat geri bildirimleri, geliş sırasıyla (PR #142).
@@ -326,6 +331,48 @@ yetkisi yok); ürün sahibi kendi kutusunda iki doğrulama e-postası görmeli.
 var), projeler/dosya entegrasyonu (dava dosyası var), Resmî Gazete özeti
 (YOK), sözleşme üretme (dilekçe var, sözleşme şablonu ÖLÇÜLMEDİ), web+mobil
 (var).
+
+## 5c. Neden satmıyor — huni ölçümü (05.10.2026, ürün sahibi: "kimse almıyor, şapkayı önüne koy düşün, bu senin programın")
+
+Ölçüldü (canlı veritabanı, test kalıplı hesaplar ve ürün sahibi hariç):
+- 02.07–05.10 arası **15 gerçek hesap**; 14'ü giriş yapmış, 5'i ertesi
+  gün(ler)de dönmüş, 4'ü dava, 4'ü müvekkil açmış, 7'si yapay zekâ denemiş.
+- Gerçek satış **0**. Satın alma ekranı iOS'ta 3 kez açılmış (03.10), **1**
+  satın alma başlatılmış, Apple ödeme ekranında **vazgeçilmiş**.
+- App Store'da 0 oy, 0 yorum. Web'de satın alma yok (yalnız iPhone); Android yok.
+- Web ekran sayaçlarında `/`, `/login`, `/signup`, `/forgot-password` her
+  biri ~100 (03–05.10) — birbirine bu kadar yakın olması gerçek trafik
+  değil otomatik ziyaret izlenimi veriyor; AYIRT EDİLMEDİ.
+
+Piyasa (web araması 05.10.2026, kaynaklar sohbette): De Jure 1.500–6.800 ₺/ay
+(baro üyesine %25–40 indirim), Avudex 800/1.600/3.600 ₺/ay + ücretsiz deneme,
+Lawlera 594–1.050 ₺/ay (indirimli), KatipAI 199 → 499 ₺/ay, Lexform ücretsiz,
+Apilex 24.999,99 ₺/ay — 39.999,99 ₺/6 ay (bir kaynak), web'den satış hepsinde.
+Bizim AI paketi **2.999 ₺/ay**, yalnız iPhone'dan.
+
+Maliyet (ölçüldü 03.10): soru başı ~₺2,1–2,2 (Sonnet); sohbet geçmişi önbelleği (0168, ai-chat v135) etkisi ÖLÇÜLMEDİ (ai_istek.onbellek_okunan). 'duzelt' modu PR #143 (ai-chat v137). Ücretli tavan bugün
+kullanıcı başına ₺3.000/ay maliyet + 750 soru (katman.ts) — fiyat düşerse
+tavan da düşmeli, yoksa yoğun kullanıcı zarar ettirir.
+
+## 5d. Performans — model dışı bekleme nerede (05.10.2026, ürün sahibi: "fiyatla alakası yok, performanstan memnun değiller")
+
+Modelsiz kuru koşu (ai-chat `x-kuru-kosu`, scripts/olcum-adim.mjs; 04.10'da
+Sonnet'in ürettiği 7 gerçek cevap × 2, harcama ₺0, sonuç
+scripts/olcum-adim-sonuc.json): besleme_mevzuat 3,0–16,3 sn, besleme_ictihat
+0,8–16,8 sn; denetimler (madde/künye/canlı teyit) < 0,6 sn; embedding ~0,3 sn.
+
+Veritabanında ayrı ölçüm (EXPLAIN ANALYZE): kararlar_madde_ile 5.429 ms
+(her soruda 3 kez) — sebep `select distinct kanun` 337 bin satır tarıyordu;
+search_ictihat_fts önek basamağında count(*) 14.176 ms.
+
+0172 (05.10 20:10 UTC, GitHub Actions arızası yüzünden iş akışıyla değil
+Supabase apply_migration ile uygulandı): kararlar_madde_ile **136 ms**;
+search_ictihat_fts kira sorusunda **4.266 ms** (kalan süre disk okuması —
+5,1 GB tablo, hasat sürekli yazıyor; ÇÖZÜLMEDİ). Sonuç eşitliği: madde 5/5
+aynı; fts 11/12 aynı, farklı olanda ESKİ fonksiyon da kendi içinde kararsız
+(sırasız limit 1500 — ayrı kalite sorunu, açık).
+
+Uçtan uca kuru koşu 0172 sonrası TEKRARLANMADI (Actions arızası).
 
 ## 6. Nerede ne yazıyor
 

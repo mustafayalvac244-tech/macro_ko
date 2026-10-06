@@ -3,6 +3,7 @@ import { dosyaBaytlari } from '@/lib/girdi';
 import type { Session } from '@supabase/supabase-js';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import { trError } from '@/lib/authErrors';
+import { kayitKaynagi } from '@/lib/kullanim';
 import { beklemeSaniyesi } from '@/lib/authBekleme';
 import { resetQueryCache } from '@/lib/queryClient';
 import { cancelAllReminders, pushAdresiniSil } from '@/lib/notifications';
@@ -223,6 +224,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       options: {
         data: {
           full_name: fullName,
+          // Nereden geldi (platform + web'de utm/gelinen site) — yönetici paneli.
+          kayit_kaynagi: kayitKaynagi(),
           firm_name: firmName ?? '',
           tc_no: tcNo ?? '',
           baro: baro ?? '',
