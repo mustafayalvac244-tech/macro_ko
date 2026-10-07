@@ -1,0 +1,92 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { sayfaIskeleti } from '../extension/lib/kesif.js';
+
+// Küçük sahte DOM: yalnız sayfaIskeleti'nin dokunduğu alanlar.
+type Sahte = {
+  nodeType: number;
+  tagName?: string;
+  textContent?: string;
+  id?: string;
+  childNodes?: Sahte[];
+  getAttribute?: (a: string) => string | null;
+};
+const m = (s: string): Sahte => ({ nodeType: 3, textContent: s });
+const el = (tag: string, attrs: Record<string, string> = {}, ...kids: (Sahte | string)[]): Sahte => ({
+  nodeType: 1,
+  tagName: tag.toUpperCase(),
+  id: attrs.id ?? '',
+  childNodes: kids.map((k) => (typeof k === 'string' ? m(k) : k)),
+  getAttribute: (a) => attrs[a] ?? null,
+});
+
+const g = globalThis as Record<string, unknown>;
+const kur = (body: Sahte, ara = '?dosyaId=987654&tur=hukuk') => {
+  g.location = { host: 'avukat.uyap.gov.tr', pathname: '/dosya/123456/detay', search: ara };
+  g.document = { title: 'UYAP Avukat Portal', body };
+  g.window = { top: 'ust' };
+};
+afterEach(() => {
+  delete g.location;
+  delete g.document;
+  delete g.window;
+});
+
+// Gerçeğe benzer, uydurma bir dosya listesi. Aşağıdaki DEĞERLERİN hiçbiri
+// çıktıda geçmemeli.
+const SIZMAMALI = ['AHMET YILMAZ', 'Ayşe Demir', '2023/145', '2024/9876', '12345678901', '15.03.2026', '10:30', '987654', '123456', 'gizli-arama', '45.250,00'];
+const sayfa = () =>
+  el('body', {},
+    el('h1', {}, 'Dosya Sorgulama'),
+    el('input', { type: 'text', name: 'esasNo', placeholder: 'Esas No' }),
+    el('input', { type: 'text', name: 'ara', value: 'gizli-arama' }),
+    el('table', { class: 'tablo liste' },
+      el('thead', {}, el('tr', {}, el('th', {}, 'Esas No'), el('th', {}, 'Birim'), el('th', {}, 'Davacı'), el('th', {}, 'Durum'))),
+      el('tbody', {},
+        ...[1, 2, 3, 4, 5].map((i) =>
+          el('tr', { class: 'satir' },
+            el('td', {}, i % 2 ? '2023/145' : '2024/9876'),
+            el('td', {}, 'ANKARA 3. ASLİYE HUKUK MAHKEMESİ'),
+            el('td', {}, i % 2 ? 'AHMET YILMAZ' : 'Ayşe Demir'),
+            el('td', {}, 'Açık'),
+          ),
+        ),
+      ),
+    ),
+    el('div', {}, 'Esas No: 2023/145'),
+    el('div', {}, 'Davacı: AHMET YILMAZ'),
+    el('span', {}, 'TC: 12345678901'),
+    el('span', {}, '15.03.2026 10:30'),
+    el('span', {}, '45.250,00 TL'),
+    el('div', { 'aria-label': 'AHMET YILMAZ dosyası' }, 'x'),
+    el('iframe', { src: '/icerik/987654?a=1' }),
+    el('script', {}, 'var gizli = "AHMET YILMAZ"'),
+  );
+
+describe('UYAP keşif — değer sızmaz, yapı kalır', () => {
+  it('hiçbir müvekkil değeri çıktıda yok', () => {
+    kur(sayfa());
+    const cikti = JSON.stringify(sayfaIskeleti());
+    for (const s of SIZMAMALI) expect(cikti, s).not.toContain(s);
+  });
+
+  it('etiketler, sütun başlıkları ve kalıplar kalır; tekrar eden satırlar sayılır', () => {
+    kur(sayfa());
+    const r = sayfaIskeleti();
+    const c = JSON.stringify(r);
+    for (const s of ['Dosya Sorgulama', 'Esas No', 'Birim', 'Davacı', 'Durum', '‹ESAS_NO›', '‹BUYUK_METIN:12›', '‹11_HANE›', '‹TARIH_SAAT›', '‹TUTAR›', 'Esas No: ‹ESAS_NO›', 'Davacı: ‹BUYUK_METIN:12›'])
+      expect(c, s).toContain(s);
+    expect(c).toContain('"tekrar":"tr.satir","adet":5');
+    expect(r.adres).toBe('avukat.uyap.gov.tr/dosya/‹n›/detay');
+    expect(r.sorguAdlari).toEqual(['dosyaId', 'tur']);
+    expect(c).toContain('"alan":{"tur":"text","ad":"esasNo","ipucu":"Esas No"}');
+    expect(c).toContain('"cerceve":"/icerik/‹n›"');
+    expect(c).not.toContain('var gizli');
+  });
+
+  it('td içindeki tek sözcük etiket sayılmaz (ad olabilir)', () => {
+    kur(el('body', {}, el('td', {}, 'Durum'), el('th', {}, 'Durum')));
+    const c = JSON.stringify(sayfaIskeleti());
+    expect(c).toContain('"x":"‹METIN:5›"');
+    expect(c).toContain('"x":"Durum"');
+  });
+});

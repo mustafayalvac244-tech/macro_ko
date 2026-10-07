@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Vekil Pro",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vekil Pro'yu tarayıcının yan panelinde açar: dosyalar, ajanda, içtihat. Açık sayfadan dosya da açar.",
   "permissions": [
     "activeTab",

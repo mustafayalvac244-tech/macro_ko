@@ -11,6 +11,20 @@
 </header>
 <div id="bildirim" hidden></div>
 <!--
+  UYAP KEŞİF (07.10.2026). Liste okuyucu yazılabilsin diye UYAP sayfalarının
+  YAPISINI kaydeder; değerler cihazdan çıkmadan maskelenir (lib/kesif.js).
+  Yalnız düğmeye basınca, yalnız uyap.gov.tr sekmesinde çalışır.
+-->
+<details id="kesif">
+  <summary>UYAP sayfa yapısı (geliştirici için)</summary>
+  <p>Ad, numara ve tarihler kaydedilmez; yalnız sayfanın düzeni kaydedilir. Dosyayı göndermeden önce açıp okuyabilirsiniz.</p>
+  <div class="kesif-dugmeler">
+    <button id="kesifKaydet">Bu sayfanın yapısını kaydet</button>
+    <button id="kesifIndir" disabled>İndir (<span id="kesifAdet">0</span>)</button>
+    <button id="kesifTemizle" disabled>Temizle</button>
+  </div>
+</details>
+<!--
   UYGULAMA EKLENTİNİN İÇİNE GÖMÜLMEDİ, BARINDIRILAN SÜRÜM AÇILIYOR.
 
   Gömme denendi ve iki sebeple bırakıldı: (1) web paketi 21 MB ve her güncelleme

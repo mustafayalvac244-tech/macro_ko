@@ -35,6 +35,23 @@ sessizce boşalır, metin kalıpları ise ekranda görünen yazıya bakar.
 - `storage`: yalnız oturum jetonu. **Şifre saklanmaz.**
 - Geniş `host_permissions` **istenmiyor**.
 
+## UYAP sayfa yapısı kaydı (keşif) — 07.10.2026
+
+Panelin üstündeki **"UYAP sayfa yapısı"** bölümü, liste okuyucuyu yazabilmemiz
+için UYAP sayfalarının **düzenini** kaydeder (tablo mu, iframe mi, sütun
+başlıkları ne). Ad, TC no, esas no, tarih, tutar **kaydedilmez**: değerler
+cihazdan çıkmadan ‹ESAS_NO›, ‹BUYUK_METIN:12› gibi kalıplara çevrilir.
+Yalnız bilinen arayüz sözcükleri ("Esas No", "Davacı") olduğu gibi kalır.
+Form alanlarının içeriği hiç okunmaz. Kayıt yalnız bu tarayıcıda durur;
+"İndir" ile JSON dosyası alınır, gönderilmeden önce açılıp okunabilir.
+
+Avukattan istenen (yaklaşık 5 dakika):
+1. Eklentiyi aşağıdaki gibi kurun, UYAP Avukat Portal'a kendi e-imzanızla girin.
+2. Şu sayfaların her birinde **"Bu sayfanın yapısını kaydet"**e basın:
+   dosya sorgulama sonuç listesi · bir dosyanın detayı · taraflar · safahat ·
+   evrak listesi · duruşmalar (ajanda) · varsa tebligat listesi.
+3. **İndir** → dosyayı açıp göz atın → gönderin.
+
 ## Kurulum
 
 1. `chrome://extensions` → **Geliştirici modu** açık
