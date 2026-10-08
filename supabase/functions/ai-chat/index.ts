@@ -29,6 +29,7 @@ import {
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 import { canliIctihat, canliKunyeDogrula } from '../_shared/uyapCanli.ts';
 import { adim, modelSuresi, sureIzle, sureOzeti } from '../_shared/adimSure.ts';
+import { basarisizsaIadeEt, yeniRezervasyon, type HakRezervasyonu } from '../_shared/hakIadesi.ts';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 import { mesajlariHazirla } from '../_shared/onbellek.ts';
 // Avukatın eklediği belgeler (dilekçe/belge inceleme) — PDF görüntüsüyle gider.
@@ -2109,7 +2110,17 @@ async function buildMevzuatIc(supabase: any, question: string): Promise<string> 
   );
 }
 
+// HAK İADESİ (08.10.2026, bkz. _shared/hakIadesi.ts): ayrılan hak, istek
+// başarısız biterse (2xx dışı ya da hata) burada TEK YERDEN geri verilir.
 Deno.serve((req) => sureIzle(async () => {
+  const hakRez = yeniRezervasyon();
+  return await basarisizsaIadeEt(hakRez, () => isle(req, hakRez), {
+    deneme: denemeHakkiSerbestBirak,
+    mod: aiModSerbestBirak,
+  });
+}));
+
+async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS });
   }
@@ -2359,6 +2370,9 @@ Deno.serve((req) => sureIzle(async () => {
         { status: 402, headers: CORS }
       );
     }
+    // Ayrıldı: istek başarısız biterse sarmalayıcı geri verir.
+    hakRez.userId = userData.user.id;
+    hakRez.deneme = true;
   }
 
   // KONTÖR KONTROLÜ — yalnız faturalı VE kontörle ölçülen katmanda.
@@ -2445,6 +2459,12 @@ Deno.serve((req) => sureIzle(async () => {
       ),
       { status: 402, headers: CORS }
     );
+  }
+  // Ayrıldı (yalnız kotalı katmanda gerçekten ayrılır): istek başarısız
+  // biterse sarmalayıcı geri verir.
+  if (cfg.modLimits) {
+    hakRez.userId = userData.user.id;
+    hakRez.mod = { ay: aiAy, mutalaa: isMutalaa };
   }
   // Taşmadaysak bu istek ucuz modelle yapılır. cfg kopyalanıyor, mutasyon
   // yok: aynı istek içinde cfg başka yerlerde de okunuyor.
@@ -3663,4 +3683,4 @@ async function dosyaKunyesiIc(
   }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
-}));
+}

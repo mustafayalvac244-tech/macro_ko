@@ -140,7 +140,8 @@ export default function DilekceUretScreen() {
       }
       const payload = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!payload?.text) {
-        setError(t('ai.errGeneric'));
+        // Sunucuya ulaşıldı, cevap boş: internet suçlanmaz (08.10.2026).
+        setError(t('ai.errTamamlanamadi'));
         return;
       }
       setText(payload.text);
@@ -177,7 +178,7 @@ export default function DilekceUretScreen() {
       }
       const y = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; kisaKaldi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!y?.text) {
-        setDuzeltHata(t('ai.errGeneric'));
+        setDuzeltHata(t('ai.errTamamlanamadi'));
         return;
       }
       if (y.kisaKaldi) {
