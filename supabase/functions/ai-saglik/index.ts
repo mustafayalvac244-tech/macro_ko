@@ -190,6 +190,16 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: CORS });
   }
 
+  // YALNIZ YÖNETİCİ (08.10.2026, denetimde bulundu). Kapı yalnız ekrandaydı
+  // (app/admin.tsx); giriş yapmış HER kullanıcı bu ucu döngüyle çağırıp her
+  // seferinde Groq/Gemini/Claude'u yoklatabiliyordu — ortak Groq sınırı ürünle
+  // paylaşıldığı için gerçek kullanıcılar 429 alırdı, Claude yoklaması ücretli.
+  // Yönetici bayrağı kullanıcının kendi değiştiremediği sütun (0098).
+  const { data: profil } = await supabase.from('profiles').select('is_admin').eq('id', u.user.id).maybeSingle();
+  if (!profil?.is_admin) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: CORS });
+  }
+
   const [groq, gemini, claude] = await Promise.all([groqYokla(), geminiYokla(), claudeYokla()]);
 
   // Tanılama: Google zaman zaman model adlarını emekliye ayırıyor ve bu, geçerli
