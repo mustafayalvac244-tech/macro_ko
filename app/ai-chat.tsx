@@ -23,7 +23,8 @@ export default function AiChatScreen() {
 
   const { messages, sending, error, errorText, tier, send, newChat, conversations, activeId, openConversation, deleteConversation } =
     useAiChat();
-  const showUpsell = error === 'daily_quota' || error === 'quota_exceeded';
+  // Hak/paket hataları beklemekle geçmez; yolu (paket ekranını) göster.
+  const showUpsell = !!error && ['daily_quota', 'quota_exceeded', 'deneme_hakki_bitti', 'tier_required', 'ai_soru_kota_bitti', 'ai_mutalaa_kota_bitti'].includes(error);
   const [draft, setDraft] = useState('');
   // SESLE YAZMA (04.10.2026, avukat: "ekstra mikrofon istiyorlar yazarken").
   // Yalnız web'de görünür; bkz. src/hooks/useSesleYaz.ts.

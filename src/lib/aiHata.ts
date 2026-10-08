@@ -34,7 +34,7 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errEkBuyuk' | 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errEkBuyuk' | 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errServis' | 'ai.errBos' | 'ai.errOturum' | 'ai.errTamamlanamadi' | 'ai.errGeneric';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -87,8 +87,17 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   // diye göstermek yanlış sebep söylemek olurdu: kullanıcı beklerse
   // açılacağını sanır, oysa beklemekle açılmaz.
   if (kod === 'tier_required') return t('ai.errPaketGerekli');
-  if (kod === 'not_configured') return t('ai.errGeneric');
-  return t('ai.errGeneric');
+  // SUNUCU TARAFI ARIZALAR (08.10.2026). Bunlar da "İnternet bağlantınızı
+  // kontrol edin" diyordu; oysa sorun bizde. 08.10'da Claude hesabı askıya
+  // alındığında avukat kendi internetini suçlayacaktı. Hak iadesi
+  // _shared/hakIadesi.ts'te: başarısız istekte hak geri verilir.
+  if (kod === 'upstream') return t('ai.errServis');
+  if (kod === 'empty') return t('ai.errBos');
+  if (kod === 'unauthorized') return t('ai.errOturum');
+  // Bağlantı hatası YALNIZ sunucuya hiç ulaşılamadığında ('generic' ya da
+  // kod yok). Ulaşıldı ama kod tanınmıyorsa internet suçlanmaz.
+  if (kod === '' || kod === 'generic') return t('ai.errGeneric');
+  return t('ai.errTamamlanamadi');
 }
 
 export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_arizasi' | 'paket' | 'generic';

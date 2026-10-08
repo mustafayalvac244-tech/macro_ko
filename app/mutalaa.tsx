@@ -101,7 +101,8 @@ export default function MutalaaScreen() {
       }
       const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; atlananKural?: string[]; dayanak?: Array<{ id: string; metin: string }>; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!payload?.text) {
-        setError(t('ai.errGeneric'));
+        // Sunucuya ulaşıldı, cevap boş: internet suçlanmaz (08.10.2026).
+        setError(t('ai.errTamamlanamadi'));
         return;
       }
       setText(payload.text);

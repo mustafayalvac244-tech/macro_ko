@@ -42,7 +42,12 @@ export interface AiConversation {
   updatedAt: number;
 }
 
-type AiError = 'rate_limit' | 'daily_quota' | 'quota_exceeded' | 'kvkk_riza_yok' | 'generic';
+// SUNUCUNUN GERÇEK HATA KODU (08.10.2026). Eskiden yalnız dört kod tanınıyor,
+// gerisi 'generic'e çevriliyordu: deneme hakkı biten avukat sohbette
+// "İnternet bağlantınızı kontrol edin" görüyor, hakkının bittiğini hiç
+// öğrenmiyordu. Çeviri ortak yerde (src/lib/aiHata.ts > aiHataMetni).
+// 'generic' yalnız sunucuya HİÇ ulaşılamadığında (ağ hatası) kullanılır.
+type AiError = string;
 
 const STORE_KEY = 'vekil.ai.conversations.v2';
 const MAX_CONVERSATIONS = 40;
@@ -168,11 +173,9 @@ export function useAiChat() {
           } catch {
             // gövde okunamazsa genel hataya düşer
           }
-          setError(
-            code === 'rate_limit' || code === 'daily_quota' || code === 'quota_exceeded' || code === 'kvkk_riza_yok'
-              ? code
-              : 'generic'
-          );
+          // Gövde okunamadıysa kod bilinmiyor ama sunucuya ULAŞILDI: bu bir
+          // internet sorunu değil, 'generic' (bağlantı) mesajı yanlış olur.
+          setError(code || 'tamamlanamadi');
           return;
         }
 
@@ -189,7 +192,7 @@ export function useAiChat() {
         } | null;
         const reply = payload?.text?.trim();
         if (!reply) {
-          setError('generic');
+          setError('tamamlanamadi');
           return;
         }
         if (payload?.tier) setTier(payload.tier);

@@ -74,8 +74,12 @@ describe('aiHataMetni', () => {
     expect(aiHataMetni({ error: 'kvkk_kontrol_hatasi' }, t)).not.toBe(aiHataMetni({ error: 'kvkk_riza_yok' }, t));
   });
 
-  it('bilinmeyen kodda genel hata verir', () => {
-    expect(aiHataMetni({ error: 'upstream' }, t)).toBe('ai.errGeneric');
+  // 08.10.2026: 'upstream' (sunucu tarafı arıza) eskiden genel "internetinizi
+  // kontrol edin" mesajına düşüyordu — yanlış sebep. Artık servis mesajı;
+  // genel (bağlantı) mesajı yalnız sunucuya hiç ulaşılamadığında.
+  it('sunucu arızasında servis mesajı, ulaşılamadığında genel hata verir', () => {
+    expect(aiHataMetni({ error: 'upstream' }, t)).toBe('ai.errServis');
+    expect(aiHataMetni({ error: 'bilinmeyen_kod' }, t)).toBe('ai.errTamamlanamadi');
     expect(aiHataMetni({}, t)).toBe('ai.errGeneric');
   });
 });

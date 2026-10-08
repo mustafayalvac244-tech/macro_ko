@@ -100,7 +100,8 @@ export default function DocumentReviewScreen() {
       const yanit = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       const reply = yanit?.text?.trim();
       if (!reply) {
-        setError(t('ai.errGeneric'));
+        // Sunucuya ulaşıldı, cevap boş: internet suçlanmaz (08.10.2026).
+        setError(t('ai.errTamamlanamadi'));
         return;
       }
       setResult(reply);
