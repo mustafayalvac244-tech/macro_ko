@@ -836,7 +836,7 @@ export const en: Record<keyof typeof tr, string> = {
   'premium.f.aiDocReview': 'Document Review: risks, gaps and deadlines in contracts and decisions',
   'premium.f.aiAktarma': 'Import from Document: parties, docket number and court filled in from a UYAP document',
   'premium.f.aiIctihat': 'Case-law search and decision summaries',
-  'premium.f.aiGrounded': 'Every statute article and case citation in an answer is checked and labelled: verified, not found in our corpus, or impossible',
+  'premium.f.aiGrounded': 'Statute articles and case citations in an answer are checked: verified ones and ones not in our corpus are labelled; impossible citations and Court of Cassation citations the official search cannot find are removed from the text',
   'premium.t.baslangic': 'Starter',
   'premium.t.pro': 'Pro',
   'premium.t.elit': 'Elite',
@@ -1880,8 +1880,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.ornek3':
     'My client had a contractor build a villa. After handover the roof leaked and the walls cracked. We are claiming a price reduction and damages for defective performance.',
   'ictihat.denetimBaslik': 'Every citation is checked',
-  'ictihat.denetimDesc':
-    'Every statute reference and every case citation the AI produces is flagged alongside the answer: verified, not found in our pool, or impossible. A fabricated case number cannot slip silently into your petition.',
+  'ictihat.denetimDesc': 'Statute references and case citations the AI produces are checked alongside the answer: verified ones and ones not in our pool are labelled; impossible citations and Court of Cassation citations the official decision search cannot find are removed from the text. Still check every citation against its source.',
   'ictihat.analyzePlaceholder': 'e.g. My client has been a tenant for 5 years. The landlord filed an eviction claiming personal need, but does not really intend to move in — they want to re-let at a higher rent...',
   'ictihat.analyzeBtn': 'Assess & Find Case Law',
   'ictihat.analyzing': 'Assessing the dispute, searching for fitting decisions...',

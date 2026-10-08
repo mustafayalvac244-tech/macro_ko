@@ -98,13 +98,20 @@ Kurallar:
 
 - Ekranlar `app/` altında (expo-router, dosya = rota). **64 ekran.**
 - Paylaşılan arayüz bileşenleri **`src/components/ui/`** altında — `components/`
-  değil. Bugün **25 bileşen** var; yeni bir şey yazmadan önce buraya bak:
+  değil. Bugün **29 bileşen** var (28 bileşen, `TarihSecici` iki dosya:
+  `.tsx` + `.web.tsx`; 08.10.2026 sayıldı); yeni bir şey yazmadan önce buraya bak:
 
   `AramaVeYeni · Screen · ScreenHeader · Card · Button · Input · Badge · StatusBadge ·
   EmptyState · SegmentedControl · SearchBar · SectionHeader · StatCard ·
   Avatar · FAB · SuggestInput · ThemePicker · TemaDugmesi · VekilLogo ·
   WebKart · HukukiUyari · AtifDenetimi · CiktiEylemleri ·
-  DuzenlenebilirCikti · UyariKatmani`
+  DuzenlenebilirCikti · UyariKatmani · BelgeEkleri · SesleYaz · TarihSecici`
+
+- **Tarih/saat seçici için `@/components/ui/TarihSecici`**, doğrudan
+  `@react-native-community/datetimepicker` DEĞİL. 08.10.2026'ya kadar 13 ekran
+  topluluk paketini doğrudan kullanıyordu; paket web'de `null` döndürüyor ve
+  web'de hiçbir tarih seçilemiyordu (süre asistanı hep bugünden hesaplıyordu).
+  `TarihSecici` aynı props'u alır; web'de tarayıcının tarih kutusunu çizer.
 
 - Props için TypeScript tipi yaz, `any` kullanma.
 - Dosya sırası: importlar → tipler → bileşen → `makeStyles` (en altta).

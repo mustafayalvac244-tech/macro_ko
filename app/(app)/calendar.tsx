@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { router } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import { addDays } from 'date-fns/addDays';
 import { format } from 'date-fns/format';
 import { isToday } from 'date-fns/isToday';
@@ -644,9 +644,12 @@ export default function CalendarScreen() {
                   <DateTimePicker locale="tr-TR"
                     value={new Date(`${actionItem.dateKey}T12:00:00`)}
                     mode="date"
-                    onChange={(_e, date) => {
+                    onChange={(e, date) => {
                       setPostponePicker(false);
-                      if (!date) return;
+                      // Android İPTAL'de de onChange'i ESKİ tarihle çağırır;
+                      // eskiden iptal, kaydı yeniden yazıp süre saatini 23:59'a
+                      // çekiyordu (08.10.2026 denetimi).
+                      if (!date || e.type === 'dismissed') return;
                       const target = actionItem;
                       setActionItem(null);
                       postponeItem(target, date);

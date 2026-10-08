@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import { differenceInCalendarDays } from 'date-fns/differenceInCalendarDays';
 import { differenceInDays } from 'date-fns/differenceInDays';
 import { differenceInMonths } from 'date-fns/differenceInMonths';

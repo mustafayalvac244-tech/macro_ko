@@ -804,7 +804,7 @@ export const tr = {
   'premium.f.aiDocReview': 'Belge İncele: sözleşme ve kararlarda risk, eksik ve süre analizi',
   'premium.f.aiAktarma': 'Belgeden Dosya Aç: UYAP belgesinden taraf, esas no ve mahkeme bilgisi otomatik dolar',
   'premium.f.aiIctihat': 'İçtihat araması ve karar özetleme',
-  'premium.f.aiGrounded': 'Yanıttaki her kanun maddesi ve karar künyesi denetlenip işaretlenir: doğrulandı, havuzda bulunamadı ya da olamaz',
+  'premium.f.aiGrounded': 'Yanıttaki kanun maddeleri ve karar künyeleri denetlenir: doğrulanan ve havuzda bulunamayan işaretlenir; olanaksız künyeler ve resmî aramada da bulunamayan Yargıtay künyeleri metinden çıkarılır',
   'premium.t.baslangic': 'Başlangıç',
   'premium.t.pro': 'Pro',
   'premium.t.elit': 'Elit',
@@ -1963,8 +1963,7 @@ export const tr = {
   'ictihat.ornek3':
     'Müvekkilim yükleniciye villa yaptırdı. Teslimden sonra çatıda su sızıntısı ve duvarlarda çatlak çıktı. Ayıplı ifa nedeniyle bedel indirimi ve zarar talep ediyoruz.',
   'ictihat.denetimBaslik': 'Verilen her künye denetlenir',
-  'ictihat.denetimDesc':
-    'Yapay zekânın verdiği her kanun maddesi ve her karar künyesi, cevapla birlikte işaretlenir: doğrulandı, havuzda bulunamadı ya da olamaz. Uydurma bir karar numarası dilekçenize sessizce giremez.',
+  'ictihat.denetimDesc': 'Yapay zekânın verdiği kanun maddeleri ve karar künyeleri cevapla birlikte denetlenir: doğrulanan ve havuzda bulunamayan işaretlenir; olanaksız künyeler ve resmî karar aramasında da bulunamayan Yargıtay künyeleri metinden çıkarılır. Her atıfı yine de kaynağından kontrol edin.',
   'ictihat.analyzePlaceholder': 'Örn: Müvekkilim 5 yıldır kiracı. Ev sahibi kendi ihtiyacı olduğunu söyleyip tahliye davası açtı, ancak taşınmayı gerçekten düşünmüyor, daha yüksek kiraya vermek istiyor...',
   'ictihat.analyzeBtn': 'Değerlendir ve İçtihat Bul',
   'ictihat.analyzing': 'Uyuşmazlık değerlendiriliyor, uygun kararlar aranıyor...',

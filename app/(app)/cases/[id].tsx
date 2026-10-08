@@ -35,7 +35,7 @@ import { yerelGunISO } from '@/lib/yerelGun';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { WarPlanTab } from '@/components/case/WarPlanTab';
 import { ZamanSekmesi } from '@/components/case/ZamanSekmesi';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import { hearingReminderMessage, sendClientReminder } from '@/utils/reminder';
 import { useAuthStore } from '@/store/authStore';
 import type { FirstInstancePhase, InstanceStage, ClosedResult, Hearing } from '@/types/database';
