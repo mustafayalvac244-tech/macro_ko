@@ -83,13 +83,38 @@ describe('udfIcerikXml — offset aritmetiği', () => {
     expect(cdataMetni(crlf)).not.toContain('\r');
   });
 
-  it('metinde "]]>" geçse bile CDATA erken kapanmaz ve uzunluk değişmez', () => {
-    // "]]>" ham hâliyle yazılsa CDATA orada biter ve dosyanın kalanı bozulur.
+  it('metinde "]]>" geçse bile CDATA erken kapanmaz; offsetler temiz metni tutar', () => {
+    // 08.10.2026: CDATA'yı bölerek kaçırmak gerçek UYAP Editör'de dosyayı
+    // açılmaz yapıyordu (JDOM). "]] >" yazılır.
     const xml = udfIcerikXml('a ]]> b');
-    expect(xml).toContain(']]]]><![CDATA[>');
-    // Kaçış, KARAKTER SAYISINI değiştirmemeli; yoksa offsetler tutmaz.
+    expect(xml).not.toContain(']]]]><![CDATA[>');
+    expect(cdataMetni(xml)).toBe('a ]] > b\n');
     const toplam = ofsetler(xml).reduce((t, p) => t + p.boy, 0);
-    expect(toplam).toBe('a ]]> b\n'.length);
+    expect(toplam).toBe('a ]] > b\n'.length);
+  });
+
+  it('emoji ve BMP dışı karakterler silinir (editör "Dosya açılamadı" diyordu)', () => {
+    const xml = udfIcerikXml('📌 Not: ödeme 📎 yapıldı ⚠️ ₺');
+    const metin = cdataMetni(xml);
+    expect(metin).not.toMatch(/[\uD800-\uDFFF]/);
+    expect(metin).toContain('⚠️ ₺'); // BMP karakterler editörde sorunsuz
+    const toplam = ofsetler(xml).reduce((t, p) => t + p.boy, 0);
+    expect(toplam).toBe(metin.length);
+  });
+
+  it('XML 1.0 dışı kontrol karakterleri boşluk olur', () => {
+    const metin = cdataMetni(udfIcerikXml('a\fb\vc\u0001d'));
+    expect(metin).toBe('a b c d\n');
+  });
+
+  it('taraf satırı ("DAVACI : AHMET") ortalanmaz; iki noktayla biten başlık ortalanır', () => {
+    const xml = udfIcerikXml('DAVACI      : AHMET YILMAZ\nAÇIKLAMALAR :\nNETİCE-İ TALEP');
+    const hizalar = [...xml.matchAll(/<paragraph Alignment="(\d)"/g)].map((m) => m[1]);
+    expect(hizalar).toEqual(['3', '1', '1']);
+  });
+
+  it('satır başı markdown işaretleri atılır', () => {
+    expect(cdataMetni(udfIcerikXml('**AÇIKLAMALAR**\n### Sonuç'))).toBe('AÇIKLAMALAR\nSonuç\n');
   });
 });
 

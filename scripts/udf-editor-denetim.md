@@ -23,3 +23,27 @@ pencere bileşenlerinden belge modeli okundu.
 belgedeki değer Times New Roman), editörde KAYDET/e-imza adımı, UYAP'a
 gerçek gönderim. "DAVACI : …" satırlarındaki iki nokta boşlukla hizalandığı
 için orantılı yazı tipinde tam hizalı durmaz — düzeltilmedi.
+
+## 08.10.2026 — açılmayan karakterler ve taraf satırları (aynı düzenek)
+
+50 denetçi taramasında bir denetçi aynı editörle şunları ÖLÇTÜ: metinde emoji
+(📌 📎 🔴) varsa editör "Dosya açılamadı!" diyor (JDOM: `0xd83d is not a legal
+XML character`); `\f`/`\v` gibi kontrol karakterleri content.xml'i geçersiz
+yapıyor; CDATA'yı bölerek kaçırılan `]]>` editörde "CDATA cannot internally
+contain a CDATA ending delimiter" hatası veriyor; `DAVACI : AHMET YILMAZ` gibi
+büyük harfli taraf satırları başlık sanılıp ortalanıyor ve kalın yapılıyor.
+
+Düzeltme (`udfMetniTemizle`, `hizaSec`) sonrası AYNI editörde tek koşu:
+
+| Denetim | Sonuç |
+|---|---|
+| Açılış | Hata kutusu yok; "Doküman Editörü v5.4.20 - duzeltme.udf", Belge Sürüm 1.8 |
+| Emoji (📌 📎) | Silindi; ⚠️ ve ₺ (BMP) yerinde |
+| `\f` `\v` | Boşluk oldu |
+| `]]>` | `]] >` olarak göründü, dosya açıldı |
+| `DAVACI          : AYŞE YILMAZ` | HIZA=3 (iki yana), KALIN=false |
+| `**AÇIKLAMALAR**` | "AÇIKLAMALAR", ortalı ve kalın; yıldızlar yok |
+| `NETİCE-İ TALEP :` | Başlık olarak ortalı ve kalın kaldı |
+
+Tek koşu, deterministik (aynı dosya aynı sonucu verir). Windows editörü ve
+kaydet/e-imza hâlâ denenmedi.

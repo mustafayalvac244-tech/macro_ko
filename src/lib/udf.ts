@@ -102,7 +102,13 @@ function hizaSec(satir: string): number {
   // Türkçe büyük harf kontrolü: toLocaleUpperCase('tr') ile karşılaştırma,
   // "i/İ" ve "ı/I" çiftlerini doğru ele alır.
   const buyukMu = s === s.toLocaleUpperCase('tr') && /\p{L}/u.test(s);
-  if (buyukMu && s.length <= 80) return HIZA.orta;
+  // "DAVACI    : AHMET YILMAZ", "VEKİLİ : AV. …" de büyük harfli ve kısa;
+  // eskiden başlık sayılıp ORTALANIYOR ve KALIN yapılıyordu (08.10.2026,
+  // gerçek UYAP Editör'de ölçüldü) — iki noktaları hizalı taraf bloğu bozuluyordu.
+  // İki noktadan sonra değer varsa satır başlık değildir; "AÇIKLAMALAR :" gibi
+  // iki noktayla BİTEN başlık başlık kalır.
+  const etiketDeger = /:\s*\S/.test(s);
+  if (buyukMu && !etiketDeger && s.length <= 80) return HIZA.orta;
   return HIZA.iki;
 }
 
@@ -129,11 +135,38 @@ function crc32(veri: Uint8Array): number {
  * dosyanın en kırılgan yeri ve onu ZIP'in içinden çıkarmadan sınayabilmek
  * testi hem hızlı hem okunur kılıyor.
  */
+/**
+ * UYAP Editör'ün AÇAMADIĞI karakterleri temizler (08.10.2026, gerçek
+ * UYAP Editör 5.4.20'de ölçüldü):
+ *  - Emoji ve BMP dışı her karakter (📌, 📎, 🔴): editör "Dosya açılamadı!"
+ *    diyor — JDOM vekil çiftini (0xd83d) tek tek "geçersiz XML karakteri"
+ *    sayıyor. BMP içindekiler (⚠️ ✅ ₺ §) sorunsuz açıldı.
+ *  - XML 1.0'da yasak kontrol karakterleri (Word/PDF'ten yapıştırılan \f, \v
+ *    vb.): content.xml geçerli XML olmuyor.
+ *  - "]]>": CDATA'yı bölerek kaçırmak XML olarak doğru ama editör (JDOM)
+ *    parçaları birleştirip "CDATA cannot internally contain..." diyerek
+ *    açmıyor. Araya boşluk koyuyoruz: "]] >".
+ *  - Satır başı markdown (### Başlık, **BAŞLIK**): editörde yıldızlarıyla
+ *    basılıyordu.
+ * Temizlik offset hesabından ÖNCE yapılır; offsetler temiz metinden türer.
+ */
+export function udfMetniTemizle(metin: string): string {
+  return metin
+    .replace(/\r\n?/g, '\n')
+    .replace(/\t/g, '    ')
+    .replace(/[\u{10000}-\u{10FFFF}]/gu, '')
+    .replace(/[\uD800-\uDFFF]/g, '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, ' ')
+    .replace(/]]>/g, ']] >')
+    .replace(/^[ \t]*#{1,6}[ \t]+/gm, '')
+    .replace(/^([ \t]*)\*\*(.+?)\*\*[ \t]*$/gm, '$1$2');
+}
+
 export function udfIcerikXml(metin: string): string {
   // SATIR SONU NORMALİZASYONU ŞART. Windows'tan gelen "\r\n" iki karakterdir;
   // offset'ler ona göre hesaplanır ama CDATA'ya yazılan metin farklı olursa
-  // her paragraf bir karakter kayar ve belge bozulur.
-  const duz = metin.replace(/\r\n?/g, '\n').replace(/\t/g, '    ');
+  // her paragraf bir karakter kayar ve belge bozulur. (udfMetniTemizle içinde.)
+  const duz = udfMetniTemizle(metin);
 
   // Paragraflar satır satır. Boş satır da bir paragraftır (dilekçede
   // bölümler arası boşluk taşır) — atlanırsa metin sıkışır.
@@ -162,9 +195,8 @@ export function udfIcerikXml(metin: string): string {
   // satırın sonunda "\n" var, yani son satırdan sonra da bir tane.
   const govde = satirlar.join('\n') + '\n';
 
-  // "]]>" dizisi CDATA'yı erken kapatır ve dosyayı bozar. Metinde geçerse
-  // bölerek kaçırıyoruz; KARAKTER SAYISI DEĞİŞMEZ, yani offset'ler bozulmaz.
-  const cdata = govde.replace(/]]>/g, ']]]]><![CDATA[>');
+  // "]]>" udfMetniTemizle'de "]] >" yapıldı; burada artık geçemez.
+  const cdata = govde;
 
   return (
     `<?xml version="1.0" encoding="UTF-8" ?>\n` +
