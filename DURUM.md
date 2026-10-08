@@ -59,7 +59,7 @@
    APİLEX DERSİ (04.10, KARAR-DEFTERI §5b): doğrulama e-postası TEKRAR GÖNDER eklendi; SMTP
    Resend ölçüldü. 0b. Bildirim (0161) ÖLÇÜLMEDİ. 0. Deneme 10 soru (0166).
    RESMÎ GAZETE (05.10): fihrist 3 saatte bir çekilir (cron vekil_resmi_gazete, 0170); 7 gün
-   canlıda 200 (367–710 ms). Başlıklar aynen, AI özeti YOK. OTA BEKLİYOR. 06.10 BENTO (giriş animasyonu, Bu Hafta, sayaç kartı) ürün sahibi BEĞENMEDİ → geri alındı.
+   canlıda 200 (367–710 ms). Başlıklar aynen, AI özeti YOK. OTA BEKLİYOR. 06.10 BENTO ürün sahibi BEĞENMEDİ → geri alındı (web 08.10).
    PERFORMANS (05.10, KARAR §5d): madde-karar sorgusu 5,4 sn→136 ms; içtihat FTS hâlâ ~4 sn (disk).
    06.10: panelde "Nereden:" (kayit_kaynagi; eski kayıtlar cihaz kaydından platform). vekil_madde_baglam
    29.09'dan beri düşüyordu → 10 dk sınır (elle 205,7 sn'de bitti). Hasat INSERT'leri 30–63 sn sürüyor (disk).
@@ -77,7 +77,7 @@
    mikrofonu yazılı (testle korunur). Uygulama içi gizlilik metni: web'de, OTA'ya GİTMEDİ.
 
 2u. **UYAP LİSTE (07.10):** eklentiye maskeli keşif (extension/lib/kesif.js); BEKLENEN avukattan keşif dosyası.
-   **CONSOLE ASKIDA (08.10):** yedek modele düşer; inceleme metni CLAUDE-STARTUP.md. Belgeden dosya aç YAPAY ZEKÂSIZ (dalda, ONAY bekliyor).
+   **CONSOLE ASKIDA (08.10):** yedek modele düşer; inceleme metni CLAUDE-STARTUP.md. Belgeden dosya aç YAPAY ZEKÂSIZ: WEB CANLI (08.10 19:10 UTC, PR #155), OTA BEKLİYOR.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) sözleşme/bildirim YAPILMADI — ürün sahibinin (KVKK-UYUM.md A).
 4. Baro sicil doğrulaması yok (ürün sahibi kararı). 5. Leaked password koruması kapalı. 6. KVKK veri sorumlusu kimliği eksik. 7. Android şifre sıfırlama DOĞRULANMADI.
 
