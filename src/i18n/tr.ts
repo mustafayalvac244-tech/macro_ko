@@ -1616,6 +1616,7 @@ export const tr = {
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
   // Sunucu asıl modele ulaşamayıp yedekle cevapladığında balonun altında görünür.
   'ai.yedekModel': 'Bu yanıt yedek modelle üretildi; asıl model şu an ulaşılamıyor. Kalite düşük olabilir — soru hakkınızdan düşülmedi.',
+  'ai.yapayZekasiz': 'Yapay zekâ servislerine şu an ulaşılamadı. Bu metin bir yapay zekâ cevabı değil; sorunuzla ilgili mevzuat maddelerinin özetidir.',
   'ai.comingSoon': 'Vekil AI çok yakında',
   'ai.comingSoonDesc': 'Yapay zekâ asistanı son hazırlıklarını yapıyor. Çok yakında sorularınızı yanıtlamaya başlayacak!',
   'ai.comingSoonBadge': 'YAKINDA',

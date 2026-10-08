@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
+import { sohbetleriOku, sohbetleriYaz } from '@/lib/sohbetDeposu';
+import { gonderilecekGecmis } from '@/utils/sohbetGecmisi';
+import { useAuthStore } from '@/store/authStore';
 import { aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 
@@ -19,6 +21,12 @@ export interface AiMessage {
    * bu bayrak balonun altında küçük bir uyarı olarak görünür.
    */
   yedek?: boolean;
+  /**
+   * İki sağlayıcı da düştü; bu bir model cevabı DEĞİL, sorunun ilgili mevzuat
+   * özeti. Eskiden `yedek` ile aynı uyarıyı alıyordu ("yedek modelle üretildi")
+   * — model yokken model diyordu.
+   */
+  yapayZekasiz?: boolean;
   /** Cevabı hangi modelin yazdığı (sunucudan; teşhis ve şeffaflık için). */
   model?: string;
   /**
@@ -49,8 +57,9 @@ export interface AiConversation {
 // 'generic' yalnız sunucuya HİÇ ulaşılamadığında (ağ hatası) kullanılır.
 type AiError = string;
 
-const STORE_KEY = 'vekil.ai.conversations.v2';
+// Depo anahtarı hesaba bağlı: bkz. src/lib/sohbetDeposu.ts.
 const MAX_CONVERSATIONS = 40;
+
 
 let seq = 0;
 const nextId = () => `m${Date.now()}_${seq++}`;
@@ -74,6 +83,9 @@ function deriveTitle(messages: AiMessage[]): string {
  */
 export function useAiChat() {
   const t = useT();
+  const userId = useAuthStore((s) => s.session?.user.id ?? null);
+  const userIdRef = useRef<string | null>(userId);
+  userIdRef.current = userId;
   const [messages, setMessages] = useState<AiMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<AiError | null>(null);
@@ -92,12 +104,15 @@ export function useAiChat() {
   const activeIdRef = useRef<string>(activeId);
   activeIdRef.current = activeId;
 
-  // Açılışta cihazdan sohbetleri yükle.
+  // Açılışta (ve hesap değişince) cihazdan BU HESABIN sohbetlerini yükle.
   useEffect(() => {
     let alive = true;
+    setConversations([]);
+    setLoaded(false);
+    if (!userId) return;
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORE_KEY);
+        const raw = await sohbetleriOku(userId);
         const list: AiConversation[] = raw ? JSON.parse(raw) : [];
         if (alive && Array.isArray(list)) setConversations(list);
       } catch {
@@ -109,18 +124,28 @@ export function useAiChat() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [userId]);
 
+  // Yükleme bitmeden yazmak, okunamayan eski geçmişin üstüne boş liste
+  // yazmak demekti; `loaded` olmadan depoya dokunulmaz.
+  const loadedRef = useRef(false);
+  loadedRef.current = loaded;
   const persist = useCallback((list: AiConversation[]) => {
-    AsyncStorage.setItem(STORE_KEY, JSON.stringify(list)).catch(() => {});
+    const uid = userIdRef.current;
+    if (!uid || !loadedRef.current) return;
+    sohbetleriYaz(uid, JSON.stringify(list)).catch(() => {});
   }, []);
 
-  /** Aktif sohbeti verilen mesajlarla listeye yazar (varsa günceller, yoksa ekler). */
+  /**
+   * Sohbeti verilen mesajlarla listeye yazar (varsa günceller, yoksa ekler).
+   * `id` verilmezse açık sohbet. Gönderim sırasında başka sohbete geçilirse
+   * cevap, sorunun sorulduğu sohbete yazılsın diye kimlik açıkça verilir.
+   */
   const upsertActive = useCallback(
-    (msgs: AiMessage[]) => {
+    (msgs: AiMessage[], convId?: string) => {
       if (msgs.length === 0) return;
       setConversations((prev) => {
-        const id = activeIdRef.current;
+        const id = convId ?? activeIdRef.current;
         const conv: AiConversation = {
           id,
           title: deriveTitle(msgs) || t('ai.title'),
@@ -136,23 +161,45 @@ export function useAiChat() {
     [persist, t]
   );
 
+  /**
+   * Soruyu gönderir. Başarısız olursa `false` döner: ekran yazılan soruyu
+   * kutuya geri koyar ve yanıtsız soru geçmişten çıkarılır (eskiden soru
+   * kutudan siliniyor, geçmişte yanıtsız kalıyordu; yeniden yazılınca iki
+   * 'user' mesajı art arda gidiyordu).
+   */
   const send = useCallback(
-    async (raw: string) => {
+    async (raw: string): Promise<boolean> => {
       const text = raw.trim();
-      if (!text || sending) return;
+      if (!text || sending) return true;
 
       setError(null);
       const userMsg: AiMessage = { id: nextId(), role: 'user', text };
-      const history = [...historyRef.current, userMsg];
+      const onceki = historyRef.current;
+      const history = [...onceki, userMsg];
+      // Gönderim sırasında başka sohbete geçilebilir: cevap BU sohbete yazılır.
+      const convId = activeIdRef.current;
       historyRef.current = history;
       setMessages(history);
-      // Soru sorulur sorulmaz kaydet; yanıt gelmese de mesaj kaybolmasın.
-      upsertActive(history);
+      upsertActive(history, convId);
       setSending(true);
+
+      const geriAl = () => {
+        if (activeIdRef.current === convId) {
+          historyRef.current = onceki;
+          setMessages(onceki);
+        }
+        if (onceki.length) upsertActive(onceki, convId);
+        else
+          setConversations((prev) => {
+            const next = prev.filter((c) => c.id !== convId);
+            persist(next);
+            return next;
+          });
+      };
 
       try {
         const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
-          body: { messages: history.map((m) => ({ role: m.role, text: m.text })) },
+          body: { messages: gonderilecekGecmis(history).map((m) => ({ role: m.role, text: m.text })) },
         });
 
         if (fnErr) {
@@ -176,7 +223,8 @@ export function useAiChat() {
           // Gövde okunamadıysa kod bilinmiyor ama sunucuya ULAŞILDI: bu bir
           // internet sorunu değil, 'generic' (bağlantı) mesajı yanlış olur.
           setError(code || 'tamamlanamadi');
-          return;
+          geriAl();
+          return false;
         }
 
         const payload = data as {
@@ -193,7 +241,8 @@ export function useAiChat() {
         const reply = payload?.text?.trim();
         if (!reply) {
           setError('tamamlanamadi');
-          return;
+          geriAl();
+          return false;
         }
         if (payload?.tier) setTier(payload.tier);
 
@@ -201,22 +250,28 @@ export function useAiChat() {
           id: nextId(),
           role: 'model',
           text: reply,
-          yedek: payload?.yedekModel === true || payload?.yapayZekasiz === true || undefined,
+          yedek: payload?.yedekModel === true || undefined,
+          yapayZekasiz: payload?.yapayZekasiz === true || undefined,
           model: payload?.model,
           kararDenetimi: payload?.kararDenetimi,
           uydurmaMadde: payload?.uydurmaMadde?.length ? payload.uydurmaMadde : undefined,
         };
-        const withReply = [...historyRef.current, modelMsg];
-        historyRef.current = withReply;
-        setMessages(withReply);
-        upsertActive(withReply);
+        const withReply = [...history, modelMsg];
+        if (activeIdRef.current === convId) {
+          historyRef.current = withReply;
+          setMessages(withReply);
+        }
+        upsertActive(withReply, convId);
+        return true;
       } catch {
         setError('generic');
+        geriAl();
+        return false;
       } finally {
         setSending(false);
       }
     },
-    [sending, upsertActive]
+    [sending, upsertActive, persist]
   );
 
   /** Yeni boş sohbet başlatır (mevcut sohbet zaten kenarda kayıtlı). */

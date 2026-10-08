@@ -7,6 +7,8 @@ import { kayitKaynagi } from '@/lib/kullanim';
 import { beklemeSaniyesi } from '@/lib/authBekleme';
 import { resetQueryCache } from '@/lib/queryClient';
 import { cancelAllReminders, pushAdresiniSil } from '@/lib/notifications';
+import { sohbetGecmisiniSil } from '@/lib/sohbetDeposu';
+import { useSayacStore } from '@/store/sayacStore';
 import type { Profile } from '@/types/database';
 
 interface AuthState {
@@ -96,7 +98,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // normalde yereldeki oturumu hemen döndüğü için bu nadiren devreye girer.
     const bootTimeout = setTimeout(() => set({ isInitializing: false }), 2000);
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      const oncekiKullanici = get().session?.user.id;
+      // OTURUM SUNUCUDAN DÜŞÜRÜLDÜYSE de temizlik yapılır (08.10.2026).
+      // Eskiden yalnız "Çıkış Yap" düğmesi temizliyordu. Kayıp telefon için
+      // başka cihazdan "diğer oturumları kapat" denince çalan cihaz girişe
+      // düşüyor ama müvekkil önbelleği, sohbet geçmişi ve müvekkil/dava adı
+      // taşıyan yerel bildirimler cihazda kalıyordu. İşlemler idempotent:
+      // signOut() zaten yaptıysa ikinci kez yapmak zararsız.
+      if (event === 'SIGNED_OUT' && oncekiKullanici) {
+        resetQueryCache().catch(() => {});
+        cancelAllReminders().catch(() => {});
+        sohbetGecmisiniSil(oncekiKullanici).catch(() => {});
+        // Çalışan sayaç dava başlığı taşır ve hesaptan bağımsız saklanıyordu:
+        // sonraki hesapta "başka dosyada sayaç çalışıyor" diye eski hesabın
+        // dava adı görünüyor, Başlat kalıcı kapalı kalıyordu.
+        useSayacStore.getState().iptal();
+      }
       set({ session, isInitializing: false });
       if (session) {
         get().refreshProfile();
@@ -270,10 +288,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
+    const userId = get().session?.user.id;
     // Oturum kapanmadan ÖNCE: silme RPC'si kimlik ister. Bu telefon, çıkış
     // yapılan hesaba gönderilen bildirimleri artık almaz (bkz. 0161).
     await pushAdresiniSil().catch(() => {});
-    await supabase.auth.signOut();
+    // AĞ YOKKEN ÇIKIŞ YARIM KALIYORDU (08.10.2026, kodla doğrulandı):
+    // auth-js sunucuya ulaşamayınca (ağ yok/5xx) hata DÖNER ve yereldeki
+    // oturumu SİLMEZ. Ekran girişe dönüyor, uygulama yeniden açılınca oturum
+    // geri geliyordu — ortak bilgisayarda müvekkil verisi açık kalırdı.
+    // Sunucu çağrısı düşerse yalnız yerel oturum zorla silinir.
+    const { error: cikisHatasi } = await supabase.auth.signOut().catch((e: Error) => ({ error: e }));
+    if (cikisHatasi) await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
     set({ session: null, profile: null });
     // ÇIKIŞTA MÜVEKKİL VERİSİ CİHAZDA KALMAZ. İki ayrı artık vardı:
     //  • Sorgu önbelleği çevrimdışı kullanım için AsyncStorage'a yazılıyor ve
@@ -284,6 +309,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Yeniden girişte ikisi de kendiliğinden geri gelir.
     await resetQueryCache().catch(() => {});
     await cancelAllReminders();
+    // Yapay zekâ sohbet geçmişi de (müvekkil soruları) cihazda kalmaz.
+    await sohbetGecmisiniSil(userId).catch(() => {});
   },
 
   deleteAccount: async () => {
@@ -326,10 +353,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { error } = await supabase.rpc('delete_account');
     if (error) throw error;
 
-    await supabase.auth.signOut().catch(() => {});
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
     set({ session: null, profile: null });
     await resetQueryCache().catch(() => {});
     await cancelAllReminders();
+    await sohbetGecmisiniSil(userId).catch(() => {});
   },
 
   clearError: () => set({ error: null }),

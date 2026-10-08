@@ -1543,6 +1543,7 @@ export const en: Record<keyof typeof tr, string> = {
   'web.promoCta': 'Switch to Vekil Pro',
   'ai.disclaimer': 'AI answers are not legal advice; verify against current legislation.',
   'ai.yedekModel': 'This answer came from a backup model; the primary model is unavailable right now. Quality may be lower — not deducted from your quota.',
+  'ai.yapayZekasiz': 'The AI services could not be reached right now. This text is not an AI answer; it is a summary of statutory provisions related to your question.',
   'ai.comingSoon': 'Vekil AI is coming soon',
   'ai.comingSoonDesc': 'The AI assistant is getting its final touches. It will start answering your questions very soon!',
   'ai.comingSoonBadge': 'SOON',

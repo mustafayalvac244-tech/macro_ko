@@ -38,11 +38,14 @@ export default function AiChatScreen() {
     return () => clearTimeout(id);
   }, [messages, sending]);
 
-  const onSend = (text: string) => {
+  const onSend = async (text: string) => {
     // Gönderince dikte de biter: sonraki parça yeni mesajın başına eklenmesin.
     if (ses.dinliyor) ses.durdur();
     setDraft('');
-    send(text);
+    // Başarısız gönderimde yazılan soru kaybolmasın (uzun soruyu baştan
+    // yazmak zorunda kalıyordu): kutuya geri konur.
+    const ok = await send(text);
+    if (!ok) setDraft((d) => (d.trim() ? d : text));
   };
 
   const empty = messages.length === 0;
@@ -260,6 +263,9 @@ function Bubble({ message }: { message: AiMessage }) {
             saklamak dürüst değil — özellikle ücretli üyeden. Bkz. AiMessage.yedek. */}
         {!isUser && message.yedek && (
           <Text style={styles.yedekUyari}>{t('ai.yedekModel')}</Text>
+        )}
+        {!isUser && message.yapayZekasiz && (
+          <Text style={styles.yedekUyari}>{t('ai.yapayZekasiz')}</Text>
         )}
         {/* ATIF DENETİMİ. Sohbet, uydurma karar numarası için en riskli mod:
             "emsal karar var mı" sorusunun cevabındaki numara doğrudan
