@@ -110,6 +110,9 @@ export default function DilekceUretScreen() {
   // yakalıyoruz, ama yapısal olarak düzgün görünüp hukuken işe yaramayan bir
   // metni ancak avukat bilir; hakkını geri alabilmeli.
   const [hakDusulmedi, setHakDusulmedi] = useState(false);
+  // Yedek modelle üretildiyse SÖYLENİR (08.10.2026): sohbet gösteriyordu,
+  // bu ekran göstermiyordu — Console askıdayken metni yedek model yazıyor.
+  const [yedekModel, setYedekModel] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!AI_DILEKCE_ENABLED) {
@@ -126,6 +129,7 @@ export default function DilekceUretScreen() {
     setTalimat('');
     setDuzeltHata(null);
     setHakDusulmedi(false);
+    setYedekModel(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
         body: { mode: 'dilekce', dilekceType: type, question, caseId: caseId ?? undefined, ekler: ekler.length ? ekGovdesi(ekler) : undefined },
@@ -138,7 +142,7 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
+      const payload = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!payload?.text) {
         // Sunucuya ulaşıldı, cevap boş: internet suçlanmaz (08.10.2026).
         setError(t('ai.errTamamlanamadi'));
@@ -154,6 +158,7 @@ export default function DilekceUretScreen() {
       setAyiklanan(Number(payload.ayiklananTarih ?? 0));
       setKullanim(payload.kullanim ?? null);
       setHakDusulmedi(!!payload.hakDusulmedi);
+      setYedekModel(!!payload.yedekModel);
       setEkUyari(payload.ekUyari ?? null);
     } catch {
       setError(t('ai.errGeneric'));
@@ -176,7 +181,7 @@ export default function DilekceUretScreen() {
         setDuzeltHata(aiHataMetni(await aiHataGovdesi(fnErr), t));
         return;
       }
-      const y = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; kisaKaldi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
+      const y = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; kisaKaldi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!y?.text) {
         setDuzeltHata(t('ai.errTamamlanamadi'));
         return;
@@ -196,6 +201,7 @@ export default function DilekceUretScreen() {
       setAyiklanan(Number(y.ayiklananTarih ?? 0));
       setKullanim(y.kullanim ?? null);
       setHakDusulmedi(!!y.hakDusulmedi);
+      setYedekModel(!!y.yedekModel);
     } catch {
       setDuzeltHata(t('ai.errGeneric'));
     } finally {
@@ -404,6 +410,7 @@ export default function DilekceUretScreen() {
                     : t('ai.usageFree', { token: String(kullanim.girdiToken + kullanim.ciktiToken) })}
                 </Text>
               )}
+              {yedekModel && <Text style={[styles.usage, { color: colors.warning }]}>{t('ai.yedekModelMetin')}</Text>}
               {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
               <Text style={styles.disclaimer}>{t('dlk.disclaimer')}</Text>
             </View>

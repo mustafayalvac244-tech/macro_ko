@@ -113,6 +113,15 @@ describe('udfIcerikXml — offset aritmetiği', () => {
     expect(hizalar).toEqual(['3', '1', '1']);
   });
 
+  it('"⚠️ KONTROL LİSTESİ" iç notları UDF dosyasına girmez', () => {
+    const metin = 'Saygılarımla,\nAv. Örnek\n\n⚠️ KONTROL LİSTESİ\n- Zamanaşımı itirazı riski\n- Tanık listesi eksik';
+    const c = cdataMetni(udfIcerikXml(metin));
+    expect(c).toBe('Saygılarımla,\nAv. Örnek\n');
+    expect(c).not.toContain('Zamanaşımı');
+    // Metnin ortasında "kontrol listesi" geçmesi bir şey silmez.
+    expect(cdataMetni(udfIcerikXml('Kontrol listesi ekte sunulmuştur.\nSONUÇ'))).toContain('SONUÇ');
+  });
+
   it('satır başı markdown işaretleri atılır', () => {
     expect(cdataMetni(udfIcerikXml('**AÇIKLAMALAR**\n### Sonuç'))).toBe('AÇIKLAMALAR\nSonuç\n');
   });

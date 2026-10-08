@@ -1510,7 +1510,8 @@ export const tr = {
   // Kural özetleri BİZİM metnimizdir; tırnak içinde kanun lafzı gibi
   // kullanılırsa avukat mahkemeye kanunda bulunmayan bir cümle sunmuş olur.
   'mut.groundsNote': 'Bunlar Vekil kural özetidir, kanun maddesinin lafzı değildir. Tarama bu kurallardan birini atlamışsa aşağıda görürsünüz.',
-  'ai.notCharged': 'Bu taslak eksik üretildiği için hakkınızdan düşülmedi.',
+  'ai.notCharged': 'Bu istek hakkınızdan düşülmedi.',
+  'ai.yedekModelMetin': 'Bu metin yedek modelle üretildi; asıl model şu an ulaşılamıyor. Yedek model PDF sayfa görüntülerini göremez, taranmış belge okunmamış olabilir. Sonucu dikkatle kontrol edin.',
   // Uydurma madde atfı: havuzdaki kanunun OLMAYAN maddesine yapılan atıf.
   // Gerçek görünür (biçim doğru, numara var), yanlışlığı ancak hâkim baktığında
   // anlaşılır — bu yüzden hem gösteriliyor hem hak düşülmüyor.

@@ -67,6 +67,9 @@ export default function MutalaaScreen() {
   // işlem olduğu için burada daha da önemli.
   const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
   const [hakDusulmedi, setHakDusulmedi] = useState(false);
+  // Yedek modelle üretildiyse SÖYLENİR (08.10.2026): sohbet gösteriyordu,
+  // bu ekran göstermiyordu — Console askıdayken metni yedek model yazıyor.
+  const [yedekModel, setYedekModel] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsPro, setNeedsPro] = useState(false);
 
@@ -83,6 +86,7 @@ export default function MutalaaScreen() {
     setText('');
     setIssues([]);
     setHakDusulmedi(false);
+    setYedekModel(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
         body: { mode: 'mutalaa', question },
@@ -99,7 +103,7 @@ export default function MutalaaScreen() {
         }
         return;
       }
-      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; atlananKural?: string[]; dayanak?: Array<{ id: string; metin: string }>; kararDenetimi?: KararDenetimiVerisi } | null;
+      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; uydurmaMadde?: string[]; atlananKural?: string[]; dayanak?: Array<{ id: string; metin: string }>; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!payload?.text) {
         // Sunucuya ulaşıldı, cevap boş: internet suçlanmaz (08.10.2026).
         setError(t('ai.errTamamlanamadi'));
@@ -115,6 +119,7 @@ export default function MutalaaScreen() {
       setDayanakAcik(false);
       setKullanim(payload.kullanim ?? null);
       setHakDusulmedi(!!payload.hakDusulmedi);
+      setYedekModel(!!payload.yedekModel);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -240,6 +245,7 @@ export default function MutalaaScreen() {
                     : t('ai.usageFree', { token: String(kullanim.girdiToken + kullanim.ciktiToken) })}
                 </Text>
               )}
+              {yedekModel && <Text style={[styles.usage, { color: colors.warning }]}>{t('ai.yedekModelMetin')}</Text>}
               {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
               <Text style={styles.disclaimer}>{t('mut.disclaimer')}</Text>
             </View>

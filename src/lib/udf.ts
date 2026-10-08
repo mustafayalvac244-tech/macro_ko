@@ -153,6 +153,12 @@ function crc32(veri: Uint8Array): number {
 export function udfMetniTemizle(metin: string): string {
   return metin
     .replace(/\r\n?/g, '\n')
+    // İÇ NOTLAR UYAP'A GİTMEZ (08.10.2026, denetimde bulundu). Dilekçe
+    // üreticisi risk/boşluk notlarını metnin sonuna "⚠️ KONTROL LİSTESİ"
+    // başlığıyla ekliyor (_shared/dilekce.ts). Kopya ve .txt'de avukatın
+    // önünde kalır; ama UYAP'a yüklenecek UDF'ye girerse, avukat silmeyi
+    // unuttuğunda strateji notları mahkemeye gider.
+    .replace(/\n*[ \t]*⚠\uFE0F?[ \t]*KONTROL LİSTESİ[ \t]*(\n[\s\S]*)?$/u, '')
     .replace(/\t/g, '    ')
     .replace(/[\u{10000}-\u{10FFFF}]/gu, '')
     .replace(/[\uD800-\uDFFF]/g, '')
