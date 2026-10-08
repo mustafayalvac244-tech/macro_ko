@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -14,6 +14,8 @@ import { ekGovdesi } from '@/lib/belgeEkiKurallari';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_DILEKCE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
+import { taslakOku, taslakSil, taslakYaz } from '@/lib/sohbetDeposu';
+import { useAuthStore } from '@/store/authStore';
 import { useCases } from '@/hooks/useCases';
 import type { AiKullanim } from '@/hooks/useAiKontor';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
@@ -22,7 +24,7 @@ import { useBuyukHarf } from '@/lib/buyukHarf';
 import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatMoney } from '@/utils/format';
+import { formatDateTime, formatMoney } from '@/utils/format';
 
 /**
  * DİLEKÇE ÜRET — olay anlatımından mahkemeye hazır resmî dilekçe taslağı.
@@ -115,6 +117,44 @@ export default function DilekceUretScreen() {
   const [yedekModel, setYedekModel] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // SON TASLAK SAKLANIR (08.10.2026, denetimde bulundu). Taslak ve elle
+  // yapılan düzeltmeler yalnız ekran durumundaydı; geri/yenile/yan menüyle
+  // çıkan avukat, ücretli ve 58 sn süren üretimi kaybediyordu. Cihazda,
+  // hesaba bağlı tutulur; çıkışta silinir (src/lib/sohbetDeposu.ts).
+  type Taslak = { type: string; q: string; caseId: string | null; metin: string; zaman: number };
+  const userId = useAuthStore((s) => s.session?.user.id ?? null);
+  const [geriYuklendi, setGeriYuklendi] = useState<number | null>(null);
+  const yazZamanlayici = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    let canli = true;
+    taslakOku<Taslak>(userId, 'dilekce').then((k) => {
+      if (!canli || !k?.metin) return;
+      setType(k.type);
+      setQ(k.q);
+      setCaseId(k.caseId);
+      setText(k.metin);
+      guncelMetin.current = k.metin;
+      setGeriYuklendi(k.zaman);
+    });
+    return () => {
+      canli = false;
+    };
+  }, [userId]);
+  const taslagiSakla = (metin: string) => {
+    if (!userId || !metin.trim()) return;
+    if (yazZamanlayici.current) clearTimeout(yazZamanlayici.current);
+    yazZamanlayici.current = setTimeout(() => {
+      taslakYaz(userId, 'dilekce', { type, q, caseId, metin, zaman: Date.now() } satisfies Taslak);
+    }, 800);
+  };
+  const taslagiTemizle = () => {
+    if (userId) taslakSil(userId, 'dilekce');
+    setText('');
+    guncelMetin.current = '';
+    setGeriYuklendi(null);
+  };
+
   if (!AI_DILEKCE_ENABLED) {
     return <ComingSoon headerTitle={t('dlk.title')} title={t('soon.dilekce')} desc={t('soon.desc')} icon="document-text" />;
   }
@@ -124,7 +164,8 @@ export default function DilekceUretScreen() {
     if (question.length < 20 || busy) return;
     setBusy(true);
     setError(null);
-    setText('');
+    // Eski taslak YENİSİ GELENE KADAR silinmez: üretim düşerse avukatın
+    // elindeki (belki düzeltilmiş) taslak da gitmiş oluyordu.
     setOnceki(null);
     setTalimat('');
     setDuzeltHata(null);
@@ -149,6 +190,9 @@ export default function DilekceUretScreen() {
         return;
       }
       setText(payload.text);
+      guncelMetin.current = payload.text;
+      setGeriYuklendi(null);
+      taslagiSakla(payload.text);
       setEksikBolum(payload.eksikBolum ?? []);
       setTalepEksik(payload.talepEksik ?? []);
       setCakisanDayanak(payload.cakisanDayanak ?? []);
@@ -194,6 +238,8 @@ export default function DilekceUretScreen() {
       }
       setOnceki(taslak);
       setText(y.text);
+      guncelMetin.current = y.text;
+      taslagiSakla(y.text);
       setTalimat('');
       setUydurmaMadde(y.uydurmaMadde ?? []);
       setKararDenetimi(y.kararDenetimi ?? null);
@@ -322,6 +368,14 @@ export default function DilekceUretScreen() {
 
           {!!text && (
             <View style={styles.card}>
+              {geriYuklendi != null && (
+                <View style={styles.geriYuklendi}>
+                  <Text style={styles.usage}>{t('dlk.taslakGeriYuklendi', { zaman: formatDateTime(new Date(geriYuklendi).toISOString()) })}</Text>
+                  <Pressable onPress={taslagiTemizle} hitSlop={8} accessibilityRole="button">
+                    <Text style={styles.temizleText}>{t('dlk.taslakTemizle')}</Text>
+                  </Pressable>
+                </View>
+              )}
               {/* TASLAK ARTIK BURADA DÜZENLENİYOR. Eskiden salt okunurdu: avukat
                   metni Word'e alıp orada düzeltiyordu, yani ürettiğimiz UDF
                   mahkemeye GİDEN metin değil, gitmeden önceki hâliydi.
@@ -333,7 +387,10 @@ export default function DilekceUretScreen() {
                 etiket={t('dlk.resultTitle')}
                 udf
                 mod="dilekce"
-                onMetinDegisti={(m) => (guncelMetin.current = m)}
+                onMetinDegisti={(m) => {
+                  guncelMetin.current = m;
+                  taslagiSakla(m);
+                }}
               />
               <View style={styles.duzeltKutu}>
                 <Text style={styles.duzeltBaslik}>{t('dlk.duzeltBaslik')}</Text>
@@ -422,6 +479,18 @@ export default function DilekceUretScreen() {
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  geriYuklendi: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  temizleText: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.primary,
+  },
   flex: { flex: 1 },
   duzeltKutu: {
     marginTop: spacing.md,

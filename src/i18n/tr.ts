@@ -1838,6 +1838,8 @@ export const tr = {
   'dlk.working': 'Yazılıyor…',
   'dlk.workingHint': 'Mevzuat ve içtihat taranıp taslak hazırlanıyor.',
   'dlk.resultTitle': 'Dilekçe Taslağı',
+  'dlk.taslakGeriYuklendi': 'Son taslağınız geri yüklendi ({zaman}).',
+  'dlk.taslakTemizle': 'Temizle',
   'dlk.missingRelief': '{uyari}. Hâkim taleple bağlıdır: netice-i talepte yazmayan şeye hükmedilmez — kontrol edin.',
   'dlk.missingSections': 'Şu zorunlu bölümleri model yazmadı, taslakta boşluk bırakıldı — doldurmadan vermeyin: {bolumler}',
   'dlk.scrubbedDates': 'Taslaktan {n} adet uydurma tarih ayıklandı (anlattığınız olayda geçmiyorlardı). Kalan tarihleri de denetleyin.',

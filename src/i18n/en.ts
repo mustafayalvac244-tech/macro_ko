@@ -1763,6 +1763,8 @@ export const en: Record<keyof typeof tr, string> = {
   'dlk.working': 'Drafting…',
   'dlk.workingHint': 'Scanning legislation and case law to prepare the draft.',
   'dlk.resultTitle': 'Petition Draft',
+  'dlk.taslakGeriYuklendi': 'Your last draft was restored ({zaman}).',
+  'dlk.taslakTemizle': 'Clear',
   'dlk.missingRelief': '{uyari}. The court is bound by the relief sought: anything not in the prayer cannot be granted — check this.',
   'dlk.missingSections': 'The model did not write these mandatory sections; placeholders were left — fill them before filing: {bolumler}',
   'dlk.scrubbedDates': '{n} invented dates were removed from the draft (they did not appear in your facts). Check the remaining dates too.',

@@ -42,6 +42,39 @@ export async function sohbetleriYaz(userId: string, json: string): Promise<void>
 /** Çıkışta ve hesap silmede: bu hesabın geçmişi (ve eski genel anahtar) silinir. */
 export async function sohbetGecmisiniSil(userId: string | null | undefined): Promise<void> {
   const anahtarlar = [ESKI_ANAHTAR];
-  if (userId) anahtarlar.push(sohbetAnahtari(userId));
+  if (userId) anahtarlar.push(sohbetAnahtari(userId), ...taslakAnahtarlari(userId));
   await AsyncStorage.multiRemove(anahtarlar);
+}
+
+/**
+ * YAPAY ZEKÂ TASLAĞI — cihazda, hesaba bağlı (08.10.2026).
+ *
+ * Dilekçe taslağı yalnız ekran durumunda duruyordu: 58 sn bekleyip hak
+ * harcayan, sonra 20 dk elle düzelten avukat geri/yenile/yan menüyle çıkınca
+ * her şey gidiyordu. Son taslak burada tutulur; sohbet geçmişiyle aynı kural:
+ * çıkışta ve hesap silmede silinir (sohbetGecmisiniSil).
+ */
+export type TaslakEkrani = 'dilekce';
+const TASLAK_EKRANLARI: TaslakEkrani[] = ['dilekce'];
+const taslakAnahtari = (userId: string, ekran: TaslakEkrani) => `vekil.ai.taslak.v1:${ekran}:${userId}`;
+
+export async function taslakOku<T>(userId: string, ekran: TaslakEkrani): Promise<T | null> {
+  try {
+    const ham = await AsyncStorage.getItem(taslakAnahtari(userId, ekran));
+    return ham ? (JSON.parse(ham) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function taslakYaz(userId: string, ekran: TaslakEkrani, veri: unknown): Promise<void> {
+  await AsyncStorage.setItem(taslakAnahtari(userId, ekran), JSON.stringify(veri)).catch(() => {});
+}
+
+export async function taslakSil(userId: string, ekran: TaslakEkrani): Promise<void> {
+  await AsyncStorage.removeItem(taslakAnahtari(userId, ekran)).catch(() => {});
+}
+
+export function taslakAnahtarlari(userId: string): string[] {
+  return TASLAK_EKRANLARI.map((e) => taslakAnahtari(userId, e));
 }
