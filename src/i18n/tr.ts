@@ -1092,7 +1092,8 @@ export const tr = {
   'toplu.doneBody': '{adet} dosya eklendi.',
   // Kısmen yazılmış olabilir: ne kadarının geçtiğini söylemezsek avukat baştan
   // yükler ve her şey ikilenir.
-  'toplu.partial': 'Aktarım yarıda kaldı. {adet} dosya eklendi; kalanlar eklenmedi. Aynı dosyayı tekrar yüklerseniz eklenenler ikilenir.',
+  'toplu.partial': 'Aktarım yarıda kaldı: {adet} dosya eklendi, {kalan} dosya eklenmedi. Eklenmeyenler listede duruyor; sebebi giderip tekrar Aktar’a basarsanız kaldığı yerden devam eder (eklenenler ikilenmez).',
+  'toplu.excelDegil': 'Excel dosyası (.xlsx) doğrudan okunamıyor. Excel’de Dosya > Farklı Kaydet > “CSV UTF-8 (virgülle ayrılmış)” seçip o dosyayı yükleyin.',
   'makbuz.action': 'Makbuz dökümü',
   'makbuz.title': 'Serbest Meslek Makbuzu',
   'makbuz.documentLabel': 'Makbuz dökümü',
