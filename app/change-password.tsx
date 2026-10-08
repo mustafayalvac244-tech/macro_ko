@@ -53,7 +53,10 @@ export default function ChangePasswordScreen() {
     const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
     if (reauthError) {
       setIsSubmitting(false);
-      setError(t('changePw.wrongCurrent'));
+      // Yalnız GERÇEKTEN yanlış şifrede "mevcut şifre hatalı" (08.10.2026).
+      // Sunucu 504/ağ hatası da bu mesajı veriyordu; avukat doğru şifresini
+      // yanlış sanıyordu.
+      setError(/invalid login credentials/i.test(reauthError.message) ? t('changePw.wrongCurrent') : trError(reauthError.message));
       return;
     }
 

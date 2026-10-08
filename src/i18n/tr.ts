@@ -328,7 +328,7 @@ export const tr = {
   'case.noDeadlines': 'Takip edilen görev yok',
   'case.noDocuments': 'Yüklenmiş belge yok',
   'case.delete': 'Davayı Sil',
-  'case.deleteConfirm': '"{title}" davası ve bağlı tüm duruşmalar, görevler ve belgeler silinsin mi?',
+  'case.deleteConfirm': '"{title}" davası ve bağlı tüm duruşmalar, görevler, belgeler, tahsilatlar, masraflar, taksitler ve çalışma kayıtları silinsin mi? Bu işlem geri alınamaz.',
 
   // Common
   'common.cancel': 'Vazgeç',
@@ -1423,7 +1423,7 @@ export const tr = {
   'calc.gross': 'Brüt ücret',
   'calc.withholding': 'Gelir vergisi stopajı (%20)',
   'calc.net': 'Net ücret',
-  'calc.vat': 'KDV (%20)',
+  'calc.vat': 'KDV',
   'calc.collect': 'Tahsil edilecek toplam',
   'calc.smmDisclaimer': 'Serbest meslek makbuzu: %20 stopaj + %20 KDV varsayımıyla. Farklı oranlar için muhasebecinize danışın.',
   'calc.salary': 'Giydirilmiş aylık brüt ücret (₺)',
@@ -1431,6 +1431,7 @@ export const tr = {
   'calc.terminationDate': 'İşten çıkış',
   'calc.service': 'Hizmet süresi',
   'calc.serviceValue': '{y} yıl {m} ay {d} gün',
+  'calc.kidemBirYil': 'Hizmet 1 yıldan az: kıdem tazminatı hakkı doğmaz (1475 s. İş K. m.14)',
   'calc.severanceCapApplied': 'Tavan uygulandı ({period})',
   'calc.severanceCapUnknown': '⚠️ Bu çıkış tarihi için tavan tanımlı değil — tutar TAVANSIZ hesaplandı, resmî tavanı teyit edin',
   'calc.severanceGross': 'Kıdem tazminatı (brüt)',

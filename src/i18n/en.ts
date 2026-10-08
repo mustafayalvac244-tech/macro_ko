@@ -308,7 +308,7 @@ export const en: Record<keyof typeof tr, string> = {
   'case.noDeadlines': 'No tasks tracked',
   'case.noDocuments': 'No documents uploaded',
   'case.delete': 'Delete Case',
-  'case.deleteConfirm': 'Delete "{title}" and all linked hearings, deadlines, and documents?',
+  'case.deleteConfirm': 'Delete "{title}" and all its hearings, tasks, documents, collections, expenses, installments and time entries? This cannot be undone.',
 
   // Common
   'common.cancel': 'Cancel',
@@ -1372,7 +1372,7 @@ export const en: Record<keyof typeof tr, string> = {
   'calc.gross': 'Gross fee',
   'calc.withholding': 'Income tax withholding (20%)',
   'calc.net': 'Net fee',
-  'calc.vat': 'VAT (20%)',
+  'calc.vat': 'VAT',
   'calc.collect': 'Total to collect',
   'calc.smmDisclaimer': 'Self-employment receipt assuming 20% withholding + 20% VAT. Consult your accountant for other rates.',
   'calc.salary': 'Gross monthly salary incl. benefits (₺)',
@@ -1380,6 +1380,7 @@ export const en: Record<keyof typeof tr, string> = {
   'calc.terminationDate': 'Termination date',
   'calc.service': 'Service period',
   'calc.serviceValue': '{y}y {m}m {d}d',
+  'calc.kidemBirYil': 'Service under 1 year: no severance pay entitlement (Labour Law No. 1475, art. 14)',
   'calc.severanceCapApplied': 'Ceiling applied ({period})',
   'calc.severanceCapUnknown': '⚠️ No ceiling defined for this termination date — the amount was computed WITHOUT a cap; verify the official ceiling',
   'calc.severanceGross': 'Severance pay (gross)',

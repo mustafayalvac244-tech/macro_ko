@@ -4,6 +4,9 @@ import DateTimePicker from '@/components/ui/TarihSecici';
 import { differenceInCalendarDays } from 'date-fns/differenceInCalendarDays';
 import { differenceInDays } from 'date-fns/differenceInDays';
 import { differenceInMonths } from 'date-fns/differenceInMonths';
+import { differenceInYears } from 'date-fns/differenceInYears';
+import { addYears } from 'date-fns/addYears';
+import { addMonths } from 'date-fns/addMonths';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -409,8 +412,18 @@ function SeveranceCalc() {
 
   const s = parseAmount(salary);
   const totalDays = Math.max(0, differenceInDays(end, start));
-  const years = totalDays / 365;
+  // HİZMET SÜRESİ TAKVİMLE (08.10.2026, denetimde bulundu). Eskiden
+  // gün/365'ti: 01.01.2020–01.01.2025 tam 5 yıl iken 1.827 gün olduğu için
+  // 5,0055 yıl ve "5 yıl 0 ay 2 gün" çıkıyordu. Artık tam yıl + tam ay + gün.
+  const tamYil = Math.max(0, differenceInYears(end, start));
+  const yilDonumu = addYears(start, tamYil);
+  const tamAy = Math.max(0, differenceInMonths(end, yilDonumu));
+  const kalanGun = Math.max(0, differenceInDays(end, addMonths(yilDonumu, tamAy)));
+  const years = tamYil + tamAy / 12 + kalanGun / 365;
   const months = Math.max(0, differenceInMonths(end, start));
+  // 1475 s. İş K. m.14: kıdem tazminatı için en az bir yıl çalışmış olmak
+  // gerekir. Eskiden 8 aylık hizmete de kıdem hesaplanıyordu.
+  const kidemHakki = tamYil >= 1;
 
   // KIDEM TAVANI ARTIK UYGULANIYOR.
   //
@@ -422,20 +435,17 @@ function SeveranceCalc() {
   //
   // Tavan ÇIKIŞ TARİHİNDEKİ dönemin tavanıdır, bugünkü değil.
   const kidem = kidemBrutHesapla(s, years, end);
-  const kidemGross = kidem.brut;
+  const kidemGross = kidemHakki ? kidem.brut : 0;
   const damga = kidemGross * 0.00759;
   const kidemNet = kidemGross - damga;
 
   const noticeWeeks = months < 6 ? 2 : months < 18 ? 4 : months < 36 ? 6 : 8;
   const ihbarGross = (s / 30) * 7 * noticeWeeks;
 
-  const serviceLabel = useMemo(() => {
-    const y = Math.floor(totalDays / 365);
-    const remDays = totalDays - y * 365;
-    const m = Math.floor(remDays / 30);
-    const d = remDays - m * 30;
-    return t('calc.serviceValue', { y, m, d });
-  }, [totalDays, t]);
+  const serviceLabel = useMemo(
+    () => t('calc.serviceValue', { y: tamYil, m: tamAy, d: kalanGun }),
+    [tamYil, tamAy, kalanGun, t]
+  );
 
   return (
     <View>
@@ -487,6 +497,7 @@ function SeveranceCalc() {
           {!kidem.tavan && s > 0 && (
             <ResultRow label={t('calc.severanceCapUnknown')} value="—" />
           )}
+          {!kidemHakki && <ResultRow label={t('calc.kidemBirYil')} value="—" />}
           <ResultRow label={t('calc.severanceGross')} value={formatMoney(kidemGross)} />
           <ResultRow label={t('calc.stampTax')} value={`− ${formatMoney(damga)}`} />
           <ResultRow label={t('calc.severanceNet')} value={formatMoney(kidemNet)} strong />

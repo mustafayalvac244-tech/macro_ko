@@ -47,7 +47,10 @@ export default function HesapSilScreen() {
   const [hata, setHata] = useState<string | null>(null);
 
   const beklenen = t('delAcc.confirmWord');
-  const sozcukTamam = onaySozcugu.trim().toLocaleLowerCase('tr') === beklenen.toLocaleLowerCase('tr');
+  // "SIL" (ASCII I) Türkçe küçültmede "sıl" olur ve "SİL" ile eşleşmiyordu;
+  // düğme sebep söylemeden kapalı kalıyordu (08.10.2026). ı/i ayrımı yok sayılır.
+  const sade = (v: string) => v.trim().toLocaleLowerCase('tr').replace(/ı/g, 'i');
+  const sozcukTamam = sade(onaySozcugu) === sade(beklenen);
 
   const sil = async () => {
     setHata(null);
