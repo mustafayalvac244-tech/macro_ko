@@ -126,6 +126,15 @@ try {
   process.exit(1);
 }
 
+// SAYFA DİLİ TÜRKÇE (08.10.2026). expo export `<html lang="en">` yazıyor.
+// CSS text-transform: uppercase dile bakar: lang="en" iken "Hukuki" →
+// "HUKUKI", "Sonraki" → "SONRAKI" çıkıyordu (denetimde bulundu). Kullanıcı
+// İngilizce'ye geçerse uygulama dili çalışma anında günceller (app/_layout).
+if (/<html lang="en"/.test(html)) {
+  html = html.replace('<html lang="en"', '<html lang="tr"');
+  await writeFile(UYG_INDEX, html, 'utf8');
+}
+
 if (!html.includes(ISARET)) {
   // Paket betiğinden ÖNCE olmalı. </head> güvenli bir yer: bütün <script
   // src> etiketleri gövdenin sonunda ya da head'in daha altında duruyor

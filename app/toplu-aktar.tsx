@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -23,6 +22,7 @@ import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { geriDon } from '@/lib/geriDon';
 
 /**
  * TOPLU DOSYA AKTARIMI — başka bir programdan / UYAP'tan gelen tablo.
@@ -166,7 +166,7 @@ export default function TopluAktarScreen() {
       }
 
       uyar(t('toplu.doneTitle'), t('toplu.doneBody', { adet: String(onizleme.kayitlar.length) }), [
-        { text: t('common.ok'), onPress: () => router.back() },
+        { text: t('common.ok'), onPress: () => geriDon() },
       ]);
     } catch {
       // Kısmen yazılmış olabilir: ne kadarının geçtiğini SÖYLÜYORUZ, yoksa

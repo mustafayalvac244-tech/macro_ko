@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@/components/ui/TarihSecici';
 import { addMonths } from 'date-fns/addMonths';
 import { format } from 'date-fns/format';
@@ -23,6 +23,7 @@ import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { taksitBolustur } from '@/utils/taksit';
 import { tutarOku, tutarYaz } from '@/utils/tutar';
+import { geriDon } from '@/lib/geriDon';
 
 export default function PromiseFormScreen() {
   const __t = useTheme();
@@ -101,7 +102,7 @@ export default function PromiseFormScreen() {
           note: note.trim() || null,
         });
       }
-      router.back();
+      geriDon();
     } catch (e) {
       setError(
         isMissingPromiseTable(e) || isMissingInstallmentColumns(e)

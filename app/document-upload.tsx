@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -18,6 +18,7 @@ import type { ThemeColors } from '@/theme/palettes';
 import { formatFileSize } from '@/utils/format';
 import { categoryMismatch, detectFileKind } from '@/utils/fileKind';
 import type { DocumentCategory } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 const CATEGORY_VALUES: DocumentCategory[] = [
   'pleading',
@@ -76,7 +77,7 @@ export default function DocumentUploadScreen() {
         clientId: ownerMode === 'client' ? clientId || null : null,
         category,
       });
-      router.back();
+      geriDon();
     } catch {
       // Uyarıyı kanca gösterir (notifySaveError): plan sınırı için "Planları
       // gör" düğmeli pencere, 25 MB için sınır cümlesi. Eskiden burada İKİNCİ

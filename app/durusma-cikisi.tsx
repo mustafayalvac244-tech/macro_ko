@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router } from 'expo-router';
 import DateTimePicker from '@/components/ui/TarihSecici';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -24,6 +23,7 @@ import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
+import { geriDon } from '@/lib/geriDon';
 
 /**
  * DURUŞMA ÇIKIŞI — duruşma bittikten sonraki 60 saniye.
@@ -188,7 +188,7 @@ export default function DurusmaCikisiScreen() {
       // Sıradaki duruşmaya geç
       resetForNext();
       if (idx >= pending.length - 1) {
-        uyar(t('hout.title'), t('hout.allDone'), [{ text: t('common.done'), onPress: () => router.back() }]);
+        uyar(t('hout.title'), t('hout.allDone'), [{ text: t('common.done'), onPress: () => geriDon() }]);
       }
     } catch {
       // hata uyarısı notifySaveError ile gösterildi

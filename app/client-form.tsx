@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
@@ -14,6 +14,7 @@ import { useTheme } from '@/theme/useTheme';
 import { isValidTCKN } from '@/utils/tckn';
 import { menfaatTara } from '@/utils/menfaatCatismasi';
 import { MenfaatUyarisi } from '@/components/MenfaatUyarisi';
+import { geriDon } from '@/lib/geriDon';
 
 export default function ClientFormScreen() {
   const { colors } = useTheme();
@@ -92,7 +93,7 @@ export default function ClientFormScreen() {
       } else {
         await createClient.mutateAsync(payload);
       }
-      router.back();
+      geriDon();
     } catch {
       // uyarı notifySaveError ile gösterildi
     }

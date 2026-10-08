@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@/components/ui/TarihSecici';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -25,6 +25,7 @@ import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { HIZLI_SURELER, dakikaBicimle, sureAyristir, tutarHesapla } from '@/utils/zamanKaydi';
 import { tutarOku, tutarYaz } from '@/utils/tutar';
+import { geriDon } from '@/lib/geriDon';
 
 /**
  * ZAMAN KAYDI FORMU.
@@ -90,7 +91,7 @@ export default function TimeEntryFormScreen() {
         billable,
         hourly_rate: billable ? parsedRate : null,
       });
-      router.back();
+      geriDon();
     } catch (e) {
       setError(isMissingTimeTable(e) ? t('time.setupRequired') : t('time.saveFailed'));
     }

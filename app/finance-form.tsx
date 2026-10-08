@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@/components/ui/TarihSecici';
 import { format } from 'date-fns/format';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -19,6 +19,7 @@ import { formatDate, formatMoney } from '@/utils/format';
 import { hesaplaSmm, VARSAYILAN_KDV_ORANI, VARSAYILAN_STOPAJ_ORANI } from '@/utils/serbestMeslekMakbuzu';
 import { oranOku, oranYaz, tutarOku, tutarYaz } from '@/utils/tutar';
 import type { FinanceCategory, FinanceKind } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 export default function FinanceFormScreen() {
   const __t = useTheme();
@@ -100,7 +101,7 @@ export default function FinanceFormScreen() {
       } else {
         await createEntry.mutateAsync(payload);
       }
-      router.back();
+      geriDon();
     } catch (e) {
       setError(isMissingFinanceTable(e) ? t('ofinance.setupRequired') : t('financeForm.saveFailed'));
     }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
@@ -13,6 +12,7 @@ import { trError } from '@/lib/authErrors';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { geriDon } from '@/lib/geriDon';
 
 export default function ChangePasswordScreen() {
   const __t = useTheme();
@@ -65,7 +65,7 @@ export default function ChangePasswordScreen() {
     }
 
     uyar(t('settings.changePassword'), t('changePw.success'));
-    router.back();
+    geriDon();
   };
 
   return (

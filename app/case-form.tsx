@@ -22,6 +22,7 @@ import { menfaatTara } from '@/utils/menfaatCatismasi';
 import { oranOku, oranYaz, tutarOku, tutarYaz } from '@/utils/tutar';
 import { MenfaatUyarisi } from '@/components/MenfaatUyarisi';
 import type { CaseStatus, PriorityLevel } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 const STATUS_VALUES = ['active', 'closed'] as const; // Açık / Kapalı
 const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
@@ -168,7 +169,7 @@ export default function CaseFormScreen() {
           });
         }
       }
-      router.back();
+      geriDon();
     } catch (err) {
       setSubmitError(err instanceof Error ? trError(err.message) : t('caseForm.saveFailed'));
     }

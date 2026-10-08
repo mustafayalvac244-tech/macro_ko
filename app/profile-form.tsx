@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -16,6 +15,7 @@ import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { tutarOku, tutarYaz } from '@/utils/tutar';
+import { geriDon } from '@/lib/geriDon';
 
 export default function ProfileFormScreen() {
   const __t = useTheme();
@@ -108,7 +108,7 @@ export default function ProfileFormScreen() {
       } else if (stagedRemove && profile?.avatar_url) {
         await removeAvatar();
       }
-      router.back();
+      geriDon();
     } catch {
       setError(t('profile.saveFailed'));
     } finally {

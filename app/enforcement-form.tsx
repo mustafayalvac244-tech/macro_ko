@@ -19,6 +19,7 @@ import { formatDate } from '@/utils/format';
 import { oranOku, oranYaz, tutarOku, tutarYaz } from '@/utils/tutar';
 import { uyar } from '@/lib/uyari';
 import type { TakipType } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 const TAKIP_TYPES: TakipType[] = ['ilamsiz', 'ilamli', 'kambiyo', 'kira', 'rehin'];
 
@@ -109,7 +110,7 @@ export default function EnforcementFormScreen() {
     try {
       if (isEdit && id) {
         await updateEnforcement.mutateAsync({ id, ...payload });
-        router.back();
+        geriDon();
       } else {
         const created = await createEnforcement.mutateAsync(payload);
         router.replace(`/enforcement/${created.id}` as Parameters<typeof router.replace>[0]);

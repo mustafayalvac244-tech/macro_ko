@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@/components/ui/TarihSecici';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -19,6 +19,7 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
 import type { PriorityLevel } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
 
@@ -99,7 +100,7 @@ export default function DeadlineFormScreen() {
       } else {
         await createDeadline.mutateAsync(payload);
       }
-      router.back();
+      geriDon();
     } catch {
       // uyarı notifySaveError ile gösterildi
     }

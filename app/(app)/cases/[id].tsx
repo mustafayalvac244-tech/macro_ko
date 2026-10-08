@@ -39,6 +39,7 @@ import DateTimePicker from '@/components/ui/TarihSecici';
 import { hearingReminderMessage, sendClientReminder } from '@/utils/reminder';
 import { useAuthStore } from '@/store/authStore';
 import type { FirstInstancePhase, InstanceStage, ClosedResult, Hearing } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 type Tab = 'overview' | 'hearings' | 'deadlines' | 'time' | 'finance' | 'plan';
 
@@ -200,7 +201,7 @@ export default function CaseDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           await deleteCase.mutateAsync(caseItem.id);
-          router.back();
+          geriDon();
         },
       },
     ]);

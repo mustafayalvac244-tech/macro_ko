@@ -37,6 +37,7 @@ import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney, relativeDueLabel, isOverdue } from '@/utils/format';
 import { tutarOku } from '@/utils/tutar';
 import type { PaymentPromise } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 /** Aynı taksit planına (group_id) ait sözleri tek blokta toplar; tekil sözler ayrı kalır. */
 function groupPromises(list: PaymentPromise[]): { key: string; items: PaymentPromise[] }[] {
@@ -162,7 +163,7 @@ export default function ClientDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           await deleteClient.mutateAsync(client.id);
-          router.back();
+          geriDon();
         },
       },
     ]);

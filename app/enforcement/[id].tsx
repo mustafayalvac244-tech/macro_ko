@@ -27,6 +27,7 @@ import { computeKapak } from '@/utils/kapak';
 import { formatDate, formatMoney } from '@/utils/format';
 import { tutarOku } from '@/utils/tutar';
 import type { CollectionSource, EnforcementStage } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 const STAGES: EnforcementStage[] = ['opened', 'served', 'objected', 'final', 'attachment', 'sale', 'closed'];
 const SOURCES: CollectionSource[] = ['payment', 'attachment', 'sale', 'other'];
@@ -105,7 +106,7 @@ export default function EnforcementDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           await deleteEnforcement.mutateAsync(file.id);
-          router.back();
+          geriDon();
         },
       },
     ]);
