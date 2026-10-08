@@ -52,7 +52,7 @@ import { maddeAtiflari } from '../_shared/atif.ts';
 // Uydurma "Yargıtay 9. HD 2019/12345 E." satırı, uydurma maddeden daha
 // tehlikelidir: yanlış maddeyi hâkim okuduğu an anlar, uydurma karar numarası
 // dosyaya girer ve ilk fark eden karşı vekil olur (bkz. _shared/kararAtif.ts).
-import { havuzSorgusu, kararAtiflari, tutarsizKararlar, type TutarsizKarar } from '../_shared/kararAtif.ts';
+import { canliTeyideUygun, havuzSorgusu, kaynaktaGeciyor, kararAtiflari, tutarsizKararlar, type TutarsizKarar } from '../_shared/kararAtif.ts';
 // Dosyaya giren kuralın cevapta işlenip işlenmediği (_shared/kural.ts). Ölçülen
 // iki mütalaa kusurunun ikisi de "kural dosyadaydı, model yok saydı"ydı.
 import { atlananKurallar, cakisanDayanaklar } from '../_shared/kural.ts';
@@ -897,14 +897,22 @@ async function uydurmaKunyeleriCikarIc(metin: string, d: KararDenetimi | null): 
 /** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
 const kararAtfiDenetimi = (...a: Parameters<typeof kararAtfiDenetimiIc>): ReturnType<typeof kararAtfiDenetimiIc> => adim('denetim_karar', () => kararAtfiDenetimiIc(...a));
 
-async function kararAtfiDenetimiIc(metin: string): Promise<KararDenetimi | null> {
+/**
+ * `kaynak`: kullanıcının VERDİĞİ metin (soru, olay anlatımı, taslak, ekli
+ * belge, dosya kaydı). Orada geçen künye avukatındır: canlıda aranıp
+ * silinmez, olanaksız diye çıkarılmaz (bkz. _shared/kararAtif.ts >
+ * canliTeyideUygun).
+ */
+async function kararAtfiDenetimiIc(metin: string, kaynak = ''): Promise<KararDenetimi | null> {
   const s = svc();
   if (!s) return null;
   try {
     const atiflar = kararAtiflari(metin);
     if (!atiflar.length) return null;
 
-    const olanaksizlar = tutarsizKararlar(atiflar, new Date().getUTCFullYear());
+    const olanaksizlar = tutarsizKararlar(atiflar, new Date().getUTCFullYear()).filter(
+      (o) => !kaynaktaGeciyor(o.atif, kaynak)
+    );
     const olanaksizHam = new Set(olanaksizlar.map((o) => o.atif.ham));
 
     // Olanaksız atıfları havuzda ARAMIYORUZ: zaten bulunamayacaklar ve
@@ -937,7 +945,7 @@ async function kararAtfiDenetimiIc(metin: string): Promise<KararDenetimi | null>
     const havuzdaOlmayan = aranacak.filter((a) => !bulunan.has(anahtar(a)));
     const canlidaYok: string[] = [];
     const adaylar = havuzdaOlmayan
-      .filter((a) => a.mahkeme === '' || a.mahkeme === 'Yargıtay')
+      .filter((a) => canliTeyideUygun(metin, a, kaynak))
       .slice(0, CANLI_TEYIT_EN_FAZLA);
     await Promise.all(
       adaylar.map(async (a) => {
@@ -2152,7 +2160,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       buildGrounding(s, soru).catch(() => ''),
     ]);
     const t1 = Date.now();
-    const [madde, karar] = await Promise.all([uydurmaMaddeDenetimi(cevap), kararAtfiDenetimi(cevap)]);
+    const [madde, karar] = await Promise.all([uydurmaMaddeDenetimi(cevap), kararAtfiDenetimi(cevap, soru)]);
     await uydurmaKunyeleriCikar(cevap, karar);
     const t2 = Date.now();
     return new Response(
@@ -2707,7 +2715,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       // daha tehlikelidir. Hak düşülmez ve avukat hangi atfın havuzda
       // bulunmadığını görür.
       // Madde ve karar denetimi birbirinden bağımsız: paralel (04.10.2026).
-      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(text), kararAtfiDenetimi(text)]);
+      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(text), kararAtfiDenetimi(text, mutalaaQuestion)]);
       const sonMetin = (await uydurmaKunyeleriCikar(text, kararDenetimi)).metin;
       const atlanan = atlananKurallar(
         [...dayanakKurallar].map(([id, k]) => ({ id, zorunlu_terimler: k.terimler })),
@@ -2944,7 +2952,7 @@ async function dosyaKunyesiIc(
       const denetimMetni = `${kaynak}\n\n${taslak}\n\n${promptQuestion}`;
       const temiz = uydurmaTarihleriAyikla(out.trim(), denetimMetni);
       // Madde ve karar denetimi birbirinden bağımsız: paralel (04.10.2026).
-      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin)]);
+      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin, denetimMetni)]);
       temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       const uydurmaTutar = uydurmaTutarlariBul(temiz.metin, denetimMetni);
       // Taslağın üçte birinden kısa çıktı: büyük olasılıkla yalnız değişen
@@ -3235,7 +3243,7 @@ async function dosyaKunyesiIc(
       // dilekçe mahkemeye gider. Uydurma bir esas/karar numarasını ilk fark
       // eden karşı vekil olur (bkz. kararAtfiDenetimi). Madde denetimiyle
       // bağımsız oldukları için PARALEL (04.10.2026).
-      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin)]);
+      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin, `${denetimMetni}\n${Object.values(dosya).join('\n')}`)]);
       temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       // ATLANAN KURAL DENETİMİ DİLEKÇEDE ÇALIŞMIYOR — ölçüm gösterdi ki burada
       // ürettiği şey gürültü. Dört senaryoluk koşuda üç uyarı çıktı ve üçü de
@@ -3503,7 +3511,7 @@ async function dosyaKunyesiIc(
       // için "bu gün son gün" demektir.
       const temiz = uydurmaTarihleriAyikla(out.trim(), belgeKaynak);
       // Madde ve karar denetimi birbirinden bağımsız: paralel (04.10.2026).
-      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin)]);
+      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin, belgeKaynak)]);
       temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       // UYDURMA TUTAR DENETİMİ — incelemedeki bir tutar, belgede hiç yoksa
       // avukat için "bu belgede yazan miktar" sanılır. Bkz. dilekçedeki aynı
@@ -3663,7 +3671,7 @@ async function dosyaKunyesiIc(
   // doğrudan dilekçeye kopyalanıyor. Denetimi üç modda yapıp dördüncüde
   // atlamak, korumayı en çok gerektiği yerde kapatmak demekti.
   // Madde ve karar denetimi birbirinden bağımsız: paralel (04.10.2026).
-  const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(text), kararAtfiDenetimi(text)]);
+  const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(text), kararAtfiDenetimi(text, messages.filter((m) => m.role === 'user').map((m) => m.text).join('\n'))]);
   const sonMetin = (await uydurmaKunyeleriCikar(text, kararDenetimi)).metin;
   const kusurlu = uydurmaMadde.length > 0 || (kararDenetimi?.olanaksiz.length ?? 0) > 0 || (kararDenetimi?.canlidaYok.length ?? 0) > 0;
   atifKaydiYaz('sohbet', kullanilanModel, kararDenetimi, uydurmaMadde);

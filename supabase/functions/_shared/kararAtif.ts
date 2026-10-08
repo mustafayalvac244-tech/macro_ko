@@ -269,3 +269,46 @@ export function havuzSorgusu(atiflar: KararAtif[]): Array<{ esas: string; karar:
       karar: a.kararYil ? `${a.kararYil}/${a.kararNo}` : '',
     }));
 }
+
+/**
+ * AVUKATIN KENDİ KÜNYESİ SİLİNMESİN (08.10.2026).
+ *
+ * BULUNAN KUSUR (iki denetçi ayrı ayrı buldu, kod yolu doğrulandı). Havuzda
+ * olmayan ve mahkemesi okunamayan ('') her künye Bedesten'in YARGITAY
+ * aramasında aranıyor, bulunamazsa "uydurma" sayılıp metinden SİLİNİYORDU.
+ * Oysa temyiz dilekçesindeki "Ankara 5. Asliye Hukuk Mahkemesi'nin 2025/123
+ * E., 2025/456 K. sayılı kararı" bir ilk derece kararıdır; Yargıtay'da
+ * olamaz. Aynısı Düzelt'te avukatın kendi yazdığı künyeye, belge incelemede
+ * belgenin kendi esas/karar numarasına oluyordu.
+ *
+ * Canlıda aranıp yoksa SİLİNEBİLECEK künye yalnız şudur: mahkemesi Yargıtay
+ * ya da yazılmamış, kullanıcının verdiği metinde geçmiyor ve hemen önünde
+ * ilk derece/istinaf mahkemesi adı yok. Diğerleri silinmez; havuzda yoksa
+ * yalnız işaretlenir (sarı).
+ */
+const sayi = (y: number, n: string) => (y ? `${y}/${n}` : '');
+
+export function kaynaktaGeciyor(a: KararAtif, kaynak: string): boolean {
+  if (!kaynak) return false;
+  const k = kaynak.replace(/\s*\/\s*/g, '/');
+  return [sayi(a.esasYil, a.esasNo), sayi(a.kararYil, a.kararNo)]
+    .filter(Boolean)
+    .some((no) => new RegExp(`(?<!\\d)${no.replace('/', '\\/')}(?!\\d)`).test(k));
+}
+
+const YEREL_MAHKEME =
+  /(asliye|sulh|icra|ağır ceza|tüketici|iş mahkemesi|aile mahkemesi|bölge adliye|istinaf|\bbam\b|idare mahkemesi|vergi mahkemesi|müdürlüğü|kadastro|ticaret mahkemesi|fikri ve sınai|çocuk mahkemesi)/;
+
+export function yerelMahkemeBaglami(metin: string, a: KararAtif): boolean {
+  const i = metin.replace(/\s+/g, ' ').indexOf(a.ham);
+  if (i < 0) return false;
+  const pencere = metin.replace(/\s+/g, ' ').slice(Math.max(0, i - 120), i).toLocaleLowerCase('tr');
+  return YEREL_MAHKEME.test(pencere);
+}
+
+export function canliTeyideUygun(metin: string, a: KararAtif, kaynak = ''): boolean {
+  if (a.mahkeme !== '' && a.mahkeme !== 'Yargıtay') return false;
+  if (kaynaktaGeciyor(a, kaynak)) return false;
+  if (a.mahkeme === '' && yerelMahkemeBaglami(metin, a)) return false;
+  return true;
+}
