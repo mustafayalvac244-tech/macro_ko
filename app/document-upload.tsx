@@ -12,7 +12,6 @@ import { useCases } from '@/hooks/useCases';
 import { useClients } from '@/hooks/useClients';
 import { pickDocumentFile, pickImageFile, takePhotoFile, useUploadDocument } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
-import { trError } from '@/lib/authErrors';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -78,8 +77,11 @@ export default function DocumentUploadScreen() {
         category,
       });
       router.back();
-    } catch (err) {
-      uyar(t('upload.failed'), err instanceof Error ? trError(err.message) : t('upload.tryAgain'));
+    } catch {
+      // Uyarıyı kanca gösterir (notifySaveError): plan sınırı için "Planları
+      // gör" düğmeli pencere, 25 MB için sınır cümlesi. Eskiden burada İKİNCİ
+      // bir uyarı açılıyordu; web'de öncekinin yerine geçip doğru pencereyi
+      // siliyor, ham "plan_limiti:belge:5" kodunu gösteriyordu (08.10.2026).
     }
   };
 

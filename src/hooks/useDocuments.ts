@@ -181,7 +181,12 @@ export function useDeleteDocument() {
   return useMutation({
     onError: notifySaveError,
     mutationFn: async (doc: Pick<CaseDocument, 'id' | 'file_path'>) => {
-      await supabase.storage.from(DOCUMENTS_BUCKET).remove([doc.file_path]);
+      // Depo hatası OKUNUR (08.10.2026). storage-js hatayı fırlatmaz, { error }
+      // döner; eskiden yok sayılıyor, satır silinip dosya depoda izsiz
+      // kalıyordu (müvekkil belgesi, KVKK: "silindi" denip silinmemiş).
+      // Dosya silinemezse satır da silinmez; kullanıcı tekrar dener.
+      const { error: depoHatasi } = await supabase.storage.from(DOCUMENTS_BUCKET).remove([doc.file_path]);
+      if (depoHatasi) throw depoHatasi;
       const { error } = await supabase.from('documents').delete().eq('id', doc.id);
       if (error) throw error;
     },

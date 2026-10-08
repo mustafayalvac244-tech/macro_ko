@@ -237,7 +237,8 @@ export default function DosyaAktarScreen() {
         { text: t('common.done'), onPress: () => router.replace('/(app)/cases') },
       ]);
     } catch {
-      uyar(t('imp.title'), t('imp.saveFailed'));
+      // Uyarıyı useCreateCase gösterir (plan sınırı → "Planları gör").
+      // İkinci uyarı onu eziyordu (08.10.2026).
     } finally {
       setBusy(false);
     }

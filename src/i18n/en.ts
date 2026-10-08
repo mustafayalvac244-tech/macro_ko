@@ -460,6 +460,7 @@ export const en: Record<keyof typeof tr, string> = {
   'viewer.title': 'Document',
   'viewer.error': 'Could not open the document.',
   'viewer.unsupported': 'This file type cannot be previewed in the app.',
+  'viewer.pdfDisarida': 'For privacy, the PDF opens in your device’s own PDF viewer (a new tab on the web); the document is not sent to any other service.',
   'viewer.openExternal': 'Open in External App',
   'viewer.udfReading': 'Reading the document text…',
   'viewer.udfNote': 'Showing the text of the UYAP document (UDF). Open it in UYAP Editor for layout, tables and signature.',

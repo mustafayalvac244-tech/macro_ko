@@ -481,6 +481,7 @@ export const tr = {
   'viewer.title': 'Belge',
   'viewer.error': 'Belge açılamadı.',
   'viewer.unsupported': 'Bu belge türü uygulama içinde önizlenemiyor.',
+  'viewer.pdfDisarida': 'PDF, gizlilik için cihazınızın kendi PDF görüntüleyicisinde (web’de yeni sekmede) açılır; belge başka bir hizmete gönderilmez.',
   'viewer.openExternal': 'Harici Uygulamada Aç',
   'viewer.udfReading': 'Belge metni okunuyor…',
   'viewer.udfNote': 'UYAP belgesinin (UDF) metni gösteriliyor. Biçim, tablo ve imza için UYAP Editör’de açın.',

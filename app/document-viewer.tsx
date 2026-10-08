@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { Screen } from '@/components/ui/Screen';
@@ -101,10 +101,23 @@ export default function DocumentViewerScreen() {
         </ScrollView>
       )}
 
-      {url && isPdf && (
+      {/* PDF ÖNİZLEME GOOGLE'A GİTMİYOR (08.10.2026). Eskiden imzalı dosya
+          bağlantısı docs.google.com/gview'e veriliyordu: müvekkil belgesi
+          Google sunucusuna indiriliyordu, oysa aydınlatma metni belgelerin
+          üçüncü tarafa gitmediğini söylüyor. iOS'un WebView'i PDF'i kendisi
+          gösterir. Android WebView PDF gösteremez, web'de WebView yok: ikisinde
+          belge cihazın kendi PDF görüntüleyicisinde / yeni sekmede açılır. */}
+      {url && isPdf && Platform.OS !== 'ios' && (
+        <View style={styles.center}>
+          <Text style={styles.fallbackText}>{t('viewer.pdfDisarida')}</Text>
+          <Button label={t('viewer.openExternal')} icon="open-outline" onPress={() => Linking.openURL(url)} style={styles.fallbackBtn} />
+        </View>
+      )}
+
+      {url && isPdf && Platform.OS === 'ios' && (
         <WebView
           style={styles.flex}
-          source={{ uri: `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}` }}
+          source={{ uri: url }}
           startInLoadingState
           renderLoading={() => (
             <View style={styles.center}>
