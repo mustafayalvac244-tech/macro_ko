@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 08.10.2026 (Claude Startup listesi; UYAP keşif aracı; bento geri alındı, {{ad}} çeviri hatası düzeltmesi kaldı; panelde kullanıcı kaynağı 0173; gece görevi 0174)
+**Son güncelleme:** 08.10.2026 (Console hesabı askıda; Claude Startup listesi; UYAP keşif aracı; bento geri alındı, {{ad}} çeviri hatası düzeltmesi kaldı; panelde kullanıcı kaynağı 0173; gece görevi 0174)
 
 ## 1. Şu an — yayın durumu
 
@@ -41,7 +41,7 @@
 00. **Satın alma webhook'u ÇALIŞIYOR** (02.10 22:38 UTC ölçüldü: RevenueCat test
    olayı → 200). Sır Supabase + RevenueCat'te. Gerçek ilk satın almada is_premium
    açıldığı ayrıca doğrulanmalı. 'Bearer' toleransı depoda (038d9bf), DAĞITILMADI.
-0a. **Claude ÇALIŞIYOR (01.10 17:14 ölçüldü).** Üç hata düzeltildi: anahtar
+0a. **CLAUDE: 08.10 CONSOLE HESABI ASKIDA (bkz. 2u).** 01.10'da çalışıyordu. Üç hata düzeltildi: anahtar
    çalışma alanına bağlı değildi → CALISMA_ALANI (Default, _shared/claudeIstemci);
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
@@ -77,7 +77,7 @@
    mikrofonu yazılı (testle korunur). Uygulama içi gizlilik metni: web'de, OTA'ya GİTMEDİ.
 
 2u. **UYAP LİSTE (07.10):** eklentiye maskeli keşif (extension/lib/kesif.js); BEKLENEN avukattan keşif dosyası.
-   **CLAUDE STARTUP (08.10):** CLAUDE-STARTUP.md; eksik bilgi@vekilpro.app (MX yok); başvuru ürün sahibinde.
+   **CONSOLE ASKIDA (08.10, "unusual activity"):** Claude istekleri yedek modele düşer; inceleme metni CLAUDE-STARTUP.md'de; Startup başvurusu BEKLİYOR.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) sözleşme/bildirim YAPILMADI — ürün sahibinin (KVKK-UYUM.md A).
 4. Baro sicil doğrulaması yok (ürün sahibi kararı). 5. Leaked password koruması kapalı. 6. KVKK veri sorumlusu kimliği eksik. 7. Android şifre sıfırlama DOĞRULANMADI.
 

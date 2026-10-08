@@ -1,5 +1,18 @@
 # Claude for Startups başvurusu — kontrol listesi
 
+> **08.10.2026: CLAUDE CONSOLE HESABI ASKIYA ALINDI** ("unusual activity").
+> Başvuru hesap açılana kadar BEKLER (Console hesabı şart). Sebep
+> bilinmiyor. Aynı gün tarayıcıdaki Claude, Console'u ürün sahibinin açık
+> oturumunda açmıştı; bu dosyadaki görev metni ona "Console'a benim hesabımla
+> gir" diyordu. Ölçülen (08.10): son 24 saatte uygulamadan Claude'a 0 istek;
+> son 10 günde ai_istek'te 18 Claude kaydı — kapatma uygulamanın
+> kullanımından kaynaklanmış görünmüyor. Claude düşünce istekler yedek
+> modele gidiyor (kullanıcıya "yedek modelle üretildi" yazar, hak düşmez);
+> yedek hattın şu an çalıştığı ÖLÇÜLMEDİ (son görüldüğü 30.09).
+> İnceleme talebi metni aşağıda ("Hesap inceleme talebi"). İnceleme ~10 gün,
+> karar kesin: göndermeden önce tarayıcıdaki Claude'un o gün Console'da ne
+> yaptığı kendi kaydından kontrol edilmeli.
+
 Tarih: 08.10.2026. Ürün sahibi: *"Claude startup için ne gerekiyorsa baştan
 sıra sıra yaz, bizde olan olmayan."*
 
@@ -103,3 +116,24 @@ sahibine sorulmadan doldurulmamalı.
 - Başvuru formunun içi görülmedi; alanlar farklı çıkabilir.
 - Şirket kurulmamışsa (şahıs) kabul edilip edilmediği sayfada yazmıyor.
 - Sonuç ne kadar sürede gelir: bilinmiyor.
+
+## Hesap inceleme talebi (08.10) — Console "Request a review" formu
+
+Doğrulanan (kodda): anahtar yalnız Supabase sırrı, istemciye girmiyor;
+GitHub iş akışları ve betikler Anthropic'i doğrudan çağırmıyor.
+
+**What do you use your account for?**
+I use this account for the Claude API behind Vekil Pro (https://vekilpro.app),
+a practice-management app for lawyers in Turkey, live on the App Store and the
+web. All API calls come from our backend (Supabase Edge Functions, EU region);
+the API key is stored only as a server-side secret and is never shipped in the
+app. We use Claude Haiku 4.5 for chat and quick edits and Claude Sonnet 5 for
+drafting petitions and legal opinions, document review and legal research.
+Usage is low: we are an early-stage app with few active users.
+
+**Anything else we should know?**
+On October 8, 2026, the day of the hold, I used Claude in Chrome in my own
+browser to set up a company email address for our domain and to work on our
+Claude for Startups application, which included opening the Claude Console in
+my existing signed-in session. If that automated browser session looked
+unusual, this is the explanation. I am happy to provide any further details.
