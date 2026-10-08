@@ -73,11 +73,17 @@ Kurallar:
   — bunlar skalaya girmez, zaten kodda da öyle.
 - **Renkli zemin üstündeki yazı/ikon `colors.textInverse` kullanır**, çıplak
   `'#FFFFFF'` değil.
-  > Ölçüm (22.09.2026): depoda tema dosyaları dışında **84 sabit hex** var,
-  > **57'si `#FFFFFF`** ve `textInverse` zaten tam olarak `#FFFFFF`. Bugün çalışıyorlar,
-  > bozuk değiller — bu yüzden **toplu değiştirilmediler** (64 yeri elle
-  > değiştirmenin kullanıcıya görünen faydası yok, regresyon riski var).
-  > Kural YENİ kod için geçerli. Mevcutlar bilinen borç.
+  > **YANLIŞ ÇIKAN NOT DÜZELTİLDİ (08.10.2026).** Burada "textInverse zaten
+  > `#FFFFFF`, sabit beyazlar çalışıyor" yazıyordu. Bu YALNIZ açık temalarda
+  > doğru: **Gece (varsayılan), Obsidyen ve Terminal'de `primary` altın/yeşil,
+  > `textInverse` KOYU.** `colors.primary` zemin + sabit `#FFFFFF` yazı bu
+  > temalarda 1,7–2,5:1 kontrast veriyordu — varsayılan temada "Dilekçe Taslağı
+  > Üret" düğmesi soluk okunuyordu (ekran görüntüsüyle doğrulandı, 13 yer
+  > `textInverse`'e çevrildi). Yanlış not, sorunu "bilinen borç" diye
+  > görünmez kılmıştı.
+  > Kalan sabit beyazlar: **zemin `primary` ise HATA**, yeşil/kırmızı (success/
+  > danger) gibi her temada koyu kalan zeminde kabul edilebilir. Yeni kodda
+  > her durumda `textInverse`.
 - Gölge yerine `border` + yüzey rengi farkı; iOS/Android gölgesi tutarsız.
 
 ---
