@@ -47,10 +47,21 @@ export function sayfaIskeleti() {
   let dugumSayisi = 0;
 
   const kucuk = (s) => s.replace(/İ/g, 'i').replace(/I/g, 'ı').toLowerCase();
+  // RAKAM VARSA ETİKET DEĞİLDİR (08.10.2026, denetçi ölçtü). Sözlük denetimi
+  // harf dışını ayırıyordu: "Dosya 2023/145", "Duruşma 12.05.2026 14:30",
+  // "TC Kimlik No 12345678901" yalnız sözlük sözcüğü sayılıp HAM kalıyordu.
+  // Arayüz etiketinde rakam olmaz; rakam taşıyan metin her zaman şekle döner.
   const sozlukte = (s) => {
+    if (/\d/.test(s)) return false;
     const k = kucuk(s).split(/[^a-zçğıöşüâîû]+/).filter(Boolean);
     return k.length > 0 && k.every((w) => SOZLUK.has(w));
   };
+  // Yol/çerçeve/alan adlarında oturum kimliği ve harf+rakam karışık kimlikler
+  // (jsessionid, UUID, hex) maskelenir; yalnız \d{3,} yetmiyordu.
+  const kimlikMaskele = (s) =>
+    s
+      .split(';')[0]
+      .replace(/[A-Za-z0-9_-]*\d[A-Za-z0-9_-]*/g, '‹n›');
 
   /** Değeri asla döndürmez; yalnız biçimini. */
   function sekil(s) {
@@ -77,7 +88,7 @@ export function sayfaIskeleti() {
 
   function imza(el) {
     const tag = el.tagName.toLowerCase();
-    const id = el.id ? `#${el.id.replace(/\d{3,}/g, '‹n›')}` : '';
+    const id = el.id ? `#${kimlikMaskele(el.id)}` : '';
     const cls = (el.getAttribute('class') ?? '').split(/\s+/).filter(Boolean).slice(0, 4).map((c) => `.${c}`).join('');
     return tag + id + cls;
   }
@@ -92,11 +103,12 @@ export function sayfaIskeleti() {
     const etiketRolunde = ETIKET_ROLU.has(tag) || ['tab', 'columnheader', 'button', 'menuitem', 'link'].includes(rol ?? '');
     if (tag === 'input' || tag === 'textarea' || tag === 'select') {
       // DEĞER OKUNMAZ. Yalnız alanın türü ve adı.
-      n.alan = { tur: el.getAttribute('type') ?? tag, ad: el.getAttribute('name') ?? null };
+      const ad = el.getAttribute('name');
+      n.alan = { tur: el.getAttribute('type') ?? tag, ad: ad ? kimlikMaskele(ad) : null };
       const ph = el.getAttribute('placeholder');
       if (ph) n.alan.ipucu = metin(ph, true);
     }
-    if (tag === 'iframe' || tag === 'frame') n.cerceve = (el.getAttribute('src') ?? '').split('?')[0].replace(/\d{3,}/g, '‹n›');
+    if (tag === 'iframe' || tag === 'frame') n.cerceve = kimlikMaskele((el.getAttribute('src') ?? '').split('?')[0]);
     const aria = el.getAttribute('aria-label') ?? el.getAttribute('title');
     if (aria) n.etiket = metin(aria, true);
 
@@ -137,7 +149,7 @@ export function sayfaIskeleti() {
 
   const sorguAdlari = Array.from(new URLSearchParams(location.search).keys());
   return {
-    adres: location.host + location.pathname.replace(/\d{3,}/g, '‹n›'),
+    adres: location.host + kimlikMaskele(location.pathname),
     sorguAdlari,
     baslik: metin(document.title, true),
     cerceveMi: window.top !== window,

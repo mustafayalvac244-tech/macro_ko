@@ -90,3 +90,27 @@ describe('UYAP keşif — değer sızmaz, yapı kalır', () => {
     expect(c).toContain('"x":"Durum"');
   });
 });
+
+// 08.10.2026: denetçi şu girdilerin HAM çıktığını ölçtü — sözlük sözcüğü +
+// rakam, etiket sayılıyordu. Ayrıca yol/çerçeve/alan adlarında oturum kimliği.
+describe('UYAP keşif — rakamlı etiketler ve kimlikler', () => {
+  it('etiket rolündeki rakamlı metin, başlık ve oturum kimliği sızmaz', () => {
+    const govde = el('body', {},
+      el('a', {}, 'Dosya 2023/145'),
+      el('li', {}, '2023/145 Esas'),
+      el('a', {}, 'Duruşma 15.03.2026 10:30'),
+      el('div', { title: 'TC Kimlik No 12345678901' }, 'x'),
+      el('iframe', { src: '/x/y.jsp;jsessionid=ABCDEF12' }),
+      el('input', { type: 'text', name: 'sec_98765_ab' }),
+      el('button', {}, 'Sorgula'),
+    );
+    kur(govde);
+    g.document = { title: 'Dosya Detayı - 2023/145 E.', body: govde };
+    const json = JSON.stringify(sayfaIskeleti());
+    for (const s of ['2023/145', '15.03.2026', '10:30', '12345678901', 'ABCDEF12', 'jsessionid', '98765']) {
+      expect(json).not.toContain(s);
+    }
+    // Rakamsız arayüz etiketi yine aynen kalır.
+    expect(json).toContain('"Sorgula"');
+  });
+});
