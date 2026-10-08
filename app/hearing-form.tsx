@@ -23,6 +23,7 @@ import { formatDate, formatTime } from '@/utils/format';
 import { addToDeviceCalendar } from '@/utils/deviceCalendar';
 import type { HearingType } from '@/types/database';
 import { geriDon } from '@/lib/geriDon';
+import { arabuluculukCoz, toplantiYeriCoz } from '@/utils/toplantiYeri';
 
 // Keşif (deposition) öne alındı — Burak geri bildirimi: keşif tarihini
 // girecek yeri bulamıyordu. Artık Duruşma'nın hemen yanında.
@@ -84,6 +85,23 @@ export default function HearingFormScreen() {
       setTitle(existing.title);
       setType(existing.type);
       setLocation(existing.location ?? '');
+      // Toplantı/arabuluculukta kayıtlı yer seçeneklere geri çözülür; yoksa
+      // seçenekler 'ofis'te kalıp kaydedince yer sessizce "Ofis" oluyordu.
+      if (existing.type === 'meeting') {
+        const c = toplantiYeriCoz(existing.location, (y) => t(`meetPlace.${y}` as const));
+        setMeetingPlace(c.yer);
+        setLocation(c.ek);
+      } else if (existing.type === 'mediation') {
+        const c = arabuluculukCoz(
+          existing.location,
+          (k) => t(`medWith.${k}` as const),
+          (y) => t(`meetPlace.${y}` as const)
+        );
+        if (c) {
+          setMediationWith(c.kim);
+          setMediationPlace(c.yer);
+        }
+      }
       setNotes(existing.notes ?? '');
       setScheduledAt(new Date(existing.scheduled_at));
       setReminder(String(existing.reminder_minutes_before));
