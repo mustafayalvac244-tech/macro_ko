@@ -5,7 +5,8 @@ import { useAuthStore } from '@/store/authStore';
 import { cancelReminder, hearingOutcomeId, hearingReminderId, scheduleHearingOutcomePrompt, scheduleHearingReminder } from '@/lib/notifications';
 import type { Hearing, HearingWithCase } from '@/types/database';
 
-const HEARING_SELECT = '*, case:cases(id, title, case_number)';
+// court_category: duruşma çıkışında kanun yolu süresi dosya türüne göre hesaplanır.
+const HEARING_SELECT = '*, case:cases(id, title, case_number, court_category)';
 
 export function useUpcomingHearings(limit = 5) {
   const ownerId = useAuthStore((s) => s.session?.user.id);

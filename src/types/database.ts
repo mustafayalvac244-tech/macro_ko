@@ -368,7 +368,7 @@ export interface CaseDocument {
 }
 
 export interface HearingWithCase extends Hearing {
-  case: Pick<Case, 'id' | 'title' | 'case_number'> | null;
+  case: (Pick<Case, 'id' | 'title' | 'case_number'> & { court_category?: Case['court_category'] }) | null;
 }
 
 export interface DeadlineWithCase extends Deadline {
