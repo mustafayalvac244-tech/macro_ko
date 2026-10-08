@@ -200,3 +200,5 @@ create table public.atif_denetim_kaydi (id bigint generated always as identity p
 alter table public.oturum_cihazlari enable row level security;
 grant select on public.oturum_cihazlari to authenticated;
 grant all on all tables in schema public to anon, authenticated, service_role;
+-- 0124 + 0127 (katalog pencereleri) — 0175 bu tabloya pencere ekliyor; taklitte yoksa 0175 tek başına düşer (08.10.2026, yerelde ölçüldü).
+create table if not exists public.ictihat_katalog_pencere (tur text not null, gun date not null, sonraki_sayfa integer not null default 1, bitti boolean not null default false, toplam integer, son_calisma timestamptz, bitis date not null, primary key (tur, gun));
