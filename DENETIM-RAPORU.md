@@ -17,43 +17,48 @@ yükleme, dilekçe vs hepsini kontrol et."* / *"onaysız şeyleri yap önce"*.
 
 ## 1. Düzeltildi — DALDA, YAYINLANMADI (web/OTA için onayınız gerekiyor)
 
-Dal: `claude/legal-case-management-app-dipuvb`. Her biri testli; tüm takım
-1087/1087 geçiyor.
+Dal: `claude/legal-case-management-app-dipuvb` (main'den 25 commit ileride).
+Her biri testli; tüm takım **1113/1113** geçiyor; CI yeşil. Web paketi dalda
+derlendi (CI istiyor) ama main'e birleştirilmediği için canlıda DEĞİL.
 
 | # | Ne bozuktu (kodla doğrulandı) | Commit |
 |---|---|---|
-| 1 | **Tutar ×10/×100**: kaydı düzenleyip kaydetmek 1.250,50 ₺'yi 12.505 ₺ yapıyordu (finans, saat ücreti, icra). Taksit taslağı 1.000 ₺/3 → 33.333 ₺'lik taksitler (toplam 100.000). Faiz "24.5" → %245. Dava detayı/müvekkil "10.000" → 10 ₺. Sözleşmede "%12,5" → 125, taksit toplamı ücretle tutmuyor. 11 ekran tek, testli ayrıştırıcıya bağlandı; okunamayan tutar artık söyleniyor. | ed6dc0a |
-| 2 | **İstinaf süresi**: dosya detayı ceza istinafını 7 gün sayıyordu, uygulamanın süre tablosu 2 hafta (7445 s.K.). Tebliğ tarihi düzeltilince görev güncellenmiyordu. **Bilirkişi itirazı** duruşma gününden sayılıyordu (rapor önceden tebliğ edildiyse son gün GEÇ). Duruşma çıkışında kanun yolu her dosyaya "HMK 345, 14 gün". | 9e71173 |
-| 3 | **Sohbet geçmişi** tek ortak anahtarda, çıkışta silinmiyordu: aynı cihaza giren ikinci hesap birincinin müvekkil sorularını görüyordu. Ağ yokken çıkış oturumu silmiyordu. Başka cihazdan "oturumları kapat" sonrası önbellek/bildirim/geçmiş kalıyordu. Cevap yanlış sohbete yazılabiliyordu. | d580234 |
-| 4 | **UDF**: emoji, `\f`/`\v`, `]]>` dosyayı UYAP Editör'de açılmaz yapıyordu; "DAVACI : AHMET" satırları ortalanıp kalın oluyordu. **Gerçek UYAP Editör 5.4.20'de** düzeltme sonrası açıldı (scripts/udf-editor-denetim.md). | 750b486 |
-| 5 | **UYAP keşif aracı** (dün yazdığım): "Dosya 2023/145", "TC Kimlik No 12345678901" maskelenmeden kalıyordu. | 70aa9d3 |
-| 6 | **Belgeden dosya aç** çıkarıcısı: mahkeme "MAHKEMESİ" çıkıp yapay zekâ atlanıyordu; 7 haneli esas no kesiliyordu; TC no başlığa giriyordu; "T.C. Ziraat Bankası" siliniyordu; geçmiş duruşma tarihi takvime yazılıyordu. | 36ec777 |
-| 7 | **PDF önizleme** dosya bağlantısını Google'a (gview) veriyordu — gizlilik metni belgelerin üçüncü tarafa gitmediğini söylüyor. Belge yüklemede çift uyarı "Planları gör" penceresini ezip ham kod gösteriyordu. Belge silmede depo hatası yutuluyordu. | 21c5df9 |
-| 8 | **Satış metinleri**: AI hakkı bitince düğme "Pro'ya geç" diyordu (Pro'da AI yok, kullanıcı yanlış paketi alır). Web'de AI kartı "₺2.999 / yıl" yazıyordu. Pro kartı ücretsizde de olan 10 denemeyi Pro avantajı gibi listeliyordu. | b10fafe |
-| 9 | **Web'de tarih seçilemiyordu** (13 ekran): süre asistanı web'de hep BUGÜNDEN hesaplıyordu. Yerel derlemede ölçüldü: tarih kutusu eski sürümde 0, yenide 1. Takvimde Android iptal ertelemeyi uyguluyordu. | c674e88 |
+| 1 | **Tutar ×10/×100**: düzenleyip kaydetmek 1.250,50 ₺'yi 12.505 ₺ yapıyordu (finans, saat ücreti, icra). Taksit 1.000 ₺/3 → 33.333'lük taksitler. Faiz "24.5" → %245. "10.000" → 10 ₺. Sözleşmede "%12,5" → 125. 11 ekran tek, testli ayrıştırıcıda. | ed6dc0a |
+| 2 | **İstinaf süresi** ceza dosyasında 7 gün (süre tablosu 2 hafta); tebliğ düzeltilince görev güncellenmiyordu. **Bilirkişi itirazı** duruşma gününden sayılıyordu (son gün GEÇ). Kanun yolu her dosyaya "HMK 345, 14 gün". | 9e71173 |
+| 3 | **Sohbet geçmişi** hesaba bağlı değildi, çıkışta silinmiyordu: aynı cihazdaki ikinci hesap birincinin müvekkil sorularını görüyordu. Ağ yokken çıkış oturumu silmiyordu. Cevap yanlış sohbete yazılabiliyordu. | d580234 |
+| 4 | **UDF** emoji/kontrol karakteri/`]]>` yüzünden UYAP Editör'de açılmıyordu; taraf satırları ortalanıyordu. Gerçek UYAP Editör 5.4.20'de düzeltme sonrası açıldı. | 750b486 |
+| 5 | **UYAP keşif aracı** "Dosya 2023/145", "TC Kimlik No 12345678901" maskelemiyordu. | 70aa9d3 |
+| 6 | **Belgeden dosya aç**: mahkeme "MAHKEMESİ" çıkıyordu; 7 haneli esas no kesiliyordu; TC no başlığa giriyordu; geçmiş duruşma takvime yazılıyordu. | 36ec777 |
+| 7 | **PDF önizleme belgeyi Google'a gönderiyordu** (gizlilik metni aksini söylüyor). Belge yüklemede çift uyarı; belge silmede depo hatası yutuluyordu. | 21c5df9 |
+| 8 | **Satış metinleri**: AI bitince "Pro'ya geç" (Pro'da AI yok); web'de AI kartı "₺2.999 / yıl"; Pro kartında ücretsizde de olan 10 deneme. | b10fafe |
+| 9 | **Web'de tarih seçilemiyordu** (13 ekran; süre asistanı hep bugünden hesaplıyordu). Takvimde Android iptal ertelemeyi uyguluyordu. Atıf denetimi tanımı gerçeğe uyduruldu. | c674e88 |
+| 10 | **Web'de yenilemeden sonra geri oku ölüydü**: form kaydedince kapanmıyor, ikinci basış çift kayıt. Sayfa dili "en" → "HUKUKI". | dff8051 |
+| 11 | **AI ekranları** yedek modelle üretildiğini söylemiyordu; hak satırı yanlış sebep veriyordu; dilekçe sonundaki "⚠️ KONTROL LİSTESİ" iç notları UDF'ye (UYAP'a) giriyordu. | 7391b97 |
+| 12 | **Toplu aktarım**: Windows-1254 CSV bozuk; "31.02" tüm aktarımı durduruyordu; "0 dosya eklendi"; tekrar yüklemede ikileme. | 3e958a1 |
+| 13 | **Duruşma formu**: toplantı/arabuluculuk düzenlenince yer "Ofis"e dönüyordu. | f1fc25c |
+| 14 | **Tema (GÖRSEL)**: varsayılan Gece temasında altın düğmelerde beyaz yazı (1,7:1) — "Dilekçe Taslağı Üret" soluk okunuyordu. Takvimde seçili gün açık temalarda görünmüyordu. | 6ff49c6 |
+| 15 | Kalıcı biyometrik kilit; profil formunun kendiliğinden sıfırlanması; silinen davanın bildirimleri; "SIL" eşleşmesi; KDV "(%20) (%10)"; **kıdemde 1 yıl şartı** ve takvimle hizmet süresi; şifre değiştirme hata ayrımı; giriş/kayıt eski hata. | 77e17f3 |
+| 16 | **Dilekçe taslağı** kayboluyordu (çıkış/yenile/yeniden üret); artık saklanır ve geri yüklenir. | 1ba4ae3 |
 
-Önce/sonra görüntüleri: süre asistanı ve satış ekranı (sohbette gönderildi).
+Önce/sonra görüntüleri (sohbette gönderildi): süre asistanı (web tarih),
+AI satış kartı, dilekçe düğmesi (kontrast), geri yüklenen taslak.
 
-## 2. Hazır ama CANLIYA DOKUNUYOR — onayınızla
+## 2. Dalda hazır, CANLIYA DOKUNUYOR — onayınızla
 
-Henüz yapılmadı; sırayla hazırlanacak:
+| İş | Durum | Commit |
+|---|---|---|
+| ai-chat: avukatın kendi künyesi ("Ankara 5. Asliye … 2025/123 E.") Yargıtay'da aranıp "uydurma" diye metinden SİLİNİYORDU | Dalda, uç işlevi DAĞITILMADI | 1fb2e23 |
+| ai-chat: mevzuat özeti (yapay zekâsız) cevabında hak iade edilmiyordu | Dalda, DAĞITILMADI | d639d24 |
+| ai-saglik: her kullanıcıya açıktı, ücretli sağlayıcıları yoklatıyordu | Dalda, DAĞITILMADI | 01ea423 |
+| Göç 0175: katalog pencereleri 13.09'dan beri açılmıyor (yeni Yargıtay/Danıştay kararları havuza girmiyor) | Yazıldı, yerelde ölçüldü (26+1 pencere, idempotent), CANLIYA UYGULANMADI | 8c78650 |
 
-- **ai-chat**: kullanıcının kendi dosya/karar numarası ("2025/123 E.") ilk
-  derece kararı olduğu hâlde Yargıtay'da aranıp "uydurma" diye metinden
-  SİLİNİYOR (iki denetçi ayrı ayrı buldu). Mevzuat-yedek cevabında hak iade
-  edilmiyor. Girdi boyutu tavanı yok. → uç işlevi dağıtımı gerekir.
-- **ai-saglik** uç işlevi her giriş yapmış kullanıcıya açık (yönetici denetimi
-  yalnız ekranda); her çağrı ücretli sağlayıcıları yokluyor. → dağıtım.
+Hazırlanmadı, karar gerekiyor:
 - **revenuecat-webhook**: SANDBOX olayları gerçek premium açıyor ve geliri
-  şişiriyor; olay sırası denetimi yok (eski EXPIRATION yeni aboneliği
-  kapatabilir); kaçan EXPIRATION premium'u süresiz bırakır. → ödeme yolu,
-  dikkatli dağıtım.
-- **Katalog hasadı**: pencereler yalnız göç anında tohumlanmış; 13.09'dan
-  sonraki Yargıtay günleri / Danıştay ayları için pencere eklenmiyor. Göç
-  (0175) tasarlandı, henüz yazılmadı.
-- **profiles tablosu** tüm oturumlu kullanıcılara açık (ad, baro sicil no,
-  yönetici bayrağı listelenebilir). Kapatmak ofis/liderlik ekranlarını
-  etkileyebilir → göç + deneme.
+  şişiriyor; olay sırası denetimi yok; kaçan EXPIRATION premium'u süresiz
+  bırakır. DİKKAT: SANDBOX'ı tümden atlamak **Apple incelemesini kırar**
+  (inceleyen sandbox'ta satın alır). Doğrusu geliri/metrikleri ayırmak.
+- **profiles tablosu** tüm oturumlulara açık (ad, baro sicil, yönetici
+  bayrağı). Kapatmak ofis/liderlik ekranlarını etkiler → göç + deneme.
 
 ## 3. Sizin kararınız gereken
 
@@ -64,9 +69,8 @@ Henüz yapılmadı; sırayla hazırlanacak:
   yok. Çalışıp çalışmadığı ÖLÇÜLMEDİ.
 - **Yönetici panelinde kişi başı gelir/gider** görünüyor; gizlilik metni
   "başka kimse göremez" diyor.
-- **Tema kontrastı**: denetçi, varsayılan Gece temasında altın zemin üstüne
-  beyaz yazının 1.72:1 olduğunu hesapladı (dilekçe/mütalaa düğmeleri, FAB).
-  Ekranda bakılmadı.
+- **Tema kontrastı (#14)** görsel bir değişiklik: altın düğmelerde yazı
+  beyazdan koyuya döndü. Önce/sonra görüntüsüne bakıp onaylayın.
 - Sözleşme şablonundaki Av.K. m.174/m.163 atıfları ve kambiyo itiraz süresi
   bir meslektaşa teyit ettirilmeli (denetçi ŞÜPHE dedi).
 
@@ -74,13 +78,14 @@ Henüz yapılmadı; sırayla hazırlanacak:
 
 Alan alan özet, önem sırasıyla — tam liste denetim notlarında:
 
-- **Kayıt/giriş**: kayıt↔giriş arasında eski hata taşınıyor; TC no auth
-  üstverisinde kalıyor; biyometrik kilit cihaz kilidi kalkınca kalıcı
-  kilitleyebilir; şifre değiştirmede her hata "mevcut şifre hatalı".
-- **Dilekçe**: taslak hiçbir yerde saklanmıyor (çıkınca gider); yedek model
-  uyarısı ekranda yok; "KONTROL LİSTESİ" iç notları UDF'ye/kopyaya gidiyor;
-  dosya kaydındaki tarih "[tarih — doldurun]" oluyor; vekil profili sorgusu
-  filtresiz (ŞÜPHE).
+- **Kayıt/giriş**: TC no auth üstverisinde kalıyor (her istekte jetonla
+  gidiyor olabilir — ŞÜPHE); web'de doğrulama bağlantısı `vekil://` adresine
+  gidebilir (ŞÜPHE, canlı ayar ölçülmedi); şifre sıfırlamada "kod kullanıldı"
+  durumu gereksiz yeni kod istetiyor.
+- **Dilekçe (sunucu)**: dosya kaydındaki tebliğ/karar tarihi "[tarih —
+  doldurun]" oluyor; vekil profili sorgusu filtresiz (ŞÜPHE); ay adlı tarih
+  ("10 Haziran 2026") tanınmıyor; olay metninin ilk 120 karakteri arama
+  terimi olarak kalıcı yazılıyor.
 - **PDF/belge**: 40.000 karakterden sonrası sessizce kesiliyor; yedek modelde
   taranmış PDF hiç görülmüyor; DOCX izlenen değişiklikleri karıştırıyor.
 - **Mütalaa**: yedeğe düşüş sessiz; süre sınırında "internet" mesajı;
@@ -89,17 +94,12 @@ Alan alan özet, önem sırasıyla — tam liste denetim notlarında:
   boş dönüyor olabilir); "document" boş künyeyle üzerine yazıyor; arama
   sorgusu rıza kapısı olmadan Gemini'ye gidiyor ve boyut uyuşmadığı için
   zaten işe yaramıyor.
-- **Takvim/duruşma**: toplantı yeri düzenlemede "Ofis"e dönüyor; 24 saatten
-  yakın duruşmaya hatırlatma kurulmuyor; iOS'ta saati değişen duruşmanın eski
+- **Takvim/duruşma**: 24 saatten yakın duruşmaya hatırlatma kurulmuyor; iOS'ta saati değişen duruşmanın eski
   bildirimi kalıyor (cihazda ölçülmedi); sonraki duruşma saati 09:30 sabit.
 - **Süre hesabı**: adli tatil uzaması süre bazlı değil grup bazlı (ŞÜPHE,
   hukuken teyit gerek); dini bayramlar uzatılmıyor (güvenli yönde).
-- **Toplu aktarım**: Windows-1254 CSV bozuk okunuyor; geçersiz tarih tüm
-  aktarımı durduruyor; "N dosya eklendi" sayacı hep 0; tekrar yüklemede dava
-  ikileniyor.
-- **Web**: sayfa yenilenince geri oku ölü → form kapanmıyor, çift kayıt;
-  `lang="en"` yüzünden büyük harf "HUKUKI"; web hata kaydı async hataları
-  görmüyor.
+- **Web**: hata kaydı async hataları (window.onerror) görmüyor; WhatsApp
+  hatırlatması web'de `whatsapp://` açıyor.
 - **Satın alma**: logIn hatası yutuluyor (ödeme anonim kimliğe düşebilir);
   "Geri yükle" hiçbir şey bulmasa da "bulundu" diyor; abonelik yönet bağlantısı
   yok.
