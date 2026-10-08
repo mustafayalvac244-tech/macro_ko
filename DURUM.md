@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 07.10.2026 (UYAP keşif aracı; bento geri alındı, {{ad}} çeviri hatası düzeltmesi kaldı; panelde kullanıcı kaynağı 0173; gece görevi 0174)
+**Son güncelleme:** 08.10.2026 (Claude Startup listesi; UYAP keşif aracı; bento geri alındı, {{ad}} çeviri hatası düzeltmesi kaldı; panelde kullanıcı kaynağı 0173; gece görevi 0174)
 
 ## 1. Şu an — yayın durumu
 
@@ -77,6 +77,7 @@
    mikrofonu yazılı (testle korunur). Uygulama içi gizlilik metni: web'de, OTA'ya GİTMEDİ.
 
 2u. **UYAP LİSTE (07.10):** pazarda 1. özellik; eklentiye maskeli keşif (extension/lib/kesif.js). BEKLENEN: avukattan keşif dosyası.
+2s. **CLAUDE STARTUP (08.10):** CLAUDE-STARTUP.md. Eksik: bilgi@vekilpro.app (MX yok). Başvuru ürün sahibinde.
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) sözleşme/bildirim YAPILMADI — ürün sahibinin (KVKK-UYUM.md A).
 4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
 5. Leaked password protection kapalı. 6. KVKK veri sorumlusu kimliği eksik. 7. Android şifre sıfırlama DOĞRULANMADI.
