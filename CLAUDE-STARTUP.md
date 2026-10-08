@@ -34,79 +34,69 @@ yeniden bakılmalı.
 `bilgi@vekilpro.app` iletişim adresi yazmak. KVKK açısından da eksik
 (DURUM #6). Site değişikliği olduğu için önce ürün sahibine gösterilir.
 
-## Başvuru metni (forma yapıştırılacak)
+## Başvuru metni (forma yapıştırılacak) — 08.10 DOĞRULANMIŞ SÜRÜM
+
+Ürün sahibi: *"kesin almamız lazım, yanlış şeyler yazmayalım"*. İlk taslağın
+her cümlesi koda ve canlı sisteme karşı denetlendi; düzeltilenler:
+
+| İlk taslak | Sorun | Düzeltme |
+|---|---|---|
+| "summarizes case law" | Kodda AI karar özetleme işi yok | "drafts legal opinions, reviews documents" (`mutalaa.tsx`, `document-review.tsx`) |
+| "client finances" | Finans modülü ücret/masraf tutuyor | "fees and expenses" |
+| "Every case-law citation ... unverifiable ones are removed" | Yalnız bulunamayan Yargıtay künyeleri ve olanaksız künyeler çıkarılıyor; doğrulanamayanlar İŞARETLENİYOR (`ai-chat` > `kararAtfiDenetimiIc`) | Aynen bu ayrımla yazıldı |
+| "which lawyers judge most strictly" | Ölçülmemiş iddia | Çıkarıldı; yerine belgeli gerekçe: sohbet maliyet için Haiku'da (05.10 kararı) |
+| Tek uygulama | İlaç Pro da yayında (App Store, aynı geliştirici hesabı) | Tek cümle eklendi; Claude kullandığı İDDİA EDİLMEDİ |
+
+Ölçülen gerçekler (08.10): Vekil Pro App Store'da ilk yayın 27.09.2026
+(sürüm 3.4.0); İlaç Pro ilk yayın 28.09.2026 (sürüm 1.4.0, "Medical",
+ücretsiz). Model eşlemesi `_shared/katman.ts`: sohbet + düzelt Haiku 4.5,
+gerisi Sonnet 5. Sohbette uyarı çubuğu her zaman görünüyor; dilekçe,
+mütalaa, belge inceleme ve dosya aktarmada kapatılamaz AI uyarısı var.
+
+**ÜRÜN SAHİBİNİN KARARI (forma girmeden önce):**
+- **Kurucu:** App Store'daki geliştirici hesabı ürün sahibinden farklı bir
+  kişinin adına. Formda kurucu(lar) gerçek duruma göre yazılmalı; iki isim
+  arasındaki ilişki sorulursa açıklanabilir olmalı.
+- **Yatırım:** "Bootstrapped" (dış yatırım yok) varsayıldı, doğrulanmadı.
+- **Kullanıcı / gelir sayısı** sorulursa: tahmin yazılmaz, o gün ölçülür.
 
 - **Company name:** Vekil Pro
 - **Website:** https://vekilpro.app
 - **Company email:** bilgi@vekilpro.app
-- **Funding:** Bootstrapped (ürün sahibi doğrulasın)
 
 **What are you building?**
-Vekil Pro is a practice-management and AI legal assistant for lawyers in
+Vekil Pro is a practice-management app with an AI assistant for lawyers in
 Turkey. It tracks cases, hearings, statutory deadlines (including
-judicial-recess rules) and client finances. Its AI drafts petitions, answers
-legal questions and summarizes case law. Every case-law citation it produces
-is checked against our own index of Turkish court decisions and against the
-official decision search, and citations that cannot be verified are removed
-before the lawyer sees them. Petitions can be exported in UDF, the format of
-Turkey's national judiciary system (UYAP). The app is live on the App Store
-(Türkiye) and on the web.
+judicial-recess rules), fees and expenses. Its AI drafts petitions and legal
+opinions, reviews documents and answers legal questions. Case-law citations
+in AI answers and drafts are checked against our index of Turkish court
+decisions; Court of Cassation (Yargıtay) citations that are not in the index
+are looked up in the official decision search. Citations the official search
+cannot find, or that are internally impossible, are removed before the
+lawyer sees the text, and any citation we could not verify is flagged.
+Petitions can be exported in UDF, the document format of Turkey's national
+judiciary system (UYAP). Vekil Pro has been on the App Store (Türkiye) since
+September 27, 2026, and is also available on the web.
+
+We also publish a second app, İlaç Pro (App Store, since September 28,
+2026). It shows the official patient leaflet of a medicine when the barcode
+on its box is scanned; the text is shown as published by the Turkish
+Medicines and Medical Devices Agency, without added interpretation or dosing
+advice.
 
 **How do you use Claude?**
-Through the Claude API: Haiku for chat and quick edits, Sonnet for petition
-drafting and legal research. Retrieval runs over a corpus of Turkish court
-decisions and legislation. Credits would let us test higher-quality model
-settings on petition drafting, which lawyers judge most strictly.
+Vekil Pro calls the Claude API directly: Claude Haiku 4.5 for chat and quick
+edits, and Claude Sonnet 5 for drafting petitions and legal opinions,
+document review and legal research. Answers are grounded in retrieval over
+Turkish court decisions and legislation, and AI output is labelled in the app
+as AI-generated and not legal advice. We keep chat on Haiku to control cost;
+credits would let us test Sonnet for chat as well.
 
-## Tarayıcıdaki Claude'a verilecek görev (kopyala-yapıştır)
+## Tarayıcıdaki Claude'a verilecek görev
 
-Claude in Chrome gibi, tarayıcında oturumların açık olduğu bir Claude'a ver:
-
-```
-Görev: vekilpro.app alan adında bilgi@vekilpro.app adresini açıp Claude for
-Startups başvuru formunu doldur. Sırayla:
-
-1. dash.cloudflare.com → vekilpro.app → Email → Email Routing → etkinleştir.
-   Cloudflare'in önerdiği DNS kayıtlarını ekle. Var olan hiçbir DNS kaydını
-   SİLME ya da DEĞİŞTİRME (özellikle send.vekilpro.app ve
-   resend._domainkey.vekilpro.app: uygulamanın e-postaları bunlarla gidiyor).
-   Çakışma uyarısı çıkarsa dur, bana sor.
-2. "Destination addresses" bölümüne tarayıcıda açık olan Gmail adresimi ekle.
-   Gmail'de Cloudflare'in doğrulama postasını aç, bağlantıya tıkla.
-3. "Routing rules" → "Create address": bilgi → aynı Gmail adresi.
-4. Gmail'den bilgi@vekilpro.app'e "test" konulu posta gönder. Birkaç dakika
-   içinde Gmail'e döndüğünü gör (gelen kutusunda yoksa "Tüm Postalar"a bak).
-   Gelmezse dur, bana söyle.
-5. https://claude.com/programs/startups → başvur. Claude Console'a benim
-   hesabımla gir. Formu aşağıdaki bilgilerle doldur. GÖNDER'E BASMADAN DUR,
-   doldurulmuş formu bana göster.
-
-Kurallar: Şifre, API anahtarı ya da ödeme bilgisi isteyen bir adım çıkarsa
-dur ve bana sor. Formda burada olmayan bir soru çıkarsa uydurma, bana sor.
-
-Form bilgileri:
-Company name: Vekil Pro
-Website: https://vekilpro.app
-Company email: bilgi@vekilpro.app
-Funding: Bootstrapped
-
-What are you building?
-Vekil Pro is a practice-management and AI legal assistant for lawyers in
-Turkey. It tracks cases, hearings, statutory deadlines (including
-judicial-recess rules) and client finances. Its AI drafts petitions, answers
-legal questions and summarizes case law. Every case-law citation it produces
-is checked against our own index of Turkish court decisions and against the
-official decision search, and citations that cannot be verified are removed
-before the lawyer sees them. Petitions can be exported in UDF, the format of
-Turkey's national judiciary system (UYAP). The app is live on the App Store
-(Türkiye) and on the web.
-
-How do you use Claude?
-Through the Claude API: Haiku for chat and quick edits, Sonnet for petition
-drafting and legal research. Retrieval runs over a corpus of Turkish court
-decisions and legislation. Credits would let us test higher-quality model
-settings on petition drafting, which lawyers judge most strictly.
-```
+İlk görev (posta kutusu + form) 08.10'da verildi. Form metni bu dosyadaki
+doğrulanmış sürümle DEĞİŞTİRİLMELİ; kurucu ve yatırım alanları ürün
+sahibine sorulmadan doldurulmamalı.
 
 ## Bilinmeyenler
 
