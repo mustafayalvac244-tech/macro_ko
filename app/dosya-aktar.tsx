@@ -15,6 +15,8 @@ import { supabase } from '@/lib/supabase';
 // Hata çevirisi ORTAK: aynı mantık ekranlarda ayrı yazılınca biri güncellenip
 // diğerleri geride kalıyordu (bkz. src/lib/aiHata.ts).
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
+import { belgeOkumaHatasi, yerelKunye } from '@/lib/iceAktarKunye';
+import { EK_DOSYA_TAVANI_BAYT } from '@/lib/belgeEkiKurallari';
 import { useCreateCase } from '@/hooks/useCases';
 import { useCreateHearing } from '@/hooks/useHearings';
 import { useT } from '@/i18n';
@@ -78,6 +80,10 @@ export default function DosyaAktarScreen() {
   // Sunucunun belgede bulamadığı için attığı alanlar.
   const [atilan, setAtilan] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Künye belgedeki yazıdan mı (yapay zekâsız) yoksa yapay zekâdan mı geldi?
+  // Ekrandaki açıklama ve uyarı türü buna göre değişir: AI olmayan çıktıya
+  // AI uyarısı koymak yanlış bilgi olur (bkz. HukukiUyari).
+  const [yerelden, setYerelden] = useState(false);
 
   if (!AI_AKTARMA_ENABLED) {
     return <ComingSoon headerTitle={t('imp.title')} title={t('soon.import')} desc={t('soon.desc')} icon="cloud-upload" />;
@@ -97,6 +103,12 @@ export default function DosyaAktarScreen() {
       if (res.canceled || !res.assets?.[0]) return;
       const asset = res.assets[0];
       const name = (asset.name || '').toLowerCase();
+      // 8 MB üstü sunucuda zaten reddediliyor (doc-extract, too_large);
+      // boşuna yükletmeden burada söyle.
+      if (asset.size && asset.size > EK_DOSYA_TAVANI_BAYT) {
+        uyar(t('imp.title'), t('ek.hata.buyuk'));
+        return;
+      }
 
       // 1) Metni çıkar
       setStage(t('imp.stageExtract'));
@@ -107,7 +119,8 @@ export default function DosyaAktarScreen() {
         const base64 = await dosyaBase64(asset);
         const { data, error } = await supabase.functions.invoke('doc-extract', { body: { filename: name, base64 } });
         if (error) {
-          uyar(t('imp.title'), t('docrev.fileErr'));
+          const govde = await aiHataGovdesi(error);
+          uyar(t('imp.title'), t(belgeOkumaHatasi(String(govde.error ?? ''))));
           return;
         }
         text = (data as { text?: string } | null)?.text ?? '';
@@ -127,13 +140,35 @@ export default function DosyaAktarScreen() {
       // numarası, boş alandan çok daha tehlikelidir — dolu görünür, kimse bir
       // daha bakmaz.
       setStage(t('imp.stageRead'));
+      // ÖNCE YAPAY ZEKÂSIZ (bkz. src/lib/iceAktarKunye.ts): esas no ve
+      // mahkeme belgenin yazısından çıkıyorsa yapay zekâya hiç gidilmez —
+      // deneme hakkı harcanmaz, Claude kapalıyken de çalışır.
+      const yerel = yerelKunye(text);
+      const yerelGoster = () => {
+        setForm(yerel.form);
+        setTaraflar(yerel.taraflar);
+        setAtilan([]);
+        setYerelden(true);
+        setStep('review');
+      };
+      if (yerel.yeterli) {
+        yerelGoster();
+        return;
+      }
       const { data: aiData, error: aiErr } = await supabase.functions.invoke('ai-chat', {
         body: { mode: 'kunye', question: text.slice(0, 9000) },
       });
       if (aiErr) {
+        // Yapay zekâ olmadı (hak bitti, paket yok, servis kapalı…). Yazıdan
+        // bir şey okunduysa onu göster; avukat eksikleri elle tamamlar.
+        if (yerel.bosDegil) {
+          yerelGoster();
+          return;
+        }
         setError(aiHataMetni(await aiHataGovdesi(aiErr), t));
         return;
       }
+      setYerelden(false);
       const yanit = aiData as {
         kunye?: Partial<Extracted> & { davaci?: string; davali?: string };
         atilan?: string[];
@@ -151,7 +186,9 @@ export default function DosyaAktarScreen() {
       setAtilan(yanit?.atilan ?? []);
       setStep('review');
     } catch {
-      uyar(t('imp.title'), t('docrev.fileErr'));
+      // Beklenmeyen hata (ağ, dosya erişimi). ".txt seçin" önerisi YANLIŞ
+      // çözümdü; yalnız olanı söylüyoruz.
+      uyar(t('imp.title'), t('ek.hata.okunamadi'));
     } finally {
       setBusy(false);
       setStage('');
@@ -259,11 +296,12 @@ export default function DosyaAktarScreen() {
                 <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                 <Text style={styles.okText}>{t('imp.readOk', { n: rawLen })}</Text>
               </View>
-              <Text style={styles.lead}>{t('imp.reviewLead')}</Text>
-              {/* Alanları belgeden YAPAY ZEKÂ çıkardı; esas no ya da mahkeme
-                  yanlış okunursa dosya ters kurulur. Uyarı alanların HEMEN
-                  ÜSTÜNDE: aşağı inince görünmeyen bir uyarının hükmü olmaz. */}
-              <HukukiUyari tur="yapayZeka" kucuk />
+              <Text style={styles.lead}>{t(yerelden ? 'imp.reviewLeadYerel' : 'imp.reviewLead')}</Text>
+              {/* Alanları belgeden YAPAY ZEKÂ ya da düzenli ifade çıkardı; esas
+                  no ya da mahkeme yanlış okunursa dosya ters kurulur. Uyarı
+                  alanların HEMEN ÜSTÜNDE: aşağı inince görünmeyen bir uyarının
+                  hükmü olmaz. Yapay zekâ kullanılmadıysa AI uyarısı GÖSTERİLMEZ. */}
+              <HukukiUyari tur={yerelden ? 'degerlendirme' : 'yapayZeka'} kucuk />
 
               {/* SUNUCUNUN ATTIĞI ALANLAR. Belgede karşılığı bulunamayan alan
                   boşaltılıyor; avukat neyin neden boş olduğunu bilmeli, yoksa
