@@ -15,6 +15,5 @@ describe('çeviri değişkenleri', () => {
   it('değişken yerine konur, parantez kalmaz', () => {
     expect(translate('tr', 'time.durationRead', { sure: '1 sa 30 dk' })).toBe('Okundu: 1 sa 30 dk');
     expect(translate('tr', 'toplu.writing', { n: 3, toplam: 10 })).toBe('Aktarılıyor… 3/10');
-    expect(translate('tr', 'wk.durusma', { n: '2' })).toBe('2 duruşma');
   });
 });

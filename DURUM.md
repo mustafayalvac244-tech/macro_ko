@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 06.10.2026 (bento: Bu Hafta + sayaç kartı, {{ad}} çeviri hatası; panelde kullanıcı kaynağı 0173; gece görevi 0174)
+**Son güncelleme:** 08.10.2026 (Console hesabı askıda; Claude Startup listesi; UYAP keşif aracı; bento geri alındı, {{ad}} çeviri hatası düzeltmesi kaldı; panelde kullanıcı kaynağı 0173; gece görevi 0174)
 
 ## 1. Şu an — yayın durumu
 
@@ -41,7 +41,7 @@
 00. **Satın alma webhook'u ÇALIŞIYOR** (02.10 22:38 UTC ölçüldü: RevenueCat test
    olayı → 200). Sır Supabase + RevenueCat'te. Gerçek ilk satın almada is_premium
    açıldığı ayrıca doğrulanmalı. 'Bearer' toleransı depoda (038d9bf), DAĞITILMADI.
-0a. **Claude ÇALIŞIYOR (01.10 17:14 ölçüldü).** Üç hata düzeltildi: anahtar
+0a. **CLAUDE: 08.10 CONSOLE HESABI ASKIDA (bkz. 2u).** 01.10'da çalışıyordu. Üç hata düzeltildi: anahtar
    çalışma alanına bağlı değildi → CALISMA_ALANI (Default, _shared/claudeIstemci);
    Haiku uyarlamalı düşünmeyi reddediyordu → _shared/claudeModel; deneme kontör
    düşüyordu (bakiye eksiye) + yedek cevap aylık hakkı yiyordu → ai-chat v121+.
@@ -59,7 +59,7 @@
    APİLEX DERSİ (04.10, KARAR-DEFTERI §5b): doğrulama e-postası TEKRAR GÖNDER eklendi; SMTP
    Resend ölçüldü. 0b. Bildirim (0161) ÖLÇÜLMEDİ. 0. Deneme 10 soru (0166).
    RESMÎ GAZETE (05.10): fihrist 3 saatte bir çekilir (cron vekil_resmi_gazete, 0170); 7 gün
-   canlıda 200 (367–710 ms). Başlıklar aynen, AI özeti YOK. OTA BEKLİYOR. 06.10 BENTO (tasarim/ilham): giriş animasyonu, Bu Hafta grafiği, ana ekranda sayaç.
+   canlıda 200 (367–710 ms). Başlıklar aynen, AI özeti YOK. OTA BEKLİYOR. 06.10 BENTO (giriş animasyonu, Bu Hafta, sayaç kartı) ürün sahibi BEĞENMEDİ → geri alındı.
    PERFORMANS (05.10, KARAR §5d): madde-karar sorgusu 5,4 sn→136 ms; içtihat FTS hâlâ ~4 sn (disk).
    06.10: panelde "Nereden:" (kayit_kaynagi; eski kayıtlar cihaz kaydından platform). vekil_madde_baglam
    29.09'dan beri düşüyordu → 10 dk sınır (elle 205,7 sn'de bitti). Hasat INSERT'leri 30–63 sn sürüyor (disk).
@@ -76,16 +76,16 @@
    fotoğraftan künye, "olamaz", CSV/web planı SSS'leri düzeltildi; gizlilikte ek belge + web
    mikrofonu yazılı (testle korunur). Uygulama içi gizlilik metni: web'de, OTA'ya GİTMEDİ.
 
-3. KVKK m.9: Supabase (İrlanda) + AI (ABD) için standart sözleşme ve Kurum'a
-   bildirim YAPILMADI — ürün sahibinin işi (KVKK-UYUM.md seçenek A).
-4. Kayıtta avukat (baro sicil) doğrulaması yok — ürün sahibi kararı bekliyor.
-5. Leaked password protection kapalı. 6. KVKK veri sorumlusu kimliği eksik. 7. Android şifre sıfırlama DOĞRULANMADI.
+2u. **UYAP LİSTE (07.10):** eklentiye maskeli keşif (extension/lib/kesif.js); BEKLENEN avukattan keşif dosyası.
+   **CONSOLE ASKIDA (08.10):** yedek modele düşer; inceleme metni CLAUDE-STARTUP.md. Belgeden dosya aç YAPAY ZEKÂSIZ (dalda, ONAY bekliyor).
+3. KVKK m.9: Supabase (İrlanda) + AI (ABD) sözleşme/bildirim YAPILMADI — ürün sahibinin (KVKK-UYUM.md A).
+4. Baro sicil doğrulaması yok (ürün sahibi kararı). 5. Leaked password koruması kapalı. 6. KVKK veri sorumlusu kimliği eksik. 7. Android şifre sıfırlama DOĞRULANMADI.
 
 ## 3. Kritik kimlikler
 
 - Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0174` (0172 apply_migration ile; Actions arızası).
-- Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, **Claude
-  merge eder** ("sen et merge her zaman").
+- Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, Claude merge eder
+  AMA **06.10: "Bana göstermeden yayınlama"** — main'e birleştirme = web yayını; önce görüntü göster, onay al.
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
   `yalniz-imza` ile listele, YALNIZ bizim önceki derlemenin sertifikasını
   `iptal_sertifika_id` ile iptal et. **`MK673L5BTW` İlaç Pro'nundur — ASLA

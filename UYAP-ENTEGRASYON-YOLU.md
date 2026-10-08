@@ -116,3 +116,27 @@ Bunları "sorun yok" diye okumayın; **bakılmadı** demek:
   duyurdu — bu güçlü bir işaret ama hukuki görüş değil. Ürün sahibi bunu bir
   meslektaşına sormalı.
 - Yol A'nın rakamları aracı bir kaynaktan; Bakanlığın resmî metni okunmadı.
+
+---
+
+## 07.10.2026 — piyasa taraması ve keşif aracı
+
+Ürün sahibi: *"Piyasayı araştır, üzerinde en çok durulan 3 özelliğe bak,
+bizde yoksa ekleyelim. UYAP vs işleri çok önemli."*
+
+**KAYNAK: satıcı siteleri ve satıcıların yazdığı karşılaştırmalar** (tebli.co,
+smarthukuk.com, avasistan.com.tr, hukas.com.tr, chromeboard.com). Ürünler
+denenmedi; yazıların çoğu bir rakibin kendi yazısı (çıkar çatışması var).
+En çok öne çıkan üç özellik ve bizdeki durum (ÖLÇÜLDÜ = kodda bakıldı):
+
+| # | Özellik | Rakip örneği | Bizde |
+|---|---|---|---|
+| 1 | UYAP Avukat Portal'dan dosya/taraf/duruşma/safahat çekme (tarayıcı eklentisi, avukatın kendi e-imzasıyla) | Av. Asistan, Apilex (Chrome eklentisi), İstanbul Barosu UYAP Downloader | **Yarım**: eklenti tek dosyayı okuyor, liste yok; belgeden ve Excel'den aktarım var |
+| 2 | e-Tebligat (UETS) takibi, tebliğ tarihinden süre | Tebli | **Yok** |
+| 3 | Otomatik süre hesaplama + hatırlatma | çoğu | **Var** (`src/utils/legalDates.ts`, adli tatil dahil) |
+
+Karar: 1 önce. Engel değişmedi — portal sayfaları görülmedi. Bunu kaldırmak
+için eklentiye **maskeli keşif** eklendi (`extension/lib/kesif.js`, test:
+`tests/uyapKesif.test.ts`; gerçek Chromium'da uydurma sayfada denendi,
+sızıntı yok). Gerçek UYAP'ta DENENMEDİ. **BEKLENEN:** bir avukatın kendi
+oturumunda kaydedip gönderdiği keşif dosyası. Gelince liste okuyucu yazılır.
