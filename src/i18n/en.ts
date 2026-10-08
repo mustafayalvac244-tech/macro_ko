@@ -1180,6 +1180,8 @@ export const en: Record<keyof typeof tr, string> = {
   'financeForm.notePlaceholder': 'Extra details...',
   'financeForm.save': 'Save',
   'financeForm.amountRequired': 'Enter a valid amount.',
+  'tutar.okunamadi': 'Could not read the amount "{deger}". Example: 12,500.75',
+  'contract.taksitHesaplanamadi': 'Installments are on, but the installment amount could not be calculated: fill in the fee fields of the selected fee model. The text currently says "paid in advance".',
   'financeForm.saveFailed': 'Could not save. Please try again.',
   'financeForm.applyVat': 'Apply VAT',
   'financeForm.vatRate': 'VAT rate (%)',

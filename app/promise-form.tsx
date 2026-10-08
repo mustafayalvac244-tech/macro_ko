@@ -21,6 +21,8 @@ import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
+import { taksitBolustur } from '@/utils/taksit';
+import { tutarOku, tutarYaz } from '@/utils/tutar';
 
 export default function PromiseFormScreen() {
   const __t = useTheme();
@@ -42,11 +44,11 @@ export default function PromiseFormScreen() {
   // Taksit satırları elle düzenlenebilir (her ay eşit olmak zorunda değil).
   const [rows, setRows] = useState<{ amount: string; due: Date }[]>([]);
 
-  const parsedAmount = Number(amount.replace(/\./g, '').replace(',', '.'));
+  const parsedAmount = tutarOku(amount);
   const parsedCount = Number(count);
   const countValid = Number.isInteger(parsedCount) && parsedCount >= 2 && parsedCount <= 36;
 
-  const parseMoney = (s: string) => Number(s.replace(/\./g, '').replace(',', '.'));
+  const parseMoney = tutarOku;
 
   // Toplam/adet/ilk vade değişince eşit bölünmüş bir taslak üretilir; kullanıcı
   // sonrasında her satırın tutarını tek tek değiştirebilir.
@@ -55,14 +57,11 @@ export default function PromiseFormScreen() {
       setRows([]);
       return;
     }
-    const per = Math.floor((parsedAmount / parsedCount) * 100) / 100;
-    const last = Math.round((parsedAmount - per * (parsedCount - 1)) * 100) / 100;
-    setRows(
-      Array.from({ length: parsedCount }, (_, i) => ({
-        amount: String(i === parsedCount - 1 ? last : per),
-        due: addMonths(dueDate, i),
-      }))
-    );
+    // Satırlar Türkçe biçimde yazılır ("333,33"). Eskiden String(333.33) =
+    // "333.33" yazılıyor, ayrıştırıcı noktayı binlik sayıp 33.333 ₺ kaydediyordu
+    // (1.000 ₺ / 3 taksit → 100.000 ₺). Bölüştürme kuruş tabanlı taksitBolustur.
+    const plan = taksitBolustur(parsedAmount, parsedCount);
+    setRows(plan.tutarlar.map((tutar, i) => ({ amount: tutarYaz(tutar), due: addMonths(dueDate, i) })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, amount, count, dueDate]);
 

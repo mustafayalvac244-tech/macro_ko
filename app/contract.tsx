@@ -8,6 +8,7 @@ import { HukukiUyari } from '@/components/ui/HukukiUyari';
 import { useAuthStore } from '@/store/authStore';
 import { useClients } from '@/hooks/useClients';
 import { buildContract, type ContractType, type FeeModel, type Taksit } from '@/utils/contractTemplate';
+import { oranOku, tutarOku } from '@/utils/tutar';
 import { useT } from '@/i18n';
 import { fonts, spacing, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -66,25 +67,53 @@ export default function ContractScreen() {
 
   const effectiveFeeModel: FeeModel = tur === 'danismanlik' ? 'danismanlik' : feeModel;
 
+  // Eskiden her rakam dışı karakter siliniyordu: "1.250,50" → 125050,
+  // "%12,5" → 125 (oran %25 uyarısı da yanlış tetiklenirdi). Ortak ayrıştırıcı.
   const num = (s: string) => {
-    const n = Number(s.replace(/[^\d]/g, ''));
-    return isNaN(n) || n === 0 ? undefined : n;
+    const n = tutarOku(s);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+  const oran = (s: string) => {
+    const n = oranOku(s);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+
+  /**
+   * Taksit tabanı YALNIZ seçili ücret modelinden alınır (eskiden gizli kalmış
+   * maktu alanı nispi modelde de taksite giriyordu). Karmada peşin maktu kısım
+   * taksitlenir. Tutarlar tam TL'dir (sözleşme tutarı tam TL yazar); artan
+   * son taksite eklenir, böylece "Toplam" satırı ücret maddesiyle aynı çıkar
+   * (eskiden 10.000 / 3 → "Toplam: 9.999 TL").
+   */
+  const taksitTabani = (): number | undefined => {
+    switch (effectiveFeeModel) {
+      case 'danismanlik':
+        return num(aylik);
+      case 'nispi': {
+        const d = num(davaDegeri);
+        const o = oran(nispiOran);
+        return d && o ? (d * o) / 100 : undefined;
+      }
+      default:
+        return num(maktuTutar);
+    }
   };
 
   const buildTaksitler = (): Taksit[] | undefined => {
     if (!taksitli) return undefined;
     const adet = Math.max(1, Math.min(24, Number(taksitSayisi) || 1));
-    const toplam =
-      effectiveFeeModel === 'danismanlik'
-        ? num(aylik)
-        : num(maktuTutar) ??
-          (num(davaDegeri) && num(nispiOran) ? Math.round((num(davaDegeri)! * num(nispiOran)!) / 100) : undefined);
-    if (!toplam) return undefined;
-    const her = Math.round(toplam / adet);
-    return Array.from({ length: adet }, (_, i) => ({ seq: i + 1, amount: her }));
+    const tabani = taksitTabani();
+    if (!tabani) return undefined;
+    const toplam = Math.round(tabani);
+    const her = Math.floor(toplam / adet);
+    return Array.from({ length: adet }, (_, i) => ({
+      seq: i + 1,
+      amount: i === adet - 1 ? toplam - her * (adet - 1) : her,
+    }));
   };
 
   const onGenerate = () => {
+    const taksitler = buildTaksitler();
     const res = buildContract({
       tur,
       avukatAd: avukatAd.trim(),
@@ -100,13 +129,15 @@ export default function ContractScreen() {
       imzaYeri: imzaYeri.trim() || undefined,
       feeModel: effectiveFeeModel,
       maktuTutar: num(maktuTutar),
-      nispiOran: num(nispiOran),
+      nispiOran: oran(nispiOran),
       davaDegeri: num(davaDegeri),
       aylikDanismanlik: num(aylik),
       kdvDahil,
-      taksitler: buildTaksitler(),
+      taksitler,
     });
-    setPreview({ body: res.body, warnings: res.warnings });
+    // Taksit açık ama tutar hesaplanamadıysa metin sessizce "peşin ödenir" diyordu.
+    const uyarilar = taksitli && !taksitler ? [...res.warnings, t('contract.taksitHesaplanamadi')] : res.warnings;
+    setPreview({ body: res.body, warnings: uyarilar });
   };
 
   const onShare = () => {

@@ -1163,6 +1163,8 @@ export const tr = {
   'financeForm.notePlaceholder': 'Ek açıklama...',
   'financeForm.save': 'Kaydet',
   'financeForm.amountRequired': 'Geçerli bir tutar girin.',
+  'tutar.okunamadi': 'Tutar okunamadı: "{deger}". Örnek yazım: 12.500,75',
+  'contract.taksitHesaplanamadi': 'Taksit seçildi ama taksit tutarı hesaplanamadı: seçili ücret modelinin tutar alanlarını doldurun. Metin şu an "peşin ödenir" diyor.',
   'financeForm.saveFailed': 'Kaydedilemedi. Lütfen tekrar deneyin.',
   'financeForm.applyVat': 'KDV uygula',
   'financeForm.vatRate': 'KDV oranı (%)',

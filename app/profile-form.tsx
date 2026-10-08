@@ -15,6 +15,7 @@ import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { tutarOku, tutarYaz } from '@/utils/tutar';
 
 export default function ProfileFormScreen() {
   const __t = useTheme();
@@ -46,7 +47,7 @@ export default function ProfileFormScreen() {
       setFirmName(profile.firm_name ?? '');
       setBarNumber(profile.bar_number ?? '');
       setPhone(profile.phone ?? '');
-      setHourlyRate(profile.hourly_rate != null ? String(profile.hourly_rate) : '');
+      setHourlyRate(profile.hourly_rate != null ? tutarYaz(profile.hourly_rate) : '');
     }
   }, [profile]);
 
@@ -82,9 +83,8 @@ export default function ProfileFormScreen() {
   // Boş alan null demek (ücret yok), geçersiz sayı da null — ikisi de
   // kaydedilir ve zaman kaydı ücretsiz sürer.
   const parsedRate = (() => {
-    const ham = hourlyRate.replace(/\./g, '').replace(',', '.').trim();
-    if (!ham) return null;
-    const n = Number(ham);
+    if (!hourlyRate.trim()) return null;
+    const n = tutarOku(hourlyRate);
     return Number.isFinite(n) && n > 0 ? n : null;
   })();
 

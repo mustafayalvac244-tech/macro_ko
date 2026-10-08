@@ -29,6 +29,7 @@ import { useTheme } from '@/theme/useTheme';
 import { kaliciMenuMu, panoOlculeri, PANO_ARALIK } from '@/theme/duzen';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
+import { tutarOku, tutarYaz } from '@/utils/tutar';
 import { computeLegalDue } from '@/utils/legalDates';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { WarPlanTab } from '@/components/case/WarPlanTab';
@@ -112,7 +113,7 @@ export default function CaseDetailScreen() {
   const [expenseAmount, setExpenseAmount] = useState('');
 
   useEffect(() => {
-    setAdvanceText(caseItem?.advance_amount != null ? String(caseItem.advance_amount) : '');
+    setAdvanceText(caseItem?.advance_amount != null ? tutarYaz(caseItem.advance_amount) : '');
   }, [caseItem?.advance_amount]);
 
   if (isLoading || !caseItem) {
@@ -436,12 +437,12 @@ export default function CaseDetailScreen() {
                         <Button
                           label={t('fee.addInstallment')}
                           variant="secondary"
-                          disabled={!(Number(instAmount.replace(',', '.')) > 0)}
+                          disabled={!(tutarOku(instAmount) > 0)}
                           onPress={async () => {
                             await createInstallment.mutateAsync({
                               case_id: caseItem.id,
                               seq: (installments.data?.length ?? 0) + 1,
-                              amount: Number(instAmount.replace(',', '.')),
+                              amount: tutarOku(instAmount),
                               due_date: instDue ? instDue.toISOString().slice(0, 10) : null,
                             });
                             setInstAmount('');
@@ -485,11 +486,11 @@ export default function CaseDetailScreen() {
                 label={t('finance.addPayment')}
                 icon="cash-outline"
                 loading={createPayment.isPending}
-                disabled={!paymentAmount.trim() || !(Number(paymentAmount.replace(',', '.')) > 0)}
+                disabled={!paymentAmount.trim() || !(tutarOku(paymentAmount) > 0)}
                 onPress={async () => {
                   await createPayment.mutateAsync({
                     case_id: caseItem.id,
-                    amount: Number(paymentAmount.replace(',', '.')),
+                    amount: tutarOku(paymentAmount),
                     note: paymentNote.trim() || null,
                   });
                   setPaymentAmount('');
@@ -529,9 +530,14 @@ export default function CaseDetailScreen() {
                       keyboardType="numeric"
                       value={advanceText}
                       onChangeText={setAdvanceText}
-                      onEndEditing={() => {
-                        const n = Number(advanceText.replace(',', '.'));
-                        saveCase({ advance_amount: Number.isFinite(n) && n > 0 ? n : null });
+                      onBlur={() => {
+                        // onEndEditing web'de hiç çağrılmıyordu (react-native-web
+                        // desteklemiyor); onBlur iki platformda da tetiklenir.
+                        // Okunamayan giriş kayıtlı avansı SİLMESİN: hiçbir şey yazılmaz.
+                        if (!advanceText.trim()) return saveCase({ advance_amount: null });
+                        const n = tutarOku(advanceText);
+                        if (!Number.isFinite(n)) return uyar(t('tutar.okunamadi', { deger: advanceText.trim() }));
+                        saveCase({ advance_amount: n > 0 ? n : null });
                       }}
                     />
                     <View style={styles.advFormRow}>
@@ -558,12 +564,12 @@ export default function CaseDetailScreen() {
                       icon="remove-circle-outline"
                       variant="secondary"
                       loading={createExpense.isPending}
-                      disabled={!expenseTitle.trim() || !(Number(expenseAmount.replace(',', '.')) > 0)}
+                      disabled={!expenseTitle.trim() || !(tutarOku(expenseAmount) > 0)}
                       onPress={async () => {
                         await createExpense.mutateAsync({
                           case_id: caseItem.id,
                           title: expenseTitle.trim(),
-                          amount: Number(expenseAmount.replace(',', '.')),
+                          amount: tutarOku(expenseAmount),
                         });
                         setExpenseTitle('');
                         setExpenseAmount('');
@@ -718,7 +724,7 @@ export default function CaseDetailScreen() {
                 placeholder="2026/123 K."
                 value={decisionNo}
                 onChangeText={setDecisionNo}
-                onEndEditing={() => saveCase({ decision_number: decisionNo.trim() || null })}
+                onBlur={() => saveCase({ decision_number: decisionNo.trim() || null })}
               />
               {(!caseItem.decision_number || !caseItem.decision_date) && (
                 <View style={styles.advWarn}>
@@ -778,7 +784,7 @@ export default function CaseDetailScreen() {
             placeholder={t('case.stageNotePh')}
             value={stageNote}
             onChangeText={setStageNote}
-            onEndEditing={() => saveCase({ stage_note: stageNote.trim() || null })}
+            onBlur={() => saveCase({ stage_note: stageNote.trim() || null })}
             multiline
             numberOfLines={3}
             style={styles.stageNoteInput}

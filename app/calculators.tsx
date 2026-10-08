@@ -19,11 +19,18 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { kidemBrutHesapla } from '@/config/kidemTavani';
+import { oranOku, tutarOku } from '@/utils/tutar';
 
 type CalcTab = 'aaut' | 'interest' | 'fee' | 'smm' | 'severance';
 
+/** Boş/okunamayan girişte 0. Ortak ayrıştırıcı: utils/tutar ("24.5" artık %245 değil). */
 function parseAmount(v: string): number {
-  const n = Number(v.replace(/\./g, '').replace(',', '.'));
+  const n = tutarOku(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parseRate(v: string): number {
+  const n = oranOku(v);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -203,7 +210,7 @@ function InterestCalc() {
   const [picker, setPicker] = useState<'start' | 'end' | null>(null);
 
   const p = parseAmount(principal);
-  const r = parseAmount(rate);
+  const r = parseRate(rate);
   const days = Math.max(0, differenceInCalendarDays(end, start));
   const interest = (p * (r / 100) * days) / 365;
 

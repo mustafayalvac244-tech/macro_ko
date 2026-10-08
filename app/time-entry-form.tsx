@@ -24,6 +24,7 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { HIZLI_SURELER, dakikaBicimle, sureAyristir, tutarHesapla } from '@/utils/zamanKaydi';
+import { tutarOku, tutarYaz } from '@/utils/tutar';
 
 /**
  * ZAMAN KAYDI FORMU.
@@ -54,14 +55,14 @@ export default function TimeEntryFormScreen() {
   const [workedAt, setWorkedAt] = useState(new Date());
   const [billable, setBillable] = useState(true);
   const [rate, setRate] = useState(
-    profile?.hourly_rate != null ? String(profile.hourly_rate) : ''
+    profile?.hourly_rate != null ? tutarYaz(profile.hourly_rate) : ''
   );
   const [showPicker, setShowPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const dakika = useMemo(() => sureAyristir(sure), [sure]);
   const parsedRate = useMemo(() => {
-    const n = Number(rate.replace(/\./g, '').replace(',', '.'));
+    const n = tutarOku(rate);
     return Number.isFinite(n) && n > 0 ? n : null;
   }, [rate]);
 
