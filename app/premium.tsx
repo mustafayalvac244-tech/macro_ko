@@ -10,7 +10,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useAuthStore } from '@/store/authStore';
-import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_ASIL_MODEL_HAKKI, AI_MUTALAA_HAKKI, DENEME_SORU_HAKKI } from '@/hooks/useTrialStatus';
+import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_ASIL_MODEL_HAKKI, AI_MUTALAA_HAKKI } from '@/hooks/useTrialStatus';
 import { UCRETSIZ_LIMIT, UCRETSIZ_DENEME_HAKKI } from '@/config/planlar';
 import {
   AI_ENTITLEMENT_ID,
@@ -94,7 +94,18 @@ export default function PremiumScreen() {
   const [aiPaketler, setAiPaketler] = useState<{ aylik: PurchasesPackage | null; alti: PurchasesPackage | null; yillik: PurchasesPackage | null }>({ aylik: null, alti: null, yillik: null });
   const [aiDonem, setAiDonem] = useState<'aylik' | 'alti' | 'yillik'>('yillik');
   const aiOfferingPkg = aiPaketler[aiDonem] ?? aiPaketler.aylik ?? aiPaketler.alti ?? aiPaketler.yillik;
-  const aiSecilenDonem: 'aylik' | 'alti' | 'yillik' = aiPaketler[aiDonem] ? aiDonem : aiPaketler.aylik ? 'aylik' : aiPaketler.alti ? 'alti' : 'yillik';
+  // Teklif HİÇ yüklenmediyse (web, ağ hatası) 'aylik': yedek fiyat AI_PRICE_TRY
+  // aylık fiyattır. Eskiden 'yillik' düşüyor, kart "₺2.999 / yıl" yazıyordu
+  // (gerçek yıllık 29.999 ₺) — 08.10.2026 denetimi.
+  const aiSecilenDonem: 'aylik' | 'alti' | 'yillik' = aiPaketler[aiDonem]
+    ? aiDonem
+    : aiPaketler.aylik
+      ? 'aylik'
+      : aiPaketler.alti
+        ? 'alti'
+        : aiPaketler.yillik
+          ? 'yillik'
+          : 'aylik';
   const [busyPlan, setBusyPlan] = useState<'temel' | 'ai' | 'restore' | null>(null);
 
 
@@ -303,12 +314,11 @@ export default function PremiumScreen() {
     // kullanıcıya AI'ın da geleceğini VAAT ediyordu. Oysa AI ayrı ve 1.999 ₺'lik
     // bir pakettir. Yanlış beklenti yaratan bir satırı satış ekranında tutmak,
     // sonradan "ben AI için ödedim" itirazını doğurur.
-    // DENEME HAKKI ARTIK BURADA. Yalnız AÇIK olan AI ekranlarında
-    // harcanabildiği için, üçü birden kapatılırsa satır hiç gösterilmiyor:
-    // kullanılamayan bir hakkı ücretli pakete yazmak boş vaattir.
-    ...(AI_DILEKCE_ENABLED || AI_BELGE_ENABLED || AI_AKTARMA_ENABLED
-      ? [t('premium.f.proDeneme', { n: String(DENEME_SORU_HAKKI) })]
-      : []),
+    // DENEME HAKKI PRO KARTINDAN ÇIKTI (08.10.2026). 28.09'dan beri ücretsiz
+    // plan da aynı 10 denemeyi alıyor ve sunucuda sayaç kullanıcı başına TEK
+    // (katman.ts: ikisi de deneme_hakki_rezerve_et). Pro ek deneme vermiyor;
+    // Pro kartında "10 yapay zekâ denemesi" yazmak olmayan bir avantajı satmaktı.
+    // Ücretsiz kartında (freeDeneme) ve "ücretsiz plandaki her şey" satırında var.
     t('premium.f.aiSeparate'),
   ];
 

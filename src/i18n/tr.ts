@@ -23,7 +23,7 @@ export const tr = {
     // alınıp ₺399'luk pakete taşındı (ürün sahibi kararı). Cümle kalsaydı
     // kayıt ekranı, hesabı açan avukata hiç alamayacağı bir şey vaat
     // etmiş olurdu — üstelik ilk ekranda.
-    'İçtihat araması, duruşma/görev ajandası ve hatırlatmalar sınırsız ve ücretsizdir. Ücretsiz planda {dava} dava, {muvekkil} müvekkil ve {belge} belge tutabilirsiniz; sınırsız kayıt, finans modülü ve {n} yapay zekâ denemesi Vekil Pro ile açılır.',
+    'İçtihat araması, duruşma/görev ajandası ve hatırlatmalar sınırsız ve ücretsizdir. Ücretsiz planda {dava} dava, {muvekkil} müvekkil ve {belge} belge tutabilirsiniz, {n} yapay zekâ denemesi de ücretsiz plana dahildir. Sınırsız kayıt ve finans modülü Vekil Pro ile açılır.',
     'auth.lawyersOnly': 'Avukatlara özel platform',
   'auth.tcNo': 'T.C. Kimlik No (isteğe bağlı)',
   'auth.tcPlaceholder': '11 haneli kimlik numaranız',
@@ -738,7 +738,7 @@ export const tr = {
   'premium.perMonth': '/ ay',
   'premium.popular': 'En Popüler',
   'premium.choose': '{plan}’ı Seç',
-  'premium.includes': '{plan}’taki her şey, artı:',
+  'premium.includes': '{plan} paketindeki her şey, artı:',
   'premium.storeNote': 'Ödeme App Store ve Google Play üzerinden güvenle alınır. İstediğiniz zaman iptal edebilirsiniz.',
   // WEB'DE SATIN ALMA — arıza değil, platform gerçeği. Uygulama içi satın
   // alma mağazaya özgüdür; tarayıcıda böyle bir mekanizma yoktur. Bunu
@@ -1539,10 +1539,10 @@ export const tr = {
   'ai.errDenemeBitti': 'Deneme haklarınızı kullandınız. Yapay zekâyı kullanmaya devam etmek için Yapay Zekâ paketine geçebilirsiniz.',
   // Kota değil KAPSAM: ödeme yapmamış kullanıcı. "Bitti" demek yanlış olur,
   // çünkü hiç başlamadı; beklemekle de açılmaz.
-  'ai.errPaketGerekli': 'Yapay zekâ özellikleri Vekil Pro paketine dahildir. Paketi görmek için Ayarlar > Vekil Pro adımına gidin.',
+  'ai.errPaketGerekli': 'Bu özellik Vekil Pro + Yapay Zekâ paketindedir (Vekil Pro’ya dahil değildir). Paketi görmek için Ayarlar > Vekil Premium adımına gidin.',
   'ai.errKvkkRiza': 'Yapay zekâ özellikleri, KVKK açık rızanız olmadan çalışmaz: yazdığınız metin yurt dışındaki bir modele gönderiliyor ve bu aktarım rızaya bağlı. Ayarlar > KVKK Aydınlatma Metni ekranından metni okuyup imzaladığınızda hemen açılır.',
   'ai.errKvkkKontrol': 'KVKK rıza kaydınız şu an okunamadı; bu bizim tarafımızdaki geçici bir arızadır, sizin bir eksiğiniz değil. Güvenlik gereği yapay zekâ isteği gönderilmedi. Birazdan tekrar deneyin.',
-  'ai.errDailyQuota': 'Bugünkü ücretsiz AI hakkı doldu. Hak her gün yenilenir; yarın tekrar deneyebilir ya da kesintisiz kullanım için Pro’ya geçebilirsiniz.',
+  'ai.errDailyQuota': 'Bugünkü ücretsiz AI hakkı doldu. Hak her gün yenilenir; yarın tekrar deneyebilir ya da kesintisiz kullanım için Vekil Pro + Yapay Zekâ paketine geçebilirsiniz.',
   'ai.errQuotaWait': 'Ücretsiz AI hakkı şu an dolu — bu havuz tüm kullanıcılarla ortaktır. Yaklaşık {dk} dakika sonra tekrar deneyebilirsiniz.',
   'ai.errQuota': 'Bu ayki AI kullanım hakkınız doldu. Hakkınız ayın başında yenilenir.',
   'ai.errServis': 'Yapay zekâ servisi şu an yanıt vermiyor. Birkaç dakika sonra tekrar deneyin; hakkınızdan düşülmedi.',
@@ -1602,7 +1602,7 @@ export const tr = {
   'web.gateTitle': 'Tarayıcı sürümü Vekil Pro üyelerine özel',
   'web.gateBody': 'Bilgisayardan kullanım, Vekil Pro üyeliğine dahildir. Telefonunuzdaki Vekil Pro uygulamasını ücretsiz katmanla kullanmaya devam edebilirsiniz.',
   'web.gateStep1': 'Telefonunuzda Vekil Pro uygulamasını açın.',
-  'web.gateStep2': 'Ayarlar > Üyelik adımından Vekil Pro’ya geçin (abonelik App Store / Google Play üzerinden alınır; tarayıcıdan satın alma yapılamaz).',
+  'web.gateStep2': 'Ayarlar > Vekil Premium adımından Vekil Pro’ya geçin (abonelik App Store / Google Play üzerinden alınır; tarayıcıdan satın alma yapılamaz).',
   'web.gateStep3': 'Bu sayfayı yenileyin — aynı hesapla giriş yapmanız yeterli.',
   'web.gateAccount': 'Giriş yapılan hesap: {eposta}',
   'web.gateSignOut': 'Başka hesapla giriş yap',
@@ -1632,8 +1632,8 @@ export const tr = {
   'ai.tierBasic': 'Basic',
   'ai.tierPlus': 'Plus',
   'ai.plusActive': 'Plus AI etkin — güçlü model + içtihat destekli yanıtlar',
-  'ai.plusUpsell': 'Plus’a geç: daha güçlü model + kendi içtihat havuzumuzla beslenen yanıtlar',
-  'ai.plusUpsellBtn': 'Pro’ya geç',
+  'ai.plusUpsell': 'Vekil Pro + Yapay Zekâ: daha güçlü model ve kendi içtihat havuzumuzla beslenen yanıtlar',
+  'ai.plusUpsellBtn': 'Yapay Zekâ paketine geç',
   'ai.history': 'Sohbet geçmişi',
   'ai.historyEmpty': 'Henüz kayıtlı sohbet yok. Sohbetleriniz burada saklanır, istediğinizde geri dönebilirsiniz.',
   'ai.newChat': 'Yeni sohbet',
