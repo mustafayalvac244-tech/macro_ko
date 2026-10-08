@@ -29,7 +29,7 @@ import {
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 import { canliIctihat, canliKunyeDogrula } from '../_shared/uyapCanli.ts';
 import { adim, modelSuresi, sureIzle, sureOzeti } from '../_shared/adimSure.ts';
-import { basarisizsaIadeEt, yeniRezervasyon, type HakRezervasyonu } from '../_shared/hakIadesi.ts';
+import { basarisizsaIadeEt, rezervasyonuIadeEt, yeniRezervasyon, type HakRezervasyonu } from '../_shared/hakIadesi.ts';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 import { mesajlariHazirla } from '../_shared/onbellek.ts';
 // Avukatın eklediği belgeler (dilekçe/belge inceleme) — PDF görüntüsüyle gider.
@@ -3636,11 +3636,17 @@ async function dosyaKunyesiIc(
     {
       const ozet = await mevzuatOzeti(supabase, messages[messages.length - 1]?.text ?? '').catch(() => '');
       if (ozet) {
+        // HAK İADE EDİLİR (08.10.2026, denetimde bulundu). Bu bir model cevabı
+        // değil; ama 200 döndüğü için genel iade sarmalayıcısı (yalnız 2xx
+        // dışında iade eder) devreye girmiyordu: deneme kullanıcısı 10
+        // hakkından birini, AI üyesi aylık kotasından birini YAPAY ZEKÂ
+        // CEVABI ALMADAN kaybediyordu.
+        await rezervasyonuIadeEt(hakRez, { deneme: denemeHakkiSerbestBirak, mod: aiModSerbestBirak }).catch(() => {});
         // Bilinçli olarak 200: istemci bunu normal bir yanıt gibi gösterir.
         // 'model' alanı 'mevzuat-yedek' olduğu için ölçümde AI cevabıyla
         // karışmaz ve yedeğe ne sıklıkta düşüldüğü sayılabilir.
         return new Response(
-          JSON.stringify({ text: ozet, tier, model: 'mevzuat-yedek', yapayZekasiz: true, neden: msg, yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }),
+          JSON.stringify({ text: ozet, tier, model: 'mevzuat-yedek', yapayZekasiz: true, hakDusulmedi: true, neden: msg, yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }),
           { headers: { ...CORS, 'Content-Type': 'application/json' } }
         );
       }
