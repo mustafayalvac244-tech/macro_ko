@@ -38,17 +38,23 @@ export function kucult(v) {
 }
 
 /** Etiketten sonra gelen değeri alır: "Esas No : 2023/145" -> "2023/145" */
-function etiketliDeger(metin, etiketler, desen) {
+function etiketliDeger(metin, etiketler, desen, tekSatir = false) {
   const k = kucult(metin); // dizinler orijinalle birebir
+  // tekSatir: serbest metin alanlarında (dava türü) etiket ile değer AYNI
+  // satırda olmalı. "Dava Türü :\nESAS NO : 2023/145" eskiden dava türü
+  // "ESAS NO : 2023/145" çıkıyordu (08.10.2026, denetçi ölçtü).
+  const ara = tekSatir ? '[ \\t]*' : String.raw`\s*`;
   for (const etiket of etiketler) {
-    const r = new RegExp(etiket + String.raw`\s*[:\-]?\s*(` + desen + ')');
+    const r = new RegExp(etiket + ara + '[:\\-]?' + ara + '(' + desen + ')');
     const m = r.exec(k);
     if (m?.[1]) return metin.slice(m.index + m[0].length - m[1].length, m.index + m[0].length).trim();
   }
   return null;
 }
 
-const DOSYA_NO = String.raw`\d{4}\s*/\s*\d{1,6}`;
+// (?!\d): "2023/1234567" eskiden SESSİZCE "2023/123456" olarak kesiliyordu;
+// artık 6 haneden uzun sıra numarası hiç eşleşmez (yanlış numara yerine boş).
+const DOSYA_NO = String.raw`\d{4}\s*/\s*\d{1,6}(?!\d)`;
 
 /** "2023/145" biçimini tek boşluksuz hâle getirir. */
 function noDuzelt(v) {
@@ -79,15 +85,33 @@ export function mahkeme(metin) {
   // bekliyordu; UYAP mahkeme adını BÜYÜK HARFLE yazar ("ANKARA 3. ASLİYE HUKUK
   // MAHKEMESİ") ve alan boş kalıyordu. Artık anahtar sözcüğü bulup AYNI SATIRDA
   // ondan önceki sözcükleri topluyoruz; büyük/küçük harf önemsiz.
-  const anahtar = /(mahkemesi|müdürlüğü|dairesi|başkanlığı|i̇cra müdürlüğü)/;
+  //
+  // 08.10.2026 (denetçi ölçtü): "MAHKEMESİ : ANKARA 3. ASLİYE HUKUK
+  // MAHKEMESİ" satırında İLK anahtar satır başındaki etiketti ve ad
+  // "MAHKEMESİ" çıkıyordu; esas no da bulununca yapay zekâya hiç
+  // sorulmuyordu. "DAVALI : Çankaya Vergi Dairesi" satırı mahkeme sanılıyordu.
+  // Artık: taraf satırları atlanır, SON anahtar alınır, iki noktadan önceki
+  // etiket ve dosya numaraları atılır, anahtardan önce en az bir ad sözcüğü
+  // şarttır.
+  const anahtar = /(mahkemesi|müdürlüğü|dairesi|başkanlığı)/g;
+  const tarafSatiri = /^\s*(davac|daval|vekil|alacakl|borçlu|bor[cç]lu|sanık|san[ıi]k|müşteki|katılan|karşı\s*taraf|müdahil)/;
   for (const satir of (metin ?? '').split(/[\n\r]+/)) {
-    const m = anahtar.exec(kucult(satir));
-    if (!m) continue;
-    const once = satir.slice(0, m.index).trim();
-    const anahtarMetni = satir.slice(m.index, m.index + m[1].length);
-    // "T.C." gibi başlıkları ve önceki cümleyi atıp son 6 sözcüğü al.
-    const sozcukler = once.split(/\s+/).filter((x) => x && !/^t\.?c\.?$/i.test(x));
-    const ad = [...sozcukler.slice(-6), anahtarMetni].join(' ').replace(/\s+/g, ' ').trim();
+    const k = kucult(satir);
+    if (tarafSatiri.test(k)) continue;
+    let son = null;
+    for (const m of k.matchAll(anahtar)) son = m;
+    if (!son) continue;
+    let once = satir.slice(0, son.index);
+    const ikiNokta = once.lastIndexOf(':');
+    if (ikiNokta >= 0) once = once.slice(ikiNokta + 1);
+    const anahtarMetni = satir.slice(son.index, son.index + son[1].length);
+    // "T.C." başlığını ve dosya numaralarını at, son 8 sözcüğü al ("İSTANBUL
+    // BÖLGE ADLİYE MAHKEMESİ 14. HUKUK DAİRESİ" daireyle birlikte kalsın).
+    const sozcukler = once
+      .split(/\s+/)
+      .filter((x) => x && !/^t\.?c\.?$/i.test(x) && !/^\d{4}\/\d+/.test(x) && !/^(esas|no|e\.|k\.)$/i.test(x));
+    if (!sozcukler.some((x) => /\p{L}{2,}/u.test(x))) continue;
+    const ad = [...sozcukler.slice(-8), anahtarMetni].join(' ').replace(/\s+/g, ' ').trim();
     if (ad.length >= 8) return ad;
   }
   return null;
@@ -97,13 +121,21 @@ export function mahkeme(metin) {
 function taraf(metin, etiketler) {
   const k = kucult(metin);
   for (const etiket of etiketler) {
-    const r = new RegExp(etiket + String.raw`\s*[:\-]\s*([^\n\r]{2,60})`);
+    // Etiketle değer AYNI satırda: "DAVACI :\nDAVALI :" eskiden davacıyı
+    // "DAVALI :" yapıyordu.
+    const r = new RegExp(etiket + String.raw`[ \t]*[:\-][ \t]*([^\n\r]{2,60})`);
     const m = r.exec(k);
     if (m?.[1]) {
       const ham = metin.slice(m.index + m[0].length - m[1].length, m.index + m[0].length);
       const ad = ham
         .replace(/\s{2,}.*$/, '')            // ikinci sütuna taşmayı kes
-        .replace(/\s*(?:vekili|adına|T\.?C\.?).*$/i, '')
+        .replace(/\s*(?:vekili|adına)\b.*$/i, '')
+        // KİMLİK NUMARASI BAŞLIĞA GİRMESİN: 11 haneli sayı ve önündeki
+        // "(TC:" / "T.C. Kimlik No" kesilir. "T.C. Ziraat Bankası" gibi
+        // adın PARÇASI olan T.C. korunur (eskiden ad tümüyle siliniyordu).
+        .replace(/[\s,(]*(?:T\.?\s?C\.?\s*(?:kimlik\s*)?(?:no\.?|numaras[ıi])?\s*[:.]?\s*)?\d{11}\b.*$/i, '')
+        .replace(/[\s,(]*\bT\.?\s?C\.?\s*(?:kimlik\s*)?(?:no\.?|numaras[ıi])?\s*:?\s*$/i, '')
+        .replace(/[\s(,\-–]+$/, '')
         .trim();
       if (ad.length >= 3) return ad;
     }
@@ -116,14 +148,17 @@ export const davali = (m) => taraf(m, ['daval[ıi]', 'bor[çc]lu', 'san[ıi]k', 
 
 /** "Dava Türü: Alacak" / "Dava Konusu: …" */
 export function davaTuru(metin) {
-  return etiketliDeger(metin, ['dava\\s*t[üu]r[üu]', 'dava\\s*konusu', 'i[şs]in\\s*konusu'], '[^\\n\\r]{3,60}');
+  const v = etiketliDeger(metin, ['dava\\s*t[üu]r[üu]', 'dava\\s*konusu', 'i[şs]in\\s*konusu'], '[^\\n\\r]{3,60}', true);
+  // İki sütunlu tabloda ikinci sütun taşıyordu: "Alacak          Dava Değeri: …"
+  return v ? v.replace(/\s{2,}.*$/, '').trim() || null : null;
 }
 
 /** GG.AA.YYYY -> YYYY-AA-GG. Sadece bilinen etiketlerin yanındaki tarihi alır. */
 export function durusmaTarihi(metin) {
   const v = etiketliDeger(
     metin,
-    ['duru[şs]ma\\s*(?:tarihi|g[üu]n[üu])', 'sonraki\\s*duru[şs]ma'],
+    // "Sonraki duruşma" ÖNCE: tutanakta geçmiş duruşmanın tarihi de yazar.
+    ['sonraki\\s*duru[şs]ma(?:\\s*(?:tarihi|g[üu]n[üu]))?', 'duru[şs]ma\\s*(?:tarihi|g[üu]n[üu])'],
     String.raw`\d{1,2}[./]\d{1,2}[./]\d{4}`
   );
   if (!v) return null;

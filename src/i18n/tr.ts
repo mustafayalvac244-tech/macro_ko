@@ -1757,6 +1757,7 @@ export const tr = {
   'imp.fHearing': 'Duruşma tarihi (YYYY-AA-GG)',
   'imp.willAddHearing': 'Bu tarih takvime duruşma olarak eklenecek ve hatırlatma kurulacak.',
   'imp.needTitle': 'Dosya başlığı boş olamaz.',
+  'imp.tarihOkunamadi': 'Duruşma tarihi okunamadı: "{tarih}". YYYY-AA-GG biçiminde yazın (ör. 2026-09-15) ya da alanı boşaltın.',
   'imp.save': 'Dosyayı Oluştur',
   'imp.saved': 'Dosya oluşturuldu.',
   'imp.saveFailed': 'Dosya oluşturulamadı. Tekrar deneyin.',

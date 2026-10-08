@@ -56,9 +56,13 @@ describe('udfMetni', () => {
   });
 
   it('bölünmüş CDATA parçalarını birleştirir', () => {
-    // "]]>" içeren metni kendi üreticimiz böyle yazar.
-    const xml = udfIcerikXml('a ]]> b');
+    // 08.10.2026'ya kadar kendi üreticimiz "]]>" içeren metni böyle yazıyordu
+    // (UYAP Editör bunu açamadığı için artık "]] >" yazıyor). O tarihten önce
+    // üretilmiş ya da başka araçtan gelen dosyalar hâlâ okunabilmeli.
+    const xml = '<template><content><![CDATA[a ]]]]><![CDATA[> b]]></content></template>';
     expect(udfMetni(xml)).toBe('a ]]> b');
+    // Bugünkü üretici: okunduğunda metin "]] >" olur.
+    expect(udfMetni(udfIcerikXml('a ]]> b'))).toBe('a ]] > b');
   });
 
   it('kendi ürettiğimiz UDF\'yi turlar', () => {

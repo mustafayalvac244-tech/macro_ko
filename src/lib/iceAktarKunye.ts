@@ -41,6 +41,22 @@ export interface YerelKunye {
 
 const s = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
+/**
+ * Duruşma tarihi YALNIZ gerçek ve bugünden sonraki bir günse alınır.
+ * "31.02.2026" eskiden 03.03'e kayıyor, "99.99.2026" kaydı sessizce
+ * düşürüyordu; tutanaktaki GEÇMİŞ duruşma tarihi takvime yazılıp "hatırlatma
+ * kurulacak" deniyordu (08.10.2026, denetçi ölçtü).
+ */
+export function gelecekDurusmaGunu(iso: string, bugun: Date = new Date()): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return '';
+  const [y, a, g] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const d = new Date(y, a - 1, g);
+  if (d.getFullYear() !== y || d.getMonth() !== a - 1 || d.getDate() !== g) return '';
+  const bugunBasi = new Date(bugun.getFullYear(), bugun.getMonth(), bugun.getDate());
+  return d >= bugunBasi ? iso : '';
+}
+
 export function yerelKunye(metin: string): YerelKunye {
   const k = kunyeCikarYerel(metin) as Record<string, string | null>;
   const form: KunyeFormu = {
@@ -49,7 +65,7 @@ export function yerelKunye(metin: string): YerelKunye {
     case_number: s(k.case_number),
     case_type: s(k.case_type),
     opposing_party: '',
-    hearing_date: /^\d{4}-\d{2}-\d{2}$/.test(s(k.hearing_date)) ? s(k.hearing_date) : '',
+    hearing_date: gelecekDurusmaGunu(s(k.hearing_date)),
   };
   const taraflar = { davaci: s(k.davaci), davali: s(k.davali) };
   const bosDegil = [form.title, form.court_name, form.case_number, form.case_type, form.hearing_date, taraflar.davaci, taraflar.davali].some(Boolean);

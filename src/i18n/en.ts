@@ -1682,6 +1682,7 @@ export const en: Record<keyof typeof tr, string> = {
   'imp.fHearing': 'Hearing date (YYYY-MM-DD)',
   'imp.willAddHearing': 'This date will be added to your calendar as a hearing with a reminder.',
   'imp.needTitle': 'Case title cannot be empty.',
+  'imp.tarihOkunamadi': 'Could not read the hearing date "{tarih}". Use YYYY-MM-DD (e.g. 2026-09-15) or clear the field.',
   'imp.save': 'Create Case',
   'imp.saved': 'Case created.',
   'imp.saveFailed': 'Could not create the case. Please try again.',
