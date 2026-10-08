@@ -425,7 +425,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
   },
   stageChipTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   collHead: {
     flexDirection: 'row',

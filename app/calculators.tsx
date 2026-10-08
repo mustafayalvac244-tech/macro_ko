@@ -571,7 +571,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
   },
   presetChipTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   dateRow: {
     flexDirection: 'row',

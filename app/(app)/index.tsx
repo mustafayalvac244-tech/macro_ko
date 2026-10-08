@@ -1403,7 +1403,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
     fontSize: 17,
     letterSpacing: -0.4,
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   timeDay: {
     fontFamily: fonts.semibold,
@@ -1690,7 +1690,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   precChipTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   precForLine: {
     fontFamily: fonts.regular,

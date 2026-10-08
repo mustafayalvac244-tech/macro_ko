@@ -157,7 +157,7 @@ export default function MutalaaScreen() {
             disabled={tooShort || busy}
             style={({ pressed }) => [styles.cta, (tooShort || busy) && styles.ctaOff, pressed && { opacity: 0.85 }]}
           >
-            {busy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="library" size={17} color="#FFFFFF" />}
+            {busy ? <ActivityIndicator size="small" color={colors.textInverse} /> : <Ionicons name="library" size={17} color={colors.textInverse} />}
             <Text style={styles.ctaText}>{busy ? t('mut.working') : t('mut.run')}</Text>
           </Pressable>
           {busy && <Text style={styles.hint}>{t('mut.workingHint')}</Text>}
@@ -313,7 +313,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: fonts.extrabold,
     fontWeight: '800',
     fontSize: 15,
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   hint: {
     fontFamily: fonts.regular,
@@ -347,7 +347,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: fonts.extrabold,
     fontWeight: '800',
     fontSize: 14,
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   errBox: {
     flexDirection: 'row',

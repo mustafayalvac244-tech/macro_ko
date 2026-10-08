@@ -217,12 +217,13 @@ export default function CalendarScreen() {
   }, [items, colors]);
 
   const markedDates = useMemo(() => {
-    const marks: Record<string, { dots: { key: string; color: string }[]; selected?: boolean; selectedColor?: string }> = {};
+    const marks: Record<string, { dots: { key: string; color: string }[]; selected?: boolean; selectedColor?: string; selectedTextColor?: string }> = {};
     Object.entries(dotsByDay).forEach(([day, dayColors]) => {
       marks[day] = { dots: dayColors.slice(0, 3).map((c, i) => ({ key: `${day}-${i}`, color: c })) };
     });
     if (!marks[selectedDate]) marks[selectedDate] = { dots: [] };
-    marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: colors.primarySoft };
+    // Zemin saydam primarySoft; yazı beyaz kalırsa açık temalarda görünmüyordu (08.10.2026 denetimi).
+    marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: colors.primarySoft, selectedTextColor: colors.primary };
     return marks;
   }, [dotsByDay, selectedDate, colors]);
 
@@ -458,7 +459,7 @@ export default function CalendarScreen() {
                   arrowColor: colors.primary,
                   textDisabledColor: colors.textMuted,
                   selectedDayBackgroundColor: colors.primary,
-                  selectedDayTextColor: '#FFFFFF',
+                  selectedDayTextColor: colors.textInverse,
                 }}
                 style={styles.calendar}
               />
@@ -794,7 +795,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 2,
   },
   weekDayTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   weekDots: {
     flexDirection: 'row',

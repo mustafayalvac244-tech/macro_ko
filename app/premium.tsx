@@ -408,7 +408,7 @@ export default function PremiumScreen() {
         {/* ───────── AI katmanı ───────── */}
         <View style={styles.aiCard}>
           <View style={styles.aiBadge}>
-            <Ionicons name="sparkles" size={11} color="#FFFFFF" />
+            <Ionicons name="sparkles" size={11} color={colors.textInverse} />
             <Text style={styles.aiBadgeText}>{t('premium.aiBadge')}</Text>
           </View>
 
@@ -482,9 +482,9 @@ export default function PremiumScreen() {
               ]}
             >
               {busyPlan === 'ai' ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.textInverse} />
               ) : (
-                <Text style={[styles.ctaText, { color: '#FFFFFF' }]}>{t('premium.aiCta')}</Text>
+                <Text style={[styles.ctaText, { color: colors.textInverse }]}>{t('premium.aiCta')}</Text>
               )}
             </Pressable>
           )}
@@ -692,7 +692,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 10.5,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   includesRow: {
     flexDirection: 'row',

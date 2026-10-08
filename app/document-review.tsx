@@ -164,9 +164,9 @@ export default function DocumentReviewScreen() {
             style={({ pressed }) => [styles.cta, (tooShort || busy) && styles.ctaOff, pressed && { opacity: 0.85 }]}
           >
             {busy ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.textInverse} />
             ) : (
-              <Ionicons name="sparkles" size={17} color="#FFFFFF" />
+              <Ionicons name="sparkles" size={17} color={colors.textInverse} />
             )}
             <Text style={styles.ctaText}>{busy ? t('docrev.analyzing') : t('docrev.analyze')}</Text>
           </Pressable>
@@ -280,7 +280,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   chipTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   area: {
     minHeight: 190,
@@ -328,7 +328,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: fonts.extrabold,
     fontWeight: '800',
     fontSize: 15,
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   errBox: {
     flexDirection: 'row',

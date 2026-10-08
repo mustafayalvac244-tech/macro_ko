@@ -147,7 +147,7 @@ export default function FinanceFormScreen() {
                   <Ionicons
                     name={FINANCE_CATEGORY_ICONS[c]}
                     size={15}
-                    color={active ? '#FFFFFF' : colors.textSecondary}
+                    color={active ? colors.textInverse : colors.textSecondary}
                   />
                   <Text style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>
                     {t(`fcat.${c}` as const)}
@@ -393,7 +393,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '600',
   },
   categoryChipTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   dateButton: {
     flexDirection: 'row',
