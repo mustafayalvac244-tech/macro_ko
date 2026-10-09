@@ -158,7 +158,7 @@ export default function AppLayout() {
       {/* Kalıcı menü açıkken çekmece sürümü çizilmez: ikisi aynı anda
           görünürse aynı menü ekranda iki kez olurdu. */}
       {!kaliciMenu && <Sidebar />}
-      {yeniCihaz && <YeniCihazUyarisi onKapat={cihazUyarisiniKapat} />}
+      {yeniCihaz && <YeniCihazUyarisi cihaz={yeniCihaz} onKapat={cihazUyarisiniKapat} />}
     </View>
   );
 }
