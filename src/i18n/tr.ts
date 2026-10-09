@@ -464,6 +464,10 @@ export const tr = {
   'cal.installmentTitle': '{seq}. taksit · {amount}',
   'cal.noItemsDay': 'Bu günde planlanmış işlem yok',
   'cal.noUpcoming': 'Önümüzdeki günlerde planlı işlem yok',
+  // Gündem 90 gün gösterir; ötesindeki kayıtlar sayılıp söylenir (utils/gundem).
+  'cal.noUpcomingHorizon': 'Önümüzdeki {gun} günde planlı işlem yok',
+  'cal.beyondHorizon': '{gun} günden sonra {n} kayıt daha var',
+  'cal.showAll': 'Tümünü göster',
   'cal.addTask': 'Görev',
   'cal.addMeeting': 'Toplantı',
   'cal.addDuration': 'Süre',
