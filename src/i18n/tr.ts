@@ -126,6 +126,8 @@ export const tr = {
   'dash.prec.title': 'Davana Emsal',
   'dash.prec.link': 'İçtihat',
   'dash.prec.forCase': '"{term}" konusunda emsal Yargıtay kararları',
+  // İdari dosya: kararlar Danıştay'dan gelir (utils/emsalSecimi → caseCourt).
+  'dash.prec.forCaseDanistay': '"{term}" konusunda emsal Danıştay kararları',
   'dash.prec.searching': 'Dosyana emsal kararlar taranıyor…',
   'dash.prec.none': 'Bu konuda emsal karar bulunamadı. Farklı bir terimle İçtihat’ta arayabilirsin.',
   'dash.prec.errSource': 'Karar bankasına şu an ulaşılamıyor. Birazdan tekrar dene.',

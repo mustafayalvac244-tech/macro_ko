@@ -37,3 +37,35 @@ export function caseSearchTerm(c: { case_type?: string | null; title?: string | 
   // Fazla boşlukları sadeleştir.
   return title.replace(/\s{2,}/g, ' ').trim();
 }
+
+/*
+ * KARTIN ETİKETİ VE HEDEFİ DE AYNI MAHKEMEYİ SÖYLER (09.10.2026 denetimi).
+ *
+ * caseCourt'tan sonra kalan kusur: idari dosyada kart Danıştay kararı
+ * getiriyordu ama üstünde "… emsal Yargıtay kararları" yazıyordu; "Tümünü
+ * İçtihat'ta gör" ve karar satırları İçtihat ekranını Yargıtay'da açıyordu.
+ */
+
+/** Kartın "… konusunda emsal X kararları" satırının çeviri anahtarı. */
+export function emsalBaslikAnahtari(
+  court: 'yargitay' | 'danistay'
+): 'dash.prec.forCase' | 'dash.prec.forCaseDanistay' {
+  return court === 'danistay' ? 'dash.prec.forCaseDanistay' : 'dash.prec.forCase';
+}
+
+/**
+ * Karttan İçtihat ekranına giden yol: aynı terim, aynı mahkeme. Yargıtay
+ * ekranın varsayılanı olduğu için o yol eskisiyle aynı kalır.
+ */
+export function emsalAramaYolu(term: string, court: 'yargitay' | 'danistay'): string {
+  const yol = '/ictihat?q=' + encodeURIComponent(term);
+  return court === 'danistay' ? `${yol}&court=danistay` : yol;
+}
+
+/**
+ * İçtihat ekranının ?court= parametresi. Yalnız kartın gönderdiği iki yüksek
+ * mahkeme kabul edilir; başka her şey (yok, dizi, bilinmeyen) Yargıtay.
+ */
+export function mahkemeParametresi(p: unknown): 'yargitay' | 'danistay' {
+  return p === 'danistay' ? 'danistay' : 'yargitay';
+}

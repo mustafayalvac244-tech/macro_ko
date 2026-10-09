@@ -17,6 +17,7 @@ import { useSidebarStore } from '@/store/sidebarStore';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useCases } from '@/hooks/useCases';
 import { useCasePrecedents, caseCourt, caseSearchTerm } from '@/hooks/useCasePrecedents';
+import { emsalAramaYolu, emsalBaslikAnahtari } from '@/utils/emsalSecimi';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useReminderSync } from '@/hooks/useReminderSync';
@@ -150,7 +151,9 @@ export default function DashboardScreen() {
   );
   const precTerm = caseSearchTerm(selectedCase);
   // İdari dosyada Danıştay, diğerlerinde Yargıtay sorulur.
-  const precedents = useCasePrecedents(precTerm, caseCourt(selectedCase));
+  // Etiket ve İçtihat'a giden yol da AYNI mahkemeyi söyler (bkz. emsalSecimi).
+  const precCourt = caseCourt(selectedCase);
+  const precedents = useCasePrecedents(precTerm, precCourt);
 
   // Masraf avansı eksiye düşen müvekkiller (kapatılanlar hariç) — ana ekran uyarısı.
   const advanceDeficits = useAdvanceDeficits();
@@ -673,7 +676,7 @@ export default function DashboardScreen() {
               )}
 
               <Text allowFontScaling={false} style={styles.precForLine} numberOfLines={2}>
-                {t('dash.prec.forCase', { term: precTerm || (selectedCase?.title ?? '') })}
+                {t(emsalBaslikAnahtari(precCourt), { term: precTerm || (selectedCase?.title ?? '') })}
               </Text>
 
               {precedents.isLoading ? (
@@ -700,7 +703,7 @@ export default function DashboardScreen() {
                     <Pressable
                       key={h.id}
                       style={({ pressed }) => [styles.precRow, pressed && { opacity: 0.8 }]}
-                      onPress={() => router.push(('/ictihat?q=' + encodeURIComponent(precTerm)) as Parameters<typeof router.push>[0])}
+                      onPress={() => router.push(emsalAramaYolu(precTerm, precCourt) as Parameters<typeof router.push>[0])}
                     >
                       <View style={styles.precRowIcon}>
                         <Ionicons name="document-text-outline" size={16} color={colors.primary} />
@@ -731,7 +734,7 @@ export default function DashboardScreen() {
                   ))}
                   <Pressable
                     style={({ pressed }) => [styles.focusButton, pressed && { opacity: 0.8 }]}
-                    onPress={() => router.push(('/ictihat?q=' + encodeURIComponent(precTerm)) as Parameters<typeof router.push>[0])}
+                    onPress={() => router.push(emsalAramaYolu(precTerm, precCourt) as Parameters<typeof router.push>[0])}
                   >
                     <Text allowFontScaling={false} style={styles.focusButtonText}>
                       {t('dash.prec.seeAll')}

@@ -123,6 +123,7 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.prec.title': 'Precedents for Your Case',
   'dash.prec.link': 'Case Law',
   'dash.prec.forCase': 'Precedent Court of Cassation rulings on "{term}"',
+  'dash.prec.forCaseDanistay': 'Precedent Council of State rulings on "{term}"',
   'dash.prec.searching': 'Scanning precedents for your file…',
   'dash.prec.none': 'No precedent found for this topic. Try another term in Case Law.',
   'dash.prec.errSource': 'The case-law bank is unreachable right now. Try again shortly.',
