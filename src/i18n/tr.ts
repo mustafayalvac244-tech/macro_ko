@@ -74,6 +74,7 @@ export const tr = {
   'forgot.needEmail': 'Önce e-posta adresinizi yazın.',
   'forgot.needCode': 'E-postanıza gelen kodu yazın.',
   'forgot.codeUsed': 'Bu kod kullanıldı; yeni bir kod isteyin.',
+  'forgot.retryNoCode': 'Kodunuz doğrulandı; yeni kod istemeden şifreyi düzeltip tekrar kaydedebilirsiniz.',
   'forgot.resent': 'Yeni kod gönderildi. E-postanızı kontrol edin.',
   'forgot.resendIn': 'Kodu tekrar gönder ({n} sn)',
   'forgot.spamHint': 'Posta gelmediyse spam ve "Tanıtımlar" klasörüne bakın. Gmail eski sıfırlama postalarını aynı başlık altında toplayabilir; yeni kod o yazışmanın en altında olur.',

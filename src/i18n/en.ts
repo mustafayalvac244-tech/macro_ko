@@ -71,6 +71,7 @@ export const en: Record<keyof typeof tr, string> = {
   'forgot.needEmail': 'Enter your email address first.',
   'forgot.needCode': 'Enter the code from your email.',
   'forgot.codeUsed': 'This code has been used; request a new one.',
+  'forgot.retryNoCode': 'Your code was verified; fix the password and save again — no new code needed.',
   'forgot.resent': 'A new code has been sent. Check your email.',
   'forgot.resendIn': 'Resend code ({n}s)',
   'forgot.spamHint': 'No email? Check your spam and "Promotions" folders. Gmail may group older reset emails into one thread, so the new code appears at the bottom of it.',

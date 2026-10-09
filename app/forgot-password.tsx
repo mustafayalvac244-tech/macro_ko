@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { trError } from '@/lib/authErrors';
 import { beklemeSaniyesi } from '@/lib/authBekleme';
+import { yeniSifreyiKaydet } from '@/lib/sifreSifirlama';
 import { Captcha } from '@/components/Captcha';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -41,17 +42,15 @@ import type { ThemeColors } from '@/theme/palettes';
  *    "güvenlik nedeniyle bekleyin" ile dönüyordu. Artık geri sayım ekranda
  *    yazıyor ve süre dolmadan düğme basılmıyor.
  *
- * AYRICA: kod verifyOtp ile bir kez harcanır. Doğrulama geçip şifre güncelleme
- * başarısız olursa o kod ARTIK ÖLÜDÜR; eskiden ekran bunu söylemiyordu ve
- * kullanıcı aynı kodu tekrar tekrar deniyordu. Bu durum ayrıca ele alınıyor.
+ * AYRICA: kod verifyOtp ile bir kez harcanır ama karşılığında kurtarma
+ * oturumu açılır. Şifre kaydı ondan sonra düşerse aynı ekrandan YENİ KOD
+ * İSTEMEDEN tekrar denenir (09.10.2026); yeni kod yalnız oturum düşmüşse
+ * istenir. Akış src/lib/sifreSifirlama.ts'de, testi tests/sifreSifirlama.test.ts.
  */
 
 /** Sunucudaki gönderim aralığı 20 sn (smtp_max_frequency); saat farkı ve
  *  ağ gecikmesi için birkaç saniye pay bırakıyoruz. */
 const VARSAYILAN_BEKLEME = 25;
-
-/** Şifre alt sınırı Supabase tarafında da zorunlu; burada aynı sayı. */
-const SIFRE_ASGARI = 8;
 
 export default function ForgotPasswordScreen() {
   const __t = useTheme();
@@ -116,53 +115,28 @@ export default function ForgotPasswordScreen() {
   );
 
   const handleUpdatePassword = async () => {
-    // DOĞRULAMA DÜĞMEYİ KAPATMAZ, KONUŞUR. Eksik ne ise söylüyoruz.
-    if (!code.trim()) {
-      setHataliAlan('code');
-      setError(t('forgot.needCode'));
-      return;
-    }
-    if (newPassword.length < SIFRE_ASGARI) {
-      setHataliAlan('password');
-      setError(t('auth.passwordTooShort'));
-      return;
-    }
-    if (kodHarcandi.current) {
-      setHataliAlan('code');
-      setError(t('forgot.codeUsed'));
-      return;
-    }
-
+    // DOĞRULAMA DÜĞMEYİ KAPATMAZ, KONUŞUR. Eksik ne ise yardımcı söyler.
     setIsSubmitting(true);
     setError(null);
     setBilgi(null);
     setHataliAlan(null);
-
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: code.trim(),
-      type: 'recovery',
+    const sonuc = await yeniSifreyiKaydet(supabase.auth, {
+      email,
+      kod: code,
+      sifre: newPassword,
+      kodDogrulandi: kodHarcandi.current,
     });
-    if (verifyError) {
-      setIsSubmitting(false);
-      setHataliAlan('code');
-      setError(trError(verifyError.message));
-      return;
-    }
-
-    // Buradan sonra kod TÜKENDİ. Şifre güncelleme başarısız olsa bile aynı kod
-    // bir daha çalışmaz; kullanıcıya aynı kodu tekrar denetmek, onu "hiçbir şey
-    // olmuyor" döngüsünde tutar.
-    kodHarcandi.current = true;
-
-    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    // Kod doğrulandıysa TÜKENDİ: aynı kod bir daha gönderilmez (oturum açıkken
+    // yalnız şifre kaydı tekrar denenir; bkz. src/lib/sifreSifirlama.ts).
+    kodHarcandi.current = sonuc.kodDogrulandi;
     setIsSubmitting(false);
-    if (updateError) {
-      setError(`${trError(updateError.message)} ${t('forgot.codeUsed')}`);
+    if (sonuc.tur === 'bitti') {
+      setStep('bitti');
       return;
     }
-
-    setStep('bitti');
+    setHataliAlan(sonuc.alan);
+    const mesaj = sonuc.anahtar ? t(sonuc.anahtar) : trError(sonuc.sunucu);
+    setError(sonuc.ek ? `${mesaj} ${t(sonuc.ek)}` : mesaj);
   };
 
   return (
