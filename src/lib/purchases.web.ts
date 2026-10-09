@@ -14,12 +14,13 @@
 // Buradaki karşılıkları AYNI sonuçları döndürür; yani web'de görünür bir
 // davranış değişikliği YOKTUR, yalnız ölü kod paketten çıkar.
 import type { CustomerInfo, PurchasesOffering, PurchasesPackage } from 'react-native-purchases';
+import { AI_ENTITLEMENT_ID, PREMIUM_ENTITLEMENT_ID, type PurchaseOutcome, type SatinAlmaHatasi } from '@/lib/satinAlma';
 
 // Yalnız tip importu (derlemede silinir) — runtime'da react-native-purchases
-// web paketine GİRMEZ.
+// web paketine GİRMEZ. satinAlma.ts saf bir modül; natif kod çekmez.
 
-export const PREMIUM_ENTITLEMENT_ID = 'premium';
-export const AI_ENTITLEMENT_ID = 'ai';
+export { AI_ENTITLEMENT_ID, PREMIUM_ENTITLEMENT_ID };
+export type { PurchaseOutcome, SatinAlmaHatasi };
 
 export function configurePurchases(): void {
   // Web'de satın alma yok.
@@ -41,18 +42,17 @@ export async function getOffering(_identifier: string): Promise<PurchasesOfferin
   return null;
 }
 
-export type PurchaseOutcome =
-  | { kind: 'success'; customerInfo: CustomerInfo }
-  | { kind: 'cancelled' }
-  | { kind: 'unavailable' }
-  | { kind: 'error'; message: string };
-
-export async function buyPackage(_pkg: PurchasesPackage): Promise<PurchaseOutcome> {
+export async function buyPackage(_pkg: PurchasesPackage, _kullaniciId: string | null | undefined): Promise<PurchaseOutcome> {
   return { kind: 'unavailable' };
 }
 
-export async function restorePurchases(): Promise<PurchaseOutcome> {
+export async function restorePurchases(_kullaniciId: string | null | undefined): Promise<PurchaseOutcome> {
   return { kind: 'unavailable' };
+}
+
+export async function aboneligiYonet(): Promise<boolean> {
+  // Web'de mağaza yok; ekran bu bağlantıyı web'de göstermiyor.
+  return false;
 }
 
 export function isPremiumActive(info: CustomerInfo): boolean {

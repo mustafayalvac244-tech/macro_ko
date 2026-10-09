@@ -753,8 +753,30 @@ export const tr = {
   'premium.purchaseFailedTitle': 'Satın alma tamamlanamadı',
   'premium.restoreCta': 'Satın almaları geri yükle',
   'premium.restoreDoneTitle': 'Kontrol edildi',
-  'premium.restoreDoneBody': 'Önceki aboneliğiniz bulundu ve hesabınıza bağlandı.',
-  'premium.restoreNoneBody': 'Bu hesaba bağlı önceden yapılmış bir satın alma bulunamadı.',
+  // GERİ YÜKLEME (09.10.2026): "bulundu" yalnız mağazada ETKİN bir yetki
+  // döndüğünde söylenir (satinAlma.ts > geriYuklemeMesaji). Eskiden her
+  // başarılı yanıtta "bulundu" deniyordu — hiçbir şey yokken de.
+  'premium.restoreDoneBody': 'Etkin aboneliğiniz bulundu ve bu hesaba bağlandı. Özellikler birkaç saniye içinde açılmazsa bize yazın.',
+  'premium.restoreNoneBody': 'Bu cihazın App Store / Google Play hesabında etkin bir abonelik bulunamadı.',
+  'premium.restoreFailedTitle': 'Geri yükleme tamamlanamadı',
+  'premium.restoreUnavailableBody': 'Bu sürümde mağaza bağlantısı kurulamadığı için geri yükleme yapılamadı. App Store / Google Play’deki güncel sürümü kullanın; sorun sürerse bize yazın.',
+  // "Aboneliği yönet": mağazanın abonelik sayfası (satinAlma.ts > abonelikYonetimAdresi).
+  'premium.manageCta': 'Aboneliği yönet veya iptal et',
+  'premium.manageFailedBody': 'Mağaza açılamadı. Aboneliğinizi App Store / Google Play’in abonelikler bölümünden yönetebilirsiniz.',
+  // SATIN ALMA HATALARI (09.10.2026). Eskiden RevenueCat'in İngilizce ham
+  // metni ("Error performing request.") olduğu gibi gösteriliyordu. Neden
+  // eşlemesi: src/lib/purchases.ts > hataNedeni.
+  'premium.pendingTitle': 'Ödeme onay bekliyor',
+  'premium.hata.oturumYok': 'Önce Vekil Pro hesabınızla giriş yapın; abonelik o hesaba bağlanır.',
+  'premium.hata.kimlik': 'Satın alma hesabınıza bağlanamadığı için işlem başlatılmadı; ücret alınmadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+  'premium.hata.ag': 'İnternet bağlantısı kurulamadı. Bağlantınızı kontrol edip tekrar deneyin.',
+  'premium.hata.izinYok': 'Bu cihazda ya da mağaza hesabında uygulama içi satın almaya izin verilmiyor. Cihaz ayarlarındaki satın alma kısıtlamalarını kontrol edin.',
+  'premium.hata.bekliyor': 'Ödeme mağaza tarafında onay bekliyor; onaylanmadan abonelik başlamaz. Onaylandıktan sonra bu hesapta açılmazsa "Satın almaları geri yükle"ye dokunun.',
+  'premium.hata.zatenVar': 'Bu abonelik bu mağaza hesabında zaten etkin. Vekil Pro hesabınızda açık görünmüyorsa "Satın almaları geri yükle"ye dokunun.',
+  'premium.hata.urunYok': 'Bu paket şu an mağazada satın alınamıyor. Birazdan tekrar deneyin; sorun sürerse bize yazın.',
+  'premium.hata.baskaHesap': 'Bu mağaza hesabındaki satın alma başka bir hesaba bağlı görünüyor. Aboneliği başka bir Vekil Pro hesabıyla aldıysanız o hesapla giriş yapın; değilse bize yazın.',
+  'premium.hata.magaza': 'App Store / Google Play bir sorun bildirdi. Birazdan tekrar deneyin; sorun sürerse bize yazın.',
+  'premium.hata.bilinmeyen': 'İşlem tamamlanamadı. Birazdan tekrar deneyin; sorun sürerse bize yazın.',
   // Aylık abonelik. DENEME SÜRESİ YOK — ücretsiz katman kalıcıdır.
   'premium.oneName': 'Vekil Pro',
   'premium.oneTag': 'Bir avukatın ihtiyacı olan her şey',
