@@ -15,11 +15,12 @@ yükleme, dilekçe vs hepsini kontrol et."* / *"onaysız şeyleri yap önce"*.
 - Kullanıcı verisi, gerçek cihaz (iPhone/Android) ve gerçek avukat kullanımı
   bu taramada YOK. Cihaza özgü bulgular (bildirim, Android) ölçülmedi.
 
-## 1. Düzeltildi — DALDA, YAYINLANMADI (web/OTA için onayınız gerekiyor)
+## 1. Düzeltildi — YAYINDA (09.10.2026, ürün sahibi "Yayımla")
 
-Dal: `claude/legal-case-management-app-dipuvb` (main'den 25 commit ileride).
-Her biri testli; tüm takım **1113/1113** geçiyor; CI yeşil. Web paketi dalda
-derlendi (CI istiyor) ama main'e birleştirilmediği için canlıda DEĞİL.
+PR #157 ile main'e birleştirildi. Her biri testli; tüm takım **1113/1113**
+geçiyor; CI yeşil. Web: vekilpro.app/app yeni paketi sunuyor (birleştirmeden
+27 sn sonra ölçüldü). Telefon: OTA `1505a910` (çalışma zamanı 3.4.0); cihaza
+indiği ÖLÇÜLMEDİ.
 
 | # | Ne bozuktu (kodla doğrulandı) | Commit |
 |---|---|---|
@@ -43,14 +44,14 @@ derlendi (CI istiyor) ama main'e birleştirilmediği için canlıda DEĞİL.
 Önce/sonra görüntüleri (sohbette gönderildi): süre asistanı (web tarih),
 AI satış kartı, dilekçe düğmesi (kontrast), geri yüklenen taslak.
 
-## 2. Dalda hazır, CANLIYA DOKUNUYOR — onayınızla
+## 2. Canlıya dokunan işler — UYGULANDI (09.10.2026)
 
 | İş | Durum | Commit |
 |---|---|---|
-| ai-chat: avukatın kendi künyesi ("Ankara 5. Asliye … 2025/123 E.") Yargıtay'da aranıp "uydurma" diye metinden SİLİNİYORDU | Dalda, uç işlevi DAĞITILMADI | 1fb2e23 |
-| ai-chat: mevzuat özeti (yapay zekâsız) cevabında hak iade edilmiyordu | Dalda, DAĞITILMADI | d639d24 |
-| ai-saglik: her kullanıcıya açıktı, ücretli sağlayıcıları yoklatıyordu | Dalda, DAĞITILMADI | 01ea423 |
-| Göç 0175: katalog pencereleri 13.09'dan beri açılmıyor (yeni Yargıtay/Danıştay kararları havuza girmiyor) | Yazıldı, yerelde ölçüldü (26+1 pencere, idempotent), CANLIYA UYGULANMADI | 8c78650 |
+| ai-chat: avukatın kendi künyesi ("Ankara 5. Asliye … 2025/123 E.") Yargıtay'da aranıp "uydurma" diye metinden SİLİNİYORDU | ai-chat v144 (JWT kapalı, önceki gibi) | 1fb2e23 |
+| ai-chat: mevzuat özeti (yapay zekâsız) cevabında hak iade edilmiyordu | ai-chat v144 | d639d24 |
+| ai-saglik: her kullanıcıya açıktı, ücretli sağlayıcıları yoklatıyordu | ai-saglik v29 (JWT açık, önceki gibi) | 01ea423 |
+| Göç 0175: katalog pencereleri 13.09'dan beri açılmıyor (yeni Yargıtay/Danıştay kararları havuza girmiyor) | Canlıda: 26 Yargıtay günü (09-13 → 10-08) + Danıştay Ekim penceresi eklendi, iki zamanlama kuruldu. Katalog-tick'in işlediği ÖLÇÜLMEDİ. Eylül Danıştay penceresi pazartesi (12.10) haftalık taramayla yeniden açılır. | 8c78650 |
 
 Hazırlanmadı, karar gerekiyor:
 - **revenuecat-webhook**: SANDBOX olayları gerçek premium açıyor ve geliri
@@ -69,8 +70,6 @@ Hazırlanmadı, karar gerekiyor:
   yok. Çalışıp çalışmadığı ÖLÇÜLMEDİ.
 - **Yönetici panelinde kişi başı gelir/gider** görünüyor; gizlilik metni
   "başka kimse göremez" diyor.
-- **Tema kontrastı (#14)** görsel bir değişiklik: altın düğmelerde yazı
-  beyazdan koyuya döndü. Önce/sonra görüntüsüne bakıp onaylayın.
 - Sözleşme şablonundaki Av.K. m.174/m.163 atıfları ve kambiyo itiraz süresi
   bir meslektaşa teyit ettirilmeli (denetçi ŞÜPHE dedi).
 

@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 08.10.2026 gece (50 denetçi taraması; düzeltmeler DALDA, YAYINLANMADI — bkz. 2d)
+**Son güncelleme:** 09.10.2026 (50 denetçi düzeltmeleri YAYINDA: web + OTA + uç + göç 0175 — bkz. 2d)
 
 ## 1. Şu an — yayın durumu
 
@@ -75,15 +75,15 @@
    (04.10 17:20 UTC, 3.4.0); cihaza indiği ÖLÇÜLMEDİ. SİTE (04.10 akşam): "KVKK uyumlu" ×2,
    fotoğraftan künye, "olamaz", SSS'ler düzeltildi. OTA ec31a676 (08.10 19:22 UTC, 3.4.0) hepsini taşıdı.
 
-2d. **50 DENETÇİ (08.10 gece):** DENETIM-RAPORU.md. 16 düzeltme DALDA (25 commit, 1113 test, CI yeşil), YAYINLANMADI — web/OTA
-   ONAY bekler (#14 tema görsel). Uç (künye silme, mevzuat-yedek hak, ai-saglik) + göç 0175 (katalog) DAĞITILMADI, onay.
+2d. **50 DENETÇİ — YAYINDA (09.10, "Yayımla"):** DENETIM-RAPORU.md. PR #157 → web 11:3x UTC; OTA 1505a910 (3.4.0); ai-chat v144,
+   ai-saglik v29 (yalnız yönetici); göç 0175: Yargıtay pencere 10-08'e, Danıştay 10-01'e; katalog-tick işlediği ÖLÇÜLMEDİ.
 2u. **UYAP LİSTE (07.10):** eklentiye maskeli keşif (extension/lib/kesif.js); BEKLENEN avukattan keşif dosyası.
    **CONSOLE ASKIDA (08.10):** yedek modele düşer; inceleme metni CLAUDE-STARTUP.md. Belgeden dosya aç YAPAY ZEKÂSIZ: WEB+OTA CANLI. HAK İADESİ (ai-chat v143) + doğru hata mesajları: WEB + OTA 3db0890c CANLI (08.10 20:00 UTC).
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) sözleşme/bildirim YAPILMADI — ürün sahibinin (KVKK-UYUM.md A). 4. Baro sicil doğrulaması yok (ürün sahibi kararı). 5. Leaked password koruması kapalı. 6. KVKK veri sorumlusu kimliği eksik. 7. Android şifre sıfırlama DOĞRULANMADI.
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0174` (0172 apply_migration ile; Actions arızası).
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç: `0175` (0172 ve 0175 apply_migration ile).
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, Claude merge eder
   AMA **06.10: "Bana göstermeden yayınlama"** — main'e birleştirme = web yayını; önce görüntü göster, onay al.
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
