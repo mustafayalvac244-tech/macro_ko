@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
-import { DOGRULANMAMIS } from '@/lib/authErrors';
+import { dogrulanmamisMi } from '@/lib/authErrors';
 import { Captcha } from '@/components/Captcha';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -37,7 +37,9 @@ export default function LoginScreen() {
   // gerekçe app/(auth)/signup.tsx > tekrarGonder).
   const [tekrarBilgi, setTekrarBilgi] = useState<string | null>(null);
   const [tekrarGonderiliyor, setTekrarGonderiliyor] = useState(false);
-  const dogrulanmamis = error === DOGRULANMAMIS;
+  // Metin arayüz diline göre değiştiği için Türkçe sabitle değil, iki dili de
+  // tanıyan yardımcıyla karşılaştırılır (İngilizcede düğme kayboluyordu).
+  const dogrulanmamis = dogrulanmamisMi(error);
   const tekrarGonder = async () => {
     setTekrarGonderiliyor(true);
     const sonuc = await resendVerification(email, captchaToken ?? undefined);
