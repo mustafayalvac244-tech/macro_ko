@@ -806,6 +806,9 @@ export const tr = {
   // ve ₺399'luk pakete taşındı. Anahtar adı da onunla birlikte değişti:
   // 'freeDeneme' kalsaydı, ücretsiz katmanın listesinde duruyormuş gibi
   // okunur ve bir sonraki düzenlemede yanlış yere geri konurdu.
+  // ESKİDİ (09.10.2026 notu): 28.09'dan beri deneme YİNE ücretsiz planda
+  // (premium.f.freeDeneme) ve sayaç tek; bu anahtar 08.10'dan beri hiçbir
+  // ekranda kullanılmıyor. Pro kartına geri bağlamayın — Pro ek deneme vermez.
   'premium.f.proDeneme': '{n} yapay zekâ denemesi (Dilekçe Üret, Belge İncele, Belgeden Dosya Aç)',
   'premium.perSixMonths': '/ 6 ay',
   'premium.perYear': '/ yıl',
@@ -1833,7 +1836,12 @@ export const tr = {
   // Mütalaa (Pro/Elit'e özel derin inceleme)
   'mut.title': 'Hukuki Araştırma',
   'mut.short': 'Hukuki Araştırma',
-  'mut.proOnly': 'Pro’ya özel',
+  // 09.10.2026: 'Pro’ya özel' yazıyordu; ₺399'luk paketin adı da "Vekil Pro" ve
+  // Hukuki Araştırma onda YOK — sunucu yalnız 'ai' katmanına açıyor
+  // (ai-chat/index.ts: isMutalaa && tier !== 'ai' → tier_required).
+  // Rozet textTransform: 'uppercase' ile çiziliyor ve o 'i'yi 'I' yapar —
+  // metin bu yüzden burada büyük harfle (İ) yazılı.
+  'mut.proOnly': 'YAPAY ZEKÂ PAKETİNE ÖZEL',
   'mut.lead': 'Olayı anlatın; uygulama konuyu hukuki sorunlara böler, her biri için mevzuat ve içtihat tarar ve bulduklarını başlıklar hâlinde derler. Sonuç bir ARAŞTIRMA NOTUDUR: hangi kuralların ve kararların ilgili olabileceğini gösterir, ne yapmanız gerektiğini SÖYLEMEZ. Değerlendirme ve karar sizindir.',
   'mut.placeholder': 'Olayı, tarafları ve elinizdeki bilgileri olabildiğince ayrıntılı anlatın…',
   'mut.run': 'Araştırmayı Başlat',

@@ -1751,7 +1751,7 @@ export const en: Record<keyof typeof tr, string> = {
   // Legal Opinion (Pro/Elite deep research)
   'mut.title': 'Legal Research',
   'mut.short': 'Legal Research',
-  'mut.proOnly': 'Pro only',
+  'mut.proOnly': 'AI plan only',
   'mut.lead': 'Describe the matter; the app breaks it into legal issues, searches legislation and case law for each, and compiles what it found under headings. The result is a RESEARCH NOTE: it shows which rules and decisions may be relevant, it does NOT tell you what to do. The assessment and the decision are yours.',
   'mut.placeholder': 'Describe the facts, the parties and what you know, in as much detail as possible…',
   'mut.run': 'Start Research',
