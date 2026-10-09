@@ -10,7 +10,8 @@ create table auth.users (
   id uuid primary key default gen_random_uuid(),
   email text,
   created_at timestamptz not null default now(),
-  last_sign_in_at timestamptz
+  last_sign_in_at timestamptz,
+  raw_user_meta_data jsonb -- 0181: kayıt üstverisi (signUp options.data)
 );
 create function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
 
