@@ -721,6 +721,8 @@ export const en: Record<keyof typeof tr, string> = {
   'auth.kvkkRequired': 'Please tick the KVKK explicit-consent box to continue.',
   'auth.kvkkOptional': 'This box is optional: you can create your account without signing. The AI features then start switched off, the rest of the app works normally, and you can consent later from Settings.',
   'auth.kvkkNote': 'This consent covers AI features only; you can withdraw it any time from Settings > KVKK Privacy Notice. Your account stays open and every other feature keeps working if you do.',
+  'kvkkRiza.okunamadi': 'YOUR CONSENT STATUS COULD NOT BE READ RIGHT NOW. This does not mean there is no record; check your connection and try again.',
+  'kvkkRiza.tekrarDene': 'Try again',
   'auth.termsAccept': 'By signing up you accept our',
   'auth.privacyLink': 'How is your data protected? Read the privacy notice',
   'privacy.title': 'Privacy & Data Protection',

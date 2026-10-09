@@ -675,6 +675,9 @@ export const tr = {
   'auth.kvkkRequired': 'Devam edebilmek için KVKK açık rıza kutusunu işaretlemeniz gerekiyor.',
   'auth.kvkkOptional': 'Bu kutu isteğe bağlıdır: imzalamadan da hesabınızı açabilirsiniz. O hâlde yapay zekâ özellikleri kapalı başlar, uygulamanın geri kalanı normal çalışır ve rızayı sonradan Ayarlar’dan verebilirsiniz.',
   'auth.kvkkNote': 'Bu rıza yalnızca yapay zekâ özellikleri içindir; dilediğiniz zaman Ayarlar > KVKK Aydınlatma Metni ekranından geri alabilirsiniz. Geri aldığınızda hesabınız kapanmaz, uygulamanın diğer tüm özellikleri çalışmaya devam eder.',
+  // Ayarlar > KVKK'daki rıza kartı: kayıt OKUNAMADIĞINDA (kayıt yok DEĞİL).
+  'kvkkRiza.okunamadi': 'RIZA DURUMUNUZ ŞU AN OKUNAMADI. Bu, kaydınızın olmadığı anlamına gelmez; bağlantınızı kontrol edip tekrar deneyin.',
+  'kvkkRiza.tekrarDene': 'Tekrar dene',
   'auth.termsAccept': 'Kayıt olarak kabul ettiğiniz metin:',
   'auth.privacyLink': 'Verileriniz nasıl korunuyor? Gizlilik ve KVKK metnini okuyun',
   'privacy.title': 'Gizlilik ve KVKK',
