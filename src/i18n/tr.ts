@@ -700,7 +700,14 @@ export const tr = {
   'delAcc.wrongPassword': 'Şifre doğrulanamadı. Tekrar deneyin.',
   'delAcc.confirmWord': 'SİL',
   'delAcc.typeWord': 'Onaylamak için "{word}" yazın',
-  'delAcc.note': 'Silme işlemi geri alınamaz. Dosyalarınız, müvekkilleriniz ve belgeleriniz kalıcı olarak silinir; yedek alınmaz.',
+  // "yedek alınmaz" YANLIŞTI (09.10.2026): veritabanı içi yedekler var ve
+  // silmede onlardan da siliniyor; Supabase platform yedeği ayıklanamıyor.
+  // Gizlilik metniyle (app/privacy.tsx) aynı olgu, süre sayısı tekrarlanmadan.
+  'delAcc.note': 'Silme işlemi geri alınamaz. Dosyalarınız, müvekkilleriniz ve belgeleriniz kalıcı olarak silinir; kendi yedek kopyalarımızdaki kayıtlarınız da silinir. Bulut sağlayıcımızın (Supabase) altyapı yedeği tek bir kullanıcı için ayıklanamaz; oradaki kopya saklama süresi dolunca kendiliğinden silinir (ayrıntı: Ayarlar > Gizlilik ve KVKK).',
+  // Apple'ın hesap silme rehberi aboneliği olana bu uyarıyı istiyor
+  // (developer.apple.com/support/offering-account-deletion-in-your-app).
+  'delAcc.abonelik': 'App Store ya da Google Play üzerinden aldığınız bir abonelik varsa hesabınızı silmek onu İPTAL ETMEZ; ödeme mağaza üzerinden sürer. Silmeden önce aboneliğinizi mağaza ayarlarından iptal edin.',
+  'delAcc.aboneligiYonet': 'Aboneliklerimi yönet',
   'settings.deleteAccountConfirmTitle': 'Emin misiniz?',
   'settings.deleteAccountConfirmMsg': 'Tüm verileriniz kalıcı olarak silinecek. Bu son onaydır.',
   'settings.deleteAccountConfirmBtn': 'Evet, kalıcı olarak sil',

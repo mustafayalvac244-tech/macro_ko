@@ -8,6 +8,7 @@ import { beklemeSaniyesi } from '@/lib/authBekleme';
 import { resetQueryCache } from '@/lib/queryClient';
 import { cancelAllReminders, pushAdresiniSil } from '@/lib/notifications';
 import { sohbetGecmisiniSil } from '@/lib/sohbetDeposu';
+import { belgeYollari, depodanSil } from '@/utils/hesapSilme';
 import { useSayacStore } from '@/store/sayacStore';
 import type { Profile } from '@/types/database';
 
@@ -327,27 +328,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
      * koşulları silmenin "belgeler dahil tüm kayıtları" kapsadığını söylüyor;
      * söylenenle olanın ayrışmaması için avatar da listeye eklendi.
      *
-     * PARÇALAMA: tek çağrıya çok sayıda yol koymak, belgesi çok olan bir
-     * avukatta isteğin tamamen reddedilmesine yol açabilir — o durumda HİÇBİR
-     * dosya silinmezdi. 100'erlik parçalar hâlinde gönderiliyor.
-     *
-     * HATA OLURSA YİNE DE HESAP SİLİNİR. Silme kullanıcının hakkıdır; depo
-     * hatası yüzünden hesabı silinemez hâlde bırakmak daha ağır bir sonuçtur.
-     * Bu yüzden hata yutulur ama parçalama sayesinde "hepsi ya da hiçbiri"
-     * riski ortadan kalkar.
+     * DEPO YA DA LİSTE HATASINDA HESAP SİLİNMEZ (09.10.2026). Eskiden hata
+     * yok sayılıp hesap yine de siliniyordu — gerekçe "silme hakkı
+     * engellenmesin" idi. storage-js hatayı fırlatmaz, döndürür: `.catch`
+     * hiçbir şey yakalamıyor, dönen hata da okunmuyordu; belge listesi
+     * sorgusunun hatası da okunmuyordu (liste okunamazsa HİÇBİR dosya
+     * silinmiyordu). Sonuç: dosyalar depoda kalıyor, belge satırları cascade
+     * ile gidiyor (yollar bir daha bulunamaz) ve ekran "kalıcı olarak
+     * silinir" diyordu. Artık hata fırlatılır, ekran "Hesap silinemedi,
+     * tekrar deneyin" der; tekrar denemek güvenli (bkz. src/utils/hesapSilme.ts).
      */
-    const { data: docs } = await supabase.from('documents').select('file_path').eq('owner_id', userId);
-    const paths = (docs ?? []).map((d: { file_path: string }) => d.file_path).filter(Boolean);
+    const paths = await belgeYollari((bas, son) =>
+      supabase.from('documents').select('file_path').eq('owner_id', userId).order('id').range(bas, son),
+    );
     const avatarPath = get().profile?.avatar_url;
     if (avatarPath) paths.push(avatarPath);
 
-    const PARCA = 100;
-    for (let i = 0; i < paths.length; i += PARCA) {
-      await supabase.storage
-        .from(DOCUMENTS_BUCKET)
-        .remove(paths.slice(i, i + PARCA))
-        .catch(() => {});
-    }
+    await depodanSil((parca) => supabase.storage.from(DOCUMENTS_BUCKET).remove(parca), paths);
 
     // Server-side function deletes the auth user; every table cascades from it.
     const { error } = await supabase.rpc('delete_account');
