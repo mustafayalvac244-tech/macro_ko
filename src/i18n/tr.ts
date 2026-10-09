@@ -1504,6 +1504,9 @@ export const tr = {
   'profile.photoStaged': 'Değişiklik hazır — "Değişiklikleri Kaydet"e basınca uygulanır',
   'profile.removePhoto': 'Fotoğrafı kaldır',
   'profile.photoFailed': 'Fotoğraf güncellenemedi. Lütfen tekrar deneyin.',
+  // İzin reddi eskiden sessizdi (seçici null döner, vazgeçmeyle aynı) — 09.10.2026.
+  'profile.photoPermDenied': 'Fotoğraflarınıza erişim izni verilmedi. Ayarlar > Vekil Pro üzerinden izin verebilirsiniz.',
+  'profile.cameraPermDenied': 'Kamera izni verilmedi. Ayarlar > Vekil Pro üzerinden izin verebilirsiniz.',
   'profile.saveFailed': 'Profil kaydedilemedi. Lütfen tekrar deneyin.',
   'lock.retry': 'Tekrar Dene',
 

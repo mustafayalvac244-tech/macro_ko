@@ -1443,6 +1443,8 @@ export const en: Record<keyof typeof tr, string> = {
   'profile.photoStaged': 'Change ready — applied when you press "Save"',
   'profile.removePhoto': 'Remove photo',
   'profile.photoFailed': 'Could not update the photo. Please try again.',
+  'profile.photoPermDenied': 'Photo library access was not granted. You can allow it in Settings > Vekil Pro.',
+  'profile.cameraPermDenied': 'Camera permission was not granted. You can allow it in Settings > Vekil Pro.',
   'profile.saveFailed': 'Could not save the profile. Please try again.',
   'lock.retry': 'Try Again',
 
