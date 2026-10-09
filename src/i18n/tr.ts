@@ -168,6 +168,9 @@ export const tr = {
   'dash.upcoming.empty': 'Yaklaşan süre görünmüyor. Yeni bir süre eklediğinizde burada çıkar.',
   'dash.upcoming.due': 'Bugün',
   'dash.upcoming.days': '{n} gün',
+  // Sorgu yüklenemedi — "kayıt yok" ile karıştırılmasın diye ayrı metin.
+  'dash.load.error': 'Kayıtlar şu an yüklenemedi. Bağlantını kontrol edip tekrar dene.',
+  'dash.load.retry': 'Tekrar dene',
   'dash.quick.title': 'Kısayollar',
   'dash.quick.ictihat': 'İçtihat ara',
   'dash.quick.dilekce': 'Dilekçe üret',

@@ -157,6 +157,8 @@ export const en: Record<keyof typeof tr, string> = {
   'dash.upcoming.empty': 'No upcoming deadlines. New ones appear here.',
   'dash.upcoming.due': 'Today',
   'dash.upcoming.days': '{n} days',
+  'dash.load.error': "Couldn't load your records right now. Check your connection and try again.",
+  'dash.load.retry': 'Try again',
   'dash.quick.title': 'Shortcuts',
   'dash.quick.ictihat': 'Search case law',
   'dash.quick.dilekce': 'Draft a petition',

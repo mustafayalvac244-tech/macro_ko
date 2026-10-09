@@ -31,7 +31,7 @@ import { useResmiGazete } from '@/hooks/useResmiGazete';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useSimdi } from '@/hooks/useSimdi';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
-import { bugunKayitlari, gecikenSureler, gunFarki, yaklasanSureler } from '@/utils/panoHesap';
+import { bugunKayitlari, gecikenSureler, gunFarki, veriDurumu, yaklasanSureler, type VeriDurumu } from '@/utils/panoHesap';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, monoTemaMi, radius, spacing, shadow, kose } from '@/theme/theme';
 import { kaliciMenuMu, ortalaStili, panoOlculeri, PANO_ARALIK, PANO_YAN_BOSLUK } from '@/theme/duzen';
@@ -217,6 +217,20 @@ export default function DashboardScreen() {
   const geciken = useMemo(() => gecikenSureler(deadlines.data ?? [], simdi), [deadlines.data, simdi]);
   const ilkGeciken = geciken[0];
 
+  // YÜKLENİYOR / YÜKLENEMEDİ "BOŞ" DEĞİLDİR. Eskiden sorgu düşünce `data ?? []`
+  // boş liste veriyordu ve ekran "Planlı duruşma yok", "Bugün için planlanmış
+  // bir işlem yok", "Aktif dava ekle", ₺0 yazıyordu — avukat "duruşmam yok"
+  // sanabilirdi. Boş durumu artık yalnız veri GELMİŞSE söylüyoruz.
+  const ajandaDurumu = veriDurumu(hearings);
+  const bugunDurumu = veriDurumu(hearings, deadlines);
+  const sureDurumu = veriDurumu(deadlines);
+  const dosyaDurumu = veriDurumu(openCases);
+  const finansDurumu = veriDurumu(finance);
+  const ajandayiYenile = () => {
+    void hearings.refetch();
+    void deadlines.refetch();
+  };
+
   /**
    * ÜST ŞERİTTEKİ DÖRT SAYI — yalnız panoda görünür.
    *
@@ -240,12 +254,12 @@ export default function DashboardScreen() {
       (d) => !d.is_completed && new Date(d.due_at).getTime() >= su,
     ).length;
     return {
-      dosya: openCases.isPending ? null : caseList.length,
+      dosya: openCases.data ? caseList.length : null,
       durusma: hearings.data ? buHafta : null,
       sure: deadlines.data ? bekleyenSure : null,
       sonuc: hearings.data ? pendingOutcomes.length : null,
     };
-  }, [caseList.length, openCases.isPending, hearings.data, deadlines.data, pendingOutcomes.length, simdi]);
+  }, [caseList.length, openCases.data, hearings.data, deadlines.data, pendingOutcomes.length, simdi]);
 
   /**
    * YAKLAŞAN SÜRELER — panonun sağ sütunundaki liste.
@@ -529,53 +543,63 @@ export default function DashboardScreen() {
         <View style={[styles.hero, blok('ikiUcte'), panoMu && styles.panoMarjsiz]}>
           <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.next.label')}</Text>
 
-          {nextEvent ? (
-            <Pressable
-              style={({ pressed }) => [styles.nextMain, pressed && { opacity: 0.85 }]}
-              onPress={() => router.push('/(app)/calendar')}
-            >
-              <View style={styles.timeBlock}>
-                <Text allowFontScaling={false} style={styles.timeHH}>{formatTime(nextEvent.scheduled_at)}</Text>
-                <Text allowFontScaling={false} style={styles.timeDay}>
-                  {whenLabel(nextEvent.scheduled_at).split(' · ')[0]}
-                </Text>
-              </View>
-              <View style={styles.nextBody}>
-                <Text allowFontScaling={false} style={styles.nextTitle} numberOfLines={1}>{nextEvent.title}</Text>
-                <Text allowFontScaling={false} style={styles.nextSub} numberOfLines={1}>
-                  {(() => {
-                    const typeLabel = String(t(`hearingType.${nextEvent.type}` as never));
-                    const ctx = nextEvent.case?.title || nextEvent.location || '';
-                    // Başlık zaten tür ise ("Duruşma"), alt satırda tekrar etme.
-                    const parts = [typeLabel !== nextEvent.title ? typeLabel : null, ctx].filter(Boolean);
-                    return parts.length ? parts.join(' · ') : typeLabel;
-                  })()}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </Pressable>
+          {/* Duruşmalar gelmeden ne "sıradaki" ne "bugün" söylenebilir: tek
+              satır iki bölümün yerini tutar (aynı uyarı iki kez yazılmasın). */}
+          {ajandaDurumu !== 'hazir' ? (
+            <DurumSatiri durum={ajandaDurumu} onRetry={ajandayiYenile} />
           ) : (
-            <View style={styles.nextEmpty}>
-              <Ionicons name="calendar-clear-outline" size={18} color={colors.textMuted} />
-              <Text allowFontScaling={false} style={styles.nextEmptyText}>{t('dash.assist.noHearing')}</Text>
-            </View>
-          )}
+            <>
+              {nextEvent ? (
+                <Pressable
+                  style={({ pressed }) => [styles.nextMain, pressed && { opacity: 0.85 }]}
+                  onPress={() => router.push('/(app)/calendar')}
+                >
+                  <View style={styles.timeBlock}>
+                    <Text allowFontScaling={false} style={styles.timeHH}>{formatTime(nextEvent.scheduled_at)}</Text>
+                    <Text allowFontScaling={false} style={styles.timeDay}>
+                      {whenLabel(nextEvent.scheduled_at).split(' · ')[0]}
+                    </Text>
+                  </View>
+                  <View style={styles.nextBody}>
+                    <Text allowFontScaling={false} style={styles.nextTitle} numberOfLines={1}>{nextEvent.title}</Text>
+                    <Text allowFontScaling={false} style={styles.nextSub} numberOfLines={1}>
+                      {(() => {
+                        const typeLabel = String(t(`hearingType.${nextEvent.type}` as never));
+                        const ctx = nextEvent.case?.title || nextEvent.location || '';
+                        // Başlık zaten tür ise ("Duruşma"), alt satırda tekrar etme.
+                        const parts = [typeLabel !== nextEvent.title ? typeLabel : null, ctx].filter(Boolean);
+                        return parts.length ? parts.join(' · ') : typeLabel;
+                      })()}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                </Pressable>
+              ) : (
+                <View style={styles.nextEmpty}>
+                  <Ionicons name="calendar-clear-outline" size={18} color={colors.textMuted} />
+                  <Text allowFontScaling={false} style={styles.nextEmptyText}>{t('dash.assist.noHearing')}</Text>
+                </View>
+              )}
 
-          <Text allowFontScaling={false} style={styles.bugunLabel}>{t('dash.today.label')}</Text>
-          {todayItems.length === 0 ? (
-            <Text allowFontScaling={false} style={styles.todayEmpty}>{t('dash.noProgramToday')}</Text>
-          ) : (
-            todayItems.map((it) => (
-              <Pressable
-                key={it.id}
-                style={({ pressed }) => [styles.todayRow, pressed && { opacity: 0.65 }]}
-                onPress={() => router.push(it.isEvent ? '/(app)/calendar' : ('/reminders' as Parameters<typeof router.push>[0]))}
-              >
-                <View style={[styles.todayDot, { backgroundColor: it.isEvent ? colors.primary : colors.textMuted }]} />
-                <Text allowFontScaling={false} style={styles.todayTitle} numberOfLines={1}>{it.title}</Text>
-                <Text allowFontScaling={false} style={styles.todayTime}>{formatTime(it.at)}</Text>
-              </Pressable>
-            ))
+              <Text allowFontScaling={false} style={styles.bugunLabel}>{t('dash.today.label')}</Text>
+              {bugunDurumu !== 'hazir' ? (
+                <DurumSatiri durum={bugunDurumu} onRetry={ajandayiYenile} />
+              ) : todayItems.length === 0 ? (
+                <Text allowFontScaling={false} style={styles.todayEmpty}>{t('dash.noProgramToday')}</Text>
+              ) : (
+                todayItems.map((it) => (
+                  <Pressable
+                    key={it.id}
+                    style={({ pressed }) => [styles.todayRow, pressed && { opacity: 0.65 }]}
+                    onPress={() => router.push(it.isEvent ? '/(app)/calendar' : ('/reminders' as Parameters<typeof router.push>[0]))}
+                  >
+                    <View style={[styles.todayDot, { backgroundColor: it.isEvent ? colors.primary : colors.textMuted }]} />
+                    <Text allowFontScaling={false} style={styles.todayTitle} numberOfLines={1}>{it.title}</Text>
+                    <Text allowFontScaling={false} style={styles.todayTime}>{formatTime(it.at)}</Text>
+                  </Pressable>
+                ))
+              )}
+            </>
           )}
 
           <Pressable
@@ -603,7 +627,9 @@ export default function DashboardScreen() {
             </Pressable>
           </View>
 
-          {caseList.length === 0 ? (
+          {dosyaDurumu !== 'hazir' ? (
+            <DurumSatiri durum={dosyaDurumu} onRetry={() => void openCases.refetch()} />
+          ) : caseList.length === 0 ? (
             <View style={styles.precEmpty}>
               <Ionicons name="library-outline" size={22} color={colors.primary} />
               <Text allowFontScaling={false} style={styles.precEmptyText}>{t('dash.prec.emptyCases')}</Text>
@@ -735,13 +761,17 @@ export default function DashboardScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.finRow}>
-            <FinCell label={t('dash.fin.income')} amount={fin.income} pct={fin.incomePct} positiveIsGood series={fin.incomeSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
-            <View style={styles.finDivider} />
-            <FinCell label={t('dash.fin.expense')} amount={fin.expense} pct={fin.expensePct} positiveIsGood={false} series={fin.expenseSeries} barColor={colors.danger} vsLabel={t('dash.fin.vs')} />
-            <View style={styles.finDivider} />
-            <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
-          </View>
+          {finansDurumu !== 'hazir' ? (
+            <DurumSatiri durum={finansDurumu} onRetry={() => void finance.refetch()} />
+          ) : (
+            <View style={styles.finRow}>
+              <FinCell label={t('dash.fin.income')} amount={fin.income} pct={fin.incomePct} positiveIsGood series={fin.incomeSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
+              <View style={styles.finDivider} />
+              <FinCell label={t('dash.fin.expense')} amount={fin.expense} pct={fin.expensePct} positiveIsGood={false} series={fin.expenseSeries} barColor={colors.danger} vsLabel={t('dash.fin.vs')} />
+              <View style={styles.finDivider} />
+              <FinCell label={t('dash.fin.net')} amount={fin.net} pct={fin.netPct} positiveIsGood series={fin.netSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
+            </View>
+          )}
         </View>
 
         {/* ---------- Yaklaşan Süreler (yalnız pano) ----------
@@ -765,8 +795,8 @@ export default function DashboardScreen() {
               </Pressable>
             </View>
 
-            {deadlines.isPending ? (
-              <ActivityIndicator color={colors.textSecondary} style={{ paddingVertical: spacing.lg }} />
+            {sureDurumu !== 'hazir' ? (
+              <DurumSatiri durum={sureDurumu} onRetry={() => void deadlines.refetch()} />
             ) : yaklasanListesi.length === 0 ? (
               <Text allowFontScaling={false} style={styles.bosDurum}>{t('dash.upcoming.empty')}</Text>
             ) : (
@@ -863,6 +893,30 @@ export default function DashboardScreen() {
         <BottomTab icon="people-outline" label={t('tab.clients')} onPress={() => router.push('/(app)/clients')} />
       </View>
       )}
+    </View>
+  );
+}
+
+/**
+ * Yükleniyor / yüklenemedi satırı. "Boş" durumdan BİLEREK ayrı: veri gelmeden
+ * "kayıt yok" demek, avukata duruşması olmadığını söylemek olur
+ * (bkz. utils/panoHesap → veriDurumu).
+ */
+function DurumSatiri({ durum, onRetry }: { durum: Exclude<VeriDurumu, 'hazir'>; onRetry: () => void }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const t = useT();
+  if (durum === 'yukleniyor') {
+    return <ActivityIndicator color={colors.textSecondary} style={styles.durumYukleniyor} />;
+  }
+  return (
+    <View style={styles.precLoading}>
+      <Ionicons name="cloud-offline-outline" size={18} color={colors.textMuted} />
+      <Text style={styles.precLoadingText}>{t('dash.load.error')}</Text>
+      <Pressable onPress={onRetry} hitSlop={12} accessibilityRole="button">
+        <Text style={styles.precRetry}>{t('dash.load.retry')}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -1680,6 +1734,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12.5,
     color: colors.textSecondary,
     flexShrink: 1,
+  },
+  durumYukleniyor: {
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.md,
   },
   precRetry: {
     fontFamily: fonts.semibold,
