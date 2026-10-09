@@ -365,6 +365,10 @@ export const tr = {
   'dash.outcome.descMore': 'Süre verildiyse kaydedin. Bekleyen {n} duruşma daha var.',
   'dash.outcome.title': '{n} duruşmanın sonucu bekliyor',
   'dash.outcome.desc': 'Verilen süreleri kaydedin — 60 saniye sürer, süre kaçırmayı önler.',
+  // Süresi geçen (son günü dün ya da önce) tamamlanmamış süreler — ana ekran kartı.
+  'dash.overdue.one': 'Süresi geçti: {baslik} — {n} gün önce',
+  'dash.overdue.desc': 'Tamamlandıysa Takvim’de işaretleyin.',
+  'dash.overdue.descMore': 'Geciken {n} iş daha var. Tamamlananları Takvim’de işaretleyin.',
   'cupd.cta': 'Müvekkile Bilgi Ver',
   'hout.title': 'Duruşma Çıkışı',
   'hout.short': 'Duruşma Çıkışı',

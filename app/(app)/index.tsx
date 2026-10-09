@@ -4,8 +4,6 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns/format';
-import { isToday } from 'date-fns/isToday';
-import { isTomorrow } from 'date-fns/isTomorrow';
 import { tr as trLocale } from 'date-fns/locale/tr';
 import { enUS } from 'date-fns/locale/en-US';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -31,7 +29,9 @@ import { IlkAdimlar } from '@/components/IlkAdimlar';
 import { ResmiGazeteKarti } from '@/components/ResmiGazeteKarti';
 import { useResmiGazete } from '@/hooks/useResmiGazete';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
+import { useSimdi } from '@/hooks/useSimdi';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
+import { bugunKayitlari, gecikenSureler, gunFarki, yaklasanSureler } from '@/utils/panoHesap';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, monoTemaMi, radius, spacing, shadow, kose } from '@/theme/theme';
 import { kaliciMenuMu, ortalaStili, panoOlculeri, PANO_ARALIK, PANO_YAN_BOSLUK } from '@/theme/duzen';
@@ -103,6 +103,9 @@ export default function DashboardScreen() {
   const openSidebar = useSidebarStore((s) => s.open);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  // Zamana bağlı her hesap (bugün, sıradaki, kalan gün, bu ay) saati BURADAN
+  // alır ve memo bağımlılığına koyar; açık kalan ekran gece yarısında donmaz.
+  const simdi = useSimdi();
 
   // PANO IZGARASI — yalnız geniş tarayıcıda devreye girer.
   // Telefonda ve natifte `sutun` 1 döner ve her blok tam genişlik alır, yani
@@ -133,8 +136,8 @@ export default function DashboardScreen() {
   // Bunlar kaydedilmezse duruşmada verilen süreler kayboluyor — süre kaçırmanın
   // ana sebebi buydu, o yüzden ana ekranda proaktif hatırlatıyoruz.
   const pendingOutcomes = useMemo(
-    () => pendingOutcomeHearings(hearings.data ?? []),
-    [hearings.data]
+    () => pendingOutcomeHearings(hearings.data ?? [], simdi),
+    [hearings.data, simdi]
   );
 
   // Davana Emsal: aktif davalar + seçili davanın konusuna göre Yargıtay emsalleri.
@@ -164,136 +167,55 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }, [queryClient]);
 
-  const now = new Date();
-  const hour = now.getHours();
+  const hour = simdi.getHours();
   const greetingKey = hour < 12 ? 'dash.goodMorning' : hour < 18 ? 'dash.goodAfternoon' : 'dash.goodEvening';
   // Kullanıcı adının başına "Av." yazmış olabilir; tekrar "Av." eklemeyelim.
   const cleanName = (profile?.full_name ?? '').trim().replace(/^av\.?\s+/i, '');
   const firstName = cleanName ? `Av. ${cleanName.split(' ')[0]}` : t('dash.counselor');
 
   // "Bugün · 10:30" / "Yarın · 18:00" / "13 Tem · 09:00"
+  // Gün, useSimdi'nin saatiyle ve yerel takvime göre (gunFarki) seçilir.
   const whenLabel = useCallback(
     (iso: string) => {
       const d = new Date(iso);
       if (isNaN(d.getTime())) return '';
-      const day = isToday(d) ? t('fmt.today') : isTomorrow(d) ? t('fmt.tomorrow') : format(d, 'd MMM', { locale: dateLocale });
+      const fark = gunFarki(iso, simdi);
+      const day = fark === 0 ? t('fmt.today') : fark === 1 ? t('fmt.tomorrow') : format(d, 'd MMM', { locale: dateLocale });
       return `${day} · ${formatTime(iso)}`;
     },
-    [t, dateLocale]
+    [t, dateLocale, simdi]
   );
 
-  // Bugün planlı işlem sayısı (duruşma + görev) — asistan satırında gösterilir.
-  const todayCount = useMemo(() => {
-    const todayKey = format(new Date(), 'yyyy-MM-dd');
-    const toKey = (iso: string) => {
-      const d = new Date(iso);
-      return isNaN(d.getTime()) ? '' : format(d, 'yyyy-MM-dd');
-    };
-    const h = (hearings.data ?? []).filter((x) => !x.is_completed && toKey(x.scheduled_at) === todayKey).length;
-    const d = (deadlines.data ?? []).filter((x) => !x.is_completed && toKey(x.due_at) === todayKey).length;
-    return h + d;
-  }, [hearings.data, deadlines.data]);
-
-  const nextHearing = useMemo(() => {
-    // Alıcı geri bildirimi: Arabuluculuk/toplantı türü kayıtlar "Sonraki duruşma"
-    // olarak gösterilmemeli — sadece gerçek duruşmalar (duruşma/celse) sayılır.
-    const hearingTypes = ['hearing', 'trial', 'deposition'];
-    return (hearings.data ?? [])
-      .filter((h) => {
-        const d = new Date(h.scheduled_at);
-        return (
-          !h.is_completed &&
-          hearingTypes.includes(h.type) &&
-          !isNaN(d.getTime()) &&
-          d.getTime() >= now.getTime() - 60 * 60 * 1000
-        );
-      })
-      .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hearings.data]);
-
-  const nextDeadline = useMemo(() => {
-    return (deadlines.data ?? [])
-      .filter((d) => !d.is_completed && !isNaN(new Date(d.due_at).getTime()))
-      .sort((a, b) => a.due_at.localeCompare(b.due_at))[0];
-  }, [deadlines.data]);
+  // (09.10.2026) Burada çizilmeyen dört hesap vardı: todayCount, nextHearing,
+  // nextDeadline ve "Odak" kartının `focus`/`suggestion` verisi. Hiçbiri
+  // ekrana çıkmıyordu; `focus` içindeki "gecikme artık açıkça yazılıyor" notu
+  // da bu yüzden doğru değildi — geciken süre ana ekranda HİÇ görünmüyordu.
+  // Kaldırıldı; geciken süreler artık aşağıdaki `geciken` kartında.
 
   // "SIRADAKI": en yakın gelecekteki ajanda kaydı (TÜR fark etmez — duruşma da
   // toplantı da). Burak geri bildirimi gereği tür kendi adıyla gösterilir.
+  // Başlamış bir kayıt bir saat daha "sıradaki" kalır.
   const nextEvent = useMemo(() => {
+    const esik = simdi.getTime() - 60 * 60 * 1000;
     return (hearings.data ?? [])
       .filter((h) => {
         const d = new Date(h.scheduled_at);
-        return !h.is_completed && !isNaN(d.getTime()) && d.getTime() >= now.getTime() - 60 * 60 * 1000;
+        return !h.is_completed && !isNaN(d.getTime()) && d.getTime() >= esik;
       })
       .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hearings.data]);
+  }, [hearings.data, simdi]);
 
   // "BUGÜN": bugünkü duruşma/toplantı + görevler, saate göre sıralı.
-  const todayItems = useMemo(() => {
-    const key = format(new Date(), 'yyyy-MM-dd');
-    const k = (iso: string) => {
-      const d = new Date(iso);
-      return isNaN(d.getTime()) ? '' : format(d, 'yyyy-MM-dd');
-    };
-    const hs = (hearings.data ?? [])
-      .filter((h) => !h.is_completed && k(h.scheduled_at) === key)
-      .map((h) => ({ id: 'h' + h.id, at: h.scheduled_at, title: h.title, isEvent: true }));
-    const ds = (deadlines.data ?? [])
-      .filter((d) => !d.is_completed && k(d.due_at) === key)
-      .map((d) => ({ id: 'd' + d.id, at: d.due_at, title: d.title, isEvent: false }));
-    return [...hs, ...ds].sort((a, b) => a.at.localeCompare(b.at));
-  }, [hearings.data, deadlines.data]);
+  const todayItems = useMemo(
+    () => bugunKayitlari(hearings.data ?? [], deadlines.data ?? [], simdi),
+    [hearings.data, deadlines.data, simdi]
+  );
 
-  // Focus case: the case behind the most pressing deadline, else next hearing's case.
-  // ZAMAN-DUYARLI: yakın olmayan (haftalar sonraki) bir duruşmayı "acil/yüksek
-  // öncelik" gibi göstermeyip sakin bir sayaçla ("N gün kaldı") sunar — boşuna
-  // telaşlandırmaz (Burak geri bildirimi).
-  const focus = useMemo(() => {
-    const daysLeft = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
-    if (nextDeadline?.case) {
-      const days = daysLeft(nextDeadline.due_at);
-      return {
-        caseId: nextDeadline.case_id,
-        label: `${nextDeadline.case.case_number ? nextDeadline.case.case_number + ' – ' : ''}${nextDeadline.case.title}`,
-        hearingWhen: nextHearing && nextHearing.case_id === nextDeadline.case_id ? whenLabel(nextHearing.scheduled_at) : null,
-        days,
-        // GECİKMİŞ SÜRE AYRI SÖYLENİR.
-        //
-        // nextDeadline, nextHearing/nextEvent'ten farklı olarak GEÇMİŞ kayıtları
-        // ELEMİYOR (bilinçli: tamamlanmamış, süresi geçmiş bir iş bir hukuk
-        // uygulamasında en acil şeydir; gizlemek yanlış olurdu). Ama pano onu
-        // yaklaşan bir süreyle AYNI cümleyle gösteriyordu — avukat, aylar önce
-        // geçmiş bir süreyi "bekleyen görev" diye okuyordu. Gecikme artık
-        // açıkça yazılıyor; kayıt hâlâ görünür kalıyor.
-        reason:
-          days < 0
-            ? t('dash.focus.reasonOverdue', { title: nextDeadline.title, n: Math.abs(days) })
-            : days <= 7
-              ? t('dash.focus.reasonDue', { title: nextDeadline.title })
-              : t('dash.focus.reasonDueFar', { title: nextDeadline.title, n: days }),
-      };
-    }
-    if (nextHearing?.case) {
-      const days = daysLeft(nextHearing.scheduled_at);
-      return {
-        caseId: nextHearing.case_id,
-        label: `${nextHearing.case.case_number ? nextHearing.case.case_number + ' – ' : ''}${nextHearing.case.title}`,
-        hearingWhen: whenLabel(nextHearing.scheduled_at),
-        days,
-        reason: days <= 7 ? t('dash.focus.reasonHearing') : t('dash.focus.reasonHearingFar', { n: days }),
-      };
-    }
-    return null;
-  }, [nextDeadline, nextHearing, whenLabel, t]);
-
-  // Suggested step heuristic
-  const suggestion = useMemo(() => {
-    if (nextDeadline) return { value: t('dash.assist.sugDeadline'), right: nextDeadline.title };
-    if (nextHearing) return { value: t('dash.assist.sugHearing'), right: nextHearing.case?.title ?? nextHearing.title };
-    return { value: t('dash.assist.sugCalendar'), right: t('tab.calendar') };
-  }, [nextDeadline, nextHearing, t]);
+  // SÜRESİ GEÇMİŞ, TAMAMLANMAMIŞ SÜRELER (dün ve öncesi). Ana ekranda hiçbir
+  // yerde görünmüyordu: telefonda yalnız "bugün" vardı, geniş panodaki liste
+  // 24 saatten eskiyi süzüyordu. Takvimdeki "Geciken işler" ile aynı ölçü.
+  const geciken = useMemo(() => gecikenSureler(deadlines.data ?? [], simdi), [deadlines.data, simdi]);
+  const ilkGeciken = geciken[0];
 
   /**
    * ÜST ŞERİTTEKİ DÖRT SAYI — yalnız panoda görünür.
@@ -307,14 +229,15 @@ export default function DashboardScreen() {
    * sanır. Veri yoksa çizgi (—) gösteriliyor.
    */
   const panoSayilari = useMemo(() => {
-    const haftaSonu = Date.now() + 7 * 86_400_000;
+    const su = simdi.getTime();
+    const haftaSonu = su + 7 * 86_400_000;
     const buHafta = (hearings.data ?? []).filter((h) => {
       if (h.is_completed) return false;
       const z = new Date(h.scheduled_at).getTime();
-      return z >= Date.now() && z <= haftaSonu;
+      return z >= su && z <= haftaSonu;
     }).length;
     const bekleyenSure = (deadlines.data ?? []).filter(
-      (d) => !d.is_completed && new Date(d.due_at).getTime() >= Date.now(),
+      (d) => !d.is_completed && new Date(d.due_at).getTime() >= su,
     ).length;
     return {
       dosya: openCases.isPending ? null : caseList.length,
@@ -322,7 +245,7 @@ export default function DashboardScreen() {
       sure: deadlines.data ? bekleyenSure : null,
       sonuc: hearings.data ? pendingOutcomes.length : null,
     };
-  }, [caseList.length, openCases.isPending, hearings.data, deadlines.data, pendingOutcomes.length]);
+  }, [caseList.length, openCases.isPending, hearings.data, deadlines.data, pendingOutcomes.length, simdi]);
 
   /**
    * YAKLAŞAN SÜRELER — panonun sağ sütunundaki liste.
@@ -330,26 +253,27 @@ export default function DashboardScreen() {
    * Ana ekranda süreler yalnız "bugün" kutusunda ve tek bir "sıradaki" satırı
    * olarak görünüyordu; yarından sonrası hiç görünmüyordu. Süre kaçırmanın en
    * yaygın sebebi tam olarak bu: bugüne bakmak, haftaya bakmamak.
+   *
+   * Kalan gün TAKVİM GÜNÜ farkıdır (bkz. utils/panoHesap). Geçmiş süreler bu
+   * listede değil, `geciken` kartında.
    */
-  const yaklasanSureler = useMemo(() => {
-    return (deadlines.data ?? [])
-      .filter((d) => !d.is_completed && new Date(d.due_at).getTime() >= Date.now() - 86_400_000)
-      .sort((a, b) => new Date(a.due_at).getTime() - new Date(b.due_at).getTime())
-      .slice(0, 6)
-      .map((d) => ({
+  const yaklasanListesi = useMemo(
+    () =>
+      yaklasanSureler(deadlines.data ?? [], simdi).map(({ kayit: d, kalanGun }) => ({
         id: d.id,
         baslik: d.title,
         dosya: d.case?.title ?? '',
         tarih: format(new Date(d.due_at), 'd MMM yyyy', { locale: dateLocale }),
-        kalanGun: Math.ceil((new Date(d.due_at).getTime() - Date.now()) / 86_400_000),
-      }));
-  }, [deadlines.data, dateLocale]);
+        kalanGun,
+      })),
+    [deadlines.data, dateLocale, simdi]
+  );
 
   // Finance summary: this month vs last month (+ net cash flow)
   const fin = useMemo(() => {
     const entries = finance.data ?? [];
-    const y = now.getFullYear();
-    const m = now.getMonth();
+    const y = simdi.getFullYear();
+    const m = simdi.getMonth();
     const inMonth = (dateStr: string, year: number, month: number) => {
       const d = new Date(dateStr);
       return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
@@ -392,8 +316,7 @@ export default function DashboardScreen() {
       expenseSeries,
       netSeries,
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finance.data]);
+  }, [finance.data, simdi]);
 
   return (
     <View style={styles.root}>
@@ -512,6 +435,33 @@ export default function DashboardScreen() {
             <Ionicons name="sparkles-outline" size={15} color={colors.primary} />
             <Text allowFontScaling={false} style={styles.trialPillText}>{t('plan.freePill')}</Text>
             <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+          </Pressable>
+        )}
+
+        {/* ---------- Süresi geçen işler ----------
+             Son günü dün ya da daha önce olan, tamamlanmamış süreler. Ana
+             ekranda hiçbir yerde görünmüyordu (09.10.2026 denetimi). Duruşma
+             Çıkışı kartıyla aynı kalıp: en yeni gecikme adıyla, kalanı sayıyla;
+             dokununca Takvim açılır — orada "Geciken işler" en üstte ve
+             tamamla/ertele oradan yapılıyor. */}
+        {ilkGeciken && (
+          <Pressable
+            style={({ pressed }) => [styles.gecikenKart, blok('tam'), panoMu && styles.panoMarjsiz, pressed && { opacity: 0.9 }]}
+            onPress={() => router.push('/(app)/calendar')}
+            accessibilityRole="button"
+          >
+            <View style={styles.outcomeIcon}>
+              <Ionicons name="alert-circle" size={18} color={colors.danger} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.gecikenBaslik} numberOfLines={2}>
+                {t('dash.overdue.one', { baslik: ilkGeciken.kayit.title, n: ilkGeciken.gecenGun })}
+              </Text>
+              <Text style={styles.outcomeDesc}>
+                {geciken.length > 1 ? t('dash.overdue.descMore', { n: geciken.length - 1 }) : t('dash.overdue.desc')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.danger} />
           </Pressable>
         )}
 
@@ -817,14 +767,15 @@ export default function DashboardScreen() {
 
             {deadlines.isPending ? (
               <ActivityIndicator color={colors.textSecondary} style={{ paddingVertical: spacing.lg }} />
-            ) : yaklasanSureler.length === 0 ? (
+            ) : yaklasanListesi.length === 0 ? (
               <Text allowFontScaling={false} style={styles.bosDurum}>{t('dash.upcoming.empty')}</Text>
             ) : (
-              yaklasanSureler.map((s, i) => {
-                // RENK BİR UYARI, SÜS DEĞİL: geçmiş ve bugün kırmızı, üç güne
-                // kadar altın, ötesi nötr. Avukat listeye bakmadan hangi satıra
-                // bugün dokunması gerektiğini görüyor.
-                const acil = s.kalanGun <= 0;
+              yaklasanListesi.map((s, i) => {
+                // RENK BİR UYARI, SÜS DEĞİL: bugün kırmızı, üç güne kadar
+                // altın, ötesi nötr. Avukat listeye bakmadan hangi satıra bugün
+                // dokunması gerektiğini görüyor. (Geçmiş süreler bu listede
+                // değil; üstteki "süresi geçti" kartında.)
+                const acil = s.kalanGun === 0;
                 const yakin = s.kalanGun > 0 && s.kalanGun <= 3;
                 const renk = acil ? colors.danger : yakin ? accentGold : colors.textSecondary;
                 return (
@@ -832,7 +783,7 @@ export default function DashboardScreen() {
                     key={s.id}
                     style={({ pressed }) => [
                       styles.sureSatir,
-                      i === yaklasanSureler.length - 1 && styles.sureSatirSon,
+                      i === yaklasanListesi.length - 1 && styles.sureSatirSon,
                       pressed && { opacity: 0.7 },
                     ]}
                     onPress={() => router.push('/(app)/calendar')}
@@ -1273,6 +1224,25 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     lineHeight: 16,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  // Süresi geçen işler — Duruşma Çıkışı kartının kalıbı, masraf avansı
+  // uyarısının renginde. Bilgi yalnız renkte değil: ikon + "Süresi geçti".
+  gecikenKart: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: kose(16),
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  gecikenBaslik: {
+    fontFamily: fonts.extrabold,
+    fontWeight: '800',
+    fontSize: 14,
+    color: colors.textPrimary,
   },
   trialPill: {
     flexDirection: 'row',
