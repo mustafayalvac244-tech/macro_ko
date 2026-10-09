@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@/components/ui/TarihSecici';
@@ -13,15 +13,23 @@ import { useCase, useCases, useCreateCase, useUpdateCase } from '@/hooks/useCase
 import { useCreateHearing } from '@/hooks/useHearings';
 import { useClients } from '@/hooks/useClients';
 import { useT } from '@/i18n';
-import { trError } from '@/lib/authErrors';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatDateTime } from '@/utils/format';
 import { menfaatTara } from '@/utils/menfaatCatismasi';
-import { oranOku, oranYaz, tutarOku, tutarYaz } from '@/utils/tutar';
+import { oranYaz, tutarYaz } from '@/utils/tutar';
+import {
+  davaKayitHatasi,
+  durumSecimi,
+  formDoldurulsunMu,
+  kaydedilecekDurum,
+  ucretAlanlari,
+  yeniDavaKaydet,
+  type DurumSecimi,
+} from '@/utils/davaFormu';
 import { MenfaatUyarisi } from '@/components/MenfaatUyarisi';
-import type { CaseStatus, PriorityLevel } from '@/types/database';
+import type { CaseStatus, CaseWithClient, PriorityLevel } from '@/types/database';
 import { geriDon } from '@/lib/geriDon';
 
 const STATUS_VALUES = ['active', 'closed'] as const; // Açık / Kapalı
@@ -52,7 +60,9 @@ export default function CaseFormScreen() {
   const [opposingParty, setOpposingParty] = useState('');
   const [opposingCounsel, setOpposingCounsel] = useState('');
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<CaseStatus>('active');
+  // Formda yalnız Açık/Kapalı seçilir; kayıtlı durum (bekliyor, askıda,
+  // kazanıldı…) seçim değişmedikçe korunur (utils/davaFormu).
+  const [status, setStatus] = useState<DurumSecimi>('active');
   const [priority, setPriority] = useState<PriorityLevel>('medium');
   const [openedDate, setOpenedDate] = useState(new Date());
   const [fee, setFee] = useState('');
@@ -63,26 +73,35 @@ export default function CaseFormScreen() {
   const [titleTouched, setTitleTouched] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState<'opened' | 'hearingDate' | 'hearingTime' | null>(null);
+  // İlk duruşma yazılamayınca oluşmuş dava: tekrar basış İKİNCİ dava açmaz,
+  // bu davaya yazar ve yalnız duruşmayı yeniden dener (utils/davaFormu).
+  const [olusanDava, setOlusanDava] = useState<CaseWithClient | null>(null);
+  const doldurulanId = useRef<string | null>(null);
+  const orijinalDurum = useRef<CaseStatus | null>(null);
 
+  // Form YALNIZ ilk yüklemede doldurulur: kayıt hatasında iyimser güncellemenin
+  // geri alınması `existingCase`e yeni bir nesne veriyor ve yazılanları kayıtlı
+  // (eski) değerlerle eziyordu (09.10.2026; profil formundaki 08.10 düzeltmesiyle aynı kalıp).
   useEffect(() => {
-    if (existingCase) {
-      setTitle(existingCase.title);
-      setClientId(existingCase.client_id);
-      setCaseNumber(existingCase.case_number ?? '');
-      setCourtName(existingCase.court_name ?? '');
-      setCourtCategory((existingCase.court_category as 'hukuk' | 'ceza' | 'idare') ?? 'hukuk');
-      setCaseType(existingCase.case_type ?? '');
-      setOpposingParty(existingCase.opposing_party ?? '');
-      setOpposingCounsel(existingCase.opposing_counsel ?? '');
-      setDescription(existingCase.description ?? '');
-      setStatus(['closed', 'won', 'lost'].includes(existingCase.status) ? 'closed' : 'active');
-      setPriority(existingCase.priority);
-      setOpenedDate(new Date(existingCase.opened_date));
-      setFee(existingCase.fee_amount != null ? tutarYaz(existingCase.fee_amount) : '');
-      setFeeType((existingCase.fee_type as typeof feeType) ?? 'fixed');
-      setFeePercent(existingCase.fee_percent != null ? oranYaz(existingCase.fee_percent) : '');
-      setFeeAdvance(existingCase.fee_advance != null ? tutarYaz(existingCase.fee_advance) : '');
-    }
+    if (!existingCase || !formDoldurulsunMu(doldurulanId.current, existingCase)) return;
+    doldurulanId.current = existingCase.id;
+    orijinalDurum.current = existingCase.status;
+    setTitle(existingCase.title);
+    setClientId(existingCase.client_id);
+    setCaseNumber(existingCase.case_number ?? '');
+    setCourtName(existingCase.court_name ?? '');
+    setCourtCategory((existingCase.court_category as 'hukuk' | 'ceza' | 'idare') ?? 'hukuk');
+    setCaseType(existingCase.case_type ?? '');
+    setOpposingParty(existingCase.opposing_party ?? '');
+    setOpposingCounsel(existingCase.opposing_counsel ?? '');
+    setDescription(existingCase.description ?? '');
+    setStatus(durumSecimi(existingCase.status));
+    setPriority(existingCase.priority);
+    setOpenedDate(new Date(existingCase.opened_date));
+    setFee(existingCase.fee_amount != null ? tutarYaz(existingCase.fee_amount) : '');
+    setFeeType((existingCase.fee_type as typeof feeType) ?? 'fixed');
+    setFeePercent(existingCase.fee_percent != null ? oranYaz(existingCase.fee_percent) : '');
+    setFeeAdvance(existingCase.fee_advance != null ? tutarYaz(existingCase.fee_advance) : '');
   }, [existingCase]);
 
   const isSubmitting = createCase.isPending || updateCase.isPending || createHearing.isPending;
@@ -124,11 +143,11 @@ export default function CaseFormScreen() {
       setSubmitError(t('caseForm.opposingRequired'));
       return;
     }
-    // "50.000" eskiden 50, "1.250.000" sessizce boş kaydediliyordu (ücret silinirdi).
-    const okunamayan = [fee, feeAdvance].find((v) => v.trim() && !Number.isFinite(tutarOku(v)))
-      ?? (feePercent.trim() && !Number.isFinite(oranOku(feePercent)) ? feePercent : undefined);
-    if (okunamayan) {
-      setSubmitError(t('tutar.okunamadi', { deger: okunamayan.trim() }));
+    // Yalnız seçili ücret türünün GÖRÜNEN kutuları okunur ve yazılır; önceki
+    // türden kalan değer kaydedilmez, görünmeyen kutu kaydı durdurmaz.
+    const ucret = ucretAlanlari(feeType, { tutar: fee, oran: feePercent, avans: feeAdvance });
+    if (!ucret.tamam) {
+      setSubmitError(t('tutar.okunamadi', { deger: ucret.okunamayan }));
       return;
     }
 
@@ -142,36 +161,49 @@ export default function CaseFormScreen() {
       opposing_party: opposingParty.trim() || null,
       opposing_counsel: opposingCounsel.trim() || null,
       description: description.trim() || null,
-      status,
+      status: kaydedilecekDurum(orijinalDurum.current, status),
       priority,
       opened_date: format(openedDate, 'yyyy-MM-dd'),
-      fee_amount: fee.trim() ? tutarOku(fee) || null : null,
+      fee_amount: ucret.fee_amount,
       fee_type: feeType,
-      fee_percent: feePercent.trim() ? oranOku(feePercent) || null : null,
-      fee_advance: feeAdvance.trim() ? tutarOku(feeAdvance) || null : null,
+      fee_percent: ucret.fee_percent,
+      fee_advance: ucret.fee_advance,
     };
 
     try {
       if (isEdit && id) {
         await updateCase.mutateAsync({ id, ...payload });
       } else {
-        const created = await createCase.mutateAsync(payload);
-        if (firstHearingAt) {
-          await createHearing.mutateAsync({
-            case_id: created.id,
-            title: t('hearingType.hearing'),
-            type: 'hearing',
-            location: courtName.trim() || null,
-            scheduled_at: firstHearingAt.toISOString(),
-            reminder_minutes_before: 1440,
-            notes: null,
-            caseTitle: created.title,
-          });
+        const durusmaAni = firstHearingAt;
+        const sonuc = await yeniDavaKaydet(olusanDava, {
+          olustur: () => createCase.mutateAsync(payload),
+          guncelle: (dava) => updateCase.mutateAsync({ id: dava.id, ...payload }),
+          durusmaEkle: durusmaAni
+            ? (dava) =>
+                createHearing.mutateAsync({
+                  case_id: dava.id,
+                  title: t('hearingType.hearing'),
+                  type: 'hearing',
+                  location: courtName.trim() || null,
+                  scheduled_at: durusmaAni.toISOString(),
+                  reminder_minutes_before: 1440,
+                  notes: null,
+                  caseTitle: dava.title,
+                })
+            : undefined,
+        });
+        if (!sonuc.tamam) {
+          // Hata penceresini kanca gösterir (notifySaveError). Burada davanın
+          // KAYDEDİLDİĞİ ve tekrar basmanın ikinci dava açmayacağı söylenir.
+          setOlusanDava(sonuc.dava);
+          setSubmitError(t('caseForm.hearingFailed'));
+          return;
         }
       }
       geriDon();
     } catch (err) {
-      setSubmitError(err instanceof Error ? trError(err.message) : t('caseForm.saveFailed'));
+      // PostgREST hatası düz nesnedir; plan limiti "tekrar deneyin" denmeden açıklanır.
+      setSubmitError(davaKayitHatasi(err, t));
     }
   };
 
@@ -286,6 +318,8 @@ export default function CaseFormScreen() {
             onChange={(v) => setFeeType(v as typeof feeType)}
           />
           <View style={styles.spacer} />
+          {/* Türe göre görünen kutular utils/davaFormu → UCRET_KUTULARI ile AYNI
+              olmalı: kayıtta yalnız görünen kutular okunur. */}
           {feeType === 'fixed' && (
             <Input label={t('fee.amount')} placeholder="50000" keyboardType="numeric" value={fee} onChangeText={setFee} />
           )}
@@ -354,7 +388,7 @@ export default function CaseFormScreen() {
 
           <View style={styles.spacer} />
           <Text style={styles.label}>{t('caseForm.status')}</Text>
-          <SegmentedControl scrollable={false} options={statusOptions} value={status} onChange={(v) => setStatus(v as CaseStatus)} />
+          <SegmentedControl scrollable={false} options={statusOptions} value={status} onChange={(v) => setStatus(v as DurumSecimi)} />
 
           <View style={styles.spacer} />
           <Text style={styles.label}>{t('caseForm.priority')}</Text>
@@ -379,7 +413,13 @@ export default function CaseFormScreen() {
           )}
 
           <Button
-            label={isEdit ? t('common.save') : t('caseForm.create')}
+            label={
+              isEdit
+                ? t('common.save')
+                : olusanDava
+                  ? firstHearingAt ? t('caseForm.retryHearing') : t('common.save')
+                  : t('caseForm.create')
+            }
             onPress={handleSubmit}
             loading={isSubmitting}
             fullWidth

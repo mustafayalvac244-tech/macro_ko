@@ -18,6 +18,7 @@ import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
+import { aramaKarsilar, davaAramaMetni, dizinBosDurumu, dizinKarsilastir, icraAramaMetni } from '@/utils/davaDizini';
 import type { CaseWithClient, EnforcementWithClient } from '@/types/database';
 
 const STATUS_VALUES = ['all', 'open', 'closed'] as const;
@@ -41,8 +42,11 @@ export default function CaseDirectoryScreen() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'all' | 'open' | 'closed'>('all');
   const [newModal, setNewModal] = useState(false);
-  const { data: cases, isLoading, refetch, isRefetching } = useCases({ search, status });
-  const enforcements = useEnforcements(search);
+  // Arama metni sorgu kancalarına GEÇMEZ: eskiden her tuş vuruşu iki sunucu
+  // sorgusu (dava + icra) atıyor ve yalnız başlıkta arıyordu. Liste bir kez
+  // çekilir, arama aşağıda cihazda yapılır (utils/davaDizini, 09.10.2026).
+  const { data: cases, isLoading, isError: davaHatasi, refetch, isRefetching } = useCases({ status });
+  const enforcements = useEnforcements();
   const hearings = useAllHearings();
 
   // Her dava için sıradaki (gelecek, tamamlanmamış) duruşma/keşif tarihi.
@@ -62,18 +66,43 @@ export default function CaseDirectoryScreen() {
   const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(`caseFilter.${value}` as const) }));
 
   // Dava + icra dosyaları tek dizinde; açılış/takip tarihine göre yeni → eski.
-  const rows = useMemo<Row[]>(() => {
-    const out: Row[] = [];
-    (cases ?? []).forEach((c) => out.push({ kind: 'case', date: c.opened_date ?? c.created_at, item: c }));
+  // Aranacak metin liste değişince BİR KEZ hesaplanır; tuş vuruşunda yalnız süzülür.
+  const dizin = useMemo(() => {
+    const out: Array<{ row: Row; aranan: string }> = [];
+    (cases ?? []).forEach((c) =>
+      out.push({ row: { kind: 'case', date: c.opened_date ?? c.created_at, item: c }, aranan: davaAramaMetni(c) }),
+    );
     (enforcements.data ?? [])
       .filter((e) => {
         if (status === 'open') return e.stage !== 'closed';
         if (status === 'closed') return e.stage === 'closed';
         return true;
       })
-      .forEach((e) => out.push({ kind: 'enf', date: e.start_date ?? e.created_at, item: e }));
-    return out.sort((a, b) => (a.date < b.date ? 1 : -1));
+      .forEach((e) =>
+        out.push({ row: { kind: 'enf', date: e.start_date ?? e.created_at, item: e }, aranan: icraAramaMetni(e) }),
+      );
+    return out.sort((a, b) => dizinKarsilastir(a.row, b.row));
   }, [cases, enforcements.data, status]);
+
+  const rows = useMemo<Row[]>(
+    () => dizin.filter((d) => aramaKarsilar(d.aranan, search)).map((d) => d.row),
+    [dizin, search],
+  );
+
+  // Sorgu hatası boş liste gibi görünmesin ("Henüz dava yok" yalnız gerçekten
+  // boşken). İcra tablosu kurulmamışsa ayrı not var (setupNote), hata sayılmaz.
+  const yuklemeHatasi =
+    davaHatasi || (enforcements.isError && !isMissingEnforcementTable(enforcements.error));
+  const yenile = () => {
+    refetch();
+    enforcements.refetch();
+  };
+  const bosDurum = dizinBosDurumu({
+    yukleniyor: isLoading,
+    hata: yuklemeHatasi,
+    aramaVar: search.trim().length > 0,
+    suzgecVar: status !== 'all',
+  });
 
   return (
     <Screen>
@@ -87,6 +116,16 @@ export default function CaseDirectoryScreen() {
 
       {enforcements.error && isMissingEnforcementTable(enforcements.error) && (
         <Text style={styles.setupNote}>{t('enf.setupRequired')}</Text>
+      )}
+
+      {yuklemeHatasi && (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle" size={18} color={colors.danger} />
+          <Text style={styles.errorText}>{t('cases.loadError')}</Text>
+          <Pressable onPress={yenile} hitSlop={8} accessibilityRole="button" style={styles.retryBtn}>
+            <Text style={styles.retryText}>{t('cases.retry')}</Text>
+          </Pressable>
+        </View>
       )}
 
       {/* GENİŞ EKRANDA İKİ SÜTUN — 14.09.2026.
@@ -111,10 +150,7 @@ export default function CaseDirectoryScreen() {
         data={izgaraDoldur(rows, sutun)}
         keyExtractor={(row, i) => (row ? `${row.kind}-${row.item.id}` : `bosluk-${i}`)}
         contentContainerStyle={styles.listContent}
-        onRefresh={() => {
-          refetch();
-          enforcements.refetch();
-        }}
+        onRefresh={yenile}
         refreshing={isRefetching}
         renderItem={({ item: row }) => (
           // minWidth:0 olmadan uzun dava başlıkları hücreyi şişirip sütunları
@@ -138,7 +174,8 @@ export default function CaseDirectoryScreen() {
           </View>
         )}
         ListEmptyComponent={
-          !isLoading ? (
+          // 'hata' → üstteki kırmızı kutu; 'yukleniyor' → boş durum gösterilmez.
+          bosDurum === 'bos' ? (
             <EmptyState
               icon="briefcase-outline"
               title={t('cases.empty')}
@@ -146,6 +183,8 @@ export default function CaseDirectoryScreen() {
               actionLabel={t('dash.newCase')}
               onAction={() => router.push('/case-form')}
             />
+          ) : bosDurum === 'eslesmeYok' ? (
+            <EmptyState icon="search-outline" title={t('cases.noMatch')} />
           ) : null
         }
       />
@@ -254,6 +293,33 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.warning,
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xs,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: kose(12),
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    ...typography.caption,
+    color: colors.danger,
+    flex: 1,
+  },
+  retryBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  retryText: {
+    ...typography.caption,
+    color: colors.danger,
+    fontWeight: '700',
   },
   enfRow: {
     flexDirection: 'row',

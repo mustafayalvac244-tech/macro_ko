@@ -308,6 +308,9 @@ export const tr = {
   'cases.search': 'Dava ara',
   'cases.empty': 'Henüz dava yok',
   'cases.emptyDesc': 'Duruşmaları, görevleri ve belgeleri takip etmek için ilk davanızı oluşturun.',
+  'cases.noMatch': 'Eşleşen dosya yok',
+  'cases.loadError': 'Dosya listesi yüklenemedi.',
+  'cases.retry': 'Tekrar dene',
   'case.title': 'Dava',
   'case.openedLabel': 'Açılış {date}',
   'case.tabOverview': 'Özet',
@@ -1048,6 +1051,8 @@ export const tr = {
   'caseForm.feePlaceholder': '25000',
   'caseForm.titleRequired': 'Dava başlığı zorunludur.',
   'caseForm.saveFailed': 'Dava kaydedilemedi. Lütfen tekrar deneyin.',
+  'caseForm.hearingFailed': 'Dava kaydedildi, ancak duruşma tarihi kaydedilemedi. Aşağıdaki düğmeyle yalnız duruşmayı yeniden deneyebilirsiniz; dava ikinci kez oluşturulmaz.',
+  'caseForm.retryHearing': 'Duruşmayı Tekrar Kaydet',
 
   // Reports
   'reports.title': 'Raporlar',
