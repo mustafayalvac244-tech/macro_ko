@@ -377,7 +377,7 @@ export default function DashboardScreen() {
             )}
             <View style={styles.brandRow}>
               <MaterialCommunityIcons name="scale-balance" size={22} color={colors.primary} />
-              <Text allowFontScaling={false} style={styles.brandText}>
+              <Text style={styles.brandText}>
                 Vekil<Text style={styles.brandTextPro}> Pro</Text>
               </Text>
             </View>
@@ -419,10 +419,10 @@ export default function DashboardScreen() {
              boştu — sayılar tam oraya oturuyor. */}
         <View style={[styles.panoBaslikSatiri, blok('tam')]}>
           <View>
-            <Text allowFontScaling={false} style={styles.greeting}>
+            <Text style={styles.greeting}>
               {t(greetingKey)}, {firstName}
             </Text>
-            <Text allowFontScaling={false} style={styles.greetingSub}>{t('dash.subline')}</Text>
+            <Text style={styles.greetingSub}>{t('dash.subline')}</Text>
           </View>
           {panoMu && (
             <View style={styles.panoSayilar}>
@@ -450,7 +450,7 @@ export default function DashboardScreen() {
             onPress={() => router.push('/premium' as Parameters<typeof router.push>[0])}
           >
             <Ionicons name="sparkles-outline" size={15} color={colors.primary} />
-            <Text allowFontScaling={false} style={styles.trialPillText}>{t('plan.freePill')}</Text>
+            <Text style={styles.trialPillText}>{t('plan.freePill')}</Text>
             <Ionicons name="chevron-forward" size={14} color={colors.primary} />
           </Pressable>
         )}
@@ -498,13 +498,13 @@ export default function DashboardScreen() {
                   değil, bir yığındır; yığın ertelenir. Somut tek bir iş
                   ("3. Asliye — dün") yapılabilir görünür. Kalanların sayısı
                   ikinci satırda duruyor, bilgi kaybolmuyor. */}
-              <Text allowFontScaling={false} style={styles.outcomeTitle} numberOfLines={1}>
+              <Text style={styles.outcomeTitle} numberOfLines={1}>
                 {t('dash.outcome.one', {
                   baslik: pendingOutcomes[0].case?.title || pendingOutcomes[0].title,
                   ne_zaman: whenLabel(pendingOutcomes[0].scheduled_at).split(' · ')[0],
                 })}
               </Text>
-              <Text allowFontScaling={false} style={styles.outcomeDesc}>
+              <Text style={styles.outcomeDesc}>
                 {pendingOutcomes.length > 1
                   ? t('dash.outcome.descMore', { n: pendingOutcomes.length - 1 })
                   : t('dash.outcome.desc')}
@@ -519,13 +519,13 @@ export default function DashboardScreen() {
           <View style={[styles.advanceAlert, blok('tam'), panoMu && styles.panoMarjsiz]}>
             <View style={styles.advanceAlertHead}>
               <Ionicons name="alert-circle" size={16} color={colors.danger} />
-              <Text allowFontScaling={false} style={styles.advanceAlertTitle}>{t('dash.advance.title')}</Text>
+              <Text style={styles.advanceAlertTitle}>{t('dash.advance.title')}</Text>
             </View>
             {advanceAlerts.slice(0, 4).map((d) => (
               <View key={d.id} style={styles.advanceAlertRow}>
                 <Pressable style={styles.advanceAlertInfo} onPress={() => router.push(`/(app)/clients/${d.id}`)}>
-                  <Text allowFontScaling={false} style={styles.advanceAlertName} numberOfLines={1}>{d.name}</Text>
-                  <Text allowFontScaling={false} style={styles.advanceAlertAmount}>
+                  <Text style={styles.advanceAlertName} numberOfLines={1}>{d.name}</Text>
+                  <Text style={styles.advanceAlertAmount}>
                     {t('dash.advance.need', { amount: formatMoney(d.deficit) })}
                   </Text>
                 </Pressable>
@@ -535,7 +535,7 @@ export default function DashboardScreen() {
               </View>
             ))}
             {advanceAlerts.length > 4 && (
-              <Text allowFontScaling={false} style={styles.advanceAlertMore}>
+              <Text style={styles.advanceAlertMore}>
                 {t('dash.advance.more', { n: advanceAlerts.length - 4 })}
               </Text>
             )}
@@ -544,7 +544,7 @@ export default function DashboardScreen() {
 
         {/* ---------- Sıradaki + Bugün ---------- */}
         <View style={[styles.hero, blok('ikiUcte'), panoMu && styles.panoMarjsiz]}>
-          <Text allowFontScaling={false} style={styles.heroTitle}>{t('dash.next.label')}</Text>
+          <Text style={styles.heroTitle}>{t('dash.next.label')}</Text>
 
           {/* Duruşmalar gelmeden ne "sıradaki" ne "bugün" söylenebilir: tek
               satır iki bölümün yerini tutar (aynı uyarı iki kez yazılmasın). */}
@@ -558,14 +558,14 @@ export default function DashboardScreen() {
                   onPress={() => router.push('/(app)/calendar')}
                 >
                   <View style={styles.timeBlock}>
-                    <Text allowFontScaling={false} style={styles.timeHH}>{formatTime(nextEvent.scheduled_at)}</Text>
-                    <Text allowFontScaling={false} style={styles.timeDay}>
+                    <Text style={styles.timeHH}>{formatTime(nextEvent.scheduled_at)}</Text>
+                    <Text style={styles.timeDay}>
                       {whenLabel(nextEvent.scheduled_at).split(' · ')[0]}
                     </Text>
                   </View>
                   <View style={styles.nextBody}>
-                    <Text allowFontScaling={false} style={styles.nextTitle} numberOfLines={1}>{nextEvent.title}</Text>
-                    <Text allowFontScaling={false} style={styles.nextSub} numberOfLines={1}>
+                    <Text style={styles.nextTitle} numberOfLines={1}>{nextEvent.title}</Text>
+                    <Text style={styles.nextSub} numberOfLines={1}>
                       {(() => {
                         const typeLabel = String(t(`hearingType.${nextEvent.type}` as never));
                         const ctx = nextEvent.case?.title || nextEvent.location || '';
@@ -580,15 +580,15 @@ export default function DashboardScreen() {
               ) : (
                 <View style={styles.nextEmpty}>
                   <Ionicons name="calendar-clear-outline" size={18} color={colors.textMuted} />
-                  <Text allowFontScaling={false} style={styles.nextEmptyText}>{t('dash.assist.noHearing')}</Text>
+                  <Text style={styles.nextEmptyText}>{t('dash.assist.noHearing')}</Text>
                 </View>
               )}
 
-              <Text allowFontScaling={false} style={styles.bugunLabel}>{t('dash.today.label')}</Text>
+              <Text style={styles.bugunLabel}>{t('dash.today.label')}</Text>
               {bugunDurumu !== 'hazir' ? (
                 <DurumSatiri durum={bugunDurumu} onRetry={ajandayiYenile} />
               ) : todayItems.length === 0 ? (
-                <Text allowFontScaling={false} style={styles.todayEmpty}>{t('dash.noProgramToday')}</Text>
+                <Text style={styles.todayEmpty}>{t('dash.noProgramToday')}</Text>
               ) : (
                 todayItems.map((it) => (
                   <Pressable
@@ -597,8 +597,8 @@ export default function DashboardScreen() {
                     onPress={() => router.push(it.isEvent ? '/(app)/calendar' : ('/reminders' as Parameters<typeof router.push>[0]))}
                   >
                     <View style={[styles.todayDot, { backgroundColor: it.isEvent ? colors.primary : colors.textMuted }]} />
-                    <Text allowFontScaling={false} style={styles.todayTitle} numberOfLines={1}>{it.title}</Text>
-                    <Text allowFontScaling={false} style={styles.todayTime}>{formatTime(it.at)}</Text>
+                    <Text style={styles.todayTitle} numberOfLines={1}>{it.title}</Text>
+                    <Text style={styles.todayTime}>{formatTime(it.at)}</Text>
                   </Pressable>
                 ))
               )}
@@ -609,7 +609,7 @@ export default function DashboardScreen() {
             style={({ pressed }) => [styles.heroCta, { backgroundColor: colors.primary }, pressed && { opacity: 0.85 }]}
             onPress={() => router.push('/(app)/calendar')}
           >
-            <Text allowFontScaling={false} style={[styles.heroCtaText, { color: colors.textInverse }]}>{t('dash.assist.start')}</Text>
+            <Text style={[styles.heroCtaText, { color: colors.textInverse }]}>{t('dash.assist.start')}</Text>
             <Ionicons name="arrow-forward" size={15} color={colors.textInverse} />
           </Pressable>
         </View>
@@ -622,10 +622,10 @@ export default function DashboardScreen() {
               <View style={styles.cardHeaderIcon}>
                 <Ionicons name="library-outline" size={15} color={colors.primary} />
               </View>
-              <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.prec.title')}</Text>
+              <Text style={styles.cardTitle}>{t('dash.prec.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/ictihat' as Parameters<typeof router.push>[0])} hitSlop={6}>
-              <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.prec.link')}</Text>
+              <Text style={styles.cardHeaderLink}>{t('dash.prec.link')}</Text>
               <Ionicons name="chevron-forward" size={14} color={colors.primary} />
             </Pressable>
           </View>
@@ -635,13 +635,13 @@ export default function DashboardScreen() {
           ) : caseList.length === 0 ? (
             <View style={styles.precEmpty}>
               <Ionicons name="library-outline" size={22} color={colors.primary} />
-              <Text allowFontScaling={false} style={styles.precEmptyText}>{t('dash.prec.emptyCases')}</Text>
+              <Text style={styles.precEmptyText}>{t('dash.prec.emptyCases')}</Text>
               <Pressable
                 style={({ pressed }) => [styles.focusButton, { marginTop: spacing.sm }, pressed && { opacity: 0.8 }]}
                 onPress={() => router.push('/case-form' as Parameters<typeof router.push>[0])}
               >
                 <Ionicons name="add" size={16} color={colors.primary} />
-                <Text allowFontScaling={false} style={styles.focusButtonText}>{t('dash.prec.addCase')}</Text>
+                <Text style={styles.focusButtonText}>{t('dash.prec.addCase')}</Text>
               </Pressable>
             </View>
           ) : (
@@ -663,7 +663,6 @@ export default function DashboardScreen() {
                         style={[styles.precChip, active && styles.precChipActive]}
                       >
                         <Text
-                          allowFontScaling={false}
                           numberOfLines={1}
                           style={[styles.precChipText, active && styles.precChipTextActive]}
                         >
@@ -675,27 +674,27 @@ export default function DashboardScreen() {
                 </ScrollView>
               )}
 
-              <Text allowFontScaling={false} style={styles.precForLine} numberOfLines={2}>
+              <Text style={styles.precForLine} numberOfLines={2}>
                 {t(emsalBaslikAnahtari(precCourt), { term: precTerm || (selectedCase?.title ?? '') })}
               </Text>
 
               {precedents.isLoading ? (
                 <View style={styles.precLoading}>
                   <ActivityIndicator size="small" color={colors.primary} />
-                  <Text allowFontScaling={false} style={styles.precLoadingText}>{t('dash.prec.searching')}</Text>
+                  <Text style={styles.precLoadingText}>{t('dash.prec.searching')}</Text>
                 </View>
               ) : precedents.isError ? (
                 <View style={styles.precLoading}>
                   <Ionicons name="cloud-offline-outline" size={18} color={colors.textMuted} />
-                  <Text allowFontScaling={false} style={styles.precLoadingText}>{t('dash.prec.errSource')}</Text>
+                  <Text style={styles.precLoadingText}>{t('dash.prec.errSource')}</Text>
                   <Pressable onPress={() => precedents.refetch()} hitSlop={6}>
-                    <Text allowFontScaling={false} style={styles.precRetry}>{t('dash.prec.retry')}</Text>
+                    <Text style={styles.precRetry}>{t('dash.prec.retry')}</Text>
                   </Pressable>
                 </View>
               ) : (precedents.data?.hits.length ?? 0) === 0 ? (
                 <View style={styles.emptyRow}>
                   <Ionicons name="search-outline" size={18} color={colors.textMuted} />
-                  <Text allowFontScaling={false} style={styles.emptyRowText}>{t('dash.prec.none')}</Text>
+                  <Text style={styles.emptyRowText}>{t('dash.prec.none')}</Text>
                 </View>
               ) : (
                 <View>
@@ -710,22 +709,22 @@ export default function DashboardScreen() {
                       </View>
                       <View style={styles.precRowBody}>
                         <View style={styles.precDaireRow}>
-                          <Text allowFontScaling={false} style={styles.precDaire} numberOfLines={1}>
+                          <Text style={styles.precDaire} numberOfLines={1}>
                             {h.daire || t('dash.prec.title')}
                           </Text>
                           {h.matched === false && (
                             <View style={styles.precBadge}>
-                              <Text allowFontScaling={false} style={styles.precBadgeText}>{t('dash.prec.near')}</Text>
+                              <Text style={styles.precBadgeText}>{t('dash.prec.near')}</Text>
                             </View>
                           )}
                         </View>
-                        <Text allowFontScaling={false} style={styles.precMeta} numberOfLines={1}>
+                        <Text style={styles.precMeta} numberOfLines={1}>
                           {[h.esasNo && `E.${h.esasNo}`, h.kararNo && `K.${h.kararNo}`, h.kararTarihi]
                             .filter(Boolean)
                             .join('  ·  ')}
                         </Text>
                         {!!h.snippet && (
-                          <Text allowFontScaling={false} style={styles.precSnippet} numberOfLines={2}>
+                          <Text style={styles.precSnippet} numberOfLines={2}>
                             {h.snippet}
                           </Text>
                         )}
@@ -736,7 +735,7 @@ export default function DashboardScreen() {
                     style={({ pressed }) => [styles.focusButton, pressed && { opacity: 0.8 }]}
                     onPress={() => router.push(emsalAramaYolu(precTerm, precCourt) as Parameters<typeof router.push>[0])}
                   >
-                    <Text allowFontScaling={false} style={styles.focusButtonText}>
+                    <Text style={styles.focusButtonText}>
                       {t('dash.prec.seeAll')}
                       {precedents.data!.total > 3 ? `  (${precedents.data!.total})` : ''}
                     </Text>
@@ -756,10 +755,10 @@ export default function DashboardScreen() {
               <View style={styles.cardHeaderIcon}>
                 <Ionicons name="stats-chart-outline" size={15} color={colors.primary} />
               </View>
-              <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.fin.title')}</Text>
+              <Text style={styles.cardTitle}>{t('dash.fin.title')}</Text>
             </View>
             <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/finance' as Parameters<typeof router.push>[0])} hitSlop={6}>
-              <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.fin.month')}</Text>
+              <Text style={styles.cardHeaderLink}>{t('dash.fin.month')}</Text>
               <Ionicons name="chevron-forward" size={14} color={colors.primary} />
             </Pressable>
           </View>
@@ -790,10 +789,10 @@ export default function DashboardScreen() {
                 <View style={styles.cardHeaderIcon}>
                   <Ionicons name="hourglass-outline" size={15} color={colors.primary} />
                 </View>
-                <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.upcoming.title')}</Text>
+                <Text style={styles.cardTitle}>{t('dash.upcoming.title')}</Text>
               </View>
               <Pressable style={styles.cardHeaderRight} onPress={() => router.push('/(app)/calendar')} hitSlop={6}>
-                <Text allowFontScaling={false} style={styles.cardHeaderLink}>{t('dash.upcoming.all')}</Text>
+                <Text style={styles.cardHeaderLink}>{t('dash.upcoming.all')}</Text>
                 <Ionicons name="chevron-forward" size={14} color={colors.primary} />
               </Pressable>
             </View>
@@ -801,7 +800,7 @@ export default function DashboardScreen() {
             {sureDurumu !== 'hazir' ? (
               <DurumSatiri durum={sureDurumu} onRetry={() => void deadlines.refetch()} />
             ) : yaklasanListesi.length === 0 ? (
-              <Text allowFontScaling={false} style={styles.bosDurum}>{t('dash.upcoming.empty')}</Text>
+              <Text style={styles.bosDurum}>{t('dash.upcoming.empty')}</Text>
             ) : (
               yaklasanListesi.map((s, i) => {
                 // RENK BİR UYARI, SÜS DEĞİL: bugün kırmızı, üç güne kadar
@@ -822,13 +821,13 @@ export default function DashboardScreen() {
                     onPress={() => router.push('/(app)/calendar')}
                   >
                     <View style={[styles.sureRozet, { backgroundColor: renk + '1F' }]}>
-                      <Text allowFontScaling={false} style={[styles.sureRozetYazi, { color: renk }]}>
+                      <Text style={[styles.sureRozetYazi, { color: renk }]}>
                         {acil ? t('dash.upcoming.due') : t('dash.upcoming.days', { n: s.kalanGun })}
                       </Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text allowFontScaling={false} style={styles.sureBaslik} numberOfLines={1}>{s.baslik}</Text>
-                      <Text allowFontScaling={false} style={styles.sureAlt} numberOfLines={1}>
+                      <Text style={styles.sureBaslik} numberOfLines={1}>{s.baslik}</Text>
+                      <Text style={styles.sureAlt} numberOfLines={1}>
                         {s.dosya ? `${s.dosya} · ${s.tarih}` : s.tarih}
                       </Text>
                     </View>
@@ -855,7 +854,7 @@ export default function DashboardScreen() {
                 <View style={styles.cardHeaderIcon}>
                   <Ionicons name="flash-outline" size={15} color={colors.primary} />
                 </View>
-                <Text allowFontScaling={false} style={styles.cardTitle}>{t('dash.quick.title')}</Text>
+                <Text style={styles.cardTitle}>{t('dash.quick.title')}</Text>
               </View>
             </View>
             <View style={styles.kisayolIzgara}>
@@ -874,7 +873,7 @@ export default function DashboardScreen() {
                 >
                   <Ionicons name={k.ikon as keyof typeof Ionicons.glyphMap} size={16} color={colors.primary} />
                   {/* Terminal temasında "Belgeden dosya aç" kesiliyordu — bkz. finLabel. */}
-                  <Text allowFontScaling={false} style={styles.kisayolYazi} numberOfLines={2}>{k.yazi}</Text>
+                  <Text style={styles.kisayolYazi} numberOfLines={2}>{k.yazi}</Text>
                 </Pressable>
               ))}
             </View>
@@ -936,8 +935,8 @@ function PanoSayi({ etiket, deger }: { etiket: string; deger: number | null }) {
   const styles = makeStyles(__t.colors);
   return (
     <View style={styles.panoSayiKutu}>
-      <Text allowFontScaling={false} style={styles.panoSayiEtiket} numberOfLines={1}>{etiket}</Text>
-      <Text allowFontScaling={false} style={styles.panoSayiDeger}>{deger === null ? '—' : deger}</Text>
+      <Text style={styles.panoSayiEtiket} numberOfLines={1}>{etiket}</Text>
+      <Text style={styles.panoSayiDeger}>{deger === null ? '—' : deger}</Text>
     </View>
   );
 }
@@ -962,10 +961,10 @@ function AssistRow({
         <Ionicons name={icon} size={15} color={colors.primary} />
       </View>
       <View style={styles.assistBody}>
-        <Text allowFontScaling={false} style={styles.assistLabel} numberOfLines={1}>
+        <Text style={styles.assistLabel} numberOfLines={1}>
           {label}
         </Text>
-        <Text allowFontScaling={false} style={styles.assistValue} numberOfLines={1}>
+        <Text style={styles.assistValue} numberOfLines={1}>
           {value}
         </Text>
       </View>
@@ -1009,11 +1008,11 @@ function FinCell({
           "Net Nakit Akışı" → "Net Nakit Akı…" diye kesiliyordu: tek aralıklı
           yazı karakter başına daha geniş. Kelimeyi gizlemektense sarmak
           doğrusu. */}
-      <Text allowFontScaling={false} style={styles.finLabel} numberOfLines={2}>
+      <Text style={styles.finLabel} numberOfLines={2}>
         {label}
       </Text>
       <View style={styles.finMidRow}>
-        <Text allowFontScaling={false} style={styles.finAmount} numberOfLines={1} adjustsFontSizeToFit>
+        <Text style={styles.finAmount} numberOfLines={1} adjustsFontSizeToFit>
           {formatMoney(amount)}
         </Text>
         <View style={styles.finSpark}>
@@ -1029,12 +1028,12 @@ function FinCell({
         {pct != null ? (
           <>
             <Ionicons name={pct >= 0 ? 'arrow-up' : 'arrow-down'} size={11} color={good ? colors.success : colors.danger} />
-            <Text allowFontScaling={false} style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={2}>
+            <Text style={[styles.finPct, { color: good ? colors.success : colors.danger }]} numberOfLines={2}>
               %{Math.abs(pct)} {vsLabel}
             </Text>
           </>
         ) : (
-          <Text allowFontScaling={false} style={[styles.finPct, { color: colors.textMuted }]} numberOfLines={2}>
+          <Text style={[styles.finPct, { color: colors.textMuted }]} numberOfLines={2}>
             %0 {vsLabel}
           </Text>
         )}
@@ -1062,7 +1061,6 @@ function BottomTab({
       <View style={[styles.bottomTabIndicator, active && styles.bottomTabIndicatorActive]} />
       <Ionicons name={icon} size={20} color={active ? colors.primary : colors.textMuted} />
       <Text
-        allowFontScaling={false}
         style={[styles.bottomTabLabel, active && styles.bottomTabLabelActive]}
         numberOfLines={1}
       >
