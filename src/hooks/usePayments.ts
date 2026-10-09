@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
+import { davaMasrafiDegisti } from '@/lib/masrafOnbellegi';
 import { useAuthStore } from '@/store/authStore';
 import type { CaseExpense, CaseInstallment, Payment } from '@/types/database';
 
@@ -102,7 +103,8 @@ export function useCreateCaseExpense() {
       const { error } = await supabase.from('case_expenses').insert({ ...input, owner_id: ownerId! });
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['case-expenses'] }),
+    // Müvekkil avans bakiyesi ve ana ekran avans uyarısı da aynı masrafları sayar.
+    onSuccess: () => davaMasrafiDegisti(queryClient),
   });
 }
 
@@ -115,7 +117,7 @@ export function useDeleteCaseExpense() {
       const { error } = await supabase.from('case_expenses').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['case-expenses'] }),
+    onSuccess: () => davaMasrafiDegisti(queryClient),
   });
 }
 

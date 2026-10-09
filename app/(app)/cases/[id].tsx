@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { metniPaylas } from '@/lib/cikti';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -28,10 +28,13 @@ import { useTheme } from '@/theme/useTheme';
 // demek olurdu (bu depoda tam olarak bu sınıftan arızalar çıktı).
 import { kaliciMenuMu, panoOlculeri, PANO_ARALIK } from '@/theme/duzen';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatDate, formatMoney } from '@/utils/format';
+import { formatDate, formatGun, formatMoney } from '@/utils/format';
 import { tutarOku, tutarYaz } from '@/utils/tutar';
 import { istinafSonGunu, istinafTanimi } from '@/utils/istinafSuresi';
 import { yerelGunISO } from '@/lib/yerelGun';
+import { davaEkranDurumu } from '@/utils/davaEkrani';
+import { masrafAvansiOzeti, sonrakiTaksitNo, tahsilEdilecek, tahsilEdilenToplam } from '@/utils/davaFinans';
+import { tekSeferde } from '@/lib/tekSeferde';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { WarPlanTab } from '@/components/case/WarPlanTab';
 import { ZamanSekmesi } from '@/components/case/ZamanSekmesi';
@@ -55,7 +58,7 @@ export default function CaseDetailScreen() {
   const pano = panoOlculeri(pencereGenisligi, kaliciMenuMu(pencereGenisligi));
   const panoMu = pano.sutun > 1;
 
-  const { data: caseItem, isLoading } = useCase(id);
+  const { data: caseItem, error: davaHatasi, refetch: davayiYenile } = useCase(id);
   const client = useClient(caseItem?.client_id ?? undefined);
   const profile = useAuthStore((s) => s.profile);
   const hearings = useHearingsForCase(id);
@@ -111,6 +114,7 @@ export default function CaseDetailScreen() {
   const toggleInstallment = useToggleInstallment();
   const deleteInstallment = useDeleteInstallment();
   const [instAmount, setInstAmount] = useState('');
+  const taksitKilidi = useRef(false);
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
 
@@ -118,10 +122,39 @@ export default function CaseDetailScreen() {
     setAdvanceText(caseItem?.advance_amount != null ? tutarYaz(caseItem.advance_amount) : '');
   }, [caseItem?.advance_amount]);
 
-  if (isLoading || !caseItem) {
+  // Yükleniyor / bulunamadı / yüklenemedi ayrı çizilir — eskiden üçü de
+  // yalnız başlıktan ibaret, bitmeyen boş sayfaydı (bkz. utils/davaEkrani).
+  const ekranDurumu = davaEkranDurumu({ kimlik: id, veri: caseItem, hata: davaHatasi });
+  if (ekranDurumu !== 'hazir' || !caseItem) {
     return (
       <Screen>
         <ScreenHeader title={t('case.title')} showBack />
+        <View style={styles.content}>
+          <Card>
+            {ekranDurumu === 'yukleniyor' ? (
+              <View style={styles.durum}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={styles.durumMetni}>{t('case.loading')}</Text>
+              </View>
+            ) : ekranDurumu === 'yuklenemedi' ? (
+              <EmptyState
+                icon="cloud-offline-outline"
+                title={t('case.loadError')}
+                description={t('case.loadErrorDesc')}
+                actionLabel={t('case.retry')}
+                onAction={() => davayiYenile()}
+              />
+            ) : (
+              <EmptyState
+                icon="folder-open-outline"
+                title={t('case.notFound')}
+                description={t('case.notFoundDesc')}
+                actionLabel={t('case.backToList')}
+                onAction={() => geriDon('/(app)/cases')}
+              />
+            )}
+          </Card>
+        </View>
       </Screen>
     );
   }
@@ -259,8 +292,8 @@ export default function CaseDetailScreen() {
           {caseItem.case_type && <InfoRow label={t('case.caseType')} value={caseItem.case_type} />}
           {caseItem.opposing_party && <InfoRow label={t('case.opposingParty')} value={caseItem.opposing_party} />}
           {caseItem.opposing_counsel && <InfoRow label={t('case.opposingCounsel')} value={caseItem.opposing_counsel} />}
-          <InfoRow label={t('case.opened')} value={formatDate(caseItem.opened_date)} />
-          {caseItem.closed_date && <InfoRow label={t('case.closed')} value={formatDate(caseItem.closed_date)} />}
+          <InfoRow label={t('case.opened')} value={formatGun(caseItem.opened_date)} />
+          {caseItem.closed_date && <InfoRow label={t('case.closed')} value={formatGun(caseItem.closed_date)} />}
         </Card>
 
         <View style={styles.tabsWrap}>
@@ -351,12 +384,9 @@ export default function CaseDetailScreen() {
             {(() => {
               // Tahsil edilen = tek tek eklenen ödemeler + "ödendi" işaretlenmiş
               // taksitler. (Eskiden sadece ödemeler sayılıyor, ödenen taksitler
-              // Kalan'ı düşürmüyordu.)
-              const paymentsSum = (payments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
-              const paidInstallments = (installments.data ?? [])
-                .filter((i) => i.is_paid)
-                .reduce((sum, i) => sum + Number(i.amount), 0);
-              const collected = paymentsSum + paidInstallments;
+              // Kalan'ı düşürmüyordu.) Liste yüklenemediyse ₺0 değil "—".
+              const collected = tahsilEdilenToplam(payments.data, installments.data);
+              const tahsilatYuklenemedi = payments.isLoadingError || installments.isLoadingError;
               const feeType = caseItem.fee_type ?? 'fixed';
               const feeLabel =
                 feeType === 'percentage'
@@ -370,7 +400,9 @@ export default function CaseDetailScreen() {
                         : caseItem.fee_amount != null
                           ? formatMoney(caseItem.fee_amount)
                           : t('finance.noFee');
-              const remaining = caseItem.fee_amount != null ? Math.max(0, Number(caseItem.fee_amount) - collected) : null;
+              // Yalnız sabit ücrette; aylık danışmanlık/yüzde tiplerinde "—"
+              // (eskiden aylık tutardan tüm tahsilat düşülüyordu, bkz. utils/davaFinans).
+              const remaining = tahsilEdilecek(caseItem.fee_type, caseItem.fee_amount, collected);
               return (
                 <Card style={styles.financeSummary}>
                   <View style={styles.feeTypeRow}>
@@ -380,13 +412,25 @@ export default function CaseDetailScreen() {
                     </Text>
                   </View>
                   <View style={styles.financeRow}>
-                    <FinanceStat label={t('finance.collected')} value={formatMoney(collected)} color={colors.success} />
+                    <FinanceStat
+                      label={t('finance.collected')}
+                      value={collected != null ? formatMoney(collected) : '—'}
+                      color={colors.success}
+                    />
                     <FinanceStat
                       label={t('fee.toCollect')}
                       value={remaining != null ? formatMoney(remaining) : '—'}
                       color={colors.warning}
                     />
                   </View>
+                  {tahsilatYuklenemedi && (
+                    <YuklemeHatasi
+                      onRetry={() => {
+                        if (payments.isLoadingError) payments.refetch();
+                        if (installments.isLoadingError) installments.refetch();
+                      }}
+                    />
+                  )}
 
                   {/* Sabit ücrette taksit (vade) planı */}
                   {feeType === 'fixed' && (
@@ -405,7 +449,7 @@ export default function CaseDetailScreen() {
                           />
                           <Text style={[styles.instText, it.is_paid && styles.instPaid]}>
                             {t('fee.installmentN', { n: it.seq })}: {formatMoney(Number(it.amount))}
-                            {it.due_date ? ` · ${formatDate(it.due_date)}` : ''}
+                            {it.due_date ? ` · ${formatGun(it.due_date)}` : ''}
                           </Text>
                           <Ionicons
                             name="trash-outline"
@@ -444,17 +488,24 @@ export default function CaseDetailScreen() {
                         <Button
                           label={t('fee.addInstallment')}
                           variant="secondary"
-                          disabled={!(tutarOku(instAmount) > 0)}
-                          onPress={async () => {
-                            await createInstallment.mutateAsync({
-                              case_id: caseItem.id,
-                              seq: (installments.data?.length ?? 0) + 1,
-                              amount: tutarOku(instAmount),
-                              due_date: instDue ? yerelGunISO(instDue) : null,
-                            });
-                            setInstAmount('');
-                            setInstDue(null);
-                          }}
+                          loading={createInstallment.isPending}
+                          // Mevcut taksitler okunmadan numara verilemez (yinelenirdi).
+                          disabled={!(tutarOku(instAmount) > 0) || !installments.data}
+                          // Çift dokunuş iki taksit yazıyordu; kilit ilk dokunuşta
+                          // kapanır (bkz. lib/tekSeferde). Hata notifySaveError ile
+                          // gösterilir, girilen tutar silinmez.
+                          onPress={() =>
+                            tekSeferde(taksitKilidi, async () => {
+                              await createInstallment.mutateAsync({
+                                case_id: caseItem.id,
+                                seq: sonrakiTaksitNo(installments.data ?? []),
+                                amount: tutarOku(instAmount),
+                                due_date: instDue ? yerelGunISO(instDue) : null,
+                              });
+                              setInstAmount('');
+                              setInstDue(null);
+                            }).catch(() => {})
+                          }
                           style={styles.instAddBtn}
                         />
                       </View>
@@ -509,23 +560,27 @@ export default function CaseDetailScreen() {
 
             {/* ---------- Masraf Avansı (alıcı geri bildirimi) ---------- */}
             {(() => {
-              const spent = (expenses.data ?? []).reduce((s, e) => s + Number(e.amount), 0);
-              const advance = Number(caseItem.advance_amount ?? 0);
-              const remaining = advance - spent;
+              // Masraf listesi yüklenemediyse harcanan/kalan "—": eskiden ₺0
+              // sayılıyor, avansın tamamı "kalan" görünüyordu (utils/davaFinans).
+              const { avans: advance, harcanan: spent, kalan: remaining } = masrafAvansiOzeti(
+                caseItem.advance_amount,
+                expenses.data
+              );
               return (
                 <>
                   <SectionHeader title={t('adv.title')} />
                   <Card>
                     <View style={styles.financeRow}>
                       <FinanceStat label={t('adv.advance')} value={formatMoney(advance)} color={colors.textPrimary} />
-                      <FinanceStat label={t('adv.spent')} value={formatMoney(spent)} color={colors.warning} />
+                      <FinanceStat label={t('adv.spent')} value={spent != null ? formatMoney(spent) : '—'} color={colors.warning} />
                       <FinanceStat
                         label={t('adv.remaining')}
-                        value={formatMoney(remaining)}
-                        color={remaining < 0 ? colors.danger : colors.success}
+                        value={remaining != null ? formatMoney(remaining) : '—'}
+                        color={remaining != null && remaining < 0 ? colors.danger : colors.success}
                       />
                     </View>
-                    {remaining < 0 && (
+                    {expenses.isLoadingError && <YuklemeHatasi onRetry={() => expenses.refetch()} />}
+                    {remaining != null && remaining < 0 && (
                       <View style={styles.advWarn}>
                         <Ionicons name="warning" size={16} color={colors.danger} />
                         <Text style={styles.advWarnText}>{t('adv.negative')}</Text>
@@ -646,6 +701,9 @@ export default function CaseDetailScreen() {
                     </View>
                   </View>
                 ))
+              ) : payments.isLoadingError ? (
+                // Yüklenemeyen liste "Henüz tahsilat yok" demesin.
+                <YuklemeHatasi onRetry={() => payments.refetch()} />
               ) : (
                 <EmptyState icon="cash-outline" title={t('finance.noPayments')} />
               )}
@@ -746,13 +804,13 @@ export default function CaseDetailScreen() {
             <Pressable style={styles.stageDateBtn} onPress={() => setDatePicker('decision')}>
               <Ionicons name="calendar-outline" size={15} color={colors.textMuted} />
               <Text style={styles.stageDateText}>
-                {t('case.decisionDate')}: {caseItem.decision_date ? formatDate(caseItem.decision_date) : '—'}
+                {t('case.decisionDate')}: {caseItem.decision_date ? formatGun(caseItem.decision_date) : '—'}
               </Text>
             </Pressable>
             <Pressable style={styles.stageDateBtn} onPress={() => setDatePicker('served')}>
               <Ionicons name="calendar-outline" size={15} color={colors.gold} />
               <Text style={styles.stageDateText}>
-                {t('case.servedDate')}: {caseItem.decision_served_date ? formatDate(caseItem.decision_served_date) : '—'}
+                {t('case.servedDate')}: {caseItem.decision_served_date ? formatGun(caseItem.decision_served_date) : '—'}
               </Text>
             </Pressable>
           </View>
@@ -844,6 +902,27 @@ function FinanceStat({ label, value, color }: { label: string; value: string; co
   );
 }
 
+/**
+ * Finans listesi yüklenemedi (09.10.2026). Eskiden yüklenemeyen liste ₺0
+ * sayılıyor ve hiçbir yerde söylenmiyordu; tutarlar artık "—" ve bu not.
+ */
+function YuklemeHatasi({ onRetry }: { onRetry: () => void }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const t = useT();
+
+  return (
+    <View style={styles.advWarn}>
+      <Ionicons name="cloud-offline-outline" size={16} color={colors.danger} />
+      <Text style={styles.advWarnText}>{t('case.finLoadError')}</Text>
+      <Pressable onPress={onRetry} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('case.retry')}>
+        <Text style={styles.yenidenDene}>{t('case.retry')}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function InfoRow({ label, value, onPress }: { label: string; value: string; onPress?: () => void }) {
   const __t = useTheme();
   const styles = makeStyles(__t.colors);
@@ -862,6 +941,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
+  },
+  durum: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+  },
+  durumMetni: {
+    ...typography.caption,
+    color: colors.textSecondary,
   },
   summaryCard: {
     marginBottom: spacing.md,
@@ -1033,6 +1121,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.danger,
     flex: 1,
     lineHeight: 16,
+  },
+  yenidenDene: {
+    ...typography.small,
+    color: colors.danger,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   advFormRow: {
     flexDirection: 'row',

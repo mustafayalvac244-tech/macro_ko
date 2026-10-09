@@ -31,6 +31,19 @@ export function formatDate(iso: string): string {
   return safeFormat(iso, getLang() === 'tr' ? 'd MMM yyyy' : 'MMM d, yyyy');
 }
 
+/**
+ * TAKVİM GÜNÜ (DATE sütunu, "2026-10-09") için formatDate.
+ *
+ * `new Date('2026-10-09')` UTC gece yarısıdır: Türkiye'de (UTC+3) aynı gün,
+ * UTC'nin batısındaki cihazda (ör. New York) bir ÖNCEKİ gün (ölçüldü,
+ * tests/formatGun.test.ts). Gün, yerel öğle saatiyle okunur — her saat
+ * diliminde aynı gündür (depodaki `${gun}T12:00:00` kalıbının aynısı).
+ * Tarih-saat değeri gelirse formatDate'e olduğu gibi gider.
+ */
+export function formatGun(gun: string): string {
+  return formatDate(/^\d{4}-\d{2}-\d{2}$/.test(gun) ? `${gun}T12:00:00` : gun);
+}
+
 export function formatDateTime(iso: string): string {
   return safeFormat(iso, getLang() === 'tr' ? 'd MMM yyyy HH:mm' : "MMM d, yyyy 'at' h:mm a");
 }
