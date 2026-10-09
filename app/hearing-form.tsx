@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router, useLocalSearchParams } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { useLocalSearchParams } from 'expo-router';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -22,6 +22,8 @@ import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatTime } from '@/utils/format';
 import { addToDeviceCalendar } from '@/utils/deviceCalendar';
 import type { HearingType } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
+import { arabuluculukCoz, toplantiYeriCoz } from '@/utils/toplantiYeri';
 
 // Keşif (deposition) öne alındı — Burak geri bildirimi: keşif tarihini
 // girecek yeri bulamıyordu. Artık Duruşma'nın hemen yanında.
@@ -83,6 +85,23 @@ export default function HearingFormScreen() {
       setTitle(existing.title);
       setType(existing.type);
       setLocation(existing.location ?? '');
+      // Toplantı/arabuluculukta kayıtlı yer seçeneklere geri çözülür; yoksa
+      // seçenekler 'ofis'te kalıp kaydedince yer sessizce "Ofis" oluyordu.
+      if (existing.type === 'meeting') {
+        const c = toplantiYeriCoz(existing.location, (y) => t(`meetPlace.${y}` as const));
+        setMeetingPlace(c.yer);
+        setLocation(c.ek);
+      } else if (existing.type === 'mediation') {
+        const c = arabuluculukCoz(
+          existing.location,
+          (k) => t(`medWith.${k}` as const),
+          (y) => t(`meetPlace.${y}` as const)
+        );
+        if (c) {
+          setMediationWith(c.kim);
+          setMediationPlace(c.yer);
+        }
+      }
       setNotes(existing.notes ?? '');
       setScheduledAt(new Date(existing.scheduled_at));
       setReminder(String(existing.reminder_minutes_before));
@@ -153,7 +172,7 @@ export default function HearingFormScreen() {
     try {
       if (isEdit && id) {
         await updateHearing.mutateAsync({ id, ...payload });
-        router.back();
+        geriDon();
         return;
       }
       await createHearing.mutateAsync(payload);
@@ -163,7 +182,7 @@ export default function HearingFormScreen() {
 
     // Yeni kayıt telefonun takvimine de yazılsın mı?
     uyar(t('devCal.askTitle'), t('devCal.askMsg'), [
-      { text: t('common.no'), style: 'cancel', onPress: () => router.back() },
+      { text: t('common.no'), style: 'cancel', onPress: () => geriDon() },
       {
         text: t('common.yes'),
         onPress: async () => {
@@ -177,7 +196,7 @@ export default function HearingFormScreen() {
           else if (res === 'unavailable') uyar(t('devCal.askTitle'), t('devCal.unavailable'));
           else if (res === 'error') uyar(t('devCal.askTitle'), t('devCal.error'));
           // 'canceled' → kullanıcı vazgeçti, mesaj gösterme
-          router.back();
+          geriDon();
         },
       },
     ]);

@@ -31,7 +31,9 @@ describe('canlı künye teyidi', () => {
     expect(aiChat).toMatch(/kaynak\?: 'havuz' \| 'uyap'/);
     expect(aiChat).toContain('canliKunyeDogrula(esas, karar)');
     expect(aiChat).toMatch(/if \(r === null\) return;[\s\S]*kaynak: 'uyap'[\s\S]*canlidaYok\.push/);
-    expect(aiChat).toContain("a.mahkeme === '' || a.mahkeme === 'Yargıtay'");
+    // 08.10.2026: aday seçimi canliTeyideUygun'a taşındı (kullanıcının kendi
+    // künyesi ve ilk derece bağlamı muaf; bkz. tests/kunyeKaynakMuafiyet.test.ts).
+    expect(aiChat).toContain('canliTeyideUygun(metin, a, kaynak)');
   });
 
   it('canlıda olmayan künye dilekçe, mütalaa ve belgede hak düşürmez', () => {

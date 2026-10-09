@@ -4,6 +4,7 @@ import {
   needsServiceWatch,
   pendingOutcomeHearings,
   planDeadline,
+  kanuniSureGun,
 } from '@/utils/hearingOutcome';
 
 const d = (iso: string) => new Date(`${iso}T00:00:00`);
@@ -151,5 +152,38 @@ describe('duruşma sonrası sorma anı', () => {
     const simdi = new Date('2026-09-10T09:00:00.000Z');
     expect(soruAni('2026-09-09T10:00:00.000Z').getTime() <= simdi.getTime()).toBe(true);
     expect(soruAni('2026-09-10T08:30:00.000Z').getTime() <= simdi.getTime()).toBe(false);
+  });
+});
+
+describe('08.10.2026 düzeltmeleri — dosya türü ve rapor tebliği', () => {
+  it('bilirkişi itirazı rapor TEBLİĞİNDEN işler (duruşmadan önce tebliğ edilen rapor)', () => {
+    // Rapor 28.02'de tebliğ edildi, duruşma 10.03: son gün 14.03 (eskiden 24.03 — 10 gün geç).
+    const p = planDeadline('bilirkisi_itiraz', d('2026-03-10'), d('2026-02-28'));
+    expect(ymd(p!.dueAt)).toBe('2026-03-14');
+    expect(p!.fromService).toBe(true);
+  });
+
+  it('bilirkişi itirazı tebligat tarihi olmadan takip işi istemez', () => {
+    expect(needsServiceWatch('bilirkisi_itiraz', null)).toBe(false);
+  });
+
+  it('kanun yolu süresi dosya türüne göre (ceza: CMK 273, iki hafta)', () => {
+    const p = planDeadline('karar_aciklandi', d('2026-03-10'), d('2026-01-05'), undefined, 'ceza');
+    expect(ymd(p!.dueAt)).toBe('2026-01-19');
+    expect(p!.basis).toBe('CMK 273');
+  });
+
+  it('idari dosyada kanun yolu İYUK 45, 30 gün', () => {
+    const p = planDeadline('karar_aciklandi', d('2026-03-10'), d('2026-03-02'), undefined, 'idare');
+    expect(p!.basis).toBe('İYUK 45');
+    expect(ymd(p!.dueAt)).toBe('2026-04-01');
+    expect(kanuniSureGun('karar_aciklandi', 'idare')).toBe(30);
+    expect(kanuniSureGun('karar_aciklandi', 'hukuk')).toBe(14);
+  });
+
+  it('hukukta adli tatile düşen son gün uzar (katalogla aynı)', () => {
+    // Tebliğ 10.07.2026 + 2 hafta = 24.07 → adli tatilde; HMK 104 ile tatil sonrası.
+    const p = planDeadline('karar_aciklandi', d('2026-03-10'), d('2026-07-10'), undefined, 'hukuk');
+    expect(ymd(p!.dueAt) > '2026-08-31').toBe(true);
   });
 });

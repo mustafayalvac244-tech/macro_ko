@@ -235,14 +235,22 @@ export function tarihCevir(ham: string | null | undefined): string | null {
   const s = (ham ?? '').trim();
   if (!s) return null;
 
+  // GERÇEK GÜN DENETİMİ (08.10.2026, denetimde bulundu). "31.02.2026" ve
+  // "2026-13-45" eskiden geçiyordu; veritabanı satırı reddediyor ve TÜM
+  // aktarım o satırda duruyordu. Takvimde olmayan gün → null (tarihsiz kayıt).
+  const gercekGun = (y: number, a: number, g: number) => {
+    const d = new Date(Date.UTC(y, a - 1, g));
+    return d.getUTCFullYear() === y && d.getUTCMonth() === a - 1 && d.getUTCDate() === g;
+  };
+
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  if (iso) return gercekGun(Number(iso[1]), Number(iso[2]), Number(iso[3])) ? `${iso[1]}-${iso[2]}-${iso[3]}` : null;
 
   const trTarih = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
   if (trTarih) {
     const gun = Number(trTarih[1]);
     const ay = Number(trTarih[2]);
-    if (gun < 1 || gun > 31 || ay < 1 || ay > 12) return null;
+    if (!gercekGun(Number(trTarih[3]), ay, gun)) return null;
     return `${trTarih[3]}-${String(ay).padStart(2, '0')}-${String(gun).padStart(2, '0')}`;
   }
   return null;

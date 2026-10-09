@@ -7,6 +7,7 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { TemaDugmesiTek } from './TemaDugmesi';
+import { geriDon } from '@/lib/geriDon';
 
 interface ScreenHeaderProps {
   title: string;
@@ -51,7 +52,7 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
           // Geri oku solda, tek başına — baş parmağın doğal yeri. Ana sayfa
           // kısayolu ise KARŞI köşeye (sağ üst) alındı; ikisi yan yana durup
           // birbirine karışmıyor, her biri kendi köşesinde amaçlı görünüyor.
-          <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
+          <Pressable onPress={() => geriDon()} hitSlop={10} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </Pressable>
         ) : (

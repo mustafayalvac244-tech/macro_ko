@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
@@ -13,6 +12,7 @@ import { trError } from '@/lib/authErrors';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { geriDon } from '@/lib/geriDon';
 
 export default function ChangePasswordScreen() {
   const __t = useTheme();
@@ -53,7 +53,10 @@ export default function ChangePasswordScreen() {
     const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
     if (reauthError) {
       setIsSubmitting(false);
-      setError(t('changePw.wrongCurrent'));
+      // Yalnız GERÇEKTEN yanlış şifrede "mevcut şifre hatalı" (08.10.2026).
+      // Sunucu 504/ağ hatası da bu mesajı veriyordu; avukat doğru şifresini
+      // yanlış sanıyordu.
+      setError(/invalid login credentials/i.test(reauthError.message) ? t('changePw.wrongCurrent') : trError(reauthError.message));
       return;
     }
 
@@ -65,7 +68,7 @@ export default function ChangePasswordScreen() {
     }
 
     uyar(t('settings.changePassword'), t('changePw.success'));
-    router.back();
+    geriDon();
   };
 
   return (

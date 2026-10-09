@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -17,6 +16,7 @@ import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
+import { geriDon } from '@/lib/geriDon';
 
 type FeedbackType = 'suggestion' | 'complaint';
 
@@ -65,7 +65,7 @@ export default function FeedbackScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['feedback'] });
       setMessage('');
-      uyar(t('settings.feedback'), t('feedback.thanks'), [{ text: t('common.done'), onPress: () => router.back() }]);
+      uyar(t('settings.feedback'), t('feedback.thanks'), [{ text: t('common.done'), onPress: () => geriDon() }]);
     },
     onError: () => uyar(t('settings.feedback'), t('feedback.error')),
   });

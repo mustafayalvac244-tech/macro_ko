@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -18,6 +17,7 @@ import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
+import { geriDon } from '@/lib/geriDon';
 
 const REMINDER_VALUES = [
   { key: 'reminder.1d', value: '1440' },
@@ -73,7 +73,7 @@ export default function DeadlineWizardScreen() {
         caseTitle: selectedCase.title,
       });
       uyar(t('wizard.createdTitle'), t('wizard.createdMsg', { date: formatDate(due.toISOString()) }), [
-        { text: t('common.done'), onPress: () => router.back() },
+        { text: t('common.done'), onPress: () => geriDon() },
       ]);
     } catch {
       uyar(t('wizard.title'), t('financeForm.saveFailed'));

@@ -21,6 +21,7 @@ export function AppLock() {
   const locked = useLockStore((s) => s.locked);
   const unlock = useLockStore((s) => s.unlock);
   const lock = useLockStore((s) => s.lock);
+  const setEnabled = useLockStore((s) => s.setEnabled);
   const isPrompting = useRef(false);
   const arkaPlanaGecisMs = useRef<number | null>(null);
 
@@ -33,12 +34,21 @@ export function AppLock() {
         cancelLabel: t('common.cancel'),
       });
       if (result.success) unlock();
+      // KALICI KİLİT ÖNLEMİ (08.10.2026, denetimde bulundu). Kilit açıkken
+      // kullanıcı telefonun ekran kilidini/parmak izini kaldırırsa doğrulama
+      // bir daha HİÇ başarılı olamaz (not_enrolled / passcode_not_set /
+      // not_available) ve ayardaki anahtar da gizlenir: tek çıkış yolu
+      // uygulamayı silmekti. Cihaz doğrulama yapamıyorsa uygulama kilidi
+      // kapatılır — koruyacak bir cihaz kilidi zaten yok.
+      else if (['not_enrolled', 'passcode_not_set', 'not_available'].includes(result.error)) {
+        await setEnabled(false);
+      }
     } catch {
       // stay locked; the user can retry with the button
     } finally {
       isPrompting.current = false;
     }
-  }, [t, unlock]);
+  }, [t, unlock, setEnabled]);
 
   /**
    * ARKA PLANDAN DÖNÜŞTE YENİDEN KİLİTLE.

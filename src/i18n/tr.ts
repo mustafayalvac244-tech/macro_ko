@@ -23,7 +23,7 @@ export const tr = {
     // alınıp ₺399'luk pakete taşındı (ürün sahibi kararı). Cümle kalsaydı
     // kayıt ekranı, hesabı açan avukata hiç alamayacağı bir şey vaat
     // etmiş olurdu — üstelik ilk ekranda.
-    'İçtihat araması, duruşma/görev ajandası ve hatırlatmalar sınırsız ve ücretsizdir. Ücretsiz planda {dava} dava, {muvekkil} müvekkil ve {belge} belge tutabilirsiniz; sınırsız kayıt, finans modülü ve {n} yapay zekâ denemesi Vekil Pro ile açılır.',
+    'İçtihat araması, duruşma/görev ajandası ve hatırlatmalar sınırsız ve ücretsizdir. Ücretsiz planda {dava} dava, {muvekkil} müvekkil ve {belge} belge tutabilirsiniz, {n} yapay zekâ denemesi de ücretsiz plana dahildir. Sınırsız kayıt ve finans modülü Vekil Pro ile açılır.',
     'auth.lawyersOnly': 'Avukatlara özel platform',
   'auth.tcNo': 'T.C. Kimlik No (isteğe bağlı)',
   'auth.tcPlaceholder': '11 haneli kimlik numaranız',
@@ -328,7 +328,7 @@ export const tr = {
   'case.noDeadlines': 'Takip edilen görev yok',
   'case.noDocuments': 'Yüklenmiş belge yok',
   'case.delete': 'Davayı Sil',
-  'case.deleteConfirm': '"{title}" davası ve bağlı tüm duruşmalar, görevler ve belgeler silinsin mi?',
+  'case.deleteConfirm': '"{title}" davası ve bağlı tüm duruşmalar, görevler, belgeler, tahsilatlar, masraflar, taksitler ve çalışma kayıtları silinsin mi? Bu işlem geri alınamaz.',
 
   // Common
   'common.cancel': 'Vazgeç',
@@ -372,7 +372,9 @@ export const tr = {
   'hout.whatHappened': 'Duruşmada ne oldu?',
   'hout.nextHearing': 'Sonraki duruşma günü',
   'hout.serviceQ': 'Karar tebliğ edildi mi?',
-  'hout.serviceHint': 'İstinaf süresi kararın TEBLİĞİNDEN işler (HMK m.345), duruşma gününden değil. Tebligat gelmediyse süre hesaplamıyoruz; yerine tebligatı takip hatırlatması kuruyoruz.',
+  'hout.serviceHint': 'Kanun yolu süresi kararın TEBLİĞİNDEN işler, duruşma gününden değil; süre dosya türüne göre hesaplanır (hukuk HMK 345, ceza CMK 273, idare İYUK 45). Tebligat gelmediyse süre hesaplamıyoruz; yerine tebligatı takip hatırlatması kuruyoruz.',
+  'hout.raporTebligQ': 'Rapor size hangi gün tebliğ edildi?',
+  'hout.raporTebligHint': 'İtiraz süresi raporun TEBLİĞİNDEN işler (HMK 281), duruşma gününden değil. Rapor duruşmada verildiyse tarihi değiştirmeyin.',
   'hout.daysLabel': 'Süre (gün) — kanuni: {d}',
   'hout.noteLabel': 'Kısa not (isteğe bağlı)',
   'hout.notePlaceholder': 'Hâkim ne dedi, ne yapılacak…',
@@ -387,8 +389,9 @@ export const tr = {
   'hout.emptyTitle': 'Bekleyen duruşma yok',
   'hout.emptyDesc': 'Geçmiş duruşmalarınızın hepsinin sonucu kayıtlı. Yeni bir duruşma günü geçtiğinde burada görünecek.',
   'hout.fromServiceNote': 'Süre, kararın tebliğ tarihinden itibaren hesaplanmıştır.',
+  'hout.fromRaporNote': 'Süre, bilirkişi raporunun tebliğ tarihinden itibaren hesaplanmıştır.',
   'hout.watchTitle': 'Tebligatı takip et (karar)',
-  'hout.watchDesc': 'Karar tebliğ edildiğinde istinaf süresi (HMK m.345, 2 hafta) işlemeye başlar. Tebligat gelince süreyi kaydedin.',
+  'hout.watchDesc': 'Karar tebliğ edildiğinde kanun yolu süresi işlemeye başlar (dosya türüne göre HMK 345 / CMK 273 / İYUK 45). Tebligat gelince süreyi kaydedin.',
   // sonuç seçenekleri
   'hout.o.ertelendi': 'Ertelendi',
   'hout.o.sure_verildi': 'Süre verildi (beyan/cevap/delil)',
@@ -478,6 +481,7 @@ export const tr = {
   'viewer.title': 'Belge',
   'viewer.error': 'Belge açılamadı.',
   'viewer.unsupported': 'Bu belge türü uygulama içinde önizlenemiyor.',
+  'viewer.pdfDisarida': 'PDF, gizlilik için cihazınızın kendi PDF görüntüleyicisinde (web’de yeni sekmede) açılır; belge başka bir hizmete gönderilmez.',
   'viewer.openExternal': 'Harici Uygulamada Aç',
   'viewer.udfReading': 'Belge metni okunuyor…',
   'viewer.udfNote': 'UYAP belgesinin (UDF) metni gösteriliyor. Biçim, tablo ve imza için UYAP Editör’de açın.',
@@ -734,7 +738,7 @@ export const tr = {
   'premium.perMonth': '/ ay',
   'premium.popular': 'En Popüler',
   'premium.choose': '{plan}’ı Seç',
-  'premium.includes': '{plan}’taki her şey, artı:',
+  'premium.includes': '{plan} paketindeki her şey, artı:',
   'premium.storeNote': 'Ödeme App Store ve Google Play üzerinden güvenle alınır. İstediğiniz zaman iptal edebilirsiniz.',
   // WEB'DE SATIN ALMA — arıza değil, platform gerçeği. Uygulama içi satın
   // alma mağazaya özgüdür; tarayıcıda böyle bir mekanizma yoktur. Bunu
@@ -800,7 +804,7 @@ export const tr = {
   'premium.f.aiDocReview': 'Belge İncele: sözleşme ve kararlarda risk, eksik ve süre analizi',
   'premium.f.aiAktarma': 'Belgeden Dosya Aç: UYAP belgesinden taraf, esas no ve mahkeme bilgisi otomatik dolar',
   'premium.f.aiIctihat': 'İçtihat araması ve karar özetleme',
-  'premium.f.aiGrounded': 'Yanıttaki her kanun maddesi ve karar künyesi denetlenip işaretlenir: doğrulandı, havuzda bulunamadı ya da olamaz',
+  'premium.f.aiGrounded': 'Yanıttaki kanun maddeleri ve karar künyeleri denetlenir: doğrulanan ve havuzda bulunamayan işaretlenir; olanaksız künyeler ve resmî aramada da bulunamayan Yargıtay künyeleri metinden çıkarılır',
   'premium.t.baslangic': 'Başlangıç',
   'premium.t.pro': 'Pro',
   'premium.t.elit': 'Elit',
@@ -1088,7 +1092,8 @@ export const tr = {
   'toplu.doneBody': '{adet} dosya eklendi.',
   // Kısmen yazılmış olabilir: ne kadarının geçtiğini söylemezsek avukat baştan
   // yükler ve her şey ikilenir.
-  'toplu.partial': 'Aktarım yarıda kaldı. {adet} dosya eklendi; kalanlar eklenmedi. Aynı dosyayı tekrar yüklerseniz eklenenler ikilenir.',
+  'toplu.partial': 'Aktarım yarıda kaldı: {adet} dosya eklendi, {kalan} dosya eklenmedi. Eklenmeyenler listede duruyor; sebebi giderip tekrar Aktar’a basarsanız kaldığı yerden devam eder (eklenenler ikilenmez).',
+  'toplu.excelDegil': 'Excel dosyası (.xlsx) doğrudan okunamıyor. Excel’de Dosya > Farklı Kaydet > “CSV UTF-8 (virgülle ayrılmış)” seçip o dosyayı yükleyin.',
   'makbuz.action': 'Makbuz dökümü',
   'makbuz.title': 'Serbest Meslek Makbuzu',
   'makbuz.documentLabel': 'Makbuz dökümü',
@@ -1163,6 +1168,8 @@ export const tr = {
   'financeForm.notePlaceholder': 'Ek açıklama...',
   'financeForm.save': 'Kaydet',
   'financeForm.amountRequired': 'Geçerli bir tutar girin.',
+  'tutar.okunamadi': 'Tutar okunamadı: "{deger}". Örnek yazım: 12.500,75',
+  'contract.taksitHesaplanamadi': 'Taksit seçildi ama taksit tutarı hesaplanamadı: seçili ücret modelinin tutar alanlarını doldurun. Metin şu an "peşin ödenir" diyor.',
   'financeForm.saveFailed': 'Kaydedilemedi. Lütfen tekrar deneyin.',
   'financeForm.applyVat': 'KDV uygula',
   'financeForm.vatRate': 'KDV oranı (%)',
@@ -1225,10 +1232,11 @@ export const tr = {
   'case.decisionNo': 'Karar No',
   'case.decisionDate': 'Karar Tarihi',
   'case.servedDate': 'Gerekçeli Karar Tebliği',
-  'case.servedHint': 'Tebliğ tarihini girdiğinizde istinaf son günü (2 hafta) takvime otomatik eklenir.',
+  'case.servedHint': 'Tebliğ tarihini girdiğinizde istinaf son günü takvime otomatik eklenir (süre dosya türüne göre: hukuk, ceza, idare).',
   'case.istinafDeadline': 'İstinaf Son Günü',
-  'case.istinafDesc': 'Gerekçeli kararın tebliğinden itibaren 2 haftalık istinaf süresi (HMK m.345).',
+  'case.istinafDesc': 'Gerekçeli kararın tebliğinden itibaren {sure} istinaf süresi ({dayanak}).',
   'case.istinafAdded': 'İstinaf son günü takvime görev olarak eklendi. ✓',
+  'case.istinafGuncellendi': 'Tebliğ tarihi değişti; istinaf son günü {tarih} olarak güncellendi. ✓',
   'case.finalizeBtn': 'Kesin Karar — Dosyayı Kapat',
   'case.finalizeTitle': 'Kesin karar',
   'case.finalizeMsg': 'İstinaf yolu kapalı sayılacak: dosya kapanır ve takvime istinaf süresi düşmez. Onaylıyor musunuz?',
@@ -1415,7 +1423,7 @@ export const tr = {
   'calc.gross': 'Brüt ücret',
   'calc.withholding': 'Gelir vergisi stopajı (%20)',
   'calc.net': 'Net ücret',
-  'calc.vat': 'KDV (%20)',
+  'calc.vat': 'KDV',
   'calc.collect': 'Tahsil edilecek toplam',
   'calc.smmDisclaimer': 'Serbest meslek makbuzu: %20 stopaj + %20 KDV varsayımıyla. Farklı oranlar için muhasebecinize danışın.',
   'calc.salary': 'Giydirilmiş aylık brüt ücret (₺)',
@@ -1423,6 +1431,7 @@ export const tr = {
   'calc.terminationDate': 'İşten çıkış',
   'calc.service': 'Hizmet süresi',
   'calc.serviceValue': '{y} yıl {m} ay {d} gün',
+  'calc.kidemBirYil': 'Hizmet 1 yıldan az: kıdem tazminatı hakkı doğmaz (1475 s. İş K. m.14)',
   'calc.severanceCapApplied': 'Tavan uygulandı ({period})',
   'calc.severanceCapUnknown': '⚠️ Bu çıkış tarihi için tavan tanımlı değil — tutar TAVANSIZ hesaplandı, resmî tavanı teyit edin',
   'calc.severanceGross': 'Kıdem tazminatı (brüt)',
@@ -1503,7 +1512,8 @@ export const tr = {
   // Kural özetleri BİZİM metnimizdir; tırnak içinde kanun lafzı gibi
   // kullanılırsa avukat mahkemeye kanunda bulunmayan bir cümle sunmuş olur.
   'mut.groundsNote': 'Bunlar Vekil kural özetidir, kanun maddesinin lafzı değildir. Tarama bu kurallardan birini atlamışsa aşağıda görürsünüz.',
-  'ai.notCharged': 'Bu taslak eksik üretildiği için hakkınızdan düşülmedi.',
+  'ai.notCharged': 'Bu istek hakkınızdan düşülmedi.',
+  'ai.yedekModelMetin': 'Bu metin yedek modelle üretildi; asıl model şu an ulaşılamıyor. Yedek model PDF sayfa görüntülerini göremez, taranmış belge okunmamış olabilir. Sonucu dikkatle kontrol edin.',
   // Uydurma madde atfı: havuzdaki kanunun OLMAYAN maddesine yapılan atıf.
   // Gerçek görünür (biçim doğru, numara var), yanlışlığı ancak hâkim baktığında
   // anlaşılır — bu yüzden hem gösteriliyor hem hak düşülmüyor.
@@ -1532,10 +1542,10 @@ export const tr = {
   'ai.errDenemeBitti': 'Deneme haklarınızı kullandınız. Yapay zekâyı kullanmaya devam etmek için Yapay Zekâ paketine geçebilirsiniz.',
   // Kota değil KAPSAM: ödeme yapmamış kullanıcı. "Bitti" demek yanlış olur,
   // çünkü hiç başlamadı; beklemekle de açılmaz.
-  'ai.errPaketGerekli': 'Yapay zekâ özellikleri Vekil Pro paketine dahildir. Paketi görmek için Ayarlar > Vekil Pro adımına gidin.',
+  'ai.errPaketGerekli': 'Bu özellik Vekil Pro + Yapay Zekâ paketindedir (Vekil Pro’ya dahil değildir). Paketi görmek için Ayarlar > Vekil Premium adımına gidin.',
   'ai.errKvkkRiza': 'Yapay zekâ özellikleri, KVKK açık rızanız olmadan çalışmaz: yazdığınız metin yurt dışındaki bir modele gönderiliyor ve bu aktarım rızaya bağlı. Ayarlar > KVKK Aydınlatma Metni ekranından metni okuyup imzaladığınızda hemen açılır.',
   'ai.errKvkkKontrol': 'KVKK rıza kaydınız şu an okunamadı; bu bizim tarafımızdaki geçici bir arızadır, sizin bir eksiğiniz değil. Güvenlik gereği yapay zekâ isteği gönderilmedi. Birazdan tekrar deneyin.',
-  'ai.errDailyQuota': 'Bugünkü ücretsiz AI hakkı doldu. Hak her gün yenilenir; yarın tekrar deneyebilir ya da kesintisiz kullanım için Pro’ya geçebilirsiniz.',
+  'ai.errDailyQuota': 'Bugünkü ücretsiz AI hakkı doldu. Hak her gün yenilenir; yarın tekrar deneyebilir ya da kesintisiz kullanım için Vekil Pro + Yapay Zekâ paketine geçebilirsiniz.',
   'ai.errQuotaWait': 'Ücretsiz AI hakkı şu an dolu — bu havuz tüm kullanıcılarla ortaktır. Yaklaşık {dk} dakika sonra tekrar deneyebilirsiniz.',
   'ai.errQuota': 'Bu ayki AI kullanım hakkınız doldu. Hakkınız ayın başında yenilenir.',
   'ai.errServis': 'Yapay zekâ servisi şu an yanıt vermiyor. Birkaç dakika sonra tekrar deneyin; hakkınızdan düşülmedi.',
@@ -1595,7 +1605,7 @@ export const tr = {
   'web.gateTitle': 'Tarayıcı sürümü Vekil Pro üyelerine özel',
   'web.gateBody': 'Bilgisayardan kullanım, Vekil Pro üyeliğine dahildir. Telefonunuzdaki Vekil Pro uygulamasını ücretsiz katmanla kullanmaya devam edebilirsiniz.',
   'web.gateStep1': 'Telefonunuzda Vekil Pro uygulamasını açın.',
-  'web.gateStep2': 'Ayarlar > Üyelik adımından Vekil Pro’ya geçin (abonelik App Store / Google Play üzerinden alınır; tarayıcıdan satın alma yapılamaz).',
+  'web.gateStep2': 'Ayarlar > Vekil Premium adımından Vekil Pro’ya geçin (abonelik App Store / Google Play üzerinden alınır; tarayıcıdan satın alma yapılamaz).',
   'web.gateStep3': 'Bu sayfayı yenileyin — aynı hesapla giriş yapmanız yeterli.',
   'web.gateAccount': 'Giriş yapılan hesap: {eposta}',
   'web.gateSignOut': 'Başka hesapla giriş yap',
@@ -1610,6 +1620,7 @@ export const tr = {
   'ai.disclaimer': 'AI yanıtları hukuki tavsiye değildir; güncel mevzuattan teyit edin.',
   // Sunucu asıl modele ulaşamayıp yedekle cevapladığında balonun altında görünür.
   'ai.yedekModel': 'Bu yanıt yedek modelle üretildi; asıl model şu an ulaşılamıyor. Kalite düşük olabilir — soru hakkınızdan düşülmedi.',
+  'ai.yapayZekasiz': 'Yapay zekâ servislerine şu an ulaşılamadı. Bu metin bir yapay zekâ cevabı değil; sorunuzla ilgili mevzuat maddelerinin özetidir.',
   'ai.comingSoon': 'Vekil AI çok yakında',
   'ai.comingSoonDesc': 'Yapay zekâ asistanı son hazırlıklarını yapıyor. Çok yakında sorularınızı yanıtlamaya başlayacak!',
   'ai.comingSoonBadge': 'YAKINDA',
@@ -1624,8 +1635,8 @@ export const tr = {
   'ai.tierBasic': 'Basic',
   'ai.tierPlus': 'Plus',
   'ai.plusActive': 'Plus AI etkin — güçlü model + içtihat destekli yanıtlar',
-  'ai.plusUpsell': 'Plus’a geç: daha güçlü model + kendi içtihat havuzumuzla beslenen yanıtlar',
-  'ai.plusUpsellBtn': 'Pro’ya geç',
+  'ai.plusUpsell': 'Vekil Pro + Yapay Zekâ: daha güçlü model ve kendi içtihat havuzumuzla beslenen yanıtlar',
+  'ai.plusUpsellBtn': 'Yapay Zekâ paketine geç',
   'ai.history': 'Sohbet geçmişi',
   'ai.historyEmpty': 'Henüz kayıtlı sohbet yok. Sohbetleriniz burada saklanır, istediğinizde geri dönebilirsiniz.',
   'ai.newChat': 'Yeni sohbet',
@@ -1750,6 +1761,7 @@ export const tr = {
   'imp.fHearing': 'Duruşma tarihi (YYYY-AA-GG)',
   'imp.willAddHearing': 'Bu tarih takvime duruşma olarak eklenecek ve hatırlatma kurulacak.',
   'imp.needTitle': 'Dosya başlığı boş olamaz.',
+  'imp.tarihOkunamadi': 'Duruşma tarihi okunamadı: "{tarih}". YYYY-AA-GG biçiminde yazın (ör. 2026-09-15) ya da alanı boşaltın.',
   'imp.save': 'Dosyayı Oluştur',
   'imp.saved': 'Dosya oluşturuldu.',
   'imp.saveFailed': 'Dosya oluşturulamadı. Tekrar deneyin.',
@@ -1826,6 +1838,8 @@ export const tr = {
   'dlk.working': 'Yazılıyor…',
   'dlk.workingHint': 'Mevzuat ve içtihat taranıp taslak hazırlanıyor.',
   'dlk.resultTitle': 'Dilekçe Taslağı',
+  'dlk.taslakGeriYuklendi': 'Son taslağınız geri yüklendi ({zaman}).',
+  'dlk.taslakTemizle': 'Temizle',
   'dlk.missingRelief': '{uyari}. Hâkim taleple bağlıdır: netice-i talepte yazmayan şeye hükmedilmez — kontrol edin.',
   'dlk.missingSections': 'Şu zorunlu bölümleri model yazmadı, taslakta boşluk bırakıldı — doldurmadan vermeyin: {bolumler}',
   'dlk.scrubbedDates': 'Taslaktan {n} adet uydurma tarih ayıklandı (anlattığınız olayda geçmiyorlardı). Kalan tarihleri de denetleyin.',
@@ -1954,8 +1968,7 @@ export const tr = {
   'ictihat.ornek3':
     'Müvekkilim yükleniciye villa yaptırdı. Teslimden sonra çatıda su sızıntısı ve duvarlarda çatlak çıktı. Ayıplı ifa nedeniyle bedel indirimi ve zarar talep ediyoruz.',
   'ictihat.denetimBaslik': 'Verilen her künye denetlenir',
-  'ictihat.denetimDesc':
-    'Yapay zekânın verdiği her kanun maddesi ve her karar künyesi, cevapla birlikte işaretlenir: doğrulandı, havuzda bulunamadı ya da olamaz. Uydurma bir karar numarası dilekçenize sessizce giremez.',
+  'ictihat.denetimDesc': 'Yapay zekânın verdiği kanun maddeleri ve karar künyeleri cevapla birlikte denetlenir: doğrulanan ve havuzda bulunamayan işaretlenir; olanaksız künyeler ve resmî karar aramasında da bulunamayan Yargıtay künyeleri metinden çıkarılır. Her atıfı yine de kaynağından kontrol edin.',
   'ictihat.analyzePlaceholder': 'Örn: Müvekkilim 5 yıldır kiracı. Ev sahibi kendi ihtiyacı olduğunu söyleyip tahliye davası açtı, ancak taşınmayı gerçekten düşünmüyor, daha yüksek kiraya vermek istiyor...',
   'ictihat.analyzeBtn': 'Değerlendir ve İçtihat Bul',
   'ictihat.analyzing': 'Uyuşmazlık değerlendiriliyor, uygun kararlar aranıyor...',

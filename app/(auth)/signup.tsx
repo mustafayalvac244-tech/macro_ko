@@ -101,6 +101,12 @@ export default function SignupScreen() {
     setTekrarBekleme(25);
   };
   const { signUp, isSubmitting, error, clearError, resendVerification } = useAuthStore();
+  // Ortak depodaki eski hata ekranlar arasında taşınıyordu: kayıtta "bu
+  // e-postayla hesap var" görüp girişe geçen, hiçbir şey denemeden aynı
+  // kırmızı hatayı görüyordu (08.10.2026). Açılışta temizlenir.
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   // Clears any stale error the moment the user edits a field, so an old
   // message (e.g. a transient network failure) never lingers on screen.

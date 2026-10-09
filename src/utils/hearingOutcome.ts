@@ -16,6 +16,10 @@
  * Saf fonksiyonlar: kolay test edilir, AI gerektirmez.
  */
 
+import type { CourtCategory } from '@/types/database';
+import { istinafTanimi } from '@/utils/istinafSuresi';
+import { computeLegalDue } from '@/utils/legalDates';
+
 /** Süre başlığı i18n anahtarı eki — 'hout.d.<key>' olarak çözülür. */
 export type DeadlineKey = 'sure' | 'bilirkisiItiraz' | 'istinaf';
 
@@ -39,6 +43,12 @@ export interface OutcomeDef {
   basis?: string;
   /** Süre TEBLİĞDEN mi işler? (otomatik hesaplama yapılmaz) */
   runsFromService?: boolean;
+  /**
+   * Süre bir belgenin tebliğinden işler ve sonuç zaten tebliği anlatır
+   * ("rapor tebliğ edildi"): tebliğ tarihi HER ZAMAN sorulur (varsayılan
+   * duruşma günü), takip işi kurulmaz.
+   */
+  serviceDateRequired?: boolean;
 }
 
 export const OUTCOMES: Record<OutcomeId, OutcomeDef> = {
@@ -59,12 +69,16 @@ export const OUTCOMES: Record<OutcomeId, OutcomeDef> = {
   bilirkisi_bekleniyor: { id: 'bilirkisi_bekleniyor', needsNextHearing: true },
 
   // Bilirkişi raporuna itiraz: raporun tebliğinden itibaren 2 hafta (HMK 281/2).
+  // 08.10.2026: süre eskiden DURUŞMA gününden sayılıyordu. Rapor duruşmadan
+  // 10 gün önce tebliğ edildiyse son gün 10 gün GEÇ yazılıyordu (güvensiz
+  // yön). Artık rapor tebliğ tarihi sorulur.
   bilirkisi_itiraz: {
     id: 'bilirkisi_itiraz',
     needsNextHearing: false,
     deadlineDays: 14,
     deadlineKey: 'bilirkisiItiraz',
     basis: 'HMK 281',
+    serviceDateRequired: true,
   },
 
   // Karar açıklandı → istinaf süresi TEBLİĞDEN işler (HMK 345). Otomatik
@@ -121,18 +135,44 @@ export function planDeadline(
   outcome: OutcomeId,
   hearingDate: Date,
   serviceDate?: Date | null,
-  overrideDays?: number
+  overrideDays?: number,
+  kategori?: CourtCategory | null
 ): PlannedDeadline | null {
   const def = OUTCOMES[outcome];
   if (!def.deadlineDays || !def.deadlineKey) return null;
-  const days = overrideDays && overrideDays > 0 ? overrideDays : def.deadlineDays;
+  const elle = overrideDays && overrideDays > 0 ? overrideDays : null;
+  const days = elle ?? def.deadlineDays;
 
   if (def.runsFromService) {
     // Tebligat tarihi yoksa süre hesaplanamaz — takip işi olarak ele alınır.
     if (!serviceDate) return null;
+    if (outcome === 'karar_aciklandi' && !elle) {
+      // Kanun yolu süresi dosya türüne göre (hukuk HMK 345 / ceza CMK 273 /
+      // idare İYUK 45) ve adli tatil kuralıyla — süre kataloğuyla aynı hesap.
+      // Eskiden her dosya türüne "HMK 345, 14 gün" yazılıyordu.
+      const tanim = istinafTanimi(kategori);
+      const { due } = computeLegalDue(serviceDate, tanim.amount, tanim.unit, tanim.rule);
+      const dueAt = new Date(due);
+      dueAt.setHours(serviceDate.getHours(), serviceDate.getMinutes(), 0, 0);
+      return { dueAt, basis: tanim.basis, key: def.deadlineKey, fromService: true };
+    }
     return { dueAt: addDays(serviceDate, days), basis: def.basis, key: def.deadlineKey, fromService: true };
   }
+  if (def.serviceDateRequired) {
+    const base = serviceDate ?? hearingDate;
+    return { dueAt: addDays(base, days), basis: def.basis, key: def.deadlineKey, fromService: !!serviceDate };
+  }
   return { dueAt: addDays(hearingDate, days), basis: def.basis, key: def.deadlineKey, fromService: false };
+}
+
+/** Ekranda "kanuni: N gün" olarak gösterilen varsayılan süre. */
+export function kanuniSureGun(outcome: OutcomeId, kategori?: CourtCategory | null): number | undefined {
+  const def = OUTCOMES[outcome];
+  if (outcome === 'karar_aciklandi') {
+    const t = istinafTanimi(kategori);
+    return t.unit === 'week' ? t.amount * 7 : t.unit === 'day' ? t.amount : def.deadlineDays;
+  }
+  return def.deadlineDays;
 }
 
 /**

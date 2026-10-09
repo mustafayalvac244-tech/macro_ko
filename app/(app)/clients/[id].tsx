@@ -35,7 +35,9 @@ import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney, relativeDueLabel, isOverdue } from '@/utils/format';
+import { tutarOku } from '@/utils/tutar';
 import type { PaymentPromise } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 /** Aynı taksit planına (group_id) ait sözleri tek blokta toplar; tekil sözler ayrı kalır. */
 function groupPromises(list: PaymentPromise[]): { key: string; items: PaymentPromise[] }[] {
@@ -94,8 +96,11 @@ export default function ClientDetailScreen() {
   }, [advances.data, expensesTotal.data, manualExpenses.data]);
 
   const submitAdvance = async () => {
-    const amount = Number(advanceAmount.replace(',', '.'));
-    if (!Number.isFinite(amount) || amount <= 0) return;
+    const amount = tutarOku(advanceAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      if (advanceAmount.trim()) uyar(t('tutar.okunamadi', { deger: advanceAmount.trim() }));
+      return;
+    }
     try {
       await createAdvance.mutateAsync({ client_id: id, amount, note: advanceNote.trim() || null });
       setAdvanceModal(false);
@@ -110,8 +115,11 @@ export default function ClientDetailScreen() {
   };
 
   const submitExpense = async () => {
-    const amount = Number(expenseAmount.replace(',', '.'));
-    if (!Number.isFinite(amount) || amount <= 0) return;
+    const amount = tutarOku(expenseAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      if (expenseAmount.trim()) uyar(t('tutar.okunamadi', { deger: expenseAmount.trim() }));
+      return;
+    }
     try {
       await createExpense.mutateAsync({ client_id: id, amount, title: expenseTitle.trim() || null });
       setExpenseModal(false);
@@ -155,7 +163,7 @@ export default function ClientDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           await deleteClient.mutateAsync(client.id);
-          router.back();
+          geriDon();
         },
       },
     ]);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { useLocalSearchParams } from 'expo-router';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import { format } from 'date-fns/format';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -17,7 +17,9 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { hesaplaSmm, VARSAYILAN_KDV_ORANI, VARSAYILAN_STOPAJ_ORANI } from '@/utils/serbestMeslekMakbuzu';
+import { oranOku, oranYaz, tutarOku, tutarYaz } from '@/utils/tutar';
 import type { FinanceCategory, FinanceKind } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 export default function FinanceFormScreen() {
   const __t = useTheme();
@@ -48,24 +50,24 @@ export default function FinanceFormScreen() {
     (params.category as FinanceCategory) ?? (params.kind === 'income' ? 'fee' : 'rent')
   );
   const [title, setTitle] = useState(params.title ?? '');
-  const [amount, setAmount] = useState(params.amount ? String(params.amount) : '');
+  const [amount, setAmount] = useState(params.amount ? tutarYaz(params.amount) : '');
   const [entryDate, setEntryDate] = useState(params.entry_date ? new Date(`${params.entry_date}T12:00:00`) : new Date());
   const [isRecurring, setIsRecurring] = useState(params.is_recurring === '1');
   const [note, setNote] = useState(params.note ?? '');
   const [applyVat, setApplyVat] = useState(!!params.vat_rate);
-  const [vatRate, setVatRate] = useState(params.vat_rate ?? String(VARSAYILAN_KDV_ORANI));
+  const [vatRate, setVatRate] = useState(params.vat_rate ? oranYaz(params.vat_rate) : String(VARSAYILAN_KDV_ORANI));
   const [applyWithholding, setApplyWithholding] = useState(!!params.withholding_rate);
-  const [withholdingRate, setWithholdingRate] = useState(params.withholding_rate ?? String(VARSAYILAN_STOPAJ_ORANI));
+  const [withholdingRate, setWithholdingRate] = useState(params.withholding_rate ? oranYaz(params.withholding_rate) : String(VARSAYILAN_STOPAJ_ORANI));
   const [receiptNo, setReceiptNo] = useState(params.receipt_no ?? '');
   const [error, setError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
 
   const categories = kind === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-  const parsedAmount = Number(amount.replace(/\./g, '').replace(',', '.'));
+  const parsedAmount = tutarOku(amount);
   const smm = hesaplaSmm(
     Number.isFinite(parsedAmount) ? parsedAmount : 0,
-    applyVat ? Number(vatRate.replace(',', '.')) || 0 : null,
-    applyWithholding ? Number(withholdingRate.replace(',', '.')) || 0 : null
+    applyVat ? oranOku(vatRate) || 0 : null,
+    applyWithholding ? oranOku(withholdingRate) || 0 : null
   );
 
   const handleKindChange = (next: FinanceKind) => {
@@ -75,7 +77,7 @@ export default function FinanceFormScreen() {
 
   const handleSubmit = async () => {
     setError(null);
-    const parsed = Number(amount.replace(/\./g, '').replace(',', '.'));
+    const parsed = tutarOku(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       setError(t('financeForm.amountRequired'));
       return;
@@ -88,8 +90,8 @@ export default function FinanceFormScreen() {
       entry_date: format(entryDate, 'yyyy-MM-dd'),
       is_recurring: isRecurring,
       note: note.trim() || null,
-      vat_rate: kind === 'income' && applyVat ? Number(vatRate.replace(',', '.')) || 0 : null,
-      withholding_rate: kind === 'income' && applyWithholding ? Number(withholdingRate.replace(',', '.')) || 0 : null,
+      vat_rate: kind === 'income' && applyVat ? oranOku(vatRate) || 0 : null,
+      withholding_rate: kind === 'income' && applyWithholding ? oranOku(withholdingRate) || 0 : null,
       receipt_no: kind === 'income' ? receiptNo.trim() || null : null,
       receipt_issued: kind === 'income' && !!receiptNo.trim(),
     };
@@ -99,7 +101,7 @@ export default function FinanceFormScreen() {
       } else {
         await createEntry.mutateAsync(payload);
       }
-      router.back();
+      geriDon();
     } catch (e) {
       setError(isMissingFinanceTable(e) ? t('ofinance.setupRequired') : t('financeForm.saveFailed'));
     }
@@ -145,7 +147,7 @@ export default function FinanceFormScreen() {
                   <Ionicons
                     name={FINANCE_CATEGORY_ICONS[c]}
                     size={15}
-                    color={active ? '#FFFFFF' : colors.textSecondary}
+                    color={active ? colors.textInverse : colors.textSecondary}
                   />
                   <Text style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>
                     {t(`fcat.${c}` as const)}
@@ -391,7 +393,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '600',
   },
   categoryChipTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   dateButton: {
     flexDirection: 'row',

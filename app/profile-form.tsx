@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -15,6 +14,8 @@ import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { tutarOku, tutarYaz } from '@/utils/tutar';
+import { geriDon } from '@/lib/geriDon';
 
 export default function ProfileFormScreen() {
   const __t = useTheme();
@@ -40,13 +41,19 @@ export default function ProfileFormScreen() {
   const [stagedPhoto, setStagedPhoto] = useState<{ uri: string; mimeType: string | null } | null>(null);
   const [stagedRemove, setStagedRemove] = useState(false);
 
+  // Form YALNIZ İLK yüklemede doldurulur (08.10.2026, denetimde bulundu).
+  // Web'de sekme değiştirip dönmek ve telefonda saatlik jeton yenilemesi
+  // profili yeniden yüklüyor; her seferinde yazılanlar kayıtlı değerle
+  // eziliyordu. Profil kimliği değişirse (başka hesap) yeniden doldurulur.
+  const dolduruldu = useRef<string | null>(null);
   useEffect(() => {
-    if (profile) {
+    if (profile && dolduruldu.current !== profile.id) {
+      dolduruldu.current = profile.id;
       setFullName(profile.full_name ?? '');
       setFirmName(profile.firm_name ?? '');
       setBarNumber(profile.bar_number ?? '');
       setPhone(profile.phone ?? '');
-      setHourlyRate(profile.hourly_rate != null ? String(profile.hourly_rate) : '');
+      setHourlyRate(profile.hourly_rate != null ? tutarYaz(profile.hourly_rate) : '');
     }
   }, [profile]);
 
@@ -82,9 +89,8 @@ export default function ProfileFormScreen() {
   // Boş alan null demek (ücret yok), geçersiz sayı da null — ikisi de
   // kaydedilir ve zaman kaydı ücretsiz sürer.
   const parsedRate = (() => {
-    const ham = hourlyRate.replace(/\./g, '').replace(',', '.').trim();
-    if (!ham) return null;
-    const n = Number(ham);
+    if (!hourlyRate.trim()) return null;
+    const n = tutarOku(hourlyRate);
     return Number.isFinite(n) && n > 0 ? n : null;
   })();
 
@@ -108,7 +114,7 @@ export default function ProfileFormScreen() {
       } else if (stagedRemove && profile?.avatar_url) {
         await removeAvatar();
       }
-      router.back();
+      geriDon();
     } catch {
       setError(t('profile.saveFailed'));
     } finally {

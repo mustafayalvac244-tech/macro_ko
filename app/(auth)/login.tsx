@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
@@ -24,6 +24,12 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const { signIn, isSubmitting, error, clearError, resendVerification } = useAuthStore();
+  // Ortak depodaki eski hata ekranlar arasında taşınıyordu: kayıtta "bu
+  // e-postayla hesap var" görüp girişe geçen, hiçbir şey denemeden aynı
+  // kırmızı hatayı görüyordu (08.10.2026). Açılışta temizlenir.
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [hataliAlan, setHataliAlan] = useState<'email' | 'password' | null>(null);

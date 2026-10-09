@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { dosyaMetni } from '@/lib/girdi';
+import { dosyaBaytlari } from '@/lib/girdi';
+import { baytlariMetneCevir } from '@/utils/metinKodlama';
 import { uyar } from '@/lib/uyari';
 import { useCreateCase } from '@/hooks/useCases';
 import { useClients, useCreateClient } from '@/hooks/useClients';
@@ -23,6 +23,7 @@ import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { geriDon } from '@/lib/geriDon';
 
 /**
  * TOPLU DOSYA AKTARIMI — başka bir programdan / UYAP'tan gelen tablo.
@@ -61,6 +62,8 @@ export default function TopluAktarScreen() {
   const [eslesme, setEslesme] = useState<Partial<Record<Alan, number>>>({});
   const [yaziliyor, setYaziliyor] = useState(false);
   const [ilerleme, setIlerleme] = useState(0);
+  // Yarıda kalan aktarımda eklenmiş satır sayısı: tekrar "Aktar" buradan devam eder.
+  const [baslangic, setBaslangic] = useState(0);
   const [hata, setHata] = useState<string | null>(null);
 
   const onizleme: AktarimSonucu | null = useMemo(() => {
@@ -78,7 +81,13 @@ export default function TopluAktarScreen() {
       if (secim.canceled || !secim.assets?.[0]) return;
 
       const asset = secim.assets[0];
-      const metin = await dosyaMetni(asset);
+      // Excel'in kendi dosyası (.xlsx/.xls) metin değildir; okunursa çöp çıkar.
+      if (/\.xlsx?$/i.test(asset.name ?? '')) {
+        setHata(t('toplu.excelDegil'));
+        return;
+      }
+      // Türkçe Excel CSV'si Windows-1254'tür; UTF-8 sanılınca harfler bozuluyordu.
+      const metin = baytlariMetneCevir(await dosyaBaytlari(asset));
       const tablo = csvAyristir(metin);
 
       if (tablo.length < 2) {
@@ -89,6 +98,7 @@ export default function TopluAktarScreen() {
       setDosyaAdi(asset.name ?? null);
       setBasliklar(tablo[0]);
       setSatirlar(tablo.slice(1));
+      setBaslangic(0);
       setEslesme(basliklariEslestir(tablo[0]));
     } catch {
       setHata(t('toplu.readFailed'));
@@ -115,7 +125,7 @@ export default function TopluAktarScreen() {
   const aktar = async () => {
     if (!onizleme?.kayitlar.length) return;
     setYaziliyor(true);
-    setIlerleme(0);
+    setIlerleme(baslangic);
     setHata(null);
 
     // Müvekkil adı → kimlik. Var olanlar yeniden kullanılıyor; aynı adı iki
@@ -125,8 +135,11 @@ export default function TopluAktarScreen() {
       muvekkilKimligi.set(m.full_name.trim().toLocaleLowerCase('tr'), m.id);
     }
 
+    // Sayaç YEREL: catch içinde state okumak tıklama anındaki 0'ı veriyordu
+    // ("0 dosya eklendi" — 08.10.2026 denetimi).
+    let yazilan = baslangic;
     try {
-      for (let i = 0; i < onizleme.kayitlar.length; i += 1) {
+      for (let i = baslangic; i < onizleme.kayitlar.length; i += 1) {
         const k = onizleme.kayitlar[i];
 
         let clientId: string | undefined;
@@ -162,16 +175,20 @@ export default function TopluAktarScreen() {
           client_id: clientId,
         });
 
-        setIlerleme(i + 1);
+        yazilan = i + 1;
+        setIlerleme(yazilan);
       }
 
       uyar(t('toplu.doneTitle'), t('toplu.doneBody', { adet: String(onizleme.kayitlar.length) }), [
-        { text: t('common.ok'), onPress: () => router.back() },
+        { text: t('common.ok'), onPress: () => geriDon() },
       ]);
     } catch {
       // Kısmen yazılmış olabilir: ne kadarının geçtiğini SÖYLÜYORUZ, yoksa
       // avukat baştan yükler ve her şey ikilenir.
-      setHata(t('toplu.partial', { adet: String(ilerleme) }));
+      // Eklenenler önizlemeden çıkarılır: tekrar "Aktar" kaldığı yerden devam
+      // eder, eklenenler ikilenmez.
+      setHata(t('toplu.partial', { adet: String(yazilan), kalan: String(onizleme.kayitlar.length - yazilan) }));
+      setBaslangic(yazilan);
     } finally {
       setYaziliyor(false);
     }

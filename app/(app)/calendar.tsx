@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { router } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import { addDays } from 'date-fns/addDays';
 import { format } from 'date-fns/format';
 import { isToday } from 'date-fns/isToday';
@@ -217,12 +217,13 @@ export default function CalendarScreen() {
   }, [items, colors]);
 
   const markedDates = useMemo(() => {
-    const marks: Record<string, { dots: { key: string; color: string }[]; selected?: boolean; selectedColor?: string }> = {};
+    const marks: Record<string, { dots: { key: string; color: string }[]; selected?: boolean; selectedColor?: string; selectedTextColor?: string }> = {};
     Object.entries(dotsByDay).forEach(([day, dayColors]) => {
       marks[day] = { dots: dayColors.slice(0, 3).map((c, i) => ({ key: `${day}-${i}`, color: c })) };
     });
     if (!marks[selectedDate]) marks[selectedDate] = { dots: [] };
-    marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: colors.primarySoft };
+    // Zemin saydam primarySoft; yazı beyaz kalırsa açık temalarda görünmüyordu (08.10.2026 denetimi).
+    marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: colors.primarySoft, selectedTextColor: colors.primary };
     return marks;
   }, [dotsByDay, selectedDate, colors]);
 
@@ -458,7 +459,7 @@ export default function CalendarScreen() {
                   arrowColor: colors.primary,
                   textDisabledColor: colors.textMuted,
                   selectedDayBackgroundColor: colors.primary,
-                  selectedDayTextColor: '#FFFFFF',
+                  selectedDayTextColor: colors.textInverse,
                 }}
                 style={styles.calendar}
               />
@@ -644,9 +645,12 @@ export default function CalendarScreen() {
                   <DateTimePicker locale="tr-TR"
                     value={new Date(`${actionItem.dateKey}T12:00:00`)}
                     mode="date"
-                    onChange={(_e, date) => {
+                    onChange={(e, date) => {
                       setPostponePicker(false);
-                      if (!date) return;
+                      // Android İPTAL'de de onChange'i ESKİ tarihle çağırır;
+                      // eskiden iptal, kaydı yeniden yazıp süre saatini 23:59'a
+                      // çekiyordu (08.10.2026 denetimi).
+                      if (!date || e.type === 'dismissed') return;
                       const target = actionItem;
                       setActionItem(null);
                       postponeItem(target, date);
@@ -791,7 +795,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 2,
   },
   weekDayTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   weekDots: {
     flexDirection: 'row',

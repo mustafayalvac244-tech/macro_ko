@@ -56,3 +56,13 @@ describe('başarısız istekte hak iadesi', () => {
     expect(i.mod).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('mevzuat özeti (yapay zekâsız) yanıtı hakkı iade eder', () => {
+  it('200 dönen mevzuat-yedek dalında rezervasyon iade ediliyor', async () => {
+    const { readFileSync } = await import('node:fs');
+    const kaynak = readFileSync(new URL('../supabase/functions/ai-chat/index.ts', import.meta.url), 'utf8');
+    const dal = kaynak.slice(kaynak.indexOf('if (ozet) {'), kaynak.indexOf("model: 'mevzuat-yedek'"));
+    expect(dal).toContain('rezervasyonuIadeEt(hakRez');
+    expect(kaynak).toMatch(/model: 'mevzuat-yedek', yapayZekasiz: true, hakDusulmedi: true/);
+  });
+});

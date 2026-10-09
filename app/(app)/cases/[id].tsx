@@ -29,14 +29,17 @@ import { useTheme } from '@/theme/useTheme';
 import { kaliciMenuMu, panoOlculeri, PANO_ARALIK } from '@/theme/duzen';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
-import { computeLegalDue } from '@/utils/legalDates';
+import { tutarOku, tutarYaz } from '@/utils/tutar';
+import { istinafSonGunu, istinafTanimi } from '@/utils/istinafSuresi';
+import { yerelGunISO } from '@/lib/yerelGun';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { WarPlanTab } from '@/components/case/WarPlanTab';
 import { ZamanSekmesi } from '@/components/case/ZamanSekmesi';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import { hearingReminderMessage, sendClientReminder } from '@/utils/reminder';
 import { useAuthStore } from '@/store/authStore';
 import type { FirstInstancePhase, InstanceStage, ClosedResult, Hearing } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 type Tab = 'overview' | 'hearings' | 'deadlines' | 'time' | 'finance' | 'plan';
 
@@ -112,7 +115,7 @@ export default function CaseDetailScreen() {
   const [expenseAmount, setExpenseAmount] = useState('');
 
   useEffect(() => {
-    setAdvanceText(caseItem?.advance_amount != null ? String(caseItem.advance_amount) : '');
+    setAdvanceText(caseItem?.advance_amount != null ? tutarYaz(caseItem.advance_amount) : '');
   }, [caseItem?.advance_amount]);
 
   if (isLoading || !caseItem) {
@@ -128,25 +131,30 @@ export default function CaseDetailScreen() {
   };
 
   // Gerekçeli karar tebliğ tarihi girilince istinaf son günü takvime otomatik
-  // görev olarak eklenir. Süre mahkeme türüne göre belirlenir (hukuk: 2 hafta
-  // HMK 345; ceza: 7 gün CMK 273; idare: 30 gün İYUK 45) ve adli tatil ile
-  // hafta sonu/resmî tatil uzatmaları uygulanır.
+  // görev olarak eklenir. Süre, dayanak ve adli tatil kuralı süre kataloğundan
+  // gelir (utils/istinafSuresi) — eskiden burada sabit yazılıydı ve ceza
+  // istinafını katalogdan farklı (7 gün) hesaplıyordu.
   const handleServedDate = async (picked: Date) => {
-    saveCase({ decision_served_date: picked.toISOString().slice(0, 10) });
+    saveCase({ decision_served_date: yerelGunISO(picked) });
     // Kesin karar / kapalı dosyada istinaf yolu yok → takvime görev düşmez.
     const closed = ['closed', 'won', 'lost'].includes(caseItem.status);
     if (closed) return;
-    const already = (deadlines.data ?? []).some((x) => x.title.startsWith(t('case.istinafDeadline')));
-    if (already) return;
-    const cfg =
-      caseItem.court_category === 'ceza'
-        ? { amount: 7, unit: 'day' as const, basis: 'CMK 273', rule: 'criminal' as const }
-        : caseItem.court_category === 'idare'
-          ? { amount: 30, unit: 'day' as const, basis: 'İYUK 45', rule: 'civil' as const }
-          : { amount: 2, unit: 'week' as const, basis: 'HMK 345', rule: 'civil' as const };
-    const res = computeLegalDue(picked, cfg.amount, cfg.unit, cfg.rule);
-    const due = new Date(res.due);
-    due.setHours(17, 0, 0, 0);
+    const tanim = istinafTanimi(caseItem.court_category);
+    const due = istinafSonGunu(picked, caseItem.court_category);
+    const description = t('case.istinafDesc', { sure: `${tanim.amount} ${t(`wizard.unit.${tanim.unit}` as const)}`, dayanak: tanim.basis });
+    const mevcut = (deadlines.data ?? []).find((x) => x.title.startsWith(t('case.istinafDeadline')) && !x.is_completed);
+    if (mevcut) {
+      // Tebliğ tarihi DÜZELTİLDİ: eski son gün takvimde kalmasın. Eskiden görev
+      // varsa sessizce çıkılıyordu; hak düşürücü süre yanlış günde kalırdı.
+      if (new Date(mevcut.due_at).getTime() === due.getTime()) return;
+      try {
+        await updateDeadline.mutateAsync({ id: mevcut.id, caseTitle: caseItem.title, due_at: due.toISOString(), description });
+        uyar(t('case.stageTitle'), t('case.istinafGuncellendi', { tarih: formatDate(due.toISOString()) }));
+      } catch {
+        // uyarı notifySaveError ile gösterildi
+      }
+      return;
+    }
     // Geçmiş dosya: hesaplanan süre çoktan geçmişse takvime ekleme — "gecikti"
     // uyarısıyla kullanıcıyı boşuna telaşlandırmasın (alıcı geri bildirimi).
     if (due.getTime() < Date.now()) return;
@@ -155,7 +163,7 @@ export default function CaseDetailScreen() {
         caseTitle: caseItem.title,
         case_id: caseItem.id,
         title: t('case.istinafDeadline'),
-        description: `${t('case.istinafDesc')} (${cfg.basis})`,
+        description,
         due_at: due.toISOString(),
         priority: 'high',
         reminder_minutes_before: 24 * 60,
@@ -193,7 +201,7 @@ export default function CaseDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           await deleteCase.mutateAsync(caseItem.id);
-          router.back();
+          geriDon();
         },
       },
     ]);
@@ -436,13 +444,13 @@ export default function CaseDetailScreen() {
                         <Button
                           label={t('fee.addInstallment')}
                           variant="secondary"
-                          disabled={!(Number(instAmount.replace(',', '.')) > 0)}
+                          disabled={!(tutarOku(instAmount) > 0)}
                           onPress={async () => {
                             await createInstallment.mutateAsync({
                               case_id: caseItem.id,
                               seq: (installments.data?.length ?? 0) + 1,
-                              amount: Number(instAmount.replace(',', '.')),
-                              due_date: instDue ? instDue.toISOString().slice(0, 10) : null,
+                              amount: tutarOku(instAmount),
+                              due_date: instDue ? yerelGunISO(instDue) : null,
                             });
                             setInstAmount('');
                             setInstDue(null);
@@ -485,11 +493,11 @@ export default function CaseDetailScreen() {
                 label={t('finance.addPayment')}
                 icon="cash-outline"
                 loading={createPayment.isPending}
-                disabled={!paymentAmount.trim() || !(Number(paymentAmount.replace(',', '.')) > 0)}
+                disabled={!paymentAmount.trim() || !(tutarOku(paymentAmount) > 0)}
                 onPress={async () => {
                   await createPayment.mutateAsync({
                     case_id: caseItem.id,
-                    amount: Number(paymentAmount.replace(',', '.')),
+                    amount: tutarOku(paymentAmount),
                     note: paymentNote.trim() || null,
                   });
                   setPaymentAmount('');
@@ -529,9 +537,14 @@ export default function CaseDetailScreen() {
                       keyboardType="numeric"
                       value={advanceText}
                       onChangeText={setAdvanceText}
-                      onEndEditing={() => {
-                        const n = Number(advanceText.replace(',', '.'));
-                        saveCase({ advance_amount: Number.isFinite(n) && n > 0 ? n : null });
+                      onBlur={() => {
+                        // onEndEditing web'de hiç çağrılmıyordu (react-native-web
+                        // desteklemiyor); onBlur iki platformda da tetiklenir.
+                        // Okunamayan giriş kayıtlı avansı SİLMESİN: hiçbir şey yazılmaz.
+                        if (!advanceText.trim()) return saveCase({ advance_amount: null });
+                        const n = tutarOku(advanceText);
+                        if (!Number.isFinite(n)) return uyar(t('tutar.okunamadi', { deger: advanceText.trim() }));
+                        saveCase({ advance_amount: n > 0 ? n : null });
                       }}
                     />
                     <View style={styles.advFormRow}>
@@ -558,12 +571,12 @@ export default function CaseDetailScreen() {
                       icon="remove-circle-outline"
                       variant="secondary"
                       loading={createExpense.isPending}
-                      disabled={!expenseTitle.trim() || !(Number(expenseAmount.replace(',', '.')) > 0)}
+                      disabled={!expenseTitle.trim() || !(tutarOku(expenseAmount) > 0)}
                       onPress={async () => {
                         await createExpense.mutateAsync({
                           case_id: caseItem.id,
                           title: expenseTitle.trim(),
-                          amount: Number(expenseAmount.replace(',', '.')),
+                          amount: tutarOku(expenseAmount),
                         });
                         setExpenseTitle('');
                         setExpenseAmount('');
@@ -690,7 +703,7 @@ export default function CaseDetailScreen() {
                     {
                       text: t('case.finalizeConfirm'),
                       onPress: () =>
-                        saveCase({ status: 'closed', closed_date: new Date().toISOString().slice(0, 10) }),
+                        saveCase({ status: 'closed', closed_date: yerelGunISO(new Date()) }),
                     },
                   ])
                 }
@@ -718,7 +731,7 @@ export default function CaseDetailScreen() {
                 placeholder="2026/123 K."
                 value={decisionNo}
                 onChangeText={setDecisionNo}
-                onEndEditing={() => saveCase({ decision_number: decisionNo.trim() || null })}
+                onBlur={() => saveCase({ decision_number: decisionNo.trim() || null })}
               />
               {(!caseItem.decision_number || !caseItem.decision_date) && (
                 <View style={styles.advWarn}>
@@ -763,7 +776,7 @@ export default function CaseDetailScreen() {
                 const which = datePicker;
                 setDatePicker(null);
                 if (!picked) return;
-                if (which === 'decision') saveCase({ decision_date: picked.toISOString().slice(0, 10) });
+                if (which === 'decision') saveCase({ decision_date: yerelGunISO(picked) });
                 else if (which === 'served') handleServedDate(picked);
               }}
             />
@@ -778,7 +791,7 @@ export default function CaseDetailScreen() {
             placeholder={t('case.stageNotePh')}
             value={stageNote}
             onChangeText={setStageNote}
-            onEndEditing={() => saveCase({ stage_note: stageNote.trim() || null })}
+            onBlur={() => saveCase({ stage_note: stageNote.trim() || null })}
             multiline
             numberOfLines={3}
             style={styles.stageNoteInput}

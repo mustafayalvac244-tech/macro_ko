@@ -64,6 +64,9 @@ export default function DocumentReviewScreen() {
   // Kullanım ve iade — sunucu üç modda da destekliyor.
   const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
   const [hakDusulmedi, setHakDusulmedi] = useState(false);
+  // Yedek modelle üretildiyse SÖYLENİR (08.10.2026): sohbet gösteriyordu,
+  // bu ekran göstermiyordu — Console askıdayken metni yedek model yazıyor.
+  const [yedekModel, setYedekModel] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +82,7 @@ export default function DocumentReviewScreen() {
     setError(null);
     setResult('');
     setHakDusulmedi(false);
+    setYedekModel(false);
     try {
       // İNCELEME İSTEMİ SUNUCUDA. Burada kurulduğu sürece iki şey mümkün
       // değildi: incelemeyi ölçmek (ölçüm aracı istemi taklit etmek zorunda
@@ -97,7 +101,7 @@ export default function DocumentReviewScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const yanit = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
+      const yanit = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       const reply = yanit?.text?.trim();
       if (!reply) {
         // Sunucuya ulaşıldı, cevap boş: internet suçlanmaz (08.10.2026).
@@ -111,6 +115,7 @@ export default function DocumentReviewScreen() {
       setUydurmaTutar(yanit?.uydurmaTutar ?? []);
       setKullanim(yanit?.kullanim ?? null);
       setHakDusulmedi(!!yanit?.hakDusulmedi);
+      setYedekModel(!!yanit?.yedekModel);
       setEkUyari(yanit?.ekUyari ?? null);
     } catch {
       setError(t('ai.errGeneric'));
@@ -159,9 +164,9 @@ export default function DocumentReviewScreen() {
             style={({ pressed }) => [styles.cta, (tooShort || busy) && styles.ctaOff, pressed && { opacity: 0.85 }]}
           >
             {busy ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.textInverse} />
             ) : (
-              <Ionicons name="sparkles" size={17} color="#FFFFFF" />
+              <Ionicons name="sparkles" size={17} color={colors.textInverse} />
             )}
             <Text style={styles.ctaText}>{busy ? t('docrev.analyzing') : t('docrev.analyze')}</Text>
           </Pressable>
@@ -216,6 +221,7 @@ export default function DocumentReviewScreen() {
                     : t('ai.usageFree', { token: String(kullanim.girdiToken + kullanim.ciktiToken) })}
                 </Text>
               )}
+              {yedekModel && <Text style={[styles.usage, { color: colors.warning }]}>{t('ai.yedekModelMetin')}</Text>}
               {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
               <Text style={styles.disclaimer}>{t('docrev.disclaimer')}</Text>
             </View>
@@ -274,7 +280,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   chipTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   area: {
     minHeight: 190,
@@ -322,7 +328,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: fonts.extrabold,
     fontWeight: '800',
     fontSize: 15,
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   errBox: {
     flexDirection: 'row',

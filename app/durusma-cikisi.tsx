@@ -1,8 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -16,6 +15,7 @@ import {
   needsServiceWatch,
   pendingOutcomeHearings,
   planDeadline,
+  kanuniSureGun,
   type OutcomeId,
 } from '@/utils/hearingOutcome';
 import { useT } from '@/i18n';
@@ -23,6 +23,7 @@ import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
+import { geriDon } from '@/lib/geriDon';
 
 /**
  * DURUŞMA ÇIKIŞI — duruşma bittikten sonraki 60 saniye.
@@ -89,9 +90,12 @@ export default function DurusmaCikisiScreen() {
 
   const def = outcome ? OUTCOMES[outcome] : null;
   const hearingDate = current ? new Date(current.scheduled_at) : new Date();
+  const kategori = current?.case?.court_category ?? null;
+  const tebligKullan = hasService || !!def?.serviceDateRequired;
   const plan = outcome
-    ? planDeadline(outcome, hearingDate, hasService ? serviceDate : null, Number(customDays) || undefined)
+    ? planDeadline(outcome, hearingDate, tebligKullan ? serviceDate : null, Number(customDays) || undefined, kategori)
     : null;
+  const kanuniGun = outcome ? kanuniSureGun(outcome, kategori) : undefined;
   const watchService = outcome ? needsServiceWatch(outcome, hasService ? serviceDate : null) : false;
 
   const resetForNext = () => {
@@ -127,7 +131,7 @@ export default function DurusmaCikisiScreen() {
         await createDeadline.mutateAsync({
           case_id: current.case_id,
           title: `${t(`hout.d.${plan.key}` as const)}${plan.basis ? ` (${plan.basis})` : ''}`,
-          description: plan.fromService ? t('hout.fromServiceNote') : null,
+          description: plan.fromService ? t(plan.key === 'bilirkisiItiraz' ? 'hout.fromRaporNote' : 'hout.fromServiceNote') : null,
           due_at: plan.dueAt.toISOString(),
           priority: 'high',
           reminder_minutes_before: 1440,
@@ -184,7 +188,7 @@ export default function DurusmaCikisiScreen() {
       // Sıradaki duruşmaya geç
       resetForNext();
       if (idx >= pending.length - 1) {
-        uyar(t('hout.title'), t('hout.allDone'), [{ text: t('common.done'), onPress: () => router.back() }]);
+        uyar(t('hout.title'), t('hout.allDone'), [{ text: t('common.done'), onPress: () => geriDon() }]);
       }
     } catch {
       // hata uyarısı notifySaveError ile gösterildi
@@ -237,7 +241,16 @@ export default function DurusmaCikisiScreen() {
           {OUTCOME_ORDER.map((id) => {
             const on = outcome === id;
             return (
-              <Pressable key={id} onPress={() => setOutcome(id)} style={[styles.chip, on && styles.chipOn]}>
+              <Pressable
+                key={id}
+                onPress={() => {
+                  setOutcome(id);
+                  // Rapor tebliği sorulan sonuçta varsayılan duruşma günü (rapor
+                  // çoğu zaman duruşmada verilir); avukat değiştirebilir.
+                  if (OUTCOMES[id].serviceDateRequired) setServiceDate(hearingDate);
+                }}
+                style={[styles.chip, on && styles.chipOn]}
+              >
                 <Text style={[styles.chipText, on && styles.chipTextOn]}>{t(`hout.o.${id}` as const)}</Text>
               </Pressable>
             );
@@ -273,15 +286,30 @@ export default function DurusmaCikisiScreen() {
           </View>
         )}
 
+        {/* 3b) Raporun tebliğ tarihi (bilirkişi itirazı tebliğden işler) */}
+        {def?.serviceDateRequired && (
+          <View style={styles.serviceBox}>
+            <View style={styles.serviceHead}>
+              <Ionicons name="mail-outline" size={16} color={colors.primary} />
+              <Text style={styles.serviceTitle}>{t('hout.raporTebligQ')}</Text>
+            </View>
+            <Text style={styles.serviceHint}>{t('hout.raporTebligHint')}</Text>
+            <Pressable style={styles.dateBtn} onPress={() => setPicker(picker === 'service' ? null : 'service')}>
+              <Ionicons name="calendar" size={16} color={colors.primary} />
+              <Text style={styles.dateBtnText}>{formatDate(serviceDate.toISOString())}</Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* 4) Süre gün sayısı (hâkimin verdiği süre farklıysa) */}
         {!!def?.deadlineDays && (
           <>
-            <Text style={styles.label}>{t('hout.daysLabel', { d: def.deadlineDays })}</Text>
+            <Text style={styles.label}>{t('hout.daysLabel', { d: kanuniGun ?? def.deadlineDays })}</Text>
             <TextInput
               style={styles.daysInput}
               value={customDays}
               onChangeText={setCustomDays}
-              placeholder={String(def.deadlineDays)}
+              placeholder={String(kanuniGun ?? def.deadlineDays)}
               placeholderTextColor={colors.textMuted}
               keyboardType="number-pad"
             />

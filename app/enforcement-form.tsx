@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import { format } from 'date-fns/format';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -16,13 +16,16 @@ import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
+import { oranOku, oranYaz, tutarOku, tutarYaz } from '@/utils/tutar';
+import { uyar } from '@/lib/uyari';
 import type { TakipType } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 const TAKIP_TYPES: TakipType[] = ['ilamsiz', 'ilamli', 'kambiyo', 'kira', 'rehin'];
 
-/** "12.500,75" → 12500.75; boş/geçersiz girişte 0. */
+/** "12.500,75" → 12500.75; boş/geçersiz girişte 0. Ortak ayrıştırıcı: utils/tutar. */
 function parseMoney(s: string): number {
-  const n = Number(s.replace(/\./g, '').replace(',', '.'));
+  const n = tutarOku(s);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -64,12 +67,12 @@ export default function EnforcementFormScreen() {
       setOfficeName(existing.office_name ?? '');
       setFileNumber(existing.file_number ?? '');
       setTakipType(existing.takip_type);
-      setPrincipal(String(existing.principal ?? ''));
-      setPreInterest(existing.pre_interest ? String(existing.pre_interest) : '');
-      setRate(existing.interest_rate != null ? String(existing.interest_rate) : '');
+      setPrincipal(tutarYaz(existing.principal));
+      setPreInterest(existing.pre_interest ? tutarYaz(existing.pre_interest) : '');
+      setRate(existing.interest_rate != null ? oranYaz(existing.interest_rate) : '');
       setStartDate(new Date(`${existing.start_date}T12:00:00`));
-      setExpenses(existing.expenses ? String(existing.expenses) : '');
-      setAttorneyFee(existing.attorney_fee ? String(existing.attorney_fee) : '');
+      setExpenses(existing.expenses ? tutarYaz(existing.expenses) : '');
+      setAttorneyFee(existing.attorney_fee ? tutarYaz(existing.attorney_fee) : '');
       setNotes(existing.notes ?? '');
     }
   }, [existing]);
@@ -78,6 +81,14 @@ export default function EnforcementFormScreen() {
   const typeOptions = TAKIP_TYPES.map((value) => ({ value, label: t(`enf.type.${value}` as const) }));
 
   const handleSubmit = async () => {
+    // Okunamayan tutar eskiden sessizce 0 kaydediliyordu; şimdi söylenir.
+    const okunamayan = [principal, preInterest, expenses, attorneyFee].find(
+      (v) => v.trim() && !Number.isFinite(tutarOku(v))
+    ) ?? (rate.trim() && !Number.isFinite(oranOku(rate)) ? rate : undefined);
+    if (okunamayan) {
+      uyar(t('tutar.okunamadi', { deger: okunamayan.trim() }));
+      return;
+    }
     const payload = {
       client_id: clientId,
       debtor_name: debtorName.trim(),
@@ -88,7 +99,7 @@ export default function EnforcementFormScreen() {
       takip_type: takipType,
       principal: parseMoney(principal),
       pre_interest: parseMoney(preInterest),
-      interest_rate: rate.trim() ? parseMoney(rate) : null,
+      interest_rate: rate.trim() ? oranOku(rate) : null,
       start_date: format(startDate, 'yyyy-MM-dd'),
       expenses: parseMoney(expenses),
       attorney_fee: parseMoney(attorneyFee),
@@ -99,7 +110,7 @@ export default function EnforcementFormScreen() {
     try {
       if (isEdit && id) {
         await updateEnforcement.mutateAsync({ id, ...payload });
-        router.back();
+        geriDon();
       } else {
         const created = await createEnforcement.mutateAsync(payload);
         router.replace(`/enforcement/${created.id}` as Parameters<typeof router.replace>[0]);

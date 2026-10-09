@@ -15,7 +15,7 @@ import { supabase } from '@/lib/supabase';
 // Hata çevirisi ORTAK: aynı mantık ekranlarda ayrı yazılınca biri güncellenip
 // diğerleri geride kalıyordu (bkz. src/lib/aiHata.ts).
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
-import { belgeOkumaHatasi, yerelKunye } from '@/lib/iceAktarKunye';
+import { belgeOkumaHatasi, gelecekDurusmaGunu, yerelKunye } from '@/lib/iceAktarKunye';
 import { EK_DOSYA_TAVANI_BAYT } from '@/lib/belgeEkiKurallari';
 import { useCreateCase } from '@/hooks/useCases';
 import { useCreateHearing } from '@/hooks/useHearings';
@@ -180,7 +180,8 @@ export default function DosyaAktarScreen() {
         case_number: (k.case_number ?? '').trim(),
         case_type: (k.case_type ?? '').trim(),
         opposing_party: (k.opposing_party ?? '').trim(),
-        hearing_date: /^\d{4}-\d{2}-\d{2}$/.test(k.hearing_date ?? '') ? k.hearing_date! : '',
+        // Yapay zekâdan gelen tarih de aynı süzgeçten: gerçek gün ve bugünden sonra.
+        hearing_date: gelecekDurusmaGunu(k.hearing_date ?? ''),
       });
       setTaraflar({ davaci: (k.davaci ?? '').trim(), davali: (k.davali ?? '').trim() });
       setAtilan(yanit?.atilan ?? []);
@@ -202,6 +203,12 @@ export default function DosyaAktarScreen() {
     }
     setBusy(true);
     try {
+      // Elle yazılan tarih okunamıyorsa ("2026-02-31", "15.09.2026") eskiden
+      // duruşma SESSİZCE yazılmıyor, yine de "oluşturuldu" deniyordu.
+      if (form.hearing_date.trim() && !gelecekDurusmaGunu(form.hearing_date.trim(), new Date(0))) {
+        uyar(t('imp.title'), t('imp.tarihOkunamadi', { tarih: form.hearing_date.trim() }));
+        return;
+      }
       const created = await createCase.mutateAsync({
         title: form.title.trim(),
         court_name: form.court_name.trim() || null,
@@ -230,7 +237,8 @@ export default function DosyaAktarScreen() {
         { text: t('common.done'), onPress: () => router.replace('/(app)/cases') },
       ]);
     } catch {
-      uyar(t('imp.title'), t('imp.saveFailed'));
+      // Uyarıyı useCreateCase gösterir (plan sınırı → "Planları gör").
+      // İkinci uyarı onu eziyordu (08.10.2026).
     } finally {
       setBusy(false);
     }

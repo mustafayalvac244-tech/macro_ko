@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { format } from 'date-fns/format';
 import { Screen } from '@/components/ui/Screen';
@@ -19,8 +19,10 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatDateTime } from '@/utils/format';
 import { menfaatTara } from '@/utils/menfaatCatismasi';
+import { oranOku, oranYaz, tutarOku, tutarYaz } from '@/utils/tutar';
 import { MenfaatUyarisi } from '@/components/MenfaatUyarisi';
 import type { CaseStatus, PriorityLevel } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 const STATUS_VALUES = ['active', 'closed'] as const; // Açık / Kapalı
 const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
@@ -76,10 +78,10 @@ export default function CaseFormScreen() {
       setStatus(['closed', 'won', 'lost'].includes(existingCase.status) ? 'closed' : 'active');
       setPriority(existingCase.priority);
       setOpenedDate(new Date(existingCase.opened_date));
-      setFee(existingCase.fee_amount != null ? String(existingCase.fee_amount) : '');
+      setFee(existingCase.fee_amount != null ? tutarYaz(existingCase.fee_amount) : '');
       setFeeType((existingCase.fee_type as typeof feeType) ?? 'fixed');
-      setFeePercent(existingCase.fee_percent != null ? String(existingCase.fee_percent) : '');
-      setFeeAdvance(existingCase.fee_advance != null ? String(existingCase.fee_advance) : '');
+      setFeePercent(existingCase.fee_percent != null ? oranYaz(existingCase.fee_percent) : '');
+      setFeeAdvance(existingCase.fee_advance != null ? tutarYaz(existingCase.fee_advance) : '');
     }
   }, [existingCase]);
 
@@ -122,6 +124,13 @@ export default function CaseFormScreen() {
       setSubmitError(t('caseForm.opposingRequired'));
       return;
     }
+    // "50.000" eskiden 50, "1.250.000" sessizce boş kaydediliyordu (ücret silinirdi).
+    const okunamayan = [fee, feeAdvance].find((v) => v.trim() && !Number.isFinite(tutarOku(v)))
+      ?? (feePercent.trim() && !Number.isFinite(oranOku(feePercent)) ? feePercent : undefined);
+    if (okunamayan) {
+      setSubmitError(t('tutar.okunamadi', { deger: okunamayan.trim() }));
+      return;
+    }
 
     const payload = {
       title: title.trim(),
@@ -136,10 +145,10 @@ export default function CaseFormScreen() {
       status,
       priority,
       opened_date: format(openedDate, 'yyyy-MM-dd'),
-      fee_amount: fee.trim() ? Number(fee.replace(',', '.')) || null : null,
+      fee_amount: fee.trim() ? tutarOku(fee) || null : null,
       fee_type: feeType,
-      fee_percent: feePercent.trim() ? Number(feePercent.replace(',', '.')) || null : null,
-      fee_advance: feeAdvance.trim() ? Number(feeAdvance.replace(',', '.')) || null : null,
+      fee_percent: feePercent.trim() ? oranOku(feePercent) || null : null,
+      fee_advance: feeAdvance.trim() ? tutarOku(feeAdvance) || null : null,
     };
 
     try {
@@ -160,7 +169,7 @@ export default function CaseFormScreen() {
           });
         }
       }
-      router.back();
+      geriDon();
     } catch (err) {
       setSubmitError(err instanceof Error ? trError(err.message) : t('caseForm.saveFailed'));
     }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
+import { cancelReminder, deadlineReminderId, hearingOutcomeId, hearingReminderId } from '@/lib/notifications';
 import { onbellekYamasi } from '@/utils/onbellekYamasi';
 import { useAuthStore } from '@/store/authStore';
 import type { Case, CaseStatus, CaseWithClient, PriorityLevel } from '@/types/database';
@@ -220,14 +221,32 @@ export function useDeleteCase() {
   return useMutation({
     onError: notifySaveError,
     mutationFn: async (id: string) => {
+      // SİLMEDEN ÖNCE duruşma/görev kimlikleri: cascade onları siler ama
+      // cihazdaki yerel hatırlatmalar kalıyordu — silinmiş davanın duruşması
+      // bildirim olarak çalabiliyordu (08.10.2026 denetimi).
+      const [{ data: durusmalar }, { data: gorevler }] = await Promise.all([
+        supabase.from('hearings').select('id').eq('case_id', id),
+        supabase.from('deadlines').select('id').eq('case_id', id),
+      ]);
       await davaBelgeleriniDepodanSil(id);
       const { error } = await supabase.from('cases').delete().eq('id', id);
       if (error) throw error;
+      await Promise.all([
+        ...(durusmalar ?? []).flatMap((h: { id: string }) => [
+          cancelReminder(hearingReminderId(h.id)),
+          cancelReminder(hearingOutcomeId(h.id)),
+        ]),
+        ...(gorevler ?? []).map((g: { id: string }) => cancelReminder(deadlineReminderId(g.id))),
+      ]).catch(() => {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       // Belge satırları cascade ile gitti; belge listeleri de tazelenmeli.
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+      // Cascade ile giden kayıtların listeleri de: takvim, pano, tahsilat.
+      for (const k of ['hearings', 'deadlines', 'payments', 'case-expenses', 'installments', 'time-entries']) {
+        queryClient.invalidateQueries({ queryKey: [k] });
+      }
     },
   });
 }

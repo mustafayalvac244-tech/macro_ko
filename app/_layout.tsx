@@ -35,7 +35,7 @@ import { useAuthStore } from '@/store/authStore';
 import { pushAdresiniKaydet, registerForNotificationsAsync } from '@/lib/notifications';
 import { asyncPersister, queryClient, QUERY_CACHE_MAX_AGE } from '@/lib/queryClient';
 import { configurePurchases, identifyPurchaser, resetPurchaser } from '@/lib/purchases';
-import { hydrateLanguage } from '@/i18n';
+import { hydrateLanguage, useLangStore } from '@/i18n';
 import { hydrateTheme } from '@/theme/themeStore';
 import { useTheme } from '@/theme/useTheme';
 import { hydrateLock } from '@/store/lockStore';
@@ -88,6 +88,13 @@ export default function RootLayout() {
     return () => clearTimeout(t);
   }, []);
   const fontsReady = fontsLoaded || !!fontError || fontsTimedOut;
+
+  // Web: sayfa dili uygulama diliyle aynı olsun — CSS büyük harf dönüşümü
+  // Türkçe İ/ı'yı ancak lang="tr" iken doğru yapar (bkz. scripts/web-404.mjs).
+  const dil = useLangStore((s) => s.lang);
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') document.documentElement.lang = dil;
+  }, [dil]);
 
   useEffect(() => {
     const unsubscribe = initialize();

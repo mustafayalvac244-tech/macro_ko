@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { router, useLocalSearchParams } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/TarihSecici';
 import { format } from 'date-fns/format';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -25,13 +25,16 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { computeKapak } from '@/utils/kapak';
 import { formatDate, formatMoney } from '@/utils/format';
+import { tutarOku } from '@/utils/tutar';
 import type { CollectionSource, EnforcementStage } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 const STAGES: EnforcementStage[] = ['opened', 'served', 'objected', 'final', 'attachment', 'sale', 'closed'];
 const SOURCES: CollectionSource[] = ['payment', 'attachment', 'sale', 'other'];
 
+/** Boş/okunamayan girişte 0. Ortak ayrıştırıcı: utils/tutar. */
 function parseMoney(s: string): number {
-  const n = Number(s.replace(/\./g, '').replace(',', '.'));
+  const n = tutarOku(s);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -76,7 +79,11 @@ export default function EnforcementDetailScreen() {
 
   const submitCollection = async () => {
     const amount = parseMoney(collAmount);
-    if (amount <= 0) return;
+    if (amount <= 0) {
+      // Eskiden sessizce hiçbir şey olmuyordu; kullanıcı düğmenin bozuk olduğunu sanıyordu.
+      if (collAmount.trim()) uyar(t('tutar.okunamadi', { deger: collAmount.trim() }));
+      return;
+    }
     await createCollection.mutateAsync({
       enforcement_id: file.id,
       amount,
@@ -99,7 +106,7 @@ export default function EnforcementDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           await deleteEnforcement.mutateAsync(file.id);
-          router.back();
+          geriDon();
         },
       },
     ]);
@@ -418,7 +425,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
   },
   stageChipTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   collHead: {
     flexDirection: 'row',

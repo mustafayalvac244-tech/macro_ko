@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -12,13 +12,13 @@ import { useCases } from '@/hooks/useCases';
 import { useClients } from '@/hooks/useClients';
 import { pickDocumentFile, pickImageFile, takePhotoFile, useUploadDocument } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
-import { trError } from '@/lib/authErrors';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatFileSize } from '@/utils/format';
 import { categoryMismatch, detectFileKind } from '@/utils/fileKind';
 import type { DocumentCategory } from '@/types/database';
+import { geriDon } from '@/lib/geriDon';
 
 const CATEGORY_VALUES: DocumentCategory[] = [
   'pleading',
@@ -77,9 +77,12 @@ export default function DocumentUploadScreen() {
         clientId: ownerMode === 'client' ? clientId || null : null,
         category,
       });
-      router.back();
-    } catch (err) {
-      uyar(t('upload.failed'), err instanceof Error ? trError(err.message) : t('upload.tryAgain'));
+      geriDon();
+    } catch {
+      // Uyarıyı kanca gösterir (notifySaveError): plan sınırı için "Planları
+      // gör" düğmeli pencere, 25 MB için sınır cümlesi. Eskiden burada İKİNCİ
+      // bir uyarı açılıyordu; web'de öncekinin yerine geçip doğru pencereyi
+      // siliyor, ham "plan_limiti:belge:5" kodunu gösteriyordu (08.10.2026).
     }
   };
 
