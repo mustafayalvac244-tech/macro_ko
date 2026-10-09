@@ -689,6 +689,7 @@ export const tr = {
   'auth.verifyBody': 'Hesabınız oluşturuldu. {email} adresine bir doğrulama bağlantısı gönderdik; bağlantıya tıkladıktan sonra giriş yapabilirsiniz.',
   'auth.verifyHint': 'E-posta birkaç dakika içinde gelmezse spam / gereksiz klasörünü kontrol edin.',
   'auth.verifyGoLogin': 'Giriş ekranına dön',
+  'auth.verifyFixEmail': 'E-posta adresini düzelt',
   'auth.resendVerify': 'Doğrulama e-postasını tekrar gönder',
   'auth.resendVerifyIn': 'Tekrar gönder ({n} sn)',
   'auth.resendVerifyDone': 'Doğrulama e-postası yeniden gönderildi. Gelen kutunuzu ve spam klasörünü kontrol edin.',

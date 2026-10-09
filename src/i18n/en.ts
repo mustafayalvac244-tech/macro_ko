@@ -735,6 +735,7 @@ export const en: Record<keyof typeof tr, string> = {
   'auth.verifyBody': 'Your account has been created. We sent a verification link to {email}; you can sign in after clicking it.',
   'auth.verifyHint': 'If the email does not arrive within a few minutes, check your spam folder.',
   'auth.verifyGoLogin': 'Back to sign in',
+  'auth.verifyFixEmail': 'Fix email address',
   'auth.resendVerify': 'Resend verification email',
   'auth.resendVerifyIn': 'Resend ({n}s)',
   'auth.resendVerifyDone': 'Verification email sent again. Check your inbox and spam folder.',
