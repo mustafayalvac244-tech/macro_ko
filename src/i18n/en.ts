@@ -1626,7 +1626,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ai.errZamanAsimi': 'The research could not finish within the time limit; nothing was deducted from your allowance. Shorten the facts or narrow it to one issue and try again.',
   'ai.errRefusal': 'The AI declined this request (model refusal); nothing was deducted from your allowance. You can try rewording the facts; retrying with the same text will most likely give the same result.',
   'ai.errGeneric': 'No response. Check your internet connection and try again.',
-  'ai.errZamanAsimi': 'The response took too long, so we stopped waiting. Try again shortly; the server may have finished the request and deducted it from your quota.',
+  'ai.errIstemciZamanAsimi': 'The response took too long, so we stopped waiting. Try again shortly; the server may have finished the request and deducted it from your quota.',
   'ai.errGirdiBuyuk': 'Your message is too long. Shorten it and try again, or use the “Review Document” screen for long texts. Nothing was deducted from your quota.',
   'ai.errYedekGunluk': 'The primary AI model is unavailable right now and today’s backup-model limit has been reached. Nothing was deducted from your quota; try again in a few hours or tomorrow.',
   'ai.errSaklama': 'Chat history could not be saved on this device (storage may be full). This conversation may be lost if you close the app; copy any important answers.',

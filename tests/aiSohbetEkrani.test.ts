@@ -36,8 +36,8 @@ describe('taslakGeriYukle', () => {
 
 describe('aiBaglantiKodu', () => {
   it('iptal (zaman aşımı) hatası zaman_asimi', () => {
-    expect(aiBaglantiKodu({ name: 'FunctionsFetchError', context: { name: 'AbortError' } })).toBe('zaman_asimi');
-    expect(aiBaglantiKodu({ name: 'FunctionsFetchError', context: { name: 'TimeoutError' } })).toBe('zaman_asimi');
+    expect(aiBaglantiKodu({ name: 'FunctionsFetchError', context: { name: 'AbortError' } })).toBe('istemci_zaman_asimi');
+    expect(aiBaglantiKodu({ name: 'FunctionsFetchError', context: { name: 'TimeoutError' } })).toBe('istemci_zaman_asimi');
   });
 
   it('diğer ağ hatası generic (internet)', () => {
@@ -53,21 +53,22 @@ describe('aiBaglantiKodu', () => {
 
 describe('yeni hata kodları kullanıcıya doğru cümleyi söyler', () => {
   const t = ((k: string) => k) as unknown as Parameters<typeof aiHataMetni>[1];
-  it('zaman_asimi, girdi_buyuk, yedek_gunluk', () => {
+  it('zaman_asimi (sunucu 504, hak iade), istemci_zaman_asimi, girdi_buyuk, yedek_gunluk', () => {
     expect(aiHataMetni({ error: 'zaman_asimi' }, t)).toBe('ai.errZamanAsimi');
+    expect(aiHataMetni({ error: 'istemci_zaman_asimi' }, t)).toBe('ai.errIstemciZamanAsimi');
     expect(aiHataMetni({ error: 'girdi_buyuk' }, t)).toBe('ai.errGirdiBuyuk');
     expect(aiHataMetni({ error: 'yedek_gunluk' }, t)).toBe('ai.errYedekGunluk');
   });
 
   it('çeviri anahtarları tr ve en dosyalarında var', () => {
-    for (const k of ['ai.errZamanAsimi', 'ai.errGirdiBuyuk', 'ai.errYedekGunluk', 'ai.errSaklama']) {
+    for (const k of ['ai.errZamanAsimi', 'ai.errIstemciZamanAsimi', 'ai.errGirdiBuyuk', 'ai.errYedekGunluk', 'ai.errSaklama']) {
       expect((tr as Record<string, string>)[k], `tr ${k}`).toBeTruthy();
       expect((en as Record<string, string>)[k], `en ${k}`).toBeTruthy();
     }
   });
 
-  it('zaman aşımı mesajı "hakkınızdan düşülmedi" DEMEZ (sunucu işi bitirmiş olabilir)', () => {
-    expect((tr as Record<string, string>)['ai.errZamanAsimi']).not.toMatch(/düşülmedi/);
+  it('İSTEMCİ zaman aşımı mesajı "hakkınızdan düşülmedi" DEMEZ (sunucu işi bitirmiş olabilir)', () => {
+    expect((tr as Record<string, string>)['ai.errIstemciZamanAsimi']).not.toMatch(/düşülmedi/);
   });
 });
 

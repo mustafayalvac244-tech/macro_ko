@@ -1,3 +1,4 @@
+import type { EkUyari } from '@/lib/belgeEkiKurallari';
 import type { KararDenetimiVerisi } from '@/components/ui/AtifDenetimi';
 import type { AiKullanim } from '@/hooks/useAiKontor';
 
@@ -12,11 +13,7 @@ import type { AiKullanim } from '@/hooks/useAiKontor';
  *   • dışa giden belgede atıf uyarısı yoktu.
  */
 
-export interface EkUyari {
-  pdfdenMetne?: string[];
-  okunamayan?: string[];
-  taranmis?: boolean;
-}
+export type { EkUyari } from '@/lib/belgeEkiKurallari';
 
 /** Ekranda GÖSTERİLEN taslağa ait her uyarı ve istek bilgisi — tek parça, böylece anlık görüntüsü alınabilir. */
 export interface DilekceUyarilari {

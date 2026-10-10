@@ -1717,7 +1717,7 @@ export const tr = {
   'ai.errZamanAsimi': 'Araştırma süre sınırı içinde tamamlanamadı; hakkınızdan düşülmedi. Olayı kısaltıp ya da tek konuya indirip tekrar deneyin.',
   'ai.errRefusal': 'Yapay zekâ bu isteğe yanıt vermedi (model reddetti); hakkınızdan düşülmedi. Olayı farklı ifade ederek tekrar deneyebilirsiniz; aynı metinle tekrar denemek büyük olasılıkla aynı sonucu verir.',
   'ai.errGeneric': 'Yanıt alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
-  'ai.errZamanAsimi': 'Yanıt çok uzun sürdü ve beklemeyi bıraktık. Biraz sonra tekrar deneyin; sunucu isteği tamamlamış ve hakkınızdan düşmüş olabilir.',
+  'ai.errIstemciZamanAsimi': 'Yanıt çok uzun sürdü ve beklemeyi bıraktık. Biraz sonra tekrar deneyin; sunucu isteği tamamlamış ve hakkınızdan düşmüş olabilir.',
   'ai.errGirdiBuyuk': 'Mesajınız çok uzun. Kısaltıp tekrar deneyin ya da uzun metinler için “Belge İncele” ekranını kullanın. Hakkınızdan düşülmedi.',
   'ai.errYedekGunluk': 'Asıl yapay zekâ modeli şu an ulaşılamıyor ve bugünkü yedek model sınırı doldu. Hakkınızdan düşülmedi; birkaç saat içinde ya da yarın tekrar deneyin.',
   'ai.errSaklama': 'Sohbet geçmişi bu cihaza kaydedilemedi (depolama dolu olabilir). Uygulamayı kapatırsanız bu sohbet kaybolabilir; önemli cevapları kopyalayın.',

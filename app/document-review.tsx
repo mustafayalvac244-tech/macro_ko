@@ -31,7 +31,6 @@ const KINDS: DocKind[] = ['sozlesme', 'dilekce', 'ihtarname', 'karar', 'diger'];
 /** Bağlam taşmasın diye üst sınır; aşarsa sondan kırpılır ve kaç karakterin gittiği söylenir. */
 const MAX_CHARS = 12000;
 
-type EkUyari = { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean };
 
 /**
  * SON İNCELEME SONUCU CİHAZDA SAKLANIR (09.10.2026, 50 denetçi taraması).

@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { kunyeNormalize } from '../supabase/functions/_shared/kunyeBicim';
 import { kararAtiflari } from '../supabase/functions/_shared/kararAtif';
+import { kunyeYokDenemez } from '../supabase/functions/_shared/ictihatArama';
 
 const KOK = join(__dirname, '..');
 const oku = (p: string) => readFileSync(join(KOK, p), 'utf8');
@@ -44,7 +45,8 @@ describe('canlı künye teyidi', () => {
   it('dilekçe ve mütalaa istemi dosyada olmayan künyeyi yasaklıyor', () => {
     expect(aiChat).toContain('yalnız aşağıdaki DOSYADA listelenen kararlara');
     expect(aiChat).toContain('[emsal karar: İçtihat Arama ekranından ekleyin]');
-    expect(aiChat).toContain('[emsal karar: İçtihat Arama ile ekleyin]');
+    // Mütalaa istemi 10.10.2026'da _shared/mutalaaDenetim.ts'e taşındı.
+    expect(aiChat + oku('supabase/functions/_shared/mutalaaDenetim.ts')).toContain('[emsal karar: İçtihat Arama ile ekleyin]');
   });
 
   it('ölçüm sayaçları göçte ve kayıtta var', () => {
@@ -111,7 +113,13 @@ describe('canlı künye teyidi', () => {
 
   it('künye araması Emsal düşünce Bedesten ile sürüyor; 502 sebebi loglanıyor', () => {
     expect(ictihat).toMatch(/emsalDustu = true;[\s\S]*console\.error\('kunye: emsal araması düştü:'/);
-    expect(ictihat).toContain("if (emsalDustu && collected.length === 0) throw new Error('source_unreachable');");
+    // 10.10.2026: karar _shared/ictihatArama.ts > kunyeYokDenemez'e taşındı; Yargıtay
+    // (Bedesten) düşmesi de artık "bulunamadı" denmesini engelliyor.
+    expect(ictihat).toContain("if (kunyeYokDenemez(exact.length, emsalDustu, yargitayDustu)) throw new Error('source_unreachable');");
+    expect(kunyeYokDenemez(0, true, false)).toBe(true);
+    expect(kunyeYokDenemez(0, false, true)).toBe(true);
+    expect(kunyeYokDenemez(0, false, false)).toBe(false);
+    expect(kunyeYokDenemez(2, true, true)).toBe(false);
     expect(ictihat).toContain("console.error('ictihat 502:'");
   });
 });
