@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
 import { onbellekYamasi } from '@/utils/onbellekYamasi';
+import { gecersizKimlikMi } from '@/utils/davaEkrani';
 import { tumSayfalar } from '@/utils/sayfalama';
 import { useAuthStore } from '@/store/authStore';
 import type {
@@ -52,11 +53,15 @@ export function useEnforcement(id: string | undefined) {
   return useQuery({
     queryKey: ['enforcements', 'detail', id],
     enabled: !!id,
-    retry: (n, err) => !isMissingEnforcementTable(err) && n < 1,
+    // Bozuk kimlik (22P02) tekrar denenmez (bkz. utils/davaEkrani).
+    retry: (n, err) => !isMissingEnforcementTable(err) && !gecersizKimlikMi(err) && n < 1,
     queryFn: async () => {
-      const { data, error } = await supabase.from('enforcement_files').select(ENF_SELECT).eq('id', id!).single();
+      // maybeSingle: kayıt yoksa (silinmiş / bu hesabın değil) HATA değil null.
+      // single() PGRST116 fırlatıyordu ve ekran sonsuza dek boş kalıyordu
+      // (10.10.2026; dava detayında aynı kusur 09.10'da düzeltilmişti).
+      const { data, error } = await supabase.from('enforcement_files').select(ENF_SELECT).eq('id', id!).maybeSingle();
       if (error) throw error;
-      return data as unknown as EnforcementWithClient;
+      return (data ?? null) as unknown as EnforcementWithClient | null;
     },
   });
 }
