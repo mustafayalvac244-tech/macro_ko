@@ -100,7 +100,44 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   return t('ai.errTamamlanamadi');
 }
 
-export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_arizasi' | 'paket' | 'generic';
+export type IctihatError =
+  | 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_arizasi' | 'paket'
+  | 'kota' | 'gunluk' | 'soru_kota' | 'deneme' | 'servis' | 'bos' | 'karar_yok' | 'oturum'
+  | 'generic';
+
+/**
+ * `ictihat` ucunun döndürdüğü hata KODUNU ekran türüne çevirir.
+ *
+ * NEDEN BURADA (09.10.2026). Bu eşleme useIctihat.ts içindeydi ve yalnız altı
+ * kodu tanıyordu. Olay analizi ve özetin kota kodları (quota_exceeded,
+ * gunluk_hak_bitti, ai_soru_kota_bitti, deneme_hakki_bitti) ve yapay zekâ
+ * arızaları "İnternet bağlantınızı kontrol edin"e düşüyordu. useIctihat
+ * supabase istemcisini çektiği için test edilemiyordu; burası saf ve testli.
+ */
+export function ictihatHataTuru(kod: string): IctihatError {
+  switch (kod) {
+    case 'rate_limit': return 'rate_limit';
+    case 'source_unreachable': return 'source';
+    case 'not_configured': return 'ai_off';
+    // Paket kapısı: ücretsiz kullanıcı yapay zekâ özetine/analizine giremez
+    // (kelime araması ve künye sorgusu ücretsiz ve sınırsız kalır).
+    case 'tier_required': return 'paket';
+    // KVKK kapısı: yalnız özet ve olay analizi bu kapıdan geçer.
+    case 'kvkk_riza_yok': return 'kvkk';
+    case 'kvkk_kontrol_hatasi': return 'kvkk_arizasi';
+    case 'quota_exceeded': return 'kota';
+    case 'gunluk_hak_bitti': return 'gunluk';
+    case 'ai_soru_kota_bitti': return 'soru_kota';
+    case 'deneme_hakki_bitti': return 'deneme';
+    // Yapay zekâ servisi düştü / boş döndü: UYAP değil, biz. Hak iade edilir.
+    case 'upstream': return 'servis';
+    case 'empty': return 'bos';
+    // Olay analizinde kaynak cevap verdi ama olaya uygun karar çıkmadı.
+    case 'karar_yok': return 'karar_yok';
+    case 'unauthorized': return 'oturum';
+    default: return 'generic';
+  }
+}
 
 /**
  * Hata kodunu çeviri anahtarına çevirir.
@@ -112,7 +149,10 @@ export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_a
  */
 export function ictihatHataAnahtari(error: IctihatError):
   | 'ictihat.errAiOff' | 'ictihat.errRate' | 'ictihat.errSource'
-  | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errPaketGerekli' | 'ictihat.errGeneric' {
+  | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errPaketGerekli'
+  | 'ai.errQuota' | 'ai.errDailyCap' | 'ai.errSoruKota' | 'ai.errDenemeBitti'
+  | 'ai.errServis' | 'ai.errBos' | 'ai.errOturum' | 'ictihat.analyzeKararYok'
+  | 'ictihat.errGeneric' {
   switch (error) {
     case 'ai_off': return 'ictihat.errAiOff';
     case 'rate_limit': return 'ictihat.errRate';
@@ -124,6 +164,15 @@ export function ictihatHataAnahtari(error: IctihatError):
     // Paket mesajı da ai-chat ile ORTAK: aynı sebeple kapanan iki ekranın iki
     // ayrı cümle söylemesi, kullanıcıya iki ayrı sorun varmış izlenimi verir.
     case 'paket': return 'ai.errPaketGerekli';
+    // Kota ve yapay zekâ arızası mesajları da ai-chat ile ORTAK.
+    case 'kota': return 'ai.errQuota';
+    case 'gunluk': return 'ai.errDailyCap';
+    case 'soru_kota': return 'ai.errSoruKota';
+    case 'deneme': return 'ai.errDenemeBitti';
+    case 'servis': return 'ai.errServis';
+    case 'bos': return 'ai.errBos';
+    case 'oturum': return 'ai.errOturum';
+    case 'karar_yok': return 'ictihat.analyzeKararYok';
     default: return 'ictihat.errGeneric';
   }
 }

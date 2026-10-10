@@ -1973,6 +1973,7 @@ export const tr = {
   'ictihat.analyzeBtn': 'Değerlendir ve İçtihat Bul',
   'ictihat.analyzing': 'Uyuşmazlık değerlendiriliyor, uygun kararlar aranıyor...',
   'ictihat.analyzeRefs': 'Uyuşmazlığa Uygun Kararlar',
+  'ictihat.analyzeKararYok': 'Bu olaya uygun karar bulunamadı. Olayı biraz daha ayrıntılı anlatıp tekrar deneyin; hakkınızdan düşülmedi.',
   'ictihat.analyzeSoon': 'Olay Analizi çok yakında',
   'ictihat.analyzeSoonDesc': 'Somut uyuşmazlığınızı özetleyin; yapay zekâ asistanınız hukuki değerlendirmesini yaparak uygun içtihatları sizin için bulsun. Bu özellik çok yakında açılıyor. Şimdilik “Kelime Arama” ve “Künye” ile gerçek kararlara ulaşabilirsiniz.',
   'ictihat.errAiOff': 'AI şu an kapalı (yapılandırma bekleniyor). Kelime Arama sekmesi çalışır.',
