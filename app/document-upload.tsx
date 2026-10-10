@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { useLocalSearchParams } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCases } from '@/hooks/useCases';
 import { useClients } from '@/hooks/useClients';
-import { pickDocumentFile, pickImageFile, takePhotoFile, useUploadDocument } from '@/hooks/useDocuments';
+import { pickDocumentFile, pickImageFile, takePhotoFile, useDocuments, useUploadDocument } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -19,18 +20,12 @@ import { formatFileSize } from '@/utils/format';
 import { categoryMismatch, detectFileKind } from '@/utils/fileKind';
 import type { DocumentCategory } from '@/types/database';
 import { geriDon } from '@/lib/geriDon';
+import { notifySaveError } from '@/lib/saveError';
+import { useAuthStore } from '@/store/authStore';
+import { fotoSecimSonucu } from '@/utils/profilKaydet';
+import { BELGE_KATEGORILERI, belgeLimitHatasi, ucretsizBelgeLimitiDolu } from '@/utils/belgeArsivi';
 
-const CATEGORY_VALUES: DocumentCategory[] = [
-  'pleading',
-  'contract',
-  'evidence',
-  'correspondence',
-  'court_order',
-  'invoice',
-  'identification',
-  'client_photo',
-  'other',
-];
+const CATEGORY_VALUES: DocumentCategory[] = BELGE_KATEGORILERI;
 
 export default function DocumentUploadScreen() {
   const __t = useTheme();
@@ -42,6 +37,10 @@ export default function DocumentUploadScreen() {
   const { data: cases } = useCases();
   const { data: clients } = useClients();
   const uploadDocument = useUploadDocument();
+  const { data: belgeler, refetch: belgeleriYenile } = useDocuments();
+  const profile = useAuthStore((s) => s.profile);
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
+  const [kontrolEdiliyor, setKontrolEdiliyor] = useState(false);
 
   const [ownerMode, setOwnerMode] = useState<'case' | 'client'>('case');
   const [caseId, setCaseId] = useState<string>(prefilledCaseId ?? '');
@@ -51,20 +50,44 @@ export default function DocumentUploadScreen() {
 
   const categoryOptions = CATEGORY_VALUES.map((value) => ({ value, label: t(`docCategory.${value}` as const) }));
 
+  // Seçici hatası SESSİZ kalmaz (10.10.2026 denetimi): kullanıcı düğmeye basıp
+  // hiçbir şey olmadığını görüyordu.
   const handlePickDocument = async () => {
-    const picked = await pickDocumentFile();
-    if (picked) setFile(picked);
+    try {
+      const picked = await pickDocumentFile();
+      if (picked) setFile(picked);
+    } catch {
+      uyar(t('upload.failed'), t('upload.tryAgain'));
+    }
   };
 
-  const handlePickImage = async () => {
-    const picked = await pickImageFile();
-    if (picked) setFile(picked);
+  // Galeri/kamera izni reddedilince seçici de vazgeçme gibi null döner; ikisi
+  // ayrılır ve ret kullanıcıya söylenir (kalıp: app/profile-form.tsx stagePhoto).
+  // Web'de izin hep "verildi" döner.
+  const handlePickPhoto = async (kaynak: 'galeri' | 'kamera') => {
+    try {
+      const picked = await (kaynak === 'kamera' ? takePhotoFile() : pickImageFile());
+      const izinVerildi = picked
+        ? true
+        : await (kaynak === 'kamera'
+            ? ImagePicker.getCameraPermissionsAsync()
+            : ImagePicker.getMediaLibraryPermissionsAsync()
+          ).then(
+            (p) => p.granted,
+            () => null,
+          );
+      if (fotoSecimSonucu(!!picked, izinVerildi) === 'izin-yok') {
+        uyar(t('upload.title'), t(kaynak === 'kamera' ? 'profile.cameraPermDenied' : 'profile.photoPermDenied'));
+        return;
+      }
+      if (picked) setFile(picked);
+    } catch {
+      uyar(t('upload.failed'), t('upload.tryAgain'));
+    }
   };
 
-  const handleTakePhoto = async () => {
-    const picked = await takePhotoFile();
-    if (picked) setFile(picked);
-  };
+  const handlePickImage = () => handlePickPhoto('galeri');
+  const handleTakePhoto = () => handlePickPhoto('kamera');
 
   const detectedKind = file ? detectFileKind(file.mimeType, file.name) : null;
 
@@ -86,8 +109,34 @@ export default function DocumentUploadScreen() {
     }
   };
 
-  const handleUpload = () => {
+  // PLAN SINIRI ÖN KONTROLÜ (10.10.2026 denetimi). Ücretsiz planda 5 belge
+  // dolduysa dosya önce okunup depoya yükleniyor, sınır hatası en sonda
+  // geliyordu. Gerçek kısıt sunucudadır (0087); bu yalnız erken uyarıdır.
+  // Profil/liste eski olabilir (abonelik az önce alınmış ya da belge başka
+  // cihazdan silinmiş) — engellemeden önce ikisi de TAZELENİR; tazelenemezse
+  // engellenmez, son sözü sunucu söyler.
+  const limitDolduMu = async (): Promise<boolean> => {
+    if (!ucretsizBelgeLimitiDolu(profile, belgeler?.length)) return false;
+    const [, liste] = await Promise.all([refreshProfile(), belgeleriYenile()]);
+    return ucretsizBelgeLimitiDolu(useAuthStore.getState().profile, liste.isError ? undefined : liste.data?.length);
+  };
+
+  const handleUpload = async () => {
     if (!file || !detectedKind) return;
+
+    setKontrolEdiliyor(true);
+    let dolu = false;
+    try {
+      dolu = await limitDolduMu();
+    } catch {
+      // Ön kontrol yapılamadı: engelleme, sunucu karar versin.
+    } finally {
+      setKontrolEdiliyor(false);
+    }
+    if (dolu) {
+      notifySaveError(belgeLimitHatasi());
+      return;
+    }
 
     // Smart check: warn (but allow override) if the file type clearly does not
     // match the chosen category.
@@ -189,7 +238,7 @@ export default function DocumentUploadScreen() {
         <Button
           label={t('upload.upload')}
           onPress={handleUpload}
-          loading={uploadDocument.isPending}
+          loading={uploadDocument.isPending || kontrolEdiliyor}
           disabled={!file}
           fullWidth
           size="lg"

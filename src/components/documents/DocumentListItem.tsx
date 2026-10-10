@@ -6,6 +6,7 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatFileSize } from '@/utils/format';
 import { useT } from '@/i18n';
+import { belgeSahibiEtiketi } from '@/utils/belgeArsivi';
 import type { CaseDocument, DocumentWithCase } from '@/types/database';
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -41,6 +42,8 @@ export function DocumentListItem({ document, onPress, onDelete, showCase = false
   const t = useT();
   const icon = iconForMimeType(document.mime_type) ?? CATEGORY_ICONS[document.category] ?? 'document-outline';
   const caseInfo = 'case' in document ? document.case : null;
+  // Müvekkile bağlı belge (case_id boş) eskiden "Belgelerim" görünüyordu.
+  const sahip = belgeSahibiEtiketi({ case: caseInfo, client: 'client' in document ? document.client : null });
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
@@ -52,8 +55,12 @@ export function DocumentListItem({ document, onPress, onDelete, showCase = false
           {document.name}
         </Text>
         {showCase && (
-          <Text style={[styles.caseTitle, !caseInfo && styles.myDocs]} numberOfLines={1}>
-            {caseInfo ? caseInfo.title : t('docs.myDocs')}
+          <Text style={[styles.caseTitle, sahip.tur === 'yok' && styles.myDocs]} numberOfLines={1}>
+            {sahip.tur === 'dava'
+              ? sahip.ad
+              : sahip.tur === 'muvekkil'
+                ? t('docs.clientOwner', { name: sahip.ad ?? '' })
+                : t('docs.myDocs')}
           </Text>
         )}
         <Text style={styles.meta} numberOfLines={1}>

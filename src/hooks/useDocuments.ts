@@ -6,11 +6,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { DOCUMENTS_BUCKET, MAX_DOSYA_BAYT, supabase } from '@/lib/supabase';
 import { icerikTuru, kasaSeciciTurleri } from '@/lib/belgeTurleri';
 import { dosyaBuyukKodu } from '@/utils/hataKodu';
+import { depoDosyaAdi, dosyaBoyutuAsildi, gercekDosyaBoyutu } from '@/utils/belgeArsivi';
 import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
 import type { CaseDocument, DocumentCategory, DocumentWithCase } from '@/types/database';
 
-const DOCUMENT_SELECT = '*, case:cases(id, title, case_number)';
+// client: müvekkile bağlı belge (case_id boş) listede "Belgelerim" görünmesin diye.
+const DOCUMENT_SELECT = '*, case:cases(id, title, case_number), client:clients(id, full_name)';
 
 export function useDocuments(caseId?: string) {
   const ownerId = useAuthStore((s) => s.session?.user.id);
@@ -121,12 +123,20 @@ export function useUploadDocument() {
        * kontrol atlanır ve son sözü sunucu söyler; uydurma bir sayıyla
        * kullanıcıyı engellemek yanlış olurdu.
        */
-      if (file.size > 0 && file.size > MAX_DOSYA_BAYT) {
-        throw new Error(dosyaBuyukKodu(Math.floor(MAX_DOSYA_BAYT / (1024 * 1024))));
+      const azamiMb = Math.floor(MAX_DOSYA_BAYT / (1024 * 1024));
+      if (dosyaBoyutuAsildi(file.size, MAX_DOSYA_BAYT)) {
+        throw new Error(dosyaBuyukKodu(azamiMb));
       }
 
       const bytes = await dosyaBaytlari(file);
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      // Seçici boyutu bildirmediyse (0) yukarıdaki kontrol atlanmıştı; okunan
+      // bayt sayısı güvenilir olandır (denetim 10.10.2026). Sunucuya göndermeden
+      // reddedilir; ayrıca arşivde "0 B" görünmesin diye kayda da bu yazılır.
+      const boyut = gercekDosyaBoyutu(file.size, bytes.byteLength);
+      if (dosyaBoyutuAsildi(boyut, MAX_DOSYA_BAYT)) {
+        throw new Error(dosyaBuyukKodu(azamiMb));
+      }
+      const safeName = depoDosyaAdi(file.name);
       const path = `${ownerId}/${caseId ?? 'general'}/${Date.now()}-${safeName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -143,7 +153,7 @@ export function useUploadDocument() {
           name: file.name,
           category,
           file_path: path,
-          file_size: file.size,
+          file_size: boyut,
           mime_type: icerikTuru(file.name, file.mimeType),
         })
         .select()
