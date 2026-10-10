@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BelgeEkleri } from '@/components/ui/BelgeEkleri';
 import type { BelgeEki } from '@/lib/belgeEki';
-import { ekGovdesi } from '@/lib/belgeEkiKurallari';
+import { ekGovdesi, type EkUyari } from '@/lib/belgeEkiKurallari';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SesleYaz } from '@/components/ui/SesleYaz';
 import { Screen } from '@/components/ui/Screen';
@@ -60,7 +60,7 @@ export default function DocumentReviewScreen() {
   // ve tamamen taranmış PDF reddediliyordu. Şimdi PDF sayfa görüntüsüyle
   // okunur; kutu yapıştırılan metin ya da avukatın notu içindir.
   const [ekler, setEkler] = useState<BelgeEki[]>([]);
-  const [ekUyari, setEkUyari] = useState<{ pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean } | null>(null);
+  const [ekUyari, setEkUyari] = useState<EkUyari | null>(null);
   // Kullanım ve iade — sunucu üç modda da destekliyor.
   const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
   const [hakDusulmedi, setHakDusulmedi] = useState(false);
@@ -101,7 +101,7 @@ export default function DocumentReviewScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const yanit = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
+      const yanit = data as { ekUyari?: EkUyari; text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       const reply = yanit?.text?.trim();
       if (!reply) {
         // Sunucuya ulaşıldı, cevap boş: internet suçlanmaz (08.10.2026).
@@ -214,6 +214,9 @@ export default function DocumentReviewScreen() {
               {!!ekUyari?.okunamayan?.length && (
                 <Text style={styles.warn}>{t('ek.okunamayan', { adlar: ekUyari.okunamayan.join(', ') })}</Text>
               )}
+              {ekUyari?.kirpilan?.map((k, i) => (
+                <Text key={`kirpilan-${i}`} style={styles.warn}>{t('ek.kirpildi', { ad: k.ad, n: k.okunan, toplam: k.toplam })}</Text>
+              ))}
               {!!kullanim && (
                 <Text style={styles.usage}>
                   {kullanim.maliyetTL > 0

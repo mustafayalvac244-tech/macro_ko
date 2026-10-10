@@ -2,9 +2,10 @@ import { Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '@/lib/supabase';
 import { aiHataGovdesi } from '@/lib/aiHata';
-import { dosyaBase64, dosyaMetni } from '@/lib/girdi';
+import { dosyaBase64, dosyaBaytlari } from '@/lib/girdi';
 import { belgeSeciciTurleri } from '@/lib/belgeTurleri';
-import { EK_DOSYA_TAVANI_BAYT, PDF_SAYFA_TAVANI } from '@/lib/belgeEkiKurallari';
+import { EK_DOSYA_TAVANI_BAYT, PDF_SAYFA_TAVANI, ekHatasi, sunucudaOkunur, type EkHatasi } from '@/lib/belgeEkiKurallari';
+import { metinDosyasiCoz } from '@/utils/metinKodlama';
 
 /**
  * YAPAY ZEKÂYA BELGE EKLEME — seç, oku, gönderilecek hâle getir (04.10.2026).
@@ -30,7 +31,7 @@ export interface BelgeEki {
   taranmis?: number;
 }
 
-export type EkHatasi = 'bos' | 'taranmisUzun' | 'eskiDoc' | 'buyuk' | 'okunamadi';
+export type { EkHatasi };
 
 /** Dosya seçtirir ve okur. Vazgeçilirse null. */
 export async function belgeSecVeOku(): Promise<{ ek: BelgeEki } | { hata: EkHatasi } | null> {
@@ -46,11 +47,19 @@ export async function belgeSecVeOku(): Promise<{ ek: BelgeEki } | { hata: EkHata
   if (varlik.size && varlik.size > EK_DOSYA_TAVANI_BAYT) return { hata: 'buyuk' };
 
   try {
-    if (kucuk.endsWith('.txt')) {
-      const metin = await dosyaMetni(varlik);
+    // DÜZ METİN CİHAZDA OKUNUR (09.10.2026). Eskiden yalnız .txt burada ve
+    // hep UTF-8 okunuyordu (Windows-1254 dilekçe bozuk çıkıyordu); başka
+    // uzantılı her dosya — fotoğraf, Excel — sunucuda UTF-8 sanılıp çöp metin
+    // olarak yapay zekâya gidiyordu. Artık kodlama çözülür, ikili dosya
+    // "bu tür okunamıyor" diye reddedilir. Bkz. metinDosyasiCoz.
+    if (!sunucudaOkunur(kucuk)) {
+      const metin = metinDosyasiCoz(await dosyaBaytlari(varlik));
+      if (metin === null) return { hata: 'desteklenmiyor' };
       return metin.trim() ? { ek: { ad, metin } } : { hata: 'bos' };
     }
     const base64 = await dosyaBase64(varlik);
+    // Sıfır baytlık dosya: sunucu 'bad_request' döner, "okunamadı" denirdi.
+    if (!base64) return { hata: 'bos' };
     const pdfMi = kucuk.endsWith('.pdf');
     const { data, error } = await supabase.functions.invoke('doc-extract', { body: { filename: kucuk, base64 } });
     if (error) {
@@ -62,9 +71,8 @@ export async function belgeSecVeOku(): Promise<{ ek: BelgeEki } | { hata: EkHata
         if (sayfa > 0 && sayfa <= PDF_SAYFA_TAVANI) return { ek: { ad, metin: '', pdf: base64, sayfa, taranmis: sayfa } };
         return { hata: 'taranmisUzun' };
       }
-      if (kod === 'doc_legacy') return { hata: 'eskiDoc' };
-      if (kod === 'too_large') return { hata: 'buyuk' };
-      return { hata: 'okunamadi' };
+      // Eşleme saf ve testli: src/lib/belgeEkiKurallari.ts > ekHatasi.
+      return { hata: ekHatasi(kod) };
     }
     const cikan = (data ?? {}) as { text?: string; sayfa?: number; okunamayanSayfa?: number[] };
     const metin = cikan.text ?? '';

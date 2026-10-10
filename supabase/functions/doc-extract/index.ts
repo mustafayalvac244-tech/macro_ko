@@ -10,7 +10,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // Metin ayıklama saf mantık ve TESTLİ (tests/belgeMetni.test.ts): UDF
 // dosyalarındaki CDATA bloğu sessizce siliniyordu, kimse fark etmiyordu.
-import { stripXml, udfMetni } from '../_shared/belgeMetni.ts';
+// DOCX, RTF ve düz metin de oradan (09.10.2026, tests/belgeEkiOkuma.test.ts):
+// izlenen değişikliklerde SİLİNEN metin okunuyor, RTF kaçışlı kalıyor,
+// Windows-1254 bozuluyor, fotoğraf "metin" diye dönüyordu.
+import { docxMetni, duzMetinOku, udfMetni } from '../_shared/belgeMetni.ts';
 import JSZip from 'https://esm.sh/jszip@3.10.1';
 import { extractText, getDocumentProxy } from 'https://esm.sh/unpdf@0.12.1';
 // CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
@@ -35,7 +38,9 @@ async function fromZip(bytes: Uint8Array, kind: 'udf' | 'docx'): Promise<string>
   }
   const doc = zip.files['word/document.xml'];
   if (!doc) throw new Error('docx_content_not_found');
-  return stripXml(await doc.async('string'));
+  // docxMetni: yalnız <w:t> metindir; silinen (w:del) ve taşınan eski metin
+  // (w:moveFrom) atılır, run sınırında kelimeye boşluk girmez.
+  return docxMetni(await doc.async('string'));
 }
 
 Deno.serve(async (req) => {
@@ -129,9 +134,13 @@ Deno.serve(async (req) => {
       // Eski ikili .doc biçimi: güvenilir ayrıştırma için ek kütüphane gerekir.
       return new Response(JSON.stringify({ error: 'doc_legacy' }), { status: 415, headers: CORS });
     } else {
-      // txt / rtf / diğer düz metin
-      text = new TextDecoder('utf-8').decode(bytes);
-      if (filename.endsWith('.rtf')) text = stripXml(text.replace(/\\[a-z]+\d*/g, ' '));
+      // txt / rtf / diğer DÜZ METİN — yalnız gerçekten metinse. İkili dosya
+      // (fotoğraf, Excel…) eskiden UTF-8 sanılıp çöp metin olarak dönüyordu.
+      const duz = duzMetinOku(filename, bytes);
+      if ('hata' in duz) {
+        return new Response(JSON.stringify({ error: duz.hata }), { status: 415, headers: CORS });
+      }
+      text = duz.metin;
     }
 
     text = text.replace(/\u0000/g, '').trim();
