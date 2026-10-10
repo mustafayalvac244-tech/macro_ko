@@ -17,6 +17,7 @@ import {
   BELGE_TURU,
   bloklarTarifi,
   bloklariAyristir,
+  dilekceDenetimKaynagi,
   dilekceyiDiz,
   hesaplananTarihler,
   iskeletSec,
@@ -24,6 +25,10 @@ import {
   uydurmaTarihleriAyikla,
   uydurmaTutarlariBul,
 } from '../_shared/dilekce.ts';
+// Dilekçe künyesi avukatın kendi kaydından (tests/dilekceSunucu.test.ts).
+import { dosyaKunyesiOku } from '../_shared/dosyaKunyesi.ts';
+// Canlı içtihat aramasına anlatım değil, sabit hukuki konu gider.
+import { hukukiKonuSec } from '../_shared/hukukiKonu.ts';
 // Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';

@@ -526,38 +526,106 @@ export function dilekceyiDiz(
 }
 
 /**
+ * DİLEKÇE DENETİMLERİNİN KAYNAK METNİ: anlatım + eklerin metni + avukatın
+ * KENDİ dosya kaydından künyeye yazılan değerler.
+ *
+ * ÖLÇÜLEN ARIZA (09.10.2026, kodla doğrulandı): dilekceyiDiz künyeye dosya
+ * kaydındaki karar ve tebliğ tarihini yazıyor, tarih denetimi ise yalnız
+ * anlatıma bakıyordu. Avukat tarihi anlatımda tekrar etmediyse kayıttan gelen
+ * DOĞRU tarih "uydurma" sayılıp "[tarih — doldurun]" ile değiştiriliyordu.
+ * Karar atfı denetimi bu birleşimi zaten kullanıyordu; tarih ve tutar
+ * denetimi kullanmıyordu.
+ */
+export function dilekceDenetimKaynagi(anlatimVeEkler: string, dosya: Record<string, string>): string {
+  const kayit = Object.values(dosya ?? {}).map((v) => String(v ?? '').trim()).filter(Boolean);
+  return kayit.length ? `${anlatimVeEkler}\n${kayit.join('\n')}` : anlatimVeEkler;
+}
+
+/**
+ * AY ADLARI — etiketAnahtari biçiminde (Türkçe harfsiz, büyük harf): "Şubat",
+ * "ŞUBAT" ve "Subat" aynı anahtara iner.
+ */
+const AY_NO: Record<string, number> = {
+  OCAK: 1, SUBAT: 2, MART: 3, NISAN: 4, MAYIS: 5, HAZIRAN: 6,
+  TEMMUZ: 7, AGUSTOS: 8, EYLUL: 9, EKIM: 10, KASIM: 11, ARALIK: 12,
+};
+
+const tarihAnahtari = (g: string | number, a: string | number, y: string | number): string =>
+  `${y}-${String(a).padStart(2, '0')}-${String(g).padStart(2, '0')}`;
+
+interface TarihYeri {
+  tam: string;
+  anahtar: string;
+  bas: number;
+  son: number;
+}
+
+/**
+ * Metindeki gün-ay-yıl tarihleri, yerleriyle: "10.06.2026", "1/2/2026",
+ * "10-06-2026" ve AY ADIYLA "10 Haziran 2026".
+ *
+ * AY ADI TANINMIYORDU (08.10 denetimi, 09.10 doğrulandı). İki yönde de zarar
+ * veriyordu: avukat "10 Haziran 2026'da tebliğ edildi" yazınca taslaktaki
+ * DOĞRU "10.06.2026" uydurma sayılıp siliniyordu; model bir tarihi ay adıyla
+ * UYDURUNCA ("1 Şubat 2026 tarihli sözleşme") denetimden hiç geçmiyordu.
+ */
+function gunAyYilTarihleri(metin: string): TarihYeri[] {
+  const d = String(metin ?? '');
+  const out: TarihYeri[] = [];
+  for (const m of d.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) {
+    const bas = m.index ?? 0;
+    out.push({ tam: m[0], anahtar: tarihAnahtari(m[1], m[2], m[3]), bas, son: bas + m[0].length });
+  }
+  for (const m of d.matchAll(/\b(\d{1,2})\s+(\p{L}+)\s+(\d{4})\b/gu)) {
+    const ay = AY_NO[etiketAnahtari(m[2])];
+    if (!ay) continue;
+    const bas = m.index ?? 0;
+    out.push({ tam: m[0], anahtar: tarihAnahtari(m[1], ay, m[3]), bas, son: bas + m[0].length });
+  }
+  return out.sort((x, y) => x.bas - y.bas);
+}
+
+/**
+ * Metindeki tarihlerin "yyyy-aa-gg" anahtarları (ISO yazılış dahil).
+ * scripts/uydurma.mjs > tarihler ile AYNI sonucu vermeli (test sınar).
+ */
+export function tarihAnahtarlari(metin: string): Set<string> {
+  const k = new Set(gunAyYilTarihleri(metin).map((t) => t.anahtar));
+  for (const m of String(metin ?? '').matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) k.add(`${m[1]}-${m[2]}-${m[3]}`);
+  return k;
+}
+
+/**
  * UYDURULMUŞ TARİHLERİ AYIKLA — modele güvenmeden, mekanik olarak.
  *
  * Talimatı sertleştirmek gerekli ama YETERLİ DEĞİL: model bir kuralı çoğu zaman
  * tutar, bazen tutmaz ve tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider.
  * Burada model devrede değil: taslakta geçip de avukatın anlatısında GEÇMEYEN
- * her gg.aa.yyyy tarihi, doldurulacak bir boşlukla değiştirilir.
+ * her tarih (gg.aa.yyyy ya da "10 Haziran 2026"), doldurulacak bir boşlukla
+ * değiştirilir.
  *
  * Yön bilinçli: yanlış tarih göstermektense boşluk göstermek her zaman daha
  * iyidir. Avukat boşluğu görür ve doldurur; yanlış tarihi göremeyebilir.
  *
  * Kanun/karar atıflarındaki tarihler de ayıklanır — dilekçede "18/2/1965-538/37"
  * gibi değişiklik tarihleri işe yaramaz, avukatın verdiği olgular esastır.
+ *
+ * Ay adıyla yazılmış tarih ("10 Haziran 2026") iki tarafta da tanınır; aynı
+ * gün hangi yazılışla geçerse geçsin aynı tarih sayılır (bkz. gunAyYilTarihleri).
  */
 export function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: string; ayiklanan: number } {
-  const anahtar = (g: string, a: string, y: string) =>
-    `${y}-${a.padStart(2, '0')}-${g.padStart(2, '0')}`;
-
-  const izinli = new Set<string>();
-  for (const m of olay.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) {
-    izinli.add(anahtar(m[1], m[2], m[3]));
-  }
-  for (const m of olay.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) {
-    izinli.add(`${m[1]}-${m[2]}-${m[3]}`);
-  }
-
+  const izinli = tarihAnahtarlari(olay);
+  const kaynak = String(taslak ?? '');
   let ayiklanan = 0;
-  const metin = taslak.replace(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g, (tam, g, a, y) => {
-    if (izinli.has(anahtar(g, a, y))) return tam;
+  let metin = '';
+  let imlec = 0;
+  for (const t of gunAyYilTarihleri(kaynak)) {
+    if (t.bas < imlec || izinli.has(t.anahtar)) continue;
+    metin += `${kaynak.slice(imlec, t.bas)}[tarih — doldurun]`;
+    imlec = t.son;
     ayiklanan++;
-    return '[tarih — doldurun]';
-  });
-  return { metin, ayiklanan };
+  }
+  return { metin: metin + kaynak.slice(imlec), ayiklanan };
 }
 
 /**
@@ -574,13 +642,21 @@ export function uydurmaTarihleriAyikla(taslak: string, olay: string): { metin: s
  * kalan 30.000 TL" doğru bir hesaptır); bunu sessizce silmek, iyi niyetli bir
  * avukat hesabını kaybettirir. Denetim yalnız olayda hiç geçmeyen VE hiçbir
  * meşru toplam/fark/kat ile açıklanamayan tutarları işaretler.
+ *
+ * SAYI DİLBİLGİSİ SIKI (09.10.2026). Eski desen ([\d][\d.\s]*\d) rakam, nokta
+ * ve boşluktan oluşan HER diziyi tek sayı sayıyordu: numaralı talepteki
+ * "1. 50.000 TL" → 150.000, "Madde 3 47.500 TL" → 347.500, "10.06.2026
+ * 50.000 TL" → 1.006.202.650.000. Doğru tutar "uydurma" diye işaretleniyor,
+ * hak iade ediliyor ve uyarı avukatı yanıltıyordu. Artık binlik grubu ya
+ * noktayla ya boşlukla ve TAM ÜÇ haneyle ayrılır (karışık ayraç yok), sayının
+ * önünde rakam/nokta/virgül olamaz. scripts/uydurma.mjs > tutarlar ile AYNI.
  */
 export function tutarlariCikar(metin: string): Set<number> {
   const bulunan = new Set<number>();
   for (const m of String(metin ?? '').matchAll(
-    /([\d][\d.\s ]*\d|\d)(?:,(\d{1,2}))?\s*(?:TL|₺|Türk Lirası)/gi
+    /(?<![\d.,])(\d{1,3}(?:\.\d{3})+|\d{1,3}(?:[   ]\d{3})+|\d+)(?:,(\d{1,2}))?\s*(?:TL|₺|Türk Lirası)/gi
   )) {
-    const tam = Number(String(m[1]).replace(/[.\s ]/g, ''));
+    const tam = Number(String(m[1]).replace(/[.\s]/g, ''));
     const kurus = m[2] ? Number(String(m[2]).padEnd(2, '0')) / 100 : 0;
     const sayi = tam + kurus;
     if (Number.isFinite(sayi) && sayi > 0) bulunan.add(sayi);
@@ -626,14 +702,10 @@ export function uydurmaTutarlariBul(taslak: string, olay: string): number[] {
  * doğru kabul ettirmiyoruz, ama işe yarayan bilgiyi de atmıyoruz.
  */
 export function hesaplananTarihler(metin: string, olay: string): string[] {
-  const anahtar = (g: string, a: string, y: string) => `${y}-${a.padStart(2, '0')}-${g.padStart(2, '0')}`;
-  const izinli = new Set<string>();
-  for (const m of olay.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) izinli.add(anahtar(m[1], m[2], m[3]));
-  for (const m of olay.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) izinli.add(`${m[1]}-${m[2]}-${m[3]}`);
+  // Tanıma uydurmaTarihleriAyikla ile ortak: ay adıyla yazılmış tarih de sayılır.
+  const izinli = tarihAnahtarlari(olay);
   const cikan = new Set<string>();
-  for (const m of metin.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) {
-    if (!izinli.has(anahtar(m[1], m[2], m[3]))) cikan.add(m[0]);
-  }
+  for (const t of gunAyYilTarihleri(metin)) if (!izinli.has(t.anahtar)) cikan.add(t.tam);
   return [...cikan];
 }
 
