@@ -14,7 +14,7 @@
  */
 import { LEGAL_DEADLINES, type LegalDeadlineDef } from '@/constants/legalDeadlines';
 import type { CourtCategory } from '@/types/database';
-import { computeLegalDue, recessRuleForGroup, type RecessRule } from '@/utils/legalDates';
+import { computeLegalDue, recessRuleForDeadline, type RecessRule } from '@/utils/legalDates';
 
 export interface IstinafTanimi extends LegalDeadlineDef {
   rule: RecessRule;
@@ -24,7 +24,7 @@ export function istinafTanimi(kategori: CourtCategory | null | undefined): Istin
   const id = kategori === 'ceza' ? 'istinaf-ceza' : kategori === 'idare' ? 'idari-istinaf' : 'istinaf-hukuk';
   const tanim = LEGAL_DEADLINES.find((d) => d.id === id);
   if (!tanim) throw new Error(`süre kataloğunda yok: ${id}`);
-  return { ...tanim, rule: recessRuleForGroup(tanim.group) };
+  return { ...tanim, rule: recessRuleForDeadline(tanim) };
 }
 
 /** Tebliğ tarihinden istinaf son günü (yerel saatle 17:00). */

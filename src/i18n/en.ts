@@ -1404,12 +1404,26 @@ export const en: Record<keyof typeof tr, string> = {
     'İYUK art. 61/1: the judicial recess does not apply where a single administrative or tax court ' +
     'sits outside the province hosting the regional administrative court — the period is NOT extended ' +
     'there. Confirm whether your court falls under this exception.',
+  'wizard.hukukRecessException':
+    'The HMK art. 104 extension applies only to cases and matters that are subject to the judicial recess. ' +
+    'For matters listed in HMK art. 103 (e.g. interim injunctions/attachments, alimony, parentage/custody/guardianship, ' +
+    'employee claims, bankruptcy/composition, non-contentious matters, urgent matters) the period is NOT extended. ' +
+    'Confirm the type of your case.',
+  'wizard.recessNotApplied':
+    'The last day falls within the judicial recess (20 Jul – 31 Aug), but no recess extension is calculated for ' +
+    'this deadline. The date shown is the earlier, non-extended date; confirm whether an extension applies to your file.',
+  'wizard.recessRolledNote':
+    'After the weekend/holiday roll the last day lands on the first day of the judicial recess (20 July). The recess ' +
+    'extension was NOT applied in this case (the earlier date is shown); confirm whether it applies — if so, the last ' +
+    'day is later.',
   'wizard.bayramNote':
-    'The last day may coincide with a religious holiday. These are not auto-calculated; verify against the official calendar.',
+    'The last day falls on a half-day holiday (the eve of a religious holiday, or 28 October; closing at 13:00), or ' +
+    'the date lies outside the app’s religious-holiday calendar. File before 13:00 if you can, and verify holidays ' +
+    'against the official calendar.',
   'wizard.recessNote':
     'The last day falls within the judicial recess (20 Jul – 31 Aug). If your case is subject to the recess, the period extends one week past it (CCP 104). Verify.',
   'wizard.disclaimer':
-    'Informational only; religious holidays are not factored in. Always verify the deadline against current law and your file.',
+    'Informational only; religious holidays are factored in per the Diyanet calendar, while administrative-leave (bridge) days and half-day holidays are not. Always verify the deadline against current law and your file.',
   'wizard.caseLabel': 'Case for the task',
   'wizard.noCases': 'No open cases. Add a case first to create the task.',
   'wizard.createTask': 'Create Task',

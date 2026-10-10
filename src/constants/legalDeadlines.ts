@@ -10,6 +10,16 @@ export interface LegalDeadlineDef {
   amount: number;
   unit: LegalDurationUnit;
   group: LegalDeadlineGroup;
+  /**
+   * SÜRE BAZLI adli tatil istisnası. 'none' = bu süre adli tatilde UZAMAZ,
+   * grubun kuralı ne olursa olsun. Uzama grup değil, sürenin kendi kanunu ve
+   * davanın türüyle belirlenir (HMK 104: "adli tatile tabi olan dava ve
+   * işlerde, bu Kanunun tayin ettiği süreler"; HMK 103'te sayılanlar tatilde
+   * görüldüğü için tabi değildir; İYUK 8/3: "bu Kanunda yazılı süreler").
+   * Yanlış uzatma son günü ileri taşıyıp hak kaybettirir; yanlış uzatmamak
+   * erken tarih verir. Şüphede 'none'.
+   */
+  recess?: 'none';
 }
 
 export const LEGAL_DEADLINE_GROUPS: LegalDeadlineGroup[] = ['hukuk', 'ceza', 'icra', 'idare', 'is'];
@@ -27,7 +37,7 @@ export const LEGAL_DEADLINES: LegalDeadlineDef[] = [
   { id: 'istinaf-cevap', tr: 'İstinaf dilekçesine cevap', en: 'Answer to appeal', basis: 'HMK 347', amount: 2, unit: 'week', group: 'hukuk' },
   { id: 'temyiz-hukuk', tr: 'Temyiz başvurusu (hukuk)', en: 'Cassation — civil', basis: 'HMK 361', amount: 2, unit: 'week', group: 'hukuk' },
   { id: 'bilirkisi-itiraz', tr: 'Bilirkişi raporuna itiraz', en: 'Objection to expert report', basis: 'HMK 281', amount: 2, unit: 'week', group: 'hukuk' },
-  { id: 'tedbir-itiraz', tr: 'İhtiyati tedbire itiraz', en: 'Objection to interim injunction', basis: 'HMK 394', amount: 1, unit: 'week', group: 'hukuk' },
+  { id: 'tedbir-itiraz', tr: 'İhtiyati tedbire itiraz', en: 'Objection to interim injunction', basis: 'HMK 394', amount: 1, unit: 'week', group: 'hukuk', recess: 'none' },
 
   // Ceza yargılaması (CMK — 7445 sayılı Kanun sonrası)
   { id: 'istinaf-ceza', tr: 'İstinaf başvurusu (ceza)', en: 'Appeal — criminal', basis: 'CMK 273', amount: 2, unit: 'week', group: 'ceza' },
@@ -47,9 +57,9 @@ export const LEGAL_DEADLINES: LegalDeadlineDef[] = [
   { id: 'vergi-dava', tr: 'Vergi mahkemesinde dava açma', en: 'Tax court action', basis: 'İYUK 7', amount: 30, unit: 'day', group: 'idare' },
   { id: 'idari-istinaf', tr: 'İstinaf (idari yargı)', en: 'Appeal — administrative', basis: 'İYUK 45', amount: 30, unit: 'day', group: 'idare' },
   { id: 'idari-temyiz', tr: 'Temyiz (Danıştay)', en: 'Cassation — Council of State', basis: 'İYUK 46', amount: 30, unit: 'day', group: 'idare' },
-  { id: 'aym-basvuru', tr: 'AYM bireysel başvuru', en: 'Constitutional Court application', basis: '6216 s.K. 47', amount: 30, unit: 'day', group: 'idare' },
+  { id: 'aym-basvuru', tr: 'AYM bireysel başvuru', en: 'Constitutional Court application', basis: '6216 s.K. 47', amount: 30, unit: 'day', group: 'idare', recess: 'none' },
 
   // İş hukuku
-  { id: 'ise-iade', tr: 'İşe iade — arabulucuya başvuru', en: 'Reinstatement — mediation application', basis: 'İş K. 20', amount: 1, unit: 'month', group: 'is' },
-  { id: 'arabuluculuk-dava', tr: 'İşe iade — son tutanak sonrası dava', en: 'Reinstatement — action after mediation', basis: 'İş K. 20', amount: 2, unit: 'week', group: 'is' },
+  { id: 'ise-iade', tr: 'İşe iade — arabulucuya başvuru', en: 'Reinstatement — mediation application', basis: 'İş K. 20', amount: 1, unit: 'month', group: 'is', recess: 'none' },
+  { id: 'arabuluculuk-dava', tr: 'İşe iade — son tutanak sonrası dava', en: 'Reinstatement — action after mediation', basis: 'İş K. 20', amount: 2, unit: 'week', group: 'is', recess: 'none' },
 ];

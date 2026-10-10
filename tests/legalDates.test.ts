@@ -136,13 +136,16 @@ describe('recessRuleForGroup', () => {
   });
 });
 
-describe('dinî bayram uyarısı', () => {
-  it('otomatik uzatmaz, yalnızca uyarır', () => {
-    // 2026 Ramazan Bayramı 20–22 Mart. Son gün 20 Mart'a düşerse UZATILMAZ
-    // (yıllara göre kaydığı için yanlış uzatma süre kaçırtır), uyarı verilir.
+describe('dinî bayram (HMK 93 + 2429 m.2)', () => {
+  // ESKİ beklenti bayramı UZATMAMAYI kodluyordu ("yanlış uzatma süre kaçırtır")
+  // ve 20 Mart'ı son gün gösteriyordu. Bayram günleri resmî tatildir; HMK 93'e
+  // göre süre sonraki iş gününde biter. Ayrıntılı testler: sureHukumleri.test.ts.
+  it('Ramazan Bayramı 2026 (20–22 Mart): 20 Mart\'a düşen son gün 23 Mart\'a kayar', () => {
     const r = computeLegalDue(d('2026-03-10'), 10, 'day');
-    expect(ymd(r.due)).toBe('2026-03-20');
-    expect(r.religiousWarn).toBe(true);
+    expect(ymd(r.raw)).toBe('2026-03-20');
+    expect(ymd(r.due)).toBe('2026-03-23');
+    expect(r.extended).toBe(true);
+    expect(r.religiousWarn).toBe(false);
   });
 });
 
@@ -203,9 +206,9 @@ describe('dini bayram tablosu kapsamı', () => {
     expect(
       DINI_BAYRAM_KAPSAM_SON_YIL,
       `Dini bayram tablosu ${DINI_BAYRAM_KAPSAM_SON_YIL} yılında bitiyor. ` +
-        `src/utils/legalDates.ts içindeki RELIGIOUS_HOLIDAY_RANGES listesine ` +
+        `src/utils/legalDates.ts içindeki DINI_BAYRAM_AREFELERI listesine ` +
         `${DINI_BAYRAM_KAPSAM_SON_YIL + 1} ve sonrası için Diyanet takviminden ` +
-        `tarihleri ekleyin ve DINI_BAYRAM_KAPSAM_SON_YIL sabitini güncelleyin.`
+        `arefe tarihlerini ekleyin ve DINI_BAYRAM_KAPSAM_SON_YIL sabitini güncelleyin.`
     ).toBeGreaterThanOrEqual(buYil + 1);
   });
 
