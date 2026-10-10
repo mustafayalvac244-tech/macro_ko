@@ -4,6 +4,8 @@ import { notifySaveError } from '@/lib/saveError';
 import { cancelReminder, deadlineReminderId, hearingOutcomeId, hearingReminderId } from '@/lib/notifications';
 import { onbellekYamasi } from '@/utils/onbellekYamasi';
 import { tumSayfalar } from '@/utils/sayfalama';
+import { gecersizKimlikMi } from '@/utils/davaEkrani';
+import { silinenDavaOnbelleginiTazele, silinenDavaninYerelArtiklariniSil } from '@/lib/silinenDava';
 import { useAuthStore } from '@/store/authStore';
 import type { Case, CaseStatus, CaseWithClient, PriorityLevel } from '@/types/database';
 
@@ -54,10 +56,15 @@ export function useCase(id: string | undefined) {
   return useQuery({
     queryKey: ['cases', 'detail', id],
     enabled: !!id,
+    // Bozuk kimlik (22P02) tekrar denenmez; ağ hatası varsayılan kadar denenir.
+    retry: (deneme, hata) => !gecersizKimlikMi(hata) && deneme < 2,
     queryFn: async () => {
-      const { data, error } = await supabase.from('cases').select(CASE_SELECT).eq('id', id!).single();
+      // maybeSingle: kayıt yoksa (silinmiş / bu hesabın değil) HATA değil null.
+      // single() burada PGRST116 fırlatıyor, sorgu üç kez deneniyor ve ekran
+      // sonsuza dek boş kalıyordu (bkz. utils/davaEkrani).
+      const { data, error } = await supabase.from('cases').select(CASE_SELECT).eq('id', id!).maybeSingle();
       if (error) throw error;
-      return data as unknown as CaseWithClient;
+      return (data ?? null) as unknown as CaseWithClient | null;
     },
   });
 }
@@ -248,16 +255,12 @@ export function useDeleteCase() {
           cancelReminder(hearingOutcomeId(h.id)),
         ]),
         ...(gorevler ?? []).map((g: { id: string }) => cancelReminder(deadlineReminderId(g.id))),
+        // Çalışan sayaç ve cihazdaki duruşma planı (09.10.2026, lib/silinenDava).
+        silinenDavaninYerelArtiklariniSil(id),
       ]).catch(() => {});
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cases'] });
-      // Belge satırları cascade ile gitti; belge listeleri de tazelenmeli.
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
-      // Cascade ile giden kayıtların listeleri de: takvim, pano, tahsilat.
-      for (const k of ['hearings', 'deadlines', 'payments', 'case-expenses', 'installments', 'time-entries']) {
-        queryClient.invalidateQueries({ queryKey: [k] });
-      }
-    },
+    // Listeler, belgeler, arama, müvekkil avans bakiyesi tazelenir; silinen
+    // davanın kendi sorguları boşuna yeniden çekilmez (lib/silinenDava).
+    onSuccess: (_veri, id) => silinenDavaOnbelleginiTazele(queryClient, id),
   });
 }

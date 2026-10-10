@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { uyar } from '@/lib/uyari';
+import { gecikmeliKayit, type GecikmeliKayit } from '@/lib/gecikmeliKayit';
 import { metniPaylas } from '@/lib/cikti';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { useBrief, useSaveBrief, type BriefSections } from '@/hooks/useBriefs';
+import { planiKaydet, useBrief, useSaveBrief, type BriefSections, type WarPlanContent } from '@/hooks/useBriefs';
 import {
   CHECKLIST_ITEMS,
   generateAiBrief,
@@ -34,6 +36,14 @@ const SECTION_KEYS: Array<{ key: keyof BriefSections; label: string }> = [
 
 const DEBRIEF_TASKS = ['gorevTanik', 'gorevDelil', 'gorevDilekce', 'gorevMuvekkil', 'gorevCelse'] as const;
 
+/**
+ * Otomatik kayıt beklemesi: yazmayı bıraktıktan bu kadar sonra cihaza yazılır.
+ * dilekce-uret.tsx'teki taslak kaydıyla aynı değer — bir tasarım seçimi,
+ * ÖLÇÜLMEDİ. Sekme kapanırken ve uygulama arka plana geçerken bekleyen kayıt
+ * beklemeden yazılır.
+ */
+const OTOMATIK_KAYIT_MS = 800;
+
 interface Props {
   caseItem: CaseWithClient;
   hearings: Hearing[] | undefined;
@@ -45,6 +55,7 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
   const styles = makeStyles(colors);
   const t = useT();
 
+  const queryClient = useQueryClient();
   const brief = useBrief(caseItem.id);
   const saveBrief = useSaveBrief();
 
@@ -55,21 +66,73 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
   const [debriefBad, setDebriefBad] = useState('');
   const [source, setSource] = useState<string | undefined>(undefined);
   const [generating, setGenerating] = useState(false);
-  const [loadedFromDb, setLoadedFromDb] = useState(false);
+  const [yuklendi, setYuklendi] = useState(false);
+  /** Son görülen (yazılan ya da yazılmak üzere sıraya giren) içerik, JSON. */
+  const sonIcerik = useRef<string | null>(null);
 
-
-  // DB'deki kayıt gelince yerel duruma bir kez yükle
+  // Cihazdaki kayıt okununca yerel duruma BİR KEZ yükle. `null` = kayıtlı plan
+  // yok (bu da "yüklendi" sayılır); `undefined` = henüz okunmadı ya da okunamadı.
   useEffect(() => {
-    if (loadedFromDb || !brief.data) return;
-    const c = brief.data.content ?? {};
+    if (yuklendi || brief.data === undefined) return;
+    const c = brief.data?.content ?? {};
     setSections({ ...EMPTY_BRIEF, ...(c.brief ?? {}) });
     setChecklist(c.checklist ?? {});
     setNotes(c.notes ?? []);
     setDebriefGood(c.debrief?.good ?? '');
     setDebriefBad(c.debrief?.bad ?? '');
     setSource(c.source);
-    setLoadedFromDb(true);
-  }, [brief.data, loadedFromDb]);
+    sonIcerik.current = null;
+    setYuklendi(true);
+  }, [brief.data, yuklendi]);
+
+  // ── Otomatik kayıt ──────────────────────────────────────────────────────
+  // NOTLAR KAYBOLUYORDU (09.10.2026, denetimde bulundu). Sessiz notlar, kontrol
+  // listesi, değerlendirme ve brief düzeltmeleri yalnız ekran durumundaydı;
+  // cihaza ancak "Kaydet"e basınca yazılıyordu. "Ekle"ye basılan not kaydedilmiş
+  // GÖRÜNÜYOR ama başka sekmeye geçince, ekrandan çıkınca ya da uygulama
+  // kapanınca gidiyordu. Artık her değişiklik kısa beklemeyle yazılır; sekme
+  // kapanırken ve uygulama arka plana geçerken (telefon kilitlendi) bekleyen
+  // kayıt hemen yazılır. "Kaydet" düğmeleri onay için duruyor.
+  const icerik = useMemo<WarPlanContent>(
+    () => ({ brief: sections, checklist, notes, debrief: { good: debriefGood, bad: debriefBad }, source }),
+    [sections, checklist, notes, debriefGood, debriefBad, source]
+  );
+  const kayitHatasiSoylendi = useRef(false);
+  const kaydedici = useRef<GecikmeliKayit<WarPlanContent> | null>(null);
+  if (!kaydedici.current) {
+    kaydedici.current = gecikmeliKayit<WarPlanContent>((c) => {
+      planiKaydet(queryClient, caseItem.id, c).catch(() => {
+        // Depo hiç yazılamıyorsa (ör. tarayıcıda site verisi engelli) her
+        // duraklamada uyarı çıkmasın: bir kez söylenir.
+        if (kayitHatasiSoylendi.current) return;
+        kayitHatasiSoylendi.current = true;
+        uyar(t('plan.title'), t('financeForm.saveFailed'));
+      });
+    }, OTOMATIK_KAYIT_MS);
+  }
+  useEffect(() => {
+    // Okunmadan yazılmaz: yazılsaydı kayıtlı planın üstüne boş plan giderdi.
+    if (!yuklendi) return;
+    const json = JSON.stringify(icerik);
+    if (sonIcerik.current === null) {
+      // Yüklemenin kendi çizimi — cihazdakiyle aynı, yazılacak bir şey yok.
+      sonIcerik.current = json;
+      return;
+    }
+    if (json === sonIcerik.current) return;
+    sonIcerik.current = json;
+    kaydedici.current?.degisti(icerik);
+  }, [icerik, yuklendi]);
+  useEffect(() => {
+    const k = kaydedici.current;
+    const abonelik = AppState.addEventListener('change', (durum) => {
+      if (durum !== 'active') k?.bosalt();
+    });
+    return () => {
+      abonelik.remove();
+      k?.bosalt(); // sekme/ekran kapanıyor: bekleyen not kaybolmasın
+    };
+  }, []);
 
   // ── Son 24 saat modu ─────────────────────────────────────────────────────
   const nextHearing = useMemo(() => {
@@ -133,17 +196,11 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
   };
 
   const handleSave = () => {
+    // Elle kayıt aynı içeriği şimdi yazıyor; bekleyen otomatik kayda gerek yok.
+    kaydedici.current?.vazgec();
+    if (yuklendi) sonIcerik.current = JSON.stringify(icerik);
     saveBrief.mutate(
-      {
-        caseId: caseItem.id,
-        content: {
-          brief: sections,
-          checklist,
-          notes,
-          debrief: { good: debriefGood, bad: debriefBad },
-          source,
-        },
-      },
+      { caseId: caseItem.id, content: icerik },
       {
         onSuccess: () => uyar(t('plan.title'), t('plan.saved')),
         onError: () => uyar(t('plan.title'), t('financeForm.saveFailed')),

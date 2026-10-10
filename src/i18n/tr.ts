@@ -338,6 +338,16 @@ export const tr = {
   'cases.loadError': 'Dosya listesi yüklenemedi.',
   'cases.retry': 'Tekrar dene',
   'case.title': 'Dava',
+  // Dava detayı yüklenirken / bulunamadığında / yüklenemediğinde (eskiden boş sayfa).
+  'case.loading': 'Dava yükleniyor…',
+  'case.notFound': 'Dava bulunamadı',
+  'case.notFoundDesc': 'Bu dava silinmiş ya da bu hesaba ait değil.',
+  'case.backToList': 'Dava Dizinine dön',
+  'case.loadError': 'Dava yüklenemedi',
+  'case.loadErrorDesc': 'Bağlantınızı kontrol edip tekrar deneyin.',
+  'case.retry': 'Tekrar dene',
+  // Finans sekmesinde liste yüklenemedi (eskiden ₺0 sayılıyordu).
+  'case.finLoadError': 'Kayıtlar yüklenemedi; tutarlar gösterilmiyor.',
   'case.openedLabel': 'Açılış {date}',
   'case.tabOverview': 'Özet',
   'case.tabHearings': 'Duruşmalar',
