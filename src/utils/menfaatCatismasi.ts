@@ -179,14 +179,18 @@ export type EslesmeGucu = 'kesin' | 'guclu' | 'zayif';
  * null     — ilgisiz.
  */
 export function adEslesmesi(a: string, b: string): EslesmeGucu | null {
-  const sa = Array.from(new Set(adSozcukleri(a)));
-  const sb = Array.from(new Set(adSozcukleri(b)));
-  if (sa.length === 0 || sb.length === 0) return null;
+  const ca = sozcukleriCoz(a);
+  const cb = sozcukleriCoz(b);
+  if (ca.sozcukler.length === 0 || cb.sozcukler.length === 0) return null;
+  // Noktalı kısaltmalar ("İnş.") karşı addaki tam sözcüğe çözülür.
+  const sa = Array.from(new Set(kisaltmaCoz(ca.sozcukler, cb.sozcukler)));
+  const sb = Array.from(new Set(kisaltmaCoz(cb.sozcukler, ca.sozcukler)));
 
   const anahtarA = [...sa].sort().join(' ');
   const anahtarB = [...sb].sort().join(' ');
   if (anahtarA === anahtarB) return 'kesin';
 
+  const kisaTaraf = sa.length <= sb.length ? ca : cb;
   const kisa = sa.length <= sb.length ? sa : sb;
   const uzun = kisa === sa ? sb : sa;
   const ortak = kisa.filter((s) => uzun.includes(s));
@@ -195,6 +199,10 @@ export function adEslesmesi(a: string, b: string): EslesmeGucu | null {
   // Tek sözcüklük ad (yalnız "Ahmet") ayırt edici değildir; eşleşme sayılmaz.
   if (ortak.length >= 2) return 'guclu';
   if (ortak.length === 1 && kisa.length >= 2 && ortak[0]!.length >= 4) return 'zayif';
+  // Tek sözcüklük ŞİRKET adı ("Akasya A.Ş.", "Kaya Sanayi ve Ticaret A.Ş."):
+  // unvan eki/kalıbı atılınca geriye kalan tek sözcük şirketin kimliğidir;
+  // karşı adda geçiyorsa zayıf uyarı verilir. Kişi adında bu kural işlemez.
+  if (ortak.length === 1 && kisa.length === 1 && kisaTaraf.sirket && ortak[0]!.length >= 4) return 'zayif';
   return null;
 }
 
