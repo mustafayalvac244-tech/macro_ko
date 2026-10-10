@@ -28,7 +28,8 @@ create table public.finance_entries (id uuid primary key default gen_random_uuid
 create table public.payments (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), amount numeric);
 create table public.purchases (id uuid primary key default gen_random_uuid(), user_id uuid references public.profiles(id), amount numeric);
 create table public.ai_odeme (event_id text primary key, user_id uuid references auth.users(id), tutar_try numeric);
-create table public.ai_usage (user_id uuid references auth.users(id), period text, cost_try numeric, primary key(user_id, period));
+-- ai_usage sütunları canlıdan (information_schema, 09.10.2026) — 0191'in SQL gövdesi hepsine dokunuyor.
+create table public.ai_usage (user_id uuid references auth.users(id), period text, calls int not null default 0, tokens_in bigint not null default 0, tokens_out bigint not null default 0, cost_try numeric(12,4) not null default 0, updated_at timestamptz not null default now(), primary key(user_id, period));
 
 -- 0023 + 0089'un bıraktığı hâl: fonksiyon var, PUBLIC yetkisi KALDIRILMIŞ.
 create function public.admin_recent_users(p_limit int default 60)
