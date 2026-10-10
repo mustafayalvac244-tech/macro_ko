@@ -8,7 +8,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { HukukiUyari } from '@/components/ui/HukukiUyari';
 import { useAuthStore } from '@/store/authStore';
 import { useClients } from '@/hooks/useClients';
-import { buildContract, type ContractType, type FeeModel, type Taksit } from '@/utils/contractTemplate';
+import { buildContract, muvekkilFormAlanlari, type ContractType, type FeeModel, type Taksit } from '@/utils/contractTemplate';
 import { oranOku, tutarOku } from '@/utils/tutar';
 import { useT } from '@/i18n';
 import { fonts, spacing, kose } from '@/theme/theme';
@@ -256,8 +256,10 @@ export default function ContractScreen() {
                     key={c.id}
                     style={styles.clientItem}
                     onPress={() => {
-                      setMuvekkilAd(c.full_name ?? '');
-                      setMuvekkilAdres(c.address ?? '');
+                      const a = muvekkilFormAlanlari(c);
+                      setMuvekkilAd(a.ad);
+                      setMuvekkilTc(a.tc);
+                      setMuvekkilAdres(a.adres);
                       setClientPickerOpen(false);
                     }}
                   >

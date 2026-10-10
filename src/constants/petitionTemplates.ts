@@ -54,7 +54,7 @@ KONU: Müvekkilin duruşmalardan vareste tutulması talebimizdir.
 
 AÇIKLAMALAR:
 
-Müvekkil [MÜVEKKİL AD SOYAD], [GEREKÇE: ikametinin farklı şehirde bulunması / sağlık durumu / iş zorunluluğu] nedeniyle duruşmalara bizzat katılamamaktadır. Yargılamanın bulunduğu aşama itibarıyla müvekkilin sorgusu yapılmış olup hazır bulunması zorunlu bir işlem kalmamıştır.
+Müvekkil [MÜVEKKİL AD SOYAD], [GEREKÇE: ikametinin farklı şehirde bulunması / sağlık durumu / iş zorunluluğu] nedeniyle duruşmalara bizzat katılamamaktadır. [YARGILAMANIN AŞAMASI: yalnız DOĞRUYSA yazın — örn. müvekkilin sorgusunun yapıldığı ve hazır bulunmasını gerektiren bir işlem kalmadığı. Değilse bu cümleyi silin.]
 
 SONUÇ VE İSTEM: Müvekkilin bundan sonraki duruşmalardan VARESTE TUTULMASINA karar verilmesini saygılarımla vekaleten arz ve talep ederim.` + IMZA,
   },
@@ -157,7 +157,7 @@ SONUÇ VE İSTEM: Kararın kesinleştiğine ilişkin KESİNLEŞME ŞERHİNİN ka
     key: 'icra-itiraz',
     category: 'icra',
     title: 'İcra Takibine İtiraz (Borca İtiraz)',
-    description: 'İlamsız takipte 7 gün içinde borca itiraz',
+    description: 'İlamsız takipte ödeme emrine 7 gün içinde icra dairesine borca itiraz (İİK m.62). Dikkat: kambiyo senetlerine mahsus takipte itirazlar 5 gün içinde icra mahkemesine yapılır (İİK m.168); bu şablon o takip için uygun değildir.',
     body: `[İCRA DAİRESİ] İCRA MÜDÜRLÜĞÜ'NE
 [ŞEHİR]
 
