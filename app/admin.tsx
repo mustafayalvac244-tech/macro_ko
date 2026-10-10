@@ -298,7 +298,7 @@ export default function AdminScreen() {
             {/* Arama istemcide, yalnız yüklenen son kayıtlar üzerinde. Toplam
                 kullanıcı bundan fazlaysa "bulunamadı" yanıltıcı olurdu. */}
             {!!users.data && o.total_users > users.data.length && (
-              <Text allowFontScaling={false} style={styles.aramaSonuc}>
+              <Text style={styles.aramaSonuc}>
                 {t('admin.searchLimit', { n: String(users.data.length), toplam: String(o.total_users) })}
               </Text>
             )}
