@@ -8,21 +8,28 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAllHearings, useCreateHearing, useUpdateHearing } from '@/hooks/useHearings';
-import { useCreateDeadline } from '@/hooks/useDeadlines';
+import { useAllDeadlines, useCreateDeadline } from '@/hooks/useDeadlines';
 import {
   OUTCOMES,
   OUTCOME_ORDER,
+  ayniDurusmaVarMi,
+  ayniSureVarMi,
+  kayittanSonra,
   needsServiceWatch,
   pendingOutcomeHearings,
   planDeadline,
   kanuniSureGun,
+  sonrakiSira,
+  tebligatTakipTarihi,
+  varsayilanSonrakiDurusma,
   type OutcomeId,
 } from '@/utils/hearingOutcome';
+import { cakismaBul } from '@/utils/durusmaCakismasi';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatDateTime, formatTime } from '@/utils/format';
 import { geriDon } from '@/lib/geriDon';
 
 /**
@@ -47,6 +54,7 @@ export default function DurusmaCikisiScreen() {
   const updateHearing = useUpdateHearing();
   const createHearing = useCreateHearing();
   const createDeadline = useCreateDeadline();
+  const deadlines = useAllDeadlines();
 
   const pending = useMemo(
     () => pendingOutcomeHearings(hearings.data ?? []),
@@ -57,18 +65,17 @@ export default function DurusmaCikisiScreen() {
   const current = pending[idx];
 
   const [outcome, setOutcome] = useState<OutcomeId | null>(null);
-  const [nextDate, setNextDate] = useState<Date>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    d.setHours(9, 30, 0, 0);
-    return d;
-  });
+  // Sonraki duruşma: kullanıcı değiştirmediyse bu duruşmanın saatinde, bugünden 30 gün sonra.
+  // (Eskiden saat 09:30'a sabitti ve seçilemiyordu.)
+  const [nextOverride, setNextOverride] = useState<Date | null>(null);
   const [hasService, setHasService] = useState(false);
   const [serviceDate, setServiceDate] = useState<Date>(new Date());
   const [customDays, setCustomDays] = useState('');
   const [note, setNote] = useState('');
-  const [picker, setPicker] = useState<'next' | 'service' | null>(null);
+  const [picker, setPicker] = useState<'next' | 'nextTime' | 'service' | null>(null);
   const [busy, setBusy] = useState(false);
+  // setBusy bir sonraki çizimde etkili olur; arka arkaya iki dokunuşu bu kilit eler.
+  const kilit = useRef(false);
 
   /**
    * YARIM KALAN KAYDIN TEKRARINDA ÇİFT KAYIT OLUŞMASIN.
@@ -88,6 +95,12 @@ export default function DurusmaCikisiScreen() {
     (tamamlananAdimlar.current[id] ??= new Set<string>()).add(adim);
   };
 
+  const varsayilanSonraki = useMemo(
+    () => varsayilanSonrakiDurusma(current ? new Date(current.scheduled_at) : new Date()),
+    [current?.scheduled_at]
+  );
+  const nextDate = nextOverride ?? varsayilanSonraki;
+
   const def = outcome ? OUTCOMES[outcome] : null;
   const hearingDate = current ? new Date(current.scheduled_at) : new Date();
   const kategori = current?.case?.court_category ?? null;
@@ -98,16 +111,80 @@ export default function DurusmaCikisiScreen() {
   const kanuniGun = outcome ? kanuniSureGun(outcome, kategori) : undefined;
   const watchService = outcome ? needsServiceWatch(outcome, hasService ? serviceDate : null) : false;
 
+  // Sonraki duruşma başka bir işle çakışıyor mu? Yeni kayıt henüz yok; aynı dosyada
+  // AYNI ana kayıtlı duruşma (yarım kalmış önceki denemenin yazdığı) çakışma sayılmaz.
+  const cakismalar = useMemo(() => {
+    if (!current || !def?.needsNextHearing) return [];
+    const an = nextDate.getTime();
+    return cakismaBul(
+      { id: current.id, scheduled_at: nextDate.toISOString(), location: current.location },
+      (hearings.data ?? [])
+        .filter((h) => !(h.case_id === current.case_id && new Date(h.scheduled_at).getTime() === an))
+        .map((h) => ({
+          id: h.id,
+          scheduled_at: h.scheduled_at,
+          title: h.title,
+          location: h.location,
+          is_completed: h.is_completed,
+        }))
+    );
+  }, [current, def?.needsNextHearing, nextDate, hearings.data]);
+  const clash = cakismalar[0] ?? null;
+  const clashKaydi = clash ? (hearings.data ?? []).find((h) => h.id === clash.digeri.id) ?? null : null;
+
   const resetForNext = () => {
     setOutcome(null);
+    setNextOverride(null);
     setHasService(false);
     setCustomDays('');
     setNote('');
     setPicker(null);
   };
 
+  /** Kayıttan sonra: bekleyen KALMADIYSA bitir, atlananlar varsa başa dön. */
+  const kayitSonrasi = () => {
+    const sonuc = kayittanSonra(idx, pending.length);
+    resetForNext();
+    setIdx(sonuc.idx);
+    if (sonuc.bitti) {
+      uyar(t('hout.title'), t('hout.allDone'), [{ text: t('common.done'), onPress: () => geriDon() }]);
+    }
+  };
+
+  /** Sonuç girmeden kapat: süre/duruşma OLUŞTURMAZ; yalnız duruşmayı tamamlandı yapar. */
+  const kapatYalniz = () => {
+    if (!current || busy || kilit.current) return;
+    const hId = current.id;
+    const caseTitle = current.case?.title ?? current.title;
+    const notu = note.trim();
+    const kaydet = async () => {
+      if (kilit.current) return;
+      kilit.current = true;
+      setBusy(true);
+      try {
+        await updateHearing.mutateAsync({
+          id: hId,
+          caseTitle,
+          is_completed: true,
+          ...(notu ? { notes: [current.notes, notu].filter(Boolean).join('\n') } : {}),
+        });
+        kayitSonrasi();
+      } catch {
+        // hata uyarısı notifySaveError ile gösterildi
+      } finally {
+        kilit.current = false;
+        setBusy(false);
+      }
+    };
+    uyar(t('hout.title'), t('hout.closeOnlyMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('hout.closeOnlyConfirm'), style: 'destructive', onPress: () => { void kaydet(); } },
+    ]);
+  };
+
   const save = async () => {
-    if (!current || !outcome || busy) return;
+    if (!current || !outcome || busy || kilit.current) return;
+    kilit.current = true;
     setBusy(true);
     const caseTitle = current.case?.title ?? current.title;
     const hId = current.id;
@@ -127,47 +204,57 @@ export default function DurusmaCikisiScreen() {
        */
 
       // 1) Süre (hesaplanabiliyorsa) — en değerli kayıt, en önce.
+      // Aynı süre kayıtlıysa (yarım kalmış önceki deneme, başka oturum) tekrar yazılmaz.
       if (plan && !adimBitti(hId, 'sure')) {
-        await createDeadline.mutateAsync({
-          case_id: current.case_id,
-          title: `${t(`hout.d.${plan.key}` as const)}${plan.basis ? ` (${plan.basis})` : ''}`,
-          description: plan.fromService ? t(plan.key === 'bilirkisiItiraz' ? 'hout.fromRaporNote' : 'hout.fromServiceNote') : null,
-          due_at: plan.dueAt.toISOString(),
-          priority: 'high',
-          reminder_minutes_before: 1440,
-          caseTitle,
-        });
+        const baslik = `${t(`hout.d.${plan.key}` as const)}${plan.basis ? ` (${plan.basis})` : ''}`;
+        const dueIso = plan.dueAt.toISOString();
+        if (!ayniSureVarMi(deadlines.data ?? [], current.case_id, baslik, dueIso)) {
+          await createDeadline.mutateAsync({
+            case_id: current.case_id,
+            title: baslik,
+            description: plan.fromService ? t(plan.key === 'bilirkisiItiraz' ? 'hout.fromRaporNote' : 'hout.fromServiceNote') : null,
+            due_at: dueIso,
+            priority: 'high',
+            reminder_minutes_before: 1440,
+            caseTitle,
+          });
+        }
         adimIsaretle(hId, 'sure');
       }
 
       // 2) Tebligat bekleniyorsa takip işi kur (süre uydurma!).
       if (watchService && !adimBitti(hId, 'takip')) {
-        const watch = new Date(hearingDate);
-        watch.setDate(watch.getDate() + 14);
-        await createDeadline.mutateAsync({
-          case_id: current.case_id,
-          title: t('hout.watchTitle'),
-          description: t('hout.watchDesc'),
-          due_at: watch.toISOString(),
-          priority: 'high',
-          reminder_minutes_before: 1440,
-          caseTitle,
-        });
+        const dueIso = tebligatTakipTarihi(hearingDate).toISOString();
+        if (!ayniSureVarMi(deadlines.data ?? [], current.case_id, t('hout.watchTitle'), dueIso)) {
+          await createDeadline.mutateAsync({
+            case_id: current.case_id,
+            title: t('hout.watchTitle'),
+            description: t('hout.watchDesc'),
+            due_at: dueIso,
+            priority: 'high',
+            reminder_minutes_before: 1440,
+            caseTitle,
+          });
+        }
         adimIsaretle(hId, 'takip');
       }
 
       // 3) Sonraki duruşma (gerekiyorsa)
       if (def?.needsNextHearing && !adimBitti(hId, 'sonraki')) {
-        await createHearing.mutateAsync({
-          case_id: current.case_id,
-          title: current.title,
-          type: current.type,
-          location: current.location,
-          scheduled_at: nextDate.toISOString(),
-          reminder_minutes_before: current.reminder_minutes_before ?? 60,
-          notes: null,
-          caseTitle,
-        });
+        // O dosyada o anda duruşma zaten kayıtlıysa (önceki yarım deneme ya da avukatın
+        // elle girdiği) ikincisi açılmaz.
+        if (!ayniDurusmaVarMi(hearings.data ?? [], current.case_id, nextDate.toISOString())) {
+          await createHearing.mutateAsync({
+            case_id: current.case_id,
+            title: current.title,
+            type: current.type,
+            location: current.location,
+            scheduled_at: nextDate.toISOString(),
+            reminder_minutes_before: current.reminder_minutes_before ?? 60,
+            notes: null,
+            caseTitle,
+          });
+        }
         adimIsaretle(hId, 'sonraki');
       }
 
@@ -185,14 +272,12 @@ export default function DurusmaCikisiScreen() {
         adimIsaretle(hId, 'durusma');
       }
 
-      // Sıradaki duruşmaya geç
-      resetForNext();
-      if (idx >= pending.length - 1) {
-        uyar(t('hout.title'), t('hout.allDone'), [{ text: t('common.done'), onPress: () => geriDon() }]);
-      }
+      // Sıradaki duruşmaya geç (bekleyen kalmadıysa bitir)
+      kayitSonrasi();
     } catch {
       // hata uyarısı notifySaveError ile gösterildi
     } finally {
+      kilit.current = false;
       setBusy(false);
     }
   };
@@ -201,6 +286,22 @@ export default function DurusmaCikisiScreen() {
     return (
       <Screen edges={['top', 'left', 'right', 'bottom']}>
         <ScreenHeader title={t('hout.title')} showBack />
+      </Screen>
+    );
+  }
+
+  // Sorgu hata verdiyse "bekleyen yok" DENMEZ: veri gelmedi, bekleyen olup olmadığı bilinmiyor.
+  if (hearings.isError && !hearings.data) {
+    return (
+      <Screen edges={['top', 'left', 'right', 'bottom']}>
+        <ScreenHeader title={t('hout.title')} showBack />
+        <EmptyState
+          icon="cloud-offline-outline"
+          title={t('hout.loadError')}
+          description={t('hout.loadErrorDesc')}
+          actionLabel={t('hout.retry')}
+          onAction={() => hearings.refetch()}
+        />
       </Screen>
     );
   }
@@ -261,10 +362,46 @@ export default function DurusmaCikisiScreen() {
         {def?.needsNextHearing && (
           <>
             <Text style={styles.label}>{t('hout.nextHearing')}</Text>
-            <Pressable style={styles.dateBtn} onPress={() => setPicker(picker === 'next' ? null : 'next')}>
-              <Ionicons name="calendar" size={16} color={colors.primary} />
-              <Text style={styles.dateBtnText}>{formatDate(nextDate.toISOString())}</Text>
-            </Pressable>
+            <View style={styles.dateRow}>
+              <Pressable style={[styles.dateBtn, styles.dateBtnGun]} onPress={() => setPicker(picker === 'next' ? null : 'next')}>
+                <Ionicons name="calendar" size={16} color={colors.primary} />
+                <Text style={styles.dateBtnText}>{formatDate(nextDate.toISOString())}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.dateBtn, styles.dateBtnSaat]}
+                onPress={() => setPicker(picker === 'nextTime' ? null : 'nextTime')}
+                accessibilityRole="button"
+                accessibilityLabel={t('hout.timeA11y')}
+              >
+                <Ionicons name="time-outline" size={16} color={colors.primary} />
+                <Text style={styles.dateBtnText}>{formatTime(nextDate.toISOString())}</Text>
+              </Pressable>
+            </View>
+            {clash && (
+              <View style={[styles.warnBox, clash.tur === 'ortusuyor' && styles.warnBoxAgir]}>
+                <Ionicons
+                  name={clash.tur === 'ortusuyor' ? 'alert-circle' : 'warning'}
+                  size={18}
+                  color={clash.tur === 'ortusuyor' ? colors.danger : colors.warning}
+                />
+                <Text style={styles.warnText}>
+                  {t(
+                    clash.tur === 'ortusuyor'
+                      ? 'clash.ortusuyor'
+                      : clash.tur === 'yol_yetmez'
+                        ? 'clash.yolYetmez'
+                        : 'clash.sikisik',
+                    {
+                      title: clash.digeri.title,
+                      time: formatTime(clash.digeri.scheduled_at),
+                      fark: String(clash.farkDk),
+                      caseInfo: clashKaydi?.case?.title ? ` · ${clashKaydi.case.title}` : '',
+                    }
+                  )}
+                  {cakismalar.length > 1 ? ` ${t('clash.digerleri', { n: String(cakismalar.length - 1) })}` : ''}
+                </Text>
+              </View>
+            )}
           </>
         )}
 
@@ -321,7 +458,7 @@ export default function DurusmaCikisiScreen() {
           <View style={styles.preview}>
             <Text style={styles.previewTitle}>{t('hout.willCreate')}</Text>
             {def?.needsNextHearing && (
-              <Row icon="calendar" color={colors.primary} text={`${t('hout.pvHearing')}: ${formatDate(nextDate.toISOString())}`} styles={styles} />
+              <Row icon="calendar" color={colors.primary} text={`${t('hout.pvHearing')}: ${formatDateTime(nextDate.toISOString())}`} styles={styles} />
             )}
             {plan && (
               <Row
@@ -356,19 +493,21 @@ export default function DurusmaCikisiScreen() {
           <View style={styles.pickerPanel}>
             <DateTimePicker
               locale="tr-TR"
-              value={picker === 'next' ? nextDate : serviceDate}
-              mode="date"
+              value={picker === 'service' ? serviceDate : nextDate}
+              mode={picker === 'nextTime' ? 'time' : 'date'}
+              is24Hour
               display="spinner"
-              onChange={(_e, d) => {
+              onChange={(e, d) => {
                 if (Platform.OS === 'android') setPicker(null);
-                if (!d) return;
-                if (picker === 'next') {
-                  const n = new Date(nextDate);
-                  n.setFullYear(d.getFullYear(), d.getMonth(), d.getDate());
-                  setNextDate(n);
-                } else {
+                if (!d || e.type === 'dismissed') return;
+                if (picker === 'service') {
                   setServiceDate(d);
+                  return;
                 }
+                const n = new Date(nextDate);
+                if (picker === 'nextTime') n.setHours(d.getHours(), d.getMinutes(), 0, 0);
+                else n.setFullYear(d.getFullYear(), d.getMonth(), d.getDate());
+                setNextOverride(n);
               }}
             />
             {Platform.OS === 'ios' && <Button label={t('common.done')} size="sm" onPress={() => setPicker(null)} fullWidth />}
@@ -383,8 +522,23 @@ export default function DurusmaCikisiScreen() {
           style={styles.cta}
         />
 
-        <Pressable onPress={() => { resetForNext(); setIdx((v) => Math.min(v + 1, pending.length - 1)); }} style={styles.skip}>
+        <Pressable
+          onPress={() => {
+            // Tek bekleyen varsa atlayınca ekranda takılma: çık. Birden çoksa sıradakine geç, sonda başa dön.
+            if (pending.length <= 1) {
+              geriDon();
+              return;
+            }
+            resetForNext();
+            setIdx((v) => sonrakiSira(v, pending.length));
+          }}
+          style={styles.skip}
+        >
           <Text style={styles.skipText}>{t('hout.skip')}</Text>
+        </Pressable>
+
+        <Pressable onPress={kapatYalniz} disabled={busy} style={styles.skip}>
+          <Text style={styles.skipText}>{t('hout.closeOnly')}</Text>
         </Pressable>
       </ScrollView>
     </Screen>
@@ -465,6 +619,22 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
   },
+  dateRow: { flexDirection: 'row', gap: 8 },
+  dateBtnGun: { flex: 3 },
+  dateBtnSaat: { flex: 2 },
+  warnBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    backgroundColor: colors.warningSoft,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: kose(12),
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  warnBoxAgir: { backgroundColor: colors.dangerSoft, borderColor: colors.danger },
+  warnText: { fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 18, color: colors.textPrimary, flex: 1 },
   dateBtnText: { fontFamily: fonts.bold, fontWeight: '700', fontSize: 14, color: colors.textPrimary },
   serviceBox: {
     backgroundColor: colors.surfaceAlt,
