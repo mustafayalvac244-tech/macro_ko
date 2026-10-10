@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { belgeSecVeOku, type BelgeEki, type EkHatasi } from '@/lib/belgeEki';
-import { EK_EN_COK, PDF_SAYFA_TAVANI, ekOkumaPlani } from '@/lib/belgeEkiKurallari';
+import { EK_EN_COK, EK_METIN_TAVANI, PDF_SAYFA_TAVANI, ekBoyutuAsiyor, ekMetinPayi, ekOkumaPlani } from '@/lib/belgeEkiKurallari';
 import { useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -33,6 +33,11 @@ export function BelgeEkleri({ ekler, onChange, disabled = false, enCok = EK_EN_C
   const [okunuyor, setOkunuyor] = useState(false);
   const [hata, setHata] = useState<EkHatasi | null>(null);
   const plan = ekOkumaPlani(ekler);
+  // Her ekten kaç karakter okunacağı (sunucuyla aynı bütçe) ve görüntüsüyle
+  // gidecek PDF'lerin toplamı (09.10.2026): ikisi de eskiden göndermeden önce
+  // söylenmiyordu — bkz. src/lib/belgeEkiKurallari.ts.
+  const pay = ekMetinPayi(ekler);
+  const boyutAsiyor = ekBoyutuAsiyor(ekler);
 
   const ekle = async () => {
     if (okunuyor || disabled) return;
@@ -57,13 +62,19 @@ export function BelgeEkleri({ ekler, onChange, disabled = false, enCok = EK_EN_C
     if (plan[i] === 'gorsel') {
       return taranmis > 0 ? t('ek.gorselTaranmis', { n: sayfa, t: taranmis }) : t('ek.gorsel', { n: sayfa });
     }
-    if (e.pdf) {
-      return taranmis > 0
+    // Metin bütçesi önceki eklerle doldu: bu ekten hiçbir şey okunmayacak.
+    if (plan[i] === 'yok' && e.metin.trim()) return t('ek.sinirDoldu', { tavan: EK_METIN_TAVANI });
+    const not = e.pdf
+      ? taranmis > 0
         ? t('ek.metinPdfTaranmis', { n: sayfa, tavan: PDF_SAYFA_TAVANI, t: taranmis })
-        : t('ek.metinPdf', { n: sayfa, tavan: PDF_SAYFA_TAVANI });
-    }
-    return t('ek.metin');
+        : t('ek.metinPdf', { n: sayfa, tavan: PDF_SAYFA_TAVANI })
+      : t('ek.metin');
+    const okunacak = pay[i] ?? e.metin.length;
+    return okunacak < e.metin.length ? `${not} · ${t('ek.kirpilacak', { n: okunacak, toplam: e.metin.length })}` : not;
   };
+  // Uyarı rengi: görüntüsüyle okunmayacak ekte taranmış sayfa ya da kırpılan metin.
+  const eksikOkunur = (e: BelgeEki, i: number): boolean =>
+    plan[i] !== 'gorsel' && ((e.taranmis ?? 0) > 0 || (pay[i] ?? e.metin.length) < e.metin.length);
 
   return (
     <View style={styles.sarmal}>
@@ -74,7 +85,7 @@ export function BelgeEkleri({ ekler, onChange, disabled = false, enCok = EK_EN_C
             <Text style={styles.ekAd} numberOfLines={1}>
               {e.ad}
             </Text>
-            <Text style={[styles.ekNot, plan[i] !== 'gorsel' && (e.taranmis ?? 0) > 0 && styles.ekNotUyari]}>
+            <Text style={[styles.ekNot, eksikOkunur(e, i) && styles.ekNotUyari]}>
               {aciklama(e, i)}
             </Text>
           </View>
@@ -110,6 +121,7 @@ export function BelgeEkleri({ ekler, onChange, disabled = false, enCok = EK_EN_C
         </Pressable>
       )}
 
+      {boyutAsiyor && <Text style={styles.hata}>{t('ek.toplamBuyuk')}</Text>}
       {!!hata && <Text style={styles.hata}>{t(`ek.hata.${hata}` as const, { tavan: PDF_SAYFA_TAVANI })}</Text>}
     </View>
   );

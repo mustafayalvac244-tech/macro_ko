@@ -10,7 +10,7 @@ import { AtifDenetimi, type KararDenetimiVerisi } from '@/components/ui/AtifDene
 import { HukukiUyari } from '@/components/ui/HukukiUyari';
 import { BelgeEkleri } from '@/components/ui/BelgeEkleri';
 import type { BelgeEki } from '@/lib/belgeEki';
-import { ekGovdesi } from '@/lib/belgeEkiKurallari';
+import { ekGovdesi, type EkUyari } from '@/lib/belgeEkiKurallari';
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_DILEKCE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
@@ -75,7 +75,7 @@ export default function DilekceUretScreen() {
   const [duzeltiliyor, setDuzeltiliyor] = useState(false);
   const [onceki, setOnceki] = useState<string | null>(null);
   const [duzeltHata, setDuzeltHata] = useState<string | null>(null);
-  const [ekUyari, setEkUyari] = useState<{ pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean } | null>(null);
+  const [ekUyari, setEkUyari] = useState<EkUyari | null>(null);
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState('');
   // SUNUCU İKİ ŞEYİ BİLİYOR, EKRAN SÖYLEMİYORDU:
@@ -183,7 +183,7 @@ export default function DilekceUretScreen() {
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
+      const payload = data as { ekUyari?: EkUyari; text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!payload?.text) {
         // Sunucuya ulaşıldı, cevap boş: internet suçlanmaz (08.10.2026).
         setError(t('ai.errTamamlanamadi'));
@@ -460,6 +460,9 @@ export default function DilekceUretScreen() {
               {!!ekUyari?.okunamayan?.length && (
                 <Text style={styles.warn}>{t('ek.okunamayan', { adlar: ekUyari.okunamayan.join(', ') })}</Text>
               )}
+              {ekUyari?.kirpilan?.map((k, i) => (
+                <Text key={`kirpilan-${i}`} style={styles.warn}>{t('ek.kirpildi', { ad: k.ad, n: k.okunan, toplam: k.toplam })}</Text>
+              ))}
               {!!kullanim && (
                 <Text style={styles.usage}>
                   {kullanim.maliyetTL > 0

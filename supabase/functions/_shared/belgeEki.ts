@@ -41,6 +41,19 @@ export const EK_METIN_TAVANI = 40_000;
 export const PDF_SAYFA_TAVANI = 20;
 /** PDF'lerin toplam ham boyut tavanı (doc-extract'in kabul ettiği ~8 MB ile aynı). */
 export const EK_PDF_TAVANI_BAYT = 8 * 1024 * 1024;
+/**
+ * Avukatın yazdığı/yapıştırdığı metnin (`question`) tavanı — karakter.
+ * ÜRÜN KARARI, ölçüm değil (09.10.2026).
+ *
+ * BULUNAN KUSUR (08.10 denetimi): sunucuda hiçbir tavan yoktu. Belge inceleme
+ * ekranı 12.000'de kesiyor, dilekçe ve mütalaa ekranı hiç kesmiyor; değişmiş
+ * ya da hatalı bir istemci megabaytlık metni modele, arama sorgularına ve
+ * hasat talep kaydına olduğu gibi yollayabiliyordu. Değer, sunucunun "tam bir
+ * dilekçe taslağı" için zaten kullandığı tavanla aynı (ai-chat, düzelt
+ * modunda `taslak`, 60.000). Aşan istek KESİLMEZ, REDDEDİLİR ('soru_uzun'):
+ * sessizce kırpmak, avukatın neyin okunduğunu bilmemesi demektir.
+ */
+export const SORU_TAVANI = 60_000;
 
 export interface Ek {
   ad: string;
@@ -52,6 +65,20 @@ export interface Ek {
   sayfa?: number;
   /** Metni çıkmayan (taranmış) sayfa sayısı. */
   taranmis?: number;
+  /** Metin tavanda KIRPILDIYSA belgenin kırpılmadan önceki uzunluğu (karakter). */
+  tamUzunluk?: number;
+}
+
+/** Ekranın avukata göstereceği ek durumu — yanıtın `ekUyari` alanı. */
+export interface EkUyari {
+  /** Görüntüsüyle değil, yalnız çıkarılmış METNİYLE okunan PDF'ler. */
+  pdfdenMetne: string[];
+  /** Hiç okunamayan ekler. */
+  okunamayan: string[];
+  /** Görüntüsüyle okunan PDF'te taranmış sayfa vardı (tarih/tutar denetimi kör). */
+  taranmis?: true;
+  /** Metninin yalnız başı okunan ekler: kaç karakteri okundu / belge kaç karakter. */
+  kirpilan: Array<{ ad: string; okunan: number; toplam: number }>;
 }
 
 /** base64'ün temsil ettiği yaklaşık bayt sayısı. */
@@ -73,6 +100,12 @@ function sayi(v: unknown): number | undefined {
  * okundu" diyebilsin. Boyut tavanı aşılırsa ise istek reddedilir (`hata`):
  * 8 MB'ı aşan bir yükü sessizce kırpmak, avukatın neyin okunduğunu
  * bilmemesi demektir.
+ *
+ * METİN TAVANI DA ARTIK SESSİZ DEĞİL (09.10.2026, 08.10 denetimi). 40.000
+ * karakteri aşan metin kesiliyor ve hiçbir yerde söylenmiyordu: 95.000
+ * karakterlik bir sözleşmenin yalnız ilk 40.000'i okunuyor, avukat tamamının
+ * okunduğunu sanıyordu. Kırpılan ekin eski uzunluğu `tamUzunluk`'ta tutulur;
+ * ekrana ekUyarisi() söyler.
  */
 export function ekleriAyikla(gelen: unknown): {
   ekler: Ek[];
@@ -95,7 +128,8 @@ export function ekleriAyikla(gelen: unknown): {
     const ad = String(o.ad ?? '').replace(/[\r\n\t]/g, ' ').trim().slice(0, 120) || 'belge';
     let metin = typeof o.metin === 'string' ? o.metin : '';
     const kalan = Math.max(0, EK_METIN_TAVANI - metinToplam);
-    if (metin.length > kalan) metin = metin.slice(0, kalan);
+    const tamUzunluk = metin.length > kalan ? metin.length : undefined;
+    if (tamUzunluk !== undefined) metin = metin.slice(0, kalan);
     metinToplam += metin.length;
 
     // PDF imzası: "%PDF" base64'te "JVBER" ile başlar. Başka bir şey PDF diye
@@ -123,9 +157,49 @@ export function ekleriAyikla(gelen: unknown): {
       continue;
     }
     if (pdfGecerli && !pdf) pdfdenMetne.push(ad);
-    ekler.push({ ad, metin, pdf, sayfa, taranmis });
+    ekler.push({ ad, metin, pdf, sayfa, taranmis, ...(tamUzunluk !== undefined ? { tamUzunluk } : {}) });
   }
   return { ekler, pdfdenMetne, okunamayan };
+}
+
+/**
+ * Yanıtın `ekUyari` alanı — model çağrısından SONRA kurulur.
+ *
+ * `pdfGoruldu`: PDF belge blokları gerçekten PDF okuyabilen modele (Claude)
+ * ulaştı mı. Ulaşmadıysa (Claude düştü, yedek model yazdı; ya da Claude
+ * anahtarı yok) her PDF ek yalnız METNİYLE okunmuştur — metni yoksa (tamamen
+ * taranmış) HİÇ okunmamıştır.
+ *
+ * BULUNAN KUSUR (08.10 denetimi). Uyarı çağrıdan ÖNCE kuruluyordu, yani
+ * Claude'un PDF'i göreceği varsayılıyordu. Yedek modele düşünce tamamen
+ * taranmış bir tebligat yedek modele HİÇ ulaşmıyordu (metni boş, görüntüsü
+ * gitmiyor) ama ekran onu "okunamayan" diye saymıyor, üstüne "taranmış
+ * sayfalardan okunan tarihler…" diyerek okunmuş gibi gösteriyordu. Genel
+ * yedek model uyarısı (ai.yedekModelMetin, 08.10) yalnız "okunmamış OLABİLİR"
+ * diyordu; hangi belgenin okunmadığı bilinirken söylenmeliydi.
+ *
+ * Kırpılan ek (`tamUzunluk`): görüntüsüyle okunan PDF'te metnin kırpılması
+ * modelin okuduğunu etkilemez (sayfaların tamamını gördü), o yüzden yalnız
+ * metni okunan ekler için söylenir.
+ */
+export function ekUyarisi(
+  sonuc: { ekler: Ek[]; pdfdenMetne: string[]; okunamayan: string[] },
+  pdfGoruldu: boolean
+): EkUyari | undefined {
+  const pdfdenMetne = [...sonuc.pdfdenMetne];
+  const okunamayan = [...sonuc.okunamayan];
+  const kirpilan: EkUyari['kirpilan'] = [];
+  for (const e of sonuc.ekler) {
+    const metinVar = !!e.metin.trim();
+    if (e.pdf && !pdfGoruldu) (metinVar ? pdfdenMetne : okunamayan).push(e.ad);
+    const metniOkundu = !e.pdf || !pdfGoruldu;
+    if (metniOkundu && metinVar && e.tamUzunluk !== undefined) {
+      kirpilan.push({ ad: e.ad, okunan: e.metin.length, toplam: e.tamUzunluk });
+    }
+  }
+  const taranmis = pdfGoruldu && taranmisSayfaVar(sonuc.ekler);
+  if (!pdfdenMetne.length && !okunamayan.length && !kirpilan.length && !taranmis) return undefined;
+  return { pdfdenMetne, okunamayan, ...(taranmis ? { taranmis: true as const } : {}), kirpilan };
 }
 
 /**

@@ -33,7 +33,7 @@ import { basarisizsaIadeEt, rezervasyonuIadeEt, yeniRezervasyon, type HakRezerva
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 import { mesajlariHazirla } from '../_shared/onbellek.ts';
 // Avukatın eklediği belgeler (dilekçe/belge inceleme) — PDF görüntüsüyle gider.
-import { denetimKaynagi, ekAciklamasi, ekleriAyikla, pdfBloklari, taranmisSayfaVar, type Ek } from '../_shared/belgeEki.ts';
+import { SORU_TAVANI, denetimKaynagi, ekAciklamasi, ekleriAyikla, ekUyarisi, pdfBloklari } from '../_shared/belgeEki.ts';
 import { rizaKapisi } from '../_shared/kvkkRiza.ts';
 // Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
@@ -2273,9 +2273,14 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   // EKLİ BELGELER — yalnız dilekçe ve belge incelemede (bkz. _shared/belgeEki.ts).
   // Boyut tavanı aşılırsa istek BAŞLAMADAN reddedilir: hak düşmez, kota
   // rezerve edilmez.
-  const ekSonuc = (isDilekce || isBelge) ? ekleriAyikla(body.ekler) : { ekler: [] as Ek[], pdfdenMetne: [] as string[], okunamayan: [] as string[] };
+  const ekSonuc = ekleriAyikla((isDilekce || isBelge) ? body.ekler : undefined);
   if ('hata' in ekSonuc && ekSonuc.hata) {
     return new Response(JSON.stringify({ error: ekSonuc.hata }), { status: 413, headers: CORS });
+  }
+  // SORU TAVANI (09.10.2026, bkz. _shared/belgeEki.ts > SORU_TAVANI): aşan
+  // metin kesilmez, istek BAŞLAMADAN reddedilir — hak düşmez, kota rezerve edilmez.
+  if (promptQuestion.length > SORU_TAVANI) {
+    return new Response(JSON.stringify({ error: 'soru_uzun' }), { status: 413, headers: CORS });
   }
   const ekler = ekSonuc.ekler;
   // Belge incelemede PDF'in kendisi ek olarak gelir; soru kutusu yalnız
@@ -2286,10 +2291,8 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   if (messages.length === 0 || duzeltGecersiz || ((isMutalaa || isDilekce || isBelge || isKunye) && promptQuestion.length < 20 && !notYeter)) {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
-  // Ekranın avukata söyleyeceği ek durumu (görüntüsüyle okunamayanlar).
-  const ekUyari = (ekSonuc.pdfdenMetne.length || ekSonuc.okunamayan.length || taranmisSayfaVar(ekler))
-    ? { pdfdenMetne: ekSonuc.pdfdenMetne, okunamayan: ekSonuc.okunamayan, taranmis: taranmisSayfaVar(ekler) || undefined }
-    : undefined;
+  // Ekranın avukata söyleyeceği ek durumu artık model çağrısından SONRA kurulur
+  // (ekUyarisi): PDF görüntüsünün modele ulaşıp ulaşmadığı ancak o zaman bilinir.
   // Referanslar mütalaa bloğunda mutalaaQuestion adıyla kullanılıyordu; alias.
   const mutalaaQuestion = promptQuestion;
 
@@ -3285,7 +3288,7 @@ async function dosyaKunyesiIc(
           kararDenetimi: kararDenetimi ?? undefined,
           uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: dilekceKirpildi || undefined,
-          ekUyari,
+          ekUyari: ekUyarisi(ekSonuc, provider === 'claude' && faturali),
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
@@ -3533,7 +3536,7 @@ async function dosyaKunyesiIc(
           kararDenetimi: kararDenetimi ?? undefined,
           uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: beslemeKirpildi || undefined,
-          ekUyari,
+          ekUyari: ekUyarisi(ekSonuc, provider === 'claude' && faturali),
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
