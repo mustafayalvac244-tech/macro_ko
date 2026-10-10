@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { Stack, usePathname } from 'expo-router';
+import { router, Stack, usePathname } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { kullanimKaydet, reklamKaynaginiKaydet, yolSade } from '@/lib/kullanim';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -32,7 +33,8 @@ import {
   JetBrainsMono_800ExtraBold,
 } from '@expo-google-fonts/jetbrains-mono';
 import { useAuthStore } from '@/store/authStore';
-import { pushAdresiniKaydet, registerForNotificationsAsync } from '@/lib/notifications';
+import { bildirimIzniniYenile, pushAdresiniKaydet, registerForNotificationsAsync } from '@/lib/notifications';
+import { bildirimHedefi } from '@/utils/bildirimPlani';
 import { asyncPersister, queryClient, QUERY_CACHE_MAX_AGE } from '@/lib/queryClient';
 import { configurePurchases, identifyPurchaser, resetPurchaser } from '@/lib/purchases';
 import { hydrateLanguage, useLangStore } from '@/i18n';
@@ -176,6 +178,48 @@ export default function RootLayout() {
     registerForNotificationsAsync()
       .then((izin) => (izin ? pushAdresiniKaydet() : undefined))
       .catch(() => {});
+  }, [userId]);
+
+  // İZİN CİHAZ AYARLARINDAN VERİLİRSE (09.10.2026). Uygulama öne gelince izin
+  // yeniden okunur: yeni verildiyse sunucu adresi kaydedilir; ana ekrandaki
+  // hatırlatma eşitlemesi izin durumuna bağlı olduğu için kendiliğinden koşar.
+  // Önceden bunun için uygulamanın kapatılıp açılması gerekiyordu.
+  useEffect(() => {
+    if (!userId || Platform.OS === 'web') return;
+    const abone = AppState.addEventListener('change', (durum) => {
+      if (durum !== 'active') return;
+      bildirimIzniniYenile()
+        .then(({ yeniVerildi }) => (yeniVerildi ? pushAdresiniKaydet() : undefined))
+        .catch(() => {});
+    });
+    return () => abone.remove();
+  }, [userId]);
+
+  // BİLDİRİME DOKUNULUNCA (09.10.2026). "Duruşma nasıl geçti?" bildirimi
+  // duruşma çıkışı ekranını açar — notifications.ts bunu söylüyordu ama yanıtı
+  // dinleyen kod yoktu. Yalnız bilinen yollar açılır (bkz. bildirimHedefi).
+  // Uygulama bildirimle soğuk açıldıysa yanıt getLastNotificationResponse'tan
+  // okunur ve bir kez işlendikten sonra silinir; yoksa oturum yenilenince aynı
+  // ekran ikinci kez açılırdı.
+  useEffect(() => {
+    if (!userId || Platform.OS === 'web') return;
+    const ac = (yanit: Notifications.NotificationResponse | null) => {
+      const hedef = bildirimHedefi(yanit?.notification.request.content.data);
+      if (!hedef) return;
+      try {
+        Notifications.clearLastNotificationResponse();
+      } catch {
+        // yanıt zaten temizse sorun değil
+      }
+      router.push(hedef as Parameters<typeof router.push>[0]);
+    };
+    try {
+      ac(Notifications.getLastNotificationResponse());
+    } catch {
+      // modül bu platformda yanıt tutmuyorsa yalnız dinleyici çalışır
+    }
+    const abone = Notifications.addNotificationResponseReceivedListener(ac);
+    return () => abone.remove();
   }, [userId]);
 
   // Native splash'ı, uygulama iskeleti ekrana İLK DÜŞTÜĞÜ AN kapat — fontları

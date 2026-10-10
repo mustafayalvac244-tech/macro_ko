@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest';
 import {
   BILDIRIM_BUTCESI,
   IOS_BILDIRIM_TAVANI,
+  bildirimHedefi,
   bildirimPlaniYap,
+  bildirimVerisi,
   etkinlikAdaylari,
+  kuruluBildirimGuncelMi,
   planBildirimId,
   tetikAniCoz,
   tetikGuncelMi,
   TETIK_TOLERANS_MS,
+  TETIK_VERI_ANAHTARI,
   type PlanEtkinligi,
 } from '@/utils/bildirimPlani';
 
@@ -219,5 +223,154 @@ describe('tetikAniCoz / tetikGuncelMi — kurulu bildirimin saati eskimiş mi?',
   it('yuvarlama toleransını aşmayan farkı güncel sayar', () => {
     expect(tetikGuncelMi({ type: 'date', date: an + TETIK_TOLERANS_MS }, an)).toBe(true);
     expect(tetikGuncelMi({ type: 'date', date: an + TETIK_TOLERANS_MS + 1 }, an)).toBe(false);
+  });
+});
+
+/**
+ * iOS'TA SAATİ DEĞİŞEN DURUŞMANIN ESKİ BİLDİRİMİ KALIYORDU (09.10.2026 denetimi).
+ *
+ * Kurulu bildirimin GERÇEK iOS biçimi (expo-notifications 57.0.19 kaynağından
+ * okundu, cihazda ölçülmedi): 'date' tetikleyicisi kurulurken
+ * UNTimeIntervalNotificationTrigger'a çevriliyor (ios/.../TriggerRecords.swift,
+ * DateTriggerRecord) ve geri okunurken { type: 'timeInterval', seconds }
+ * dönüyor (NotificationRecords.swift). `seconds` KURULDUĞU andaki aralık;
+ * kurulma anı bilinmediği için tetik anı ondan hesaplanamaz. Eşitleme bu
+ * biçimi "çözemedim → güncel say" diye atlıyordu, yani "saati kayan bildirim
+ * yenilenir" düzeltmesi iOS'ta hiç çalışmıyordu.
+ */
+describe('iOS biçimindeki kurulu bildirim — saat kayması', () => {
+  const an = new Date('2026-10-01T09:00:00Z').getTime();
+  const iosTetik = { class: 'UNTimeIntervalNotificationTrigger', type: 'timeInterval', seconds: 86_400, repeats: false };
+
+  it('işaretsiz (eski sürümde kurulmuş) iOS bildirimi güncel SAYILMAZ — bir kez yeniden kurulur', () => {
+    // Duruşma 10:00'dan 14:00'e alındı; iOS'taki kurulu bildirimin anı okunamıyor.
+    expect(tetikGuncelMi(iosTetik, an + 4 * 3600_000)).toBe(false);
+  });
+
+  it('içine yazılan tetik anı (data) okunur: aynı saatte dokunulmaz, kaymışsa yenilenir', () => {
+    const kurulu = { trigger: iosTetik, content: { title: 'T', body: 'G', data: { [TETIK_VERI_ANAHTARI]: an } } };
+    expect(kuruluBildirimGuncelMi(kurulu, { tetikMs: an, title: 'T', body: 'G' })).toBe(true);
+    expect(kuruluBildirimGuncelMi(kurulu, { tetikMs: an + 4 * 3600_000, title: 'T', body: 'G' })).toBe(false);
+  });
+
+  it('Android biçimi ({ type: "date", value }) işaretsiz de çalışmaya devam eder', () => {
+    const kurulu = { trigger: { type: 'date', value: an, repeats: false }, content: { title: 'T', body: 'G' } };
+    expect(kuruluBildirimGuncelMi(kurulu, { tetikMs: an, title: 'T', body: 'G' })).toBe(true);
+    expect(kuruluBildirimGuncelMi(kurulu, { tetikMs: an + 60 * 60_000, title: 'T', body: 'G' })).toBe(false);
+  });
+
+  it('tanınmayan biçime işaret de yoksa DOKUNULMAZ (her eşitlemede silip kurma döngüsü olmasın)', () => {
+    expect(kuruluBildirimGuncelMi({ trigger: { type: 'unknown' }, content: {} }, { tetikMs: an })).toBe(true);
+    // Tekrarlayan aralık bizim kurduğumuz bir şey değil: dokunulmaz.
+    expect(tetikGuncelMi({ type: 'timeInterval', seconds: 60, repeats: true }, an)).toBe(true);
+  });
+
+  it('METİN değiştiyse (başka cihazda düzenlenen başlık, dil, metin kuralı) yenilenir', () => {
+    const kurulu = { trigger: iosTetik, content: { title: 'Eski', body: 'G', data: { [TETIK_VERI_ANAHTARI]: an } } };
+    expect(kuruluBildirimGuncelMi(kurulu, { tetikMs: an, title: 'Yeni', body: 'G' })).toBe(false);
+    expect(kuruluBildirimGuncelMi(kurulu, { tetikMs: an, title: 'Eski', body: 'Başka' })).toBe(false);
+  });
+
+  it('kurulan her bildirim kendi tetik anını data içinde taşır (eşitleme onu okur)', () => {
+    for (const p of etkinlikAdaylari(durusma('h1', 10), simdi)) {
+      const kurulu = { trigger: iosTetik, content: { data: bildirimVerisi(p) } };
+      expect(kuruluBildirimGuncelMi(kurulu, { tetikMs: p.tetikMs }), p.tur).toBe(true);
+      expect(kuruluBildirimGuncelMi(kurulu, { tetikMs: p.tetikMs + 4 * 3600_000 }), p.tur).toBe(false);
+    }
+  });
+});
+
+describe('bildirime dokununca açılan ekran', () => {
+  it('"duruşma nasıl geçti?" bildirimi duruşma çıkışını açar, diğerleri bir yol taşımaz', () => {
+    const adaylar = etkinlikAdaylari(durusma('h1', 10), simdi);
+    const sonuc = adaylar.find((x) => x.tur === 'sonuc')!;
+    expect(bildirimHedefi(bildirimVerisi(sonuc))).toBe('/durusma-cikisi');
+    for (const p of adaylar.filter((x) => x.tur !== 'sonuc')) expect(bildirimHedefi(bildirimVerisi(p)), p.tur).toBeNull();
+  });
+
+  it('bilinmeyen yol AÇILMAZ (sunucudan gelen bildirimin data’sı bizim elimizde değil)', () => {
+    expect(bildirimHedefi({ url: '/admin' })).toBeNull();
+    expect(bildirimHedefi({ url: 'https://ornek.com' })).toBeNull();
+    expect(bildirimHedefi(null)).toBeNull();
+    expect(bildirimHedefi('url')).toBeNull();
+  });
+});
+
+/**
+ * 24 SAATTEN YAKIN ETKİNLİĞE HATIRLATMA HİÇ KURULMUYORDU (09.10.2026 denetimi).
+ *
+ * Duruşma formunun varsayılanları: tarih = ŞİMDİ + 24 saat, hatırlatma = 1 gün
+ * önce (app/hearing-form.tsx). Seçilen an = formun açıldığı an → kaydedince
+ * geçmişte; 3 gün kala da geçmişte; 1 gün kala seçilenle aynı. Sonuç: ön
+ * hatırlatma SIFIR. Akşam girilen ertesi sabahki duruşmada da aynısı.
+ *
+ * Yedek KAYIT ANINA (updated_at) göre seçilir, "şimdi"ye göre değil: "şimdi"ye
+ * göre seçilseydi 1 saat kala bildirimi çaldıktan sonraki ilk eşitleme
+ * 30 dk kala için İKİNCİ bir bildirim kurardı.
+ */
+describe('seçilen an kayıt anında zaten geçmişse — yedek hatırlatma', () => {
+  const kayit = new Date('2026-10-08T17:00:00Z').getTime(); // 20:00 TSİ
+  const kayitISO = new Date(kayit).toISOString();
+  const etkinlik = (anMs: number, secilenDakika = 24 * 60, tur: PlanEtkinligi['tur'] = 'durusma'): PlanEtkinligi => ({
+    id: 'h1',
+    tur,
+    anISO: new Date(anMs).toISOString(),
+    secilenDakika,
+    bitti: false,
+    kayitISO,
+  });
+  const onHatirlatmalar = (a: ReturnType<typeof etkinlikAdaylari>) => a.filter((x) => x.tur !== 'sonuc');
+
+  it('formun varsayılanı (şimdi + 24 saat, 1 gün önce): 1 saat kala hatırlatma kurulur', () => {
+    const an = kayit + 24 * SAAT - 30_000; // form 30 sn önce açılmıştı
+    const a = onHatirlatmalar(etkinlikAdaylari(etkinlik(an), kayit));
+    expect(a).toHaveLength(1);
+    expect(a[0]!.tur).toBe('secilen');
+    expect(a[0]!.bildirimId).toBe('hearing-h1');
+    expect(a[0]!.tetikMs).toBe(an - SAAT);
+  });
+
+  it("akşam 20:00'de girilen ertesi sabah 09:30 duruşması: 08:30'da hatırlatılır", () => {
+    const an = new Date('2026-10-09T06:30:00Z').getTime(); // 09:30 TSİ
+    const a = onHatirlatmalar(etkinlikAdaylari(etkinlik(an), kayit));
+    expect(a.map((x) => x.tetikMs)).toEqual([an - SAAT]);
+  });
+
+  it('45 dk sonraki etkinlikte 1 saat de geçmişte: 30 dk kala kurulur', () => {
+    const an = kayit + 45 * 60_000;
+    expect(onHatirlatmalar(etkinlikAdaylari(etkinlik(an, 60), kayit)).map((x) => x.tetikMs)).toEqual([an - 30 * 60_000]);
+  });
+
+  it('20 dk sonraki etkinlikte yedek de sığmaz: ön hatırlatma kurulmaz', () => {
+    expect(onHatirlatmalar(etkinlikAdaylari(etkinlik(kayit + 20 * 60_000), kayit))).toEqual([]);
+  });
+
+  it('YEDEK ÇALDIKTAN SONRA ikinci bir yedek kurulmaz (plan zamanla kaymaz)', () => {
+    const an = kayit + 13 * SAAT;
+    const sonra = an - 50 * 60_000; // 1 saat kala çaldı, 10 dk geçti
+    expect(onHatirlatmalar(etkinlikAdaylari(etkinlik(an), sonra))).toEqual([]);
+  });
+
+  it('bir aşama zaten ileride kalıyorsa yedek EKLENMEZ (1 hafta seçili, duruşma 2 gün sonra → 1 gün kala yeter)', () => {
+    const a = onHatirlatmalar(etkinlikAdaylari(etkinlik(kayit + 2 * GUN, 7 * 24 * 60), kayit));
+    expect(a.map((x) => x.tur)).toEqual(['1g']);
+  });
+
+  it('seçilen an ileride ise davranış değişmez', () => {
+    const a = onHatirlatmalar(etkinlikAdaylari(etkinlik(kayit + 10 * GUN), kayit));
+    expect(a.map((x) => x.tur).sort()).toEqual(['3g', 'secilen']);
+  });
+
+  it('görevde de uygulanır, ödeme sözünde uygulanmaz', () => {
+    const an = kayit + 13 * SAAT;
+    expect(onHatirlatmalar(etkinlikAdaylari(etkinlik(an, 24 * 60, 'gorev'), kayit)).map((x) => x.tetikMs)).toEqual([an - SAAT]);
+    expect(etkinlikAdaylari(etkinlik(an, 0, 'soz'), kayit).map((x) => x.tetikMs)).toEqual([an]);
+    expect(etkinlikAdaylari(etkinlik(an, 24 * 60, 'soz'), kayit)).toEqual([]);
+  });
+
+  it('kayıt anı bilinmiyorsa eski davranış sürer (yedek yok)', () => {
+    const an = kayit + 13 * SAAT;
+    const { kayitISO: _yok, ...kayitsiz } = etkinlik(an);
+    expect(onHatirlatmalar(etkinlikAdaylari(kayitsiz, kayit))).toEqual([]);
   });
 });

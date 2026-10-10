@@ -216,13 +216,19 @@ export default function SettingsScreen() {
               <Ionicons name="notifications-outline" size={18} color={colors.textMuted} />
               <Text style={styles.rowLabel}>{t('settings.reminders')}</Text>
             </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={handleToggleNotifications}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor="#FFFFFF"
-            />
+            {Platform.OS !== 'web' && (
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={handleToggleNotifications}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+              />
+            )}
           </View>
+          {/* WEB'DE HATIRLATMA YOK (09.10.2026): anahtar tarayıcı izni verilince
+              açık görünüyor, avukat masaüstünde de hatırlatma alacağını
+              sanıyordu — web hiçbir yerel bildirim kuramıyor. */}
+          {Platform.OS === 'web' && <Text style={styles.lockHint}>{t('settings.remindersWebOnly')}</Text>}
         </Card>
 
         {biometricsAvailable && (

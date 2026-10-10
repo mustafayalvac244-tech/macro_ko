@@ -661,6 +661,8 @@ export const en: Record<keyof typeof tr, string> = {
   'theme.sepia': 'Parchment',
   'theme.emerald': 'Emerald',
   'settings.reminders': 'Hearing & deadline reminders',
+  'settings.remindersWebOnly':
+    'The web version does not send reminder notifications; hearing and task reminders work in the phone app.',
   'search.title': 'Global Search',
   'search.placeholder': 'Search cases, clients or documents...',
   'search.hint': 'Search everything from one box: case title, docket no, court, client name, phone or document name.',
@@ -879,14 +881,16 @@ export const en: Record<keyof typeof tr, string> = {
   'fmt.in': 'In {d}',
 
   // Notifications
+  // Shown on the lock screen: client and case NAMES are not written (see utils/bildirimMetni.ts).
   'notif.outcomeTitle': 'How did the {type} go?',
-  'notif.outcomeBody': '{title} — if a deadline was set, record it now; later it gets forgotten.',
+  'notif.outcomeBody': '{date} — if a deadline was set, record it now; later it gets forgotten.',
   'notif.hearingTitle': 'Upcoming {type}: {title}',
   'notif.deadlineTitle': 'Task due soon: {title}',
+  'notif.eventBody': '{date} · Details in the app',
   'notif.stage3d': '⏰ 3 days left — {title}',
   'notif.stage1d': '🚨 1 day left — {title}',
-  'notif.promiseTitle': '💰 Payment due: {name}',
-  'notif.promiseBody': '{name} is due to pay {amount} today. Don’t forget to follow up.',
+  'notif.promiseTitle': '💰 Payment due',
+  'notif.promiseBody': 'Client payment promise: {amount}. Don’t forget to follow up.',
 
   // Receivables (payment promises)
   // Enforcement (icra) module
