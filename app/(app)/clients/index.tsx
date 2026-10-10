@@ -24,7 +24,7 @@ export default function ClientDirectoryScreen() {
   const sutun = sutunSayisi(pencere, 380, 2);
 
   const [search, setSearch] = useState('');
-  const { data: clients, isLoading, refetch, isRefetching } = useClients(search);
+  const { data: clients, isLoading, isError, refetch, isRefetching } = useClients(search);
 
   return (
     <Screen>
@@ -49,7 +49,17 @@ export default function ClientDirectoryScreen() {
           </View>
         )}
         ListEmptyComponent={
-          !isLoading ? (
+          // Sorgu hatası "Henüz müvekkil yok" gibi görünmesin: verisi olan avukata
+          // "hiç müvekkilin yok" demek verisinin silindiğini düşündürür.
+          isError && !clients ? (
+            <EmptyState
+              icon="cloud-offline-outline"
+              title={t('clients.loadError')}
+              description={t('clients.loadErrorDesc')}
+              actionLabel={t('clients.retry')}
+              onAction={() => refetch()}
+            />
+          ) : !isLoading ? (
             <EmptyState
               icon="people-outline"
               title={t('clients.empty')}
