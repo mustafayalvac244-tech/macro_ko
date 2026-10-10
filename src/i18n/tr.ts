@@ -696,6 +696,8 @@ export const tr = {
   'theme.sepia': 'Parşömen',
   'theme.emerald': 'Zümrüt',
   'settings.reminders': 'Duruşma ve görev hatırlatmaları',
+  'settings.remindersWebOnly':
+    'Web sürümü hatırlatma bildirimi göndermez; duruşma ve görev hatırlatmaları telefon uygulamasında çalışır.',
   'search.title': 'Genel Arama',
   'search.placeholder': 'Dava, müvekkil veya belge ara...',
   'search.hint': 'Tek kutudan tüm dosyalarınızda arayın: dava adı, esas no, mahkeme, müvekkil adı, telefon veya belge adı.',
@@ -1098,14 +1100,16 @@ export const tr = {
   // Notifications
   // Duruşmadan SONRA sorulan bildirim: verilen sürenin kaydedilmesini sağlar.
   // Canlı veride 49 duruşmaya karşılık 9 süre kaydı vardı.
+  // Kilit ekranında görünür: müvekkil ve dava ADI yazılmaz (bkz. utils/bildirimMetni.ts).
   'notif.outcomeTitle': '{type} nasıl geçti?',
-  'notif.outcomeBody': '{title} — süre verildiyse şimdi kaydedin, sonra unutulur.',
+  'notif.outcomeBody': '{date} — süre verildiyse şimdi kaydedin, sonra unutulur.',
   'notif.hearingTitle': 'Yaklaşan {type}: {title}',
   'notif.deadlineTitle': 'Görev zamanı yaklaşıyor: {title}',
+  'notif.eventBody': '{date} · Ayrıntılar uygulamada',
   'notif.stage3d': '⏰ 3 gün kaldı — {title}',
   'notif.stage1d': '🚨 1 gün kaldı — {title}',
-  'notif.promiseTitle': '💰 Ödeme günü: {name}',
-  'notif.promiseBody': '{name} bugün {amount} ödeme yapacak. Takip etmeyi unutmayın.',
+  'notif.promiseTitle': '💰 Ödeme günü',
+  'notif.promiseBody': 'Müvekkil ödeme sözü: {amount}. Takip etmeyi unutmayın.',
 
   // Finance
   'case.tabFinance': 'Finans',
@@ -1873,7 +1877,19 @@ export const tr = {
   'admin.pushWarn': 'Müvekkil ya da dava bilgisi yazmayın: bildirim kilit ekranında görünür.',
   'admin.pushSend': 'Gönder',
   'admin.pushConfirmTitle': 'Bildirim gönderilsin mi?',
-  'admin.pushSent': 'Gönderildi: {kisi} kişi, {cihaz} cihaz.',
+  'admin.pushSent': 'Expo kuyruğuna bırakıldı: {kisi} kişi, {cihaz} cihaz. Bu, telefonlara ulaştığı anlamına gelmez; sonucu aşağıdan okuyun.',
+  'admin.pushResult': 'Son gönderimin sonucunu oku',
+  'admin.pushResultError': 'Sonuç okunamadı: {hata}',
+  'admin.pushResultNone': 'Henüz gönderim yok.',
+  'admin.pushResultWaiting': 'Expo\'dan yanıt henüz gelmedi. Biraz sonra tekrar okuyun.',
+  'admin.pushResultGone': 'Expo yanıtı saklama süresi içinde okunamadı; sonuç bilinmiyor.',
+  'admin.pushResultTicket': 'Expo kabul etti: {kabul} · reddetti: {ret}',
+  'admin.pushResultPartial': '{n} istekten yanıt henüz gelmedi.',
+  'admin.pushResultReqErr': '{n} istek Expo\'ya ulaşmadı ya da hata döndü.',
+  'admin.pushResultCodes': 'Hata kodları: {kodlar}',
+  'admin.pushResultReceipt': 'Apple/Google\'a teslim: {ok} · hata: {hata}. Telefonda görüldüğü anlamına gelmez.',
+  'admin.pushResultReceiptEarly': 'Teslim makbuzu henüz hazır değil; gönderimden biraz sonra tekrar okuyun.',
+  'admin.pushResultReceiptPending': 'Teslim makbuzu Expo\'dan isteniyor; birazdan tekrar okuyun.',
   'admin.pushNone': 'Seçilen kişilerde bildirim adresi yok. Uygulamanın güncel sürümünü açıp bildirime izin vermeleri gerekiyor.',
   'admin.pushError': 'Gönderilemedi: {hata}',
   'admin.aiTodayHint': '{token} token',

@@ -734,6 +734,8 @@ export const en: Record<keyof typeof tr, string> = {
   'theme.sepia': 'Parchment',
   'theme.emerald': 'Emerald',
   'settings.reminders': 'Hearing & deadline reminders',
+  'settings.remindersWebOnly':
+    'The web version does not send reminder notifications; hearing and task reminders work in the phone app.',
   'search.title': 'Global Search',
   'search.placeholder': 'Search cases, clients or documents...',
   'search.hint': 'Search everything from one box: case title, docket no, court, client name, phone or document name.',
@@ -972,14 +974,16 @@ export const en: Record<keyof typeof tr, string> = {
   'fmt.in': 'In {d}',
 
   // Notifications
+  // Shown on the lock screen: client and case NAMES are not written (see utils/bildirimMetni.ts).
   'notif.outcomeTitle': 'How did the {type} go?',
-  'notif.outcomeBody': '{title} — if a deadline was set, record it now; later it gets forgotten.',
+  'notif.outcomeBody': '{date} — if a deadline was set, record it now; later it gets forgotten.',
   'notif.hearingTitle': 'Upcoming {type}: {title}',
   'notif.deadlineTitle': 'Task due soon: {title}',
+  'notif.eventBody': '{date} · Details in the app',
   'notif.stage3d': '⏰ 3 days left — {title}',
   'notif.stage1d': '🚨 1 day left — {title}',
-  'notif.promiseTitle': '💰 Payment due: {name}',
-  'notif.promiseBody': '{name} is due to pay {amount} today. Don’t forget to follow up.',
+  'notif.promiseTitle': '💰 Payment due',
+  'notif.promiseBody': 'Client payment promise: {amount}. Don’t forget to follow up.',
 
   // Receivables (payment promises)
   // Enforcement (icra) module
@@ -1772,7 +1776,19 @@ export const en: Record<keyof typeof tr, string> = {
   'admin.pushWarn': 'Don\'t include client or case details: notifications show on the lock screen.',
   'admin.pushSend': 'Send',
   'admin.pushConfirmTitle': 'Send this notification?',
-  'admin.pushSent': 'Sent: {kisi} people, {cihaz} devices.',
+  'admin.pushSent': 'Queued with Expo: {kisi} people, {cihaz} devices. This does not mean it reached the phones; read the result below.',
+  'admin.pushResult': 'Read the last send result',
+  'admin.pushResultError': 'Could not read the result: {hata}',
+  'admin.pushResultNone': 'Nothing has been sent yet.',
+  'admin.pushResultWaiting': 'No reply from Expo yet. Read again in a moment.',
+  'admin.pushResultGone': 'The Expo reply could not be read within its retention time; the result is unknown.',
+  'admin.pushResultTicket': 'Expo accepted: {kabul} · rejected: {ret}',
+  'admin.pushResultPartial': 'No reply yet for {n} requests.',
+  'admin.pushResultReqErr': '{n} requests did not reach Expo or returned an error.',
+  'admin.pushResultCodes': 'Error codes: {kodlar}',
+  'admin.pushResultReceipt': 'Handed to Apple/Google: {ok} · errors: {hata}. This does not mean it was seen on the phone.',
+  'admin.pushResultReceiptEarly': 'The delivery receipt is not ready yet; read again a little after sending.',
+  'admin.pushResultReceiptPending': 'The delivery receipt is being requested from Expo; read again shortly.',
   'admin.pushNone': 'None of the selected people can receive notifications yet. They need to open the latest version of the app and allow notifications.',
   'admin.pushError': 'Could not send: {hata}',
   'admin.aiTodayHint': '{token} tokens',

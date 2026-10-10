@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import type { BildirimSonucu } from '@/utils/bildirimSonucu';
 
 /**
  * Yönetici paneli verileri — yalnız is_admin kullanıcılar içindir. Sunucudaki
@@ -245,6 +246,21 @@ export function useAdminBildirimGonder() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'bildirim-ozet'] });
+    },
+  });
+}
+
+/**
+ * Gönderimin SONUCU (bkz. 0187): Expo biletleri + teslim makbuzları. Okuma
+ * yan etkilidir (sunucu makbuz isteği atar, özeti yazar); bu yüzden sorgu
+ * değil mutation.
+ */
+export function useAdminBildirimSonuc() {
+  return useMutation({
+    mutationFn: async (): Promise<BildirimSonucu> => {
+      const { data, error } = await supabase.rpc('admin_bildirim_sonuc', { p_gonderim_id: null });
+      if (error) throw error;
+      return data as BildirimSonucu;
     },
   });
 }

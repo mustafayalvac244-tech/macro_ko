@@ -4,9 +4,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { useAdminBildirimGonder, useAdminBildirimOzet } from '@/hooks/useAdmin';
+import { useAdminBildirimGonder, useAdminBildirimOzet, useAdminBildirimSonuc } from '@/hooks/useAdmin';
 import { useT } from '@/i18n';
 import { uyar } from '@/lib/uyari';
+import { bildirimSonucSatirlari } from '@/utils/bildirimSonucu';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -27,6 +28,7 @@ export function BildirimGonder() {
   const t = useT();
   const ozet = useAdminBildirimOzet();
   const gonder = useAdminBildirimGonder();
+  const sonuc = useAdminBildirimSonuc();
 
   const [hedef, setHedef] = useState<Hedef>('son');
   const [kacKisi, setKacKisi] = useState('3');
@@ -103,6 +105,22 @@ export function BildirimGonder() {
         loading={gonder.isPending}
         disabled={!hazir || gonder.isPending}
       />
+      <Button
+        label={t('admin.pushResult')}
+        variant="secondary"
+        onPress={() => sonuc.mutate()}
+        loading={sonuc.isPending}
+        disabled={sonuc.isPending}
+      />
+      {sonuc.isError && (
+        <Text style={styles.not}>{t('admin.pushResultError', { hata: (sonuc.error as Error).message })}</Text>
+      )}
+      {sonuc.data &&
+        bildirimSonucSatirlari(sonuc.data).map((satir, i) => (
+          <Text key={i} style={styles.not}>
+            {t(satir.anahtar, satir.degerler)}
+          </Text>
+        ))}
     </View>
   );
 }
