@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { router } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SearchBar } from '@/components/ui/SearchBar';
@@ -12,26 +13,19 @@ import { izgaraDoldur, sutunSayisi } from '@/theme/duzen';
 import { Button } from '@/components/ui/Button';
 import { useDeleteDocument, useDocuments } from '@/hooks/useDocuments';
 import { useT } from '@/i18n';
-import { spacing } from '@/theme/theme';
+import { kose, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
+import type { ThemeColors } from '@/theme/palettes';
 import type { DocumentCategory } from '@/types/database';
 import { aramaEslesir } from '@/utils/arama';
+import { BELGE_KATEGORILERI } from '@/utils/belgeArsivi';
 
-const CATEGORY_VALUES: (DocumentCategory | 'all')[] = [
-  'all',
-  'pleading',
-  'contract',
-  'evidence',
-  'correspondence',
-  'court_order',
-  'invoice',
-  'identification',
-  'other',
-];
+// Liste tek yerde (utils/belgeArsivi): süzgeçte 'client_photo' eksikti.
+const CATEGORY_VALUES: (DocumentCategory | 'all')[] = ['all', ...BELGE_KATEGORILERI];
 
 export default function DocumentVaultScreen() {
-  useTheme();
-  const styles = makeStyles();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const t = useT();
   // Geniş ekranda iki sütun. Gerekçe ve `key` zorunluluğu dava listesinde
   // ayrıntılı yazılı: app/(app)/cases/index.tsx. Altyapı (sutunSayisi) zaten
@@ -41,7 +35,7 @@ export default function DocumentVaultScreen() {
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<DocumentCategory | 'all'>('all');
-  const { data: documents, isLoading, refetch, isRefetching } = useDocuments();
+  const { data: documents, isLoading, isError, refetch, isRefetching } = useDocuments();
   const deleteDocument = useDeleteDocument();
 
   const categoryOptions = CATEGORY_VALUES.map((value) => ({
@@ -95,6 +89,16 @@ export default function DocumentVaultScreen() {
         </View>
       </View>
 
+      {isError && (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle" size={18} color={colors.danger} />
+          <Text style={styles.errorText}>{t('docs.loadError')}</Text>
+          <Pressable onPress={() => refetch()} hitSlop={8} accessibilityRole="button" style={styles.retryBtn}>
+            <Text style={styles.retryText}>{t('cases.retry')}</Text>
+          </Pressable>
+        </View>
+      )}
+
       <FlatList
         key={`sutun-${sutun}`}
         numColumns={sutun}
@@ -118,7 +122,9 @@ export default function DocumentVaultScreen() {
           </View>
         )}
         ListEmptyComponent={
-          !isLoading ? (
+          // Hatada boş durum gösterilmez: üstteki kırmızı kutu "yüklenemedi" der
+          // ("Henüz belge yok" demek, belgeleri olana verisi silinmiş gibi gelir).
+          !isLoading && !isError ? (
             <EmptyState
               icon="folder-open-outline"
               title={t('docs.empty')}
@@ -136,7 +142,7 @@ export default function DocumentVaultScreen() {
 // Stiller render anında üretiliyor — modül düzeyinde DEĞİL.
 // Yazı tipi/boyut/boşluk/köşe artık temaya bağlı (bkz. src/theme/tokens.ts);
 // donuk StyleSheet.create tema değişince eski değerlerde kalır.
-const makeStyles = () => StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   filters: {
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.sm,
@@ -147,6 +153,33 @@ const makeStyles = () => StyleSheet.create({
   yukle: {
     alignSelf: 'flex-start',
     marginBottom: spacing.sm,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: kose(12),
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    ...typography.caption,
+    color: colors.danger,
+    flex: 1,
+  },
+  retryBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  retryText: {
+    ...typography.caption,
+    color: colors.danger,
+    fontWeight: '700',
   },
   satir: {
     gap: spacing.sm,

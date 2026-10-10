@@ -377,5 +377,6 @@ export interface DeadlineWithCase extends Deadline {
 
 export interface DocumentWithCase extends CaseDocument {
   case: Pick<Case, 'id' | 'title' | 'case_number'> | null;
+  client?: { id: string; full_name: string } | null;
 }
 
