@@ -2289,6 +2289,8 @@ export const tr = {
   'rg.errTitle': 'Liste yüklenemedi',
   'rg.errBody': 'İnternet bağlantınızı kontrol edip tekrar deneyin.',
   'rg.retry': 'Tekrar dene',
+  'rg.yenilenemedi': 'Liste güncellenemedi; en son alınan veri gösteriliyor.',
+  'rg.bayat': 'Bugünün sayısı henüz alınamadı. Gösterilen en güncel sayı: {tarih}.',
   'laws.subtitle': 'Kanunlar — çevrimdışı, madde arama',
   'laws.offline': 'Tüm metinler cihazda; internetsiz aç, ara.',
   'laws.offlineShort': 'çevrimdışı',

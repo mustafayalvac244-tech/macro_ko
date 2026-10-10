@@ -78,3 +78,30 @@ export function grupla(maddeler: GazeteMaddesi[]): Array<{ grup: string; maddele
     .sort((a, b) => grupOnceligi(a.grup) - grupOnceligi(b.grup) || a.i - b.i)
     .map(({ grup, maddeler: ms }) => ({ grup, maddeler: ms }));
 }
+
+export type ListeDurumu =
+  | { ekran: 'hata' | 'bos'; uyari: null }
+  | { ekran: 'liste'; uyari: null | 'yenilenemedi' }
+  | { ekran: 'liste'; uyari: 'bayat'; sonTarih: string };
+
+/** Türkiye'nin bugünkü takvim günü (UTC+3, yaz saati yok) — sunucudaki turkiyeBugun ile aynı. */
+export function turkiyeGunu(simdi: Date = new Date()): string {
+  return new Date(simdi.getTime() + 3 * 3600_000).toISOString().slice(0, 10);
+}
+
+/**
+ * Ekran ne göstermeli (10.10.2026 denetimi). Eskiden `isError` her şeyden önce
+ * geliyordu: arka plandaki yenileme düşünce, önbellekte duran gün listesi
+ * TAMAMEN gizlenip "Liste yüklenemedi" çıkıyordu. Şimdi tam ekran hata yalnız
+ * gösterilecek hiç veri yokken; veri varsa liste kalır, üstte uyarı çıkar.
+ * İkinci uyarı "bayat": en yeni kayıtlı gün bugünden eskiyse (bugünün sayısı
+ * henüz çekilmemiş ya da çekilememiş) bu söylenir; gece yarısından sonraki ilk
+ * saatlerde bu normaldir ve metin yalnız "en güncel sayı şu tarihte" der.
+ */
+export function listeDurumu(gunler: GazeteGunu[], isError: boolean, bugun: string): ListeDurumu {
+  if (gunler.length === 0) return { ekran: isError ? 'hata' : 'bos', uyari: null };
+  if (isError) return { ekran: 'liste', uyari: 'yenilenemedi' };
+  const sonTarih = gunler.reduce((en, g) => (g.tarih > en ? g.tarih : en), gunler[0].tarih);
+  if (sonTarih < bugun) return { ekran: 'liste', uyari: 'bayat', sonTarih };
+  return { ekran: 'liste', uyari: null };
+}

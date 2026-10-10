@@ -126,3 +126,69 @@ export function fihristCoz(html: string, sayfaUrl: string, mukerrer = false): Fi
   }
   return { sayi, maddeler, mukerrerler };
 }
+
+// ---------------------------------------------------------------------------
+// YAZMA KARARI (10.10.2026 denetimi). Eskiden uç işlev ayrıştırma sonucunu
+// hiç sorgulamadan upsert ediyordu: kaynak 200 ile bakım/hata sayfası dönerse
+// ya da sayfa yapısı bozulup madde bulunamazsa, DOLU bir günün satırı boş
+// veriyle ezilirdi; mükerrer sayfası düşerse de (3 deneme) ana sayı hiç
+// yazılmazdı. Karar saf bir fonksiyonda, böylece tests/resmiGazete.test.ts
+// uç işlev çalıştırmadan sınar.
+
+/** Tabloya yazılacak (ya da tablodan okunan) günün içeriği. */
+export interface GazeteSatiri {
+  sayi: number | null;
+  maddeler: GazeteMaddesi[];
+  /** Ana fihristte bağlantısı bulunan mükerrer sayfa adedi. */
+  mukerrer: number;
+}
+
+export type YazimKarari =
+  | { yaz: true; satir: GazeteSatiri }
+  | { yaz: false; neden: 'gecersiz_fihrist' | 'bos_ezme' };
+
+/**
+ * @param yeni          Bu turda okunan gün (ana sayfa + gelebilen mükerrerler).
+ * @param eski          Tabloda kayıtlı gün, yoksa null.
+ * @param mukerrerEksik Bir mükerrer sayfası bu turda okunamadı.
+ *
+ * Kurallar:
+ *  1. Ne sayı ("NNNNN Sayılı") ne madde bulunduysa sayfa fihrist değildir
+ *     (bakım/hata sayfası) → yazılmaz. Yalnız ilan içeren gerçek bir günde sayı
+ *     bulunur, o yazılır (ekranda "yalnız ilan" notu çıkar).
+ *  2. Kayıtlı gün ana sayıdan madde içeriyorsa ve bu okumada ana sayıdan hiç
+ *     madde yoksa ayrıştırma bozulmuş sayılır → eski satır korunur.
+ *  3. Mükerrer okunamadıysa ana sayı yine yazılır; önceki turdan kalan
+ *     mükerrer maddeleri (varsa) korunur, böylece geçici bir düşüş onları silmez.
+ */
+export function yazimKarari(yeni: GazeteSatiri, eski: GazeteSatiri | null, mukerrerEksik: boolean): YazimKarari {
+  if (yeni.sayi === null && yeni.maddeler.length === 0) return { yaz: false, neden: 'gecersiz_fihrist' };
+
+  const anaSayisi = (s: GazeteSatiri) => s.maddeler.filter((m) => !m.mukerrer).length;
+  if (eski && anaSayisi(eski) > 0 && anaSayisi(yeni) === 0) return { yaz: false, neden: 'bos_ezme' };
+
+  let maddeler = yeni.maddeler;
+  if (mukerrerEksik && eski) {
+    const mevcutUrl = new Set(maddeler.map((m) => m.url));
+    const korunan = eski.maddeler.filter((m) => m.mukerrer && !mevcutUrl.has(m.url));
+    maddeler = [...maddeler, ...korunan];
+  }
+  return { yaz: true, satir: { sayi: yeni.sayi, maddeler, mukerrer: yeni.mukerrer } };
+}
+
+/**
+ * Tabloda satırı olmayan günler: `bugun`den (dahil değil) geriye `geriGun`
+ * gün, yeniden eskiye. Bugünü ana akış çeker. Yalnız bugünü çeken eski tasarımda
+ * bir gün kaçarsa (kaynak o gün ayakta değil, uç işlev yok, vb.) o güne bir daha
+ * hiç bakılmıyordu.
+ */
+export function eksikGunler(bugun: string, mevcut: Iterable<string>, geriGun: number): string[] {
+  const kayitli = new Set(mevcut);
+  const sonuc: string[] = [];
+  const t0 = Date.parse(`${bugun}T12:00:00Z`);
+  for (let i = 1; i <= geriGun; i++) {
+    const g = new Date(t0 - i * 86_400_000).toISOString().slice(0, 10);
+    if (!kayitli.has(g)) sonuc.push(g);
+  }
+  return sonuc;
+}
