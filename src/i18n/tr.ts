@@ -715,6 +715,9 @@ export const tr = {
   'auth.kvkkRequired': 'Devam edebilmek için KVKK açık rıza kutusunu işaretlemeniz gerekiyor.',
   'auth.kvkkOptional': 'Bu kutu isteğe bağlıdır: imzalamadan da hesabınızı açabilirsiniz. O hâlde yapay zekâ özellikleri kapalı başlar, uygulamanın geri kalanı normal çalışır ve rızayı sonradan Ayarlar’dan verebilirsiniz.',
   'auth.kvkkNote': 'Bu rıza yalnızca yapay zekâ özellikleri içindir; dilediğiniz zaman Ayarlar > KVKK Aydınlatma Metni ekranından geri alabilirsiniz. Geri aldığınızda hesabınız kapanmaz, uygulamanın diğer tüm özellikleri çalışmaya devam eder.',
+  // Ayarlar > KVKK'daki rıza kartı: kayıt OKUNAMADIĞINDA (kayıt yok DEĞİL).
+  'kvkkRiza.okunamadi': 'RIZA DURUMUNUZ ŞU AN OKUNAMADI. Bu, kaydınızın olmadığı anlamına gelmez; bağlantınızı kontrol edip tekrar deneyin.',
+  'kvkkRiza.tekrarDene': 'Tekrar dene',
   'auth.termsAccept': 'Kayıt olarak kabul ettiğiniz metin:',
   'auth.privacyLink': 'Verileriniz nasıl korunuyor? Gizlilik ve KVKK metnini okuyun',
   'privacy.title': 'Gizlilik ve KVKK',
@@ -740,7 +743,14 @@ export const tr = {
   'delAcc.wrongPassword': 'Şifre doğrulanamadı. Tekrar deneyin.',
   'delAcc.confirmWord': 'SİL',
   'delAcc.typeWord': 'Onaylamak için "{word}" yazın',
-  'delAcc.note': 'Silme işlemi geri alınamaz. Dosyalarınız, müvekkilleriniz ve belgeleriniz kalıcı olarak silinir; yedek alınmaz.',
+  // "yedek alınmaz" YANLIŞTI (09.10.2026): veritabanı içi yedekler var ve
+  // silmede onlardan da siliniyor; Supabase platform yedeği ayıklanamıyor.
+  // Gizlilik metniyle (app/privacy.tsx) aynı olgu, süre sayısı tekrarlanmadan.
+  'delAcc.note': 'Silme işlemi geri alınamaz. Dosyalarınız, müvekkilleriniz ve belgeleriniz kalıcı olarak silinir; kendi yedek kopyalarımızdaki kayıtlarınız da silinir. Bulut sağlayıcımızın (Supabase) altyapı yedeği tek bir kullanıcı için ayıklanamaz; oradaki kopya saklama süresi dolunca kendiliğinden silinir (ayrıntı: Ayarlar > Gizlilik ve KVKK).',
+  // Apple'ın hesap silme rehberi aboneliği olana bu uyarıyı istiyor
+  // (developer.apple.com/support/offering-account-deletion-in-your-app).
+  'delAcc.abonelik': 'App Store ya da Google Play üzerinden aldığınız bir abonelik varsa hesabınızı silmek onu İPTAL ETMEZ; ödeme mağaza üzerinden sürer. Silmeden önce aboneliğinizi mağaza ayarlarından iptal edin.',
+  'delAcc.aboneligiYonet': 'Aboneliklerimi yönet',
   'settings.deleteAccountConfirmTitle': 'Emin misiniz?',
   'settings.deleteAccountConfirmMsg': 'Tüm verileriniz kalıcı olarak silinecek. Bu son onaydır.',
   'settings.deleteAccountConfirmBtn': 'Evet, kalıcı olarak sil',
@@ -1561,6 +1571,9 @@ export const tr = {
   'profile.photoStaged': 'Değişiklik hazır — "Değişiklikleri Kaydet"e basınca uygulanır',
   'profile.removePhoto': 'Fotoğrafı kaldır',
   'profile.photoFailed': 'Fotoğraf güncellenemedi. Lütfen tekrar deneyin.',
+  // İzin reddi eskiden sessizdi (seçici null döner, vazgeçmeyle aynı) — 09.10.2026.
+  'profile.photoPermDenied': 'Fotoğraflarınıza erişim izni verilmedi. Ayarlar > Vekil Pro üzerinden izin verebilirsiniz.',
+  'profile.cameraPermDenied': 'Kamera izni verilmedi. Ayarlar > Vekil Pro üzerinden izin verebilirsiniz.',
   'profile.saveFailed': 'Profil kaydedilemedi. Lütfen tekrar deneyin.',
   'lock.retry': 'Tekrar Dene',
 

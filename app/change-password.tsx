@@ -5,6 +5,8 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Captcha } from '@/components/Captcha';
+import { CAPTCHA_ENABLED } from '@/config/captcha';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
@@ -25,6 +27,12 @@ export default function ChangePasswordScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // CAPTCHA (09.10.2026): yeniden doğrulama signInWithPassword ile yapılıyor
+  // ve GoTrue onu captcha'ya tabi tutar (bkz. tests/yenidenDogrulamaCaptcha).
+  // Jeton tek kullanımlık: her denemeden sonra bileşen yeniden kurulur (key).
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaHatasi, setCaptchaHatasi] = useState(false);
+  const [captchaAnahtari, setCaptchaAnahtari] = useState(0);
 
   const handleSubmit = async () => {
     setError(null);
@@ -45,12 +53,22 @@ export default function ChangePasswordScreen() {
       setError(t('changePw.mismatch'));
       return;
     }
+    if (CAPTCHA_ENABLED && !captchaToken && !captchaHatasi) {
+      setError(t('auth.captchaWait'));
+      return;
+    }
 
     setIsSubmitting(true);
 
     // Re-authenticate with the current password before allowing a change.
     const email = session?.user.email ?? '';
-    const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+      options: captchaToken ? { captchaToken } : undefined,
+    });
+    setCaptchaToken(null);
+    setCaptchaAnahtari((k) => k + 1);
     if (reauthError) {
       setIsSubmitting(false);
       // Yalnız GERÇEKTEN yanlış şifrede "mevcut şifre hatalı" (08.10.2026).
@@ -106,6 +124,9 @@ export default function ChangePasswordScreen() {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
           />
+
+          {/* Görünmez captcha — anahtar yoksa hiç çizilmez. */}
+          <Captcha key={captchaAnahtari} onToken={setCaptchaToken} onError={() => setCaptchaHatasi(true)} />
 
           {error && <Text style={styles.error}>{error}</Text>}
 

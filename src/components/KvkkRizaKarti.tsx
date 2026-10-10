@@ -23,27 +23,27 @@ import { KvkkImza, type KvkkKanit } from '@/components/KvkkImza';
 import { KVKK_SURUM } from '@/config/kvkk';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
+import { useT } from '@/i18n';
 import { formatDateTime } from '@/utils/format';
+import { rizaDurumu, type RizaSatiri } from '@/utils/rizaDurumu';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
-interface Satir {
-  onay: boolean;
-  surum: string;
-  verildi_at: string;
-}
-
 export function KvkkRizaKarti({ tr }: { tr: boolean }) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const t = useT();
   const session = useAuthStore((s) => s.session);
   const userId = session?.user.id ?? null;
 
-  const [son, setSon] = useState<Satir | null>(null);
+  const [son, setSon] = useState<RizaSatiri | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [isliyor, setIsliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+  // OKUMA HATASI AYRI TUTULUR (09.10.2026): eskiden hata, satırı null yapıp
+  // kartı "KAYIT BULUNAMADI" hâline düşürüyordu (bkz. src/utils/rizaDurumu.ts).
+  const [okumaHatasi, setOkumaHatasi] = useState(false);
   const [imzaAcik, setImzaAcik] = useState(false);
 
   const getir = useCallback(async () => {
@@ -61,10 +61,10 @@ export function KvkkRizaKarti({ tr }: { tr: boolean }) {
       .eq('tur', 'yurtdisi_ai')
       .order('verildi_at', { ascending: false })
       .limit(1);
-    if (error) setHata(tr ? 'Rıza kaydı okunamadı.' : 'Could not read the consent record.');
-    setSon((data?.[0] as Satir | undefined) ?? null);
+    setOkumaHatasi(!!error);
+    if (!error) setSon((data?.[0] as RizaSatiri | undefined) ?? null);
     setYukleniyor(false);
-  }, [userId, tr]);
+  }, [userId]);
 
   useEffect(() => {
     getir();
@@ -96,7 +96,9 @@ export function KvkkRizaKarti({ tr }: { tr: boolean }) {
   // rıza kaydı kişiye bağlıdır.
   if (!userId) return null;
 
-  const rizaVar = son?.onay === true;
+  const durum = rizaDurumu(son, okumaHatasi);
+  const okunamadi = durum === 'okunamadi';
+  const rizaVar = durum === 'var';
   // ESKİ SÜRÜME VERİLMİŞ RIZA. Metin değiştiyse kullanıcı, imzaladığından
   // farklı bir aydınlatmanın kapsamında sayılıyor demektir; hele değişiklik
   // aktarılan tarafları ilgilendiriyorsa rıza o yeni kapsamı karşılamaz.
@@ -110,9 +112,9 @@ export function KvkkRizaKarti({ tr }: { tr: boolean }) {
       <Card style={StyleSheet.flatten([styles.kart, rizaVar ? styles.kartAcik : styles.kartKapali])}>
         <View style={styles.baslikSatiri}>
           <Ionicons
-            name={rizaVar ? 'checkmark-circle' : 'close-circle-outline'}
+            name={okunamadi ? 'alert-circle-outline' : rizaVar ? 'checkmark-circle' : 'close-circle-outline'}
             size={18}
-            color={rizaVar ? colors.success : colors.textMuted}
+            color={okunamadi ? colors.warning : rizaVar ? colors.success : colors.textMuted}
           />
           <Text style={styles.baslik}>
             {tr ? 'Yapay zekâ açık rızanız' : 'Your AI explicit consent'}
@@ -121,6 +123,20 @@ export function KvkkRizaKarti({ tr }: { tr: boolean }) {
 
         {yukleniyor ? (
           <ActivityIndicator color={colors.primary} style={styles.bekle} />
+        ) : okunamadi ? (
+          // Durum BİLİNMİYOR: ne "rıza var" ne "kayıt yok" denir; imzalat/geri
+          // al düğmeleri de bilinmeyen bir duruma göre seçilemeyeceği için
+          // yalnız yeniden okuma sunulur.
+          <>
+            <Text style={styles.durum}>{t('kvkkRiza.okunamadi')}</Text>
+            <Button
+              label={t('kvkkRiza.tekrarDene')}
+              onPress={getir}
+              variant="secondary"
+              fullWidth
+              icon="refresh-outline"
+            />
+          </>
         ) : (
           <>
             <Text style={styles.durum}>

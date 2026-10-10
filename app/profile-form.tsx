@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { uyar } from '@/lib/uyari';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
@@ -15,6 +16,7 @@ import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { tutarOku, tutarYaz } from '@/utils/tutar';
+import { fotoSecimSonucu, profiliKaydet } from '@/utils/profilKaydet';
 import { geriDon } from '@/lib/geriDon';
 
 export default function ProfileFormScreen() {
@@ -57,9 +59,25 @@ export default function ProfileFormScreen() {
     }
   }, [profile]);
 
-  const stagePhoto = async (picker: () => Promise<{ uri: string; mimeType: string | null } | null>) => {
+  const stagePhoto = async (kaynak: 'galeri' | 'kamera') => {
     setError(null);
-    const file = await picker();
+    const file = await (kaynak === 'kamera' ? takePhotoFile() : pickImageFile());
+    // Seçici izin reddinde de null döner (vazgeçmeyle aynı); ikisi ayrılır,
+    // ret SESSİZ geçmez (09.10.2026). Web'de izin hep "verildi" döner.
+    const izinVerildi = file
+      ? true
+      : await (kaynak === 'kamera'
+          ? ImagePicker.getCameraPermissionsAsync()
+          : ImagePicker.getMediaLibraryPermissionsAsync()
+        ).then(
+          (p) => p.granted,
+          () => null,
+        );
+    const sonuc = fotoSecimSonucu(!!file, izinVerildi);
+    if (sonuc === 'izin-yok') {
+      uyar(t('profile.photoTitle'), t(kaynak === 'kamera' ? 'profile.cameraPermDenied' : 'profile.photoPermDenied'));
+      return;
+    }
     if (!file) return;
     setStagedRemove(false);
     setStagedPhoto(file);
@@ -67,8 +85,8 @@ export default function ProfileFormScreen() {
 
   const handlePhotoPress = () => {
     const options: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
-      { text: t('upload.choosePhoto'), onPress: () => stagePhoto(pickImageFile) },
-      { text: t('upload.takePhoto'), onPress: () => stagePhoto(takePhotoFile) },
+      { text: t('upload.choosePhoto'), onPress: () => stagePhoto('galeri') },
+      { text: t('upload.takePhoto'), onPress: () => stagePhoto('kamera') },
     ];
     if (profile?.avatar_url || stagedPhoto) {
       options.push({
@@ -98,28 +116,31 @@ export default function ProfileFormScreen() {
     if (!fullName.trim()) return;
     setError(null);
     setIsSaving(true);
-    try {
-      await updateProfile({
-        full_name: fullName.trim(),
-        firm_name: firmName.trim() || null,
-        bar_number: barNumber.trim() || null,
-        phone: phone.trim() || null,
-        // Boş bırakmak geçerli: saat başı çalışmayan avukat bu alanı hiç
-        // doldurmaz ve zaman kaydı yine tutulur, yalnız tutar hesaplanmaz.
-        hourly_rate: parsedRate,
-      });
-      // Commit any staged photo change alongside the text fields.
-      if (stagedPhoto) {
-        await uploadAvatar(stagedPhoto);
-      } else if (stagedRemove && profile?.avatar_url) {
-        await removeAvatar();
-      }
-      geriDon();
-    } catch {
-      setError(t('profile.saveFailed'));
-    } finally {
-      setIsSaving(false);
-    }
+    // Commit any staged photo change alongside the text fields.
+    const foto = stagedPhoto;
+    const fotoyuUygula = foto
+      ? () => uploadAvatar(foto)
+      : stagedRemove && profile?.avatar_url
+        ? () => removeAvatar()
+        : null;
+    // Hangi adımın düştüğü ayrı söylenir: fotoğraf yüklenemediğinde metin
+    // kaydedilmiş olur ve "Profil kaydedilemedi" demek yanlıştı (09.10.2026).
+    const sonuc = await profiliKaydet({
+      metniKaydet: () =>
+        updateProfile({
+          full_name: fullName.trim(),
+          firm_name: firmName.trim() || null,
+          bar_number: barNumber.trim() || null,
+          phone: phone.trim() || null,
+          // Boş bırakmak geçerli: saat başı çalışmayan avukat bu alanı hiç
+          // doldurmaz ve zaman kaydı yine tutulur, yalnız tutar hesaplanmaz.
+          hourly_rate: parsedRate,
+        }),
+      fotoyuUygula,
+    });
+    setIsSaving(false);
+    if (sonuc === 'tamam') geriDon();
+    else setError(t(sonuc === 'foto-hatasi' ? 'profile.photoFailed' : 'profile.saveFailed'));
   };
 
   return (
