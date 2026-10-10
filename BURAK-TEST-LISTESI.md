@@ -88,10 +88,12 @@ söylüyorsa onu ancak sen görürsün.
       kendi hesabınla karşılaştır. Adli tatil ve resmî tatil doğru mu
       uygulanıyor?
 - [ ] **Kapak hesabı.** İcra dosyasında bildiğin bir kapak hesabını gir.
-      İİK 138 sırası (masraf → faiz → asıl alacak) doğru işliyor mu?
+      Ödeme sırası (masraf → faiz → asıl alacak; dayanak TBK m.100, eski "İİK 138"
+      atfı yanlıştı) doğru işliyor mu? Faiz TEK orana ve yıl = 365 güne göre hesaplanıyor.
 - [ ] **AAÜT vekalet ücreti.** Hesaplayıcıdaki dilimler doğru mu?
-      ⚠️ Bu dilimlerin hangi yıla ait olduğunu **bilmiyoruz** ve ekranda
-      "doğrulanmadı" yazıyor. Senin teyidin bu uyarıyı kaldırabilir.
+      Dilimler 10.10.2026'da RG 4.11.2025 sayı 33067 ekindeki resmî tablodan
+      düzeltildi (eski tablo yanlıştı: 1.000.000 TL için 152.000 yerine 156.000
+      çıkmalı). Mahkemeye göre asgari (maktu) ücret düğmeleri de aynı ekten.
 - [ ] **Duruşma türleri ve mazeret kuralı.** Daha önce senin söylediğin gibi
       mi çalışıyor?
 - [ ] **Dilekçe üretimi.** Bir dilekçe ürettir ve **hukuken** oku: kullanılabilir

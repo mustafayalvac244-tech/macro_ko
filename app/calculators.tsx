@@ -12,7 +12,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 // Tarife verisi TEK KAYNAKTA ve tarih damgalı (bkz. src/config/tarife.ts).
-import { aautHesapla, DILIMLER_DOGRULANDI, TARIFE, tarifeEskiMi, KARAR_HARCI_ORANI, PESIN_HARC_PAYI, HARC_DOGRULANDI } from '@/config/tarife';
+import { aautHesapla, AAUT_MAKTU, DILIMLER_DOGRULANDI, TARIFE, tarifeEskiMi, KARAR_HARCI_ORANI, PESIN_HARC_PAYI, HARC_DOGRULANDI } from '@/config/tarife';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -25,6 +25,15 @@ import { kidemBrutHesapla } from '@/config/kidemTavani';
 import { oranOku, tutarOku } from '@/utils/tutar';
 
 type CalcTab = 'aaut' | 'interest' | 'fee' | 'smm' | 'severance';
+
+/** Asgari ücret seçenekleri: tutarlar resmî tablodan (config/tarife.ts → AAUT_MAKTU). */
+const MAKTU_SECENEKLERI = [
+  { anahtar: 'icraDairesi', etiket: 'calc.aaut.court.icraDairesi' },
+  { anahtar: 'sulhHukuk', etiket: 'calc.aaut.court.sulhHukuk' },
+  { anahtar: 'tuketici', etiket: 'calc.aaut.court.tuketici' },
+  { anahtar: 'asliye', etiket: 'calc.aaut.court.asliye' },
+  { anahtar: 'fikriSinai', etiket: 'calc.aaut.court.fikriSinai' },
+] as const;
 
 /** Boş/okunamayan girişte 0. Ortak ayrıştırıcı: utils/tutar ("24.5" artık %245 değil). */
 function parseAmount(v: string): number {
@@ -108,7 +117,10 @@ function AautCalc() {
   const t = useT();
 
   const [amountText, setAmountText] = useState('');
-  const [minFeeText, setMinFeeText] = useState('30000');
+  // ASGARİ (MAKTU) ÜCRET BOŞ BAŞLAR (10.10.2026). Eskiden kaynaksız "30000"
+  // yazılıydı: hangi mahkemenin tutarı olduğu belli değildi (resmî tabloda
+  // Sulh Hukuk 30.000, Asliye 45.000). Artık mahkeme resmî tablodan seçilir.
+  const [minFeeText, setMinFeeText] = useState('');
 
   const amount = parseAmount(amountText);
   const minFee = parseAmount(minFeeText);
@@ -145,6 +157,24 @@ function AautCalc() {
         value={minFeeText}
         onChangeText={setMinFeeText}
       />
+      <View style={[styles.presetRow, styles.maktuRow]}>
+        {MAKTU_SECENEKLERI.map((m) => {
+          const tutar = AAUT_MAKTU[m.anahtar];
+          const aktif = minFee === tutar;
+          return (
+            <Pressable
+              key={m.anahtar}
+              style={[styles.presetChip, aktif && styles.presetChipActive]}
+              onPress={() => setMinFeeText(String(tutar))}
+            >
+              <Text style={[styles.presetChipText, aktif && styles.presetChipTextActive]}>
+                {t(m.etiket)} · {formatMoney(tutar)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Text style={styles.tarifeUyari}>{t('calc.aaut.minFeeHint')}</Text>
 
       {result && (
         <View style={styles.resultCard}>
@@ -563,6 +593,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.xs,
     marginBottom: spacing.md,
     marginTop: -4,
+  },
+  maktuRow: {
+    flexWrap: 'wrap',
+    marginTop: 0,
   },
   presetChip: {
     borderRadius: 999,

@@ -29,7 +29,36 @@ describe('tavanBul — çıkış tarihine göre dönem', () => {
     // Sessizce eski tavanı kullanmak yanlış hesap üretirdi; bilmediğimizi
     // söylemek doğrusudur.
     expect(tavanBul(new Date(2027, 0, 15))).toBeNull();
-    expect(tavanBul(new Date(2025, 5, 15))).toBeNull();
+    expect(tavanBul(new Date(2020, 11, 31))).toBeNull(); // tablo 01.01.2021'de başlıyor
+  });
+
+  it('2021-2025 dönemleri resmî tabloyla birebir (CSGB e-bülten, 10.10.2026)', () => {
+    // KAYNAK: T.C. Çalışma ve Sosyal Güvenlik Bakanlığı, Çalışma Hayatı
+    // İstatistikleri E-Bülteni (Temmuz ve Eylül 2026 sayıları), "Kıdem
+    // Tazminatı Tavan Tutarı" tablosu. İki ayrı okumada aynı çıktı.
+    const beklenen: Array<[number, number, number]> = [
+      // [yıl, ay(0-11) → dönem içinde bir gün, tutar]
+      [2021, 2, 7638.96],
+      [2021, 8, 8284.51],
+      [2022, 2, 10848.59],
+      [2022, 8, 15371.4],
+      [2023, 2, 19982.83],
+      [2023, 8, 23489.83],
+      [2024, 2, 35058.58],
+      [2024, 8, 41828.42],
+      [2025, 2, 46655.43],
+      [2025, 8, 53919.68],
+    ];
+    for (const [yil, ay, tutar] of beklenen) {
+      expect(tavanBul(new Date(yil, ay, 15))?.tutar, `${yil}-${ay + 1}`).toBe(tutar);
+    }
+  });
+
+  it('dönem geçişi: 30 Haziran / 1 Temmuz ve 31 Aralık / 1 Ocak komşu dönemleri ayırır', () => {
+    expect(tavanBul(new Date(2025, 5, 30))?.tutar).toBe(46655.43);
+    expect(tavanBul(new Date(2025, 6, 1))?.tutar).toBe(53919.68);
+    expect(tavanBul(new Date(2025, 11, 31))?.tutar).toBe(53919.68);
+    expect(tavanBul(new Date(2026, 0, 1))?.tutar).toBe(64948.77);
   });
 
   it('geçersiz tarihte çökmez', () => {
