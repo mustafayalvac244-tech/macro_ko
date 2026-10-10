@@ -30,11 +30,34 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
   return {};
 }
 
+/**
+ * Sohbet isteğinin istemci tarafı zaman aşımı (ms). ÖLÇÜLMEDİ, TAHMİN.
+ *
+ * Referans: 04–05.10'da ölçülen sohbet süresi 22–30 sn (DURUM.md). 120 sn bunun
+ * kabaca 4–5 katı: yavaş ama sağlıklı bir cevabı kesmez, askıda kalan bağlantıyı
+ * ise sonsuza dek bekletmez (eskiden zaman aşımı hiç yoktu: ekran "düşünüyor"da
+ * kalıp kutuyu kilitliyordu). Sunucu işi bitirmiş olabilir; bu yüzden zaman
+ * aşımı mesajı "hakkınızdan düşülmedi" DEMEZ.
+ */
+export const AI_SOHBET_ZAMAN_ASIMI_MS = 120_000;
+
+/**
+ * Sunucuya HİÇ ulaşılamadığında (functions-js FunctionsFetchError) nedeni ayırır:
+ * zaman aşımı/iptal → 'zaman_asimi'; diğerleri (ağ yok) → 'generic'. Sunucu
+ * cevap verdiyse (HTTP/relay hatası) null: oradaki kod gövdeden okunur.
+ */
+export function aiBaglantiKodu(fnErr: unknown): 'zaman_asimi' | 'generic' | null {
+  const e = fnErr as { name?: string; context?: { name?: string } } | null;
+  if (e?.name !== 'FunctionsFetchError') return null;
+  const ic = e.context?.name;
+  return ic === 'AbortError' || ic === 'TimeoutError' ? 'zaman_asimi' : 'generic';
+}
+
 // Uygulamanın t() işlevi bütün çeviri anahtarlarını kabul eder; burada yalnız
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errEkBuyuk' | 'ai.errSoruUzun' | 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errServis' | 'ai.errBos' | 'ai.errOturum' | 'ai.errTamamlanamadi' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errEkBuyuk' | 'ai.errSoruUzun' | 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errServis' | 'ai.errBos' | 'ai.errOturum' | 'ai.errTamamlanamadi' | 'ai.errGeneric' | 'ai.errZamanAsimi' | 'ai.errGirdiBuyuk' | 'ai.errYedekGunluk';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -97,6 +120,11 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   if (kod === 'upstream') return t('ai.errServis');
   if (kod === 'empty') return t('ai.errBos');
   if (kod === 'unauthorized') return t('ai.errOturum');
+  // 10.10.2026: istemci zaman aşımı, sohbet girdi tavanı (413) ve yedek hat
+  // günlük kapısı (429). Üçü de "internet" değil; sebebi söylenir.
+  if (kod === 'zaman_asimi') return t('ai.errZamanAsimi');
+  if (kod === 'girdi_buyuk') return t('ai.errGirdiBuyuk');
+  if (kod === 'yedek_gunluk') return t('ai.errYedekGunluk');
   // Bağlantı hatası YALNIZ sunucuya hiç ulaşılamadığında ('generic' ya da
   // kod yok). Ulaşıldı ama kod tanınmıyorsa internet suçlanmaz.
   if (kod === '' || kod === 'generic') return t('ai.errGeneric');

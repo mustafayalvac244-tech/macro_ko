@@ -26,9 +26,11 @@ describe('deneme sorusu kontörden düşmez', () => {
 describe('yedek modelin cevabı hak saymaz', () => {
   it('aylık ve günlük çağrı sayacı musteriyeYaz bayrağına bakıyor', () => {
     const govde = kod.slice(kod.indexOf('async function recordUsage('), kod.indexOf('const SYSTEM_PROMPT ='));
-    const sayaclar = govde.match(/calls: \(\w+\?\.calls \?\? 0\) \+ [^,]+,/g) ?? [];
-    expect(sayaclar.length).toBe(2);
-    for (const c of sayaclar) expect(c, c).toContain('(musteriyeYaz ? 1 : 0)');
+    // 09.10.2026: iki satır (aylık + günlük) tek deyimli eklemeyle (göç 0191)
+    // AYNI artışı alıyor; artıştaki çağrı musteriyeYaz'a bağlı.
+    expect(govde).toMatch(/const artis = \{ calls: musteriyeYaz \? 1 : 0,/);
+    const eklemeler = govde.match(/await kullanimEkle\(s, userId, [\w()]+, artis\);/g) ?? [];
+    expect(eklemeler.length).toBe(2);
   });
 });
 

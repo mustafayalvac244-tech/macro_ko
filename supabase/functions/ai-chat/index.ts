@@ -33,7 +33,10 @@ import { hukukiKonuSec } from '../_shared/hukukiKonu.ts';
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 import { canliIctihat, canliKunyeDogrula } from '../_shared/uyapCanli.ts';
-import { adim, modelSuresi, sureIzle, sureOzeti } from '../_shared/adimSure.ts';
+import { adim, modelSuresi, sureIzle, sureOzeti, yedekIzniVarMi, yedekKapisiKur } from '../_shared/adimSure.ts';
+// Yedek hat günlük kapısı ve sohbet girdi tavanı (10.10.2026) — bkz. dosya başlıkları.
+import { YEDEK_TAVAN_HATASI, bilinenIstekHatasi, yedekIzniVar } from '../_shared/yedekKapisi.ts';
+import { SOHBET_MESAJ_MAX, sohbetMesajlari } from '../_shared/sohbetGirdisi.ts';
 import { basarisizsaIadeEt, rezervasyonuIadeEt, yeniRezervasyon, type HakRezervasyonu } from '../_shared/hakIadesi.ts';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 import { mesajlariHazirla } from '../_shared/onbellek.ts';
@@ -50,6 +53,8 @@ import { faturaGirdi, costTry, PRICING, USD_TRY } from '../_shared/fiyat.ts';
 // İki ucun dönem anahtarı ayrışırsa aynı kullanıcı iki ayrı satıra yazılır ve
 // hem günlük hak hem aylık tavan olduğundan geniş davranır.
 import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
+// Sayaç satırına ekleme tek deyimde (göç 0191) — bkz. _shared/kullanimSayaci.ts.
+import { kullanimEkle } from '../_shared/kullanimSayaci.ts';
 // Uydurma madde atfı denetimi ORTAK dosyada (_shared/atif.ts). Ayıklayıcı bugüne
 // kadar yalnız ölçüm betiğinde vardı: ölçüyor ama korumuyorduk.
 import { maddeAtiflari } from '../_shared/atif.ts';
@@ -321,6 +326,10 @@ async function ucretliChatIc(
     if ((e as Error).message === 'refusal') throw e;
     ilkHata = e as Error;
   }
+  // YEDEK HAT KULLANICI BAŞINA SINIRSIZDI (10.10.2026, bkz. _shared/yedekKapisi.ts):
+  // hak iade ediliyor, maliyet 0, günlük sayaç artmıyor — ortak ücretsiz
+  // havuzu tek kullanıcı bitirebilirdi. Yedeğe geçmeden hemen önce sorulur.
+  if (!(await yedekIzniVarMi())) throw new Error(YEDEK_TAVAN_HATASI);
   try {
     const duz = Array.isArray(stableSystem) ? stableSystem.join('') : stableSystem;
     const y = await ucretsizChat(duz + groundingSystem, ek?.yedekMsgs ?? msgs, maxTokens);
@@ -633,6 +642,25 @@ async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ 
   const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', period).maybeSingle();
   const r = data as { calls?: number; cost_try?: number } | null;
   return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
+}
+
+/**
+ * Bu kullanıcının BUGÜN yedek hatla aldığı cevap sayısı (bkz. _shared/
+ * yedekKapisi.ts). Yedek hat = müşteriye yazılmayan VE maliyeti 0 olan istek:
+ * kusurlu Claude cevabı da müşteriye yazılmaz ama maliyeti sıfırdan büyüktür.
+ * (user_id, gun) dizini var (0056). Okunamazsa null: kapı kullanıcıyı engellemez.
+ */
+async function yedekBugun(userId: string): Promise<number | null> {
+  const s = svc();
+  if (!s) return null;
+  const { count, error } = await s
+    .from('ai_istek')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('gun', aiGun())
+    .eq('musteriye_yazildi', false)
+    .eq('maliyet_try', 0);
+  return error ? null : (count ?? 0);
 }
 
 /**
@@ -1069,40 +1097,24 @@ async function recordUsage(
   // defterine yazılır. İkisini tek sayıya indirgemek, "ne kazandık" sorusunu
   // cevaplanamaz hâle getirir ve iadede yanlış tutar geri verilir.
   const ucret = cost > 0 && !deneme ? Math.round(cost * KAR_KATSAYISI * 100) / 100 : 0;
-  const p = aiPeriod();
-  const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
-  const prev = data as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
-  await s.from('ai_usage').upsert({
-    user_id: userId,
-    period: p,
-    // AYLIK SAYAÇ DA "HAK GİTMEZ" KURALINA UYAR (01.10.2026 canlıda ölçüldü).
-    // Önce koşulsuz +1'di: Claude düşüp yedek modelin cevapladığı istekler
-    // aylık çağrı hakkından düşüyordu — test hesabında 4 yedek + 1 Claude
-    // cevabı, 5 soruluk ücretsiz denemeyi "quota_exceeded" ile kapattı.
-    // Günlük satır zaten musteriyeYaz'a bakıyordu; ikisi artık aynı.
-    calls: (prev?.calls ?? 0) + (musteriyeYaz ? 1 : 0),
-    tokens_in: (prev?.tokens_in ?? 0) + tin,
-    tokens_out: (prev?.tokens_out ?? 0) + tout,
-    cost_try: Number(prev?.cost_try ?? 0) + cost,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id,period' });
+  // SAYAÇ TEK DEYİMDE ARTAR (09.10.2026, göç 0191, bkz. _shared/kullanimSayaci.ts).
+  // Önce "oku, okunan + artış yaz"dı: aynı anda biten iki istekten birinin
+  // çağrısı, token'ı ve maliyeti kayboluyordu (yerelde pgbench ile ölçüldü).
+  //
+  // AYLIK SAYAÇ DA "HAK GİTMEZ" KURALINA UYAR (01.10.2026 canlıda ölçüldü).
+  // Önce koşulsuz +1'di: Claude düşüp yedek modelin cevapladığı istekler
+  // aylık çağrı hakkından düşüyordu — test hesabında 4 yedek + 1 Claude
+  // cevabı, 5 soruluk ücretsiz denemeyi "quota_exceeded" ile kapattı.
+  // Günlük satır zaten musteriyeYaz'a bakıyordu; ikisi aynı artışı alır.
+  const artis = { calls: musteriyeYaz ? 1 : 0, tokensIn: tin, tokensOut: tout, cost };
+  await kullanimEkle(s, userId, aiPeriod(), artis);
 
   // GÜNLÜK SATIR. Adil kullanım sayacı buradan okunuyor; aylık satırla aynı
   // tabloda, yalnız dönem anahtarı farklı (YYYY-AA-GG). Kusurlu çıktıda
   // token'lar yine yazılır (gideri biz karşıladık) ama ÇAĞRI SAYILMAZ: günlük
   // hak, işe yarayan cevaplar için harcanır.
   const g = aiGun();
-  const { data: gunVeri } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', g).maybeSingle();
-  const gprev = gunVeri as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
-  await s.from('ai_usage').upsert({
-    user_id: userId,
-    period: g,
-    calls: (gprev?.calls ?? 0) + (musteriyeYaz ? 1 : 0),
-    tokens_in: (gprev?.tokens_in ?? 0) + tin,
-    tokens_out: (gprev?.tokens_out ?? 0) + tout,
-    cost_try: Number(gprev?.cost_try ?? 0) + cost,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id,period' });
+  await kullanimEkle(s, userId, g, artis);
 
   // KONTÖRDEN DÜŞ — ücretten, maliyetten değil. Ücretsiz katmanda ücret sıfır
   // ve bakiyeye dokunulmaz. Düşüm tek deyimde yapılır (ai_kontor_dus): iki
@@ -2233,6 +2245,9 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
+  // Yedek hat günlük kapısı bu isteğe bağlanır (kullanıcı doğrulandı); sayım
+  // yalnız yedeğe inileceği anda yapılır (bkz. ucretliChatIc).
+  yedekKapisiKur(() => yedekIzniVar(() => yedekBugun(userData.user.id)));
 
   let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string; istekId?: string; sebep?: string; ekler?: unknown; taslak?: string; kaynak?: string };
   try {
@@ -2250,26 +2265,20 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   //
   // İade kaydı aynı zamanda kalitenin en dürüst göstergesi: ölçüm senaryolarını
   // biz yazıyoruz, iadeyi gerçek dosyada kullanan avukat söylüyor.
+  //
+  // KAPATILDI (09.10.2026, 50 denetçi bulgusu, kodla doğrulandı). ai_istek_iade
+  // sahipliği ve "aynı istek bir kez"i denetliyor ama SAYI TAVANI YOK: her
+  // oturumlu kullanıcı, cevabını ALDIĞI her isteği tek tek iade edip aylık
+  // soru/mütalaa kotasını (ai_mod_kota) geri sarabiliyordu — kota anlamsızdı,
+  // tek sınır aylık ₺3.000'lik maliyet ağıydı. Düğmesi hiç yazılmadı; hiçbir
+  // istemci (uygulama, web, eklenti, betik) bu modu çağırmıyor, yani kapatmak
+  // kimseyi kırmaz. Otomatik iadeler (başarısız istek, yedek model, kusurlu
+  // çıktı, mevzuat özeti) bundan bağımsız ve aynen çalışır.
+  // Yeniden açmak ürün kararıdır: kişi başı iade TAVANI + düğme + deneme
+  // hakkının da geri verilmesi (ai_istek_iade bugün deneme hakkına dokunmuyor
+  // ama {hak: 1} dönüyor) birlikte tasarlanmalı. SQL işlevi yerinde duruyor.
   if (body.mode === 'iade') {
-    const istekId = String(body.istekId ?? '').trim();
-    if (!istekId) {
-      return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
-    }
-    const sk = svc();
-    if (!sk) {
-      return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
-    }
-    // Sahiplik kontrolü RPC'nin İÇİNDE: kullanıcı kimliği burada gönderiliyor
-    // ama satır yalnız o kullanıcıya aitse iade ediliyor.
-    const { data, error } = await sk.rpc('ai_istek_iade', {
-      p_istek: istekId,
-      p_user: userData.user.id,
-      p_sebep: typeof body.sebep === 'string' ? body.sebep.slice(0, 300) : null,
-    });
-    if (error) {
-      return new Response(JSON.stringify({ error: 'upstream' }), { status: 502, headers: CORS });
-    }
-    return new Response(JSON.stringify(data ?? { ok: false }), {
+    return new Response(JSON.stringify({ ok: false, neden: 'kapali' }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
@@ -2307,9 +2316,16 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   // `taslak` = avukatın elindeki GÜNCEL metin, `question` = talimat.
   const isDuzelt = body.mode === 'duzelt';
   const promptQuestion = (body.question ?? '').trim();
-  const messages = (isMutalaa || isDilekce || isBelge || isKunye || isDuzelt)
-    ? [{ role: 'user' as const, text: promptQuestion }]
-    : (body.messages ?? []).slice(-30);
+  // SOHBET GİRDİSİ TAVANLI (10.10.2026, bkz. _shared/sohbetGirdisi.ts): mesaj
+  // uzunluğu sınırsızdı. Bu denetim hak ayrılmadan ÖNCE — reddedilen istek
+  // hiçbir şey harcamaz. Son mesaj çok uzunsa kesilmez, reddedilir.
+  const sohbetGirdisi = (isMutalaa || isDilekce || isBelge || isKunye || isDuzelt) ? null : sohbetMesajlari(body.messages);
+  if (sohbetGirdisi && 'hata' in sohbetGirdisi) {
+    return new Response(JSON.stringify({ error: sohbetGirdisi.hata, azami: SOHBET_MESAJ_MAX }), { status: 413, headers: CORS });
+  }
+  const messages = sohbetGirdisi && 'mesajlar' in sohbetGirdisi
+    ? sohbetGirdisi.mesajlar
+    : [{ role: 'user' as const, text: promptQuestion }];
   // EKLİ BELGELER — yalnız dilekçe ve belge incelemede (bkz. _shared/belgeEki.ts).
   // Boyut tavanı aşılırsa istek BAŞLAMADAN reddedilir: hak düşmez, kota
   // rezerve edilmez.
@@ -2805,7 +2821,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       });
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
       // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
@@ -2897,7 +2913,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
@@ -3217,7 +3233,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
       // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
@@ -3324,7 +3340,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
@@ -3465,7 +3481,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
       // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
@@ -3546,7 +3562,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
     }
   } catch (e) {
     const msg = (e as Error).message;
-    const known = msg === 'rate_limit' || msg === 'daily_quota';
+    const known = bilinenIstekHatasi(msg);
 
     // İKİ SAĞLAYICI DA DÜŞTÜ. Hata kutusu göstermek yerine, aramanın zaten
     // bulduğu mevzuatı doğrudan veriyoruz: avukat için "bir hata oluştu"
