@@ -8,6 +8,21 @@ import type { ThemeColors } from '@/theme/palettes';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { TemaDugmesiTek } from './TemaDugmesi';
 import { geriDon } from '@/lib/geriDon';
+import { useT, type TKey } from '@/i18n';
+
+/**
+ * Yalnız-ikon düğmelerin ekran okuyucu adı (10.10.2026 denetimi: bu başlığın 4
+ * düğmesinin hiçbirinde etiket yoktu; her ekranda "düğme" diye okunuyordu).
+ * Sağ eylemin adı ikonundan türetilir: bilinmeyen ikon etiketsiz kalır, yanlış
+ * ad uydurulmaz.
+ */
+const SAG_IKON_ETIKETI: Record<string, TKey> = {
+  'create-outline': 'common.edit',
+  add: 'header.add',
+  'download-outline': 'header.export',
+  close: 'header.close',
+  'time-outline': 'header.history',
+};
 
 interface ScreenHeaderProps {
   title: string;
@@ -35,6 +50,7 @@ function goHome() {
 
 export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, onRightPress, hideHome }: ScreenHeaderProps) {
   const __t = useTheme();
+  const t = useT();
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
   const openSidebar = useSidebarStore((s) => s.open);
@@ -52,12 +68,12 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
           // Geri oku solda, tek başına — baş parmağın doğal yeri. Ana sayfa
           // kısayolu ise KARŞI köşeye (sağ üst) alındı; ikisi yan yana durup
           // birbirine karışmıyor, her biri kendi köşesinde amaçlı görünüyor.
-          <Pressable onPress={() => geriDon()} hitSlop={10} style={styles.backButton}>
+          <Pressable onPress={() => geriDon()} hitSlop={10} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('header.back')}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </Pressable>
         ) : (
           showMenu && !kaliciMenu && (
-            <Pressable onPress={openSidebar} hitSlop={10} style={styles.menuButton}>
+            <Pressable onPress={openSidebar} hitSlop={10} style={styles.menuButton} accessibilityRole="button" accessibilityLabel={t('header.menu')}>
               <Ionicons name="menu" size={24} color={colors.textPrimary} />
             </Pressable>
           )
@@ -81,12 +97,18 @@ export function ScreenHeader({ title, subtitle, showBack, showMenu, rightIcon, o
       <View style={styles.right}>
         <TemaDugmesiTek />
         {deep && !hideHome && (
-          <Pressable onPress={goHome} hitSlop={10} style={styles.homeButton}>
+          <Pressable onPress={goHome} hitSlop={10} style={styles.homeButton} accessibilityRole="button" accessibilityLabel={t('header.home')}>
             <Ionicons name="home-outline" size={20} color={colors.textPrimary} />
           </Pressable>
         )}
         {rightIcon && onRightPress && (
-          <Pressable onPress={onRightPress} hitSlop={10} style={styles.rightButton}>
+          <Pressable
+            onPress={onRightPress}
+            hitSlop={10}
+            style={styles.rightButton}
+            accessibilityRole="button"
+            accessibilityLabel={SAG_IKON_ETIKETI[rightIcon] ? t(SAG_IKON_ETIKETI[rightIcon]!) : undefined}
+          >
             <Ionicons name={rightIcon} size={22} color={colors.textPrimary} />
           </Pressable>
         )}

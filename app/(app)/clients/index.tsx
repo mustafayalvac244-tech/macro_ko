@@ -61,7 +61,7 @@ export default function ClientDirectoryScreen() {
         }
       />
 
-      <FAB onPress={() => router.push('/client-form')} />
+      <FAB onPress={() => router.push('/client-form')} accessibilityLabel={`${t('ust.yeni')}: ${t('ust.yeniMuvekkil')}`} />
     </Screen>
   );
 }

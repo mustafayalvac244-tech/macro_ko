@@ -284,7 +284,7 @@ export default function SettingsScreen() {
           <Pressable style={styles.row} onPress={() => router.push('/kvkk' as Parameters<typeof router.push>[0])}>
             <View style={styles.rowLeft}>
               <Ionicons name="shield-half-outline" size={18} color={colors.primary} />
-              <Text style={styles.rowLabel}>KVKK Aydınlatma Metni</Text>
+              <Text style={styles.rowLabel}>{t('settings.kvkkMetni')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </Pressable>

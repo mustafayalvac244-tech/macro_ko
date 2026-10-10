@@ -151,7 +151,7 @@ export default function ContractScreen() {
       <ScreenHeader title={t('contract.title')} showBack />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <Text allowFontScaling={false} style={styles.intro}>{t('contract.intro')}</Text>
+        <Text style={styles.intro}>{t('contract.intro')}</Text>
 
         {/* Tür */}
         <SegLabel colors={colors}>{t('contract.type')}</SegLabel>
@@ -162,27 +162,27 @@ export default function ContractScreen() {
 
         {/* Avukat */}
         <SectionTitle colors={colors} icon="person-circle-outline">{t('contract.lawyer')}</SectionTitle>
-        <Field colors={colors} label={t('contract.name')} value={avukatAd} onChangeText={setAvukatAd} placeholder="Av. Ad Soyad" />
-        <Field colors={colors} label={t('contract.sicil')} value={sicil} onChangeText={setSicil} placeholder="Baro sicil no" />
-        <Field colors={colors} label={t('contract.firm')} value={buro} onChangeText={setBuro} placeholder="Büro adı" />
+        <Field colors={colors} label={t('contract.name')} value={avukatAd} onChangeText={setAvukatAd} placeholder={t('contract.namePh')} />
+        <Field colors={colors} label={t('contract.sicil')} value={sicil} onChangeText={setSicil} placeholder={t('contract.sicilPh')} />
+        <Field colors={colors} label={t('contract.firm')} value={buro} onChangeText={setBuro} placeholder={t('contract.firmPh')} />
 
         {/* Müvekkil */}
         <SectionTitle colors={colors} icon="people-outline">{t('contract.client')}</SectionTitle>
         <Pressable style={styles.pickerBtn} onPress={() => setClientPickerOpen(true)}>
           <Ionicons name="list-outline" size={16} color={colors.gold} />
-          <Text allowFontScaling={false} style={styles.pickerBtnText}>{t('contract.pickClient')}</Text>
+          <Text style={styles.pickerBtnText}>{t('contract.pickClient')}</Text>
         </Pressable>
-        <Field colors={colors} label={t('contract.name')} value={muvekkilAd} onChangeText={setMuvekkilAd} placeholder="Ad Soyad / Unvan" />
-        <Field colors={colors} label="T.C. Kimlik No" value={muvekkilTc} onChangeText={setMuvekkilTc} placeholder="(opsiyonel)" keyboardType="number-pad" />
-        <Field colors={colors} label={t('contract.address')} value={muvekkilAdres} onChangeText={setMuvekkilAdres} placeholder="(opsiyonel)" multiline />
+        <Field colors={colors} label={t('contract.name')} value={muvekkilAd} onChangeText={setMuvekkilAd} placeholder={t('contract.clientNamePh')} />
+        <Field colors={colors} label={t('clientForm.tcNo')} value={muvekkilTc} onChangeText={setMuvekkilTc} placeholder={t('contract.optionalPh')} keyboardType="number-pad" />
+        <Field colors={colors} label={t('contract.address')} value={muvekkilAdres} onChangeText={setMuvekkilAdres} placeholder={t('contract.optionalPh')} multiline />
 
         {/* İş */}
         {tur === 'vekalet' && (
           <>
             <SectionTitle colors={colors} icon="briefcase-outline">{t('contract.matter')}</SectionTitle>
             <ChipPicker colors={colors} label={t('contract.lawArea')} options={HUKUK_ALANLARI} value={hukukAlani} onChange={setHukukAlani} />
-            <Field colors={colors} label={t('contract.subject')} value={uyusmazlik} onChangeText={setUyusmazlik} placeholder="Örn. Boşanma, işçilik alacağı…" />
-            <Field colors={colors} label={t('contract.court')} value={mahkeme} onChangeText={setMahkeme} placeholder="Yetkili merci / mahkeme" />
+            <Field colors={colors} label={t('contract.subject')} value={uyusmazlik} onChangeText={setUyusmazlik} placeholder={t('contract.subjectPh')} />
+            <Field colors={colors} label={t('contract.court')} value={mahkeme} onChangeText={setMahkeme} placeholder={t('contract.courtPh')} />
             <ChipPicker colors={colors} label={t('contract.role')} options={SIFATLAR} value={sifat} onChange={setSifat} />
           </>
         )}
@@ -192,7 +192,7 @@ export default function ContractScreen() {
             <ChipPicker colors={colors} label={t('contract.lawArea')} options={HUKUK_ALANLARI} value={hukukAlani} onChange={setHukukAlani} />
           </>
         )}
-        <Field colors={colors} label={t('contract.signPlace')} value={imzaYeri} onChangeText={setImzaYeri} placeholder="Örn. İstanbul" />
+        <Field colors={colors} label={t('contract.signPlace')} value={imzaYeri} onChangeText={setImzaYeri} placeholder={t('contract.signPlacePh')} />
 
         {/* Ücret */}
         <SectionTitle colors={colors} icon="cash-outline">{t('contract.fee')}</SectionTitle>
@@ -208,21 +208,21 @@ export default function ContractScreen() {
             )}
             {(feeModel === 'nispi' || feeModel === 'karma') && (
               <>
-                <Field colors={colors} label={t('contract.rate')} value={nispiOran} onChangeText={setNispiOran} placeholder="Örn. 15" keyboardType="number-pad" />
-                <Field colors={colors} label={t('contract.caseValue')} value={davaDegeri} onChangeText={setDavaDegeri} placeholder="Dava/iş değeri" keyboardType="number-pad" />
+                <Field colors={colors} label={t('contract.rate')} value={nispiOran} onChangeText={setNispiOran} placeholder={t('contract.ratePh')} keyboardType="number-pad" />
+                <Field colors={colors} label={t('contract.caseValue')} value={davaDegeri} onChangeText={setDavaDegeri} placeholder={t('contract.caseValuePh')} keyboardType="number-pad" />
               </>
             )}
           </>
         ) : (
-          <Field colors={colors} label={t('contract.monthly')} value={aylik} onChangeText={setAylik} placeholder="Aylık ücret" keyboardType="number-pad" />
+          <Field colors={colors} label={t('contract.monthly')} value={aylik} onChangeText={setAylik} placeholder={t('contract.monthlyPh')} keyboardType="number-pad" />
         )}
 
         <View style={styles.switchRow}>
-          <Text allowFontScaling={false} style={styles.switchLabel}>{t('contract.kdv')}</Text>
+          <Text style={styles.switchLabel}>{t('contract.kdv')}</Text>
           <Switch value={kdvDahil} onValueChange={setKdvDahil} trackColor={{ true: colors.gold }} />
         </View>
         <View style={styles.switchRow}>
-          <Text allowFontScaling={false} style={styles.switchLabel}>{t('contract.installment')}</Text>
+          <Text style={styles.switchLabel}>{t('contract.installment')}</Text>
           <Switch value={taksitli} onValueChange={setTaksitli} trackColor={{ true: colors.gold }} />
         </View>
         {taksitli && (
@@ -231,7 +231,7 @@ export default function ContractScreen() {
 
         <Pressable style={({ pressed }) => [styles.generateBtn, pressed && { opacity: 0.85 }]} onPress={onGenerate}>
           <Ionicons name="document-text" size={18} color={colors.textInverse} />
-          <Text allowFontScaling={false} style={styles.generateBtnText}>{t('contract.generate')}</Text>
+          <Text style={styles.generateBtnText}>{t('contract.generate')}</Text>
         </Pressable>
       </ScrollView>
 
@@ -240,12 +240,12 @@ export default function ContractScreen() {
         <View style={styles.modalWrap}>
           <View style={styles.modalCard}>
             <View style={styles.modalHead}>
-              <Text allowFontScaling={false} style={styles.modalTitle}>{t('contract.pickClient')}</Text>
+              <Text style={styles.modalTitle}>{t('contract.pickClient')}</Text>
               <Pressable onPress={() => setClientPickerOpen(false)} hitSlop={8}><Ionicons name="close" size={20} color={colors.textSecondary} /></Pressable>
             </View>
             <ScrollView style={{ maxHeight: 380 }}>
               {clientList.length === 0 ? (
-                <Text allowFontScaling={false} style={styles.emptyText}>{t('contract.noClients')}</Text>
+                <Text style={styles.emptyText}>{t('contract.noClients')}</Text>
               ) : (
                 clientList.map((c) => (
                   <Pressable
@@ -258,7 +258,7 @@ export default function ContractScreen() {
                     }}
                   >
                     <Ionicons name="person-outline" size={16} color={colors.textSecondary} />
-                    <Text allowFontScaling={false} style={styles.clientItemText} numberOfLines={1}>{c.full_name}</Text>
+                    <Text style={styles.clientItemText} numberOfLines={1}>{c.full_name}</Text>
                   </Pressable>
                 ))
               )}
@@ -272,22 +272,22 @@ export default function ContractScreen() {
         <View style={styles.modalWrap}>
           <View style={[styles.modalCard, { maxHeight: '90%' }]}>
             <View style={styles.modalHead}>
-              <Text allowFontScaling={false} style={styles.modalTitle}>{t('contract.preview')}</Text>
+              <Text style={styles.modalTitle}>{t('contract.preview')}</Text>
               <Pressable onPress={() => setPreview(null)} hitSlop={8}><Ionicons name="close" size={20} color={colors.textSecondary} /></Pressable>
             </View>
             <ScrollView contentContainerStyle={{ paddingBottom: spacing.md }} showsVerticalScrollIndicator={false}>
               {preview?.warnings.map((w, i) => (
                 <View key={i} style={styles.warnRow}>
                   <Ionicons name="alert-circle-outline" size={15} color={colors.warning} />
-                  <Text allowFontScaling={false} style={styles.warnText}>{w}</Text>
+                  <Text style={styles.warnText}>{w}</Text>
                 </View>
               ))}
-              <Text allowFontScaling={false} selectable style={styles.docText}>{preview?.body}</Text>
+              <Text selectable style={styles.docText}>{preview?.body}</Text>
               <HukukiUyari tur="sablon" kucuk />
             </ScrollView>
             <Pressable style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]} onPress={onShare}>
               <Ionicons name="share-social" size={17} color={colors.textInverse} />
-              <Text allowFontScaling={false} style={styles.shareBtnText}>{t('contract.share')}</Text>
+              <Text style={styles.shareBtnText}>{t('contract.share')}</Text>
             </Pressable>
           </View>
         </View>
@@ -298,13 +298,13 @@ export default function ContractScreen() {
 
 function SegLabel({ children, colors }: { children: React.ReactNode; colors: ThemeColors }) {
   const styles = makeStyles(colors);
-  return <Text allowFontScaling={false} style={styles.segLabel}>{children}</Text>;
+  return <Text style={styles.segLabel}>{children}</Text>;
 }
 function Seg({ active, onPress, label, colors }: { active: boolean; onPress: () => void; label: string; colors: ThemeColors }) {
   const styles = makeStyles(colors);
   return (
     <Pressable onPress={onPress} style={[styles.seg, active && styles.segActive]}>
-      <Text allowFontScaling={false} style={[styles.segText, active && styles.segTextActive]} numberOfLines={1}>{label}</Text>
+      <Text style={[styles.segText, active && styles.segTextActive]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -313,7 +313,7 @@ function SectionTitle({ children, icon, colors }: { children: React.ReactNode; i
   return (
     <View style={styles.sectionTitleRow}>
       <Ionicons name={icon} size={16} color={colors.gold} />
-      <Text allowFontScaling={false} style={styles.sectionTitle}>{children}</Text>
+      <Text style={styles.sectionTitle}>{children}</Text>
     </View>
   );
 }
@@ -326,7 +326,7 @@ function Field({
   const styles = makeStyles(colors);
   return (
     <View style={styles.field}>
-      <Text allowFontScaling={false} style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -335,7 +335,6 @@ function Field({
         keyboardType={keyboardType ?? 'default'}
         multiline={multiline}
         style={[styles.input, multiline && { height: 64, textAlignVertical: 'top' }]}
-        allowFontScaling={false}
       />
     </View>
   );
@@ -344,13 +343,13 @@ function ChipPicker({ label, options, value, onChange, colors }: { label: string
   const styles = makeStyles(colors);
   return (
     <View style={styles.field}>
-      <Text allowFontScaling={false} style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldLabel}>{label}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 2 }}>
         {options.map((o) => {
           const active = value === o;
           return (
             <Pressable key={o} onPress={() => onChange(active ? '' : o)} style={[styles.chip, active && styles.chipActive]}>
-              <Text allowFontScaling={false} style={[styles.chipText, active && styles.chipTextActive]}>{o}</Text>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{o}</Text>
             </Pressable>
           );
         })}
