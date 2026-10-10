@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   dilekceDenetimKaynagi,
@@ -226,5 +227,29 @@ describe('canlı içtihat aramasına anlatım değil sabit hukuki konu gider (bu
   it('Türkçe büyük harf ve "davası" eki (0162 çekirdeği gibi)', () => {
     expect(hukukiKonuSec('KIDEM VE İHBAR TAZMİNATI talep ediyoruz', konular)).toBe('kıdem ve ihbar tazminatı');
     expect(hukukiKonuSec('kira tespiti istiyoruz', konular)).toBe('kira tespit davası');
+  });
+});
+
+describe('ai-chat/index.ts: kullanıcı metni kalıcı tabloya yazılmaz, profil filtresiz okunmaz', () => {
+  // Uç işlevi Deno'da çalışır, testte içe aktarılamaz; kusurlu kalıplar kaynak
+  // metinde aranır (kusurlu hâlin düştüğü, 09.10.2026'da HEAD üstünde görüldü).
+  const kaynak = readFileSync(`${__dirname}/../supabase/functions/ai-chat/index.ts`, 'utf8');
+
+  it('arama_terimi soru/anlatımdan türetilmez', () => {
+    expect(kaynak).not.toMatch(/arama_terimi:\s*(soru|question|cumle)/);
+    expect(kaynak).not.toMatch(/arama_terimi:[^\n]*\.slice\(/);
+  });
+
+  it('dilekçe yolu canlı aramaya hukukiKonuSec ile seçilmiş konuyu verir', () => {
+    expect(kaynak).toMatch(/terim:\s*async \(\) => hukukiKonuSec\(ekAramasi,/);
+  });
+
+  it('dosya künyesi ortak modülden, kullanıcı kimliğiyle okunur; yerel kopya yok', () => {
+    expect(kaynak).toMatch(/dosyaKunyesiOku\(supabase, userData\.user\.id,/);
+    expect(kaynak).not.toMatch(/function dosyaKunyesiIc/);
+  });
+
+  it('tarih denetiminin kaynağı dosya kaydını da içerir', () => {
+    expect(kaynak).toMatch(/uydurmaTarihleriAyikla\(govde, tamKaynak\)/);
   });
 });
