@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { metniPaylas } from '@/lib/cikti';
+import { ciktiSonucunuBildir } from '@/lib/ciktiBildir';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -26,8 +27,8 @@ export default function TemplatesScreen() {
     [category]
   );
 
-  const shareTemplate = (tpl: PetitionTemplate) => {
-    metniPaylas(tpl.body, tpl.title);
+  const shareTemplate = async (tpl: PetitionTemplate) => {
+    ciktiSonucunuBildir(await metniPaylas(tpl.body, tpl.title), t('cikti.share'), t);
   };
 
   return (

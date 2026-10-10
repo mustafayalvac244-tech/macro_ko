@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { metniPaylas } from '@/lib/cikti';
+import { ciktiSonucunuBildir } from '@/lib/ciktiBildir';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -84,7 +85,7 @@ export default function CaseDetailScreen() {
     });
     const res = await sendClientReminder(client.data?.phone, text);
     if (res === 'no_phone' || res === 'failed') {
-      metniPaylas(text);
+      ciktiSonucunuBildir(await metniPaylas(text), t('cikti.share'), t);
     }
   };
   const updateDeadline = useUpdateDeadline();
