@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BelgeEkleri } from '@/components/ui/BelgeEkleri';
 import type { BelgeEki } from '@/lib/belgeEki';
@@ -13,13 +13,15 @@ import { AtifDenetimi, type KararDenetimiVerisi } from '@/components/ui/AtifDene
 import { ComingSoon } from '@/components/ComingSoon';
 import { AI_BELGE_ENABLED } from '@/config/features';
 import { supabase } from '@/lib/supabase';
+import { taslakOku, taslakSil, taslakYaz } from '@/lib/sohbetDeposu';
+import { useAuthStore } from '@/store/authStore';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import type { AiKullanim } from '@/hooks/useAiKontor';
 import { useT } from '@/i18n';
 import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { formatMoney } from '@/utils/format';
+import { formatDateTime, formatMoney } from '@/utils/format';
 
 /** İnceleme odağı — AI'ya "neye bakayım" talimatını belirler. */
 type DocKind = 'sozlesme' | 'dilekce' | 'ihtarname' | 'karar' | 'diger';
@@ -28,6 +30,31 @@ const KINDS: DocKind[] = ['sozlesme', 'dilekce', 'ihtarname', 'karar', 'diger'];
 
 /** Bağlam taşmasın diye üst sınır; aşarsa sondan kırpılır ve kaç karakterin gittiği söylenir. */
 const MAX_CHARS = 12000;
+
+type EkUyari = { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean };
+
+/**
+ * SON İNCELEME SONUCU CİHAZDA SAKLANIR (09.10.2026, 50 denetçi taraması).
+ * Sonuç yalnız ekran durumundaydı: ücretli ve beklenen incelemeyi avukat
+ * geri/yenile/yan menüyle çıkınca kaybediyordu. Dilekçe taslağıyla aynı kalıp
+ * (src/lib/sohbetDeposu.ts): hesaba bağlı, çıkışta ve hesap silmede silinir.
+ *
+ * Sonuçla BİRLİKTE uyarılar da saklanır: uydurma madde/tutar, ayıklanan tarih,
+ * taranmış sayfa ve yedek model uyarısı olmadan geri gelen bir inceleme
+ * denetlenmiş gibi görünürdü. Yüklenen belge ve yapıştırılan metin SAKLANMAZ.
+ */
+type Taslak = {
+  kind: DocKind;
+  metin: string;
+  ayiklanan: number;
+  uydurmaMadde: string[];
+  uydurmaTutar: number[];
+  kararDenetimi: KararDenetimiVerisi | null;
+  ekUyari: EkUyari | null;
+  yedekModel: boolean;
+  hakDusulmedi: boolean;
+  zaman: number;
+};
 
 export default function DocumentReviewScreen() {
   const __t = useTheme();
@@ -78,6 +105,63 @@ export default function DocumentReviewScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const userId = useAuthStore((s) => s.session?.user.id ?? null);
+  const [geriYuklendi, setGeriYuklendi] = useState<number | null>(null);
+  // Sonucun uyarı paketi (metin dışındaki her şey) ve diske en son yazılan metin.
+  const paket = useRef<Omit<Taslak, 'metin' | 'zaman'> | null>(null);
+  const sonYazilan = useRef('');
+  const yeniAnaliz = useRef(false);
+  const yazZamanlayici = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    let canli = true;
+    taslakOku<Taslak>(userId, 'belge').then((k) => {
+      // Okuma biterken kullanıcı yeni inceleme başlattıysa eskisi üstüne yazmaz.
+      if (!canli || yeniAnaliz.current || !k?.metin) return;
+      if (KINDS.includes(k.kind)) setKind(k.kind);
+      setResult(k.metin);
+      setAyiklanan(Number(k.ayiklanan ?? 0));
+      setUydurmaMadde(k.uydurmaMadde ?? []);
+      setUydurmaTutar(k.uydurmaTutar ?? []);
+      setKararDenetimi(k.kararDenetimi ?? null);
+      setEkUyari(k.ekUyari ?? null);
+      setYedekModel(!!k.yedekModel);
+      setHakDusulmedi(!!k.hakDusulmedi);
+      paket.current = {
+        kind: k.kind, ayiklanan: Number(k.ayiklanan ?? 0), uydurmaMadde: k.uydurmaMadde ?? [], uydurmaTutar: k.uydurmaTutar ?? [],
+        kararDenetimi: k.kararDenetimi ?? null, ekUyari: k.ekUyari ?? null, yedekModel: !!k.yedekModel, hakDusulmedi: !!k.hakDusulmedi,
+      };
+      sonYazilan.current = k.metin;
+      setGeriYuklendi(k.zaman);
+    });
+    return () => {
+      canli = false;
+    };
+  }, [userId]);
+
+  const sonucuSakla = (metin: string, hemen = false) => {
+    if (!userId || !metin.trim() || !paket.current) return;
+    // Bileşen açılışta aynı metni bir kez daha bildirir; değişmeyeni yazmak
+    // "geri yüklendi" saatini boşuna ileri alırdı.
+    if (metin === sonYazilan.current) return;
+    sonYazilan.current = metin;
+    if (yazZamanlayici.current) clearTimeout(yazZamanlayici.current);
+    const yaz = () => {
+      if (paket.current) taslakYaz(userId, 'belge', { ...paket.current, metin, zaman: Date.now() } satisfies Taslak);
+    };
+    if (hemen) yaz();
+    else yazZamanlayici.current = setTimeout(yaz, 800);
+  };
+  const sonucuTemizle = () => {
+    if (userId) taslakSil(userId, 'belge');
+    if (yazZamanlayici.current) clearTimeout(yazZamanlayici.current);
+    paket.current = null;
+    sonYazilan.current = '';
+    setResult('');
+    setGeriYuklendi(null);
+  };
+
   if (!AI_BELGE_ENABLED) {
     return <ComingSoon headerTitle={t('docrev.title')} title={t('soon.docrev')} desc={t('soon.desc')} icon="scan" />;
   }
@@ -87,8 +171,10 @@ export default function DocumentReviewScreen() {
     // Ek varsa kutu yalnız nottur ve boş olabilir.
     if ((!ekler.length && body.length < 80) || busy) return;
     setBusy(true);
+    yeniAnaliz.current = true;
     setError(null);
     setResult('');
+    setGeriYuklendi(null);
     setHakDusulmedi(false);
     setYedekModel(false);
     try {
@@ -125,6 +211,14 @@ export default function DocumentReviewScreen() {
       setHakDusulmedi(!!yanit?.hakDusulmedi);
       setYedekModel(!!yanit?.yedekModel);
       setEkUyari(yanit?.ekUyari ?? null);
+      // Eski sonuç YENİSİ GELENE KADAR silinmez: istek düşerse avukatın elindeki
+      // sonuç da gitmiş olmasın.
+      paket.current = {
+        kind, ayiklanan: Number(yanit?.ayiklananTarih ?? 0), uydurmaMadde: yanit?.uydurmaMadde ?? [], uydurmaTutar: yanit?.uydurmaTutar ?? [],
+        kararDenetimi: yanit?.kararDenetimi ?? null, ekUyari: yanit?.ekUyari ?? null, yedekModel: !!yanit?.yedekModel, hakDusulmedi: !!yanit?.hakDusulmedi,
+      };
+      sonYazilan.current = '';
+      sonucuSakla(reply, true);
     } catch {
       setError(t('ai.errGeneric'));
     } finally {
@@ -192,6 +286,14 @@ export default function DocumentReviewScreen() {
 
           {!!result && (
             <View style={styles.resultCard}>
+              {geriYuklendi != null && (
+                <View style={styles.geriYuklendi}>
+                  <Text style={styles.usage}>{t('docrev.sonucGeriYuklendi', { zaman: formatDateTime(new Date(geriYuklendi).toISOString()) })}</Text>
+                  <Pressable onPress={sonucuTemizle} hitSlop={8} accessibilityRole="button">
+                    <Text style={styles.temizleText}>{t('docrev.sonucTemizle')}</Text>
+                  </Pressable>
+                </View>
+              )}
               {/* Bulgular düzenlenebilir: avukat kendi notunu ekleyip dosyaya
                   öyle koyuyor. UDF YOK — inceleme notu mahkemeye verilmez. */}
               <DuzenlenebilirCikti
@@ -199,6 +301,7 @@ export default function DocumentReviewScreen() {
                 baslik={t('docrev.resultTitle')}
                 etiket={t('docrev.resultTitle')}
                 mod="belge"
+                onMetinDegisti={(m) => sonucuSakla(m)}
               />
               <HukukiUyari tur="yapayZeka" />
               {/* SUNUCU BUNLARI GÖNDERİYORDU, EKRAN HİÇBİRİNİ GÖSTERMİYORDU.
@@ -254,6 +357,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 11.5,
     color: colors.textMuted,
     marginTop: spacing.sm,
+  },
+  geriYuklendi: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  temizleText: {
+    fontFamily: fonts.semibold,
+    fontSize: 12.5,
+    color: colors.primary,
   },
   warn: {
     fontFamily: fonts.semibold,

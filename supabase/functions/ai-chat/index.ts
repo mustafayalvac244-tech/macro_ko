@@ -39,6 +39,8 @@ import { YEDEK_TAVAN_HATASI, bilinenIstekHatasi, yedekIzniVar } from '../_shared
 import { SOHBET_MESAJ_MAX, sohbetMesajlari } from '../_shared/sohbetGirdisi.ts';
 import { basarisizsaIadeEt, rezervasyonuIadeEt, yeniRezervasyon, type HakRezervasyonu } from '../_shared/hakIadesi.ts';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
+// Hukuki Araştırma (mod 'mutalaa'): istem yapısı, bölüm denetimi, iç süre bütçesi.
+import { MUTALAA_MODEL_BUTCESI_MS, MUTALAA_YAPI_TALIMATI, eksikBolumler, kalanMs, sureyleBekle } from '../_shared/mutalaaDenetim.ts';
 import { mesajlariHazirla } from '../_shared/onbellek.ts';
 // Avukatın eklediği belgeler (dilekçe/belge inceleme) — PDF görüntüsüyle gider.
 import { SORU_TAVANI, denetimKaynagi, ekAciklamasi, ekleriAyikla, ekUyarisi, pdfBloklari } from '../_shared/belgeEki.ts';
@@ -2605,7 +2607,16 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
     // ile düştü (scripts/olcum-sonnet-sonuc.json); Haiku (düşünmesiz) aynı
     // senaryoyu 90 sn'de bitirmişti. Düşünmenin kalite katkısı ölçülmedi;
     // hiç cevap verememek ise ölçüldü.
-    const call = async (sys: string, userText: string, maxTok: number): Promise<string> => {
+    // İÇ SÜRE BÜTÇESİ (bkz. _shared/mutalaaDenetim.ts): platform 546'sı hak iadesini
+    // ve anlamlı hatayı yok ediyordu. Bütçe bitmişse model çağrısı HİÇ BAŞLAMAZ
+    // (boşa token yakılmaz); sürerken biterse zaman_asimi atılır.
+    const mutalaaBas = Date.now();
+    const call = (sys: string, userText: string, maxTok: number): Promise<string> => {
+      const kalan = kalanMs(mutalaaBas, Date.now(), MUTALAA_MODEL_BUTCESI_MS);
+      if (kalan <= 0) return Promise.reject(new Error('zaman_asimi'));
+      return sureyleBekle(cagirIc(sys, userText, maxTok), kalan);
+    };
+    const cagirIc = async (sys: string, userText: string, maxTok: number): Promise<string> => {
       if (provider === 'claude') {
         // Sabit talimat (SYSTEM_PROMPT) önbelleğe alınır; sys'in geri kalanı
         // (araştırma dosyası) her adımda değiştiği için arkaya konur.
@@ -2719,14 +2730,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
 
       const synthSys =
         SYSTEM_PROMPT +
-        '\n\nŞU AN "MÜTALAA" MODUNDASIN: avukata, bir kıdemli ortağın yazacağı düzeyde RESMİ HUKUKİ ' +
-        'MÜTALAA hazırlıyorsun. Şu başlıklarla yaz:\n' +
-        '1. OLAY VE TESPİTLER\n2. HUKUKİ SORUNLAR\n3. İNCELEME (her sorunu ayrı ayrı, dayanaklarıyla)\n' +
-        '4. RİSKLER VE KARŞI TARAFIN OLASI SAVUNMALARI\n5. SONUÇ VE KANAAT (net tavsiye)\n' +
-        '6. ATILACAK ADIMLAR (sıralı, süreleriyle)\n' +
-        'Aşağıdaki ARAŞTIRMA DOSYASINDAKİ gerçek kural/madde/kararlara dayan; dosyada olmayan madde ' +
-        'numarası veya karar UYDURMA. Kapsamlı ama gereksiz tekrarsız yaz.\n' +
-        'Dosyada uygun karar yoksa "[emsal karar: İçtihat Arama ile ekleyin]" yaz; esas/karar numarasını ezberden yazma.\n' +
+        '\n\n' + MUTALAA_YAPI_TALIMATI +
         // KURAL DOSYAYA GİRDİ AMA MÜTALAAYA GİRMEDİ — ölçümde iki kez görüldü.
         // İşe iade olayında ise_iade kuralı beslemenin BİRİNCİ sırasındaydı ve
         // arabuluculuğun dava şartı olduğunu söylüyordu; mütalaada tek kelime
@@ -2737,7 +2741,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
         // Havuzdaki kurallar rastgele metin değil, ölçümle doğrulanmış ve her
         // biri bir hak kaybını önlemek için yazılmış cümlelerdir.
         'KESİN HUKUKİ KURALLAR bölümünde geçen her SÜRE, her DAVA ŞARTI ve her ZORUNLU ADIM ' +
-        'mütalaada AÇIKÇA yer almalıdır — özellikle arabuluculuk gibi dava şartları ve hak ' +
+        'notta AÇIKÇA yer almalıdır — özellikle arabuluculuk gibi dava şartları ve hak ' +
         'düşürücü süreler. Dosyadaki bir kuralı olaya uygulanabilir bulmuyorsan bunu GEREKÇESİYLE ' +
         'yaz; sessizce atlama.\n' +
         // SÜRE HESABI MÜTALAANIN İŞİDİR. Dilekçede olayda geçmeyen tarih
@@ -2758,14 +2762,14 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
         (() => {
           const basliklar = kuralBasliklari(dossier);
           return basliklar.length
-            ? '\n\n### MÜTALAAYI TESLİM ETMEDEN ÖNCE: yukarıdaki dosyada şu kurallar var. ' +
-              'HER BİRİNİN olaya etkisini mütalaada AÇIKÇA yaz; uygulanmıyorsa neden ' +
+            ? '\n\n### NOTU TESLİM ETMEDEN ÖNCE: yukarıdaki dosyada şu kurallar var. ' +
+              'HER BİRİNİN olaya etkisini notta AÇIKÇA yaz; uygulanmıyorsa neden ' +
               'uygulanmadığını yaz. Sessizce atlama:\n' +
               basliklar.map((b, i) => `${i + 1}. ${b}`).join('\n')
             : '';
         })();
 
-      const text = await call(synthSys, `MÜTALAA TALEBİ:\n${mutalaaQuestion}`, sentezMaxTok);
+      const text = await call(synthSys, `ARAŞTIRMA TALEBİ:\n${mutalaaQuestion}`, sentezMaxTok);
       if (!text.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
@@ -2784,8 +2788,12 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       // metin kendi içinde yanlış (karar yılı esas yılından önce olamaz);
       // ikincisinde eksik olan bizim korpusumuz — onun bedelini avukatın
       // hakkından düşmek haksızlık olur.
+      // EKSİK BÖLÜM = KUSUR (09.10.2026): altı bölümden biri yazılmamış not (ör.
+      // sınıra takılıp yarıda kalan, ATILACAK ADIMLAR'sız) "tamam" diye verilip hak
+      // düşülüyordu; denetim yalnız ölçüm betiğinde vardı.
+      const eksikBolum = eksikBolumler(text);
       const kusurlu =
-        kusurluCikti('mutalaa', text) ||
+        kusurluCikti('mutalaa', text, eksikBolum) ||
         uydurmaMadde.length > 0 ||
         (kararDenetimi?.olanaksiz.length ?? 0) > 0 ||
         // Ne havuzda ne canlı kaynakta olan künye = uydurma; hak düşülmez.
@@ -2810,6 +2818,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
         // hak düşürmez (bkz. _shared/kural.ts).
         atlananKural: atlanan.length ? atlanan : undefined,
         uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+        eksikBolum: eksikBolum.length ? eksikBolum : undefined,
         kararDenetimi: kararDenetimi ?? undefined,
         hakDusulmedi: kusurlu || undefined,
         istekId,
@@ -2821,6 +2830,18 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       });
     } catch (e) {
       const msg = (e as Error).message;
+      // İÇ SÜRE BÜTÇESİ DOLDU (09.10.2026): platformun 546'sından ÖNCE kendi
+      // kararımızla döneriz. 504 -> sarmalayıcı hakkı iade eder; ekran "internet"
+      // yerine gerçek sebebi söyler (bütçe: _shared/mutalaaDenetim.ts).
+      if (msg === 'zaman_asimi') {
+        return new Response(JSON.stringify({ error: 'zaman_asimi' }), { status: 504, headers: CORS });
+      }
+      // MODEL REDDİ ARIZA DEĞİLDİR (ucretliChat bilerek yedeğe geçirmez): "servis
+      // yanıt vermiyor, birazdan tekrar deneyin" demek yanıltıcıydı — aynı olayla
+      // tekrar denemek aynı sonucu verir. Hak sarmalayıcıda iade edilir (non-2xx).
+      if (msg === 'refusal') {
+        return new Response(JSON.stringify({ error: 'refusal' }), { status: 422, headers: CORS });
+      }
       const known = bilinenIstekHatasi(msg);
       // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
       // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
