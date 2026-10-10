@@ -10,6 +10,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
 import { AtifDenetimi } from '@/components/ui/AtifDenetimi';
 import { useAiChat, type AiMessage, type AiConversation } from '@/hooks/useAiChat';
+import { taslakGeriYukle } from '@/utils/sohbetGecmisi';
 import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -21,7 +22,7 @@ export default function AiChatScreen() {
   const styles = makeStyles(colors);
   const t = useT();
 
-  const { messages, sending, error, errorText, tier, send, newChat, conversations, activeId, openConversation, deleteConversation } =
+  const { messages, sending, error, errorText, tier, send, newChat, conversations, activeId, openConversation, deleteConversation, saklamaHatasi } =
     useAiChat();
   // Hak/paket hataları beklemekle geçmez; yolu (paket ekranını) göster.
   const showUpsell = !!error && ['daily_quota', 'quota_exceeded', 'deneme_hakki_bitti', 'tier_required', 'ai_soru_kota_bitti', 'ai_mutalaa_kota_bitti'].includes(error);
@@ -45,7 +46,7 @@ export default function AiChatScreen() {
     // Başarısız gönderimde yazılan soru kaybolmasın (uzun soruyu baştan
     // yazmak zorunda kalıyordu): kutuya geri konur.
     const ok = await send(text);
-    if (!ok) setDraft((d) => (d.trim() ? d : text));
+    if (!ok) setDraft((d) => taslakGeriYukle(d, text));
   };
 
   const empty = messages.length === 0;
@@ -136,6 +137,17 @@ export default function AiChatScreen() {
                   <Text style={styles.upsellBtnText}>{t('ai.plusUpsellBtn')}</Text>
                 </Pressable>
               )}
+            </View>
+          )}
+
+          {/* Cihaza yazılamadı: sohbet uygulama kapanınca gidebilir. Sessiz
+              kalmak, kullanıcıyı geçmişin duruyormuş sanmasına bırakırdı. */}
+          {saklamaHatasi && (
+            <View style={styles.errorBox}>
+              <View style={styles.errorRow}>
+                <Ionicons name="save-outline" size={18} color={colors.gold} />
+                <Text style={[styles.errorText, styles.errorTextInfo]}>{t('ai.errSaklama')}</Text>
+              </View>
             </View>
           )}
         </ScrollView>

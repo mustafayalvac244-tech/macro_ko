@@ -28,7 +28,10 @@ import {
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 import { canliIctihat, canliKunyeDogrula } from '../_shared/uyapCanli.ts';
-import { adim, modelSuresi, sureIzle, sureOzeti } from '../_shared/adimSure.ts';
+import { adim, modelSuresi, sureIzle, sureOzeti, yedekIzniVarMi, yedekKapisiKur } from '../_shared/adimSure.ts';
+// Yedek hat günlük kapısı ve sohbet girdi tavanı (10.10.2026) — bkz. dosya başlıkları.
+import { YEDEK_TAVAN_HATASI, bilinenIstekHatasi, yedekIzniVar } from '../_shared/yedekKapisi.ts';
+import { SOHBET_MESAJ_MAX, sohbetMesajlari } from '../_shared/sohbetGirdisi.ts';
 import { basarisizsaIadeEt, rezervasyonuIadeEt, yeniRezervasyon, type HakRezervasyonu } from '../_shared/hakIadesi.ts';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 import { mesajlariHazirla } from '../_shared/onbellek.ts';
@@ -318,6 +321,10 @@ async function ucretliChatIc(
     if ((e as Error).message === 'refusal') throw e;
     ilkHata = e as Error;
   }
+  // YEDEK HAT KULLANICI BAŞINA SINIRSIZDI (10.10.2026, bkz. _shared/yedekKapisi.ts):
+  // hak iade ediliyor, maliyet 0, günlük sayaç artmıyor — ortak ücretsiz
+  // havuzu tek kullanıcı bitirebilirdi. Yedeğe geçmeden hemen önce sorulur.
+  if (!(await yedekIzniVarMi())) throw new Error(YEDEK_TAVAN_HATASI);
   try {
     const duz = Array.isArray(stableSystem) ? stableSystem.join('') : stableSystem;
     const y = await ucretsizChat(duz + groundingSystem, ek?.yedekMsgs ?? msgs, maxTokens);
@@ -630,6 +637,25 @@ async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ 
   const { data } = await s.from('ai_usage').select('calls,cost_try').eq('user_id', userId).eq('period', period).maybeSingle();
   const r = data as { calls?: number; cost_try?: number } | null;
   return { calls: Number(r?.calls ?? 0), cost: Number(r?.cost_try ?? 0) };
+}
+
+/**
+ * Bu kullanıcının BUGÜN yedek hatla aldığı cevap sayısı (bkz. _shared/
+ * yedekKapisi.ts). Yedek hat = müşteriye yazılmayan VE maliyeti 0 olan istek:
+ * kusurlu Claude cevabı da müşteriye yazılmaz ama maliyeti sıfırdan büyüktür.
+ * (user_id, gun) dizini var (0056). Okunamazsa null: kapı kullanıcıyı engellemez.
+ */
+async function yedekBugun(userId: string): Promise<number | null> {
+  const s = svc();
+  if (!s) return null;
+  const { count, error } = await s
+    .from('ai_istek')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('gun', aiGun())
+    .eq('musteriye_yazildi', false)
+    .eq('maliyet_try', 0);
+  return error ? null : (count ?? 0);
 }
 
 /**
@@ -2179,6 +2205,9 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
+  // Yedek hat günlük kapısı bu isteğe bağlanır (kullanıcı doğrulandı); sayım
+  // yalnız yedeğe inileceği anda yapılır (bkz. ucretliChatIc).
+  yedekKapisiKur(() => yedekIzniVar(() => yedekBugun(userData.user.id)));
 
   let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string; istekId?: string; sebep?: string; ekler?: unknown; taslak?: string; kaynak?: string };
   try {
@@ -2247,9 +2276,16 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   // `taslak` = avukatın elindeki GÜNCEL metin, `question` = talimat.
   const isDuzelt = body.mode === 'duzelt';
   const promptQuestion = (body.question ?? '').trim();
-  const messages = (isMutalaa || isDilekce || isBelge || isKunye || isDuzelt)
-    ? [{ role: 'user' as const, text: promptQuestion }]
-    : (body.messages ?? []).slice(-30);
+  // SOHBET GİRDİSİ TAVANLI (10.10.2026, bkz. _shared/sohbetGirdisi.ts): mesaj
+  // uzunluğu sınırsızdı. Bu denetim hak ayrılmadan ÖNCE — reddedilen istek
+  // hiçbir şey harcamaz. Son mesaj çok uzunsa kesilmez, reddedilir.
+  const sohbetGirdisi = (isMutalaa || isDilekce || isBelge || isKunye || isDuzelt) ? null : sohbetMesajlari(body.messages);
+  if (sohbetGirdisi && 'hata' in sohbetGirdisi) {
+    return new Response(JSON.stringify({ error: sohbetGirdisi.hata, azami: SOHBET_MESAJ_MAX }), { status: 413, headers: CORS });
+  }
+  const messages = sohbetGirdisi && 'mesajlar' in sohbetGirdisi
+    ? sohbetGirdisi.mesajlar
+    : [{ role: 'user' as const, text: promptQuestion }];
   // EKLİ BELGELER — yalnız dilekçe ve belge incelemede (bkz. _shared/belgeEki.ts).
   // Boyut tavanı aşılırsa istek BAŞLAMADAN reddedilir: hak düşmez, kota
   // rezerve edilmez.
@@ -2742,7 +2778,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       });
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
       // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
@@ -2957,7 +2993,7 @@ async function dosyaKunyesiIc(
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
@@ -3271,7 +3307,7 @@ async function dosyaKunyesiIc(
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
       // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
@@ -3378,7 +3414,7 @@ async function dosyaKunyesiIc(
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
@@ -3519,7 +3555,7 @@ async function dosyaKunyesiIc(
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
       // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
@@ -3600,7 +3636,7 @@ async function dosyaKunyesiIc(
     }
   } catch (e) {
     const msg = (e as Error).message;
-    const known = msg === 'rate_limit' || msg === 'daily_quota';
+    const known = bilinenIstekHatasi(msg);
 
     // İKİ SAĞLAYICI DA DÜŞTÜ. Hata kutusu göstermek yerine, aramanın zaten
     // bulduğu mevzuatı doğrudan veriyoruz: avukat için "bir hata oluştu"

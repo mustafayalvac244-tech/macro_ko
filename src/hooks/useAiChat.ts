@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { sohbetleriOku, sohbetleriYaz } from '@/lib/sohbetDeposu';
 import { gonderilecekGecmis } from '@/utils/sohbetGecmisi';
 import { useAuthStore } from '@/store/authStore';
-import { aiHataMetni } from '@/lib/aiHata';
+import { AI_SOHBET_ZAMAN_ASIMI_MS, aiBaglantiKodu, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 
 /** Bir sohbet balonu. `model` = AI yanıtı, `user` = avukatın sorusu. */
@@ -93,6 +93,9 @@ export function useAiChat() {
   const [yeniden, setYeniden] = useState<number | null>(null);
   // Sunucunun bildirdiği aktif AI katmanı (üyeliğe göre): basic | plus.
   const [tier, setTier] = useState<'basic' | 'plus' | null>(null);
+  // Cihaz deposuna yazma başarısız oldu mu? Eskiden `.catch(() => {})` ile
+  // yutuluyordu: depo doluysa sohbet uygulama kapanınca sessizce kayboluyordu.
+  const [saklamaHatasi, setSaklamaHatasi] = useState(false);
 
   // Kenarda saklanan tüm sohbetler ve o an açık olanın kimliği.
   const [conversations, setConversations] = useState<AiConversation[]>([]);
@@ -101,6 +104,9 @@ export function useAiChat() {
 
   // Yarışı önlemek için gönderim sırasında en güncel geçmişi ref'te tutuyoruz.
   const historyRef = useRef<AiMessage[]>([]);
+  // `sending` state'i bir sonraki çizime kadar eski kalır; aynı anda iki dokunuş
+  // iki istek (iki hak) demekti. Ref anında güncellenir.
+  const gonderiyorRef = useRef(false);
   const activeIdRef = useRef<string>(activeId);
   activeIdRef.current = activeId;
 
@@ -133,7 +139,7 @@ export function useAiChat() {
   const persist = useCallback((list: AiConversation[]) => {
     const uid = userIdRef.current;
     if (!uid || !loadedRef.current) return;
-    sohbetleriYaz(uid, JSON.stringify(list)).catch(() => {});
+    sohbetleriYaz(uid, JSON.stringify(list)).then(() => setSaklamaHatasi(false), () => setSaklamaHatasi(true));
   }, []);
 
   /**
@@ -170,7 +176,11 @@ export function useAiChat() {
   const send = useCallback(
     async (raw: string): Promise<boolean> => {
       const text = raw.trim();
-      if (!text || sending) return true;
+      if (!text) return true;
+      // Gönderim sürerken gelen çağrı SESSİZCE yutulmaz: false dönünce ekran
+      // soruyu kutuya geri koyar (eskiden true dönüyor, kutu boşalıyordu).
+      if (sending || gonderiyorRef.current) return false;
+      gonderiyorRef.current = true;
 
       setError(null);
       const userMsg: AiMessage = { id: nextId(), role: 'user', text };
@@ -200,9 +210,19 @@ export function useAiChat() {
       try {
         const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
           body: { messages: gonderilecekGecmis(history).map((m) => ({ role: m.role, text: m.text })) },
+          // Askıda kalan bağlantı sonsuza dek beklenmez (bkz. AI_SOHBET_ZAMAN_ASIMI_MS).
+          timeout: AI_SOHBET_ZAMAN_ASIMI_MS,
         });
 
         if (fnErr) {
+          // SUNUCUYA HİÇ ULAŞILAMADI (zaman aşımı ya da ağ yok): aşağıdaki
+          // "sunucuya ulaşıldı" varsayımı geçerli değil; sebep ayrı söylenir.
+          const baglanti = aiBaglantiKodu(fnErr);
+          if (baglanti) {
+            setError(baglanti);
+            geriAl();
+            return false;
+          }
           // functions.invoke, non-2xx yanıtta FunctionsHttpError fırlatır;
           // gövdeyi okuyup kota hatasını ayırt etmeye çalışıyoruz.
           let code = '';
@@ -268,6 +288,7 @@ export function useAiChat() {
         geriAl();
         return false;
       } finally {
+        gonderiyorRef.current = false;
         setSending(false);
       }
     },
@@ -337,5 +358,6 @@ export function useAiChat() {
     openConversation,
     deleteConversation,
     loaded,
+    saklamaHatasi,
   };
 }
