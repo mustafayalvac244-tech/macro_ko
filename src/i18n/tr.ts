@@ -1465,12 +1465,27 @@ export const tr = {
     'İYUK m.61/1: bölge idare mahkemesinin bulunduğu il merkezi dışında olup yalnızca bir idare ' +
     'veya bir vergi mahkemesi bulunan yerlerde çalışmaya ara verme uygulanmaz; bu mahkemelerde ' +
     'süre UZAMAZ. Mahkemenizin bu kapsamda olup olmadığını teyit edin.',
+  // HMK m.104 yalnız "adli tatile tabi olan dava ve işlerde" uzatır; m.103'te
+  // sayılanlar tatilde görüldüğü için tabi değildir. Dava türünü uygulama bilmez.
+  'wizard.hukukRecessException':
+    'HMK m.104 uzaması yalnız adli tatile tabi dava ve işlerde uygulanır. HMK m.103’te sayılan işlerde ' +
+    '(ör. ihtiyati tedbir/haciz, nafaka, soybağı/velayet/vesayet, işçi davaları, iflas/konkordato, ' +
+    'çekişmesiz yargı, ivedi işler) süre UZAMAZ. Davanızın türünü teyit edin.',
+  'wizard.recessNotApplied':
+    'Son gün adli tatile (20 Temmuz – 31 Ağustos) denk geliyor, ancak bu süre için adli tatil uzaması ' +
+    'hesaplanmıyor. Gösterilen tarih uzamasız (erken) tarihtir; dosyanızda uzama olup olmadığını teyit edin.',
+  'wizard.recessRolledNote':
+    'Son gün, hafta sonu/resmî tatil kaydırmasıyla adli tatilin ilk gününe (20 Temmuz) denk geliyor. Adli ' +
+    'tatil uzaması bu durumda UYGULANMADI (erken tarih gösteriliyor); uygulanıp uygulanmadığını teyit edin — ' +
+    'uygulanırsa son gün daha geç olur.',
   'wizard.bayramNote':
-    'Son gün dini bayram tatiline denk gelebilir. Dini bayramlar otomatik hesaba katılmaz; resmî takvimden teyit edin.',
+    'Son gün yarım gün tatile (dini bayram arefesi ya da 28 Ekim; saat 13.00’ten sonra) denk geliyor ya da ' +
+    'tarih, uygulamanın dini bayram takviminin dışında kalıyor. Dilekçeyi mümkünse 13.00’ten önce verin; ' +
+    'bayram günlerini resmî takvimden teyit edin.',
   'wizard.recessNote':
     'Son gün adli tatile (20 Temmuz – 31 Ağustos) denk geliyor. Dosyanız adli tatile tabi ise süre, tatilin bitiminden itibaren bir hafta uzar (HMK 104). Kontrol edin.',
   'wizard.disclaimer':
-    'Hesaplama bilgilendirme amaçlıdır; dini bayram tatilleri hesaba katılmaz. Süreyi mutlaka mevzuattan ve dosyanızdan teyit edin.',
+    'Hesaplama bilgilendirme amaçlıdır; dini bayram günleri Diyanet takvimine göre hesaba katılır, idari izin (köprü) günleri ve yarım gün tatiller katılmaz. Süreyi mutlaka mevzuattan ve dosyanızdan teyit edin.',
   'wizard.caseLabel': 'Görevin ekleneceği dava',
   'wizard.noCases': 'Açık davanız yok. Görev oluşturmak için önce bir dava ekleyin.',
   'wizard.createTask': 'Görev Oluştur',

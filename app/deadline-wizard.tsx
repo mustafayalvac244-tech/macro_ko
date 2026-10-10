@@ -11,7 +11,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useCases } from '@/hooks/useCases';
 import { useCreateDeadline } from '@/hooks/useDeadlines';
 import { LEGAL_DEADLINES, LEGAL_DEADLINE_GROUPS, type LegalDeadlineGroup } from '@/constants/legalDeadlines';
-import { computeLegalDue, recessRuleForGroup } from '@/utils/legalDates';
+import { computeLegalDue, recessRuleForDeadline } from '@/utils/legalDates';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -46,9 +46,10 @@ export default function DeadlineWizardScreen() {
   const items = LEGAL_DEADLINES.filter((d) => d.group === group);
   const selected = LEGAL_DEADLINES.find((d) => d.id === selectedId) ?? null;
 
+  const recessRule = selected ? recessRuleForDeadline(selected) : 'none';
   const result = useMemo(
-    () => (selected ? computeLegalDue(notifiedAt, selected.amount, selected.unit, recessRuleForGroup(selected.group)) : null),
-    [selected, notifiedAt]
+    () => (selected ? computeLegalDue(notifiedAt, selected.amount, selected.unit, recessRule) : null),
+    [selected, notifiedAt, recessRule]
   );
 
   const durationLabel = (amount: number, unit: 'day' | 'week' | 'month' | 'year') =>
@@ -180,6 +181,28 @@ export default function DeadlineWizardScreen() {
                 <Text style={[styles.noticeText, { color: colors.warning }]}>
                   {t('wizard.idariRecessException')}
                 </Text>
+              </View>
+            )}
+            {/* HMK m.104: uzama yalnız adli tatile tabi dava ve işlerde; m.103'te
+                sayılanlarda süre uzamaz. Dava türünü uygulama bilmez. */}
+            {result.recessExtended && recessRule === 'civil' && (
+              <View style={styles.noticeRow}>
+                <Ionicons name="warning" size={15} color={colors.warning} />
+                <Text style={[styles.noticeText, { color: colors.warning }]}>
+                  {t('wizard.hukukRecessException')}
+                </Text>
+              </View>
+            )}
+            {result.recessNotApplied && (
+              <View style={styles.noticeRow}>
+                <Ionicons name="information-circle" size={15} color={colors.info} />
+                <Text style={[styles.noticeText, { color: colors.info }]}>{t('wizard.recessNotApplied')}</Text>
+              </View>
+            )}
+            {result.inRecess && !result.recessExtended && recessRule !== 'none' && (
+              <View style={styles.noticeRow}>
+                <Ionicons name="warning" size={15} color={colors.warning} />
+                <Text style={[styles.noticeText, { color: colors.warning }]}>{t('wizard.recessRolledNote')}</Text>
               </View>
             )}
             {result.religiousWarn && (
