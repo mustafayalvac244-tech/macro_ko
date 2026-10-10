@@ -29,7 +29,7 @@ describe('canlı künye teyidi', () => {
   it('denetim sonucu canlidaYok alanı taşıyor ve kaynağı ayırıyor', () => {
     expect(aiChat).toMatch(/canlidaYok: string\[\];/);
     expect(aiChat).toMatch(/kaynak\?: 'havuz' \| 'uyap'/);
-    expect(aiChat).toContain('canliKunyeDogrula(esas, karar)');
+    expect(aiChat).toContain('canliKunyeDogrula(esas, karar, atifDaireAnahtari(a))');
     expect(aiChat).toMatch(/if \(r === null\) return;[\s\S]*kaynak: 'uyap'[\s\S]*canlidaYok\.push/);
     // 08.10.2026: aday seçimi canliTeyideUygun'a taşındı (kullanıcının kendi
     // künyesi ve ilk derece bağlamı muaf; bkz. tests/kunyeKaynakMuafiyet.test.ts).
@@ -68,9 +68,30 @@ describe('canlı künye teyidi', () => {
     // Çıkarılan metin yanıta gidiyor (orijinal değil).
     expect(aiChat).toContain('text: sonMetin.trim(), tier, model: kullanim.model, issues,');
     expect(aiChat).toContain('text: sonMetin.trim(), tier, model: kullanilanModel, istekId,');
-    // ham, metindeki yazılış: split/join ile çıkarılabilmesi için ALT DİZE olmalı.
+    // Çıkarma, boşluk/biçim farkına dayanıklı konum tabanlı yardımcıyla yapılır
+    // (eski split(ham) satır sonlu künyeyi bulamıyor, ekran yine "çıkarıldı" diyordu).
+    expect(aiChat).toContain('kunyeleriDegistir(m, [ham], KUNYE_YER_TUTUCU)');
+    // 22. ajan (10.10.2026): bu döngü eskiden BOŞTU — önekli yazılışta kararAtiflari
+    // hiç atıf döndürmüyor, hiçbir şey denetlenmiyordu. Önce atıf sayısı sınanır.
     const metin = 'Yargıtay 9. HD, E. 2019/1234, K. 2020/5678 sayılı kararı uyarınca';
-    for (const a of kararAtiflari(metin)) expect(metin).toContain(a.ham);
+    const atiflar = kararAtiflari(metin);
+    expect(atiflar).toHaveLength(1);
+    for (const a of atiflar) expect(metin).toContain(a.ham);
+  });
+
+  it('"doğrulandı" dairesiz olmaz: havuz (göç 0202) ve canlı teyit daireyi karşılaştırır', () => {
+    // 22. ajan, 10.10.2026: esas numarası her dairede ayrı işler; numara tutan başka
+    // dairenin kararı uydurma "9. HD …" künyesini "doğrulandı" yapıyordu.
+    const goc = oku('supabase/migrations/0202_karar_atfi_daire.sql');
+    expect(goc).toContain('public.karar_atfi_daire_no(k.daire) = a.daire');
+    expect(goc).toContain('revoke all on function public.havuzdaki_kararlar(jsonb) from public, anon, authenticated;');
+    const uyap = oku('supabase/functions/_shared/uyapCanli.ts');
+    expect(uyap).toContain('daireAnahtarlariUyumlu(daire, x.daire)');
+    expect(uyap).toContain('daireFarkli: true');
+    // Başka dairede bulunan numara silinmez (uydurma kanıtı değil): sarıda kalır.
+    expect(aiChat).toContain('if (r.daireFarkli) return;');
+    // Konu sözcüğü olmayan cümle öneri aramasına gitmez.
+    expect(aiChat).toContain('!oneriCumlesiYeterli(cumle)');
   });
 
   it("ekran künyeyi LİSTELEMEZ, yalnız sayı; metinler tr ve en'de", () => {

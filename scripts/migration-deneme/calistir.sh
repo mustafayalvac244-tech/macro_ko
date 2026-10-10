@@ -123,5 +123,15 @@ if [ "$VAR5" = "t" ]; then
     | grep -E "GEÇTİ|KALDI|ERROR" || true
 fi
 
+# Karar atfı daire ölçümü, YALNIZ 0202 bu koşuda uygulandıysa anlamlıdır.
+VAR6=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA \
+  -c "select to_regprocedure('public.karar_atfi_daire_no(text)') is not null" 2>/dev/null || echo f)
+if [ "$VAR6" = "t" ]; then
+  echo
+  echo "--- karar atfı daire ölçümü (0202) ---"
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -f "$KOK/scripts/migration-deneme/karar-atfi-daire-olcum.sql" 2>&1 \
+    | grep -E "GEÇTİ|KALDI|ERROR" || true
+fi
+
 psql -h /tmp -p "$PORT" -U postgres -q -c "drop database $DB;" >/dev/null 2>&1 || true
 exit $HATA

@@ -64,7 +64,18 @@ import { maddeAtiflari } from '../_shared/atif.ts';
 // Uydurma "Yargıtay 9. HD 2019/12345 E." satırı, uydurma maddeden daha
 // tehlikelidir: yanlış maddeyi hâkim okuduğu an anlar, uydurma karar numarası
 // dosyaya girer ve ilk fark eden karşı vekil olur (bkz. _shared/kararAtif.ts).
-import { canliTeyideUygun, havuzSorgusu, kaynaktaGeciyor, kararAtiflari, tutarsizKararlar, type TutarsizKarar } from '../_shared/kararAtif.ts';
+import {
+  atifDaireAnahtari,
+  canliTeyideUygun,
+  havuzSorgusu,
+  kararAtiflari,
+  kaynaktaGeciyor,
+  kunyeCumlesi,
+  kunyeleriDegistir,
+  oneriCumlesiYeterli,
+  tutarsizKararlar,
+  type TutarsizKarar,
+} from '../_shared/kararAtif.ts';
 // Dosyaya giren kuralın cevapta işlenip işlenmediği (_shared/kural.ts). Ölçülen
 // iki mütalaa kusurunun ikisi de "kural dosyadaydı, model yok saydı"ydı.
 import { atlananKurallar, cakisanDayanaklar } from '../_shared/kural.ts';
@@ -863,16 +874,6 @@ export interface KararDenetimi {
  */
 const KUNYE_YER_TUTUCU = '[emsal karar: aşağıdaki önerilerden ya da İçtihat Arama ekranından gerçek bir karar ekleyin]';
 
-/** Künyenin geçtiği cümle (±1 cümle sınırı, ≤300 karakter), künye çıkarılmış hâliyle. */
-function kunyeCumlesi(metin: string, ham: string): string {
-  const i = metin.indexOf(ham);
-  if (i < 0) return '';
-  const bas = Math.max(0, Math.max(metin.lastIndexOf('.', i - 1), metin.lastIndexOf('\n', i - 1)) + 1);
-  const sonAday = [metin.indexOf('.', i + ham.length), metin.indexOf('\n', i + ham.length)].filter((x) => x >= 0);
-  const son = sonAday.length ? Math.min(...sonAday) : metin.length;
-  return metin.slice(bas, son).split(ham).join(' ').replace(/\s+/g, ' ').trim().slice(0, 300);
-}
-
 /**
  * Çıkarılan künyenin cümlesi için GERÇEK karar arar: önce havuz (FTS), yoksa
  * canlı kaynak (bütçe ve devre kesici uyapCanli'de; canlı bulunan arşivlenir,
@@ -881,7 +882,9 @@ function kunyeCumlesi(metin: string, ham: string): string {
  */
 async function gercekKararOner(cumle: string): Promise<Array<{ atif: string; daire?: string; tarih?: string; id?: string; ozet?: string }>> {
   const s = svc();
-  if (!s || cumle.length < 20) return [];
+  // Konu sözcüğü yoksa (yalnız "Yargıtay 9. HD sayılı kararı" gibi kalıp) FTS
+  // rastgele bir karar döndürür ve "bu cümle için gerçek karar" diye sunulurdu.
+  if (!s || cumle.length < 20 || !oneriCumlesiYeterli(cumle)) return [];
   try {
     const { data } = await s.rpc('search_ictihat_fts', { q: cumle, match_count: 2 });
     // deno-lint-ignore no-explicit-any
@@ -917,15 +920,29 @@ async function uydurmaKunyeleriCikarIc(metin: string, d: KararDenetimi | null): 
   // Öneri aramaları eşzamanlı, en fazla 3 künye (her biri 1 FTS + en çok 1 canlı).
   const cumleler = hamlar.slice(0, 3).map((ham) => kunyeCumlesi(metin, ham));
   const bulunanlar = await Promise.all(cumleler.map((c) => gercekKararOner(c)));
+  const cikarilmayan: string[] = [];
   for (const [i, ham] of hamlar.entries()) {
-    const once = m;
-    m = m.split(ham).join(KUNYE_YER_TUTUCU);
-    if (m === once) continue;
+    // Numaraya göre ve boşluk/yazılış farkına bakmadan (bkz. kunyeleriDegistir).
+    const { metin: yeni, degisen } = kunyeleriDegistir(m, [ham], KUNYE_YER_TUTUCU);
+    if (!degisen.length) {
+      cikarilmayan.push(ham);
+      continue;
+    }
+    m = yeni;
     cikarilan++;
     const kararlar = bulunanlar[i] ?? [];
     if (kararlar.length) oneriler.push({ icin: cumleler[i].slice(0, 140), kararlar });
   }
   if (oneriler.length) d.oneriler = oneriler;
+  // Metinde bulunamayıp ÇIKARILAMAYAN künye "çıkarıldı" sayılmaz: ekran yalnız
+  // olanaksiz+canlidaYok uzunluğunu söylüyor. Dürüst düşüş: metinde kaldığı için
+  // sarı "teyit ediniz" listesine alınır.
+  if (cikarilmayan.length) {
+    const kalan = new Set(cikarilmayan);
+    d.canlidaYok = d.canlidaYok.filter((h) => !kalan.has(h));
+    d.olanaksiz = d.olanaksiz.filter((o) => !kalan.has(o.atif));
+    d.havuzdaYok.push(...cikarilmayan.filter((h) => !d.havuzdaYok.includes(h)));
+  }
   return { metin: m, cikarilan };
 }
 
@@ -986,8 +1003,11 @@ async function kararAtfiDenetimiIc(metin: string, kaynak = ''): Promise<KararDen
       adaylar.map(async (a) => {
         const esas = a.esasYil ? `${a.esasYil}/${a.esasNo}` : '';
         const karar = a.kararYil ? `${a.kararYil}/${a.kararNo}` : '';
-        const r = await adim('kunye_canli', () => canliKunyeDogrula(esas, karar));
+        const r = await adim('kunye_canli', () => canliKunyeDogrula(esas, karar, atifDaireAnahtari(a)));
         if (r === null) return;
+        // Numara BAŞKA dairede bulundu: "doğrulandı" denemez ama "uydurma" da
+        // denemez (daire adı yanlış yazılmış olabilir) → silinmez, sarıda kalır.
+        if (r.daireFarkli) return;
         if (r.bulundu) bulunan.set(anahtar(a), { daire: r.daire, tarih: r.tarih, id: r.id, kaynak: 'uyap' });
         else canlidaYok.push(a.ham);
       })
