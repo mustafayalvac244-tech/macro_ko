@@ -60,6 +60,20 @@ const HUKUKI_FORM_EKLERI = [
 /** Kimlik taşımayan bağlaç — nerede geçerse geçsin atılır. */
 const BAGLAC = 've';
 
+/**
+ * TİCARET UNVANI KALIBI — nerede geçerse geçsin atılır (09.10.2026).
+ *
+ * "X Sanayi ve Ticaret A.Ş." kalıbı unvanlarda kimlik taşımaz. Sayılırken
+ * "Kaya Sanayi ve Ticaret A.Ş." ile "Demir Sanayi ve Ticaret A.Ş." iki ortak
+ * sözcükle GÜÇLÜ (kırmızı) çatışma çıkıyordu (tests/menfaatCatismasi.test.ts).
+ * Sektör sözcükleri (inşaat, turizm, tekstil) bu listeye GİRMEZ: yukarıdaki
+ * HUKUKI_FORM_EKLERI notundaki gerekçeyle, onlar unvanın ayırt edici parçası.
+ * Kısaltmalar ("San.", "Tic.") yalnız NOKTALI yazıldığında atılır: noktasız
+ * "San" bir soyadı olabilir.
+ */
+const UNVAN_KALIBI = ['sanayi', 'ticaret'];
+const UNVAN_KALIBI_KISALTMA = ['san', 'tic'];
+
 /** Hitap/unvan önekleri. */
 const UNVANLAR = ['av', 'avukat', 'dr', 'doc', 'prof', 'sayin', 'bay', 'bayan', 'mudur', 'mudurlugu'];
 
@@ -87,27 +101,63 @@ export function turkceSadelestir(v: string): string {
  * Sıralama, "Ahmet Yılmaz" ile "Yılmaz Ahmet"i aynı yapan adımdır.
  */
 export function adSozcukleri(ad: string): string[] {
+  return sozcukleriCoz(ad).sozcukler.map((x) => x.s);
+}
+
+interface Sozcuk {
+  s: string;
+  /** Noktayla biten en az üç harflik kısaltma ("İnş.") — karşı adda tamamlanır. */
+  kisaltma: boolean;
+}
+
+/**
+ * adSozcukleri'nin ayrıntılı hâli: sözcüklerin kısaltma olup olmadığını ve
+ * adın ŞİRKET adı olduğunu (hukuki biçim eki ya da unvan kalıbı atıldı mı)
+ * da söyler. Eşleştirme bu iki bilgiye ihtiyaç duyar.
+ */
+function sozcukleriCoz(ad: string): { sozcukler: Sozcuk[]; sirket: boolean } {
   const temiz = turkceSadelestir(ad)
+    .replace(/[,;:()"'`/\\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!temiz) return { sozcukler: [], sirket: false };
+
+  let sirket = false;
+  const sozcukler: Sozcuk[] = [];
+  for (const ham of temiz.split(' ')) {
     // NOKTA SİLİNİR, BOŞLUĞA ÇEVRİLMEZ. "A.Ş." noktadan bölünürse [a, s] diye
     // iki anlamsız harf üretir ve unvan eki listesindeki "as" ile eşleşmez;
     // testte "A.Ş." ile "Anonim Şirketi" bu yüzden birebir tutmuyordu.
     // Kısaltmanın harfleri bitişik kalmalı: "a.ş." -> "as".
-    .replace(/\./g, '')
-    .replace(/[,;:()"'`/\\-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!temiz) return [];
-  const sozcukler = temiz
-    .split(' ')
-    .filter((s) => s.length > 0)
-    .filter((s) => !UNVANLAR.includes(s))
-    .filter((s) => s !== BAGLAC);
+    const s = ham.replace(/\./g, '');
+    if (!s || UNVANLAR.includes(s) || s === BAGLAC) continue;
+    const noktali = ham.endsWith('.');
+    if (UNVAN_KALIBI.includes(s) || (noktali && UNVAN_KALIBI_KISALTMA.includes(s))) {
+      sirket = true;
+      continue;
+    }
+    sozcukler.push({ s, kisaltma: noktali && s.length >= 3 });
+  }
 
   // Hukuki form eklerini SONDAN, tükenene kadar at.
-  while (sozcukler.length > 0 && HUKUKI_FORM_EKLERI.includes(sozcukler[sozcukler.length - 1]!)) {
+  while (sozcukler.length > 0 && HUKUKI_FORM_EKLERI.includes(sozcukler[sozcukler.length - 1]!.s)) {
     sozcukler.pop();
+    sirket = true;
   }
-  return sozcukler;
+  return { sozcukler, sirket };
+}
+
+/**
+ * Noktalı kısaltmayı ("ins" ← "İnş.") karşı addaki, onunla başlayan tam
+ * sözcükle değiştirir: "Ekin İnş." ile "Ekin İnşaat" aynı sözcük kümesine iner.
+ * Yalnız noktalı yazım: noktasız "Can" ile "Candan" aynı sayılmaz.
+ */
+function kisaltmaCoz(liste: Sozcuk[], karsi: Sozcuk[]): string[] {
+  return liste.map(({ s, kisaltma }) => {
+    if (!kisaltma) return s;
+    const tam = karsi.find((k) => !k.kisaltma && k.s.length > s.length && k.s.startsWith(s));
+    return tam ? tam.s : s;
+  });
 }
 
 /** Karşılaştırma anahtarı: sözcükler sıralı ve tekilleştirilmiş. */

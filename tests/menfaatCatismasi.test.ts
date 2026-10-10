@@ -191,3 +191,48 @@ describe('ciddiMi — uyarının tonu', () => {
     expect(ciddiMi(zayif)).toBe(false);
   });
 });
+
+/**
+ * ŞİRKET ADLARI (09.10.2026, kodla ölçüldü). Ticaret unvanlarındaki
+ * "Sanayi ve Ticaret" kalıbı ayırt edici sözcük sayılıyordu: ortak adı olmayan
+ * iki şirket KIRMIZI (güçlü) çatışma çıkıyordu. Tersine aynı şirketin
+ * "San. ve Tic." / "İnş." kısaltmalı yazımı tanınmıyordu. Tek sözcüklük şirket
+ * adı ("Akasya A.Ş.") kişi adı kuralına ("Ahmet" tek başına ayırt edici değil)
+ * takılıp hiçbir şeyle eşleşmiyordu. Adlar uydurmadır.
+ */
+describe('adEslesmesi — şirket adları', () => {
+  it('yalnız "Sanayi ve Ticaret" kalıbını paylaşan iki şirket eşleşmez', () => {
+    expect(adEslesmesi('Kaya Sanayi ve Ticaret A.Ş.', 'Demir Sanayi ve Ticaret A.Ş.')).toBeNull();
+  });
+
+  it('kalıp + ortak sektör sözcüğü güçlü değil, zayıf sayılır', () => {
+    expect(adEslesmesi('Ekin İnşaat Sanayi ve Ticaret Ltd. Şti.', 'Doruk İnşaat Sanayi ve Ticaret Ltd. Şti.')).toBe('zayif');
+  });
+
+  it('kısaltmalı yazım aynı şirketi bulur (San. ve Tic., İnş.)', () => {
+    expect(adEslesmesi('Ekin İnş. San. ve Tic. Ltd. Şti.', 'Ekin İnşaat Sanayi ve Ticaret Ltd. Şti.')).toBe('kesin');
+    expect(adEslesmesi('Ekin San. Tic. A.Ş.', 'Ekin Sanayi ve Ticaret A.Ş.')).toBe('kesin');
+  });
+
+  it('tek sözcüklük şirket adı aynı adı taşıyan şirketle zayıf eşleşir', () => {
+    expect(adEslesmesi('Akasya A.Ş.', 'Akasya Pazarlama A.Ş.')).toBe('zayif');
+    expect(adEslesmesi('Akasya Pazarlama A.Ş.', 'Akasya A.Ş.')).toBe('zayif');
+  });
+
+  it('kişi soyadını taşıyan şirket zayıf eşleşmeye devam eder', () => {
+    expect(adEslesmesi('Mehmet Kaya', 'Kaya Sanayi ve Ticaret A.Ş.')).toBe('zayif');
+  });
+
+  it('noktasız kısa sözcük kısaltma sayılmaz (soyadı "San", "Can")', () => {
+    expect(adSozcukleri('Ali San')).toEqual(['ali', 'san']);
+    expect(adEslesmesi('Ali Can', 'Ali Candan')).toBeNull();
+  });
+
+  it('formda: kalıbı paylaşan ilgisiz şirket kırmızı uyarı üretmez', () => {
+    const b = menfaatTara(
+      { ad: 'Kaya Sanayi ve Ticaret A.Ş.' },
+      { muvekkiller: [], davalar: [{ id: 'd1', title: 'Alacak', opposing_party: 'Demir Sanayi ve Ticaret A.Ş.' }] }
+    );
+    expect(ciddiMi(b)).toBe(false);
+  });
+});
