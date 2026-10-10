@@ -18,6 +18,7 @@ import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { hesaplaSmm, VARSAYILAN_KDV_ORANI, VARSAYILAN_STOPAJ_ORANI } from '@/utils/serbestMeslekMakbuzu';
 import { oranOku, oranYaz, tutarOku, tutarYaz } from '@/utils/tutar';
+import { oranGecerliMi } from '@/utils/finansHesap';
 import type { FinanceCategory, FinanceKind } from '@/types/database';
 import { geriDon } from '@/lib/geriDon';
 
@@ -82,6 +83,15 @@ export default function FinanceFormScreen() {
       setError(t('financeForm.amountRequired'));
       return;
     }
+    // KDV / stopaj oranı: okunamayan (boş, "abc") oran eskiden `|| 0` ile
+    // sessizce %0 kaydediliyordu; 100'ü aşan oran veritabanı CHECK'ine (0–100)
+    // çarpıp genel "kaydedilemedi" diyordu. Artık kaydetmeden önce söylenir.
+    const kdvOrani = kind === 'income' && applyVat ? oranOku(vatRate) : null;
+    const stopajOrani = kind === 'income' && applyWithholding ? oranOku(withholdingRate) : null;
+    if ((kdvOrani != null && !oranGecerliMi(kdvOrani)) || (stopajOrani != null && !oranGecerliMi(stopajOrani))) {
+      setError(t('financeForm.rateInvalid'));
+      return;
+    }
     const payload = {
       kind,
       category,
@@ -90,8 +100,8 @@ export default function FinanceFormScreen() {
       entry_date: format(entryDate, 'yyyy-MM-dd'),
       is_recurring: isRecurring,
       note: note.trim() || null,
-      vat_rate: kind === 'income' && applyVat ? oranOku(vatRate) || 0 : null,
-      withholding_rate: kind === 'income' && applyWithholding ? oranOku(withholdingRate) || 0 : null,
+      vat_rate: kdvOrani,
+      withholding_rate: stopajOrani,
       receipt_no: kind === 'income' ? receiptNo.trim() || null : null,
       receipt_issued: kind === 'income' && !!receiptNo.trim(),
     };

@@ -1,5 +1,6 @@
 import { Platform, Share } from 'react-native';
 import { dosyaAdiUret } from '@/utils/dosyaAdi';
+import { bomEkle } from '@/utils/csvMetni';
 
 /**
  * ÜRETİLEN METNİ DIŞARI ÇIKARMA (kopyala / indir / paylaş).
@@ -73,7 +74,7 @@ export function metniIndir(metin: string, baslik: string): CiktiSonuc {
 export function dosyaIndir(icerik: string, dosyaAdi: string, mime: string): CiktiSonuc {
   if (!indirilebilirMi()) return 'desteklenmiyor';
   try {
-    const blob = new Blob([`﻿${icerik}`], { type: `${mime};charset=utf-8` });
+    const blob = new Blob([bomEkle(icerik)], { type: `${mime};charset=utf-8` });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
