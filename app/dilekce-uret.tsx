@@ -113,7 +113,6 @@ export default function DilekceUretScreen() {
   const [uy, setUy] = useState<DilekceUyarilari>(BOS_UYARI);
   const { eksikBolum, talepEksik, cakisanDayanak, uydurmaMadde, kararDenetimi, uydurmaTutar, ayiklanan, ekUyari, kullanim, hakDusulmedi, yedekModel } = uy;
   // HAK İADESİ ("işe yaramadı"): son isteğin kimliğine bağlı, istek başına bir kez.
-  const [iade, setIade] = useState<{ id: string; durum: 'bekliyor' | 'tamam' | 'kayit' | 'zaten' | 'hata' } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // SON TASLAK SAKLANIR (08.10.2026, denetimde bulundu). Taslak ve elle
@@ -156,7 +155,6 @@ export default function DilekceUretScreen() {
     setGeriYuklendi(null);
     setUy(BOS_UYARI);
     setOnceki(null);
-    setIade(null);
   };
 
   if (!AI_DILEKCE_ENABLED) {
@@ -250,39 +248,6 @@ export default function DilekceUretScreen() {
     }
   };
 
-  // HAK İADESİ. Sunucu ucu (mode: 'iade', ai_istek_iade) vardı ama hiçbir
-  // ekran çağırmıyordu: kusurlu çıktının bir kısmını mekanik yakalıyoruz, ama
-  // yapısal olarak düzgün görünüp hukuken işe yaramayan metni ancak avukat bilir.
-  // İstek başına BİR kez (sunucu zorlar); sahiplik sunucuda doğrulanır.
-  const iadeIste = async () => {
-    const id = uy.istekId;
-    if (!id || iade?.durum === 'bekliyor') return;
-    setIade({ id, durum: 'bekliyor' });
-    try {
-      const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
-        body: { mode: 'iade', istekId: id, sebep: 'dilekce-ekrani' },
-      });
-      const y = data as { ok?: boolean; neden?: string; hak?: number } | null;
-      if (fnErr || !y) {
-        setIade({ id, durum: 'hata' });
-      } else if (y.ok) {
-        setIade({ id, durum: y.hak ? 'tamam' : 'kayit' });
-      } else {
-        setIade({ id, durum: y.neden === 'zaten_iade' ? 'zaten' : 'hata' });
-      }
-    } catch {
-      setIade({ id, durum: 'hata' });
-    }
-  };
-  const iadeDurumu = iade && iade.id === uy.istekId ? iade.durum : null;
-  const iadeMesaji =
-    iadeDurumu === 'tamam' ? t('dlk.iadeTamam')
-    : iadeDurumu === 'kayit' ? t('dlk.iadeKayit')
-    : iadeDurumu === 'zaten' ? t('dlk.iadeZaten')
-    : iadeDurumu === 'hata' ? t('dlk.iadeHata')
-    : null;
-  // Hakkı zaten düşülmemiş isteğe (kusurlu çıktı / yedek model) iade düğmesi çıkmaz.
-  const iadeGoster = !!uy.istekId && !hakDusulmedi && iadeDurumu !== 'tamam' && iadeDurumu !== 'kayit' && iadeDurumu !== 'zaten';
 
   // Dışa aktarmadan önce teyit: uydurma madde/tutar ya da teyit edilmemiş künye varsa.
   const disaAktarOnayi = disaAktarOnayMetni(uy, t);
@@ -522,18 +487,6 @@ export default function DilekceUretScreen() {
               )}
               {yedekModel && <Text style={[styles.usage, { color: colors.warning }]}>{t('ai.yedekModelMetin')}</Text>}
               {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
-              {iadeGoster && (
-                <Pressable
-                  onPress={iadeIste}
-                  disabled={iadeDurumu === 'bekliyor' || mesgul}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  style={{ opacity: iadeDurumu === 'bekliyor' || mesgul ? 0.5 : 1 }}
-                >
-                  <Text style={styles.temizleText}>{iadeDurumu === 'bekliyor' ? t('dlk.iadeIsteniyor') : t('dlk.iadeDugme')}</Text>
-                </Pressable>
-              )}
-              {!!iadeMesaji && <Text style={iadeDurumu === 'hata' ? styles.warn : styles.usage}>{iadeMesaji}</Text>}
               <Text style={styles.disclaimer}>{t('dlk.disclaimer')}</Text>
             </View>
           )}

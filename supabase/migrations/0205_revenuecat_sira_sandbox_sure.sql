@@ -1,3 +1,4 @@
+-- BAĞIMLI: 0072 0073 0076 0079 0166 0173
 -- 0205 — SATIN ALMA WEBHOOK'U: SANDBOX AYRIMI, OLAY SIRASI, SÜRESİ DOLAN ERİŞİM
 -- (10.10.2026, 50 denetçi bulgularının doğrulaması; ajan 25)
 -- ---------------------------------------------------------------------------

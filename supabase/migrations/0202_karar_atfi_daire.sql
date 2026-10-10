@@ -1,3 +1,4 @@
+-- BAĞIMLI: 0117
 -- "DOĞRULANDI" DAİREYE DE BAKAR — havuzdaki_kararlar (0117) düzeltmesi.
 --
 -- BULUNAN KUSUR (50 denetçi, 08.10.2026; 22. ajan doğruladı, 10.10.2026).

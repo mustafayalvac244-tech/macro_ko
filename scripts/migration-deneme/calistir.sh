@@ -34,6 +34,20 @@ psql -h /tmp -p "$PORT" -U postgres -q -c "create database $DB;"
 psql -h /tmp -p "$PORT" -U postgres -d "$DB" -v ON_ERROR_STOP=1 -q -f "$KOK/scripts/migration-deneme/supabase-taklit.sql"
 
 HEDEF=("$@")
+# BAĞIMLILIK (10.10.2026). CI yalnız DEĞİŞEN göçleri koşturur; taklit şema da yalnız
+# dokunulan tabloları emüle eder. Eski bir göçün kurduğu tabloya/işleve dayanan yeni
+# göç bu yüzden CI'da "relation does not exist" ile düşüyordu (0187→0161 gibi).
+# Göç dosyasının başındaki `-- BAĞIMLI: 0161 0117` satırı bu göçlerin ÖNCE
+# koşturulmasını sağlar (yalnız bir düzey; sıra numaraya göre).
+if [ ${#HEDEF[@]} -gt 0 ]; then
+  EK=()
+  for n in "${HEDEF[@]}"; do
+    f=$(ls "$KOK"/supabase/migrations/${n}_*.sql 2>/dev/null | head -1)
+    [ -n "$f" ] || continue
+    for b in $(grep -m1 -E '^-- BAĞIMLI:' "$f" | sed 's/^-- BAĞIMLI://'); do EK+=("$b"); done
+  done
+  mapfile -t HEDEF < <(printf '%s\n' "${HEDEF[@]}" "${EK[@]}" | grep -E '^[0-9]{4}$' | sort -u)
+fi
 if [ ${#HEDEF[@]} -eq 0 ]; then
   mapfile -t DOSYALAR < <(ls "$KOK"/supabase/migrations/*.sql)
 else

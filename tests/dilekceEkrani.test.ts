@@ -171,8 +171,11 @@ describe('ekran bağlantıları (kaynak sözleşmesi)', () => {
     expect(oku('src/components/ui/CiktiEylemleri.tsx')).toMatch(/if \(ciktiBasarili\(s\)\) onDisaAktar\?\.\(\);/);
   });
 
-  it('hak iadesi: sunucunun mode:iade ucu bağlı', () => {
-    expect(ekran).toMatch(/mode: 'iade'/);
+  // 10.10.2026: kullanıcı elindeki iade yolu sunucuda KAPATILDI (sınırsız hak geri
+  // alınabiliyordu, tests/aiIadeKapali). Ekranın onu çağırması her basışta hata
+  // verirdi; iade sınırlı bir tasarımla ürün sahibi kararıyla gelir.
+  it('hak iadesi: ekran kapalı mode:iade ucunu çağırmıyor', () => {
+    expect(ekran).not.toMatch(/mode: 'iade'/);
   });
 
   it.each([

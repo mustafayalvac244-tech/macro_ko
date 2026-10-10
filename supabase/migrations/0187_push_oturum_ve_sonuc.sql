@@ -1,3 +1,4 @@
+-- BAĞIMLI: 0161
 -- 09.10.2026 — PUSH: OTURUMU BİTEN CİHAZA GÖNDERİLMEZ + GÖNDERİM SONUCU OKUNUR
 -- (bkz. 0161_push_bildirim; 09.10.2026 denetimi).
 -- ===========================================================================
