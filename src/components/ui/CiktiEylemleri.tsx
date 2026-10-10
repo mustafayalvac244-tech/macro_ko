@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { indirilebilirMi, kopyalanabilirMi, metniIndir, metniKopyala, metniPaylas, paylasilabilirMi, type CiktiSonuc } from '@/lib/cikti';
+import { ciktiBasarili, ciktiMesajAnahtari } from '@/lib/ciktiMesaji';
 import { udfDisaAktar } from '@/lib/udfCikti';
 import { useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
@@ -24,10 +25,18 @@ interface Props {
    */
   udf?: boolean;
   /**
-   * Her dışa aktarma eyleminde çağrılır (kopyala/indir/UDF/paylaş).
+   * Metin GERÇEKTEN dışarı çıktığında çağrılır (kopyala/indir/UDF/paylaş).
    * DuzenlenebilirCikti bunu "avukat düzeltmeyi bitirdi" işareti sayar.
+   * Hata, desteklenmeme ve iptalde ÇAĞRILMAZ (09.10.2026: başarısız dışa
+   * aktarma da "bitti" sayılıyordu).
    */
   onDisaAktar?: () => void;
+  /**
+   * Eylemden ÖNCE onay gerekiyorsa: `devam`ı çağırmak eylemi çalıştırır.
+   * Verilmezse eylem doğrudan çalışır (teyitsiz atıf varsa sorulur —
+   * bkz. DuzenlenebilirCikti.disaAktarOnayi).
+   */
+  onayIste?: (devam: () => void) => void;
 }
 
 /**
@@ -40,7 +49,7 @@ interface Props {
  * Önceki davranış web'de SESSİZCE HİÇBİR ŞEY YAPMIYORDU — bkz. src/lib/cikti.ts
  * başındaki ölçüm notu.
  */
-export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false, onDisaAktar }: Props) {
+export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false, onDisaAktar, onayIste }: Props) {
   const __t = useTheme();
   const colors = __t.colors;
   const styles = makeStyles(colors, kucuk);
@@ -55,7 +64,7 @@ export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false, onDi
   }, []);
 
   const bildir = (s: CiktiSonuc) => {
-    onDisaAktar?.();
+    if (ciktiBasarili(s)) onDisaAktar?.();
     setDurum(s);
     if (zamanlayici.current) clearTimeout(zamanlayici.current);
     zamanlayici.current = setTimeout(() => setDurum(null), 2200);
@@ -68,13 +77,15 @@ export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false, onDi
   // çalışmayan bir düğme göstermiş oluruz.
   const paylasVar = !web || paylasilabilirMi();
 
-  const durumMetni =
-    durum === 'kopyalandi' ? t('cikti.copied')
-    : durum === 'indirildi' ? t('cikti.downloaded')
-    : durum === 'paylasildi' ? null
-    : durum === 'desteklenmiyor' ? t('cikti.unsupported')
-    : durum === 'hata' ? t('cikti.failed')
-    : null;
+  // Eylemi (gerekirse onaydan sonra) çalıştırır ve sonucu bildirir.
+  const calistir = (is: () => Promise<CiktiSonuc> | CiktiSonuc) => {
+    const basla = async () => bildir(await is());
+    if (onayIste) onayIste(() => void basla());
+    else void basla();
+  };
+
+  const mesajAnahtari = durum ? ciktiMesajAnahtari(durum) : null;
+  const durumMetni = mesajAnahtari ? t(mesajAnahtari) : null;
 
   return (
     <View style={styles.sarmal}>
@@ -86,7 +97,7 @@ export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false, onDi
 
       {kopyaVar && (
         <Pressable
-          onPress={async () => bildir(await metniKopyala(metin))}
+          onPress={() => calistir(() => metniKopyala(metin))}
           hitSlop={8}
           style={styles.dugme}
           accessibilityLabel={t('cikti.copy')}
@@ -98,7 +109,7 @@ export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false, onDi
 
       {indirVar && !kucuk && (
         <Pressable
-          onPress={() => bildir(metniIndir(metin, baslik))}
+          onPress={() => calistir(() => metniIndir(metin, baslik))}
           hitSlop={8}
           style={styles.dugme}
           accessibilityLabel={t('cikti.download')}
@@ -114,7 +125,7 @@ export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false, onDi
           Küçük yerleşimde (sohbet balonu) gösterilmez. */}
       {udf && !kucuk && (
         <Pressable
-          onPress={async () => bildir(await udfDisaAktar(metin, baslik))}
+          onPress={() => calistir(() => udfDisaAktar(metin, baslik))}
           hitSlop={8}
           style={styles.dugme}
           accessibilityLabel={t('cikti.udf')}
@@ -126,7 +137,7 @@ export function CiktiEylemleri({ metin, baslik, kucuk = false, udf = false, onDi
 
       {paylasVar && (
         <Pressable
-          onPress={async () => bildir(await metniPaylas(metin, baslik))}
+          onPress={() => calistir(() => metniPaylas(metin, baslik))}
           hitSlop={8}
           style={styles.dugme}
           accessibilityLabel={t('cikti.share')}

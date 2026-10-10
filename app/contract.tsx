@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { metniPaylas } from '@/lib/cikti';
+import { ciktiSonucunuBildir } from '@/lib/ciktiBildir';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -140,8 +141,11 @@ export default function ContractScreen() {
     setPreview({ body: res.body, warnings: uyarilar });
   };
 
-  const onShare = () => {
-    if (preview) metniPaylas(preview.body, t('contract.title'));
+  const onShare = async () => {
+    if (!preview) return;
+    // Sonuç söylenir: Web Share olmayan tarayıcıda metin panoya gider ve bu
+    // sessiz kalırsa kullanıcı "hiçbir şey olmadı" sanır (09.10.2026).
+    ciktiSonucunuBildir(await metniPaylas(preview.body, t('contract.title')), t('cikti.share'), t);
   };
 
   const clientList = clients.data ?? [];

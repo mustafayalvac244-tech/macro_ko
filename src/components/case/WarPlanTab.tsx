@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { uyar } from '@/lib/uyari';
 import { gecikmeliKayit, type GecikmeliKayit } from '@/lib/gecikmeliKayit';
 import { metniPaylas } from '@/lib/cikti';
+import { ciktiSonucunuBildir } from '@/lib/ciktiBildir';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Card } from '@/components/ui/Card';
@@ -208,15 +209,16 @@ export function WarPlanTab({ caseItem, hearings }: Props) {
     );
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const body = SECTION_KEYS.map(({ key, label }) => `■ ${t(label as never)}\n\n${sections[key] || '—'}`).join('\n\n');
     const baslik = `Duruşma Brief — ${caseItem.title}`;
     // Web'de paylaşım çoğu masaüstü tarayıcıda yok; metniPaylas o durumda
     // panoya kopyalar (eskiden hiçbir şey olmuyordu). Bkz. src/lib/cikti.ts.
-    metniPaylas(
+    const sonuc = await metniPaylas(
       `DURUŞMA BRIEF — ${caseItem.title}${caseItem.case_number ? ` (${caseItem.case_number})` : ''}\n\n${body}\n\n— Vekil Pro`,
       baslik
     );
+    ciktiSonucunuBildir(sonuc, t('cikti.share'), t);
   };
 
   const addQuickNote = () => {

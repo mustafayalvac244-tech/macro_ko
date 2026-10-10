@@ -6,7 +6,7 @@ import { SesleYaz } from '@/components/ui/SesleYaz';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { DuzenlenebilirCikti } from '@/components/ui/DuzenlenebilirCikti';
-import { AtifDenetimi, type KararDenetimiVerisi } from '@/components/ui/AtifDenetimi';
+import { AtifDenetimi } from '@/components/ui/AtifDenetimi';
 import { HukukiUyari } from '@/components/ui/HukukiUyari';
 import { BelgeEkleri } from '@/components/ui/BelgeEkleri';
 import type { BelgeEki } from '@/lib/belgeEki';
@@ -17,7 +17,6 @@ import { supabase } from '@/lib/supabase';
 import { taslakOku, taslakSil, taslakYaz } from '@/lib/sohbetDeposu';
 import { useAuthStore } from '@/store/authStore';
 import { useCases } from '@/hooks/useCases';
-import type { AiKullanim } from '@/hooks/useAiKontor';
 import { aiHataGovdesi, aiHataMetni } from '@/lib/aiHata';
 import { useT } from '@/i18n';
 import { useBuyukHarf } from '@/lib/buyukHarf';
@@ -25,6 +24,17 @@ import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDateTime, formatMoney } from '@/utils/format';
+import {
+  BOS_UYARI,
+  disaAktarOnayMetni,
+  dosyaSecenekleri,
+  duzeltmeUyarilari,
+  gecerliDosyaId,
+  uretimUyarilari,
+  type DilekceUyarilari,
+  type DuzeltmeYaniti,
+  type UretimYaniti,
+} from '@/utils/dilekceEkrani';
 
 /**
  * DİLEKÇE ÜRET — olay anlatımından mahkemeye hazır resmî dilekçe taslağı.
@@ -63,6 +73,17 @@ export default function DilekceUretScreen() {
   const [caseId, setCaseId] = useState<string | null>(null);
   const { data: davalar } = useCases({ status: 'open' });
   const secilenDava = (davalar ?? []).find((d) => d.id === caseId) ?? null;
+  // Seçicide ilk 12 dosya görünür, gerisi "+N dosya daha" ile açılır; eskiden
+  // 13. ve sonraki dosyalara ULAŞILAMIYORDU (liste yeniden eskiye sıralı, yani
+  // en eski dosyalar — istinaf/temyiz yazılanlar — tam da kesilenlerdi).
+  const [tumDosyalar, setTumDosyalar] = useState(false);
+  const dosyalar = dosyaSecenekleri(davalar ?? [], caseId, tumDosyalar);
+  // Listede olmayan (kapanmış/silinmiş) dosya seçili kalamaz: kimliği
+  // sunucuya giderdi ama ekranda hiçbir şey seçili görünmezdi.
+  useEffect(() => {
+    const gecerli = gecerliDosyaId(davalar, caseId);
+    if (gecerli !== caseId) setCaseId(gecerli);
+  }, [davalar, caseId]);
   const [q, setQ] = useState('');
   // EKLİ BELGELER (04.10.2026, avukat: "buraya dosya ekleme koyulması
   // gerekiyor"). Cevap dilekçesi karşı tarafın dilekçesi okunmadan yazılamaz;
@@ -73,48 +94,26 @@ export default function DilekceUretScreen() {
   const guncelMetin = useRef('');
   const [talimat, setTalimat] = useState('');
   const [duzeltiliyor, setDuzeltiliyor] = useState(false);
-  const [onceki, setOnceki] = useState<string | null>(null);
+  // "Geri al" yalnız metni değil, o metne ait UYARILARI da geri getirir
+  // (09.10.2026: eskiden düzeltilmiş metnin uyarıları kalıyordu).
+  const [onceki, setOnceki] = useState<{ metin: string; uy: DilekceUyarilari } | null>(null);
   const [duzeltHata, setDuzeltHata] = useState<string | null>(null);
-  const [ekUyari, setEkUyari] = useState<{ pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
+  // Üret ve Düzelt AYNI ANDA çalışamaz: ikisi de ekrandaki taslağı yazar ve
+  // eski yanıt yenisinin üstüne yazabilirdi (09.10.2026).
+  const mesgul = busy || duzeltiliyor;
+  // Her istekte artar; "Temizle" de artırır. Yanıt geldiğinde numarası uymuyorsa
+  // ekran o arada değişmiştir ve yanıt ATILIR (silinen taslak dirilmesin).
+  const istekNo = useRef(0);
   const [text, setText] = useState('');
-  // SUNUCU İKİ ŞEYİ BİLİYOR, EKRAN SÖYLEMİYORDU:
-  //  • hangi ZORUNLU bölümün model tarafından hiç yazılmadığı (yerine boşluk
-  //    konuyor ama metnin ortasında, gözden kaçabilir),
-  //  • kaç UYDURMA tarihin ayıklandığı (model olayda geçmeyen tarih yazmış
-  //    demektir; avukat bunu bilmeli, çünkü kalanları da denetlemeli).
-  // İkisi de yanıtta geliyordu ve kullanılmıyordu.
-  const [eksikBolum, setEksikBolum] = useState<string[]>([]);
-  // Türe özgü talep denetimi: istinafta "kararın kaldırılması", temyizde
-  // "bozulması", itirazda açık itiraz beyanı. Hâkim taleple bağlıdır.
-  const [talepEksik, setTalepEksik] = useState<string[]>([]);
-  // ÇAKIŞAN DAYANAK. Gerçek kullanım denemesinde model, birbirinin alternatifi
-  // iki hukuki dayanağı (temerrüt / iki haklı ihtar) birlikte yazdı; talimatla
-  // tutarlı gideremedik. Mekanik denetim yalnız uyarır, hak düşürmez.
-  const [cakisanDayanak, setCakisanDayanak] = useState<string[]>([]);
-  // UYDURMA MADDE ATFI. Bu denetim aylardır yalnız ölçüm betiğinde vardı:
-  // uydurma atfı ölçüyor ama kullanıcıyı ondan korumuyorduk. Uydurma madde
-  // GERÇEK GÖRÜNÜR — biçimi doğru, numarası var — ve yanlışlığı ancak hâkim
-  // baktığında anlaşılır. Böyle bir taslak için hak da düşülmez.
-  const [uydurmaMadde, setUydurmaMadde] = useState<string[]>([]);
-  // Karar atfı denetimi: dilekçe mahkemeye gider, uydurma esas/karar numarasını
-  // ilk fark eden karşı vekil olur (bkz. src/components/ui/AtifDenetimi.tsx).
-  const [kararDenetimi, setKararDenetimi] = useState<KararDenetimiVerisi | null>(null);
-  // UYDURMA TUTAR. Aynı kusur madde atfıyla: ölçüm betiğinde vardı, taslağı
-  // üreten uçta yoktu — avukatın gördüğü çıktıda hiç çalışmıyordu.
-  const [uydurmaTutar, setUydurmaTutar] = useState<number[]>([]);
-  const [ayiklanan, setAyiklanan] = useState(0);
-  // Bu isteğin maliyeti. Kontörle çalışan bir üründe harcamanın gizli kalması,
-  // kullanıcıyı bakiyesi bittiğinde şaşırtır; token sayısı ücretsiz katmanda da
-  // anlamlı, çünkü ortak günlük tavan token üzerinden doluyor.
-  const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
-  // "İşe yaramadı" için istek kimliği. Kusurlu çıktının bir kısmını mekanik
-  // yakalıyoruz, ama yapısal olarak düzgün görünüp hukuken işe yaramayan bir
-  // metni ancak avukat bilir; hakkını geri alabilmeli.
-  const [hakDusulmedi, setHakDusulmedi] = useState(false);
-  // Yedek modelle üretildiyse SÖYLENİR (08.10.2026): sohbet gösteriyordu,
-  // bu ekran göstermiyordu — Console askıdayken metni yedek model yazıyor.
-  const [yedekModel, setYedekModel] = useState(false);
+  // EKRANDAKİ TASLAĞA AİT TÜM UYARILAR TEK PARÇA (bkz. src/utils/dilekceEkrani.ts):
+  // eksik bölüm, talep eksiği, çakışan dayanak, uydurma madde/tutar, karar atfı
+  // denetimi, ayıklanan tarih, ek uyarıları, maliyet, hak, yedek model ve istek
+  // kimliği. Tek parça olması "Geri al"ın hepsini geri getirmesini sağlar.
+  const [uy, setUy] = useState<DilekceUyarilari>(BOS_UYARI);
+  const { eksikBolum, talepEksik, cakisanDayanak, uydurmaMadde, kararDenetimi, uydurmaTutar, ayiklanan, ekUyari, kullanim, hakDusulmedi, yedekModel } = uy;
+  // HAK İADESİ ("işe yaramadı"): son isteğin kimliğine bağlı, istek başına bir kez.
+  const [iade, setIade] = useState<{ id: string; durum: 'bekliyor' | 'tamam' | 'kayit' | 'zaten' | 'hata' } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // SON TASLAK SAKLANIR (08.10.2026, denetimde bulundu). Taslak ve elle
@@ -150,9 +149,14 @@ export default function DilekceUretScreen() {
   };
   const taslagiTemizle = () => {
     if (userId) taslakSil(userId, 'dilekce');
+    // Uçuştaki yanıt (üretim/düzeltme) silinen taslağı geri getirmesin.
+    istekNo.current += 1;
     setText('');
     guncelMetin.current = '';
     setGeriYuklendi(null);
+    setUy(BOS_UYARI);
+    setOnceki(null);
+    setIade(null);
   };
 
   if (!AI_DILEKCE_ENABLED) {
@@ -161,29 +165,31 @@ export default function DilekceUretScreen() {
 
   const run = async () => {
     const question = q.trim();
-    if (question.length < 20 || busy) return;
+    if (question.length < 20 || mesgul) return;
     setBusy(true);
     setError(null);
+    istekNo.current += 1;
+    const no = istekNo.current;
     // Eski taslak YENİSİ GELENE KADAR silinmez: üretim düşerse avukatın
     // elindeki (belki düzeltilmiş) taslak da gitmiş oluyordu.
     setOnceki(null);
     setTalimat('');
     setDuzeltHata(null);
-    setHakDusulmedi(false);
-    setYedekModel(false);
+    setUy((u) => ({ ...u, hakDusulmedi: false, yedekModel: false }));
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
         body: { mode: 'dilekce', dilekceType: type, question, caseId: caseId ?? undefined, ekler: ekler.length ? ekGovdesi(ekler) : undefined },
       });
+      // Bu arada taslak temizlendiyse yanıt atılır.
+      if (no !== istekNo.current) return;
       if (fnErr) {
         // Hata çevirisi ORTAK: aynı mantık üç ekranda ayrı yazılınca biri
         // güncellenip diğerleri geride kalıyordu (bkz. src/lib/aiHata.ts).
         const govde = await aiHataGovdesi(fnErr);
-        const code = govde.error ?? '';
         setError(aiHataMetni(govde, t));
         return;
       }
-      const payload = data as { ekUyari?: { pdfdenMetne?: string[]; okunamayan?: string[]; taranmis?: boolean }; text?: string; eksikBolum?: string[]; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; talepEksik?: string[]; cakisanDayanak?: string[]; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
+      const payload = data as (UretimYaniti & { text?: string }) | null;
       if (!payload?.text) {
         // Sunucuya ulaşıldı, cevap boş: internet suçlanmaz (08.10.2026).
         setError(t('ai.errTamamlanamadi'));
@@ -193,19 +199,9 @@ export default function DilekceUretScreen() {
       guncelMetin.current = payload.text;
       setGeriYuklendi(null);
       taslagiSakla(payload.text);
-      setEksikBolum(payload.eksikBolum ?? []);
-      setTalepEksik(payload.talepEksik ?? []);
-      setCakisanDayanak(payload.cakisanDayanak ?? []);
-      setUydurmaMadde(payload.uydurmaMadde ?? []);
-      setKararDenetimi(payload.kararDenetimi ?? null);
-      setUydurmaTutar(payload.uydurmaTutar ?? []);
-      setAyiklanan(Number(payload.ayiklananTarih ?? 0));
-      setKullanim(payload.kullanim ?? null);
-      setHakDusulmedi(!!payload.hakDusulmedi);
-      setYedekModel(!!payload.yedekModel);
-      setEkUyari(payload.ekUyari ?? null);
+      setUy(uretimUyarilari(payload));
     } catch {
-      setError(t('ai.errGeneric'));
+      if (no === istekNo.current) setError(t('ai.errGeneric'));
     } finally {
       setBusy(false);
     }
@@ -214,18 +210,21 @@ export default function DilekceUretScreen() {
   const duzelt = async () => {
     const tal = talimat.trim();
     const taslak = guncelMetin.current || text;
-    if (tal.length < 3 || duzeltiliyor || busy) return;
+    if (tal.length < 3 || mesgul) return;
     setDuzeltiliyor(true);
     setDuzeltHata(null);
+    istekNo.current += 1;
+    const no = istekNo.current;
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
         body: { mode: 'duzelt', question: tal, taslak, kaynak: q.trim() || undefined },
       });
+      if (no !== istekNo.current) return;
       if (fnErr) {
         setDuzeltHata(aiHataMetni(await aiHataGovdesi(fnErr), t));
         return;
       }
-      const y = data as { text?: string; ayiklananTarih?: number; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; kisaKaldi?: boolean; uydurmaMadde?: string[]; uydurmaTutar?: number[]; kararDenetimi?: KararDenetimiVerisi } | null;
+      const y = data as (DuzeltmeYaniti & { text?: string; kisaKaldi?: boolean }) | null;
       if (!y?.text) {
         setDuzeltHata(t('ai.errTamamlanamadi'));
         return;
@@ -236,24 +235,57 @@ export default function DilekceUretScreen() {
         setDuzeltHata(t('dlk.duzeltKisa'));
         return;
       }
-      setOnceki(taslak);
+      // "Geri al" için, istek sürerken avukatın yaptığı elle düzeltmeler dahil
+      // EN GÜNCEL metin tutulur (yoksa o düzeltmeler sessizce kaybolurdu).
+      setOnceki({ metin: guncelMetin.current || taslak, uy });
       setText(y.text);
       guncelMetin.current = y.text;
       taslagiSakla(y.text);
       setTalimat('');
-      setUydurmaMadde(y.uydurmaMadde ?? []);
-      setKararDenetimi(y.kararDenetimi ?? null);
-      setUydurmaTutar(y.uydurmaTutar ?? []);
-      setAyiklanan(Number(y.ayiklananTarih ?? 0));
-      setKullanim(y.kullanim ?? null);
-      setHakDusulmedi(!!y.hakDusulmedi);
-      setYedekModel(!!y.yedekModel);
+      setUy(duzeltmeUyarilari(uy, y));
     } catch {
-      setDuzeltHata(t('ai.errGeneric'));
+      if (no === istekNo.current) setDuzeltHata(t('ai.errGeneric'));
     } finally {
       setDuzeltiliyor(false);
     }
   };
+
+  // HAK İADESİ. Sunucu ucu (mode: 'iade', ai_istek_iade) vardı ama hiçbir
+  // ekran çağırmıyordu: kusurlu çıktının bir kısmını mekanik yakalıyoruz, ama
+  // yapısal olarak düzgün görünüp hukuken işe yaramayan metni ancak avukat bilir.
+  // İstek başına BİR kez (sunucu zorlar); sahiplik sunucuda doğrulanır.
+  const iadeIste = async () => {
+    const id = uy.istekId;
+    if (!id || iade?.durum === 'bekliyor') return;
+    setIade({ id, durum: 'bekliyor' });
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke('ai-chat', {
+        body: { mode: 'iade', istekId: id, sebep: 'dilekce-ekrani' },
+      });
+      const y = data as { ok?: boolean; neden?: string; hak?: number } | null;
+      if (fnErr || !y) {
+        setIade({ id, durum: 'hata' });
+      } else if (y.ok) {
+        setIade({ id, durum: y.hak ? 'tamam' : 'kayit' });
+      } else {
+        setIade({ id, durum: y.neden === 'zaten_iade' ? 'zaten' : 'hata' });
+      }
+    } catch {
+      setIade({ id, durum: 'hata' });
+    }
+  };
+  const iadeDurumu = iade && iade.id === uy.istekId ? iade.durum : null;
+  const iadeMesaji =
+    iadeDurumu === 'tamam' ? t('dlk.iadeTamam')
+    : iadeDurumu === 'kayit' ? t('dlk.iadeKayit')
+    : iadeDurumu === 'zaten' ? t('dlk.iadeZaten')
+    : iadeDurumu === 'hata' ? t('dlk.iadeHata')
+    : null;
+  // Hakkı zaten düşülmemiş isteğe (kusurlu çıktı / yedek model) iade düğmesi çıkmaz.
+  const iadeGoster = !!uy.istekId && !hakDusulmedi && iadeDurumu !== 'tamam' && iadeDurumu !== 'kayit' && iadeDurumu !== 'zaten';
+
+  // Dışa aktarmadan önce teyit: uydurma madde/tutar ya da teyit edilmemiş künye varsa.
+  const disaAktarOnayi = disaAktarOnayMetni(uy, t);
 
   const tooShort = q.trim().length < 20;
 
@@ -293,7 +325,7 @@ export default function DilekceUretScreen() {
                 >
                   <Text style={[styles.chipText, !caseId && styles.chipTextOn]}>{t('dlk.caseNone')}</Text>
                 </Pressable>
-                {davalar.slice(0, 12).map((d) => {
+                {dosyalar.liste.map((d) => {
                   const on = caseId === d.id;
                   return (
                     <Pressable
@@ -308,6 +340,14 @@ export default function DilekceUretScreen() {
                     </Pressable>
                   );
                 })}
+                {/* 12'den fazla açık dosya varsa gerisi gizli kalmaz. */}
+                {(dosyalar.gizli > 0 || tumDosyalar) && (
+                  <Pressable onPress={() => setTumDosyalar((v) => !v)} style={styles.chip} accessibilityRole="button">
+                    <Text style={styles.chipText}>
+                      {tumDosyalar ? t('dlk.caseLess') : t('dlk.caseMore', { n: dosyalar.gizli })}
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             </>
           )}
@@ -346,8 +386,8 @@ export default function DilekceUretScreen() {
 
           <Pressable
             onPress={run}
-            disabled={tooShort || busy}
-            style={({ pressed }) => [styles.cta, (tooShort || busy) && styles.ctaOff, pressed && { opacity: 0.85 }]}
+            disabled={tooShort || mesgul}
+            style={({ pressed }) => [styles.cta, (tooShort || mesgul) && styles.ctaOff, pressed && { opacity: 0.85 }]}
           >
             {busy ? <ActivityIndicator size="small" color={colors.textInverse} /> : <Ionicons name="document-text" size={17} color={colors.textInverse} />}
             <Text style={styles.ctaText}>{busy ? t('dlk.working') : t('dlk.run')}</Text>
@@ -387,6 +427,9 @@ export default function DilekceUretScreen() {
                 etiket={t('dlk.resultTitle')}
                 udf
                 mod="dilekce"
+                model={uy.kullanim?.model}
+                istekId={uy.istekId}
+                disaAktarOnayi={disaAktarOnayi}
                 onMetinDegisti={(m) => {
                   guncelMetin.current = m;
                   taslagiSakla(m);
@@ -408,18 +451,22 @@ export default function DilekceUretScreen() {
                 <View style={styles.duzeltSatir}>
                   <Pressable
                     onPress={duzelt}
-                    disabled={duzeltiliyor || talimat.trim().length < 3}
-                    style={({ pressed }) => [styles.duzeltDugme, (duzeltiliyor || talimat.trim().length < 3) && styles.ctaOff, pressed && { opacity: 0.85 }]}
+                    disabled={mesgul || talimat.trim().length < 3}
+                    style={({ pressed }) => [styles.duzeltDugme, (mesgul || talimat.trim().length < 3) && styles.ctaOff, pressed && { opacity: 0.85 }]}
                     accessibilityRole="button"
                     accessibilityLabel={t('dlk.duzeltCalistir')}
                   >
                     {duzeltiliyor ? <ActivityIndicator size="small" color={colors.textInverse} /> : <Ionicons name="sparkles" size={15} color={colors.textInverse} />}
                     <Text style={styles.duzeltDugmeMetin}>{duzeltiliyor ? t('dlk.duzeltiliyor') : t('dlk.duzeltCalistir')}</Text>
                   </Pressable>
-                  {onceki !== null && !duzeltiliyor && (
+                  {onceki !== null && !mesgul && (
                     <Pressable
                       onPress={() => {
-                        setText(onceki);
+                        // Metinle birlikte O METNİN uyarıları ve istek bilgisi de döner.
+                        setText(onceki.metin);
+                        guncelMetin.current = onceki.metin;
+                        taslagiSakla(onceki.metin);
+                        setUy(onceki.uy);
                         setOnceki(null);
                       }}
                       hitSlop={8}
@@ -440,6 +487,9 @@ export default function DilekceUretScreen() {
                 <Text style={styles.warn}>
                   {t('ai.fakeAmounts', { tutarlar: uydurmaTutar.map((tt) => formatMoney(tt)).join(', ') })}
                 </Text>
+              )}
+              {uy.yapiDenetimiEski && (cakisanDayanak.length > 0 || talepEksik.length > 0 || eksikBolum.length > 0) && (
+                <Text style={styles.usage}>{t('dlk.eskiDenetim')}</Text>
               )}
               {cakisanDayanak.map((u, i) => (
                 <Text key={i} style={styles.warn}>{u}</Text>
@@ -469,6 +519,18 @@ export default function DilekceUretScreen() {
               )}
               {yedekModel && <Text style={[styles.usage, { color: colors.warning }]}>{t('ai.yedekModelMetin')}</Text>}
               {hakDusulmedi && <Text style={styles.usage}>{t('ai.notCharged')}</Text>}
+              {iadeGoster && (
+                <Pressable
+                  onPress={iadeIste}
+                  disabled={iadeDurumu === 'bekliyor' || mesgul}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  style={{ opacity: iadeDurumu === 'bekliyor' || mesgul ? 0.5 : 1 }}
+                >
+                  <Text style={styles.temizleText}>{iadeDurumu === 'bekliyor' ? t('dlk.iadeIsteniyor') : t('dlk.iadeDugme')}</Text>
+                </Pressable>
+              )}
+              {!!iadeMesaji && <Text style={iadeDurumu === 'hata' ? styles.warn : styles.usage}>{iadeMesaji}</Text>}
               <Text style={styles.disclaimer}>{t('dlk.disclaimer')}</Text>
             </View>
           )}
