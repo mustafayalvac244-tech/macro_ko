@@ -205,3 +205,71 @@ export function ucHataYaniti(msg: string, ayrinti?: string): { status: number; g
   if (msg === 'empty') return { status: 502, govde: { error: 'empty' } };
   return { status: 502, govde: { error: 'source_unreachable', detail: ayrinti ?? msg } };
 }
+
+/**
+ * Bir hata KAYNAĞIN (UYAP Emsal / Bedesten) çöktüğünü mü gösteriyor? Devre
+ * kesiciyi yalnız bu hatalar besler.
+ *
+ * Kaynağın cevap verdiği hatalar (400, 404 ... yanlış karar kimliği, bozuk
+ * sorgu) kaynağın SAĞLAM olduğunu gösterir; onlarla devre açılırsa tek bir
+ * kullanıcının bozuk isteği herkes için aramayı kapatırdı. Sayılanlar: bizim
+ * sarmaladığımız ağ/zaman aşımı hatası ve HTTP 200 ile gelen hata üstverisi
+ * ('source_unreachable'), 5xx, 403 (WAF/coğrafi engel), 429 (kaynağın sınırı)
+ * ve gövdesi JSON olmayan cevap (SyntaxError: WAF HTML sayfası).
+ */
+export function kaynakArizasiMi(hata: unknown): boolean {
+  if ((hata as { name?: string } | null)?.name === 'SyntaxError') return true;
+  const msg = hata instanceof Error ? hata.message : '';
+  if (msg === 'source_unreachable') return true;
+  const m = msg.match(/^(?:emsal|bedesten)_(?:search_|doc_)?(\d{3})$/);
+  if (!m) return false;
+  const kod = Number(m[1]);
+  return kod >= 500 || kod === 403 || kod === 429;
+}
+
+/**
+ * KULLANICI BAŞI İSTEK SINIRI (kayan pencere).
+ *
+ * NEDEN. Arama, künye ve belge eylemleri kullanıcı başına hiçbir sınır
+ * taşımıyordu; her arama UYAP'a ve Bedesten'e (akıllı kipte 2 arama + ilk
+ * sayfadaki her karar için ayrı belge isteği) gidiyor. Bir betik ya da
+ * takılı kalan bir istemci bizim adımıza kamu hizmetine sınırsız yük bindirir
+ * ve kaynak bizi engellerse TÜM avukatlar için arama kapanır.
+ *
+ * SINIRLAR. Edge işlevi örnek başına bellekte tutar: farklı örneklere düşen
+ * istekler ayrı sayılır, yani gerçek üst sınır "limit x örnek sayısı"dır.
+ * Amaç kesin kota değil, kontrolsüz seliyi kesmek; kesin kota veritabanı
+ * yazımı gerektirirdi (disk baskısındaki projede her aramaya bir yazma).
+ */
+export class IstekSiniri {
+  private readonly kayit = new Map<string, number[]>();
+
+  constructor(
+    private readonly limit: number,
+    private readonly pencereMs: number,
+    private readonly saat: () => number = () => Date.now(),
+    private readonly enCokAnahtar = 5000,
+  ) {}
+
+  /** İstek sayılır; sınır aşıldıysa false (ve istek SAYILMAZ). */
+  izinVer(anahtar: string): boolean {
+    const simdi = this.saat();
+    const baslangic = simdi - this.pencereMs;
+    const liste = (this.kayit.get(anahtar) ?? []).filter((t) => t > baslangic);
+    if (liste.length >= this.limit) {
+      this.kayit.set(anahtar, liste);
+      return false;
+    }
+    liste.push(simdi);
+    this.kayit.set(anahtar, liste);
+    if (this.kayit.size > this.enCokAnahtar) this.temizle(baslangic);
+    return true;
+  }
+
+  /** Penceresi dolmuş kullanıcıları atar; bellek sınırsız büyümesin. */
+  private temizle(baslangic: number): void {
+    for (const [anahtar, liste] of this.kayit) {
+      if (liste.length === 0 || liste[liste.length - 1] <= baslangic) this.kayit.delete(anahtar);
+    }
+  }
+}

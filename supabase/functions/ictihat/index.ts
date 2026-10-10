@@ -30,10 +30,13 @@ import {
   akilliIlkSayfa,
   arsivSatiri,
   bedestenTarihi,
+  IstekSiniri,
+  kaynakArizasiMi,
   kesmeTemizle,
   kunyeYokDenemez,
   ucHataYaniti,
 } from '../_shared/ictihatArama.ts';
+import { DevreKesici } from '../_shared/dayaniklilik.ts';
 // CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
 // Burada elle yazılmaları, altı uçta `x-client-info` başlığının izin
 // listesinden düşmesine ve tarayıcıda tam arızaya yol açmıştı.
@@ -505,7 +508,7 @@ async function attachSnippets(hits: Hit[], query: string, limit = 10): Promise<v
         h.snippet = buildSnippet(text, query);
         h.matched = textHasTerm(text, query);
         // Tam metni bizde kalıcı arşivle — UYAP çökse de bu karar bizde kalır.
-        await archiveDecision(h, text, query);
+        await archiveDecision(h, text);
       } catch {
         // önizleme alınamadı → geç
       }
@@ -513,52 +516,95 @@ async function attachSnippets(hits: Hit[], query: string, limit = 10): Promise<v
   );
 }
 
-async function emsalSearch(query: string, page: number, pageSize: number): Promise<{ hits: Hit[]; total: number }> {
-  const res = await fetch(`${EMSAL_BASE}/aramalist`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      'User-Agent': 'Mozilla/5.0',
-      'X-Requested-With': 'XMLHttpRequest',
-      Referer: `${EMSAL_BASE}/`,
-    },
-    body: JSON.stringify({ data: { arananKelime: query, pageSize, pageNumber: page } }),
-    // ZAMAN AŞIMI YOKTU. Bedesten çağrılarında 10 sn sınır var, Emsal'de
-    // hiç yoktu: takılan bir UYAP isteği işlevi platform sınırına kadar
-    // bekletiyordu. Aynı sınır (10 sn) burada da; ölçülmüş değil, Bedesten
-    // çağrılarıyla tutarlılık için.
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!res.ok) throw new Error(`emsal_search_${res.status}`);
-  const j = await res.json();
-  // UYAP Solr çökünce HTTP 200 döner ama recordsTotal gelmez ve liste boştur;
-  // bunu gerçek "0 sonuç"tan (recordsTotal=0) ayırıp kaynak arızası olarak yükselt.
-  const recTotal = j?.data?.recordsTotal;
-  const metaErr = (j?.metadata?.FMTY === 'ERROR');
-  if (metaErr || (recTotal == null && (j?.data?.data?.length ?? 0) === 0)) {
-    throw new Error('source_unreachable');
+/**
+ * KAYNAK ÇAĞRILARINA DEVRE KESİCİ (UYAP Emsal ve Bedesten ayrı ayrı).
+ *
+ * NEDEN. Kaynak çökünce her arama 10 sn'lik zaman aşımını sonuna kadar
+ * bekliyor (akıllı kipte iki arama + ilk sayfadaki her karar için belge
+ * isteği), kullanıcı hatayı çok geç görüyor ve ölü kaynağa yük bindirmeye
+ * devam ediyorduk. Üst üste 3 arızadan sonra 60 sn boyunca istek HİÇ
+ * denenmez ('source_unreachable', arama arşive düşer); sonra tek yoklama.
+ * Eşik ve süre varsayılan (_shared/dayaniklilik.ts), bu kaynaklar için
+ * ÖLÇÜLMEDİ.
+ *
+ * Yalnız kaynağın ÇÖKTÜĞÜNÜ gösteren hatalar sayılır (kaynakArizasiMi);
+ * 404 gibi cevaplar kaynağın sağlam olduğunu gösterir. Devre bellekte ve
+ * edge örneğine özeldir (bkz. _shared/uyapCanli.ts'te aynı gerekçe).
+ */
+const emsalDevre = new DevreKesici();
+const bedestenDevre = new DevreKesici();
+
+async function devreIle<T>(devre: DevreKesici, is: () => Promise<T>): Promise<T> {
+  if (!devre.gecebilirMi()) throw new Error('source_unreachable');
+  try {
+    const sonuc = await is();
+    devre.basarili();
+    return sonuc;
+  } catch (e) {
+    // Sayılmayan hata kaynağın CEVAP verdiğini gösterir: devreyi sağlam say.
+    // (Yoklama hakkını harcayıp ne başarılı ne başarısız dersek devre
+    // sonsuza dek "yarım açık"ta kalır.)
+    if (kaynakArizasiMi(e)) devre.basarisiz();
+    else devre.basarili();
+    throw e;
   }
-  const rows = j?.data?.data ?? [];
-  const hits: Hit[] = rows.map((r: Record<string, unknown>) => ({
-    id: String(r.id ?? ''),
-    daire: String(r.daire ?? ''),
-    esasNo: String(r.esasNo ?? ''),
-    kararNo: String(r.kararNo ?? ''),
-    kararTarihi: String(r.kararTarihi ?? ''),
-    durum: String(r.durum ?? ''),
-  }));
-  return { hits, total: Number(j?.data?.recordsTotal ?? hits.length) };
+}
+
+/** fetch'in kendi hatası (ağ, zaman aşımı) → kaynak arızası. Mesaj taşınmaz. */
+const agKopar = (): never => {
+  throw new Error('source_unreachable');
+};
+
+async function emsalSearch(query: string, page: number, pageSize: number): Promise<{ hits: Hit[]; total: number }> {
+  return devreIle(emsalDevre, async () => {
+    const res = await fetch(`${EMSAL_BASE}/aramalist`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'User-Agent': 'Mozilla/5.0',
+        'X-Requested-With': 'XMLHttpRequest',
+        Referer: `${EMSAL_BASE}/`,
+      },
+      body: JSON.stringify({ data: { arananKelime: query, pageSize, pageNumber: page } }),
+      // ZAMAN AŞIMI YOKTU. Bedesten çağrılarında 10 sn sınır var, Emsal'de
+      // hiç yoktu: takılan bir UYAP isteği işlevi platform sınırına kadar
+      // bekletiyordu. Aynı sınır (10 sn) burada da; ölçülmüş değil, Bedesten
+      // çağrılarıyla tutarlılık için.
+      signal: AbortSignal.timeout(10000),
+    }).catch(agKopar);
+    if (!res.ok) throw new Error(`emsal_search_${res.status}`);
+    const j = await res.json();
+    // UYAP Solr çökünce HTTP 200 döner ama recordsTotal gelmez ve liste boştur;
+    // bunu gerçek "0 sonuç"tan (recordsTotal=0) ayırıp kaynak arızası olarak yükselt.
+    const recTotal = j?.data?.recordsTotal;
+    const metaErr = (j?.metadata?.FMTY === 'ERROR');
+    if (metaErr || (recTotal == null && (j?.data?.data?.length ?? 0) === 0)) {
+      throw new Error('source_unreachable');
+    }
+    const rows = j?.data?.data ?? [];
+    const hits: Hit[] = rows.map((r: Record<string, unknown>) => ({
+      id: String(r.id ?? ''),
+      daire: String(r.daire ?? ''),
+      esasNo: String(r.esasNo ?? ''),
+      kararNo: String(r.kararNo ?? ''),
+      kararTarihi: String(r.kararTarihi ?? ''),
+      durum: String(r.durum ?? ''),
+    }));
+    return { hits, total: Number(j?.data?.recordsTotal ?? hits.length) };
+  });
 }
 
 async function emsalDocument(id: string): Promise<string> {
-  const res = await fetch(`${EMSAL_BASE}/getDokuman?id=${encodeURIComponent(id)}`, {
-    headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0', Referer: `${EMSAL_BASE}/` },
-    signal: AbortSignal.timeout(10000), // bkz. emsalSearch
+  return devreIle(emsalDevre, async () => {
+    const res = await fetch(`${EMSAL_BASE}/getDokuman?id=${encodeURIComponent(id)}`, {
+      headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0', Referer: `${EMSAL_BASE}/` },
+      signal: AbortSignal.timeout(10000), // bkz. emsalSearch
+    }).catch(agKopar);
+    if (!res.ok) throw new Error(`emsal_doc_${res.status}`);
+    const j = await res.json();
+    return htmlToText(String(j?.data ?? ''));
   });
-  if (!res.ok) throw new Error(`emsal_doc_${res.status}`);
-  const j = await res.json();
-  return htmlToText(String(j?.data ?? ''));
 }
 
 // ---------------------------------------------------------------------------
@@ -617,48 +663,52 @@ async function bedestenSearch(
   itemType = 'YARGITAYKARARI',
   opts?: { sortByDate?: boolean },
 ): Promise<{ hits: Hit[]; total: number }> {
-  const data: Record<string, unknown> = {
-    pageSize,
-    pageNumber: page,
-    itemTypeList: [itemType],
-    phrase: query,
-  };
-  // Varsayılan: alaka (relevance) sıralaması. İstenirse en yeni karar → eski.
-  if (opts?.sortByDate) {
-    data.sortFields = ['KARAR_TARIHI'];
-    data.sortDirection = 'desc';
-  }
-  const res = await fetch(`${BEDESTEN_BASE}/emsal-karar/searchDocuments`, {
-    method: 'POST',
-    headers: BEDESTEN_HEADERS,
-    body: JSON.stringify({ data }),
-    signal: AbortSignal.timeout(10000),
+  return devreIle(bedestenDevre, async () => {
+    const data: Record<string, unknown> = {
+      pageSize,
+      pageNumber: page,
+      itemTypeList: [itemType],
+      phrase: query,
+    };
+    // Varsayılan: alaka (relevance) sıralaması. İstenirse en yeni karar → eski.
+    if (opts?.sortByDate) {
+      data.sortFields = ['KARAR_TARIHI'];
+      data.sortDirection = 'desc';
+    }
+    const res = await fetch(`${BEDESTEN_BASE}/emsal-karar/searchDocuments`, {
+      method: 'POST',
+      headers: BEDESTEN_HEADERS,
+      body: JSON.stringify({ data }),
+      signal: AbortSignal.timeout(10000),
+    }).catch(agKopar);
+    if (!res.ok) throw new Error(`bedesten_${res.status}`);
+    const j = await res.json();
+    // Bedesten HTTP 200 dönüp arka plan (UYAP Solr) çökünce metadata'da hata
+    // bildiriyor; bunu "0 sonuç" sanmayıp kaynak arızası olarak yükselt.
+    const meta = (j as { metadata?: { FMTY?: string; FMC?: string } })?.metadata;
+    if (meta?.FMTY === 'ERROR' || (meta?.FMC ?? '').includes('EXCEPTION')) {
+      throw new Error('source_unreachable');
+    }
+    return { hits: bedestenRows(j), total: Number((j as { data?: { total?: number } })?.data?.total ?? 0) };
   });
-  if (!res.ok) throw new Error(`bedesten_${res.status}`);
-  const j = await res.json();
-  // Bedesten HTTP 200 dönüp arka plan (UYAP Solr) çökünce metadata'da hata
-  // bildiriyor; bunu "0 sonuç" sanmayıp kaynak arızası olarak yükselt.
-  const meta = (j as { metadata?: { FMTY?: string; FMC?: string } })?.metadata;
-  if (meta?.FMTY === 'ERROR' || (meta?.FMC ?? '').includes('EXCEPTION')) {
-    throw new Error('source_unreachable');
-  }
-  return { hits: bedestenRows(j), total: Number((j as { data?: { total?: number } })?.data?.total ?? 0) };
 }
 
 async function bedestenDocument(id: string): Promise<string> {
-  const res = await fetch(`${BEDESTEN_BASE}/emsal-karar/getDocumentContent`, {
-    method: 'POST',
-    headers: BEDESTEN_HEADERS,
-    body: JSON.stringify({ data: { documentId: id } }),
-    signal: AbortSignal.timeout(10000),
+  return devreIle(bedestenDevre, async () => {
+    const res = await fetch(`${BEDESTEN_BASE}/emsal-karar/getDocumentContent`, {
+      method: 'POST',
+      headers: BEDESTEN_HEADERS,
+      body: JSON.stringify({ data: { documentId: id } }),
+      signal: AbortSignal.timeout(10000),
+    }).catch(agKopar);
+    if (!res.ok) throw new Error(`bedesten_doc_${res.status}`);
+    const j = await res.json();
+    const data = (j as { data?: { content?: string; mimeType?: string } })?.data;
+    const mime = String(data?.mimeType ?? '');
+    // Taranmış (PDF/görüntü) kararların metni yok — düz metin sözü vermeyelim.
+    if (mime && !mime.includes('html') && !mime.includes('text')) return '';
+    return htmlToText(b64ToUtf8(String(data?.content ?? '')));
   });
-  if (!res.ok) throw new Error(`bedesten_doc_${res.status}`);
-  const j = await res.json();
-  const data = (j as { data?: { content?: string; mimeType?: string } })?.data;
-  const mime = String(data?.mimeType ?? '');
-  // Taranmış (PDF/görüntü) kararların metni yok — düz metin sözü vermeyelim.
-  if (mime && !mime.includes('html') && !mime.includes('text')) return '';
-  return htmlToText(b64ToUtf8(String(data?.content ?? '')));
 }
 
 /** Kaynağa göre karar tam metnini getirir. */
@@ -678,27 +728,6 @@ function svc(): ReturnType<typeof createClient> | null {
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (url && key) _svc = createClient(url, key);
   return _svc;
-}
-
-/**
- * Kurulu KARARIN GELDİĞİ KAYNAĞA göre değil, DAİRE ADINA göre belirler.
- *
- * Eski hâli kaynağa bakıyordu: canlı UYAP Emsal yolundan gelen her karara
- * "BAM/Yerel" diyordu. Ölçüldü: bu yüzden 14 YARGITAY kararı (ör. "Yargıtay
- * 1. Ceza Dairesi") havuza "BAM/Yerel" olarak yazılmış. Kaynak, kararın hangi
- * mercie ait olduğunu söylemez — daire adı söyler.
- *
- * Ayrıca hasatçılarla AYNI kuralı kullanır; iki kod yolu farklı etiket
- * üretince aynı havuzda "Diğer" ve "BAM/Yerel" gibi iki ayrı çöp kova oluşuyordu.
- */
-function kurulOf(h: Hit): string {
-  const d = (h.daire ?? '').toLocaleLowerCase('tr');
-  if (d.includes('bölge adliye')) return 'BAM';
-  if (d.includes('bölge idare')) return 'BİM';
-  if (d.includes('danıştay')) return 'Danıştay';
-  if (d.includes('yargıtay')) return 'Yargıtay';
-  if (d.includes('anayasa')) return 'AYM';
-  return 'Yerel';
 }
 
 /**
@@ -737,26 +766,24 @@ async function diskMusaitMi(): Promise<boolean> {
   }
 }
 
-/** Bir kararı tam metniyle arşive yaz (idempotent upsert). En iyi çaba; hata yutulur. */
-async function archiveDecision(h: Hit, fullText: string, query: string): Promise<void> {
+/**
+ * Bir kararı tam metniyle arşive yaz (idempotent upsert). En iyi çaba; hata yutulur.
+ *
+ * İKİ KURAL (09.10.2026):
+ *  - Yük `arsivSatiri` ile kurulur: boş künye alanı yüke GİRMEZ. Belge yolu
+ *    kararı künyesiz arşivliyordu ve upsert, havuzda dolu duran künyeyi
+ *    null'a eziyordu.
+ *  - KULLANICININ ARAMA METNİ YAZILMAZ. Eskiden `arama_terimi`ne sorgunun
+ *    ilk 120 karakteri gidiyordu; avukat müvekkil adı ya da olay yazabilir ve
+ *    bu, kalıcı karar havuzuna düşerdi (müvekkil sırrı). Sütunu yalnız hasat
+ *    işleri doldurur (sabit konu listesinden).
+ */
+async function archiveDecision(h: Hit, fullText: string): Promise<void> {
   const db = svc();
   if (!db || !h.id || !fullText || fullText.length < 200) return; // taranmış/boş atla
   if (!(await diskMusaitMi())) return; // disk sınıra yakın: arşivleme, arama sürsün
   try {
-    await db.from('ictihat_kararlar').upsert(
-      {
-        id: h.id,
-        kurul: kurulOf(h),
-        daire: h.daire || null,
-        esas_no: h.esasNo || null,
-        karar_no: h.kararNo || null,
-        karar_tarihi: h.kararTarihi || null,
-        durum: h.durum || null,
-        arama_terimi: query.slice(0, 120),
-        full_text: fullText,
-      },
-      { onConflict: 'id' },
-    );
+    await db.from('ictihat_kararlar').upsert(arsivSatiri(h, fullText, ''), { onConflict: 'id' });
   } catch {
     // arşivleme en iyi çabadır; başarısız olsa da kullanıcı akışını bozmaz
   }
@@ -766,29 +793,6 @@ async function archiveDecision(h: Hit, fullText: string, query: string): Promise
 function normalizeKunyeNo(raw: string): string {
   const m = (raw ?? '').match(/(\d{4})\s*[/\-.]\s*(\d{1,6})/);
   return m ? `${m[1]}/${m[2]}` : '';
-}
-
-const EMBED_MODEL = 'text-embedding-004';
-
-/** Soruyu Gemini ile vektöre çevirir (semantik havuz araması için). null=anahtar yok/başarısız. */
-async function embedQuery(text: string): Promise<number[] | null> {
-  const apiKey = Deno.env.get('GEMINI_API_KEY');
-  if (!apiKey) return null;
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 2000) }] } }),
-      }
-    );
-    if (!res.ok) return null;
-    const j = await res.json();
-    return j?.embedding?.values ?? null;
-  } catch {
-    return null;
-  }
 }
 
 /** Havuz RPC satırını uygulama Hit şekline çevirir. */
@@ -901,6 +905,15 @@ async function geminiAnalyze(
   return text.trim();
 }
 
+/**
+ * Kaynağa (UYAP/Bedesten) giden eylemler için KULLANICI BAŞI sınır. Yapay
+ * zekâ eylemleri (özet, analiz) zaten kotalı. 30 istek / 60 sn: ÖLÇÜLMEDİ,
+ * TAHMİN — bir avukatın elle gezinmesinin çok üstünde, bir betiğin altında
+ * seçildi; gerçek kullanımın dağılımı bilinmiyor. Bellekte, edge örneği
+ * başına (bkz. IstekSiniri).
+ */
+const kaynakIstekSiniri = new IstekSiniri(30, 60_000);
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
@@ -941,8 +954,20 @@ Deno.serve(async (req) => {
   try {
     const action = body.action ?? 'search';
 
+    // Kaynağa giden eylemlerde kullanıcı başı sınır. 'rate_limit' yayındaki
+    // istemcinin zaten tanıdığı koddur ("yoğunluk, bir dakika sonra deneyin").
+    if (
+      (action === 'search' || action === 'kunye' || action === 'document') &&
+      !kaynakIstekSiniri.izinVer(userData.user.id)
+    ) {
+      return json({ error: 'rate_limit' }, 429);
+    }
+
     if (action === 'search') {
-      const query = (body.query ?? '').trim();
+      // KESME İŞARETİ UYAP aramasını öldürüyor (ölçüldü: 0 vs 86.985 kayıt;
+      // bkz. kesmeTemizle). Temiz sorgu hem aramada hem önizleme kesitinde
+      // kullanılır; "Yargıtay'ın" aramasının boş dönmesi böylece biter.
+      const query = kesmeTemizle(body.query ?? '');
       if (!query) return json({ error: 'bad_request' }, 400);
       const pageSize = Math.min(20, Math.max(1, Number(body.pageSize ?? 15)));
       const page = Math.max(1, Number(body.page ?? 1));
@@ -983,15 +1008,11 @@ Deno.serve(async (req) => {
               bedestenSearch(`"${query}"`, 1, pageSize, itemType).catch(() => ({ hits: [], total: 0 })),
               bedestenSearch(query, 1, pageSize, itemType),
             ]);
-            const seen = new Set<string>();
-            hits = [];
-            for (const h of [...ph.hits, ...kw.hits]) {
-              if (h.id && !seen.has(h.id)) {
-                seen.add(h.id);
-                hits.push(h);
-              }
-            }
-            hits = hits.slice(0, pageSize);
+            // Birleşik liste pageSize'a KESİLMEZ: 2. sayfa kelime aramasının
+            // 2. sayfasıdır, kesilen kelime sonuçları hiçbir sayfada
+            // görünmezdi (bkz. akilliIlkSayfa). Fazladan kararlar önizleme
+            // çekimini artırmasın diye aşağıda yalnız ilk pageSize'ı çekilir.
+            hits = akilliIlkSayfa(ph.hits, kw.hits);
             total = kw.total || ph.total;
           } else {
             // Tek kelime ya da sayfa 2+ : düz kelime araması.
@@ -999,7 +1020,7 @@ Deno.serve(async (req) => {
             hits = r.hits;
             total = r.total;
           }
-          await attachSnippets(hits, query, hits.length);
+          await attachSnippets(hits, query, pageSize);
           // Aranan ifadenin metinde birebir GEÇMEDİĞİ (köke yakın) kararları
           // sona at — "recent" modunda tarih sırasını bozmamak için dokunma.
           if (mode !== 'recent') {
@@ -1007,17 +1028,23 @@ Deno.serve(async (req) => {
           }
           return json({ hits, total, page, source: court });
         } catch (e) {
-          // UYAP çökük → daha önce arşivlediğimiz kararlardan sun (bizde kalanlar).
-          const msg = e instanceof Error ? e.message : '';
-          if (msg === 'source_unreachable' && page === 1) {
-            const { data } = await supabase.rpc('search_ictihat_fts', { q: query, match_count: pageSize });
-            const hits = (data ?? []).map((r: Record<string, unknown>) => {
-              const h = rowToHit(r);
-              if (r.snippet) h.snippet = String(r.snippet);
-              h.matched = true;
-              return h;
-            });
-            if (hits.length > 0) return json({ hits, total: hits.length, page: 1, source: 'archive' });
+          // Kaynak çökük → daha önce arşivlediğimiz kararlardan sun (bizde
+          // kalanlar). HER hata türünde: zaman aşımı ve 5xx de buraya düşer
+          // (eskiden yalnız HTTP 200 + hata üstverisi 'source_unreachable'
+          // arşive bakıyordu). Arşiv sorgusu da düşerse özgün hata fırlar.
+          if (page === 1) {
+            try {
+              const { data } = await supabase.rpc('search_ictihat_fts', { q: query, match_count: pageSize });
+              const arsivHits = (data ?? []).map((r: Record<string, unknown>) => {
+                const h = rowToHit(r);
+                if (r.snippet) h.snippet = String(r.snippet);
+                h.matched = true;
+                return h;
+              });
+              if (arsivHits.length > 0) return json({ hits: arsivHits, total: arsivHits.length, page: 1, source: 'archive' });
+            } catch {
+              // arşiv de yanıt vermedi → özgün hata
+            }
           }
           throw e;
         }
@@ -1073,16 +1100,14 @@ Deno.serve(async (req) => {
       const { data: ftsRows } = await supabase.rpc('search_ictihat_fts', { q: query, match_count: pageSize });
       pushRows(ftsRows ?? []);
 
-      // Anlamsal arama, kelime aramasının eşanlam yüzünden kaçırdıklarını
-      // tamamlar (avukat "işten atıldım" yazar, karar "hizmet akdinin feshi"
-      // der). Sırayı bozmadan, kalan yeri doldurur.
-      if (hits.length < pageSize) {
-        const qEmb = await embedQuery(query);
-        if (qEmb) {
-          const { data } = await supabase.rpc('match_ictihat_semantic', { q_embedding: qEmb, match_count: pageSize });
-          pushRows(data ?? []);
-        }
-      }
+      // ANLAMSAL ARAMA BU UÇTAN KALDIRILDI (09.10.2026). Sorgu, KVKK rızası
+      // alınmadan Gemini'ye (yurt dışı) gönderilip vektöre çevriliyordu; üstelik
+      // Gemini text-embedding-004 768 boyutlu, havuz sütunu vector(384)
+      // (canlıda ölçüldü): karşılaştırma boyut hatasıyla düşüyor, hata
+      // yutuluyordu. Yani rızasız bir dış çağrı, hiçbir şey kazandırmıyordu.
+      // Vektörleme zaten kapalı (0154/0155). Havuz araması kelime aramasına
+      // dayanıyor; geri getirmek ürün sahibi kararı + rıza kapısı + yerel
+      // (384 boyutlu) bir model gerektirir.
 
       // 2) Havuz yetersizse canlı UYAP Emsal'den tamamla (dedupe).
       let total = hits.length;
@@ -1142,10 +1167,18 @@ Deno.serve(async (req) => {
       // Yargıtay Karar Arama Emsal taramasıyla PARALEL koşar (erişilemezse boş
       // döner) — seri beklemek toplam süreyi timeout kadar uzatıyordu.
       const term = esas || karar;
-      // Yargıtay künyesini de tara (Bedesten). Erişilemezse boş döner.
+      // Yargıtay künyesini de tara (Bedesten). Erişilemezse DÜŞTÜĞÜ not edilir:
+      // eskiden hata sessizce boş listeye çevriliyordu ve Emsal'de bulunmayan
+      // bir Yargıtay künyesi için ekran "bu künyeyle karar bulunamadı" diyordu
+      // (bkz. kunyeYokDenemez).
+      let yargitayDustu = false;
       const ygPromise: Promise<Hit[]> = bedestenSearch(term, 1, 20, 'YARGITAYKARARI')
         .then((r) => r.hits)
-        .catch(() => []);
+        .catch((e) => {
+          yargitayDustu = true;
+          console.error('kunye: yargıtay araması düştü:', e instanceof Error ? e.message : String(e));
+          return [] as Hit[];
+        });
       const collected: Hit[] = [];
       const seen = new Set<string>();
       // EMSAL DÜŞERSE BEDESTEN'LE DEVAM (03.10.2026). Ölçüldü: 21:21–21:25'te
@@ -1178,14 +1211,20 @@ Deno.serve(async (req) => {
         }
       }
 
-      // İki kaynak da boş VE Emsal düştüyse bu "yok" değil "ulaşılamadı"dır.
-      if (emsalDustu && collected.length === 0) throw new Error('source_unreachable');
-
       const matches = (h: Hit) =>
         (!esas || h.esasNo === esas) &&
         (!karar || h.kararNo === karar) &&
         (!daireFilter || h.daire.toLocaleLowerCase('tr').includes(daireFilter));
       const exact = collected.filter(matches);
+
+      // TAM EŞLEŞME YOK VE KAYNAKLARDAN BİRİ DÜŞTÜYSE bu "yok" değil
+      // "ulaşılamadı"dır: Yargıtay künyesi yalnız Bedesten'de, istinaf künyesi
+      // yalnız Emsal'de bulunur; düşen kaynağın kapsadığı karar hiç aranmadı.
+      // Karşı tarafın atfını doğrulayan avukata yanlış "bulunamadı", atfın
+      // uydurma olduğunu ima eder. Hata olarak dönmek hem yayındaki hem yeni
+      // istemcide "ulaşılamadı" gösterir; atıf yapan kararlar bu durumda
+      // gösterilmez (eski istemci onları "bulunamadı"nın altında gösterirdi).
+      if (kunyeYokDenemez(exact.length, emsalDustu, yargitayDustu)) throw new Error('source_unreachable');
       const citing = collected.filter((h) => !matches(h)).slice(0, 10);
 
       // Tam eşleşme: önizleme + DETAYLI ANALİZ (sonuç, hüküm alıntısı, incelenen
@@ -1200,7 +1239,7 @@ Deno.serve(async (req) => {
             h.outcome = a.outcome;
             h.sonuc = a.sonuc;
             h.incelenen = a.incelenen;
-            await archiveDecision(h, text, term);
+            await archiveDecision(h, text);
           } catch {
             // analiz alınamadı → geç
           }
@@ -1209,7 +1248,7 @@ Deno.serve(async (req) => {
           try {
             const text = await fetchDocText(h.id, h.src);
             h.snippet = buildSnippet(text, term);
-            await archiveDecision(h, text, term);
+            await archiveDecision(h, text);
           } catch {
             // önizleme alınamadı → geç
           }
@@ -1223,15 +1262,20 @@ Deno.serve(async (req) => {
       const id = (body.id ?? '').trim();
       if (!id) return json({ error: 'bad_request' }, 400);
       // ÖNCE ARŞİV (bizde kalan): hızlı ve UYAP çökse bile çalışır.
-      const { data: row } = await supabase
-        .from('ictihat_kararlar')
-        .select('full_text')
-        .eq('id', id)
-        .maybeSingle();
+      // SERVİS istemcisiyle okunur: ictihat_kararlar'da authenticated rolünün
+      // SELECT yetkisi yok (0104; canlıda has_table_privilege = false, RLS
+      // politikası yetkinin yerine geçmez). Kullanıcı JWT'siyle her okuma
+      // 42501 ile düşüyor, `data` null geliyor ve kod "arşivde yok" sanıp hep
+      // canlı kaynağa gidiyordu — UYAP çöktüğünde arşiv hiç işe yaramıyordu.
+      // Havuz herkese açık karar metnidir; kullanıcı verisi içermez.
+      const arsiv = svc();
+      const { data: row } = arsiv
+        ? await arsiv.from('ictihat_kararlar').select('full_text').eq('id', id).maybeSingle()
+        : { data: null };
       if (row?.full_text) return json({ id, text: String(row.full_text), source: 'archive' });
       // Arşivde yoksa canlı çek ve metni arşive yaz (bir dahaki sefere bizde kalsın).
       const text = body.src === 'yargitay' ? await bedestenDocument(id) : await emsalDocument(id);
-      await archiveDecision({ id, daire: '', esasNo: '', kararNo: '', kararTarihi: '', durum: '', src: body.src ?? 'emsal' }, text, '');
+      await archiveDecision({ id, daire: '', esasNo: '', kararNo: '', kararTarihi: '', durum: '', src: body.src ?? 'emsal' }, text);
       return json({ id, text });
     }
 
@@ -1249,10 +1293,11 @@ Deno.serve(async (req) => {
       if (rizaRed) return rizaRed;
 
       // Önce havuzdan metin+meta (varsa), eksik kalanı canlı Emsal'den çek.
-      const { data: corpusRows } = await supabase
-        .from('ictihat_kararlar')
-        .select('id,daire,esas_no,karar_no,karar_tarihi,durum,full_text')
-        .in('id', ids);
+      // Servis istemcisiyle: kullanıcı JWT'si bu tabloyu okuyamaz (bkz. document).
+      const arsivS = svc();
+      const { data: corpusRows } = arsivS
+        ? await arsivS.from('ictihat_kararlar').select('id,daire,esas_no,karar_no,karar_tarihi,durum,full_text').in('id', ids)
+        : { data: null };
       // deno-lint-ignore no-explicit-any
       const corpus = new Map<string, any>((corpusRows ?? []).map((r: any) => [String(r.id), r]));
 
@@ -1270,7 +1315,7 @@ Deno.serve(async (req) => {
           // ulaşılamayan kararı atla
         }
       }
-      if (docs.length === 0) return json({ error: 'empty' }, 502);
+      if (docs.length === 0) return json({ error: 'source_unreachable' }, 502); // metin alınamadı = kaynak sorunu, yapay zekâ değil
       // Üyelik katmanı + maliyet tavanı kontrolü (batma koruması).
       // profiles PII sertleştirmesiyle authenticated'a SELECT kapalı; tier'ı
       // SERVİS anahtarıyla (RLS bypass) oku, yoksa herkes "baslangic"e düşer.
@@ -1364,10 +1409,18 @@ Deno.serve(async (req) => {
       // Kota taştıysa her iki çağrı da ucuz modelle yapılır.
       const model = rez2.model;
 
-      try {
+      // HAK İADESİ TEK YERDE (bkz. _shared/hakIadesi.ts). Eskiden yalnız
+      // FIRLATILAN hatada iade vardı; "uygun karar yok" ve "metin alınamadı"
+      // yolları catch'e düşmeden `return` ediyordu ve rezerve edilen soru hakkı
+      // geri verilmiyordu — oysa ekrandaki mesaj "hakkınızdan düşülmedi"
+      // diyordu. Şimdi 2xx dışı her dönüş ve her fırlatılan hata iade eder.
+      return await basarisizsaIadeEt(rezervasyonKaydi(cfg, userData.user.id), async () => {
         // 1) Olaydan arama terimleri üret.
         const plan = await geminiPlan(olay, cfg.provider, model, key, meter);
-        const queries = plan.queries.length > 0 ? plan.queries : [olay.slice(0, 60)];
+        // Modelin ürettiği terimde de kesme işareti UYAP aramasını öldürür.
+        const queries = (plan.queries.length > 0 ? plan.queries : [olay.slice(0, 60)])
+          .map((q) => kesmeTemizle(q))
+          .filter(Boolean);
 
         // 2) Her terimle gerçek kararları topla (havuz + canlı), dedupe, sınırla.
         const seen = new Set<string>();
@@ -1388,15 +1441,18 @@ Deno.serve(async (req) => {
             }
           } catch { /* canlı ulaşılamazsa geç */ }
         }
-        if (candidates.length === 0) return json({ error: 'empty' }, 502);
+        // Kaynak cevap verdi ama olaya uygun karar çıkmadı: yapay zekâ boş
+        // dönmedi, 'empty' ("yapay zekâ boş cevap verdi") yanlış cümle olurdu.
+        if (candidates.length === 0) return json({ error: 'karar_yok' }, 404);
 
         // 3) En fazla 6 kararın gerçek metnini çek (havuz önce), AI'a ver.
         const top = candidates.slice(0, 6);
         const ids = top.map((h) => h.id);
-        const { data: corpusRows } = await supabase
-          .from('ictihat_kararlar')
-          .select('id,full_text')
-          .in('id', ids);
+        // Servis istemcisiyle: kullanıcı JWT'si bu tabloyu okuyamaz (bkz. document).
+        const arsivA = svc();
+        const { data: corpusRows } = arsivA
+          ? await arsivA.from('ictihat_kararlar').select('id,full_text').in('id', ids)
+          : { data: null };
         // deno-lint-ignore no-explicit-any
         const corpusText = new Map<string, string>((corpusRows ?? []).map((r: any) => [String(r.id), String(r.full_text ?? '')]));
 
@@ -1408,7 +1464,8 @@ Deno.serve(async (req) => {
           }
           if (text) docs.push({ hit: h, text });
         }
-        if (docs.length === 0) return json({ error: 'empty' }, 502);
+        // Adaylar var ama hiçbirinin metni alınamadı: kaynak sorunu.
+        if (docs.length === 0) return json({ error: 'source_unreachable' }, 502);
 
         // 4) Olaya göre analiz + olaya uygun içtihat.
         const analysis = await geminiAnalyze(olay, plan.issue, docs, cfg.provider, model, key, meter);
@@ -1417,24 +1474,21 @@ Deno.serve(async (req) => {
         // 'model' ve 'kullanim' yanıtta: ölçüm, sonucun hangi modelden ve kaça
         // geldiğini bilsin (ai-chat ile aynı biçim; künye bunu toplar).
         return json({ analysis, issue: plan.issue, queries, hits: docs.map((d) => d.hit), tier, model, kullanim: kullanimOzeti(model, meter, cfg.billable) });
-      } catch (e) {
-        // Arızada (sağlayıcı, kaynak site, boş sonuç) rezerve edilen hak geri
-        // verilir; avukat bizim arızamızın bedelini kotasından ödemesin.
-        await hakSerbestBirak(cfg, userData.user.id);
-        throw e;
-      }
+      }, iadeIslemleri());
     }
 
     return json({ error: 'bad_request' }, 400);
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'upstream';
-    if (msg === 'rate_limit') return json({ error: 'rate_limit' }, 429);
-    if (msg === 'not_configured') return json({ error: 'not_configured' }, 503);
-    // Kaynak siteye ulaşılamazsa (geo/WAF) net bir kod dönelim. 'ayrinti'
-    // varsa (Claude dalı) onu taşı: "upstream" tek başına teşhis ettirmiyor.
+    // 'ayrinti' varsa (Claude dalı, ağ hatası) onu taşı: "upstream" tek başına
+    // teşhis ettirmiyor.
     const ayrinti = (e as Error & { ayrinti?: string })?.ayrinti;
     // 03.10.2026: 502'nin sebebi kayıtlarda görünmüyordu (yalnız "booted").
     console.error('ictihat 502:', msg, ayrinti ?? '');
-    return json({ error: 'source_unreachable', detail: ayrinti ?? msg }, 502);
+    // Kod eşlemesi _shared/ictihatArama.ts > ucHataYaniti: yapay zekâ servisi
+    // düşünce 'upstream'/'empty' döner (ekranda "UYAP yanıt vermiyor" değil);
+    // 'source_unreachable' yalnız gerçekten kaynak (UYAP/Bedesten) hatalarında.
+    const { status, govde } = ucHataYaniti(msg, ayrinti);
+    return json(govde, status);
   }
 });

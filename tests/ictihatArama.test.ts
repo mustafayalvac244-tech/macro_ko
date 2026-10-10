@@ -12,6 +12,8 @@ import {
   akilliIlkSayfa,
   arsivSatiri,
   bedestenTarihi,
+  IstekSiniri,
+  kaynakArizasiMi,
   kesmeTemizle,
   kunyeYokDenemez,
   kurulOf,
@@ -249,5 +251,106 @@ describe('dış kaynak çağrılarında zaman aşımı', () => {
     // Eskiden yalnız 'source_unreachable' (HTTP 200 + hata üstverisi) arşive
     // düşüyordu; zaman aşımı ve 5xx doğrudan hata ekranına gidiyordu.
     expect(eylemBlogu('search')).not.toMatch(/msg === 'source_unreachable' && page === 1/);
+  });
+});
+
+// ── 8) KULLANICI METNİ KALICI HAVUZA YAZILMAZ (gizlilik, 10.10.2026) ──────
+// archiveDecision arama sorgusunun ilk 120 karakterini arama_terimi'ne
+// yazıyordu. Avukat müvekkil adı / olay yazabilir; sütun herkesin okuduğu
+// karar havuzunda kalıcıdır. Eski kalıntıyı 0190 (ai-chat dalı) temizler.
+describe('arama sorgusu kalıcı tabloya yazılmaz', () => {
+  it('arsivSatiri boş arama terimiyle arama_terimi sütununu yüke koymaz', () => {
+    const satir = arsivSatiri({ id: '1', daire: 'Yargıtay 9. Hukuk Dairesi', esasNo: '', kararNo: '', kararTarihi: '', durum: '' }, 'x'.repeat(300), '');
+    expect('arama_terimi' in satir).toBe(false);
+  });
+
+  it('uçtaki arşiv yazımı kullanıcı metnini hiçbir yoldan geçirmiyor', () => {
+    expect(uc).toMatch(/async function archiveDecision\(h: Hit, fullText: string\): Promise<void>/);
+    expect(uc).toMatch(/arsivSatiri\(h, fullText, ''\)/);
+    expect(uc).not.toMatch(/arama_terimi:\s*query/);
+    expect(uc).not.toMatch(/archiveDecision\([^)]*(query|term)\)/);
+  });
+});
+
+// ── 9) ANALİZ: "uygun karar yok" DOĞRU KOD, METİN ALINAMADI KAYNAK HATASI ─
+describe('olay analizi hata kodları', () => {
+  it('aday yoksa karar_yok, metin alınamazsa source_unreachable; "empty" yok', () => {
+    const blok = eylemBlogu('analyze');
+    expect(blok).toMatch(/error: 'karar_yok'/);
+    expect(blok).toMatch(/error: 'source_unreachable'/);
+    expect(blok).not.toMatch(/error: 'empty'/);
+  });
+});
+
+// ── 10) DEVRE KESİCİ + KULLANICI BAŞI İSTEK SINIRI ────────────────────────
+describe('kaynakArizasiMi — devre yalnız kaynak çökünce beslenir', () => {
+  it('ağ/zaman aşımı, hata üstverisi, 5xx, 403 ve 429 arıza sayılır', () => {
+    expect(kaynakArizasiMi(new Error('source_unreachable'))).toBe(true);
+    expect(kaynakArizasiMi(new Error('emsal_search_503'))).toBe(true);
+    expect(kaynakArizasiMi(new Error('bedesten_500'))).toBe(true);
+    expect(kaynakArizasiMi(new Error('bedesten_doc_403'))).toBe(true);
+    expect(kaynakArizasiMi(new Error('emsal_doc_429'))).toBe(true);
+    expect(kaynakArizasiMi(new SyntaxError('Unexpected token <'))).toBe(true);
+  });
+
+  it('kaynağın cevap verdiği 4xx ve bizim hatalarımız arıza sayılmaz', () => {
+    expect(kaynakArizasiMi(new Error('emsal_doc_404'))).toBe(false);
+    expect(kaynakArizasiMi(new Error('bedesten_400'))).toBe(false);
+    expect(kaynakArizasiMi(new Error('rate_limit'))).toBe(false);
+    expect(kaynakArizasiMi(new TypeError('x is undefined'))).toBe(false);
+    expect(kaynakArizasiMi('metin')).toBe(false);
+    expect(kaynakArizasiMi(null)).toBe(false);
+  });
+
+  it('dört kaynak işlevi de devre kesiciden ve ağ hatası sarmalayıcısından geçiyor', () => {
+    for (const ad of ['emsalSearch', 'emsalDocument', 'bedestenSearch', 'bedestenDocument']) {
+      const bas = uc.indexOf(`async function ${ad}(`);
+      expect(bas, ad).toBeGreaterThan(0);
+      const govde = uc.slice(bas, uc.indexOf('\n}\n', bas));
+      expect(govde, ad).toMatch(/devreIle\((emsal|bedesten)Devre,/);
+      expect(govde, ad).toMatch(/\.catch\(agKopar\)/);
+    }
+  });
+});
+
+describe('IstekSiniri — kullanıcı başı kayan pencere', () => {
+  it('sınıra kadar izin verir, sonra reddeder; reddedilen istek sayılmaz', () => {
+    let t = 1000;
+    const s = new IstekSiniri(3, 60_000, () => t);
+    expect([s.izinVer('a'), s.izinVer('a'), s.izinVer('a'), s.izinVer('a')]).toEqual([true, true, true, false]);
+    t += 59_000;
+    expect(s.izinVer('a')).toBe(false);
+  });
+
+  it('pencere geçince yeniden izin verir', () => {
+    let t = 0;
+    const s = new IstekSiniri(2, 1000, () => t);
+    expect(s.izinVer('a')).toBe(true);
+    expect(s.izinVer('a')).toBe(true);
+    expect(s.izinVer('a')).toBe(false);
+    t = 1001;
+    expect(s.izinVer('a')).toBe(true);
+  });
+
+  it('kullanıcılar birbirini etkilemez', () => {
+    const s = new IstekSiniri(1, 60_000, () => 5);
+    expect(s.izinVer('a')).toBe(true);
+    expect(s.izinVer('b')).toBe(true);
+    expect(s.izinVer('a')).toBe(false);
+  });
+
+  it('anahtar sayısı sınırı aşınca süresi dolmuş kullanıcılar atılır (bellek büyümez)', () => {
+    let t = 0;
+    const s = new IstekSiniri(1, 1000, () => t, 3);
+    for (const k of ['a', 'b', 'c']) s.izinVer(k);
+    t = 5000;
+    expect(s.izinVer('d')).toBe(true);
+    expect(s.izinVer('e')).toBe(true); // 5. anahtar: temizlik tetiklenir
+    expect(s.izinVer('a')).toBe(true); // 'a' süresi dolmuştu, atıldı ve yeniden izinli
+  });
+
+  it('uç yalnız kaynağa giden eylemlerde sınırı uyguluyor (yapay zekâ eylemleri kotalı)', () => {
+    expect(uc).toMatch(/kaynakIstekSiniri\.izinVer\(userData\.user\.id\)/);
+    expect(uc).toMatch(/action === 'search' \|\| action === 'kunye' \|\| action === 'document'/);
   });
 });
