@@ -1960,6 +1960,7 @@ export const en: Record<keyof typeof tr, string> = {
   'ictihat.analyzeBtn': 'Assess & Find Case Law',
   'ictihat.analyzing': 'Assessing the dispute, searching for fitting decisions...',
   'ictihat.analyzeRefs': 'Decisions Fitting the Dispute',
+  'ictihat.analyzeKararYok': 'No decisions fitting this case were found. Describe the case in a little more detail and try again; nothing was deducted from your allowance.',
   'ictihat.analyzeSoon': 'Case Analysis is coming soon',
   'ictihat.analyzeSoonDesc': 'Summarize your dispute; your AI assistant makes its legal assessment and finds the fitting case law for you. This feature is opening very soon. For now, use “Keyword Search” and “Citation” to reach real decisions.',
   'ictihat.errAiOff': 'AI is currently off (awaiting configuration). Keyword Search still works.',

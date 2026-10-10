@@ -22,6 +22,18 @@ import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
 // bilinmeyen her modeli gemini-2.5-pro fiyatından sayıyordu.
 import { costTry, faturaGirdi } from '../_shared/fiyat.ts';
 import { rizaKapisi } from '../_shared/kvkkRiza.ts';
+import { basarisizsaIadeEt, type HakRezervasyonu, type IadeIslemleri } from '../_shared/hakIadesi.ts';
+// Saf mantık ayrı dosyada ve testli (tests/ictihatArama.test.ts): künyeyi
+// ezmeyen arşiv yükü, kesme işareti, Türkiye günü, akıllı sayfa, künye
+// "bulunamadı" kuralı, hata yanıtı.
+import {
+  akilliIlkSayfa,
+  arsivSatiri,
+  bedestenTarihi,
+  kesmeTemizle,
+  kunyeYokDenemez,
+  ucHataYaniti,
+} from '../_shared/ictihatArama.ts';
 // CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
 // Burada elle yazılmaları, altı uçta `x-client-info` başlığının izin
 // listesinden düşmesine ve tarayıcıda tam arızaya yol açmıştı.
@@ -164,6 +176,34 @@ async function hakRezerve(
   return { model: rez.model };
 }
 
+/**
+ * hakRezerve'in ayırdığını kayda geçirir (_shared/hakIadesi.ts biçimi):
+ * deneme katmanı deneme hakkından, AI paketi aylık soru kotasından.
+ */
+function rezervasyonKaydi(cfg: KatmanCfg, userId: string): HakRezervasyonu {
+  return {
+    userId,
+    deneme: !!cfg.denemeLimit,
+    mod: cfg.modLimits ? { ay: aiPeriod(), mutalaa: false } : null,
+  };
+}
+
+/** İade işlemleri; hata YUTULUR — iade düşse de kullanıcının yanıtı değişmez. */
+function iadeIslemleri(): IadeIslemleri {
+  return {
+    deneme: async (userId) => {
+      const s = svc();
+      if (!s) return;
+      try { await s.rpc('deneme_hakki_serbest_birak', { p_user: userId }); } catch { /* kayıp bizde */ }
+    },
+    mod: async (userId, ay, mutalaa) => {
+      const s = svc();
+      if (!s) return;
+      try { await s.rpc('ai_mod_serbest_birak', { p_user: userId, p_ay: ay, p_mutalaa: mutalaa }); } catch { /* kayıp bizde */ }
+    },
+  };
+}
+
 /** Çağrı ARIZAYLA bittiyse rezerve edilen hakkı geri verir; hata yutulur. */
 async function hakSerbestBirak(cfg: KatmanCfg, userId: string): Promise<void> {
   const s = svc();
@@ -284,6 +324,16 @@ async function llmCall(
       throw hata;
     }
   }
+  // AĞ HATASI DA 'upstream'. fetch'in kendi hatası (TypeError) etiketsiz
+  // yukarı çıkınca dış catch onu "UYAP yanıt vermiyor" diye bildiriyor ve
+  // MESAJINI yanıtın 'detail' alanına koyuyordu. Deno'nun ağ hatası mesajı
+  // istek URL'sini içerir; Gemini URL'sinde anahtar (?key=) var. Bu yüzden
+  // mesaj TAŞINMAZ, yalnız hatanın türü.
+  const agHatasi = (e: unknown): never => {
+    const hata = new Error('upstream') as Error & { ayrinti?: string };
+    hata.ayrinti = `${provider}: ağ hatası (${(e as Error)?.name ?? 'bilinmiyor'})`;
+    throw hata;
+  };
   if (provider === 'groq') {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -295,7 +345,7 @@ async function llmCall(
         max_tokens: opts.maxTokens,
         ...(opts.json ? { response_format: { type: 'json_object' } } : {}),
       }),
-    });
+    }).catch(agHatasi);
     if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
     const j = await res.json();
     if (meter) { meter.tin += j.usage?.prompt_tokens ?? 0; meter.tout += j.usage?.completion_tokens ?? 0; }
@@ -312,7 +362,7 @@ async function llmCall(
         generationConfig: { temperature: opts.temperature, maxOutputTokens: opts.maxTokens, ...(opts.json ? { responseMimeType: 'application/json' } : {}) },
       }),
     }
-  );
+  ).catch(agHatasi);
   if (!res.ok) throw new Error(res.status === 429 ? 'rate_limit' : 'upstream');
   const j = await res.json();
   if (meter) meterAdd(meter, j);
@@ -474,6 +524,11 @@ async function emsalSearch(query: string, page: number, pageSize: number): Promi
       Referer: `${EMSAL_BASE}/`,
     },
     body: JSON.stringify({ data: { arananKelime: query, pageSize, pageNumber: page } }),
+    // ZAMAN AŞIMI YOKTU. Bedesten çağrılarında 10 sn sınır var, Emsal'de
+    // hiç yoktu: takılan bir UYAP isteği işlevi platform sınırına kadar
+    // bekletiyordu. Aynı sınır (10 sn) burada da; ölçülmüş değil, Bedesten
+    // çağrılarıyla tutarlılık için.
+    signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) throw new Error(`emsal_search_${res.status}`);
   const j = await res.json();
@@ -499,6 +554,7 @@ async function emsalSearch(query: string, page: number, pageSize: number): Promi
 async function emsalDocument(id: string): Promise<string> {
   const res = await fetch(`${EMSAL_BASE}/getDokuman?id=${encodeURIComponent(id)}`, {
     headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0', Referer: `${EMSAL_BASE}/` },
+    signal: AbortSignal.timeout(10000), // bkz. emsalSearch
   });
   if (!res.ok) throw new Error(`emsal_doc_${res.status}`);
   const j = await res.json();
@@ -538,7 +594,9 @@ function bedestenRows(j: unknown): Hit[] {
       const birim = String(r.birimAdi ?? '');
       const type = (r.itemType as { name?: string })?.name;
       const prefix = type === 'DANISTAYKARAR' ? 'Danıştay' : 'Yargıtay';
-      const kt = r.kararTarihi ? String(r.kararTarihi).slice(0, 10).split('-').reverse().join('.') : '';
+      // ISO'nun ilk 10 karakteri UTC günüdür: 05.03.2024 kararı
+      // "2024-03-04T21:00:00Z" geliyor ve 04.03.2024 gösteriliyordu.
+      const kt = bedestenTarihi(r.kararTarihiStr, r.kararTarihi);
       return {
         id: String(r.documentId ?? ''),
         daire: birim ? `${prefix} ${birim}` : prefix,

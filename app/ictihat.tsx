@@ -1175,9 +1175,7 @@ function DocModal({
           {!loading && error && (
             <View style={styles.errorBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
-              <Text style={styles.errorText}>
-                {error === 'source' ? t('ictihat.errSource') : t('ictihat.errGeneric')}
-              </Text>
+              <Text style={styles.errorText}>{t(ictihatHataAnahtari(error))}</Text>
             </View>
           )}
           {!loading && !error && !!text && <Text style={styles.docText}>{text}</Text>}
@@ -1230,9 +1228,10 @@ function SummaryModal({
           {!loading && error && (
             <View style={styles.errorBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
-              <Text style={styles.errorText}>
-                {error === 'rate_limit' ? t('ictihat.errRate') : error === 'source' ? t('ictihat.errSource') : t('ictihat.errGeneric')}
-              </Text>
+              {/* Hata metni tek yerden (ictihatHataAnahtari). Burada kendi
+                  üçlü koşulu vardı: KVKK rızası, paket ve kota hataları bile
+                  "İnternet bağlantınızı kontrol edin" olarak görünüyordu. */}
+              <Text style={styles.errorText}>{t(ictihatHataAnahtari(error))}</Text>
             </View>
           )}
           {!loading && !error && !!summary && <Text selectable style={styles.docText}>{summary}</Text>}
