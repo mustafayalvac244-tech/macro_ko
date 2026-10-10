@@ -1377,6 +1377,9 @@ Deno.serve(async (req) => {
     const ayrinti = (e as Error & { ayrinti?: string })?.ayrinti;
     // 03.10.2026: 502'nin sebebi kayıtlarda görünmüyordu (yalnız "booted").
     console.error('ictihat 502:', msg, ayrinti ?? '');
-    return json({ error: 'source_unreachable', detail: ayrinti ?? msg }, 502);
+    // `detail` (sağlayıcı/ağ hata metni) kullanıcıya DÖNMEZ (10.10.2026): iç
+    // ayrıntı sızdırır, istemci yalnız `error` kodunu okur. Sebep yukarıdaki
+    // console.error satırında, sunucu günlüğünde.
+    return json({ error: 'source_unreachable' }, 502);
   }
 });

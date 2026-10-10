@@ -3635,7 +3635,7 @@ async function dosyaKunyesiIc(
     // yalnız kota hâlinde yapılıyordu; denemede görüldü ki en olası ikinci
     // arıza (yedek modelin adının eskimesi) 'upstream' sayılıyor ve tam da
     // yedeğe en çok ihtiyaç duyulan anda özet devreye girmiyordu.
-    // Gerçek sebep yanıtta 'neden' alanında taşınır, gizlenmez.
+    // Yanıttaki 'neden' yalnız KOD taşır (rate_limit, daily_quota ya da upstream); ham sağlayıcı hata metni dönmez (10.10.2026) — gerçek sebep durumYaz ile ai_durum_yaz kaydında.
     {
       const ozet = await mevzuatOzeti(supabase, messages[messages.length - 1]?.text ?? '').catch(() => '');
       if (ozet) {
@@ -3649,7 +3649,7 @@ async function dosyaKunyesiIc(
         // 'model' alanı 'mevzuat-yedek' olduğu için ölçümde AI cevabıyla
         // karışmaz ve yedeğe ne sıklıkta düşüldüğü sayılabilir.
         return new Response(
-          JSON.stringify({ text: ozet, tier, model: 'mevzuat-yedek', yapayZekasiz: true, hakDusulmedi: true, neden: msg, yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }),
+          JSON.stringify({ text: ozet, tier, model: 'mevzuat-yedek', yapayZekasiz: true, hakDusulmedi: true, neden: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }),
           { headers: { ...CORS, 'Content-Type': 'application/json' } }
         );
       }

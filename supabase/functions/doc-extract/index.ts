@@ -14,6 +14,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // izlenen değişikliklerde SİLİNEN metin okunuyor, RTF kaçışlı kalıyor,
 // Windows-1254 bozuluyor, fotoğraf "metin" diye dönüyordu.
 import { docxMetni, duzMetinOku, udfMetni } from '../_shared/belgeMetni.ts';
+// ZIP girdisi AÇILMIŞ boyutla sınırlı okunur (sıkıştırma bombası, 10.10.2026).
+import { ZIP_ACILMIS_TAVAN, sinirliOku, type AkisBenzeri } from '../_shared/zipTavan.ts';
 import JSZip from 'https://esm.sh/jszip@3.10.1';
 import { extractText, getDocumentProxy } from 'https://esm.sh/unpdf@0.12.1';
 // CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
@@ -22,6 +24,16 @@ import { extractText, getDocumentProxy } from 'https://esm.sh/unpdf@0.12.1';
 import { CORS } from '../_shared/cors.ts';
 
 
+
+/**
+ * ZIP girdisini metne okur ama AÇILMIŞ boyutu ZIP_ACILMIS_TAVAN ile sınırlar:
+ * 8 MB'lık bir ZIP deflate ile gigabaytlara açılabilir (bkz. _shared/zipTavan.ts).
+ * Tavan aşılırsa akış durdurulur ve 'zip_too_large' fırlatılır.
+ */
+async function girdiMetni(girdi: { internalStream(tur: string): AkisBenzeri }): Promise<string> {
+  const bayt = await sinirliOku(girdi.internalStream('uint8array'), ZIP_ACILMIS_TAVAN);
+  return new TextDecoder('utf-8').decode(bayt);
+}
 
 /** ZIP tabanlı formatlardan (UDF/DOCX) metin çıkarır. */
 async function fromZip(bytes: Uint8Array, kind: 'udf' | 'docx'): Promise<string> {
@@ -34,13 +46,13 @@ async function fromZip(bytes: Uint8Array, kind: 'udf' | 'docx'): Promise<string>
     if (!name) throw new Error('udf_content_not_found');
     // udfMetni: belgenin kendi "<…>" ifadelerini etiket sanıp silmez,
     // resim/boş paragraf yer tutucularını atar (bkz. _shared/belgeMetni.ts).
-    return udfMetni(await zip.files[name].async('string'));
+    return udfMetni(await girdiMetni(zip.files[name]));
   }
   const doc = zip.files['word/document.xml'];
   if (!doc) throw new Error('docx_content_not_found');
   // docxMetni: yalnız <w:t> metindir; silinen (w:del) ve taşınan eski metin
   // (w:moveFrom) atılır, run sınırında kelimeye boşluk girmez.
-  return docxMetni(await doc.async('string'));
+  return docxMetni(await girdiMetni(doc));
 }
 
 Deno.serve(async (req) => {
@@ -156,7 +168,16 @@ Deno.serve(async (req) => {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'parse_failed', detail: (e as Error).message }), {
+    const mesaj = e instanceof Error ? e.message : String(e);
+    // Açılmış boyut tavanı (sıkıştırma bombası): istemcinin zaten bildiği
+    // 'too_large' koduyla döner ("dosya çok büyük").
+    if (mesaj === 'zip_too_large') {
+      return new Response(JSON.stringify({ error: 'too_large' }), { status: 413, headers: CORS });
+    }
+    // İç hata metni (kütüphane/yol/bellek ayrıntısı) kullanıcıya DÖNMEZ;
+    // sunucu günlüğüne yazılır (10.10.2026). İstemci yalnız `error` kodunu okur.
+    console.error('doc-extract parse_failed:', mesaj);
+    return new Response(JSON.stringify({ error: 'parse_failed' }), {
       status: 422,
       headers: CORS,
     });
