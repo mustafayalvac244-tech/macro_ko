@@ -1966,6 +1966,7 @@ export const tr = {
   // Taranmış sayfalar metne dönüşmez; avukat eksik okunduğunu GÖRMELİ.
   'docrev.scannedPages': 'DİKKAT: {n} sayfa metne dönüşmedi (taranmış görüntü): {sayfalar}. İnceleme bu sayfaları GÖRMEZ — tablo veya ek varsa gözden kaçar.',
   'docrev.truncated': 'Sınıra ulaşıldı — fazlası kırpıldı',
+  'docrev.kirpildi': '{n} karakter kırpıldı (kutuya en çok {max} karakter sığar). Uzun belgeyi “Dosya ekle” ile ekleyin.',
   'docrev.analyze': 'İncele',
   'docrev.analyzing': 'İnceleniyor…',
   'docrev.resultTitle': 'İnceleme Sonucu',

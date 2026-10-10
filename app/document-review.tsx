@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BelgeEkleri } from '@/components/ui/BelgeEkleri';
 import type { BelgeEki } from '@/lib/belgeEki';
-import { ekGovdesi, type EkUyari } from '@/lib/belgeEkiKurallari';
+import { ekGovdesi, metniSinirla, type EkUyari } from '@/lib/belgeEkiKurallari';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SesleYaz } from '@/components/ui/SesleYaz';
 import { Screen } from '@/components/ui/Screen';
@@ -26,7 +26,7 @@ type DocKind = 'sozlesme' | 'dilekce' | 'ihtarname' | 'karar' | 'diger';
 
 const KINDS: DocKind[] = ['sozlesme', 'dilekce', 'ihtarname', 'karar', 'diger'];
 
-/** Bağlam taşmasın diye üst sınır; aşarsa baştan kırpılır ve kullanıcı uyarılır. */
+/** Bağlam taşmasın diye üst sınır; aşarsa sondan kırpılır ve kaç karakterin gittiği söylenir. */
 const MAX_CHARS = 12000;
 
 export default function DocumentReviewScreen() {
@@ -60,6 +60,14 @@ export default function DocumentReviewScreen() {
   // ve tamamen taranmış PDF reddediliyordu. Şimdi PDF sayfa görüntüsüyle
   // okunur; kutu yapıştırılan metin ya da avukatın notu içindir.
   const [ekler, setEkler] = useState<BelgeEki[]>([]);
+  // Kutu tavanı aşan yapıştırmayı keser; son kesimde KAÇ karakter gittiği
+  // ekranda kalır (sessiz kayıp olmasın).
+  const [kirpilan, setKirpilan] = useState(0);
+  const metinYaz = (v: string) => {
+    const s = metniSinirla(v, MAX_CHARS);
+    setText(s.metin);
+    setKirpilan(s.kirpilan);
+  };
   const [ekUyari, setEkUyari] = useState<EkUyari | null>(null);
   // Kullanım ve iade — sunucu üç modda da destekliyor.
   const [kullanim, setKullanim] = useState<AiKullanim | null>(null);
@@ -146,7 +154,7 @@ export default function DocumentReviewScreen() {
           <TextInput
             style={styles.area}
             value={text}
-            onChangeText={(v) => setText(v.slice(0, MAX_CHARS))}
+            onChangeText={metinYaz}
             placeholder={ekler.length ? t('docrev.ekNotPlaceholder') : t('docrev.placeholder')}
             placeholderTextColor={colors.textMuted}
             multiline
@@ -154,9 +162,13 @@ export default function DocumentReviewScreen() {
           />
           <View style={styles.metaRow}>
             <Text style={styles.meta}>{t('docrev.chars', { n: text.trim().length })}</Text>
-            {text.length >= MAX_CHARS && <Text style={styles.metaWarn}>{t('docrev.truncated')}</Text>}
+            {kirpilan > 0 ? (
+              <Text style={styles.metaWarn}>{t('docrev.kirpildi', { n: kirpilan, max: MAX_CHARS })}</Text>
+            ) : (
+              text.length >= MAX_CHARS && <Text style={styles.metaWarn}>{t('docrev.truncated')}</Text>
+            )}
           </View>
-          <SesleYaz metin={text} onChange={(v) => setText(v.slice(0, MAX_CHARS))} disabled={busy} />
+          <SesleYaz metin={text} onChange={metinYaz} disabled={busy} />
 
           <Pressable
             onPress={analyze}

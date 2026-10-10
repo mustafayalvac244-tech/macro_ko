@@ -431,6 +431,26 @@ describe('BULGU 6 — soru uzunluğu tavanı', () => {
     expect(aiHataMetni({ error: 'soru_uzun' }, t)).toBe('ai.errSoruUzun');
   });
 
+  // Belge inceleme kutusu 12.000'de kesiyordu; yalnız "fazlası kırpıldı"
+  // diyordu — 40.000 karakterlik sözleşme yapıştıran avukat ne kadarının
+  // gittiğini bilmiyordu. Sayı artık söyleniyor (kırpılan karakter).
+  it('kutu tavanı aşan metni keser ve KAÇ karakterin gittiğini sayar', () => {
+    const uzun = 'a'.repeat(30_000);
+    const s = istemci.metniSinirla(uzun, 12_000);
+    expect(s.metin.length).toBe(12_000);
+    expect(s.kirpilan).toBe(18_000);
+    expect(istemci.metniSinirla('kısa metin', 12_000)).toEqual({ metin: 'kısa metin', kirpilan: 0 });
+    expect(istemci.metniSinirla('a'.repeat(12_000), 12_000).kirpilan).toBe(0);
+  });
+
+  it('belge inceleme ekranı kırpılan sayıyı gösterir; iki dilde metin var', () => {
+    const ekran = readFileSync(new URL('../app/document-review.tsx', import.meta.url), 'utf8');
+    expect(ekran).toContain('metniSinirla(');
+    expect(ekran).toContain("t('docrev.kirpildi'");
+    expect(tr['docrev.kirpildi']).toContain('{n}');
+    expect(en['docrev.kirpildi']).toContain('{n}');
+  });
+
   it('mesajdaki sayı sunucu tavanıyla aynı', () => {
     expect(tr['ai.errSoruUzun']).toContain(sunucu.SORU_TAVANI.toLocaleString('tr-TR'));
     expect(en['ai.errSoruUzun']).toContain(sunucu.SORU_TAVANI.toLocaleString('en-US'));

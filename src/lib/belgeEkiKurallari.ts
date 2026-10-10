@@ -143,3 +143,13 @@ export interface EkUyari {
   /** Metninin yalnız başı okunan ekler. */
   kirpilan?: Array<{ ad: string; okunan: number; toplam: number }>;
 }
+
+/**
+ * Yazı kutusu tavanı: aşan metni keser ve KAÇ karakterin gittiğini söyler
+ * (09.10.2026, 08.10 denetimi). Belge inceleme kutusu 12.000'de sessizce
+ * kesiyor, yalnız "fazlası kırpıldı" yazıyordu; 40.000 karakterlik bir
+ * sözleşme yapıştıran avukat kaybın büyüklüğünü bilmiyordu.
+ */
+export function metniSinirla(girdi: string, tavan: number): { metin: string; kirpilan: number } {
+  return girdi.length > tavan ? { metin: girdi.slice(0, tavan), kirpilan: girdi.length - tavan } : { metin: girdi, kirpilan: 0 };
+}

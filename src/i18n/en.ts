@@ -1860,6 +1860,7 @@ export const en: Record<keyof typeof tr, string> = {
   'docrev.chars': '{n} characters',
   'docrev.scannedPages': 'WARNING: {n} page(s) could not be converted to text (scanned images): {sayfalar}. The review does NOT see them — any tables or annexes there will be missed.',
   'docrev.truncated': 'Limit reached — extra text trimmed',
+  'docrev.kirpildi': '{n} characters were trimmed (the box holds {max} at most). Attach a long document with “Attach file”.',
   'docrev.analyze': 'Review',
   'docrev.analyzing': 'Reviewing…',
   'docrev.resultTitle': 'Review Result',
