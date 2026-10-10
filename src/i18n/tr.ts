@@ -416,14 +416,25 @@ export const tr = {
   'clients.search': 'Müvekkil ara',
   'clients.empty': 'Henüz müvekkil yok',
   'clients.emptyDesc': 'Dava ve iletişim bilgilerini bağlamak için müvekkil ekleyin.',
+  'clients.loadError': 'Müvekkiller yüklenemedi',
+  'clients.loadErrorDesc': 'Liste sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin.',
+  'clients.retry': 'Tekrar dene',
   'clients.noContact': 'İletişim bilgisi yok',
   'client.title': 'Müvekkil',
   'client.notes': 'Notlar',
   'client.linkedCases': 'Bağlı Davalar',
   'client.noCases': 'Bağlı dava yok',
   'client.noCasesDesc': 'Bu müvekkilin davaları burada görünecek.',
+  'client.notFound': 'Müvekkil bulunamadı',
+  'client.notFoundDesc': 'Bu müvekkil silinmiş olabilir.',
+  'client.loadError': 'Müvekkil yüklenemedi',
+  'client.loadErrorDesc': 'Kayıt sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin.',
+  'client.retry': 'Tekrar dene',
   'client.delete': 'Müvekkili Sil',
-  'client.deleteConfirm': '"{name}" silinsin mi? Bağlı davalar silinmez, atanmamış olarak kalır.',
+  // Şemayla aynı olmalı (tests/muvekkilSilme.test.ts): alacak/taksit, avans ve
+  // elle masraf satırları `on delete cascade` ile müvekkille birlikte gider.
+  'client.deleteConfirm':
+    '"{name}" silinsin mi? Bu müvekkilin alacak/verecek kayıtları (taksitler dâhil), masraf avansları ve elle eklenen masrafları da kalıcı olarak silinir. Davaları, icra dosyaları, belgeleri ve vekaletleri silinmez; yalnız müvekkil bağlantısı kalkar. Bu işlem geri alınamaz.',
 
   // Calendar
   'cal.title': 'Takvim',
@@ -557,6 +568,7 @@ export const tr = {
   'clientForm.tcNo': 'T.C. Kimlik No',
   'clientForm.tcNoPlaceholder': '11 haneli kimlik numarası',
   'clientForm.tcNoInvalid': 'Bu numara geçerli değil (kontrol hanesi tutmuyor).',
+  'clientForm.tcNoShort': 'T.C. Kimlik No 11 haneli olmalı.',
   'clientForm.address': 'Adres',
   'clientForm.addressPlaceholder': 'Atatürk Cad. No:12, İstanbul',
   'clientForm.notes': 'Notlar',
