@@ -20,6 +20,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
 import { havuzda } from '../_shared/havuz.ts';
+import { katalogYaz, type KatalogSatiri } from '../_shared/katalogYazma.ts';
 // CORS başlıkları ORTAK dosyadan geliyor — bkz. _shared/cors.ts.
 // Burada elle yazılmaları, altı uçta `x-client-info` başlığının izin
 // listesinden düşmesine ve tarayıcıda tam arızaya yol açmıştı.
@@ -47,16 +48,16 @@ const EVRENSEL = 'mahkeme';
 /** Gerekçe _shared/havuz.ts başlığında: 4 ölçüldü ve hatasız; 8 ölçülmedi. */
 const ES_ZAMAN = 4;
 
-type Satir = {
-  id: string;
-  tur: string;
-  daire: string | null;
-  esas_yil: number | null;
-  esas_sira: number | null;
-  karar_yil: number | null;
-  karar_sira: number | null;
-  karar_tarihi: string | null;
-};
+/**
+ * Bedesten çağrısı başına zaman aşımı (10.10.2026 denetimi: fetch'te hiç yoktu,
+ * askıda kalan istek havuz işçisini sınırsız tutabilirdi). 10 sn =
+ * ictihat/index.ts'in aynı kaynaktaki aramalarda kullandığı değer; normal yanıt
+ * ölçüldü ~1,08 sn (üstte). Aşılırsa istek hata sayılır, sayfa sonraki turda
+ * yeniden denenir.
+ */
+const ZAMAN_ASIMI_MS = 10_000;
+
+type Satir = KatalogSatiri;
 
 /**
  * @param gun    Pencerenin BAŞLANGICI (dahil).
@@ -81,6 +82,7 @@ async function sayfaCek(tur: string, gun: string, bitis: string, sayfa: number):
         kararTarihiEnd: `${bitis}T23:59:59.999Z`,
       },
     }),
+    signal: AbortSignal.timeout(ZAMAN_ASIMI_MS),
   });
   if (!res.ok) throw new Error(`bedesten ${res.status}`);
   const j = await res.json();
@@ -175,7 +177,11 @@ Deno.serve(async (req) => {
 
   if (error) return cevap({ error: 'pencere_state_failed', detail: String(error.message).slice(0, 120) }, 500);
   const pencereler = (data ?? []) as Array<{ gun: string; bitis: string | null; sonraki_sayfa: number }>;
-  if (pencereler.length === 0) return cevap({ error: 'pencere_yok' }, 404);
+  // Açık pencere yok = iş bitmiş, HATA değil. Eskiden 404 ile "pencere yok"
+  // hatası dönüyordu ve izleme (net._http_response: durum kodu / "error") bunu her tur
+  // hata sayıyordu (0175 öncesi Danıştay'ın 261 penceresi bitmişti). Yeni gün
+  // penceresi açılınca (katalog_pencere_yenile) tur kendiliğinden yeniden işler.
+  if (pencereler.length === 0) return cevap({ bosta: true, pencere: 0 });
 
   const simdi = new Date().toISOString();
 
@@ -260,33 +266,14 @@ Deno.serve(async (req) => {
   }));
   const biten = guncel.filter((g) => g.bitti).length;
 
-  let yazilan = 0;
-  let not: string | undefined;
-  if (satirlar.length) {
-    // ignoreDuplicates: katalogda olan satır GÜNCELLENMEZ. Önemli, çünkü
-    // metin_var ve son_deneme sütunlarını metin hasadı yazıyor; buradan
-    // tekrar yazmak onları sıfırlayıp aynı metni bir daha indirtirdi.
-    //
-    // Aynı tur içinde aynı id iki kez gelebilir (iki pencere aynı kararı
-    // döndürürse); upsert'e yinelenen anahtar göndermek tüm yazmayı düşürür,
-    // o yüzden önce tekilleştiriliyor.
-    const tekil = [...new Map(satirlar.map((x) => [x.id, x])).values()];
-    const { error: yzErr, count } = await supabase
-      .from('ictihat_katalog')
-      .upsert(tekil, { onConflict: 'id', ignoreDuplicates: true, count: 'exact' });
-    if (yzErr) not = `upsert: ${String(yzErr.message).slice(0, 90)}`;
-    else yazilan = count ?? tekil.length;
-  }
-
-  if (guncel.length) {
-    await supabase.from('ictihat_katalog_pencere').upsert(guncel, { onConflict: 'tur,gun' });
-  }
+  // Künyeler yazılamadıysa pencere ilerletilmez (bkz. _shared/katalogYazma.ts).
+  const { yazilan, not, pencereYazildi } = await katalogYaz(supabase, satirlar, guncel);
 
   return cevap({
     pencere: pencereler.length,
     istek_kullanilan: istek - butce,
     basarisiz_sayfa: basarisiz,
-    gun_bitti: biten,
+    gun_bitti: pencereYazildi ? biten : 0,
     taranan: satirlar.length,
     eklenen: yazilan,
     ...(not ? { not } : {}),
