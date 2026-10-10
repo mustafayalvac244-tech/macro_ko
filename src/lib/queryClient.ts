@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, defaultShouldDehydrateQuery, type Query } from '@tanstack/react-query';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { onbellegeYazilsinMi } from '@/lib/onbellekKurali';
 
 /**
  * SORGU ÖNBELLEĞİ VE ONUN CİHAZDAKİ KOPYASI — tek yerden.
@@ -46,6 +47,13 @@ export const asyncPersister = createAsyncStoragePersister({
   key: QUERY_CACHE_KEY,
   throttleTime: 1000,
 });
+
+/**
+ * Cihaza yazılacak sorgular: varsayılan kural (yalnız başarılı olanlar) VE
+ * yönetici paneli verisi hariç (bkz. onbellekKurali.ts).
+ */
+export const kalicidaTutulsunMu = (sorgu: Query): boolean =>
+  defaultShouldDehydrateQuery(sorgu) && onbellegeYazilsinMi(sorgu.queryKey);
 
 /**
  * Bellekteki ve cihazdaki tüm sorgu verisini siler. Çıkışta ve hesap silmede

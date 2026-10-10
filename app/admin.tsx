@@ -7,6 +7,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthStore } from '@/store/authStore';
 import { useAdminAiOzeti, useAdminDenemeTakibi, useAdminAtifDenetimi, useAdminOverview, useAdminUsers, useSetPremium, type AdminUser } from '@/hooks/useAdmin';
 import { useAiSaglik } from '@/hooks/useAiSaglik';
+import { uyar } from '@/lib/uyari';
 import { BildirimGonder } from '@/components/admin/BildirimGonder';
 import { KullanimOzeti } from '@/components/admin/KullanimOzeti';
 import { useT } from '@/i18n';
@@ -27,13 +28,36 @@ export default function AdminScreen() {
   const t = useT();
   const isAdmin = useAuthStore((s) => s.profile?.is_admin);
 
-  const overview = useAdminOverview();
-  const aiOzet = useAdminAiOzeti();
-  const deneme = useAdminDenemeTakibi();
-  const atif = useAdminAtifDenetimi(30);
-  const users = useAdminUsers();
+  // Yönetici değilse hiçbir panel sorgusu koşmaz (ekran zaten "erişim yok"
+  // gösteriyor; sorgular sunucudan yalnız 'not_admin' hatası alırdı).
+  const overview = useAdminOverview(!!isAdmin);
+  const aiOzet = useAdminAiOzeti(!!isAdmin);
+  const deneme = useAdminDenemeTakibi(!!isAdmin);
+  const atif = useAdminAtifDenetimi(30, !!isAdmin);
+  const users = useAdminUsers(!!isAdmin);
   const setPremium = useSetPremium();
   const saglik = useAiSaglik(!!isAdmin);
+
+  // PREMİUM DEĞİŞTİRME ONAYLI. Eskiden satırdaki düğme tek dokunuşla mutate
+  // çağırıyordu: kaydırırken yanlış satıra denk gelen bir dokunuş, bir
+  // kullanıcının aboneliğini sessizce açar ya da kapatırdı. Onay penceresi
+  // kimi etkilediğini adıyla söyler. Verilen değer onay anındaki duruma göre
+  // sabitlenir (liste arada yenilense bile aynı işlem uygulanır).
+  const premiumDegistir = (u: AdminUser) => {
+    const veriliyor = !u.is_premium;
+    uyar(
+      t(veriliyor ? 'admin.premiumVerBaslik' : 'admin.premiumAlBaslik'),
+      t('admin.premiumOnayGovde', { kisi: `${u.full_name || '—'} · ${u.email}` }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t(veriliyor ? 'admin.grant' : 'admin.revoke'),
+          style: veriliyor ? 'default' : 'destructive',
+          onPress: () => setPremium.mutate({ userId: u.id, value: veriliyor }),
+        },
+      ],
+    );
+  };
 
   // ARAMA. Liste en yeni 100 kaydı gösteriyordu; belirli bir kullanıcıyı
   // ("burak en son ne zaman girdi") bulmanın yolu yoktu — listeyi gözle
@@ -271,6 +295,13 @@ export default function AdminScreen() {
                 {t('admin.searchResult', { n: String(kullanicilar.length) })}
               </Text>
             )}
+            {/* Arama istemcide, yalnız yüklenen son kayıtlar üzerinde. Toplam
+                kullanıcı bundan fazlaysa "bulunamadı" yanıltıcı olurdu. */}
+            {!!users.data && o.total_users > users.data.length && (
+              <Text allowFontScaling={false} style={styles.aramaSonuc}>
+                {t('admin.searchLimit', { n: String(users.data.length), toplam: String(o.total_users) })}
+              </Text>
+            )}
             {users.isLoading ? (
               <View style={styles.center}><ActivityIndicator color={colors.gold} /></View>
             ) : (
@@ -280,7 +311,7 @@ export default function AdminScreen() {
                   user={u}
                   colors={colors}
                   busy={setPremium.isPending && setPremium.variables?.userId === u.id}
-                  onToggle={() => setPremium.mutate({ userId: u.id, value: !u.is_premium })}
+                  onToggle={() => premiumDegistir(u)}
                   premiumLabel={t('admin.premium')}
                   grantLabel={t('admin.grant')}
                   revokeLabel={t('admin.revoke')}

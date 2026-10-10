@@ -33,7 +33,7 @@ import {
 } from '@expo-google-fonts/jetbrains-mono';
 import { useAuthStore } from '@/store/authStore';
 import { pushAdresiniKaydet, registerForNotificationsAsync } from '@/lib/notifications';
-import { asyncPersister, queryClient, QUERY_CACHE_MAX_AGE } from '@/lib/queryClient';
+import { asyncPersister, kalicidaTutulsunMu, queryClient, QUERY_CACHE_MAX_AGE } from '@/lib/queryClient';
 import { configurePurchases, identifyPurchaser, resetPurchaser } from '@/lib/purchases';
 import { hydrateLanguage, useLangStore } from '@/i18n';
 import { hydrateTheme } from '@/theme/themeStore';
@@ -198,7 +198,11 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <PersistQueryClientProvider
           client={queryClient}
-          persistOptions={{ persister: asyncPersister, maxAge: QUERY_CACHE_MAX_AGE }}
+          persistOptions={{
+            persister: asyncPersister,
+            maxAge: QUERY_CACHE_MAX_AGE,
+            dehydrateOptions: { shouldDehydrateQuery: kalicidaTutulsunMu },
+          }}
         >
           <StatusBar style={statusBar} />
           <ErrorBoundary>

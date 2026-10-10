@@ -72,9 +72,11 @@ export interface AdminUser {
   kaynak?: string | null;
 }
 
-export function useAdminOverview() {
+export function useAdminOverview(enabled = true) {
   return useQuery({
     queryKey: ['admin', 'overview'],
+    // Yönetici değilken koşmasın: sunucu zaten 'not_admin' döner ama gereksiz istek.
+    enabled,
     staleTime: 30_000,
     queryFn: async (): Promise<AdminOverview> => {
       const { data, error } = await supabase.rpc('admin_overview');
@@ -84,9 +86,10 @@ export function useAdminOverview() {
   });
 }
 
-export function useAdminUsers() {
+export function useAdminUsers(enabled = true) {
   return useQuery({
     queryKey: ['admin', 'users'],
+    enabled,
     staleTime: 30_000,
     queryFn: async (): Promise<AdminUser[]> => {
       const { data, error } = await supabase.rpc('admin_recent_users', { p_limit: 100 });
@@ -156,9 +159,10 @@ export interface AdminAtifSatiri {
  * kayıt ölçüm değildir — birkaç hafta sonra soruya yine tahminle cevap
  * verilirdi.
  */
-export function useAdminAtifDenetimi(gun = 30) {
+export function useAdminAtifDenetimi(gun = 30, enabled = true) {
   return useQuery({
     queryKey: ['admin', 'atif-denetimi', gun],
+    enabled,
     staleTime: 60_000,
     queryFn: async (): Promise<AdminAtifSatiri[]> => {
       const { data, error } = await supabase.rpc('admin_atif_denetimi', { gun });
@@ -168,9 +172,10 @@ export function useAdminAtifDenetimi(gun = 30) {
   });
 }
 
-export function useAdminAiOzeti() {
+export function useAdminAiOzeti(enabled = true) {
   return useQuery({
     queryKey: ['admin', 'ai-ozeti'],
+    enabled,
     staleTime: 30_000,
     queryFn: async (): Promise<AdminAiOzeti> => {
       const { data, error } = await supabase.rpc('admin_ai_ozeti');
@@ -191,9 +196,10 @@ export interface AdminDenemeTakibi {
   kisiler: { ad: string | null; premium: boolean; kullanilan: number; son: string | null; iade: number; modlar: string | null }[];
 }
 
-export function useAdminDenemeTakibi() {
+export function useAdminDenemeTakibi(enabled = true) {
   return useQuery({
     queryKey: ['admin', 'deneme-takibi'],
+    enabled,
     staleTime: 30_000,
     queryFn: async (): Promise<AdminDenemeTakibi> => {
       const { data, error } = await supabase.rpc('admin_deneme_takibi', { p_limit: 50 });
