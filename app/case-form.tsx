@@ -31,6 +31,8 @@ import {
 import { MenfaatUyarisi } from '@/components/MenfaatUyarisi';
 import type { CaseStatus, CaseWithClient, PriorityLevel } from '@/types/database';
 import { geriDon } from '@/lib/geriDon';
+import { doluAlanVar } from '@/utils/webDavranis';
+import { useWebCikisUyarisi } from '@/hooks/useWebCikisUyarisi';
 
 const STATUS_VALUES = ['active', 'closed'] as const; // Açık / Kapalı
 const PRIORITY_VALUES: PriorityLevel[] = ['low', 'medium', 'high', 'critical'];
@@ -105,6 +107,12 @@ export default function CaseFormScreen() {
   }, [existingCase]);
 
   const isSubmitting = createCase.isPending || updateCase.isPending || createHearing.isPending;
+  // Yeni dosyada yazılmış bir şey varken sekme kapanır/yenilenirse (web) uyar.
+  // Dava oluştuktan sonra (olusanDava) veri kaybolmaz, uyarı kapanır.
+  useWebCikisUyarisi(
+    !isEdit && !olusanDava &&
+      doluAlanVar([title, caseNumber, courtName, caseType, opposingParty, opposingCounsel, description, fee, feePercent, feeAdvance]),
+  );
 
   const statusOptions = STATUS_VALUES.map((value) => ({ value, label: t(value === 'active' ? 'caseFilter.open' : 'caseFilter.closed') }));
   const priorityOptions = PRIORITY_VALUES.map((value) => ({ value, label: t(`priority.${value}` as const) }));

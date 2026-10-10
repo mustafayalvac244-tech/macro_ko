@@ -1389,6 +1389,11 @@ export const tr = {
   'devCal.denied': 'Takvim izni verilmedi. Ayarlar > Vekil Pro üzerinden izin verebilirsiniz.',
   'devCal.error': 'Takvime eklenemedi. Telefon takvim ayarlarını kontrol edip tekrar deneyin.',
   'devCal.unavailable': 'Bu özellik için uygulamanın yeni sürümü gerekiyor (TestFlight/mağaza güncellemesi).',
+  // 404 — eşleşmeyen adres (app/+not-found.tsx)
+  'notFound.title': 'Sayfa bulunamadı',
+  'notFound.body': 'Aradığınız sayfa taşınmış ya da silinmiş olabilir; adres yanlış yazılmış da olabilir.',
+  'notFound.home': 'Ana sayfaya dön',
+  'notFound.login': 'Giriş ekranına dön',
   'case.tabPlan': 'Plan',
   'plan.title': 'Duruşma Planı',
   'plan.briefTitle': 'Duruşma Brief\'i',

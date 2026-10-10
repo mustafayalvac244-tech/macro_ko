@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as Updates from 'expo-updates';
 import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
+import { hataKapisi, hataKaydedilmeli } from '@/lib/hataSuzgeci';
 
 /**
  * ÇÖKMEYİ KAYDET — 16.09.2026, gerçek bir olaydan doğdu.
@@ -47,6 +48,11 @@ export type HataKaynagi = 'render' | 'effect' | 'global' | 'promise';
  * BUGÜN NE ÇALIŞMIYOR: açılışta, oturum kurulmadan olan çökme.
  */
 
+// Oturum başına kayıt kapısı: aynı hata bir kez, toplamda sınırlı (bkz.
+// hataSuzgeci.ts). Web dinleyicileri bir döngüdeki hatayı saniyede yüzlerce
+// satıra çevirebilirdi.
+const kayitKapisi = hataKapisi();
+
 /**
  * ASLA FIRLATMAZ, ASLA BEKLETMEZ.
  *
@@ -63,6 +69,7 @@ export function hataKaydet(
     try {
       const e = hata as { message?: string; stack?: string } | null;
       const mesaj = String(e?.message ?? hata ?? 'bilinmeyen hata').slice(0, MESAJ_SINIR);
+      if (!hataKaydedilmeli(mesaj) || !kayitKapisi(`${kaynak}:${mesaj}`)) return;
       const yigin = e?.stack ? String(e.stack).slice(0, YIGIN_SINIR) : null;
 
       // owner_id NULL olabilir: en değerli çökme, kullanıcı henüz giriş
@@ -95,6 +102,8 @@ export function hataKaydet(
   })();
 }
 
+let kuruldu = false;
+
 /**
  * MODÜL SEVİYESİ VE EFFECT KÖR NOKTALARINI KAPATIR.
  *
@@ -109,6 +118,28 @@ export function hataKaydet(
  * geldiği yerler.
  */
 export function kuresellHataYakalayiciyiKur(): void {
+  // İki kez çağrılırsa (React geliştirme kipi, effect yeniden çalışması)
+  // kanca üst üste sarılıp aynı hata iki kez kaydedilirdi.
+  if (kuruldu) return;
+  kuruldu = true;
+
+  // WEB: react-native-web'de `ErrorUtils` YOK, yani aşağıdaki kanca hiç
+  // kurulmuyor ve asenkron / olay işleyicisi hataları HİÇ kaydedilmiyordu
+  // (ErrorBoundary yalnız render hatalarını görür). Tarayıcı olayları:
+  try {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('error', (olay: ErrorEvent) => {
+        // `error` nesnesi yoksa (ör. başka kaynaktan betik) iletiye düşülür.
+        hataKaydet(olay.error ?? olay.message, 'global');
+      });
+      window.addEventListener('unhandledrejection', (olay: PromiseRejectionEvent) => {
+        hataKaydet(olay.reason, 'promise');
+      });
+    }
+  } catch {
+    // Dinleyici kurulamazsa uygulama normal çalışmaya devam etsin.
+  }
+
   try {
     // React Native'in global hata kancası. `isFatal` true ise uygulama zaten
     // ölüyor; kaydı yine de göndermeye çalışıyoruz — çoğu zaman istek

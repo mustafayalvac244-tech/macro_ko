@@ -14,6 +14,7 @@ import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { girisHedefi } from '@/lib/girisYonlendirme';
 
 export default function LoginScreen() {
   const __t = useTheme();
@@ -91,7 +92,8 @@ export default function LoginScreen() {
     // "Ali@..." ile yapılan giriş "E-posta veya şifre hatalı" dönüyor;
     // kullanıcı şifresini yanlış hatırladığını sanıp sıfırlamaya gidiyor.
     const success = await signIn(email.trim().toLowerCase(), password, captchaToken ?? undefined);
-    if (success) router.replace('/(app)');
+    // Oturumsuz derin bağlantıdan gelindiyse O EKRANA (bkz. girisYonlendirme.ts).
+    if (success) router.replace(girisHedefi() as Parameters<typeof router.replace>[0]);
   };
 
   return (

@@ -1,6 +1,15 @@
+import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { QueryClient } from '@tanstack/react-query';
+import Constants from 'expo-constants';
+import { QueryClient, focusManager } from '@tanstack/react-query';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import {
+  QUERY_CACHE_MAX_AGE,
+  QUERY_CACHE_SEMA,
+  QUERY_VARSAYILANLARI,
+  odakYonetimineBagla,
+  queryCacheBuster,
+} from './queryAyarlari';
 
 /**
  * SORGU ÖNBELLEĞİ VE ONUN CİHAZDAKİ KOPYASI — tek yerden.
@@ -32,14 +41,19 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 /** Kalıcı önbelleğin AsyncStorage anahtarı. */
 export const QUERY_CACHE_KEY = 'VEKIL_QUERY_CACHE';
 
-/** Önbelleğin cihazda saklanma süresi. */
-export const QUERY_CACHE_MAX_AGE = 1000 * 60 * 60 * 24;
+/** Önbelleğin cihazda saklanma süresi (tanım: queryAyarlari.ts, saf ve testli). */
+export { QUERY_CACHE_MAX_AGE };
 
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 2, staleTime: 60_000, gcTime: QUERY_CACHE_MAX_AGE },
-  },
-});
+/** Kalıcı önbellek sürüm damgası — bkz. queryAyarlari.queryCacheBuster. */
+export const QUERY_CACHE_BUSTER = queryCacheBuster(QUERY_CACHE_SEMA, Constants.expoConfig?.version);
+
+export const queryClient = new QueryClient({ defaultOptions: QUERY_VARSAYILANLARI });
+
+// Natifte uygulama arka plandan öne gelince sorgular tazelensin (web'de
+// tarayıcının görünürlük olayı zaten çalışıyor). Ağ DEĞİŞİMİ (onlineManager)
+// natifte HÂLÂ bağlı değil: bunun için @react-native-community/netinfo ya da
+// expo-network gerekir, ikisi de projede yok (yeni bağımlılık = derleme).
+if (Platform.OS !== 'web') odakYonetimineBagla(focusManager, AppState);
 
 export const asyncPersister = createAsyncStoragePersister({
   storage: AsyncStorage,

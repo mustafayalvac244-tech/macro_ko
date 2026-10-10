@@ -15,6 +15,8 @@ import { isValidTCKN } from '@/utils/tckn';
 import { menfaatTara } from '@/utils/menfaatCatismasi';
 import { MenfaatUyarisi } from '@/components/MenfaatUyarisi';
 import { geriDon } from '@/lib/geriDon';
+import { doluAlanVar } from '@/utils/webDavranis';
+import { useWebCikisUyarisi } from '@/hooks/useWebCikisUyarisi';
 
 export default function ClientFormScreen() {
   const { colors } = useTheme();
@@ -55,6 +57,8 @@ export default function ClientFormScreen() {
   }, [existingClient]);
 
   const isSubmitting = createClient.isPending || updateClient.isPending;
+  // Yeni kayıtta yazılmış bir şey varken sekme kapanır/yenilenirse (web) uyar.
+  useWebCikisUyarisi(!isEdit && doluAlanVar([fullName, title, email, phone, address, tcNo, notes]));
 
   /**
    * ÇIKAR ÇATIŞMASI TARAMASI — kapsamlı.
