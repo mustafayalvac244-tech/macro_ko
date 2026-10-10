@@ -16,27 +16,54 @@ const ANON_KEY = 'sb_publishable_9m36QXWJNcSe9Wnaq5JVnw_agU37VsJ';
 
 const OTURUM_ANAHTARI = 'vekil-oturum';
 
+/**
+ * OTURUM BELLEKTE TUTULUR, DİSKE YAZILMAZ (10.10.2026).
+ *
+ * `chrome.storage.session` tarayıcı kapanınca (ya da eklenti yeniden
+ * yüklenince) silinir ve varsayılan olarak içerik betiklerine kapalıdır;
+ * `storage.local` ise diske yazar ve bilgisayarı ele geçiren birinin elinde
+ * kalıcı bir yenileme jetonu bırakırdı. Bedeli: tarayıcı her açıldığında bir
+ * kez yeniden giriş. Bir hukuk ürününde bu bedel bilinçli olarak kabul edildi.
+ * (Chrome 102+; manifest 114 ister, bkz. minimum_chrome_version.)
+ */
 export async function oturumOku() {
-  const { [OTURUM_ANAHTARI]: o } = await chrome.storage.local.get(OTURUM_ANAHTARI);
+  const { [OTURUM_ANAHTARI]: o } = await chrome.storage.session.get(OTURUM_ANAHTARI);
   return o ?? null;
 }
 
 async function oturumYaz(o) {
-  await chrome.storage.local.set({ [OTURUM_ANAHTARI]: o });
+  await chrome.storage.session.set({ [OTURUM_ANAHTARI]: o });
 }
 
-export async function cikisYap() {
+/** Eski sürümlerin diske bırakmış olabileceği kayıt (artık okunmaz) — silinir. */
+export async function eskiOturumuSil() {
   await chrome.storage.local.remove(OTURUM_ANAHTARI);
 }
 
+export async function cikisYap() {
+  await chrome.storage.session.remove(OTURUM_ANAHTARI);
+  await eskiOturumuSil();
+}
+
+/**
+ * E-posta + şifre ile giriş. Şifre YAZILMAZ; yalnız jetonlar belleğe girer.
+ *
+ * NEDEN PANELDE AYRI GİRİŞ VAR. Paneldeki uygulama başka bir origin'de
+ * (vekilpro.app) çalışır; oradaki oturum eklentiye geçmez. "Sayfadan dosya
+ * aç" sunucuya eklentinin kendi jetonuyla gider.
+ */
 export async function girisYap(email, sifre) {
   const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
     headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: sifre }),
   });
-  const g = await r.json();
-  if (!r.ok) throw new Error(g?.error_description || g?.msg || 'giris_basarisiz');
+  const g = await r.json().catch(() => ({}));
+  if (!r.ok || !g?.access_token) {
+    const e = new Error(g?.error_description || g?.msg || 'giris_basarisiz');
+    e.durum = r.status;
+    throw e;
+  }
   await oturumYaz({ access_token: g.access_token, refresh_token: g.refresh_token, user: g.user });
   return g.user;
 }
@@ -83,38 +110,6 @@ async function yetkiliIstek(yol, secenek = {}, tekrar = true) {
     return yetkiliIstek(yol, secenek, false);
   }
   return r;
-}
-
-/**
- * Sayfa metnini künye alanlarına çevirir.
- *
- * MOBİL UYGULAMAYLA AYNI UCU KULLANIR (ai-chat, mode:'kunye'). Eklentiye ayrı
- * bir çıkarıcı yazmadık: UYAP'ın HTML yapısına bağlı seçiciler ilk arayüz
- * değişikliğinde sessizce kırılırdı ve iki ayrı çıkarıcı zamanla ayrışırdı.
- * Metin üzerinden çalışmak, sayfanın UYAP mı e-Devlet mi PDF görüntüleyici mi
- * olduğunu önemsiz kılar.
- */
-export async function kunyeCikar(metin) {
-  const r = await yetkiliIstek('/functions/v1/ai-chat', {
-    method: 'POST',
-    body: JSON.stringify({ mode: 'kunye', question: metin.slice(0, 9000) }),
-  });
-  const govde = await r.text();
-  let g = {};
-  try { g = JSON.parse(govde); } catch { /* JSON değil: ham metni hatada göster */ }
-  if (!r.ok) {
-    // HATANIN SEBEBİNİ TAŞI. Önceden burada tek bir 'kunye_basarisiz' kodu
-    // atılıyordu ve popup onu 'Bilgiler çıkarılamadı' diye gösteriyordu: hem
-    // kullanıcı hem geliştirici için teşhis edilemez bir mesaj. Sunucunun kendi
-    // kodu ('not_configured', 'deneme_hakki_bitti', kota kodları…) ve HTTP
-    // durumu artık üste taşınıyor.
-    const kod = g?.error || `http_${r.status}`;
-    const e = new Error(kod);
-    e.durum = r.status;
-    e.ayrinti = (g?.message || govde || '').slice(0, 200);
-    throw e;
-  }
-  return g?.kunye ?? {};
 }
 
 /** Dosyayı oluşturur. Sunucu tarafındaki plan limiti burada da geçerlidir. */

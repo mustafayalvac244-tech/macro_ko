@@ -11,6 +11,22 @@
 </header>
 <div id="bildirim" hidden></div>
 <!--
+  EKLENTİ GİRİŞİ (10.10.2026). Aşağıdaki uygulama başka bir origin'de
+  (vekilpro.app) çalışır; oradaki oturum eklentiye geçmez. "Sayfadan dosya aç"
+  için bir kez burada giriş yapılır. Şifre saklanmaz; jeton yalnız bellekte
+  durur ve tarayıcı kapanınca silinir (lib/api.js).
+-->
+<form id="giris" hidden>
+  <input id="girisEposta" type="email" autocomplete="username" placeholder="E-posta" required />
+  <input id="girisSifre" type="password" autocomplete="current-password" placeholder="Şifre" required />
+  <button type="submit" id="girisBtn">Giriş yap</button>
+  <p>Yalnız "Sayfadan dosya aç" için gerekir. Tarayıcıyı kapatınca oturum kapanır.</p>
+</form>
+<div id="oturumSatiri" hidden>
+  <span id="oturumEposta"></span>
+  <button id="cikisBtn" type="button">Çıkış</button>
+</div>
+<!--
   UYAP KEŞİF (07.10.2026). Liste okuyucu yazılabilsin diye UYAP sayfalarının
   YAPISINI kaydeder; değerler cihazdan çıkmadan maskelenir (lib/kesif.js).
   Yalnız düğmeye basınca, yalnız uyap.gov.tr sekmesinde çalışır.
@@ -42,7 +58,12 @@
   gidiyor ve 404 dönüyordu: panel boş bir çerçeve gösterirdi.
   Kendi alan adımızda site KÖKTE duruyor, yani doğru adres bu.
 -->
-<iframe id="uygulama" src="https://vekilpro.app/app/" title="Vekil Pro"></iframe>
+<!--
+  allow: çerçeve başka origin'de olduğu için tarayıcı bu yetkileri VARSAYILAN
+  olarak vermez. Web sürümü sesle yazmayı (mikrofon) ve kopyalamayı (pano)
+  kullanıyor; çerçevede bu satır olmadan ikisi de sessizce çalışmaz.
+-->
+<iframe id="uygulama" src="https://vekilpro.app/app/" title="Vekil Pro" allow="microphone; clipboard-write"></iframe>
 <script type="module" src="panel.js"></script>
 </body>
 </html>

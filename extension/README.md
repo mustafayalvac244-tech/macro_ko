@@ -23,7 +23,8 @@ siz hiçbir şey yapmadan güncellenir.
 **Sayfa okuma AI kullanmıyor.** "Esas No: 2023/145", "ANKARA 3. ASLİYE HUKUK
 MAHKEMESİ", "DAVALI:" sayfada düz yazıyla duruyor; bunlar düzenli ifadeyle
 çıkarılıyor (`lib/cikar.js`) — anında, bedava, kota harcamadan, çevrimdışı.
-Yapay zekâ yalnız hiçbir kalıp tutmazsa devreye girer.
+Kalıp tutmazsa dosya açılmaz ve kullanıcıya söylenir; **yapay zekâya geri
+düşülmez** (eski AI yolu hiç bağlanmadığı için 10.10.2026'da koddan silindi).
 
 CSS/XPath seçicisi de kullanılmıyor: UYAP arayüzünü değiştirdiğinde seçiciler
 sessizce boşalır, metin kalıpları ise ekranda görünen yazıya bakar.
@@ -32,8 +33,16 @@ sessizce boşalır, metin kalıpları ise ekranda görünen yazıya bakar.
 
 - `activeTab` + `scripting`: sayfa metni **yalnız düğmeye bastığınızda** okunur.
   Arka planda dinleyen content script **yok**.
-- `storage`: yalnız oturum jetonu. **Şifre saklanmaz.**
-- Geniş `host_permissions` **istenmiyor**.
+- `storage`: oturum jetonu `chrome.storage.session`'da, yani **bellekte**;
+  tarayıcı kapanınca silinir, diske yazılmaz. **Şifre saklanmaz.** Bedeli:
+  tarayıcı her açıldığında bir kez yeniden giriş. (Paneldeki uygulamanın kendi
+  oturumu ayrıdır; eklenti girişi yalnız "Sayfadan dosya aç" içindir.)
+  Keşif kayıtları (`storage.local`) jeton içermez.
+- Geniş `host_permissions` **istenmiyor**. `activeTab` yalnız simgeye
+  tıklanan sekme için geçerlidir; başka sekmeye geçince o sekmede simgeye
+  yeniden tıklamak gerekir (panel bunu söyler).
+- En düşük Chrome sürümü **114** (`sidePanel` API'si; Chrome belgesi,
+  10.10.2026).
 
 ## UYAP sayfa yapısı kaydı (keşif) — 07.10.2026
 
@@ -68,4 +77,10 @@ Bu adresin yayında olması için **dalın `main`'e birleştirilmiş** olması g
 
 - Web sürümünde **bildirimler ve biyometrik kilit** çalışmaz (bunlar mobil
   özellikleri). Dosya, ajanda, içtihat ve hesaplayıcılar çalışır.
-- Mağazaya yayınlanmadı; geliştirici modunda yüklenir.
+- Mağazaya yayınlanmadı; geliştirici modunda yüklenir. Dağıtım otomasyonu
+  yok (`.github/workflows` içinde eklenti paketleyen iş yok): `extension/`
+  klasörü elle verilir/yüklenir, güncellemede `chrome://extensions`ten
+  yeniden yüklenir.
+- Paneldeki çerçeve `allow="microphone; clipboard-write"` ile açılır; sesle
+  yazma ve kopyalamanın yan panelde gerçekten çalışıp çalışmadığı bir
+  tarayıcıda **denenmedi**.

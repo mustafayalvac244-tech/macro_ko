@@ -58,10 +58,39 @@ export function sayfaIskeleti() {
   };
   // Yol/çerçeve/alan adlarında oturum kimliği ve harf+rakam karışık kimlikler
   // (jsessionid, UUID, hex) maskelenir; yalnız \d{3,} yetmiyordu.
+  // 10.10.2026: `;` `?` `#`ten sonrası atılır (yol parametresi, sorgu, parça);
+  // `ad=değer` biçimli yol parçası bütünüyle maskelenir.
   const kimlikMaskele = (s) =>
     s
-      .split(';')[0]
-      .replace(/[A-Za-z0-9_-]*\d[A-Za-z0-9_-]*/g, '‹n›');
+      .split(/[;?#]/)[0]
+      .split('/')
+      .map((p) => (p.includes('=') ? '‹n›' : p.replace(/[A-Za-z0-9_-]*\d[A-Za-z0-9_-]*/g, '‹n›')))
+      .join('/');
+  // ALAN ADI: yalnız *.uyap.gov.tr olduğu gibi kalır (yapıyı çözmek için
+  // gerekli). Başkası ‹DIS_ALAN›: müvekkilin sitesi, e-posta sağlayıcısı vb.
+  // kullanıcı bilgisi (`kul:parola@`) ve kapı numarası her durumda atılır.
+  const alanAdi = (h) => {
+    const a = h.replace(/^.*@/, '').replace(/:\d*$/, '');
+    return /^([a-z0-9-]+\.)*uyap\.gov\.tr$/i.test(a) ? a.toLowerCase() : '‹DIS_ALAN›';
+  };
+  // Çerçeve adresi: http(s) dışındaki şema (javascript:, data:) gövdesiyle
+  // birlikte atılır; mutlak adreste alan adı alanAdi'dan geçer.
+  const cerceveAdresi = (src) => {
+    const t = src.trim();
+    const sema = /^([a-z][a-z0-9+.-]*):/i.exec(t);
+    if (sema && !/^https?$/i.test(sema[1])) return `${sema[1].toLowerCase()}:‹n›`;
+    const m = /^(?:https?:)?\/\/([^/?#]*)(.*)$/i.exec(t);
+    return m ? alanAdi(m[1]) + kimlikMaskele(m[2]) : kimlikMaskele(t);
+  };
+  // Sorgu: yalnız `ad=` kısmı kalır. `=` taşımayan belirteç bir DEĞER olabilir
+  // (`?OTURUMKODU`), maskelenir.
+  const sorguAd = (p) => {
+    const i = p.indexOf('=');
+    if (i < 0) return '‹n›';
+    let ad = p.slice(0, i);
+    try { ad = decodeURIComponent(ad.replace(/\+/g, ' ')); } catch { /* bozuk kodlama: ham kalsın, aşağıda maskelenir */ }
+    return kimlikMaskele(ad);
+  };
 
   /** Değeri asla döndürmez; yalnız biçimini. */
   function sekil(s) {
@@ -108,7 +137,7 @@ export function sayfaIskeleti() {
       const ph = el.getAttribute('placeholder');
       if (ph) n.alan.ipucu = metin(ph, true);
     }
-    if (tag === 'iframe' || tag === 'frame') n.cerceve = kimlikMaskele((el.getAttribute('src') ?? '').split('?')[0]);
+    if (tag === 'iframe' || tag === 'frame') n.cerceve = cerceveAdresi(el.getAttribute('src') ?? '');
     const aria = el.getAttribute('aria-label') ?? el.getAttribute('title');
     if (aria) n.etiket = metin(aria, true);
 
@@ -147,9 +176,9 @@ export function sayfaIskeleti() {
     return n;
   }
 
-  const sorguAdlari = Array.from(new URLSearchParams(location.search).keys());
+  const sorguAdlari = (location.search ?? '').replace(/^\?/, '').split('&').filter(Boolean).map(sorguAd);
   return {
-    adres: location.host + kimlikMaskele(location.pathname),
+    adres: alanAdi(location.host) + kimlikMaskele(location.pathname),
     sorguAdlari,
     baslik: metin(document.title, true),
     cerceveMi: window.top !== window,

@@ -114,3 +114,48 @@ describe('UYAP keşif — rakamlı etiketler ve kimlikler', () => {
     expect(json).toContain('"Sorgula"');
   });
 });
+
+// 10.10.2026 (29. alan denetçisi): 08.10 düzeltmesi yol/ad/rakam kalıbını
+// kapadı ama adresin DİĞER parçaları ham kalıyordu — çerçeve adresindeki
+// `#parça`, `kullanıcı:parola@`, yabancı alan adı, `javascript:` gövdesi,
+// `=` taşıyan yol parçası ve değersiz sorgu belirteci (`?OTURUMKODU`).
+describe('UYAP keşif — adresin diğer parçaları', () => {
+  const GIZLI = ['GIZLIOTURUM', 'GIZLIANAHTAR', 'musteri-ahmet', 'example.com', 'kullanici', 'parola', 'AHMET', 'YILMAZ'];
+
+  it('# parçası, kullanıcı bilgisi, yabancı alan adı ve javascript: gövdesi sızmaz', () => {
+    kur(
+      el('body', {},
+        el('iframe', { id: 'fa', src: 'https://avukat.uyap.gov.tr/x#jsessionid=GIZLIOTURUM' }),
+        el('iframe', { id: 'fb', src: 'https://musteri-ahmet.example.com/x;jsessionid=A1/y' }),
+        el('iframe', { id: 'fc', src: 'https://kullanici:parola@esorgu.uyap.gov.tr:8443/ara' }),
+        el('iframe', { id: 'fd', src: '//uyap.gov.tr.example.com/z' }),
+        el('iframe', { id: 'fe', src: 'javascript:isle("AHMET YILMAZ")' }),
+        el('iframe', { id: 'ff', src: '/a/jsessionid=GIZLIOTURUM/z' }),
+      ),
+      '?GIZLIANAHTAR&jsessionid=GIZLIOTURUM&dosya=1',
+    );
+    const r = sayfaIskeleti();
+    const json = JSON.stringify(r);
+    for (const s of GIZLI) expect(json, s).not.toContain(s);
+    const cerceveler = (r.kok as unknown as { k: { cerceve: string }[] }).k.map((c) => c.cerceve);
+    // UYAP alan adı kalır (yapıyı çözmek için gerekli); gerisi maskelenir.
+    expect(cerceveler).toEqual([
+      'avukat.uyap.gov.tr/x',
+      '‹DIS_ALAN›/x',
+      'esorgu.uyap.gov.tr/ara',
+      '‹DIS_ALAN›/z',
+      'javascript:‹n›',
+      '/a/‹n›/z',
+    ]);
+    // Değersiz belirteç maskelenir; ad (değer değil) kalır.
+    expect(r.sorguAdlari).toEqual(['‹n›', 'jsessionid', 'dosya']);
+  });
+
+  it('sayfanın kendi alan adı UYAP değilse adreste görünmez', () => {
+    kur(el('body', {}, 'x'));
+    g.location = { host: 'musteri-ahmet.example.com:8080', pathname: '/dosya/2023', search: '' };
+    const r = sayfaIskeleti();
+    expect(JSON.stringify(r)).not.toContain('example.com');
+    expect(r.adres).toBe('‹DIS_ALAN›/dosya/‹n›');
+  });
+});
