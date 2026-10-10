@@ -17,6 +17,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { AI_ICTIHAT_ANALIZ_ENABLED } from '@/config/features';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Badge } from '@/components/ui/Badge';
 import {
   useIctihat,
   useIctihatAnalyze,
@@ -371,6 +372,7 @@ export default function IctihatScreen() {
                       <Text style={styles.mevBadgeText}>{m.kod} · m.{m.no}</Text>
                     </View>
                     {!!m.title && <Text style={styles.mevTitle} numberOfLines={1}>{m.title}</Text>}
+                    {m.mulga && <Badge label={t('laws.repealed')} color={colors.danger} backgroundColor={colors.dangerSoft} />}
                   </View>
                   <Text style={styles.mevSnippet} numberOfLines={2}>{m.snippet}</Text>
                 </Pressable>
@@ -508,6 +510,11 @@ export default function IctihatScreen() {
           />
           <ScrollView contentContainerStyle={styles.docContent} showsVerticalScrollIndicator={false}>
             {!!openMevzuat?.title && <Text style={styles.mevModalTitle}>{openMevzuat.title}</Text>}
+            {!!openMevzuat?.mulga && (
+              <View style={styles.mevMulga}>
+                <Badge label={t('laws.repealed')} color={colors.danger} backgroundColor={colors.dangerSoft} />
+              </View>
+            )}
             <Text style={styles.mevModalKanun}>{openMevzuat?.kanun}</Text>
             <Text style={styles.mevModalText}>{openMevzuat?.text}</Text>
             <Text style={styles.mevModalNote}>{t('ictihat.mevzuatSource')}</Text>
@@ -1428,6 +1435,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.h3,
     color: colors.textPrimary,
     marginBottom: 4,
+  },
+  // Mülga (yürürlükten kalkmış) madde rozeti — modal başlığının altında
+  mevMulga: {
+    marginBottom: spacing.xs,
   },
   mevModalKanun: {
     ...typography.caption,

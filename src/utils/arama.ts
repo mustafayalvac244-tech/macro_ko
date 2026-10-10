@@ -26,6 +26,12 @@ const KATLAMA: Record<string, string> = {
   Ğ: 'g', ğ: 'g',
   Ö: 'o', ö: 'o',
   Ü: 'u', ü: 'u',
+  // Şapkalı harfler: kanun metinlerinde "hâkim", "millî", "kanunî", "lâik" böyle
+  // yazılır, kullanıcı "hakim", "milli" yazar (23. denetim ajanı, 10.10.2026:
+  // Anayasa araması "hakim" yazınca "Hâkimler ve Savcılar" maddesini bulmuyordu).
+  Â: 'a', â: 'a',
+  Î: 'i', î: 'i',
+  Û: 'u', û: 'u',
 };
 
 /** Aramada karşılaştırılacak biçime indirger. */
@@ -37,6 +43,23 @@ export function aramaNormalize(v: string | null | undefined): string {
   }
   // Birleşik nokta (U+0307) NFC sonrası hâlâ kalabilir; aramada gürültüdür.
   return out.replace(/̇/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * UZUNLUĞU KORUYAN katlama — aramada bulunan yeri ÖZGÜN metinde göstermek
+ * (vurgu, kesit) gerektiğinde kullanılır: `aramaKatla(m).indexOf(q)` dizini
+ * `m.slice(...)` ile aynı yeri gösterir. `aramaNormalize` boşlukları
+ * sıkıştırıp kırptığı için bu iş için GÜVENİLMEZ.
+ *
+ * `toLocaleLowerCase('tr')`a da güvenilmez: Hermes'te yerel ayar desteği
+ * platforma bağlı; burada İ/I/ı elle eşleniyor, locale hiç devrede değil.
+ */
+export function aramaKatla(v: string | null | undefined): string {
+  let out = '';
+  for (const ch of (v ?? '')) {
+    out += KATLAMA[ch] ?? ch.toLowerCase();
+  }
+  return out;
 }
 
 /** `metin`, `sorgu`yu içeriyor mu — Türkçe'ye ve klavyeye toleranslı. */

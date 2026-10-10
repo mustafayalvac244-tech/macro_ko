@@ -5,8 +5,11 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import anayasa from '@/data/anayasa.json';
+import { mulgaMi } from '@/data/laws/mulga';
+import { aramaKatla } from '@/utils/arama';
 import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -22,7 +25,9 @@ interface Article {
 const ARTICLES = (anayasa as { articles: Article[] }).articles;
 
 function norm(s: string): string {
-  return s.toLocaleLowerCase('tr-TR');
+  // Şapkalı harf + Türkçe katlama, UZUNLUK KORUNUR (renderSnippet dizini özgün metne uygulanıyor).
+  // Anayasa metni "hâkim", "millî", "siyasî" yazar; kullanıcı "hakim" yazınca eşleşmiyordu.
+  return aramaKatla(s);
 }
 
 export default function ConstitutionScreen() {
@@ -108,9 +113,16 @@ export default function ConstitutionScreen() {
                     {item.no === 'Başlangıç' ? '★' : item.no.replace('Geçici ', 'G')}
                   </Text>
                 </View>
-                <Text style={styles.articleTitle} numberOfLines={isOpen ? undefined : 2}>
-                  {item.title}
-                </Text>
+                <View style={styles.titleWrap}>
+                  <Text style={styles.articleTitle} numberOfLines={isOpen ? undefined : 2}>
+                    {item.title}
+                  </Text>
+                  {mulgaMi(item) && (
+                    <View style={styles.mulgaRozet}>
+                      <Badge label={t('laws.repealed')} color={colors.danger} backgroundColor={colors.dangerSoft} />
+                    </View>
+                  )}
+                </View>
                 <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
               </Pressable>
               {!isOpen && renderSnippet(item)}
@@ -167,10 +179,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
     color: colors.primary,
   },
+  titleWrap: {
+    flex: 1,
+  },
   articleTitle: {
     ...typography.bodyMedium,
     color: colors.textPrimary,
-    flex: 1,
+  },
+  // Mülga (yürürlükten kalkmış) madde rozeti
+  mulgaRozet: {
+    marginTop: spacing.xxs,
   },
   snippet: {
     ...typography.caption,
