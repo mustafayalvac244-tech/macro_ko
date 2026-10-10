@@ -1,6 +1,7 @@
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import { formatDate, formatTime } from '@/utils/format';
 import { normalizePhoneForWa } from '@/utils/telefon';
+import { whatsappAdresi } from '@/utils/webDavranis';
 
 // Numara normalleştirme saf modüle taşındı (test edilebilsin diye).
 export { normalizePhoneForWa };
@@ -54,7 +55,9 @@ export async function sendClientReminder(rawPhone: string | null | undefined, me
   if (!phone) return 'no_phone';
 
   const waNumber = normalizePhoneForWa(phone);
-  const waUrl = `whatsapp://send?phone=${waNumber}&text=${encodeURIComponent(message)}`;
+  // Web'de whatsapp:// açılmaz ama hata da vermez (sessizce "açıldı" sayılırdı):
+  // wa.me kullanılır (bkz. webDavranis.whatsappAdresi).
+  const waUrl = whatsappAdresi(Platform.OS, waNumber, message);
   try {
     // WHATSAPP HİÇ AÇILMIYORDU — canOpenURL kaldırıldı.
     //

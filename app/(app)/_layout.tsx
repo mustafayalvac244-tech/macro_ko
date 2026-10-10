@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { kose } from '@/theme/theme';
-import { Redirect, Tabs } from 'expo-router';
+import { Redirect, Tabs, useGlobalSearchParams, usePathname } from 'expo-router';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuthStore } from '@/store/authStore';
+import { girisHedefiniSakla, girisHedefiYolu } from '@/lib/girisYonlendirme';
 import { Sidebar } from '@/components/Sidebar';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useSonGorulme } from '@/hooks/useSonGorulme';
@@ -87,6 +88,23 @@ export default function AppLayout() {
   // Ağ takılırsa authStore'daki 2 sn'lik emniyet ağı bayrağı indiriyor, yani
   // bu dal sonsuza kadar boş ekranda kalamaz.
   const isInitializing = useAuthStore((s) => s.isInitializing);
+
+  // GİRİŞTEN SONRA İSTENEN EKRANA DÖN (AJAN 28, 10.10.2026). Oturumsuz derin
+  // bağlantıda (/cases/abc) adres burada saklanır; (auth)/_layout girişten
+  // sonra oraya yönlendirir. Eskiden adres yolda kayboluyor, kullanıcı ana
+  // sayfaya düşüyordu. YALNIZ bu açılışta hiç oturum görülmediyse saklanır:
+  // oturumluyken çıkış yapan kullanıcının son ekranı bir sonraki girişe (belki
+  // başka hesaba) taşınmasın.
+  const yol = usePathname();
+  const params = useGlobalSearchParams() as Record<string, string | string[] | undefined>;
+  const oturumGoruldu = useRef(false);
+  if (session) oturumGoruldu.current = true;
+  useEffect(() => {
+    if (!session && !isInitializing && !oturumGoruldu.current) girisHedefiniSakla(girisHedefiYolu(yol, params));
+    // params nesnesi her render yeni kimlik alır; yol değişince yeniden çalışır.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, isInitializing, yol]);
+
   if (!session) return isInitializing ? null : <Redirect href="/(auth)/login" />;
 
   return (
@@ -94,6 +112,10 @@ export default function AppLayout() {
       {kaliciMenu && <Sidebar kalici />}
       <View style={styles.icerik}>
     <Tabs
+      // Menüyle sekmeler arasında gezilir (alt çubuk gizli): geri, EN SON
+      // bakılan sekmeye dönsün. Varsayılan 'firstRoute' her zaman panoya
+      // atıyordu (Dosyalar → Müvekkiller → geri = Dosyalar değil Pano).
+      backBehavior="history"
       screenOptions={{
         headerShown: false,
         tabBarInactiveTintColor: colors.textMuted,

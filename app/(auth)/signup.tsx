@@ -34,6 +34,7 @@ import { useT } from '@/i18n';
 import { radius, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { girisHedefi } from '@/lib/girisYonlendirme';
 
 export default function SignupScreen() {
   const __t = useTheme();
@@ -222,7 +223,7 @@ export default function SignupScreen() {
 
     if (sonuc === 'girildi' || sonuc === 'dogrulama-gerekli') kullanimKaydet('olay:kayit_tamam');
     if (sonuc === 'girildi') {
-      router.replace('/(app)');
+      router.replace(girisHedefi() as Parameters<typeof router.replace>[0]);
     } else if (sonuc === 'dogrulama-gerekli') {
       // E-posta doğrulaması AÇIK: oturum yok, uygulamaya yönlendirilemez.
       // Eskiden burada koşulsuz router.replace vardı ve doğrulama açıldığı an

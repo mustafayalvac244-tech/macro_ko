@@ -11,6 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as Updates from 'expo-updates';
 import { kuresellHataYakalayiciyiKur } from '@/lib/hataKaydi';
+import { useOturumBekcisi } from '@/hooks/useOturumBekcisi';
 import { useFonts } from 'expo-font';
 import {
   Manrope_400Regular,
@@ -35,7 +36,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { bildirimIzniniYenile, pushAdresiniKaydet, registerForNotificationsAsync } from '@/lib/notifications';
 import { bildirimHedefi } from '@/utils/bildirimPlani';
-import { asyncPersister, kalicidaTutulsunMu, queryClient, QUERY_CACHE_MAX_AGE } from '@/lib/queryClient';
+import { asyncPersister, kalicidaTutulsunMu, queryClient, QUERY_CACHE_BUSTER, QUERY_CACHE_MAX_AGE } from '@/lib/queryClient';
 import { configurePurchases, identifyPurchaser, resetPurchaser } from '@/lib/purchases';
 import { hydrateLanguage, useLangStore } from '@/i18n';
 import { hydrateTheme } from '@/theme/themeStore';
@@ -159,6 +160,10 @@ export default function RootLayout() {
     oncekiUserId.current = userId;
   }, [userId]);
 
+  // OTURUM BEKÇİSİ (kök ekranlar) + çıkışta yığın temizliği. (app) grubunun
+  // kendi bekçisi var; ayrıntı ve gerekçe: hooks/useOturumBekcisi.ts.
+  useOturumBekcisi();
+
   // KULLANIM SAYACI — hangi ekrana girildi (bkz. 0165, src/lib/kullanim.ts).
   // Kimlik parçaları ':id' yapılır; kullanıcı kimliği gönderilmez.
   const yol = usePathname();
@@ -245,6 +250,7 @@ export default function RootLayout() {
           persistOptions={{
             persister: asyncPersister,
             maxAge: QUERY_CACHE_MAX_AGE,
+            buster: QUERY_CACHE_BUSTER,
             dehydrateOptions: { shouldDehydrateQuery: kalicidaTutulsunMu },
           }}
         >

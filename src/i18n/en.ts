@@ -1365,6 +1365,11 @@ export const en: Record<keyof typeof tr, string> = {
   'devCal.denied': 'Calendar permission was not granted. You can allow it in Settings > Vekil Pro.',
   'devCal.error': 'Could not add to calendar. Check your phone calendar settings and try again.',
   'devCal.unavailable': 'This feature requires the latest app version (TestFlight/store update).',
+  // 404 — unmatched address (app/+not-found.tsx)
+  'notFound.title': 'Page not found',
+  'notFound.body': 'The page you are looking for may have been moved or deleted, or the address may be mistyped.',
+  'notFound.home': 'Back to home',
+  'notFound.login': 'Back to sign in',
   'case.tabPlan': 'Plan',
   'plan.title': 'Hearing Plan',
   'plan.briefTitle': 'Hearing Brief',

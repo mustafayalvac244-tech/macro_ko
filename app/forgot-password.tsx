@@ -15,6 +15,7 @@ import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { girisHedefi } from '@/lib/girisYonlendirme';
 
 /**
  * ŞİFRE SIFIRLAMA — kullanıcı bildirimi üzerine baştan ele alındı (12.09.2026).
@@ -252,7 +253,7 @@ export default function ForgotPasswordScreen() {
               <Text style={styles.bittiBaslik}>{t('forgot.success')}</Text>
               <Button
                 label={t('forgot.continue')}
-                onPress={() => router.replace('/(app)')}
+                onPress={() => router.replace(girisHedefi() as Parameters<typeof router.replace>[0])}
                 fullWidth
                 size="lg"
                 style={styles.submit}
