@@ -74,11 +74,9 @@
    Belge Arşivi'ne Belge Yükle; Derin Araştırma → Hukuki Araştırma. WEB CANLI. OTA 7b06a953
    (04.10 17:20 UTC, 3.4.0); cihaza indiği ÖLÇÜLMEDİ. SİTE (04.10 akşam): "KVKK uyumlu" ×2,
    fotoğraftan künye, "olamaz", SSS'ler düzeltildi. OTA ec31a676 (08.10 19:22 UTC, 3.4.0) hepsini taşıdı.
-
 2d. **50 DENETÇİ YAYINDA (09.10):** PR #157 web; OTA 1505a910; ai-chat v144, ai-saglik v29; göç 0175+0176 ("hasat sürekli
    çalışsın"): kaynak AYLARCA geç yayımlıyor → haftalık geri tarama 180 gün, öne alınır. Temmuz toplamı ÖNCE 1.159; sonra ölçülecek.
-2e. **30 AJAN (10.10, "az yük çok performans": Sonnet, aynı anda 4):** dalda birleşen 01 02 03 04 05 13; kalan 06–12,14–30 sürüyor.
-   YAYINLANMADI. Takip: scratchpad denetim/KUYRUK2.md; yarım işler .claude/worktrees altında.
+2e. **30 AJAN (10.10, Sonnet, aynı anda 4):** dalda birleşen 01–05,13; kalan sürüyor; YAYINLANMADI; takip scratchpad denetim/KUYRUK2.md.
 2u. **UYAP LİSTE (07.10):** eklentiye maskeli keşif (extension/lib/kesif.js); BEKLENEN avukattan keşif dosyası.
    **CONSOLE ASKIDA (08.10):** yedek modele düşer; inceleme metni CLAUDE-STARTUP.md. Belgeden dosya aç YAPAY ZEKÂSIZ: WEB+OTA CANLI. HAK İADESİ (ai-chat v143) + doğru hata mesajları: WEB + OTA 3db0890c CANLI (08.10 20:00 UTC).
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) sözleşme/bildirim YAPILMADI — ürün sahibinin (KVKK-UYUM.md A). 4. Baro sicil doğrulaması yok (ürün sahibi kararı). 5. Leaked password koruması kapalı. 6. KVKK veri sorumlusu kimliği eksik. 7. Android şifre sıfırlama DOĞRULANMADI.
