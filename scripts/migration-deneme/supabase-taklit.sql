@@ -27,7 +27,7 @@ create table public.clients (id uuid primary key default gen_random_uuid(), owne
 create table public.hearings (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), created_at timestamptz default now());
 create table public.finance_entries (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), kind text, amount numeric, created_at timestamptz default now());
 create table public.payments (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), amount numeric);
-create table public.purchases (id uuid primary key default gen_random_uuid(), user_id uuid references public.profiles(id), amount numeric);
+create table public.purchases (id uuid primary key default gen_random_uuid(), user_id uuid references public.profiles(id), product text not null default 'premium', platform text not null default 'demo', amount numeric, currency text not null default 'TRY', created_at timestamptz not null default now()); -- 0011 ile aynı sütunlar (0072/0073/0205 bunun üstüne ekler)
 create table public.ai_odeme (event_id text primary key, user_id uuid references auth.users(id), tutar_try numeric);
 create table public.ai_usage (user_id uuid references auth.users(id), period text, cost_try numeric, primary key(user_id, period));
 
