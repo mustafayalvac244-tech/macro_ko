@@ -31,17 +31,7 @@
 // dağıtılmalıdır.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** RevenueCat "store" değerini bizim platform kısıtımıza indirger. */
-function platformFromStore(store: string | undefined): string {
-  const s = (store ?? '').toUpperCase();
-  if (s === 'APP_STORE' || s === 'MAC_APP_STORE') return 'ios';
-  if (s === 'PLAY_STORE') return 'android';
-  if (s === 'STRIPE') return 'stripe';
-  return 'other';
-}
+import { olayKarari, type RcOlay } from '../_shared/revenuecatOlay.ts';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
@@ -71,28 +61,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  let govde: {
-    event?: {
-      id?: string;
-      type?: string;
-      app_user_id?: string;
-      store?: string;
-      expiration_at_ms?: number | null;
-      // "price" HER ZAMAN USD'dir (RevenueCat dokümantasyonu: "USD price of
-      // the transaction"). Yerel para birimindeki gerçek tutar ayrı bir
-      // alanda gelir ve "currency" ile EŞLEŞEN odur — ikisini karıştırıp
-      // price'ı currency ile birlikte kaydetmek yanlış denetim kaydı üretir
-      // (ör. 4,99 USD tutarı "4,99 TRY" diye yazılır).
-      price_in_purchased_currency?: number | null;
-      currency?: string | null;
-      environment?: string;
-      // Bu olayın hangi yetkiyi (entitlement) verdiği — "premium" (temel,
-      // 399₺) ve/veya "ai" (1.499₺, RevenueCat panelinde bu isimle
-      // kurulmalı, bkz. IAP_KURULUM.md). Kör biçimde "her satın alma = tam
-      // premium" saymak yerine olduğu gibi işlenir (bkz. 0073).
-      entitlement_ids?: string[];
-    };
-  };
+  let govde: { event?: RcOlay };
   try {
     govde = await req.json();
   } catch {
@@ -102,21 +71,25 @@ Deno.serve(async (req) => {
     });
   }
 
-  const olay = govde.event;
-  if (!olay?.id || !olay.type) {
-    return new Response(JSON.stringify({ ok: true, atlandi: 'olay_alani_eksik' }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // app_user_id, Purchases.logIn(supabaseUserId) ile İSTEMCİDE ayarlanır —
-  // yani doğru akışta doğrudan Supabase kullanıcı kimliğidir. RevenueCat'in
-  // KENDİ ürettiği anonim kimlikler ($RCAnonymousID:...) UUID biçiminde
-  // DEĞİLDİR; böyle bir olay, henüz giriş yapmamış bir cihazdan gelmiştir ve
-  // hangi kullanıcıya ait olduğunu bilemeyiz — işlemeden atlarız.
-  const appUserId = olay.app_user_id ?? '';
-  if (!UUID_RE.test(appUserId)) {
-    return new Response(JSON.stringify({ ok: true, atlandi: 'taninmayan_app_user_id' }), {
+  // Ne işleneceği SAF mantıkta (_shared/revenuecatOlay.ts, testi
+  // tests/revenuecatOlay.test.ts): sandbox işaretleme, olay zamanı, EXPIRATION,
+  // ek süre (grace), iade. Burada yalnız uygulanır.
+  const olay = govde?.event; // gövde "null" ise de çökmesin
+  const karar = olayKarari(olay, Date.now());
+  if ('atla' in karar) {
+    // Atlanan olay SESSİZ KALMAZ (eskiden TRANSFER ve anonim kimlikli olaylar
+    // hiçbir iz bırakmadan 200 dönüyordu). Kimlik yazılmaz; yalnız olay kimliği,
+    // türü ve nedeni. TRANSFER'de kaç hesabın etkilendiği de yazılır.
+    console.warn(
+      'revenuecat olay atlandi:',
+      olay?.id ?? '?',
+      olay?.type ?? '?',
+      karar.atla,
+      karar.atla === 'transfer'
+        ? `from=${olay?.transferred_from?.length ?? 0} to=${olay?.transferred_to?.length ?? 0}`
+        : ''
+    );
+    return new Response(JSON.stringify({ ok: true, atlandi: karar.atla }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -126,18 +99,7 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
 
-  const expiresAt = typeof olay.expiration_at_ms === 'number' ? new Date(olay.expiration_at_ms).toISOString() : null;
-
-  const { data, error } = await db.rpc('revenuecat_olay_isle', {
-    p_event_id: olay.id,
-    p_user: appUserId,
-    p_event_type: olay.type,
-    p_platform: platformFromStore(olay.store),
-    p_expires_at: expiresAt,
-    p_entitlement_ids: Array.isArray(olay.entitlement_ids) ? olay.entitlement_ids : [],
-    p_amount: typeof olay.price_in_purchased_currency === 'number' ? olay.price_in_purchased_currency : null,
-    p_currency: olay.currency ?? 'TRY',
-  });
+  const { data, error } = await db.rpc('revenuecat_olay_isle', karar.rpc);
 
   if (error) {
     // Yabancı anahtar ihlali (profiles.id yok — silinmiş/uydurma kullanıcı)
@@ -145,7 +107,7 @@ Deno.serve(async (req) => {
     // (ör. bağlantı sorunu) — 500 dönüp RevenueCat'in tekrar denemesine izin
     // veriyoruz, aksi hâlde gerçek bir satın alma sessizce kaybolabilir.
     const kalici = /foreign key|violates/i.test(error.message);
-    console.error('revenuecat olay islenemedi:', olay.id, error.message);
+    console.error('revenuecat olay islenemedi:', olay?.id, error.message);
     return new Response(JSON.stringify({ error: kalici ? 'bilinmeyen_kullanici' : 'db' }), {
       status: kalici ? 200 : 500,
       headers: { 'Content-Type': 'application/json' },

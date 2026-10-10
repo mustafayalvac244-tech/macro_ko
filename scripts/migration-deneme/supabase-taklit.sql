@@ -32,7 +32,7 @@ create table public.clients (id uuid primary key default gen_random_uuid(), owne
 create table public.hearings (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), created_at timestamptz default now());
 create table public.finance_entries (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), kind text, amount numeric, created_at timestamptz default now());
 create table public.payments (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), amount numeric);
-create table public.purchases (id uuid primary key default gen_random_uuid(), user_id uuid references public.profiles(id), amount numeric);
+create table public.purchases (id uuid primary key default gen_random_uuid(), user_id uuid references public.profiles(id), product text not null default 'premium', platform text not null default 'demo', amount numeric, currency text not null default 'TRY', created_at timestamptz not null default now()); -- 0011 ile aynı sütunlar (0072/0073/0205 bunun üstüne ekler)
 create table public.ai_odeme (event_id text primary key, user_id uuid references auth.users(id), tutar_try numeric);
 -- ai_usage sütunları canlıdan (information_schema, 09.10.2026) — 0191'in SQL gövdesi hepsine dokunuyor.
 create table public.ai_usage (user_id uuid references auth.users(id), period text, calls int not null default 0, tokens_in bigint not null default 0, tokens_out bigint not null default 0, cost_try numeric(12,4) not null default 0, updated_at timestamptz not null default now(), primary key(user_id, period));

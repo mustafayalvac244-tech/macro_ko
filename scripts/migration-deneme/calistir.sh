@@ -133,5 +133,16 @@ if [ "$VAR6" = "t" ]; then
     | grep -E "GEÇTİ|KALDI|ERROR" || true
 fi
 
+# Satın alma webhook'u ölçümü, YALNIZ 0205 bu koşuda uygulandıysa anlamlıdır
+# (gerek: 0072 0073 0076 0079 0166 0173 0205 birlikte).
+VAR7=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA \
+  -c "select to_regprocedure('public.revenuecat_suresi_dolanlari_kapat(interval)') is not null" 2>/dev/null || echo f)
+if [ "$VAR7" = "t" ]; then
+  echo
+  echo "--- satın alma webhook'u ölçümü (0205) ---"
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -f "$KOK/scripts/migration-deneme/revenuecat-olcum.sql" 2>&1 \
+    | grep -E "GEÇTİ|BOZULDU|ERROR" || true
+fi
+
 psql -h /tmp -p "$PORT" -U postgres -q -c "drop database $DB;" >/dev/null 2>&1 || true
 exit $HATA
