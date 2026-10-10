@@ -109,3 +109,42 @@ Alan alan özet, önem sırasıyla — tam liste denetim notlarında:
   yük freni yok; izleme alarm üretmiyor.
 - **Chrome eklentisi**: "Sayfadan dosya aç" ölü (giriş jetonu hiç yazılmıyor).
 - **Çeviri**: giriş hataları İngilizce'de Türkçe; finans CSV'sinde ham `{n}`.
+
+## 5. 30 ajan turu (09–10.10.2026) — DALDA, YAYINLANMADI
+
+Ürün sahibi: "her hataya bir ajan, 30 ajan, hata istemiyorum, kötü özellik istemiyorum".
+30 alanın hepsi dalda birleşti; tüm takım 180 dosya / 2088 test geçiyor, tsc (uygulama + uç)
+temiz, yeni göçler taklit Postgres'te bağımlılıklarıyla koştu ve tekrar koşu temiz.
+Ekranlar cihazda/tarayıcıda GÖRÜLMEDİ (kanıt test + tsc). Ajan raporları birer AI çıktısıdır.
+
+**Canlıya gereken (onayınızla):** web + OTA (tema renkleri dahil — görsel, önce ekran
+görüntüsü); uç işlevleri ai-chat, ictihat, doc-extract, resmi-gazete, katalog-tick,
+harvest-tick, revenuecat-webhook, stripe-webhook, payment-sheet; göçler 0181 (TC'nin auth
+üstverisindeki kopyasını SİLER, geri alınamaz), 0187, 0190 (arama_terimi'ndeki kullanıcı
+metnini SİLER), 0191, 0194 (RLS: profiller yalnız sahibine), 0202 (önce, sonra ai-chat),
+0205 (önce, sonra revenuecat-webhook; günlük süpürücü süresi dolan sandbox hesabın premium'unu
+kapatır); Chrome eklentisi elle yeniden yüklenmeli. KVKK_SURUM artırıldı → rızası olan
+herkese "yeni sürüm" notu çıkar.
+
+**Kararınız gereken:**
+1. 15 kanun maddesi 2025-26 değişikliğinden ESKİ: HMK 109 147 166 168 362; TCK 31 57 158 170
+   220 233; TMK 733 734; TBK 55; İşK 108 — kaynaktan güncellensin mi.
+2. GitHub günlük yedeği (backup.yml) 31.08–09.10 arası 40 koşunun HİÇBİRİ başarılı değil (dış
+   yedek yok): düzeltilsin mi, kaldırılsın mı; gizlilik metni buna göre.
+3. KVKK başvuru kanalı olarak gösterilen geri bildirim tablosunu kimse okumuyor (30 gün süre).
+4. Hesap silme, dosya deposu hatasında artık hesabı SİLMİYOR (eski karar tersine döndü).
+5. Kullanıcının elle hak iadesi sunucuda kapatıldı (sınırsızdı); sınırlı iade istenir mi.
+6. Ölçülmemiş sınırlar (TAHMİN): yedek model 25/gün, mesaj 12.000/60.000 krktr, istemci 120 sn,
+   mütalaa iç süre 120 sn, içtihat 30 istek/60 sn, kullanım sayacı 500 satır/gün.
+7. Meslektaş teyidi: AAÜT dilimleri (RG 4.11.2025, taranmış ekten GÖZLE okundu); sözleşme
+   şablonu atıfları (mevzuat.gov.tr özetinden); süre hesabı: Pazar→Pazartesi kayan sürede
+   HMK 104 uzaması, işe iade arabuluculuğunda adli tatil, AYM bireysel başvuru artık uzamıyor.
+8. Kullanım Koşulları "399 ₺", App Store 399,99 ₺.
+9. Web'de doğrulama e-postası bağlantısı (Supabase site_url `vekil://` olabilir; panel ayarı).
+10. Aylık danışmanlıkta "tahsil edilecek"; icrada dönemli faiz tablosu; harç maktu taban; /365.
+11. Yönetici panelinde kişi başı gelir ↔ gizlilik metni.
+12. Duruşma brifi: ad maskeleniyor ama dava konusu metni yapay zekâya gidiyor.
+13. Mütalaa taşmasında Haiku; taranmış PDF'te tarih "[doldurun]" / tutar "uydurma" işareti.
+14. payment-sheet / stripe-webhook ölü kod (silme); `nobetci` uç işlevi canlıda var, depoda yok.
+15. Android push: Firebase projesi + google-services.json + EAS FCM V1 anahtarı.
+16. RevenueCat TRANSFER olayı işlenmiyor (GET /subscribers için gizli anahtar gerekir).
