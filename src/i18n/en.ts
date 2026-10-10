@@ -2125,6 +2125,8 @@ export const en: Record<keyof typeof tr, string> = {
   'rg.errTitle': 'Could not load the list',
   'rg.errBody': 'Check your connection and try again.',
   'rg.retry': 'Try again',
+  'rg.yenilenemedi': 'Could not refresh the list; showing the last data received.',
+  'rg.bayat': "Today's issue has not been received yet. Latest issue shown: {tarih}.",
   'laws.subtitle': 'Codes — offline, article search',
   'laws.offline': 'All texts on-device; open and search offline.',
   'laws.offlineShort': 'offline',

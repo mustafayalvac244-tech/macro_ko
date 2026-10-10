@@ -8,7 +8,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useResmiGazete } from '@/hooks/useResmiGazete';
-import { grupla, type GazeteMaddesi } from '@/lib/resmiGazete';
+import { grupla, listeDurumu, turkiyeGunu, type GazeteMaddesi } from '@/lib/resmiGazete';
 import { useLangStore, useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -28,6 +28,8 @@ export default function ResmiGazeteScreen() {
   const locale = lang === 'en' ? enUS : trLocale;
   const { data: gunler = [], isLoading, isError, refetch } = useResmiGazete();
   const [secili, setSecili] = useState<string | null>(null);
+  // Hata, eldeki veriyi gizlemez: tam ekran hata yalnız hiç veri yokken (listeDurumu).
+  const durum = listeDurumu(gunler, isError, turkiyeGunu());
 
   const gun = gunler.find((g) => g.tarih === secili) ?? gunler[0];
   const gruplar = useMemo(() => (gun ? grupla(gun.maddeler) : []), [gun]);
@@ -39,12 +41,31 @@ export default function ResmiGazeteScreen() {
       <ScreenHeader title={t('rg.title')} subtitle={t('rg.subtitle')} showBack />
       {isLoading ? (
         <ActivityIndicator style={styles.yukleniyor} color={colors.primary} />
-      ) : isError ? (
+      ) : durum.ekran === 'hata' ? (
         <EmptyState icon="cloud-offline-outline" title={t('rg.errTitle')} description={t('rg.errBody')} actionLabel={t('rg.retry')} onAction={() => refetch()} />
       ) : !gun ? (
         <EmptyState icon="newspaper-outline" title={t('rg.emptyTitle')} description={t('rg.emptyBody')} />
       ) : (
         <ScrollView contentContainerStyle={styles.icerik}>
+          {durum.uyari && (
+            <View style={styles.uyari} accessibilityRole="alert">
+              <Ionicons
+                name={durum.uyari === 'yenilenemedi' ? 'cloud-offline-outline' : 'time-outline'}
+                size={16}
+                color={colors.warning}
+              />
+              <Text style={styles.uyariMetin}>
+                {durum.uyari === 'bayat'
+                  ? t('rg.bayat', { tarih: tarihYaz(durum.sonTarih, 'd MMMM yyyy') })
+                  : t('rg.yenilenemedi')}
+              </Text>
+              {durum.uyari === 'yenilenemedi' && (
+                <Pressable onPress={() => refetch()} style={styles.uyariTekrar} accessibilityRole="button">
+                  <Text style={styles.kaynakMetin}>{t('rg.retry')}</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
           {gunler.length > 1 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gunler}>
               {gunler.map((g) => {
@@ -123,6 +144,16 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     yukleniyor: { marginTop: spacing.xxl },
     icerik: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
+    uyari: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
+      backgroundColor: colors.warningSoft,
+    },
+    uyariMetin: { ...typography.caption, color: colors.textPrimary, flex: 1 },
+    uyariTekrar: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.xs },
     gunler: { gap: spacing.xs, paddingVertical: spacing.xxs },
     gunCip: {
       minHeight: 36,
