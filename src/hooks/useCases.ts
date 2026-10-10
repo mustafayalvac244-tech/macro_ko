@@ -3,38 +3,49 @@ import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
 import { cancelReminder, deadlineReminderId, hearingOutcomeId, hearingReminderId } from '@/lib/notifications';
 import { onbellekYamasi } from '@/utils/onbellekYamasi';
+import { tumSayfalar } from '@/utils/sayfalama';
 import { useAuthStore } from '@/store/authStore';
 import type { Case, CaseStatus, CaseWithClient, PriorityLevel } from '@/types/database';
 
 const CASE_SELECT = '*, client:clients(id, full_name, company)';
 
 interface CaseFilters {
-  search?: string;
   status?: 'all' | 'open' | 'closed';
 }
 
+/**
+ * Avukatın davaları — HEPSİ (09.10.2026 denetimi).
+ *
+ * ARAMA BURADA YOK. Eskiden `search` alıp sunucuda `ilike('title', …)`
+ * yapıyordu: yalnız başlık, kırpma ve Türkçe katlama yok, her tuşta yeni
+ * sorgu. Dosya dizini artık listeyi bir kez çekip cihazda arıyor
+ * (utils/davaDizini). Bu yüzden liste EKSİKSİZ olmalı: tek sorgu PostgREST'in
+ * satır tavanında (Supabase varsayılanı 1000) sessizce kesilirdi; sayfa sayfa
+ * çekilir (utils/sayfalama). Sıra benzersiz olsun diye sonda `id` var.
+ */
 export function useCases(filters: CaseFilters = {}) {
   const ownerId = useAuthStore((s) => s.session?.user.id);
+  const status = filters.status ?? 'all';
 
   return useQuery({
-    queryKey: ['cases', ownerId, filters.search ?? '', filters.status ?? 'all'],
+    queryKey: ['cases', ownerId, status],
     enabled: !!ownerId,
     queryFn: async () => {
-      // Alıcı geri bildirimi: dava dizini açılış tarihine göre dizilir (yeni → eski).
-      let query = supabase
-        .from('cases')
-        .select(CASE_SELECT)
-        .eq('owner_id', ownerId!)
-        .order('opened_date', { ascending: false })
-        .order('created_at', { ascending: false });
+      const sayfa = (bas: number, son: number) => {
+        // Alıcı geri bildirimi: dava dizini açılış tarihine göre dizilir (yeni → eski).
+        let query = supabase
+          .from('cases')
+          .select(CASE_SELECT, { count: 'exact' })
+          .eq('owner_id', ownerId!)
+          .order('opened_date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true });
 
-      if (filters.status === 'open') query = query.in('status', ['active', 'pending', 'on_hold']);
-      else if (filters.status === 'closed') query = query.in('status', ['closed', 'won', 'lost']);
-      if (filters.search) query = query.ilike('title', `%${filters.search}%`);
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as unknown as CaseWithClient[];
+        if (status === 'open') query = query.in('status', ['active', 'pending', 'on_hold']);
+        else if (status === 'closed') query = query.in('status', ['closed', 'won', 'lost']);
+        return query.range(bas, son);
+      };
+      return (await tumSayfalar(sayfa)) as unknown as CaseWithClient[];
     },
   });
 }

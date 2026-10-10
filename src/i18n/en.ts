@@ -288,6 +288,9 @@ export const en: Record<keyof typeof tr, string> = {
   'cases.search': 'Search cases',
   'cases.empty': 'No cases yet',
   'cases.emptyDesc': 'Create your first case to start tracking hearings, deadlines, and documents.',
+  'cases.noMatch': 'No matching files',
+  'cases.loadError': 'Could not load the file list.',
+  'cases.retry': 'Try again',
   'case.title': 'Case',
   'case.openedLabel': 'Opened {date}',
   'case.tabOverview': 'Overview',
@@ -1087,6 +1090,8 @@ export const en: Record<keyof typeof tr, string> = {
   'caseForm.feePlaceholder': '25000',
   'caseForm.titleRequired': 'Case title is required.',
   'caseForm.saveFailed': 'Could not save the case. Please try again.',
+  'caseForm.hearingFailed': 'The case was saved, but the hearing date could not be saved. Use the button below to retry only the hearing; the case will not be created twice.',
+  'caseForm.retryHearing': 'Retry Saving Hearing',
 
   // Reports
   'reports.title': 'Reports',
