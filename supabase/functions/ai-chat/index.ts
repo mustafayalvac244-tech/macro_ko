@@ -17,6 +17,7 @@ import {
   BELGE_TURU,
   bloklarTarifi,
   bloklariAyristir,
+  dilekceDenetimKaynagi,
   dilekceyiDiz,
   hesaplananTarihler,
   iskeletSec,
@@ -24,6 +25,10 @@ import {
   uydurmaTarihleriAyikla,
   uydurmaTutarlariBul,
 } from '../_shared/dilekce.ts';
+// Dilekçe künyesi avukatın kendi kaydından (tests/dilekceSunucu.test.ts).
+import { dosyaKunyesiOku } from '../_shared/dosyaKunyesi.ts';
+// Canlı içtihat aramasına anlatım değil, sabit hukuki konu gider.
+import { hukukiKonuSec } from '../_shared/hukukiKonu.ts';
 // Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
@@ -854,7 +859,7 @@ async function gercekKararOner(cumle: string): Promise<Array<{ atif: string; dai
     if (rows.length === 0) {
       const canli = await canliIctihat(cumle, 2);
       if (canli.length) {
-        await canliArsivle(s, canli, cumle);
+        await canliArsivle(s, canli, null);
         rows = canli.map((k) => ({ id: k.id, daire: k.daire, esas_no: k.esasNo, karar_no: k.kararNo, karar_tarihi: k.kararTarihi, snippet: k.metin }));
       }
     }
@@ -1815,7 +1820,22 @@ async function mevzuatOzetiIc(supabase: any, question: string): Promise<string> 
   );
 }
 
-// deno-lint-ignore no-explicit-any
+/**
+ * Hasat konu listesi (ictihat_harvest_state, yalnız service_role okur; kaynak
+ * önekli kopyalar hariç). Anlatımı canlı aramaya SABİT konuya çevirmek için
+ * (hukukiKonuSec). Hata yutulur: boş liste = canlı arama yapılmaz.
+ */
+async function hasatKonulariOku(): Promise<string[]> {
+  try {
+    const sk = svc();
+    if (!sk) return [];
+    const { data } = await sk.from('ictihat_harvest_state').select('terim').not('terim', 'like', '%:%').limit(1000);
+    return ((data ?? []) as Array<{ terim: string }>).map((r) => r.terim);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * CANLI GETİRİLEN KARARLARI ARŞİVLE — en iyi çaba, hata yutulur.
  *
@@ -1830,9 +1850,14 @@ async function mevzuatOzetiIc(supabase: any, question: string): Promise<string> 
  *
  * Yazma başarısız olursa CEVAP ETKİLENMEZ: arşiv bir yan fayda, beslemenin
  * kendisi zaten elimizde.
+ *
+ * `terim` KULLANICI METNİ DEĞİLDİR (09.10.2026): eskiden soru/anlatımın ilk 120
+ * karakteri arama_terimi'ne yazılıyordu — müvekkil adı, olay, TC numarası kalıcı
+ * tabloya düşüyordu. Artık yalnız hasat listesindeki SABİT konu adı (hukukiKonuSec)
+ * ya da null yazılır. Bkz. _shared/hukukiKonu.ts.
  */
 // deno-lint-ignore no-explicit-any
-async function canliArsivle(supabase: any, kararlar: Array<{ id: string; daire: string; esasNo: string; kararNo: string; kararTarihi: string; metin: string }>, soru: string): Promise<void> {
+async function canliArsivle(supabase: any, kararlar: Array<{ id: string; daire: string; esasNo: string; kararNo: string; kararTarihi: string; metin: string }>, terim: string | null): Promise<void> {
   try {
     const { data: musait, error: frenHata } = await supabase.rpc('disk_musait_mi');
     // Ölçemiyorsak YAZMAYIZ: emin olmadan yazmak, dolu diske yazmaya devam
@@ -1857,7 +1882,7 @@ async function canliArsivle(supabase: any, kararlar: Array<{ id: string; daire: 
         esas_no: k.esasNo || null,
         karar_no: k.kararNo || null,
         karar_tarihi: k.kararTarihi || null,
-        arama_terimi: soru.slice(0, 120),
+        arama_terimi: terim,
         full_text: k.metin,
       })),
       { onConflict: 'id' }
@@ -1883,7 +1908,19 @@ function ictihatIstenmis(soru: string): boolean {
 /** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
 const buildGrounding = (...a: Parameters<typeof buildGroundingIc>): ReturnType<typeof buildGroundingIc> => adim('besleme_ictihat', () => buildGroundingIc(...a));
 
-async function buildGroundingIc(supabase: any, question: string, enAz = 3, enCok = 5): Promise<string> {
+/**
+ * `canli` verilirse (DİLEKÇE yolu) canlı kaynağa avukatın anlatımı GİTMEZ:
+ * yalnız `terim()`in döndürdüğü SABİT hukuki konu gider; null ise canlı arama
+ * yapılmaz. Verilmezse (sohbet/mütalaa) davranış aynıdır: soru canlı aranır —
+ * ama artık hiçbir yolda kalıcı tabloya yazılmaz.
+ */
+async function buildGroundingIc(
+  supabase: any,
+  question: string,
+  enAz = 3,
+  enCok = 5,
+  canli?: { terim: () => Promise<string | null> }
+): Promise<string> {
   // deno-lint-ignore no-explicit-any
   let rows: any[] = [];
   // Anlamsal arama artık TÜM katmanlarda çalışır: yerleşik model ücretsiz ve
@@ -1937,9 +1974,12 @@ async function buildGroundingIc(supabase: any, question: string, enAz = 3, enCok
   const YETERLI = enAz;
   let canliSayisi = 0;
   if (rows.length < YETERLI) {
-    const canli = await adim('ictihat_canli', () => canliIctihat(question, YETERLI - rows.length));
-    canliSayisi = canli.length;
-    for (const k of canli) {
+    const canliTerim = canli ? await canli.terim() : question;
+    const canliKararlar = canliTerim
+      ? await adim('ictihat_canli', () => canliIctihat(canliTerim, YETERLI - rows.length))
+      : [];
+    canliSayisi = canliKararlar.length;
+    for (const k of canliKararlar) {
       if (seen.has(k.id)) continue;
       seen.add(k.id);
       rows.push({
@@ -1953,7 +1993,7 @@ async function buildGroundingIc(supabase: any, question: string, enAz = 3, enCok
     }
     // Getirdiğimizi SAKLA: havuz böylece kullanıcıların gerçek ihtiyacına
     // yakınsar. Disk freni ve hata yutma arşivleyicinin içinde.
-    if (canli.length) await canliArsivle(supabase, canli, question);
+    if (canliKararlar.length) await canliArsivle(supabase, canliKararlar, canli ? canliTerim : null);
   }
 
   if (rows.length === 0) return '';
@@ -2774,132 +2814,9 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       });
     }
   }
-/**
- * DOSYADAN KÜNYE — avukatın kendi kayıtlarından gelen kesin bilgiler.
- *
- * NEDEN. Ölçümde üretilen taslaklarda 13-21 arası köşeli parantez boşluğu
- * vardı: [Davacı Ad-Soyad], [Vekil ad-soyad], [Esas No], [Mahkeme]… Avukat,
- * PROGRAMDA ZATEN KAYITLI olan bilgileri taslağa elle geçiriyordu. "İşimi
- * hızlandırsın" beklentisinin en somut karşılığı burada: elimizdeki veriyi
- * kullanmak.
- *
- * Model bu bilgileri BİLEMEZ (olay anlatısında geçmiyorsa uydurması yasak);
- * biz biliyoruz. Bu yüzden dosyadan gelen değer, künyede modelin yazdığından
- * da önce gelir.
- *
- * MÜVEKKİLİN SIFATI (davacı mı davalı mı) kayıtta tutulmuyor; dilekçe TÜRÜNDEN
- * çıkarılır: dava açan davacıdır, cevap veren davalıdır, ihtarname çeken
- * keşidecidir.
- *
- * Sorgu, çağıranın kendi oturumuyla (RLS altında) yapılır: başkasının dosyası
- * hiçbir koşulda okunamaz.
- */
-/** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
-const dosyaKunyesi = (...a: Parameters<typeof dosyaKunyesiIc>): ReturnType<typeof dosyaKunyesiIc> => adim('dosya_kunyesi', () => dosyaKunyesiIc(...a));
-
-async function dosyaKunyesiIc(
-  db: ReturnType<typeof createClient>,
-  caseId: string | null,
-  tip: string
-): Promise<Record<string, string>> {
-  const out: Record<string, string> = {};
-  const tarihYaz = (v: unknown): string => {
-    const d = v ? new Date(String(v)) : null;
-    if (!d || Number.isNaN(d.getTime())) return '';
-    return `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}.${d.getUTCFullYear()}`;
-  };
-
-  // DOSYA SEÇİLMESE DE DOLAN İKİ ŞEY VAR: avukatın kendi adı ve imza sıfatı.
-  // İkisi de her taslakta elle yazılıyordu; birincisini profil, ikincisini
-  // dilekçe türü söylüyor. Dosya seçmek bunlar için şart değil.
-  const { data: dava } = caseId
-    ? await db
-        .from('cases')
-        .select('id, client_id, case_number, court_name, opposing_party, decision_number, decision_date, decision_served_date')
-        .eq('id', caseId)
-        .maybeSingle()
-    : { data: null };
-  const d = (dava as Record<string, unknown>) ?? {};
-
-  let musteri: Record<string, unknown> | null = null;
-  if (d.client_id) {
-    const { data } = await db
-      .from('clients')
-      .select('full_name, company, address, title, tc_no')
-      .eq('id', d.client_id as string)
-      .maybeSingle();
-    musteri = (data as Record<string, unknown>) ?? null;
-  }
-  const { data: prof } = await db
-    .from('profiles')
-    .select('full_name, baro, bar_number, firm_name')
-    .maybeSingle();
-  const p = (prof as Record<string, unknown>) ?? {};
-
-  const musteriAdi = String(musteri?.full_name ?? musteri?.company ?? '').trim();
-  // TCKN KÜNYEYE YAZILIR. Dava dilekçesinde davacının kimlik numarası ZORUNLU
-  // unsurdur (HMK m.119/1-c) ve eksikliği bir haftalık kesin süreye, süre
-  // içinde tamamlanmazsa davanın AÇILMAMIŞ SAYILMASINA yol açar (m.119/2).
-  // Kayıtta varsa taslakta boşluk bırakmanın anlamı yok.
-  const musteriTc = String(musteri?.tc_no ?? '').trim();
-  const musteriSatiri = [
-    musteriAdi,
-    musteriTc ? `T.C. ${musteriTc}` : '',
-    String(musteri?.address ?? '').trim(),
-  ].filter(Boolean).join(' — ');
-  const karsi = String(d.opposing_party ?? '').trim();
-  const vekilAdi = String(p.full_name ?? '').trim();
-  const vekilSatiri = vekilAdi
-    ? [`Av. ${vekilAdi.replace(/^Av\.?\s*/i, '')}`, String(p.baro ?? '').trim(), String(p.firm_name ?? '').trim()]
-        .filter(Boolean)
-        .join(' — ')
-    : '';
-
-  if (vekilSatiri) out.VEKILI = vekilSatiri;
-  const mahkeme = String(d.court_name ?? '').trim();
-  if (mahkeme) out.MAHKEME = mahkeme;
-  const esas = String(d.case_number ?? '').trim();
-  if (esas) {
-    out.ESASNO = esas;
-    out.DOSYANO = esas;
-  }
-
-  // Müvekkilin ve karşı tarafın satırdaki YERİ dilekçe türüne göre değişir.
-  const musteriEtiketi: Record<string, string> = {
-    dava: 'DAVACI', replik: 'DAVACI', cevap: 'DAVALI', duplik: 'DAVALI',
-    istinaf: 'ISTINAFEDEN', temyiz: 'TEMYIZEDEN', itiraz: 'ITIRAZEDENBORCLU',
-    ihtarname: 'KESIDECI', bilirkisi: 'ITIRAZEDEN', islah: 'ISLAHEDEN',
-  };
-  const karsiEtiketi: Record<string, string> = {
-    dava: 'DAVALI', replik: 'DAVALI', cevap: 'DAVACI', duplik: 'DAVACI',
-    istinaf: 'KARSITARAF', temyiz: 'KARSITARAF', itiraz: 'ALACAKLI',
-    ihtarname: 'MUHATAP', bilirkisi: 'KARSITARAF', islah: 'KARSITARAF',
-  };
-  if (musteriSatiri && musteriEtiketi[tip]) out[musteriEtiketi[tip]] = musteriSatiri;
-  if (karsi && karsiEtiketi[tip]) out[karsiEtiketi[tip]] = karsi;
-
-  // İmza bloğundaki "… Vekili" sıfatı da türden gelir.
-  const imzaSifat: Record<string, string> = {
-    dava: 'Davacı', replik: 'Davacı', cevap: 'Davalı', duplik: 'Davalı',
-    istinaf: 'İstinaf Eden', temyiz: 'Temyiz Eden', itiraz: 'İtiraz Eden (Borçlu)',
-    ihtarname: 'Keşideci', bilirkisi: 'İtiraz Eden', islah: 'Islah Eden',
-  };
-  if (imzaSifat[tip]) out.IMZASIFAT = imzaSifat[tip];
-
-  // Kanun yolu dilekçelerinde kararın künyesi ve tebliğ tarihi.
-  const kararSatiri = [mahkeme, esas, String(d.decision_number ?? '').trim(), tarihYaz(d.decision_date)]
-    .filter(Boolean)
-    .join(' · ');
-  if (kararSatiri && (tip === 'istinaf' || tip === 'temyiz')) {
-    out.KARAR = kararSatiri;
-    out.TEMYIZEDILENKARAR = kararSatiri;
-  }
-  const teblig = tarihYaz(d.decision_served_date);
-  // Not: bilirkişi RAPORUNUN tebliğ tarihi ayrı bir tarihtir ve kayıtta
-  // tutulmuyor; karar tebliğ tarihini oraya yazmak yanlış süre hesaplatırdı.
-  if (teblig) out.TEBLIGTARIHI = teblig;
-  return out;
-}
+  // DOSYADAN KÜNYE (avukatın kendi kaydı): sorgu mantığı _shared/dosyaKunyesi.ts'te,
+  // sahte istemciyle sınanır (tests/dilekceSunucu.test.ts). Profil sorgusu
+  // çağıranın kendi satırına filtrelenir.
 
 
   // ───────────── DİLEKÇE: olaydan mahkemeye hazır taslak ─────────────
@@ -3040,7 +2957,9 @@ async function dosyaKunyesiIc(
       const [kural, mevzuat, ictihat] = await Promise.all([
         buildRules(supabase, ekAramasi, dilekceKurallar).catch(() => ''),
         buildMevzuat(supabase, ekAramasi).catch(() => ''),
-        buildGrounding(supabase, ekAramasi, ictihatIstenmis(promptQuestion) ? 5 : 3, ictihatIstenmis(promptQuestion) ? 6 : 5).catch(() => ''),
+        buildGrounding(supabase, ekAramasi, ictihatIstenmis(promptQuestion) ? 5 : 3, ictihatIstenmis(promptQuestion) ? 6 : 5,
+          // Canlı aramaya anlatım değil SABİT konu gider (yalnız havuz yetersizse çözülür).
+          { terim: async () => hukukiKonuSec(ekAramasi, await hasatKonulariOku()) }).catch(() => ''),
       ]);
       dossier += `${kural}${mevzuat}${ictihat}`;
     }
@@ -3217,7 +3136,7 @@ async function dosyaKunyesiIc(
       // kayıt okunamadı diye taslak üretilmemesi, boşluklu taslaktan kötüdür.
       let dosya: Record<string, string> = {};
       try {
-        dosya = await dosyaKunyesi(supabase, body.caseId ?? null, body.dilekceType ?? 'dava');
+        dosya = await adim('dosya_kunyesi', () => dosyaKunyesiOku(supabase, userData.user.id, body.caseId ?? null, body.dilekceType ?? 'dava'));
       } catch { /* künye dolmazsa kodun boşlukları kalır */ }
       const beklenen = iskelet.bolumler.filter((b) => b.zorunlu).length;
       const bulunan = iskelet.bolumler.filter((b) => b.zorunlu && (bloklar[b.anahtar] ?? '').trim()).length;
@@ -3232,7 +3151,11 @@ async function dosyaKunyesiIc(
       // Talimat sertleştirildi ama YETMEZ: model kuralı çoğu zaman tutar,
       // tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
       // mekanik denetimde.
-      const temiz = uydurmaTarihleriAyikla(govde, denetimMetni);
+      // Kaynak: anlatım + ekler + avukatın DOSYA KAYDINDAN künyeye yazılan değerler.
+      // Yalnız anlatıma bakınca kayıttan gelen doğru karar/tebliğ tarihi
+      // "uydurma" sayılıp "[tarih — doldurun]" oluyordu (tests/dilekceSunucu.test.ts).
+      const tamKaynak = dilekceDenetimKaynagi(denetimMetni, dosya);
+      const temiz = uydurmaTarihleriAyikla(govde, tamKaynak);
       // TÜRE ÖZGÜ TALEP DENETİMİ. Talebi biz yazamayız — ne istendiğini avukat
       // bilir ve uydurulmuş talep, eksik talepten kötüdür. Ama eksikliği
       // görebiliriz: hâkim taleple bağlıdır (HMK m.26) ve netice-i talepte
@@ -3246,7 +3169,7 @@ async function dosyaKunyesiIc(
       // dilekçe mahkemeye gider. Uydurma bir esas/karar numarasını ilk fark
       // eden karşı vekil olur (bkz. kararAtfiDenetimi). Madde denetimiyle
       // bağımsız oldukları için PARALEL (04.10.2026).
-      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin, `${denetimMetni}\n${Object.values(dosya).join('\n')}`)]);
+      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin, tamKaynak)]);
       temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       // ATLANAN KURAL DENETİMİ DİLEKÇEDE ÇALIŞMIYOR — ölçüm gösterdi ki burada
       // ürettiği şey gürültü. Dört senaryoluk koşuda üç uyarı çıktı ve üçü de
