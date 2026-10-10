@@ -12,20 +12,72 @@
 // yalnız gerçek bir UDF yükleyen avukat fark ederdi.
 
 /**
+ * DOĞRUSAL SÜRE — NEDEN REGEX DEĞİL (10.10.2026, 50 denetçi → ajan 26).
+ *
+ * Yüklenen dosyanın içi KÖTÜ NİYETLİ ya da bozuk olabilir. Eski
+ * `/<[^>]+>/g` her '<' için kapanış '>' ararken dosyanın sonuna kadar
+ * tarıyordu: kapanmayan 50.000 '<' → 2,7 sn, 100.000 → 9,7 sn, 200.000 →
+ * 38,5 sn (ölçüldü; denetçi 54 sn demişti). CDATA açan desen de aynı
+ * yapıdaydı; `<content>(CDATA)+</content>` deseni kapanış yokken ÜSTELDİ
+ * (her ek CDATA bloğu süreyi ikiye katlıyordu). Aşağıdaki yardımcılar
+ * indexOf ile TEK GEÇİŞTE çalışır: bir arama başarısız olursa sonraki
+ * aramaların da başarısız olacağı bilindiği için orada durur, kalanı olduğu
+ * gibi bırakır (regex'in "eşleşme yok" davranışı).
+ */
+
+/** `<![CDATA[x]]>` → `x`. Kapanmayan başlangıç ve sonrası olduğu gibi kalır. */
+function cdataAc(s: string): string {
+  const BAS = '<![CDATA[';
+  let cikti = '';
+  let i = 0;
+  for (;;) {
+    const a = s.indexOf(BAS, i);
+    if (a < 0) break;
+    const b = s.indexOf(']]>', a + BAS.length);
+    if (b < 0) break;
+    cikti += s.slice(i, a) + s.slice(a + BAS.length, b);
+    i = b + 3;
+  }
+  return cikti + s.slice(i);
+}
+
+/**
+ * `<…>` aralıklarını `yerine` ile değiştirir (eski `/<[^>]+>/g` ile aynı
+ * sonuç: "<>" etiket sayılmaz, kapanmayan '<' ve sonrası metindir).
+ */
+function etiketleriDegistir(s: string, yerine: string): string {
+  let cikti = '';
+  let i = 0;
+  for (;;) {
+    const lt = s.indexOf('<', i);
+    if (lt < 0) break;
+    const gt = s.indexOf('>', lt + 1);
+    if (gt < 0) break;
+    if (gt === lt + 1) {
+      cikti += s.slice(i, lt + 1);
+      i = lt + 1;
+      continue;
+    }
+    cikti += s.slice(i, lt) + yerine;
+    i = gt + 1;
+  }
+  return cikti + s.slice(i);
+}
+
+/**
  * XML/HTML etiketlerini temizler, paragraf sonlarını korur.
  *
  * CDATA ÖNCE AÇILIR. `<[^>]+>` deseni `<![CDATA[...]]>` bloğunun tamamını tek
  * bir etiket gibi eşleştirip siliyordu; içerideki metin de onunla gidiyordu.
  */
 export function stripXml(xml: string): string {
-  return String(xml ?? '')
-    // CDATA içindeki metin BELGENİN KENDİSİDİR; etiket temizliğinden önce açılır.
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+  // CDATA içindeki metin BELGENİN KENDİSİDİR; etiket temizliğinden önce açılır.
+  const acik = cdataAc(String(xml ?? ''))
     // paragraf/satır sonlarını koru
     .replace(/<\/w:p>/g, '\n')
     .replace(/<\/paragraph>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
+    .replace(/<br\s*\/?>/gi, '\n');
+  return etiketleriDegistir(acik, ' ')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
@@ -57,15 +109,49 @@ export function stripXml(xml: string): string {
  */
 export function udfMetni(xml: string): string {
   const s = String(xml ?? '');
-  const govde = s.match(/<content>\s*((?:<!\[CDATA\[[\s\S]*?\]\]>\s*)+)<\/content>/);
-  if (!govde) return stripXml(s);
-  const metin = [...govde[1].matchAll(/<!\[CDATA\[([\s\S]*?)\]\]>/g)].map((m) => m[1]).join('');
+  const metin = udfGovdesi(s);
+  if (metin === null) return stripXml(s);
   return metin
     .replace(/\r\n?/g, '\n')
     .replace(/[​￼]/g, '')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+/**
+ * `<content>` içindeki CDATA parçalarını birleştirir; yapı beklenen gibi
+ * değilse null. Eski desen `<content>\s*((?:<!\[CDATA\[[\s\S]*?\]\]>\s*)+)<\/content>`
+ * kapanış yokken her CDATA'nın gövdesini sonraki `]]>`'lara doğru uzatıp
+ * ÜSTEL geri izleme yapıyordu (bkz. stripXml üstündeki not). Başarısız bir
+ * deneme taradığı yeri bir daha taramaz: süre girdiyle doğrusal.
+ */
+function udfGovdesi(s: string): string | null {
+  const ACIL = '<content>';
+  const CD = '<![CDATA[';
+  const KAPA = '</content>';
+  const bosluk = /\s*/y;
+  const bosluguAtla = (i: number): number => {
+    bosluk.lastIndex = i;
+    bosluk.exec(s);
+    return bosluk.lastIndex;
+  };
+  let konum = 0;
+  for (;;) {
+    const c = s.indexOf(ACIL, konum);
+    if (c < 0) return null;
+    let i = bosluguAtla(c + ACIL.length);
+    const parcalar: string[] = [];
+    while (s.startsWith(CD, i)) {
+      const b = s.indexOf(']]>', i + CD.length);
+      // Kapanan `]]>` yoksa sonraki hiçbir CDATA da kapanamaz.
+      if (b < 0) return null;
+      parcalar.push(s.slice(i + CD.length, b));
+      i = bosluguAtla(b + 3);
+    }
+    if (parcalar.length > 0 && s.startsWith(KAPA, i)) return parcalar.join('');
+    konum = Math.max(i, c + 1);
+  }
 }
 
 /** Sayısal karakter kaçışı → karakter; geçersiz kod noktası atılır (fromCodePoint fırlatır). */
@@ -114,27 +200,86 @@ function xmlKacisCoz(s: string): string {
  * yalnız özniteliksiz <w:tab/> sekme sayılır.
  */
 export function docxMetni(xml: string): string {
-  const s = String(xml ?? '')
-    // Paragraf işareti silinmiş/taşınmış paragraf: sonuna satır sonu konmaz.
-    .replace(/<w:pPr>(?:(?!<\/w:pPr>)[\s\S])*?<w:(?:del|moveFrom)\b[^>]*\/>(?:(?!<\/w:pPr>)[\s\S])*?<\/w:pPr>/g, '<vekil:birlestir/>')
-    // Kendinden kapanan işaretler (paragraf işareti vb.) ÖNCE silinir: açılış
-    // etiketi sanılırlarsa sonraki </w:del>'e kadar her şeyi yutarlar.
-    .replace(/<w:(?:del|moveFrom)\b[^>]*\/>/g, '')
-    .replace(/<w:del\b[^>]*>[\s\S]*?<\/w:del>/g, '')
-    .replace(/<w:moveFrom\b[^>]*>[\s\S]*?<\/w:moveFrom>/g, '');
+  // DOĞRUSAL SÜRE (10.10.2026): eski sürüm bunu birbirini izleyen beş regex
+  // ile yapıyordu (`<w:del …>[\s\S]*?</w:del>`, `<w:t>[\s\S]*?</w:t>`,
+  // `<w:pPr>…</w:pPr>`). Kapanmayan açılış etiketi her seferinde dosyanın
+  // sonuna kadar tarıyordu (kuadratik; ölçüldü: 50 bin karakterlik
+  // `<w:del ` yığını 0,8 sn, 200 bin karakter ~13 sn). Şimdi etiketler
+  // soldan sağa TEK GEÇİŞTE gezilir; kapanış etiketi aramaları önbelleğe
+  // alınır ve "yok" bir kez bulununca bir daha aranmaz.
+  const s = String(xml ?? '');
   const parcalar: string[] = [];
-  let birlestir = false;
-  const desen = /<(w|m):t(?:\s[^>]*)?(?<!\/)>([\s\S]*?)<\/\1:t>|<w:tab\s*\/>|<w:(?:br|cr)\b[^>]*\/>|<w:noBreakHyphen\s*\/>|<vekil:birlestir\/>|<\/w:p>/g;
-  for (const m of s.matchAll(desen)) {
-    const parca = m[0];
-    if (m[2] !== undefined) parcalar.push(xmlKacisCoz(m[2]));
-    else if (parca.startsWith('<w:tab')) parcalar.push('\t');
-    else if (parca.startsWith('<w:noBreakHyphen')) parcalar.push('-');
-    else if (parca === '<vekil:birlestir/>') birlestir = true;
-    else if (parca === '</w:p>') {
-      if (!birlestir) parcalar.push('\n');
-      birlestir = false;
-    } else parcalar.push('\n');
+  let birlestir = false; // paragraf işareti silinmiş: sonraki </w:p> satır sonu koymaz
+  let pPrIcinde = false;
+  let pPrSilinmis = false;
+
+  // kapanış etiketi → s içinde ondan sonraki ilk konum (-1: kalmadı).
+  const onbellek = new Map<string, number>();
+  const sonraki = (kapanis: string, konum: number): number => {
+    const onceki = onbellek.get(kapanis);
+    // Önbellekteki konum, daha küçük bir başlangıçtan bulunan İLK oluşumdur;
+    // konum'dan büyük/eşitse konum'dan sonraki ilk oluşum da odur.
+    if (onceki !== undefined && (onceki === -1 || onceki >= konum)) return onceki;
+    const yeni = s.indexOf(kapanis, konum);
+    onbellek.set(kapanis, yeni);
+    return yeni;
+  };
+
+  let i = 0;
+  for (;;) {
+    const lt = s.indexOf('<', i);
+    if (lt < 0) break;
+    const gt = s.indexOf('>', lt + 1);
+    if (gt < 0) break;
+    i = gt + 1;
+    const ic = s.slice(lt + 1, gt); // '<' ile '>' arası
+    const kapanisEtiketi = ic.charCodeAt(0) === 47; // '/'
+    const kendiKapanan = ic.charCodeAt(ic.length - 1) === 47;
+    const b = kapanisEtiketi ? 1 : 0;
+    let e = b;
+    while (e < ic.length && ic.charCodeAt(e) > 32 && ic.charCodeAt(e) !== 47) e += 1;
+    const ad = ic.slice(b, e);
+
+    if (ad === 'w:pPr') {
+      if (kapanisEtiketi) {
+        // Paragraf işareti silinmiş/taşınmış paragraf: sonuna satır sonu konmaz.
+        if (pPrIcinde && pPrSilinmis) birlestir = true;
+        pPrIcinde = false;
+      } else if (!kendiKapanan) {
+        pPrIcinde = true;
+        pPrSilinmis = false;
+      }
+    } else if (ad === 'w:del' || ad === 'w:moveFrom') {
+      if (kapanisEtiketi) continue;
+      if (kendiKapanan) {
+        // Kendinden kapanan işaret (paragraf/satır işareti): metin silmez;
+        // açılış sanılırsa sonraki kapanışa kadar her şeyi yutardı.
+        if (pPrIcinde) pPrSilinmis = true;
+      } else {
+        // Silinen / taşınan eski metin: kapanışa kadar atla. Kapanış yoksa
+        // hiçbir şey silinmez (eski regex'in davranışı).
+        const kapanis = `</${ad}>`;
+        const k = sonraki(kapanis, i);
+        if (k >= 0) i = k + kapanis.length;
+      }
+    } else if (ad === 'w:t' || ad === 'm:t') {
+      if (kapanisEtiketi || kendiKapanan) continue;
+      const kapanis = `</${ad}>`;
+      const k = sonraki(kapanis, i);
+      if (k >= 0) {
+        parcalar.push(xmlKacisCoz(s.slice(i, k)));
+        i = k + kapanis.length;
+      }
+    } else if (kapanisEtiketi) {
+      if (ic === '/w:p') {
+        if (!birlestir) parcalar.push('\n');
+        birlestir = false;
+      }
+    } else if (kendiKapanan) {
+      if (ad === 'w:tab' && /^w:tab\s*\/$/.test(ic)) parcalar.push('\t');
+      else if (ad === 'w:noBreakHyphen' && /^w:noBreakHyphen\s*\/$/.test(ic)) parcalar.push('-');
+      else if (ad === 'w:br' || ad === 'w:cr') parcalar.push('\n');
+    }
   }
   return parcalar
     .join('')

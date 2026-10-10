@@ -28,6 +28,7 @@
 
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { livemodeUygunMu } from '../_shared/stripeKip.ts';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
@@ -64,6 +65,7 @@ Deno.serve(async (req) => {
   let olay: {
     id: string;
     type: string;
+    livemode?: boolean;
     data: { object: { id?: string; metadata?: Record<string, string> } };
   };
   try {
@@ -85,6 +87,17 @@ Deno.serve(async (req) => {
   // aynı olayı saatlerce tekrar dener ve gerçek olaylar kuyrukta bekler.
   if (olay.type !== 'payment_intent.succeeded') {
     return new Response(JSON.stringify({ ok: true, atlandi: olay.type }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // KİP DENETİMİ (10.10.2026). Canlı anahtarla çalışan uca test modunda
+  // üretilmiş (sahte kartlı, bedava) bir ödeme olayı gelirse kontör
+  // YÜKLENMEZ; tersi de öyle. 2xx dönülür: yeniden denemek sonucu değiştirmez
+  // ve Stripe aksi hâlde aynı olayı saatlerce tekrar gönderir.
+  if (!livemodeUygunMu(secretKey, olay.livemode)) {
+    console.error('stripe livemode uyumsuz, kontor yuklenmedi:', olay.id, String(olay.livemode));
+    return new Response(JSON.stringify({ ok: true, atlandi: 'livemode_uyumsuz' }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }
