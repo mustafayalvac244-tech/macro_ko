@@ -189,7 +189,7 @@ export default function CaseDirectoryScreen() {
         }
       />
 
-      <FAB onPress={() => setNewModal(true)} />
+      <FAB onPress={() => setNewModal(true)} accessibilityLabel={`${t('ust.yeni')}: ${t('ust.yeniDava')}`} />
 
       {/* Yeni dosya: dava mı, icra takibi mi? */}
       <Modal visible={newModal} transparent animationType="fade" onRequestClose={() => setNewModal(false)}>

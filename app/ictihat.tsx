@@ -527,6 +527,7 @@ export default function IctihatScreen() {
 
 function DigestCard({ digest, onPress }: { digest: IctihatDigest; onPress: () => void }) {
   const __t = useTheme();
+  const t = useT();
   const colors = __t.colors;
   const styles = makeStyles(colors);
 
@@ -538,7 +539,7 @@ function DigestCard({ digest, onPress }: { digest: IctihatDigest; onPress: () =>
         </View>
         <View style={styles.digestBadge}>
           <Ionicons name="sparkles" size={10} color={colors.gold} />
-          <Text style={styles.digestBadgeText}>ÖZETLİ</Text>
+          <Text style={styles.digestBadgeText}>{t('ictihat.digestBadge')}</Text>
         </View>
       </View>
       <Text style={styles.digestTitle} numberOfLines={2}>{digest.title}</Text>
@@ -1048,6 +1049,7 @@ function HitCard({
   query?: string;
 }) {
   const __t = useTheme();
+  const t = useT();
   const colors = __t.colors;
   const styles = makeStyles(colors);
 
@@ -1103,7 +1105,7 @@ function HitCard({
         )}
         {!!hit.sonuc && (
           <View style={styles.sonucBox}>
-            <Text style={styles.sonucLabel}>HÜKÜM / SONUÇ</Text>
+            <Text style={styles.sonucLabel}>{t('ictihat.hitSonuc')}</Text>
             <Text style={styles.sonucText} numberOfLines={5}>
               {hit.sonuc}
             </Text>
@@ -1124,7 +1126,7 @@ function HitCard({
           )}
           {hit.src === 'yargitay' && (
             <View style={styles.srcBadge}>
-              <Text style={styles.srcBadgeText}>Yargıtay</Text>
+              <Text style={styles.srcBadgeText}>{t('ictihat.srcYargitay')}</Text>
             </View>
           )}
         </View>

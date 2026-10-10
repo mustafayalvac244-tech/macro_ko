@@ -167,7 +167,7 @@ export default function ProfileFormScreen() {
             </View>
           )}
 
-          <Input label={t('profile.fullName')} placeholder="Av. Ad Soyad" value={fullName} onChangeText={setFullName} />
+          <Input label={t('profile.fullName')} placeholder={t('profile.fullNamePh')} value={fullName} onChangeText={setFullName} />
           <Input label={t('profile.firmName')} placeholder={t('profile.firmPlaceholder')} value={firmName} onChangeText={setFirmName} />
           <Input
             label={t('profile.barNumber')}

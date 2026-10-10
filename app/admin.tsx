@@ -80,7 +80,7 @@ export default function AdminScreen() {
         <ScreenHeader title={t('admin.title')} showBack />
         <View style={styles.denied}>
           <Ionicons name="lock-closed-outline" size={28} color={colors.textMuted} />
-          <Text allowFontScaling={false} style={styles.deniedText}>{t('admin.noAccess')}</Text>
+          <Text style={styles.deniedText}>{t('admin.noAccess')}</Text>
         </View>
       </Screen>
     );
@@ -109,12 +109,12 @@ export default function AdminScreen() {
           </View>
         ) : overview.isError ? (
           <View style={styles.center}>
-            <Text allowFontScaling={false} style={styles.deniedText}>{t('admin.error')}</Text>
+            <Text style={styles.deniedText}>{t('admin.error')}</Text>
           </View>
         ) : o ? (
           <>
             {/* Kullanıcılar */}
-            <Text allowFontScaling={false} style={styles.sectionLabel}>{t('admin.usersSection')}</Text>
+            <Text style={styles.sectionLabel}>{t('admin.usersSection')}</Text>
             <View style={styles.statGrid}>
               <StatCard icon="people" label={t('admin.totalUsers')} value={o.total_users} colors={colors} accent />
               <StatCard
@@ -129,7 +129,7 @@ export default function AdminScreen() {
             </View>
 
             {/* Büyüme */}
-            <Text allowFontScaling={false} style={styles.sectionLabel}>{t('admin.growthSection')}</Text>
+            <Text style={styles.sectionLabel}>{t('admin.growthSection')}</Text>
             <View style={styles.statGrid}>
               <StatCard icon="today" label={t('admin.newToday')} value={o.new_today} colors={colors} />
               <StatCard icon="calendar" label={t('admin.newWeek')} value={o.new_week} colors={colors} />
@@ -137,7 +137,7 @@ export default function AdminScreen() {
             </View>
 
             {/* Kullanım */}
-            <Text allowFontScaling={false} style={styles.sectionLabel}>{t('admin.usageSection')}</Text>
+            <Text style={styles.sectionLabel}>{t('admin.usageSection')}</Text>
             <View style={styles.statGrid}>
               <StatCard icon="briefcase" label={t('admin.cases')} value={o.total_cases} colors={colors} />
               <StatCard icon="person" label={t('admin.clients')} value={o.total_clients} colors={colors} />
@@ -145,7 +145,7 @@ export default function AdminScreen() {
             </View>
 
             {/* AI harcaması */}
-            <Text allowFontScaling={false} style={styles.sectionLabel}>{t('admin.aiSection')}</Text>
+            <Text style={styles.sectionLabel}>{t('admin.aiSection')}</Text>
             <View style={styles.statGrid}>
               <StatCard icon="sparkles" label={t('admin.aiCostMonth')} value={Math.round(o.ai_cost_month)} unit="₺" colors={colors} gold sub={t('admin.aiCostHint')} />
               <View style={{ flex: 2 }} />
@@ -174,7 +174,7 @@ export default function AdminScreen() {
                   <View style={{ flex: 2 }} />
                 </View>
                 {aiOzet.data.iade_dagilim.length > 0 && (
-                  <Text allowFontScaling={false} style={styles.healthRow}>
+                  <Text style={styles.healthRow}>
                     {aiOzet.data.iade_dagilim.map((d) => `${d.mod}: ${d.iade}/${d.toplam}`).join(' · ')}
                   </Text>
                 )}
@@ -221,12 +221,12 @@ export default function AdminScreen() {
               <View style={styles.healthBox}>
                 <View style={styles.healthHead}>
                   <Ionicons name="shield-checkmark" size={15} color={colors.primary} />
-                  <Text allowFontScaling={false} style={styles.healthTitle}>
+                  <Text style={styles.healthTitle}>
                     {t('admin.atifTitle')}
                   </Text>
                 </View>
                 {atif.data.map((r) => (
-                  <Text key={r.mod} allowFontScaling={false} style={styles.healthRow}>
+                  <Text key={r.mod} style={styles.healthRow}>
                     {t('admin.atifRow', {
                       mod: r.mod,
                       istek: String(r.istek_sayisi),
@@ -251,12 +251,12 @@ export default function AdminScreen() {
                     size={15}
                     color={saglik.data.yedekli ? colors.success : colors.warning}
                   />
-                  <Text allowFontScaling={false} style={styles.healthTitle}>
+                  <Text style={styles.healthTitle}>
                     {saglik.data.yedekli ? t('admin.aiRedundant') : t('admin.aiNoBackup')}
                   </Text>
                 </View>
                 {saglik.data.saglayicilar.map((p) => (
-                  <Text allowFontScaling={false} key={p.saglayici} style={styles.healthRow}>
+                  <Text key={p.saglayici} style={styles.healthRow}>
                     {p.calisiyor && !p.gercekSonSonuc?.match(/quota|limit|upstream/) ? '● ' : '○ '}
                     {p.saglayici}
                     {p.calisiyor ? ` — ${p.ms ?? 0} ms` : ` — ${p.neden ?? t('admin.aiDown')}`}
@@ -272,7 +272,7 @@ export default function AdminScreen() {
             )}
 
             {/* Kullanıcı listesi */}
-            <Text allowFontScaling={false} style={styles.sectionLabel}>{t('admin.recentUsers')}</Text>
+            <Text style={styles.sectionLabel}>{t('admin.recentUsers')}</Text>
             <View style={styles.aramaKutusu}>
               <Ionicons name="search-outline" size={16} color={colors.textMuted} />
               <TextInput
@@ -291,7 +291,7 @@ export default function AdminScreen() {
               )}
             </View>
             {!!arama && (
-              <Text allowFontScaling={false} style={styles.aramaSonuc}>
+              <Text style={styles.aramaSonuc}>
                 {t('admin.searchResult', { n: String(kullanicilar.length) })}
               </Text>
             )}
@@ -356,11 +356,11 @@ function StatCard({
       <View style={[styles.statIcon, { backgroundColor: tint + '1E' }]}>
         <Ionicons name={icon} size={16} color={tint} />
       </View>
-      <Text allowFontScaling={false} style={styles.statValue}>
+      <Text style={styles.statValue}>
         {unit === '₺' ? '₺' : ''}{value.toLocaleString('tr-TR')}{unit && unit !== '₺' ? ` ${unit}` : ''}
       </Text>
-      <Text allowFontScaling={false} style={styles.statLabel} numberOfLines={1}>{label}</Text>
-      {!!sub && <Text allowFontScaling={false} style={[styles.statSub, { color: tint }]}>{sub}</Text>}
+      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
+      {!!sub && <Text style={[styles.statSub, { color: tint }]}>{sub}</Text>}
     </View>
   );
 }
@@ -407,39 +407,39 @@ function UserRow({
   return (
     <View style={styles.userRow}>
       <View style={styles.userAvatar}>
-        <Text allowFontScaling={false} style={styles.userAvatarText}>
+        <Text style={styles.userAvatarText}>
           {(user.full_name || user.email || '?').trim().charAt(0).toLocaleUpperCase('tr')}
         </Text>
       </View>
       <View style={styles.userBody}>
         <View style={styles.userNameRow}>
-          <Text allowFontScaling={false} style={styles.userName} numberOfLines={1}>
+          <Text style={styles.userName} numberOfLines={1}>
             {user.full_name || user.email}
           </Text>
           {user.is_premium && (
             <View style={styles.premiumBadge}>
               <Ionicons name="star" size={9} color={colors.gold} />
-              <Text allowFontScaling={false} style={styles.premiumBadgeText}>{premiumLabel}</Text>
+              <Text style={styles.premiumBadgeText}>{premiumLabel}</Text>
             </View>
           )}
         </View>
-        <Text allowFontScaling={false} style={styles.userMeta} numberOfLines={1}>
+        <Text style={styles.userMeta} numberOfLines={1}>
           {user.email}{joined ? `  ·  ${joined}` : ''}
         </Text>
         {!!user.kaynak && (
           <View style={styles.userDetayRow}>
             <Ionicons name="navigate-outline" size={11} color={colors.textMuted} />
-            <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+            <Text style={styles.userDetayText} numberOfLines={1}>
               Nereden: {user.kaynak}
             </Text>
           </View>
         )}
         <View style={styles.userAiRow}>
           <View style={styles.tierChip}>
-            <Text allowFontScaling={false} style={styles.tierChipText}>{tierLabel(user.ai_tier)}</Text>
+            <Text style={styles.tierChipText}>{tierLabel(user.ai_tier)}</Text>
           </View>
           <Ionicons name="sparkles-outline" size={11} color={colors.textMuted} />
-          <Text allowFontScaling={false} style={styles.userAiCost}>
+          <Text style={styles.userAiCost}>
             ₺{Math.round(Number(user.ai_cost_try) || 0).toLocaleString('tr-TR')} / ay
           </Text>
         </View>
@@ -451,7 +451,7 @@ function UserRow({
             birleştirmek yanıltıcı olurdu. */}
         <View style={styles.userDetayRow}>
           <Ionicons name="eye-outline" size={11} color={colors.textMuted} />
-          <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+          <Text style={styles.userDetayText} numberOfLines={1}>
             {/* SON GÖRÜLME birincil ölçüdür: uygulamayı her açtığında yazılır,
                 okuma da sayar (bkz. 0097). Yoksa SON GİRİŞ'e düşülür — ama o
                 oturum saklandığı için aylar öncesini gösterebilir, bu yüzden
@@ -463,7 +463,7 @@ function UserRow({
                 : 'Hiç giriş yok'}
           </Text>
           <Ionicons name="pulse-outline" size={11} color={colors.textMuted} />
-          <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+          <Text style={styles.userDetayText} numberOfLines={1}>
             {sonIslem ? `Son işlem ${sonIslem}` : 'Kayıt açmamış'}
           </Text>
         </View>
@@ -472,14 +472,14 @@ function UserRow({
             "Ödediği" satırıyla karıştırılmasın diye ayrı satır ve ayrı ikon. */}
         <View style={styles.userDetayRow}>
           <Ionicons name="bar-chart-outline" size={11} color={colors.textMuted} />
-          <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+          <Text style={styles.userDetayText} numberOfLines={1}>
             {`Gelir ${tl(gelir)} · Gider ${tl(gider)} · Net `}
             <Text style={net >= 0 ? styles.userNetArti : styles.userNetEksi}>{tl(net)}</Text>
           </Text>
         </View>
         <View style={styles.userDetayRow}>
           <Ionicons name="wallet-outline" size={11} color={colors.textMuted} />
-          <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+          <Text style={styles.userDetayText} numberOfLines={1}>
             {`Tahsilat ${tl(tahsilat)} · ${user.finans_kayit_adedi ?? 0} finans kaydı`}
           </Text>
         </View>
@@ -491,7 +491,6 @@ function UserRow({
             color={odenen > 0 ? colors.success : colors.textMuted}
           />
           <Text
-            allowFontScaling={false}
             style={[styles.userDetayText, odenen > 0 && styles.userOdenen]}
             numberOfLines={1}
           >
@@ -499,7 +498,7 @@ function UserRow({
             {(user.satin_alma_adet ?? 0) > 0 ? ` (${user.satin_alma_adet})` : ''}
           </Text>
           <Ionicons name="briefcase-outline" size={11} color={colors.textMuted} />
-          <Text allowFontScaling={false} style={styles.userDetayText} numberOfLines={1}>
+          <Text style={styles.userDetayText} numberOfLines={1}>
             {`${user.dava_adedi ?? 0} dava · ${user.muvekkil_adedi ?? 0} müvekkil`}
           </Text>
         </View>
@@ -517,7 +516,6 @@ function UserRow({
           <ActivityIndicator size="small" color={user.is_premium ? colors.danger : colors.textInverse} />
         ) : (
           <Text
-            allowFontScaling={false}
             style={[styles.toggleText, { color: user.is_premium ? colors.danger : colors.textInverse }]}
           >
             {user.is_premium ? revokeLabel : grantLabel}
