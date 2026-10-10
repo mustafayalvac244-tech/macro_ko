@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
-import { DOGRULANMAMIS } from '@/lib/authErrors';
+import { dogrulanmamisMi } from '@/lib/authErrors';
+import { TEKRAR_GONDERIM_SN } from '@/lib/authBekleme';
 import { Captcha } from '@/components/Captcha';
 import { useT } from '@/i18n';
 import { spacing, typography } from '@/theme/theme';
@@ -35,14 +36,37 @@ export default function LoginScreen() {
   const [hataliAlan, setHataliAlan] = useState<'email' | 'password' | null>(null);
   // "E-posta doğrulanmamış" hatasında tekrar gönderme düğmesi (04.10.2026;
   // gerekçe app/(auth)/signup.tsx > tekrarGonder).
+  //
+  // HATA YEŞİL YAZILIYORDU, GERİ SAYIM YOKTU (09.10.2026). Sunucu hatası
+  // (ör. "güvenlik nedeniyle bekleyin") başarı mesajıyla aynı durumda ve aynı
+  // yeşil stilde gösteriliyordu; düğme her an basılabildiği için ikinci basış
+  // hep bu hatayı üretiyordu. Artık hata kırmızı ve ayrı; gönderimden sonra
+  // kayıt ekranındakiyle aynı geri sayım var, sunucu süre söylerse o kullanılır.
   const [tekrarBilgi, setTekrarBilgi] = useState<string | null>(null);
+  const [tekrarHata, setTekrarHata] = useState<string | null>(null);
+  const [tekrarBekleme, setTekrarBekleme] = useState(0);
   const [tekrarGonderiliyor, setTekrarGonderiliyor] = useState(false);
-  const dogrulanmamis = error === DOGRULANMAMIS;
+  useEffect(() => {
+    if (tekrarBekleme <= 0) return;
+    const z = setTimeout(() => setTekrarBekleme((n) => n - 1), 1000);
+    return () => clearTimeout(z);
+  }, [tekrarBekleme]);
+  // Metin arayüz diline göre değiştiği için Türkçe sabitle değil, iki dili de
+  // tanıyan yardımcıyla karşılaştırılır (İngilizcede düğme kayboluyordu).
+  const dogrulanmamis = dogrulanmamisMi(error);
   const tekrarGonder = async () => {
+    setTekrarBilgi(null);
+    setTekrarHata(null);
     setTekrarGonderiliyor(true);
     const sonuc = await resendVerification(email, captchaToken ?? undefined);
     setTekrarGonderiliyor(false);
-    setTekrarBilgi(sonuc.hata ?? t('auth.resendVerifyDone'));
+    if (sonuc.hata) {
+      setTekrarHata(sonuc.hata);
+      if (sonuc.bekle > 0) setTekrarBekleme(sonuc.bekle);
+      return;
+    }
+    setTekrarBilgi(t('auth.resendVerifyDone'));
+    setTekrarBekleme(TEKRAR_GONDERIM_SN);
   };
 
   const handleSubmit = async () => {
@@ -150,15 +174,16 @@ export default function LoginScreen() {
           )}
           {dogrulanmamis && (
             <Button
-              label={t('auth.resendVerify')}
+              label={tekrarBekleme > 0 ? t('auth.resendVerifyIn', { n: String(tekrarBekleme) }) : t('auth.resendVerify')}
               variant="ghost"
-              disabled={tekrarGonderiliyor}
+              disabled={tekrarBekleme > 0 || tekrarGonderiliyor}
               loading={tekrarGonderiliyor}
               onPress={tekrarGonder}
               fullWidth
             />
           )}
           {dogrulanmamis && !!tekrarBilgi && <Text style={styles.bilgi}>{tekrarBilgi}</Text>}
+          {dogrulanmamis && !!tekrarHata && <Text style={styles.error}>{tekrarHata}</Text>}
 
           <Button
             label={t('auth.signIn')}
