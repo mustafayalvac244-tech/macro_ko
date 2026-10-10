@@ -33,6 +33,7 @@ import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useSimdi } from '@/hooks/useSimdi';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
 import { bugunKayitlari, gecikenSureler, gunFarki, veriDurumu, yaklasanSureler, type VeriDurumu } from '@/utils/panoHesap';
+import { okunurRenk, zeminUstune } from '@/utils/kontrast';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, monoTemaMi, radius, spacing, shadow, kose } from '@/theme/theme';
 import { kaliciMenuMu, ortalaStili, panoOlculeri, PANO_ARALIK, PANO_YAN_BOSLUK } from '@/theme/duzen';
@@ -59,9 +60,6 @@ function vurguYazisi(): string {
   return monoTemaMi() ? fonts.bold : SERIF;
 }
 
-/** Zengin, metalik altın — açık temaların koyu/kahverengi altını yerine kullanılır. */
-const RICH_GOLD = '#D4AF37';
-
 /** Sıcak, açık altın — dolgu (saat bloğu, "Güne Başla", seçili çip) için. Mat
  * hardal yerine premium bir ton; üzerine koyu lacivert yazı okunur. */
 const SLEEK_GOLD = '#ECC24C';
@@ -74,12 +72,13 @@ function luminance(hex: string): number {
 }
 
 /**
- * Vurgu altını: tema altını yeterince parlaksa (koyu temalar) onu kullan; koyu/
- * mat (açık temalar) ise zengin metalik altına geç — "Güne Başla" ve çanta her
- * temada gerçek altın görünsün, kahverengi durmasın.
+ * Süre rozetinin "yaklaşıyor" rengi: tema altını yeterince parlaksa (koyu
+ * temalar) onu kullan; koyu/mat (açık temalar, altın = lacivert/yeşil) ise
+ * temanın `warning` token'ına geç. Eskiden burada çıplak bir altın hex'i vardı: açık
+ * temalarda beyaz kart üstünde 2,10:1 (rozet zemini üstünde 1,93:1) — okunmuyordu.
  */
-function accentGoldFor(themeGold: string): string {
-  return luminance(themeGold) < 0.6 ? RICH_GOLD : themeGold;
+function accentGoldFor(themeGold: string, warning: string): string {
+  return luminance(themeGold) < 0.6 ? warning : themeGold;
 }
 
 /** Altın zemin üzerindeki yazı/ikon rengi: parlak altında koyu lacivert, koyu altında beyaz. */
@@ -93,7 +92,7 @@ export default function DashboardScreen() {
   const styles = makeStyles(colors);
   const insets = useSafeAreaInsets();
   const { width: pencereGenisligi } = useWindowDimensions();
-  const accentGold = accentGoldFor(colors.gold);
+  const accentGold = accentGoldFor(colors.gold, colors.warning);
 
   const t = useT();
   const lang = useLangStore((s) => s.lang);
@@ -810,6 +809,9 @@ export default function DashboardScreen() {
                 const acil = s.kalanGun === 0;
                 const yakin = s.kalanGun > 0 && s.kalanGun <= 3;
                 const renk = acil ? colors.danger : yakin ? accentGold : colors.textSecondary;
+                // Rozet zemini = renk %12 (1F); yazı o zemin üstünde 4,5:1'i
+                // sağlamıyorsa temanın ana yazı rengine doğru koyulaşır/açılır.
+                const rozetYazi = okunurRenk(renk, [zeminUstune(renk + '1F', colors.surface)], colors.textPrimary);
                 return (
                   <Pressable
                     key={s.id}
@@ -821,7 +823,7 @@ export default function DashboardScreen() {
                     onPress={() => router.push('/(app)/calendar')}
                   >
                     <View style={[styles.sureRozet, { backgroundColor: renk + '1F' }]}>
-                      <Text style={[styles.sureRozetYazi, { color: renk }]}>
+                      <Text style={[styles.sureRozetYazi, { color: rozetYazi }]}>
                         {acil ? t('dash.upcoming.due') : t('dash.upcoming.days', { n: s.kalanGun })}
                       </Text>
                     </View>
