@@ -14,7 +14,7 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
 import { shareCsv, toCsv } from '@/utils/exportCsv';
-import { dakikaBicimle, gecenSureMetni, saateCevir, zamanOzeti } from '@/utils/zamanKaydi';
+import { dakikaBicimle, gecenDakika, gecenSureMetni, saateCevir, zamanOzeti } from '@/utils/zamanKaydi';
 
 /**
  * DOSYANIN ÇALIŞMA KAYITLARI.
@@ -57,19 +57,24 @@ export function ZamanSekmesi({
 
   const ozet = useMemo(() => zamanOzeti(kayitlar ?? []), [kayitlar]);
 
-  const formAc = (minutes?: number) =>
+  const formAc = (minutes?: number, sayactan = false) =>
     router.push({
       pathname: '/time-entry-form',
       params: {
         caseId,
         caseTitle,
         ...(minutes != null ? { minutes: String(minutes) } : {}),
+        ...(sayactan ? { sayacdan: '1' } : {}),
       },
     });
 
+  // DURDUR SAYACI SİLMEZ (10.10.2026). Eskiden sayaç anında siliniyor, sonra
+  // form açılıyordu: formdan geri çıkan ya da kaydı hata veren avukat geçen
+  // süreyi kaybediyordu. Şimdi yalnız geçen dakika forma taşınır; sayaç,
+  // kayıt yazılınca formda kapanır (bkz. sayacKaydaAitMi).
   const sayaciDurdur = () => {
-    const dakika = sayac.durdur();
-    formAc(dakika);
+    if (sayac.startedAt == null) return;
+    formAc(gecenDakika(sayac.startedAt), true);
   };
 
   /**

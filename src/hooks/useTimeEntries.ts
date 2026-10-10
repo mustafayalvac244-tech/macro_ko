@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
+import { tabloYokMu } from '@/utils/tabloYok';
+import { tumSayfalar } from '@/utils/sayfalama';
 import { useAuthStore } from '@/store/authStore';
 import type { TimeEntry, TimeEntryWithCase } from '@/types/database';
 
@@ -12,10 +14,8 @@ import type { TimeEntry, TimeEntryWithCase } from '@/types/database';
  * devam etmeli — tekrar tekrar deneyip hata kusmamalı.
  */
 export function isMissingTimeTable(err: unknown): boolean {
-  const e = err as { code?: string; message?: string } | null;
-  if (!e) return false;
-  if (e.code === '42P01' || e.code === 'PGRST205') return true;
-  return (e.message ?? '').toLowerCase().includes('time_entries');
+  // Yalnız gerçek "tablo yok" hatası; kısıt/RLS hatası tablo adı taşısa da sayılmaz.
+  return tabloYokMu(err, 'time_entries');
 }
 
 const yenidenDene = (failureCount: number, error: unknown) =>
@@ -29,15 +29,18 @@ export function useTimeEntriesForCase(caseId: string | undefined) {
     queryKey: ['time-entries', 'byCase', caseId],
     enabled: !!ownerId && !!caseId,
     retry: yenidenDene,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('*')
-        .eq('case_id', caseId!)
-        .order('worked_at', { ascending: false });
-      if (error) throw error;
-      return data as TimeEntry[];
-    },
+    // Sayfa sayfa: tek sorgu PostgREST satır tavanında (varsayılan 1000)
+    // sessizce kesilirdi (bkz. utils/sayfalama). Sıra benzersiz: sonda `id`.
+    queryFn: async () =>
+      (await tumSayfalar((bas, son) =>
+        supabase
+          .from('time_entries')
+          .select('*', { count: 'exact' })
+          .eq('case_id', caseId!)
+          .order('worked_at', { ascending: false })
+          .order('id', { ascending: true })
+          .range(bas, son),
+      )) as TimeEntry[],
   });
 }
 
@@ -52,15 +55,17 @@ export function useAllTimeEntries() {
     queryKey: ['time-entries', 'all', ownerId],
     enabled: !!ownerId,
     retry: yenidenDene,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('*, cases ( id, title )')
-        .eq('owner_id', ownerId!)
-        .order('worked_at', { ascending: false });
-      if (error) throw error;
-      return data as TimeEntryWithCase[];
-    },
+    // Sayfa sayfa (bkz. yukarıdaki not): rapor toplamı eksik kayıtla yanlış çıkardı.
+    queryFn: async () =>
+      (await tumSayfalar((bas, son) =>
+        supabase
+          .from('time_entries')
+          .select('*, cases ( id, title )', { count: 'exact' })
+          .eq('owner_id', ownerId!)
+          .order('worked_at', { ascending: false })
+          .order('id', { ascending: true })
+          .range(bas, son),
+      )) as unknown as TimeEntryWithCase[],
   });
 }
 

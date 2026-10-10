@@ -18,12 +18,13 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { isMissingTimeTable, useCreateTimeEntry } from '@/hooks/useTimeEntries';
 import { useAuthStore } from '@/store/authStore';
+import { useSayacStore } from '@/store/sayacStore';
 import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
-import { HIZLI_SURELER, dakikaBicimle, sureAyristir, tutarHesapla } from '@/utils/zamanKaydi';
+import { HIZLI_SURELER, dakikaBicimle, sayacKaydaAitMi, sureAyristir, tutarHesapla } from '@/utils/zamanKaydi';
 import { tutarOku, tutarYaz } from '@/utils/tutar';
 import { geriDon } from '@/lib/geriDon';
 
@@ -46,6 +47,8 @@ export default function TimeEntryFormScreen() {
     caseTitle?: string;
     /** Sayaç durdurulduğunda ön-doldurulur. */
     minutes?: string;
+    /** '1' ise form çalışan sayaçtan açıldı; kayıt yazılınca sayaç kapanır. */
+    sayacdan?: string;
   }>();
 
   const profile = useAuthStore((s) => s.profile);
@@ -91,6 +94,9 @@ export default function TimeEntryFormScreen() {
         billable,
         hourly_rate: billable ? parsedRate : null,
       });
+      // Sayaç YALNIZ kayıt başarıyla yazılınca kapanır (Durdur silmez).
+      const sayac = useSayacStore.getState();
+      if (sayacKaydaAitMi(sayac, params.caseId, params.sayacdan)) sayac.iptal();
       geriDon();
     } catch (e) {
       setError(isMissingTimeTable(e) ? t('time.setupRequired') : t('time.saveFailed'));

@@ -1,7 +1,7 @@
 import { Platform, Share } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import { dosyaIndir } from '@/lib/cikti';
-import { toCsv } from '@/utils/csvMetni';
+import { csvDosyaAdi, toCsv } from '@/utils/csvMetni';
 
 // CSV metni üretimi saf modüle taşındı (test edilebilsin diye); çağrı
 // yerleri değişmesin diye buradan da dışa veriliyor.
@@ -16,17 +16,12 @@ export { toCsv };
  * kullanıcı her koşulda verisine ulaşır.
  */
 
-/** Dosya adında kullanılamayacak karakterleri temizler. */
-function safeName(name: string): string {
-  return name.replace(/[^\w.-]+/g, '_').slice(0, 60) || 'disa-aktarim';
-}
-
 /**
  * CSV'yi paylaş. Başarılıysa true döner.
  * @param fileName uzantısız dosya adı (örn. "gelir-gider-2026-08")
  */
 export async function shareCsv(fileName: string, csv: string, title: string): Promise<boolean> {
-  const name = `${safeName(fileName)}.csv`;
+  const name = csvDosyaAdi(fileName);
 
   // WEB: Share.share() burada HER ZAMAN başarısızdı. react-native-web'in
   // Share'i navigator.share yoksa reject eder (masaüstü Linux/Firefox'ta yok)

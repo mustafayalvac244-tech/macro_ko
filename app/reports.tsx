@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { format } from 'date-fns/format';
 import { subMonths } from 'date-fns/subMonths';
 import { enUS } from 'date-fns/locale/en-US';
@@ -13,9 +14,10 @@ import { useCases } from '@/hooks/useCases';
 import { useClients } from '@/hooks/useClients';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
-import { useFinanceEntries } from '@/hooks/useFinance';
-import { useAllTimeEntries } from '@/hooks/useTimeEntries';
+import { isMissingFinanceTable, useFinanceEntries } from '@/hooks/useFinance';
+import { isMissingTimeTable, useAllTimeEntries } from '@/hooks/useTimeEntries';
 import { dakikaBicimle, dosyayaGoreOzet, zamanOzeti } from '@/utils/zamanKaydi';
+import { veriDurumu, type VeriDurumu } from '@/utils/panoHesap';
 import { useLangStore, useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -117,6 +119,20 @@ export default function ReportsScreen() {
     return { income, expense, net: income - expense };
   }, [financeEntries.data]);
 
+  // YÜKLENİYOR / HATA "VERİ YOK" DEĞİLDİR (10.10.2026). Sorgu düşünce
+  // `data ?? []` boş liste veriyor, ekran "Rapor için veri yok" ya da ₺0
+  // gösteriyordu; hata hiçbir yerde söylenmiyordu. Çekirdek dört sorgu
+  // yüklenmeden rapor çizilmez; finans ve zaman bölümleri kendi durumunu
+  // söyler. Tablosu henüz kurulmamış (göç) finans/zaman "boş" sayılır.
+  const cekirdekDurum = veriDurumu(cases, hearings, deadlines, clients);
+  const finansDurum: VeriDurumu = isMissingFinanceTable(financeEntries.error) ? 'hazir' : veriDurumu(financeEntries);
+  const zamanDurum: VeriDurumu = isMissingTimeTable(timeEntries.error) ? 'hazir' : veriDurumu(timeEntries);
+  const yenile = () => {
+    for (const q of [cases, hearings, deadlines, clients, financeEntries, timeEntries]) {
+      if (q.isError) void q.refetch();
+    }
+  };
+
   const totalCases = cases.data?.length ?? 0;
   const maxStage = Math.max(1, ...OPEN_STAGES.map((s) => caseBreakdown.stages[s]));
   const maxMonthly = Math.max(1, ...monthly.map((m) => m.count));
@@ -126,7 +142,11 @@ export default function ReportsScreen() {
     <Screen>
       <ScreenHeader title={t('reports.title')} showBack />
       <ScrollView contentContainerStyle={styles.content}>
-        {!hasData ? (
+        {cekirdekDurum !== 'hazir' ? (
+          <Card>
+            <DurumKutusu durum={cekirdekDurum} onRetry={yenile} />
+          </Card>
+        ) : !hasData ? (
           <Card>
             <EmptyState icon="stats-chart-outline" title={t('reports.empty')} description={t('reports.emptyDesc')} />
           </Card>
@@ -200,7 +220,16 @@ export default function ReportsScreen() {
               </View>
             </Card>
 
-            {zaman.genel.adet > 0 && (
+            {zamanDurum === 'hata' && (
+              <>
+                <SectionHeader title={t('reports.timeByCase')} />
+                <Card style={styles.chartCard}>
+                  <DurumKutusu durum="hata" onRetry={yenile} />
+                </Card>
+              </>
+            )}
+
+            {zamanDurum === 'hazir' && zaman.genel.adet > 0 && (
               <>
                 <SectionHeader title={t('reports.timeByCase')} />
                 <Card style={styles.chartCard}>
@@ -259,6 +288,9 @@ export default function ReportsScreen() {
 
             <SectionHeader title={t('reports.finance')} />
             <Card style={styles.chartCard}>
+              {finansDurum !== 'hazir' ? (
+                <DurumKutusu durum={finansDurum} onRetry={yenile} />
+              ) : (
               <View style={styles.financeRow}>
                 <View style={styles.financeItem}>
                   <Text style={styles.financeLabel}>{t('dash.fin.income')}</Text>
@@ -283,11 +315,32 @@ export default function ReportsScreen() {
                   </Text>
                 </View>
               </View>
+              )}
             </Card>
           </>
         )}
       </ScrollView>
     </Screen>
+  );
+}
+
+/** Yükleniyor / yüklenemedi: "veri yok"tan BİLEREK ayrı (bkz. utils/panoHesap → veriDurumu). */
+function DurumKutusu({ durum, onRetry }: { durum: Exclude<VeriDurumu, 'hazir'>; onRetry: () => void }) {
+  const __t = useTheme();
+  const colors = __t.colors;
+  const styles = makeStyles(colors);
+  const t = useT();
+  if (durum === 'yukleniyor') {
+    return <ActivityIndicator color={colors.textSecondary} style={styles.durumYukleniyor} />;
+  }
+  return (
+    <View style={styles.durumSatir}>
+      <Ionicons name="cloud-offline-outline" size={18} color={colors.textMuted} />
+      <Text style={styles.durumYazi}>{t('dash.load.error')}</Text>
+      <Pressable onPress={onRetry} hitSlop={12} accessibilityRole="button">
+        <Text style={styles.durumTekrar}>{t('dash.load.retry')}</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -451,6 +504,26 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   financeValue: {
     ...typography.h2,
+  },
+  durumYukleniyor: {
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.md,
+  },
+  durumSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+  },
+  durumYazi: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  durumTekrar: {
+    ...typography.caption,
+    fontWeight: '600',
+    color: colors.primary,
   },
   progressTrack: {
     height: 10,

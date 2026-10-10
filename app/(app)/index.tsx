@@ -23,6 +23,7 @@ import { useMorningDigest } from '@/hooks/useMorningDigest';
 import { useReminderSync } from '@/hooks/useReminderSync';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useFinanceEntries } from '@/hooks/useFinance';
+import { useAllPayments } from '@/hooks/usePayments';
 import { useAdvanceDeficits } from '@/hooks/useClientAdvances';
 import { useAdvanceAlertStore } from '@/store/advanceAlertStore';
 import { AI_DILEKCE_ENABLED, AI_ENABLED } from '@/config/features';
@@ -32,6 +33,7 @@ import { useResmiGazete } from '@/hooks/useResmiGazete';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useSimdi } from '@/hooks/useSimdi';
 import { pendingOutcomeHearings } from '@/utils/hearingOutcome';
+import { ayAnahtari, ayOzeti } from '@/utils/finansHesap';
 import { bugunKayitlari, gecikenSureler, gunFarki, veriDurumu, yaklasanSureler, type VeriDurumu } from '@/utils/panoHesap';
 import { useLangStore, useT } from '@/i18n';
 import { fonts, monoTemaMi, radius, spacing, shadow, kose } from '@/theme/theme';
@@ -127,6 +129,7 @@ export default function DashboardScreen() {
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
   const finance = useFinanceEntries();
+  const payments = useAllPayments();
   useMorningDigest();
   // Hatırlatmaları sunucudaki kayıtlardan yeniden kurar: yeniden kurulum,
   // cihaz değişikliği ve sonradan verilen bildirim izni sonrası sessiz kayıp
@@ -228,7 +231,7 @@ export default function DashboardScreen() {
   const bugunDurumu = veriDurumu(hearings, deadlines);
   const sureDurumu = veriDurumu(deadlines);
   const dosyaDurumu = veriDurumu(openCases);
-  const finansDurumu = veriDurumu(finance);
+  const finansDurumu = veriDurumu(finance, payments);
   const ajandayiYenile = () => {
     void hearings.refetch();
     void deadlines.refetch();
@@ -286,54 +289,39 @@ export default function DashboardScreen() {
     [deadlines.data, dateLocale, simdi]
   );
 
-  // Finance summary: this month vs last month (+ net cash flow)
+  // Finans özeti: bu ay / geçen ay (+ net nakit akışı).
+  // AY HESABI Finans ekranıyla AYNI fonksiyondan (utils/finansHesap): eskiden
+  // pano yalnız tek seferlik kayıtları `amount` ile topluyordu; tekrarlı kalem
+  // (kira), dava tahsilatı ve gelirde net_total yoktu, "Bu Ay" Finans
+  // ekranındaki toplamla tutmuyordu (10.10.2026).
   const fin = useMemo(() => {
-    const entries = finance.data ?? [];
-    const y = simdi.getFullYear();
-    const m = simdi.getMonth();
-    const inMonth = (dateStr: string, year: number, month: number) => {
-      const d = new Date(dateStr);
-      return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
-    };
-    const prevY = m === 0 ? y - 1 : y;
-    const prevM = m === 0 ? 11 : m - 1;
-    let income = 0;
-    let expense = 0;
-    let prevIncome = 0;
-    let prevExpense = 0;
+    const kayitlar = finance.data ?? [];
+    const odemeler = payments.data ?? [];
+    const buAy = ayOzeti(kayitlar, odemeler, ayAnahtari(simdi));
+    const gecenAy = ayOzeti(kayitlar, odemeler, ayAnahtari(new Date(simdi.getFullYear(), simdi.getMonth() - 1, 1)));
+
+    // Sütunlar: ayın günleri 8 dilime bölünür (1–4, 5–8 …); kuruş → TL.
     const incomeSeries: number[] = new Array(8).fill(0);
     const expenseSeries: number[] = new Array(8).fill(0);
-    entries.forEach((e) => {
-      const amount = Number(e.amount) || 0;
-      if (inMonth(e.entry_date, y, m)) {
-        const day = new Date(e.entry_date).getDate();
-        const bucket = Math.min(7, Math.floor((day - 1) / 4));
-        if (e.kind === 'income') {
-          income += amount;
-          incomeSeries[bucket] = (incomeSeries[bucket] ?? 0) + amount;
-        } else {
-          expense += amount;
-          expenseSeries[bucket] = (expenseSeries[bucket] ?? 0) + amount;
-        }
-      } else if (inMonth(e.entry_date, prevY, prevM)) {
-        if (e.kind === 'income') prevIncome += amount;
-        else prevExpense += amount;
-      }
+    buAy.kalemler.forEach((k) => {
+      const bucket = Math.min(7, Math.floor((k.gun - 1) / 4));
+      const seri = k.tur === 'gelir' ? incomeSeries : expenseSeries;
+      seri[bucket] = (seri[bucket] ?? 0) + k.kurus / 100;
     });
     const pct = (cur: number, prev: number) => (prev !== 0 ? Math.round(((cur - prev) / Math.abs(prev)) * 100) : null);
     const netSeries = incomeSeries.map((v, i) => Math.max(0, v - (expenseSeries[i] ?? 0)));
     return {
-      income,
-      expense,
-      net: income - expense,
-      incomePct: pct(income, prevIncome),
-      expensePct: pct(expense, prevExpense),
-      netPct: pct(income - expense, prevIncome - prevExpense),
+      income: buAy.gelir,
+      expense: buAy.gider,
+      net: buAy.net,
+      incomePct: pct(buAy.gelir, gecenAy.gelir),
+      expensePct: pct(buAy.gider, gecenAy.gider),
+      netPct: pct(buAy.net, gecenAy.net),
       incomeSeries,
       expenseSeries,
       netSeries,
     };
-  }, [finance.data, simdi]);
+  }, [finance.data, payments.data, simdi]);
 
   return (
     <View style={styles.root}>
@@ -764,7 +752,7 @@ export default function DashboardScreen() {
           </View>
 
           {finansDurumu !== 'hazir' ? (
-            <DurumSatiri durum={finansDurumu} onRetry={() => void finance.refetch()} />
+            <DurumSatiri durum={finansDurumu} onRetry={() => { void finance.refetch(); void payments.refetch(); }} />
           ) : (
             <View style={styles.finRow}>
               <FinCell label={t('dash.fin.income')} amount={fin.income} pct={fin.incomePct} positiveIsGood series={fin.incomeSeries} barColor={colors.success} vsLabel={t('dash.fin.vs')} />
