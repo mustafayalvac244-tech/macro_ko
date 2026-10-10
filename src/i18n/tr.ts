@@ -667,6 +667,8 @@ export const tr = {
   'theme.sepia': 'Parşömen',
   'theme.emerald': 'Zümrüt',
   'settings.reminders': 'Duruşma ve görev hatırlatmaları',
+  'settings.remindersWebOnly':
+    'Web sürümü hatırlatma bildirimi göndermez; duruşma ve görev hatırlatmaları telefon uygulamasında çalışır.',
   'search.title': 'Genel Arama',
   'search.placeholder': 'Dava, müvekkil veya belge ara...',
   'search.hint': 'Tek kutudan tüm dosyalarınızda arayın: dava adı, esas no, mahkeme, müvekkil adı, telefon veya belge adı.',
@@ -1061,14 +1063,16 @@ export const tr = {
   // Notifications
   // Duruşmadan SONRA sorulan bildirim: verilen sürenin kaydedilmesini sağlar.
   // Canlı veride 49 duruşmaya karşılık 9 süre kaydı vardı.
+  // Kilit ekranında görünür: müvekkil ve dava ADI yazılmaz (bkz. utils/bildirimMetni.ts).
   'notif.outcomeTitle': '{type} nasıl geçti?',
-  'notif.outcomeBody': '{title} — süre verildiyse şimdi kaydedin, sonra unutulur.',
+  'notif.outcomeBody': '{date} — süre verildiyse şimdi kaydedin, sonra unutulur.',
   'notif.hearingTitle': 'Yaklaşan {type}: {title}',
   'notif.deadlineTitle': 'Görev zamanı yaklaşıyor: {title}',
+  'notif.eventBody': '{date} · Ayrıntılar uygulamada',
   'notif.stage3d': '⏰ 3 gün kaldı — {title}',
   'notif.stage1d': '🚨 1 gün kaldı — {title}',
-  'notif.promiseTitle': '💰 Ödeme günü: {name}',
-  'notif.promiseBody': '{name} bugün {amount} ödeme yapacak. Takip etmeyi unutmayın.',
+  'notif.promiseTitle': '💰 Ödeme günü',
+  'notif.promiseBody': 'Müvekkil ödeme sözü: {amount}. Takip etmeyi unutmayın.',
 
   // Finance
   'case.tabFinance': 'Finans',

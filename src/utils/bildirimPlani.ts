@@ -70,7 +70,37 @@ export interface PlanEtkinligi {
   secilenDakika: number;
   /** Tamamlandı/ödendi ise hiç hatırlatma kurulmaz. */
   bitti: boolean;
+  /**
+   * Kaydın son kaydedildiği an (satırın `updated_at`'i). Yalnız yedek
+   * hatırlatmayı seçmek için kullanılır (bkz. YEDEK_ONCELIK_DAKIKA);
+   * verilmezse yedek kurulmaz.
+   */
+  kayitISO?: string;
 }
+
+/**
+ * SEÇİLEN HATIRLATMA KAYIT ANINDA ZATEN GEÇMİŞTEYSE — YEDEK.
+ *
+ * DÜZELTİLEN KUSUR (09.10.2026 denetimi, kodla doğrulandı). Duruşma formunun
+ * varsayılanı "yarın bu saat" + "1 gün önce" (app/hearing-form.tsx): seçilen
+ * an formun açıldığı ana denk geliyor ve kaydedildiğinde geçmişte kalıyordu;
+ * "3 gün kala" da geçmişte, "1 gün kala" seçilenle aynı. Yani varsayılanlarla
+ * girilen duruşmaya HİÇ ön hatırlatma kurulmuyordu. Akşam girilen ertesi sabah
+ * duruşması da aynı durumdaydı.
+ *
+ * Kural: kayıt anında hiçbir ön hatırlatma (seçilen, 3 gün, 1 gün) ileride
+ * kalmıyorsa ve etkinlik hâlâ ilerideyse, formdaki seçeneklerden etkinliğe
+ * en uzak olup kayıt anından SONRAYA düşen kullanılır: 1 saat, o da geçmişse
+ * 30 dakika. İkisi de geçmişse kurulmaz.
+ *
+ * NEDEN "şimdi"ye DEĞİL KAYIT ANINA göre: plan her eşitlemede yeniden
+ * üretiliyor. "Şimdi"ye göre seçilseydi 1 saat kala bildirimi çaldıktan sonraki
+ * ilk eşitleme 30 dk kala için İKİNCİ bir bildirim kurardı. Kayıt anı sabit
+ * olduğu için plan zamanla kaymaz.
+ *
+ * Ödeme sözünde uygulanmaz: orada "an" vade sabahıdır ve öncelik 0'dır.
+ */
+export const YEDEK_ONCELIK_DAKIKA = [60, 30] as const;
 
 export type BildirimTuru = 'secilen' | '3g' | '1g' | 'sonuc';
 
@@ -120,6 +150,16 @@ export function etkinlikAdaylari(etkinlik: PlanEtkinligi, simdiMs: number): Plan
     { tur: '3g', dakika: 3 * GUN_DAKIKA },
     { tur: '1g', dakika: 1 * GUN_DAKIKA },
   ];
+
+  // Yedek: bkz. YEDEK_ONCELIK_DAKIKA. Kayıt anına göre seçilir, şimdiye göre değil.
+  const kayitMs = etkinlik.kayitISO ? new Date(etkinlik.kayitISO).getTime() : NaN;
+  if (etkinlik.tur !== 'soz' && Number.isFinite(kayitMs) && anMs > kayitMs) {
+    const kayittanSonra = (dakika: number) => anMs - dakika * DAKIKA_MS > kayitMs;
+    if (!asamalar.some((a) => kayittanSonra(a.dakika))) {
+      const yedek = YEDEK_ONCELIK_DAKIKA.find(kayittanSonra);
+      if (yedek !== undefined) asamalar[0] = { tur: 'secilen', dakika: yedek };
+    }
+  }
 
   const adaylar: PlanliBildirim[] = [];
   const gorulenDakika = new Set<number>();
@@ -212,8 +252,105 @@ export const TETIK_TOLERANS_MS = 60_000;
 
 export function tetikGuncelMi(mevcutTetikleyici: unknown, planlananMs: number): boolean {
   const mevcutMs = tetikAniCoz(mevcutTetikleyici);
-  if (mevcutMs === null) return true; // çözemedik: dokunma
-  return Math.abs(mevcutMs - planlananMs) <= TETIK_TOLERANS_MS;
+  if (mevcutMs !== null) return Math.abs(mevcutMs - planlananMs) <= TETIK_TOLERANS_MS;
+  // iOS'ta bizim 'date' bildirimimiz böyle geri okunur (bkz. TETIK_VERI_ANAHTARI)
+  // ve anı bu biçimden hesaplanamaz. Tek seferlik aralığı biz kurmadık; bu
+  // ancak eski sürümde, işaretsiz kurulmuş bir bildirim olabilir → bir kez
+  // yeniden kurulur. Yeni kurulan işaret taşıdığı için döngü olmaz.
+  if (tetikleyiciTuru(mevcutTetikleyici) === 'timeInterval' && !tekrarlarMi(mevcutTetikleyici)) return false;
+  return true; // tanımadığımız biçim: dokunma
+}
+
+function tetikleyiciTuru(t: unknown): unknown {
+  return t && typeof t === 'object' ? (t as Record<string, unknown>).type : undefined;
+}
+
+function tekrarlarMi(t: unknown): boolean {
+  return !!t && typeof t === 'object' && (t as Record<string, unknown>).repeats === true;
+}
+
+/**
+ * KURULU BİLDİRİMİN İÇİNE YAZILAN TETİK ANI.
+ *
+ * DÜZELTİLEN KUSUR (09.10.2026 denetimi, kodla doğrulandı). Yukarıdaki "saati
+ * eskimiş bildirim de yenilenir" düzeltmesi iOS'ta HİÇ çalışmıyordu:
+ * expo-notifications iOS'ta 'date' tetikleyicisini kurarken
+ * UNTimeIntervalNotificationTrigger'a çeviriyor (ios/.../TriggerRecords.swift,
+ * DateTriggerRecord) ve geri okurken { type: 'timeInterval', seconds } veriyor
+ * (NotificationRecords.swift). `seconds` KURULDUĞU andaki aralıktır; kurulma
+ * anı bilinmediğinden tetik anı ondan çıkarılamaz. tetikAniCoz null dönüyor,
+ * eşitleme "çözemedim → dokunma" diyordu: başka cihazda saati değiştirilen
+ * duruşmanın iPhone'daki hatırlatması ESKİ saatte çalıyordu.
+ *
+ * Çözüm: kurulan her bildirimin content.data'sına planlanan an yazılır. İki
+ * platform da data'yı aynen geri veriyor (iOS userInfo; Android gövde JSON'u,
+ * JS tarafında `data`'ya açılıyor — expo-notifications kaynağından okundu,
+ * cihazda ölçülmedi).
+ */
+export const TETIK_VERI_ANAHTARI = 'tetikMs';
+
+/** getAllScheduledNotificationsAsync'in döndürdüğü isteğin bize gereken kısmı. */
+export interface KuruluBildirim {
+  trigger?: unknown;
+  content?: { title?: unknown; body?: unknown; data?: unknown } | null;
+}
+
+/**
+ * BİLDİRİME DOKUNULUNCA AÇILAN EKRAN.
+ *
+ * DÜZELTİLEN KUSUR (09.10.2026 denetimi). notifications.ts "Bildirime dokunmak
+ * duruşma çıkışı ekranını açar" diyordu; uygulamada bildirim yanıtını dinleyen
+ * HİÇBİR kod yoktu, bildirim de hedef taşımıyordu. "Süre verildiyse şimdi
+ * kaydedin" diyen bildirime dokunan avukat, uygulamayı en son nerede
+ * bıraktıysa oraya düşüyordu.
+ *
+ * Yalnız BİLİNEN yollar açılır: sunucudan gelen bir bildirimin (push) data'sı
+ * bizim elimizde değil; oradan gelen rastgele bir yol açılmaz.
+ */
+export const HEDEF_VERI_ANAHTARI = 'url';
+export const SONUC_EKRANI = '/durusma-cikisi';
+
+/** Kurulan bildirimin content.data'sı: eşitleme için tetik anı + dokununca açılacak ekran. */
+export function bildirimVerisi(p: PlanliBildirim): Record<string, string | number> {
+  const veri: Record<string, string | number> = { [TETIK_VERI_ANAHTARI]: p.tetikMs };
+  if (p.tur === 'sonuc') veri[HEDEF_VERI_ANAHTARI] = SONUC_EKRANI;
+  return veri;
+}
+
+export function bildirimHedefi(veri: unknown): string | null {
+  if (!veri || typeof veri !== 'object') return null;
+  const yol = (veri as Record<string, unknown>)[HEDEF_VERI_ANAHTARI];
+  return yol === SONUC_EKRANI ? SONUC_EKRANI : null;
+}
+
+function tetikIsareti(kurulu: KuruluBildirim): number | null {
+  const veri = kurulu.content?.data;
+  if (!veri || typeof veri !== 'object') return null;
+  const ms = (veri as Record<string, unknown>)[TETIK_VERI_ANAHTARI];
+  return typeof ms === 'number' && Number.isFinite(ms) ? ms : null;
+}
+
+/**
+ * Kurulu bildirim plandakiyle AYNI mı — anı ve metni?
+ *
+ * METİN DE KARŞILAŞTIRILIR. Eşitleme önceden yalnız anı kontrol ediyordu;
+ * başka cihazda değişen duruşma başlığı/türü, dil değişikliği ya da bildirim
+ * metni kuralındaki bir değişiklik (ör. kilit ekranına müvekkil adı yazmama)
+ * önceden kurulmuş bildirimlere HİÇ yansımıyordu — eski metin, kayıt yeniden
+ * düzenlenene kadar çalmaya devam ediyordu. Platform metni okuyamazsa (string
+ * değilse) metin yüzünden yeniden kurulmaz; döngü olmasın.
+ */
+export function kuruluBildirimGuncelMi(
+  kurulu: KuruluBildirim,
+  plan: { tetikMs: number; title?: string; body?: string }
+): boolean {
+  const icerik = kurulu.content;
+  if (plan.title !== undefined && typeof icerik?.title === 'string' && icerik.title !== plan.title) return false;
+  if (plan.body !== undefined && typeof icerik?.body === 'string' && icerik.body !== plan.body) return false;
+
+  const isaret = tetikIsareti(kurulu);
+  if (isaret !== null) return Math.abs(isaret - plan.tetikMs) <= TETIK_TOLERANS_MS;
+  return tetikGuncelMi(kurulu.trigger, plan.tetikMs);
 }
 
 /**
