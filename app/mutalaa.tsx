@@ -52,6 +52,8 @@ export default function MutalaaScreen() {
   // senaryonun ikisi buydu: kural havuzda vardı, dosyaya girdi, model yok
   // saydı ("4 hafta içinde dava açın" — arabuluculuktan hiç söz etmedi).
   const [atlananKural, setAtlananKural] = useState<string[]>([]);
+  // Altı bölümden yazılmayanlar (09.10.2026): yarıda kalan not "tamam" görünmesin.
+  const [eksikBolum, setEksikBolum] = useState<string[]>([]);
   // DAYANAK KURALLAR — mütalaanın beslendiği kural özetleri.
   //
   // Ölçülen arıza: işe iade mütalaasında doğru kural (fesihten itibaren BİR AY
@@ -103,7 +105,7 @@ export default function MutalaaScreen() {
         }
         return;
       }
-      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; uydurmaMadde?: string[]; atlananKural?: string[]; dayanak?: Array<{ id: string; metin: string }>; kararDenetimi?: KararDenetimiVerisi } | null;
+      const payload = data as { text?: string; issues?: string[]; hesaplananTarih?: string[]; kullanim?: AiKullanim; hakDusulmedi?: boolean; yedekModel?: boolean; uydurmaMadde?: string[]; atlananKural?: string[]; eksikBolum?: string[]; dayanak?: Array<{ id: string; metin: string }>; kararDenetimi?: KararDenetimiVerisi } | null;
       if (!payload?.text) {
         // Sunucuya ulaşıldı, cevap boş: internet suçlanmaz (08.10.2026).
         setError(t('ai.errTamamlanamadi'));
@@ -115,6 +117,7 @@ export default function MutalaaScreen() {
       setUydurmaMadde(payload.uydurmaMadde ?? []);
       setKararDenetimi(payload.kararDenetimi ?? null);
       setAtlananKural(payload.atlananKural ?? []);
+      setEksikBolum(payload.eksikBolum ?? []);
       setDayanak(payload.dayanak ?? []);
       setDayanakAcik(false);
       setKullanim(payload.kullanim ?? null);
@@ -212,6 +215,9 @@ export default function MutalaaScreen() {
               <AtifDenetimi veri={kararDenetimi} />
               {atlananKural.length > 0 && (
                 <Text style={styles.dateWarn}>{t('ai.skippedRules', { terimler: atlananKural.join(', ') })}</Text>
+              )}
+              {eksikBolum.length > 0 && (
+                <Text style={styles.dateWarn}>{t('mut.missingSections', { bolumler: eksikBolum.join(', ') })}</Text>
               )}
               {hesaplanan.length > 0 && (
                 <Text style={styles.dateWarn}>
