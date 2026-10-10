@@ -13,7 +13,9 @@ import {
   useCreatePoa,
   useDeletePoa,
   usePowersOfAttorney,
+  useUpdatePoa,
   type PoaKind,
+  type PoaStatus,
   type PowerOfAttorney,
   type SpecialAuthority,
 } from '@/hooks/usePowersOfAttorney';
@@ -22,13 +24,17 @@ import { fonts, spacing, shadow, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate } from '@/utils/format';
+import { duzenlemeTarihi, durumGuncellemesi, musteriFiltrele } from '@/utils/vekaletForm';
 
 const KINDS: PoaKind[] = ['genel', 'ozel', 'bosanma', 'tanima_tenfiz'];
+// Elle seçilebilen durumlar. 'suresi_doldu' geçerlilik tarihinden HESAPLANIR (isExpired).
+const STATUSES: PoaStatus[] = ['aktif', 'azil', 'istifa'];
 
 /**
  * VEKALET YÖNETİMİ — rakip büro yazılımlarının tamamında var, bizde yoktu.
- * Kritik değeri: HMK m.74'e göre sulh, feragat, kabul, ahzu kabz gibi işlemler
- * ancak vekaletnamede AÇIKÇA yetki verilmişse yapılabilir. Ekran bu yetkileri
+ * Kritik değeri: HMK m.74'e göre sulh, feragat, kabul, yemin gibi işlemler
+ * ancak vekaletnamede AÇIKÇA yetki verilmişse yapılabilir (ahzu kabz m.74'te
+ * sayılı DEĞİL; ekran onu da izler ama kanun atfı yapmaz). Ekran bu yetkileri
  * tek tek gösterir; avukat "bu vekaletnamede ahzu kabz yok" diye görebilir.
  */
 export default function VekaletScreen() {
@@ -41,9 +47,11 @@ export default function VekaletScreen() {
   const clients = useClients();
   const createPoa = useCreatePoa();
   const deletePoa = useDeletePoa();
+  const updatePoa = useUpdatePoa();
 
   const [formOpen, setFormOpen] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [clientQuery, setClientQuery] = useState('');
   const [kind, setKind] = useState<PoaKind>('genel');
   const [notary, setNotary] = useState('');
   const [notaryNo, setNotaryNo] = useState('');
@@ -62,6 +70,7 @@ export default function VekaletScreen() {
 
   const resetForm = () => {
     setClientId(null);
+    setClientQuery('');
     setKind('genel');
     setNotary('');
     setNotaryNo('');
@@ -74,13 +83,19 @@ export default function VekaletScreen() {
       uyar(t('poa.title'), t('poa.pickClientFirst'));
       return;
     }
+    // Tanınmayan tarih eskiden SESSİZCE null kaydediliyordu.
+    const tarih = duzenlemeTarihi(issued);
+    if (!tarih.ok) {
+      uyar(t('poa.title'), t('poa.issuedInvalid'));
+      return;
+    }
     try {
       await createPoa.mutateAsync({
         client_id: clientId,
         kind,
         notary_name: notary.trim() || null,
         notary_no: notaryNo.trim() || null,
-        issued_date: /^\d{4}-\d{2}-\d{2}$/.test(issued.trim()) ? issued.trim() : null,
+        issued_date: tarih.value,
         valid_until: null,
         status: 'aktif',
         status_date: null,
@@ -99,6 +114,12 @@ export default function VekaletScreen() {
     } catch {
       uyar(t('poa.title'), t('poa.saveFailed'));
     }
+  };
+
+  // Vekâlet durumu eskiden hiç değişmiyordu (azil/istifa kaydedilemiyordu).
+  const setStatus = (p: PowerOfAttorney, status: PoaStatus) => {
+    if (p.status === status) return;
+    updatePoa.mutate({ id: p.id, ...durumGuncellemesi(status, new Date()) });
   };
 
   const confirmDelete = (p: PowerOfAttorney) => {
@@ -159,6 +180,20 @@ export default function VekaletScreen() {
                   </Pressable>
                 </View>
 
+                <View style={styles.statusRow}>
+                  <Text style={styles.statusLabel}>{t('poa.setStatus')}</Text>
+                  {STATUSES.map((st) => (
+                    <Pressable
+                      key={st}
+                      onPress={() => setStatus(p, st)}
+                      disabled={updatePoa.isPending}
+                      style={[styles.chip, p.status === st && styles.chipOn]}
+                    >
+                      <Text style={[styles.chipText, p.status === st && styles.chipTextOn]}>{t(`poa.status.${st}` as const)}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
                 <View style={[styles.badge, bad ? styles.badgeBad : styles.badgeOk]}>
                   <Ionicons
                     name={bad ? 'alert-circle' : 'checkmark-circle'}
@@ -204,8 +239,15 @@ export default function VekaletScreen() {
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
               <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 <Text style={styles.label}>{t('poa.client')}</Text>
+                <TextInput
+                  style={[styles.input, { marginBottom: 8 }]}
+                  value={clientQuery}
+                  onChangeText={setClientQuery}
+                  placeholder={t('poa.clientSearch')}
+                  placeholderTextColor={colors.textMuted}
+                />
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-                  {(clients.data ?? []).slice(0, 30).map((c) => (
+                  {musteriFiltrele(clients.data ?? [], clientQuery).map((c) => (
                     <Pressable
                       key={c.id}
                       onPress={() => setClientId(c.id)}
@@ -232,7 +274,7 @@ export default function VekaletScreen() {
                 <Text style={styles.label}>{t('poa.notaryNo')}</Text>
                 <TextInput style={styles.input} value={notaryNo} onChangeText={setNotaryNo} placeholder={t('poa.notaryNoPh')} placeholderTextColor={colors.textMuted} />
                 <Text style={styles.label}>{t('poa.issued')}</Text>
-                <TextInput style={styles.input} value={issued} onChangeText={setIssued} placeholder="2026-01-15" placeholderTextColor={colors.textMuted} />
+                <TextInput style={styles.input} value={issued} onChangeText={setIssued} placeholder="15.01.2026" placeholderTextColor={colors.textMuted} />
 
                 <Text style={styles.label}>{t('poa.authsLabel')}</Text>
                 <Text style={styles.hint}>{t('poa.authsHint')}</Text>
@@ -294,6 +336,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   name: { fontFamily: fonts.bold, fontWeight: '700', fontSize: 15, letterSpacing: -0.2, color: colors.textPrimary },
   meta: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, marginTop: 2 },
   del: { padding: 4 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: spacing.sm },
+  statusLabel: { fontFamily: fonts.medium, fontSize: 11, color: colors.textMuted, marginRight: 2 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3, marginTop: spacing.sm },
   badgeOk: { backgroundColor: colors.successSoft },
   badgeBad: { backgroundColor: colors.dangerSoft },
