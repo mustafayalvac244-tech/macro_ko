@@ -452,6 +452,8 @@ export const en: Record<keyof typeof tr, string> = {
   'client.loadError': 'Client could not be loaded',
   'client.loadErrorDesc': 'The record could not be fetched from the server. Check your connection and try again.',
   'client.retry': 'Try again',
+  'client.loading': 'Loading client…',
+  'client.backToList': 'Back to clients',
   'client.delete': 'Delete Client',
   'client.deleteConfirm':
     'Delete "{name}"? This client\'s receivables (including installments), expense advances and manually added expenses will also be permanently deleted. Their cases, enforcement files, documents and powers of attorney are kept; only the link to this client is removed. This cannot be undone.',

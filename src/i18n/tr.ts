@@ -478,6 +478,8 @@ export const tr = {
   'client.loadError': 'Müvekkil yüklenemedi',
   'client.loadErrorDesc': 'Kayıt sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin.',
   'client.retry': 'Tekrar dene',
+  'client.loading': 'Müvekkil yükleniyor…',
+  'client.backToList': 'Müvekkil listesine dön',
   'client.delete': 'Müvekkili Sil',
   // Şemayla aynı olmalı (tests/muvekkilSilme.test.ts): alacak/taksit, avans ve
   // elle masraf satırları `on delete cascade` ile müvekkille birlikte gider.
