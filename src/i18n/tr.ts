@@ -702,6 +702,8 @@ export const tr = {
   'search.placeholder': 'Dava, müvekkil veya belge ara...',
   'search.hint': 'Tek kutudan tüm dosyalarınızda arayın: dava adı, esas no, mahkeme, müvekkil adı, telefon veya belge adı.',
   'search.noResults': 'Sonuç bulunamadı. Farklı bir kelime deneyin.',
+  'search.error': 'Arama yapılamadı. Bağlantınızı kontrol edip tekrar deneyin; bu, kaydın olmadığı anlamına gelmez.',
+  'search.retry': 'Tekrar dene',
   'tpl.title': 'Dilekçe Şablonları',
   'tpl.subtitle': 'Doldur, paylaş, kullan',
   'tpl.hint': 'Köşeli parantezli [ALANLARI] davanıza göre doldurun. Paylaş ile WhatsApp/e-postaya veya bilgisayarınıza gönderin.',
@@ -2364,6 +2366,7 @@ export const tr = {
   'laws.empty': 'Sonuç bulunamadı',
   'laws.emptyDesc': 'Madde numarası veya farklı bir kelime deneyin.',
   'laws.notFound': 'Kanun bulunamadı.',
+  'laws.repealed': 'Mülga',
   // Web sürümünde kanun metinleri paketten değil ağdan gelir (bkz.
   // src/data/laws/loader.web.ts) — bu yüzden "çevrimdışı" iddiası web'de
   // KULLANILMAZ, yerine bu anahtarlar gösterilir.
