@@ -24,6 +24,7 @@
 //
 // Hata ATMAZ. En kötü hâlde boş liste döner ve cevap havuzla üretilir.
 import { DevreKesici, korumaliGetir } from './dayaniklilik.ts';
+import { daireAnahtarlariUyumlu } from './kararAtif.ts';
 import { kunyeNormalize } from './kunyeBicim.ts';
 
 export { kunyeNormalize };
@@ -218,6 +219,13 @@ export interface KunyeTeyit {
   daire?: string;
   tarih?: string;
   id?: string;
+  /**
+   * Numaralar kaynakta bulundu ama YALNIZ başka dairede (22. ajan, 10.10.2026).
+   * Esas numarası her dairede ayrı işler; başka dairenin kararıyla "doğrulandı"
+   * denemez. Çağıran bunu "bulunamadı = uydurma" da saymamalı (daire adı yanlış
+   * yazılmış olabilir): doğrulanmamış kalır.
+   */
+  daireFarkli?: boolean;
 }
 
 async function kunyeAra(terim: string, sinyal: AbortSignal) {
@@ -258,7 +266,7 @@ async function kunyeAra(terim: string, sinyal: AbortSignal) {
  * Esas ve/veya karar numarasını canlı kaynakta arar.
  * @returns null → kaynağa ulaşılamadı; { bulundu:false } → kaynak cevap verdi, yok.
  */
-export async function canliKunyeDogrula(esas: string, karar: string): Promise<KunyeTeyit | null> {
+export async function canliKunyeDogrula(esas: string, karar: string, daire = ''): Promise<KunyeTeyit | null> {
   const e = kunyeNormalize(esas);
   const k = kunyeNormalize(karar);
   const terim = e || k;
@@ -270,10 +278,15 @@ export async function canliKunyeDogrula(esas: string, karar: string): Promise<Ku
     null as Awaited<ReturnType<typeof kunyeAra>> | null
   );
   if (liste === null) return null;
-  const esle = liste.find(
+  const numaraEsler = liste.filter(
     (x) => (!e || kunyeNormalize(x.esasNo) === e) && (!k || kunyeNormalize(x.kararNo) === k)
   );
-  return esle ? { bulundu: true, daire: esle.daire, tarih: esle.kararTarihi, id: esle.id } : { bulundu: false };
+  if (numaraEsler.length === 0) return { bulundu: false };
+  // `daire`: atfın "9HD" gibi anahtarı (boşsa daire yazılmamış → numara yeter).
+  const esle = numaraEsler.find((x) => daireAnahtarlariUyumlu(daire, x.daire));
+  return esle
+    ? { bulundu: true, daire: esle.daire, tarih: esle.kararTarihi, id: esle.id }
+    : { bulundu: false, daireFarkli: true };
 }
 
 /** Teşhis için: devre şu an hangi durumda. */
