@@ -21,8 +21,16 @@
  * değişiklik: yeni bir alıcı grubu (diğer kullanıcılar) açıklanıyor. Sürümü
  * artırmasaydık, eski metne verilmiş rıza yeni metne verilmiş gibi görünürdü
  * — yani kullanıcı hiç okumadığı bir açıklamaya rıza vermiş sayılırdı.
+ *
+ * 2026-10-1 (10.10.2026 denetimi): 14.09'dan beri metin özde değişmişti ama
+ * sürüm artırılmamıştı (18.09 veri kategorileri, 25.09 Tevkil bölümünün
+ * kalkması ve T.C. alanının isteğe bağlı olması). Bu sürümde ayrıca: kayıt
+ * kaynağı ve bildirim adresi kategorileri, alıcı olarak Expo / Resend /
+ * Bedesten ve Duruşma Brifi istisnası eklendi, "şifreli alanda oturum" iddiası
+ * düzeltildi. tests/kvkkMetinKapsami.test.ts alıcı listesi değişince sürümün
+ * de değişmesini zorlar.
  */
-export const KVKK_SURUM = '2026-09-3';
+export const KVKK_SURUM = '2026-10-1';
 
 /**
  * ⚠️ ÇÖZÜLMESİ GEREKEN ÇELİŞKİ — kayıt, rıza olmadan tamamlanabilsin mi?
@@ -141,6 +149,26 @@ export const ALICILAR: Alici[] = [
     ulke: 'Amerika Birleşik Devletleri',
     amac: 'Abonelik satın alma ve doğrulama',
   },
+  // 10.10.2026 denetimiyle eklenen üç alıcı — koddan ve ölçümden:
+  {
+    ad: 'Expo (bildirim servisi)',
+    ulke: 'Amerika Birleşik Devletleri',
+    amac: 'Bildirim izni verirseniz cihazınızın bildirim adresi (push token) ve yöneticinin yazdığı duyuru metni, bildirimin telefonunuza ulaşması için bu servisten geçer',
+  },
+  {
+    ad: 'Resend (e-posta gönderimi)',
+    ulke: 'Amerika Birleşik Devletleri',
+    amac: 'Hesap doğrulama ve şifre sıfırlama e-postalarının gönderilmesi: e-posta adresiniz ve e-postanın içeriği',
+  },
+  {
+    ad: 'Adalet Bakanlığı Bedesten (içtihat arama)',
+    ulke: 'Türkiye',
+    amac: 'İçtihat ekranında ve yapay zekâ sorularında emsal karar bulmak için yazdığınız arama ifadesi ya da soru (noktalama işaretleri ayıklanmış olarak) bu kamu servisine arama terimi olarak gönderilir',
+  },
+  // CLOUDFLARE TURNSTILE bilerek YOK: 04.10.2026'da site anahtarı derlemede
+  // yoktu (KARAR-DEFTERI), Captcha bileşeni çizilmiyor, Cloudflare'a istek
+  // gitmiyor. Anahtar derlemeye girerse buraya EKLE — tests/kvkkMetinKapsami
+  // eas.json ve iş akışlarında TURNSTILE_SITE_KEY görünce bunu zorlar.
 ];
 
 /**
@@ -151,5 +179,24 @@ export const ALICILAR: Alici[] = [
 export const AI_KAPSAM_DISI = [
   'Parolanız (hiçbir zaman düz metin olarak saklanmaz ya da iletilmez)',
   'Finans kayıtlarınız ve ödeme bilgileriniz',
-  'Yapay zekâ isteğine kendiniz eklemediğiniz dava, müvekkil ve belge kayıtları',
+  'Yapay zekâ isteğine kendiniz eklemediğiniz dava, müvekkil ve belge kayıtları (tek istisna: Duruşma Brifi düğmesi — aşağıdaki nota bakınız)',
 ];
+
+export const AI_KAPSAM_DISI_EN = [
+  'Your password (never stored or transmitted as plain text)',
+  'Your finance records and payment details',
+  'Case, client and document records you did not yourself attach to an AI request (single exception: the hearing-brief button — see the note below)',
+];
+
+/**
+ * DURUŞMA BRİFİ İSTİSNASI — src/utils/briefEngine.ts > generateAiBrief okunarak
+ * yazıldı. Brif düğmesine basıldığında yapay zekâ isteği kullanıcı tarafından
+ * yazılmaz: uygulama, dava kaydından mahkeme adı, dava türü, konu/açıklama
+ * (yoksa dava başlığı) ve taraf adlarını isteğe KENDİSİ ekler.
+ * (Müvekkil adının maskelenmesi ayrı bir düzeltmede; metin "taraf adları"
+ * diyerek her iki durumda da doğru kalır.)
+ */
+export const BRIF_ISTISNASI_TR =
+  'İSTİSNA — DURUŞMA BRİFİ: dava ekranında Duruşma Brifi üret düğmesine bastığınızda, yazmadığınız hâlde o dava kaydından mahkeme adı, dava türü, konu/açıklama (yoksa dava başlığı) ve taraf adları isteğe uygulama tarafından eklenir ve yapay zekâ sağlayıcısına gönderilir.';
+export const BRIF_ISTISNASI_EN =
+  'EXCEPTION — HEARING BRIEF: when you tap the hearing-brief button on a case, the app itself adds fields from that case record (court name, case type, subject/description or case title, and party names) to the AI request, even though you did not type them, and sends them to the AI provider.';

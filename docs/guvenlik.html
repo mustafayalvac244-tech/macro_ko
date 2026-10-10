@@ -148,7 +148,7 @@ footer a{color:var(--metin-2)}
     <span class="etiket">Güvenlik ve veri merkezi</span>
     <h1>Müvekkil dosyanız nerede durur, kim görebilir, ne kadar kalır</h1>
     <p class="ozet">Avukatın emanet ettiği veri sıradan bir veri değildir: meslek sırrıdır (1136 s.K. m.36) ve çoğu zaman 6698 s.K. m.6 anlamında özel nitelikli veri içerir. Bu sayfa &ldquo;güvenliğe önem veriyoruz&rdquo; demez; sağlayıcının adını, bulunduğu ülkeyi ve saklama süresini tek tek yazar.</p>
-    <p class="tarih">Son güncelleme: 13 Eylül 2026 · Bu sayfadaki liste uygulamanın kaynak kodundan hazırlanır ve bir otomatik sınama tarafından koda karşı denetlenir.</p>
+    <p class="tarih">Son güncelleme: 10 Ekim 2026 · Bu sayfadaki liste uygulamanın kaynak kodundan hazırlanır ve bir otomatik sınama tarafından koda karşı denetlenir.</p>
   </header>
 
   <div class="rozetler">
@@ -185,7 +185,7 @@ footer a{color:var(--metin-2)}
 
   <section>
     <h2><span class="no">03</span>Yapay zekâya ne gider, ne gitmez</h2>
-    <p>Yapay zekâ özelliklerini kullandığınızda <b>yalnız o istekte sizin yazdığınız metin ve eklediğiniz belgeler</b> sağlayıcıya gönderilir. Veritabanınız kendiliğinden taranmaz; dava ve müvekkil kayıtlarınız topluca aktarılmaz.</p>
+    <p>Yapay zekâ özelliklerini kullandığınızda <b>yalnız o istekte sizin yazdığınız metin ve eklediğiniz belgeler</b> sağlayıcıya gönderilir (tek istisna: Duruşma Brifi, aşağıda). Veritabanınız kendiliğinden taranmaz; dava ve müvekkil kayıtlarınız topluca aktarılmaz.</p>
     <div class="ikili">
       <div class="gider">
         <h3>Gönderilen</h3>
@@ -193,6 +193,7 @@ footer a{color:var(--metin-2)}
           <li>Yapay zekâ ekranına yazdığınız soru ya da olay anlatımı</li>
           <li>İnceleme ya da dilekçe için kendi elinizle eklediğiniz belge — UDF, Word ve TXT metniyle; PDF sayfa görüntüleriyle (taranmış sayfa da okunsun diye, en çok 20 sayfa)</li>
           <li>Taslak üretimi için seçtiğiniz şablon ve alan bilgileri</li>
+          <li><b>Duruşma Brifi:</b> düğmeye bastığınızda, yazmadığınız hâlde o dava kaydından mahkeme adı, dava türü, konu/açıklama (yoksa dava başlığı) ve taraf adları isteğe uygulama tarafından eklenir</li>
         </ul>
       </div>
       <div class="gitmez">
@@ -200,7 +201,7 @@ footer a{color:var(--metin-2)}
         <ul>
           <li>Parolanız (hiçbir zaman düz metin olarak saklanmaz ya da iletilmez)</li>
           <li>Finans kayıtlarınız ve ödeme bilgileriniz</li>
-          <li>Yapay zekâ isteğine kendiniz eklemediğiniz dava, müvekkil ve belge kayıtları</li>
+          <li>Yapay zekâ isteğine kendiniz eklemediğiniz dava, müvekkil ve belge kayıtları (Duruşma Brifi hariç, &ldquo;Gönderilen&rdquo; listesine bakınız)</li>
         </ul>
       </div>
     </div>
@@ -224,10 +225,13 @@ footer a{color:var(--metin-2)}
           <tr><td>Groq</td><td class="ulke-abd">ABD</td><td>Aynı yapay zekâ işlevleri için hızlı model katmanı</td></tr>
           <tr><td>OpenAI</td><td class="ulke-abd">ABD</td><td>Aynı yapay zekâ işlevleri için yedek model katmanı</td></tr>
           <tr><td>Apple App Store / Google Play / RevenueCat</td><td class="ulke-abd">ABD</td><td>Abonelik satın alma ve doğrulama</td></tr>
+          <tr><td>Expo <span style="color:var(--metin-3)">(bildirim servisi)</span></td><td class="ulke-abd">ABD</td><td>Bildirim izni verirseniz cihazınızın bildirim adresi (push token) ve yöneticinin yazdığı duyuru metni, bildirimin telefonunuza ulaşması için bu servisten geçer</td></tr>
+          <tr><td>Resend <span style="color:var(--metin-3)">(e-posta gönderimi)</span></td><td class="ulke-abd">ABD</td><td>Hesap doğrulama ve şifre sıfırlama e-postalarının gönderilmesi: e-posta adresiniz ve e-postanın içeriği</td></tr>
+          <tr><td>Adalet Bakanlığı Bedesten <span style="color:var(--metin-3)">(içtihat arama)</span></td><td class="ulke-ab">Türkiye</td><td>İçtihat ekranında ve yapay zekâ sorularında emsal karar bulmak için yazdığınız arama ifadesi ya da soru (noktalama işaretleri ayıklanmış olarak) bu kamu servisine arama terimi olarak gönderilir</td></tr>
         </tbody>
       </table>
     </div>
-    <p><b>Neden hepsi sayılıyor:</b> hangi model sağlayıcısının canlıda etkin olduğu sunucudaki gizli anahtarlara bağlıdır ve gün içinde değişebilir. Aydınlatmada fazlasını saymak eksik saymaktan güvenlidir: olabilecek en geniş aktarımı bilerek onay verirsiniz. <b>Kayıtlarınızın saklandığı yer tek başına Supabase'dir</b> — yukarıdaki ABD'li sağlayıcılar kayıtlarınızı saklamaz, yalnız o anda gönderdiğiniz metni işler.</p>
+    <p><b>Neden hepsi sayılıyor:</b> hangi model sağlayıcısının canlıda etkin olduğu sunucudaki gizli anahtarlara bağlıdır ve gün içinde değişebilir. Aydınlatmada fazlasını saymak eksik saymaktan güvenlidir: olabilecek en geniş aktarımı bilerek onay verirsiniz. <b>Kayıtlarınızın saklandığı yer tek başına Supabase'dir</b> — yukarıdaki ABD'li yapay zekâ sağlayıcıları kayıtlarınızı saklamaz, yalnız o anda gönderdiğiniz metni işler; bildirim ve e-posta hizmetleri ise yalnız bildirim adresinizi ya da e-posta adresinizi ve ilgili mesajı işler, dava/müvekkil/belge/finans kayıtlarınızı almaz.</p>
   </section>
 
   <section>

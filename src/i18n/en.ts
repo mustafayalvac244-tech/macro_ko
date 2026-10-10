@@ -377,6 +377,10 @@ export const en: Record<keyof typeof tr, string> = {
 
   'admin.searchUser': 'Search user (name, email, firm)',
   'admin.searchResult': '{n} users found',
+  'admin.searchLimit': 'Search only covers the latest {n} listed records; there are {toplam} users in total, the rest do not appear in this search.',
+  'admin.premiumVerBaslik': 'Grant premium?',
+  'admin.premiumAlBaslik': 'Revoke premium?',
+  'admin.premiumOnayGovde': '{kisi}\n\nThis changes the account’s subscription immediately and is logged.',
   'common.delete': 'Delete',
   'common.edit': 'Edit',
   'common.save': 'Save Changes',

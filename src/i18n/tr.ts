@@ -402,6 +402,10 @@ export const tr = {
 
   'admin.searchUser': 'Kullanıcı ara (ad, e-posta, büro)',
   'admin.searchResult': '{n} kullanıcı bulundu',
+  'admin.searchLimit': 'Arama yalnız listelenen son {n} kayıt içinde yapılır; toplam {toplam} kullanıcı var, kalanlar bu aramada görünmez.',
+  'admin.premiumVerBaslik': 'Premium verilsin mi?',
+  'admin.premiumAlBaslik': 'Premium geri alınsın mı?',
+  'admin.premiumOnayGovde': '{kisi}\n\nBu işlem hesabın aboneliğini hemen değiştirir ve kayıt altına alınır.',
   'common.delete': 'Sil',
   'common.edit': 'Düzenle',
   'common.save': 'Değişiklikleri Kaydet',

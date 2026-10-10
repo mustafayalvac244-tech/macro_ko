@@ -18,7 +18,7 @@ const SECTIONS_TR: Section[] = [
   {
     icon: 'shield-checkmark-outline',
     title: 'Verileriniz Kime Ait?',
-    body: 'Vekil Pro\'ya girdiğiniz tüm veriler (dava, müvekkil, belge, ajanda kayıtları) yalnızca size aittir. Veriler hesabınıza özeldir; diğer kullanıcılar, yalnızca sizin açıkça paylaştığınız bilgileri (ör. mesajlaşma, Tevkil ilanları) görebilir.',
+    body: 'Vekil Pro\'ya girdiğiniz tüm veriler (dava, müvekkil, belge, ajanda kayıtları) yalnızca size aittir. Veriler hesabınıza özeldir: uygulamada kayıtlarınızı başka kullanıcılarla paylaşma özelliği bulunmaz ve başka hiçbir kullanıcı bu kayıtları göremez.',
   },
   {
     icon: 'server-outline',
@@ -32,12 +32,14 @@ const SECTIONS_TR: Section[] = [
       '• Hesap bilgileri: ad soyad, T.C. kimlik numarası (isteğe bağlı), e-posta, telefon (isteğe bağlı), büro adı, bağlı olduğunuz baro ve sicil numarası (isteğe bağlı)\n' +
       '• Uygulama verileri: dava, müvekkil, duruşma, görev, belge ve finans kayıtlarınız. Müvekkil kaydı, siz girerseniz müvekkilin T.C. kimlik numarasını ve adresini de içerir; kimlik numarası dava dilekçesinin zorunlu unsurudur (HMK m.119/1-c).\n' +
       '• Satın alma kayıtları: abonelik ürünü, platform, tutar ve tarih\n' +
+      '• Kayıt kaynağı: hesabı hangi platformdan (iPhone, Android, web) açtığınız; web’de ayrıca geldiğiniz reklam bağlantısındaki kaynak/kampanya adı ve sizi yönlendiren sitenin yalnızca alan adı (tam adres ya da arama terimi tutulmaz). Hesabınızla ilişkilendirilir.\n' +
+      '• Bildirim adresi: bildirim izni verirseniz cihazınızın bildirim adresi (push token) ve platformu\n' +
       '• Teknik veriler: uygulama sürümü, hata kayıtları ve hangi ekranların kaç kez açıldığını gösteren günlük toplam sayaçlar (kişisel içerik olmadan; sayaçlar kimliğinizle ilişkilendirilmez)',
   },
   {
     icon: 'eye-off-outline',
     title: 'Verileriniz Satılmaz ve Paylaşılmaz',
-    body: 'Verileriniz hiçbir üçüncü tarafa SATILMAZ, kiralanmaz veya reklam amacıyla paylaşılmaz.\n\nAMA BİR İSTİSNA VAR VE AÇIKÇA SÖYLÜYORUZ: yapay zekâ özelliklerini (soru sorma, dilekçe, mütalaa, belge incelemesi) kullandığınızda, O İSTEKTE KENDİ ELİNİZLE GİRDİĞİNİZ metin ve EKLEDİĞİNİZ belgeler (PDF eklerseniz sayfa görüntüleriyle birlikte), yanıtı üretebilmek için yurt dışındaki (ABD) yapay zekâ sağlayıcılarına gönderilir. Bu, açık rızanıza bağlıdır; rıza vermezseniz yapay zekâ özellikleri çalışmaz, diğer her şey çalışmaya devam eder.\n\nRIZA HİZMETİN ŞARTI DEĞİLDİR: kayıt ekranındaki rıza kutusu İSTEĞE BAĞLIDIR — işaretlemeden de hesap açabilir, içtihat ve mevzuat aramasını, dava/müvekkil/duruşma ve finans yönetimini eksiksiz kullanabilirsiniz; yalnız yapay zekâ özellikleri kapalı kalır. Rızayı sonradan Ayarlar > KVKK Aydınlatma Metni ekranından verebilir, aynı ekrandan geri alabilirsiniz; geri almak hesabınızı kapatmaz ve kaydınızı silmez.\n\nVeritabanınız kendiliğinden taranıp gönderilmez: yalnız o isteğe eklediğiniz metin gider. Hangi sağlayıcılara, hangi ülkeye ve hangi amaçla aktarıldığının tam listesi KVKK Aydınlatma Metni’ndedir.\n\nBunun dışında, yasal zorunluluk (mahkeme kararı vb.) hâlleri saklıdır.',
+    body: 'Verileriniz hiçbir üçüncü tarafa SATILMAZ, kiralanmaz veya reklam amacıyla paylaşılmaz.\n\nAMA BİR İSTİSNA VAR VE AÇIKÇA SÖYLÜYORUZ: yapay zekâ özelliklerini (soru sorma, dilekçe, mütalaa, belge incelemesi) kullandığınızda, O İSTEKTE KENDİ ELİNİZLE GİRDİĞİNİZ metin ve EKLEDİĞİNİZ belgeler (PDF eklerseniz sayfa görüntüleriyle birlikte), yanıtı üretebilmek için yurt dışındaki (ABD) yapay zekâ sağlayıcılarına gönderilir. Bu, açık rızanıza bağlıdır; rıza vermezseniz yapay zekâ özellikleri çalışmaz, diğer her şey çalışmaya devam eder.\n\nRIZA HİZMETİN ŞARTI DEĞİLDİR: kayıt ekranındaki rıza kutusu İSTEĞE BAĞLIDIR — işaretlemeden de hesap açabilir, içtihat ve mevzuat aramasını, dava/müvekkil/duruşma ve finans yönetimini eksiksiz kullanabilirsiniz; yalnız yapay zekâ özellikleri kapalı kalır. Rızayı sonradan Ayarlar > KVKK Aydınlatma Metni ekranından verebilir, aynı ekrandan geri alabilirsiniz; geri almak hesabınızı kapatmaz ve kaydınızı silmez.\n\nVeritabanınız kendiliğinden taranıp gönderilmez: yalnız o isteğe eklediğiniz metin gider. TEK İSTİSNA — Duruşma Brifi: dava ekranında Duruşma Brifi üret düğmesine bastığınızda, yazmadığınız hâlde o dava kaydından mahkeme adı, dava türü, konu/açıklama (yoksa dava başlığı) ve taraf adları isteğe uygulama tarafından eklenir ve yapay zekâ sağlayıcısına gönderilir. Hangi sağlayıcılara, hangi ülkeye ve hangi amaçla aktarıldığının tam listesi KVKK Aydınlatma Metni’ndedir.\n\nBunun dışında, yasal zorunluluk (mahkeme kararı vb.) hâlleri saklıdır.',
   },
   {
     icon: 'finger-print-outline',
@@ -64,7 +66,7 @@ const SECTIONS_EN: Section[] = [
   {
     icon: 'shield-checkmark-outline',
     title: 'Who Owns Your Data?',
-    body: 'Everything you enter into Vekil Pro (cases, clients, documents, calendar) belongs to you alone. Other users can only see what you explicitly share (e.g. messages, job board posts).',
+    body: 'Everything you enter into Vekil Pro (cases, clients, documents, calendar) belongs to you alone. Your data is private to your account: the app has no feature for sharing your records with other users, and no other user can see them.',
   },
   {
     icon: 'server-outline',
@@ -74,12 +76,12 @@ const SECTIONS_EN: Section[] = [
   {
     icon: 'document-text-outline',
     title: 'What Is Processed?',
-    body: '• Account: name, email, phone (optional), firm name, bar number (optional)\n• App data: your case, client, hearing, task, document and finance records\n• Technical: app version, crash logs and daily total counts of which screens were opened (without personal content; the counts are not linked to your identity)',
+    body: '• Account: name, email, national ID number (if provided; optional), phone (optional), firm name, bar association and registration number (optional)\n• App data: your case, client, hearing, task, document and finance records. If you enter them, a client record also holds the client’s national ID number and address.\n• Purchases: subscription product, purchase platform, amount and date\n• Registration source: the platform you opened the account on (iPhone, Android, web); on the web also the source/campaign name of the ad link you came from and only the domain name of the referring site (no full address or search terms). Linked to your account.\n• Notification address: if you allow notifications, your device’s notification address (push token) and platform\n• Technical: app version, crash logs and daily total counts of which screens were opened (without personal content; the counts are not linked to your identity)',
   },
   {
     icon: 'eye-off-outline',
     title: 'Never Sold or Shared',
-    body: 'Your data is never SOLD, rented, or shared for advertising.\n\nTHERE IS ONE EXCEPTION AND WE STATE IT PLAINLY: when you use the AI features (questions, petitions, opinions, document review), the text YOU YOURSELF ENTER in that request is sent to AI providers located abroad (United States) so the answer can be produced. This depends on your explicit consent; without it the AI features do not run and everything else keeps working.\n\nCONSENT IS NOT A CONDITION OF SERVICE: the consent box on the sign-up screen is OPTIONAL — you can create an account without ticking it and use case-law and legislation search, case/client/hearing management and finance in full; only the AI features stay off. You can give consent later from Settings > KVKK Privacy Notice and withdraw it from the same screen; withdrawing does not close your account or delete any record.\n\nYour database is not scanned and sent on its own: only the text and documents you attach to that request leave (a PDF is sent with its page images). The full list of providers, countries and purposes is in the KVKK privacy notice.\n\nApart from that, disclosure occurs only where legally required (court order etc.).',
+    body: 'Your data is never SOLD, rented, or shared for advertising.\n\nTHERE IS ONE EXCEPTION AND WE STATE IT PLAINLY: when you use the AI features (questions, petitions, opinions, document review), the text YOU YOURSELF ENTER in that request is sent to AI providers located abroad (United States) so the answer can be produced. This depends on your explicit consent; without it the AI features do not run and everything else keeps working.\n\nCONSENT IS NOT A CONDITION OF SERVICE: the consent box on the sign-up screen is OPTIONAL — you can create an account without ticking it and use case-law and legislation search, case/client/hearing management and finance in full; only the AI features stay off. You can give consent later from Settings > KVKK Privacy Notice and withdraw it from the same screen; withdrawing does not close your account or delete any record.\n\nYour database is not scanned and sent on its own: only the text and documents you attach to that request leave (a PDF is sent with its page images). SINGLE EXCEPTION — Hearing Brief: when you tap the hearing-brief button on a case, the app itself adds fields from that case record (court name, case type, subject/description or case title, and party names) to the AI request, even though you did not type them, and sends them to the AI provider. The full list of providers, countries and purposes is in the KVKK privacy notice.\n\nApart from that, disclosure occurs only where legally required (court order etc.).',
   },
   {
     icon: 'finger-print-outline',
