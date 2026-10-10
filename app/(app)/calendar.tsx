@@ -25,6 +25,7 @@ import { fonts, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatMoney } from '@/utils/format';
+import { GUNDEM_UFKU_GUN, HAFTA_BASLANGICI, gundemGruplari, gundemUfku } from '@/utils/gundem';
 import type { DeadlineWithCase, HearingType, HearingWithCase } from '@/types/database';
 
 LocaleConfig.locales.tr = {
@@ -98,6 +99,9 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [visibleMonth, setVisibleMonth] = useState(todayKey.slice(0, 7));
   const [calKey, setCalKey] = useState(0);
+  // Gündem varsayılan olarak 90 gün gösterir; ötesi sayılıp söylenir ve
+  // "Tümünü göster" ile açılır (bkz. utils/gundem).
+  const [tumGundem, setTumGundem] = useState(false);
 
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
@@ -240,17 +244,10 @@ export default function CalendarScreen() {
     [items, todayKey]
   );
 
-  const upcomingGroups = useMemo(() => {
-    const horizon = format(addDays(new Date(), 90), 'yyyy-MM-dd');
-    const upcoming = items.filter((it) => !it.done && it.dateKey >= todayKey && it.dateKey <= horizon);
-    const groups: { dateKey: string; items: AgendaItem[] }[] = [];
-    upcoming.forEach((it) => {
-      const last = groups[groups.length - 1];
-      if (last && last.dateKey === it.dateKey) last.items.push(it);
-      else groups.push({ dateKey: it.dateKey, items: [it] });
-    });
-    return groups;
-  }, [items, todayKey]);
+  const gundem = useMemo(
+    () => gundemGruplari(items, todayKey, tumGundem ? null : gundemUfku(todayKey)),
+    [items, todayKey, tumGundem]
+  );
 
   const dayLabel = (dateKey: string) => {
     const d = new Date(`${dateKey}T12:00:00`);
@@ -393,7 +390,7 @@ export default function CalendarScreen() {
   // ── Hafta şeridi ─────────────────────────────────────────────────────────
   const weekDays = useMemo(() => {
     const anchor = new Date(`${selectedDate}T12:00:00`);
-    const start = startOfWeek(anchor, { weekStartsOn: 1 });
+    const start = startOfWeek(anchor, { weekStartsOn: HAFTA_BASLANGICI });
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [selectedDate]);
 
@@ -446,6 +443,8 @@ export default function CalendarScreen() {
               <Calendar
                 key={`${lang}-${calKey}`}
                 current={selectedDate}
+                // Türkiye'de hafta pazartesi başlar; hafta şeridiyle aynı sabit.
+                firstDay={HAFTA_BASLANGICI}
                 markingType="multi-dot"
                 markedDates={markedDates}
                 onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
@@ -530,12 +529,23 @@ export default function CalendarScreen() {
               </View>
             )}
 
-            {upcomingGroups.length === 0 ? (
+            {gundem.gruplar.length === 0 ? (
               <Card>
-                <EmptyState icon="calendar-clear-outline" title={t('cal.noUpcoming')} />
+                {gundem.ufukSonrasi > 0 ? (
+                  // 90 gün içinde kayıt yok ama ileride var: "hiç yok" denmez.
+                  <EmptyState
+                    icon="calendar-clear-outline"
+                    title={t('cal.noUpcomingHorizon', { gun: GUNDEM_UFKU_GUN })}
+                    description={t('cal.beyondHorizon', { n: gundem.ufukSonrasi, gun: GUNDEM_UFKU_GUN })}
+                    actionLabel={t('cal.showAll')}
+                    onAction={() => setTumGundem(true)}
+                  />
+                ) : (
+                  <EmptyState icon="calendar-clear-outline" title={t('cal.noUpcoming')} />
+                )}
               </Card>
             ) : (
-              upcomingGroups.map((group) => (
+              gundem.gruplar.map((group) => (
                 <View key={group.dateKey} style={styles.section}>
                   <View style={styles.sectionHeadRow}>
                     <Text style={styles.sectionTitle}>{dayLabel(group.dateKey)}</Text>
@@ -550,6 +560,15 @@ export default function CalendarScreen() {
                   </Card>
                 </View>
               ))
+            )}
+            {gundem.gruplar.length > 0 && gundem.ufukSonrasi > 0 && (
+              <Pressable style={styles.ufukSatiri} onPress={() => setTumGundem(true)} accessibilityRole="button">
+                <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+                <Text style={styles.ufukYazi}>
+                  {t('cal.beyondHorizon', { n: gundem.ufukSonrasi, gun: GUNDEM_UFKU_GUN })}
+                </Text>
+                <Text style={styles.ufukBag}>{t('cal.showAll')}</Text>
+              </Pressable>
             )}
             {legend}
           </>
@@ -849,6 +868,27 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   sectionCount: {
     ...typography.small,
     color: colors.textMuted,
+  },
+  // Gündem ufku satırı: "90 günden sonra N kayıt daha var · Tümünü göster".
+  ufukSatiri: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    minHeight: 44,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  ufukYazi: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  ufukBag: {
+    ...typography.caption,
+    color: colors.primary,
+    fontFamily: fonts.bold,
+    fontWeight: '700',
   },
   overdueCard: {
     borderColor: colors.dangerSoft,

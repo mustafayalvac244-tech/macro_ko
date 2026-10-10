@@ -152,6 +152,8 @@ export const tr = {
   'dash.prec.title': 'Davana Emsal',
   'dash.prec.link': 'İçtihat',
   'dash.prec.forCase': '"{term}" konusunda emsal Yargıtay kararları',
+  // İdari dosya: kararlar Danıştay'dan gelir (utils/emsalSecimi → caseCourt).
+  'dash.prec.forCaseDanistay': '"{term}" konusunda emsal Danıştay kararları',
   'dash.prec.searching': 'Dosyana emsal kararlar taranıyor…',
   'dash.prec.none': 'Bu konuda emsal karar bulunamadı. Farklı bir terimle İçtihat’ta arayabilirsin.',
   'dash.prec.errSource': 'Karar bankasına şu an ulaşılamıyor. Birazdan tekrar dene.',
@@ -194,6 +196,9 @@ export const tr = {
   'dash.upcoming.empty': 'Yaklaşan süre görünmüyor. Yeni bir süre eklediğinizde burada çıkar.',
   'dash.upcoming.due': 'Bugün',
   'dash.upcoming.days': '{n} gün',
+  // Sorgu yüklenemedi — "kayıt yok" ile karıştırılmasın diye ayrı metin.
+  'dash.load.error': 'Kayıtlar şu an yüklenemedi. Bağlantını kontrol edip tekrar dene.',
+  'dash.load.retry': 'Tekrar dene',
   'dash.quick.title': 'Kısayollar',
   'dash.quick.ictihat': 'İçtihat ara',
   'dash.quick.dilekce': 'Dilekçe üret',
@@ -404,6 +409,10 @@ export const tr = {
   'dash.outcome.descMore': 'Süre verildiyse kaydedin. Bekleyen {n} duruşma daha var.',
   'dash.outcome.title': '{n} duruşmanın sonucu bekliyor',
   'dash.outcome.desc': 'Verilen süreleri kaydedin — 60 saniye sürer, süre kaçırmayı önler.',
+  // Süresi geçen (son günü dün ya da önce) tamamlanmamış süreler — ana ekran kartı.
+  'dash.overdue.one': 'Süresi geçti: {baslik} — {n} gün önce',
+  'dash.overdue.desc': 'Tamamlandıysa Takvim’de işaretleyin.',
+  'dash.overdue.descMore': 'Geciken {n} iş daha var. Tamamlananları Takvim’de işaretleyin.',
   'cupd.cta': 'Müvekkile Bilgi Ver',
   'hout.title': 'Duruşma Çıkışı',
   'hout.short': 'Duruşma Çıkışı',
@@ -494,6 +503,10 @@ export const tr = {
   'cal.installmentTitle': '{seq}. taksit · {amount}',
   'cal.noItemsDay': 'Bu günde planlanmış işlem yok',
   'cal.noUpcoming': 'Önümüzdeki günlerde planlı işlem yok',
+  // Gündem 90 gün gösterir; ötesindeki kayıtlar sayılıp söylenir (utils/gundem).
+  'cal.noUpcomingHorizon': 'Önümüzdeki {gun} günde planlı işlem yok',
+  'cal.beyondHorizon': '{gun} günden sonra {n} kayıt daha var',
+  'cal.showAll': 'Tümünü göster',
   'cal.addTask': 'Görev',
   'cal.addMeeting': 'Toplantı',
   'cal.addDuration': 'Süre',

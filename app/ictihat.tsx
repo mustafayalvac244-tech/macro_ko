@@ -32,6 +32,7 @@ import {
 import { ICTIHAT_DIGESTS, matchDigests, type IctihatDigest } from '@/data/ictihatDigest';
 import { searchMevzuat, warmMevzuatIndex, type MevzuatHit } from '@/data/laws/searchMevzuat';
 import { useT } from '@/i18n';
+import { mahkemeParametresi } from '@/utils/emsalSecimi';
 import { radius, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -106,8 +107,9 @@ export default function IctihatScreen() {
     search(q, c, m);
   };
 
-  // Panelden "Davana Emsal" ile gelindiğinde (?q=konu) doğrudan Yargıtay'da
-  // Kelime Arama moduna geçip aramayı otomatik başlat.
+  // Panelden "Davana Emsal" ile gelindiğinde (?q=konu[&court=danistay])
+  // doğrudan o mahkemede Kelime Arama moduna geçip aramayı otomatik başlat
+  // (aşağıdaki params etkisi).
   // Mevzuat indeksini ekran açılır açılmaz ARKA PLANDA kur. Kullanıcı yazmaya
   // başladığında hazır olur; tek seferde kurulsa arayüz 1-2 sn donuyordu.
   // Web'de kanun metinleri ağdan indiği için indeks HAZIR OLDUĞUNDA yeniden
@@ -129,16 +131,20 @@ export default function IctihatScreen() {
     };
   }, []);
 
-  const params = useLocalSearchParams<{ q?: string }>();
+  // ?court=danistay: idari dosyanın emsal kartından gelindi. Eskiden mahkeme
+  // burada sabit 'yargitay' yapılıyordu; kartta Danıştay kararı gören avukat
+  // dokununca Yargıtay sonuçlarına düşüyordu (09.10.2026 denetimi).
+  const params = useLocalSearchParams<{ q?: string; court?: string }>();
   const didAutoSearch = useRef(false);
   useEffect(() => {
     const q = typeof params.q === 'string' ? params.q.trim() : '';
     if (q && !didAutoSearch.current) {
       didAutoSearch.current = true;
+      const c = mahkemeParametresi(params.court);
       setMode('search');
-      setCourt('yargitay');
+      setCourt(c);
       setDraft(q);
-      runSearch(q, 'yargitay', 'smart');
+      runSearch(q, c, 'smart');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.q]);
