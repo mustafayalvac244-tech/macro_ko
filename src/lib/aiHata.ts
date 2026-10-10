@@ -34,7 +34,7 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errEkBuyuk' | 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errServis' | 'ai.errBos' | 'ai.errOturum' | 'ai.errTamamlanamadi' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errEkBuyuk' | 'ai.errSoruUzun' | 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errServis' | 'ai.errBos' | 'ai.errOturum' | 'ai.errTamamlanamadi' | 'ai.errGeneric';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -56,6 +56,9 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   // Eklenen belgelerin toplam boyutu sunucu tavanını aştı (bkz.
   // supabase/functions/_shared/belgeEki.ts). Hak düşmez, istek başlamadı.
   if (kod === 'ek_buyuk') return t('ai.errEkBuyuk');
+  // Yazılan/yapıştırılan metin sunucu tavanını aştı (SORU_TAVANI, aynı
+  // dosya). İstek başlamadan reddedildi; kesilip eksik okunmadı.
+  if (kod === 'soru_uzun') return t('ai.errSoruUzun');
   // Kontör bitmesi kota değildir: beklemekle geçmez, yükleme gerektirir.
   // İkisini aynı mesaja bağlamak kullanıcıyı boşuna bekletirdi.
   if (kod === 'kontor_bitti') return t('ai.errKontor');
