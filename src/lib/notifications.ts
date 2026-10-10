@@ -105,14 +105,20 @@ export async function bildirimIzniniYenile(): Promise<{ izinli: boolean; yeniVer
  */
 let kayitliPushAdresi: string | null = null;
 
+async function pushAdresiniAl(): Promise<string | null> {
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  if (!projectId) return null;
+  const { data: adres } = await Notifications.getExpoPushTokenAsync({ projectId });
+  return adres;
+}
+
 export async function pushAdresiniKaydet(): Promise<void> {
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
   if (!Device.isDevice) return;
   const { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') return;
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-  if (!projectId) return;
-  const { data: adres } = await Notifications.getExpoPushTokenAsync({ projectId });
+  const adres = await pushAdresiniAl();
+  if (!adres) return;
   const { error } = await supabase.rpc('push_cihaz_kaydet', { p_token: adres, p_platform: Platform.OS });
   if (!error) kayitliPushAdresi = adres;
 }
@@ -126,8 +132,14 @@ export async function pushAdresiniKaydet(): Promise<void> {
  * cihazı zaten atlıyor (bkz. 0187_push_oturum_ve_sonuc).
  */
 export async function pushAdresiniSil(): Promise<void> {
-  if (!kayitliPushAdresi) return;
-  await supabase.rpc('push_cihaz_sil', { p_token: kayitliPushAdresi });
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
+  // Bellekteki adres yoksa (uygulama bu oturumda adresi kaydedemedi ya da bu
+  // sürümden ÖNCE kaydedilmişti) adres yeniden alınır; yoksa çıkış yapılan
+  // hesabın satırı sunucuda kalırdı. Ağ yoksa alınamaz: o zaman sunucu,
+  // oturumu biten cihazı gönderimde zaten atlar (0187).
+  const adres = kayitliPushAdresi ?? (Device.isDevice ? await pushAdresiniAl().catch(() => null) : null);
+  if (!adres) return;
+  await supabase.rpc('push_cihaz_sil', { p_token: adres });
   kayitliPushAdresi = null;
 }
 

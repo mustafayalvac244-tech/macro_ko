@@ -112,5 +112,16 @@ if [ "$VAR4" = "t" ]; then
     | grep -E "GEÇTİ|KALDI|ERROR" || true
 fi
 
+# Push oturum + gönderim sonucu ölçümü, YALNIZ 0187 bu koşuda uygulandıysa anlamlıdır
+# (push_cihaz.oturum_id sütunu 0187'ye özgü). Expo'ya istek gitmez; yanıtlar elle yazılır.
+VAR5=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA \
+  -c "select exists (select 1 from information_schema.columns where table_schema='public' and table_name='push_cihaz' and column_name='oturum_id')" 2>/dev/null || echo f)
+if [ "$VAR5" = "t" ]; then
+  echo
+  echo "--- push oturum + gönderim sonucu ölçümü (0187) ---"
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -f "$KOK/scripts/migration-deneme/push-sonuc-olcum.sql" 2>&1 \
+    | grep -E "GEÇTİ|KALDI|ERROR" || true
+fi
+
 psql -h /tmp -p "$PORT" -U postgres -q -c "drop database $DB;" >/dev/null 2>&1 || true
 exit $HATA

@@ -13,7 +13,12 @@ create table auth.users (
   last_sign_in_at timestamptz,
   raw_user_meta_data jsonb -- 0181: kayıt üstverisi (signUp options.data)
 );
-create function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
+-- 0187 ölçümü için auth.uid()/auth.jwt() oturum ayarlarından okunur (gerçek
+-- Supabase da JWT'yi böyle ayar olarak taşır). Ayar yoksa eskisi gibi null.
+create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
+-- Sütunlar canlıdan alındı (information_schema, 10.10.2026); yalnız 0187'nin okuduğu kadarı.
+create table auth.sessions (id uuid primary key, user_id uuid not null references auth.users(id) on delete cascade, not_after timestamptz);
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -181,6 +186,11 @@ create table net._http_response (
   error_msg text,
   created timestamptz not null default now()
 );
+-- net.http_post taklidi: isteği kaydeder, kimliğini döner (gerçekte pg_net kuyruğa alır
+-- ve yanıt AYNI kimlikle net._http_response'a düşer). Gerçek ağ çağrısı YAPMAZ.
+create table net._istek_taklit (id bigint generated always as identity primary key, url text, body jsonb);
+create function net.http_post(url text, body jsonb default '{}'::jsonb, params jsonb default '{}'::jsonb, headers jsonb default '{"Content-Type": "application/json"}'::jsonb, timeout_milliseconds integer default 5000)
+returns bigint language sql as $$ insert into net._istek_taklit (url, body) values (url, body) returning id $$;
 
 -- Supabase'in varsayılanı: authenticated tablolar üzerinde yetkili.
 grant usage on schema public to anon, authenticated, service_role;
