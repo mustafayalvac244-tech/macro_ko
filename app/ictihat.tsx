@@ -17,6 +17,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { AI_ICTIHAT_ANALIZ_ENABLED } from '@/config/features';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Badge } from '@/components/ui/Badge';
 import {
   useIctihat,
   useIctihatAnalyze,
@@ -32,6 +33,7 @@ import {
 import { ICTIHAT_DIGESTS, matchDigests, type IctihatDigest } from '@/data/ictihatDigest';
 import { searchMevzuat, warmMevzuatIndex, type MevzuatHit } from '@/data/laws/searchMevzuat';
 import { useT } from '@/i18n';
+import { mahkemeParametresi } from '@/utils/emsalSecimi';
 import { radius, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -106,8 +108,9 @@ export default function IctihatScreen() {
     search(q, c, m);
   };
 
-  // Panelden "Davana Emsal" ile gelindiğinde (?q=konu) doğrudan Yargıtay'da
-  // Kelime Arama moduna geçip aramayı otomatik başlat.
+  // Panelden "Davana Emsal" ile gelindiğinde (?q=konu[&court=danistay])
+  // doğrudan o mahkemede Kelime Arama moduna geçip aramayı otomatik başlat
+  // (aşağıdaki params etkisi).
   // Mevzuat indeksini ekran açılır açılmaz ARKA PLANDA kur. Kullanıcı yazmaya
   // başladığında hazır olur; tek seferde kurulsa arayüz 1-2 sn donuyordu.
   // Web'de kanun metinleri ağdan indiği için indeks HAZIR OLDUĞUNDA yeniden
@@ -129,16 +132,20 @@ export default function IctihatScreen() {
     };
   }, []);
 
-  const params = useLocalSearchParams<{ q?: string }>();
+  // ?court=danistay: idari dosyanın emsal kartından gelindi. Eskiden mahkeme
+  // burada sabit 'yargitay' yapılıyordu; kartta Danıştay kararı gören avukat
+  // dokununca Yargıtay sonuçlarına düşüyordu (09.10.2026 denetimi).
+  const params = useLocalSearchParams<{ q?: string; court?: string }>();
   const didAutoSearch = useRef(false);
   useEffect(() => {
     const q = typeof params.q === 'string' ? params.q.trim() : '';
     if (q && !didAutoSearch.current) {
       didAutoSearch.current = true;
+      const c = mahkemeParametresi(params.court);
       setMode('search');
-      setCourt('yargitay');
+      setCourt(c);
       setDraft(q);
-      runSearch(q, 'yargitay', 'smart');
+      runSearch(q, c, 'smart');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.q]);
@@ -365,6 +372,7 @@ export default function IctihatScreen() {
                       <Text style={styles.mevBadgeText}>{m.kod} · m.{m.no}</Text>
                     </View>
                     {!!m.title && <Text style={styles.mevTitle} numberOfLines={1}>{m.title}</Text>}
+                    {m.mulga && <Badge label={t('laws.repealed')} color={colors.danger} backgroundColor={colors.dangerSoft} />}
                   </View>
                   <Text style={styles.mevSnippet} numberOfLines={2}>{m.snippet}</Text>
                 </Pressable>
@@ -502,6 +510,11 @@ export default function IctihatScreen() {
           />
           <ScrollView contentContainerStyle={styles.docContent} showsVerticalScrollIndicator={false}>
             {!!openMevzuat?.title && <Text style={styles.mevModalTitle}>{openMevzuat.title}</Text>}
+            {!!openMevzuat?.mulga && (
+              <View style={styles.mevMulga}>
+                <Badge label={t('laws.repealed')} color={colors.danger} backgroundColor={colors.dangerSoft} />
+              </View>
+            )}
             <Text style={styles.mevModalKanun}>{openMevzuat?.kanun}</Text>
             <Text style={styles.mevModalText}>{openMevzuat?.text}</Text>
             <Text style={styles.mevModalNote}>{t('ictihat.mevzuatSource')}</Text>
@@ -514,6 +527,7 @@ export default function IctihatScreen() {
 
 function DigestCard({ digest, onPress }: { digest: IctihatDigest; onPress: () => void }) {
   const __t = useTheme();
+  const t = useT();
   const colors = __t.colors;
   const styles = makeStyles(colors);
 
@@ -525,7 +539,7 @@ function DigestCard({ digest, onPress }: { digest: IctihatDigest; onPress: () =>
         </View>
         <View style={styles.digestBadge}>
           <Ionicons name="sparkles" size={10} color={colors.gold} />
-          <Text style={styles.digestBadgeText}>ÖZETLİ</Text>
+          <Text style={styles.digestBadgeText}>{t('ictihat.digestBadge')}</Text>
         </View>
       </View>
       <Text style={styles.digestTitle} numberOfLines={2}>{digest.title}</Text>
@@ -1035,6 +1049,7 @@ function HitCard({
   query?: string;
 }) {
   const __t = useTheme();
+  const t = useT();
   const colors = __t.colors;
   const styles = makeStyles(colors);
 
@@ -1090,7 +1105,7 @@ function HitCard({
         )}
         {!!hit.sonuc && (
           <View style={styles.sonucBox}>
-            <Text style={styles.sonucLabel}>HÜKÜM / SONUÇ</Text>
+            <Text style={styles.sonucLabel}>{t('ictihat.hitSonuc')}</Text>
             <Text style={styles.sonucText} numberOfLines={5}>
               {hit.sonuc}
             </Text>
@@ -1111,7 +1126,7 @@ function HitCard({
           )}
           {hit.src === 'yargitay' && (
             <View style={styles.srcBadge}>
-              <Text style={styles.srcBadgeText}>Yargıtay</Text>
+              <Text style={styles.srcBadgeText}>{t('ictihat.srcYargitay')}</Text>
             </View>
           )}
         </View>
@@ -1169,9 +1184,7 @@ function DocModal({
           {!loading && error && (
             <View style={styles.errorBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
-              <Text style={styles.errorText}>
-                {error === 'source' ? t('ictihat.errSource') : t('ictihat.errGeneric')}
-              </Text>
+              <Text style={styles.errorText}>{t(ictihatHataAnahtari(error))}</Text>
             </View>
           )}
           {!loading && !error && !!text && <Text style={styles.docText}>{text}</Text>}
@@ -1224,9 +1237,10 @@ function SummaryModal({
           {!loading && error && (
             <View style={styles.errorBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
-              <Text style={styles.errorText}>
-                {error === 'rate_limit' ? t('ictihat.errRate') : error === 'source' ? t('ictihat.errSource') : t('ictihat.errGeneric')}
-              </Text>
+              {/* Hata metni tek yerden (ictihatHataAnahtari). Burada kendi
+                  üçlü koşulu vardı: KVKK rızası, paket ve kota hataları bile
+                  "İnternet bağlantınızı kontrol edin" olarak görünüyordu. */}
+              <Text style={styles.errorText}>{t(ictihatHataAnahtari(error))}</Text>
             </View>
           )}
           {!loading && !error && !!summary && <Text selectable style={styles.docText}>{summary}</Text>}
@@ -1422,6 +1436,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.h3,
     color: colors.textPrimary,
     marginBottom: 4,
+  },
+  // Mülga (yürürlükten kalkmış) madde rozeti — modal başlığının altında
+  mevMulga: {
+    marginBottom: spacing.xs,
   },
   mevModalKanun: {
     ...typography.caption,

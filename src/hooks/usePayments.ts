@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
+import { davaMasrafiDegisti } from '@/lib/masrafOnbellegi';
+import { tumSayfalar } from '@/utils/sayfalama';
 import { useAuthStore } from '@/store/authStore';
 import type { CaseExpense, CaseInstallment, Payment } from '@/types/database';
 
@@ -26,14 +28,18 @@ export function useAllPayments() {
   return useQuery({
     queryKey: ['payments', 'all', ownerId],
     enabled: !!ownerId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('payments')
-        .select('amount, case_id, paid_at')
-        .eq('owner_id', ownerId!);
-      if (error) throw error;
-      return data as Pick<Payment, 'amount' | 'case_id' | 'paid_at'>[];
-    },
+    // Sayfa sayfa: 1000'i aşan tahsilat listesi sessizce kesilir, aylık gelir
+    // eksik çıkardı (bkz. utils/sayfalama). Sıra benzersiz: sonda `id`.
+    queryFn: async () =>
+      (await tumSayfalar((bas, son) =>
+        supabase
+          .from('payments')
+          .select('amount, case_id, paid_at', { count: 'exact' })
+          .eq('owner_id', ownerId!)
+          .order('paid_at', { ascending: false })
+          .order('id', { ascending: true })
+          .range(bas, son),
+      )) as Pick<Payment, 'amount' | 'case_id' | 'paid_at'>[],
   });
 }
 
@@ -102,7 +108,8 @@ export function useCreateCaseExpense() {
       const { error } = await supabase.from('case_expenses').insert({ ...input, owner_id: ownerId! });
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['case-expenses'] }),
+    // Müvekkil avans bakiyesi ve ana ekran avans uyarısı da aynı masrafları sayar.
+    onSuccess: () => davaMasrafiDegisti(queryClient),
   });
 }
 
@@ -115,7 +122,7 @@ export function useDeleteCaseExpense() {
       const { error } = await supabase.from('case_expenses').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['case-expenses'] }),
+    onSuccess: () => davaMasrafiDegisti(queryClient),
   });
 }
 

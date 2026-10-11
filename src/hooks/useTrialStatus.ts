@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/store/authStore';
+import { ucretliPlanAcik } from '@/lib/satinAlma';
 
 // FİYAT VE KOTA SABİTLERİ BURADAN TAŞINDI → src/config/planlar.ts
 // Sebep ölçülmüş: bu dosya `authStore` üzerinden react-native çekiyor ve test
@@ -48,5 +49,7 @@ export interface TrialStatus {
  */
 export function useTrialStatus(): TrialStatus {
   const profile = useAuthStore((s) => s.profile);
-  return { subscribed: !!profile?.is_premium };
+  // is_premium YA DA AI paketi — sunucunun plan kuralıyla aynı (0087); AI
+  // abonesine "Ücretsiz plandasınız" denmesin. Bkz. satinAlma.ts > ucretliPlanAcik.
+  return { subscribed: ucretliPlanAcik(profile) };
 }

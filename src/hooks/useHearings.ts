@@ -94,23 +94,26 @@ export type HearingInput = Pick<
  * Bildirim, kaydın kendisi değil yan etkisidir. Kurulamazsa sessizce geçilir;
  * eksik kalan bildirim ana ekrandaki eşitlemede (useReminderSync) zaten
  * yeniden kurulur.
+ *
+ * Dava adı bildirime VERİLMEZ: kilit ekranında görünür (bkz.
+ * utils/bildirimMetni.ts). `updated_at`, seçilen hatırlatma anı kayıt anında
+ * geçmişteyse yedeği seçmek için verilir (bkz. YEDEK_ONCELIK_DAKIKA).
  */
-async function scheduleFromRow(row: Hearing, caseTitle: string) {
+async function scheduleFromRow(row: Hearing) {
   try {
     await scheduleHearingReminder({
       id: row.id,
-      caseTitle,
       hearingTitle: row.title,
       type: row.type,
       scheduledAt: row.scheduled_at,
       reminderMinutesBefore: row.reminder_minutes_before,
+      kayitISO: row.updated_at,
     });
     // DURUŞMADAN SONRA DA SORULUR. Hatırlatma duruşmaya GİTMEYİ sağlıyordu;
     // duruşmada verilen SÜRENİN kaydedilmesini sağlayan hiçbir şey yoktu.
     // Canlı veri: 49 duruşma, 9 süre (bkz. scheduleHearingOutcomePrompt).
     await scheduleHearingOutcomePrompt({
       id: row.id,
-      caseTitle,
       hearingTitle: row.title,
       type: row.type,
       scheduledAt: row.scheduled_at,
@@ -127,14 +130,15 @@ export function useCreateHearing() {
   return useMutation({
     onError: notifySaveError,
     mutationFn: async (input: HearingInput & { caseTitle: string }) => {
-      const { caseTitle, ...rest } = input;
+      // caseTitle bildirime yazılmıyor (kilit ekranı); tabloya da gönderilmez.
+      const { caseTitle: _caseTitle, ...rest } = input;
       const { data, error } = await supabase
         .from('hearings')
         .insert({ ...rest, owner_id: ownerId! })
         .select()
         .single();
       if (error) throw error;
-      await scheduleFromRow(data as Hearing, caseTitle);
+      await scheduleFromRow(data as Hearing);
       return data as Hearing;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['hearings'] }),
@@ -148,7 +152,7 @@ export function useUpdateHearing() {
     onError: notifySaveError,
     mutationFn: async ({
       id,
-      caseTitle,
+      caseTitle: _caseTitle,
       ...rest
     }: Partial<HearingInput> & { id: string; caseTitle: string; is_completed?: boolean }) => {
       const { data, error } = await supabase.from('hearings').update(rest).eq('id', id).select().single();
@@ -160,7 +164,7 @@ export function useUpdateHearing() {
         // soruyu tekrar sormaktır.
         await cancelReminder(hearingOutcomeId(row.id));
       } else {
-        await scheduleFromRow(row, caseTitle);
+        await scheduleFromRow(row);
       }
       return row;
     },

@@ -25,7 +25,7 @@ yazacağım şeyin gerçekten eksik olduğundan emin olmam gerekiyordu.
 **Var (kodda görüldü):**
 
 - Dava, müvekkil, duruşma, süre, görev, belge, finans yönetimi
-- İcra takibi + tahsilat + **kapak hesabı** (`src/utils/kapak.ts`, İİK 138
+- İcra takibi + tahsilat + **kapak hesabı** (`src/utils/kapak.ts`, TBK m.100
   sırasına göre basit faiz, gün bazında)
 - Çıkar çatışması taraması (`src/utils/menfaatCatismasi.ts` +
   `MenfaatUyarisi`, güçlü/zayıf eşleşme ayrımıyla)
@@ -232,7 +232,7 @@ Rakip taramasının beklemediğim çıktısı bu oldu:
   Bizde `ictihat_atif` + `atif_denetim_kaydi` + `denetim.js` ile bu **zaten
   var** ve içtihat kataloğu buna hizmet ediyor. Uluslararası ürünlerin
   hiçbiri Türk içtihadında bunu yapmıyor.
-- **Kapak hesabı.** İİK 138 sırasına göre, tahsilat tarihlerine duyarlı faiz.
+- **Kapak hesabı.** Masraf → faiz → asıl alacak sırasına göre, tahsilat tarihlerine duyarlı faiz.
   Clio'nun emanet defteri bunun yerine geçmez; bu Türkiye'ye özgü ve
   uluslararası hiçbir üründe yok.
 - **AAÜT + serbest meslek makbuzu mantığı.** Aynı şekilde yerel.

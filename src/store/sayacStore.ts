@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { gecenDakika } from '@/utils/zamanKaydi';
 
 // ÇALIŞAN SAYAÇ.
 // ---------------------------------------------------------------------------
@@ -30,8 +29,6 @@ export interface SayacDurumu {
 
 interface SayacState extends SayacDurumu {
   baslat: (caseId: string | null, caseTitle: string | null) => void;
-  /** Sayacı durdurur ve geçen süreyi DAKİKA olarak döner (en az 1). */
-  durdur: () => number;
   iptal: () => void;
 }
 
@@ -39,7 +36,7 @@ function yaz(d: SayacDurumu) {
   AsyncStorage.setItem(KEY, JSON.stringify(d)).catch(() => {});
 }
 
-export const useSayacStore = create<SayacState>((set, get) => ({
+export const useSayacStore = create<SayacState>((set) => ({
   caseId: null,
   caseTitle: null,
   startedAt: null,
@@ -50,15 +47,9 @@ export const useSayacStore = create<SayacState>((set, get) => ({
     yaz(next);
   },
 
-  durdur: () => {
-    const { startedAt } = get();
-    const dakika = startedAt ? gecenDakika(startedAt) : 0;
-    const next: SayacDurumu = { caseId: null, caseTitle: null, startedAt: null };
-    set(next);
-    yaz(next);
-    return dakika;
-  },
-
+  // `durdur()` KALDIRILDI (10.10.2026): sayacı kayıt yazılmadan silip süreyi
+  // yalnız dönüş değerinde taşıyordu; form kapanınca süre kayboluyordu. Geçen
+  // süreyi `gecenDakika` okur, sayacı kayıt yazılınca `iptal()` kapatır.
   iptal: () => {
     const next: SayacDurumu = { caseId: null, caseTitle: null, startedAt: null };
     set(next);

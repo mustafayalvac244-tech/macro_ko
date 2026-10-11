@@ -12,12 +12,28 @@
 //   • "İİK m.62/son" da öyle: bent/fıkra eki, madde numarasının parçası değil.
 //   • "5 yıllık zamanaşımı" bir tutar değildir; para birimi olmadan sayı alınmaz.
 
-/** Metindeki tarihleri tek biçime indirger: 01.02.2026 / 1/2/2026 / 2026-02-01 */
+// Ay adları, Türkçe harfsiz büyük harfle ("Şubat", "ŞUBAT", "Subat" → SUBAT).
+const AY_NO = {
+  OCAK: 1, SUBAT: 2, MART: 3, NISAN: 4, MAYIS: 5, HAZIRAN: 6,
+  TEMMUZ: 7, AGUSTOS: 8, EYLUL: 9, EKIM: 10, KASIM: 11, ARALIK: 12,
+};
+const TR_ASCII = { 'İ': 'I', 'I': 'I', 'ı': 'I', 'Ş': 'S', 'ş': 'S', 'Ğ': 'G', 'ğ': 'G', 'Ü': 'U', 'ü': 'U', 'Ö': 'O', 'ö': 'O', 'Ç': 'C', 'ç': 'C' };
+const ayAnahtari = (s) => String(s).replace(/[İIıŞşĞğÜüÖöÇç]/g, (c) => TR_ASCII[c] ?? c).toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+/**
+ * Metindeki tarihleri tek biçime indirger: 01.02.2026 / 1/2/2026 / 2026-02-01
+ * ve AY ADIYLA "1 Şubat 2026" (09.10.2026). Ürünle (_shared/dilekce.ts >
+ * tarihAnahtarlari) AYNI olmalı; tests/dilekceSunucu.test.ts karşılaştırır.
+ */
 export function tarihler(metin) {
   const bulunan = new Set();
   const d = String(metin ?? '');
   for (const m of d.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/g)) {
     bulunan.add(`${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`);
+  }
+  for (const m of d.matchAll(/\b(\d{1,2})\s+(\p{L}+)\s+(\d{4})\b/gu)) {
+    const ay = AY_NO[ayAnahtari(m[2])];
+    if (ay) bulunan.add(`${m[3]}-${String(ay).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`);
   }
   for (const m of d.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) bulunan.add(`${m[1]}-${m[2]}-${m[3]}`);
   return bulunan;
@@ -32,13 +48,18 @@ export function tarihler(metin) {
  * denetiminden sessizce geçiyordu. Bu, testi yazarken çıktı — yani denetimin
  * kendisi denetlenmemişti. Resmî dilekçe dilinde tutarlar tam da bu biçimde
  * yazılır; kaçırılan hâl, istisna değil KURALDI.
+ *
+ * SAYI DİLBİLGİSİ SIKI (09.10.2026): eski desen "1. 50.000 TL"yi 150.000,
+ * "Madde 3 47.500 TL"yi 347.500 okuyordu. Binlik grubu ya noktayla ya
+ * boşlukla, tam üç haneyle; önünde rakam/nokta/virgül olamaz. Ürünle
+ * (_shared/dilekce.ts > tutarlariCikar) AYNI.
  */
 export function tutarlar(metin) {
   const bulunan = new Set();
   for (const m of String(metin ?? '').matchAll(
-    /([\d][\d.\s ]*\d|\d)(?:,(\d{1,2}))?\s*(?:TL|₺|Türk Lirası)/gi
+    /(?<![\d.,])(\d{1,3}(?:\.\d{3})+|\d{1,3}(?:[   ]\d{3})+|\d+)(?:,(\d{1,2}))?\s*(?:TL|₺|Türk Lirası)/gi
   )) {
-    const tam = Number(String(m[1]).replace(/[.\s ]/g, ''));
+    const tam = Number(String(m[1]).replace(/[.\s]/g, ''));
     const kurus = m[2] ? Number(String(m[2]).padEnd(2, '0')) / 100 : 0;
     const sayi = tam + kurus;
     if (Number.isFinite(sayi) && sayi > 0) bulunan.add(sayi);

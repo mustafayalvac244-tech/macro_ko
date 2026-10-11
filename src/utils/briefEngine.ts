@@ -1,13 +1,10 @@
 import { supabase } from '@/lib/supabase';
 import type { BriefSections } from '@/hooks/useBriefs';
 import type { CaseWithClient } from '@/types/database';
+import { briefIstemi, catLabel } from '@/utils/briefIstemi';
 
 interface BriefInput {
   caseItem: CaseWithClient;
-}
-
-function catLabel(c: CaseWithClient): string {
-  return c.court_category === 'ceza' ? 'ceza' : c.court_category === 'idare' ? 'idari' : 'hukuk';
 }
 
 /**
@@ -65,21 +62,9 @@ function parseBriefJson(raw: string): Partial<BriefSections> | null {
  * Hata/kota durumunda null döner ve şablon motoru devreye girer.
  */
 export async function generateAiBrief({ caseItem: c }: BriefInput): Promise<BriefSections | null> {
-  const taraflar = `${c.client?.full_name ?? 'Müvekkil'} — karşı taraf: ${c.opposing_party || 'belirtilmemiş'}`;
-  const talep = c.description || c.title;
-  const tur = c.case_type || `${catLabel(c)} davası`;
-  const mahkeme = c.court_name ? ` Mahkeme: ${c.court_name}.` : '';
-
-  const prompt =
-    `Bir ${tur} dosyası için DURUŞMA BRIEF'i hazırla. Taraflar: ${taraflar}. Talep/konu: ${talep}.${mahkeme}\n` +
-    'Şu beş bölümü doldur:\n' +
-    '- acilis: duruşmada okunacak kısa açılış beyanı\n' +
-    '- dayanaklar: hukuki dayanaklar (yalnız EMİN OLDUĞUN madde numaralarını yaz; emin değilsen kanun adını yaz)\n' +
-    '- tanik: tanığa sorulacak sorular\n' +
-    '- karsi: karşı tarafın olası savunmaları ve bunlara hazır cevaplar\n' +
-    '- sonrasi: duruşma sonrası yapılacaklar listesi\n' +
-    'SADECE şu JSON şemasında yanıt ver, başka hiçbir açıklama yazma:\n' +
-    '{"acilis":"...","dayanaklar":"...","tanik":"...","karsi":"...","sonrasi":"..."}';
+  // Müvekkil/karşı taraf adı yapay zekâya GİTMEZ; istem rol sözcükleriyle kurulur
+  // (bkz. utils/briefIstemi). Şablon motoru cihazda kaldığı için gerçek adı kullanır.
+  const prompt = briefIstemi(c);
 
   try {
     const { data, error } = await supabase.functions.invoke('ai-chat', {

@@ -29,7 +29,7 @@ export interface IctihatHit {
 // dosya supabase istemcisini (dolayısıyla react-native'i) çektiği için test
 // ortamında hiç yüklenemiyor. Eşlemeyi burada tutmak, onu sınanamaz kılardı.
 export { ictihatHataAnahtari, type IctihatError } from '@/lib/aiHata';
-import type { IctihatError } from '@/lib/aiHata';
+import { ictihatHataTuru, type IctihatError } from '@/lib/aiHata';
 
 /** Arama mahkeme süzgeci. */
 export type IctihatCourt = 'yargitay' | 'danistay' | 'emsal';
@@ -53,19 +53,11 @@ async function invoke<T>(body: Record<string, unknown>): Promise<T> {
   return data as T;
 }
 
+// Eşleme saf modülde ve testli (src/lib/aiHata.ts > ictihatHataTuru). Burada
+// yalnız altı kod tanınıyordu; kota ve yapay zekâ arızası kodları "İnternet
+// bağlantınızı kontrol edin"e düşüyordu.
 function mapError(e: unknown): IctihatError {
-  const msg = e instanceof Error ? e.message : '';
-  if (msg === 'rate_limit') return 'rate_limit';
-  if (msg === 'source_unreachable') return 'source';
-  if (msg === 'not_configured') return 'ai_off';
-  // KVKK kapısı: yalnız özet ve olay analizi bu kapıdan geçer; kelime araması
-  // ve künye sorgusu yurt dışına aktarım yapmadığı için hiç uğramaz.
-  // Paket kapısı: ücretsiz kullanıcı yapay zekâ özetine/analizine giremez
-  // (kelime araması ve künye sorgusu ücretsiz ve sınırsız kalır).
-  if (msg === 'tier_required') return 'paket';
-  if (msg === 'kvkk_riza_yok') return 'kvkk';
-  if (msg === 'kvkk_kontrol_hatasi') return 'kvkk_arizasi';
-  return 'generic';
+  return ictihatHataTuru(e instanceof Error ? e.message : '');
 }
 
 /** İçtihat arama + sayfalama + tekil karar metni + AI kaynaklı özet. */

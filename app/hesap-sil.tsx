@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Captcha } from '@/components/Captcha';
+import { CAPTCHA_ENABLED } from '@/config/captcha';
 import { supabase } from '@/lib/supabase';
+import { trError } from '@/lib/authErrors';
 import { uyar } from '@/lib/uyari';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
@@ -31,7 +34,21 @@ import type { ThemeColors } from '@/theme/palettes';
  * ÜÇ KATMAN: (1) şifre, (2) onay sözcüğünü elle yazma, (3) son onay penceresi.
  * Onay sözcüğü kasten mekanik bir engeldir — "Evet"e refleksle basmayı
  * zorlaştırır.
+ *
+ * CAPTCHA (09.10.2026). Yeniden doğrulama signInWithPassword ile yapılıyor ve
+ * GoTrue bu isteği captcha'ya tabi tutar (bkz. tests/yenidenDogrulamaCaptcha).
+ * Captcha açıldığı gün jetonsuz istek reddedilir ve hesap SİLİNEMEZ olurdu.
+ * Anahtar yokken <Captcha> hiçbir şey çizmez; davranış bugünküyle aynı.
  */
+
+// Mağazaların belgelediği abonelik yönetim adresleri: Apple
+// developer.apple.com/support/offering-account-deletion-in-your-app, Google
+// developer.android.com/google/play/billing/subscriptions (09.10.2026).
+const ABONELIK_ADRESI =
+  Platform.OS === 'android'
+    ? 'https://play.google.com/store/account/subscriptions'
+    : 'https://apps.apple.com/account/subscriptions/';
+
 export default function HesapSilScreen() {
   const __t = useTheme();
   const colors = __t.colors;
@@ -45,6 +62,16 @@ export default function HesapSilScreen() {
   const [onaySozcugu, setOnaySozcugu] = useState('');
   const [calisiyor, setCalisiyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+  // Turnstile jetonu TEK KULLANIMLIK: her denemeden sonra bileşen yeniden
+  // kurulur (key) ve yeni jeton alınır; yoksa yanlış şifreden sonraki ikinci
+  // deneme harcanmış jetonla reddedilirdi.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaHatasi, setCaptchaHatasi] = useState(false);
+  const [captchaAnahtari, setCaptchaAnahtari] = useState(0);
+
+  const aboneligiYonet = () => {
+    Linking.openURL(ABONELIK_ADRESI).catch(() => uyar(t('delAcc.aboneligiYonet'), ABONELIK_ADRESI));
+  };
 
   const beklenen = t('delAcc.confirmWord');
   // "SIL" (ASCII I) Türkçe küçültmede "sıl" olur ve "SİL" ile eşleşmiyordu;
@@ -54,15 +81,33 @@ export default function HesapSilScreen() {
 
   const sil = async () => {
     setHata(null);
+    // Jeton henüz gelmediyse bekletilir (kayıt ekranıyla aynı kural); captcha
+    // yüklenemediyse istek gider, son sözü sunucu söyler.
+    if (CAPTCHA_ENABLED && !captchaToken && !captchaHatasi) {
+      setHata(t('auth.captchaWait'));
+      return;
+    }
     setCalisiyor(true);
 
     // 1) ŞİFREYLE YENİDEN DOĞRULAMA. Oturum açık olsa bile şifre bilinmeden
     //    hesap silinemez. (change-password.tsx ile aynı yöntem.)
     const email = session?.user.email ?? '';
-    const { error: dogrulamaHatasi } = await supabase.auth.signInWithPassword({ email, password: sifre });
+    const { error: dogrulamaHatasi } = await supabase.auth.signInWithPassword({
+      email,
+      password: sifre,
+      options: captchaToken ? { captchaToken } : undefined,
+    });
+    setCaptchaToken(null);
+    setCaptchaAnahtari((k) => k + 1);
     if (dogrulamaHatasi) {
       setCalisiyor(false);
-      setHata(t('delAcc.wrongPassword'));
+      // Yalnız GERÇEKTEN yanlış şifrede "şifre doğrulanamadı"; ağ/sunucu/
+      // captcha hatası kendi mesajıyla (şifre değiştirmede 08.10'dan beri böyle).
+      setHata(
+        /invalid login credentials/i.test(dogrulamaHatasi.message)
+          ? t('delAcc.wrongPassword')
+          : trError(dogrulamaHatasi.message),
+      );
       return;
     }
 
@@ -95,6 +140,23 @@ export default function HesapSilScreen() {
             <Text style={styles.uyariMetin}>{t('settings.deleteAccountWarn')}</Text>
           </View>
 
+          {/* ABONELİK — Apple'ın hesap silme rehberi: aboneliği olana faturanın
+              mağaza üzerinden süreceğini söyle, silmeden önce iptal ettir.
+              Web'de bağlantı yok: abonelik telefondaki mağaza hesabına bağlı. */}
+          <View style={styles.abonelikKutu}>
+            <Ionicons name="card-outline" size={20} color={colors.warning} />
+            <Text style={styles.abonelikMetin}>{t('delAcc.abonelik')}</Text>
+          </View>
+          {Platform.OS !== 'web' && (
+            <Button
+              label={t('delAcc.aboneligiYonet')}
+              variant="secondary"
+              icon="open-outline"
+              onPress={aboneligiYonet}
+              fullWidth
+            />
+          )}
+
           <Text style={styles.aciklama}>{t('delAcc.lead')}</Text>
 
           <Input
@@ -116,6 +178,9 @@ export default function HesapSilScreen() {
             value={onaySozcugu}
             onChangeText={setOnaySozcugu}
           />
+
+          {/* Görünmez captcha — anahtar yoksa hiç çizilmez. */}
+          <Captcha key={captchaAnahtari} onToken={setCaptchaToken} onError={() => setCaptchaHatasi(true)} />
 
           {!!hata && <Text style={styles.hata}>{hata}</Text>}
 
@@ -149,6 +214,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     padding: spacing.md,
   },
   uyariMetin: { ...typography.small, color: colors.danger, flex: 1, lineHeight: 18 },
+  abonelikKutu: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.warningSoft,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: kose(12),
+    padding: spacing.md,
+  },
+  abonelikMetin: { ...typography.small, color: colors.textPrimary, flex: 1, lineHeight: 18 },
   aciklama: { ...typography.body, color: colors.textSecondary, lineHeight: 21 },
   hata: { ...typography.small, color: colors.danger },
   buton: { marginTop: spacing.xs },

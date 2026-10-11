@@ -14,11 +14,13 @@ import { MONTHLY_PRICE_TRY, AI_PRICE_TRY, AI_SORU_HAKKI, AI_ASIL_MODEL_HAKKI, AI
 import { UCRETSIZ_LIMIT, UCRETSIZ_DENEME_HAKKI } from '@/config/planlar';
 import {
   AI_ENTITLEMENT_ID,
+  aboneligiYonet,
   buyPackage,
   getCurrentOffering,
   getOffering,
   restorePurchases,
 } from '@/lib/purchases';
+import { geriYuklemeMesaji, satinAlmaHataMesaji, ucretliPlanAcik } from '@/lib/satinAlma';
 import {
   AI_AKTARMA_ENABLED,
   AI_BELGE_ENABLED,
@@ -84,7 +86,9 @@ export default function PremiumScreen() {
    * zaten kapatıyor (webhook birkaç saniye sürebilir).
    */
   const profile = useAuthStore((s) => s.profile);
-  const isPremium = !!profile?.is_premium;
+  // Satın alma ve geri yükleme BU kimlik adına yapılır (bkz. purchases.ts >
+  // kimligiDogrula): RevenueCat başka bir kimlikteyse önce buna bağlanır.
+  const userId = useAuthStore((s) => s.session?.user.id);
   const isAiActive = profile?.ai_tier === 'ai';
   const [offeringPkg, setOfferingPkg] = useState<PurchasesPackage | null>(null);
   // AI PAKETİ SÜRELERİ. 04.10.2026 son karar (ürün sahibi: "indirimi iptal et",
@@ -124,7 +128,9 @@ export default function PremiumScreen() {
     );
   }, []);
 
-  const subscribed = isPremium;
+  // Pro kartının "abonesiniz" hâli: is_premium YA DA AI paketi (AI, Pro'yu
+  // içerir). Sunucunun kuralıyla aynı — bkz. satinAlma.ts > ucretliPlanAcik.
+  const subscribed = ucretliPlanAcik(profile);
 
   /**
    * SATIN ALMA KREDİYE BAĞLI DEĞİL — ürün sahibinin kararı (2026-09-11).
@@ -191,7 +197,7 @@ export default function PremiumScreen() {
     setBusyPlan(plan);
     kullanimKaydet(`olay:satin_alma_basla_${plan}`);
     try {
-      const sonuc = await buyPackage(pkg);
+      const sonuc = await buyPackage(pkg, userId);
       if (sonuc.kind === 'success') {
         kullanimKaydet(`olay:satin_alma_tamam_${plan}`);
         // Yetkiyi RevenueCat'in yanıtından DEĞİL, profilden okuruz: son söz
@@ -201,7 +207,13 @@ export default function PremiumScreen() {
         uyar(t('premium.purchaseSuccessTitle'), t('premium.purchaseSuccessBody'));
       } else if (sonuc.kind === 'error') {
         kullanimKaydet(`olay:satin_alma_hata_${plan}`);
-        uyar(t('premium.purchaseFailedTitle'), sonuc.message);
+        // Kimlik bağlanamadığı için satın almanın HİÇ başlatılmadığı durum ayrı
+        // sayılır: bu korumanın gerçek kullanımda ne sıklıkla devreye girdiği
+        // buradan görülür.
+        if (sonuc.neden === 'kimlik') kullanimKaydet(`olay:satin_alma_kimlik_${plan}`);
+        // SDK'nın İngilizce ham metni DEĞİL, nedene karşılık gelen metin.
+        const m = satinAlmaHataMesaji(sonuc.neden);
+        uyar(t(m.baslik), t(m.govde));
       } else if (sonuc.kind === 'cancelled') {
         kullanimKaydet(`olay:satin_alma_vazgec_${plan}`);
       }
@@ -215,21 +227,24 @@ export default function PremiumScreen() {
   const onRestore = async () => {
     setBusyPlan('restore');
     try {
-      const sonuc = await restorePurchases();
-      if (sonuc.kind === 'success') {
-        // Yetkiyi RevenueCat'in yanıtından DEĞİL, profilden okuruz: son söz
-        // sunucudadır. Webhook birkaç saniye sürebildiği için profil birkaç kez
-        // yeniden okunur.
-        profilYenidenOku();
-        uyar(t('premium.restoreDoneTitle'), t('premium.restoreDoneBody'));
-      } else if (sonuc.kind === 'error') {
-        uyar(t('premium.purchaseFailedTitle'), sonuc.message);
-      } else {
-        uyar(t('premium.restoreDoneTitle'), t('premium.restoreNoneBody'));
-      }
+      const sonuc = await restorePurchases(userId);
+      // "Bulundu" yalnız mağaza ETKİN bir yetki döndürdüyse söylenir; boş
+      // yanıt da RevenueCat'te "başarılı"dır (bkz. satinAlma.ts > geriYuklemeMesaji).
+      const m = geriYuklemeMesaji(sonuc);
+      if (!m) return;
+      // Yetkiyi RevenueCat'in yanıtından DEĞİL, profilden okuruz: son söz
+      // sunucudadır. Webhook birkaç saniye sürebildiği için profil birkaç kez
+      // yeniden okunur.
+      if (m.profilYenile) profilYenidenOku();
+      uyar(t(m.baslik), t(m.govde));
     } finally {
       setBusyPlan(null);
     }
+  };
+
+  /** Mağazanın abonelik sayfası (yönet / iptal et). Açılamazsa yolu söyler. */
+  const onManage = async () => {
+    if (!(await aboneligiYonet())) uyar(t('premium.manageCta'), t('premium.manageFailedBody'));
   };
 
   /**
@@ -520,14 +535,41 @@ export default function PremiumScreen() {
         </View>
 
         {/* Apple/Google incelemesi bunu ZORUNLU tutar: daha önce satın alınmış
-            bir aboneliği (ör. cihaz değişimi sonrası) yeniden bağlama yolu. */}
-        <Pressable onPress={onRestore} disabled={busyPlan !== null} style={styles.restoreRow} hitSlop={8}>
-          {busyPlan === 'restore' ? (
-            <ActivityIndicator size="small" color={colors.textSecondary} />
-          ) : (
-            <Text style={styles.restoreText}>{t('premium.restoreCta')}</Text>
-          )}
-        </Pressable>
+            bir aboneliği (ör. cihaz değişimi sonrası) yeniden bağlama yolu.
+            YALNIZ NATİFTE (09.10.2026): web'de mağaza yok; düğme orada hiçbir
+            şeye bakmadan "satın alma bulunamadı" diyordu. */}
+        {Platform.OS !== 'web' && (
+          <Pressable
+            onPress={onRestore}
+            disabled={busyPlan !== null}
+            style={styles.restoreRow}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('premium.restoreCta')}
+          >
+            {busyPlan === 'restore' ? (
+              <ActivityIndicator size="small" color={colors.textSecondary} />
+            ) : (
+              <Text style={styles.restoreText}>{t('premium.restoreCta')}</Text>
+            )}
+          </Pressable>
+        )}
+
+        {/* ABONELİĞİ YÖNET / İPTAL ET — mağazanın abonelik sayfası (adresler ve
+            Apple/Google kaynakları: satinAlma.ts > abonelikYonetimAdresi).
+            Herkese gösterilir: ödediği hâlde hesabında Pro açılmamış biri de
+            iptal yolunu bulabilmeli. Web'de mağaza yok. */}
+        {Platform.OS !== 'web' && (
+          <Pressable
+            onPress={onManage}
+            style={styles.restoreRow}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('premium.manageCta')}
+          >
+            <Text style={styles.restoreText}>{t('premium.manageCta')}</Text>
+          </Pressable>
+        )}
       </ScrollView>
     </Screen>
   );

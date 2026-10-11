@@ -133,7 +133,7 @@ export default function EnforcementFormScreen() {
           <ClientPicker value={clientId} onChange={setClientId} />
 
           <Text style={styles.sectionTitle}>{t('enf.debtor')}</Text>
-          <Input label={t('enf.debtorName')} value={debtorName} onChangeText={setDebtorName} placeholder="Mehmet Kaya / ABC Ltd. Şti." />
+          <Input label={t('enf.debtorName')} value={debtorName} onChangeText={setDebtorName} placeholder={t('enf.debtorNamePh')} />
           <Input label={t('enf.debtorId')} value={debtorId} onChangeText={setDebtorId} keyboardType="number-pad" />
           <Input label={t('enf.debtorAddress')} value={debtorAddress} onChangeText={setDebtorAddress} />
 

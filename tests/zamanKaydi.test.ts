@@ -4,6 +4,7 @@ import {
   dakikaBicimle,
   gecenDakika,
   gecenSureMetni,
+  sayacKaydaAitMi,
   dosyayaGoreOzet,
   saateCevir,
   sureAyristir,
@@ -211,5 +212,36 @@ describe('zamanOzeti', () => {
       toplamTutar: 0,
       ucretsizKalan: 0,
     });
+  });
+});
+
+describe('sayacKaydaAitMi — Durdur kaydı hemen silmesin', () => {
+  // Bulunan kusur (10.10.2026): "Durdur" sayacı ANINDA siliyor, sonra formu
+  // açıyordu. Avukat formdan geri çıkarsa (ya da kayıt hata verirse) geçen
+  // süre — 2 saatlik bir görüşme olabilir — bir daha bulunamıyordu. Doğrusu:
+  // sayaç yalnız kayıt BAŞARIYLA yazıldıktan sonra kapanır; bu işlev "bu kayıt
+  // çalışan sayaçtan mı geldi" sorusunu cevaplar.
+  const calisiyor = { startedAt: 1_000, caseId: 'dava-1' };
+
+  it('sayaçtan açılan formda, aynı dosya için, çalışan sayaç kapatılır', () => {
+    expect(sayacKaydaAitMi(calisiyor, 'dava-1', '1')).toBe(true);
+  });
+
+  it('elle açılan formda (sayaç parametresi yok) sayaca dokunulmaz', () => {
+    expect(sayacKaydaAitMi(calisiyor, 'dava-1', undefined)).toBe(false);
+    expect(sayacKaydaAitMi(calisiyor, 'dava-1', '0')).toBe(false);
+  });
+
+  it('sayaç başka dosyada çalışıyorsa dokunulmaz', () => {
+    expect(sayacKaydaAitMi(calisiyor, 'dava-2', '1')).toBe(false);
+    expect(sayacKaydaAitMi(calisiyor, undefined, '1')).toBe(false);
+  });
+
+  it('sayaç zaten kapalıysa (başka yerden iptal edildi) bir şey yapılmaz', () => {
+    expect(sayacKaydaAitMi({ startedAt: null, caseId: null }, 'dava-1', '1')).toBe(false);
+  });
+
+  it('dosyasız sayaç, dosyasız formla eşleşir', () => {
+    expect(sayacKaydaAitMi({ startedAt: 5, caseId: null }, undefined, '1')).toBe(true);
   });
 });

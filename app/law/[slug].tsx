@@ -6,22 +6,22 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import type { LawArticle } from '@/data/laws/loader';
+import { mulgaMi } from '@/data/laws/mulga';
 import { useLaw } from '@/data/laws/useLaw';
+import { aramaKatla } from '@/utils/arama';
 import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 
 function norm(s: string): string {
-  // Türkçe küçük harf + şapkalı harfleri sadeleştir (î→i, â→a, û→u) ki
-  // "ihtiyati" yazınca "İhtiyatî" başlıklı maddeyi de bulsun.
-  return s
-    .toLocaleLowerCase('tr-TR')
-    .replace(/î/g, 'i')
-    .replace(/â/g, 'a')
-    .replace(/û/g, 'u');
+  // Türkçe + şapkalı harf katlaması (î→i, â→a, û→u; ş→s …) ki "ihtiyati"
+  // yazınca "İhtiyatî", "sikayet" yazınca "şikâyet" bulunsun. UZUNLUK KORUNUR:
+  // renderSnippet bulunan yeri özgün metinde bu dizinle gösteriyor.
+  return aramaKatla(s);
 }
 
 export default function LawBrowserScreen() {
@@ -46,6 +46,11 @@ export default function LawBrowserScreen() {
       // exact article number, plus its "12/A" style variants
       return articles.filter((a) => a.no === q || a.no.startsWith(`${q}/`));
     }
+    // Harfli alt madde ("217/A", "169/a", "217 / a"): büyük/küçük harf duyarsız TAM eşleşme.
+    if (/^\d+\s*\/\s*[A-Za-zÇĞİÖŞÜçğıöşü]$/.test(q)) {
+      const hedef = norm(q).replace(/\s+/g, '');
+      return articles.filter((a) => norm(a.no) === hedef);
+    }
     const nq = norm(q);
     // Başlık + bölüm + gövde + madde no üzerinde ara ve öncelik sırasına diz:
     // (0) başlıkta geçen, (1) bölüm/sistematik başlığında geçen, (2) gövdede.
@@ -54,7 +59,7 @@ export default function LawBrowserScreen() {
     const rank = (a: LawArticle): number => {
       if (a.title && norm(a.title).includes(nq)) return 0;
       if (a.section && norm(a.section).includes(nq)) return 1;
-      if (norm(a.text).includes(nq) || a.no.includes(q)) return 2;
+      if (norm(a.text).includes(nq) || norm(a.no).includes(nq)) return 2;
       return 3;
     };
     return articles
@@ -163,6 +168,11 @@ export default function LawBrowserScreen() {
                     {item.title || t('laws.articleN', { no: item.no })}
                   </Text>
                   {!!item.title && <Text style={styles.articleNo}>{t('laws.articleN', { no: item.no })}</Text>}
+                  {mulgaMi(item) && (
+                    <View style={styles.mulgaRozet}>
+                      <Badge label={t('laws.repealed')} color={colors.danger} backgroundColor={colors.dangerSoft} />
+                    </View>
+                  )}
                 </View>
                 <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
               </Pressable>
@@ -249,6 +259,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.small,
     color: colors.textMuted,
     marginTop: 1,
+  },
+  // Mülga (yürürlükten kalkmış) madde rozeti
+  mulgaRozet: {
+    marginTop: spacing.xxs,
   },
   snippet: {
     ...typography.caption,

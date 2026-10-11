@@ -1,15 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
+import { tabloYokMu } from '@/utils/tabloYok';
+import { tumSayfalar } from '@/utils/sayfalama';
 import { useAuthStore } from '@/store/authStore';
 import type { FinanceEntry } from '@/types/database';
 
 /** True when the 0006_office_finance.sql migration hasn't been run yet. */
 export function isMissingFinanceTable(err: unknown): boolean {
-  const e = err as { code?: string; message?: string } | null;
-  if (!e) return false;
-  if (e.code === '42P01' || e.code === 'PGRST205') return true;
-  return (e.message ?? '').toLowerCase().includes('finance_entries');
+  // Yalnız gerçek "tablo yok" hatası; kısıt/RLS hatası tablo adı taşısa da sayılmaz.
+  return tabloYokMu(err, 'finance_entries');
 }
 
 export function useFinanceEntries() {
@@ -19,15 +19,19 @@ export function useFinanceEntries() {
     queryKey: ['finance', 'entries', ownerId],
     enabled: !!ownerId,
     retry: (failureCount, error) => !isMissingFinanceTable(error) && failureCount < 1,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('finance_entries')
-        .select('*')
-        .eq('owner_id', ownerId!)
-        .order('entry_date', { ascending: false });
-      if (error) throw error;
-      return data as FinanceEntry[];
-    },
+    // Sayfa sayfa: tek sorgu PostgREST satır tavanında (varsayılan 1000)
+    // sessizce kesilir, en eski kalemler aylık toplamlardan düşerdi
+    // (bkz. utils/sayfalama). Sıra benzersiz: sonda `id`.
+    queryFn: async () =>
+      (await tumSayfalar((bas, son) =>
+        supabase
+          .from('finance_entries')
+          .select('*', { count: 'exact' })
+          .eq('owner_id', ownerId!)
+          .order('entry_date', { ascending: false })
+          .order('id', { ascending: true })
+          .range(bas, son),
+      )) as FinanceEntry[],
   });
 }
 

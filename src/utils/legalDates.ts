@@ -3,12 +3,12 @@ import { addMonths } from 'date-fns/addMonths';
 import { addYears } from 'date-fns/addYears';
 import { getDay } from 'date-fns/getDay';
 import { lastDayOfMonth } from 'date-fns/lastDayOfMonth';
-import type { LegalDurationUnit } from '@/constants/legalDeadlines';
+import type { LegalDeadlineDef, LegalDurationUnit } from '@/constants/legalDeadlines';
 
 /**
- * Fixed-date Turkish national holidays (month is 1-based). Religious holidays
- * (Ramazan/Kurban) shift every year and are deliberately NOT extended over:
- * showing an earlier due date is always safe, extending wrongly is not.
+ * Fixed-date Turkish national holidays (month is 1-based), 2429 s.K. m.2.
+ * Dini bayramlar (Ramazan/Kurban) yıldan yıla kaydığı için aşağıda ayrı bir
+ * tabloda tutulur (DINI_BAYRAM_AREFELERI).
  */
 const FIXED_HOLIDAYS: Array<[number, number]> = [
   [1, 1], // Yılbaşı
@@ -30,7 +30,7 @@ function isFixedHoliday(d: Date): boolean {
 }
 
 export function isNonWorkingDay(d: Date): boolean {
-  return isWeekend(d) || isFixedHoliday(d);
+  return isWeekend(d) || isFixedHoliday(d) || isLikelyReligiousHoliday(d);
 }
 
 /** Adli tatil: 20 Temmuz – 31 Ağustos (HMK 102). */
@@ -83,43 +83,115 @@ export const IDARI_TATIL_ISTISNA_UYARISI =
   'süre uzamaz. Mahkemenizin bu kapsamda olup olmadığını teyit edin.';
 
 /**
- * Diyanet takvimine göre dini bayram günleri (arefe hariç, tam günler).
- * Yıllara göre kaydıkları için otomatik UZATMA yapılmaz — yanlış uzatmak süre
- * kaçırtır; yalnızca "kontrol edin" uyarısı göstermek için kullanılır.
+ * Bir süre tanımının adli tatil kuralı: SÜRE BAZLI istisna (`recess: 'none'`)
+ * varsa o, yoksa grubun kuralı. Grup tek başına yetmez — uzama sürenin kendi
+ * kanununa ve davanın türüne bağlıdır:
+ *
+ * - HMK m.104: "Adli tatile tabi olan dava ve işlerde, BU KANUNUN tayin
+ *   ettiği süreler ..." uzar. HMK m.103/1'de sayılan dava ve işler (geçici
+ *   hukuki koruma ve BUNLARA KARŞI İTİRAZLAR, nafaka/soybağı/velayet/vesayet,
+ *   işçi davaları, iflas/konkordato, çekişmesiz yargı, ivedi işler ...) tatilde
+ *   görüldüğü için adli tatile tabi değildir; süreleri UZAMAZ.
+ * - İYUK m.8/3 yalnız "Bu Kanunda yazılı" süreleri uzatır; 6216 s.K. m.47/5'te
+ *   (AYM bireysel başvuru) adli tatil/uzama hükmü yoktur.
+ *
+ * ÖNCE grup tek kural veriyordu: ihtiyati tedbire itiraz, işe iade ve AYM
+ * başvurusu da 7/8 Eylül'e uzatılıyordu — SONRAKİ (yani tehlikeli) yönde yanlış.
  */
-const RELIGIOUS_HOLIDAY_RANGES: Array<[string, string]> = [
-  ['2026-03-20', '2026-03-22'], // Ramazan Bayramı 2026
-  ['2026-05-27', '2026-05-30'], // Kurban Bayramı 2026
-  ['2027-03-09', '2027-03-11'], // Ramazan Bayramı 2027
-  ['2027-05-16', '2027-05-19'], // Kurban Bayramı 2027
-  ['2028-02-26', '2028-02-28'], // Ramazan Bayramı 2028
-  ['2028-05-05', '2028-05-08'], // Kurban Bayramı 2028
+export function recessRuleForDeadline(def: Pick<LegalDeadlineDef, 'group' | 'recess'>): RecessRule {
+  return def.recess === 'none' ? 'none' : recessRuleForGroup(def.group);
+}
+
+/**
+ * DİNİ BAYRAMLAR — HMK m.93: "Sürenin son gününün resmî tatil gününe
+ * rastlaması hâlinde, süre tatili takip eden ilk iş günü çalışma saati sonunda
+ * biter." Dini bayram günleri resmî tatildir (2429 s.K. m.2/B). ÖNCE bu tablo
+ * yoktu ve bayram günü son gün olarak GÖSTERİLİYORDU: yön güvenliydi (erken
+ * tarih) ama yanlıştı; avukat bayramda bitmeyen bir süreyi bayramdan önce
+ * bitirmeye çalışıyordu.
+ *
+ * ÖLÇÜ (2429 s.K. m.2/B): "Ramazan Bayramı; Arefe günü saat 13:00'ten itibaren
+ * 3,5 gündür. Kurban Bayramı; Arefe günü saat 13:00'ten itibaren 4,5 gündür."
+ * Yani arefe YARIM gündür (kaydırılmaz, yalnız uyarılır); ardından Ramazan 3,
+ * Kurban 4 tam gün gelir. 28 Ekim de aynı biçimde yarım gündür (m.1).
+ *
+ * KAYNAK: Diyanet İşleri Başkanlığı Takvim sayfaları, "Dini Günler Listesi" ve
+ * "Resmi Tatiller" (vakithesaplama.diyanet.gov.tr, icerik=154/158/185–192;
+ * 10.10.2026'da çekildi). 2027–2035'teki 19 arefe tarihi ve hafta günleri
+ * sayfadaki satırlarla satır satır karşılaştırıldı; 2026 "Resmi Tatiller"
+ * sayfasından. Köprü/idari izin günleri resmî tatil DEĞİLDİR, burada yoktur.
+ *
+ * Her satır: [arefe günü, bayramın tam gün sayısı]. 1. gün = arefe + 1.
+ * Yeni yıl eklerken aynı kaynaktan arefe tarihini ve gün sayısını ekleyin ve
+ * DINI_BAYRAM_KAPSAM_SON_YIL sabitini güncelleyin.
+ */
+const DINI_BAYRAM_AREFELERI: Array<[string, 3 | 4]> = [
+  ['2026-03-19', 3], ['2026-05-26', 4],
+  ['2027-03-08', 3], ['2027-05-15', 4],
+  ['2028-02-25', 3], ['2028-05-04', 4],
+  ['2029-02-13', 3], ['2029-04-23', 4],
+  ['2030-02-03', 3], ['2030-04-12', 4],
+  ['2031-01-23', 3], ['2031-04-01', 4],
+  ['2032-01-13', 3], ['2032-03-21', 4],
+  ['2033-01-01', 3], ['2033-03-10', 4], ['2033-12-22', 3], // 2033'te iki Ramazan Bayramı
+  ['2034-02-28', 4], ['2034-12-11', 3],
+  ['2035-02-17', 4], ['2035-11-30', 3],
 ];
+
+/** Tablonun kapsadığı ilk yıl (son yıl için DINI_BAYRAM_KAPSAM_SON_YIL). */
+const DINI_BAYRAM_KAPSAM_ILK_YIL = 2026;
 
 /**
  * Bayram tablosunun kapsadığı SON yıl.
  *
- * NEDEN DIŞA VERİLİYOR. `isLikelyReligiousHoliday`, tablo tükendiğinde her
- * tarih için sessizce false döner: 2029'da bir süre Kurban Bayramı'na denk
- * gelse bile "bayrama denk gelebilir" uyarısı ÇIKMAZ. Ekranda her zaman
- * gösterilen genel uyarı ("dini bayram tatilleri hesaba katılmaz") bu kaybı
- * kısmen karşılıyor, ama özel uyarının sessizce yok olması yine de istenmez.
- *
- * Bu sabit, tabloyu güncellemeyi hatırlatan bir TESTİN tutunma noktasıdır
- * (bkz. tests/legalDates.test.ts — kapsam bitmeden kırmızıya döner). Çalışma
- * anında bir davranışı değiştirmez; amacı sessiz çürümeyi görünür kılmaktır.
+ * NEDEN DIŞA VERİLİYOR. Tablo tükendiğinde sonraki yıllar için bayramlar
+ * sessizce "yokmuş" gibi davranırdı. Kapsam dışındaki tarihlerde `religiousWarn`
+ * AÇILIR (bayram etkisi hesaplanamadı); ayrıca tests/legalDates.test.ts kapsam
+ * bitmeden kırmızıya döner ve tablonun güncellenmesini hatırlatır.
  */
-export const DINI_BAYRAM_KAPSAM_SON_YIL = 2028;
+export const DINI_BAYRAM_KAPSAM_SON_YIL = 2035;
 
+function yerelTarih(iso: string): Date {
+  const [y, m, g] = iso.split('-').map(Number);
+  return new Date(y, m - 1, g);
+}
+
+function gunAnahtari(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+const AREFE_ANAHTARLARI = new Set<string>();
+const BAYRAM_ANAHTARLARI = new Set<string>();
+for (const [arefe, gunSayisi] of DINI_BAYRAM_AREFELERI) {
+  AREFE_ANAHTARLARI.add(arefe);
+  for (let i = 1; i <= gunSayisi; i++) {
+    BAYRAM_ANAHTARLARI.add(gunAnahtari(addDays(yerelTarih(arefe), i)));
+  }
+}
+
+/** Dini bayramın TAM tatil günü mü? (Arefe değil; arefe yarım gündür.) */
 export function isLikelyReligiousHoliday(d: Date): boolean {
-  const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  return RELIGIOUS_HOLIDAY_RANGES.some(([start, end]) => key >= start && key <= end);
+  return BAYRAM_ANAHTARLARI.has(gunAnahtari(d));
+}
+
+/**
+ * Yarım gün tatil: dini bayram arefeleri ve 28 Ekim (2429 s.K. m.1, m.2/B —
+ * "saat 13:00'ten itibaren"). Gün kaydırılmaz, çünkü sabahı çalışma günüdür;
+ * ama dilekçe 13.00'ten sonra verilecekse risk vardır, kullanıcı uyarılır.
+ */
+export function isHalfDayHoliday(d: Date): boolean {
+  return AREFE_ANAHTARLARI.has(gunAnahtari(d)) || (d.getMonth() === 9 && d.getDate() === 28);
+}
+
+function bayramTablosuKapsiyor(d: Date): boolean {
+  const y = d.getFullYear();
+  return y >= DINI_BAYRAM_KAPSAM_ILK_YIL && y <= DINI_BAYRAM_KAPSAM_SON_YIL;
 }
 
 export interface LegalDueResult {
   /** Statutory end of the period before any holiday extension. */
   raw: Date;
-  /** Actual last day: extended past adli tatil and weekends/fixed holidays. */
+  /** Actual last day: extended past adli tatil and weekends/official holidays (dini bayramlar dahil). */
   due: Date;
   /** True when the raw date fell on a non-working day and was extended. */
   extended: boolean;
@@ -127,7 +199,16 @@ export interface LegalDueResult {
   inRecess: boolean;
   /** True when the period was extended past adli tatil (HMK 104 / CMK 331). */
   recessExtended: boolean;
-  /** True when the due date may coincide with a religious holiday. */
+  /**
+   * True when the rule is 'none' although the raw last day fell inside adli
+   * tatil: uygulama bu süre için tatil uzaması HESAPLAMADI (ekran bunu söyler).
+   */
+  recessNotApplied: boolean;
+  /**
+   * True when dini bayram bilgisi eksik/dikkat gerektirir: son gün yarım gün
+   * tatile (arefe, 28 Ekim) denk geliyor ya da tarih bayram tablosunun
+   * kapsamı dışında (bayram etkisi hesaplanamadı).
+   */
   religiousWarn: boolean;
 }
 
@@ -141,8 +222,15 @@ export interface LegalDueResult {
  * - years: same date next year(s).
  * Then, if the last day falls inside adli tatil, the period is deemed extended
  * from the end of the recess (HMK 104: one week; CMK 331/4: three days).
- * Finally HMK 93: a last day landing on a weekend/official holiday rolls to
- * the next working day.
+ * Finally HMK 93: a last day landing on a weekend/official holiday (dini
+ * bayramlar dahil) rolls to the next working day.
+ *
+ * SIRA önemlidir ve böyledir: önce adli tatil uzaması (HMK 104), SONRA hafta
+ * sonu/resmî tatil kaydırması (HMK 93). Uzamanın bittiği gün (7 Eylül 2025 gibi)
+ * hafta sonuna düşerse ilk iş gününe kayar. AÇIK SORU (meslektaş teyidi):
+ * son gün hafta sonuna düşüp HMK 93 ile tatilin ilk günü olan 20 Temmuz'a
+ * kayarsa HMK 104 uzaması uygulanır mı? Uygulanmaz (erken tarih verilir,
+ * güvenli yön); ekran `inRecess` ile uyarır.
  */
 export function computeLegalDue(
   notifiedAt: Date,
@@ -192,6 +280,7 @@ export function computeLegalDue(
     extended: !recessExtended && due.getTime() !== raw.getTime(),
     inRecess: isInJudicialRecess(due),
     recessExtended,
-    religiousWarn: isLikelyReligiousHoliday(due),
+    recessNotApplied: recess === 'none' && isInJudicialRecess(raw),
+    religiousWarn: isHalfDayHoliday(due) || !bayramTablosuKapsiyor(raw) || !bayramTablosuKapsiyor(due),
   };
 }

@@ -1,13 +1,14 @@
 import { create } from 'zustand';
 import { dosyaBaytlari } from '@/lib/girdi';
 import type { Session } from '@supabase/supabase-js';
-import { DOCUMENTS_BUCKET, supabase } from '@/lib/supabase';
+import { DOCUMENTS_BUCKET, diskOturumu, supabase } from '@/lib/supabase';
 import { trError } from '@/lib/authErrors';
 import { kayitKaynagi } from '@/lib/kullanim';
 import { beklemeSaniyesi } from '@/lib/authBekleme';
 import { resetQueryCache } from '@/lib/queryClient';
 import { cancelAllReminders, pushAdresiniSil } from '@/lib/notifications';
 import { sohbetGecmisiniSil } from '@/lib/sohbetDeposu';
+import { belgeYollari, depodanSil } from '@/utils/hesapSilme';
 import { useSayacStore } from '@/store/sayacStore';
 import type { Profile } from '@/types/database';
 
@@ -74,11 +75,42 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   error: null,
 
   initialize: () => {
+    const oturumuKur = (session: Session | null) => {
+      set({ session, isInitializing: false });
+      if (session) get().refreshProfile();
+      else set({ profile: null });
+    };
+
+    // ÇEVRİMDIŞI SOĞUK AÇILIŞTA GİRİŞ EKRANI ÇIKIYORDU (09.10.2026, auth-js
+    // 2.110 kodu okunarak doğrulandı; cihazda denenmedi).
+    // Erişim jetonunun süresi dolmuşsa (Supabase varsayılanı 1 saat; bu
+    // projenin değeri ölçülmedi) auth-js açılışta önce yenilemeyi dener. Ağ
+    // yoksa yenileme düşer, getSession ve INITIAL_SESSION `session: null`
+    // döner — ama auth-js diskteki oturumu SİLMEZ: yalnız oturum gerçekten
+    // ölünce (yenileme reddedildi) siler. Mağaza bu null'ı "oturum yok" sayıp
+    // giriş ekranını gösteriyordu; adliyede çekmeyen yerde uygulamayı açan
+    // avukat cihazdaki önbelleğe (davalar, duruşmalar) ulaşamıyordu.
+    // Artık açılıştaki boş yanıtta disk sorulur: oturum orada duruyorsa
+    // uygulama onunla açılır. Ağ gelince auth-js jetonu kendisi yeniler
+    // (TOKEN_REFRESHED), oturum öldüyse SIGNED_OUT ile girişe düşülür. Bu
+    // arada anonim gidecek istekler src/lib/oturumKorumasi.ts ile kesilir.
+    //
+    // SIRA: disk okunurken daha yeni bir oturum olayı geldiyse okumanın sonucu
+    // atılır (geç dönen okuma, yenilenmiş oturumu ezmesin).
+    let sira = 0;
+    const bosIseDisktekiyle = (session: Session | null) => {
+      const benim = ++sira;
+      if (session) {
+        oturumuKur(session);
+        return;
+      }
+      diskOturumu().then((disk) => {
+        if (benim === sira) oturumuKur(disk);
+      });
+    };
+
     supabase.auth.getSession()
-      .then(({ data }) => {
-        set({ session: data.session, isInitializing: false });
-        if (data.session) get().refreshProfile();
-      })
+      .then(({ data }) => bosIseDisktekiyle(data.session))
       // ÇEVRİMDIŞI AÇILIŞTA YAKALANMAMIŞ HATA BIRAKMA.
       // Bu çağrının .catch()'i yoktu: ağ yokken söz reddediliyor ve hiçbir yer
       // sahiplenmediği için tarayıcıda "A network error occurred" diye sayfa
@@ -89,14 +121,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // kilitlenmiyordu; ama sahipsiz hata hem hata raporlamasını kirletiyor
       // hem de bazı kurulumlarda kullanıcıya hata katmanı olarak görünüyor.
       // Adliyede kapsama düşen avukat bunu görecek olan kişidir.
-      .catch(() => {
-        set({ isInitializing: false });
-      });
+      .catch(() => bosIseDisktekiyle(null));
 
     // Güvenlik ağı: oturum okuma (token yenileme) ağ nedeniyle takılırsa açılış
-    // ekranı sonsuza kadar beklemesin — en geç 2 sn'de uygulamayı aç. getSession
-    // normalde yereldeki oturumu hemen döndüğü için bu nadiren devreye girer.
-    const bootTimeout = setTimeout(() => set({ isInitializing: false }), 2000);
+    // ekranı sonsuza kadar beklemesin — en geç 2 sn'de uygulamayı aç. Ağ yokken
+    // auth-js yenilemeyi geri çekilmeli olarak yeniden denediği için getSession
+    // geç döner; bu yüzden emniyet ağı da diske bakar (yukarıdaki gerekçe).
+    const bootTimeout = setTimeout(() => {
+      if (get().isInitializing) bosIseDisktekiyle(null);
+    }, 2000);
 
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       const oncekiKullanici = get().session?.user.id;
@@ -115,12 +148,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // dava adı görünüyor, Başlat kalıcı kapalı kalıyordu.
         useSayacStore.getState().iptal();
       }
-      set({ session, isInitializing: false });
-      if (session) {
-        get().refreshProfile();
-      } else {
-        set({ profile: null });
+      // İlk olay boş gelirse sebep "oturum yok" da olabilir "ağ yok, jeton
+      // yenilenemedi" de; ayrımı auth-js'in diski yapar (yukarıdaki gerekçe).
+      // Diğer olaylar (SIGNED_OUT dahil) olduğu gibi uygulanır.
+      if (event === 'INITIAL_SESSION') {
+        bosIseDisktekiyle(session);
+        return;
       }
+      sira++;
+      oturumuKur(session);
     });
 
     return () => {
@@ -327,27 +363,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
      * koşulları silmenin "belgeler dahil tüm kayıtları" kapsadığını söylüyor;
      * söylenenle olanın ayrışmaması için avatar da listeye eklendi.
      *
-     * PARÇALAMA: tek çağrıya çok sayıda yol koymak, belgesi çok olan bir
-     * avukatta isteğin tamamen reddedilmesine yol açabilir — o durumda HİÇBİR
-     * dosya silinmezdi. 100'erlik parçalar hâlinde gönderiliyor.
-     *
-     * HATA OLURSA YİNE DE HESAP SİLİNİR. Silme kullanıcının hakkıdır; depo
-     * hatası yüzünden hesabı silinemez hâlde bırakmak daha ağır bir sonuçtur.
-     * Bu yüzden hata yutulur ama parçalama sayesinde "hepsi ya da hiçbiri"
-     * riski ortadan kalkar.
+     * DEPO YA DA LİSTE HATASINDA HESAP SİLİNMEZ (09.10.2026). Eskiden hata
+     * yok sayılıp hesap yine de siliniyordu — gerekçe "silme hakkı
+     * engellenmesin" idi. storage-js hatayı fırlatmaz, döndürür: `.catch`
+     * hiçbir şey yakalamıyor, dönen hata da okunmuyordu; belge listesi
+     * sorgusunun hatası da okunmuyordu (liste okunamazsa HİÇBİR dosya
+     * silinmiyordu). Sonuç: dosyalar depoda kalıyor, belge satırları cascade
+     * ile gidiyor (yollar bir daha bulunamaz) ve ekran "kalıcı olarak
+     * silinir" diyordu. Artık hata fırlatılır, ekran "Hesap silinemedi,
+     * tekrar deneyin" der; tekrar denemek güvenli (bkz. src/utils/hesapSilme.ts).
      */
-    const { data: docs } = await supabase.from('documents').select('file_path').eq('owner_id', userId);
-    const paths = (docs ?? []).map((d: { file_path: string }) => d.file_path).filter(Boolean);
+    const paths = await belgeYollari((bas, son) =>
+      supabase.from('documents').select('file_path').eq('owner_id', userId).order('id').range(bas, son),
+    );
     const avatarPath = get().profile?.avatar_url;
     if (avatarPath) paths.push(avatarPath);
 
-    const PARCA = 100;
-    for (let i = 0; i < paths.length; i += PARCA) {
-      await supabase.storage
-        .from(DOCUMENTS_BUCKET)
-        .remove(paths.slice(i, i + PARCA))
-        .catch(() => {});
-    }
+    await depodanSil((parca) => supabase.storage.from(DOCUMENTS_BUCKET).remove(parca), paths);
 
     // Server-side function deletes the auth user; every table cascades from it.
     const { error } = await supabase.rpc('delete_account');

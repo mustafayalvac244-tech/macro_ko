@@ -49,6 +49,19 @@ export interface ContractResult {
   warnings: string[];
 }
 
+/**
+ * Müvekkil seçilince forma yazılacak alanlar. TC ve adres kayıtta yoksa BOŞ
+ * döner: eskiden seçici yalnız ad/adres yazıyordu, TC hiç aktarılmıyor ve
+ * elle girilmiş eski bir TC başka müvekkile ait sözleşmede kalıyordu.
+ */
+export function muvekkilFormAlanlari(c: {
+  full_name?: string | null;
+  tc_no?: string | null;
+  address?: string | null;
+}): { ad: string; tc: string; adres: string } {
+  return { ad: c.full_name ?? '', tc: c.tc_no ?? '', adres: c.address ?? '' };
+}
+
 function money(n: number | undefined): string {
   if (n == null || isNaN(n)) return '—';
   // Binlik ayracı (nokta) — Intl'e bağımlı değil, Hermes'te de güvenli.
@@ -190,8 +203,14 @@ export function buildContract(input: ContractInput): ContractResult {
   }
   items.push({
     baslik: 'AZİL VE İSTİFA',
-    icerik:
-      "Haklı bir sebep olmaksızın azil hâlinde, Avukatlık Kanunu m. 174 uyarınca kararlaştırılan ücretin tamamı AVUKAT'a ödenir. AVUKAT'ın haklı sebeple istifası hâlinde de aynı hüküm uygulanır.",
+    // Av.K. m.174 (mevzuat.gov.tr, 10.10.2026): azilde ücretin tamamı verilir,
+    // avukat kusur/ihmaliyle azledilmişse ödenmez; haklı sebep olmadan işi
+    // bırakan avukat ücret isteyemez ve peşin aldığını iade eder.
+    // Danışmanlıkta sona erme SÜRE VE FESİH maddesine bağlıdır; burada ikinci
+    // bir "ücretin tamamı" kuralı yazılırsa 30 günlük fesih hakkıyla çelişir.
+    icerik: isDanisma
+      ? "Sözleşmenin sona erdirilmesi (MÜVEKKİL'in AVUKAT'ı azli ve AVUKAT'ın istifası dâhil) yalnızca SÜRE VE FESİH maddesindeki usule göre yapılır; işlemekte olan döneme ait ücret ödenir. Avukatlık Kanunu m. 174 hükümleri saklıdır."
+      : "MÜVEKKİL'in AVUKAT'ı azletmesi hâlinde, Avukatlık Kanunu m. 174 uyarınca kararlaştırılan ücretin tamamı AVUKAT'a ödenir; ancak AVUKAT kusur veya ihmali nedeniyle azledilmişse ücret ödenmez. AVUKAT üzerine aldığı işi haklı bir sebep olmaksızın takipten vazgeçerse hiçbir ücret isteyemez ve peşin aldığı ücreti iade eder.",
   });
   items.push({
     baslik: 'GİZLİLİK VE KİŞİSEL VERİLER',
@@ -225,7 +244,7 @@ export function buildContract(input: ContractInput): ContractResult {
     (input.feeModel === 'danismanlik' && input.aylikDanismanlik);
   if (!hasFee) {
     warnings.push(
-      'Ücret girilmedi. Ücret kararlaştırılmazsa Avukatlık Asgari Ücret Tarifesi uygulanır (Av.K. m. 163-164).'
+      'Ücret girilmedi. Ücret kararlaştırılmamışsa Av.K. m. 164 uyarınca belirlenir ve Avukatlık Asgari Ücret Tarifesi\'nin altında olamaz.'
     );
   }
   if ((input.feeModel === 'nispi' || input.feeModel === 'karma') && nispiSakincaliMi(input.hukukAlani)) {
@@ -244,8 +263,21 @@ export function buildContract(input: ContractInput): ContractResult {
   if (!input.muvekkilAd || !input.avukatAd) {
     warnings.push('Taraf bilgileri eksik. Avukat ve müvekkil ad-soyad alanları doldurulmalıdır.');
   }
+  // Boş bırakılan alanlar metinde SESSİZCE düşüyordu (adres yok → tebligat
+  // maddesi boşa bağlanıyor, konu yok → "belli hukukî yardım" yok).
+  if (!isDanisma && !input.uyusmazlik && !input.hukukAlani) {
+    warnings.push(
+      'İşin konusu (hukuk alanı / uyuşmazlık) girilmedi. Av.K. m. 163 uyarınca avukatlık sözleşmesinin belli bir hukukî yardımı kapsaması gerekir.'
+    );
+  }
+  if (!input.muvekkilAdres) {
+    warnings.push('Müvekkil adresi girilmedi; tebligat adresleri maddesi bu adrese dayanır.');
+  }
+  if (!input.imzaYeri) {
+    warnings.push('İmza yeri girilmedi; yetkili mahkeme maddesinde ve imza satırında boşluk (…………) kalacak.');
+  }
   warnings.push(
-    'Avukatlık sözleşmesi yazılı yapılmalı ve iki tarafça imzalanmalıdır (Av.K. m. 163). Bu taslağı imzadan önce gözden geçirin.'
+    'Avukatlık sözleşmesi serbestçe düzenlenir; yazılı olmayan anlaşmalar genel hükümlere göre ispatlanır (Av.K. m. 163). İspat kolaylığı için yazılı yapıp iki tarafça imzalayın ve imzadan önce bu taslağı gözden geçirin.'
   );
 
   return { title, body, warnings };

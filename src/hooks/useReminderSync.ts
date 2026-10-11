@@ -2,9 +2,13 @@ import { useEffect } from 'react';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
 import { useAllPromises } from '@/hooks/usePaymentPromises';
-import { useCases } from '@/hooks/useCases';
 import { bildirimPlaniYap, type PlanEtkinligi } from '@/utils/bildirimPlani';
-import { syncEtkinlikBildirimleri, type BildirimOneki, type PlanKaynak } from '@/lib/notifications';
+import {
+  syncEtkinlikBildirimleri,
+  useBildirimIzni,
+  type BildirimOneki,
+  type PlanKaynak,
+} from '@/lib/notifications';
 import { formatMoney } from '@/utils/format';
 
 /**
@@ -23,6 +27,10 @@ import { formatMoney } from '@/utils/format';
  * olduğunu sanıyordu. Bu kanca, ana ekran her açıldığında planı sunucudaki
  * kayıtlardan yeniden üretip eksiği tamamlıyor.
  *
+ * İZİN DEĞİŞİNCE DE KOŞAR (09.10.2026). Önceden yalnız veri yenilenince
+ * koşuyordu: izin penceresi açıkken gelen veriyle "izin yok" deyip çıkıyor,
+ * "İzin ver"e basılınca hiçbir şey kurulmuyordu (üçüncü maddenin kendisi).
+ *
  * AYRICA iOS BÜTÇESİNİ UYGULAR: iOS'ta bekleyen bildirim tavanı 64'tür ve
  * fazlası sessizce düşer. Plan, en yakın tarihli bildirimleri önceler
  * (bkz. utils/bildirimPlani.ts) — böylece bütçe dolduğunda düşen her zaman en
@@ -32,27 +40,19 @@ export function useReminderSync() {
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
   const promises = useAllPromises();
-  /**
-   * Ana ekran zaten `useCases({ status: 'open' })` çağırıyor; AYNI anahtarı
-   * kullanmak fazladan bir tam tablo isteğini önlüyor. Önceki hâl filtresiz
-   * `useCases()` çağırıyordu ve bu, yalnız bildirim gövdesine dava adı yazmak
-   * için kapanmış davalar dâhil her kaydı ikinci kez indiriyordu.
-   * Kapanmış bir davanın duruşmasında alt satır dava adı yerine duruşma adını
-   * gösterir — hatırlatmanın kendisi etkilenmez.
-   */
-  const cases = useCases({ status: 'open' });
+  const izinli = useBildirimIzni((s) => s.izinli);
 
   const h = hearings.dataUpdatedAt;
   const d = deadlines.dataUpdatedAt;
   const p = promises.dataUpdatedAt;
-  const c = cases.dataUpdatedAt;
 
   useEffect(() => {
     // Veri gelmeden eşitleme yapılmaz: boş listeyle çalışmak, kurulu doğru
     // bildirimleri iptal etmek olurdu.
     if (!hearings.data || !deadlines.data) return;
 
-    const davaAdi = new Map((cases.data ?? []).map((k) => [k.id, k.title]));
+    // Dava ve müvekkil ADI kaynağa konmaz: bildirim kilit ekranında görünür
+    // (bkz. utils/bildirimMetni.ts). Bu yüzden dava listesi de artık gerekmiyor.
     const etkinlikler: PlanEtkinligi[] = [];
     const kaynaklar = new Map<string, PlanKaynak>();
 
@@ -63,13 +63,9 @@ export function useReminderSync() {
         anISO: row.scheduled_at,
         secilenDakika: row.reminder_minutes_before,
         bitti: row.is_completed,
+        kayitISO: row.updated_at,
       });
-      kaynaklar.set(row.id, {
-        baslik: row.title,
-        altBaslik: (row.case_id && davaAdi.get(row.case_id)) || row.title,
-        anISO: row.scheduled_at,
-        hearingType: row.type,
-      });
+      kaynaklar.set(row.id, { baslik: row.title, anISO: row.scheduled_at, hearingType: row.type });
     }
 
     for (const row of deadlines.data) {
@@ -79,12 +75,9 @@ export function useReminderSync() {
         anISO: row.due_at,
         secilenDakika: row.reminder_minutes_before,
         bitti: row.is_completed,
+        kayitISO: row.updated_at,
       });
-      kaynaklar.set(row.id, {
-        baslik: row.title,
-        altBaslik: (row.case_id && davaAdi.get(row.case_id)) || row.title,
-        anISO: row.due_at,
-      });
+      kaynaklar.set(row.id, { baslik: row.title, anISO: row.due_at });
     }
 
     // Ödeme sözleri: sorgu zaten yalnız ödenmemişleri getiriyor. Tablo hiç
@@ -98,11 +91,7 @@ export function useReminderSync() {
       // taşıyor ve taksitli bir ödemede "hangi taksit" bilgisi olmadan bildirim
       // eksik kalıyordu.
       const taksitIsareti = row.seq && row.total_count ? ` (${row.seq}/${row.total_count})` : '';
-      kaynaklar.set(row.id, {
-        baslik: row.client?.full_name ?? '',
-        altBaslik: `${formatMoney(row.amount)}${taksitIsareti}`,
-        anISO,
-      });
+      kaynaklar.set(row.id, { baslik: '', tutar: `${formatMoney(row.amount)}${taksitIsareti}`, anISO });
     }
 
     /**
@@ -119,5 +108,5 @@ export function useReminderSync() {
     // dataUpdatedAt gerçek yeniden çekimleri yakalar; data referansı her
     // render'da değişir ve sonsuz eşitleme doğururdu.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [h, d, p, c]);
+  }, [h, d, p, izinli]);
 }

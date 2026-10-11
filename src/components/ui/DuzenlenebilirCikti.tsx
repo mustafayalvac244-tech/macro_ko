@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CiktiEylemleri } from '@/components/ui/CiktiEylemleri';
 import { ciktiDuzeltmesiniBildir } from '@/lib/ciktiGeriBildirim';
+import { uyar } from '@/lib/uyari';
 import { useT } from '@/i18n';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
@@ -52,9 +53,17 @@ interface Props {
    * "Yapay zekâya düzelttir" bu metni gönderir; asıl metni değil.
    */
   onMetinDegisti?: (metin: string) => void;
+  /**
+   * Doluysa, kopyala/indir/UDF/paylaş'tan ÖNCE bu metinle onay sorulur
+   * (teyit edilmemiş atıf varsa; ör. uydurma madde, havuzda olmayan künye).
+   * Uyarı belgenin KENDİSİNE eklenmez — UYAP'a giden dosya temiz kalmalı —
+   * ama avukat uyarıyı görmeden dosyayı alamaz. Aynı metin için bir kez
+   * sorulur; metin ya da uyarı değişirse yeniden sorulur.
+   */
+  disaAktarOnayi?: string | null;
 }
 
-export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, model, istekId, onMetinDegisti }: Props) {
+export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, model, istekId, onMetinDegisti, disaAktarOnayi }: Props) {
   const __t = useTheme();
   const styles = makeStyles(__t.colors);
   const t = useT();
@@ -86,12 +95,20 @@ export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, m
   //
   // `mod` verilmemişse hiç ölçüm yapılmaz: ölçüm çağıranın açık tercihidir,
   // bileşenin sessiz yan etkisi değil.
+  //
+  // model/istekId EFEKT BAĞIMLILIĞI OLARAK BİLEREK YOK (09.10.2026). Yeni taslak
+  // geldiğinde `metin` ile BİRLİKTE değişirler; bağımlılık olsalardı efekt aynı
+  // işlemede, `duzenlenen` henüz ESKİ metindeyken ama `asil` yeni metne
+  // sıfırlanmışken çalışır ve "eski metin → yeni metin"i avukatın düzeltmesi
+  // diye kaydeder (gerçek düzeltmeyi de engeller). Güncel değerler ref'ten okunur.
+  const olcumAlani = useRef({ model, istekId });
+  olcumAlani.current = { model, istekId };
   useEffect(() => {
     if (acik || !mod || bildirildi.current) return;
     if (duzenlenen === asil.current) return;
     bildirildi.current = true;
-    void ciktiDuzeltmesiniBildir({ mod, model, istekId, asil: asil.current, son: duzenlenen });
-  }, [acik, mod, model, istekId, duzenlenen]);
+    void ciktiDuzeltmesiniBildir({ mod, ...olcumAlani.current, asil: asil.current, son: duzenlenen });
+  }, [acik, mod, duzenlenen]);
 
   // DIŞA AKTARMA DA "BİTTİ" SAYILIR (04.10.2026). Ölçüm yalnız "Bitti"ye
   // basınca gidiyordu; avukat düzeltip doğrudan UDF'ye basarsa hiç kayıt
@@ -102,6 +119,30 @@ export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, m
     bildirildi.current = true;
     void ciktiDuzeltmesiniBildir({ mod, model, istekId, asil: asil.current, son: duzenlenen });
   };
+
+  // DIŞA AKTARMADAN ÖNCE TEYİT. Atıf denetimi sonuçları ekranda duruyordu ama
+  // metni kopyalayıp/indirip/UDF'ye çeviren avukat onları görmeden çıkabiliyordu;
+  // uydurma esas/karar numarasını ilk fark eden karşı vekil olur.
+  const onaylanan = useRef<string | null>(null);
+  const onayIste = disaAktarOnayi
+    ? (devam: () => void) => {
+        const anahtar = `${disaAktarOnayi}\n${duzenlenen}`;
+        if (onaylanan.current === anahtar) {
+          devam();
+          return;
+        }
+        uyar(t('cikti.onayBaslik'), disaAktarOnayi, [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('cikti.onayDevam'),
+            onPress: () => {
+              onaylanan.current = anahtar;
+              devam();
+            },
+          },
+        ]);
+      }
+    : undefined;
 
   const bildirGuncel = useRef(onMetinDegisti);
   bildirGuncel.current = onMetinDegisti;
@@ -146,7 +187,7 @@ export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, m
         <View style={styles.ustSag}>
           {duzeltDugmesi}
           {/* Dışa aktarma DÜZENLENMİŞ metni alır — bkz. dosya başındaki not. */}
-          <CiktiEylemleri metin={duzenlenen} baslik={baslik} udf={udf} onDisaAktar={disaAktarildi} />
+          <CiktiEylemleri metin={duzenlenen} baslik={baslik} udf={udf} onDisaAktar={disaAktarildi} onayIste={onayIste} />
         </View>
       </View>
 
@@ -184,7 +225,7 @@ export function DuzenlenebilirCikti({ metin, baslik, udf = false, etiket, mod, m
       {altSatir && (
         <View style={styles.altSatir}>
           {duzeltDugmesi}
-          <CiktiEylemleri metin={duzenlenen} baslik={baslik} udf={udf} onDisaAktar={disaAktarildi} />
+          <CiktiEylemleri metin={duzenlenen} baslik={baslik} udf={udf} onDisaAktar={disaAktarildi} onayIste={onayIste} />
         </View>
       )}
     </View>

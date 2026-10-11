@@ -68,3 +68,36 @@ export function baytlariMetneCevir(girdi: Uint8Array | ArrayBuffer): string {
   if (b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf) b = b.subarray(3);
   return gecerliUtf8(b) ? utf8Coz(b) : cp1254Coz(b);
 }
+
+/** UTF-16 (BOM'dan sonrası) → metin. Elle: Hermes'in TextDecoder'ına güvenilmiyor (yukarıda). */
+function utf16Coz(b: Uint8Array, kucukUclu: boolean): string {
+  let s = '';
+  for (let i = 0; i + 1 < b.length; i += 2) {
+    s += String.fromCharCode(kucukUclu ? b[i]! | (b[i + 1]! << 8) : (b[i]! << 8) | b[i + 1]!);
+  }
+  return s;
+}
+
+/**
+ * YAPAY ZEKÂYA EKLENEN DÜZ METİN DOSYASI — ikiliyse null (09.10.2026).
+ *
+ * BULUNAN KUSUR (08.10 denetimi). Belge ekinde .txt `File.text()` /
+ * `Blob.text()` ile okunuyordu: ikisi de HEP UTF-8 çözer. Windows-1254 ile
+ * kaydedilmiş bir dilekçe "Davac�: �irket" oluyordu; uzantısı başka olan
+ * ikili dosya (fotoğraf, Excel) ise sunucuda UTF-8 sanılıp çöp metin olarak
+ * yapay zekâya gidiyordu.
+ *
+ * Sunucudaki karşılığı aynı kuralı uygular (supabase/functions/_shared/
+ * belgeMetni.ts > metinCoz); tests/belgeEkiOkuma.test.ts ikisini aynı
+ * örneklerle sınıyor:
+ *   • UTF-16 BOM'u varsa UTF-16 (Not Defteri'nin "Unicode" kaydı),
+ *   • ilk 8.000 baytta NUL varsa İKİLİ → null (git'in sezgisi),
+ *   • aksi hâlde baytlariMetneCevir (UTF-8, değilse Windows-1254).
+ */
+export function metinDosyasiCoz(girdi: Uint8Array | ArrayBuffer): string | null {
+  const b = girdi instanceof Uint8Array ? girdi : new Uint8Array(girdi);
+  if (b[0] === 0xff && b[1] === 0xfe) return utf16Coz(b.subarray(2), true);
+  if (b[0] === 0xfe && b[1] === 0xff) return utf16Coz(b.subarray(2), false);
+  if (b.subarray(0, 8000).includes(0)) return null;
+  return baytlariMetneCevir(b);
+}

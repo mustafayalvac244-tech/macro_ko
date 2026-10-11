@@ -54,8 +54,10 @@ export async function sohbetGecmisiniSil(userId: string | null | undefined): Pro
  * her şey gidiyordu. Son taslak burada tutulur; sohbet geçmişiyle aynı kural:
  * çıkışta ve hesap silmede silinir (sohbetGecmisiniSil).
  */
-export type TaslakEkrani = 'dilekce';
-const TASLAK_EKRANLARI: TaslakEkrani[] = ['dilekce'];
+// 'belge' (09.10.2026): Belge İnceleme sonucu da aynı sebeple — ücretli ve
+// beklenen bir sonuç, ekrandan çıkınca kayboluyordu.
+export type TaslakEkrani = 'dilekce' | 'belge';
+const TASLAK_EKRANLARI: TaslakEkrani[] = ['dilekce', 'belge'];
 const taslakAnahtari = (userId: string, ekran: TaslakEkrani) => `vekil.ai.taslak.v1:${ekran}:${userId}`;
 
 export async function taslakOku<T>(userId: string, ekran: TaslakEkrani): Promise<T | null> {

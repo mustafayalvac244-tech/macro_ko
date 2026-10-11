@@ -1,5 +1,6 @@
 import { Platform, Share } from 'react-native';
 import { dosyaAdiUret } from '@/utils/dosyaAdi';
+import { bomEkle } from '@/utils/csvMetni';
 
 /**
  * ÜRETİLEN METNİ DIŞARI ÇIKARMA (kopyala / indir / paylaş).
@@ -22,7 +23,12 @@ import { dosyaAdiUret } from '@/utils/dosyaAdi';
  * SESSİZCE YUTMAZ — sonucu döndürür, arayüz kullanıcıya söyler.
  */
 
-export type CiktiSonuc = 'kopyalandi' | 'indirildi' | 'paylasildi' | 'desteklenmiyor' | 'hata';
+/**
+ * 'iptal': kullanıcı paylaşım sayfasını / klasör seçiciyi KAPATTI. Hata değil,
+ * başarı da değil — dışarıya bir şey çıkmadı (09.10.2026: eskiden "paylaşıldı"
+ * sayılıyordu ve "düzeltme bitti" ölçümünü tetikliyordu).
+ */
+export type CiktiSonuc = 'kopyalandi' | 'indirildi' | 'paylasildi' | 'iptal' | 'desteklenmiyor' | 'hata';
 
 const webMi = Platform.OS === 'web';
 
@@ -73,7 +79,7 @@ export function metniIndir(metin: string, baslik: string): CiktiSonuc {
 export function dosyaIndir(icerik: string, dosyaAdi: string, mime: string): CiktiSonuc {
   if (!indirilebilirMi()) return 'desteklenmiyor';
   try {
-    const blob = new Blob([`﻿${icerik}`], { type: `${mime};charset=utf-8` });
+    const blob = new Blob([bomEkle(icerik)], { type: `${mime};charset=utf-8` });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -125,8 +131,9 @@ export function baytIndir(baytlar: Uint8Array, dosyaAdi: string, mime: string): 
 export async function metniPaylas(metin: string, baslik?: string): Promise<CiktiSonuc> {
   if (!webMi) {
     try {
-      await Share.share({ message: metin, title: baslik });
-      return 'paylasildi';
+      const r = await Share.share({ message: metin, title: baslik });
+      // iOS'ta sayfa kapatılınca Promise REDDEDİLMEZ, dismissedAction ile döner.
+      return r?.action === Share.dismissedAction ? 'iptal' : 'paylasildi';
     } catch {
       return 'hata';
     }

@@ -6,7 +6,7 @@ import { computeKapak } from '@/utils/kapak';
  *
  * Bu motorun hiç testi yoktu. Yanlış bir kapak, karşı tarafa fazla ya da eksik
  * tutar bildirmek demektir; ikisi de mesleki sorumluluk doğurur. Beklenen
- * değerler ELDE hesaplandı (koddan türetilmedi) ve İİK 138'in sırasına
+ * değerler ELDE hesaplandı (koddan türetilmedi) ve TBK m.100 ve uygulamadaki sıraya
  * dayanıyor: önce masraf + vekalet ücreti, sonra işlemiş faiz, en son asıl
  * alacak.
  *
@@ -60,7 +60,7 @@ describe('computeKapak — faiz', () => {
   });
 });
 
-describe('computeKapak — İİK 138 dağıtım sırası', () => {
+describe('computeKapak — ödeme mahsup sırası (TBK m.100)', () => {
   it('önce masraf ve vekalet ücretini kapatır', () => {
     // Faizi sıfırlayıp yalnız dağıtımı ölçüyoruz. Masraf+vekalet = 15.000.
     const r = computeKapak(

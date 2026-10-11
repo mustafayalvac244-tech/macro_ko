@@ -21,7 +21,17 @@ import { Card } from '@/components/ui/Card';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
-import { ALICILAR, AI_KAPSAM_DISI, KVKK_SURUM, RIZA_ZORUNLU, VERI_SORUMLUSU, kimlikTamMi } from '@/config/kvkk';
+import {
+  ALICILAR,
+  AI_KAPSAM_DISI,
+  AI_KAPSAM_DISI_EN,
+  BRIF_ISTISNASI_EN,
+  BRIF_ISTISNASI_TR,
+  KVKK_SURUM,
+  RIZA_ZORUNLU,
+  VERI_SORUMLUSU,
+  kimlikTamMi,
+} from '@/config/kvkk';
 
 // RIZA ZORUNLU TUTULUYORSA METİN BUNU SÖYLER. Kayıt ekranı rıza olmadan hesap
 // açtırmıyorken metne "rıza hizmetin şartı değildir" yazmak, bu dosyanın
@@ -83,6 +93,8 @@ const TR: Bolum[] = [
       '• Finans: tahsilat, gider ve vekâlet ücreti kayıtlarınız\n' +
       '• Satın alma: abonelik ürünü, satın alma platformu, tutar ve tarih\n' +
       '• İşlem güvenliği: oturum kayıtları, cihaz ve uygulama sürümü, hata kayıtları, IP bilgisi\n' +
+      '• Kayıt kaynağı: hesabı hangi platformdan (iPhone, Android, web) açtığınız; web’de ayrıca geldiğiniz reklam bağlantısındaki kaynak/kampanya adı ve sizi yönlendiren sitenin yalnızca alan adı (tam adres ya da arama terimi tutulmaz). Hesabınızla ilişkilendirilir.\n' +
+      '• Bildirim adresi: bildirim izni verirseniz cihazınızın bildirim adresi (push token) ve platformu\n' +
       '• Yapay zekâ istekleri: bu özelliklere kendi elinizle girdiğiniz ya da yüklediğiniz metin ve belgeler',
   },
   {
@@ -125,12 +137,12 @@ const TR: Bolum[] = [
     body:
       `Kişisel verileriniz, hizmetin sunulabilmesi için aşağıdaki hizmet sağlayıcılara aktarılmaktadır. Liste, uygulamanın kaynak kodundan okunarak hazırlanmıştır:\n\n${aliciMetni(true)}\n\n` +
       'YURT DIŞINA AKTARIM (m.9). Yukarıdaki sağlayıcıların bir kısmı yurt dışında bulunmaktadır. Yapay zekâ sağlayıcılarına yapılan aktarım AÇIK RIZANIZA dayanmaktadır. Rıza vermemeniz hâlinde yapay zekâ özellikleri kullanılamaz; kayıtlarınız bu sağlayıcılara gönderilmez.\n\n' +
-      'YAPAY ZEKÂYA NE GÖNDERİLDİĞİ. Yalnızca o istekte sizin girdiğiniz ya da eklediğiniz metin gönderilir. Veritabanınız kendiliğinden taranmaz, dava ve müvekkil kayıtlarınız topluca aktarılmaz.',
+      'YAPAY ZEKÂYA NE GÖNDERİLDİĞİ. Yalnızca o istekte sizin girdiğiniz ya da eklediğiniz metin gönderilir (tek istisna için 7. başlığa bakınız). Veritabanınız kendiliğinden taranmaz, dava ve müvekkil kayıtlarınız topluca aktarılmaz.',
   },
   {
     icon: 'shield-half-outline',
     title: '7. Yapay Zekâya Gönderilmeyenler',
-    body: AI_KAPSAM_DISI.map((x) => `• ${x}`).join('\n'),
+    body: AI_KAPSAM_DISI.map((x) => `• ${x}`).join('\n') + `\n\n${BRIF_ISTISNASI_TR}`,
   },
   {
     icon: 'download-outline',
@@ -154,7 +166,7 @@ const TR: Bolum[] = [
       '• Aktarımda TLS, depolamada AES-256 şifreleme\n' +
       '• Veritabanında satır düzeyi güvenlik (RLS): her kullanıcı yalnızca kendi kayıtlarına erişebilir\n' +
       '• Yönetimsel uçlarda yalnızca servis yetkisiyle erişim\n' +
-      '• Oturum bilgilerinin cihazda şifreli alanda saklanması; isteğe bağlı biyometrik kilit\n' +
+      '• İsteğe bağlı biyometrik kilit. Oturum anahtarı cihazda uygulamanın kendi veri alanında durur; işletim sisteminin şifreli kasasında (Keychain / Keystore) değildir ve cihazın ekran kilidiyle korunur\n' +
       '• Düzenli yedekleme ve geri yükleme denetimi',
   },
   {
@@ -209,6 +221,8 @@ const EN: Bolum[] = [
       '• Finance: collection, expense and fee records\n' +
       '• Purchases: subscription product, purchase platform, amount and date\n' +
       '• Security: session logs, device and app version, error logs, IP\n' +
+      '• Registration source: the platform you opened the account on (iPhone, Android, web); on the web also the source/campaign name of the ad link you came from and only the domain name of the referring site (no full address or search terms). Linked to your account.\n' +
+      '• Notification address: if you allow notifications, your device’s notification address (push token) and platform\n' +
       '• AI requests: text and documents you personally enter or upload into those features',
   },
   {
@@ -232,7 +246,7 @@ const EN: Bolum[] = [
       RIZA_KOSUL_EN,
   },
   { icon: 'globe-outline', title: '6. Recipients and Transfers Abroad', body: aliciMetni(false) },
-  { icon: 'shield-half-outline', title: '7. Not Sent to AI', body: AI_KAPSAM_DISI.map((x) => `• ${x}`).join('\n') },
+  { icon: 'shield-half-outline', title: '7. Not Sent to AI', body: AI_KAPSAM_DISI_EN.map((x) => `• ${x}`).join('\n') + `\n\n${BRIF_ISTISNASI_EN}` },
   {
     icon: 'download-outline',
     title: '8. Method of Collection',
@@ -246,7 +260,7 @@ const EN: Bolum[] = [
   {
     icon: 'lock-closed-outline',
     title: '10. Security',
-    body: '• TLS in transit, AES-256 at rest\n• Row-level security: each user reaches only their own records\n• Maintenance endpoints restricted to service credentials\n• Encrypted session storage on device; optional biometric lock\n• Regular backups with restore checks',
+    body: '• TLS in transit, AES-256 at rest\n• Row-level security: each user reaches only their own records\n• Maintenance endpoints restricted to service credentials\n• Optional biometric lock. The session key is kept in the app’s own data area on the device, not in the operating system’s encrypted vault (Keychain / Keystore), and is protected by the device lock screen\n• Regular backups with restore checks',
   },
   {
     icon: 'hand-right-outline',

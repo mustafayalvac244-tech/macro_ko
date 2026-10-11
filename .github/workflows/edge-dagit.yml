@@ -49,8 +49,17 @@ name: Edge İşlevi Dağıt
 #        ai-saglik ....... verify_jwt = TRUE
 #        harvest-tick .... verify_jwt = TRUE
 #    Varsayılan `true` ile ai-chat dağıtılırsa ayarı FALSE'tan TRUE'ya
-#    ÇEVİRİR. Her işlevi KENDİ mevcut ayarıyla dağıtın; emin değilseniz
-#    önce canlıdaki değere bakın, varsaymayın.
+#    ÇEVİRİR.
+#
+#    ÇÖZÜM (10.10.2026, 50 denetçi → ajan 26): işlev başına doğru ayar
+#    `supabase/edge-verify-jwt.txt` tablosunda (canlıdan ölçülmüş; 11 işlev).
+#    `jwt_dogrulama = otomatik` (varsayılan) her işlevi KENDİ ayarıyla
+#    dağıtır. Eskiden "HEPSİ" tek bayrağı tüm işlevlere uyguluyordu →
+#    revenuecat-webhook, stripe-webhook ve ai-chat (canlıda KAPALI) AÇILIR,
+#    RevenueCat/Stripe çağrıları 401 alırdı. Şimdi HEPSİ işlevleri tek tek,
+#    tablodaki ayarla dağıtır; tabloda kaydı olmayan işlev varsa HİÇBİRİ
+#    dağıtılmaz. `true`/`false` hâlâ seçilebilir (eski çağrılar bozulmasın) ama
+#    tablodan farklıysa uyarı verir; HEPSİ ile açık bayrak REDDEDİLİR.
 
 on:
   workflow_dispatch:
@@ -69,11 +78,18 @@ on:
           - ai-saglik
           - doc-extract
           - resmi-gazete
-          - HEPSİ
+          - revenuecat-webhook
+          - stripe-webhook
+          - payment-sheet
+          - HEPSİ              # işlevleri TEK TEK, tablodaki JWT ayarıyla dağıtır
       jwt_dogrulama:
-        description: 'JWT doğrulaması açık kalsın (varsayılan: evet)'
-        type: boolean
-        default: true
+        description: 'JWT doğrulaması: otomatik = supabase/edge-verify-jwt.txt (canlıdaki ayar). true/false yalnız bilerek değiştirmek için'
+        type: choice
+        default: otomatik
+        options:
+          - otomatik
+          - 'true'
+          - 'false'
 
 jobs:
   dagit:
@@ -112,19 +128,71 @@ jobs:
           fi
 
       - name: Dağıt
+        env:
+          ISLEV: ${{ inputs.islev }}
+          JWT_GIRDISI: ${{ inputs.jwt_dogrulama }}
         run: |
-          BAYRAK=""
-          if [ "${{ inputs.jwt_dogrulama }}" != "true" ]; then
-            BAYRAK="--no-verify-jwt"
-          fi
+          set -euo pipefail
+          TABLO=supabase/edge-verify-jwt.txt
+          RAPOR="$RUNNER_TEMP/dagitilanlar.txt"
+          : > "$RAPOR"
 
-          if [ "${{ inputs.islev }}" = "HEPSİ" ]; then
-            # DİKKAT: hepsini dağıtmak, depoda duran HER işlevin canlıdakini
-            # ezmesi demektir. Depo ile canlı ayrışmışsa beklenmedik değişiklik
-            # gider. Tek işlev dağıtmak varsayılan olması bu yüzden.
-            supabase functions deploy --project-ref "$PROJECT_ID" $BAYRAK
+          # İşlevin uygulanacak JWT ayarı (acik | kapali). Tabloda kaydı olmayan
+          # işlev için hata verir: ayarı bilinmeyen işlev dağıtılmaz.
+          karar() {
+            local tablo
+            tablo="$(awk -v ad="$1" '$1 !~ /^#/ && $1 == ad { print $2 }' "$TABLO")"
+            case "$tablo" in
+              acik|kapali) ;;
+              *) echo "::error::$1 için $TABLO içinde acik/kapali kaydı yok; verify_jwt belirsiz, dağıtılmadı." >&2; return 1 ;;
+            esac
+            case "$JWT_GIRDISI" in
+              otomatik) echo "$tablo" ;;
+              true|false)
+                local istenen=acik
+                if [ "$JWT_GIRDISI" = "false" ]; then istenen=kapali; fi
+                if [ "$istenen" != "$tablo" ]; then
+                  echo "::warning::$1: seçilen JWT ayarı ($istenen) canlıdaki ($tablo) ile FARKLI; bilinçli değişiklik değilse 'otomatik' seçin." >&2
+                fi
+                echo "$istenen" ;;
+              *) echo "::error::Bilinmeyen jwt_dogrulama değeri: $JWT_GIRDISI" >&2; return 1 ;;
+            esac
+          }
+
+          dagit() { # $1 = işlev, $2 = acik | kapali
+            if [ "$2" = "kapali" ]; then
+              supabase functions deploy "$1" --project-ref "$PROJECT_ID" --no-verify-jwt
+            else
+              supabase functions deploy "$1" --project-ref "$PROJECT_ID"
+            fi
+            echo "$1 $2" >> "$RAPOR"
+          }
+
+          if [ "$ISLEV" = "HEPSİ" ]; then
+            # HEPSİ = depodaki her işlev, TEK TEK, kendi tablo ayarıyla. Tek
+            # bayrakla toplu dağıtım YOK (webhook'ları ve ai-chat'i bozardı).
+            # DİKKAT: yine de depoda duran HER işlevin canlıdakini ezmesi
+            # demektir; depo ile canlı ayrışmışsa beklenmedik değişiklik gider.
+            if [ "$JWT_GIRDISI" != "otomatik" ]; then
+              echo "::error::HEPSİ ile tek bir JWT ayarı uygulanamaz (revenuecat-webhook, stripe-webhook ve ai-chat canlıda KAPALI). jwt_dogrulama = otomatik seçin."
+              exit 1
+            fi
+            LISTE=""
+            for dizin in supabase/functions/*/; do
+              ad="$(basename "$dizin")"
+              case "$ad" in _*) continue ;; esac
+              if [ ! -f "${dizin}index.ts" ]; then continue; fi
+              # Önce HEPSİNİN ayarı çözülür: biri belirsizse hiçbiri dağıtılmaz.
+              KARAR="$(karar "$ad")"
+              LISTE="$LISTE $ad"
+            done
+            for ad in $LISTE; do
+              KARAR="$(karar "$ad")"
+              dagit "$ad" "$KARAR"
+            done
           else
-            supabase functions deploy "${{ inputs.islev }}" --project-ref "$PROJECT_ID" $BAYRAK
+            KARAR="$(karar "$ISLEV")"
+            dagit "$ISLEV" "$KARAR"
           fi
 
       - name: Ne dağıtıldı
@@ -134,7 +202,12 @@ jobs:
             echo "## Dağıtıldı: ${{ inputs.islev }}"
             echo ""
             echo "Commit: \`${{ github.sha }}\`"
-            echo "JWT doğrulaması: \`${{ inputs.jwt_dogrulama }}\`"
+            echo "JWT girdisi: \`${{ inputs.jwt_dogrulama }}\`"
+            echo ""
+            echo "### Uygulanan verify_jwt (işlev → acik = true, kapali = false)"
+            echo '```'
+            cat "$RUNNER_TEMP/dagitilanlar.txt"
+            echo '```'
             echo ""
             echo "### ÖNCE BUNU DOĞRULAYIN — 'success' yetmez"
             echo "Bu koşunun başarılı olması, komutun hatasız koştuğu anlamına"

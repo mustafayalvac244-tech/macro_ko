@@ -74,11 +74,37 @@ export const tr = {
   'forgot.needEmail': 'Önce e-posta adresinizi yazın.',
   'forgot.needCode': 'E-postanıza gelen kodu yazın.',
   'forgot.codeUsed': 'Bu kod kullanıldı; yeni bir kod isteyin.',
+  'forgot.retryNoCode': 'Kodunuz doğrulandı; yeni kod istemeden şifreyi düzeltip tekrar kaydedebilirsiniz.',
   'forgot.resent': 'Yeni kod gönderildi. E-postanızı kontrol edin.',
   'forgot.resendIn': 'Kodu tekrar gönder ({n} sn)',
   'forgot.spamHint': 'Posta gelmediyse spam ve "Tanıtımlar" klasörüne bakın. Gmail eski sıfırlama postalarını aynı başlık altında toplayabilir; yeni kod o yazışmanın en altında olur.',
   'forgot.continue': 'Uygulamaya devam et',
   'auth.passwordTooShort': 'Şifre en az 8 karakter olmalı.',
+  // Sunucu (Supabase/GoTrue) ve ağ hatalarının çevirisi — src/lib/authErrors.ts.
+  'authErr.invalidLogin': 'E-posta veya şifre hatalı. Şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.',
+  'authErr.alreadyRegisteredSignup': 'Bu e-posta ile zaten bir hesap var. Giriş yapın; şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.',
+  'authErr.emailRateLimit': 'Kısa sürede çok fazla deneme yapıldı. Lütfen bir süre sonra tekrar deneyin.',
+  'authErr.securityWait': 'Güvenlik nedeniyle lütfen kısa bir süre sonra tekrar deneyin.',
+  'authErr.alreadyRegistered': 'Bu e-posta ile zaten bir hesap var. Giriş yapmayı deneyin.',
+  'authErr.passwordMin': 'Şifre en az 8 karakter olmalı.',
+  'authErr.passwordChars': 'Şifre gerekli karakter çeşitlerini içermiyor (harf ve rakam kullanın).',
+  'authErr.invalidEmail': 'Geçerli bir e-posta adresi girin.',
+  'authErr.emailNotConfirmed': 'E-posta adresiniz henüz doğrulanmamış. Gelen kutunuzu (ve spam klasörünü) kontrol edin.',
+  'authErr.samePassword': 'Yeni şifre eski şifrenizden farklı olmalı.',
+  'authErr.codeExpired': 'Kodun süresi dolmuş. Lütfen yeni kod isteyin.',
+  'authErr.codeInvalid': 'Kod hatalı. Lütfen kontrol edip tekrar deneyin.',
+  'authErr.userNotFound': 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.',
+  'authErr.signupsClosed': 'Yeni kayıt şu anda kapalı.',
+  'authErr.rateLimit': 'Çok fazla deneme yapıldı. Lütfen bir süre sonra tekrar deneyin.',
+  'authErr.serverUnavailable': 'Sunucu şu an yanıt veremedi. Birkaç saniye sonra tekrar deneyin — bu sizin bağlantınızla ilgili değil.',
+  'authErr.network': 'İnternet bağlantısı kurulamadı. Bağlantınızı kontrol edip tekrar deneyin.',
+  'authErr.sessionExpired': 'Oturum süreniz doldu. Lütfen tekrar giriş yapın.',
+  'authErr.payloadTooLarge': 'Dosya boyutu izin verilen sınırı aşıyor.',
+  'authErr.notAuthorized': 'Bu işlem için yetkiniz yok.',
+  'authErr.duplicate': 'Bu kayıt zaten mevcut.',
+  'authErr.generic': 'Bir hata oluştu. Lütfen tekrar deneyin.',
+  'authErr.notConfigured': 'Uygulama sunucu bilgileriyle yapılandırılmamış (.env eksik). Bu bir bağlantı sorunu değildir.',
+  'authErr.unexpected': 'Sunucu beklenmedik bir yanıt verdi. Birkaç saniye sonra tekrar deneyin.',
 
   // Tabs
   'tab.dashboard': 'Panel',
@@ -126,6 +152,8 @@ export const tr = {
   'dash.prec.title': 'Davana Emsal',
   'dash.prec.link': 'İçtihat',
   'dash.prec.forCase': '"{term}" konusunda emsal Yargıtay kararları',
+  // İdari dosya: kararlar Danıştay'dan gelir (utils/emsalSecimi → caseCourt).
+  'dash.prec.forCaseDanistay': '"{term}" konusunda emsal Danıştay kararları',
   'dash.prec.searching': 'Dosyana emsal kararlar taranıyor…',
   'dash.prec.none': 'Bu konuda emsal karar bulunamadı. Farklı bir terimle İçtihat’ta arayabilirsin.',
   'dash.prec.errSource': 'Karar bankasına şu an ulaşılamıyor. Birazdan tekrar dene.',
@@ -168,6 +196,9 @@ export const tr = {
   'dash.upcoming.empty': 'Yaklaşan süre görünmüyor. Yeni bir süre eklediğinizde burada çıkar.',
   'dash.upcoming.due': 'Bugün',
   'dash.upcoming.days': '{n} gün',
+  // Sorgu yüklenemedi — "kayıt yok" ile karıştırılmasın diye ayrı metin.
+  'dash.load.error': 'Kayıtlar şu an yüklenemedi. Bağlantını kontrol edip tekrar dene.',
+  'dash.load.retry': 'Tekrar dene',
   'dash.quick.title': 'Kısayollar',
   'dash.quick.ictihat': 'İçtihat ara',
   'dash.quick.dilekce': 'Dilekçe üret',
@@ -189,6 +220,12 @@ export const tr = {
   'calc.aaut.minFee': 'Tarife Asgari (Maktu) Ücreti (₺)',
   'calc.aaut.computed': 'Nispi hesap toplamı',
   'calc.aaut.result': 'Uygulanacak vekalet ücreti',
+  'calc.aaut.minFeeHint': 'Nispi ücret, ilgili mahkemenin maktu tarife ücretinin altına inemez (AAÜT 2025-2026, 2. kısım 2. bölüm). Mahkemeyi seçin ya da tutarı elle girin; boş bırakırsanız asgari ücret uygulanmaz.',
+  'calc.aaut.court.icraDairesi': 'İcra Dairesi',
+  'calc.aaut.court.sulhHukuk': 'Sulh Hukuk',
+  'calc.aaut.court.tuketici': 'Tüketici',
+  'calc.aaut.court.asliye': 'Asliye',
+  'calc.aaut.court.fikriSinai': 'Fikri ve Sınai Haklar',
   'calc.aaut.minApplied': 'Nispi tutar asgari ücretin altında kaldığı için maktu ücret uygulandı.',
   'calc.tariff.id': 'Tarife: {ad} (RG {rg})',
   'calc.tariff.amended': 'Son değişiklik: RG {rg}',
@@ -308,7 +345,20 @@ export const tr = {
   'cases.search': 'Dava ara',
   'cases.empty': 'Henüz dava yok',
   'cases.emptyDesc': 'Duruşmaları, görevleri ve belgeleri takip etmek için ilk davanızı oluşturun.',
+  'cases.noMatch': 'Eşleşen dosya yok',
+  'cases.loadError': 'Dosya listesi yüklenemedi.',
+  'cases.retry': 'Tekrar dene',
   'case.title': 'Dava',
+  // Dava detayı yüklenirken / bulunamadığında / yüklenemediğinde (eskiden boş sayfa).
+  'case.loading': 'Dava yükleniyor…',
+  'case.notFound': 'Dava bulunamadı',
+  'case.notFoundDesc': 'Bu dava silinmiş ya da bu hesaba ait değil.',
+  'case.backToList': 'Dava Dizinine dön',
+  'case.loadError': 'Dava yüklenemedi',
+  'case.loadErrorDesc': 'Bağlantınızı kontrol edip tekrar deneyin.',
+  'case.retry': 'Tekrar dene',
+  // Finans sekmesinde liste yüklenemedi (eskiden ₺0 sayılıyordu).
+  'case.finLoadError': 'Kayıtlar yüklenemedi; tutarlar gösterilmiyor.',
   'case.openedLabel': 'Açılış {date}',
   'case.tabOverview': 'Özet',
   'case.tabHearings': 'Duruşmalar',
@@ -352,6 +402,10 @@ export const tr = {
 
   'admin.searchUser': 'Kullanıcı ara (ad, e-posta, büro)',
   'admin.searchResult': '{n} kullanıcı bulundu',
+  'admin.searchLimit': 'Arama yalnız listelenen son {n} kayıt içinde yapılır; toplam {toplam} kullanıcı var, kalanlar bu aramada görünmez.',
+  'admin.premiumVerBaslik': 'Premium verilsin mi?',
+  'admin.premiumAlBaslik': 'Premium geri alınsın mı?',
+  'admin.premiumOnayGovde': '{kisi}\n\nBu işlem hesabın aboneliğini hemen değiştirir ve kayıt altına alınır.',
   'common.delete': 'Sil',
   'common.edit': 'Düzenle',
   'common.save': 'Değişiklikleri Kaydet',
@@ -365,6 +419,10 @@ export const tr = {
   'dash.outcome.descMore': 'Süre verildiyse kaydedin. Bekleyen {n} duruşma daha var.',
   'dash.outcome.title': '{n} duruşmanın sonucu bekliyor',
   'dash.outcome.desc': 'Verilen süreleri kaydedin — 60 saniye sürer, süre kaçırmayı önler.',
+  // Süresi geçen (son günü dün ya da önce) tamamlanmamış süreler — ana ekran kartı.
+  'dash.overdue.one': 'Süresi geçti: {baslik} — {n} gün önce',
+  'dash.overdue.desc': 'Tamamlandıysa Takvim’de işaretleyin.',
+  'dash.overdue.descMore': 'Geciken {n} iş daha var. Tamamlananları Takvim’de işaretleyin.',
   'cupd.cta': 'Müvekkile Bilgi Ver',
   'hout.title': 'Duruşma Çıkışı',
   'hout.short': 'Duruşma Çıkışı',
@@ -385,7 +443,14 @@ export const tr = {
   'hout.saveCta': 'Kaydet ve Devam',
   'hout.saving': 'Kaydediliyor…',
   'hout.skip': 'Bunu atla',
-  'hout.allDone': 'Bekleyen duruşma kalmadı. Süreleriniz güncel!',
+  'hout.closeOnly': 'Sonuç girmeden kapat',
+  'hout.closeOnlyMsg': 'Bu duruşma sonuçsuz kapatılır: süre ve sonraki duruşma OLUŞTURULMAZ ve bir daha sorulmaz. Duruşmada süre verildiyse önce sonucu girin.',
+  'hout.closeOnlyConfirm': 'Sonuçsuz kapat',
+  'hout.timeA11y': 'Sonraki duruşmanın saati',
+  'hout.loadError': 'Duruşmalar yüklenemedi',
+  'hout.loadErrorDesc': 'Bağlantınızı kontrol edip tekrar deneyin. Bu, bekleyen duruşma olmadığı anlamına gelmez.',
+  'hout.retry': 'Tekrar dene',
+  'hout.allDone': 'Bekleyen duruşma kalmadı.',
   'hout.emptyTitle': 'Bekleyen duruşma yok',
   'hout.emptyDesc': 'Geçmiş duruşmalarınızın hepsinin sonucu kayıtlı. Yeni bir duruşma günü geçtiğinde burada görünecek.',
   'hout.fromServiceNote': 'Süre, kararın tebliğ tarihinden itibaren hesaplanmıştır.',
@@ -409,6 +474,11 @@ export const tr = {
   'err.savePermission': 'Oturumunuzun süresi dolmuş olabilir. Çıkıp yeniden giriş yaptıktan sonra tekrar deneyin.',
   'err.saveGeneric': 'İşlem tamamlanamadı. Lütfen tekrar deneyin; sorun sürerse bize bildirin.',
   'err.fileTooLarge': 'Bu dosya {mb} MB sınırını aşıyor. Belgeyi sıkıştırıp ya da sayfalara bölüp yeniden deneyin.',
+  'err.boundaryTitle': 'Bir şeyler ters gitti',
+  'err.boundaryDesc': 'Bu ekranda beklenmeyen bir sorun oluştu. Verileriniz güvende — geri dönüp tekrar deneyebilirsiniz.',
+  'err.boundaryBack': 'Geri Dön',
+  'err.boundaryHome': 'Ana Sayfa',
+  'err.boundaryDetail': 'Teknik ayrıntı (destek için):',
 
   // Clients
   'clients.title': 'Müvekkiller',
@@ -416,14 +486,27 @@ export const tr = {
   'clients.search': 'Müvekkil ara',
   'clients.empty': 'Henüz müvekkil yok',
   'clients.emptyDesc': 'Dava ve iletişim bilgilerini bağlamak için müvekkil ekleyin.',
+  'clients.loadError': 'Müvekkiller yüklenemedi',
+  'clients.loadErrorDesc': 'Liste sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin.',
+  'clients.retry': 'Tekrar dene',
   'clients.noContact': 'İletişim bilgisi yok',
   'client.title': 'Müvekkil',
   'client.notes': 'Notlar',
   'client.linkedCases': 'Bağlı Davalar',
   'client.noCases': 'Bağlı dava yok',
   'client.noCasesDesc': 'Bu müvekkilin davaları burada görünecek.',
+  'client.notFound': 'Müvekkil bulunamadı',
+  'client.notFoundDesc': 'Bu müvekkil silinmiş olabilir.',
+  'client.loadError': 'Müvekkil yüklenemedi',
+  'client.loadErrorDesc': 'Kayıt sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin.',
+  'client.retry': 'Tekrar dene',
+  'client.loading': 'Müvekkil yükleniyor…',
+  'client.backToList': 'Müvekkil listesine dön',
   'client.delete': 'Müvekkili Sil',
-  'client.deleteConfirm': '"{name}" silinsin mi? Bağlı davalar silinmez, atanmamış olarak kalır.',
+  // Şemayla aynı olmalı (tests/muvekkilSilme.test.ts): alacak/taksit, avans ve
+  // elle masraf satırları `on delete cascade` ile müvekkille birlikte gider.
+  'client.deleteConfirm':
+    '"{name}" silinsin mi? Bu müvekkilin alacak/verecek kayıtları (taksitler dâhil), masraf avansları ve elle eklenen masrafları da kalıcı olarak silinir. Davaları, icra dosyaları, belgeleri ve vekaletleri silinmez; yalnız müvekkil bağlantısı kalkar. Bu işlem geri alınamaz.',
 
   // Calendar
   'cal.title': 'Takvim',
@@ -455,6 +538,10 @@ export const tr = {
   'cal.installmentTitle': '{seq}. taksit · {amount}',
   'cal.noItemsDay': 'Bu günde planlanmış işlem yok',
   'cal.noUpcoming': 'Önümüzdeki günlerde planlı işlem yok',
+  // Gündem 90 gün gösterir; ötesindeki kayıtlar sayılıp söylenir (utils/gundem).
+  'cal.noUpcomingHorizon': 'Önümüzdeki {gun} günde planlı işlem yok',
+  'cal.beyondHorizon': '{gun} günden sonra {n} kayıt daha var',
+  'cal.showAll': 'Tümünü göster',
   'cal.addTask': 'Görev',
   'cal.addMeeting': 'Toplantı',
   'cal.addDuration': 'Süre',
@@ -478,6 +565,8 @@ export const tr = {
   'docs.emptyDesc': 'Her dava dosyasını düzenli tutmak için dilekçe, sözleşme ve delilleri yükleyin.',
   'docs.uploadDoc': 'Belge Yükle',
   'docs.myDocs': 'Belgelerim',
+  'docs.clientOwner': 'Müvekkil: {name}',
+  'docs.loadError': 'Belge listesi yüklenemedi.',
   'viewer.title': 'Belge',
   'viewer.error': 'Belge açılamadı.',
   'viewer.unsupported': 'Bu belge türü uygulama içinde önizlenemiyor.',
@@ -557,6 +646,7 @@ export const tr = {
   'clientForm.tcNo': 'T.C. Kimlik No',
   'clientForm.tcNoPlaceholder': '11 haneli kimlik numarası',
   'clientForm.tcNoInvalid': 'Bu numara geçerli değil (kontrol hanesi tutmuyor).',
+  'clientForm.tcNoShort': 'T.C. Kimlik No 11 haneli olmalı.',
   'clientForm.address': 'Adres',
   'clientForm.addressPlaceholder': 'Atatürk Cad. No:12, İstanbul',
   'clientForm.notes': 'Notlar',
@@ -615,10 +705,14 @@ export const tr = {
   'theme.sepia': 'Parşömen',
   'theme.emerald': 'Zümrüt',
   'settings.reminders': 'Duruşma ve görev hatırlatmaları',
+  'settings.remindersWebOnly':
+    'Web sürümü hatırlatma bildirimi göndermez; duruşma ve görev hatırlatmaları telefon uygulamasında çalışır.',
   'search.title': 'Genel Arama',
   'search.placeholder': 'Dava, müvekkil veya belge ara...',
   'search.hint': 'Tek kutudan tüm dosyalarınızda arayın: dava adı, esas no, mahkeme, müvekkil adı, telefon veya belge adı.',
   'search.noResults': 'Sonuç bulunamadı. Farklı bir kelime deneyin.',
+  'search.error': 'Arama yapılamadı. Bağlantınızı kontrol edip tekrar deneyin; bu, kaydın olmadığı anlamına gelmez.',
+  'search.retry': 'Tekrar dene',
   'tpl.title': 'Dilekçe Şablonları',
   'tpl.subtitle': 'Doldur, paylaş, kullan',
   'tpl.hint': 'Köşeli parantezli [ALANLARI] davanıza göre doldurun. Paylaş ile WhatsApp/e-postaya veya bilgisayarınıza gönderin.',
@@ -640,6 +734,7 @@ export const tr = {
   'digest.first': 'İlk sırada: {label}',
   'settings.adminBadge': 'Yönetici',
   'settings.privacy': 'Gizlilik ve KVKK',
+  'settings.kvkkMetni': 'KVKK Aydınlatma Metni',
   'settings.updates': 'Güncellemeleri Denetle',
   'settings.updatesChecking': 'Denetleniyor...',
   'settings.updateNone': 'Uygulamanız güncel. 👍',
@@ -657,12 +752,13 @@ export const tr = {
   'plan.kapali.dava': 'Bu özellik Vekil Pro planına dahildir.',
   'plan.kapali.muvekkil': 'Bu özellik Vekil Pro planına dahildir.',
   'plan.kapali.belge': 'Bu özellik Vekil Pro planına dahildir.',
-  'plan.kapali.finans': 'Gelir-gider takibi, tahsilat ve finansal raporlar Vekil Pro planına dahildir. İçtihat araması ve ajandanız ücretsiz kalmaya devam eder.',
+  'plan.kapali.finans': 'Gelir-gider kaydı eklemek Vekil Pro planına dahildir. İçtihat araması ve ajandanız ücretsiz kalmaya devam eder.',
   'auth.captchaWait': 'Güvenlik doğrulaması sürüyor, bir saniye…',
   'auth.verifyTitle': 'E-postanızı doğrulayın',
   'auth.verifyBody': 'Hesabınız oluşturuldu. {email} adresine bir doğrulama bağlantısı gönderdik; bağlantıya tıkladıktan sonra giriş yapabilirsiniz.',
   'auth.verifyHint': 'E-posta birkaç dakika içinde gelmezse spam / gereksiz klasörünü kontrol edin.',
   'auth.verifyGoLogin': 'Giriş ekranına dön',
+  'auth.verifyFixEmail': 'E-posta adresini düzelt',
   'auth.resendVerify': 'Doğrulama e-postasını tekrar gönder',
   'auth.resendVerifyIn': 'Tekrar gönder ({n} sn)',
   'auth.resendVerifyDone': 'Doğrulama e-postası yeniden gönderildi. Gelen kutunuzu ve spam klasörünü kontrol edin.',
@@ -675,6 +771,9 @@ export const tr = {
   'auth.kvkkRequired': 'Devam edebilmek için KVKK açık rıza kutusunu işaretlemeniz gerekiyor.',
   'auth.kvkkOptional': 'Bu kutu isteğe bağlıdır: imzalamadan da hesabınızı açabilirsiniz. O hâlde yapay zekâ özellikleri kapalı başlar, uygulamanın geri kalanı normal çalışır ve rızayı sonradan Ayarlar’dan verebilirsiniz.',
   'auth.kvkkNote': 'Bu rıza yalnızca yapay zekâ özellikleri içindir; dilediğiniz zaman Ayarlar > KVKK Aydınlatma Metni ekranından geri alabilirsiniz. Geri aldığınızda hesabınız kapanmaz, uygulamanın diğer tüm özellikleri çalışmaya devam eder.',
+  // Ayarlar > KVKK'daki rıza kartı: kayıt OKUNAMADIĞINDA (kayıt yok DEĞİL).
+  'kvkkRiza.okunamadi': 'RIZA DURUMUNUZ ŞU AN OKUNAMADI. Bu, kaydınızın olmadığı anlamına gelmez; bağlantınızı kontrol edip tekrar deneyin.',
+  'kvkkRiza.tekrarDene': 'Tekrar dene',
   'auth.termsAccept': 'Kayıt olarak kabul ettiğiniz metin:',
   'auth.privacyLink': 'Verileriniz nasıl korunuyor? Gizlilik ve KVKK metnini okuyun',
   'privacy.title': 'Gizlilik ve KVKK',
@@ -688,6 +787,8 @@ export const tr = {
   'settings.version': 'Uygulama sürümü',
   'settings.backend': 'Altyapı',
   'settings.signOut': 'Çıkış Yap',
+  'input.hidePassword': 'Şifreyi gizle',
+  'input.showPassword': 'Şifreyi göster',
   'settings.signOutConfirm': 'Çıkış yapmak istediğinize emin misiniz?',
   'settings.dataStorage': 'Veri saklama',
   'settings.dataStorageValue': 'Bulut (Supabase)',
@@ -700,7 +801,14 @@ export const tr = {
   'delAcc.wrongPassword': 'Şifre doğrulanamadı. Tekrar deneyin.',
   'delAcc.confirmWord': 'SİL',
   'delAcc.typeWord': 'Onaylamak için "{word}" yazın',
-  'delAcc.note': 'Silme işlemi geri alınamaz. Dosyalarınız, müvekkilleriniz ve belgeleriniz kalıcı olarak silinir; yedek alınmaz.',
+  // "yedek alınmaz" YANLIŞTI (09.10.2026): veritabanı içi yedekler var ve
+  // silmede onlardan da siliniyor; Supabase platform yedeği ayıklanamıyor.
+  // Gizlilik metniyle (app/privacy.tsx) aynı olgu, süre sayısı tekrarlanmadan.
+  'delAcc.note': 'Silme işlemi geri alınamaz. Dosyalarınız, müvekkilleriniz ve belgeleriniz kalıcı olarak silinir; kendi yedek kopyalarımızdaki kayıtlarınız da silinir. Bulut sağlayıcımızın (Supabase) altyapı yedeği tek bir kullanıcı için ayıklanamaz; oradaki kopya saklama süresi dolunca kendiliğinden silinir (ayrıntı: Ayarlar > Gizlilik ve KVKK).',
+  // Apple'ın hesap silme rehberi aboneliği olana bu uyarıyı istiyor
+  // (developer.apple.com/support/offering-account-deletion-in-your-app).
+  'delAcc.abonelik': 'App Store ya da Google Play üzerinden aldığınız bir abonelik varsa hesabınızı silmek onu İPTAL ETMEZ; ödeme mağaza üzerinden sürer. Silmeden önce aboneliğinizi mağaza ayarlarından iptal edin.',
+  'delAcc.aboneligiYonet': 'Aboneliklerimi yönet',
   'settings.deleteAccountConfirmTitle': 'Emin misiniz?',
   'settings.deleteAccountConfirmMsg': 'Tüm verileriniz kalıcı olarak silinecek. Bu son onaydır.',
   'settings.deleteAccountConfirmBtn': 'Evet, kalıcı olarak sil',
@@ -753,8 +861,30 @@ export const tr = {
   'premium.purchaseFailedTitle': 'Satın alma tamamlanamadı',
   'premium.restoreCta': 'Satın almaları geri yükle',
   'premium.restoreDoneTitle': 'Kontrol edildi',
-  'premium.restoreDoneBody': 'Önceki aboneliğiniz bulundu ve hesabınıza bağlandı.',
-  'premium.restoreNoneBody': 'Bu hesaba bağlı önceden yapılmış bir satın alma bulunamadı.',
+  // GERİ YÜKLEME (09.10.2026): "bulundu" yalnız mağazada ETKİN bir yetki
+  // döndüğünde söylenir (satinAlma.ts > geriYuklemeMesaji). Eskiden her
+  // başarılı yanıtta "bulundu" deniyordu — hiçbir şey yokken de.
+  'premium.restoreDoneBody': 'Etkin aboneliğiniz bulundu ve bu hesaba bağlandı. Özellikler birkaç saniye içinde açılmazsa bize yazın.',
+  'premium.restoreNoneBody': 'Bu cihazın App Store / Google Play hesabında etkin bir abonelik bulunamadı.',
+  'premium.restoreFailedTitle': 'Geri yükleme tamamlanamadı',
+  'premium.restoreUnavailableBody': 'Bu sürümde mağaza bağlantısı kurulamadığı için geri yükleme yapılamadı. App Store / Google Play’deki güncel sürümü kullanın; sorun sürerse bize yazın.',
+  // "Aboneliği yönet": mağazanın abonelik sayfası (satinAlma.ts > abonelikYonetimAdresi).
+  'premium.manageCta': 'Aboneliği yönet veya iptal et',
+  'premium.manageFailedBody': 'Mağaza açılamadı. Aboneliğinizi App Store / Google Play’in abonelikler bölümünden yönetebilirsiniz.',
+  // SATIN ALMA HATALARI (09.10.2026). Eskiden RevenueCat'in İngilizce ham
+  // metni ("Error performing request.") olduğu gibi gösteriliyordu. Neden
+  // eşlemesi: src/lib/purchases.ts > hataNedeni.
+  'premium.pendingTitle': 'Ödeme onay bekliyor',
+  'premium.hata.oturumYok': 'Önce Vekil Pro hesabınızla giriş yapın; abonelik o hesaba bağlanır.',
+  'premium.hata.kimlik': 'Satın alma hesabınıza bağlanamadığı için işlem başlatılmadı; ücret alınmadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+  'premium.hata.ag': 'İnternet bağlantısı kurulamadı. Bağlantınızı kontrol edip tekrar deneyin.',
+  'premium.hata.izinYok': 'Bu cihazda ya da mağaza hesabında uygulama içi satın almaya izin verilmiyor. Cihaz ayarlarındaki satın alma kısıtlamalarını kontrol edin.',
+  'premium.hata.bekliyor': 'Ödeme mağaza tarafında onay bekliyor; onaylanmadan abonelik başlamaz. Onaylandıktan sonra bu hesapta açılmazsa "Satın almaları geri yükle"ye dokunun.',
+  'premium.hata.zatenVar': 'Bu abonelik bu mağaza hesabında zaten etkin. Vekil Pro hesabınızda açık görünmüyorsa "Satın almaları geri yükle"ye dokunun.',
+  'premium.hata.urunYok': 'Bu paket şu an mağazada satın alınamıyor. Birazdan tekrar deneyin; sorun sürerse bize yazın.',
+  'premium.hata.baskaHesap': 'Bu mağaza hesabındaki satın alma başka bir hesaba bağlı görünüyor. Aboneliği başka bir Vekil Pro hesabıyla aldıysanız o hesapla giriş yapın; değilse bize yazın.',
+  'premium.hata.magaza': 'App Store / Google Play bir sorun bildirdi. Birazdan tekrar deneyin; sorun sürerse bize yazın.',
+  'premium.hata.bilinmeyen': 'İşlem tamamlanamadı. Birazdan tekrar deneyin; sorun sürerse bize yazın.',
   // Aylık abonelik. DENEME SÜRESİ YOK — ücretsiz katman kalıcıdır.
   'premium.oneName': 'Vekil Pro',
   'premium.oneTag': 'Bir avukatın ihtiyacı olan her şey',
@@ -762,7 +892,7 @@ export const tr = {
   'premium.subscribeCta': 'Aboneliğe Geç',
   'premium.f.freeAll': 'Ücretsiz plandaki her şey (sınırsız içtihat, ajanda, şablonlar, hesaplayıcılar)',
   'premium.f.allCases': 'Sınırsız dava, müvekkil ve belge — sayı sınırı kalkar',
-  'premium.f.financeFull': 'Finans modülü: gelir-gider, tahsilat ve finansal özet (ücretsiz planda kapalıdır)',
+  'premium.f.financeFull': 'Finans modülü: gelir-gider kaydı (ücretsiz planda kapalıdır)',
   'premium.f.aiSeparate': 'Yapay zekâ özellikleri ayrı pakettedir (aşağıda)',
   'premium.aiName': 'Vekil Pro + Yapay Zekâ',
   'premium.aiTag': 'Araştırma ve taslak yazımında yapay zekâ desteği',
@@ -784,6 +914,9 @@ export const tr = {
   // ve ₺399'luk pakete taşındı. Anahtar adı da onunla birlikte değişti:
   // 'freeDeneme' kalsaydı, ücretsiz katmanın listesinde duruyormuş gibi
   // okunur ve bir sonraki düzenlemede yanlış yere geri konurdu.
+  // ESKİDİ (09.10.2026 notu): 28.09'dan beri deneme YİNE ücretsiz planda
+  // (premium.f.freeDeneme) ve sayaç tek; bu anahtar 08.10'dan beri hiçbir
+  // ekranda kullanılmıyor. Pro kartına geri bağlamayın — Pro ek deneme vermez.
   'premium.f.proDeneme': '{n} yapay zekâ denemesi (Dilekçe Üret, Belge İncele, Belgeden Dosya Aç)',
   'premium.perSixMonths': '/ 6 ay',
   'premium.perYear': '/ yıl',
@@ -857,6 +990,7 @@ export const tr = {
   'enf.creditorPlaceholder': 'Müvekkil seçin',
   'enf.debtor': 'Borçlu',
   'enf.debtorName': 'Borçlu adı / unvanı',
+  'enf.debtorNamePh': 'Mehmet Kaya / ABC Ltd. Şti.',
   'enf.debtorId': 'TC / Vergi No (opsiyonel)',
   'enf.debtorAddress': 'Adres (opsiyonel)',
   'enf.office': 'İcra Dairesi',
@@ -881,7 +1015,7 @@ export const tr = {
   'enf.create': 'Takip Aç',
   'enf.kapak': 'Güncel Kapak Hesabı',
   'enf.kapakAsOf': '{date} itibarıyla',
-  'enf.interestInfo': 'Faiz, takip tarihinden bugüne gün bazında işler; tahsilatlar önce masraf ve faize, sonra asıl alacağa düşülür (İİK 138).',
+  'enf.interestInfo': 'Faiz, girilen TEK oranla ve yıl = 365 gün esasıyla gün bazında işler; oran dönem içinde değiştiyse (yasal/avans faiz) sonuç yaklaşıktır, dönemlere bölerek ayrıca hesaplayın. Tahsilatlar önce masraf ve faize, sonra asıl alacağa düşülür (TBK m.100).',
   'enf.bd.principal': 'Kalan asıl alacak',
   'enf.bd.interest': 'İşlemiş faiz',
   'enf.bd.expenses': 'Masraf + vek. ücreti',
@@ -914,6 +1048,14 @@ export const tr = {
   'enf.setupRequired': 'İcra modülü için KURULUM.sql güncellemesini (0024) çalıştırın.',
   'enf.clientSection': 'İcra Dosyaları',
   'enf.badge': 'İcra',
+  'enf.loading': 'İcra dosyası yükleniyor…',
+  'enf.notFound': 'İcra dosyası bulunamadı',
+  'enf.notFoundDesc': 'Bu dosya silinmiş ya da bu hesaba ait değil.',
+  'enf.backToList': 'Dosya Dizinine dön',
+  'enf.loadError': 'İcra dosyası yüklenemedi',
+  'enf.loadErrorDesc': 'Bağlantınızı kontrol edip tekrar deneyin.',
+  'enf.retry': 'Tekrar dene',
+  'enf.futureCollection': 'Tahsilat tarihi bugünden sonra olamaz. Tahsilat gerçekleştiğinde kaydedin.',
   'file.badgeCase': 'Dava',
   'file.newChoiceTitle': 'Yeni dosya',
   'file.newChoiceSub': 'Ne açmak istiyorsunuz?',
@@ -973,14 +1115,16 @@ export const tr = {
   // Notifications
   // Duruşmadan SONRA sorulan bildirim: verilen sürenin kaydedilmesini sağlar.
   // Canlı veride 49 duruşmaya karşılık 9 süre kaydı vardı.
+  // Kilit ekranında görünür: müvekkil ve dava ADI yazılmaz (bkz. utils/bildirimMetni.ts).
   'notif.outcomeTitle': '{type} nasıl geçti?',
-  'notif.outcomeBody': '{title} — süre verildiyse şimdi kaydedin, sonra unutulur.',
+  'notif.outcomeBody': '{date} — süre verildiyse şimdi kaydedin, sonra unutulur.',
   'notif.hearingTitle': 'Yaklaşan {type}: {title}',
   'notif.deadlineTitle': 'Görev zamanı yaklaşıyor: {title}',
+  'notif.eventBody': '{date} · Ayrıntılar uygulamada',
   'notif.stage3d': '⏰ 3 gün kaldı — {title}',
   'notif.stage1d': '🚨 1 gün kaldı — {title}',
-  'notif.promiseTitle': '💰 Ödeme günü: {name}',
-  'notif.promiseBody': '{name} bugün {amount} ödeme yapacak. Takip etmeyi unutmayın.',
+  'notif.promiseTitle': '💰 Ödeme günü',
+  'notif.promiseBody': 'Müvekkil ödeme sözü: {amount}. Takip etmeyi unutmayın.',
 
   // Finance
   'case.tabFinance': 'Finans',
@@ -1048,6 +1192,8 @@ export const tr = {
   'caseForm.feePlaceholder': '25000',
   'caseForm.titleRequired': 'Dava başlığı zorunludur.',
   'caseForm.saveFailed': 'Dava kaydedilemedi. Lütfen tekrar deneyin.',
+  'caseForm.hearingFailed': 'Dava kaydedildi, ancak duruşma tarihi kaydedilemedi. Aşağıdaki düğmeyle yalnız duruşmayı yeniden deneyebilirsiniz; dava ikinci kez oluşturulmaz.',
+  'caseForm.retryHearing': 'Duruşmayı Tekrar Kaydet',
 
   // Reports
   'reports.title': 'Raporlar',
@@ -1129,6 +1275,7 @@ export const tr = {
   'ofinance.exp.title': 'Açıklama',
   'ofinance.exp.recurring': 'Tekrarlı',
   'ofinance.exp.amount': 'Tutar',
+  'ofinance.exp.casePayment': 'Dava tahsilatı',
   'ofinance.exp.note': 'Not',
   'ofinance.exp.shareTitle': 'Gelir-Gider Dökümü',
   'ofinance.exp.empty': 'Bu ayda dışa aktarılacak kayıt yok.',
@@ -1167,6 +1314,7 @@ export const tr = {
   'financeForm.note': 'Not (isteğe bağlı)',
   'financeForm.notePlaceholder': 'Ek açıklama...',
   'financeForm.save': 'Kaydet',
+  'financeForm.rateInvalid': 'KDV ve stopaj oranı 0 ile 100 arasında bir sayı olmalı.',
   'financeForm.amountRequired': 'Geçerli bir tutar girin.',
   'tutar.okunamadi': 'Tutar okunamadı: "{deger}". Örnek yazım: 12.500,75',
   'contract.taksitHesaplanamadi': 'Taksit seçildi ama taksit tutarı hesaplanamadı: seçili ücret modelinin tutar alanlarını doldurun. Metin şu an "peşin ödenir" diyor.',
@@ -1299,6 +1447,11 @@ export const tr = {
   'devCal.denied': 'Takvim izni verilmedi. Ayarlar > Vekil Pro üzerinden izin verebilirsiniz.',
   'devCal.error': 'Takvime eklenemedi. Telefon takvim ayarlarını kontrol edip tekrar deneyin.',
   'devCal.unavailable': 'Bu özellik için uygulamanın yeni sürümü gerekiyor (TestFlight/mağaza güncellemesi).',
+  // 404 — eşleşmeyen adres (app/+not-found.tsx)
+  'notFound.title': 'Sayfa bulunamadı',
+  'notFound.body': 'Aradığınız sayfa taşınmış ya da silinmiş olabilir; adres yanlış yazılmış da olabilir.',
+  'notFound.home': 'Ana sayfaya dön',
+  'notFound.login': 'Giriş ekranına dön',
   'case.tabPlan': 'Plan',
   'plan.title': 'Duruşma Planı',
   'plan.briefTitle': 'Duruşma Brief\'i',
@@ -1309,10 +1462,10 @@ export const tr = {
   'plan.share': 'Paylaş',
   'plan.saved': 'Plan kaydedildi ✓',
   'plan.setupRequired': 'Bu özellik için Supabase\'de güncel KURULUM.sql (0023) çalıştırılmalı.',
-  'plan.aiOn': 'AI aktif (OpenAI anahtarı kayıtlı) — değiştir',
+  'plan.aiOn': 'AI aktif — brief Vekil AI ile hazırlanır',
   'plan.aiOff': 'AI ile oluştur (opsiyonel OpenAI anahtarı ekle)',
   'plan.aiHint': 'Anahtar yalnızca bu cihazda saklanır ve doğrudan OpenAI\'ye gönderilir. Boş kaydedersen şablon motoru kullanılır.',
-  'plan.aiFailed': 'AI üretimi başarısız oldu; şablonla oluşturuldu. Anahtarı ve bakiyeyi kontrol edin.',
+  'plan.aiFailed': 'AI üretimi başarısız oldu; şablonla oluşturuldu. Biraz sonra tekrar deneyebilirsiniz.',
   'plan.secAcilis': 'Açılış Konuşması',
   'plan.secDayanak': 'Hukuki Dayanaklar',
   'plan.secTanik': 'Tanık Soruları',
@@ -1375,12 +1528,27 @@ export const tr = {
     'İYUK m.61/1: bölge idare mahkemesinin bulunduğu il merkezi dışında olup yalnızca bir idare ' +
     'veya bir vergi mahkemesi bulunan yerlerde çalışmaya ara verme uygulanmaz; bu mahkemelerde ' +
     'süre UZAMAZ. Mahkemenizin bu kapsamda olup olmadığını teyit edin.',
+  // HMK m.104 yalnız "adli tatile tabi olan dava ve işlerde" uzatır; m.103'te
+  // sayılanlar tatilde görüldüğü için tabi değildir. Dava türünü uygulama bilmez.
+  'wizard.hukukRecessException':
+    'HMK m.104 uzaması yalnız adli tatile tabi dava ve işlerde uygulanır. HMK m.103’te sayılan işlerde ' +
+    '(ör. ihtiyati tedbir/haciz, nafaka, soybağı/velayet/vesayet, işçi davaları, iflas/konkordato, ' +
+    'çekişmesiz yargı, ivedi işler) süre UZAMAZ. Davanızın türünü teyit edin.',
+  'wizard.recessNotApplied':
+    'Son gün adli tatile (20 Temmuz – 31 Ağustos) denk geliyor, ancak bu süre için adli tatil uzaması ' +
+    'hesaplanmıyor. Gösterilen tarih uzamasız (erken) tarihtir; dosyanızda uzama olup olmadığını teyit edin.',
+  'wizard.recessRolledNote':
+    'Son gün, hafta sonu/resmî tatil kaydırmasıyla adli tatilin ilk gününe (20 Temmuz) denk geliyor. Adli ' +
+    'tatil uzaması bu durumda UYGULANMADI (erken tarih gösteriliyor); uygulanıp uygulanmadığını teyit edin — ' +
+    'uygulanırsa son gün daha geç olur.',
   'wizard.bayramNote':
-    'Son gün dini bayram tatiline denk gelebilir. Dini bayramlar otomatik hesaba katılmaz; resmî takvimden teyit edin.',
+    'Son gün yarım gün tatile (dini bayram arefesi ya da 28 Ekim; saat 13.00’ten sonra) denk geliyor ya da ' +
+    'tarih, uygulamanın dini bayram takviminin dışında kalıyor. Dilekçeyi mümkünse 13.00’ten önce verin; ' +
+    'bayram günlerini resmî takvimden teyit edin.',
   'wizard.recessNote':
     'Son gün adli tatile (20 Temmuz – 31 Ağustos) denk geliyor. Dosyanız adli tatile tabi ise süre, tatilin bitiminden itibaren bir hafta uzar (HMK 104). Kontrol edin.',
   'wizard.disclaimer':
-    'Hesaplama bilgilendirme amaçlıdır; dini bayram tatilleri hesaba katılmaz. Süreyi mutlaka mevzuattan ve dosyanızdan teyit edin.',
+    'Hesaplama bilgilendirme amaçlıdır; dini bayram günleri Diyanet takvimine göre hesaba katılır, idari izin (köprü) günleri ve yarım gün tatiller katılmaz. Süreyi mutlaka mevzuattan ve dosyanızdan teyit edin.',
   'wizard.caseLabel': 'Görevin ekleneceği dava',
   'wizard.noCases': 'Açık davanız yok. Görev oluşturmak için önce bir dava ekleyin.',
   'wizard.createTask': 'Görev Oluştur',
@@ -1487,6 +1655,7 @@ export const tr = {
   'profile.firmName': 'Büro adı',
   'profile.firmPlaceholder': 'Yalvaç Hukuk Bürosu',
   'profile.barNumber': 'Baro sicil no',
+  'profile.fullNamePh': 'Av. Ad Soyad',
   'profile.barPlaceholder': 'İstanbul Barosu 12345',
   'profile.phone': 'Telefon',
   'profile.photoTitle': 'Profil Fotoğrafı',
@@ -1494,6 +1663,9 @@ export const tr = {
   'profile.photoStaged': 'Değişiklik hazır — "Değişiklikleri Kaydet"e basınca uygulanır',
   'profile.removePhoto': 'Fotoğrafı kaldır',
   'profile.photoFailed': 'Fotoğraf güncellenemedi. Lütfen tekrar deneyin.',
+  // İzin reddi eskiden sessizdi (seçici null döner, vazgeçmeyle aynı) — 09.10.2026.
+  'profile.photoPermDenied': 'Fotoğraflarınıza erişim izni verilmedi. Ayarlar > Vekil Pro üzerinden izin verebilirsiniz.',
+  'profile.cameraPermDenied': 'Kamera izni verilmedi. Ayarlar > Vekil Pro üzerinden izin verebilirsiniz.',
   'profile.saveFailed': 'Profil kaydedilemedi. Lütfen tekrar deneyin.',
   'lock.retry': 'Tekrar Dene',
 
@@ -1552,7 +1724,13 @@ export const tr = {
   'ai.errBos': 'Yapay zekâ boş bir cevap döndürdü. Tekrar deneyin; hakkınızdan düşülmedi.',
   'ai.errOturum': 'Oturumunuzun süresi dolmuş. Çıkış yapıp yeniden giriş yapın.',
   'ai.errTamamlanamadi': 'Yapay zekâ isteği tamamlanamadı. Tekrar deneyin.',
+  'ai.errZamanAsimi': 'Araştırma süre sınırı içinde tamamlanamadı; hakkınızdan düşülmedi. Olayı kısaltıp ya da tek konuya indirip tekrar deneyin.',
+  'ai.errRefusal': 'Yapay zekâ bu isteğe yanıt vermedi (model reddetti); hakkınızdan düşülmedi. Olayı farklı ifade ederek tekrar deneyebilirsiniz; aynı metinle tekrar denemek büyük olasılıkla aynı sonucu verir.',
   'ai.errGeneric': 'Yanıt alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+  'ai.errIstemciZamanAsimi': 'Yanıt çok uzun sürdü ve beklemeyi bıraktık. Biraz sonra tekrar deneyin; sunucu isteği tamamlamış ve hakkınızdan düşmüş olabilir.',
+  'ai.errGirdiBuyuk': 'Mesajınız çok uzun. Kısaltıp tekrar deneyin ya da uzun metinler için “Belge İncele” ekranını kullanın. Hakkınızdan düşülmedi.',
+  'ai.errYedekGunluk': 'Asıl yapay zekâ modeli şu an ulaşılamıyor ve bugünkü yedek model sınırı doldu. Hakkınızdan düşülmedi; birkaç saat içinde ya da yarın tekrar deneyin.',
+  'ai.errSaklama': 'Sohbet geçmişi bu cihaza kaydedilemedi (depolama dolu olabilir). Uygulamayı kapatırsanız bu sohbet kaybolabilir; önemli cevapları kopyalayın.',
   'dlk.duzeltBaslik': 'Yapay zekâya düzelttir',
   'dlk.duzeltPlaceholder': 'Ne değişsin? Örn. "Zamanaşımı itirazını ayrı başlık yap", "dili daha resmî yap"',
   'dlk.duzeltCalistir': 'Düzelt',
@@ -1571,6 +1749,7 @@ export const tr = {
   'ses.hata.audio-capture': 'Mikrofon bulunamadı.',
   'ses.hata.genel': 'Sesle yazma başlatılamadı.',
   'ai.errEkBuyuk': 'Eklenen dosyaların toplamı çok büyük (en çok 8 MB). Bir dosyayı çıkarıp tekrar deneyin; hakkınız düşmedi.',
+  'ai.errSoruUzun': 'Yazdığınız metin çok uzun (en çok 60.000 karakter). Kısaltıp tekrar deneyin; hakkınız düşmedi.',
   'ek.ekle': 'Dosya ekle',
   'ek.turler': 'PDF, Word, UDF veya TXT · en çok {n} dosya',
   'ek.okunuyor': 'Dosya okunuyor…',
@@ -1585,9 +1764,17 @@ export const tr = {
   'ek.hata.eskiDoc': 'Eski Word (.doc) okunamıyor; .docx ya da PDF olarak kaydedip ekleyin.',
   'ek.hata.buyuk': 'Dosya 8 MB’tan büyük.',
   'ek.hata.okunamadi': 'Dosya okunamadı.',
+  'ek.hata.desteklenmiyor': 'Bu dosya türü okunamıyor. PDF, Word (.docx), UDF, RTF ya da TXT dosyası seçin.',
+  'ek.hata.oturum': 'Oturumunuzun süresi dolmuş. Çıkış yapıp yeniden giriş yapın.',
   'ek.taranmisUyari': 'Taranmış sayfalardan okunan tarih ve tutarlar otomatik denetlenemiyor; doğrulanamayanlar metinden çıkarıldı. Asıl belgeyle karşılaştırın.',
   'ek.metneDustu': 'Şu belgeler sayfa görüntüsüyle değil, yalnız metniyle okundu: {adlar}',
   'ek.okunamayan': 'Şu belgeler okunamadı: {adlar}',
+  // METİN TAVANI (09.10.2026): 40.000 karakterden sonrası kesiliyor ve
+  // söylenmiyordu; avukat belgenin tamamının okunduğunu sanıyordu.
+  'ek.kirpilacak': 'yalnız ilk {n} karakteri okunacak (belge {toplam} karakter)',
+  'ek.sinirDoldu': 'metin sınırı ({tavan} karakter) doldu; bu belge OKUNMAYACAK',
+  'ek.kirpildi': '{ad}: yalnız ilk {n} karakteri okundu (belge {toplam} karakter); devamı yapay zekâya gönderilmedi.',
+  'ek.toplamBuyuk': 'Sayfa görüntüsüyle okunacak PDF’lerin toplamı 8 MB’ı aşıyor; bu hâliyle gönderilemez. Bir PDF’i çıkarın.',
   'dlk.ekLabel': 'Belge ekle (isteğe bağlı)',
   'dlk.ekHint': 'Karşı tarafın dilekçesi, sözleşme, karar ya da bilirkişi raporu. Yapay zekâ dilekçeyi bunlara dayanarak yazar.',
   'docrev.ekNotPlaceholder': 'İsteğe bağlı: incelemede özellikle bakılmasını istediğiniz noktalar…',
@@ -1713,7 +1900,19 @@ export const tr = {
   'admin.pushWarn': 'Müvekkil ya da dava bilgisi yazmayın: bildirim kilit ekranında görünür.',
   'admin.pushSend': 'Gönder',
   'admin.pushConfirmTitle': 'Bildirim gönderilsin mi?',
-  'admin.pushSent': 'Gönderildi: {kisi} kişi, {cihaz} cihaz.',
+  'admin.pushSent': 'Expo kuyruğuna bırakıldı: {kisi} kişi, {cihaz} cihaz. Bu, telefonlara ulaştığı anlamına gelmez; sonucu aşağıdan okuyun.',
+  'admin.pushResult': 'Son gönderimin sonucunu oku',
+  'admin.pushResultError': 'Sonuç okunamadı: {hata}',
+  'admin.pushResultNone': 'Henüz gönderim yok.',
+  'admin.pushResultWaiting': 'Expo\'dan yanıt henüz gelmedi. Biraz sonra tekrar okuyun.',
+  'admin.pushResultGone': 'Expo yanıtı saklama süresi içinde okunamadı; sonuç bilinmiyor.',
+  'admin.pushResultTicket': 'Expo kabul etti: {kabul} · reddetti: {ret}',
+  'admin.pushResultPartial': '{n} istekten yanıt henüz gelmedi.',
+  'admin.pushResultReqErr': '{n} istek Expo\'ya ulaşmadı ya da hata döndü.',
+  'admin.pushResultCodes': 'Hata kodları: {kodlar}',
+  'admin.pushResultReceipt': 'Apple/Google\'a teslim: {ok} · hata: {hata}. Telefonda görüldüğü anlamına gelmez.',
+  'admin.pushResultReceiptEarly': 'Teslim makbuzu henüz hazır değil; gönderimden biraz sonra tekrar okuyun.',
+  'admin.pushResultReceiptPending': 'Teslim makbuzu Expo\'dan isteniyor; birazdan tekrar okuyun.',
   'admin.pushNone': 'Seçilen kişilerde bildirim adresi yok. Uygulamanın güncel sürümünü açıp bildirime izin vermeleri gerekiyor.',
   'admin.pushError': 'Gönderilemedi: {hata}',
   'admin.aiTodayHint': '{token} token',
@@ -1771,7 +1970,7 @@ export const tr = {
   // Vekalet (vekaletname) yönetimi
   'poa.title': 'Vekaletler',
   'poa.short': 'Vekaletler',
-  'poa.lead': 'Vekaletnamelerinizi ve içerdikleri ÖZEL YETKİLERİ takip edin. Sulh, feragat, kabul ve ahzu kabz gibi işlemler ancak vekaletnamede açıkça yetki verilmişse yapılabilir (HMK m.74).',
+  'poa.lead': 'Vekaletnamelerinizi ve içerdikleri ÖZEL YETKİLERİ takip edin. Sulh, feragat, kabul ve yemin gibi işlemler ancak vekaletnamede açıkça yetki verilmişse yapılabilir (HMK m.74). Tahsil (ahzu kabz) yetkisi de burada izlenir.',
   'poa.add': 'Vekaletname Ekle',
   'poa.empty': 'Henüz vekaletname kaydı yok. Ekleyin ki hangi yetkilere sahip olduğunuzu her an görebilesiniz.',
   'poa.client': 'Müvekkil',
@@ -1782,7 +1981,10 @@ export const tr = {
   'poa.notaryPh': 'Örn. Kadıköy 3. Noterliği',
   'poa.notaryNo': 'Yevmiye no',
   'poa.notaryNoPh': 'Örn. 12345',
-  'poa.issued': 'Düzenleme tarihi (YYYY-AA-GG)',
+  'poa.issued': 'Düzenleme tarihi (GG.AA.YYYY)',
+  'poa.issuedInvalid': 'Düzenleme tarihi geçersiz. GG.AA.YYYY biçiminde gerçek bir tarih yazın ya da alanı boş bırakın.',
+  'poa.setStatus': 'Durum:',
+  'poa.clientSearch': 'Müvekkil ara',
   'poa.authsLabel': 'Özel yetkiler',
   'poa.authsHint': 'Vekaletnamede AÇIKÇA yazan yetkileri işaretleyin. İşaretlenmeyenler için o işlemi yapamazsınız.',
   'poa.missingWarn': 'Bu vekaletnamede YOK: {list}. Bu işlemler için ek yetki gerekir.',
@@ -1811,7 +2013,12 @@ export const tr = {
   // Mütalaa (Pro/Elit'e özel derin inceleme)
   'mut.title': 'Hukuki Araştırma',
   'mut.short': 'Hukuki Araştırma',
-  'mut.proOnly': 'Pro’ya özel',
+  // 09.10.2026: 'Pro’ya özel' yazıyordu; ₺399'luk paketin adı da "Vekil Pro" ve
+  // Hukuki Araştırma onda YOK — sunucu yalnız 'ai' katmanına açıyor
+  // (ai-chat/index.ts: isMutalaa && tier !== 'ai' → tier_required).
+  // Rozet textTransform: 'uppercase' ile çiziliyor ve o 'i'yi 'I' yapar —
+  // metin bu yüzden burada büyük harfle (İ) yazılı.
+  'mut.proOnly': 'YAPAY ZEKÂ PAKETİNE ÖZEL',
   'mut.lead': 'Olayı anlatın; uygulama konuyu hukuki sorunlara böler, her biri için mevzuat ve içtihat tarar ve bulduklarını başlıklar hâlinde derler. Sonuç bir ARAŞTIRMA NOTUDUR: hangi kuralların ve kararların ilgili olabileceğini gösterir, ne yapmanız gerektiğini SÖYLEMEZ. Değerlendirme ve karar sizindir.',
   'mut.placeholder': 'Olayı, tarafları ve elinizdeki bilgileri olabildiğince ayrıntılı anlatın…',
   'mut.run': 'Araştırmayı Başlat',
@@ -1820,6 +2027,7 @@ export const tr = {
   'mut.researched': 'Araştırılan hukuki sorunlar',
   'mut.resultTitle': 'Araştırma Notu',
   'mut.needPro': 'Hukuki Araştırma, Vekil Pro + Yapay Zekâ paketine dahildir. Olayı hukuki sorunlara bölüp her biri için ayrı ayrı mevzuat ve içtihat tarar; tek soruluk normal asistan diğer katmanlarda da çalışır.',
+  'mut.missingSections': 'Araştırma notunda şu bölümler bulunamadı: {bolumler}. Not yarım kalmış olabilir; eksik kabul edin.',
   'mut.calcDates': 'Şu tarihler anlattığınız olayda geçmiyor, araştırma notunda HESAPLANMIŞTIR — mutlaka teyit edin: {tarihler}',
   'mut.disclaimer': 'Bu not yapay zekâ taramasının çıktısıdır; mütalaa ya da hukuki tavsiye DEĞİLDİR. Dayanakları ve güncel mevzuatı kendiniz teyit edin.',
 
@@ -1840,6 +2048,9 @@ export const tr = {
   'dlk.resultTitle': 'Dilekçe Taslağı',
   'dlk.taslakGeriYuklendi': 'Son taslağınız geri yüklendi ({zaman}).',
   'dlk.taslakTemizle': 'Temizle',
+  'dlk.caseMore': '+{n} dosya daha',
+  'dlk.caseLess': 'Daha az göster',
+  'dlk.eskiDenetim': 'Aşağıdaki uyarılar ilk taslak içindi; "Düzelt"ten sonra yeniden denetlenmedi. Metinde hâlâ geçerli olup olmadığına bakın.',
   'dlk.missingRelief': '{uyari}. Hâkim taleple bağlıdır: netice-i talepte yazmayan şeye hükmedilmez — kontrol edin.',
   'dlk.missingSections': 'Şu zorunlu bölümleri model yazmadı, taslakta boşluk bırakıldı — doldurmadan vermeyin: {bolumler}',
   'dlk.scrubbedDates': 'Taslaktan {n} adet uydurma tarih ayıklandı (anlattığınız olayda geçmiyorlardı). Kalan tarihleri de denetleyin.',
@@ -1859,8 +2070,11 @@ export const tr = {
   // Taranmış sayfalar metne dönüşmez; avukat eksik okunduğunu GÖRMELİ.
   'docrev.scannedPages': 'DİKKAT: {n} sayfa metne dönüşmedi (taranmış görüntü): {sayfalar}. İnceleme bu sayfaları GÖRMEZ — tablo veya ek varsa gözden kaçar.',
   'docrev.truncated': 'Sınıra ulaşıldı — fazlası kırpıldı',
+  'docrev.kirpildi': '{n} karakter kırpıldı (kutuya en çok {max} karakter sığar). Uzun belgeyi “Dosya ekle” ile ekleyin.',
   'docrev.analyze': 'İncele',
   'docrev.analyzing': 'İnceleniyor…',
+  'docrev.sonucGeriYuklendi': 'Son incelemeniz geri yüklendi ({zaman}).',
+  'docrev.sonucTemizle': 'Temizle',
   'docrev.resultTitle': 'İnceleme Sonucu',
   'docrev.scrubbedDates': 'İncelemeden {n} adet tarih ayıklandı: belgede geçmiyorlardı. Süre hesaplarını belgeden teyit edin.',
   'docrev.disclaimer': 'Bu inceleme yapay zekâ tarafından üretilmiştir; hukuki tavsiye değildir. Sonucu kendi değerlendirmenizle teyit edin.',
@@ -1904,6 +2118,17 @@ export const tr = {
   'contract.generate': 'Sözleşmeyi Oluştur',
   'contract.preview': 'Sözleşme Önizleme',
   'contract.share': 'Paylaş / Dışa Aktar',
+  'contract.namePh': 'Av. Ad Soyad',
+  'contract.sicilPh': 'Baro sicil no',
+  'contract.firmPh': 'Büro adı',
+  'contract.clientNamePh': 'Ad Soyad / Unvan',
+  'contract.optionalPh': '(opsiyonel)',
+  'contract.subjectPh': 'Örn. Boşanma, işçilik alacağı…',
+  'contract.courtPh': 'Yetkili merci / mahkeme',
+  'contract.signPlacePh': 'Örn. İstanbul',
+  'contract.ratePh': 'Örn. 15',
+  'contract.caseValuePh': 'Dava/iş değeri',
+  'contract.monthlyPh': 'Aylık ücret',
   'ictihat.searchPlaceholder': 'Konu, kavram veya anahtar kelime...',
   'ictihat.modeAnalyze': 'Olay Analizi',
   'ictihat.modeSearch': 'Kelime Arama',
@@ -1946,6 +2171,9 @@ export const tr = {
   'ictihat.digestUyusmazlik': 'UYUŞMAZLIK',
   'ictihat.digestDegerlendirme': 'DEĞERLENDİRME',
   'ictihat.digestSonuc': 'SONUÇ',
+  'ictihat.digestBadge': 'ÖZETLİ',
+  'ictihat.hitSonuc': 'HÜKÜM / SONUÇ',
+  'ictihat.srcYargitay': 'Yargıtay',
   'ictihat.digestOpenFull': 'Kararın tam metnini aç',
   'ictihat.analyzeTitle': 'Uyuşmazlığı özetleyin, asistanınız içtihatı bulsun',
   'ictihat.analyzeDesc': 'Somut uyuşmazlığınızı özetleyin; yapay zekâ asistanınız hukuki değerlendirmesini yaparak uygun içtihatları sizin için bulsun.',
@@ -1973,6 +2201,7 @@ export const tr = {
   'ictihat.analyzeBtn': 'Değerlendir ve İçtihat Bul',
   'ictihat.analyzing': 'Uyuşmazlık değerlendiriliyor, uygun kararlar aranıyor...',
   'ictihat.analyzeRefs': 'Uyuşmazlığa Uygun Kararlar',
+  'ictihat.analyzeKararYok': 'Bu olaya uygun karar bulunamadı. Olayı biraz daha ayrıntılı anlatıp tekrar deneyin; hakkınızdan düşülmedi.',
   'ictihat.analyzeSoon': 'Olay Analizi çok yakında',
   'ictihat.analyzeSoonDesc': 'Somut uyuşmazlığınızı özetleyin; yapay zekâ asistanınız hukuki değerlendirmesini yaparak uygun içtihatları sizin için bulsun. Bu özellik çok yakında açılıyor. Şimdilik “Kelime Arama” ve “Künye” ile gerçek kararlara ulaşabilirsiniz.',
   'ictihat.errAiOff': 'AI şu an kapalı (yapılandırma bekleniyor). Kelime Arama sekmesi çalışır.',
@@ -2131,6 +2360,14 @@ export const tr = {
   // bunu bilmesi şart, çünkü sorumluluğu üstlendiği metin artık kendi metni.
   'cikti.duzenlendi': 'Bu metni siz düzenlediniz — kopyalama, indirme ve UYAP (UDF) çıktısı düzenlenmiş hâli alır.',
   'cikti.aslinaDon': 'Aslına dön',
+  // Dışa aktarmadan önce teyit (09.10.2026): uydurma madde/tutar ya da teyit
+  // edilmemiş künye varken dosya, uyarı görülmeden dışarı çıkmasın.
+  'cikti.onayBaslik': 'Teyit edilmemiş içerik var',
+  'cikti.onayMetni': 'Taslakta teyit edilmemiş içerik var: {ozet}. Mahkemeye vermeden önce ekrandaki uyarılara bakıp kontrol edin. Yine de dışa aktarılsın mı?',
+  'cikti.onayMadde': '{n} madde atfı',
+  'cikti.onayTutar': '{n} tutar',
+  'cikti.onayKunye': '{n} karar künyesi',
+  'cikti.onayDevam': 'Yine de aktar',
   'laws.title': 'Mevzuat',
   'rg.title': 'Resmî Gazete',
   'rg.subtitle': 'Günün mevzuatı — resmî fihristten',
@@ -2148,6 +2385,8 @@ export const tr = {
   'rg.errTitle': 'Liste yüklenemedi',
   'rg.errBody': 'İnternet bağlantınızı kontrol edip tekrar deneyin.',
   'rg.retry': 'Tekrar dene',
+  'rg.yenilenemedi': 'Liste güncellenemedi; en son alınan veri gösteriliyor.',
+  'rg.bayat': 'Bugünün sayısı henüz alınamadı. Gösterilen en güncel sayı: {tarih}.',
   'laws.subtitle': 'Kanunlar — çevrimdışı, madde arama',
   'laws.offline': 'Tüm metinler cihazda; internetsiz aç, ara.',
   'laws.offlineShort': 'çevrimdışı',
@@ -2158,6 +2397,7 @@ export const tr = {
   'laws.empty': 'Sonuç bulunamadı',
   'laws.emptyDesc': 'Madde numarası veya farklı bir kelime deneyin.',
   'laws.notFound': 'Kanun bulunamadı.',
+  'laws.repealed': 'Mülga',
   // Web sürümünde kanun metinleri paketten değil ağdan gelir (bkz.
   // src/data/laws/loader.web.ts) — bu yüzden "çevrimdışı" iddiası web'de
   // KULLANILMAZ, yerine bu anahtarlar gösterilir.
@@ -2188,4 +2428,11 @@ export const tr = {
   'ust.yeniSure': 'Süre / görev',
   'ust.yeniCalisma': 'Çalışma süresi',
   'ust.yeniFinans': 'Gelir / gider',
+  'header.back': 'Geri',
+  'header.menu': 'Menü',
+  'header.home': 'Ana sayfa',
+  'header.add': 'Ekle',
+  'header.export': 'Dışa aktar',
+  'header.close': 'Kapat',
+  'header.history': 'Geçmiş',
 } as const;

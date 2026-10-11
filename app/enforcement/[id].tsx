@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@/components/ui/TarihSecici';
@@ -8,6 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import {
@@ -24,6 +25,7 @@ import { fonts, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { computeKapak } from '@/utils/kapak';
+import { davaEkranDurumu } from '@/utils/davaEkrani';
 import { formatDate, formatMoney } from '@/utils/format';
 import { tutarOku } from '@/utils/tutar';
 import type { CollectionSource, EnforcementStage } from '@/types/database';
@@ -45,7 +47,7 @@ export default function EnforcementDetailScreen() {
   const t = useT();
 
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: file, error } = useEnforcement(id);
+  const { data: file, error, refetch: dosyayiYenile } = useEnforcement(id);
   const collections = useCollections(id);
   const updateEnforcement = useUpdateEnforcement();
   const deleteEnforcement = useDeleteEnforcement();
@@ -64,12 +66,45 @@ export default function EnforcementDetailScreen() {
     [file, collections.data]
   );
 
-  if (!file) {
+  // Yükleniyor / bulunamadı / yüklenemedi ayrı çizilir (10.10.2026). Eskiden
+  // var olmayan ya da silinmiş bir kimlikte yalnız başlık çiziliyordu: sonsuza
+  // dek boş ekran. Silme sürerken de "yükleniyor": silme sonrası yenileme "yok"
+  // dönünce kullanıcı bir an "bulunamadı" görmesin (bkz. utils/davaEkrani).
+  const siliniyor = deleteEnforcement.isPending || deleteEnforcement.isSuccess;
+  const ekranDurumu = siliniyor ? 'yukleniyor' : davaEkranDurumu({ kimlik: id, veri: file, hata: error });
+  if (ekranDurumu !== 'hazir' || !file) {
     return (
       <Screen>
         <ScreenHeader title={t('enf.title')} showBack />
-        {error && isMissingEnforcementTable(error) && (
+        {error && isMissingEnforcementTable(error) ? (
           <Text style={styles.setupNote}>{t('enf.setupRequired')}</Text>
+        ) : (
+          <View style={styles.content}>
+            <Card>
+              {ekranDurumu === 'yukleniyor' ? (
+                <View style={styles.durum}>
+                  <ActivityIndicator color={colors.primary} />
+                  <Text style={styles.durumMetni}>{t('enf.loading')}</Text>
+                </View>
+              ) : ekranDurumu === 'yuklenemedi' ? (
+                <EmptyState
+                  icon="cloud-offline-outline"
+                  title={t('enf.loadError')}
+                  description={t('enf.loadErrorDesc')}
+                  actionLabel={t('enf.retry')}
+                  onAction={() => dosyayiYenile()}
+                />
+              ) : (
+                <EmptyState
+                  icon="folder-open-outline"
+                  title={t('enf.notFound')}
+                  description={t('enf.notFoundDesc')}
+                  actionLabel={t('enf.backToList')}
+                  onAction={() => geriDon('/(app)/cases')}
+                />
+              )}
+            </Card>
+          </View>
         )}
       </Screen>
     );
@@ -78,6 +113,12 @@ export default function EnforcementDetailScreen() {
   const pct = kapak && kapak.takipCikisi > 0 ? Math.min(100, Math.round((kapak.collected / (kapak.collected + kapak.remaining || 1)) * 100)) : 0;
 
   const submitCollection = async () => {
+    // Gelecek tarihli tahsilat girilemez: henüz olmamış bir ödeme bugünkü
+    // kapaktan düşülürdü (10.10.2026). Tarih seçici de bugünle sınırlı.
+    if (format(collDate, 'yyyy-MM-dd') > format(new Date(), 'yyyy-MM-dd')) {
+      uyar(t('enf.futureCollection'));
+      return;
+    }
     const amount = parseMoney(collAmount);
     if (amount <= 0) {
       // Eskiden sessizce hiçbir şey olmuyordu; kullanıcı düğmenin bozuk olduğunu sanıyordu.
@@ -257,6 +298,7 @@ export default function EnforcementDetailScreen() {
               <DateTimePicker locale="tr-TR"
                 value={collDate}
                 mode="date"
+                maximumDate={new Date()}
                 display={Platform.OS === 'android' ? 'spinner' : 'default'}
                 onChange={(_e, date) => {
                   if (Platform.OS === 'android') setShowCollPicker(false);
@@ -318,6 +360,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.caption,
     color: colors.warning,
     paddingHorizontal: spacing.lg,
+  },
+  durum: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+  },
+  durumMetni: {
+    ...typography.caption,
+    color: colors.textSecondary,
   },
   kapakCard: {
     marginBottom: spacing.md,

@@ -112,6 +112,34 @@ export function addDays(from: Date, days: number): Date {
   return d;
 }
 
+/**
+ * Yerel günün sonu (23:59). Kanuni süreler gün sonuna kadardır; görev formu da
+ * (deadline-form) süreyi 23:59'a sabitler. Eskiden bu ekran süreyi duruşmanın
+ * saatiyle ya da tebliğ tarihini seçtiğin ANIN saatiyle yazıyordu: son gün
+ * "10:15'te" ya da "02:40'ta" dolmuş görünür, hatırlatma ve sıralama buna göre
+ * kurulurdu (10.10.2026, denetçi bulgusu).
+ */
+export function gunSonu(d: Date): Date {
+  const x = new Date(d.getTime());
+  x.setHours(23, 59, 0, 0);
+  return x;
+}
+
+/** Tebligat takip işinin tarihi: duruşmadan 14 gün sonra, gün sonu. */
+export function tebligatTakipTarihi(hearingDate: Date): Date {
+  return gunSonu(addDays(hearingDate, 14));
+}
+
+/**
+ * "Sonraki duruşma" için varsayılan: bugünden 30 gün sonra, BU duruşmanın
+ * saatinde. Eskiden saat 09:30'a sabitti ve ekranda değiştirilemiyordu.
+ */
+export function varsayilanSonrakiDurusma(hearingDate: Date, now: Date = new Date()): Date {
+  const d = addDays(now, 30);
+  d.setHours(hearingDate.getHours(), hearingDate.getMinutes(), 0, 0);
+  return d;
+}
+
 export interface PlannedDeadline {
   /** Sürenin son günü */
   dueAt: Date;
@@ -152,17 +180,15 @@ export function planDeadline(
       // Eskiden her dosya türüne "HMK 345, 14 gün" yazılıyordu.
       const tanim = istinafTanimi(kategori);
       const { due } = computeLegalDue(serviceDate, tanim.amount, tanim.unit, tanim.rule);
-      const dueAt = new Date(due);
-      dueAt.setHours(serviceDate.getHours(), serviceDate.getMinutes(), 0, 0);
-      return { dueAt, basis: tanim.basis, key: def.deadlineKey, fromService: true };
+      return { dueAt: gunSonu(due), basis: tanim.basis, key: def.deadlineKey, fromService: true };
     }
-    return { dueAt: addDays(serviceDate, days), basis: def.basis, key: def.deadlineKey, fromService: true };
+    return { dueAt: gunSonu(addDays(serviceDate, days)), basis: def.basis, key: def.deadlineKey, fromService: true };
   }
   if (def.serviceDateRequired) {
     const base = serviceDate ?? hearingDate;
-    return { dueAt: addDays(base, days), basis: def.basis, key: def.deadlineKey, fromService: !!serviceDate };
+    return { dueAt: gunSonu(addDays(base, days)), basis: def.basis, key: def.deadlineKey, fromService: !!serviceDate };
   }
-  return { dueAt: addDays(hearingDate, days), basis: def.basis, key: def.deadlineKey, fromService: false };
+  return { dueAt: gunSonu(addDays(hearingDate, days)), basis: def.basis, key: def.deadlineKey, fromService: false };
 }
 
 /** Ekranda "kanuni: N gün" olarak gösterilen varsayılan süre. */
@@ -191,4 +217,53 @@ export function pendingOutcomeHearings<T extends { scheduled_at: string; is_comp
   return hearings
     .filter((h) => !h.is_completed && new Date(h.scheduled_at) < now)
     .sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at));
+}
+
+/**
+ * ÇİFT KAYIT KORUMASI — bellekten değil VERİDEN.
+ *
+ * Ekran tek "Kaydet" ile birkaç yazma yapar. Ortada biri düşerse (adliyede çeken
+ * hat) kullanıcı tekrar basar. Hangi adımın bittiği yalnız bellekte tutulduğu
+ * için ekrandan çıkıp dönünce ya da uygulama kapanınca öncekiler BAŞTAN çalışır,
+ * ikinci bir "sonraki duruşma" ve ikinci bir süre doğardı. Aşağıdaki iki kontrol
+ * kayıtlı veriye bakar: aynı kayıt zaten varsa adım atlanır.
+ */
+export function ayniDurusmaVarMi(
+  hearings: { case_id: string | null; scheduled_at: string }[],
+  caseId: string | null,
+  scheduledAtIso: string
+): boolean {
+  const t = new Date(scheduledAtIso).getTime();
+  if (Number.isNaN(t)) return false;
+  return hearings.some((h) => h.case_id === caseId && new Date(h.scheduled_at).getTime() === t);
+}
+
+export function ayniSureVarMi(
+  deadlines: { case_id: string | null; title: string; due_at: string }[],
+  caseId: string | null,
+  title: string,
+  dueAtIso: string
+): boolean {
+  const t = new Date(dueAtIso).getTime();
+  if (Number.isNaN(t)) return false;
+  return deadlines.some((d) => d.case_id === caseId && d.title === title && new Date(d.due_at).getTime() === t);
+}
+
+/** "Bunu atla": sıradaki bekleyene geç; sonda başa dön (atlananlar ulaşılamaz kalmasın). */
+export function sonrakiSira(idx: number, length: number): number {
+  if (length <= 0) return 0;
+  return (idx + 1) % length;
+}
+
+/**
+ * Bir duruşmanın sonucu kaydedildikten sonra ekran nereye gider?
+ * `length` kayıt ÖNCESİ bekleyen sayısıdır. Kaydedilen listeden düşer; geriye
+ * (atlanmış olanlar dahil) hiç kalmadıysa biter. Eskiden yalnız "son sıradayım"
+ * bakılıyordu: atlanmış kayıtlar varken "Bekleyen duruşma kalmadı. Süreleriniz
+ * güncel!" deniyor ve boş ekran açılıyordu.
+ */
+export function kayittanSonra(idx: number, length: number): { bitti: boolean; idx: number } {
+  const kalan = length - 1;
+  if (kalan <= 0) return { bitti: true, idx: 0 };
+  return { bitti: false, idx: idx >= kalan ? 0 : idx };
 }

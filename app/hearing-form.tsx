@@ -21,6 +21,8 @@ import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
 import { formatDate, formatTime } from '@/utils/format';
 import { addToDeviceCalendar } from '@/utils/deviceCalendar';
+import { doluAlanVar, telefonTakvimiSunulurMu } from '@/utils/webDavranis';
+import { useWebCikisUyarisi } from '@/hooks/useWebCikisUyarisi';
 import type { HearingType } from '@/types/database';
 import { geriDon } from '@/lib/geriDon';
 import { arabuluculukCoz, toplantiYeriCoz } from '@/utils/toplantiYeri';
@@ -110,6 +112,8 @@ export default function HearingFormScreen() {
 
   const isSubmitting = createHearing.isPending || updateHearing.isPending;
   const allHearings = useAllHearings();
+  // Yeni kayıtta yazılmış bir şey varken sekme kapanır/yenilenirse (web) uyar.
+  useWebCikisUyarisi(!isEdit && doluAlanVar([title, location, notes]));
 
   // ÇAKIŞMA UYARISI.
   //
@@ -180,7 +184,12 @@ export default function HearingFormScreen() {
       return; // uyarı notifySaveError ile gösterildi
     }
 
-    // Yeni kayıt telefonun takvimine de yazılsın mı?
+    // Yeni kayıt telefonun takvimine de yazılsın mı? Web'de telefon takvimi
+    // yok: soru hiç çıkmaz (eskiden "evet" denince "yeni sürüm gerekiyor" yazıyordu).
+    if (!telefonTakvimiSunulurMu(Platform.OS)) {
+      geriDon();
+      return;
+    }
     uyar(t('devCal.askTitle'), t('devCal.askMsg'), [
       { text: t('common.no'), style: 'cancel', onPress: () => geriDon() },
       {

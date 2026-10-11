@@ -41,7 +41,7 @@ satirlar as (
   select 20, 'PENCERE', p.tur,
          'biten ' || p.biten || ' / ' || p.pencere
          || '  (%' || round(100.0 * p.biten / nullif(p.pencere, 0), 1) || ')'
-         || ' · hiç işlenmemiş ' || p.hic_islenmemis
+         || ' · sırası öne alınmış (yeni ya da yeniden açılmış, 0176) ' || p.hic_islenmemis
   from p
   union all
   select 21, 'PENCERE', p.tur || ' · en yeni biten gün', coalesce(p.en_yeni_biten::text, '(yok)') from p

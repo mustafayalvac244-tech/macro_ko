@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { tr } from './tr';
 import { en } from './en';
+import { cogulUygula } from './cogul';
 
 export type Lang = 'tr' | 'en';
 export type TKey = keyof typeof tr;
@@ -32,7 +33,7 @@ export async function hydrateLanguage(): Promise<void> {
 }
 
 export function translate(lang: Lang, key: TKey, vars?: Record<string, string | number>): string {
-  let text: string = dicts[lang][key] ?? dicts.tr[key] ?? key;
+  let text: string = cogulUygula(dicts[lang][key] ?? dicts.tr[key] ?? key, vars);
   if (vars) {
     for (const [name, value] of Object.entries(vars)) {
       text = text.replace(`{${name}}`, String(value));

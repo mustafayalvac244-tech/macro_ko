@@ -93,3 +93,6 @@ play-service-account.json
 # kaynak kodun türevi, kendisi değil.
 graphify-out/
 ios-imza/
+
+# Ajan çalışma kopyaları (git worktree) — her biri tam depo kopyası; ASLA commit edilmez.
+.claude/worktrees/

@@ -34,6 +34,20 @@ psql -h /tmp -p "$PORT" -U postgres -q -c "create database $DB;"
 psql -h /tmp -p "$PORT" -U postgres -d "$DB" -v ON_ERROR_STOP=1 -q -f "$KOK/scripts/migration-deneme/supabase-taklit.sql"
 
 HEDEF=("$@")
+# BAĞIMLILIK (10.10.2026). CI yalnız DEĞİŞEN göçleri koşturur; taklit şema da yalnız
+# dokunulan tabloları emüle eder. Eski bir göçün kurduğu tabloya/işleve dayanan yeni
+# göç bu yüzden CI'da "relation does not exist" ile düşüyordu (0187→0161 gibi).
+# Göç dosyasının başındaki `-- BAĞIMLI: 0161 0117` satırı bu göçlerin ÖNCE
+# koşturulmasını sağlar (yalnız bir düzey; sıra numaraya göre).
+if [ ${#HEDEF[@]} -gt 0 ]; then
+  EK=()
+  for n in "${HEDEF[@]}"; do
+    f=$(ls "$KOK"/supabase/migrations/${n}_*.sql 2>/dev/null | head -1)
+    [ -n "$f" ] || continue
+    for b in $(grep -m1 -E '^-- BAĞIMLI:' "$f" | sed 's/^-- BAĞIMLI://'); do EK+=("$b"); done
+  done
+  mapfile -t HEDEF < <(printf '%s\n' "${HEDEF[@]}" "${EK[@]}" | grep -E '^[0-9]{4}$' | sort -u)
+fi
 if [ ${#HEDEF[@]} -eq 0 ]; then
   mapfile -t DOSYALAR < <(ls "$KOK"/supabase/migrations/*.sql)
 else
@@ -110,6 +124,38 @@ if [ "$VAR4" = "t" ]; then
   echo "--- karar atfı denetimi ölçümü (0117) ---"
   psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -f "$KOK/scripts/migration-deneme/karar-atfi-olcum.sql" 2>&1 \
     | grep -E "GEÇTİ|KALDI|ERROR" || true
+fi
+
+# Push oturum + gönderim sonucu ölçümü, YALNIZ 0187 bu koşuda uygulandıysa anlamlıdır
+# (push_cihaz.oturum_id sütunu 0187'ye özgü). Expo'ya istek gitmez; yanıtlar elle yazılır.
+VAR5=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA \
+  -c "select exists (select 1 from information_schema.columns where table_schema='public' and table_name='push_cihaz' and column_name='oturum_id')" 2>/dev/null || echo f)
+if [ "$VAR5" = "t" ]; then
+  echo
+  echo "--- push oturum + gönderim sonucu ölçümü (0187) ---"
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -f "$KOK/scripts/migration-deneme/push-sonuc-olcum.sql" 2>&1 \
+    | grep -E "GEÇTİ|KALDI|ERROR" || true
+fi
+
+# Karar atfı daire ölçümü, YALNIZ 0202 bu koşuda uygulandıysa anlamlıdır.
+VAR6=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA \
+  -c "select to_regprocedure('public.karar_atfi_daire_no(text)') is not null" 2>/dev/null || echo f)
+if [ "$VAR6" = "t" ]; then
+  echo
+  echo "--- karar atfı daire ölçümü (0202) ---"
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -f "$KOK/scripts/migration-deneme/karar-atfi-daire-olcum.sql" 2>&1 \
+    | grep -E "GEÇTİ|KALDI|ERROR" || true
+fi
+
+# Satın alma webhook'u ölçümü, YALNIZ 0205 bu koşuda uygulandıysa anlamlıdır
+# (gerek: 0072 0073 0076 0079 0166 0173 0205 birlikte).
+VAR7=$(psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA \
+  -c "select to_regprocedure('public.revenuecat_suresi_dolanlari_kapat(interval)') is not null" 2>/dev/null || echo f)
+if [ "$VAR7" = "t" ]; then
+  echo
+  echo "--- satın alma webhook'u ölçümü (0205) ---"
+  psql -h /tmp -p "$PORT" -U postgres -d "$DB" -tA -f "$KOK/scripts/migration-deneme/revenuecat-olcum.sql" 2>&1 \
+    | grep -E "GEÇTİ|BOZULDU|ERROR" || true
 fi
 
 psql -h /tmp -p "$PORT" -U postgres -q -c "drop database $DB;" >/dev/null 2>&1 || true

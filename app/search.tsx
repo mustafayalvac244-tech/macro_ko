@@ -6,12 +6,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { sonuclariBirlestir } from '@/utils/genelArama';
 
 interface SearchResults {
   cases: Array<{ id: string; title: string; case_number: string | null; court_name: string | null }>;
@@ -47,11 +49,13 @@ function useGlobalSearch(search: string) {
           .ilike('name', `%${q}%`)
           .limit(10),
       ]);
-      return {
-        cases: (cases.data ?? []) as SearchResults['cases'],
-        clients: (clients.data ?? []) as SearchResults['clients'],
-        documents: (documents.data ?? []) as SearchResults['documents'],
-      };
+      // Hata "sonuç yok" olarak gösterilmez: bir sorgu bile hata verirse fırlatılır
+      // ve ekran hata durumuna düşer (bkz. utils/genelArama.ts).
+      return sonuclariBirlestir(
+        cases as { data: SearchResults['cases'] | null; error: unknown },
+        clients as { data: SearchResults['clients'] | null; error: unknown },
+        documents as { data: SearchResults['documents'] | null; error: unknown }
+      );
     },
   });
 }
@@ -89,6 +93,16 @@ export default function GlobalSearchScreen() {
           <View style={styles.idle}>
             <Ionicons name="search-outline" size={40} color={colors.textMuted} />
             <Text style={styles.idleText}>{t('search.hint')}</Text>
+          </View>
+        )}
+
+        {hasQuery && results.isError && !results.isFetching && (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={18} color={colors.danger} />
+            <View style={styles.errorBody}>
+              <Text style={styles.errorText}>{t('search.error')}</Text>
+              <Button label={t('search.retry')} variant="secondary" size="sm" icon="refresh" onPress={() => results.refetch()} />
+            </View>
           </View>
         )}
 
@@ -194,6 +208,26 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: kose(12),
+    padding: spacing.sm,
+    marginTop: spacing.md,
+  },
+  errorBody: {
+    flex: 1,
+    gap: spacing.xs,
+    alignItems: 'flex-start',
+  },
+  errorText: {
+    ...typography.caption,
+    color: colors.danger,
+    lineHeight: 18,
   },
   idle: {
     alignItems: 'center',

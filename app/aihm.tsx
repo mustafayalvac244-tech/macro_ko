@@ -46,7 +46,7 @@ export default function AihmScreen() {
           <View style={styles.introIcon}>
             <Ionicons name="earth" size={16} color={colors.gold} />
           </View>
-          <Text allowFontScaling={false} style={styles.introText}>
+          <Text style={styles.introText}>
             {t('aihm.intro')}
           </Text>
         </View>
@@ -60,7 +60,6 @@ export default function AihmScreen() {
             placeholder={t('aihm.searchPlaceholder')}
             placeholderTextColor={colors.textMuted}
             style={styles.searchInput}
-            allowFontScaling={false}
             returnKeyType="search"
           />
           {draft.length > 0 && (
@@ -80,7 +79,7 @@ export default function AihmScreen() {
             onPress={() => setCat(null)}
             style={[styles.chip, cat === null && styles.chipActive]}
           >
-            <Text allowFontScaling={false} style={[styles.chipText, cat === null && styles.chipTextActive]}>
+            <Text style={[styles.chipText, cat === null && styles.chipTextActive]}>
               {t('aihm.all')}
             </Text>
           </Pressable>
@@ -90,14 +89,14 @@ export default function AihmScreen() {
               onPress={() => setCat(cat === k ? null : k)}
               style={[styles.chip, cat === k && styles.chipActive]}
             >
-              <Text allowFontScaling={false} style={[styles.chipText, cat === k && styles.chipTextActive]}>
+              <Text style={[styles.chipText, cat === k && styles.chipTextActive]}>
                 {k}
               </Text>
             </Pressable>
           ))}
         </ScrollView>
 
-        <Text allowFontScaling={false} style={styles.count}>
+        <Text style={styles.count}>
           {t('aihm.count', { n: list.length })}
         </Text>
 
@@ -110,24 +109,24 @@ export default function AihmScreen() {
           >
             <View style={styles.cardTopRow}>
               <View style={styles.catBadge}>
-                <Text allowFontScaling={false} style={styles.catBadgeText}>{k.kategori}</Text>
+                <Text style={styles.catBadgeText}>{k.kategori}</Text>
               </View>
               {k.buyukDaire && (
                 <View style={styles.gcBadge}>
                   <Ionicons name="star" size={10} color={colors.gold} />
-                  <Text allowFontScaling={false} style={styles.gcBadgeText}>{t('aihm.grandChamber')}</Text>
+                  <Text style={styles.gcBadgeText}>{t('aihm.grandChamber')}</Text>
                 </View>
               )}
             </View>
-            <Text allowFontScaling={false} style={styles.cardTitle}>{k.basvuru}</Text>
-            <Text allowFontScaling={false} style={styles.cardMeta} numberOfLines={1}>
+            <Text style={styles.cardTitle}>{k.basvuru}</Text>
+            <Text style={styles.cardMeta} numberOfLines={1}>
               {[k.madde, k.tarih].filter(Boolean).join('  ·  ')}
             </Text>
-            <Text allowFontScaling={false} style={styles.cardIlke} numberOfLines={3}>
+            <Text style={styles.cardIlke} numberOfLines={3}>
               {k.ilke}
             </Text>
             <View style={styles.cardFooter}>
-              <Text allowFontScaling={false} style={styles.cardFooterText}>{t('aihm.readMore')}</Text>
+              <Text style={styles.cardFooterText}>{t('aihm.readMore')}</Text>
               <Ionicons name="chevron-forward" size={14} color={colors.gold} />
             </View>
           </Pressable>
@@ -136,7 +135,7 @@ export default function AihmScreen() {
         {list.length === 0 && (
           <View style={styles.empty}>
             <Ionicons name="search-outline" size={22} color={colors.textMuted} />
-            <Text allowFontScaling={false} style={styles.emptyText}>{t('aihm.none')}</Text>
+            <Text style={styles.emptyText}>{t('aihm.none')}</Text>
           </View>
         )}
       </ScrollView>
@@ -149,10 +148,10 @@ export default function AihmScreen() {
               <View style={{ flex: 1 }}>
                 {open?.kategori && (
                   <View style={styles.catBadge}>
-                    <Text allowFontScaling={false} style={styles.catBadgeText}>{open.kategori}</Text>
+                    <Text style={styles.catBadgeText}>{open.kategori}</Text>
                   </View>
                 )}
-                <Text allowFontScaling={false} style={styles.modalTitle}>{open?.basvuru}</Text>
+                <Text style={styles.modalTitle}>{open?.basvuru}</Text>
               </View>
               <Pressable onPress={() => setOpen(null)} hitSlop={8} style={styles.modalClose}>
                 <Ionicons name="close" size={20} color={colors.textSecondary} />
@@ -173,7 +172,7 @@ export default function AihmScreen() {
               <Section title={t('aihm.result')} body={open?.sonuc} colors={colors} />
               <Section title={t('aihm.relevance')} body={open?.onem} colors={colors} />
 
-              <Text allowFontScaling={false} style={styles.disclaimer}>{t('aihm.disclaimer')}</Text>
+              <Text style={styles.disclaimer}>{t('aihm.disclaimer')}</Text>
             </ScrollView>
           </View>
         </View>
@@ -186,8 +185,8 @@ function KunyeItem({ label, value, colors }: { label: string; value: string; col
   const styles = makeStyles(colors);
   return (
     <View style={styles.kunyeItem}>
-      <Text allowFontScaling={false} style={styles.kunyeLabel}>{label}</Text>
-      <Text allowFontScaling={false} style={styles.kunyeValue}>{value}</Text>
+      <Text style={styles.kunyeLabel}>{label}</Text>
+      <Text style={styles.kunyeValue}>{value}</Text>
     </View>
   );
 }
@@ -207,10 +206,10 @@ function Section({
   if (!body) return null;
   return (
     <View style={[styles.section, accent && styles.sectionAccent]}>
-      <Text allowFontScaling={false} style={[styles.sectionTitle, accent && { color: colors.gold }]}>
+      <Text style={[styles.sectionTitle, accent && { color: colors.gold }]}>
         {title}
       </Text>
-      <Text allowFontScaling={false} style={styles.sectionBody}>{body}</Text>
+      <Text style={styles.sectionBody}>{body}</Text>
     </View>
   );
 }

@@ -7,6 +7,30 @@
  * (muhasebeciye giden dosyayı üreten kod) hiç sınanmadan duruyordu. Saf kısmı
  * ayırmak, env.ts'de aynı sebeple uygulanan kalıbın aynısıdır.
  */
+import { dosyaGovdesi } from '@/utils/dosyaAdi';
+
+const BOM = '\uFEFF';
+
+/**
+ * Metnin başına BOM koyar; ZATEN VARSA ikincisini eklemez.
+ *
+ * BULUNAN KUSUR (10.10.2026): `toCsv` BOM ile başlıyor, web indirme yolu
+ * (cikti.ts → dosyaIndir) başına bir BOM daha ekliyordu. Dosyanın başında iki
+ * U+FEFF kalıyor, Excel ilk başlık hücresinin önüne görünmez bir karakter
+ * koyuyordu.
+ */
+export function bomEkle(metin: string): string {
+  return metin.startsWith(BOM) ? metin : BOM + metin;
+}
+
+/**
+ * CSV dosya adı (uzantılı). Eskiden ad `\w` ile süzülüyordu: ş ı ğ ü ö ç
+ * "_" oluyor, "calisma-Ayşe Yılmaz" dosyası "calisma-Ay_e_Y_lmaz" iniyordu
+ * (10.10.2026). Türkçe harfler artık sadeleşir (utils/dosyaAdi).
+ */
+export function csvDosyaAdi(ad: string): string {
+  return `${dosyaGovdesi(ad, 'disa-aktarim')}.csv`;
+}
 
 /**
  * Bir hücreyi CSV için güvenli hale getirir.
@@ -48,5 +72,5 @@ function cell(v: string | number | null | undefined): string {
 export function toCsv(header: string[], rows: Array<Array<string | number | null | undefined>>): string {
   const lines = [header.map(cell).join(';'), ...rows.map((r) => r.map(cell).join(';'))];
   // BOM: Excel'in UTF-8'i (Türkçe karakterler) doğru okuması için gerekli.
-  return '﻿' + lines.join('\r\n');
+  return BOM + lines.join('\r\n');
 }

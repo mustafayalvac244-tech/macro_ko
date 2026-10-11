@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { uyar } from '@/lib/uyari';
 import { router, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -38,6 +38,7 @@ import { formatDate, formatMoney, relativeDueLabel, isOverdue } from '@/utils/fo
 import { tutarOku } from '@/utils/tutar';
 import type { PaymentPromise } from '@/types/database';
 import { geriDon } from '@/lib/geriDon';
+import { davaEkranDurumu } from '@/utils/davaEkrani';
 
 /** Aynı taksit planına (group_id) ait sözleri tek blokta toplar; tekil sözler ayrı kalır. */
 function groupPromises(list: PaymentPromise[]): { key: string; items: PaymentPromise[] }[] {
@@ -64,7 +65,7 @@ export default function ClientDetailScreen() {
 
   const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: client, isLoading } = useClient(id);
+  const { data: client, error: muvekkilHatasi, refetch: muvekkiliYenile } = useClient(id);
   const { data: cases } = useCasesByClient(id);
   const deleteClient = useDeleteClient();
   const promises = usePromisesForClient(id);
@@ -147,10 +148,39 @@ export default function ClientDetailScreen() {
     return { total, collected, remaining: Math.max(0, total - collected) };
   }, [promises.data]);
 
-  if (isLoading || !client) {
+  // Yükleniyor / bulunamadı / yüklenemedi ayrı çizilir — eskiden üçü de yalnız
+  // başlıktan ibaret, bitmeyen boş sayfaydı (davaEkranDurumu: dava detayıyla aynı kural).
+  const ekranDurumu = davaEkranDurumu({ kimlik: id, veri: client, hata: muvekkilHatasi });
+  if (ekranDurumu !== 'hazir' || !client) {
     return (
       <Screen>
         <ScreenHeader title={t('client.title')} showBack />
+        <View style={styles.content}>
+          <Card>
+            {ekranDurumu === 'yukleniyor' ? (
+              <View style={styles.durum}>
+                <ActivityIndicator color={__t.colors.primary} />
+                <Text style={styles.durumMetni}>{t('client.loading')}</Text>
+              </View>
+            ) : ekranDurumu === 'yuklenemedi' ? (
+              <EmptyState
+                icon="cloud-offline-outline"
+                title={t('client.loadError')}
+                description={t('client.loadErrorDesc')}
+                actionLabel={t('client.retry')}
+                onAction={() => muvekkiliYenile()}
+              />
+            ) : (
+              <EmptyState
+                icon="person-outline"
+                title={t('client.notFound')}
+                description={t('client.notFoundDesc')}
+                actionLabel={t('client.backToList')}
+                onAction={() => geriDon('/(app)/clients')}
+              />
+            )}
+          </Card>
+        </View>
       </Screen>
     );
   }
@@ -651,6 +681,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
+  },
+  durum: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+  },
+  durumMetni: {
+    ...typography.caption,
+    color: colors.textSecondary,
   },
   profileCard: {
     marginBottom: spacing.md,

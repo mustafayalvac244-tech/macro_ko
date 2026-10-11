@@ -42,6 +42,8 @@ MADDE = re.compile(
     r'(\d+(?:\s*/\s*[A-Za-zÇĞİÖŞÜçğıöşü])?)\s*[-–—]\s*(.*)$')
 # Satır sonunda "Madde" kalıp numarası alt satıra düşmüş olabilir.
 MADDE_ASKIDA = re.compile(r'^((?:Ek|EK|Geçici|GEÇİCİ)\s+)?(?:Madde|MADDE)$')
+# Tamamen yürürlükten kalkmış madde: "(Mülga: 4/11/2004-5253/38 md.)".
+MULGA_MADDE = re.compile(r'^\(\s*Mülga\s*:[^)]*\)')
 # Madde numarası öneki tek biçime indirilir.
 #
 # NE upper() NE title() TÜRKÇE'DE GÜVENİLİR — ikisi de bu betikte hataya yol
@@ -51,8 +53,14 @@ MADDE_ASKIDA = re.compile(r'^((?:Ek|EK|Geçici|GEÇİCİ)\s+)?(?:Madde|MADDE)$')
 # ASCII'ye indiriyoruz. (Aynı tuzağın SQL'deki hâli: 0045.)
 TR_ASCII = str.maketrans('İIıŞşĞğÜüÖöÇçÂâÎîÛû', 'IIiSsGgUuOoCcAaIiUu')
 ONEK_ADI = {'EK': 'Ek', 'GECICI': 'Geçici', '': ''}
-# "BİRİNCİ BÖLÜM" / "İKİNCİ BAP" / "ÜÇÜNCÜ KISIM"
-BOLUM = re.compile(r'^[A-ZÇĞİÖŞÜ\s]{3,40}(BÖLÜM|BAP|KISIM|FASIL)$')
+# "BİRİNCİ BÖLÜM" / "İKİNCİ BAP" / "ÜÇÜNCÜ KISIM" / "ÜÇÜNCÜ AYIRIM" (HMK) /
+# "BİRİNCİ KİTAP" (TTK, TBK).
+#
+# AYIRIM ve KİTAP eksikti (23. denetim ajanı, 10.10.2026): HMK'daki "ÜÇÜNCÜ
+# AYIRIM / Adli Tatil / Adli tatil süresi" satırları bölüm başlığı sayılmayıp
+# önceki maddenin (m.101) gövdesine yapıştı, m.102'nin kenar başlığı
+# ("Adli tatil süresi") da o gövdede kayboldu.
+BOLUM = re.compile(r'^[A-ZÇĞİÖŞÜ\s]{3,40}(BÖLÜM|BAP|KISIM|FASIL|AYIRIM|KİTAP)$')
 
 
 # ZAMAN AŞIMI 180 → 25 SANİYE.
@@ -156,7 +164,24 @@ def basliksiz_baslik(onceki: str, iki_onceki: str) -> bool:
         return False
     if re.match(r'^\d+[\.\)]', onceki) or onceki[0].islower():
         return False
-    return (not iki_onceki) or iki_onceki[-1] in '.:' or BOLUM.match(iki_onceki) is not None
+    return ((not iki_onceki) or iki_onceki[-1] in '.:' or BOLUM.match(iki_onceki) is not None
+            or ust_baslik_mi(iki_onceki))
+
+
+def ust_baslik_mi(s: str) -> bool:
+    """Sistematik üst başlık: "B) Çeşitli hükümler", "I - Zamanaşımı".
+
+    Kenar başlığının hemen üstüne bu tür satırlar YIĞILABİLİR (TTK m.5/A'dan
+    sonra "B) Çeşitli hükümler" + "I - Zamanaşımı" + "MADDE 6"). Yalnız en alttaki
+    satır başlık sanılınca üsttekiler önceki maddenin gövdesine yapışıyordu
+    (23. denetim ajanı, 10.10.2026). Küçük harfle başlayan "a) ..." liste
+    maddeleri bilerek DIŞARIDA: onlar gövdedir.
+    """
+    if not s or len(s) > 80 or MADDE.match(s) or BOLUM.match(s):
+        return False
+    if s[-1] in '.,;:)' or s[0].islower() or re.match(r'^\d+[\.\)]', s):
+        return False
+    return ONEK.match(s) is not None
 
 
 def ayikla(pdf: str) -> list:
@@ -234,6 +259,14 @@ def ayikla(pdf: str) -> list:
                 # gövdenin sonundaki hâliyle ("II - Zorunlu kayıtlar") eşleşmez.
                 if simdiki is not None and simdiki['text'].endswith(ham):
                     simdiki['text'] = simdiki['text'][: -len(ham)].strip()
+                    # Üst başlıklar da gövdeden çıkarılır (bkz. ust_baslik_mi).
+                    k = 2
+                    while True:
+                        ust = onceki_islenen(idx, k)
+                        if not ust_baslik_mi(ust) or not simdiki['text'].endswith(ust):
+                            break
+                        simdiki['text'] = simdiki['text'][: -len(ust)].strip()
+                        k += 1
             simdiki = {'no': no, 'text': m.group(3).strip(),
                        'title': baslik, 'section': bolum}
             maddeler.append(simdiki)
@@ -254,6 +287,15 @@ def ayikla(pdf: str) -> list:
 
     for a in maddeler:
         a['text'] = re.sub(r'\s+', ' ', a['text']).strip()
+        # TAMAMEN MÜLGA MADDE: gövde yalnız "(Mülga: tarih-kanun/md.)" işaretidir.
+        # İşaretin arkasındaki kısa metin, SONRAKİ maddenin sistematik başlığıdır
+        # ("4. İlk genel kurul toplantısı") — mülga maddenin değil. Kısmi
+        # mülgalık "(Mülga fıkra: ..)" biçimindedir ve buna girmez.
+        m = MULGA_MADDE.match(a['text'])
+        if m:
+            kalan = a['text'][m.end():].strip()
+            if kalan and len(kalan) <= 200 and '(1)' not in kalan:
+                a['text'] = a['text'][:m.end()]
     return maddeler
 
 

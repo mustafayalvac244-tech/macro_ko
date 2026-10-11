@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { aiHataMetni, ictihatHataAnahtari } from '../src/lib/aiHata';
+import { aiHataMetni, ictihatHataAnahtari, ictihatHataTuru } from '../src/lib/aiHata';
+import { tr } from '../src/i18n/tr';
+import { en } from '../src/i18n/en';
 
 /**
  * Kota mesajı, kullanıcının o gün ürünü kullanıp kullanamayacağını belirliyor.
@@ -107,5 +111,57 @@ describe('ictihatHataAnahtari', () => {
 
   it('rıza eksikliğiyle kontrol arızasını ayrı tutar', () => {
     expect(ictihatHataAnahtari('kvkk')).not.toBe(ictihatHataAnahtari('kvkk_arizasi'));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// İÇTİHAT UCU HATA KODU → TÜR (09.10.2026)
+//
+// useIctihat'taki eşleme yalnız altı kodu tanıyordu. Yapay zekâ yolunun kota
+// kodları (quota_exceeded, gunluk_hak_bitti, ai_soru_kota_bitti,
+// deneme_hakki_bitti) "İnternet bağlantınızı kontrol edin"e düşüyordu: kotası
+// biten avukat interneti suçluyordu. Eşleme saf modüle alındı (useIctihat
+// supabase istemcisini çektiği için test ortamında yüklenemiyor).
+describe('ictihatHataTuru', () => {
+  const metin = (kod: string) => ictihatHataAnahtari(ictihatHataTuru(kod));
+
+  it('yayındaki eski kodlar aynı türe gider', () => {
+    expect(ictihatHataTuru('rate_limit')).toBe('rate_limit');
+    expect(ictihatHataTuru('source_unreachable')).toBe('source');
+    expect(ictihatHataTuru('not_configured')).toBe('ai_off');
+    expect(ictihatHataTuru('tier_required')).toBe('paket');
+    expect(ictihatHataTuru('kvkk_riza_yok')).toBe('kvkk');
+    expect(ictihatHataTuru('kvkk_kontrol_hatasi')).toBe('kvkk_arizasi');
+    expect(ictihatHataTuru('')).toBe('generic');
+    expect(ictihatHataTuru('bilinmeyen')).toBe('generic');
+  });
+
+  it('kota kodları kendi (ai-chat ile ORTAK) cümlesine gider, internete değil', () => {
+    expect(metin('quota_exceeded')).toBe('ai.errQuota');
+    expect(metin('gunluk_hak_bitti')).toBe('ai.errDailyCap');
+    expect(metin('ai_soru_kota_bitti')).toBe('ai.errSoruKota');
+    expect(metin('deneme_hakki_bitti')).toBe('ai.errDenemeBitti');
+  });
+
+  it('yapay zekâ arızası UYAP arızası diye gösterilmez', () => {
+    expect(metin('upstream')).toBe('ai.errServis');
+    expect(metin('empty')).toBe('ai.errBos');
+    expect(metin('unauthorized')).toBe('ai.errOturum');
+  });
+
+  it('olay analizinde karar bulunamaması ayrı ve iki dilde de var', () => {
+    expect(metin('karar_yok')).toBe('ictihat.analyzeKararYok');
+    expect(tr['ictihat.analyzeKararYok']).toBeTruthy();
+    expect(en['ictihat.analyzeKararYok']).toBeTruthy();
+  });
+});
+
+describe('içtihat ekranı hata metnini tek yerden alır', () => {
+  it('belge ve özet pencereleri kendi üçlü koşulunu yazmıyor', () => {
+    // Özet penceresi KVKK/paket/kota hatalarında bile "İnternet bağlantınızı
+    // kontrol edin" diyordu: kendi rate_limit/source/generic koşulu vardı.
+    const ekran = readFileSync(join(__dirname, '..', 'app/ictihat.tsx'), 'utf8');
+    expect(ekran).not.toMatch(/error === 'source' \? t\('ictihat\.errSource'\)/);
+    expect(ekran).not.toMatch(/error === 'rate_limit' \? t\('ictihat\.errRate'\)/);
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { createElement, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
@@ -21,22 +21,31 @@ export default function DocumentViewerScreen() {
   const t = useT();
   const { path, name, mime } = useLocalSearchParams<{ path: string; name: string; mime?: string }>();
   const [url, setUrl] = useState<string | null>(null);
+  // İNDİRME ADRESİ (10.10.2026 denetimi). Depodaki yol "<zaman>-<ad>" biçimindedir;
+  // harici uygulamada açılan/indirilen dosya o yolun adını taşıyordu
+  // ("1728000000000-Vekaletname.pdf"). `download` seçeneği sunucuya özgün adı
+  // söyletir (documents.name). Ekranda GÖSTERİM için kullanılmaz: iOS WebView ve
+  // <Image> dosyayı satır içi bekler, "attachment" olursa indirmeye kalkar.
+  const [indirUrl, setIndirUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let active = true;
-    supabase.storage
-      .from(DOCUMENTS_BUCKET)
-      .createSignedUrl(path, 60 * 10)
-      .then(({ data, error: signErr }) => {
-        if (!active) return;
-        if (signErr || !data) setError(true);
-        else setUrl(data.signedUrl);
+    const depo = supabase.storage.from(DOCUMENTS_BUCKET);
+    depo.createSignedUrl(path, 60 * 10).then(({ data, error: signErr }) => {
+      if (!active) return;
+      if (signErr || !data) setError(true);
+      else setUrl(data.signedUrl);
+    });
+    if (name) {
+      depo.createSignedUrl(path, 60 * 10, { download: name }).then(({ data }) => {
+        if (active && data) setIndirUrl(data.signedUrl);
       });
+    }
     return () => {
       active = false;
     };
-  }, [path]);
+  }, [path, name]);
 
   const isImage = (mime ?? '').startsWith('image/') || /\.(jpe?g|png|gif|webp|heic)$/i.test(name ?? '');
   const isPdf = (mime ?? '') === 'application/pdf' || /\.pdf$/i.test(name ?? '');
@@ -46,6 +55,43 @@ export default function DocumentViewerScreen() {
   // incelemenin kullandığı aynı sunucu ucu (doc-extract) çıkarır; dosya
   // saklanmaz, yalnız metin döner.
   const isUdf = udfMi(name);
+  const webMi = Platform.OS === 'web';
+  // Harici açma: dosya adlı adres varsa o, yoksa düz adres.
+  const haricAc = () => {
+    const adres = indirUrl ?? url;
+    if (adres) Linking.openURL(adres);
+  };
+
+  // WEB PDF (10.10.2026 denetimi). Web'de WebView yok; düğmeyle yeni sekme
+  // açmak fazladan bir dokunuş ve — depo imzalı adrese içerik güvenlik
+  // başlığı koyarsa — tarayıcının PDF görüntüleyicisi hiç açılmayabilir
+  // (ÖLÇÜLMEDİ). Dosya bu yüzden tarayıcıda blob olarak okunur ve sayfada
+  // <iframe> ile gösterilir: adres üçüncü tarafa GİTMEZ (gview 08.10'da
+  // kaldırıldı), tür application/pdf'e SABİTLENİR (HTML olarak yorumlanamaz).
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfBlobHata, setPdfBlobHata] = useState(false);
+
+  useEffect(() => {
+    if (!webMi || !url || !isPdf) return;
+    let active = true;
+    let olusan: string | null = null;
+    (async () => {
+      try {
+        const yanit = await fetch(url);
+        if (!yanit.ok) throw new Error(String(yanit.status));
+        const blob = new Blob([await yanit.arrayBuffer()], { type: 'application/pdf' });
+        olusan = URL.createObjectURL(blob);
+        if (active) setPdfBlobUrl(olusan);
+        else URL.revokeObjectURL(olusan);
+      } catch {
+        if (active) setPdfBlobHata(true);
+      }
+    })();
+    return () => {
+      active = false;
+      if (olusan) URL.revokeObjectURL(olusan);
+    };
+  }, [webMi, url, isPdf]);
   const [udfMetni, setUdfMetni] = useState<string | null>(null);
   const [udfHata, setUdfHata] = useState(false);
 
@@ -107,10 +153,33 @@ export default function DocumentViewerScreen() {
           üçüncü tarafa gitmediğini söylüyor. iOS'un WebView'i PDF'i kendisi
           gösterir. Android WebView PDF gösteremez, web'de WebView yok: ikisinde
           belge cihazın kendi PDF görüntüleyicisinde / yeni sekmede açılır. */}
-      {url && isPdf && Platform.OS !== 'ios' && (
+      {url && isPdf && webMi && !pdfBlobUrl && !pdfBlobHata && (
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.primary} size="large" />
+        </View>
+      )}
+
+      {url && isPdf && webMi && !!pdfBlobUrl && (
+        <View style={styles.flex}>
+          {createElement('iframe', {
+            src: pdfBlobUrl,
+            title: name ?? 'PDF',
+            style: { flex: 1, width: '100%', height: '100%', border: 0 },
+          })}
+          <Button
+            label={t('viewer.openExternal')}
+            icon="open-outline"
+            variant="secondary"
+            onPress={() => window.open(pdfBlobUrl, '_blank', 'noopener')}
+            style={styles.fallbackBtn}
+          />
+        </View>
+      )}
+
+      {url && isPdf && ((!webMi && Platform.OS !== 'ios') || (webMi && pdfBlobHata)) && (
         <View style={styles.center}>
           <Text style={styles.fallbackText}>{t('viewer.pdfDisarida')}</Text>
-          <Button label={t('viewer.openExternal')} icon="open-outline" onPress={() => Linking.openURL(url)} style={styles.fallbackBtn} />
+          <Button label={t('viewer.openExternal')} icon="open-outline" onPress={haricAc} style={styles.fallbackBtn} />
         </View>
       )}
 
@@ -144,7 +213,7 @@ export default function DocumentViewerScreen() {
             label={t('viewer.openExternal')}
             icon="open-outline"
             variant="secondary"
-            onPress={() => Linking.openURL(url)}
+            onPress={haricAc}
             style={styles.fallbackBtn}
           />
         </ScrollView>
@@ -153,7 +222,7 @@ export default function DocumentViewerScreen() {
       {url && !isImage && !isPdf && (!isUdf || udfHata) && (
         <View style={styles.center}>
           <Text style={styles.fallbackText}>{t('viewer.unsupported')}</Text>
-          <Button label={t('viewer.openExternal')} icon="open-outline" onPress={() => Linking.openURL(url)} style={styles.fallbackBtn} />
+          <Button label={t('viewer.openExternal')} icon="open-outline" onPress={haricAc} style={styles.fallbackBtn} />
         </View>
       )}
     </Screen>

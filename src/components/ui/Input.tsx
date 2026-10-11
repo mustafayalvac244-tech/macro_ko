@@ -10,6 +10,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { radius, spacing, typography } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
+import { useT } from '@/i18n';
 import type { ThemeColors } from '@/theme/palettes';
 
 interface InputProps extends TextInputProps {
@@ -47,6 +48,7 @@ export function Input({
   ...rest
 }: InputProps) {
   const __t = useTheme();
+  const t = useT();
   const colors = __t.colors;
   const styles = makeStyles(__t.colors);
 
@@ -91,7 +93,7 @@ export function Input({
             onPress={() => setAcik((v) => !v)}
             hitSlop={10}
             accessibilityRole="button"
-            accessibilityLabel={acik ? 'Şifreyi gizle' : 'Şifreyi göster'}
+            accessibilityLabel={acik ? t('input.hidePassword') : t('input.showPassword')}
             style={styles.goz}
           >
             <Ionicons name={acik ? 'eye-off-outline' : 'eye-outline'} size={19} color={colors.textMuted} />

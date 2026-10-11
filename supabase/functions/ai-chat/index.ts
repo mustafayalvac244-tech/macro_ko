@@ -17,6 +17,7 @@ import {
   BELGE_TURU,
   bloklarTarifi,
   bloklariAyristir,
+  dilekceDenetimKaynagi,
   dilekceyiDiz,
   hesaplananTarihler,
   iskeletSec,
@@ -24,16 +25,25 @@ import {
   uydurmaTarihleriAyikla,
   uydurmaTutarlariBul,
 } from '../_shared/dilekce.ts';
+// Dilekçe künyesi avukatın kendi kaydından (tests/dilekceSunucu.test.ts).
+import { dosyaKunyesiOku } from '../_shared/dosyaKunyesi.ts';
+// Canlı içtihat aramasına anlatım değil, sabit hukuki konu gider.
+import { hukukiKonuSec } from '../_shared/hukukiKonu.ts';
 // Katman tablosu TEK KAYNAKTA: iki uçta ayrı yazıldığı için birbirinden
 // ayrılmıştı (bkz. _shared/katman.ts).
 import { kotaRezerve, overLimit, tierConfig, type TierCfg } from '../_shared/katman.ts';
 import { canliIctihat, canliKunyeDogrula } from '../_shared/uyapCanli.ts';
-import { adim, modelSuresi, sureIzle, sureOzeti } from '../_shared/adimSure.ts';
+import { adim, modelSuresi, sureIzle, sureOzeti, yedekIzniVarMi, yedekKapisiKur } from '../_shared/adimSure.ts';
+// Yedek hat günlük kapısı ve sohbet girdi tavanı (10.10.2026) — bkz. dosya başlıkları.
+import { YEDEK_TAVAN_HATASI, bilinenIstekHatasi, yedekIzniVar } from '../_shared/yedekKapisi.ts';
+import { SOHBET_MESAJ_MAX, sohbetMesajlari } from '../_shared/sohbetGirdisi.ts';
 import { basarisizsaIadeEt, rezervasyonuIadeEt, yeniRezervasyon, type HakRezervasyonu } from '../_shared/hakIadesi.ts';
 import { servisYetkisiVarMi } from '../_shared/yetki.ts';
+// Hukuki Araştırma (mod 'mutalaa'): istem yapısı, bölüm denetimi, iç süre bütçesi.
+import { MUTALAA_MODEL_BUTCESI_MS, MUTALAA_YAPI_TALIMATI, eksikBolumler, kalanMs, sureyleBekle } from '../_shared/mutalaaDenetim.ts';
 import { mesajlariHazirla } from '../_shared/onbellek.ts';
 // Avukatın eklediği belgeler (dilekçe/belge inceleme) — PDF görüntüsüyle gider.
-import { denetimKaynagi, ekAciklamasi, ekleriAyikla, pdfBloklari, taranmisSayfaVar, type Ek } from '../_shared/belgeEki.ts';
+import { SORU_TAVANI, denetimKaynagi, ekAciklamasi, ekleriAyikla, ekUyarisi, pdfBloklari } from '../_shared/belgeEki.ts';
 import { rizaKapisi } from '../_shared/kvkkRiza.ts';
 // Ücretsiz sağlayıcının DAKİKALIK tavanı 8.000 token ve bu, girdi + istenen
 // çıktı olarak sayılıyor; besleme buna göre kırpılır (bkz. _shared/besleme.ts).
@@ -45,6 +55,8 @@ import { faturaGirdi, costTry, PRICING, USD_TRY } from '../_shared/fiyat.ts';
 // İki ucun dönem anahtarı ayrışırsa aynı kullanıcı iki ayrı satıra yazılır ve
 // hem günlük hak hem aylık tavan olduğundan geniş davranır.
 import { aiGun, aiPeriod } from '../_shared/kullanim.ts';
+// Sayaç satırına ekleme tek deyimde (göç 0191) — bkz. _shared/kullanimSayaci.ts.
+import { kullanimEkle } from '../_shared/kullanimSayaci.ts';
 // Uydurma madde atfı denetimi ORTAK dosyada (_shared/atif.ts). Ayıklayıcı bugüne
 // kadar yalnız ölçüm betiğinde vardı: ölçüyor ama korumuyorduk.
 import { maddeAtiflari } from '../_shared/atif.ts';
@@ -52,7 +64,18 @@ import { maddeAtiflari } from '../_shared/atif.ts';
 // Uydurma "Yargıtay 9. HD 2019/12345 E." satırı, uydurma maddeden daha
 // tehlikelidir: yanlış maddeyi hâkim okuduğu an anlar, uydurma karar numarası
 // dosyaya girer ve ilk fark eden karşı vekil olur (bkz. _shared/kararAtif.ts).
-import { canliTeyideUygun, havuzSorgusu, kaynaktaGeciyor, kararAtiflari, tutarsizKararlar, type TutarsizKarar } from '../_shared/kararAtif.ts';
+import {
+  atifDaireAnahtari,
+  canliTeyideUygun,
+  havuzSorgusu,
+  kararAtiflari,
+  kaynaktaGeciyor,
+  kunyeCumlesi,
+  kunyeleriDegistir,
+  oneriCumlesiYeterli,
+  tutarsizKararlar,
+  type TutarsizKarar,
+} from '../_shared/kararAtif.ts';
 // Dosyaya giren kuralın cevapta işlenip işlenmediği (_shared/kural.ts). Ölçülen
 // iki mütalaa kusurunun ikisi de "kural dosyadaydı, model yok saydı"ydı.
 import { atlananKurallar, cakisanDayanaklar } from '../_shared/kural.ts';
@@ -316,6 +339,10 @@ async function ucretliChatIc(
     if ((e as Error).message === 'refusal') throw e;
     ilkHata = e as Error;
   }
+  // YEDEK HAT KULLANICI BAŞINA SINIRSIZDI (10.10.2026, bkz. _shared/yedekKapisi.ts):
+  // hak iade ediliyor, maliyet 0, günlük sayaç artmıyor — ortak ücretsiz
+  // havuzu tek kullanıcı bitirebilirdi. Yedeğe geçmeden hemen önce sorulur.
+  if (!(await yedekIzniVarMi())) throw new Error(YEDEK_TAVAN_HATASI);
   try {
     const duz = Array.isArray(stableSystem) ? stableSystem.join('') : stableSystem;
     const y = await ucretsizChat(duz + groundingSystem, ek?.yedekMsgs ?? msgs, maxTokens);
@@ -631,6 +658,25 @@ async function usageRow(userId: string, period: string = aiPeriod()): Promise<{ 
 }
 
 /**
+ * Bu kullanıcının BUGÜN yedek hatla aldığı cevap sayısı (bkz. _shared/
+ * yedekKapisi.ts). Yedek hat = müşteriye yazılmayan VE maliyeti 0 olan istek:
+ * kusurlu Claude cevabı da müşteriye yazılmaz ama maliyeti sıfırdan büyüktür.
+ * (user_id, gun) dizini var (0056). Okunamazsa null: kapı kullanıcıyı engellemez.
+ */
+async function yedekBugun(userId: string): Promise<number | null> {
+  const s = svc();
+  if (!s) return null;
+  const { count, error } = await s
+    .from('ai_istek')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('gun', aiGun())
+    .eq('musteriye_yazildi', false)
+    .eq('maliyet_try', 0);
+  return error ? null : (count ?? 0);
+}
+
+/**
  * "AI" katmanında rezerve edilmiş bir soru/mütalaa hakkını GERİ VERİR —
  * yalnız çıktı kusurlu çıktığında çağrılır (bkz. 0056'daki "kusurlu çıktıda
  * hak gitmez" ilkesi; rezervasyon istek BAŞLAMADAN yapıldığı için, kusurlu
@@ -828,16 +874,6 @@ export interface KararDenetimi {
  */
 const KUNYE_YER_TUTUCU = '[emsal karar: aşağıdaki önerilerden ya da İçtihat Arama ekranından gerçek bir karar ekleyin]';
 
-/** Künyenin geçtiği cümle (±1 cümle sınırı, ≤300 karakter), künye çıkarılmış hâliyle. */
-function kunyeCumlesi(metin: string, ham: string): string {
-  const i = metin.indexOf(ham);
-  if (i < 0) return '';
-  const bas = Math.max(0, Math.max(metin.lastIndexOf('.', i - 1), metin.lastIndexOf('\n', i - 1)) + 1);
-  const sonAday = [metin.indexOf('.', i + ham.length), metin.indexOf('\n', i + ham.length)].filter((x) => x >= 0);
-  const son = sonAday.length ? Math.min(...sonAday) : metin.length;
-  return metin.slice(bas, son).split(ham).join(' ').replace(/\s+/g, ' ').trim().slice(0, 300);
-}
-
 /**
  * Çıkarılan künyenin cümlesi için GERÇEK karar arar: önce havuz (FTS), yoksa
  * canlı kaynak (bütçe ve devre kesici uyapCanli'de; canlı bulunan arşivlenir,
@@ -846,7 +882,9 @@ function kunyeCumlesi(metin: string, ham: string): string {
  */
 async function gercekKararOner(cumle: string): Promise<Array<{ atif: string; daire?: string; tarih?: string; id?: string; ozet?: string }>> {
   const s = svc();
-  if (!s || cumle.length < 20) return [];
+  // Konu sözcüğü yoksa (yalnız "Yargıtay 9. HD sayılı kararı" gibi kalıp) FTS
+  // rastgele bir karar döndürür ve "bu cümle için gerçek karar" diye sunulurdu.
+  if (!s || cumle.length < 20 || !oneriCumlesiYeterli(cumle)) return [];
   try {
     const { data } = await s.rpc('search_ictihat_fts', { q: cumle, match_count: 2 });
     // deno-lint-ignore no-explicit-any
@@ -854,7 +892,7 @@ async function gercekKararOner(cumle: string): Promise<Array<{ atif: string; dai
     if (rows.length === 0) {
       const canli = await canliIctihat(cumle, 2);
       if (canli.length) {
-        await canliArsivle(s, canli, cumle);
+        await canliArsivle(s, canli, null);
         rows = canli.map((k) => ({ id: k.id, daire: k.daire, esas_no: k.esasNo, karar_no: k.kararNo, karar_tarihi: k.kararTarihi, snippet: k.metin }));
       }
     }
@@ -882,15 +920,29 @@ async function uydurmaKunyeleriCikarIc(metin: string, d: KararDenetimi | null): 
   // Öneri aramaları eşzamanlı, en fazla 3 künye (her biri 1 FTS + en çok 1 canlı).
   const cumleler = hamlar.slice(0, 3).map((ham) => kunyeCumlesi(metin, ham));
   const bulunanlar = await Promise.all(cumleler.map((c) => gercekKararOner(c)));
+  const cikarilmayan: string[] = [];
   for (const [i, ham] of hamlar.entries()) {
-    const once = m;
-    m = m.split(ham).join(KUNYE_YER_TUTUCU);
-    if (m === once) continue;
+    // Numaraya göre ve boşluk/yazılış farkına bakmadan (bkz. kunyeleriDegistir).
+    const { metin: yeni, degisen } = kunyeleriDegistir(m, [ham], KUNYE_YER_TUTUCU);
+    if (!degisen.length) {
+      cikarilmayan.push(ham);
+      continue;
+    }
+    m = yeni;
     cikarilan++;
     const kararlar = bulunanlar[i] ?? [];
     if (kararlar.length) oneriler.push({ icin: cumleler[i].slice(0, 140), kararlar });
   }
   if (oneriler.length) d.oneriler = oneriler;
+  // Metinde bulunamayıp ÇIKARILAMAYAN künye "çıkarıldı" sayılmaz: ekran yalnız
+  // olanaksiz+canlidaYok uzunluğunu söylüyor. Dürüst düşüş: metinde kaldığı için
+  // sarı "teyit ediniz" listesine alınır.
+  if (cikarilmayan.length) {
+    const kalan = new Set(cikarilmayan);
+    d.canlidaYok = d.canlidaYok.filter((h) => !kalan.has(h));
+    d.olanaksiz = d.olanaksiz.filter((o) => !kalan.has(o.atif));
+    d.havuzdaYok.push(...cikarilmayan.filter((h) => !d.havuzdaYok.includes(h)));
+  }
   return { metin: m, cikarilan };
 }
 
@@ -951,8 +1003,11 @@ async function kararAtfiDenetimiIc(metin: string, kaynak = ''): Promise<KararDen
       adaylar.map(async (a) => {
         const esas = a.esasYil ? `${a.esasYil}/${a.esasNo}` : '';
         const karar = a.kararYil ? `${a.kararYil}/${a.kararNo}` : '';
-        const r = await adim('kunye_canli', () => canliKunyeDogrula(esas, karar));
+        const r = await adim('kunye_canli', () => canliKunyeDogrula(esas, karar, atifDaireAnahtari(a)));
         if (r === null) return;
+        // Numara BAŞKA dairede bulundu: "doğrulandı" denemez ama "uydurma" da
+        // denemez (daire adı yanlış yazılmış olabilir) → silinmez, sarıda kalır.
+        if (r.daireFarkli) return;
         if (r.bulundu) bulunan.set(anahtar(a), { daire: r.daire, tarih: r.tarih, id: r.id, kaynak: 'uyap' });
         else canlidaYok.push(a.ham);
       })
@@ -1064,40 +1119,24 @@ async function recordUsage(
   // defterine yazılır. İkisini tek sayıya indirgemek, "ne kazandık" sorusunu
   // cevaplanamaz hâle getirir ve iadede yanlış tutar geri verilir.
   const ucret = cost > 0 && !deneme ? Math.round(cost * KAR_KATSAYISI * 100) / 100 : 0;
-  const p = aiPeriod();
-  const { data } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', p).maybeSingle();
-  const prev = data as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
-  await s.from('ai_usage').upsert({
-    user_id: userId,
-    period: p,
-    // AYLIK SAYAÇ DA "HAK GİTMEZ" KURALINA UYAR (01.10.2026 canlıda ölçüldü).
-    // Önce koşulsuz +1'di: Claude düşüp yedek modelin cevapladığı istekler
-    // aylık çağrı hakkından düşüyordu — test hesabında 4 yedek + 1 Claude
-    // cevabı, 5 soruluk ücretsiz denemeyi "quota_exceeded" ile kapattı.
-    // Günlük satır zaten musteriyeYaz'a bakıyordu; ikisi artık aynı.
-    calls: (prev?.calls ?? 0) + (musteriyeYaz ? 1 : 0),
-    tokens_in: (prev?.tokens_in ?? 0) + tin,
-    tokens_out: (prev?.tokens_out ?? 0) + tout,
-    cost_try: Number(prev?.cost_try ?? 0) + cost,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id,period' });
+  // SAYAÇ TEK DEYİMDE ARTAR (09.10.2026, göç 0191, bkz. _shared/kullanimSayaci.ts).
+  // Önce "oku, okunan + artış yaz"dı: aynı anda biten iki istekten birinin
+  // çağrısı, token'ı ve maliyeti kayboluyordu (yerelde pgbench ile ölçüldü).
+  //
+  // AYLIK SAYAÇ DA "HAK GİTMEZ" KURALINA UYAR (01.10.2026 canlıda ölçüldü).
+  // Önce koşulsuz +1'di: Claude düşüp yedek modelin cevapladığı istekler
+  // aylık çağrı hakkından düşüyordu — test hesabında 4 yedek + 1 Claude
+  // cevabı, 5 soruluk ücretsiz denemeyi "quota_exceeded" ile kapattı.
+  // Günlük satır zaten musteriyeYaz'a bakıyordu; ikisi aynı artışı alır.
+  const artis = { calls: musteriyeYaz ? 1 : 0, tokensIn: tin, tokensOut: tout, cost };
+  await kullanimEkle(s, userId, aiPeriod(), artis);
 
   // GÜNLÜK SATIR. Adil kullanım sayacı buradan okunuyor; aylık satırla aynı
   // tabloda, yalnız dönem anahtarı farklı (YYYY-AA-GG). Kusurlu çıktıda
   // token'lar yine yazılır (gideri biz karşıladık) ama ÇAĞRI SAYILMAZ: günlük
   // hak, işe yarayan cevaplar için harcanır.
   const g = aiGun();
-  const { data: gunVeri } = await s.from('ai_usage').select('calls,tokens_in,tokens_out,cost_try').eq('user_id', userId).eq('period', g).maybeSingle();
-  const gprev = gunVeri as { calls?: number; tokens_in?: number; tokens_out?: number; cost_try?: number } | null;
-  await s.from('ai_usage').upsert({
-    user_id: userId,
-    period: g,
-    calls: (gprev?.calls ?? 0) + (musteriyeYaz ? 1 : 0),
-    tokens_in: (gprev?.tokens_in ?? 0) + tin,
-    tokens_out: (gprev?.tokens_out ?? 0) + tout,
-    cost_try: Number(gprev?.cost_try ?? 0) + cost,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id,period' });
+  await kullanimEkle(s, userId, g, artis);
 
   // KONTÖRDEN DÜŞ — ücretten, maliyetten değil. Ücretsiz katmanda ücret sıfır
   // ve bakiyeye dokunulmaz. Düşüm tek deyimde yapılır (ai_kontor_dus): iki
@@ -1815,7 +1854,22 @@ async function mevzuatOzetiIc(supabase: any, question: string): Promise<string> 
   );
 }
 
-// deno-lint-ignore no-explicit-any
+/**
+ * Hasat konu listesi (ictihat_harvest_state, yalnız service_role okur; kaynak
+ * önekli kopyalar hariç). Anlatımı canlı aramaya SABİT konuya çevirmek için
+ * (hukukiKonuSec). Hata yutulur: boş liste = canlı arama yapılmaz.
+ */
+async function hasatKonulariOku(): Promise<string[]> {
+  try {
+    const sk = svc();
+    if (!sk) return [];
+    const { data } = await sk.from('ictihat_harvest_state').select('terim').not('terim', 'like', '%:%').limit(1000);
+    return ((data ?? []) as Array<{ terim: string }>).map((r) => r.terim);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * CANLI GETİRİLEN KARARLARI ARŞİVLE — en iyi çaba, hata yutulur.
  *
@@ -1830,9 +1884,14 @@ async function mevzuatOzetiIc(supabase: any, question: string): Promise<string> 
  *
  * Yazma başarısız olursa CEVAP ETKİLENMEZ: arşiv bir yan fayda, beslemenin
  * kendisi zaten elimizde.
+ *
+ * `terim` KULLANICI METNİ DEĞİLDİR (09.10.2026): eskiden soru/anlatımın ilk 120
+ * karakteri arama_terimi'ne yazılıyordu — müvekkil adı, olay, TC numarası kalıcı
+ * tabloya düşüyordu. Artık yalnız hasat listesindeki SABİT konu adı (hukukiKonuSec)
+ * ya da null yazılır. Bkz. _shared/hukukiKonu.ts.
  */
 // deno-lint-ignore no-explicit-any
-async function canliArsivle(supabase: any, kararlar: Array<{ id: string; daire: string; esasNo: string; kararNo: string; kararTarihi: string; metin: string }>, soru: string): Promise<void> {
+async function canliArsivle(supabase: any, kararlar: Array<{ id: string; daire: string; esasNo: string; kararNo: string; kararTarihi: string; metin: string }>, terim: string | null): Promise<void> {
   try {
     const { data: musait, error: frenHata } = await supabase.rpc('disk_musait_mi');
     // Ölçemiyorsak YAZMAYIZ: emin olmadan yazmak, dolu diske yazmaya devam
@@ -1857,7 +1916,7 @@ async function canliArsivle(supabase: any, kararlar: Array<{ id: string; daire: 
         esas_no: k.esasNo || null,
         karar_no: k.kararNo || null,
         karar_tarihi: k.kararTarihi || null,
-        arama_terimi: soru.slice(0, 120),
+        arama_terimi: terim,
         full_text: k.metin,
       })),
       { onConflict: 'id' }
@@ -1883,7 +1942,19 @@ function ictihatIstenmis(soru: string): boolean {
 /** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
 const buildGrounding = (...a: Parameters<typeof buildGroundingIc>): ReturnType<typeof buildGroundingIc> => adim('besleme_ictihat', () => buildGroundingIc(...a));
 
-async function buildGroundingIc(supabase: any, question: string, enAz = 3, enCok = 5): Promise<string> {
+/**
+ * `canli` verilirse (DİLEKÇE yolu) canlı kaynağa avukatın anlatımı GİTMEZ:
+ * yalnız `terim()`in döndürdüğü SABİT hukuki konu gider; null ise canlı arama
+ * yapılmaz. Verilmezse (sohbet/mütalaa) davranış aynıdır: soru canlı aranır —
+ * ama artık hiçbir yolda kalıcı tabloya yazılmaz.
+ */
+async function buildGroundingIc(
+  supabase: any,
+  question: string,
+  enAz = 3,
+  enCok = 5,
+  canli?: { terim: () => Promise<string | null> }
+): Promise<string> {
   // deno-lint-ignore no-explicit-any
   let rows: any[] = [];
   // Anlamsal arama artık TÜM katmanlarda çalışır: yerleşik model ücretsiz ve
@@ -1937,9 +2008,12 @@ async function buildGroundingIc(supabase: any, question: string, enAz = 3, enCok
   const YETERLI = enAz;
   let canliSayisi = 0;
   if (rows.length < YETERLI) {
-    const canli = await adim('ictihat_canli', () => canliIctihat(question, YETERLI - rows.length));
-    canliSayisi = canli.length;
-    for (const k of canli) {
+    const canliTerim = canli ? await canli.terim() : question;
+    const canliKararlar = canliTerim
+      ? await adim('ictihat_canli', () => canliIctihat(canliTerim, YETERLI - rows.length))
+      : [];
+    canliSayisi = canliKararlar.length;
+    for (const k of canliKararlar) {
       if (seen.has(k.id)) continue;
       seen.add(k.id);
       rows.push({
@@ -1953,7 +2027,7 @@ async function buildGroundingIc(supabase: any, question: string, enAz = 3, enCok
     }
     // Getirdiğimizi SAKLA: havuz böylece kullanıcıların gerçek ihtiyacına
     // yakınsar. Disk freni ve hata yutma arşivleyicinin içinde.
-    if (canli.length) await canliArsivle(supabase, canli, question);
+    if (canliKararlar.length) await canliArsivle(supabase, canliKararlar, canli ? canliTerim : null);
   }
 
   if (rows.length === 0) return '';
@@ -2193,6 +2267,9 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
   }
+  // Yedek hat günlük kapısı bu isteğe bağlanır (kullanıcı doğrulandı); sayım
+  // yalnız yedeğe inileceği anda yapılır (bkz. ucretliChatIc).
+  yedekKapisiKur(() => yedekIzniVar(() => yedekBugun(userData.user.id)));
 
   let body: { messages?: Array<{ role: 'user' | 'model'; text: string }>; mode?: string; question?: string; dilekceType?: string; docKind?: string; caseId?: string; istekId?: string; sebep?: string; ekler?: unknown; taslak?: string; kaynak?: string };
   try {
@@ -2210,26 +2287,20 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   //
   // İade kaydı aynı zamanda kalitenin en dürüst göstergesi: ölçüm senaryolarını
   // biz yazıyoruz, iadeyi gerçek dosyada kullanan avukat söylüyor.
+  //
+  // KAPATILDI (09.10.2026, 50 denetçi bulgusu, kodla doğrulandı). ai_istek_iade
+  // sahipliği ve "aynı istek bir kez"i denetliyor ama SAYI TAVANI YOK: her
+  // oturumlu kullanıcı, cevabını ALDIĞI her isteği tek tek iade edip aylık
+  // soru/mütalaa kotasını (ai_mod_kota) geri sarabiliyordu — kota anlamsızdı,
+  // tek sınır aylık ₺3.000'lik maliyet ağıydı. Düğmesi hiç yazılmadı; hiçbir
+  // istemci (uygulama, web, eklenti, betik) bu modu çağırmıyor, yani kapatmak
+  // kimseyi kırmaz. Otomatik iadeler (başarısız istek, yedek model, kusurlu
+  // çıktı, mevzuat özeti) bundan bağımsız ve aynen çalışır.
+  // Yeniden açmak ürün kararıdır: kişi başı iade TAVANI + düğme + deneme
+  // hakkının da geri verilmesi (ai_istek_iade bugün deneme hakkına dokunmuyor
+  // ama {hak: 1} dönüyor) birlikte tasarlanmalı. SQL işlevi yerinde duruyor.
   if (body.mode === 'iade') {
-    const istekId = String(body.istekId ?? '').trim();
-    if (!istekId) {
-      return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
-    }
-    const sk = svc();
-    if (!sk) {
-      return new Response(JSON.stringify({ error: 'not_configured' }), { status: 503, headers: CORS });
-    }
-    // Sahiplik kontrolü RPC'nin İÇİNDE: kullanıcı kimliği burada gönderiliyor
-    // ama satır yalnız o kullanıcıya aitse iade ediliyor.
-    const { data, error } = await sk.rpc('ai_istek_iade', {
-      p_istek: istekId,
-      p_user: userData.user.id,
-      p_sebep: typeof body.sebep === 'string' ? body.sebep.slice(0, 300) : null,
-    });
-    if (error) {
-      return new Response(JSON.stringify({ error: 'upstream' }), { status: 502, headers: CORS });
-    }
-    return new Response(JSON.stringify(data ?? { ok: false }), {
+    return new Response(JSON.stringify({ ok: false, neden: 'kapali' }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
@@ -2267,15 +2338,27 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   // `taslak` = avukatın elindeki GÜNCEL metin, `question` = talimat.
   const isDuzelt = body.mode === 'duzelt';
   const promptQuestion = (body.question ?? '').trim();
-  const messages = (isMutalaa || isDilekce || isBelge || isKunye || isDuzelt)
-    ? [{ role: 'user' as const, text: promptQuestion }]
-    : (body.messages ?? []).slice(-30);
+  // SOHBET GİRDİSİ TAVANLI (10.10.2026, bkz. _shared/sohbetGirdisi.ts): mesaj
+  // uzunluğu sınırsızdı. Bu denetim hak ayrılmadan ÖNCE — reddedilen istek
+  // hiçbir şey harcamaz. Son mesaj çok uzunsa kesilmez, reddedilir.
+  const sohbetGirdisi = (isMutalaa || isDilekce || isBelge || isKunye || isDuzelt) ? null : sohbetMesajlari(body.messages);
+  if (sohbetGirdisi && 'hata' in sohbetGirdisi) {
+    return new Response(JSON.stringify({ error: sohbetGirdisi.hata, azami: SOHBET_MESAJ_MAX }), { status: 413, headers: CORS });
+  }
+  const messages = sohbetGirdisi && 'mesajlar' in sohbetGirdisi
+    ? sohbetGirdisi.mesajlar
+    : [{ role: 'user' as const, text: promptQuestion }];
   // EKLİ BELGELER — yalnız dilekçe ve belge incelemede (bkz. _shared/belgeEki.ts).
   // Boyut tavanı aşılırsa istek BAŞLAMADAN reddedilir: hak düşmez, kota
   // rezerve edilmez.
-  const ekSonuc = (isDilekce || isBelge) ? ekleriAyikla(body.ekler) : { ekler: [] as Ek[], pdfdenMetne: [] as string[], okunamayan: [] as string[] };
+  const ekSonuc = ekleriAyikla((isDilekce || isBelge) ? body.ekler : undefined);
   if ('hata' in ekSonuc && ekSonuc.hata) {
     return new Response(JSON.stringify({ error: ekSonuc.hata }), { status: 413, headers: CORS });
+  }
+  // SORU TAVANI (09.10.2026, bkz. _shared/belgeEki.ts > SORU_TAVANI): aşan
+  // metin kesilmez, istek BAŞLAMADAN reddedilir — hak düşmez, kota rezerve edilmez.
+  if (promptQuestion.length > SORU_TAVANI) {
+    return new Response(JSON.stringify({ error: 'soru_uzun' }), { status: 413, headers: CORS });
   }
   const ekler = ekSonuc.ekler;
   // Belge incelemede PDF'in kendisi ek olarak gelir; soru kutusu yalnız
@@ -2286,10 +2369,8 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
   if (messages.length === 0 || duzeltGecersiz || ((isMutalaa || isDilekce || isBelge || isKunye) && promptQuestion.length < 20 && !notYeter)) {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: CORS });
   }
-  // Ekranın avukata söyleyeceği ek durumu (görüntüsüyle okunamayanlar).
-  const ekUyari = (ekSonuc.pdfdenMetne.length || ekSonuc.okunamayan.length || taranmisSayfaVar(ekler))
-    ? { pdfdenMetne: ekSonuc.pdfdenMetne, okunamayan: ekSonuc.okunamayan, taranmis: taranmisSayfaVar(ekler) || undefined }
-    : undefined;
+  // Ekranın avukata söyleyeceği ek durumu artık model çağrısından SONRA kurulur
+  // (ekUyarisi): PDF görüntüsünün modele ulaşıp ulaşmadığı ancak o zaman bilinir.
   // Referanslar mütalaa bloğunda mutalaaQuestion adıyla kullanılıyordu; alias.
   const mutalaaQuestion = promptQuestion;
 
@@ -2546,7 +2627,16 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
     // ile düştü (scripts/olcum-sonnet-sonuc.json); Haiku (düşünmesiz) aynı
     // senaryoyu 90 sn'de bitirmişti. Düşünmenin kalite katkısı ölçülmedi;
     // hiç cevap verememek ise ölçüldü.
-    const call = async (sys: string, userText: string, maxTok: number): Promise<string> => {
+    // İÇ SÜRE BÜTÇESİ (bkz. _shared/mutalaaDenetim.ts): platform 546'sı hak iadesini
+    // ve anlamlı hatayı yok ediyordu. Bütçe bitmişse model çağrısı HİÇ BAŞLAMAZ
+    // (boşa token yakılmaz); sürerken biterse zaman_asimi atılır.
+    const mutalaaBas = Date.now();
+    const call = (sys: string, userText: string, maxTok: number): Promise<string> => {
+      const kalan = kalanMs(mutalaaBas, Date.now(), MUTALAA_MODEL_BUTCESI_MS);
+      if (kalan <= 0) return Promise.reject(new Error('zaman_asimi'));
+      return sureyleBekle(cagirIc(sys, userText, maxTok), kalan);
+    };
+    const cagirIc = async (sys: string, userText: string, maxTok: number): Promise<string> => {
       if (provider === 'claude') {
         // Sabit talimat (SYSTEM_PROMPT) önbelleğe alınır; sys'in geri kalanı
         // (araştırma dosyası) her adımda değiştiği için arkaya konur.
@@ -2660,14 +2750,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
 
       const synthSys =
         SYSTEM_PROMPT +
-        '\n\nŞU AN "MÜTALAA" MODUNDASIN: avukata, bir kıdemli ortağın yazacağı düzeyde RESMİ HUKUKİ ' +
-        'MÜTALAA hazırlıyorsun. Şu başlıklarla yaz:\n' +
-        '1. OLAY VE TESPİTLER\n2. HUKUKİ SORUNLAR\n3. İNCELEME (her sorunu ayrı ayrı, dayanaklarıyla)\n' +
-        '4. RİSKLER VE KARŞI TARAFIN OLASI SAVUNMALARI\n5. SONUÇ VE KANAAT (net tavsiye)\n' +
-        '6. ATILACAK ADIMLAR (sıralı, süreleriyle)\n' +
-        'Aşağıdaki ARAŞTIRMA DOSYASINDAKİ gerçek kural/madde/kararlara dayan; dosyada olmayan madde ' +
-        'numarası veya karar UYDURMA. Kapsamlı ama gereksiz tekrarsız yaz.\n' +
-        'Dosyada uygun karar yoksa "[emsal karar: İçtihat Arama ile ekleyin]" yaz; esas/karar numarasını ezberden yazma.\n' +
+        '\n\n' + MUTALAA_YAPI_TALIMATI +
         // KURAL DOSYAYA GİRDİ AMA MÜTALAAYA GİRMEDİ — ölçümde iki kez görüldü.
         // İşe iade olayında ise_iade kuralı beslemenin BİRİNCİ sırasındaydı ve
         // arabuluculuğun dava şartı olduğunu söylüyordu; mütalaada tek kelime
@@ -2678,7 +2761,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
         // Havuzdaki kurallar rastgele metin değil, ölçümle doğrulanmış ve her
         // biri bir hak kaybını önlemek için yazılmış cümlelerdir.
         'KESİN HUKUKİ KURALLAR bölümünde geçen her SÜRE, her DAVA ŞARTI ve her ZORUNLU ADIM ' +
-        'mütalaada AÇIKÇA yer almalıdır — özellikle arabuluculuk gibi dava şartları ve hak ' +
+        'notta AÇIKÇA yer almalıdır — özellikle arabuluculuk gibi dava şartları ve hak ' +
         'düşürücü süreler. Dosyadaki bir kuralı olaya uygulanabilir bulmuyorsan bunu GEREKÇESİYLE ' +
         'yaz; sessizce atlama.\n' +
         // SÜRE HESABI MÜTALAANIN İŞİDİR. Dilekçede olayda geçmeyen tarih
@@ -2699,14 +2782,14 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
         (() => {
           const basliklar = kuralBasliklari(dossier);
           return basliklar.length
-            ? '\n\n### MÜTALAAYI TESLİM ETMEDEN ÖNCE: yukarıdaki dosyada şu kurallar var. ' +
-              'HER BİRİNİN olaya etkisini mütalaada AÇIKÇA yaz; uygulanmıyorsa neden ' +
+            ? '\n\n### NOTU TESLİM ETMEDEN ÖNCE: yukarıdaki dosyada şu kurallar var. ' +
+              'HER BİRİNİN olaya etkisini notta AÇIKÇA yaz; uygulanmıyorsa neden ' +
               'uygulanmadığını yaz. Sessizce atlama:\n' +
               basliklar.map((b, i) => `${i + 1}. ${b}`).join('\n')
             : '';
         })();
 
-      const text = await call(synthSys, `MÜTALAA TALEBİ:\n${mutalaaQuestion}`, sentezMaxTok);
+      const text = await call(synthSys, `ARAŞTIRMA TALEBİ:\n${mutalaaQuestion}`, sentezMaxTok);
       if (!text.trim()) {
         return new Response(JSON.stringify({ error: 'empty' }), { status: 502, headers: CORS });
       }
@@ -2725,8 +2808,12 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       // metin kendi içinde yanlış (karar yılı esas yılından önce olamaz);
       // ikincisinde eksik olan bizim korpusumuz — onun bedelini avukatın
       // hakkından düşmek haksızlık olur.
+      // EKSİK BÖLÜM = KUSUR (09.10.2026): altı bölümden biri yazılmamış not (ör.
+      // sınıra takılıp yarıda kalan, ATILACAK ADIMLAR'sız) "tamam" diye verilip hak
+      // düşülüyordu; denetim yalnız ölçüm betiğinde vardı.
+      const eksikBolum = eksikBolumler(text);
       const kusurlu =
-        kusurluCikti('mutalaa', text) ||
+        kusurluCikti('mutalaa', text, eksikBolum) ||
         uydurmaMadde.length > 0 ||
         (kararDenetimi?.olanaksiz.length ?? 0) > 0 ||
         // Ne havuzda ne canlı kaynakta olan künye = uydurma; hak düşülmez.
@@ -2751,6 +2838,7 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
         // hak düşürmez (bkz. _shared/kural.ts).
         atlananKural: atlanan.length ? atlanan : undefined,
         uydurmaMadde: uydurmaMadde.length ? uydurmaMadde : undefined,
+        eksikBolum: eksikBolum.length ? eksikBolum : undefined,
         kararDenetimi: kararDenetimi ?? undefined,
         hakDusulmedi: kusurlu || undefined,
         istekId,
@@ -2762,7 +2850,19 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       });
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      // İÇ SÜRE BÜTÇESİ DOLDU (09.10.2026): platformun 546'sından ÖNCE kendi
+      // kararımızla döneriz. 504 -> sarmalayıcı hakkı iade eder; ekran "internet"
+      // yerine gerçek sebebi söyler (bütçe: _shared/mutalaaDenetim.ts).
+      if (msg === 'zaman_asimi') {
+        return new Response(JSON.stringify({ error: 'zaman_asimi' }), { status: 504, headers: CORS });
+      }
+      // MODEL REDDİ ARIZA DEĞİLDİR (ucretliChat bilerek yedeğe geçirmez): "servis
+      // yanıt vermiyor, birazdan tekrar deneyin" demek yanıltıcıydı — aynı olayla
+      // tekrar denemek aynı sonucu verir. Hak sarmalayıcıda iade edilir (non-2xx).
+      if (msg === 'refusal') {
+        return new Response(JSON.stringify({ error: 'refusal' }), { status: 422, headers: CORS });
+      }
+      const known = bilinenIstekHatasi(msg);
       // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
       // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
@@ -2771,132 +2871,9 @@ async function isle(req: Request, hakRez: HakRezervasyonu): Promise<Response> {
       });
     }
   }
-/**
- * DOSYADAN KÜNYE — avukatın kendi kayıtlarından gelen kesin bilgiler.
- *
- * NEDEN. Ölçümde üretilen taslaklarda 13-21 arası köşeli parantez boşluğu
- * vardı: [Davacı Ad-Soyad], [Vekil ad-soyad], [Esas No], [Mahkeme]… Avukat,
- * PROGRAMDA ZATEN KAYITLI olan bilgileri taslağa elle geçiriyordu. "İşimi
- * hızlandırsın" beklentisinin en somut karşılığı burada: elimizdeki veriyi
- * kullanmak.
- *
- * Model bu bilgileri BİLEMEZ (olay anlatısında geçmiyorsa uydurması yasak);
- * biz biliyoruz. Bu yüzden dosyadan gelen değer, künyede modelin yazdığından
- * da önce gelir.
- *
- * MÜVEKKİLİN SIFATI (davacı mı davalı mı) kayıtta tutulmuyor; dilekçe TÜRÜNDEN
- * çıkarılır: dava açan davacıdır, cevap veren davalıdır, ihtarname çeken
- * keşidecidir.
- *
- * Sorgu, çağıranın kendi oturumuyla (RLS altında) yapılır: başkasının dosyası
- * hiçbir koşulda okunamaz.
- */
-/** Süre ölçümlü sarmalayıcı (bkz. _shared/adimSure.ts > adim). */
-const dosyaKunyesi = (...a: Parameters<typeof dosyaKunyesiIc>): ReturnType<typeof dosyaKunyesiIc> => adim('dosya_kunyesi', () => dosyaKunyesiIc(...a));
-
-async function dosyaKunyesiIc(
-  db: ReturnType<typeof createClient>,
-  caseId: string | null,
-  tip: string
-): Promise<Record<string, string>> {
-  const out: Record<string, string> = {};
-  const tarihYaz = (v: unknown): string => {
-    const d = v ? new Date(String(v)) : null;
-    if (!d || Number.isNaN(d.getTime())) return '';
-    return `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}.${d.getUTCFullYear()}`;
-  };
-
-  // DOSYA SEÇİLMESE DE DOLAN İKİ ŞEY VAR: avukatın kendi adı ve imza sıfatı.
-  // İkisi de her taslakta elle yazılıyordu; birincisini profil, ikincisini
-  // dilekçe türü söylüyor. Dosya seçmek bunlar için şart değil.
-  const { data: dava } = caseId
-    ? await db
-        .from('cases')
-        .select('id, client_id, case_number, court_name, opposing_party, decision_number, decision_date, decision_served_date')
-        .eq('id', caseId)
-        .maybeSingle()
-    : { data: null };
-  const d = (dava as Record<string, unknown>) ?? {};
-
-  let musteri: Record<string, unknown> | null = null;
-  if (d.client_id) {
-    const { data } = await db
-      .from('clients')
-      .select('full_name, company, address, title, tc_no')
-      .eq('id', d.client_id as string)
-      .maybeSingle();
-    musteri = (data as Record<string, unknown>) ?? null;
-  }
-  const { data: prof } = await db
-    .from('profiles')
-    .select('full_name, baro, bar_number, firm_name')
-    .maybeSingle();
-  const p = (prof as Record<string, unknown>) ?? {};
-
-  const musteriAdi = String(musteri?.full_name ?? musteri?.company ?? '').trim();
-  // TCKN KÜNYEYE YAZILIR. Dava dilekçesinde davacının kimlik numarası ZORUNLU
-  // unsurdur (HMK m.119/1-c) ve eksikliği bir haftalık kesin süreye, süre
-  // içinde tamamlanmazsa davanın AÇILMAMIŞ SAYILMASINA yol açar (m.119/2).
-  // Kayıtta varsa taslakta boşluk bırakmanın anlamı yok.
-  const musteriTc = String(musteri?.tc_no ?? '').trim();
-  const musteriSatiri = [
-    musteriAdi,
-    musteriTc ? `T.C. ${musteriTc}` : '',
-    String(musteri?.address ?? '').trim(),
-  ].filter(Boolean).join(' — ');
-  const karsi = String(d.opposing_party ?? '').trim();
-  const vekilAdi = String(p.full_name ?? '').trim();
-  const vekilSatiri = vekilAdi
-    ? [`Av. ${vekilAdi.replace(/^Av\.?\s*/i, '')}`, String(p.baro ?? '').trim(), String(p.firm_name ?? '').trim()]
-        .filter(Boolean)
-        .join(' — ')
-    : '';
-
-  if (vekilSatiri) out.VEKILI = vekilSatiri;
-  const mahkeme = String(d.court_name ?? '').trim();
-  if (mahkeme) out.MAHKEME = mahkeme;
-  const esas = String(d.case_number ?? '').trim();
-  if (esas) {
-    out.ESASNO = esas;
-    out.DOSYANO = esas;
-  }
-
-  // Müvekkilin ve karşı tarafın satırdaki YERİ dilekçe türüne göre değişir.
-  const musteriEtiketi: Record<string, string> = {
-    dava: 'DAVACI', replik: 'DAVACI', cevap: 'DAVALI', duplik: 'DAVALI',
-    istinaf: 'ISTINAFEDEN', temyiz: 'TEMYIZEDEN', itiraz: 'ITIRAZEDENBORCLU',
-    ihtarname: 'KESIDECI', bilirkisi: 'ITIRAZEDEN', islah: 'ISLAHEDEN',
-  };
-  const karsiEtiketi: Record<string, string> = {
-    dava: 'DAVALI', replik: 'DAVALI', cevap: 'DAVACI', duplik: 'DAVACI',
-    istinaf: 'KARSITARAF', temyiz: 'KARSITARAF', itiraz: 'ALACAKLI',
-    ihtarname: 'MUHATAP', bilirkisi: 'KARSITARAF', islah: 'KARSITARAF',
-  };
-  if (musteriSatiri && musteriEtiketi[tip]) out[musteriEtiketi[tip]] = musteriSatiri;
-  if (karsi && karsiEtiketi[tip]) out[karsiEtiketi[tip]] = karsi;
-
-  // İmza bloğundaki "… Vekili" sıfatı da türden gelir.
-  const imzaSifat: Record<string, string> = {
-    dava: 'Davacı', replik: 'Davacı', cevap: 'Davalı', duplik: 'Davalı',
-    istinaf: 'İstinaf Eden', temyiz: 'Temyiz Eden', itiraz: 'İtiraz Eden (Borçlu)',
-    ihtarname: 'Keşideci', bilirkisi: 'İtiraz Eden', islah: 'Islah Eden',
-  };
-  if (imzaSifat[tip]) out.IMZASIFAT = imzaSifat[tip];
-
-  // Kanun yolu dilekçelerinde kararın künyesi ve tebliğ tarihi.
-  const kararSatiri = [mahkeme, esas, String(d.decision_number ?? '').trim(), tarihYaz(d.decision_date)]
-    .filter(Boolean)
-    .join(' · ');
-  if (kararSatiri && (tip === 'istinaf' || tip === 'temyiz')) {
-    out.KARAR = kararSatiri;
-    out.TEMYIZEDILENKARAR = kararSatiri;
-  }
-  const teblig = tarihYaz(d.decision_served_date);
-  // Not: bilirkişi RAPORUNUN tebliğ tarihi ayrı bir tarihtir ve kayıtta
-  // tutulmuyor; karar tebliğ tarihini oraya yazmak yanlış süre hesaplatırdı.
-  if (teblig) out.TEBLIGTARIHI = teblig;
-  return out;
-}
+  // DOSYADAN KÜNYE (avukatın kendi kaydı): sorgu mantığı _shared/dosyaKunyesi.ts'te,
+  // sahte istemciyle sınanır (tests/dilekceSunucu.test.ts). Profil sorgusu
+  // çağıranın kendi satırına filtrelenir.
 
 
   // ───────────── DİLEKÇE: olaydan mahkemeye hazır taslak ─────────────
@@ -2977,7 +2954,7 @@ async function dosyaKunyesiIc(
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
@@ -3037,7 +3014,9 @@ async function dosyaKunyesiIc(
       const [kural, mevzuat, ictihat] = await Promise.all([
         buildRules(supabase, ekAramasi, dilekceKurallar).catch(() => ''),
         buildMevzuat(supabase, ekAramasi).catch(() => ''),
-        buildGrounding(supabase, ekAramasi, ictihatIstenmis(promptQuestion) ? 5 : 3, ictihatIstenmis(promptQuestion) ? 6 : 5).catch(() => ''),
+        buildGrounding(supabase, ekAramasi, ictihatIstenmis(promptQuestion) ? 5 : 3, ictihatIstenmis(promptQuestion) ? 6 : 5,
+          // Canlı aramaya anlatım değil SABİT konu gider (yalnız havuz yetersizse çözülür).
+          { terim: async () => hukukiKonuSec(ekAramasi, await hasatKonulariOku()) }).catch(() => ''),
       ]);
       dossier += `${kural}${mevzuat}${ictihat}`;
     }
@@ -3214,7 +3193,7 @@ async function dosyaKunyesiIc(
       // kayıt okunamadı diye taslak üretilmemesi, boşluklu taslaktan kötüdür.
       let dosya: Record<string, string> = {};
       try {
-        dosya = await dosyaKunyesi(supabase, body.caseId ?? null, body.dilekceType ?? 'dava');
+        dosya = await adim('dosya_kunyesi', () => dosyaKunyesiOku(supabase, userData.user.id, body.caseId ?? null, body.dilekceType ?? 'dava'));
       } catch { /* künye dolmazsa kodun boşlukları kalır */ }
       const beklenen = iskelet.bolumler.filter((b) => b.zorunlu).length;
       const bulunan = iskelet.bolumler.filter((b) => b.zorunlu && (bloklar[b.anahtar] ?? '').trim()).length;
@@ -3229,7 +3208,11 @@ async function dosyaKunyesiIc(
       // Talimat sertleştirildi ama YETMEZ: model kuralı çoğu zaman tutar,
       // tutmadığı sefer dilekçe mahkemeye yanlış tarihle gider. Son söz
       // mekanik denetimde.
-      const temiz = uydurmaTarihleriAyikla(govde, denetimMetni);
+      // Kaynak: anlatım + ekler + avukatın DOSYA KAYDINDAN künyeye yazılan değerler.
+      // Yalnız anlatıma bakınca kayıttan gelen doğru karar/tebliğ tarihi
+      // "uydurma" sayılıp "[tarih — doldurun]" oluyordu (tests/dilekceSunucu.test.ts).
+      const tamKaynak = dilekceDenetimKaynagi(denetimMetni, dosya);
+      const temiz = uydurmaTarihleriAyikla(govde, tamKaynak);
       // TÜRE ÖZGÜ TALEP DENETİMİ. Talebi biz yazamayız — ne istendiğini avukat
       // bilir ve uydurulmuş talep, eksik talepten kötüdür. Ama eksikliği
       // görebiliriz: hâkim taleple bağlıdır (HMK m.26) ve netice-i talepte
@@ -3243,7 +3226,7 @@ async function dosyaKunyesiIc(
       // dilekçe mahkemeye gider. Uydurma bir esas/karar numarasını ilk fark
       // eden karşı vekil olur (bkz. kararAtfiDenetimi). Madde denetimiyle
       // bağımsız oldukları için PARALEL (04.10.2026).
-      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin, `${denetimMetni}\n${Object.values(dosya).join('\n')}`)]);
+      const [uydurmaMadde, kararDenetimi] = await Promise.all([uydurmaMaddeDenetimi(temiz.metin), kararAtfiDenetimi(temiz.metin, tamKaynak)]);
       temiz.metin = (await uydurmaKunyeleriCikar(temiz.metin, kararDenetimi)).metin;
       // ATLANAN KURAL DENETİMİ DİLEKÇEDE ÇALIŞMIYOR — ölçüm gösterdi ki burada
       // ürettiği şey gürültü. Dört senaryoluk koşuda üç uyarı çıktı ve üçü de
@@ -3285,13 +3268,13 @@ async function dosyaKunyesiIc(
           kararDenetimi: kararDenetimi ?? undefined,
           uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: dilekceKirpildi || undefined,
-          ekUyari,
+          ekUyari: ekUyarisi(ekSonuc, provider === 'claude' && faturali),
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
       // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
@@ -3398,7 +3381,7 @@ async function dosyaKunyesiIc(
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
         status: known ? 429 : 502,
         headers: CORS,
@@ -3533,13 +3516,13 @@ async function dosyaKunyesiIc(
           kararDenetimi: kararDenetimi ?? undefined,
           uydurmaTutar: uydurmaTutar.length ? uydurmaTutar : undefined,
           beslemeKirpildi: beslemeKirpildi || undefined,
-          ekUyari,
+          ekUyari: ekUyarisi(ekSonuc, provider === 'claude' && faturali),
           kullanim: kullanimOzeti(kullanilanModel, uin, uout, kusurlu ? 0 : maliyet) }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     } catch (e) {
       const msg = (e as Error).message;
-      const known = msg === 'rate_limit' || msg === 'daily_quota';
+      const known = bilinenIstekHatasi(msg);
       // 'yeniden': kaç saniye sonra tekrar denenebilir. Sağlayıcı söylüyorsa
       // kullanıcıya "yarın" değil "23 dakika sonra" diyebiliriz.
       return new Response(JSON.stringify({ error: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }), {
@@ -3620,7 +3603,7 @@ async function dosyaKunyesiIc(
     }
   } catch (e) {
     const msg = (e as Error).message;
-    const known = msg === 'rate_limit' || msg === 'daily_quota';
+    const known = bilinenIstekHatasi(msg);
 
     // İKİ SAĞLAYICI DA DÜŞTÜ. Hata kutusu göstermek yerine, aramanın zaten
     // bulduğu mevzuatı doğrudan veriyoruz: avukat için "bir hata oluştu"
@@ -3632,7 +3615,7 @@ async function dosyaKunyesiIc(
     // yalnız kota hâlinde yapılıyordu; denemede görüldü ki en olası ikinci
     // arıza (yedek modelin adının eskimesi) 'upstream' sayılıyor ve tam da
     // yedeğe en çok ihtiyaç duyulan anda özet devreye girmiyordu.
-    // Gerçek sebep yanıtta 'neden' alanında taşınır, gizlenmez.
+    // Yanıttaki 'neden' yalnız KOD taşır (rate_limit, daily_quota ya da upstream); ham sağlayıcı hata metni dönmez (10.10.2026) — gerçek sebep durumYaz ile ai_durum_yaz kaydında.
     {
       const ozet = await mevzuatOzeti(supabase, messages[messages.length - 1]?.text ?? '').catch(() => '');
       if (ozet) {
@@ -3646,7 +3629,7 @@ async function dosyaKunyesiIc(
         // 'model' alanı 'mevzuat-yedek' olduğu için ölçümde AI cevabıyla
         // karışmaz ve yedeğe ne sıklıkta düşüldüğü sayılabilir.
         return new Response(
-          JSON.stringify({ text: ozet, tier, model: 'mevzuat-yedek', yapayZekasiz: true, hakDusulmedi: true, neden: msg, yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }),
+          JSON.stringify({ text: ozet, tier, model: 'mevzuat-yedek', yapayZekasiz: true, hakDusulmedi: true, neden: known ? msg : 'upstream', yeniden: beklemeSaniye((e as Error & { ayrinti?: string }).ayrinti) || undefined }),
           { headers: { ...CORS, 'Content-Type': 'application/json' } }
         );
       }

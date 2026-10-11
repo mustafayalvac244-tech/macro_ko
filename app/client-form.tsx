@@ -11,10 +11,20 @@ import { useCases } from '@/hooks/useCases';
 import { useT } from '@/i18n';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
-import { isValidTCKN } from '@/utils/tckn';
+import type { ClientType } from '@/types/database';
+import {
+  BOS_MUVEKKIL_FORMU,
+  formuDoldur,
+  kaydetmeEngeli,
+  kayitYuku,
+  tcSorunu,
+  type MuvekkilFormu,
+} from '@/utils/muvekkilFormu';
 import { menfaatTara } from '@/utils/menfaatCatismasi';
 import { MenfaatUyarisi } from '@/components/MenfaatUyarisi';
 import { geriDon } from '@/lib/geriDon';
+import { doluAlanVar } from '@/utils/webDavranis';
+import { useWebCikisUyarisi } from '@/hooks/useWebCikisUyarisi';
 
 export default function ClientFormScreen() {
   const { colors } = useTheme();
@@ -29,32 +39,34 @@ export default function ClientFormScreen() {
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
 
-  const [fullName, setFullName] = useState('');
-  const [company] = useState('');
-  const [title, setTitle] = useState('');
-  const [clientType, setClientType] = useState<'gercek' | 'tuzel'>('gercek');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  // Dava dilekçesinin ZORUNLU unsuru (HMK m.119/1-c). Kayıtta olmadığı için
+  // Tek nesne: kayıttan doldurma ve kaydetme src/utils/muvekkilFormu.ts'te,
+  // testli. T.C. no dava dilekçesinin zorunlu unsuru; kayıtta olmadığı için
   // her dilekçede "[Davacı TCKN]" boşluğu kalıyor ve avukat elle dolduruyordu.
-  const [tcNo, setTcNo] = useState('');
-  const [notes, setNotes] = useState('');
+  // Şirket alanının kutusu yok ama kayıttan yüklenip olduğu gibi geri yazılır.
+  const [form, setForm] = useState<MuvekkilFormu>(BOS_MUVEKKIL_FORMU);
+  const alan =
+    <K extends keyof MuvekkilFormu>(k: K) =>
+    (v: MuvekkilFormu[K]) =>
+      setForm((f) => ({ ...f, [k]: v }));
+  const { fullName, company, title, clientType, email, phone, address, tcNo, notes } = form;
+  // Kısa T.C. no yazarken değil, kaydet denendikten sonra hata sayılır.
+  const [kaydetDenendi, setKaydetDenendi] = useState(false);
 
   useEffect(() => {
-    if (existingClient) {
-      setFullName(existingClient.full_name);
-      setTitle(existingClient.title ?? '');
-      setClientType((existingClient.client_type as 'gercek' | 'tuzel') ?? 'gercek');
-      setEmail(existingClient.email ?? '');
-      setPhone(existingClient.phone ?? '');
-      setAddress(existingClient.address ?? '');
-      setTcNo(existingClient.tc_no ?? '');
-      setNotes(existingClient.notes ?? '');
-    }
+    if (existingClient) setForm(formuDoldur(existingClient));
   }, [existingClient]);
 
+  const tcDurumu = tcSorunu(form);
+  const tcHataMetni =
+    tcDurumu === 'tcGecersiz'
+      ? t('clientForm.tcNoInvalid')
+      : tcDurumu === 'tcEksik' && kaydetDenendi
+        ? t('clientForm.tcNoShort')
+        : undefined;
+
   const isSubmitting = createClient.isPending || updateClient.isPending;
+  // Yeni kayıtta yazılmış bir şey varken sekme kapanır/yenilenirse (web) uyar.
+  useWebCikisUyarisi(!isEdit && doluAlanVar([fullName, title, email, phone, address, tcNo, notes]));
 
   /**
    * ÇIKAR ÇATIŞMASI TARAMASI — kapsamlı.
@@ -73,17 +85,12 @@ export default function ClientFormScreen() {
   );
 
   const handleSubmit = async () => {
-    const payload = {
-      full_name: fullName.trim(),
-      company: company.trim() || null,
-      title: title.trim() || null,
-      client_type: clientType,
-      email: email.trim() || null,
-      phone: phone.trim() || null,
-      address: address.trim() || null,
-      tc_no: tcNo.trim() || null,
-      notes: notes.trim() || null,
-    };
+    // Geçersiz/eksik T.C. no kaydedilmez; sebep kutunun altında yazar.
+    if (kaydetmeEngeli(form)) {
+      setKaydetDenendi(true);
+      return;
+    }
+    const payload = kayitYuku(form);
 
     // Hata durumunda kanca zaten uyarı gösteriyor; burada sadece formda kalıp
     // girilen bilgileri koruyoruz (kapatma/yönlendirme yapmıyoruz).
@@ -112,18 +119,18 @@ export default function ClientFormScreen() {
               { value: 'tuzel', label: t('clientForm.entity') },
             ]}
             value={clientType}
-            onChange={(v) => setClientType(v as 'gercek' | 'tuzel')}
+            onChange={(v) => alan('clientType')(v as ClientType)}
           />
           <View style={{ height: spacing.md }} />
           <Input
             label={clientType === 'tuzel' ? t('clientForm.entityName') : t('clientForm.fullName')}
             placeholder={clientType === 'tuzel' ? t('clientForm.entityNamePh') : t('clientForm.fullNamePlaceholder')}
             value={fullName}
-            onChangeText={setFullName}
+            onChangeText={alan('fullName')}
           />
           <MenfaatUyarisi bulgular={bulgular} />
           {clientType === 'gercek' && (
-            <Input label={t('clientForm.title')} placeholder={t('clientForm.titlePlaceholder')} value={title} onChangeText={setTitle} />
+            <Input label={t('clientForm.title')} placeholder={t('clientForm.titlePlaceholder')} value={title} onChangeText={alan('title')} />
           )}
           <Input
             label={t('clientForm.email')}
@@ -131,10 +138,10 @@ export default function ClientFormScreen() {
             keyboardType="email-address"
             placeholder={t('clientForm.emailPlaceholder')}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={alan('email')}
           />
-          <Input label={t('clientForm.phone')} keyboardType="phone-pad" placeholder={t('clientForm.phonePlaceholder')} value={phone} onChangeText={setPhone} />
-          <Input label={t('clientForm.address')} placeholder={t('clientForm.addressPlaceholder')} value={address} onChangeText={setAddress} />
+          <Input label={t('clientForm.phone')} keyboardType="phone-pad" placeholder={t('clientForm.phonePlaceholder')} value={phone} onChangeText={alan('phone')} />
+          <Input label={t('clientForm.address')} placeholder={t('clientForm.addressPlaceholder')} value={address} onChangeText={alan('address')} />
           {clientType === 'gercek' && (
             <Input
               label={t('clientForm.tcNo')}
@@ -142,15 +149,15 @@ export default function ClientFormScreen() {
               keyboardType="number-pad"
               maxLength={11}
               value={tcNo}
-              onChangeText={(v) => setTcNo(v.replace(/[^0-9]/g, ''))}
-              error={tcNo.length === 11 && !isValidTCKN(tcNo) ? t('clientForm.tcNoInvalid') : undefined}
+              onChangeText={(v) => alan('tcNo')(v.replace(/[^0-9]/g, ''))}
+              error={tcHataMetni}
             />
           )}
           <Input
             label={t('clientForm.notes')}
             placeholder={t('clientForm.notesPlaceholder')}
             value={notes}
-            onChangeText={setNotes}
+            onChangeText={alan('notes')}
             multiline
             numberOfLines={3}
             style={styles.textArea}

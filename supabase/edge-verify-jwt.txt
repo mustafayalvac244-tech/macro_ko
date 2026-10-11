@@ -1,0 +1,30 @@
+# Uç işlevi başına CANLIDAKİ verify_jwt ayarı — .github/workflows/edge-dagit.yml okur.
+#
+# NEDEN. Depoda supabase/config.toml YOK; verify_jwt yalnız dağıtım
+# bayrağıyla belirleniyor. Eskiden tek bir bayrak "HEPSİ" için tüm işlevlere
+# uygulanıyordu: varsayılan (true) ile webhook'lar ve ai-chat canlıda KAPALIyken
+# AÇILIYOR, RevenueCat/Stripe çağrıları 401 alıyordu.
+#
+# Biçim:  <işlev-adı> <acik|kapali>
+#   acik   → verify_jwt = true  (bayrak verilmez)
+#   kapali → verify_jwt = false (--no-verify-jwt)
+#
+# ÖLÇÜLDÜ: Supabase list_edge_functions (salt okunur), 10.10.2026, proje
+# wjshlysfmeqlnfiibknj. Bir işlevin ayarı canlıda bilinçle DEĞİŞTİRİLİRSE bu
+# tablo da AYNI commit'te değişir; tests/edgeDagitJwt.test.ts depodaki işlev
+# listesiyle tablonun örtüştüğünü ve değerlerin son ölçümle aynı olduğunu
+# denetler. Yeni işlev eklenince buraya da eklenmeden dağıtılamaz.
+#
+# Canlıda olup depoda olmayan işlev: nobetci (verify_jwt açık) — bu iş akışı
+# ona dokunmaz.
+ai-chat              kapali
+ai-saglik            acik
+doc-extract          acik
+embed-ictihat        acik
+harvest-tick         acik
+ictihat              acik
+katalog-tick         acik
+payment-sheet        acik
+resmi-gazete         acik
+revenuecat-webhook   kapali
+stripe-webhook       kapali

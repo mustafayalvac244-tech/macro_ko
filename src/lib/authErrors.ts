@@ -1,33 +1,49 @@
 import { SUPABASE_YAPILANDIRILDI } from '@/lib/env';
+import { getLang, translate, type Lang, type TKey } from '@/i18n';
 // Supabase (ve genel ağ) hata mesajları İngilizce döner; kullanıcıya
-// göstermeden önce bilinen kalıpları Türkçeye çevirir. Bilinmeyen
+// göstermeden önce bilinen kalıpları ARAYÜZ DİLİNE çevirir. Bilinmeyen
 // mesajlar olduğu gibi bırakılır (kendi fırlattığımız Türkçe hatalar dahil).
+//
+// ARAYÜZ DİLİ (09.10.2026). Metinler eskiden bu dosyada Türkçe sabitti:
+// Ayarlar'dan İngilizce seçen avukat çıkış yapıp yanlış şifre girince
+// İngilizce ekranda Türkçe hata görüyordu. Metinler artık src/i18n'de
+// (authErr.*), dil ise çağrı anındaki uygulama dili.
+
 /**
  * Doğrulanmamış e-posta mesajı DIŞA AÇIK: giriş ekranı bu mesajı görünce
  * "doğrulama e-postasını tekrar gönder" düğmesi çizer (04.10.2026 — rakip
  * uygulamanın App Store yorumlarında en sık 1 yıldız sebebi "kod/e-posta
  * gelmiyor, hesap açılamıyor"ydu; bizde tekrar gönderme hiç yoktu).
+ * Karşılaştırma için dogrulanmamisMi kullanılır — metin dile göre değişir.
  */
-export const DOGRULANMAMIS = 'E-posta adresiniz henüz doğrulanmamış. Gelen kutunuzu (ve spam klasörünü) kontrol edin.';
+export const DOGRULANMAMIS_ANAHTAR: TKey = 'authErr.emailNotConfirmed';
+/** Türkçe metin (eski çağıranlar ve testler için). */
+export const DOGRULANMAMIS = translate('tr', DOGRULANMAMIS_ANAHTAR);
 
-const PATTERNS: Array<[RegExp, string]> = [
-  [/invalid login credentials/i, 'E-posta veya şifre hatalı. Şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.'],
+/** Mesaj "e-posta doğrulanmamış" hatası mı — iki dilde de tanır. */
+export function dogrulanmamisMi(mesaj: string | null | undefined): boolean {
+  if (!mesaj) return false;
+  return mesaj === translate('tr', DOGRULANMAMIS_ANAHTAR) || mesaj === translate('en', DOGRULANMAMIS_ANAHTAR);
+}
+
+const PATTERNS: Array<[RegExp, TKey]> = [
+  [/invalid login credentials/i, 'authErr.invalidLogin'],
   // Kayıt ekranı, Supabase'in sahte "başarılı" yanıtını bu anahtarla bildirir
   // (bkz. authStore.signUp, 28.09.2026).
-  [/^zaten-kayitli$/, 'Bu e-posta ile zaten bir hesap var. Giriş yapın; şifrenizi hatırlamıyorsanız "Şifremi unuttum"a dokunun.'],
-  [/email rate limit exceeded|over_email_send_rate_limit/i, 'Kısa sürede çok fazla deneme yapıldı. Lütfen bir süre sonra tekrar deneyin.'],
-  [/for security purposes.*only request this after (\d+) seconds?/i, 'Güvenlik nedeniyle lütfen kısa bir süre sonra tekrar deneyin.'],
-  [/user already registered|already been registered/i, 'Bu e-posta ile zaten bir hesap var. Giriş yapmayı deneyin.'],
-  [/password should be at least (\d+) characters?/i, 'Şifre en az 8 karakter olmalı.'],
-  [/password should contain/i, 'Şifre gerekli karakter çeşitlerini içermiyor (harf ve rakam kullanın).'],
-  [/unable to validate email address|invalid format|invalid email/i, 'Geçerli bir e-posta adresi girin.'],
-  [/email not confirmed/i, DOGRULANMAMIS],
-  [/new password should be different/i, 'Yeni şifre eski şifrenizden farklı olmalı.'],
-  [/token has expired|otp.*expired|expired.*otp/i, 'Kodun süresi dolmuş. Lütfen yeni kod isteyin.'],
-  [/token.*invalid|invalid.*token|invalid.*otp|otp.*invalid/i, 'Kod hatalı. Lütfen kontrol edip tekrar deneyin.'],
-  [/user not found/i, 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.'],
-  [/signups? not allowed/i, 'Yeni kayıt şu anda kapalı.'],
-  [/rate limit|too many requests/i, 'Çok fazla deneme yapıldı. Lütfen bir süre sonra tekrar deneyin.'],
+  [/^zaten-kayitli$/, 'authErr.alreadyRegisteredSignup'],
+  [/email rate limit exceeded|over_email_send_rate_limit/i, 'authErr.emailRateLimit'],
+  [/for security purposes.*only request this after (\d+) seconds?/i, 'authErr.securityWait'],
+  [/user already registered|already been registered/i, 'authErr.alreadyRegistered'],
+  [/password should be at least (\d+) characters?/i, 'authErr.passwordMin'],
+  [/password should contain/i, 'authErr.passwordChars'],
+  [/unable to validate email address|invalid format|invalid email/i, 'authErr.invalidEmail'],
+  [/email not confirmed/i, DOGRULANMAMIS_ANAHTAR],
+  [/new password should be different/i, 'authErr.samePassword'],
+  [/token has expired|otp.*expired|expired.*otp/i, 'authErr.codeExpired'],
+  [/token.*invalid|invalid.*token|invalid.*otp|otp.*invalid/i, 'authErr.codeInvalid'],
+  [/user not found/i, 'authErr.userNotFound'],
+  [/signups? not allowed/i, 'authErr.signupsClosed'],
+  [/rate limit|too many requests/i, 'authErr.rateLimit'],
   // SUNUCU TARAFI ZAMAN AŞIMI — AĞ HATASINDAN ÖNCE gelmeli.
   // 23.09.2026, gerçek kullanıcı ekranı: giriş düğmesine basınca kırmızıyla
   //   {"status":504,"statusText":"gateway timed out","redirected":false,"url":"https://…/auth/v1/token?…"}
@@ -35,24 +51,27 @@ const PATTERNS: Array<[RegExp, string]> = [
   // `timed out` yazıyor; eşleşmeyince ham JSON — sunucu adresiyle birlikte —
   // kullanıcıya basıldı. Ayrıca bu BİZİM sunucumuzun sorunu: "bağlantınızı
   // kontrol edin" demek kullanıcıyı suçsuz yere kendi internetine yollar.
-  [/gateway time-?d? ?out|bad gateway|service unavailable|"status"\s*:\s*50[0-9]|AuthRetryableFetchError/i, 'Sunucu şu an yanıt veremedi. Birkaç saniye sonra tekrar deneyin — bu sizin bağlantınızla ilgili değil.'],
-  [/network request failed|fetch failed|failed to fetch|network error|timeout/i, 'İnternet bağlantısı kurulamadı. Bağlantınızı kontrol edip tekrar deneyin.'],
-  [/jwt expired|refresh token/i, 'Oturum süreniz doldu. Lütfen tekrar giriş yapın.'],
-  [/payload too large|exceeded the maximum allowed size/i, 'Dosya boyutu izin verilen sınırı aşıyor.'],
-  [/row-level security|permission denied|not authorized/i, 'Bu işlem için yetkiniz yok.'],
-  [/duplicate key value/i, 'Bu kayıt zaten mevcut.'],
+  [/gateway time-?d? ?out|bad gateway|service unavailable|"status"\s*:\s*50[0-9]|AuthRetryableFetchError/i, 'authErr.serverUnavailable'],
+  [/network request failed|fetch failed|failed to fetch|network error|timeout/i, 'authErr.network'],
+  [/jwt expired|refresh token/i, 'authErr.sessionExpired'],
+  [/payload too large|exceeded the maximum allowed size/i, 'authErr.payloadTooLarge'],
+  [/row-level security|permission denied|not authorized/i, 'authErr.notAuthorized'],
+  [/duplicate key value/i, 'authErr.duplicate'],
 ];
 
 /**
  * @param yapilandirildi Supabase adresi/anahtarı tanımlı mı. Parametre olarak
  * alınır ki işlev SAF kalsın: ortamdan okusaydı aynı girdi, ortama göre farklı
  * çıktı verirdi ve birim testi ortama bağımlı hâle gelirdi.
+ * @param dil Çıktı dili; verilmezse uygulamanın o anki dili.
  */
 export function trError(
   message: string | null | undefined,
-  yapilandirildi: boolean = SUPABASE_YAPILANDIRILDI
+  yapilandirildi: boolean = SUPABASE_YAPILANDIRILDI,
+  dil: Lang = getLang()
 ): string {
-  if (!message) return 'Bir hata oluştu. Lütfen tekrar deneyin.';
+  const metin = (anahtar: TKey) => translate(dil, anahtar);
+  if (!message) return metin('authErr.generic');
   // YAPILANDIRMA EKSİĞİNİ AĞ HATASI SANMAYALIM. Supabase adresi/anahtarı
   // tanımlı değilse istemci sahte bir adrese gider ve her istek "network
   // request failed" verir; kullanıcı bağlantısını kontrol edip durur, oysa
@@ -60,10 +79,10 @@ export function trError(
   // giriş ekranı sorunsuz açıldı, her deneme "İnternet bağlantısı kurulamadı"
   // dedi ve sebep saatlerce bağlantıda arandı.
   if (!yapilandirildi && /network request failed|fetch failed|failed to fetch|network error/i.test(message)) {
-    return 'Uygulama sunucu bilgileriyle yapılandırılmamış (.env eksik). Bu bir bağlantı sorunu değildir.';
+    return metin('authErr.notConfigured');
   }
-  for (const [re, tr] of PATTERNS) {
-    if (re.test(message)) return tr;
+  for (const [re, anahtar] of PATTERNS) {
+    if (re.test(message)) return metin(anahtar);
   }
   // HAM ÇIKTI KORUMASI. Tanımadığımız mesajı olduğu gibi bırakıyoruz — çünkü
   // kendi fırlattığımız Türkçe hatalar da buradan geçiyor. AMA ham JSON ya da
@@ -72,7 +91,7 @@ export function trError(
   // tam böyle sızdı. Desen listesi bir gün yine bir biçimi kaçırırsa, en
   // azından sunucu adresi ve teknik döküm ekrana düşmesin.
   if (/^\s*[{[]/.test(message) || /https?:\/\//i.test(message)) {
-    return 'Sunucu beklenmedik bir yanıt verdi. Birkaç saniye sonra tekrar deneyin.';
+    return metin('authErr.unexpected');
   }
   return message;
 }

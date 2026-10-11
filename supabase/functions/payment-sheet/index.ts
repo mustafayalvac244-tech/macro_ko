@@ -100,8 +100,10 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: message }), {
+    // Stripe/ağ hata metni kullanıcıya DÖNMEZ (10.10.2026): iç ayrıntı sızdırır
+    // ve istemci zaten yalnız kodu okur. Ayrıntı sunucu günlüğünde.
+    console.error('payment-sheet hata:', err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: 'server_error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

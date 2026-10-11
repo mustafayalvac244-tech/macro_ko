@@ -27,6 +27,8 @@ import { useAllPayments } from '@/hooks/usePayments';
 import { FINANCE_CATEGORY_ICONS } from '@/constants/finance';
 import { toCsv, shareCsv } from '@/utils/exportCsv';
 import { useLangStore, useT } from '@/i18n';
+import { ayAnahtari, ayOzeti } from '@/utils/finansHesap';
+import { veriDurumu } from '@/utils/panoHesap';
 import { spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
@@ -53,87 +55,61 @@ export default function FinanceScreen() {
   const updateEntry = useUpdateFinanceEntry();
   const createEntry = useCreateFinanceEntry();
 
-  const monthStart = month;
   const monthEnd = useMemo(() => endOfMonth(month), [month]);
   const locale = lang === 'tr' ? trLocale : enUS;
+  const ay = format(month, 'yyyy-MM');
 
   const needsSetup = !!entries.error && isMissingFinanceTable(entries.error);
+  // Yüklenemeyen liste ₺0 sayılmaz: veri yokken toplamlar "—" gösterir.
+  const durum = veriDurumu(entries, payments);
 
-  const { recurring, oneOff, casePaymentsTotal, casePaymentsCount, incomeTotal, expenseTotal } = useMemo(() => {
-    const activeInMonth = (e: FinanceEntry): boolean => {
-      if (e.is_recurring) {
-        if (startOfMonth(localDate(e.entry_date)) > monthEnd) return false;
-        if (e.recurring_until && endOfMonth(localDate(e.recurring_until)) < monthStart) return false;
-        return true;
-      }
-      const d = localDate(e.entry_date);
-      return d >= monthStart && d <= monthEnd;
-    };
+  // AY HESABI TEK YERDE (utils/finansHesap): ana ekran "Bu Ay" ve CSV de aynı
+  // fonksiyondan okur, üç yer aynı sayıyı gösterir.
+  const ozet = useMemo(() => ayOzeti(entries.data ?? [], payments.data ?? [], ay), [entries.data, payments.data, ay]);
 
-    const inMonth = (entries.data ?? []).filter(activeInMonth);
-    const recurringItems = inMonth.filter((e) => e.is_recurring);
-    const oneOffItems = inMonth
+  const { recurring, oneOff } = useMemo(() => {
+    const recurringItems = ozet.kayitlar.filter((e) => e.is_recurring);
+    const oneOffItems = ozet.kayitlar
       .filter((e) => !e.is_recurring)
       .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
 
-    // Durdurulmuş sabit kalemler, kendi durma ayından SONRAKİ aylarda
-    // activeInMonth tarafından elenir — yeniden başlatılabilmeleri için
-    // yine de bir yerde görünür kalmaları gerekir. Yalnız GERÇEK bugünkü ay
-    // görüntülenirken listeye eklenir (geçmiş bir aya bakarken göstermek,
-    // "bu ay aktifmiş gibi" yanlış izlenim verirdi). Toplamlara KATILMAZ —
-    // yalnız yönetim (yeniden başlat/sil) amaçlı gösterilir.
-    const now = new Date();
-    const gercekBuAy = startOfMonth(now).getTime() === monthStart.getTime();
-    const stoppedItems = gercekBuAy
-      ? (entries.data ?? []).filter((e) => e.is_recurring && e.recurring_until && !recurringItems.includes(e))
-      : [];
+    // Durdurulmuş sabit kalemler, kendi durma ayından SONRAKİ aylarda ay
+    // hesabından elenir — yeniden başlatılabilmeleri için yine de bir yerde
+    // görünür kalmaları gerekir. Yalnız GERÇEK bugünkü ay görüntülenirken
+    // listeye eklenir (geçmiş bir aya bakarken göstermek, "bu ay aktifmiş
+    // gibi" yanlış izlenim verirdi). Toplamlara ve CSV'ye KATILMAZ — yalnız
+    // yönetim (yeniden başlat/sil) amaçlı gösterilir.
+    const stoppedItems =
+      ay === ayAnahtari(new Date())
+        ? (entries.data ?? []).filter((e) => e.is_recurring && e.recurring_until && !recurringItems.includes(e))
+        : [];
 
-    let paymentsTotal = 0;
-    let paymentsCount = 0;
-    payments.data?.forEach((p) => {
-      const d = new Date(p.paid_at);
-      if (d >= monthStart && d <= monthEnd) {
-        paymentsTotal += Number(p.amount);
-        paymentsCount += 1;
-      }
-    });
+    return { recurring: [...recurringItems, ...stoppedItems], oneOff: oneOffItems };
+  }, [entries.data, ozet, ay]);
 
-    // Gelirde net_total kullanılır: KDV eklenmiş, stopaj düşülmüş — banka
-    // hesabına gerçekte giren nakit budur. KDV/stopaj uygulanmayan kayıtlarda
-    // (mevcut kayıtların tamamı) net_total zaten amount'a eşittir.
-    let income = paymentsTotal;
-    let expense = 0;
-    inMonth.forEach((e) => {
-      if (e.kind === 'income') income += Number(e.net_total ?? e.amount);
-      else expense += Number(e.amount);
-    });
-
-    return {
-      recurring: [...recurringItems, ...stoppedItems],
-      oneOff: oneOffItems,
-      casePaymentsTotal: paymentsTotal,
-      casePaymentsCount: paymentsCount,
-      incomeTotal: income,
-      expenseTotal: expense,
-    };
-  }, [entries.data, payments.data, monthStart, monthEnd]);
-
-  const net = incomeTotal - expenseTotal;
+  const casePaymentsTotal = ozet.odemeToplam;
+  const casePaymentsCount = ozet.odemeAdet;
+  const incomeTotal = ozet.gelir;
+  const expenseTotal = ozet.gider;
+  const net = ozet.net;
 
   /**
    * Ayın gelir-gider dökümünü CSV olarak dışa aktar (muhasebeci/vergi için).
    * Dava tahsilatları da dahil edilir — ekrandaki toplamlarla birebir uyuşsun.
    */
   const handleExport = async () => {
-    const monthLabel = format(month, 'yyyy-MM');
+    // Eksik veriyle dosya üretilmez: yüklenemeyen liste sessizce ₺0 olurdu.
+    if (durum !== 'hazir') {
+      uyar(t('ofinance.title'), t('dash.load.error'));
+      return;
+    }
     const rows: Array<Array<string | number>> = [];
 
-    let vatTotal = 0;
-    let withholdingTotal = 0;
-
-    [...recurring, ...oneOff].forEach((e) => {
-      if (e.vat_amount != null) vatTotal += Number(e.vat_amount);
-      if (e.withholding_amount != null) withholdingTotal += Number(e.withholding_amount);
+    // YALNIZ ayda GEÇERLİ kalemler (ozet.kayitlar): durdurulmuş/bitmiş tekrarlı
+    // kalemler ekranda yönetim için görünür ama bu ayın hesabına girmez; eskiden
+    // dosyaya ve KDV/stopaj toplamına da giriyorlardı, gelir-gider satırıyla
+    // tutmuyordu.
+    ozet.kayitlar.forEach((e) => {
       rows.push([
         e.entry_date,
         t(e.kind === 'income' ? 'ofinance.income' : 'ofinance.expense'),
@@ -152,12 +128,12 @@ export default function FinanceScreen() {
 
     payments.data?.forEach((p) => {
       const d = new Date(p.paid_at);
-      if (d >= monthStart && d <= monthEnd) {
+      if (ayAnahtari(d) === ay) {
         rows.push([
           format(d, 'yyyy-MM-dd'),
           t('ofinance.income'),
-          t('ofinance.casePayments'),
-          t('ofinance.casePayments'),
+          t('ofinance.exp.casePayment'),
+          t('ofinance.exp.casePayment'),
           t('common.no'),
           Number(p.amount),
           '',
@@ -170,6 +146,10 @@ export default function FinanceScreen() {
       }
     });
 
+    if (rows.length === 0) {
+      uyar(t('ofinance.title'), t('ofinance.exp.empty'));
+      return;
+    }
     rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
 
     // Özet satırları — muhasebecinin doğrudan görebilmesi için en alta.
@@ -178,8 +158,8 @@ export default function FinanceScreen() {
     rows.push(['', '', '', t('ofinance.income'), '', incomeTotal, '', '', '', '', '', '']);
     rows.push(['', '', '', t('ofinance.expense'), '', expenseTotal, '', '', '', '', '', '']);
     rows.push(['', '', '', t('ofinance.net'), '', net, '', '', '', '', '', '']);
-    rows.push(['', '', '', t('financeForm.vatAmount'), '', '', '', vatTotal, '', '', '', '']);
-    rows.push(['', '', '', t('financeForm.withholdingAmount'), '', '', '', '', '', withholdingTotal, '', '']);
+    rows.push(['', '', '', t('financeForm.vatAmount'), '', '', '', ozet.kdvToplam, '', '', '', '']);
+    rows.push(['', '', '', t('financeForm.withholdingAmount'), '', '', '', '', '', ozet.stopajToplam, '', '']);
 
     const csv = toCsv(
       [
@@ -199,11 +179,7 @@ export default function FinanceScreen() {
       rows
     );
 
-    if (rows.length <= 6) {
-      uyar(t('ofinance.title'), t('ofinance.exp.empty'));
-      return;
-    }
-    const ok = await shareCsv(`gelir-gider-${monthLabel}`, csv, t('ofinance.exp.shareTitle'));
+    const ok = await shareCsv(`gelir-gider-${ay}`, csv, t('ofinance.exp.shareTitle'));
     if (!ok) uyar(t('ofinance.title'), t('ofinance.exp.failed'));
   };
 
@@ -343,6 +319,22 @@ export default function FinanceScreen() {
             <Text style={styles.errorText}>{t('ofinance.setupRequired')}</Text>
           </View>
         )}
+        {!needsSetup && durum === 'hata' && (
+          <View style={styles.errorBox}>
+            <Ionicons name="cloud-offline-outline" size={18} color={colors.danger} />
+            <Text style={styles.errorText}>{t('dash.load.error')}</Text>
+            <Pressable
+              onPress={() => {
+                void entries.refetch();
+                void payments.refetch();
+              }}
+              hitSlop={12}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.errorText, styles.retryText]}>{t('dash.load.retry')}</Text>
+            </Pressable>
+          </View>
+        )}
 
         <View style={styles.monthNav}>
           <Pressable style={styles.monthArrow} onPress={() => setMonth((m) => subMonths(m, 1))} hitSlop={8}>
@@ -355,12 +347,20 @@ export default function FinanceScreen() {
         </View>
 
         <View style={styles.summaryRow}>
-          <SummaryTile label={t('ofinance.income')} value={formatMoney(incomeTotal)} color={colors.success} />
-          <SummaryTile label={t('ofinance.expense')} value={formatMoney(expenseTotal)} color={colors.danger} />
+          <SummaryTile
+            label={t('ofinance.income')}
+            value={durum === 'hazir' ? formatMoney(incomeTotal) : '—'}
+            color={colors.success}
+          />
+          <SummaryTile
+            label={t('ofinance.expense')}
+            value={durum === 'hazir' ? formatMoney(expenseTotal) : '—'}
+            color={colors.danger}
+          />
           <SummaryTile
             label={t('ofinance.net')}
-            value={`${net < 0 ? '−' : ''}${formatMoney(Math.abs(net))}`}
-            color={net < 0 ? colors.danger : colors.primary}
+            value={durum === 'hazir' ? `${net < 0 ? '−' : ''}${formatMoney(Math.abs(net))}` : '—'}
+            color={durum === 'hazir' && net < 0 ? colors.danger : colors.primary}
           />
         </View>
 
@@ -414,7 +414,7 @@ export default function FinanceScreen() {
                 {renderEntry(entry)}
               </View>
             ))
-          ) : casePaymentsTotal === 0 ? (
+          ) : casePaymentsTotal === 0 && durum === 'hazir' ? (
             <EmptyState icon="wallet-outline" title={t('ofinance.emptyMonth')} description={t('ofinance.emptyMonthDesc')} />
           ) : null}
         </Card>
@@ -457,6 +457,11 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.danger,
     flex: 1,
     lineHeight: 18,
+  },
+  retryText: {
+    flex: 0,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   monthNav: {
     flexDirection: 'row',

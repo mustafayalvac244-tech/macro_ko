@@ -23,6 +23,19 @@ function sadelestir(s: string): string {
 }
 
 /**
+ * Başlıktan dosya adının GÖVDESİNİ üretir (tarih/uzantı yok): Türkçe harfler
+ * sadeleşir, diğer her şey "-" olur, en çok 60 karakter. Boş kalırsa `varsayilan`.
+ */
+export function dosyaGovdesi(baslik: string, varsayilan: string): string {
+  return (
+    sadelestir(baslik)
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || varsayilan
+  );
+}
+
+/**
  * Başlıktan güvenli bir dosya adı üretir.
  *
  * @param baslik  ekrandaki başlık (ör. "Dilekçe Taslağı")
@@ -30,11 +43,7 @@ function sadelestir(s: string): string {
  * @param tarih   dosya adına eklenecek tarih; verilmezse bugünün tarihi
  */
 export function dosyaAdiUret(baslik: string, uzanti: string, tarih: Date = new Date()): string {
-  const govde =
-    sadelestir(baslik)
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 60) || 'vekil-pro';
+  const govde = dosyaGovdesi(baslik, 'vekil-pro');
 
   const g = `${tarih.getFullYear()}-${String(tarih.getMonth() + 1).padStart(2, '0')}-${String(
     tarih.getDate()

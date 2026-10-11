@@ -34,6 +34,15 @@ const BEDESTEN_HEADERS = {
   AdaletApplicationName: 'UyapMevzuat',
 };
 const PAGE_SIZE = 20;
+
+/**
+ * Dış çağrı başına zaman aşımı (10.10.2026 denetimi: dört fetch'in hiçbirinde
+ * yoktu; askıda kalan istek havuz işçisini sınırsız tutabilirdi). 10 sn =
+ * ictihat/index.ts'in aynı kaynaklardaki çağrılarda kullandığı değer; normal
+ * Bedesten yanıtı ölçüldü ~1 sn (_shared/havuz.ts). Aşılırsa çağrı hata
+ * sayılır — mevcut hata yolları (havuzda → undefined, terim denemesi) işler.
+ */
+const ZAMAN_ASIMI_MS = 10_000;
 /**
  * BİR TERİMDE EN FAZLA KAÇ SAYFA GEZİLİR.
  *
@@ -117,6 +126,7 @@ async function emsalSearch(terim: string, page: number): Promise<{ rows: Satir[]
       Referer: `${EMSAL}/`,
     },
     body: JSON.stringify({ data: { arananKelime: normalizeTerm(terim), pageSize: PAGE_SIZE, pageNumber: page } }),
+    signal: AbortSignal.timeout(ZAMAN_ASIMI_MS),
   });
   if (!res.ok) throw new Error(`emsal arama ${res.status}`);
   const j = await res.json();
@@ -136,6 +146,7 @@ async function bedestenSearch(terim: string, page: number, itemType: string): Pr
     body: JSON.stringify({
       data: { pageSize: PAGE_SIZE, pageNumber: page, itemTypeList: [itemType], phrase: normalizeTerm(terim) },
     }),
+    signal: AbortSignal.timeout(ZAMAN_ASIMI_MS),
   });
   if (!res.ok) throw new Error(`bedesten ${res.status}`);
   const j = await res.json();
@@ -164,6 +175,7 @@ async function bedestenSearch(terim: string, page: number, itemType: string): Pr
 async function emsalDoc(id: string): Promise<string> {
   const res = await fetch(`${EMSAL}/getDokuman?id=${encodeURIComponent(id)}`, {
     headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0', Referer: `${EMSAL}/` },
+    signal: AbortSignal.timeout(ZAMAN_ASIMI_MS),
   });
   if (!res.ok) throw new Error(`emsal doc ${res.status}`);
   const j = await res.json();
@@ -175,6 +187,7 @@ async function bedestenDoc(id: string): Promise<string> {
     method: 'POST',
     headers: BEDESTEN_HEADERS,
     body: JSON.stringify({ data: { documentId: id } }),
+    signal: AbortSignal.timeout(ZAMAN_ASIMI_MS),
   });
   if (!res.ok) throw new Error(`bedesten doc ${res.status}`);
   const j = await res.json();

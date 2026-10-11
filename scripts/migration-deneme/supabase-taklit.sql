@@ -10,9 +10,15 @@ create table auth.users (
   id uuid primary key default gen_random_uuid(),
   email text,
   created_at timestamptz not null default now(),
-  last_sign_in_at timestamptz
+  last_sign_in_at timestamptz,
+  raw_user_meta_data jsonb -- 0181: kayıt üstverisi (signUp options.data)
 );
-create function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
+-- 0187 ölçümü için auth.uid()/auth.jwt() oturum ayarlarından okunur (gerçek
+-- Supabase da JWT'yi böyle ayar olarak taşır). Ayar yoksa eskisi gibi null.
+create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
+-- Sütunlar canlıdan alındı (information_schema, 10.10.2026); yalnız 0187'nin okuduğu kadarı.
+create table auth.sessions (id uuid primary key, user_id uuid not null references auth.users(id) on delete cascade, not_after timestamptz);
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -26,9 +32,10 @@ create table public.clients (id uuid primary key default gen_random_uuid(), owne
 create table public.hearings (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), created_at timestamptz default now());
 create table public.finance_entries (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), kind text, amount numeric, created_at timestamptz default now());
 create table public.payments (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), amount numeric);
-create table public.purchases (id uuid primary key default gen_random_uuid(), user_id uuid references public.profiles(id), amount numeric);
+create table public.purchases (id uuid primary key default gen_random_uuid(), user_id uuid references public.profiles(id), product text not null default 'premium', platform text not null default 'demo', amount numeric, currency text not null default 'TRY', created_at timestamptz not null default now()); -- 0011 ile aynı sütunlar (0072/0073/0205 bunun üstüne ekler)
 create table public.ai_odeme (event_id text primary key, user_id uuid references auth.users(id), tutar_try numeric);
-create table public.ai_usage (user_id uuid references auth.users(id), period text, cost_try numeric, primary key(user_id, period));
+-- ai_usage sütunları canlıdan (information_schema, 09.10.2026) — 0191'in SQL gövdesi hepsine dokunuyor.
+create table public.ai_usage (user_id uuid references auth.users(id), period text, calls int not null default 0, tokens_in bigint not null default 0, tokens_out bigint not null default 0, cost_try numeric(12,4) not null default 0, updated_at timestamptz not null default now(), primary key(user_id, period));
 
 -- 0023 + 0089'un bıraktığı hâl: fonksiyon var, PUBLIC yetkisi KALDIRILMIŞ.
 create function public.admin_recent_users(p_limit int default 60)
@@ -180,6 +187,11 @@ create table net._http_response (
   error_msg text,
   created timestamptz not null default now()
 );
+-- net.http_post taklidi: isteği kaydeder, kimliğini döner (gerçekte pg_net kuyruğa alır
+-- ve yanıt AYNI kimlikle net._http_response'a düşer). Gerçek ağ çağrısı YAPMAZ.
+create table net._istek_taklit (id bigint generated always as identity primary key, url text, body jsonb);
+create function net.http_post(url text, body jsonb default '{}'::jsonb, params jsonb default '{}'::jsonb, headers jsonb default '{"Content-Type": "application/json"}'::jsonb, timeout_milliseconds integer default 5000)
+returns bigint language sql as $$ insert into net._istek_taklit (url, body) values (url, body) returning id $$;
 
 -- Supabase'in varsayılanı: authenticated tablolar üzerinde yetkili.
 grant usage on schema public to anon, authenticated, service_role;
@@ -202,3 +214,68 @@ grant select on public.oturum_cihazlari to authenticated;
 grant all on all tables in schema public to anon, authenticated, service_role;
 -- 0124 + 0127 (katalog pencereleri) — 0175 bu tabloya pencere ekliyor; taklitte yoksa 0175 tek başına düşer (08.10.2026, yerelde ölçüldü).
 create table if not exists public.ictihat_katalog_pencere (tur text not null, gun date not null, sonraki_sayfa integer not null default 1, bitti boolean not null default false, toplam integer, son_calisma timestamptz, bitis date not null, primary key (tur, gun));
+
+-- 0194 (veritabani guvenligi, 10.10.2026) — canlida olup taklitte olmayan tablolar.
+-- Canli politika/yetki hali 10.10'da pg_policies + has_*_privilege ile olculdu;
+-- 0194'un "ONCE" durumu burada kurulur ki goc gercek bir degisikligi oynatsin.
+alter table public.cases add column if not exists client_id uuid references public.clients(id) on delete set null;
+alter table public.hearings add column if not exists case_id uuid references public.cases(id) on delete cascade;
+alter table public.payments add column if not exists case_id uuid references public.cases(id) on delete cascade;
+create table if not exists public.deadlines (id uuid primary key default gen_random_uuid(), owner_id uuid not null references public.profiles(id), case_id uuid references public.cases(id) on delete cascade);
+create table if not exists public.documents (id uuid primary key default gen_random_uuid(), owner_id uuid not null references public.profiles(id), case_id uuid references public.cases(id) on delete cascade, client_id uuid references public.clients(id) on delete set null);
+create table if not exists public.case_expenses (id uuid primary key default gen_random_uuid(), owner_id uuid not null references public.profiles(id), case_id uuid not null references public.cases(id) on delete cascade);
+create table if not exists public.case_installments (id uuid primary key default gen_random_uuid(), owner_id uuid not null references public.profiles(id), case_id uuid not null references public.cases(id) on delete cascade);
+create table if not exists public.client_advances (id uuid primary key default gen_random_uuid(), owner_id uuid not null references public.profiles(id), client_id uuid not null references public.clients(id) on delete cascade);
+create table if not exists public.client_expenses (id uuid primary key default gen_random_uuid(), owner_id uuid not null references public.profiles(id), client_id uuid not null references public.clients(id) on delete cascade);
+create table if not exists public.enforcement_files (id uuid primary key default gen_random_uuid(), owner_id uuid not null references public.profiles(id), client_id uuid references public.clients(id) on delete set null);
+create table if not exists public.payment_promises (id uuid primary key default gen_random_uuid(), owner_id uuid not null references public.profiles(id), client_id uuid not null references public.clients(id) on delete cascade, case_id uuid references public.cases(id) on delete set null);
+create table if not exists public.powers_of_attorney (id uuid primary key default gen_random_uuid(), owner_id uuid not null references public.profiles(id), client_id uuid references public.clients(id) on delete set null);
+
+-- 0128 + 0130: KVKK riza gunlugu (canlida authenticated'in UPDATE/DELETE tablo yetkisi de var: olculdu).
+create table if not exists public.kvkk_onay (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  tur text not null, surum text not null, onay boolean not null, kaynak text,
+  verildi_at timestamptz not null default now(), kanit jsonb);
+alter table public.kvkk_onay enable row level security;
+drop policy if exists kvkk_onay_kendi_okur on public.kvkk_onay;
+create policy kvkk_onay_kendi_okur on public.kvkk_onay for select using (auth.uid() = user_id);
+drop policy if exists kvkk_onay_kendi_yazar on public.kvkk_onay;
+create policy kvkk_onay_kendi_yazar on public.kvkk_onay for insert with check (auth.uid() = user_id);
+
+-- 0165: kullanim sayaci.
+create table if not exists public.kullanim_sayac (
+  gun date not null default (now() at time zone 'Europe/Istanbul')::date,
+  olay text not null, platform text not null, adet integer not null default 0,
+  primary key (gun, olay, platform));
+alter table public.kullanim_sayac enable row level security;
+revoke all on public.kullanim_sayac from anon, authenticated;
+
+-- 0050: AI saglayici durumu (canlida using(true) ile okunuyordu).
+create table if not exists public.ai_saglayici_durum (
+  saglayici text primary key, son_sonuc text, son_zaman timestamptz default now(),
+  son_basari timestamptz, son_hata text, son_model text);
+alter table public.ai_saglayici_durum enable row level security;
+drop policy if exists ai_saglayici_durum_read on public.ai_saglayici_durum;
+create policy ai_saglayici_durum_read on public.ai_saglayici_durum for select to authenticated using (true);
+
+-- Ofis (0007 + ofis tablolari): canlidaki politikalar.
+create table if not exists public.offices (id uuid primary key default gen_random_uuid(), name text, owner_id uuid not null references public.profiles(id));
+create table if not exists public.office_members (office_id uuid not null references public.offices(id) on delete cascade, user_id uuid not null references public.profiles(id), role text default 'member', joined_at timestamptz default now(), primary key (office_id, user_id));
+create or replace function public.is_office_member(oid uuid) returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from office_members where office_id = oid and user_id = auth.uid()) $$;
+alter table public.offices enable row level security;
+alter table public.office_members enable row level security;
+drop policy if exists "office admin insert members" on public.office_members;
+create policy "office admin insert members" on public.office_members for insert
+  with check (exists (select 1 from offices o where o.id = office_members.office_id and o.owner_id = auth.uid()));
+drop policy if exists "office members select" on public.office_members;
+create policy "office members select" on public.office_members for select using (is_office_member(office_id));
+drop policy if exists "offices member select" on public.offices;
+create policy "offices member select" on public.offices for select using (owner_id = auth.uid() or is_office_member(id));
+
+grant all on public.deadlines, public.documents, public.case_expenses, public.case_installments,
+  public.client_advances, public.client_expenses, public.enforcement_files, public.payment_promises,
+  public.powers_of_attorney, public.kvkk_onay, public.ai_saglayici_durum, public.offices,
+  public.office_members to anon, authenticated, service_role;
+grant all on public.kullanim_sayac to service_role;

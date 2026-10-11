@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toCsv } from '../src/utils/csvMetni';
+import { bomEkle, csvDosyaAdi, toCsv } from '../src/utils/csvMetni';
 
 /**
  * CSV dışa aktarma — muhasebeciye giden dosya.
@@ -70,5 +70,44 @@ describe('toCsv — kaçış', () => {
 
   it('null ve undefined boş hücre olur', () => {
     expect(satirlar(toCsv(['a', 'b'], [[null, undefined]]))[1]).toBe(';');
+  });
+});
+
+describe('bomEkle — çift BOM', () => {
+  // Bulunan kusur (10.10.2026): toCsv zaten BOM ile başlıyor; web indirme
+  // yolu (cikti.ts → dosyaIndir) bir BOM daha ekliyordu. Dosyanın başında
+  // iki \uFEFF kalıyor, Excel ilk başlık hücresinin önüne görünmez bir
+  // karakter koyuyordu.
+  it('BOM yoksa ekler', () => {
+    expect(bomEkle('a')).toBe('\uFEFFa');
+  });
+
+  it('BOM varsa İKİNCİYİ eklemez', () => {
+    const csv = toCsv(['a'], [['b']]);
+    expect(bomEkle(csv)).toBe(csv);
+    expect(bomEkle(csv).startsWith('\uFEFF\uFEFF')).toBe(false);
+  });
+});
+
+describe('csvDosyaAdi — Türkçe harf', () => {
+  // Bulunan kusur (10.10.2026): ad \w ile süzülüyordu; ş ı ğ ü ö ç "_" oluyor,
+  // "calisma-Ayşe Yılmaz" dosyası "calisma-Ay_e_Y_lmaz" olarak iniyordu.
+  it('Türkçe harfleri sadeleştirir, "_" üretmez', () => {
+    expect(csvDosyaAdi('calisma-Ayşe Yılmaz Boşanma')).toBe('calisma-ayse-yilmaz-bosanma.csv');
+    expect(csvDosyaAdi('İstanbul Çağlayan Öğüt')).toBe('istanbul-caglayan-ogut.csv');
+  });
+
+  it('yol ayıracı ve yasak karakterleri temizler', () => {
+    const ad = csvDosyaAdi('a/b\\c:d*e?"f<g>h|i');
+    expect(ad).toBe('a-b-c-d-e-f-g-h-i.csv');
+  });
+
+  it('boş/okunamaz addan varsayılan ad üretir ve 60 karakterde keser', () => {
+    expect(csvDosyaAdi('???')).toBe('disa-aktarim.csv');
+    expect(csvDosyaAdi('x'.repeat(200)).length).toBe(60 + '.csv'.length);
+  });
+
+  it('finans dosya adı olduğu gibi kalır', () => {
+    expect(csvDosyaAdi('gelir-gider-2026-09')).toBe('gelir-gider-2026-09.csv');
   });
 });

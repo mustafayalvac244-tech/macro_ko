@@ -42,10 +42,10 @@ export function ResmiGazeteKarti({ cerceve }: { cerceve?: StyleProp<ViewStyle> }
           <View style={styles.ikon}>
             <Ionicons name="newspaper-outline" size={15} color={colors.primary} />
           </View>
-          <Text allowFontScaling={false} style={styles.baslik}>{t('rg.title')}</Text>
+          <Text style={styles.baslik}>{t('rg.title')}</Text>
         </View>
         <Pressable style={styles.baslikSag} onPress={ac} hitSlop={10} accessibilityRole="link">
-          <Text allowFontScaling={false} style={styles.bag}>{t('rg.tumu')}</Text>
+          <Text style={styles.bag}>{t('rg.tumu')}</Text>
           <Ionicons name="chevron-forward" size={14} color={colors.primary} />
         </Pressable>
       </View>

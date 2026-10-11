@@ -1,4 +1,13 @@
 /**
+ * Doğrulama postası gönderildikten sonra "tekrar gönder" düğmesinin kapalı
+ * kaldığı süre (sn). Kayıt ve giriş ekranı ortak kullanır. Sayı yeni değil:
+ * kayıt ekranında ve şifre sıfırlamada (VARSAYILAN_BEKLEME) zaten 25'ti;
+ * gerekçesi orada (sunucunun gönderim aralığı + pay). Sunucu daha uzun bir
+ * süre söylerse ekran onu kullanır (beklemeSaniyesi).
+ */
+export const TEKRAR_GONDERIM_SN = 25;
+
+/**
  * Sunucunun "şu kadar saniye sonra tekrar deneyin" mesajından SÜREYİ çeker.
  *
  * NEDEN VAR. Kullanıcı bildirdi: "tekrar tıklayınca güvenlik nedeniyle bekle

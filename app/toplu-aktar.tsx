@@ -10,7 +10,8 @@ import { dosyaBaytlari } from '@/lib/girdi';
 import { baytlariMetneCevir } from '@/utils/metinKodlama';
 import { uyar } from '@/lib/uyari';
 import { useCreateCase } from '@/hooks/useCases';
-import { useClients, useCreateClient } from '@/hooks/useClients';
+import { useClients, useCreateClient, useDeleteClient } from '@/hooks/useClients';
+import { muvekkilleDavaYaz } from '@/utils/topluYaz';
 import {
   ALAN_ADLARI,
   basliklariEslestir,
@@ -54,6 +55,7 @@ export default function TopluAktarScreen() {
 
   const createCase = useCreateCase();
   const createClient = useCreateClient();
+  const deleteClient = useDeleteClient();
   const { data: mevcutMuvekkiller } = useClients();
 
   const [dosyaAdi, setDosyaAdi] = useState<string | null>(null);
@@ -142,15 +144,15 @@ export default function TopluAktarScreen() {
       for (let i = baslangic; i < onizleme.kayitlar.length; i += 1) {
         const k = onizleme.kayitlar[i];
 
-        let clientId: string | undefined;
-        if (k.muvekkil) {
-          const anahtar = k.muvekkil.trim().toLocaleLowerCase('tr');
-          const varOlan = muvekkilKimligi.get(anahtar);
-          if (varOlan) {
-            clientId = varOlan;
-          } else {
-            const yeni = await createClient.mutateAsync({
-              full_name: k.muvekkil,
+        // Müvekkil + dava birlikte yazılır: dava reddedilirse (plan sınırı, ağ)
+        // az önce açılan müvekkil geri alınır, davasız kalmaz (utils/topluYaz).
+        const anahtar = k.muvekkil ? k.muvekkil.trim().toLocaleLowerCase('tr') : '';
+        const sonuc = await muvekkilleDavaYaz({
+          varOlanKimlik: anahtar ? muvekkilKimligi.get(anahtar) : undefined,
+          muvekkilVar: !!k.muvekkil,
+          muvekkilOlustur: () =>
+            createClient.mutateAsync({
+              full_name: k.muvekkil!,
               company: null,
               email: null,
               phone: null,
@@ -159,21 +161,20 @@ export default function TopluAktarScreen() {
               title: null,
               client_type: 'gercek',
               tc_no: null,
-            });
-            clientId = yeni.id;
-            muvekkilKimligi.set(anahtar, yeni.id);
-          }
-        }
-
-        await createCase.mutateAsync({
-          title: k.baslik,
-          case_number: k.esasNo ?? undefined,
-          court_name: k.mahkeme ?? undefined,
-          case_type: k.davaTuru ?? undefined,
-          opposing_party: k.karsiTaraf ?? undefined,
-          opened_date: k.acilisTarihi ?? undefined,
-          client_id: clientId,
+            }),
+          davaOlustur: (clientId) =>
+            createCase.mutateAsync({
+              title: k.baslik,
+              case_number: k.esasNo ?? undefined,
+              court_name: k.mahkeme ?? undefined,
+              case_type: k.davaTuru ?? undefined,
+              opposing_party: k.karsiTaraf ?? undefined,
+              opened_date: k.acilisTarihi ?? undefined,
+              client_id: clientId,
+            }),
+          muvekkilSil: (kimlik) => deleteClient.mutateAsync(kimlik),
         });
+        if (sonuc.yeniAcildi && sonuc.kimlik) muvekkilKimligi.set(anahtar, sonuc.kimlik);
 
         yazilan = i + 1;
         setIlerleme(yazilan);

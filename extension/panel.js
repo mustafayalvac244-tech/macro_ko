@@ -1,4 +1,4 @@
-import { davaOlustur, oturumOku } from './lib/api.js';
+import { cikisYap, davaOlustur, eskiOturumuSil, girisYap, oturumOku } from './lib/api.js';
 import { doluSayisi, kunyeCikarYerel } from './lib/cikar.js';
 import { sayfaIskeleti } from './lib/kesif.js';
 
@@ -9,6 +9,50 @@ function bilgi(m, sinif = '') {
   b.textContent = m;
   b.className = sinif;
   b.hidden = !m;
+}
+
+// ── EKLENTİ GİRİŞİ ────────────────────────────────────────────────────────
+// Paneldeki uygulama başka bir origin'de çalışır; oturumu eklentiye geçmez.
+// "Sayfadan dosya aç" için burada bir kez giriş yapılır (jeton bellekte, bkz.
+// lib/api.js). Form, yalnız oturum yokken o düğmeye basılınca açılır.
+async function oturumGoster() {
+  const o = await oturumOku();
+  const girisli = !!o?.access_token;
+  if (girisli) $('giris').hidden = true;
+  $('oturumSatiri').hidden = !girisli;
+  $('oturumEposta').textContent = o?.user?.email ?? '';
+}
+
+$('giris').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  $('girisBtn').disabled = true;
+  try {
+    await girisYap($('girisEposta').value.trim(), $('girisSifre').value);
+    bilgi('Giriş yapıldı. Şimdi "Sayfadan dosya aç"a basabilirsiniz.', 'iyi');
+  } catch (e) {
+    bilgi(e.durum === 400 ? 'E-posta ya da şifre hatalı.' : `Giriş yapılamadı: ${e.message}`, 'hata');
+  } finally {
+    $('girisSifre').value = '';
+    $('girisBtn').disabled = false;
+    oturumGoster();
+  }
+});
+
+$('cikisBtn').addEventListener('click', async () => {
+  await cikisYap();
+  bilgi('Çıkış yapıldı.');
+  oturumGoster();
+});
+
+/**
+ * Sekmeye erişim izni yoksa tarayıcının İngilizce iç mesajı yerine anlaşılır
+ * olanı. `activeTab` izni yalnız simgeye tıklanan sekme için verilir;
+ * başka sekmeye geçince ya da sayfa başka siteye gidince kalkar.
+ */
+function erisimHatasi(e) {
+  return /cannot access|must request permission|cannot be scripted/i.test(String(e?.message))
+    ? 'Bu sekmeyi okuma izni yok. Sekmedeki Vekil Pro simgesine tıklayıp tekrar deneyin.'
+    : null;
 }
 
 /**
@@ -33,7 +77,9 @@ $('okuBtn').addEventListener('click', async () => {
   try {
     const o = await oturumOku();
     if (!o?.access_token) {
-      bilgi('Önce panelden Vekil Pro hesabınıza giriş yapın.', 'hata');
+      $('giris').hidden = false;
+      $('girisEposta').focus();
+      bilgi('Önce aşağıdan Vekil Pro hesabınızla giriş yapın.', 'hata');
       return;
     }
     const metin = await sayfaMetni();
@@ -56,11 +102,15 @@ $('okuBtn').addEventListener('click', async () => {
       status: 'active',
     });
     bilgi(`Dosya oluşturuldu: ${k.title || k.case_number}`, 'iyi');
-    // Panel içindeki uygulama yeni kaydı görsün.
-    $('uygulama').contentWindow?.location.reload();
+    // Panel içindeki uygulama yeni kaydı görsün. Çerçeve BAŞKA origin'de:
+    // içindeki pencerenin location'ına dokunmak SecurityError atar ve — kayıt
+    // zaten açılmışken — başarı mesajını "Olmadı"yla ezip kullanıcıyı ikinci
+    // kez denemeye (çift dosyaya) iter. src'yi yeniden atamak origin'e bakmaz.
+    const cerceve = $('uygulama');
+    cerceve.src = cerceve.src;
   } catch (e) {
     const m = /plan_limiti:([a-z]+):(\d+)/.exec(String(e.message));
-    bilgi(m ? `Ücretsiz planda ${m[2]} dava hakkınız doldu.` : `Olmadı: ${e.message}`, 'hata');
+    bilgi(m ? `Ücretsiz planda ${m[2]} dava hakkınız doldu.` : erisimHatasi(e) ?? `Olmadı: ${e.message}`, 'hata');
   } finally {
     $('okuBtn').disabled = false;
   }
@@ -104,7 +154,7 @@ $('kesifKaydet').addEventListener('click', async () => {
     const dugum = cerceveler.reduce((n, c) => n + (c.dugumSayisi || 0), 0);
     bilgi(`Kaydedildi: ${cerceveler.length} çerçeve, ${dugum} öğe. Toplam ${liste.length} sayfa.`, 'iyi');
   } catch (e) {
-    bilgi(`Kaydedilemedi: ${e.message}`, 'hata');
+    bilgi(erisimHatasi(e) ?? `Kaydedilemedi: ${e.message}`, 'hata');
   } finally {
     $('kesifKaydet').disabled = false;
     kesifSay();
@@ -128,3 +178,5 @@ $('kesifTemizle').addEventListener('click', async () => {
 });
 
 kesifSay();
+eskiOturumuSil().catch(() => {});
+oturumGoster().catch(() => {});

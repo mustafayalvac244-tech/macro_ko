@@ -19,9 +19,14 @@
  *
  * DOĞRULANDI: Türkiye Barolar Birliği'nin yayımladığı resmî metinden okundu
  * (2025-2026 Yılı Avukatlık Asgari Ücret Tarifesi). Tarifenin kendi başlığı
- * "4 Kasım 2025 SALI, Resmî Gazete Sayı: 33067" diyor ve metin içinde
- * 08.01.2026 tarihli 33131 sayılı Resmî Gazete ile MADDE 13/2'nin
- * yürürlükten kaldırıldığı dipnotu yer alıyor.
+ * "4 Kasım 2025 SALI, Resmî Gazete Sayı: 33067" diyor.
+ *
+ * DÜZELTME (10.10.2026): bu yorum "08.01.2026 tarihli 33131 sayılı RG ile
+ * MADDE 13/2 yürürlükten kaldırıldı" diyordu. Resmî Gazete metni (RG 8.1.2026
+ * sayı 33131, "Avukatlık Asgari Ücret Tarifesinde Değişiklik Yapılmasına Dair
+ * Tarife") kaldırılan hükmün 10. maddenin İKİNCİ FIKRASI olduğunu söylüyor ve
+ * hiçbir tutar/oran/tabloyu değiştirmiyor. Bu dosyadaki dilim ve maktu
+ * tutarlar bu değişiklikten etkilenmez.
  */
 export const TARIFE = {
   ad: '2025-2026 Yılı Avukatlık Asgari Ücret Tarifesi',
@@ -40,29 +45,61 @@ export const TARIFE = {
 /**
  * Kademeli (nispi) tarife dilimleri — ÜÇÜNCÜ KISIM.
  *
- * ⚠️ DOĞRULANMADI. Resmî PDF'teki tablolar metne dönüşmüyor (tablo içeriği
- * çizim olarak gömülü; hem kendi belge çıkarıcımız hem pdftotext boş döndü).
- * Aşağıdaki dilimler uygulamada ZATEN VARDI ve hangi yılın tarifesinden
- * geldikleri bilinmiyor. Doğrulanmadan silmek de yanlış olurdu: elde bir
- * hesap olması, hiç hesap olmamasından iyi — ama avukatın bunu BİLEREK
- * kullanması şart. Bu yüzden ekranda "doğrulanmadı" uyarısı gösteriliyor.
+ * DOĞRULANDI (10.10.2026). Kaynak: Resmî Gazete 4.11.2025 sayı 33067, "Avukatlık
+ * Asgari Ücret Tarifesi" EKİ (https://www.resmigazete.gov.tr/eskiler/2025/11/
+ * 20251104-9-1.pdf, 4 sayfalık taranmış görüntü; sayfa 4, "Üçüncü Kısım —
+ * Yargı Yerleri ile İcra ve İflas Dairelerinde Yapılan ve Konusu Para Olan
+ * veya Para ile Değerlendirilebilen Hukuki Yardımlara Ödenecek Ücret"). Tablo
+ * metne dönüşmediği için PDF'in içindeki görüntü çıkarılıp GÖZLE okundu:
  *
- * Tablolar okunabilir bir kaynaktan alındığında burası tek satırda güncellenir
- * ve `dilimlerDogrulandi` true yapılır — ekrandaki uyarı kendiliğinden kalkar.
+ *   1. ilk 600.000 TL için %16        6. sonra gelen 2.400.000 TL için %8
+ *   2. sonra gelen 600.000 TL için %15  7. sonra gelen 3.000.000 TL için %5
+ *   3. sonra gelen 1.200.000 TL için %14 8. sonra gelen 3.600.000 TL için %3
+ *   4. sonra gelen 1.200.000 TL için %13 9. sonra gelen 4.200.000 TL için %2
+ *   5. sonra gelen 1.800.000 TL için %11 10. 18.600.000 TL'dan yukarısı için %1
+ *
+ * (Kümülatif sınırlar: 600.000 · 1.200.000 · 2.400.000 · 3.600.000 · 5.400.000 ·
+ * 7.800.000 · 10.800.000 · 14.400.000 · 18.600.000; son sınır tablodaki
+ * "18.600.000 TL'dan yukarısı" satırıyla tutuyor.)
+ *
+ * ESKİ KUSUR: burada 400.000/800.000/1.600.000… sınırlı, hangi yıldan geldiği
+ * bilinmeyen bir tablo duruyordu; 1.000.000 TL için 152.000 TL (resmî: 156.000).
+ * 8.1.2026 değişikliği (RG 33131) tabloya dokunmuyor. Tarife her Kasım'da
+ * yenilenir: `tarifeEskiMi` 4.11.2026'da uyarı verir.
  */
-export const DILIMLER_DOGRULANDI = false;
+export const DILIMLER_DOGRULANDI = true;
 
 export const AAUT_DILIMLER: ReadonlyArray<{ upTo: number; rate: number }> = [
-  { upTo: 400_000, rate: 0.16 },
-  { upTo: 800_000, rate: 0.15 },
-  { upTo: 1_600_000, rate: 0.14 },
-  { upTo: 2_800_000, rate: 0.11 },
-  { upTo: 4_400_000, rate: 0.08 },
-  { upTo: 6_400_000, rate: 0.05 },
-  { upTo: 8_800_000, rate: 0.03 },
-  { upTo: 11_600_000, rate: 0.02 },
+  { upTo: 600_000, rate: 0.16 },
+  { upTo: 1_200_000, rate: 0.15 },
+  { upTo: 2_400_000, rate: 0.14 },
+  { upTo: 3_600_000, rate: 0.13 },
+  { upTo: 5_400_000, rate: 0.11 },
+  { upTo: 7_800_000, rate: 0.08 },
+  { upTo: 10_800_000, rate: 0.05 },
+  { upTo: 14_400_000, rate: 0.03 },
+  { upTo: 18_600_000, rate: 0.02 },
   { upTo: Infinity, rate: 0.01 },
 ];
+
+/**
+ * İKİNCİ KISIM, İKİNCİ BÖLÜM — konusu para olmayan işlerde MAKTU ücretler.
+ * Konusu para olan işte nispi ücret, ilgili mahkemenin maktu ücretinin ALTINDA
+ * kalamaz (m.13/1, "altında kalmamak kaydıyla"); hesaplayıcının "asgari ücret"
+ * alanı bu tutarlardan seçilir. KAYNAK: aynı ek, sayfa 3 (RG 4.11.2025 sayı
+ * 33067), 10.10.2026'da görüntüden okundu. Yalnız hesaplayıcıda kullanılan
+ * mahkemeler yazıldı; tablonun kalanı için resmî metne bakın.
+ * İcra takibinde ayrıca m.11 vardır (56.250 TL'ye kadar takipte maktu ücret
+ * asıl alacağı geçemez; borçlu süresinde öderse 3/4'ü) — hesaplayıcı bunu
+ * uygulamaz.
+ */
+export const AAUT_MAKTU = {
+  icraDairesi: 9_000,
+  sulhHukuk: 30_000,
+  tuketici: 22_500,
+  asliye: 45_000,
+  fikriSinai: 55_000,
+} as const;
 
 /**
  * Resmî metinden DOĞRULANAN eşikler. Bunlar tablo değil, madde metni içinde
@@ -93,6 +130,20 @@ export const SERI_DAVA_ORANI = {
  * EKSİK KALEMLER de var: başvurma harcı, vekalet suret harcı, gider avansı ve
  * nispi harcın MAKTU TABANI burada yok. Yani ekrandaki peşin harç, davayı
  * açmanın gerçek maliyeti DEĞİL.
+ *
+ * DENETİM NOTU (10.10.2026) — HÂLÂ DOĞRULANMADI, KARAR GEREKİYOR. Resmî kaynak:
+ * Harçlar Kanunu Genel Tebliği Seri No: 98, RG 31.12.2025 sayı 33124 (5.
+ * mükerrer), https://www.resmigazete.gov.tr/eskiler/2025/12/20251231M5-28.pdf —
+ * dosya JBIG2 ile taranmış görüntü; bu denetimde çözülemedi. Tebliğin metni
+ * (alomaliye.com) maktu harçların 1.1.2026'dan itibaren %18,95 artırıldığını
+ * söylüyor. İKİNCİL kaynaklar (kpmgvergi.com 2026 tablosu ve bir arama sonucu)
+ * aynı değerleri veriyor: nispi karar ve ilam harcı binde 68,31; maktu karar ve
+ * ilam harcı 732,00 TL; başvurma harcı 335,20 TL (sulh) / 732,00 TL (asliye);
+ * vekalet suret harcı 104,00 TL. Aynı kaynak, "nispi harç maktudan az olamaz"
+ * kuralının tarifede YALNIZ III.1.g bendinde (ihalenin feshi) açıkça yazıldığını
+ * not ediyor; genel bir maktu taban kuralı resmî metinden teyit edilmedi, bu
+ * yüzden hesaplayıcıya maktu taban EKLENMEDİ. Resmî metin okunana (ör. OCR) ya
+ * da avukat teyit edene kadar HARC_DOGRULANDI false kalır.
  *
  * NOT (düzeltildi): bu yorum bir süre "hesaplayıcı bunu artık açıkça söylüyor"
  * diyordu ama SÖYLEMİYORDU — aşağıdaki üç sabit hiçbir yerde kullanılmıyor,

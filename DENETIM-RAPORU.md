@@ -15,11 +15,12 @@ yükleme, dilekçe vs hepsini kontrol et."* / *"onaysız şeyleri yap önce"*.
 - Kullanıcı verisi, gerçek cihaz (iPhone/Android) ve gerçek avukat kullanımı
   bu taramada YOK. Cihaza özgü bulgular (bildirim, Android) ölçülmedi.
 
-## 1. Düzeltildi — DALDA, YAYINLANMADI (web/OTA için onayınız gerekiyor)
+## 1. Düzeltildi — YAYINDA (09.10.2026, ürün sahibi "Yayımla")
 
-Dal: `claude/legal-case-management-app-dipuvb` (main'den 25 commit ileride).
-Her biri testli; tüm takım **1113/1113** geçiyor; CI yeşil. Web paketi dalda
-derlendi (CI istiyor) ama main'e birleştirilmediği için canlıda DEĞİL.
+PR #157 ile main'e birleştirildi. Her biri testli; tüm takım **1113/1113**
+geçiyor; CI yeşil. Web: vekilpro.app/app yeni paketi sunuyor (birleştirmeden
+27 sn sonra ölçüldü). Telefon: OTA `1505a910` (çalışma zamanı 3.4.0); cihaza
+indiği ÖLÇÜLMEDİ.
 
 | # | Ne bozuktu (kodla doğrulandı) | Commit |
 |---|---|---|
@@ -43,14 +44,14 @@ derlendi (CI istiyor) ama main'e birleştirilmediği için canlıda DEĞİL.
 Önce/sonra görüntüleri (sohbette gönderildi): süre asistanı (web tarih),
 AI satış kartı, dilekçe düğmesi (kontrast), geri yüklenen taslak.
 
-## 2. Dalda hazır, CANLIYA DOKUNUYOR — onayınızla
+## 2. Canlıya dokunan işler — UYGULANDI (09.10.2026)
 
 | İş | Durum | Commit |
 |---|---|---|
-| ai-chat: avukatın kendi künyesi ("Ankara 5. Asliye … 2025/123 E.") Yargıtay'da aranıp "uydurma" diye metinden SİLİNİYORDU | Dalda, uç işlevi DAĞITILMADI | 1fb2e23 |
-| ai-chat: mevzuat özeti (yapay zekâsız) cevabında hak iade edilmiyordu | Dalda, DAĞITILMADI | d639d24 |
-| ai-saglik: her kullanıcıya açıktı, ücretli sağlayıcıları yoklatıyordu | Dalda, DAĞITILMADI | 01ea423 |
-| Göç 0175: katalog pencereleri 13.09'dan beri açılmıyor (yeni Yargıtay/Danıştay kararları havuza girmiyor) | Yazıldı, yerelde ölçüldü (26+1 pencere, idempotent), CANLIYA UYGULANMADI | 8c78650 |
+| ai-chat: avukatın kendi künyesi ("Ankara 5. Asliye … 2025/123 E.") Yargıtay'da aranıp "uydurma" diye metinden SİLİNİYORDU | ai-chat v144 (JWT kapalı, önceki gibi) | 1fb2e23 |
+| ai-chat: mevzuat özeti (yapay zekâsız) cevabında hak iade edilmiyordu | ai-chat v144 | d639d24 |
+| ai-saglik: her kullanıcıya açıktı, ücretli sağlayıcıları yoklatıyordu | ai-saglik v29 (JWT açık, önceki gibi) | 01ea423 |
+| Göç 0175: katalog pencereleri 13.09'dan beri açılmıyor (yeni Yargıtay/Danıştay kararları havuza girmiyor) | Canlıda: 26 Yargıtay günü (09-13 → 10-08) + Danıştay Ekim penceresi eklendi, iki zamanlama kuruldu. Katalog-tick'in işlediği ÖLÇÜLMEDİ. Eylül Danıştay penceresi pazartesi (12.10) haftalık taramayla yeniden açılır. | 8c78650 |
 
 Hazırlanmadı, karar gerekiyor:
 - **revenuecat-webhook**: SANDBOX olayları gerçek premium açıyor ve geliri
@@ -69,8 +70,6 @@ Hazırlanmadı, karar gerekiyor:
   yok. Çalışıp çalışmadığı ÖLÇÜLMEDİ.
 - **Yönetici panelinde kişi başı gelir/gider** görünüyor; gizlilik metni
   "başka kimse göremez" diyor.
-- **Tema kontrastı (#14)** görsel bir değişiklik: altın düğmelerde yazı
-  beyazdan koyuya döndü. Önce/sonra görüntüsüne bakıp onaylayın.
 - Sözleşme şablonundaki Av.K. m.174/m.163 atıfları ve kambiyo itiraz süresi
   bir meslektaşa teyit ettirilmeli (denetçi ŞÜPHE dedi).
 
@@ -110,3 +109,42 @@ Alan alan özet, önem sırasıyla — tam liste denetim notlarında:
   yük freni yok; izleme alarm üretmiyor.
 - **Chrome eklentisi**: "Sayfadan dosya aç" ölü (giriş jetonu hiç yazılmıyor).
 - **Çeviri**: giriş hataları İngilizce'de Türkçe; finans CSV'sinde ham `{n}`.
+
+## 5. 30 ajan turu (09–10.10.2026) — DALDA, YAYINLANMADI
+
+Ürün sahibi: "her hataya bir ajan, 30 ajan, hata istemiyorum, kötü özellik istemiyorum".
+30 alanın hepsi dalda birleşti; tüm takım 180 dosya / 2088 test geçiyor, tsc (uygulama + uç)
+temiz, yeni göçler taklit Postgres'te bağımlılıklarıyla koştu ve tekrar koşu temiz.
+Ekranlar cihazda/tarayıcıda GÖRÜLMEDİ (kanıt test + tsc). Ajan raporları birer AI çıktısıdır.
+
+**Canlıya gereken (onayınızla):** web + OTA (tema renkleri dahil — görsel, önce ekran
+görüntüsü); uç işlevleri ai-chat, ictihat, doc-extract, resmi-gazete, katalog-tick,
+harvest-tick, revenuecat-webhook, stripe-webhook, payment-sheet; göçler 0181 (TC'nin auth
+üstverisindeki kopyasını SİLER, geri alınamaz), 0187, 0190 (arama_terimi'ndeki kullanıcı
+metnini SİLER), 0191, 0194 (RLS: profiller yalnız sahibine), 0202 (önce, sonra ai-chat),
+0205 (önce, sonra revenuecat-webhook; günlük süpürücü süresi dolan sandbox hesabın premium'unu
+kapatır); Chrome eklentisi elle yeniden yüklenmeli. KVKK_SURUM artırıldı → rızası olan
+herkese "yeni sürüm" notu çıkar.
+
+**Kararınız gereken:**
+1. 15 kanun maddesi 2025-26 değişikliğinden ESKİ: HMK 109 147 166 168 362; TCK 31 57 158 170
+   220 233; TMK 733 734; TBK 55; İşK 108 — kaynaktan güncellensin mi.
+2. GitHub günlük yedeği (backup.yml) 31.08–09.10 arası 40 koşunun HİÇBİRİ başarılı değil (dış
+   yedek yok): düzeltilsin mi, kaldırılsın mı; gizlilik metni buna göre.
+3. KVKK başvuru kanalı olarak gösterilen geri bildirim tablosunu kimse okumuyor (30 gün süre).
+4. Hesap silme, dosya deposu hatasında artık hesabı SİLMİYOR (eski karar tersine döndü).
+5. Kullanıcının elle hak iadesi sunucuda kapatıldı (sınırsızdı); sınırlı iade istenir mi.
+6. Ölçülmemiş sınırlar (TAHMİN): yedek model 25/gün, mesaj 12.000/60.000 krktr, istemci 120 sn,
+   mütalaa iç süre 120 sn, içtihat 30 istek/60 sn, kullanım sayacı 500 satır/gün.
+7. Meslektaş teyidi: AAÜT dilimleri (RG 4.11.2025, taranmış ekten GÖZLE okundu); sözleşme
+   şablonu atıfları (mevzuat.gov.tr özetinden); süre hesabı: Pazar→Pazartesi kayan sürede
+   HMK 104 uzaması, işe iade arabuluculuğunda adli tatil, AYM bireysel başvuru artık uzamıyor.
+8. Kullanım Koşulları "399 ₺", App Store 399,99 ₺.
+9. Web'de doğrulama e-postası bağlantısı (Supabase site_url `vekil://` olabilir; panel ayarı).
+10. Aylık danışmanlıkta "tahsil edilecek"; icrada dönemli faiz tablosu; harç maktu taban; /365.
+11. Yönetici panelinde kişi başı gelir ↔ gizlilik metni.
+12. Duruşma brifi: ad maskeleniyor ama dava konusu metni yapay zekâya gidiyor.
+13. Mütalaa taşmasında Haiku; taranmış PDF'te tarih "[doldurun]" / tutar "uydurma" işareti.
+14. payment-sheet / stripe-webhook ölü kod (silme); `nobetci` uç işlevi canlıda var, depoda yok.
+15. Android push: Firebase projesi + google-services.json + EAS FCM V1 anahtarı.
+16. RevenueCat TRANSFER olayı işlenmiyor (GET /subscribers için gizli anahtar gerekir).

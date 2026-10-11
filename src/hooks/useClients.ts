@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
 import { useAuthStore } from '@/store/authStore';
+import { gecersizKimlikMi } from '@/utils/davaEkrani';
+import { muvekkilDegisinceTazele, silinenMuvekkilOnbelleginiTazele } from '@/lib/muvekkilOnbellegi';
 import type { Client } from '@/types/database';
 
 export function useClients(search?: string) {
@@ -26,15 +28,28 @@ export function useClients(search?: string) {
   });
 }
 
+/**
+ * maybeSingle: kayıt yoksa (silinmiş / bu hesabın değil) HATA değil null.
+ * single() burada PGRST116 fırlatıyor, sorgu üç kez deneniyor ve ekran sonsuza
+ * dek boş kalıyordu (bkz. utils/davaEkrani, hooks/useCases useCase).
+ */
+export async function muvekkiliGetir(id: string): Promise<Client | null> {
+  const { data, error } = await supabase.from('clients').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as Client | null;
+}
+
+/** Bozuk kimlik (22P02) tekrar denenmez; ağ hatası varsayılan kadar denenir. */
+export function muvekkilYenidenDene(deneme: number, hata: unknown): boolean {
+  return !gecersizKimlikMi(hata) && deneme < 2;
+}
+
 export function useClient(id: string | undefined) {
   return useQuery({
     queryKey: ['clients', 'detail', id],
     enabled: !!id,
-    queryFn: async () => {
-      const { data, error } = await supabase.from('clients').select('*').eq('id', id!).single();
-      if (error) throw error;
-      return data as Client;
-    },
+    retry: muvekkilYenidenDene,
+    queryFn: () => muvekkiliGetir(id!),
   });
 }
 
@@ -75,9 +90,9 @@ export function useUpdateClient() {
       if (error) throw error;
       return data as Client;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-    },
+    // Ad başka ekranlarda kopya (dava/icra/alacak/vekalet listeleri, arama):
+    // lib/muvekkilOnbellegi.
+    onSuccess: () => muvekkilDegisinceTazele(queryClient),
   });
 }
 
@@ -90,6 +105,8 @@ export function useDeleteClient() {
       const { error } = await supabase.from('clients').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+    // Cascade ile giden satırları ve boşalan bağlantıları gösteren listeler
+    // tazelenir; silinenin kendi sorguları yeniden çekilmez (lib/muvekkilOnbellegi).
+    onSuccess: (_veri, id) => silinenMuvekkilOnbelleginiTazele(queryClient, id),
   });
 }

@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { notifySaveError } from '@/lib/saveError';
 import { onbellekYamasi } from '@/utils/onbellekYamasi';
+import { gecersizKimlikMi } from '@/utils/davaEkrani';
+import { tumSayfalar } from '@/utils/sayfalama';
 import { useAuthStore } from '@/store/authStore';
 import type {
   EnforcementCollection,
@@ -19,24 +21,30 @@ export function isMissingEnforcementTable(err: unknown): boolean {
   return (e.message ?? '').toLowerCase().includes('enforcement');
 }
 
-export function useEnforcements(search?: string) {
+/**
+ * Avukatın icra dosyalarının HEPSİ. Tek çağıran dosya dizini; arama orada
+ * cihazda yapılır (utils/davaDizini) — eskiden her tuşta `ilike('debtor_name')`
+ * sorgusu gidiyordu. Liste PostgREST satır tavanında kesilmesin diye sayfa
+ * sayfa çekilir (utils/sayfalama, 09.10.2026).
+ */
+export function useEnforcements() {
   const ownerId = useAuthStore((s) => s.session?.user.id);
 
   return useQuery({
-    queryKey: ['enforcements', ownerId, search ?? ''],
+    queryKey: ['enforcements', ownerId],
     enabled: !!ownerId,
     retry: (n, err) => !isMissingEnforcementTable(err) && n < 1,
     queryFn: async () => {
-      let query = supabase
-        .from('enforcement_files')
-        .select(ENF_SELECT)
-        .eq('owner_id', ownerId!)
-        .order('start_date', { ascending: false })
-        .order('created_at', { ascending: false });
-      if (search) query = query.ilike('debtor_name', `%${search}%`);
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as unknown as EnforcementWithClient[];
+      const sayfa = (bas: number, son: number) =>
+        supabase
+          .from('enforcement_files')
+          .select(ENF_SELECT, { count: 'exact' })
+          .eq('owner_id', ownerId!)
+          .order('start_date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true })
+          .range(bas, son);
+      return (await tumSayfalar(sayfa)) as unknown as EnforcementWithClient[];
     },
   });
 }
@@ -45,11 +53,15 @@ export function useEnforcement(id: string | undefined) {
   return useQuery({
     queryKey: ['enforcements', 'detail', id],
     enabled: !!id,
-    retry: (n, err) => !isMissingEnforcementTable(err) && n < 1,
+    // Bozuk kimlik (22P02) tekrar denenmez (bkz. utils/davaEkrani).
+    retry: (n, err) => !isMissingEnforcementTable(err) && !gecersizKimlikMi(err) && n < 1,
     queryFn: async () => {
-      const { data, error } = await supabase.from('enforcement_files').select(ENF_SELECT).eq('id', id!).single();
+      // maybeSingle: kayıt yoksa (silinmiş / bu hesabın değil) HATA değil null.
+      // single() PGRST116 fırlatıyordu ve ekran sonsuza dek boş kalıyordu
+      // (10.10.2026; dava detayında aynı kusur 09.10'da düzeltilmişti).
+      const { data, error } = await supabase.from('enforcement_files').select(ENF_SELECT).eq('id', id!).maybeSingle();
       if (error) throw error;
-      return data as unknown as EnforcementWithClient;
+      return (data ?? null) as unknown as EnforcementWithClient | null;
     },
   });
 }

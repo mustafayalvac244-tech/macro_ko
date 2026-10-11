@@ -30,11 +30,34 @@ export async function aiHataGovdesi(fnErr: unknown): Promise<AiHataYaniti> {
   return {};
 }
 
+/**
+ * Sohbet isteğinin istemci tarafı zaman aşımı (ms). ÖLÇÜLMEDİ, TAHMİN.
+ *
+ * Referans: 04–05.10'da ölçülen sohbet süresi 22–30 sn (DURUM.md). 120 sn bunun
+ * kabaca 4–5 katı: yavaş ama sağlıklı bir cevabı kesmez, askıda kalan bağlantıyı
+ * ise sonsuza dek bekletmez (eskiden zaman aşımı hiç yoktu: ekran "düşünüyor"da
+ * kalıp kutuyu kilitliyordu). Sunucu işi bitirmiş olabilir; bu yüzden zaman
+ * aşımı mesajı "hakkınızdan düşülmedi" DEMEZ.
+ */
+export const AI_SOHBET_ZAMAN_ASIMI_MS = 120_000;
+
+/**
+ * Sunucuya HİÇ ulaşılamadığında (functions-js FunctionsFetchError) nedeni ayırır:
+ * zaman aşımı/iptal → 'istemci_zaman_asimi'; diğerleri (ağ yok) → 'generic'. Sunucu
+ * cevap verdiyse (HTTP/relay hatası) null: oradaki kod gövdeden okunur.
+ */
+export function aiBaglantiKodu(fnErr: unknown): 'istemci_zaman_asimi' | 'generic' | null {
+  const e = fnErr as { name?: string; context?: { name?: string } } | null;
+  if (e?.name !== 'FunctionsFetchError') return null;
+  const ic = e.context?.name;
+  return ic === 'AbortError' || ic === 'TimeoutError' ? 'istemci_zaman_asimi' : 'generic';
+}
+
 // Uygulamanın t() işlevi bütün çeviri anahtarlarını kabul eder; burada yalnız
 // kullandıklarımızı istiyoruz. Daha genişini kabul eden bir işlev, daha darını
 // isteyen bu tipe atanabilir — yani t() olduğu gibi geçer ve yanlış anahtar
 // yazma ihtimali kapanır.
-type HataAnahtari = 'ai.errEkBuyuk' | 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errServis' | 'ai.errBos' | 'ai.errOturum' | 'ai.errTamamlanamadi' | 'ai.errGeneric';
+type HataAnahtari = 'ai.errEkBuyuk' | 'ai.errSoruUzun' | 'ai.errPaketGerekli' | 'ai.errQuotaWait' | 'ai.errDailyQuota' | 'ai.errRateLimit' | 'ai.errQuota' | 'ai.errKontor' | 'ai.errDailyCap' | 'ai.errMutalaaKapali' | 'ai.errSoruKota' | 'ai.errMutalaaKota' | 'ai.errDenemeBitti' | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errServis' | 'ai.errBos' | 'ai.errOturum' | 'ai.errTamamlanamadi' | 'ai.errGeneric' | 'ai.errZamanAsimi' | 'ai.errIstemciZamanAsimi' | 'ai.errGirdiBuyuk' | 'ai.errYedekGunluk' | 'ai.errRefusal';
 type Ceviri = (anahtar: HataAnahtari, params?: Record<string, string | number>) => string;
 
 /**
@@ -56,6 +79,9 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   // Eklenen belgelerin toplam boyutu sunucu tavanını aştı (bkz.
   // supabase/functions/_shared/belgeEki.ts). Hak düşmez, istek başlamadı.
   if (kod === 'ek_buyuk') return t('ai.errEkBuyuk');
+  // Yazılan/yapıştırılan metin sunucu tavanını aştı (SORU_TAVANI, aynı
+  // dosya). İstek başlamadan reddedildi; kesilip eksik okunmadı.
+  if (kod === 'soru_uzun') return t('ai.errSoruUzun');
   // Kontör bitmesi kota değildir: beklemekle geçmez, yükleme gerektirir.
   // İkisini aynı mesaja bağlamak kullanıcıyı boşuna bekletirdi.
   if (kod === 'kontor_bitti') return t('ai.errKontor');
@@ -91,16 +117,65 @@ export function aiHataMetni(govde: AiHataYaniti, t: Ceviri): string {
   // kontrol edin" diyordu; oysa sorun bizde. 08.10'da Claude hesabı askıya
   // alındığında avukat kendi internetini suçlayacaktı. Hak iadesi
   // _shared/hakIadesi.ts'te: başarısız istekte hak geri verilir.
+  // İÇ SÜRE BÜTÇESİ DOLDU (09.10.2026, Hukuki Araştırma): platformun 546'sı
+  // gövdesiz geliyor ve "internet bağlantınızı kontrol edin" diye görünüyordu.
+  if (kod === 'zaman_asimi') return t('ai.errZamanAsimi');
+  // MODEL REDDİ: servis arızası değil; aynı olayla tekrar denemek işe yaramaz.
+  if (kod === 'refusal') return t('ai.errRefusal');
   if (kod === 'upstream') return t('ai.errServis');
   if (kod === 'empty') return t('ai.errBos');
   if (kod === 'unauthorized') return t('ai.errOturum');
+  // 10.10.2026: istemci zaman aşımı, sohbet girdi tavanı (413) ve yedek hat
+  // günlük kapısı (429). Üçü de "internet" değil; sebebi söylenir.
+  // İstemci zaman aşımı sunucunun 504 'zaman_asimi'sinden AYRI koddur: orada hak
+  // iade edilmiştir, burada sunucu isteği tamamlamış olabilir (10.10.2026).
+  if (kod === 'istemci_zaman_asimi') return t('ai.errIstemciZamanAsimi');
+  if (kod === 'girdi_buyuk') return t('ai.errGirdiBuyuk');
+  if (kod === 'yedek_gunluk') return t('ai.errYedekGunluk');
   // Bağlantı hatası YALNIZ sunucuya hiç ulaşılamadığında ('generic' ya da
   // kod yok). Ulaşıldı ama kod tanınmıyorsa internet suçlanmaz.
   if (kod === '' || kod === 'generic') return t('ai.errGeneric');
   return t('ai.errTamamlanamadi');
 }
 
-export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_arizasi' | 'paket' | 'generic';
+export type IctihatError =
+  | 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_arizasi' | 'paket'
+  | 'kota' | 'gunluk' | 'soru_kota' | 'deneme' | 'servis' | 'bos' | 'karar_yok' | 'oturum'
+  | 'generic';
+
+/**
+ * `ictihat` ucunun döndürdüğü hata KODUNU ekran türüne çevirir.
+ *
+ * NEDEN BURADA (09.10.2026). Bu eşleme useIctihat.ts içindeydi ve yalnız altı
+ * kodu tanıyordu. Olay analizi ve özetin kota kodları (quota_exceeded,
+ * gunluk_hak_bitti, ai_soru_kota_bitti, deneme_hakki_bitti) ve yapay zekâ
+ * arızaları "İnternet bağlantınızı kontrol edin"e düşüyordu. useIctihat
+ * supabase istemcisini çektiği için test edilemiyordu; burası saf ve testli.
+ */
+export function ictihatHataTuru(kod: string): IctihatError {
+  switch (kod) {
+    case 'rate_limit': return 'rate_limit';
+    case 'source_unreachable': return 'source';
+    case 'not_configured': return 'ai_off';
+    // Paket kapısı: ücretsiz kullanıcı yapay zekâ özetine/analizine giremez
+    // (kelime araması ve künye sorgusu ücretsiz ve sınırsız kalır).
+    case 'tier_required': return 'paket';
+    // KVKK kapısı: yalnız özet ve olay analizi bu kapıdan geçer.
+    case 'kvkk_riza_yok': return 'kvkk';
+    case 'kvkk_kontrol_hatasi': return 'kvkk_arizasi';
+    case 'quota_exceeded': return 'kota';
+    case 'gunluk_hak_bitti': return 'gunluk';
+    case 'ai_soru_kota_bitti': return 'soru_kota';
+    case 'deneme_hakki_bitti': return 'deneme';
+    // Yapay zekâ servisi düştü / boş döndü: UYAP değil, biz. Hak iade edilir.
+    case 'upstream': return 'servis';
+    case 'empty': return 'bos';
+    // Olay analizinde kaynak cevap verdi ama olaya uygun karar çıkmadı.
+    case 'karar_yok': return 'karar_yok';
+    case 'unauthorized': return 'oturum';
+    default: return 'generic';
+  }
+}
 
 /**
  * Hata kodunu çeviri anahtarına çevirir.
@@ -112,7 +187,10 @@ export type IctihatError = 'rate_limit' | 'source' | 'ai_off' | 'kvkk' | 'kvkk_a
  */
 export function ictihatHataAnahtari(error: IctihatError):
   | 'ictihat.errAiOff' | 'ictihat.errRate' | 'ictihat.errSource'
-  | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errPaketGerekli' | 'ictihat.errGeneric' {
+  | 'ai.errKvkkRiza' | 'ai.errKvkkKontrol' | 'ai.errPaketGerekli'
+  | 'ai.errQuota' | 'ai.errDailyCap' | 'ai.errSoruKota' | 'ai.errDenemeBitti'
+  | 'ai.errServis' | 'ai.errBos' | 'ai.errOturum' | 'ictihat.analyzeKararYok'
+  | 'ictihat.errGeneric' {
   switch (error) {
     case 'ai_off': return 'ictihat.errAiOff';
     case 'rate_limit': return 'ictihat.errRate';
@@ -124,6 +202,15 @@ export function ictihatHataAnahtari(error: IctihatError):
     // Paket mesajı da ai-chat ile ORTAK: aynı sebeple kapanan iki ekranın iki
     // ayrı cümle söylemesi, kullanıcıya iki ayrı sorun varmış izlenimi verir.
     case 'paket': return 'ai.errPaketGerekli';
+    // Kota ve yapay zekâ arızası mesajları da ai-chat ile ORTAK.
+    case 'kota': return 'ai.errQuota';
+    case 'gunluk': return 'ai.errDailyCap';
+    case 'soru_kota': return 'ai.errSoruKota';
+    case 'deneme': return 'ai.errDenemeBitti';
+    case 'servis': return 'ai.errServis';
+    case 'bos': return 'ai.errBos';
+    case 'oturum': return 'ai.errOturum';
+    case 'karar_yok': return 'ictihat.analyzeKararYok';
     default: return 'ictihat.errGeneric';
   }
 }

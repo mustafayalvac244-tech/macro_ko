@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { VekilLogo } from '@/components/ui/VekilLogo';
 import { useAuthStore } from '@/store/authStore';
+import { TEKRAR_GONDERIM_SN } from '@/lib/authBekleme';
 import { kullanimKaydet } from '@/lib/kullanim';
 import { isValidTCKN } from '@/utils/tckn';
 import { BAROLAR } from '@/constants/barolar';
@@ -33,6 +34,7 @@ import { useT } from '@/i18n';
 import { radius, spacing, typography, kose } from '@/theme/theme';
 import { useTheme } from '@/theme/useTheme';
 import type { ThemeColors } from '@/theme/palettes';
+import { girisHedefi } from '@/lib/girisYonlendirme';
 
 export default function SignupScreen() {
   const __t = useTheme();
@@ -75,8 +77,16 @@ export default function SignupScreen() {
   // App Store yorumlarında 7 olumsuz yorumun 3'ü "kod/e-posta gelmiyor, hesap
   // açılamıyor"du. Bizde bekleme ekranında yalnız "giriş ekranına dön" vardı;
   // posta gelmeyen kullanıcı için hiçbir çıkış yoktu. Geri sayım şifre
-  // sıfırlama ekranıyla aynı (25 sn); sunucu daha uzun süre söylerse o kazanır.
-  const [tekrarBekleme, setTekrarBekleme] = useState(25);
+  // sıfırlama ekranıyla aynı (TEKRAR_GONDERIM_SN); sunucu daha uzun süre
+  // söylerse o kazanır.
+  //
+  // GERİ SAYIM POSTA GİDİNCE BAŞLAR (09.10.2026). Başlangıç değeri 25'ti ve
+  // sayaç EKRAN AÇILDIĞI AN akmaya başlıyordu; form 25 sn'den uzun sürede
+  // doldurulduysa (KVKK metnini okuyup imzalamak dahil — gerçek süre ÖLÇÜLMEDİ)
+  // doğrulama ekranına gelindiğinde düğme hemen açıktı ve basınca sunucu
+  // "güvenlik nedeniyle bekleyin" diyordu. Sayaç artık kayıt postası
+  // gönderildiği an (aşağıda, 'dogrulama-gerekli' dalında) kuruluyor.
+  const [tekrarBekleme, setTekrarBekleme] = useState(0);
   const [tekrarBilgi, setTekrarBilgi] = useState<string | null>(null);
   const [tekrarHata, setTekrarHata] = useState<string | null>(null);
   const [tekrarGonderiliyor, setTekrarGonderiliyor] = useState(false);
@@ -98,7 +108,18 @@ export default function SignupScreen() {
     }
     kullanimKaydet('olay:dogrulama_tekrar_gonder');
     setTekrarBilgi(t('auth.resendVerifyDone'));
-    setTekrarBekleme(25);
+    setTekrarBekleme(TEKRAR_GONDERIM_SN);
+  };
+  // E-POSTAYI DÜZELT (09.10.2026). Adresi yanlış yazdığını doğrulama ekranında
+  // gören kullanıcının tek çıkışı "giriş ekranına dön"dü; oradan kayda dönünce
+  // form boş açılıyor, ad, baro ve KVKK imzası baştan isteniyordu. Bu ekran
+  // aynı bileşenin bir hâli: forma dönmek yeterli, bilgiler yerinde kalır.
+  // Yanlış adresle açılan hesap doğrulanmamış olarak kalır (bugün de girişten
+  // yeniden kayıt olunca kalıyordu); düzeltilen adres yeni bir kayıt açar.
+  const epostayiDuzelt = () => {
+    setTekrarBilgi(null);
+    setTekrarHata(null);
+    setDogrulamaBekliyor(false);
   };
   const { signUp, isSubmitting, error, clearError, resendVerification } = useAuthStore();
   // Ortak depodaki eski hata ekranlar arasında taşınıyordu: kayıtta "bu
@@ -202,11 +223,13 @@ export default function SignupScreen() {
 
     if (sonuc === 'girildi' || sonuc === 'dogrulama-gerekli') kullanimKaydet('olay:kayit_tamam');
     if (sonuc === 'girildi') {
-      router.replace('/(app)');
+      router.replace(girisHedefi() as Parameters<typeof router.replace>[0]);
     } else if (sonuc === 'dogrulama-gerekli') {
       // E-posta doğrulaması AÇIK: oturum yok, uygulamaya yönlendirilemez.
       // Eskiden burada koşulsuz router.replace vardı ve doğrulama açıldığı an
       // kullanıcı oturumsuz bir ekrana düşerdi.
+      // Posta ŞİMDİ gitti: "tekrar gönder" geri sayımı buradan başlar.
+      setTekrarBekleme(TEKRAR_GONDERIM_SN);
       setDogrulamaBekliyor(true);
     }
     // 'hata' durumunda mesaj zaten store'dan gelir ve ekranda gösterilir.
@@ -237,6 +260,12 @@ export default function SignupScreen() {
             disabled={tekrarBekleme > 0 || tekrarGonderiliyor}
             loading={tekrarGonderiliyor}
             onPress={tekrarGonder}
+            fullWidth
+          />
+          <Button
+            label={t('auth.verifyFixEmail')}
+            variant="ghost"
+            onPress={epostayiDuzelt}
             fullWidth
           />
           <Button

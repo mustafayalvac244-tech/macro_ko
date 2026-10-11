@@ -19,9 +19,27 @@ interface Baglam {
   modelMs: number;
   /** Adım adına toplam ms (05.10.2026 — 20 sn'nin hangi adımda gittiği). */
   adimlar: Record<string, number>;
+  /** İstek başına yedek hat kapısı (bkz. yedekKapisiKur); kurulmamışsa kapı yoktur. */
+  yedekKapi?: () => Promise<boolean>;
 }
 
 const depo = new AsyncLocalStorage<Baglam>();
+
+/**
+ * Bu isteğin yedek hat kapısını kurar (10.10.2026, bkz. yedekKapisi.ts).
+ * Bağlam burada çünkü isteğe özel veri (kullanıcı) derin çağrı zincirine
+ * parametre olarak taşınmak zorunda kalmasın; süre bağlamıyla aynı sebep.
+ */
+export function yedekKapisiKur(kapi: () => Promise<boolean>): void {
+  const b = depo.getStore();
+  if (b) b.yedekKapi = kapi;
+}
+
+/** Yedek hatta GEÇMEDEN önce sorulur: true = geçilebilir (kapı yoksa da true). */
+export async function yedekIzniVarMi(): Promise<boolean> {
+  const kapi = depo.getStore()?.yedekKapi;
+  return kapi ? kapi() : true;
+}
 
 /** İsteği bir süre bağlamı içinde koşturur. */
 export function sureIzle<T>(fn: () => T): T {

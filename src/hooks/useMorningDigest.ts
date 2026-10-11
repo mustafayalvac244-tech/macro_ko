@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { format } from 'date-fns/format';
 import { useAllHearings } from '@/hooks/useHearings';
 import { useAllDeadlines } from '@/hooks/useDeadlines';
-import { syncMorningDigests, digestBucket, type DigestDay, type DigestBucket } from '@/lib/notifications';
+import { syncMorningDigests, digestBucket, useBildirimIzni, type DigestDay, type DigestBucket } from '@/lib/notifications';
 
 const emptyBuckets = (): Record<DigestBucket, number> => ({ durusma: 0, toplanti: 0, kesif: 0, evrak: 0, diger: 0 });
 
@@ -16,6 +16,10 @@ const DIGEST_WINDOW_DAYS = 7;
 export function useMorningDigest() {
   const hearings = useAllHearings();
   const deadlines = useAllDeadlines();
+
+  // İzin sonradan verilince de koşar (bkz. useBildirimIzni) — yoksa özetler bir
+  // sonraki veri yenilemesine kadar kurulmuyordu.
+  const izinli = useBildirimIzni((s) => s.izinli);
 
   const hearingsUpdatedAt = hearings.dataUpdatedAt;
   const deadlinesUpdatedAt = deadlines.dataUpdatedAt;
@@ -64,5 +68,5 @@ export function useMorningDigest() {
     syncMorningDigests(Array.from(days.values())).catch(() => {});
     // dataUpdatedAt captures actual refetches; data references alone churn every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hearingsUpdatedAt, deadlinesUpdatedAt]);
+  }, [hearingsUpdatedAt, deadlinesUpdatedAt, izinli]);
 }
