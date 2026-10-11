@@ -42,6 +42,23 @@ const FILES: Record<string, () => LawFile> = {
   'kamulastirma': () => require('./kamulastirma.json') as LawFile,
   'amme': () => require('./amme.json') as LawFile,
   'aym': () => require('./aym.json') as LawFile,
+  'arabuluculuk': () => require('./arabuluculuk.json') as LawFile,
+  'bankacilik': () => require('./bankacilik.json') as LawFile,
+  'cek': () => require('./cek.json') as LawFile,
+  'cevre': () => require('./cevre.json') as LawFile,
+  'cocuk-koruma': () => require('./cocuk-koruma.json') as LawFile,
+  'fsek': () => require('./fsek.json') as LawFile,
+  'imar': () => require('./imar.json') as LawFile,
+  'infaz': () => require('./infaz.json') as LawFile,
+  'kabahatler': () => require('./kabahatler.json') as LawFile,
+  'kadastro': () => require('./kadastro.json') as LawFile,
+  'kamu-ihale': () => require('./kamu-ihale.json') as LawFile,
+  'kat-mulkiyeti': () => require('./kat-mulkiyeti.json') as LawFile,
+  'kooperatifler': () => require('./kooperatifler.json') as LawFile,
+  'kvkk': () => require('./kvkk.json') as LawFile,
+  'noterlik': () => require('./noterlik.json') as LawFile,
+  'nufus': () => require('./nufus.json') as LawFile,
+  'sigortacilik': () => require('./sigortacilik.json') as LawFile,
 };
 
 export const LAW_INDEX = indexJson as LawIndexEntry[];
