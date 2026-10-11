@@ -10,7 +10,7 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 09.10.2026 (50 denetçi düzeltmeleri YAYINDA: web + OTA + uç + göç 0175 — bkz. 2d)
+**Son güncelleme:** 11.10.2026 (30 ajan düzeltmeleri YAYINDA: web + OTA + 9 uç + 6 göç — bkz. 2e). Ürün sahibi: "2 gün daha devam"; Claude/Supabase iptali düşünülüyor.
 
 ## 1. Şu an — yayın durumu
 
@@ -74,16 +74,16 @@
    Belge Arşivi'ne Belge Yükle; Derin Araştırma → Hukuki Araştırma. WEB CANLI. OTA 7b06a953
    (04.10 17:20 UTC, 3.4.0); cihaza indiği ÖLÇÜLMEDİ. SİTE (04.10 akşam): "KVKK uyumlu" ×2,
    fotoğraftan künye, "olamaz", SSS'ler düzeltildi. OTA ec31a676 (08.10 19:22 UTC, 3.4.0) hepsini taşıdı.
-2d. **50 DENETÇİ YAYINDA (09.10):** PR #157 web; OTA 1505a910; ai-chat v144, ai-saglik v29; göç 0175+0176 ("hasat sürekli
-   çalışsın"): kaynak AYLARCA geç yayımlıyor → haftalık geri tarama 180 gün, öne alınır. Temmuz toplamı ÖNCE 1.159; sonra ölçülecek.
-2e. **30 AJAN BİTTİ (10.10):** 30 alan dalda, 2088 test; YAYINLANMADI; 7 göç + 9 uç + web/OTA onay bekler; kararlar DENETIM-RAPORU §5.
+2d. **50 DENETÇİ YAYINDA (09.10):** PR #157; göç 0175+0176: haftalık geri tarama 180 gün (Temmuz ÖNCE 1.159; sonra ölçülecek).
+2e. **30 AJAN YAYINDA (11.10, "Güncelle"):** PR #158 web; OTA 67892a8f; 9 uç; göç 0181 0187 0191 0194 0202 0205. 0190 UYGULANMADI:
+   'katalog' işaretini de siliyordu (%1 örnekte %69) → düzelt. Sonra 0 uç hatası. Kararlar DENETIM-RAPORU §5.
 2u. **UYAP LİSTE (07.10):** eklentiye maskeli keşif (extension/lib/kesif.js); BEKLENEN avukattan keşif dosyası.
    **CONSOLE ASKIDA (08.10):** yedek modele düşer; inceleme metni CLAUDE-STARTUP.md. Belgeden dosya aç YAPAY ZEKÂSIZ: WEB+OTA CANLI. HAK İADESİ (ai-chat v143) + doğru hata mesajları: WEB + OTA 3db0890c CANLI (08.10 20:00 UTC).
 3. KVKK m.9: Supabase (İrlanda) + AI (ABD) sözleşme/bildirim YAPILMADI — ürün sahibinin (KVKK-UYUM.md A). 4. Baro sicil doğrulaması yok (ürün sahibi kararı). 5. Leaked password koruması kapalı. 6. KVKK veri sorumlusu kimliği eksik. 7. Android şifre sıfırlama DOĞRULANMADI.
 
 ## 3. Kritik kimlikler
 
-- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç CANLIDA: `0176`. Dalda uygulanmamış: 0181 0187 0190 0191 0194 0202 0205.
+- Supabase proje: `wjshlysfmeqlnfiibknj` (eu-west-1). Son göç CANLIDA: `0205` (11.10 migration-uygula). Uygulanmamış: 0190.
 - Dal: `claude/legal-case-management-app-dipuvb` → PR ile `main`'e, Claude merge eder
   AMA **06.10: "Bana göstermeden yayınlama"** — main'e birleştirme = web yayını; önce görüntü göster, onay al.
 - iOS imza: `ios-dagit.yml` + `imza: apple-api`. Her derlemede ÖNCE
