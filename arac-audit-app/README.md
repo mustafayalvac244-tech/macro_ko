@@ -156,11 +156,23 @@ sınav aynen geçti; ekran görüntülerine bakıldı. **Gerçek cihazda görül
   TEK sınırı olarak kullanılmaz (kabul anahtarının kapalı rayı bu yüzden
   `metinSolgun` kenarlı).
 
-## Yazı tipi neden IBM Plex
+## Yazı tipi — Inter + JetBrains Mono (24.10.2026)
 
-Endüstriyel/mühendislik bağlamı için tasarlandı, Türkçe karakterleri tam, ve
-mono eşi **işlevsel**: şasi numarası ve hata kodunda eşit genişlikli haneler
-yanlış okumayı azaltır. Süsleme değil.
+Ürün sahibi: *"Yazı tipini güzelleştir."* IBM Plex yerine arayüz için
+çizilmiş **Inter** (400/500/600/700) ve şasi/body numarası için **JetBrains
+Mono** (500/600): 0/O ve 1/l/I ayrı çizilir, haneler eşit genişlikte. Dosyalar
+`assets/fonts/` altında, SIL OFL lisansı yanlarında.
+
+**Neden paket değil, dosya:** `@expo-google-fonts/*` eklemek `package.json`'ı
+değiştirir; OTA bekçisi yayını durdurur ve herkes APK'yı yeniden kurmak
+zorunda kalırdı. TTF sıradan bir varlık, OTA ile gider. Eski IBM Plex
+paketleri `package.json`'da duruyor ama kullanılmıyor; bir sonraki sürüm
+yükseltmesinde kaldırılacak.
+
+**Doğrulama:** web paketinde Chromium'a yüklenen sayfada `document.fonts`
+dört Inter ağırlığını ve JetBrains Mono'yu "loaded" bildirdi, altı TTF
+isteği 200 döndü; ekran görüntülerinde Inter ve mono görünüyor. **Gerçek
+cihazda görülmedi.**
 
 ## 3B model nasıl çalışıyor
 

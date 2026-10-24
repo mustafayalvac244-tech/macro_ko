@@ -34,18 +34,20 @@ export const kose = {
 } as const;
 
 /**
- * Yazı tipi aileleri.
- * IBM Plex, endüstriyel ve mühendislik bağlamı için tasarlandı; Türkçe
- * karakterleri tam, ve mono eşi şasi numarası/hata kodu için gerçekten
- * işlevsel (süsleme değil): eşit genişlikli haneler yanlış okumayı azaltır.
+ * Yazı tipi aileleri (24.10.2026'ya kadar IBM Plex; ürün sahibi "yazı tipini
+ * güzelleştir" dedi).
+ * Inter: arayüz için çizilmiş, küçük boyda açık, Türkçe karakterleri tam;
+ * kurumsal yazılımlarda yaygın. JetBrains Mono: şasi numarası ve hata kodu
+ * için — 0/O ve 1/l/I birbirinden ayrı çizilir, eşit genişlikli haneler
+ * yanlış okumayı azaltır. Dosyalar assets/fonts altında (bkz. _layout.tsx).
  */
 export const yazi = {
-  normal: 'IBMPlexSans_400Regular',
-  orta: 'IBMPlexSans_500Medium',
-  yariKalin: 'IBMPlexSans_600SemiBold',
-  kalin: 'IBMPlexSans_700Bold',
-  mono: 'IBMPlexMono_500Medium',
-  monoKalin: 'IBMPlexMono_600SemiBold',
+  normal: 'Inter_400Regular',
+  orta: 'Inter_500Medium',
+  yariKalin: 'Inter_600SemiBold',
+  kalin: 'Inter_700Bold',
+  mono: 'JetBrainsMono_500Medium',
+  monoKalin: 'JetBrainsMono_600SemiBold',
 } as const;
 
 /**
@@ -66,8 +68,8 @@ export const tipografi = {
    *  textTransform "i" harfini "I" yapar, Türkçe'de doğrusu "İ"dir. */
   etiket: { fontFamily: yazi.yariKalin, fontSize: 11, lineHeight: 15, letterSpacing: 0.7 },
   /** Şasi numarası, hata kodu, plaka. */
-  mono: { fontFamily: yazi.mono, fontSize: 15, lineHeight: 21, letterSpacing: 0.4 },
-  monoBuyuk: { fontFamily: yazi.monoKalin, fontSize: 21, lineHeight: 28, letterSpacing: 1.6 },
+  mono: { fontFamily: yazi.mono, fontSize: 15, lineHeight: 21, letterSpacing: 0.2 },
+  monoBuyuk: { fontFamily: yazi.monoKalin, fontSize: 20, lineHeight: 28, letterSpacing: 1.2 },
   /** Sayı sütunları — haneler hizalı dursun. */
   sayi: { fontFamily: yazi.mono, fontSize: 15, lineHeight: 20, fontVariant: ['tabular-nums'] },
   sayiBuyuk: { fontFamily: yazi.monoKalin, fontSize: 26, lineHeight: 32, fontVariant: ['tabular-nums'] },

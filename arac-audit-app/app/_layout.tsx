@@ -1,8 +1,4 @@
-import {
-  IBMPlexSans_400Regular, IBMPlexSans_500Medium,
-  IBMPlexSans_600SemiBold, IBMPlexSans_700Bold, useFonts,
-} from '@expo-google-fonts/ibm-plex-sans';
-import { IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from '@expo-google-fonts/ibm-plex-mono';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -18,10 +14,19 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 export default function KokDuzen() {
+  // Yazı tipleri assets/fonts altında, paket olarak DEĞİL (24.10.2026, ürün
+  // sahibi: "yazı tipini güzelleştir"): @expo-google-fonts paketi eklemek
+  // package.json'ı değiştirir, OTA bekçisi yayını durdurur ve herkes APK'yı
+  // yeniden kurmak zorunda kalırdı. TTF dosyası sıradan bir varlık: OTA ile
+  // gider. Eski IBM Plex paketleri package.json'da duruyor, kullanılmıyor;
+  // bir sonraki sürüm yükseltmesinde kaldırılacak.
   const [yazilarHazir, yaziHatasi] = useFonts({
-    IBMPlexSans_400Regular, IBMPlexSans_500Medium,
-    IBMPlexSans_600SemiBold, IBMPlexSans_700Bold,
-    IBMPlexMono_500Medium, IBMPlexMono_600SemiBold,
+    Inter_400Regular: require('../assets/fonts/Inter_400Regular.ttf'),
+    Inter_500Medium: require('../assets/fonts/Inter_500Medium.ttf'),
+    Inter_600SemiBold: require('../assets/fonts/Inter_600SemiBold.ttf'),
+    Inter_700Bold: require('../assets/fonts/Inter_700Bold.ttf'),
+    JetBrainsMono_500Medium: require('../assets/fonts/JetBrainsMono_500Medium.ttf'),
+    JetBrainsMono_600SemiBold: require('../assets/fonts/JetBrainsMono_600SemiBold.ttf'),
   });
 
   useEffect(() => {
