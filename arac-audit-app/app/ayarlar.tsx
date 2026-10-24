@@ -8,7 +8,7 @@ import {
   Baslik, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi, Kart, Secenek, useDuzen,
 } from '@/bilesenler/temel';
 import { HATA_GRUPLARI } from '@/cekirdek/katalog';
-import { HAZIR_DENETCILER, LISTE_ANAHTARI } from '@/cekirdek/listeler';
+import { HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
 import { bosluk, kose, Renkler, TemaTercihi, tipografi, useTema } from '@/tema';
 import { bekleyenSenkron, hataTipiKullanimi } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -27,6 +27,7 @@ export default function Ayarlar() {
   // tik kalır, çünkü seçimi yalnız renkle değil onunla da gösteriyoruz.
   const { en } = useDuzen();
   const denetciler = useSecimListesi(LISTE_ANAHTARI.denetci, HAZIR_DENETCILER);
+  const kaynaklar = useSecimListesi(LISTE_ANAHTARI.kaynak, HAZIR_KAYNAKLAR);
 
   const [bekleyen, setBekleyen] = useState(0);
 
@@ -65,6 +66,12 @@ export default function Ayarlar() {
         </Kart>
 
         {/* FAZLAR listesi kalktı: faz formdan çıktı (ürün sahibi, 24.10.2026). */}
+
+        <Kart>
+          <BolumBasligi metin="PROBLEM SOURCE" simge={S.etiket} />
+          <Text style={s.aciklama}>Raporun Source sütunu. Yeni denetimde seçilir ve hatırlanır.</Text>
+          <ListeDuzenle ad="Kaynak" liste={kaynaklar} yerTutucu="Örn. Durability" />
+        </Kart>
 
         <Kart>
           <BolumBasligi metin="EKİBİN EKLEDİĞİ HATA TİPLERİ" simge={S.etiket} />

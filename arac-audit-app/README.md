@@ -384,6 +384,7 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
 | Sadeleştirme: Excel formunda olmayan alanlar kalktı (24.10.2026) | **Bitti** — ürün sahibinin seçtiği yedi alan |
 | Ana sayfa sayacı: araç başına bugün / bu hafta / bu ay / bu yıl (24.10.2026) | **Bitti** — denetlenen araç, hata ve **DPU** (araç başına kabul edilebilir olmayan hata; ürün sahibinin seçimi, Excel raporundaki DPU ile aynı tanım). Excel'deki "Audit Skoru"nun formülü bilinmiyor, o değil. **Yalnız bu cihaz** |
 | Adım adım hata girişi: Sistem → Bölge → Parça → Hata (24.10.2026) | **Bitti** — kayıttan sonra aynı bölgenin parçalarına dönülür; arama kısayol olarak duruyor. Web'de sınandı, **gerçek denetçiyle denenmedi** |
+| Excel formundan: "Problem yok" (hatasız aracı tek dokunuşla kaydet ve bitir), body no ile giriş (şasi isteğe bağlı), Problem Source seçimi (24.10.2026) | **Bitti** — body no biçimi bilinmiyor (tek örnek 6 rakam), kural konmadı; kaynak listesi "HMC Audit / Durability", diğer değerler bilinmiyor, "+ Ekle" ile genişler. Veritabanı göçü 6 Node SQLite'ta sıfırdan ve göç 5'ten koşularak doğrulandı; **telefonda görülmedi** |
 
 ### Kullanılabilirlik sınaması (28.09.2026)
 

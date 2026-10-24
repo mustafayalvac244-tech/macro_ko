@@ -9,6 +9,9 @@
 // yeni.tsx). Eski bir denetimde dolu olsalar da burada gösterilmez, KAYDETMEK
 // onları SİLMEZ: onKaydet yalnız bu ekrandaki alanları gönderir.
 //
+// Body no ve Problem Source 24.10.2026'da eklendi (yeni.tsx'teki not). Şasi
+// ya da body no'dan biri yeter.
+//
 // Araç yalnız KAYITLI PARÇALARIN HEPSİ yeni araçta da varsa değişir:
 // elektrikli ile benzinlinin parça listesi farklı (şarj kapağı / yakıt
 // kapağı); başka araca geçen bir kayıt raporda var olmayan parçayı gösterirdi.
@@ -21,10 +24,10 @@ import { S } from '@/bilesenler/simgeler';
 import { BilgiKutusu, Dugme, Girdi, HataKutusu, Secenek } from '@/bilesenler/temel';
 import { SPECLER } from '@/cekirdek/aracBilgisi';
 import { bolgelerAracIcin } from '@/cekirdek/katalog';
-import { HAZIR_DENETCILER, LISTE_ANAHTARI } from '@/cekirdek/listeler';
+import { HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
 import { ARACLAR } from '@/cekirdek/model3d';
 import { Denetim } from '@/cekirdek/tipler';
-import { vinDogrula } from '@/cekirdek/vin';
+import { BODY_NO_AZAMI, bodyNoSadelestir, vinDogrula } from '@/cekirdek/vin';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 
 type SecimListesi = ReturnType<typeof useSecimListesi>;
@@ -48,9 +51,12 @@ export function DenetimBilgileri({
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const denetciler = useSecimListesi(LISTE_ANAHTARI.denetci, HAZIR_DENETCILER);
+  const kaynaklar = useSecimListesi(LISTE_ANAHTARI.kaynak, HAZIR_KAYNAKLAR);
 
   const [aracId, setAracId] = useState(denetim.aracId);
   const [vinHam, setVinHam] = useState(denetim.vin);
+  const [bodyNo, setBodyNo] = useState(denetim.bodyNo ?? '');
+  const [kaynak, setKaynak] = useState(denetim.denetimTipi);
   const [spec, setSpec] = useState(denetim.spec);
   const [denetci, setDenetci] = useState(denetim.denetci);
   const [aracUyarisi, setAracUyarisi] = useState<string | null>(null);
@@ -63,6 +69,8 @@ export function DenetimBilgileri({
   const onayaKaydir = useRef(false);
 
   const vin = useMemo(() => vinDogrula(vinHam), [vinHam]);
+  const vinBos = !vinHam.trim();
+  const kimlikTamam = vinBos ? !!bodyNo : vin.gecerli;
 
   /** Kayıtlı parçaların hepsi bu araçta da var mı? */
   const aracUygun = useMemo(() => {
@@ -86,12 +94,14 @@ export function DenetimBilgileri({
   };
 
   const kaydet = async () => {
-    if (!vin.gecerli || calisiyor) return;
+    if (!kimlikTamam || calisiyor) return;
     setCalisiyor(true);
     try {
       await onKaydet({
         aracId,
-        vin: vin.vin,
+        vin: vinBos ? '' : vin.vin,
+        bodyNo,
+        denetimTipi: kaynak,
         spec,
         denetci: denetci.trim(),
       });
@@ -145,7 +155,21 @@ export function DenetimBilgileri({
           spellCheck={false}
           maxLength={40}
           accessibilityLabel="Şasi numarası"
-          hata={!vin.gecerli ? vin.hatalar.join(' ') : undefined}
+          hata={vinBos
+            ? (bodyNo ? undefined : 'Şasi ya da body no girin.')
+            : !vin.gecerli ? vin.hatalar.join(' ') : undefined}
+        />
+        <Girdi
+          etiket="BODY NO"
+          mono
+          value={bodyNo}
+          onChangeText={(t) => setBodyNo(bodyNoSadelestir(t))}
+          placeholder="Örn. 015253"
+          autoCapitalize="characters"
+          autoCorrect={false}
+          spellCheck={false}
+          maxLength={BODY_NO_AZAMI}
+          accessibilityLabel="Body numarası"
         />
         <View style={s.specKm}>
           <View style={{ gap: bosluk.xxs }}>
@@ -172,6 +196,14 @@ export function DenetimBilgileri({
           deger={denetci}
           degistir={setDenetci}
           yerTutucu="Ad Soyad"
+        />
+        <EklenebilirSecim
+          baslik="PROBLEM SOURCE"
+          ad="Kaynak"
+          liste={degeriGoster(kaynaklar, denetim.denetimTipi)}
+          deger={kaynak}
+          degistir={setKaynak}
+          yerTutucu="Örn. Durability"
         />
 
         {/* Denetimi silmek iki adımlı ve Kaydet'ten uzakta: hatalarıyla ve
@@ -204,7 +236,7 @@ export function DenetimBilgileri({
 
       <View style={s.eylemler}>
         <Dugme metin="Vazgeç" tur="sessiz" onPress={onKapat} style={{ flex: 1 }} />
-        <Dugme metin="Kaydet" tur="birincil" pasif={!vin.gecerli} yukleniyor={calisiyor} onPress={kaydet} style={{ flex: 1 }} />
+        <Dugme metin="Kaydet" tur="birincil" pasif={!kimlikTamam} yukleniyor={calisiyor} onPress={kaydet} style={{ flex: 1 }} />
       </View>
     </>
   );

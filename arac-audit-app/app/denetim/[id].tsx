@@ -22,6 +22,7 @@ import {
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { dereceGosterimi } from '@/cekirdek/puan';
 import { bicimTarih } from '@/cekirdek/rapor';
+import { aracKimligi } from '@/cekirdek/vin';
 import {
   Denetim, DereceKodu, Hata, HataGrubuId, HataTipi,
 } from '@/cekirdek/tipler';
@@ -506,11 +507,13 @@ export default function DenetimEkrani() {
         // satıra sığmıyor ve SONDAN kesiliyordu — ayırt edici seri numarası
         // tam da sondadır. Orada başlık araç adı olur, şasi alttaki çipe iner.
         mono={tablet}
-        baslik={tablet ? (denetim.vin || 'Denetim') : (arac?.ad ?? 'Denetim')}
+        baslik={tablet ? (aracKimligi(denetim) || 'Denetim') : (arac?.ad ?? 'Denetim')}
         sol={<GeriDugmesi />}
         cipler={(
           <>
-            {!tablet && denetim.vin ? <BaslikCipi metin={denetim.vin} mono /> : null}
+            {!tablet && aracKimligi(denetim) ? <BaslikCipi metin={aracKimligi(denetim)} mono /> : null}
+            {/* Şasi de body no da varsa body no ayrıca görünür (başlıkta şasi var). */}
+            {denetim.vin && denetim.bodyNo ? <BaslikCipi metin={`Body ${denetim.bodyNo}`} mono /> : null}
             {tablet ? <BaslikCipi simge={S.arac} metin={arac?.ad ?? denetim.aracId} /> : null}
             {/* Plaka, faz ve ekip formdan kalktı (ürün sahibi, 24.10.2026). */}
             {denetim.spec ? <BaslikCipi metin={`Spec ${denetim.spec}`} /> : null}

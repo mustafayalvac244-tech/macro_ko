@@ -189,7 +189,13 @@ export type DenetimDurumu = 'devam' | 'tamam';
 export interface Denetim {
   id: string;
   aracId: string;
+  /** 17 haneli şasi. 24.10.2026'dan beri İSTEĞE BAĞLI: şasi ya da body no'dan biri yeter. */
   vin: string;
+  /**
+   * Gövde numarası (Excel formundaki "Body", örn. "015253"). 24.10.2026'da
+   * eklendi; eski kayıtlarda boş. Metin — baştaki sıfır korunur.
+   */
+  bodyNo?: string;
   plaka: string;
   raporNo: string;
   denetci: string;

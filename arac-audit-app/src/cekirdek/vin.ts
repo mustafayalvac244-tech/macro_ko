@@ -193,3 +193,29 @@ export function plakaDogrula(ham: unknown): PlakaSonucu {
   }
   return { gecerli: uyarilar.length === 0, plaka: p, bicimli: `${il} ${harf} ${rakam}`, il, uyarilar };
 }
+
+// --- BODY NO ---------------------------------------------------------------
+//
+// Ürün sahibi, 24.10.2026: şirketteki Excel formu aracı model + BODY numarası
+// ile tanıyor (örn. "015253"); şasi (VIN) yok. "Body no ile giriş" istendi.
+// Biçimi bilinmiyor: tek örnek 6 rakam. Uydurma bir kural koymak yerine
+// yalnız sadeleştirilir — boşluk atılır, harf büyütülür. METİN olarak
+// saklanır: "015253"teki baştaki sıfır sayıya çevrilince kaybolurdu.
+
+export const BODY_NO_AZAMI = 12;
+
+export function bodyNoSadelestir(ham: unknown): string {
+  return String(ham ?? '')
+    .toLocaleUpperCase('tr')
+    .replace(/[^0-9A-Z-]/g, '')
+    .slice(0, BODY_NO_AZAMI);
+}
+
+/**
+ * Aracı ekranda ve dosya adında tanıtan metin: şasi varsa şasi, yoksa
+ * "Body 015253". İkisi de boşsa boş döner (eski bozuk kayıt).
+ */
+export function aracKimligi(d: { vin?: string; bodyNo?: string }): string {
+  if (d.vin) return d.vin;
+  return d.bodyNo ? `Body ${d.bodyNo}` : '';
+}

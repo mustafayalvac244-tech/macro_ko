@@ -9,22 +9,27 @@ import {
   AltCubuk, Baslik, BilgiKutusu, BolumBasligi, Dugme, GeriDugmesi, Girdi, Kart, Secenek, useDuzen,
 } from '@/bilesenler/temel';
 import { SPECLER } from '@/cekirdek/aracBilgisi';
-import { HAZIR_DENETCILER, LISTE_ANAHTARI, listedeyse } from '@/cekirdek/listeler';
+import {
+  HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI, listedeyse, VARSAYILAN_KAYNAK,
+} from '@/cekirdek/listeler';
 import { ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { bicimTarih } from '@/cekirdek/rapor';
-import { VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
+import { BODY_NO_AZAMI, bodyNoSadelestir, VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
-import { ayarOku, ayarYaz, denetimOlustur, vinIleDenetimler } from '@/veri/depo';
+import { ayarOku, ayarYaz, ayniAracinDenetimleri, denetimGuncelle, denetimOlustur } from '@/veri/depo';
 import { useTarama } from '@/veri/tarama';
 
-/**
- * Raporun "Source" sütunu. Ekibin tablosundaki değer (26.09.2026 ekran
- * görüntüsü). Formdaki kaynak seçimi, üretim hattı ve vardiya ürün sahibinin
- * isteğiyle kaldırıldı (28.09.2026): "Üretim hattını kaldır. Vardiya kaldır.
- * Aşağıya da üretim seri üretim şeylerini kaldır." Seçeneklerin HMC Audit
- * dışındakiler zaten ilk sürümden kalan tahminlerdi.
+/*
+ * Raporun "Source" sütunu. 28.09.2026'da formdaki kaynak seçimi kaldırılmış,
+ * her denetime "HMC Audit" yazılıyordu. 24.10.2026'da ürün sahibi şirketteki
+ * Excel formuna bakıp "Problem Source" seçimini geri istedi: artık listeden
+ * seçilir (HMC Audit / Durability, "+ Ekle" ile genişler) ve hatırlanır.
+ *
+ * BODY NO VE "PROBLEM YOK" (aynı gün, aynı Excel formundan): şasi ya da body
+ * no'dan biri yeter. "Problem yok" hatasız aracı tek dokunuşla kaydedip
+ * bitirir — Excel'deki "Problem Yok Aracı Kaydet"; sayaçta denetlenen araç
+ * olarak sayılır.
  */
-const KAYNAK = 'HMC Audit';
 
 /**
  * Denetçi her araçta aynı kalır — bir kez seçilsin, hatırlansın.
@@ -39,9 +44,9 @@ const KAYNAK = 'HMC Audit';
  * BAYON hattındaki denetçi seçmeyi unutursa denetim yanlış parça kataloğuyla
  * açılıyordu (sınama). Artık son kullanılan araç seçili gelir.
  */
-interface Varsayilanlar { denetci: string; aracId?: string }
+interface Varsayilanlar { denetci: string; kaynak: string; aracId?: string }
 
-type OncekiDenetim = Awaited<ReturnType<typeof vinIleDenetimler>>[number];
+type OncekiDenetim = Awaited<ReturnType<typeof ayniAracinDenetimleri>>[number];
 
 export default function YeniDenetim() {
   const router = useRouter();
@@ -51,17 +56,19 @@ export default function YeniDenetim() {
 
   const [aracId, setAracId] = useState(ARACLAR[0]!.id);
   const [vinHam, setVinHam] = useState('');
+  const [bodyNoHam, setBodyNoHam] = useState('');
   // Spec ARACA özgü (şasi gibi): hatırlanmaz, her araçta girilir.
   const [spec, setSpec] = useState('');
-  const [v, setV] = useState<Varsayilanlar>({ denetci: '' });
+  const [v, setV] = useState<Varsayilanlar>({ denetci: '', kaynak: VARSAYILAN_KAYNAK });
   const denetciler = useSecimListesi(LISTE_ANAHTARI.denetci, HAZIR_DENETCILER);
+  const kaynaklar = useSecimListesi(LISTE_ANAHTARI.kaynak, HAZIR_KAYNAKLAR);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [denendi, setDenendi] = useState(false);
   // İlk "Denetime başla" dokunuşunda eksik künye ve aynı şasi SÖYLENİR; ikinci
   // dokunuş yine de başlatır (sınama: denetçisiz ve aynı şasiyle
   // uyarısız başlıyordu, künye sonradan düzeltilemiyordu).
   const [eksikSoylendi, setEksikSoylendi] = useState(false);
-  const [onceki, setOnceki] = useState<{ vin: string; liste: OncekiDenetim[] } | null>(null);
+  const [onceki, setOnceki] = useState<{ anahtar: string; liste: OncekiDenetim[] } | null>(null);
   const kaydir = useRef<ScrollView>(null);
   const [bilgiY, setBilgiY] = useState(0);
 
@@ -76,30 +83,37 @@ export default function YeniDenetim() {
   useEffect(() => {
     ayarOku<Partial<Varsayilanlar> | null>('varsayilanlar', null)
       .then((k) => {
-        if (k) setV({ denetci: k.denetci ?? '' });
+        if (k) setV({ denetci: k.denetci ?? '', kaynak: k.kaynak ?? VARSAYILAN_KAYNAK });
         if (k?.aracId && ARAC_INDEKS[k.aracId]) setAracId(k.aracId);
       })
       .catch(() => { /* ilk açılış */ });
   }, []);
 
   const vin = useMemo(() => vinDogrula(vinHam), [vinHam]);
+  const bodyNo = bodyNoSadelestir(bodyNoHam);
+  const vinBos = !vinHam.trim();
+  // Şasi YA DA body no yeter; şasi yazıldıysa geçerli olmalı (yarım yazılmış
+  // bir şasi, body no var diye sessizce rapora gitmesin).
+  const kimlikTamam = vinBos ? !!bodyNo : vin.gecerli;
+  const kimlikAnahtari = `${vinBos ? '' : vin.vin}|${bodyNo}`;
 
   const eksikler = [
     !listedeyse(denetciler.liste, v.denetci) && 'denetçi',
   ].filter(Boolean) as string[];
-  const onceVar = !!onceki && onceki.vin === vin.vin && onceki.liste.length > 0;
+  const onceVar = !!onceki && onceki.anahtar === kimlikAnahtari && onceki.liste.length > 0;
 
-  const basla = useCallback(async () => {
+  /** "Denetime başla" ve "Problem yok" aynı denetimi açar; ikincisi hemen bitirir. */
+  const olustur = useCallback(async (hatasiz: boolean) => {
     setDenendi(true);
-    if (!vin.gecerli) return;
+    if (!kimlikTamam) return;
     if (eksikler.length && !eksikSoylendi) {
       setEksikSoylendi(true);
       kaydir.current?.scrollTo({ y: bilgiY, animated: true });
       return;
     }
-    if (onceki?.vin !== vin.vin) {
-      const liste = await vinIleDenetimler(vin.vin).catch(() => []);
-      setOnceki({ vin: vin.vin, liste });
+    if (onceki?.anahtar !== kimlikAnahtari) {
+      const liste = await ayniAracinDenetimleri({ vin: vinBos ? '' : vin.vin, bodyNo }).catch(() => []);
+      setOnceki({ anahtar: kimlikAnahtari, liste });
       if (liste.length) return;
     }
     setGonderiliyor(true);
@@ -107,18 +121,27 @@ export default function YeniDenetim() {
       // Yalnız ekranda SEÇİLİ görünen değer yazılır: listeden kaldırılmış bir
       // ad hatırlanmış olsa bile formda görünmüyorsa rapora da gitmez.
       const denetci = listedeyse(denetciler.liste, v.denetci);
-      await ayarYaz('varsayilanlar', { denetci, aracId });
+      const kaynak = listedeyse(kaynaklar.liste, v.kaynak);
+      await ayarYaz('varsayilanlar', { denetci, kaynak, aracId });
+      const baslangic = new Date().toISOString();
       const d = await denetimOlustur({
-        aracId, vin: vin.vin, plaka: '', raporNo: '',
-        denetci, hat: '', vardiya: '', denetimTipi: KAYNAK, faz: '', ekip: '',
-        spec, km: null,
-        baslangic: new Date().toISOString(),
+        aracId, vin: vinBos ? '' : vin.vin, bodyNo, plaka: '', raporNo: '',
+        denetci, hat: '', vardiya: '', denetimTipi: kaynak, faz: '', ekip: '',
+        spec, km: null, baslangic,
       });
-      router.replace({ pathname: '/denetim/[id]', params: { id: d.id } });
+      if (hatasiz) {
+        await denetimGuncelle(d.id, { durum: 'tamam', bitis: baslangic });
+        // Ana sayfaya: kart "TAMAMLANDI · 0 hata", sayaç bir araç artar.
+        // replace('/') değil — yığında ikinci ana sayfa bırakırdı.
+        router.dismissTo('/');
+      } else {
+        router.replace({ pathname: '/denetim/[id]', params: { id: d.id } });
+      }
     } finally {
       setGonderiliyor(false);
     }
-  }, [aracId, bilgiY, denetciler.liste, eksikSoylendi, eksikler.length, onceki, router, spec, v, vin.gecerli, vin.vin]);
+  }, [aracId, bilgiY, bodyNo, denetciler.liste, eksikSoylendi, eksikler.length, kaynaklar.liste, kimlikAnahtari,
+    kimlikTamam, onceki, router, spec, v, vin.vin, vinBos]);
 
   const oncekiniAc = (d: OncekiDenetim) => (d.durum === 'tamam'
     ? router.replace({ pathname: '/denetim/rapor', params: { id: d.id, kaynak: 'ana' } })
@@ -128,7 +151,9 @@ export default function YeniDenetim() {
   // Geçersiz şasinin hatası denendikten sonra kutunun ALTINDA kırmızı yazıyor;
   // aynı cümle bir de turuncu kutuda çıkıyordu (sınama) — artık tek yerde.
   const vinDurumu = !vinHam
-    ? { tur: 'bilgi' as const, metin: `Barkodu okutun ya da ${VIN_UZUNLUK} haneyi yazın.` }
+    ? (bodyNo
+      ? { tur: 'bilgi' as const, metin: 'Şasi yok: araç body no ile kaydedilir.' }
+      : { tur: denendi ? 'uyari' as const : 'bilgi' as const, metin: `Barkodu okutun ya da ${VIN_UZUNLUK} haneyi yazın — ya da aşağıya body no girin.` })
     : vin.gecerli && !vin.uyarilar.length
       ? { tur: 'basari' as const, metin: `Geçerli · ${vin.bilgi.uretici ?? vin.bilgi.wmi} · model yılı ${vin.bilgi.modelYili ?? '?'}` }
       : denendi && !vin.gecerli
@@ -197,13 +222,25 @@ export default function YeniDenetim() {
               spellCheck={false}
               maxLength={40}
               accessibilityLabel="Şasi numarası"
-              hata={denendi && !vin.gecerli ? vin.hatalar.join(' ') : undefined}
+              hata={denendi && !vinBos && !vin.gecerli ? vin.hatalar.join(' ') : undefined}
             />
             {vinDurumu ? <BilgiKutusu tur={vinDurumu.tur} metin={vinDurumu.metin} /> : null}
             <View style={s.satir}>
               <Dugme metin="Barkod okut" simge={S.barkod} kucuk onPress={() => router.push('/barkod')} style={{ flex: 1 }} />
               <Dugme metin="Temizle" simge={S.kapat} kucuk tur="sessiz" onPress={() => setVinHam('')} />
             </View>
+            <Girdi
+              etiket="BODY NO"
+              mono
+              value={bodyNoHam}
+              onChangeText={(t) => setBodyNoHam(bodyNoSadelestir(t))}
+              placeholder="Örn. 015253"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              spellCheck={false}
+              maxLength={BODY_NO_AZAMI}
+              accessibilityLabel="Body numarası"
+            />
             <View style={{ gap: bosluk.xxs }}>
               <Text style={s.alanEtiketi}>SPEC</Text>
               <View style={s.satir}>
@@ -233,6 +270,14 @@ export default function YeniDenetim() {
               degistir={(d) => setV({ ...v, denetci: d })}
               yerTutucu="Ad Soyad"
             />
+            <EklenebilirSecim
+              baslik="PROBLEM SOURCE"
+              ad="Kaynak"
+              liste={kaynaklar}
+              deger={listedeyse(kaynaklar.liste, v.kaynak)}
+              degistir={(k) => setV({ ...v, kaynak: k })}
+              yerTutucu="Örn. Durability"
+            />
           </Kart>
         </View>
       </ScrollView>
@@ -249,21 +294,33 @@ export default function YeniDenetim() {
         <View style={s.uyariBandi}>
           <BilgiKutusu
             tur="uyari"
-            metin={`Bu şasi için ${onceki.liste.length} denetim var. Son: ${bicimTarih(onceki.liste[0]!.baslangic)} · ${ARAC_INDEKS[onceki.liste[0]!.aracId]?.ad ?? onceki.liste[0]!.aracId} · ${onceki.liste[0]!.durum === 'tamam' ? 'tamamlandı' : 'devam ediyor'}.`}
+            metin={`Bu araç için ${onceki.liste.length} denetim var. Son: ${bicimTarih(onceki.liste[0]!.baslangic)} · ${ARAC_INDEKS[onceki.liste[0]!.aracId]?.ad ?? onceki.liste[0]!.aracId} · ${onceki.liste[0]!.durum === 'tamam' ? 'tamamlandı' : 'devam ediyor'}.`}
           />
-          <Dugme metin="Onu aç" kucuk simge={S.liste} onPress={() => oncekiniAc(onceki.liste[0]!)} erisimEtiketi="Bu şasinin son denetimini aç" />
+          <Dugme metin="Onu aç" kucuk simge={S.liste} onPress={() => oncekiniAc(onceki.liste[0]!)} erisimEtiketi="Bu aracın son denetimini aç" />
         </View>
       ) : null}
 
       <AltCubuk style={tablet ? { justifyContent: 'flex-end' } : undefined}>
+        {/* Excel'deki "Problem Yok Aracı Kaydet": hatasız araç açılıp kapanmadan,
+            tek dokunuşla "tamamlandı · 0 hata" olarak kaydedilir. Uyarılar
+            (denetçi, aynı araç) "Denetime başla" ile aynı: ilk dokunuşta
+            söylenir, ikincisi kaydeder. */}
+        <Dugme
+          metin="Problem yok"
+          simge={S.tamam}
+          pasif={gonderiliyor}
+          onPress={() => olustur(true)}
+          erisimEtiketi="Problem yok: hatasız aracı kaydet ve bitir"
+          style={tablet ? { minWidth: 200 } : { flex: 1 }}
+        />
         <Dugme
           metin={(eksikler.length && eksikSoylendi) || onceVar ? 'Yine de başla' : 'Denetime başla'}
           tur="birincil"
           simge={S.basla}
           simgeSonda
           yukleniyor={gonderiliyor}
-          onPress={basla}
-          style={tablet ? { minWidth: 280 } : { flex: 1 }}
+          onPress={() => olustur(false)}
+          style={tablet ? { minWidth: 280 } : { flex: 1.4 }}
         />
       </AltCubuk>
     </KeyboardAvoidingView>

@@ -43,6 +43,7 @@ import { bastanKucult, BOLGELER, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parc
 import { denetimOzeti, dereceGosterimi, hataKodu, topluOzet } from './puan';
 import { ARAC_INDEKS } from './model3d';
 import { kmGoster } from './aracBilgisi';
+import { aracKimligi } from './vin';
 
 /**
  * Ekibin tablosundaki "Issue" sütunu: bölge sütunu olmadan da tek başına
@@ -130,6 +131,8 @@ function ustBilgiCiftleri(denetim: Denetim, ozet: Ozet, dil: Dil): (string | num
   const ciftler: [string, string | number][] = [
     [E('Araç', 'Vehicle'), arac?.tam ?? denetim.aracId ?? ''],
     [E('Şasi No (VIN)', 'VIN'), denetim.vin || ''],
+    // Body no 24.10.2026'da eklendi (şirketteki Excel formu aracı onunla tanıyor).
+    ['Body No', denetim.bodyNo || ''],
     [E('Tarih', 'Date'), bicimTarih(denetim.baslangic)],
     [E('Kaynak', 'Source'), denetim.denetimTipi || ''],
     [E('Denetçi', 'Auditor'), denetim.denetci || ''],
@@ -261,7 +264,7 @@ export function excelUret(
   };
 
   return xlsxOlustur([raporSayfasi, ozetSayfasi(denetim, ozet, dil)], {
-    baslik: `${denetim.vin || 'Denetim'} — ${dil === 'en' ? 'Vehicle Audit' : 'Araç Denetimi'}`,
+    baslik: `${aracKimligi(denetim) || 'Denetim'} — ${dil === 'en' ? 'Vehicle Audit' : 'Araç Denetimi'}`,
     yazar: denetim.denetci || 'Arac Audit',
   });
 }
@@ -346,13 +349,14 @@ export function topluExcelUret(
     [{ v: 'DPU (Defects Per Unit)', stil: STIL.ETIKET }, { v: toplu.dpu, stil: STIL.SAYI }],
     [],
     [{ v: E('ARAÇLAR', 'VEHICLES'), stil: STIL.ETIKET }],
-    [E('Şasi No', 'VIN'), E('Araç', 'Vehicle'), E('Faz', 'Phase'), E('Tarih', 'Date'),
+    [E('Şasi No', 'VIN'), 'Body No', E('Araç', 'Vehicle'), E('Faz', 'Phase'), E('Tarih', 'Date'),
      E('Denetçi', 'Auditor'), E('Bulgu', 'Findings')].map((v) => ({ v, stil: STIL.BASLIK })),
   ];
 
   for (const { denetim, ozet } of toplu.ozetler) {
     satirlar.push([
       { v: denetim.vin ?? '', stil: STIL.GOVDE },
+      { v: denetim.bodyNo || '', stil: STIL.GOVDE },
       { v: ARAC_INDEKS[denetim.aracId]?.ad ?? denetim.aracId ?? '', stil: STIL.GOVDE },
       { v: denetim.faz ?? '', stil: STIL.GOVDE_ORTA },
       { v: bicimTarih(denetim.baslangic), stil: STIL.GOVDE_ORTA },
@@ -412,7 +416,7 @@ function tekSayfaVerisi(denetim: Denetim, fotograflar: Map<string, FotografBaytl
     if (enYuksek) satirYukseklikleri[satirNo] = pikselPunto(enYuksek + 12);
   });
 
-  const ad = (denetim.vin || denetim.plaka || denetim.id || 'Arac').slice(-12);
+  const ad = (denetim.vin || (denetim.bodyNo ? `body${denetim.bodyNo}` : '') || denetim.plaka || denetim.id || 'Arac').slice(-12);
   return {
     ad, satirlar,
     sutunGenislikleri: SUTUNLAR.map((s) => s.genislik),
@@ -483,7 +487,7 @@ export function htmlRapor(
 
   return `<section class="rapor">
 <header><h1>${E('Araç Denetim Raporu', 'Vehicle Audit Report')}</h1>
-<p class="r-arac">${g(arac?.tam ?? denetim.aracId ?? '')} · ${g(denetim.vin ?? '')}</p></header>
+<p class="r-arac">${g(arac?.tam ?? denetim.aracId ?? '')} · ${g(aracKimligi(denetim))}</p></header>
 <div class="r-izgara">${ustBilgi}</div>
 <div class="r-kaydir"><table class="r-tablo"><thead><tr>${basliklar}</tr></thead><tbody>${govde || `<tr><td colspan="${gorunurSutunlar.length}">${E('Hata kaydedilmedi.', 'No defects recorded.')}</td></tr>`}</tbody></table></div>
 </section>`;

@@ -14,6 +14,7 @@ import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { denetimOzeti } from '@/cekirdek/puan';
 import { kmGoster } from '@/cekirdek/aracBilgisi';
 import { bicimTarih, csvUret, excelUret } from '@/cekirdek/rapor';
+import { aracKimligi } from '@/cekirdek/vin';
 import { Denetim, FotografBaytlari } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { AcmaIstegi, useAcmaIstegi } from '@/veri/acmaIstegi';
@@ -68,7 +69,7 @@ export default function RaporEkrani() {
   const dosyaAdi = useCallback((d: Denetim, uzanti: string) => {
     const t = new Date(d.baslangic);
     const iki = (n: number) => String(n).padStart(2, '0');
-    return `denetim_${d.vin || 'sasisiz'}_${t.getFullYear()}${iki(t.getMonth() + 1)}${iki(t.getDate())}_${iki(t.getHours())}${iki(t.getMinutes())}.${uzanti}`;
+    return `denetim_${d.vin || (d.bodyNo ? `body${d.bodyNo}` : 'sasisiz')}_${t.getFullYear()}${iki(t.getMonth() + 1)}${iki(t.getDate())}_${iki(t.getHours())}${iki(t.getMinutes())}.${uzanti}`;
   }, []);
 
   const paylas = useCallback(async (tur: 'xlsx' | 'csv') => {
@@ -150,7 +151,8 @@ export default function RaporEkrani() {
 
   const kunye: [string, string, boolean?][] = [
     ['Araç', arac?.tam ?? denetim.aracId],
-    ['Şasi', denetim.vin, true],
+    ['Şasi', denetim.vin || '—', true],
+    ['Body No', denetim.bodyNo || '—', true],
     ['Spec', denetim.spec || '—'],
     ['Kaynak', denetim.denetimTipi || '—'],
     ['Denetçi', denetim.denetci || '—'],
@@ -177,7 +179,7 @@ export default function RaporEkrani() {
         sol={<GeriDugmesi />}
         cipler={(
           <>
-            <BaslikCipi metin={denetim.vin} mono />
+            <BaslikCipi metin={aracKimligi(denetim)} mono />
             <BaslikCipi simge={S.arac} metin={arac?.ad ?? denetim.aracId} />
             {denetim.faz ? <BaslikCipi simge={S.faz} metin={denetim.faz} /> : null}
             <BaslikCipi

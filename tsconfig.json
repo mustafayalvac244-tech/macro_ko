@@ -28,6 +28,7 @@
     "tests/aracAuditArama.test.ts",
     "tests/aracAuditVinUygulama.test.ts",
     "tests/aracAuditRaporDurum.test.ts",
-    "tests/aracAuditSayac.test.ts"
+    "tests/aracAuditSayac.test.ts",
+    "tests/aracAuditBodyNo.test.ts"
   ]
 }

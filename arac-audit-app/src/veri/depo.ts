@@ -171,6 +171,14 @@ const GOCLER: string[] = [
   ALTER TABLE denetimler ADD COLUMN spec TEXT NOT NULL DEFAULT '';
   ALTER TABLE denetimler ADD COLUMN km   INTEGER;
   `,
+
+  // 6 — ürün sahibi, 24.10.2026: şirketteki Excel formu aracı body numarasıyla
+  // tanıyor ("015253"); "Body no ile giriş" istendi. Eski denetimlerde boş.
+  // Aynı aracın ikinci denetimini bulmak için indeksli.
+  `
+  ALTER TABLE denetimler ADD COLUMN body_no TEXT NOT NULL DEFAULT '';
+  CREATE INDEX IF NOT EXISTS denetimler_body_no ON denetimler (body_no);
+  `,
 ];
 
 async function gocleriUygula(d: SQLite.SQLiteDatabase): Promise<void> {
@@ -193,7 +201,7 @@ const simdi = () => new Date().toISOString();
 interface DenetimSatiri {
   id: string; arac_id: string; vin: string; plaka: string; rapor_no: string;
   denetci: string; hat: string; vardiya: string; denetim_tipi: string;
-  faz: string; ekip: string; spec: string; km: number | null;
+  faz: string; ekip: string; spec: string; km: number | null; body_no: string | null;
   baslangic: string; bitis: string | null; durum: string; senkron_zamani: string | null;
 }
 
@@ -209,7 +217,7 @@ function denetimeCevir(d: DenetimSatiri, hatalar: Hata[]): Denetim {
   return {
     id: d.id, aracId: d.arac_id, vin: d.vin, plaka: d.plaka, raporNo: d.rapor_no,
     denetci: d.denetci, hat: d.hat, vardiya: d.vardiya, denetimTipi: d.denetim_tipi,
-    faz: d.faz ?? '', ekip: d.ekip ?? '', spec: d.spec ?? '', km: d.km ?? null,
+    faz: d.faz ?? '', ekip: d.ekip ?? '', spec: d.spec ?? '', km: d.km ?? null, bodyNo: d.body_no ?? '',
     baslangic: d.baslangic, bitis: d.bitis, durum: d.durum as Denetim['durum'],
     senkronZamani: d.senkron_zamani, hatalar,
   };
@@ -235,11 +243,11 @@ export async function denetimOlustur(
   const id = kimlikUret('d');
   await d.runAsync(
     `INSERT INTO denetimler (id, arac_id, vin, plaka, rapor_no, denetci, hat, vardiya,
-       denetim_tipi, faz, ekip, spec, km, baslangic, bitis, durum, guncelleme, senkron_zamani)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'devam', ?, NULL)`,
+       denetim_tipi, faz, ekip, spec, km, body_no, baslangic, bitis, durum, guncelleme, senkron_zamani)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'devam', ?, NULL)`,
     id, girdi.aracId, girdi.vin, girdi.plaka, girdi.raporNo, girdi.denetci,
     girdi.hat, girdi.vardiya, girdi.denetimTipi, girdi.faz, girdi.ekip, girdi.spec, girdi.km,
-    girdi.baslangic, simdi(),
+    girdi.bodyNo ?? '', girdi.baslangic, simdi(),
   );
   return { ...girdi, id, bitis: null, durum: 'devam', senkronZamani: null, hatalar: [] };
 }
@@ -262,7 +270,7 @@ export async function hatalariGetir(denetimId: string): Promise<Hata[]> {
 
 /** Liste ekranı için özet satırlar — hataların tamamını çekmeden. */
 export interface DenetimOzetSatiri {
-  id: string; aracId: string; vin: string; plaka: string; spec: string; baslangic: string;
+  id: string; aracId: string; vin: string; bodyNo: string; plaka: string; spec: string; baslangic: string;
   durum: string; denetci: string; hataAdedi: number;
   /** Kabul edilebilir işaretlenmemiş 3. derece hata adedi. */
   agirAdedi: number;
@@ -297,11 +305,11 @@ export async function denetimleriListele(enFazla = 100): Promise<DenetimOzetSati
   // Sayım SQL'de yapılır: 200 denetimi belleğe çekip toplamak, liste
   // ekranını açılışta tutuklaştırırdı.
   const satirlar = await d.getAllAsync<{
-    id: string; arac_id: string; vin: string; plaka: string; spec: string | null; baslangic: string;
+    id: string; arac_id: string; vin: string; body_no: string | null; plaka: string; spec: string | null; baslangic: string;
     durum: string; denetci: string; senkron_zamani: string | null;
     hata_adedi: number | null; agir: number | null;
   }>(
-    `SELECT dn.id, dn.arac_id, dn.vin, dn.plaka, dn.spec, dn.baslangic, dn.durum, dn.denetci, dn.senkron_zamani,
+    `SELECT dn.id, dn.arac_id, dn.vin, dn.body_no, dn.plaka, dn.spec, dn.baslangic, dn.durum, dn.denetci, dn.senkron_zamani,
             COALESCE(SUM(h.adet), 0) AS hata_adedi,
             COALESCE(SUM(CASE WHEN h.derece = '3' AND h.kabul_edilebilir = 0 THEN h.adet ELSE 0 END), 0) AS agir
        FROM denetimler dn
@@ -312,7 +320,7 @@ export async function denetimleriListele(enFazla = 100): Promise<DenetimOzetSati
     enFazla,
   );
   return satirlar.map((s) => ({
-    id: s.id, aracId: s.arac_id, vin: s.vin, plaka: s.plaka, spec: s.spec ?? '', baslangic: s.baslangic,
+    id: s.id, aracId: s.arac_id, vin: s.vin, bodyNo: s.body_no ?? '', plaka: s.plaka, spec: s.spec ?? '', baslangic: s.baslangic,
     durum: s.durum, denetci: s.denetci, hataAdedi: s.hata_adedi ?? 0,
     agirAdedi: s.agir ?? 0, senkronlandi: !!s.senkron_zamani,
   }));
@@ -327,7 +335,7 @@ export async function denetimGuncelle(id: string, alanlar: Partial<Denetim>): Pr
     aracId: 'arac_id', vin: 'vin',
     plaka: 'plaka', raporNo: 'rapor_no', denetci: 'denetci', hat: 'hat',
     vardiya: 'vardiya', denetimTipi: 'denetim_tipi', faz: 'faz', ekip: 'ekip',
-    spec: 'spec', km: 'km', bitis: 'bitis', durum: 'durum',
+    spec: 'spec', km: 'km', bodyNo: 'body_no', bitis: 'bitis', durum: 'durum',
   };
   const setler: string[] = [];
   const degerler: SQLite.SQLiteBindValue[] = [];
@@ -345,17 +353,21 @@ export async function denetimGuncelle(id: string, alanlar: Partial<Denetim>): Pr
 }
 
 /**
- * Bu şasiyle açılmış denetimler, en yenisi önce. Yeni denetimde "bu şasi için
- * zaten bir denetim var" uyarısı için: aynı şasi uyarısız ikinci kez
- * açılabiliyordu, listede aynı şasili iki kart kalıyordu (sınama, 28.09.2026).
+ * Bu araçla (aynı şasi YA DA aynı body no) açılmış denetimler, en yenisi önce.
+ * Yeni denetimde "bu araç için zaten bir denetim var" uyarısı için: aynı şasi
+ * uyarısız ikinci kez açılabiliyordu, listede aynı şasili iki kart kalıyordu
+ * (sınama, 28.09.2026). Body no 24.10.2026'da eklendi. Boş değer hiçbir
+ * şeyle eşleşmez — şasisiz iki denetim "aynı araç" sayılmasın.
  */
-export async function vinIleDenetimler(vin: string): Promise<
+export async function ayniAracinDenetimleri(kimlik: { vin: string; bodyNo: string }): Promise<
   { id: string; aracId: string; baslangic: string; durum: DenetimDurumu }[]
 > {
   const d = await db();
   const satirlar = await d.getAllAsync<{ id: string; arac_id: string; baslangic: string; durum: DenetimDurumu }>(
-    'SELECT id, arac_id, baslangic, durum FROM denetimler WHERE vin = ? ORDER BY baslangic DESC',
-    vin,
+    `SELECT id, arac_id, baslangic, durum FROM denetimler
+      WHERE (? <> '' AND vin = ?) OR (? <> '' AND body_no = ?)
+      ORDER BY baslangic DESC`,
+    kimlik.vin, kimlik.vin, kimlik.bodyNo, kimlik.bodyNo,
   );
   return satirlar.map((r) => ({ id: r.id, aracId: r.arac_id, baslangic: r.baslangic, durum: r.durum }));
 }

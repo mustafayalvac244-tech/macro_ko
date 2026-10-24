@@ -13,6 +13,7 @@ import {
 import { aramaSadelestir } from '@/cekirdek/arama';
 import { ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { bicimTarih } from '@/cekirdek/rapor';
+import { aracKimligi } from '@/cekirdek/vin';
 import { donemBaslangiclari, sayacHesapla, SayacSonucu } from '@/cekirdek/sayac';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { DenetimOzetSatiri, denetimleriListele, sayacVerisi } from '@/veri/depo';
@@ -65,7 +66,7 @@ export default function DenetimListesi() {
       if (suzgec !== 'hepsi' && d.durum !== suzgec) return false;
       if (!sozcukler.length) return true;
       const metin = aramaSadelestir([
-        d.vin, ARAC_INDEKS[d.aracId]?.ad, d.spec, d.denetci, bicimTarih(d.baslangic),
+        d.vin, d.bodyNo, ARAC_INDEKS[d.aracId]?.ad, d.spec, d.denetci, bicimTarih(d.baslangic),
       ].filter(Boolean).join(' '));
       return sozcukler.every((q) => metin.includes(q));
     });
@@ -116,7 +117,7 @@ export default function DenetimListesi() {
           <AramaKutusu
             deger={arama}
             degistir={setArama}
-            yerTutucu="Şasi (son haneler de olur), araç, denetçi…"
+            yerTutucu="Şasi ya da body no (son haneler de olur), araç…"
             erisimEtiketi="Denetim ara"
           />
           <View style={s.suzgecSatir}>
@@ -207,7 +208,7 @@ function DenetimKarti({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={devam ? `${satir.vin} denetimini aç` : `${satir.vin} raporunu aç`}
+      accessibilityLabel={devam ? `${aracKimligi(satir)} denetimini aç` : `${aracKimligi(satir)} raporunu aç`}
       onPress={onPress}
       style={({ pressed }) => [s.kart, tablet && s.kartIkili, pressed && s.basili]}
     >
@@ -216,7 +217,7 @@ function DenetimKarti({
           {arac ? <AracIkonu arac={arac} boy={24} /> : <S.arac size={24} color={renkler.metinIkincil} strokeWidth={1.75} />}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.vin} numberOfLines={1}>{satir.vin || '(şasi yok)'}</Text>
+          <Text style={s.vin} numberOfLines={1}>{aracKimligi(satir) || '(şasi yok)'}</Text>
           <Text style={s.meta} numberOfLines={1}>
             {arac?.ad ?? satir.aracId}{satir.spec ? ` · ${satir.spec}` : ''}
           </Text>

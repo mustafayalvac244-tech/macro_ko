@@ -16,7 +16,20 @@
 export const HAZIR_DENETCILER: readonly string[] = [];
 
 /** `ayarlar` tablosundaki anahtarlar. */
-export const LISTE_ANAHTARI = { denetci: 'denetciListesi' } as const;
+/**
+ * Problem Source (raporun "Source" sütunu). Ürün sahibi, 24.10.2026:
+ * şirketteki Excel formunda "Problem Source: AUDIT" seçiliyor ve ayrı
+ * DURABILITY sayfaları var; "Problem Source" eklensin dedi.
+ *
+ * "HMC Audit" ekibin kendi tablosundaki yazım (26.09.2026 ekran görüntüsü);
+ * 28.09'dan beri her denetime sabit yazılıyordu, varsayılan o kalır.
+ * "Durability" Excel'deki sayfa adlarından; listedeki diğer olası değerler
+ * bilinmiyor — ekip "+ Ekle" ile ekler.
+ */
+export const HAZIR_KAYNAKLAR: readonly string[] = ['HMC Audit', 'Durability'];
+export const VARSAYILAN_KAYNAK = 'HMC Audit';
+
+export const LISTE_ANAHTARI = { denetci: 'denetciListesi', kaynak: 'kaynakListesi' } as const;
 
 /** Yazılışı sadeleştirir: baş/son boşluk atılır, iç boşluklar teke iner. */
 export const sadelestir = (s: string): string => s.trim().replace(/\s+/g, ' ');
