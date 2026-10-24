@@ -9,11 +9,13 @@ import {
   AltCubuk, Baslik, BaslikCipi, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi,
   HataKutusu, Kart, Olcu, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
-import { DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi } from '@/cekirdek/katalog';
+import { DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi, bolgelerAracIcin } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { denetimOzeti } from '@/cekirdek/puan';
 import { kmGoster } from '@/cekirdek/aracBilgisi';
 import { bicimTarih, csvUret, excelUret } from '@/cekirdek/rapor';
+import { sureDakika, sureMetni } from '@/cekirdek/istatistik';
+import { eksikSistemler, kapsamMetni, mevcutSistemler, sistemAdi } from '@/cekirdek/sistemler';
 import { aracKimligi } from '@/cekirdek/vin';
 import { Denetim, FotografBaytlari } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
@@ -170,6 +172,11 @@ export default function RaporEkrani() {
     ['Durum', denetim.durum === 'tamam'
       ? `Tamamlandı${denetim.bitis ? ` · ${bicimTarih(denetim.bitis)}` : ''}`
       : 'Devam ediyor'],
+    // Süre ve kapsam 24.10.2026'da eklendi (benzer uygulamaların incelenmesi).
+    ...(denetim.durum === 'tamam' && sureDakika(denetim.baslangic, denetim.bitis) !== null
+      ? [['Süre', sureMetni(sureDakika(denetim.baslangic, denetim.bitis))] as [string, string]]
+      : []),
+    ['Kontrol edilen sistemler', kapsamMetni(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })))],
   ];
 
   return (
@@ -316,6 +323,10 @@ export default function RaporEkrani() {
         <View style={s.onayBandi}>
           <Text style={s.onayMetin}>
             Denetim "tamamlandı" olarak işaretlenecek. Sonradan kayıt eklenirse yeniden açılır.
+            {/* Kapsam uyarısı (24.10.2026): hiç bakılmamış sistem "hatasız" sanılmasın. */}
+            {eksikSistemler(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }))).length
+              ? ` Kontrol edildi işareti olmayan sistemler: ${eksikSistemler(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }))).map((x) => sistemAdi(x)).join(', ')}.`
+              : ' Bütün sistemler kontrol edildi.'}
           </Text>
           <Dugme metin="Vazgeç" tur="sessiz" kucuk onPress={() => setBitirOnay(false)} erisimEtiketi="Bitirmekten vazgeç" />
         </View>

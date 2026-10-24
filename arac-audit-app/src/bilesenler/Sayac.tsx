@@ -11,12 +11,12 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { S } from '@/bilesenler/simgeler';
-import { BolumBasligi, Kart } from '@/bilesenler/temel';
+import { BolumBasligi, Dugme, Kart } from '@/bilesenler/temel';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { DONEMLER, DonemSayilari, dpu, SayacSonucu } from '@/cekirdek/sayac';
 import { bosluk, Renkler, tipografi, useTema } from '@/tema';
 
-export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
+export function Sayac({ sonuc, onAnaliz }: { sonuc: SayacSonucu; onAnaliz?: () => void }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   // Bu yıl hiç denetim yoksa boş tablo göstermenin anlamı yok.
@@ -42,7 +42,11 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
 
   return (
     <Kart>
-      <BolumBasligi metin="DENETLENEN ARAÇ" simge={S.tarih} />
+      <BolumBasligi
+        metin="DENETLENEN ARAÇ"
+        simge={S.tarih}
+        sag={onAnaliz ? <Dugme metin="Analiz" kucuk simge={S.rapor} onPress={onAnaliz} erisimEtiketi="Analiz ekranını aç" /> : undefined}
+      />
       <View style={s.satir} importantForAccessibility="no-hide-descendants" aria-hidden>
         <View style={s.adBos} />
         {DONEMLER.map((d) => <Text key={d.id} style={s.baslik} numberOfLines={1}>{d.ad.toLocaleUpperCase('tr')}</Text>)}

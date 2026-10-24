@@ -39,7 +39,9 @@ export interface Sutun {
 }
 
 import { xlsxOlustur, STIL, gosterimOlcusu, pikselPunto, sutunAdi } from './xlsx';
-import { bastanKucult, BOLGELER, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi } from './katalog';
+import { bastanKucult, BOLGELER, bolgelerAracIcin, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi } from './katalog';
+import { sureDakika, sureMetni } from './istatistik';
+import { kapsamMetni, mevcutSistemler } from './sistemler';
 import { denetimOzeti, dereceGosterimi, hataKodu, topluOzet } from './puan';
 import { ARAC_INDEKS } from './model3d';
 import { kmGoster } from './aracBilgisi';
@@ -140,6 +142,15 @@ function ustBilgiCiftleri(denetim: Denetim, ozet: Ozet, dil: Dil): (string | num
     // Durum 28.09.2026'da eklendi: yarım ve bitmiş denetimin dosyaları hücre
     // hücre aynıydı; alan kişi taslak mı son hâl mi anlayamıyordu (sınama).
     [E('Durum', 'Status'), durumMetni(denetim, dil)],
+    // Süre ve kapsam 24.10.2026'da eklendi. Kapsam yalnız `kapsam` alanı
+    // DOLU nesnelerde (denetimGetir); elle kurulan eski testler değişmesin.
+    ...(denetim.durum === 'tamam' && sureDakika(denetim.baslangic, denetim.bitis) !== null
+      ? [[E('Süre', 'Duration'), sureMetni(sureDakika(denetim.baslangic, denetim.bitis), dil)] as [string, string]]
+      : []),
+    ...(denetim.kapsam
+      ? [[E('Kontrol edilen sistemler', 'Systems checked'),
+        kapsamMetni(denetim.kapsam, mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })), dil)] as [string, string]]
+      : []),
     ...([
       [E('Plaka', 'Plate'), denetim.plaka || ''],
       [E('Kilometre', 'Mileage'), kmGoster(denetim.km, dil)],

@@ -392,6 +392,47 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
 - **Area** değerleri: ekibin tablosunda "Moving & Interior" gibi daha kaba
   alanlar var; şimdilik kendi bölge adlarımız yazılıyor.
 
+## Dünyadaki benzerler ve onlardan alınanlar (24.10.2026)
+
+Ürün sahibi: *"Sen geliştir, tam gözden geçir, dünyada örnekleri varsa kopya
+çek, derin araştırma yap ve uygula, bana sorma."* Araştırma yalnız web
+aramasıyla yapılabildi; bu ortamda site sayfaları açılamıyor (DNS kapalı),
+o yüzden aşağıdakiler arama özetlerine dayanır, sayfaların kendisi okunmadı.
+Vendor sayfaları pazarlama metnidir; bağımsız inceleme bulunmadı.
+
+| Kaynak | Ne yapıyor | Bizde |
+|---|---|---|
+| [ATS Inspect — EV üreticisi vaka](https://www.ats-global.com/success-stories/paperless-quality-inspection-at-electric-car-manufacturer/) | Tablette 3B CAD üstünde kusurun yerine dokunma; tip, şiddet, sorumlu hücre, fotoğraf; araca göre değişen kontrol listesi; son kalite kapısı; anlık rapor | 3B yerine **şematik araç haritası** (bölgeye dokun); **kapsam** (sistem kontrol listesi) ve Bitir'de eksik sistem uyarısı |
+| [SafetyCulture / iAuditor](https://safetyculture.com/iAuditor) · [App Store](https://apps.apple.com/us/app/iauditor-inspections-checks/id499999532) | Kontrol listesi şablonları, fotoğraf üstüne çizim, çevrimdışı, fotoğraflı ve imzalı PDF/CSV/Word rapor | Kapsam listesi; Excel/CSV/HTML rapor zaten vardı. **Fotoğraf üstüne çizim ve imza YOK** (aşağıda) |
+| [iFactory — son kontrol panosu](https://ifactoryapp.com/industries/automotive-manufacturing/final-inspection-quality-dashboard-first-time-through) · [kalite analitiği](https://ifactoryapp.com/article/quality-analytics-dashboard-software) | FTT/DPU istasyon bazında, hata tipi dağılımı, tekrar eden araç bayrağı, vardiya kalıpları; Pareto'nun en uzun çubuğunu kırmak | **Analiz** ekranı: Pareto (birikimli pay), **tekrarlayan hata** (≥2 araç), sisteme göre DPU, **haftalık DPU** (8 hafta) |
+| [2013 — koltuk son kontrolünde Pareto](https://reference-global.com/download/article/10.2478/ata-2013-0012.pdf) | Aylık kontrol verisinden uygunsuzlukları Pareto ile sıralama | Aynı yöntem, parça + hata tipi çifti üstünden |
+| [Dealers Online — panel hasarı belgeleme](https://hub.dealersonline.co.za/guides/essential-steps-for-documenting-panel-damage) · [AP Inspector](https://apps.apple.com/app/id6764258571) · [PurInspect](https://apps.apple.com/us/app/id1610157502) | Şemada panele dokun → hasar tipi → yakın fotoğraf, kalem/fosforlu işaretleme | Harita akışı; **işaretleme yok** |
+| [Infor Nexus QA](https://www.infor.com/resources/infor-nexus-quality-assurance) · [Wooqer](https://wooqer.com/feeds/service/manufacturing-audit-software) | Denetim sırasında hata + fotoğraf; standart hata kodları; tekrarlayan sorun panoları | Standart katalog zaten vardı; tekrarlayan hata eklendi |
+| [CAQ Compact.Net](https://caq.de/en/quality-inspection-software) | Muayene planı + veri toplama, SPC uyarıları, kök neden | Kapsam dışı (SPC yok) |
+| [Coventry — Final Vehicle Product Audit](https://pureportal.coventry.ac.uk/en/publications/final-vehicle-product-audit-methodologies-within-the-automotive-i/) · [FISITA — demerit](https://go.fisita.com/store/papers/MVT2012/MVT_20124003) | Sözel değerlendirmeyi puana çevirme; ağırlıklı ceza (demerit) | Ceza puanı yok (ürün sahibi 16.09: "bizde öyle bir şey yok"); DPU var |
+
+Hyundai/Kia'ya özgü GCA/DPHU ölçütü aramada bulunamadı; yalnız genel
+kalite haberleri çıktı (J.D. Power PP100 vb.). O yüzden skor DPU'da kaldı.
+
+**Bu turda eklenenler:** kapsam (göç 7 `denetim_kapsam`; hata kaydedilince
+sistem kendiliğinden işaretlenir, hatasızsa elle; Bitir bandı eksikleri
+sayar; künye ve Excel'de "Kontrol edilen sistemler"), araç haritası
+(`AracHaritasi.tsx`, 5 dış bölge; Alt listede), Analiz ekranı
+(`app/istatistik.tsx`, hesaplar `istatistik.ts`'te testli), denetim süresi
+(kart, künye, Excel), tam yedek (Ayarlar → Veri; zip: `veri.json` +
+fotoğraflar; **geri yükleme yok**).
+
+**Bilerek yapılmayanlar:** fotoğraf üstüne çizim ve imza (SafetyCulture'da
+var; çizim tuvali ve dışa aktarım ayrı bir iş), 3B model (gerçek model yok),
+MES/ERP bağlantısı ve kalite kapısı (ATS; sunucu yok), SPC (CAQ). Hepsi
+merkezi sunucu kurulunca yeniden ele alınır.
+
+**Doğrulama:** `istatistik.ts` ve `sistemler.ts` için 9 birim testi; göç 7
+Node SQLite'ta göç 6'lı veritabanından (çift yazım, yabancı anahtar, silince
+kaskad); uçtan uca sınav 15 adım, 4 düzen; ekran görüntüleri. Sınavı ben
+yazdım, web paketi; **gerçek denetçi ve gerçek cihazla doğrulanmadı**.
+Analiz ekranındaki sayılar bu cihazın verisidir, ekibin toplamı değil.
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |
@@ -415,6 +456,7 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
 | Sadeleştirme: Excel formunda olmayan alanlar kalktı (24.10.2026) | **Bitti** — ürün sahibinin seçtiği yedi alan |
 | Ana sayfa sayacı: araç başına bugün / bu hafta / bu ay / bu yıl (24.10.2026) | **Bitti** — denetlenen araç, hata ve **DPU** (araç başına kabul edilebilir olmayan hata; ürün sahibinin seçimi, Excel raporundaki DPU ile aynı tanım). Excel'deki "Audit Skoru"nun formülü bilinmiyor, o değil. **Yalnız bu cihaz** |
 | Adım adım hata girişi: Sistem → Bölge → Parça → Hata (24.10.2026) | **Bitti** — kayıttan sonra aynı bölgenin parçalarına dönülür; arama kısayol olarak duruyor. Web'de sınandı, **gerçek denetçiyle denenmedi** |
+| Kapsam (sistem kontrol listesi), araç haritası, Analiz (Pareto / tekrarlayan hata / haftalık DPU), süre, tam yedek (24.10.2026) | **Bitti** — "Dünyadaki benzerler" bölümü; web'de sınandı, **gerçek cihazda görülmedi**; geri yükleme yok |
 | Excel formundan: "Problem yok" (hatasız aracı tek dokunuşla kaydet ve bitir), body no ile giriş (şasi isteğe bağlı), Problem Source seçimi (24.10.2026) | **Bitti** — body no biçimi bilinmiyor (tek örnek 6 rakam), kural konmadı; kaynak listesi "HMC Audit / Durability", diğer değerler bilinmiyor, "+ Ekle" ile genişler. Veritabanı göçü 6 Node SQLite'ta sıfırdan ve göç 5'ten koşularak doğrulandı; **telefonda görülmedi** |
 
 ### Kullanılabilirlik sınaması (28.09.2026)

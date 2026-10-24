@@ -216,6 +216,12 @@ export interface Denetim {
   bitis: string | null;
   durum: DenetimDurumu;
   hatalar: Hata[];
+  /**
+   * Kontrol edildi işaretli sistemler (BolgeGrubu kimlikleri; sistemler.ts).
+   * 24.10.2026'da eklendi; `denetimGetir` doldurur, testlerdeki elle kurulan
+   * nesnelerde yoktur — rapor o zaman kapsam satırı basmaz.
+   */
+  kapsam?: string[];
   /** Sunucuya gönderildi mi — çevrimdışı senkron için. */
   senkronZamani?: string | null;
 }

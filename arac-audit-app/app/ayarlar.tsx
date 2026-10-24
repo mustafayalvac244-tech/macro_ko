@@ -11,6 +11,7 @@ import { HATA_GRUPLARI } from '@/cekirdek/katalog';
 import { HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
 import { bosluk, kose, Renkler, TemaTercihi, tipografi, useTema } from '@/tema';
 import { bekleyenSenkron, hataTipiKullanimi } from '@/veri/depo';
+import { yedekOlustur } from '@/veri/yedek';
 import { useKatalog } from '@/veri/katalogDeposu';
 
 const TEMALAR: { deger: TemaTercihi; etiket: string; simge: Simge }[] = [
@@ -30,6 +31,26 @@ export default function Ayarlar() {
   const kaynaklar = useSecimListesi(LISTE_ANAHTARI.kaynak, HAZIR_KAYNAKLAR);
 
   const [bekleyen, setBekleyen] = useState(0);
+  // TAM YEDEK (yedek.ts): kayıtlar yalnız cihazda; bu, kaybolmaya karşı tek önlem.
+  const [yedekleniyor, setYedekleniyor] = useState(false);
+  const [yedekSonucu, setYedekSonucu] = useState<string | null>(null);
+  const [yedekHatasi, setYedekHatasi] = useState<string | null>(null);
+  const yedekAl = async () => {
+    setYedekleniyor(true); setYedekSonucu(null); setYedekHatasi(null);
+    try {
+      const y = await yedekOlustur();
+      const mb = (y.bayt / 1_048_576).toFixed(1).replace('.', ',');
+      setYedekSonucu(
+        `${y.denetim} denetim, ${y.hata} hata, ${y.foto} fotoğraf — ${mb} MB.`
+        + (y.eksikFoto ? ` ${y.eksikFoto} fotoğrafın dosyası bulunamadı, yedeğe girmedi.` : '')
+        + (y.paylasildi ? '' : ` Paylaşım yok; dosya: ${y.uri}`),
+      );
+    } catch (h) {
+      setYedekHatasi(`Yedek alınamadı: ${h instanceof Error ? h.message : String(h)}`);
+    } finally {
+      setYedekleniyor(false);
+    }
+  };
 
   useEffect(() => {
     bekleyenSenkron().then(setBekleyen).catch(() => {});
@@ -87,6 +108,19 @@ export default function Ayarlar() {
               ? `${bekleyen} kayıt (denetim, hata ve fotoğraf satırı) yalnız bu cihazda. Merkezi sunucu bağlantısı henüz kurulmadı; dışarı almak için denetim raporunu Excel olarak paylaşın.`
               : 'Cihazda kayıt yok.'}
           />
+          <Text style={s.aciklama}>
+            Yedek: bütün denetimler, hatalar ve fotoğraflar tek zip dosyasında; Drive'a ya da e-postaya koyun.
+            Telefon kaybolursa tek kopya budur. Geri yükleme henüz yok; dosya düz JSON + JPEG.
+          </Text>
+          <Dugme
+            metin="Yedek al (zip)"
+            simge={S.veri}
+            yukleniyor={yedekleniyor}
+            onPress={yedekAl}
+            erisimEtiketi="Tüm verinin yedeğini al"
+          />
+          {yedekSonucu ? <BilgiKutusu tur="basari" metin={yedekSonucu} /> : null}
+          {yedekHatasi ? <BilgiKutusu tur="uyari" metin={yedekHatasi} /> : null}
         </Kart>
 
         {/* Hangi paketin çalıştığı ve elle güncelleme denetimi. Web'de gizli. */}

@@ -11,34 +11,29 @@
 // bölgede ikinci hata parça + hata = iki dokunuş. Tek bölgeli sistemde
 // (Motor, Fonksiyon, Yol testi) bölge adımı atlanır. Arama kutusu her adımda
 // durur: parçayı bilen yazıp doğrudan seçer.
+//
+// KAPSAM VE HARİTA (24.10.2026, benzer uygulamaların incelenmesi): her
+// sistem kartında "kontrol edildi" işareti (sistemler.ts'teki not); 1. adımda
+// dış bölgelere dokunulan şematik araç haritası (AracHaritasi.tsx).
 
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AracHaritasi } from '@/bilesenler/AracHaritasi';
 import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, BolumBasligi } from '@/bilesenler/temel';
 import { aramaEslesir } from '@/cekirdek/arama';
 import { PARCA_INDEKS, parcaAramaMetni, parcaTamAdi } from '@/cekirdek/katalog';
+import { kisaBolgeAdi, SISTEMLER } from '@/cekirdek/sistemler';
 import { Bolge, BolgeGrubu } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
-
-/** Excel'deki "System" karşılığı. Sıra: denetçinin araç etrafında dolaşma sırası. */
-export const SISTEMLER: readonly { id: BolgeGrubu; ad: string; en: string }[] = [
-  { id: 'dis', ad: 'Dış', en: 'Exterior' },
-  { id: 'ic', ad: 'İç', en: 'Interior' },
-  { id: 'motor', ad: 'Motor bölmesi', en: 'Engine room' },
-  { id: 'fonksiyon', ad: 'Fonksiyon', en: 'Function' },
-  { id: 'surus', ad: 'Yol testi', en: 'Road test' },
-];
 
 export interface Konum { sistem: BolgeGrubu | null; bolgeId: string | null }
 export const KOK_KONUM: Konum = { sistem: null, bolgeId: null };
 
-/** "Dış · Sol yan" → "Sol yan": sistem adı zaten bir üst adımda yazıyor. */
-export const kisaBolgeAdi = (ad: string): string => ad.split(' · ').slice(1).join(' · ') || ad;
-
 export function AdimliSecim({
   bolgeler, konum, setKonum, arama, setArama, parcaId, parcaSayilari, sonParcalar, onSec, tablet,
+  kapsam, onKapsam,
 }: {
   bolgeler: Bolge[];
   konum: Konum;
@@ -50,6 +45,9 @@ export function AdimliSecim({
   sonParcalar: string[];
   onSec: (parcaId: string) => void;
   tablet: boolean;
+  /** Kontrol edildi işaretli sistemler. */
+  kapsam: ReadonlySet<string>;
+  onKapsam: (sistem: BolgeGrubu, isaretli: boolean) => void;
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
@@ -62,6 +60,12 @@ export function AdimliSecim({
   // Araç değişince bölge yeni araçta olmayabilir: o zaman sistem adımına düşülür.
   const bolge = sistem?.bolgeler.find((b) => b.id === konum.bolgeId) ?? null;
   const kayit = (b: Bolge) => b.parcalar.reduce((t, p) => t + (parcaSayilari.get(p.id) ?? 0), 0);
+  const disBolgeler = useMemo(() => bolgeler.filter((b) => b.grup === 'dis'), [bolgeler]);
+  const bolgeSayilari = useMemo(
+    () => new Map(disBolgeler.map((b) => [b.id, kayit(b)])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [disBolgeler, parcaSayilari],
+  );
 
   const sistemSec = (id: BolgeGrubu) => {
     const tek = sistemler.find((x) => x.id === id)?.bolgeler;
@@ -158,26 +162,46 @@ export function AdimliSecim({
 
             {adim === 1 ? (
               <View style={s.izgara}>
+                <AracHaritasi
+                  bolgeler={disBolgeler}
+                  sayilar={bolgeSayilari}
+                  onSec={(bolgeId) => setKonum({ sistem: 'dis', bolgeId })}
+                />
                 {sistemler.map((x) => {
                   const Ikon = BOLGE_SIMGELERI[x.id];
                   const n = x.bolgeler.reduce((t, b) => t + kayit(b), 0);
                   const parcaSayisi = x.bolgeler.reduce((t, b) => t + b.parcalar.length, 0);
+                  const isaretli = kapsam.has(x.id);
                   return (
                     <Pressable
                       key={x.id}
                       accessibilityRole="button"
-                      accessibilityLabel={`Sistem ${x.ad}${n ? `, ${n} kayıt` : ''}`}
+                      accessibilityLabel={`Sistem ${x.ad}${n ? `, ${n} kayıt` : ''}${isaretli ? ', kontrol edildi' : ''}`}
                       onPress={() => sistemSec(x.id)}
                       style={({ pressed }) => [s.kutu, s.buyukKutu, pressed && s.basili]}
                     >
                       <View style={s.simgeYuva}>{Ikon ? <Ikon size={24} color={renkler.birincil} strokeWidth={2} /> : null}</View>
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={s.buyukAd} numberOfLines={1}>{x.ad}</Text>
-                        <Text style={s.alt} numberOfLines={1}>
-                          {x.en.toUpperCase()} · {x.bolgeler.length > 1 ? `${x.bolgeler.length} bölge` : `${parcaSayisi} madde`}
+                        <Text style={[s.alt, isaretli && { color: renkler.basari }]} numberOfLines={1}>
+                          {isaretli
+                            ? 'Kontrol edildi'
+                            : `${x.en.toUpperCase()} · ${x.bolgeler.length > 1 ? `${x.bolgeler.length} bölge` : `${parcaSayisi} madde`}`}
                         </Text>
                       </View>
                       {n ? <View style={s.pul}><Text style={s.pulMetin}>{n}</Text></View> : null}
+                      {/* Kontrol edildi işareti: hatasız sistemi "bakıldı" diye
+                          kaydetmenin tek yolu. Hata kaydedilince kendiliğinden konur. */}
+                      <Pressable
+                        accessibilityRole="checkbox"
+                        aria-checked={isaretli}
+                        accessibilityLabel={`${x.ad} kontrol edildi`}
+                        onPress={() => onKapsam(x.id, !isaretli)}
+                        hitSlop={6}
+                        style={({ pressed }) => [s.isaret, isaretli && s.isaretli, pressed && s.basili]}
+                      >
+                        <S.tik size={18} color={isaretli ? renkler.metinTers : renkler.metinSolgun} strokeWidth={2.5} />
+                      </Pressable>
                       <S.ileri size={20} color={renkler.metinSolgun} strokeWidth={2} />
                     </Pressable>
                   );
@@ -252,5 +276,10 @@ const stiller = (r: Renkler) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', backgroundColor: r.yuzeyVurgu,
   },
   pulMetin: { ...tipografi.captionOrta, color: r.metin, fontVariant: ['tabular-nums'] },
+  isaret: {
+    width: 36, height: 36, borderRadius: kose.pill, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: r.cizgiGuclu, backgroundColor: r.yuzey,
+  },
+  isaretli: { backgroundColor: r.basari, borderColor: r.basari },
   bos: { ...tipografi.body, color: r.metinSolgun, textAlign: 'center', paddingVertical: bosluk.lg },
 });

@@ -22,6 +22,7 @@ import {
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { dereceGosterimi } from '@/cekirdek/puan';
 import { bicimTarih } from '@/cekirdek/rapor';
+import { kapsamMetni, mevcutSistemler, parcaSistemi } from '@/cekirdek/sistemler';
 import { aracKimligi } from '@/cekirdek/vin';
 import {
   Denetim, DereceKodu, Hata, HataGrubuId, HataTipi,
@@ -30,7 +31,7 @@ import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { useAcmaIstegi } from '@/veri/acmaIstegi';
 import {
   ayarOku, ayarYaz, denetimGetir, denetimGuncelle, denetimSil, FotografKaydi, fotograflariGetir,
-  fotografiHataBagla, hataKaydet, hataSil, kimlikUret,
+  fotografiHataBagla, hataKaydet, hataSil, kapsamAyarla, kimlikUret,
 } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
 
@@ -154,6 +155,16 @@ export default function DenetimEkrani() {
   // --- PARÇA SEÇİMİ ----------------------------------------------------
   const bolgeler = useMemo(() => bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }), [arac?.tip]);
 
+  // KAPSAM (sistemler.ts): işaretli sistemler. Elle değişince de denetim
+  // "değişti" sayılır (bitmişse yeniden açılır).
+  const kapsam = useMemo(() => new Set(denetim?.kapsam ?? []), [denetim?.kapsam]);
+  const kapsamDegistir = useCallback(async (sistem: string, isaretli: boolean) => {
+    if (!denetim) return;
+    await kapsamAyarla(denetim.id, sistem, isaretli);
+    await yenidenAcGerekirse().catch(() => {});
+    await tazele();
+  }, [denetim, tazele, yenidenAcGerekirse]);
+
   /** Bu denetimde son dokunulan parçalar — aynı parçaya ikinci hata tek dokunuş. */
   const sonParcalar = useMemo(() => {
     const gorulen = new Set<string>();
@@ -234,6 +245,9 @@ export default function DenetimEkrani() {
     // Kayıt düştü; bitmiş denetimi yeniden açamazsak bu kaydı "kaydedilemedi"
     // diye göstermek yanlış olurdu — yalnız durum güncellenmemiş kalır.
     await yenidenAcGerekirse().catch(() => {});
+    // Hata kaydedilen sistem kontrol edilmiş sayılır — denetçi ayrıca işaretlemesin.
+    const sistem = parcaSistemi(parcaId);
+    if (sistem) await kapsamAyarla(denetim.id, sistem, true).catch(() => {});
     // Kullanım sayacını hataKaydet kendisi artırıyor. Burada da çağrılıyordu;
     // hızlı girişteki her kayıt iki kez sayılıyordu (26.09.2026'da fark edildi).
 
@@ -277,6 +291,8 @@ export default function DenetimEkrani() {
     });
     for (const fid of fotoIdleri) await fotografiHataBagla(fid, hataId);
     await yenidenAcGerekirse();
+    const sistem = parcaSistemi(t.parcaId);
+    if (sistem) await kapsamAyarla(denetim.id, sistem, true).catch(() => {});
 
     // Sorumluyu yalnız PART hatalarından öğren. Complex bir hatanın sorumlusu
     // çoğu zaman bir tasarım ekibi ("MSV Closure Design Team 1"); onu parçaya
@@ -371,6 +387,8 @@ export default function DenetimEkrani() {
       sonParcalar={sonParcalar}
       onSec={parcaSec}
       tablet={tablet}
+      kapsam={kapsam}
+      onKapsam={kapsamDegistir}
     />
   );
 
@@ -668,6 +686,9 @@ function DenetimOzeti({
         baslik="Soldan sistem → bölge → parça seçin"
         aciklama="Sonra dereceyi seçip hataya dokunun; hata o anda kaydedilir ve aynı bölgenin parçalarına dönülür."
       />
+      <Text style={s.kapsamOzeti} accessibilityLabel={`Kontrol edilen sistemler: ${kapsamMetni(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: ARAC_INDEKS[denetim.aracId]?.tip ?? 'ice' })))}`}>
+        Kontrol edilen sistemler: {kapsamMetni(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: ARAC_INDEKS[denetim.aracId]?.tip ?? 'ice' })))}
+      </Text>
 
       {son.length ? (
         <View style={{ gap: bosluk.xs }}>
@@ -757,6 +778,7 @@ function KayitListesi({
 const stiller = (r: Renkler) => StyleSheet.create({
   basili: { opacity: 0.72 },
 
+  kapsamOzeti: { ...tipografi.caption, color: r.metinIkincil, textAlign: 'center' },
   tamamBandi: { paddingHorizontal: bosluk.md, paddingTop: bosluk.sm, paddingBottom: bosluk.xs, backgroundColor: r.bg },
 
   // İki bölme (tablet)

@@ -14,6 +14,7 @@ import { aramaSadelestir } from '@/cekirdek/arama';
 import { ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { aracKimligi } from '@/cekirdek/vin';
+import { sureDakika, sureMetni } from '@/cekirdek/istatistik';
 import { donemBaslangiclari, sayacHesapla, SayacSonucu } from '@/cekirdek/sayac';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { DenetimOzetSatiri, denetimleriListele, sayacVerisi } from '@/veri/depo';
@@ -110,7 +111,7 @@ export default function DenetimListesi() {
           burada yazan "bağlantı gelince gönderilecek" cümlesi YANLIŞTI —
           gönderen kod yok (27.09.2026). */}
 
-      {sayac ? <Sayac sonuc={sayac} /> : null}
+      {sayac ? <Sayac sonuc={sayac} onAnaliz={() => router.push('/istatistik')} /> : null}
 
       {satirlar?.length ? (
         <View style={s.aramaBlok}>
@@ -231,7 +232,10 @@ function DenetimKarti({
         {durumRozeti}
         <View style={s.metaSatir}>
           <S.tarih size={14} color={renkler.metinSolgun} strokeWidth={2} />
-          <Text style={s.meta} numberOfLines={1}>{bicimTarih(satir.baslangic)}</Text>
+          <Text style={s.meta} numberOfLines={1}>
+            {bicimTarih(satir.baslangic)}
+            {!devam && sureDakika(satir.baslangic, satir.bitis) !== null ? ` · ${sureMetni(sureDakika(satir.baslangic, satir.bitis))}` : ''}
+          </Text>
         </View>
         {satir.denetci ? (
           <View style={[s.metaSatir, { flexShrink: 1 }]}>
