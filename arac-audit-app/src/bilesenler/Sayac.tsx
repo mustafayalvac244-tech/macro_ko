@@ -2,8 +2,10 @@
 //
 // Şirketteki Excel formunun sağ paneli örnek alındı (ürün sahibi, 24.10.2026):
 // satırlar araç, sütunlar bugün / bu hafta / bu ay / bu yıl. Hücrede büyük sayı
-// denetlenen araç, altında hata. Ana sayfa 28.09.2026'da "çok kalabalık
-// olmasın" diye sadeleştirilmişti; bu yüzden tek, kutusuz bir tablo.
+// denetlenen araç, altında hata ve DPU (araç başına düzeltilecek hata;
+// kabul edilebilirler sayılmaz — Excel raporundaki DPU ile aynı). Ana sayfa
+// 28.09.2026'da "çok kalabalık olmasın" diye sadeleştirilmişti; bu yüzden
+// tek, kutusuz bir tablo.
 
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -11,7 +13,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { S } from '@/bilesenler/simgeler';
 import { BolumBasligi, Kart } from '@/bilesenler/temel';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
-import { DONEMLER, DonemSayilari, SayacSonucu } from '@/cekirdek/sayac';
+import { DONEMLER, DonemSayilari, dpu, SayacSonucu } from '@/cekirdek/sayac';
 import { bosluk, Renkler, tipografi, useTema } from '@/tema';
 
 export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
@@ -25,13 +27,14 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
       key={ad}
       style={[s.satir, toplam && s.toplamSatir]}
       accessible
-      accessibilityLabel={`${ad}: ${DONEMLER.map((d) => `${d.ad.toLocaleLowerCase('tr')} ${sayilar[d.id].arac} araç, ${sayilar[d.id].hata} hata`).join('; ')}`}
+      accessibilityLabel={`${ad}: ${DONEMLER.map((d) => `${d.ad.toLocaleLowerCase('tr')} ${sayilar[d.id].arac} araç, ${sayilar[d.id].hata} hata, DPU ${dpuMetni(sayilar[d.id])}`).join('; ')}`}
     >
       <Text style={[s.ad, toplam && s.toplamAd]} numberOfLines={1}>{ad}</Text>
       {DONEMLER.map((d) => (
         <View key={d.id} style={s.hucre}>
           <Text style={[s.arac, !sayilar[d.id].arac && s.sifir]}>{sayilar[d.id].arac}</Text>
           <Text style={s.hata} numberOfLines={1}>{`${sayilar[d.id].hata} hata`}</Text>
+          <Text style={s.dpu} numberOfLines={1}>{`DPU ${dpuMetni(sayilar[d.id])}`}</Text>
         </View>
       ))}
     </View>
@@ -47,12 +50,20 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
       {sonuc.araclar.map((a) => satir(ARAC_INDEKS[a.aracId]?.ad ?? a.aracId, a.sayilar))}
       {/* Tek araç varsa toplam satırı aynı sayıları tekrar ederdi. */}
       {sonuc.araclar.length > 1 ? satir('Toplam', sonuc.toplam, true) : null}
-      <Text style={s.not}>Bu cihazdaki denetimler. Hatasız biten araç da sayılır.</Text>
+      <Text style={s.not}>
+        Bu cihazdaki denetimler; hatasız biten araç da sayılır. DPU: araç başına hata (kabul edilebilirler hariç).
+      </Text>
     </Kart>
   );
 }
 
 const AD_GENISLIK = 76;
+
+/** Türkçe ondalık: 0,50. Araç yoksa "—". */
+const dpuMetni = (x: Parameters<typeof dpu>[0]) => {
+  const v = dpu(x);
+  return v === null ? '—' : v.toFixed(2).replace('.', ',');
+};
 
 const stiller = (r: Renkler) => StyleSheet.create({
   satir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xxs, paddingVertical: 2 },
@@ -65,5 +76,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   arac: { ...tipografi.sayi, fontSize: 18, lineHeight: 22, color: r.metin },
   sifir: { color: r.metinSolgun },
   hata: { ...tipografi.caption, fontSize: 12, lineHeight: 16, color: r.metinIkincil, fontVariant: ['tabular-nums'] },
+  dpu: { ...tipografi.caption, fontSize: 11, lineHeight: 14, color: r.metinSolgun, fontVariant: ['tabular-nums'] },
   not: { ...tipografi.caption, color: r.metinSolgun },
 });

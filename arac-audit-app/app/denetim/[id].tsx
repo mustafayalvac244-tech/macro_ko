@@ -1,28 +1,29 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Pressable, ScrollView, SectionList, StyleSheet, Text, View,
+  Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AdimliSecim, Konum, KOK_KONUM } from '@/bilesenler/AdimliSecim';
 import { DenetimBilgileri } from '@/bilesenler/DenetimBilgileri';
 import {
   DereceSecici, GrupBasligi, HataSayfasi, HataTaslagi, KabulAnahtari, YeniTipFormu,
 } from '@/bilesenler/HataSayfasi';
-import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
+import { S } from '@/bilesenler/simgeler';
 import {
   AltSayfa, AramaKutusu, Baslik, BaslikCipi, BaslikDugmesi, BilgiKutusu, BolumBasligi, BosDurum, DereceRozeti,
   Dugme, Ekran, GeriDugmesi, HataKutusu, Rozet, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import {
-  bolgelerAracIcin, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaAramaMetni, parcaHataTipleri, parcaTamAdi,
+  bolgelerAracIcin, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi,
 } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { dereceGosterimi } from '@/cekirdek/puan';
 import { bicimTarih } from '@/cekirdek/rapor';
 import {
-  BolgeGrubu, Denetim, DereceKodu, Hata, HataGrubuId, HataTipi, Parca,
+  Denetim, DereceKodu, Hata, HataGrubuId, HataTipi,
 } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { useAcmaIstegi } from '@/veri/acmaIstegi';
@@ -50,6 +51,10 @@ import { useKatalog } from '@/veri/katalogDeposu';
  * dereceleri ajan kendisi seçti). Aynı parçaya art arda hata için bildirimde
  * "Aynı parçaya" var; o yoldan dönülünce derece korunur. Fotoğraf ve not
  * sonradan, kaydedilen hatalar listesinden eklenir — hızlı yolun üstünde durmaz.
+ *
+ * ADIM ADIM SEÇİM (ürün sahibi, 24.10.2026: "seçe seçe ilerlesinler, en
+ * dıştan"): parça artık Sistem → Bölge → Parça diye seçilir (AdimliSecim.tsx).
+ * Kayıttan sonra aynı bölgenin parçalarına dönülür.
  *
  * DÜZEN (27.09.2026): tablette İKİ BÖLME — solda parça gezgini hep açık,
  * sağda hata paneli. Telefonda iki adım: önce parça listesi, sonra hata
@@ -81,6 +86,9 @@ export default function DenetimEkrani() {
 
   const [parcaId, setParcaId] = useState<string | null>(null);
   const [parcaArama, setParcaArama] = useState('');
+  // Sistem/bölge: kayıttan sonra SİLİNMEZ — aynı bölgede ikinci hata için
+  // denetçi yeniden en dıştan başlamasın.
+  const [konum, setKonum] = useState<Konum>(KOK_KONUM);
   const [hataArama, setHataArama] = useState('');
   const [derece, setDerece] = useState<DereceKodu>('1');
   // "Kabul edilebilir" BİLEREK YAPIŞKAN DEĞİL: her kayıttan sonra kapanır.
@@ -142,18 +150,8 @@ export default function DenetimEkrani() {
   const arac = denetim ? ARAC_INDEKS[denetim.aracId] : undefined;
   const parca = parcaId ? PARCA_INDEKS[parcaId] : undefined;
 
-  // --- PARÇA LİSTESİ ----------------------------------------------------
-  // Arama kelime kelime ve sırasız; Türkçe karakter şart değil (arama.ts).
-  const bolumler = useMemo(() => {
-    const q = parcaArama.trim();
-    return bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })
-      .map((b) => ({
-        baslik: b.ad,
-        grup: b.grup,
-        data: q ? b.parcalar.filter((p) => aramaEslesir(parcaAramaMetni(p.id), q)) : b.parcalar,
-      }))
-      .filter((b) => b.data.length > 0);
-  }, [parcaArama, arac?.tip]);
+  // --- PARÇA SEÇİMİ ----------------------------------------------------
+  const bolgeler = useMemo(() => bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }), [arac?.tip]);
 
   /** Bu denetimde son dokunulan parçalar — aynı parçaya ikinci hata tek dokunuş. */
   const sonParcalar = useMemo(() => {
@@ -327,7 +325,7 @@ export default function DenetimEkrani() {
     await denetimGuncelle(denetim.id, alanlar);
     // Araç değiştiyse seçili parça yeni aracın listesinde olmayabilir (tablette
     // seçim açık kalır): seçimi kaldır.
-    if (alanlar.aracId && alanlar.aracId !== denetim.aracId) parcalaraDon();
+    if (alanlar.aracId && alanlar.aracId !== denetim.aracId) { parcalaraDon(); setKonum(KOK_KONUM); }
     setAcikSayfa('yok');
     await tazele();
   }, [denetim, tazele, parcalaraDon]);
@@ -359,85 +357,20 @@ export default function DenetimEkrani() {
   const hataSayisi = denetim.hatalar.length;
   const seciliAdet = parcaId ? parcaSayilari.get(parcaId) ?? 0 : 0;
 
-  // --- PARÇA GEZGİNİ ----------------------------------------------------
+  // --- PARÇA GEZGİNİ (adım adım) ----------------------------------------
   const parcaGezgini = (
-    <View style={s.gezgin}>
-      <View style={s.aramaKutu}>
-        <AramaKutusu
-          deger={parcaArama}
-          degistir={setParcaArama}
-          yerTutucu="Parça ara — kaput, A direği, ön kapı…"
-          erisimEtiketi="Parça ara"
-        />
-      </View>
-
-      <SectionList<Parca, { baslik: string; grup: BolgeGrubu }>
-        sections={bolumler}
-        keyExtractor={(p) => p.id}
-        stickySectionHeadersEnabled
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={s.parcaListe}
-        ListHeaderComponent={sonParcalar.length && !parcaArama ? (
-          <View style={s.sonBlok}>
-            <BolumBasligi metin="SON DOKUNULANLAR" simge={S.son} />
-            <View style={s.cipSatir}>
-              {sonParcalar.map((pid) => {
-                const p = PARCA_INDEKS[pid]!;
-                return (
-                  <Pressable
-                    key={pid}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${parcaTamAdi(pid)} — ${p.bolgeAd}`}
-                    onPress={() => parcaSec(pid)}
-                    style={({ pressed }) => [s.cip, pid === parcaId && s.cipSecili, pressed && s.basili]}
-                  >
-                    <Text style={s.cipAd} numberOfLines={1}>{parcaTamAdi(pid)}</Text>
-                    <Text style={s.cipAlt} numberOfLines={1}>{p.bolgeAd}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ) : null}
-        renderSectionHeader={({ section }) => {
-          const Ikon = BOLGE_SIMGELERI[section.grup];
-          return (
-            <View style={s.bolgeBaslik}>
-              {Ikon ? <Ikon size={15} color={renkler.metinSolgun} strokeWidth={2} /> : null}
-              <Text style={s.bolgeBaslikMetin} numberOfLines={1}>{section.baslik}</Text>
-            </View>
-          );
-        }}
-        renderItem={({ item }) => {
-          const adet = parcaSayilari.get(item.id) ?? 0;
-          // Tablette parça bir SEÇİM (sağ bölme onu gösterir) → radyo; telefonda
-          // bir sonraki adıma geçiş → düğme.
-          const secili = tablet && item.id === parcaId;
-          return (
-            <Pressable
-              accessibilityRole={tablet ? 'radio' : 'button'}
-              aria-checked={tablet ? secili : undefined}
-              accessibilityLabel={`${parcaTamAdi(item.id)} (${parcaTamAdi(item.id, 'en')})${adet ? `, ${adet} kayıt` : ''}`}
-              onPress={() => parcaSec(item.id)}
-              style={({ pressed }) => [s.parcaSatir, secili && s.parcaSatirSecili, pressed && s.basili]}
-            >
-              <View style={[s.seciliCizgi, secili && { backgroundColor: renkler.birincil }]} />
-              {/* İngilizce ad ekranda yok (28.09.2026, "çok kalabalık"); aramada
-                  ve ekran okuyucu etiketinde duruyor, raporda kullanılıyor.
-                  Ad TARAFIYLA yazılır ("Sol ön kapı"): iki yanda da "Ön kapı"
-                  görünüyordu, taraf yalnız gri bölüm başlığındaydı (üç ajanın
-                  kullanılabilirlik sınaması, 28.09.2026). */}
-              <Text style={[s.parcaAd, secili && { color: renkler.birincil }]} numberOfLines={1}>{parcaTamAdi(item.id)}</Text>
-              {adet > 0 ? (
-                <View style={s.adetPul}><Text style={s.adetPulMetin}>{adet}</Text></View>
-              ) : null}
-              {!tablet ? <S.ileri size={20} color={renkler.metinSolgun} strokeWidth={2} /> : null}
-            </Pressable>
-          );
-        }}
-        ListEmptyComponent={<Text style={s.bos}>“{parcaArama.trim()}” ile eşleşen parça yok.</Text>}
-      />
-    </View>
+    <AdimliSecim
+      bolgeler={bolgeler}
+      konum={konum}
+      setKonum={setKonum}
+      arama={parcaArama}
+      setArama={setParcaArama}
+      parcaId={parcaId}
+      parcaSayilari={parcaSayilari}
+      sonParcalar={sonParcalar}
+      onSec={parcaSec}
+      tablet={tablet}
+    />
   );
 
   // --- HATA PANELİ ------------------------------------------------------
@@ -729,8 +662,8 @@ function DenetimOzeti({
           söylemiyordu (sınama, 28.09.2026). */}
       <BosDurum
         simge={S.sec}
-        baslik="Soldan bir parça seçin"
-        aciklama="Sonra dereceyi seçip hataya dokunun; hata o anda kaydedilir."
+        baslik="Soldan sistem → bölge → parça seçin"
+        aciklama="Sonra dereceyi seçip hataya dokunun; hata o anda kaydedilir ve aynı bölgenin parçalarına dönülür."
       />
 
       {son.length ? (
@@ -830,41 +763,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
     borderRightWidth: 1, borderRightColor: r.cizgi,
   },
   sagBolme: { flex: 1, minWidth: 0 },
-
-  // Parça gezgini
-  gezgin: { flex: 1, backgroundColor: r.bgYukseltilmis },
-  aramaKutu: { paddingHorizontal: bosluk.md, paddingTop: bosluk.sm, paddingBottom: bosluk.xs },
-  parcaListe: { paddingBottom: 120 },
-  sonBlok: { gap: bosluk.xs, paddingHorizontal: bosluk.md, paddingTop: bosluk.xs, paddingBottom: bosluk.sm },
-  bolgeBaslik: {
-    flexDirection: 'row', alignItems: 'center', gap: bosluk.xs,
-    paddingHorizontal: bosluk.md, paddingTop: bosluk.sm, paddingBottom: 6,
-    backgroundColor: r.bgYukseltilmis, borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun,
-  },
-  bolgeBaslikMetin: { ...tipografi.captionOrta, color: r.metinIkincil, flex: 1 },
-  parcaSatir: {
-    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
-    minHeight: 58, paddingRight: bosluk.md,
-    borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun,
-  },
-  parcaSatirSecili: { backgroundColor: r.birincilYumusak },
-  seciliCizgi: { width: 4, alignSelf: 'stretch', backgroundColor: 'transparent', marginRight: bosluk.xs },
-  parcaAd: { ...tipografi.bodyOrta, color: r.metin, flex: 1, minWidth: 0 },
-  adetPul: {
-    minWidth: 26, height: 24, paddingHorizontal: 7, borderRadius: kose.pill,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: r.yuzeyVurgu,
-  },
-  adetPulMetin: { ...tipografi.captionOrta, color: r.metin, fontVariant: ['tabular-nums'] },
-
-  cipSatir: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
-  cip: {
-    minHeight: DOKUNMA, justifyContent: 'center', maxWidth: 220,
-    paddingHorizontal: bosluk.sm, paddingVertical: 6,
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
-  },
-  cipSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
-  cipAd: { ...tipografi.captionOrta, color: r.metin },
-  cipAlt: { ...tipografi.caption, color: r.metinSolgun, fontSize: 11 },
 
   // Hata paneli
   parcaBaslik: {

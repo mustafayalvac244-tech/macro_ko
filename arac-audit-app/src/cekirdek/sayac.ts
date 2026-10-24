@@ -5,9 +5,11 @@
 // sayısını bugün, bu hafta, bu ay, bu yıl diye tutuyor. "Araç baktıkça sayıyor,
 // ekliyor; o sistem güzel."
 //
-// SKOR YOK: Excel'deki "Audit Skoru"nun formülü (Demerit'ten mi, araç başına
-// mı) fotoğraftan okunamadı; bilinmeyen bir formülü uydurmak yerine yalnız
-// sayılar. Formül gelince buraya eklenir.
+// SKOR = DPU (araç başına hata). Excel'deki "Audit Skoru"nun formülü
+// fotoğraftan okunamadı; ürün sahibi (24.10.2026) seçeneklerden "araç başına
+// hata"yı seçti. Tanım Excel raporumuzdaki DPU ile AYNI (puan.ts):
+// kabul edilebilir OLMAYAN hata / denetlenen araç, iki ondalık. Derece
+// toplamı gibi bir ceza puanı DEĞİL (16.09.2026: "bizde öyle bir şey yok").
 //
 // KAPSAM: yalnız BU CİHAZIN kayıtları — merkezi sunucu yok. Hatasız biten
 // araç da denetlenen araç sayılır (Excel'deki "Problem Yok Aracı Kaydet").
@@ -31,9 +33,16 @@ export interface SayacGirdisi {
   /** ISO 8601 — denetimin başladığı an. */
   baslangic: string;
   hataAdedi: number;
+  /** Kabul edilebilir İŞARETLENMEMİŞ hata adedi — DPU bunu sayar. */
+  duzeltilecekAdedi: number;
 }
 
-export interface Sayi { arac: number; hata: number }
+export interface Sayi { arac: number; hata: number; duzeltilecek: number }
+
+/** Araç başına düzeltilecek hata; araç yoksa null ("0" yazmak yanıltır). */
+export function dpu(x: Sayi): number | null {
+  return x.arac ? Math.round((x.duzeltilecek / x.arac) * 100) / 100 : null;
+}
 
 export type DonemSayilari = Record<Donem, Sayi>;
 
@@ -43,12 +52,8 @@ export interface SayacSonucu {
   toplam: DonemSayilari;
 }
 
-const bos = (): DonemSayilari => ({
-  bugun: { arac: 0, hata: 0 },
-  buHafta: { arac: 0, hata: 0 },
-  buAy: { arac: 0, hata: 0 },
-  buYil: { arac: 0, hata: 0 },
-});
+const sifir = (): Sayi => ({ arac: 0, hata: 0, duzeltilecek: 0 });
+const bos = (): DonemSayilari => ({ bugun: sifir(), buHafta: sifir(), buAy: sifir(), buYil: sifir() });
 
 /** Dönemlerin başlangıç anları, yerel saatle. */
 export function donemBaslangiclari(simdi: Date): Record<Donem, Date> {
@@ -81,10 +86,11 @@ export function sayacHesapla(girdiler: readonly SayacGirdisi[], simdi: Date, sir
     if (!s) { s = bos(); aracBasina.set(g.aracId, s); }
     for (const { id } of DONEMLER) {
       if (an >= sinir[id]) {
-        s[id].arac += 1;
-        s[id].hata += g.hataAdedi;
-        toplam[id].arac += 1;
-        toplam[id].hata += g.hataAdedi;
+        for (const x of [s[id], toplam[id]]) {
+          x.arac += 1;
+          x.hata += g.hataAdedi;
+          x.duzeltilecek += g.duzeltilecekAdedi;
+        }
       }
     }
   }

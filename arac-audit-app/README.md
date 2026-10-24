@@ -220,6 +220,18 @@ adı ve grubu çözmesi dahil).
 
 ## Hızlı giriş — çalışma ekranının tek amacı
 
+**Adım adım seçim (ürün sahibi, 24.10.2026: "Profesyonel bir şey olsun. Hata
+gir diye ekran olsun, seçe seçe ilerlesinler, en dıştan, hızlı hızlı
+girebilmek için.")** Parça artık 169 satırlık tek listeden değil, şirketteki
+Excel formunun System → Part → Problem sırası gibi kademeli seçilir:
+**Sistem** (Dış / İç / Motor bölmesi / Fonksiyon / Yol testi) → **Bölge** (ör.
+Sol yan; tek bölgeli sistemde atlanır) → **Parça** → derece + **Hata** (dokununca
+kaydedilir). Kayıttan sonra en dışa değil **aynı bölgenin parçalarına**
+dönülür: o bölgede ikinci hata iki dokunuş. Üstte "Sistemler › Dış › Sol yan"
+izi her adıma geri döndürür; her kartta o sistem/bölge/parçadaki kayıt sayısı
+yazar. Arama kutusu her adımda durur. Kod: `src/bilesenler/AdimliSecim.tsx`.
+
+
 26.09.2026 ürün sahibi geri bildirimi: *"programı hiç beğenmedim… parça
 seçilecek, gap mı scratch mı seçilecek, hataları tak tak girebilecekler."*
 
@@ -370,7 +382,8 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
 | Gerçek cihazda çalıştırma | APK ürün sahibinin telefonunda açıldı (ekran görüntüsü, 28.09.2026); kamera, barkod, paylaşım **denenmedi** |
 | OTA güncelleme (EAS Update) | Kuruldu — telefona indiği **görülmedi** |
 | Sadeleştirme: Excel formunda olmayan alanlar kalktı (24.10.2026) | **Bitti** — ürün sahibinin seçtiği yedi alan |
-| Ana sayfa sayacı: araç başına bugün / bu hafta / bu ay / bu yıl (24.10.2026) | **Bitti** — denetlenen araç ve hata; **skor yok** (Excel'deki "Audit Skoru"nun formülü bilinmiyor); **yalnız bu cihaz** |
+| Ana sayfa sayacı: araç başına bugün / bu hafta / bu ay / bu yıl (24.10.2026) | **Bitti** — denetlenen araç, hata ve **DPU** (araç başına kabul edilebilir olmayan hata; ürün sahibinin seçimi, Excel raporundaki DPU ile aynı tanım). Excel'deki "Audit Skoru"nun formülü bilinmiyor, o değil. **Yalnız bu cihaz** |
+| Adım adım hata girişi: Sistem → Bölge → Parça → Hata (24.10.2026) | **Bitti** — kayıttan sonra aynı bölgenin parçalarına dönülür; arama kısayol olarak duruyor. Web'de sınandı, **gerçek denetçiyle denenmedi** |
 
 ### Kullanılabilirlik sınaması (28.09.2026)
 

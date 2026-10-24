@@ -276,15 +276,20 @@ export interface DenetimOzetSatiri {
  */
 export async function sayacVerisi(baslangicSonrasi: Date): Promise<SayacGirdisi[]> {
   const d = await db();
-  const satirlar = await d.getAllAsync<{ arac_id: string; baslangic: string; hata_adedi: number | null }>(
-    `SELECT dn.arac_id, dn.baslangic, COALESCE(SUM(h.adet), 0) AS hata_adedi
+  const satirlar = await d.getAllAsync<{
+    arac_id: string; baslangic: string; hata_adedi: number | null; duzeltilecek: number | null;
+  }>(
+    `SELECT dn.arac_id, dn.baslangic, COALESCE(SUM(h.adet), 0) AS hata_adedi,
+            COALESCE(SUM(CASE WHEN h.kabul_edilebilir = 0 THEN h.adet ELSE 0 END), 0) AS duzeltilecek
        FROM denetimler dn
        LEFT JOIN hatalar h ON h.denetim_id = dn.id
       WHERE dn.baslangic >= ?
       GROUP BY dn.id`,
     baslangicSonrasi.toISOString(),
   );
-  return satirlar.map((x) => ({ aracId: x.arac_id, baslangic: x.baslangic, hataAdedi: x.hata_adedi ?? 0 }));
+  return satirlar.map((x) => ({
+    aracId: x.arac_id, baslangic: x.baslangic, hataAdedi: x.hata_adedi ?? 0, duzeltilecekAdedi: x.duzeltilecek ?? 0,
+  }));
 }
 
 export async function denetimleriListele(enFazla = 100): Promise<DenetimOzetSatiri[]> {
