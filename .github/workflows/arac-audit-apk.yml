@@ -20,6 +20,16 @@ name: Araç Audit — APK
 # ("Resource not accessible by integration"); geliştirme oturumunun kendisine
 # de sürüm oluşturmak platform tarafından kapalı. Adım kaldırıldı.
 #
+# DOĞRUDAN BAĞLANTI (24.10.2026): ürün sahibi telefondan eki açamadı — GitHub
+# eki giriş istiyor ve zip veriyor ("olmuyor, apk link ver direkt"). Çözüm:
+# APK, OTA denetiminden geçtikten sonra TEK COMMIT'LİK bir "apk" dalına
+# zorla itilir; depo herkese açık olduğu için
+#   https://github.com/<depo>/raw/apk/arac-audit.apk
+# girişsiz, zip'siz, doğrudan .apk indirir ve adres hiç değişmez. Dal her
+# derlemede sıfırdan yazılır (orphan + force): geçmiş 46 MB'lık APK'larla
+# şişmez. Sürüm API'si 403 verirken git push'un çalışıp çalışmayacağı
+# denenmeden bilinemez; ilk koşu bunu gösterir.
+#
 # İMZA: Expo şablonunun depoya giren debug.keystore'u. Her derlemede AYNI
 # anahtar olduğu için yeni APK eskisinin üstüne kurulur (veriler silinmez).
 # Play Store'a yüklenemez — bu yalnız elle dağıtım içindir.
@@ -35,7 +45,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 # Art arda iki push gelirse eskisini boşuna bitirme.
 concurrency:
@@ -123,6 +133,9 @@ jobs:
       # Kontrol vakası: paket adı dökümde MUTLAKA vardır. O bulunamazsa sorun
       # ayarda değil aracın kendisindedir — "yok" sonuçlarına güvenilmez.
       # Ek yüklendikten SONRA koşar: denetim bozuk çıkarsa derleme boşa gitmesin.
+      # APK'YI "apk" DALINA KOY — dosya başındaki "DOĞRUDAN BAĞLANTI" notu.
+      # Denetimden SONRA değil ÖNCE koşmaz: bozuk ayarlı bir APK sabit adrese
+      # gitmesin diye denetimin ardından gelir (aşağıda).
       - name: APK içi denetim (OTA ayarları)
         id: denetim
         run: |
@@ -151,6 +164,28 @@ jobs:
           echo "kimlik=$kimlik" >> "$GITHUB_OUTPUT"
           echo "surum=$surum" >> "$GITHUB_OUTPUT"
           echo "OTA ayarları APK'da doğrulandı: proje $kimlik, kanal production, çalışma zamanı $surum."
+
+      - name: APK'yı "apk" dalına koy (doğrudan bağlantı)
+        id: dal
+        working-directory: ${{ runner.temp }}
+        env:
+          AD: ${{ steps.ad.outputs.ad }}
+          DEPO: ${{ github.repository }}
+          ANAHTAR: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf apk-dali && mkdir apk-dali && cd apk-dali
+          git init -q -b apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp "$GITHUB_WORKSPACE/arac-audit-app/$AD" arac-audit.apk
+          printf 'commit=%s\nkosu=%s\ntarih=%s\ndosya=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$(date -u +%FT%TZ)" "$AD" > surum.txt
+          printf '# apk dalı\n\nBu dal elle düzenlenmez: her başarılı derlemede iş akışı sıfırdan yazar.\nDoğrudan indirme: https://github.com/%s/raw/apk/arac-audit.apk\n' "$DEPO" > README.md
+          git add . && git commit -q -m "APK $GITHUB_SHA (koşu $GITHUB_RUN_ID)"
+          git remote add origin "https://x-access-token:${ANAHTAR}@github.com/${DEPO}.git"
+          git push -q --force origin apk
+          echo "baglanti=https://github.com/${DEPO}/raw/apk/arac-audit.apk" >> "$GITHUB_OUTPUT"
+          echo "APK apk dalına itildi: https://github.com/${DEPO}/raw/apk/arac-audit.apk"
 
       - name: Özet
         if: success()

@@ -33,7 +33,13 @@ npx eas build --profile development --platform android
 
 **Kurma (APK).** `.github/workflows/arac-audit-apk.yml` uygulama her
 değiştiğinde GitHub'ın makinesinde APK derler (≈18 dk, Expo hesabı gerekmez).
-Koşu sayfasının altındaki `arac-audit-apk` zip'inden çıkan .apk telefona kurulur.
+**Doğrudan bağlantı (24.10.2026):** derleme OTA denetiminden geçince APK
+tek commit'lik `apk` dalına zorla itilir; sabit adres
+`https://github.com/mustafayalvac244-tech/macro_ko/raw/apk/arac-audit.apk`
+girişsiz, zip'siz indirir. (Önceki yol — koşu sayfasındaki `arac-audit-apk`
+zip eki — GitHub girişi istiyordu; ürün sahibi telefondan açamadı.) Depo
+herkese açık; APK'da anahtar yok (`.env.example` dışında ortam dosyası yok,
+kodda sunucu adresi/anahtar yok — 24.10.2026'da tarandı).
 
 **Güncelleme (OTA, 28.09.2026'dan).** Ürün sahibi: "OTA ile güncelleme at."
 `.github/workflows/arac-audit-ota.yml`, uygulama değişip bu dala push edilince
