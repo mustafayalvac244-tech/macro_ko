@@ -1,13 +1,11 @@
 // SEÇİM LİSTELERİ — yeni denetim formundaki hazır seçenekler.
 //
-// Ürün sahibi, 28.09.2026: "Faz kısmı da otomatik T1 T2 LP1 LP2 Pre-M M SOP
-// olsun, ekstra eklenebilsin"; denetçi adları da listeden seçilsin, "isteyen
-// ekstra ekleyebilir".
+// Ürün sahibi, 28.09.2026: denetçi adları listeden seçilsin, "isteyen ekstra
+// ekleyebilir". Aynı gün faz da listeye alınmıştı (T1 … SOP); 24.10.2026'da
+// faz formdan tamamen kalktı ("bizdeki gereksiz bilgileri sil"), listesi de.
 //
 // Liste CİHAZDA saklanır (ayarlar tablosu). Bir tablette eklenen ad öbür
 // tablete GEÇMEZ: merkezi sunucu yok.
-
-export const HAZIR_FAZLAR: readonly string[] = ['T1', 'T2', 'LP1', 'LP2', 'Pre-M', 'M', 'SOP'];
 
 /**
  * Hazır denetçi listesi BOŞ — bilerek. Ürün sahibi beş ad verdi (28.09.2026),
@@ -18,7 +16,7 @@ export const HAZIR_FAZLAR: readonly string[] = ['T1', 'T2', 'LP1', 'LP2', 'Pre-M
 export const HAZIR_DENETCILER: readonly string[] = [];
 
 /** `ayarlar` tablosundaki anahtarlar. */
-export const LISTE_ANAHTARI = { denetci: 'denetciListesi', faz: 'fazListesi' } as const;
+export const LISTE_ANAHTARI = { denetci: 'denetciListesi' } as const;
 
 /** Yazılışı sadeleştirir: baş/son boşluk atılır, iç boşluklar teke iner. */
 export const sadelestir = (s: string): string => s.trim().replace(/\s+/g, ' ');
@@ -28,8 +26,8 @@ const esitlikAnahtari = (s: string): string => sadelestir(s).toLocaleLowerCase('
 
 /**
  * Listeye ad ekler. Aynı ad (büyük/küçük harf ya da fazla boşluk farkıyla)
- * zaten varsa liste DEĞİŞMEZ ve var olan yazılış döner: "LP2" ile "lp2" iki
- * ayrı faz olup raporda iki ayrı değer gibi görünmesin.
+ * zaten varsa liste DEĞİŞMEZ ve var olan yazılış döner: "Ali Veli" ile
+ * "ali veli" raporda iki ayrı kişi gibi görünmesin.
  */
 export function listeyeEkle(liste: readonly string[], ham: string): { liste: string[]; secilen: string } {
   const temiz = sadelestir(ham);

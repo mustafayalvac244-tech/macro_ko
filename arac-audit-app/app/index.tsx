@@ -4,16 +4,18 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AracIkonu } from '@/bilesenler/AracIkonu';
 import { GuncellemeBildirimi } from '@/bilesenler/Guncelleme';
+import { Sayac } from '@/bilesenler/Sayac';
 import { S } from '@/bilesenler/simgeler';
 import {
   AramaKutusu, Baslik, BaslikDugmesi, BolumBasligi, BosDurum, Dugme, Ekran,
   HataKutusu, Rozet, Secenek, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import { aramaSadelestir } from '@/cekirdek/arama';
-import { ARAC_INDEKS } from '@/cekirdek/model3d';
+import { ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { bicimTarih } from '@/cekirdek/rapor';
+import { donemBaslangiclari, sayacHesapla, SayacSonucu } from '@/cekirdek/sayac';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
-import { DenetimOzetSatiri, denetimleriListele } from '@/veri/depo';
+import { DenetimOzetSatiri, denetimleriListele, sayacVerisi } from '@/veri/depo';
 
 /** Ana sayfada okunan en fazla denetim. Özet sayılar da yalnız bunlardan. */
 const LISTE_SINIRI = 200;
@@ -26,6 +28,7 @@ export default function DenetimListesi() {
 
   const [satirlar, setSatirlar] = useState<DenetimOzetSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  const [sayac, setSayac] = useState<SayacSonucu | null>(null);
   // ARAMA VE SÜZGEÇ (28.09.2026): ekip lideri 200 kayıtta bir şasiyi bulmak
   // için tablette ~16, telefonda ~37 ekran kaydırmak zorundaydı (sınama; 3
   // kayıtla ölçülüp hesaplandı). Şasi son haneleriyle de bulunur: eşleşme
@@ -38,9 +41,14 @@ export default function DenetimListesi() {
     let iptal = false;
     (async () => {
       try {
-        const liste = await denetimleriListele(LISTE_SINIRI);
+        const simdi = new Date();
+        const [liste, sayilacak] = await Promise.all([
+          denetimleriListele(LISTE_SINIRI),
+          sayacVerisi(donemBaslangiclari(simdi).buYil),
+        ]);
         if (iptal) return;
         setSatirlar(liste);
+        setSayac(sayacHesapla(sayilacak, simdi, ARACLAR.map((a) => a.id)));
         setHata(null);
       } catch (h) {
         if (!iptal) setHata(h instanceof Error ? h.message : String(h));
@@ -57,7 +65,7 @@ export default function DenetimListesi() {
       if (suzgec !== 'hepsi' && d.durum !== suzgec) return false;
       if (!sozcukler.length) return true;
       const metin = aramaSadelestir([
-        d.vin, d.plaka, ARAC_INDEKS[d.aracId]?.ad, d.spec, d.denetci, bicimTarih(d.baslangic),
+        d.vin, ARAC_INDEKS[d.aracId]?.ad, d.spec, d.denetci, bicimTarih(d.baslangic),
       ].filter(Boolean).join(' '));
       return sozcukler.every((q) => metin.includes(q));
     });
@@ -101,12 +109,14 @@ export default function DenetimListesi() {
           burada yazan "bağlantı gelince gönderilecek" cümlesi YANLIŞTI —
           gönderen kod yok (27.09.2026). */}
 
+      {sayac ? <Sayac sonuc={sayac} /> : null}
+
       {satirlar?.length ? (
         <View style={s.aramaBlok}>
           <AramaKutusu
             deger={arama}
             degistir={setArama}
-            yerTutucu="Şasi (son haneler de olur), plaka, araç, denetçi…"
+            yerTutucu="Şasi (son haneler de olur), araç, denetçi…"
             erisimEtiketi="Denetim ara"
           />
           <View style={s.suzgecSatir}>
@@ -208,7 +218,7 @@ function DenetimKarti({
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.vin} numberOfLines={1}>{satir.vin || '(şasi yok)'}</Text>
           <Text style={s.meta} numberOfLines={1}>
-            {arac?.ad ?? satir.aracId}{satir.spec ? ` · ${satir.spec}` : ''}{satir.plaka ? ` · ${satir.plaka}` : ''}
+            {arac?.ad ?? satir.aracId}{satir.spec ? ` · ${satir.spec}` : ''}
           </Text>
         </View>
       </View>

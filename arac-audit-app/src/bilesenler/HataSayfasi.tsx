@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ViewStyle,
+  ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle,
 } from 'react-native';
 
 import { GRUP_SIMGELERI, S } from '@/bilesenler/simgeler';
@@ -23,8 +23,14 @@ export interface HataTaslagi extends Omit<Hata, 'id' | 'zaman'> {
  * Hata kaydı sayfası.
  *
  * TASARIM SÖZÜ: bir hatayı kaydetmek en fazla üç dokunuş — parçaya dokun,
- * hata tipini seç, Kaydet. Şiddet hata tipinden ön seçilir; adet, konum,
- * açıklama ve fotoğraf isteğe bağlıdır.
+ * hata tipini seç, Kaydet. Şiddet hata tipinden ön seçilir; açıklama ve
+ * fotoğraf isteğe bağlıdır.
+ *
+ * ADET VE KONUM KALDIRILDI (ürün sahibi, 24.10.2026: şirketteki Excel formunda
+ * yoklar, "gereksiz bilgileri sil"). Aynı hata iki yerdeyse iki kayıt girilir;
+ * yer gerekiyorsa açıklamaya yazılır. Eski bir kayıtta dolu olabilirler:
+ * düzenleyip kaydetmek onları SİLMEZ (taslaktan olduğu gibi geçer) ve rapor
+ * onları yazmaya devam eder.
  *
  * ARAMA VE "YENİ TİP" NEDEN BURADA: bir dış panelde 37 hata tipi listeleniyor;
  * kaydırarak aramak üç dokunuş sözünü bozar. Arama kutusu listeyi tek yazışta
@@ -53,8 +59,6 @@ export function HataSayfasi({
   const [kabul, setKabul] = useState(false);
   const [sorunTipi, setSorunTipi] = useState<SorunTipi>('Part');
   const [sorumlu, setSorumlu] = useState('');
-  const [adet, setAdet] = useState('1');
-  const [konum, setKonum] = useState('');
   const [aciklama, setAciklama] = useState('');
   const [fotoIdleri, setFotoIdleri] = useState<string[]>([]);
   const [fotoHatasi, setFotoHatasi] = useState<string | null>(null);
@@ -80,8 +84,6 @@ export function HataSayfasi({
     setKabul(!!taslak.kabulEdilebilir);
     setSorunTipi(taslak.sorunTipi === 'Complex' ? 'Complex' : 'Part');
     setSorumlu(taslak.sorumlu ?? '');
-    setAdet(String(taslak.adet || 1));
-    setKonum(taslak.konum ?? '');
     setAciklama(taslak.aciklama ?? '');
     setFotoIdleri(taslak.fotograflar ?? []);
     setFotoHatasi(null);
@@ -157,12 +159,12 @@ export function HataSayfasi({
       kabulEdilebilir: kabul,
       sorunTipi,
       sorumlu: sorumlu.trim(),
-      adet: Math.max(1, Math.min(99, Number(adet) || 1)),
-      konum: konum.trim(),
+      adet: taslak.adet || 1,
+      konum: taslak.konum ?? '',
       aciklama: aciklama.trim(),
       fotograflar: fotoIdleri,
     }, fotoIdleri);
-  }, [aciklama, adet, fotoIdleri, hataTipiId, kabul, konum, onKaydet, derece, sorumlu, sorunTipi, taslak]);
+  }, [aciklama, fotoIdleri, hataTipiId, kabul, onKaydet, derece, sorumlu, sorunTipi, taslak]);
 
   const fotoHaritasi = useMemo(
     () => new Map(fotograflar.map((f) => [f.id, f])),
@@ -297,38 +299,6 @@ export function HataSayfasi({
           ? 'Part hatasında yazılan sorumlu bu parçaya öğrenilir; sonraki kayıtlarda kendiliğinden gelir.'
           : 'Complex hatanın sorumlusu parçaya öğrenilmez.'}
       />
-
-      <View style={s.adetKonumSatir}>
-        <View style={{ gap: bosluk.xxs }}>
-          <Text style={s.alanEtiketi}>ADET</Text>
-          <View style={s.adetKutu}>
-            <Pressable
-              accessibilityRole="button" accessibilityLabel="Adedi azalt"
-              onPress={() => setAdet(String(Math.max(1, (Number(adet) || 1) - 1)))}
-              style={s.adetDugme}
-            >
-              <S.azalt size={20} color={renkler.metin} strokeWidth={2.25} />
-            </Pressable>
-            <TextInput
-              value={adet}
-              onChangeText={setAdet}
-              keyboardType="number-pad"
-              accessibilityLabel="Adet"
-              style={s.adetGirdi}
-            />
-            <Pressable
-              accessibilityRole="button" accessibilityLabel="Adedi artır"
-              onPress={() => setAdet(String(Math.min(99, (Number(adet) || 1) + 1)))}
-              style={s.adetDugme}
-            >
-              <S.ekle size={20} color={renkler.metin} strokeWidth={2.25} />
-            </Pressable>
-          </View>
-        </View>
-        <View style={s.konumKutu}>
-          <Girdi etiket="KONUM" value={konum} onChangeText={setKonum} placeholder="Örn. üst köşe" />
-        </View>
-      </View>
 
       <Girdi etiket="AÇIKLAMA" value={aciklama} onChangeText={setAciklama} placeholder="İsteğe bağlı" multiline />
     </>
@@ -692,23 +662,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   ikiliSatir: { flexDirection: 'row', gap: bosluk.xs, alignItems: 'flex-end' },
   alanEtiketi: { ...tipografi.etiket, color: r.metinSolgun },
-  // ADET SABİT GENİŞLİKTE. Önceden satırın üçte biriydi: iki 48'lik düğme ve
-  // sayı sığmıyordu — web'de "+" KONUM'un altında kalıyor, telefonda sayıya yer
-  // kalmıyordu (uçtan uca sınamanın ekran görüntüsü, 28.09.2026). Dar ekranda
-  // KONUM alt satıra iner.
-  adetKonumSatir: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs, alignItems: 'flex-end' },
-  konumKutu: { flexGrow: 1, flexBasis: 160, minWidth: 0 },
-  adetKutu: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  adetDugme: {
-    width: DOKUNMA, height: DOKUNMA, alignItems: 'center', justifyContent: 'center',
-    borderRadius: kose.sm, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
-  },
-  adetGirdi: {
-    width: 60, textAlign: 'center', ...tipografi.sayiBuyuk, color: r.metin,
-    borderWidth: 1, borderColor: r.cizgi, borderRadius: kose.sm,
-    backgroundColor: r.yuzey, minHeight: DOKUNMA,
-  },
-
   fotoSerit: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   fotoKutu: {
     width: 84, height: 84, borderRadius: kose.sm, overflow: 'hidden',

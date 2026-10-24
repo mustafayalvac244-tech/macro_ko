@@ -8,11 +8,11 @@ import { S } from '@/bilesenler/simgeler';
 import {
   AltCubuk, Baslik, BilgiKutusu, BolumBasligi, Dugme, GeriDugmesi, Girdi, Kart, Secenek, useDuzen,
 } from '@/bilesenler/temel';
-import { KM_HANE, kmAyikla, kmSadelestir, SPECLER } from '@/cekirdek/aracBilgisi';
-import { HAZIR_DENETCILER, HAZIR_FAZLAR, LISTE_ANAHTARI, listedeyse } from '@/cekirdek/listeler';
+import { SPECLER } from '@/cekirdek/aracBilgisi';
+import { HAZIR_DENETCILER, LISTE_ANAHTARI, listedeyse } from '@/cekirdek/listeler';
 import { ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { bicimTarih } from '@/cekirdek/rapor';
-import { plakaDogrula, VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
+import { VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { ayarOku, ayarYaz, denetimOlustur, vinIleDenetimler } from '@/veri/depo';
 import { useTarama } from '@/veri/tarama';
@@ -27,15 +27,19 @@ import { useTarama } from '@/veri/tarama';
 const KAYNAK = 'HMC Audit';
 
 /**
- * Denetçi/faz/ekip her araçta aynı kalır — bir kez seçilsin, hatırlansın.
- * Eski kayıtta hat/vardiya/denetimTipi de var; bilerek OKUNMUYOR: form artık
- * onları göstermiyor, görünmeyen bir değer rapora sessizce yazılmamalı.
+ * Denetçi her araçta aynı kalır — bir kez seçilsin, hatırlansın.
+ * Eski kayıtta hat/vardiya/denetimTipi/faz/ekip de var; bilerek OKUNMUYOR: form
+ * artık onları göstermiyor, görünmeyen bir değer rapora sessizce yazılmamalı.
+ *
+ * Plaka, km, faz, ekip ve rapor no kaldırıldı (ürün sahibi, 24.10.2026):
+ * şirkette kullanılan Excel formunun fotoğrafını attı, "bizdeki gereksiz
+ * bilgileri sil" dedi; hangilerinin gideceğini kendisi seçti. Spec kaldı.
  *
  * Araç da hatırlanır (28.09.2026): form her seferinde IONIQ 3 seçili açılıyor,
  * BAYON hattındaki denetçi seçmeyi unutursa denetim yanlış parça kataloğuyla
  * açılıyordu (sınama). Artık son kullanılan araç seçili gelir.
  */
-interface Varsayilanlar { denetci: string; faz: string; ekip: string; aracId?: string }
+interface Varsayilanlar { denetci: string; aracId?: string }
 
 type OncekiDenetim = Awaited<ReturnType<typeof vinIleDenetimler>>[number];
 
@@ -47,18 +51,14 @@ export default function YeniDenetim() {
 
   const [aracId, setAracId] = useState(ARACLAR[0]!.id);
   const [vinHam, setVinHam] = useState('');
-  const [plakaHam, setPlakaHam] = useState('');
-  // Spec ve km ARACA özgü (şasi, plaka gibi): hatırlanmaz, her araçta girilir.
+  // Spec ARACA özgü (şasi gibi): hatırlanmaz, her araçta girilir.
   const [spec, setSpec] = useState('');
-  const [kmHam, setKmHam] = useState('');
-  const [raporNo, setRaporNo] = useState('');
-  const [v, setV] = useState<Varsayilanlar>({ denetci: '', faz: '', ekip: '' });
+  const [v, setV] = useState<Varsayilanlar>({ denetci: '' });
   const denetciler = useSecimListesi(LISTE_ANAHTARI.denetci, HAZIR_DENETCILER);
-  const fazlar = useSecimListesi(LISTE_ANAHTARI.faz, HAZIR_FAZLAR);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [denendi, setDenendi] = useState(false);
   // İlk "Denetime başla" dokunuşunda eksik künye ve aynı şasi SÖYLENİR; ikinci
-  // dokunuş yine de başlatır (sınama: denetçisiz, fazsız ve aynı şasiyle
+  // dokunuş yine de başlatır (sınama: denetçisiz ve aynı şasiyle
   // uyarısız başlıyordu, künye sonradan düzeltilemiyordu).
   const [eksikSoylendi, setEksikSoylendi] = useState(false);
   const [onceki, setOnceki] = useState<{ vin: string; liste: OncekiDenetim[] } | null>(null);
@@ -76,18 +76,16 @@ export default function YeniDenetim() {
   useEffect(() => {
     ayarOku<Partial<Varsayilanlar> | null>('varsayilanlar', null)
       .then((k) => {
-        if (k) setV({ denetci: k.denetci ?? '', faz: k.faz ?? '', ekip: k.ekip ?? '' });
+        if (k) setV({ denetci: k.denetci ?? '' });
         if (k?.aracId && ARAC_INDEKS[k.aracId]) setAracId(k.aracId);
       })
       .catch(() => { /* ilk açılış */ });
   }, []);
 
   const vin = useMemo(() => vinDogrula(vinHam), [vinHam]);
-  const plaka = useMemo(() => plakaDogrula(plakaHam), [plakaHam]);
 
   const eksikler = [
     !listedeyse(denetciler.liste, v.denetci) && 'denetçi',
-    !listedeyse(fazlar.liste, v.faz) && 'faz',
   ].filter(Boolean) as string[];
   const onceVar = !!onceki && onceki.vin === vin.vin && onceki.liste.length > 0;
 
@@ -109,20 +107,18 @@ export default function YeniDenetim() {
       // Yalnız ekranda SEÇİLİ görünen değer yazılır: listeden kaldırılmış bir
       // ad hatırlanmış olsa bile formda görünmüyorsa rapora da gitmez.
       const denetci = listedeyse(denetciler.liste, v.denetci);
-      const faz = listedeyse(fazlar.liste, v.faz);
-      await ayarYaz('varsayilanlar', { denetci, faz, ekip: v.ekip, aracId });
+      await ayarYaz('varsayilanlar', { denetci, aracId });
       const d = await denetimOlustur({
-        aracId, vin: vin.vin, plaka: plaka.bicimli, raporNo: raporNo.trim(),
-        denetci, hat: '', vardiya: '', denetimTipi: KAYNAK, faz, ekip: v.ekip.trim(),
-        spec, km: kmAyikla(kmHam),
+        aracId, vin: vin.vin, plaka: '', raporNo: '',
+        denetci, hat: '', vardiya: '', denetimTipi: KAYNAK, faz: '', ekip: '',
+        spec, km: null,
         baslangic: new Date().toISOString(),
       });
       router.replace({ pathname: '/denetim/[id]', params: { id: d.id } });
     } finally {
       setGonderiliyor(false);
     }
-  }, [aracId, bilgiY, denetciler.liste, eksikSoylendi, eksikler.length, fazlar.liste, kmHam, onceki, plaka.bicimli,
-    raporNo, router, spec, v, vin.gecerli, vin.vin]);
+  }, [aracId, bilgiY, denetciler.liste, eksikSoylendi, eksikler.length, onceki, router, spec, v, vin.gecerli, vin.vin]);
 
   const oncekiniAc = (d: OncekiDenetim) => (d.durum === 'tamam'
     ? router.replace({ pathname: '/denetim/rapor', params: { id: d.id, kaynak: 'ana' } })
@@ -208,41 +204,19 @@ export default function YeniDenetim() {
               <Dugme metin="Barkod okut" simge={S.barkod} kucuk onPress={() => router.push('/barkod')} style={{ flex: 1 }} />
               <Dugme metin="Temizle" simge={S.kapat} kucuk tur="sessiz" onPress={() => setVinHam('')} />
             </View>
-            <Girdi
-              etiket="PLAKA (VARSA)"
-              value={plakaHam}
-              onChangeText={setPlakaHam}
-              placeholder="Örn. 41 ABC 12"
-              autoCapitalize="characters"
-              accessibilityLabel="Plaka"
-              ipucu={plakaHam && plaka.uyarilar.length ? plaka.uyarilar[0] : undefined}
-            />
-            <View style={s.specKmSatir}>
-              <View style={{ gap: bosluk.xxs }}>
-                <Text style={s.alanEtiketi}>SPEC</Text>
-                <View style={s.satir}>
-                  {SPECLER.map((x) => (
-                    <Secenek
-                      key={x}
-                      metin={x}
-                      erisimEtiketi={`Spec ${x}`}
-                      secili={spec === x}
-                      onPress={() => setSpec(spec === x ? '' : x)}
-                      style={{ minWidth: 72 }}
-                    />
-                  ))}
-                </View>
-              </View>
-              <View style={{ flex: 1, minWidth: 140 }}>
-                <Girdi
-                  etiket="KM"
-                  value={kmHam}
-                  onChangeText={(t) => setKmHam(kmSadelestir(t))}
-                  placeholder="Göstergedeki değer"
-                  keyboardType="number-pad"
-                  maxLength={KM_HANE}
-                  accessibilityLabel="Kilometre"
-                />
+            <View style={{ gap: bosluk.xxs }}>
+              <Text style={s.alanEtiketi}>SPEC</Text>
+              <View style={s.satir}>
+                {SPECLER.map((x) => (
+                  <Secenek
+                    key={x}
+                    metin={x}
+                    erisimEtiketi={`Spec ${x}`}
+                    secili={spec === x}
+                    onPress={() => setSpec(spec === x ? '' : x)}
+                    style={{ minWidth: 72 }}
+                  />
+                ))}
               </View>
             </View>
           </Kart>
@@ -259,19 +233,6 @@ export default function YeniDenetim() {
               degistir={(d) => setV({ ...v, denetci: d })}
               yerTutucu="Ad Soyad"
             />
-            <EklenebilirSecim
-              baslik="FAZ"
-              ad="Faz"
-              liste={fazlar}
-              deger={listedeyse(fazlar.liste, v.faz)}
-              degistir={(d) => setV({ ...v, faz: d })}
-              yerTutucu="Ör. P1"
-              buyukHarf
-            />
-            {/* "QE Team 2" girilmiş bir değer gibi görünüyordu (üç ajan da); raporda
-                Ekip "—" çıktı. */}
-            <Girdi etiket="EKİP" value={v.ekip} onChangeText={(t) => setV({ ...v, ekip: t })} placeholder="Örn. QE Team 2" />
-            <Girdi etiket="RAPOR NO" value={raporNo} onChangeText={setRaporNo} placeholder="İsteğe bağlı" />
           </Kart>
         </View>
       </ScrollView>
@@ -335,7 +296,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   aracTip: { ...tipografi.caption, color: r.metinSolgun },
 
   satir: { flexDirection: 'row', gap: bosluk.xs },
-  specKmSatir: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: bosluk.sm },
   alanEtiketi: { ...tipografi.etiket, color: r.metinSolgun },
   uyariBandi: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, flexWrap: 'wrap',

@@ -5,6 +5,10 @@
 // DOLDURULAMIYORDU — rapor künyesi "—" ile kaldı. Yanlış seçilen araç da
 // düzeltilemiyordu; denetim silinemiyordu (denetimSil hiçbir ekranda yoktu).
 //
+// Plaka, km, faz, ekip ve rapor no kaldırıldı (ürün sahibi, 24.10.2026; bkz.
+// yeni.tsx). Eski bir denetimde dolu olsalar da burada gösterilmez, KAYDETMEK
+// onları SİLMEZ: onKaydet yalnız bu ekrandaki alanları gönderir.
+//
 // Araç yalnız KAYITLI PARÇALARIN HEPSİ yeni araçta da varsa değişir:
 // elektrikli ile benzinlinin parça listesi farklı (şarj kapağı / yakıt
 // kapağı); başka araca geçen bir kayıt raporda var olmayan parçayı gösterirdi.
@@ -15,12 +19,12 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { EklenebilirSecim, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { S } from '@/bilesenler/simgeler';
 import { BilgiKutusu, Dugme, Girdi, HataKutusu, Secenek } from '@/bilesenler/temel';
-import { KM_HANE, kmAyikla, kmSadelestir, SPECLER } from '@/cekirdek/aracBilgisi';
+import { SPECLER } from '@/cekirdek/aracBilgisi';
 import { bolgelerAracIcin } from '@/cekirdek/katalog';
-import { HAZIR_DENETCILER, HAZIR_FAZLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
+import { HAZIR_DENETCILER, LISTE_ANAHTARI } from '@/cekirdek/listeler';
 import { ARACLAR } from '@/cekirdek/model3d';
 import { Denetim } from '@/cekirdek/tipler';
-import { plakaDogrula, vinDogrula } from '@/cekirdek/vin';
+import { vinDogrula } from '@/cekirdek/vin';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 
 type SecimListesi = ReturnType<typeof useSecimListesi>;
@@ -44,17 +48,11 @@ export function DenetimBilgileri({
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const denetciler = useSecimListesi(LISTE_ANAHTARI.denetci, HAZIR_DENETCILER);
-  const fazlar = useSecimListesi(LISTE_ANAHTARI.faz, HAZIR_FAZLAR);
 
   const [aracId, setAracId] = useState(denetim.aracId);
   const [vinHam, setVinHam] = useState(denetim.vin);
-  const [plakaHam, setPlakaHam] = useState(denetim.plaka);
   const [spec, setSpec] = useState(denetim.spec);
-  const [kmHam, setKmHam] = useState(denetim.km === null ? '' : String(denetim.km));
   const [denetci, setDenetci] = useState(denetim.denetci);
-  const [faz, setFaz] = useState(denetim.faz);
-  const [ekip, setEkip] = useState(denetim.ekip);
-  const [raporNo, setRaporNo] = useState(denetim.raporNo);
   const [aracUyarisi, setAracUyarisi] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
   const [silOnay, setSilOnay] = useState(false);
@@ -94,13 +92,8 @@ export function DenetimBilgileri({
       await onKaydet({
         aracId,
         vin: vin.vin,
-        plaka: plakaDogrula(plakaHam).bicimli,
         spec,
-        km: kmAyikla(kmHam),
         denetci: denetci.trim(),
-        faz: faz.trim(),
-        ekip: ekip.trim(),
-        raporNo: raporNo.trim(),
       });
     } finally {
       setCalisiyor(false);
@@ -154,14 +147,6 @@ export function DenetimBilgileri({
           accessibilityLabel="Şasi numarası"
           hata={!vin.gecerli ? vin.hatalar.join(' ') : undefined}
         />
-        <Girdi
-          etiket="PLAKA (VARSA)"
-          value={plakaHam}
-          onChangeText={setPlakaHam}
-          placeholder="Örn. 41 ABC 12"
-          autoCapitalize="characters"
-          accessibilityLabel="Plaka"
-        />
         <View style={s.specKm}>
           <View style={{ gap: bosluk.xxs }}>
             <Text style={s.etiket}>SPEC</Text>
@@ -178,17 +163,6 @@ export function DenetimBilgileri({
               ))}
             </View>
           </View>
-          <View style={{ flex: 1, minWidth: 140 }}>
-            <Girdi
-              etiket="KM"
-              value={kmHam}
-              onChangeText={(t) => setKmHam(kmSadelestir(t))}
-              placeholder="Göstergedeki değer"
-              keyboardType="number-pad"
-              maxLength={KM_HANE}
-              accessibilityLabel="Kilometre"
-            />
-          </View>
         </View>
 
         <EklenebilirSecim
@@ -199,17 +173,6 @@ export function DenetimBilgileri({
           degistir={setDenetci}
           yerTutucu="Ad Soyad"
         />
-        <EklenebilirSecim
-          baslik="FAZ"
-          ad="Faz"
-          liste={degeriGoster(fazlar, denetim.faz)}
-          deger={faz}
-          degistir={setFaz}
-          yerTutucu="Örn. P1"
-          buyukHarf
-        />
-        <Girdi etiket="EKİP" value={ekip} onChangeText={setEkip} placeholder="Örn. QE Team 2" />
-        <Girdi etiket="RAPOR NO" value={raporNo} onChangeText={setRaporNo} placeholder="İsteğe bağlı" />
 
         {/* Denetimi silmek iki adımlı ve Kaydet'ten uzakta: hatalarıyla ve
             fotoğraflarıyla birlikte gider, geri getirilemez. */}

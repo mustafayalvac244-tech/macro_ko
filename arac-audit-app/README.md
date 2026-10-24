@@ -313,20 +313,24 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
   değildi.
 - İngilizce küçültme İngilizce yerel ayarla yapılır. Türkçe yerelde "I" → "ı"
   olur; "Inoperative" raporda "ınoperative" çıkardı (ölçüldü, testte var).
-- **Phase (faz)** ve **denetçi** listeden seçilir, sonraki denetimde
-  hatırlanır (ürün sahibi, 28.09.2026). Faz listesi hazır gelir: T1, T2, LP1,
-  LP2, Pre-M, M, SOP. İkisine de formdaki "+ Ekle" ile ad eklenir; Ayarlar'da
-  eklenir ve kaldırılır. "lp2" yazmak ikinci bir LP2 açmaz, var olanı seçer.
-  Listeler **cihazda** saklanır: bir tablette eklenen ad öbürüne geçmez
+- **Sadeleştirme (ürün sahibi, 24.10.2026).** Şirkette kullanılan Excel
+  formunun fotoğrafını attı ("bizdeki gereksiz bilgileri sil"); hangi
+  alanların gideceğini **kendisi seçti**: plaka, km, faz, ekip, rapor no
+  (denetim) ile adet ve konum (hata kaydı) formdan kalktı. Spec, Part/Complex
+  türü ve kabul edilebilir **kaldı**. Eski bir denetimde/kayıtta dolu olanlar
+  silinmez: raporda yalnız doluysa görünür, düzenleyip kaydetmek onları
+  değiştirmez. Raporun **Phase** ve **Team** sütunları ekibin tablosuyla
+  uyum için duruyor; yeni denetimde boş kalır.
+- **Denetçi** listeden seçilir, sonraki denetimde hatırlanır (ürün sahibi,
+  28.09.2026). Formdaki "+ Ekle" ile ad eklenir; Ayarlar'da eklenir ve
+  kaldırılır. "ali veli" yazmak ikinci bir "Ali Veli" açmaz, var olanı seçer.
+  Liste **cihazda** saklanır: bir tablette eklenen ad öbürüne geçmez
   (merkezi sunucu yok). Hazır denetçi listesi boş; nedeni
   `src/cekirdek/listeler.ts`'te.
-- **Team** elle yazılır ve hatırlanır.
-- **Spec (LH / RH)** ve **km** (ürün sahibi, 28.09.2026) şasi kartında
-  girilir; araca özgü oldukları için **hatırlanmaz**. Raporun başlık
-  bloğunda "Spec" ve "Mileage" olarak çıkar, çalışma ekranı başlığında ve ana
-  sayfa kartında spec görünür. Km yalnız rakam tutar (en çok 7 hane);
-  girilmezse boş kalır, 0 ile karışmaz (veritabanında NULL — göç 5). "LH /
-  RH"nin anlamı ekipten teyit edilmedi; uygulama yorumlamadan yazar.
+- **Spec (LH / RH)** (ürün sahibi, 28.09.2026) şasi kartında girilir; araca
+  özgü olduğu için **hatırlanmaz**. Raporun başlık bloğunda, çalışma ekranı
+  başlığında ve ana sayfa kartında görünür. "LH / RH"nin anlamı ekipten teyit
+  edilmedi; uygulama yorumlamadan yazar.
 - **Source** her denetimde "HMC Audit". Formdaki kaynak seçimi, üretim hattı
   ve vardiya ürün sahibinin isteğiyle kaldırıldı (28.09.2026). Eski bir
   denetimde hat/vardiya doluysa raporda yine görünür; boşsa "Line / Shift"
@@ -365,6 +369,8 @@ tablonun düzeninde ve **İngilizce** çıkar (ekibin tablosu baştan sona
 | Barkod okuma | Kodu yazıldı, **gerçek kamerayla denenmedi** |
 | Gerçek cihazda çalıştırma | APK ürün sahibinin telefonunda açıldı (ekran görüntüsü, 28.09.2026); kamera, barkod, paylaşım **denenmedi** |
 | OTA güncelleme (EAS Update) | Kuruldu — telefona indiği **görülmedi** |
+| Sadeleştirme: Excel formunda olmayan alanlar kalktı (24.10.2026) | **Bitti** — ürün sahibinin seçtiği yedi alan |
+| Ana sayfa sayacı: araç başına bugün / bu hafta / bu ay / bu yıl (24.10.2026) | **Bitti** — denetlenen araç ve hata; **skor yok** (Excel'deki "Audit Skoru"nun formülü bilinmiyor); **yalnız bu cihaz** |
 
 ### Kullanılabilirlik sınaması (28.09.2026)
 

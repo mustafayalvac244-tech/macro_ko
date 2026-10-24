@@ -151,19 +151,19 @@ export default function RaporEkrani() {
   const kunye: [string, string, boolean?][] = [
     ['Araç', arac?.tam ?? denetim.aracId],
     ['Şasi', denetim.vin, true],
-    ['Plaka', denetim.plaka || '—', true],
     ['Spec', denetim.spec || '—'],
-    ['Kilometre', kmGoster(denetim.km) || '—'],
-    ['Faz', denetim.faz || '—'],
-    ['Ekip', denetim.ekip || '—'],
     ['Kaynak', denetim.denetimTipi || '—'],
-    ['Rapor No', denetim.raporNo || '—'],
     ['Denetçi', denetim.denetci || '—'],
-    // Hat ve vardiya formdan kaldırıldı (28.09.2026); yalnız eski bir
-    // denetimde doluysa gösterilir.
-    ...([denetim.hat, denetim.vardiya].some(Boolean)
-      ? [['Hat / Vardiya', [denetim.hat, denetim.vardiya].filter(Boolean).join(' / ')] as [string, string]]
-      : []),
+    // Formdan kaldırılanlar (hat/vardiya 28.09.2026; plaka, km, faz, ekip,
+    // rapor no 24.10.2026) yalnız eski bir denetimde doluysa gösterilir.
+    ...([
+      ['Plaka', denetim.plaka, true],
+      ['Kilometre', kmGoster(denetim.km)],
+      ['Faz', denetim.faz],
+      ['Ekip', denetim.ekip],
+      ['Rapor No', denetim.raporNo],
+      ['Hat / Vardiya', [denetim.hat, denetim.vardiya].filter(Boolean).join(' / ')],
+    ] as [string, string, boolean?][]).filter(([, deger]) => !!deger),
     ['Tarih', bicimTarih(denetim.baslangic)],
     ['Durum', denetim.durum === 'tamam'
       ? `Tamamlandı${denetim.bitis ? ` · ${bicimTarih(denetim.bitis)}` : ''}`

@@ -8,7 +8,7 @@ import {
   Baslik, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi, Kart, Secenek, useDuzen,
 } from '@/bilesenler/temel';
 import { HATA_GRUPLARI } from '@/cekirdek/katalog';
-import { HAZIR_DENETCILER, HAZIR_FAZLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
+import { HAZIR_DENETCILER, LISTE_ANAHTARI } from '@/cekirdek/listeler';
 import { bosluk, kose, Renkler, TemaTercihi, tipografi, useTema } from '@/tema';
 import { bekleyenSenkron, hataTipiKullanimi } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -27,7 +27,6 @@ export default function Ayarlar() {
   // tik kalır, çünkü seçimi yalnız renkle değil onunla da gösteriyoruz.
   const { en } = useDuzen();
   const denetciler = useSecimListesi(LISTE_ANAHTARI.denetci, HAZIR_DENETCILER);
-  const fazlar = useSecimListesi(LISTE_ANAHTARI.faz, HAZIR_FAZLAR);
 
   const [bekleyen, setBekleyen] = useState(0);
 
@@ -65,10 +64,7 @@ export default function Ayarlar() {
           <ListeDuzenle ad="Denetçi" liste={denetciler} yerTutucu="Ad Soyad" />
         </Kart>
 
-        <Kart>
-          <BolumBasligi metin="FAZLAR" simge={S.faz} />
-          <ListeDuzenle ad="Faz" liste={fazlar} yerTutucu="Ör. P1" buyukHarf />
-        </Kart>
+        {/* FAZLAR listesi kalktı: faz formdan çıktı (ürün sahibi, 24.10.2026). */}
 
         <Kart>
           <BolumBasligi metin="EKİBİN EKLEDİĞİ HATA TİPLERİ" simge={S.etiket} />

@@ -12,6 +12,7 @@
 
 import * as SQLite from 'expo-sqlite';
 
+import type { SayacGirdisi } from '@/cekirdek/sayac';
 import { Denetim, DenetimDurumu, Hata, HataTipi } from '@/cekirdek/tipler';
 
 const VERITABANI = 'arac-audit.db';
@@ -266,6 +267,24 @@ export interface DenetimOzetSatiri {
   /** Kabul edilebilir işaretlenmemiş 3. derece hata adedi. */
   agirAdedi: number;
   senkronlandi: boolean;
+}
+
+/**
+ * Ana sayfadaki sayaç için (sayac.ts): verilen andan sonra başlayan bütün
+ * denetimler — liste ekranının 100 sınırı burada YOK, "bu yıl" eksik sayılmasın.
+ * Hata adedi listedekiyle aynı tanım: SUM(adet), kabul edilebilir dahil.
+ */
+export async function sayacVerisi(baslangicSonrasi: Date): Promise<SayacGirdisi[]> {
+  const d = await db();
+  const satirlar = await d.getAllAsync<{ arac_id: string; baslangic: string; hata_adedi: number | null }>(
+    `SELECT dn.arac_id, dn.baslangic, COALESCE(SUM(h.adet), 0) AS hata_adedi
+       FROM denetimler dn
+       LEFT JOIN hatalar h ON h.denetim_id = dn.id
+      WHERE dn.baslangic >= ?
+      GROUP BY dn.id`,
+    baslangicSonrasi.toISOString(),
+  );
+  return satirlar.map((x) => ({ aracId: x.arac_id, baslangic: x.baslangic, hataAdedi: x.hata_adedi ?? 0 }));
 }
 
 export async function denetimleriListele(enFazla = 100): Promise<DenetimOzetSatiri[]> {

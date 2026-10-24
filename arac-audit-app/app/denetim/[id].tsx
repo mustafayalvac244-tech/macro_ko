@@ -48,7 +48,7 @@ import { useKatalog } from '@/veri/katalogDeposu';
  * saydı — dereceye bakmayan denetçi önceki dereceyi SESSİZCE yazıyordu
  * (telefonda 14 kaydın 10'unda seçili gelen derece istenenden farklıydı; o
  * dereceleri ajan kendisi seçti). Aynı parçaya art arda hata için bildirimde
- * "Aynı parçaya" var; o yoldan dönülünce derece korunur. Fotoğraf, not, adet
+ * "Aynı parçaya" var; o yoldan dönülünce derece korunur. Fotoğraf ve not
  * sonradan, kaydedilen hatalar listesinden eklenir — hızlı yolun üstünde durmaz.
  *
  * DÜZEN (27.09.2026): tablette İKİ BÖLME — solda parça gezgini hep açık,
@@ -579,10 +579,8 @@ export default function DenetimEkrani() {
           <>
             {!tablet && denetim.vin ? <BaslikCipi metin={denetim.vin} mono /> : null}
             {tablet ? <BaslikCipi simge={S.arac} metin={arac?.ad ?? denetim.aracId} /> : null}
-            {denetim.plaka ? <BaslikCipi metin={denetim.plaka} mono /> : null}
+            {/* Plaka, faz ve ekip formdan kalktı (ürün sahibi, 24.10.2026). */}
             {denetim.spec ? <BaslikCipi metin={`Spec ${denetim.spec}`} /> : null}
-            {denetim.faz ? <BaslikCipi simge={S.faz} metin={denetim.faz} /> : null}
-            {denetim.ekip ? <BaslikCipi simge={S.ekip} metin={denetim.ekip} /> : null}
           </>
         )}
         sag={(
@@ -788,7 +786,7 @@ function KayitSatiri({ hata: h, sira, onPress }: { hata: Hata; sira?: number; on
   );
 }
 
-/** Kaydedilen hatalar — fotoğraf, not ve adet buradan, isteğe bağlı eklenir. */
+/** Kaydedilen hatalar — fotoğraf ve not buradan, isteğe bağlı eklenir. */
 function KayitListesi({
   hatalar, onAc, onKapat,
 }: {

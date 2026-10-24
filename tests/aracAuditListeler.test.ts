@@ -1,28 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  HAZIR_FAZLAR, listedenCikar, listedeyse, listeyeEkle,
-} from '../arac-audit-app/src/cekirdek/listeler';
+import { listedenCikar, listedeyse, listeyeEkle } from '../arac-audit-app/src/cekirdek/listeler';
 import { excelUret, htmlRapor } from '../arac-audit-app/src/cekirdek/rapor';
 import { Denetim } from '../arac-audit-app/src/cekirdek/tipler';
 
-// Yeni denetim formu, 28.09.2026 ürün sahibi isteği: denetçi ve faz listeden
-// seçilir, "isteyen ekstra ekleyebilir"; üretim hattı ve vardiya kaldırıldı.
+// Yeni denetim formu, 28.09.2026 ürün sahibi isteği: denetçi listeden seçilir,
+// "isteyen ekstra ekleyebilir"; üretim hattı ve vardiya kaldırıldı. Faz listesi
+// de vardı; faz 24.10.2026'da formdan kalktı (ürün sahibinin seçimi).
 
 describe('seçim listeleri', () => {
-  it('fazlar ürün sahibinin verdiği sırada', () => {
-    expect([...HAZIR_FAZLAR]).toEqual(['T1', 'T2', 'LP1', 'LP2', 'Pre-M', 'M', 'SOP']);
-  });
-
   it('ekler, fazla boşluğu atar', () => {
     expect(listeyeEkle(['T1'], '  P1  ')).toEqual({ liste: ['T1', 'P1'], secilen: 'P1' });
     expect(listeyeEkle([], 'Ali   Veli')).toEqual({ liste: ['Ali Veli'], secilen: 'Ali Veli' });
   });
 
   it('aynı adı ikinci kez eklemez; var olan yazılışı seçer', () => {
-    // "lp2" ile "LP2" raporda iki ayrı faz gibi görünmemeli.
-    expect(listeyeEkle(HAZIR_FAZLAR, 'lp2')).toEqual({ liste: [...HAZIR_FAZLAR], secilen: 'LP2' });
-    expect(listeyeEkle(HAZIR_FAZLAR, ' pre-m ')).toEqual({ liste: [...HAZIR_FAZLAR], secilen: 'Pre-M' });
+    // "ali veli" ile "Ali Veli" raporda iki ayrı kişi gibi görünmemeli.
+    const liste = ['Ali Veli', 'Ayşe Kaya'];
+    expect(listeyeEkle(liste, 'ali veli')).toEqual({ liste, secilen: 'Ali Veli' });
+    expect(listeyeEkle(liste, '  ayşe   kaya ')).toEqual({ liste, secilen: 'Ayşe Kaya' });
   });
 
   it('Türkçe büyük/küçük harfi doğru karşılaştırır', () => {

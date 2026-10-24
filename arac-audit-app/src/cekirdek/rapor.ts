@@ -122,18 +122,35 @@ function bolgeAdi(id: string, ad: string, dil: Dil): string {
 function ustBilgiCiftleri(denetim: Denetim, ozet: Ozet, dil: Dil): (string | number)[][] {
   const arac = ARAC_INDEKS[denetim.aracId];
   const E = (tr: string, en: string): string => (dil === 'en' ? en : tr);
-  // Hat ve vardiya formdan kaldırıldı (28.09.2026). Yeni denetimde boş
-  // "Line / Shift" satırı basılmaz; eski bir denetimde doluysa kaybolmasın.
+  // Formdan kaldırılanlar — hat/vardiya (28.09.2026); plaka, km, faz, ekip,
+  // rapor no (ürün sahibi, 24.10.2026: "bizdeki gereksiz bilgileri sil") —
+  // yeni denetimde boş satır olarak basılmaz; eski bir denetimde doluysa
+  // kaybolmasın diye sona eklenir.
   const hatVardiya = [denetim.hat, denetim.vardiya].filter(Boolean).join(' / ');
-  return [
-    [E('Araç', 'Vehicle'), arac?.tam ?? denetim.aracId ?? '', E('Şasi No (VIN)', 'VIN'), denetim.vin || '', E('Tarih', 'Date'), bicimTarih(denetim.baslangic)],
-    [E('Faz', 'Phase'), denetim.faz || '', E('Ekip', 'Team'), denetim.ekip || '', E('Kaynak', 'Source'), denetim.denetimTipi || ''],
-    // Spec ve km 28.09.2026'da eklendi; eski denetimde boş kalırlar.
-    [E('Denetçi', 'Auditor'), denetim.denetci || '', 'Spec', denetim.spec || '', E('Kilometre', 'Mileage'), kmGoster(denetim.km, dil)],
+  const ciftler: [string, string | number][] = [
+    [E('Araç', 'Vehicle'), arac?.tam ?? denetim.aracId ?? ''],
+    [E('Şasi No (VIN)', 'VIN'), denetim.vin || ''],
+    [E('Tarih', 'Date'), bicimTarih(denetim.baslangic)],
+    [E('Kaynak', 'Source'), denetim.denetimTipi || ''],
+    [E('Denetçi', 'Auditor'), denetim.denetci || ''],
+    ['Spec', denetim.spec || ''],
     // Durum 28.09.2026'da eklendi: yarım ve bitmiş denetimin dosyaları hücre
     // hücre aynıydı; alan kişi taslak mı son hâl mi anlayamıyordu (sınama).
-    [E('Rapor No', 'Report No'), denetim.raporNo || '', E('Durum', 'Status'), durumMetni(denetim, dil),
-      ...(hatVardiya ? [E('Hat / Vardiya', 'Line / Shift'), hatVardiya] : [])],
+    [E('Durum', 'Status'), durumMetni(denetim, dil)],
+    ...([
+      [E('Plaka', 'Plate'), denetim.plaka || ''],
+      [E('Kilometre', 'Mileage'), kmGoster(denetim.km, dil)],
+      [E('Faz', 'Phase'), denetim.faz || ''],
+      [E('Ekip', 'Team'), denetim.ekip || ''],
+      [E('Rapor No', 'Report No'), denetim.raporNo || ''],
+      [E('Hat / Vardiya', 'Line / Shift'), hatVardiya],
+    ] as [string, string][]).filter(([, deger]) => deger !== ''),
+  ];
+  // Her satırda üç çift.
+  const satirlar: (string | number)[][] = [];
+  for (let i = 0; i < ciftler.length; i += 3) satirlar.push(ciftler.slice(i, i + 3).flat());
+  return [
+    ...satirlar,
     [E('Toplam bulgu', 'Total findings'), ozet.toplamAdet, E('Kabul edilebilir (n)', 'Acceptable (n)'), ozet.kabulEdilebilirAdet, E('Fotoğraflı', 'With photo'), ozet.fotografliHata],
   ];
 }
@@ -329,14 +346,13 @@ export function topluExcelUret(
     [{ v: 'DPU (Defects Per Unit)', stil: STIL.ETIKET }, { v: toplu.dpu, stil: STIL.SAYI }],
     [],
     [{ v: E('ARAÇLAR', 'VEHICLES'), stil: STIL.ETIKET }],
-    [E('Şasi No', 'VIN'), E('Plaka', 'Plate'), E('Araç', 'Vehicle'), E('Faz', 'Phase'), E('Tarih', 'Date'),
+    [E('Şasi No', 'VIN'), E('Araç', 'Vehicle'), E('Faz', 'Phase'), E('Tarih', 'Date'),
      E('Denetçi', 'Auditor'), E('Bulgu', 'Findings')].map((v) => ({ v, stil: STIL.BASLIK })),
   ];
 
   for (const { denetim, ozet } of toplu.ozetler) {
     satirlar.push([
       { v: denetim.vin ?? '', stil: STIL.GOVDE },
-      { v: denetim.plaka || '—', stil: STIL.GOVDE },
       { v: ARAC_INDEKS[denetim.aracId]?.ad ?? denetim.aracId ?? '', stil: STIL.GOVDE },
       { v: denetim.faz ?? '', stil: STIL.GOVDE_ORTA },
       { v: bicimTarih(denetim.baslangic), stil: STIL.GOVDE_ORTA },
