@@ -118,6 +118,19 @@ src/
   yeni bir derleme demek. (`lucide-react-native` yerel DEĞİL: zaten kurulu
   `react-native-svg` üstünde saf JavaScript; yeni derleme gerektirmez.)
 
+### Görsel yenileme (24.10.2026)
+
+Ürün sahibi: *"Görsel olarak çok kötü duruyor, dandik; temayı değiştir,
+profesyonel yap."* Teal vurgu, yuvarlak gölgeli kartlar ve dolgulu haplar
+oyuncak hissi veriyordu. Değişenler tek yerden (`src/tema/`): çubuk koyu
+lacivert, vurgu çelik mavisi (açık `#1D4F9E`, koyu `#7FB3FF`), köşeler
+4/6/8/12 (önce 6/10/14/20), kartlar gölgesiz ve düz (yalnız kenar çizgisi),
+çubuk çipleri dolgusuz çerçeve, bölüm başlıklarında sol vurgu çizgisi. Tüm
+metin/zemin çiftleri (iki temada 35'er çift) `kontrast.py` ile WCAG'a göre
+ölçüldü: küçük yazı her yüzeyde ≥ 4,5:1. Web paketinde 4 düzende 13 adımlık
+sınav aynen geçti; ekran görüntülerine bakıldı. **Gerçek cihazda görülmedi;
+"profesyonel" yargısı benim, ürün sahibinin değil.**
+
 ### Görsel dil (27.09.2026)
 
 - **Üstte koyu uygulama çubuğu — iki temada da.** Sahada ekranın hangi

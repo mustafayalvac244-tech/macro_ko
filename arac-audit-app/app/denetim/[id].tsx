@@ -800,7 +800,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
     flexGrow: 1, flexBasis: 150, minHeight: 52, justifyContent: 'center', gap: 2,
     paddingHorizontal: bosluk.sm, paddingVertical: bosluk.xs,
     borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
-    boxShadow: `0 1px 2px ${r.golge}`,
   },
   hataDugmeBasili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   hataDugmeUst: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },

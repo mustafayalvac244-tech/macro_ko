@@ -264,7 +264,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   kahraman: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.md,
     padding: bosluk.md, borderRadius: kose.lg, backgroundColor: r.cubuk,
-    boxShadow: `0 2px 8px ${r.golge}`,
+    borderWidth: 1, borderColor: r.cubukCizgi,
   },
   kahramanDar: { flexDirection: 'column', alignItems: 'flex-start', gap: bosluk.sm },
   kahramanSimge: {
@@ -282,8 +282,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   kart: {
     gap: bosluk.sm, padding: bosluk.sm,
     backgroundColor: r.yuzey, borderRadius: kose.lg,
-    borderWidth: 1, borderColor: r.cizgiSolgun,
-    boxShadow: `0 1px 3px ${r.golge}`,
+    borderWidth: 1, borderColor: r.cizgi,
   },
   sutunSatiri: { marginHorizontal: -bosluk.sm / 2 },
   hucre: { width: '50%', paddingHorizontal: bosluk.sm / 2 },

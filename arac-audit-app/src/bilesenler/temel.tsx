@@ -286,7 +286,6 @@ export function Dugme({
         s.dugme,
         kucuk && s.dugmeKucuk,
         { backgroundColor: zemin, borderColor: cizgiRengi },
-        tur === 'ikincil' && s.golgeli,
         pressed && !kapali && s.basili,
         kapali && s.dugmePasif,
         style,
@@ -584,7 +583,6 @@ export function AltCubuk({ children, style }: { children: React.ReactNode; style
 
 const stiller = (r: Renkler) => StyleSheet.create({
   basili: { opacity: 0.72 },
-  golgeli: { boxShadow: `0 1px 2px ${r.golge}` },
 
   // Uygulama çubuğu
   // Alt çizgi koyu temada gerekli: çubuk ile koyu içerik zemini birbirine çok
@@ -601,10 +599,12 @@ const stiller = (r: Renkler) => StyleSheet.create({
   cubukSag: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
   cubukCipler: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingBottom: 2 },
   cubukCiplerTek: { flexDirection: 'row', gap: 6, paddingBottom: 2 },
+  // Çip dolgusuz: koyu çubukta dolgulu haplar "düğme" sanılıyordu; ince
+  // çerçeve bilgi olduğunu söyler (24.10.2026 görsel yenileme).
   cubukCip: {
     flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 320,
-    paddingHorizontal: bosluk.xs, paddingVertical: 4, borderRadius: kose.pill,
-    backgroundColor: r.cubukYuzey,
+    paddingHorizontal: bosluk.xs, paddingVertical: 3, borderRadius: kose.sm,
+    borderWidth: 1, borderColor: r.cubukCizgi, backgroundColor: r.seffaf,
   },
   cubukCipMetin: { ...tipografi.captionOrta, color: r.cubukMetin, flexShrink: 1 },
   cubukCipMono: { fontFamily: tipografi.mono.fontFamily, letterSpacing: 0.6 },
@@ -612,7 +612,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   cubukDugme: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: bosluk.xs,
     minHeight: DOKUNMA, minWidth: DOKUNMA, paddingHorizontal: bosluk.sm,
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cubukCizgi, backgroundColor: r.cubukYuzey,
+    borderRadius: kose.md, borderWidth: 1, borderColor: r.cubukCizgi, backgroundColor: r.seffaf,
   },
   cubukDugmeBirincil: { backgroundColor: r.cubukVurgu, borderColor: r.cubukVurgu },
   cubukDugmeKare: { paddingHorizontal: 0, width: DOKUNMA },
@@ -623,16 +623,20 @@ const stiller = (r: Renkler) => StyleSheet.create({
   },
   sayacMetin: { ...tipografi.captionOrta, fontVariant: ['tabular-nums'], color: r.cubukVurguMetin },
 
+  // Kart gölgesiz ve düz: gölge + kalın yuvarlak kenar "dandik" görünüyordu
+  // (ürün sahibi, 24.10.2026). Ayrım kenar çizgisi ve zemin farkıyla.
   kart: {
     backgroundColor: r.yuzey, borderRadius: kose.lg, borderWidth: 1,
-    borderColor: r.cizgiSolgun, padding: bosluk.md, gap: bosluk.sm,
-    boxShadow: `0 1px 3px ${r.golge}`,
+    borderColor: r.cizgi, padding: bosluk.md, gap: bosluk.sm,
   },
   kartVurgulu: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
 
   bolumSatiri: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: bosluk.sm },
-  bolumSol: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  bolumMetin: { ...tipografi.etiket, color: r.metinSolgun },
+  bolumSol: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderLeftWidth: 3, borderLeftColor: r.birincil, paddingLeft: bosluk.xs,
+  },
+  bolumMetin: { ...tipografi.etiket, color: r.metinIkincil },
 
   dugme: {
     flexDirection: 'row', gap: bosluk.xs,
@@ -691,9 +695,8 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   olcu: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
-    backgroundColor: r.yuzey, borderRadius: kose.lg, borderWidth: 1, borderColor: r.cizgiSolgun,
+    backgroundColor: r.yuzey, borderRadius: kose.lg, borderWidth: 1, borderColor: r.cizgi,
     paddingHorizontal: bosluk.sm, paddingVertical: bosluk.sm, minWidth: 140,
-    boxShadow: `0 1px 3px ${r.golge}`,
   },
   olcuSimge: { width: 40, height: 40, borderRadius: kose.md, alignItems: 'center', justifyContent: 'center' },
   olcuMetinler: { minWidth: 0, flexShrink: 1 },
@@ -716,7 +719,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   altCubuk: {
     flexDirection: 'row', gap: bosluk.xs, paddingTop: bosluk.sm,
-    backgroundColor: r.bgYukseltilmis, borderTopWidth: 1, borderTopColor: r.cizgiSolgun,
+    backgroundColor: r.bgYukseltilmis, borderTopWidth: 1, borderTopColor: r.cizgi,
   },
 
   perde: { flex: 1, backgroundColor: r.perde, justifyContent: 'flex-end' },

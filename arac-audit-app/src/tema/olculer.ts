@@ -20,12 +20,16 @@ export const bosluk = {
   xxxl: 40,
 } as const;
 
-/** Köşe yuvarlaklığı. Bu bir alet; köşeler yumuşak değil, ölçülü. */
+/**
+ * Köşe yuvarlaklığı. Bu bir alet; köşeler yumuşak değil, ölçülü.
+ * 24.10.2026'da küçültüldü (6/10/14/20 → 4/6/8/12): ürün sahibi "dandik
+ * duruyor" dedi; büyük yuvarlak kutular oyuncak hissi veriyordu.
+ */
 export const kose = {
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 20,
+  sm: 4,
+  md: 6,
+  lg: 8,
+  xl: 12,
   pill: 999,
 } as const;
 

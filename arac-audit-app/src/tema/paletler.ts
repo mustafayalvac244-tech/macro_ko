@@ -8,10 +8,11 @@
 // KURAL: bileşen dosyalarında ÇIPLAK HEX YAZMA. Renk her zaman temadan gelir,
 // yoksa iki temanın birinde sessizce okunmaz olur.
 //
-// Vurgu rengi neden teal: şiddet sınıfları kırmızı/turuncu/sarıyı ZATEN
+// Vurgu rengi neden mavi: şiddet sınıfları kırmızı/turuncu/sarıyı ZATEN
 // tutuyor. Vurgu bunlarla çarpışmamalı, yoksa "kritik hata" ile "birincil
-// düğme" aynı sinyali verir. Teal ölçüm aleti çağrışımı taşır ve üç şiddet
-// renginin hiçbirine yakın değildir.
+// düğme" aynı sinyali verir. 24.10.2026'ya kadar teal'di; ürün sahibi
+// "görsel olarak çok kötü, dandik, profesyonel yap" dedi. Koyu lacivert
+// çubuk + çelik mavisi vurgu, daha keskin köşeler, gölgesiz düz kartlar.
 
 export type TemaAdi = 'acik' | 'koyu';
 
@@ -76,42 +77,48 @@ export interface Renkler {
   golge: string;
 }
 
+/**
+ * ÇUBUK — koyu lacivert, iki temada da aynı. Vurgu açık çelik mavisi: koyu
+ * zemin üstünde yazı olarak da (bildirimdeki "Geri al"), birincil düğmenin
+ * zemini olarak da (üstünde koyu yazı) kullanılıyor; o yüzden AÇIK olmak
+ * zorunda, koyu bir mavi bildirimde okunmazdı.
+ */
 const CUBUK = {
-  cubuk: '#15202B',
-  cubukYuzey: '#213040',
-  cubukCizgi: '#2E4052',
-  cubukMetin: '#F2F6F9',
-  cubukMetinSolgun: '#9BAEBF',
-  cubukVurgu: '#2BC0CC',
-  cubukVurguMetin: '#07212A',
+  cubuk: '#0B1F3A',
+  cubukYuzey: '#16305A',
+  cubukCizgi: '#27477A',
+  cubukMetin: '#F4F7FB',
+  cubukMetinSolgun: '#A9B9CF',
+  cubukVurgu: '#7FB3FF',
+  cubukVurguMetin: '#071A33',
 } as const;
 
 /**
- * AÇIK TEMA — nötrler saf gri değil, hafif mavi-çelik yönünde. Saf gri
- * "seçilmemiş" görünür; gövde sacının rengine kayan gri seçilmiş görünür.
+ * AÇIK TEMA — nötrler soğuk gri; yüzeyler düz beyaz, kart gölgesi yok (kenar
+ * çizgisiyle ayrılır). Vurgu koyu çelik mavisi: derece renklerinin (kırmızı,
+ * turuncu, sarı) hiçbirine yakın değil. Kontrastlar WCAG formülüyle
+ * `scratchpad/kontrast.py` ile ölçüldü (24.10.2026): küçük yazı her yüzeyde
+ * ≥ 4.5:1.
  */
 const acik: Renkler = {
-  bg: '#F1F4F7',
+  bg: '#EEF1F5',
   bgYukseltilmis: '#FFFFFF',
   yuzey: '#FFFFFF',
-  yuzeyAlt: '#E7ECF1',
-  yuzeyVurgu: '#DDE4EB',
+  yuzeyAlt: '#E4E9F0',
+  yuzeyVurgu: '#D9E0E9',
 
-  cizgi: '#C9D2DB',
-  cizgiSolgun: '#E2E8EE',
-  cizgiGuclu: '#94A3B1',
+  cizgi: '#C7D0DB',
+  cizgiSolgun: '#E1E6EC',
+  cizgiGuclu: '#8A98A9',
 
-  metin: '#0F161D',
-  metinIkincil: '#475765',
-  // #74838F idi: zeminde 3.53:1 — küçük yazı için WCAG AA (4.5) ALTINDA.
-  // 27.09.2026'da ölçüldü; bu renk 11 px etiketlerde ve İngilizce parça
-  // adlarında kullanılıyor. Şimdi tüm yüzeylerde en az 4.60:1.
-  metinSolgun: '#586672',
+  metin: '#101826',
+  metinIkincil: '#414F66',
+  metinSolgun: '#52617A',
   metinTers: '#FFFFFF',
 
-  birincil: '#0C7480',
-  birincilKoyu: '#08545D',
-  birincilYumusak: '#DCEFF1',
+  birincil: '#1D4F9E',
+  birincilKoyu: '#163C79',
+  birincilYumusak: '#E3EBF8',
 
   basari: '#0F7148',
   basariYumusak: '#DAF1E5',
@@ -119,13 +126,11 @@ const acik: Renkler = {
   uyariYumusak: '#FCEDD9',
   tehlike: '#AE2018',
   tehlikeYumusak: '#FCE2DF',
-  bilgi: '#1B5A9F',
-  bilgiYumusak: '#E0EBF8',
+  bilgi: '#1D4F9E',
+  bilgiYumusak: '#E3EBF8',
 
   derece3: '#AE2018',
   derece3Yumusak: '#FCE2DF',
-  // Rozet yazısı kendi zemininde 3.93:1 idi (#B85E09); ton korunup yalnız
-  // koyulaştırıldı → 4.63:1. Derece 1 aynı sebeple (#8C6E08: 4.26 → 4.65).
   derece2: '#A75508',
   derece2Yumusak: '#FCEDD9',
   derece1: '#856808',
@@ -133,36 +138,34 @@ const acik: Renkler = {
 
   ...CUBUK,
 
-  perde: 'rgba(10, 16, 22, 0.55)',
+  perde: 'rgba(8, 14, 24, 0.6)',
   seffaf: 'transparent',
-  golge: 'rgba(16, 32, 48, 0.08)',
+  golge: 'rgba(16, 24, 40, 0.06)',
 };
 
 /**
- * KOYU TEMA — naif ters çevirme DEĞİL. Zemin nötr siyah değil, aynı
- * mavi-çelik yönünde koyu; vurgu ve durum renkleri koyu zeminde okunacak
- * şekilde ayrı ayrı açıldı (açık temadakinin aynısı koyu zeminde söner).
+ * KOYU TEMA — naif ters çevirme DEĞİL. Zemin lacivert-füme; vurgu ve durum
+ * renkleri koyu zeminde okunacak şekilde ayrı ayrı açıldı.
  */
 const koyu: Renkler = {
-  bg: '#0B1016',
-  bgYukseltilmis: '#121A22',
-  yuzey: '#151E27',
-  yuzeyAlt: '#1C2732',
-  yuzeyVurgu: '#243140',
+  bg: '#0B1118',
+  bgYukseltilmis: '#111A24',
+  yuzey: '#141E2A',
+  yuzeyAlt: '#1B2735',
+  yuzeyVurgu: '#243243',
 
-  cizgi: '#2B3845',
-  cizgiSolgun: '#1F2A35',
-  cizgiGuclu: '#46596B',
+  cizgi: '#2A3847',
+  cizgiSolgun: '#1F2B38',
+  cizgiGuclu: '#4A5C70',
 
-  metin: '#E7EEF4',
-  metinIkincil: '#A4B3C0',
-  // #788896 idi: yuzeyVurgu üstünde 4.30:1. Şimdi tüm yüzeylerde en az 4.58:1.
-  metinSolgun: '#8A9AA8',
-  metinTers: '#0B1016',
+  metin: '#E8EEF5',
+  metinIkincil: '#A6B4C3',
+  metinSolgun: '#8E9DAE',
+  metinTers: '#0B1118',
 
-  birincil: '#2BC0CC',
-  birincilKoyu: '#1A8F99',
-  birincilYumusak: '#0E3339',
+  birincil: '#7FB3FF',
+  birincilKoyu: '#4F8BE6',
+  birincilYumusak: '#14294A',
 
   basari: '#45D796',
   basariYumusak: '#0D2A1E',
@@ -170,8 +173,8 @@ const koyu: Renkler = {
   uyariYumusak: '#31220B',
   tehlike: '#FF7A6A',
   tehlikeYumusak: '#33140E',
-  bilgi: '#6CA6EE',
-  bilgiYumusak: '#0F223B',
+  bilgi: '#7FB3FF',
+  bilgiYumusak: '#14294A',
 
   derece3: '#FF7A6A',
   derece3Yumusak: '#33140E',
