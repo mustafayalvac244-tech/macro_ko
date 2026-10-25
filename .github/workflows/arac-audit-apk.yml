@@ -42,6 +42,9 @@ on:
     branches: ['claude/vehicle-audit-app-rear95']
     paths:
       - 'arac-audit-app/**'
+      # Yalnız belge değişince 15 dakikalık derleme boşa koşuyordu; OTA iş
+      # akışıyla aynı süzgeç (25.10.2026).
+      - '!arac-audit-app/**/*.md'
   workflow_dispatch:
 
 permissions:

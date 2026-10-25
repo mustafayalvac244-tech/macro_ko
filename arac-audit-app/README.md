@@ -461,6 +461,36 @@ kaskad); uçtan uca sınav 15 adım, 4 düzen; ekran görüntüleri. Sınavı be
 yazdım, web paketi; **gerçek denetçi ve gerçek cihazla doğrulanmadı**.
 Analiz ekranındaki sayılar bu cihazın verisidir, ekibin toplamı değil.
 
+### Üreticilerde durum — Tesla, Mercedes, Toyota ve diğerleri (25.10.2026)
+
+Ürün sahibi sordu: *"Dünyada benzer bir uygulama var mı, Tesla'da, Mercedes'te,
+Toyota'da?"* 24 web araması yapıldı (sayfalar açılamadı, DNS kapalı; yalnız
+arama özetleri). Kanıt kaynağı her satırda yazıyor; üreticilerin iç araçları
+hakkında kamuya açık bilgi azdır ve çoğu sayı üretici ya da satıcı beyanıdır.
+
+| Üretici | Bulunan | Kaynak türü |
+|---|---|---|
+| **Mercedes-Benz** | MO360 içinde **"Quality Live"**: kalite yöneticisi her aracın anlık kalite durumunu telefon/el terminalinden görür; bölgesindeki kalite durumu için uyarı alır; yapay zekâ onarım (rework) önerir; 30'dan fazla fabrikada | Basın bülteni, 2020–2023 |
+| **BMW** | **GenAI4Q** (Regensburg, 2025): yapay zekâ her araç için kontrol kapsamını seçip bir telefon uygulamasında sıralıyor (~1.400 araç/gün); bulgu için sesli not; ayrıca AIQX kamera platformu | BMW basın bülteni |
+| **Ford** | Valencia: bileğe takılan cihazda Android uygulaması, araca özel kontrol listesi, hattı durdurabiliyor (Ford: %7 daha az hata, araç başına 7 sn kazanç). Kuzey Amerika'da 17 fabrikada iPhone + IBM görüntü tanıma (Ford: 150 milyon kontrol, 400 bin bulgu) | Ford beyanı, ticari basın |
+| **Toyota** | Resmî: 1.500 noktalı final kontrol, parça doğrulama için el terminali. Satıcı vakası (ATS Inspect, pres atölyesi): tablette parça çizimine dokunarak hata yeri, 0,1–1,0 ağırlık, fotoğraf | Toyota fabrika turu; satıcı broşürü |
+| **Nissan / Renault** | VES/AVES standardı: 300'den fazla ölçüt, yalnız sertifikalı "VES Master" uygular, seri üretimde de dönemsel; uygulama/tablet bilgisi yok | Nissan sürdürülebilirlik raporu |
+| **Hyundai / Kia** | Ekim 2026 E-FOREST: tünel tipi kamera + yapay zekâ ile bitmiş araç dış kontrolü (Kia Hwaseong), gövde hatalarını sesli soruyla tipe göre döken "Polaris" ajanı; 2032'ye kadar otonom fabrika. Tablet denetim uygulaması hakkında bir şey yok | Basın |
+| **Volvo** | Torslanda: hat sonunda UVeye kamera tüneli, 360° dış tarama (2020'den beri) | Ticari basın |
+| **Tesla** | İç uygulama hakkında **hiçbir kamuya açık bilgi yok**; otomatik kontrol robotları (EINES). Mağazadaki "TSL Check", "Inspect T" üçüncü taraf teslimat kontrol uygulamalarıdır, Tesla'nın değil | Basın, mağaza sayfaları |
+| **GM** | GCA (Global Customer Audit) bir süreç adı; uygulama ayrıntısı yok | Forum (zayıf kanıt) |
+| **Türkiye** | Ford Otosan 2022'de "Dijital Mükemmellik Merkezi" platformu planı; Tofaş, Toyota, Hyundai Assan için bulgu yok | Köşe yazısı |
+
+**Çıkarım (benim yorumum, ölçüm değil):** büyük üreticilerde "tek başına
+denetim uygulaması" yok; hata kaydı, fabrikanın MES/kalite sisteminin bir
+modülü (Quality Live gibi). 2024–2026 eğilimi iki yönlü: dış yüzey hataları
+için kamera tüneli + yapay zekâ, kontrol kapsamını araç başına yapay zekânın
+seçmesi. Bu uygulamanın zaten yaptığı şeyler (araç başına kayıt, bölgeye
+dokunarak yer, derece, fotoğraf, Pareto, DPU) ATS Inspect ve Quality Live'ın
+çekirdeğiyle örtüşüyor. Onlarda olup burada olmayanlar: **merkezi sunucu ve
+canlı durum**, sesli not, kameradan otomatik bulgu, hat entegrasyonu (hattı
+durdurma, onarıma yönlendirme).
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |
