@@ -10,9 +10,14 @@
 //
 // Vurgu rengi neden mavi: şiddet sınıfları kırmızı/turuncu/sarıyı ZATEN
 // tutuyor. Vurgu bunlarla çarpışmamalı, yoksa "kritik hata" ile "birincil
-// düğme" aynı sinyali verir. 24.10.2026'ya kadar teal'di; ürün sahibi
-// "görsel olarak çok kötü, dandik, profesyonel yap" dedi. Koyu lacivert
-// çubuk + çelik mavisi vurgu, daha keskin köşeler, gölgesiz düz kartlar.
+// düğme" aynı sinyali verir.
+//
+// 25.10.2026: açık tema Vekil Pro'nun "Klasik" paletine çekildi (bg #EEF2F8,
+// birincil #173C7E, çizgi #CFD9EA). Gerekçe: ürün sahibi iki yenilemeyi de
+// beğenmedi ("dandik", "arayüz beğenmedim"); Vekil Pro onun onayladığı tek
+// görsel dil. Koyu uygulama çubuğu kaldırıldı — başlık artık sayfa zemininde.
+// Soluk metin Vekil'den koyu (#828EA6 → #56657F): oradaki değer 13 px yazıda
+// 3,3:1 kalıyor, bu uygulama güneş altında kullanılıyor; ≥ 4,5:1 şart.
 
 export type TemaAdi = 'acik' | 'koyu';
 
@@ -58,67 +63,68 @@ export interface Renkler {
   derece1: string;
   derece1Yumusak: string;
 
-  // Uygulama çubuğu — İKİ TEMADA DA KOYU. Açık temada da koyu durması
-  // bilinçli: sahada ekranın hangi uygulamada olduğunu bir bakışta ayırır ve
-  // içerikle araç çubuğunu ayırır. Kontrastlar WCAG formülüyle hesaplandı
-  // (27.09.2026): metin 15.2:1, soluk metin 7.2:1, vurgu üstü metin 7.6:1.
-  cubuk: string;
-  cubukYuzey: string;
-  cubukCizgi: string;
-  cubukMetin: string;
-  cubukMetinSolgun: string;
-  cubukVurgu: string;
-  cubukVurguMetin: string;
+  // Ters yüzey — iki temada da koyu lacivert. Yalnız içerik ÜSTÜNDE yüzen
+  // şeyler için: kayıt bildirimi (snackbar) ve barkod kamerasının çerçevesi.
+  // 25.10.2026'ya kadar uygulama çubuğu da buydu; çubuk artık sayfa
+  // zemininde, bu tokenlar yalnız yüzen katmanlarda kaldı.
+  ters: string;
+  tersYuzey: string;
+  tersCizgi: string;
+  tersMetin: string;
+  tersMetinSolgun: string;
+  tersVurgu: string;
+  tersVurguMetin: string;
 
   // Diğer
   perde: string;
   seffaf: string;
-  /** Kart gölgesi — `boxShadow` içinde kullanılır, tek başına renk değildir. */
+  /** Kart gölgesi — `boxShadow` içinde kullanılır, tek başına renk değildir.
+   *  Vekil Pro `shadow.card`: 0 4 12, %8 lacivert. */
   golge: string;
 }
 
 /**
- * ÇUBUK — koyu lacivert, iki temada da aynı. Vurgu açık çelik mavisi: koyu
- * zemin üstünde yazı olarak da (bildirimdeki "Geri al"), birincil düğmenin
- * zemini olarak da (üstünde koyu yazı) kullanılıyor; o yüzden AÇIK olmak
- * zorunda, koyu bir mavi bildirimde okunmazdı.
+ * TERS YÜZEY — koyu lacivert, iki temada da aynı. Vurgu açık çelik mavisi:
+ * koyu zemin üstünde yazı olarak (bildirimdeki "Geri al") ve barkod
+ * çerçevesinin köşelerinde kullanılıyor; o yüzden AÇIK olmak zorunda.
+ * Kontrast (kontrast.py, 25.10.2026): metin 14,6:1, vurgu 7,6:1.
  */
-const CUBUK = {
-  cubuk: '#0B1F3A',
-  cubukYuzey: '#16305A',
-  cubukCizgi: '#27477A',
-  cubukMetin: '#F4F7FB',
-  cubukMetinSolgun: '#A9B9CF',
-  cubukVurgu: '#7FB3FF',
-  cubukVurguMetin: '#071A33',
+const TERS = {
+  ters: '#14233F',
+  tersYuzey: '#1E3158',
+  tersCizgi: '#2F4772',
+  tersMetin: '#F4F7FB',
+  tersMetinSolgun: '#A9B9CF',
+  tersVurgu: '#7FB3FF',
+  tersVurguMetin: '#071A33',
 } as const;
 
 /**
- * AÇIK TEMA — nötrler soğuk gri; yüzeyler düz beyaz, kart gölgesi yok (kenar
- * çizgisiyle ayrılır). Vurgu koyu çelik mavisi: derece renklerinin (kırmızı,
- * turuncu, sarı) hiçbirine yakın değil. Kontrastlar WCAG formülüyle
- * `scratchpad/kontrast.py` ile ölçüldü (24.10.2026): küçük yazı her yüzeyde
- * ≥ 4.5:1.
+ * AÇIK TEMA — Vekil Pro "Klasik": soğuk mermer zemin, beyaz kartlar (yumuşak
+ * gölge + ince kenar), koyu kraliyet lacivertî vurgu. Derece renkleri
+ * (kırmızı, turuncu, sarı) vurguyla çarpışmaz. Kontrastlar WCAG formülüyle
+ * `scratchpad/kontrast.py` ile ölçüldü (25.10.2026): küçük yazı her yüzeyde
+ * ≥ 4,5:1.
  */
 const acik: Renkler = {
-  bg: '#EEF1F5',
+  bg: '#EEF2F8',
   bgYukseltilmis: '#FFFFFF',
   yuzey: '#FFFFFF',
-  yuzeyAlt: '#E4E9F0',
-  yuzeyVurgu: '#D9E0E9',
+  yuzeyAlt: '#F2F5FA',
+  yuzeyVurgu: '#E4EBF5',
 
-  cizgi: '#C7D0DB',
-  cizgiSolgun: '#E1E6EC',
+  cizgi: '#CFD9EA',
+  cizgiSolgun: '#E4EAF4',
   cizgiGuclu: '#8A98A9',
 
-  metin: '#101826',
-  metinIkincil: '#414F66',
-  metinSolgun: '#52617A',
+  metin: '#0F1B33',
+  metinIkincil: '#44506B',
+  metinSolgun: '#56657F',
   metinTers: '#FFFFFF',
 
-  birincil: '#1D4F9E',
-  birincilKoyu: '#163C79',
-  birincilYumusak: '#E3EBF8',
+  birincil: '#173C7E',
+  birincilKoyu: '#10295A',
+  birincilYumusak: '#DCE6F6',
 
   basari: '#0F7148',
   basariYumusak: '#DAF1E5',
@@ -126,7 +132,7 @@ const acik: Renkler = {
   uyariYumusak: '#FCEDD9',
   tehlike: '#AE2018',
   tehlikeYumusak: '#FCE2DF',
-  bilgi: '#1D4F9E',
+  bilgi: '#173C7E',
   bilgiYumusak: '#E3EBF8',
 
   derece3: '#AE2018',
@@ -136,11 +142,11 @@ const acik: Renkler = {
   derece1: '#856808',
   derece1Yumusak: '#F8F1D4',
 
-  ...CUBUK,
+  ...TERS,
 
   perde: 'rgba(8, 14, 24, 0.6)',
   seffaf: 'transparent',
-  golge: 'rgba(16, 24, 40, 0.06)',
+  golge: 'rgba(26, 44, 81, 0.08)',
 };
 
 /**
@@ -183,11 +189,11 @@ const koyu: Renkler = {
   derece1: '#DFC248',
   derece1Yumusak: '#2C2608',
 
-  ...CUBUK,
+  ...TERS,
 
   perde: 'rgba(0, 0, 0, 0.66)',
   seffaf: 'transparent',
-  golge: 'rgba(0, 0, 0, 0.45)',
+  golge: 'rgba(0, 0, 0, 0.4)',
 };
 
 export const PALETLER: Record<TemaAdi, Renkler> = { acik, koyu };

@@ -153,7 +153,7 @@ export default function YeniDenetim() {
   const vinDurumu = !vinHam
     ? (bodyNo
       ? { tur: 'bilgi' as const, metin: 'Şasi yok: araç body no ile kaydedilir.' }
-      : { tur: denendi ? 'uyari' as const : 'bilgi' as const, metin: `Barkodu okutun ya da ${VIN_UZUNLUK} haneyi yazın — ya da aşağıya body no girin.` })
+      : { tur: denendi ? 'uyari' as const : 'bilgi' as const, metin: `Barkod okutun ya da ${VIN_UZUNLUK} haneyi yazın; body no da yeterli.` })
     : vin.gecerli && !vin.uyarilar.length
       ? { tur: 'basari' as const, metin: `Geçerli · ${vin.bilgi.uretici ?? vin.bilgi.wmi} · model yılı ${vin.bilgi.modelYili ?? '?'}` }
       : denendi && !vin.gecerli
@@ -175,7 +175,7 @@ export default function YeniDenetim() {
       >
         <View style={[s.sutun, tablet && s.sutunTablet]}>
           <Kart>
-            <BolumBasligi metin="ARAÇ" simge={S.arac} />
+            <BolumBasligi metin="Araç" simge={S.arac} />
             <View style={s.aracIzgara}>
               {ARACLAR.map((a) => {
                 const secili = a.id === aracId;
@@ -211,26 +211,29 @@ export default function YeniDenetim() {
           </Kart>
 
           <Kart>
-            <BolumBasligi metin="ŞASİ NUMARASI (VIN)" simge={S.barkod} />
+            <BolumBasligi metin="Şasi numarası (VIN)" simge={S.barkod} />
             <Girdi
               mono
               value={vin.vin}
               onChangeText={setVinHam}
-              placeholder="17 HANE"
+              placeholder="17 hane"
               autoCapitalize="characters"
               autoCorrect={false}
               spellCheck={false}
               maxLength={40}
               accessibilityLabel="Şasi numarası"
               hata={denendi && !vinBos && !vin.gecerli ? vin.hatalar.join(' ') : undefined}
+              // Yol gösteren cümle kutunun altında küçük yazı; mavi bilgi kutusu
+              // formu kalabalık ediyordu (25.10.2026). Uyarı ve başarı kutuda kalır.
+              ipucu={vinDurumu?.tur === 'bilgi' ? vinDurumu.metin : undefined}
             />
-            {vinDurumu ? <BilgiKutusu tur={vinDurumu.tur} metin={vinDurumu.metin} /> : null}
+            {vinDurumu && vinDurumu.tur !== 'bilgi' ? <BilgiKutusu tur={vinDurumu.tur} metin={vinDurumu.metin} /> : null}
             <View style={s.satir}>
               <Dugme metin="Barkod okut" simge={S.barkod} kucuk onPress={() => router.push('/barkod')} style={{ flex: 1 }} />
               <Dugme metin="Temizle" simge={S.kapat} kucuk tur="sessiz" onPress={() => setVinHam('')} />
             </View>
             <Girdi
-              etiket="BODY NO"
+              etiket="Body no"
               mono
               value={bodyNoHam}
               onChangeText={(t) => setBodyNoHam(bodyNoSadelestir(t))}
@@ -242,7 +245,7 @@ export default function YeniDenetim() {
               accessibilityLabel="Body numarası"
             />
             <View style={{ gap: bosluk.xxs }}>
-              <Text style={s.alanEtiketi}>SPEC</Text>
+              <Text style={s.alanEtiketi}>Spec</Text>
               <View style={s.satir}>
                 {SPECLER.map((x) => (
                   <Secenek
@@ -261,9 +264,9 @@ export default function YeniDenetim() {
 
         <View style={[s.sutun, tablet && s.sutunTablet]} onLayout={(e) => setBilgiY(e.nativeEvent.layout.y)}>
           <Kart>
-            <BolumBasligi metin="DENETİM BİLGİLERİ" simge={S.rapor} />
+            <BolumBasligi metin="Denetim bilgileri" simge={S.rapor} />
             <EklenebilirSecim
-              baslik="DENETÇİ"
+              baslik="Denetçi"
               ad="Denetçi"
               liste={denetciler}
               deger={listedeyse(denetciler.liste, v.denetci)}
@@ -271,7 +274,7 @@ export default function YeniDenetim() {
               yerTutucu="Ad Soyad"
             />
             <EklenebilirSecim
-              baslik="PROBLEM SOURCE"
+              baslik="Problem source"
               ad="Kaynak"
               liste={kaynaklar}
               deger={listedeyse(kaynaklar.liste, v.kaynak)}
@@ -353,7 +356,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   aracTip: { ...tipografi.caption, color: r.metinSolgun },
 
   satir: { flexDirection: 'row', gap: bosluk.xs },
-  alanEtiketi: { ...tipografi.etiket, color: r.metinSolgun },
+  alanEtiketi: { ...tipografi.caption, color: r.metinIkincil },
   uyariBandi: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, flexWrap: 'wrap',
     paddingHorizontal: bosluk.md, paddingTop: bosluk.xs, backgroundColor: r.bg,

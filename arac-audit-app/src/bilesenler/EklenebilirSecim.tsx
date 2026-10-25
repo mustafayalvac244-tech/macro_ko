@@ -214,7 +214,7 @@ export function ListeDuzenle({
 
 const stiller = (r: Renkler) => StyleSheet.create({
   govde: { gap: bosluk.xs },
-  baslik: { ...tipografi.etiket, color: r.metinSolgun, marginTop: bosluk.xxs },
+  baslik: { ...tipografi.caption, color: r.metinIkincil, marginTop: bosluk.xxs },
   satir: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   secenek: { minWidth: 64 },
   ekle: {

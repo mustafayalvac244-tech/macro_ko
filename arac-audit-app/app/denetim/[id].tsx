@@ -428,7 +428,7 @@ export default function DenetimEkrani() {
 
       <View style={[s.dereceSerit, tablet && s.dereceSeritTablet]}>
         <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
-          <Text style={s.dereceEtiket}>DERECE — 3 EN AĞIR</Text>
+          <Text style={s.dereceEtiket}>Derece — 3 en ağır</Text>
           <DereceSecici derece={derece} onSec={dereceSec} />
         </View>
         <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} style={tablet ? { flex: 1 } : undefined} />
@@ -487,7 +487,7 @@ export default function DenetimEkrani() {
                     >
                       <View style={s.hataDugmeUst}>
                         <Text style={s.hataAd} numberOfLines={2}>{t.ad}</Text>
-                        {t.ozel ? <Text style={s.ekipIsaret}>EKİP</Text> : null}
+                        {t.ozel ? <Text style={s.ekipIsaret}>Ekip</Text> : null}
                       </View>
                     </Pressable>
                   ))}
@@ -590,8 +590,8 @@ export default function DenetimEkrani() {
           <View style={s.bildirim} accessibilityLiveRegion="polite" pointerEvents="box-none">
             <View style={s.bildirimSol} pointerEvents="none">
               {bildirim.tur === 'kayit'
-                ? <S.tamam size={20} color={renkler.cubukVurgu} strokeWidth={2.25} />
-                : <S.geriAl size={20} color={renkler.cubukVurgu} strokeWidth={2.25} />}
+                ? <S.tamam size={20} color={renkler.tersVurgu} strokeWidth={2.25} />
+                : <S.geriAl size={20} color={renkler.tersVurgu} strokeWidth={2.25} />}
               <Text style={s.bildirimMetin} numberOfLines={3}>{bildirim.metin}</Text>
             </View>
             {bildirim.tur === 'kayit' ? (
@@ -603,7 +603,7 @@ export default function DenetimEkrani() {
                   hitSlop={8}
                   style={({ pressed }) => [s.geriAlDugme, pressed && s.basili]}
                 >
-                  <S.ekle size={18} color={renkler.cubukVurgu} strokeWidth={2.25} />
+                  <S.ekle size={18} color={renkler.tersVurgu} strokeWidth={2.25} />
                   <Text style={s.geriAlMetin}>Aynı parçaya</Text>
                 </Pressable>
                 <Pressable
@@ -613,7 +613,7 @@ export default function DenetimEkrani() {
                   hitSlop={8}
                   style={({ pressed }) => [s.geriAlDugme, pressed && s.basili]}
                 >
-                  <S.geriAl size={18} color={renkler.cubukVurgu} strokeWidth={2.25} />
+                  <S.geriAl size={18} color={renkler.tersVurgu} strokeWidth={2.25} />
                   <Text style={s.geriAlMetin}>Geri al</Text>
                 </Pressable>
               </View>
@@ -693,7 +693,7 @@ function DenetimOzeti({
       {son.length ? (
         <View style={{ gap: bosluk.xs }}>
           <BolumBasligi
-            metin="SON KAYITLAR"
+            metin="Son kayıtlar"
             simge={S.son}
             sag={<Dugme metin="Tümü" kucuk tur="sessiz" simge={S.liste} onPress={onTumu} erisimEtiketi="Tüm kayıtları aç" />}
           />
@@ -852,17 +852,17 @@ const stiller = (r: Renkler) => StyleSheet.create({
     width: '100%', maxWidth: 640,
     flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: bosluk.sm,
     paddingLeft: bosluk.md, paddingRight: bosluk.xs, minHeight: 58,
-    borderRadius: kose.lg, backgroundColor: r.cubuk, borderWidth: 1, borderColor: r.cubukCizgi,
+    borderRadius: kose.lg, backgroundColor: r.ters, borderWidth: 1, borderColor: r.tersCizgi,
     boxShadow: `0 6px 18px ${r.golge}`,
   },
   bildirimSol: { flexGrow: 1, flexBasis: 220, flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, paddingVertical: bosluk.xs },
   bildirimDugmeler: { flexDirection: 'row', alignItems: 'center', gap: 2, marginLeft: 'auto' },
-  bildirimMetin: { ...tipografi.bodyOrta, color: r.cubukMetin, flex: 1 },
+  bildirimMetin: { ...tipografi.bodyOrta, color: r.tersMetin, flex: 1 },
   geriAlDugme: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     minHeight: DOKUNMA, paddingHorizontal: bosluk.sm, borderRadius: kose.md,
   },
-  geriAlMetin: { ...tipografi.bodyOrta, color: r.cubukVurgu },
+  geriAlMetin: { ...tipografi.bodyOrta, color: r.tersVurgu },
 
   // Kayıt listesi
   listeUst: { paddingHorizontal: bosluk.md, gap: 2 },

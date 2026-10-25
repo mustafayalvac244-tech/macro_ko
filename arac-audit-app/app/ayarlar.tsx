@@ -61,7 +61,7 @@ export default function Ayarlar() {
       <Baslik baslik="Ayarlar" sol={<GeriDugmesi />} />
       <ScrollView contentContainerStyle={s.govde}>
         <Kart>
-          <BolumBasligi metin="GÖRÜNÜM" simge={S.gorunum} />
+          <BolumBasligi metin="Görünüm" simge={S.gorunum} />
           <Text style={s.aciklama}>Üst çubuk iki temada da koyudur; içerik seçilen temayı izler.</Text>
           <View style={s.satir}>
             {TEMALAR.map((t) => (
@@ -81,7 +81,7 @@ export default function Ayarlar() {
         {/* Yeni denetim formundaki hazır seçenekler. Kaldırılan ad eski
             denetimlerde yazılı kalır; yalnız yeni denetimde seçilemez. */}
         <Kart>
-          <BolumBasligi metin="DENETÇİLER" simge={S.ekip} />
+          <BolumBasligi metin="Denetçiler" simge={S.ekip} />
           <Text style={s.aciklama}>Yeni denetimde listeden seçilir. Bu cihazda saklanır; başka tablete geçmez.</Text>
           <ListeDuzenle ad="Denetçi" liste={denetciler} yerTutucu="Ad Soyad" />
         </Kart>
@@ -89,18 +89,18 @@ export default function Ayarlar() {
         {/* FAZLAR listesi kalktı: faz formdan çıktı (ürün sahibi, 24.10.2026). */}
 
         <Kart>
-          <BolumBasligi metin="PROBLEM SOURCE" simge={S.etiket} />
+          <BolumBasligi metin="Problem source" simge={S.etiket} />
           <Text style={s.aciklama}>Raporun Source sütunu. Yeni denetimde seçilir ve hatırlanır.</Text>
           <ListeDuzenle ad="Kaynak" liste={kaynaklar} yerTutucu="Örn. Durability" />
         </Kart>
 
         <Kart>
-          <BolumBasligi metin="EKİBİN EKLEDİĞİ HATA TİPLERİ" simge={S.etiket} />
+          <BolumBasligi metin="Ekibin eklediği hata tipleri" simge={S.etiket} />
           <OzelTipler />
         </Kart>
 
         <Kart>
-          <BolumBasligi metin="VERİ" simge={S.veri} />
+          <BolumBasligi metin="Veri" simge={S.veri} />
           {/* "Gönderilmeyi bekliyor" demiyoruz: gönderen bir kod yok, sunucu
               kurulmadı. Sayı, cihazda duran satırların sayısıdır. */}
           <BilgiKutusu

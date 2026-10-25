@@ -21,58 +21,69 @@ export const bosluk = {
 } as const;
 
 /**
- * Köşe yuvarlaklığı. Bu bir alet; köşeler yumuşak değil, ölçülü.
- * 24.10.2026'da küçültüldü (6/10/14/20 → 4/6/8/12): ürün sahibi "dandik
- * duruyor" dedi; büyük yuvarlak kutular oyuncak hissi veriyordu.
+ * Köşe yuvarlaklığı — Vekil Pro'nun ölçüleri (8/12/16/20). 24.10.2026'da
+ * önce 4/6/8/12'ye indirilmişti; ürün sahibi o hâli de beğenmedi ("arayüz
+ * beğenmedim"). Vekil Pro aynı ürün sahibinin onayından geçmiş tek tasarım
+ * dili; ölçüler oradan alındı, yeniden icat edilmedi.
  */
 export const kose = {
-  sm: 4,
-  md: 6,
-  lg: 8,
-  xl: 12,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
   pill: 999,
 } as const;
 
 /**
- * Yazı tipi aileleri (24.10.2026'ya kadar IBM Plex; ürün sahibi "yazı tipini
- * güzelleştir" dedi).
- * Inter: arayüz için çizilmiş, küçük boyda açık, Türkçe karakterleri tam;
- * kurumsal yazılımlarda yaygın. JetBrains Mono: şasi numarası ve hata kodu
- * için — 0/O ve 1/l/I birbirinden ayrı çizilir, eşit genişlikli haneler
- * yanlış okumayı azaltır. Dosyalar assets/fonts altında (bkz. _layout.tsx).
+ * Yazı tipi: TEK aile, Manrope (25.10.2026). Sıra: IBM Plex → Inter +
+ * JetBrains Mono → Manrope. Ürün sahibi "yazı tipi falan kötü duruyor" dedi;
+ * ekran görüntülerinde göze batan şey eşit genişlikli yazıydı — büyük
+ * sayılarda çizgili sıfır ("0 derece 3"), şasi kutusunda terminal görünümü.
+ * Manrope, Vekil Pro'nun gövde yazısı: geniş x-yüksekliği, Türkçe karakter
+ * takımı tam, rakamları temiz. Dosyalar assets/fonts altında (bkz. _layout.tsx).
+ *
+ * Şasi numarası artık eşit genişlikli DEĞİL; `tipografi.kimlik` harf aralığını
+ * açar. VIN standardında I, O, Q zaten yoktur; 0/O karışması bu yüzden mono
+ * gerektirmez.
  */
 export const yazi = {
-  normal: 'Inter_400Regular',
-  orta: 'Inter_500Medium',
-  yariKalin: 'Inter_600SemiBold',
-  kalin: 'Inter_700Bold',
-  mono: 'JetBrainsMono_500Medium',
-  monoKalin: 'JetBrainsMono_600SemiBold',
+  normal: 'Manrope_400Regular',
+  orta: 'Manrope_500Medium',
+  yariKalin: 'Manrope_600SemiBold',
+  kalin: 'Manrope_700Bold',
+  cokKalin: 'Manrope_800ExtraBold',
 } as const;
 
 /**
  * Tipografi STİL NESNELERİ döner — sayı değil.
- * Kullanım: `{ ...tipografi.h3, color: renkler.textPrimary }`
+ * Kullanım: `{ ...tipografi.h3, color: renkler.metin }`
  * `fontSize: tipografi.h3` bir tip hatasıdır.
+ *
+ * Ölçek Vekil Pro `tokens.ts` ile aynı (display 30 … small 11); buradaki ek
+ * stiller (kimlik, sayı) bu uygulamaya özgü.
  */
 export const tipografi = {
-  display: { fontFamily: yazi.kalin, fontSize: 30, lineHeight: 36, letterSpacing: -0.4 },
+  display: { fontFamily: yazi.cokKalin, fontSize: 30, lineHeight: 36, letterSpacing: -0.5 },
   h1: { fontFamily: yazi.kalin, fontSize: 24, lineHeight: 30, letterSpacing: -0.3 },
   h2: { fontFamily: yazi.kalin, fontSize: 20, lineHeight: 26, letterSpacing: -0.2 },
   h3: { fontFamily: yazi.yariKalin, fontSize: 17, lineHeight: 23 },
   body: { fontFamily: yazi.normal, fontSize: 15, lineHeight: 22 },
-  bodyOrta: { fontFamily: yazi.orta, fontSize: 15, lineHeight: 22 },
-  caption: { fontFamily: yazi.normal, fontSize: 13, lineHeight: 18 },
-  captionOrta: { fontFamily: yazi.orta, fontSize: 13, lineHeight: 18 },
-  /** Küçük büyük harfli etiket. Metni i18n'de ZATEN büyük yazın:
-   *  textTransform "i" harfini "I" yapar, Türkçe'de doğrusu "İ"dir. */
-  etiket: { fontFamily: yazi.yariKalin, fontSize: 11, lineHeight: 15, letterSpacing: 0.7 },
-  /** Şasi numarası, hata kodu, plaka. */
-  mono: { fontFamily: yazi.mono, fontSize: 15, lineHeight: 21, letterSpacing: 0.2 },
-  monoBuyuk: { fontFamily: yazi.monoKalin, fontSize: 20, lineHeight: 28, letterSpacing: 1.2 },
+  bodyOrta: { fontFamily: yazi.yariKalin, fontSize: 15, lineHeight: 22 },
+  caption: { fontFamily: yazi.orta, fontSize: 13, lineHeight: 18 },
+  captionOrta: { fontFamily: yazi.yariKalin, fontSize: 13, lineHeight: 18 },
+  /**
+   * Küçük etiket (alan adı, sütun başlığı, künye anahtarı). NORMAL YAZIMLA
+   * kullanılır: "Body no", "Bu hafta". 25.10.2026'ya kadar bütün etiketler
+   * büyük harf + geniş aralıktı; ekranı "panel/terminal" gibi gösteriyordu.
+   */
+  etiket: { fontFamily: yazi.yariKalin, fontSize: 12, lineHeight: 16, letterSpacing: 0.2 },
+  /** Şasi numarası, body no — satır içinde. */
+  kimlik: { fontFamily: yazi.yariKalin, fontSize: 15, lineHeight: 21, letterSpacing: 0.6 },
+  /** Şasi girişi ve şasi başlığı. */
+  kimlikBuyuk: { fontFamily: yazi.kalin, fontSize: 20, lineHeight: 28, letterSpacing: 1.5 },
   /** Sayı sütunları — haneler hizalı dursun. */
-  sayi: { fontFamily: yazi.mono, fontSize: 15, lineHeight: 20, fontVariant: ['tabular-nums'] },
-  sayiBuyuk: { fontFamily: yazi.monoKalin, fontSize: 26, lineHeight: 32, fontVariant: ['tabular-nums'] },
+  sayi: { fontFamily: yazi.yariKalin, fontSize: 15, lineHeight: 20, fontVariant: ['tabular-nums'] },
+  sayiBuyuk: { fontFamily: yazi.kalin, fontSize: 26, lineHeight: 32, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
 } satisfies Record<string, TextStyle>;
 
 /** En küçük dokunma hedefi. Eldivenli parmak için bundan aşağısı olmaz. */

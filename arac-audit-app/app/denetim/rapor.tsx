@@ -208,7 +208,7 @@ export default function RaporEkrani() {
         <View style={[s.ikili, tablet && s.ikiliTablet]}>
           <Kart style={tablet ? { flex: 1 } : undefined}>
             <BolumBasligi
-              metin="KÜNYE"
+              metin="Künye"
               simge={S.etiket}
               sag={(
                 <Dugme
@@ -233,7 +233,7 @@ export default function RaporEkrani() {
 
           <View style={[{ gap: bosluk.md }, tablet && { flex: 1 }]}>
             <Kart>
-              <BolumBasligi metin="DERECEYE GÖRE" simge={S.uyari} />
+              <BolumBasligi metin="Dereceye göre" simge={S.uyari} />
               {DERECELER.map((d) => {
                 const dd = ozet.dereceDagilimi[d.id];
                 return (
@@ -254,7 +254,7 @@ export default function RaporEkrani() {
             </Kart>
 
             <Kart>
-              <BolumBasligi metin="BÖLGEYE GÖRE" simge={S.arac} />
+              <BolumBasligi metin="Bölgeye göre" simge={S.arac} />
               {ozet.bolgeDagilimi.length === 0 ? (
                 <Text style={s.bos}>Hata kaydedilmedi.</Text>
               ) : ozet.bolgeDagilimi.map((b) => (
@@ -274,7 +274,7 @@ export default function RaporEkrani() {
         </View>
 
         <Kart>
-          <BolumBasligi metin={`HATALAR (${denetim.hatalar.length}) — DERECEYE GÖRE`} simge={S.liste} />
+          <BolumBasligi metin={`Hatalar (${denetim.hatalar.length}) — DERECEYE GÖRE`} simge={S.liste} />
           <View testID="rapor-hatalar" style={{ gap: 6 }}>
             {denetim.hatalar.length === 0 ? <Text style={s.bos}>Hata kaydedilmedi.</Text> : null}
             {siraliHatalar.map((h) => (
@@ -381,7 +381,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   kunyeHucreIkili: { width: '50%', paddingRight: bosluk.sm },
   kunyeEtiket: { ...tipografi.etiket, color: r.metinSolgun },
   kunyeDeger: { ...tipografi.bodyOrta, color: r.metin },
-  kunyeMono: { ...tipografi.mono, color: r.metin },
+  kunyeMono: { ...tipografi.kimlik, color: r.metin },
 
   dereceSatiri: {
     flexDirection: 'row', gap: bosluk.sm, paddingVertical: 6,

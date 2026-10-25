@@ -84,10 +84,10 @@ const stiller = (r: Renkler) => StyleSheet.create({
   govde: { flex: 1, padding: bosluk.md, gap: bosluk.sm },
   kamera: {
     flex: 1, borderRadius: kose.lg, overflow: 'hidden',
-    borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.cubuk,
+    borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.ters,
   },
   cerceve: { position: 'absolute', left: '8%', right: '8%', top: '35%', height: '30%' },
-  kose: { position: 'absolute', width: 30, height: 30, borderColor: r.cubukVurgu },
+  kose: { position: 'absolute', width: 30, height: 30, borderColor: r.tersVurgu },
   koseSolUst: { left: 0, top: 0, borderLeftWidth: 4, borderTopWidth: 4, borderTopLeftRadius: kose.md },
   koseSagUst: { right: 0, top: 0, borderRightWidth: 4, borderTopWidth: 4, borderTopRightRadius: kose.md },
   koseSolAlt: { left: 0, bottom: 0, borderLeftWidth: 4, borderBottomWidth: 4, borderBottomLeftRadius: kose.md },

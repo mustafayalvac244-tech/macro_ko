@@ -184,14 +184,14 @@ export function HataSayfasi({
   const tipBolumu = !tipAcik ? (
     <View style={s.tipOzet}>
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text style={s.bolumBaslik}>HATA TİPİ</Text>
+        <Text style={s.bolumBaslik}>Hata tipi</Text>
         <Text style={s.tipOzetAd} numberOfLines={2}>{seciliTip?.ad ?? taslak.hataTipiId}</Text>
       </View>
       <Dugme metin="Değiştir" kucuk onPress={() => setTipAcik(true)} erisimEtiketi="Hata tipini değiştir" />
     </View>
   ) : (
     <>
-      <Text style={s.bolumBaslik}>HATA TİPİ</Text>
+      <Text style={s.bolumBaslik}>Hata tipi</Text>
 
       <AramaKutusu
         deger={arama}
@@ -235,7 +235,7 @@ export function HataSayfasi({
                     </Text>
                     {/* Ekip eklemesi olduğu hem işaretle hem metinle belli
                         olsun: yalnız renkle ayırmak erişilebilir değil. */}
-                    {t.ozel ? <Text style={s.ozelIsaret}>EKİP</Text> : null}
+                    {t.ozel ? <Text style={s.ozelIsaret}>Ekip</Text> : null}
                   </View>
                 </Pressable>
               );
@@ -268,7 +268,7 @@ export function HataSayfasi({
 
   const dereceBolumu = (
     <>
-      <Text style={s.bolumBaslik}>DERECE — 3 EN AĞIR</Text>
+      <Text style={s.bolumBaslik}>Derece — 3 en ağır</Text>
       <DereceSecici derece={derece} onSec={setDerece} />
       <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} />
     </>
@@ -276,7 +276,7 @@ export function HataSayfasi({
 
   const ayrintiBolumu = (
     <>
-      <Text style={s.bolumBaslik}>TÜR</Text>
+      <Text style={s.bolumBaslik}>Tür</Text>
       <View style={s.izgara}>
         {(['Part', 'Complex'] as const).map((tur) => (
           <Secenek
@@ -291,7 +291,7 @@ export function HataSayfasi({
       </View>
 
       <Girdi
-        etiket="SORUMLU"
+        etiket="Sorumlu"
         value={sorumlu}
         onChangeText={setSorumlu}
         placeholder="Örn. HMTR PD (tedarikçi)"
@@ -300,13 +300,13 @@ export function HataSayfasi({
           : 'Complex hatanın sorumlusu parçaya öğrenilmez.'}
       />
 
-      <Girdi etiket="AÇIKLAMA" value={aciklama} onChangeText={setAciklama} placeholder="İsteğe bağlı" multiline />
+      <Girdi etiket="Açıklama" value={aciklama} onChangeText={setAciklama} placeholder="İsteğe bağlı" multiline />
     </>
   );
 
   const fotoBolumu = (
     <>
-      <Text style={s.bolumBaslik}>FOTOĞRAF — EXCEL’E OTOMATİK GÖMÜLÜR</Text>
+      <Text style={s.bolumBaslik}>Fotoğraf — Excel’e otomatik gömülür</Text>
       {fotoHatasi ? <HataKutusu metin={fotoHatasi} /> : null}
       <View style={s.fotoSerit}>
         {fotoIdleri.map((id) => {
@@ -319,7 +319,7 @@ export function HataSayfasi({
                 onPress={() => fotografiKaldir(id)}
                 style={s.fotoSil}
               >
-                <S.kapat size={16} color={renkler.cubukMetin} strokeWidth={2.5} />
+                <S.kapat size={16} color={renkler.tersMetin} strokeWidth={2.5} />
               </Pressable>
             </View>
           );
@@ -467,19 +467,19 @@ export function YeniTipFormu({
 
       {hata ? <HataKutusu metin={hata} /> : null}
 
-      <Girdi etiket="ADI (TÜRKÇE)" value={ad} onChangeText={setAd} placeholder="Örn. Fitil ucu kalkık" />
+      <Girdi etiket="Adı (Türkçe)" value={ad} onChangeText={setAd} placeholder="Örn. Fitil ucu kalkık" />
       {/* İngilizcesi boş bırakılınca İngilizce raporda Türkçe ad çıkıyordu
           ("Front bumper hare" — sınama, 28.09.2026). Zorunlu yapılmadı:
           denetçi hattayken İngilizce aramasın; ama ne olacağı yazılı. */}
       <Girdi
-        etiket="İNGİLİZCESİ (RAPOR İÇİN)"
+        etiket="İngilizcesi (rapor için)"
         value={en}
         onChangeText={setEn}
         placeholder="Örn. Weatherstrip lifted"
         ipucu={en.trim() ? undefined : 'Boş kalırsa İngilizce raporda Türkçe adı yazılır.'}
       />
 
-      <Text style={s.alanEtiketi}>GRUP</Text>
+      <Text style={s.alanEtiketi}>Grup</Text>
       <View style={s.izgara}>
         {izinliGruplar.map((g) => (
           <Secenek
@@ -493,7 +493,7 @@ export function YeniTipFormu({
         ))}
       </View>
 
-      <Text style={s.alanEtiketi}>ÖNERİLEN DERECE</Text>
+      <Text style={s.alanEtiketi}>Önerilen derece</Text>
       {/* "Önerilen derece" öneki ŞART: çalışma ekranındaki DERECE seçimi de
           ekranda duruyor, aynı etiketle iki radyo ekran okuyucuda ayırt
           edilemez. */}
@@ -661,7 +661,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   yeniEylemler: { flexDirection: 'row', gap: bosluk.xs, marginTop: bosluk.xxs },
 
   ikiliSatir: { flexDirection: 'row', gap: bosluk.xs, alignItems: 'flex-end' },
-  alanEtiketi: { ...tipografi.etiket, color: r.metinSolgun },
+  alanEtiketi: { ...tipografi.caption, color: r.metinIkincil },
   fotoSerit: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   fotoKutu: {
     width: 84, height: 84, borderRadius: kose.sm, overflow: 'hidden',

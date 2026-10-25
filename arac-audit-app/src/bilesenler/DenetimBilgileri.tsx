@@ -130,7 +130,7 @@ export function DenetimBilgileri({
           kaydirma.current?.scrollToEnd({ animated: true });
         }}
       >
-        <Text style={s.etiket}>ARAÇ</Text>
+        <Text style={s.etiket}>Araç</Text>
         <View style={s.satir}>
           {ARACLAR.map((a) => (
             <Secenek
@@ -146,7 +146,7 @@ export function DenetimBilgileri({
         {aracUyarisi ? <BilgiKutusu tur="uyari" metin={aracUyarisi} /> : null}
 
         <Girdi
-          etiket="ŞASİ NUMARASI (VIN)"
+          etiket="Şasi numarası (VIN)"
           mono
           value={vin.vin}
           onChangeText={setVinHam}
@@ -160,7 +160,7 @@ export function DenetimBilgileri({
             : !vin.gecerli ? vin.hatalar.join(' ') : undefined}
         />
         <Girdi
-          etiket="BODY NO"
+          etiket="Body no"
           mono
           value={bodyNo}
           onChangeText={(t) => setBodyNo(bodyNoSadelestir(t))}
@@ -173,7 +173,7 @@ export function DenetimBilgileri({
         />
         <View style={s.specKm}>
           <View style={{ gap: bosluk.xxs }}>
-            <Text style={s.etiket}>SPEC</Text>
+            <Text style={s.etiket}>Spec</Text>
             <View style={s.satir}>
               {SPECLER.map((x) => (
                 <Secenek
@@ -190,7 +190,7 @@ export function DenetimBilgileri({
         </View>
 
         <EklenebilirSecim
-          baslik="DENETÇİ"
+          baslik="Denetçi"
           ad="Denetçi"
           liste={degeriGoster(denetciler, denetim.denetci)}
           deger={denetci}
@@ -198,7 +198,7 @@ export function DenetimBilgileri({
           yerTutucu="Ad Soyad"
         />
         <EklenebilirSecim
-          baslik="PROBLEM SOURCE"
+          baslik="Problem source"
           ad="Kaynak"
           liste={degeriGoster(kaynaklar, denetim.denetimTipi)}
           deger={kaynak}
@@ -248,7 +248,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   not: { ...tipografi.caption, color: r.metinSolgun },
   kaydir: { flexGrow: 1 },
   govde: { padding: bosluk.md, gap: bosluk.sm },
-  etiket: { ...tipografi.etiket, color: r.metinSolgun },
+  etiket: { ...tipografi.caption, color: r.metinIkincil },
   satir: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   specKm: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: bosluk.sm },
   silBolumu: { marginTop: bosluk.lg, paddingTop: bosluk.md, borderTopWidth: 1, borderTopColor: r.cizgiSolgun },

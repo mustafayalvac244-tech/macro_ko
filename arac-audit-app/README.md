@@ -124,25 +124,46 @@ src/
   yeni bir derleme demek. (`lucide-react-native` yerel DEĞİL: zaten kurulu
   `react-native-svg` üstünde saf JavaScript; yeni derleme gerektirmez.)
 
-### Görsel yenileme (24.10.2026)
+### Görsel yenileme — Vekil Pro dili (25.10.2026)
 
-Ürün sahibi: *"Görsel olarak çok kötü duruyor, dandik; temayı değiştir,
-profesyonel yap."* Teal vurgu, yuvarlak gölgeli kartlar ve dolgulu haplar
-oyuncak hissi veriyordu. Değişenler tek yerden (`src/tema/`): çubuk koyu
-lacivert, vurgu çelik mavisi (açık `#1D4F9E`, koyu `#7FB3FF`), köşeler
-4/6/8/12 (önce 6/10/14/20), kartlar gölgesiz ve düz (yalnız kenar çizgisi),
-çubuk çipleri dolgusuz çerçeve, bölüm başlıklarında sol vurgu çizgisi. Tüm
-metin/zemin çiftleri (iki temada 35'er çift) `kontrast.py` ile WCAG'a göre
-ölçüldü: küçük yazı her yüzeyde ≥ 4,5:1. Web paketinde 4 düzende 13 adımlık
-sınav aynen geçti; ekran görüntülerine bakıldı. **Gerçek cihazda görülmedi;
-"profesyonel" yargısı benim, ürün sahibinin değil.**
+Üç deneme oldu. 24.10'da ürün sahibi *"görsel olarak çok kötü, dandik,
+profesyonel yap"* dedi; koyu lacivert çubuk, 4/6/8/12 köşe, gölgesiz düz
+kartlar ve büyük harfli etiketler yaptım. Ertesi gün: *"arayüz beğenmedim …
+yazı tipi falan kötü duruyor."* İki yenilemeyi de kendi zevkime göre
+yapmıştım; bu kez tahmin yerine **ürün sahibinin zaten onayladığı tek tasarım
+dili** alındı: Vekil Pro'nun `src/theme/tokens.ts` + `palettes.ts` ("Klasik"
+palet) dosyaları. Değişenler (hepsi `src/tema/` ve `bilesenler/temel.tsx`):
+
+- **Başlık sayfa zemininde**, koyu çubuk yok; düğmeler beyaz yüzey + ince
+  kenar, birincil olan lacivert dolgulu. Durum çubuğu simgeleri temaya göre.
+  Koyu lacivert yalnız **yüzen katmanlarda** kaldı (kayıt bildirimi, barkod
+  çerçevesi) — tokenlar `ters*` adını aldı.
+- **Renkler** Vekil Pro Klasik: zemin `#EEF2F8`, vurgu `#173C7E`, çizgi
+  `#CFD9EA`. Soluk metin Vekil'den koyu (`#56657F`): oradaki `#828EA6` 13 px
+  yazıda 3,3:1 kalıyor; burada 5 açık yüzeyin hepsinde ≥ 4,68:1 ölçüldü.
+- **Köşeler** 8/12/16/20 (Vekil `radius`), kartlar beyaz + yumuşak gölge
+  (`0 4 12`, %8 lacivert — Vekil `shadow.card`) + soluk kenar.
+- **Etiketler normal yazımla**: "DENETLENEN ARAÇ" → "Denetlenen araç",
+  "BODY NO" → "Body no". Bölüm başlıkları 16 px yarı kalın, sol vurgu çizgisi
+  kalktı. Büyük harf + geniş aralık ekranı panel/terminal gibi gösteriyordu.
+- **Sadeleştirme:** ana sayfadaki koyu "Yeni denetim başlat" kartı tek büyük
+  düğmeye indi; sayacın altındaki açıklama cümlesi, şasi kutusunun mavi bilgi
+  kutusu (küçük ipucu satırı oldu) ve haritanın altındaki not kaldırıldı;
+  kök adımdaki tek kırıntı ("Sistemler") gizlendi. Süzgeç çipleri hap biçimli
+  ve küçük (`Secenek kucuk`), telefonda tek satıra sığıyor.
+
+**Ölçülen:** `kontrast.py` iki temada 39'ar çift, hepsi eşiğin üstünde
+(ilk ölçümde 2 çift düşüktü, soluk metin koyultuldu). Web paketinde 4
+düzende uçtan uca sınav hatasız; 4 × 17 ekran görüntüsüne bakıldı.
+**Ölçülmeyen:** gerçek cihaz; ve asıl soru — ürün sahibi bunu beğenecek mi.
+Vekil Pro'yu beğendiği bilgisi dolaylı (o ürünü aylardır kullanıyor, bu
+dile itiraz etmedi); "beğendi" demek değil.
 
 ### Görsel dil (27.09.2026)
 
-- **Üstte koyu uygulama çubuğu — iki temada da.** Sahada ekranın hangi
-  uygulamada olduğunu bir bakışta ayırır; durum çubuğu simgeleri bu yüzden hep
-  açık renk. Çubuk `Baslik`tır ve **üst güvenli alanı kendisi alır**; alt
-  eylem çubuğu `AltCubuk`tur, ev çubuğu payını o alır. (Önceden yeni denetim,
+- ~~Üstte koyu uygulama çubuğu — iki temada da.~~ **25.10.2026'da kalktı**
+  (yukarıdaki bölüm). Başlık hâlâ `Baslik`tır ve **üst güvenli alanı kendisi
+  alır**; alt eylem çubuğu `AltCubuk`tur, ev çubuğu payını o alır. (Önceden yeni denetim,
   rapor ve ayarlar ekranları güvenli alanı hiç almıyordu — çentikli cihazda
   başlık durum çubuğunun altında kalırdı.)
 - **Simgeler yalnız `simgeler.ts`ten.** Emoji ve `‹ ⤓ ✓ 📷` gibi yazı işaretleri
@@ -162,12 +183,17 @@ sınav aynen geçti; ekran görüntülerine bakıldı. **Gerçek cihazda görül
   TEK sınırı olarak kullanılmaz (kabul anahtarının kapalı rayı bu yüzden
   `metinSolgun` kenarlı).
 
-## Yazı tipi — Inter + JetBrains Mono (24.10.2026)
+## Yazı tipi — Manrope (25.10.2026)
 
-Ürün sahibi: *"Yazı tipini güzelleştir."* IBM Plex yerine arayüz için
-çizilmiş **Inter** (400/500/600/700) ve şasi/body numarası için **JetBrains
-Mono** (500/600): 0/O ve 1/l/I ayrı çizilir, haneler eşit genişlikte. Dosyalar
-`assets/fonts/` altında, SIL OFL lisansı yanlarında.
+Sıra: IBM Plex → (24.10) Inter + JetBrains Mono → (25.10) **Manrope**, tek
+aile, 400/500/600/700/800. Ürün sahibi *"yazı tipi falan kötü duruyor"*
+deyince ekran görüntülerine yeniden bakıldı: göze batan şey eşit genişlikli
+yazıydı — büyük sayılarda çizgili sıfır ("0 derece 3"), şasi kutusunda
+terminal görünümü. Manrope, Vekil Pro'nun gövde yazısı; onun onayından
+geçmiş tek yazı tipi bu. Şasi/body numarası artık mono değil: `tipografi.kimlik`
+harf aralığını açar (VIN standardında I, O, Q zaten yok). Sayı sütunları
+`fontVariant: tabular-nums` ile hizalanır. Dosyalar `assets/fonts/` altında
+(5 × ~97 KB, Inter+Mono'nun 1,6 MB'ına karşı 0,5 MB), SIL OFL lisansı yanında.
 
 **Neden paket değil, dosya:** `@expo-google-fonts/*` eklemek `package.json`'ı
 değiştirir; OTA bekçisi yayını durdurur ve herkes APK'yı yeniden kurmak
@@ -175,10 +201,13 @@ zorunda kalırdı. TTF sıradan bir varlık, OTA ile gider. Eski IBM Plex
 paketleri `package.json`'da duruyor ama kullanılmıyor; bir sonraki sürüm
 yükseltmesinde kaldırılacak.
 
-**Doğrulama:** web paketinde Chromium'a yüklenen sayfada `document.fonts`
-dört Inter ağırlığını ve JetBrains Mono'yu "loaded" bildirdi, altı TTF
-isteği 200 döndü; ekran görüntülerinde Inter ve mono görünüyor. **Gerçek
-cihazda görülmedi.**
+**Doğrulama** (`scratchpad/sinav/font-kontrol.mjs`, 25.10.2026): web
+paketinde Chromium'a yüklenen sayfada `document.fonts` beş Manrope ağırlığını
+"loaded" bildirdi, beş TTF isteği 200 döndü, ana başlık `<h1>` gerçekten
+`Manrope_700Bold` ile çiziliyor. **Tabular-nums ölçüldü:** `tabular-nums` ile
+"1111" ve "0000" aynı genişlikte (99,20 px); özellik kapalıyken 67,5 / 102,7 —
+yani Manrope'un rakamları varsayılan olarak orantılı, sütun hizası bu
+özelliğe bağlı ve çalışıyor. **Gerçek cihazda görülmedi.**
 
 ## 3B model nasıl çalışıyor
 
@@ -439,6 +468,7 @@ Analiz ekranındaki sayılar bu cihazın verisidir, ekibin toplamı değil.
 |---|---|
 | Tasarım sistemi, iki tema | **Bitti** |
 | Görsel yenileme: koyu çubuk, simgeler, tablette iki bölme, kartlar | **Bitti** — web'de tablet/telefon × açık/koyu koşuldu; **gerçek tablette görülmedi** |
+| Görsel dil üçüncü kez (25.10.2026): Vekil Pro paleti, Manrope, açık başlık, normal yazımlı etiketler | **Kod bitti, beğeni ölçülmedi** — kontrast 2 × 39 çift ≥ eşik; 4 düzende sınav geçti; ürün sahibi henüz görmedi |
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
 | Parça kataloğu (169 parça; elektrikli araçta 163, benzinlide 161 listelenir), VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
 | Hızlı giriş (2 dokunuş), geri al | **Bitti** |

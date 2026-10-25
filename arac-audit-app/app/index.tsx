@@ -88,22 +88,17 @@ export default function DenetimListesi() {
           hiçbir şey çizmez. */}
       <GuncellemeBildirimi />
 
-      <View style={[s.kahraman, !tablet && s.kahramanDar]}>
-        <View style={s.kahramanSimge}>
-          <S.barkod size={26} color={renkler.cubukVurgu} strokeWidth={2} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Text style={s.kahramanBaslik}>Yeni denetim başlat</Text>
-          <Text style={s.kahramanAlt}>Şasiyi okut · parçayı seç · hataya dokun</Text>
-        </View>
-        <Dugme
-          metin="Yeni denetim"
-          tur="birincil"
-          simge={S.ekle}
-          onPress={yeniDenetim}
-          style={tablet ? undefined : { alignSelf: 'stretch' }}
-        />
-      </View>
+      {/* Sayfanın ana eylemi: tek, büyük düğme. 25.10.2026'ya kadar koyu bir
+          "kahraman" kartın içindeydi (başlık + açıklama + düğme); ürün sahibi
+          arayüzü beğenmedi, kart ekranı ağırlaştırıyordu. Akışın anlatımı ilk
+          açılıştaki boş durumda zaten var. */}
+      <Dugme
+        metin="Yeni denetim"
+        tur="birincil"
+        simge={S.ekle}
+        onPress={yeniDenetim}
+        style={tablet ? s.yeniDugmeTablet : s.yeniDugme}
+      />
 
       {/* Özet sayı kutuları ve sunucu uyarı kutusu kaldırıldı (ürün sahibi,
           28.09.2026: "çok kalabalık olmasın"). Kayıtların yalnız cihazda
@@ -127,11 +122,11 @@ export default function DenetimListesi() {
               ['devam', `Devam eden ${devamSayisi}`],
               ['tamam', `Tamamlanan ${tamamSayisi}`],
             ] as const).map(([k, metin]) => (
-              <Secenek key={k} metin={metin} secili={suzgec === k} onPress={() => setSuzgec(k)} />
+              <Secenek key={k} metin={metin} secili={suzgec === k} onPress={() => setSuzgec(k)} kucuk />
             ))}
           </View>
           <BolumBasligi
-            metin="DENETİMLER"
+            metin="Kayıtlar"
             simge={S.liste}
             sag={(
               <Text style={s.sayac}>
@@ -203,8 +198,8 @@ function DenetimKarti({
   const arac = ARAC_INDEKS[satir.aracId];
   const devam = satir.durum === 'devam';
   const durumRozeti = devam
-    ? <Rozet metin="DEVAM EDİYOR" simge={S.vardiya} renk={renkler.bilgi} zemin={renkler.bilgiYumusak} />
-    : <Rozet metin="TAMAMLANDI" simge={S.tik} renk={renkler.basari} zemin={renkler.basariYumusak} />;
+    ? <Rozet metin="Devam ediyor" simge={S.vardiya} renk={renkler.bilgi} zemin={renkler.bilgiYumusak} />
+    : <Rozet metin="Tamamlandı" simge={S.tik} renk={renkler.basari} zemin={renkler.basariYumusak} />;
 
   return (
     <Pressable
@@ -264,19 +259,8 @@ const stiller = (r: Renkler) => StyleSheet.create({
   },
   ust: { gap: bosluk.md, marginBottom: bosluk.xxs },
 
-  // Yeni denetim kartı — uygulama çubuğunun koyu yüzeyiyle, sayfanın ana eylemi.
-  kahraman: {
-    flexDirection: 'row', alignItems: 'center', gap: bosluk.md,
-    padding: bosluk.md, borderRadius: kose.lg, backgroundColor: r.cubuk,
-    borderWidth: 1, borderColor: r.cubukCizgi,
-  },
-  kahramanDar: { flexDirection: 'column', alignItems: 'flex-start', gap: bosluk.sm },
-  kahramanSimge: {
-    width: 52, height: 52, borderRadius: kose.md, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: r.cubukYuzey,
-  },
-  kahramanBaslik: { ...tipografi.h2, color: r.cubukMetin },
-  kahramanAlt: { ...tipografi.caption, color: r.cubukMetinSolgun },
+  yeniDugme: { minHeight: 56, alignSelf: 'stretch' },
+  yeniDugmeTablet: { minHeight: 56, alignSelf: 'flex-start', minWidth: 320 },
 
   sayac: { ...tipografi.captionOrta, color: r.metinSolgun, fontVariant: ['tabular-nums'] },
   aramaBlok: { gap: bosluk.sm },
@@ -296,7 +280,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
     width: 78, height: 44, borderRadius: kose.md, alignItems: 'center', justifyContent: 'center',
     backgroundColor: r.yuzeyAlt,
   },
-  vin: { ...tipografi.mono, color: r.metin },
+  vin: { ...tipografi.kimlik, color: r.metin },
   meta: { ...tipografi.caption, color: r.metinSolgun },
   kartAlt: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, flexWrap: 'wrap',

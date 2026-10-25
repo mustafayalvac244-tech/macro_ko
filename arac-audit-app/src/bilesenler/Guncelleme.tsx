@@ -105,7 +105,7 @@ function SurumIcerigi() {
 
   return (
     <Kart>
-      <BolumBasligi metin="SÜRÜM" simge={S.guncelleme} />
+      <BolumBasligi metin="Sürüm" simge={S.guncelleme} />
       <View style={s.bilgi}>
         <Text style={s.surum}>{`Sürüm ${currentlyRunning.runtimeVersion || '—'}`}</Text>
         <Text style={s.paket} selectable>{calisanPaketMetni(currentlyRunning)}</Text>

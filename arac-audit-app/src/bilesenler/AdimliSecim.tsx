@@ -109,13 +109,15 @@ export function AdimliSecim({
     if (bolge && !tekBolge) kirintilar.push({ ad: kisaBolgeAdi(bolge.ad) });
   }
   const adim = !sistem ? 1 : !bolge ? 2 : 3;
-  const adimMetni = adim === 1 ? 'SİSTEM SEÇİN' : adim === 2 ? 'BÖLGE SEÇİN' : 'PARÇA SEÇİN';
+  const adimMetni = adim === 1 ? 'Sistem seçin' : adim === 2 ? 'Bölge seçin' : 'Parça seçin';
 
   return (
     <View style={s.kap}>
       <View style={s.ust}>
         <AramaKutusu deger={arama} degistir={setArama} yerTutucu="Parça ara — kaput, A direği, ön kapı…" erisimEtiketi="Parça ara" />
-        {!q ? (
+        {/* Kök adımda tek kırıntı ("Sistemler") başlığı tekrar ediyordu; yalnız
+            içeri girince gösterilir (25.10.2026 ekran incelemesi). */}
+        {!q && kirintilar.length > 1 ? (
           <View style={s.kirintiSatir} accessibilityRole="header">
             {kirintilar.map((k, i) => (
               <React.Fragment key={k.ad}>
@@ -142,7 +144,7 @@ export function AdimliSecim({
       <ScrollView contentContainerStyle={s.govde} keyboardShouldPersistTaps="handled">
         {q ? (
           <>
-            <BolumBasligi metin={`ARAMA — ${sonuclar.length} PARÇA`} simge={S.ara} />
+            <BolumBasligi metin={`Arama — ${sonuclar.length} parça`} simge={S.ara} />
             <View style={s.izgara}>{sonuclar.map((p) => parcaKutusu(p.id, PARCA_INDEKS[p.id]?.bolgeAd))}</View>
             {!sonuclar.length ? <Text style={s.bos}>“{q}” ile eşleşen parça yok.</Text> : null}
           </>
@@ -150,7 +152,7 @@ export function AdimliSecim({
           <>
             {adim === 1 && sonParcalar.length ? (
               <View style={{ gap: bosluk.xs }}>
-                <BolumBasligi metin="SON DOKUNULANLAR" simge={S.son} />
+                <BolumBasligi metin="Son dokunulanlar" simge={S.son} />
                 <View style={s.izgara}>{sonParcalar.map((pid) => parcaKutusu(pid, PARCA_INDEKS[pid]?.bolgeAd))}</View>
               </View>
             ) : null}
@@ -186,7 +188,7 @@ export function AdimliSecim({
                         <Text style={[s.alt, isaretli && { color: renkler.basari }]} numberOfLines={1}>
                           {isaretli
                             ? 'Kontrol edildi'
-                            : `${x.en.toUpperCase()} · ${x.bolgeler.length > 1 ? `${x.bolgeler.length} bölge` : `${parcaSayisi} madde`}`}
+                            : `${x.en} · ${x.bolgeler.length > 1 ? `${x.bolgeler.length} bölge` : `${parcaSayisi} madde`}`}
                         </Text>
                       </View>
                       {n ? <View style={s.pul}><Text style={s.pulMetin}>{n}</Text></View> : null}
@@ -254,7 +256,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   adimNoMetin: { ...tipografi.captionOrta, color: r.metinTers, fontVariant: ['tabular-nums'] },
-  adimMetin: { ...tipografi.etiket, color: r.metinIkincil },
+  adimMetin: { ...tipografi.h3, fontSize: 16, lineHeight: 22, color: r.metin },
   izgara: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   kutu: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,

@@ -3,10 +3,13 @@
 // Yeni bir ekran yazmadan önce buraya bak; burada olanı yeniden yazma.
 // Hepsi temadan renk alır, hiçbiri çıplak hex kullanmaz.
 //
-// GÖRSEL DİL (27.09.2026 yenilemesi): üstte İKİ TEMADA DA KOYU bir uygulama
-// çubuğu, altında açık ya da koyu içerik. Simgeler `simgeler.ts`ten gelir.
-// Emoji ve "‹ ⤓ ✓" gibi yazı işaretleri kullanılmaz: emoji cihazın yazı
-// tipiyle çizilir ve üreticiden üreticiye değişir; simge her yerde aynı SVG'dir.
+// GÖRSEL DİL (25.10.2026): Vekil Pro'nun dili — başlık sayfa zemininde (koyu
+// çubuk yok), beyaz kartlar yumuşak gölgeyle, köşeler 12–16, etiketler normal
+// yazımla. Önceki iki yenilemeyi (koyu çubuk, düz keskin kartlar, büyük harfli
+// etiketler) ürün sahibi beğenmedi; Vekil Pro onun onayladığı tek örnek.
+// Simgeler `simgeler.ts`ten gelir. Emoji ve "‹ ⤓ ✓" gibi yazı işaretleri
+// kullanılmaz: emoji cihazın yazı tipiyle çizilir ve üreticiden üreticiye
+// değişir; simge her yerde aynı SVG'dir.
 //
 // GÜVENLİ ALAN: üst boşluğu `Baslik`, alt boşluğu `AltCubuk` ve `AltSayfa`
 // kendisi alır. Eskiden üç ekran (yeni denetim, rapor, ayarlar) güvenli alanı
@@ -93,7 +96,7 @@ export function Baslik({
   altBaslik?: string;
   sol?: React.ReactNode;
   sag?: React.ReactNode;
-  /** Başlık bir şasi numarasıysa: eşit genişlikli yazı, 0/O ve 1/I karışmasın. */
+  /** Başlık bir şasi numarasıysa: harf aralığı açık kimlik yazısı. */
   mono?: boolean;
   /** Başlığın altında bağlam çipleri (araç, faz, plaka…) — `BaslikCipi`. */
   cipler?: React.ReactNode;
@@ -138,7 +141,7 @@ export function BaslikCipi({ metin, simge: Ikon, mono = false }: { metin: string
   const s = useMemo(() => stiller(renkler), [renkler]);
   return (
     <View style={s.cubukCip}>
-      {Ikon ? <Ikon size={14} color={renkler.cubukMetinSolgun} strokeWidth={2} /> : null}
+      {Ikon ? <Ikon size={14} color={renkler.metinSolgun} strokeWidth={2} /> : null}
       <Text style={[s.cubukCipMetin, mono && s.cubukCipMono]} numberOfLines={1}>{metin}</Text>
     </View>
   );
@@ -164,7 +167,7 @@ export function BaslikDugmesi({
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { en } = useDuzen();
   const metniGoster = !!metin && (!Ikon || en >= 600);
-  const renk = birincil ? renkler.cubukVurguMetin : renkler.cubukMetin;
+  const renk = birincil ? renkler.metinTers : renkler.metin;
   return (
     <Pressable
       accessibilityRole="button"
@@ -180,8 +183,8 @@ export function BaslikDugmesi({
       {Ikon ? <Ikon size={20} color={renk} strokeWidth={2} /> : null}
       {metniGoster ? <Text style={[s.cubukDugmeMetin, { color: renk }]} numberOfLines={1}>{metin}</Text> : null}
       {sayac !== undefined ? (
-        <View style={[s.sayac, birincil && { backgroundColor: renkler.cubukVurguMetin }]}>
-          <Text style={[s.sayacMetin, birincil && { color: renkler.cubukVurgu }]}>{sayac}</Text>
+        <View style={[s.sayac, birincil && { backgroundColor: renkler.metinTers }]}>
+          <Text style={[s.sayacMetin, birincil && { color: renkler.birincil }]}>{sayac}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -225,7 +228,7 @@ export function BolumBasligi({
   return (
     <View style={s.bolumSatiri}>
       <View style={s.bolumSol}>
-        {Ikon ? <Ikon size={15} color={renkler.metinSolgun} strokeWidth={2} /> : null}
+        {Ikon ? <Ikon size={16} color={renkler.metinSolgun} strokeWidth={2} /> : null}
         <Text style={s.bolumMetin} accessibilityRole="header">{metin}</Text>
       </View>
       {sag}
@@ -260,7 +263,7 @@ export function Dugme({
   const zemin = {
     birincil: renkler.birincil,
     tehlike: renkler.tehlike,
-    ikincil: renkler.yuzey,
+    ikincil: renkler.yuzeyAlt,
     sessiz: renkler.seffaf,
   }[tur];
   const yaziRengi = tur === 'birincil' || tur === 'tehlike' ? renkler.metinTers
@@ -307,7 +310,7 @@ export function Dugme({
  * simgesi de taşır — renk körlüğünde ve güneş altında da okunur.
  */
 export function Secenek({
-  metin, secili, onPress, erisimEtiketi, simge: Ikon, style,
+  metin, secili, onPress, erisimEtiketi, simge: Ikon, style, kucuk = false,
 }: {
   metin: string;
   secili: boolean;
@@ -315,6 +318,8 @@ export function Secenek({
   erisimEtiketi?: string;
   simge?: Simge;
   style?: ViewStyle;
+  /** Süzgeç çipi: 40 px, hap biçimli, küçük yazı (liste süzgeçleri için). */
+  kucuk?: boolean;
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
@@ -325,11 +330,11 @@ export function Secenek({
       aria-checked={secili}
       accessibilityLabel={erisimEtiketi ?? metin}
       onPress={onPress}
-      style={({ pressed }) => [s.secenek, secili && s.secenekSecili, pressed && s.basili, style]}
+      style={({ pressed }) => [s.secenek, kucuk && s.secenekKucuk, secili && s.secenekSecili, pressed && s.basili, style]}
     >
-      {Ikon ? <Ikon size={17} color={renk} strokeWidth={2} /> : null}
-      <Text style={[s.secenekMetin, { color: renk }]} numberOfLines={1}>{metin}</Text>
-      {secili ? <S.tik size={16} color={renkler.birincil} strokeWidth={2.5} /> : null}
+      {Ikon ? <Ikon size={kucuk ? 15 : 17} color={renk} strokeWidth={2} /> : null}
+      <Text style={[kucuk ? s.secenekMetinKucuk : s.secenekMetin, { color: renk }]} numberOfLines={1}>{metin}</Text>
+      {secili ? <S.tik size={kucuk ? 14 : 16} color={renkler.birincil} strokeWidth={2.5} /> : null}
     </Pressable>
   );
 }
@@ -584,59 +589,50 @@ export function AltCubuk({ children, style }: { children: React.ReactNode; style
 const stiller = (r: Renkler) => StyleSheet.create({
   basili: { opacity: 0.72 },
 
-  // Uygulama çubuğu
-  // Alt çizgi koyu temada gerekli: çubuk ile koyu içerik zemini birbirine çok
-  // yakın, çizgi olmadan tablette sol bölmeyle çubuk birleşiyordu.
-  cubuk: {
-    backgroundColor: r.cubuk, paddingBottom: bosluk.xs, gap: bosluk.xs,
-    borderBottomWidth: 1, borderBottomColor: r.cubukCizgi,
-  },
+  // Başlık — sayfa zemininde, çizgisiz (Vekil Pro ScreenHeader). Düğmeler
+  // beyaz yüzey + ince kenar; birincil olan lacivert dolgulu.
+  cubuk: { backgroundColor: r.bg, paddingBottom: bosluk.xs, gap: bosluk.xs },
   cubukSatir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: DOKUNMA },
   cubukOrta: { flex: 1, minWidth: 0 },
-  cubukBaslik: { ...tipografi.h2, color: r.cubukMetin },
-  cubukBaslikMono: { ...tipografi.monoBuyuk, fontSize: 19, lineHeight: 26, letterSpacing: 1.2, color: r.cubukMetin },
-  cubukAlt: { ...tipografi.caption, color: r.cubukMetinSolgun },
+  cubukBaslik: { ...tipografi.h1, color: r.metin },
+  cubukBaslikMono: { ...tipografi.kimlikBuyuk, color: r.metin },
+  cubukAlt: { ...tipografi.caption, color: r.metinSolgun },
   cubukSag: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
   cubukCipler: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingBottom: 2 },
   cubukCiplerTek: { flexDirection: 'row', gap: 6, paddingBottom: 2 },
-  // Çip dolgusuz: koyu çubukta dolgulu haplar "düğme" sanılıyordu; ince
-  // çerçeve bilgi olduğunu söyler (24.10.2026 görsel yenileme).
   cubukCip: {
     flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 320,
-    paddingHorizontal: bosluk.xs, paddingVertical: 3, borderRadius: kose.sm,
-    borderWidth: 1, borderColor: r.cubukCizgi, backgroundColor: r.seffaf,
+    paddingHorizontal: bosluk.sm, paddingVertical: 4, borderRadius: kose.pill,
+    borderWidth: 1, borderColor: r.cizgiSolgun, backgroundColor: r.yuzey,
   },
-  cubukCipMetin: { ...tipografi.captionOrta, color: r.cubukMetin, flexShrink: 1 },
-  cubukCipMono: { fontFamily: tipografi.mono.fontFamily, letterSpacing: 0.6 },
+  cubukCipMetin: { ...tipografi.captionOrta, color: r.metinIkincil, flexShrink: 1 },
+  cubukCipMono: { ...tipografi.kimlik, fontSize: 13, lineHeight: 18, color: r.metin },
 
   cubukDugme: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: bosluk.xs,
     minHeight: DOKUNMA, minWidth: DOKUNMA, paddingHorizontal: bosluk.sm,
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cubukCizgi, backgroundColor: r.seffaf,
+    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
   },
-  cubukDugmeBirincil: { backgroundColor: r.cubukVurgu, borderColor: r.cubukVurgu },
+  cubukDugmeBirincil: { backgroundColor: r.birincil, borderColor: r.birincil },
   cubukDugmeKare: { paddingHorizontal: 0, width: DOKUNMA },
   cubukDugmeMetin: { ...tipografi.bodyOrta },
   sayac: {
     minWidth: 24, height: 22, paddingHorizontal: 6, borderRadius: kose.pill,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: r.cubukVurgu,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: r.birincil,
   },
-  sayacMetin: { ...tipografi.captionOrta, fontVariant: ['tabular-nums'], color: r.cubukVurguMetin },
+  sayacMetin: { ...tipografi.captionOrta, fontVariant: ['tabular-nums'], color: r.metinTers },
 
-  // Kart gölgesiz ve düz: gölge + kalın yuvarlak kenar "dandik" görünüyordu
-  // (ürün sahibi, 24.10.2026). Ayrım kenar çizgisi ve zemin farkıyla.
+  // Kart: beyaz, ince soluk kenar, yumuşak gölge (Vekil Pro Card + shadow.card).
   kart: {
     backgroundColor: r.yuzey, borderRadius: kose.lg, borderWidth: 1,
-    borderColor: r.cizgi, padding: bosluk.md, gap: bosluk.sm,
+    borderColor: r.cizgiSolgun, padding: bosluk.md, gap: bosluk.sm,
+    boxShadow: `0 4px 12px ${r.golge}`,
   },
   kartVurgulu: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
 
   bolumSatiri: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: bosluk.sm },
-  bolumSol: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    borderLeftWidth: 3, borderLeftColor: r.birincil, paddingLeft: bosluk.xs,
-  },
-  bolumMetin: { ...tipografi.etiket, color: r.metinIkincil },
+  bolumSol: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, flexShrink: 1 },
+  bolumMetin: { ...tipografi.h3, fontSize: 16, lineHeight: 22, color: r.metin },
 
   dugme: {
     flexDirection: 'row', gap: bosluk.xs,
@@ -644,7 +640,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: bosluk.md, paddingVertical: bosluk.sm,
   },
-  dugmeKucuk: { minHeight: 40, paddingHorizontal: bosluk.sm, paddingVertical: bosluk.xs, gap: 6 },
+  dugmeKucuk: { minHeight: 40, paddingHorizontal: bosluk.sm, paddingVertical: bosluk.xs, gap: 6, borderRadius: kose.sm + 2 },
   dugmePasif: { opacity: 0.4 },
   dugmeMetin: { ...tipografi.bodyOrta },
   dugmeMetinKucuk: { ...tipografi.captionOrta },
@@ -654,18 +650,20 @@ const stiller = (r: Renkler) => StyleSheet.create({
     minHeight: DOKUNMA, paddingHorizontal: bosluk.sm, borderRadius: kose.md,
     borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
   },
+  secenekKucuk: { minHeight: 40, paddingHorizontal: bosluk.sm, borderRadius: kose.pill },
   secenekSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak, borderWidth: 1.5 },
   secenekMetin: { ...tipografi.bodyOrta, flexShrink: 1 },
+  secenekMetinKucuk: { ...tipografi.captionOrta, flexShrink: 1 },
 
-  alanEtiketi: { ...tipografi.etiket, color: r.metinSolgun },
+  alanEtiketi: { ...tipografi.caption, color: r.metinIkincil },
   girdi: {
-    ...tipografi.body, color: r.metin, backgroundColor: r.yuzey,
+    ...tipografi.body, color: r.metin, backgroundColor: r.yuzeyAlt,
     borderWidth: 1, borderColor: r.cizgi, borderRadius: kose.md,
     paddingHorizontal: bosluk.sm, minHeight: DOKUNMA,
   },
   // Odakta kenar 2 px olur; dolgu 1 px azalır ki yazı yerinden oynamasın.
-  girdiOdak: { borderColor: r.birincil, borderWidth: 2, paddingHorizontal: bosluk.sm - 1 },
-  girdiMono: { ...tipografi.monoBuyuk, color: r.metin, textAlign: 'center' },
+  girdiOdak: { borderColor: r.birincil, borderWidth: 2, paddingHorizontal: bosluk.sm - 1, backgroundColor: r.yuzey },
+  girdiMono: { ...tipografi.kimlikBuyuk, color: r.metin, textAlign: 'center' },
   girdiHatali: { borderColor: r.tehlike },
   hataMetni: { ...tipografi.caption, color: r.tehlike },
   ipucuMetni: { ...tipografi.caption, color: r.metinSolgun },
@@ -674,6 +672,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: bosluk.xs,
     minHeight: DOKUNMA, paddingLeft: bosluk.sm, paddingRight: bosluk.xxs,
     backgroundColor: r.yuzey, borderWidth: 1, borderColor: r.cizgi, borderRadius: kose.md,
+    boxShadow: `0 2px 8px ${r.golge}`,
   },
   aramaOdak: { borderColor: r.birincil, borderWidth: 2, paddingLeft: bosluk.sm - 1, paddingRight: bosluk.xxs - 1 },
   aramaGirdi: { ...tipografi.body, color: r.metin, flex: 1, minWidth: 0, minHeight: DOKUNMA - 2 },
@@ -695,8 +694,9 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   olcu: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
-    backgroundColor: r.yuzey, borderRadius: kose.lg, borderWidth: 1, borderColor: r.cizgi,
+    backgroundColor: r.yuzey, borderRadius: kose.lg, borderWidth: 1, borderColor: r.cizgiSolgun,
     paddingHorizontal: bosluk.sm, paddingVertical: bosluk.sm, minWidth: 140,
+    boxShadow: `0 4px 12px ${r.golge}`,
   },
   olcuSimge: { width: 40, height: 40, borderRadius: kose.md, alignItems: 'center', justifyContent: 'center' },
   olcuMetinler: { minWidth: 0, flexShrink: 1 },
@@ -719,7 +719,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   altCubuk: {
     flexDirection: 'row', gap: bosluk.xs, paddingTop: bosluk.sm,
-    backgroundColor: r.bgYukseltilmis, borderTopWidth: 1, borderTopColor: r.cizgi,
+    backgroundColor: r.bgYukseltilmis, borderTopWidth: 1, borderTopColor: r.cizgiSolgun,
   },
 
   perde: { flex: 1, backgroundColor: r.perde, justifyContent: 'flex-end' },

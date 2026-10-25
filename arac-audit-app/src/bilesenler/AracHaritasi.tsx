@@ -96,19 +96,11 @@ export function AracHaritasi({
           />
         );
       })}
-      <Text style={s.not}>Haritada bölgeye dokunun; Alt (şase altı) listede.</Text>
     </View>
   );
 }
 
 const stiller = (r: Renkler) => StyleSheet.create({
-  kap: {
-    width: '100%', aspectRatio: EN / BOY, position: 'relative',
-    marginBottom: bosluk.lg,
-  },
+  kap: { width: '100%', aspectRatio: EN / BOY, position: 'relative' },
   basili: { backgroundColor: r.perde, opacity: 0.25 },
-  not: {
-    ...tipografi.caption, color: r.metinSolgun,
-    position: 'absolute', left: 0, right: 0, bottom: -bosluk.lg + 2, textAlign: 'center',
-  },
 });

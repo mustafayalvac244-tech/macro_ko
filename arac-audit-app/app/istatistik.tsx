@@ -188,7 +188,7 @@ export default function Analiz() {
           ) : (
             <>
               <Kart>
-                <BolumBasligi metin="ÖZET" simge={S.tarih} />
+                <BolumBasligi metin="Özet" simge={S.tarih} />
                 <View style={s.ozetSatir} accessible accessibilityLabel={`Özet: ${hesap.toplam.arac} araç, ${hesap.toplam.hata} hata, ${hesap.toplam.duzeltilecek} düzeltilecek, DPU ${dpuMetni(hesap.dpu)}`}>
                   {[
                     ['Araç', String(hesap.toplam.arac)],
@@ -206,24 +206,24 @@ export default function Analiz() {
               </Kart>
 
               <Kart>
-                <BolumBasligi metin="HAFTALIK DPU — SON 8 HAFTA" simge={S.son} />
+                <BolumBasligi metin="Haftalık DPU — son 8 hafta" simge={S.son} />
                 {haftaGrafigi(hesap.haftalar)}
               </Kart>
 
               <Kart>
-                <BolumBasligi metin="EN SIK HATALAR (PARETO)" simge={S.liste} />
+                <BolumBasligi metin="En sık hatalar (Pareto)" simge={S.liste} />
                 <Text style={s.not}>Parça + hata tipi, düzeltilecek adede göre. Birikimli pay: ilk kaç satırın toplamın ne kadarını yaptığı.</Text>
                 {paretoListesi(hesap.pareto, 'Bu dönemde düzeltilecek hata yok.')}
               </Kart>
 
               <Kart>
-                <BolumBasligi metin="TEKRARLAYAN HATALAR" simge={S.uyari} />
+                <BolumBasligi metin="Tekrarlayan hatalar" simge={S.uyari} />
                 <Text style={s.not}>Aynı parça ve tip en az iki ayrı araçta. Tek araçta birkaç kez görülen hata burada değil: o aracın sorunudur, sürecin değil.</Text>
                 {paretoListesi(hesap.tekrar, 'Birden çok araçta görülen hata yok.', true)}
               </Kart>
 
               <Kart>
-                <BolumBasligi metin="SİSTEME GÖRE" simge={S.arac} />
+                <BolumBasligi metin="Sisteme göre" simge={S.arac} />
                 {hesap.sistemler.length ? hesap.sistemler.map((x) => (
                   <View key={x.sistem} style={s.sistemSatir} accessible accessibilityLabel={`${sistemAdi(x.sistem)}: ${x.hata} hata, ${x.duzeltilecek} düzeltilecek, DPU ${dpuMetni(x.dpu)}`}>
                     <Text style={s.sistemAd}>{sistemAdi(x.sistem)}</Text>
