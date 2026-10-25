@@ -231,16 +231,15 @@ dingil 2680 mm, "Aero Hatch" silüeti (alçak burun, her iki sıra boyunca düz
 tavan, arka spoyler'a inen bagaj). Bu bir *doğrulama* değil, kaynaksızdan
 kamuya açık kaynağa geçiştir — i20/BAYON ile aynı seviye.
 
-### Araç kartındaki silüet ikonu
+### Araç silüeti — kaldırıldı (25.10.2026)
 
-`bilesenler/AracIkonu.tsx` ikonu elle çizmez; `model3d.ts`teki `ustHat`ten
-üretir. Elle çizilmiş SVG konsaydı ölçü düzeltmesinde 3B model güncellenir,
-ikon eski şekliyle kalırdı. Üç araç **aynı ölçekte** çizilir ki kartta i20
-gerçekten IONIQ 3'ten kısa görünsün.
-
-3B modelde gövde rengi nötr kalır: şiddet vurgusu (A kırmızı) gövdenin üstüne
-çizilir, kırmızı gövdede kırmızı vurgu okunmaz. IONIQ 3'ün lansman rengi
-(Fierce Red) yalnız ikonda kullanılır — vurgu çizilmeyen tek yer orası.
+`bilesenler/AracIkonu.tsx` araç kartlarında `model3d.ts`teki `ustHat`ten
+türetilmiş bir silüet çiziyordu; altında "Elektrikli / İçten yanmalı" etiketi
+vardı. Ürün sahibi: *"Araç tipleri çok dandik, araç tipi koyma, isim yeter."*
+İkon ve etiket yeni denetim formundan ve ana sayfa kartından çıktı, dosya
+silindi; araç seçimi artık Bilgiler sayfasındaki gibi yalnız adla (`Secenek`).
+Araç tipi (`tip: 'ev' | 'ice'`) veri modelinde duruyor — parça listesi hâlâ
+ona göre seçilir, yalnız ekranda yazmıyor.
 
 ## Hata listesi kodda bitmiyor — ekip kendi tipini ekler
 

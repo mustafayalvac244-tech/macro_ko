@@ -2,7 +2,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AracIkonu } from '@/bilesenler/AracIkonu';
 import { GuncellemeBildirimi } from '@/bilesenler/Guncelleme';
 import { Sayac } from '@/bilesenler/Sayac';
 import { S } from '@/bilesenler/simgeler';
@@ -208,10 +207,9 @@ function DenetimKarti({
       onPress={onPress}
       style={({ pressed }) => [s.kart, tablet && s.kartIkili, pressed && s.basili]}
     >
+      {/* Silüet ikonu kaldırıldı (ürün sahibi, 25.10.2026: "araç tipleri çok
+          dandik … isim yeter"); kart şasi + araç adıyla başlar. */}
       <View style={s.kartUst}>
-        <View style={s.aracYuva}>
-          {arac ? <AracIkonu arac={arac} boy={24} /> : <S.arac size={24} color={renkler.metinIkincil} strokeWidth={1.75} />}
-        </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.vin} numberOfLines={1}>{aracKimligi(satir) || '(şasi yok)'}</Text>
           <Text style={s.meta} numberOfLines={1}>
@@ -276,10 +274,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   hucre: { width: '50%', paddingHorizontal: bosluk.sm / 2 },
   kartIkili: { flex: 1 },
   kartUst: { flexDirection: 'row', alignItems: 'center', gap: bosluk.sm },
-  aracYuva: {
-    width: 78, height: 44, borderRadius: kose.md, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: r.yuzeyAlt,
-  },
   vin: { ...tipografi.kimlik, color: r.metin },
   meta: { ...tipografi.caption, color: r.metinSolgun },
   kartAlt: {

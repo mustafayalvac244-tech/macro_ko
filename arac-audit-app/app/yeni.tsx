@@ -1,8 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { AracIkonu } from '@/bilesenler/AracIkonu';
 import { EklenebilirSecim, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { S } from '@/bilesenler/simgeler';
 import {
@@ -15,7 +14,7 @@ import {
 import { ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { BODY_NO_AZAMI, bodyNoSadelestir, VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
-import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
+import { bosluk, Renkler, tipografi, useTema } from '@/tema';
 import { ayarOku, ayarYaz, ayniAracinDenetimleri, denetimGuncelle, denetimOlustur } from '@/veri/depo';
 import { useTarama } from '@/veri/tarama';
 
@@ -176,37 +175,23 @@ export default function YeniDenetim() {
         <View style={[s.sutun, tablet && s.sutunTablet]}>
           <Kart>
             <BolumBasligi metin="Araç" simge={S.arac} />
+            {/* Yalnız ad. Silüet ikonu ve "Elektrikli / İçten yanmalı" etiketi
+                kaldırıldı (ürün sahibi, 25.10.2026: "araç tipleri çok dandik,
+                araç tipi koyma, isim yeter"). Daha önce de ölçüler ve "ölçü
+                doğrulanmadı" rozeti aynı gerekçeyle gitmişti (28.09.2026).
+                Tip veri modelinde duruyor: parça listesi (motor bölmesi vb.)
+                hâlâ ona göre seçilir. Bilgiler sayfasıyla aynı bileşen. */}
             <View style={s.aracIzgara}>
-              {ARACLAR.map((a) => {
-                const secili = a.id === aracId;
-                return (
-                  <Pressable
-                    key={a.id}
-                    accessibilityRole="radio"
-                    aria-checked={secili}
-                    accessibilityLabel={`${a.tam} seç`}
-                    onPress={() => setAracId(a.id)}
-                    style={({ pressed }) => [s.aracKart, secili && s.aracKartSecili, pressed && s.basili]}
-                  >
-                    <View style={s.aracKartUst}>
-                      {/* Silüetler aynı ölçekte çizildiği için sola hizalı: kısa
-                          araç ortalanırsa boy farkı kaybolur. */}
-                      <AracIkonu arac={a} boy={34} />
-                      {secili ? (
-                        <View style={s.secimIsaret}>
-                          <S.tik size={14} color={renkler.metinTers} strokeWidth={3} />
-                        </View>
-                      ) : null}
-                    </View>
-                    <Text style={[s.aracAd, secili && { color: renkler.birincil }]}>{a.ad}</Text>
-                    {/* Ölçüler, "ölçü doğrulanmadı" etiketi ve ölçü uyarısı
-                        kaldırıldı (ürün sahibi, 28.09.2026: "çok kalabalık
-                        olmasın"). Ölçüler yalnız 3B model içindi; model akıştan
-                        çıktı. Doğrulanmamış oldukları model3d.ts'te yazılı. */}
-                    <Text style={s.aracTip}>{a.tip === 'ev' ? 'Elektrikli' : 'İçten yanmalı'}</Text>
-                  </Pressable>
-                );
-              })}
+              {ARACLAR.map((a) => (
+                <Secenek
+                  key={a.id}
+                  metin={a.ad}
+                  erisimEtiketi={`${a.tam} seç`}
+                  secili={a.id === aracId}
+                  onPress={() => setAracId(a.id)}
+                  style={{ flexGrow: 1, flexBasis: 100 }}
+                />
+              ))}
             </View>
           </Kart>
 
@@ -341,19 +326,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   sutunTablet: { flex: 1, minWidth: 0 },
 
   aracIzgara: { flexDirection: 'row', gap: bosluk.xs, flexWrap: 'wrap' },
-  aracKart: {
-    flexGrow: 1, flexBasis: 150, gap: 4,
-    backgroundColor: r.yuzey, borderRadius: kose.md,
-    borderWidth: 1.5, borderColor: r.cizgi, padding: bosluk.sm,
-  },
-  aracKartSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
-  aracKartUst: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: bosluk.xs },
-  secimIsaret: {
-    width: 22, height: 22, borderRadius: kose.pill, backgroundColor: r.birincil,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  aracAd: { ...tipografi.h3, color: r.metin },
-  aracTip: { ...tipografi.caption, color: r.metinSolgun },
 
   satir: { flexDirection: 'row', gap: bosluk.xs },
   alanEtiketi: { ...tipografi.caption, color: r.metinIkincil },
