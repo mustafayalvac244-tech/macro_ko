@@ -67,7 +67,9 @@ describe('hata tipi araması ve sırası', () => {
 
   it('camda önce "Cam" grubu gelir (parçanın kendi grup sırası)', () => {
     expect(parcaHataTipleri('on_cam')[0]?.grup).toBe('cam');
-    // Dış panelde tanımlı sıra değişmedi: önce yüzey.
-    expect(parcaHataTipleri('kaput')[0]?.grup).toBe('yuzey');
+    // Dış panelde önce montaj (26.10.2026): ekibin Excel'inde dış sistem
+    // kayıtlarında montaj tipi problemler (boşluk, kademe) yüzey tiplerinden
+    // belirgin biçimde sık. Önceden önce yüzeydi.
+    expect(parcaHataTipleri('kaput')[0]?.grup).toBe('montaj');
   });
 });

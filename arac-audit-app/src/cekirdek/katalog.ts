@@ -51,37 +51,62 @@ export const HATA_GRUPLARI: Record<HataGrubuId, HataGrubu> = {
  * Hata tipleri. `derece` alanı ÖNERİLEN başlangıç sınıfıdır; denetçi
  * kayıt sırasında değiştirebilir (gerçek sınıf hatanın yerine/boyutuna bağlıdır).
  */
+// EKİBİN EXCEL'İNE UYARLAMA (26.10.2026). Ürün sahibi ekibin kullandığı
+// Excel'i gönderdi ("NAS"). Oradaki problem kayıtları sayıldı (sayılar şirket
+// verisi, depoya yazılmadı): kayıtların çoğu birkaç düzine tipte toplanıyor.
+// Bunlardan 8'inin burada hiç karşılığı yoktu (temas, çakışma, dalga, çöküntü izi,
+// sarkma, kaynak izi, kalıp izi, yapışma zayıf); en sık problemler olan
+// boşluk ve kademe ise YÖN taşıyordu (fazla / dar / düzensiz, dışarıda /
+// içeride) ama burada tek "boşluk farkı" ve tek "kademe farkı" vardı —
+// fazla ile dar zıt kök nedenlerdir, birleşince rapor bilgi kaybeder.
+// Eşleme benim yargım (ölçüm değil); sayım ise Excel'den. Birebir karşılığı
+// olanların İngilizce adı ekibin terimine çekildi ("Dent" → "Dent mark"):
+// Excel çıktısı ekibin geçmiş kayıtlarıyla aynı kelimeyi kullansın.
+// KİMLİKLER DEĞİŞMEDİ — eski kayıtlar aynen okunur.
 export const HATA_TIPLERI: HataTipi[] = [
   // --- Yüzey / Boya ---
   { id: 'cizik',        grup: 'yuzey', ad: 'Çizik',                 en: 'Scratch',           derece: '1' },
-  { id: 'gocuk',        grup: 'yuzey', ad: 'Göçük',                 en: 'Dent',              derece: '2' },
+  { id: 'gocuk',        grup: 'yuzey', ad: 'Göçük',                 en: 'Dent mark',         derece: '2' },
+  { id: 'dalga',        grup: 'yuzey', ad: 'Dalgalanma',            en: 'Wave',              derece: '1' },
   { id: 'ezik',         grup: 'yuzey', ad: 'Ezik / Darbe izi',      en: 'Impact mark',       derece: '2' },
-  { id: 'toz_kir',      grup: 'yuzey', ad: 'Boya altı toz/kir',     en: 'Dirt inclusion',    derece: '1' },
+  { id: 'cokuntu',      grup: 'yuzey', ad: 'Çöküntü izi',           en: 'Sink mark',         derece: '1' },
+  { id: 'kaynak_izi',   grup: 'yuzey', ad: 'Kaynak izi',            en: 'Welding mark',      derece: '1' },
+  { id: 'kalip_izi',    grup: 'yuzey', ad: 'Kalıp izi',             en: 'Mould mark',        derece: '1' },
+  { id: 'toz_kir',      grup: 'yuzey', ad: 'Boya altı toz/kir',     en: 'Paint dust',        derece: '1' },
   { id: 'akinti',       grup: 'yuzey', ad: 'Boya akıntısı',         en: 'Paint run / sag',   derece: '2' },
   { id: 'portakal',     grup: 'yuzey', ad: 'Portakal kabuğu',       en: 'Orange peel',       derece: '1' },
   { id: 'krater',       grup: 'yuzey', ad: 'Kraterlenme',           en: 'Crater / fisheye',  derece: '2' },
-  { id: 'renk_farki',   grup: 'yuzey', ad: 'Renk / ton farkı',      en: 'Color mismatch',    derece: '2' },
+  { id: 'renk_farki',   grup: 'yuzey', ad: 'Renk / ton farkı',      en: 'Color difference',  derece: '2' },
   { id: 'boyasiz',      grup: 'yuzey', ad: 'Boyasız / eksik boya',  en: 'Unpainted area',    derece: '3' },
-  { id: 'pas',          grup: 'yuzey', ad: 'Pas / korozyon',        en: 'Rust / corrosion',  derece: '3' },
+  { id: 'pas',          grup: 'yuzey', ad: 'Pas / korozyon',        en: 'Rust',              derece: '3' },
   { id: 'capak',        grup: 'yuzey', ad: 'Çapak / keskin kenar',  en: 'Burr / sharp edge', derece: '3' },
   { id: 'sivi_izi',     grup: 'yuzey', ad: 'Sıvı / silikon izi',    en: 'Liquid residue',    derece: '1' },
 
   // --- Montaj / Uyum ---
-  { id: 'bosluk',       grup: 'montaj', ad: 'Boşluk farkı (gap)',   en: 'Gap variation',     derece: '2' },
-  { id: 'kademe',       grup: 'montaj', ad: 'Kademe farkı (flush)', en: 'Flush variation',   derece: '2' },
-  { id: 'hizasiz',      grup: 'montaj', ad: 'Hizasız montaj',       en: 'Misaligned',        derece: '2' },
+  { id: 'bosluk_fazla', grup: 'montaj', ad: 'Boşluk fazla',         en: 'Over gap',          derece: '1' },
+  { id: 'bosluk_dar',   grup: 'montaj', ad: 'Boşluk dar',           en: 'Narrow gap',        derece: '1' },
+  { id: 'bosluk_duzensiz', grup: 'montaj', ad: 'Boşluk düzensiz',   en: 'Uneven gap',        derece: '1' },
+  { id: 'bosluk',       grup: 'montaj', ad: 'Boşluk farkı (genel)', en: 'Gap',               derece: '2' },
+  { id: 'kademe_disari',grup: 'montaj', ad: 'Kademe dışarıda',      en: 'Over flush',        derece: '1' },
+  { id: 'kademe_iceri', grup: 'montaj', ad: 'Kademe içeride',       en: 'Under flush',       derece: '1' },
+  { id: 'kademe',       grup: 'montaj', ad: 'Kademe farkı (genel)', en: 'Flush',             derece: '2' },
+  { id: 'hizasiz',      grup: 'montaj', ad: 'Hizasız montaj',       en: 'Mismatching',       derece: '2' },
+  { id: 'temas',        grup: 'montaj', ad: 'Temas / değme',        en: 'Touching',          derece: '1' },
+  { id: 'cakisma',      grup: 'montaj', ad: 'Çakışma / sürtme',     en: 'Interference',      derece: '1' },
   { id: 'gevsek',       grup: 'montaj', ad: 'Gevşek / oynuyor',     en: 'Loose',             derece: '2' },
   { id: 'oturmamis',    grup: 'montaj', ad: 'Yerine oturmamış',     en: 'Not seated',        derece: '2' },
+  { id: 'sarkma',       grup: 'montaj', ad: 'Sarkma',               en: 'Sagging',           derece: '1' },
+  { id: 'yapisma_zayif',grup: 'montaj', ad: 'Yapışma zayıf',        en: 'Poor sticky',       derece: '1' },
   { id: 'eksik_parca',  grup: 'montaj', ad: 'Eksik parça',          en: 'Missing part',      derece: '3' },
   { id: 'eksik_klips',  grup: 'montaj', ad: 'Eksik klips / vida',   en: 'Missing clip/screw',derece: '2' },
   { id: 'kirik_klips',  grup: 'montaj', ad: 'Kırık klips',          en: 'Broken clip',       derece: '2' },
   { id: 'yanlis_parca', grup: 'montaj', ad: 'Yanlış parça',         en: 'Wrong part',        derece: '3' },
-  { id: 'deforme',      grup: 'montaj', ad: 'Deforme / eğrilik',    en: 'Deformed',          derece: '2' },
+  { id: 'deforme',      grup: 'montaj', ad: 'Deforme / eğrilik',    en: 'Deformation',       derece: '2' },
   { id: 'sikma_torku',  grup: 'montaj', ad: 'Tork / sıkma hatası',  en: 'Torque fault',      derece: '3' },
 
   // --- Ses (NVH) ---
-  { id: 'gicirti',      grup: 'ses', ad: 'Gıcırtı',                 en: 'Squeak',            derece: '2' },
-  { id: 'tikirti',      grup: 'ses', ad: 'Tıkırtı / zangırtı',      en: 'Rattle',            derece: '2' },
+  { id: 'gicirti',      grup: 'ses', ad: 'Gıcırtı',                 en: 'Squeak noise',      derece: '2' },
+  { id: 'tikirti',      grup: 'ses', ad: 'Tıkırtı / zangırtı',      en: 'Rattle noise',      derece: '2' },
   { id: 'ruzgar_sesi',  grup: 'ses', ad: 'Rüzgâr sesi',             en: 'Wind noise',        derece: '2' },
   { id: 'vurma',        grup: 'ses', ad: 'Vurma / darbe sesi',      en: 'Knock / thump',     derece: '2' },
   { id: 'titresim',     grup: 'ses', ad: 'Titreşim',                en: 'Vibration',         derece: '2' },
@@ -90,7 +115,7 @@ export const HATA_TIPLERI: HataTipi[] = [
   // --- Fonksiyon ---
   { id: 'calismiyor',   grup: 'fonksiyon', ad: 'Çalışmıyor',        en: 'Inoperative',       derece: '3' },
   { id: 'aralikli',     grup: 'fonksiyon', ad: 'Aralıklı çalışıyor',en: 'Intermittent',      derece: '3' },
-  { id: 'zor_calisiyor',grup: 'fonksiyon', ad: 'Zor / ağır çalışıyor', en: 'Hard operation', derece: '2' },
+  { id: 'zor_calisiyor',grup: 'fonksiyon', ad: 'Zor / ağır çalışıyor', en: 'High effort',    derece: '2' },
   { id: 'hata_kodu',    grup: 'fonksiyon', ad: 'Hata kodu (DTC)',   en: 'DTC present',       derece: '3' },
   { id: 'uyari_lambasi',grup: 'fonksiyon', ad: 'Uyarı lambası yanıyor', en: 'Warning lamp',  derece: '3' },
   { id: 'yanlis_yon',   grup: 'fonksiyon', ad: 'Ters / yanlış yön', en: 'Reversed operation',derece: '2' },
@@ -99,7 +124,7 @@ export const HATA_TIPLERI: HataTipi[] = [
   // --- Döşeme / Kumaş ---
   { id: 'leke',         grup: 'doseme', ad: 'Leke',                 en: 'Stain',             derece: '2' },
   { id: 'yirtik',       grup: 'doseme', ad: 'Yırtık / delik',       en: 'Tear / hole',       derece: '3' },
-  { id: 'burusuk',      grup: 'doseme', ad: 'Buruşuk / gergin değil',en: 'Wrinkle',          derece: '1' },
+  { id: 'burusuk',      grup: 'doseme', ad: 'Buruşuk / gergin değil',en: 'Wrinkled',         derece: '1' },
   { id: 'dikis',        grup: 'doseme', ad: 'Dikiş hatası',         en: 'Stitching fault',   derece: '2' },
   { id: 'iplik',        grup: 'doseme', ad: 'Sarkan iplik',         en: 'Loose thread',      derece: '1' },
 
@@ -114,7 +139,7 @@ export const HATA_TIPLERI: HataTipi[] = [
   { id: 'hava_sizinti', grup: 'sizdirmazlik', ad: 'Hava sızıntısı', en: 'Air leak',          derece: '2' },
   { id: 'yag_sizinti',  grup: 'sizdirmazlik', ad: 'Yağ / sıvı sızıntısı', en: 'Fluid leak',  derece: '3' },
   { id: 'fitil',        grup: 'sizdirmazlik', ad: 'Fitil oturmamış / kalkık', en: 'Weatherstrip not seated', derece: '2' },
-  { id: 'mastik',       grup: 'sizdirmazlik', ad: 'Mastik / sızdırmazlık hatası', en: 'Sealer fault', derece: '2' },
+  { id: 'mastik',       grup: 'sizdirmazlik', ad: 'Mastik / sızdırmazlık hatası', en: 'Poor sealer', derece: '2' },
 
   // --- Temizlik ---
   { id: 'kirli',        grup: 'temizlik', ad: 'Kirli / tozlu',      en: 'Soiled / dusty',    derece: '1' },
@@ -175,7 +200,12 @@ export function tumHataTipleri(): HataTipi[] {
 // ---------------------------------------------------------------------------
 
 const YUZEY_MONTAJ: HataGrubuId[] = ['yuzey', 'montaj'];
-const DIS_PANEL: HataGrubuId[] = ['yuzey', 'montaj', 'ses', 'sizdirmazlik', 'temizlik'];
+// Dış panelde MONTAJ önce (26.10.2026): ekibin Excel'inde dış sistem
+// kayıtlarında montaj tipi problemler (boşluk, kademe, hizasızlık, temas)
+// yüzey tiplerinden belirgin biçimde sık. Gruplama benim eşlemem, sayım
+// Excel'den; sayılar şirket verisi olduğu için depoya yazılmadı. Önce yüzey
+// vardı; boşluk/kademe 16 boya tipinin altında kalıyordu.
+const DIS_PANEL: HataGrubuId[] = ['montaj', 'yuzey', 'ses', 'sizdirmazlik', 'temizlik'];
 const IC_PANEL: HataGrubuId[] = ['montaj', 'ses', 'yuzey', 'doseme', 'temizlik'];
 const CAM_TAKIMI: HataGrubuId[] = ['cam', 'montaj', 'sizdirmazlik', 'ses', 'temizlik'];
 const ELEKTRIK: HataGrubuId[] = ['fonksiyon', 'montaj', 'ses'];

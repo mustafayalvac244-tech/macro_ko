@@ -227,8 +227,9 @@ describe('ekibin tablosu — "Part Related Issues" düzeni', () => {
     const h = ornekHata({
       parcaId: 'sol_on_kapi', hataTipiId: 'bosluk', konum: 'upper corner', aciklama: 'near B PLR', adet: 2,
     });
-    expect(sorunMetni(h, 'en')).toBe('LH front door gap variation - upper corner, near B PLR (x2)');
-    expect(sorunMetni(h, 'tr')).toBe('Sol ön kapı — Boşluk farkı (gap) — upper corner, near B PLR (2 adet)');
+    // 26.10.2026: tip adları ekibin Excel terimine çekildi ("Gap variation" → "Gap").
+    expect(sorunMetni(h, 'en')).toBe('LH front door gap - upper corner, near B PLR (x2)');
+    expect(sorunMetni(h, 'tr')).toBe('Sol ön kapı — Boşluk farkı (genel) — upper corner, near B PLR (2 adet)');
   });
 
   it('başlık ekibin tablosunun ilk satırını izler', () => {

@@ -30,6 +30,7 @@
     "tests/aracAuditRaporDurum.test.ts",
     "tests/aracAuditSayac.test.ts",
     "tests/aracAuditBodyNo.test.ts",
-    "tests/aracAuditIstatistik.test.ts"
+    "tests/aracAuditIstatistik.test.ts",
+    "tests/aracAuditKatalogEkip.test.ts"
   ]
 }

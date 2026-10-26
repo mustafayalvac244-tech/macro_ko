@@ -312,6 +312,32 @@ adı ve grubu çözmesi dahil).
 > düşüyor (15.09.2026'da node_modules geçici kaldırılarak ölçüldü). Vitest
 > bu listeye bakmaz, test koşmaya devam eder.
 
+### Katalog ekibin Excel'ine uyarlandı (26.10.2026)
+
+Ürün sahibi ekibin kullandığı Excel'i gönderdi. Problem kayıtları sayıldı;
+**sayılar şirket verisi olduğu için bu depoya yazılmadı**, ürün sahibine
+sohbette verildi. Sonuç ve yapılan:
+
+- En sık kullanılan tiplerden **8'inin karşılığı yoktu**; eklendi: temas
+  (Touching), çakışma (Interference), dalgalanma (Wave), çöküntü izi (Sink
+  mark), sarkma (Sagging), kaynak izi (Welding mark), kalıp izi (Mould mark),
+  yapışma zayıf (Poor sticky).
+- En sık problemler **boşluk ve kademe**, ve ekip yönünü yazıyor. Uygulamada
+  tek "boşluk farkı" ve tek "kademe farkı" vardı; fazla ile dar zıt kök
+  nedenlerdir. Ayrıldı: boşluk fazla / dar / düzensiz, kademe dışarıda /
+  içeride. Genel olanlar eski kayıtlar için duruyor.
+- Birebir karşılığı olan tiplerin **İngilizce adı ekibin terimine** çekildi
+  ("Dent" → "Dent mark", "Squeak" → "Squeak noise", "Misaligned" →
+  "Mismatching"…): Excel çıktısı ekibin geçmiş kayıtlarıyla aynı kelimeyi
+  kullanıyor.
+- Dış panellerde ızgarada **önce montaj grubu** geliyor; ekibin dış sistem
+  kayıtlarında montaj tipi problemler belirgin biçimde daha sık.
+
+Tip kimlikleri değişmedi; eski kayıtlar aynen okunur. Excel tipi ile
+uygulama tipi arasındaki eşleme benim yargım, ölçüm değil; sayımlar ise
+Excel'den. `tests/aracAuditKatalogEkip.test.ts` uyarlamayı korur (bilerek
+bozulunca düştüğü görüldü).
+
 ## Hızlı giriş — çalışma ekranının tek amacı
 
 **Adım adım seçim (ürün sahibi, 24.10.2026: "Profesyonel bir şey olsun. Hata
