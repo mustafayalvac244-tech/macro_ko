@@ -25,9 +25,9 @@ import { BilgiKutusu, Dugme, Girdi, HataKutusu, Secenek } from '@/bilesenler/tem
 import { SPECLER } from '@/cekirdek/aracBilgisi';
 import { bolgelerAracIcin } from '@/cekirdek/katalog';
 import { HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
-import { ARACLAR } from '@/cekirdek/model3d';
+import { aracEtiketi, ARACLAR } from '@/cekirdek/model3d';
 import { Denetim } from '@/cekirdek/tipler';
-import { BODY_NO_AZAMI, bodyNoSadelestir, vinDogrula } from '@/cekirdek/vin';
+import { BODY_NO_GIRDI_AZAMI, bodyNoGecerli, bodyNoSadelestir, vinDogrula } from '@/cekirdek/vin';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 
 type SecimListesi = ReturnType<typeof useSecimListesi>;
@@ -70,7 +70,10 @@ export function DenetimBilgileri({
 
   const vin = useMemo(() => vinDogrula(vinHam), [vinHam]);
   const vinBos = !vinHam.trim();
-  const kimlikTamam = vinBos ? !!bodyNo : vin.gecerli;
+  // Excel'in kuralı (tam 6 rakam) yalnız DEĞİŞTİRİLEN body no'ya uygulanır:
+  // eski bir kayıttaki harfli body no, başka bir alan düzeltilirken engel olmasın.
+  const bodyHatali = bodyNo !== (denetim.bodyNo ?? '') && !!bodyNo && !bodyNoGecerli(bodyNo);
+  const kimlikTamam = !bodyHatali && (vinBos ? !!bodyNo : vin.gecerli);
 
   /** Kayıtlı parçaların hepsi bu araçta da var mı? */
   const aracUygun = useMemo(() => {
@@ -89,7 +92,7 @@ export function DenetimBilgileri({
       setAracUyarisi(null);
       return;
     }
-    const ad = ARACLAR.find((a) => a.id === id)?.ad ?? id;
+    const ad = aracEtiketi(ARACLAR.find((a) => a.id === id), id);
     setAracUyarisi(`Bu denetimde ${ad} için olmayan parçalara kayıt var; araç değiştirilemez.`);
   };
 
@@ -135,11 +138,11 @@ export function DenetimBilgileri({
           {ARACLAR.map((a) => (
             <Secenek
               key={a.id}
-              metin={a.ad}
-              erisimEtiketi={aracUygun.get(a.id) ? `Araç ${a.ad}` : `Araç ${a.ad} — kayıtlı parçalar bu araçta yok`}
+              metin={aracEtiketi(a)}
+              erisimEtiketi={aracUygun.get(a.id) ? `Araç ${aracEtiketi(a)}` : `Araç ${aracEtiketi(a)} — kayıtlı parçalar bu araçta yok`}
               secili={aracId === a.id}
               onPress={() => aracSec(a.id)}
-              style={{ flexGrow: 1, flexBasis: 90 }}
+              style={{ flexGrow: 1, flexBasis: 140 }}
             />
           ))}
         </View>
@@ -164,12 +167,13 @@ export function DenetimBilgileri({
           mono
           value={bodyNo}
           onChangeText={(t) => setBodyNo(bodyNoSadelestir(t))}
-          placeholder="Örn. 015253"
-          autoCapitalize="characters"
+          placeholder="6 hane, örn. 015253"
+          keyboardType="number-pad"
           autoCorrect={false}
           spellCheck={false}
-          maxLength={BODY_NO_AZAMI}
+          maxLength={BODY_NO_GIRDI_AZAMI}
           accessibilityLabel="Body numarası"
+          hata={bodyHatali ? 'Body no 6 hane olmalı.' : undefined}
         />
         <View style={s.specKm}>
           <View style={{ gap: bosluk.xxs }}>

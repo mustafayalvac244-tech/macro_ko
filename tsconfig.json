@@ -31,6 +31,7 @@
     "tests/aracAuditSayac.test.ts",
     "tests/aracAuditBodyNo.test.ts",
     "tests/aracAuditIstatistik.test.ts",
-    "tests/aracAuditKatalogEkip.test.ts"
+    "tests/aracAuditKatalogEkip.test.ts",
+    "tests/aracAuditNas.test.ts"
   ]
 }

@@ -5,13 +5,13 @@ import { ListeDuzenle, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { SurumKarti } from '@/bilesenler/Guncelleme';
 import { GRUP_SIMGELERI, S, Simge } from '@/bilesenler/simgeler';
 import {
-  Baslik, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, Kart, Secenek, useDuzen,
+  Baslik, BilgiKutusu, BolumBasligi, Dugme, Ekran, Kart, Secenek, useDuzen,
 } from '@/bilesenler/temel';
 import { HATA_GRUPLARI } from '@/cekirdek/katalog';
 import { HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
 import { bosluk, kose, Renkler, TemaTercihi, tipografi, useTema } from '@/tema';
 import { bekleyenSenkron, hataTipiKullanimi } from '@/veri/depo';
-import { yedekOlustur } from '@/veri/yedek';
+import { nasExcelOlustur, yedekOlustur } from '@/veri/yedek';
 import { useKatalog } from '@/veri/katalogDeposu';
 
 const TEMALAR: { deger: TemaTercihi; etiket: string; simge: Simge }[] = [
@@ -49,6 +49,22 @@ export default function Ayarlar() {
       setYedekHatasi(`Yedek alınamadı: ${h instanceof Error ? h.message : String(h)}`);
     } finally {
       setYedekleniyor(false);
+    }
+  };
+
+  // EXCEL'E AKTAR (26.10.2026): ekibin Excel'indeki iki liste sayfası.
+  const [aktariliyor, setAktariliyor] = useState(false);
+  const [aktarSonucu, setAktarSonucu] = useState<string | null>(null);
+  const [aktarHatasi, setAktarHatasi] = useState<string | null>(null);
+  const excelAktar = async () => {
+    setAktariliyor(true); setAktarSonucu(null); setAktarHatasi(null);
+    try {
+      const x = await nasExcelOlustur();
+      setAktarSonucu(`${x.denetim} araç, ${x.problem} problem satırı.` + (x.paylasildi ? '' : ` Paylaşım yok; dosya: ${x.uri}`));
+    } catch (h) {
+      setAktarHatasi(`Excel dosyası oluşturulamadı: ${h instanceof Error ? h.message : String(h)}`);
+    } finally {
+      setAktariliyor(false);
     }
   };
 
@@ -93,8 +109,8 @@ export default function Ayarlar() {
 
         <Kart>
           <BolumBasligi metin="Problem source" simge={S.etiket} />
-          <Text style={s.aciklama}>Raporun Source sütunu. Yeni denetimde seçilir ve hatırlanır.</Text>
-          <ListeDuzenle ad="Kaynak" liste={kaynaklar} yerTutucu="Örn. Durability" />
+          <Text style={s.aciklama}>Ekibin Excel'indeki liste. Yeni denetimde seçilir ve hatırlanır; Audit skoruna yalnız AUDIT girer.</Text>
+          <ListeDuzenle ad="Kaynak" liste={kaynaklar} yerTutucu="Örn. LONG TERM" />
         </Kart>
 
         <Kart>
@@ -124,6 +140,20 @@ export default function Ayarlar() {
           />
           {yedekSonucu ? <BilgiKutusu tur="basari" metin={yedekSonucu} /> : null}
           {yedekHatasi ? <BilgiKutusu tur="uyari" metin={yedekHatasi} /> : null}
+
+          <Text style={s.aciklama}>
+            Excel'e aktar: bütün denetimler, ekibin Excel'indeki AUDIT_CARS_LIST ve PROBLEMS_LIST sütunlarıyla.
+            Satırlar o dosyaya yapıştırılabilir. Fotoğraflar bu dosyada yok; PHOTO LINK yedekteki dosya adını yazar.
+          </Text>
+          <Dugme
+            metin="Excel'e aktar (NAS)"
+            simge={S.rapor}
+            yukleniyor={aktariliyor}
+            onPress={excelAktar}
+            erisimEtiketi="Bütün denetimleri ekibin Excel düzeninde aktar"
+          />
+          {aktarSonucu ? <BilgiKutusu tur="basari" metin={aktarSonucu} /> : null}
+          {aktarHatasi ? <BilgiKutusu tur="uyari" metin={aktarHatasi} /> : null}
         </Kart>
 
       </ScrollView>
@@ -167,8 +197,6 @@ function OzelTipler() {
         const GrupIkon = GRUP_SIMGELERI[t.grup];
         return (
         <View key={t.id} style={[s.tipSatiri, t.silindi && { opacity: 0.6 }]}>
-          {/* Bu bir hata TİPİ, kaydedilmiş bulgu değil: tipin kabul durumu yok. */}
-          <DereceRozeti derece={t.derece} kabul={false} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.tipAd} numberOfLines={2}>
               {t.ad}{t.silindi ? ' — listeden kaldırıldı' : ''}

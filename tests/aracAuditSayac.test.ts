@@ -1,21 +1,25 @@
 import { describe, expect, it } from 'vitest';
 
-import { donemBaslangiclari, dpu, sayacHesapla, SayacGirdisi } from '../arac-audit-app/src/cekirdek/sayac';
+import { donemBaslangiclari, sayacBaslangici, sayacHesapla, SayacGirdisi, skor } from '../arac-audit-app/src/cekirdek/sayac';
 
 // Ürün sahibi, 24.10.2026: şirketteki Excel formu araç baktıkça bugün / bu
-// hafta / bu ay / bu yıl sayıyor — "o sistem güzel". Dönemler yerel saatle;
-// tarihler yerel kurucuyla verildiği için test her saat diliminde aynı çıkar.
+// hafta / bu ay / bu yıl sayıyor — "o sistem güzel". 26.10.2026: Excel'in
+// kendisi geldi; makrodaki tanımlar: G. Hafta dönemi, Audit Skoru =
+// round(100 × Σ demerit / araç), yalnız PROBLEM SOURCE = AUDIT sayılır.
+// Dönemler yerel saatle; tarihler yerel kurucuyla verildiği için test her saat
+// diliminde aynı çıkar.
 
 const yerel = (y: number, ay: number, gun: number, sa = 10, dk = 0) => new Date(y, ay - 1, gun, sa, dk);
-const girdi = (aracId: string, an: Date, hataAdedi = 0, duzeltilecekAdedi = hataAdedi): SayacGirdisi => ({
-  aracId, baslangic: an.toISOString(), hataAdedi, duzeltilecekAdedi,
+const girdi = (aracId: string, an: Date, hataAdedi = 0, demerit = hataAdedi, kaynak = 'AUDIT'): SayacGirdisi => ({
+  aracId, baslangic: an.toISOString(), hataAdedi, demerit, kaynak,
 });
 const SIRA = ['ioniq3', 'i20', 'bayon'];
 
 describe('sayaç — dönem sınırları', () => {
-  it('hafta pazartesi 00:00 başlar', () => {
+  it('hafta pazartesi 00:00 başlar; geçen hafta bir önceki pazartesi', () => {
     // 21.10.2026 çarşamba
     expect(donemBaslangiclari(yerel(2026, 10, 21)).buHafta).toEqual(yerel(2026, 10, 19, 0));
+    expect(donemBaslangiclari(yerel(2026, 10, 21)).gecenHafta).toEqual(yerel(2026, 10, 12, 0));
     // 25.10.2026 pazar: hafta hâlâ 19'unda başlamış
     expect(donemBaslangiclari(yerel(2026, 10, 25, 23, 59)).buHafta).toEqual(yerel(2026, 10, 19, 0));
     // 19.10.2026 pazartesi: kendisi
@@ -28,24 +32,33 @@ describe('sayaç — dönem sınırları', () => {
     expect(b.buYil).toEqual(yerel(2026, 1, 1, 0));
     expect(b.bugun).toEqual(yerel(2026, 10, 21, 0));
   });
+
+  it('Ocak başında okuma geçen yıla taşar: geçen hafta eksik sayılmasın', () => {
+    // 6.1.2027 çarşamba: bu hafta 4.1, geçen hafta 28.12.2026
+    expect(sayacBaslangici(yerel(2027, 1, 6))).toEqual(yerel(2026, 12, 28, 0));
+    expect(sayacBaslangici(yerel(2026, 10, 21))).toEqual(yerel(2026, 1, 1, 0));
+  });
 });
 
 describe('sayaç — sayım', () => {
   const simdi = yerel(2026, 10, 21, 15); // çarşamba
 
-  it('her denetim girdiği bütün dönemlere sayılır, hatalar toplanır', () => {
+  it('her denetim girdiği bütün dönemlere sayılır; geçen hafta bu haftayı içermez', () => {
     const s = sayacHesapla([
-      girdi('i20', yerel(2026, 10, 21, 9), 3), // bugün
+      girdi('i20', yerel(2026, 10, 21, 9), 3, 2), // bugün
       girdi('i20', yerel(2026, 10, 19, 0, 30), 0), // pazartesi: bu hafta, hatasız
-      girdi('i20', yerel(2026, 10, 18, 23), 2), // pazar: geçen hafta, bu ay
-      girdi('i20', yerel(2026, 3, 5), 1), // bu yıl
+      girdi('i20', yerel(2026, 10, 18, 23), 2, 1), // pazar: geçen hafta, bu ay
+      girdi('i20', yerel(2026, 10, 12, 0, 0), 1, 3), // geçen haftanın ilk anı
+      girdi('i20', yerel(2026, 10, 11, 23, 59), 1, 1), // geçen haftadan önce, bu ay
+      girdi('i20', yerel(2026, 3, 5), 1, 0), // bu yıl
     ], simdi, SIRA);
     expect(s.araclar).toHaveLength(1);
     expect(s.araclar[0]!.sayilar).toEqual({
-      bugun: { arac: 1, hata: 3, duzeltilecek: 3 },
-      buHafta: { arac: 2, hata: 3, duzeltilecek: 3 },
-      buAy: { arac: 3, hata: 5, duzeltilecek: 5 },
-      buYil: { arac: 4, hata: 6, duzeltilecek: 6 },
+      bugun: { arac: 1, hata: 3, demerit: 2 },
+      buHafta: { arac: 2, hata: 3, demerit: 2 },
+      gecenHafta: { arac: 2, hata: 3, demerit: 4 },
+      buAy: { arac: 5, hata: 7, demerit: 7 },
+      buYil: { arac: 6, hata: 8, demerit: 7 },
     });
   });
 
@@ -53,10 +66,10 @@ describe('sayaç — sayım', () => {
     const s = sayacHesapla([
       girdi('i20', yerel(2025, 12, 31, 23, 59), 4),
       girdi('i20', yerel(2026, 10, 22), 4), // cihaz saati geri alınmış
-      { aracId: 'i20', baslangic: 'bozuk', hataAdedi: 4, duzeltilecekAdedi: 4 },
+      { aracId: 'i20', baslangic: 'bozuk', hataAdedi: 4, demerit: 4 },
     ], simdi, SIRA);
     expect(s.araclar).toEqual([]);
-    expect(s.toplam.buYil).toEqual({ arac: 0, hata: 0, duzeltilecek: 0 });
+    expect(s.toplam.buYil).toEqual({ arac: 0, hata: 0, demerit: 0 });
   });
 
   it('araçlar verilen sırada; bilinmeyen araç sona eklenir, düşmez; toplam hepsini kapsar', () => {
@@ -66,28 +79,37 @@ describe('sayaç — sayım', () => {
       girdi('ioniq3', yerel(2026, 10, 20), 5),
     ], simdi, SIRA);
     expect(s.araclar.map((a) => a.aracId)).toEqual(['ioniq3', 'bayon', 'eski-arac']);
-    expect(s.toplam.bugun).toEqual({ arac: 2, hata: 3, duzeltilecek: 3 });
-    expect(s.toplam.buHafta).toEqual({ arac: 3, hata: 8, duzeltilecek: 8 });
+    expect(s.toplam.bugun).toEqual({ arac: 2, hata: 3, demerit: 3 });
+    expect(s.toplam.buHafta).toEqual({ arac: 3, hata: 8, demerit: 8 });
+  });
+
+  it('yalnız AUDIT kaynağı sayılır; eski "HMC Audit" ve boş kaynak AUDIT sayılır', () => {
+    const s = sayacHesapla([
+      girdi('i20', yerel(2026, 10, 21, 9), 1, 1, 'AUDIT'),
+      girdi('i20', yerel(2026, 10, 21, 10), 1, 1, 'HMC Audit'),
+      girdi('i20', yerel(2026, 10, 21, 11), 1, 1, ''),
+      girdi('i20', yerel(2026, 10, 21, 12), 5, 9, 'DURABILITY'),
+      girdi('i20', yerel(2026, 10, 21, 13), 5, 9, 'Durability'),
+      girdi('i20', yerel(2026, 10, 21, 14), 5, 9, '3M - DEALER CLAIM'),
+    ], simdi, SIRA);
+    expect(s.toplam.bugun).toEqual({ arac: 3, hata: 3, demerit: 3 });
   });
 });
 
-// Ürün sahibi, 24.10.2026: skor olarak "araç başına hata" (DPU) seçildi. Tanım
-// Excel raporundaki DPU ile aynı: kabul edilebilir hatalar sayılmaz.
-describe('sayaç — DPU', () => {
-  const simdi = yerel(2026, 10, 21, 15);
-
-  it('kabul edilebilir olmayan hata / araç, iki ondalık', () => {
-    const s = sayacHesapla([
-      girdi('i20', yerel(2026, 10, 21, 9), 3, 2), // 3 hata, 1'i kabul edilebilir
-      girdi('i20', yerel(2026, 10, 21, 11), 0, 0), // hatasız araç
-      girdi('i20', yerel(2026, 10, 21, 12), 1, 0), // tek hatası kabul edilebilir
-    ], simdi, SIRA);
-    const bugun = s.araclar[0]!.sayilar.bugun;
-    expect(bugun).toEqual({ arac: 3, hata: 4, duzeltilecek: 2 });
-    expect(dpu(bugun)).toBe(0.67);
+// Excel makrosu: Audit Skoru = round(100 × Σ DEMERIT / denetlenen araç).
+describe('sayaç — Audit Skoru', () => {
+  it('100 × demerit / araç, tam sayıya yuvarlanır', () => {
+    expect(skor({ arac: 3, hata: 4, demerit: 2 })).toBe(67);
+    expect(skor({ arac: 5, hata: 7, demerit: 0 })).toBe(0);
   });
 
-  it('araç yoksa DPU yok (0 değil)', () => {
-    expect(dpu({ arac: 0, hata: 0, duzeltilecek: 0 })).toBeNull();
+  it('tam yarıda VBA gibi çifte yuvarlar (Excel ile aynı sayı)', () => {
+    expect(skor({ arac: 8, hata: 0, demerit: 1 })).toBe(12); // 12,5 → 12
+    expect(skor({ arac: 8, hata: 0, demerit: 3 })).toBe(38); // 37,5 → 38
+    expect(skor({ arac: 40, hata: 0, demerit: 1 })).toBe(2); // 2,5 → 2
+  });
+
+  it('araç yoksa skor yok (0 değil)', () => {
+    expect(skor({ arac: 0, hata: 0, demerit: 0 })).toBeNull();
   });
 });

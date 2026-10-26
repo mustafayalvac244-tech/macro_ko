@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdimliSecim, Konum, KOK_KONUM } from '@/bilesenler/AdimliSecim';
 import { DenetimBilgileri } from '@/bilesenler/DenetimBilgileri';
 import {
-  DereceSecici, GrupBasligi, HataSayfasi, HataTaslagi, KabulAnahtari, YeniTipFormu,
+  DereceSecici, GrupBasligi, HataSayfasi, HataTaslagi, SinifSecici, YeniTipFormu,
 } from '@/bilesenler/HataSayfasi';
 import { S } from '@/bilesenler/simgeler';
 import {
@@ -19,13 +19,14 @@ import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import {
   bolgelerAracIcin, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi,
 } from '@/cekirdek/katalog';
-import { ARAC_INDEKS } from '@/cekirdek/model3d';
+import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
+import { VARSAYILAN_SINIF, varsayilanSistem } from '@/cekirdek/nas';
 import { dereceGosterimi } from '@/cekirdek/puan';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { kapsamMetni, mevcutSistemler, parcaSistemi } from '@/cekirdek/sistemler';
 import { aracKimligi } from '@/cekirdek/vin';
 import {
-  Denetim, DereceKodu, Hata, HataGrubuId, HataTipi,
+  Denetim, DereceKodu, Hata, HataGrubuId, HataTipi, SinifKodu,
 } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { useAcmaIstegi } from '@/veri/acmaIstegi';
@@ -51,8 +52,16 @@ import { useKatalog } from '@/veri/katalogDeposu';
  * saydı — dereceye bakmayan denetçi önceki dereceyi SESSİZCE yazıyordu
  * (telefonda 14 kaydın 10'unda seçili gelen derece istenenden farklıydı; o
  * dereceleri ajan kendisi seçti). Aynı parçaya art arda hata için bildirimde
- * "Aynı parçaya" var; o yoldan dönülünce derece korunur. Fotoğraf ve not
- * sonradan, kaydedilen hatalar listesinden eklenir — hızlı yolun üstünde durmaz.
+ * "Aynı parçaya" var. Fotoğraf ve not sonradan, kaydedilen hatalar
+ * listesinden eklenir — hızlı yolun üstünde durmaz.
+ *
+ * EXCEL ALANLARI (26.10.2026, ürün sahibi: "içeriği buna göre yap"): derece
+ * artık ekibin Excel'indeki DEMERIT (0–3) ve yanında CLASS (MINOR/MAJOR/MAIN).
+ * Excel formu her kayıttan sonra 0 / MINOR'a döner; burada da öyle — HER
+ * kayıttan sonra, "Aynı parçaya" yolunda da. Yapışkan değer yukarıdaki
+ * sınamadaki gibi sessizce yanlış yazılırdı. "Kabul edilebilir" anahtarı
+ * kalktı: Excel'de yok, karşılığı demerit 0. SYSTEM parça ve tipten önerilir
+ * (nas.ts); ayrıntıda değiştirilebilir.
  *
  * ADIM ADIM SEÇİM (ürün sahibi, 24.10.2026: "seçe seçe ilerlesinler, en
  * dıştan"): parça artık Sistem → Bölge → Parça diye seçilir (AdimliSecim.tsx).
@@ -92,11 +101,9 @@ export default function DenetimEkrani() {
   // denetçi yeniden en dıştan başlamasın.
   const [konum, setKonum] = useState<Konum>(KOK_KONUM);
   const [hataArama, setHataArama] = useState('');
-  const [derece, setDerece] = useState<DereceKodu>('1');
-  // "Kabul edilebilir" BİLEREK YAPIŞKAN DEĞİL: her kayıttan sonra kapanır.
-  // Yapışkan olsaydı bir kez açık unutulan anahtar sonraki gerçek hataları
-  // sessizce "(3) kabul edildi" diye yazardı — iş emri hiç çıkmazdı.
-  const [kabul, setKabul] = useState(false);
+  // Excel formu gibi 0 / MINOR ile başlar, her kayıttan sonra oraya döner.
+  const [derece, setDerece] = useState<DereceKodu>('0');
+  const [sinif, setSinif] = useState<SinifKodu>(VARSAYILAN_SINIF);
   const [yeniTipAcik, setYeniTipAcik] = useState(false);
   const [kayitHatasi, setKayitHatasi] = useState<string | null>(null);
 
@@ -202,14 +209,14 @@ export default function DenetimEkrani() {
     return [...m.entries()];
   }, [tipler]);
 
-  /** Parçayı açar. Derece 1'e, "kabul edilebilir" kapalıya döner (dosya başı notu). */
+  /** Parçayı açar. Demerit 0'a, class MINOR'a döner (dosya başı notu). */
   const parcaSec = useCallback((pid: string) => {
     setParcaId(pid);
     setHataArama('');
     setYeniTipAcik(false);
     setKayitHatasi(null);
-    setDerece('1');
-    setKabul(false);
+    setDerece('0');
+    setSinif(VARSAYILAN_SINIF);
   }, []);
 
   const parcalaraDon = useCallback(() => {
@@ -227,7 +234,9 @@ export default function DenetimEkrani() {
       parcaId,
       hataTipiId: t.id,
       derece,
-      kabulEdilebilir: kabul,
+      kabulEdilebilir: false,
+      sinif,
+      sistem: varsayilanSistem(parcaId, t.id),
       sorunTipi: 'Part',
       sorumlu: sorumluHaritasi[parcaId] ?? '',
       adet: 1, konum: '', aciklama: '', fotograflar: [],
@@ -253,14 +262,15 @@ export default function DenetimEkrani() {
 
     bildirimGoster({
       tur: 'kayit', id: kayit.id, parcaId,
-      metin: `${parcaTamAdi(parcaId)} — ${t.ad} · ${dereceGosterimi(kayit)}`,
+      metin: `${parcaTamAdi(parcaId)} — ${t.ad} · demerit ${dereceGosterimi(kayit)} · ${sinif}`,
     }, 6000);
 
-    setKabul(false);
+    setDerece('0');
+    setSinif(VARSAYILAN_SINIF);
     parcalaraDon();
     setParcaArama('');
     await tazele();
-  }, [denetim, parcaId, derece, kabul, sorumluHaritasi, parcalaraDon, tazele, bildirimGoster, yenidenAcGerekirse]);
+  }, [denetim, parcaId, derece, sinif, sorumluHaritasi, parcalaraDon, tazele, bildirimGoster, yenidenAcGerekirse]);
 
   // Geri almak SESSİZ değil: yalnız başlıktaki sayaç değişiyordu (sınamada
   // "geri alındı mı?" sorusu kaldı). Kısa bir "Geri alındı" bildirimi çıkar.
@@ -272,7 +282,7 @@ export default function DenetimEkrani() {
   }, [bildirim, tazele, bildirimGoster]);
 
   // Aynı parçaya art arda hata: listeye dönüp parçayı yeniden aramak yerine
-  // bildirimden tek dokunuş. Derece KORUNUR — aynı parçada kalınıyor.
+  // bildirimden tek dokunuş. Demerit ve class kayıttan sonra zaten 0 / MINOR.
   const ayniParcaya = useCallback(() => {
     if (bildirim?.tur !== 'kayit') return;
     setParcaId(bildirim.parcaId);
@@ -433,10 +443,13 @@ export default function DenetimEkrani() {
 
       <View style={[s.dereceSerit, tablet && s.dereceSeritTablet]}>
         <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
-          <Text style={s.dereceEtiket}>Derece — 3 en ağır</Text>
-          <DereceSecici derece={derece} onSec={dereceSec} />
+          <Text style={s.dereceEtiket}>Demerit — 0 skora girmez</Text>
+          <DereceSecici derece={derece} onSec={dereceSec} kucuk />
         </View>
-        <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} style={tablet ? { flex: 1 } : undefined} />
+        <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
+          <Text style={s.dereceEtiket}>Class</Text>
+          <SinifSecici sinif={sinif} onSec={setSinif} />
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={s.hataGovde} keyboardShouldPersistTaps="handled">
@@ -447,18 +460,18 @@ export default function DenetimEkrani() {
           erisimEtiketi="Hata tipi ara"
         />
 
-        {/* Hata kutularının üstünde hangi dereceyle kaydedileceği yazmıyordu
-            (sınama, 28.09.2026). Sonuç burada: dokunulan hata BU dereceyle düşer. */}
-        {/* Ekran okuyucu için TEK cümle; rozet ağaçtan gizli — yoksa derece
-            seçicisiyle aynı adlı ("Derece 3") ikinci bir öğe oluyordu. */}
+        {/* Hata kutularının üstünde hangi değerle kaydedileceği yazmıyordu
+            (sınama, 28.09.2026). Sonuç burada: dokunulan hata BU değerle düşer. */}
+        {/* Ekran okuyucu için TEK cümle; rozet ağaçtan gizli — yoksa demerit
+            seçicisiyle aynı adlı ikinci bir öğe oluyordu. */}
         <View
           style={s.kayitDerecesi}
           accessible
-          accessibilityLabel={`Dokunduğunuz hata derece ${kabul ? `(${derece}), kabul edilebilir` : derece} olarak kaydedilir`}
+          accessibilityLabel={`Dokunduğunuz hata demerit ${derece}, ${sinif} olarak kaydedilir`}
         >
           <Text style={s.kayitDerecesiMetin} aria-hidden>Dokunduğunuz hata</Text>
-          <View aria-hidden><DereceRozeti derece={derece} kabul={kabul} /></View>
-          <Text style={s.kayitDerecesiMetin} aria-hidden>olarak kaydedilir</Text>
+          <View aria-hidden><DereceRozeti derece={derece} kabul={false} /></View>
+          <Text style={s.kayitDerecesiMetin} aria-hidden>{`· ${sinif} olarak kaydedilir`}</Text>
         </View>
 
         {kayitHatasi ? <HataKutusu metin={kayitHatasi} /> : null}
@@ -486,7 +499,7 @@ export default function DenetimEkrani() {
                     <Pressable
                       key={t.id}
                       accessibilityRole="button"
-                      accessibilityLabel={`${t.ad}${t.en ? ` (${t.en})` : ''} — derece ${kabul ? `(${derece})` : derece} olarak kaydet`}
+                      accessibilityLabel={`${t.ad}${t.en ? ` (${t.en})` : ''} — demerit ${derece}, ${sinif} olarak kaydet`}
                       onPress={() => hizliKaydet(t)}
                       style={({ pressed }) => [s.hataDugme, pressed && s.hataDugmeBasili]}
                     >
@@ -530,6 +543,8 @@ export default function DenetimEkrani() {
         // satıra sığmıyor ve SONDAN kesiliyordu — ayırt edici seri numarası
         // tam da sondadır. Orada başlık araç adı olur, şasi alttaki çipe iner.
         mono={tablet}
+        // Telefonda başlıkta yalnız araç adı: "BJ · IONIQ 3" dar başlıkta
+        // "BJ · ION…" diye kesiliyordu (ekran görüntüsü, 26.10.2026).
         baslik={tablet ? (aracKimligi(denetim) || 'Denetim') : (arac?.ad ?? 'Denetim')}
         sol={<GeriDugmesi />}
         cipler={(
@@ -537,7 +552,7 @@ export default function DenetimEkrani() {
             {!tablet && aracKimligi(denetim) ? <BaslikCipi metin={aracKimligi(denetim)} mono /> : null}
             {/* Şasi de body no da varsa body no ayrıca görünür (başlıkta şasi var). */}
             {denetim.vin && denetim.bodyNo ? <BaslikCipi metin={`Body ${denetim.bodyNo}`} mono /> : null}
-            {tablet ? <BaslikCipi simge={S.arac} metin={arac?.ad ?? denetim.aracId} /> : null}
+            {tablet ? <BaslikCipi simge={S.arac} metin={aracEtiketi(arac, denetim.aracId)} /> : null}
             {/* Plaka, faz ve ekip formdan kalktı (ürün sahibi, 24.10.2026). */}
             {denetim.spec ? <BaslikCipi metin={`Spec ${denetim.spec}`} /> : null}
           </>
@@ -683,13 +698,13 @@ function DenetimOzeti({
 
   return (
     <ScrollView contentContainerStyle={s.ozetGovde}>
-      {/* "Seçili derece" rozeti kalktı: derece artık parça açılınca seçiliyor
-          (yeni parçada 1). "Kayıt o anda düşer" ilk kez kullanan birine bir şey
-          söylemiyordu (sınama, 28.09.2026). */}
+      {/* "Seçili derece" rozeti kalktı: demerit parça açılınca seçiliyor
+          (her yeni kayıtta 0). "Kayıt o anda düşer" ilk kez kullanan birine bir
+          şey söylemiyordu (sınama, 28.09.2026). */}
       <BosDurum
         simge={S.sec}
         baslik="Soldan sistem → bölge → parça seçin"
-        aciklama="Sonra dereceyi seçip hataya dokunun; hata o anda kaydedilir ve aynı bölgenin parçalarına dönülür."
+        aciklama="Sonra demerit ve class'ı seçip hataya dokunun; hata o anda kaydedilir ve aynı bölgenin parçalarına dönülür."
       />
       <Text style={s.kapsamOzeti} accessibilityLabel={`Kontrol edilen sistemler: ${kapsamMetni(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: ARAC_INDEKS[denetim.aracId]?.tip ?? 'ice' })))}`}>
         Kontrol edilen sistemler: {kapsamMetni(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: ARAC_INDEKS[denetim.aracId]?.tip ?? 'ice' })))}
@@ -727,7 +742,7 @@ function KayitSatiri({ hata: h, sira, onPress }: { hata: Hata; sira?: number; on
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${parcaTamAdi(h.parcaId)} ${t?.ad}, derece ${dereceGosterimi(h)} — düzenle`}
+      accessibilityLabel={`${parcaTamAdi(h.parcaId)} ${t?.ad}, demerit ${dereceGosterimi(h)} — düzenle`}
       onPress={onPress}
       style={({ pressed }) => [s.kayitSatir, pressed && s.basili]}
     >

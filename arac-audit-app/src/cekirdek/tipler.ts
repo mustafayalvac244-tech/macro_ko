@@ -20,7 +20,16 @@
  *
  * Eskiden burada A/B/C ve ceza puanı vardı; ikisi de ekipte yoktu, kaldırıldı.
  */
-export type DereceKodu = '1' | '2' | '3';
+/**
+ * Ekibin Excel'indeki DEMERIT (26.10.2026): 0, 1, 2, 3. "0" sonradan eklendi —
+ * Excel'de problemlerin çoğu 0 puanla yazılıyor. Eski kayıtlarda yalnız 1-3
+ * ve ayrı bir "kabul edilebilir" bayrağı var; o bayrak demerit 0 sayılır
+ * (bkz. nas.ts → demeritDegeri).
+ */
+export type DereceKodu = '0' | '1' | '2' | '3';
+
+/** Excel'deki CLASS. Varsayılan MINOR (Excel formu da öyle açılıyor). */
+export type SinifKodu = 'MINOR' | 'MAJOR' | 'MAIN';
 
 /** Ekibin tablosundaki iki değer; ekran görüntüsünde ikisi de geçiyor. */
 export type SorunTipi = 'Part' | 'Complex';
@@ -107,6 +116,8 @@ export interface HatNoktasi {
 
 export interface Arac {
   id: string;
+  /** Excel'deki MODEL kodu (BJ, BC3, CUV, N, AC3, BC4 CUV) — 26.10.2026. */
+  kod: string;
   ad: string;
   tam: string;
   tip: AracTipi;
@@ -162,6 +173,13 @@ export interface Hata {
   kabulEdilebilir: boolean;
   /** Ekibin tablosunda H sütunu: parçaya bağlı mı, birden çok parçayı mı ilgilendiriyor. */
   sorunTipi: SorunTipi;
+  /** Excel CLASS (26.10.2026). Yoksa MINOR sayılır — eski kayıtlarda yok. */
+  sinif?: SinifKodu;
+  /**
+   * Excel SYSTEM (26.10.2026): EXTERIOR, INTERIOR, BODY, PAINT, CHASSIS,
+   * DRIVE, ELECTRIC, MOVING. Yoksa parça ve tipten türetilir (nas.ts).
+   */
+  sistem?: string;
   /**
    * Ekibin tablosunda L sütunu, ör. "HMTR PD (HWASEUNG)". Parçaya göre öğrenilir:
    * bir parça için bir kez yazılınca o parçanın sonraki hatalarına kendiliğinden
@@ -243,16 +261,14 @@ export interface Ozet {
   toplamHata: number;
   /** Tüm bulgular, kabul edilebilir olanlar DAHİL (adet toplamı). */
   toplamAdet: number;
-  /** Parantezli `(n)` yazılan, iş emri doğurmayan bulgular (adet toplamı). */
-  kabulEdilebilirAdet: number;
+  /** Σ DEMERIT × adet (eski "kabul edilebilir" kayıtlar 0). */
+  demeritToplami: number;
   fotografliHata: number;
   fotografsizHata: number;
-  /**
-   * `adet` yalnız düzeltilecek hatalar; `kabul` aynı derecedeki kabul
-   * edilebilir bulgular. Ayrı tutulur: "3 kötü, (3) kabul edilebilir" —
-   * ikisini tek sayıda toplamak "3 × derece 3" yazıp birini yanlış sayardı.
-   */
-  dereceDagilimi: Record<DereceKodu, { adet: number; kabul: number }>;
+  /** Demerit değerine göre problem adedi (eski "kabul edilebilir" → 0). */
+  dereceDagilimi: Record<DereceKodu, number>;
+  /** CLASS'a göre problem adedi (yoksa MINOR). */
+  sinifDagilimi: Record<SinifKodu, number>;
   bolgeDagilimi: Dagilim[];
   parcaDagilimi: Dagilim[];
   grupDagilimi: Dagilim[];

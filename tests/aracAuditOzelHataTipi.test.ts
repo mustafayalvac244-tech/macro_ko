@@ -123,55 +123,58 @@ describe('özel hata tipleri — Excel sütunları', () => {
   });
 });
 
-describe('derece gösterimi — parantez anlamı tersine çevirir', () => {
-  // Ekibin sistemi (26.09.2026): 3 = hata, (3) = kabul edilebilir. Parantez
-  // raporda kaybolursa kabul edilmiş bir bulgu iş emri doğurur; fazladan
-  // eklenirse gerçek bir hata "kabul edildi" diye kapanır. İki yön de
-  // sessizdir, o yüzden ikisi de sınanır.
+describe('demerit gösterimi — ekibin Excel\'i (26.10.2026)', () => {
+  // 26.09.2026'dan 26.10.2026'ya kadar "(3)" = kabul edilebilir yazılıyordu.
+  // Ekibin Excel'inde (NAS) bunun karşılığı DEMERIT 0: kayda geçer, skora
+  // girmez. Eski bayraklı kayıt her yerde 0 görünmeli; bir yerde 3 görünürse
+  // skoru şişirir. İki yön de sessizdir, o yüzden ikisi de sınanır.
   const derece = sutun('derece');
-  const h = (d: '1' | '2' | '3', kabulEdilebilir: boolean) =>
+  const h = (d: '0' | '1' | '2' | '3', kabulEdilebilir: boolean) =>
     ornekHata({ parcaId: 'kaput', hataTipiId: 'cizik', derece: d, kabulEdilebilir });
 
-  it('düz derece parantezsiz yazılır', () => {
+  it('bayraksız kayıt kendi demerit\'iyle yazılır', () => {
     expect(dereceGosterimi(h('3', false))).toBe('3');
+    expect(dereceGosterimi(h('0', false))).toBe('0');
     expect(derece.deger(h('3', false), 0, baglam('tr'))).toBe('3');
   });
 
-  it('kabul edilebilir derece parantez içinde yazılır', () => {
-    expect(dereceGosterimi(h('3', true))).toBe('(3)');
-    expect(derece.deger(h('1', true), 0, baglam('en'))).toBe('(1)');
+  it('eski "kabul edilebilir" kayıt 0 yazılır', () => {
+    expect(dereceGosterimi(h('3', true))).toBe('0');
+    expect(derece.deger(h('1', true), 0, baglam('en'))).toBe('0');
   });
 
   it('Excel sütunu da aynı kaynağı kullanır (ekranla rapor ayrışmasın)', () => {
-    for (const d of ['1', '2', '3'] as const) {
+    for (const d of ['0', '1', '2', '3'] as const) {
       for (const k of [false, true]) {
         expect(derece.deger(h(d, k), 0, baglam('tr'))).toBe(dereceGosterimi(h(d, k)));
       }
     }
   });
 
-  it('eski A/B/C ve ceza puanı sütunu raporda yok', () => {
+  it('eski A/B/C ve uydurma ceza puanı sütunu raporda yok; demerit 0–3', () => {
     expect(SUTUNLAR.find((x) => x.anahtar === 'puan')).toBeUndefined();
-    expect(DERECELER.map((d) => d.id).sort()).toEqual(['1', '2', '3']);
+    expect(DERECELER.map((d) => d.id).sort()).toEqual(['0', '1', '2', '3']);
   });
 
-  it('özet kabul edilebilir bulguyu derece sayısına KATMAZ', () => {
-    // "3 × derece 3" yazıp (3)'ü de hata saymak, kabul edilmiş bulguyu
-    // düzeltilecek iş gibi gösterirdi.
-    const o = denetimOzeti({ hatalar: [h('3', false), h('3', true), { ...h('3', true), adet: 2 }] });
-    expect(o.dereceDagilimi['3']).toEqual({ adet: 1, kabul: 3 });
+  it('özet demerit\'i ve class\'ı sayar; eski kabul edilebilir 0 sayılır', () => {
+    const o = denetimOzeti({
+      hatalar: [h('3', false), h('3', true), { ...h('2', false), adet: 2, sinif: 'MAJOR' as const }],
+    });
+    expect(o.dereceDagilimi).toEqual({ '3': 1, '2': 2, '1': 0, '0': 1 });
+    expect(o.sinifDagilimi).toEqual({ MINOR: 2, MAJOR: 2, MAIN: 0 });
     expect(o.toplamAdet).toBe(4);
-    expect(o.kabulEdilebilirAdet).toBe(3);
+    expect(o.demeritToplami).toBe(3 + 0 + 2 * 2);
   });
 
-  it('DPU kabul edilebilir bulguları saymaz', () => {
+  it('toplu skor Excel\'in tanımıyla: 100 × demerit ÷ araç', () => {
     const d = (hatalar: Hata[]): Denetim => ({
       id: 'd', aracId: 'i20', vin: '', plaka: '', raporNo: '', denetci: '', hat: '', vardiya: '',
       denetimTipi: '', faz: '', ekip: '', spec: '', km: null, baslangic: '', bitis: null, durum: 'devam', hatalar,
     });
-    const t = topluOzet([d([h('3', false), h('2', true)]), d([h('1', true)])]);
-    // 3 bulgu, 2'si kabul edilebilir → 2 araçta 1 hata → 0.5
-    expect(t.dpu).toBe(0.5);
+    const t = topluOzet([d([h('3', false), h('2', true)]), d([h('1', false)])]);
+    // demerit 3 + 0 + 1 = 4, 2 araç → 200
+    expect(t.demeritToplami).toBe(4);
+    expect(t.skor).toBe(200);
   });
 });
 
@@ -179,10 +182,11 @@ describe('ekibin tablosu — "Part Related Issues" düzeni', () => {
   // Kaynak: ekibin 26.09.2026'da gönderdiği ekran görüntüsü. C ve D
   // sütunlarının anlamı bilinmediği için bu listede YOKLAR; F'ye derece
   // kondu ama F'deki "A"nın anlamı sorulmadı. Bu test düzenin kendisini
-  // belgeliyor: sütun sırası kazara değişirse düşer.
+  // belgeliyor: sütun sırası kazara değişirse düşer. 26.10.2026: derecenin
+  // yerine Excel'in DEMERIT'i, ardından CLASS ve SYSTEM (NAS) geldi.
   it('sütun sırası ekibin tablosunu izler', () => {
     expect(SUTUNLAR.map((s) => s.baslikEn)).toEqual([
-      'No', 'Area', 'Phase', 'Grade', 'Issue', 'Type', 'Photo', 'Source', 'Team', 'Responsible',
+      'No', 'Area', 'Phase', 'Demerit', 'Class', 'System', 'Issue', 'Type', 'Photo', 'Source', 'Team', 'Responsible',
     ]);
     expect(SUTUNLAR.filter((s) => s.fotograf)).toHaveLength(1);
   });

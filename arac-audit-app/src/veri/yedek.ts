@@ -14,8 +14,10 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
+import { nasSayfalari } from '@/cekirdek/nas';
+import { xlsxOlustur } from '@/cekirdek/xlsx';
 import { zipOlustur, ZipGirdisi } from '@/cekirdek/zip';
-import { yedekVerisi } from '@/veri/depo';
+import { tumDenetimler, yedekVerisi } from '@/veri/depo';
 
 export interface YedekSonucu {
   uri: string;
@@ -69,6 +71,39 @@ export async function yedekOlustur(simdi: Date = new Date()): Promise<YedekSonuc
     foto: dosyalar.length - 1,
     eksikFoto,
     bayt: zip.byteLength,
+    paylasildi,
+  };
+}
+
+export interface NasSonucu { uri: string; denetim: number; problem: number; paylasildi: boolean }
+
+/**
+ * EXCEL'E AKTAR (26.10.2026): bütün denetimler ekibin Excel'indeki iki liste
+ * sayfasının sütunlarıyla (nas.ts → nasSayfalari). Fotoğraf dosyaya GÖMÜLMEZ
+ * — yüzlerce fotoğraf dosyayı paylaşılamayacak kadar büyütür; PHOTO LINK
+ * sütunu tam yedekteki dosya adlarını yazar.
+ */
+export async function nasExcelOlustur(simdi: Date = new Date()): Promise<NasSonucu> {
+  const denetimler = await tumDenetimler();
+  const kitap = xlsxOlustur(nasSayfalari(denetimler), { baslik: 'NAS — Araç Audit', tarih: simdi });
+  const iki = (n: number) => String(n).padStart(2, '0');
+  const dosya = new File(Paths.cache, `NAS_arac-audit_${simdi.getFullYear()}${iki(simdi.getMonth() + 1)}${iki(simdi.getDate())}_${iki(simdi.getHours())}${iki(simdi.getMinutes())}.xlsx`);
+  if (dosya.exists) dosya.delete();
+  dosya.create();
+  dosya.write(kitap);
+
+  let paylasildi = false;
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(dosya.uri, {
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      dialogTitle: 'Excel dosyasını paylaş',
+    });
+    paylasildi = true;
+  }
+  return {
+    uri: dosya.uri,
+    denetim: denetimler.length,
+    problem: denetimler.reduce((t, d) => t + (d.hatalar?.length ?? 0), 0),
     paylasildi,
   };
 }

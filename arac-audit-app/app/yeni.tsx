@@ -11,9 +11,10 @@ import { SPECLER } from '@/cekirdek/aracBilgisi';
 import {
   HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI, listedeyse, VARSAYILAN_KAYNAK,
 } from '@/cekirdek/listeler';
-import { ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
+import { aracEtiketi, ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { bicimTarih } from '@/cekirdek/rapor';
-import { BODY_NO_AZAMI, bodyNoSadelestir, VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
+import { BODY_NO_GIRDI_AZAMI, bodyNoGecerli, bodyNoSadelestir, VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
+import { kaynakKodu } from '@/cekirdek/nas';
 import { bosluk, Renkler, tipografi, useTema } from '@/tema';
 import { ayarOku, ayarYaz, ayniAracinDenetimleri, denetimGuncelle, denetimOlustur } from '@/veri/depo';
 import { useTarama } from '@/veri/tarama';
@@ -22,7 +23,10 @@ import { useTarama } from '@/veri/tarama';
  * Raporun "Source" sütunu. 28.09.2026'da formdaki kaynak seçimi kaldırılmış,
  * her denetime "HMC Audit" yazılıyordu. 24.10.2026'da ürün sahibi şirketteki
  * Excel formuna bakıp "Problem Source" seçimini geri istedi: artık listeden
- * seçilir (HMC Audit / Durability, "+ Ekle" ile genişler) ve hatırlanır.
+ * seçilir ve hatırlanır. 26.10.2026'dan beri liste Excel'in beş değeri
+ * (AUDIT varsayılan; Audit Skoru'na yalnız o girer).
+ *
+ * BODY NO 26.10.2026'dan beri Excel'in kuralıyla: yalnız rakam, tam 6 hane.
  *
  * BODY NO VE "PROBLEM YOK" (aynı gün, aynı Excel formundan): şasi ya da body
  * no'dan biri yeter. "Problem yok" hatasız aracı tek dokunuşla kaydedip
@@ -82,7 +86,8 @@ export default function YeniDenetim() {
   useEffect(() => {
     ayarOku<Partial<Varsayilanlar> | null>('varsayilanlar', null)
       .then((k) => {
-        if (k) setV({ denetci: k.denetci ?? '', kaynak: k.kaynak ?? VARSAYILAN_KAYNAK });
+        // Eski sürümün hatırladığı "HMC Audit"/"Durability" Excel'in yazımına çevrilir.
+        if (k) setV({ denetci: k.denetci ?? '', kaynak: k.kaynak ? kaynakKodu(k.kaynak) : VARSAYILAN_KAYNAK });
         if (k?.aracId && ARAC_INDEKS[k.aracId]) setAracId(k.aracId);
       })
       .catch(() => { /* ilk açılış */ });
@@ -92,8 +97,10 @@ export default function YeniDenetim() {
   const bodyNo = bodyNoSadelestir(bodyNoHam);
   const vinBos = !vinHam.trim();
   // Şasi YA DA body no yeter; şasi yazıldıysa geçerli olmalı (yarım yazılmış
-  // bir şasi, body no var diye sessizce rapora gitmesin).
-  const kimlikTamam = vinBos ? !!bodyNo : vin.gecerli;
+  // bir şasi, body no var diye sessizce rapora gitmesin). Body no yazıldıysa
+  // Excel'in kuralına uymalı: tam 6 rakam.
+  const bodyHatali = !!bodyNo && !bodyNoGecerli(bodyNo);
+  const kimlikTamam = !bodyHatali && (vinBos ? !!bodyNo : vin.gecerli);
   const kimlikAnahtari = `${vinBos ? '' : vin.vin}|${bodyNo}`;
 
   const eksikler = [
@@ -185,11 +192,11 @@ export default function YeniDenetim() {
               {ARACLAR.map((a) => (
                 <Secenek
                   key={a.id}
-                  metin={a.ad}
-                  erisimEtiketi={`${a.tam} seç`}
+                  metin={aracEtiketi(a)}
+                  erisimEtiketi={`${a.kod}, ${a.tam} seç`}
                   secili={a.id === aracId}
                   onPress={() => setAracId(a.id)}
-                  style={{ flexGrow: 1, flexBasis: 100 }}
+                  style={{ flexGrow: 1, flexBasis: 140 }}
                 />
               ))}
             </View>
@@ -222,12 +229,13 @@ export default function YeniDenetim() {
               mono
               value={bodyNoHam}
               onChangeText={(t) => setBodyNoHam(bodyNoSadelestir(t))}
-              placeholder="Örn. 015253"
-              autoCapitalize="characters"
+              placeholder="6 hane, örn. 015253"
+              keyboardType="number-pad"
               autoCorrect={false}
               spellCheck={false}
-              maxLength={BODY_NO_AZAMI}
+              maxLength={BODY_NO_GIRDI_AZAMI}
               accessibilityLabel="Body numarası"
+              hata={denendi && bodyHatali ? 'Body no 6 hane olmalı.' : undefined}
             />
             <View style={{ gap: bosluk.xxs }}>
               <Text style={s.alanEtiketi}>Spec</Text>
@@ -282,7 +290,7 @@ export default function YeniDenetim() {
         <View style={s.uyariBandi}>
           <BilgiKutusu
             tur="uyari"
-            metin={`Bu araç için ${onceki.liste.length} denetim var. Son: ${bicimTarih(onceki.liste[0]!.baslangic)} · ${ARAC_INDEKS[onceki.liste[0]!.aracId]?.ad ?? onceki.liste[0]!.aracId} · ${onceki.liste[0]!.durum === 'tamam' ? 'tamamlandı' : 'devam ediyor'}.`}
+            metin={`Bu araç için ${onceki.liste.length} denetim var. Son: ${bicimTarih(onceki.liste[0]!.baslangic)} · ${aracEtiketi(ARAC_INDEKS[onceki.liste[0]!.aracId], onceki.liste[0]!.aracId)} · ${onceki.liste[0]!.durum === 'tamam' ? 'tamamlandı' : 'devam ediyor'}.`}
           />
           <Dugme metin="Onu aç" kucuk simge={S.liste} onPress={() => oncekiniAc(onceki.liste[0]!)} erisimEtiketi="Bu aracın son denetimini aç" />
         </View>

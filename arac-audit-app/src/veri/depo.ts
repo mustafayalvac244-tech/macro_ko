@@ -13,8 +13,9 @@
 import * as SQLite from 'expo-sqlite';
 
 import type { HataKaydi } from '@/cekirdek/istatistik';
+import { demeritDegeri, sistemDegeri } from '@/cekirdek/nas';
 import type { SayacGirdisi } from '@/cekirdek/sayac';
-import { Denetim, DenetimDurumu, Hata, HataTipi } from '@/cekirdek/tipler';
+import { Denetim, DenetimDurumu, DereceKodu, Hata, HataTipi } from '@/cekirdek/tipler';
 
 const VERITABANI = 'arac-audit.db';
 
@@ -193,6 +194,16 @@ const GOCLER: string[] = [
     PRIMARY KEY (denetim_id, sistem)
   );
   `,
+
+  // 8 — EKİBİN EXCEL'İ (26.10.2026, ürün sahibi: "içeriği buna göre yap").
+  // Excel'in CLASS ve SYSTEM alanları. Eski kayıtlar: sınıf MINOR (Excel
+  // formunun varsayılanı), sistem boş — boşsa parça ve tipten türetilir
+  // (nas.ts → varsayilanSistem). DEMERIT için yeni sütun YOK: `derece`
+  // artık '0'..'3' alır; eski "kabul edilebilir" bayrağı 0 sayılır.
+  `
+  ALTER TABLE hatalar ADD COLUMN sinif  TEXT NOT NULL DEFAULT 'MINOR';
+  ALTER TABLE hatalar ADD COLUMN sistem TEXT NOT NULL DEFAULT '';
+  `,
 ];
 
 async function gocleriUygula(d: SQLite.SQLiteDatabase): Promise<void> {
@@ -222,6 +233,7 @@ interface DenetimSatiri {
 interface HataSatiri {
   id: string; denetim_id: string; parca_id: string; hata_tipi_id: string;
   derece: string; kabul_edilebilir: number; sorun_tipi: string; sorumlu: string;
+  sinif: string | null; sistem: string | null;
   adet: number; konum: string; aciklama: string; zaman: string;
   durum: string; atanan_kisi: string | null; gideren: string | null;
   giderilme_zamani: string | null; dogrulayan: string | null; dogrulama_zamani: string | null;
@@ -243,6 +255,7 @@ function hataya(h: HataSatiri, fotograflar: string[]): Hata {
     id: h.id, parcaId: h.parca_id, hataTipiId: h.hata_tipi_id,
     derece: h.derece as Hata['derece'], kabulEdilebilir: h.kabul_edilebilir === 1,
     sorunTipi: h.sorun_tipi === 'Complex' ? 'Complex' : 'Part', sorumlu: h.sorumlu ?? '',
+    sinif: (h.sinif as Hata['sinif']) || 'MINOR', sistem: h.sistem ?? '',
     adet: h.adet, konum: h.konum,
     aciklama: h.aciklama, zaman: h.zaman, durum: h.durum as Hata['durum'],
     atananKisi: h.atanan_kisi, gideren: h.gideren, giderilmeZamani: h.giderilme_zamani,
@@ -275,6 +288,22 @@ export async function denetimGetir(id: string): Promise<Denetim | null> {
 }
 
 // --- KAPSAM ---------------------------------------------------------------
+
+/**
+ * Bütün denetimler, hatalarıyla — Excel'e (NAS sayfaları) aktarmak için.
+ * Eskiden yeniye. Denetim başına bir okuma: cihazda yüzlerce denetim olur,
+ * binlerce değil; tek dev sorgu yerine var olan okuma yolu kullanılıyor.
+ */
+export async function tumDenetimler(): Promise<Denetim[]> {
+  const d = await db();
+  const kimlikler = await d.getAllAsync<{ id: string }>('SELECT id FROM denetimler ORDER BY baslangic ASC');
+  const sonuc: Denetim[] = [];
+  for (const { id } of kimlikler) {
+    const x = await denetimGetir(id);
+    if (x) sonuc.push(x);
+  }
+  return sonuc;
+}
 
 export async function kapsamOku(denetimId: string): Promise<string[]> {
   const d = await db();
@@ -326,18 +355,26 @@ export async function istatistikVerisi(baslangicSonrasi: Date): Promise<HataKayd
   const d = await db();
   const satirlar = await d.getAllAsync<{
     denetim_id: string; arac_id: string; parca_id: string; hata_tipi_id: string;
-    derece: string; kabul_edilebilir: number; baslangic: string;
+    derece: string; kabul_edilebilir: number; adet: number | null; sistem: string | null;
+    baslangic: string; kaynak: string | null;
   }>(
-    `SELECT h.denetim_id, dn.arac_id, h.parca_id, h.hata_tipi_id, h.derece, h.kabul_edilebilir, dn.baslangic
+    `SELECT h.denetim_id, dn.arac_id, h.parca_id, h.hata_tipi_id, h.derece, h.kabul_edilebilir, h.adet, h.sistem,
+            dn.baslangic, dn.denetim_tipi AS kaynak
        FROM hatalar h
        JOIN denetimler dn ON dn.id = h.denetim_id
       WHERE dn.baslangic >= ?`,
     baslangicSonrasi.toISOString(),
   );
-  return satirlar.map((x) => ({
-    denetimId: x.denetim_id, aracId: x.arac_id, parcaId: x.parca_id, hataTipiId: x.hata_tipi_id,
-    derece: x.derece, kabulEdilebilir: x.kabul_edilebilir === 1, denetimBaslangici: x.baslangic,
-  }));
+  return satirlar.map((x) => {
+    const temel = { parcaId: x.parca_id, hataTipiId: x.hata_tipi_id, sistem: x.sistem ?? '' };
+    return {
+      denetimId: x.denetim_id, aracId: x.arac_id, ...temel,
+      adet: x.adet ?? 1,
+      demerit: demeritDegeri({ derece: x.derece as DereceKodu, kabulEdilebilir: x.kabul_edilebilir === 1 }),
+      sistem: sistemDegeri(temel),
+      kaynak: x.kaynak ?? '', denetimBaslangici: x.baslangic,
+    };
+  });
 }
 
 /**
@@ -355,15 +392,17 @@ export async function yedekVerisi(): Promise<Record<string, unknown[]>> {
 /**
  * Ana sayfadaki sayaç için (sayac.ts): verilen andan sonra başlayan bütün
  * denetimler — liste ekranının 100 sınırı burada YOK, "bu yıl" eksik sayılmasın.
- * Hata adedi listedekiyle aynı tanım: SUM(adet), kabul edilebilir dahil.
+ * Hata adedi listedekiyle aynı tanım: SUM(adet). Demerit: Excel'in "Problem"
+ * satırı, Σ DEMERIT × adet (26.10.2026); eski "kabul edilebilir" kayıtlar 0
+ * sayılır (nas.ts → demeritDegeri ile aynı). Kaynak süzgeci sayacHesapla'da.
  */
 export async function sayacVerisi(baslangicSonrasi: Date): Promise<SayacGirdisi[]> {
   const d = await db();
   const satirlar = await d.getAllAsync<{
-    arac_id: string; baslangic: string; hata_adedi: number | null; duzeltilecek: number | null;
+    arac_id: string; baslangic: string; kaynak: string | null; hata_adedi: number | null; demerit: number | null;
   }>(
-    `SELECT dn.arac_id, dn.baslangic, COALESCE(SUM(h.adet), 0) AS hata_adedi,
-            COALESCE(SUM(CASE WHEN h.kabul_edilebilir = 0 THEN h.adet ELSE 0 END), 0) AS duzeltilecek
+    `SELECT dn.arac_id, dn.baslangic, dn.denetim_tipi AS kaynak, COALESCE(SUM(h.adet), 0) AS hata_adedi,
+            COALESCE(SUM(CASE WHEN h.kabul_edilebilir = 1 THEN 0 ELSE CAST(h.derece AS INTEGER) END * h.adet), 0) AS demerit
        FROM denetimler dn
        LEFT JOIN hatalar h ON h.denetim_id = dn.id
       WHERE dn.baslangic >= ?
@@ -371,7 +410,7 @@ export async function sayacVerisi(baslangicSonrasi: Date): Promise<SayacGirdisi[
     baslangicSonrasi.toISOString(),
   );
   return satirlar.map((x) => ({
-    aracId: x.arac_id, baslangic: x.baslangic, hataAdedi: x.hata_adedi ?? 0, duzeltilecekAdedi: x.duzeltilecek ?? 0,
+    aracId: x.arac_id, baslangic: x.baslangic, kaynak: x.kaynak ?? '', hataAdedi: x.hata_adedi ?? 0, demerit: x.demerit ?? 0,
   }));
 }
 
@@ -461,14 +500,15 @@ export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
   const d = await db();
   await d.runAsync(
     `INSERT INTO hatalar (id, denetim_id, parca_id, hata_tipi_id, derece, kabul_edilebilir,
-        sorun_tipi, sorumlu, adet, konum,
+        sorun_tipi, sorumlu, sinif, sistem, adet, konum,
         aciklama, zaman, durum, atanan_kisi, gideren, giderilme_zamani, dogrulayan,
         dogrulama_zamani, guncelleme, senkron_zamani)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
      ON CONFLICT(id) DO UPDATE SET
         parca_id = excluded.parca_id, hata_tipi_id = excluded.hata_tipi_id,
         derece = excluded.derece, kabul_edilebilir = excluded.kabul_edilebilir,
         sorun_tipi = excluded.sorun_tipi, sorumlu = excluded.sorumlu,
+        sinif = excluded.sinif, sistem = excluded.sistem,
         adet = excluded.adet, konum = excluded.konum,
         aciklama = excluded.aciklama, durum = excluded.durum,
         atanan_kisi = excluded.atanan_kisi, gideren = excluded.gideren,
@@ -476,7 +516,8 @@ export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
         dogrulama_zamani = excluded.dogrulama_zamani,
         guncelleme = excluded.guncelleme, senkron_zamani = NULL`,
     hata.id, denetimId, hata.parcaId, hata.hataTipiId, hata.derece,
-    hata.kabulEdilebilir ? 1 : 0, hata.sorunTipi ?? 'Part', hata.sorumlu ?? '', hata.adet,
+    hata.kabulEdilebilir ? 1 : 0, hata.sorunTipi ?? 'Part', hata.sorumlu ?? '',
+    hata.sinif ?? 'MINOR', hata.sistem ?? '', hata.adet,
     hata.konum, hata.aciklama, hata.zaman, hata.durum, hata.atananKisi ?? null,
     hata.gideren ?? null, hata.giderilmeZamani ?? null, hata.dogrulayan ?? null,
     hata.dogrulamaZamani ?? null, simdi(),

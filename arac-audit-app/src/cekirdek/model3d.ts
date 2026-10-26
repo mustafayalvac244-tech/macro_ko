@@ -31,7 +31,7 @@ import { Arac, HatNoktasi, ModelKipi, Nokta3, Taraf, Yuzey } from './tipler';
  */
 export const ARACLAR: Arac[] = [
   {
-    id: 'ioniq3', ad: 'IONIQ 3', tam: 'Hyundai IONIQ 3', tip: 'ev',
+    id: 'ioniq3', kod: 'BJ', ad: 'IONIQ 3', tam: 'Hyundai IONIQ 3', tip: 'ev',
     // Gövde nötr: A şiddeti vurgusu kırmızı çizilir, kırmızı gövdede kaybolur.
     // Lansman rengi (Fierce Red) yalnız ikonda kullanılır — orada vurgu yok.
     renk: '#9AA7B4', ikonRenk: '#C8202E', olcuDogrulandi: false,
@@ -59,7 +59,7 @@ export const ARACLAR: Arac[] = [
     kapiX: { onBas: 1045, orta: -160, arkaSon: -1220 },
   },
   {
-    id: 'i20', ad: 'i20', tam: 'Hyundai i20', tip: 'ice',
+    id: 'i20', kod: 'BC3', ad: 'i20', tam: 'Hyundai i20', tip: 'ice',
     renk: '#C9CED6', olcuDogrulandi: false,
     not: 'Ölçüler kamuya açık teknik veriden yaklaşık alındı; üretici belgesinden doğrulanmadı.',
     uzunluk: 4040, genislik: 1775, yukseklik: 1450, dingil: 2580, tekerR: 315,
@@ -82,7 +82,7 @@ export const ARACLAR: Arac[] = [
     kapiX: { onBas: 1000, orta: -180, arkaSon: -1150 },
   },
   {
-    id: 'bayon', ad: 'BAYON', tam: 'Hyundai BAYON', tip: 'ice',
+    id: 'bayon', kod: 'CUV', ad: 'BAYON', tam: 'Hyundai BAYON', tip: 'ice',
     renk: '#B7C3CE', olcuDogrulandi: false,
     not: 'Ölçüler kamuya açık teknik veriden yaklaşık alındı; üretici belgesinden doğrulanmadı.',
     uzunluk: 4180, genislik: 1775, yukseklik: 1500, dingil: 2580, tekerR: 325,
@@ -106,7 +106,33 @@ export const ARACLAR: Arac[] = [
   },
 ];
 
+// EXCEL'İN MODEL LİSTESİ (26.10.2026, ürün sahibi: "içeriği buna göre yap,
+// Excel'de her şey var"). Excel'de araç adı değil proje kodu var: AC3, BC3,
+// CUV, N, BJ, BC4 CUV. Bilinenler: BC3 = i20, CUV = BAYON (BC3 CUV), AC3 =
+// i10, N = i20 N. BJ = IONIQ 3 BENİM ÇIKARIMIM: Excel'de BJ en yeni model
+// kodu ve 2026'da aktif üç model BJ/BC3/CUV, ürün sahibinin verdiği IONIQ
+// 3/i20/BAYON ile örtüşüyor. Doğrulanmadı.
+//
+// Yeni üç modelin 3B geometrisi en yakın gövdeden KOPYA — 3B model akışta
+// kullanılmıyor (bkz. README), yalnız tip (EV/içten yanmalı) parça
+// listesini belirliyor.
+const kopya = (kaynak: Arac, ek: Pick<Arac, 'id' | 'kod' | 'ad' | 'tam'>): Arac => ({
+  ...kaynak, ...ek, ikonRenk: undefined,
+  not: `Geometri ${kaynak.ad}'den kopya; 3B model akışta kullanılmıyor.`,
+});
+ARACLAR.push(
+  kopya(ARACLAR[1]!, { id: 'i20n', kod: 'N', ad: 'i20 N', tam: 'Hyundai i20 N' }),
+  kopya(ARACLAR[1]!, { id: 'i10', kod: 'AC3', ad: 'i10', tam: 'Hyundai i10' }),
+  kopya(ARACLAR[2]!, { id: 'bc4cuv', kod: 'BC4 CUV', ad: 'BC4 CUV', tam: 'Hyundai BC4 CUV' }),
+);
+
 export const ARAC_INDEKS: Record<string, Arac> = Object.fromEntries(ARACLAR.map((a) => [a.id, a]));
+
+/** Ekranda araç: "BJ · IONIQ 3"; kod ile ad aynıysa yalnız kod. */
+export function aracEtiketi(a: Pick<Arac, 'kod' | 'ad'> | undefined, yedek = ''): string {
+  if (!a) return yedek;
+  return a.kod === a.ad ? a.kod : `${a.kod} · ${a.ad}`;
+}
 
 // --- GEOMETRİ YARDIMCILARI -------------------------------------------------
 

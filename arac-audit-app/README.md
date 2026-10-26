@@ -386,7 +386,61 @@ kaydırıp bildirimin altından çıkarıyordu, düzeltmesiz pakette de geçiyor
 Kaydırmayan ham tıklamaya çevrilince hatayı düzeltmesiz pakette yakaladı,
 düzeltmeli pakette geçti.
 
+## Ekibin Excel'i (NAS) — içerik buna göre (26.10.2026)
+
+Ürün sahibi ekibin kullandığı Excel'i ("NAS — New Audit System") gönderdi ve
+*"İçeriği buna göre yap, Excel'de her şey var; biz kullanış ve arayüz
+sunacağız"* dedi. Excel'in formları ve makrosu okundu (makrolar
+**çalıştırılmadı**, yalnız metni okundu). Uygulamaya taşınanlar — kural
+`src/cekirdek/nas.ts`'te tek yerde:
+
+| Excel | Uygulamada |
+|---|---|
+| DEMERIT 0–3, form 0 ile açılır | Demerit 0–3, **her kayıt 0 ile başlar** (hızlı panel ve ayrıntı). Eski "kabul edilebilir" bayrağı **0 sayılır** |
+| CLASS MINOR / MAJOR / MAIN, varsayılan MINOR | Aynı; her kayıttan sonra MINOR'a döner |
+| SYSTEM (EXTERIOR, INTERIOR, BODY, PAINT, CHASSIS, DRIVE, ELECTRIC, MOVING) | Parça ve hata tipinden **önerilir** (ör. boya tipleri → PAINT, motor bölmesi → CHASSIS), ayrıntıda değiştirilir. Öneri kuralı benim yargım |
+| RESPONSIBLE listesi | Hazır seçenekler + serbest yazım; parçaya öğrenme sürüyor |
+| PROBLEM SOURCE (AUDIT, 3M - DEALER CLAIM, LONG TERM, NCBS, DURABILITY) | Aynı liste, varsayılan AUDIT. Eski "HMC Audit" → AUDIT, "Durability" → DURABILITY sayılır |
+| MODEL kodu (AC3, BC3, CUV, N, BJ, BC4 CUV) | Araçlar "BJ · IONIQ 3" gibi kodla gösterilir; N, AC3, BC4 CUV eklendi |
+| BODY: yalnız rakam, tam 6 hane | Aynı kural; eski kayıtlardaki farklı body no olduğu gibi kalır |
+| Scores paneli: Bugün / Bu Hafta / G. Hafta / Bu Ay / Bu Yıl; Audit Skoru | Ana sayfa sayacı ve Analiz bunu gösterir. **Skor = 100 × Σ demerit ÷ denetlenen araç**, VBA gibi tam yarıda çifte yuvarlanır. **Yalnız AUDIT kaynağı sayılır** (makro da öyle) |
+| AUDIT_CARS_LIST, PROBLEMS_LIST sayfaları | Ayarlar → Veri → **Excel'e aktar (NAS)**: bütün denetimler aynı sütunlarla, satırlar o dosyaya yapıştırılabilir |
+
+**Excel'den bilerek farklı olanlar** (makro hataları kopyalanmadı; bu yüzden
+sayılar Excel'dekiyle aynı çıkmayabilir — fark Excel'in hatasıdır):
+"Bu Ay" yıla bakmıyor (bütün yılların aynı ayı toplanıyor); BJ satırına toplam
+yazılıyor; tarih metin olarak yazılıyor (burada gerçek tarih hücresi);
+VERIFICATION BODY NO hücrelerinin çoğunda bir form etiketinin adı ("Label17")
+var (burada boş); PHOTO LINK hep aynı klasör (burada tam yedekteki dosya adı).
+Excel'in hangi satırlarında bunların görüldüğü şirket verisi olduğu için
+**depoya yazılmadı.**
+
+**Çıkarım, doğrulanmadı:** BJ = IONIQ 3. Excel'de BJ en yeni model kodu ve
+2026'da aktif üç model (BJ, BC3, CUV) ürün sahibinin verdiği üç araçla
+(IONIQ 3, i20, BAYON) örtüşüyor. Yanlışsa `model3d.ts`'te tek satır.
+
+**Önceki kararlarla ilişkisi.** 26.09.2026'da kaldırılan *bizim uydurduğumuz*
+ceza puanı ağırlıkları ve KABUL/ŞARTLI/RED damgasıydı — onlar geri gelmedi.
+Demerit ise ekibin kendi Excel'indeki, denetçinin seçtiği sayı. 24.10.2026'da
+skor bilinmediği için seçilen DPU'nun yerini Excel'in Audit Skoru aldı.
+
+**Excel'de olup henüz yapılmayanlar:** dayanıklılık filosu takibi (KM, bakım,
+plaka, çıkış formu), problem takibi (PROGRESS, COUNTERMEASURE, CM tarihi,
+doğrulama body no), Excel'deki parça listesinin içe alınması.
+
+**Nasıl doğrulandı:** birim testleri (`tests/aracAuditNas.test.ts`,
+`aracAuditSayac`, `aracAuditIstatistik`) — beklentileri Excel'den okuyarak
+**ben yazdım**; Excel'in kendisiyle aynı sayıyı verdiğinin kanıtı değil. İki
+koruma bilerek bozuldu, testler düştü (AUDIT süzgeci, VBA yuvarlaması).
+Veritabanı göçü 8 (`sinif`, `sistem` sütunları) Node SQLite'ta sıfırdan ve göç
+7'deki eski bir kayıtla koşuldu. Web'de 4 düzende 14 adımlık sınav geçti.
+**Telefonda görülmedi.**
+
 ## Derece — ekibin kendi sistemi, puan yok
+
+> **26.10.2026'dan beri aşağıdakinin yerini yukarıdaki "Ekibin Excel'i"
+> bölümü aldı:** derece artık Excel'deki DEMERIT (0–3), "kabul edilebilir"
+> parantezi kalktı (karşılığı demerit 0). Aşağısı tarihçe olarak duruyor.
 
 Üç derece var: **1, 2, 3.** Her biri iki durumda yazılır:
 
@@ -564,7 +618,8 @@ durdurma, onarıma yönlendirme).
 | Parça kataloğu (169 parça; elektrikli araçta 163, benzinlide 161 listelenir), VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
 | Hızlı giriş (2 dokunuş), geri al | **Bitti** |
 | Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
-| Derece 1/2/3 + kabul edilebilir (parantez) | **Bitti** — sıralama ürün sahibine soruldu ("evet"); kademe tanımları alınmadı |
+| Derece 1/2/3 + kabul edilebilir (parantez) | **26.10.2026'da yerini Excel'in DEMERIT 0–3 + CLASS'ı aldı** (aşağıdaki satır) |
+| Excel içeriği (NAS, 26.10.2026): demerit, class, system, responsible, kaynak listesi, model kodu, body 6 hane, Audit Skoru, Excel'e aktar | **Kod bitti** — kurallar Excel'den okundu; testleri ben yazdım; 4 düzende 14 adım geçti; **telefonda görülmedi**. BJ = IONIQ 3 çıkarım |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |
 | SQLite yerel depo (senkrona hazır şema) | **Bitti** |
@@ -575,10 +630,10 @@ durdurma, onarıma yönlendirme).
 | Gerçek cihazda çalıştırma | APK ürün sahibinin telefonunda açıldı (ekran görüntüsü, 28.09.2026); kamera, barkod, paylaşım **denenmedi** |
 | OTA güncelleme (EAS Update) | Kuruldu — telefona indiği **görülmedi** |
 | Sadeleştirme: Excel formunda olmayan alanlar kalktı (24.10.2026) | **Bitti** — ürün sahibinin seçtiği yedi alan |
-| Ana sayfa sayacı: araç başına bugün / bu hafta / bu ay / bu yıl (24.10.2026) | **Bitti** — denetlenen araç, hata ve **DPU** (araç başına kabul edilebilir olmayan hata; ürün sahibinin seçimi, Excel raporundaki DPU ile aynı tanım). Excel'deki "Audit Skoru"nun formülü bilinmiyor, o değil. **Yalnız bu cihaz** |
+| Ana sayfa sayacı: araç başına bugün / bu hafta / bu ay / bu yıl (24.10.2026) | **26.10.2026'da Excel'in Scores paneline çevrildi**: G. hafta eklendi, ölçü Audit Skoru (DPU kalktı), yalnız AUDIT kaynağı. **Yalnız bu cihaz** |
 | Adım adım hata girişi: Sistem → Bölge → Parça → Hata (24.10.2026) | **Bitti** — kayıttan sonra aynı bölgenin parçalarına dönülür; arama kısayol olarak duruyor. Web'de sınandı, **gerçek denetçiyle denenmedi** |
-| Kapsam (sistem kontrol listesi), araç haritası, Analiz (Pareto / tekrarlayan hata / haftalık DPU), süre, tam yedek (24.10.2026) | **Bitti** — "Dünyadaki benzerler" bölümü; web'de sınandı, **gerçek cihazda görülmedi**; geri yükleme yok |
-| Excel formundan: "Problem yok" (hatasız aracı tek dokunuşla kaydet ve bitir), body no ile giriş (şasi isteğe bağlı), Problem Source seçimi (24.10.2026) | **Bitti** — body no biçimi bilinmiyor (tek örnek 6 rakam), kural konmadı; kaynak listesi "HMC Audit / Durability", diğer değerler bilinmiyor, "+ Ekle" ile genişler. Veritabanı göçü 6 Node SQLite'ta sıfırdan ve göç 5'ten koşularak doğrulandı; **telefonda görülmedi** |
+| Kapsam (sistem kontrol listesi), araç haritası, Analiz (Pareto / tekrarlayan hata / haftalık DPU), süre, tam yedek (24.10.2026) | **Bitti** — "Dünyadaki benzerler" bölümü; 26.10.2026'da Analiz'in ölçüsü Audit Skoru ve Excel'in SYSTEM'i oldu; web'de sınandı, **gerçek cihazda görülmedi**; geri yükleme yok |
+| Excel formundan: "Problem yok" (hatasız aracı tek dokunuşla kaydet ve bitir), body no ile giriş (şasi isteğe bağlı), Problem Source seçimi (24.10.2026) | **Bitti** — 26.10.2026'dan beri body no Excel'in kuralıyla (tam 6 rakam), kaynak listesi Excel'in beş değeri. Veritabanı göçü 6 Node SQLite'ta sıfırdan ve göç 5'ten koşularak doğrulandı; **telefonda görülmedi** |
 
 ### Kullanılabilirlik sınaması (28.09.2026)
 

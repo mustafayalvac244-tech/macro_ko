@@ -198,17 +198,33 @@ export function plakaDogrula(ham: unknown): PlakaSonucu {
 //
 // Ürün sahibi, 24.10.2026: şirketteki Excel formu aracı model + BODY numarası
 // ile tanıyor (örn. "015253"); şasi (VIN) yok. "Body no ile giriş" istendi.
-// Biçimi bilinmiyor: tek örnek 6 rakam. Uydurma bir kural koymak yerine
-// yalnız sadeleştirilir — boşluk atılır, harf büyütülür. METİN olarak
-// saklanır: "015253"teki baştaki sıfır sayıya çevrilince kaybolurdu.
+// O gün biçim bilinmiyordu (tek örnek 6 rakam), yalnız sadeleştiriliyordu.
+//
+// 26.10.2026: Excel'in makrosu okundu, kural orada: yalnız rakam ("Numerik
+// olmayan bir deger girdiniz") ve tam 6 hane ("Body No altı (6) hane
+// olmalı!"). Aynı kural burada. METİN olarak saklanır: "015253"teki baştaki
+// sıfır sayıya çevrilince kaybolurdu. Eski kayıtlardaki harfli body no
+// olduğu gibi kalır; yalnız yeni giriş bu kurala uyar.
 
-export const BODY_NO_AZAMI = 12;
+export const BODY_NO_AZAMI = 6;
 
+/**
+ * Girdi kutusunun sınırı sadeleştirmeden ÖNCEKİ ham metne uygulanır. 6
+ * olsaydı yapıştırılan "015 253" sadeleşmeden "015 25"e kesilirdi (uçtan uca
+ * sınav, 26.10.2026). Kutuda görünen değer yine en çok 6 rakamdır.
+ */
+export const BODY_NO_GIRDI_AZAMI = 16;
+
+/** Yalnız rakamlar, en çok 6. */
 export function bodyNoSadelestir(ham: unknown): string {
   return String(ham ?? '')
-    .toLocaleUpperCase('tr')
-    .replace(/[^0-9A-Z-]/g, '')
+    .replace(/[^0-9]/g, '')
     .slice(0, BODY_NO_AZAMI);
+}
+
+/** Excel'in kuralı: tam 6 rakam. */
+export function bodyNoGecerli(b: string): boolean {
+  return /^[0-9]{6}$/.test(b);
 }
 
 /**

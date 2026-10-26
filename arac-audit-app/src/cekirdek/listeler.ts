@@ -7,6 +7,8 @@
 // Liste CİHAZDA saklanır (ayarlar tablosu). Bir tablette eklenen ad öbür
 // tablete GEÇMEZ: merkezi sunucu yok.
 
+import { PROBLEM_KAYNAKLARI, SKOR_KAYNAGI } from './nas';
+
 /**
  * Hazır denetçi listesi BOŞ — bilerek. Ürün sahibi beş ad verdi (28.09.2026),
  * ama depo HERKESE AÇIK: kişilerin tam adı koda yazılırsa GitHub'da herkes
@@ -15,21 +17,23 @@
  */
 export const HAZIR_DENETCILER: readonly string[] = [];
 
-/** `ayarlar` tablosundaki anahtarlar. */
 /**
- * Problem Source (raporun "Source" sütunu). Ürün sahibi, 24.10.2026:
- * şirketteki Excel formunda "Problem Source: AUDIT" seçiliyor ve ayrı
- * DURABILITY sayfaları var; "Problem Source" eklensin dedi.
+ * Problem Source (raporun "Source" sütunu). 24.10.2026'da ürün sahibi Excel
+ * formunun fotoğrafına bakıp "Problem Source" seçimini istedi; o gün liste
+ * bilinmiyordu, "HMC Audit" ve "Durability" ile başlamıştı.
  *
- * "HMC Audit" ekibin kendi tablosundaki yazım (26.09.2026 ekran görüntüsü);
- * 28.09'dan beri her denetime sabit yazılıyordu, varsayılan o kalır.
- * "Durability" Excel'deki sayfa adlarından; listedeki diğer olası değerler
- * bilinmiyor — ekip "+ Ekle" ile ekler.
+ * 26.10.2026: Excel'in kendisi geldi. Liste artık Excel'deki beş değer
+ * (nas.ts), varsayılan AUDIT — Audit Skoru'na yalnız o giriyor. Liste
+ * anahtarı da değişti: cihazda saklanan eski liste ("HMC Audit",
+ * "Durability") yeni listeyi gölgelemesin. Eski denetimlerde yazılı kaynak
+ * olduğu gibi kalır; skorda ve Excel dışa aktarmada Excel koduna çevrilir
+ * (kaynakKodu).
  */
-export const HAZIR_KAYNAKLAR: readonly string[] = ['HMC Audit', 'Durability'];
-export const VARSAYILAN_KAYNAK = 'HMC Audit';
+export const HAZIR_KAYNAKLAR: readonly string[] = PROBLEM_KAYNAKLARI;
+export const VARSAYILAN_KAYNAK = SKOR_KAYNAGI;
 
-export const LISTE_ANAHTARI = { denetci: 'denetciListesi', kaynak: 'kaynakListesi' } as const;
+/** `ayarlar` tablosundaki anahtarlar. */
+export const LISTE_ANAHTARI = { denetci: 'denetciListesi', kaynak: 'kaynakListesiNas' } as const;
 
 /** Yazılışı sadeleştirir: baş/son boşluk atılır, iç boşluklar teke iner. */
 export const sadelestir = (s: string): string => s.trim().replace(/\s+/g, ' ');

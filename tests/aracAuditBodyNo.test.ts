@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { excelUret, htmlRapor } from '../arac-audit-app/src/cekirdek/rapor';
 import { Denetim } from '../arac-audit-app/src/cekirdek/tipler';
-import { aracKimligi, bodyNoSadelestir } from '../arac-audit-app/src/cekirdek/vin';
+import { aracKimligi, bodyNoGecerli, bodyNoSadelestir } from '../arac-audit-app/src/cekirdek/vin';
 
 // Ürün sahibi, 24.10.2026: şirketteki Excel formu aracı model + body numarası
 // ile tanıyor ("015253"); "Body no ile giriş" ve "Problem Source" istendi.
@@ -12,11 +12,20 @@ describe('body no', () => {
     expect(bodyNoSadelestir('015253')).toBe('015253');
   });
 
-  it('boşluk ve işaretler atılır, harf büyür, en çok 12 karakter', () => {
+  // 26.10.2026: Excel'in makrosundaki kural — yalnız rakam, tam 6 hane.
+  it('yalnız rakam kalır, en çok 6 hane', () => {
     expect(bodyNoSadelestir(' 015 253 ')).toBe('015253');
-    expect(bodyNoSadelestir('bj-015253')).toBe('BJ-015253');
-    expect(bodyNoSadelestir('1234567890123456')).toBe('123456789012');
+    expect(bodyNoSadelestir('bj-015253')).toBe('015253');
+    expect(bodyNoSadelestir('1234567890123456')).toBe('123456');
     expect(bodyNoSadelestir(null)).toBe('');
+  });
+
+  it('geçerli body no tam 6 rakamdır (Excel: "Body No altı (6) hane olmalı!")', () => {
+    expect(bodyNoGecerli('015253')).toBe(true);
+    expect(bodyNoGecerli('01525')).toBe(false);
+    expect(bodyNoGecerli('0152531')).toBe(false);
+    expect(bodyNoGecerli('BJ0152')).toBe(false);
+    expect(bodyNoGecerli('')).toBe(false);
   });
 
   it('araç kimliği: şasi varsa şasi, yoksa "Body …", ikisi de yoksa boş', () => {

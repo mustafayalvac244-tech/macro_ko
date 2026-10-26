@@ -1,28 +1,32 @@
-// ÖZET — SAYAR, PUANLAMAZ.
+// ÖZET — adetler, demerit ve sınıf.
 //
-// Burada bir zamanlar ceza puanı (demerit) ağırlıkları ve KABUL/ŞARTLI/RED
-// eşikleri vardı. Ürün sahibi 16.09.2026'da istedi, 26.09.2026'da kaldırıldı:
-// "puan sistemini kaldır,
-// bizde öyle bir şey yok." Ekibin gerçek denetim tablosunda da puan sütunu ya
-// da karar damgası yok — sınıf (A/B/C…), parça, hata açıklaması ve sorumlu var.
+// Tarihçe — iki karar birbirine karıştırılmasın:
+//  - 16.09.2026'da BİZİM UYDURDUĞUMUZ ceza puanı ağırlıkları ve KABUL/ŞARTLI/
+//    RED eşikleri eklenmiş, 26.09.2026'da ürün sahibi kaldırttı: "puan
+//    sistemini kaldır, bizde öyle bir şey yok." O ağırlıklar ve damgalar geri
+//    EKLENMEYECEK.
+//  - 26.10.2026'da ekibin KENDİ Excel'i (NAS) geldi; ürün sahibi "içeriği buna
+//    göre yap, Excel'de her şey var" dedi. Excel'de her problemin DEMERIT'i
+//    (0–3, denetçi seçer) ve CLASS'ı (MINOR/MAJOR/MAIN) var; Audit Skoru
+//    bunlardan hesaplanıyor. Bu, uydurma bir ölçüt değil, ekibin kullandığı
+//    ölçüt — burada o sayılıyor (nas.ts). Ağırlık yok: demerit denetçinin
+//    yazdığı sayıdır.
 //
-// Uydurma bir puan üretip rapora yazmak, olmayan bir ölçütü varmış gibi
-// gösterir; ekip onu kendi standardı sanır. O yüzden geri EKLENMEYECEK.
-// Gereken tek şey adet: kaç hata, hangi sınıfta, hangi bölgede.
+// Eski kayıtlardaki "kabul edilebilir" bayrağı demerit 0 sayılır.
 
-import { Dagilim, Denetim, Dil, Hata, Ozet, Derece } from './tipler';
+import { demeritDegeri, sinifDegeri, SINIFLAR, auditSkoru } from './nas';
+import { Dagilim, Denetim, Dil, Hata, Ozet, Derece, SinifKodu } from './tipler';
 import { DERECELER, PARCA_INDEKS, HATA_TIPI_INDEKS, HATA_GRUPLARI } from './katalog';
 
 export const DERECE_INDEKS: Record<string, Derece> = Object.fromEntries(DERECELER.map((s) => [s.id, s]));
 
 /**
- * Derecenin yazılı gösterimi: `3` ya da `(3)`.
- *
- * TEK KAYNAK. Parantezi her ekranda elle eklersek bir yerde unutulur ve kabul
- * edilmiş bir bulgu düzeltilecek hata gibi görünür.
+ * Kaydın yazılı demerit'i: "0"–"3". TEK KAYNAK: eski kayıtlardaki "kabul
+ * edilebilir" bayrağının 0 sayılması her ekranda ayrı ayrı yapılırsa bir yerde
+ * unutulur. (26.10.2026'ya kadar burada "(3)" gibi parantezli yazım vardı.)
  */
 export function dereceGosterimi(h: Pick<Hata, 'derece' | 'kabulEdilebilir'>): string {
-  return h.kabulEdilebilir ? `(${h.derece})` : h.derece;
+  return String(demeritDegeri(h));
 }
 
 /** Hatanın makine okunur kodu — Excel'de pivot/filtre için sabit anahtar. */
@@ -44,25 +48,24 @@ export function hataAdi(hata: Pick<Hata, 'parcaId' | 'hataTipiId'>, dil: Dil = '
 export function denetimOzeti(denetim: { hatalar?: Hata[] } | null | undefined): Ozet {
   const hatalar = denetim?.hatalar ?? [];
 
-  const dereceDagilimi = Object.fromEntries(
-    DERECELER.map((s) => [s.id, { adet: 0, kabul: 0 }]),
-  ) as Ozet['dereceDagilimi'];
+  const dereceDagilimi = Object.fromEntries(DERECELER.map((s) => [s.id, 0])) as Ozet['dereceDagilimi'];
+  const sinifDagilimi = Object.fromEntries(SINIFLAR.map((s) => [s, 0])) as Record<SinifKodu, number>;
   const bolgeler = new Map<string, Dagilim>();
   const parcalar = new Map<string, Dagilim>();
   const gruplar = new Map<string, Dagilim>();
 
-  let toplamAdet = 0, kabulEdilebilirAdet = 0, fotografli = 0;
+  let toplamAdet = 0, demeritToplami = 0, fotografli = 0;
 
   for (const h of hatalar) {
     const adet = h.adet ?? 1;
     toplamAdet += adet;
     if ((h.fotograflar?.length ?? 0) > 0) fotografli += 1;
 
-    if (h.kabulEdilebilir) kabulEdilebilirAdet += adet;
-    const dd = dereceDagilimi[h.derece];
-    if (dd) {
-      if (h.kabulEdilebilir) dd.kabul += adet; else dd.adet += adet;
-    }
+    const demerit = demeritDegeri(h);
+    demeritToplami += demerit * adet;
+    const anahtar = String(demerit) as keyof Ozet['dereceDagilimi'];
+    if (anahtar in dereceDagilimi) dereceDagilimi[anahtar] += adet;
+    sinifDagilimi[sinifDegeri(h)] += adet;
 
     const p = PARCA_INDEKS[h.parcaId];
     const bKey = p?.bolgeId ?? 'bilinmeyen';
@@ -84,10 +87,11 @@ export function denetimOzeti(denetim: { hatalar?: Hata[] } | null | undefined): 
   return {
     toplamHata: hatalar.length,
     toplamAdet,
-    kabulEdilebilirAdet,
+    demeritToplami,
     fotografliHata: fotografli,
     fotografsizHata: hatalar.length - fotografli,
     dereceDagilimi,
+    sinifDagilimi,
     bolgeDagilimi: sirala(bolgeler),
     parcaDagilimi: sirala(parcalar),
     grupDagilimi: sirala(gruplar),
@@ -97,9 +101,8 @@ export function denetimOzeti(denetim: { hatalar?: Hata[] } | null | undefined): 
 /** Birden çok denetimin toplu özeti — vardiya/hat raporu için. */
 export function topluOzet(denetimler: Denetim[]) {
   const ozetler = denetimler.map((d) => ({ denetim: d, ozet: denetimOzeti(d) }));
-  const aracSayisi = ozetler.length || 1;
   const toplamAdet = ozetler.reduce((t, o) => t + o.ozet.toplamAdet, 0);
-  const kabulAdet = ozetler.reduce((t, o) => t + o.ozet.kabulEdilebilirAdet, 0);
+  const demeritToplami = ozetler.reduce((t, o) => t + o.ozet.demeritToplami, 0);
 
   const parcaTop = new Map<string, Dagilim>();
   for (const { ozet } of ozetler) {
@@ -113,11 +116,11 @@ export function topluOzet(denetimler: Denetim[]) {
   return {
     aracSayisi: ozetler.length,
     toplamAdet,
-    kabulAdet,
-    // DPU = Defects Per Unit — araç başına düşen hata adedi. Bu bir puan
-    // değil, sayım. Kabul edilebilir `(n)` bulgular DPU'ya GİRMEZ: tanım gereği
-    // düzeltilecek hata değiller; girselerse hata oranını şişirirler.
-    dpu: Math.round(((toplamAdet - kabulAdet) / aracSayisi) * 100) / 100,
+    demeritToplami,
+    // Excel'deki Audit Skoru (nas.ts). Toplu raporda kaynak süzülmez: rapor
+    // seçilen denetimlerin hepsini anlatır; Scores panelindeki gibi yalnız
+    // AUDIT değil.
+    skor: auditSkoru(demeritToplami, ozetler.length),
     enSikParcalar: [...parcaTop.values()].sort((a, b) => b.adet - a.adet).slice(0, 20),
     ozetler,
   };

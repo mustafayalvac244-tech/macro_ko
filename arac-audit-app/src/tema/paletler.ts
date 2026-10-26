@@ -62,6 +62,9 @@ export interface Renkler {
   derece2Yumusak: string;
   derece1: string;
   derece1Yumusak: string;
+  /** Demerit 0 (26.10.2026): nötr — kayda geçer, puana girmez. */
+  derece0: string;
+  derece0Yumusak: string;
 
   // Ters yüzey — iki temada da koyu lacivert. Yalnız içerik ÜSTÜNDE yüzen
   // şeyler için: kayıt bildirimi (snackbar) ve barkod kamerasının çerçevesi.
@@ -141,6 +144,8 @@ const acik: Renkler = {
   derece2Yumusak: '#FCEDD9',
   derece1: '#856808',
   derece1Yumusak: '#F8F1D4',
+  derece0: '#4E5D75',
+  derece0Yumusak: '#E9EEF5',
 
   ...TERS,
 
@@ -188,6 +193,8 @@ const koyu: Renkler = {
   derece2Yumusak: '#31220B',
   derece1: '#DFC248',
   derece1Yumusak: '#2C2608',
+  derece0: '#A6B4C3',
+  derece0Yumusak: '#1B2735',
 
   ...TERS,
 
@@ -203,6 +210,7 @@ export function dereceRenkleri(renkler: Renkler, derece: string) {
   switch (derece) {
     case '3': return { on: renkler.derece3, arka: renkler.derece3Yumusak };
     case '2': return { on: renkler.derece2, arka: renkler.derece2Yumusak };
+    case '0': return { on: renkler.derece0, arka: renkler.derece0Yumusak };
     default: return { on: renkler.derece1, arka: renkler.derece1Yumusak };
   }
 }

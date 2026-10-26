@@ -11,12 +11,12 @@ import {
 } from '@/bilesenler/temel';
 import { aramaSadelestir } from '@/cekirdek/arama';
 import { bolgelerAracIcin } from '@/cekirdek/katalog';
-import { ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
+import { aracEtiketi, ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { mevcutSistemler } from '@/cekirdek/sistemler';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { aracKimligi } from '@/cekirdek/vin';
 import { sureDakika, sureMetni } from '@/cekirdek/istatistik';
-import { donemBaslangiclari, sayacHesapla, SayacSonucu } from '@/cekirdek/sayac';
+import { sayacBaslangici, sayacHesapla, SayacSonucu } from '@/cekirdek/sayac';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { DenetimOzetSatiri, denetimleriListele, sayacVerisi } from '@/veri/depo';
 
@@ -47,7 +47,7 @@ export default function DenetimListesi() {
         const simdi = new Date();
         const [liste, sayilacak] = await Promise.all([
           denetimleriListele(LISTE_SINIRI),
-          sayacVerisi(donemBaslangiclari(simdi).buYil),
+          sayacVerisi(sayacBaslangici(simdi)),
         ]);
         if (iptal) return;
         setSatirlar(liste);
@@ -68,7 +68,7 @@ export default function DenetimListesi() {
       if (suzgec !== 'hepsi' && d.durum !== suzgec) return false;
       if (!sozcukler.length) return true;
       const metin = aramaSadelestir([
-        d.vin, d.bodyNo, ARAC_INDEKS[d.aracId]?.ad, d.spec, d.denetci, bicimTarih(d.baslangic),
+        d.vin, d.bodyNo, ARAC_INDEKS[d.aracId]?.ad, ARAC_INDEKS[d.aracId]?.kod, d.spec, d.denetci, bicimTarih(d.baslangic),
       ].filter(Boolean).join(' '));
       return sozcukler.every((q) => metin.includes(q));
     });
@@ -220,7 +220,7 @@ function DenetimKarti({
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.vin} numberOfLines={1}>{aracKimligi(satir) || '(şasi yok)'}</Text>
           <Text style={s.meta} numberOfLines={1}>
-            {arac?.ad ?? satir.aracId}{satir.spec ? ` · ${satir.spec}` : ''}
+            {aracEtiketi(arac, satir.aracId)}{satir.spec ? ` · ${satir.spec}` : ''}
           </Text>
         </View>
       </View>

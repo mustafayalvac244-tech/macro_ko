@@ -1,82 +1,101 @@
-// SAYAÇ — ana sayfada araç başına denetlenen araç ve hata sayısı (sayac.ts).
+// SAYAÇ — ana sayfada ekibin Excel'indeki "Scores" paneli (sayac.ts).
 //
-// Şirketteki Excel formunun sağ paneli örnek alındı (ürün sahibi, 24.10.2026):
-// satırlar araç, sütunlar bugün / bu hafta / bu ay / bu yıl. Hücrede büyük sayı
-// denetlenen araç, altında hata ve DPU (araç başına düzeltilecek hata;
-// kabul edilebilirler sayılmaz — Excel raporundaki DPU ile aynı). Ana sayfa
-// 28.09.2026'da "çok kalabalık olmasın" diye sadeleştirilmişti; bu yüzden
-// tek, kutusuz bir tablo. Tablonun altındaki açıklama cümlesi 25.10.2026'da
-// kaldırıldı (kalabalık); DPU'nun tanımı Analiz ekranında.
+// Excel'de model başına üç satır var (Audit Aracı / Problem / Audit Skoru),
+// sütunlar Bugün / Bu Hafta / G. Hafta / Bu Ay / Bu Yıl. Telefonda beş sütun
+// × üç satır × model, ana sayfayı kaplardı (28.09.2026: "çok kalabalık
+// olmasın"). Bu yüzden aynı üç ölçü bir seçiciyle tek tabloda: Skor, Araç,
+// Demerit. Hücre tek sayı; ekran okuyucu her satırda üçünü birden okur.
+// Satır adı Excel'deki model kodu (BJ, BC3, CUV…).
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { S } from '@/bilesenler/simgeler';
-import { BolumBasligi, Dugme, Kart } from '@/bilesenler/temel';
-import { ARAC_INDEKS } from '@/cekirdek/model3d';
-import { DONEMLER, DonemSayilari, dpu, SayacSonucu } from '@/cekirdek/sayac';
+import { BolumBasligi, Kart, Secenek } from '@/bilesenler/temel';
+import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
+import { DONEMLER, DonemSayilari, Sayi, SayacSonucu, skor } from '@/cekirdek/sayac';
 import { bosluk, Renkler, tipografi, useTema } from '@/tema';
 
-export function Sayac({ sonuc, onAnaliz }: { sonuc: SayacSonucu; onAnaliz?: () => void }) {
+type Olcu = 'skor' | 'arac' | 'demerit';
+
+const OLCULER: readonly { id: Olcu; ad: string; deger: (x: Sayi) => string }[] = [
+  { id: 'skor', ad: 'Skor', deger: (x) => { const v = skor(x); return v === null ? '—' : String(v); } },
+  { id: 'arac', ad: 'Araç', deger: (x) => String(x.arac) },
+  { id: 'demerit', ad: 'Demerit', deger: (x) => String(x.demerit) },
+];
+
+const okunus = (x: Sayi) => {
+  const v = skor(x);
+  return `${x.arac} araç, demerit ${x.demerit}, skor ${v === null ? 'yok' : v}`;
+};
+
+export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
-  // Bu yıl hiç denetim yoksa boş tablo göstermenin anlamı yok.
+  const [olcu, setOlcu] = useState<Olcu>('skor');
+  // Sayılan dönemlerde hiç AUDIT denetimi yoksa boş tablo göstermenin anlamı yok.
   if (!sonuc.araclar.length) return null;
+  const secili = OLCULER.find((o) => o.id === olcu)!;
 
-  const satir = (ad: string, sayilar: DonemSayilari, toplam = false) => (
+  const satir = (kod: string, okunanAd: string, sayilar: DonemSayilari, toplam = false) => (
     <View
-      key={ad}
+      key={kod}
       style={[s.satir, toplam && s.toplamSatir]}
       accessible
-      accessibilityLabel={`${ad}: ${DONEMLER.map((d) => `${d.ad.toLocaleLowerCase('tr')} ${sayilar[d.id].arac} araç, ${sayilar[d.id].hata} hata, DPU ${dpuMetni(sayilar[d.id])}`).join('; ')}`}
+      accessibilityLabel={`${okunanAd}: ${DONEMLER.map((d) => `${d.uzun.toLocaleLowerCase('tr')} ${okunus(sayilar[d.id])}`).join('; ')}`}
     >
-      <Text style={[s.ad, toplam && s.toplamAd]} numberOfLines={1}>{ad}</Text>
-      {DONEMLER.map((d) => (
-        <View key={d.id} style={s.hucre}>
-          <Text style={[s.arac, !sayilar[d.id].arac && s.sifir]}>{sayilar[d.id].arac}</Text>
-          <Text style={s.hata} numberOfLines={1}>{`${sayilar[d.id].hata} hata`}</Text>
-          <Text style={s.dpu} numberOfLines={1}>{`DPU ${dpuMetni(sayilar[d.id])}`}</Text>
-        </View>
-      ))}
+      <Text style={[s.ad, toplam && s.toplamAd]} numberOfLines={2}>{kod}</Text>
+      {DONEMLER.map((d) => {
+        const metin = secili.deger(sayilar[d.id]);
+        return (
+          <Text key={d.id} style={[s.deger, (metin === '0' || metin === '—') && s.sifir]} numberOfLines={1}>{metin}</Text>
+        );
+      })}
     </View>
   );
 
   return (
     <Kart>
-      <BolumBasligi
-        metin="Denetlenen araç"
-        simge={S.tarih}
-        sag={onAnaliz ? <Dugme metin="Analiz" kucuk simge={S.rapor} onPress={onAnaliz} erisimEtiketi="Analiz ekranını aç" /> : undefined}
-      />
+      <BolumBasligi metin="Audit skoru" simge={S.tarih} />
+      <Text style={s.not}>AUDIT kaynaklı araçlar · skor = 100 × demerit ÷ araç</Text>
+      <View style={s.olcuSatir} accessibilityRole="radiogroup" accessibilityLabel="Gösterilen ölçü">
+        {OLCULER.map((o) => (
+          <Secenek
+            key={o.id}
+            kucuk
+            metin={o.ad}
+            secili={olcu === o.id}
+            onPress={() => setOlcu(o.id)}
+            erisimEtiketi={`Ölçü: ${o.ad}`}
+            style={{ flex: 1, justifyContent: 'center' }}
+          />
+        ))}
+      </View>
       <View style={s.satir} importantForAccessibility="no-hide-descendants" aria-hidden>
         <View style={s.adBos} />
-        {DONEMLER.map((d) => <Text key={d.id} style={s.baslik} numberOfLines={1}>{d.ad}</Text>)}
+        {DONEMLER.map((d) => <Text key={d.id} style={s.baslik} numberOfLines={2}>{d.ad}</Text>)}
       </View>
-      {sonuc.araclar.map((a) => satir(ARAC_INDEKS[a.aracId]?.ad ?? a.aracId, a.sayilar))}
+      {sonuc.araclar.map((a) => {
+        const arac = ARAC_INDEKS[a.aracId];
+        return satir(arac?.kod ?? a.aracId, aracEtiketi(arac, a.aracId), a.sayilar);
+      })}
       {/* Tek araç varsa toplam satırı aynı sayıları tekrar ederdi. */}
-      {sonuc.araclar.length > 1 ? satir('Toplam', sonuc.toplam, true) : null}
+      {sonuc.araclar.length > 1 ? satir('Toplam', 'Toplam', sonuc.toplam, true) : null}
     </Kart>
   );
 }
 
-const AD_GENISLIK = 76;
-
-/** Türkçe ondalık: 0,50. Araç yoksa "—". */
-const dpuMetni = (x: Parameters<typeof dpu>[0]) => {
-  const v = dpu(x);
-  return v === null ? '—' : v.toFixed(2).replace('.', ',');
-};
+const AD_GENISLIK = 60;
 
 const stiller = (r: Renkler) => StyleSheet.create({
-  satir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xxs, paddingVertical: 2 },
+  not: { ...tipografi.caption, color: r.metinSolgun },
+  olcuSatir: { flexDirection: 'row', gap: bosluk.xs },
+  satir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xxs, paddingVertical: 3 },
   toplamSatir: { borderTopWidth: 1, borderTopColor: r.cizgiSolgun, paddingTop: bosluk.xs },
   adBos: { width: AD_GENISLIK },
   ad: { ...tipografi.captionOrta, color: r.metin, width: AD_GENISLIK },
   toplamAd: { color: r.metinIkincil },
-  baslik: { ...tipografi.etiket, color: r.metinSolgun, flex: 1, textAlign: 'center' },
-  hucre: { flex: 1, alignItems: 'center', minWidth: 0 },
-  arac: { ...tipografi.sayiBuyuk, fontSize: 20, lineHeight: 24, color: r.metin },
+  baslik: { ...tipografi.etiket, fontSize: 11, lineHeight: 14, color: r.metinSolgun, flex: 1, textAlign: 'center' },
+  deger: { ...tipografi.sayiBuyuk, fontSize: 18, lineHeight: 24, color: r.metin, flex: 1, textAlign: 'center', minWidth: 0 },
   sifir: { color: r.metinSolgun },
-  hata: { ...tipografi.caption, fontSize: 12, lineHeight: 16, color: r.metinIkincil, fontVariant: ['tabular-nums'] },
-  dpu: { ...tipografi.caption, fontSize: 11, lineHeight: 14, color: r.metinSolgun, fontVariant: ['tabular-nums'] },
 });

@@ -447,29 +447,23 @@ export function DereceRozeti({
   derece: string;
   /**
    * ZORUNLU, varsayılanı yok. İsteğe bağlıyken rapor ekranı onu geçirmeyi
-   * unuttu ve (3) orada düz 3 göründü (26.09.2026). Artık her kullanan yer
-   * bulgunun kabul durumunu açıkça vermek zorunda — derleyici zorluyor.
+   * unuttu ve kabul edilmiş bulgu orada düz 3 göründü (26.09.2026). Artık her
+   * kullanan yer kaydın bayrağını açıkça vermek zorunda — derleyici zorluyor.
+   * 26.10.2026'dan beri bayraklı eski kayıt rozette demerit 0 görünür.
    */
   kabul: boolean;
   buyuk?: boolean;
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
-  const { on, arka } = dereceRenkleri(renkler, derece);
+  const deger = kabul ? '0' : derece;
+  const { on, arka } = dereceRenkleri(renkler, deger);
   return (
     <View
-      accessibilityLabel={kabul ? `Derece ${derece}, kabul edilebilir` : `Derece ${derece}`}
-      style={[
-        s.derecePul, buyuk && s.derecePulBuyuk,
-        kabul
-          ? { backgroundColor: 'transparent', borderColor: renkler.cizgiGuclu, borderStyle: 'dashed' }
-          : { backgroundColor: arka, borderColor: on },
-        kabul && { minWidth: buyuk ? 56 : 40 },
-      ]}
+      accessibilityLabel={`Demerit ${deger}`}
+      style={[s.derecePul, buyuk && s.derecePulBuyuk, { backgroundColor: arka, borderColor: on }]}
     >
-      <Text style={[s.dereceHarf, buyuk && s.dereceHarfBuyuk, { color: kabul ? renkler.metinIkincil : on }]}>
-        {kabul ? `(${derece})` : derece}
-      </Text>
+      <Text style={[s.dereceHarf, buyuk && s.dereceHarfBuyuk, { color: on }]}>{deger}</Text>
     </View>
   );
 }

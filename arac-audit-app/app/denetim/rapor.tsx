@@ -10,7 +10,8 @@ import {
   HataKutusu, IlerlemeCubugu, Kart, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import { DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi, bolgelerAracIcin } from '@/cekirdek/katalog';
-import { ARAC_INDEKS } from '@/cekirdek/model3d';
+import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
+import { demeritDegeri, SINIFLAR, sinifDegeri, sistemDegeri } from '@/cekirdek/nas';
 import { denetimOzeti } from '@/cekirdek/puan';
 import { kmGoster } from '@/cekirdek/aracBilgisi';
 import { bicimTarih, csvUret, excelUret } from '@/cekirdek/rapor';
@@ -135,10 +136,9 @@ export default function RaporEkrani() {
     else router.back();
   }, [acmaIste, kaynak, router]);
 
-  /** Rapordaki liste dereceye göre: önce 3, kabul edilemezler önce, sonra zaman. */
+  /** Rapordaki liste demerit'e göre: önce 3, sonra zaman (eski "kabul edilebilir" = 0). */
   const siraliHatalar = useMemo(() => [...(denetim?.hatalar ?? [])].sort((a, b) =>
-    (Number(b.derece) - Number(a.derece))
-    || (Number(a.kabulEdilebilir) - Number(b.kabulEdilebilir))
+    (demeritDegeri(b) - demeritDegeri(a))
     || a.zaman.localeCompare(b.zaman)), [denetim]);
 
   if (!denetim) {
@@ -154,10 +154,10 @@ export default function RaporEkrani() {
   const enCokBolge = Math.max(1, ...ozet.bolgeDagilimi.map((b) => b.adet));
   const sistemListesi = mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }));
   const kontrolEdilen = sistemListesi.filter((x) => (denetim.kapsam ?? []).includes(x)).length;
-  const derece3 = ozet.dereceDagilimi['3'].adet;
+  const agir = ozet.sinifDagilimi.MAJOR + ozet.sinifDagilimi.MAIN;
 
   const kunye: [string, string, boolean?][] = [
-    ['Araç', arac?.tam ?? denetim.aracId],
+    ['Araç', arac ? `${arac.kod} · ${arac.tam}` : denetim.aracId],
     ['Şasi', denetim.vin || '—', true],
     ['Body No', denetim.bodyNo || '—', true],
     ['Spec', denetim.spec || '—'],
@@ -192,7 +192,7 @@ export default function RaporEkrani() {
         cipler={(
           <>
             <BaslikCipi metin={aracKimligi(denetim)} mono />
-            <BaslikCipi simge={S.arac} metin={arac?.ad ?? denetim.aracId} />
+            <BaslikCipi simge={S.arac} metin={aracEtiketi(arac, denetim.aracId)} />
             {denetim.faz ? <BaslikCipi simge={S.faz} metin={denetim.faz} /> : null}
             <BaslikCipi
               simge={denetim.durum === 'devam' ? S.vardiya : S.tik}
@@ -205,18 +205,19 @@ export default function RaporEkrani() {
       <ScrollView contentContainerStyle={s.govde} showsVerticalScrollIndicator={false}>
         {/* TEK ÖZET KARTI (25.10.2026, Lumiform'un rapor özeti örnek): dört
             ayrı ölçü kutusu yerine bir kart — sayılar yan yana, altında kontrol
-            ilerlemesi. Derece 3 sıfırsa kırmızı değil: kırmızı yalnız sorun
+            ilerlemesi. 26.10.2026: Excel'in alanlarıyla — problem, demerit,
+            MAJOR+MAIN. MAJOR/MAIN sıfırsa kırmızı değil: kırmızı yalnız sorun
             varken görünsün. */}
         <Kart>
           <View
             style={s.ozetSatir}
             accessible
-            accessibilityLabel={`Rapor özeti: ${ozet.toplamAdet} hata, ${derece3} derece 3, ${ozet.kabulEdilebilirAdet} kabul edilebilir, ${ozet.fotografliHata} fotoğraflı`}
+            accessibilityLabel={`Rapor özeti: ${ozet.toplamAdet} problem, demerit ${ozet.demeritToplami}, ${agir} MAJOR ya da MAIN, ${ozet.fotografliHata} fotoğraflı`}
           >
             {[
-              { deger: ozet.toplamAdet, etiket: 'hata', renk: renkler.birincil },
-              { deger: derece3, etiket: 'derece 3', renk: derece3 ? renkler.derece3 : renkler.metin },
-              { deger: ozet.kabulEdilebilirAdet, etiket: 'kabul edilebilir', renk: renkler.metin },
+              { deger: ozet.toplamAdet, etiket: 'problem', renk: renkler.birincil },
+              { deger: ozet.demeritToplami, etiket: 'demerit', renk: renkler.metin },
+              { deger: agir, etiket: 'MAJOR / MAIN', renk: agir ? renkler.derece3 : renkler.metin },
               { deger: ozet.fotografliHata, etiket: 'fotoğraflı', renk: renkler.metin },
             ].map((x, i) => (
               <View key={x.etiket} style={[s.ozetHucre, i > 0 && s.ozetAyrac]}>
@@ -266,24 +267,28 @@ export default function RaporEkrani() {
 
           <View style={[{ gap: bosluk.md }, tablet && { flex: 1 }]}>
             <Kart>
-              <BolumBasligi metin="Dereceye göre" simge={S.uyari} />
-              {DERECELER.map((d) => {
-                const dd = ozet.dereceDagilimi[d.id];
-                return (
-                  <View key={d.id} style={s.dereceSatiri}>
-                    <View style={s.dereceHucre}>
+              <BolumBasligi metin="Demerit ve class" simge={S.uyari} />
+              {/* İki ayrı sütun: solda demerit'e, sağda class'a göre problem
+                  adedi. Satırlar birbirine bağlı DEĞİL (aynı satırda durmaları
+                  "demerit 3 = MINOR" diye okunmasın diye ayrı sütun). */}
+              <View style={s.ikiSutun}>
+                <View style={s.sutun}>
+                  {DERECELER.map((d) => (
+                    <View key={d.id} style={s.dereceSatiri} accessible accessibilityLabel={`Demerit ${d.id}: ${ozet.dereceDagilimi[d.id]} problem`}>
                       <DereceRozeti derece={d.id} kabul={false} />
-                      <Text style={s.dereceSayi}>{dd.adet}</Text>
-                      <Text style={s.dereceNot}>düzeltilecek</Text>
+                      <Text style={s.dereceSayi}>{ozet.dereceDagilimi[d.id]}</Text>
                     </View>
-                    <View style={s.dereceHucre}>
-                      <DereceRozeti derece={d.id} kabul />
-                      <Text style={s.dereceSayi}>{dd.kabul}</Text>
-                      <Text style={s.dereceNot}>kabul edilebilir</Text>
+                  ))}
+                </View>
+                <View style={s.sutun}>
+                  {SINIFLAR.map((c) => (
+                    <View key={c} style={s.dereceSatiri} accessible accessibilityLabel={`${c}: ${ozet.sinifDagilimi[c]} problem`}>
+                      <Text style={s.sinifAd}>{c}</Text>
+                      <Text style={s.dereceSayi}>{ozet.sinifDagilimi[c]}</Text>
                     </View>
-                  </View>
-                );
-              })}
+                  ))}
+                </View>
+              </View>
             </Kart>
 
             <Kart>
@@ -307,21 +312,21 @@ export default function RaporEkrani() {
         </View>
 
         <Kart>
-          <BolumBasligi metin={`Hatalar (${denetim.hatalar.length}) — dereceye göre`} simge={S.liste} />
+          <BolumBasligi metin={`Problemler (${denetim.hatalar.length}) — demerit'e göre`} simge={S.liste} />
           <View testID="rapor-hatalar" style={{ gap: 6 }}>
             {denetim.hatalar.length === 0 ? <Text style={s.bos}>Hata kaydedilmedi.</Text> : null}
             {siraliHatalar.map((h) => (
               <Pressable
                 key={h.id}
                 accessibilityRole="button"
-                // Derece etikette olmalı: düğmenin etiketi içindeki rozetin
+                // Demerit etikette olmalı: düğmenin etiketi içindeki rozetin
                 // etiketini örter; yoksa ekran okuyucu sıralamayı duyuramaz.
-                accessibilityLabel={`${parcaTamAdi(h.parcaId)} ${HATA_TIPI_INDEKS[h.hataTipiId]?.ad ?? ''}, derece ${h.derece}${h.kabulEdilebilir ? ', kabul edilebilir' : ''} — düzenle`}
+                accessibilityLabel={`${parcaTamAdi(h.parcaId)} ${HATA_TIPI_INDEKS[h.hataTipiId]?.ad ?? ''}, demerit ${demeritDegeri(h)}, ${sinifDegeri(h)} — düzenle`}
                 onPress={() => calismaEkranindaAc({ denetimId: denetim.id, tur: 'hata', hataId: h.id })}
                 style={({ pressed }) => [s.hataSatiri, pressed && { opacity: 0.72 }]}
               >
-                {/* kabul GEÇİLMELİ: geçilmezse (3) bu ekranda düz 3 görünüyordu —
-                    kabul edilmiş bulgu düzeltilecek hata gibi (26.09.2026). */}
+                {/* kabul GEÇİLMELİ: eski "kabul edilebilir" kayıt rozette 0
+                    görünür (demerit'i 0); geçilmezse 3 görünürdü. */}
                 <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={s.hataAd} numberOfLines={1}>
@@ -331,6 +336,8 @@ export default function RaporEkrani() {
                     {[
                       PARCA_INDEKS[h.parcaId]?.bolgeAd,
                       h.adet > 1 ? `${h.adet} adet` : null,
+                      sinifDegeri(h) !== 'MINOR' ? sinifDegeri(h) : null,
+                      sistemDegeri(h),
                       h.sorunTipi === 'Complex' ? 'Complex' : null,
                       h.sorumlu ? `→ ${h.sorumlu}` : null,
                     ].filter(Boolean).join(' · ')}
@@ -424,13 +431,14 @@ const stiller = (r: Renkler) => StyleSheet.create({
   kunyeDeger: { ...tipografi.bodyOrta, color: r.metin },
   kunyeMono: { ...tipografi.kimlik, color: r.metin },
 
+  ikiSutun: { flexDirection: 'row', gap: bosluk.lg },
+  sutun: { flex: 1 },
   dereceSatiri: {
-    flexDirection: 'row', gap: bosluk.sm, paddingVertical: 6,
-    borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: bosluk.sm,
+    minHeight: 40, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun,
   },
-  dereceHucre: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
   dereceSayi: { ...tipografi.sayi, color: r.metin, minWidth: 24, textAlign: 'right' },
-  dereceNot: { ...tipografi.caption, color: r.metinSolgun, flexShrink: 1 },
+  sinifAd: { ...tipografi.captionOrta, color: r.metinIkincil },
 
   bos: { ...tipografi.body, color: r.metinSolgun },
 

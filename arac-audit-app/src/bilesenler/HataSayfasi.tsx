@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle,
+  ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 
 import { GRUP_SIMGELERI, S } from '@/bilesenler/simgeler';
@@ -9,7 +9,10 @@ import { AramaKutusu, DereceRozeti, Dugme, Girdi, HataKutusu, Secenek } from '@/
 import { fotografKucult } from '@/cekirdek/goruntu';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import { HATA_GRUPLARI, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi, DERECELER } from '@/cekirdek/katalog';
-import { DereceKodu, Hata, HataGrubuId, HataTipi, SorunTipi } from '@/cekirdek/tipler';
+import {
+  demeritDegeri, HAZIR_SORUMLULAR, NAS_SISTEMLERI, SINIFLAR, sinifDegeri, varsayilanSistem,
+} from '@/cekirdek/nas';
+import { DereceKodu, Hata, HataGrubuId, HataTipi, SinifKodu, SorunTipi } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, dereceRenkleri, kose, Renkler, tipografi, useTema } from '@/tema';
 import { fotografKaydet, FotografKaydi, fotografSil } from '@/veri/depo';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -31,6 +34,13 @@ export interface HataTaslagi extends Omit<Hata, 'id' | 'zaman'> {
  * yer gerekiyorsa açıklamaya yazılır. Eski bir kayıtta dolu olabilirler:
  * düzenleyip kaydetmek onları SİLMEZ (taslaktan olduğu gibi geçer) ve rapor
  * onları yazmaya devam eder.
+ *
+ * EXCEL ALANLARI (26.10.2026, ürün sahibi: "içeriği buna göre yap, Excel'de
+ * her şey var"): DEMERIT 0–3 (varsayılan 0, Excel formu da 0 ile açılıyor),
+ * CLASS MINOR/MAJOR/MAIN (varsayılan MINOR), SYSTEM (parça ve tipten önerilir,
+ * değiştirilebilir), RESPONSIBLE (Excel'deki hazır liste + serbest yazım).
+ * "Kabul edilebilir" anahtarı kalktı: Excel'de yok, karşılığı demerit 0.
+ * Hata tipi seçmek demerit'i DEĞİŞTİRMEZ — Excel'de tipin önerilen puanı yok.
  *
  * ARAMA VE "YENİ TİP" NEDEN BURADA: bir dış panelde 37 hata tipi listeleniyor;
  * kaydırarak aramak üç dokunuş sözünü bozar. Arama kutusu listeyi tek yazışta
@@ -55,8 +65,11 @@ export function HataSayfasi({
   const tipEkle = useKatalog((d) => d.ekle);
 
   const [hataTipiId, setHataTipiId] = useState<string | null>(null);
-  const [derece, setDerece] = useState<DereceKodu>('1');
-  const [kabul, setKabul] = useState(false);
+  const [derece, setDerece] = useState<DereceKodu>('0');
+  const [sinif, setSinif] = useState<SinifKodu>('MINOR');
+  const [sistem, setSistem] = useState('');
+  /** Sistem elle seçildiyse tip değişince önerilenle EZİLMEZ. */
+  const [sistemElle, setSistemElle] = useState(false);
   const [sorunTipi, setSorunTipi] = useState<SorunTipi>('Part');
   const [sorumlu, setSorumlu] = useState('');
   const [aciklama, setAciklama] = useState('');
@@ -80,8 +93,11 @@ export function HataSayfasi({
   if (taslak && taslak !== acilanTaslak) {
     setAcilanTaslak(taslak);
     setHataTipiId(taslak.hataTipiId || null);
-    setDerece(taslak.derece || '1');
-    setKabul(!!taslak.kabulEdilebilir);
+    // Eski "kabul edilebilir" kayıt düzenlenince demerit 0 görünür ve öyle kaydedilir.
+    setDerece(String(demeritDegeri(taslak)) as DereceKodu);
+    setSinif(sinifDegeri(taslak));
+    setSistem(taslak.sistem || (taslak.hataTipiId ? varsayilanSistem(taslak.parcaId, taslak.hataTipiId) : ''));
+    setSistemElle(!!taslak.sistem);
     setSorunTipi(taslak.sorunTipi === 'Complex' ? 'Complex' : 'Part');
     setSorumlu(taslak.sorumlu ?? '');
     setAciklama(taslak.aciklama ?? '');
@@ -110,8 +126,8 @@ export function HataSayfasi({
 
   const tipSec = useCallback((t: HataTipi) => {
     setHataTipiId(t.id);
-    if (!duzenleme) setDerece(t.derece);
-  }, [duzenleme]);
+    if (!sistemElle && taslak) setSistem(varsayilanSistem(taslak.parcaId, t.id));
+  }, [sistemElle, taslak]);
 
   const fotografEkle = useCallback(async (kameradan: boolean) => {
     setFotoHatasi(null);
@@ -156,7 +172,9 @@ export function HataSayfasi({
       ...taslak,
       hataTipiId,
       derece,
-      kabulEdilebilir: kabul,
+      kabulEdilebilir: false,
+      sinif,
+      sistem: sistem || varsayilanSistem(taslak.parcaId, hataTipiId),
       sorunTipi,
       sorumlu: sorumlu.trim(),
       adet: taslak.adet || 1,
@@ -164,7 +182,7 @@ export function HataSayfasi({
       aciklama: aciklama.trim(),
       fotograflar: fotoIdleri,
     }, fotoIdleri);
-  }, [aciklama, fotoIdleri, hataTipiId, kabul, onKaydet, derece, sorumlu, sorunTipi, taslak]);
+  }, [aciklama, fotoIdleri, hataTipiId, onKaydet, derece, sinif, sistem, sorumlu, sorunTipi, taslak]);
 
   const fotoHaritasi = useMemo(
     () => new Map(fotograflar.map((f) => [f.id, f])),
@@ -268,9 +286,10 @@ export function HataSayfasi({
 
   const dereceBolumu = (
     <>
-      <Text style={s.bolumBaslik}>Derece — 3 en ağır</Text>
+      <Text style={s.bolumBaslik}>Demerit — 0 skora girmez, 3 en ağır</Text>
       <DereceSecici derece={derece} onSec={setDerece} />
-      <KabulAnahtari kabul={kabul} derece={derece} onDegis={setKabul} />
+      <Text style={s.bolumBaslik}>Class</Text>
+      <SinifSecici sinif={sinif} onSec={setSinif} />
     </>
   );
 
@@ -290,13 +309,42 @@ export function HataSayfasi({
         ))}
       </View>
 
+      <Text style={s.bolumBaslik}>System</Text>
+      <View style={s.izgara}>
+        {NAS_SISTEMLERI.map((x) => (
+          <Secenek
+            key={x}
+            kucuk
+            metin={x}
+            erisimEtiketi={`System ${x}`}
+            secili={sistem === x}
+            onPress={() => { setSistem(x); setSistemElle(true); }}
+            style={{ flexGrow: 1, flexBasis: 100, justifyContent: 'center' }}
+          />
+        ))}
+      </View>
+
+      <Text style={s.bolumBaslik}>Responsible</Text>
+      <View style={s.izgara}>
+        {HAZIR_SORUMLULAR.map((x) => (
+          <Secenek
+            key={x}
+            kucuk
+            metin={x}
+            erisimEtiketi={`Responsible ${x}`}
+            secili={sorumlu.trim() === x}
+            onPress={() => setSorumlu(sorumlu.trim() === x ? '' : x)}
+            style={{ flexGrow: 1, flexBasis: 100, justifyContent: 'center' }}
+          />
+        ))}
+      </View>
       <Girdi
-        etiket="Sorumlu"
         value={sorumlu}
         onChangeText={setSorumlu}
-        placeholder="Örn. HMTR PD (tedarikçi)"
+        placeholder="Listede yoksa yazın — örn. tedarikçi adı"
+        accessibilityLabel="Sorumlu (serbest yazım)"
         ipucu={sorunTipi === 'Part'
-          ? 'Part hatasında yazılan sorumlu bu parçaya öğrenilir; sonraki kayıtlarda kendiliğinden gelir.'
+          ? 'Part hatasında seçilen sorumlu bu parçaya öğrenilir; sonraki kayıtlarda kendiliğinden gelir.'
           : 'Complex hatanın sorumlusu parçaya öğrenilmez.'}
       />
 
@@ -381,7 +429,7 @@ export function HataSayfasi({
           <Text style={s.parcaAd} numberOfLines={1}>{parca ? parcaTamAdi(parca.id) : taslak.parcaId}</Text>
           <Text style={s.parcaYol} numberOfLines={1}>{parca?.bolgeAd}</Text>
         </View>
-        {hataTipiId ? <DereceRozeti derece={derece} kabul={kabul} buyuk /> : null}
+        {hataTipiId ? <DereceRozeti derece={derece} kabul={false} buyuk /> : null}
       </View>
 
       <ScrollView
@@ -441,7 +489,6 @@ export function YeniTipFormu({
   const [ad, setAd] = useState(baslangicAd);
   const [en, setEn] = useState('');
   const [grup, setGrup] = useState<HataGrubuId | null>(izinliGruplar[0] ?? null);
-  const [derece, setDerece] = useState<DereceKodu>('1');
   const [kaydediliyor, setKaydediliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -450,7 +497,9 @@ export function YeniTipFormu({
     setKaydediliyor(true);
     setHata(null);
     try {
-      await onEkle({ grup, ad: ad.trim(), en: en.trim(), derece });
+      // Önerilen derece seçimi kalktı (26.10.2026): Excel'de tipin önerilen
+      // puanı yok, demerit kayıtta seçilir. Alan veri modelinde duruyor.
+      await onEkle({ grup, ad: ad.trim(), en: en.trim(), derece: '0' });
     } catch (h) {
       setHata(h instanceof Error ? h.message : String(h));
     } finally {
@@ -493,12 +542,6 @@ export function YeniTipFormu({
         ))}
       </View>
 
-      <Text style={s.alanEtiketi}>Önerilen derece</Text>
-      {/* "Önerilen derece" öneki ŞART: çalışma ekranındaki DERECE seçimi de
-          ekranda duruyor, aynı etiketle iki radyo ekran okuyucuda ayırt
-          edilemez. */}
-      <DereceSecici derece={derece} onSec={setDerece} etiketOnEki="Önerilen derece" kucuk />
-
       <View style={s.yeniEylemler}>
         <Dugme metin="Vazgeç" tur="sessiz" kucuk onPress={onVazgec} style={{ flex: 1 }} />
         <Dugme
@@ -516,52 +559,17 @@ export function YeniTipFormu({
 }
 
 /**
- * "Kabul edilebilir" anahtarı. Açıkken derece parantezle yazılır: (3).
- *
- * Etiket anahtarın NE YAZDIRACAĞINI gösterir, yalnız açık/kapalı değil: denetçi
- * raporda "(3)" mü "3" mü çıkacağını kaydetmeden görsün. Parantez anlamı tersine
- * çeviriyor; yanlış basılırsa kabul edilmiş bulgu iş emri doğurur.
+ * Demerit seçici: 0 · 1 · 2 · 3 (Excel'deki sırayla; 0 skora girmez). Seçili
+ * olan kendi rengiyle DOLU çizilir, diğerleri boş kutuda yalnız rakamı renkli
+ * taşır. Seçim yalnız renkle değil dolu/boş farkıyla da okunur; rakam her
+ * zaman yazılıdır. Kontrastlar ölçüldü (1–3: 27.09.2026; 0: 26.10.2026),
+ * iki temada: seçili rakam en az 5.28:1, seçili olmayan rakam kendi zemininde
+ * en az 5.28:1; 0 için 6.67:1 ve 5.72:1.
  */
-export function KabulAnahtari({
-  kabul, derece, onDegis, style,
-}: { kabul: boolean; derece: DereceKodu; onDegis: (k: boolean) => void; style?: ViewStyle }) {
-  const { renkler } = useTema();
-  const s = useMemo(() => stiller(renkler), [renkler]);
-  return (
-    <Pressable
-      accessibilityRole="switch"
-      aria-checked={kabul}
-      accessibilityLabel={`Kabul edilebilir — raporda ${kabul ? `(${derece})` : derece} yazılır`}
-      onPress={() => onDegis(!kabul)}
-      style={({ pressed }) => [s.kabulSatir, kabul && s.kabulSatirAcik, pressed && { opacity: 0.8 }, style]}
-    >
-      {/* Ray + topuz: açık/kapalı yalnız renkle değil TOPUZUN YERİYLE de okunur. */}
-      <View style={[s.ray, kabul && s.rayAcik]}>
-        <View style={[s.topuz, kabul && s.topuzAcik]} />
-      </View>
-      {/* İki satıra sarabilir: dikey tablette "Kabul e…" diye kesiliyordu. */}
-      <Text style={[s.kabulMetin, { flex: 1 }]} numberOfLines={2}>Kabul edilebilir</Text>
-      {/* "Raporda" etiketi: etiketsiz "(3)" kutusu ilk kez kullanana bir şey
-          söylemiyordu (sınama, 28.09.2026). Kutu raporda yazılacak olanı gösterir. */}
-      <View style={s.kabulOnizlemeKap}>
-        <Text style={s.kabulOnizlemeEtiket}>Raporda</Text>
-        <View style={[s.kabulOnizleme, kabul && s.kabulOnizlemeAcik]}>
-          <Text style={s.kabulOnizlemeMetin}>{kabul ? `(${derece})` : derece}</Text>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
+const DEMERIT_SIRASI = [...DERECELER].sort((a, b) => a.id.localeCompare(b.id));
 
-/**
- * Derece seçici: 3 · 2 · 1 (3 en ağır). Seçili olan kendi derece rengiyle DOLU
- * çizilir, diğerleri boş kutuda yalnız rakamı derece renginde taşır. Seçim
- * yalnız renkle değil dolu/boş farkıyla da okunur; rakam her zaman yazılıdır.
- * Kontrastlar ölçüldü (27.09.2026): seçili rakam en az 5.28:1, seçili olmayan
- * rakam kendi zemininde en az 5.28:1 — iki temada da.
- */
 export function DereceSecici({
-  derece, onSec, etiketOnEki = 'Derece', kucuk = false,
+  derece, onSec, etiketOnEki = 'Demerit', kucuk = false,
 }: {
   derece: DereceKodu;
   onSec: (d: DereceKodu) => void;
@@ -573,7 +581,7 @@ export function DereceSecici({
   const s = useMemo(() => stiller(renkler), [renkler]);
   return (
     <View style={s.dereceSatir}>
-      {DERECELER.map((d) => {
+      {DEMERIT_SIRASI.map((d) => {
         const secili = derece === d.id;
         const { on } = dereceRenkleri(renkler, d.id);
         return (
@@ -595,6 +603,25 @@ export function DereceSecici({
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+/** Excel CLASS seçici: MINOR · MAJOR · MAIN. */
+export function SinifSecici({ sinif, onSec }: { sinif: SinifKodu; onSec: (c: SinifKodu) => void }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: bosluk.xs }} accessibilityRole="radiogroup" accessibilityLabel="Class">
+      {SINIFLAR.map((c) => (
+        <Secenek
+          key={c}
+          kucuk
+          metin={c}
+          erisimEtiketi={`Class ${c}`}
+          secili={sinif === c}
+          onPress={() => onSec(c)}
+          style={{ flex: 1, justifyContent: 'center' }}
+        />
+      ))}
     </View>
   );
 }
@@ -679,32 +706,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
     borderColor: r.cizgiGuclu, backgroundColor: r.yuzey,
   },
   fotoEkleMetin: { ...tipografi.captionOrta, color: r.metinIkincil, textAlign: 'center' },
-
-  kabulSatir: {
-    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: 60,
-    paddingHorizontal: bosluk.sm, paddingVertical: 6, borderRadius: kose.md,
-    borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
-  },
-  kabulSatirAcik: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
-  // Kapalı rayın kenarı metinSolgun: cizgiGuclu yüzeyde 2.58:1 idi, bir
-  // denetim öğesinin sınırı için WCAG 1.4.11'in 3:1'inin altında (27.09.2026).
-  ray: {
-    width: 48, height: 28, borderRadius: kose.pill, borderWidth: 1.5, padding: 2,
-    borderColor: r.metinSolgun, backgroundColor: r.yuzeyAlt, justifyContent: 'center',
-  },
-  rayAcik: { backgroundColor: r.birincil, borderColor: r.birincil },
-  topuz: { width: 21, height: 21, borderRadius: kose.pill, backgroundColor: r.metinSolgun },
-  topuzAcik: { backgroundColor: r.metinTers, alignSelf: 'flex-end' },
-  kabulMetin: { ...tipografi.bodyOrta, color: r.metin },
-  kabulOnizleme: {
-    minWidth: 54, height: 40, paddingHorizontal: 6, borderRadius: kose.sm,
-    borderWidth: 1.5, borderColor: r.cizgi, backgroundColor: r.yuzey,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  kabulOnizlemeAcik: { borderStyle: 'dashed', borderColor: r.birincil },
-  kabulOnizlemeKap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  kabulOnizlemeEtiket: { ...tipografi.caption, color: r.metinIkincil },
-  kabulOnizlemeMetin: { ...tipografi.sayiBuyuk, fontSize: 22, lineHeight: 28, color: r.metin },
 
   dereceSatir: { flexDirection: 'row', gap: bosluk.xs },
   dereceDugme: {

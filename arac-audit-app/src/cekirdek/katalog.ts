@@ -33,6 +33,8 @@ export const DERECELER: Derece[] = [
   { id: '3', ad: '3', en: '3', renk: '#d92d20', aciklama: 'En ağır kademe. (Kademelerin resmî tanımı ekipten alınmadı.)' },
   { id: '2', ad: '2', en: '2', renk: '#f79009', aciklama: 'Orta kademe.' },
   { id: '1', ad: '1', en: '1', renk: '#eaaa08', aciklama: 'En hafif kademe.' },
+  // 26.10.2026: ekibin Excel'indeki DEMERIT 0 — kayda geçer, puana girmez.
+  { id: '0', ad: '0', en: '0', renk: '#98a2b3', aciklama: 'Puansız (demerit 0): kayda geçer, skora girmez.' },
 ];
 
 /** Hata grupları — parçalar bu grupları referans alır. */
