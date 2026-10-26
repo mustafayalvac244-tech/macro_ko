@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TemaSaglayici, useTema } from '@/tema';
 import { useAracGorselleri } from '@/veri/aracGorselleri';
 import { useDilDeposu } from '@/veri/dilDeposu';
+import { eskiFotograflariTasi } from '@/veri/fotografDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -53,6 +54,8 @@ export default function KokDuzen() {
   useEffect(() => { useKatalog.getState().yukle(); }, []);
   // 360° araç görselleri (26.10.2026): açılışı bekletmez; yoksa harita çıkar.
   useEffect(() => { useAracGorselleri.getState().yukle(); }, []);
+  // Önbellekteki eski hata fotoğrafları kalıcı klasöre (26.10.2026); açılışı bekletmez.
+  useEffect(() => { eskiFotograflariTasi().catch(() => {}); }, []);
 
   if ((!yazilarHazir && !yaziHatasi) || !dilHazir) return null;
 

@@ -20,6 +20,10 @@
 //
 // KAPSAM: yalnız BU CİHAZIN kayıtları — merkezi sunucu yok. Hatasız biten
 // araç da denetlenen araç sayılır (Excel'deki "Problem Yok Aracı Kaydet").
+// YALNIZ BİTMİŞ DENETİM (26.10.2026): devam eden denetim de sayılıyordu; hiç
+// hata girilmemiş, yeni açılmış bir denetim skoru düşürüyordu (dış
+// değerlendirmede saha denetçisi ve kalite müdürü ayrı ayrı gördü). Excel'e
+// araç bitince yazılır; burada da yalnız "tamamlandı" sayılır.
 //
 // Dönem sınırları CİHAZIN YEREL SAATİYLE: gün gece yarısı, hafta PAZARTESİ
 // başlar (Türkiye). Denetim başladığı ana göre sayılır.
@@ -47,6 +51,8 @@ export interface SayacGirdisi {
   demerit: number;
   /** Denetimin PROBLEM SOURCE'u. Yoksa AUDIT sayılır (en eski kayıtlar). */
   kaynak?: string;
+  /** 'devam' ise sayılmaz (araç henüz bitmedi). Yoksa bitmiş sayılır. */
+  durum?: string;
 }
 
 export interface Sayi { arac: number; hata: number; demerit: number }
@@ -110,6 +116,7 @@ export function sayacHesapla(girdiler: readonly SayacGirdisi[], simdi: Date, sir
 
   for (const g of girdiler) {
     if (!skoraGirerMi(g.kaynak)) continue;
+    if (g.durum === 'devam') continue;
     const an = new Date(g.baslangic);
     // Geçersiz tarih ya da gelecekteki bir an (cihaz saati geri alınmış)
     // hiçbir döneme yazılmaz.

@@ -94,6 +94,16 @@ describe('sayaç — sayım', () => {
     ], simdi, SIRA);
     expect(s.toplam.bugun).toEqual({ arac: 3, hata: 3, demerit: 3 });
   });
+
+  // 26.10.2026 — dış değerlendirme: yeni açılmış, hatasız, bitmemiş denetim skoru düşürüyordu.
+  it('devam eden denetim sayılmaz; tamamlanan ve durumu yazılmamış (eski) sayılır', () => {
+    const s = sayacHesapla([
+      { ...girdi('i20', yerel(2026, 10, 21, 9), 2, 4, 'AUDIT'), durum: 'tamam' },
+      { ...girdi('i20', yerel(2026, 10, 21, 10), 0, 0, 'AUDIT'), durum: 'devam' },
+      girdi('i20', yerel(2026, 10, 21, 11), 1, 2, 'AUDIT'),
+    ], simdi, SIRA);
+    expect(s.toplam.bugun).toEqual({ arac: 2, hata: 3, demerit: 6 });
+  });
 });
 
 // Excel makrosu: Audit Skoru = round(100 × Σ DEMERIT / denetlenen araç).

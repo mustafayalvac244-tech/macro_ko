@@ -11,13 +11,14 @@
 // Bugün yedek, dosyayı Drive/mail'e koyup saklamak içindir; veri.json düz
 // metin, fotoğraflar klasörde — bir geliştirici elle geri koyabilir.
 
-import { File, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 import { nasSayfalari } from '@/cekirdek/nas';
 import { xlsxOlustur } from '@/cekirdek/xlsx';
-import { zipOlustur, ZipGirdisi } from '@/cekirdek/zip';
-import { tumDenetimler, yedekVerisi } from '@/veri/depo';
+import { eklemeKomutlari, GERI_YUKLEME_SIRASI, yedekIceriginiCoz } from '@/cekirdek/geriYukleme';
+import { zipOku, zipOlustur, ZipGirdisi } from '@/cekirdek/zip';
+import { tabloSutunlari, tumDenetimler, yedektenEkle, yedekVerisi } from '@/veri/depo';
 
 export interface YedekSonucu {
   uri: string;
@@ -105,5 +106,54 @@ export async function nasExcelOlustur(simdi: Date = new Date()): Promise<NasSonu
     denetim: denetimler.length,
     problem: denetimler.reduce((t, d) => t + (d.hatalar?.length ?? 0), 0),
     paylasildi,
+  };
+}
+
+export interface GeriYuklemeSonucu {
+  /** Kullanıcı dosya seçmeden kapattı. */
+  iptal: boolean;
+  yedekTarihi: string;
+  denetim: number; hata: number; foto: number;
+  /** Yedekte olup telefonda zaten olduğu için dokunulmayan denetim. */
+  zatenVarDenetim: number;
+}
+
+/**
+ * Yedekten geri yükleme (26.10.2026). Zip seçilir; fotoğraflar belge
+ * klasörüne yazılır, kayıtlar EKLENİR — aynı kimlikli kayıt telefonda varsa
+ * telefondaki kalır (cekirdek/geriYukleme.ts). Hepsi tek veritabanı işleminde.
+ */
+export async function yedekGeriYukle(): Promise<GeriYuklemeSonucu> {
+  const secim = await File.pickFileAsync({ mimeTypes: ['application/zip', 'application/octet-stream'] });
+  const dosya = secim.canceled ? null : secim.result;
+  if (!dosya) return { iptal: true, yedekTarihi: '', denetim: 0, hata: 0, foto: 0, zatenVarDenetim: 0 };
+
+  const girdiler = zipOku(await dosya.bytes());
+  const veri = girdiler.find((g) => g.ad === 'veri.json');
+  if (!veri) throw new Error('Bu zip bir Araç Audit yedeği değil (veri.json yok).');
+  const icerik = yedekIceriginiCoz(JSON.parse(new TextDecoder().decode(veri.veri)));
+
+  // Fotoğraflar: belge klasörüne; aynı adlı dosya varsa üstüne yazılmaz.
+  const klasor = new Directory(Paths.document, 'fotograflar');
+  klasor.create({ intermediates: true, idempotent: true });
+  const adresler = new Map<string, string>();
+  for (const g of girdiler) {
+    const m = /^fotograflar\/(.+)\.jpg$/.exec(g.ad);
+    if (!m) continue;
+    const hedef = new File(klasor, `${m[1]}.jpg`);
+    if (!hedef.exists) { hedef.create(); hedef.write(g.veri); }
+    adresler.set(m[1]!, hedef.uri);
+  }
+
+  const sutunlar = await tabloSutunlari(GERI_YUKLEME_SIRASI);
+  const eklenen = await yedektenEkle(eklemeKomutlari(icerik, sutunlar, (id) => adresler.get(id) ?? null));
+  const yedektekiDenetim = icerik.tablolar.denetimler?.length ?? 0;
+  return {
+    iptal: false,
+    yedekTarihi: icerik.tarih,
+    denetim: eklenen.denetimler ?? 0,
+    hata: eklenen.hatalar ?? 0,
+    foto: eklenen.fotograflar ?? 0,
+    zatenVarDenetim: yedektekiDenetim - (eklenen.denetimler ?? 0),
   };
 }

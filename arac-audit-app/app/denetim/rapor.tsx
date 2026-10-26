@@ -10,7 +10,7 @@ import {
   HataKutusu, IlerlemeCubugu, Kart, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import {
-  BOLGELER, DERECELER, HATA_TIPI_INDEKS, hataTipiAdi, parcaBolgeAdi, parcaTamAdi, bolgelerAracIcin,
+  BOLGELER, DERECELER, HATA_TIPI_INDEKS, hataTipiAdi, parcaBolgeAdi, parcaCiftiAdi, parcaTamAdi, bolgelerAracIcin,
 } from '@/cekirdek/katalog';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { demeritDegeri, SINIFLAR, sinifDegeri, sistemDegeri } from '@/cekirdek/nas';
@@ -23,7 +23,8 @@ import { aracKimligi } from '@/cekirdek/vin';
 import { Denetim, FotografBaytlari } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { AcmaIstegi, useAcmaIstegi } from '@/veri/acmaIstegi';
-import { denetimGetir, denetimGuncelle, fotograflariGetir } from '@/veri/depo';
+import { degisiklikGunlugu, denetimGetir, denetimGuncelle, fotograflariGetir } from '@/veri/depo';
+import { GunlukKaydi, gunlukOzeti } from '@/cekirdek/gunluk';
 import { useDil } from '@/veri/dilDeposu';
 
 /**
@@ -55,9 +56,12 @@ export default function RaporEkrani() {
   const [hata, setHata] = useState<string | null>(null);
   const [bilgi, setBilgi] = useState<string | null>(null);
 
+  // Değişiklik geçmişi (26.10.2026, göç 10): düzeltilen ve silinen kayıtların izi.
+  const [gunluk, setGunluk] = useState<GunlukKaydi[]>([]);
   useEffect(() => {
     if (!id) return;
     denetimGetir(id).then(setDenetim).catch((h) => setHata(String(h)));
+    degisiklikGunlugu(id).then(setGunluk).catch(() => setGunluk([]));
   }, [id]);
 
   const ozet = useMemo(() => denetimOzeti(denetim), [denetim]);
@@ -331,7 +335,7 @@ export default function RaporEkrani() {
                 accessibilityRole="button"
                 // Demerit etikette olmalı: düğmenin etiketi içindeki rozetin
                 // etiketini örter; yoksa ekran okuyucu sıralamayı duyuramaz.
-                accessibilityLabel={`${parcaTamAdi(h.parcaId, dil)} ${HATA_TIPI_INDEKS[h.hataTipiId] ? hataTipiAdi(h.hataTipiId, dil) : ''}, demerit ${demeritDegeri(h)}, ${sinifDegeri(h)} — ${t('düzenle', 'edit')}`}
+                accessibilityLabel={`${parcaCiftiAdi(h, dil)} ${HATA_TIPI_INDEKS[h.hataTipiId] ? hataTipiAdi(h.hataTipiId, dil) : ''}, demerit ${demeritDegeri(h)}, ${sinifDegeri(h)} — ${t('düzenle', 'edit')}`}
                 onPress={() => calismaEkranindaAc({ denetimId: denetim.id, tur: 'hata', hataId: h.id })}
                 style={({ pressed }) => [s.hataSatiri, pressed && { opacity: 0.72 }]}
               >
@@ -340,7 +344,7 @@ export default function RaporEkrani() {
                 <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={s.hataAd} numberOfLines={1}>
-                    {parcaTamAdi(h.parcaId, dil)} — {hataTipiAdi(h.hataTipiId, dil)}
+                    {parcaCiftiAdi(h, dil)} — {hataTipiAdi(h.hataTipiId, dil)}
                   </Text>
                   <Text style={s.hataYol} numberOfLines={1}>
                     {[
@@ -364,6 +368,20 @@ export default function RaporEkrani() {
             ))}
           </View>
         </Kart>
+
+        {gunluk.length ? (
+          <Kart>
+            <BolumBasligi metin={t(`Değişiklik geçmişi (${gunluk.length})`, `Change history (${gunluk.length})`)} simge={S.son} />
+            <View style={{ gap: bosluk.xs }} testID="degisiklik-gecmisi">
+              {gunluk.map((g) => (
+                <View key={g.id} style={s.gunlukSatir}>
+                  <Text style={s.gunlukZaman}>{bicimTarih(g.zaman)}{g.denetci ? ` · ${g.denetci}` : ''}</Text>
+                  <Text style={s.gunlukMetin}>{gunlukOzeti(g, dil)}</Text>
+                </View>
+              ))}
+            </View>
+          </Kart>
+        ) : null}
 
         {bilgi ? <BilgiKutusu metin={bilgi} /> : null}
         {hata ? <HataKutusu metin={hata} /> : null}
@@ -468,6 +486,9 @@ const stiller = (r: Renkler) => StyleSheet.create({
   hataYol: { ...tipografi.caption, color: r.metinSolgun },
   fotoSayi: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   fotoSayiMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
+  gunlukSatir: { gap: 2, paddingVertical: bosluk.xxs, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: r.cizgiSolgun },
+  gunlukZaman: { ...tipografi.caption, color: r.metinSolgun },
+  gunlukMetin: { ...tipografi.body, color: r.metin },
 
   onayBandi: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,

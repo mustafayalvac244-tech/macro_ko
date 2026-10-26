@@ -846,6 +846,62 @@ dokunarak yer, derece, fotoğraf, Pareto, DPU) ATS Inspect ve Quality Live'ın
 canlı durum**, sesli not, kameradan otomatik bulgu, hat entegrasyonu (hattı
 durdurma, onarıma yönlendirme).
 
+## Dış değerlendirme ve veri güveni (26.10.2026)
+
+Ürün sahibi "profesyonel durmuyor" dedi; dört bağımsız ajan (saha denetçisi,
+arayüz tasarımcısı, kalite müdürü, estetik) web derlemesinde uygulamayı
+README'yi ve commit geçmişini OKUMADAN kullandı. Hepsi web'de, kendi
+senaryolarıyla, birer kez — gerçek kullanıcı ya da telefon değil. Kanaat
+puanları: saha 5/10 ("Excel'in yerine koymam"), estetik ~5/10, müdür "şartlı
+pilot evet, tam geçiş hayır". Raporlar scratchpad'de, depoda değil.
+
+**Aşama 1 — veri güveni (bu bölüm):** saha denetçisi ve müdür "asıl sorun
+görünüş değil, veriye güven" dedi. Ürün sahibinin kararları: demerit
+seçilmeden kayıt yok; sunucu şimdilik yok, telefonda güçlendir.
+
+- **Demerit zorunlu.** Parça açılınca demerit seçili gelmez; seçilmeden
+  hataya dokunmak kayıt atmaz, "Önce demerit seçin (0–3)" der. Eskiden 0 ile
+  başlıyordu ve unutulan demerit kaydı sessizce "skora girmez" yapıyordu.
+- **Denetçi zorunlu.** "Yine de başla" ile denetçisiz denetim açılabiliyordu;
+  artık açılmaz (son seçilen denetçi hatırlanır).
+- **"Problem yok" onay ister**: araç geri alınamaz biçimde hatasız
+  bitiyordu, tek dokunuşla.
+- **Skor yalnız biten denetimleri sayar** (`sayac.ts`): açılıp hiç hata
+  girilmemiş bir denetim skoru düşürüyordu.
+- **Fotoğraflar kalıcı klasörde** (`veri/fotografDeposu.ts`): küçültülen
+  fotoğraf önbellekte kalıyordu, Android silebilirdi (kodda doğrulandı,
+  cihazda denenmedi). Yeni fotoğraf belge klasörüne taşınır; eskiler
+  açılışta bir kez taşınır.
+- **Değişiklik günlüğü** (göç 10, `degisiklik_gunlugu`; `cekirdek/gunluk.ts`):
+  kayıt düzeltilince değişen alanların eski/yeni hâli, silinince satırın
+  tamamı (denetim silinince bütün hataları) yazılır. Rapor ekranının
+  altında *Değişiklik geçmişi*. "Kim" = denetimin denetçisi; giriş sistemi
+  olmadığı için gerçek kimlik DEĞİL. Silme hâlâ kalıcı, ama silinen kayıt
+  günlükte durur.
+- **Yedekten geri yükleme** (`cekirdek/zip.ts` → `zipOku`,
+  `cekirdek/geriYukleme.ts`, `veri/yedek.ts` → `yedekGeriYukle`): Ayarlar →
+  *Yedekten geri yükle* → onay → dosya seçici. Kayıtlar EKLENİR, telefonda
+  olan değişmez (INSERT OR IGNORE, tek işlem); fotoğraflar belge klasörüne.
+  Dosya seçici expo-file-system'in kendi seçicisi (yeni paket yok).
+- **Rapor ekranı iki parçayı yazar** ("Kaput ↔ Sol ön çamurluk"): önceki
+  sürümde yalnız dışa aktarım yazıyordu, ekran ilk parçada kalıyordu — dış
+  değerlendirmede yakalandı, README'de yanlış yazmıştım.
+- Yeni denetim formundaki uyarı telefonda ekrandan taşıyordu (sağ kenar
+  445 px, ekran 390): düzeldi.
+
+**Doğrulama:** birim testleri (zip okuma/CRC/sıkıştırılmış girdi, yedek
+doğrulama, komut planı, günlük farkı ve cümleleri, bitmemiş denetim). Göç 10
+ve geri yükleme Node'un gerçek SQLite'ında `GOCLER` ile koşuldu: boş telefona
+2 denetim/3 hata/1 foto/1 günlük geldi, aynı yedek ikinci kez 0 satır ekledi,
+telefonda düzeltilmiş kayıt ezilmedi, göç 8 döneminin yedeği yüklendi, göç
+9 → 10 kaydı korudu. **Telefonda denenmedi:** dosya seçici, fotoğraf taşıma,
+gerçek bir yedeğin geri yüklenmesi.
+
+**Yapılmayan (bilerek, şimdilik):** merkezi sunucu ve giriş sistemi (ürün
+sahibi "şimdilik telefonda güçlendir" dedi); NAS aktarımında tekrar satır
+riski (Excel'in sütun düzenine benzersiz kimlik eklemek ekibin dosyasını
+bozabilir); demerit tanımlarının ekipten alınması.
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |

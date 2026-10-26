@@ -101,3 +101,42 @@ export function zipOlustur(dosyalar: ZipGirdisi[], tarih: Date = new Date()): Ui
 
   return z.topla();
 }
+
+/**
+ * ZIP OKUYUCU (26.10.2026, yedekten geri yükleme). Yalnız bu dosyanın
+ * yazdığı biçim: sıkıştırılmamış ("store") girdiler. Merkezi dizinden okunur;
+ * sıkıştırılmış bir girdi (başka bir programla yeniden paketlenmiş yedek)
+ * sessizce bozuk okunmasın diye HATA verir. CRC denetlenir.
+ */
+export function zipOku(bayt: Uint8Array): { ad: string; veri: Uint8Array }[] {
+  const g = new DataView(bayt.buffer, bayt.byteOffset, bayt.byteLength);
+  // Dizin sonu kaydı (EOCD) sondan geriye aranır (yorum alanı en çok 65535 bayt).
+  let son = -1;
+  for (let i = bayt.length - 22; i >= Math.max(0, bayt.length - 22 - 65535); i--) {
+    if (g.getUint32(i, true) === 0x06054B50) { son = i; break; }
+  }
+  if (son < 0) throw new Error('ZIP değil: dizin sonu bulunamadı');
+  const adet = g.getUint16(son + 10, true);
+  let p = g.getUint32(son + 16, true);
+  const cozucu = new TextDecoder();
+  const sonuc: { ad: string; veri: Uint8Array }[] = [];
+  for (let n = 0; n < adet; n++) {
+    if (g.getUint32(p, true) !== 0x02014B50) throw new Error('ZIP bozuk: merkezi dizin girdisi yok');
+    const yontem = g.getUint16(p + 10, true);
+    const crc = g.getUint32(p + 16, true);
+    const boyut = g.getUint32(p + 20, true);
+    const adUz = g.getUint16(p + 28, true);
+    const ekUz = g.getUint16(p + 30, true);
+    const yorumUz = g.getUint16(p + 32, true);
+    const yerel = g.getUint32(p + 42, true);
+    const ad = cozucu.decode(bayt.subarray(p + 46, p + 46 + adUz));
+    if (yontem !== 0) throw new Error(`ZIP girdisi sıkıştırılmış, okunamaz: ${ad}`);
+    if (g.getUint32(yerel, true) !== 0x04034B50) throw new Error(`ZIP bozuk: yerel başlık yok (${ad})`);
+    const veriBas = yerel + 30 + g.getUint16(yerel + 26, true) + g.getUint16(yerel + 28, true);
+    const veri = bayt.subarray(veriBas, veriBas + boyut);
+    if (crc32(veri) !== crc) throw new Error(`ZIP bozuk: CRC uymuyor (${ad})`);
+    if (!ad.endsWith('/')) sonuc.push({ ad, veri });
+    p += 46 + adUz + ekUz + yorumUz;
+  }
+  return sonuc;
+}

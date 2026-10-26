@@ -9,10 +9,11 @@ import {
   Baslik, BilgiKutusu, BolumBasligi, Dugme, Ekran, Kart, Secenek, useDuzen,
 } from '@/bilesenler/temel';
 import { grupAdi } from '@/cekirdek/katalog';
+import { bicimTarih } from '@/cekirdek/rapor';
 import { HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
 import { bosluk, kose, Renkler, TemaTercihi, tipografi, useTema } from '@/tema';
 import { bekleyenSenkron, hataTipiKullanimi } from '@/veri/depo';
-import { nasExcelOlustur, yedekOlustur } from '@/veri/yedek';
+import { nasExcelOlustur, yedekGeriYukle, yedekOlustur } from '@/veri/yedek';
 import { useDil, useDilDeposu } from '@/veri/dilDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
 
@@ -39,6 +40,29 @@ export default function Ayarlar() {
   const [yedekleniyor, setYedekleniyor] = useState(false);
   const [yedekSonucu, setYedekSonucu] = useState<string | null>(null);
   const [yedekHatasi, setYedekHatasi] = useState<string | null>(null);
+  // GERİ YÜKLEME (26.10.2026): önce sorulur; kayıtlar eklenir, var olan değişmez.
+  const [geriSoru, setGeriSoru] = useState(false);
+  const [geriYukleniyor, setGeriYukleniyor] = useState(false);
+  const [geriSonucu, setGeriSonucu] = useState<string | null>(null);
+  const [geriHatasi, setGeriHatasi] = useState<string | null>(null);
+  const geriYukle = async () => {
+    setGeriSoru(false); setGeriYukleniyor(true); setGeriSonucu(null); setGeriHatasi(null);
+    try {
+      const g = await yedekGeriYukle();
+      if (g.iptal) return;
+      setGeriSonucu(t(
+        `Yedek (${g.yedekTarihi ? bicimTarih(g.yedekTarihi) : 'tarihsiz'}) yüklendi: ${g.denetim} denetim, ${g.hata} hata, ${g.foto} fotoğraf eklendi.`
+          + (g.zatenVarDenetim ? ` ${g.zatenVarDenetim} denetim telefonda zaten vardı, dokunulmadı.` : ''),
+        `Backup (${g.yedekTarihi ? bicimTarih(g.yedekTarihi) : 'undated'}) restored: added ${g.denetim} audits, ${g.hata} defects, ${g.foto} photos.`
+          + (g.zatenVarDenetim ? ` ${g.zatenVarDenetim} audits were already on the phone and left unchanged.` : ''),
+      ));
+      bekleyenSenkron().then(setBekleyen).catch(() => {});
+    } catch (h) {
+      setGeriHatasi(t(`Geri yüklenemedi: ${h instanceof Error ? h.message : String(h)}`, `Restore failed: ${h instanceof Error ? h.message : String(h)}`));
+    } finally {
+      setGeriYukleniyor(false);
+    }
+  };
   const yedekAl = async () => {
     setYedekleniyor(true); setYedekSonucu(null); setYedekHatasi(null);
     try {
@@ -167,9 +191,9 @@ export default function Ayarlar() {
           <Text style={s.aciklama}>
             {t(
               "Yedek: bütün denetimler, hatalar ve fotoğraflar tek zip dosyasında; Drive'a ya da e-postaya koyun. "
-              + 'Telefon kaybolursa tek kopya budur. Geri yükleme henüz yok; dosya düz JSON + JPEG.',
+              + 'Telefon kaybolursa tek kopya budur. Yeni telefonda "Yedekten geri yükle" ile geri alınır.',
               'Backup: all audits, defects and photos in a single zip file; put it on Drive or in an email. '
-              + 'If the phone is lost, this is the only copy. No restore yet; the file is plain JSON + JPEG.',
+              + 'If the phone is lost, this is the only copy. On a new phone, bring it back with "Restore from backup".',
             )}
           </Text>
           <Dugme
@@ -181,6 +205,31 @@ export default function Ayarlar() {
           />
           {yedekSonucu ? <BilgiKutusu tur="basari" metin={yedekSonucu} /> : null}
           {yedekHatasi ? <BilgiKutusu tur="uyari" metin={yedekHatasi} /> : null}
+          {geriSoru ? (
+            <View style={{ gap: bosluk.xs }} testID="geri-yukle-onay">
+              <BilgiKutusu
+                tur="uyari"
+                metin={t(
+                  'Seçeceğiniz yedekteki kayıtlar bu telefona EKLENİR. Telefonda zaten olan kayıtlar değişmez, silinmez.',
+                  'Records in the backup you pick are ADDED to this phone. Records already on the phone are not changed or deleted.',
+                )}
+              />
+              <View style={{ flexDirection: 'row', gap: bosluk.xs }}>
+                <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" onPress={() => setGeriSoru(false)} style={{ flex: 1 }} />
+                <Dugme metin={t('Yedek dosyasını seç', 'Pick backup file')} tur="birincil" onPress={geriYukle} style={{ flex: 1.4 }} />
+              </View>
+            </View>
+          ) : (
+            <Dugme
+              metin={t('Yedekten geri yükle', 'Restore from backup')}
+              simge={S.geriAl}
+              yukleniyor={geriYukleniyor}
+              onPress={() => { setGeriSoru(true); setGeriSonucu(null); setGeriHatasi(null); }}
+              erisimEtiketi={t('Yedek zip dosyasından kayıtları geri yükle', 'Restore records from a backup zip')}
+            />
+          )}
+          {geriSonucu ? <BilgiKutusu tur="basari" metin={geriSonucu} /> : null}
+          {geriHatasi ? <BilgiKutusu tur="uyari" metin={geriHatasi} /> : null}
 
           <Text style={s.aciklama}>
             {t(

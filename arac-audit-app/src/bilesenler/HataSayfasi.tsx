@@ -16,6 +16,7 @@ import { DereceKodu, Hata, HataGrubuId, HataTipi, SinifKodu, SorunTipi } from '@
 import { bosluk, DOKUNMA, dereceRenkleri, kose, Renkler, tipografi, useTema } from '@/tema';
 import { fotografKaydet, FotografKaydi, fotografSil } from '@/veri/depo';
 import { useDil } from '@/veri/dilDeposu';
+import { fotografiKaliciyaAl } from '@/veri/fotografDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
 
 export interface HataTaslagi extends Omit<Hata, 'id' | 'zaman'> {
@@ -155,7 +156,9 @@ export function HataSayfasi({
       const yeniler: string[] = [];
       for (const varlik of sonuc.assets) {
         const kucuk = await fotografKucult(varlik.uri);
-        const kayit = await fotografKaydet(denetimId, taslak?.id ?? null, kucuk.uri, kucuk.en, kucuk.boy);
+        // Önbellekte bırakılırsa Android silebilir: belge klasörüne taşınır (fotografDeposu.ts).
+        const kalici = await fotografiKaliciyaAl(kucuk.uri, `f_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`);
+        const kayit = await fotografKaydet(denetimId, taslak?.id ?? null, kalici, kucuk.en, kucuk.boy);
         yeniler.push(kayit.id);
       }
       setFotoIdleri((o) => [...o, ...yeniler]);
@@ -642,7 +645,8 @@ const DEMERIT_SIRASI = [...DERECELER].sort((a, b) => a.id.localeCompare(b.id));
 export function DereceSecici({
   derece, onSec, etiketOnEki = 'Demerit', kucuk = false,
 }: {
-  derece: DereceKodu;
+  /** null: henüz seçilmedi (hızlı kayıtta demerit zorunlu, varsayılan yok). */
+  derece: DereceKodu | null;
   onSec: (d: DereceKodu) => void;
   /** Aynı ekranda iki derece seçici varsa ekran okuyucu ayırt etsin diye. */
   etiketOnEki?: string;

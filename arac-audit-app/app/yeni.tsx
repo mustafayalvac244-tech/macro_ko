@@ -30,9 +30,9 @@ import { useTarama } from '@/veri/tarama';
  * BODY NO 26.10.2026'dan beri Excel'in kuralıyla: yalnız rakam, tam 6 hane.
  *
  * BODY NO VE "PROBLEM YOK" (aynı gün, aynı Excel formundan): şasi ya da body
- * no'dan biri yeter. "Problem yok" hatasız aracı tek dokunuşla kaydedip
- * bitirir — Excel'deki "Problem Yok Aracı Kaydet"; sayaçta denetlenen araç
- * olarak sayılır.
+ * no'dan biri yeter. "Problem yok" hatasız aracı kaydedip bitirir — Excel'deki
+ * "Problem Yok Aracı Kaydet"; sayaçta denetlenen araç olarak sayılır.
+ * 26.10.2026'dan beri onay ister (geri alınamaz) ve denetçi seçmek zorunlu.
  */
 
 /**
@@ -73,6 +73,7 @@ export default function YeniDenetim() {
   // dokunuş yine de başlatır (sınama: denetçisiz ve aynı şasiyle
   // uyarısız başlıyordu, künye sonradan düzeltilemiyordu).
   const [eksikSoylendi, setEksikSoylendi] = useState(false);
+  const [hatasizSoru, setHatasizSoru] = useState(false);
   const [onceki, setOnceki] = useState<{ anahtar: string; liste: OncekiDenetim[] } | null>(null);
   const kaydir = useRef<ScrollView>(null);
   const [bilgiY, setBilgiY] = useState(0);
@@ -109,12 +110,17 @@ export default function YeniDenetim() {
     !listedeyse(denetciler.liste, v.denetci) && t('denetçi', 'auditor'),
   ].filter(Boolean) as string[];
   const onceVar = !!onceki && onceki.anahtar === kimlikAnahtari && onceki.liste.length > 0;
+  // Şasi değişince açık "hatasız bitir?" sorusu eski araca aitti: kapanır.
+  useEffect(() => { setHatasizSoru(false); }, [kimlikAnahtari]);
 
   /** "Denetime başla" ve "Problem yok" aynı denetimi açar; ikincisi hemen bitirir. */
-  const olustur = useCallback(async (hatasiz: boolean) => {
+  const olustur = useCallback(async (hatasiz: boolean, hatasizOnaylandi = false) => {
     setDenendi(true);
     if (!kimlikTamam) return;
-    if (eksikler.length && !eksikSoylendi) {
+    // DENETÇİ ZORUNLU (26.10.2026): "Yine de başla" ile denetçisiz denetim
+    // açılabiliyordu; dış değerlendirmede kalite müdürü "kaydın kime ait olduğu
+    // belli değil" diye engelleyici saydı. Artık seçilmeden açılmaz.
+    if (eksikler.length) {
       setEksikSoylendi(true);
       kaydir.current?.scrollTo({ y: bilgiY, animated: true });
       return;
@@ -123,6 +129,12 @@ export default function YeniDenetim() {
       const liste = await ayniAracinDenetimleri({ vin: vinBos ? '' : vin.vin, bodyNo }).catch(() => []);
       setOnceki({ anahtar: kimlikAnahtari, liste });
       if (liste.length) return;
+    }
+    // PROBLEM YOK ONAYLI (26.10.2026): tek dokunuş aracı geri alınamaz biçimde
+    // "hatasız · tamamlandı" yapıyordu, "Denetime başla"nın hemen yanında.
+    if (hatasiz && !hatasizOnaylandi) {
+      setHatasizSoru(true);
+      return;
     }
     setGonderiliyor(true);
     try {
@@ -310,8 +322,8 @@ export default function YeniDenetim() {
           <BilgiKutusu
             tur="uyari"
             metin={t(
-              `${eksikMetni} seçilmedi; raporda boş kalır. Seçin ya da yine de başlatın.`,
-              `${eksikMetni} not selected; it will be blank in the report. Select it or start anyway.`,
+              `${eksikMetni} seçin: kaydın kime ait olduğu bilinmeden denetim açılmaz.`,
+              `Select the ${eksikMetni.toLocaleLowerCase('en')}: an audit can't start without knowing whose record it is.`,
             )}
           />
         </View>
@@ -334,6 +346,28 @@ export default function YeniDenetim() {
           />
         </View>
       ) : null}
+      {hatasizSoru ? (
+        <View style={s.uyariBandi} testID="problem-yok-onay">
+          <BilgiKutusu
+            tur="uyari"
+            metin={t(
+              'Araç HATASIZ kaydedilecek ve denetim hemen bitecek. Emin misiniz?',
+              'The vehicle will be saved DEFECT-FREE and the audit finished right away. Are you sure?',
+            )}
+          />
+          <View style={s.satir}>
+            <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" onPress={() => setHatasizSoru(false)} style={{ flex: 1 }} />
+            <Dugme
+              metin={t('Evet, hatasız bitir', 'Yes, finish defect-free')}
+              tur="birincil"
+              simge={S.tamam}
+              yukleniyor={gonderiliyor}
+              onPress={() => { setHatasizSoru(false); olustur(true, true); }}
+              style={{ flex: 1.4 }}
+            />
+          </View>
+        </View>
+      ) : null}
 
       <AltCubuk style={tablet ? { justifyContent: 'flex-end' } : undefined}>
         {/* Excel'deki "Problem Yok Aracı Kaydet": hatasız araç açılıp kapanmadan,
@@ -349,7 +383,7 @@ export default function YeniDenetim() {
           style={tablet ? { minWidth: 200 } : { flex: 1 }}
         />
         <Dugme
-          metin={(eksikler.length && eksikSoylendi) || onceVar ? t('Yine de başla', 'Start anyway') : t('Denetime başla', 'Start audit')}
+          metin={onceVar ? t('Yine de başla', 'Start anyway') : t('Denetime başla', 'Start audit')}
           tur="birincil"
           simge={S.basla}
           simgeSonda
@@ -376,8 +410,10 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   satir: { flexDirection: 'row', gap: bosluk.xs },
   alanEtiketi: { ...tipografi.caption, color: r.metinIkincil },
+  // Sütun: satır + flexWrap'te uyarı kutusu daralamıyor, telefonda ekrandan
+  // taşıyordu (dış değerlendirme, 26.10.2026: sağ kenar 445 px, ekran 390).
   uyariBandi: {
-    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, flexWrap: 'wrap',
+    gap: bosluk.xs,
     paddingHorizontal: bosluk.md, paddingTop: bosluk.xs, backgroundColor: r.bg,
   },
 });

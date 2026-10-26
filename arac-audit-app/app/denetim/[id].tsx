@@ -65,6 +65,12 @@ import { useKatalog } from '@/veri/katalogDeposu';
  * kalktı: Excel'de yok, karşılığı demerit 0. SYSTEM parça ve tipten önerilir
  * (nas.ts); ayrıntıda değiştirilebilir.
  *
+ * DEMERIT ZORUNLU (26.10.2026): 0 ile başlamak, demerit seçmeyi unutan
+ * denetçinin kaydını sessizce "skora girmez" yapıyordu (dış değerlendirmede
+ * saha denetçisi ve kalite müdürü ayrı ayrı buldu; ürün sahibi "seçmeden
+ * kaydetmesin" dedi). Artık parça açılınca demerit SEÇİLİ DEĞİL; seçilmeden
+ * hataya dokunmak kayıt atmaz, "önce demerit seçin" der. Class MINOR'da kalır.
+ *
  * ADIM ADIM SEÇİM (ürün sahibi, 24.10.2026: "seçe seçe ilerlesinler, en
  * dıştan"): parça artık Sistem → Bölge → Parça diye seçilir (AdimliSecim.tsx).
  * Kayıttan sonra aynı bölgenin parçalarına dönülür.
@@ -110,7 +116,10 @@ export default function DenetimEkrani() {
   const [konum, setKonum] = useState<Konum>(KOK_KONUM);
   const [hataArama, setHataArama] = useState('');
   // Excel formu gibi 0 / MINOR ile başlar, her kayıttan sonra oraya döner.
-  const [derece, setDerece] = useState<DereceKodu>('0');
+  const [derece, setDerece] = useState<DereceKodu | null>(null);
+  // Demerit seçmeden hataya dokunulduysa: uyarı her zaman görünen demerit şeridinde
+  // (ızgaranın üstündeki kutu kaydırılmış ekranda görünmüyordu — 26.10.2026 ekran görüntüsü).
+  const [dereceIste, setDereceIste] = useState(false);
   const [sinif, setSinif] = useState<SinifKodu>(VARSAYILAN_SINIF);
   const [yeniTipAcik, setYeniTipAcik] = useState(false);
   const [kayitHatasi, setKayitHatasi] = useState<string | null>(null);
@@ -162,7 +171,7 @@ export default function DenetimEkrani() {
     return () => { if (bildirimZamanlayici.current) clearTimeout(bildirimZamanlayici.current); };
   }, []);
 
-  const dereceSec = useCallback((d: DereceKodu) => setDerece(d), []);
+  const dereceSec = useCallback((d: DereceKodu) => { setDerece(d); setDereceIste(false); }, []);
 
   const arac = denetim ? ARAC_INDEKS[denetim.aracId] : undefined;
   const parca = parcaId ? PARCA_INDEKS[parcaId] : undefined;
@@ -229,7 +238,8 @@ export default function DenetimEkrani() {
     setHataArama('');
     setYeniTipAcik(false);
     setKayitHatasi(null);
-    setDerece('0');
+    setDerece(null);
+    setDereceIste(false);
     setSinif(VARSAYILAN_SINIF);
   }, []);
 
@@ -243,6 +253,11 @@ export default function DenetimEkrani() {
   /** Tek dokunuşla kayıt — bu ekranın var olma sebebi. */
   const hizliKaydet = useCallback(async (tip: HataTipi) => {
     if (!denetim || !parcaId) return;
+    if (derece === null) {
+      setKayitHatasi(t('Önce demerit seçin (0–3). Demerit seçilmeden kayıt yapılmaz.', 'Pick a demerit first (0–3). Nothing is saved without one.'));
+      setDereceIste(true);
+      return;
+    }
     setKayitHatasi(null);
     const kayit: Hata = {
       id: kimlikUret('h'),
@@ -286,7 +301,8 @@ export default function DenetimEkrani() {
       ),
     }, 6000);
 
-    setDerece('0');
+    setDerece(null);
+    setDereceIste(false);
     setSinif(VARSAYILAN_SINIF);
     parcalaraDon();
     setParcaArama('');
@@ -472,9 +488,15 @@ export default function DenetimEkrani() {
         ) : null}
       </View>
 
-      <View style={[s.dereceSerit, tablet && s.dereceSeritTablet]}>
+      <View style={[s.dereceSerit, tablet && s.dereceSeritTablet, dereceIste && s.dereceSeritUyari]} testID="derece-serit">
         <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
-          <Text style={s.dereceEtiket}>{t('Demerit — 0 skora girmez', 'Demerit — 0 not scored')}</Text>
+          {dereceIste ? (
+            <Text style={[s.dereceEtiket, { color: renkler.uyari }]} accessibilityLiveRegion="polite">
+              {t('Önce demerit seçin — sonra hataya dokunun', 'Pick a demerit first — then tap the defect')}
+            </Text>
+          ) : (
+            <Text style={s.dereceEtiket}>{t('Demerit — 0 skora girmez', 'Demerit — 0 not scored')}</Text>
+          )}
           <DereceSecici derece={derece} onSec={dereceSec} kucuk />
         </View>
         <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
@@ -495,18 +517,27 @@ export default function DenetimEkrani() {
             (sınama, 28.09.2026). Sonuç burada: dokunulan hata BU değerle düşer. */}
         {/* Ekran okuyucu için TEK cümle; rozet ağaçtan gizli — yoksa demerit
             seçicisiyle aynı adlı ikinci bir öğe oluyordu. */}
-        <View
-          style={s.kayitDerecesi}
-          accessible
-          accessibilityLabel={t(
-            `Dokunduğunuz hata demerit ${derece}, ${sinif} olarak kaydedilir`,
-            `The defect you tap is saved as demerit ${derece}, ${sinif}`,
-          )}
-        >
-          <Text style={s.kayitDerecesiMetin} aria-hidden>{t('Dokunduğunuz hata', 'The defect you tap is saved as')}</Text>
-          <View aria-hidden><DereceRozeti derece={derece} kabul={false} /></View>
-          <Text style={s.kayitDerecesiMetin} aria-hidden>{t(`· ${sinif} olarak kaydedilir`, `· ${sinif}`)}</Text>
-        </View>
+        {derece === null ? (
+          <View style={[s.kayitDerecesi, s.kayitDerecesiEksik]} accessible accessibilityLabel={t('Önce demerit seçin', 'Pick a demerit first')}>
+            <S.uyari size={16} color={renkler.uyari} strokeWidth={2.25} />
+            <Text style={[s.kayitDerecesiMetin, { color: renkler.uyari }]} aria-hidden>
+              {t('Önce yukarıdan demerit seçin (0–3)', 'Pick a demerit above first (0–3)')}
+            </Text>
+          </View>
+        ) : (
+          <View
+            style={s.kayitDerecesi}
+            accessible
+            accessibilityLabel={t(
+              `Dokunduğunuz hata demerit ${derece}, ${sinif} olarak kaydedilir`,
+              `The defect you tap is saved as demerit ${derece}, ${sinif}`,
+            )}
+          >
+            <Text style={s.kayitDerecesiMetin} aria-hidden>{t('Dokunduğunuz hata', 'The defect you tap is saved as')}</Text>
+            <View aria-hidden><DereceRozeti derece={derece} kabul={false} /></View>
+            <Text style={s.kayitDerecesiMetin} aria-hidden>{t(`· ${sinif} olarak kaydedilir`, `· ${sinif}`)}</Text>
+          </View>
+        )}
 
         {kayitHatasi ? <HataKutusu metin={kayitHatasi} /> : null}
 
@@ -533,10 +564,12 @@ export default function DenetimEkrani() {
                     <Pressable
                       key={tip.id}
                       accessibilityRole="button"
-                      accessibilityLabel={t(
-                        `${tip.ad}${tip.en ? ` (${tip.en})` : ''} — demerit ${derece}, ${sinif} olarak kaydet`,
-                        `${tip.en || tip.ad} — save as demerit ${derece}, ${sinif}`,
-                      )}
+                      accessibilityLabel={derece === null
+                        ? t(`${tip.ad}${tip.en ? ` (${tip.en})` : ''} — önce demerit seçin`, `${tip.en || tip.ad} — pick a demerit first`)
+                        : t(
+                          `${tip.ad}${tip.en ? ` (${tip.en})` : ''} — demerit ${derece}, ${sinif} olarak kaydet`,
+                          `${tip.en || tip.ad} — save as demerit ${derece}, ${sinif}`,
+                        )}
                       onPress={() => hizliKaydet(tip)}
                       style={({ pressed }) => [s.hataDugme, pressed && s.hataDugmeBasili]}
                     >
@@ -925,6 +958,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun, backgroundColor: r.bgYukseltilmis,
   },
   dereceSeritTablet: { flexDirection: 'row', alignItems: 'flex-end', gap: bosluk.md },
+  dereceSeritUyari: { backgroundColor: r.uyariYumusak, borderBottomColor: r.uyari },
   dereceEtiket: { ...tipografi.etiket, color: r.metinSolgun },
 
   hataGovde: { padding: bosluk.md, gap: bosluk.md, paddingBottom: 120 },
@@ -957,6 +991,9 @@ const stiller = (r: Renkler) => StyleSheet.create({
   ozetGovde: { padding: bosluk.lg, gap: bosluk.md, paddingBottom: 120, maxWidth: 760, width: '100%', alignSelf: 'center' },
   kayitDerecesi: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   kayitDerecesiMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
+  kayitDerecesiEksik: {
+    padding: bosluk.xs, borderRadius: kose.sm, backgroundColor: r.uyariYumusak,
+  },
 
   // Bildirim — iki temada da uygulama çubuğunun koyu yüzeyi.
   bildirimKap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: bosluk.md },

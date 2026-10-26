@@ -12,6 +12,7 @@
 
 import * as SQLite from 'expo-sqlite';
 
+import { GunlukKaydi, GunlukTuru, satirFarki } from '@/cekirdek/gunluk';
 import type { HataKaydi } from '@/cekirdek/istatistik';
 import { demeritDegeri, sistemDegeri } from '@/cekirdek/nas';
 import type { SayacGirdisi } from '@/cekirdek/sayac';
@@ -211,6 +212,26 @@ const GOCLER: string[] = [
   `
   ALTER TABLE hatalar ADD COLUMN ikinci_parca_id TEXT NOT NULL DEFAULT '';
   `,
+
+  // 10 — DEĞİŞİKLİK GÜNLÜĞÜ (26.10.2026). Dış değerlendirmede kalite müdürü:
+  // "düzeltme ve silme iz bırakmıyor, skor sonradan değiştirilebilir".
+  // Kayıt düzeltilince ya da silinince eski (ve yeni) hâli JSON olarak buraya
+  // yazılır; silinen denetimin bütün hataları dahil. Denetime YABANCI ANAHTAR
+  // YOK: denetim silinince iz kalmalı. Kimlik doğrulama olmadığı için "kim"
+  // denetimin denetçisidir — gerçek kullanıcı kimliği değil.
+  `
+  CREATE TABLE IF NOT EXISTS degisiklik_gunlugu (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    zaman       TEXT NOT NULL,
+    denetim_id  TEXT NOT NULL,
+    kayit_id    TEXT NOT NULL,
+    tur         TEXT NOT NULL,
+    denetci     TEXT NOT NULL DEFAULT '',
+    eski        TEXT,
+    yeni        TEXT
+  );
+  CREATE INDEX IF NOT EXISTS ix_gunluk_denetim ON degisiklik_gunlugu(denetim_id);
+  `,
 ];
 
 async function gocleriUygula(d: SQLite.SQLiteDatabase): Promise<void> {
@@ -391,10 +412,39 @@ export async function istatistikVerisi(baslangicSonrasi: Date): Promise<HataKayd
  */
 export async function yedekVerisi(): Promise<Record<string, unknown[]>> {
   const d = await db();
-  const tablolar = ['denetimler', 'hatalar', 'fotograflar', 'ozel_hata_tipleri', 'ayarlar', 'kalip_sayaci', 'denetim_kapsam'];
+  const tablolar = ['denetimler', 'hatalar', 'fotograflar', 'ozel_hata_tipleri', 'ayarlar', 'kalip_sayaci', 'denetim_kapsam', 'degisiklik_gunlugu'];
   const sonuc: Record<string, unknown[]> = {};
   for (const t of tablolar) sonuc[t] = await d.getAllAsync(`SELECT * FROM ${t}`);
   return sonuc;
+}
+
+/** Geri yükleme için telefondaki tabloların sütunları (PRAGMA table_info). */
+export async function tabloSutunlari(tablolar: readonly string[]): Promise<Record<string, string[]>> {
+  const d = await db();
+  const sonuc: Record<string, string[]> = {};
+  for (const t of tablolar) {
+    const satirlar = await d.getAllAsync<{ name: string }>(`PRAGMA table_info(${t})`);
+    if (satirlar.length) sonuc[t] = satirlar.map((s) => s.name);
+  }
+  return sonuc;
+}
+
+/**
+ * Geri yükleme komutlarını TEK işlemde koşar (yarıda kesilirse hiçbiri yazılmaz).
+ * Tablo başına eklenen satır sayısını döndürür (zaten olan satır 0 sayılır).
+ */
+export async function yedektenEkle(
+  komutlar: readonly { tablo: string; sql: string; degerler: (string | number | null)[] }[],
+): Promise<Record<string, number>> {
+  const d = await db();
+  const eklenen: Record<string, number> = {};
+  await d.withTransactionAsync(async () => {
+    for (const k of komutlar) {
+      const r = await d.runAsync(k.sql, ...k.degerler);
+      eklenen[k.tablo] = (eklenen[k.tablo] ?? 0) + r.changes;
+    }
+  });
+  return eklenen;
 }
 
 /**
@@ -407,9 +457,9 @@ export async function yedekVerisi(): Promise<Record<string, unknown[]>> {
 export async function sayacVerisi(baslangicSonrasi: Date): Promise<SayacGirdisi[]> {
   const d = await db();
   const satirlar = await d.getAllAsync<{
-    arac_id: string; baslangic: string; kaynak: string | null; hata_adedi: number | null; demerit: number | null;
+    arac_id: string; baslangic: string; durum: string; kaynak: string | null; hata_adedi: number | null; demerit: number | null;
   }>(
-    `SELECT dn.arac_id, dn.baslangic, dn.denetim_tipi AS kaynak, COALESCE(SUM(h.adet), 0) AS hata_adedi,
+    `SELECT dn.arac_id, dn.baslangic, dn.durum, dn.denetim_tipi AS kaynak, COALESCE(SUM(h.adet), 0) AS hata_adedi,
             COALESCE(SUM(CASE WHEN h.kabul_edilebilir = 1 THEN 0 ELSE CAST(h.derece AS INTEGER) END * h.adet), 0) AS demerit
        FROM denetimler dn
        LEFT JOIN hatalar h ON h.denetim_id = dn.id
@@ -418,7 +468,7 @@ export async function sayacVerisi(baslangicSonrasi: Date): Promise<SayacGirdisi[
     baslangicSonrasi.toISOString(),
   );
   return satirlar.map((x) => ({
-    aracId: x.arac_id, baslangic: x.baslangic, kaynak: x.kaynak ?? '', hataAdedi: x.hata_adedi ?? 0, demerit: x.demerit ?? 0,
+    aracId: x.arac_id, baslangic: x.baslangic, durum: x.durum, kaynak: x.kaynak ?? '', hataAdedi: x.hata_adedi ?? 0, demerit: x.demerit ?? 0,
   }));
 }
 
@@ -471,10 +521,16 @@ export async function denetimGuncelle(id: string, alanlar: Partial<Denetim>): Pr
     degerler.push(v as SQLite.SQLiteBindValue);
   }
   if (!setler.length) return;
+  const onceki = await d.getFirstAsync<Record<string, unknown>>('SELECT * FROM denetimler WHERE id = ?', id);
   // Her değişiklik senkron damgasını düşürür: sunucudaki kopya artık eski.
   setler.push('guncelleme = ?', 'senkron_zamani = NULL');
   degerler.push(simdi(), id);
   await d.runAsync(`UPDATE denetimler SET ${setler.join(', ')} WHERE id = ?`, ...degerler);
+  if (onceki) {
+    const sonra = await d.getFirstAsync<Record<string, unknown>>('SELECT * FROM denetimler WHERE id = ?', id);
+    const fark = satirFarki(onceki, sonra ?? {}, ['guncelleme', 'senkron_zamani']);
+    if (fark) await gunlugeYaz(d, { denetimId: id, kayitId: id, tur: 'denetim_duzeltildi', denetci: String(onceki.denetci ?? ''), ...fark });
+  }
 }
 
 /**
@@ -499,13 +555,56 @@ export async function ayniAracinDenetimleri(kimlik: { vin: string; bodyNo: strin
 
 export async function denetimSil(id: string): Promise<void> {
   const d = await db();
+  const denetim = await d.getFirstAsync<Record<string, unknown>>('SELECT * FROM denetimler WHERE id = ?', id);
+  if (denetim) {
+    const hatalar = await d.getAllAsync<Record<string, unknown>>('SELECT * FROM hatalar WHERE denetim_id = ?', id);
+    await gunlugeYaz(d, {
+      denetimId: id, kayitId: id, tur: 'denetim_silindi', denetci: String(denetim.denetci ?? ''),
+      eski: { denetim, hatalar }, yeni: null,
+    });
+  }
   await d.runAsync('DELETE FROM denetimler WHERE id = ?', id);
+}
+
+// --- DEĞİŞİKLİK GÜNLÜĞÜ (göç 10) ------------------------------------------
+
+async function gunlugeYaz(d: SQLite.SQLiteDatabase, g: {
+  denetimId: string; kayitId: string; tur: GunlukTuru; denetci: string;
+  eski: Record<string, unknown> | null; yeni: Record<string, unknown> | null;
+}): Promise<void> {
+  await d.runAsync(
+    `INSERT INTO degisiklik_gunlugu (zaman, denetim_id, kayit_id, tur, denetci, eski, yeni) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    simdi(), g.denetimId, g.kayitId, g.tur, g.denetci,
+    g.eski ? JSON.stringify(g.eski) : null, g.yeni ? JSON.stringify(g.yeni) : null,
+  );
+}
+
+/** Bir denetimin değişiklik günlüğü, en yenisi önce. */
+export async function degisiklikGunlugu(denetimId: string): Promise<GunlukKaydi[]> {
+  const d = await db();
+  const satirlar = await d.getAllAsync<{
+    id: number; zaman: string; denetim_id: string; kayit_id: string; tur: string; denetci: string; eski: string | null; yeni: string | null;
+  }>('SELECT * FROM degisiklik_gunlugu WHERE denetim_id = ? ORDER BY id DESC', denetimId);
+  const coz = (s: string | null) => { try { return s ? JSON.parse(s) as Record<string, unknown> : null; } catch { return null; } };
+  return satirlar.map((r) => ({
+    id: r.id, zaman: r.zaman, denetimId: r.denetim_id, kayitId: r.kayit_id, tur: r.tur as GunlukTuru,
+    denetci: r.denetci, eski: coz(r.eski), yeni: coz(r.yeni),
+  }));
+}
+
+/** Bütün günlükteki kayıt sayısı (Ayarlar → veri). */
+export async function gunlukSayisi(): Promise<number> {
+  const d = await db();
+  const r = await d.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM degisiklik_gunlugu');
+  return r?.n ?? 0;
 }
 
 // --- HATA -----------------------------------------------------------------
 
 export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
   const d = await db();
+  // Var olan kayıt düzeltiliyorsa eski hâli günlüğe (göç 10). Yeni kayıt günlüğe girmez: kendisi iz.
+  const onceki = await d.getFirstAsync<Record<string, unknown>>('SELECT * FROM hatalar WHERE id = ?', hata.id);
   await d.runAsync(
     `INSERT INTO hatalar (id, denetim_id, parca_id, hata_tipi_id, derece, kabul_edilebilir,
         sorun_tipi, sorumlu, sinif, sistem, ikinci_parca_id, adet, konum,
@@ -531,11 +630,25 @@ export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
     hata.gideren ?? null, hata.giderilmeZamani ?? null, hata.dogrulayan ?? null,
     hata.dogrulamaZamani ?? null, simdi(),
   );
+  if (onceki) {
+    const sonra = await d.getFirstAsync<Record<string, unknown>>('SELECT * FROM hatalar WHERE id = ?', hata.id);
+    const fark = satirFarki(onceki, sonra ?? {}, ['guncelleme', 'senkron_zamani']);
+    const denetim = await d.getFirstAsync<{ denetci: string }>('SELECT denetci FROM denetimler WHERE id = ?', denetimId);
+    if (fark) await gunlugeYaz(d, { denetimId, kayitId: hata.id, tur: 'hata_duzeltildi', denetci: denetim?.denetci ?? '', ...fark });
+  }
   await kalipSay(hata.parcaId, hata.hataTipiId);
 }
 
 export async function hataSil(hataId: string): Promise<void> {
   const d = await db();
+  const onceki = await d.getFirstAsync<Record<string, unknown>>('SELECT * FROM hatalar WHERE id = ?', hataId);
+  if (onceki) {
+    const denetim = await d.getFirstAsync<{ denetci: string }>('SELECT denetci FROM denetimler WHERE id = ?', String(onceki.denetim_id));
+    await gunlugeYaz(d, {
+      denetimId: String(onceki.denetim_id), kayitId: hataId, tur: 'hata_silindi', denetci: denetim?.denetci ?? '',
+      eski: onceki, yeni: null,
+    });
+  }
   await d.runAsync('DELETE FROM fotograflar WHERE hata_id = ?', hataId);
   await d.runAsync('DELETE FROM hatalar WHERE id = ?', hataId);
 }
@@ -577,6 +690,17 @@ export async function fotograflariGetir(denetimId: string): Promise<FotografKayd
 export async function fotografSil(id: string): Promise<void> {
   const d = await db();
   await d.runAsync('DELETE FROM fotograflar WHERE id = ?', id);
+}
+
+/** Bütün fotoğrafların adresi (kalıcı klasöre taşıma için, fotografDeposu.ts). */
+export async function fotografAdresleri(): Promise<{ id: string; uri: string }[]> {
+  const d = await db();
+  return d.getAllAsync<{ id: string; uri: string }>('SELECT id, uri FROM fotograflar');
+}
+
+export async function fotografAdresiGuncelle(id: string, uri: string): Promise<void> {
+  const d = await db();
+  await d.runAsync('UPDATE fotograflar SET uri = ? WHERE id = ?', uri, id);
 }
 
 /** Bir hataya bağlanmayı bekleyen fotoğrafı sonradan bağlar. */
