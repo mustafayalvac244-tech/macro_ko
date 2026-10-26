@@ -33,7 +33,7 @@ import { AracHaritasi } from '@/bilesenler/AracHaritasi';
 import { DonusGorunumu } from '@/bilesenler/DonusGorunumu';
 import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, BolumBasligi, Dugme, IlerlemeCubugu } from '@/bilesenler/temel';
-import { aramaEslesir } from '@/cekirdek/arama';
+import { aramaEslesir, aramaYakinEslesir } from '@/cekirdek/arama';
 import { aracHaritasiVar } from '@/cekirdek/donusGorunumu';
 import { parcaAramaMetni, parcaBolgeAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { kisaBolgeAdi, sistemAdi, SISTEMLER } from '@/cekirdek/sistemler';
@@ -113,6 +113,19 @@ export function AdimliSecim({
     () => (q ? bolgeler.flatMap((b) => b.parcalar.filter((p) => aramaEslesir(parcaAramaMetni(p.id), q))) : []),
     [bolgeler, q],
   );
+  // Tam eşleşme yoksa yazım hatasına dayanıklı arama (arama.ts) — ayrı başlıkla.
+  const yakinSonuclar = useMemo(
+    () => (q && !sonuclar.length
+      ? bolgeler.flatMap((b) => b.parcalar.filter((p) => aramaYakinEslesir(parcaAramaMetni(p.id), q))).slice(0, 24)
+      : []),
+    [bolgeler, q, sonuclar.length],
+  );
+
+  // Görünmez dolgu: son satırdaki tek parça karosu bütün satıra yayılmasın
+  // (26.10.2026, ikinci tasarım incelemesi; denetim ekranındaki hata ızgarasıyla aynı).
+  const dolgu = [0, 1, 2].map((i) => (
+    <View key={`dolgu${i}`} style={s.dolgu} aria-hidden importantForAccessibility="no-hide-descendants" />
+  ));
 
   const parcaKutusu = (pid: string, altSatir?: string) => {
     const adet = parcaSayilari.get(pid) ?? 0;
@@ -189,16 +202,25 @@ export function AdimliSecim({
       <ScrollView contentContainerStyle={s.govde} keyboardShouldPersistTaps="handled">
         {q ? (
           <>
-            <BolumBasligi metin={t(`Arama — ${sonuclar.length} parça`, `Search — ${enSayi(sonuclar.length, 'part')}`)} simge={S.ara} />
-            <View style={s.izgara}>{sonuclar.map((p) => parcaKutusu(p.id, parcaBolgeAdi(p.id, dil)))}</View>
-            {!sonuclar.length ? <Text style={s.bos}>{t(`“${q}” ile eşleşen parça yok.`, `No part matches “${q}”.`)}</Text> : null}
+            {sonuclar.length || !yakinSonuclar.length ? (
+              <>
+                <BolumBasligi metin={t(`Arama — ${sonuclar.length} parça`, `Search — ${enSayi(sonuclar.length, 'part')}`)} simge={S.ara} />
+                <View style={s.izgara}>{sonuclar.map((p) => parcaKutusu(p.id, parcaBolgeAdi(p.id, dil)))}{dolgu}</View>
+                {!sonuclar.length ? <Text style={s.bos}>{t(`“${q}” ile eşleşen parça yok.`, `No part matches “${q}”.`)}</Text> : null}
+              </>
+            ) : (
+              <>
+                <BolumBasligi metin={t(`“${q}” yok — yakın yazılışlar (${yakinSonuclar.length})`, `No “${q}” — close spellings (${yakinSonuclar.length})`)} simge={S.ara} />
+                <View style={s.izgara} testID="arama-yakin">{yakinSonuclar.map((p) => parcaKutusu(p.id, parcaBolgeAdi(p.id, dil)))}{dolgu}</View>
+              </>
+            )}
           </>
         ) : (
           <>
             {adim === 1 && sonParcalar.length ? (
               <View style={{ gap: bosluk.xs }}>
                 <BolumBasligi metin={t('Son dokunulanlar', 'Recent parts')} simge={S.son} />
-                <View style={s.izgara}>{sonParcalar.map((pid) => parcaKutusu(pid, parcaBolgeAdi(pid, dil)))}</View>
+                <View style={s.izgara}>{sonParcalar.map((pid) => parcaKutusu(pid, parcaBolgeAdi(pid, dil)))}{dolgu}</View>
               </View>
             ) : null}
 
@@ -253,10 +275,9 @@ export function AdimliSecim({
                   const n = x.bolgeler.reduce((t, b) => t + kayit(b), 0);
                   const parcaSayisi = x.bolgeler.reduce((t, b) => t + b.parcalar.length, 0);
                   const isaretli = kapsam.has(x.id);
-                  // "Uygun" = hatasız kontrol edildi. Hata varsa sistem zaten
-                  // kontrol edilmiştir (kayıt işareti kendiliğinden koyar) ama
-                  // "uygun" değildir.
-                  const uygun = isaretli && !n;
+                  // İşareti yalnız denetçi koyar (26.10.2026). Hatasız sistemde kutunun
+                  // adı "Uygun", hatalı sistemde "Kontrol edildi" (bakıldı, bitti).
+                  const kutuAdi = n ? t('Kontrol edildi', 'Checked') : t('Uygun', 'OK');
                   // Tek satır (26.10.2026, dış değerlendirme: "her sistem kartında iki büyük
                   // düğme, ekranda 10 eşit ağırlıkta düğme"). Satıra dokunmak sistemi açar
                   // (eski "Hata gir"in işi); sağdaki hücre durumu taşır: hata varsa kırmızı
@@ -274,7 +295,16 @@ export function AdimliSecim({
                       >
                         <View style={s.simgeYuva}>{Ikon ? <Ikon size={22} color={renkler.birincil} strokeWidth={2} /> : null}</View>
                         <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text style={s.buyukAd} numberOfLines={1}>{ad}</Text>
+                          {/* Hata pulu adın yanında: alt satırı ("6 bölge · 86 madde")
+                              telefonda kesmesin (26.10.2026 ekran görüntüsü). */}
+                          <View style={s.adSatiri}>
+                            <Text style={[s.buyukAd, { flexShrink: 1 }]} numberOfLines={1}>{ad}</Text>
+                            {n > 0 ? (
+                              <View style={s.hataPulu} accessibilityLabel={t(`${ad}: ${n} hata`, `${ad}: ${enSayi(n, 'defect')}`)}>
+                                <Text style={s.hataPuluMetin}>{t(`${n} hata`, enSayi(n, 'defect'))}</Text>
+                              </View>
+                            ) : null}
+                          </View>
                           {/* Türkçe kipte İngilizce alt yazı yok (dış değerlendirme: tek dil);
                               birim hep "madde". */}
                           <Text style={s.alt} numberOfLines={1}>
@@ -285,26 +315,19 @@ export function AdimliSecim({
                         </View>
                         <S.ileri size={20} color={renkler.metinSolgun} strokeWidth={2} />
                       </Pressable>
-                      {n > 0 ? (
-                        <View style={[s.durumHucre, s.durumHata]} accessibilityLabel={t(`${ad}: ${n} hata`, `${ad}: ${enSayi(n, 'defect')}`)}>
-                          <S.uyari size={18} color={renkler.tehlike} strokeWidth={2.25} />
-                          <Text style={[s.durumMetin, { color: renkler.tehlike }]}>{t(`${n} hata`, enSayi(n, 'defect'))}</Text>
+                      <Pressable
+                        accessibilityRole="checkbox"
+                        aria-checked={isaretli}
+                        accessibilityState={{ checked: isaretli }}
+                        accessibilityLabel={n ? t(`${ad} kontrol edildi`, `${ad} checked`) : t(`${ad} uygun`, `${ad} OK`)}
+                        onPress={() => onKapsam(x.id, !isaretli)}
+                        style={({ pressed }) => [s.durumHucre, isaretli && s.durumUygun, pressed && s.basili]}
+                      >
+                        <View style={[s.onayKutu, isaretli && s.onayKutuDolu]}>
+                          {isaretli ? <S.tik size={16} color={renkler.metinTers} strokeWidth={3} /> : null}
                         </View>
-                      ) : (
-                        <Pressable
-                          accessibilityRole="checkbox"
-                          aria-checked={uygun}
-                          accessibilityState={{ checked: uygun }}
-                          accessibilityLabel={t(`${ad} uygun`, `${ad} OK`)}
-                          onPress={() => onKapsam(x.id, !isaretli)}
-                          style={({ pressed }) => [s.durumHucre, uygun && s.durumUygun, pressed && s.basili]}
-                        >
-                          <View style={[s.onayKutu, uygun && s.onayKutuDolu]}>
-                            {uygun ? <S.tik size={16} color={renkler.metinTers} strokeWidth={3} /> : null}
-                          </View>
-                          <Text style={[s.durumMetin, { color: uygun ? renkler.basari : renkler.metinIkincil }]}>{t('Uygun', 'OK')}</Text>
-                        </Pressable>
-                      )}
+                        <Text style={[s.durumMetin, { color: isaretli ? renkler.basari : renkler.metinIkincil, textAlign: 'center' }]}>{kutuAdi}</Text>
+                      </Pressable>
                     </View>
                   );
                 })}
@@ -343,7 +366,7 @@ export function AdimliSecim({
                 })}
               </View>
             ) : bolge ? (
-              <View style={s.izgara}>{bolge.parcalar.map((p) => parcaKutusu(p.id))}</View>
+              <View style={s.izgara}>{bolge.parcalar.map((p) => parcaKutusu(p.id))}{dolgu}</View>
             ) : null}
           </>
         )}
@@ -384,6 +407,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   kutuSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   buyukKutu: { flexGrow: 1, flexBasis: '100%', minHeight: 64, paddingVertical: bosluk.xs },
   parcaKutu: { flexGrow: 1, flexBasis: 150, minHeight: Math.max(DOKUNMA, 56), paddingVertical: 6 },
+  dolgu: { flexGrow: 1, flexBasis: 150, height: 0 },
   simgeYuva: {
     width: 40, height: 40, borderRadius: kose.md, backgroundColor: r.birincilYumusak,
     alignItems: 'center', justifyContent: 'center',
@@ -407,7 +431,9 @@ const stiller = (r: Renkler) => StyleSheet.create({
     borderLeftWidth: 1, borderLeftColor: r.bgYukseltilmis,
   },
   durumUygun: { backgroundColor: r.basariYumusak },
-  durumHata: { backgroundColor: r.tehlikeYumusak },
+  adSatiri: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
+  hataPulu: { paddingHorizontal: bosluk.xs, paddingVertical: 3, borderRadius: kose.pill, backgroundColor: r.tehlikeYumusak },
+  hataPuluMetin: { ...tipografi.captionOrta, color: r.tehlike, fontVariant: ['tabular-nums'] },
   durumMetin: { ...tipografi.captionOrta },
   onayKutu: {
     width: 24, height: 24, borderRadius: kose.sm, borderWidth: 2, borderColor: r.cizgiGuclu,

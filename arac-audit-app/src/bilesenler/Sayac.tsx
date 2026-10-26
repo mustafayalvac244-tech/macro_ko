@@ -82,6 +82,11 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
           />
         ))}
       </View>
+      {/* Yön (26.10.2026, ikinci dış değerlendirme): skorun düşüğünün iyi
+          olduğu ekranda yazmıyordu; ilk kez bakan "yüksek = iyi" sanıyor. */}
+      {olcu === 'skor' ? (
+        <Text style={s.not}>{t('Düşük skor iyidir: 0 = demerit yok.', 'Lower is better: 0 = no demerits.')}</Text>
+      ) : null}
       <View style={s.satir} importantForAccessibility="no-hide-descendants" aria-hidden>
         <View style={s.adBos} />
         {DONEMLER.map((d) => <Text key={d.id} style={s.baslik} numberOfLines={2}>{dil === 'en' ? d.en : d.ad}</Text>)}
@@ -90,8 +95,10 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
         const arac = ARAC_INDEKS[a.aracId];
         return satir(arac?.kod ?? a.aracId, aracEtiketi(arac, a.aracId), a.sayilar);
       })}
-      {/* Tek araç varsa toplam satırı aynı sayıları tekrar ederdi. */}
-      {sonuc.araclar.length > 1 ? satir(t('Toplam', 'Total'), t('Toplam', 'Total'), sonuc.toplam, true) : null}
+      {/* Tek araç varsa bu satır aynı sayıları tekrar ederdi. Adı "Toplam" değil
+          "Tümü": skor sütununda bu satır skorların toplamı DEĞİL, bütün araçların
+          birlikte skoru (100 × toplam demerit ÷ toplam araç). */}
+      {sonuc.araclar.length > 1 ? satir(t('Tümü', 'All'), t('Tüm modeller', 'All models'), sonuc.toplam, true) : null}
     </Kart>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { aramaEslesir, aramaMetni, aramaSadelestir } from '../arac-audit-app/src/cekirdek/arama';
+import { aramaEslesir, aramaMetni, aramaSadelestir, aramaYakinEslesir, duzenlemeUzakligi } from '../arac-audit-app/src/cekirdek/arama';
 import {
   bolgelerAracIcin, parcaAramaMetni, parcaHataTipleri, parcaTamAdi,
 } from '../arac-audit-app/src/cekirdek/katalog';
@@ -105,5 +105,44 @@ describe('parçada anlamsız hata tipi gösterilmez', () => {
   it('sahadaki başka adla aranır: "depo kapagi", "konnektor"', () => {
     expect(aramaEslesir(parcaAramaMetni('sol_dolum_kapagi'), 'depo kapagi')).toBe(true);
     expect(aramaEslesir(parcaAramaMetni('kablo_demeti'), 'konnektor')).toBe(true);
+  });
+});
+
+// 26.10.2026 — ikinci dış değerlendirme (saha denetçisi): eş anlamlılar ve yazım
+// hatası. Sorguları değerlendirici yazdı, beklentileri ben yazdım.
+describe('ikinci tur: eş anlamlı ve yazım hatası', () => {
+  const yakin = (sorgu: string) => bolgelerAracIcin({ tip: 'ice' }).flatMap((b) => b.parcalar)
+    .filter((p) => aramaYakinEslesir(parcaAramaMetni(p.id), sorgu)).map((p) => p.id);
+
+  it('menteşe, kapı kilidi, bagaj fitili, yan etek, sunroof bulunur', () => {
+    expect(bulunanlar('mentese')).toEqual(expect.arrayContaining(['kaput', 'sol_on_kapi', 'sag_arka_kapi', 'bagaj_kapagi']));
+    expect(bulunanlar('kapı kilidi')).toEqual(expect.arrayContaining(['sol_on_kapi', 'f_merkezi_kilit']));
+    expect(bulunanlar('bagaj fitili')).toEqual(['bagaj_fitili']);
+    expect(bulunanlar('sol yan etek')).toEqual(['sol_marspiyel']);
+    expect(bulunanlar('sunroof')).toEqual(['cam_tavan']);
+    // Ekibin Excel kısaltmaları
+    expect(bulunanlar('t/gate w/strip')).toEqual(['bagaj_fitili']);
+    expect(bulunanlar('striker')).toEqual(expect.arrayContaining(['sol_on_kapi', 'sag_arka_kapi']));
+  });
+
+  it('düzenleme uzaklığı: yer değiştirme tek adım', () => {
+    expect(duzenlemeUzakligi('kaptu', 'kaput')).toBe(1);
+    expect(duzenlemeUzakligi('camurlk', 'camurluk')).toBe(1);
+    expect(duzenlemeUzakligi('abc', 'abc')).toBe(0);
+    expect(duzenlemeUzakligi('', 'abc')).toBe(3);
+  });
+
+  it('yazım hatalı sorgu yakın aramada bulunur, tam aramada bulunmaz', () => {
+    expect(bulunanlar('kaptu')).toEqual([]);
+    expect(yakin('kaptu')).toContain('kaput');
+    expect(yakin('sol on camurlk')).toContain('sol_on_camurluk');
+    expect(yakin('tampn')).toEqual(expect.arrayContaining(['on_tampon', 'arka_tampon']));
+  });
+
+  it('kısa kelimede hata kabul edilmez; anlamsız sorgu yakın aramada da boş', () => {
+    expect(yakin('xq')).toEqual([]);
+    expect(yakin('zzzzzz')).toEqual([]);
+    // 3 harf: yalnız tam baş eşleşmesi ("kpt" kaput'u getirmez)
+    expect(yakin('kpt')).toEqual([]);
   });
 });

@@ -497,13 +497,18 @@ export function HataSayfasi({
   const silBolumu = duzenleme && onSil ? (
     <View style={s.silBolumu}>
       {!silOnay ? (
-        <Dugme
-          metin={t('Bu kaydı sil', 'Delete this record')}
-          tur="tehlike"
-          simge={S.sil}
+        // Kırmızı DOLU düğme değil, kırmızı yazı (26.10.2026, ikinci tasarım
+        // incelemesi: formun en ağır düğmesi silmeydi). Dolu kırmızı yalnız
+        // onayda — "Evet, sil" — kalır.
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('Bu kaydı sil', 'Delete this record')}
           onPress={() => { onayaKaydir.current = true; setSilOnay(true); }}
-          erisimEtiketi={t('Bu kaydı sil', 'Delete this record')}
-        />
+          style={({ pressed }) => [s.silMetinDugme, pressed && { opacity: 0.6 }]}
+        >
+          <S.sil size={18} color={renkler.tehlike} strokeWidth={2.25} />
+          <Text style={s.silMetin}>{t('Bu kaydı sil', 'Delete this record')}</Text>
+        </Pressable>
       ) : (
         <View style={s.silOnayKutu}>
           <Text style={s.silOnayMetin}>
@@ -876,6 +881,11 @@ const stiller = (r: Renkler) => StyleSheet.create({
   tipOzetAd: { ...tipografi.bodyOrta, color: r.metin },
 
   silBolumu: { marginTop: bosluk.lg, paddingTop: bosluk.md, borderTopWidth: 1, borderTopColor: r.cizgiSolgun },
+  silMetinDugme: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    minHeight: DOKUNMA, paddingHorizontal: bosluk.md, alignSelf: 'center',
+  },
+  silMetin: { ...tipografi.bodyOrta, color: r.tehlike },
   silOnayKutu: {
     gap: bosluk.sm, padding: bosluk.sm, borderRadius: kose.md,
     borderWidth: 1, borderColor: r.tehlike, backgroundColor: r.tehlikeYumusak,

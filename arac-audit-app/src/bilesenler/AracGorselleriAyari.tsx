@@ -52,10 +52,12 @@ export function AracGorselleriAyari() {
           style={{ flex: 1 }}
         />
       </View>
+      {/* Uzun anlatım başlıktaki (i) notuna taşındı (26.10.2026, ikinci tasarım
+          incelemesi: "Ayarlar'da 360 için bir paragraf"); gizlilik cümlesi görünür kalır. */}
       <Text style={s.aciklama}>
         {t(
-          'IONIQ 3 denetimde görsel yüklemeden de döner: uygulama aracın kendi çizimini gösterir. Gerçek görsel isterseniz standart bakış görsellerini (önden, sol önden, soldan … üstten) her bakışa seçin; görsel çizimin yerini alır. Görseller yalnız bu telefonda durur; hiçbir yere yüklenmez, yedeğe de girmez. Eksik bir yan, karşı yanın aynasıyla gösterilir.',
-          'IONIQ 3 rotates in the audit without any images: the app shows its own drawing of the vehicle. For real pictures, pick the standard view images (front, front LH, LH side … top) for each view; an image replaces the drawing. The images stay on this phone only; they are not uploaded anywhere and are not in the backup. A missing side is shown as the mirror of the opposite side.',
+          'Görseller yalnız bu telefonda durur; hiçbir yere yüklenmez, yedeğe girmez.',
+          'Images stay on this phone only; they are not uploaded anywhere or included in the backup.',
         )}
       </Text>
       {ARACLAR.map((a) => (

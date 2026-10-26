@@ -44,8 +44,20 @@ const SUTUN_ADI: Record<string, [string, string]> = {
   dogrulama_body: ['doğrulama body', 'verification body'],
 };
 
+/** ISO zaman damgası mı ("2026-10-26T21:00:01.528Z")? */
+const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
+/** Yerel saatle "26.10.2026 21:00" (26.10.2026: geçmişte ham ISO yazıyordu — 2. dış değerlendirme). */
+export function gunlukZamani(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const iki = (n: number) => String(n).padStart(2, '0');
+  return `${iki(d.getDate())}.${iki(d.getMonth() + 1)}.${d.getFullYear()} ${iki(d.getHours())}:${iki(d.getMinutes())}`;
+}
+
 const deger = (sutun: string, v: unknown, dil: Dil): string => {
   if (v === null || v === undefined || v === '') return dil === 'en' ? '(empty)' : '(boş)';
+  if (typeof v === 'string' && ISO.test(v)) return gunlukZamani(v);
   if (sutun === 'parca_id' || sutun === 'ikinci_parca_id') return parcaTamAdi(String(v), dil);
   if (sutun === 'hata_tipi_id') return hataTipiAdi(String(v), dil);
   if (sutun === 'durum' && v === 'tamam') return dil === 'en' ? 'completed' : 'tamamlandı';
@@ -80,6 +92,18 @@ export function gunlukOzeti(k: Pick<GunlukKaydi, 'tur' | 'eski' | 'yeni'>, dil: 
   if (k.tur === 'hata_duzeltildi') {
     // Parça/hata değiştiyse eski adı yaz: neyin değiştiği anlaşılsın.
     return `${en ? 'Edited' : 'Düzeltildi'}: ${degisen.join(', ')}`;
+  }
+  // Bitirme ve yeniden açma birer düzeltme değil, olay: kendi adıyla yazılır
+  // (2. dış değerlendirme: olağan bir bitirme "Denetim düzeltildi" görünüyordu).
+  const durumEski = k.eski?.durum;
+  const durumYeni = k.yeni?.durum;
+  const digerleri = Object.keys(k.yeni ?? {}).filter((s) => s !== 'durum' && s !== 'bitis');
+  if (durumEski === 'devam' && durumYeni === 'tamam' && !digerleri.length) {
+    const z = typeof k.yeni?.bitis === 'string' ? ` (${gunlukZamani(k.yeni.bitis)})` : '';
+    return en ? `Audit completed${z}` : `Denetim tamamlandı${z}`;
+  }
+  if (durumEski === 'tamam' && durumYeni === 'devam' && !digerleri.length) {
+    return en ? 'Audit reopened' : 'Denetim yeniden açıldı';
   }
   return `${en ? 'Audit edited' : 'Denetim düzeltildi'}: ${degisen.join(', ')}`;
 }

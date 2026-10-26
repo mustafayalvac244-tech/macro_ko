@@ -8,7 +8,9 @@ import { GRUP_SIMGELERI, S, Simge } from '@/bilesenler/simgeler';
 import {
   Baslik, BilgiKutusu, BolumBasligi, Dugme, Ekran, Kart, Secenek, useDuzen,
 } from '@/bilesenler/temel';
+import { AktarimDonemi } from '@/cekirdek/aktarim';
 import { grupAdi } from '@/cekirdek/katalog';
+import { DONEMLER } from '@/cekirdek/sayac';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
 import { bosluk, kose, Renkler, TemaTercihi, tipografi, useTema } from '@/tema';
@@ -88,12 +90,23 @@ export default function Ayarlar() {
   const [aktariliyor, setAktariliyor] = useState(false);
   const [aktarSonucu, setAktarSonucu] = useState<string | null>(null);
   const [aktarHatasi, setAktarHatasi] = useState<string | null>(null);
+  // Dönem ve "devam edenler" (26.10.2026, aktarim.ts): varsayılan yalnız bitmişler.
+  const [aktarDonem, setAktarDonem] = useState<AktarimDonemi>('hepsi');
+  const [devamDahil, setDevamDahil] = useState(false);
   const excelAktar = async () => {
     setAktariliyor(true); setAktarSonucu(null); setAktarHatasi(null);
     try {
-      const x = await nasExcelOlustur();
+      const x = await nasExcelOlustur(new Date(), { donem: aktarDonem, devamDahil });
+      const devamNotu = x.disaridaDevam
+        ? t(` Devam eden ${x.disaridaDevam} denetim katılmadı.`, ` ${x.disaridaDevam} in-progress ${x.disaridaDevam === 1 ? 'audit was' : 'audits were'} left out.`)
+        : '';
+      if (!x.denetim) {
+        setAktarHatasi(t('Bu seçimde aktarılacak denetim yok.', 'No audits to export for this selection.') + devamNotu);
+        return;
+      }
       setAktarSonucu(
         t(`${x.denetim} araç, ${x.problem} hata.`, `${x.denetim} ${x.denetim === 1 ? 'vehicle' : 'vehicles'}, ${x.problem} ${x.problem === 1 ? 'defect' : 'defects'}.`)
+        + devamNotu
         + (x.paylasildi ? '' : t(` Paylaşım yok; dosya: ${x.uri}`, ` Sharing unavailable; file: ${x.uri}`)),
       );
     } catch (h) {
@@ -172,7 +185,14 @@ export default function Ayarlar() {
         {/* Döndürülebilir araç (26.10.2026): dokuz bakış yuvasına galeriden
             görsel seçme; görseller yalnız bu telefonda durur. */}
         <Kart>
-          <BolumBasligi metin={t('Araç görselleri (360°)', 'Vehicle images (360°)')} simge={S.arac} />
+          <BolumBasligi
+            metin={t('Araç görselleri (360°)', 'Vehicle images (360°)')}
+            simge={S.arac}
+            bilgi={t(
+              'IONIQ 3 denetimde görsel yüklemeden de döner: uygulama aracın kendi çizimini gösterir. Gerçek görsel isterseniz standart bakış görsellerini (önden, sol önden, soldan … üstten) her bakışa seçin; görsel çizimin yerini alır. Eksik bir yan, karşı yanın aynasıyla gösterilir.',
+              'IONIQ 3 rotates in the audit without any images: the app shows its own drawing of the vehicle. For real pictures, pick the standard view images (front, front LH, LH side … top) for each view; an image replaces the drawing. A missing side is shown as the mirror of the opposite side.',
+            )}
+          />
           <AracGorselleriAyari />
         </Kart>
 
@@ -234,16 +254,37 @@ export default function Ayarlar() {
 
           <Text style={s.aciklama}>
             {t(
-              "Bütün denetimler ekibin Excel sütunlarıyla; satırlar kopyalanıp ekibin dosyasına yapıştırılabilir. Fotoğraflar bu dosyada değil, yedekte.",
-              "All audits in the team's Excel columns; the rows can be pasted into the team's file. Photos are not in this file; they are in the backup.",
+              "Bitmiş denetimler ekibin Excel sütunlarıyla; satırlar kopyalanıp ekibin dosyasına yapıştırılabilir. Fotoğraflar bu dosyada değil, yedekte.",
+              "Finished audits in the team's Excel columns; the rows can be pasted into the team's file. Photos are not in this file; they are in the backup.",
             )}
           </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.aktarDonemSatir}
+            accessibilityRole="radiogroup" accessibilityLabel={t('Aktarılacak dönem', 'Period to export')}>
+            {([{ id: 'hepsi', ad: 'Hepsi', en: 'All' }, ...DONEMLER.map((d) => ({ id: d.id, ad: d.uzun, en: d.enUzun }))] as const).map((d) => (
+              <Secenek
+                key={d.id}
+                kucuk
+                metin={t(d.ad, d.en)}
+                secili={aktarDonem === d.id}
+                onPress={() => setAktarDonem(d.id)}
+                erisimEtiketi={t(`Dönem: ${d.ad}`, `Period: ${d.en}`)}
+              />
+            ))}
+          </ScrollView>
+          <Secenek
+            kucuk
+            metin={t('Devam edenleri de kat', 'Include in-progress audits')}
+            secili={devamDahil}
+            onPress={() => setDevamDahil((x) => !x)}
+            erisimEtiketi={t('Devam eden denetimleri de kat', 'Include in-progress audits')}
+            style={{ alignSelf: 'flex-start' }}
+          />
           <Dugme
             metin={t("Excel'e aktar", 'Export to Excel')}
             simge={S.excel}
             yukleniyor={aktariliyor}
             onPress={excelAktar}
-            erisimEtiketi={t('Bütün denetimleri ekibin Excel düzeninde aktar', "Export all audits in the team's Excel layout")}
+            erisimEtiketi={t('Seçilen denetimleri ekibin Excel düzeninde aktar', "Export the selected audits in the team's Excel layout")}
           />
           {aktarSonucu ? <BilgiKutusu tur="basari" metin={aktarSonucu} /> : null}
           {aktarHatasi ? <BilgiKutusu tur="uyari" metin={aktarHatasi} /> : null}
@@ -333,6 +374,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
     width: '100%', maxWidth: 760, alignSelf: 'center',
   },
   aciklama: { ...tipografi.caption, color: r.metinSolgun },
+  aktarDonemSatir: { flexDirection: 'row', gap: bosluk.xs },
   satir: { flexDirection: 'row', gap: bosluk.xs },
   tipSatiri: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,

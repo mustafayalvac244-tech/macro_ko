@@ -7,7 +7,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BoyaAciklamasi, DonusGorunumu } from '@/bilesenler/DonusGorunumu';
 import { S } from '@/bilesenler/simgeler';
 import {
-  AltCubuk, Baslik, BaslikCipi, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi,
+  AltCubuk, Baslik, BaslikCipi, BilgiKutusu, BolumBasligi, BosDurum, DereceRozeti, Dugme, Ekran, GeriDugmesi,
   HataKutusu, IlerlemeCubugu, Kart, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import {
@@ -59,12 +59,13 @@ export default function RaporEkrani() {
   const [calisiyor, setCalisiyor] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const [bilgi, setBilgi] = useState<string | null>(null);
+  const [okundu, setOkundu] = useState(false); // okundu ve yoksa: "bulunamadı", sonsuz tekerlek değil
 
   // Değişiklik geçmişi (26.10.2026, göç 10): düzeltilen ve silinen kayıtların izi.
   const [gunluk, setGunluk] = useState<GunlukKaydi[]>([]);
   useEffect(() => {
     if (!id) return;
-    denetimGetir(id).then(setDenetim).catch((h) => setHata(String(h)));
+    denetimGetir(id).then((d) => { setDenetim(d); setOkundu(true); }).catch((h) => setHata(String(h)));
     degisiklikGunlugu(id).then(setGunluk).catch(() => setGunluk([]));
   }, [id]);
 
@@ -160,7 +161,15 @@ export default function RaporEkrani() {
     return (
       <Ekran>
         <Baslik baslik={t('Rapor', 'Report')} sol={<GeriDugmesi />} />
-        {hata ? <View style={{ padding: bosluk.md }}><HataKutusu metin={hata} /></View> : <Yukleniyor />}
+        {hata ? <View style={{ padding: bosluk.md }}><HataKutusu metin={hata} /></View>
+          : okundu ? (
+            <BosDurum
+              simge={S.uyari}
+              baslik={t('Denetim bulunamadı', 'Audit not found')}
+              aciklama={t('Bu telefonda yok: silinmiş olabilir.', 'Not on this phone: it may have been deleted.')}
+              eylem={<Dugme metin={t('Denetimlere dön', 'Back to audits')} tur="birincil" onPress={() => router.dismissTo('/')} />}
+            />
+          ) : <Yukleniyor />}
       </Ekran>
     );
   }
@@ -371,7 +380,7 @@ export default function RaporEkrani() {
                     görünür (demerit'i 0); geçilmezse 3 görünürdü. */}
                 <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={s.hataAd} numberOfLines={1}>
+                  <Text style={s.hataAd} numberOfLines={2}>
                     {parcaCiftiAdi(h, dil)} — {hataTipiAdi(h.hataTipiId, dil)}
                   </Text>
                   <Text style={s.hataYol} numberOfLines={1}>

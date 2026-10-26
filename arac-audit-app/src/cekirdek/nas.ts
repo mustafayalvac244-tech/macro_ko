@@ -72,7 +72,8 @@ const BOLGE_GRUBU = new Map(BOLGELER.map((b) => [b.id, b.grup] as const));
  * türetildi: motor bölmesi ve şase altı CHASSIS'te, fonksiyon kontrolleri
  * ELECTRIC'te, yol testi DRIVE'da; dışta mastik/boya PAINT'te, kalanı
  * EXTERIOR'da. BODY ve MOVING hiçbir zaman varsayılan değil (Excel'de de az
- * ve parçadan ayırt edilemiyor).
+ * ve parçadan ayırt edilemiyor). Kablo demeti de CHASSIS: "ELECTRIC olmalı"
+ * önerisi (26.10.2026) Excel'deki kablo/konnektör kayıtlarıyla çelişiyor.
  */
 export function varsayilanSistem(parcaId: string, hataTipiId: string): string {
   const p = PARCA_INDEKS[parcaId];

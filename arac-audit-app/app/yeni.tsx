@@ -14,7 +14,6 @@ import {
 import { aracEtiketi, ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { BODY_NO_GIRDI_AZAMI, bodyNoGecerli, bodyNoSadelestir, VIN_UZUNLUK, vinDogrula } from '@/cekirdek/vin';
-import { kaynakKodu } from '@/cekirdek/nas';
 import { bosluk, Renkler, tipografi, useTema } from '@/tema';
 import { ayarOku, ayarYaz, ayniAracinDenetimleri, denetimGuncelle, denetimOlustur } from '@/veri/depo';
 import { useDil } from '@/veri/dilDeposu';
@@ -89,8 +88,11 @@ export default function YeniDenetim() {
   useEffect(() => {
     ayarOku<Partial<Varsayilanlar> | null>('varsayilanlar', null)
       .then((k) => {
-        // Eski sürümün hatırladığı "HMC Audit"/"Durability" Excel'in yazımına çevrilir.
-        if (k) setV({ denetci: k.denetci ?? '', kaynak: k.kaynak ? kaynakKodu(k.kaynak) : VARSAYILAN_KAYNAK });
+        // KAYNAK HATIRLANMAZ (26.10.2026): ikinci dış değerlendirmede kalite müdürü
+        // DURABILITY denetiminden sonra açtığı yeni denetimin seçmeden DURABILITY
+        // açıldığını ve sessizce skordan düştüğünü gördü. Her yeni denetim AUDIT
+        // ile açılır; başka kaynak bilerek seçilir. Denetçi ve araç hatırlanır.
+        if (k) setV({ denetci: k.denetci ?? '', kaynak: VARSAYILAN_KAYNAK });
         if (k?.aracId && ARAC_INDEKS[k.aracId]) setAracId(k.aracId);
       })
       .catch(() => { /* ilk açılış */ });
@@ -110,6 +112,24 @@ export default function YeniDenetim() {
     !listedeyse(denetciler.liste, v.denetci) && t('denetçi', 'auditor'),
   ].filter(Boolean) as string[];
   const onceVar = !!onceki && onceki.anahtar === kimlikAnahtari && onceki.liste.length > 0;
+
+  // MODEL–ŞASİ UYUMU (26.10.2026, ikinci dış değerlendirme): model son
+  // denetimden hatırlanıyor; denetçi şasiyi okutup modeli değiştirmeyi unutursa
+  // hata başka modelin skoruna yazılır. Şasiden model TAHMİN EDİLMEZ (elimizde
+  // güvenilir bir eşleme yok); yalnız bu telefonda aynı şasi/body no başka
+  // modelle denetlenmişse söylenir.
+  const [gecmisModel, setGecmisModel] = useState<{ anahtar: string; aracId: string } | null>(null);
+  useEffect(() => {
+    if (!kimlikTamam) return;
+    let iptal = false;
+    ayniAracinDenetimleri({ vin: vinBos ? '' : vin.vin, bodyNo })
+      .then((l) => { if (!iptal) setGecmisModel(l.length ? { anahtar: kimlikAnahtari, aracId: l[0]!.aracId } : null); })
+      .catch(() => {});
+    return () => { iptal = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kimlikAnahtari, kimlikTamam]);
+  const farkliModel = gecmisModel && gecmisModel.anahtar === kimlikAnahtari && gecmisModel.aracId !== aracId
+    && ARAC_INDEKS[gecmisModel.aracId] ? gecmisModel.aracId : null;
   // Şasi değişince açık "hatasız bitir?" sorusu eski araca aitti: kapanır.
   useEffect(() => { setHatasizSoru(false); }, [kimlikAnahtari]);
 
@@ -252,6 +272,23 @@ export default function YeniDenetim() {
               ipucu={vinDurumu?.tur === 'bilgi' ? vinDurumu.metin : undefined}
             />
             {vinDurumu && vinDurumu.tur !== 'bilgi' ? <BilgiKutusu tur={vinDurumu.tur} metin={vinDurumu.metin} /> : null}
+            {farkliModel ? (
+              <View style={{ gap: bosluk.xs }} testID="model-uyumsuz">
+                <BilgiKutusu
+                  tur="uyari"
+                  metin={t(
+                    `Bu araç daha önce ${aracEtiketi(ARAC_INDEKS[farkliModel], farkliModel)} olarak denetlenmiş; şu an ${aracEtiketi(ARAC_INDEKS[aracId], aracId)} seçili.`,
+                    `This vehicle was audited before as ${aracEtiketi(ARAC_INDEKS[farkliModel], farkliModel)}; ${aracEtiketi(ARAC_INDEKS[aracId], aracId)} is selected now.`,
+                  )}
+                />
+                <Dugme
+                  metin={t(`Modeli ${aracEtiketi(ARAC_INDEKS[farkliModel], farkliModel)} yap`, `Switch to ${aracEtiketi(ARAC_INDEKS[farkliModel], farkliModel)}`)}
+                  kucuk
+                  simge={S.arac}
+                  onPress={() => setAracId(farkliModel)}
+                />
+              </View>
+            ) : null}
             <View style={s.satir}>
               <Dugme
                 metin={t('Barkod okut', 'Scan barcode')}

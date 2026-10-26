@@ -1049,6 +1049,73 @@ harita (dokunuş seçtirmez), Analiz haritasında kaputa dokunuş → döküm.
 **Yapılmayan:** e-posta/anlık uyarı, merkezi takip, imza, PDF (sunucu ya da
 yeni yerel paket ister; ürün sahibi "şimdilik telefonda güçlendir" dedi).
 
+### Aşama 5 — ikinci tur değerlendirmenin bulguları (26.10.2026)
+
+Aynı dört değerlendirici (saha denetçisi, kalite müdürü, UI/UX tasarımcısı,
+estetik bakan kullanıcı; hepsi yapay zekâ ajanı, web paketi üzerinde) ikinci
+kez koştu. Puanlar değişmedi (saha 5/10, estetik ~5, müdür aynı koşullu pilot
+kararı); bulguların çoğu yeni. Yapılanlar:
+
+- **"Geri al" yanlışlıkla basılıyordu.** Kayıt bildirimi ızgaranın ÜSTÜNDE
+  yüzüyordu; saha denetçisi alttaki parçaya basmak isterken "Geri al"a denk
+  geldi ve az önceki kayıt silindi. Bildirim artık ekranın altında, akışın
+  içinde: içeriği kısaltır, hiçbir düğmenin üstüne binmez. Web sınavı
+  "Geri al"ın bildirim dışındaki hiçbir dokunulabilir öğeyle kesişmediğini
+  ölçüyor; **ısırdığı denendi** (eski yüzen bildirimle derlenen pakette sınav
+  "Geri al şunun üstünde: Sistem İç" diye düşüyor).
+- **Kapsam kendiliğinden işaretlenmiyor.** Hata kaydedilen sistem "kontrol
+  edildi" sayılıyordu; tek hatayla 5/5'e çıkılıyor, hata silinince işaret
+  kalıyordu. İşareti yalnız denetçi koyar; hatasız sistemde kutunun adı
+  "Uygun", hatalı sistemde "Kontrol edildi"; hata sayısı adın yanında kırmızı pul.
+- **Kaynak hatırlanmıyor.** Bir DURABILITY denetiminden sonraki araç sessizce
+  DURABILITY açılıp skordan düşüyordu. Her yeni denetim AUDIT ile başlar.
+- **Model–şasi uyumu:** aynı şasi/body no bu telefonda başka modelle
+  denetlenmişse yeni denetim ekranı uyarır ve "Modeli … yap" önerir. Şasiden
+  model TAHMİN EDİLMEZ (güvenilir eşleme elimizde yok).
+- **Excel'e aktar:** varsayılan yalnız bitmiş denetimler; dönem seçilir
+  (Hepsi / Bugün / Bu hafta / Geçen hafta / Bu ay / Bu yıl — sınırlar ana sayfa
+  sayacıyla aynı); "Devam edenleri de kat" isteğe bağlı; dışarıda kalan devam
+  eden denetim sayısı söylenir; boş seçimde dosya paylaşılmaz (`aktarim.ts`).
+- **Arama:** tam eşleşme yoksa yazım hatasına dayanıklı arama, "yakın
+  yazılışlar" başlığıyla ayrı gösterilir (4–6 harfte bir, 7+ harfte iki hata;
+  3 harften kısada hata kabul edilmez). Eş anlamlılar: menteşe, kapı kilidi /
+  karşılığı, yan etek, sunroof ve ekibin Excel kısaltmaları (HINGE, LATCH,
+  STRIKER, SILL, W/STRIP, T GATE). Katalogda olmayan **bagaj kapağı fitili**
+  eklendi (ekibin Excel'inde "T/GATE BODY W/STRIP" olarak geçiyor). Bulanık
+  aramanın gürültüsüne kendi seçtiğim 10 sorguyla baktım (örn. "kaptu" → 3,
+  "konsl" → 16 sonuç); bağımsız ölçüm değil.
+- **Değerlendiricinin önerisi uygulanmadı — ölçüme göre:** "kablo demeti
+  ELECTRIC olmalı". Ekibin Excel'inde kablo/konnektör geçen kayıtların büyük
+  çoğunluğu CHASSIS'te (sayılar şirket verisi, depoya yazılmadı); varsayılan
+  CHASSIS kaldı, birim testi sabitliyor.
+- **Küçükler:** sil düğmesi dolu kırmızı değil kırmızı yazı (onaydaki "Evet,
+  sil" dolu kalır); denetim/rapor açılamazsa sonsuz tekerlek yerine
+  "Denetim bulunamadı"; skor tablosunda "Düşük skor iyidir: 0 = demerit yok"
+  ve "Toplam" satırı "Tümü" (skor sütununda o satır toplam değil, bütün
+  araçların birlikte skoru); rapor satırında parça adı iki satıra sarar;
+  hata karoları arası 12 px ("Boşluk fazla / dar" yan yana); son tek karo
+  bütün satıra yayılmaz; kayıt düşünce telefon titrer (web'de yok); değişiklik
+  günlüğünde tarihler okunur biçimde ve "Denetim tamamlandı / yeniden açıldı"
+  cümleleri; Ayarlar'daki uzun 360 paragrafı başlığın (i) notuna taşındı.
+- **Geri yüklemede günlük satırı düşüyordu (veri güveni):** başka telefonun
+  yedeğindeki değişiklik günlüğü satırları kimlik çakışmasıyla sessizce
+  atlanıyordu. Artık kimlik yazılmaz, aynı olay (zaman, kayıt, tür, denetim)
+  varsa eklenmez. Node'un gerçek SQLite'ında: eski kod "1 → 1" (satır düştü),
+  yeni kod "1 → 2"; ikinci geri yükleme çoğaltmıyor.
+
+**Doğrulama:** birim testleri (91 dosya, 1022 test; yeni: aktarım seçimi,
+yazım hatası/eş anlamlı arama, kablo demeti sistemi, günlük geri yükleme —
+aktarım ve günlük testlerinin ısırdığı kod bozularak denendi). Web sınavları:
+TR dört düzende (telefon/tablet × açık/koyu) 12/12 adım, EN iki düzende,
+360 sınavı, çizim (teknik ve renkli), gerçek görsellerle parça seçimi —
+hepsi hatasız. Sınavları ve beklentileri ben yazdım. **Telefonda denenmedi:**
+titreşim, Android geri tuşu, gerçek dosya paylaşımı.
+
+**Yapılmayanlar (bu aşamada):** hata boyasının biçimi (tasarımcılar numaralı
+iğne ya da ince dolgu + kalın kenar öneriyor), koyu temanın ana rengi, beş
+modelin çizimi yok, düğme dilinin (soluk haplar) yeniden düzenlenmesi, tablet
+hizaları.
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |

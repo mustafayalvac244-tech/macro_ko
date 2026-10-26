@@ -1,7 +1,8 @@
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BackHandler, Pressable, ScrollView, StyleSheet, Text, View,
+  BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,7 +25,7 @@ import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { sinifDegeri, VARSAYILAN_SINIF, varsayilanSistem } from '@/cekirdek/nas';
 import { dereceGosterimi } from '@/cekirdek/puan';
 import { bicimTarih } from '@/cekirdek/rapor';
-import { kapsamMetni, mevcutSistemler, parcaSistemi } from '@/cekirdek/sistemler';
+import { kapsamMetni, mevcutSistemler } from '@/cekirdek/sistemler';
 import { parcaDemeritleri } from '@/cekirdek/donusGorunumu';
 import { takipAdi } from '@/cekirdek/takip';
 import { aracKimligi } from '@/cekirdek/vin';
@@ -103,6 +104,9 @@ export default function DenetimEkrani() {
   const tipEkle = useKatalog((d) => d.ekle);
 
   const [denetim, setDenetim] = useState<Denetim | null>(null);
+  // Okuma bitti mi? Bitti ve denetim yoksa "bulunamadı" — eskiden sonsuz döner
+  // tekerlek kalıyordu (silinmiş ya da başka telefonun bağlantısı; 26.10.2026).
+  const [okundu, setOkundu] = useState(false);
   const [fotograflar, setFotograflar] = useState<FotografKaydi[]>([]);
   const [yuklemeHatasi, setYuklemeHatasi] = useState<string | null>(null);
 
@@ -146,6 +150,7 @@ export default function DenetimEkrani() {
       setDenetim(d);
       setFotograflar(f);
       setYuklemeHatasi(null);
+      setOkundu(true);
     } catch (h) {
       setYuklemeHatasi(h instanceof Error ? h.message : String(h));
     }
@@ -316,14 +321,19 @@ export default function DenetimEkrani() {
       // hata raporda hiç görünmez.
       const neden = h instanceof Error ? h.message : String(h);
       setKayitHatasi(t(`Kaydedilemedi: ${neden}`, `Could not save: ${neden}`));
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       return;
     }
+    // Eldivenle ekrana bakmadan giriş: kayıt düştüğünü el de hissetsin
+    // (26.10.2026, ikinci dış değerlendirme — saha denetçisi).
+    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     // Kayıt düştü; bitmiş denetimi yeniden açamazsak bu kaydı "kaydedilemedi"
     // diye göstermek yanlış olurdu — yalnız durum güncellenmemiş kalır.
     await yenidenAcGerekirse().catch(() => {});
-    // Hata kaydedilen sistem kontrol edilmiş sayılır — denetçi ayrıca işaretlemesin.
-    const sistem = parcaSistemi(parcaId);
-    if (sistem) await kapsamAyarla(denetim.id, sistem, true).catch(() => {});
+    // KAPSAM KENDİLİĞİNDEN İŞARETLENMEZ (26.10.2026). Eskiden hata kaydedilen
+    // sistem "kontrol edildi" sayılıyordu; ikinci dış değerlendirmede saha ve
+    // müdür: tek hatayla 5/5 oluyor, hata silinince de işaret kalıyor, rapor
+    // yanıltıyor. İşareti yalnız denetçi koyar (sistem satırındaki kutu).
     // Kullanım sayacını hataKaydet kendisi artırıyor. Burada da çağrılıyordu;
     // hızlı girişteki her kayıt iki kez sayılıyordu (26.09.2026'da fark edildi).
 
@@ -374,8 +384,6 @@ export default function DenetimEkrani() {
     });
     for (const fid of fotoIdleri) await fotografiHataBagla(fid, hataId);
     await yenidenAcGerekirse();
-    const sistem = parcaSistemi(t.parcaId);
-    if (sistem) await kapsamAyarla(denetim.id, sistem, true).catch(() => {});
 
     // Sorumluyu yalnız PART hatalarından öğren. Complex bir hatanın sorumlusu
     // çoğu zaman bir tasarım ekibi ("MSV Closure Design Team 1"); onu parçaya
@@ -449,7 +457,14 @@ export default function DenetimEkrani() {
     return (
       <Ekran>
         <Baslik baslik={t('Denetim', 'Audit')} sol={<GeriDugmesi />} />
-        <Yukleniyor metin={t('Denetim açılıyor…', 'Opening audit…')} />
+        {okundu ? (
+          <BosDurum
+            simge={S.uyari}
+            baslik={t('Denetim bulunamadı', 'Audit not found')}
+            aciklama={t('Bu telefonda yok: silinmiş ya da başka bir telefonda açılmış olabilir.', 'Not on this phone: it may have been deleted or created on another phone.')}
+            eylem={<Dugme metin={t('Denetimlere dön', 'Back to audits')} tur="birincil" onPress={() => router.dismissTo('/')} />}
+          />
+        ) : <Yukleniyor metin={t('Denetim açılıyor…', 'Opening audit…')} />}
       </Ekran>
     );
   }
@@ -637,6 +652,9 @@ export default function DenetimEkrani() {
                       </View>
                     </Pressable>
                   ))}
+                  {/* Görünmez dolgu: son satırdaki tek karo bütün satıra yayılıp
+                      başka türden bir düğme gibi durmasın (26.10.2026). */}
+                  {[0, 1, 2].map((i) => <View key={`dolgu${i}`} style={s.hataDolgu} aria-hidden importantForAccessibility="no-hide-descendants" />)}
                 </View>
               </View>
             ))}
@@ -740,33 +758,13 @@ export default function DenetimEkrani() {
         </View>
       ) : (hataPaneli ?? parcaGezgini)}
 
-      {buyukAcik ? (
-        // 360° büyük görünüm: Modal DEĞİL (AltSayfa ile üst üste iki modal web'de
-        // asılı kalıyor, temel.tsx); ekranın üstünde bir katman. Onay katmanı
-        // kapatır, parça açılır.
-        <View style={[StyleSheet.absoluteFill, s.buyukKatman, { paddingTop: kenar.top, paddingBottom: kenar.bottom }]} testID="donus-buyuk">
-          <DonusGorunumu
-            key={`buyuk-${denetim.aracId}`}
-            buyuk
-            aracId={denetim.aracId}
-            bolgeler={bolgeler}
-            kayitliParcalar={demeritHaritasi}
-            seciliParcaId={parcaId}
-            seciliIkinciParcaId={ikinciParcaId}
-            onBolgeSec={(bolgeId) => { setBuyukAcik(false); setKonum({ sistem: 'dis', bolgeId }); }}
-            onParcaSec={(pid, ikinci) => { setBuyukAcik(false); parcaSec(pid, ikinci); }}
-            onKapat={() => setBuyukAcik(false)}
-          />
-        </View>
-      ) : null}
-
       {bildirim ? (
-        // Bildirim altta, hata ızgarasının son satırının ÜSTÜNDE yüzüyor. Metin
-        // kısmı dokunuşu yutarsa kayıttan sonraki 6 sn boyunca o satırdaki
-        // düğmelere basılamıyor — hızlı girişin tam ortasında (26.09.2026 ekran
-        // incelemesi). Dokunuşu yalnız düğmeler alır, gerisi alttakine geçer.
-        // Telefonda düğmeler ikinci satıra iner (metin kısalmasın diye).
-        <View style={[s.bildirimKap, { bottom: bosluk.md + kenar.bottom }]} pointerEvents="box-none">
+        // Bildirim ekranın ALTINDA, akışın içinde: ızgarayı kısaltır, üstüne
+        // binmez. Eskiden ızgaranın üstünde yüzüyordu; ikinci dış
+        // değerlendirmede (26.10.2026) saha denetçisi alttaki karoya basmak
+        // isterken "Geri al"a denk geldi ve az önceki kayıt silindi. Şimdi
+        // altında hiçbir düğme yok. Telefonda düğmeler ikinci satıra iner.
+        <View style={[s.bildirimKap, { paddingBottom: bosluk.sm + kenar.bottom }]} pointerEvents="box-none">
           <View style={s.bildirim} accessibilityLiveRegion="polite" pointerEvents="box-none">
             <View style={s.bildirimSol} pointerEvents="none">
               {bildirim.tur === 'kayit'
@@ -802,6 +800,26 @@ export default function DenetimEkrani() {
               </View>
             ) : null}
           </View>
+        </View>
+      ) : null}
+
+      {buyukAcik ? (
+        // 360° büyük görünüm: Modal DEĞİL (AltSayfa ile üst üste iki modal web'de
+        // asılı kalıyor, temel.tsx); ekranın üstünde bir katman. Onay katmanı
+        // kapatır, parça açılır.
+        <View style={[StyleSheet.absoluteFill, s.buyukKatman, { paddingTop: kenar.top, paddingBottom: kenar.bottom }]} testID="donus-buyuk">
+          <DonusGorunumu
+            key={`buyuk-${denetim.aracId}`}
+            buyuk
+            aracId={denetim.aracId}
+            bolgeler={bolgeler}
+            kayitliParcalar={demeritHaritasi}
+            seciliParcaId={parcaId}
+            seciliIkinciParcaId={ikinciParcaId}
+            onBolgeSec={(bolgeId) => { setBuyukAcik(false); setKonum({ sistem: 'dis', bolgeId }); }}
+            onParcaSec={(pid, ikinci) => { setBuyukAcik(false); parcaSec(pid, ikinci); }}
+            onKapat={() => setBuyukAcik(false)}
+          />
         </View>
       ) : null}
 
@@ -1032,7 +1050,10 @@ const stiller = (r: Renkler) => StyleSheet.create({
   },
   grupAtlaMetin: { ...tipografi.captionOrta, color: r.birincil },
   grupAtlaSayi: { ...tipografi.caption, color: r.metinIkincil, fontVariant: ['tabular-nums'] },
-  hataIzgara: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
+  // Karolar arası 12 px (26.10.2026): "Boşluk fazla" ile "Boşluk dar" yan yana
+  // ve 8 px'te eldivenle yanlışına basılıyordu (ikinci dış değerlendirme).
+  hataIzgara: { flexDirection: 'row', flexWrap: 'wrap', columnGap: bosluk.sm, rowGap: bosluk.xs },
+  hataDolgu: { flexGrow: 1, flexBasis: 150, height: 0 },
   // Çerçevesiz beyaz kutu (26.10.2026, "her şey çerçeveli"): zemin gri, kutu
   // kendini ayırıyor. Kenar kalınlığı kalır, basılınca seçili-durum rengi alır.
   hataDugme: {
@@ -1067,7 +1088,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   },
 
   // Bildirim — iki temada da uygulama çubuğunun koyu yüzeyi.
-  bildirimKap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: bosluk.md },
+  bildirimKap: { alignItems: 'center', paddingHorizontal: bosluk.md, paddingTop: bosluk.xs, backgroundColor: r.bg },
   bildirim: {
     width: '100%', maxWidth: 640,
     flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: bosluk.sm,

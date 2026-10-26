@@ -14,6 +14,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
+import { aktarilacaklar, AktarimSecimi, VARSAYILAN_AKTARIM } from '@/cekirdek/aktarim';
 import { nasSayfalari } from '@/cekirdek/nas';
 import { xlsxOlustur } from '@/cekirdek/xlsx';
 import { eklemeKomutlari, GERI_YUKLEME_SIRASI, yedekIceriginiCoz } from '@/cekirdek/geriYukleme';
@@ -76,7 +77,11 @@ export async function yedekOlustur(simdi: Date = new Date()): Promise<YedekSonuc
   };
 }
 
-export interface NasSonucu { uri: string; denetim: number; problem: number; paylasildi: boolean }
+export interface NasSonucu {
+  uri: string; denetim: number; problem: number; paylasildi: boolean;
+  /** Seçilen dönemde olup bitmediği için aktarılmayan denetim. */
+  disaridaDevam: number;
+}
 
 /**
  * EXCEL'E AKTAR (26.10.2026): bütün denetimler ekibin Excel'indeki iki liste
@@ -84,8 +89,12 @@ export interface NasSonucu { uri: string; denetim: number; problem: number; payl
  * — yüzlerce fotoğraf dosyayı paylaşılamayacak kadar büyütür; PHOTO LINK
  * sütunu tam yedekteki dosya adlarını yazar.
  */
-export async function nasExcelOlustur(simdi: Date = new Date()): Promise<NasSonucu> {
-  const denetimler = await tumDenetimler();
+export async function nasExcelOlustur(
+  simdi: Date = new Date(), secim: AktarimSecimi = VARSAYILAN_AKTARIM,
+): Promise<NasSonucu> {
+  const { secilen: denetimler, disaridaDevam } = aktarilacaklar(await tumDenetimler(), secim, simdi);
+  // Boş dosya paylaşılmaz: "aktarıldı" sanılıp ekibe boş tablo gitmesin.
+  if (!denetimler.length) return { uri: '', denetim: 0, problem: 0, paylasildi: false, disaridaDevam };
   const kitap = xlsxOlustur(nasSayfalari(denetimler), { baslik: 'NAS — Araç Audit', tarih: simdi });
   const iki = (n: number) => String(n).padStart(2, '0');
   const dosya = new File(Paths.cache, `NAS_arac-audit_${simdi.getFullYear()}${iki(simdi.getMonth() + 1)}${iki(simdi.getDate())}_${iki(simdi.getHours())}${iki(simdi.getMinutes())}.xlsx`);
@@ -106,6 +115,7 @@ export async function nasExcelOlustur(simdi: Date = new Date()): Promise<NasSonu
     denetim: denetimler.length,
     problem: denetimler.reduce((t, d) => t + (d.hatalar?.length ?? 0), 0),
     paylasildi,
+    disaridaDevam,
   };
 }
 

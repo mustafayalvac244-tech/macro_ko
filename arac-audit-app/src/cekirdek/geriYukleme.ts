@@ -57,18 +57,35 @@ export function eklemeKomutlari(
     for (const ham of satirlar) {
       const satir: Satir = { ...ham };
       if (tablo === 'fotograflar') satir.uri = fotoAdresi(String(satir.id ?? '')) ?? '';
-      const anahtarlar = Object.keys(satir).filter((k) => izinli.includes(k));
+      // DEĞİŞİKLİK GÜNLÜĞÜ (26.10.2026, 2. dış değerlendirme): `id` her telefonda
+      // 1'den sayan AUTOINCREMENT; başka telefonun yedeği yüklenince aynı numaralı
+      // satırlar INSERT OR IGNORE ile sessizce düşüyordu (2 satırın 2'si). Kimlik
+      // yazılmaz, telefon yenisini verir; aynı olay (zaman, kayıt, tür, denetim)
+      // zaten varsa eklenmez — aynı yedeği ikinci kez yüklemek çoğaltmaz.
+      const gunluk = tablo === 'degisiklik_gunlugu';
+      const anahtarlar = Object.keys(satir).filter((k) => izinli.includes(k) && !(gunluk && k === 'id'));
       if (!anahtarlar.length) continue;
+      const deger = (k: string) => {
+        const v = satir[k];
+        if (v === null || v === undefined) return null;
+        if (typeof v === 'number' || typeof v === 'string') return v;
+        if (typeof v === 'boolean') return v ? 1 : 0;
+        return JSON.stringify(v);
+      };
+      if (gunluk) {
+        const olay = ['zaman', 'kayit_id', 'tur', 'denetim_id'];
+        komutlar.push({
+          tablo,
+          sql: `INSERT INTO ${tablo} (${anahtarlar.join(', ')}) SELECT ${anahtarlar.map(() => '?').join(', ')}`
+            + ` WHERE NOT EXISTS (SELECT 1 FROM ${tablo} WHERE ${olay.map((k) => `${k} IS ?`).join(' AND ')})`,
+          degerler: [...anahtarlar.map(deger), ...olay.map(deger)],
+        });
+        continue;
+      }
       komutlar.push({
         tablo,
         sql: `INSERT OR IGNORE INTO ${tablo} (${anahtarlar.join(', ')}) VALUES (${anahtarlar.map(() => '?').join(', ')})`,
-        degerler: anahtarlar.map((k) => {
-          const v = satir[k];
-          if (v === null || v === undefined) return null;
-          if (typeof v === 'number' || typeof v === 'string') return v;
-          if (typeof v === 'boolean') return v ? 1 : 0;
-          return JSON.stringify(v);
-        }),
+        degerler: anahtarlar.map(deger),
       });
     }
   }

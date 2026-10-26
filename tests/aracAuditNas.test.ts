@@ -59,6 +59,14 @@ describe('SYSTEM önerisi', () => {
     expect(varsayilanSistem('surucu_koltuk', 'leke')).toBe('INTERIOR');
   });
 
+  // 26.10.2026: ikinci dış değerlendirmede saha denetçisi "kablo demeti ELECTRIC
+  // olmalı" dedi. Ekibin Excel'inde kablo/konnektör geçen kayıtların büyük
+  // çoğunluğu CHASSIS'te (sayılar şirket verisi, buraya yazılmadı). Öneri ekibin
+  // kullanımıyla çeliştiği için uygulanmadı; bu test onu sabitliyor.
+  it('motor bölmesindeki kablo demeti CHASSIS (ekibin Excel kullanımı)', () => {
+    expect(varsayilanSistem('kablo_demeti', 'gevsek')).toBe('CHASSIS');
+  });
+
   it('kayıtta elle seçilen sistem önerinin önüne geçer', () => {
     expect(sistemDegeri({ sistem: 'BODY', parcaId: 'kaput', hataTipiId: 'cizik' })).toBe('BODY');
     expect(sistemDegeri({ sistem: '', parcaId: 'kaput', hataTipiId: 'cizik' })).toBe('EXTERIOR');
