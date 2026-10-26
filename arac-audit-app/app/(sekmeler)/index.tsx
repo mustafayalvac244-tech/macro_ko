@@ -6,11 +6,13 @@ import { GuncellemeBildirimi } from '@/bilesenler/Guncelleme';
 import { Sayac } from '@/bilesenler/Sayac';
 import { S } from '@/bilesenler/simgeler';
 import {
-  AramaKutusu, Baslik, BaslikDugmesi, BolumBasligi, BosDurum, Dugme, Ekran,
-  HataKutusu, Rozet, Secenek, useDuzen, Yukleniyor,
+  AramaKutusu, Baslik, BolumBasligi, BosDurum, Dugme, Ekran,
+  HataKutusu, IlerlemeCubugu, Rozet, Secenek, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import { aramaSadelestir } from '@/cekirdek/arama';
+import { bolgelerAracIcin } from '@/cekirdek/katalog';
 import { ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
+import { mevcutSistemler } from '@/cekirdek/sistemler';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { aracKimligi } from '@/cekirdek/vin';
 import { sureDakika, sureMetni } from '@/cekirdek/istatistik';
@@ -105,7 +107,8 @@ export default function DenetimListesi() {
           burada yazan "bağlantı gelince gönderilecek" cümlesi YANLIŞTI —
           gönderen kod yok (27.09.2026). */}
 
-      {sayac ? <Sayac sonuc={sayac} onAnaliz={() => router.push('/istatistik')} /> : null}
+      {/* Analiz artık alt sekmede; sayaçtaki kısayol düğmesi kalktı. */}
+      {sayac ? <Sayac sonuc={sayac} /> : null}
 
       {satirlar?.length ? (
         <View style={s.aramaBlok}>
@@ -140,11 +143,8 @@ export default function DenetimListesi() {
 
   return (
     <Ekran>
-      <Baslik
-        baslik="Denetimler"
-        altBaslik="Kayıtlar yalnız bu cihazda"
-        sag={<BaslikDugmesi simge={S.ayarlar} erisimEtiketi="Ayarlar" onPress={() => router.push('/ayarlar')} />}
-      />
+      {/* Ayarlar alt sekmede (25.10.2026); başlıktaki dişli kalktı. */}
+      <Baslik baslik="Denetimler" altBaslik="Kayıtlar yalnız bu cihazda" />
 
       {hata ? <View style={s.hataKap}><HataKutusu metin={`Kayıtlar okunamadı: ${hata}`} /></View> : null}
 
@@ -196,6 +196,12 @@ function DenetimKarti({
   const s = useMemo(() => stiller(renkler), [renkler]);
   const arac = ARAC_INDEKS[satir.aracId];
   const devam = satir.durum === 'devam';
+  // Kontrol ilerlemesi — Lumiform'un ana ekranında başlanmış formlar
+  // ilerlemeleriyle durur. Toplam araca göre (EV'de de 5 sistem var ama
+  // tanım tek yerde: mevcutSistemler).
+  const toplamSistem = mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })).length;
+  const kontrol = Math.min(satir.kapsamAdedi, toplamSistem);
+
   const durumRozeti = devam
     ? <Rozet metin="Devam ediyor" simge={S.vardiya} renk={renkler.bilgi} zemin={renkler.bilgiYumusak} />
     : <Rozet metin="Tamamlandı" simge={S.tik} renk={renkler.basari} zemin={renkler.basariYumusak} />;
@@ -217,6 +223,16 @@ function DenetimKarti({
           </Text>
         </View>
       </View>
+
+      {devam ? (
+        <View style={s.ilerleme}>
+          <View style={s.ilerlemeUst}>
+            <Text style={s.ilerlemeMetin}>Kontrol edilen sistemler</Text>
+            <Text style={s.ilerlemeSayi}>{`${kontrol}/${toplamSistem}`}</Text>
+          </View>
+          <IlerlemeCubugu deger={kontrol} toplam={toplamSistem} etiket={`Kontrol edilen sistemler ${kontrol}/${toplamSistem}`} />
+        </View>
+      ) : null}
 
       {/* Rozet HER BOYUTTA alt satırda: aynı satırda şasiyi sondan kesiyordu —
           önce telefonda, sonra dikey tablette ("NLHB51ABPDH…", sınama
@@ -283,5 +299,9 @@ const stiller = (r: Renkler) => StyleSheet.create({
   metaSatir: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   sayilar: { ...tipografi.captionOrta, color: r.metinIkincil, fontVariant: ['tabular-nums'] },
   sonucPul: { paddingHorizontal: bosluk.xs, paddingVertical: 3, borderRadius: kose.sm },
+  ilerleme: { gap: 6 },
+  ilerlemeUst: { flexDirection: 'row', justifyContent: 'space-between', gap: bosluk.sm },
+  ilerlemeMetin: { ...tipografi.caption, color: r.metinSolgun },
+  ilerlemeSayi: { ...tipografi.captionOrta, color: r.metinIkincil, fontVariant: ['tabular-nums'] },
   sonucMetin: { ...tipografi.etiket },
 });

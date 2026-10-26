@@ -15,13 +15,23 @@
 // KAPSAM VE HARİTA (24.10.2026, benzer uygulamaların incelenmesi): her
 // sistem kartında "kontrol edildi" işareti (sistemler.ts'teki not); 1. adımda
 // dış bölgelere dokunulan şematik araç haritası (AracHaritasi.tsx).
+//
+// SORU KARTLARI (25.10.2026, ürün sahibi: "Lumiform'dan esinlen"): 1. adım
+// bir kontrol listesi gibi okunur. Üstte "2/5 kontrol edildi" ve ilerleme
+// çubuğu; her sistem bir soru kartı, altında iki cevap: "Uygun" (hatasız
+// kontrol edildi, yeşil) ve "Hata gir" / "n hata" (kırmızı). Hatası olan
+// sistem "Uygun" olamaz, o düğme kilitlenir. Listenin sonunda "Denetimi
+// bitir" — Lumiform'da formun sonundaki "tamamla" gibi. Önceki yuvarlak
+// onay kutusu kartın İÇİNDE ikinci bir düğmeydi; Android'de ekran okuyucu
+// içteki düğmeye hiç ulaşamıyordu (kart erişilebilir bir bütün sayılır).
+// Cevaplar artık kartın kardeşi, ayrı ayrı odaklanır.
 
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AracHaritasi } from '@/bilesenler/AracHaritasi';
 import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
-import { AramaKutusu, BolumBasligi } from '@/bilesenler/temel';
+import { AramaKutusu, BolumBasligi, Dugme, IlerlemeCubugu } from '@/bilesenler/temel';
 import { aramaEslesir } from '@/cekirdek/arama';
 import { PARCA_INDEKS, parcaAramaMetni, parcaTamAdi } from '@/cekirdek/katalog';
 import { kisaBolgeAdi, SISTEMLER } from '@/cekirdek/sistemler';
@@ -33,7 +43,7 @@ export const KOK_KONUM: Konum = { sistem: null, bolgeId: null };
 
 export function AdimliSecim({
   bolgeler, konum, setKonum, arama, setArama, parcaId, parcaSayilari, sonParcalar, onSec, tablet,
-  kapsam, onKapsam,
+  kapsam, onKapsam, onBitir,
 }: {
   bolgeler: Bolge[];
   konum: Konum;
@@ -48,6 +58,8 @@ export function AdimliSecim({
   /** Kontrol edildi işaretli sistemler. */
   kapsam: ReadonlySet<string>;
   onKapsam: (sistem: BolgeGrubu, isaretli: boolean) => void;
+  /** Verilirse sistem listesinin sonunda "Denetimi bitir" çıkar (devam eden denetim). */
+  onBitir?: () => void;
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
@@ -57,6 +69,7 @@ export function AdimliSecim({
     [bolgeler],
   );
   const sistem = sistemler.find((x) => x.id === konum.sistem) ?? null;
+  const kontrolSayisi = sistemler.filter((x) => kapsam.has(x.id)).length;
   // Araç değişince bölge yeni araçta olmayabilir: o zaman sistem adımına düşülür.
   const bolge = sistem?.bolgeler.find((b) => b.id === konum.bolgeId) ?? null;
   const kayit = (b: Bolge) => b.parcalar.reduce((t, p) => t + (parcaSayilari.get(p.id) ?? 0), 0);
@@ -160,7 +173,15 @@ export function AdimliSecim({
             <View style={s.adimBaslik}>
               <View style={s.adimNo}><Text style={s.adimNoMetin}>{adim}</Text></View>
               <Text style={s.adimMetin}>{adimMetni}</Text>
+              {adim === 1 ? <Text style={s.adimSayi}>{`${kontrolSayisi}/${sistemler.length} kontrol edildi`}</Text> : null}
             </View>
+            {adim === 1 ? (
+              <IlerlemeCubugu
+                deger={kontrolSayisi}
+                toplam={sistemler.length}
+                etiket={`Kontrol edilen sistemler ${kontrolSayisi}/${sistemler.length}`}
+              />
+            ) : null}
 
             {adim === 1 ? (
               <View style={s.izgara}>
@@ -174,40 +195,65 @@ export function AdimliSecim({
                   const n = x.bolgeler.reduce((t, b) => t + kayit(b), 0);
                   const parcaSayisi = x.bolgeler.reduce((t, b) => t + b.parcalar.length, 0);
                   const isaretli = kapsam.has(x.id);
+                  // "Uygun" = hatasız kontrol edildi. Hata varsa sistem zaten
+                  // kontrol edilmiştir (kayıt işareti kendiliğinden koyar) ama
+                  // "uygun" değildir.
+                  const uygun = isaretli && !n;
                   return (
-                    <Pressable
-                      key={x.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Sistem ${x.ad}${n ? `, ${n} kayıt` : ''}${isaretli ? ', kontrol edildi' : ''}`}
-                      onPress={() => sistemSec(x.id)}
-                      style={({ pressed }) => [s.kutu, s.buyukKutu, pressed && s.basili]}
-                    >
-                      <View style={s.simgeYuva}>{Ikon ? <Ikon size={24} color={renkler.birincil} strokeWidth={2} /> : null}</View>
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={s.buyukAd} numberOfLines={1}>{x.ad}</Text>
-                        <Text style={[s.alt, isaretli && { color: renkler.basari }]} numberOfLines={1}>
-                          {isaretli
-                            ? 'Kontrol edildi'
-                            : `${x.en} · ${x.bolgeler.length > 1 ? `${x.bolgeler.length} bölge` : `${parcaSayisi} madde`}`}
-                        </Text>
-                      </View>
-                      {n ? <View style={s.pul}><Text style={s.pulMetin}>{n}</Text></View> : null}
-                      {/* Kontrol edildi işareti: hatasız sistemi "bakıldı" diye
-                          kaydetmenin tek yolu. Hata kaydedilince kendiliğinden konur. */}
+                    <View key={x.id} style={s.soru}>
                       <Pressable
-                        accessibilityRole="checkbox"
-                        aria-checked={isaretli}
-                        accessibilityLabel={`${x.ad} kontrol edildi`}
-                        onPress={() => onKapsam(x.id, !isaretli)}
-                        hitSlop={6}
-                        style={({ pressed }) => [s.isaret, isaretli && s.isaretli, pressed && s.basili]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Sistem ${x.ad}${n ? `, ${n} kayıt` : ''}${isaretli ? ', kontrol edildi' : ''}`}
+                        onPress={() => sistemSec(x.id)}
+                        style={({ pressed }) => [s.soruUst, pressed && s.basili]}
                       >
-                        <S.tik size={18} color={isaretli ? renkler.metinTers : renkler.metinSolgun} strokeWidth={2.5} />
+                        <View style={s.simgeYuva}>{Ikon ? <Ikon size={24} color={renkler.birincil} strokeWidth={2} /> : null}</View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={s.buyukAd} numberOfLines={1}>{x.ad}</Text>
+                          <Text style={s.alt} numberOfLines={1}>
+                            {`${x.en} · ${x.bolgeler.length > 1 ? `${x.bolgeler.length} bölge` : `${parcaSayisi} madde`}`}
+                          </Text>
+                        </View>
+                        <S.ileri size={20} color={renkler.metinSolgun} strokeWidth={2} />
                       </Pressable>
-                      <S.ileri size={20} color={renkler.metinSolgun} strokeWidth={2} />
-                    </Pressable>
+                      <View style={s.cevaplar}>
+                        <Pressable
+                          accessibilityRole="checkbox"
+                          aria-checked={uygun}
+                          accessibilityState={{ checked: uygun, disabled: n > 0 }}
+                          accessibilityLabel={`${x.ad} uygun`}
+                          disabled={n > 0}
+                          onPress={() => onKapsam(x.id, !isaretli)}
+                          style={({ pressed }) => [s.cevap, uygun && s.cevapUygun, n > 0 && s.cevapKilitli, pressed && s.basili]}
+                        >
+                          <S.tik size={16} color={uygun ? renkler.basari : renkler.metinIkincil} strokeWidth={2.5} />
+                          <Text style={[s.cevapMetin, uygun && { color: renkler.basari }]}>Uygun</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={n ? `${x.ad}: ${n} hata, aç` : `${x.ad}: hata gir`}
+                          onPress={() => sistemSec(x.id)}
+                          style={({ pressed }) => [s.cevap, n > 0 && s.cevapHata, pressed && s.basili]}
+                        >
+                          {n
+                            ? <S.uyari size={16} color={renkler.tehlike} strokeWidth={2.25} />
+                            : <S.ekle size={16} color={renkler.metinIkincil} strokeWidth={2.25} />}
+                          <Text style={[s.cevapMetin, n > 0 && { color: renkler.tehlike }]}>{n ? `${n} hata` : 'Hata gir'}</Text>
+                        </Pressable>
+                      </View>
+                    </View>
                   );
                 })}
+                {onBitir ? (
+                  <Dugme
+                    metin="Denetimi bitir"
+                    tur="birincil"
+                    simge={S.tamam}
+                    onPress={onBitir}
+                    erisimEtiketi="Denetimi bitir: özeti gör ve onayla"
+                    style={{ flexBasis: '100%', marginTop: bosluk.xs }}
+                  />
+                ) : null}
               </View>
             ) : adim === 2 && sistem ? (
               <View style={s.izgara}>
@@ -257,6 +303,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   },
   adimNoMetin: { ...tipografi.captionOrta, color: r.metinTers, fontVariant: ['tabular-nums'] },
   adimMetin: { ...tipografi.h3, fontSize: 16, lineHeight: 22, color: r.metin },
+  adimSayi: { ...tipografi.captionOrta, color: r.metinIkincil, marginLeft: 'auto', fontVariant: ['tabular-nums'] },
   izgara: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   kutu: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
@@ -278,10 +325,20 @@ const stiller = (r: Renkler) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', backgroundColor: r.yuzeyVurgu,
   },
   pulMetin: { ...tipografi.captionOrta, color: r.metin, fontVariant: ['tabular-nums'] },
-  isaret: {
-    width: 36, height: 36, borderRadius: kose.pill, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: r.cizgiGuclu, backgroundColor: r.yuzey,
+  // Soru kartı: üstte sistem (dokununca açılır), altta iki cevap.
+  soru: {
+    flexBasis: '100%', gap: bosluk.xs, padding: bosluk.sm,
+    borderRadius: kose.lg, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
   },
-  isaretli: { backgroundColor: r.basari, borderColor: r.basari },
+  soruUst: { flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: DOKUNMA },
+  cevaplar: { flexDirection: 'row', gap: bosluk.xs },
+  cevap: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    minHeight: DOKUNMA, borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+  },
+  cevapUygun: { borderColor: r.basari, backgroundColor: r.basariYumusak },
+  cevapHata: { borderColor: r.tehlike, backgroundColor: r.tehlikeYumusak },
+  cevapKilitli: { opacity: 0.4 },
+  cevapMetin: { ...tipografi.bodyOrta, fontSize: 14, color: r.metin },
   bos: { ...tipografi.body, color: r.metinSolgun, textAlign: 'center', paddingVertical: bosluk.lg },
 });

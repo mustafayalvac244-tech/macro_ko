@@ -503,6 +503,35 @@ export function Olcu({
   );
 }
 
+// --- İLERLEME ÇUBUĞU -------------------------------------------------------
+
+/**
+ * İnce ilerleme çubuğu — Lumiform'daki form ilerlemesi gibi (25.10.2026).
+ * Hepsi bitince yeşile döner. Bilgi yalnız çubukta değil: yanında her zaman
+ * "2/5" yazısı durur, çubuk onu görselleştirir. Ekran okuyucu değeri okur.
+ */
+export function IlerlemeCubugu({ deger, toplam, etiket }: { deger: number; toplam: number; etiket: string }) {
+  const { renkler } = useTema();
+  const s = useMemo(() => stiller(renkler), [renkler]);
+  const sinirli = Math.max(0, Math.min(deger, toplam));
+  const oran = toplam > 0 ? sinirli / toplam : 0;
+  const tam = toplam > 0 && sinirli >= toplam;
+  return (
+    <View
+      accessibilityRole="progressbar"
+      accessibilityLabel={etiket}
+      // aria-value*: react-native-web eski `accessibilityValue`yu aktarmıyor
+      // (uçtan uca sınavda değer boş geldi, 25.10.2026); RN de bunları okur.
+      aria-valuemin={0}
+      aria-valuemax={toplam}
+      aria-valuenow={sinirli}
+      style={s.ilerlemeIz}
+    >
+      <View style={[s.ilerlemeDolu, { width: `${oran * 100}%`, backgroundColor: tam ? renkler.basari : renkler.birincil }]} />
+    </View>
+  );
+}
+
 // --- DURUMLAR -------------------------------------------------------------
 
 export function Yukleniyor({ metin }: { metin?: string }) {
@@ -702,6 +731,9 @@ const stiller = (r: Renkler) => StyleSheet.create({
   olcuMetinler: { minWidth: 0, flexShrink: 1 },
   olcuDeger: { ...tipografi.sayiBuyuk, color: r.metin },
   olcuEtiket: { ...tipografi.caption, color: r.metinSolgun, marginTop: -2 },
+
+  ilerlemeIz: { height: 6, borderRadius: kose.pill, backgroundColor: r.yuzeyVurgu, overflow: 'hidden' },
+  ilerlemeDolu: { height: 6, borderRadius: kose.pill },
 
   ortala: { alignItems: 'center', justifyContent: 'center', padding: bosluk.xl, gap: bosluk.sm },
   bosSimge: {

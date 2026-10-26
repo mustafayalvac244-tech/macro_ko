@@ -7,7 +7,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { S } from '@/bilesenler/simgeler';
 import {
   AltCubuk, Baslik, BaslikCipi, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi,
-  HataKutusu, Kart, Olcu, useDuzen, Yukleniyor,
+  HataKutusu, IlerlemeCubugu, Kart, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import { DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi, bolgelerAracIcin } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
@@ -32,10 +32,12 @@ const DOSYA_DILI = 'en' as const;
 export default function RaporEkrani() {
   // kaynak=ana: rapor ana sayfadan (bitmiş denetimin kartından) açıldı; çalışma
   // ekranına GERİ dönülmez, ona GEÇİLİR.
-  const { id, kaynak } = useLocalSearchParams<{ id: string; kaynak?: string }>();
+  // bitir=1: çalışma ekranındaki "Denetimi bitir"den gelindi; onay bandı
+  // açık başlar (25.10.2026).
+  const { id, kaynak, bitir: bitirIstegi } = useLocalSearchParams<{ id: string; kaynak?: string; bitir?: string }>();
   const router = useRouter();
   const acmaIste = useAcmaIstegi((d) => d.iste);
-  const [bitirOnay, setBitirOnay] = useState(false);
+  const [bitirOnay, setBitirOnay] = useState(bitirIstegi === '1');
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { tablet } = useDuzen();
@@ -150,6 +152,9 @@ export default function RaporEkrani() {
 
   const arac = ARAC_INDEKS[denetim.aracId];
   const enCokBolge = Math.max(1, ...ozet.bolgeDagilimi.map((b) => b.adet));
+  const sistemListesi = mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }));
+  const kontrolEdilen = sistemListesi.filter((x) => (denetim.kapsam ?? []).includes(x)).length;
+  const derece3 = ozet.dereceDagilimi['3'].adet;
 
   const kunye: [string, string, boolean?][] = [
     ['Araç', arac?.tam ?? denetim.aracId],
@@ -198,12 +203,40 @@ export default function RaporEkrani() {
       />
 
       <ScrollView contentContainerStyle={s.govde} showsVerticalScrollIndicator={false}>
-        <View style={s.olcuSatiri}>
-          <Olcu genis simge={S.rapor} deger={ozet.toplamAdet} etiket="hata" renk={renkler.birincil} zemin={renkler.birincilYumusak} />
-          <Olcu genis simge={S.uyari} deger={ozet.dereceDagilimi['3'].adet} etiket="derece 3" renk={renkler.derece3} zemin={renkler.derece3Yumusak} />
-          <Olcu genis simge={S.kabul} deger={ozet.kabulEdilebilirAdet} etiket="kabul edilebilir" />
-          <Olcu genis simge={S.kamera} deger={ozet.fotografliHata} etiket="fotoğraflı" />
-        </View>
+        {/* TEK ÖZET KARTI (25.10.2026, Lumiform'un rapor özeti örnek): dört
+            ayrı ölçü kutusu yerine bir kart — sayılar yan yana, altında kontrol
+            ilerlemesi. Derece 3 sıfırsa kırmızı değil: kırmızı yalnız sorun
+            varken görünsün. */}
+        <Kart>
+          <View
+            style={s.ozetSatir}
+            accessible
+            accessibilityLabel={`Rapor özeti: ${ozet.toplamAdet} hata, ${derece3} derece 3, ${ozet.kabulEdilebilirAdet} kabul edilebilir, ${ozet.fotografliHata} fotoğraflı`}
+          >
+            {[
+              { deger: ozet.toplamAdet, etiket: 'hata', renk: renkler.birincil },
+              { deger: derece3, etiket: 'derece 3', renk: derece3 ? renkler.derece3 : renkler.metin },
+              { deger: ozet.kabulEdilebilirAdet, etiket: 'kabul edilebilir', renk: renkler.metin },
+              { deger: ozet.fotografliHata, etiket: 'fotoğraflı', renk: renkler.metin },
+            ].map((x, i) => (
+              <View key={x.etiket} style={[s.ozetHucre, i > 0 && s.ozetAyrac]}>
+                <Text style={[s.ozetDeger, { color: x.renk }]}>{x.deger}</Text>
+                <Text style={s.ozetEtiket} numberOfLines={2}>{x.etiket}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={s.ozetKapsam}>
+            <View style={s.ozetKapsamUst}>
+              <Text style={s.ozetKapsamMetin}>Kontrol edilen sistemler</Text>
+              <Text style={s.ozetKapsamSayi}>{`${kontrolEdilen}/${sistemListesi.length}`}</Text>
+            </View>
+            <IlerlemeCubugu
+              deger={kontrolEdilen}
+              toplam={sistemListesi.length}
+              etiket={`Kontrol edilen sistemler ${kontrolEdilen}/${sistemListesi.length}`}
+            />
+          </View>
+        </Kart>
 
         <View style={[s.ikili, tablet && s.ikiliTablet]}>
           <Kart style={tablet ? { flex: 1 } : undefined}>
@@ -274,7 +307,7 @@ export default function RaporEkrani() {
         </View>
 
         <Kart>
-          <BolumBasligi metin={`Hatalar (${denetim.hatalar.length}) — DERECEYE GÖRE`} simge={S.liste} />
+          <BolumBasligi metin={`Hatalar (${denetim.hatalar.length}) — dereceye göre`} simge={S.liste} />
           <View testID="rapor-hatalar" style={{ gap: 6 }}>
             {denetim.hatalar.length === 0 ? <Text style={s.bos}>Hata kaydedilmedi.</Text> : null}
             {siraliHatalar.map((h) => (
@@ -368,7 +401,15 @@ const stiller = (r: Renkler) => StyleSheet.create({
     padding: bosluk.md, gap: bosluk.md, paddingBottom: bosluk.xxxl,
     width: '100%', maxWidth: 1100, alignSelf: 'center',
   },
-  olcuSatiri: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
+  ozetSatir: { flexDirection: 'row' },
+  ozetHucre: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 4 },
+  ozetAyrac: { borderLeftWidth: 1, borderLeftColor: r.cizgiSolgun },
+  ozetDeger: { ...tipografi.sayiBuyuk },
+  ozetEtiket: { ...tipografi.caption, color: r.metinSolgun, textAlign: 'center' },
+  ozetKapsam: { gap: 6, paddingTop: bosluk.sm, borderTopWidth: 1, borderTopColor: r.cizgiSolgun },
+  ozetKapsamUst: { flexDirection: 'row', justifyContent: 'space-between', gap: bosluk.sm },
+  ozetKapsamMetin: { ...tipografi.caption, color: r.metinSolgun },
+  ozetKapsamSayi: { ...tipografi.captionOrta, color: r.metinIkincil, fontVariant: ['tabular-nums'] },
 
   ikili: { gap: bosluk.md },
   ikiliTablet: { flexDirection: 'row', alignItems: 'flex-start' },

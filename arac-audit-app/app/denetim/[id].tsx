@@ -389,6 +389,11 @@ export default function DenetimEkrani() {
       tablet={tablet}
       kapsam={kapsam}
       onKapsam={kapsamDegistir}
+      // Lumiform'daki "tamamla": raporu bitirme onayı açık hâlde açar; orada
+      // kontrol edilmemiş sistemler sayılır (25.10.2026).
+      onBitir={denetim.durum === 'devam'
+        ? () => router.push({ pathname: '/denetim/rapor', params: { id: denetim.id, bitir: '1' } })
+        : undefined}
     />
   );
 

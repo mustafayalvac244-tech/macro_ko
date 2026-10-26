@@ -18,7 +18,7 @@ import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 
 import { S } from '@/bilesenler/simgeler';
 import {
-  Baslik, BolumBasligi, BosDurum, Ekran, GeriDugmesi, HataKutusu, Kart, Secenek, useDuzen, Yukleniyor,
+  Baslik, BolumBasligi, BosDurum, Ekran, HataKutusu, Kart, Secenek, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import {
   haftalikDpu, HataKaydi, pareto, ParetoSatiri, sistemeGore, tekrarlayanlar,
@@ -163,7 +163,7 @@ export default function Analiz() {
 
   return (
     <Ekran>
-      <Baslik baslik="Analiz" altBaslik="Bu cihazdaki denetimler" sol={<GeriDugmesi />} />
+      <Baslik baslik="Analiz" altBaslik="Bu cihazdaki denetimler" />
       {hata ? <View style={{ padding: bosluk.md }}><HataKutusu metin={hata} /></View> : null}
       {!veri || !hesap ? <Yukleniyor metin="Hesaplanıyor…" /> : (
         <ScrollView contentContainerStyle={[s.govde, tablet && s.govdeTablet]}>

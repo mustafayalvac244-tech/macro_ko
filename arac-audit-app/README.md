@@ -183,6 +183,41 @@ dile itiraz etmedi); "beğendi" demek değil.
   TEK sınırı olarak kullanılmaz (kabul anahtarının kapalı rayı bu yüzden
   `metinSolgun` kenarlı).
 
+### Lumiform'dan esinlenen düzen (25.10.2026)
+
+Ürün sahibi: *"Lumiform'dan esinlen, güzel bir program."* Lumiform'un
+sayfaları bu ortamdan açılamadı; yalnız arama özetleri okundu. **Doğrulanan:**
+mobil ana ekranda başlanmış ve atanmış formlar ayrı durur; denetimde başarısız
+madde anında işaretlenir ve düzeltici aksiyon açılır; puanlama, fotoğraf,
+not, çevrimdışı çalışma var; masaüstünde ana bölümler kalıcı bir menüde.
+**Doğrulanamayan:** cevap düğmelerinin ve ilerleme çubuğunun görünüşü, renkler.
+Aşağıdakiler bu sınıftaki denetim uygulamalarının ortak deseni üzerine benim
+uyarlamam; Lumiform'un kopyası değil, renkleri de alınmadı.
+
+- **Alt sekme çubuğu:** Denetimler · Analiz · Ayarlar (`app/(sekmeler)/`).
+  `expo-router/js-tabs` saf JavaScript; paket eklenmedi, OTA ile gider.
+  Analiz önce sayaç kartındaki bir düğmede, Ayarlar başlıktaki dişlideydi.
+- **Denetim ekranı bir kontrol listesi:** üstte "2/5 kontrol edildi" ve
+  ilerleme çubuğu; her sistem bir soru kartı, altında iki cevap: **Uygun**
+  (hatasız kontrol edildi, yeşil) ve **Hata gir / n hata** (kırmızı). Hatası
+  olan sistemde "Uygun" kilitli. Listenin sonunda **Denetimi bitir**: rapor,
+  bitirme onayı açık hâlde açılır ve kontrol edilmemiş sistemler sayılır.
+  Eski yuvarlak onay kutusu kartın İÇİNDE ikinci bir düğmeydi; Android'de
+  ekran okuyucu içteki düğmeye ulaşamazdı. Cevaplar artık kartın kardeşi.
+- **Ana sayfa kartı:** devam eden denetimde "Kontrol edilen sistemler 2/5"
+  ve ilerleme çubuğu (liste sorgusu kapsam adedini alt sorguyla sayıyor).
+- **Rapor:** dört ayrı ölçü kutusu yerine tek özet kartı; altında kontrol
+  ilerlemesi. Derece 3 sıfırsa kırmızı görünmez.
+
+**Ölçülen:** web paketinde 16 adımlık uçtan uca sınav 4 düzende hatasız (yeni
+adımlar: sekmeler, "Uygun" kilidi, ilerleme değeri 2/5, listeden bitir, rapor
+özeti). Sınavı ben yazdım. İlk koşu iki şey yakaladı ve düzeltildi:
+react-native-web ilerleme değerini aktarmıyordu (`aria-value*` ile çözüldü);
+telefonda sekme etiketinin kutusu 9 piksel kalıyordu (içerik 16). Etiket
+ölçümü `sekme-olc.mjs` ile yapıldı; aynı ölçüm, kesik olduğu bilinen bir kutuda
+"taşıyor" dedi. Yeni renk yok; kullanılan çiftler önceki kontrast ölçümünde
+var. **Ölçülmeyen:** gerçek cihaz ve ürün sahibinin beğenisi.
+
 ## Yazı tipi — Manrope (25.10.2026)
 
 Sıra: IBM Plex → (24.10) Inter + JetBrains Mono → (25.10) **Manrope**, tek
@@ -498,6 +533,7 @@ durdurma, onarıma yönlendirme).
 | Tasarım sistemi, iki tema | **Bitti** |
 | Görsel yenileme: koyu çubuk, simgeler, tablette iki bölme, kartlar | **Bitti** — web'de tablet/telefon × açık/koyu koşuldu; **gerçek tablette görülmedi** |
 | Görsel dil üçüncü kez (25.10.2026): Vekil Pro paleti, Manrope, açık başlık, normal yazımlı etiketler | **Kod bitti, beğeni ölçülmedi** — kontrast 2 × 39 çift ≥ eşik; 4 düzende sınav geçti; ürün sahibi henüz görmedi |
+| Lumiform'dan esinlenen düzen (25.10.2026): sekmeler, kontrol listesi, ilerleme, rapor özeti | **Kod bitti, beğeni ölçülmedi** — 4 düzende 16 adım geçti; gerçek cihazda görülmedi |
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
 | Parça kataloğu (169 parça; elektrikli araçta 163, benzinlide 161 listelenir), VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
 | Hızlı giriş (2 dokunuş), geri al | **Bitti** |

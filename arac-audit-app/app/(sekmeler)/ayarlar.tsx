@@ -5,7 +5,7 @@ import { ListeDuzenle, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { SurumKarti } from '@/bilesenler/Guncelleme';
 import { GRUP_SIMGELERI, S, Simge } from '@/bilesenler/simgeler';
 import {
-  Baslik, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi, Kart, Secenek, useDuzen,
+  Baslik, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, Kart, Secenek, useDuzen,
 } from '@/bilesenler/temel';
 import { HATA_GRUPLARI } from '@/cekirdek/katalog';
 import { HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
@@ -58,7 +58,7 @@ export default function Ayarlar() {
 
   return (
     <Ekran>
-      <Baslik baslik="Ayarlar" sol={<GeriDugmesi />} />
+      <Baslik baslik="Ayarlar" />
       <ScrollView contentContainerStyle={s.govde}>
         <Kart>
           <BolumBasligi metin="Görünüm" simge={S.gorunum} />

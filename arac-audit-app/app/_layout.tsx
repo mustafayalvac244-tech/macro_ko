@@ -13,6 +13,10 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   // Splash zaten gizlenmişse sorun değil.
 });
 
+// Bir ekran doğrudan açılsa da (web'de sayfa yenileme, bağlantı) altında
+// sekmeler dursun: geri tuşu uygulamadan çıkmak yerine ana sayfaya döner.
+export const unstable_settings = { initialRouteName: '(sekmeler)' };
+
 export default function KokDuzen() {
   // Yazı tipleri assets/fonts altında, paket olarak DEĞİL (24.10.2026):
   // @expo-google-fonts paketi eklemek package.json'ı değiştirir, OTA bekçisi

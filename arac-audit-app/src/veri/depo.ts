@@ -312,6 +312,8 @@ export interface DenetimOzetSatiri {
   bitis: string | null; durum: string; denetci: string; hataAdedi: number;
   /** Kabul edilebilir işaretlenmemiş 3. derece hata adedi. */
   agirAdedi: number;
+  /** "Kontrol edildi" işaretli sistem sayısı (denetim_kapsam). */
+  kapsamAdedi: number;
   senkronlandi: boolean;
 }
 
@@ -380,11 +382,14 @@ export async function denetimleriListele(enFazla = 100): Promise<DenetimOzetSati
   const satirlar = await d.getAllAsync<{
     id: string; arac_id: string; vin: string; body_no: string | null; plaka: string; spec: string | null; baslangic: string;
     bitis: string | null; durum: string; denetci: string; senkron_zamani: string | null;
-    hata_adedi: number | null; agir: number | null;
+    hata_adedi: number | null; agir: number | null; kapsam_adedi: number | null;
   }>(
+    // kapsam_adedi alt sorgu: hatalar ile birleştirilseydi her hata satırı
+    // kapsam satırlarını çoğaltırdı (SUM ve COUNT ikisi de şişerdi).
     `SELECT dn.id, dn.arac_id, dn.vin, dn.body_no, dn.plaka, dn.spec, dn.baslangic, dn.bitis, dn.durum, dn.denetci, dn.senkron_zamani,
             COALESCE(SUM(h.adet), 0) AS hata_adedi,
-            COALESCE(SUM(CASE WHEN h.derece = '3' AND h.kabul_edilebilir = 0 THEN h.adet ELSE 0 END), 0) AS agir
+            COALESCE(SUM(CASE WHEN h.derece = '3' AND h.kabul_edilebilir = 0 THEN h.adet ELSE 0 END), 0) AS agir,
+            (SELECT COUNT(*) FROM denetim_kapsam k WHERE k.denetim_id = dn.id) AS kapsam_adedi
        FROM denetimler dn
        LEFT JOIN hatalar h ON h.denetim_id = dn.id
       GROUP BY dn.id
@@ -395,7 +400,7 @@ export async function denetimleriListele(enFazla = 100): Promise<DenetimOzetSati
   return satirlar.map((s) => ({
     id: s.id, aracId: s.arac_id, vin: s.vin, bodyNo: s.body_no ?? '', plaka: s.plaka, spec: s.spec ?? '', baslangic: s.baslangic,
     bitis: s.bitis, durum: s.durum, denetci: s.denetci, hataAdedi: s.hata_adedi ?? 0,
-    agirAdedi: s.agir ?? 0, senkronlandi: !!s.senkron_zamani,
+    agirAdedi: s.agir ?? 0, kapsamAdedi: s.kapsam_adedi ?? 0, senkronlandi: !!s.senkron_zamani,
   }));
 }
 

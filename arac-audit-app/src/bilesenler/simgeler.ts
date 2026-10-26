@@ -13,8 +13,8 @@
 // görünmesin.
 
 import {
-  AppWindow, Armchair, ArrowRight, Calendar, Camera, CarFront, Check, ChevronLeft, ChevronRight,
-  CircleCheck, CircleDashed, ClipboardList, Clock, CloudDownload, CloudUpload, Database, Droplets, Factory,
+  AppWindow, Armchair, ArrowRight, Calendar, Camera, CarFront, ChartColumn, Check, ChevronLeft, ChevronRight,
+  CircleCheck, CircleDashed, ClipboardCheck, ClipboardList, Clock, CloudDownload, CloudUpload, Database, Droplets, Factory,
   FileSpreadsheet, FileText, Gauge, Hash, History, Image, Info, Layers, List, LucideIcon, Minus,
   Monitor, Moon, MousePointerClick, Paintbrush, Palette, Pencil, Plus, RotateCw, Ruler, ScanBarcode, Search,
   Settings, Sparkles, Sun, Tag, Trash2, TriangleAlert, Undo2, User, Users, Volume2, Wrench, X, Zap,
@@ -67,6 +67,10 @@ export const S = {
   etiket: Tag,
   guncelleme: CloudDownload,
   yenidenBaslat: RotateCw,
+  // Alt sekme çubuğu (25.10.2026, Lumiform örneği). İkisi de 1.48.0'ın tip
+  // dosyasında ve derlenmiş paketinde arandı; olmayan bir adla sağlama "0".
+  denetimler: ClipboardCheck,
+  analiz: ChartColumn,
 } satisfies Record<string, Simge>;
 
 /**
