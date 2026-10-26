@@ -18,9 +18,12 @@ import Svg, { Path, Rect, Text as SvgText } from 'react-native-svg';
 import { kisaBolgeAdi } from '@/cekirdek/sistemler';
 import { Bolge } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema, yazi } from '@/tema';
+import { useDil } from '@/veri/dilDeposu';
 
 const EN = 320;
-const BOY = 160;
+// 172: gövde hattı 154'te biter; altındaki "ÖN ◀" / "FRONT ◀" yazısı için
+// pay. 160 iken yazı çizgiye biniyordu (İngilizce ekran görüntüsü, 26.10.2026).
+const BOY = 172;
 
 /** Araç sola bakar: ön solda. Sola bakan aracın SOL yanı çizimin altındadır. */
 const BOLGE_KUTULARI: Record<string, { x: number; y: number; w: number; h: number }> = {
@@ -41,12 +44,13 @@ export function AracHaritasi({
   onSec: (bolgeId: string) => void;
 }) {
   const { renkler } = useTema();
+  const { t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const cizilecek = bolgeler.filter((b) => BOLGE_KUTULARI[b.id]);
   if (!cizilecek.length) return null;
 
   return (
-    <View style={s.kap} accessibilityLabel="Araç haritası">
+    <View style={s.kap} accessibilityLabel={t('Araç haritası', 'Vehicle map')}>
       <Svg width="100%" height="100%" viewBox={`0 0 ${EN} ${BOY}`} aria-hidden>
         {/* Gövde dış hattı ve tekerler — yalnız tanınsın diye. */}
         <Path
@@ -70,12 +74,12 @@ export function AracHaritasi({
                 x={k.x + k.w / 2} y={k.y + k.h / 2 + 4}
                 fontFamily={yazi.yariKalin} fontSize={12} fill={renkler.metin} textAnchor="middle"
               >
-                {kisaBolgeAdi(b.ad)}{n ? ` · ${n}` : ''}
+                {kisaBolgeAdi(t(b.ad, b.en))}{n ? ` · ${n}` : ''}
               </SvgText>
             </React.Fragment>
           );
         })}
-        <SvgText x={12} y={BOY - 4} fontFamily={yazi.normal} fontSize={9} fill={renkler.metinSolgun}>ÖN ◀</SvgText>
+        <SvgText x={12} y={BOY - 3} fontFamily={yazi.normal} fontSize={9} fill={renkler.metinSolgun}>{t('ÖN ◀', 'FRONT ◀')}</SvgText>
       </Svg>
       {/* Dokunma alanları: SVG koordinatlarının yüzdesi. */}
       {cizilecek.map((b) => {
@@ -85,7 +89,10 @@ export function AracHaritasi({
           <Pressable
             key={b.id}
             accessibilityRole="button"
-            accessibilityLabel={`Harita: ${kisaBolgeAdi(b.ad)}${n ? `, ${n} kayıt` : ''}`}
+            accessibilityLabel={t(
+              `Harita: ${kisaBolgeAdi(b.ad)}${n ? `, ${n} kayıt` : ''}`,
+              `Map: ${kisaBolgeAdi(b.en)}${n ? `, ${n} ${n === 1 ? 'record' : 'records'}` : ''}`,
+            )}
             onPress={() => onSec(b.id)}
             style={({ pressed }) => [{
               position: 'absolute',

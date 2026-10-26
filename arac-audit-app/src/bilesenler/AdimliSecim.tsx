@@ -33,13 +33,17 @@ import { AracHaritasi } from '@/bilesenler/AracHaritasi';
 import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, BolumBasligi, Dugme, IlerlemeCubugu } from '@/bilesenler/temel';
 import { aramaEslesir } from '@/cekirdek/arama';
-import { PARCA_INDEKS, parcaAramaMetni, parcaTamAdi } from '@/cekirdek/katalog';
-import { kisaBolgeAdi, SISTEMLER } from '@/cekirdek/sistemler';
+import { parcaAramaMetni, parcaBolgeAdi, parcaTamAdi } from '@/cekirdek/katalog';
+import { kisaBolgeAdi, sistemAdi, SISTEMLER } from '@/cekirdek/sistemler';
 import { Bolge, BolgeGrubu } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
+import { useDil } from '@/veri/dilDeposu';
 
 export interface Konum { sistem: BolgeGrubu | null; bolgeId: string | null }
 export const KOK_KONUM: Konum = { sistem: null, bolgeId: null };
+
+/** İngilizce sayılı ad: "1 record", "3 records" (Türkçede sayıdan sonra ad tekil kalır). */
+const enSayi = (n: number, ad: string): string => `${n} ${ad}${n === 1 ? '' : 's'}`;
 
 export function AdimliSecim({
   bolgeler, konum, setKonum, arama, setArama, parcaId, parcaSayilari, sonParcalar, onSec, tablet,
@@ -62,6 +66,7 @@ export function AdimliSecim({
   onBitir?: () => void;
 }) {
   const { renkler } = useTema();
+  const { dil, t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
 
   const sistemler = useMemo(
@@ -99,12 +104,15 @@ export function AdimliSecim({
         key={pid}
         accessibilityRole={tablet ? 'radio' : 'button'}
         aria-checked={tablet ? secili : undefined}
-        accessibilityLabel={`${parcaTamAdi(pid)} (${parcaTamAdi(pid, 'en')})${adet ? `, ${adet} kayıt` : ''}`}
+        accessibilityLabel={t(
+          `${parcaTamAdi(pid)} (${parcaTamAdi(pid, 'en')})${adet ? `, ${adet} kayıt` : ''}`,
+          `${parcaTamAdi(pid, 'en')}${adet ? `, ${enSayi(adet, 'record')}` : ''}`,
+        )}
         onPress={() => onSec(pid)}
         style={({ pressed }) => [s.kutu, s.parcaKutu, secili && s.kutuSecili, pressed && s.basili]}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[s.parcaAd, secili && { color: renkler.birincil }]} numberOfLines={2}>{parcaTamAdi(pid)}</Text>
+          <Text style={[s.parcaAd, secili && { color: renkler.birincil }]} numberOfLines={2}>{parcaTamAdi(pid, dil)}</Text>
           {altSatir ? <Text style={s.alt} numberOfLines={1}>{altSatir}</Text> : null}
         </View>
         {adet > 0 ? <View style={s.pul}><Text style={s.pulMetin}>{adet}</Text></View> : null}
@@ -114,20 +122,25 @@ export function AdimliSecim({
 
   // --- Ekmek kırıntısı: hangi adımda olunduğu ve geri dönüş -------------
   const kirintilar: { ad: string; git?: () => void }[] = [
-    { ad: 'Sistemler', git: konum.sistem ? () => setKonum(KOK_KONUM) : undefined },
+    { ad: t('Sistemler', 'Systems'), git: konum.sistem ? () => setKonum(KOK_KONUM) : undefined },
   ];
   if (sistem) {
     const tekBolge = sistem.bolgeler.length === 1;
-    kirintilar.push({ ad: sistem.ad, git: bolge && !tekBolge ? () => setKonum({ sistem: sistem.id, bolgeId: null }) : undefined });
-    if (bolge && !tekBolge) kirintilar.push({ ad: kisaBolgeAdi(bolge.ad) });
+    kirintilar.push({ ad: sistemAdi(sistem.id, dil), git: bolge && !tekBolge ? () => setKonum({ sistem: sistem.id, bolgeId: null }) : undefined });
+    if (bolge && !tekBolge) kirintilar.push({ ad: kisaBolgeAdi(t(bolge.ad, bolge.en)) });
   }
   const adim = !sistem ? 1 : !bolge ? 2 : 3;
-  const adimMetni = adim === 1 ? 'Sistem seçin' : adim === 2 ? 'Bölge seçin' : 'Parça seçin';
+  const adimMetni = adim === 1 ? t('Sistem seçin', 'Select system') : adim === 2 ? t('Bölge seçin', 'Select area') : t('Parça seçin', 'Select part');
 
   return (
     <View style={s.kap}>
       <View style={s.ust}>
-        <AramaKutusu deger={arama} degistir={setArama} yerTutucu="Parça ara — kaput, A direği, ön kapı…" erisimEtiketi="Parça ara" />
+        <AramaKutusu
+          deger={arama}
+          degistir={setArama}
+          yerTutucu={t('Parça ara — kaput, A direği, ön kapı…', 'Search part — hood, A pillar, front door…')}
+          erisimEtiketi={t('Parça ara', 'Search part')}
+        />
         {/* Kök adımda tek kırıntı ("Sistemler") başlığı tekrar ediyordu; yalnız
             içeri girince gösterilir (25.10.2026 ekran incelemesi). */}
         {!q && kirintilar.length > 1 ? (
@@ -138,7 +151,7 @@ export function AdimliSecim({
                 {k.git ? (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`${k.ad} adımına dön`}
+                    accessibilityLabel={t(`${k.ad} adımına dön`, `Back to ${k.ad}`)}
                     onPress={k.git}
                     hitSlop={8}
                     style={({ pressed }) => [s.kirinti, pressed && s.basili]}
@@ -157,29 +170,36 @@ export function AdimliSecim({
       <ScrollView contentContainerStyle={s.govde} keyboardShouldPersistTaps="handled">
         {q ? (
           <>
-            <BolumBasligi metin={`Arama — ${sonuclar.length} parça`} simge={S.ara} />
-            <View style={s.izgara}>{sonuclar.map((p) => parcaKutusu(p.id, PARCA_INDEKS[p.id]?.bolgeAd))}</View>
-            {!sonuclar.length ? <Text style={s.bos}>“{q}” ile eşleşen parça yok.</Text> : null}
+            <BolumBasligi metin={t(`Arama — ${sonuclar.length} parça`, `Search — ${enSayi(sonuclar.length, 'part')}`)} simge={S.ara} />
+            <View style={s.izgara}>{sonuclar.map((p) => parcaKutusu(p.id, parcaBolgeAdi(p.id, dil)))}</View>
+            {!sonuclar.length ? <Text style={s.bos}>{t(`“${q}” ile eşleşen parça yok.`, `No part matches “${q}”.`)}</Text> : null}
           </>
         ) : (
           <>
             {adim === 1 && sonParcalar.length ? (
               <View style={{ gap: bosluk.xs }}>
-                <BolumBasligi metin="Son dokunulanlar" simge={S.son} />
-                <View style={s.izgara}>{sonParcalar.map((pid) => parcaKutusu(pid, PARCA_INDEKS[pid]?.bolgeAd))}</View>
+                <BolumBasligi metin={t('Son dokunulanlar', 'Recent parts')} simge={S.son} />
+                <View style={s.izgara}>{sonParcalar.map((pid) => parcaKutusu(pid, parcaBolgeAdi(pid, dil)))}</View>
               </View>
             ) : null}
 
             <View style={s.adimBaslik}>
               <View style={s.adimNo}><Text style={s.adimNoMetin}>{adim}</Text></View>
               <Text style={s.adimMetin}>{adimMetni}</Text>
-              {adim === 1 ? <Text style={s.adimSayi}>{`${kontrolSayisi}/${sistemler.length} kontrol edildi`}</Text> : null}
+              {adim === 1 ? (
+                <Text style={s.adimSayi}>
+                  {t(`${kontrolSayisi}/${sistemler.length} kontrol edildi`, `${kontrolSayisi}/${sistemler.length} checked`)}
+                </Text>
+              ) : null}
             </View>
             {adim === 1 ? (
               <IlerlemeCubugu
                 deger={kontrolSayisi}
                 toplam={sistemler.length}
-                etiket={`Kontrol edilen sistemler ${kontrolSayisi}/${sistemler.length}`}
+                etiket={t(
+                  `Kontrol edilen sistemler ${kontrolSayisi}/${sistemler.length}`,
+                  `Systems checked ${kontrolSayisi}/${sistemler.length}`,
+                )}
               />
             ) : null}
 
@@ -192,6 +212,7 @@ export function AdimliSecim({
                 />
                 {sistemler.map((x) => {
                   const Ikon = BOLGE_SIMGELERI[x.id];
+                  const ad = sistemAdi(x.id, dil);
                   const n = x.bolgeler.reduce((t, b) => t + kayit(b), 0);
                   const parcaSayisi = x.bolgeler.reduce((t, b) => t + b.parcalar.length, 0);
                   const isaretli = kapsam.has(x.id);
@@ -203,15 +224,23 @@ export function AdimliSecim({
                     <View key={x.id} style={s.soru}>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`Sistem ${x.ad}${n ? `, ${n} kayıt` : ''}${isaretli ? ', kontrol edildi' : ''}`}
+                        accessibilityLabel={t(
+                          `Sistem ${ad}${n ? `, ${n} kayıt` : ''}${isaretli ? ', kontrol edildi' : ''}`,
+                          `System ${ad}${n ? `, ${enSayi(n, 'record')}` : ''}${isaretli ? ', checked' : ''}`,
+                        )}
                         onPress={() => sistemSec(x.id)}
                         style={({ pressed }) => [s.soruUst, pressed && s.basili]}
                       >
                         <View style={s.simgeYuva}>{Ikon ? <Ikon size={24} color={renkler.birincil} strokeWidth={2} /> : null}</View>
                         <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text style={s.buyukAd} numberOfLines={1}>{x.ad}</Text>
+                          <Text style={s.buyukAd} numberOfLines={1}>{ad}</Text>
+                          {/* Türkçede alt satırda sistemin İngilizce adı durur; İngilizcede
+                              başlık zaten o ad, alt satırda yalnız sayı kalır. */}
                           <Text style={s.alt} numberOfLines={1}>
-                            {`${x.en} · ${x.bolgeler.length > 1 ? `${x.bolgeler.length} bölge` : `${parcaSayisi} madde`}`}
+                            {t(
+                              `${x.en} · ${x.bolgeler.length > 1 ? `${x.bolgeler.length} bölge` : `${parcaSayisi} madde`}`,
+                              x.bolgeler.length > 1 ? enSayi(x.bolgeler.length, 'area') : enSayi(parcaSayisi, 'item'),
+                            )}
                           </Text>
                         </View>
                         <S.ileri size={20} color={renkler.metinSolgun} strokeWidth={2} />
@@ -221,24 +250,28 @@ export function AdimliSecim({
                           accessibilityRole="checkbox"
                           aria-checked={uygun}
                           accessibilityState={{ checked: uygun, disabled: n > 0 }}
-                          accessibilityLabel={`${x.ad} uygun`}
+                          accessibilityLabel={t(`${ad} uygun`, `${ad} OK`)}
                           disabled={n > 0}
                           onPress={() => onKapsam(x.id, !isaretli)}
                           style={({ pressed }) => [s.cevap, uygun && s.cevapUygun, n > 0 && s.cevapKilitli, pressed && s.basili]}
                         >
                           <S.tik size={16} color={uygun ? renkler.basari : renkler.metinIkincil} strokeWidth={2.5} />
-                          <Text style={[s.cevapMetin, uygun && { color: renkler.basari }]}>Uygun</Text>
+                          <Text style={[s.cevapMetin, uygun && { color: renkler.basari }]}>{t('Uygun', 'OK')}</Text>
                         </Pressable>
                         <Pressable
                           accessibilityRole="button"
-                          accessibilityLabel={n ? `${x.ad}: ${n} hata, aç` : `${x.ad}: hata gir`}
+                          accessibilityLabel={n
+                            ? t(`${ad}: ${n} hata, aç`, `${ad}: ${enSayi(n, 'defect')}, open`)
+                            : t(`${ad}: hata gir`, `${ad}: add defect`)}
                           onPress={() => sistemSec(x.id)}
                           style={({ pressed }) => [s.cevap, n > 0 && s.cevapHata, pressed && s.basili]}
                         >
                           {n
                             ? <S.uyari size={16} color={renkler.tehlike} strokeWidth={2.25} />
                             : <S.ekle size={16} color={renkler.metinIkincil} strokeWidth={2.25} />}
-                          <Text style={[s.cevapMetin, n > 0 && { color: renkler.tehlike }]}>{n ? `${n} hata` : 'Hata gir'}</Text>
+                          <Text style={[s.cevapMetin, n > 0 && { color: renkler.tehlike }]}>
+                            {n ? t(`${n} hata`, enSayi(n, 'defect')) : t('Hata gir', 'Add defect')}
+                          </Text>
                         </Pressable>
                       </View>
                     </View>
@@ -246,11 +279,11 @@ export function AdimliSecim({
                 })}
                 {onBitir ? (
                   <Dugme
-                    metin="Denetimi bitir"
+                    metin={t('Denetimi bitir', 'Finish audit')}
                     tur="birincil"
                     simge={S.tamam}
                     onPress={onBitir}
-                    erisimEtiketi="Denetimi bitir: özeti gör ve onayla"
+                    erisimEtiketi={t('Denetimi bitir: özeti gör ve onayla', 'Finish audit: review summary and confirm')}
                     style={{ flexBasis: '100%', marginTop: bosluk.xs }}
                   />
                 ) : null}
@@ -259,17 +292,18 @@ export function AdimliSecim({
               <View style={s.izgara}>
                 {sistem.bolgeler.map((b) => {
                   const n = kayit(b);
+                  const ad = kisaBolgeAdi(t(b.ad, b.en));
                   return (
                     <Pressable
                       key={b.id}
                       accessibilityRole="button"
-                      accessibilityLabel={`Bölge ${kisaBolgeAdi(b.ad)}${n ? `, ${n} kayıt` : ''}`}
+                      accessibilityLabel={t(`Bölge ${ad}${n ? `, ${n} kayıt` : ''}`, `Area ${ad}${n ? `, ${enSayi(n, 'record')}` : ''}`)}
                       onPress={() => setKonum({ sistem: sistem.id, bolgeId: b.id })}
                       style={({ pressed }) => [s.kutu, s.buyukKutu, pressed && s.basili]}
                     >
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={s.buyukAd} numberOfLines={1}>{kisaBolgeAdi(b.ad)}</Text>
-                        <Text style={s.alt} numberOfLines={1}>{b.parcalar.length} parça</Text>
+                        <Text style={s.buyukAd} numberOfLines={1}>{ad}</Text>
+                        <Text style={s.alt} numberOfLines={1}>{t(`${b.parcalar.length} parça`, enSayi(b.parcalar.length, 'part'))}</Text>
                       </View>
                       {n ? <View style={s.pul}><Text style={s.pulMetin}>{n}</Text></View> : null}
                       <S.ileri size={20} color={renkler.metinSolgun} strokeWidth={2} />

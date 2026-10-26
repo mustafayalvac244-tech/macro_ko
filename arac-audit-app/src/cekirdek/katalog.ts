@@ -506,6 +506,30 @@ export function parcaTamAdi(parcaId: string, dil: Dil = 'tr'): string {
 }
 
 /**
+ * Ekrandaki adlar, arayüz dilinde (26.10.2026, dil seçeneği). İngilizcesi boş
+ * bırakılmış bir ekip tipi İngilizce arayüzde Türkçe adıyla görünür — boş
+ * kutu göstermekten iyidir.
+ */
+export function hataTipiAdi(hataTipiId: string, dil: Dil = 'tr'): string {
+  const t = HATA_TIPI_INDEKS[hataTipiId];
+  if (!t) return hataTipiId;
+  return dil === 'en' ? (t.en || t.ad) : t.ad;
+}
+
+export function grupAdi(grup: string, dil: Dil = 'tr'): string {
+  const g = HATA_GRUPLARI[grup as HataGrubuId];
+  if (!g) return grup;
+  return dil === 'en' ? g.en : g.ad;
+}
+
+/** Parçanın bölgesi: "Dış · Sol yan" / "Exterior · LH side". */
+export function parcaBolgeAdi(parcaId: string, dil: Dil = 'tr'): string {
+  const p = PARCA_INDEKS[parcaId];
+  if (!p) return '';
+  return dil === 'en' ? p.bolgeEn : p.bolgeAd;
+}
+
+/**
  * Bir parçada seçilebilecek hata tipleri, PARÇANIN KENDİ grup sırasıyla:
  * camda önce "Cam", elektrikte önce "Fonksiyon". Genel katalog sırası
  * kullanıldığında ön camda "Cam çiziği" ızgaranın en altında kalıyordu

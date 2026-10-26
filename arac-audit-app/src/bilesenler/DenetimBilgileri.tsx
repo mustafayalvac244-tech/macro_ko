@@ -29,6 +29,7 @@ import { aracEtiketi, ARACLAR } from '@/cekirdek/model3d';
 import { Denetim } from '@/cekirdek/tipler';
 import { BODY_NO_GIRDI_AZAMI, bodyNoGecerli, bodyNoSadelestir, vinDogrula } from '@/cekirdek/vin';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
+import { useDil } from '@/veri/dilDeposu';
 
 type SecimListesi = ReturnType<typeof useSecimListesi>;
 
@@ -50,6 +51,7 @@ export function DenetimBilgileri({
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  const { dil, t } = useDil();
   const denetciler = useSecimListesi(LISTE_ANAHTARI.denetci, HAZIR_DENETCILER);
   const kaynaklar = useSecimListesi(LISTE_ANAHTARI.kaynak, HAZIR_KAYNAKLAR);
 
@@ -68,7 +70,7 @@ export function DenetimBilgileri({
   const kaydirma = useRef<ScrollView>(null);
   const onayaKaydir = useRef(false);
 
-  const vin = useMemo(() => vinDogrula(vinHam), [vinHam]);
+  const vin = useMemo(() => vinDogrula(vinHam, dil), [vinHam, dil]);
   const vinBos = !vinHam.trim();
   // Excel'in kuralı (tam 6 rakam) yalnız DEĞİŞTİRİLEN body no'ya uygulanır:
   // eski bir kayıttaki harfli body no, başka bir alan düzeltilirken engel olmasın.
@@ -93,7 +95,10 @@ export function DenetimBilgileri({
       return;
     }
     const ad = aracEtiketi(ARACLAR.find((a) => a.id === id), id);
-    setAracUyarisi(`Bu denetimde ${ad} için olmayan parçalara kayıt var; araç değiştirilemez.`);
+    setAracUyarisi(t(
+      `Bu denetimde ${ad} için olmayan parçalara kayıt var; araç değiştirilemez.`,
+      `This audit has records on parts that ${ad} doesn't have; the vehicle can't be changed.`,
+    ));
   };
 
   const kaydet = async () => {
@@ -118,8 +123,13 @@ export function DenetimBilgileri({
   return (
     <>
       <View style={s.ust}>
-        <Text style={s.baslik}>Denetim bilgileri</Text>
-        <Text style={s.not}>Rapor künyesinde görünür. Boş bıraktığınız alan raporda "—" olur.</Text>
+        <Text style={s.baslik}>{t('Denetim bilgileri', 'Audit details')}</Text>
+        <Text style={s.not}>
+          {t(
+            'Rapor künyesinde görünür. Boş bıraktığınız alan raporda "—" olur.',
+            'Shown in the report header. Fields left empty appear as "—" in the report.',
+          )}
+        </Text>
       </View>
 
       <ScrollView
@@ -133,13 +143,18 @@ export function DenetimBilgileri({
           kaydirma.current?.scrollToEnd({ animated: true });
         }}
       >
-        <Text style={s.etiket}>Araç</Text>
+        <Text style={s.etiket}>{t('Araç', 'Vehicle')}</Text>
         <View style={s.satir}>
           {ARACLAR.map((a) => (
             <Secenek
               key={a.id}
               metin={aracEtiketi(a)}
-              erisimEtiketi={aracUygun.get(a.id) ? `Araç ${aracEtiketi(a)}` : `Araç ${aracEtiketi(a)} — kayıtlı parçalar bu araçta yok`}
+              erisimEtiketi={aracUygun.get(a.id)
+                ? t(`Araç ${aracEtiketi(a)}`, `Vehicle ${aracEtiketi(a)}`)
+                : t(
+                  `Araç ${aracEtiketi(a)} — kayıtlı parçalar bu araçta yok`,
+                  `Vehicle ${aracEtiketi(a)} — recorded parts not on this vehicle`,
+                )}
               secili={aracId === a.id}
               onPress={() => aracSec(a.id)}
               style={{ flexGrow: 1, flexBasis: 140 }}
@@ -149,7 +164,7 @@ export function DenetimBilgileri({
         {aracUyarisi ? <BilgiKutusu tur="uyari" metin={aracUyarisi} /> : null}
 
         <Girdi
-          etiket="Şasi numarası (VIN)"
+          etiket={t('Şasi numarası (VIN)', 'VIN')}
           mono
           value={vin.vin}
           onChangeText={setVinHam}
@@ -157,23 +172,23 @@ export function DenetimBilgileri({
           autoCorrect={false}
           spellCheck={false}
           maxLength={40}
-          accessibilityLabel="Şasi numarası"
+          accessibilityLabel={t('Şasi numarası', 'VIN')}
           hata={vinBos
-            ? (bodyNo ? undefined : 'Şasi ya da body no girin.')
+            ? (bodyNo ? undefined : t('Şasi ya da body no girin.', 'Enter a VIN or body no.'))
             : !vin.gecerli ? vin.hatalar.join(' ') : undefined}
         />
         <Girdi
           etiket="Body no"
           mono
           value={bodyNo}
-          onChangeText={(t) => setBodyNo(bodyNoSadelestir(t))}
-          placeholder="6 hane, örn. 015253"
+          onChangeText={(x) => setBodyNo(bodyNoSadelestir(x))}
+          placeholder={t('6 hane, örn. 015253', '6 digits, e.g. 015253')}
           keyboardType="number-pad"
           autoCorrect={false}
           spellCheck={false}
           maxLength={BODY_NO_GIRDI_AZAMI}
-          accessibilityLabel="Body numarası"
-          hata={bodyHatali ? 'Body no 6 hane olmalı.' : undefined}
+          accessibilityLabel={t('Body numarası', 'Body number')}
+          hata={bodyHatali ? t('Body no 6 hane olmalı.', 'Body no must be 6 digits.') : undefined}
         />
         <View style={s.specKm}>
           <View style={{ gap: bosluk.xxs }}>
@@ -194,20 +209,21 @@ export function DenetimBilgileri({
         </View>
 
         <EklenebilirSecim
-          baslik="Denetçi"
-          ad="Denetçi"
+          baslik={t('Denetçi', 'Auditor')}
+          ad={t('Denetçi', 'Auditor')}
           liste={degeriGoster(denetciler, denetim.denetci)}
           deger={denetci}
           degistir={setDenetci}
-          yerTutucu="Ad Soyad"
+          yerTutucu={t('Ad Soyad', 'Full name')}
         />
+        {/* "Problem source" ekibin Excel terimi: iki dilde de İngilizce. */}
         <EklenebilirSecim
           baslik="Problem source"
-          ad="Kaynak"
+          ad={t('Kaynak', 'Source')}
           liste={degeriGoster(kaynaklar, denetim.denetimTipi)}
           deger={kaynak}
           degistir={setKaynak}
-          yerTutucu="Örn. Durability"
+          yerTutucu={t('Örn. Durability', 'E.g. Durability')}
         />
 
         {/* Denetimi silmek iki adımlı ve Kaydet'ten uzakta: hatalarıyla ve
@@ -215,21 +231,40 @@ export function DenetimBilgileri({
         <View style={s.silBolumu}>
           {silHatasi ? <HataKutusu metin={silHatasi} /> : null}
           {!silOnay ? (
-            <Dugme metin="Denetimi sil" simge={S.sil} onPress={() => { onayaKaydir.current = true; setSilOnay(true); }} erisimEtiketi="Denetimi sil" />
+            <Dugme
+              metin={t('Denetimi sil', 'Delete audit')}
+              simge={S.sil}
+              onPress={() => { onayaKaydir.current = true; setSilOnay(true); }}
+              erisimEtiketi={t('Denetimi sil', 'Delete audit')}
+            />
           ) : (
             <View style={s.silOnayKutu}>
               <Text style={s.silOnayMetin}>
                 {hataSayisi
-                  ? `Denetim ${hataSayisi} hatası ve fotoğraflarıyla birlikte silinecek. Geri alınamaz.`
-                  : 'Denetim silinecek. Geri alınamaz.'}
+                  ? t(
+                    `Denetim ${hataSayisi} hatası ve fotoğraflarıyla birlikte silinecek. Geri alınamaz.`,
+                    `The audit will be deleted with its ${hataSayisi} ${hataSayisi === 1 ? 'defect' : 'defects'} and photos. This can't be undone.`,
+                  )
+                  : t('Denetim silinecek. Geri alınamaz.', "The audit will be deleted. This can't be undone.")}
               </Text>
               <View style={s.satir}>
-                <Dugme metin="Vazgeç" tur="sessiz" onPress={() => setSilOnay(false)} style={{ flex: 1 }} erisimEtiketi="Silmekten vazgeç" />
                 <Dugme
-                  metin="Evet, sil"
+                  metin={t('Vazgeç', 'Cancel')}
+                  tur="sessiz"
+                  onPress={() => setSilOnay(false)}
+                  style={{ flex: 1 }}
+                  erisimEtiketi={t('Silmekten vazgeç', "Don't delete")}
+                />
+                <Dugme
+                  metin={t('Evet, sil', 'Yes, delete')}
                   tur="tehlike"
                   simge={S.sil}
-                  onPress={() => { onSil().catch((h) => setSilHatasi(`Silinemedi: ${h instanceof Error ? h.message : String(h)}`)); }}
+                  onPress={() => {
+                    onSil().catch((h) => {
+                      const ileti = h instanceof Error ? h.message : String(h);
+                      setSilHatasi(t(`Silinemedi: ${ileti}`, `Couldn't delete: ${ileti}`));
+                    });
+                  }}
                   style={{ flex: 1 }}
                 />
               </View>
@@ -239,8 +274,15 @@ export function DenetimBilgileri({
       </ScrollView>
 
       <View style={s.eylemler}>
-        <Dugme metin="Vazgeç" tur="sessiz" onPress={onKapat} style={{ flex: 1 }} />
-        <Dugme metin="Kaydet" tur="birincil" pasif={!kimlikTamam} yukleniyor={calisiyor} onPress={kaydet} style={{ flex: 1 }} />
+        <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" onPress={onKapat} style={{ flex: 1 }} />
+        <Dugme
+          metin={t('Kaydet', 'Save')}
+          tur="birincil"
+          pasif={!kimlikTamam}
+          yukleniyor={calisiyor}
+          onPress={kaydet}
+          style={{ flex: 1 }}
+        />
       </View>
     </>
   );

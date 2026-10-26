@@ -5,6 +5,7 @@ import { Dugme } from '@/bilesenler/temel';
 import { bolgelerAracIcin } from '@/cekirdek/katalog';
 import { AracTipi, Parca } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
+import { useDil } from '@/veri/dilDeposu';
 
 /**
  * Bölge → parça seçici.
@@ -21,31 +22,33 @@ export function ParcaSecici({
   onSec: (parcaId: string) => void;
 }) {
   const { renkler } = useTema();
+  const { dil, t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const [arama, setArama] = useState('');
 
   const bolumler = useMemo(() => {
-    const q = arama.trim().toLocaleLowerCase('tr');
+    // Küçültme arayüz dilinde: Türkçe yerelde İngilizce "I" → "ı" olur, eşleşmez.
+    const q = arama.trim().toLocaleLowerCase(dil);
     return bolgelerAracIcin({ tip: aracTipi })
       .map((b) => ({
-        baslik: `${b.simge ?? ''} ${b.ad}`.trim(),
+        baslik: `${b.simge ?? ''} ${t(b.ad, b.en)}`.trim(),
         data: q
-          ? b.parcalar.filter((p) => `${p.ad} ${p.en} ${b.ad}`.toLocaleLowerCase('tr').includes(q))
+          ? b.parcalar.filter((p) => `${p.ad} ${p.en} ${t(b.ad, b.en)}`.toLocaleLowerCase(dil).includes(q))
           : b.parcalar,
       }))
       .filter((b) => b.data.length > 0);
-  }, [arama, aracTipi]);
+  }, [arama, aracTipi, dil, t]);
 
   return (
     <>
-      <Text style={s.baslik}>Bölge ve parça seç</Text>
+      <Text style={s.baslik}>{t('Bölge ve parça seç', 'Select area and part')}</Text>
 
       <TextInput
         value={arama}
         onChangeText={setArama}
-        placeholder="Parça ara — arka kapı, garniş, far…"
+        placeholder={t('Parça ara — arka kapı, garniş, far…', 'Search part — rear door, garnish, headlamp…')}
         placeholderTextColor={renkler.metinSolgun}
-        accessibilityLabel="Parça ara"
+        accessibilityLabel={t('Parça ara', 'Search part')}
         style={s.arama}
         autoCorrect={false}
       />
@@ -63,19 +66,20 @@ export function ParcaSecici({
         renderItem={({ item }) => (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${item.ad} (${item.en}) seç`}
+            accessibilityLabel={t(`${item.ad} (${item.en}) seç`, `Select ${item.en}`)}
             onPress={() => onSec(item.id)}
             style={({ pressed }) => [s.satir, pressed && { backgroundColor: renkler.yuzeyAlt }]}
           >
-            <Text style={s.parcaAd}>{item.ad}</Text>
-            <Text style={s.parcaEn}>{item.en}</Text>
+            <Text style={s.parcaAd}>{t(item.ad, item.en)}</Text>
+            {/* İkinci satır Türkçede İngilizce adı gösterir; İngilizcede aynı adı tekrar ederdi. */}
+            {dil === 'en' ? null : <Text style={s.parcaEn}>{item.en}</Text>}
           </Pressable>
         )}
-        ListEmptyComponent={<Text style={s.bos}>Eşleşen parça yok.</Text>}
+        ListEmptyComponent={<Text style={s.bos}>{t('Eşleşen parça yok.', 'No matching parts.')}</Text>}
       />
 
       <View style={s.eylemler}>
-        <Dugme metin="Kapat" onPress={onKapat} style={{ flex: 1 }} />
+        <Dugme metin={t('Kapat', 'Close')} onPress={onKapat} style={{ flex: 1 }} />
       </View>
     </>
   );

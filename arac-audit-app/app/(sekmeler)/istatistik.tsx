@@ -27,16 +27,18 @@ import {
 import {
   haftalikSkor, HataKaydi, pareto, ParetoSatiri, sistemeGore, tekrarlayanlar,
 } from '@/cekirdek/istatistik';
-import { HATA_TIPI_INDEKS, parcaTamAdi } from '@/cekirdek/katalog';
+import { hataTipiAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { aracEtiketi, ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { auditSkoru, skoraGirerMi } from '@/cekirdek/nas';
 import { Donem, donemBaslangiclari, donemIcinde, SayacGirdisi, sayacBaslangici } from '@/cekirdek/sayac';
 import { bosluk, kose, Renkler, tipografi, useTema, yazi } from '@/tema';
 import { istatistikVerisi, sayacVerisi } from '@/veri/depo';
+import { useDil } from '@/veri/dilDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
 
-const DONEMLER: { id: Donem; ad: string }[] = [
-  { id: 'buHafta', ad: 'Bu hafta' }, { id: 'gecenHafta', ad: 'Geçen hafta' }, { id: 'buAy', ad: 'Bu ay' }, { id: 'buYil', ad: 'Bu yıl' },
+const DONEMLER: { id: Donem; ad: string; en: string }[] = [
+  { id: 'buHafta', ad: 'Bu hafta', en: 'This week' }, { id: 'gecenHafta', ad: 'Geçen hafta', en: 'Last week' },
+  { id: 'buAy', ad: 'Bu ay', en: 'This month' }, { id: 'buYil', ad: 'Bu yıl', en: 'This year' },
 ];
 
 const skorMetni = (v: number | null) => (v === null ? '—' : String(v));
@@ -46,6 +48,7 @@ export default function Analiz() {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { tablet } = useDuzen();
+  const { dil, t } = useDil();
   // Ekibin eklediği tipler indekse katalogDeposu yüklenince girer; burada
   // yalnız yeniden çizim için okunuyor.
   useKatalog((d) => d.ozelTipler);
@@ -100,8 +103,6 @@ export default function Analiz() {
     return ARACLAR.filter((a) => var_.has(a.id));
   }, [veri]);
 
-  const hataTipiAdi = (id: string) => HATA_TIPI_INDEKS[id]?.ad ?? id;
-
   const paretoListesi = (satirlar: ParetoSatiri[], bos: string, tekrar = false) => (
     satirlar.length ? (
       <View style={{ gap: bosluk.xs }}>
@@ -110,18 +111,22 @@ export default function Analiz() {
             key={`${p.parcaId}|${p.hataTipiId}`}
             style={s.paretoSatir}
             accessible
-            accessibilityLabel={`${i + 1}. ${parcaTamAdi(p.parcaId)} ${hataTipiAdi(p.hataTipiId)}: ${p.adet} problem, demerit ${p.demerit}, ${p.aracSayisi} araç${tekrar ? '' : `, birikimli ${yuzde(p.birikimli)}`}`}
+            accessibilityLabel={t(
+              `${i + 1}. ${parcaTamAdi(p.parcaId, dil)} ${hataTipiAdi(p.hataTipiId, dil)}: ${p.adet} problem, demerit ${p.demerit}, ${p.aracSayisi} araç${tekrar ? '' : `, birikimli ${yuzde(p.birikimli)}`}`,
+              `${i + 1}. ${parcaTamAdi(p.parcaId, dil)} ${hataTipiAdi(p.hataTipiId, dil)}: ${p.adet} ${p.adet === 1 ? 'problem' : 'problems'}, demerit ${p.demerit}, ${p.aracSayisi} ${p.aracSayisi === 1 ? 'vehicle' : 'vehicles'}${tekrar ? '' : `, cumulative ${yuzde(p.birikimli)}`}`,
+            )}
           >
             <View style={s.paretoUst}>
               <Text style={s.paretoSira}>{i + 1}</Text>
-              <Text style={s.paretoAd} numberOfLines={1}>{parcaTamAdi(p.parcaId)} — {hataTipiAdi(p.hataTipiId)}</Text>
+              <Text style={s.paretoAd} numberOfLines={1}>{parcaTamAdi(p.parcaId, dil)} — {hataTipiAdi(p.hataTipiId, dil)}</Text>
               <Text style={s.paretoSayi}>{p.adet}</Text>
             </View>
             <View style={s.cubukZemin}>
               <View style={[s.cubuk, { width: `${Math.max(2, p.pay * 100)}%` }]} />
             </View>
             <Text style={s.paretoAlt}>
-              {p.aracSayisi} araç · demerit {p.demerit} · pay {yuzde(p.pay)}{tekrar ? '' : ` · birikimli ${yuzde(p.birikimli)}`}
+              {t(`${p.aracSayisi} araç · demerit ${p.demerit} · pay ${yuzde(p.pay)}`, `${p.aracSayisi} ${p.aracSayisi === 1 ? 'vehicle' : 'vehicles'} · demerit ${p.demerit} · share ${yuzde(p.pay)}`)}
+              {tekrar ? '' : t(` · birikimli ${yuzde(p.birikimli)}`, ` · cumulative ${yuzde(p.birikimli)}`)}
             </Text>
           </View>
         ))}
@@ -137,7 +142,7 @@ export default function Analiz() {
     return (
       <View
         accessible
-        accessibilityLabel={`Haftalık audit skoru: ${haftalar.map((h) => `${kisaTarih(h.baslangic)} ${skorMetni(h.skor)}`).join(', ')}`}
+        accessibilityLabel={`${t('Haftalık audit skoru', 'Weekly audit score')}: ${haftalar.map((h) => `${kisaTarih(h.baslangic)} ${skorMetni(h.skor)}`).join(', ')}`}
       >
         <View style={s.grafik}>
           <Svg width="100%" height="100%" viewBox={`0 0 ${EN} ${BOY}`} aria-hidden>
@@ -160,52 +165,55 @@ export default function Analiz() {
                     {kisaTarih(h.baslangic)}
                   </SvgText>
                   <SvgText x={x + w / 2} y={BOY - alt + 22} fontFamily={yazi.normal} fontSize={8} fill={renkler.metinSolgun} textAnchor="middle">
-                    {h.arac ? `${h.arac} araç` : '—'}
+                    {h.arac ? t(`${h.arac} araç`, `${h.arac} veh`) : '—'}
                   </SvgText>
                 </React.Fragment>
               );
             })}
           </Svg>
         </View>
-        <Text style={s.not}>Hafta pazartesi başlar; son sütun içinde bulunulan haftadır, henüz bitmedi.</Text>
+        <Text style={s.not}>{t('Hafta pazartesi başlar; son sütun içinde bulunulan haftadır, henüz bitmedi.', 'Weeks start on Monday; the last column is the current week, not over yet.')}</Text>
       </View>
     );
   };
 
   return (
     <Ekran>
-      <Baslik baslik="Analiz" altBaslik="Bu cihazdaki denetimler" />
+      <Baslik baslik={t('Analiz', 'Analysis')} altBaslik={t('Bu cihazdaki denetimler', 'Audits on this device')} />
       {hata ? <View style={{ padding: bosluk.md }}><HataKutusu metin={hata} /></View> : null}
-      {!veri || !hesap ? <Yukleniyor metin="Hesaplanıyor…" /> : (
+      {!veri || !hesap ? <Yukleniyor metin={t('Hesaplanıyor…', 'Calculating…')} /> : (
         <ScrollView contentContainerStyle={[s.govde, tablet && s.govdeTablet]}>
           <View style={s.suzgecler}>
             <View style={s.satir}>
               {DONEMLER.map((d) => (
-                <Secenek key={d.id} metin={d.ad} secili={donem === d.id} onPress={() => setDonem(d.id)} erisimEtiketi={`Dönem ${d.ad}`} />
+                <Secenek key={d.id} metin={dil === 'en' ? d.en : d.ad} secili={donem === d.id} onPress={() => setDonem(d.id)} erisimEtiketi={t(`Dönem ${d.ad}`, `Period: ${d.en}`)} />
               ))}
             </View>
             {aracSecenekleri.length > 1 ? (
               <View style={s.satir}>
-                <Secenek metin="Tüm araçlar" secili={aracId === 'hepsi'} onPress={() => setAracId('hepsi')} />
+                <Secenek metin={t('Tüm araçlar', 'All vehicles')} secili={aracId === 'hepsi'} onPress={() => setAracId('hepsi')} />
                 {aracSecenekleri.map((a) => (
-                  <Secenek key={a.id} metin={a.kod} secili={aracId === a.id} onPress={() => setAracId(a.id)} erisimEtiketi={`Araç ${aracEtiketi(a)}`} />
+                  <Secenek key={a.id} metin={a.kod} secili={aracId === a.id} onPress={() => setAracId(a.id)} erisimEtiketi={t(`Araç ${aracEtiketi(a)}`, `Vehicle ${aracEtiketi(a)}`)} />
                 ))}
               </View>
             ) : null}
           </View>
 
           {hesap.toplam.arac === 0 ? (
-            <BosDurum simge={S.rapor} baslik="Bu dönemde denetim yok" aciklama="Dönemi genişletin ya da bir denetim başlatın." />
+            <BosDurum simge={S.rapor} baslik={t('Bu dönemde denetim yok', 'No audits in this period')} aciklama={t('Dönemi genişletin ya da bir denetim başlatın.', 'Choose a longer period or start an audit.')} />
           ) : (
             <>
               <Kart>
-                <BolumBasligi metin="Özet" simge={S.tarih} />
-                <View style={s.ozetSatir} accessible accessibilityLabel={`Özet: ${hesap.toplam.arac} araç, ${hesap.toplam.hata} problem, demerit ${hesap.toplam.demerit}, audit skoru ${skorMetni(hesap.skor)}`}>
+                <BolumBasligi metin={t('Özet', 'Summary')} simge={S.tarih} />
+                <View style={s.ozetSatir} accessible accessibilityLabel={t(
+                  `Özet: ${hesap.toplam.arac} araç, ${hesap.toplam.hata} problem, demerit ${hesap.toplam.demerit}, audit skoru ${skorMetni(hesap.skor)}`,
+                  `Summary: ${hesap.toplam.arac} ${hesap.toplam.arac === 1 ? 'vehicle' : 'vehicles'}, ${hesap.toplam.hata} ${hesap.toplam.hata === 1 ? 'problem' : 'problems'}, demerit ${hesap.toplam.demerit}, audit score ${skorMetni(hesap.skor)}`,
+                )}>
                   {[
-                    ['Araç', String(hesap.toplam.arac)],
-                    ['Problem', String(hesap.toplam.hata)],
+                    [t('Araç', 'Vehicles'), String(hesap.toplam.arac)],
+                    [t('Problem', 'Problems'), String(hesap.toplam.hata)],
                     ['Demerit', String(hesap.toplam.demerit)],
-                    ['Skor', skorMetni(hesap.skor)],
+                    [t('Skor', 'Score'), skorMetni(hesap.skor)],
                   ].map(([ad, deger]) => (
                     <View key={ad} style={s.ozetHucre}>
                       <Text style={s.ozetDeger}>{deger}</Text>
@@ -213,39 +221,42 @@ export default function Analiz() {
                     </View>
                   ))}
                 </View>
-                <Text style={s.not}>Audit skoru = 100 × demerit ÷ araç (Excel'deki tanım). Yalnız AUDIT kaynaklı denetimler. {aracId === 'hepsi' ? '' : `Yalnız ${aracEtiketi(ARAC_INDEKS[aracId], aracId)}.`}</Text>
+                <Text style={s.not}>
+                  {t("Audit skoru = 100 × demerit ÷ araç (Excel'deki tanım). Yalnız AUDIT kaynaklı denetimler. ", 'Audit score = 100 × demerit ÷ vehicles (as defined in the Excel). AUDIT-source audits only. ')}
+                  {aracId === 'hepsi' ? '' : t(`Yalnız ${aracEtiketi(ARAC_INDEKS[aracId], aracId)}.`, `${aracEtiketi(ARAC_INDEKS[aracId], aracId)} only.`)}
+                </Text>
               </Kart>
 
               <Kart>
-                <BolumBasligi metin="Haftalık audit skoru — son 8 hafta" simge={S.son} />
+                <BolumBasligi metin={t('Haftalık audit skoru — son 8 hafta', 'Weekly audit score — last 8 weeks')} simge={S.son} />
                 {haftaGrafigi(hesap.haftalar)}
               </Kart>
 
               <Kart>
-                <BolumBasligi metin="En sık hatalar (Pareto)" simge={S.liste} />
-                <Text style={s.not}>Parça + hata tipi, problem adedine göre (demerit'i 0 olanlar dahil). Birikimli pay: ilk kaç satırın toplamın ne kadarını yaptığı.</Text>
-                {paretoListesi(hesap.pareto, 'Bu dönemde problem yok.')}
+                <BolumBasligi metin={t('En sık hatalar (Pareto)', 'Most frequent defects (Pareto)')} simge={S.liste} />
+                <Text style={s.not}>{t("Parça + hata tipi, problem adedine göre (demerit'i 0 olanlar dahil). Birikimli pay: ilk kaç satırın toplamın ne kadarını yaptığı.", 'Part + defect type, by problem count (demerit 0 included). Cumulative share: how much of the total the top rows make up.')}</Text>
+                {paretoListesi(hesap.pareto, t('Bu dönemde problem yok.', 'No problems in this period.'))}
               </Kart>
 
               <Kart>
-                <BolumBasligi metin="Tekrarlayan hatalar" simge={S.uyari} />
-                <Text style={s.not}>Aynı parça ve tip en az iki ayrı araçta. Tek araçta birkaç kez görülen hata burada değil: o aracın sorunudur, sürecin değil.</Text>
-                {paretoListesi(hesap.tekrar, 'Birden çok araçta görülen hata yok.', true)}
+                <BolumBasligi metin={t('Tekrarlayan hatalar', 'Recurring defects')} simge={S.uyari} />
+                <Text style={s.not}>{t('Aynı parça ve tip en az iki ayrı araçta. Tek araçta birkaç kez görülen hata burada değil: o aracın sorunudur, sürecin değil.', 'Same part and type on at least two different vehicles. A defect repeated on a single vehicle is not listed here: that is a vehicle problem, not a process problem.')}</Text>
+                {paretoListesi(hesap.tekrar, t('Birden çok araçta görülen hata yok.', 'No defect seen on more than one vehicle.'), true)}
               </Kart>
 
               <Kart>
-                <BolumBasligi metin="Sisteme göre (SYSTEM)" simge={S.arac} />
+                <BolumBasligi metin={t('Sisteme göre (SYSTEM)', 'By system (SYSTEM)')} simge={S.arac} />
                 {hesap.sistemler.length ? hesap.sistemler.map((x) => (
-                  <View key={x.sistem} style={s.sistemSatir} accessible accessibilityLabel={`${x.sistem}: ${x.hata} problem, demerit ${x.demerit}, skor ${skorMetni(x.skor)}`}>
+                  <View key={x.sistem} style={s.sistemSatir} accessible accessibilityLabel={t(`${x.sistem}: ${x.hata} problem, demerit ${x.demerit}, skor ${skorMetni(x.skor)}`, `${x.sistem}: ${x.hata} ${x.hata === 1 ? 'problem' : 'problems'}, demerit ${x.demerit}, score ${skorMetni(x.skor)}`)}>
                     <Text style={s.sistemAd}>{x.sistem}</Text>
                     <View style={s.cubukZemin}>
                       <View style={[s.cubuk, { width: `${Math.max(2, (x.hata / Math.max(1, hesap.toplam.hata)) * 100)}%` }]} />
                     </View>
                     <Text style={s.sistemSayi}>{x.hata}</Text>
-                    <Text style={s.sistemDpu}>demerit {x.demerit} · skor {skorMetni(x.skor)}</Text>
+                    <Text style={s.sistemDpu}>{t(`demerit ${x.demerit} · skor ${skorMetni(x.skor)}`, `demerit ${x.demerit} · score ${skorMetni(x.skor)}`)}</Text>
                   </View>
-                )) : <Text style={s.bos}>Bu dönemde problem yok.</Text>}
-                <Text style={s.not}>Excel'in SYSTEM alanı. Sayı: problem adedi; skor, o sistemin demerit'i dönemin bütün araçlarına bölünerek.</Text>
+                )) : <Text style={s.bos}>{t('Bu dönemde problem yok.', 'No problems in this period.')}</Text>}
+                <Text style={s.not}>{t("Excel'in SYSTEM alanı. Sayı: problem adedi; skor, o sistemin demerit'i dönemin bütün araçlarına bölünerek.", "The Excel SYSTEM field. Number: problem count; score: the system's demerit divided by all vehicles in the period.")}</Text>
               </Kart>
             </>
           )}

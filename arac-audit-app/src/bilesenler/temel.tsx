@@ -29,6 +29,7 @@ import {
   bosluk, DOKUNMA, dereceRenkleri, HITSLOP, kose, Renkler, TABLET_GENISLIK, TABLET_KISA_KENAR,
   tipografi, useTema,
 } from '@/tema';
+import { useDil } from '@/veri/dilDeposu';
 
 // --- DÜZEN ----------------------------------------------------------------
 
@@ -201,10 +202,11 @@ export function BaslikDugmesi({
  */
 export function GeriDugmesi({ onPress }: { onPress?: () => void }) {
   const router = useRouter();
+  const { t } = useDil();
   return (
     <BaslikDugmesi
       simge={S.geri}
-      erisimEtiketi="Geri"
+      erisimEtiketi={t('Geri', 'Back')}
       onPress={onPress ?? (() => (router.canGoBack() ? router.back() : router.replace('/')))}
     />
   );
@@ -387,6 +389,7 @@ export function AramaKutusu({
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const [odak, setOdak] = useState(false);
+  const { t } = useDil();
   return (
     <View style={[s.arama, odak && s.aramaOdak, style]}>
       <S.ara size={18} color={odak ? renkler.birincil : renkler.metinSolgun} strokeWidth={2} />
@@ -406,7 +409,7 @@ export function AramaKutusu({
       {deger ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Aramayı temizle"
+          accessibilityLabel={t('Aramayı temizle', 'Clear search')}
           hitSlop={HITSLOP}
           onPress={() => degistir('')}
           style={s.aramaTemizle}

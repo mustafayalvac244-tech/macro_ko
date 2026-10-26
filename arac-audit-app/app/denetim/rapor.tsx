@@ -9,7 +9,9 @@ import {
   AltCubuk, Baslik, BaslikCipi, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi,
   HataKutusu, IlerlemeCubugu, Kart, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
-import { DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi, bolgelerAracIcin } from '@/cekirdek/katalog';
+import {
+  BOLGELER, DERECELER, HATA_TIPI_INDEKS, hataTipiAdi, parcaBolgeAdi, parcaTamAdi, bolgelerAracIcin,
+} from '@/cekirdek/katalog';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { demeritDegeri, SINIFLAR, sinifDegeri, sistemDegeri } from '@/cekirdek/nas';
 import { denetimOzeti } from '@/cekirdek/puan';
@@ -22,13 +24,17 @@ import { Denetim, FotografBaytlari } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { AcmaIstegi, useAcmaIstegi } from '@/veri/acmaIstegi';
 import { denetimGetir, denetimGuncelle, fotograflariGetir } from '@/veri/depo';
+import { useDil } from '@/veri/dilDeposu';
 
 /**
  * Paylaşılan dosyanın dili. Ekibin kendi tablosu ("Part Related Issues") baştan
- * sona İngilizce — başlıklar da, açıklamalar da. Ekran Türkçe kalır; dosya
- * ekibin kullandığı dilde çıkar.
+ * sona İngilizce — başlıklar da, açıklamalar da. Ekran arayüz dilindedir
+ * (Türkçe/İngilizce); dosya her zaman ekibin kullandığı dilde çıkar.
  */
 const DOSYA_DILI = 'en' as const;
+
+/** Bölge dağılımında İngilizce ad: denetimOzeti bölge adını Türkçe verir. */
+const BOLGE_EN: Record<string, string> = Object.fromEntries(BOLGELER.map((b) => [b.id, b.en]));
 
 export default function RaporEkrani() {
   // kaynak=ana: rapor ana sayfadan (bitmiş denetimin kartından) açıldı; çalışma
@@ -42,6 +48,7 @@ export default function RaporEkrani() {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { tablet } = useDuzen();
+  const { dil, t } = useDil();
 
   const [denetim, setDenetim] = useState<Denetim | null>(null);
   const [calisiyor, setCalisiyor] = useState<string | null>(null);
@@ -72,9 +79,9 @@ export default function RaporEkrani() {
   }, []);
 
   const dosyaAdi = useCallback((d: Denetim, uzanti: string) => {
-    const t = new Date(d.baslangic);
+    const an = new Date(d.baslangic);
     const iki = (n: number) => String(n).padStart(2, '0');
-    return `denetim_${d.vin || (d.bodyNo ? `body${d.bodyNo}` : 'sasisiz')}_${t.getFullYear()}${iki(t.getMonth() + 1)}${iki(t.getDate())}_${iki(t.getHours())}${iki(t.getMinutes())}.${uzanti}`;
+    return `denetim_${d.vin || (d.bodyNo ? `body${d.bodyNo}` : 'sasisiz')}_${an.getFullYear()}${iki(an.getMonth() + 1)}${iki(an.getDate())}_${iki(an.getHours())}${iki(an.getMinutes())}.${uzanti}`;
   }, []);
 
   const paylas = useCallback(async (tur: 'xlsx' | 'csv') => {
@@ -91,7 +98,7 @@ export default function RaporEkrani() {
       if (tur === 'xlsx') {
         const fotolar = await fotoBaytlari(denetim);
         dosya.write(excelUret(denetim, fotolar, { dil: DOSYA_DILI }));
-        setBilgi(`${fotolar.size} fotoğraf dosyanın içine gömüldü.`);
+        setBilgi(t(`${fotolar.size} fotoğraf dosyanın içine gömüldü.`, `${fotolar.size} ${fotolar.size === 1 ? 'photo' : 'photos'} embedded in the file.`));
       } else {
         dosya.write(csvUret(denetim, { dil: DOSYA_DILI }));
       }
@@ -101,17 +108,17 @@ export default function RaporEkrani() {
           mimeType: tur === 'xlsx'
             ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             : 'text/csv',
-          dialogTitle: 'Denetim raporunu paylaş',
+          dialogTitle: t('Denetim raporunu paylaş', 'Share audit report'),
         });
       } else {
-        setBilgi(`Dosya hazır: ${dosya.uri}`);
+        setBilgi(t(`Dosya hazır: ${dosya.uri}`, `File ready: ${dosya.uri}`));
       }
     } catch (h) {
       setHata(h instanceof Error ? h.message : String(h));
     } finally {
       setCalisiyor(null);
     }
-  }, [denetim, dosyaAdi, fotoBaytlari]);
+  }, [denetim, dosyaAdi, fotoBaytlari, t]);
 
   // BİTİR İKİ ADIMLI. Önceden onaysızdı, "CSV"nin 8 px yanındaydı ve doğrudan
   // ana sayfaya atıyordu (üç ajanın sınaması, 28.09.2026).
@@ -144,7 +151,7 @@ export default function RaporEkrani() {
   if (!denetim) {
     return (
       <Ekran>
-        <Baslik baslik="Rapor" sol={<GeriDugmesi />} />
+        <Baslik baslik={t('Rapor', 'Report')} sol={<GeriDugmesi />} />
         {hata ? <View style={{ padding: bosluk.md }}><HataKutusu metin={hata} /></View> : <Yukleniyor />}
       </Ekran>
     );
@@ -157,37 +164,37 @@ export default function RaporEkrani() {
   const agir = ozet.sinifDagilimi.MAJOR + ozet.sinifDagilimi.MAIN;
 
   const kunye: [string, string, boolean?][] = [
-    ['Araç', arac ? `${arac.kod} · ${arac.tam}` : denetim.aracId],
-    ['Şasi', denetim.vin || '—', true],
+    [t('Araç', 'Vehicle'), arac ? `${arac.kod} · ${arac.tam}` : denetim.aracId],
+    [t('Şasi', 'VIN'), denetim.vin || '—', true],
     ['Body No', denetim.bodyNo || '—', true],
     ['Spec', denetim.spec || '—'],
-    ['Kaynak', denetim.denetimTipi || '—'],
-    ['Denetçi', denetim.denetci || '—'],
+    [t('Kaynak', 'Source'), denetim.denetimTipi || '—'],
+    [t('Denetçi', 'Auditor'), denetim.denetci || '—'],
     // Formdan kaldırılanlar (hat/vardiya 28.09.2026; plaka, km, faz, ekip,
     // rapor no 24.10.2026) yalnız eski bir denetimde doluysa gösterilir.
     ...([
-      ['Plaka', denetim.plaka, true],
-      ['Kilometre', kmGoster(denetim.km)],
-      ['Faz', denetim.faz],
-      ['Ekip', denetim.ekip],
-      ['Rapor No', denetim.raporNo],
-      ['Hat / Vardiya', [denetim.hat, denetim.vardiya].filter(Boolean).join(' / ')],
+      [t('Plaka', 'Plate'), denetim.plaka, true],
+      [t('Kilometre', 'Mileage'), kmGoster(denetim.km, dil)],
+      [t('Faz', 'Phase'), denetim.faz],
+      [t('Ekip', 'Team'), denetim.ekip],
+      [t('Rapor No', 'Report No'), denetim.raporNo],
+      [t('Hat / Vardiya', 'Line / Shift'), [denetim.hat, denetim.vardiya].filter(Boolean).join(' / ')],
     ] as [string, string, boolean?][]).filter(([, deger]) => !!deger),
-    ['Tarih', bicimTarih(denetim.baslangic)],
-    ['Durum', denetim.durum === 'tamam'
-      ? `Tamamlandı${denetim.bitis ? ` · ${bicimTarih(denetim.bitis)}` : ''}`
-      : 'Devam ediyor'],
+    [t('Tarih', 'Date'), bicimTarih(denetim.baslangic)],
+    [t('Durum', 'Status'), denetim.durum === 'tamam'
+      ? `${t('Tamamlandı', 'Completed')}${denetim.bitis ? ` · ${bicimTarih(denetim.bitis)}` : ''}`
+      : t('Devam ediyor', 'In progress')],
     // Süre ve kapsam 24.10.2026'da eklendi (benzer uygulamaların incelenmesi).
     ...(denetim.durum === 'tamam' && sureDakika(denetim.baslangic, denetim.bitis) !== null
-      ? [['Süre', sureMetni(sureDakika(denetim.baslangic, denetim.bitis))] as [string, string]]
+      ? [[t('Süre', 'Duration'), sureMetni(sureDakika(denetim.baslangic, denetim.bitis), dil)] as [string, string]]
       : []),
-    ['Kontrol edilen sistemler', kapsamMetni(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })))],
+    [t('Kontrol edilen sistemler', 'Systems checked'), kapsamMetni(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })), dil)],
   ];
 
   return (
     <Ekran>
       <Baslik
-        baslik="Rapor"
+        baslik={t('Rapor', 'Report')}
         sol={<GeriDugmesi />}
         cipler={(
           <>
@@ -196,7 +203,7 @@ export default function RaporEkrani() {
             {denetim.faz ? <BaslikCipi simge={S.faz} metin={denetim.faz} /> : null}
             <BaslikCipi
               simge={denetim.durum === 'devam' ? S.vardiya : S.tik}
-              metin={denetim.durum === 'devam' ? 'Devam ediyor' : 'Tamamlandı'}
+              metin={denetim.durum === 'devam' ? t('Devam ediyor', 'In progress') : t('Tamamlandı', 'Completed')}
             />
           </>
         )}
@@ -212,13 +219,16 @@ export default function RaporEkrani() {
           <View
             style={s.ozetSatir}
             accessible
-            accessibilityLabel={`Rapor özeti: ${ozet.toplamAdet} problem, demerit ${ozet.demeritToplami}, ${agir} MAJOR ya da MAIN, ${ozet.fotografliHata} fotoğraflı`}
+            accessibilityLabel={t(
+              `Rapor özeti: ${ozet.toplamAdet} problem, demerit ${ozet.demeritToplami}, ${agir} MAJOR ya da MAIN, ${ozet.fotografliHata} fotoğraflı`,
+              `Report summary: ${ozet.toplamAdet} ${ozet.toplamAdet === 1 ? 'problem' : 'problems'}, demerit ${ozet.demeritToplami}, ${agir} MAJOR or MAIN, ${ozet.fotografliHata} with photo`,
+            )}
           >
             {[
-              { deger: ozet.toplamAdet, etiket: 'problem', renk: renkler.birincil },
+              { deger: ozet.toplamAdet, etiket: t('problem', ozet.toplamAdet === 1 ? 'problem' : 'problems'), renk: renkler.birincil },
               { deger: ozet.demeritToplami, etiket: 'demerit', renk: renkler.metin },
               { deger: agir, etiket: 'MAJOR / MAIN', renk: agir ? renkler.derece3 : renkler.metin },
-              { deger: ozet.fotografliHata, etiket: 'fotoğraflı', renk: renkler.metin },
+              { deger: ozet.fotografliHata, etiket: t('fotoğraflı', 'with photo'), renk: renkler.metin },
             ].map((x, i) => (
               <View key={x.etiket} style={[s.ozetHucre, i > 0 && s.ozetAyrac]}>
                 <Text style={[s.ozetDeger, { color: x.renk }]}>{x.deger}</Text>
@@ -228,13 +238,13 @@ export default function RaporEkrani() {
           </View>
           <View style={s.ozetKapsam}>
             <View style={s.ozetKapsamUst}>
-              <Text style={s.ozetKapsamMetin}>Kontrol edilen sistemler</Text>
+              <Text style={s.ozetKapsamMetin}>{t('Kontrol edilen sistemler', 'Systems checked')}</Text>
               <Text style={s.ozetKapsamSayi}>{`${kontrolEdilen}/${sistemListesi.length}`}</Text>
             </View>
             <IlerlemeCubugu
               deger={kontrolEdilen}
               toplam={sistemListesi.length}
-              etiket={`Kontrol edilen sistemler ${kontrolEdilen}/${sistemListesi.length}`}
+              etiket={t(`Kontrol edilen sistemler ${kontrolEdilen}/${sistemListesi.length}`, `Systems checked ${kontrolEdilen}/${sistemListesi.length}`)}
             />
           </View>
         </Kart>
@@ -242,15 +252,15 @@ export default function RaporEkrani() {
         <View style={[s.ikili, tablet && s.ikiliTablet]}>
           <Kart style={tablet ? { flex: 1 } : undefined}>
             <BolumBasligi
-              metin="Künye"
+              metin={t('Künye', 'Details')}
               simge={S.etiket}
               sag={(
                 <Dugme
-                  metin="Düzenle"
+                  metin={t('Düzenle', 'Edit')}
                   kucuk
                   tur="sessiz"
                   simge={S.duzenle}
-                  erisimEtiketi="Denetim bilgilerini düzenle"
+                  erisimEtiketi={t('Denetim bilgilerini düzenle', 'Edit audit details')}
                   onPress={() => calismaEkranindaAc({ denetimId: denetim.id, tur: 'bilgiler' })}
                 />
               )}
@@ -267,14 +277,14 @@ export default function RaporEkrani() {
 
           <View style={[{ gap: bosluk.md }, tablet && { flex: 1 }]}>
             <Kart>
-              <BolumBasligi metin="Demerit ve class" simge={S.uyari} />
+              <BolumBasligi metin={t('Demerit ve class', 'Demerit and class')} simge={S.uyari} />
               {/* İki ayrı sütun: solda demerit'e, sağda class'a göre problem
                   adedi. Satırlar birbirine bağlı DEĞİL (aynı satırda durmaları
                   "demerit 3 = MINOR" diye okunmasın diye ayrı sütun). */}
               <View style={s.ikiSutun}>
                 <View style={s.sutun}>
                   {DERECELER.map((d) => (
-                    <View key={d.id} style={s.dereceSatiri} accessible accessibilityLabel={`Demerit ${d.id}: ${ozet.dereceDagilimi[d.id]} problem`}>
+                    <View key={d.id} style={s.dereceSatiri} accessible accessibilityLabel={t(`Demerit ${d.id}: ${ozet.dereceDagilimi[d.id]} problem`, `Demerit ${d.id}: ${ozet.dereceDagilimi[d.id]} ${ozet.dereceDagilimi[d.id] === 1 ? 'problem' : 'problems'}`)}>
                       <DereceRozeti derece={d.id} kabul={false} />
                       <Text style={s.dereceSayi}>{ozet.dereceDagilimi[d.id]}</Text>
                     </View>
@@ -282,7 +292,7 @@ export default function RaporEkrani() {
                 </View>
                 <View style={s.sutun}>
                   {SINIFLAR.map((c) => (
-                    <View key={c} style={s.dereceSatiri} accessible accessibilityLabel={`${c}: ${ozet.sinifDagilimi[c]} problem`}>
+                    <View key={c} style={s.dereceSatiri} accessible accessibilityLabel={t(`${c}: ${ozet.sinifDagilimi[c]} problem`, `${c}: ${ozet.sinifDagilimi[c]} ${ozet.sinifDagilimi[c] === 1 ? 'problem' : 'problems'}`)}>
                       <Text style={s.sinifAd}>{c}</Text>
                       <Text style={s.dereceSayi}>{ozet.sinifDagilimi[c]}</Text>
                     </View>
@@ -292,13 +302,13 @@ export default function RaporEkrani() {
             </Kart>
 
             <Kart>
-              <BolumBasligi metin="Bölgeye göre" simge={S.arac} />
+              <BolumBasligi metin={t('Bölgeye göre', 'By area')} simge={S.arac} />
               {ozet.bolgeDagilimi.length === 0 ? (
-                <Text style={s.bos}>Hata kaydedilmedi.</Text>
+                <Text style={s.bos}>{t('Hata kaydedilmedi.', 'No defects recorded.')}</Text>
               ) : ozet.bolgeDagilimi.map((b) => (
                 <View key={b.id} style={s.dagilimSatiri}>
                   <View style={s.dagilimUst}>
-                    <Text style={s.dagilimAd} numberOfLines={1}>{b.ad}</Text>
+                    <Text style={s.dagilimAd} numberOfLines={1}>{dil === 'en' ? BOLGE_EN[b.id] ?? 'Unknown' : b.ad}</Text>
                     <Text style={s.dagilimSayi}>{b.adet}</Text>
                   </View>
                   {/* Çubuk uzunluğu en kalabalık bölgeye göre; sayı yanında yazılı. */}
@@ -312,16 +322,16 @@ export default function RaporEkrani() {
         </View>
 
         <Kart>
-          <BolumBasligi metin={`Problemler (${denetim.hatalar.length}) — demerit'e göre`} simge={S.liste} />
+          <BolumBasligi metin={t(`Problemler (${denetim.hatalar.length}) — demerit'e göre`, `Problems (${denetim.hatalar.length}) — by demerit`)} simge={S.liste} />
           <View testID="rapor-hatalar" style={{ gap: 6 }}>
-            {denetim.hatalar.length === 0 ? <Text style={s.bos}>Hata kaydedilmedi.</Text> : null}
+            {denetim.hatalar.length === 0 ? <Text style={s.bos}>{t('Hata kaydedilmedi.', 'No defects recorded.')}</Text> : null}
             {siraliHatalar.map((h) => (
               <Pressable
                 key={h.id}
                 accessibilityRole="button"
                 // Demerit etikette olmalı: düğmenin etiketi içindeki rozetin
                 // etiketini örter; yoksa ekran okuyucu sıralamayı duyuramaz.
-                accessibilityLabel={`${parcaTamAdi(h.parcaId)} ${HATA_TIPI_INDEKS[h.hataTipiId]?.ad ?? ''}, demerit ${demeritDegeri(h)}, ${sinifDegeri(h)} — düzenle`}
+                accessibilityLabel={`${parcaTamAdi(h.parcaId, dil)} ${HATA_TIPI_INDEKS[h.hataTipiId] ? hataTipiAdi(h.hataTipiId, dil) : ''}, demerit ${demeritDegeri(h)}, ${sinifDegeri(h)} — ${t('düzenle', 'edit')}`}
                 onPress={() => calismaEkranindaAc({ denetimId: denetim.id, tur: 'hata', hataId: h.id })}
                 style={({ pressed }) => [s.hataSatiri, pressed && { opacity: 0.72 }]}
               >
@@ -330,12 +340,12 @@ export default function RaporEkrani() {
                 <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={s.hataAd} numberOfLines={1}>
-                    {parcaTamAdi(h.parcaId)} — {HATA_TIPI_INDEKS[h.hataTipiId]?.ad ?? h.hataTipiId}
+                    {parcaTamAdi(h.parcaId, dil)} — {hataTipiAdi(h.hataTipiId, dil)}
                   </Text>
                   <Text style={s.hataYol} numberOfLines={1}>
                     {[
-                      PARCA_INDEKS[h.parcaId]?.bolgeAd,
-                      h.adet > 1 ? `${h.adet} adet` : null,
+                      parcaBolgeAdi(h.parcaId, dil),
+                      h.adet > 1 ? t(`${h.adet} adet`, `qty ${h.adet}`) : null,
                       sinifDegeri(h) !== 'MINOR' ? sinifDegeri(h) : null,
                       sistemDegeri(h),
                       h.sorunTipi === 'Complex' ? 'Complex' : null,
@@ -362,20 +372,20 @@ export default function RaporEkrani() {
       {bitirOnay ? (
         <View style={s.onayBandi}>
           <Text style={s.onayMetin}>
-            Denetim "tamamlandı" olarak işaretlenecek. Sonradan kayıt eklenirse yeniden açılır.
+            {t('Denetim "tamamlandı" olarak işaretlenecek. Sonradan kayıt eklenirse yeniden açılır.', 'The audit will be marked "completed". It reopens if a record is added later.')}
             {/* Kapsam uyarısı (24.10.2026): hiç bakılmamış sistem "hatasız" sanılmasın. */}
             {eksikSistemler(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }))).length
-              ? ` Kontrol edildi işareti olmayan sistemler: ${eksikSistemler(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }))).map((x) => sistemAdi(x)).join(', ')}.`
-              : ' Bütün sistemler kontrol edildi.'}
+              ? ` ${t('Kontrol edildi işareti olmayan sistemler', 'Systems not marked as checked')}: ${eksikSistemler(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }))).map((x) => sistemAdi(x, dil)).join(', ')}.`
+              : t(' Bütün sistemler kontrol edildi.', ' All systems checked.')}
           </Text>
-          <Dugme metin="Vazgeç" tur="sessiz" kucuk onPress={() => setBitirOnay(false)} erisimEtiketi="Bitirmekten vazgeç" />
+          <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" kucuk onPress={() => setBitirOnay(false)} erisimEtiketi={t('Bitirmekten vazgeç', 'Cancel finishing')} />
         </View>
       ) : null}
 
       <AltCubuk style={tablet ? { justifyContent: 'flex-end' } : undefined}>
         <Dugme
           metin="Excel"
-          erisimEtiketi="Excel olarak paylaş"
+          erisimEtiketi={t('Excel olarak paylaş', 'Share as Excel')}
           simge={S.excel}
           tur="birincil"
           yukleniyor={calisiyor === 'xlsx'}
@@ -384,15 +394,15 @@ export default function RaporEkrani() {
         />
         <Dugme
           metin="CSV"
-          erisimEtiketi="CSV olarak paylaş"
+          erisimEtiketi={t('CSV olarak paylaş', 'Share as CSV')}
           simge={S.csv}
           yukleniyor={calisiyor === 'csv'}
           onPress={() => paylas('csv')}
         />
         {denetim.durum === 'devam' ? (
           <Dugme
-            metin={bitirOnay ? 'Evet, bitir' : 'Bitir'}
-            erisimEtiketi={bitirOnay ? 'Denetimi bitirmeyi onayla' : 'Denetimi bitir'}
+            metin={bitirOnay ? t('Evet, bitir', 'Yes, finish') : t('Bitir', 'Finish')}
+            erisimEtiketi={bitirOnay ? t('Denetimi bitirmeyi onayla', 'Confirm finishing the audit') : t('Denetimi bitir', 'Finish audit')}
             simge={S.tamam}
             tur={bitirOnay ? 'birincil' : 'ikincil'}
             onPress={bitir}

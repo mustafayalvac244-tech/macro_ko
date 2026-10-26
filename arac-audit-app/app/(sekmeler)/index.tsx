@@ -19,6 +19,7 @@ import { sureDakika, sureMetni } from '@/cekirdek/istatistik';
 import { sayacBaslangici, sayacHesapla, SayacSonucu } from '@/cekirdek/sayac';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { DenetimOzetSatiri, denetimleriListele, sayacVerisi } from '@/veri/depo';
+import { useDil } from '@/veri/dilDeposu';
 
 /** Ana sayfada okunan en fazla denetim. Özet sayılar da yalnız bunlardan. */
 const LISTE_SINIRI = 200;
@@ -28,6 +29,7 @@ export default function DenetimListesi() {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { tablet } = useDuzen();
+  const { t } = useDil();
 
   const [satirlar, setSatirlar] = useState<DenetimOzetSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export default function DenetimListesi() {
           arayüzü beğenmedi, kart ekranı ağırlaştırıyordu. Akışın anlatımı ilk
           açılıştaki boş durumda zaten var. */}
       <Dugme
-        metin="Yeni denetim"
+        metin={t('Yeni denetim', 'New audit')}
         tur="birincil"
         simge={S.ekle}
         onPress={yeniDenetim}
@@ -115,24 +117,24 @@ export default function DenetimListesi() {
           <AramaKutusu
             deger={arama}
             degistir={setArama}
-            yerTutucu="Şasi ya da body no (son haneler de olur), araç…"
-            erisimEtiketi="Denetim ara"
+            yerTutucu={t('Şasi ya da body no (son haneler de olur), araç…', 'VIN or body no (last digits work too), vehicle…')}
+            erisimEtiketi={t('Denetim ara', 'Search audits')}
           />
           <View style={s.suzgecSatir}>
             {([
-              ['hepsi', `Tümü ${satirlar.length}`],
-              ['devam', `Devam eden ${devamSayisi}`],
-              ['tamam', `Tamamlanan ${tamamSayisi}`],
+              ['hepsi', t(`Tümü ${satirlar.length}`, `All ${satirlar.length}`)],
+              ['devam', t(`Devam eden ${devamSayisi}`, `In progress ${devamSayisi}`)],
+              ['tamam', t(`Tamamlanan ${tamamSayisi}`, `Completed ${tamamSayisi}`)],
             ] as const).map(([k, metin]) => (
               <Secenek key={k} metin={metin} secili={suzgec === k} onPress={() => setSuzgec(k)} kucuk />
             ))}
           </View>
           <BolumBasligi
-            metin="Kayıtlar"
+            metin={t('Kayıtlar', 'Records')}
             simge={S.liste}
             sag={(
               <Text style={s.sayac}>
-                {satirlar.length >= LISTE_SINIRI && gorunen.length === satirlar.length ? `son ${LISTE_SINIRI}` : gorunen.length}
+                {satirlar.length >= LISTE_SINIRI && gorunen.length === satirlar.length ? t(`son ${LISTE_SINIRI}`, `last ${LISTE_SINIRI}`) : gorunen.length}
               </Text>
             )}
           />
@@ -145,12 +147,12 @@ export default function DenetimListesi() {
     <Ekran>
       {/* Ayarlar alt sekmede (25.10.2026); başlıktaki dişli kalktı. */}
       {/* "Güncelle" tek dokunuş (26.10.2026); web'de ve geliştirmede görünmez. */}
-      <Baslik baslik="Denetimler" altBaslik="Kayıtlar yalnız bu cihazda" sag={<GuncelleDugmesi />} />
+      <Baslik baslik={t('Denetimler', 'Audits')} altBaslik={t('Kayıtlar yalnız bu cihazda', 'Records are on this device only')} sag={<GuncelleDugmesi />} />
 
-      {hata ? <View style={s.hataKap}><HataKutusu metin={`Kayıtlar okunamadı: ${hata}`} /></View> : null}
+      {hata ? <View style={s.hataKap}><HataKutusu metin={t(`Kayıtlar okunamadı: ${hata}`, `Could not read records: ${hata}`)} /></View> : null}
 
       {satirlar === null && !hata ? (
-        <Yukleniyor metin="Kayıtlar açılıyor…" />
+        <Yukleniyor metin={t('Kayıtlar açılıyor…', 'Loading records…')} />
       ) : (
         <FlatList
           // Sütun sayısı değişince FlatList baştan kurulmalı; anahtar bunu sağlar.
@@ -167,12 +169,12 @@ export default function DenetimListesi() {
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={ust}
           ListEmptyComponent={satirlar?.length ? (
-            <Text style={s.eslesmeYok}>Aramayla eşleşen denetim yok.</Text>
+            <Text style={s.eslesmeYok}>{t('Aramayla eşleşen denetim yok.', 'No audits match the search.')}</Text>
           ) : (
             <BosDurum
               simge={S.arac}
-              baslik="Henüz denetim kaydı yok"
-              aciklama={'Akış üç adım: şasiyi okut ya da yaz · parçayı seç · hataya dokun.\nHer kayıt önce cihaza yazılır; bağlantı olmadan da çalışır.'}
+              baslik={t('Henüz denetim kaydı yok', 'No audits yet')}
+              aciklama={t('Akış üç adım: şasiyi okut ya da yaz · parçayı seç · hataya dokun.\nHer kayıt önce cihaza yazılır; bağlantı olmadan da çalışır.', 'Three steps: scan or type the VIN · pick the part · tap the defect.\nEvery record is saved on the device first; it works offline too.')}
             />
           )}
           renderItem={({ item }) => (
@@ -195,6 +197,7 @@ function DenetimKarti({
 }: { satir: DenetimOzetSatiri; tablet: boolean; onPress: () => void }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  const { dil, t } = useDil();
   const arac = ARAC_INDEKS[satir.aracId];
   const devam = satir.durum === 'devam';
   // Kontrol ilerlemesi — Lumiform'un ana ekranında başlanmış formlar
@@ -204,13 +207,15 @@ function DenetimKarti({
   const kontrol = Math.min(satir.kapsamAdedi, toplamSistem);
 
   const durumRozeti = devam
-    ? <Rozet metin="Devam ediyor" simge={S.vardiya} renk={renkler.bilgi} zemin={renkler.bilgiYumusak} />
-    : <Rozet metin="Tamamlandı" simge={S.tik} renk={renkler.basari} zemin={renkler.basariYumusak} />;
+    ? <Rozet metin={t('Devam ediyor', 'In progress')} simge={S.vardiya} renk={renkler.bilgi} zemin={renkler.bilgiYumusak} />
+    : <Rozet metin={t('Tamamlandı', 'Completed')} simge={S.tik} renk={renkler.basari} zemin={renkler.basariYumusak} />;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={devam ? `${aracKimligi(satir)} denetimini aç` : `${aracKimligi(satir)} raporunu aç`}
+      accessibilityLabel={devam
+        ? t(`${aracKimligi(satir)} denetimini aç`, `Open audit ${aracKimligi(satir)}`)
+        : t(`${aracKimligi(satir)} raporunu aç`, `Open report ${aracKimligi(satir)}`)}
       onPress={onPress}
       style={({ pressed }) => [s.kart, tablet && s.kartIkili, pressed && s.basili]}
     >
@@ -218,7 +223,7 @@ function DenetimKarti({
           dandik … isim yeter"); kart şasi + araç adıyla başlar. */}
       <View style={s.kartUst}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.vin} numberOfLines={1}>{aracKimligi(satir) || '(şasi yok)'}</Text>
+          <Text style={s.vin} numberOfLines={1}>{aracKimligi(satir) || t('(şasi yok)', '(no VIN)')}</Text>
           <Text style={s.meta} numberOfLines={1}>
             {aracEtiketi(arac, satir.aracId)}{satir.spec ? ` · ${satir.spec}` : ''}
           </Text>
@@ -228,10 +233,10 @@ function DenetimKarti({
       {devam ? (
         <View style={s.ilerleme}>
           <View style={s.ilerlemeUst}>
-            <Text style={s.ilerlemeMetin}>Kontrol edilen sistemler</Text>
+            <Text style={s.ilerlemeMetin}>{t('Kontrol edilen sistemler', 'Systems checked')}</Text>
             <Text style={s.ilerlemeSayi}>{`${kontrol}/${toplamSistem}`}</Text>
           </View>
-          <IlerlemeCubugu deger={kontrol} toplam={toplamSistem} etiket={`Kontrol edilen sistemler ${kontrol}/${toplamSistem}`} />
+          <IlerlemeCubugu deger={kontrol} toplam={toplamSistem} etiket={t(`Kontrol edilen sistemler ${kontrol}/${toplamSistem}`, `Systems checked ${kontrol}/${toplamSistem}`)} />
         </View>
       ) : null}
 
@@ -244,7 +249,7 @@ function DenetimKarti({
           <S.tarih size={14} color={renkler.metinSolgun} strokeWidth={2} />
           <Text style={s.meta} numberOfLines={1}>
             {bicimTarih(satir.baslangic)}
-            {!devam && sureDakika(satir.baslangic, satir.bitis) !== null ? ` · ${sureMetni(sureDakika(satir.baslangic, satir.bitis))}` : ''}
+            {!devam && sureDakika(satir.baslangic, satir.bitis) !== null ? ` · ${sureMetni(sureDakika(satir.baslangic, satir.bitis), dil)}` : ''}
           </Text>
         </View>
         {satir.denetci ? (
@@ -254,10 +259,10 @@ function DenetimKarti({
           </View>
         ) : null}
         <View style={{ flex: 1 }} />
-        <Text style={s.sayilar}>{satir.hataAdedi} hata</Text>
+        <Text style={s.sayilar}>{t(`${satir.hataAdedi} hata`, `${satir.hataAdedi} ${satir.hataAdedi === 1 ? 'defect' : 'defects'}`)}</Text>
         {satir.agirAdedi > 0 ? (
           <View style={[s.sonucPul, { backgroundColor: renkler.derece3Yumusak }]}>
-            <Text style={[s.sonucMetin, { color: renkler.derece3 }]}>{satir.agirAdedi} × DERECE 3</Text>
+            <Text style={[s.sonucMetin, { color: renkler.derece3 }]}>{t(`${satir.agirAdedi} × DERECE 3`, `${satir.agirAdedi} × DEMERIT 3`)}</Text>
           </View>
         ) : null}
       </View>

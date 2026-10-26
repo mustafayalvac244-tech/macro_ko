@@ -12,6 +12,7 @@ import { Dugme, Secenek } from '@/bilesenler/temel';
 import { listedenCikar, listeyeEkle } from '@/cekirdek/listeler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { ayarOku, ayarYaz } from '@/veri/depo';
+import { useDil } from '@/veri/dilDeposu';
 
 /**
  * Cihazdaki listeyi okur ve yazar. Hiç kaydedilmemişse hazır liste kullanılır.
@@ -69,6 +70,7 @@ export function EklenebilirSecim({
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  const { dil, t } = useDil();
   const [acik, setAcik] = useState(false);
   const [yeni, setYeni] = useState('');
 
@@ -98,12 +100,12 @@ export function EklenebilirSecim({
           {!acik ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`${ad} ekle`}
+              accessibilityLabel={t(`${ad} ekle`, `Add ${ad.toLocaleLowerCase(dil)}`)}
               onPress={() => setAcik(true)}
               style={({ pressed }) => [s.ekle, pressed && { opacity: 0.72 }]}
             >
               <S.ekle size={17} color={renkler.birincil} strokeWidth={2.25} />
-              <Text style={s.ekleMetin}>Ekle</Text>
+              <Text style={s.ekleMetin}>{t('Ekle', 'Add')}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -116,11 +118,18 @@ export function EklenebilirSecim({
             degistir={setYeni}
             gonder={gonder}
             yerTutucu={yerTutucu}
-            erisimEtiketi={`Yeni ${ad.toLocaleLowerCase('tr')}`}
+            erisimEtiketi={t(`Yeni ${ad.toLocaleLowerCase(dil)}`, `New ${ad.toLocaleLowerCase(dil)}`)}
             buyukHarf={buyukHarf}
           />
-          <Dugme metin="Ekle" tur="birincil" kucuk pasif={!yeni.trim()} onPress={gonder} erisimEtiketi={`${ad} listesine ekle`} />
-          <Dugme metin="Vazgeç" tur="sessiz" kucuk onPress={() => { setAcik(false); setYeni(''); }} />
+          <Dugme
+            metin={t('Ekle', 'Add')}
+            tur="birincil"
+            kucuk
+            pasif={!yeni.trim()}
+            onPress={gonder}
+            erisimEtiketi={t(`${ad} listesine ekle`, `Add to ${ad.toLocaleLowerCase(dil)} list`)}
+          />
+          <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" kucuk onPress={() => { setAcik(false); setYeni(''); }} />
         </View>
       ) : null}
     </View>
@@ -171,6 +180,7 @@ export function ListeDuzenle({
 }: { ad: string; liste: Liste; yerTutucu: string; buyukHarf?: boolean }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  const { dil, t } = useDil();
   const [yeni, setYeni] = useState('');
 
   const gonder = () => {
@@ -180,7 +190,7 @@ export function ListeDuzenle({
   return (
     <View style={s.govde}>
       {liste.yuklendi && liste.liste.length === 0 ? (
-        <Text style={s.bos}>Liste boş.</Text>
+        <Text style={s.bos}>{t('Liste boş.', 'List is empty.')}</Text>
       ) : null}
       <View style={s.satir}>
         {liste.liste.map((x) => (
@@ -188,7 +198,10 @@ export function ListeDuzenle({
             <Text style={s.etiketMetin} numberOfLines={1}>{x}</Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`${x}: ${ad.toLocaleLowerCase('tr')} listesinden kaldır`}
+              accessibilityLabel={t(
+                `${x}: ${ad.toLocaleLowerCase(dil)} listesinden kaldır`,
+                `${x}: remove from ${ad.toLocaleLowerCase(dil)} list`,
+              )}
               onPress={() => liste.cikar(x)}
               style={({ pressed }) => [s.etiketSil, pressed && { opacity: 0.72 }]}
             >
@@ -203,10 +216,17 @@ export function ListeDuzenle({
           degistir={setYeni}
           gonder={gonder}
           yerTutucu={yerTutucu}
-          erisimEtiketi={`Yeni ${ad.toLocaleLowerCase('tr')}`}
+          erisimEtiketi={t(`Yeni ${ad.toLocaleLowerCase(dil)}`, `New ${ad.toLocaleLowerCase(dil)}`)}
           buyukHarf={buyukHarf}
         />
-        <Dugme metin="Ekle" simge={S.ekle} kucuk pasif={!yeni.trim()} onPress={gonder} erisimEtiketi={`${ad} listesine ekle`} />
+        <Dugme
+          metin={t('Ekle', 'Add')}
+          simge={S.ekle}
+          kucuk
+          pasif={!yeni.trim()}
+          onPress={gonder}
+          erisimEtiketi={t(`${ad} listesine ekle`, `Add to ${ad.toLocaleLowerCase(dil)} list`)}
+        />
       </View>
     </View>
   );

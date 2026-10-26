@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { S, Simge } from '@/bilesenler/simgeler';
 import { useTema, yazi } from '@/tema';
+import { useDil } from '@/veri/dilDeposu';
 
 const simge = (Ikon: Simge) => ({ color, size }: { color: unknown; size: number }) => (
   <Ikon size={size - 2} color={String(color)} strokeWidth={2} />
@@ -28,6 +29,7 @@ const simge = (Ikon: Simge) => ({ color, size }: { color: unknown; size: number 
 export default function SekmeDuzeni() {
   const { renkler } = useTema();
   const kenar = useSafeAreaInsets();
+  const { t } = useDil();
   return (
     <Tabs
       screenOptions={{
@@ -49,15 +51,15 @@ export default function SekmeDuzeni() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Denetimler', tabBarAccessibilityLabel: 'Denetimler', tabBarIcon: simge(S.denetimler) }}
+        options={{ title: t('Denetimler', 'Audits'), tabBarAccessibilityLabel: t('Denetimler', 'Audits'), tabBarIcon: simge(S.denetimler) }}
       />
       <Tabs.Screen
         name="istatistik"
-        options={{ title: 'Analiz', tabBarAccessibilityLabel: 'Analiz', tabBarIcon: simge(S.analiz) }}
+        options={{ title: t('Analiz', 'Analysis'), tabBarAccessibilityLabel: t('Analiz', 'Analysis'), tabBarIcon: simge(S.analiz) }}
       />
       <Tabs.Screen
         name="ayarlar"
-        options={{ title: 'Ayarlar', tabBarAccessibilityLabel: 'Ayarlar', tabBarIcon: simge(S.ayarlar) }}
+        options={{ title: t('Ayarlar', 'Settings'), tabBarAccessibilityLabel: t('Ayarlar', 'Settings'), tabBarIcon: simge(S.ayarlar) }}
       />
     </Tabs>
   );

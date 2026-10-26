@@ -29,12 +29,12 @@ import { auditSkoru, skoraGirerMi } from './nas';
 export type Donem = 'bugun' | 'buHafta' | 'gecenHafta' | 'buAy' | 'buYil';
 
 /** Excel'deki sırayla: Bugün / Bu Hafta / G. Hafta / Bu Ay / Bu Yıl. */
-export const DONEMLER: readonly { id: Donem; ad: string; uzun: string }[] = [
-  { id: 'bugun', ad: 'Bugün', uzun: 'Bugün' },
-  { id: 'buHafta', ad: 'Bu hafta', uzun: 'Bu hafta' },
-  { id: 'gecenHafta', ad: 'G. hafta', uzun: 'Geçen hafta' },
-  { id: 'buAy', ad: 'Bu ay', uzun: 'Bu ay' },
-  { id: 'buYil', ad: 'Bu yıl', uzun: 'Bu yıl' },
+export const DONEMLER: readonly { id: Donem; ad: string; uzun: string; en: string; enUzun: string }[] = [
+  { id: 'bugun', ad: 'Bugün', uzun: 'Bugün', en: 'Today', enUzun: 'Today' },
+  { id: 'buHafta', ad: 'Bu hafta', uzun: 'Bu hafta', en: 'This wk', enUzun: 'This week' },
+  { id: 'gecenHafta', ad: 'G. hafta', uzun: 'Geçen hafta', en: 'Last wk', enUzun: 'Last week' },
+  { id: 'buAy', ad: 'Bu ay', uzun: 'Bu ay', en: 'This mo', enUzun: 'This month' },
+  { id: 'buYil', ad: 'Bu yıl', uzun: 'Bu yıl', en: 'This yr', enUzun: 'This year' },
 ];
 
 export interface SayacGirdisi {

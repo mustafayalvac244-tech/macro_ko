@@ -25,11 +25,11 @@ export const KISA_KIMLIK = 8;
  * APK'nın içindeki paketin de bir kimliği vardır; o yüzden ayrım kimliğin
  * varlığına değil `isEmbeddedLaunch`e bakılarak yapılır.
  */
-export function calisanPaketMetni(p: CalisanPaket): string {
+export function calisanPaketMetni(p: CalisanPaket, dil: 'tr' | 'en' = 'tr'): string {
   const gecerliTarih = p.createdAt && !Number.isNaN(p.createdAt.getTime());
   const tarih = gecerliTarih ? bicimTarih(p.createdAt!.toISOString()) : '';
   const ad = p.isEmbeddedLaunch || !p.updateId
-    ? 'APK ile gelen paket'
-    : `Güncelleme ${p.updateId.slice(0, KISA_KIMLIK)}`;
+    ? (dil === 'en' ? 'Bundle shipped with the APK' : 'APK ile gelen paket')
+    : `${dil === 'en' ? 'Update' : 'Güncelleme'} ${p.updateId.slice(0, KISA_KIMLIK)}`;
   return tarih ? `${ad} · ${tarih}` : ad;
 }

@@ -8,6 +8,7 @@ import { S } from '@/bilesenler/simgeler';
 import { Baslik, BosDurum, Dugme, Ekran, GeriDugmesi } from '@/bilesenler/temel';
 import { vinDogrula } from '@/cekirdek/vin';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
+import { useDil } from '@/veri/dilDeposu';
 import { useTarama } from '@/veri/tarama';
 
 /**
@@ -22,6 +23,7 @@ export default function BarkodEkrani() {
   const router = useRouter();
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  const { t } = useDil();
   const [izin, izinIste] = useCameraPermissions();
   const vinYaz = useTarama((d) => d.vinYaz);
   const okundu = useRef(false);
@@ -29,6 +31,7 @@ export default function BarkodEkrani() {
 
   const barkod = useCallback((sonuc: { data: string }) => {
     if (okundu.current) return;
+    // İletiler burada gösterilmiyor; yalnız geçerlilik bakılıyor, dil gerekmez.
     const aday = vinDogrula(sonuc.data);
     if (!aday.gecerli) return;
     okundu.current = true;
@@ -38,14 +41,28 @@ export default function BarkodEkrani() {
 
   return (
     <Ekran>
-      <Baslik baslik="Şasi barkodu" altBaslik="Barkodu çerçeveye alın" sol={<GeriDugmesi />} />
+      <Baslik
+        baslik={t('Şasi barkodu', 'VIN barcode')}
+        altBaslik={t('Barkodu çerçeveye alın', 'Fit the barcode in the frame')}
+        sol={<GeriDugmesi />}
+      />
       <View style={[s.govde, { paddingBottom: bosluk.md + kenar.bottom }]}>
         {!izin ? null : !izin.granted ? (
           <BosDurum
             simge={S.kamera}
-            baslik="Kamera izni gerekiyor"
-            aciklama="Barkod okumak için kamera izni gerekiyor. İzin vermezseniz şasi numarasını elle yazabilirsiniz."
-            eylem={<Dugme metin="Kamera iznini ver" tur="birincil" simge={S.kamera} onPress={() => { izinIste(); }} />}
+            baslik={t('Kamera izni gerekiyor', 'Camera permission needed')}
+            aciklama={t(
+              'Barkod okumak için kamera izni gerekiyor. İzin vermezseniz şasi numarasını elle yazabilirsiniz.',
+              'Scanning a barcode needs camera permission. Without it, you can type the VIN by hand.',
+            )}
+            eylem={(
+              <Dugme
+                metin={t('Kamera iznini ver', 'Allow camera')}
+                tur="birincil"
+                simge={S.kamera}
+                onPress={() => { izinIste(); }}
+              />
+            )}
           />
         ) : (
           <>
@@ -69,8 +86,10 @@ export default function BarkodEkrani() {
             <View style={s.notSatir}>
               <S.bilgi size={16} color={renkler.metinSolgun} strokeWidth={2} />
               <Text style={s.not}>
-                Okunan metin 17 hane ve VIN alfabesine uygun değilse kabul edilmez —
-                araç üzerindeki başka bir etiketi yanlışlıkla okumayasınız diye.
+                {t(
+                  'Okunan metin 17 hane ve VIN alfabesine uygun değilse kabul edilmez — araç üzerindeki başka bir etiketi yanlışlıkla okumayasınız diye.',
+                  "A scan is accepted only if it has 17 characters and fits the VIN alphabet — so you don't read another label on the vehicle by mistake.",
+                )}
               </Text>
             </View>
           </>

@@ -17,7 +17,7 @@ import {
 } from '@/bilesenler/temel';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import {
-  bolgelerAracIcin, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi,
+  bolgelerAracIcin, HATA_TIPI_INDEKS, hataTipiAdi, PARCA_INDEKS, parcaBolgeAdi, parcaHataTipleri, parcaTamAdi,
 } from '@/cekirdek/katalog';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { VARSAYILAN_SINIF, varsayilanSistem } from '@/cekirdek/nas';
@@ -34,6 +34,7 @@ import {
   ayarOku, ayarYaz, denetimGetir, denetimGuncelle, denetimSil, FotografKaydi, fotograflariGetir,
   fotografiHataBagla, hataKaydet, hataSil, kapsamAyarla, kimlikUret,
 } from '@/veri/depo';
+import { useDil } from '@/veri/dilDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
 
 /**
@@ -85,6 +86,7 @@ export default function DenetimEkrani() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { renkler } = useTema();
+  const { dil, t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { tablet } = useDuzen();
   const kenar = useSafeAreaInsets();
@@ -226,17 +228,17 @@ export default function DenetimEkrani() {
   }, []);
 
   /** Tek dokunuşla kayıt — bu ekranın var olma sebebi. */
-  const hizliKaydet = useCallback(async (t: HataTipi) => {
+  const hizliKaydet = useCallback(async (tip: HataTipi) => {
     if (!denetim || !parcaId) return;
     setKayitHatasi(null);
     const kayit: Hata = {
       id: kimlikUret('h'),
       parcaId,
-      hataTipiId: t.id,
+      hataTipiId: tip.id,
       derece,
       kabulEdilebilir: false,
       sinif,
-      sistem: varsayilanSistem(parcaId, t.id),
+      sistem: varsayilanSistem(parcaId, tip.id),
       sorunTipi: 'Part',
       sorumlu: sorumluHaritasi[parcaId] ?? '',
       adet: 1, konum: '', aciklama: '', fotograflar: [],
@@ -248,7 +250,8 @@ export default function DenetimEkrani() {
     } catch (h) {
       // Kayıt düşmediyse ekranda KALMALI: denetçi "kaydettim" sanıp geçerse
       // hata raporda hiç görünmez.
-      setKayitHatasi(`Kaydedilemedi: ${h instanceof Error ? h.message : String(h)}`);
+      const neden = h instanceof Error ? h.message : String(h);
+      setKayitHatasi(t(`Kaydedilemedi: ${neden}`, `Could not save: ${neden}`));
       return;
     }
     // Kayıt düştü; bitmiş denetimi yeniden açamazsak bu kaydı "kaydedilemedi"
@@ -260,9 +263,13 @@ export default function DenetimEkrani() {
     // Kullanım sayacını hataKaydet kendisi artırıyor. Burada da çağrılıyordu;
     // hızlı girişteki her kayıt iki kez sayılıyordu (26.09.2026'da fark edildi).
 
+    // Bildirim metni kayıt anındaki dilde kurulur (6 sn ekranda kalır).
     bildirimGoster({
       tur: 'kayit', id: kayit.id, parcaId,
-      metin: `${parcaTamAdi(parcaId)} — ${t.ad} · demerit ${dereceGosterimi(kayit)} · ${sinif}`,
+      metin: t(
+        `${parcaTamAdi(parcaId)} — ${tip.ad} · demerit ${dereceGosterimi(kayit)} · ${sinif}`,
+        `${parcaTamAdi(parcaId, 'en')} — ${tip.en || tip.ad} · demerit ${dereceGosterimi(kayit)} · ${sinif}`,
+      ),
     }, 6000);
 
     setDerece('0');
@@ -270,16 +277,16 @@ export default function DenetimEkrani() {
     parcalaraDon();
     setParcaArama('');
     await tazele();
-  }, [denetim, parcaId, derece, sinif, sorumluHaritasi, parcalaraDon, tazele, bildirimGoster, yenidenAcGerekirse]);
+  }, [denetim, parcaId, derece, sinif, sorumluHaritasi, parcalaraDon, tazele, bildirimGoster, yenidenAcGerekirse, t]);
 
   // Geri almak SESSİZ değil: yalnız başlıktaki sayaç değişiyordu (sınamada
   // "geri alındı mı?" sorusu kaldı). Kısa bir "Geri alındı" bildirimi çıkar.
   const geriAl = useCallback(async () => {
     if (bildirim?.tur !== 'kayit') return;
     await hataSil(bildirim.id);
-    bildirimGoster({ tur: 'geriAlindi', metin: `Geri alındı: ${bildirim.metin}` }, 3000);
+    bildirimGoster({ tur: 'geriAlindi', metin: t(`Geri alındı: ${bildirim.metin}`, `Undone: ${bildirim.metin}`) }, 3000);
     await tazele();
-  }, [bildirim, tazele, bildirimGoster]);
+  }, [bildirim, tazele, bildirimGoster, t]);
 
   // Aynı parçaya art arda hata: listeye dönüp parçayı yeniden aramak yerine
   // bildirimden tek dokunuş. Demerit ve class kayıttan sonra zaten 0 / MINOR.
@@ -367,7 +374,7 @@ export default function DenetimEkrani() {
   if (yuklemeHatasi) {
     return (
       <Ekran>
-        <Baslik baslik="Denetim" sol={<GeriDugmesi />} />
+        <Baslik baslik={t('Denetim', 'Audit')} sol={<GeriDugmesi />} />
         <View style={{ padding: bosluk.md }}><HataKutusu metin={yuklemeHatasi} /></View>
       </Ekran>
     );
@@ -375,8 +382,8 @@ export default function DenetimEkrani() {
   if (!denetim) {
     return (
       <Ekran>
-        <Baslik baslik="Denetim" sol={<GeriDugmesi />} />
-        <Yukleniyor metin="Denetim açılıyor…" />
+        <Baslik baslik={t('Denetim', 'Audit')} sol={<GeriDugmesi />} />
+        <Yukleniyor metin={t('Denetim açılıyor…', 'Opening audit…')} />
       </Ekran>
     );
   }
@@ -414,25 +421,29 @@ export default function DenetimEkrani() {
         {!tablet ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Parça listesine dön"
+            accessibilityLabel={t('Parça listesine dön', 'Back to part list')}
             onPress={parcalaraDon}
             style={({ pressed }) => [s.geriDugme, pressed && s.basili]}
           >
             <S.geri size={20} color={renkler.birincil} strokeWidth={2.25} />
-            <Text style={s.geriMetin}>Parçalar</Text>
+            <Text style={s.geriMetin}>{t('Parçalar', 'Parts')}</Text>
           </Pressable>
         ) : null}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.seciliParca} numberOfLines={1}>{parcaTamAdi(parca.id)}</Text>
-          <Text style={s.seciliYol} numberOfLines={1}>{parca.bolgeAd}</Text>
+          <Text style={s.seciliParca} numberOfLines={1}>{parcaTamAdi(parca.id, dil)}</Text>
+          <Text style={s.seciliYol} numberOfLines={1}>{parcaBolgeAdi(parca.id, dil)}</Text>
         </View>
         {seciliAdet > 0 ? (
-          <Rozet metin={`${seciliAdet} KAYIT`} renk={renkler.birincil} zemin={renkler.birincilYumusak} />
+          <Rozet
+            metin={t(`${seciliAdet} KAYIT`, `${seciliAdet} ${seciliAdet === 1 ? 'RECORD' : 'RECORDS'}`)}
+            renk={renkler.birincil}
+            zemin={renkler.birincilYumusak}
+          />
         ) : null}
         {tablet ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Parça seçimini kaldır"
+            accessibilityLabel={t('Parça seçimini kaldır', 'Clear part selection')}
             onPress={parcalaraDon}
             style={({ pressed }) => [s.kapatDugme, pressed && s.basili]}
           >
@@ -443,7 +454,7 @@ export default function DenetimEkrani() {
 
       <View style={[s.dereceSerit, tablet && s.dereceSeritTablet]}>
         <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
-          <Text style={s.dereceEtiket}>Demerit — 0 skora girmez</Text>
+          <Text style={s.dereceEtiket}>{t('Demerit — 0 skora girmez', 'Demerit — 0 not scored')}</Text>
           <DereceSecici derece={derece} onSec={dereceSec} kucuk />
         </View>
         <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
@@ -456,8 +467,8 @@ export default function DenetimEkrani() {
         <AramaKutusu
           deger={hataArama}
           degistir={setHataArama}
-          yerTutucu="Hata ara — gap, scratch, gıcırtı…"
-          erisimEtiketi="Hata tipi ara"
+          yerTutucu={t('Hata ara — gap, scratch, gıcırtı…', 'Search defects — gap, scratch, squeak…')}
+          erisimEtiketi={t('Hata tipi ara', 'Search defect types')}
         />
 
         {/* Hata kutularının üstünde hangi değerle kaydedileceği yazmıyordu
@@ -467,11 +478,14 @@ export default function DenetimEkrani() {
         <View
           style={s.kayitDerecesi}
           accessible
-          accessibilityLabel={`Dokunduğunuz hata demerit ${derece}, ${sinif} olarak kaydedilir`}
+          accessibilityLabel={t(
+            `Dokunduğunuz hata demerit ${derece}, ${sinif} olarak kaydedilir`,
+            `The defect you tap is saved as demerit ${derece}, ${sinif}`,
+          )}
         >
-          <Text style={s.kayitDerecesiMetin} aria-hidden>Dokunduğunuz hata</Text>
+          <Text style={s.kayitDerecesiMetin} aria-hidden>{t('Dokunduğunuz hata', 'The defect you tap is saved as')}</Text>
           <View aria-hidden><DereceRozeti derece={derece} kabul={false} /></View>
-          <Text style={s.kayitDerecesiMetin} aria-hidden>{`· ${sinif} olarak kaydedilir`}</Text>
+          <Text style={s.kayitDerecesiMetin} aria-hidden>{t(`· ${sinif} olarak kaydedilir`, `· ${sinif}`)}</Text>
         </View>
 
         {kayitHatasi ? <HataKutusu metin={kayitHatasi} /> : null}
@@ -495,17 +509,21 @@ export default function DenetimEkrani() {
               <View key={g} style={s.grup}>
                 <GrupBasligi grup={g} />
                 <View style={s.hataIzgara}>
-                  {liste.map((t) => (
+                  {liste.map((tip) => (
                     <Pressable
-                      key={t.id}
+                      key={tip.id}
                       accessibilityRole="button"
-                      accessibilityLabel={`${t.ad}${t.en ? ` (${t.en})` : ''} — demerit ${derece}, ${sinif} olarak kaydet`}
-                      onPress={() => hizliKaydet(t)}
+                      accessibilityLabel={t(
+                        `${tip.ad}${tip.en ? ` (${tip.en})` : ''} — demerit ${derece}, ${sinif} olarak kaydet`,
+                        `${tip.en || tip.ad} — save as demerit ${derece}, ${sinif}`,
+                      )}
+                      onPress={() => hizliKaydet(tip)}
                       style={({ pressed }) => [s.hataDugme, pressed && s.hataDugmeBasili]}
                     >
                       <View style={s.hataDugmeUst}>
-                        <Text style={s.hataAd} numberOfLines={2}>{t.ad}</Text>
-                        {t.ozel ? <Text style={s.ekipIsaret}>Ekip</Text> : null}
+                        {/* Ekibin eklediği tipin İngilizcesi boş olabilir: o zaman Türkçesi. */}
+                        <Text style={s.hataAd} numberOfLines={2}>{t(tip.ad, tip.en || tip.ad)}</Text>
+                        {tip.ozel ? <Text style={s.ekipIsaret}>{t('Ekip', 'Team')}</Text> : null}
                       </View>
                     </Pressable>
                   ))}
@@ -515,19 +533,25 @@ export default function DenetimEkrani() {
 
             {tipler.length === 0 ? (
               <Text style={s.bos}>
-                {hataArama.trim() ? `“${hataArama.trim()}” listede yok.` : 'Bu parça için tanımlı hata tipi yok.'}
+                {hataArama.trim()
+                  ? t(`“${hataArama.trim()}” listede yok.`, `“${hataArama.trim()}” is not in the list.`)
+                  : t('Bu parça için tanımlı hata tipi yok.', 'No defect types defined for this part.')}
               </Text>
             ) : null}
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={hataArama.trim() ? `“${hataArama.trim()}” adıyla yeni hata tipi ekle` : 'Yeni hata tipi ekle'}
+              accessibilityLabel={hataArama.trim()
+                ? t(`“${hataArama.trim()}” adıyla yeni hata tipi ekle`, `Add new defect type “${hataArama.trim()}”`)
+                : t('Yeni hata tipi ekle', 'Add new defect type')}
               onPress={() => setYeniTipAcik(true)}
               style={({ pressed }) => [s.yeniTip, tipler.length === 0 && { borderColor: renkler.birincil }, pressed && s.basili]}
             >
               <S.ekle size={18} color={renkler.birincil} strokeWidth={2.25} />
               <Text style={s.yeniTipMetin}>
-                {hataArama.trim() ? `“${hataArama.trim()}” adıyla yeni hata tipi` : 'Yeni hata tipi'}
+                {hataArama.trim()
+                  ? t(`“${hataArama.trim()}” adıyla yeni hata tipi`, `New defect type “${hataArama.trim()}”`)
+                  : t('Yeni hata tipi', 'New defect type')}
               </Text>
             </Pressable>
           </>
@@ -545,7 +569,7 @@ export default function DenetimEkrani() {
         mono={tablet}
         // Telefonda başlıkta yalnız araç adı: "BJ · IONIQ 3" dar başlıkta
         // "BJ · ION…" diye kesiliyordu (ekran görüntüsü, 26.10.2026).
-        baslik={tablet ? (aracKimligi(denetim) || 'Denetim') : (arac?.ad ?? 'Denetim')}
+        baslik={tablet ? (aracKimligi(denetim) || t('Denetim', 'Audit')) : (arac?.ad ?? t('Denetim', 'Audit'))}
         sol={<GeriDugmesi />}
         cipler={(
           <>
@@ -561,22 +585,25 @@ export default function DenetimEkrani() {
           <>
             <BaslikDugmesi
               simge={S.duzenle}
-              metin="Bilgiler"
-              erisimEtiketi="Denetim bilgilerini düzenle"
+              metin={t('Bilgiler', 'Details')}
+              erisimEtiketi={t('Denetim bilgilerini düzenle', 'Edit audit details')}
               onPress={() => setAcikSayfa('bilgiler')}
             />
             <BaslikDugmesi
               simge={S.liste}
-              metin="Kayıtlar"
+              metin={t('Kayıtlar', 'Records')}
               sayac={hataSayisi}
-              erisimEtiketi={`Kaydedilen ${hataSayisi} hata`}
+              erisimEtiketi={t(
+                `Kaydedilen ${hataSayisi} hata`,
+                `${hataSayisi} recorded ${hataSayisi === 1 ? 'defect' : 'defects'}`,
+              )}
               onPress={() => setAcikSayfa('liste')}
             />
             <BaslikDugmesi
               simge={S.rapor}
-              metin="Rapor"
+              metin={t('Rapor', 'Report')}
               birincil
-              erisimEtiketi="Rapor"
+              erisimEtiketi={t('Rapor', 'Report')}
               onPress={() => router.push({ pathname: '/denetim/rapor', params: { id: denetim.id } })}
             />
           </>
@@ -586,7 +613,10 @@ export default function DenetimEkrani() {
       {denetim.durum === 'tamam' ? (
         <View style={s.tamamBandi}>
           <BilgiKutusu
-            metin={`Bu denetim tamamlandı${denetim.bitis ? ` (${bicimTarih(denetim.bitis)})` : ''}. Kayıt ekler, düzeltir ya da silerseniz yeniden "devam ediyor" olur.`}
+            metin={t(
+              `Bu denetim tamamlandı${denetim.bitis ? ` (${bicimTarih(denetim.bitis)})` : ''}. Kayıt ekler, düzeltir ya da silerseniz yeniden "devam ediyor" olur.`,
+              `This audit is completed${denetim.bitis ? ` (${bicimTarih(denetim.bitis)})` : ''}. If you add, edit or delete a record, it goes back to "in progress".`,
+            )}
           />
         </View>
       ) : null}
@@ -618,23 +648,26 @@ export default function DenetimEkrani() {
               <View style={s.bildirimDugmeler} pointerEvents="box-none">
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Aynı parçaya bir hata daha: ${parcaTamAdi(bildirim.parcaId)}`}
+                  accessibilityLabel={t(
+                    `Aynı parçaya bir hata daha: ${parcaTamAdi(bildirim.parcaId)}`,
+                    `Another defect on the same part: ${parcaTamAdi(bildirim.parcaId, 'en')}`,
+                  )}
                   onPress={ayniParcaya}
                   hitSlop={8}
                   style={({ pressed }) => [s.geriAlDugme, pressed && s.basili]}
                 >
                   <S.ekle size={18} color={renkler.tersVurgu} strokeWidth={2.25} />
-                  <Text style={s.geriAlMetin}>Aynı parçaya</Text>
+                  <Text style={s.geriAlMetin}>{t('Aynı parçaya', 'Same part')}</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Son kaydı geri al"
+                  accessibilityLabel={t('Son kaydı geri al', 'Undo last record')}
                   onPress={geriAl}
                   hitSlop={8}
                   style={({ pressed }) => [s.geriAlDugme, pressed && s.basili]}
                 >
                   <S.geriAl size={18} color={renkler.tersVurgu} strokeWidth={2.25} />
-                  <Text style={s.geriAlMetin}>Geri al</Text>
+                  <Text style={s.geriAlMetin}>{t('Geri al', 'Undo')}</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -690,10 +723,14 @@ function DenetimOzeti({
   onTumu: () => void;
 }) {
   const { renkler } = useTema();
+  const { dil, t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const son = useMemo(
     () => [...denetim.hatalar].sort((a, b) => b.zaman.localeCompare(a.zaman)).slice(0, 5),
     [denetim.hatalar],
+  );
+  const kapsamYazi = kapsamMetni(
+    denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: ARAC_INDEKS[denetim.aracId]?.tip ?? 'ice' })), dil,
   );
 
   return (
@@ -703,19 +740,27 @@ function DenetimOzeti({
           şey söylemiyordu (sınama, 28.09.2026). */}
       <BosDurum
         simge={S.sec}
-        baslik="Soldan sistem → bölge → parça seçin"
-        aciklama="Sonra demerit ve class'ı seçip hataya dokunun; hata o anda kaydedilir ve aynı bölgenin parçalarına dönülür."
+        baslik={t('Soldan sistem → bölge → parça seçin', 'Select system → area → part on the left')}
+        aciklama={t(
+          "Sonra demerit ve class'ı seçip hataya dokunun; hata o anda kaydedilir ve aynı bölgenin parçalarına dönülür.",
+          'Then set demerit and class and tap a defect; it is saved at once and you return to the parts of the same area.',
+        )}
       />
-      <Text style={s.kapsamOzeti} accessibilityLabel={`Kontrol edilen sistemler: ${kapsamMetni(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: ARAC_INDEKS[denetim.aracId]?.tip ?? 'ice' })))}`}>
-        Kontrol edilen sistemler: {kapsamMetni(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: ARAC_INDEKS[denetim.aracId]?.tip ?? 'ice' })))}
+      <Text style={s.kapsamOzeti} accessibilityLabel={t(`Kontrol edilen sistemler: ${kapsamYazi}`, `Systems checked: ${kapsamYazi}`)}>
+        {t(`Kontrol edilen sistemler: ${kapsamYazi}`, `Systems checked: ${kapsamYazi}`)}
       </Text>
 
       {son.length ? (
         <View style={{ gap: bosluk.xs }}>
           <BolumBasligi
-            metin="Son kayıtlar"
+            metin={t('Son kayıtlar', 'Recent records')}
             simge={S.son}
-            sag={<Dugme metin="Tümü" kucuk tur="sessiz" simge={S.liste} onPress={onTumu} erisimEtiketi="Tüm kayıtları aç" />}
+            sag={(
+              <Dugme
+                metin={t('Tümü', 'All')} kucuk tur="sessiz" simge={S.liste} onPress={onTumu}
+                erisimEtiketi={t('Tüm kayıtları aç', 'Open all records')}
+              />
+            )}
           />
           {son.map((h) => (
             <KayitSatiri key={h.id} hata={h} onPress={() => onAc(h)} />
@@ -729,12 +774,12 @@ function DenetimOzeti({
 /** Kaydedilmiş tek hata satırı — liste sayfasında ve özet bölmesinde aynı. */
 function KayitSatiri({ hata: h, sira, onPress }: { hata: Hata; sira?: number; onPress: () => void }) {
   const { renkler } = useTema();
+  const { dil, t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
-  const p = PARCA_INDEKS[h.parcaId];
-  const t = HATA_TIPI_INDEKS[h.hataTipiId];
+  const tip = HATA_TIPI_INDEKS[h.hataTipiId];
   const alt = [
-    p?.bolgeAd,
-    h.adet > 1 ? `${h.adet} adet` : null,
+    parcaBolgeAdi(h.parcaId, dil),
+    h.adet > 1 ? t(`${h.adet} adet`, `${h.adet} pcs`) : null,
     h.konum || null,
     h.sorunTipi === 'Complex' ? 'Complex' : null,
     h.sorumlu ? `→ ${h.sorumlu}` : null,
@@ -742,14 +787,17 @@ function KayitSatiri({ hata: h, sira, onPress }: { hata: Hata; sira?: number; on
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${parcaTamAdi(h.parcaId)} ${t?.ad}, demerit ${dereceGosterimi(h)} — düzenle`}
+      accessibilityLabel={t(
+        `${parcaTamAdi(h.parcaId)} ${tip?.ad}, demerit ${dereceGosterimi(h)} — düzenle`,
+        `${parcaTamAdi(h.parcaId, 'en')} ${hataTipiAdi(h.hataTipiId, 'en')}, demerit ${dereceGosterimi(h)} — edit`,
+      )}
       onPress={onPress}
       style={({ pressed }) => [s.kayitSatir, pressed && s.basili]}
     >
       {sira !== undefined ? <Text style={s.kayitSira}>{sira}</Text> : null}
       <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={s.kayitAd} numberOfLines={1}>{parcaTamAdi(h.parcaId)} — {t?.ad ?? h.hataTipiId}</Text>
+        <Text style={s.kayitAd} numberOfLines={1}>{parcaTamAdi(h.parcaId, dil)} — {hataTipiAdi(h.hataTipiId, dil)}</Text>
         {alt ? <Text style={s.kayitAlt} numberOfLines={1}>{alt}</Text> : null}
       </View>
       {h.fotograflar.length ? (
@@ -772,24 +820,27 @@ function KayitListesi({
   onKapat: () => void;
 }) {
   const { renkler } = useTema();
+  const { t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const sirali = useMemo(() => [...hatalar].sort((a, b) => b.zaman.localeCompare(a.zaman)), [hatalar]);
 
   return (
     <>
       <View style={s.listeUst}>
-        <Text style={s.listeBaslik}>Kaydedilen hatalar ({hatalar.length})</Text>
-        <Text style={s.listeNot}>Düzeltmek, silmek ya da fotoğraf eklemek için kayda dokunun.</Text>
+        <Text style={s.listeBaslik}>{t(`Kaydedilen hatalar (${hatalar.length})`, `Recorded defects (${hatalar.length})`)}</Text>
+        <Text style={s.listeNot}>
+          {t('Düzeltmek, silmek ya da fotoğraf eklemek için kayda dokunun.', 'Tap a record to edit, delete or add photos.')}
+        </Text>
       </View>
       <ScrollView style={{ flexGrow: 1 }} contentContainerStyle={s.listeGovde}>
         {sirali.length === 0 ? (
-          <BosDurum simge={S.liste} baslik="Henüz hata kaydedilmedi" />
+          <BosDurum simge={S.liste} baslik={t('Henüz hata kaydedilmedi', 'No defects recorded yet')} />
         ) : sirali.map((h, i) => (
           <KayitSatiri key={h.id} hata={h} sira={sirali.length - i} onPress={() => onAc(h)} />
         ))}
       </ScrollView>
       <View style={s.listeEylem}>
-        <Dugme metin="Kapat" onPress={onKapat} style={{ flex: 1 }} />
+        <Dugme metin={t('Kapat', 'Close')} onPress={onKapat} style={{ flex: 1 }} />
       </View>
     </>
   );

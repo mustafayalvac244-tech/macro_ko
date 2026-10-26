@@ -18,11 +18,14 @@ import { S } from '@/bilesenler/simgeler';
 import { BaslikDugmesi, BilgiKutusu, BolumBasligi, Dugme, Kart } from '@/bilesenler/temel';
 import { calisanPaketMetni } from '@/cekirdek/surum';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
+import { ceviri, useDil, useDilDeposu } from '@/veri/dilDeposu';
 
 export const GUNCELLEME_ACIK = Platform.OS !== 'web' && Updates.isEnabled;
 
 const INDI = 'Yeni sürüm indirildi. Yeniden başlatınca devreye girer; kayıtlar silinmez.';
+const INDI_EN = 'New version downloaded. It takes effect after a restart; records are kept.';
 const BASLATILAMADI = 'Yeniden başlatılamadı. Uygulamayı kapatıp açın; yeni sürüm açılışta devreye girer.';
+const BASLATILAMADI_EN = 'Could not restart. Close and reopen the app; the new version takes effect on launch.';
 
 /**
  * Ana sayfa: arka planda yeni sürüm indiyse tek satırlık şerit, yoksa hiçbir
@@ -38,21 +41,22 @@ function Bildirim() {
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { isUpdatePending } = Updates.useUpdates();
   const [basarisiz, setBasarisiz] = useState(false);
+  const { t } = useDil();
   if (!isUpdatePending) return null;
   const renk = basarisiz ? renkler.uyari : renkler.basari;
   return (
     <View style={[s.serit, { backgroundColor: basarisiz ? renkler.uyariYumusak : renkler.basariYumusak, borderLeftColor: renk }]}>
       <S.guncelleme size={18} color={renk} strokeWidth={2} />
       <Text style={[s.seritMetin, { color: renk }]}>
-        {basarisiz ? BASLATILAMADI : 'Yeni sürüm hazır · kayıtlar silinmez'}
+        {basarisiz ? t(BASLATILAMADI, BASLATILAMADI_EN) : t('Yeni sürüm hazır · kayıtlar silinmez', 'New version ready · records are kept')}
       </Text>
       {basarisiz ? null : (
         <Dugme
-          metin="Yeniden başlat"
+          metin={t('Yeniden başlat', 'Restart')}
           tur="birincil"
           kucuk
           simge={S.yenidenBaslat}
-          erisimEtiketi="Yeni sürümü yüklemek için uygulamayı yeniden başlat"
+          erisimEtiketi={t('Yeni sürümü yüklemek için uygulamayı yeniden başlat', 'Restart the app to install the new version')}
           onPress={() => { Updates.reloadAsync().catch(() => setBasarisiz(true)); }}
         />
       )}
@@ -113,6 +117,11 @@ const SONUC_METNI: Record<Exclude<GuncellemeSonucu, null>, string> = {
   ulasilamadi: 'Güncelleme sunucusuna ulaşılamadı. Bağlantıyı kontrol edip yeniden deneyin; uygulama bu arada çalışmaya devam eder.',
   baslatilamadi: BASLATILAMADI,
 };
+const SONUC_METNI_EN: Record<Exclude<GuncellemeSonucu, null>, string> = {
+  guncel: 'Up to date: no new version.',
+  ulasilamadi: 'Could not reach the update server. Check the connection and try again; the app keeps working meanwhile.',
+  baslatilamadi: BASLATILAMADI_EN,
+};
 
 /** Ana sayfa başlığındaki "Güncelle" — yeni sürüm inmişse vurgulu. */
 export function GuncelleDugmesi() {
@@ -121,16 +130,21 @@ export function GuncelleDugmesi() {
 
 function GuncelleDugmesiIc() {
   const { guncelle, calisiyor, bekleyen } = useTekDokunusGuncelle();
+  const { t } = useDil();
   return (
     <BaslikDugmesi
       simge={S.guncelleme}
-      metin={bekleyen ? 'Yeni sürümü yükle' : 'Güncelle'}
+      metin={bekleyen ? t('Yeni sürümü yükle', 'Install new version') : t('Güncelle', 'Update')}
       birincil={bekleyen}
       yukleniyor={calisiyor}
-      erisimEtiketi={bekleyen ? 'Yeni sürüm hazır: yüklemek için uygulamayı yeniden başlat' : 'Güncellemeleri denetle ve yükle'}
+      erisimEtiketi={bekleyen
+        ? t('Yeni sürüm hazır: yüklemek için uygulamayı yeniden başlat', 'New version ready: restart the app to install it')
+        : t('Güncellemeleri denetle ve yükle', 'Check for and install updates')}
       onPress={async () => {
         const s = await guncelle();
-        if (s) Alert.alert('Güncelleme', SONUC_METNI[s]);
+        // Beklerken dil değişmiş olabilir: uyarı o anki dilde.
+        const c = ceviri(useDilDeposu.getState().dil);
+        if (s) Alert.alert(c('Güncelleme', 'Update'), c(SONUC_METNI[s], SONUC_METNI_EN[s]));
       }}
     />
   );
@@ -144,36 +158,39 @@ export function SurumKarti() {
 function SurumIcerigi() {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  const { dil, t } = useDil();
   const { currentlyRunning } = Updates.useUpdates();
   const { guncelle, sonuc: durum, calisiyor, bekleyen: isUpdatePending } = useTekDokunusGuncelle();
 
   const kutu = currentlyRunning.isEmergencyLaunch
     ? {
       tur: 'uyari' as const,
-      metin: `Son güncelleme açılamadı; APK ile gelen paket çalışıyor.${currentlyRunning.emergencyLaunchReason ? ` (${currentlyRunning.emergencyLaunchReason})` : ''}`,
+      metin: `${t('Son güncelleme açılamadı; APK ile gelen paket çalışıyor.', 'The last update failed to start; the bundle shipped with the APK is running.')}${currentlyRunning.emergencyLaunchReason ? ` (${currentlyRunning.emergencyLaunchReason})` : ''}`,
     }
     : null;
-  const durumKutusu = durum === 'baslatilamadi' ? { tur: 'uyari' as const, metin: BASLATILAMADI }
-    : isUpdatePending ? { tur: 'basari' as const, metin: INDI }
-    : durum === 'guncel' ? { tur: 'basari' as const, metin: 'Güncel: yeni sürüm yok.' }
-    : durum === 'ulasilamadi' ? { tur: 'uyari' as const, metin: 'Güncelleme sunucusuna ulaşılamadı. Bağlantıyı kontrol edip yeniden deneyin; uygulama bu arada çalışmaya devam eder.' }
+  const durumKutusu = durum === 'baslatilamadi' ? { tur: 'uyari' as const, metin: t(BASLATILAMADI, BASLATILAMADI_EN) }
+    : isUpdatePending ? { tur: 'basari' as const, metin: t(INDI, INDI_EN) }
+    : durum === 'guncel' ? { tur: 'basari' as const, metin: t('Güncel: yeni sürüm yok.', 'Up to date: no new version.') }
+    : durum === 'ulasilamadi' ? { tur: 'uyari' as const, metin: t('Güncelleme sunucusuna ulaşılamadı. Bağlantıyı kontrol edip yeniden deneyin; uygulama bu arada çalışmaya devam eder.', 'Could not reach the update server. Check the connection and try again; the app keeps working meanwhile.') }
     : null;
 
   return (
     <Kart>
-      <BolumBasligi metin="Sürüm" simge={S.guncelleme} />
+      <BolumBasligi metin={t('Sürüm', 'Version')} simge={S.guncelleme} />
       <View style={s.bilgi}>
-        <Text style={s.surum}>{`Sürüm ${currentlyRunning.runtimeVersion || '—'}`}</Text>
-        <Text style={s.paket} selectable>{calisanPaketMetni(currentlyRunning)}</Text>
+        <Text style={s.surum}>{t(`Sürüm ${currentlyRunning.runtimeVersion || '—'}`, `Version ${currentlyRunning.runtimeVersion || '—'}`)}</Text>
+        <Text style={s.paket} selectable>{calisanPaketMetni(currentlyRunning, dil)}</Text>
       </View>
       {kutu ? <BilgiKutusu tur={kutu.tur} metin={kutu.metin} /> : null}
       {durumKutusu ? <BilgiKutusu tur={durumKutusu.tur} metin={durumKutusu.metin} /> : null}
       <Dugme
-        metin={isUpdatePending ? 'Yeni sürümü yükle' : 'Güncelle'}
+        metin={isUpdatePending ? t('Yeni sürümü yükle', 'Install new version') : t('Güncelle', 'Update')}
         tur="birincil"
         simge={isUpdatePending ? S.yenidenBaslat : S.guncelleme}
         yukleniyor={calisiyor}
-        erisimEtiketi={isUpdatePending ? 'Yeni sürüm hazır: yüklemek için uygulamayı yeniden başlat' : 'Güncellemeleri denetle ve yükle'}
+        erisimEtiketi={isUpdatePending
+          ? t('Yeni sürüm hazır: yüklemek için uygulamayı yeniden başlat', 'New version ready: restart the app to install it')
+          : t('Güncellemeleri denetle ve yükle', 'Check for and install updates')}
         onPress={() => { guncelle(); }}
       />
     </Kart>

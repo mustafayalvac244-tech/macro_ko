@@ -17,6 +17,7 @@ import { BODY_NO_GIRDI_AZAMI, bodyNoGecerli, bodyNoSadelestir, VIN_UZUNLUK, vinD
 import { kaynakKodu } from '@/cekirdek/nas';
 import { bosluk, Renkler, tipografi, useTema } from '@/tema';
 import { ayarOku, ayarYaz, ayniAracinDenetimleri, denetimGuncelle, denetimOlustur } from '@/veri/depo';
+import { useDil } from '@/veri/dilDeposu';
 import { useTarama } from '@/veri/tarama';
 
 /*
@@ -56,6 +57,7 @@ export default function YeniDenetim() {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { tablet } = useDuzen();
+  const { dil, t } = useDil();
 
   const [aracId, setAracId] = useState(ARACLAR[0]!.id);
   const [vinHam, setVinHam] = useState('');
@@ -93,7 +95,7 @@ export default function YeniDenetim() {
       .catch(() => { /* ilk açılış */ });
   }, []);
 
-  const vin = useMemo(() => vinDogrula(vinHam), [vinHam]);
+  const vin = useMemo(() => vinDogrula(vinHam, dil), [vinHam, dil]);
   const bodyNo = bodyNoSadelestir(bodyNoHam);
   const vinBos = !vinHam.trim();
   // Şasi YA DA body no yeter; şasi yazıldıysa geçerli olmalı (yarım yazılmış
@@ -104,7 +106,7 @@ export default function YeniDenetim() {
   const kimlikAnahtari = `${vinBos ? '' : vin.vin}|${bodyNo}`;
 
   const eksikler = [
-    !listedeyse(denetciler.liste, v.denetci) && 'denetçi',
+    !listedeyse(denetciler.liste, v.denetci) && t('denetçi', 'auditor'),
   ].filter(Boolean) as string[];
   const onceVar = !!onceki && onceki.anahtar === kimlikAnahtari && onceki.liste.length > 0;
 
@@ -158,20 +160,38 @@ export default function YeniDenetim() {
   // aynı cümle bir de turuncu kutuda çıkıyordu (sınama) — artık tek yerde.
   const vinDurumu = !vinHam
     ? (bodyNo
-      ? { tur: 'bilgi' as const, metin: 'Şasi yok: araç body no ile kaydedilir.' }
-      : { tur: denendi ? 'uyari' as const : 'bilgi' as const, metin: `Barkod okutun ya da ${VIN_UZUNLUK} haneyi yazın; body no da yeterli.` })
+      ? { tur: 'bilgi' as const, metin: t('Şasi yok: araç body no ile kaydedilir.', 'No VIN: the vehicle is recorded by body no.') }
+      : {
+        tur: denendi ? 'uyari' as const : 'bilgi' as const,
+        metin: t(
+          `Barkod okutun ya da ${VIN_UZUNLUK} haneyi yazın; body no da yeterli.`,
+          `Scan the barcode or type all ${VIN_UZUNLUK} characters; a body no is also enough.`,
+        ),
+      })
     : vin.gecerli && !vin.uyarilar.length
-      ? { tur: 'basari' as const, metin: `Geçerli · ${vin.bilgi.uretici ?? vin.bilgi.wmi} · model yılı ${vin.bilgi.modelYili ?? '?'}` }
+      ? {
+        tur: 'basari' as const,
+        metin: t(
+          `Geçerli · ${vin.bilgi.uretici ?? vin.bilgi.wmi} · model yılı ${vin.bilgi.modelYili ?? '?'}`,
+          `Valid · ${vin.bilgi.uretici ?? vin.bilgi.wmi} · model year ${vin.bilgi.modelYili ?? '?'}`,
+        ),
+      }
       : denendi && !vin.gecerli
         ? null
         : { tur: 'uyari' as const, metin: [...vin.hatalar, ...vin.uyarilar].join(' ') };
+  // Eksik alan uyarısı: "Denetçi seçilmedi…". Büyük harf dilin kuralıyla.
+  const eksikMetni = eksikler.map((e) => e[0]!.toLocaleUpperCase(dil) + e.slice(1)).join(t(' ve ', ' and '));
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: renkler.bg }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Baslik baslik="Yeni denetim" altBaslik="Araç, şasi ve denetim bilgisi" sol={<GeriDugmesi />} />
+      <Baslik
+        baslik={t('Yeni denetim', 'New audit')}
+        altBaslik={t('Araç, şasi ve denetim bilgisi', 'Vehicle, VIN and audit details')}
+        sol={<GeriDugmesi />}
+      />
 
       <ScrollView
         ref={kaydir}
@@ -181,7 +201,7 @@ export default function YeniDenetim() {
       >
         <View style={[s.sutun, tablet && s.sutunTablet]}>
           <Kart>
-            <BolumBasligi metin="Araç" simge={S.arac} />
+            <BolumBasligi metin={t('Araç', 'Vehicle')} simge={S.arac} />
             {/* Yalnız ad. Silüet ikonu ve "Elektrikli / İçten yanmalı" etiketi
                 kaldırıldı (ürün sahibi, 25.10.2026: "araç tipleri çok dandik,
                 araç tipi koyma, isim yeter"). Daha önce de ölçüler ve "ölçü
@@ -193,7 +213,7 @@ export default function YeniDenetim() {
                 <Secenek
                   key={a.id}
                   metin={aracEtiketi(a)}
-                  erisimEtiketi={`${a.kod}, ${a.tam} seç`}
+                  erisimEtiketi={t(`${a.kod}, ${a.tam} seç`, `Select ${a.kod}, ${a.tam}`)}
                   secili={a.id === aracId}
                   onPress={() => setAracId(a.id)}
                   style={{ flexGrow: 1, flexBasis: 140 }}
@@ -203,17 +223,17 @@ export default function YeniDenetim() {
           </Kart>
 
           <Kart>
-            <BolumBasligi metin="Şasi numarası (VIN)" simge={S.barkod} />
+            <BolumBasligi metin={t('Şasi numarası (VIN)', 'VIN')} simge={S.barkod} />
             <Girdi
               mono
               value={vin.vin}
               onChangeText={setVinHam}
-              placeholder="17 hane"
+              placeholder={t('17 hane', '17 characters')}
               autoCapitalize="characters"
               autoCorrect={false}
               spellCheck={false}
               maxLength={40}
-              accessibilityLabel="Şasi numarası"
+              accessibilityLabel={t('Şasi numarası', 'VIN')}
               hata={denendi && !vinBos && !vin.gecerli ? vin.hatalar.join(' ') : undefined}
               // Yol gösteren cümle kutunun altında küçük yazı; mavi bilgi kutusu
               // formu kalabalık ediyordu (25.10.2026). Uyarı ve başarı kutuda kalır.
@@ -221,21 +241,27 @@ export default function YeniDenetim() {
             />
             {vinDurumu && vinDurumu.tur !== 'bilgi' ? <BilgiKutusu tur={vinDurumu.tur} metin={vinDurumu.metin} /> : null}
             <View style={s.satir}>
-              <Dugme metin="Barkod okut" simge={S.barkod} kucuk onPress={() => router.push('/barkod')} style={{ flex: 1 }} />
-              <Dugme metin="Temizle" simge={S.kapat} kucuk tur="sessiz" onPress={() => setVinHam('')} />
+              <Dugme
+                metin={t('Barkod okut', 'Scan barcode')}
+                simge={S.barkod}
+                kucuk
+                onPress={() => router.push('/barkod')}
+                style={{ flex: 1 }}
+              />
+              <Dugme metin={t('Temizle', 'Clear')} simge={S.kapat} kucuk tur="sessiz" onPress={() => setVinHam('')} />
             </View>
             <Girdi
               etiket="Body no"
               mono
               value={bodyNoHam}
-              onChangeText={(t) => setBodyNoHam(bodyNoSadelestir(t))}
-              placeholder="6 hane, örn. 015253"
+              onChangeText={(x) => setBodyNoHam(bodyNoSadelestir(x))}
+              placeholder={t('6 hane, örn. 015253', '6 digits, e.g. 015253')}
               keyboardType="number-pad"
               autoCorrect={false}
               spellCheck={false}
               maxLength={BODY_NO_GIRDI_AZAMI}
-              accessibilityLabel="Body numarası"
-              hata={denendi && bodyHatali ? 'Body no 6 hane olmalı.' : undefined}
+              accessibilityLabel={t('Body numarası', 'Body number')}
+              hata={denendi && bodyHatali ? t('Body no 6 hane olmalı.', 'Body no must be 6 digits.') : undefined}
             />
             <View style={{ gap: bosluk.xxs }}>
               <Text style={s.alanEtiketi}>Spec</Text>
@@ -257,22 +283,23 @@ export default function YeniDenetim() {
 
         <View style={[s.sutun, tablet && s.sutunTablet]} onLayout={(e) => setBilgiY(e.nativeEvent.layout.y)}>
           <Kart>
-            <BolumBasligi metin="Denetim bilgileri" simge={S.rapor} />
+            <BolumBasligi metin={t('Denetim bilgileri', 'Audit details')} simge={S.rapor} />
             <EklenebilirSecim
-              baslik="Denetçi"
-              ad="Denetçi"
+              baslik={t('Denetçi', 'Auditor')}
+              ad={t('Denetçi', 'Auditor')}
               liste={denetciler}
               deger={listedeyse(denetciler.liste, v.denetci)}
               degistir={(d) => setV({ ...v, denetci: d })}
-              yerTutucu="Ad Soyad"
+              yerTutucu={t('Ad Soyad', 'Full name')}
             />
+            {/* "Problem source" ekibin Excel terimi: iki dilde de İngilizce. */}
             <EklenebilirSecim
               baslik="Problem source"
-              ad="Kaynak"
+              ad={t('Kaynak', 'Source')}
               liste={kaynaklar}
               deger={listedeyse(kaynaklar.liste, v.kaynak)}
               degistir={(k) => setV({ ...v, kaynak: k })}
-              yerTutucu="Örn. Durability"
+              yerTutucu={t('Örn. Durability', 'E.g. Durability')}
             />
           </Kart>
         </View>
@@ -282,7 +309,10 @@ export default function YeniDenetim() {
         <View style={s.uyariBandi}>
           <BilgiKutusu
             tur="uyari"
-            metin={`${eksikler.map((e) => e[0]!.toLocaleUpperCase('tr') + e.slice(1)).join(' ve ')} seçilmedi; raporda boş kalır. Seçin ya da yine de başlatın.`}
+            metin={t(
+              `${eksikMetni} seçilmedi; raporda boş kalır. Seçin ya da yine de başlatın.`,
+              `${eksikMetni} not selected; it will be blank in the report. Select it or start anyway.`,
+            )}
           />
         </View>
       ) : null}
@@ -290,9 +320,18 @@ export default function YeniDenetim() {
         <View style={s.uyariBandi}>
           <BilgiKutusu
             tur="uyari"
-            metin={`Bu araç için ${onceki.liste.length} denetim var. Son: ${bicimTarih(onceki.liste[0]!.baslangic)} · ${aracEtiketi(ARAC_INDEKS[onceki.liste[0]!.aracId], onceki.liste[0]!.aracId)} · ${onceki.liste[0]!.durum === 'tamam' ? 'tamamlandı' : 'devam ediyor'}.`}
+            metin={t(
+              `Bu araç için ${onceki.liste.length} denetim var. Son: ${bicimTarih(onceki.liste[0]!.baslangic)} · ${aracEtiketi(ARAC_INDEKS[onceki.liste[0]!.aracId], onceki.liste[0]!.aracId)} · ${onceki.liste[0]!.durum === 'tamam' ? 'tamamlandı' : 'devam ediyor'}.`,
+              `This vehicle has ${onceki.liste.length} ${onceki.liste.length === 1 ? 'audit' : 'audits'}. Last: ${bicimTarih(onceki.liste[0]!.baslangic)} · ${aracEtiketi(ARAC_INDEKS[onceki.liste[0]!.aracId], onceki.liste[0]!.aracId)} · ${onceki.liste[0]!.durum === 'tamam' ? 'completed' : 'in progress'}.`,
+            )}
           />
-          <Dugme metin="Onu aç" kucuk simge={S.liste} onPress={() => oncekiniAc(onceki.liste[0]!)} erisimEtiketi="Bu aracın son denetimini aç" />
+          <Dugme
+            metin={t('Onu aç', 'Open it')}
+            kucuk
+            simge={S.liste}
+            onPress={() => oncekiniAc(onceki.liste[0]!)}
+            erisimEtiketi={t('Bu aracın son denetimini aç', "Open this vehicle's last audit")}
+          />
         </View>
       ) : null}
 
@@ -302,15 +341,15 @@ export default function YeniDenetim() {
             (denetçi, aynı araç) "Denetime başla" ile aynı: ilk dokunuşta
             söylenir, ikincisi kaydeder. */}
         <Dugme
-          metin="Problem yok"
+          metin={t('Problem yok', 'No problem')}
           simge={S.tamam}
           pasif={gonderiliyor}
           onPress={() => olustur(true)}
-          erisimEtiketi="Problem yok: hatasız aracı kaydet ve bitir"
+          erisimEtiketi={t('Problem yok: hatasız aracı kaydet ve bitir', 'No problem: save defect-free vehicle and finish')}
           style={tablet ? { minWidth: 200 } : { flex: 1 }}
         />
         <Dugme
-          metin={(eksikler.length && eksikSoylendi) || onceVar ? 'Yine de başla' : 'Denetime başla'}
+          metin={(eksikler.length && eksikSoylendi) || onceVar ? t('Yine de başla', 'Start anyway') : t('Denetime başla', 'Start audit')}
           tur="birincil"
           simge={S.basla}
           simgeSonda

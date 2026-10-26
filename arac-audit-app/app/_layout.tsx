@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { TemaSaglayici, useTema } from '@/tema';
+import { useDilDeposu } from '@/veri/dilDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -33,18 +34,24 @@ export default function KokDuzen() {
     Manrope_800ExtraBold: require('../assets/fonts/Manrope_800ExtraBold.ttf'),
   });
 
+  // Dil tercihi (26.10.2026) açılışı BEKLETİR: önce Türkçe çizip sonra
+  // İngilizceye dönmek her açılışta bir an yanlış dil gösterirdi. Okuma
+  // yerel SQLite'tan; okunamazsa da `yuklendi` olur, Türkçe açılır.
+  const dilHazir = useDilDeposu((d) => d.yuklendi);
+  useEffect(() => { useDilDeposu.getState().yukle(); }, []);
+
   useEffect(() => {
     // Yazı tipi yüklenemezse de aç: sistem yazısıyla çalışmak, boş ekranda
     // beklemekten iyidir. Denetçi vardiyada; uygulama açılmak zorunda.
-    if (yazilarHazir || yaziHatasi) SplashScreen.hideAsync().catch(() => {});
-  }, [yazilarHazir, yaziHatasi]);
+    if ((yazilarHazir || yaziHatasi) && dilHazir) SplashScreen.hideAsync().catch(() => {});
+  }, [yazilarHazir, yaziHatasi, dilHazir]);
 
   // Ekibin eklediği hata tiplerini kataloğa bağla. Açılışı BEKLETMEZ: hata
   // kaydı ekranı bu iş bitmeden açılırsa yalnız yerleşik tipler görünür,
   // liste yüklenince kendiliğinden tazelenir.
   useEffect(() => { useKatalog.getState().yukle(); }, []);
 
-  if (!yazilarHazir && !yaziHatasi) return null;
+  if ((!yazilarHazir && !yaziHatasi) || !dilHazir) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

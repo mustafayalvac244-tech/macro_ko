@@ -15,24 +15,29 @@ import { BolumBasligi, Kart, Secenek } from '@/bilesenler/temel';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { DONEMLER, DonemSayilari, Sayi, SayacSonucu, skor } from '@/cekirdek/sayac';
 import { bosluk, Renkler, tipografi, useTema } from '@/tema';
+import { useDil } from '@/veri/dilDeposu';
 
 type Olcu = 'skor' | 'arac' | 'demerit';
 
-const OLCULER: readonly { id: Olcu; ad: string; deger: (x: Sayi) => string }[] = [
-  { id: 'skor', ad: 'Skor', deger: (x) => { const v = skor(x); return v === null ? '—' : String(v); } },
-  { id: 'arac', ad: 'Araç', deger: (x) => String(x.arac) },
-  { id: 'demerit', ad: 'Demerit', deger: (x) => String(x.demerit) },
+const OLCULER: readonly { id: Olcu; ad: string; en: string; deger: (x: Sayi) => string }[] = [
+  { id: 'skor', ad: 'Skor', en: 'Score', deger: (x) => { const v = skor(x); return v === null ? '—' : String(v); } },
+  { id: 'arac', ad: 'Araç', en: 'Vehicles', deger: (x) => String(x.arac) },
+  { id: 'demerit', ad: 'Demerit', en: 'Demerit', deger: (x) => String(x.demerit) },
 ];
 
-const okunus = (x: Sayi) => {
+const okunus = (x: Sayi, t: (tr: string, en: string) => string) => {
   const v = skor(x);
-  return `${x.arac} araç, demerit ${x.demerit}, skor ${v === null ? 'yok' : v}`;
+  return t(
+    `${x.arac} araç, demerit ${x.demerit}, skor ${v === null ? 'yok' : v}`,
+    `${x.arac} ${x.arac === 1 ? 'vehicle' : 'vehicles'}, demerit ${x.demerit}, score ${v === null ? 'none' : v}`,
+  );
 };
 
 export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const [olcu, setOlcu] = useState<Olcu>('skor');
+  const { dil, t } = useDil();
   // Sayılan dönemlerde hiç AUDIT denetimi yoksa boş tablo göstermenin anlamı yok.
   if (!sonuc.araclar.length) return null;
   const secili = OLCULER.find((o) => o.id === olcu)!;
@@ -42,7 +47,7 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
       key={kod}
       style={[s.satir, toplam && s.toplamSatir]}
       accessible
-      accessibilityLabel={`${okunanAd}: ${DONEMLER.map((d) => `${d.uzun.toLocaleLowerCase('tr')} ${okunus(sayilar[d.id])}`).join('; ')}`}
+      accessibilityLabel={`${okunanAd}: ${DONEMLER.map((d) => `${(dil === 'en' ? d.enUzun : d.uzun).toLocaleLowerCase(dil)} ${okunus(sayilar[d.id], t)}`).join('; ')}`}
     >
       <Text style={[s.ad, toplam && s.toplamAd]} numberOfLines={2}>{kod}</Text>
       {DONEMLER.map((d) => {
@@ -56,31 +61,31 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
 
   return (
     <Kart>
-      <BolumBasligi metin="Audit skoru" simge={S.tarih} />
-      <Text style={s.not}>AUDIT kaynaklı araçlar · skor = 100 × demerit ÷ araç</Text>
-      <View style={s.olcuSatir} accessibilityRole="radiogroup" accessibilityLabel="Gösterilen ölçü">
+      <BolumBasligi metin={t('Audit skoru', 'Audit score')} simge={S.tarih} />
+      <Text style={s.not}>{t('AUDIT kaynaklı araçlar · skor = 100 × demerit ÷ araç', 'AUDIT-source vehicles · score = 100 × demerit ÷ vehicles')}</Text>
+      <View style={s.olcuSatir} accessibilityRole="radiogroup" accessibilityLabel={t('Gösterilen ölçü', 'Metric shown')}>
         {OLCULER.map((o) => (
           <Secenek
             key={o.id}
             kucuk
-            metin={o.ad}
+            metin={dil === 'en' ? o.en : o.ad}
             secili={olcu === o.id}
             onPress={() => setOlcu(o.id)}
-            erisimEtiketi={`Ölçü: ${o.ad}`}
+            erisimEtiketi={t(`Ölçü: ${o.ad}`, `Metric: ${o.en}`)}
             style={{ flex: 1, justifyContent: 'center' }}
           />
         ))}
       </View>
       <View style={s.satir} importantForAccessibility="no-hide-descendants" aria-hidden>
         <View style={s.adBos} />
-        {DONEMLER.map((d) => <Text key={d.id} style={s.baslik} numberOfLines={2}>{d.ad}</Text>)}
+        {DONEMLER.map((d) => <Text key={d.id} style={s.baslik} numberOfLines={2}>{dil === 'en' ? d.en : d.ad}</Text>)}
       </View>
       {sonuc.araclar.map((a) => {
         const arac = ARAC_INDEKS[a.aracId];
         return satir(arac?.kod ?? a.aracId, aracEtiketi(arac, a.aracId), a.sayilar);
       })}
       {/* Tek araç varsa toplam satırı aynı sayıları tekrar ederdi. */}
-      {sonuc.araclar.length > 1 ? satir('Toplam', 'Toplam', sonuc.toplam, true) : null}
+      {sonuc.araclar.length > 1 ? satir(t('Toplam', 'Total'), t('Toplam', 'Total'), sonuc.toplam, true) : null}
     </Kart>
   );
 }

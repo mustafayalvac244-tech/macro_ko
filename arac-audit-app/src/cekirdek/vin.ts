@@ -104,29 +104,43 @@ export const WMI_IPUCU: Record<string, string> = {
   VF1: 'Renault — Fransa (doğrulayın)',
 };
 
+/** Aynı tablo İngilizce arayüz için (26.10.2026, dil seçeneği). */
+const WMI_IPUCU_EN: Record<string, string> = {
+  NLH: 'Hyundai Assan — Türkiye (verify)',
+  TMA: 'Hyundai — Czechia (verify)',
+  KMH: 'Hyundai — Korea (verify)',
+  NMT: 'Toyota — Türkiye (verify)',
+  VF1: 'Renault — France (verify)',
+};
+
 /**
- * VIN'i doğrular.
+ * VIN'i doğrular. `dil` yalnız iletilerin dilidir (26.10.2026, dil seçeneği);
+ * doğrulama aynıdır.
  * @returns {{gecerli:boolean, vin:string, hatalar:string[], uyarilar:string[], bilgi:object}}
  */
-export function vinDogrula(ham: unknown): VinSonucu {
+export function vinDogrula(ham: unknown, dil: 'tr' | 'en' = 'tr'): VinSonucu {
   const vin = vinNormalize(ham);
   const hatalar = [];
   const uyarilar = [];
+  const E = (tr: string, en: string) => (dil === 'en' ? en : tr);
 
   if (vin.length === 0) {
-    hatalar.push('Şasi numarası boş.');
+    hatalar.push(E('Şasi numarası boş.', 'VIN is empty.'));
   } else if (vin.length !== VIN_UZUNLUK) {
-    hatalar.push(`Şasi numarası ${VIN_UZUNLUK} karakter olmalı — ${vin.length} karakter okundu.`);
+    hatalar.push(E(
+      `Şasi numarası ${VIN_UZUNLUK} karakter olmalı — ${vin.length} karakter okundu.`,
+      `VIN must be ${VIN_UZUNLUK} characters — ${vin.length} read.`,
+    ));
   }
   if (YASAK.test(vin)) {
     YASAK.lastIndex = 0;
-    hatalar.push('VIN içinde I, O veya Q harfi bulunamaz.');
+    hatalar.push(E('VIN içinde I, O veya Q harfi bulunamaz.', 'A VIN cannot contain the letters I, O or Q.'));
   }
 
   const bilgi: VinBilgisi = {};
   if (hatalar.length === 0) {
     bilgi.wmi = vin.slice(0, 3);
-    bilgi.uretici = WMI_IPUCU[bilgi.wmi] ?? null;
+    bilgi.uretici = (dil === 'en' ? WMI_IPUCU_EN : WMI_IPUCU)[bilgi.wmi] ?? null;
     bilgi.govde = vin.slice(3, 9);
     bilgi.yilKodu = vin[9];
     bilgi.modelYili = modelYili(vin[9]);
@@ -146,10 +160,13 @@ export function vinDogrula(ham: unknown): VinSonucu {
     // teyit edilmeli. Uyuşmazlık hiçbir durumda kaydı engellemez.
     const zorunlu = /^[1-5L]/.test(vin);
     if (zorunlu && !bilgi.kontrolHanesiUyuyor) {
-      uyarilar.push(`Kontrol hanesi uyuşmuyor (okunan "${vin[8]}", hesaplanan "${beklenen}"): şasi yanlış okunmuş olabilir. Etiketle karşılaştırın; doğruysa devam edin.`);
+      uyarilar.push(E(
+        `Kontrol hanesi uyuşmuyor (okunan "${vin[8]}", hesaplanan "${beklenen}"): şasi yanlış okunmuş olabilir. Etiketle karşılaştırın; doğruysa devam edin.`,
+        `Check digit mismatch (read "${vin[8]}", expected "${beklenen}"): the VIN may be misread. Compare with the label; continue if it is correct.`,
+      ));
     }
     if (bilgi.modelYili === null) {
-      uyarilar.push('10. hane geçerli bir model yılı kodu değil.');
+      uyarilar.push(E('10. hane geçerli bir model yılı kodu değil.', 'Position 10 is not a valid model year code.'));
     }
   }
 

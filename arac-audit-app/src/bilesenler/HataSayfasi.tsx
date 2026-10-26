@@ -8,13 +8,14 @@ import { GRUP_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, DereceRozeti, Dugme, Girdi, HataKutusu, Secenek } from '@/bilesenler/temel';
 import { fotografKucult } from '@/cekirdek/goruntu';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
-import { HATA_GRUPLARI, PARCA_INDEKS, parcaHataTipleri, parcaTamAdi, DERECELER } from '@/cekirdek/katalog';
+import { grupAdi, PARCA_INDEKS, parcaBolgeAdi, parcaHataTipleri, parcaTamAdi, DERECELER } from '@/cekirdek/katalog';
 import {
   demeritDegeri, HAZIR_SORUMLULAR, NAS_SISTEMLERI, SINIFLAR, sinifDegeri, varsayilanSistem,
 } from '@/cekirdek/nas';
 import { DereceKodu, Hata, HataGrubuId, HataTipi, SinifKodu, SorunTipi } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, dereceRenkleri, kose, Renkler, tipografi, useTema } from '@/tema';
 import { fotografKaydet, FotografKaydi, fotografSil } from '@/veri/depo';
+import { useDil } from '@/veri/dilDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
 
 export interface HataTaslagi extends Omit<Hata, 'id' | 'zaman'> {
@@ -61,6 +62,7 @@ export function HataSayfasi({
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  const { dil, t } = useDil();
   const ozelTipler = useKatalog((d) => d.ozelTipler);
   const tipEkle = useKatalog((d) => d.ekle);
 
@@ -118,15 +120,15 @@ export function HataSayfasi({
 
   const q = arama.trim();
   const suzulmus = useMemo(
-    () => (q ? tipler.filter((t) => aramaEslesir(aramaMetni(t.ad, t.en), q)) : tipler),
+    () => (q ? tipler.filter((x) => aramaEslesir(aramaMetni(x.ad, x.en), q)) : tipler),
     [q, tipler],
   );
-  const gruplar = useMemo(() => [...new Set(suzulmus.map((t) => t.grup))], [suzulmus]);
+  const gruplar = useMemo(() => [...new Set(suzulmus.map((x) => x.grup))], [suzulmus]);
   const duzenleme = !!taslak?.id;
 
-  const tipSec = useCallback((t: HataTipi) => {
-    setHataTipiId(t.id);
-    if (!sistemElle && taslak) setSistem(varsayilanSistem(taslak.parcaId, t.id));
+  const tipSec = useCallback((tip: HataTipi) => {
+    setHataTipiId(tip.id);
+    if (!sistemElle && taslak) setSistem(varsayilanSistem(taslak.parcaId, tip.id));
   }, [sistemElle, taslak]);
 
   const fotografEkle = useCallback(async (kameradan: boolean) => {
@@ -138,8 +140,11 @@ export function HataSayfasi({
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!izin.granted) {
         setFotoHatasi(kameradan
-          ? 'Kamera izni verilmedi. Ayarlar → Uygulamalar üzerinden açabilirsiniz.'
-          : 'Galeri izni verilmedi.');
+          ? t(
+            'Kamera izni verilmedi. Ayarlar → Uygulamalar üzerinden açabilirsiniz.',
+            'Camera permission not granted. You can turn it on in Settings → Apps.',
+          )
+          : t('Galeri izni verilmedi.', 'Gallery permission not granted.'));
         return;
       }
       const sonuc = kameradan
@@ -159,7 +164,7 @@ export function HataSayfasi({
     } finally {
       setFotoYukleniyor(false);
     }
-  }, [denetimId, taslak?.id]);
+  }, [denetimId, taslak?.id, t]);
 
   const fotografiKaldir = useCallback(async (id: string) => {
     setFotoIdleri((o) => o.filter((x) => x !== id));
@@ -191,7 +196,9 @@ export function HataSayfasi({
 
   if (!taslak) return null;
 
-  const seciliTip = tipler.find((t) => t.id === hataTipiId);
+  const seciliTip = tipler.find((x) => x.id === hataTipiId);
+  // Tipin arayüz dilindeki adı; İngilizcesi boş ekip tipi Türkçe adıyla görünür.
+  const tipAdi = (x: HataTipi) => (dil === 'en' ? (x.en || x.ad) : x.ad);
 
   // --- BÖLÜMLER ----------------------------------------------------------
   // Yeni kayıtta sıra: hata tipi → derece → ayrıntı. VAR OLAN kaydı
@@ -202,20 +209,25 @@ export function HataSayfasi({
   const tipBolumu = !tipAcik ? (
     <View style={s.tipOzet}>
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text style={s.bolumBaslik}>Hata tipi</Text>
-        <Text style={s.tipOzetAd} numberOfLines={2}>{seciliTip?.ad ?? taslak.hataTipiId}</Text>
+        <Text style={s.bolumBaslik}>{t('Hata tipi', 'Defect type')}</Text>
+        <Text style={s.tipOzetAd} numberOfLines={2}>{(seciliTip && tipAdi(seciliTip)) ?? taslak.hataTipiId}</Text>
       </View>
-      <Dugme metin="Değiştir" kucuk onPress={() => setTipAcik(true)} erisimEtiketi="Hata tipini değiştir" />
+      <Dugme
+        metin={t('Değiştir', 'Change')}
+        kucuk
+        onPress={() => setTipAcik(true)}
+        erisimEtiketi={t('Hata tipini değiştir', 'Change defect type')}
+      />
     </View>
   ) : (
     <>
-      <Text style={s.bolumBaslik}>Hata tipi</Text>
+      <Text style={s.bolumBaslik}>{t('Hata tipi', 'Defect type')}</Text>
 
       <AramaKutusu
         deger={arama}
         degistir={setArama}
-        yerTutucu="Hata ara — gıcırtı, göçük, boşluk…"
-        erisimEtiketi="Hata tipi ara"
+        yerTutucu={t('Hata ara — gıcırtı, göçük, boşluk…', 'Search defects — squeak, dent, gap…')}
+        erisimEtiketi={t('Hata tipi ara', 'Search defect types')}
       />
 
       {yeniAcik ? (
@@ -224,10 +236,10 @@ export function HataSayfasi({
           izinliGruplar={parca?.gruplar ?? []}
           onVazgec={() => setYeniAcik(false)}
           onEkle={async (girdi) => {
-            const t = await tipEkle({ ...girdi, ekleyen: denetci?.trim() ?? '' });
+            const yeniTip = await tipEkle({ ...girdi, ekleyen: denetci?.trim() ?? '' });
             setYeniAcik(false);
             setArama('');
-            tipSec(t);
+            tipSec(yeniTip);
           }}
         />
       ) : null}
@@ -236,24 +248,24 @@ export function HataSayfasi({
         <View key={g} style={{ gap: bosluk.xxs }}>
           <GrupBasligi grup={g} />
           <View style={s.izgara}>
-            {suzulmus.filter((t) => t.grup === g).map((t) => {
-              const secili = hataTipiId === t.id;
+            {suzulmus.filter((x) => x.grup === g).map((x) => {
+              const secili = hataTipiId === x.id;
               return (
                 <Pressable
-                  key={t.id}
+                  key={x.id}
                   accessibilityRole="radio"
                   aria-checked={secili}
-                  accessibilityLabel={`${t.ad}${t.en ? ` (${t.en})` : ''}`}
-                  onPress={() => tipSec(t)}
+                  accessibilityLabel={dil === 'en' ? tipAdi(x) : `${x.ad}${x.en ? ` (${x.en})` : ''}`}
+                  onPress={() => tipSec(x)}
                   style={[s.secenek, secili && s.secenekSecili]}
                 >
                   <View style={s.secenekSatir}>
                     <Text style={[s.secenekAd, secili && { color: renkler.birincil }]} numberOfLines={2}>
-                      {t.ad}
+                      {tipAdi(x)}
                     </Text>
                     {/* Ekip eklemesi olduğu hem işaretle hem metinle belli
                         olsun: yalnız renkle ayırmak erişilebilir değil. */}
-                    {t.ozel ? <Text style={s.ozelIsaret}>Ekip</Text> : null}
+                    {x.ozel ? <Text style={s.ozelIsaret}>{t('Ekip', 'Team')}</Text> : null}
                   </View>
                 </Pressable>
               );
@@ -264,20 +276,26 @@ export function HataSayfasi({
 
       {!yeniAcik && suzulmus.length === 0 ? (
         <Text style={s.bos}>
-          {q ? `"${arama.trim()}" listede yok.` : 'Bu parça için tanımlı hata tipi yok.'}
+          {q
+            ? t(`"${arama.trim()}" listede yok.`, `"${arama.trim()}" is not in the list.`)
+            : t('Bu parça için tanımlı hata tipi yok.', 'No defect types defined for this part.')}
         </Text>
       ) : null}
 
       {!yeniAcik ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={q ? `"${arama.trim()}" adıyla yeni hata tipi ekle` : 'Yeni hata tipi ekle'}
+          accessibilityLabel={q
+            ? t(`"${arama.trim()}" adıyla yeni hata tipi ekle`, `Add new defect type "${arama.trim()}"`)
+            : t('Yeni hata tipi ekle', 'Add new defect type')}
           onPress={() => setYeniAcik(true)}
           style={[s.yeniDugme, suzulmus.length === 0 && { borderColor: renkler.birincil }]}
         >
           <S.ekle size={18} color={renkler.birincil} strokeWidth={2.25} />
           <Text style={s.yeniDugmeMetin}>
-            {q ? `"${arama.trim()}" adıyla yeni hata tipi ekle` : 'Yeni hata tipi ekle'}
+            {q
+              ? t(`"${arama.trim()}" adıyla yeni hata tipi ekle`, `Add new defect type "${arama.trim()}"`)
+              : t('Yeni hata tipi ekle', 'Add new defect type')}
           </Text>
         </Pressable>
       ) : null}
@@ -286,7 +304,7 @@ export function HataSayfasi({
 
   const dereceBolumu = (
     <>
-      <Text style={s.bolumBaslik}>Demerit — 0 skora girmez, 3 en ağır</Text>
+      <Text style={s.bolumBaslik}>{t('Demerit — 0 skora girmez, 3 en ağır', 'Demerit — 0 not scored, 3 = most severe')}</Text>
       <DereceSecici derece={derece} onSec={setDerece} />
       <Text style={s.bolumBaslik}>Class</Text>
       <SinifSecici sinif={sinif} onSec={setSinif} />
@@ -295,13 +313,13 @@ export function HataSayfasi({
 
   const ayrintiBolumu = (
     <>
-      <Text style={s.bolumBaslik}>Tür</Text>
+      <Text style={s.bolumBaslik}>{t('Tür', 'Type')}</Text>
       <View style={s.izgara}>
         {(['Part', 'Complex'] as const).map((tur) => (
           <Secenek
             key={tur}
             metin={tur}
-            erisimEtiketi={`Tür ${tur}`}
+            erisimEtiketi={t(`Tür ${tur}`, `Type ${tur}`)}
             secili={sorunTipi === tur}
             onPress={() => setSorunTipi(tur)}
             style={{ flexGrow: 1, flexBasis: 120 }}
@@ -341,20 +359,29 @@ export function HataSayfasi({
       <Girdi
         value={sorumlu}
         onChangeText={setSorumlu}
-        placeholder="Listede yoksa yazın — örn. tedarikçi adı"
-        accessibilityLabel="Sorumlu (serbest yazım)"
+        placeholder={t('Listede yoksa yazın — örn. tedarikçi adı', 'Not listed? Type it — e.g. supplier name')}
+        accessibilityLabel={t('Sorumlu (serbest yazım)', 'Responsible (free text)')}
         ipucu={sorunTipi === 'Part'
-          ? 'Part hatasında seçilen sorumlu bu parçaya öğrenilir; sonraki kayıtlarda kendiliğinden gelir.'
-          : 'Complex hatanın sorumlusu parçaya öğrenilmez.'}
+          ? t(
+            'Part hatasında seçilen sorumlu bu parçaya öğrenilir; sonraki kayıtlarda kendiliğinden gelir.',
+            'For a Part defect, the selected Responsible is remembered for this part and filled in next time.',
+          )
+          : t('Complex hatanın sorumlusu parçaya öğrenilmez.', 'For a Complex defect, the Responsible is not remembered for the part.')}
       />
 
-      <Girdi etiket="Açıklama" value={aciklama} onChangeText={setAciklama} placeholder="İsteğe bağlı" multiline />
+      <Girdi
+        etiket={t('Açıklama', 'Notes')}
+        value={aciklama}
+        onChangeText={setAciklama}
+        placeholder={t('İsteğe bağlı', 'Optional')}
+        multiline
+      />
     </>
   );
 
   const fotoBolumu = (
     <>
-      <Text style={s.bolumBaslik}>Fotoğraf — Excel’e otomatik gömülür</Text>
+      <Text style={s.bolumBaslik}>{t('Fotoğraf — Excel’e otomatik gömülür', 'Photo — embedded in Excel automatically')}</Text>
       {fotoHatasi ? <HataKutusu metin={fotoHatasi} /> : null}
       <View style={s.fotoSerit}>
         {fotoIdleri.map((id) => {
@@ -363,7 +390,7 @@ export function HataSayfasi({
             <View key={id} style={s.fotoKutu}>
               {f ? <Image source={{ uri: f.uri }} style={s.fotoGorsel} /> : null}
               <Pressable
-                accessibilityRole="button" accessibilityLabel="Fotoğrafı sil"
+                accessibilityRole="button" accessibilityLabel={t('Fotoğrafı sil', 'Delete photo')}
                 onPress={() => fotografiKaldir(id)}
                 style={s.fotoSil}
               >
@@ -373,7 +400,7 @@ export function HataSayfasi({
           );
         })}
         <Pressable
-          accessibilityRole="button" accessibilityLabel="Fotoğraf çek"
+          accessibilityRole="button" accessibilityLabel={t('Fotoğraf çek', 'Take photo')}
           onPress={() => fotografEkle(true)}
           disabled={fotoYukleniyor}
           style={s.fotoEkle}
@@ -381,18 +408,18 @@ export function HataSayfasi({
           {fotoYukleniyor ? <ActivityIndicator color={renkler.birincil} /> : (
             <>
               <S.kamera size={22} color={renkler.birincil} strokeWidth={2} />
-              <Text style={s.fotoEkleMetin}>Çek</Text>
+              <Text style={s.fotoEkleMetin}>{t('Çek', 'Camera')}</Text>
             </>
           )}
         </Pressable>
         <Pressable
-          accessibilityRole="button" accessibilityLabel="Galeriden seç"
+          accessibilityRole="button" accessibilityLabel={t('Galeriden seç', 'Choose from gallery')}
           onPress={() => fotografEkle(false)}
           disabled={fotoYukleniyor}
           style={s.fotoEkle}
         >
           <S.galeri size={22} color={renkler.birincil} strokeWidth={2} />
-          <Text style={s.fotoEkleMetin}>Galeri</Text>
+          <Text style={s.fotoEkleMetin}>{t('Galeri', 'Gallery')}</Text>
         </Pressable>
       </View>
     </>
@@ -405,17 +432,37 @@ export function HataSayfasi({
   const silBolumu = duzenleme && onSil ? (
     <View style={s.silBolumu}>
       {!silOnay ? (
-        <Dugme metin="Bu kaydı sil" simge={S.sil} onPress={() => { onayaKaydir.current = true; setSilOnay(true); }} erisimEtiketi="Bu kaydı sil" />
+        <Dugme
+          metin={t('Bu kaydı sil', 'Delete this record')}
+          simge={S.sil}
+          onPress={() => { onayaKaydir.current = true; setSilOnay(true); }}
+          erisimEtiketi={t('Bu kaydı sil', 'Delete this record')}
+        />
       ) : (
         <View style={s.silOnayKutu}>
           <Text style={s.silOnayMetin}>
             {fotoIdleri.length
-              ? `Kayıt ve ${fotoIdleri.length} fotoğrafı silinecek. Geri alınamaz.`
-              : 'Kayıt silinecek. Geri alınamaz.'}
+              ? t(
+                `Kayıt ve ${fotoIdleri.length} fotoğrafı silinecek. Geri alınamaz.`,
+                `The record and its ${fotoIdleri.length} ${fotoIdleri.length === 1 ? 'photo' : 'photos'} will be deleted. This can't be undone.`,
+              )
+              : t('Kayıt silinecek. Geri alınamaz.', "The record will be deleted. This can't be undone.")}
           </Text>
           <View style={s.ikiliSatir}>
-            <Dugme metin="Vazgeç" tur="sessiz" onPress={() => setSilOnay(false)} style={{ flex: 1 }} erisimEtiketi="Silmekten vazgeç" />
-            <Dugme metin="Evet, sil" tur="tehlike" simge={S.sil} onPress={() => taslak.id && onSil(taslak.id)} style={{ flex: 1 }} />
+            <Dugme
+              metin={t('Vazgeç', 'Cancel')}
+              tur="sessiz"
+              onPress={() => setSilOnay(false)}
+              style={{ flex: 1 }}
+              erisimEtiketi={t('Silmekten vazgeç', "Don't delete")}
+            />
+            <Dugme
+              metin={t('Evet, sil', 'Yes, delete')}
+              tur="tehlike"
+              simge={S.sil}
+              onPress={() => taslak.id && onSil(taslak.id)}
+              style={{ flex: 1 }}
+            />
           </View>
         </View>
       )}
@@ -426,8 +473,8 @@ export function HataSayfasi({
     <>
       <View style={s.baslikSatiri}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.parcaAd} numberOfLines={1}>{parca ? parcaTamAdi(parca.id) : taslak.parcaId}</Text>
-          <Text style={s.parcaYol} numberOfLines={1}>{parca?.bolgeAd}</Text>
+          <Text style={s.parcaAd} numberOfLines={1}>{parca ? parcaTamAdi(parca.id, dil) : taslak.parcaId}</Text>
+          <Text style={s.parcaYol} numberOfLines={1}>{parca ? parcaBolgeAdi(parca.id, dil) : undefined}</Text>
         </View>
         {hataTipiId ? <DereceRozeti derece={derece} kabul={false} buyuk /> : null}
       </View>
@@ -462,8 +509,8 @@ export function HataSayfasi({
       </ScrollView>
 
       <View style={s.eylemler}>
-        <Dugme metin="Vazgeç" tur="sessiz" onPress={onKapat} style={{ flex: 1 }} />
-        <Dugme metin="Kaydet" tur="birincil" pasif={!hataTipiId} onPress={kaydet} style={{ flex: 1 }} />
+        <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" onPress={onKapat} style={{ flex: 1 }} />
+        <Dugme metin={t('Kaydet', 'Save')} tur="birincil" pasif={!hataTipiId} onPress={kaydet} style={{ flex: 1 }} />
       </View>
     </>
   );
@@ -486,20 +533,26 @@ export function YeniTipFormu({
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
-  const [ad, setAd] = useState(baslangicAd);
-  const [en, setEn] = useState('');
+  const { dil, t } = useDil();
+  // İngilizce arayüzde denetçi aramaya İngilizce yazar: arama metni İngilizce
+  // ada gider ve zorunlu olan o olur; Türkçe ad isteğe bağlı, boşsa
+  // İngilizcesi yazılır (veri modelinde `ad` zorunlu).
+  const ingilizce = dil === 'en';
+  const [ad, setAd] = useState(ingilizce ? '' : baslangicAd);
+  const [en, setEn] = useState(ingilizce ? baslangicAd : '');
   const [grup, setGrup] = useState<HataGrubuId | null>(izinliGruplar[0] ?? null);
   const [kaydediliyor, setKaydediliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+  const zorunluDolu = ingilizce ? !!en.trim() : !!ad.trim();
 
   const gonder = async () => {
-    if (!ad.trim() || !grup) return;
+    if (!zorunluDolu || !grup) return;
     setKaydediliyor(true);
     setHata(null);
     try {
       // Önerilen derece seçimi kalktı (26.10.2026): Excel'de tipin önerilen
       // puanı yok, demerit kayıtta seçilir. Alan veri modelinde duruyor.
-      await onEkle({ grup, ad: ad.trim(), en: en.trim(), derece: '0' });
+      await onEkle({ grup, ad: ad.trim() || en.trim(), en: en.trim(), derece: '0' });
     } catch (h) {
       setHata(h instanceof Error ? h.message : String(h));
     } finally {
@@ -509,31 +562,49 @@ export function YeniTipFormu({
 
   return (
     <View style={s.yeniKart}>
-      <Text style={s.yeniBaslik}>Yeni hata tipi</Text>
+      <Text style={s.yeniBaslik}>{t('Yeni hata tipi', 'New defect type')}</Text>
       <Text style={s.yeniNot}>
-        Eklediğiniz tip bu parçada ve aynı gruptaki tüm parçalarda kalıcı olarak listelenir.
+        {t(
+          'Eklediğiniz tip bu parçada ve aynı gruptaki tüm parçalarda kalıcı olarak listelenir.',
+          'The type you add is listed permanently on this part and on all parts in the same group.',
+        )}
       </Text>
 
       {hata ? <HataKutusu metin={hata} /> : null}
 
-      <Girdi etiket="Adı (Türkçe)" value={ad} onChangeText={setAd} placeholder="Örn. Fitil ucu kalkık" />
-      {/* İngilizcesi boş bırakılınca İngilizce raporda Türkçe ad çıkıyordu
-          ("Front bumper hare" — sınama, 28.09.2026). Zorunlu yapılmadı:
-          denetçi hattayken İngilizce aramasın; ama ne olacağı yazılı. */}
-      <Girdi
-        etiket="İngilizcesi (rapor için)"
-        value={en}
-        onChangeText={setEn}
-        placeholder="Örn. Weatherstrip lifted"
-        ipucu={en.trim() ? undefined : 'Boş kalırsa İngilizce raporda Türkçe adı yazılır.'}
-      />
+      {ingilizce ? (
+        <>
+          <Girdi etiket="Name" value={en} onChangeText={setEn} placeholder="E.g. Weatherstrip lifted" />
+          <Girdi
+            etiket="Turkish name (optional)"
+            value={ad}
+            onChangeText={setAd}
+            placeholder="Örn. Fitil ucu kalkık"
+            ipucu={ad.trim() ? undefined : 'If left empty, the English name is used in Turkish too.'}
+          />
+        </>
+      ) : (
+        <>
+          <Girdi etiket="Adı (Türkçe)" value={ad} onChangeText={setAd} placeholder="Örn. Fitil ucu kalkık" />
+          {/* İngilizcesi boş bırakılınca İngilizce raporda Türkçe ad çıkıyordu
+              ("Front bumper hare" — sınama, 28.09.2026). Zorunlu yapılmadı:
+              denetçi hattayken İngilizce aramasın; ama ne olacağı yazılı. */}
+          <Girdi
+            etiket="İngilizcesi (rapor için)"
+            value={en}
+            onChangeText={setEn}
+            placeholder="Örn. Weatherstrip lifted"
+            ipucu={en.trim() ? undefined : 'Boş kalırsa İngilizce raporda Türkçe adı yazılır.'}
+          />
+        </>
+      )}
 
-      <Text style={s.alanEtiketi}>Grup</Text>
+      <Text style={s.alanEtiketi}>{t('Grup', 'Group')}</Text>
       <View style={s.izgara}>
         {izinliGruplar.map((g) => (
           <Secenek
             key={g}
-            metin={HATA_GRUPLARI[g]?.ad ?? g}
+            metin={grupAdi(g, dil)}
             simge={GRUP_SIMGELERI[g]}
             secili={grup === g}
             onPress={() => setGrup(g)}
@@ -543,13 +614,13 @@ export function YeniTipFormu({
       </View>
 
       <View style={s.yeniEylemler}>
-        <Dugme metin="Vazgeç" tur="sessiz" kucuk onPress={onVazgec} style={{ flex: 1 }} />
+        <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" kucuk onPress={onVazgec} style={{ flex: 1 }} />
         <Dugme
-          metin="Ekle ve seç"
+          metin={t('Ekle ve seç', 'Add & select')}
           tur="birincil"
           kucuk
           yukleniyor={kaydediliyor}
-          pasif={!ad.trim() || !grup}
+          pasif={!zorunluDolu || !grup}
           onPress={gonder}
           style={{ flex: 1 }}
         />
@@ -630,11 +701,12 @@ export function SinifSecici({ sinif, onSec }: { sinif: SinifKodu; onSec: (c: Sin
 export function GrupBasligi({ grup }: { grup: HataGrubuId }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  const { dil } = useDil();
   const Ikon = GRUP_SIMGELERI[grup];
   return (
     <View style={s.grupSatir}>
       {Ikon ? <Ikon size={15} color={renkler.metinIkincil} strokeWidth={2} /> : null}
-      <Text style={s.grupBaslik}>{HATA_GRUPLARI[grup]?.ad ?? grup}</Text>
+      <Text style={s.grupBaslik}>{grupAdi(grup, dil)}</Text>
     </View>
   );
 }

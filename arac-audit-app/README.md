@@ -436,6 +436,23 @@ Veritabanı göçü 8 (`sinif`, `sistem` sütunları) Node SQLite'ta sıfırdan 
 7'deki eski bir kayıtla koşuldu. Web'de 4 düzende 14 adımlık sınav geçti.
 **Telefonda görülmedi.**
 
+## Dil — Türkçe / English (26.10.2026)
+
+Ürün sahibi: *"İng Türkçe seçenek de olsun."* Ayarlar → Görünüm → Dil.
+Seçenek adları kendi dillerinde yazılır (Türkçe / English): dili bilmeyen biri
+de kendi dilini bulsun. Tercih cihazda saklanır; açılış onu okumadan çizmez
+(okuma 1,5 sn'de takılırsa Türkçe açılır).
+
+- Metinler kullanıldığı yerde çift durur: `t('Yeni denetim', 'New audit')`
+  (`src/veri/dilDeposu.ts`). Anahtar dosyası yok — metni değiştiren iki dili
+  aynı satırda görür.
+- Katalog (parça, bölge, hata tipi, grup, sistem) zaten iki dilliydi; ekranda
+  seçili dilde gösterilir. İngilizcesi boş bırakılmış bir ekip tipi İngilizce
+  arayüzde Türkçe adıyla çıkar.
+- Excel'den gelen terimler iki dilde de İngilizce kalır: Demerit, Class,
+  MINOR/MAJOR/MAIN, System, Responsible, AUDIT…, Problem source, Body no.
+- **Excel/CSV raporunun dili ayrıdır**, ekibin tablosu gibi İngilizce kalır.
+
 ## Derece — ekibin kendi sistemi, puan yok
 
 > **26.10.2026'dan beri aşağıdakinin yerini yukarıdaki "Ekibin Excel'i"
@@ -620,6 +637,7 @@ durdurma, onarıma yönlendirme).
 | Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **26.10.2026'da yerini Excel'in DEMERIT 0–3 + CLASS'ı aldı** (aşağıdaki satır) |
 | Excel içeriği (NAS, 26.10.2026): demerit, class, system, responsible, kaynak listesi, model kodu, body 6 hane, Audit Skoru, Excel'e aktar | **Kod bitti** — kurallar Excel'den okundu; testleri ben yazdım; 4 düzende 14 adım geçti; **telefonda görülmedi**. BJ = IONIQ 3 çıkarım |
+| Dil: Türkçe / English (26.10.2026) | **Kod bitti** — Türkçe sınav 4 düzende değişmeden geçti (Türkçe metinler aynı kaldı); İngilizce sınav telefon ve tablette 10 ekranı taradı, Türkçe harfli metin yalnız bilerek kendi dilinde yazılan "Türkçe" seçeneği. Tarama Türkçe harf içermeyen Türkçe kelimeyi kaçırabilir; ekran görüntüleri gözle de bakıldı. Çeviriler benim (ve yardımcı ajanların); **İngilizce bilen bir kullanıcı okumadı**, telefonda görülmedi |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |
 | SQLite yerel depo (senkrona hazır şema) | **Bitti** |
