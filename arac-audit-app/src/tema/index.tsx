@@ -64,6 +64,6 @@ export function useTema(): TemaBaglami {
   return b;
 }
 
-export { ARAC_BOYASI, PALETLER, dereceRenkleri } from './paletler';
+export { ARAC_BOYASI, ARAC_TEKNIK, PALETLER, dereceRenkleri } from './paletler';
 export type { Renkler, TemaAdi } from './paletler';
 export * from './olculer';

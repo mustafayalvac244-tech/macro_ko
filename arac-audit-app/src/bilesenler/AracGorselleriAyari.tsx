@@ -14,13 +14,14 @@ import React, { useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { S } from '@/bilesenler/simgeler';
-import { Dugme } from '@/bilesenler/temel';
+import { Dugme, Secenek } from '@/bilesenler/temel';
 import { aracHaritasiVar, AYNA_ESI, kaynakHaritasi, oranUyar, yuvaAdi, YUVALAR } from '@/cekirdek/donusGorunumu';
 import { GorunumId } from '@/cekirdek/gorunumParcalari';
 import { aracEtiketi, ARACLAR } from '@/cekirdek/model3d';
 import { Arac } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { useAracGorselleri, yuvaAdresi } from '@/veri/aracGorselleri';
+import { useCizimDeposu } from '@/veri/cizimDeposu';
 import { useDil } from '@/veri/dilDeposu';
 
 export function AracGorselleriAyari() {
@@ -28,9 +29,29 @@ export function AracGorselleriAyari() {
   const { t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const [acik, setAcik] = useState<string | null>(null);
+  const cizim = useCizimDeposu((d) => d.stil);
+  const cizimSec = useCizimDeposu((d) => d.ayarla);
 
   return (
     <View style={{ gap: bosluk.sm }}>
+      {/* Çizim stili (26.10.2026): teknik varsayılan, renkli isteğe bağlı (cizimDeposu.ts). */}
+      <Text style={s.aciklama}>{t('Görselsiz bakışlarda çizim', 'Drawing for views without images')}</Text>
+      <View style={{ flexDirection: 'row', gap: bosluk.xs }} accessibilityRole="radiogroup">
+        <Secenek
+          metin={t('Teknik', 'Technical')}
+          erisimEtiketi={t('Çizim: teknik (açık gri, rengi yalnız hatalar taşır)', 'Drawing: technical (light grey, only defects are coloured)')}
+          secili={cizim === 'teknik'}
+          onPress={() => cizimSec('teknik')}
+          style={{ flex: 1 }}
+        />
+        <Secenek
+          metin={t('Renkli', 'Coloured')}
+          erisimEtiketi={t('Çizim: renkli (aracın kendi renkleri)', "Drawing: coloured (the vehicle's own colours)")}
+          secili={cizim === 'renkli'}
+          onPress={() => cizimSec('renkli')}
+          style={{ flex: 1 }}
+        />
+      </View>
       <Text style={s.aciklama}>
         {t(
           'IONIQ 3 denetimde görsel yüklemeden de döner: uygulama aracın kendi çizimini gösterir. Gerçek görsel isterseniz standart bakış görsellerini (önden, sol önden, soldan … üstten) her bakışa seçin; görsel çizimin yerini alır. Görseller yalnız bu telefonda durur; hiçbir yere yüklenmez, yedeğe de girmez. Eksik bir yan, karşı yanın aynasıyla gösterilir.',

@@ -981,6 +981,29 @@ telefon/tablette hatasız. **Telefonda denenmedi.** Puan değişmedi: puanı
 ancak aynı dört değerlendiricinin yeniden ölçümü değiştirir (Aşama 3'ten
 sonra).
 
+### Aşama 3 — teknik çizim (26.10.2026)
+
+Ürün sahibinin seçimi: "Temiz teknik çizim". Estetik değerlendirici gradyanlı
+renkli çizimi "clip-art, yarı gerçekçi ile şematik arasında, ikisi de değil"
+bulmuş, "gövde tek açık gri, ince kontur, hata alan parça derece renginde"
+önermişti.
+
+- **Teknik stil varsayılan** (`ARAC_TEKNIK`, `paletler.ts`): gradyan yok;
+  gövde #E6E9ED, cam/trim/lastik gri tonlarında, panel aralıkları koyu
+  çizgi. Rengi yalnız kayıtlı parçanın demerit boyası ve seçim vurgusu
+  taşır. Değerlerin hepsi benim seçimim, ölçüm değil.
+- **Renkli çizim silinmedi** (`veri/cizimDeposu.ts`): ürün sahibi önceki
+  renksiz çizim için "rengi mengi yok, müdüre göstereceğim" demişti; iki
+  istek çelişiyor. Ayarlar → Araç görselleri → *Teknik / Renkli*; tercih
+  cihazda (`ayarlar` tablosu, 'cizim').
+- Gerçek görsel yüklenmiş bakışlarda değişiklik yok (fotoğraf gösterilir).
+
+**Doğrulama (web, kendi sınavlarım):** Türkçe akış 4 düzende teknik çizimi
+denetler (gradyan 0, gri gövde çokgeni var); çizim sınavı telefon/tablette
+iki stilde (`RENKLI=1` Ayarlar'dan renkliye geçer, url(#…) boyaları kopuk
+değil). Ekran görüntülerine gözle bakıldı; "güzel" olup olmadığı bir ölçüm
+değil. **Telefonda denenmedi.**
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |
@@ -995,7 +1018,7 @@ sonra).
 | Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **26.10.2026'da yerini Excel'in DEMERIT 0–3 + CLASS'ı aldı** (aşağıdaki satır) |
 | Excel içeriği (NAS, 26.10.2026): demerit, class, system, responsible, kaynak listesi, model kodu, body 6 hane, Audit Skoru, Excel'e aktar | **Kod bitti** — kurallar Excel'den okundu; testleri ben yazdım; 4 düzende 14 adım geçti; **telefonda görülmedi**. BJ = IONIQ 3 çıkarım |
-| Döndürülebilir araç (360°, 26.10.2026): dokuz bakış yuvası, eksik yan aynalanır; karta dokunuş ekranı kaplayan **büyük görünümü** açar (araca kırpılı, yatay, + / − ile yakınlaştırılır; yatay telefonda kontroller yanda), orada dokunulan parça işaretlenir, isteğe bağlı **ikinci parça** (boşluk/kademe), **Onayla** ile ızgara; haritasız bakışta dış bölge | **IONIQ 3 için parça düzeyinde, görsel yüklemeden de** (renkli çizim; görsel eklenirse fotoğraf) (8 bakış, 273 çokgen; görünen noktaların %99,1–99,7'si bir parçaya düşüyor — doğru parçaya düştüğü yalnız gözle denetlendi). Web'de gerçek görsellerle ve çizimle, telefon ve tablet düzeninde işaret noktaları onaydan sonra beklenen parçayı açtı; öteki araçlarda bölge düzeyi; **renkli sürüm ve onay telefonda denenmedi** |
+| Döndürülebilir araç (360°, 26.10.2026): dokuz bakış yuvası, eksik yan aynalanır; karta dokunuş ekranı kaplayan **büyük görünümü** açar (araca kırpılı, yatay, + / − ile yakınlaştırılır; yatay telefonda kontroller yanda), orada dokunulan parça işaretlenir, isteğe bağlı **ikinci parça** (boşluk/kademe), **Onayla** ile ızgara; haritasız bakışta dış bölge | **IONIQ 3 için parça düzeyinde, görsel yüklemeden de** (teknik çizim varsayılan, renkli Ayarlar'dan; görsel eklenirse fotoğraf) (8 bakış, 273 çokgen; görünen noktaların %99,1–99,7'si bir parçaya düşüyor — doğru parçaya düştüğü yalnız gözle denetlendi). Web'de gerçek görsellerle ve çizimle, telefon ve tablet düzeninde işaret noktaları onaydan sonra beklenen parçayı açtı; öteki araçlarda bölge düzeyi; **renkli sürüm ve onay telefonda denenmedi** |
 | Dil: Türkçe / English (26.10.2026) | **Kod bitti** — Türkçe sınav 4 düzende değişmeden geçti (Türkçe metinler aynı kaldı); İngilizce sınav telefon ve tablette 10 ekranı taradı, Türkçe harfli metin yalnız bilerek kendi dilinde yazılan "Türkçe" seçeneği. Tarama Türkçe harf içermeyen Türkçe kelimeyi kaçırabilir; ekran görüntüleri gözle de bakıldı. Çeviriler benim (ve yardımcı ajanların); **İngilizce bilen bir kullanıcı okumadı**, telefonda görülmedi |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |

@@ -41,8 +41,9 @@ import { cokgenAlani, GorunumHaritasi, GorunumId } from '@/cekirdek/gorunumParca
 import { parcaCiftiAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { Bolge } from '@/cekirdek/tipler';
-import { ARAC_BOYASI, bosluk, dereceRenkleri, DOKUNMA, kose, PALETLER, Renkler, tipografi, useTema } from '@/tema';
+import { ARAC_BOYASI, ARAC_TEKNIK, bosluk, dereceRenkleri, DOKUNMA, kose, PALETLER, Renkler, tipografi, useTema } from '@/tema';
 import { useAracGorselleri, yuvaAdresi } from '@/veri/aracGorselleri';
+import { useCizimDeposu } from '@/veri/cizimDeposu';
 import { useDil } from '@/veri/dilDeposu';
 
 /** Sahne oranı: ürün sahibinin görselleri 2:1. Farklı orandaki görsel ortalanır. */
@@ -93,6 +94,7 @@ export function DonusGorunumu({
   const { dil, t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const gorsel = useAracGorselleri((d) => d.gorseller[aracId]);
+  const cizimStili = useCizimDeposu((d) => d.stil);
   const yuvalar = useMemo(() => gorsel?.yuvalar ?? {}, [gorsel]);
   // Görseli olmayan yuva, haritası varsa ÇİZİLİR (26.10.2026): kurulum gerekmez.
   const haritali = useCallback((y: GorunumId) => !!kaynakHaritasi(aracId, y), [aracId]);
@@ -327,7 +329,7 @@ export function DonusGorunumu({
           {/* Dokunuş sahneye gitsin: konum sahnenin içine göre okunuyor. */}
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
             {cizim && harita && kap.en > 0 ? (
-              <AracCizimi harita={harita} en={kutu.en} boy={kutu.boy} x={kutu.x} y={kutu.y} jantli={jantli} profil={govdeProfili} />
+              <AracCizimi harita={harita} en={kutu.en} boy={kutu.boy} x={kutu.x} y={kutu.y} jantli={jantli} profil={govdeProfili} teknik={cizimStili === 'teknik'} />
             ) : null}
             {yuvaGorseli && kap.en > 0 ? (
               <Image
@@ -550,8 +552,14 @@ const GRADYAN: Record<CizimRolu, readonly [string, string, string]> = {
 /** Gövdenin boyanışı: yan/çapraz ve ön/arka bakışta aracın boyunca tek geçiş, üstten parça başına. */
 type GovdeProfili = 'yan' | 'onArka' | 'parca';
 
-function AracCizimi({ harita, en, boy, x, y, jantli, profil }: {
+/**
+ * TEKNİK STİL (26.10.2026, ürün sahibinin seçimi; varsayılan): gradyan yok,
+ * her rol tek düz gri ton (ARAC_TEKNIK), panel aralıkları koyu çizgi. Rengi
+ * yalnız kayıtlı parçanın demerit boyası taşır. Renkli stil Ayarlar'dan.
+ */
+function AracCizimi({ harita, en, boy, x, y, jantli, profil, teknik }: {
   harita: GorunumHaritasi; en: number; boy: number; x: number; y: number; jantli: boolean; profil: GovdeProfili;
+  teknik: boolean;
 }) {
   const sirali = useMemo(
     () => [...harita.alanlar].sort((a, b) => cokgenAlani(b.nokta) - cokgenAlani(a.nokta)),
@@ -587,17 +595,18 @@ function AracCizimi({ harita, en, boy, x, y, jantli, profil }: {
   // ekranda) url(#…) gizli olanınkine gidip boyayı kaybetmesin.
   const kimlik = useId().replace(/[^A-Za-z0-9_-]/g, '');
   const yukseklik = sinir.alt - sinir.ust;
+  const renk = teknik ? ARAC_TEKNIK : ARAC_BOYASI;
   return (
     <Svg width={en} height={boy} style={{ position: 'absolute', left: x, top: y }}>
       <Defs>
-        {roller.map((r) => (
+        {teknik ? null : roller.map((r) => (
           <LinearGradient key={r} id={`boya-${kimlik}-${r}`} x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={GRADYAN[r][0]} />
             <Stop offset="0.55" stopColor={GRADYAN[r][1]} />
             <Stop offset="1" stopColor={GRADYAN[r][2]} />
           </LinearGradient>
         ))}
-        {profil !== 'parca' ? (
+        {!teknik && profil !== 'parca' ? (
           <LinearGradient
             id={`boya-${kimlik}-govde`}
             gradientUnits="userSpaceOnUse"
@@ -608,14 +617,16 @@ function AracCizimi({ harita, en, boy, x, y, jantli, profil }: {
             ))}
           </LinearGradient>
         ) : null}
-        <LinearGradient id={`boya-${kimlik}-cam`} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={ARAC_BOYASI.cam[0]} />
-          <Stop offset="0.45" stopColor={ARAC_BOYASI.cam[1]} />
-          <Stop offset="1" stopColor={ARAC_BOYASI.cam[2]} />
-        </LinearGradient>
+        {teknik ? null : (
+          <LinearGradient id={`boya-${kimlik}-cam`} x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={ARAC_BOYASI.cam[0]} />
+            <Stop offset="0.45" stopColor={ARAC_BOYASI.cam[1]} />
+            <Stop offset="1" stopColor={ARAC_BOYASI.cam[2]} />
+          </LinearGradient>
+        )}
         <RadialGradient id={`golge-${kimlik}`}>
-          <Stop offset="0" stopColor={ARAC_BOYASI.golge} stopOpacity={0.32} />
-          <Stop offset="0.7" stopColor={ARAC_BOYASI.golge} stopOpacity={0.12} />
+          <Stop offset="0" stopColor={ARAC_BOYASI.golge} stopOpacity={teknik ? 0.16 : 0.32} />
+          <Stop offset="0.7" stopColor={ARAC_BOYASI.golge} stopOpacity={teknik ? 0.05 : 0.12} />
           <Stop offset="1" stopColor={ARAC_BOYASI.golge} stopOpacity={0} />
         </RadialGradient>
       </Defs>
@@ -632,9 +643,9 @@ function AracCizimi({ harita, en, boy, x, y, jantli, profil }: {
         <Polygon
           key={`ek-${a.parcaId}-${i}`}
           points={a.nokta.map(([px, py]) => `${px * en},${py * boy}`).join(' ')}
-          fill={ARAC_BOYASI.ekYeri}
-          stroke={ARAC_BOYASI.ekYeri}
-          strokeWidth={1.6}
+          fill={renk.ekYeri}
+          stroke={renk.ekYeri}
+          strokeWidth={teknik ? 1.2 : 1.6}
           strokeLinejoin="round"
         />
       ))}
@@ -642,10 +653,10 @@ function AracCizimi({ harita, en, boy, x, y, jantli, profil }: {
         <Path
           key={`${a.parcaId}-${i}`}
           d={yollar[i]}
-          fill={`url(#boya-${kimlik}-${cizimRolu(a.parcaId)})`}
-          stroke={ARAC_BOYASI.kontur}
-          strokeOpacity={0.35}
-          strokeWidth={0.6}
+          fill={teknik ? ARAC_TEKNIK[cizimRolu(a.parcaId)] : `url(#boya-${kimlik}-${cizimRolu(a.parcaId)})`}
+          stroke={renk.kontur}
+          strokeOpacity={teknik ? 0.9 : 0.35}
+          strokeWidth={teknik ? 0.9 : 0.6}
         />
       ))}
       {jantlar.map((j, i) => {
@@ -654,7 +665,7 @@ function AracCizimi({ harita, en, boy, x, y, jantli, profil }: {
         const kalinlik = Math.max(1.2, Math.min(j.w, j.h) * 0.06);
         return (
           <React.Fragment key={`jant-${i}`}>
-            <Ellipse cx={j.cx} cy={j.cy} rx={rx * 1.06} ry={ry * 1.06} fill={ARAC_BOYASI.jant} stroke={ARAC_BOYASI.jantKolu} strokeOpacity={0.5} strokeWidth={1} />
+            <Ellipse cx={j.cx} cy={j.cy} rx={rx * 1.06} ry={ry * 1.06} fill={renk.jant} stroke={teknik ? ARAC_TEKNIK.kontur : ARAC_BOYASI.jantKolu} strokeOpacity={teknik ? 0.9 : 0.5} strokeWidth={teknik ? 0.9 : 1} />
             {[0, 1, 2, 3, 4].map((k) => {
               const aci = -Math.PI / 2 + (k * 2 * Math.PI) / 5;
               return (
@@ -662,13 +673,13 @@ function AracCizimi({ harita, en, boy, x, y, jantli, profil }: {
                   key={k}
                   x1={j.cx} y1={j.cy}
                   x2={j.cx + rx * Math.cos(aci)} y2={j.cy + ry * Math.sin(aci)}
-                  stroke={ARAC_BOYASI.jantKolu}
-                  strokeWidth={kalinlik}
+                  stroke={renk.jantKolu}
+                  strokeWidth={teknik ? kalinlik * 0.8 : kalinlik}
                   strokeLinecap="round"
                 />
               );
             })}
-            <Ellipse cx={j.cx} cy={j.cy} rx={rx * 0.24} ry={ry * 0.24} fill={ARAC_BOYASI.jantGobek} />
+            <Ellipse cx={j.cx} cy={j.cy} rx={rx * 0.24} ry={ry * 0.24} fill={renk.jantGobek} />
           </React.Fragment>
         );
       })}

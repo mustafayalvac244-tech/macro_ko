@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { TemaSaglayici, useTema } from '@/tema';
 import { useAracGorselleri } from '@/veri/aracGorselleri';
+import { useCizimDeposu } from '@/veri/cizimDeposu';
 import { useDilDeposu } from '@/veri/dilDeposu';
 import { eskiFotograflariTasi } from '@/veri/fotografDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -54,6 +55,8 @@ export default function KokDuzen() {
   useEffect(() => { useKatalog.getState().yukle(); }, []);
   // 360° araç görselleri (26.10.2026): açılışı bekletmez; yoksa harita çıkar.
   useEffect(() => { useAracGorselleri.getState().yukle(); }, []);
+  // Araç çiziminin stili (teknik / renkli); okunana kadar teknik çizilir.
+  useEffect(() => { useCizimDeposu.getState().yukle(); }, []);
   // Önbellekteki eski hata fotoğrafları kalıcı klasöre (26.10.2026); açılışı bekletmez.
   useEffect(() => { eskiFotograflariTasi().catch(() => {}); }, []);
 

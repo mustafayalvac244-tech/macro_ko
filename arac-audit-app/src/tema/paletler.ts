@@ -253,6 +253,32 @@ export const ARAC_BOYASI = {
   golge: '#000000',
 } as const;
 
+/**
+ * TEKNİK ÇİZİM (26.10.2026, ürün sahibinin seçimi: "Temiz teknik çizim").
+ * Estetik değerlendirici: "gövde tek renk açık gri (#E6E9ED), 1.5px kontur,
+ * hata alan parçalar derece renginde". Gövde açık gri, kontur koyu gri; rengi
+ * YALNIZ hatalar taşır (demerit renkleri bu zeminde ayrışsın diye öteki
+ * roller de gri tonlarında). Değerlerin hepsi BENİM SEÇİMİM, ölçüm değil.
+ * İki temada aynı: çizim içerik, arayüz değil.
+ */
+export const ARAC_TEKNIK = {
+  govde: '#E6E9ED',
+  siyah: '#B4BBC2',
+  cam: '#CED6DD',
+  lastik: '#5A6168',
+  far: '#F4F6F8',
+  drl: '#FFFFFF',
+  stop: '#E4E7EA',
+  gumus: '#D7DCE0',
+  plaka: '#FFFFFF',
+  kontur: '#46505A',
+  ekYeri: '#7E8892',
+  jant: '#C3CAD0',
+  jantKolu: '#F2F4F6',
+  jantGobek: '#8E979F',
+  golge: '#000000',
+} as const;
+
 /** Dereceden renk çifti — tabloda, rozette, 3B modelde aynı kaynak. */
 export function dereceRenkleri(renkler: Renkler, derece: string) {
   switch (derece) {
