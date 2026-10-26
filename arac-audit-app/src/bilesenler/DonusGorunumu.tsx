@@ -35,7 +35,7 @@ import { S } from '@/bilesenler/simgeler';
 import { Dugme, Secenek } from '@/bilesenler/temel';
 import {
   AracOlcusu, cizimRolu, CizimRolu, dokunusSonucu, gorunumHaritasi, goruntuKutusu, halka, HalkaGirdisi,
-  haritaOdagi, kaydirmaIndeksi, kaymaSinirla, kaynakHaritasi, kutudakiNokta, odakKutusu, sar, YAKINLIKLAR, yakinKutu, yumusakYol, yuvaAdi,
+  haritaOdagi, kaydirmaIndeksi, kaymaSinirla, kaynakHaritasi, kutudakiNokta, odakKutusu, sar, YAKINLIKLAR, yakinKutu, yogunlukKademesi, yumusakYol, yuvaAdi,
 } from '@/cekirdek/donusGorunumu';
 import { cokgenAlani, GorunumHaritasi, GorunumId } from '@/cekirdek/gorunumParcalari';
 import { parcaCiftiAdi, parcaTamAdi } from '@/cekirdek/katalog';
@@ -66,6 +66,7 @@ const SON_BAKIS_DINLEYICI = new Set<() => void>();
 
 export function DonusGorunumu({
   aracId, bolgeler, kayitliParcalar, seciliParcaId, seciliIkinciParcaId, onBolgeSec, onParcaSec, buyuk = false, onBuyut, onKapat,
+  saltOkunur = false, boya: boyaKipi = 'demerit', onDokunulan,
 }: {
   aracId: string;
   /** Bu aracın bölgeleri — yalnız bunlara ve bunların parçalarına gidilir. */
@@ -89,6 +90,15 @@ export function DonusGorunumu({
   buyuk?: boolean;
   onBuyut?: () => void;
   onKapat?: () => void;
+  /**
+   * SALT OKUNUR (26.10.2026; rapor ve Analiz): parça seçilmez, onay çubuğu
+   * yok; döndürme var. Parçaya dokunuş `onDokunulan`a gider (Analiz'de o
+   * parçanın hataları açılır), boşa dokunuş null.
+   */
+  saltOkunur?: boolean;
+  /** 'demerit': değer en yüksek demerit; 'yogunluk': değer kayıt sayısı (yogunlukKademesi). */
+  boya?: 'demerit' | 'yogunluk';
+  onDokunulan?: (parcaId: string | null) => void;
 }) {
   const { renkler } = useTema();
   const { dil, t } = useDil();
@@ -174,6 +184,7 @@ export function DonusGorunumu({
   useEffect(() => { setKayma({ x: 0, y: 0 }); }, [yuvaSimdi, ustte, yakinSira]);
   const kayma = kaymaSinirla(temelKutu, kap.en, kap.boy, yakin, odak, kaymaHam);
   const kutu = yakinKutu(temelKutu, kap.en, kap.boy, yakin, kayma);
+  const enCok = useMemo(() => Math.max(1, ...kayitliParcalar.values()), [kayitliParcalar]);
   // ONAY (26.10.2026, ürün sahibi: "parçayı seçince hemen girmesin, onaylatsın;
   // yanlış tıklama olabilir"): dokunuş parçayı yalnız İŞARETLER; hata ızgarası
   // "Onayla" ile açılır. Başka parçaya dokunmak seçimi değiştirir.
@@ -198,6 +209,8 @@ export function DonusGorunumu({
     indeks, n: halkaListesi.length, gorunum, harita, kap, kutu, olcu, bolgeKimlikleri, onBolgeSec, onBuyut, onKapat,
     buyuk, bekleyen, ikinci, ikinciModu,
   };
+  const saltOkunurRef = useRef({ saltOkunur, onDokunulan });
+  saltOkunurRef.current = { saltOkunur, onDokunulan };
   const yakinlik = useRef({ yakin, kayma, temelKutu, odak });
   yakinlik.current = { yakin, kayma, temelKutu, odak };
   const baslangicKayma = useRef({ x: 0, y: 0 });
@@ -241,8 +254,10 @@ export function DonusGorunumu({
       // Kartta dokunuş büyük görünümü açar; seçim orada.
       if (!c.buyuk && c.onBuyut) { c.onBuyut(); return; }
       const nokta = kutudakiNokta(e.nativeEvent.locationX, e.nativeEvent.locationY, c.kutu);
-      if (!nokta) return;
+      const so = saltOkunurRef.current;
+      if (!nokta) { if (so.saltOkunur) so.onDokunulan?.(null); return; }
       const sonuc = dokunusSonucu(nokta, { aci: 'ust' in c.gorunum ? null : c.gorunum.girdi.aci }, c.harita, c.olcu);
+      if (so.saltOkunur) { so.onDokunulan?.(sonuc.tur === 'parca' ? sonuc.parcaId : null); return; }
       if (sonuc.tur === 'parca') {
         setIpucu(false);
         if (c.ikinciModu && c.bekleyen && sonuc.parcaId !== c.bekleyen) {
@@ -287,7 +302,11 @@ export function DonusGorunumu({
     onParcaSec(p, i);
   };
   const secimAdi = bekleyen ? parcaCiftiAdi({ parcaId: bekleyen, ikinciParcaId: ikinci }, dil) : null;
-  const altYazi = ikinciModu ? t('İkinci parçaya dokunun (boşluk, kademe)', 'Tap the second part (gap, flush)')
+  const altYazi = saltOkunur
+    ? (seciliParcaId ? parcaTamAdi(seciliParcaId, dil)
+      : onDokunulan ? t('Kaydırarak döndürün; parçaya dokunun', 'Swipe to rotate; tap a part')
+        : t('Kaydırarak döndürün', 'Swipe to rotate'))
+    : ikinciModu ? t('İkinci parçaya dokunun (boşluk, kademe)', 'Tap the second part (gap, flush)')
     : secimAdi ?? (seciliParcaId ? parcaCiftiAdi({ parcaId: seciliParcaId, ikinciParcaId: seciliIkinciParcaId }, dil)
       : ipucu ? t('Bir parçaya dokunun', 'Tap a part')
         : yakin > 1 ? t('Sürükleyerek gezdirin · döndürmek için oklar', 'Drag to move · arrows to rotate')
@@ -356,7 +375,9 @@ export function DonusGorunumu({
                   // kırmızıydı). Renkler açık temadan, iki temada aynı: çizim içerik,
                   // arayüz değil (koyu temada somon pembesine dönüyordu). Dolgu 0.22
                   // iken teal gövdede renk griye dönüyordu; 0.55'te kalır.
-                  const renk = secili ? PALETLER.acik.birincil : dereceRenkleri(PALETLER.acik, String(demerit)).on;
+                  const kademe = boyaKipi === 'yogunluk' ? yogunlukKademesi(demerit ?? 0, enCok) : String(demerit);
+                if (!secili && kademe === null) return null;
+                const renk = secili ? PALETLER.acik.birincil : dereceRenkleri(PALETLER.acik, kademe ?? '0').on;
                   const boya = {
                     fill: renk,
                     fillOpacity: secili ? 0.45 : 0.55,
@@ -687,7 +708,37 @@ function AracCizimi({ harita, en, boy, x, y, jantli, profil, teknik }: {
   );
 }
 
+/**
+ * Araç boyasının açıklaması (rapor ve Analiz). Renkler araç üzerindekiyle aynı
+ * kaynaktan (açık tema derece renkleri, iki temada aynı).
+ */
+export function BoyaAciklamasi({ boya }: { boya: 'demerit' | 'yogunluk' }) {
+  const { renkler } = useTema();
+  const { t } = useDil();
+  const s = useMemo(() => stiller(renkler), [renkler]);
+  const kalemler: [string, string][] = boya === 'demerit'
+    ? [['0', 'demerit 0'], ['1', '1'], ['2', '2'], ['3', '3']]
+    : [['1', t('az', 'few')], ['2', t('orta', 'some')], ['3', t('çok', 'many')]];
+  return (
+    <View style={s.aciklamaSatir} accessible accessibilityLabel={boya === 'demerit'
+      ? t('Renkler: kayıtlı parçanın en yüksek demerit\'i', 'Colours: highest demerit on the part')
+      : t('Renkler: parçadaki kayıt sayısı, en çok kayıtlı parçaya göre', 'Colours: records on the part, relative to the most recorded part')}
+    >
+      {kalemler.map(([k, ad]) => (
+        <View key={k} style={s.aciklamaKalem}>
+          <View style={[s.aciklamaRenk, { backgroundColor: dereceRenkleri(PALETLER.acik, k).on }]} />
+          <Text style={s.aciklamaMetin}>{ad}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const stiller = (r: Renkler) => StyleSheet.create({
+  aciklamaSatir: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: bosluk.sm },
+  aciklamaKalem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  aciklamaRenk: { width: 14, height: 14, borderRadius: 4, opacity: 0.8 },
+  aciklamaMetin: { ...tipografi.caption, color: r.metinIkincil },
   // Çerçevesiz ton dolgu (26.10.2026): sistem satırlarıyla aynı yüzey dili.
   kap: {
     width: '100%', gap: bosluk.xs, padding: bosluk.xs,

@@ -1004,6 +1004,51 @@ iki stilde (`RENKLI=1` Ayarlar'dan renkliye geçer, url(#…) boyaları kopuk
 değil). Ekran görüntülerine gözle bakıldı; "güzel" olup olmadığı bir ölçüm
 değil. **Telefonda denenmedi.**
 
+### Aşama 4 — araştırmadan gelen özellikler (26.10.2026)
+
+Ürün sahibi: "daha da geliştir, araştır ve uygula". Kısa web araştırması
+(kaynaklar satıcıların kendi sayfaları ve bir patent başvurusu — bağımsız
+değerlendirme DEĞİL): ATS Inspect hatayı araç resmi üzerinde yer/tip/önem
+ile kaydediyor, onarımı takip ediyor, son kapıda "bütün uygunsuzluklar
+kapandı mı" diye bakıyor; bir patent başvurusu hata konumlarını aracın
+yüzeyinde bölge bölge toplayıp sıklığa göre boyamayı ve dokununca kayıtları
+açmayı anlatıyor. Sunucu ve yeni paket gerektirmeyenler yapıldı:
+
+- **Takip** (`cekirdek/takip.ts`, göç 11): kayıt düzenlenirken Açık →
+  Paylaşıldı → Önlem uygulandı → Doğrulandı; alınan önlem, önlem tarihi
+  (kendiliğinden), doğrulandığı aracın body no'su. Excel'e PROGRESS /
+  COUNTERMEASURE / CM APPLICATION DATE / VERIFICATION BODY NO olarak gider.
+  Ölçüldü (ekibin dosyası, deterministik): bu sütunlar az ama gerçekten
+  kullanılıyor ve PROGRESS'teki TEK değer "SHARED" — başka etiket
+  uydurulmadı; açık olmayan her kayıt "SHARED" yazar. Sayılar şirket verisi,
+  depoya yazılmadı. Kayıt listesi ve rapor satırı durumu gösterir;
+  değişiklik günlüğü "Açık → Önlem uygulandı" diye yazar.
+- **Raporda araç üzerinde hatalar**: salt okunur 360 (döner, seçmez), parça
+  en yüksek demerit rengiyle; altında renk açıklaması.
+- **Analiz'de hata yoğunluğu** (`yogunlukKademesi`): parça, kayıt adedine göre
+  en çok kayıtlı parçaya göre üç kademede boyanır; parçaya dokununca o
+  parçanın hata tipleri (adet, araç sayısı) altta. Dönemde birden çok araç
+  karışıksa çizilmez (çizim bir araca ait).
+- **Skor tutarlılığı (hata düzeltmesi):** Analiz devam eden denetimleri de
+  sayıyordu; ikinci dış değerlendirmede müdür aynı dönem için ana sayfada 500,
+  Analiz'de 475 gördü (tasarımcı da 300'e karşı başka bir değer). Benim Aşama
+  2'de Analiz'e yazdığım "(i) bitmiş denetimler" açıklaması bu yüzden YANLIŞTI.
+  Artık iki ekran tek kuraldan okur (`sayac.ts → skoraGirenDenetim`: AUDIT ve
+  bitmiş); birim testi ve web sınavı (bitmeyen ikinci araç Analiz'de sayılmaz).
+- **Android geri tuşu** (`BackHandler`): denetim ekranında adım adım geri —
+  büyük görünüm → hata ızgarası → bölge → sistem; ancak en üstte ekrandan
+  çıkar. **Web'de denenemez** (tarayıcının geri tuşu ayrı); telefonda denenmedi.
+
+**Doğrulama:** göç 11 Node'un gerçek SQLite'ında (sıfırdan ve göç 10'daki
+eski kayıttan; INSERT sütun/değer/argüman sayıları); yedekten geri yükleme
+yeni şemayla yeniden koşuldu. Birim testleri (takip durumları ve tarihleri,
+Excel PROGRESS/COUNTERMEASURE/tarih/body eşlemesi, günlük cümlesi, yoğunluk
+kademesi). Web sınavı: takip seçimi ve önlem metni, raporda durum ve boyalı
+harita (dokunuş seçtirmez), Analiz haritasında kaputa dokunuş → döküm.
+
+**Yapılmayan:** e-posta/anlık uyarı, merkezi takip, imza, PDF (sunucu ya da
+yeni yerel paket ister; ürün sahibi "şimdilik telefonda güçlendir" dedi).
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |

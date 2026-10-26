@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { BoyaAciklamasi, DonusGorunumu } from '@/bilesenler/DonusGorunumu';
 import { S } from '@/bilesenler/simgeler';
 import {
   AltCubuk, Baslik, BaslikCipi, BilgiKutusu, BolumBasligi, DereceRozeti, Dugme, Ekran, GeriDugmesi,
@@ -12,8 +13,10 @@ import {
 import {
   BOLGELER, DERECELER, HATA_TIPI_INDEKS, hataTipiAdi, parcaBolgeAdi, parcaCiftiAdi, parcaTamAdi, bolgelerAracIcin,
 } from '@/cekirdek/katalog';
+import { aracHaritasiVar, parcaDemeritleri } from '@/cekirdek/donusGorunumu';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { demeritDegeri, SINIFLAR, sinifDegeri, sistemDegeri } from '@/cekirdek/nas';
+import { takipAdi } from '@/cekirdek/takip';
 import { denetimOzeti } from '@/cekirdek/puan';
 import { kmGoster } from '@/cekirdek/aracBilgisi';
 import { bicimTarih, csvUret, excelUret } from '@/cekirdek/rapor';
@@ -23,6 +26,7 @@ import { aracKimligi } from '@/cekirdek/vin';
 import { Denetim, FotografBaytlari } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { AcmaIstegi, useAcmaIstegi } from '@/veri/acmaIstegi';
+import { useAracGorselleri } from '@/veri/aracGorselleri';
 import { degisiklikGunlugu, denetimGetir, denetimGuncelle, fotograflariGetir } from '@/veri/depo';
 import { GunlukKaydi, gunlukOzeti } from '@/cekirdek/gunluk';
 import { useDil } from '@/veri/dilDeposu';
@@ -326,6 +330,29 @@ export default function RaporEkrani() {
           </View>
         </View>
 
+        {/* ARAÇ ÜZERİNDE HATALAR (26.10.2026). Dış değerlendirmede tasarımcı: "raporda
+            araç üzerinde hata haritası yok"; sektördeki örnekler (ATS Inspect) hatayı
+            araç resmi üzerinde gösteriyor. Salt okunur: döndürülür, seçilmez. Çizimi
+            ya da görseli olmayan araçta kart çıkmaz. */}
+        {/* `length > 0`: çıplak 0 Android'de Text dışında metin olur ve çöker. */}
+        {denetim.hatalar.length > 0 && (aracHaritasiVar(denetim.aracId)
+          || Object.keys(useAracGorselleri.getState().gorseller[denetim.aracId]?.yuvalar ?? {}).length > 0) ? (
+          <Kart>
+            <BolumBasligi metin={t('Araç üzerinde hatalar', 'Defects on the vehicle')} simge={S.arac} />
+            <View testID="rapor-arac-haritasi">
+              <DonusGorunumu
+                aracId={denetim.aracId}
+                bolgeler={bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })}
+                kayitliParcalar={parcaDemeritleri(denetim.hatalar)}
+                onBolgeSec={() => {}}
+                onParcaSec={() => {}}
+                saltOkunur
+              />
+            </View>
+            <BoyaAciklamasi boya="demerit" />
+          </Kart>
+        ) : null}
+
         <Kart>
           <BolumBasligi metin={t(`Problemler (${denetim.hatalar.length}) — demerit'e göre`, `Problems (${denetim.hatalar.length}) — by demerit`)} simge={S.liste} />
           <View testID="rapor-hatalar" style={{ gap: 6 }}>
@@ -353,6 +380,7 @@ export default function RaporEkrani() {
                       h.adet > 1 ? t(`${h.adet} adet`, `qty ${h.adet}`) : null,
                       sinifDegeri(h) !== 'MINOR' ? sinifDegeri(h) : null,
                       sistemDegeri(h),
+                      h.durum && h.durum !== 'acik' ? takipAdi(h.durum, dil) : null,
                       h.sorunTipi === 'Complex' ? t('Kompleks', 'Complex') : null,
                       h.sorumlu ? `→ ${h.sorumlu}` : null,
                     ].filter(Boolean).join(' · ')}

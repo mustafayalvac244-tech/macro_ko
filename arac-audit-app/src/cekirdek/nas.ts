@@ -137,6 +137,16 @@ export const PROBLEM_SUTUNLARI = [
   'VERIFICATION BODY NO', 'UNICODE', 'Countermeasure Link',
 ] as const;
 
+/**
+ * PROGRESS hücresi (26.10.2026). Ekibin dosyasında bu sütunda ölçülen TEK değer
+ * "SHARED" (273 satır); başka etiket uydurulmadı. Açık kayıt boş kalır;
+ * paylaşılmış, önlemi uygulanmış ya da doğrulanmış kayıt "SHARED" yazar —
+ * ayrıntı COUNTERMEASURE, CM APPLICATION DATE ve VERIFICATION BODY NO'da.
+ */
+export function ilerlemeKodu(h: Pick<Hata, 'durum'>): string {
+  return h.durum && h.durum !== 'acik' ? 'SHARED' : '';
+}
+
 /** Body yoksa şasinin son 6 hanesi — Excel aracı body ile tanıyor. */
 function govdeNo(d: Denetim): string {
   return d.bodyNo || (d.vin ? d.vin.slice(-6) : '');
@@ -164,6 +174,7 @@ export function nasSayfalari(
     return s === null ? { v: '', stil: STIL.GOVDE_ORTA } : { v: s, stil: STIL.TARIH };
   };
   const metin = (v: string): Hucre => ({ v, stil: STIL.GOVDE });
+  const tarihVeyaBos = (iso: string | null | undefined): Hucre => (iso ? tarih(iso) : { v: '', stil: STIL.GOVDE_ORTA });
   const orta = (v: string | number): Hucre => ({ v, stil: STIL.GOVDE_ORTA });
 
   const sirali = [...denetimler].sort((a, b) => a.baslangic.localeCompare(b.baslangic));
@@ -186,7 +197,9 @@ export function nasSayfalari(
         orta(problemler.length), tarih(h.zaman), orta(kaynak), orta(model), orta(govde),
         orta(sinifDegeri(h)), orta(demeritDegeri(h)), orta(sistemDegeri(h)), metin(parca), metin(tip),
         metin([h.konum, h.aciklama].filter(Boolean).join(', ')), metin((h.fotograflar ?? []).map(fotografAdi).join(', ')),
-        orta(h.sorumlu ?? ''), metin(d.denetci), orta(''), metin(''), orta(''), orta(''),
+        orta(h.sorumlu ?? ''), metin(d.denetci), orta(ilerlemeKodu(h)), metin(h.onlem ?? ''),
+        h.durum === 'giderildi' || h.durum === 'kapali' ? tarihVeyaBos(h.giderilmeZamani) : orta(''),
+        orta(h.durum === 'kapali' ? h.dogrulamaBody ?? '' : ''),
         metin(`${kaynak}${model}${govde}${parca}${tip}`), metin(''),
       ]);
     }

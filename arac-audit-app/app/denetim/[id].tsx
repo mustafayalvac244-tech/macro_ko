@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Pressable, ScrollView, StyleSheet, Text, View,
+  BackHandler, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,6 +26,7 @@ import { dereceGosterimi } from '@/cekirdek/puan';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { kapsamMetni, mevcutSistemler, parcaSistemi } from '@/cekirdek/sistemler';
 import { parcaDemeritleri } from '@/cekirdek/donusGorunumu';
+import { takipAdi } from '@/cekirdek/takip';
 import { aracKimligi } from '@/cekirdek/vin';
 import {
   Denetim, DereceKodu, Hata, HataGrubuId, HataTipi, SinifKodu,
@@ -263,6 +264,26 @@ export default function DenetimEkrani() {
     setHataArama('');
     setYeniTipAcik(false);
   }, []);
+
+  // ANDROID GERİ TUŞU (26.10.2026, dış değerlendirme: "geri tuşu denetimden
+  // tamamen çıkardı; kodda yakalanmıyor"). Adım adım geri: büyük görünüm →
+  // hata ızgarası → bölge → sistem; ancak en üstteyken ekrandan çıkar. Alt
+  // sayfalar (kayıt listesi, hata ayrıntısı) Modal: kendi onRequestClose'ları
+  // kapatır. Web'de BackHandler yok (tarayıcının geri tuşu ayrı).
+  useEffect(() => {
+    const abone = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (buyukAcik) { setBuyukAcik(false); return true; }
+      if (parcaId) { parcalaraDon(); return true; }
+      // Tek bölgeli sistemde (Motor, Fonksiyon…) bölge adımı atlanır: doğrudan köke.
+      if (konum.bolgeId && bolgeler.filter((b) => b.grup === konum.sistem).length > 1) {
+        setKonum({ ...konum, bolgeId: null });
+        return true;
+      }
+      if (konum.sistem) { setKonum(KOK_KONUM); return true; }
+      return false;
+    });
+    return () => abone.remove();
+  }, [buyukAcik, parcaId, konum, parcalaraDon, bolgeler]);
 
   /** Tek dokunuşla kayıt — bu ekranın var olma sebebi. */
   const hizliKaydet = useCallback(async (tip: HataTipi) => {
@@ -889,6 +910,8 @@ function KayitSatiri({ hata: h, onPress }: { hata: Hata; onPress: () => void }) 
   // Sınıf her satırda (26.10.2026 dış değerlendirme: "class listede görünmüyor").
   const alt = [
     sinifDegeri(h),
+    // Takip durumu yalnız açık değilse (takip.ts): "Paylaşıldı", "Önlem uygulandı"…
+    h.durum && h.durum !== 'acik' ? takipAdi(h.durum, dil) : null,
     parcaBolgeAdi(h.parcaId, dil),
     h.adet > 1 ? t(`${h.adet} adet`, `${h.adet} pcs`) : null,
     h.konum || null,

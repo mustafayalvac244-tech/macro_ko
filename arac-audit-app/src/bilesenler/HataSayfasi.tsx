@@ -12,7 +12,9 @@ import { grupAdi, PARCA_INDEKS, parcaBolgeAdi, parcaCiftiAdi, parcaHataTipleri, 
 import {
   demeritDegeri, HAZIR_SORUMLULAR, NAS_SISTEMLERI, SINIFLAR, sinifDegeri, varsayilanSistem,
 } from '@/cekirdek/nas';
-import { DereceKodu, Hata, HataGrubuId, HataTipi, SinifKodu, SorunTipi } from '@/cekirdek/tipler';
+import { bicimTarih } from '@/cekirdek/rapor';
+import { durumDegistir, TAKIP_DURUMLARI } from '@/cekirdek/takip';
+import { DereceKodu, Hata, HataDurumu, HataGrubuId, HataTipi, SinifKodu, SorunTipi } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, dereceRenkleri, kose, Renkler, tipografi, useTema } from '@/tema';
 import { fotografKaydet, FotografKaydi, fotografSil } from '@/veri/depo';
 import { useDil } from '@/veri/dilDeposu';
@@ -76,6 +78,10 @@ export function HataSayfasi({
   const [sorunTipi, setSorunTipi] = useState<SorunTipi>('Part');
   const [sorumlu, setSorumlu] = useState('');
   const [aciklama, setAciklama] = useState('');
+  // Takip (26.10.2026, takip.ts): yalnız var olan kayıt düzenlenirken görünür.
+  const [takipDurum, setTakipDurum] = useState<HataDurumu>('acik');
+  const [onlem, setOnlem] = useState('');
+  const [dogrulamaBody, setDogrulamaBody] = useState('');
   const [fotoIdleri, setFotoIdleri] = useState<string[]>([]);
   const [fotoHatasi, setFotoHatasi] = useState<string | null>(null);
   const [fotoYukleniyor, setFotoYukleniyor] = useState(false);
@@ -104,6 +110,9 @@ export function HataSayfasi({
     setSorunTipi(taslak.sorunTipi === 'Complex' ? 'Complex' : 'Part');
     setSorumlu(taslak.sorumlu ?? '');
     setAciklama(taslak.aciklama ?? '');
+    setTakipDurum(taslak.durum ?? 'acik');
+    setOnlem(taslak.onlem ?? '');
+    setDogrulamaBody(taslak.dogrulamaBody ?? '');
     setFotoIdleri(taslak.fotograflar ?? []);
     setFotoHatasi(null);
     setArama('');
@@ -188,9 +197,12 @@ export function HataSayfasi({
       adet: taslak.adet || 1,
       konum: taslak.konum ?? '',
       aciklama: aciklama.trim(),
+      ...durumDegistir(taslak, takipDurum, new Date().toISOString()),
+      onlem: takipDurum === 'acik' ? '' : onlem.trim(),
+      dogrulamaBody: takipDurum === 'kapali' ? dogrulamaBody.trim() : '',
       fotograflar: fotoIdleri,
     }, fotoIdleri);
-  }, [aciklama, fotoIdleri, hataTipiId, onKaydet, derece, sinif, sistem, sorumlu, sorunTipi, taslak]);
+  }, [aciklama, fotoIdleri, hataTipiId, onKaydet, derece, sinif, sistem, sorumlu, sorunTipi, taslak, takipDurum, onlem, dogrulamaBody]);
 
   const fotoHaritasi = useMemo(
     () => new Map(fotograflar.map((f) => [f.id, f])),
@@ -434,6 +446,54 @@ export function HataSayfasi({
   // "Vazgeç"in 8 px yanındaydı ve tek dokunuşla, onaysız siliyordu (sınama).
   // Geri almak yerine onay: silme kaydın fotoğraflarını da siliyor
   // (hataSil), geri getirilemez.
+  // TAKİP — ekibin Excel'indeki PROGRESS / COUNTERMEASURE / CM APPLICATION DATE /
+  // VERIFICATION BODY NO. Yeni kayıtta yok: hata sahada önce kaydedilir, takip sonra.
+  const onlemTarihi = takipDurum === 'giderildi' || takipDurum === 'kapali'
+    ? (taslak?.giderilmeZamani ? bicimTarih(taslak.giderilmeZamani) : t('kaydedince bugünün tarihi', "today's date on save"))
+    : null;
+  const takipBolumu = duzenleme ? (
+    <View style={{ gap: bosluk.xs }} testID="takip-bolumu">
+      <Text style={s.bolumBaslik}>{t('Takip', 'Follow-up')}</Text>
+      <View style={s.izgara} accessibilityRole="radiogroup" accessibilityLabel={t('Takip durumu', 'Follow-up status')}>
+        {TAKIP_DURUMLARI.map((d) => (
+          <Secenek
+            key={d.id}
+            kucuk
+            metin={dil === 'en' ? d.en : d.ad}
+            erisimEtiketi={t(`Takip: ${d.ad}`, `Follow-up: ${d.en}`)}
+            secili={takipDurum === d.id}
+            onPress={() => setTakipDurum(d.id)}
+            style={{ flexGrow: 1, flexBasis: 140, justifyContent: 'center' }}
+          />
+        ))}
+      </View>
+      {takipDurum !== 'acik' ? (
+        <Girdi
+          etiket={t('Alınan önlem', 'Countermeasure')}
+          value={onlem}
+          onChangeText={setOnlem}
+          placeholder={t('Örn. tedarikçiye bildirildi, klips değişti', 'E.g. reported to supplier, clip changed')}
+          multiline
+        />
+      ) : null}
+      {onlemTarihi ? (
+        <Text style={s.alanEtiketi}>{t(`Önlem tarihi: ${onlemTarihi}`, `Countermeasure date: ${onlemTarihi}`)}</Text>
+      ) : null}
+      {takipDurum === 'kapali' ? (
+        <Girdi
+          etiket={t('Doğrulandığı aracın body no', 'Verification body no')}
+          value={dogrulamaBody}
+          onChangeText={(x) => setDogrulamaBody(x.replace(/\D/g, '').slice(0, 6))}
+          placeholder={t('6 hane', '6 digits')}
+          keyboardType="number-pad"
+        />
+      ) : null}
+      <Text style={s.alanEtiketi}>
+        {t("Excel'e PROGRESS (SHARED), COUNTERMEASURE ve tarih olarak gider.", 'Exported to Excel as PROGRESS (SHARED), COUNTERMEASURE and date.')}
+      </Text>
+    </View>
+  ) : null;
+
   const silBolumu = duzenleme && onSil ? (
     <View style={s.silBolumu}>
       {!silOnay ? (
@@ -509,6 +569,7 @@ export function HataSayfasi({
             {dereceBolumu}
             {ayrintiBolumu}
             {fotoBolumu}
+            {takipBolumu}
             {silBolumu}
           </>
         ) : (

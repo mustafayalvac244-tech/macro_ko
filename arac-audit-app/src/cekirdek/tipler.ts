@@ -204,13 +204,24 @@ export interface Hata {
   zaman: string;
   /** Yerel fotoğraf kayıt kimlikleri. */
   fotograflar: string[];
+  /**
+   * TAKİP (26.10.2026). Ekibin Excel'inde PROGRESS / COUNTERMEASURE / CM
+   * APPLICATION DATE / VERIFICATION BODY NO sütunları. Ölçüldü (ekibin dosyası,
+   * 3.499 satır): PROGRESS 273 satırda dolu, hepsinde "SHARED"; önlem metni 211,
+   * tarih 191 satırda. Eşleme: 'atandi' = paylaşıldı (SHARED), 'giderildi' =
+   * önlem uygulandı (tarih `giderilmeZamani`), 'kapali' = doğrulandı (body
+   * `dogrulamaBody`). 'acik' varsayılan.
+   */
   durum: HataDurumu;
-  /** Takip döngüsü — ikinci aşamada dolacak alanlar. */
   atananKisi?: string | null;
   gideren?: string | null;
   giderilmeZamani?: string | null;
   dogrulayan?: string | null;
   dogrulamaZamani?: string | null;
+  /** Excel COUNTERMEASURE — alınan önlem, serbest metin. Eski kayıtlarda boş. */
+  onlem?: string;
+  /** Excel VERIFICATION BODY NO — önlemin doğrulandığı aracın body numarası. */
+  dogrulamaBody?: string;
 }
 
 export type DenetimDurumu = 'devam' | 'tamam';

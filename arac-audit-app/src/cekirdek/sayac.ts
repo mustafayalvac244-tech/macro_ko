@@ -105,6 +105,17 @@ export function donemIcinde(an: Date, donem: Donem, sinir: Record<Donem, Date>):
 }
 
 /**
+ * SKORA GİREN DENETİM — ana sayfa sayacı ve Analiz AYNI kuralı kullanır:
+ * AUDIT kaynaklı ve bitmiş (devam eden değil). 26.10.2026'ya kadar Analiz
+ * durum süzgeci olmadan sayıyordu; ikinci dış değerlendirmede kalite müdürü
+ * aynı dönem için ana sayfada 500, Analiz'de 475 gördü (devam eden denetim
+ * Analiz'e girmişti). Kural tek yerde, iki ekran ondan okur.
+ */
+export function skoraGirenDenetim(x: { kaynak?: string; durum?: string }): boolean {
+  return skoraGirerMi(x.kaynak) && x.durum !== 'devam';
+}
+
+/**
  * @param sira araçların gösterim sırası (ARACLAR); listede olmayan bir araç
  *   kimliği sona eklenir — eski ya da kaldırılmış bir araç sayımdan düşmesin.
  */
@@ -115,8 +126,7 @@ export function sayacHesapla(girdiler: readonly SayacGirdisi[], simdi: Date, sir
   const toplam = bos();
 
   for (const g of girdiler) {
-    if (!skoraGirerMi(g.kaynak)) continue;
-    if (g.durum === 'devam') continue;
+    if (!skoraGirenDenetim(g)) continue;
     const an = new Date(g.baslangic);
     // Geçersiz tarih ya da gelecekteki bir an (cihaz saati geri alınmış)
     // hiçbir döneme yazılmaz.

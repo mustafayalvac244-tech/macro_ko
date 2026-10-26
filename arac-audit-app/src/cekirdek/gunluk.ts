@@ -6,6 +6,7 @@
 // cümleye çevirmek ("Kaput — Çizik: demerit 1 → 2").
 
 import { hataTipiAdi, parcaTamAdi } from './katalog';
+import { takipAdi } from './takip';
 import type { Dil } from './tipler';
 
 export type GunlukTuru = 'hata_duzeltildi' | 'hata_silindi' | 'denetim_duzeltildi' | 'denetim_silindi';
@@ -33,12 +34,14 @@ export function satirFarki(
 /** Sütun → ekrandaki ad. Listede olmayan sütun adıyla yazılır. */
 const SUTUN_ADI: Record<string, [string, string]> = {
   parca_id: ['parça', 'part'], ikinci_parca_id: ['2. parça', '2nd part'], hata_tipi_id: ['hata', 'defect'],
-  derece: ['demerit', 'demerit'], sinif: ['class', 'class'], sistem: ['sistem', 'system'],
+  derece: ['demerit', 'demerit'], sinif: ['sınıf', 'class'], sistem: ['sistem', 'system'],
   sorun_tipi: ['tür', 'type'], sorumlu: ['sorumlu', 'responsible'], adet: ['adet', 'qty'],
   konum: ['konum', 'location'], aciklama: ['açıklama', 'note'], durum: ['durum', 'status'],
   kabul_edilebilir: ['kabul edilebilir', 'acceptable'],
   arac_id: ['araç', 'vehicle'], vin: ['şasi', 'VIN'], body_no: ['body no', 'body no'], denetci: ['denetçi', 'auditor'],
   denetim_tipi: ['kaynak', 'source'], spec: ['spec', 'spec'], bitis: ['bitiş', 'end'],
+  onlem: ['önlem', 'countermeasure'], giderilme_zamani: ['önlem tarihi', 'countermeasure date'],
+  dogrulama_body: ['doğrulama body', 'verification body'],
 };
 
 const deger = (sutun: string, v: unknown, dil: Dil): string => {
@@ -47,6 +50,7 @@ const deger = (sutun: string, v: unknown, dil: Dil): string => {
   if (sutun === 'hata_tipi_id') return hataTipiAdi(String(v), dil);
   if (sutun === 'durum' && v === 'tamam') return dil === 'en' ? 'completed' : 'tamamlandı';
   if (sutun === 'durum' && v === 'devam') return dil === 'en' ? 'in progress' : 'devam ediyor';
+  if (sutun === 'durum' && ['acik', 'atandi', 'giderildi', 'kapali'].includes(String(v))) return takipAdi(String(v), dil);
   return String(v);
 };
 

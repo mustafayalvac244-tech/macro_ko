@@ -31,6 +31,8 @@ export interface HataKaydi {
   sistem: string;
   /** Denetimin PROBLEM SOURCE'u. */
   kaynak: string;
+  /** Denetimin durumu ('devam' | 'tamam'); skora giren süzgeç için (sayac.ts → skoraGirenDenetim). */
+  durum?: string;
   /** Hatanın değil DENETİMİN başlangıcı — dönem süzgeci denetime göre. */
   denetimBaslangici: string;
 }

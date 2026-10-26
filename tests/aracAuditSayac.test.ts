@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { donemBaslangiclari, sayacBaslangici, sayacHesapla, SayacGirdisi, skor } from '../arac-audit-app/src/cekirdek/sayac';
+import { donemBaslangiclari, sayacBaslangici, sayacHesapla, SayacGirdisi, skor, skoraGirenDenetim } from '../arac-audit-app/src/cekirdek/sayac';
 
 // Ürün sahibi, 24.10.2026: şirketteki Excel formu araç baktıkça bugün / bu
 // hafta / bu ay / bu yıl sayıyor — "o sistem güzel". 26.10.2026: Excel'in
@@ -121,5 +121,32 @@ describe('sayaç — Audit Skoru', () => {
 
   it('araç yoksa skor yok (0 değil)', () => {
     expect(skor({ arac: 0, hata: 0, demerit: 0 })).toBeNull();
+  });
+});
+
+// 26.10.2026 — ikinci dış değerlendirme: ana sayfa 500, Analiz 475 (Analiz devam edeni sayıyordu).
+describe('skora giren denetim: ana sayfa ve Analiz aynı kural', () => {
+  it('yalnız AUDIT kaynaklı ve bitmiş', () => {
+    expect(skoraGirenDenetim({ kaynak: 'HMC Audit', durum: 'tamam' })).toBe(true);
+    expect(skoraGirenDenetim({ kaynak: 'HMC Audit', durum: 'devam' })).toBe(false);
+    expect(skoraGirenDenetim({ kaynak: 'DURABILITY', durum: 'tamam' })).toBe(false);
+  });
+
+  it('Analiz\'in süzdüğü kümeden hesaplanan skor sayacın toplamıyla aynı', () => {
+    const simdi = new Date(2026, 9, 26, 15, 0);
+    const g = (o: Partial<SayacGirdisi>): SayacGirdisi => ({
+      aracId: 'ioniq3', baslangic: new Date(2026, 9, 26, 9, 0).toISOString(), kaynak: 'HMC Audit', durum: 'tamam', hataAdedi: 1, demerit: 0, ...o,
+    });
+    const girdiler = [
+      g({ demerit: 8 }), g({ demerit: 7 }), g({ demerit: 0 }),
+      g({ demerit: 4, durum: 'devam' }), // açık kalmış: ikisi de saymamalı
+      g({ demerit: 9, kaynak: 'DURABILITY' }),
+    ];
+    const sayac = sayacHesapla(girdiler, simdi, ['ioniq3']);
+    const analiz = girdiler.filter(skoraGirenDenetim);
+    const demerit = analiz.reduce((t, x) => t + x.demerit, 0);
+    expect(analiz).toHaveLength(sayac.toplam.buAy.arac);
+    expect(demerit).toBe(sayac.toplam.buAy.demerit);
+    expect(Math.round((100 * demerit) / analiz.length)).toBe(500);
   });
 });

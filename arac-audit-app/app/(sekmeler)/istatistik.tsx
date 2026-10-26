@@ -20,6 +20,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 
+import { BoyaAciklamasi, DonusGorunumu } from '@/bilesenler/DonusGorunumu';
 import { S } from '@/bilesenler/simgeler';
 import {
   Baslik, BolumBasligi, BosDurum, Ekran, HataKutusu, Kart, Secenek, useDuzen, Yukleniyor,
@@ -27,11 +28,13 @@ import {
 import {
   haftalikSkor, HataKaydi, pareto, ParetoSatiri, sistemeGore, tekrarlayanlar,
 } from '@/cekirdek/istatistik';
-import { hataTipiAdi, parcaTamAdi } from '@/cekirdek/katalog';
+import { aracHaritasiVar } from '@/cekirdek/donusGorunumu';
+import { bolgelerAracIcin, hataTipiAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { aracEtiketi, ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
-import { auditSkoru, skoraGirerMi } from '@/cekirdek/nas';
-import { Donem, donemBaslangiclari, donemIcinde, SayacGirdisi, sayacBaslangici } from '@/cekirdek/sayac';
+import { auditSkoru } from '@/cekirdek/nas';
+import { Donem, donemBaslangiclari, donemIcinde, SayacGirdisi, sayacBaslangici, skoraGirenDenetim } from '@/cekirdek/sayac';
 import { bosluk, kose, Renkler, tipografi, useTema, yazi } from '@/tema';
+import { useAracGorselleri } from '@/veri/aracGorselleri';
 import { istatistikVerisi, sayacVerisi } from '@/veri/depo';
 import { useDil } from '@/veri/dilDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -76,8 +79,9 @@ export default function Analiz() {
         const enEski = new Date(Math.min(sayacBaslangici(simdi).getTime(), sekizHafta.getTime()));
         const [tumGirdiler, tumKayitlar] = await Promise.all([sayacVerisi(enEski), istatistikVerisi(enEski)]);
         // Excel'in Scores sayfası gibi: yalnız AUDIT kaynağı.
-        const girdiler = tumGirdiler.filter((g) => skoraGirerMi(g.kaynak));
-        const kayitlar = tumKayitlar.filter((k) => skoraGirerMi(k.kaynak));
+        // Ana sayfa sayacıyla AYNI kural: AUDIT kaynaklı ve bitmiş (sayac.ts → skoraGirenDenetim).
+        const girdiler = tumGirdiler.filter(skoraGirenDenetim);
+        const kayitlar = tumKayitlar.filter(skoraGirenDenetim);
         if (!iptal) { setVeri({ girdiler, kayitlar, simdi }); setHata(null); }
       } catch (h) {
         if (!iptal) setHata(h instanceof Error ? h.message : String(h));
@@ -102,8 +106,39 @@ export default function Analiz() {
       tekrar: tekrarlayanlar(kayitlar, 2, 10),
       sistemler: sistemeGore(kayitlar, toplam.arac),
       haftalar: haftalikSkor(veri.girdiler.filter((g) => aracUyar(g.aracId)), veri.simdi, 8),
+      kayitlar,
+      // Haritanın aracı: süzgeçte seçili araç, yoksa dönemdeki TEK araç; birden çok
+      // araç karışıksa harita çizilmez (parçalar ortak ama çizim bir araca ait).
+      haritaAraci: aracId !== 'hepsi' ? aracId
+        : new Set(girdiler.map((g) => g.aracId)).size === 1 ? girdiler[0]!.aracId : null,
     };
   }, [veri, donem, aracId]);
+
+  // YOĞUNLUK HARİTASI (26.10.2026). Sektördeki örnek: hata konumlarını aracın
+  // üstünde bölge bölge toplayıp sıklığa göre boyamak, noktaya dokununca o
+  // bölgenin kayıtları (bir patent başvurusu ve ATS Inspect'in anlatımı —
+  // satıcı/başvuru kaynağı, bağımsız değil). Burada parça düzeyinde: değer
+  // parçadaki kayıt adedi. Dokunulan parçanın hata tipleri haritanın altında.
+  const [haritaParca, setHaritaParca] = useState<string | null>(null);
+  const gorseller = useAracGorselleri((d) => d.gorseller);
+  const parcaAdetleri = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const k of hesap?.kayitlar ?? []) m.set(k.parcaId, (m.get(k.parcaId) ?? 0) + k.adet);
+    return m;
+  }, [hesap]);
+  const haritaVar = !!hesap?.haritaAraci && (aracHaritasiVar(hesap.haritaAraci)
+    || Object.keys(gorseller[hesap.haritaAraci]?.yuvalar ?? {}).length > 0);
+  const parcaDokumu = useMemo(() => {
+    if (!haritaParca || !hesap) return [];
+    const m = new Map<string, { adet: number; araclar: Set<string> }>();
+    for (const k of hesap.kayitlar) {
+      if (k.parcaId !== haritaParca) continue;
+      const x = m.get(k.hataTipiId) ?? { adet: 0, araclar: new Set<string>() };
+      x.adet += k.adet; x.araclar.add(k.denetimId);
+      m.set(k.hataTipiId, x);
+    }
+    return [...m.entries()].map(([tip, x]) => ({ tip, adet: x.adet, arac: x.araclar.size })).sort((a, b) => b.adet - a.adet);
+  }, [haritaParca, hesap]);
 
   const aracSecenekleri = useMemo(() => {
     const var_ = new Set((veri?.girdiler ?? []).map((g) => g.aracId));
@@ -246,6 +281,43 @@ export default function Analiz() {
                 />
                 {haftaGrafigi(hesap.haftalar)}
               </Kart>
+
+              {haritaVar && hesap.haritaAraci && parcaAdetleri.size > 0 ? (
+                <Kart>
+                  <BolumBasligi
+                    metin={t('Araç üzerinde hata yoğunluğu', 'Defect density on the vehicle')}
+                    simge={S.arac}
+                    bilgi={t(
+                      'Renk, parçadaki hata adedini en çok hatalı parçaya göre üç kademede gösterir. Parçaya dokunun: o parçanın hata tipleri aşağıda.',
+                      'Colour shows the number of defects on the part in three bands, relative to the part with the most. Tap a part to list its defect types below.',
+                    )}
+                  />
+                  <View testID="analiz-arac-haritasi">
+                    <DonusGorunumu
+                      aracId={hesap.haritaAraci}
+                      bolgeler={bolgelerAracIcin({ tip: ARAC_INDEKS[hesap.haritaAraci]?.tip ?? 'ice' })}
+                      kayitliParcalar={parcaAdetleri}
+                      seciliParcaId={haritaParca}
+                      onBolgeSec={() => {}}
+                      onParcaSec={() => {}}
+                      saltOkunur
+                      boya="yogunluk"
+                      onDokunulan={setHaritaParca}
+                    />
+                  </View>
+                  <BoyaAciklamasi boya="yogunluk" />
+                  {haritaParca ? (
+                    <View style={{ gap: 4 }} testID="analiz-parca-dokumu">
+                      <Text style={s.paretoAd}>{parcaTamAdi(haritaParca, dil)}</Text>
+                      {parcaDokumu.length ? parcaDokumu.map((x) => (
+                        <Text key={x.tip} style={s.paretoAlt}>
+                          {t(`${hataTipiAdi(x.tip, dil)} × ${x.adet} · ${x.arac} araç`, `${hataTipiAdi(x.tip, dil)} × ${x.adet} · ${x.arac} ${x.arac === 1 ? 'vehicle' : 'vehicles'}`)}
+                        </Text>
+                      )) : <Text style={s.bos}>{t('Bu parçada bu dönemde hata yok.', 'No defects on this part in this period.')}</Text>}
+                    </View>
+                  ) : null}
+                </Kart>
+              ) : null}
 
               <Kart>
                 <BolumBasligi

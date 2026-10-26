@@ -399,3 +399,16 @@ export function kaymaSinirla(
     y: eksen(z.y + o.y0 * z.boy, z.y + o.y1 * z.boy, kapBoy, kayma.y),
   };
 }
+
+/**
+ * YOĞUNLUK BOYASI (26.10.2026, Analiz'deki araç haritası). Parçadaki kayıt
+ * sayısı en çok kayıtlı parçaya göre üç kademeye ayrılır (≤ ⅓ az, ≤ ⅔ orta,
+ * üstü çok); kademe demerit renkleriyle çizilir (1 hardal, 2 turuncu, 3
+ * kırmızı) — uygulamada tek renk dili. Sayı ≤ 0 ise boyanmaz (null).
+ */
+export function yogunlukKademesi(sayi: number, enCok: number): '1' | '2' | '3' | null {
+  if (!(sayi > 0)) return null;
+  const oran = sayi / Math.max(1, enCok);
+  return oran <= 1 / 3 ? '1' : oran <= 2 / 3 ? '2' : '3';
+}
+

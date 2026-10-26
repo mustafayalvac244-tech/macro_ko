@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   aracHaritasiVar, cizimRolu, dokunulanYuz, dokunusSonucu, gorunenYuzler, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka,
-  HALKA_YUVALARI, kaymaSinirla, parcaDemeritleri, yakinKutu, YAKINLIKLAR, haritaOdagi, kaydirmaIndeksi, kutudakiNokta, odakKutusu, oranUyar, sar, UST_BOLGESI,
+  HALKA_YUVALARI, kaymaSinirla, parcaDemeritleri, yakinKutu, YAKINLIKLAR, yogunlukKademesi, haritaOdagi, kaydirmaIndeksi, kutudakiNokta, odakKutusu, oranUyar, sar, UST_BOLGESI,
   yumusakYol, yuvaAdi, YUVALAR, YUZ_BOLGESI,
 } from '../arac-audit-app/src/cekirdek/donusGorunumu';
 import { GorunumId, PARCA_HARITALARI } from '../arac-audit-app/src/cekirdek/gorunumParcalari';
@@ -374,5 +374,21 @@ describe('büyük görünümde yakınlaştırma', () => {
   it('kademeler artan, ilki 1', () => {
     expect(YAKINLIKLAR[0]).toBe(1);
     for (let i = 1; i < YAKINLIKLAR.length; i++) expect(YAKINLIKLAR[i]!).toBeGreaterThan(YAKINLIKLAR[i - 1]!);
+  });
+});
+
+// 26.10.2026 — Analiz'deki yoğunluk haritası.
+describe('yoğunluk kademesi', () => {
+  it('en çok kayıtlı parçaya göre üç kademe; 0 boyanmaz', () => {
+    expect(yogunlukKademesi(0, 9)).toBeNull();
+    expect(yogunlukKademesi(3, 9)).toBe('1');
+    expect(yogunlukKademesi(4, 9)).toBe('2');
+    expect(yogunlukKademesi(6, 9)).toBe('2');
+    expect(yogunlukKademesi(7, 9)).toBe('3');
+    expect(yogunlukKademesi(9, 9)).toBe('3');
+  });
+  it('tek parça kayıtlıysa o parça en koyu; en çok 0 verilse de bölmez', () => {
+    expect(yogunlukKademesi(1, 1)).toBe('3');
+    expect(yogunlukKademesi(1, 0)).toBe('3');
   });
 });

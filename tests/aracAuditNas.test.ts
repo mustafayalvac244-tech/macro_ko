@@ -136,6 +136,25 @@ describe('Excel\'e aktar — NAS sayfaları', () => {
     expect(p[0]!.DATE).toBeCloseTo(excelTarihi('2026-10-26T09:05:00')!, 6);
   });
 
+  // 26.10.2026 — takip: ekibin dosyasında PROGRESS'in tek değeri "SHARED".
+  it('takip: açık kayıt boş; paylaşılan SHARED; önlem uygulanan tarihli; doğrulanan body\'li', () => {
+    const [, problemler] = nasSayfalari([denetim({
+      hatalar: [
+        hata({ id: 'a' }),
+        hata({ id: 'b', durum: 'atandi', onlem: 'Tedarikçiye bildirildi', zaman: '2026-10-26T09:06:00' }),
+        hata({ id: 'c', durum: 'giderildi', onlem: 'Klips değişti', giderilmeZamani: '2026-10-27T08:00:00', zaman: '2026-10-26T09:07:00' }),
+        hata({ id: 'd', durum: 'kapali', onlem: 'Kalıp düzeltildi', giderilmeZamani: '2026-10-27T08:00:00', dogrulamaBody: '015300', zaman: '2026-10-26T09:08:00' }),
+      ],
+    })]);
+    const p = problemler!.satirlar.slice(1).map((r) => Object.fromEntries(PROBLEM_SUTUNLARI.map((ad, i) => [ad, deger(r[i])])));
+    expect(p.map((x) => x.PROGRESS)).toEqual(['', 'SHARED', 'SHARED', 'SHARED']);
+    expect(p.map((x) => x.COUNTERMEASURE)).toEqual(['', 'Tedarikçiye bildirildi', 'Klips değişti', 'Kalıp düzeltildi']);
+    expect(p[0]!['CM APPLICATION DATE']).toBe('');
+    expect(p[1]!['CM APPLICATION DATE']).toBe('');
+    expect(p[2]!['CM APPLICATION DATE']).toBeCloseTo(excelTarihi('2026-10-27T08:00:00')!, 6);
+    expect(p.map((x) => x['VERIFICATION BODY NO'])).toEqual(['', '', '', '015300']);
+  });
+
   it('Excel tarih seri numarası yerel saatle: 1.1.2026 00:00 = 46023', () => {
     expect(excelTarihi(new Date(2026, 0, 1).toISOString())).toBeCloseTo(46023, 6);
     expect(excelTarihi('bozuk')).toBeNull();

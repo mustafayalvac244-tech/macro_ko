@@ -232,6 +232,15 @@ const GOCLER: string[] = [
   );
   CREATE INDEX IF NOT EXISTS ix_gunluk_denetim ON degisiklik_gunlugu(denetim_id);
   `,
+
+  // 11 — TAKİP (26.10.2026): ekibin Excel'indeki COUNTERMEASURE ve
+  // VERIFICATION BODY NO. Durum (PROGRESS) ve önlem tarihi (CM APPLICATION
+  // DATE) için sütun zaten vardı (durum, giderilme_zamani; ilk şemadan beri
+  // boş duruyordu). Eski kayıtlarda boş.
+  `
+  ALTER TABLE hatalar ADD COLUMN onlem          TEXT NOT NULL DEFAULT '';
+  ALTER TABLE hatalar ADD COLUMN dogrulama_body TEXT NOT NULL DEFAULT '';
+  `,
 ];
 
 async function gocleriUygula(d: SQLite.SQLiteDatabase): Promise<void> {
@@ -265,6 +274,7 @@ interface HataSatiri {
   adet: number; konum: string; aciklama: string; zaman: string;
   durum: string; atanan_kisi: string | null; gideren: string | null;
   giderilme_zamani: string | null; dogrulayan: string | null; dogrulama_zamani: string | null;
+  onlem: string | null; dogrulama_body: string | null;
 }
 
 function denetimeCevir(d: DenetimSatiri, hatalar: Hata[], kapsam: string[] = []): Denetim {
@@ -289,6 +299,7 @@ function hataya(h: HataSatiri, fotograflar: string[]): Hata {
     aciklama: h.aciklama, zaman: h.zaman, durum: h.durum as Hata['durum'],
     atananKisi: h.atanan_kisi, gideren: h.gideren, giderilmeZamani: h.giderilme_zamani,
     dogrulayan: h.dogrulayan, dogrulamaZamani: h.dogrulama_zamani,
+    onlem: h.onlem ?? '', dogrulamaBody: h.dogrulama_body ?? '',
     fotograflar,
   };
 }
@@ -385,10 +396,10 @@ export async function istatistikVerisi(baslangicSonrasi: Date): Promise<HataKayd
   const satirlar = await d.getAllAsync<{
     denetim_id: string; arac_id: string; parca_id: string; hata_tipi_id: string;
     derece: string; kabul_edilebilir: number; adet: number | null; sistem: string | null;
-    baslangic: string; kaynak: string | null;
+    baslangic: string; kaynak: string | null; durum: string;
   }>(
     `SELECT h.denetim_id, dn.arac_id, h.parca_id, h.hata_tipi_id, h.derece, h.kabul_edilebilir, h.adet, h.sistem,
-            dn.baslangic, dn.denetim_tipi AS kaynak
+            dn.baslangic, dn.denetim_tipi AS kaynak, dn.durum
        FROM hatalar h
        JOIN denetimler dn ON dn.id = h.denetim_id
       WHERE dn.baslangic >= ?`,
@@ -401,7 +412,7 @@ export async function istatistikVerisi(baslangicSonrasi: Date): Promise<HataKayd
       adet: x.adet ?? 1,
       demerit: demeritDegeri({ derece: x.derece as DereceKodu, kabulEdilebilir: x.kabul_edilebilir === 1 }),
       sistem: sistemDegeri(temel),
-      kaynak: x.kaynak ?? '', denetimBaslangici: x.baslangic,
+      kaynak: x.kaynak ?? '', durum: x.durum, denetimBaslangici: x.baslangic,
     };
   });
 }
@@ -609,8 +620,8 @@ export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
     `INSERT INTO hatalar (id, denetim_id, parca_id, hata_tipi_id, derece, kabul_edilebilir,
         sorun_tipi, sorumlu, sinif, sistem, ikinci_parca_id, adet, konum,
         aciklama, zaman, durum, atanan_kisi, gideren, giderilme_zamani, dogrulayan,
-        dogrulama_zamani, guncelleme, senkron_zamani)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+        dogrulama_zamani, onlem, dogrulama_body, guncelleme, senkron_zamani)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
      ON CONFLICT(id) DO UPDATE SET
         parca_id = excluded.parca_id, hata_tipi_id = excluded.hata_tipi_id,
         ikinci_parca_id = excluded.ikinci_parca_id,
@@ -622,13 +633,14 @@ export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
         atanan_kisi = excluded.atanan_kisi, gideren = excluded.gideren,
         giderilme_zamani = excluded.giderilme_zamani, dogrulayan = excluded.dogrulayan,
         dogrulama_zamani = excluded.dogrulama_zamani,
+        onlem = excluded.onlem, dogrulama_body = excluded.dogrulama_body,
         guncelleme = excluded.guncelleme, senkron_zamani = NULL`,
     hata.id, denetimId, hata.parcaId, hata.hataTipiId, hata.derece,
     hata.kabulEdilebilir ? 1 : 0, hata.sorunTipi ?? 'Part', hata.sorumlu ?? '',
     hata.sinif ?? 'MINOR', hata.sistem ?? '', hata.ikinciParcaId ?? '', hata.adet,
     hata.konum, hata.aciklama, hata.zaman, hata.durum, hata.atananKisi ?? null,
     hata.gideren ?? null, hata.giderilmeZamani ?? null, hata.dogrulayan ?? null,
-    hata.dogrulamaZamani ?? null, simdi(),
+    hata.dogrulamaZamani ?? null, hata.onlem ?? '', hata.dogrulamaBody ?? '', simdi(),
   );
   if (onceki) {
     const sonra = await d.getFirstAsync<Record<string, unknown>>('SELECT * FROM hatalar WHERE id = ?', hata.id);
