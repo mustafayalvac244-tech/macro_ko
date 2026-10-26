@@ -153,7 +153,7 @@ export function BaslikCipi({ metin, simge: Ikon, mono = false }: { metin: string
  * zorunludur.
  */
 export function BaslikDugmesi({
-  simge: Ikon, metin, erisimEtiketi, onPress, birincil = false, sayac,
+  simge: Ikon, metin, erisimEtiketi, onPress, birincil = false, sayac, yukleniyor = false,
 }: {
   simge?: Simge;
   metin?: string;
@@ -162,6 +162,8 @@ export function BaslikDugmesi({
   birincil?: boolean;
   /** Düğmenin yanında sayı (ör. kaydedilen hata adedi) — dar ekranda da görünür. */
   sayac?: number;
+  /** Simge yerine dönen gösterge; düğme bu sırada basılmaz. */
+  yukleniyor?: boolean;
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
@@ -172,6 +174,8 @@ export function BaslikDugmesi({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={erisimEtiketi}
+      accessibilityState={{ busy: yukleniyor, disabled: yukleniyor }}
+      disabled={yukleniyor}
       onPress={onPress}
       style={({ pressed }) => [
         s.cubukDugme,
@@ -180,7 +184,7 @@ export function BaslikDugmesi({
         pressed && s.basili,
       ]}
     >
-      {Ikon ? <Ikon size={20} color={renk} strokeWidth={2} /> : null}
+      {yukleniyor ? <ActivityIndicator color={renk} /> : Ikon ? <Ikon size={20} color={renk} strokeWidth={2} /> : null}
       {metniGoster ? <Text style={[s.cubukDugmeMetin, { color: renk }]} numberOfLines={1}>{metin}</Text> : null}
       {sayac !== undefined ? (
         <View style={[s.sayac, birincil && { backgroundColor: renkler.metinTers }]}>

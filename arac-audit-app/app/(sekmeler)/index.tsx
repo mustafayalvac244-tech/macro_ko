@@ -2,7 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { GuncellemeBildirimi } from '@/bilesenler/Guncelleme';
+import { GuncelleDugmesi, GuncellemeBildirimi } from '@/bilesenler/Guncelleme';
 import { Sayac } from '@/bilesenler/Sayac';
 import { S } from '@/bilesenler/simgeler';
 import {
@@ -144,7 +144,8 @@ export default function DenetimListesi() {
   return (
     <Ekran>
       {/* Ayarlar alt sekmede (25.10.2026); başlıktaki dişli kalktı. */}
-      <Baslik baslik="Denetimler" altBaslik="Kayıtlar yalnız bu cihazda" />
+      {/* "Güncelle" tek dokunuş (26.10.2026); web'de ve geliştirmede görünmez. */}
+      <Baslik baslik="Denetimler" altBaslik="Kayıtlar yalnız bu cihazda" sag={<GuncelleDugmesi />} />
 
       {hata ? <View style={s.hataKap}><HataKutusu metin={`Kayıtlar okunamadı: ${hata}`} /></View> : null}
 

@@ -60,9 +60,12 @@ export default function Ayarlar() {
     <Ekran>
       <Baslik baslik="Ayarlar" />
       <ScrollView contentContainerStyle={s.govde}>
+        {/* Sürüm ve tek dokunuşla güncelleme EN ÜSTTE (26.10.2026, ürün
+            sahibi: "güncelleme butonu koy"). Web'de gizli. */}
+        <SurumKarti />
+
         <Kart>
           <BolumBasligi metin="Görünüm" simge={S.gorunum} />
-          <Text style={s.aciklama}>Üst çubuk iki temada da koyudur; içerik seçilen temayı izler.</Text>
           <View style={s.satir}>
             {TEMALAR.map((t) => (
               <Secenek
@@ -123,8 +126,6 @@ export default function Ayarlar() {
           {yedekHatasi ? <BilgiKutusu tur="uyari" metin={yedekHatasi} /> : null}
         </Kart>
 
-        {/* Hangi paketin çalıştığı ve elle güncelleme denetimi. Web'de gizli. */}
-        <SurumKarti />
       </ScrollView>
     </Ekran>
   );

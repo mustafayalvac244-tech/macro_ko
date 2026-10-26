@@ -12,10 +12,10 @@
 
 import * as Updates from 'expo-updates';
 import React, { useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { S } from '@/bilesenler/simgeler';
-import { BilgiKutusu, BolumBasligi, Dugme, Kart } from '@/bilesenler/temel';
+import { BaslikDugmesi, BilgiKutusu, BolumBasligi, Dugme, Kart } from '@/bilesenler/temel';
 import { calisanPaketMetni } from '@/cekirdek/surum';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 
@@ -60,36 +60,92 @@ function Bildirim() {
   );
 }
 
-/** Ayarlar → Sürüm: hangi paketin çalıştığı ve elle denetleme. */
+/**
+ * TEK DOKUNUŞLA GÜNCELLE (26.10.2026, ürün sahibi: "güncelleme butonu koy,
+ * tıklayıp güncelleyeyim"). Önceden iki adımdı: Ayarlar → Sürüm →
+ * "Güncellemeleri denetle", inince ayrıca "Yeniden başlat". Şimdi tek dokunuş:
+ * denetle → indir → yeniden başlat. Kayıtlar cihazdaki veritabanında,
+ * yeniden başlatma onlara dokunmaz.
+ */
+export type GuncellemeSonucu = 'guncel' | 'ulasilamadi' | 'baslatilamadi' | null;
+
+export function useTekDokunusGuncelle() {
+  const { isUpdatePending, isChecking, isDownloading } = Updates.useUpdates();
+  const [calisiyor, setCalisiyor] = useState(false);
+  const [sonuc, setSonuc] = useState<GuncellemeSonucu>(null);
+  const guncelle = async (): Promise<GuncellemeSonucu> => {
+    setSonuc(null);
+    setCalisiyor(true);
+    try {
+      if (!isUpdatePending) {
+        const denetim = await Updates.checkForUpdateAsync();
+        // Geri alma yönergesi `isAvailable: false` ile gelir ama yine de
+        // indirilmelidir; yoksa sunucudan geri alınan sürüm telefonda kalır.
+        if (!denetim.isAvailable && !denetim.isRollBackToEmbedded) {
+          setSonuc('guncel');
+          return 'guncel';
+        }
+        const inen = await Updates.fetchUpdateAsync();
+        if (!inen.isNew && !inen.isRollBackToEmbedded) {
+          setSonuc('guncel');
+          return 'guncel';
+        }
+      }
+      try {
+        await Updates.reloadAsync();
+      } catch {
+        setSonuc('baslatilamadi');
+        return 'baslatilamadi';
+      }
+      return null;
+    } catch {
+      setSonuc('ulasilamadi');
+      return 'ulasilamadi';
+    } finally {
+      setCalisiyor(false);
+    }
+  };
+  return { guncelle, sonuc, calisiyor: calisiyor || isChecking || isDownloading, bekleyen: isUpdatePending };
+}
+
+const SONUC_METNI: Record<Exclude<GuncellemeSonucu, null>, string> = {
+  guncel: 'Güncel: yeni sürüm yok.',
+  ulasilamadi: 'Güncelleme sunucusuna ulaşılamadı. Bağlantıyı kontrol edip yeniden deneyin; uygulama bu arada çalışmaya devam eder.',
+  baslatilamadi: BASLATILAMADI,
+};
+
+/** Ana sayfa başlığındaki "Güncelle" — yeni sürüm inmişse vurgulu. */
+export function GuncelleDugmesi() {
+  return GUNCELLEME_ACIK ? <GuncelleDugmesiIc /> : null;
+}
+
+function GuncelleDugmesiIc() {
+  const { guncelle, calisiyor, bekleyen } = useTekDokunusGuncelle();
+  return (
+    <BaslikDugmesi
+      simge={S.guncelleme}
+      metin={bekleyen ? 'Yeni sürümü yükle' : 'Güncelle'}
+      birincil={bekleyen}
+      yukleniyor={calisiyor}
+      erisimEtiketi={bekleyen ? 'Yeni sürüm hazır: yüklemek için uygulamayı yeniden başlat' : 'Güncellemeleri denetle ve yükle'}
+      onPress={async () => {
+        const s = await guncelle();
+        if (s) Alert.alert('Güncelleme', SONUC_METNI[s]);
+      }}
+    />
+  );
+}
+
+/** Ayarlar → Sürüm: hangi paketin çalıştığı ve tek dokunuşla güncelleme. */
 export function SurumKarti() {
   return GUNCELLEME_ACIK ? <SurumIcerigi /> : null;
 }
 
-type Durum = null | 'guncel' | 'ulasilamadi' | 'baslatilamadi';
-
 function SurumIcerigi() {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
-  const { currentlyRunning, isUpdatePending, isChecking, isDownloading } = Updates.useUpdates();
-  const [durum, setDurum] = useState<Durum>(null);
-
-  const denetle = async () => {
-    setDurum(null);
-    try {
-      const sonuc = await Updates.checkForUpdateAsync();
-      // Geri alma yönergesi `isAvailable: false` ile gelir ama yine de
-      // indirilmelidir; yoksa sunucudan geri alınan sürüm telefonda kalır.
-      if (!sonuc.isAvailable && !sonuc.isRollBackToEmbedded) {
-        setDurum('guncel');
-        return;
-      }
-      const inen = await Updates.fetchUpdateAsync();
-      // Başarılıysa useUpdates → isUpdatePending true olur ve düğme değişir.
-      if (!inen.isNew && !inen.isRollBackToEmbedded) setDurum('guncel');
-    } catch {
-      setDurum('ulasilamadi');
-    }
-  };
+  const { currentlyRunning } = Updates.useUpdates();
+  const { guncelle, sonuc: durum, calisiyor, bekleyen: isUpdatePending } = useTekDokunusGuncelle();
 
   const kutu = currentlyRunning.isEmergencyLaunch
     ? {
@@ -112,22 +168,14 @@ function SurumIcerigi() {
       </View>
       {kutu ? <BilgiKutusu tur={kutu.tur} metin={kutu.metin} /> : null}
       {durumKutusu ? <BilgiKutusu tur={durumKutusu.tur} metin={durumKutusu.metin} /> : null}
-      {isUpdatePending ? (
-        <Dugme
-          metin="Yeniden başlat"
-          tur="birincil"
-          simge={S.yenidenBaslat}
-          erisimEtiketi="Yeni sürümü yüklemek için uygulamayı yeniden başlat"
-          onPress={() => { Updates.reloadAsync().catch(() => setDurum('baslatilamadi')); }}
-        />
-      ) : (
-        <Dugme
-          metin={isDownloading ? 'İndiriliyor…' : 'Güncellemeleri denetle'}
-          simge={S.guncelleme}
-          yukleniyor={isChecking || isDownloading}
-          onPress={denetle}
-        />
-      )}
+      <Dugme
+        metin={isUpdatePending ? 'Yeni sürümü yükle' : 'Güncelle'}
+        tur="birincil"
+        simge={isUpdatePending ? S.yenidenBaslat : S.guncelleme}
+        yukleniyor={calisiyor}
+        erisimEtiketi={isUpdatePending ? 'Yeni sürüm hazır: yüklemek için uygulamayı yeniden başlat' : 'Güncellemeleri denetle ve yükle'}
+        onPress={() => { guncelle(); }}
+      />
     </Kart>
   );
 }
