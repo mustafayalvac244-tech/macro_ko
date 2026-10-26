@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AracGorselleriAyari } from '@/bilesenler/AracGorselleriAyari';
 import { ListeDuzenle, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { SurumKarti } from '@/bilesenler/Guncelleme';
 import { GRUP_SIMGELERI, S, Simge } from '@/bilesenler/simgeler';
@@ -142,6 +143,13 @@ export default function Ayarlar() {
         <Kart>
           <BolumBasligi metin={t('Ekibin eklediği hata tipleri', 'Defect types added by the team')} simge={S.etiket} />
           <OzelTipler />
+        </Kart>
+
+        {/* Döndürülebilir araç (26.10.2026): dokuz bakış yuvasına galeriden
+            görsel seçme; görseller yalnız bu telefonda durur. */}
+        <Kart>
+          <BolumBasligi metin={t('Araç görselleri (360°)', 'Vehicle images (360°)')} simge={S.arac} />
+          <AracGorselleriAyari />
         </Kart>
 
         <Kart>

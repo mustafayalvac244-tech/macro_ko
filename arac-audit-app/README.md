@@ -276,6 +276,77 @@ silindi; araç seçimi artık Bilgiler sayfasındaki gibi yalnız adla (`Secenek
 Araç tipi (`tip: 'ev' | 'ice'`) veri modelinde duruyor — parça listesi hâlâ
 ona göre seçilir, yalnız ekranda yazmıyor.
 
+### Döndürülebilir araç (360°) — 26.10.2026
+
+Ürün sahibi: *"Hyundai sitelerinde aracı döndürebiliyoruz; araç üstünden parça
+seçmek için ekleyebilir miyiz?"* Görsel kaynağı olarak Hyundai'nin **resmî**
+görsellerini seçti. Elindekiler sitedeki gibi 24–36 karelik bir dizi değil,
+**standart bakışlar** (önden, sol önden, soldan …, üstten). Sonra: *"sol ön
+garnişe tıklayınca o parça seçilsin."*
+
+- **Dokuz bakış yuvası:** Ön, Sol ön, Sol yan, Sol arka, Arka, Sağ arka, Sağ
+  yan, Sağ ön, Üstten. Ayarlar → *Araç görselleri (360°)*: her yuvaya
+  galeriden tek görsel seçilir, değiştirilir, temizlenir. Açılar sabit (0, 45 …
+  315). İlk tasarımdaki çok kareli içe aktarma ile ön kare / yön / kırpma ayarı
+  **çıkarıldı**: standart bakışta açı adından belli, ayarlanacak bir şey yok.
+- **Görseller depoya ve APK'ya girmez.** İkisi de herkese açık. Seçilen görsel
+  küçültülüp (en çok 1600 px) uygulamanın klasörüne kopyalanır, yalnız o
+  telefonda durur; tam yedeğe de girmez (`veri/aracGorselleri.ts`).
+- **Ayna:** eksik bir yan yuva karşı yanın yatay aynasıyla doldurulur, ekranda
+  *"aynalanmış görünüm"* yazar. Yalnız sol/sağ çiftleri arasında; ön, arka ve
+  üst uydurulmaz. Araç tam simetrik değil (şarj kapağı vb.).
+- **Döndürme:** parmak yana kaydıkça ya da ◀ ▶ ile sıradaki dolu (ya da
+  aynalanmış) bakış; *Üstten* ayrı düğme. Uygulama açıldığında sol önden
+  başlar, sonra araç başına son bakışta kalır (telefonda parça açılıp
+  dönülünce de).
+- **Dokunuş → parça:** bakışın **parça haritası** varsa
+  (`cekirdek/gorunumParcalari.ts` → `PARCA_HARITALARI`: görsele göre
+  normalize çokgenler) ve görselin en/boy oranı haritanınkiyle **%2 içinde**
+  uyuyorsa dokunulan parçanın **hata ızgarası** açılır — listeden seçmekle
+  aynı. İç içe çokgenlerde küçük olan kazanır (kapının üstündeki ayna);
+  katalogda olmayan kimlik yok sayılır; çokgen dışına dokunuş yalnız *"Bir
+  parçaya dokunun"* der, tahmin yok. Aynalanan bakış kaynağın haritasının
+  aynasını kullanır (`sol_` ↔ `sag_`). Kaydı olan parçalar görselin üstünde
+  hafif boyanır; tablette seçili parça vurgulu, adı altta yazar.
+- **Harita yoksa ya da oran uymuyorsa → bölge:** araç en/boy ölçüsünden bir
+  kutu sayılıp görünen yüzler yatay eksene yerleştirilir; dokunulan yüzün dış
+  bölgesi açılır, parça listeden seçilir. **Yaklaşık:** köşe bakışlarında
+  gerçek görselde ön/yan sınırı kutudan farklı düşer (ürün sahibinin sol ön
+  görselinde ön, enin ~%43'ü; kutu %30 diyor). Tavan yalnız Üstten bakışta.
+- **`PARCA_HARITALARI` bugün BOŞ.** Çokgen verisi ayrı hazırlanıyor; gelene
+  kadar her bakış bölge düzeyinde çalışır. Ayarlar her yuvada durumu yazar:
+  *parça haritası yok / uyuyor / oran uymuyor*.
+- Görsel yokken ekran eskisi gibi şematik haritayı gösterir. Erişilebilirlik:
+  görüntü ekran okuyucuya kapalı (çokgenler öğe değil); ◀ ▶ ve Üstten adlı,
+  sistem listesi her zaman altında.
+- **Sınav kancası:** `EXPO_PUBLIC_GORUNUM_HARITASI_SINAV` (JSON) yalnız uçtan
+  uca sınavın web derlemesinde verilir ve o aracın haritalarının yerine geçer.
+  APK/OTA derlemesinde tanımsız; olağan web derlemesinde sınav haritasından
+  iz olmadığı derlenmiş dosyada arandı (yok).
+
+**Doğrulanan** (beklentileri, sınav haritasını ve sentetik görselleri ben
+yazdım; bağımsız bir sınav değil):
+- Birim testleri: `tests/aracAuditGorunumParcalari.test.ts` (9) ve
+  `tests/aracAuditDonus.test.ts` (11). Beş koruma tek tek bilerek bozuldu (en
+  küçük çokgen, ayna taraf çevirisi, bilinmeyen parça eleme, %2 oran payı,
+  kenar boşluğu); her birinde en az bir test düştü.
+- Web'de telefon ve tablette 10 adımlık uçtan uca sınav, **sentetik** görsel ve
+  **sentetik** haritayla: yuva seç / değiştir / temizle; 4:3 görselde *oran
+  uymuyor*; tampona dokunuş → Ön tampon ızgarası, kayıttan sonra tampon boyalı;
+  çokgen dışı → yalnız ipucu; kaydırma; ayna kapıyı yener, bilinmeyen çokgen
+  arka kapıyı gölgelemez; aynalanmış Sağ ön / Sağ yan'da tampon sağda, sağ ön
+  kapı ve sağ ayna; haritasız Ön → bölge; Üstten → tavan; oran uymayan görselde
+  kenar boşluğu dokunuşu boş, görsele dokunuş bölge; İngilizce yazılar. Aynalı
+  haritayı bilerek kapatınca sınav o adımda düştü.
+- Ürün sahibinin **gerçek** görselleriyle (sağ yan eksik) yalnız web'de bir
+  gözlem koşusu: sekiz bakış sırayla döndü, Sağ yan aynalandı, Sol ön'de
+  solda ön / sağda yan bölgesi açıldı. Harita olmadığı için yüz düzeyi.
+  Görseller dosya seçiciyle tarayıcıya verildi; depoya, pakete girmedi.
+
+**Doğrulanmayan:** gerçek parça haritası yok — parça düzeyindeki dokunuş yalnız
+sentetik görsel + sentetik haritayla görüldü. **Telefonda hiç görülmedi**
+(galeri izni, dosya kopyalama, parmakla kaydırma ve dokunuş).
+
 ## Hata listesi kodda bitmiyor — ekip kendi tipini ekler
 
 Sahada sürekli yeni ve çok spesifik hata çıkıyor. Her yeni hata için sürüm
@@ -637,6 +708,7 @@ durdurma, onarıma yönlendirme).
 | Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **26.10.2026'da yerini Excel'in DEMERIT 0–3 + CLASS'ı aldı** (aşağıdaki satır) |
 | Excel içeriği (NAS, 26.10.2026): demerit, class, system, responsible, kaynak listesi, model kodu, body 6 hane, Audit Skoru, Excel'e aktar | **Kod bitti** — kurallar Excel'den okundu; testleri ben yazdım; 4 düzende 14 adım geçti; **telefonda görülmedi**. BJ = IONIQ 3 çıkarım |
+| Döndürülebilir araç (360°, 26.10.2026): dokuz bakış yuvası, eksik yan aynalanır, parça haritası varsa dokunulan parçanın ızgarası açılır, yoksa dış bölge | **Kod bitti, veri yok** — `PARCA_HARITALARI` boş (çokgenler ayrı hazırlanıyor), bugün bölge düzeyi. Web'de telefon ve tablette 10 adım **sentetik** görsel + **sentetik** haritayla geçti; gerçek görsellerle yalnız web'de yüz düzeyi gözlem; **telefonda denenmedi** |
 | Dil: Türkçe / English (26.10.2026) | **Kod bitti** — Türkçe sınav 4 düzende değişmeden geçti (Türkçe metinler aynı kaldı); İngilizce sınav telefon ve tablette 10 ekranı taradı, Türkçe harfli metin yalnız bilerek kendi dilinde yazılan "Türkçe" seçeneği. Tarama Türkçe harf içermeyen Türkçe kelimeyi kaçırabilir; ekran görüntüleri gözle de bakıldı. Çeviriler benim (ve yardımcı ajanların); **İngilizce bilen bir kullanıcı okumadı**, telefonda görülmedi |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |

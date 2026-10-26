@@ -30,6 +30,7 @@ import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AracHaritasi } from '@/bilesenler/AracHaritasi';
+import { DonusGorunumu } from '@/bilesenler/DonusGorunumu';
 import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, BolumBasligi, Dugme, IlerlemeCubugu } from '@/bilesenler/temel';
 import { aramaEslesir } from '@/cekirdek/arama';
@@ -37,6 +38,7 @@ import { parcaAramaMetni, parcaBolgeAdi, parcaTamAdi } from '@/cekirdek/katalog'
 import { kisaBolgeAdi, sistemAdi, SISTEMLER } from '@/cekirdek/sistemler';
 import { Bolge, BolgeGrubu } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
+import { gorselVar, useAracGorselleri } from '@/veri/aracGorselleri';
 import { useDil } from '@/veri/dilDeposu';
 
 export interface Konum { sistem: BolgeGrubu | null; bolgeId: string | null }
@@ -47,7 +49,7 @@ const enSayi = (n: number, ad: string): string => `${n} ${ad}${n === 1 ? '' : 's
 
 export function AdimliSecim({
   bolgeler, konum, setKonum, arama, setArama, parcaId, parcaSayilari, sonParcalar, onSec, tablet,
-  kapsam, onKapsam, onBitir,
+  kapsam, onKapsam, onBitir, aracId,
 }: {
   bolgeler: Bolge[];
   konum: Konum;
@@ -64,10 +66,13 @@ export function AdimliSecim({
   onKapsam: (sistem: BolgeGrubu, isaretli: boolean) => void;
   /** Verilirse sistem listesinin sonunda "Denetimi bitir" çıkar (devam eden denetim). */
   onBitir?: () => void;
+  /** Aracın görselleri aktarılmışsa harita yerine döndürülebilir görünüm çıkar (26.10.2026). */
+  aracId?: string;
 }) {
   const { renkler } = useTema();
   const { dil, t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
+  const gorselleriVar = useAracGorselleri((d) => !!aracId && gorselVar(d.gorseller[aracId]));
 
   const sistemler = useMemo(
     () => SISTEMLER.map((x) => ({ ...x, bolgeler: bolgeler.filter((b) => b.grup === x.id) })).filter((x) => x.bolgeler.length),
@@ -205,11 +210,26 @@ export function AdimliSecim({
 
             {adim === 1 ? (
               <View style={s.izgara}>
-                <AracHaritasi
-                  bolgeler={disBolgeler}
-                  sayilar={bolgeSayilari}
-                  onSec={(bolgeId) => setKonum({ sistem: 'dis', bolgeId })}
-                />
+                {/* Ürün sahibinin aktardığı araç görselleri varsa şematik
+                    haritanın yerine döndürülebilir araç (26.10.2026): parça
+                    haritası olan bakışta dokunulan parça doğrudan açılır. */}
+                {gorselleriVar && aracId ? (
+                  <DonusGorunumu
+                    key={aracId}
+                    aracId={aracId}
+                    bolgeler={bolgeler}
+                    kayitliParcalar={parcaSayilari}
+                    seciliParcaId={parcaId}
+                    onBolgeSec={(bolgeId) => setKonum({ sistem: 'dis', bolgeId })}
+                    onParcaSec={onSec}
+                  />
+                ) : (
+                  <AracHaritasi
+                    bolgeler={disBolgeler}
+                    sayilar={bolgeSayilari}
+                    onSec={(bolgeId) => setKonum({ sistem: 'dis', bolgeId })}
+                  />
+                )}
                 {sistemler.map((x) => {
                   const Ikon = BOLGE_SIMGELERI[x.id];
                   const ad = sistemAdi(x.id, dil);

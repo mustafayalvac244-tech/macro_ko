@@ -33,6 +33,7 @@
     "tests/aracAuditIstatistik.test.ts",
     "tests/aracAuditKatalogEkip.test.ts",
     "tests/aracAuditNas.test.ts",
-    "tests/aracAuditDil.test.ts"
+    "tests/aracAuditDil.test.ts",
+    "tests/aracAuditDonus.test.ts"
   ]
 }

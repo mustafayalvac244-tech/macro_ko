@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { TemaSaglayici, useTema } from '@/tema';
+import { useAracGorselleri } from '@/veri/aracGorselleri';
 import { useDilDeposu } from '@/veri/dilDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
 
@@ -50,6 +51,8 @@ export default function KokDuzen() {
   // kaydı ekranı bu iş bitmeden açılırsa yalnız yerleşik tipler görünür,
   // liste yüklenince kendiliğinden tazelenir.
   useEffect(() => { useKatalog.getState().yukle(); }, []);
+  // 360° araç görselleri (26.10.2026): açılışı bekletmez; yoksa harita çıkar.
+  useEffect(() => { useAracGorselleri.getState().yukle(); }, []);
 
   if ((!yazilarHazir && !yaziHatasi) || !dilHazir) return null;
 

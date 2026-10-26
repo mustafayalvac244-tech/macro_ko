@@ -411,6 +411,7 @@ export default function DenetimEkrani() {
       onBitir={denetim.durum === 'devam'
         ? () => router.push({ pathname: '/denetim/rapor', params: { id: denetim.id, bitir: '1' } })
         : undefined}
+      aracId={denetim.aracId}
     />
   );
 
