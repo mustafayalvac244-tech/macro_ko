@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   aracHaritasiVar, cizimRolu, dokunulanYuz, dokunusSonucu, gorunenYuzler, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka,
-  HALKA_YUVALARI, kaydirmaIndeksi, oranUyar, sar, UST_BOLGESI, yuvaAdi, YUVALAR, YUZ_BOLGESI,
+  HALKA_YUVALARI, kaydirmaIndeksi, oranUyar, sar, UST_BOLGESI, yumusakYol, yuvaAdi, YUVALAR, YUZ_BOLGESI,
 } from '../arac-audit-app/src/cekirdek/donusGorunumu';
 import { GorunumId, PARCA_HARITALARI } from '../arac-audit-app/src/cekirdek/gorunumParcalari';
 import { BOLGELER, PARCA_INDEKS } from '../arac-audit-app/src/cekirdek/katalog';
@@ -169,5 +169,77 @@ describe('parça haritası ve dokunuş', () => {
     expect(dokunusSonucu({ x: 0.1, y: 0.5 }, { aci: 45 }, null, olcu)).toEqual({ tur: 'bolge', bolgeId: 'dis_on' });
     expect(dokunusSonucu({ x: 0.5, y: 0.5 }, { aci: 270 }, null, olcu)).toEqual({ tur: 'bolge', bolgeId: 'dis_sag' });
     expect(dokunusSonucu({ x: 0.5, y: 0.5 }, { aci: null }, null, olcu)).toEqual({ tur: 'bolge', bolgeId: 'dis_ust' });
+  });
+});
+
+// 26.10.2026 — ürün sahibi: "bu araba silueti neden boktan". Çizimde kenarlar
+// kavislenir, sivri köşe kalır. Beklentileri ben yazdım.
+describe('çizimde yumuşak kenar (yumusakYol)', () => {
+  /** Yolu sayılara çevir: başlangıç noktası ve her kübik parçanın [c1x, c1y, c2x, c2y, x, y] altılısı. */
+  const coz = (d: string) => {
+    const s = [...d.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
+    const kup: number[][] = [];
+    for (let i = 2; i < s.length; i += 6) kup.push(s.slice(i, i + 6));
+    return { bas: [s[0]!, s[1]!], kup };
+  };
+
+  it('kare: dört köşe de sivri kalır, kenarlar düz', () => {
+    expect(yumusakYol([[0, 0], [1, 0], [1, 1], [0, 1]], 10, 10))
+      .toBe('M0,0C0,0 10,0 10,0C10,0 10,10 10,10C10,10 0,10 0,10C0,10 0,0 0,0Z');
+  });
+
+  it('düzgün 12-gen (her köşede 30°): eğri her köşeden geçer, kontrol noktası köşede değil ve kenarın %40\'ını aşmıyor', () => {
+    const k = 12;
+    const n = Array.from({ length: k }, (_, i) => [0.5 + 0.4 * Math.cos((2 * Math.PI * i) / k), 0.5 + 0.4 * Math.sin((2 * Math.PI * i) / k)] as const);
+    const { bas, kup } = coz(yumusakYol(n, 100, 100));
+    expect(kup).toHaveLength(k);
+    const kenar = 2 * 40 * Math.sin(Math.PI / k);
+    kup.forEach((c, i) => {
+      expect(c[4]).toBeCloseTo(n[(i + 1) % k]![0] * 100, 0);
+      expect(c[5]).toBeCloseTo(n[(i + 1) % k]![1] * 100, 0);
+      const p = i === 0 ? bas : kup[i - 1]!.slice(4);
+      const d = Math.hypot(c[0]! - p[0]!, c[1]! - p[1]!);
+      expect(d).toBeGreaterThan(1);
+      expect(d).toBeLessThanOrEqual(kenar * 0.4 + 0.1);
+    });
+  });
+
+  it('D biçimi: düz kenarın iki ucu sivri (90°), kavisli taraf yumuşak; kose=20 ile 46°lik köşe de sivrileşir', () => {
+    const D = ([[0, 0], [5, 0], [8, 1.5], [9.5, 5], [8, 8.5], [5, 10], [0, 10]] as const).map(([x, y]) => [x / 10, y / 10] as const);
+    const { kup } = coz(yumusakYol(D, 10, 10));
+    // Son parça G(0,10) → A(0,0): iki ucu da sivri → düz çizgi.
+    expect(kup[6]).toEqual([0, 10, 0, 0, 0, 0]);
+    // A → B: A sivri (c1 = A), B yumuşak (c2 ≠ B).
+    expect(kup[0]!.slice(0, 2)).toEqual([0, 0]);
+    expect(kup[0]!.slice(2, 4)).not.toEqual([5, 0]);
+    // C(8,1.5) → D(9.5,5): D'de dönüş ≈46° → yumuşak; kose=20 verilince sivri.
+    expect(coz(yumusakYol(D, 10, 10)).kup[2]!.slice(2, 4)).not.toEqual([9.5, 5]);
+    expect(coz(yumusakYol(D, 10, 10, 20)).kup[2]!.slice(2, 4)).toEqual([9.5, 5]);
+  });
+
+  it('uzun kenarın yanındaki kısa kenarda taşmaz (kontrol noktası kısa kenarın %40\'ı içinde)', () => {
+    // P1'de dönüş 45° (yumuşak); P1→P2 kenarı ≈1,41, P0→P1 kenarı 100.
+    const n = ([[0, 0], [100, 0], [101, 1], [101, 50], [0, 50]] as const).map(([x, y]) => [x / 200, y / 100] as const);
+    const { kup } = coz(yumusakYol(n, 200, 100));
+    const c1 = kup[1]!.slice(0, 2); // P1 → P2 parçasının ilk kontrol noktası
+    expect(Math.hypot(c1[0]! - 100, c1[1]! - 0)).toBeLessThanOrEqual(0.4 * Math.SQRT2 + 0.1);
+  });
+
+  it('üçten az köşe: boş yol', () => {
+    expect(yumusakYol([[0, 0], [1, 1]], 10, 10)).toBe('');
+  });
+
+  it('IONIQ 3 haritasının 273 çokgeni: her biri köşe sayısı kadar kübik parçalı, sayısal bir yol verir', () => {
+    let sayi = 0;
+    for (const h of Object.values(PARCA_HARITALARI.ioniq3!)) {
+      for (const a of h!.alanlar) {
+        const d = yumusakYol(a.nokta, 1000, 500);
+        expect(d.startsWith('M') && d.endsWith('Z')).toBe(true);
+        expect(d).not.toMatch(/NaN|Infinity/);
+        expect(d.split('C')).toHaveLength(a.nokta.length + 1);
+        sayi++;
+      }
+    }
+    expect(sayi).toBe(273);
   });
 });

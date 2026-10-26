@@ -23,13 +23,13 @@ import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 
 import {
   Image, LayoutChangeEvent, PanResponder, Pressable, StyleSheet, Text, View,
 } from 'react-native';
-import Svg, { Defs, Ellipse, Line, LinearGradient, Polygon, Stop } from 'react-native-svg';
+import Svg, { Defs, Ellipse, Line, LinearGradient, Path, Polygon, RadialGradient, Stop } from 'react-native-svg';
 
 import { S } from '@/bilesenler/simgeler';
 import { Dugme, Secenek } from '@/bilesenler/temel';
 import {
   AracOlcusu, cizimRolu, CizimRolu, dokunusSonucu, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka, HalkaGirdisi,
-  kaydirmaIndeksi, kaynakHaritasi, sar, yuvaAdi,
+  kaydirmaIndeksi, kaynakHaritasi, sar, yumusakYol, yuvaAdi,
 } from '@/cekirdek/donusGorunumu';
 import { cokgenAlani, GorunumHaritasi, GorunumId } from '@/cekirdek/gorunumParcalari';
 import { parcaTamAdi } from '@/cekirdek/katalog';
@@ -168,6 +168,7 @@ export function DonusGorunumu({
   const isaretli = bekleyen ?? seciliParcaId ?? null;
   // Jant yalnız yan ve çapraz bakışta görünür; önden/arkadan/üstten lastiğin sırtı görünür.
   const jantli = 'girdi' in gorunum && gorunum.girdi.aci % 180 !== 0;
+  const govdeProfili: GovdeProfili = 'girdi' in gorunum ? (jantli ? 'yan' : 'onArka') : 'parca';
   const onayla = () => {
     if (!bekleyen) return;
     const p = bekleyen;
@@ -192,7 +193,7 @@ export function DonusGorunumu({
         {/* Dokunuş sahneye gitsin: konum sahnenin içine göre okunuyor. */}
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           {cizim && harita && kap.en > 0 ? (
-            <AracCizimi harita={harita} en={kutu.en} boy={kutu.boy} x={kutu.x} y={kutu.y} jantli={jantli} />
+            <AracCizimi harita={harita} en={kutu.en} boy={kutu.boy} x={kutu.x} y={kutu.y} jantli={jantli} profil={govdeProfili} />
           ) : null}
           {yuvaGorseli && kap.en > 0 ? (
             <Image
@@ -215,14 +216,20 @@ export function DonusGorunumu({
                 const kayitli = (kayitliParcalar.get(a.parcaId) ?? 0) > 0;
                 if (!secili && !kayitli) return null;
                 // Kayıtlı dolgu 0.22 iken teal gövdede kırmızı griye dönüyordu (#AE2018 %22 + #79A2A9 ≈ 133,133,137).
-                return (
+                const boya = {
+                  fill: secili ? renkler.birincil : renkler.tehlike,
+                  fillOpacity: secili ? 0.45 : 0.55,
+                  stroke: secili ? renkler.birincil : renkler.tehlike,
+                  strokeWidth: secili ? 2 : 1.5,
+                };
+                // Çizimde vurgu da çizimin yumuşak kenarını izler; görselde düz çokgen.
+                return cizim ? (
+                  <Path key={`${a.parcaId}-${i}`} d={yumusakYol(a.nokta, kutu.en, kutu.boy)} {...boya} />
+                ) : (
                   <Polygon
                     key={`${a.parcaId}-${i}`}
                     points={a.nokta.map(([x, y]) => `${x * kutu.en},${y * kutu.boy}`).join(' ')}
-                    fill={secili ? renkler.birincil : renkler.tehlike}
-                    fillOpacity={secili ? 0.45 : 0.55}
-                    stroke={secili ? renkler.birincil : renkler.tehlike}
-                    strokeWidth={secili ? 2 : 1.5}
+                    {...boya}
                   />
                 );
               })}
@@ -299,24 +306,46 @@ export function DonusGorunumu({
 
 /**
  * Görseli olmayan bakışın ÇİZİMİ (26.10.2026): parça haritasının çokgenleri,
- * rolüne göre ARACIN GERÇEK RENKLERİYLE boyanır (ARAC_BOYASI, ürün sahibinin
- * görsellerinden ölçüldü): her çokgen kendi içinde üstten alta gradyan, ince
- * koyu kontur. Büyük çokgen önce, küçük üstte — dokunuşta da küçük kazanır,
- * yani görülen ile dokunulan aynı. Yan/çapraz bakışta tekerleğe jant çizilir
- * (yalnız görüntü; dokunuş lastik çokgenine gider).
+ * rolüne göre ARACIN GERÇEK RENKLERİYLE boyanır (ARAC_BOYASI). Büyük çokgen
+ * önce, küçük üstte — dokunuşta da küçük kazanır, yani görülen ile dokunulan
+ * aynı. Yan/çapraz bakışta tekerleğe jant çizilir (yalnız görüntü; dokunuş
+ * lastik çokgenine gider).
+ *
+ * SİLUET (ürün sahibi: "araba silueti neden boktan"): kenarlar yumusakYol ile
+ * kavislenir (kapı, plaka gibi sivri köşeler kalır); gövde parça parça değil
+ * aracın boyunca TEK geçişle boyanır (omuz çizgisinde parlama, ölçülü
+ * profil); altında yumuşak gölge. Önce düz çokgenler koyu "ek yeri" rengiyle
+ * çizilir: yumuşak kenarların arasında kalan boşluk panel aralığı gibi
+ * görünür, haritanın kendi küçük boşlukları da kapanır. Üstten bakışta gövde
+ * eskisi gibi parça başına geçiş (dikey ışık profili orada anlamsız).
  */
 const GRADYAN: Record<CizimRolu, readonly [string, string, string]> = {
   govde: ARAC_BOYASI.govde, siyah: ARAC_BOYASI.siyah, cam: ARAC_BOYASI.cam, lastik: ARAC_BOYASI.lastik,
   far: ARAC_BOYASI.far, drl: ARAC_BOYASI.drl, stop: ARAC_BOYASI.stop, gumus: ARAC_BOYASI.gumus, plaka: ARAC_BOYASI.plaka,
 };
 
-function AracCizimi({ harita, en, boy, x, y, jantli }: {
-  harita: GorunumHaritasi; en: number; boy: number; x: number; y: number; jantli: boolean;
+/** Gövdenin boyanışı: yan/çapraz ve ön/arka bakışta aracın boyunca tek geçiş, üstten parça başına. */
+type GovdeProfili = 'yan' | 'onArka' | 'parca';
+
+function AracCizimi({ harita, en, boy, x, y, jantli, profil }: {
+  harita: GorunumHaritasi; en: number; boy: number; x: number; y: number; jantli: boolean; profil: GovdeProfili;
 }) {
   const sirali = useMemo(
     () => [...harita.alanlar].sort((a, b) => cokgenAlani(b.nokta) - cokgenAlani(a.nokta)),
     [harita],
   );
+  const yollar = useMemo(() => sirali.map((a) => yumusakYol(a.nokta, en, boy)), [sirali, en, boy]);
+  // Aracın sınırı (gövde geçişi ve gölge buna göre).
+  const sinir = useMemo(() => {
+    let ust = Infinity; let alt = -Infinity; let sol = Infinity; let sag = -Infinity;
+    for (const a of harita.alanlar) {
+      for (const [px, py] of a.nokta) {
+        ust = Math.min(ust, py * boy); alt = Math.max(alt, py * boy);
+        sol = Math.min(sol, px * en); sag = Math.max(sag, px * en);
+      }
+    }
+    return { ust, alt, sol, sag };
+  }, [harita, en, boy]);
   // Jant: lastik çokgeninin kutusu tekerleğin yüzü gibi duruyorsa (en/boy 0,55–1,35).
   const jantlar = useMemo(() => {
     if (!jantli) return [];
@@ -329,10 +358,12 @@ function AracCizimi({ harita, en, boy, x, y, jantli }: {
       return [{ cx: (Math.max(...xs) + Math.min(...xs)) / 2, cy: (Math.max(...ys) + Math.min(...ys)) / 2, w, h }];
     });
   }, [harita, en, boy, jantli]);
-  const roller = Object.keys(GRADYAN) as CizimRolu[];
+  // Gövde tek geçişse ve cam çapraz ise ayrı tanımlanır; öteki roller kendi içinde dikey.
+  const roller = (Object.keys(GRADYAN) as CizimRolu[]).filter((r) => r !== 'cam' && (r !== 'govde' || profil === 'parca'));
   // Gradyan kimliği çizim başına: web'de iki çizim aynı sayfada kalırsa (biri gizli
   // ekranda) url(#…) gizli olanınkine gidip boyayı kaybetmesin.
   const kimlik = useId().replace(/[^A-Za-z0-9_-]/g, '');
+  const yukseklik = sinir.alt - sinir.ust;
   return (
     <Svg width={en} height={boy} style={{ position: 'absolute', left: x, top: y }}>
       <Defs>
@@ -343,16 +374,55 @@ function AracCizimi({ harita, en, boy, x, y, jantli }: {
             <Stop offset="1" stopColor={GRADYAN[r][2]} />
           </LinearGradient>
         ))}
+        {profil !== 'parca' ? (
+          <LinearGradient
+            id={`boya-${kimlik}-govde`}
+            gradientUnits="userSpaceOnUse"
+            x1="0" y1={sinir.ust} x2="0" y2={sinir.alt}
+          >
+            {(profil === 'yan' ? ARAC_BOYASI.govdeYan : ARAC_BOYASI.govdeOnArka).map(([o, r]) => (
+              <Stop key={o} offset={String(o)} stopColor={r} />
+            ))}
+          </LinearGradient>
+        ) : null}
+        <LinearGradient id={`boya-${kimlik}-cam`} x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={ARAC_BOYASI.cam[0]} />
+          <Stop offset="0.45" stopColor={ARAC_BOYASI.cam[1]} />
+          <Stop offset="1" stopColor={ARAC_BOYASI.cam[2]} />
+        </LinearGradient>
+        <RadialGradient id={`golge-${kimlik}`}>
+          <Stop offset="0" stopColor={ARAC_BOYASI.golge} stopOpacity={0.32} />
+          <Stop offset="0.7" stopColor={ARAC_BOYASI.golge} stopOpacity={0.12} />
+          <Stop offset="1" stopColor={ARAC_BOYASI.golge} stopOpacity={0} />
+        </RadialGradient>
       </Defs>
+      {profil !== 'parca' && yukseklik > 0 ? (
+        <Ellipse
+          cx={(sinir.sol + sinir.sag) / 2}
+          cy={sinir.alt - yukseklik * 0.02}
+          rx={(sinir.sag - sinir.sol) * 0.53}
+          ry={yukseklik * 0.075}
+          fill={`url(#golge-${kimlik})`}
+        />
+      ) : null}
       {sirali.map((a, i) => (
         <Polygon
-          key={`${a.parcaId}-${i}`}
+          key={`ek-${a.parcaId}-${i}`}
           points={a.nokta.map(([px, py]) => `${px * en},${py * boy}`).join(' ')}
+          fill={ARAC_BOYASI.ekYeri}
+          stroke={ARAC_BOYASI.ekYeri}
+          strokeWidth={1.6}
+          strokeLinejoin="round"
+        />
+      ))}
+      {sirali.map((a, i) => (
+        <Path
+          key={`${a.parcaId}-${i}`}
+          d={yollar[i]}
           fill={`url(#boya-${kimlik}-${cizimRolu(a.parcaId)})`}
           stroke={ARAC_BOYASI.kontur}
-          strokeOpacity={0.55}
-          strokeWidth={0.8}
-          strokeLinejoin="round"
+          strokeOpacity={0.35}
+          strokeWidth={0.6}
         />
       ))}
       {jantlar.map((j, i) => {

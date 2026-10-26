@@ -345,8 +345,26 @@ garnişe tıklayınca o parça seçilsin."*
   örneklendi (ör. gövde ortası `#79A3A9`, alt `#557A82`). Cam geçişi, DRL
   parlaklığı, stop lambasının kırmızımsı tonu (görselde sönük, gri), beyaz
   plaka (görselde gri `#999999`) ve kontur çizgisi **benim seçimim**.
-  Çizim fotoğraf değil: gölgesi ve yansıması olmayan, geçişli bir
-  illüstrasyon. Gerçek görüntü isteyen, görselleri Ayarlar'dan yükler.
+  Çizim fotoğraf değil, illüstrasyon. Gerçek görüntü isteyen görselleri
+  Ayarlar'dan yükler.
+- **Siluet (26.10.2026):** ürün sahibi *"bu araba silueti neden boktan"*
+  dedi. Sebep: haritalar dokunuş için çizildi, parça başına ortalama 9 köşe
+  (273 çokgen, 2.482 köşe); kavisler düz çizgilere düşüyor, her parça ayrı
+  boyanıp çevresi çiziliyordu. Şimdi yalnız **çizim** değişti, dokunuş aynı
+  çokgenlere bakıyor:
+  - Kenarlar `yumusakYol` ile kavislenir: kenar yönü 55°'den az dönen köşe
+    kübik eğriye girer, daha sert dönen (kapı, plaka) sivri kalır; eğri her
+    köşeden geçer, kontrol noktası komşu kenarın %40'ını aşmaz.
+  - Gövde parça parça değil aracın boyunca **tek geçişle** boyanır, omuz
+    çizgisinde parlar (`ARAC_BOYASI.govdeYan` / `govdeOnArka`; kaynağı
+    paletin yorumunda). Üstten bakışta parça başına geçiş kalır.
+  - Altında yumuşak gölge; önce düz çokgenler koyu "ek yeri" rengiyle
+    çizilir, yumuşak kenarların arasında kalan boşluk panel aralığı gibi
+    görünür. Seçili/kayıtlı parça vurgusu da aynı yumuşak kenarı izler.
+  - Denenip **bırakılan:** her parçayı fotoğraftaki kendi ortalama tonuyla
+    boyamak (bulanık, lekeli çıktı; gövde çokgenlerinin alt kenarı
+    fotoğrafta siyah garnişe taştığı için o bantlar siyaha döndü) ve bakışın
+    gövde tonunu fotoğraftan birebir almak (soluk, mat).
 - Haritası da görseli de olmayan araçta ekran eskisi gibi şematik haritayı
   gösterir. Erişilebilirlik:
   görüntü ekran okuyucuya kapalı (çokgenler öğe değil); ◀ ▶ ve Üstten adlı,
@@ -359,7 +377,10 @@ garnişe tıklayınca o parça seçilsin."*
 **Doğrulanan** (beklentileri, sınav haritasını ve sentetik görselleri ben
 yazdım; bağımsız bir sınav değil):
 - Birim testleri: `tests/aracAuditGorunumParcalari.test.ts` (12; 3'ü IONIQ 3
-  verisi için, aşağıda) ve `tests/aracAuditDonus.test.ts` (16). Beş koruma tek tek bilerek bozuldu (en
+  verisi için, aşağıda) ve `tests/aracAuditDonus.test.ts` (22; 6'sı yumuşak
+  kenar için: kare sivri kalır, 12-gen eğrilir, kısa kenarda taşma yok,
+  IONIQ 3'ün 273 çokgeni geçerli yol verir — köşe sınırı, %40 kırpma ve
+  yumuşatma tek tek bilerek bozuldu, üçü de yakalandı). Beş koruma tek tek bilerek bozuldu (en
   küçük çokgen, ayna taraf çevirisi, bilinmeyen parça eleme, %2 oran payı,
   kenar boşluğu); her birinde en az bir test düştü.
 - Web'de telefon ve tablette 10 adımlık uçtan uca sınav, **sentetik** görsel ve

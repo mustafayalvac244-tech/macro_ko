@@ -220,14 +220,25 @@ export const PALETLER: Record<TemaAdi, Renkler> = { acik, koyu };
  * #8f8f8f; DRL #a8a8a8–#adafaf; far #111111–#414141; stop #272727–#505050;
  * alt garniş #7e7e7e–#949494. Üçlüler gradyan: üst, orta, alt.
  *
- * ÖLÇÜM DEĞİL, BENİM SEÇİMİM: camın mavimsi tonu, DRL'nin parlak üstü
- * (görselde #a8a8a8), stop'un kırmızımsı tonu (görselde sönük, gri), plakanın
- * beyazı (görselde gri #999999), kontur rengi.
+ * ÖLÇÜM DEĞİL, BENİM SEÇİMİM: camın mavimsi tonu ve çapraz yansıması, DRL'nin
+ * parlak üstü (görselde #a8a8a8), stop'un kırmızımsı tonu (görselde sönük,
+ * gri), plakanın beyazı (görselde gri #999999), kontur, ek yeri, gölge.
+ *
+ * GÖVDE PROFİLİ (26.10.2026, "araba silueti neden boktan"): gövde parça parça
+ * değil aracın boyunca TEK geçişle boyanır (konum: aracın üst kenarı 0, alt
+ * kenarı 1). Yan profil yukarıdaki yan görünüş ölçümlerinden, aracın kutusuna
+ * yaklaşık yerleştirilerek: tavan #9fc2c6, omuz çizgisi en parlak, kapı ortası
+ * #628a91, alt #557a82; son durak benim. Ön/arka: o görsellerin gövde
+ * ölçümünde tampon ortası #70979d–#8fb2b8, yani yan görünüşten açık; alt yarı
+ * buna göre açıldı (ölçümün en alt bantları siyah garnişe taştığı için
+ * birebir alınmadı).
  */
 export const ARAC_BOYASI = {
   govde: ['#B0D0D4', '#79A2A9', '#557A82'],
+  govdeYan: [[0, '#9FC2C6'], [0.36, '#B5D3D6'], [0.43, '#7FA6AD'], [0.53, '#628A91'], [0.68, '#557A82'], [1, '#4A6B72']],
+  govdeOnArka: [[0, '#9FC2C6'], [0.3, '#B5D3D6'], [0.4, '#86ABB1'], [0.55, '#79A2A9'], [0.75, '#6E959C'], [1, '#5F858B']],
   siyah: ['#3C3D3E', '#1F2021', '#0F1010'],
-  cam: ['#6E757B', '#4B5258', '#2C3136'],
+  cam: ['#7C868D', '#4B5258', '#262B30'],
   lastik: ['#3B3B3B', '#2A2A2A', '#1B1B1B'],
   far: ['#4A4C4E', '#2C2D2F', '#141516'],
   drl: ['#ECEFF1', '#C8CCCF', '#A8ADB0'],
@@ -238,6 +249,8 @@ export const ARAC_BOYASI = {
   jantKolu: '#C2C2C2',
   jantGobek: '#8F8F8F',
   kontur: '#16262B',
+  ekYeri: '#1E2B30',
+  golge: '#000000',
 } as const;
 
 /** Dereceden renk çifti — tabloda, rozette, 3B modelde aynı kaynak. */

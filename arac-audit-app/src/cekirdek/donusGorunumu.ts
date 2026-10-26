@@ -219,6 +219,53 @@ export function cizimRolu(parcaId: string): CizimRolu {
   return 'govde';
 }
 
+/** Çizimde bu açıdan sivri kalan köşe (derece, kenar yönünün dönüşü). */
+export const YUMUSAK_KOSE = 55;
+
+/**
+ * Çizimde çokgenin YUMUŞAK SVG yolu (26.10.2026, ürün sahibi: "araba silueti
+ * neden boktan"). Haritalar dokunuş için çizildi; çamurluk kemeri, tavan,
+ * tampon gibi kavisler 9 köşelik düz çizgiye düşüyordu. Kenar yönünün döndüğü
+ * açı `kose` dereceden küçükse köşe kübik eğriye girer (Catmull-Rom teğeti,
+ * komşu kenarın %40'ıyla sınırlı, taşmasın); büyükse sivri kalır (kapı,
+ * plaka). Eğri her köşeden geçer; dokunuş yine düz çokgene bakar, fark
+ * kenar boyunca bir pikselin altında.
+ */
+export function yumusakYol(
+  nokta: readonly (readonly [number, number])[], en: number, boy: number, kose = YUMUSAK_KOSE,
+): string {
+  const P = nokta.map(([x, y]) => [x * en, y * boy] as const);
+  const n = P.length;
+  if (n < 3) return '';
+  const tegetler = P.map((p, i) => {
+    const a = P[(i - 1 + n) % n]!;
+    const b = P[(i + 1) % n]!;
+    const l1 = Math.hypot(p[0] - a[0], p[1] - a[1]);
+    const l2 = Math.hypot(b[0] - p[0], b[1] - p[1]);
+    if (!l1 || !l2) return null;
+    const cos = ((p[0] - a[0]) * (b[0] - p[0]) + (p[1] - a[1]) * (b[1] - p[1])) / (l1 * l2);
+    if ((Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI > kose) return null;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const ld = Math.hypot(dx, dy);
+    if (!ld) return null;
+    return { x: dx / ld, y: dy / ld, once: Math.min(ld / 6, l1 * 0.4), sonra: Math.min(ld / 6, l2 * 0.4) };
+  });
+  const f = (v: number) => (Math.round(v * 10) / 10).toString();
+  let yol = `M${f(P[0]![0])},${f(P[0]![1])}`;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const p = P[i]!;
+    const q = P[j]!;
+    const ti = tegetler[i];
+    const tj = tegetler[j];
+    const c1 = ti ? [p[0] + ti.x * ti.sonra, p[1] + ti.y * ti.sonra] : p;
+    const c2 = tj ? [q[0] - tj.x * tj.once, q[1] - tj.y * tj.once] : q;
+    yol += `C${f(c1[0]!)},${f(c1[1]!)} ${f(c2[0]!)},${f(c2[1]!)} ${f(q[0])},${f(q[1])}`;
+  }
+  return `${yol}Z`;
+}
+
 /**
  * Bir görünümün kullanılacak parça haritası: kaynağın haritası (aynalanmışsa
  * aynası), görselin oranı uyuyorsa. `parcaVar` katalogda (ve bu araçta)
