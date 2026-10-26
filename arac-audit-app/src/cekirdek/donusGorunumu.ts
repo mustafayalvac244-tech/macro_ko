@@ -203,7 +203,7 @@ export function aracHaritasiVar(aracId: string): boolean {
   return YUVALAR.some((y) => !!kaynakHaritasi(aracId, y));
 }
 
-export type CizimRolu = 'govde' | 'cam' | 'lastik' | 'siyah' | 'gumus' | 'lamba' | 'stop' | 'plaka';
+export type CizimRolu = 'govde' | 'cam' | 'lastik' | 'siyah' | 'gumus' | 'far' | 'drl' | 'stop' | 'plaka';
 
 /** Çizimde parçanın rengi için rolü (taraf öneki atılarak). Bilinmeyen → gövde. */
 export function cizimRolu(parcaId: string): CizimRolu {
@@ -211,7 +211,8 @@ export function cizimRolu(parcaId: string): CizimRolu {
   if (/(^|_)cam$|^cam_tavan$/.test(id)) return 'cam';
   if (/jant$/.test(id)) return 'lastik';
   if (id === 'stop' || id === 'ucuncu_stop') return 'stop';
-  if (id === 'far' || id === 'drl' || id === 'sis_far') return 'lamba';
+  if (id === 'drl') return 'drl';
+  if (id === 'far' || id === 'sis_far') return 'far';
   if (/plaka$/.test(id)) return 'plaka';
   if (/tampon_alt_garnis$/.test(id)) return 'gumus';
   if (/garnis$|diregi$|^marspiyel$|^difuzor$|^alt_panjur$|^on_izgara$|^spoyler$|^tavan_cita$|^anten$|^on_silecek$/.test(id)) return 'siyah';

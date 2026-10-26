@@ -4,27 +4,29 @@
 // üstünden parça seçmek için ekleyebilir miyiz?" ve "sol ön garnişe
 // tıklayınca o parça seçilsin." Parmak yana kaydıkça (ya da ◀ ▶ ile) sıradaki
 // bakış gelir; "Üstten" ayrı düğme. Bakışın parça haritası varsa dokunulan
-// PARÇANIN hata ızgarası açılır, çokgen dışına dokunuş yalnız "Bir parçaya
-// dokunun" der — tahmin yok. Haritası yoksa dokunulan YÜZÜN bölgesi açılır,
-// parça listeden seçilir. Hesap cekirdek/donusGorunumu.ts'te; görseller
-// telefonda (veri/aracGorselleri.ts).
+// PARÇA işaretlenir, adıyla "Onayla" çıkar; hata ızgarası onaylayınca açılır
+// (26.10.2026: "hemen girmesin, onaylatsın; yanlış tıklama olabilir").
+// Çokgen dışına dokunuş yalnız "Bir parçaya dokunun" der — tahmin yok.
+// Haritası yoksa dokunulan YÜZÜN bölgesi açılır, parça listeden seçilir.
+// Görseli olmayan bakış haritadan çizilir (AracCizimi). Hesap
+// cekirdek/donusGorunumu.ts'te; görseller telefonda (veri/aracGorselleri.ts).
 //
 // KATMAN: görselin üstünde, görselle aynı dikdörtgende bir SVG — kaydı olan
-// parçalar hafif boyanır, dokunulan parça kısa bir an vurgulanır. Görsel
+// parçalar kırmızıyla boyanır, onay bekleyen ya da açık parça vurgulanır. Görsel
 // `contain` ile gösterilir; kap ile görselin oranı farklıysa kenar boşlukları
 // hesaba katılır (goruntuNoktasi).
 //
 // ERİŞİLEBİLİRLİK: görüntü ekran okuyucuya kapalı; ◀ ▶ ve "Üstten" adlıdır,
 // sistem listesi her zaman altında durur — parçaya o yoldan da gidilir.
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Image, LayoutChangeEvent, PanResponder, Pressable, StyleSheet, Text, View,
 } from 'react-native';
-import Svg, { Polygon } from 'react-native-svg';
+import Svg, { Defs, Ellipse, Line, LinearGradient, Polygon, Stop } from 'react-native-svg';
 
 import { S } from '@/bilesenler/simgeler';
-import { Secenek } from '@/bilesenler/temel';
+import { Dugme, Secenek } from '@/bilesenler/temel';
 import {
   AracOlcusu, cizimRolu, CizimRolu, dokunusSonucu, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka, HalkaGirdisi,
   kaydirmaIndeksi, kaynakHaritasi, sar, yuvaAdi,
@@ -33,14 +35,12 @@ import { cokgenAlani, GorunumHaritasi, GorunumId } from '@/cekirdek/gorunumParca
 import { parcaTamAdi } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { Bolge } from '@/cekirdek/tipler';
-import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
+import { ARAC_BOYASI, bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { useAracGorselleri, yuvaAdresi } from '@/veri/aracGorselleri';
 import { useDil } from '@/veri/dilDeposu';
 
 /** Sahne oranı: ürün sahibinin görselleri 2:1. Farklı orandaki görsel ortalanır. */
 const SAHNE_ORANI = 2;
-/** Dokunulan parçanın vurgusu görünsün diye geçişten önceki bekleme. */
-const VURGU_MS = 220;
 
 type Gorunum = { girdi: HalkaGirdisi } | { ust: true };
 
@@ -106,7 +106,12 @@ export function DonusGorunumu({
 
   const [kap, setKap] = useState({ en: 0, boy: 0 });
   const kutu = goruntuKutusu(kap.en, kap.boy, oran);
-  const [vurgu, setVurgu] = useState<string | null>(null);
+  // ONAY (26.10.2026, ürün sahibi: "parçayı seçince hemen girmesin, onaylatsın;
+  // yanlış tıklama olabilir"): dokunuş parçayı yalnız İŞARETLER; hata ızgarası
+  // "Onayla" ile açılır. Başka parçaya dokunmak seçimi değiştirir.
+  const [bekleyen, setBekleyen] = useState<string | null>(null);
+  // Tablette sahne açık kalır: listeden başka parça seçilince bekleyen seçim düşer.
+  useEffect(() => { setBekleyen(null); }, [seciliParcaId]);
   const [ipucu, setIpucu] = useState(false);
   const zamanlayici = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (zamanlayici.current) clearTimeout(zamanlayici.current); }, []);
@@ -138,13 +143,11 @@ export function DonusGorunumu({
       const sonuc = dokunusSonucu(nokta, { aci: 'ust' in c.gorunum ? null : c.gorunum.girdi.aci }, c.harita, c.olcu);
       if (sonuc.tur === 'parca') {
         setIpucu(false);
-        setVurgu(sonuc.parcaId);
-        if (zamanlayici.current) clearTimeout(zamanlayici.current);
-        zamanlayici.current = setTimeout(() => { setVurgu(null); c.onParcaSec(sonuc.parcaId); }, VURGU_MS);
+        setBekleyen(sonuc.parcaId);
       } else if (sonuc.tur === 'bolge') {
         if (c.bolgeKimlikleri.has(sonuc.bolgeId)) c.onBolgeSec(sonuc.bolgeId);
       } else if (c.harita) {
-        setVurgu(null);
+        setBekleyen(null);
         setIpucu(true);
         if (zamanlayici.current) clearTimeout(zamanlayici.current);
         zamanlayici.current = setTimeout(() => setIpucu(false), 2000);
@@ -155,14 +158,22 @@ export function DonusGorunumu({
   if (!gorunum || !kaynak || (cizim ? !harita : !yuvaGorseli)) return null;
 
   const dondur = (yon: 1 | -1) => {
-    setVurgu(null); setIpucu(false);
+    setBekleyen(null); setIpucu(false);
     // Üst görselden çıkış; üst görseli sonradan temizlenmişse kalan bayrak düşer, halka döner.
     if (ustte) { setUstte(false); if (ustVar) return; }
     setIndeks((i) => sar(i + yon, halkaListesi.length));
   };
   const ad = 'ust' in gorunum ? yuvaAdi('ust', dil) : yuvaAdi(gorunum.girdi.yuva, dil);
-  // Dokunulan parça (kısa an), sonra seçili parça; ikisi de yoksa yönerge.
-  const isaretli = vurgu ?? seciliParcaId ?? null;
+  // Onay bekleyen parça, yoksa ızgarası açık parça; ikisi de yoksa yönerge.
+  const isaretli = bekleyen ?? seciliParcaId ?? null;
+  // Jant yalnız yan ve çapraz bakışta görünür; önden/arkadan/üstten lastiğin sırtı görünür.
+  const jantli = 'girdi' in gorunum && gorunum.girdi.aci % 180 !== 0;
+  const onayla = () => {
+    if (!bekleyen) return;
+    const p = bekleyen;
+    setBekleyen(null);
+    onParcaSec(p);
+  };
   const altYazi = isaretli ? parcaTamAdi(isaretli, dil)
     : ipucu ? t('Bir parçaya dokunun', 'Tap a part')
       : harita ? t('Kaydırarak döndürün, parçaya dokunun', 'Swipe to rotate, tap a part')
@@ -181,7 +192,7 @@ export function DonusGorunumu({
         {/* Dokunuş sahneye gitsin: konum sahnenin içine göre okunuyor. */}
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           {cizim && harita && kap.en > 0 ? (
-            <AracCizimi harita={harita} en={kutu.en} boy={kutu.boy} x={kutu.x} y={kutu.y} renkler={renkler} />
+            <AracCizimi harita={harita} en={kutu.en} boy={kutu.boy} x={kutu.x} y={kutu.y} jantli={jantli} />
           ) : null}
           {yuvaGorseli && kap.en > 0 ? (
             <Image
@@ -203,14 +214,15 @@ export function DonusGorunumu({
                 const secili = isaretli === a.parcaId;
                 const kayitli = (kayitliParcalar.get(a.parcaId) ?? 0) > 0;
                 if (!secili && !kayitli) return null;
+                // Kayıtlı dolgu 0.22 iken teal gövdede kırmızı griye dönüyordu (#AE2018 %22 + #79A2A9 ≈ 133,133,137).
                 return (
                   <Polygon
                     key={`${a.parcaId}-${i}`}
                     points={a.nokta.map(([x, y]) => `${x * kutu.en},${y * kutu.boy}`).join(' ')}
                     fill={secili ? renkler.birincil : renkler.tehlike}
-                    fillOpacity={secili ? 0.45 : 0.22}
+                    fillOpacity={secili ? 0.45 : 0.55}
                     stroke={secili ? renkler.birincil : renkler.tehlike}
-                    strokeWidth={secili ? 2 : 1}
+                    strokeWidth={secili ? 2 : 1.5}
                   />
                 );
               })}
@@ -218,6 +230,30 @@ export function DonusGorunumu({
           ) : null}
         </View>
       </View>
+
+      {bekleyen ? (
+        <View style={s.onay} testID="donus-onay">
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={s.onayEtiket}>{t('Seçilen parça', 'Selected part')}</Text>
+            <Text style={s.onayAd} numberOfLines={2}>{parcaTamAdi(bekleyen, dil)}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('Seçimden vazgeç', 'Cancel selection')}
+            onPress={() => setBekleyen(null)}
+            style={({ pressed }) => [s.ok, pressed && s.basili]}
+          >
+            <S.kapat size={18} color={renkler.metinIkincil} strokeWidth={2} />
+          </Pressable>
+          <Dugme
+            metin={t('Onayla', 'Confirm')}
+            tur="birincil"
+            simge={S.ileri}
+            onPress={onayla}
+            erisimEtiketi={t(`${parcaTamAdi(bekleyen, 'tr')}: onayla, hata listesini aç`, `${parcaTamAdi(bekleyen, 'en')}: confirm, open defect list`)}
+          />
+        </View>
+      ) : null}
 
       <View style={s.alt}>
         <Pressable
@@ -253,7 +289,7 @@ export function DonusGorunumu({
           metin={yuvaAdi('ust', dil)}
           erisimEtiketi={t('Üstten görünüm', 'Top view')}
           secili={!!ustte}
-          onPress={() => { setVurgu(null); setIpucu(false); setUstte(!ustte); }}
+          onPress={() => { setBekleyen(null); setIpucu(false); setUstte(!ustte); }}
           style={{ alignSelf: 'center' }}
         />
       ) : null}
@@ -263,32 +299,86 @@ export function DonusGorunumu({
 
 /**
  * Görseli olmayan bakışın ÇİZİMİ (26.10.2026): parça haritasının çokgenleri,
- * rolüne göre temadan boyanır. Büyük çokgen önce, küçük üstte — dokunuşta da
- * küçük kazanır, yani görülen ile dokunulan aynı. Renkler temadan (iki tema).
+ * rolüne göre ARACIN GERÇEK RENKLERİYLE boyanır (ARAC_BOYASI, ürün sahibinin
+ * görsellerinden ölçüldü): her çokgen kendi içinde üstten alta gradyan, ince
+ * koyu kontur. Büyük çokgen önce, küçük üstte — dokunuşta da küçük kazanır,
+ * yani görülen ile dokunulan aynı. Yan/çapraz bakışta tekerleğe jant çizilir
+ * (yalnız görüntü; dokunuş lastik çokgenine gider).
  */
-function AracCizimi({ harita, en, boy, x, y, renkler }: {
-  harita: GorunumHaritasi; en: number; boy: number; x: number; y: number; renkler: Renkler;
+const GRADYAN: Record<CizimRolu, readonly [string, string, string]> = {
+  govde: ARAC_BOYASI.govde, siyah: ARAC_BOYASI.siyah, cam: ARAC_BOYASI.cam, lastik: ARAC_BOYASI.lastik,
+  far: ARAC_BOYASI.far, drl: ARAC_BOYASI.drl, stop: ARAC_BOYASI.stop, gumus: ARAC_BOYASI.gumus, plaka: ARAC_BOYASI.plaka,
+};
+
+function AracCizimi({ harita, en, boy, x, y, jantli }: {
+  harita: GorunumHaritasi; en: number; boy: number; x: number; y: number; jantli: boolean;
 }) {
   const sirali = useMemo(
     () => [...harita.alanlar].sort((a, b) => cokgenAlani(b.nokta) - cokgenAlani(a.nokta)),
     [harita],
   );
-  const dolgu: Record<CizimRolu, string> = {
-    govde: renkler.yuzeyVurgu, cam: renkler.tersYuzey, lastik: renkler.ters, siyah: renkler.tersCizgi,
-    gumus: renkler.cizgiGuclu, lamba: renkler.tersMetinSolgun, stop: renkler.uyari, plaka: renkler.yuzey,
-  };
+  // Jant: lastik çokgeninin kutusu tekerleğin yüzü gibi duruyorsa (en/boy 0,55–1,35).
+  const jantlar = useMemo(() => {
+    if (!jantli) return [];
+    return harita.alanlar.filter((a) => cizimRolu(a.parcaId) === 'lastik').flatMap((a) => {
+      const xs = a.nokta.map((p) => p[0] * en);
+      const ys = a.nokta.map((p) => p[1] * boy);
+      const w = Math.max(...xs) - Math.min(...xs);
+      const h = Math.max(...ys) - Math.min(...ys);
+      if (!(h > 0) || w / h < 0.55 || w / h > 1.35) return [];
+      return [{ cx: (Math.max(...xs) + Math.min(...xs)) / 2, cy: (Math.max(...ys) + Math.min(...ys)) / 2, w, h }];
+    });
+  }, [harita, en, boy, jantli]);
+  const roller = Object.keys(GRADYAN) as CizimRolu[];
+  // Gradyan kimliği çizim başına: web'de iki çizim aynı sayfada kalırsa (biri gizli
+  // ekranda) url(#…) gizli olanınkine gidip boyayı kaybetmesin.
+  const kimlik = useId().replace(/[^A-Za-z0-9_-]/g, '');
   return (
     <Svg width={en} height={boy} style={{ position: 'absolute', left: x, top: y }}>
+      <Defs>
+        {roller.map((r) => (
+          <LinearGradient key={r} id={`boya-${kimlik}-${r}`} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={GRADYAN[r][0]} />
+            <Stop offset="0.55" stopColor={GRADYAN[r][1]} />
+            <Stop offset="1" stopColor={GRADYAN[r][2]} />
+          </LinearGradient>
+        ))}
+      </Defs>
       {sirali.map((a, i) => (
         <Polygon
           key={`${a.parcaId}-${i}`}
           points={a.nokta.map(([px, py]) => `${px * en},${py * boy}`).join(' ')}
-          fill={dolgu[cizimRolu(a.parcaId)]}
-          stroke={renkler.cizgiGuclu}
+          fill={`url(#boya-${kimlik}-${cizimRolu(a.parcaId)})`}
+          stroke={ARAC_BOYASI.kontur}
+          strokeOpacity={0.55}
           strokeWidth={0.8}
           strokeLinejoin="round"
         />
       ))}
+      {jantlar.map((j, i) => {
+        const rx = j.w * 0.31;
+        const ry = j.h * 0.31;
+        const kalinlik = Math.max(1.2, Math.min(j.w, j.h) * 0.06);
+        return (
+          <React.Fragment key={`jant-${i}`}>
+            <Ellipse cx={j.cx} cy={j.cy} rx={rx * 1.06} ry={ry * 1.06} fill={ARAC_BOYASI.jant} stroke={ARAC_BOYASI.jantKolu} strokeOpacity={0.5} strokeWidth={1} />
+            {[0, 1, 2, 3, 4].map((k) => {
+              const aci = -Math.PI / 2 + (k * 2 * Math.PI) / 5;
+              return (
+                <Line
+                  key={k}
+                  x1={j.cx} y1={j.cy}
+                  x2={j.cx + rx * Math.cos(aci)} y2={j.cy + ry * Math.sin(aci)}
+                  stroke={ARAC_BOYASI.jantKolu}
+                  strokeWidth={kalinlik}
+                  strokeLinecap="round"
+                />
+              );
+            })}
+            <Ellipse cx={j.cx} cy={j.cy} rx={rx * 0.24} ry={ry * 0.24} fill={ARAC_BOYASI.jantGobek} />
+          </React.Fragment>
+        );
+      })}
     </Svg>
   );
 }
@@ -309,4 +399,10 @@ const stiller = (r: Renkler) => StyleSheet.create({
   not: { ...tipografi.caption, color: r.metinSolgun, textAlign: 'center' },
   notVurgu: { ...tipografi.captionOrta, color: r.birincil },
   aynaNot: { ...tipografi.caption, color: r.metinSolgun },
+  onay: {
+    flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, padding: bosluk.xs,
+    borderRadius: kose.md, borderWidth: 1, borderColor: r.birincil, backgroundColor: r.birincilYumusak,
+  },
+  onayEtiket: { ...tipografi.caption, color: r.metinSolgun },
+  onayAd: { ...tipografi.bodyOrta, color: r.metin },
 });

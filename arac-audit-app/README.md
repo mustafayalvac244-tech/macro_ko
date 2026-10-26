@@ -303,12 +303,22 @@ garnişe tıklayınca o parça seçilsin."*
 - **Dokunuş → parça:** bakışın **parça haritası** varsa
   (`cekirdek/gorunumParcalari.ts` → `PARCA_HARITALARI`: görsele göre
   normalize çokgenler) ve görselin en/boy oranı haritanınkiyle **%2 içinde**
-  uyuyorsa dokunulan parçanın **hata ızgarası** açılır — listeden seçmekle
-  aynı. İç içe çokgenlerde küçük olan kazanır (kapının üstündeki ayna);
-  katalogda olmayan kimlik yok sayılır; çokgen dışına dokunuş yalnız *"Bir
-  parçaya dokunun"* der, tahmin yok. Aynalanan bakış kaynağın haritasının
-  aynasını kullanır (`sol_` ↔ `sag_`). Kaydı olan parçalar görselin üstünde
-  hafif boyanır; tablette seçili parça vurgulu, adı altta yazar.
+  uyuyorsa dokunulan parça **işaretlenir**. İç içe çokgenlerde küçük olan
+  kazanır (kapının üstündeki ayna); katalogda olmayan kimlik yok sayılır;
+  çokgen dışına dokunuş yalnız *"Bir parçaya dokunun"* der, tahmin yok.
+  Aynalanan bakış kaynağın haritasının aynasını kullanır (`sol_` ↔ `sag_`).
+- **Onay (26.10.2026):** ürün sahibi *"parçayı seçince hemen girmesin
+  onaylatsın, yanlış tıklama olabilir"* dedi. Dokunuş parçayı yalnız
+  işaretler; sahnenin altında *Seçilen parça: …* çubuğu çıkar. **Onayla**
+  o parçanın hata ızgarasını açar (listeden seçmekle aynı), ✕ vazgeçer,
+  başka parçaya dokunmak seçimi değiştirir; bakış değişince ya da (tablette)
+  listeden başka parça seçilince bekleyen seçim düşer.
+  Haritası olmayan bakışta bölge dokunuşu eskisi gibi onaysız açılır (orada
+  parça zaten listeden seçiliyor).
+- Kaydı olan parçalar kırmızıyla boyanır (%55). İlk değer %22'ydi: teal
+  gövdede kırmızı ile gövde rengi birbirini söndürüp **gri** çıkıyordu
+  (`#AE2018` %22 + `#79A2A9` ≈ 133,133,137 — hesap; ekran görüntüsünde de
+  gri göründü). Tablette seçili parça vurgulu, adı altta yazar.
 - **Harita yoksa ya da oran uymuyorsa → bölge:** araç en/boy ölçüsünden bir
   kutu sayılıp görünen yüzler yatay eksene yerleştirilir; dokunulan yüzün dış
   bölgesi açılır, parça listeden seçilir. **Yaklaşık:** köşe bakışlarında
@@ -320,10 +330,23 @@ garnişe tıklayınca o parça seçilsin."*
 - **Görsel yüklemeden çizim (26.10.2026):** ürün sahibi *"360 seçim ekranında
   olmalı"* dedi. Parça haritası olan araçta (bugün IONIQ 3) denetimin ilk
   adımında görsel yüklemeden de dönen araç çıkar: bakışlar haritanın
-  çokgenlerinden **çizilir** (renkler temadan; büyük çokgen önce, küçük üstte —
-  dokunuştaki kuralla aynı, yani görülen ile dokunulan aynı). Görsel eklenirse
-  o bakışta çizimin yerini alır; görsel her zaman çizimden önce gelir (eşinin
-  aynalı görseli dahil). Çizim fotoğraf değil, düz bir illüstrasyon.
+  çokgenlerinden **çizilir** (büyük çokgen önce, küçük üstte — dokunuştaki
+  kuralla aynı, yani görülen ile dokunulan aynı). Görsel eklenirse o bakışta
+  çizimin yerini alır; görsel her zaman çizimden önce gelir (eşinin aynalı
+  görseli dahil).
+- **Çizimin renkleri (26.10.2026):** ürün sahibi *"rengi mengi yok, müdüre
+  göstereceğim"* dedi. Her çokgen parça adından bir role düşer
+  (`cizimRolu`: gövde, cam, lastik, siyah garniş, gümüş alt garniş, far, DRL,
+  stop, plaka) ve o rolün üç tonlu dikey geçişiyle boyanır; yan bakışlarda
+  lastiğin üstüne beş kollu jant çizilir. Palet `tema/paletler.ts` →
+  `ARAC_BOYASI`: aracın kendi rengi olduğu için iki temada aynı.
+  **Kaynak:** gövde (üst/orta/alt), siyah parçalar, lastik ve jant tonları
+  ürün sahibinin dört görselinden 31 noktada 9×9 piksel ortalamasıyla
+  örneklendi (ör. gövde ortası `#79A3A9`, alt `#557A82`). Cam geçişi, DRL
+  parlaklığı, stop lambasının kırmızımsı tonu (görselde sönük, gri), beyaz
+  plaka (görselde gri `#999999`) ve kontur çizgisi **benim seçimim**.
+  Çizim fotoğraf değil: gölgesi ve yansıması olmayan, geçişli bir
+  illüstrasyon. Gerçek görüntü isteyen, görselleri Ayarlar'dan yükler.
 - Haritası da görseli de olmayan araçta ekran eskisi gibi şematik haritayı
   gösterir. Erişilebilirlik:
   görüntü ekran okuyucuya kapalı (çokgenler öğe değil); ◀ ▶ ve Üstten adlı,
@@ -336,7 +359,7 @@ garnişe tıklayınca o parça seçilsin."*
 **Doğrulanan** (beklentileri, sınav haritasını ve sentetik görselleri ben
 yazdım; bağımsız bir sınav değil):
 - Birim testleri: `tests/aracAuditGorunumParcalari.test.ts` (12; 3'ü IONIQ 3
-  verisi için, aşağıda) ve `tests/aracAuditDonus.test.ts` (13). Beş koruma tek tek bilerek bozuldu (en
+  verisi için, aşağıda) ve `tests/aracAuditDonus.test.ts` (16). Beş koruma tek tek bilerek bozuldu (en
   küçük çokgen, ayna taraf çevirisi, bilinmeyen parça eleme, %2 oran payı,
   kenar boşluğu); her birinde en az bir test düştü.
 - Web'de telefon ve tablette 10 adımlık uçtan uca sınav, **sentetik** görsel ve
@@ -348,10 +371,24 @@ yazdım; bağımsız bir sınav değil):
   kenar boşluğu dokunuşu boş, görsele dokunuş bölge; İngilizce yazılar. Aynalı
   haritayı bilerek kapatınca sınav o adımda düştü.
 - Ürün sahibinin **gerçek** görselleriyle web'de: bkz. *IONIQ 3 parça haritası*.
+- **Onay ve renkli çizim** (26.10.2026), web'de telefon ve tablet düzeninde,
+  hem görsel yüklemeden (çizim) hem gerçek görsellerle: garnişe dokunuş →
+  çubukta garniş; plakaya dokunuş → seçim plakaya geçti; ✕ çubuğu kaldırdı;
+  hiçbirinde ızgara onaysız açılmadı. Sonra her işaret noktası **Onayla** ile
+  beklenen ızgarayı açtı. Türkçe akış sınavı açık ve koyu temada, telefon ve
+  tablette (4 düzen) çizimdeki plakaya dokunup onaylayarak geçti; tablette
+  onay beklerken *Son dokunulanlar*dan Kaput seçilince çubuk kalktı (bunu
+  sağlayan satırı bilerek silince sınav bu adımda düştü). Her bakışta her
+  çokgenin boyası kendi gradyanını buluyor. Renklerin
+  "gerçek gibi" görünüp görünmediği bir ölçüm değil: ekran görüntülerine
+  gözle bakıldı.
 
-**Doğrulanmayan:** **telefonda hiç görülmedi** (galeri izni, dosya kopyalama,
-parmakla kaydırma ve dokunuş). Parmak, fareden çok daha az isabetli: küçük
-parçalar (delta garnişi, kapı kolu, üçgen cam) telefonda zor tutturulabilir.
+**Doğrulanmayan:** renksiz çizim ürün sahibine ulaştı (*"görüntü ioniq 3 ama
+rengi mengi yok"*); **renkli sürüm ve onay çubuğu telefonda görülmedi**.
+Galeri izni, dosya kopyalama, parmakla kaydırma ve dokunuş isabeti telefonda
+ölçülmedi. Parmak, fareden çok daha az isabetli: küçük parçalar (delta
+garnişi, kapı kolu, üçgen cam) telefonda zor tutturulabilir — onay adımı
+yanlış dokunuşun kayda dönüşmesini önler, isabeti artırmaz.
 
 ### IONIQ 3 parça haritası — 26.10.2026
 
@@ -391,9 +428,10 @@ köşeleri (yüzde koordinat).
 - **Web'de gerçek görsellerle uçtan uca** (telefon ve tablet düzeni): sekiz
   görsel dosya seçiciyle yuvalara verildi (hiçbir yere kopyalanmadı), sekiz
   bakışta *parça haritası uyuyor*, Sağ yan aynalı; her bakışta 2–4 işaret
-  noktasına dokunuş beklenen parçanın hata ızgarasını açtı (ör. Sol ön ve Sol
-  yan'da *Sol ön çamurluk garnişi (dodik)*, aynalanmış Sağ yan'da *Sağ ön
-  çamurluk garnişi (dodik)*), Üstten cam tavan ve sağ ayna.
+  noktasına dokunuş ve **Onayla** beklenen parçanın hata ızgarasını açtı (ör.
+  Sol ön ve Sol yan'da *Sol ön çamurluk garnişi (dodik)*, aynalanmış Sağ
+  yan'da *Sağ ön çamurluk garnişi (dodik)*), Üstten cam tavan ve sağ ayna.
+  Görsel yüklemeden (çizimde) aynı noktalar aynı parçaları açtı.
 - **Sınır:** harita BU görsellere çizildi. Aynı yuvaya başka bir çekim (başka
   açı, başka kırpma) konursa harita tutmaz; oran yine 2:1 ise uygulama bunu
   **anlayamaz** ve yanlış parça seçebilir. Yeni görsel → yeni harita.
@@ -759,7 +797,7 @@ durdurma, onarıma yönlendirme).
 | Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **26.10.2026'da yerini Excel'in DEMERIT 0–3 + CLASS'ı aldı** (aşağıdaki satır) |
 | Excel içeriği (NAS, 26.10.2026): demerit, class, system, responsible, kaynak listesi, model kodu, body 6 hane, Audit Skoru, Excel'e aktar | **Kod bitti** — kurallar Excel'den okundu; testleri ben yazdım; 4 düzende 14 adım geçti; **telefonda görülmedi**. BJ = IONIQ 3 çıkarım |
-| Döndürülebilir araç (360°, 26.10.2026): dokuz bakış yuvası, eksik yan aynalanır, parça haritası varsa dokunulan parçanın ızgarası açılır, yoksa dış bölge | **IONIQ 3 için parça düzeyinde, görsel yüklemeden de** (çizim; görsel eklenirse fotoğraf) (8 bakış, 273 çokgen; görünen noktaların %99,1–99,7'si bir parçaya düşüyor — doğru parçaya düştüğü yalnız gözle denetlendi). Web'de gerçek görsellerle telefon ve tablet düzeninde işaret noktaları beklenen parçayı açtı; öteki araçlarda bölge düzeyi; **telefonda denenmedi** |
+| Döndürülebilir araç (360°, 26.10.2026): dokuz bakış yuvası, eksik yan aynalanır, parça haritası varsa dokunulan parça işaretlenir ve **Onayla** ile ızgarası açılır, yoksa dış bölge | **IONIQ 3 için parça düzeyinde, görsel yüklemeden de** (renkli çizim; görsel eklenirse fotoğraf) (8 bakış, 273 çokgen; görünen noktaların %99,1–99,7'si bir parçaya düşüyor — doğru parçaya düştüğü yalnız gözle denetlendi). Web'de gerçek görsellerle ve çizimle, telefon ve tablet düzeninde işaret noktaları onaydan sonra beklenen parçayı açtı; öteki araçlarda bölge düzeyi; **renkli sürüm ve onay telefonda denenmedi** |
 | Dil: Türkçe / English (26.10.2026) | **Kod bitti** — Türkçe sınav 4 düzende değişmeden geçti (Türkçe metinler aynı kaldı); İngilizce sınav telefon ve tablette 10 ekranı taradı, Türkçe harfli metin yalnız bilerek kendi dilinde yazılan "Türkçe" seçeneği. Tarama Türkçe harf içermeyen Türkçe kelimeyi kaçırabilir; ekran görüntüleri gözle de bakıldı. Çeviriler benim (ve yardımcı ajanların); **İngilizce bilen bir kullanıcı okumadı**, telefonda görülmedi |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |

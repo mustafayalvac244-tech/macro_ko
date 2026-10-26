@@ -62,12 +62,12 @@ describe('yuvalar ve halka', () => {
     expect(aracHaritasiVar('yok-boyle')).toBe(false);
   });
 
-  it('çizim rolleri: cam, lastik, siyah kaplama, gümüş garniş, lamba, stop, plaka, gövde', () => {
+  it('çizim rolleri: cam, lastik, siyah kaplama, gümüş garniş, far, DRL, stop, plaka, gövde', () => {
     expect(['on_cam', 'sol_on_kapi_cam', 'cam_tavan', 'sag_qtr_cam'].map(cizimRolu)).toEqual(['cam', 'cam', 'cam', 'cam']);
     expect(cizimRolu('sag_on_jant')).toBe('lastik');
     expect(['sol_camurluk_garnis', 'sag_b_diregi', 'sol_marspiyel', 'spoyler'].map(cizimRolu)).toEqual(['siyah', 'siyah', 'siyah', 'siyah']);
     expect(cizimRolu('on_tampon_alt_garnis')).toBe('gumus');
-    expect([cizimRolu('sol_stop'), cizimRolu('sag_far'), cizimRolu('sol_drl'), cizimRolu('arka_plaka')]).toEqual(['stop', 'lamba', 'lamba', 'plaka']);
+    expect([cizimRolu('sol_stop'), cizimRolu('sag_far'), cizimRolu('sol_drl'), cizimRolu('arka_plaka')]).toEqual(['stop', 'far', 'drl', 'plaka']);
     expect(['kaput', 'sol_on_kapi', 'sag_ayna', 'bagaj_kapagi'].map(cizimRolu)).toEqual(['govde', 'govde', 'govde', 'govde']);
   });
 

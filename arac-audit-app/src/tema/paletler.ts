@@ -205,6 +205,41 @@ const koyu: Renkler = {
 
 export const PALETLER: Record<TemaAdi, Renkler> = { acik, koyu };
 
+/**
+ * DÖNDÜRÜLEBİLİR ARACIN BOYASI (26.10.2026) — arayüz rengi DEĞİL, içerik rengi.
+ *
+ * Ürün sahibi çizimi gördü: "görüntü IONIQ 3 ama rengi mengi yok; müdüre
+ * göstereceğim." Çizim fotoğraf yerine geçiyor; fotoğraf gibi iki temada da
+ * AYNI renkte durmalı (koyu temada teal araç yine teal). Bu yüzden temaya
+ * bağlı değil ama yine de burada, bileşende çıplak hex yok.
+ *
+ * Değerler ürün sahibinin gönderdiği IONIQ 3 görsellerinden ÖLÇÜLDÜ (9×9
+ * piksel ortalaması): gövde üst #b5d3d6/#9fc2c6, orta #779fa6/#628a91, alt
+ * #557a82; dodik/marşpiyel #191919–#464746; yan cam #787878, cam tavan
+ * #31353c; lastik #2b2b2b–#444444; jant kolu #b8b8b8, jant içi #454545, göbek
+ * #8f8f8f; DRL #a8a8a8–#adafaf; far #111111–#414141; stop #272727–#505050;
+ * alt garniş #7e7e7e–#949494. Üçlüler gradyan: üst, orta, alt.
+ *
+ * ÖLÇÜM DEĞİL, BENİM SEÇİMİM: camın mavimsi tonu, DRL'nin parlak üstü
+ * (görselde #a8a8a8), stop'un kırmızımsı tonu (görselde sönük, gri), plakanın
+ * beyazı (görselde gri #999999), kontur rengi.
+ */
+export const ARAC_BOYASI = {
+  govde: ['#B0D0D4', '#79A2A9', '#557A82'],
+  siyah: ['#3C3D3E', '#1F2021', '#0F1010'],
+  cam: ['#6E757B', '#4B5258', '#2C3136'],
+  lastik: ['#3B3B3B', '#2A2A2A', '#1B1B1B'],
+  far: ['#4A4C4E', '#2C2D2F', '#141516'],
+  drl: ['#ECEFF1', '#C8CCCF', '#A8ADB0'],
+  stop: ['#55484A', '#3A2F31', '#201A1B'],
+  gumus: ['#C6C6C6', '#9B9B9B', '#7E7E7E'],
+  plaka: ['#FFFFFF', '#F2F2F2', '#DADADA'],
+  jant: '#454545',
+  jantKolu: '#C2C2C2',
+  jantGobek: '#8F8F8F',
+  kontur: '#16262B',
+} as const;
+
 /** Dereceden renk çifti — tabloda, rozette, 3B modelde aynı kaynak. */
 export function dereceRenkleri(renkler: Renkler, derece: string) {
   switch (derece) {
