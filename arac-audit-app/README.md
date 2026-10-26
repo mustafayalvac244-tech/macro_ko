@@ -365,6 +365,31 @@ garnişe tıklayınca o parça seçilsin."*
     boyamak (bulanık, lekeli çıktı; gövde çokgenlerinin alt kenarı
     fotoğrafta siyah garnişe taştığı için o bantlar siyaha döndü) ve bakışın
     gövde tonunu fotoğraftan birebir almak (soluk, mat).
+- **Büyük görünüm (26.10.2026):** ürün sahibi *"aracı seçtiğinde büyüsün …
+  360 view olsun, içinde parçaları seçebilsinler"* dedi. Denetim ekranındaki
+  kart artık önizleme: araca dokunuş (ya da *Büyüt*) ekranı kaplayan
+  görünümü açar, parça seçimi ve onay orada. Görsel aracın **sınır kutusuna
+  kırpılıp** büyütülür (`haritaOdagi` + `odakKutusu`: harita çokgenlerinin
+  kutusu + %3 pay; kenar boşlukları kabın dışına taşar, dokunuş aynı kutuya
+  göre okunur). **Dikey telefonda** geniş bakış (odak en/boy > 1,6: yan,
+  çapraz, üstten; ön/arka ~1,4 ile dik kalır) sahnenin içi **90° çevrilir**, aracın boyu ekranın boyuna
+  yatar; dokunuş ve kaydırma geri çevrilir (`yanYatirilir`, `cevrilmisNokta`).
+  Ön/arka bakış dik kalır. Katman Modal değil (iki modal web'de asılı
+  kalıyordu, temel.tsx): ekranın üstünde bir View; onay katmanı kapatır,
+  ızgara açılır. Ölçüm (web, sınav): telefon kartı 340×170 → büyük sahne
+  366×660, çevrilmiş; tablet 318×159 → 1000×584.
+- **İkinci parça (26.10.2026):** *"iki parça seçebilsek, arasında boşluk vs.
+  yazabilmek için."* Büyük görünümde parça seçtikten sonra **+ 2. parça** →
+  bir parçaya daha dokunulur; çubuk *"Kaput ↔ Sol ön çamurluk"* yazar,
+  *2. parçayı kaldır* ile tek parçaya döner. Onaylayınca ızgara başlığı
+  çift ad ve *"İki parça arası (boşluk, kademe)"*; **montaj** grubu
+  (boşluk/kademe tipleri) ızgarada başa alınır. Kayıt `parcaId`ye bağlıdır,
+  `ikinciParcaId` yanında durur (göç 9: `hatalar.ikinci_parca_id`, eski
+  kayıtlarda boş). Kayıt listesi, ayrıntı sayfası, rapor metni ve NAS
+  Excel'inin parça sütunu çift adı yazar (`parcaCiftiAdi`). Excel'in
+  Part/Complex alanı **değişmez** (Part kalır; ikinci parça Excel'de ayrı
+  sütun değil, parça adının içinde — Excel'de böyle bir alan görmedim).
+  İstatistik (Pareto) yalnız birinci parçaya sayar.
 - Haritası da görseli de olmayan araçta ekran eskisi gibi şematik haritayı
   gösterir. Erişilebilirlik:
   görüntü ekran okuyucuya kapalı (çokgenler öğe değil); ◀ ▶ ve Üstten adlı,
@@ -404,10 +429,27 @@ yazdım; bağımsız bir sınav değil):
   "gerçek gibi" görünüp görünmediği bir ölçüm değil: ekran görüntülerine
   gözle bakıldı.
 
+- **Büyük görünüm ve ikinci parça** (26.10.2026), web'de: Türkçe akış 4
+  düzende (karta dokunuş büyük görünümü açar, ızgara açılmaz; telefonda
+  sahne 366×660 ve çevrili, tablette 1000×584; kırpılmış koordinattan
+  plakaya dokunuş → onay → ızgara, büyük görünüm kapanır). Çizim ve gerçek
+  görsel kipinde telefon/tablette sekiz bakışta işaret noktaları kırpma ve
+  çevirmeden geçirilip beklenen ızgarayı açtı; ✕ görünümü kapattı, yeniden
+  açılınca seçim sıfırdı; garniş + "2. parça" + plaka → çubukta *"… ↔ Ön
+  plaka yuvası"*, kaldır → tek; onayda ızgara başlığı çift, ilk düğme
+  *Boşluk fazla* (montaj başta), kayıt bildirimi ve kayıt listesi çift adı
+  yazdı. Sentetik sınav telefon/tablette 10/10 — tablette büyük görünümde
+  döndürünce kartın eski bakışta kaldığını bu sınav yakaladı, düzeltildi
+  (kart SON_BAKIS'ı dinler). Göç 9 Node SQLite'ta sıfırdan ve göç 8'deki
+  eski kayıtla koşuldu (eski kayıt boş dize aldı; INSERT sütun listesi
+  tabloyla uyuştu). 984 birim testi; 13'ü yeni (odak kutusu, çevirme,
+  çift ad, rapor metni).
+
 **Doğrulanmayan:** renksiz çizim ürün sahibine ulaştı (*"görüntü ioniq 3 ama
 rengi mengi yok"*); **renkli sürüm ve onay çubuğu telefonda görülmedi**.
 Galeri izni, dosya kopyalama, parmakla kaydırma ve dokunuş isabeti telefonda
-ölçülmedi. Parmak, fareden çok daha az isabetli: küçük parçalar (delta
+ölçülmedi. **Büyük görünüm, çevirme ve ikinci parça telefonda görülmedi**;
+çevrilmiş sahnede parmakla dikey kaydırmanın rahat olup olmadığı bilinmiyor. Parmak, fareden çok daha az isabetli: küçük parçalar (delta
 garnişi, kapı kolu, üçgen cam) telefonda zor tutturulabilir — onay adımı
 yanlış dokunuşun kayda dönüşmesini önler, isabeti artırmaz.
 
@@ -818,7 +860,7 @@ durdurma, onarıma yönlendirme).
 | Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **26.10.2026'da yerini Excel'in DEMERIT 0–3 + CLASS'ı aldı** (aşağıdaki satır) |
 | Excel içeriği (NAS, 26.10.2026): demerit, class, system, responsible, kaynak listesi, model kodu, body 6 hane, Audit Skoru, Excel'e aktar | **Kod bitti** — kurallar Excel'den okundu; testleri ben yazdım; 4 düzende 14 adım geçti; **telefonda görülmedi**. BJ = IONIQ 3 çıkarım |
-| Döndürülebilir araç (360°, 26.10.2026): dokuz bakış yuvası, eksik yan aynalanır, parça haritası varsa dokunulan parça işaretlenir ve **Onayla** ile ızgarası açılır, yoksa dış bölge | **IONIQ 3 için parça düzeyinde, görsel yüklemeden de** (renkli çizim; görsel eklenirse fotoğraf) (8 bakış, 273 çokgen; görünen noktaların %99,1–99,7'si bir parçaya düşüyor — doğru parçaya düştüğü yalnız gözle denetlendi). Web'de gerçek görsellerle ve çizimle, telefon ve tablet düzeninde işaret noktaları onaydan sonra beklenen parçayı açtı; öteki araçlarda bölge düzeyi; **renkli sürüm ve onay telefonda denenmedi** |
+| Döndürülebilir araç (360°, 26.10.2026): dokuz bakış yuvası, eksik yan aynalanır; karta dokunuş ekranı kaplayan **büyük görünümü** açar (araca kırpılı, dikey telefonda yan yatık), orada dokunulan parça işaretlenir, isteğe bağlı **ikinci parça** (boşluk/kademe), **Onayla** ile ızgara; haritasız bakışta dış bölge | **IONIQ 3 için parça düzeyinde, görsel yüklemeden de** (renkli çizim; görsel eklenirse fotoğraf) (8 bakış, 273 çokgen; görünen noktaların %99,1–99,7'si bir parçaya düşüyor — doğru parçaya düştüğü yalnız gözle denetlendi). Web'de gerçek görsellerle ve çizimle, telefon ve tablet düzeninde işaret noktaları onaydan sonra beklenen parçayı açtı; öteki araçlarda bölge düzeyi; **renkli sürüm ve onay telefonda denenmedi** |
 | Dil: Türkçe / English (26.10.2026) | **Kod bitti** — Türkçe sınav 4 düzende değişmeden geçti (Türkçe metinler aynı kaldı); İngilizce sınav telefon ve tablette 10 ekranı taradı, Türkçe harfli metin yalnız bilerek kendi dilinde yazılan "Türkçe" seçeneği. Tarama Türkçe harf içermeyen Türkçe kelimeyi kaçırabilir; ekran görüntüleri gözle de bakıldı. Çeviriler benim (ve yardımcı ajanların); **İngilizce bilen bir kullanıcı okumadı**, telefonda görülmedi |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |

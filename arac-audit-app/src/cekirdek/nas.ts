@@ -14,7 +14,7 @@
 //    bu yüzden Excel'dekiyle aynı ÇIKMAYABİLİR — fark Excel'in hatasıdır.
 //  - Tarih Excel'de metin olarak yazılıyor; burada gerçek tarih hücresi.
 
-import { BOLGELER, PARCA_INDEKS, parcaTamAdi, HATA_TIPI_INDEKS } from './katalog';
+import { BOLGELER, PARCA_INDEKS, parcaCiftiAdi, HATA_TIPI_INDEKS } from './katalog';
 import { ARAC_INDEKS } from './model3d';
 import { Denetim, Hata, SinifKodu } from './tipler';
 import { STIL, Hucre, Sayfa } from './xlsx';
@@ -180,7 +180,7 @@ export function nasSayfalari(
       metin(d.denetci), metin(`${kaynak}${model}${govde}`),
     ]);
     for (const h of [...(d.hatalar ?? [])].sort((a, b) => a.zaman.localeCompare(b.zaman))) {
-      const parca = parcaTamAdi(h.parcaId, 'en');
+      const parca = parcaCiftiAdi(h, 'en');
       const tip = HATA_TIPI_INDEKS[h.hataTipiId]?.en ?? h.hataTipiId;
       problemler.push([
         orta(problemler.length), tarih(h.zaman), orta(kaynak), orta(model), orta(govde),

@@ -517,6 +517,15 @@ export function parcaTamAdi(parcaId: string, dil: Dil = 'tr'): string {
 }
 
 /**
+ * Kaydın parça adı; ikinci parça varsa "Kaput ↔ Sol ön çamurluk" (26.10.2026:
+ * boşluk/kademe iki panelin arasındadır, raporda ikisi de görünsün).
+ */
+export function parcaCiftiAdi(h: { parcaId: string; ikinciParcaId?: string | null }, dil: Dil = 'tr'): string {
+  const ilk = parcaTamAdi(h.parcaId, dil);
+  return h.ikinciParcaId ? `${ilk} ↔ ${parcaTamAdi(h.ikinciParcaId, dil)}` : ilk;
+}
+
+/**
  * Ekrandaki adlar, arayüz dilinde (26.10.2026, dil seçeneği). İngilizcesi boş
  * bırakılmış bir ekip tipi İngilizce arayüzde Türkçe adıyla görünür — boş
  * kutu göstermekten iyidir.

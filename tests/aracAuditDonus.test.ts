@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   aracHaritasiVar, cizimRolu, dokunulanYuz, dokunusSonucu, gorunenYuzler, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka,
-  HALKA_YUVALARI, kaydirmaIndeksi, oranUyar, sar, UST_BOLGESI, yumusakYol, yuvaAdi, YUVALAR, YUZ_BOLGESI,
+  cevrilmisNokta, HALKA_YUVALARI, haritaOdagi, kaydirmaIndeksi, kutudakiNokta, odakKutusu, oranUyar, sar, UST_BOLGESI,
+  yanYatirilir, yumusakYol, yuvaAdi, YUVALAR, YUZ_BOLGESI,
 } from '../arac-audit-app/src/cekirdek/donusGorunumu';
 import { GorunumId, PARCA_HARITALARI } from '../arac-audit-app/src/cekirdek/gorunumParcalari';
-import { BOLGELER, PARCA_INDEKS } from '../arac-audit-app/src/cekirdek/katalog';
+import { BOLGELER, PARCA_INDEKS, parcaCiftiAdi } from '../arac-audit-app/src/cekirdek/katalog';
+import { sorunMetni } from '../arac-audit-app/src/cekirdek/rapor';
 import { ARAC_INDEKS } from '../arac-audit-app/src/cekirdek/model3d';
 
 // 26.10.2026 — ürün sahibi: "Hyundai sitelerinde aracı döndürebiliyoruz, araç
@@ -241,5 +243,101 @@ describe('çizimde yumuşak kenar (yumusakYol)', () => {
       }
     }
     expect(sayi).toBe(273);
+  });
+});
+
+// 26.10.2026 — ürün sahibi: "aracı seçtiğinde büyüsün". Büyük görünümde görsel
+// aracın sınır kutusuna kırpılıp büyütülür; dokunuş aynı kutuya göre okunur.
+describe('büyük görünüm: odak kutusu', () => {
+  const harita = { oran: 2, alanlar: [
+    { parcaId: 'kaput', nokta: [[0.1, 0.2], [0.5, 0.2], [0.5, 0.5], [0.1, 0.5]] as const },
+    { parcaId: 'sol_on_kapi', nokta: [[0.5, 0.3], [0.9, 0.3], [0.9, 0.8], [0.5, 0.8]] as const },
+  ] };
+
+  it('odak: çokgenlerin sınır kutusu + pay, 0–1 içinde kırpılır; harita yoksa tüm görsel', () => {
+    expect(haritaOdagi(harita)).toEqual({ x0: 0.1 - 0.03, y0: 0.2 - 0.03, x1: 0.9 + 0.03, y1: 0.8 + 0.03 });
+    expect(haritaOdagi(harita, 0.2)).toEqual({ x0: 0, y0: 0, x1: 1, y1: 1 });
+    expect(haritaOdagi(null)).toEqual({ x0: 0, y0: 0, x1: 1, y1: 1 });
+    expect(haritaOdagi({ oran: 2, alanlar: [] })).toEqual({ x0: 0, y0: 0, x1: 1, y1: 1 });
+  });
+
+  it('tüm görsel odakken kutu "contain" ile aynı', () => {
+    expect(odakKutusu(400, 300, 2, { x0: 0, y0: 0, x1: 1, y1: 1 })).toEqual(goruntuKutusu(400, 300, 2));
+    expect(odakKutusu(400, 100, 2, { x0: 0, y0: 0, x1: 1, y1: 1 })).toEqual(goruntuKutusu(400, 100, 2));
+  });
+
+  it('ortadaki yarım bölge odakken görsel iki kat büyür ve kabın dışına taşar; dokunuş görsele göre doğru okunur', () => {
+    const k = odakKutusu(400, 200, 2, { x0: 0.25, y0: 0.25, x1: 0.75, y1: 0.75 });
+    expect(k).toEqual({ x: -200, y: -100, en: 800, boy: 400 });
+    // Kabın ortası görselin ortası; kabın sol üst köşesi odağın sol üst köşesi.
+    expect(kutudakiNokta(200, 100, k)).toEqual({ x: 0.5, y: 0.5 });
+    expect(kutudakiNokta(0, 0, k)).toEqual({ x: 0.25, y: 0.25 });
+    expect(kutudakiNokta(400, 200, k)).toEqual({ x: 0.75, y: 0.75 });
+  });
+
+  it('geniş odak dar kapta: ölçek dar kenara göre, odak ortalanır', () => {
+    // Odak 0,5×0,5 (görsel biriminde 1,0×0,5); kap 100×100 → ölçek min(100/1, 100/0,5) = 100.
+    const k = odakKutusu(100, 100, 2, { x0: 0.25, y0: 0.25, x1: 0.75, y1: 0.75 });
+    expect(k).toEqual({ x: -50, y: 25 - 25, en: 200, boy: 100 });
+    expect(kutudakiNokta(50, 50, k)).toEqual({ x: 0.5, y: 0.5 });
+  });
+
+  it('kutunun dışındaki dokunuş null; boş kap boş kutu', () => {
+    const k = odakKutusu(400, 200, 2, { x0: 0, y0: 0, x1: 1, y1: 1 });
+    expect(kutudakiNokta(-1, 50, k)).toBeNull();
+    expect(kutudakiNokta(50, 201, k)).toBeNull();
+    expect(odakKutusu(0, 0, 2, { x0: 0, y0: 0, x1: 1, y1: 1 })).toEqual({ x: 0, y: 0, en: 0, boy: 0 });
+    expect(kutudakiNokta(0, 0, { x: 0, y: 0, en: 0, boy: 0 })).toBeNull();
+  });
+});
+
+// 26.10.2026 — dikey telefonda geniş bakış 90° çevrilir; dokunuş geri çevrilir.
+describe('büyük görünüm: dikey telefonda çevirme', () => {
+  const genis = { x0: 0.05, y0: 0.2, x1: 0.95, y1: 0.8 }; // 2:1 görselde 1,8/0,6 = 3
+  const kare = { x0: 0.3, y0: 0.1, x1: 0.7, y1: 0.9 };   // 0,8/0,8 = 1
+
+  it('yalnız dikey kapta ve geniş odakta çevrilir', () => {
+    expect(yanYatirilir(390, 700, 2, genis)).toBe(true);
+    expect(yanYatirilir(700, 390, 2, genis)).toBe(false);
+    expect(yanYatirilir(390, 700, 2, kare)).toBe(false);
+    expect(yanYatirilir(390, 700, 2, null)).toBe(false);
+    // Ön/arka bakış: aynalarla odak ~1,4 — dik kalır (eşik 1,6).
+    expect(yanYatirilir(390, 700, 2, { x0: 0.2, y0: 0.1, x1: 0.8, y1: 0.95 })).toBe(false);
+    expect(yanYatirilir(390, 390, 2, genis)).toBe(false);
+  });
+
+  it('saat yönünde 90°: ekranda aşağı = içte sağa, ekranda sağ = içte yukarı', () => {
+    // Dış kap 390×700, iç kap 700×390. Merkez merkeze gider.
+    expect(cevrilmisNokta(195, 350, 390)).toEqual({ x: 350, y: 195 });
+    expect(cevrilmisNokta(195, 450, 390)).toEqual({ x: 450, y: 195 });
+    expect(cevrilmisNokta(295, 350, 390)).toEqual({ x: 350, y: 95 });
+    // Ekranın sol üst köşesi, içte sol alt köşe.
+    expect(cevrilmisNokta(0, 0, 390)).toEqual({ x: 0, y: 390 });
+  });
+
+  it('çevrilmiş kapta dokunuş görselin doğru yerini bulur', () => {
+    const k = odakKutusu(700, 390, 2, genis);
+    // İçte odağın tam ortası = görselde (0,5; 0,5); ekranda da kabın ortası.
+    const n = kutudakiNokta(cevrilmisNokta(195, 350, 390).x, cevrilmisNokta(195, 350, 390).y, k);
+    expect(n!.x).toBeCloseTo(0.5, 6);
+    expect(n!.y).toBeCloseTo(0.5, 6);
+  });
+});
+
+// 26.10.2026 — ürün sahibi: "iki parça seçebilsek, arasında boşluk vs. yazabilmek için".
+describe('ikinci parça (boşluk / kademe)', () => {
+  it('ad: ikinci parça varsa "A ↔ B", iki dilde; yoksa tek ad', () => {
+    expect(parcaCiftiAdi({ parcaId: 'kaput', ikinciParcaId: 'sol_on_camurluk' })).toBe('Kaput ↔ Sol ön çamurluk');
+    expect(parcaCiftiAdi({ parcaId: 'kaput', ikinciParcaId: 'sol_on_camurluk' }, 'en')).toBe('Hood ↔ LH front fender');
+    expect(parcaCiftiAdi({ parcaId: 'kaput' })).toBe('Kaput');
+    expect(parcaCiftiAdi({ parcaId: 'kaput', ikinciParcaId: null })).toBe('Kaput');
+    expect(parcaCiftiAdi({ parcaId: 'kaput', ikinciParcaId: '' })).toBe('Kaput');
+  });
+
+  it('rapor metni iki parçayı da taşır', () => {
+    const h = { parcaId: 'kaput', ikinciParcaId: 'sol_on_camurluk', hataTipiId: 'bosluk_fazla', konum: '', aciklama: '', adet: 1 };
+    expect(sorunMetni(h, 'tr')).toBe('Kaput ↔ Sol ön çamurluk — Boşluk fazla');
+    expect(sorunMetni(h, 'en')).toBe('Hood ↔ LH front fender over gap');
+    expect(sorunMetni({ ...h, ikinciParcaId: undefined }, 'tr')).toBe('Kaput — Boşluk fazla');
   });
 });

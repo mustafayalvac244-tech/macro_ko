@@ -8,7 +8,7 @@ import { GRUP_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, DereceRozeti, Dugme, Girdi, HataKutusu, Secenek } from '@/bilesenler/temel';
 import { fotografKucult } from '@/cekirdek/goruntu';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
-import { grupAdi, PARCA_INDEKS, parcaBolgeAdi, parcaHataTipleri, parcaTamAdi, DERECELER } from '@/cekirdek/katalog';
+import { grupAdi, PARCA_INDEKS, parcaBolgeAdi, parcaCiftiAdi, parcaHataTipleri, parcaTamAdi, DERECELER } from '@/cekirdek/katalog';
 import {
   demeritDegeri, HAZIR_SORUMLULAR, NAS_SISTEMLERI, SINIFLAR, sinifDegeri, varsayilanSistem,
 } from '@/cekirdek/nas';
@@ -473,7 +473,7 @@ export function HataSayfasi({
     <>
       <View style={s.baslikSatiri}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.parcaAd} numberOfLines={1}>{parca ? parcaTamAdi(parca.id, dil) : taslak.parcaId}</Text>
+          <Text style={s.parcaAd} numberOfLines={1}>{parca ? parcaCiftiAdi(taslak, dil) : taslak.parcaId}</Text>
           <Text style={s.parcaYol} numberOfLines={1}>{parca ? parcaBolgeAdi(parca.id, dil) : undefined}</Text>
         </View>
         {hataTipiId ? <DereceRozeti derece={derece} kabul={false} buyuk /> : null}

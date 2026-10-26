@@ -204,6 +204,13 @@ const GOCLER: string[] = [
   ALTER TABLE hatalar ADD COLUMN sinif  TEXT NOT NULL DEFAULT 'MINOR';
   ALTER TABLE hatalar ADD COLUMN sistem TEXT NOT NULL DEFAULT '';
   `,
+
+  // 9 — İKİNCİ PARÇA (26.10.2026, ürün sahibi: "iki parça seçebilsek, arasında
+  // boşluk vs. yazabilmek için"). Boşluk/kademe kaydının karşı paneli. Eski
+  // kayıtlarda boş = tek parça.
+  `
+  ALTER TABLE hatalar ADD COLUMN ikinci_parca_id TEXT NOT NULL DEFAULT '';
+  `,
 ];
 
 async function gocleriUygula(d: SQLite.SQLiteDatabase): Promise<void> {
@@ -233,7 +240,7 @@ interface DenetimSatiri {
 interface HataSatiri {
   id: string; denetim_id: string; parca_id: string; hata_tipi_id: string;
   derece: string; kabul_edilebilir: number; sorun_tipi: string; sorumlu: string;
-  sinif: string | null; sistem: string | null;
+  sinif: string | null; sistem: string | null; ikinci_parca_id: string | null;
   adet: number; konum: string; aciklama: string; zaman: string;
   durum: string; atanan_kisi: string | null; gideren: string | null;
   giderilme_zamani: string | null; dogrulayan: string | null; dogrulama_zamani: string | null;
@@ -256,6 +263,7 @@ function hataya(h: HataSatiri, fotograflar: string[]): Hata {
     derece: h.derece as Hata['derece'], kabulEdilebilir: h.kabul_edilebilir === 1,
     sorunTipi: h.sorun_tipi === 'Complex' ? 'Complex' : 'Part', sorumlu: h.sorumlu ?? '',
     sinif: (h.sinif as Hata['sinif']) || 'MINOR', sistem: h.sistem ?? '',
+    ...(h.ikinci_parca_id ? { ikinciParcaId: h.ikinci_parca_id } : {}),
     adet: h.adet, konum: h.konum,
     aciklama: h.aciklama, zaman: h.zaman, durum: h.durum as Hata['durum'],
     atananKisi: h.atanan_kisi, gideren: h.gideren, giderilmeZamani: h.giderilme_zamani,
@@ -500,12 +508,13 @@ export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
   const d = await db();
   await d.runAsync(
     `INSERT INTO hatalar (id, denetim_id, parca_id, hata_tipi_id, derece, kabul_edilebilir,
-        sorun_tipi, sorumlu, sinif, sistem, adet, konum,
+        sorun_tipi, sorumlu, sinif, sistem, ikinci_parca_id, adet, konum,
         aciklama, zaman, durum, atanan_kisi, gideren, giderilme_zamani, dogrulayan,
         dogrulama_zamani, guncelleme, senkron_zamani)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
      ON CONFLICT(id) DO UPDATE SET
         parca_id = excluded.parca_id, hata_tipi_id = excluded.hata_tipi_id,
+        ikinci_parca_id = excluded.ikinci_parca_id,
         derece = excluded.derece, kabul_edilebilir = excluded.kabul_edilebilir,
         sorun_tipi = excluded.sorun_tipi, sorumlu = excluded.sorumlu,
         sinif = excluded.sinif, sistem = excluded.sistem,
@@ -517,7 +526,7 @@ export async function hataKaydet(denetimId: string, hata: Hata): Promise<void> {
         guncelleme = excluded.guncelleme, senkron_zamani = NULL`,
     hata.id, denetimId, hata.parcaId, hata.hataTipiId, hata.derece,
     hata.kabulEdilebilir ? 1 : 0, hata.sorunTipi ?? 'Part', hata.sorumlu ?? '',
-    hata.sinif ?? 'MINOR', hata.sistem ?? '', hata.adet,
+    hata.sinif ?? 'MINOR', hata.sistem ?? '', hata.ikinciParcaId ?? '', hata.adet,
     hata.konum, hata.aciklama, hata.zaman, hata.durum, hata.atananKisi ?? null,
     hata.gideren ?? null, hata.giderilmeZamani ?? null, hata.dogrulayan ?? null,
     hata.dogrulamaZamani ?? null, simdi(),

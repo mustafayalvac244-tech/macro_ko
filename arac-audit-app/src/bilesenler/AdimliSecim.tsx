@@ -50,7 +50,7 @@ const enSayi = (n: number, ad: string): string => `${n} ${ad}${n === 1 ? '' : 's
 
 export function AdimliSecim({
   bolgeler, konum, setKonum, arama, setArama, parcaId, parcaSayilari, sonParcalar, onSec, tablet,
-  kapsam, onKapsam, onBitir, aracId,
+  kapsam, onKapsam, onBitir, aracId, onBuyut, ikinciParcaId,
 }: {
   bolgeler: Bolge[];
   konum: Konum;
@@ -58,9 +58,12 @@ export function AdimliSecim({
   arama: string;
   setArama: (q: string) => void;
   parcaId: string | null;
+  /** Açık kaydın ikinci parçası (boşluk/kademe); döndürülebilir kart ikisini de gösterir. */
+  ikinciParcaId?: string | null;
   parcaSayilari: Map<string, number>;
   sonParcalar: string[];
-  onSec: (parcaId: string) => void;
+  /** Parça seçildi; döndürülebilir görünümde ikinci parça da seçilmişse (boşluk/kademe) onunla. */
+  onSec: (parcaId: string, ikinciParcaId?: string) => void;
   tablet: boolean;
   /** Kontrol edildi işaretli sistemler. */
   kapsam: ReadonlySet<string>;
@@ -73,6 +76,8 @@ export function AdimliSecim({
    * olmalı" — görsel yüklemeden de).
    */
   aracId?: string;
+  /** Verilirse döndürülebilir görünüm kart kipindedir: araca dokunuş büyük görünümü açar (26.10.2026). */
+  onBuyut?: () => void;
 }) {
   const { renkler } = useTema();
   const { dil, t } = useDil();
@@ -227,8 +232,10 @@ export function AdimliSecim({
                     bolgeler={bolgeler}
                     kayitliParcalar={parcaSayilari}
                     seciliParcaId={parcaId}
+                    seciliIkinciParcaId={ikinciParcaId}
                     onBolgeSec={(bolgeId) => setKonum({ sistem: 'dis', bolgeId })}
                     onParcaSec={onSec}
+                    onBuyut={onBuyut}
                   />
                 ) : (
                   <AracHaritasi

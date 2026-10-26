@@ -163,6 +163,13 @@ export type HataDurumu = 'acik' | 'atandi' | 'giderildi' | 'kapali';
 export interface Hata {
   id: string;
   parcaId: string;
+  /**
+   * İKİNCİ PARÇA (26.10.2026, ürün sahibi: "iki parça seçebilsek, arasında
+   * boşluk vs. yazabilmek için"). Boşluk/kademe gibi iki panelin ARASINDAKİ
+   * hata için: kayıt `parcaId`ye bağlıdır, ikinci parça yanında yazılır
+   * ("Kaput ↔ Sol ön çamurluk"). Boş ya da yok: tek parçalı kayıt.
+   */
+  ikinciParcaId?: string;
   hataTipiId: string;
   derece: DereceKodu;
   /**

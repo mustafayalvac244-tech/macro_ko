@@ -39,7 +39,7 @@ export interface Sutun {
 }
 
 import { xlsxOlustur, STIL, gosterimOlcusu, pikselPunto, sutunAdi } from './xlsx';
-import { bastanKucult, BOLGELER, bolgelerAracIcin, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaTamAdi } from './katalog';
+import { bastanKucult, BOLGELER, bolgelerAracIcin, DERECELER, HATA_TIPI_INDEKS, PARCA_INDEKS, parcaCiftiAdi, parcaTamAdi } from './katalog';
 import { sureDakika, sureMetni } from './istatistik';
 import { kapsamMetni, mevcutSistemler } from './sistemler';
 import { SINIFLAR, sinifDegeri, sistemDegeri } from './nas';
@@ -57,10 +57,10 @@ import { aracKimligi } from './vin';
  * olmadan "Front fender scratch" hangi çamurluk olduğunu söylemiyordu.
  */
 export function sorunMetni(
-  h: Pick<Hata, 'parcaId' | 'hataTipiId' | 'konum' | 'aciklama' | 'adet'>,
+  h: Pick<Hata, 'parcaId' | 'hataTipiId' | 'konum' | 'aciklama' | 'adet'> & { ikinciParcaId?: string },
   dil: Dil,
 ): string {
-  const parca = parcaTamAdi(h.parcaId, dil);
+  const parca = parcaCiftiAdi(h, dil);
   const t = HATA_TIPI_INDEKS[h.hataTipiId];
   // Ekibin eklediği tipin İngilizcesi boş bırakılabiliyor. Boşsa Türkçe adı
   // yaz: "LH front fender " diye yarım bir cümle çıkmasın.

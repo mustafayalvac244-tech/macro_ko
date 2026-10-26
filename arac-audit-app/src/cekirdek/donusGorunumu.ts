@@ -164,14 +164,73 @@ export function goruntuKutusu(kapEn: number, kapBoy: number, oran: number): { x:
   return { x: 0, y: (kapBoy - boy) / 2, en: kapEn, boy };
 }
 
+export type GoruntuKutusu = { x: number; y: number; en: number; boy: number };
+
+/** Haritadaki bütün çokgenlerin sınır kutusu (0–1), kenarında `pay` kadar boşlukla; harita boşsa tüm görsel. */
+export function haritaOdagi(harita: GorunumHaritasi | null, pay = 0.03): { x0: number; y0: number; x1: number; y1: number } {
+  let x0 = 1; let y0 = 1; let x1 = 0; let y1 = 0;
+  for (const a of harita?.alanlar ?? []) {
+    for (const [x, y] of a.nokta) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  }
+  if (!(x1 > x0) || !(y1 > y0)) return { x0: 0, y0: 0, x1: 1, y1: 1 };
+  return { x0: Math.max(0, x0 - pay), y0: Math.max(0, y0 - pay), x1: Math.min(1, x1 + pay), y1: Math.min(1, y1 + pay) };
+}
+
+/**
+ * BÜYÜK GÖRÜNÜM (26.10.2026, ürün sahibi: "aracı seçtiğinde büyüsün"): görselin
+ * `odak` bölgesi (aracın sınır kutusu) kabı dolduracak şekilde büyütülür;
+ * görselin kalanı kabın dışına taşar (kap `overflow: hidden`). Dönen kutu
+ * görselin TAMAMININ kaptaki yeri — çizim, görsel ve dokunuş hesabı hep bu
+ * kutuya göre, yani goruntuKutusu ile aynı sözleşme.
+ */
+export function odakKutusu(
+  kapEn: number, kapBoy: number, oran: number, odak: { x0: number; y0: number; x1: number; y1: number },
+): GoruntuKutusu {
+  if (kapEn <= 0 || kapBoy <= 0 || !(oran > 0)) return { x: 0, y: 0, en: kapEn, boy: kapBoy };
+  const gen = Math.max(1e-6, odak.x1 - odak.x0);
+  const yuk = Math.max(1e-6, odak.y1 - odak.y0);
+  // Görsel birimi: en = oran, boy = 1. Odak bölgesi kaba "contain" sığar.
+  const olcek = Math.min(kapEn / (gen * oran), kapBoy / yuk);
+  const en = oran * olcek;
+  const boy = olcek;
+  const x = (kapEn - gen * en) / 2 - odak.x0 * en;
+  const y = (kapBoy - yuk * boy) / 2 - odak.y0 * boy;
+  return { x, y, en, boy };
+}
+
+/**
+ * Dikey telefonda büyük görünüm (26.10.2026): geniş odak (en/boy > 1,6) kabı
+ * dolduramaz, araç kart kadar kalırdı. Eşik ölçüldü: ön/arka bakışın odağı
+ * ~1,4 (aynalarla), yan/çapraz 2,2–2,5, üstten 2,4 — ön/arka dik kalsın. O zaman sahnenin içi 90° çevrilir
+ * (saat yönü): iç kap en×boy = dış kabın boy×en; aracın boyu ekranın boyuna
+ * yatar. Bu karar saf: dış kap dikey mi, odak geniş mi.
+ */
+export function yanYatirilir(kapEn: number, kapBoy: number, oran: number, odak: { x0: number; y0: number; x1: number; y1: number } | null): boolean {
+  if (!odak || !(kapBoy > kapEn)) return false;
+  const gen = (odak.x1 - odak.x0) * oran;
+  const yuk = odak.y1 - odak.y0;
+  return yuk > 0 && gen / yuk > 1.6;
+}
+
+/** Dış kaptaki dokunuş → 90° çevrilmiş iç kabın koordinatı (iç kap boy×en). */
+export function cevrilmisNokta(px: number, py: number, kapEn: number): { x: number; y: number } {
+  // Saat yönünde 90°: içteki sağ (+x) ekranda aşağı (+y); içteki yukarı ekranda sağ.
+  return { x: py, y: kapEn - px };
+}
+
+/** Kaptaki dokunuş → verilen görsel kutusuna göre 0–1 koordinat (görselin dışındaysa null). */
+export function kutudakiNokta(dx: number, dy: number, k: GoruntuKutusu): { x: number; y: number } | null {
+  if (!(k.en > 0) || !(k.boy > 0)) return null;
+  const x = (dx - k.x) / k.en;
+  const y = (dy - k.y) / k.boy;
+  return x >= 0 && x <= 1 && y >= 0 && y <= 1 ? { x, y } : null;
+}
+
 /** Kaptaki dokunuş → görsele göre 0–1 koordinat (görselin dışındaysa null). */
 export function goruntuNoktasi(
   dx: number, dy: number, kapEn: number, kapBoy: number, oran: number,
 ): { x: number; y: number } | null {
-  const k = goruntuKutusu(kapEn, kapBoy, oran);
-  const x = (dx - k.x) / k.en;
-  const y = (dy - k.y) / k.boy;
-  return x >= 0 && x <= 1 && y >= 0 && y <= 1 ? { x, y } : null;
+  return kutudakiNokta(dx, dy, goruntuKutusu(kapEn, kapBoy, oran));
 }
 
 /** Görselin oranı haritanınkiyle %2 içinde mi (sınır dahil; kayan nokta payı). */

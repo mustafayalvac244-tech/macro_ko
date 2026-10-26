@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AdimliSecim, Konum, KOK_KONUM } from '@/bilesenler/AdimliSecim';
+import { DonusGorunumu } from '@/bilesenler/DonusGorunumu';
 import { DenetimBilgileri } from '@/bilesenler/DenetimBilgileri';
 import {
   DereceSecici, GrupBasligi, HataSayfasi, HataTaslagi, SinifSecici, YeniTipFormu,
@@ -17,7 +18,7 @@ import {
 } from '@/bilesenler/temel';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import {
-  bolgelerAracIcin, HATA_TIPI_INDEKS, hataTipiAdi, PARCA_INDEKS, parcaBolgeAdi, parcaHataTipleri, parcaTamAdi,
+  bolgelerAracIcin, HATA_TIPI_INDEKS, hataTipiAdi, PARCA_INDEKS, parcaBolgeAdi, parcaCiftiAdi, parcaHataTipleri, parcaTamAdi,
 } from '@/cekirdek/katalog';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { VARSAYILAN_SINIF, varsayilanSistem } from '@/cekirdek/nas';
@@ -98,6 +99,11 @@ export default function DenetimEkrani() {
   const [yuklemeHatasi, setYuklemeHatasi] = useState<string | null>(null);
 
   const [parcaId, setParcaId] = useState<string | null>(null);
+  // İkinci parça (26.10.2026): boşluk/kademe için karşı panel; 360° büyük
+  // görünümden gelir, kayda yazılır, parça kapanınca düşer.
+  const [ikinciParcaId, setIkinciParcaId] = useState<string | null>(null);
+  // 360° büyük görünüm (26.10.2026, "aracı seçtiğinde büyüsün"): ekranı kaplar.
+  const [buyukAcik, setBuyukAcik] = useState(false);
   const [parcaArama, setParcaArama] = useState('');
   // Sistem/bölge: kayıttan sonra SİLİNMEZ — aynı bölgede ikinci hata için
   // denetçi yeniden en dıştan başlamasın.
@@ -198,11 +204,16 @@ export default function DenetimEkrani() {
   const tipler = useMemo(() => {
     if (!parcaId) return [];
     const q = hataArama.trim();
-    const hepsi = parcaHataTipleri(parcaId);
+    const tumu = parcaHataTipleri(parcaId);
+    // İki parça seçildiyse hata büyük olasılıkla aralarında (boşluk, kademe):
+    // montaj grubu başa; sıra bozulmaz (kararlı sıralama).
+    const hepsi = ikinciParcaId
+      ? [...tumu].sort((a, b) => Number(b.grup === 'montaj') - Number(a.grup === 'montaj'))
+      : tumu;
     return q ? hepsi.filter((t) => aramaEslesir(aramaMetni(t.ad, t.en), q)) : hepsi;
     // ozelTipler: yeni tip eklendiğinde ızgara anında tazelensin.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parcaId, hataArama, ozelTipler]);
+  }, [parcaId, ikinciParcaId, hataArama, ozelTipler]);
 
   /** Izgara grup grup çizilir; grup sırası listedeki ilk görünüşe göre. */
   const tipGruplari = useMemo(() => {
@@ -212,8 +223,9 @@ export default function DenetimEkrani() {
   }, [tipler]);
 
   /** Parçayı açar. Demerit 0'a, class MINOR'a döner (dosya başı notu). */
-  const parcaSec = useCallback((pid: string) => {
+  const parcaSec = useCallback((pid: string, ikinci?: string) => {
     setParcaId(pid);
+    setIkinciParcaId(ikinci && ikinci !== pid ? ikinci : null);
     setHataArama('');
     setYeniTipAcik(false);
     setKayitHatasi(null);
@@ -223,6 +235,7 @@ export default function DenetimEkrani() {
 
   const parcalaraDon = useCallback(() => {
     setParcaId(null);
+    setIkinciParcaId(null);
     setHataArama('');
     setYeniTipAcik(false);
   }, []);
@@ -234,6 +247,7 @@ export default function DenetimEkrani() {
     const kayit: Hata = {
       id: kimlikUret('h'),
       parcaId,
+      ...(ikinciParcaId ? { ikinciParcaId } : {}),
       hataTipiId: tip.id,
       derece,
       kabulEdilebilir: false,
@@ -267,8 +281,8 @@ export default function DenetimEkrani() {
     bildirimGoster({
       tur: 'kayit', id: kayit.id, parcaId,
       metin: t(
-        `${parcaTamAdi(parcaId)} — ${tip.ad} · demerit ${dereceGosterimi(kayit)} · ${sinif}`,
-        `${parcaTamAdi(parcaId, 'en')} — ${tip.en || tip.ad} · demerit ${dereceGosterimi(kayit)} · ${sinif}`,
+        `${parcaCiftiAdi(kayit)} — ${tip.ad} · demerit ${dereceGosterimi(kayit)} · ${sinif}`,
+        `${parcaCiftiAdi(kayit, 'en')} — ${tip.en || tip.ad} · demerit ${dereceGosterimi(kayit)} · ${sinif}`,
       ),
     }, 6000);
 
@@ -277,7 +291,7 @@ export default function DenetimEkrani() {
     parcalaraDon();
     setParcaArama('');
     await tazele();
-  }, [denetim, parcaId, derece, sinif, sorumluHaritasi, parcalaraDon, tazele, bildirimGoster, yenidenAcGerekirse, t]);
+  }, [denetim, parcaId, ikinciParcaId, derece, sinif, sorumluHaritasi, parcalaraDon, tazele, bildirimGoster, yenidenAcGerekirse, t]);
 
   // Geri almak SESSİZ değil: yalnız başlıktaki sayaç değişiyordu (sınamada
   // "geri alındı mı?" sorusu kaldı). Kısa bir "Geri alındı" bildirimi çıkar.
@@ -293,6 +307,7 @@ export default function DenetimEkrani() {
   const ayniParcaya = useCallback(() => {
     if (bildirim?.tur !== 'kayit') return;
     setParcaId(bildirim.parcaId);
+    setIkinciParcaId(null);
     setHataArama('');
     setYeniTipAcik(false);
     setKayitHatasi(null);
@@ -400,10 +415,12 @@ export default function DenetimEkrani() {
       arama={parcaArama}
       setArama={setParcaArama}
       parcaId={parcaId}
+      ikinciParcaId={ikinciParcaId}
       parcaSayilari={parcaSayilari}
       sonParcalar={sonParcalar}
       onSec={parcaSec}
       tablet={tablet}
+      onBuyut={() => setBuyukAcik(true)}
       kapsam={kapsam}
       onKapsam={kapsamDegistir}
       // Lumiform'daki "tamamla": raporu bitirme onayı açık hâlde açar; orada
@@ -431,8 +448,10 @@ export default function DenetimEkrani() {
           </Pressable>
         ) : null}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.seciliParca} numberOfLines={1}>{parcaTamAdi(parca.id, dil)}</Text>
-          <Text style={s.seciliYol} numberOfLines={1}>{parcaBolgeAdi(parca.id, dil)}</Text>
+          <Text style={s.seciliParca} numberOfLines={ikinciParcaId ? 2 : 1}>{parcaCiftiAdi({ parcaId: parca.id, ikinciParcaId }, dil)}</Text>
+          <Text style={s.seciliYol} numberOfLines={1}>
+            {ikinciParcaId ? t('İki parça arası (boşluk, kademe)', 'Between two parts (gap, flush)') : parcaBolgeAdi(parca.id, dil)}
+          </Text>
         </View>
         {seciliAdet > 0 ? (
           <Rozet
@@ -631,6 +650,26 @@ export default function DenetimEkrani() {
         </View>
       ) : (hataPaneli ?? parcaGezgini)}
 
+      {buyukAcik ? (
+        // 360° büyük görünüm: Modal DEĞİL (AltSayfa ile üst üste iki modal web'de
+        // asılı kalıyor, temel.tsx); ekranın üstünde bir katman. Onay katmanı
+        // kapatır, parça açılır.
+        <View style={[StyleSheet.absoluteFill, s.buyukKatman, { paddingTop: kenar.top, paddingBottom: kenar.bottom }]} testID="donus-buyuk">
+          <DonusGorunumu
+            key={`buyuk-${denetim.aracId}`}
+            buyuk
+            aracId={denetim.aracId}
+            bolgeler={bolgeler}
+            kayitliParcalar={parcaSayilari}
+            seciliParcaId={parcaId}
+            seciliIkinciParcaId={ikinciParcaId}
+            onBolgeSec={(bolgeId) => { setBuyukAcik(false); setKonum({ sistem: 'dis', bolgeId }); }}
+            onParcaSec={(pid, ikinci) => { setBuyukAcik(false); parcaSec(pid, ikinci); }}
+            onKapat={() => setBuyukAcik(false)}
+          />
+        </View>
+      ) : null}
+
       {bildirim ? (
         // Bildirim altta, hata ızgarasının son satırının ÜSTÜNDE yüzüyor. Metin
         // kısmı dokunuşu yutarsa kayıttan sonraki 6 sn boyunca o satırdaki
@@ -789,8 +828,8 @@ function KayitSatiri({ hata: h, sira, onPress }: { hata: Hata; sira?: number; on
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t(
-        `${parcaTamAdi(h.parcaId)} ${tip?.ad}, demerit ${dereceGosterimi(h)} — düzenle`,
-        `${parcaTamAdi(h.parcaId, 'en')} ${hataTipiAdi(h.hataTipiId, 'en')}, demerit ${dereceGosterimi(h)} — edit`,
+        `${parcaCiftiAdi(h)} ${tip?.ad}, demerit ${dereceGosterimi(h)} — düzenle`,
+        `${parcaCiftiAdi(h, 'en')} ${hataTipiAdi(h.hataTipiId, 'en')}, demerit ${dereceGosterimi(h)} — edit`,
       )}
       onPress={onPress}
       style={({ pressed }) => [s.kayitSatir, pressed && s.basili]}
@@ -798,7 +837,7 @@ function KayitSatiri({ hata: h, sira, onPress }: { hata: Hata; sira?: number; on
       {sira !== undefined ? <Text style={s.kayitSira}>{sira}</Text> : null}
       <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={s.kayitAd} numberOfLines={1}>{parcaTamAdi(h.parcaId, dil)} — {hataTipiAdi(h.hataTipiId, dil)}</Text>
+        <Text style={s.kayitAd} numberOfLines={h.ikinciParcaId ? 2 : 1}>{parcaCiftiAdi(h, dil)} — {hataTipiAdi(h.hataTipiId, dil)}</Text>
         {alt ? <Text style={s.kayitAlt} numberOfLines={1}>{alt}</Text> : null}
       </View>
       {h.fotograflar.length ? (
@@ -878,6 +917,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
     borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
   },
   seciliParca: { ...tipografi.h2, color: r.metin },
+  buyukKatman: { backgroundColor: r.bg, zIndex: 20, elevation: 20 },
   seciliYol: { ...tipografi.caption, color: r.metinSolgun },
 
   dereceSerit: {
