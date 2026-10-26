@@ -117,7 +117,8 @@ export default function DenetimListesi() {
           <AramaKutusu
             deger={arama}
             degistir={setArama}
-            yerTutucu={t('Şasi ya da body no (son haneler de olur), araç…', 'VIN or body no (last digits work too), vehicle…')}
+            // Kısa: telefonda uzun yer tutucu kesiliyordu (dış değerlendirme).
+            yerTutucu={t('Şasi, body no ya da araç ara', 'Search VIN, body no or vehicle')}
             erisimEtiketi={t('Denetim ara', 'Search audits')}
           />
           <View style={s.suzgecSatir}>
@@ -262,7 +263,7 @@ function DenetimKarti({
         <Text style={s.sayilar}>{t(`${satir.hataAdedi} hata`, `${satir.hataAdedi} ${satir.hataAdedi === 1 ? 'defect' : 'defects'}`)}</Text>
         {satir.agirAdedi > 0 ? (
           <View style={[s.sonucPul, { backgroundColor: renkler.derece3Yumusak }]}>
-            <Text style={[s.sonucMetin, { color: renkler.derece3 }]}>{t(`${satir.agirAdedi} × DERECE 3`, `${satir.agirAdedi} × DEMERIT 3`)}</Text>
+            <Text style={[s.sonucMetin, { color: renkler.derece3 }]}>{t(`${satir.agirAdedi} × demerit 3`, `${satir.agirAdedi} × demerit 3`)}</Text>
           </View>
         ) : null}
       </View>
@@ -287,10 +288,11 @@ const stiller = (r: Renkler) => StyleSheet.create({
   suzgecSatir: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   eslesmeYok: { ...tipografi.body, color: r.metinSolgun, textAlign: 'center', paddingVertical: bosluk.lg },
 
+  // Kart dili temel.tsx Kart ile aynı: gölge var, çerçeve yok (26.10.2026).
   kart: {
     gap: bosluk.sm, padding: bosluk.sm,
     backgroundColor: r.yuzey, borderRadius: kose.lg,
-    borderWidth: 1, borderColor: r.cizgi,
+    boxShadow: `0 4px 12px ${r.golge}`,
   },
   sutunSatiri: { marginHorizontal: -bosluk.sm / 2 },
   hucre: { width: '50%', paddingHorizontal: bosluk.sm / 2 },

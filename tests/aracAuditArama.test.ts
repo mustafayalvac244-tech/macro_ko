@@ -73,3 +73,37 @@ describe('hata tipi araması ve sırası', () => {
     expect(parcaHataTipleri('kaput')[0]?.grup).toBe('montaj');
   });
 });
+
+// 26.10.2026 — dış değerlendirme: grubu uysa da parçada anlamsız tipler.
+describe('parçada anlamsız hata tipi gösterilmez', () => {
+  const idler = (pid: string) => parcaHataTipleri(pid).map((t) => t.id);
+
+  it('kabloda boşluk/kademe yok, gevşek/oturmamış var', () => {
+    for (const pid of ['hv_kablo', 'kablo_demeti']) {
+      expect(idler(pid)).not.toContain('bosluk_fazla');
+      expect(idler(pid)).not.toContain('kademe');
+      expect(idler(pid)).toContain('gevsek');
+    }
+  });
+
+  it('iç döşemede boyaya özgü tip yok; plastikte de olan kalır', () => {
+    const d = idler('sol_on_kapi_doseme');
+    for (const x of ['kaynak_izi', 'pas', 'portakal', 'akinti', 'krater', 'boyasiz', 'toz_kir']) expect(d).not.toContain(x);
+    for (const x of ['cizik', 'kalip_izi', 'cokuntu', 'renk_farki']) expect(d).toContain(x);
+  });
+
+  it('dış panelde boya tipleri yerinde (yalnız iç bölge süzülür)', () => {
+    for (const x of ['kaynak_izi', 'pas', 'portakal', 'akinti']) expect(idler('kaput')).toContain(x);
+  });
+
+  it('frende rüzgâr ve yol sesi yok, gıcırtı var', () => {
+    expect(idler('s_fren')).not.toContain('ruzgar_sesi');
+    expect(idler('s_fren')).not.toContain('yol_sesi');
+    expect(idler('s_fren')).toContain('gicirti');
+  });
+
+  it('sahadaki başka adla aranır: "depo kapagi", "konnektor"', () => {
+    expect(aramaEslesir(parcaAramaMetni('sol_dolum_kapagi'), 'depo kapagi')).toBe(true);
+    expect(aramaEslesir(parcaAramaMetni('kablo_demeti'), 'konnektor')).toBe(true);
+  });
+});

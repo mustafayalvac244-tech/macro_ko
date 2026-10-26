@@ -198,26 +198,6 @@ export function odakKutusu(
   return { x, y, en, boy };
 }
 
-/**
- * Dikey telefonda büyük görünüm (26.10.2026): geniş odak (en/boy > 1,6) kabı
- * dolduramaz, araç kart kadar kalırdı. Eşik ölçüldü: ön/arka bakışın odağı
- * ~1,4 (aynalarla), yan/çapraz 2,2–2,5, üstten 2,4 — ön/arka dik kalsın. O zaman sahnenin içi 90° çevrilir
- * (saat yönü): iç kap en×boy = dış kabın boy×en; aracın boyu ekranın boyuna
- * yatar. Bu karar saf: dış kap dikey mi, odak geniş mi.
- */
-export function yanYatirilir(kapEn: number, kapBoy: number, oran: number, odak: { x0: number; y0: number; x1: number; y1: number } | null): boolean {
-  if (!odak || !(kapBoy > kapEn)) return false;
-  const gen = (odak.x1 - odak.x0) * oran;
-  const yuk = odak.y1 - odak.y0;
-  return yuk > 0 && gen / yuk > 1.6;
-}
-
-/** Dış kaptaki dokunuş → 90° çevrilmiş iç kabın koordinatı (iç kap boy×en). */
-export function cevrilmisNokta(px: number, py: number, kapEn: number): { x: number; y: number } {
-  // Saat yönünde 90°: içteki sağ (+x) ekranda aşağı (+y); içteki yukarı ekranda sağ.
-  return { x: py, y: kapEn - px };
-}
-
 /** Kaptaki dokunuş → verilen görsel kutusuna göre 0–1 koordinat (görselin dışındaysa null). */
 export function kutudakiNokta(dx: number, dy: number, k: GoruntuKutusu): { x: number; y: number } | null {
   if (!(k.en > 0) || !(k.boy > 0)) return null;
@@ -361,4 +341,61 @@ export function dokunusSonucu(
   if (gorunum.aci === null) return { tur: 'bolge', bolgeId: UST_BOLGESI };
   const yuz = dokunulanYuz(gorunum.aci, nokta.x, olcu);
   return yuz ? { tur: 'bolge', bolgeId: YUZ_BOLGESI[yuz] } : { tur: 'bos' };
+}
+
+/**
+ * Parça → üzerindeki kayıtların EN YÜKSEK demerit'i (26.10.2026). Araç
+ * görünümünde kayıtlı parça bu dereceyle boyanır; eskiden üç derece de aynı
+ * kırmızıydı (dış değerlendirme). İki parça arası kayıt (boşluk, kademe) iki
+ * parçayı da işaretler. Kabul edilmiş kayıt 0 sayılır.
+ */
+export function parcaDemeritleri(
+  hatalar: readonly { parcaId: string; ikinciParcaId?: string; derece: string; kabulEdilebilir: boolean }[],
+): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const h of hatalar) {
+    const d = h.kabulEdilebilir ? 0 : (Number.isFinite(Number(h.derece)) ? Number(h.derece) : 0);
+    for (const p of [h.parcaId, h.ikinciParcaId]) {
+      if (p) m.set(p, Math.max(d, m.get(p) ?? -1));
+    }
+  }
+  return m;
+}
+
+/**
+ * YAKINLAŞTIRMA (26.10.2026). Yan yatırma kalkınca dikey telefonda büyük
+ * görünüm karttan büyük değildi (ölçüm, web: sahne 366×173, kart 342×171);
+ * ekranın eni aracı sınırlıyor. Küçük parçalara (delta garnişi, kapı kolu)
+ * isabet için büyük görünümde yakınlaştırılır, yakınken sürükleyerek gezilir.
+ */
+export const YAKINLIKLAR = [1, 1.6, 2.4] as const;
+
+/** Yakınlaştırılmış kutu: kabın ortası sabit kalır, üstüne kayma (px) eklenir. */
+export function yakinKutu(
+  k: GoruntuKutusu, kapEn: number, kapBoy: number, yakin: number, kayma: { x: number; y: number },
+): GoruntuKutusu {
+  if (!(yakin > 1)) return k;
+  const cx = kapEn / 2;
+  const cy = kapBoy / 2;
+  return { x: cx - (cx - k.x) * yakin + kayma.x, y: cy - (cy - k.y) * yakin + kayma.y, en: k.en * yakin, boy: k.boy * yakin };
+}
+
+/**
+ * Kaymayı sınırla: araç (odak kutusu) kabdan büyükse kenarları kabın dışında
+ * kalır, içeride boşluk açılmaz; kabdan küçükse o eksende ortalanır.
+ */
+export function kaymaSinirla(
+  k: GoruntuKutusu, kapEn: number, kapBoy: number, yakin: number,
+  odak: { x0: number; y0: number; x1: number; y1: number } | null, kayma: { x: number; y: number },
+): { x: number; y: number } {
+  if (!(yakin > 1)) return { x: 0, y: 0 };
+  const z = yakinKutu(k, kapEn, kapBoy, yakin, { x: 0, y: 0 });
+  const o = odak ?? { x0: 0, y0: 0, x1: 1, y1: 1 };
+  const eksen = (a0: number, a1: number, uzunluk: number, v: number) => (
+    a1 - a0 <= uzunluk ? (uzunluk - a0 - a1) / 2 : Math.min(-a0, Math.max(uzunluk - a1, v))
+  );
+  return {
+    x: eksen(z.x + o.x0 * z.en, z.x + o.x1 * z.en, kapEn, kayma.x),
+    y: eksen(z.y + o.y0 * z.boy, z.y + o.y1 * z.boy, kapBoy, kayma.y),
+  };
 }

@@ -304,9 +304,9 @@ export default function YeniDenetim() {
               degistir={(d) => setV({ ...v, denetci: d })}
               yerTutucu={t('Ad Soyad', 'Full name')}
             />
-            {/* "Problem source" ekibin Excel terimi: iki dilde de İngilizce. */}
+            {/* Excel'deki PROBLEM SOURCE sütunu. Türkçede "Hata kaynağı" (26.10.2026 dış değerlendirme: tek dil). */}
             <EklenebilirSecim
-              baslik="Problem source"
+              baslik={t('Hata kaynağı', 'Problem source')}
               ad={t('Kaynak', 'Source')}
               liste={kaynaklar}
               deger={listedeyse(kaynaklar.liste, v.kaynak)}

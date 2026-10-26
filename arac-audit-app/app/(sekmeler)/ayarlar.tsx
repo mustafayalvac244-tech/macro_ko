@@ -93,7 +93,7 @@ export default function Ayarlar() {
     try {
       const x = await nasExcelOlustur();
       setAktarSonucu(
-        t(`${x.denetim} araç, ${x.problem} problem satırı.`, `${x.denetim} ${x.denetim === 1 ? 'vehicle' : 'vehicles'}, ${x.problem} problem ${x.problem === 1 ? 'row' : 'rows'}.`)
+        t(`${x.denetim} araç, ${x.problem} hata.`, `${x.denetim} ${x.denetim === 1 ? 'vehicle' : 'vehicles'}, ${x.problem} ${x.problem === 1 ? 'defect' : 'defects'}.`)
         + (x.paylasildi ? '' : t(` Paylaşım yok; dosya: ${x.uri}`, ` Sharing unavailable; file: ${x.uri}`)),
       );
     } catch (h) {
@@ -159,7 +159,7 @@ export default function Ayarlar() {
         {/* FAZLAR listesi kalktı: faz formdan çıktı (ürün sahibi, 24.10.2026). */}
 
         <Kart>
-          <BolumBasligi metin="Problem source" simge={S.etiket} />
+          <BolumBasligi metin={t('Hata kaynağı', 'Problem source')} simge={S.etiket} />
           <Text style={s.aciklama}>{t("Ekibin Excel'indeki liste. Yeni denetimde seçilir ve hatırlanır; Audit skoruna yalnız AUDIT girer.", "The list from the team's Excel. Picked in a new audit and remembered; only AUDIT counts toward the audit score.")}</Text>
           <ListeDuzenle ad={t('Kaynak', 'Source')} liste={kaynaklar} yerTutucu={t('Örn. LONG TERM', 'E.g. LONG TERM')} />
         </Kart>
@@ -179,25 +179,26 @@ export default function Ayarlar() {
         <Kart>
           <BolumBasligi metin={t('Veri', 'Data')} simge={S.veri} />
           {/* "Gönderilmeyi bekliyor" demiyoruz: gönderen bir kod yok, sunucu
-              kurulmadı. Sayı, cihazda duran satırların sayısıdır. */}
+              kurulmadı. Satır sayısı yazılmıyor (26.10.2026 dış değerlendirme:
+              "7 kayıt (… satırı)" geliştirici dili); kullanıcıya gereken tek bilgi
+              verinin nerede durduğu. */}
           <BilgiKutusu
+            tur={bekleyen > 0 ? 'uyari' : 'bilgi'}
             metin={bekleyen > 0
               ? t(
-                `${bekleyen} kayıt (denetim, hata ve fotoğraf satırı) yalnız bu cihazda. Merkezi sunucu bağlantısı henüz kurulmadı; dışarı almak için denetim raporunu Excel olarak paylaşın.`,
-                `${bekleyen} ${bekleyen === 1 ? 'record' : 'records'} (audit, defect and photo rows) on this device only. There is no central server connection yet; to get data out, share the audit report as Excel.`,
+                'Kayıtlar yalnız bu telefonda; sunucuya gönderilmiyor. Telefon kaybolursa elinizde yalnız yedek kalır: her vardiya sonunda yedek alın.',
+                'Records are on this phone only; nothing is sent to a server. If the phone is lost, only the backup remains: back up at the end of every shift.',
               )
-              : t('Cihazda kayıt yok.', 'No records on the device.')}
+              : t('Telefonda kayıt yok.', 'No records on this phone.')}
           />
           <Text style={s.aciklama}>
             {t(
-              "Yedek: bütün denetimler, hatalar ve fotoğraflar tek zip dosyasında; Drive'a ya da e-postaya koyun. "
-              + 'Telefon kaybolursa tek kopya budur. Yeni telefonda "Yedekten geri yükle" ile geri alınır.',
-              'Backup: all audits, defects and photos in a single zip file; put it on Drive or in an email. '
-              + 'If the phone is lost, this is the only copy. On a new phone, bring it back with "Restore from backup".',
+              'Bütün denetimler, hatalar ve fotoğraflar tek dosyada. Drive\'a ya da e-postaya koyun; yeni telefonda "Yedekten geri yükle" ile geri gelir.',
+              'All audits, defects and photos in one file. Put it on Drive or in an email; on a new phone, "Restore from backup" brings it back.',
             )}
           </Text>
           <Dugme
-            metin={t('Yedek al (zip)', 'Back up (zip)')}
+            metin={t('Yedek al', 'Back up')}
             simge={S.veri}
             yukleniyor={yedekleniyor}
             onPress={yedekAl}
@@ -233,15 +234,13 @@ export default function Ayarlar() {
 
           <Text style={s.aciklama}>
             {t(
-              "Excel'e aktar: bütün denetimler, ekibin Excel'indeki AUDIT_CARS_LIST ve PROBLEMS_LIST sütunlarıyla. "
-              + 'Satırlar o dosyaya yapıştırılabilir. Fotoğraflar bu dosyada yok; PHOTO LINK yedekteki dosya adını yazar.',
-              "Export to Excel: all audits, with the AUDIT_CARS_LIST and PROBLEMS_LIST columns of the team's Excel. "
-              + 'The rows can be pasted into that file. Photos are not in this file; PHOTO LINK gives the file name in the backup.',
+              "Bütün denetimler ekibin Excel sütunlarıyla; satırlar kopyalanıp ekibin dosyasına yapıştırılabilir. Fotoğraflar bu dosyada değil, yedekte.",
+              "All audits in the team's Excel columns; the rows can be pasted into the team's file. Photos are not in this file; they are in the backup.",
             )}
           </Text>
           <Dugme
-            metin={t("Excel'e aktar (NAS)", 'Export to Excel (NAS)')}
-            simge={S.rapor}
+            metin={t("Excel'e aktar", 'Export to Excel')}
+            simge={S.excel}
             yukleniyor={aktariliyor}
             onPress={excelAktar}
             erisimEtiketi={t('Bütün denetimleri ekibin Excel düzeninde aktar', "Export all audits in the team's Excel layout")}
@@ -337,8 +336,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   satir: { flexDirection: 'row', gap: bosluk.xs },
   tipSatiri: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
-    padding: bosluk.xs, borderRadius: kose.md,
-    borderWidth: 1, borderColor: r.cizgiSolgun, backgroundColor: r.yuzey,
+    padding: bosluk.xs, borderRadius: kose.md, backgroundColor: r.yuzeyAlt,
   },
   tipAd: { ...tipografi.bodyOrta, color: r.metin },
   tipNotSatir: { flexDirection: 'row', alignItems: 'center', gap: 4 },

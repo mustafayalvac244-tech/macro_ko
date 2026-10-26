@@ -80,6 +80,10 @@ export interface Parca {
   cift?: boolean;
   sadeceEv?: boolean;
   sadeceIce?: boolean;
+  /** Grubu uysa da bu parçada anlamsız hata tipleri (ör. HV kabloda kademe). */
+  haric?: string[];
+  /** Aramada da bulunsun diye sahadaki başka adları (ör. "depo kapağı"). */
+  ara?: string;
 }
 
 /** PARCA_INDEKS'in değeri — parça, ait olduğu bölge bilgisiyle birlikte. */

@@ -91,7 +91,7 @@ export function Ekran({ children, style }: { children: React.ReactNode; style?: 
 // --- UYGULAMA ÇUBUĞU ------------------------------------------------------
 
 export function Baslik({
-  baslik, altBaslik, sol, sag, mono = false, cipler,
+  baslik, altBaslik, sol, sag, mono = false, cipler, ciplerSar = false,
 }: {
   baslik: string;
   altBaslik?: string;
@@ -101,6 +101,11 @@ export function Baslik({
   mono?: boolean;
   /** Başlığın altında bağlam çipleri (araç, faz, plaka…) — `BaslikCipi`. */
   cipler?: React.ReactNode;
+  /**
+   * Telefonda da çipler alt satıra sarsın (rapor: altında hata ızgarası yok,
+   * yana kayan satırda son çip "Devan…" diye kesiliyordu — 26.10.2026).
+   */
+  ciplerSar?: boolean;
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
@@ -110,8 +115,8 @@ export function Baslik({
     <View
       style={[s.cubuk, {
         paddingTop: kenar.top + bosluk.xs,
-        paddingLeft: bosluk.sm + kenar.left,
-        paddingRight: bosluk.sm + kenar.right,
+        paddingLeft: bosluk.md + kenar.left,
+        paddingRight: bosluk.md + kenar.right,
       }]}
     >
       <View style={s.cubukSatir}>
@@ -126,8 +131,8 @@ export function Baslik({
       </View>
       {/* Telefonda çipler TEK SATIR, yana kayar: sarınca başlık ~132 px'e çıkıp
           hata kutularını aşağı itiyordu (sınama, 28.09.2026). */}
-      {cipler && tablet ? <View style={s.cubukCipler}>{cipler}</View> : null}
-      {cipler && !tablet ? (
+      {cipler && (tablet || ciplerSar) ? <View style={s.cubukCipler}>{cipler}</View> : null}
+      {cipler && !tablet && !ciplerSar ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.cubukCiplerTek}>
           {cipler}
         </ScrollView>
@@ -226,18 +231,44 @@ export function Kart({
   return <View style={[s.kart, vurgulu && s.kartVurgulu, style]}>{children}</View>;
 }
 
+/**
+ * Bölüm başlığı. `bilgi` verilirse sağda (i) düğmesi çıkar, açıklama ona
+ * dokununca açılır (26.10.2026 dış değerlendirme: formüller ve dipnot
+ * paragrafları her kartın altında duruyor, kompozisyonu boğuyordu).
+ */
 export function BolumBasligi({
-  metin, sag, simge: Ikon,
-}: { metin: string; sag?: React.ReactNode; simge?: Simge }) {
+  metin, sag, simge: Ikon, bilgi,
+}: { metin: string; sag?: React.ReactNode; simge?: Simge; bilgi?: string }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
-  return (
+  const { t } = useDil();
+  const [acik, setAcik] = useState(false);
+  const satir = (
     <View style={s.bolumSatiri}>
       <View style={s.bolumSol}>
         {Ikon ? <Ikon size={16} color={renkler.metinSolgun} strokeWidth={2} /> : null}
         <Text style={s.bolumMetin} accessibilityRole="header">{metin}</Text>
       </View>
       {sag}
+      {bilgi ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t(`${metin} — açıklama`, `${metin} — explanation`)}
+          aria-expanded={acik}
+          hitSlop={HITSLOP}
+          onPress={() => setAcik((x) => !x)}
+          style={({ pressed }) => [s.bilgiDugme, acik && s.bilgiDugmeAcik, pressed && s.basili]}
+        >
+          <S.bilgi size={18} color={acik ? renkler.birincil : renkler.metinSolgun} strokeWidth={2} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+  if (!bilgi) return satir;
+  return (
+    <View style={{ gap: bosluk.xs }}>
+      {satir}
+      {acik ? <Text style={s.bilgiMetin}>{bilgi}</Text> : null}
     </View>
   );
 }
@@ -269,7 +300,7 @@ export function Dugme({
   const zemin = {
     birincil: renkler.birincil,
     tehlike: renkler.tehlike,
-    ikincil: renkler.yuzeyAlt,
+    ikincil: renkler.yuzeyVurgu,
     sessiz: renkler.seffaf,
   }[tur];
   const yaziRengi = tur === 'birincil' || tur === 'tehlike' ? renkler.metinTers
@@ -278,7 +309,7 @@ export function Dugme({
   const cizgiRengi = tur === 'birincil' ? renkler.birincil
     : tur === 'tehlike' ? renkler.tehlike
     : tur === 'sessiz' ? renkler.seffaf
-    : renkler.cizgi;
+    : renkler.yuzeyVurgu;
   const simgeOgesi = Ikon ? <Ikon size={kucuk ? 16 : 19} color={yaziRengi} strokeWidth={2} /> : null;
 
   return (
@@ -364,7 +395,9 @@ export function Girdi({
         // Odak kenarın rengi ve kalınlığıyla gösterilir; web'de tarayıcının
         // siyah odak çizgisi bunun üstüne ikinci bir çerçeve çiziyordu.
         style={[
-          s.girdi, mono && s.girdiMono, odak && s.girdiOdak, !!hata && s.girdiHatali,
+          // Boş şasi kutusunda yer tutucu ("17 hane") 20 px kalın yazıyla girilmiş
+          // bir değer gibi duruyordu (26.10.2026 dış değerlendirme): boşken düz yazı.
+          s.girdi, mono && (rest.value ? s.girdiMono : s.girdiMonoBos), odak && s.girdiOdak, !!hata && s.girdiHatali,
           Platform.OS === 'web' && { outlineWidth: 0 }, style,
         ]}
         onFocus={(e) => { setOdak(true); onFocus?.(e); }}
@@ -633,15 +666,18 @@ const stiller = (r: Renkler) => StyleSheet.create({
   cubukCip: {
     flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 320,
     paddingHorizontal: bosluk.sm, paddingVertical: 4, borderRadius: kose.pill,
-    borderWidth: 1, borderColor: r.cizgiSolgun, backgroundColor: r.yuzey,
+    backgroundColor: r.yuzey,
   },
   cubukCipMetin: { ...tipografi.captionOrta, color: r.metinIkincil, flexShrink: 1 },
   cubukCipMono: { ...tipografi.kimlik, fontSize: 13, lineHeight: 18, color: r.metin },
 
+  // Çerçeve yok (26.10.2026, dış değerlendirme: "her şey çerçeveli kutu"):
+  // sayfa zemininde beyaz yüzey kendini ayırıyor. Kenar kalınlığı kalır ki
+  // birincil düğmeyle boyu aynı olsun.
   cubukDugme: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: bosluk.xs,
     minHeight: DOKUNMA, minWidth: DOKUNMA, paddingHorizontal: bosluk.sm,
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    borderRadius: kose.md, borderWidth: 1, borderColor: r.yuzey, backgroundColor: r.yuzey,
   },
   cubukDugmeBirincil: { backgroundColor: r.birincil, borderColor: r.birincil },
   cubukDugmeKare: { paddingHorizontal: 0, width: DOKUNMA },
@@ -652,17 +688,22 @@ const stiller = (r: Renkler) => StyleSheet.create({
   },
   sayacMetin: { ...tipografi.captionOrta, fontVariant: ['tabular-nums'], color: r.metinTers },
 
-  // Kart: beyaz, ince soluk kenar, yumuşak gölge (Vekil Pro Card + shadow.card).
+  // Kart: beyaz, yumuşak gölge — ÇERÇEVE YOK (26.10.2026). Dış değerlendirme
+  // "ya gölge ya çerçeve, ikisi birden değil" dedi; kart içinde kart kalabalık
+  // görünüyordu. Vurgulu kart seçili-durum dilini kullanır (ton + 2 px kenar).
   kart: {
-    backgroundColor: r.yuzey, borderRadius: kose.lg, borderWidth: 1,
-    borderColor: r.cizgiSolgun, padding: bosluk.md, gap: bosluk.sm,
+    backgroundColor: r.yuzey, borderRadius: kose.lg,
+    padding: bosluk.md, gap: bosluk.sm,
     boxShadow: `0 4px 12px ${r.golge}`,
   },
-  kartVurgulu: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
+  kartVurgulu: { borderWidth: 2, borderColor: r.birincil, backgroundColor: r.birincilYumusak },
 
   bolumSatiri: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: bosluk.sm },
   bolumSol: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, flexShrink: 1 },
   bolumMetin: { ...tipografi.h3, fontSize: 16, lineHeight: 22, color: r.metin },
+  bilgiDugme: { width: 32, height: 32, borderRadius: kose.pill, alignItems: 'center', justifyContent: 'center', marginLeft: 'auto' },
+  bilgiDugmeAcik: { backgroundColor: r.birincilYumusak },
+  bilgiMetin: { ...tipografi.caption, color: r.metinIkincil, backgroundColor: r.yuzeyAlt, borderRadius: kose.md, padding: bosluk.sm },
 
   dugme: {
     flexDirection: 'row', gap: bosluk.xs,
@@ -675,13 +716,17 @@ const stiller = (r: Renkler) => StyleSheet.create({
   dugmeMetin: { ...tipografi.bodyOrta },
   dugmeMetinKucuk: { ...tipografi.captionOrta },
 
+  // SEÇİLİ-DURUM DİLİ — uygulamada TEK (26.10.2026). Seçili: anlam renginin
+  // yumuşak tonu + aynı renkte 2 px kenar + tik. Seçili değil: çerçevesiz ton
+  // dolgu. Demerit seçicisi aynı dili kendi derece rengiyle kullanır
+  // (HataSayfasi.tsx DereceSecici). Kenar hep 2 px: seçince boy oynamaz.
   secenek: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     minHeight: DOKUNMA, paddingHorizontal: bosluk.sm, borderRadius: kose.md,
-    borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    borderWidth: 2, borderColor: r.yuzeyVurgu, backgroundColor: r.yuzeyVurgu,
   },
-  secenekKucuk: { minHeight: 40, paddingHorizontal: bosluk.sm, borderRadius: kose.pill },
-  secenekSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak, borderWidth: 1.5 },
+  secenekKucuk: { minHeight: 40, paddingHorizontal: bosluk.sm, borderRadius: kose.md },
+  secenekSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   secenekMetin: { ...tipografi.bodyOrta, flexShrink: 1 },
   secenekMetinKucuk: { ...tipografi.captionOrta, flexShrink: 1 },
 
@@ -694,6 +739,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   // Odakta kenar 2 px olur; dolgu 1 px azalır ki yazı yerinden oynamasın.
   girdiOdak: { borderColor: r.birincil, borderWidth: 2, paddingHorizontal: bosluk.sm - 1, backgroundColor: r.yuzey },
   girdiMono: { ...tipografi.kimlikBuyuk, color: r.metin, textAlign: 'center' },
+  girdiMonoBos: { ...tipografi.body, textAlign: 'center' },
   girdiHatali: { borderColor: r.tehlike },
   hataMetni: { ...tipografi.caption, color: r.tehlike },
   ipucuMetni: { ...tipografi.caption, color: r.metinSolgun },
@@ -702,7 +748,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: bosluk.xs,
     minHeight: DOKUNMA, paddingLeft: bosluk.sm, paddingRight: bosluk.xxs,
     backgroundColor: r.yuzey, borderWidth: 1, borderColor: r.cizgi, borderRadius: kose.md,
-    boxShadow: `0 2px 8px ${r.golge}`,
   },
   aramaOdak: { borderColor: r.birincil, borderWidth: 2, paddingLeft: bosluk.sm - 1, paddingRight: bosluk.xxs - 1 },
   aramaGirdi: { ...tipografi.body, color: r.metin, flex: 1, minWidth: 0, minHeight: DOKUNMA - 2 },
@@ -724,7 +769,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   olcu: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
-    backgroundColor: r.yuzey, borderRadius: kose.lg, borderWidth: 1, borderColor: r.cizgiSolgun,
+    backgroundColor: r.yuzey, borderRadius: kose.lg,
     paddingHorizontal: bosluk.sm, paddingVertical: bosluk.sm, minWidth: 140,
     boxShadow: `0 4px 12px ${r.golge}`,
   },

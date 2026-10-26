@@ -174,8 +174,7 @@ function YuvaSatiri({ aracId, aracAdi, yuva }: { aracId: string; aracAdi: string
 const stiller = (r: Renkler) => StyleSheet.create({
   aciklama: { ...tipografi.caption, color: r.metinSolgun },
   satir: {
-    gap: bosluk.xs, padding: bosluk.sm, borderRadius: kose.md,
-    borderWidth: 1, borderColor: r.cizgiSolgun, backgroundColor: r.yuzey,
+    gap: bosluk.xs, padding: bosluk.sm, borderRadius: kose.md, backgroundColor: r.yuzeyAlt,
   },
   satirUst: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
   ad: { ...tipografi.bodyOrta, color: r.metin },
@@ -183,7 +182,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   hata: { ...tipografi.caption, color: r.tehlike },
   yuva: {
     flexDirection: 'row', alignItems: 'flex-start', gap: bosluk.sm, padding: bosluk.xs,
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgiSolgun, backgroundColor: r.yuzeyAlt,
+    borderRadius: kose.md, backgroundColor: r.yuzey,
   },
   onizleme: {
     width: 88, height: 44, borderRadius: kose.sm, overflow: 'hidden',
@@ -194,6 +193,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
   dugmeler: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
   temizle: {
     width: DOKUNMA, height: DOKUNMA, alignItems: 'center', justifyContent: 'center',
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    borderRadius: kose.md, backgroundColor: r.yuzeyVurgu,
   },
 });

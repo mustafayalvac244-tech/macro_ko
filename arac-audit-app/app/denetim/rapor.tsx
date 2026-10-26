@@ -200,6 +200,7 @@ export default function RaporEkrani() {
       <Baslik
         baslik={t('Rapor', 'Report')}
         sol={<GeriDugmesi />}
+        ciplerSar
         cipler={(
           <>
             <BaslikCipi metin={aracKimligi(denetim)} mono />
@@ -224,12 +225,12 @@ export default function RaporEkrani() {
             style={s.ozetSatir}
             accessible
             accessibilityLabel={t(
-              `Rapor özeti: ${ozet.toplamAdet} problem, demerit ${ozet.demeritToplami}, ${agir} MAJOR ya da MAIN, ${ozet.fotografliHata} fotoğraflı`,
+              `Rapor özeti: ${ozet.toplamAdet} hata, demerit ${ozet.demeritToplami}, ${agir} MAJOR ya da MAIN, ${ozet.fotografliHata} fotoğraflı`,
               `Report summary: ${ozet.toplamAdet} ${ozet.toplamAdet === 1 ? 'problem' : 'problems'}, demerit ${ozet.demeritToplami}, ${agir} MAJOR or MAIN, ${ozet.fotografliHata} with photo`,
             )}
           >
             {[
-              { deger: ozet.toplamAdet, etiket: t('problem', ozet.toplamAdet === 1 ? 'problem' : 'problems'), renk: renkler.birincil },
+              { deger: ozet.toplamAdet, etiket: t('hata', ozet.toplamAdet === 1 ? 'problem' : 'problems'), renk: renkler.birincil },
               { deger: ozet.demeritToplami, etiket: 'demerit', renk: renkler.metin },
               { deger: agir, etiket: 'MAJOR / MAIN', renk: agir ? renkler.derece3 : renkler.metin },
               { deger: ozet.fotografliHata, etiket: t('fotoğraflı', 'with photo'), renk: renkler.metin },
@@ -281,14 +282,14 @@ export default function RaporEkrani() {
 
           <View style={[{ gap: bosluk.md }, tablet && { flex: 1 }]}>
             <Kart>
-              <BolumBasligi metin={t('Demerit ve class', 'Demerit and class')} simge={S.uyari} />
+              <BolumBasligi metin={t('Demerit ve sınıf', 'Demerit and class')} simge={S.uyari} />
               {/* İki ayrı sütun: solda demerit'e, sağda class'a göre problem
                   adedi. Satırlar birbirine bağlı DEĞİL (aynı satırda durmaları
                   "demerit 3 = MINOR" diye okunmasın diye ayrı sütun). */}
               <View style={s.ikiSutun}>
                 <View style={s.sutun}>
                   {DERECELER.map((d) => (
-                    <View key={d.id} style={s.dereceSatiri} accessible accessibilityLabel={t(`Demerit ${d.id}: ${ozet.dereceDagilimi[d.id]} problem`, `Demerit ${d.id}: ${ozet.dereceDagilimi[d.id]} ${ozet.dereceDagilimi[d.id] === 1 ? 'problem' : 'problems'}`)}>
+                    <View key={d.id} style={s.dereceSatiri} accessible accessibilityLabel={t(`Demerit ${d.id}: ${ozet.dereceDagilimi[d.id]} hata`, `Demerit ${d.id}: ${ozet.dereceDagilimi[d.id]} ${ozet.dereceDagilimi[d.id] === 1 ? 'problem' : 'problems'}`)}>
                       <DereceRozeti derece={d.id} kabul={false} />
                       <Text style={s.dereceSayi}>{ozet.dereceDagilimi[d.id]}</Text>
                     </View>
@@ -296,7 +297,7 @@ export default function RaporEkrani() {
                 </View>
                 <View style={s.sutun}>
                   {SINIFLAR.map((c) => (
-                    <View key={c} style={s.dereceSatiri} accessible accessibilityLabel={t(`${c}: ${ozet.sinifDagilimi[c]} problem`, `${c}: ${ozet.sinifDagilimi[c]} ${ozet.sinifDagilimi[c] === 1 ? 'problem' : 'problems'}`)}>
+                    <View key={c} style={s.dereceSatiri} accessible accessibilityLabel={t(`${c}: ${ozet.sinifDagilimi[c]} hata`, `${c}: ${ozet.sinifDagilimi[c]} ${ozet.sinifDagilimi[c] === 1 ? 'problem' : 'problems'}`)}>
                       <Text style={s.sinifAd}>{c}</Text>
                       <Text style={s.dereceSayi}>{ozet.sinifDagilimi[c]}</Text>
                     </View>
@@ -352,7 +353,7 @@ export default function RaporEkrani() {
                       h.adet > 1 ? t(`${h.adet} adet`, `qty ${h.adet}`) : null,
                       sinifDegeri(h) !== 'MINOR' ? sinifDegeri(h) : null,
                       sistemDegeri(h),
-                      h.sorunTipi === 'Complex' ? 'Complex' : null,
+                      h.sorunTipi === 'Complex' ? t('Kompleks', 'Complex') : null,
                       h.sorumlu ? `→ ${h.sorumlu}` : null,
                     ].filter(Boolean).join(' · ')}
                   </Text>
@@ -479,8 +480,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   hataSatiri: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
-    padding: bosluk.xs, borderRadius: kose.md,
-    borderWidth: 1, borderColor: r.cizgiSolgun, backgroundColor: r.yuzey,
+    padding: bosluk.xs, borderRadius: kose.md, backgroundColor: r.yuzeyAlt,
   },
   hataAd: { ...tipografi.bodyOrta, color: r.metin },
   hataYol: { ...tipografi.caption, color: r.metinSolgun },

@@ -309,7 +309,7 @@ export function HataSayfasi({
     <>
       <Text style={s.bolumBaslik}>{t('Demerit — 0 skora girmez, 3 en ağır', 'Demerit — 0 not scored, 3 = most severe')}</Text>
       <DereceSecici derece={derece} onSec={setDerece} />
-      <Text style={s.bolumBaslik}>Class</Text>
+      <Text style={s.bolumBaslik}>{t('Sınıf', 'Class')}</Text>
       <SinifSecici sinif={sinif} onSec={setSinif} />
     </>
   );
@@ -321,8 +321,8 @@ export function HataSayfasi({
         {(['Part', 'Complex'] as const).map((tur) => (
           <Secenek
             key={tur}
-            metin={tur}
-            erisimEtiketi={t(`Tür ${tur}`, `Type ${tur}`)}
+            metin={tur === 'Part' ? t('Parça', 'Part') : t('Kompleks', 'Complex')}
+            erisimEtiketi={t(`Tür ${tur === 'Part' ? 'Parça' : 'Kompleks'}`, `Type ${tur}`)}
             secili={sorunTipi === tur}
             onPress={() => setSorunTipi(tur)}
             style={{ flexGrow: 1, flexBasis: 120 }}
@@ -330,14 +330,16 @@ export function HataSayfasi({
         ))}
       </View>
 
-      <Text style={s.bolumBaslik}>System</Text>
+      {/* Ekibin Excel'indeki SYSTEM sütunu (EXTERIOR, ELECTRIC…). Denetim ekranındaki
+          Dış/İç bölümleriyle karışmasın diye "(Excel)" yazar. Kodlar Excel'deki gibi. */}
+      <Text style={s.bolumBaslik}>{t('Sistem (Excel)', 'System')}</Text>
       <View style={s.izgara}>
         {NAS_SISTEMLERI.map((x) => (
           <Secenek
             key={x}
             kucuk
             metin={x}
-            erisimEtiketi={`System ${x}`}
+            erisimEtiketi={t(`Sistem ${x}`, `System ${x}`)}
             secili={sistem === x}
             onPress={() => { setSistem(x); setSistemElle(true); }}
             style={{ flexGrow: 1, flexBasis: 100, justifyContent: 'center' }}
@@ -345,14 +347,14 @@ export function HataSayfasi({
         ))}
       </View>
 
-      <Text style={s.bolumBaslik}>Responsible</Text>
+      <Text style={s.bolumBaslik}>{t('Sorumlu', 'Responsible')}</Text>
       <View style={s.izgara}>
         {HAZIR_SORUMLULAR.map((x) => (
           <Secenek
             key={x}
             kucuk
             metin={x}
-            erisimEtiketi={`Responsible ${x}`}
+            erisimEtiketi={t(`Sorumlu ${x}`, `Responsible ${x}`)}
             secili={sorumlu.trim() === x}
             onPress={() => setSorumlu(sorumlu.trim() === x ? '' : x)}
             style={{ flexGrow: 1, flexBasis: 100, justifyContent: 'center' }}
@@ -366,10 +368,10 @@ export function HataSayfasi({
         accessibilityLabel={t('Sorumlu (serbest yazım)', 'Responsible (free text)')}
         ipucu={sorunTipi === 'Part'
           ? t(
-            'Part hatasında seçilen sorumlu bu parçaya öğrenilir; sonraki kayıtlarda kendiliğinden gelir.',
+            'Parça hatasında seçilen sorumlu bu parçaya öğrenilir; sonraki kayıtlarda kendiliğinden gelir.',
             'For a Part defect, the selected Responsible is remembered for this part and filled in next time.',
           )
-          : t('Complex hatanın sorumlusu parçaya öğrenilmez.', 'For a Complex defect, the Responsible is not remembered for the part.')}
+          : t('Kompleks hatanın sorumlusu parçaya öğrenilmez.', 'For a Complex defect, the Responsible is not remembered for the part.')}
       />
 
       <Girdi
@@ -437,6 +439,7 @@ export function HataSayfasi({
       {!silOnay ? (
         <Dugme
           metin={t('Bu kaydı sil', 'Delete this record')}
+          tur="tehlike"
           simge={S.sil}
           onPress={() => { onayaKaydir.current = true; setSilOnay(true); }}
           erisimEtiketi={t('Bu kaydı sil', 'Delete this record')}
@@ -476,7 +479,12 @@ export function HataSayfasi({
     <>
       <View style={s.baslikSatiri}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.parcaAd} numberOfLines={1}>{parca ? parcaCiftiAdi(taslak, dil) : taslak.parcaId}</Text>
+          {/* Düzenlemede başlık "parça — hata tipi" (26.10.2026 dış değerlendirme:
+              başlık yalnız parçaydı, hata tipi dört çip grubunun altında kalıyordu). */}
+          <Text style={s.parcaAd} numberOfLines={2}>
+            {parca ? parcaCiftiAdi(taslak, dil) : taslak.parcaId}
+            {duzenleme && seciliTip ? ` — ${tipAdi(seciliTip)}` : ''}
+          </Text>
           <Text style={s.parcaYol} numberOfLines={1}>{parca ? parcaBolgeAdi(parca.id, dil) : undefined}</Text>
         </View>
         {hataTipiId ? <DereceRozeti derece={derece} kabul={false} buyuk /> : null}
@@ -495,10 +503,12 @@ export function HataSayfasi({
       >
         {duzenleme ? (
           <>
+            {/* Tip bölümü düzenlemede katlı TEK SATIR; en üstte durması dereceyi
+                aşağı itmez (eskiden 37 kutuluk ızgara açıktı, o yüzden en alttaydı). */}
+            {tipBolumu}
             {dereceBolumu}
             {ayrintiBolumu}
             {fotoBolumu}
-            {tipBolumu}
             {silBolumu}
           </>
         ) : (
@@ -658,7 +668,7 @@ export function DereceSecici({
     <View style={s.dereceSatir}>
       {DEMERIT_SIRASI.map((d) => {
         const secili = derece === d.id;
-        const { on } = dereceRenkleri(renkler, d.id);
+        const { on, arka } = dereceRenkleri(renkler, d.id);
         return (
           <Pressable
             key={d.id}
@@ -668,13 +678,16 @@ export function DereceSecici({
             onPress={() => onSec(d.id)}
             style={({ pressed }) => [
               s.dereceDugme, kucuk && s.dereceDugmeKucuk,
-              secili ? { backgroundColor: on, borderColor: on } : null,
+              secili ? { backgroundColor: arka, borderColor: on } : null,
               pressed && { opacity: 0.72 },
             ]}
           >
-            <Text style={[kucuk ? s.dereceRakamKucuk : s.dereceRakam, { color: secili ? renkler.metinTers : on }]}>
+            {/* Seçili-durum dili temel.tsx Secenek ile aynı: ton + 2 px kenar + tik.
+                Eskiden dolu renkti; demerit 1'de "çamurlu zeytin" görünüyordu. */}
+            <Text style={[kucuk ? s.dereceRakamKucuk : s.dereceRakam, { color: on }]}>
               {d.ad}
             </Text>
+            {secili ? <S.tik size={kucuk ? 14 : 16} color={on} strokeWidth={2.75} /> : null}
           </Pressable>
         );
       })}
@@ -684,14 +697,15 @@ export function DereceSecici({
 
 /** Excel CLASS seçici: MINOR · MAJOR · MAIN. */
 export function SinifSecici({ sinif, onSec }: { sinif: SinifKodu; onSec: (c: SinifKodu) => void }) {
+  const { t } = useDil();
   return (
-    <View style={{ flexDirection: 'row', gap: bosluk.xs }} accessibilityRole="radiogroup" accessibilityLabel="Class">
+    <View style={{ flexDirection: 'row', gap: bosluk.xs }} accessibilityRole="radiogroup" accessibilityLabel={t('Sınıf', 'Class')}>
       {SINIFLAR.map((c) => (
         <Secenek
           key={c}
           kucuk
           metin={c}
-          erisimEtiketi={`Class ${c}`}
+          erisimEtiketi={t(`Sınıf ${c}`, `Class ${c}`)}
           secili={sinif === c}
           onPress={() => onSec(c)}
           style={{ flex: 1, justifyContent: 'center' }}
@@ -731,10 +745,11 @@ const stiller = (r: Renkler) => StyleSheet.create({
   grupBaslik: { ...tipografi.captionOrta, color: r.metinIkincil },
 
   izgara: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  // Çerçevesiz ton dolgu; seçili: seçili-durum dili (temel.tsx Secenek).
   secenek: {
     flexGrow: 1, flexBasis: 148, minHeight: DOKUNMA, justifyContent: 'center',
     paddingHorizontal: bosluk.xs, paddingVertical: 6,
-    borderRadius: kose.sm, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    borderRadius: kose.sm, borderWidth: 2, borderColor: r.yuzeyAlt, backgroundColor: r.yuzeyAlt,
   },
   secenekSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   secenekSatir: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -776,17 +791,18 @@ const stiller = (r: Renkler) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderRadius: kose.sm, backgroundColor: r.perde,
   },
+  // Fotoğraf eklemek ikincil kesik çizgili kutu değil, belirgin bir eylem
+  // (26.10.2026 dış değerlendirme: SafetyCulture'da fotoğraf birinci sınıf).
   fotoEkle: {
     width: 84, height: 84, alignItems: 'center', justifyContent: 'center', gap: 4,
-    borderRadius: kose.sm, borderWidth: 1, borderStyle: 'dashed',
-    borderColor: r.cizgiGuclu, backgroundColor: r.yuzey,
+    borderRadius: kose.sm, backgroundColor: r.birincilYumusak,
   },
-  fotoEkleMetin: { ...tipografi.captionOrta, color: r.metinIkincil, textAlign: 'center' },
+  fotoEkleMetin: { ...tipografi.captionOrta, color: r.birincil, textAlign: 'center' },
 
   dereceSatir: { flexDirection: 'row', gap: bosluk.xs },
   dereceDugme: {
-    flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center',
-    borderRadius: kose.md, borderWidth: 1.5, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    flex: 1, minHeight: 56, flexDirection: 'row', gap: 4, alignItems: 'center', justifyContent: 'center',
+    borderRadius: kose.md, borderWidth: 2, borderColor: r.yuzeyVurgu, backgroundColor: r.yuzeyVurgu,
   },
   dereceDugmeKucuk: { minHeight: DOKUNMA },
   dereceRakam: { ...tipografi.h1, fontSize: 26, lineHeight: 32 },
@@ -794,8 +810,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   tipOzet: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, marginTop: bosluk.xs,
-    padding: bosluk.sm, borderRadius: kose.md,
-    borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    padding: bosluk.sm, borderRadius: kose.md, backgroundColor: r.yuzeyAlt,
   },
   tipOzetAd: { ...tipografi.bodyOrta, color: r.metin },
 

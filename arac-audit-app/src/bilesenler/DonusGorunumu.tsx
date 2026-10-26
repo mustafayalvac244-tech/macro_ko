@@ -27,7 +27,7 @@
 
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
-  Image, LayoutChangeEvent, PanResponder, Pressable, StyleSheet, Text, View,
+  Image, LayoutChangeEvent, PanResponder, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View,
 } from 'react-native';
 import Svg, { Defs, Ellipse, Line, LinearGradient, Path, Polygon, RadialGradient, Stop } from 'react-native-svg';
 
@@ -35,13 +35,13 @@ import { S } from '@/bilesenler/simgeler';
 import { Dugme, Secenek } from '@/bilesenler/temel';
 import {
   AracOlcusu, cizimRolu, CizimRolu, dokunusSonucu, gorunumHaritasi, goruntuKutusu, halka, HalkaGirdisi,
-  cevrilmisNokta, haritaOdagi, kaydirmaIndeksi, kaynakHaritasi, kutudakiNokta, odakKutusu, sar, yanYatirilir, yumusakYol, yuvaAdi,
+  haritaOdagi, kaydirmaIndeksi, kaymaSinirla, kaynakHaritasi, kutudakiNokta, odakKutusu, sar, YAKINLIKLAR, yakinKutu, yumusakYol, yuvaAdi,
 } from '@/cekirdek/donusGorunumu';
 import { cokgenAlani, GorunumHaritasi, GorunumId } from '@/cekirdek/gorunumParcalari';
 import { parcaCiftiAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { Bolge } from '@/cekirdek/tipler';
-import { ARAC_BOYASI, bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
+import { ARAC_BOYASI, bosluk, dereceRenkleri, DOKUNMA, kose, PALETLER, Renkler, tipografi, useTema } from '@/tema';
 import { useAracGorselleri, yuvaAdresi } from '@/veri/aracGorselleri';
 import { useDil } from '@/veri/dilDeposu';
 
@@ -69,7 +69,7 @@ export function DonusGorunumu({
   aracId: string;
   /** Bu aracın bölgeleri — yalnız bunlara ve bunların parçalarına gidilir. */
   bolgeler: readonly Bolge[];
-  /** Parça → bu denetimdeki kayıt sayısı; kayıtlı parçalar boyanır. */
+  /** Parça → üzerindeki kayıtların en yüksek demerit'i (`parcaDemeritleri`); kayıtlı parça bu renkle boyanır. */
   kayitliParcalar: ReadonlyMap<string, number>;
   /** Hata ızgarası açık olan parça (tablette görünüm yanında durur): vurgulanır, adı yazılır. */
   seciliParcaId?: string | null;
@@ -146,15 +146,32 @@ export function DonusGorunumu({
 
   const [kap, setKap] = useState({ en: 0, boy: 0 });
   // Büyük görünümde görsel aracın sınır kutusuna kırpılıp büyütülür (kenar
-  // boşlukları kabın dışına taşar); kartta görsel kaba sığdırılır. Dikey
-  // telefonda geniş bakış 90° çevrilir: iç kap dış kabın boy×en'i.
+  // boşlukları kabın dışına taşar); kartta görsel kaba sığdırılır.
+  // YAN YATIRMA KALKTI (26.10.2026): dikey telefonda araç 90° çevriliyordu;
+  // dört dış değerlendiricinin üçü "devrilmiş gibi" buldu. Araç hep yatay;
+  // büyütmek için yakınlaştırma (aşağıda) ve yatay telefonda yan yana düzen.
   const odak = useMemo(() => (buyuk && harita ? haritaOdagi(harita) : null), [buyuk, harita]);
-  const yatik = yanYatirilir(kap.en, kap.boy, oran, odak);
-  const ic = yatik ? { en: kap.boy, boy: kap.en } : kap;
-  const kutu = useMemo(
-    () => (odak ? odakKutusu(ic.en, ic.boy, oran, odak) : goruntuKutusu(ic.en, ic.boy, oran)),
-    [odak, ic.en, ic.boy, oran],
+  const pencere = useWindowDimensions();
+  const dikey = pencere.height > pencere.width;
+  // Yatay telefon (alçak ekran): kontroller alt alta dizilince sahneye ~190 px
+  // kalıyordu, onay çubuğu açılınca daha da az. Kontroller sağ sütuna geçer,
+  // araç solda tam yükseklikte. Tablette (yükseklik ≥ 500) alt alta düzen kalır.
+  const yanYana = buyuk && !dikey && pencere.height < 500;
+  // Dikey telefonda sahne aracın oranından biraz yüksek (en fazla 1,5): 1×'te
+  // araç ortada, yakınlaşınca yükseklik de kullanılır.
+  const odakOrani = odak ? Math.min(1.5, Math.max(1.2, ((odak.x1 - odak.x0) * oran) / Math.max(0.01, odak.y1 - odak.y0))) : SAHNE_ORANI;
+  const temelKutu = useMemo(
+    () => (odak ? odakKutusu(kap.en, kap.boy, oran, odak) : goruntuKutusu(kap.en, kap.boy, oran)),
+    [odak, kap.en, kap.boy, oran],
   );
+  // YAKINLAŞTIRMA (26.10.2026, yalnız büyük görünüm): + / − ile; yakınken
+  // sürüklemek aracı gezdirir, döndürme oklarla. Bakış değişince kayma sıfırlanır.
+  const [yakinSira, setYakinSira] = useState(0);
+  const yakin = buyuk ? YAKINLIKLAR[yakinSira] ?? 1 : 1;
+  const [kaymaHam, setKayma] = useState({ x: 0, y: 0 });
+  useEffect(() => { setKayma({ x: 0, y: 0 }); }, [yuvaSimdi, ustte, yakinSira]);
+  const kayma = kaymaSinirla(temelKutu, kap.en, kap.boy, yakin, odak, kaymaHam);
+  const kutu = yakinKutu(temelKutu, kap.en, kap.boy, yakin, kayma);
   // ONAY (26.10.2026, ürün sahibi: "parçayı seçince hemen girmesin, onaylatsın;
   // yanlış tıklama olabilir"): dokunuş parçayı yalnız İŞARETLER; hata ızgarası
   // "Onayla" ile açılır. Başka parçaya dokunmak seçimi değiştirir.
@@ -172,30 +189,46 @@ export function DonusGorunumu({
 
   // PanResponder bir kez kurulur; güncel değerler bu kutudan okunur.
   const guncel = useRef({
-    indeks, n: halkaListesi.length, gorunum, harita, kap, kutu, yatik, olcu, bolgeKimlikleri, onBolgeSec, onBuyut, onKapat,
+    indeks, n: halkaListesi.length, gorunum, harita, kap, kutu, olcu, bolgeKimlikleri, onBolgeSec, onBuyut, onKapat,
     buyuk, bekleyen, ikinci, ikinciModu,
   });
   guncel.current = {
-    indeks, n: halkaListesi.length, gorunum, harita, kap, kutu, yatik, olcu, bolgeKimlikleri, onBolgeSec, onBuyut, onKapat,
+    indeks, n: halkaListesi.length, gorunum, harita, kap, kutu, olcu, bolgeKimlikleri, onBolgeSec, onBuyut, onKapat,
     buyuk, bekleyen, ikinci, ikinciModu,
   };
+  const yakinlik = useRef({ yakin, kayma, temelKutu, odak });
+  yakinlik.current = { yakin, kayma, temelKutu, odak };
+  const baslangicKayma = useRef({ x: 0, y: 0 });
   const baslangic = useRef(0);
   const surukleniyor = useRef(false);
 
   const pan = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
-    // Çevrilmiş sahnede aracın boyu dikey: kaydırma da dikey okunur (aşağı = içte sağa).
-    onMoveShouldSetPanResponder: (_, g) => (guncel.current.yatik
-      ? Math.abs(g.dy) > 6 && Math.abs(g.dy) > Math.abs(g.dx)
+    // Yakınken her yöne sürükleme aracı gezdirir; 1×'te yatay sürükleme döndürür.
+    onMoveShouldSetPanResponder: (_, g) => (yakinlik.current.yakin > 1
+      ? Math.abs(g.dx) > 6 || Math.abs(g.dy) > 6
       : Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy)),
-    onPanResponderGrant: () => { baslangic.current = guncel.current.indeks; surukleniyor.current = false; },
+    onPanResponderGrant: () => {
+      baslangic.current = guncel.current.indeks;
+      baslangicKayma.current = yakinlik.current.kayma;
+      surukleniyor.current = false;
+    },
     onPanResponderMove: (_, g) => {
+      const z = yakinlik.current;
+      if (z.yakin > 1) {
+        if (Math.abs(g.dx) > 6 || Math.abs(g.dy) > 6) surukleniyor.current = true;
+        if (surukleniyor.current) {
+          const k = guncel.current.kap;
+          setKayma(kaymaSinirla(z.temelKutu, k.en, k.boy, z.yakin, z.odak, {
+            x: baslangicKayma.current.x + g.dx, y: baslangicKayma.current.y + g.dy,
+          }));
+        }
+        return;
+      }
       const c = guncel.current;
       if (!c.gorunum || 'ust' in c.gorunum || c.n < 2) return;
-      const d = c.yatik ? g.dy : g.dx;
-      const en = c.yatik ? c.kap.boy : c.kap.en;
-      if (Math.abs(d) > 6) surukleniyor.current = true;
-      if (surukleniyor.current) setIndeks(kaydirmaIndeksi(baslangic.current, d / Math.max(1, en), c.n));
+      if (Math.abs(g.dx) > 6) surukleniyor.current = true;
+      if (surukleniyor.current) setIndeks(kaydirmaIndeksi(baslangic.current, g.dx / Math.max(1, c.kap.en), c.n));
     },
     // Dikey kaydırma (sayfa) isterse bırak; yatay sürüklerken bırakma.
     onPanResponderTerminationRequest: () => !surukleniyor.current,
@@ -205,9 +238,7 @@ export function DonusGorunumu({
       if (!c.gorunum) return;
       // Kartta dokunuş büyük görünümü açar; seçim orada.
       if (!c.buyuk && c.onBuyut) { c.onBuyut(); return; }
-      const yer = c.yatik ? cevrilmisNokta(e.nativeEvent.locationX, e.nativeEvent.locationY, c.kap.en)
-        : { x: e.nativeEvent.locationX, y: e.nativeEvent.locationY };
-      const nokta = kutudakiNokta(yer.x, yer.y, c.kutu);
+      const nokta = kutudakiNokta(e.nativeEvent.locationX, e.nativeEvent.locationY, c.kutu);
       if (!nokta) return;
       const sonuc = dokunusSonucu(nokta, { aci: 'ust' in c.gorunum ? null : c.gorunum.girdi.aci }, c.harita, c.olcu);
       if (sonuc.tur === 'parca') {
@@ -257,17 +288,22 @@ export function DonusGorunumu({
   const altYazi = ikinciModu ? t('İkinci parçaya dokunun (boşluk, kademe)', 'Tap the second part (gap, flush)')
     : secimAdi ?? (seciliParcaId ? parcaCiftiAdi({ parcaId: seciliParcaId, ikinciParcaId: seciliIkinciParcaId }, dil)
       : ipucu ? t('Bir parçaya dokunun', 'Tap a part')
+        : yakin > 1 ? t('Sürükleyerek gezdirin · döndürmek için oklar', 'Drag to move · arrows to rotate')
         : !buyuk && onBuyut ? t('Dokunarak büyütün, parçayı orada seçin', 'Tap to enlarge and pick a part there')
           : harita ? t('Kaydırarak döndürün, parçaya dokunun', 'Swipe to rotate, tap a part')
             : t('Kaydırarak döndürün, bölgeye dokunun', 'Swipe to rotate, tap an area'));
 
-  return (
-    <View style={buyuk ? s.kapBuyuk : s.kap}>
-      {buyuk ? (
+  // Parçalar ayrı değişkenlerde: yatay telefonda kontroller sağ sütuna geçer
+  // (26.10.2026), öteki düzenlerde alt alta. Sıra ve içerik ikisinde de aynı.
+  const ustOgesi = buyuk ? (
         <View style={s.ustSatir}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.buyukBaslik} numberOfLines={1}>{arac?.ad ?? aracId}</Text>
-            <Text style={s.not} numberOfLines={1}>{t('Kaydırarak döndürün, parçaya dokunun', 'Swipe to rotate, tap a part')}</Text>
+            {dikey ? (
+              <Text style={s.ustNot} numberOfLines={2} testID="donus-yan-cevir">
+                {t('+ ile yakınlaştırın; telefonu yan çevirince de büyür', '+ to zoom in; turning the phone sideways also enlarges it')}
+              </Text>
+            ) : null}
           </View>
           <Pressable
             accessibilityRole="button"
@@ -278,71 +314,70 @@ export function DonusGorunumu({
             <S.kapat size={20} color={renkler.metin} strokeWidth={2} />
           </Pressable>
         </View>
-      ) : null}
-      <View
-        {...pan.panHandlers}
-        onLayout={(e: LayoutChangeEvent) => setKap({ en: e.nativeEvent.layout.width, boy: e.nativeEvent.layout.height })}
-        style={buyuk ? s.sahneBuyuk : s.sahne}
-        importantForAccessibility="no-hide-descendants"
-        aria-hidden
-        testID={buyuk ? 'donus-sahne-buyuk' : 'donus-sahne'}
-      >
-        {/* Dokunuş sahneye gitsin: konum sahnenin içine göre okunuyor. İç kap
-            çevrilmişse boy×en boyutunda, ortalanmış ve 90° döndürülmüş. */}
+      ) : null;
+  const sahneOgesi = (
         <View
-          pointerEvents="none"
-          style={yatik
-            ? { position: 'absolute', width: ic.en, height: ic.boy, left: (kap.en - ic.en) / 2, top: (kap.boy - ic.boy) / 2, transform: [{ rotate: '90deg' }] }
-            : StyleSheet.absoluteFill}
-          testID={yatik ? 'donus-yatik' : undefined}
+          {...pan.panHandlers}
+          onLayout={(e: LayoutChangeEvent) => setKap({ en: e.nativeEvent.layout.width, boy: e.nativeEvent.layout.height })}
+          style={buyuk ? (dikey ? [s.sahneBuyukDikey, { aspectRatio: odakOrani }] : s.sahneBuyuk) : s.sahne}
+          importantForAccessibility="no-hide-descendants"
+          aria-hidden
+          testID={buyuk ? 'donus-sahne-buyuk' : 'donus-sahne'}
         >
-          {cizim && harita && kap.en > 0 ? (
-            <AracCizimi harita={harita} en={kutu.en} boy={kutu.boy} x={kutu.x} y={kutu.y} jantli={jantli} profil={govdeProfili} />
-          ) : null}
-          {yuvaGorseli && kap.en > 0 ? (
-            <Image
-              source={{ uri: yuvaAdresi(aracId, yuvaGorseli) }}
-              resizeMode="stretch"
-              style={[
-                { position: 'absolute', left: kutu.x, top: kutu.y, width: kutu.en, height: kutu.boy },
-                ayna && { transform: [{ scaleX: -1 }] },
-              ]}
-            />
-          ) : null}
-          {harita && kap.en > 0 ? (
-            <Svg
-              width={kutu.en}
-              height={kutu.boy}
-              style={{ position: 'absolute', left: kutu.x, top: kutu.y }}
-            >
-              {harita.alanlar.map((a, i) => {
-                const secili = isaretli.has(a.parcaId);
-                const kayitli = (kayitliParcalar.get(a.parcaId) ?? 0) > 0;
-                if (!secili && !kayitli) return null;
-                // Kayıtlı dolgu 0.22 iken teal gövdede kırmızı griye dönüyordu (#AE2018 %22 + #79A2A9 ≈ 133,133,137).
-                const boya = {
-                  fill: secili ? renkler.birincil : renkler.tehlike,
-                  fillOpacity: secili ? 0.45 : 0.55,
-                  stroke: secili ? renkler.birincil : renkler.tehlike,
-                  strokeWidth: secili ? 2 : 1.5,
-                };
-                // Çizimde vurgu da çizimin yumuşak kenarını izler; görselde düz çokgen.
-                return cizim ? (
-                  <Path key={`${a.parcaId}-${i}`} d={yumusakYol(a.nokta, kutu.en, kutu.boy)} {...boya} />
-                ) : (
-                  <Polygon
-                    key={`${a.parcaId}-${i}`}
-                    points={a.nokta.map(([x, y]) => `${x * kutu.en},${y * kutu.boy}`).join(' ')}
-                    {...boya}
-                  />
-                );
-              })}
-            </Svg>
-          ) : null}
+          {/* Dokunuş sahneye gitsin: konum sahnenin içine göre okunuyor. */}
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            {cizim && harita && kap.en > 0 ? (
+              <AracCizimi harita={harita} en={kutu.en} boy={kutu.boy} x={kutu.x} y={kutu.y} jantli={jantli} profil={govdeProfili} />
+            ) : null}
+            {yuvaGorseli && kap.en > 0 ? (
+              <Image
+                source={{ uri: yuvaAdresi(aracId, yuvaGorseli) }}
+                resizeMode="stretch"
+                style={[
+                  { position: 'absolute', left: kutu.x, top: kutu.y, width: kutu.en, height: kutu.boy },
+                  ayna && { transform: [{ scaleX: -1 }] },
+                ]}
+              />
+            ) : null}
+            {harita && kap.en > 0 ? (
+              <Svg
+                width={kutu.en}
+                height={kutu.boy}
+                style={{ position: 'absolute', left: kutu.x, top: kutu.y }}
+              >
+                {harita.alanlar.map((a, i) => {
+                  const secili = isaretli.has(a.parcaId);
+                  const demerit = kayitliParcalar.get(a.parcaId);
+                  const kayitli = demerit !== undefined;
+                  if (!secili && !kayitli) return null;
+                  // Kayıtlı parça DEMERİT RENGİYLE (26.10.2026; eskiden üç derece de aynı
+                  // kırmızıydı). Renkler açık temadan, iki temada aynı: çizim içerik,
+                  // arayüz değil (koyu temada somon pembesine dönüyordu). Dolgu 0.22
+                  // iken teal gövdede renk griye dönüyordu; 0.55'te kalır.
+                  const renk = secili ? PALETLER.acik.birincil : dereceRenkleri(PALETLER.acik, String(demerit)).on;
+                  const boya = {
+                    fill: renk,
+                    fillOpacity: secili ? 0.45 : 0.55,
+                    stroke: renk,
+                    strokeWidth: secili ? 2 : 1.5,
+                  };
+                  // Çizimde vurgu da çizimin yumuşak kenarını izler; görselde düz çokgen.
+                  return cizim ? (
+                    <Path key={`${a.parcaId}-${i}`} d={yumusakYol(a.nokta, kutu.en, kutu.boy)} {...boya} />
+                  ) : (
+                    <Polygon
+                      key={`${a.parcaId}-${i}`}
+                      points={a.nokta.map(([x, y]) => `${x * kutu.en},${y * kutu.boy}`).join(' ')}
+                      {...boya}
+                    />
+                  );
+                })}
+              </Svg>
+            ) : null}
+          </View>
         </View>
-      </View>
-
-      {bekleyen && secimAdi ? (
+  );
+  const onayOgesi = bekleyen && secimAdi ? (
         <View style={s.onay} testID="donus-onay">
           <View style={s.onaySatir}>
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -383,57 +418,111 @@ export function DonusGorunumu({
             />
           </View>
         </View>
-      ) : null}
-
-      <View style={s.alt}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('Aracı döndür: önceki bakış', 'Rotate vehicle: previous view')}
-          onPress={() => dondur(-1)}
-          style={({ pressed }) => [s.ok, pressed && s.basili]}
-        >
-          <S.geri size={20} color={renkler.metin} strokeWidth={2} />
-        </Pressable>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          {/* Dar bölmede (tablet solu) tek satıra sığmayınca ayna notu
-              kesiliyordu; not küçük yazıyla, gerekirse ikinci satırda. */}
-          <Text style={s.baslik} numberOfLines={2} testID="donus-bakis">
-            {ad}{ayna ? <Text style={s.aynaNot}>{t(' · aynalanmış görünüm', ' · mirrored view')}</Text> : null}
-          </Text>
-          <Text style={[s.not, (isaretli.size > 0 || ipucu || ikinciModu) && s.notVurgu]} numberOfLines={2} accessibilityLiveRegion="polite" testID="donus-yazi">
-            {altYazi}
-          </Text>
+      ) : null;
+  const altOgesi = (
+        <View style={s.alt}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('Aracı döndür: önceki bakış', 'Rotate vehicle: previous view')}
+            onPress={() => dondur(-1)}
+            style={({ pressed }) => [s.ok, pressed && s.basili]}
+          >
+            <S.geri size={20} color={renkler.metin} strokeWidth={2} />
+          </Pressable>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            {/* Ayna notu YALNIZ GERÇEK GÖRSELDE (26.10.2026): çizim simetrik, aynada fark
+                yok; dış değerlendirme "kullanıcıya 'aynalanmış görünüm' yazıyor" dedi.
+                Görselde yazılar/kapak ters görüneceği için orada kalır. İşaret
+                (donus-ayna) sınavlar için her iki kipte de var. */}
+            <Text style={s.baslik} numberOfLines={2} testID="donus-bakis">
+              {ad}{ayna && yuvaGorseli ? <Text style={s.aynaNot}>{t(' · aynalanmış görsel', ' · mirrored image')}</Text> : null}
+            </Text>
+            {ayna ? <View testID="donus-ayna" /> : null}
+            <Text style={[s.not, (isaretli.size > 0 || ipucu || ikinciModu) && s.notVurgu]} numberOfLines={2} accessibilityLiveRegion="polite" testID="donus-yazi">
+              {altYazi}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('Aracı döndür: sonraki bakış', 'Rotate vehicle: next view')}
+            onPress={() => dondur(1)}
+            style={({ pressed }) => [s.ok, pressed && s.basili]}
+          >
+            <S.ileri size={20} color={renkler.metin} strokeWidth={2} />
+          </Pressable>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('Aracı döndür: sonraki bakış', 'Rotate vehicle: next view')}
-          onPress={() => dondur(1)}
-          style={({ pressed }) => [s.ok, pressed && s.basili]}
-        >
-          <S.ileri size={20} color={renkler.metin} strokeWidth={2} />
-        </Pressable>
+  );
+  const seceneklerOgesi = (
+        <View style={s.altSecenekler}>
+          {ustVar && halkaListesi.length ? (
+            <Secenek
+              kucuk
+              metin={yuvaAdi('ust', dil)}
+              erisimEtiketi={t('Üstten görünüm', 'Top view')}
+              secili={!!ustte}
+              onPress={() => { secimiTemizle(); setIpucu(false); setUstte(!ustte); }}
+            />
+          ) : null}
+          {buyuk ? (
+            <View style={s.yakinSatir}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('Uzaklaştır', 'Zoom out')}
+                accessibilityState={{ disabled: yakinSira === 0 }}
+                disabled={yakinSira === 0}
+                onPress={() => setYakinSira((x) => Math.max(0, x - 1))}
+                style={({ pressed }) => [s.ok, yakinSira === 0 && s.pasif, pressed && s.basili]}
+              >
+                <S.azalt size={20} color={renkler.metin} strokeWidth={2} />
+              </Pressable>
+              <Text style={s.yakinMetin} testID="donus-yakinlik">
+                {`${String(yakin).replace('.', dil === 'en' ? '.' : ',')}×`}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('Yakınlaştır', 'Zoom in')}
+                accessibilityState={{ disabled: yakinSira === YAKINLIKLAR.length - 1 }}
+                disabled={yakinSira === YAKINLIKLAR.length - 1}
+                onPress={() => setYakinSira((x) => Math.min(YAKINLIKLAR.length - 1, x + 1))}
+                style={({ pressed }) => [s.ok, yakinSira === YAKINLIKLAR.length - 1 && s.pasif, pressed && s.basili]}
+              >
+                <S.ekle size={20} color={renkler.metin} strokeWidth={2} />
+              </Pressable>
+            </View>
+          ) : null}
+          {!buyuk && onBuyut ? (
+            <Secenek
+              kucuk
+              simge={S.buyut}
+              metin={t('Büyüt', 'Enlarge')}
+              erisimEtiketi={t('Aracı büyüt: tam ekran 360° görünüm', 'Enlarge vehicle: full-screen 360° view')}
+              secili={false}
+              onPress={onBuyut}
+            />
+          ) : null}
+        </View>
+  );
+
+  if (yanYana) {
+    return (
+      <View style={s.kapBuyukYan} testID="donus-yan-yana">
+        <View style={s.yanSahne}>{sahneOgesi}</View>
+        <ScrollView style={s.yanPanel} contentContainerStyle={s.yanPanelIc}>
+          {ustOgesi}
+          {onayOgesi}
+          {altOgesi}
+          {seceneklerOgesi}
+        </ScrollView>
       </View>
-      <View style={s.altSecenekler}>
-        {ustVar && halkaListesi.length ? (
-          <Secenek
-            kucuk
-            metin={yuvaAdi('ust', dil)}
-            erisimEtiketi={t('Üstten görünüm', 'Top view')}
-            secili={!!ustte}
-            onPress={() => { secimiTemizle(); setIpucu(false); setUstte(!ustte); }}
-          />
-        ) : null}
-        {!buyuk && onBuyut ? (
-          <Secenek
-            kucuk
-            simge={S.gorunum}
-            metin={t('Büyüt', 'Enlarge')}
-            erisimEtiketi={t('Aracı büyüt: tam ekran 360° görünüm', 'Enlarge vehicle: full-screen 360° view')}
-            secili={false}
-            onPress={onBuyut}
-          />
-        ) : null}
-      </View>
+    );
+  }
+  return (
+    <View style={buyuk ? s.kapBuyuk : s.kap}>
+      {ustOgesi}
+      {sahneOgesi}
+      {onayOgesi}
+      {altOgesi}
+      {seceneklerOgesi}
     </View>
   );
 }
@@ -588,23 +677,35 @@ function AracCizimi({ harita, en, boy, x, y, jantli, profil }: {
 }
 
 const stiller = (r: Renkler) => StyleSheet.create({
+  // Çerçevesiz ton dolgu (26.10.2026): sistem satırlarıyla aynı yüzey dili.
   kap: {
     width: '100%', gap: bosluk.xs, padding: bosluk.xs,
-    borderRadius: kose.lg, borderWidth: 1, borderColor: r.cizgiSolgun, backgroundColor: r.yuzey,
+    borderRadius: kose.lg, backgroundColor: r.yuzeyAlt,
   },
   sahne: { width: '100%', aspectRatio: SAHNE_ORANI, borderRadius: kose.md, overflow: 'hidden', backgroundColor: r.yuzey },
   // Büyük görünüm: kabı doldurur; sahne kalan bütün yüksekliği alır.
   kapBuyuk: { flex: 1, gap: bosluk.xs, padding: bosluk.sm, backgroundColor: r.bg },
   sahneBuyuk: { flex: 1, width: '100%', borderRadius: kose.md, overflow: 'hidden', backgroundColor: r.yuzey },
+  // Yatay telefon: solda sahne, sağda kontroller (yanYana).
+  kapBuyukYan: { flex: 1, flexDirection: 'row', gap: bosluk.sm, padding: bosluk.sm, backgroundColor: r.bg },
+  yanSahne: { flex: 1, minWidth: 0 },
+  yanPanel: { width: 268, flexGrow: 0 },
+  yanPanelIc: { gap: bosluk.xs, paddingBottom: bosluk.sm },
+  // Dikey telefonda sahne aracın oranında (yükseklik boş kalmasın); altında kontroller.
+  sahneBuyukDikey: { width: '100%', borderRadius: kose.md, overflow: 'hidden', backgroundColor: r.yuzey },
   ustSatir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
   buyukBaslik: { ...tipografi.h2, color: r.metin },
+  ustNot: { ...tipografi.caption, color: r.metinSolgun },
   alt: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
   altSecenekler: { flexDirection: 'row', justifyContent: 'center', gap: bosluk.xs, flexWrap: 'wrap' },
   ok: {
     width: DOKUNMA, height: DOKUNMA, alignItems: 'center', justifyContent: 'center',
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    borderRadius: kose.md, backgroundColor: r.yuzey,
   },
   basili: { opacity: 0.72 },
+  pasif: { opacity: 0.4 },
+  yakinSatir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs },
+  yakinMetin: { ...tipografi.sayi, color: r.metinIkincil, minWidth: 40, textAlign: 'center' },
   baslik: { ...tipografi.bodyOrta, color: r.metin, textAlign: 'center' },
   not: { ...tipografi.caption, color: r.metinSolgun, textAlign: 'center' },
   notVurgu: { ...tipografi.captionOrta, color: r.birincil },

@@ -216,9 +216,9 @@ export function DenetimBilgileri({
           degistir={setDenetci}
           yerTutucu={t('Ad Soyad', 'Full name')}
         />
-        {/* "Problem source" ekibin Excel terimi: iki dilde de İngilizce. */}
+        {/* Excel'deki PROBLEM SOURCE sütunu. Türkçede "Hata kaynağı" (26.10.2026 dış değerlendirme: tek dil). */}
         <EklenebilirSecim
-          baslik="Problem source"
+          baslik={t('Hata kaynağı', 'Problem source')}
           ad={t('Kaynak', 'Source')}
           liste={degeriGoster(kaynaklar, denetim.denetimTipi)}
           deger={kaynak}

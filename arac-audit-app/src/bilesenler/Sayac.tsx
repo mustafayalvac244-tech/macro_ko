@@ -61,8 +61,14 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
 
   return (
     <Kart>
-      <BolumBasligi metin={t('Audit skoru', 'Audit score')} simge={S.tarih} />
-      <Text style={s.not}>{t('AUDIT kaynaklı araçlar · skor = 100 × demerit ÷ araç', 'AUDIT-source vehicles · score = 100 × demerit ÷ vehicles')}</Text>
+      <BolumBasligi
+        metin={t('Audit skoru', 'Audit score')}
+        simge={S.skor}
+        bilgi={t(
+          "Yalnız AUDIT kaynaklı ve bitmiş denetimler. Skor = 100 × demerit ÷ araç (Excel'deki tanım).",
+          'Finished AUDIT-source audits only. Score = 100 × demerit ÷ vehicles (as defined in the Excel).',
+        )}
+      />
       <View style={s.olcuSatir} accessibilityRole="radiogroup" accessibilityLabel={t('Gösterilen ölçü', 'Metric shown')}>
         {OLCULER.map((o) => (
           <Secenek
@@ -95,12 +101,14 @@ const AD_GENISLIK = 60;
 const stiller = (r: Renkler) => StyleSheet.create({
   not: { ...tipografi.caption, color: r.metinSolgun },
   olcuSatir: { flexDirection: 'row', gap: bosluk.xs },
-  satir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xxs, paddingVertical: 3 },
+  // Sütunlar sağa yaslı ve arası 8 px (26.10.2026 dış değerlendirme: ortalı
+  // "1200 1200" birbirine yapışıyordu). Sayılar sabit genişlikli.
+  satir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, paddingVertical: 3 },
   toplamSatir: { borderTopWidth: 1, borderTopColor: r.cizgiSolgun, paddingTop: bosluk.xs },
   adBos: { width: AD_GENISLIK },
   ad: { ...tipografi.captionOrta, color: r.metin, width: AD_GENISLIK },
   toplamAd: { color: r.metinIkincil },
-  baslik: { ...tipografi.etiket, fontSize: 11, lineHeight: 14, color: r.metinSolgun, flex: 1, textAlign: 'center' },
-  deger: { ...tipografi.sayiBuyuk, fontSize: 18, lineHeight: 24, color: r.metin, flex: 1, textAlign: 'center', minWidth: 0 },
+  baslik: { ...tipografi.etiket, fontSize: 11, lineHeight: 14, color: r.metinSolgun, flex: 1, textAlign: 'right' },
+  deger: { ...tipografi.sayiBuyuk, fontSize: 16, lineHeight: 22, color: r.metin, flex: 1, textAlign: 'right', minWidth: 0 },
   sifir: { color: r.metinSolgun },
 });

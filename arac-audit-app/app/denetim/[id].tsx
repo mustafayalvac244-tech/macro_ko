@@ -11,20 +11,21 @@ import { DenetimBilgileri } from '@/bilesenler/DenetimBilgileri';
 import {
   DereceSecici, GrupBasligi, HataSayfasi, HataTaslagi, SinifSecici, YeniTipFormu,
 } from '@/bilesenler/HataSayfasi';
-import { S } from '@/bilesenler/simgeler';
+import { GRUP_SIMGELERI, S } from '@/bilesenler/simgeler';
 import {
   AltSayfa, AramaKutusu, Baslik, BaslikCipi, BaslikDugmesi, BilgiKutusu, BolumBasligi, BosDurum, DereceRozeti,
   Dugme, Ekran, GeriDugmesi, HataKutusu, Rozet, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import {
-  bolgelerAracIcin, HATA_TIPI_INDEKS, hataTipiAdi, PARCA_INDEKS, parcaBolgeAdi, parcaCiftiAdi, parcaHataTipleri, parcaTamAdi,
+  bolgelerAracIcin, grupAdi, HATA_TIPI_INDEKS, hataTipiAdi, PARCA_INDEKS, parcaBolgeAdi, parcaCiftiAdi, parcaHataTipleri, parcaTamAdi,
 } from '@/cekirdek/katalog';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
-import { VARSAYILAN_SINIF, varsayilanSistem } from '@/cekirdek/nas';
+import { sinifDegeri, VARSAYILAN_SINIF, varsayilanSistem } from '@/cekirdek/nas';
 import { dereceGosterimi } from '@/cekirdek/puan';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { kapsamMetni, mevcutSistemler, parcaSistemi } from '@/cekirdek/sistemler';
+import { parcaDemeritleri } from '@/cekirdek/donusGorunumu';
 import { aracKimligi } from '@/cekirdek/vin';
 import {
   Denetim, DereceKodu, Hata, HataGrubuId, HataTipi, SinifKodu,
@@ -208,6 +209,8 @@ export default function DenetimEkrani() {
     for (const h of denetim?.hatalar ?? []) m.set(h.parcaId, (m.get(h.parcaId) ?? 0) + 1);
     return m;
   }, [denetim?.hatalar]);
+  // Araç görünümünde boya: parçanın en yüksek demerit'i (iki parça arası kayıt ikisini de).
+  const demeritHaritasi = useMemo(() => parcaDemeritleri(denetim?.hatalar ?? []), [denetim?.hatalar]);
 
   // --- HATA IZGARASI ----------------------------------------------------
   const tipler = useMemo(() => {
@@ -230,6 +233,17 @@ export default function DenetimEkrani() {
     for (const t of tipler) m.set(t.grup, [...(m.get(t.grup) ?? []), t]);
     return [...m.entries()];
   }, [tipler]);
+
+  // Grup atlama (26.10.2026): dış panelde montaj başta (ekibin Excel'inde en sık
+  // grup), ama telefonda boya hatası için ~1 ekran kaydırmak gerekiyordu (dış
+  // değerlendirme: kaputta "Çizik" y=1159 px, ekran 844 px). Sıra veriye göre
+  // kalır; ızgaranın üstündeki düğme gruba atlatır.
+  const izgaraRef = useRef<ScrollView>(null);
+  const grupKonumu = useRef(new Map<HataGrubuId, number>());
+  const grubaGit = (g: HataGrubuId) => {
+    const y = grupKonumu.current.get(g);
+    if (y !== undefined) izgaraRef.current?.scrollTo({ y: Math.max(0, y - bosluk.xs), animated: true });
+  };
 
   /** Parçayı açar. Demerit 0'a, class MINOR'a döner (dosya başı notu). */
   const parcaSec = useCallback((pid: string, ikinci?: string) => {
@@ -433,6 +447,7 @@ export default function DenetimEkrani() {
       parcaId={parcaId}
       ikinciParcaId={ikinciParcaId}
       parcaSayilari={parcaSayilari}
+      parcaDemeritleri={demeritHaritasi}
       sonParcalar={sonParcalar}
       onSec={parcaSec}
       tablet={tablet}
@@ -500,12 +515,12 @@ export default function DenetimEkrani() {
           <DereceSecici derece={derece} onSec={dereceSec} kucuk />
         </View>
         <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
-          <Text style={s.dereceEtiket}>Class</Text>
+          <Text style={s.dereceEtiket}>{t('Sınıf', 'Class')}</Text>
           <SinifSecici sinif={sinif} onSec={setSinif} />
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={s.hataGovde} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={izgaraRef} contentContainerStyle={s.hataGovde} keyboardShouldPersistTaps="handled">
         <AramaKutusu
           deger={hataArama}
           degistir={setHataArama}
@@ -541,6 +556,27 @@ export default function DenetimEkrani() {
 
         {kayitHatasi ? <HataKutusu metin={kayitHatasi} /> : null}
 
+        {!yeniTipAcik && tipGruplari.length > 1 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.grupAtlaSatir}>
+            {tipGruplari.map(([g, liste]) => {
+              const Ikon = GRUP_SIMGELERI[g];
+              return (
+                <Pressable
+                  key={g}
+                  accessibilityRole="button"
+                  accessibilityLabel={t(`${grupAdi(g)} grubuna git (${liste.length})`, `Go to ${grupAdi(g, 'en')} (${liste.length})`)}
+                  onPress={() => grubaGit(g)}
+                  style={({ pressed }) => [s.grupAtla, pressed && s.basili]}
+                >
+                  {Ikon ? <Ikon size={15} color={renkler.birincil} strokeWidth={2} /> : null}
+                  <Text style={s.grupAtlaMetin} numberOfLines={1}>{grupAdi(g, dil)}</Text>
+                  <Text style={s.grupAtlaSayi}>{liste.length}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        ) : null}
+
         {yeniTipAcik ? (
           <YeniTipFormu
             baslangicAd={hataArama.trim()}
@@ -557,7 +593,7 @@ export default function DenetimEkrani() {
         ) : (
           <>
             {tipGruplari.map(([g, liste]) => (
-              <View key={g} style={s.grup}>
+              <View key={g} style={s.grup} onLayout={(e) => { grupKonumu.current.set(g, e.nativeEvent.layout.y); }}>
                 <GrupBasligi grup={g} />
                 <View style={s.hataIzgara}>
                   {liste.map((tip) => (
@@ -693,7 +729,7 @@ export default function DenetimEkrani() {
             buyuk
             aracId={denetim.aracId}
             bolgeler={bolgeler}
-            kayitliParcalar={parcaSayilari}
+            kayitliParcalar={demeritHaritasi}
             seciliParcaId={parcaId}
             seciliIkinciParcaId={ikinciParcaId}
             onBolgeSec={(bolgeId) => { setBuyukAcik(false); setKonum({ sistem: 'dis', bolgeId }); }}
@@ -815,7 +851,7 @@ function DenetimOzeti({
         simge={S.sec}
         baslik={t('Soldan sistem → bölge → parça seçin', 'Select system → area → part on the left')}
         aciklama={t(
-          "Sonra demerit ve class'ı seçip hataya dokunun; hata o anda kaydedilir ve aynı bölgenin parçalarına dönülür.",
+          "Sonra demerit ve sınıfı seçip hataya dokunun; hata o anda kaydedilir ve aynı bölgenin parçalarına dönülür.",
           'Then set demerit and class and tap a defect; it is saved at once and you return to the parts of the same area.',
         )}
       />
@@ -845,16 +881,18 @@ function DenetimOzeti({
 }
 
 /** Kaydedilmiş tek hata satırı — liste sayfasında ve özet bölmesinde aynı. */
-function KayitSatiri({ hata: h, sira, onPress }: { hata: Hata; sira?: number; onPress: () => void }) {
+function KayitSatiri({ hata: h, onPress }: { hata: Hata; onPress: () => void }) {
   const { renkler } = useTema();
   const { dil, t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const tip = HATA_TIPI_INDEKS[h.hataTipiId];
+  // Sınıf her satırda (26.10.2026 dış değerlendirme: "class listede görünmüyor").
   const alt = [
+    sinifDegeri(h),
     parcaBolgeAdi(h.parcaId, dil),
     h.adet > 1 ? t(`${h.adet} adet`, `${h.adet} pcs`) : null,
     h.konum || null,
-    h.sorunTipi === 'Complex' ? 'Complex' : null,
+    h.sorunTipi === 'Complex' ? t('Kompleks', 'Complex') : null,
     h.sorumlu ? `→ ${h.sorumlu}` : null,
   ].filter(Boolean).join(' · ');
   return (
@@ -867,10 +905,10 @@ function KayitSatiri({ hata: h, sira, onPress }: { hata: Hata; sira?: number; on
       onPress={onPress}
       style={({ pressed }) => [s.kayitSatir, pressed && s.basili]}
     >
-      {sira !== undefined ? <Text style={s.kayitSira}>{sira}</Text> : null}
+      {/* Sıra numarası kalktı: demerit rozetinin yanında iki sayı yan yana duruyordu. */}
       <DereceRozeti derece={h.derece} kabul={h.kabulEdilebilir} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={s.kayitAd} numberOfLines={h.ikinciParcaId ? 2 : 1}>{parcaCiftiAdi(h, dil)} — {hataTipiAdi(h.hataTipiId, dil)}</Text>
+        <Text style={s.kayitAd} numberOfLines={2}>{parcaCiftiAdi(h, dil)} — {hataTipiAdi(h.hataTipiId, dil)}</Text>
         {alt ? <Text style={s.kayitAlt} numberOfLines={1}>{alt}</Text> : null}
       </View>
       {h.fotograflar.length ? (
@@ -908,8 +946,8 @@ function KayitListesi({
       <ScrollView style={{ flexGrow: 1 }} contentContainerStyle={s.listeGovde}>
         {sirali.length === 0 ? (
           <BosDurum simge={S.liste} baslik={t('Henüz hata kaydedilmedi', 'No defects recorded yet')} />
-        ) : sirali.map((h, i) => (
-          <KayitSatiri key={h.id} hata={h} sira={sirali.length - i} onPress={() => onAc(h)} />
+        ) : sirali.map((h) => (
+          <KayitSatiri key={h.id} hata={h} onPress={() => onAc(h)} />
         ))}
       </ScrollView>
       <View style={s.listeEylem}>
@@ -939,15 +977,16 @@ const stiller = (r: Renkler) => StyleSheet.create({
     paddingHorizontal: bosluk.md, paddingVertical: bosluk.sm,
     borderBottomWidth: 1, borderBottomColor: r.cizgiSolgun, backgroundColor: r.bgYukseltilmis,
   },
+  // Kırıntı düğmeleriyle aynı dil (AdimliSecim.tsx kirinti): ton dolgu, çerçeve yok.
   geriDugme: {
     flexDirection: 'row', alignItems: 'center', gap: 2,
     minHeight: DOKUNMA, paddingLeft: bosluk.xs, paddingRight: bosluk.sm,
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    borderRadius: kose.md, backgroundColor: r.birincilYumusak,
   },
   geriMetin: { ...tipografi.bodyOrta, color: r.birincil },
   kapatDugme: {
     width: DOKUNMA, height: DOKUNMA, alignItems: 'center', justifyContent: 'center',
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    borderRadius: kose.md, backgroundColor: r.yuzeyVurgu,
   },
   seciliParca: { ...tipografi.h2, color: r.metin },
   buyukKatman: { backgroundColor: r.bg, zIndex: 20, elevation: 20 },
@@ -963,11 +1002,20 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   hataGovde: { padding: bosluk.md, gap: bosluk.md, paddingBottom: 120 },
   grup: { gap: bosluk.xs },
+  grupAtlaSatir: { flexDirection: 'row', gap: bosluk.xs },
+  grupAtla: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: bosluk.sm,
+    borderRadius: kose.md, backgroundColor: r.birincilYumusak,
+  },
+  grupAtlaMetin: { ...tipografi.captionOrta, color: r.birincil },
+  grupAtlaSayi: { ...tipografi.caption, color: r.metinIkincil, fontVariant: ['tabular-nums'] },
   hataIzgara: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
+  // Çerçevesiz beyaz kutu (26.10.2026, "her şey çerçeveli"): zemin gri, kutu
+  // kendini ayırıyor. Kenar kalınlığı kalır, basılınca seçili-durum rengi alır.
   hataDugme: {
     flexGrow: 1, flexBasis: 150, minHeight: 52, justifyContent: 'center', gap: 2,
     paddingHorizontal: bosluk.sm, paddingVertical: bosluk.xs,
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    borderRadius: kose.md, borderWidth: 2, borderColor: r.yuzey, backgroundColor: r.yuzey,
   },
   hataDugmeBasili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   hataDugmeUst: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
@@ -1020,10 +1068,8 @@ const stiller = (r: Renkler) => StyleSheet.create({
   listeGovde: { paddingHorizontal: bosluk.md, paddingBottom: bosluk.md, gap: 6 },
   kayitSatir: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: 58,
-    paddingHorizontal: bosluk.sm, borderRadius: kose.md,
-    borderWidth: 1, borderColor: r.cizgiSolgun, backgroundColor: r.yuzey,
+    paddingHorizontal: bosluk.sm, borderRadius: kose.md, backgroundColor: r.yuzeyAlt,
   },
-  kayitSira: { ...tipografi.caption, color: r.metinSolgun, width: 22, textAlign: 'right', fontVariant: ['tabular-nums'] },
   kayitAd: { ...tipografi.bodyOrta, color: r.metin },
   kayitAlt: { ...tipografi.caption, color: r.metinSolgun },
   fotoSayi: { flexDirection: 'row', alignItems: 'center', gap: 3 },

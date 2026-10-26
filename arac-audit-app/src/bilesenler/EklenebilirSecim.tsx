@@ -254,8 +254,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   bos: { ...tipografi.caption, color: r.metinSolgun },
   etiket: {
     flexDirection: 'row', alignItems: 'center', maxWidth: '100%',
-    minHeight: DOKUNMA, paddingLeft: bosluk.sm, borderRadius: kose.md,
-    borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
+    minHeight: DOKUNMA, paddingLeft: bosluk.sm, borderRadius: kose.md, backgroundColor: r.yuzeyVurgu,
   },
   etiketMetin: { ...tipografi.bodyOrta, color: r.metin, flexShrink: 1 },
   etiketSil: { width: DOKUNMA - 4, height: DOKUNMA - 2, alignItems: 'center', justifyContent: 'center' },

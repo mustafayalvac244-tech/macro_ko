@@ -17,7 +17,7 @@ import {
   CircleCheck, CircleDashed, ClipboardCheck, ClipboardList, Clock, CloudDownload, CloudUpload, Database, Droplets, Factory,
   FileSpreadsheet, FileText, Gauge, Hash, History, Image, Info, Layers, List, LucideIcon, Minus,
   Monitor, Moon, MousePointerClick, Paintbrush, Palette, Pencil, Plus, RotateCw, Ruler, ScanBarcode, Search,
-  Settings, Sparkles, Sun, Tag, Trash2, TriangleAlert, Undo2, User, Users, Volume2, Wrench, X, Zap,
+  Maximize2, Settings, Sparkles, Sun, Tag, Trash2, TriangleAlert, Undo2, User, Users, Volume2, Wrench, X, Zap,
 } from 'lucide-react-native';
 
 import { BolgeGrubu, HataGrubuId } from '@/cekirdek/tipler';
@@ -61,6 +61,10 @@ export const S = {
   sistemTema: Monitor,
   veri: Database,
   gorunum: Palette,
+  // 26.10.2026 dış değerlendirme: "Büyüt"te palet, skorda takvim vardı. Maximize2
+  // 1.48.0'ın tip dosyasında ve derlenmiş paketinde arandı.
+  buyut: Maximize2,
+  skor: Gauge,
   basla: ArrowRight,
   duzenle: Pencil,
   azalt: Minus,

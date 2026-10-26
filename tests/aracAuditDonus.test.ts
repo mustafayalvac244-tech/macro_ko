@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   aracHaritasiVar, cizimRolu, dokunulanYuz, dokunusSonucu, gorunenYuzler, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka,
-  cevrilmisNokta, HALKA_YUVALARI, haritaOdagi, kaydirmaIndeksi, kutudakiNokta, odakKutusu, oranUyar, sar, UST_BOLGESI,
-  yanYatirilir, yumusakYol, yuvaAdi, YUVALAR, YUZ_BOLGESI,
+  HALKA_YUVALARI, kaymaSinirla, parcaDemeritleri, yakinKutu, YAKINLIKLAR, haritaOdagi, kaydirmaIndeksi, kutudakiNokta, odakKutusu, oranUyar, sar, UST_BOLGESI,
+  yumusakYol, yuvaAdi, YUVALAR, YUZ_BOLGESI,
 } from '../arac-audit-app/src/cekirdek/donusGorunumu';
 import { GorunumId, PARCA_HARITALARI } from '../arac-audit-app/src/cekirdek/gorunumParcalari';
 import { BOLGELER, PARCA_INDEKS, parcaCiftiAdi } from '../arac-audit-app/src/cekirdek/katalog';
@@ -291,39 +291,6 @@ describe('büyük görünüm: odak kutusu', () => {
   });
 });
 
-// 26.10.2026 — dikey telefonda geniş bakış 90° çevrilir; dokunuş geri çevrilir.
-describe('büyük görünüm: dikey telefonda çevirme', () => {
-  const genis = { x0: 0.05, y0: 0.2, x1: 0.95, y1: 0.8 }; // 2:1 görselde 1,8/0,6 = 3
-  const kare = { x0: 0.3, y0: 0.1, x1: 0.7, y1: 0.9 };   // 0,8/0,8 = 1
-
-  it('yalnız dikey kapta ve geniş odakta çevrilir', () => {
-    expect(yanYatirilir(390, 700, 2, genis)).toBe(true);
-    expect(yanYatirilir(700, 390, 2, genis)).toBe(false);
-    expect(yanYatirilir(390, 700, 2, kare)).toBe(false);
-    expect(yanYatirilir(390, 700, 2, null)).toBe(false);
-    // Ön/arka bakış: aynalarla odak ~1,4 — dik kalır (eşik 1,6).
-    expect(yanYatirilir(390, 700, 2, { x0: 0.2, y0: 0.1, x1: 0.8, y1: 0.95 })).toBe(false);
-    expect(yanYatirilir(390, 390, 2, genis)).toBe(false);
-  });
-
-  it('saat yönünde 90°: ekranda aşağı = içte sağa, ekranda sağ = içte yukarı', () => {
-    // Dış kap 390×700, iç kap 700×390. Merkez merkeze gider.
-    expect(cevrilmisNokta(195, 350, 390)).toEqual({ x: 350, y: 195 });
-    expect(cevrilmisNokta(195, 450, 390)).toEqual({ x: 450, y: 195 });
-    expect(cevrilmisNokta(295, 350, 390)).toEqual({ x: 350, y: 95 });
-    // Ekranın sol üst köşesi, içte sol alt köşe.
-    expect(cevrilmisNokta(0, 0, 390)).toEqual({ x: 0, y: 390 });
-  });
-
-  it('çevrilmiş kapta dokunuş görselin doğru yerini bulur', () => {
-    const k = odakKutusu(700, 390, 2, genis);
-    // İçte odağın tam ortası = görselde (0,5; 0,5); ekranda da kabın ortası.
-    const n = kutudakiNokta(cevrilmisNokta(195, 350, 390).x, cevrilmisNokta(195, 350, 390).y, k);
-    expect(n!.x).toBeCloseTo(0.5, 6);
-    expect(n!.y).toBeCloseTo(0.5, 6);
-  });
-});
-
 // 26.10.2026 — ürün sahibi: "iki parça seçebilsek, arasında boşluk vs. yazabilmek için".
 describe('ikinci parça (boşluk / kademe)', () => {
   it('ad: ikinci parça varsa "A ↔ B", iki dilde; yoksa tek ad', () => {
@@ -339,5 +306,73 @@ describe('ikinci parça (boşluk / kademe)', () => {
     expect(sorunMetni(h, 'tr')).toBe('Kaput ↔ Sol ön çamurluk — Boşluk fazla');
     expect(sorunMetni(h, 'en')).toBe('Hood ↔ LH front fender over gap');
     expect(sorunMetni({ ...h, ikinciParcaId: undefined }, 'tr')).toBe('Kaput — Boşluk fazla');
+  });
+});
+
+// 26.10.2026 — dış değerlendirme: araç üzerinde demerit 1, 2, 3 aynı kırmızıydı.
+describe('araç görünümünde boya: parçanın en yüksek demerit\'i', () => {
+  const h = (parcaId: string, derece: string, ek: { ikinciParcaId?: string; kabulEdilebilir?: boolean } = {}) =>
+    ({ parcaId, derece, kabulEdilebilir: false, ...ek });
+
+  it('aynı parçada birden çok kayıt: en yükseği', () => {
+    const m = parcaDemeritleri([h('kaput', '1'), h('kaput', '3'), h('kaput', '2')]);
+    expect(m.get('kaput')).toBe(3);
+  });
+
+  it('demerit 0 ve kabul edilmiş kayıt da işaretler (0 olarak)', () => {
+    const m = parcaDemeritleri([h('tavan', '0'), h('bagaj', '3', { kabulEdilebilir: true })]);
+    expect(m.get('tavan')).toBe(0);
+    expect(m.get('bagaj')).toBe(0);
+    expect(m.has('kaput')).toBe(false);
+  });
+
+  it('iki parça arası kayıt iki parçayı da boyar', () => {
+    const m = parcaDemeritleri([h('sol_on_kapi', '2', { ikinciParcaId: 'sol_on_camurluk' }), h('sol_on_camurluk', '1')]);
+    expect(m.get('sol_on_kapi')).toBe(2);
+    expect(m.get('sol_on_camurluk')).toBe(2);
+  });
+
+  it('bozuk derece 0 sayılır, çökmez', () => {
+    expect(parcaDemeritleri([h('kaput', 'x')]).get('kaput')).toBe(0);
+  });
+});
+
+// 26.10.2026 — yan yatırma kalkınca dikey telefonda büyük görünüm karttan büyük değildi.
+describe('büyük görünümde yakınlaştırma', () => {
+  const k = { x: -20, y: 10, en: 400, boy: 200 };
+  const odak = { x0: 0.05, y0: 0.2, x1: 0.95, y1: 0.8 };
+
+  it('1×: kutu aynen, kayma sıfır', () => {
+    expect(yakinKutu(k, 360, 240, 1, { x: 50, y: 50 })).toEqual(k);
+    expect(kaymaSinirla(k, 360, 240, 1, odak, { x: 50, y: 50 })).toEqual({ x: 0, y: 0 });
+  });
+
+  it('yakınken kabın ortası sabit: ortadaki görsel noktası ortada kalır', () => {
+    const z = yakinKutu(k, 360, 240, 2, { x: 0, y: 0 });
+    expect(z.en).toBe(800);
+    expect(z.boy).toBe(400);
+    // Kabın ortası (180,120) yakınlaşmadan önce görselin şu noktasındaydı:
+    const once = { x: (180 - k.x) / k.en, y: (120 - k.y) / k.boy };
+    expect(kutudakiNokta(180, 120, z)!.x).toBeCloseTo(once.x, 9);
+    expect(kutudakiNokta(180, 120, z)!.y).toBeCloseTo(once.y, 9);
+  });
+
+  it('kayma sınırlı: araç kabın kenarından içeri çekilemez', () => {
+    const s = kaymaSinirla(k, 360, 240, 2, odak, { x: 5000, y: -5000 });
+    const z = yakinKutu(k, 360, 240, 2, s);
+    expect(z.x + odak.x0 * z.en).toBeCloseTo(0, 6); // sola dayalı: aracın sol kenarı kabın sol kenarında
+    expect(z.y + odak.y1 * z.boy).toBeCloseTo(240, 6); // aracın alt kenarı kabın altında
+  });
+
+  it('araç kabdan küçük kalan eksende ortalanır', () => {
+    const kucuk = { x: 100, y: 60, en: 100, boy: 50 };
+    const s = kaymaSinirla(kucuk, 360, 240, 1.6, odak, { x: 999, y: 999 });
+    const z = yakinKutu(kucuk, 360, 240, 1.6, s);
+    expect((z.x + odak.x0 * z.en + z.x + odak.x1 * z.en) / 2).toBeCloseTo(180, 6);
+  });
+
+  it('kademeler artan, ilki 1', () => {
+    expect(YAKINLIKLAR[0]).toBe(1);
+    for (let i = 1; i < YAKINLIKLAR.length; i++) expect(YAKINLIKLAR[i]!).toBeGreaterThan(YAKINLIKLAR[i - 1]!);
   });
 });

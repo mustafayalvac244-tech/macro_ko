@@ -42,7 +42,10 @@ const DONEMLER: { id: Donem; ad: string; en: string }[] = [
 ];
 
 const skorMetni = (v: number | null) => (v === null ? '—' : String(v));
-const yuzde = (v: number) => `${Math.round(v * 100)}%`;
+// Türkçede yüzde işareti başta: "%20" (dış değerlendirme: "20%" yazıyordu).
+const yuzde = (v: number, dil: 'tr' | 'en') => (dil === 'en' ? `${Math.round(v * 100)}%` : `%${Math.round(v * 100)}`);
+
+const GRAFIK_BOY = 150;
 
 export default function Analiz() {
   const { renkler } = useTema();
@@ -55,6 +58,10 @@ export default function Analiz() {
 
   const [donem, setDonem] = useState<Donem>('buAy');
   const [aracId, setAracId] = useState<string>('hepsi');
+  // Grafik ölçeklenmez, kabın gerçek genişliğinde çizilir: yazılar her ekranda
+  // aynı px (26.10.2026 dış değerlendirme: tablette eksen yazısı kart
+  // başlığından büyüktü, telefonda 8 px'ti).
+  const [grafikEn, setGrafikEn] = useState(320);
   const [veri, setVeri] = useState<{ girdiler: SayacGirdisi[]; kayitlar: HataKaydi[]; simdi: Date } | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -112,8 +119,8 @@ export default function Analiz() {
             style={s.paretoSatir}
             accessible
             accessibilityLabel={t(
-              `${i + 1}. ${parcaTamAdi(p.parcaId, dil)} ${hataTipiAdi(p.hataTipiId, dil)}: ${p.adet} problem, demerit ${p.demerit}, ${p.aracSayisi} araç${tekrar ? '' : `, birikimli ${yuzde(p.birikimli)}`}`,
-              `${i + 1}. ${parcaTamAdi(p.parcaId, dil)} ${hataTipiAdi(p.hataTipiId, dil)}: ${p.adet} ${p.adet === 1 ? 'problem' : 'problems'}, demerit ${p.demerit}, ${p.aracSayisi} ${p.aracSayisi === 1 ? 'vehicle' : 'vehicles'}${tekrar ? '' : `, cumulative ${yuzde(p.birikimli)}`}`,
+              `${i + 1}. ${parcaTamAdi(p.parcaId, dil)} ${hataTipiAdi(p.hataTipiId, dil)}: ${p.adet} hata, demerit ${p.demerit}, ${p.aracSayisi} araç${tekrar ? '' : `, birikimli ${yuzde(p.birikimli, dil)}`}`,
+              `${i + 1}. ${parcaTamAdi(p.parcaId, dil)} ${hataTipiAdi(p.hataTipiId, dil)}: ${p.adet} ${p.adet === 1 ? 'problem' : 'problems'}, demerit ${p.demerit}, ${p.aracSayisi} ${p.aracSayisi === 1 ? 'vehicle' : 'vehicles'}${tekrar ? '' : `, cumulative ${yuzde(p.birikimli, dil)}`}`,
             )}
           >
             <View style={s.paretoUst}>
@@ -125,8 +132,8 @@ export default function Analiz() {
               <View style={[s.cubuk, { width: `${Math.max(2, p.pay * 100)}%` }]} />
             </View>
             <Text style={s.paretoAlt}>
-              {t(`${p.aracSayisi} araç · demerit ${p.demerit} · pay ${yuzde(p.pay)}`, `${p.aracSayisi} ${p.aracSayisi === 1 ? 'vehicle' : 'vehicles'} · demerit ${p.demerit} · share ${yuzde(p.pay)}`)}
-              {tekrar ? '' : t(` · birikimli ${yuzde(p.birikimli)}`, ` · cumulative ${yuzde(p.birikimli)}`)}
+              {t(`${p.aracSayisi} araç · demerit ${p.demerit} · pay ${yuzde(p.pay, dil)}`, `${p.aracSayisi} ${p.aracSayisi === 1 ? 'vehicle' : 'vehicles'} · demerit ${p.demerit} · share ${yuzde(p.pay, dil)}`)}
+              {tekrar ? '' : t(` · birikimli ${yuzde(p.birikimli, dil)}`, ` · cumulative ${yuzde(p.birikimli, dil)}`)}
             </Text>
           </View>
         ))}
@@ -135,7 +142,7 @@ export default function Analiz() {
   );
 
   const haftaGrafigi = (haftalar: ReturnType<typeof haftalikSkor>) => {
-    const EN = 320; const BOY = 120; const sol = 8; const alt = 26; const ust = 14;
+    const EN = grafikEn; const BOY = GRAFIK_BOY; const sol = 8; const alt = 34; const ust = 18;
     const enBuyuk = Math.max(1, ...haftalar.map((h) => h.skor ?? 0));
     const sutun = (EN - sol * 2) / haftalar.length;
     const kisaTarih = (d: Date) => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -144,8 +151,8 @@ export default function Analiz() {
         accessible
         accessibilityLabel={`${t('Haftalık audit skoru', 'Weekly audit score')}: ${haftalar.map((h) => `${kisaTarih(h.baslangic)} ${skorMetni(h.skor)}`).join(', ')}`}
       >
-        <View style={s.grafik}>
-          <Svg width="100%" height="100%" viewBox={`0 0 ${EN} ${BOY}`} aria-hidden>
+        <View style={s.grafik} onLayout={(e) => setGrafikEn(Math.max(200, Math.round(e.nativeEvent.layout.width)))}>
+          <Svg width={EN} height={BOY} viewBox={`0 0 ${EN} ${BOY}`} aria-hidden>
             {haftalar.map((h, i) => {
               const x = sol + i * sutun + sutun * 0.2;
               const w = sutun * 0.6;
@@ -158,13 +165,13 @@ export default function Analiz() {
                   ) : (
                     <Rect x={x} y={BOY - alt - 2} width={w} height={2} fill={renkler.cizgiGuclu} />
                   )}
-                  <SvgText x={x + w / 2} y={BOY - alt - yukseklik - 4} fontFamily={yazi.orta} fontSize={9} fill={renkler.metinIkincil} textAnchor="middle">
+                  <SvgText x={x + w / 2} y={BOY - alt - yukseklik - 4} fontFamily={yazi.orta} fontSize={12} fill={renkler.metinIkincil} textAnchor="middle">
                     {h.skor === null ? '' : skorMetni(h.skor)}
                   </SvgText>
-                  <SvgText x={x + w / 2} y={BOY - alt + 12} fontFamily={yazi.normal} fontSize={8} fill={renkler.metinSolgun} textAnchor="middle">
+                  <SvgText x={x + w / 2} y={BOY - alt + 14} fontFamily={yazi.normal} fontSize={11} fill={renkler.metinSolgun} textAnchor="middle">
                     {kisaTarih(h.baslangic)}
                   </SvgText>
-                  <SvgText x={x + w / 2} y={BOY - alt + 22} fontFamily={yazi.normal} fontSize={8} fill={renkler.metinSolgun} textAnchor="middle">
+                  <SvgText x={x + w / 2} y={BOY - alt + 28} fontFamily={yazi.normal} fontSize={11} fill={renkler.metinSolgun} textAnchor="middle">
                     {h.arac ? t(`${h.arac} araç`, `${h.arac} veh`) : '—'}
                   </SvgText>
                 </React.Fragment>
@@ -172,7 +179,6 @@ export default function Analiz() {
             })}
           </Svg>
         </View>
-        <Text style={s.not}>{t('Hafta pazartesi başlar; son sütun içinde bulunulan haftadır, henüz bitmedi.', 'Weeks start on Monday; the last column is the current week, not over yet.')}</Text>
       </View>
     );
   };
@@ -183,19 +189,21 @@ export default function Analiz() {
       {hata ? <View style={{ padding: bosluk.md }}><HataKutusu metin={hata} /></View> : null}
       {!veri || !hesap ? <Yukleniyor metin={t('Hesaplanıyor…', 'Calculating…')} /> : (
         <ScrollView contentContainerStyle={[s.govde, tablet && s.govdeTablet]}>
+          {/* Süzgeçler tek satır, sığmazsa yana kayar (26.10.2026 dış değerlendirme:
+              "Bu yıl" tek başına ikinci satıra düşüyordu). */}
           <View style={s.suzgecler}>
-            <View style={s.satir}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.suzgecSatir}>
               {DONEMLER.map((d) => (
-                <Secenek key={d.id} metin={dil === 'en' ? d.en : d.ad} secili={donem === d.id} onPress={() => setDonem(d.id)} erisimEtiketi={t(`Dönem ${d.ad}`, `Period: ${d.en}`)} />
+                <Secenek key={d.id} kucuk metin={dil === 'en' ? d.en : d.ad} secili={donem === d.id} onPress={() => setDonem(d.id)} erisimEtiketi={t(`Dönem ${d.ad}`, `Period: ${d.en}`)} />
               ))}
-            </View>
+            </ScrollView>
             {aracSecenekleri.length > 1 ? (
-              <View style={s.satir}>
-                <Secenek metin={t('Tüm araçlar', 'All vehicles')} secili={aracId === 'hepsi'} onPress={() => setAracId('hepsi')} />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.suzgecSatir}>
+                <Secenek kucuk metin={t('Tüm araçlar', 'All vehicles')} secili={aracId === 'hepsi'} onPress={() => setAracId('hepsi')} />
                 {aracSecenekleri.map((a) => (
-                  <Secenek key={a.id} metin={a.kod} secili={aracId === a.id} onPress={() => setAracId(a.id)} erisimEtiketi={t(`Araç ${aracEtiketi(a)}`, `Vehicle ${aracEtiketi(a)}`)} />
+                  <Secenek key={a.id} kucuk metin={a.kod} secili={aracId === a.id} onPress={() => setAracId(a.id)} erisimEtiketi={t(`Araç ${aracEtiketi(a)}`, `Vehicle ${aracEtiketi(a)}`)} />
                 ))}
-              </View>
+              </ScrollView>
             ) : null}
           </View>
 
@@ -204,14 +212,21 @@ export default function Analiz() {
           ) : (
             <>
               <Kart>
-                <BolumBasligi metin={t('Özet', 'Summary')} simge={S.tarih} />
+                <BolumBasligi
+                  metin={t('Özet', 'Summary')}
+                  simge={S.analiz}
+                  bilgi={t(
+                    "Audit skoru = 100 × demerit ÷ araç (Excel'deki tanım). Yalnız AUDIT kaynaklı, bitmiş denetimler.",
+                    'Audit score = 100 × demerit ÷ vehicles (as defined in the Excel). Finished AUDIT-source audits only.',
+                  )}
+                />
                 <View style={s.ozetSatir} accessible accessibilityLabel={t(
-                  `Özet: ${hesap.toplam.arac} araç, ${hesap.toplam.hata} problem, demerit ${hesap.toplam.demerit}, audit skoru ${skorMetni(hesap.skor)}`,
+                  `Özet: ${hesap.toplam.arac} araç, ${hesap.toplam.hata} hata, demerit ${hesap.toplam.demerit}, audit skoru ${skorMetni(hesap.skor)}`,
                   `Summary: ${hesap.toplam.arac} ${hesap.toplam.arac === 1 ? 'vehicle' : 'vehicles'}, ${hesap.toplam.hata} ${hesap.toplam.hata === 1 ? 'problem' : 'problems'}, demerit ${hesap.toplam.demerit}, audit score ${skorMetni(hesap.skor)}`,
                 )}>
                   {[
                     [t('Araç', 'Vehicles'), String(hesap.toplam.arac)],
-                    [t('Problem', 'Problems'), String(hesap.toplam.hata)],
+                    [t('Hata', 'Problems'), String(hesap.toplam.hata)],
                     ['Demerit', String(hesap.toplam.demerit)],
                     [t('Skor', 'Score'), skorMetni(hesap.skor)],
                   ].map(([ad, deger]) => (
@@ -221,33 +236,43 @@ export default function Analiz() {
                     </View>
                   ))}
                 </View>
-                <Text style={s.not}>
-                  {t("Audit skoru = 100 × demerit ÷ araç (Excel'deki tanım). Yalnız AUDIT kaynaklı denetimler. ", 'Audit score = 100 × demerit ÷ vehicles (as defined in the Excel). AUDIT-source audits only. ')}
-                  {aracId === 'hepsi' ? '' : t(`Yalnız ${aracEtiketi(ARAC_INDEKS[aracId], aracId)}.`, `${aracEtiketi(ARAC_INDEKS[aracId], aracId)} only.`)}
-                </Text>
               </Kart>
 
               <Kart>
-                <BolumBasligi metin={t('Haftalık audit skoru — son 8 hafta', 'Weekly audit score — last 8 weeks')} simge={S.son} />
+                <BolumBasligi
+                  metin={t('Haftalık audit skoru — son 8 hafta', 'Weekly audit score — last 8 weeks')}
+                  simge={S.son}
+                  bilgi={t('Hafta pazartesi başlar; son sütun içinde bulunulan haftadır, henüz bitmedi.', 'Weeks start on Monday; the last column is the current week, not over yet.')}
+                />
                 {haftaGrafigi(hesap.haftalar)}
               </Kart>
 
               <Kart>
-                <BolumBasligi metin={t('En sık hatalar (Pareto)', 'Most frequent defects (Pareto)')} simge={S.liste} />
-                <Text style={s.not}>{t("Parça + hata tipi, problem adedine göre (demerit'i 0 olanlar dahil). Birikimli pay: ilk kaç satırın toplamın ne kadarını yaptığı.", 'Part + defect type, by problem count (demerit 0 included). Cumulative share: how much of the total the top rows make up.')}</Text>
-                {paretoListesi(hesap.pareto, t('Bu dönemde problem yok.', 'No problems in this period.'))}
+                <BolumBasligi
+                  metin={t('En sık hatalar (Pareto)', 'Most frequent defects (Pareto)')}
+                  simge={S.liste}
+                  bilgi={t("Parça + hata tipi, hata adedine göre (demerit'i 0 olanlar dahil). Birikimli pay: ilk kaç satırın toplamın ne kadarını yaptığı.", 'Part + defect type, by problem count (demerit 0 included). Cumulative share: how much of the total the top rows make up.')}
+                />
+                {paretoListesi(hesap.pareto, t('Bu dönemde hata yok.', 'No problems in this period.'))}
               </Kart>
 
               <Kart>
-                <BolumBasligi metin={t('Tekrarlayan hatalar', 'Recurring defects')} simge={S.uyari} />
-                <Text style={s.not}>{t('Aynı parça ve tip en az iki ayrı araçta. Tek araçta birkaç kez görülen hata burada değil: o aracın sorunudur, sürecin değil.', 'Same part and type on at least two different vehicles. A defect repeated on a single vehicle is not listed here: that is a vehicle problem, not a process problem.')}</Text>
+                <BolumBasligi
+                  metin={t('Tekrarlayan hatalar', 'Recurring defects')}
+                  simge={S.uyari}
+                  bilgi={t('Aynı parça ve tip en az iki ayrı araçta. Tek araçta birkaç kez görülen hata burada değil: o aracın sorunudur, sürecin değil.', 'Same part and type on at least two different vehicles. A defect repeated on a single vehicle is not listed here: that is a vehicle problem, not a process problem.')}
+                />
                 {paretoListesi(hesap.tekrar, t('Birden çok araçta görülen hata yok.', 'No defect seen on more than one vehicle.'), true)}
               </Kart>
 
               <Kart>
-                <BolumBasligi metin={t('Sisteme göre (SYSTEM)', 'By system (SYSTEM)')} simge={S.arac} />
+                <BolumBasligi
+                  metin={t('Sisteme göre', 'By system')}
+                  simge={S.arac}
+                  bilgi={t("Excel'deki SYSTEM sütunu. Sayı: hata adedi; skor: o sistemin demerit'i dönemin bütün araçlarına bölünerek.", "The Excel SYSTEM column. Number: problem count; score: the system's demerit divided by all vehicles in the period.")}
+                />
                 {hesap.sistemler.length ? hesap.sistemler.map((x) => (
-                  <View key={x.sistem} style={s.sistemSatir} accessible accessibilityLabel={t(`${x.sistem}: ${x.hata} problem, demerit ${x.demerit}, skor ${skorMetni(x.skor)}`, `${x.sistem}: ${x.hata} ${x.hata === 1 ? 'problem' : 'problems'}, demerit ${x.demerit}, score ${skorMetni(x.skor)}`)}>
+                  <View key={x.sistem} style={s.sistemSatir} accessible accessibilityLabel={t(`${x.sistem}: ${x.hata} hata, demerit ${x.demerit}, skor ${skorMetni(x.skor)}`, `${x.sistem}: ${x.hata} ${x.hata === 1 ? 'problem' : 'problems'}, demerit ${x.demerit}, score ${skorMetni(x.skor)}`)}>
                     <Text style={s.sistemAd}>{x.sistem}</Text>
                     <View style={s.cubukZemin}>
                       <View style={[s.cubuk, { width: `${Math.max(2, (x.hata / Math.max(1, hesap.toplam.hata)) * 100)}%` }]} />
@@ -255,8 +280,7 @@ export default function Analiz() {
                     <Text style={s.sistemSayi}>{x.hata}</Text>
                     <Text style={s.sistemDpu}>{t(`demerit ${x.demerit} · skor ${skorMetni(x.skor)}`, `demerit ${x.demerit} · score ${skorMetni(x.skor)}`)}</Text>
                   </View>
-                )) : <Text style={s.bos}>{t('Bu dönemde problem yok.', 'No problems in this period.')}</Text>}
-                <Text style={s.not}>{t("Excel'in SYSTEM alanı. Sayı: problem adedi; skor, o sistemin demerit'i dönemin bütün araçlarına bölünerek.", "The Excel SYSTEM field. Number: problem count; score: the system's demerit divided by all vehicles in the period.")}</Text>
+                )) : <Text style={s.bos}>{t('Bu dönemde hata yok.', 'No problems in this period.')}</Text>}
               </Kart>
             </>
           )}
@@ -270,12 +294,13 @@ const stiller = (r: Renkler) => StyleSheet.create({
   govde: { padding: bosluk.md, gap: bosluk.md, paddingBottom: bosluk.xxxl },
   govdeTablet: { width: '100%', maxWidth: 900, alignSelf: 'center' },
   suzgecler: { gap: bosluk.xs },
+  suzgecSatir: { flexDirection: 'row', gap: bosluk.xs },
   satir: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },
   ozetSatir: { flexDirection: 'row', gap: bosluk.xs },
   ozetHucre: { flex: 1, alignItems: 'center', paddingVertical: bosluk.xs, borderRadius: kose.md, backgroundColor: r.yuzeyAlt },
   ozetDeger: { ...tipografi.sayiBuyuk, color: r.metin },
   ozetAd: { ...tipografi.caption, color: r.metinSolgun },
-  grafik: { width: '100%', aspectRatio: 320 / 120 },
+  grafik: { width: '100%', height: GRAFIK_BOY },
   not: { ...tipografi.caption, color: r.metinSolgun },
   bos: { ...tipografi.body, color: r.metinSolgun, paddingVertical: bosluk.xs },
   paretoSatir: { gap: 3 },

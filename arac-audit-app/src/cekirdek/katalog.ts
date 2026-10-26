@@ -202,6 +202,19 @@ export function tumHataTipleri(): HataTipi[] {
 // ---------------------------------------------------------------------------
 
 const YUZEY_MONTAJ: HataGrubuId[] = ['yuzey', 'montaj'];
+
+// KATALOG TEMİZLİĞİ (26.10.2026, dış değerlendirme: "HV kabloda boşluk/kademe,
+// kapı döşemesinde kaynak izi/pas/portakal kabuğu, frende rüzgâr sesi").
+// Parça grubu kabaca seçiliyor; grubun bazı tipleri bazı parçada anlamsız.
+// Kimlik ve grup sırası değişmedi; yalnız ızgarada gösterilmezler.
+/** Boşluk ve kademe — iki panel arasında ölçülür; kabloda, hortumda anlamsız. */
+const BOSLUK_KADEME = ['bosluk_fazla', 'bosluk_dar', 'bosluk_duzensiz', 'bosluk', 'kademe_disari', 'kademe_iceri', 'kademe'];
+/**
+ * Yalnız boyalı sac/tamponda olan tipler. İç bölgedeki parçalar (döşeme, konsol,
+ * kol) plastik/kumaş: orada gösterilmez. Kalıp izi, çöküntü izi, renk farkı,
+ * çapak plastikte de olur, kalır.
+ */
+const BOYA_OZEL = ['kaynak_izi', 'pas', 'portakal', 'akinti', 'krater', 'boyasiz', 'toz_kir'];
 // Dış panelde MONTAJ önce (26.10.2026): ekibin Excel'inde dış sistem
 // kayıtlarında montaj tipi problemler (boşluk, kademe, hizasızlık, temas)
 // yüzey tiplerinden belirgin biçimde sık. Gruplama benim eşlemem, sayım
@@ -383,12 +396,12 @@ const HAM_BOLGELER: Bolge[] = [
     id: 'motor', ad: 'Motor bölmesi', en: 'Engine / Power compartment', grup: 'motor', simge: '⚙',
     parcalar: [
       { id: 'kaput_alti',    ad: 'Kaput altı genel görünüm', en: 'Under hood general', gruplar: ['montaj', 'yuzey', 'temizlik'] },
-      { id: 'kablo_demeti',  ad: 'Kablo demeti / bağlantılar', en: 'Wiring harness', gruplar: ['montaj', 'fonksiyon'] },
+      { id: 'kablo_demeti',  ad: 'Kablo demeti / bağlantılar', en: 'Wiring harness', gruplar: ['montaj', 'fonksiyon'], haric: BOSLUK_KADEME, ara: 'konnektör soket fiş connector' },
       { id: 'aku',           ad: 'Akü ve bağlantıları',  en: 'Battery & terminals',gruplar: ['montaj', 'fonksiyon'] },
       { id: 'sivi_seviye',   ad: 'Sıvı seviyeleri',      en: 'Fluid levels',       gruplar: ['fonksiyon', 'sizdirmazlik'] },
       { id: 'izolasyon',     ad: 'Kaput izolasyon keçesi',en: 'Hood insulation',   gruplar: ['montaj', 'ses'] },
       { id: 'sogutma',       ad: 'Radyatör / soğutma',   en: 'Radiator / cooling', gruplar: ['montaj', 'sizdirmazlik', 'ses'] },
-      { id: 'hv_kablo',      ad: 'HV turuncu kablolar', en: 'HV cables',           gruplar: ['montaj', 'fonksiyon'], sadeceEv: true },
+      { id: 'hv_kablo',      ad: 'HV turuncu kablolar', en: 'HV cables',           gruplar: ['montaj', 'fonksiyon'], sadeceEv: true, haric: BOSLUK_KADEME, ara: 'konnektör soket connector' },
       { id: 'sarj_soketi',   ad: 'Şarj soketi',          en: 'Charge port',        gruplar: ['fonksiyon', 'montaj', 'yuzey'], sadeceEv: true },
       { id: 'motor_ice',     ad: 'Motor / aktarma organları', en: 'Engine & drivetrain', gruplar: ['montaj', 'ses', 'sizdirmazlik'], sadeceIce: true },
     ],
@@ -421,10 +434,10 @@ const HAM_BOLGELER: Bolge[] = [
       // korunuyor: eski kayıtlar benzinli parçaya bağlı kalır (28.09.2026).
       { id: 's_sanziman',    ad: 'Şanzıman',             en: 'Transmission',       gruplar: ['fonksiyon', 'ses'], sadeceIce: true },
       { id: 's_reduktor',    ad: 'Redüktör',             en: 'Reduction gear',     gruplar: ['fonksiyon', 'ses'], sadeceEv: true },
-      { id: 's_fren',        ad: 'Fren',                 en: 'Brakes',             gruplar: ['fonksiyon', 'ses'] },
+      { id: 's_fren',        ad: 'Fren',                 en: 'Brakes',             gruplar: ['fonksiyon', 'ses'], haric: ['ruzgar_sesi', 'yol_sesi'] },
       { id: 's_direksiyon',  ad: 'Direksiyon davranışı', en: 'Steering behaviour', gruplar: ['fonksiyon', 'ses'] },
       { id: 's_suspansiyon', ad: 'Süspansiyon / yol tutuş', en: 'Suspension / ride', gruplar: ['fonksiyon', 'ses'] },
-      { id: 's_rejen',       ad: 'Rejeneratif fren',     en: 'Regenerative braking', gruplar: ['fonksiyon', 'ses'], sadeceEv: true },
+      { id: 's_rejen',       ad: 'Rejeneratif fren',     en: 'Regenerative braking', gruplar: ['fonksiyon', 'ses'], sadeceEv: true, haric: ['ruzgar_sesi', 'yol_sesi'] },
       { id: 's_lastik',      ad: 'Lastik / balans',      en: 'Tyre / balance',     gruplar: ['fonksiyon', 'ses'] },
       { id: 's_sr',          ad: 'S&R — yolda gıcırtı/tıkırtı', en: 'S&R on road', gruplar: ['ses'] },
       { id: 's_ruzgar',      ad: 'Yolda rüzgâr sesi',    en: 'Wind noise on road', gruplar: ['ses'] },
@@ -463,7 +476,7 @@ const YAN_PARCALAR: Parca[] = [
   // araçta "yakıt" yazıyordu. Ayrıldı; eski kimlik benzinlide kaldı
   // (28.09.2026). Hangi YANDA olduğu araçtan araca değişir ve elimizde bu
   // bilgi yok — tahmin edilmedi, iki yanda da listelenir.
-  { id: 'dolum_kapagi',  ad: 'Yakıt kapağı',       en: 'Fuel door',           gruplar: [...DIS_PANEL, 'fonksiyon'], sadeceIce: true },
+  { id: 'dolum_kapagi',  ad: 'Yakıt kapağı',       en: 'Fuel door',           gruplar: [...DIS_PANEL, 'fonksiyon'], sadeceIce: true, ara: 'depo kapağı benzin kapağı' },
   { id: 'sarj_kapagi',   ad: 'Şarj kapağı',        en: 'Charge port door',    gruplar: [...DIS_PANEL, 'fonksiyon'], sadeceEv: true },
 ];
 
@@ -560,9 +573,11 @@ export function parcaHataTipleri(parcaId: string): HataTipi[] {
   const p = PARCA_INDEKS[parcaId];
   if (!p) return [];
   const sira = new Map(p.gruplar.map((g, i) => [g, i] as const));
+  const icBolge = BOLGELER.find((b) => b.id === p.bolgeId)?.grup === 'ic';
+  const haric = new Set([...(p.haric ?? []), ...(icBolge ? BOYA_OZEL : [])]);
   return tumHataTipleri()
     .map((h, i) => ({ h, i }))
-    .filter(({ h }) => sira.has(h.grup))
+    .filter(({ h }) => sira.has(h.grup) && !haric.has(h.id))
     .sort((a, b) => (sira.get(a.h.grup)! - sira.get(b.h.grup)!) || (a.i - b.i))
     .map(({ h }) => h);
 }
@@ -579,7 +594,7 @@ export function parcaAramaMetni(parcaId: string): string {
   if (m === undefined) {
     const p = PARCA_INDEKS[parcaId];
     m = p
-      ? aramaMetni(parcaTamAdi(p.id), parcaTamAdi(p.id, 'en'), p.bolgeAd, p.bolgeEn, p.taraf ? TARAF_ES_ANLAM[p.taraf] : '')
+      ? aramaMetni(parcaTamAdi(p.id), parcaTamAdi(p.id, 'en'), p.bolgeAd, p.bolgeEn, p.taraf ? TARAF_ES_ANLAM[p.taraf] : '', p.ara ?? '')
       : '';
     PARCA_ARAMA.set(parcaId, m);
   }
