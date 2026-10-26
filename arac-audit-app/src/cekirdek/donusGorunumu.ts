@@ -69,18 +69,30 @@ export const UST_BOLGESI = 'dis_ust';
 export interface HalkaGirdisi {
   yuva: Exclude<GorunumId, 'ust'>;
   aci: number;
-  /** Gösterilecek görselin yuvası: kendisi ya da aynalanan eşi. */
+  /** Gösterilecek görselin (ya da çizimin) yuvası: kendisi ya da aynalanan eşi. */
   kaynak: GorunumId;
   ayna: boolean;
+  /** Görsel yok: bakış parça haritasından ÇİZİLİR (26.10.2026). */
+  cizim: boolean;
 }
 
-/** Dolu (ya da aynayla doldurulabilen) halka yuvaları, açı sırasıyla. */
-export function halka(dolu: (y: GorunumId) => boolean): HalkaGirdisi[] {
+/**
+ * Dolu (ya da aynayla doldurulabilen) halka yuvaları, açı sırasıyla.
+ *
+ * ÇİZİM (26.10.2026). Ürün sahibi: "360 seçim ekranında olmalı." Görseller
+ * uygulamaya gömülemiyor (depo ve APK herkese açık); ama parça haritası aracın
+ * çizimidir. Görseli olmayan yuva, haritası varsa çizimle gösterilir — kurulum
+ * gerekmez. Sıra: kendi görseli → eşinin görseli (ayna) → kendi haritası →
+ * eşinin haritası (ayna). Görsel her zaman çizimden önce gelir.
+ */
+export function halka(dolu: (y: GorunumId) => boolean, haritali: (y: GorunumId) => boolean = () => false): HalkaGirdisi[] {
   const sonuc: HalkaGirdisi[] = [];
   for (const { yuva, aci } of HALKA_YUVALARI) {
-    if (dolu(yuva)) { sonuc.push({ yuva, aci, kaynak: yuva, ayna: false }); continue; }
     const es = AYNA_ESI[yuva];
-    if (es && dolu(es)) sonuc.push({ yuva, aci, kaynak: es, ayna: true });
+    if (dolu(yuva)) sonuc.push({ yuva, aci, kaynak: yuva, ayna: false, cizim: false });
+    else if (es && dolu(es)) sonuc.push({ yuva, aci, kaynak: es, ayna: true, cizim: false });
+    else if (haritali(yuva)) sonuc.push({ yuva, aci, kaynak: yuva, ayna: false, cizim: true });
+    else if (es && haritali(es)) sonuc.push({ yuva, aci, kaynak: es, ayna: true, cizim: true });
   }
   return sonuc;
 }
@@ -184,6 +196,26 @@ const SINAV_HARITALARI = sinavHaritalari();
 /** Yuvanın ham parça haritası (oran denetimi ve ayna yok); Ayarlar da buradan okur. */
 export function kaynakHaritasi(aracId: string, yuva: GorunumId): GorunumHaritasi | undefined {
   return (SINAV_HARITALARI[aracId] ?? PARCA_HARITALARI[aracId])?.[yuva];
+}
+
+/** Aracın en az bir bakışının parça haritası var mı (varsa görsel olmadan da çizilir). */
+export function aracHaritasiVar(aracId: string): boolean {
+  return YUVALAR.some((y) => !!kaynakHaritasi(aracId, y));
+}
+
+export type CizimRolu = 'govde' | 'cam' | 'lastik' | 'siyah' | 'gumus' | 'lamba' | 'stop' | 'plaka';
+
+/** Çizimde parçanın rengi için rolü (taraf öneki atılarak). Bilinmeyen → gövde. */
+export function cizimRolu(parcaId: string): CizimRolu {
+  const id = parcaId.replace(/^(sol|sag)_/, '');
+  if (/(^|_)cam$|^cam_tavan$/.test(id)) return 'cam';
+  if (/jant$/.test(id)) return 'lastik';
+  if (id === 'stop' || id === 'ucuncu_stop') return 'stop';
+  if (id === 'far' || id === 'drl' || id === 'sis_far') return 'lamba';
+  if (/plaka$/.test(id)) return 'plaka';
+  if (/tampon_alt_garnis$/.test(id)) return 'gumus';
+  if (/garnis$|diregi$|^marspiyel$|^difuzor$|^alt_panjur$|^on_izgara$|^spoyler$|^tavan_cita$|^anten$|^on_silecek$/.test(id)) return 'siyah';
+  return 'govde';
 }
 
 /**

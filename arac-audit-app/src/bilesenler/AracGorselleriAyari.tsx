@@ -15,7 +15,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { S } from '@/bilesenler/simgeler';
 import { Dugme } from '@/bilesenler/temel';
-import { AYNA_ESI, kaynakHaritasi, oranUyar, yuvaAdi, YUVALAR } from '@/cekirdek/donusGorunumu';
+import { aracHaritasiVar, AYNA_ESI, kaynakHaritasi, oranUyar, yuvaAdi, YUVALAR } from '@/cekirdek/donusGorunumu';
 import { GorunumId } from '@/cekirdek/gorunumParcalari';
 import { aracEtiketi, ARACLAR } from '@/cekirdek/model3d';
 import { Arac } from '@/cekirdek/tipler';
@@ -33,8 +33,8 @@ export function AracGorselleriAyari() {
     <View style={{ gap: bosluk.sm }}>
       <Text style={s.aciklama}>
         {t(
-          'Aracın standart bakış görsellerini (önden, sol önden, soldan … üstten) telefonun galerisine kaydedin, sonra her bakışa birini seçin. Görseller yalnız bu telefonda durur; hiçbir yere yüklenmez, yedeğe de girmez. Eksik bir yan, karşı yanın aynasıyla gösterilir.',
-          'Save the vehicle\'s standard view images (front, front LH, LH side … top) to the phone\'s gallery, then pick one for each view. The images stay on this phone only; they are not uploaded anywhere and are not in the backup. A missing side is shown as the mirror of the opposite side.',
+          'IONIQ 3 denetimde görsel yüklemeden de döner: uygulama aracın kendi çizimini gösterir. Gerçek görsel isterseniz standart bakış görsellerini (önden, sol önden, soldan … üstten) her bakışa seçin; görsel çizimin yerini alır. Görseller yalnız bu telefonda durur; hiçbir yere yüklenmez, yedeğe de girmez. Eksik bir yan, karşı yanın aynasıyla gösterilir.',
+          'IONIQ 3 rotates in the audit without any images: the app shows its own drawing of the vehicle. For real pictures, pick the standard view images (front, front LH, LH side … top) for each view; an image replaces the drawing. The images stay on this phone only; they are not uploaded anywhere and are not in the backup. A missing side is shown as the mirror of the opposite side.',
         )}
       </Text>
       {ARACLAR.map((a) => (
@@ -60,7 +60,9 @@ function AracSatiri({ arac, acik, setAcik }: { arac: Arac; acik: boolean; setAci
           <Text style={s.durum}>
             {dolu
               ? t(`${dolu}/9 bakış`, `${dolu}/9 views`)
-              : t('Görsel yok — şematik harita kullanılıyor', 'No images — the schematic map is used')}
+              : aracHaritasiVar(arac.id)
+                ? t('Görsel yok — uygulamanın çizimi kullanılıyor', 'No images — the app\'s drawing is used')
+                : t('Görsel yok — şematik harita kullanılıyor', 'No images — the schematic map is used')}
           </Text>
         </View>
         <Dugme

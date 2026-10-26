@@ -17,7 +17,7 @@
 // ERİŞİLEBİLİRLİK: görüntü ekran okuyucuya kapalı; ◀ ▶ ve "Üstten" adlıdır,
 // sistem listesi her zaman altında durur — parçaya o yoldan da gidilir.
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image, LayoutChangeEvent, PanResponder, Pressable, StyleSheet, Text, View,
 } from 'react-native';
@@ -26,10 +26,10 @@ import Svg, { Polygon } from 'react-native-svg';
 import { S } from '@/bilesenler/simgeler';
 import { Secenek } from '@/bilesenler/temel';
 import {
-  AracOlcusu, dokunusSonucu, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka, HalkaGirdisi,
-  kaydirmaIndeksi, sar, yuvaAdi,
+  AracOlcusu, cizimRolu, CizimRolu, dokunusSonucu, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka, HalkaGirdisi,
+  kaydirmaIndeksi, kaynakHaritasi, sar, yuvaAdi,
 } from '@/cekirdek/donusGorunumu';
-import { GorunumHaritasi, GorunumId } from '@/cekirdek/gorunumParcalari';
+import { cokgenAlani, GorunumHaritasi, GorunumId } from '@/cekirdek/gorunumParcalari';
 import { parcaTamAdi } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { Bolge } from '@/cekirdek/tipler';
@@ -69,8 +69,11 @@ export function DonusGorunumu({
   const s = useMemo(() => stiller(renkler), [renkler]);
   const gorsel = useAracGorselleri((d) => d.gorseller[aracId]);
   const yuvalar = useMemo(() => gorsel?.yuvalar ?? {}, [gorsel]);
-  const halkaListesi = useMemo(() => halka((y) => !!yuvalar[y]), [yuvalar]);
-  const ustVar = !!yuvalar.ust;
+  // Görseli olmayan yuva, haritası varsa ÇİZİLİR (26.10.2026): kurulum gerekmez.
+  const haritali = useCallback((y: GorunumId) => !!kaynakHaritasi(aracId, y), [aracId]);
+  const halkaListesi = useMemo(() => halka((y) => !!yuvalar[y], haritali), [yuvalar, haritali]);
+  const ustGorseli = !!yuvalar.ust;
+  const ustVar = ustGorseli || haritali('ust');
 
   const bolgeKimlikleri = useMemo(() => new Set(bolgeler.map((b) => b.id)), [bolgeler]);
   const parcaKimlikleri = useMemo(() => new Set(bolgeler.flatMap((b) => b.parcalar.map((p) => p.id))), [bolgeler]);
@@ -93,7 +96,8 @@ export function DonusGorunumu({
 
   const kaynak: GorunumId | null = !gorunum ? null : 'ust' in gorunum ? 'ust' : gorunum.girdi.kaynak;
   const ayna = !!gorunum && 'girdi' in gorunum && gorunum.girdi.ayna;
-  const yuvaGorseli = kaynak ? yuvalar[kaynak] : undefined;
+  const cizim = !!gorunum && ('ust' in gorunum ? !ustGorseli : gorunum.girdi.cizim);
+  const yuvaGorseli = kaynak && !cizim ? yuvalar[kaynak] : undefined;
   const oran = yuvaGorseli ? yuvaGorseli.en / Math.max(1, yuvaGorseli.boy) : SAHNE_ORANI;
   const harita: GorunumHaritasi | null = useMemo(
     () => (kaynak ? gorunumHaritasi(aracId, kaynak, ayna, oran, (id) => parcaKimlikleri.has(id)) : null),
@@ -148,7 +152,7 @@ export function DonusGorunumu({
     },
   }), []);
 
-  if (!gorunum || !kaynak || !yuvaGorseli) return null;
+  if (!gorunum || !kaynak || (cizim ? !harita : !yuvaGorseli)) return null;
 
   const dondur = (yon: 1 | -1) => {
     setVurgu(null); setIpucu(false);
@@ -176,7 +180,10 @@ export function DonusGorunumu({
       >
         {/* Dokunuş sahneye gitsin: konum sahnenin içine göre okunuyor. */}
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          {kap.en > 0 ? (
+          {cizim && harita && kap.en > 0 ? (
+            <AracCizimi harita={harita} en={kutu.en} boy={kutu.boy} x={kutu.x} y={kutu.y} renkler={renkler} />
+          ) : null}
+          {yuvaGorseli && kap.en > 0 ? (
             <Image
               source={{ uri: yuvaAdresi(aracId, yuvaGorseli) }}
               resizeMode="stretch"
@@ -251,6 +258,38 @@ export function DonusGorunumu({
         />
       ) : null}
     </View>
+  );
+}
+
+/**
+ * Görseli olmayan bakışın ÇİZİMİ (26.10.2026): parça haritasının çokgenleri,
+ * rolüne göre temadan boyanır. Büyük çokgen önce, küçük üstte — dokunuşta da
+ * küçük kazanır, yani görülen ile dokunulan aynı. Renkler temadan (iki tema).
+ */
+function AracCizimi({ harita, en, boy, x, y, renkler }: {
+  harita: GorunumHaritasi; en: number; boy: number; x: number; y: number; renkler: Renkler;
+}) {
+  const sirali = useMemo(
+    () => [...harita.alanlar].sort((a, b) => cokgenAlani(b.nokta) - cokgenAlani(a.nokta)),
+    [harita],
+  );
+  const dolgu: Record<CizimRolu, string> = {
+    govde: renkler.yuzeyVurgu, cam: renkler.tersYuzey, lastik: renkler.ters, siyah: renkler.tersCizgi,
+    gumus: renkler.cizgiGuclu, lamba: renkler.tersMetinSolgun, stop: renkler.uyari, plaka: renkler.yuzey,
+  };
+  return (
+    <Svg width={en} height={boy} style={{ position: 'absolute', left: x, top: y }}>
+      {sirali.map((a, i) => (
+        <Polygon
+          key={`${a.parcaId}-${i}`}
+          points={a.nokta.map(([px, py]) => `${px * en},${py * boy}`).join(' ')}
+          fill={dolgu[cizimRolu(a.parcaId)]}
+          stroke={renkler.cizgiGuclu}
+          strokeWidth={0.8}
+          strokeLinejoin="round"
+        />
+      ))}
+    </Svg>
   );
 }
 

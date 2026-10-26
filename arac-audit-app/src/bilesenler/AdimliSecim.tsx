@@ -34,6 +34,7 @@ import { DonusGorunumu } from '@/bilesenler/DonusGorunumu';
 import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, BolumBasligi, Dugme, IlerlemeCubugu } from '@/bilesenler/temel';
 import { aramaEslesir } from '@/cekirdek/arama';
+import { aracHaritasiVar } from '@/cekirdek/donusGorunumu';
 import { parcaAramaMetni, parcaBolgeAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { kisaBolgeAdi, sistemAdi, SISTEMLER } from '@/cekirdek/sistemler';
 import { Bolge, BolgeGrubu } from '@/cekirdek/tipler';
@@ -66,13 +67,18 @@ export function AdimliSecim({
   onKapsam: (sistem: BolgeGrubu, isaretli: boolean) => void;
   /** Verilirse sistem listesinin sonunda "Denetimi bitir" çıkar (devam eden denetim). */
   onBitir?: () => void;
-  /** Aracın görselleri aktarılmışsa harita yerine döndürülebilir görünüm çıkar (26.10.2026). */
+  /**
+   * Aracın görselleri aktarılmışsa YA DA parça haritası varsa (IONIQ 3) şematik
+   * harita yerine döndürülebilir görünüm çıkar (26.10.2026: "360 seçim ekranında
+   * olmalı" — görsel yüklemeden de).
+   */
   aracId?: string;
 }) {
   const { renkler } = useTema();
   const { dil, t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const gorselleriVar = useAracGorselleri((d) => !!aracId && gorselVar(d.gorseller[aracId]));
+  const donusVar = gorselleriVar || (!!aracId && aracHaritasiVar(aracId));
 
   const sistemler = useMemo(
     () => SISTEMLER.map((x) => ({ ...x, bolgeler: bolgeler.filter((b) => b.grup === x.id) })).filter((x) => x.bolgeler.length),
@@ -210,10 +216,11 @@ export function AdimliSecim({
 
             {adim === 1 ? (
               <View style={s.izgara}>
-                {/* Ürün sahibinin aktardığı araç görselleri varsa şematik
-                    haritanın yerine döndürülebilir araç (26.10.2026): parça
-                    haritası olan bakışta dokunulan parça doğrudan açılır. */}
-                {gorselleriVar && aracId ? (
+                {/* Aracın parça haritası (IONIQ 3) ya da aktarılmış görseli
+                    varsa şematik haritanın yerine döndürülebilir araç
+                    (26.10.2026): görsel yoksa harita çizilir, dokunulan parça
+                    doğrudan açılır. */}
+                {donusVar && aracId ? (
                   <DonusGorunumu
                     key={aracId}
                     aracId={aracId}

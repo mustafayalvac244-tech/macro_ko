@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-  dokunulanYuz, dokunusSonucu, gorunenYuzler, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka,
+  aracHaritasiVar, cizimRolu, dokunulanYuz, dokunusSonucu, gorunenYuzler, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka,
   HALKA_YUVALARI, kaydirmaIndeksi, oranUyar, sar, UST_BOLGESI, yuvaAdi, YUVALAR, YUZ_BOLGESI,
 } from '../arac-audit-app/src/cekirdek/donusGorunumu';
 import { GorunumId, PARCA_HARITALARI } from '../arac-audit-app/src/cekirdek/gorunumParcalari';
@@ -33,6 +33,42 @@ describe('yuvalar ve halka', () => {
       ['sol_on', 'sol_on', false], ['sol', 'sol', false], ['arka', 'arka', false],
       ['sag', 'sol', true], ['sag_on', 'sol_on', true],
     ]);
+  });
+
+  // 26.10.2026 — ürün sahibi: "360 seçim ekranında olmalı." Görsel yüklemeden
+  // de: görseli olmayan yuva haritasından çizilir.
+  it('görsel yoksa haritalı yuva çizilir; görsel her zaman çizimden önce', () => {
+    const harita = new Set<GorunumId>(['on', 'sol_on', 'sol', 'sol_arka', 'arka', 'sag_arka', 'sag_on', 'ust']);
+    expect(halka(() => false, (y) => harita.has(y)).map((x) => [x.yuva, x.kaynak, x.ayna, x.cizim])).toEqual([
+      ['on', 'on', false, true], ['sol_on', 'sol_on', false, true], ['sol', 'sol', false, true],
+      ['sol_arka', 'sol_arka', false, true], ['arka', 'arka', false, true], ['sag_arka', 'sag_arka', false, true],
+      ['sag', 'sol', true, true], ['sag_on', 'sag_on', false, true],
+    ]);
+    // Sol yanın görseli varsa sağ yan onun aynası (görsel); öteki yuvalar çizim.
+    const h = halka((y) => y === 'sol', (y) => harita.has(y));
+    expect(h.find((x) => x.yuva === 'sol')).toMatchObject({ kaynak: 'sol', ayna: false, cizim: false });
+    expect(h.find((x) => x.yuva === 'sag')).toMatchObject({ kaynak: 'sol', ayna: true, cizim: false });
+    expect(h.find((x) => x.yuva === 'on')).toMatchObject({ kaynak: 'on', cizim: true });
+    // Kendi haritası olan yuvada da eşin görseli (aynalı) çizimden önce gelir.
+    const h2 = halka((y) => y === 'sol_on', (y) => harita.has(y));
+    expect(h2.find((x) => x.yuva === 'sag_on')).toMatchObject({ kaynak: 'sol_on', ayna: true, cizim: false });
+    // Haritası ve görseli olmayan araçta halka boş (şematik harita kalır).
+    expect(halka(() => false, () => false)).toEqual([]);
+  });
+
+  it('IONIQ 3 görselsiz çizilir; haritası olmayan araç çizilmez', () => {
+    expect(aracHaritasiVar('ioniq3')).toBe(true);
+    expect(aracHaritasiVar('i20')).toBe(false);
+    expect(aracHaritasiVar('yok-boyle')).toBe(false);
+  });
+
+  it('çizim rolleri: cam, lastik, siyah kaplama, gümüş garniş, lamba, stop, plaka, gövde', () => {
+    expect(['on_cam', 'sol_on_kapi_cam', 'cam_tavan', 'sag_qtr_cam'].map(cizimRolu)).toEqual(['cam', 'cam', 'cam', 'cam']);
+    expect(cizimRolu('sag_on_jant')).toBe('lastik');
+    expect(['sol_camurluk_garnis', 'sag_b_diregi', 'sol_marspiyel', 'spoyler'].map(cizimRolu)).toEqual(['siyah', 'siyah', 'siyah', 'siyah']);
+    expect(cizimRolu('on_tampon_alt_garnis')).toBe('gumus');
+    expect([cizimRolu('sol_stop'), cizimRolu('sag_far'), cizimRolu('sol_drl'), cizimRolu('arka_plaka')]).toEqual(['stop', 'lamba', 'lamba', 'plaka']);
+    expect(['kaput', 'sol_on_kapi', 'sag_ayna', 'bagaj_kapagi'].map(cizimRolu)).toEqual(['govde', 'govde', 'govde', 'govde']);
   });
 
   it('kendi görseli olan yuva aynalanmaz', () => {
