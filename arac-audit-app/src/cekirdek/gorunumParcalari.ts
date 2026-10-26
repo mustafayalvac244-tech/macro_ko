@@ -8,9 +8,12 @@
 // görünüm yüz düzeyine (bölge seçimi) döner — yanlış görsele çizilmiş harita
 // yanlış parçayı seçmesin.
 //
-// Veriyi (çokgenleri) ayrı bir çalışma hazırlıyor; bu dosya mekanizmayı ve
-// BOŞ veriyi taşır. Katalogda olmayan parça kimliği görünümde yok sayılır.
-// Görsellerin kendisi burada DEĞİL — telefonda (veri/aracGorselleri.ts).
+// Veri ayrı dosyada (ioniq3Haritasi.ts — bugün yalnız IONIQ 3'ün haritası
+// var); bu dosya mekanizmayı taşır. Katalogda olmayan parça kimliği görünümde
+// yok sayılır. Görsellerin kendisi burada DEĞİL — telefonda
+// (veri/aracGorselleri.ts).
+
+import { IONIQ3_HARITASI } from './ioniq3Haritasi';
 
 export type GorunumId = 'on' | 'sol_on' | 'sol' | 'sol_arka' | 'arka' | 'sag_arka' | 'sag' | 'sag_on' | 'ust';
 
@@ -21,7 +24,9 @@ export interface ParcaAlani { parcaId: string; nokta: readonly (readonly [number
 export interface GorunumHaritasi { oran: number; alanlar: readonly ParcaAlani[] }
 
 /** Araç kimliği (ör. 'ioniq3') → bakış → harita. */
-export const PARCA_HARITALARI: Record<string, Partial<Record<GorunumId, GorunumHaritasi>>> = {};
+export const PARCA_HARITALARI: Record<string, Partial<Record<GorunumId, GorunumHaritasi>>> = {
+  ioniq3: IONIQ3_HARITASI,
+};
 
 /** Çokgenin alanı (shoelace), mutlak değer. */
 export function cokgenAlani(nokta: readonly (readonly [number, number])[]): number {

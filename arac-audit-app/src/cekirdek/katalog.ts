@@ -259,12 +259,14 @@ const HAM_BOLGELER: Bolge[] = [
       { id: 'alt_panjur',   ad: 'Alt hava panjuru',   en: 'Lower air shutter',   gruplar: DIS_PANEL },
       { id: 'kaput',        ad: 'Kaput',              en: 'Hood',                gruplar: DIS_PANEL, mesh: 'kaput' },
       { id: 'far',          ad: 'Far',                en: 'headlamp',            gruplar: ['fonksiyon', 'montaj', 'yuzey', 'cam'], mesh: 'far', cift: true },
+      { id: 'drl',          ad: 'Gündüz farı (DRL)',  en: 'DRL',                 gruplar: ['fonksiyon', 'montaj', 'yuzey', 'cam'], cift: true },
       { id: 'sis_far',      ad: 'Sis farı',           en: 'fog lamp',            gruplar: ['fonksiyon', 'montaj', 'yuzey'], cift: true },
       { id: 'on_cam',       ad: 'Ön cam',             en: 'Windshield',          gruplar: CAM_TAKIMI, mesh: 'on_cam' },
       { id: 'on_silecek',   ad: 'Ön silecek',         en: 'Front wiper',         gruplar: ['fonksiyon', 'montaj', 'ses'] },
       { id: 'on_panel',     ad: 'Ön panel / su kanalı', en: 'Cowl panel',        gruplar: DIS_PANEL },
       { id: 'on_plaka',     ad: 'Ön plaka yuvası',    en: 'Front plate holder',  gruplar: YUZEY_MONTAJ },
       { id: 'on_amblem',    ad: 'Ön amblem',          en: 'Front emblem',        gruplar: YUZEY_MONTAJ },
+      { id: 'on_tampon_alt_garnis', ad: 'Ön tampon alt garnişi', en: 'Front bumper lower garnish', gruplar: DIS_PANEL },
       { id: 'cekme_kapak',  ad: 'Çekme kancası kapağı', en: 'Tow hook cover',    gruplar: YUZEY_MONTAJ },
     ],
   },
@@ -279,6 +281,8 @@ const HAM_BOLGELER: Bolge[] = [
       { id: 'ucuncu_stop',  ad: 'Üçüncü stop lambası',en: 'High mount stop lamp',gruplar: ['fonksiyon', 'montaj'] },
       { id: 'arka_plaka',   ad: 'Arka plaka yuvası',  en: 'Rear plate holder',   gruplar: YUZEY_MONTAJ },
       { id: 'arka_amblem',  ad: 'Arka amblem / yazı', en: 'Rear emblem / badge', gruplar: YUZEY_MONTAJ },
+      { id: 'bagaj_garnis', ad: 'Bagaj kapağı garnişi (stoplar arası)', en: 'Tailgate garnish (between lamps)', gruplar: DIS_PANEL },
+      { id: 'arka_tampon_alt_garnis', ad: 'Arka tampon alt garnişi', en: 'Rear bumper lower garnish', gruplar: DIS_PANEL },
       { id: 'spoyler',      ad: 'Arka spoyler',       en: 'Rear spoiler',        gruplar: DIS_PANEL },
       { id: 'difuzor',      ad: 'Arka difüzör',       en: 'Rear diffuser',       gruplar: DIS_PANEL },
       { id: 'arka_panel',   ad: 'Arka panel',         en: 'Rear body panel',     gruplar: DIS_PANEL },
@@ -432,6 +436,10 @@ const HAM_BOLGELER: Bolge[] = [
 /** Yan panelleri (sol/sağ) üreten şablon — iki bölge olarak açılır. */
 const YAN_PARCALAR: Parca[] = [
   { id: 'on_camurluk',   ad: 'Ön çamurluk',        en: 'Front fender',        gruplar: DIS_PANEL, mesh: 'on_camurluk' },
+  // Garnişler (26.10.2026, döndürülebilir araçta parçaya dokunma): ürün sahibi
+  // "sol ön garnişe tıklayınca o parça seçilsin" dedi; teker kemerindeki siyah
+  // kaplamalar, ayna altı üçgen ve C direğindeki küçük cam ayrı parça oldu.
+  { id: 'camurluk_garnis', ad: 'Ön çamurluk garnişi (dodik)', en: 'Front fender garnish', gruplar: DIS_PANEL },
   { id: 'a_diregi',      ad: 'A direği (dış)',     en: 'A pillar (ext.)',     gruplar: DIS_PANEL, mesh: 'a_diregi' },
   { id: 'on_kapi',       ad: 'Ön kapı',            en: 'Front door',          gruplar: DIS_PANEL, mesh: 'on_kapi' },
   { id: 'on_kapi_cam',   ad: 'Ön kapı camı',       en: 'Front door glass',    gruplar: CAM_TAKIMI, mesh: 'on_kapi_cam' },
@@ -439,9 +447,12 @@ const YAN_PARCALAR: Parca[] = [
   { id: 'arka_kapi',     ad: 'Arka kapı',          en: 'Rear door',           gruplar: DIS_PANEL, mesh: 'arka_kapi' },
   { id: 'arka_kapi_cam', ad: 'Arka kapı camı',     en: 'Rear door glass',     gruplar: CAM_TAKIMI, mesh: 'arka_kapi_cam' },
   { id: 'c_diregi',      ad: 'C direği (dış)',     en: 'C pillar (ext.)',     gruplar: DIS_PANEL, mesh: 'c_diregi' },
+  { id: 'qtr_cam',       ad: 'Arka üçgen cam (QTR)', en: 'Quarter glass',     gruplar: CAM_TAKIMI },
   { id: 'arka_camurluk', ad: 'Arka çamurluk',      en: 'Rear fender / quarter', gruplar: DIS_PANEL, mesh: 'arka_camurluk' },
+  { id: 'qtr_garnis',    ad: 'Arka çamurluk garnişi (dodik)', en: 'Rear fender garnish', gruplar: DIS_PANEL },
   { id: 'marspiyel',     ad: 'Marşpiyel / eşik',   en: 'Rocker / side sill',  gruplar: DIS_PANEL, mesh: 'marspiyel' },
   { id: 'ayna',          ad: 'Dış dikiz aynası',   en: 'Exterior mirror',     gruplar: [...DIS_PANEL, 'fonksiyon'], mesh: 'ayna' },
+  { id: 'delta_garnis',  ad: 'Delta garnişi (ayna altı üçgen)', en: 'Delta garnish', gruplar: DIS_PANEL },
   { id: 'kapi_kolu',     ad: 'Dış kapı kolu',      en: 'Exterior door handle',gruplar: [...DIS_PANEL, 'fonksiyon'] },
   { id: 'cam_fitili',    ad: 'Cam / kapı fitili',  en: 'Door weatherstrip',   gruplar: ['sizdirmazlik', 'montaj', 'ses'] },
   { id: 'kapi_cita',     ad: 'Kapı çıtası',        en: 'Door moulding',       gruplar: DIS_PANEL },

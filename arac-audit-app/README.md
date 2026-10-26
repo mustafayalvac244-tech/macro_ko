@@ -280,7 +280,8 @@ ona göre seçilir, yalnız ekranda yazmıyor.
 
 Ürün sahibi: *"Hyundai sitelerinde aracı döndürebiliyoruz; araç üstünden parça
 seçmek için ekleyebilir miyiz?"* Görsel kaynağı olarak Hyundai'nin **resmî**
-görsellerini seçti. Elindekiler sitedeki gibi 24–36 karelik bir dizi değil,
+görsellerini seçti (gönderdiği görsellerin kaynağını ben doğrulayamadım;
+render oldukları belli). Elindekiler sitedeki gibi 24–36 karelik bir dizi değil,
 **standart bakışlar** (önden, sol önden, soldan …, üstten). Sonra: *"sol ön
 garnişe tıklayınca o parça seçilsin."*
 
@@ -313,9 +314,9 @@ garnişe tıklayınca o parça seçilsin."*
   bölgesi açılır, parça listeden seçilir. **Yaklaşık:** köşe bakışlarında
   gerçek görselde ön/yan sınırı kutudan farklı düşer (ürün sahibinin sol ön
   görselinde ön, enin ~%43'ü; kutu %30 diyor). Tavan yalnız Üstten bakışta.
-- **`PARCA_HARITALARI` bugün BOŞ.** Çokgen verisi ayrı hazırlanıyor; gelene
-  kadar her bakış bölge düzeyinde çalışır. Ayarlar her yuvada durumu yazar:
-  *parça haritası yok / uyuyor / oran uymuyor*.
+- **Parça haritası bugün yalnız IONIQ 3 için var** (`cekirdek/ioniq3Haritasi.ts`,
+  aşağıda). Öteki araçlarda her bakış bölge düzeyinde çalışır. Ayarlar her
+  yuvada durumu yazar: *parça haritası yok / uyuyor / oran uymuyor*.
 - Görsel yokken ekran eskisi gibi şematik haritayı gösterir. Erişilebilirlik:
   görüntü ekran okuyucuya kapalı (çokgenler öğe değil); ◀ ▶ ve Üstten adlı,
   sistem listesi her zaman altında.
@@ -326,8 +327,8 @@ garnişe tıklayınca o parça seçilsin."*
 
 **Doğrulanan** (beklentileri, sınav haritasını ve sentetik görselleri ben
 yazdım; bağımsız bir sınav değil):
-- Birim testleri: `tests/aracAuditGorunumParcalari.test.ts` (9) ve
-  `tests/aracAuditDonus.test.ts` (11). Beş koruma tek tek bilerek bozuldu (en
+- Birim testleri: `tests/aracAuditGorunumParcalari.test.ts` (12; 3'ü IONIQ 3
+  verisi için, aşağıda) ve `tests/aracAuditDonus.test.ts` (13). Beş koruma tek tek bilerek bozuldu (en
   küçük çokgen, ayna taraf çevirisi, bilinmeyen parça eleme, %2 oran payı,
   kenar boşluğu); her birinde en az bir test düştü.
 - Web'de telefon ve tablette 10 adımlık uçtan uca sınav, **sentetik** görsel ve
@@ -338,14 +339,56 @@ yazdım; bağımsız bir sınav değil):
   kapı ve sağ ayna; haritasız Ön → bölge; Üstten → tavan; oran uymayan görselde
   kenar boşluğu dokunuşu boş, görsele dokunuş bölge; İngilizce yazılar. Aynalı
   haritayı bilerek kapatınca sınav o adımda düştü.
-- Ürün sahibinin **gerçek** görselleriyle (sağ yan eksik) yalnız web'de bir
-  gözlem koşusu: sekiz bakış sırayla döndü, Sağ yan aynalandı, Sol ön'de
-  solda ön / sağda yan bölgesi açıldı. Harita olmadığı için yüz düzeyi.
-  Görseller dosya seçiciyle tarayıcıya verildi; depoya, pakete girmedi.
+- Ürün sahibinin **gerçek** görselleriyle web'de: bkz. *IONIQ 3 parça haritası*.
 
-**Doğrulanmayan:** gerçek parça haritası yok — parça düzeyindeki dokunuş yalnız
-sentetik görsel + sentetik haritayla görüldü. **Telefonda hiç görülmedi**
-(galeri izni, dosya kopyalama, parmakla kaydırma ve dokunuş).
+**Doğrulanmayan:** **telefonda hiç görülmedi** (galeri izni, dosya kopyalama,
+parmakla kaydırma ve dokunuş). Parmak, fareden çok daha az isabetli: küçük
+parçalar (delta garnişi, kapı kolu, üçgen cam) telefonda zor tutturulabilir.
+
+### IONIQ 3 parça haritası — 26.10.2026
+
+Ürün sahibinin gönderdiği sekiz bakış görseli (2500×1250, oran 2) üzerinde
+parça parça çizildi: `cekirdek/ioniq3Haritasi.ts`, 8 bakış, 273 çokgen,
+2.482 köşe, 64 farklı parça. **Görseller depoda değil**, yalnız çokgen
+köşeleri (yüzde koordinat).
+
+- **Nasıl:** her bakış ızgaralı yakın çekimlerde elle ölçüldü; aracın dış
+  kenarına değen sınırlar görselin siluetinden (beyaz olmayan en üst / alt /
+  sol / sağ nokta) okundu; köşeler ~0,1 puan toleransla sadeleştirildi.
+- **Sağ yan görseli yok:** o bakış sol yanın aynasıyla gösterilir, haritası da
+  aynalanır. **Sağ ön ve sağ arka ayrı ölçüldü** — sol tarafın aynası 2–6
+  puan kayıyordu (kamera simetrik değil). Üstten görünümde görselin üst yarısı
+  aracın sağ yanı (ön camdan görünen direksiyon alt yarıda); alt yarı üst
+  yarının aynası, dış kenarı siluete yapıştırıldı.
+- **Kataloğa yeni dış parçalar** (169 → 182 parça; elektrikli araçta 176,
+  benzinlide 174 listelenir — koddan sayıldı): ön ve arka çamurluk garnişi
+  (dodik), delta garnişi (ayna altı üçgen), arka üçgen cam (QTR), gündüz farı
+  (DRL) — her biri sol/sağ; ön ve arka tampon alt garnişi, bagaj kapağı garnişi
+  (stoplar arası).
+- **Ölçülen (deterministik, 0,25 puanlık ızgara, 160.000 nokta/bakış):**
+  aracın görünen (beyaz olmayan) noktalarının bir parçaya düşen payı — ön
+  %99,7 · sol ön %99,1 · sol yan %99,2 · sol arka %99,3 · arka %99,4 · sağ arka
+  %99,1 · sağ ön %99,3 · üstten %99,4. İlk çizimde %92,8–99,1 idi; boşluklar
+  (lastik altları, marşpiyel altı, tampon altındaki öbür lastik, kenar
+  şeritleri) siluetten kapatıldı. **Bu ölçüm "bir parçaya" düştüğünü söyler,
+  "DOĞRU parçaya" düştüğünü SÖYLEMEZ:** parça sınırları gözle çizildi ve gözle
+  denetlendi (çokgenler görselin üstüne boyanarak); bağımsız bir doğrulama yok.
+  Sınır çizgisine yakın dokunuş komşu parçayı seçebilir.
+- **Bekçi testleri** (`tests/aracAuditGorunumParcalari.test.ts`): her kimlik
+  katalogda ve IONIQ 3'te listeleniyor; çokgenler 0–1 içinde ve kendini
+  kesmiyor; 72 işaret noktası (ön garniş, kapı, kol, ayna, lastik göbeği,
+  plaka, far …) beklenen parçayı seçiyor; sağ yan = sol yanın aynası. İşaret
+  noktalarını da ben seçtim. Üç bilerek bozma (garnişi çamurluk diye
+  adlandırmak, bilinmeyen kimlik, kendini kesen kaput) üçü de yakalandı.
+- **Web'de gerçek görsellerle uçtan uca** (telefon ve tablet düzeni): sekiz
+  görsel dosya seçiciyle yuvalara verildi (hiçbir yere kopyalanmadı), sekiz
+  bakışta *parça haritası uyuyor*, Sağ yan aynalı; her bakışta 2–4 işaret
+  noktasına dokunuş beklenen parçanın hata ızgarasını açtı (ör. Sol ön ve Sol
+  yan'da *Sol ön çamurluk garnişi (dodik)*, aynalanmış Sağ yan'da *Sağ ön
+  çamurluk garnişi (dodik)*), Üstten cam tavan ve sağ ayna.
+- **Sınır:** harita BU görsellere çizildi. Aynı yuvaya başka bir çekim (başka
+  açı, başka kırpma) konursa harita tutmaz; oran yine 2:1 ise uygulama bunu
+  **anlayamaz** ve yanlış parça seçebilir. Yeni görsel → yeni harita.
 
 ## Hata listesi kodda bitmiyor — ekip kendi tipini ekler
 
@@ -703,12 +746,12 @@ durdurma, onarıma yönlendirme).
 | Görsel dil üçüncü kez (25.10.2026): Vekil Pro paleti, Manrope, açık başlık, normal yazımlı etiketler | **Kod bitti, beğeni ölçülmedi** — kontrast 2 × 39 çift ≥ eşik; 4 düzende sınav geçti; ürün sahibi henüz görmedi |
 | Lumiform'dan esinlenen düzen (25.10.2026): sekmeler, kontrol listesi, ilerleme, rapor özeti | **Kod bitti, beğeni ölçülmedi** — 4 düzende 16 adım geçti; gerçek cihazda görülmedi |
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
-| Parça kataloğu (169 parça; elektrikli araçta 163, benzinlide 161 listelenir), VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
+| Parça kataloğu (182 parça; elektrikli araçta 176, benzinlide 174 listelenir — 26.10.2026'da garnişler, DRL, üçgen cam eklendi), VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
 | Hızlı giriş (2 dokunuş), geri al | **Bitti** |
 | Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **26.10.2026'da yerini Excel'in DEMERIT 0–3 + CLASS'ı aldı** (aşağıdaki satır) |
 | Excel içeriği (NAS, 26.10.2026): demerit, class, system, responsible, kaynak listesi, model kodu, body 6 hane, Audit Skoru, Excel'e aktar | **Kod bitti** — kurallar Excel'den okundu; testleri ben yazdım; 4 düzende 14 adım geçti; **telefonda görülmedi**. BJ = IONIQ 3 çıkarım |
-| Döndürülebilir araç (360°, 26.10.2026): dokuz bakış yuvası, eksik yan aynalanır, parça haritası varsa dokunulan parçanın ızgarası açılır, yoksa dış bölge | **Kod bitti, veri yok** — `PARCA_HARITALARI` boş (çokgenler ayrı hazırlanıyor), bugün bölge düzeyi. Web'de telefon ve tablette 10 adım **sentetik** görsel + **sentetik** haritayla geçti; gerçek görsellerle yalnız web'de yüz düzeyi gözlem; **telefonda denenmedi** |
+| Döndürülebilir araç (360°, 26.10.2026): dokuz bakış yuvası, eksik yan aynalanır, parça haritası varsa dokunulan parçanın ızgarası açılır, yoksa dış bölge | **IONIQ 3 için parça düzeyinde** (8 bakış, 273 çokgen; görünen noktaların %99,1–99,7'si bir parçaya düşüyor — doğru parçaya düştüğü yalnız gözle denetlendi). Web'de gerçek görsellerle telefon ve tablet düzeninde işaret noktaları beklenen parçayı açtı; öteki araçlarda bölge düzeyi; **telefonda denenmedi** |
 | Dil: Türkçe / English (26.10.2026) | **Kod bitti** — Türkçe sınav 4 düzende değişmeden geçti (Türkçe metinler aynı kaldı); İngilizce sınav telefon ve tablette 10 ekranı taradı, Türkçe harfli metin yalnız bilerek kendi dilinde yazılan "Türkçe" seçeneği. Tarama Türkçe harf içermeyen Türkçe kelimeyi kaçırabilir; ekran görüntüleri gözle de bakıldı. Çeviriler benim (ve yardımcı ajanların); **İngilizce bilen bir kullanıcı okumadı**, telefonda görülmedi |
 | Hata tipini uygulama içinden ekleme · arama · ayarlardan yönetme | **Bitti** |
 | 3B model — dokunmayla parça seçimi | Ana ekrandan **kaldırıldı**; gerçek model bekleniyor |
