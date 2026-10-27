@@ -50,7 +50,7 @@ const enSayi = (n: number, ad: string): string => `${n} ${ad}${n === 1 ? '' : 's
 
 export function AdimliSecim({
   bolgeler, konum, setKonum, arama, setArama, parcaId, parcaSayilari, parcaDemeritleri, parcaKayitSayilari, sonParcalar, onSec, tablet,
-  kapsam, onKapsam, onBitir, aracId, onBuyut, ikinciParcaId,
+  kapsam, onKapsam, onBitir, aracId, onBuyut, ikinciParcaId, ust,
 }: {
   bolgeler: Bolge[];
   konum: Konum;
@@ -66,6 +66,8 @@ export function AdimliSecim({
   /** Parça → kayıt sayısı (iki parça arası ikisinde de); işaretin rakamı. */
   parcaKayitSayilari?: ReadonlyMap<string, number>;
   sonParcalar: string[];
+  /** İlk adımın en üstünde (aramasız): sık hatalar şeridi (27.10.2026). */
+  ust?: React.ReactNode;
   /** Parça seçildi; döndürülebilir görünümde ikinci parça da seçilmişse (boşluk/kademe) onunla. */
   onSec: (parcaId: string, ikinciParcaId?: string) => void;
   tablet: boolean;
@@ -220,6 +222,8 @@ export function AdimliSecim({
           </>
         ) : (
           <>
+            {adim === 1 && ust ? ust : null}
+
             {adim === 1 && sonParcalar.length ? (
               <View style={{ gap: bosluk.xs }}>
                 <BolumBasligi metin={t('Son dokunulanlar', 'Recent parts')} simge={S.son} />

@@ -467,7 +467,7 @@ const HAM_BOLGELER: Bolge[] = [
 
 /** Yan panelleri (sol/sağ) üreten şablon — iki bölge olarak açılır. */
 const YAN_PARCALAR: Parca[] = [
-  { id: 'on_camurluk',   ad: 'Ön çamurluk',        en: 'Front fender',        gruplar: DIS_PANEL, mesh: 'on_camurluk' },
+  { id: 'on_camurluk',   ad: 'Ön çamurluk',        en: 'Front fender',        gruplar: DIS_PANEL, mesh: 'on_camurluk', adEk: 'panel' },
   // Garnişler (26.10.2026, döndürülebilir araçta parçaya dokunma): ürün sahibi
   // "sol ön garnişe tıklayınca o parça seçilsin" dedi; teker kemerindeki siyah
   // kaplamalar, ayna altı üçgen ve C direğindeki küçük cam ayrı parça oldu.
@@ -617,6 +617,22 @@ export function parcaAdMetni(parcaId: string): string {
     const p = PARCA_INDEKS[parcaId];
     m = p ? aramaMetni(parcaTamAdi(p.id), parcaTamAdi(p.id, 'en'), p.adEk ?? '', p.taraf ? TARAF_ES_ANLAM[p.taraf] : '') : '';
     PARCA_AD_ARAMA.set(parcaId, m);
+  }
+  return m;
+}
+const PARCA_KENDI = new Map<string, string>();
+
+/**
+ * Parçanın KENDİ metni: adı, eş anlamlıları ve tarafı — bölgesinin adı YOK
+ * (27.10.2026). Ekibin etiketini eşlerken eşiğe bu bakar: bölge adı "Headliner"
+ * diye tavandaki her parça "H LINING" etiketini almasın (ekipEslemesi.ts).
+ */
+export function parcaKendiMetni(parcaId: string): string {
+  let m = PARCA_KENDI.get(parcaId);
+  if (m === undefined) {
+    const p = PARCA_INDEKS[parcaId];
+    m = p ? aramaMetni(parcaTamAdi(p.id), parcaTamAdi(p.id, 'en'), p.adEk ?? '', p.taraf ? TARAF_ES_ANLAM[p.taraf] : '', p.ara ?? '') : '';
+    PARCA_KENDI.set(parcaId, m);
   }
   return m;
 }

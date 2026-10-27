@@ -18,16 +18,17 @@ describe('zip okuyucu', () => {
     expect([...g[1]!.veri]).toEqual([...jpeg]);
   });
 
-  it('bozuk veri CRC ile yakalanır; sıkıştırılmış girdi okunmaz; ZIP olmayan dosya reddedilir', () => {
+  it('bozuk veri CRC ile yakalanır; tanınmayan sıkıştırma okunmaz; ZIP olmayan dosya reddedilir', () => {
     const zip = zipOlustur([{ ad: 'a.txt', veri: 'merhaba' }]);
     const bozuk = zip.slice();
     bozuk[30 + 'a.txt'.length] ^= 0xFF; // veri baytı
     expect(() => zipOku(bozuk)).toThrow(/CRC/);
+    // 27.10.2026'dan beri deflate (8) açılıyor (aracAuditEkipExceli.test.ts);
+    // başka yöntem (12 = bzip2) hâlâ sessizce bozuk okunmaz, hata verir.
     const sikistirilmis = zip.slice();
-    // Merkezi dizindeki yöntem alanı (girdi + 10) → 8 (deflate).
     const merkez = sikistirilmis.length - 22 - (46 + 'a.txt'.length);
-    sikistirilmis[merkez + 10] = 8;
-    expect(() => zipOku(sikistirilmis)).toThrow(/sıkıştırılmış/);
+    sikistirilmis[merkez + 10] = 12;
+    expect(() => zipOku(sikistirilmis)).toThrow(/desteklenmeyen yöntemle sıkıştırılmış/);
     expect(() => zipOku(new TextEncoder().encode('bu bir zip değil, uzunca bir metin dosyası'))).toThrow(/ZIP değil/);
     expect(crc32(new TextEncoder().encode('123456789'))).toBe(0xCBF43926);
   });

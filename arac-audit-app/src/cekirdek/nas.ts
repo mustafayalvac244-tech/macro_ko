@@ -149,7 +149,7 @@ export function ilerlemeKodu(h: Pick<Hata, 'durum'>): string {
 }
 
 /** Body yoksa şasinin son 6 hanesi — Excel aracı body ile tanıyor. */
-function govdeNo(d: Denetim): string {
+export function govdeNo(d: Pick<Denetim, 'bodyNo' | 'vin'>): string {
   return d.bodyNo || (d.vin ? d.vin.slice(-6) : '');
 }
 

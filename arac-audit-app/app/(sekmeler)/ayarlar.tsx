@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AracGorselleriAyari } from '@/bilesenler/AracGorselleriAyari';
+import { EkipExceli } from '@/bilesenler/EkipExceli';
 import { ListeDuzenle, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { SurumKarti } from '@/bilesenler/Guncelleme';
 import { GRUP_SIMGELERI, S, Simge } from '@/bilesenler/simgeler';
@@ -278,6 +279,10 @@ export default function Ayarlar() {
           />
           {aktarSonucu ? <BilgiKutusu tur="basari" metin={aktarSonucu} /> : null}
           {aktarHatasi ? <BilgiKutusu tur="uyari" metin={aktarHatasi} /> : null}
+
+          {/* 27.10.2026: ayrı dosya yerine ekibin KENDİ dosyasına ekleme.
+              Dönem ve "devam edenler" seçimi yukarıdakiyle aynı. */}
+          <EkipExceli secim={{ donem: aktarDonem, devamDahil }} />
         </Kart>
 
       </ScrollView>

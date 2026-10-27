@@ -13,13 +13,16 @@
 
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 
 import { aktarilacaklar, AktarimSecimi, VARSAYILAN_AKTARIM } from '@/cekirdek/aktarim';
+import { ElleEsleme } from '@/cekirdek/ekipExceli';
+import { Denetim } from '@/cekirdek/tipler';
 import { nasSayfalari } from '@/cekirdek/nas';
 import { xlsxOlustur } from '@/cekirdek/xlsx';
 import { eklemeKomutlari, GERI_YUKLEME_SIRASI, yedekIceriginiCoz } from '@/cekirdek/geriYukleme';
 import { zipOku, zipOlustur, ZipGirdisi } from '@/cekirdek/zip';
-import { tabloSutunlari, tumDenetimler, yedektenEkle, yedekVerisi } from '@/veri/depo';
+import { ayarOku, ayarYaz, tabloSutunlari, tumDenetimler, yedektenEkle, yedekVerisi } from '@/veri/depo';
 
 export interface YedekSonucu {
   uri: string;
@@ -166,4 +169,87 @@ export async function yedekGeriYukle(): Promise<GeriYuklemeSonucu> {
     foto: eklenen.fotograflar ?? 0,
     zatenVarDenetim: yedektekiDenetim - (eklenen.denetimler ?? 0),
   };
+}
+
+// --- EKİBİN EXCEL'İNE EKLE (27.10.2026) ---------------------------------------
+// Doldurmanın kendisi saf işlev: cekirdek/ekipExceli.ts. Burada yalnız dosya
+// seçme, paylaşma ve kullanıcının düzelttiği eşlemelerin saklanması.
+
+export interface SecilenDosya { ad: string; bayt: Uint8Array }
+
+interface WebDosyaGirdisi {
+  type: string; accept: string; files: ArrayLike<{ name: string; arrayBuffer(): Promise<ArrayBuffer> }> | null;
+  onchange: (() => void) | null; oncancel: (() => void) | null; click(): void;
+}
+interface WebBelge {
+  createElement(ad: 'input'): WebDosyaGirdisi;
+  createElement(ad: 'a'): { href: string; download: string; click(): void };
+}
+const webBelgesi = () => (globalThis as { document?: WebBelge }).document;
+
+/**
+ * Ekibin Excel dosyasını seçtirir; vazgeçilirse null. Telefonda sistemin dosya
+ * seçicisi (.xlsm'in türü sağlayıcıya göre değiştiği için tür süzülmez — yanlış
+ * dosya doldurmada açık hatayla reddedilir). Web'de tarayıcının dosya penceresi:
+ * expo-file-system'in web'de seçicisi yok.
+ */
+export async function ekipDosyasiSec(): Promise<SecilenDosya | null> {
+  const belge = webBelgesi();
+  if (Platform.OS === 'web' && belge) {
+    return new Promise((coz, reddet) => {
+      const girdi = belge.createElement('input');
+      girdi.type = 'file';
+      girdi.accept = '.xlsm,.xlsx,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      girdi.onchange = () => {
+        const f = girdi.files?.[0];
+        if (!f) { coz(null); return; }
+        f.arrayBuffer().then((b) => coz({ ad: f.name, bayt: new Uint8Array(b) }), reddet);
+      };
+      girdi.oncancel = () => coz(null);
+      girdi.click();
+    });
+  }
+  const secim = await File.pickFileAsync({ mimeTypes: ['*/*'] });
+  const dosya = secim.canceled ? null : secim.result;
+  if (!dosya) return null;
+  return { ad: dosya.name, bayt: await dosya.bytes() };
+}
+
+/** Doldurulacak denetimler — "Excel'e aktar" ile aynı seçim (dönem, devam edenler). */
+export async function ekipDenetimleri(secim: AktarimSecimi, simdi: Date = new Date()): Promise<{ secilen: Denetim[]; disaridaDevam: number }> {
+  return aktarilacaklar(await tumDenetimler(), secim, simdi);
+}
+
+const ESLEME_AYARI = 'ekip_excel_esleme';
+
+/** Kullanıcının düzelttiği parça/tip eşlemeleri — bu telefonda saklanır, sonraki doldurmalarda da geçerli. */
+export const elleEslemeOku = (): Promise<ElleEsleme> => ayarOku<ElleEsleme>(ESLEME_AYARI, {});
+export const elleEslemeYaz = (e: ElleEsleme): Promise<void> => ayarYaz(ESLEME_AYARI, e);
+
+/**
+ * Doldurulmuş dosyayı SEÇİLEN ADLA paylaşır: NAS'taki dosyanın yerine
+ * konabilsin. Web'de indirme olarak verilir.
+ */
+export async function ekipDosyasiniPaylas(ad: string, bayt: Uint8Array): Promise<{ uri: string; paylasildi: boolean }> {
+  const makrolu = /\.xlsm$/i.test(ad);
+  const tur = makrolu ? 'application/vnd.ms-excel.sheet.macroEnabled.12' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const belge = webBelgesi();
+  if (Platform.OS === 'web' && belge) {
+    const url = URL.createObjectURL(new Blob([bayt as Uint8Array<ArrayBuffer>], { type: tur }));
+    const a = belge.createElement('a');
+    a.href = url; a.download = ad; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return { uri: url, paylasildi: true };
+  }
+  const klasor = new Directory(Paths.cache, 'ekip-excel');
+  klasor.create({ intermediates: true, idempotent: true });
+  const dosya = new File(klasor, ad.replace(/[\\/:*?"<>|]/g, '_') || 'NAS.xlsm');
+  if (dosya.exists) dosya.delete();
+  dosya.create();
+  dosya.write(bayt);
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(dosya.uri, { mimeType: tur, dialogTitle: 'Doldurulmuş Excel dosyasını kaydet / paylaş' });
+    return { uri: dosya.uri, paylasildi: true };
+  }
+  return { uri: dosya.uri, paylasildi: false };
 }

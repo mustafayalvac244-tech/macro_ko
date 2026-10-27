@@ -46,7 +46,7 @@ export function aramaMetni(...parcalar: (string | null | undefined)[]): string {
 /** İki kelimelik kısaltmalar tek kelimeye ("t gate" → "tgate"); sadeleştirmeden SONRA. */
 const BIRLESIK: Readonly<Record<string, string>> = {
   't gate': 'tgate', 'w strip': 'wstrip', 'c pad': 'cpad', 'h lining': 'hlining', 'c lamp': 'kombilamba',
-  'h lamp': 'hlamp', 'w shield': 'wshield', 'w glass': 'wshield', 'o s': 'disyuz', 'i s': 'icyuz',
+  'h lamp': 'hlamp', 'head lamp': 'hlamp', 'w shield': 'wshield', 'w glass': 'wshield', 'o s': 'disyuz', 'i s': 'icyuz',
   'mold g': 'moldg', 'clos g': 'closg', 'wir g': 'wirg', 'park g': 'parkg', 'str g': 'strg', 's whl': 'swhl',
   't m': 'tm', 'a con': 'acon', 'a c': 'acon', 'h rest': 'hrest', 's visor': 'svisor', 'a vent': 'avent',
 };
@@ -105,15 +105,34 @@ function kelimeVar(q: string, kelimeler: readonly string[]): boolean {
  * kelime kalmazsa eşleşme YOK (her şeyi döndürmesin).
  */
 export function aramaEslesir(metin: string, sorgu: string, yumusakAtla: 0 | 1 | 2 | boolean = 0): boolean {
-  let sozcukler = sorguKelimeleri(sorgu);
+  const sozcukler = sorguKelimeleri(sorgu);
   if (!sozcukler.length) return true;
   const kademe = yumusakAtla === true ? 2 : yumusakAtla === false ? 0 : yumusakAtla;
-  if (kademe) {
-    sozcukler = sozcukler.filter((q) => !YUMUSAK.has(q) && !(kademe === 2 && TARAF.has(q)));
-    if (!sozcukler.length) return false;
+  const k = kademeKelimeleri(sozcukler, kademe);
+  return !!k && kelimelerEslesir(k, metinKelimeleri(metin));
+}
+
+/** Kademeye göre sayılan sorgu kelimeleri; geriye kelime kalmazsa null (eşleşme yok). */
+function kademeKelimeleri(sozcukler: readonly string[], kademe: 0 | 1 | 2): readonly string[] | null {
+  if (!kademe) return sozcukler;
+  const k = sozcukler.filter((q) => !YUMUSAK.has(q) && !(kademe === 2 && TARAF.has(q)));
+  return k.length ? k : null;
+}
+
+const kelimelerEslesir = (sozcukler: readonly string[], kelimeler: readonly string[]): boolean =>
+  sozcukler.every((q) => kelimeVar(q, kelimeler));
+
+// Aranan metinler az ve sabit (parça/tip başına bir tane); her sorguda yeniden
+// bölmemek için saklanır. Sınır, beklenmedik büyümeye karşı.
+const BOLUNMUS = new Map<string, readonly string[]>();
+function metinKelimeleri(metin: string): readonly string[] {
+  let k = BOLUNMUS.get(metin);
+  if (!k) {
+    if (BOLUNMUS.size > 5000) BOLUNMUS.clear();
+    k = metin.split(' ');
+    BOLUNMUS.set(metin, k);
   }
-  const kelimeler = metin.split(' ');
-  return sozcukler.every((q) => kelimeVar(q, kelimeler));
+  return k;
 }
 
 /**
@@ -126,29 +145,56 @@ export function esnekSuz<T>(
   /** Verilirse sonuçlar, sorgu kelimelerinin bu ADDA kaçının geçtiğine göre sıralanır. */
   adMetni?: (x: T) => string,
 ): T[] {
+  return esnekAra(liste, metin, sorgu, adMetni).sonuc;
+}
+
+/**
+ * `esnekSuz`un kademeyi de döndüren hâli (27.10.2026, ekibin Excel etiketlerini
+ * eşlemek için): hangi gevşetmeyle bulunduğu güvenin ölçüsüdür. `uygun`
+ * verilirse o kademede yalnız uygun öğeler sayılır — ör. taraf kelimesi
+ * atlanınca (kademe 2) taraflı parçalar dışarıda kalsın.
+ */
+export function esnekAra<T>(
+  liste: readonly T[], metin: (x: T) => string, sorgu: string,
+  adMetni?: (x: T) => string,
+  uygun?: (x: T, kademe: 0 | 1 | 2) => boolean,
+): { sonuc: T[]; kademe: 0 | 1 | 2 } {
+  const sozcukler = sorguKelimeleri(sorgu);
   for (const kademe of [0, 1, 2] as const) {
-    const s = liste.filter((x) => aramaEslesir(metin(x), sorgu, kademe));
+    const k = sozcukler.length ? kademeKelimeleri(sozcukler, kademe) : sozcukler;
+    if (!k) continue;
+    const s = liste.filter((x) => (!uygun || uygun(x, kademe)) && kelimelerEslesir(k, metinKelimeleri(metin(x))));
     if (!s.length) continue;
-    if (!adMetni) return s;
+    if (!adMetni) return { sonuc: s, kademe };
     // SIRALAMA (27.10.2026): "FRT BUMPER" tampon, ızgara, klape, amblem, alt
     // garniş ve park sensörünü getiriyor (hepsinin eş anlamlısında "bumper"
     // var); "H LINING" tavan bölgesindeki her parçayı (bölgenin adı
     // "Headliner & garnish"). Kelimeleri parçanın KENDİ adında geçen önce gelir.
-    const kelimeler = sorguKelimeleri(sorgu);
+    const kelimeler = sozcukler;
     // Eşitlikte adı KISA olan önce: "T GATE PNL" dış paneli (Tailgate panel),
     // iç sacdan (Tailgate inner panel) önce getirsin — istenmeyen kelime yok.
-    const puanla = (x: T) => { const ad = adMetni(x).split(' '); return { p: kelimeler.filter((q) => kelimeVar(q, ad)).length, u: ad.length }; };
-    return s.map((x, i) => ({ x, i, ...puanla(x) })).sort((a2, b) => b.p - a2.p || a2.u - b.u || a2.i - b.i).map((y) => y.x);
+    const puanla = (x: T) => { const ad = metinKelimeleri(adMetni(x)); return { p: kelimeler.filter((q) => kelimeVar(q, ad)).length, u: ad.length }; };
+    return { sonuc: s.map((x, i) => ({ x, i, ...puanla(x) })).sort((a2, b) => b.p - a2.p || a2.u - b.u || a2.i - b.i).map((y) => y.x), kademe };
   }
-  return [];
+  return { sonuc: [], kademe: 2 };
 }
 
-// YAZIM HATASI TOLERANSI (26.10.2026). İkinci dış değerlendirmede saha
-// denetçisi eldivenle "camurlk", "kaptu" yazdı ve sonuç alamadı. Yalnız TAM
-// eşleşme hiç sonuç vermediğinde kullanılır ve ekranda "yakın sonuçlar" diye
-// ayrı gösterilir: doğru yazana fazladan, alakasız sonuç düşmesin.
+/** Sorgu kelimelerinin (taraf kelimeleri hariç) kaçta kaçı bu adda geçiyor: 0–1. */
+export function adKapsamasi(sorgu: string, adMetni: string): number {
+  const kelimeler = sorguKelimeleri(sorgu).filter((q) => !TARAF.has(q));
+  if (!kelimeler.length) return 0;
+  const ad = metinKelimeleri(adMetni);
+  return kelimeler.filter((q) => kelimeVar(q, ad)).length / kelimeler.length;
+}
 
-/** İki dize arasındaki düzenleme uzaklığı (yer değiştirme bir adım sayılır). */
+/** Sorgunun açıkça söylediği taraf; ikisi birden ya da hiçbiri yoksa undefined. */
+export function sorguTarafi(sorgu: string): 'sol' | 'sag' | undefined {
+  const k = sorguKelimeleri(sorgu);
+  const sol = k.some((q) => q === 'lh' || q === 'sol' || q === 'left');
+  const sag = k.some((q) => q === 'rh' || q === 'sag' || q === 'right');
+  return sol === sag ? undefined : sol ? 'sol' : 'sag';
+}
+
 export function duzenlemeUzakligi(a: string, b: string): number {
   const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array<number>(b.length).fill(0)]);
   for (let j = 1; j <= b.length; j++) d[0]![j] = j;

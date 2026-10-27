@@ -1234,6 +1234,76 @@ içinde sayıldı. Telefonda denenmedi.
 iki tasarımcının bir numaralı şikâyeti), beş modelin kendi çizimi, metindeki
 fabrika jargonu ("Sistem (Excel)", EXTERIOR), PDF/imza.
 
+### Aşama 8 — ekibin Excel'ini doldur, sık hatalar şeridi (27.10.2026)
+
+Ürün sahibi: "Programı daha kullanışlı, hızlı hata ekleyebilir hale nasıl
+getiririz. Bide excel formatı atsam çıktı otomatik doldurur dimi". Verilen ilk
+cevap: **hayır** — sütunlar ekibinkiyle aynıydı ama çıktı ayrı bir dosyaydı ve
+parça/tip adları ekibin listesindekiler değildi (ölçüldü: uygulamanın 206 parça
+adının 5'i, 66 tip adının 36'sı ekibin listesinde birebir vardı). Ürün sahibi
+iki işi seçti: "Excel'inizi doldursun" ve "Sık hatalar şeridi".
+
+**Ekibin Excel'ine ekle** (Ayarlar → Veri; "Excel'e aktar" ile aynı dönem ve
+"devam edenler" seçimi). Denetçi ekibin NAS dosyasını (.xlsm) seçer; seçili
+denetimler AUDIT_CARS_LIST ve PROBLEMS_LIST'in sonuna eklenir; paylaşmadan
+önce özet ve "hangi parça/tip Excel'e hangi adla yazılacak" listesi çıkar.
+Kurallar ekibin MAKROSUNDAN okundu (`ekipExceli.ts` başı): NO = satır − 2,
+tarih metin "g.a.yyyy", BODY sayı, UNICODECAR/UNICODE metin birleştirme,
+AUDITOR büyük harf, aynı KAYNAK+MODEL+BODY ikinci kez araç listesine girmez
+(makro da "Bu araç daha önce audit yapilmis!" der; problemleri yine eklenir).
+Ayrıca aynı UNICODE + günle zaten olan problem eklenmez: aynı denetimi iki kez
+göndermek ikinci sefer bir şey eklemez. Yeni satırlar son satırın stilini ve
+yüksekliğini alır. Dosyanın geri kalanı **açılmadan, bayt bayt** geri yazılır
+(deflate çözücü `inflate.ts`, ZIP okuyucu/yazıcı `zip.ts` — yeni paket yok).
+
+Doğrulama, ekibin GERÇEK dosyasıyla, yalnız bu makinede (dosya ve çıktılar
+depoya girmedi; denetimler uydurma):
+- ZIP'in 47 girdisinden 45'i sıkıştırılmış hâliyle bile aynı (makro dahil);
+  değişen yalnız iki liste sayfası. openpyxl: 11 sayfanın bütün eski satırları
+  aynı; yeni satırlar beklenen değerlerde, son satırın stilinde, gizli değil.
+- LibreOffice dosyayı açıp yeniden kaydedebildi. **Excel'de açılmadı** (bu
+  ortamda Excel yok); makronun yeni satırlarla çalıştığı **denenmedi**. Makroyu
+  okuyunca: ANASAYFA'daki sayıları hesaplayan yordam "Problem Girişi" formu
+  açılınca çalışıyor — yani skorlar o zaman güncellenir (kodda okundu, denenmedi).
+- Süre (Node, gerçek dosya): 1,9 sn → gereksiz ayrıştırma ve eşleme işi
+  kısılınca 1,0 sn. **Telefonda ölçülmedi.** Değişen iki sayfa sıkıştırılmadan
+  yazıldığı için dosya ~5–6 kat büyüyor; Excel'de bir kez kaydedince küçülür.
+
+**Parça/tip eşlemesi** (`ekipEslemesi.ts`, telefonda, seçilen dosyanın Part /
+Problems listeleri ve geçmiş kayıtlarından — listeler depoya yazılmaz). Ölçüldü
+(deterministik, gerçek dosya): 206 parçanın 157'sine, 66 tipin 42'sine ekibin
+bir etiketi bulunuyor; kalanlar uygulamanın İngilizce adıyla yazılır ve listede
+uyarı rengiyle gösterilir. Bulunanların doğruluğu: aşama 7'de **benim**
+yazdığım beklenti listesiyle denetlenebilen 49 parçanın 49'u tuttu; kalan 108'i
+denetlenmedi. Gözle baktığımda (benim yargım) ~12'si şüpheli — genel parçaya
+özel etiket düşüyor: pedal → debriyaj pedalı (elektrikli araçta debriyaj yok),
+emniyet kemeri → sağ kemer ayarı, fren hattı → vakum hortumu, cowl → yalnız
+sol yarısı… Ölçerken iki ciddi hata bulunup düzeltildi: "HEAD LAMP" tavan
+lambasına (bölge adı "Headliner"), "FDR PNL" arka çamurluğa gidiyordu. Bu
+yüzden eşleme paylaşmadan önce gösteriliyor ve **"Değiştir"le düzeltilebiliyor**
+(ekibin listesinde arama; seçim telefonda kalır, sonraki doldurmalarda da
+geçerli). Tip eşlemesinde eş anlamlı yok: ör. "Koku" ekibin listesindeki
+karşılığını bulamıyor, elle seçilmeli.
+
+**Sık hatalar şeridi.** Denetim ekranının başında, bu telefonda bu modelde en
+az iki kez kaydedilmiş parça + hata ikilileri (iki parça arası dahil), en sık
+önce. Çipe dokun → demerit seç: kaydedildi — **2 dokunuş** (önceki yollar,
+sayıldı: son dokunulan parçadan 3, aramayla 3 + yazma, sistem → bölge →
+parça yoluyla 5). Sınıf varsayılan MINOR, istenirse
+değiştirilir; "demerit seçmeden kayıt yok" kararı aynen geçerli. Parça açılınca
+ızgaranın başında "Bu parçada sık" karoları; ızgaranın kendi sırası
+değişmedi. Kaynak yalnız telefonun kendi kayıtları: yeni telefonda şerit hiç
+görünmez (uydurma "sık hata" listesi gösterilmez).
+
+**Neyle doğrulandı:** birim testleri 1034 → 1050 (inflate Node'un zlib'ine
+karşı; Excel doldurma uydurma bir NAS kitabıyla; sık hatalar). Doldurma kodu 5
+yerden bilerek bozuldu (gizli satır, ham girdi, tekrar, araç tekrarı, NO), 5'ini
+de testler yakaladı. Yeni web sınavı (`asama8`, 9 adım: şerit çıkar mı, 2
+dokunuşla kayıt, vazgeç, "bu parçada sık", dosya seç → özet → eşleme değiştir
+→ indir → aynı dosyayla ikinci kez "eklenecek yok", Excel olmayan dosya)
+telefon/tablet × açık/koyu geçti; eski sınavlar aşama 7'yle aynı adım
+sayılarıyla geçti. Beklentilerin hepsi benim; **telefonda denenmedi**.
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |
@@ -1245,6 +1315,7 @@ fabrika jargonu ("Sistem (Excel)", EXTERIOR), PDF/imza.
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
 | Parça kataloğu (182 parça; elektrikli araçta 176, benzinlide 174 listelenir — 26.10.2026'da garnişler, DRL, üçgen cam eklendi), VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
 | Hızlı giriş (2 dokunuş), geri al | **Bitti** |
+| Ekibin Excel'ine ekleme, sık hatalar şeridi (27.10.2026) | **Kod bitti** — ekibin gerçek dosyasıyla yerelde doğrulandı (openpyxl, LibreOffice); **Excel'de açılmadı, telefonda denenmedi**; parça eşlemesinin 157'den 108'i denetlenmedi |
 | Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **26.10.2026'da yerini Excel'in DEMERIT 0–3 + CLASS'ı aldı** (aşağıdaki satır) |
 | Excel içeriği (NAS, 26.10.2026): demerit, class, system, responsible, kaynak listesi, model kodu, body 6 hane, Audit Skoru, Excel'e aktar | **Kod bitti** — kurallar Excel'den okundu; testleri ben yazdım; 4 düzende 14 adım geçti; **telefonda görülmedi**. BJ = IONIQ 3 çıkarım |

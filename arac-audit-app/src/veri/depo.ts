@@ -16,6 +16,7 @@ import { GunlukKaydi, GunlukTuru, satirFarki } from '@/cekirdek/gunluk';
 import type { HataKaydi } from '@/cekirdek/istatistik';
 import { demeritDegeri, sistemDegeri } from '@/cekirdek/nas';
 import type { SayacGirdisi } from '@/cekirdek/sayac';
+import type { GecmisKayit } from '@/cekirdek/sikHatalar';
 import { Denetim, DenetimDurumu, DereceKodu, Hata, HataTipi } from '@/cekirdek/tipler';
 
 const VERITABANI = 'arac-audit.db';
@@ -762,6 +763,21 @@ export async function sikKullanilanlar(enFazla = 12): Promise<{ parcaId: string;
     const n = k.kalip.lastIndexOf('.');
     return { parcaId: k.kalip.slice(0, n), hataTipiId: k.kalip.slice(n + 1), sayi: k.sayi };
   });
+}
+
+/**
+ * Bu modelin (aracId) bütün denetimlerindeki kayıtlar, yeniden eskiye — sık
+ * hatalar şeridi için (cekirdek/sikHatalar.ts). Yalnız dört sütun; sınır,
+ * yıllarca birikmiş telefonda sorgu ağırlaşmasın diye.
+ */
+export async function modelHataGecmisi(aracId: string, enFazla = 5000): Promise<GecmisKayit[]> {
+  const d = await db();
+  const satirlar = await d.getAllAsync<{ parca_id: string; ikinci_parca_id: string | null; hata_tipi_id: string; zaman: string }>(
+    `SELECT h.parca_id, h.ikinci_parca_id, h.hata_tipi_id, h.zaman
+       FROM hatalar h JOIN denetimler d ON d.id = h.denetim_id
+      WHERE d.arac_id = ?
+      ORDER BY h.zaman DESC LIMIT ?`, aracId, enFazla);
+  return satirlar.map((h) => ({ parcaId: h.parca_id, ikinciParcaId: h.ikinci_parca_id || null, hataTipiId: h.hata_tipi_id, zaman: h.zaman }));
 }
 
 // --- ÖZEL HATA TİPLERİ ----------------------------------------------------

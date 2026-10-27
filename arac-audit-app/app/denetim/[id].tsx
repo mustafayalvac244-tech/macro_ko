@@ -13,6 +13,7 @@ import {
   DereceSecici, GrupBasligi, HataSayfasi, HataTaslagi, SinifSecici, YeniTipFormu,
 } from '@/bilesenler/HataSayfasi';
 import { GRUP_SIMGELERI, S } from '@/bilesenler/simgeler';
+import { SikHatalar } from '@/bilesenler/SikHatalar';
 import {
   AltSayfa, AramaKutusu, Baslik, BaslikCipi, BaslikDugmesi, BilgiKutusu, BolumBasligi, BosDurum, DereceRozeti,
   Dugme, Ekran, GeriDugmesi, HataKutusu, Rozet, useDuzen, Yukleniyor,
@@ -25,6 +26,7 @@ import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { sinifDegeri, VARSAYILAN_SINIF, varsayilanSistem } from '@/cekirdek/nas';
 import { dereceGosterimi } from '@/cekirdek/puan';
 import { bicimTarih } from '@/cekirdek/rapor';
+import { GecmisKayit, parcaninSikTipleri, SikHata, sikHataOnerileri } from '@/cekirdek/sikHatalar';
 import { kapsamMetni, mevcutSistemler } from '@/cekirdek/sistemler';
 import { parcaDemeritleri, parcaKayitSayilari } from '@/cekirdek/donusGorunumu';
 import { takipAdi } from '@/cekirdek/takip';
@@ -36,7 +38,7 @@ import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { useAcmaIstegi } from '@/veri/acmaIstegi';
 import {
   ayarOku, ayarYaz, denetimGetir, denetimGuncelle, denetimSil, FotografKaydi, fotograflariGetir,
-  fotografiHataBagla, hataKaydet, hataSil, kapsamAyarla, kimlikUret,
+  fotografiHataBagla, hataKaydet, hataSil, kapsamAyarla, kimlikUret, modelHataGecmisi,
 } from '@/veri/depo';
 import { useDil } from '@/veri/dilDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -109,6 +111,8 @@ export default function DenetimEkrani() {
   const [okundu, setOkundu] = useState(false);
   const [fotograflar, setFotograflar] = useState<FotografKaydi[]>([]);
   const [yuklemeHatasi, setYuklemeHatasi] = useState<string | null>(null);
+  // Bu modelin bütün denetimlerindeki kayıtlar — sık hatalar şeridi (27.10.2026).
+  const [gecmis, setGecmis] = useState<GecmisKayit[]>([]);
 
   const [parcaId, setParcaId] = useState<string | null>(null);
   // İkinci parça (26.10.2026): boşluk/kademe için karşı panel; 360° büyük
@@ -151,6 +155,8 @@ export default function DenetimEkrani() {
       setFotograflar(f);
       setYuklemeHatasi(null);
       setOkundu(true);
+      // Şerit yüklenemezse denetim yine açılır; yalnız şerit çıkmaz.
+      if (d) modelHataGecmisi(d.aracId).then(setGecmis).catch(() => {});
     } catch (h) {
       setYuklemeHatasi(h instanceof Error ? h.message : String(h));
     }
@@ -185,6 +191,15 @@ export default function DenetimEkrani() {
 
   // --- PARÇA SEÇİMİ ----------------------------------------------------
   const bolgeler = useMemo(() => bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }), [arac?.tip]);
+
+  // SIK HATALAR (27.10.2026): bu araçta seçilebilen parça ve listede duran tip.
+  const izinliParca = useMemo(() => new Set(bolgeler.flatMap((b) => b.parcalar.map((p) => p.id))), [bolgeler]);
+  const sikGecerli = useCallback((o: SikHata) =>
+    izinliParca.has(o.parcaId) && (!o.ikinciParcaId || izinliParca.has(o.ikinciParcaId))
+    && !!HATA_TIPI_INDEKS[o.hataTipiId] && !HATA_TIPI_INDEKS[o.hataTipiId]!.silindi, [izinliParca]);
+  // ozelTipler: tip kaldırılınca şerit tazelensin.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const sikOneriler = useMemo(() => sikHataOnerileri(gecmis, { gecerli: sikGecerli }), [gecmis, sikGecerli, ozelTipler]);
 
   // KAPSAM (sistemler.ts): işaretli sistemler. Elle değişince de denetim
   // "değişti" sayılır (bitmişse yeniden açılır).
@@ -233,6 +248,19 @@ export default function DenetimEkrani() {
     // ozelTipler: yeni tip eklendiğinde ızgara anında tazelensin.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parcaId, ikinciParcaId, hataArama, ozelTipler]);
+
+  /**
+   * Açık parçada bu modelde en sık kaydedilen tipler (27.10.2026) — ızgaranın
+   * başında ayrıca; ızgaranın kendi sırası değişmez (el alışkanlığı bozulmasın).
+   */
+  const sikTipler = useMemo(() => {
+    if (!parcaId || hataArama.trim()) return [];
+    const izinli = new Set(parcaHataTipleri(parcaId).map((x) => x.id));
+    return parcaninSikTipleri(gecmis, parcaId, ikinciParcaId, { gecerli: (o) => izinli.has(o.hataTipiId) })
+      .map((o) => ({ tip: HATA_TIPI_INDEKS[o.hataTipiId]!, sayi: o.sayi }));
+    // ozelTipler: kaldırılan tip düşsün.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gecmis, parcaId, ikinciParcaId, hataArama, ozelTipler]);
 
   /** Izgara grup grup çizilir; grup sırası listedeki ilk görünüşe göre. */
   const tipGruplari = useMemo(() => {
@@ -291,26 +319,27 @@ export default function DenetimEkrani() {
     return () => abone.remove();
   }, [buyukAcik, parcaId, konum, parcalaraDon, bolgeler]);
 
-  /** Tek dokunuşla kayıt — bu ekranın var olma sebebi. */
-  const hizliKaydet = useCallback(async (tip: HataTipi) => {
-    if (!denetim || !parcaId) return;
-    if (derece === null) {
-      setKayitHatasi(t('Önce demerit seçin (0–3). Demerit seçilmeden kayıt yapılmaz.', 'Pick a demerit first (0–3). Nothing is saved without one.'));
-      setDereceIste(true);
-      return;
-    }
+  /**
+   * Kaydı yazar, titreşim + bildirim verir. Izgaradaki tek dokunuş ve sık
+   * hatalar şeridi (27.10.2026) bunu paylaşır. false: kaydedilemedi (neden
+   * `kayitHatasi`nda).
+   */
+  const kayitYap = useCallback(async (
+    pid: string, ikinci: string | null, tip: HataTipi, d: DereceKodu, c: SinifKodu,
+  ): Promise<boolean> => {
+    if (!denetim) return false;
     setKayitHatasi(null);
     const kayit: Hata = {
       id: kimlikUret('h'),
-      parcaId,
-      ...(ikinciParcaId ? { ikinciParcaId } : {}),
+      parcaId: pid,
+      ...(ikinci ? { ikinciParcaId: ikinci } : {}),
       hataTipiId: tip.id,
-      derece,
+      derece: d,
       kabulEdilebilir: false,
-      sinif,
-      sistem: varsayilanSistem(parcaId, tip.id),
+      sinif: c,
+      sistem: varsayilanSistem(pid, tip.id),
       sorunTipi: 'Part',
-      sorumlu: sorumluHaritasi[parcaId] ?? '',
+      sorumlu: sorumluHaritasi[pid] ?? '',
       adet: 1, konum: '', aciklama: '', fotograflar: [],
       zaman: new Date().toISOString(),
       durum: 'acik',
@@ -323,7 +352,7 @@ export default function DenetimEkrani() {
       const neden = h instanceof Error ? h.message : String(h);
       setKayitHatasi(t(`Kaydedilemedi: ${neden}`, `Could not save: ${neden}`));
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      return;
+      return false;
     }
     // Eldivenle ekrana bakmadan giriş: kayıt düştüğünü el de hissetsin
     // (26.10.2026, ikinci dış değerlendirme — saha denetçisi).
@@ -340,20 +369,39 @@ export default function DenetimEkrani() {
 
     // Bildirim metni kayıt anındaki dilde kurulur (6 sn ekranda kalır).
     bildirimGoster({
-      tur: 'kayit', id: kayit.id, parcaId,
+      tur: 'kayit', id: kayit.id, parcaId: pid,
       metin: t(
-        `${parcaCiftiAdi(kayit)} — ${tip.ad} · demerit ${dereceGosterimi(kayit)} · ${sinif}`,
-        `${parcaCiftiAdi(kayit, 'en')} — ${tip.en || tip.ad} · demerit ${dereceGosterimi(kayit)} · ${sinif}`,
+        `${parcaCiftiAdi(kayit)} — ${tip.ad} · demerit ${dereceGosterimi(kayit)} · ${c}`,
+        `${parcaCiftiAdi(kayit, 'en')} — ${tip.en || tip.ad} · demerit ${dereceGosterimi(kayit)} · ${c}`,
       ),
     }, 6000);
+    return true;
+  }, [denetim, sorumluHaritasi, bildirimGoster, yenidenAcGerekirse, t]);
 
+  /** Tek dokunuşla kayıt — bu ekranın var olma sebebi. */
+  const hizliKaydet = useCallback(async (tip: HataTipi) => {
+    if (!denetim || !parcaId) return;
+    if (derece === null) {
+      setKayitHatasi(t('Önce demerit seçin (0–3). Demerit seçilmeden kayıt yapılmaz.', 'Pick a demerit first (0–3). Nothing is saved without one.'));
+      setDereceIste(true);
+      return;
+    }
+    if (!(await kayitYap(parcaId, ikinciParcaId, tip, derece, sinif))) return;
     setDerece(null);
     setDereceIste(false);
     setSinif(VARSAYILAN_SINIF);
     parcalaraDon();
     setParcaArama('');
     await tazele();
-  }, [denetim, parcaId, ikinciParcaId, derece, sinif, sorumluHaritasi, parcalaraDon, tazele, bildirimGoster, yenidenAcGerekirse, t]);
+  }, [denetim, parcaId, ikinciParcaId, derece, sinif, kayitYap, parcalaraDon, tazele, t]);
+
+  /** Sık hatalar şeridinden: parça ve tip çipte, demerit son dokunuşta. */
+  const seritKaydet = useCallback(async (o: SikHata, d: DereceKodu, c: SinifKodu) => {
+    const tip = HATA_TIPI_INDEKS[o.hataTipiId];
+    if (!tip || !(await kayitYap(o.parcaId, o.ikinciParcaId ?? null, tip, d, c))) return false;
+    await tazele();
+    return true;
+  }, [kayitYap, tazele]);
 
   // Geri almak SESSİZ değil: yalnız başlıktaki sayaç değişiyordu (sınamada
   // "geri alındı mı?" sorusu kaldı). Kısa bir "Geri alındı" bildirimi çıkar.
@@ -487,6 +535,9 @@ export default function DenetimEkrani() {
       parcaDemeritleri={demeritHaritasi}
       parcaKayitSayilari={kayitSayilari}
       sonParcalar={sonParcalar}
+      ust={sikOneriler.length && !parcaId ? (
+        <SikHatalar oneriler={sikOneriler} onKaydet={seritKaydet} hata={kayitHatasi} />
+      ) : null}
       onSec={parcaSec}
       tablet={tablet}
       onBuyut={() => setBuyukAcik(true)}
@@ -502,6 +553,29 @@ export default function DenetimEkrani() {
   );
 
   // --- HATA PANELİ ------------------------------------------------------
+  /** Hata karosu: dokununca seçili demerit ve sınıfla kaydeder. `sayi`: sık tiplerde kaç kez. */
+  const tipKaro = (tip: HataTipi, sayi?: number) => (
+    <Pressable
+      key={tip.id}
+      accessibilityRole="button"
+      accessibilityLabel={derece === null
+        ? t(`${tip.ad}${tip.en ? ` (${tip.en})` : ''} — önce demerit seçin`, `${tip.en || tip.ad} — pick a demerit first`)
+        : t(
+          `${tip.ad}${tip.en ? ` (${tip.en})` : ''} — demerit ${derece}, ${sinif} olarak kaydet`,
+          `${tip.en || tip.ad} — save as demerit ${derece}, ${sinif}`,
+        )}
+      onPress={() => hizliKaydet(tip)}
+      style={({ pressed }) => [s.hataDugme, pressed && s.hataDugmeBasili]}
+    >
+      <View style={s.hataDugmeUst}>
+        {/* Ekibin eklediği tipin İngilizcesi boş olabilir: o zaman Türkçesi. */}
+        <Text style={s.hataAd} numberOfLines={2}>{t(tip.ad, tip.en || tip.ad)}</Text>
+        {sayi ? <Text style={s.sikSayi}>×{sayi}</Text> : null}
+        {tip.ozel ? <Text style={s.ekipIsaret}>{t('Ekip', 'Team')}</Text> : null}
+      </View>
+    </Pressable>
+  );
+
   const hataPaneli = parca ? (
     <View style={{ flex: 1 }}>
       <View style={s.parcaBaslik}>
@@ -630,30 +704,23 @@ export default function DenetimEkrani() {
           />
         ) : (
           <>
+            {sikTipler.length ? (
+              <View style={s.grup} testID="parca-sik-tipler">
+                <View style={s.sikBaslik}>
+                  <S.skor size={15} color={renkler.metinIkincil} strokeWidth={2} />
+                  <Text style={s.sikBaslikMetin} accessibilityRole="header">{t('Bu parçada sık', 'Frequent on this part')}</Text>
+                </View>
+                <View style={s.hataIzgara}>
+                  {sikTipler.map((x) => tipKaro(x.tip, x.sayi))}
+                  {[0, 1, 2].map((i) => <View key={`dolgu${i}`} style={s.hataDolgu} aria-hidden importantForAccessibility="no-hide-descendants" />)}
+                </View>
+              </View>
+            ) : null}
             {tipGruplari.map(([g, liste]) => (
               <View key={g} style={s.grup} onLayout={(e) => { grupKonumu.current.set(g, e.nativeEvent.layout.y); }}>
                 <GrupBasligi grup={g} />
                 <View style={s.hataIzgara}>
-                  {liste.map((tip) => (
-                    <Pressable
-                      key={tip.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={derece === null
-                        ? t(`${tip.ad}${tip.en ? ` (${tip.en})` : ''} — önce demerit seçin`, `${tip.en || tip.ad} — pick a demerit first`)
-                        : t(
-                          `${tip.ad}${tip.en ? ` (${tip.en})` : ''} — demerit ${derece}, ${sinif} olarak kaydet`,
-                          `${tip.en || tip.ad} — save as demerit ${derece}, ${sinif}`,
-                        )}
-                      onPress={() => hizliKaydet(tip)}
-                      style={({ pressed }) => [s.hataDugme, pressed && s.hataDugmeBasili]}
-                    >
-                      <View style={s.hataDugmeUst}>
-                        {/* Ekibin eklediği tipin İngilizcesi boş olabilir: o zaman Türkçesi. */}
-                        <Text style={s.hataAd} numberOfLines={2}>{t(tip.ad, tip.en || tip.ad)}</Text>
-                        {tip.ozel ? <Text style={s.ekipIsaret}>{t('Ekip', 'Team')}</Text> : null}
-                      </View>
-                    </Pressable>
-                  ))}
+                  {liste.map((tip) => tipKaro(tip))}
                   {/* Görünmez dolgu: son satırdaki tek karo bütün satıra yayılıp
                       başka türden bir düğme gibi durmasın (26.10.2026). */}
                   {[0, 1, 2].map((i) => <View key={`dolgu${i}`} style={s.hataDolgu} aria-hidden importantForAccessibility="no-hide-descendants" />)}
@@ -1047,6 +1114,10 @@ const stiller = (r: Renkler) => StyleSheet.create({
   hataGovde: { padding: bosluk.md, gap: bosluk.md, paddingBottom: 120 },
   grup: { gap: bosluk.xs },
   grupAtlaSatir: { flexDirection: 'row', gap: bosluk.xs },
+  sikBaslik: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // GrupBasligi (HataSayfasi) ile aynı görünüş: ızgaranın öbür grupları gibi dursun.
+  sikBaslikMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
+  sikSayi: { ...tipografi.caption, color: r.metinSolgun, fontVariant: ['tabular-nums'] },
   grupAtla: {
     flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: bosluk.sm,
     borderRadius: kose.md, backgroundColor: r.birincilYumusak,
