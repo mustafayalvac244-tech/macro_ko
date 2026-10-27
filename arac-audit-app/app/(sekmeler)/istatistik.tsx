@@ -28,7 +28,7 @@ import {
 import {
   haftalikSkor, HataKaydi, pareto, ParetoSatiri, sistemeGore, tekrarlayanlar,
 } from '@/cekirdek/istatistik';
-import { aracHaritasiVar } from '@/cekirdek/donusGorunumu';
+import { cizimVar } from '@/cekirdek/donusGorunumu';
 import { bolgelerAracIcin, hataTipiAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { aracEtiketi, ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { auditSkoru } from '@/cekirdek/nas';
@@ -126,7 +126,7 @@ export default function Analiz() {
     for (const k of hesap?.kayitlar ?? []) m.set(k.parcaId, (m.get(k.parcaId) ?? 0) + k.adet);
     return m;
   }, [hesap]);
-  const haritaVar = !!hesap?.haritaAraci && (aracHaritasiVar(hesap.haritaAraci)
+  const haritaVar = !!hesap?.haritaAraci && (cizimVar(hesap.haritaAraci)
     || Object.keys(gorseller[hesap.haritaAraci]?.yuvalar ?? {}).length > 0);
   const parcaDokumu = useMemo(() => {
     if (!haritaParca || !hesap) return [];
@@ -220,7 +220,7 @@ export default function Analiz() {
 
   return (
     <Ekran>
-      <Baslik baslik={t('Analiz', 'Analysis')} altBaslik={t('Bu cihazdaki denetimler', 'Audits on this device')} />
+      <Baslik baslik={t('Analiz', 'Analysis')} altBaslik={t('Bu cihazdaki denetimler', 'Audits on this device')} icerikGenisligi={tablet ? 900 : undefined} />
       {hata ? <View style={{ padding: bosluk.md }}><HataKutusu metin={hata} /></View> : null}
       {!veri || !hesap ? <Yukleniyor metin={t('Hesaplanıyor…', 'Calculating…')} /> : (
         <ScrollView contentContainerStyle={[s.govde, tablet && s.govdeTablet]}>
@@ -346,7 +346,8 @@ export default function Analiz() {
                 {hesap.sistemler.length ? hesap.sistemler.map((x) => (
                   <View key={x.sistem} style={s.sistemSatir} accessible accessibilityLabel={t(`${x.sistem}: ${x.hata} hata, demerit ${x.demerit}, skor ${skorMetni(x.skor)}`, `${x.sistem}: ${x.hata} ${x.hata === 1 ? 'problem' : 'problems'}, demerit ${x.demerit}, score ${skorMetni(x.skor)}`)}>
                     <Text style={s.sistemAd}>{x.sistem}</Text>
-                    <View style={s.cubukZemin}>
+                    {/* Sıra numarası yok: çubuk ve alt satır içerlek değil (27.10.2026). */}
+                    <View style={[s.cubukZemin, { marginLeft: 0 }]}>
                       <View style={[s.cubuk, { width: `${Math.max(2, (x.hata / Math.max(1, hesap.toplam.hata)) * 100)}%` }]} />
                     </View>
                     <Text style={s.sistemSayi}>{x.hata}</Text>
@@ -386,5 +387,5 @@ const stiller = (r: Renkler) => StyleSheet.create({
   sistemSatir: { gap: 3, paddingVertical: 2 },
   sistemAd: { ...tipografi.bodyOrta, color: r.metin },
   sistemSayi: { ...tipografi.sayi, color: r.metin, position: 'absolute', right: 0, top: 0 },
-  sistemDpu: { ...tipografi.caption, color: r.metinSolgun, paddingLeft: 18 + bosluk.xs },
+  sistemDpu: { ...tipografi.caption, color: r.metinSolgun },
 });

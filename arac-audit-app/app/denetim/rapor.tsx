@@ -13,7 +13,7 @@ import {
 import {
   BOLGELER, DERECELER, HATA_TIPI_INDEKS, hataTipiAdi, parcaBolgeAdi, parcaCiftiAdi, parcaTamAdi, bolgelerAracIcin,
 } from '@/cekirdek/katalog';
-import { aracHaritasiVar, parcaDemeritleri } from '@/cekirdek/donusGorunumu';
+import { cizimVar, parcaDemeritleri, parcaKayitSayilari } from '@/cekirdek/donusGorunumu';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { demeritDegeri, SINIFLAR, sinifDegeri, sistemDegeri } from '@/cekirdek/nas';
 import { takipAdi } from '@/cekirdek/takip';
@@ -130,16 +130,17 @@ export default function RaporEkrani() {
   }, [denetim, dosyaAdi, fotoBaytlari, t]);
 
   // BİTİR İKİ ADIMLI. Önceden onaysızdı, "CSV"nin 8 px yanındaydı ve doğrudan
-  // ana sayfaya atıyordu (üç ajanın sınaması, 28.09.2026).
+  // ana sayfaya atıyordu (üç ajanın sınaması, 28.09.2026). Onay 27.10.2026'dan
+  // beri DİYALOG: alttaki turuncu bant ve yan yana iki dolu düğme ikinci tur
+  // tasarım/estetik değerlendirmesinde "eylem hiyerarşisi hatalı" sayıldı.
   const bitir = useCallback(async () => {
     if (!denetim) return;
-    if (!bitirOnay) { setBitirOnay(true); return; }
     await denetimGuncelle(denetim.id, { durum: 'tamam', bitis: new Date().toISOString() });
     // replace('/') DEĞİL: o, yığındaki çalışma ekranını bırakıp üstüne ikinci
     // bir ana sayfa koyuyordu; Android'de geri tuşu eski ekrana dönüyordu
     // (uçtan uca sınama, 28.09.2026). dismissTo ana sayfaya kadar kapatır.
     router.dismissTo('/');
-  }, [denetim, router, bitirOnay]);
+  }, [denetim, router]);
 
   /**
    * Çalışma ekranında bir şeyi açar: rapordaki hata satırı → o kaydın
@@ -178,6 +179,7 @@ export default function RaporEkrani() {
   const enCokBolge = Math.max(1, ...ozet.bolgeDagilimi.map((b) => b.adet));
   const sistemListesi = mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }));
   const kontrolEdilen = sistemListesi.filter((x) => (denetim.kapsam ?? []).includes(x)).length;
+  const eksikler = eksikSistemler(denetim.kapsam ?? [], sistemListesi);
   const agir = ozet.sinifDagilimi.MAJOR + ozet.sinifDagilimi.MAIN;
 
   const kunye: [string, string, boolean?][] = [
@@ -214,6 +216,7 @@ export default function RaporEkrani() {
         baslik={t('Rapor', 'Report')}
         sol={<GeriDugmesi />}
         ciplerSar
+        icerikGenisligi={1100}
         cipler={(
           <>
             <BaslikCipi metin={aracKimligi(denetim)} mono />
@@ -245,7 +248,7 @@ export default function RaporEkrani() {
             {[
               { deger: ozet.toplamAdet, etiket: t('hata', ozet.toplamAdet === 1 ? 'problem' : 'problems'), renk: renkler.birincil },
               { deger: ozet.demeritToplami, etiket: 'demerit', renk: renkler.metin },
-              { deger: agir, etiket: 'MAJOR / MAIN', renk: agir ? renkler.derece3 : renkler.metin },
+              { deger: agir, etiket: 'MAJOR\nMAIN', renk: agir ? renkler.derece3 : renkler.metin },
               { deger: ozet.fotografliHata, etiket: t('fotoğraflı', 'with photo'), renk: renkler.metin },
             ].map((x, i) => (
               <View key={x.etiket} style={[s.ozetHucre, i > 0 && s.ozetAyrac]}>
@@ -344,7 +347,7 @@ export default function RaporEkrani() {
             araç resmi üzerinde gösteriyor. Salt okunur: döndürülür, seçilmez. Çizimi
             ya da görseli olmayan araçta kart çıkmaz. */}
         {/* `length > 0`: çıplak 0 Android'de Text dışında metin olur ve çöker. */}
-        {denetim.hatalar.length > 0 && (aracHaritasiVar(denetim.aracId)
+        {denetim.hatalar.length > 0 && (cizimVar(denetim.aracId)
           || Object.keys(useAracGorselleri.getState().gorseller[denetim.aracId]?.yuvalar ?? {}).length > 0) ? (
           <Kart>
             <BolumBasligi metin={t('Araç üzerinde hatalar', 'Defects on the vehicle')} simge={S.arac} />
@@ -353,6 +356,7 @@ export default function RaporEkrani() {
                 aracId={denetim.aracId}
                 bolgeler={bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })}
                 kayitliParcalar={parcaDemeritleri(denetim.hatalar)}
+                kayitSayilari={parcaKayitSayilari(denetim.hatalar)}
                 onBolgeSec={() => {}}
                 onParcaSec={() => {}}
                 saltOkunur
@@ -425,19 +429,6 @@ export default function RaporEkrani() {
         {hata ? <HataKutusu metin={hata} /> : null}
       </ScrollView>
 
-      {bitirOnay ? (
-        <View style={s.onayBandi}>
-          <Text style={s.onayMetin}>
-            {t('Denetim "tamamlandı" olarak işaretlenecek. Sonradan kayıt eklenirse yeniden açılır.', 'The audit will be marked "completed". It reopens if a record is added later.')}
-            {/* Kapsam uyarısı (24.10.2026): hiç bakılmamış sistem "hatasız" sanılmasın. */}
-            {eksikSistemler(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }))).length
-              ? ` ${t('Kontrol edildi işareti olmayan sistemler', 'Systems not marked as checked')}: ${eksikSistemler(denetim.kapsam ?? [], mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }))).map((x) => sistemAdi(x, dil)).join(', ')}.`
-              : t(' Bütün sistemler kontrol edildi.', ' All systems checked.')}
-          </Text>
-          <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" kucuk onPress={() => setBitirOnay(false)} erisimEtiketi={t('Bitirmekten vazgeç', 'Cancel finishing')} />
-        </View>
-      ) : null}
-
       <AltCubuk style={tablet ? { justifyContent: 'flex-end' } : undefined}>
         <Dugme
           metin="Excel"
@@ -457,14 +448,45 @@ export default function RaporEkrani() {
         />
         {denetim.durum === 'devam' ? (
           <Dugme
-            metin={bitirOnay ? t('Evet, bitir', 'Yes, finish') : t('Bitir', 'Finish')}
-            erisimEtiketi={bitirOnay ? t('Denetimi bitirmeyi onayla', 'Confirm finishing the audit') : t('Denetimi bitir', 'Finish audit')}
+            metin={t('Bitir', 'Finish')}
+            erisimEtiketi={t('Denetimi bitir', 'Finish audit')}
             simge={S.tamam}
-            tur={bitirOnay ? 'birincil' : 'ikincil'}
-            onPress={bitir}
+            onPress={() => setBitirOnay(true)}
           />
         ) : null}
       </AltCubuk>
+
+      {bitirOnay && denetim.durum === 'devam' ? (
+        <View style={[StyleSheet.absoluteFill, s.perde]} testID="bitir-diyalog">
+          <View style={s.diyalog} role="dialog" aria-modal accessibilityViewIsModal accessibilityLabel={t('Bitirme onayı', 'Confirm finishing')}>
+            <Text style={s.diyalogBaslik} accessibilityRole="header">{t('Denetim bitirilsin mi?', 'Finish the audit?')}</Text>
+            <Text style={s.diyalogMetin}>
+              {t('"Tamamlandı" olarak işaretlenir. Sonradan kayıt eklenirse yeniden açılır.', 'It is marked "completed". It reopens if a record is added later.')}
+            </Text>
+            {/* Kapsam uyarısı (24.10.2026): hiç bakılmamış sistem "hatasız" sanılmasın. */}
+            {eksikler.length ? (
+              <View style={s.diyalogUyari}>
+                <S.uyari size={18} color={renkler.uyari} strokeWidth={2.25} />
+                <Text style={[s.diyalogMetin, { color: renkler.uyari, flex: 1 }]}>
+                  {t('Kontrol edildi işareti olmayan sistemler', 'Systems not marked as checked')}: {eksikler.map((x) => sistemAdi(x, dil)).join(', ')}.
+                </Text>
+              </View>
+            ) : (
+              <Text style={[s.diyalogMetin, { color: renkler.basari }]}>{t('Bütün sistemler kontrol edildi.', 'All systems checked.')}</Text>
+            )}
+            <View style={s.diyalogDugmeler}>
+              <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" onPress={() => setBitirOnay(false)} erisimEtiketi={t('Bitirmekten vazgeç', 'Cancel finishing')} />
+              <Dugme
+                metin={t('Evet, bitir', 'Yes, finish')}
+                erisimEtiketi={t('Denetimi bitirmeyi onayla', 'Confirm finishing the audit')}
+                simge={S.tamam}
+                tur="birincil"
+                onPress={bitir}
+              />
+            </View>
+          </View>
+        </View>
+      ) : null}
     </Ekran>
   );
 }
@@ -527,10 +549,13 @@ const stiller = (r: Renkler) => StyleSheet.create({
   gunlukZaman: { ...tipografi.caption, color: r.metinSolgun },
   gunlukMetin: { ...tipografi.body, color: r.metin },
 
-  onayBandi: {
-    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
-    paddingHorizontal: bosluk.md, paddingVertical: bosluk.xs,
-    borderTopWidth: 1, borderTopColor: r.cizgiSolgun, backgroundColor: r.uyariYumusak,
+  perde: { backgroundColor: r.perde, alignItems: 'center', justifyContent: 'center', padding: bosluk.md },
+  diyalog: {
+    width: '100%', maxWidth: 440, gap: bosluk.sm, padding: bosluk.lg,
+    borderRadius: kose.lg, backgroundColor: r.yuzey, boxShadow: `0 12px 32px ${r.golge}`,
   },
-  onayMetin: { ...tipografi.caption, color: r.uyari, flex: 1 },
+  diyalogBaslik: { ...tipografi.h3, color: r.metin },
+  diyalogMetin: { ...tipografi.body, color: r.metinIkincil },
+  diyalogUyari: { flexDirection: 'row', alignItems: 'flex-start', gap: bosluk.xs },
+  diyalogDugmeler: { flexDirection: 'row', justifyContent: 'flex-end', gap: bosluk.xs, marginTop: bosluk.xs },
 });

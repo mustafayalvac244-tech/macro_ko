@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 
 import { GRUP_SIMGELERI, S } from '@/bilesenler/simgeler';
-import { AramaKutusu, DereceRozeti, Dugme, Girdi, HataKutusu, Secenek } from '@/bilesenler/temel';
+import { AramaKutusu, DereceRozeti, Dugme, Girdi, HataKutusu, Secenek, SegmentSecici } from '@/bilesenler/temel';
 import { fotografKucult } from '@/cekirdek/goruntu';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import { grupAdi, PARCA_INDEKS, parcaBolgeAdi, parcaCiftiAdi, parcaHataTipleri, parcaTamAdi, DERECELER } from '@/cekirdek/katalog';
@@ -765,19 +765,12 @@ export function DereceSecici({
 export function SinifSecici({ sinif, onSec }: { sinif: SinifKodu; onSec: (c: SinifKodu) => void }) {
   const { t } = useDil();
   return (
-    <View style={{ flexDirection: 'row', gap: bosluk.xs }} accessibilityRole="radiogroup" accessibilityLabel={t('Sınıf', 'Class')}>
-      {SINIFLAR.map((c) => (
-        <Secenek
-          key={c}
-          kucuk
-          metin={c}
-          erisimEtiketi={t(`Sınıf ${c}`, `Class ${c}`)}
-          secili={sinif === c}
-          onPress={() => onSec(c)}
-          style={{ flex: 1, justifyContent: 'center' }}
-        />
-      ))}
-    </View>
+    <SegmentSecici
+      secenekler={SINIFLAR.map((c) => ({ id: c, metin: c, erisimEtiketi: t(`Sınıf ${c}`, `Class ${c}`) }))}
+      deger={sinif}
+      onSec={(c) => c && onSec(c)}
+      erisimEtiketi={t('Sınıf', 'Class')}
+    />
   );
 }
 

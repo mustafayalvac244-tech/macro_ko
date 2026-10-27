@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-  aracHaritasiVar, cizimRolu, dokunulanYuz, dokunusSonucu, gorunenYuzler, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka,
-  HALKA_YUVALARI, kaymaSinirla, parcaDemeritleri, yakinKutu, YAKINLIKLAR, yogunlukKademesi, haritaOdagi, kaydirmaIndeksi, kutudakiNokta, odakKutusu, oranUyar, sar, UST_BOLGESI,
+  aracHaritasiVar, cizimHaritasi, cizimRolu, cizimVar, GENEL_CIZIM_KAYNAGI, genelCizimMi, dokunulanYuz, dokunusSonucu, gorunenYuzler, gorunumHaritasi, goruntuKutusu, goruntuNoktasi, halka,
+  cokgenMerkezi, HALKA_YUVALARI, isaretYerleri, kaymaSinirla, parcaDemeritleri, parcaKayitSayilari, yakinKutu, YAKINLIKLAR, yogunlukKademesi, haritaOdagi, kaydirmaIndeksi, kutudakiNokta, odakKutusu, oranUyar, sar, UST_BOLGESI,
   yumusakYol, yuvaAdi, YUVALAR, YUZ_BOLGESI,
 } from '../arac-audit-app/src/cekirdek/donusGorunumu';
-import { GorunumId, PARCA_HARITALARI } from '../arac-audit-app/src/cekirdek/gorunumParcalari';
+import { cokgenIcinde, GorunumId, PARCA_HARITALARI } from '../arac-audit-app/src/cekirdek/gorunumParcalari';
 import { BOLGELER, PARCA_INDEKS, parcaCiftiAdi } from '../arac-audit-app/src/cekirdek/katalog';
 import { sorunMetni } from '../arac-audit-app/src/cekirdek/rapor';
 import { ARAC_INDEKS } from '../arac-audit-app/src/cekirdek/model3d';
@@ -390,5 +390,70 @@ describe('yoğunluk kademesi', () => {
   it('tek parça kayıtlıysa o parça en koyu; en çok 0 verilse de bölmez', () => {
     expect(yogunlukKademesi(1, 1)).toBe('3');
     expect(yogunlukKademesi(1, 0)).toBe('3');
+  });
+});
+
+// 27.10.2026 — ikinci tur tasarım değerlendirmesi: parça %55 boyanınca "çamur"
+// gibi okunuyordu; renk numaralı işarete taşındı. İşaret parçanın İÇİNDE
+// olmalı (içbükey parçada ağırlık merkezi dışarı düşebilir). Beklentileri ben yazdım.
+describe('numaralı işaret', () => {
+  it('karenin merkezi ortası; U biçiminde merkez dışarı düşünce içte bir nokta seçilir', () => {
+    expect(cokgenMerkezi([[0, 0], [1, 0], [1, 1], [0, 1]])).toEqual([0.5, 0.5]);
+    // U: ağırlık merkezi (0.5, ~0.6) boşlukta.
+    const u: [number, number][] = [[0, 0], [0.3, 0], [0.3, 0.7], [0.7, 0.7], [0.7, 0], [1, 0], [1, 1], [0, 1]];
+    const [x, y] = cokgenMerkezi(u);
+    expect(cokgenIcinde(u, x, y)).toBe(true);
+  });
+
+  it('parça başına tek işaret, en büyük alanında; büyükten küçüğe sıralı', () => {
+    const alanlar = [
+      { parcaId: 'a', nokta: [[0, 0], [0.1, 0], [0.1, 0.1], [0, 0.1]] as [number, number][] },
+      { parcaId: 'a', nokta: [[0.5, 0.5], [0.9, 0.5], [0.9, 0.9], [0.5, 0.9]] as [number, number][] },
+      { parcaId: 'b', nokta: [[0.2, 0.2], [0.3, 0.2], [0.3, 0.3]] as [number, number][] },
+      { parcaId: 'c', nokta: [[0, 0.5], [0.2, 0.5], [0.2, 0.7]] as [number, number][] },
+    ];
+    const y = isaretYerleri(alanlar, (p) => p !== 'c');
+    expect(y.map((x) => x.parcaId)).toEqual(['a', 'b']);
+    expect(y[0]!.x).toBeCloseTo(0.7); expect(y[0]!.y).toBeCloseTo(0.7);
+  });
+
+  it('kayıt sayısı: iki parça arası kayıt ikisinde de sayılır', () => {
+    const m = parcaKayitSayilari([{ parcaId: 'kaput' }, { parcaId: 'kaput', ikinciParcaId: 'sol_on_camurluk' }]);
+    expect(m.get('kaput')).toBe(2);
+    expect(m.get('sol_on_camurluk')).toBe(1);
+  });
+
+  it('IONIQ 3 haritasında her bakışta her parçanın işareti kendi alanının içinde', () => {
+    let sayi = 0;
+    for (const [yuva, h] of Object.entries(PARCA_HARITALARI.ioniq3!)) {
+      for (const { parcaId, x, y } of isaretYerleri(h!.alanlar, () => true, h!.oran)) {
+        const alanlari = h!.alanlar.filter((a) => a.parcaId === parcaId);
+        if (!alanlari.some((a) => cokgenIcinde(a.nokta, x, y))) throw new Error(`${yuva}/${parcaId}: işaret (${x.toFixed(3)}, ${y.toFixed(3)}) parçanın dışında`);
+        sayi++;
+      }
+    }
+    expect(sayi).toBeGreaterThan(50);
+  });
+});
+
+// 27.10.2026 — ikinci tur estetik: beş modelde araç yerine kutu şeması. Kendi
+// haritası olmayan modelde IONIQ 3 çizimi GENEL çizim olarak (ekranda öyle yazarak).
+describe('genel çizim', () => {
+  it('kendi haritası olmayan modelde genel çizim; IONIQ 3 kendi çizimini kullanır', () => {
+    expect(genelCizimMi('ioniq3')).toBe(false);
+    for (const id of ['i20', 'bayon', 'i10', 'i20n', 'bc4cuv']) {
+      expect(ARAC_INDEKS[id]).toBeDefined();
+      expect(aracHaritasiVar(id)).toBe(false);
+      expect(genelCizimMi(id)).toBe(true);
+      expect(cizimVar(id)).toBe(true);
+      expect(cizimHaritasi(id, 'sol_on')).toBe(PARCA_HARITALARI[GENEL_CIZIM_KAYNAGI]!.sol_on);
+    }
+  });
+
+  it('genel çizimdeki her parça benzinli katalogda da var (çizilen parça seçilebilir)', () => {
+    const iceKatalog = new Set(Object.values(PARCA_INDEKS).filter((p) => !p.sadeceEv).map((p) => p.id));
+    for (const h of Object.values(PARCA_HARITALARI[GENEL_CIZIM_KAYNAGI]!)) {
+      for (const a of h!.alanlar) expect(iceKatalog.has(a.parcaId), a.parcaId).toBe(true);
+    }
   });
 });

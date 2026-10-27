@@ -29,19 +29,19 @@ import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 
 import {
   Image, LayoutChangeEvent, PanResponder, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View,
 } from 'react-native';
-import Svg, { Defs, Ellipse, Line, LinearGradient, Path, Polygon, RadialGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, Line, LinearGradient, Path, Polygon, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 import { S } from '@/bilesenler/simgeler';
 import { Dugme, Secenek } from '@/bilesenler/temel';
 import {
   AracOlcusu, cizimRolu, CizimRolu, dokunusSonucu, gorunumHaritasi, goruntuKutusu, halka, HalkaGirdisi,
-  haritaOdagi, kaydirmaIndeksi, kaymaSinirla, kaynakHaritasi, kutudakiNokta, odakKutusu, sar, YAKINLIKLAR, yakinKutu, yogunlukKademesi, yumusakYol, yuvaAdi,
+  cizimHaritasi, genelCizimMi, haritaOdagi, isaretYerleri, kaydirmaIndeksi, kaymaSinirla, kaynakHaritasi, kutudakiNokta, odakKutusu, sar, YAKINLIKLAR, yakinKutu, yogunlukKademesi, yumusakYol, yuvaAdi,
 } from '@/cekirdek/donusGorunumu';
 import { cokgenAlani, GorunumHaritasi, GorunumId } from '@/cekirdek/gorunumParcalari';
 import { parcaCiftiAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { ARAC_INDEKS } from '@/cekirdek/model3d';
 import { Bolge } from '@/cekirdek/tipler';
-import { ARAC_BOYASI, ARAC_TEKNIK, bosluk, dereceRenkleri, DOKUNMA, kose, PALETLER, Renkler, tipografi, useTema } from '@/tema';
+import { ARAC_BOYASI, ARAC_TEKNIK, bosluk, dereceRenkleri, DOKUNMA, kose, PALETLER, Renkler, tipografi, useTema, yazi } from '@/tema';
 import { useAracGorselleri, yuvaAdresi } from '@/veri/aracGorselleri';
 import { useCizimDeposu } from '@/veri/cizimDeposu';
 import { useDil } from '@/veri/dilDeposu';
@@ -65,7 +65,7 @@ const SON_BAKIS = new Map<string, { yuva: GorunumId | null; ustte: boolean }>();
 const SON_BAKIS_DINLEYICI = new Set<() => void>();
 
 export function DonusGorunumu({
-  aracId, bolgeler, kayitliParcalar, seciliParcaId, seciliIkinciParcaId, onBolgeSec, onParcaSec, buyuk = false, onBuyut, onKapat,
+  aracId, bolgeler, kayitliParcalar, kayitSayilari, seciliParcaId, seciliIkinciParcaId, onBolgeSec, onParcaSec, buyuk = false, onBuyut, onKapat,
   saltOkunur = false, boya: boyaKipi = 'demerit', onDokunulan,
 }: {
   aracId: string;
@@ -73,6 +73,12 @@ export function DonusGorunumu({
   bolgeler: readonly Bolge[];
   /** Parça → üzerindeki kayıtların en yüksek demerit'i (`parcaDemeritleri`); kayıtlı parça bu renkle boyanır. */
   kayitliParcalar: ReadonlyMap<string, number>;
+  /**
+   * Parça → kayıt sayısı (`parcaKayitSayilari`): işaretin üstündeki rakam.
+   * Verilmezse yoğunluk kipinde `kayitliParcalar`ın değeri (zaten sayı),
+   * demerit kipinde rakamsız işaret.
+   */
+  kayitSayilari?: ReadonlyMap<string, number>;
   /** Hata ızgarası açık olan parça (tablette görünüm yanında durur): vurgulanır, adı yazılır. */
   seciliParcaId?: string | null;
   /** Açık kaydın ikinci parçası (boşluk/kademe): tablette kart ikisini de vurgular ve "A ↔ B" yazar. */
@@ -107,7 +113,13 @@ export function DonusGorunumu({
   const cizimStili = useCizimDeposu((d) => d.stil);
   const yuvalar = useMemo(() => gorsel?.yuvalar ?? {}, [gorsel]);
   // Görseli olmayan yuva, haritası varsa ÇİZİLİR (26.10.2026): kurulum gerekmez.
-  const haritali = useCallback((y: GorunumId) => !!kaynakHaritasi(aracId, y), [aracId]);
+  // Genel çizim yalnız HİÇ görseli olmayan modelde: gerçek fotoğrafla başka
+  // aracın çizimi aynı turda karışmasın.
+  const genel = genelCizimMi(aracId) && Object.keys(yuvalar).length === 0;
+  const haritali = useCallback(
+    (y: GorunumId) => !!(genel ? cizimHaritasi(aracId, y) : kaynakHaritasi(aracId, y)),
+    [aracId, genel],
+  );
   const halkaListesi = useMemo(() => halka((y) => !!yuvalar[y], haritali), [yuvalar, haritali]);
   const ustGorseli = !!yuvalar.ust;
   const ustVar = ustGorseli || haritali('ust');
@@ -152,8 +164,8 @@ export function DonusGorunumu({
   const yuvaGorseli = kaynak && !cizim ? yuvalar[kaynak] : undefined;
   const oran = yuvaGorseli ? yuvaGorseli.en / Math.max(1, yuvaGorseli.boy) : SAHNE_ORANI;
   const harita: GorunumHaritasi | null = useMemo(
-    () => (kaynak ? gorunumHaritasi(aracId, kaynak, ayna, oran, (id) => parcaKimlikleri.has(id)) : null),
-    [aracId, kaynak, ayna, oran, parcaKimlikleri],
+    () => (kaynak ? gorunumHaritasi(aracId, kaynak, ayna, oran, (id) => parcaKimlikleri.has(id), cizim && genel) : null),
+    [aracId, kaynak, ayna, oran, parcaKimlikleri, cizim, genel],
   );
 
   const [kap, setKap] = useState({ en: 0, boy: 0 });
@@ -169,6 +181,9 @@ export function DonusGorunumu({
   // kalıyordu, onay çubuğu açılınca daha da az. Kontroller sağ sütuna geçer,
   // araç solda tam yükseklikte. Tablette (yükseklik ≥ 500) alt alta düzen kalır.
   const yanYana = buyuk && !dikey && pencere.height < 500;
+  // Ölçüldü (27.10.2026, web, 390 px telefon): tek satırlık adla onay çubuğu 122 px;
+  // iki satırlık ada ~22 px pay. Daha yükseği görülürse yer büyür (onLayout).
+  const [onayBoyu, setOnayBoyu] = useState(144);
   // Dikey telefonda sahne aracın oranından biraz yüksek (en fazla 1,5): 1×'te
   // araç ortada, yakınlaşınca yükseklik de kullanılır.
   const odakOrani = odak ? Math.min(1.5, Math.max(1.2, ((odak.x1 - odak.x0) * oran) / Math.max(0.01, odak.y1 - odak.y0))) : SAHNE_ORANI;
@@ -185,6 +200,11 @@ export function DonusGorunumu({
   const kayma = kaymaSinirla(temelKutu, kap.en, kap.boy, yakin, odak, kaymaHam);
   const kutu = yakinKutu(temelKutu, kap.en, kap.boy, yakin, kayma);
   const enCok = useMemo(() => Math.max(1, ...kayitliParcalar.values()), [kayitliParcalar]);
+  // Numaralı işaretlerin yeri (normalize); kutunun en/boy oranıyla, parçanın içinde.
+  const isaretler = useMemo(
+    () => (harita ? isaretYerleri(harita.alanlar, (p) => kayitliParcalar.has(p), harita.oran) : []),
+    [harita, kayitliParcalar],
+  );
   // ONAY (26.10.2026, ürün sahibi: "parçayı seçince hemen girmesin, onaylatsın;
   // yanlış tıklama olabilir"): dokunuş parçayı yalnız İŞARETLER; hata ızgarası
   // "Onayla" ile açılır. Başka parçaya dokunmak seçimi değiştirir.
@@ -368,21 +388,23 @@ export function DonusGorunumu({
               >
                 {harita.alanlar.map((a, i) => {
                   const secili = isaretli.has(a.parcaId);
-                  const demerit = kayitliParcalar.get(a.parcaId);
-                  const kayitli = demerit !== undefined;
-                  if (!secili && !kayitli) return null;
-                  // Kayıtlı parça DEMERİT RENGİYLE (26.10.2026; eskiden üç derece de aynı
-                  // kırmızıydı). Renkler açık temadan, iki temada aynı: çizim içerik,
-                  // arayüz değil (koyu temada somon pembesine dönüyordu). Dolgu 0.22
-                  // iken teal gövdede renk griye dönüyordu; 0.55'te kalır.
-                  const kademe = boyaKipi === 'yogunluk' ? yogunlukKademesi(demerit ?? 0, enCok) : String(demerit);
-                if (!secili && kademe === null) return null;
-                const renk = secili ? PALETLER.acik.birincil : dereceRenkleri(PALETLER.acik, kademe ?? '0').on;
+                  const deger = kayitliParcalar.get(a.parcaId);
+                  if (!secili && deger === undefined) return null;
+                  // HATA BOYASI (27.10.2026). Eskiden parça %55 demerit rengine
+                  // boyanıyordu; ikinci tur değerlendirmede iki tasarımcı da gri
+                  // gövdede "çamur/pas" gibi okunduğunu söyledi. Artık parça ince
+                  // dolgu (%16) + 2,5 px demerit renginde kenar; renk asıl
+                  // aşağıdaki numaralı işarette. Renkler açık temadan, iki temada
+                  // aynı (çizim içerik, arayüz değil). Seçili parça: birincil, %12.
+                  const kademe = boyaKipi === 'yogunluk' ? yogunlukKademesi(deger ?? 0, enCok) : String(deger);
+                  if (!secili && kademe === null) return null;
+                  const renk = secili ? PALETLER.acik.birincil : dereceRenkleri(PALETLER.acik, kademe ?? '0').on;
                   const boya = {
                     fill: renk,
-                    fillOpacity: secili ? 0.45 : 0.55,
+                    fillOpacity: secili ? 0.12 : 0.16,
                     stroke: renk,
-                    strokeWidth: secili ? 2 : 1.5,
+                    strokeWidth: secili ? 2 : 2.5,
+                    strokeLinejoin: 'round' as const,
                   };
                   // Çizimde vurgu da çizimin yumuşak kenarını izler; görselde düz çokgen.
                   return cizim ? (
@@ -395,7 +417,41 @@ export function DonusGorunumu({
                     />
                   );
                 })}
+                {/* NUMARALI İŞARET: parça başına bir tane, parçanın içinde; rakam
+                    parçadaki kayıt sayısı, renk demerit (ya da yoğunluk) kademesi. */}
+                {isaretler.map(({ parcaId, x, y }) => {
+                  const deger = kayitliParcalar.get(parcaId) ?? 0;
+                  const kademe = boyaKipi === 'yogunluk' ? yogunlukKademesi(deger, enCok) : String(deger);
+                  if (kademe === null) return null;
+                  const renk = dereceRenkleri(PALETLER.acik, kademe).on;
+                  const sayi = kayitSayilari?.get(parcaId) ?? (boyaKipi === 'yogunluk' ? deger : undefined);
+                  const r0 = buyuk ? 12 : 10;
+                  return (
+                    <React.Fragment key={`isaret-${parcaId}`}>
+                      <Circle cx={x * kutu.en} cy={y * kutu.boy} r={r0} fill={renk} stroke="#FFFFFF" strokeWidth={2} data-isaret={parcaId} />
+                      {sayi !== undefined ? (
+                        <SvgText
+                          x={x * kutu.en}
+                          y={y * kutu.boy + r0 * 0.36}
+                          fill="#FFFFFF"
+                          fontSize={buyuk ? 12 : 11}
+                          fontFamily={yazi.kalin}
+                          fontWeight="700"
+                          textAnchor="middle"
+                        >
+                          {sayi > 99 ? '99+' : String(sayi)}
+                        </SvgText>
+                      ) : null}
+                    </React.Fragment>
+                  );
+                })}
               </Svg>
+            ) : null}
+            {/* Genel çizim AÇIKÇA yazılır: başka modelin çizimi bu modelinki diye sunulmaz. */}
+            {genel && cizim && harita ? (
+              <View style={s.genelCip} testID="donus-genel">
+                <Text style={s.genelCipMetin} numberOfLines={1}>{t('Genel çizim — bu modelin kendi çizimi yok', 'Generic drawing — no drawing for this model')}</Text>
+              </View>
             ) : null}
           </View>
         </View>
@@ -536,6 +592,29 @@ export function DonusGorunumu({
           {altOgesi}
           {seceneklerOgesi}
         </ScrollView>
+      </View>
+    );
+  }
+  // DİKEY BÜYÜK GÖRÜNÜM (27.10.2026, ikinci tur estetik/tasarım: "araç ekranın
+  // üst üçte birinde, altın yarısı boş"). Sahne kalan alanın ORTASINDA,
+  // kontroller altta. Onay çubuğunun yeri baştan ayrılır: çubuk çıkınca sahne
+  // kaymasın — yoksa dokunulan parça parmağın altından kayardı. Yer, görülen en
+  // yüksek onay çubuğuna göre büyür (iki satırlık ad).
+  if (buyuk && dikey) {
+    return (
+      <View style={s.kapBuyuk}>
+        {ustOgesi}
+        <View style={s.dikeySahneAlani}>{sahneOgesi}</View>
+        <View
+          style={[s.onayYeri, { minHeight: onayBoyu }]}
+          onLayout={(e: LayoutChangeEvent) => { const h = e.nativeEvent.layout.height; if (onayOgesi && h > onayBoyu) setOnayBoyu(h); }}
+        >
+          {onayOgesi ?? (
+            <Text style={s.onayYeriIpucu}>{t('Parçaya dokunun; seçim burada onaylanır.', 'Tap a part; you confirm it here.')}</Text>
+          )}
+        </View>
+        {altOgesi}
+        {seceneklerOgesi}
       </View>
     );
   }
@@ -730,6 +809,7 @@ export function BoyaAciklamasi({ boya }: { boya: 'demerit' | 'yogunluk' }) {
           <Text style={s.aciklamaMetin}>{ad}</Text>
         </View>
       ))}
+      <Text style={s.aciklamaMetin}>{t('· rakam: kayıt sayısı', '· number: records')}</Text>
     </View>
   );
 }
@@ -737,7 +817,7 @@ export function BoyaAciklamasi({ boya }: { boya: 'demerit' | 'yogunluk' }) {
 const stiller = (r: Renkler) => StyleSheet.create({
   aciklamaSatir: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: bosluk.sm },
   aciklamaKalem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  aciklamaRenk: { width: 14, height: 14, borderRadius: 4, opacity: 0.8 },
+  aciklamaRenk: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#FFFFFF' },
   aciklamaMetin: { ...tipografi.caption, color: r.metinIkincil },
   // Çerçevesiz ton dolgu (26.10.2026): sistem satırlarıyla aynı yüzey dili.
   kap: {
@@ -747,6 +827,14 @@ const stiller = (r: Renkler) => StyleSheet.create({
   sahne: { width: '100%', aspectRatio: SAHNE_ORANI, borderRadius: kose.md, overflow: 'hidden', backgroundColor: r.yuzey },
   // Büyük görünüm: kabı doldurur; sahne kalan bütün yüksekliği alır.
   kapBuyuk: { flex: 1, gap: bosluk.xs, padding: bosluk.sm, backgroundColor: r.bg },
+  dikeySahneAlani: { flex: 1, justifyContent: 'center' },
+  genelCip: {
+    position: 'absolute', left: bosluk.xs, top: bosluk.xs, maxWidth: '92%',
+    paddingHorizontal: bosluk.xs, paddingVertical: 2, borderRadius: kose.sm, backgroundColor: r.yuzeyVurgu,
+  },
+  genelCipMetin: { ...tipografi.caption, fontSize: 11, color: r.metinIkincil },
+  onayYeri: { justifyContent: 'center' },
+  onayYeriIpucu: { ...tipografi.caption, color: r.metinSolgun, textAlign: 'center' },
   sahneBuyuk: { flex: 1, width: '100%', borderRadius: kose.md, overflow: 'hidden', backgroundColor: r.yuzey },
   // Yatay telefon: solda sahne, sağda kontroller (yanYana).
   kapBuyukYan: { flex: 1, flexDirection: 'row', gap: bosluk.sm, padding: bosluk.sm, backgroundColor: r.bg },

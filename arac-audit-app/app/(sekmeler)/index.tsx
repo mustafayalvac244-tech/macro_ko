@@ -148,7 +148,7 @@ export default function DenetimListesi() {
     <Ekran>
       {/* Ayarlar alt sekmede (25.10.2026); başlıktaki dişli kalktı. */}
       {/* "Güncelle" tek dokunuş (26.10.2026); web'de ve geliştirmede görünmez. */}
-      <Baslik baslik={t('Denetimler', 'Audits')} altBaslik={t('Kayıtlar yalnız bu cihazda', 'Records are on this device only')} sag={<GuncelleDugmesi />} />
+      <Baslik baslik={t('Denetimler', 'Audits')} altBaslik={t('Kayıtlar yalnız bu cihazda', 'Records are on this device only')} sag={<GuncelleDugmesi />} icerikGenisligi={1100} />
 
       {hata ? <View style={s.hataKap}><HataKutusu metin={t(`Kayıtlar okunamadı: ${hata}`, `Could not read records: ${hata}`)} /></View> : null}
 
@@ -280,8 +280,8 @@ const stiller = (r: Renkler) => StyleSheet.create({
   },
   ust: { gap: bosluk.md, marginBottom: bosluk.xxs },
 
-  yeniDugme: { minHeight: 56, alignSelf: 'stretch' },
-  yeniDugmeTablet: { minHeight: 56, alignSelf: 'flex-start', minWidth: 320 },
+  yeniDugme: { minHeight: 52, alignSelf: 'stretch' },
+  yeniDugmeTablet: { minHeight: 52, alignSelf: 'flex-start', minWidth: 320 },
 
   sayac: { ...tipografi.captionOrta, color: r.metinSolgun, fontVariant: ['tabular-nums'] },
   aramaBlok: { gap: bosluk.sm },

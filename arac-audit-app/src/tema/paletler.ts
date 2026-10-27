@@ -44,6 +44,15 @@ export interface Renkler {
   birincil: string;
   birincilKoyu: string;
   birincilYumusak: string;
+  /**
+   * DOLU birincil yüzey (büyük düğme, başlıktaki Rapor, sayaç) ve üstündeki
+   * yazı (27.10.2026). Açık temada `birincil` ile aynı. Koyu temada `birincil`
+   * (#7FB3FF) yazı/kenar için açık tutuluyor (koyu zeminde okunsun), ama dolu
+   * düğmede "bebek mavisi" oluyordu (ikinci tur estetik değerlendirmesi:
+   * "marka değiştirmiş gibi"). Dolgu ayrı: #3D6FD0 üstünde beyaz, 4,8:1.
+   */
+  birincilDolgu: string;
+  birincilDolguMetin: string;
 
   // Durum
   basari: string;
@@ -128,6 +137,8 @@ const acik: Renkler = {
   birincil: '#173C7E',
   birincilKoyu: '#10295A',
   birincilYumusak: '#DCE6F6',
+  birincilDolgu: '#173C7E',
+  birincilDolguMetin: '#FFFFFF',
 
   basari: '#0F7148',
   basariYumusak: '#DAF1E5',
@@ -177,6 +188,8 @@ const koyu: Renkler = {
   birincil: '#7FB3FF',
   birincilKoyu: '#4F8BE6',
   birincilYumusak: '#14294A',
+  birincilDolgu: '#3D6FD0',
+  birincilDolguMetin: '#FFFFFF',
 
   basari: '#45D796',
   basariYumusak: '#0D2A1E',

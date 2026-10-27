@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { EklenebilirSecim, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { S } from '@/bilesenler/simgeler';
 import {
-  AltCubuk, Baslik, BilgiKutusu, BolumBasligi, Dugme, GeriDugmesi, Girdi, Kart, Secenek, useDuzen,
+  AltCubuk, Baslik, BilgiKutusu, BolumBasligi, Dugme, GeriDugmesi, Girdi, Kart, Secenek, SegmentSecici, useDuzen,
 } from '@/bilesenler/temel';
 import { SPECLER } from '@/cekirdek/aracBilgisi';
 import {
@@ -314,18 +314,15 @@ export default function YeniDenetim() {
             />
             <View style={{ gap: bosluk.xxs }}>
               <Text style={s.alanEtiketi}>Spec</Text>
-              <View style={s.satir}>
-                {SPECLER.map((x) => (
-                  <Secenek
-                    key={x}
-                    metin={x}
-                    erisimEtiketi={`Spec ${x}`}
-                    secili={spec === x}
-                    onPress={() => setSpec(spec === x ? '' : x)}
-                    style={{ minWidth: 72 }}
-                  />
-                ))}
-              </View>
+              {/* Segment; isteğe bağlı — seçiliye yeniden dokununca kalkar. */}
+              <SegmentSecici
+                secenekler={SPECLER.map((x) => ({ id: x, metin: x, erisimEtiketi: `Spec ${x}` }))}
+                deger={spec || null}
+                onSec={(x) => setSpec(x ?? '')}
+                bosaltilabilir
+                erisimEtiketi="Spec"
+                style={{ maxWidth: 240 }}
+              />
             </View>
           </Kart>
         </View>

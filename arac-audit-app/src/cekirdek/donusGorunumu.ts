@@ -31,7 +31,7 @@
 // dönülür; isabet için parça haritası gerekir. Üst görünüm: tamamı tavan.
 
 import {
-  aynalaHarita, GorunumHaritasi, GorunumId, noktadakiParca, PARCA_HARITALARI,
+  aynalaHarita, cokgenAlani, cokgenIcinde, GorunumHaritasi, GorunumId, noktadakiParca, PARCA_HARITALARI,
 } from './gorunumParcalari';
 
 export type AracYuzu = 'on' | 'arka' | 'sol' | 'sag';
@@ -237,9 +237,35 @@ export function kaynakHaritasi(aracId: string, yuva: GorunumId): GorunumHaritasi
   return (SINAV_HARITALARI[aracId] ?? PARCA_HARITALARI[aracId])?.[yuva];
 }
 
-/** Aracın en az bir bakışının parça haritası var mı (varsa görsel olmadan da çizilir). */
+/** Aracın en az bir bakışının KENDİ parça haritası var mı (varsa görsel olmadan da çizilir). */
 export function aracHaritasiVar(aracId: string): boolean {
   return YUVALAR.some((y) => !!kaynakHaritasi(aracId, y));
+}
+
+/**
+ * GENEL ÇİZİM (27.10.2026). Altı modelin yalnız IONIQ 3'ün kendi parça haritası
+ * var; öteki beşi görselsiz denetimde kutu şeması gösteriyordu. İkinci tur
+ * estetik değerlendirmesi bunu "ürünün vitrininde kutu diyagramı" diye en
+ * çirkin ekran saydı. Kendi haritası olmayan modelde IONIQ 3'ün çizimi GENEL
+ * çizim olarak kullanılır ve ekranda öyle yazar (model çizimi diye sunulmaz).
+ * Haritadaki 64 parçanın hepsi benzinli kataloğunda da var (birim testi).
+ * YALNIZ ÇİZİMDE: o modele yüklenmiş gerçek fotoğrafa bu çokgenler
+ * uygulanmaz — başka aracın parça sınırları fotoğrafla örtüşmez.
+ */
+export const GENEL_CIZIM_KAYNAGI = 'ioniq3';
+
+export function genelCizimMi(aracId: string): boolean {
+  return !aracHaritasiVar(aracId) && aracHaritasiVar(GENEL_CIZIM_KAYNAGI);
+}
+
+/** Görselsiz bakışta ÇİZİLECEK harita: aracın kendisi, yoksa genel çizim. */
+export function cizimHaritasi(aracId: string, yuva: GorunumId): GorunumHaritasi | undefined {
+  return kaynakHaritasi(aracId, yuva) ?? (genelCizimMi(aracId) ? kaynakHaritasi(GENEL_CIZIM_KAYNAGI, yuva) : undefined);
+}
+
+/** Araç görselsiz de döndürülebilir mi (kendi ya da genel çizimle). */
+export function cizimVar(aracId: string): boolean {
+  return YUVALAR.some((y) => !!cizimHaritasi(aracId, y));
 }
 
 export type CizimRolu = 'govde' | 'cam' | 'lastik' | 'siyah' | 'gumus' | 'far' | 'drl' | 'stop' | 'plaka';
@@ -313,8 +339,10 @@ export function yumusakYol(
  */
 export function gorunumHaritasi(
   aracId: string, kaynak: GorunumId, ayna: boolean, gorselOrani: number, parcaVar: (id: string) => boolean,
+  /** Görsel değil çizim: aracın kendi haritası yoksa genel çizimin haritası. */
+  cizimIcin = false,
 ): GorunumHaritasi | null {
-  const h = kaynakHaritasi(aracId, kaynak);
+  const h = cizimIcin ? cizimHaritasi(aracId, kaynak) : kaynakHaritasi(aracId, kaynak);
   if (!h || !oranUyar(gorselOrani, h.oran)) return null;
   const kullanilan = ayna ? aynalaHarita(h) : h;
   const alanlar = kullanilan.alanlar.filter((a) => parcaVar(a.parcaId));
@@ -358,6 +386,20 @@ export function parcaDemeritleri(
     for (const p of [h.parcaId, h.ikinciParcaId]) {
       if (p) m.set(p, Math.max(d, m.get(p) ?? -1));
     }
+  }
+  return m;
+}
+
+/**
+ * Parça → üzerindeki kayıt sayısı (numaralı işaretin rakamı, 27.10.2026). İki
+ * parça arası kayıt (boşluk/kademe) ikisinde de sayılır — boya da ikisini boyar.
+ */
+export function parcaKayitSayilari(
+  hatalar: readonly { parcaId: string; ikinciParcaId?: string }[],
+): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const h of hatalar) {
+    for (const p of [h.parcaId, h.ikinciParcaId]) if (p) m.set(p, (m.get(p) ?? 0) + 1);
   }
   return m;
 }
@@ -412,3 +454,77 @@ export function yogunlukKademesi(sayi: number, enCok: number): '1' | '2' | '3' |
   return oran <= 1 / 3 ? '1' : oran <= 2 / 3 ? '2' : '3';
 }
 
+
+// --- NUMARALI İŞARET (27.10.2026) --------------------------------------------
+// İkinci tur değerlendirmede iki tasarımcı da aynı şeyi söyledi: parçanın
+// tamamı %55 demerit rengine boyanınca gri gövdede "çamur/pas" gibi okunuyor;
+// renk yalnız küçük dolu işarette kalsın, parça ince dolgu + kalın kenar olsun.
+// İşaret parçanın İÇİNDE durmalı: içbükey parçada (tampon, çamurluk) ağırlık
+// merkezi dışarı düşebilir; o zaman kenarlara en uzak iç nokta aranır.
+
+type Nokta = readonly [number, number];
+
+function kenaraUzaklik(nokta: readonly Nokta[], x: number, y: number): number {
+  let en = Infinity;
+  for (let i = 0, j = nokta.length - 1; i < nokta.length; j = i++) {
+    const [x1, y1] = nokta[j]!;
+    const [x2, y2] = nokta[i]!;
+    const dx = x2 - x1, dy = y2 - y1;
+    const u = dx || dy ? Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy))) : 0;
+    en = Math.min(en, Math.hypot(x - (x1 + u * dx), y - (y1 + u * dy)));
+  }
+  return en;
+}
+
+/**
+ * İşaretin yeri: alan ağırlıklı merkez çokgenin içindeyse o; değilse sınır
+ * kutusunda 16×16 ızgaradan kenara en uzak iç nokta. `oran` en/boy oranı
+ * (koordinatlar 0–1 ama kutu kare değil; uzaklık gerçek oranla ölçülür).
+ */
+export function cokgenMerkezi(nokta: readonly Nokta[], oran = 1): [number, number] {
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0; i < nokta.length; i++) {
+    const [x1, y1] = nokta[i]!;
+    const [x2, y2] = nokta[(i + 1) % nokta.length]!;
+    const k = x1 * y2 - x2 * y1;
+    a += k; cx += (x1 + x2) * k; cy += (y1 + y2) * k;
+  }
+  if (Math.abs(a) > 1e-12) {
+    const m: [number, number] = [cx / (3 * a), cy / (3 * a)];
+    if (cokgenIcinde(nokta, m[0], m[1])) return m;
+  }
+  const xs = nokta.map((p) => p[0]), ys = nokta.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const olcekli = nokta.map(([x, y]) => [x * oran, y] as const);
+  let en: [number, number] | null = null, enUzak = -1;
+  for (let i = 0; i < 16; i++) {
+    for (let j = 0; j < 16; j++) {
+      const x = x0 + ((i + 0.5) / 16) * (x1 - x0), y = y0 + ((j + 0.5) / 16) * (y1 - y0);
+      if (!cokgenIcinde(nokta, x, y)) continue;
+      const d = kenaraUzaklik(olcekli, x * oran, y);
+      if (d > enUzak) { enUzak = d; en = [x, y]; }
+    }
+  }
+  return en ?? [nokta.reduce((t, p) => t + p[0], 0) / nokta.length, nokta.reduce((t, p) => t + p[1], 0) / nokta.length];
+}
+
+/**
+ * Bu bakışta işaret konacak parçalar ve yerleri: her parça için BİR işaret,
+ * parçanın bu bakıştaki en büyük alanında. Sıra: alanın büyüğünden küçüğüne
+ * (küçük parçanın işareti üstte kalsın diye çizimde sona gelir).
+ */
+export function isaretYerleri(
+  alanlar: readonly { parcaId: string; nokta: readonly Nokta[] }[],
+  isaretlenecek: (parcaId: string) => boolean,
+  oran = 1,
+): { parcaId: string; x: number; y: number }[] {
+  const enBuyuk = new Map<string, { nokta: readonly Nokta[]; alan: number }>();
+  for (const a of alanlar) {
+    if (!isaretlenecek(a.parcaId)) continue;
+    const alan = cokgenAlani(a.nokta);
+    if (alan > (enBuyuk.get(a.parcaId)?.alan ?? -1)) enBuyuk.set(a.parcaId, { nokta: a.nokta, alan });
+  }
+  return [...enBuyuk.entries()]
+    .sort((p, q) => q[1].alan - p[1].alan)
+    .map(([parcaId, x]) => { const [mx, my] = cokgenMerkezi(x.nokta, oran); return { parcaId, x: mx, y: my }; });
+}

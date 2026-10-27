@@ -34,7 +34,7 @@ import { DonusGorunumu } from '@/bilesenler/DonusGorunumu';
 import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, BolumBasligi, Dugme, IlerlemeCubugu } from '@/bilesenler/temel';
 import { aramaEslesir, aramaYakinEslesir } from '@/cekirdek/arama';
-import { aracHaritasiVar } from '@/cekirdek/donusGorunumu';
+import { cizimVar } from '@/cekirdek/donusGorunumu';
 import { parcaAramaMetni, parcaBolgeAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { kisaBolgeAdi, sistemAdi, SISTEMLER } from '@/cekirdek/sistemler';
 import { Bolge, BolgeGrubu } from '@/cekirdek/tipler';
@@ -49,7 +49,7 @@ export const KOK_KONUM: Konum = { sistem: null, bolgeId: null };
 const enSayi = (n: number, ad: string): string => `${n} ${ad}${n === 1 ? '' : 's'}`;
 
 export function AdimliSecim({
-  bolgeler, konum, setKonum, arama, setArama, parcaId, parcaSayilari, parcaDemeritleri, sonParcalar, onSec, tablet,
+  bolgeler, konum, setKonum, arama, setArama, parcaId, parcaSayilari, parcaDemeritleri, parcaKayitSayilari, sonParcalar, onSec, tablet,
   kapsam, onKapsam, onBitir, aracId, onBuyut, ikinciParcaId,
 }: {
   bolgeler: Bolge[];
@@ -63,6 +63,8 @@ export function AdimliSecim({
   parcaSayilari: Map<string, number>;
   /** Parça → en yüksek demerit; araç görünümü bununla boyar. */
   parcaDemeritleri: ReadonlyMap<string, number>;
+  /** Parça → kayıt sayısı (iki parça arası ikisinde de); işaretin rakamı. */
+  parcaKayitSayilari?: ReadonlyMap<string, number>;
   sonParcalar: string[];
   /** Parça seçildi; döndürülebilir görünümde ikinci parça da seçilmişse (boşluk/kademe) onunla. */
   onSec: (parcaId: string, ikinciParcaId?: string) => void;
@@ -85,7 +87,7 @@ export function AdimliSecim({
   const { dil, t } = useDil();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const gorselleriVar = useAracGorselleri((d) => !!aracId && gorselVar(d.gorseller[aracId]));
-  const donusVar = gorselleriVar || (!!aracId && aracHaritasiVar(aracId));
+  const donusVar = gorselleriVar || (!!aracId && cizimVar(aracId));
 
   const sistemler = useMemo(
     () => SISTEMLER.map((x) => ({ ...x, bolgeler: bolgeler.filter((b) => b.grup === x.id) })).filter((x) => x.bolgeler.length),
@@ -256,6 +258,7 @@ export function AdimliSecim({
                     aracId={aracId}
                     bolgeler={bolgeler}
                     kayitliParcalar={parcaDemeritleri}
+                    kayitSayilari={parcaKayitSayilari}
                     seciliParcaId={parcaId}
                     seciliIkinciParcaId={ikinciParcaId}
                     onBolgeSec={(bolgeId) => setKonum({ sistem: 'dis', bolgeId })}
@@ -391,10 +394,10 @@ const stiller = (r: Renkler) => StyleSheet.create({
   govde: { paddingHorizontal: bosluk.md, paddingBottom: 140, gap: bosluk.sm },
   adimBaslik: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, marginTop: bosluk.xxs },
   adimNo: {
-    width: 22, height: 22, borderRadius: kose.pill, backgroundColor: r.birincil,
+    width: 22, height: 22, borderRadius: kose.pill, backgroundColor: r.birincilDolgu,
     alignItems: 'center', justifyContent: 'center',
   },
-  adimNoMetin: { ...tipografi.captionOrta, color: r.metinTers, fontVariant: ['tabular-nums'] },
+  adimNoMetin: { ...tipografi.captionOrta, color: r.birincilDolguMetin, fontVariant: ['tabular-nums'] },
   adimMetin: { ...tipografi.h3, fontSize: 16, lineHeight: 22, color: r.metin },
   adimSayi: { ...tipografi.captionOrta, color: r.metinIkincil, marginLeft: 'auto', fontVariant: ['tabular-nums'] },
   izgara: { flexDirection: 'row', flexWrap: 'wrap', gap: bosluk.xs },

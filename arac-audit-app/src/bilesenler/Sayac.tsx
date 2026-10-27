@@ -11,7 +11,7 @@ import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { S } from '@/bilesenler/simgeler';
-import { BolumBasligi, Kart, Secenek } from '@/bilesenler/temel';
+import { BolumBasligi, Kart, SegmentSecici } from '@/bilesenler/temel';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { DONEMLER, DonemSayilari, Sayi, SayacSonucu, skor } from '@/cekirdek/sayac';
 import { bosluk, Renkler, tipografi, useTema } from '@/tema';
@@ -69,19 +69,12 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
           'Finished AUDIT-source audits only. Score = 100 × demerit ÷ vehicles (as defined in the Excel).',
         )}
       />
-      <View style={s.olcuSatir} accessibilityRole="radiogroup" accessibilityLabel={t('Gösterilen ölçü', 'Metric shown')}>
-        {OLCULER.map((o) => (
-          <Secenek
-            key={o.id}
-            kucuk
-            metin={dil === 'en' ? o.en : o.ad}
-            secili={olcu === o.id}
-            onPress={() => setOlcu(o.id)}
-            erisimEtiketi={t(`Ölçü: ${o.ad}`, `Metric: ${o.en}`)}
-            style={{ flex: 1, justifyContent: 'center' }}
-          />
-        ))}
-      </View>
+      <SegmentSecici
+        secenekler={OLCULER.map((o) => ({ id: o.id, metin: dil === 'en' ? o.en : o.ad, erisimEtiketi: t(`Ölçü: ${o.ad}`, `Metric: ${o.en}`) }))}
+        deger={olcu}
+        onSec={(x) => x && setOlcu(x)}
+        erisimEtiketi={t('Gösterilen ölçü', 'Metric shown')}
+      />
       {/* Yön (26.10.2026, ikinci dış değerlendirme): skorun düşüğünün iyi
           olduğu ekranda yazmıyordu; ilk kez bakan "yüksek = iyi" sanıyor. */}
       {olcu === 'skor' ? (
@@ -89,7 +82,7 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
       ) : null}
       <View style={s.satir} importantForAccessibility="no-hide-descendants" aria-hidden>
         <View style={s.adBos} />
-        {DONEMLER.map((d) => <Text key={d.id} style={s.baslik} numberOfLines={2}>{dil === 'en' ? d.en : d.ad}</Text>)}
+        {DONEMLER.map((d) => <Text key={d.id} style={s.baslik} numberOfLines={1}>{dil === 'en' ? d.en : d.ad}</Text>)}
       </View>
       {sonuc.araclar.map((a) => {
         const arac = ARAC_INDEKS[a.aracId];
@@ -103,14 +96,16 @@ export function Sayac({ sonuc }: { sonuc: SayacSonucu }) {
   );
 }
 
-const AD_GENISLIK = 60;
+// 60 → 52 ve sütun arası 8 → 4 (27.10.2026): telefonda "Bu hafta" başlığı iki
+// satıra kırılıyordu, ötekiler tek satır (ikinci tur estetik değerlendirmesi).
+const AD_GENISLIK = 52;
 
 const stiller = (r: Renkler) => StyleSheet.create({
   not: { ...tipografi.caption, color: r.metinSolgun },
   olcuSatir: { flexDirection: 'row', gap: bosluk.xs },
   // Sütunlar sağa yaslı ve arası 8 px (26.10.2026 dış değerlendirme: ortalı
   // "1200 1200" birbirine yapışıyordu). Sayılar sabit genişlikli.
-  satir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, paddingVertical: 3 },
+  satir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xxs, paddingVertical: 3 },
   toplamSatir: { borderTopWidth: 1, borderTopColor: r.cizgiSolgun, paddingTop: bosluk.xs },
   adBos: { width: AD_GENISLIK },
   ad: { ...tipografi.captionOrta, color: r.metin, width: AD_GENISLIK },

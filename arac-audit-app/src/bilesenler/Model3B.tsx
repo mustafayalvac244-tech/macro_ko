@@ -111,7 +111,7 @@ function KucukDugme({
       onPress={onPress}
       style={({ pressed }) => [s.kucukDugme, secili && s.kucukDugmeSecili, pressed && { opacity: 0.7 }]}
     >
-      <Text style={[s.kucukDugmeMetin, secili && { color: renkler.metinTers }]}>{metin}</Text>
+      <Text style={[s.kucukDugmeMetin, secili && { color: renkler.birincilDolguMetin }]}>{metin}</Text>
     </Pressable>
   );
 }
@@ -133,7 +133,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
     minHeight: 34, justifyContent: 'center', paddingHorizontal: bosluk.xs,
     borderRadius: kose.sm, borderWidth: 1, borderColor: r.cizgi, backgroundColor: r.yuzey,
   },
-  kucukDugmeSecili: { backgroundColor: r.birincil, borderColor: r.birincil },
+  kucukDugmeSecili: { backgroundColor: r.birincilDolgu, borderColor: r.birincilDolgu },
   kucukDugmeMetin: { ...tipografi.captionOrta, color: r.metin },
 
   ipucu: {

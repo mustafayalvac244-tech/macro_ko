@@ -26,7 +26,7 @@ import { sinifDegeri, VARSAYILAN_SINIF, varsayilanSistem } from '@/cekirdek/nas'
 import { dereceGosterimi } from '@/cekirdek/puan';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { kapsamMetni, mevcutSistemler } from '@/cekirdek/sistemler';
-import { parcaDemeritleri } from '@/cekirdek/donusGorunumu';
+import { parcaDemeritleri, parcaKayitSayilari } from '@/cekirdek/donusGorunumu';
 import { takipAdi } from '@/cekirdek/takip';
 import { aracKimligi } from '@/cekirdek/vin';
 import {
@@ -217,6 +217,7 @@ export default function DenetimEkrani() {
   }, [denetim?.hatalar]);
   // Araç görünümünde boya: parçanın en yüksek demerit'i (iki parça arası kayıt ikisini de).
   const demeritHaritasi = useMemo(() => parcaDemeritleri(denetim?.hatalar ?? []), [denetim?.hatalar]);
+  const kayitSayilari = useMemo(() => parcaKayitSayilari(denetim?.hatalar ?? []), [denetim?.hatalar]);
 
   // --- HATA IZGARASI ----------------------------------------------------
   const tipler = useMemo(() => {
@@ -484,6 +485,7 @@ export default function DenetimEkrani() {
       ikinciParcaId={ikinciParcaId}
       parcaSayilari={parcaSayilari}
       parcaDemeritleri={demeritHaritasi}
+      parcaKayitSayilari={kayitSayilari}
       sonParcalar={sonParcalar}
       onSec={parcaSec}
       tablet={tablet}
@@ -814,6 +816,7 @@ export default function DenetimEkrani() {
             aracId={denetim.aracId}
             bolgeler={bolgeler}
             kayitliParcalar={demeritHaritasi}
+            kayitSayilari={kayitSayilari}
             seciliParcaId={parcaId}
             seciliIkinciParcaId={ikinciParcaId}
             onBolgeSec={(bolgeId) => { setBuyukAcik(false); setKonum({ sistem: 'dis', bolgeId }); }}
@@ -1112,7 +1115,8 @@ const stiller = (r: Renkler) => StyleSheet.create({
   listeGovde: { paddingHorizontal: bosluk.md, paddingBottom: bosluk.md, gap: 6 },
   kayitSatir: {
     flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: 58,
-    paddingHorizontal: bosluk.sm, borderRadius: kose.md, backgroundColor: r.yuzeyAlt,
+    // Dikey boşluk (27.10.2026): iki satıra sarılan ad kartın üst kenarına yapışıyordu.
+    paddingHorizontal: bosluk.sm, paddingVertical: bosluk.xs, borderRadius: kose.md, backgroundColor: r.yuzeyAlt,
   },
   kayitAd: { ...tipografi.bodyOrta, color: r.metin },
   kayitAlt: { ...tipografi.caption, color: r.metinSolgun },

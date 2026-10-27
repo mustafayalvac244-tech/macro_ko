@@ -1116,6 +1116,59 @@ iğne ya da ince dolgu + kalın kenar öneriyor), koyu temanın ana rengi, beş
 modelin çizimi yok, düğme dilinin (soluk haplar) yeniden düzenlenmesi, tablet
 hizaları.
 
+### Aşama 6 — ikinci turdan kalan görsel işler (27.10.2026)
+
+Ürün sahibi: "yapsana, son OTA'la". Aşama 5'te bıraktığım maddeler:
+
+- **Hata boyası.** Parça artık %55 demerit rengine boyanmıyor (iki tasarımcı
+  da gri gövdede "çamur/pas" gibi okunduğunu söyledi): %16 dolgu + 2,5 px
+  demerit renginde kenar, üstünde **numaralı işaret** (rakam: parçadaki kayıt
+  sayısı; iki parça arası kayıt ikisinde de sayılır). İşaret parçanın İÇİNE
+  konur: içbükey parçada ağırlık merkezi dışarı düşebiliyor — birim testi
+  gerçek IONIQ 3 haritasındaki her bakışta her parçayı denetliyor; düz ağırlık
+  merkeziyle test düşüyor (çamurluk garnişi), yani ısırıyor. Rapor, Analiz ve
+  denetim ekranında aynı.
+- **Çizimi olmayan beş model.** Kutu şeması yerine IONIQ 3'ün çizimi **genel
+  çizim** olarak, sahnenin köşesinde "Genel çizim — bu modelin kendi çizimi
+  yok" yazarak. Haritadaki 64 parçanın hepsi benzinli kataloğunda da var
+  (birim testi). O modele gerçek fotoğraf yüklenmişse genel çizim KULLANILMAZ:
+  başka aracın parça sınırları fotoğrafla örtüşmez. **Ürün sahibinin kararına
+  açık:** istenmezse tek satırla eski kutu şemasına dönülür.
+- **Koyu tema ana rengi.** Büyük dolu düğmeler bebek mavisi (#7FB3FF) idi;
+  dolgu için ayrı renk: #3D6FD0 üstünde beyaz (kontrast 4,79:1, WCAG
+  formülüyle hesaplandı). Bu ESTETİK bir değişiklik: eski açık mavi + koyu
+  yazı daha yüksek kontrastlıydı (8,84:1); yeni değer 4,5 eşiğinin üstünde
+  kalıyor. Mavi yazılar ve kenarlar koyu zeminde okunsun diye açık mavide kaldı.
+- **Düğme dili.** 2–4 seçenekli tek seçimler bitişik **segment** oldu (skor
+  ölçüsü, sınıf, spec, tema, dil, çizim); aç/kapa seçenek onay kutusu
+  ("devam edenleri de kat"). Başlıktaki düğmeler zeminsiz (dokunma alanı 48 px
+  kaldı), yalnız Rapor dolu. "Yeni denetim" 56 → 52 px.
+- **Bitir onayı diyalog.** Alttaki turuncu bant ve yan yana iki dolu düğme
+  yerine ortada diyalog, içinde tek dolu düğme; eksik sistemler orada.
+- **Telefonda büyük görünüm.** Araç ekranın üst üçte birinde kalıyordu; sahne
+  artık kalan alanın ortasında, kontroller altta. Onay çubuğunun yeri baştan
+  ayrılıyor; web sınavı çubuk çıkınca sahnenin KAYMADIĞINI ölçüyor (ilk
+  denemede ayırdığım 104 px yetmedi, çubuk 122 px çıktı, sahne 9 px kaydı ve
+  sınav düştü; 144 px'e çıkarıldı).
+- **Hizalar.** Tablette sayfa başlığı içerik sütunuyla aynı hizada (Analiz'de
+  başlık 16, içerik 76 px'ten başlıyordu); "Bu hafta" sütun başlığı tek satır;
+  rapor özetinde MAJOR / MAIN bilerek iki satır (kelime ortasından
+  bölünüyordu); "Sisteme göre" çubukları içerlek değil; kayıt listesinde iki
+  satıra sarılan ad kartın kenarına yapışmıyor.
+
+**Doğrulama:** birim testleri; TR web sınavı dört düzende 13/13 adım, EN,
+360, çizim (teknik ve renkli), gerçek görsellerle parça seçimi — hepsi
+hatasız. Sınavları ve beklentileri ben yazdım. **Bilinen sınav sorunu:** dört
+tarayıcı aynı anda görsel seçtiğinde web'de seçim ara sıra kayboluyor. Aşama
+5 paketi de aynı adımda aynı şekilde düştü (kontrol koşusu), yani bu aşamanın
+getirdiği bir şey değil. Kök neden doğrulanmadı; telefonda bu yol (web dosya
+girdisi) kullanılmıyor. Görsel seçen sınavlar en çok ikişer koşuldu.
+**Telefonda denenmedi:** hiçbiri; yalnız web paketi.
+
+**Yine yapılmayanlar:** çizimin kendisi (oranlar, ön/arka kutu görünümü —
+iki tasarımcının bir numaralı şikâyeti), beş modelin kendi çizimi, metindeki
+fabrika jargonu ("Sistem (Excel)", EXTERIOR), PDF/imza.
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |

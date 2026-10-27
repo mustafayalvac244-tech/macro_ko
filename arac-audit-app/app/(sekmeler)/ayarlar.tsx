@@ -6,7 +6,7 @@ import { ListeDuzenle, useSecimListesi } from '@/bilesenler/EklenebilirSecim';
 import { SurumKarti } from '@/bilesenler/Guncelleme';
 import { GRUP_SIMGELERI, S, Simge } from '@/bilesenler/simgeler';
 import {
-  Baslik, BilgiKutusu, BolumBasligi, Dugme, Ekran, Kart, Secenek, useDuzen,
+  Baslik, BilgiKutusu, BolumBasligi, Dugme, Ekran, Kart, OnayKutusu, Secenek, SegmentSecici, useDuzen,
 } from '@/bilesenler/temel';
 import { AktarimDonemi } from '@/cekirdek/aktarim';
 import { grupAdi } from '@/cekirdek/katalog';
@@ -122,7 +122,7 @@ export default function Ayarlar() {
 
   return (
     <Ekran>
-      <Baslik baslik={t('Ayarlar', 'Settings')} />
+      <Baslik baslik={t('Ayarlar', 'Settings')} icerikGenisligi={760} />
       <ScrollView contentContainerStyle={s.govde}>
         {/* Sürüm ve tek dokunuşla güncelleme EN ÜSTTE (26.10.2026, ürün
             sahibi: "güncelleme butonu koy"). Web'de gizli. */}
@@ -130,35 +130,27 @@ export default function Ayarlar() {
 
         <Kart>
           <BolumBasligi metin={t('Görünüm', 'Appearance')} simge={S.gorunum} />
-          <View style={s.satir}>
-            {TEMALAR.map((x) => (
-              <Secenek
-                key={x.deger}
-                metin={dil === 'en' ? x.en : x.etiket}
-                simge={en >= 600 ? x.simge : undefined}
-                erisimEtiketi={t(`${x.etiket} tema`, `${x.en} theme`)}
-                secili={tercih === x.deger}
-                onPress={() => tercihiAyarla(x.deger)}
-                style={{ flex: 1 }}
-              />
-            ))}
-          </View>
+          <SegmentSecici
+            secenekler={TEMALAR.map((x) => ({
+              id: x.deger, metin: dil === 'en' ? x.en : x.etiket, simge: en >= 600 ? x.simge : undefined,
+              erisimEtiketi: t(`${x.etiket} tema`, `${x.en} theme`),
+            }))}
+            deger={tercih}
+            onSec={(x) => x && tercihiAyarla(x)}
+            erisimEtiketi={t('Tema', 'Theme')}
+          />
           {/* Dil (26.10.2026, ürün sahibi: "İng Türkçe seçenek de olsun").
               Seçenek adları kendi dillerinde yazılır: dili bilmeyen biri de
               kendi dilini bulsun. Excel/CSV raporunun dili bundan bağımsız. */}
           <Text style={s.aciklama}>{t('Dil', 'Language')}</Text>
-          <View style={s.satir}>
-            {([['tr', 'Türkçe'], ['en', 'English']] as const).map(([kod, ad]) => (
-              <Secenek
-                key={kod}
-                metin={ad}
-                erisimEtiketi={`${t('Dil', 'Language')}: ${ad}`}
-                secili={dil === kod}
-                onPress={() => dilAyarla(kod)}
-                style={{ flex: 1 }}
-              />
-            ))}
-          </View>
+          <SegmentSecici
+            secenekler={([['tr', 'Türkçe'], ['en', 'English']] as const).map(([kod, ad]) => ({
+              id: kod, metin: ad, erisimEtiketi: `${t('Dil', 'Language')}: ${ad}`,
+            }))}
+            deger={dil}
+            onSec={(x) => x && dilAyarla(x)}
+            erisimEtiketi={t('Dil', 'Language')}
+          />
         </Kart>
 
         {/* Yeni denetim formundaki hazır seçenekler. Kaldırılan ad eski
@@ -271,13 +263,11 @@ export default function Ayarlar() {
               />
             ))}
           </ScrollView>
-          <Secenek
-            kucuk
+          <OnayKutusu
             metin={t('Devam edenleri de kat', 'Include in-progress audits')}
             secili={devamDahil}
             onPress={() => setDevamDahil((x) => !x)}
             erisimEtiketi={t('Devam eden denetimleri de kat', 'Include in-progress audits')}
-            style={{ alignSelf: 'flex-start' }}
           />
           <Dugme
             metin={t("Excel'e aktar", 'Export to Excel')}

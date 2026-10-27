@@ -27,7 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { S, Simge } from '@/bilesenler/simgeler';
 import {
   bosluk, DOKUNMA, dereceRenkleri, HITSLOP, kose, Renkler, TABLET_GENISLIK, TABLET_KISA_KENAR,
-  tipografi, useTema,
+  tipografi, useTema, yazi,
 } from '@/tema';
 import { useDil } from '@/veri/dilDeposu';
 
@@ -91,7 +91,7 @@ export function Ekran({ children, style }: { children: React.ReactNode; style?: 
 // --- UYGULAMA ÇUBUĞU ------------------------------------------------------
 
 export function Baslik({
-  baslik, altBaslik, sol, sag, mono = false, cipler, ciplerSar = false,
+  baslik, altBaslik, sol, sag, mono = false, cipler, ciplerSar = false, icerikGenisligi,
 }: {
   baslik: string;
   altBaslik?: string;
@@ -106,11 +106,19 @@ export function Baslik({
    * yana kayan satırda son çip "Devan…" diye kesiliyordu — 26.10.2026).
    */
   ciplerSar?: boolean;
+  /**
+   * Sayfa içeriğinin en büyük genişliği (içerik ortalanıyorsa). Verilirse
+   * başlık da aynı sütuna hizalanır: tablette başlık 16 px'ten, içerik 76 px'ten
+   * başlıyordu (27.10.2026, ikinci tur estetik değerlendirmesi). İçeriğin kendi
+   * yatay iç boşluğu 16 px varsayılır.
+   */
+  icerikGenisligi?: number;
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const kenar = useSafeAreaInsets();
   const { tablet } = useDuzen();
+  const sutun = icerikGenisligi ? { width: '100%' as const, maxWidth: icerikGenisligi - 2 * bosluk.md, alignSelf: 'center' as const, gap: bosluk.xs } : null;
   return (
     <View
       style={[s.cubuk, {
@@ -119,6 +127,7 @@ export function Baslik({
         paddingRight: bosluk.md + kenar.right,
       }]}
     >
+      <View style={sutun ?? s.sutunYok}>
       <View style={s.cubukSatir}>
         {sol}
         <View style={s.cubukOrta}>
@@ -137,6 +146,7 @@ export function Baslik({
           {cipler}
         </ScrollView>
       ) : null}
+      </View>
     </View>
   );
 }
@@ -175,7 +185,7 @@ export function BaslikDugmesi({
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { en } = useDuzen();
   const metniGoster = !!metin && (!Ikon || en >= 600);
-  const renk = birincil ? renkler.metinTers : renkler.metin;
+  const renk = birincil ? renkler.birincilDolguMetin : renkler.metin;
   return (
     <Pressable
       accessibilityRole="button"
@@ -193,8 +203,8 @@ export function BaslikDugmesi({
       {yukleniyor ? <ActivityIndicator color={renk} /> : Ikon ? <Ikon size={20} color={renk} strokeWidth={2} /> : null}
       {metniGoster ? <Text style={[s.cubukDugmeMetin, { color: renk }]} numberOfLines={1}>{metin}</Text> : null}
       {sayac !== undefined ? (
-        <View style={[s.sayac, birincil && { backgroundColor: renkler.metinTers }]}>
-          <Text style={[s.sayacMetin, birincil && { color: renkler.birincil }]}>{sayac}</Text>
+        <View style={[s.sayac, birincil && { backgroundColor: renkler.birincilDolguMetin }]}>
+          <Text style={[s.sayacMetin, birincil && { color: renkler.birincilDolgu }]}>{sayac}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -298,15 +308,16 @@ export function Dugme({
   const kapali = pasif || yukleniyor;
 
   const zemin = {
-    birincil: renkler.birincil,
+    birincil: renkler.birincilDolgu,
     tehlike: renkler.tehlike,
     ikincil: renkler.yuzeyVurgu,
     sessiz: renkler.seffaf,
   }[tur];
-  const yaziRengi = tur === 'birincil' || tur === 'tehlike' ? renkler.metinTers
+  const yaziRengi = tur === 'birincil' ? renkler.birincilDolguMetin
+    : tur === 'tehlike' ? renkler.metinTers
     : tur === 'sessiz' ? renkler.metinIkincil
     : renkler.metin;
-  const cizgiRengi = tur === 'birincil' ? renkler.birincil
+  const cizgiRengi = tur === 'birincil' ? renkler.birincilDolgu
     : tur === 'tehlike' ? renkler.tehlike
     : tur === 'sessiz' ? renkler.seffaf
     : renkler.yuzeyVurgu;
@@ -372,6 +383,76 @@ export function Secenek({
       {Ikon ? <Ikon size={kucuk ? 15 : 17} color={renk} strokeWidth={2} /> : null}
       <Text style={[kucuk ? s.secenekMetinKucuk : s.secenekMetin, { color: renk }]} numberOfLines={1}>{metin}</Text>
       {secili ? <S.tik size={kucuk ? 14 : 16} color={renkler.birincil} strokeWidth={2.5} /> : null}
+    </Pressable>
+  );
+}
+
+// --- SEGMENT SEÇİCİ (27.10.2026) -------------------------------------------
+// İkinci tur değerlendirmede iki tasarımcı da aynı şeyi söyledi: düğme, tek
+// seçim, süzgeç, silinebilir etiket hep aynı soluk hap; "ekran form üreteciyle
+// yapılmış gibi". 2–4 seçenekli tek seçim artık bitişik segment: tek zemin,
+// seçili parça beyaz yüzey + gölge + birincil yazı. Rol ve etiketler Secenek'le
+// aynı (radio, aria-checked) — ekran okuyucu ve sınavlar için değişen bir şey yok.
+
+export function SegmentSecici<T extends string>({
+  secenekler, deger, onSec, erisimEtiketi, bosaltilabilir = false, style,
+}: {
+  secenekler: readonly { id: T; metin: string; erisimEtiketi?: string; simge?: Simge }[];
+  deger: T | null;
+  onSec: (id: T | null) => void;
+  /** Grubun adı (radiogroup). */
+  erisimEtiketi?: string;
+  /** Seçiliye yeniden dokununca seçim kalkar (ör. spec isteğe bağlı). */
+  bosaltilabilir?: boolean;
+  style?: ViewStyle;
+}) {
+  const { renkler } = useTema();
+  const s = useMemo(() => stiller(renkler), [renkler]);
+  return (
+    <View style={[s.segment, style]} accessibilityRole="radiogroup" accessibilityLabel={erisimEtiketi}>
+      {secenekler.map((x) => {
+        const secili = x.id === deger;
+        const Ikon = x.simge;
+        return (
+          <Pressable
+            key={x.id}
+            accessibilityRole="radio"
+            aria-checked={secili}
+            accessibilityState={{ checked: secili }}
+            accessibilityLabel={x.erisimEtiketi ?? x.metin}
+            onPress={() => onSec(secili && bosaltilabilir ? null : x.id)}
+            style={({ pressed }) => [s.segmentParca, secili && s.segmentSecili, pressed && s.basili]}
+          >
+            {Ikon ? <Ikon size={16} color={secili ? renkler.birincil : renkler.metinIkincil} strokeWidth={2} /> : null}
+            <Text style={[s.segmentMetin, { color: secili ? renkler.birincil : renkler.metinIkincil }, secili && s.segmentMetinSecili]} numberOfLines={1}>
+              {x.metin}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Onay kutusu satırı (aç/kapa seçenek): radyo değil, checkbox. */
+export function OnayKutusu({ metin, secili, onPress, erisimEtiketi }: {
+  metin: string; secili: boolean; onPress: () => void; erisimEtiketi?: string;
+}) {
+  const { renkler } = useTema();
+  const s = useMemo(() => stiller(renkler), [renkler]);
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      aria-checked={secili}
+      accessibilityState={{ checked: secili }}
+      accessibilityLabel={erisimEtiketi ?? metin}
+      onPress={onPress}
+      style={({ pressed }) => [s.onaySatiri, pressed && s.basili]}
+    >
+      <View style={[s.onayKutusu, secili && { backgroundColor: renkler.birincilDolgu, borderColor: renkler.birincilDolgu }]}>
+        {secili ? <S.tik size={15} color={renkler.birincilDolguMetin} strokeWidth={3} /> : null}
+      </View>
+      <Text style={s.onayMetni}>{metin}</Text>
     </Pressable>
   );
 }
@@ -656,6 +737,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   // beyaz yüzey + ince kenar; birincil olan lacivert dolgulu.
   cubuk: { backgroundColor: r.bg, paddingBottom: bosluk.xs, gap: bosluk.xs },
   cubukSatir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: DOKUNMA },
+  sutunYok: { gap: bosluk.xs },
   cubukOrta: { flex: 1, minWidth: 0 },
   cubukBaslik: { ...tipografi.h1, color: r.metin },
   cubukBaslikMono: { ...tipografi.kimlikBuyuk, color: r.metin },
@@ -674,19 +756,21 @@ const stiller = (r: Renkler) => StyleSheet.create({
   // Çerçeve yok (26.10.2026, dış değerlendirme: "her şey çerçeveli kutu"):
   // sayfa zemininde beyaz yüzey kendini ayırıyor. Kenar kalınlığı kalır ki
   // birincil düğmeyle boyu aynı olsun.
+  // ZEMİNSİZ (27.10.2026, ikinci tur estetik: "başlıkta dört tane kare kutu,
+  // kiosk hissi"). Dokunma alanı 48 px kalır (eldiven); yalnız birincil dolu.
   cubukDugme: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: bosluk.xs,
     minHeight: DOKUNMA, minWidth: DOKUNMA, paddingHorizontal: bosluk.sm,
-    borderRadius: kose.md, borderWidth: 1, borderColor: r.yuzey, backgroundColor: r.yuzey,
+    borderRadius: kose.md, borderWidth: 1, borderColor: r.seffaf, backgroundColor: r.seffaf,
   },
-  cubukDugmeBirincil: { backgroundColor: r.birincil, borderColor: r.birincil },
+  cubukDugmeBirincil: { backgroundColor: r.birincilDolgu, borderColor: r.birincilDolgu },
   cubukDugmeKare: { paddingHorizontal: 0, width: DOKUNMA },
   cubukDugmeMetin: { ...tipografi.bodyOrta },
   sayac: {
     minWidth: 24, height: 22, paddingHorizontal: 6, borderRadius: kose.pill,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: r.birincil,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: r.birincilDolgu,
   },
-  sayacMetin: { ...tipografi.captionOrta, fontVariant: ['tabular-nums'], color: r.metinTers },
+  sayacMetin: { ...tipografi.captionOrta, fontVariant: ['tabular-nums'], color: r.birincilDolguMetin },
 
   // Kart: beyaz, yumuşak gölge — ÇERÇEVE YOK (26.10.2026). Dış değerlendirme
   // "ya gölge ya çerçeve, ikisi birden değil" dedi; kart içinde kart kalabalık
@@ -729,6 +813,24 @@ const stiller = (r: Renkler) => StyleSheet.create({
   secenekSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   secenekMetin: { ...tipografi.bodyOrta, flexShrink: 1 },
   secenekMetinKucuk: { ...tipografi.captionOrta, flexShrink: 1 },
+
+  // Segment: tek zemin, 2 px iç boşluk; seçili parça kart gibi yükselir.
+  segment: {
+    flexDirection: 'row', padding: 2, gap: 2, borderRadius: kose.md, backgroundColor: r.yuzeyVurgu,
+  },
+  segmentParca: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    minHeight: 44, paddingHorizontal: bosluk.xs, borderRadius: kose.md - 2,
+  },
+  segmentSecili: { backgroundColor: r.yuzey, boxShadow: `0 1px 3px ${r.golge}` },
+  segmentMetin: { ...tipografi.captionOrta, fontSize: 14, flexShrink: 1 },
+  segmentMetinSecili: { fontFamily: yazi.kalin },
+  onaySatiri: { flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: DOKUNMA, alignSelf: 'flex-start' },
+  onayKutusu: {
+    width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: r.cizgiGuclu,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  onayMetni: { ...tipografi.body, color: r.metin, flexShrink: 1 },
 
   alanEtiketi: { ...tipografi.caption, color: r.metinIkincil },
   girdi: {

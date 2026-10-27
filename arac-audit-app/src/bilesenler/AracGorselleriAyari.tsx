@@ -14,8 +14,8 @@ import React, { useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { S } from '@/bilesenler/simgeler';
-import { Dugme, Secenek } from '@/bilesenler/temel';
-import { aracHaritasiVar, AYNA_ESI, kaynakHaritasi, oranUyar, yuvaAdi, YUVALAR } from '@/cekirdek/donusGorunumu';
+import { Dugme, SegmentSecici } from '@/bilesenler/temel';
+import { aracHaritasiVar, AYNA_ESI, cizimVar, kaynakHaritasi, oranUyar, yuvaAdi, YUVALAR } from '@/cekirdek/donusGorunumu';
 import { GorunumId } from '@/cekirdek/gorunumParcalari';
 import { aracEtiketi, ARACLAR } from '@/cekirdek/model3d';
 import { Arac } from '@/cekirdek/tipler';
@@ -36,22 +36,15 @@ export function AracGorselleriAyari() {
     <View style={{ gap: bosluk.sm }}>
       {/* Çizim stili (26.10.2026): teknik varsayılan, renkli isteğe bağlı (cizimDeposu.ts). */}
       <Text style={s.aciklama}>{t('Görselsiz bakışlarda çizim', 'Drawing for views without images')}</Text>
-      <View style={{ flexDirection: 'row', gap: bosluk.xs }} accessibilityRole="radiogroup">
-        <Secenek
-          metin={t('Teknik', 'Technical')}
-          erisimEtiketi={t('Çizim: teknik (açık gri, rengi yalnız hatalar taşır)', 'Drawing: technical (light grey, only defects are coloured)')}
-          secili={cizim === 'teknik'}
-          onPress={() => cizimSec('teknik')}
-          style={{ flex: 1 }}
-        />
-        <Secenek
-          metin={t('Renkli', 'Coloured')}
-          erisimEtiketi={t('Çizim: renkli (aracın kendi renkleri)', "Drawing: coloured (the vehicle's own colours)")}
-          secili={cizim === 'renkli'}
-          onPress={() => cizimSec('renkli')}
-          style={{ flex: 1 }}
-        />
-      </View>
+      <SegmentSecici
+        secenekler={[
+          { id: 'teknik' as const, metin: t('Teknik', 'Technical'), erisimEtiketi: t('Çizim: teknik (açık gri, rengi yalnız hatalar taşır)', 'Drawing: technical (light grey, only defects are coloured)') },
+          { id: 'renkli' as const, metin: t('Renkli', 'Coloured'), erisimEtiketi: t('Çizim: renkli (aracın kendi renkleri)', "Drawing: coloured (the vehicle's own colours)") },
+        ]}
+        deger={cizim}
+        onSec={(x) => x && cizimSec(x)}
+        erisimEtiketi={t('Görselsiz bakışlarda çizim', 'Drawing for views without images')}
+      />
       {/* Uzun anlatım başlıktaki (i) notuna taşındı (26.10.2026, ikinci tasarım
           incelemesi: "Ayarlar'da 360 için bir paragraf"); gizlilik cümlesi görünür kalır. */}
       <Text style={s.aciklama}>
@@ -85,7 +78,9 @@ function AracSatiri({ arac, acik, setAcik }: { arac: Arac; acik: boolean; setAci
               ? t(`${dolu}/9 bakış`, `${dolu}/9 views`)
               : aracHaritasiVar(arac.id)
                 ? t('Görsel yok — uygulamanın çizimi kullanılıyor', 'No images — the app\'s drawing is used')
-                : t('Görsel yok — şematik harita kullanılıyor', 'No images — the schematic map is used')}
+                : cizimVar(arac.id)
+                  ? t('Görsel yok — genel çizim kullanılıyor (bu modelin kendi çizimi yok)', 'No images — the generic drawing is used (no drawing for this model)')
+                  : t('Görsel yok — şematik harita kullanılıyor', 'No images — the schematic map is used')}
           </Text>
         </View>
         <Dugme
