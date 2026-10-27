@@ -164,3 +164,24 @@ describe('veri — IONIQ 3', () => {
     expect(noktadakiParca(H.sol!, 0.5, 0.52)).toBe('sol_on_kapi');
   });
 });
+
+// 27.10.2026 — ürün sahibi: "air flapler seçilmiyor". Haritada "alt panjur" yalnız
+// plakanın altındaki koyu bloğu (genişliğin %8'i) kaplıyordu; Hyundai'nin IONIQ 3
+// sayfası klapeyi "above the silver skid plate" diye tarif ediyor — iki yandaki
+// paneller "ön tampon" seçiliyordu. Noktalar ürün sahibinin görsellerinde ölçüldü.
+describe('IONIQ 3: aktif hava klapesi (AAF) seçilir', () => {
+  const h = PARCA_HARITALARI.ioniq3!;
+  it('önden: sol ve sağ klape paneli ve ortadaki blok klape; altındaki gümüş alt koruma ayrı', () => {
+    expect(noktadakiParca(h.on!, 0.40, 0.75)).toBe('alt_panjur');
+    expect(noktadakiParca(h.on!, 0.60, 0.75)).toBe('alt_panjur');
+    expect(noktadakiParca(h.on!, 0.50, 0.74)).toBe('alt_panjur');
+    expect(noktadakiParca(h.on!, 0.40, 0.83)).toBe('on_tampon_alt_garnis');
+    expect(noktadakiParca(h.on!, 0.50, 0.66)).toBe('on_plaka');
+  });
+  it('sol önden ve sağ önden de klape seçilir', () => {
+    expect(noktadakiParca(h.sol_on!, 0.09, 0.72)).toBe('alt_panjur');
+    expect(noktadakiParca(h.sol_on!, 0.25, 0.74)).toBe('alt_panjur');
+    expect(noktadakiParca(h.sag_on!, 0.75, 0.74)).toBe('alt_panjur');
+    expect(noktadakiParca(h.sag_on!, 0.92, 0.73)).toBe('alt_panjur');
+  });
+});

@@ -279,8 +279,9 @@ export function cizimRolu(parcaId: string): CizimRolu {
   if (id === 'drl') return 'drl';
   if (id === 'far' || id === 'sis_far') return 'far';
   if (/plaka$/.test(id)) return 'plaka';
-  if (/tampon_alt_garnis$/.test(id)) return 'gumus';
-  if (/garnis$|diregi$|^marspiyel$|^difuzor$|^alt_panjur$|^on_izgara$|^spoyler$|^tavan_cita$|^anten$|^on_silecek$/.test(id)) return 'siyah';
+  // Aktif hava klapesi gerçekte gövdeden açık bir panel (27.10.2026 görsel ölçümü): gümüş-gri.
+  if (/tampon_alt_garnis$/.test(id) || id === 'alt_panjur') return 'gumus';
+  if (/garnis$|diregi$|^marspiyel$|^difuzor$|^on_izgara$|^spoyler$|^tavan_cita$|^anten$|^on_silecek$/.test(id)) return 'siyah';
   return 'govde';
 }
 

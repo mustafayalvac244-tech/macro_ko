@@ -1165,6 +1165,71 @@ getirdiği bir şey değil. Kök neden doğrulanmadı; telefonda bu yol (web dos
 girdisi) kullanılmıyor. Görsel seçen sınavlar en çok ikişer koşuldu.
 **Telefonda denenmedi:** hiçbiri; yalnız web paketi.
 
+### Aşama 7 — parça kataloğu: ekibin dili ve aktif hava klapesi (27.10.2026)
+
+Ürün sahibi: "araç parçalarını iyi öğren; air flapler falan seçilmiyor; isimleri
+ve parçaları detaylı araştır, emin ol."
+
+**Air flap neden seçilmiyordu (ölçüldü).** IONIQ 3 haritasında "alt panjur"
+yalnız plakanın altındaki koyu bloğu (genişliğin %8'i) kaplıyordu. Hyundai'nin
+kendi IONIQ 3 sayfası klapeyi "the active air flap above the silver skid plate"
+diye tarif ediyor; ürün sahibinin görsellerinde ölçüldüğünde bu, gümüş alt
+korumanın üstündeki çerçeveli geniş panel — iki yandaki kısmına dokununca "ön
+tampon" seçiliyordu. Önden, sol önden ve sağ önden yeniden çizildi; parçanın adı
+**"Aktif hava klapesi (AAF)" / "Active air flap (AAF)"** (eski adı "alt hava
+panjuru", kimliği aynı: eski kayıtlar yerinde). Birim testi eski çokgenle
+düşüyor (ısırıyor); web sınavı büyük görünümde klapeye dokunup onay çubuğunda
+adını görüyor.
+
+**Ekibin dili (ölçüldü, ekibin dosyası, deterministik).** Ekip parça adlarını
+Hyundai'nin parça kataloğu kısaltmalarıyla yazıyor: FRT BUMPER, T GATE INR PNL,
+C PAD-UPR, RR DR W STRIP, HOOD(FRT PNL), SEAT BACK-LH FRT… Dosyadaki bütün
+"Problem Part" etiketleri uygulamanın aramasına verildi (kayıt ağırlıklı,
+iki parça arası etiketlerde ilk parça):
+
+| | bir parça bulunan |
+|---|---|
+| önce | %13,5 ("FRT BUMPER" bile bulunmuyordu) |
+| arama kısaltmaları öğrenince | %55,3 |
+| katalog + eş anlamlılar + yeni parçalar | %91,4 |
+
+"Bir şey bulundu" doğru parça demek DEĞİL; ayrıca en sık etiketlere (kayıtların
+%57'si) beklenen parçayı **ben** yazdım ve ölçtüm: beklenen parça sonuçlarda
+%99,5, **ilk sırada %98,0**; ortalama 2,6 sonuç. İlk denemede "SEAT -LH FRT"
+yolcu koltuğunu (Türkiye'de sol ön sürücüdür), "FRT DR" gündüz farını
+getiriyordu — düzeltildi. Beklentiler benim; bağımsız doğrulama değil. Sayılar
+ve etiketler şirket verisi, depoya yazılmadı.
+
+Yapılanlar:
+- **Arama Hyundai kısaltmalarını tanıyor** (`arama.ts`): FRT/RR/DR/PNL/INR/
+  OTR/UPR/LWR/CTR/QTR/FDR/HDL, T GATE, W STRIP, C PAD, H LINING, C LAMP,
+  MOLD'G, CLOS'G, O/S, I/S… Kısaltma kendisi YA DA açılımı olarak eşleşir
+  (eski sonuçlar kaybolmaz), kelime başına değil ("dr" DRL'yi getirmez).
+  Sonuç yoksa Excel ekleri (PNL, AREA, CLOS'G, MTG…) atlanır, taraf (LH/RH)
+  en son. Sonuçlar, kelimeleri parçanın KENDİ adında geçene göre sıralanır.
+- **Yeni parçalar** (ekibin dosyasında sık, katalogda yoktu): kaput iç sacı,
+  bagaj kapağı iç sacı, ön/arka kapı iç sacı, ön/arka kapı çerçeve siyah
+  bandı, kapı cam kanalı, ön cam çıtası, ön/arka park sensörü, geri görüş
+  kamerası, ön cam kamera kapağı (MFC), nem/yağmur sensörü kapağı, el freni,
+  fren hattı/vakum hortumu, yakıt hattı, klima borusu, hava filtresi/emme
+  hortumu.
+- **Ad düzeltmeleri** (Hyundai'nin adı): "Cowl top cover" (silecek altı
+  plastiği), "Door belt moulding" (kapı kemer çıtası), "Crash pad upper/lower"
+  (gösterge paneli). Kaput ve bagaj kapağı adı DEĞİŞMEDİ (rapor/Excel aynı
+  kalsın); yalnız aramada "panel" sayılıyor ("HOOD PNL" kaputu iç sactan önce
+  getirsin).
+- **Tablette büyük görünüm:** onay çubuğu çıkınca sahne küçülüp araç
+  kayıyordu (web sınavı klape adımında yakaladı: ikinci dokunuş boşluğa düşüp
+  seçimi siliyordu). Telefondaki gibi çubuğun yeri ayrıldı; sınav artık iki
+  düzende de sahnenin kaymadığını ölçüyor.
+
+**Kaynaklar ve sınırlar.** Hyundai'nin IONIQ 3 sayfası ve parça satıcılarının
+liste adları (ör. "FLAP ASSY-ACTIVE AIR", "COVER ASSY-COWL TOP") web
+aramasının özetlerinden okundu; bu ortamın ağ politikası sayfaları doğrudan
+açmama izin vermedi. Plakanın altındaki koyu bloğun ne olduğu (sensör mü,
+klapenin açıklığı mı) doğrulanamadı; ona ayrı parça uydurulmadı, klapenin
+içinde sayıldı. Telefonda denenmedi.
+
 **Yine yapılmayanlar:** çizimin kendisi (oranlar, ön/arka kutu görünümü —
 iki tasarımcının bir numaralı şikâyeti), beş modelin kendi çizimi, metindeki
 fabrika jargonu ("Sistem (Excel)", EXTERIOR), PDF/imza.

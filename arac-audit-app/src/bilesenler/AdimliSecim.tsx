@@ -33,9 +33,9 @@ import { AracHaritasi } from '@/bilesenler/AracHaritasi';
 import { DonusGorunumu } from '@/bilesenler/DonusGorunumu';
 import { BOLGE_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, BolumBasligi, Dugme, IlerlemeCubugu } from '@/bilesenler/temel';
-import { aramaEslesir, aramaYakinEslesir } from '@/cekirdek/arama';
+import { aramaYakinEslesir, esnekSuz } from '@/cekirdek/arama';
 import { cizimVar } from '@/cekirdek/donusGorunumu';
-import { parcaAramaMetni, parcaBolgeAdi, parcaTamAdi } from '@/cekirdek/katalog';
+import { parcaAdMetni, parcaAramaMetni, parcaBolgeAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { kisaBolgeAdi, sistemAdi, SISTEMLER } from '@/cekirdek/sistemler';
 import { Bolge, BolgeGrubu } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
@@ -112,7 +112,8 @@ export function AdimliSecim({
 
   const q = arama.trim();
   const sonuclar = useMemo(
-    () => (q ? bolgeler.flatMap((b) => b.parcalar.filter((p) => aramaEslesir(parcaAramaMetni(p.id), q))) : []),
+    // Esnek: sonuç yoksa "LH", "PNL", "AREA" gibi Excel ekleri atlanarak (arama.ts).
+    () => (q ? esnekSuz(bolgeler.flatMap((b) => b.parcalar), (p) => parcaAramaMetni(p.id), q, (p) => parcaAdMetni(p.id)) : []),
     [bolgeler, q],
   );
   // Tam eşleşme yoksa yazım hatasına dayanıklı arama (arama.ts) — ayrı başlıkla.

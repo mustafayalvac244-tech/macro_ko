@@ -600,7 +600,10 @@ export function DonusGorunumu({
   // kontroller altta. Onay çubuğunun yeri baştan ayrılır: çubuk çıkınca sahne
   // kaymasın — yoksa dokunulan parça parmağın altından kayardı. Yer, görülen en
   // yüksek onay çubuğuna göre büyür (iki satırlık ad).
-  if (buyuk && dikey) {
+  // Tablette (yatay, ≥ 500 px) de aynı (27.10.2026): onay çubuğu çıkınca sahne
+  // küçülüp araç kayıyordu; ikinci dokunuş boşluğa düşüp seçimi siliyordu
+  // (web sınavı, klape adımı, tablet düzeni).
+  if (buyuk) {
     return (
       <View style={s.kapBuyuk}>
         {ustOgesi}

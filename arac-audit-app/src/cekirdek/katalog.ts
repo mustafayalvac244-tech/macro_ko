@@ -267,145 +267,162 @@ const HAM_BOLGELER: Bolge[] = [
   {
     id: 'dis_on', ad: 'Dış · Ön', en: 'Exterior · Front', grup: 'dis', simge: '▣',
     parcalar: [
-      { id: 'on_tampon',    ad: 'Ön tampon',          en: 'Front bumper',        gruplar: DIS_PANEL, mesh: 'on_tampon' },
-      { id: 'on_izgara',    ad: 'Ön ızgara',          en: 'Front grille',        gruplar: DIS_PANEL, mesh: 'on_izgara' },
-      { id: 'alt_panjur',   ad: 'Alt hava panjuru',   en: 'Lower air shutter',   gruplar: DIS_PANEL },
-      { id: 'kaput',        ad: 'Kaput',              en: 'Hood',                gruplar: DIS_PANEL, mesh: 'kaput', ara: 'menteşe hinge kilit kilidi latch' },
-      { id: 'far',          ad: 'Far',                en: 'headlamp',            gruplar: ['fonksiyon', 'montaj', 'yuzey', 'cam'], mesh: 'far', cift: true },
+      { id: 'on_tampon',    ad: 'Ön tampon',          en: 'Front bumper',        gruplar: DIS_PANEL, mesh: 'on_tampon', ara: 'bumper cover bmp corner ctr garnish upr cover red garnish' },
+      { id: 'on_izgara',    ad: 'Ön ızgara',          en: 'Front grille',        gruplar: DIS_PANEL, mesh: 'on_izgara', ara: 'grille grill radiator grill upr grill pixel lamba bandı bumper' },
+      { id: 'alt_panjur',   ad: 'Aktif hava klapesi (AAF)',   en: 'Active air flap (AAF)',   gruplar: DIS_PANEL, ara: 'air flap radiator air flap klape panjur shutter hava girişi lwr grill bumper' },
+      { id: 'kaput',        ad: 'Kaput',              en: 'Hood', adEk: 'panel',          gruplar: DIS_PANEL, mesh: 'kaput', ara: 'menteşe hinge kilit kilidi latch hood frt pnl opening handle cable stay bar' },
+      { id: 'far',          ad: 'Far',                en: 'headlamp',            gruplar: ['fonksiyon', 'montaj', 'yuzey', 'cam'], mesh: 'far', cift: true, ara: 'aiming aming lower garnish' },
       { id: 'drl',          ad: 'Gündüz farı (DRL)',  en: 'DRL',                 gruplar: ['fonksiyon', 'montaj', 'yuzey', 'cam'], cift: true },
-      { id: 'sis_far',      ad: 'Sis farı',           en: 'fog lamp',            gruplar: ['fonksiyon', 'montaj', 'yuzey'], cift: true },
-      { id: 'on_cam',       ad: 'Ön cam',             en: 'Windshield',          gruplar: CAM_TAKIMI, mesh: 'on_cam' },
+      { id: 'sis_far',      ad: 'Sis farı',           en: 'fog lamp',            gruplar: ['fonksiyon', 'montaj', 'yuzey'], cift: true, ara: 'aiming aming' },
+      { id: 'on_cam',       ad: 'Ön cam',             en: 'Windshield',          gruplar: CAM_TAKIMI, mesh: 'on_cam', ara: 'w shield glass w glass vin plate' },
       { id: 'on_silecek',   ad: 'Ön silecek',         en: 'Front wiper',         gruplar: ['fonksiyon', 'montaj', 'ses'] },
-      { id: 'on_panel',     ad: 'Ön panel / su kanalı', en: 'Cowl panel',        gruplar: DIS_PANEL },
+      { id: 'on_panel',     ad: 'Cowl top / silecek altı plastiği', en: 'Cowl top cover',        gruplar: DIS_PANEL, ara: 'cowl top cover su kanalı ön panel' },
       { id: 'on_plaka',     ad: 'Ön plaka yuvası',    en: 'Front plate holder',  gruplar: YUZEY_MONTAJ },
-      { id: 'on_amblem',    ad: 'Ön amblem',          en: 'Front emblem',        gruplar: YUZEY_MONTAJ },
-      { id: 'on_tampon_alt_garnis', ad: 'Ön tampon alt garnişi', en: 'Front bumper lower garnish', gruplar: DIS_PANEL },
-      { id: 'cekme_kapak',  ad: 'Çekme kancası kapağı', en: 'Tow hook cover',    gruplar: YUZEY_MONTAJ },
+      { id: 'on_amblem',    ad: 'Ön amblem',          en: 'Front emblem',        gruplar: YUZEY_MONTAJ, ara: 'h emblem logo bmp bumper' },
+      { id: 'on_tampon_alt_garnis', ad: 'Ön tampon alt garnişi', en: 'Front bumper lower garnish', gruplar: DIS_PANEL, ara: 'skid plate gray grey garnish lwr alt koruma' },
+      { id: 'cekme_kapak',  ad: 'Çekme kancası kapağı', en: 'Tow hook cover',    gruplar: YUZEY_MONTAJ, ara: 'hook cap tow' },
+      // 27.10.2026, parça kataloğu öğrenmesi (ekibin Excel'i + Hyundai parça adları):
+      { id: 'kaput_ic',     ad: 'Kaput iç sacı',      en: 'Hood inner panel',    gruplar: DIS_PANEL, ara: 'hood frt pnl inr' },
+      { id: 'on_cam_cita',  ad: 'Ön cam çıtası / yan garnişi', en: 'Windshield moulding', gruplar: DIS_PANEL, ara: 'w shield glass mold side trim garnish' },
+      { id: 'on_park_sensor', ad: 'Ön park sensörü',  en: 'Front parking sensor', gruplar: ['fonksiyon', 'montaj', 'yuzey'], ara: 'parking sensor bumper' },
     ],
   },
   {
     id: 'dis_arka', ad: 'Dış · Arka', en: 'Exterior · Rear', grup: 'dis', simge: '▤',
     parcalar: [
-      { id: 'arka_tampon',  ad: 'Arka tampon',        en: 'Rear bumper',         gruplar: DIS_PANEL, mesh: 'arka_tampon' },
-      { id: 'bagaj_kapagi', ad: 'Bagaj kapağı',       en: 'Tailgate',            gruplar: DIS_PANEL, mesh: 'bagaj_kapagi', ara: 'menteşe hinge kilit kilidi latch t gate' },
-      { id: 'arka_cam',     ad: 'Arka cam',           en: 'Rear windshield',     gruplar: CAM_TAKIMI, mesh: 'arka_cam' },
+      { id: 'arka_tampon',  ad: 'Arka tampon',        en: 'Rear bumper',         gruplar: DIS_PANEL, mesh: 'arka_tampon', ara: 'bumper side reflektor reflector' },
+      { id: 'bagaj_kapagi', ad: 'Bagaj kapağı',       en: 'Tailgate', adEk: 'panel',          gruplar: DIS_PANEL, mesh: 'bagaj_kapagi', ara: 'menteşe hinge kilit kilidi latch t gate closing body panel hdl handle gas lifter' },
+      { id: 'arka_cam',     ad: 'Arka cam',           en: 'Rear windshield',     gruplar: CAM_TAKIMI, mesh: 'arka_cam', ara: 't gate glass tailgate glass side garnish' },
       { id: 'arka_silecek', ad: 'Arka silecek',       en: 'Rear wiper',          gruplar: ['fonksiyon', 'montaj', 'ses'] },
-      { id: 'stop',         ad: 'Stop lambası',       en: 'tail lamp',           gruplar: ['fonksiyon', 'montaj', 'yuzey', 'cam'], mesh: 'stop', cift: true },
-      { id: 'ucuncu_stop',  ad: 'Üçüncü stop lambası',en: 'High mount stop lamp',gruplar: ['fonksiyon', 'montaj'] },
+      { id: 'stop',         ad: 'Stop lambası',       en: 'tail lamp',           gruplar: ['fonksiyon', 'montaj', 'yuzey', 'cam'], mesh: 'stop', cift: true, ara: 'c lamp combination tail lamp qtr' },
+      { id: 'ucuncu_stop',  ad: 'Üçüncü stop lambası',en: 'High mount stop lamp',gruplar: ['fonksiyon', 'montaj'], ara: 'hmsl t gate' },
       { id: 'arka_plaka',   ad: 'Arka plaka yuvası',  en: 'Rear plate holder',   gruplar: YUZEY_MONTAJ },
-      { id: 'arka_amblem',  ad: 'Arka amblem / yazı', en: 'Rear emblem / badge', gruplar: YUZEY_MONTAJ },
-      { id: 'bagaj_garnis', ad: 'Bagaj kapağı garnişi (stoplar arası)', en: 'Tailgate garnish (between lamps)', gruplar: DIS_PANEL },
+      { id: 'arka_amblem',  ad: 'Arka amblem / yazı', en: 'Rear emblem / badge', gruplar: YUZEY_MONTAJ, ara: 't gate emblem logo sticker' },
+      { id: 'bagaj_garnis', ad: 'Bagaj kapağı garnişi (stoplar arası)', en: 'Tailgate garnish (between lamps)', gruplar: DIS_PANEL, ara: 'ctr lamp center lamp black garnish' },
       // Katalogda yoktu; ekibin Excel'inde "T/GATE BODY W/STRIP" olarak geçiyor (26.10.2026).
       { id: 'bagaj_fitili', ad: 'Bagaj kapağı fitili', en: 'Tailgate weatherstrip', gruplar: ['sizdirmazlik', 'montaj', 'ses'], ara: 't gate w strip conta' },
       { id: 'arka_tampon_alt_garnis', ad: 'Arka tampon alt garnişi', en: 'Rear bumper lower garnish', gruplar: DIS_PANEL },
-      { id: 'spoyler',      ad: 'Arka spoyler',       en: 'Rear spoiler',        gruplar: DIS_PANEL },
+      { id: 'spoyler',      ad: 'Arka spoyler',       en: 'Rear spoiler',        gruplar: DIS_PANEL, ara: 't gate spoiler black garnish mtg nut corner' },
       { id: 'difuzor',      ad: 'Arka difüzör',       en: 'Rear diffuser',       gruplar: DIS_PANEL },
       { id: 'arka_panel',   ad: 'Arka panel',         en: 'Rear body panel',     gruplar: DIS_PANEL },
+      // 27.10.2026 (ekibin Excel'i): iç sac, park sensörü, geri görüş kamerası.
+      { id: 'bagaj_ic_panel', ad: 'Bagaj kapağı iç sacı', en: 'Tailgate inner panel', gruplar: DIS_PANEL, ara: 't gate inr pnl body panel' },
+      { id: 'arka_park_sensor', ad: 'Arka park sensörü', en: 'Rear parking sensor', gruplar: ['fonksiyon', 'montaj', 'yuzey'], ara: 'rpas parking sensor bumper' },
+      { id: 'arka_kamera', ad: 'Geri görüş kamerası', en: 'Rear view camera', gruplar: ['fonksiyon', 'montaj', 'yuzey'], ara: 'rr view camera' },
     ],
   },
   {
     id: 'dis_ust', ad: 'Dış · Üst', en: 'Exterior · Upper', grup: 'dis', simge: '▭',
     parcalar: [
-      { id: 'tavan',        ad: 'Tavan sacı',         en: 'Roof panel',          gruplar: DIS_PANEL, mesh: 'tavan' },
+      { id: 'tavan',        ad: 'Tavan sacı',         en: 'Roof panel',          gruplar: DIS_PANEL, mesh: 'tavan', ara: 'roof pnl roof side panel rear' },
       { id: 'cam_tavan',    ad: 'Panoramik cam tavan',en: 'Panoramic roof',      gruplar: [...CAM_TAKIMI, 'fonksiyon'], ara: 'sunroof açılır tavan' },
       { id: 'tavan_cita',   ad: 'Tavan çıtası',       en: 'roof moulding',       gruplar: DIS_PANEL, cift: true },
-      { id: 'tavan_bari',   ad: 'Tavan barı',         en: 'roof rail',           gruplar: DIS_PANEL, cift: true },
+      { id: 'tavan_bari',   ad: 'Tavan barı',         en: 'roof rail',           gruplar: DIS_PANEL, cift: true, ara: 'roof rack' },
       { id: 'anten',        ad: 'Anten',              en: 'Antenna',             gruplar: ['montaj', 'yuzey', 'fonksiyon'] },
     ],
   },
   {
     id: 'dis_alt', ad: 'Dış · Alt', en: 'Exterior · Underbody', grup: 'dis', simge: '▬',
     parcalar: [
-      { id: 'alt_muhafaza', ad: 'Alt muhafaza / davlumbaz', en: 'Under cover',   gruplar: ['montaj', 'yuzey', 'ses'] },
+      { id: 'alt_muhafaza', ad: 'Alt muhafaza / davlumbaz', en: 'Under cover',   gruplar: ['montaj', 'yuzey', 'ses'], ara: 'under cover under body' },
       { id: 'sase_alti',    ad: 'Şase altı / taban sacı',   en: 'Floor pan',     gruplar: ['yuzey', 'sizdirmazlik', 'montaj'] },
       { id: 'batarya_muh',  ad: 'HV batarya muhafazası', en: 'HV battery casing', gruplar: ['montaj', 'yuzey', 'sizdirmazlik'], sadeceEv: true },
       { id: 'yakit_deposu', ad: 'Yakıt deposu bölgesi',      en: 'Fuel tank area',gruplar: ['montaj', 'sizdirmazlik'], sadeceIce: true },
-      { id: 'egzoz_hatti',  ad: 'Egzoz hattı',               en: 'Exhaust line',  gruplar: ['montaj', 'ses', 'yuzey'], sadeceIce: true },
+      { id: 'egzoz_hatti',  ad: 'Egzoz hattı',               en: 'Exhaust line',  gruplar: ['montaj', 'ses', 'yuzey'], sadeceIce: true, ara: 'muffler' },
     ],
   },
   {
     id: 'ic_on', ad: 'İç · Ön konsol', en: 'Interior · Cockpit', grup: 'ic', simge: '▥',
     parcalar: [
-      { id: 'ip_ust',       ad: 'Gösterge paneli üstü (IP)', en: 'Upper IP',     gruplar: IC_PANEL, mesh: 'ic_ip' },
-      { id: 'ip_alt',       ad: 'Gösterge paneli altı',      en: 'Lower IP',     gruplar: IC_PANEL },
-      { id: 'gosterge',     ad: 'Gösterge ekranı (cluster)', en: 'Instrument cluster', gruplar: ['fonksiyon', 'yuzey', 'montaj'], mesh: 'ic_gosterge' },
-      { id: 'multimedya',   ad: 'Multimedya ekranı',         en: 'Infotainment display', gruplar: ['fonksiyon', 'yuzey', 'montaj', 'cam'], mesh: 'ic_ekran' },
-      { id: 'orta_konsol',  ad: 'Orta konsol',               en: 'Center console', gruplar: IC_PANEL, mesh: 'ic_konsol' },
-      { id: 'vites',        ad: 'Vites / vites kolu',        en: 'Shifter',       gruplar: ['fonksiyon', 'montaj', 'ses', 'yuzey'] },
-      { id: 'direksiyon',   ad: 'Direksiyon simidi',         en: 'Steering wheel',gruplar: ['yuzey', 'montaj', 'doseme', 'fonksiyon'], mesh: 'ic_direksiyon' },
-      { id: 'direksiyon_dugme', ad: 'Direksiyon düğmeleri',  en: 'Steering wheel switches', gruplar: ELEKTRIK },
+      { id: 'ip_ust',       ad: 'Gösterge paneli üstü (IP)', en: 'Crash pad upper (IP)',     gruplar: IC_PANEL, mesh: 'ic_ip', ara: 'c pad upr dashboard torpido üstü' },
+      { id: 'ip_alt',       ad: 'Gösterge paneli altı',      en: 'Crash pad lower (IP)',     gruplar: IC_PANEL, ara: 'c pad lwr side cover under pedal airbag' },
+      { id: 'gosterge',     ad: 'Gösterge ekranı (cluster)', en: 'Instrument cluster', gruplar: ['fonksiyon', 'yuzey', 'montaj'], mesh: 'ic_gosterge', ara: 'cluster upr trim' },
+      { id: 'multimedya',   ad: 'Multimedya ekranı',         en: 'Infotainment display', gruplar: ['fonksiyon', 'yuzey', 'montaj', 'cam'], mesh: 'ic_ekran', ara: 'avn audio' },
+      { id: 'orta_konsol',  ad: 'Orta konsol',               en: 'Center console', gruplar: IC_PANEL, mesh: 'ic_konsol', ara: 'ctr console' },
+      { id: 'vites',        ad: 'Vites / vites kolu',        en: 'Shifter',       gruplar: ['fonksiyon', 'montaj', 'ses', 'yuzey'], ara: 'tgs lever shift lever mtm t m shifting knob atm' },
+      { id: 'direksiyon',   ad: 'Direksiyon simidi',         en: 'Steering wheel',gruplar: ['yuzey', 'montaj', 'doseme', 'fonksiyon'], mesh: 'ic_direksiyon', ara: 's whl steering wheel leather dab airbag mdps column shroud' },
+      { id: 'direksiyon_dugme', ad: 'Direksiyon düğmeleri',  en: 'Steering wheel switches', gruplar: ELEKTRIK, ara: 'paddle shifter button' },
       { id: 'klima_paneli', ad: 'Klima kontrol paneli',      en: 'HVAC control panel', gruplar: ELEKTRIK },
-      { id: 'hava_kanali',  ad: 'Hava üfleme kanalı',        en: 'Air vent',      gruplar: ['montaj', 'fonksiyon', 'ses', 'yuzey'] },
+      { id: 'hava_kanali',  ad: 'Hava üfleme kanalı',        en: 'Air vent',      gruplar: ['montaj', 'fonksiyon', 'ses', 'yuzey'], ara: 'a vent air vent c pad ctr center' },
       { id: 'torpido',      ad: 'Torpido gözü',              en: 'Glove box',     gruplar: [...IC_PANEL, 'fonksiyon'] },
-      { id: 'kol_dayama',   ad: 'Orta kol dayama',           en: 'Center armrest',gruplar: [...IC_PANEL, 'fonksiyon'] },
+      { id: 'kol_dayama',   ad: 'Orta kol dayama',           en: 'Center armrest',gruplar: [...IC_PANEL, 'fonksiyon'], ara: 'arm rest seat' },
       { id: 'sarj_usb',     ad: 'USB / kablosuz şarj',       en: 'USB / wireless charger', gruplar: ELEKTRIK },
-      { id: 'pedal',        ad: 'Pedal takımı',              en: 'Pedal assembly',gruplar: ['fonksiyon', 'montaj', 'ses'] },
-      { id: 'ayak_bolge',   ad: 'Ayak bölgesi / halı',       en: 'Footwell carpet', gruplar: ['doseme', 'montaj', 'temizlik', 'sizdirmazlik'], mesh: 'ayak_bolge' },
+      { id: 'pedal',        ad: 'Pedal takımı',              en: 'Pedal assembly',gruplar: ['fonksiyon', 'montaj', 'ses'], ara: 'clutch pedal brake pedal' },
+      { id: 'el_freni',     ad: 'El freni kolu / düğmesi', en: 'Parking brake lever', gruplar: ['fonksiyon', 'montaj', 'ses', 'yuzey'], ara: 'brake lever epb' },
+      { id: 'ayak_bolge',   ad: 'Ayak bölgesi / halı',       en: 'Footwell carpet', gruplar: ['doseme', 'montaj', 'temizlik', 'sizdirmazlik'], mesh: 'ayak_bolge', ara: 'floor carpet front rear' },
       { id: 'tavan_konsol', ad: 'Ön tavan konsolu',          en: 'Overhead console', gruplar: [...IC_PANEL, 'fonksiyon'] },
     ],
   },
   {
     id: 'ic_kapi', ad: 'İç · Kapı döşemeleri', en: 'Interior · Door trim', grup: 'ic', simge: '▯',
     parcalar: [
-      { id: 'on_kapi_doseme',   ad: 'Ön kapı döşemesi',    en: 'front door trim',   gruplar: IC_PANEL, mesh: 'on_kapi_doseme', cift: true },
-      { id: 'arka_kapi_doseme', ad: 'Arka kapı döşemesi',  en: 'rear door trim',    gruplar: IC_PANEL, mesh: 'arka_kapi_doseme', cift: true },
-      { id: 'ic_kapi_kolu',     ad: 'İç kapı açma kolu',   en: 'inner door handle', gruplar: ['fonksiyon', 'montaj', 'yuzey', 'ses'], cift: true },
+      { id: 'on_kapi_doseme',   ad: 'Ön kapı döşemesi',    en: 'front door trim',   gruplar: IC_PANEL, mesh: 'on_kapi_doseme', cift: true, ara: 'dr trim arm rest inr' },
+      { id: 'arka_kapi_doseme', ad: 'Arka kapı döşemesi',  en: 'rear door trim',    gruplar: IC_PANEL, mesh: 'arka_kapi_doseme', cift: true, ara: 'dr trim arm rest inr' },
+      { id: 'ic_kapi_kolu',     ad: 'İç kapı açma kolu',   en: 'inner door handle', gruplar: ['fonksiyon', 'montaj', 'yuzey', 'ses'], cift: true, ara: 'inside handle' },
       { id: 'cam_dugme',        ad: 'Cam düğme paneli',    en: 'window switch panel', gruplar: ELEKTRIK, cift: true },
       { id: 'hoparlor_izgara',  ad: 'Hoparlör ızgarası',   en: 'speaker grille',    gruplar: ['montaj', 'yuzey', 'fonksiyon'], cift: true },
       { id: 'kapi_cebi',        ad: 'Kapı cebi',           en: 'door pocket',       gruplar: IC_PANEL, cift: true },
-      { id: 'kapi_esigi',       ad: 'Kapı eşiği çıtası',   en: 'door sill plate',   gruplar: ['montaj', 'yuzey', 'temizlik'], cift: true },
+      { id: 'kapi_esigi',       ad: 'Kapı eşiği çıtası',   en: 'door sill plate',   gruplar: ['montaj', 'yuzey', 'temizlik'], cift: true, ara: 'sill side trim scuff' },
     ],
   },
   {
     id: 'ic_koltuk', ad: 'İç · Koltuklar', en: 'Interior · Seats', grup: 'ic', simge: '▮',
     parcalar: [
-      { id: 'surucu_koltuk',    ad: 'Sürücü koltuğu',      en: 'Driver seat',       gruplar: [...IC_PANEL, 'fonksiyon'], mesh: 'koltuk_sol_on' },
-      { id: 'yolcu_koltuk',     ad: 'Ön yolcu koltuğu',    en: 'Passenger seat',    gruplar: [...IC_PANEL, 'fonksiyon'], mesh: 'koltuk_sag_on' },
-      { id: 'arka_koltuk_sirt', ad: 'Arka koltuk sırtlığı',en: 'Rear seat back',    gruplar: [...IC_PANEL, 'fonksiyon'], mesh: 'koltuk_arka' },
-      { id: 'arka_koltuk_otur', ad: 'Arka koltuk oturma',  en: 'Rear seat cushion', gruplar: IC_PANEL },
-      { id: 'baslik',           ad: 'Koltuk başlığı',      en: 'Headrest',          gruplar: [...IC_PANEL, 'fonksiyon'] },
-      { id: 'kemer',            ad: 'Emniyet kemeri',      en: 'Seat belt',         gruplar: ['fonksiyon', 'doseme', 'montaj'] },
-      { id: 'koltuk_ayar',      ad: 'Koltuk ayar mekanizması', en: 'Seat adjuster', gruplar: ['fonksiyon', 'ses', 'montaj'] },
+      { id: 'surucu_koltuk',    ad: 'Sürücü koltuğu',      en: 'Driver seat',       gruplar: [...IC_PANEL, 'fonksiyon'], mesh: 'koltuk_sol_on', ara: 'seat back cushion front lh sırtlık minder' },
+      { id: 'yolcu_koltuk',     ad: 'Ön yolcu koltuğu',    en: 'Passenger seat',    gruplar: [...IC_PANEL, 'fonksiyon'], mesh: 'koltuk_sag_on', ara: 'seat back cushion front rh sırtlık minder' },
+      { id: 'arka_koltuk_sirt', ad: 'Arka koltuk sırtlığı',en: 'Rear seat back',    gruplar: [...IC_PANEL, 'fonksiyon'], mesh: 'koltuk_arka', ara: 'seat back rear' },
+      { id: 'arka_koltuk_otur', ad: 'Arka koltuk oturma',  en: 'Rear seat cushion', gruplar: IC_PANEL, ara: 'seat cushion rear minder' },
+      { id: 'baslik',           ad: 'Koltuk başlığı',      en: 'Headrest',          gruplar: [...IC_PANEL, 'fonksiyon'], ara: 'h rest head rest guide seat back front rear ctr' },
+      { id: 'kemer',            ad: 'Emniyet kemeri',      en: 'Seat belt',         gruplar: ['fonksiyon', 'doseme', 'montaj'], ara: 'seat belt height adjuster front rear' },
+      { id: 'koltuk_ayar',      ad: 'Koltuk ayar mekanizması', en: 'Seat adjuster', gruplar: ['fonksiyon', 'ses', 'montaj'], ara: 'seat rail tilt handle back recliner' },
       { id: 'isofix',           ad: 'ISOFIX kapakları',    en: 'ISOFIX covers',     gruplar: ['montaj', 'yuzey'] },
     ],
   },
   {
     id: 'ic_tavan', ad: 'İç · Tavan ve garnişler', en: 'Interior · Headliner & garnish', grup: 'ic', simge: '▰',
     parcalar: [
-      { id: 'tavan_doseme',  ad: 'Tavan döşemesi',     en: 'Headliner',            gruplar: IC_PANEL, mesh: 'ic_tavan_doseme' },
-      { id: 'a_garnis',      ad: 'A direği garnişi',   en: 'A pillar garnish',     gruplar: IC_PANEL, mesh: 'a_garnis', cift: true },
-      { id: 'b_garnis',      ad: 'B direği garnişi',   en: 'B pillar garnish',     gruplar: IC_PANEL, mesh: 'b_garnis', cift: true },
-      { id: 'c_garnis',      ad: 'C direği garnişi',   en: 'C pillar garnish',     gruplar: IC_PANEL, mesh: 'c_garnis', cift: true },
-      { id: 'gunuslik',      ad: 'Güneşlik',           en: 'sun visor',            gruplar: [...IC_PANEL, 'fonksiyon'], cift: true },
-      { id: 'tutamak',       ad: 'Tavan tutamağı',     en: 'assist grip',          gruplar: ['montaj', 'ses', 'fonksiyon'], cift: true },
-      { id: 'tavan_lamba',   ad: 'İç tavan lambası',   en: 'Interior dome lamp',   gruplar: ELEKTRIK },
-      { id: 'dikiz_ayna',    ad: 'İç dikiz aynası',    en: 'Interior mirror',      gruplar: ['montaj', 'fonksiyon', 'yuzey', 'ses'] },
+      { id: 'tavan_doseme',  ad: 'Tavan döşemesi',     en: 'Headliner',            gruplar: IC_PANEL, mesh: 'ic_tavan_doseme', ara: 'h lining headlining front rear ctr sub' },
+      { id: 'a_garnis',      ad: 'A direği garnişi',   en: 'A pillar garnish',     gruplar: IC_PANEL, mesh: 'a_garnis', cift: true, ara: 'a pillar trim plr' },
+      { id: 'b_garnis',      ad: 'B direği garnişi',   en: 'B pillar garnish',     gruplar: IC_PANEL, mesh: 'b_garnis', cift: true, ara: 'b pillar trim upr lwr plr' },
+      { id: 'c_garnis',      ad: 'C direği garnişi',   en: 'C pillar garnish',     gruplar: IC_PANEL, mesh: 'c_garnis', cift: true, ara: 'c pillar trim plr' },
+      { id: 'gunuslik',      ad: 'Güneşlik',           en: 'sun visor',            gruplar: [...IC_PANEL, 'fonksiyon'], cift: true, ara: 's visor mtg bracket mirror' },
+      { id: 'tutamak',       ad: 'Tavan tutamağı',     en: 'assist grip',          gruplar: ['montaj', 'ses', 'fonksiyon'], cift: true, ara: 'hand grip' },
+      { id: 'tavan_lamba',   ad: 'İç tavan lambası',   en: 'Interior dome lamp',   gruplar: ELEKTRIK, ara: 'room lamp map lamp front rear s w switch' },
+      { id: 'dikiz_ayna',    ad: 'İç dikiz aynası',    en: 'Interior mirror',      gruplar: ['montaj', 'fonksiyon', 'yuzey', 'ses'], ara: 'i s mirror inside mirror front cover' },
+      // 27.10.2026 (ekibin Excel'i): ön cam üstündeki kapaklar.
+      { id: 'mfc_kapak',    ad: 'Ön cam kamera kapağı (MFC)', en: 'Multi-function camera cover', gruplar: IC_PANEL, ara: 'mfc cover kamera' },
+      { id: 'nem_sensor_kapak', ad: 'Nem / yağmur sensörü kapağı', en: 'Humidity sensor cover', gruplar: IC_PANEL, ara: 'rain sensor' },
     ],
   },
   {
     id: 'ic_bagaj', ad: 'İç · Bagaj', en: 'Interior · Luggage', grup: 'ic', simge: '▱',
     parcalar: [
-      { id: 'bagaj_doseme',  ad: 'Bagaj taban döşemesi', en: 'Luggage floor trim', gruplar: IC_PANEL, mesh: 'ic_bagaj' },
-      { id: 'bagaj_hali',    ad: 'Bagaj halısı',         en: 'Luggage carpet',     gruplar: ['doseme', 'montaj', 'temizlik'] },
-      { id: 'bagaj_yan',     ad: 'Bagaj yan garnişi',    en: 'luggage side trim',  gruplar: IC_PANEL, cift: true },
-      { id: 'bagaj_ic_kapak',ad: 'Bagaj kapağı iç kaplaması', en: 'Tailgate inner trim', gruplar: IC_PANEL },
+      { id: 'bagaj_doseme',  ad: 'Bagaj taban döşemesi', en: 'Luggage floor trim', gruplar: IC_PANEL, mesh: 'ic_bagaj', ara: 'luggage board mat' },
+      { id: 'bagaj_hali',    ad: 'Bagaj halısı',         en: 'Luggage carpet',     gruplar: ['doseme', 'montaj', 'temizlik'], ara: 'luggage mat' },
+      { id: 'bagaj_yan',     ad: 'Bagaj yan garnişi',    en: 'luggage side trim',  gruplar: IC_PANEL, cift: true, ara: 'luggage trim' },
+      { id: 'bagaj_ic_kapak',ad: 'Bagaj kapağı iç kaplaması', en: 'Tailgate inner trim', gruplar: IC_PANEL, ara: 't gate trim' },
       { id: 'stepne_bolme',  ad: 'Stepne / alet bölmesi',en: 'Spare wheel compartment', gruplar: ['montaj', 'temizlik', 'sizdirmazlik'] },
-      { id: 'bagaj_raf',     ad: 'Bagaj rafı / perdesi', en: 'Parcel shelf',       gruplar: [...IC_PANEL, 'fonksiyon'] },
+      { id: 'bagaj_raf',     ad: 'Bagaj rafı / perdesi', en: 'Parcel shelf',       gruplar: [...IC_PANEL, 'fonksiyon'], ara: 'cover shelf' },
       { id: 'bagaj_lamba',   ad: 'Bagaj aydınlatması',   en: 'Luggage lamp',       gruplar: ELEKTRIK },
     ],
   },
   {
     id: 'motor', ad: 'Motor bölmesi', en: 'Engine / Power compartment', grup: 'motor', simge: '⚙',
     parcalar: [
-      { id: 'kaput_alti',    ad: 'Kaput altı genel görünüm', en: 'Under hood general', gruplar: ['montaj', 'yuzey', 'temizlik'] },
-      { id: 'kablo_demeti',  ad: 'Kablo demeti / bağlantılar', en: 'Wiring harness', gruplar: ['montaj', 'fonksiyon'], haric: BOSLUK_KADEME, ara: 'konnektör soket fiş connector' },
+      { id: 'kaput_alti',    ad: 'Kaput altı genel görünüm', en: 'Under hood general', gruplar: ['montaj', 'yuzey', 'temizlik'], ara: 'engine room' },
+      { id: 'kablo_demeti',  ad: 'Kablo demeti / bağlantılar', en: 'Wiring harness', gruplar: ['montaj', 'fonksiyon'], haric: BOSLUK_KADEME, ara: 'konnektör soket fiş connector wiring wir g eng main engine wiring alternator terminal front frt mhsg h lamp drl control intercooler' },
       { id: 'aku',           ad: 'Akü ve bağlantıları',  en: 'Battery & terminals',gruplar: ['montaj', 'fonksiyon'] },
       { id: 'sivi_seviye',   ad: 'Sıvı seviyeleri',      en: 'Fluid levels',       gruplar: ['fonksiyon', 'sizdirmazlik'] },
-      { id: 'izolasyon',     ad: 'Kaput izolasyon keçesi',en: 'Hood insulation',   gruplar: ['montaj', 'ses'] },
-      { id: 'sogutma',       ad: 'Radyatör / soğutma',   en: 'Radiator / cooling', gruplar: ['montaj', 'sizdirmazlik', 'ses'] },
+      { id: 'izolasyon',     ad: 'Kaput izolasyon keçesi',en: 'Hood insulation',   gruplar: ['montaj', 'ses'], ara: 'hood pad' },
+      { id: 'sogutma',       ad: 'Radyatör / soğutma',   en: 'Radiator / cooling', gruplar: ['montaj', 'sizdirmazlik', 'ses'], ara: 'radiator hose clamp rsvr tank reservoir' },
       { id: 'hv_kablo',      ad: 'HV turuncu kablolar', en: 'HV cables',           gruplar: ['montaj', 'fonksiyon'], sadeceEv: true, haric: BOSLUK_KADEME, ara: 'konnektör soket connector' },
       { id: 'sarj_soketi',   ad: 'Şarj soketi',          en: 'Charge port',        gruplar: ['fonksiyon', 'montaj', 'yuzey'], sadeceEv: true },
       { id: 'motor_ice',     ad: 'Motor / aktarma organları', en: 'Engine & drivetrain', gruplar: ['montaj', 'ses', 'sizdirmazlik'], sadeceIce: true },
+      // 27.10.2026 (ekibin Excel'i): hatlar ve hortumlar.
+      { id: 'fren_hatti',   ad: 'Fren hattı / vakum hortumu', en: 'Brake line / booster vacuum hose', gruplar: ['montaj', 'sizdirmazlik'], haric: BOSLUK_KADEME, ara: 'brake booster vacuum hose pipe master cylinder abs' },
+      { id: 'yakit_hatti',  ad: 'Yakıt hattı (boru / hortum)', en: 'Fuel line (pipe / hose)', gruplar: ['montaj', 'sizdirmazlik'], sadeceIce: true, haric: BOSLUK_KADEME, ara: 'fuel pipe hose' },
+      { id: 'klima_hatti',  ad: 'Klima borusu / hortumu', en: 'A/C pipe & hose', gruplar: ['montaj', 'sizdirmazlik', 'ses'], haric: BOSLUK_KADEME, ara: 'a con pipe hose' },
+      { id: 'hava_filtresi', ad: 'Hava filtresi / emme hortumu', en: 'Air filter / intake hose', gruplar: ['montaj', 'sizdirmazlik'], sadeceIce: true, haric: BOSLUK_KADEME, ara: 'air filter intake hose clamp' },
     ],
   },
   {
@@ -456,29 +473,35 @@ const YAN_PARCALAR: Parca[] = [
   // kaplamalar, ayna altı üçgen ve C direğindeki küçük cam ayrı parça oldu.
   { id: 'camurluk_garnis', ad: 'Ön çamurluk garnişi (dodik)', en: 'Front fender garnish', gruplar: DIS_PANEL },
   { id: 'a_diregi',      ad: 'A direği (dış)',     en: 'A pillar (ext.)',     gruplar: DIS_PANEL, mesh: 'a_diregi' },
-  { id: 'on_kapi',       ad: 'Ön kapı',            en: 'Front door',          gruplar: DIS_PANEL, mesh: 'on_kapi', ara: 'menteşe hinge kilit kilidi karşılığı latch striker' },
+  { id: 'on_kapi',       ad: 'Ön kapı',            en: 'Front door',          adEk: 'panel', gruplar: DIS_PANEL, mesh: 'on_kapi', ara: 'menteşe hinge kilit kilidi karşılığı latch striker check arm' },
   { id: 'on_kapi_cam',   ad: 'Ön kapı camı',       en: 'Front door glass',    gruplar: CAM_TAKIMI, mesh: 'on_kapi_cam' },
   { id: 'b_diregi',      ad: 'B direği (dış)',     en: 'B pillar (ext.)',     gruplar: DIS_PANEL, mesh: 'b_diregi' },
-  { id: 'arka_kapi',     ad: 'Arka kapı',          en: 'Rear door',           gruplar: DIS_PANEL, mesh: 'arka_kapi', ara: 'menteşe hinge kilit kilidi karşılığı latch striker' },
+  { id: 'arka_kapi',     ad: 'Arka kapı',          en: 'Rear door',           adEk: 'panel', gruplar: DIS_PANEL, mesh: 'arka_kapi', ara: 'menteşe hinge kilit kilidi karşılığı latch striker check arm' },
   { id: 'arka_kapi_cam', ad: 'Arka kapı camı',     en: 'Rear door glass',     gruplar: CAM_TAKIMI, mesh: 'arka_kapi_cam' },
   { id: 'c_diregi',      ad: 'C direği (dış)',     en: 'C pillar (ext.)',     gruplar: DIS_PANEL, mesh: 'c_diregi' },
-  { id: 'qtr_cam',       ad: 'Arka üçgen cam (QTR)', en: 'Quarter glass',     gruplar: CAM_TAKIMI },
-  { id: 'arka_camurluk', ad: 'Arka çamurluk',      en: 'Rear fender / quarter', gruplar: DIS_PANEL, mesh: 'arka_camurluk' },
-  { id: 'qtr_garnis',    ad: 'Arka çamurluk garnişi (dodik)', en: 'Rear fender garnish', gruplar: DIS_PANEL },
-  { id: 'marspiyel',     ad: 'Marşpiyel / eşik',   en: 'Rocker / side sill',  gruplar: DIS_PANEL, mesh: 'marspiyel', ara: 'yan etek side skirt' },
-  { id: 'ayna',          ad: 'Dış dikiz aynası',   en: 'Exterior mirror',     gruplar: [...DIS_PANEL, 'fonksiyon'], mesh: 'ayna' },
-  { id: 'delta_garnis',  ad: 'Delta garnişi (ayna altı üçgen)', en: 'Delta garnish', gruplar: DIS_PANEL },
-  { id: 'kapi_kolu',     ad: 'Dış kapı kolu',      en: 'Exterior door handle',gruplar: [...DIS_PANEL, 'fonksiyon'] },
-  { id: 'cam_fitili',    ad: 'Cam / kapı fitili',  en: 'Door weatherstrip',   gruplar: ['sizdirmazlik', 'montaj', 'ses'], ara: 'w strip conta' },
-  { id: 'kapi_cita',     ad: 'Kapı çıtası',        en: 'Door moulding',       gruplar: DIS_PANEL },
-  { id: 'on_jant',       ad: 'Ön jant / lastik',   en: 'Front wheel / tyre',  gruplar: ['yuzey', 'montaj', 'fonksiyon'], mesh: 'jant_on' },
-  { id: 'arka_jant',     ad: 'Arka jant / lastik', en: 'Rear wheel / tyre',   gruplar: ['yuzey', 'montaj', 'fonksiyon'], mesh: 'jant_arka' },
-  { id: 'davlumbaz',     ad: 'Çamurluk davlumbazı',en: 'Wheel arch liner',    gruplar: ['montaj', 'ses'] },
+  { id: 'qtr_cam',       ad: 'Arka üçgen cam (QTR)', en: 'Quarter glass',     gruplar: CAM_TAKIMI, ara: 'qtr glass fixed glass mold delta chrome' },
+  { id: 'arka_camurluk', ad: 'Arka çamurluk',      en: 'Rear fender / quarter', gruplar: DIS_PANEL, mesh: 'arka_camurluk', ara: 'qtr pnl quarter panel' },
+  { id: 'qtr_garnis',    ad: 'Arka çamurluk garnişi (dodik)', en: 'Rear fender garnish', gruplar: DIS_PANEL, ara: 'qtr garnish quarter garnish' },
+  { id: 'marspiyel',     ad: 'Marşpiyel / eşik',   en: 'Rocker / side sill',  gruplar: DIS_PANEL, mesh: 'marspiyel', ara: 'yan etek side skirt sill side pnl front rear' },
+  { id: 'ayna',          ad: 'Dış dikiz aynası',   en: 'Exterior mirror',     gruplar: [...DIS_PANEL, 'fonksiyon'], mesh: 'ayna', ara: 'o s mirror outside mirror front door frt dr inr cover' },
+  { id: 'delta_garnis',  ad: 'Delta garnişi (ayna altı üçgen)', en: 'Delta garnish', gruplar: DIS_PANEL, ara: 'fender cover' },
+  { id: 'kapi_kolu',     ad: 'Dış kapı kolu',      en: 'Exterior door handle',gruplar: [...DIS_PANEL, 'fonksiyon'], ara: 'hdl o s outside handle front rear door' },
+  { id: 'cam_fitili',    ad: 'Cam / kapı fitili',  en: 'Door weatherstrip',   gruplar: ['sizdirmazlik', 'montaj', 'ses'], ara: 'w strip conta w strip body front rear weatherstrip' },
+  { id: 'kapi_cita',     ad: 'Kapı kemer çıtası (dış)',        en: 'Door belt moulding',       gruplar: DIS_PANEL, ara: 'belt mold moulding front rear w line i s inside' },
+  // 27.10.2026 (ekibin Excel'i): kapı iç sacları, çerçeve siyah bandı, cam kanalı.
+  { id: 'on_kapi_ic',   ad: 'Ön kapı iç sacı',    en: 'Front door inner panel', gruplar: DIS_PANEL, ara: 'frame inr pnl' },
+  { id: 'arka_kapi_ic', ad: 'Arka kapı iç sacı',  en: 'Rear door inner panel',  gruplar: DIS_PANEL, ara: 'frame inr pnl' },
+  { id: 'on_kapi_bant', ad: 'Ön kapı çerçeve siyah bandı', en: 'Front door frame black tape', gruplar: YUZEY_MONTAJ },
+  { id: 'arka_kapi_bant', ad: 'Arka kapı çerçeve siyah bandı', en: 'Rear door frame black tape', gruplar: YUZEY_MONTAJ },
+  { id: 'cam_kanali',   ad: 'Kapı cam kanalı',    en: 'Door glass run',      gruplar: ['sizdirmazlik', 'montaj', 'ses'], ara: 'glass run front rear' },
+  { id: 'on_jant',       ad: 'Ön jant / lastik',   en: 'Front wheel / tyre',  gruplar: ['yuzey', 'montaj', 'fonksiyon'], mesh: 'jant_on', ara: 'tire wheel cover' },
+  { id: 'arka_jant',     ad: 'Arka jant / lastik', en: 'Rear wheel / tyre',   gruplar: ['yuzey', 'montaj', 'fonksiyon'], mesh: 'jant_arka', ara: 'tire wheel cover' },
+  { id: 'davlumbaz',     ad: 'Çamurluk davlumbazı',en: 'Wheel arch liner',    gruplar: ['montaj', 'ses'], ara: 'wheel guard front rear' },
   // "Yakıt / şarj kapağı" idi ve iki araç tipinde de görünüyordu: elektrikli
   // araçta "yakıt" yazıyordu. Ayrıldı; eski kimlik benzinlide kaldı
   // (28.09.2026). Hangi YANDA olduğu araçtan araca değişir ve elimizde bu
   // bilgi yok — tahmin edilmedi, iki yanda da listelenir.
-  { id: 'dolum_kapagi',  ad: 'Yakıt kapağı',       en: 'Fuel door',           gruplar: [...DIS_PANEL, 'fonksiyon'], sadeceIce: true, ara: 'depo kapağı benzin kapağı' },
+  { id: 'dolum_kapagi',  ad: 'Yakıt kapağı',       en: 'Fuel door',           gruplar: [...DIS_PANEL, 'fonksiyon'], sadeceIce: true, ara: 'depo kapağı benzin kapağı fuel flr dr filler door' },
   { id: 'sarj_kapagi',   ad: 'Şarj kapağı',        en: 'Charge port door',    gruplar: [...DIS_PANEL, 'fonksiyon'], sadeceEv: true },
 ];
 
@@ -585,6 +608,18 @@ export function parcaHataTipleri(parcaId: string): HataTipi[] {
 }
 
 const TARAF_ES_ANLAM: Record<Taraf, string> = { sol: 'sol lh left', sag: 'sağ rh right' };
+const PARCA_AD_ARAMA = new Map<string, string>();
+
+/** Parçanın yalnız ADI (iki dilde, tarafıyla) — arama sonuçlarını sıralamak için (arama.ts → esnekSuz). */
+export function parcaAdMetni(parcaId: string): string {
+  let m = PARCA_AD_ARAMA.get(parcaId);
+  if (m === undefined) {
+    const p = PARCA_INDEKS[parcaId];
+    m = p ? aramaMetni(parcaTamAdi(p.id), parcaTamAdi(p.id, 'en'), p.adEk ?? '', p.taraf ? TARAF_ES_ANLAM[p.taraf] : '') : '';
+    PARCA_AD_ARAMA.set(parcaId, m);
+  }
+  return m;
+}
 const PARCA_ARAMA = new Map<string, string>();
 
 /**
@@ -596,7 +631,7 @@ export function parcaAramaMetni(parcaId: string): string {
   if (m === undefined) {
     const p = PARCA_INDEKS[parcaId];
     m = p
-      ? aramaMetni(parcaTamAdi(p.id), parcaTamAdi(p.id, 'en'), p.bolgeAd, p.bolgeEn, p.taraf ? TARAF_ES_ANLAM[p.taraf] : '', p.ara ?? '')
+      ? aramaMetni(parcaTamAdi(p.id), parcaTamAdi(p.id, 'en'), p.adEk ?? '', p.bolgeAd, p.bolgeEn, p.taraf ? TARAF_ES_ANLAM[p.taraf] : '', p.ara ?? '')
       : '';
     PARCA_ARAMA.set(parcaId, m);
   }

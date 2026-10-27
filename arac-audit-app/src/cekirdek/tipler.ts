@@ -84,6 +84,13 @@ export interface Parca {
   haric?: string[];
   /** Aramada da bulunsun diye sahadaki başka adları (ör. "depo kapağı"). */
   ara?: string;
+  /**
+   * Arama SIRALAMASINDA adın parçası sayılan, gösterilmeyen kelimeler
+   * (27.10.2026). Hyundai dış paneli "PANEL ASSY-HOOD" diye adlandırır;
+   * gösterilen ad "Kaput / Hood" kalır (rapor ve Excel değişmesin), ama
+   * "HOOD PNL" araması kaputu iç sacdan (Hood inner panel) önce getirir.
+   */
+  adEk?: string;
 }
 
 /** PARCA_INDEKS'in değeri — parça, ait olduğu bölge bilgisiyle birlikte. */
