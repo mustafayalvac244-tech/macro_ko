@@ -1360,7 +1360,12 @@ küçük düğmeler, segmentler ve iz çubuğu en az 48 px.
 birim testleri 1050 → 1054 (gönderim izi: eşleme değişince tekrar eklenmez,
 değişen demerit listelenir; `sonucuDegistirir`). Takip düzeltmesi bilerek
 bozuldu (her değişiklik yeniden açsın): aşama sınavının takip adımı düştü.
-Eski web sınavları bu yazı yazılırken koşuyordu; sonuçları bir sonraki gönderimde.
+Aşama sınavı (`asama8`) 9'dan 11 adıma çıktı (fotoğraf kaldır/geri getir/Kaydet'te
+sil; rapordaki düğme sırası ve takibin denetimi açmaması) ve telefon/tablet ×
+açık/koyu geçti. Eski sınavlar aşama 8'le aynı adım sayılarıyla geçti:
+sadeleştirme 4 düzende (telefon 19, tablet 17 adım), İngilizce 2 × 10, dönüş
+2 × 10, çizim ve renkli çizim 2 × 10, gerçek görseller 2 × 3. Hepsi web
+tarayıcısında, temiz derlenmiş pakette.
 
 ## Durum — ne bitti, ne bitmedi
 
