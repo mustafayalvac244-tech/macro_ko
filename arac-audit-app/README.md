@@ -1409,7 +1409,16 @@ kodda da doğruydu, o adım rozetin bu araçları bozmadığını denetliyor). B
 dosya sınavda ekibin dosyasının bir girdisi bozularak üretildi; dosya depoya
 girmedi. Kontrast: uyarı rengi kendi zemininde açık temada 4,61:1, koyuda
 7,45:1 (eşik 4,5).
-Eski web sınavları bu yazı yazılırken koşuyordu; sonuçları bir sonraki gönderimde.
+Yeni sınav telefon/tablet × açık/koyu 4/4 geçti. İlk koşuda tablette düşmüştü:
+**sınavın kendi hatası** (denetçi düğmesine form çizilmeden bakıp denetçisiz
+geçti; uygulama doğru olarak denetimi açmadı); bekleme eklenince geçti.
+Sadeleştirme sınavı dört düzende de bir adımda düştü: o denetim 2/5 sistem
+işaretliyle bitiyor ve sınav kartta düz "Tamamlandı" bekliyordu; artık kartta
+"Kısmi · 2/5 sistem" yazması beklenen davranış, sınavın beklentisi buna göre
+değiştirildi (aynı adım sayılarıyla geçti: telefon 19, tablet 17). Öbür eski
+sınavlar değişmeden aşama 9'la aynı adım sayılarıyla geçti: aşama 8 sınavı 4 ×
+11, İngilizce 2 × 10, dönüş 2 × 10, çizim ve renkli çizim 2 × 10, gerçek
+görseller 2 × 3.
 
 ## Durum — ne bitti, ne bitmedi
 
