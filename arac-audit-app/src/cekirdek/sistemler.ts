@@ -56,6 +56,18 @@ export function eksikSistemler(kapsam: readonly string[], mevcut: readonly Bolge
 }
 
 /**
+ * Bitmiş denetimin kapsamı (28.10.2026, kalite müdürü değerlendirmesi: eksik
+ * sistemle bitirilen denetim listede düz "Tamamlandı" görünüyordu). "kismi"
+ * yalnız liste KULLANILIP yarım kaldıysa: hiç işaret yoksa ("Problem yok" ya da
+ * listeyi hiç kullanmayan ekip) kapsam bilinmiyor sayılır — her denetimi
+ * "Kısmi" diye boyamak uyarıyı anlamsızlaştırırdı.
+ */
+export function kapsamDurumu(isaretli: number, toplam: number): 'tam' | 'kismi' | 'isaretsiz' {
+  if (isaretli <= 0) return 'isaretsiz';
+  return isaretli >= toplam ? 'tam' : 'kismi';
+}
+
+/**
  * Rapor künyesi için: "Dış, İç (2/5)". Hiçbiri işaretli değilse "— (0/5)":
  * boş bırakmak "bilgi yok" gibi okunurdu; "0/5" bir ölçümdür.
  */

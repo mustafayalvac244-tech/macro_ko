@@ -17,6 +17,7 @@ import { S } from '@/bilesenler/simgeler';
 import { Dugme, SegmentSecici } from '@/bilesenler/temel';
 import { aracHaritasiVar, AYNA_ESI, cizimVar, kaynakHaritasi, oranUyar, yuvaAdi, YUVALAR } from '@/cekirdek/donusGorunumu';
 import { GorunumId } from '@/cekirdek/gorunumParcalari';
+import { hataMetni } from '@/cekirdek/hataMetni';
 import { aracEtiketi, ARACLAR } from '@/cekirdek/model3d';
 import { Arac } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
@@ -135,7 +136,7 @@ function YuvaSatiri({ aracId, aracAdi, yuva }: { aracId: string; aracAdi: string
       const x = await yuvaSec(aracId, yuva);
       if (x.durum === 'izinYok') setHata(t('Galeri izni verilmedi.', 'Gallery permission was not granted.'));
     } catch (h) {
-      setHata(`${t('Seçilemedi', 'Could not pick')}: ${h instanceof Error ? h.message : String(h)}`);
+      setHata(`${t('Seçilemedi', 'Could not pick')}: ${hataMetni(h, dil)}`);
     } finally {
       setCalisiyor(false);
     }

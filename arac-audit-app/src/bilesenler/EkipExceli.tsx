@@ -15,6 +15,7 @@ import { AktarimSecimi } from '@/cekirdek/aktarim';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import { etiketAnahtari } from '@/cekirdek/ekipEslemesi';
 import { DegisenAlan, DoldurmaSonucu, ekipExceliniDoldur, ElleEsleme, EslemeSatiri } from '@/cekirdek/ekipExceli';
+import { hataMetni } from '@/cekirdek/hataMetni';
 import { hataTipiAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { takipAdi } from '@/cekirdek/takip';
 import { Denetim } from '@/cekirdek/tipler';
@@ -58,7 +59,7 @@ export function EkipExceli({ secim }: { secim: AktarimSecimi }) {
       setSonuc(ekipExceliniDoldur(dosya.current.bayt, denetimler.current, { elleEsleme: eslemeler, gonderilen }));
     } catch (h) {
       setSonuc(null);
-      setHata(t(`Dosya doldurulamadı: ${h instanceof Error ? h.message : String(h)}`, `Could not fill the file: ${h instanceof Error ? h.message : String(h)}`));
+      setHata(t(`Dosya doldurulamadı: ${hataMetni(h, 'tr')}`, `Could not fill the file: ${hataMetni(h, 'en')}`));
     } finally {
       setHazirlaniyor(false);
     }
@@ -83,7 +84,7 @@ export function EkipExceli({ secim }: { secim: AktarimSecimi }) {
       setNot(devamNotu);
       await hazirla(elle);
     } catch (h) {
-      setHata(t(`Dosya açılamadı: ${h instanceof Error ? h.message : String(h)}`, `Could not open the file: ${h instanceof Error ? h.message : String(h)}`));
+      setHata(t(`Dosya açılamadı: ${hataMetni(h, 'tr')}`, `Could not open the file: ${hataMetni(h, 'en')}`));
     }
   };
 
@@ -112,7 +113,7 @@ export function EkipExceli({ secim }: { secim: AktarimSecimi }) {
         )
         : t(`Paylaşım yok; dosya: ${p.uri}`, `Sharing unavailable; file: ${p.uri}`));
     } catch (h) {
-      setHata(t(`Paylaşılamadı: ${h instanceof Error ? h.message : String(h)}`, `Could not share: ${h instanceof Error ? h.message : String(h)}`));
+      setHata(t(`Paylaşılamadı: ${hataMetni(h, 'tr')}`, `Could not share: ${hataMetni(h, 'en')}`));
     } finally {
       setPaylasiliyor(false);
     }

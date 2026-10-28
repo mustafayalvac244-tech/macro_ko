@@ -8,6 +8,7 @@ import { GRUP_SIMGELERI, S } from '@/bilesenler/simgeler';
 import { AramaKutusu, DereceRozeti, Dugme, Girdi, HataKutusu, Secenek, SegmentSecici } from '@/bilesenler/temel';
 import { fotografKucult } from '@/cekirdek/goruntu';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
+import { hataMetni } from '@/cekirdek/hataMetni';
 import { grupAdi, PARCA_INDEKS, parcaBolgeAdi, parcaCiftiAdi, parcaHataTipleri, parcaTamAdi, DERECELER } from '@/cekirdek/katalog';
 import {
   demeritDegeri, HAZIR_SORUMLULAR, NAS_SISTEMLERI, SINIFLAR, sinifDegeri, varsayilanSistem,
@@ -178,11 +179,11 @@ export function HataSayfasi({
       }
       setFotoIdleri((o) => [...o, ...yeniler]);
     } catch (h) {
-      setFotoHatasi(h instanceof Error ? h.message : String(h));
+      setFotoHatasi(hataMetni(h, dil));
     } finally {
       setFotoYukleniyor(false);
     }
-  }, [denetimId, taslak?.id, t]);
+  }, [denetimId, taslak?.id, t, dil]);
 
   const fotografiKaldir = useCallback((id: string) => {
     setFotoIdleri((o) => o.filter((x) => x !== id));
@@ -654,7 +655,7 @@ export function YeniTipFormu({
       // puanı yok, demerit kayıtta seçilir. Alan veri modelinde duruyor.
       await onEkle({ grup, ad: ad.trim() || en.trim(), en: en.trim(), derece: '0' });
     } catch (h) {
-      setHata(h instanceof Error ? h.message : String(h));
+      setHata(hataMetni(h, dil));
     } finally {
       setKaydediliyor(false);
     }

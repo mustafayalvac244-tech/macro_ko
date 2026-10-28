@@ -23,6 +23,7 @@ import { EklenebilirSecim, useSecimListesi } from '@/bilesenler/EklenebilirSecim
 import { S } from '@/bilesenler/simgeler';
 import { BilgiKutusu, Dugme, Girdi, HataKutusu, Secenek } from '@/bilesenler/temel';
 import { SPECLER } from '@/cekirdek/aracBilgisi';
+import { hataMetni } from '@/cekirdek/hataMetni';
 import { bolgelerAracIcin } from '@/cekirdek/katalog';
 import { HAZIR_DENETCILER, HAZIR_KAYNAKLAR, LISTE_ANAHTARI } from '@/cekirdek/listeler';
 import { aracEtiketi, ARACLAR } from '@/cekirdek/model3d';
@@ -261,7 +262,7 @@ export function DenetimBilgileri({
                   simge={S.sil}
                   onPress={() => {
                     onSil().catch((h) => {
-                      const ileti = h instanceof Error ? h.message : String(h);
+                      const ileti = hataMetni(h, dil);
                       setSilHatasi(t(`Silinemedi: ${ileti}`, `Couldn't delete: ${ileti}`));
                     });
                   }}

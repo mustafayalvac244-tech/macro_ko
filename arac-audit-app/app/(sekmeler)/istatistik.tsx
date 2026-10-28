@@ -29,6 +29,7 @@ import {
   haftalikSkor, HataKaydi, pareto, ParetoSatiri, sistemeGore, tekrarlayanlar,
 } from '@/cekirdek/istatistik';
 import { cizimVar } from '@/cekirdek/donusGorunumu';
+import { hataMetni } from '@/cekirdek/hataMetni';
 import { bolgelerAracIcin, hataTipiAdi, parcaTamAdi } from '@/cekirdek/katalog';
 import { aracEtiketi, ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
 import { auditSkoru } from '@/cekirdek/nas';
@@ -84,11 +85,11 @@ export default function Analiz() {
         const kayitlar = tumKayitlar.filter(skoraGirenDenetim);
         if (!iptal) { setVeri({ girdiler, kayitlar, simdi }); setHata(null); }
       } catch (h) {
-        if (!iptal) setHata(h instanceof Error ? h.message : String(h));
+        if (!iptal) setHata(hataMetni(h, dil));
       }
     })();
     return () => { iptal = true; };
-  }, []));
+  }, [dil]));
 
   const hesap = useMemo(() => {
     if (!veri) return null;

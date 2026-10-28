@@ -30,6 +30,7 @@
 
 import { aramaMetni } from './arama';
 import { ciftAnahtari, EkipEtiketi, etiketAnahtari, etiketEslemesi, etiketleriTopla } from './ekipEslemesi';
+import { KullaniciHatasi } from './hataMetni';
 import {
   bolgelerAracIcin, hataTipiAdi, PARCA_INDEKS, parcaAdMetni, parcaAramaMetni, parcaCiftiAdi, parcaKendiMetni,
   parcaTamAdi, tumHataTipleri,
@@ -171,7 +172,7 @@ interface Sayfa {
 }
 
 function sayfaOku(ad: string, yol: string | undefined, metin: (yol: string) => string, metinler: readonly string[], gerekli: readonly string[]): Sayfa {
-  if (!yol) throw new Error(`Bu dosyada "${ad}" sayfası yok — ekibin NAS dosyası mı?`);
+  if (!yol) throw new KullaniciHatasi(`Bu dosyada "${ad}" sayfası yok — ekibin NAS dosyası mı?`, `This file has no "${ad}" sheet — is it the team's NAS file?`);
   const xml = metin(yol);
   const parca = sayfayiBol(xml);
   // Başlık satırı: ilk 5 satır içinde gerekli başlıkların hepsini taşıyan.
@@ -186,7 +187,10 @@ function sayfaOku(ad: string, yol: string | undefined, metin: (yol: string) => s
     if (gerekli.every((g) => m.has(g))) { basSatir = s.no; for (const [k, v] of m) sutun.set(k, v); break; }
   }
   if (basSatir < 0) {
-    throw new Error(`"${ad}" sayfasında başlık satırı bulunamadı (aranan: ${gerekli.join(', ')}) — ekibin NAS dosyası mı?`);
+    throw new KullaniciHatasi(
+      `"${ad}" sayfasında başlık satırı bulunamadı (aranan: ${gerekli.join(', ')}) — ekibin NAS dosyası mı?`,
+      `No header row found on the "${ad}" sheet (looking for: ${gerekli.join(', ')}) — is it the team's NAS file?`,
+    );
   }
   let sonDolu: SatirParcasi | undefined;
   for (let i = parca.satirlar.length - 1; i >= 0 && !sonDolu; i--) {
@@ -315,10 +319,10 @@ export function ekipExceliniDoldur(
   const cozucu = new TextDecoder();
   const metin = (yol: string) => {
     const g = indeks.get(yol);
-    if (!g) throw new Error(`Dosyada ${yol} yok — Excel dosyası mı?`);
+    if (!g) throw new KullaniciHatasi(`Dosyada ${yol} yok — Excel dosyası mı?`, `${yol} is missing from the file — is it an Excel file?`);
     return cozucu.decode(girdiyiAc(g));
   };
-  if (!indeks.has('xl/workbook.xml')) throw new Error('Bu bir Excel (xlsx/xlsm) dosyası değil.');
+  if (!indeks.has('xl/workbook.xml')) throw new KullaniciHatasi('Bu bir Excel (xlsx/xlsm) dosyası değil.', 'This is not an Excel (xlsx/xlsm) file.');
   const yollar = sayfaYollari(metin('xl/workbook.xml'), metin('xl/_rels/workbook.xml.rels'));
   const metinler = indeks.has('xl/sharedStrings.xml') ? paylasilanMetinler(metin('xl/sharedStrings.xml')) : [];
 

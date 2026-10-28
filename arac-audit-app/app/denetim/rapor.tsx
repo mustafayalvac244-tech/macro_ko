@@ -14,6 +14,7 @@ import {
   BOLGELER, DERECELER, HATA_TIPI_INDEKS, hataTipiAdi, parcaBolgeAdi, parcaCiftiAdi, parcaTamAdi, bolgelerAracIcin,
 } from '@/cekirdek/katalog';
 import { cizimVar, parcaDemeritleri, parcaKayitSayilari } from '@/cekirdek/donusGorunumu';
+import { hataMetni } from '@/cekirdek/hataMetni';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { demeritDegeri, SINIFLAR, sinifDegeri, sistemDegeri } from '@/cekirdek/nas';
 import { takipAdi } from '@/cekirdek/takip';
@@ -21,7 +22,7 @@ import { denetimOzeti } from '@/cekirdek/puan';
 import { kmGoster } from '@/cekirdek/aracBilgisi';
 import { bicimTarih, csvUret, excelUret } from '@/cekirdek/rapor';
 import { sureDakika, sureMetni } from '@/cekirdek/istatistik';
-import { eksikSistemler, kapsamMetni, mevcutSistemler, sistemAdi } from '@/cekirdek/sistemler';
+import { eksikSistemler, kapsamDurumu, kapsamMetni, mevcutSistemler, sistemAdi } from '@/cekirdek/sistemler';
 import { aracKimligi } from '@/cekirdek/vin';
 import { Denetim, FotografBaytlari } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
@@ -65,9 +66,9 @@ export default function RaporEkrani() {
   const [gunluk, setGunluk] = useState<GunlukKaydi[]>([]);
   useEffect(() => {
     if (!id) return;
-    denetimGetir(id).then((d) => { setDenetim(d); setOkundu(true); }).catch((h) => setHata(String(h)));
+    denetimGetir(id).then((d) => { setDenetim(d); setOkundu(true); }).catch((h) => setHata(hataMetni(h, dil)));
     degisiklikGunlugu(id).then(setGunluk).catch(() => setGunluk([]));
-  }, [id]);
+  }, [id, dil]);
 
   const ozet = useMemo(() => denetimOzeti(denetim), [denetim]);
 
@@ -123,11 +124,11 @@ export default function RaporEkrani() {
         setBilgi(t(`Dosya hazır: ${dosya.uri}`, `File ready: ${dosya.uri}`));
       }
     } catch (h) {
-      setHata(h instanceof Error ? h.message : String(h));
+      setHata(hataMetni(h, dil));
     } finally {
       setCalisiyor(null);
     }
-  }, [denetim, dosyaAdi, fotoBaytlari, t]);
+  }, [denetim, dosyaAdi, fotoBaytlari, t, dil]);
 
   // BİTİR İKİ ADIMLI. Önceden onaysızdı, "CSV"nin 8 px yanındaydı ve doğrudan
   // ana sayfaya atıyordu (üç ajanın sınaması, 28.09.2026). Onay 27.10.2026'dan
@@ -180,6 +181,8 @@ export default function RaporEkrani() {
   const sistemListesi = mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' }));
   const kontrolEdilen = sistemListesi.filter((x) => (denetim.kapsam ?? []).includes(x)).length;
   const eksikler = eksikSistemler(denetim.kapsam ?? [], sistemListesi);
+  const kismi = denetim.durum === 'tamam' && kapsamDurumu(kontrolEdilen, sistemListesi.length) === 'kismi';
+  const kismiMetni = t(`Kısmi · ${kontrolEdilen}/${sistemListesi.length} sistem`, `Partial · ${kontrolEdilen}/${sistemListesi.length} systems`);
   const agir = ozet.sinifDagilimi.MAJOR + ozet.sinifDagilimi.MAIN;
 
   const kunye: [string, string, boolean?][] = [
@@ -201,7 +204,7 @@ export default function RaporEkrani() {
     ] as [string, string, boolean?][]).filter(([, deger]) => !!deger),
     [t('Tarih', 'Date'), bicimTarih(denetim.baslangic)],
     [t('Durum', 'Status'), denetim.durum === 'tamam'
-      ? `${t('Tamamlandı', 'Completed')}${denetim.bitis ? ` · ${bicimTarih(denetim.bitis)}` : ''}`
+      ? `${t('Tamamlandı', 'Completed')}${kismi ? ` (${t('kısmi', 'partial')})` : ''}${denetim.bitis ? ` · ${bicimTarih(denetim.bitis)}` : ''}`
       : t('Devam ediyor', 'In progress')],
     // Süre ve kapsam 24.10.2026'da eklendi (benzer uygulamaların incelenmesi).
     ...(denetim.durum === 'tamam' && sureDakika(denetim.baslangic, denetim.bitis) !== null
@@ -223,8 +226,8 @@ export default function RaporEkrani() {
             <BaslikCipi simge={S.arac} metin={aracEtiketi(arac, denetim.aracId)} />
             {denetim.faz ? <BaslikCipi simge={S.faz} metin={denetim.faz} /> : null}
             <BaslikCipi
-              simge={denetim.durum === 'devam' ? S.vardiya : S.tik}
-              metin={denetim.durum === 'devam' ? t('Devam ediyor', 'In progress') : t('Tamamlandı', 'Completed')}
+              simge={denetim.durum === 'devam' ? S.vardiya : kismi ? S.uyari : S.tik}
+              metin={denetim.durum === 'devam' ? t('Devam ediyor', 'In progress') : kismi ? kismiMetni : t('Tamamlandı', 'Completed')}
             />
           </>
         )}

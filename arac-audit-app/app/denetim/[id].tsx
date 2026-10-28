@@ -22,6 +22,7 @@ import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import {
   bolgelerAracIcin, grupAdi, HATA_TIPI_INDEKS, hataTipiAdi, PARCA_INDEKS, parcaBolgeAdi, parcaCiftiAdi, parcaHataTipleri, parcaTamAdi,
 } from '@/cekirdek/katalog';
+import { hataMetni } from '@/cekirdek/hataMetni';
 import { aracEtiketi, ARAC_INDEKS } from '@/cekirdek/model3d';
 import { sinifDegeri, VARSAYILAN_SINIF, varsayilanSistem } from '@/cekirdek/nas';
 import { dereceGosterimi } from '@/cekirdek/puan';
@@ -160,9 +161,9 @@ export default function DenetimEkrani() {
       // Şerit yüklenemezse denetim yine açılır; yalnız şerit çıkmaz.
       if (d) modelHataGecmisi(d.aracId).then(setGecmis).catch(() => {});
     } catch (h) {
-      setYuklemeHatasi(h instanceof Error ? h.message : String(h));
+      setYuklemeHatasi(hataMetni(h, dil));
     }
-  }, [id]);
+  }, [id, dil]);
 
   useEffect(() => { tazele(); }, [tazele]);
 
@@ -362,7 +363,7 @@ export default function DenetimEkrani() {
     } catch (h) {
       // Kayıt düşmediyse ekranda KALMALI: denetçi "kaydettim" sanıp geçerse
       // hata raporda hiç görünmez.
-      const neden = h instanceof Error ? h.message : String(h);
+      const neden = hataMetni(h, dil);
       setKayitHatasi(t(`Kaydedilemedi: ${neden}`, `Could not save: ${neden}`));
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       return false;
@@ -389,7 +390,7 @@ export default function DenetimEkrani() {
       ),
     }, 6000);
     return true;
-  }, [denetim, sorumluHaritasi, bildirimGoster, yenidenAcGerekirse, t]);
+  }, [denetim, sorumluHaritasi, bildirimGoster, yenidenAcGerekirse, t, dil]);
 
   /** Tek dokunuşla kayıt — bu ekranın var olma sebebi. */
   const hizliKaydet = useCallback(async (tip: HataTipi) => {

@@ -17,6 +17,7 @@ import { Platform } from 'react-native';
 
 import { aktarilacaklar, AktarimSecimi, VARSAYILAN_AKTARIM } from '@/cekirdek/aktarim';
 import { ElleEsleme, GonderimIzi, GonderimKaydi } from '@/cekirdek/ekipExceli';
+import { KullaniciHatasi } from '@/cekirdek/hataMetni';
 import { Denetim } from '@/cekirdek/tipler';
 import { nasSayfalari } from '@/cekirdek/nas';
 import { xlsxOlustur } from '@/cekirdek/xlsx';
@@ -143,7 +144,7 @@ export async function yedekGeriYukle(): Promise<GeriYuklemeSonucu> {
 
   const girdiler = zipOku(await dosya.bytes());
   const veri = girdiler.find((g) => g.ad === 'veri.json');
-  if (!veri) throw new Error('Bu zip bir Araç Audit yedeği değil (veri.json yok).');
+  if (!veri) throw new KullaniciHatasi('Bu zip bir Araç Audit yedeği değil (veri.json yok).', 'This zip is not an Araç Audit backup (no veri.json).');
   const icerik = yedekIceriginiCoz(JSON.parse(new TextDecoder().decode(veri.veri)));
 
   // Fotoğraflar: belge klasörüne; aynı adlı dosya varsa üstüne yazılmaz.

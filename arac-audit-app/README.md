@@ -1367,6 +1367,50 @@ sadeleştirme 4 düzende (telefon 19, tablet 17 adım), İngilizce 2 × 10, dön
 2 × 10, çizim ve renkli çizim 2 × 10, gerçek görseller 2 × 3. Hepsi web
 tarayıcısında, temiz derlenmiş pakette.
 
+### Aşama 10 — "Kısmi" rozeti ve anlaşılır hata iletileri (28.10.2026)
+
+Ürün sahibi: "görseli unut uygulamaya odaklan". Sıradaki iş için seçenekler
+soruldu, tercih belirtilmedi; önerilen "veri güvenliği" grubu yapıldı (aşama
+9'daki beş ajanlı değerlendirmenin kalan bulgularından).
+
+**"Kısmi" rozeti.** Kontrol listesi yarım bırakılıp bitirilen denetim listede
+düz "Tamamlandı" görünüyordu (kalite müdürü ajanı). Şimdi kartta uyarı renginde
+"Kısmi · 2/5 sistem", raporun başlığında aynısı, künyede "Tamamlandı (kısmi)";
+ekran okuyucu da "kısmi: 2/5 sistem kontrol edildi" der. **Kural**
+(`sistemler.ts` `kapsamDurumu`): rozet yalnız liste KULLANILIP yarım kaldıysa
+çıkar. Hiçbir sistem işaretli değilse çıkmaz, çünkü "Problem yok" ile bitirilen
+hatasız araçta da hiç işaret yok ve listeyi hiç kullanmayan bir ekipte her
+denetim "Kısmi" görünürdü; uyarı anlamını yitirirdi. Ekibin listeyi kullanıp
+kullanmadığı **bilinmiyor** (gerçek kullanım verisi yok).
+
+**Hata iletileri.** Bozuk bir Excel seçilince ekranda "Dosya doldurulamadı:
+DEFLATE: mesafe çıktının başından önce" yazıyordu (eski kodla web sınavında
+görüldü); İngilizce arayüzde de aynı Türkçe ileti çıkıyordu (erişilebilirlik
+ajanı). Şimdi her ekran hata cümlesini tek yerden alıyor
+(`cekirdek/hataMetni.ts`):
+- Kullanıcıya yazılmış hatalar (yanlış dosya, NAS sayfası yok, yedek değil…)
+  iki dilli taşınıyor, arayüzün dilinde gösteriliyor.
+- Teknik hatalar (ZIP, sıkıştırma, sayfa okuma; 21 ileti) ne yapılacağını
+  söyleyen cümleye çevriliyor: "Dosya bozuk ya da yarım inmiş. Excel'de
+  açılıyorsa yeniden kaydedip tekrar seçin…", "Dosya parolalı…" gibi. Teknik
+  ayrıntı ekranda gösterilmiyor.
+- Tanınmayan hata (ör. telefonun kendi iletileri) eskisi gibi iletisiyle
+  çıkıyor; sebebi gizlemek, bir şey göstermemekten kötü olurdu.
+
+**Neyle doğrulandı** (beklentiler benim; **telefonda denenmedi**): birim
+testleri 1054 → 1060. Bir bekçi test, üç teknik dosyadaki 21 `throw` iletisinin
+her birinin çevrildiğini ve İngilizcesinde Türkçe harf olmadığını denetliyor;
+çeviricideki bir kural bilerek silinince düştü. Kullanıcıya dönük dosyalarda
+düz `Error` kalmadığını da denetliyor. Yeni web sınavı (`asama10`, 4 adım:
+yarım listeyle biten denetimde rozet ve rapor; "Problem yok" Kısmi değil; bozuk
+Excel Türkçe; aynısı İngilizce) bu kodda geçti, **bir önceki gönderimin
+koduyla derlenmiş pakette 4 adımın 3'ü düştü** ("Problem yok" adımı eski
+kodda da doğruydu, o adım rozetin bu araçları bozmadığını denetliyor). Bozuk
+dosya sınavda ekibin dosyasının bir girdisi bozularak üretildi; dosya depoya
+girmedi. Kontrast: uyarı rengi kendi zemininde açık temada 4,61:1, koyuda
+7,45:1 (eşik 4,5).
+Eski web sınavları bu yazı yazılırken koşuyordu; sonuçları bir sonraki gönderimde.
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |

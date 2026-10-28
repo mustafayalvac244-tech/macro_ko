@@ -10,6 +10,7 @@ import {
   Baslik, BilgiKutusu, BolumBasligi, Dugme, Ekran, Kart, OnayKutusu, Secenek, SegmentSecici, useDuzen,
 } from '@/bilesenler/temel';
 import { AktarimDonemi } from '@/cekirdek/aktarim';
+import { hataMetni } from '@/cekirdek/hataMetni';
 import { grupAdi } from '@/cekirdek/katalog';
 import { DONEMLER } from '@/cekirdek/sayac';
 import { bicimTarih } from '@/cekirdek/rapor';
@@ -61,7 +62,7 @@ export default function Ayarlar() {
       ));
       bekleyenSenkron().then(setBekleyen).catch(() => {});
     } catch (h) {
-      setGeriHatasi(t(`Geri yüklenemedi: ${h instanceof Error ? h.message : String(h)}`, `Restore failed: ${h instanceof Error ? h.message : String(h)}`));
+      setGeriHatasi(t(`Geri yüklenemedi: ${hataMetni(h, 'tr')}`, `Restore failed: ${hataMetni(h, 'en')}`));
     } finally {
       setGeriYukleniyor(false);
     }
@@ -81,7 +82,7 @@ export default function Ayarlar() {
         + (y.paylasildi ? '' : t(` Paylaşım yok; dosya: ${y.uri}`, ` Sharing unavailable; file: ${y.uri}`)),
       );
     } catch (h) {
-      setYedekHatasi(t(`Yedek alınamadı: ${h instanceof Error ? h.message : String(h)}`, `Backup failed: ${h instanceof Error ? h.message : String(h)}`));
+      setYedekHatasi(t(`Yedek alınamadı: ${hataMetni(h, 'tr')}`, `Backup failed: ${hataMetni(h, 'en')}`));
     } finally {
       setYedekleniyor(false);
     }
@@ -111,7 +112,7 @@ export default function Ayarlar() {
         + (x.paylasildi ? '' : t(` Paylaşım yok; dosya: ${x.uri}`, ` Sharing unavailable; file: ${x.uri}`)),
       );
     } catch (h) {
-      setAktarHatasi(t(`Excel dosyası oluşturulamadı: ${h instanceof Error ? h.message : String(h)}`, `Could not create the Excel file: ${h instanceof Error ? h.message : String(h)}`));
+      setAktarHatasi(t(`Excel dosyası oluşturulamadı: ${hataMetni(h, 'tr')}`, `Could not create the Excel file: ${hataMetni(h, 'en')}`));
     } finally {
       setAktariliyor(false);
     }

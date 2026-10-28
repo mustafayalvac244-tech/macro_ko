@@ -10,6 +10,8 @@
 // Yedekte olup bugünkü tabloda olmayan sütun atlanır; yedekte olmayan sütun
 // tablonun varsayılanını alır (eski sürümün yedeği de yüklenir).
 
+import { KullaniciHatasi } from './hataMetni';
+
 export const YEDEK_UYGULAMA = 'arac-audit';
 
 /** Sıra yabancı anahtarlara göre: önce denetim, sonra ona bağlı satırlar. */
@@ -24,11 +26,13 @@ export interface YedekIcerigi { tarih: string; tablolar: Record<string, Satir[]>
 
 /** veri.json'u doğrular. Başka uygulamanın ya da bozuk dosyanın açıklayıcı hatası olur. */
 export function yedekIceriginiCoz(json: unknown): YedekIcerigi {
-  if (!json || typeof json !== 'object') throw new Error('Yedek dosyası okunamadı (veri.json boş).');
+  if (!json || typeof json !== 'object') throw new KullaniciHatasi('Yedek dosyası okunamadı (veri.json boş).', 'The backup file could not be read (veri.json is empty).');
   const o = json as { uygulama?: unknown; bicim?: unknown; tarih?: unknown; tablolar?: unknown };
-  if (o.uygulama !== YEDEK_UYGULAMA) throw new Error('Bu dosya Araç Audit yedeği değil.');
-  if (typeof o.bicim !== 'number' || o.bicim > 1) throw new Error(`Yedek biçimi tanınmıyor (${String(o.bicim)}); uygulamayı güncelleyin.`);
-  if (!o.tablolar || typeof o.tablolar !== 'object') throw new Error('Yedekte tablo yok.');
+  if (o.uygulama !== YEDEK_UYGULAMA) throw new KullaniciHatasi('Bu dosya Araç Audit yedeği değil.', 'This file is not an Araç Audit backup.');
+  if (typeof o.bicim !== 'number' || o.bicim > 1) {
+    throw new KullaniciHatasi(`Yedek biçimi tanınmıyor (${String(o.bicim)}); uygulamayı güncelleyin.`, `Backup format not recognised (${String(o.bicim)}); update the app.`);
+  }
+  if (!o.tablolar || typeof o.tablolar !== 'object') throw new KullaniciHatasi('Yedekte tablo yok.', 'The backup contains no tables.');
   const tablolar: Record<string, Satir[]> = {};
   for (const [ad, satirlar] of Object.entries(o.tablolar as Record<string, unknown>)) {
     if (Array.isArray(satirlar)) tablolar[ad] = satirlar.filter((x): x is Satir => !!x && typeof x === 'object');

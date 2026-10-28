@@ -10,9 +10,10 @@ import {
   HataKutusu, IlerlemeCubugu, Rozet, Secenek, useDuzen, Yukleniyor,
 } from '@/bilesenler/temel';
 import { aramaSadelestir } from '@/cekirdek/arama';
+import { hataMetni } from '@/cekirdek/hataMetni';
 import { bolgelerAracIcin } from '@/cekirdek/katalog';
 import { aracEtiketi, ARAC_INDEKS, ARACLAR } from '@/cekirdek/model3d';
-import { mevcutSistemler } from '@/cekirdek/sistemler';
+import { kapsamDurumu, mevcutSistemler } from '@/cekirdek/sistemler';
 import { bicimTarih } from '@/cekirdek/rapor';
 import { aracKimligi } from '@/cekirdek/vin';
 import { sureDakika, sureMetni } from '@/cekirdek/istatistik';
@@ -29,7 +30,7 @@ export default function DenetimListesi() {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
   const { tablet } = useDuzen();
-  const { t } = useDil();
+  const { dil, t } = useDil();
 
   const [satirlar, setSatirlar] = useState<DenetimOzetSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -56,11 +57,11 @@ export default function DenetimListesi() {
         setSayac(sayacHesapla(sayilacak, simdi, ARACLAR.map((a) => a.id)));
         setHata(null);
       } catch (h) {
-        if (!iptal) setHata(h instanceof Error ? h.message : String(h));
+        if (!iptal) setHata(hataMetni(h, dil));
       }
     })();
     return () => { iptal = true; };
-  }, []));
+  }, [dil]));
 
   const yeniDenetim = () => router.push('/yeni');
 
@@ -207,16 +208,23 @@ function DenetimKarti({
   const toplamSistem = mevcutSistemler(bolgelerAracIcin({ tip: arac?.tip ?? 'ice' })).length;
   const kontrol = Math.min(satir.kapsamAdedi, toplamSistem);
 
+  // Kontrol listesi kullanılıp yarım bırakıldıysa düz "Tamamlandı" yanıltır
+  // (28.10.2026); kaç sistemin işaretli olduğu rozette yazar.
+  const kismi = !devam && kapsamDurumu(kontrol, toplamSistem) === 'kismi';
   const durumRozeti = devam
     ? <Rozet metin={t('Devam ediyor', 'In progress')} simge={S.vardiya} renk={renkler.bilgi} zemin={renkler.bilgiYumusak} />
-    : <Rozet metin={t('Tamamlandı', 'Completed')} simge={S.tik} renk={renkler.basari} zemin={renkler.basariYumusak} />;
+    : kismi
+      ? <Rozet metin={t(`Kısmi · ${kontrol}/${toplamSistem} sistem`, `Partial · ${kontrol}/${toplamSistem} systems`)} simge={S.uyari} renk={renkler.uyari} zemin={renkler.uyariYumusak} />
+      : <Rozet metin={t('Tamamlandı', 'Completed')} simge={S.tik} renk={renkler.basari} zemin={renkler.basariYumusak} />;
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={devam
         ? t(`${aracKimligi(satir)} denetimini aç`, `Open audit ${aracKimligi(satir)}`)
-        : t(`${aracKimligi(satir)} raporunu aç`, `Open report ${aracKimligi(satir)}`)}
+        : kismi
+          ? t(`${aracKimligi(satir)} raporunu aç, kısmi: ${kontrol}/${toplamSistem} sistem kontrol edildi`, `Open report ${aracKimligi(satir)}, partial: ${kontrol}/${toplamSistem} systems checked`)
+          : t(`${aracKimligi(satir)} raporunu aç`, `Open report ${aracKimligi(satir)}`)}
       onPress={onPress}
       style={({ pressed }) => [s.kart, tablet && s.kartIkili, pressed && s.basili]}
     >
