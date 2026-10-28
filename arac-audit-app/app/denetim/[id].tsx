@@ -53,7 +53,8 @@ import { useKatalog } from '@/veri/katalogDeposu';
  *
  *   parçaya dokun → hataya dokun → KAYDEDİLDİ. Form yok.
  *
- * Derece hata panelinin üstünde durur. YENİ PARÇADA 1'DEN BAŞLAR (28.09.2026):
+ * Derece hata panelinin üstünde durur. 28.09.2026'da "yeni parçada 1'den
+ * başlar"a çevrildi, 26.10.2026'dan beri HİÇ SEÇİLİ GELMEZ (aşağıda):
  * önceden son seçilen derece hatırlanıp bir sonraki parçaya taşınıyordu;
  * kullanılabilirlik sınamasında üç ajandan ikisi bunu en önemli sorunlardan
  * saydı — dereceye bakmayan denetçi önceki dereceyi SESSİZCE yazıyordu
@@ -64,8 +65,9 @@ import { useKatalog } from '@/veri/katalogDeposu';
  *
  * EXCEL ALANLARI (26.10.2026, ürün sahibi: "içeriği buna göre yap"): derece
  * artık ekibin Excel'indeki DEMERIT (0–3) ve yanında CLASS (MINOR/MAJOR/MAIN).
- * Excel formu her kayıttan sonra 0 / MINOR'a döner; burada da öyle — HER
- * kayıttan sonra, "Aynı parçaya" yolunda da. Yapışkan değer yukarıdaki
+ * Excel formu her kayıttan sonra 0 / MINOR'a döner; burada class MINOR'a,
+ * demerit BOŞA döner (seçmeden kayıt yok) — HER kayıttan sonra, "Aynı
+ * parçaya" yolunda da. Yapışkan değer yukarıdaki
  * sınamadaki gibi sessizce yanlış yazılırdı. "Kabul edilebilir" anahtarı
  * kalktı: Excel'de yok, karşılığı demerit 0. SYSTEM parça ve tipten önerilir
  * (nas.ts); ayrıntıda değiştirilebilir.
@@ -197,8 +199,6 @@ export default function DenetimEkrani() {
   const sikGecerli = useCallback((o: SikHata) =>
     izinliParca.has(o.parcaId) && (!o.ikinciParcaId || izinliParca.has(o.ikinciParcaId))
     && !!HATA_TIPI_INDEKS[o.hataTipiId] && !HATA_TIPI_INDEKS[o.hataTipiId]!.silindi, [izinliParca]);
-  // ozelTipler: tip kaldırılınca şerit tazelensin.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   // Sıra denetim boyunca SABİT (28.10.2026, saha değerlendirmesi): her kayıttan
   // sonra yeniden sıralanınca çiplerin yeri kayıyor, eldivenli el yanlışına
   // basıyordu. İlk sıralama korunur; yeni ikili sona eklenir, sayılar güncellenir.
@@ -210,6 +210,8 @@ export default function DenetimEkrani() {
     const sonuc = [...taze].sort((a, b) => (sira.get(anahtar(a)) ?? Infinity) - (sira.get(anahtar(b)) ?? Infinity));
     seritSirasi.current = sonuc.map(anahtar);
     return sonuc;
+    // ozelTipler: tip kaldırılınca şerit tazelensin.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gecmis, sikGecerli, ozelTipler]);
 
   // KAPSAM (sistemler.ts): işaretli sistemler. Elle değişince de denetim
@@ -427,7 +429,7 @@ export default function DenetimEkrani() {
   }, [bildirim, tazele, bildirimGoster, t]);
 
   // Aynı parçaya art arda hata: listeye dönüp parçayı yeniden aramak yerine
-  // bildirimden tek dokunuş. Demerit ve class kayıttan sonra zaten 0 / MINOR.
+  // bildirimden tek dokunuş. Demerit kayıttan sonra zaten boş, class MINOR.
   const ayniParcaya = useCallback(() => {
     if (bildirim?.tur !== 'kayit') return;
     setParcaId(bildirim.parcaId);

@@ -595,16 +595,19 @@ açıyordu. Şimdiki akış:
 
     parça ara → parçaya dokun → hataya dokun → KAYDEDİLDİ
 
-- **Derece yeni parçada 1'den başlar** (28.09.2026'dan). Önceden son seçilen
-  derece hatırlanıp bir sonraki parçaya taşınıyordu; kullanılabilirlik
-  sınamasında bu, dereceye bakmayan denetçinin önceki dereceyi **sessizce**
-  yazması demekti (aşağıda "Kullanılabilirlik sınaması"). Izgaranın üstünde
-  "Dokunduğunuz hata [n] olarak kaydedilir" yazar.
+- **Demerit hiçbir zaman hazır gelmez.** 28.09.2026'da "yeni parçada 1'den
+  başlar"a çevrildi (önceden son seçilen derece hatırlanıp bir sonraki parçaya
+  taşınıyordu; kullanılabilirlik sınamasında bu, dereceye bakmayan denetçinin
+  önceki dereceyi **sessizce** yazması demekti — aşağıda "Kullanılabilirlik
+  sınaması"). 26.10.2026'dan beri hiç seçili gelmez: her kayıttan sonra boşalır,
+  demerit seçmeden hataya dokunmak kaydetmez, uyarı çıkar (telefonda titreşim de).
 - **Kayıttan sonra bildirimde iki düğme var:** "Aynı parçaya" (aynı parçaya bir
-  hata daha; derece korunur — **2 dokunuş**) ve "Geri al" (yanlış dokunuş tek
-  dokunuşla silinir; ardından kısa bir "Geri alındı" bildirimi). Yeni parçaya
-  kayıt: parçaya dokun, gerekirse dereceyi seç, hataya dokun. (Tarayıcıda
-  sayıldı; tablette sayılmadı.)
+  hata daha — **3 dokunuş**: Aynı parçaya, demerit, hata) ve "Geri al" (yanlış
+  dokunuş tek dokunuşla silinir; ardından kısa bir "Geri alındı" bildirimi).
+  Yeni parçaya kayıt: parçaya dokun, demerit seç, hataya dokun. (Tarayıcıda
+  sayıldı; tablette sayılmadı. Bu madde 28.10.2026'ya kadar "derece korunur —
+  2 dokunuş" diyordu; demerit zorunlu olunca eskimişti, değerlendirmede bir
+  ajan yakaladı.)
 - **Parçalar tarafıyla yazılır** ("Sol ön kapı", "Sağ ön kapı"); arama kelime
   kelime ve sırasız, Türkçe karakter şart değil ("sag on kapi" bulur), LH/RH ve
   İngilizce adla da bulur.
@@ -1304,6 +1307,61 @@ dokunuşla kayıt, vazgeç, "bu parçada sık", dosya seç → özet → eşleme
 telefon/tablet × açık/koyu geçti; eski sınavlar aşama 7'yle aynı adım
 sayılarıyla geçti. Beklentilerin hepsi benim; **telefonda denenmedi**.
 
+### Aşama 9 — beş ajanlı değerlendirmeden hatalar ve küçük düzeltmeler (28.10.2026)
+
+Ürün sahibi: "Arayüz için 5 ajan üret. 5 farklı gözden analiz etsinler."
+Beş yapay zekâ ajanı (kalite müdürü, saha denetçisi, erişilebilirlik, görsel
+tasarımcı, kullanım akışı) ekran görüntülerine ve koda baktı. **Gerçek kullanıcı
+araştırması değil**: hiçbiri telefonda, eldivenle ya da fabrika ışığında
+denemedi. Ürün sahibi iki grubu seçti: "Hataları düzelt" ve "Ucuz ortak
+düzeltmeler". **Yapılmayanlar** (seçilmedi): tablette sağ bölmede 360,
+telefonda küçük 360 satırı, araç işaretinde demeritin biçimle gösterilmesi,
+eksik kapsamlı denetime "Kısmi" rozeti, çizimin kendisi.
+
+**Hatalar** (ilk üçü ajanların bulgusu; kodda ben de doğruladım):
+- **Takip bitmiş denetimi yeniden açıyordu.** Bitmiş denetimde bir hataya
+  önlem/doğrulama girilince denetim "devam"a dönüyor, devam eden denetim skora
+  girmediği için araç haftanın skorundan **sessizce** düşüyordu. Şimdi yalnız
+  bulguyu değiştiren alanlar yeniden açar (parça, ikinci parça, tip, demerit,
+  class, sistem, adet, sorun tipi — `takip.ts` `sonucuDegistirir`); takip,
+  önlem, not, sorumlu ve fotoğraf açmaz.
+- **Fotoğraf kaldırma hemen siliyordu**, "Vazgeç" geri getirmiyordu, düğme
+  26 px'ti. Şimdi kaldırılan fotoğraf Kaydet'e kadar silinmez; "Geri getir"
+  satırı ve Vazgeç geri getirir. Düğme 40 px, sol ve alttaki dokunma payıyla
+  48 px.
+- **Ekibin Excel'ine ikinci gönderim.** Eşleme sonradan değişince aynı hata
+  ikinci kez ekleniyordu; sonradan düzeltilen demerit "zaten var" sayılıp
+  Excel'de eski değer kalıyordu; neyin gönderildiği hiçbir yerde
+  tutulmuyordu. Şimdi her paylaşımdan sonra telefonda bir **gönderim izi**
+  tutulur (hata → Excel'deki satırın anahtarı + gönderilen değerler;
+  `ayarlar` tablosunda, Excel'e yazılmaz). İzi olan hata dosyada bulunursa
+  eklenmez; gönderildikten sonra değişen alanları "Excel'de elle düzeltin"
+  listesinde eski → yeni olarak gösterilir. **Sınırı:** iz yalnız bu
+  telefonda; başka telefondan gönderilen ya da uygulama silinip kurulduktan
+  sonraki gönderimde yalnız eski kural (aynı UNICODE + gün) geçerli.
+- **Bu README eskimişti:** "Aynı parçaya: 2 dokunuş" yazıyordu; demerit
+  zorunlu olduğundan beri 3 dokunuş (yukarıda düzeltildi; koddaki aynı
+  eskimiş yorumlar da).
+
+**Küçük düzeltmeler** (birden çok ajanın ortak bulguları): sık hatalar
+panelinde de parça ekranındaki gibi önce sınıf, sonra demerit; paneldeki
+demerit düğmeleri artık "seçenek" değil **kaydet eylemi** (ekran okuyucu
+"…demerit 2, MINOR olarak kaydet" der; kaydet simgesi); şerit sırası denetim
+boyunca sabit (kayıt eklendikçe sayılar değişir, çiplerin yeri değişmez);
+seçili segmentte (MINOR/MAJOR/MAIN vb.) yalnız ton farkı değil, tik + 2 px
+kenar; açık temada demerit 1/2 rengi seçilmemiş zeminde 4,4:1'den 5,05:1'e
+(hesap: kontrast betiği; kişiyle denenmedi); demerit seçmeden hataya dokununca
+telefon titrer; raporda denetim sürerken "Bitir" birincil ve ilk, bitince
+"Excel"; "3 KAYIT" → "3 kayıt"; Excel ekranında sayfa adları
+(AUDIT_CARS_LIST…) yerine "araç ve hata listeleri", "problem" yerine "hata";
+küçük düğmeler, segmentler ve iz çubuğu en az 48 px.
+
+**Neyle doğrulandı** (beklentilerin hepsi benim; **telefonda denenmedi**):
+birim testleri 1050 → 1054 (gönderim izi: eşleme değişince tekrar eklenmez,
+değişen demerit listelenir; `sonucuDegistirir`). Takip düzeltmesi bilerek
+bozuldu (her değişiklik yeniden açsın): aşama sınavının takip adımı düştü.
+Eski web sınavları bu yazı yazılırken koşuyordu; sonuçları bir sonraki gönderimde.
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |
@@ -1314,8 +1372,8 @@ sayılarıyla geçti. Beklentilerin hepsi benim; **telefonda denenmedi**.
 | Lumiform'dan esinlenen düzen (25.10.2026): sekmeler, kontrol listesi, ilerleme, rapor özeti | **Kod bitti, beğeni ölçülmedi** — 4 düzende 16 adım geçti; gerçek cihazda görülmedi |
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
 | Parça kataloğu (182 parça; elektrikli araçta 176, benzinlide 174 listelenir — 26.10.2026'da garnişler, DRL, üçgen cam eklendi), VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
-| Hızlı giriş (2 dokunuş), geri al | **Bitti** |
-| Ekibin Excel'ine ekleme, sık hatalar şeridi (27.10.2026) | **Kod bitti** — ekibin gerçek dosyasıyla yerelde doğrulandı (openpyxl, LibreOffice); **Excel'de açılmadı, telefonda denenmedi**; parça eşlemesinin 157'den 108'i denetlenmedi |
+| Hızlı giriş (yeni parçaya 3 dokunuş, sık hatalar şeridinden 2), geri al | **Bitti** |
+| Ekibin Excel'ine ekleme, sık hatalar şeridi (27.10.2026); gönderim izi (28.10.2026) | **Kod bitti** — ekibin gerçek dosyasıyla yerelde doğrulandı (openpyxl, LibreOffice); **Excel'de açılmadı, telefonda denenmedi**; parça eşlemesinin 157'den 108'i denetlenmedi; gönderim izi yalnız bu telefonda |
 | Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **26.10.2026'da yerini Excel'in DEMERIT 0–3 + CLASS'ı aldı** (aşağıdaki satır) |
 | Excel içeriği (NAS, 26.10.2026): demerit, class, system, responsible, kaynak listesi, model kodu, body 6 hane, Audit Skoru, Excel'e aktar | **Kod bitti** — kurallar Excel'den okundu; testleri ben yazdım; 4 düzende 14 adım geçti; **telefonda görülmedi**. BJ = IONIQ 3 çıkarım |
