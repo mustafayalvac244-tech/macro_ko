@@ -389,9 +389,9 @@ const stiller = (r: Renkler) => StyleSheet.create({
   ust: { gap: bosluk.xs, paddingHorizontal: bosluk.md, paddingTop: bosluk.sm, paddingBottom: bosluk.xs },
   // Kırıntılar eldivenle basılacak düğme (26.10.2026 dış değerlendirme: 59×22 ve
   // 19×22 px ölçülmüştü, altı çizili web bağlantısı gibiydi). 40 px + 4 px pay = 48.
-  kirintiSatir: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, minHeight: 40 },
+  kirintiSatir: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, minHeight: DOKUNMA },
   kirinti: {
-    flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 40, minWidth: 56,
+    flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: DOKUNMA, minWidth: 56,
     paddingHorizontal: bosluk.sm, borderRadius: kose.md, backgroundColor: r.birincilYumusak, justifyContent: 'center',
   },
   kirintiGeri: { ...tipografi.bodyOrta, fontSize: 14, color: r.birincil },

@@ -14,12 +14,15 @@ import { AramaKutusu, BilgiKutusu, Dugme, Secenek } from '@/bilesenler/temel';
 import { AktarimSecimi } from '@/cekirdek/aktarim';
 import { aramaEslesir, aramaMetni } from '@/cekirdek/arama';
 import { etiketAnahtari } from '@/cekirdek/ekipEslemesi';
-import { DoldurmaSonucu, ekipExceliniDoldur, ElleEsleme, EslemeSatiri } from '@/cekirdek/ekipExceli';
+import { DegisenAlan, DoldurmaSonucu, ekipExceliniDoldur, ElleEsleme, EslemeSatiri } from '@/cekirdek/ekipExceli';
+import { hataTipiAdi, parcaTamAdi } from '@/cekirdek/katalog';
+import { takipAdi } from '@/cekirdek/takip';
 import { Denetim } from '@/cekirdek/tipler';
 import { bosluk, kose, Renkler, tipografi, useTema } from '@/tema';
 import { useDil } from '@/veri/dilDeposu';
 import {
-  ekipDenetimleri, ekipDosyasiniPaylas, ekipDosyasiSec, elleEslemeOku, elleEslemeYaz, SecilenDosya,
+  ekipDenetimleri, ekipDosyasiniPaylas, ekipDosyasiSec, elleEslemeOku, elleEslemeYaz, gonderimKaydiEkle,
+  gonderimKaydiOku, SecilenDosya,
 } from '@/veri/yedek';
 
 const satirAnahtari = (e: Pick<EslemeSatiri, 'tur' | 'anahtar'>) => `${e.tur}:${e.anahtar}`;
@@ -50,7 +53,9 @@ export function EkipExceli({ secim }: { secim: AktarimSecimi }) {
     // göstergenin çizilmesine fırsat ver.
     await new Promise((r) => setTimeout(r, 30));
     try {
-      setSonuc(ekipExceliniDoldur(dosya.current.bayt, denetimler.current, { elleEsleme: eslemeler }));
+      // Gönderim izi her doldurmada tazeden okunur: başka bir doldurma az önce yazmış olabilir.
+      const gonderilen = await gonderimKaydiOku().catch(() => ({}));
+      setSonuc(ekipExceliniDoldur(dosya.current.bayt, denetimler.current, { elleEsleme: eslemeler, gonderilen }));
     } catch (h) {
       setSonuc(null);
       setHata(t(`Dosya doldurulamadı: ${h instanceof Error ? h.message : String(h)}`, `Could not fill the file: ${h instanceof Error ? h.message : String(h)}`));
@@ -97,6 +102,9 @@ export function EkipExceli({ secim }: { secim: AktarimSecimi }) {
     setPaylasiliyor(true); setHata(null);
     try {
       const p = await ekipDosyasiniPaylas(dosya.current.ad, sonuc.bayt);
+      // Paylaşım penceresi kapanınca gönderilmiş sayılır (vazgeçildiyse de):
+      // zararsız, çünkü iz yalnız satırı dosyada BULURSA kullanılıyor.
+      await gonderimKaydiEkle(sonuc.gonderim).catch(() => {});
       setPaylasildi(p.paylasildi
         ? t(
           `"${dosya.current.ad}" hazır. NAS'taki dosyanın yerine koyun. Makroya ve öbür sayfalara dokunulmadı.`,
@@ -119,8 +127,8 @@ export function EkipExceli({ secim }: { secim: AktarimSecimi }) {
     <View style={s.kok}>
       <Text style={s.aciklama}>
         {t(
-          "Ekibin NAS dosyasını (.xlsm) seçin: seçili denetimler AUDIT_CARS_LIST ve PROBLEMS_LIST'in sonuna, makronun yazdığı biçimde eklenir. Makro ve öbür sayfalar değişmez; dosyada zaten olan araç ve problem tekrar eklenmez.",
-          "Pick the team's NAS file (.xlsm): the selected audits are appended to AUDIT_CARS_LIST and PROBLEMS_LIST the way the macro writes them. The macro and the other sheets are unchanged; vehicles and problems already in the file are not added again.",
+          "Ekibin NAS dosyasını (.xlsm) seçin: seçili denetimler dosyanın araç ve hata listelerinin sonuna, makronun yazdığı biçimde eklenir. Makro ve öbür sayfalar değişmez; dosyada zaten olan araç ve hata tekrar eklenmez.",
+          "Pick the team's NAS file (.xlsm): the selected audits are appended to the file's vehicle and defect lists the way the macro writes them. The macro and the other sheets are unchanged; vehicles and defects already in the file are not added again.",
         )}
       </Text>
       <BilgiKutusu
@@ -145,13 +153,31 @@ export function EkipExceli({ secim }: { secim: AktarimSecimi }) {
             tur={eklenen ? 'basari' : 'bilgi'}
             metin={[
               eklenen
-                ? t(`${sonuc.aracEklendi} araç, ${sonuc.problemEklendi} problem eklenecek.`, `${sonuc.aracEklendi} ${sonuc.aracEklendi === 1 ? 'vehicle' : 'vehicles'}, ${sonuc.problemEklendi} ${sonuc.problemEklendi === 1 ? 'problem' : 'problems'} will be added.`)
+                ? t(`${sonuc.aracEklendi} araç, ${sonuc.problemEklendi} hata eklenecek.`, `${sonuc.aracEklendi} ${sonuc.aracEklendi === 1 ? 'vehicle' : 'vehicles'}, ${sonuc.problemEklendi} ${sonuc.problemEklendi === 1 ? 'defect' : 'defects'} will be added.`)
                 : t('Eklenecek yeni kayıt yok: hepsi dosyada zaten var.', 'Nothing new to add: everything is already in the file.'),
               sonuc.aracZatenVar ? t(`${sonuc.aracZatenVar} araç listede zaten var; araç satırı eklenmedi.`, `${sonuc.aracZatenVar} ${sonuc.aracZatenVar === 1 ? 'vehicle is' : 'vehicles are'} already listed; no vehicle row added.`) : null,
-              sonuc.problemZatenVar ? t(`${sonuc.problemZatenVar} problem dosyada zaten var; eklenmedi.`, `${sonuc.problemZatenVar} ${sonuc.problemZatenVar === 1 ? 'problem is' : 'problems are'} already in the file; not added.`) : null,
+              sonuc.problemZatenVar ? t(`${sonuc.problemZatenVar} hata dosyada zaten var; eklenmedi.`, `${sonuc.problemZatenVar} ${sonuc.problemZatenVar === 1 ? 'defect is' : 'defects are'} already in the file; not added.`) : null,
+              sonuc.baskaAdla ? t(`Bunların ${sonuc.baskaAdla} tanesi daha önce başka adla gönderilmişti; Excel'deki adı eski kaldı.`, `${sonuc.baskaAdla} of them ${sonuc.baskaAdla === 1 ? 'was' : 'were'} sent earlier under another name; the name in Excel is the old one.`) : null,
               not,
             ].filter(Boolean).join(' ')}
           />
+          {sonuc.degisenler.length ? (
+            <View style={s.kok} testID="ekip-excel-degisenler">
+              <BilgiKutusu
+                tur="uyari"
+                metin={t(
+                  `${sonuc.degisenler.length} hata Excel'e gönderildikten sonra uygulamada değişti. Excel'deki satırları ESKİ; tekrar eklenmedi. Excel'de elle düzeltin:`,
+                  `${sonuc.degisenler.length} ${sonuc.degisenler.length === 1 ? 'defect was' : 'defects were'} changed in the app after being sent. Their rows in Excel are OLD and were not added again. Fix them in Excel by hand:`,
+                )}
+              />
+              {sonuc.degisenler.map((d) => (
+                <Text key={d.hataId} style={s.degisen}>
+                  {`Body ${d.govde} · ${d.gun} · ${dil === 'en' ? d.ad.en : d.ad.tr}: `}
+                  {d.alanlar.map((a) => alanMetni(a, dil)).join('; ')}
+                </Text>
+              ))}
+            </View>
+          ) : null}
           {sonuc.altiHaneOlmayan ? (
             <BilgiKutusu
               tur="uyari"
@@ -301,8 +327,24 @@ function EslemeSatirBileseni({ e, acik, ac, arama, setArama, sonuc, elleVar, sec
   );
 }
 
+/** Gönderimden sonra değişen alanın okunur hâli: "demerit 1 → 3". */
+function alanMetni(a: DegisenAlan, dil: 'tr' | 'en'): string {
+  const en = dil === 'en';
+  const parca = (k: string) => k.split('+').map((id) => parcaTamAdi(id, dil)).join(' ↔ ');
+  switch (a.alan) {
+    case 'parca': return `${en ? 'part' : 'parça'} ${parca(a.eski)} → ${parca(a.yeni)}`;
+    case 'tip': return `${en ? 'type' : 'tip'} ${hataTipiAdi(a.eski, dil)} → ${hataTipiAdi(a.yeni, dil)}`;
+    case 'demerit': return `demerit ${a.eski} → ${a.yeni}`;
+    case 'sinif': return `${en ? 'class' : 'sınıf'} ${a.eski} → ${a.yeni}`;
+    case 'sistem': return `${en ? 'system' : 'sistem'} ${a.eski} → ${a.yeni}`;
+    case 'takip': return `${en ? 'follow-up' : 'takip'} ${takipAdi(a.eski, dil)} → ${takipAdi(a.yeni, dil)}`;
+    case 'onlem': return a.eski ? (en ? 'countermeasure changed' : 'önlem değişti') : (en ? 'countermeasure added' : 'önlem eklendi');
+  }
+}
+
 const stiller = (r: Renkler) => StyleSheet.create({
   kok: { gap: bosluk.xs },
+  degisen: { ...tipografi.caption, color: r.metin },
   aciklama: { ...tipografi.caption, color: r.metinSolgun },
   altBaslik: { ...tipografi.bodyOrta, color: r.metin, marginTop: bosluk.xs },
   satir: { padding: bosluk.xs, borderRadius: kose.md, backgroundColor: r.yuzeyAlt, gap: bosluk.xs },

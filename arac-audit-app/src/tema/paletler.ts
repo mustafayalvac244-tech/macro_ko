@@ -151,9 +151,11 @@ const acik: Renkler = {
 
   derece3: '#AE2018',
   derece3Yumusak: '#FCE2DF',
-  derece2: '#A75508',
+  // 28.10.2026: #A75508 seçilmemiş düğme zemininde (yuzeyVurgu) 4,44:1'di — eşik 4,5.
+  derece2: '#9A4E07',
   derece2Yumusak: '#FCEDD9',
-  derece1: '#856808',
+  // 28.10.2026: #856808 yuzeyVurgu'da 4,40:1'di (beş ajanlı değerlendirme, hesap).
+  derece1: '#7A5F07',
   derece1Yumusak: '#F8F1D4',
   derece0: '#4E5D75',
   derece0Yumusak: '#E9EEF5',

@@ -427,6 +427,7 @@ export function SegmentSecici<T extends string>({
             <Text style={[s.segmentMetin, { color: secili ? renkler.birincil : renkler.metinIkincil }, secili && s.segmentMetinSecili]} numberOfLines={1}>
               {x.metin}
             </Text>
+            {secili ? <S.tik size={14} color={renkler.birincil} strokeWidth={2.75} /> : null}
           </Pressable>
         );
       })}
@@ -795,7 +796,8 @@ const stiller = (r: Renkler) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: bosluk.md, paddingVertical: bosluk.sm,
   },
-  dugmeKucuk: { minHeight: 40, paddingHorizontal: bosluk.sm, paddingVertical: bosluk.xs, gap: 6, borderRadius: kose.sm + 2 },
+  // 40 → 48 (28.10.2026, erişilebilirlik değerlendirmesi): eldivenle küçük düğmeler ıskalanıyordu.
+  dugmeKucuk: { minHeight: DOKUNMA, paddingHorizontal: bosluk.sm, paddingVertical: bosluk.xs, gap: 6, borderRadius: kose.sm + 2 },
   dugmePasif: { opacity: 0.4 },
   dugmeMetin: { ...tipografi.bodyOrta },
   dugmeMetinKucuk: { ...tipografi.captionOrta },
@@ -809,7 +811,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
     minHeight: DOKUNMA, paddingHorizontal: bosluk.sm, borderRadius: kose.md,
     borderWidth: 2, borderColor: r.yuzeyVurgu, backgroundColor: r.yuzeyVurgu,
   },
-  secenekKucuk: { minHeight: 40, paddingHorizontal: bosluk.sm, borderRadius: kose.md },
+  secenekKucuk: { minHeight: DOKUNMA, paddingHorizontal: bosluk.sm, borderRadius: kose.md },
   secenekSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
   secenekMetin: { ...tipografi.bodyOrta, flexShrink: 1 },
   secenekMetinKucuk: { ...tipografi.captionOrta, flexShrink: 1 },
@@ -818,11 +820,16 @@ const stiller = (r: Renkler) => StyleSheet.create({
   segment: {
     flexDirection: 'row', padding: 2, gap: 2, borderRadius: kose.md, backgroundColor: r.yuzeyVurgu,
   },
+  // 28.10.2026 (beş ajanlı değerlendirme, iki ajanın ortak bulgusu): seçiliyi
+  // yalnız zemin tonu ayırıyordu (iz ile 1,20:1; koyu temada seçili parça izden
+  // KOYU, çukur görünüyordu). Seçenek'in dili: yumuşak ton + 2 px birincil
+  // kenar + tik. Yükseklik 44 → 48 (eldiven).
   segmentParca: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    minHeight: 44, paddingHorizontal: bosluk.xs, borderRadius: kose.md - 2,
+    minHeight: DOKUNMA, paddingHorizontal: bosluk.xs, borderRadius: kose.md - 2,
+    borderWidth: 2, borderColor: 'transparent',
   },
-  segmentSecili: { backgroundColor: r.yuzey, boxShadow: `0 1px 3px ${r.golge}` },
+  segmentSecili: { backgroundColor: r.birincilYumusak, borderColor: r.birincil },
   segmentMetin: { ...tipografi.captionOrta, fontSize: 14, flexShrink: 1 },
   segmentMetinSecili: { fontFamily: yazi.kalin },
   onaySatiri: { flexDirection: 'row', alignItems: 'center', gap: bosluk.sm, minHeight: DOKUNMA, alignSelf: 'flex-start' },

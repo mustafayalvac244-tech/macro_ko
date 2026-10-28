@@ -44,7 +44,7 @@ export function SikHatalar({ oneriler, onKaydet, hata }: {
     <View style={s.kok} testID="sik-hatalar">
       <BolumBasligi
         metin={t('Sık hatalar — bu modelde', 'Frequent defects — this model')}
-        simge={S.skor}
+        simge={S.sik}
         bilgi={t(
           'Bu telefonda bu modelde en az iki kez kaydedilmiş parça + hata ikilileri, en sık olan önce. Çipe dokunun, demerit seçin: kaydedilir.',
           'Part + defect pairs saved at least twice for this model on this phone, most frequent first. Tap a chip, pick a demerit: it is saved.',
@@ -73,9 +73,17 @@ export function SikHatalar({ oneriler, onKaydet, hata }: {
       {secili ? (
         <View style={s.panel} testID="sik-hata-panel">
           <Text style={s.panelBaslik} numberOfLines={2}>{ad(secili)}</Text>
+          {/* Sıra parça ekranıyla aynı (28.10.2026): önce sınıf, sonra demerit;
+              son dokunuş kaydeder. */}
+          <Text style={s.ipucu}>{t('Sınıf', 'Class')}</Text>
           <SinifSecici sinif={sinif} onSec={setSinif} />
-          <Text style={s.ipucu}>{t('Demerit seçince kaydedilir — 0 skora girmez', 'Saved when you pick a demerit — 0 not scored')}</Text>
-          <DereceSecici derece={null} onSec={kaydet} etiketOnEki={t('Sık hata demerit', 'Frequent defect demerit')} kucuk />
+          <Text style={s.ipucu}>{t('Demerit ile kaydet — 0 skora girmez', 'Save with demerit — 0 not scored')}</Text>
+          <DereceSecici
+            derece={null}
+            onSec={kaydet}
+            kucuk
+            eylem={(d) => t(`${ad(secili)}: demerit ${d}, ${sinif} olarak kaydet`, `${ad(secili)}: save as demerit ${d}, ${sinif}`)}
+          />
           <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" kucuk simge={S.kapat} onPress={() => setSecili(null)} />
           {hata ? <HataKutusu metin={hata} /> : null}
         </View>
@@ -91,10 +99,11 @@ const stiller = (r: Renkler) => StyleSheet.create({
     minHeight: 48, maxWidth: 240, justifyContent: 'center', paddingHorizontal: bosluk.sm, paddingVertical: 6,
     borderRadius: kose.md, backgroundColor: r.birincilYumusak, borderWidth: 1.5, borderColor: 'transparent',
   },
-  cipAcik: { backgroundColor: r.birincilDolgu, borderColor: r.birincilDolgu },
+  // Açık çip uygulamanın seçili dilinde (temel.tsx Secenek): yumuşak ton + 2 px kenar.
+  cipAcik: { borderColor: r.birincil, borderWidth: 2 },
   cipParca: { ...tipografi.captionOrta, color: r.birincil },
   cipTip: { ...tipografi.caption, color: r.metinIkincil },
-  cipMetinAcik: { color: r.birincilDolguMetin },
+  cipMetinAcik: {},
   basili: { opacity: 0.7 },
   panel: { gap: bosluk.xs, padding: bosluk.sm, borderRadius: kose.md, backgroundColor: r.yuzeyAlt },
   panelBaslik: { ...tipografi.bodyOrta, color: r.metin },

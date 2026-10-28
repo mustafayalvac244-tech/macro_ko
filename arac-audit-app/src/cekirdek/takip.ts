@@ -41,3 +41,22 @@ export function durumDegistir(
 
 /** Rapor ve listelerde "açık" sayılan: henüz önlemi uygulanmamış. */
 export const acikMi = (h: Pick<Hata, 'durum'>): boolean => !h.durum || h.durum === 'acik' || h.durum === 'atandi';
+
+/**
+ * Kayıt düzeltmesi denetimin SONUCUNU değiştiriyor mu? (28.10.2026, kalite
+ * müdürü değerlendirmesi.) Bitmiş denetimde takip (önlem uygulandı,
+ * doğrulandı…) girmek denetimi "devam"a çeviriyor, bitiş zamanını siliyordu:
+ * araç skordan ve varsayılan aktarımdan sessizce düşüyordu. Yeniden açan
+ * yalnız denetimin bulgusunu değiştiren alanlar: yeni kayıt, parça, tip,
+ * demerit, kabul, sınıf, sistem, adet, sorun tipi. Takip, not, konum, sorumlu
+ * ve fotoğraf değişikliği bitmiş denetimi açmaz (değişiklik günlüğüne yine
+ * yazılır — depo.ts hataKaydet).
+ */
+export function sonucuDegistirir(eski: Hata | undefined, yeni: Hata): boolean {
+  if (!eski) return true;
+  const ikinci = (h: Hata) => h.ikinciParcaId || '';
+  return eski.parcaId !== yeni.parcaId || ikinci(eski) !== ikinci(yeni) || eski.hataTipiId !== yeni.hataTipiId
+    || eski.derece !== yeni.derece || !!eski.kabulEdilebilir !== !!yeni.kabulEdilebilir
+    || (eski.sinif ?? '') !== (yeni.sinif ?? '') || (eski.sistem ?? '') !== (yeni.sistem ?? '')
+    || (eski.adet ?? 1) !== (yeni.adet ?? 1) || eski.sorunTipi !== yeni.sorunTipi;
+}

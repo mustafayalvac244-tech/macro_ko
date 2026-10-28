@@ -19,6 +19,14 @@
 //
 // Farklar bilerek (nas.ts'teki ayrı Excel'le aynı): PROBLEM QTY gerçek problem
 // sayısı; PHOTO LINK fotoğrafların tam yedekteki adları.
+//
+// GÖNDERİM İZİ (28.10.2026, kalite müdürü değerlendirmesi): tekrar koruması
+// yalnız dosyaya bakınca, eşleme gönderimden sonra değişirse aynı problem
+// ikinci kez ekleniyordu; demerit sonradan düzeltilirse "zaten var" sayılıp
+// Excel'de eski değer sessizce kalıyordu. Artık her gönderilen hatanın izi
+// (Excel'deki anahtarı ve o anki değerleri) telefonda tutulur: iz dosyada
+// varsa satır eklenmez; değer değişmişse "elle düzeltin" listesine girer.
+// Excel'e sütun eklenmez, eski satır uygulamadan değiştirilmez.
 
 import { aramaMetni } from './arama';
 import { ciftAnahtari, EkipEtiketi, etiketAnahtari, etiketEslemesi, etiketleriTopla } from './ekipEslemesi';
@@ -42,9 +50,45 @@ export interface ElleEsleme {
   tip?: Readonly<Record<string, string>>;
 }
 
+/** Gönderildiği andaki değerler — sonradan neyin değiştiğini göstermek için. */
+export interface GonderimDegeri {
+  /** Parça kimliği (iki parça arasıysa `ciftAnahtari`) ve Excel'e yazılan adı. */
+  parca: string; parcaEtiketi: string;
+  tip: string; tipEtiketi: string;
+  demerit: number; sinif: string; sistem: string;
+  /** Takip durumu (acik/atandi/giderildi/kapali) ve önlem metni. */
+  takip: string; onlem: string;
+}
+
+/** Ekibe gönderilmiş bir hatanın izi. Telefonda saklanır, Excel'e yazılmaz. */
+export interface GonderimIzi {
+  /** Excel'deki satırın anahtarı (UNICODE + gün, karşılaştırma biçiminde). */
+  anahtar: string;
+  deger: GonderimDegeri;
+  /** İlk gönderildiği an (ISO). */
+  tarih: string;
+}
+
+/** Hata kimliği → iz. */
+export type GonderimKaydi = Readonly<Record<string, GonderimIzi>>;
+
+export interface DegisenAlan { alan: 'parca' | 'tip' | 'demerit' | 'sinif' | 'sistem' | 'takip' | 'onlem'; eski: string; yeni: string }
+
+/** Gönderildikten sonra uygulamada değişen hata — Excel'deki satırı eski. */
+export interface DegisenHata {
+  hataId: string;
+  ad: { tr: string; en: string };
+  govde: string;
+  gun: string;
+  alanlar: DegisenAlan[];
+}
+
 export interface EkipExceliSecenekleri {
   fotografAdi?: (fotoId: string) => string;
   elleEsleme?: ElleEsleme;
+  /** Önceki gönderimlerin izi (yedek.ts → gonderimKaydiOku). */
+  gonderilen?: GonderimKaydi;
+  simdi?: Date;
 }
 
 export interface EslemeSatiri {
@@ -68,6 +112,12 @@ export interface DoldurmaSonucu {
   problemEklendi: number;
   /** Aynı UNICODE ve tarihle zaten olan problem — eklenmedi. */
   problemZatenVar: number;
+  /** Önceden başka adla (eşleme sonradan değişti) gönderilmiş — eklenmedi, Excel'deki adı eski. */
+  baskaAdla: number;
+  /** Gönderildikten sonra uygulamada değişen — eklenmedi; Excel'de elle düzeltilmeli. */
+  degisenler: DegisenHata[];
+  /** Bu doldurma paylaşılırsa kayda eklenecek izler (eklenen ve dosyada bulunan hatalar). */
+  gonderim: Record<string, GonderimIzi>;
   /** Body no 6 hane değil (makro bunu reddediyor; burada yine de yazıldı). */
   altiHaneOlmayan: number;
   esleme: EslemeSatiri[];
@@ -241,6 +291,22 @@ function tumParcalar(): ParcaKayit[] {
 const ayna = (id: string) =>
   id.startsWith('sol_') ? `sag_${id.slice(4)}` : id.startsWith('sag_') ? `sol_${id.slice(4)}` : undefined;
 
+/** Gönderim anındaki değerle bugünkü arasındaki fark (Excel adındaki fark sayılmaz: o eşlemedir). */
+export function degerFarki(eski: GonderimDegeri, yeni: GonderimDegeri): DegisenAlan[] {
+  const f: DegisenAlan[] = [];
+  const ekle = (alan: DegisenAlan['alan'], a: string | number, b: string | number) => {
+    if (String(a) !== String(b)) f.push({ alan, eski: String(a), yeni: String(b) });
+  };
+  ekle('parca', eski.parca, yeni.parca);
+  ekle('tip', eski.tip, yeni.tip);
+  ekle('demerit', eski.demerit, yeni.demerit);
+  ekle('sinif', eski.sinif, yeni.sinif);
+  ekle('sistem', eski.sistem, yeni.sistem);
+  ekle('takip', eski.takip, yeni.takip);
+  ekle('onlem', eski.onlem.trim(), yeni.onlem.trim());
+  return f;
+}
+
 export function ekipExceliniDoldur(
   sablon: Uint8Array, denetimler: readonly Denetim[], secenek: EkipExceliSecenekleri = {},
 ): DoldurmaSonucu {
@@ -316,7 +382,10 @@ export function ekipExceliniDoldur(
   const problemSablonu = satirSablonu(problemler.sonDolu);
   const yeniArac: string[] = [];
   const yeniProblem: string[] = [];
-  let aracZatenVar = 0, problemZatenVar = 0, altiHaneOlmayan = 0;
+  let aracZatenVar = 0, problemZatenVar = 0, altiHaneOlmayan = 0, baskaAdla = 0;
+  const degisenler: DegisenHata[] = [];
+  const gonderim: Record<string, GonderimIzi> = {};
+  const simdiIso = (secenek.simdi ?? new Date()).toISOString();
 
   for (const d of [...denetimler].sort((a, b) => a.baslangic.localeCompare(b.baslangic))) {
     const kaynak = kaynakKodu(d.denetimTipi);
@@ -337,20 +406,44 @@ export function ekipExceliniDoldur(
       }));
     }
     for (const h of [...(d.hatalar ?? [])].sort((a, b) => a.zaman.localeCompare(b.zaman))) {
+      const parcaAnahtari = h.ikinciParcaId ? ciftAnahtari(h.parcaId, h.ikinciParcaId) : h.parcaId;
       const parca = parcaEtiketi(h);
       const tip = tipEtiketi(h);
       const unicode = `${kaynak}${model}${govde}${parca}${tip}`;
       const anahtar = `${etiketAnahtari(unicode)}|${yerelGun(h.zaman)}`;
-      const varOlan = varProblemler.get(anahtar) ?? 0;
-      if (varOlan > 0) {
-        varProblemler.set(anahtar, varOlan - 1);
+      const deger: GonderimDegeri = {
+        parca: parcaAnahtari, parcaEtiketi: parca, tip: h.hataTipiId, tipEtiketi: tip,
+        demerit: demeritDegeri(h), sinif: sinifDegeri(h), sistem: sistemDegeri(h),
+        takip: h.durum ?? 'acik', onlem: h.onlem ?? '',
+      };
+      const zatenVar = () => {
         problemZatenVar += 1;
-        const e = esleme.get(`parca:${h.ikinciParcaId ? ciftAnahtari(h.parcaId, h.ikinciParcaId) : h.parcaId}`);
+        const e = esleme.get(`parca:${parcaAnahtari}`);
         if (e) e.adet -= 1;
         const t = esleme.get(`tip:${h.hataTipiId}`);
         if (t) t.adet -= 1;
+      };
+      // Önce iz: bu hata daha önce gönderildiyse, o günkü anahtarıyla dosyada mı?
+      const iz = secenek.gonderilen?.[h.id];
+      if (iz && (varProblemler.get(iz.anahtar) ?? 0) > 0) {
+        varProblemler.set(iz.anahtar, varProblemler.get(iz.anahtar)! - 1);
+        zatenVar();
+        const alanlar = degerFarki(iz.deger, deger);
+        if (alanlar.length) {
+          degisenler.push({ hataId: h.id, ad: { tr: `${parcaCiftiAdi(h, 'tr')} — ${hataTipiAdi(h.hataTipiId, 'tr')}`, en: `${parcaCiftiAdi(h, 'en')} — ${hataTipiAdi(h.hataTipiId, 'en')}` }, govde, gun: ekipTarihi(h.zaman), alanlar });
+        } else if (iz.anahtar !== anahtar) {
+          baskaAdla += 1;
+        }
         continue;
       }
+      const varOlan = varProblemler.get(anahtar) ?? 0;
+      if (varOlan > 0) {
+        varProblemler.set(anahtar, varOlan - 1);
+        zatenVar();
+        gonderim[h.id] = { anahtar, deger, tarih: iz?.tarih ?? simdiIso };
+        continue;
+      }
+      gonderim[h.id] = { anahtar, deger, tarih: simdiIso };
       const no = problemler.sonDolu.no + yeniProblem.length + 1;
       const kapandi = h.durum === 'giderildi' || h.durum === 'kapali';
       yeniProblem.push(satirXml(no, problemSablonu, problemler.sutun, {
@@ -383,6 +476,9 @@ export function ekipExceliniDoldur(
     aracZatenVar,
     problemEklendi: yeniProblem.length,
     problemZatenVar,
+    baskaAdla,
+    degisenler,
+    gonderim,
     altiHaneOlmayan,
     esleme: [...esleme.values()].filter((e) => e.adet > 0),
     parcaEtiketleri: [...parcaEtiketleri].sort(sik),

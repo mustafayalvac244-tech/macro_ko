@@ -16,7 +16,7 @@ import { bicimTarih } from '@/cekirdek/rapor';
 import { durumDegistir, TAKIP_DURUMLARI } from '@/cekirdek/takip';
 import { DereceKodu, Hata, HataDurumu, HataGrubuId, HataTipi, SinifKodu, SorunTipi } from '@/cekirdek/tipler';
 import { bosluk, DOKUNMA, dereceRenkleri, kose, Renkler, tipografi, useTema } from '@/tema';
-import { fotografKaydet, FotografKaydi, fotografSil } from '@/veri/depo';
+import { fotografKaydet, FotografKaydi } from '@/veri/depo';
 import { useDil } from '@/veri/dilDeposu';
 import { fotografiKaliciyaAl } from '@/veri/fotografDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -60,7 +60,8 @@ export function HataSayfasi({
   taslak: HataTaslagi | null;
   fotograflar: FotografKaydi[];
   onKapat: () => void;
-  onKaydet: (h: HataTaslagi, yeniFotoIdleri: string[]) => void;
+  /** kaldirilanFotolar: Kaydet'e kadar silinmeyen fotoğraflar — çağıran, ekranı tazelemeden ÖNCE siler. */
+  onKaydet: (h: HataTaslagi, yeniFotoIdleri: string[], kaldirilanFotolar: string[]) => void;
   onSil?: (hataId: string) => void;
 }) {
   const { renkler } = useTema();
@@ -83,6 +84,10 @@ export function HataSayfasi({
   const [onlem, setOnlem] = useState('');
   const [dogrulamaBody, setDogrulamaBody] = useState('');
   const [fotoIdleri, setFotoIdleri] = useState<string[]>([]);
+  // Kaldırılan fotoğraflar Kaydet'e kadar SİLİNMEZ (28.10.2026, erişilebilirlik
+  // değerlendirmesi: 26 px'lik düğmeye yanlış dokunuş fotoğrafı hemen siliyordu,
+  // "Vazgeç" geri getirmiyordu).
+  const [kaldirilan, setKaldirilan] = useState<string[]>([]);
   const [fotoHatasi, setFotoHatasi] = useState<string | null>(null);
   const [fotoYukleniyor, setFotoYukleniyor] = useState(false);
   const [acilanTaslak, setAcilanTaslak] = useState<HataTaslagi | null>(null);
@@ -114,6 +119,7 @@ export function HataSayfasi({
     setOnlem(taslak.onlem ?? '');
     setDogrulamaBody(taslak.dogrulamaBody ?? '');
     setFotoIdleri(taslak.fotograflar ?? []);
+    setKaldirilan([]);
     setFotoHatasi(null);
     setArama('');
     setYeniAcik(false);
@@ -178,10 +184,14 @@ export function HataSayfasi({
     }
   }, [denetimId, taslak?.id, t]);
 
-  const fotografiKaldir = useCallback(async (id: string) => {
+  const fotografiKaldir = useCallback((id: string) => {
     setFotoIdleri((o) => o.filter((x) => x !== id));
-    await fotografSil(id).catch(() => { /* kayıt zaten yok */ });
+    setKaldirilan((k) => [...k, id]);
   }, []);
+  const kaldirmayiGeriAl = useCallback(() => {
+    setFotoIdleri((o) => [...o, ...kaldirilan]);
+    setKaldirilan([]);
+  }, [kaldirilan]);
 
   const kaydet = useCallback(() => {
     if (!taslak || !hataTipiId) return;
@@ -201,8 +211,8 @@ export function HataSayfasi({
       onlem: takipDurum === 'acik' ? '' : onlem.trim(),
       dogrulamaBody: takipDurum === 'kapali' ? dogrulamaBody.trim() : '',
       fotograflar: fotoIdleri,
-    }, fotoIdleri);
-  }, [aciklama, fotoIdleri, hataTipiId, onKaydet, derece, sinif, sistem, sorumlu, sorunTipi, taslak, takipDurum, onlem, dogrulamaBody]);
+    }, fotoIdleri, kaldirilan);
+  }, [aciklama, fotoIdleri, kaldirilan, hataTipiId, onKaydet, derece, sinif, sistem, sorumlu, sorunTipi, taslak, takipDurum, onlem, dogrulamaBody]);
 
   const fotoHaritasi = useMemo(
     () => new Map(fotograflar.map((f) => [f.id, f])),
@@ -407,11 +417,13 @@ export function HataSayfasi({
             <View key={id} style={s.fotoKutu}>
               {f ? <Image source={{ uri: f.uri }} style={s.fotoGorsel} /> : null}
               <Pressable
-                accessibilityRole="button" accessibilityLabel={t('Fotoğrafı sil', 'Delete photo')}
+                accessibilityRole="button" accessibilityLabel={t('Fotoğrafı kaldır (Kaydet\'e basınca silinir)', 'Remove photo (deleted when you save)')}
                 onPress={() => fotografiKaldir(id)}
+                // 40 px görünür + içeri 8 px pay = 48 px: eldivenle ıskalanmasın.
+                hitSlop={{ left: 8, bottom: 8 }}
                 style={s.fotoSil}
               >
-                <S.kapat size={16} color={renkler.tersMetin} strokeWidth={2.5} />
+                <S.kapat size={20} color={renkler.tersMetin} strokeWidth={2.5} />
               </Pressable>
             </View>
           );
@@ -439,6 +451,15 @@ export function HataSayfasi({
           <Text style={s.fotoEkleMetin}>{t('Galeri', 'Gallery')}</Text>
         </Pressable>
       </View>
+      {kaldirilan.length ? (
+        <View style={s.kaldirilanSatir} testID="foto-kaldirilan">
+          <Text style={s.kaldirilanMetin}>
+            {t(`${kaldirilan.length} fotoğraf kaldırıldı — Kaydet'e basınca silinir`, `${kaldirilan.length} ${kaldirilan.length === 1 ? 'photo' : 'photos'} removed — deleted when you save`)}
+          </Text>
+          <Dugme metin={t('Geri getir', 'Restore')} simge={S.geriAl} kucuk tur="sessiz" onPress={kaldirmayiGeriAl}
+            erisimEtiketi={t('Kaldırılan fotoğrafları geri getir', 'Restore removed photos')} />
+        </View>
+      ) : null}
     </>
   );
 
@@ -712,14 +733,16 @@ export function YeniTipFormu({
  * Demerit seçici: 0 · 1 · 2 · 3 (Excel'deki sırayla; 0 skora girmez). Seçili
  * olan kendi rengiyle DOLU çizilir, diğerleri boş kutuda yalnız rakamı renkli
  * taşır. Seçim yalnız renkle değil dolu/boş farkıyla da okunur; rakam her
- * zaman yazılıdır. Kontrastlar ölçüldü (1–3: 27.09.2026; 0: 26.10.2026),
- * iki temada: seçili rakam en az 5.28:1, seçili olmayan rakam kendi zemininde
- * en az 5.28:1; 0 için 6.67:1 ve 5.72:1.
+ * zaman yazılıdır. Kontrast (28.10.2026, paletteki hex'lerden hesap, iki
+ * temada): seçilmemiş rakam düğme zemininde (yuzeyVurgu) en az 5,05:1. Eski
+ * yorum "en az 5.28:1" diyordu — o değer BEYAZ zemindi; zemin Aşama 2'de tona
+ * geçince 1 ve 2 4,40 / 4,44'e düşmüştü (beş ajanlı değerlendirme yakaladı),
+ * renkler koyulaştırıldı.
  */
 const DEMERIT_SIRASI = [...DERECELER].sort((a, b) => a.id.localeCompare(b.id));
 
 export function DereceSecici({
-  derece, onSec, etiketOnEki = 'Demerit', kucuk = false,
+  derece, onSec, etiketOnEki = 'Demerit', kucuk = false, eylem,
 }: {
   /** null: henüz seçilmedi (hızlı kayıtta demerit zorunlu, varsayılan yok). */
   derece: DereceKodu | null;
@@ -727,6 +750,13 @@ export function DereceSecici({
   /** Aynı ekranda iki derece seçici varsa ekran okuyucu ayırt etsin diye. */
   etiketOnEki?: string;
   kucuk?: boolean;
+  /**
+   * Verilirse düğmeler SEÇİM değil EYLEMDİR: dokunuş kaydeder (sık hatalar
+   * şeridi, 28.10.2026). Rol "button", etiket bu işlevden ("… demerit 2 ile
+   * kaydet"); görünüş dolu ton + kaydet simgesi — seçim düğmesiyle karışmasın
+   * (beş ajanlı değerlendirmede dördünün ortak bulgusu).
+   */
+  eylem?: (d: DereceKodu) => string;
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
@@ -738,16 +768,17 @@ export function DereceSecici({
         return (
           <Pressable
             key={d.id}
-            accessibilityRole="radio"
-            aria-checked={secili}
-            accessibilityLabel={`${etiketOnEki} ${d.ad}`}
+            accessibilityRole={eylem ? 'button' : 'radio'}
+            aria-checked={eylem ? undefined : secili}
+            accessibilityLabel={eylem ? eylem(d.id) : `${etiketOnEki} ${d.ad}`}
             onPress={() => onSec(d.id)}
             style={({ pressed }) => [
               s.dereceDugme, kucuk && s.dereceDugmeKucuk,
-              secili ? { backgroundColor: arka, borderColor: on } : null,
+              secili || eylem ? { backgroundColor: arka, borderColor: on } : null,
               pressed && { opacity: 0.72 },
             ]}
           >
+            {eylem ? <S.kaydet size={kucuk ? 14 : 16} color={on} strokeWidth={2.25} /> : null}
             {/* Seçili-durum dili temel.tsx Secenek ile aynı: ton + 2 px kenar + tik.
                 Eskiden dolu renkti; demerit 1'de "çamurlu zeytin" görünüyordu. */}
             <Text style={[kucuk ? s.dereceRakamKucuk : s.dereceRakam, { color: on }]}>
@@ -845,8 +876,10 @@ const stiller = (r: Renkler) => StyleSheet.create({
     borderWidth: 1, borderColor: r.cizgi,
   },
   fotoGorsel: { width: '100%', height: '100%' },
+  kaldirilanSatir: { flexDirection: 'row', alignItems: 'center', gap: bosluk.xs, flexWrap: 'wrap' },
+  kaldirilanMetin: { ...tipografi.caption, color: r.metinIkincil, flexShrink: 1 },
   fotoSil: {
-    position: 'absolute', top: 2, right: 2, width: 26, height: 26,
+    position: 'absolute', top: 0, right: 0, width: 40, height: 40,
     alignItems: 'center', justifyContent: 'center',
     borderRadius: kose.sm, backgroundColor: r.perde,
   },

@@ -181,6 +181,38 @@ describe('ekibin Excel\'ini doldur', () => {
     expect([ucuncu.aracEklendi, ucuncu.problemEklendi, ucuncu.problemZatenVar]).toEqual([0, 1, 4]);
   });
 
+  // 28.10.2026 — kalite müdürü değerlendirmesi: "gönder, eşlemeyi değiştir,
+  // tekrar gönder" senaryosu sınanmamıştı; izsiz bu senaryo satırı ÇİFTLİYOR.
+  it('gönderim izi: eşleme sonradan değişse de aynı hata tekrar eklenmez', () => {
+    const ilk = ekipExceliniDoldur(ornekKitap(), denetimler);
+    expect(Object.keys(ilk.gonderim).sort()).toEqual(['h1', 'h2', 'h3', 'h4']);
+    const yeniAd = { elleEsleme: { parca: { anten: 'ANTENNA ASSY' } } };
+    // İzsiz (eski davranış): anten satırı yeni adla ikinci kez eklenir.
+    expect(ekipExceliniDoldur(ilk.bayt, denetimler, yeniAd).problemEklendi).toBe(1);
+    // İzle: eklenmez; "başka adla gönderilmiş" sayılır.
+    const r = ekipExceliniDoldur(ilk.bayt, denetimler, { ...yeniAd, gonderilen: ilk.gonderim });
+    expect([r.problemEklendi, r.problemZatenVar, r.baskaAdla, r.degisenler.length]).toEqual([0, 4, 1, 0]);
+  });
+
+  it('gönderim izi: gönderildikten sonra değişen hata eklenmez, "elle düzeltin" listesine girer', () => {
+    const ilk = ekipExceliniDoldur(ornekKitap(), denetimler);
+    const duzeltilmis = denetimler.map((d, i) => (i ? d : {
+      ...d, hatalar: d.hatalar.map((h) => (h.id === 'h1' ? { ...h, derece: '3' as const, durum: 'giderildi' as const, onlem: 'Kalıp ayarlandı' } : h)),
+    }));
+    const r = ekipExceliniDoldur(ilk.bayt, duzeltilmis, { gonderilen: ilk.gonderim });
+    expect([r.problemEklendi, r.problemZatenVar]).toEqual([0, 4]);
+    expect(r.degisenler).toHaveLength(1);
+    expect(r.degisenler[0]).toMatchObject({ hataId: 'h1', govde: '222222', gun: '27.10.2026', ad: { tr: 'Ön tampon — Çizik' } });
+    expect(r.degisenler[0]!.alanlar).toEqual([
+      { alan: 'demerit', eski: '1', yeni: '3' },
+      { alan: 'takip', eski: 'acik', yeni: 'giderildi' },
+      { alan: 'onlem', eski: '', yeni: 'Kalıp ayarlandı' },
+    ]);
+    // İz dosyada yoksa (eski bir kopya seçildi) hata normal yoldan eklenir.
+    const bos = ekipExceliniDoldur(ornekKitap(), denetimler, { gonderilen: ilk.gonderim });
+    expect(bos.problemEklendi).toBe(4);
+  });
+
   it('kullanıcının düzelttiği eşleme kullanılır; boş seçim uygulamanın adını yazar', () => {
     const r = ekipExceliniDoldur(ornekKitap(), denetimler, { elleEsleme: { parca: { anten: 'ANTENNA ASSY', on_tampon: '' }, tip: { tikirti: 'RATTLE' } } });
     const p = oku(r.bayt, 'xl/worksheets/sheet3.xml');

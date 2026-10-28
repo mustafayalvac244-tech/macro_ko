@@ -29,7 +29,7 @@ import { bicimTarih } from '@/cekirdek/rapor';
 import { GecmisKayit, parcaninSikTipleri, SikHata, sikHataOnerileri } from '@/cekirdek/sikHatalar';
 import { kapsamMetni, mevcutSistemler } from '@/cekirdek/sistemler';
 import { parcaDemeritleri, parcaKayitSayilari } from '@/cekirdek/donusGorunumu';
-import { takipAdi } from '@/cekirdek/takip';
+import { sonucuDegistirir, takipAdi } from '@/cekirdek/takip';
 import { aracKimligi } from '@/cekirdek/vin';
 import {
   Denetim, DereceKodu, Hata, HataGrubuId, HataTipi, SinifKodu,
@@ -38,7 +38,7 @@ import { bosluk, DOKUNMA, kose, Renkler, tipografi, useTema } from '@/tema';
 import { useAcmaIstegi } from '@/veri/acmaIstegi';
 import {
   ayarOku, ayarYaz, denetimGetir, denetimGuncelle, denetimSil, FotografKaydi, fotograflariGetir,
-  fotografiHataBagla, hataKaydet, hataSil, kapsamAyarla, kimlikUret, modelHataGecmisi,
+  fotografiHataBagla, fotografSil, hataKaydet, hataSil, kapsamAyarla, kimlikUret, modelHataGecmisi,
 } from '@/veri/depo';
 import { useDil } from '@/veri/dilDeposu';
 import { useKatalog } from '@/veri/katalogDeposu';
@@ -199,7 +199,18 @@ export default function DenetimEkrani() {
     && !!HATA_TIPI_INDEKS[o.hataTipiId] && !HATA_TIPI_INDEKS[o.hataTipiId]!.silindi, [izinliParca]);
   // ozelTipler: tip kaldırılınca şerit tazelensin.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const sikOneriler = useMemo(() => sikHataOnerileri(gecmis, { gecerli: sikGecerli }), [gecmis, sikGecerli, ozelTipler]);
+  // Sıra denetim boyunca SABİT (28.10.2026, saha değerlendirmesi): her kayıttan
+  // sonra yeniden sıralanınca çiplerin yeri kayıyor, eldivenli el yanlışına
+  // basıyordu. İlk sıralama korunur; yeni ikili sona eklenir, sayılar güncellenir.
+  const seritSirasi = useRef<string[]>([]);
+  const sikOneriler = useMemo(() => {
+    const anahtar = (o: SikHata) => `${o.parcaId}+${o.ikinciParcaId ?? ''}|${o.hataTipiId}`;
+    const taze = sikHataOnerileri(gecmis, { gecerli: sikGecerli });
+    const sira = new Map(seritSirasi.current.map((k, i) => [k, i] as const));
+    const sonuc = [...taze].sort((a, b) => (sira.get(anahtar(a)) ?? Infinity) - (sira.get(anahtar(b)) ?? Infinity));
+    seritSirasi.current = sonuc.map(anahtar);
+    return sonuc;
+  }, [gecmis, sikGecerli, ozelTipler]);
 
   // KAPSAM (sistemler.ts): işaretli sistemler. Elle değişince de denetim
   // "değişti" sayılır (bitmişse yeniden açılır).
@@ -384,6 +395,9 @@ export default function DenetimEkrani() {
     if (derece === null) {
       setKayitHatasi(t('Önce demerit seçin (0–3). Demerit seçilmeden kayıt yapılmaz.', 'Pick a demerit first (0–3). Nothing is saved without one.'));
       setDereceIste(true);
+      // Ekrana bakmadan çalışan denetçi için "titremedi" zayıf sinyaldi (saha
+      // değerlendirmesi, 28.10.2026): kaydın düşmediğini el de hissetsin.
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
       return;
     }
     if (!(await kayitYap(parcaId, ikinciParcaId, tip, derece, sinif))) return;
@@ -425,14 +439,18 @@ export default function DenetimEkrani() {
   }, [bildirim, bildirimGoster]);
 
   // --- AYRINTILI DÜZENLEME (isteğe bağlı) ------------------------------
-  const ayrintiKaydet = useCallback(async (t: HataTaslagi, fotoIdleri: string[]) => {
+  const ayrintiKaydet = useCallback(async (t: HataTaslagi, fotoIdleri: string[], kaldirilanFotolar: string[] = []) => {
     if (!denetim) return;
     const hataId = t.id ?? kimlikUret('h');
-    await hataKaydet(denetim.id, {
-      ...t, id: hataId, zaman: t.zaman ?? new Date().toISOString(), fotograflar: fotoIdleri,
-    });
+    const eski = t.id ? denetim.hatalar.find((h) => h.id === t.id) : undefined;
+    const yeni: Hata = { ...t, id: hataId, zaman: t.zaman ?? new Date().toISOString(), fotograflar: fotoIdleri };
+    await hataKaydet(denetim.id, yeni);
     for (const fid of fotoIdleri) await fotografiHataBagla(fid, hataId);
-    await yenidenAcGerekirse();
+    // Kaldırılan fotoğraf ancak kayıt düştükten sonra silinir — ve tazelemeden
+    // ÖNCE: sonra silinince ekran eski listeyi gösteriyordu (web sınavı yakaladı).
+    for (const fid of kaldirilanFotolar) await fotografSil(fid).catch(() => { /* zaten yok */ });
+    // Yalnız takip/not/fotoğraf değiştiyse bitmiş denetim AÇILMAZ (takip.ts → sonucuDegistirir).
+    if (sonucuDegistirir(eski, yeni)) await yenidenAcGerekirse();
 
     // Sorumluyu yalnız PART hatalarından öğren. Complex bir hatanın sorumlusu
     // çoğu zaman bir tasarım ekibi ("MSV Closure Design Team 1"); onu parçaya
@@ -598,7 +616,7 @@ export default function DenetimEkrani() {
         </View>
         {seciliAdet > 0 ? (
           <Rozet
-            metin={t(`${seciliAdet} KAYIT`, `${seciliAdet} ${seciliAdet === 1 ? 'RECORD' : 'RECORDS'}`)}
+            metin={t(`${seciliAdet} kayıt`, `${seciliAdet} ${seciliAdet === 1 ? 'record' : 'records'}`)}
             renk={renkler.birincil}
             zemin={renkler.birincilYumusak}
           />
@@ -615,7 +633,13 @@ export default function DenetimEkrani() {
         ) : null}
       </View>
 
+      {/* Sıra (28.10.2026): önce sınıf, sonra demerit — sık hatalar şeridiyle
+          aynı; orada son dokunuş (demerit) kaydeder, burada hata karosu. */}
       <View style={[s.dereceSerit, tablet && s.dereceSeritTablet, dereceIste && s.dereceSeritUyari]} testID="derece-serit">
+        <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
+          <Text style={s.dereceEtiket}>{t('Sınıf', 'Class')}</Text>
+          <SinifSecici sinif={sinif} onSec={setSinif} />
+        </View>
         <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
           {dereceIste ? (
             <Text style={[s.dereceEtiket, { color: renkler.uyari }]} accessibilityLiveRegion="polite">
@@ -625,10 +649,6 @@ export default function DenetimEkrani() {
             <Text style={s.dereceEtiket}>{t('Demerit — 0 skora girmez', 'Demerit — 0 not scored')}</Text>
           )}
           <DereceSecici derece={derece} onSec={dereceSec} kucuk />
-        </View>
-        <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
-          <Text style={s.dereceEtiket}>{t('Sınıf', 'Class')}</Text>
-          <SinifSecici sinif={sinif} onSec={setSinif} />
         </View>
       </View>
 
@@ -1119,7 +1139,7 @@ const stiller = (r: Renkler) => StyleSheet.create({
   sikBaslikMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
   sikSayi: { ...tipografi.caption, color: r.metinSolgun, fontVariant: ['tabular-nums'] },
   grupAtla: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: bosluk.sm,
+    flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: DOKUNMA, paddingHorizontal: bosluk.sm,
     borderRadius: kose.md, backgroundColor: r.birincilYumusak,
   },
   grupAtlaMetin: { ...tipografi.captionOrta, color: r.birincil },

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { gunlukOzeti } from '../arac-audit-app/src/cekirdek/gunluk';
 import { ilerlemeKodu } from '../arac-audit-app/src/cekirdek/nas';
-import { acikMi, durumDegistir, TAKIP_DURUMLARI, takipAdi } from '../arac-audit-app/src/cekirdek/takip';
+import { acikMi, durumDegistir, sonucuDegistirir, TAKIP_DURUMLARI, takipAdi } from '../arac-audit-app/src/cekirdek/takip';
+import type { Hata } from '../arac-audit-app/src/cekirdek/tipler';
 
 // 26.10.2026 — hata takibi (ekibin Excel'indeki PROGRESS / COUNTERMEASURE / CM APPLICATION DATE).
 describe('hata takibi', () => {
@@ -42,5 +43,27 @@ describe('hata takibi', () => {
     const metin = gunlukOzeti(k as never, 'tr');
     expect(metin).toContain('Açık → Önlem uygulandı');
     expect(metin).toContain('önlem');
+  });
+});
+
+// 28.10.2026 — kalite müdürü değerlendirmesi: bitmiş denetimde takip girmek
+// denetimi "devam"a çevirip skordan düşürüyordu. Beklentiler benim.
+describe('bitmiş denetimi yeniden açan düzeltme', () => {
+  const h: Hata = {
+    id: 'h1', parcaId: 'kaput', hataTipiId: 'cizik', derece: '2', kabulEdilebilir: false, sorunTipi: 'Part',
+    sinif: 'MINOR', sistem: 'EXTERIOR', sorumlu: '', adet: 1, konum: '', aciklama: '', fotograflar: [],
+    zaman: '2026-10-27T09:00:00Z', durum: 'acik',
+  };
+  it('takip, önlem, not, sorumlu, fotoğraf: açmaz', () => {
+    expect(sonucuDegistirir(h, { ...h, ...durumDegistir(h, 'giderildi', '2026-10-28T09:00:00Z'), onlem: 'Kalıp ayarlandı' })).toBe(false);
+    expect(sonucuDegistirir(h, { ...h, aciklama: 'not', konum: 'sol', sorumlu: 'PAINT', fotograflar: ['f1'] })).toBe(false);
+    expect(sonucuDegistirir(h, { ...h, ikinciParcaId: '' })).toBe(false);
+  });
+  it('yeni kayıt ya da bulguyu değiştiren alan: açar', () => {
+    expect(sonucuDegistirir(undefined, h)).toBe(true);
+    for (const d of [{ derece: '3' as const }, { hataTipiId: 'gocuk' }, { parcaId: 'bagaj_kapagi' }, { ikinciParcaId: 'sol_on_camurluk' },
+      { sinif: 'MAJOR' as const }, { sistem: 'PAINT' }, { adet: 2 }, { kabulEdilebilir: true }, { sorunTipi: 'Complex' as const }]) {
+      expect(sonucuDegistirir(h, { ...h, ...d })).toBe(true);
+    }
   });
 });

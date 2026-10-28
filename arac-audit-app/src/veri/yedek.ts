@@ -16,7 +16,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
 import { aktarilacaklar, AktarimSecimi, VARSAYILAN_AKTARIM } from '@/cekirdek/aktarim';
-import { ElleEsleme } from '@/cekirdek/ekipExceli';
+import { ElleEsleme, GonderimIzi, GonderimKaydi } from '@/cekirdek/ekipExceli';
 import { Denetim } from '@/cekirdek/tipler';
 import { nasSayfalari } from '@/cekirdek/nas';
 import { xlsxOlustur } from '@/cekirdek/xlsx';
@@ -225,6 +225,20 @@ const ESLEME_AYARI = 'ekip_excel_esleme';
 /** Kullanıcının düzelttiği parça/tip eşlemeleri — bu telefonda saklanır, sonraki doldurmalarda da geçerli. */
 export const elleEslemeOku = (): Promise<ElleEsleme> => ayarOku<ElleEsleme>(ESLEME_AYARI, {});
 export const elleEslemeYaz = (e: ElleEsleme): Promise<void> => ayarYaz(ESLEME_AYARI, e);
+
+const GONDERIM_AYARI = 'ekip_excel_gonderim';
+
+/**
+ * Ekibe gönderilmiş hataların izi (28.10.2026, ekipExceli.ts → GonderimIzi):
+ * eşleme ya da kayıt sonradan değişse de aynı hata ikinci kez eklenmesin,
+ * değişen "elle düzeltin" diye gösterilsin. Yalnız dosya PAYLAŞILINCA yazılır:
+ * doldurup vazgeçmek gönderim sayılmaz.
+ */
+export const gonderimKaydiOku = (): Promise<GonderimKaydi> => ayarOku<GonderimKaydi>(GONDERIM_AYARI, {});
+export async function gonderimKaydiEkle(yeni: Readonly<Record<string, GonderimIzi>>): Promise<void> {
+  if (!Object.keys(yeni).length) return;
+  await ayarYaz(GONDERIM_AYARI, { ...(await gonderimKaydiOku()), ...yeni });
+}
 
 /**
  * Doldurulmuş dosyayı SEÇİLEN ADLA paylaşır: NAS'taki dosyanın yerine

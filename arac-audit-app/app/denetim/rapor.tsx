@@ -429,15 +429,28 @@ export default function RaporEkrani() {
         {hata ? <HataKutusu metin={hata} /> : null}
       </ScrollView>
 
+      {/* Sürüyorsa asıl iş bitirmek (28.10.2026, iki ajanın ortak bulgusu: dolu
+          birincil düğme "Excel"di, "Bitir" ikincil — akışın sırasına ters).
+          Bitince birincil Excel. */}
       <AltCubuk style={tablet ? { justifyContent: 'flex-end' } : undefined}>
+        {denetim.durum === 'devam' ? (
+          <Dugme
+            metin={t('Bitir', 'Finish')}
+            erisimEtiketi={t('Denetimi bitir', 'Finish audit')}
+            simge={S.tamam}
+            tur="birincil"
+            onPress={() => setBitirOnay(true)}
+            style={tablet ? { minWidth: 200 } : { flex: 1 }}
+          />
+        ) : null}
         <Dugme
           metin="Excel"
           erisimEtiketi={t('Excel olarak paylaş', 'Share as Excel')}
           simge={S.excel}
-          tur="birincil"
+          tur={denetim.durum === 'devam' ? 'ikincil' : 'birincil'}
           yukleniyor={calisiyor === 'xlsx'}
           onPress={() => paylas('xlsx')}
-          style={tablet ? { minWidth: 200 } : { flex: 1 }}
+          style={denetim.durum === 'devam' ? undefined : tablet ? { minWidth: 200 } : { flex: 1 }}
         />
         <Dugme
           metin="CSV"
@@ -446,14 +459,6 @@ export default function RaporEkrani() {
           yukleniyor={calisiyor === 'csv'}
           onPress={() => paylas('csv')}
         />
-        {denetim.durum === 'devam' ? (
-          <Dugme
-            metin={t('Bitir', 'Finish')}
-            erisimEtiketi={t('Denetimi bitir', 'Finish audit')}
-            simge={S.tamam}
-            onPress={() => setBitirOnay(true)}
-          />
-        ) : null}
       </AltCubuk>
 
       {bitirOnay && denetim.durum === 'devam' ? (
