@@ -52,7 +52,9 @@ import { useKatalog } from '@/veri/katalogDeposu';
  * Önceki ekran 3B modeli merkeze koyuyordu ve her kayıt bir form açıyordu.
  * Bu ekran tersini yapar:
  *
- *   parçaya dokun → hataya dokun → KAYDEDİLDİ. Form yok.
+ *   parçaya dokun → hatayı seç → demerit → EKLE. Form yok.
+ *   (29.10.2026'ya kadar hataya dokunmak doğrudan kaydediyordu; ürün sahibi
+ *   "tamam ekle diye bişi çıkması lazım" dedi — bkz. seciliTip.)
  *
  * Derece hata panelinin üstünde durur. 28.09.2026'da "yeni parçada 1'den
  * başlar"a çevrildi, 26.10.2026'dan beri HİÇ SEÇİLİ GELMEZ (aşağıda):
@@ -136,6 +138,12 @@ export default function DenetimEkrani() {
   const [sinif, setSinif] = useState<SinifKodu>(VARSAYILAN_SINIF);
   const [yeniTipAcik, setYeniTipAcik] = useState(false);
   const [kayitHatasi, setKayitHatasi] = useState<string | null>(null);
+  // SEÇ, SONRA EKLE (29.10.2026, ürün sahibi: "hata seçiyosun tamam ekle diye
+  // bişi çıkması lazım … basit anlaşılır olsun"). Hataya dokunmak artık
+  // kaydetmiyor, SEÇİYOR; kayıt alttaki "Ekle" düğmesiyle. Önceki "dokununca
+  // kaydedilir" akışı bir dokunuş kısaydı ama ürün sahibi kullanamadı.
+  const [seciliTip, setSeciliTip] = useState<HataTipi | null>(null);
+  const [ekleniyor, setEkleniyor] = useState(false);
 
   const [bildirim, setBildirim] = useState<Bildirim | null>(null);
   // Parça → sorumlu (ekibin tablosunda L: "HMTR PD (HWASEUNG)"). Ayrıntı
@@ -301,6 +309,7 @@ export default function DenetimEkrani() {
     setHataArama('');
     setYeniTipAcik(false);
     setKayitHatasi(null);
+    setSeciliTip(null);
     setDerece(null);
     setDereceIste(false);
     setSinif(VARSAYILAN_SINIF);
@@ -311,6 +320,7 @@ export default function DenetimEkrani() {
     setIkinciParcaId(null);
     setHataArama('');
     setYeniTipAcik(false);
+    setSeciliTip(null);
   }, []);
 
   // ANDROID GERİ TUŞU (26.10.2026, dış değerlendirme: "geri tuşu denetimden
@@ -392,27 +402,36 @@ export default function DenetimEkrani() {
     return true;
   }, [denetim, sorumluHaritasi, bildirimGoster, yenidenAcGerekirse, t, dil]);
 
-  /** Tek dokunuşla kayıt — bu ekranın var olma sebebi. */
-  const hizliKaydet = useCallback(async (tip: HataTipi) => {
-    if (!denetim || !parcaId) return;
-    if (derece === null) {
-      setKayitHatasi(t('Önce demerit seçin (0–3). Demerit seçilmeden kayıt yapılmaz.', 'Pick a demerit first (0–3). Nothing is saved without one.'));
-      setDereceIste(true);
-      // Ekrana bakmadan çalışan denetçi için "titremedi" zayıf sinyaldi (saha
-      // değerlendirmesi, 28.10.2026): kaydın düşmediğini el de hissetsin.
+  /** "Ekle": seçili hata, seçili demerit ve sınıfla kaydeder. */
+  const ekle = useCallback(async () => {
+    if (!denetim || !parcaId || ekleniyor) return;
+    // Eksik varsa kayıt yok; ne eksikse o söylenir. Ekrana bakmadan çalışan
+    // denetçi için titreşim de (saha değerlendirmesi, 28.10.2026).
+    const eksik = !seciliTip
+      ? t('Önce hatayı seçin.', 'Pick the defect first.')
+      : derece === null ? t('Demerit seçin (0–3). Demerit seçilmeden kayıt yapılmaz.', 'Pick a demerit (0–3). Nothing is saved without one.') : null;
+    if (eksik || !seciliTip || derece === null) {
+      setKayitHatasi(eksik);
+      if (seciliTip && derece === null) setDereceIste(true);
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
       return;
     }
-    if (!(await kayitYap(parcaId, ikinciParcaId, tip, derece, sinif))) return;
+    setEkleniyor(true);
+    try {
+      if (!(await kayitYap(parcaId, ikinciParcaId, seciliTip, derece, sinif))) return;
+    } finally {
+      setEkleniyor(false);
+    }
+    setSeciliTip(null);
     setDerece(null);
     setDereceIste(false);
     setSinif(VARSAYILAN_SINIF);
     parcalaraDon();
     setParcaArama('');
     await tazele();
-  }, [denetim, parcaId, ikinciParcaId, derece, sinif, kayitYap, parcalaraDon, tazele, t]);
+  }, [denetim, parcaId, ikinciParcaId, seciliTip, derece, sinif, ekleniyor, kayitYap, parcalaraDon, tazele, t]);
 
-  /** Sık hatalar şeridinden: parça ve tip çipte, demerit son dokunuşta. */
+  /** Sık hatalar şeridinden: parça ve tip çipte; demerit ve sınıf panelde, kayıt panelin "Ekle"siyle. */
   const seritKaydet = useCallback(async (o: SikHata, d: DereceKodu, c: SinifKodu) => {
     const tip = HATA_TIPI_INDEKS[o.hataTipiId];
     if (!tip || !(await kayitYap(o.parcaId, o.ikinciParcaId ?? null, tip, d, c))) return false;
@@ -438,6 +457,7 @@ export default function DenetimEkrani() {
     setHataArama('');
     setYeniTipAcik(false);
     setKayitHatasi(null);
+    setSeciliTip(null);
     bildirimGoster(null);
   }, [bildirim, bildirimGoster]);
 
@@ -574,28 +594,34 @@ export default function DenetimEkrani() {
   );
 
   // --- HATA PANELİ ------------------------------------------------------
-  /** Hata karosu: dokununca seçili demerit ve sınıfla kaydeder. `sayi`: sık tiplerde kaç kez. */
-  const tipKaro = (tip: HataTipi, sayi?: number) => (
-    <Pressable
-      key={tip.id}
-      accessibilityRole="button"
-      accessibilityLabel={derece === null
-        ? t(`${tip.ad}${tip.en ? ` (${tip.en})` : ''} — önce demerit seçin`, `${tip.en || tip.ad} — pick a demerit first`)
-        : t(
-          `${tip.ad}${tip.en ? ` (${tip.en})` : ''} — demerit ${derece}, ${sinif} olarak kaydet`,
-          `${tip.en || tip.ad} — save as demerit ${derece}, ${sinif}`,
-        )}
-      onPress={() => hizliKaydet(tip)}
-      style={({ pressed }) => [s.hataDugme, pressed && s.hataDugmeBasili]}
-    >
-      <View style={s.hataDugmeUst}>
-        {/* Ekibin eklediği tipin İngilizcesi boş olabilir: o zaman Türkçesi. */}
-        <Text style={s.hataAd} numberOfLines={2}>{t(tip.ad, tip.en || tip.ad)}</Text>
-        {sayi ? <Text style={s.sikSayi}>×{sayi}</Text> : null}
-        {tip.ozel ? <Text style={s.ekipIsaret}>{t('Ekip', 'Team')}</Text> : null}
-      </View>
-    </Pressable>
-  );
+  const ekleOzeti = parca ? t(
+    `${parcaCiftiAdi({ parcaId: parca.id, ikinciParcaId })} — ${seciliTip ? seciliTip.ad : 'hata seçilmedi'} · ${derece === null ? 'demerit seçilmedi' : `demerit ${derece}`} · ${sinif}`,
+    `${parcaCiftiAdi({ parcaId: parca.id, ikinciParcaId }, 'en')} — ${seciliTip ? seciliTip.en || seciliTip.ad : 'no defect selected'} · ${derece === null ? 'no demerit' : `demerit ${derece}`} · ${sinif}`,
+  ) : '';
+
+  /** Hata karosu: dokununca SEÇER (kaydetmez); bir daha dokununca seçim kalkar. `sayi`: sık tiplerde kaç kez. */
+  const tipKaro = (tip: HataTipi, sayi?: number) => {
+    const secili = seciliTip?.id === tip.id;
+    return (
+      <Pressable
+        key={tip.id}
+        accessibilityRole="radio"
+        aria-checked={secili}
+        accessibilityState={{ checked: secili }}
+        accessibilityLabel={t(`Hata: ${tip.ad}${tip.en ? ` (${tip.en})` : ''}`, `Defect: ${tip.en || tip.ad}`)}
+        onPress={() => { setSeciliTip(secili ? null : tip); setKayitHatasi(null); }}
+        style={({ pressed }) => [s.hataDugme, secili && s.hataDugmeSecili, pressed && s.hataDugmeBasili]}
+      >
+        <View style={s.hataDugmeUst}>
+          {/* Ekibin eklediği tipin İngilizcesi boş olabilir: o zaman Türkçesi. */}
+          <Text style={[s.hataAd, secili && { color: renkler.birincil }]} numberOfLines={2}>{t(tip.ad, tip.en || tip.ad)}</Text>
+          {sayi ? <Text style={s.sikSayi}>×{sayi}</Text> : null}
+          {tip.ozel ? <Text style={s.ekipIsaret}>{t('Ekip', 'Team')}</Text> : null}
+          {secili ? <S.tik size={18} color={renkler.birincil} strokeWidth={2.75} /> : null}
+        </View>
+      </Pressable>
+    );
+  };
 
   const hataPaneli = parca ? (
     <View style={{ flex: 1 }}>
@@ -637,7 +663,7 @@ export default function DenetimEkrani() {
       </View>
 
       {/* Sıra (28.10.2026): önce sınıf, sonra demerit — sık hatalar şeridiyle
-          aynı; orada son dokunuş (demerit) kaydeder, burada hata karosu. */}
+          aynı. Kayıt ikisinde de alttaki "Ekle" düğmesiyle (29.10.2026). */}
       <View style={[s.dereceSerit, tablet && s.dereceSeritTablet, dereceIste && s.dereceSeritUyari]} testID="derece-serit">
         <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
           <Text style={s.dereceEtiket}>{t('Sınıf', 'Class')}</Text>
@@ -646,7 +672,7 @@ export default function DenetimEkrani() {
         <View style={[{ gap: bosluk.xs }, tablet && { flex: 1 }]}>
           {dereceIste ? (
             <Text style={[s.dereceEtiket, { color: renkler.uyari }]} accessibilityLiveRegion="polite">
-              {t('Önce demerit seçin — sonra hataya dokunun', 'Pick a demerit first — then tap the defect')}
+              {t('Demerit seçin — sonra Ekle', 'Pick a demerit — then Add')}
             </Text>
           ) : (
             <Text style={s.dereceEtiket}>{t('Demerit — 0 skora girmez', 'Demerit — 0 not scored')}</Text>
@@ -663,32 +689,9 @@ export default function DenetimEkrani() {
           erisimEtiketi={t('Hata tipi ara', 'Search defect types')}
         />
 
-        {/* Hata kutularının üstünde hangi değerle kaydedileceği yazmıyordu
-            (sınama, 28.09.2026). Sonuç burada: dokunulan hata BU değerle düşer. */}
-        {/* Ekran okuyucu için TEK cümle; rozet ağaçtan gizli — yoksa demerit
-            seçicisiyle aynı adlı ikinci bir öğe oluyordu. */}
-        {derece === null ? (
-          <View style={[s.kayitDerecesi, s.kayitDerecesiEksik]} accessible accessibilityLabel={t('Önce demerit seçin', 'Pick a demerit first')}>
-            <S.uyari size={16} color={renkler.uyari} strokeWidth={2.25} />
-            <Text style={[s.kayitDerecesiMetin, { color: renkler.uyari }]} aria-hidden>
-              {t('Önce yukarıdan demerit seçin (0–3)', 'Pick a demerit above first (0–3)')}
-            </Text>
-          </View>
-        ) : (
-          <View
-            style={s.kayitDerecesi}
-            accessible
-            accessibilityLabel={t(
-              `Dokunduğunuz hata demerit ${derece}, ${sinif} olarak kaydedilir`,
-              `The defect you tap is saved as demerit ${derece}, ${sinif}`,
-            )}
-          >
-            <Text style={s.kayitDerecesiMetin} aria-hidden>{t('Dokunduğunuz hata', 'The defect you tap is saved as')}</Text>
-            <View aria-hidden><DereceRozeti derece={derece} kabul={false} /></View>
-            <Text style={s.kayitDerecesiMetin} aria-hidden>{t(`· ${sinif} olarak kaydedilir`, `· ${sinif}`)}</Text>
-          </View>
-        )}
-
+        {/* "Dokunduğunuz hata … olarak kaydedilir" kutusu 29.10.2026'da kalktı:
+            kayıt artık dokunuşla değil "Ekle" ile; ne kaydedileceği alttaki
+            çubukta yazıyor. */}
         {kayitHatasi ? <HataKutusu metin={kayitHatasi} /> : null}
 
         {!yeniTipAcik && tipGruplari.length > 1 ? (
@@ -720,9 +723,9 @@ export default function DenetimEkrani() {
             onEkle={async (girdi) => {
               const t = await tipEkle({ ...girdi, ekleyen: denetim.denetci?.trim() ?? '' });
               setYeniTipAcik(false);
-              // Yeni tip eklendiyse denetçi onu kaydetmek için ekledi:
-              // ikinci bir dokunuş istemeden hemen kaydet.
-              await hizliKaydet(t);
+              // Yeni tip eklendiyse denetçi onu kaydetmek için ekledi: seçili
+              // gelir; kayıt yine "Ekle" ile (sessiz kayıt yok, 29.10.2026).
+              setSeciliTip(t);
             }}
           />
         ) : (
@@ -777,6 +780,30 @@ export default function DenetimEkrani() {
           </>
         )}
       </ScrollView>
+
+      {/* EKLE ÇUBUĞU (29.10.2026): ne kaydedileceği tek satırda, eksik ne ise o
+          uyarı renginde; kayıt yalnız bu düğmeyle. */}
+      <View style={s.ekleCubugu} testID="ekle-cubugu">
+        <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLiveRegion="polite" accessibilityLabel={ekleOzeti}>
+          <Text style={[s.ekleBaslik, !seciliTip && { color: renkler.uyari }]} numberOfLines={1} aria-hidden>
+            {seciliTip ? t(seciliTip.ad, seciliTip.en || seciliTip.ad) : t('Hata seçin', 'Pick a defect')}
+          </Text>
+          <Text style={[s.ekleAlt, derece === null && { color: renkler.uyari }]} numberOfLines={1} aria-hidden>
+            {derece === null ? t('Demerit seçin (0–3)', 'Pick a demerit (0–3)') : `Demerit ${derece} · ${sinif}`}
+          </Text>
+        </View>
+        <Dugme
+          metin={t('Ekle', 'Add')}
+          simge={S.ekle}
+          tur={seciliTip && derece !== null ? 'birincil' : 'ikincil'}
+          yukleniyor={ekleniyor}
+          onPress={ekle}
+          erisimEtiketi={seciliTip && derece !== null
+            ? t(`Ekle: ${ekleOzeti}`, `Add: ${ekleOzeti}`)
+            : t('Ekle — önce hata ve demerit seçin', 'Add — pick a defect and a demerit first')}
+          style={{ minWidth: tablet ? 200 : 128 }}
+        />
+      </View>
     </View>
   ) : null;
 
@@ -983,8 +1010,8 @@ function DenetimOzeti({
         simge={S.sec}
         baslik={t('Soldan sistem → bölge → parça seçin', 'Select system → area → part on the left')}
         aciklama={t(
-          "Sonra demerit ve sınıfı seçip hataya dokunun; hata o anda kaydedilir ve aynı bölgenin parçalarına dönülür.",
-          'Then set demerit and class and tap a defect; it is saved at once and you return to the parts of the same area.',
+          "Sonra hatayı ve demeriti seçip Ekle'ye basın; kayıttan sonra aynı bölgenin parçalarına dönülür.",
+          'Then pick the defect and the demerit and press Add; after saving you return to the parts of the same area.',
         )}
       />
       <Text style={s.kapsamOzeti} accessibilityLabel={t(`Kontrol edilen sistemler: ${kapsamYazi}`, `Systems checked: ${kapsamYazi}`)}>
@@ -1159,6 +1186,15 @@ const stiller = (r: Renkler) => StyleSheet.create({
     borderRadius: kose.md, borderWidth: 2, borderColor: r.yuzey, backgroundColor: r.yuzey,
   },
   hataDugmeBasili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
+  // Seçili karo: uygulamanın seçili dili (ton + 2 px kenar + tik).
+  hataDugmeSecili: { borderColor: r.birincil, backgroundColor: r.birincilYumusak },
+  ekleCubugu: {
+    flexDirection: 'row', alignItems: 'center', gap: bosluk.sm,
+    paddingHorizontal: bosluk.md, paddingVertical: bosluk.sm,
+    borderTopWidth: 1, borderTopColor: r.cizgi, backgroundColor: r.yuzey,
+  },
+  ekleBaslik: { ...tipografi.bodyOrta, color: r.metin },
+  ekleAlt: { ...tipografi.caption, color: r.metinIkincil },
   hataDugmeUst: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   hataAd: { ...tipografi.bodyOrta, color: r.metin, flex: 1 },
   ekipIsaret: {
@@ -1178,11 +1214,6 @@ const stiller = (r: Renkler) => StyleSheet.create({
 
   // Tablet özet bölmesi
   ozetGovde: { padding: bosluk.lg, gap: bosluk.md, paddingBottom: 120, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  kayitDerecesi: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
-  kayitDerecesiMetin: { ...tipografi.captionOrta, color: r.metinIkincil },
-  kayitDerecesiEksik: {
-    padding: bosluk.xs, borderRadius: kose.sm, backgroundColor: r.uyariYumusak,
-  },
 
   // Bildirim — iki temada da uygulama çubuğunun koyu yüzeyi.
   bildirimKap: { alignItems: 'center', paddingHorizontal: bosluk.md, paddingTop: bosluk.xs, backgroundColor: r.bg },

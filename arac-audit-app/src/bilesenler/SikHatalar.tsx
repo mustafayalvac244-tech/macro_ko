@@ -1,7 +1,9 @@
 // SIK HATALAR ŞERİDİ (27.10.2026) — denetim ekranının başında. Çipe dokun →
-// (isterse sınıf) → demerit seç: kaydedildi. Demerit seçmeden kayıt yok kararı
-// (ürün sahibi) burada da geçerli: kaydı demerit dokunuşu yapar. Sıralama ve
-// "en az iki kez" kuralı cekirdek/sikHatalar.ts'de.
+// (isterse sınıf) → demerit seç → Ekle. Demerit seçmeden kayıt yok kararı
+// (ürün sahibi) burada da geçerli. 29.10.2026'ya kadar demerit dokunuşu
+// doğrudan kaydediyordu; ürün sahibi "tamam ekle diye bişi çıkması lazım"
+// dedi, parça ekranıyla birlikte burada da kayıt "Ekle" düğmesine geçti.
+// Sıralama ve "en az iki kez" kuralı cekirdek/sikHatalar.ts'de.
 
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -29,15 +31,19 @@ export function SikHatalar({ oneriler, onKaydet, hata }: {
   const { dil, t } = useDil();
   const [secili, setSecili] = useState<SikHata | null>(null);
   const [sinif, setSinif] = useState<SinifKodu>(VARSAYILAN_SINIF);
+  const [derece, setDerece] = useState<DereceKodu | null>(null);
   const [kaydediliyor, setKaydediliyor] = useState(false);
+  const [uyari, setUyari] = useState(false);
 
   const ad = (o: SikHata) => `${parcaCiftiAdi(o, dil)} — ${hataTipiAdi(o.hataTipiId, dil)}`;
-  const kaydet = async (d: DereceKodu) => {
+  const sifirla = () => { setSinif(VARSAYILAN_SINIF); setDerece(null); setUyari(false); };
+  const kaydet = async () => {
     if (!secili || kaydediliyor) return;
+    if (derece === null) { setUyari(true); return; }
     setKaydediliyor(true);
-    const tamam = await onKaydet(secili, d, sinif).catch(() => false);
+    const tamam = await onKaydet(secili, derece, sinif).catch(() => false);
     setKaydediliyor(false);
-    if (tamam) { setSecili(null); setSinif(VARSAYILAN_SINIF); }
+    if (tamam) { setSecili(null); sifirla(); }
   };
 
   return (
@@ -58,8 +64,8 @@ export function SikHatalar({ oneriler, onKaydet, hata }: {
               key={anahtar(o)}
               accessibilityRole="button"
               accessibilityState={{ selected: acik }}
-              accessibilityLabel={t(`${ad(o)}, ${o.sayi} kez kaydedildi. Seç, sonra demerit.`, `${ad(o)}, saved ${o.sayi} times. Select, then pick a demerit.`)}
-              onPress={() => { setSecili(acik ? null : o); setSinif(VARSAYILAN_SINIF); }}
+              accessibilityLabel={t(`${ad(o)}, ${o.sayi} kez kaydedildi. Seç, sonra demerit ve Ekle.`, `${ad(o)}, saved ${o.sayi} times. Select, then pick a demerit and Add.`)}
+              onPress={() => { setSecili(acik ? null : o); sifirla(); }}
               style={({ pressed }) => [s.cip, acik && s.cipAcik, pressed && s.basili]}
             >
               <Text style={[s.cipParca, acik && s.cipMetinAcik]} numberOfLines={1}>{parcaCiftiAdi(o, dil)}</Text>
@@ -74,17 +80,27 @@ export function SikHatalar({ oneriler, onKaydet, hata }: {
         <View style={s.panel} testID="sik-hata-panel">
           <Text style={s.panelBaslik} numberOfLines={2}>{ad(secili)}</Text>
           {/* Sıra parça ekranıyla aynı (28.10.2026): önce sınıf, sonra demerit;
-              son dokunuş kaydeder. */}
+              kayıt "Ekle" ile (29.10.2026). */}
           <Text style={s.ipucu}>{t('Sınıf', 'Class')}</Text>
           <SinifSecici sinif={sinif} onSec={setSinif} />
-          <Text style={s.ipucu}>{t('Demerit ile kaydet — 0 skora girmez', 'Save with demerit — 0 not scored')}</Text>
-          <DereceSecici
-            derece={null}
-            onSec={kaydet}
-            kucuk
-            eylem={(d) => t(`${ad(secili)}: demerit ${d}, ${sinif} olarak kaydet`, `${ad(secili)}: save as demerit ${d}, ${sinif}`)}
-          />
-          <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" kucuk simge={S.kapat} onPress={() => setSecili(null)} />
+          <Text style={[s.ipucu, uyari && { color: renkler.uyari }]} accessibilityLiveRegion="polite">
+            {uyari ? t('Demerit seçin (0–3)', 'Pick a demerit (0–3)') : t('Demerit — 0 skora girmez', 'Demerit — 0 not scored')}
+          </Text>
+          <DereceSecici derece={derece} onSec={(d) => { setDerece(d); setUyari(false); }} kucuk />
+          <View style={s.eylemler}>
+            <Dugme metin={t('Vazgeç', 'Cancel')} tur="sessiz" kucuk simge={S.kapat} onPress={() => { setSecili(null); sifirla(); }} />
+            <Dugme
+              metin={t('Ekle', 'Add')}
+              simge={S.ekle}
+              tur={derece !== null ? 'birincil' : 'ikincil'}
+              yukleniyor={kaydediliyor}
+              onPress={kaydet}
+              erisimEtiketi={derece !== null
+                ? t(`Ekle: ${ad(secili)}, demerit ${derece}, ${sinif}`, `Add: ${ad(secili)}, demerit ${derece}, ${sinif}`)
+                : t('Ekle — önce demerit seçin', 'Add — pick a demerit first')}
+              style={{ minWidth: 128 }}
+            />
+          </View>
           {hata ? <HataKutusu metin={hata} /> : null}
         </View>
       ) : null}
@@ -108,4 +124,5 @@ const stiller = (r: Renkler) => StyleSheet.create({
   panel: { gap: bosluk.xs, padding: bosluk.sm, borderRadius: kose.md, backgroundColor: r.yuzeyAlt },
   panelBaslik: { ...tipografi.bodyOrta, color: r.metin },
   ipucu: { ...tipografi.caption, color: r.metinSolgun },
+  eylemler: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: bosluk.sm },
 });

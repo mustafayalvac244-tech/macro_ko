@@ -16,7 +16,7 @@ import {
   AppWindow, Armchair, ArrowRight, Calendar, Camera, CarFront, ChartColumn, Check, ChevronLeft, ChevronRight,
   CircleCheck, CircleDashed, ClipboardCheck, ClipboardList, Clock, CloudDownload, CloudUpload, Database, Droplets, Factory,
   FileSpreadsheet, FileText, Gauge, Hash, History, Image, Info, Layers, List, LucideIcon, Minus,
-  Monitor, Moon, MousePointerClick, Paintbrush, Palette, Pencil, Plus, Repeat2, RotateCw, Ruler, Save, ScanBarcode, Search,
+  Monitor, Moon, MousePointerClick, Paintbrush, Palette, Pencil, Plus, Repeat2, RotateCw, Ruler, ScanBarcode, Search,
   Maximize2, Settings, Sparkles, Sun, Tag, Trash2, TriangleAlert, Undo2, User, Users, Volume2, Wrench, X, Zap,
 } from 'lucide-react-native';
 
@@ -52,9 +52,8 @@ export const S = {
   kabul: CircleDashed,
   son: History,
   // 28.10.2026 (lucide 1.48.0'da tip ve derlenmiş pakette doğrulandı): sık
-  // hatalar şeridi skorun Gauge'unu kullanıyordu; "kaydet" demerit düğmesinde.
+  // hatalar şeridi skorun Gauge'unu kullanıyordu.
   sik: Repeat2,
-  kaydet: Save,
   faz: Layers,
   ekip: Users,
   raporNo: Hash,

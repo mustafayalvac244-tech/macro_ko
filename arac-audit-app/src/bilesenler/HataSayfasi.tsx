@@ -743,7 +743,7 @@ export function YeniTipFormu({
 const DEMERIT_SIRASI = [...DERECELER].sort((a, b) => a.id.localeCompare(b.id));
 
 export function DereceSecici({
-  derece, onSec, etiketOnEki = 'Demerit', kucuk = false, eylem,
+  derece, onSec, etiketOnEki = 'Demerit', kucuk = false,
 }: {
   /** null: henüz seçilmedi (hızlı kayıtta demerit zorunlu, varsayılan yok). */
   derece: DereceKodu | null;
@@ -751,13 +751,6 @@ export function DereceSecici({
   /** Aynı ekranda iki derece seçici varsa ekran okuyucu ayırt etsin diye. */
   etiketOnEki?: string;
   kucuk?: boolean;
-  /**
-   * Verilirse düğmeler SEÇİM değil EYLEMDİR: dokunuş kaydeder (sık hatalar
-   * şeridi, 28.10.2026). Rol "button", etiket bu işlevden ("… demerit 2 ile
-   * kaydet"); görünüş dolu ton + kaydet simgesi — seçim düğmesiyle karışmasın
-   * (beş ajanlı değerlendirmede dördünün ortak bulgusu).
-   */
-  eylem?: (d: DereceKodu) => string;
 }) {
   const { renkler } = useTema();
   const s = useMemo(() => stiller(renkler), [renkler]);
@@ -769,17 +762,16 @@ export function DereceSecici({
         return (
           <Pressable
             key={d.id}
-            accessibilityRole={eylem ? 'button' : 'radio'}
-            aria-checked={eylem ? undefined : secili}
-            accessibilityLabel={eylem ? eylem(d.id) : `${etiketOnEki} ${d.ad}`}
+            accessibilityRole="radio"
+            aria-checked={secili}
+            accessibilityLabel={`${etiketOnEki} ${d.ad}`}
             onPress={() => onSec(d.id)}
             style={({ pressed }) => [
               s.dereceDugme, kucuk && s.dereceDugmeKucuk,
-              secili || eylem ? { backgroundColor: arka, borderColor: on } : null,
+              secili ? { backgroundColor: arka, borderColor: on } : null,
               pressed && { opacity: 0.72 },
             ]}
           >
-            {eylem ? <S.kaydet size={kucuk ? 14 : 16} color={on} strokeWidth={2.25} /> : null}
             {/* Seçili-durum dili temel.tsx Secenek ile aynı: ton + 2 px kenar + tik.
                 Eskiden dolu renkti; demerit 1'de "çamurlu zeytin" görünüyordu. */}
             <Text style={[kucuk ? s.dereceRakamKucuk : s.dereceRakam, { color: on }]}>

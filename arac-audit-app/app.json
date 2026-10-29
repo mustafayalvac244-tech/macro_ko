@@ -3,7 +3,8 @@
     "name": "Araç Audit",
     "slug": "arac-audit",
     "owner": "olivyeejiru",
-    "version": "0.2.0",
+    "version": "0.2.1",
+    "icon": "./assets/images/icon.png",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -28,11 +29,16 @@
     },
     "android": {
       "package": "com.aracaudit.app",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#173C7E"
+      }
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",

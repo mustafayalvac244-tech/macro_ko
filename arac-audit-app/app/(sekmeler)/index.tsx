@@ -176,7 +176,7 @@ export default function DenetimListesi() {
             <BosDurum
               simge={S.arac}
               baslik={t('Henüz denetim kaydı yok', 'No audits yet')}
-              aciklama={t('Akış üç adım: şasiyi okut ya da yaz · parçayı seç · hataya dokun.\nHer kayıt önce cihaza yazılır; bağlantı olmadan da çalışır.', 'Three steps: scan or type the VIN · pick the part · tap the defect.\nEvery record is saved on the device first; it works offline too.')}
+              aciklama={t('Akış üç adım: şasiyi okut ya da yaz · parçayı seç · hatayı seçip Ekle.\nHer kayıt önce cihaza yazılır; bağlantı olmadan da çalışır.', 'Three steps: scan or type the VIN · pick the part · pick the defect and Add.\nEvery record is saved on the device first; it works offline too.')}
             />
           )}
           renderItem={({ item }) => (

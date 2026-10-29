@@ -591,23 +591,28 @@ yazar. Arama kutusu her adımda durur. Kod: `src/bilesenler/AdimliSecim.tsx`.
 seçilecek, gap mı scratch mı seçilecek, hataları tak tak girebilecekler."*
 
 Önceki çalışma ekranı 3B modeli merkeze koyuyordu ve her kayıt bir form
-açıyordu. Şimdiki akış:
+açıyordu. Şimdiki akış (29.10.2026'dan beri; aşağıda "Aşama 11"):
 
-    parça ara → parçaya dokun → hataya dokun → KAYDEDİLDİ
+    parça ara → parçaya dokun → hatayı seç → demerit seç → EKLE
+
+29.10.2026'ya kadar hataya dokunmak doğrudan kaydediyordu ("parçaya dokun →
+hataya dokun → KAYDEDİLDİ"). Ürün sahibi bunu kullanamadı: "hata seçiyosun tamam
+ekle diye bişi çıkması lazım … basit anlaşılır olsun". Artık hataya dokunmak
+seçer; altta ne kaydedileceği yazar, kayıt "Ekle" ile.
 
 - **Demerit hiçbir zaman hazır gelmez.** 28.09.2026'da "yeni parçada 1'den
   başlar"a çevrildi (önceden son seçilen derece hatırlanıp bir sonraki parçaya
   taşınıyordu; kullanılabilirlik sınamasında bu, dereceye bakmayan denetçinin
   önceki dereceyi **sessizce** yazması demekti — aşağıda "Kullanılabilirlik
   sınaması"). 26.10.2026'dan beri hiç seçili gelmez: her kayıttan sonra boşalır,
-  demerit seçmeden hataya dokunmak kaydetmez, uyarı çıkar (telefonda titreşim de).
+  demerit seçilmeden "Ekle" kaydetmez, uyarı çıkar (telefonda titreşim de).
 - **Kayıttan sonra bildirimde iki düğme var:** "Aynı parçaya" (aynı parçaya bir
-  hata daha — **3 dokunuş**: Aynı parçaya, demerit, hata) ve "Geri al" (yanlış
-  dokunuş tek dokunuşla silinir; ardından kısa bir "Geri alındı" bildirimi).
-  Yeni parçaya kayıt: parçaya dokun, demerit seç, hataya dokun. (Tarayıcıda
-  sayıldı; tablette sayılmadı. Bu madde 28.10.2026'ya kadar "derece korunur —
-  2 dokunuş" diyordu; demerit zorunlu olunca eskimişti, değerlendirmede bir
-  ajan yakaladı.)
+  hata daha — **4 dokunuş**: Aynı parçaya, hata, demerit, Ekle) ve "Geri al"
+  (yanlış kayıt tek dokunuşla silinir; ardından kısa bir "Geri alındı"
+  bildirimi). Yeni parçaya kayıt: parçaya dokun, hata, demerit, Ekle — 4
+  dokunuş (Ekle'den önce 3'tü, 29.10.2026). (Tarayıcıda sayıldı. Bu madde
+  28.10.2026'ya kadar "derece korunur — 2 dokunuş" diyordu; demerit zorunlu
+  olunca eskimişti, değerlendirmede bir ajan yakaladı.)
 - **Parçalar tarafıyla yazılır** ("Sol ön kapı", "Sağ ön kapı"); arama kelime
   kelime ve sırasız, Türkçe karakter şart değil ("sag on kapi" bulur), LH/RH ve
   İngilizce adla da bulur.
@@ -1420,6 +1425,46 @@ sınavlar değişmeden aşama 9'la aynı adım sayılarıyla geçti: aşama 8 s�
 11, İngilizce 2 × 10, dönüş 2 × 10, çizim ve renkli çizim 2 × 10, gerçek
 görseller 2 × 3.
 
+### Aşama 11 — uygulama ikonu ve "Ekle" düğmesi (29.10.2026) — YENİ APK GEREKİR
+
+Ürün sahibi: "uygulamaya icon yap" ve "bide hata seçiyosun tamam ekle diye bişi
+çıkması lazım kullanamıyorum anlamadım yani basit anlaşılır olsun".
+
+**İkon.** Lacivert zemin (uygulamanın ana rengi `#173C7E`), beyaz araç silüeti,
+yeşil onay rozeti. Marka ya da Hyundai logosu yok; çizimi ben yaptım (SVG'den
+üretildi, `assets/images/`). Android'in uyarlanabilir ikonu için ön plan
+görünen alanın içinde (daire maskede kırpılmıyor; önizlemeyle bakıldı).
+`expo prebuild` yerelde koşturuldu: `mipmap-*` dosyaları ve lacivert ikon
+zemini üretildi. **Telefonda görülmedi.**
+
+**İkon OTA ile gelmez.** İkon APK'nın içine gömülüyor; bu yüzden `app.json`
+değişti ve sürüm **0.2.0 → 0.2.1** oldu (OTA iş akışının "yerel kod bekçisi"
+`app.json` değişip sürüm aynı kalırsa yayımlamıyor). Sonucu:
+- Yeni APK kurulmalı (`apk` dalındaki doğrudan bağlantı). İmza her derlemede
+  aynı anahtar: eskisinin üstüne kurulur, **veriler silinmez**.
+- Bundan sonraki OTA güncellemeleri yalnız 0.2.1 APK'lara iner. 0.2.0 APK'sı
+  kurulu kalan telefon güncelleme almaz (hata da vermez).
+
+**"Ekle".** Hataya dokunmak artık **kaydetmiyor, seçiyor** (karo işaretlenir;
+başka hataya dokununca seçim geçer, aynısına dokununca kalkar). Altta sabit bir
+çubuk ne kaydedileceğini yazar ("Çizik · Demerit 2 · MINOR"); eksik olan
+(hata ya da demerit) uyarı renginde yazar. Kayıt yalnız **Ekle** ile; eksikle
+basılırsa kaydetmez, ne eksikse söyler. Sık hatalar panelinde de aynı: çip →
+sınıf → demerit → Ekle. Yeni hata tipi eklenince artık kendiliğinden
+kaydedilmiyor, seçili gelir. Bedeli: her kayıt bir dokunuş uzadı (yeni parçaya
+3'ten 4'e, şeritten 2'den 3'e) — ürün sahibinin tercihi anlaşılırlık.
+
+**Neyle doğrulandı** (beklentiler benim; **telefonda denenmedi**): birim
+testleri 1060/1060 (bu iş arayüzde; yeni birim testi yok). Yeni web sınavı
+(`asama11`, 5 adım: dokunmak seçer, kaydetmez; seçim geçer ve kalkar; eksikle
+Ekle kaydetmez; tam seçimle tek kayıt ve sıfırlanma; çift basış tek kayıt;
+İngilizce çubuk) bu kodda geçti, **bir önceki gönderimin koduyla derlenmiş
+pakette 5 adımın 5'i düştü**. Çift basış adımı zayıf: ilk kayıttan sonra
+panel kapandığı için ikinci basış zaten düğmeye düşmeyebilir. Eski sınavlarda
+hataya dokunup kaydeden adımlar yeni akışa çevrildi (tıklama yolu değişti;
+sayaç, bildirim ve kayıt denetimleri aynı).
+Eski web sınavları bu yazı yazılırken koşuyordu; sonuçları bir sonraki gönderimde.
+
 ## Durum — ne bitti, ne bitmedi
 
 | | |
@@ -1430,7 +1475,7 @@ görseller 2 × 3.
 | Lumiform'dan esinlenen düzen (25.10.2026): sekmeler, kontrol listesi, ilerleme, rapor özeti | **Kod bitti, beğeni ölçülmedi** — 4 düzende 16 adım geçti; gerçek cihazda görülmedi |
 | Denetim listesi · yeni denetim · çalışma ekranı · rapor · ayarlar | **Bitti** |
 | Parça kataloğu (182 parça; elektrikli araçta 176, benzinlide 174 listelenir — 26.10.2026'da garnişler, DRL, üçgen cam eklendi), VIN doğrulama | **Bitti** (web sürümünden taşındı, TypeScript'e çevrildi) |
-| Hızlı giriş (yeni parçaya 3 dokunuş, sık hatalar şeridinden 2), geri al | **Bitti** |
+| Hızlı giriş: hata seç → demerit → **Ekle** (29.10.2026; yeni parçaya 4 dokunuş, sık hatalar şeridinden 3), geri al | **Kod bitti** — ürün sahibinin isteğiyle; web'de sınandı, **telefonda denenmedi** |
 | Ekibin Excel'ine ekleme, sık hatalar şeridi (27.10.2026); gönderim izi (28.10.2026) | **Kod bitti** — ekibin gerçek dosyasıyla yerelde doğrulandı (openpyxl, LibreOffice); **Excel'de açılmadı, telefonda denenmedi**; parça eşlemesinin 157'den 108'i denetlenmedi; gönderim izi yalnız bu telefonda |
 | Kullanılabilirlik düzeltmeleri (üç ajanın sınaması, 28.09.2026) | **Bitti** — yapay zekâ ajanlarının web sınamasına göre; **gerçek denetçiyle doğrulanmadı** (aşağıda) |
 | Derece 1/2/3 + kabul edilebilir (parantez) | **26.10.2026'da yerini Excel'in DEMERIT 0–3 + CLASS'ı aldı** (aşağıdaki satır) |
