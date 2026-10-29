@@ -1,0 +1,4 @@
+commit=43fc6f1f6c2b20433fc4ca70d83a777a3d50f659
+kosu=40862207665
+tarih=2026-10-29T11:21:14Z
+dosya=arac-audit-43fc6f1.apk
