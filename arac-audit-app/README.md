@@ -1463,7 +1463,26 @@ pakette 5 adımın 5'i düştü**. Çift basış adımı zayıf: ilk kayıttan s
 panel kapandığı için ikinci basış zaten düğmeye düşmeyebilir. Eski sınavlarda
 hataya dokunup kaydeden adımlar yeni akışa çevrildi (tıklama yolu değişti;
 sayaç, bildirim ve kayıt denetimleri aynı).
-Eski web sınavları bu yazı yazılırken koşuyordu; sonuçları bir sonraki gönderimde.
+
+Sınav sonuçları (web tarayıcısı; dört düzen = telefon/tablet × açık/koyu):
+- `asama11`: 4 düzende 5/5. İlk koşuda tablette İngilizce adım düştü:
+  **sınavın seçicisi** "Hood" ile başlayan ilk etiketi aldı, o da kayıtlı bir
+  hatanın satırıydı (tablette parça kartı "Hood, 2 records" adlı bir radyo).
+  Seçici daraltılınca geçti.
+- İlk koşuda iki eski sınav da **sınavın kendisi** yüzünden düştü: hata
+  karosuna yazısından tıklayıp kaydı bekleyen iki adımı (İngilizce sınav,
+  gerçek görsellerde iki parça arası) yeni akışa çevirmeyi atlamıştım.
+  Çevrilince geçtiler: İngilizce 2 × 10, gerçek görseller 2 × 3.
+- Çizim sınavı telefonda bir kez ilk adımda düştü (Ayarlar'daki görsel
+  yuvası "Boş" kaldı). Bu işin dokunmadığı bir yer; aynı kodla yeniden
+  koşunca 10/10 geçti. **Sebebini bilmiyorum**; dört tarayıcı aynı anda
+  koşarken dosya seçicinin yarışı olabilir, doğrulanmadı.
+- Öbürleri aşama 10'la aynı adım sayılarıyla geçti: sadeleştirme 4 düzende
+  (19/17), aşama 8 sınavı 4 × 11, aşama 10 sınavı 2 × 4, dönüş 2 × 10, çizim
+  ve renkli çizim 2 × 10.
+- Ekrandaki iki talimat metni sonradan düzeltildi (tablet boş durumu, ana
+  sayfa); son kodla derlenen pakette `asama11` (telefon, tablet) ve
+  sadeleştirme (telefon, tablet) yeniden koşup geçti.
 
 ## Durum — ne bitti, ne bitmedi
 
