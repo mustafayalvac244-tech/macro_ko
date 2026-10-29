@@ -2246,9 +2246,8 @@ async function fiyatUlkeYaz() {
  * satış ülkesi kapatılır. Uygulama mağazadan SİLİNMEZ; geri açmak
  * `satis-ac` ile tek koşu.
  *
- * ÖLÇÜLMÜŞ OLAN (fiyatUlkeYaz, 18.09.2026): satış haritası
- * /v2/apps/{id}/appAvailability altında, ülke başına bir
- * territoryAvailabilities kaydı, `available` alanıyla. Yalnız TUR açık.
+ * Satış haritası: ülke başına bir territoryAvailabilities kaydı,
+ * `available` alanıyla. Yalnız TUR açık (fiyatUlkeYaz, 18.09.2026).
  * ÖLÇÜLMEMİŞ OLAN: kayıtları listeleme ve tek kaydı değiştirme uçları.
  * Bu yüzden adım önce OKUR, sonra YAZAR, sonra YENİDEN OKUR; Apple bir
  * ucu reddederse kendi hata metni basılır ve hiçbir şey değişmez.
@@ -2286,7 +2285,17 @@ async function satisDurumuYaz(acilsin) {
   };
 
   console.log(`═══ SATIŞ ${acilsin ? 'AÇ' : 'DURDUR'} ═══`);
-  const uygunluk = (await v2(`/apps/${APP_ID}/appAvailability`))?.data;
+  // 29.10.2026 ÖLÇÜLDÜ: v2 /apps/{id}/appAvailability → 404 "path does
+  // not match a defined resource type" (yol YOK). 18.09'daki NOT_FOUND
+  // v1 /apps/{id}/appAvailabilityV2 içindi (kayıt yoktu; şimdi var).
+  let uygunluk = null;
+  for (const [ad, oku] of [
+    ['v1 appAvailabilityV2', () => api(`/apps/${APP_ID}/appAvailabilityV2`)],
+    ['v2 appAvailability', () => v2(`/apps/${APP_ID}/appAvailability`)],
+  ]) {
+    try { uygunluk = (await oku())?.data; if (uygunluk?.id) { console.log(`  harita: ${ad} → ${uygunluk.id}`); break; } }
+    catch (e) { console.log(`  ? ${ad}: ${String(e.message).split('\n').slice(0, 2).join(' | ')}`); }
+  }
   if (!uygunluk?.id) {
     console.log('  ✗ satış haritası okunamadı — hiçbir şey yazılmadı.');
     return;
