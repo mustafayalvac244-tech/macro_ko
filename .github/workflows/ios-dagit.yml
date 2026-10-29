@@ -135,6 +135,11 @@ on:
           # gönderimden önce sürümün bütün eksiklerini tek tek ölçüp basar.
           # Gönderim App Store Connect'ten iptal edilebilir, kalıcı değil.
           - incelemeye-gonder  # App Store incelemesine sun
+          # 29.10.2026, ürün sahibi "SATIŞI DURDUR": Supabase durdu, uygulama
+          # çalışmıyor. Satış ülkesini kapatır (mağazadan silmez); okur → yazar
+          # → geri okur. Geri açmak: satis-ac.
+          - satis-durdur       # satıştan kaldır (tüm ülkeler available=false)
+          - satis-ac           # Türkiye'de yeniden satışa aç
       profil:
         description: 'Derleme profili — production App Store/TestFlight için, preview yalnız kayıtlı cihazlara kurulur'
         type: choice
@@ -428,6 +433,21 @@ jobs:
             ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
             APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
               node scripts/asc-form.mjs fiyat-ulke-yaz 2>&1 || echo "(fiyat-ulke-yaz düştü)"
+            echo '```'
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Satış durumu (durdur / aç)
+        if: inputs.is == 'satis-durdur' || inputs.is == 'satis-ac'
+        env:
+          ASC_KEY_PATH: ./asc-api-key.p8
+        run: |
+          {
+            echo "## Satış durumu: ${{ inputs.is }}"
+            echo '```'
+            ASC_KEY_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyId")" \
+            ASC_ISSUER_ID="$(node -p "require('./eas.json').submit.production.ios.ascApiKeyIssuerId")" \
+            APP_ID="$(node -p "require('./eas.json').submit.production.ios.ascAppId")" \
+              node scripts/asc-form.mjs ${{ inputs.is }} 2>&1 || echo "(${{ inputs.is }} düştü)"
             echo '```'
           } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 

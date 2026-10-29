@@ -2238,7 +2238,89 @@ async function fiyatUlkeYaz() {
   }
 }
 
+/**
+ * SATIŞI DURDUR / AÇ — 29.10.2026, ürün sahibi: "SATIŞI DURDUR".
+ *
+ * Supabase projesi ödeme yapılamadığı için durdu (INACTIVE); uygulama
+ * girişte hata veriyor. Çalışmayan uygulama mağazada indirilmesin diye
+ * satış ülkesi kapatılır. Uygulama mağazadan SİLİNMEZ; geri açmak
+ * `satis-ac` ile tek koşu.
+ *
+ * ÖLÇÜLMÜŞ OLAN (fiyatUlkeYaz, 18.09.2026): satış haritası
+ * /v2/apps/{id}/appAvailability altında, ülke başına bir
+ * territoryAvailabilities kaydı, `available` alanıyla. Yalnız TUR açık.
+ * ÖLÇÜLMEMİŞ OLAN: kayıtları listeleme ve tek kaydı değiştirme uçları.
+ * Bu yüzden adım önce OKUR, sonra YAZAR, sonra YENİDEN OKUR; Apple bir
+ * ucu reddederse kendi hata metni basılır ve hiçbir şey değişmez.
+ */
+async function satisDurumuYaz(acilsin) {
+  const v2 = async (yol, secenek) => {
+    const cevap = await fetch(`https://api.appstoreconnect.apple.com/v2${yol}`, {
+      ...secenek,
+      headers: { Authorization: `Bearer ${TOKEN ??= jwtUret()}`, 'Content-Type': 'application/json', ...(secenek?.headers || {}) },
+    });
+    const metin = await cevap.text();
+    let veri = null;
+    try { veri = metin ? JSON.parse(metin) : null; } catch { /* HTML */ }
+    if (!cevap.ok) {
+      const detay = veri?.errors ? veri.errors.map((e) => `${e.status} ${e.code}: ${e.title} — ${e.detail}`).join('\n  ') : metin.slice(0, 400);
+      throw new Error(`Apple API ${cevap.status} ${secenek?.method || 'GET'} v2${yol}\n  ${detay}`);
+    }
+    return veri;
+  };
+
+  const haritaOku = async (kimlik) => {
+    const kayitlar = [];
+    let yol = `/appAvailabilities/${kimlik}/territoryAvailabilities?include=territory&limit=200`;
+    let sayfa = 0;
+    while (yol && sayfa < 10) {
+      const c = await v2(yol);
+      for (const k of c?.data || []) {
+        kayitlar.push({ id: k.id, ulke: k.relationships?.territory?.data?.id || '?', acik: k.attributes?.available === true });
+      }
+      sayfa += 1;
+      const sonraki = c?.links?.next;
+      yol = sonraki ? sonraki.replace(/^https:\/\/api\.appstoreconnect\.apple\.com\/v2/, '') : null;
+    }
+    return kayitlar;
+  };
+
+  console.log(`═══ SATIŞ ${acilsin ? 'AÇ' : 'DURDUR'} ═══`);
+  const uygunluk = (await v2(`/apps/${APP_ID}/appAvailability`))?.data;
+  if (!uygunluk?.id) {
+    console.log('  ✗ satış haritası okunamadı — hiçbir şey yazılmadı.');
+    return;
+  }
+  const once = await haritaOku(uygunluk.id);
+  const acikOnce = once.filter((k) => k.acik).map((k) => k.ulke);
+  console.log(`  ÖNCE: ${once.length} ülke kaydı · satışta: ${acikOnce.length ? acikOnce.join(', ') : 'YOK'}`);
+
+  const hedefler = acilsin ? once.filter((k) => k.ulke === 'TUR' && !k.acik) : once.filter((k) => k.acik);
+  if (hedefler.length === 0) {
+    console.log(`  zaten ${acilsin ? 'Türkiye\'de satışta' : 'hiçbir ülkede satışta değil'} — yazma yok.`);
+    return;
+  }
+  for (const k of hedefler) {
+    try {
+      await api(`/territoryAvailabilities/${k.id}`, {
+        method: 'PATCH',
+        body: { data: { type: 'territoryAvailabilities', id: k.id, attributes: { available: acilsin } } },
+      });
+      console.log(`  → ${k.ulke}: available=${acilsin} yazıldı`);
+    } catch (e) {
+      console.log(`  ✗ ${k.ulke} yazılamadı:`);
+      for (const s of String(e.message).split('\n').slice(0, 4)) console.log(`    ${s}`);
+    }
+  }
+
+  const sonra = await haritaOku(uygunluk.id);
+  const acikSonra = sonra.filter((k) => k.acik).map((k) => k.ulke);
+  console.log(`  SONRA (geri okundu): satışta: ${acikSonra.length ? acikSonra.join(', ') : 'YOK'}`);
+}
+
 const MODLAR = {
+  'satis-durdur': () => satisDurumuYaz(false),
+  'satis-ac': () => satisDurumuYaz(true),
   yaz,
   'tam-denetim': tamDenetim,
   'fiyat-ulke-yaz': fiyatUlkeYaz,
