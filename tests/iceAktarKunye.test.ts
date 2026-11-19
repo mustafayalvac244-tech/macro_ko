@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { belgeOkumaHatasi, gelecekDurusmaGunu, yerelKunye } from '@/lib/iceAktarKunye';
 
-// Gerçekçi ama UYDURMA bir UYAP dosya üst bilgisi.
+// Gerçekçi ama UYDURMA bir UYAP dosya üst bilgisi. Duruşma günü uzak gelecekte:
+// geçmiş gün düşürülür; 14.11.2026 o gün geçince test 19.11.2026'da düştü.
 const UYAP = [
   'T.C.',
   'ANKARA 3. ASLİYE HUKUK MAHKEMESİ',
@@ -9,7 +10,7 @@ const UYAP = [
   'DAVACI : Örnek Davacı',
   'DAVALI : Örnek Davalı Ltd. Şti.',
   'Dava Türü: Alacak',
-  'Duruşma Tarihi: 14.11.2026',
+  'Duruşma Tarihi: 14.11.2036',
 ].join('\n');
 
 describe('Belgeden dosya aç — önce yapay zekâsız', () => {
@@ -18,7 +19,7 @@ describe('Belgeden dosya aç — önce yapay zekâsız', () => {
     expect(y.yeterli).toBe(true);
     expect(y.form.case_number).toBe('2023/145');
     expect(y.form.court_name).toMatch(/ASLİYE HUKUK MAHKEMESİ/);
-    expect(y.form.hearing_date).toBe('2026-11-14');
+    expect(y.form.hearing_date).toBe('2036-11-14');
   });
 
   it('karşı taraf TAHMİN EDİLMEZ; davacı/davalı seçenek olarak gelir', () => {
