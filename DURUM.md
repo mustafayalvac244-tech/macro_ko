@@ -10,12 +10,12 @@
 > Kısa tut — 120 satırı geçerse `tests/durumDosyasi.test.ts` düşer. Uzun
 > gerekçe ve geçmiş `KARAR-DEFTERI.md`'ye yazılır, burada yalnız ŞU AN.
 
-**Son güncelleme:** 29.10.2026 (SATIŞ DURDURULDU; Supabase INACTIVE — ödeme yok). 11.10: 30 ajan yayında (2e).
+**Son güncelleme:** 19.11.2026 (App Store bağlantısı kaldırıldı, PR #159). 29.10: SATIŞ DURDURULDU (Supabase INACTIVE — ödeme yok). 11.10: 30 ajan yayında (2e).
 
 ## 1. Şu an — yayın durumu
 
 - **29.10 SATIŞ DURDURULDU** (ios-dagit `satis-durdur`; geri okundu: satışta YOK; aç: `satis-ac`).
-  Supabase INACTIVE (ödeme yok) → uygulama/hasat durdu. iOS 3.4.0 silinmedi; sitede bağlantı var.
+  Supabase INACTIVE → uygulama/hasat durdu. 19.11: App Store bağlantısı site+web'den KALDIRILDI (PR #159, canlıda 0).
 - **Web** (`vekilpro.app/app`) `main`'den yayınlanır; `docs/app` = `npm run
   export:web` (41 sn, 03.10 ölçüldü) + commit. Ortam yoksa derleme durur.
 - **Hasat AÇIK** (28.09 18:34 UTC, 0160; ürün sahibi "hasata devam"). Geri alma
